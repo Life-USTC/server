@@ -2,7 +2,7 @@
 {% extends "ustc/base.html" %}
 {% load i18n %}
 {% load ustc_extras %}
-{% block title %}{% trans "Campuses" %} - {% trans "SiGNAL" %}{% endblock %}
+{% block title %}{% trans "Campuses" %} - {% trans "Life@USTC" %}{% endblock %}
 
 {% block content %}
 <div class="list-header">
@@ -31,9 +31,7 @@
       <div class="card list-card">
         <div class="card-body">
           <h5 class="card-title">
-            <a href="{% url 'ustc:campus-detail' campus.pk %}" class="subtle-link text-primary">
-              {{ campus|translated_name }}
-            </a>
+            <a href="{% url 'ustc:campus-detail' campus.pk %}" class="subtle-link text-primary"> {{ campus|translated_name }} </a>
           </h5>
         </div>
       </div>
@@ -46,5 +44,4 @@
   </div>
 </div>
 
-{% include 'ustc/partials/pagination.html' %}
-{% endblock %}
+{% include 'ustc/partials/pagination.html' %} {% endblock %}

@@ -2,7 +2,7 @@
 {% extends "ustc/base.html" %}
 {% load i18n %}
 {% load ustc_extras %}
-{% block title %}{% trans "Semesters" %} - {% trans "SiGNAL" %}{% endblock %}
+{% block title %}{% trans "Semesters" %} - {% trans "Life@USTC" %}{% endblock %}
 
 {% block content %}
 <div class="list-header">
@@ -29,19 +29,17 @@
     {% for semester in semesters %}
     <div class="col">
       {% now "Y-m-d" as today %}
-      <div class="card list-card {% if semester.start_date|date:'Y-m-d' <= today and today <= semester.end_date|date:'Y-m-d' %}border-success{% endif %}">
+      <div
+        class="card list-card {% if semester.start_date|date:'Y-m-d' <= today and today <= semester.end_date|date:'Y-m-d' %}border-success{% endif %}"
+      >
         <div class="card-body">
           <h5 class="card-title">
-            <a href="{% url 'ustc:semester-detail' semester.pk %}" class="subtle-link text-primary">
-              {{ semester.name }}
-            </a>
+            <a href="{% url 'ustc:semester-detail' semester.pk %}" class="subtle-link text-primary"> {{ semester.name }} </a>
             {% if semester.start_date|date:'Y-m-d' <= today and today <= semester.end_date|date:'Y-m-d' %}
             <canvas class="rounded-circle bg-success mx-2" width="10" height="10" style="display: inline-block; vertical-align: middle"></canvas>
             {% endif %}
           </h5>
-          <p class="card-text font-monospace text-muted">
-            {{ semester.start_date|date:"Y.m.d" }} - {{ semester.end_date|date:"Y.m.d" }}
-          </p>
+          <p class="card-text font-monospace text-muted"> {{ semester.start_date|date:"Y.m.d" }} - {{ semester.end_date|date:"Y.m.d" }} </p>
         </div>
       </div>
     </div>
@@ -53,5 +51,4 @@
   </div>
 </div>
 
-{% include 'ustc/partials/pagination.html' %}
-{% endblock %}
+{% include 'ustc/partials/pagination.html' %} {% endblock %}

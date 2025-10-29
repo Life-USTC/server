@@ -2,15 +2,15 @@ name: Build and Push Docker Image
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
-      - 'src/**'
-      - '.github/workflows/docker-build-push.yml'
+      - "src/**"
+      - ".github/workflows/docker-build-push.yml"
   workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: signal-team/server
+  IMAGE_NAME: Life-USTC/server
 
 jobs:
   build-and-push:

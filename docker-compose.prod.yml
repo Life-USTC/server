@@ -11,7 +11,7 @@ services:
             - backend
 
     web:
-        image: ghcr.io/signal-team/server:latest
+        image: ghcr.io/Life-USTC/server:latest
         command: python -m gunicorn server.wsgi:application --bind 0.0.0.0:8000
         volumes:
             - ./src:/app
