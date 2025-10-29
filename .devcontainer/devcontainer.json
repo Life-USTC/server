@@ -1,25 +1,26 @@
 {
-    "name": "Django Dev",
-    "dockerComposeFile": [
-        "../docker-compose.yml"
-    ],
-    "service": "web",
-    "workspaceFolder": "/workspace",
-    "customizations": {
-        "vscode": {
-            "extensions": [
-                "ms-python.python",
-                "ms-python.autopep8",
-                "ms-azuretools.vscode-docker",
-                "GitHub.copilot",
-                "esbenp.prettier-vscode",
-                "samuelcolvin.jinjahtml",
-                "eamodio.gitlens"
-            ],
-            "settings": {
-                "python.defaultInterpreterPath": "/usr/local/bin/python"
-            }
-        }
-    },
-    "postCreateCommand": "apt-get update && apt-get install -y git"
+  "name": "Django Dev",
+  "dockerComposeFile": ["../docker-compose.yml"],
+  "service": "web",
+  "workspaceFolder": "/workspace",
+  "features": {
+    "git": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.autopep8",
+        "ms-azuretools.vscode-docker",
+        "GitHub.copilot",
+        "esbenp.prettier-vscode",
+        "samuelcolvin.jinjahtml",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python"
+      }
+    }
+  },
+  "postCreateCommand": ""
 }
