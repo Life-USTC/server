@@ -1,44 +1,30 @@
-from django.urls import path, include
-from rest_framework import routers
-from . import views
+from django.urls import path
 
-app_name = 'ustc'
+from .views import *
 
-# Create a router for API views
-router = routers.DefaultRouter()
-router.register(r'semester', views.SemesterViewSet, basename='semester')
-router.register(r'department', views.DepartmentViewSet, basename='department')
-router.register(r'campus', views.CampusViewSet, basename='campus')
-router.register(r'course', views.CourseViewSet, basename='course')
-router.register(r'teacher', views.TeacherViewSet, basename='teacher')
-router.register(r'admin-class', views.AdminClassViewSet, basename='admin-class')
-router.register(r'section', views.SectionViewSet, basename='section')
+app_name = "ustc"
 
 urlpatterns = [
-    # Home page
-    path('', views.home, name='home'),
-
-    path('semester/', views.semester_list, name='semester-list'),
-    path('department/', views.department_list, name='department-list'),
-    path('campus/', views.campus_list, name='campus-list'),
-    path('course/', views.course_list, name='course-list'),
-    path('teacher/', views.teacher_list, name='teacher-list'),
-    path('admin-class/', views.admin_class_list, name='admin-class-list'),
-    path('section/', views.section_list, name='section-list'),
-
-    path('semester/<int:pk>/', views.semester_detail, name='semester-detail'),
-    path('department/<int:pk>/', views.department_detail, name='department-detail'),
-    path('campus/<int:pk>/', views.campus_detail, name='campus-detail'),
-    path('course/<int:pk>/', views.course_detail, name='course-detail'),
-    path('teacher/<int:pk>/', views.teacher_detail, name='teacher-detail'),
-    path('admin-class/<int:pk>/', views.admin_class_detail, name='admin-class-detail'),
-    path('section/<int:pk>/', views.section_detail, name='section-detail'),
-
-    path('semester/jw-id/<int:jw_id>/', views.semester_detail_by_jw_id, name='semester-detail-by-jw-id'),
-    path('course/jw-id/<int:jw_id>/', views.course_detail_by_jw_id, name='course-detail-by-jw-id'),
-    path('section/jw-id/<int:jw_id>/', views.section_detail_by_jw_id, name='section-detail-by-jw-id'),
-
-    # iCalendar routes
-    path('section/<int:pk>/ical/', views.section_ical, name='section-ical'),
-    path('schedule/<int:pk>/ical/', views.schedule_ical, name='schedule-ical'),
+    # fmt: off
+    path("", home, name="home"),
+    path("campus/", campus_list, name="campus-list"),
+    path("campus/<int:pk>/", campus_detail, name="campus-detail"),
+    path("department/", department_list, name="department-list"),
+    path("department/<int:pk>/", department_detail, name="department-detail"),
+    path("admin-class/", admin_class_list, name="admin-class-list"),
+    path("admin-class/<int:pk>/", admin_class_detail, name="admin-class-detail"),
+    path("teacher/", teacher_list, name="teacher-list"),
+    path("teacher/<int:pk>/", teacher_detail, name="teacher-detail"),
+    path("semester/", semester_list, name="semester-list"),
+    path("semester/<int:pk>/", semester_detail, name="semester-detail"),
+    path("semester/jw-id/<int:jw_id>/",semester_detail_by_jw_id,name="semester-detail-by-jw-id"),
+    path("course/", course_list, name="course-list"),
+    path("course/<int:pk>/", course_detail, name="course-detail"),
+    path("course/jw-id/<int:jw_id>/",course_detail_by_jw_id,name="course-detail-by-jw-id"),
+    path("section/", section_list, name="section-list"),
+    path("section/<int:pk>/", section_detail, name="section-detail"),
+    path("section/<int:pk>/ical/", section_ical, name="section-ical"),
+    path("section/jw-id/<int:jw_id>/", section_detail_by_jw_id, name="section-detail-by-jw-id"),
+    path("schedule/<int:pk>/ical/", schedule_ical, name="schedule-ical"),
+    # fmt: on
 ]

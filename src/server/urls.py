@@ -22,6 +22,6 @@ from django.views.generic import RedirectView
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("i18n/", include("django.conf.urls.i18n")),  # Language switching URLs
-    path("api/v1/ustc/", include("server.urls_api_v1")), # API v1 URLs for USTC app
+    path("api/v1/ustc/", include("ustc.urls_api_v1")),  # API v1 URLs for USTC app
     path("ustc/", include("ustc.urls")),  # USTC app URLs for web pages
 ]

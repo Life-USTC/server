@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import pytz
 
 # UTC+8 timezone (China Standard Time)
-CST = pytz.timezone('Asia/Shanghai')
+CST = pytz.timezone("Asia/Shanghai")
 
 
 def create_calendar(name, description=None):
@@ -11,17 +11,17 @@ def create_calendar(name, description=None):
     Create an iCalendar calendar with basic properties
     """
     cal = Calendar()
-    cal.add('prodid', '-//USTC Course Schedule//ustc.edu.cn//')
-    cal.add('version', '2.0')
-    cal.add('name', name)
-    cal.add('x-wr-calname', name)
+    cal.add("prodid", "-//USTC Course Schedule//ustc.edu.cn//")
+    cal.add("version", "2.0")
+    cal.add("name", name)
+    cal.add("x-wr-calname", name)
 
     if description:
-        cal.add('description', description)
-        cal.add('x-wr-caldesc', description)
+        cal.add("description", description)
+        cal.add("x-wr-caldesc", description)
 
     # Set timezone to UTC+8
-    cal.add('x-wr-timezone', 'Asia/Shanghai')
+    cal.add("x-wr-timezone", "Asia/Shanghai")
 
     return cal
 
@@ -38,32 +38,30 @@ def create_event_from_schedule(schedule):
     summary = f"{course.code} {course.name_cn}"
 
     # Add basic event properties
-    event.add('summary', summary)
+    event.add("summary", summary)
 
     # Create unique identifier
-    event.add('uid', f'schedule-{schedule.id}@ustc.edu.cn')
+    event.add("uid", f"schedule-{schedule.id}@ustc.edu.cn")
 
     # Get the event date and time
     event_date = schedule.date
 
     # Convert start_time and end_time (minutes from midnight) to datetime objects
-    start_datetime = datetime.combine(
-        event_date,
-        datetime.min.time()
-    ) + timedelta(minutes=schedule.start_time)
+    start_datetime = datetime.combine(event_date, datetime.min.time()) + timedelta(
+        minutes=schedule.start_time
+    )
 
-    end_datetime = datetime.combine(
-        event_date,
-        datetime.min.time()
-    ) + timedelta(minutes=schedule.end_time)
+    end_datetime = datetime.combine(event_date, datetime.min.time()) + timedelta(
+        minutes=schedule.end_time
+    )
 
     # Localize the datetime objects to UTC+8
     start_datetime = CST.localize(start_datetime)
     end_datetime = CST.localize(end_datetime)
 
     # Add start and end times to event
-    event.add('dtstart', start_datetime)
-    event.add('dtend', end_datetime)
+    event.add("dtstart", start_datetime)
+    event.add("dtend", end_datetime)
 
     # Add location information
     location_parts = []
@@ -77,7 +75,7 @@ def create_event_from_schedule(schedule):
         location_parts.append(schedule.custom_place)
 
     if location_parts:
-        event.add('location', ' '.join(location_parts))
+        event.add("location", " ".join(location_parts))
 
     # Add teacher information to description
     description_parts = []
@@ -105,7 +103,7 @@ def create_event_from_schedule(schedule):
 
     # Add the description to the event
     if description_parts:
-        event.add('description', '\n'.join(description_parts))
+        event.add("description", "\n".join(description_parts))
 
     # Add categories
     categories = []
@@ -115,12 +113,12 @@ def create_event_from_schedule(schedule):
         categories.append(course.type.name_cn)
 
     if categories:
-        event.add('categories', categories)
+        event.add("categories", categories)
 
     # Set the class as transparent (doesn't block time in availability search)
-    event.add('transp', 'TRANSPARENT')
+    event.add("transp", "TRANSPARENT")
 
     # Add creation timestamp
-    event.add('dtstamp', datetime.now(CST))
+    event.add("dtstamp", datetime.now(CST))
 
     return event

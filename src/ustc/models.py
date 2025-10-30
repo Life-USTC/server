@@ -1,6 +1,8 @@
 from django.db import models
 from datetime import date
+
 from .models_extra import *
+from .ical_utils import create_calendar, create_event_from_schedule
 
 
 class Campus(models.Model):
@@ -8,58 +10,19 @@ class Campus(models.Model):
     校区
     """
 
-    jw_id = models.IntegerField(unique=True, blank=True, null=True)  # setting null=True since Campus isn't available during fetch_timetable
+    # fmt: off
+    jw_id = models.IntegerField(unique=True, blank=True, null=True)
+
     name_cn = models.CharField(max_length=100, unique=True)
     name_en = models.CharField(max_length=100, blank=True, null=True)
+    # fmt: on
 
     def __str__(self):
         return self.name_cn if self.name_cn else self.name_en or "Unnamed Campus"
 
     class Meta:
         verbose_name_plural = "Campuses"
-        ordering = ['name_cn']
-
-
-class Building(models.Model):
-    """
-    教学楼
-    """
-    jw_id = models.IntegerField(unique=True)
-    name_cn = models.CharField(max_length=100)
-    name_en = models.CharField(max_length=100, blank=True, null=True)
-    code = models.CharField(max_length=20)
-    campus = models.ForeignKey(Campus, on_delete=models.SET_NULL, blank=True, null=True)
-
-    def __str__(self):
-        return self.name_cn
-
-    class Meta:
-        verbose_name_plural = "Buildings"
-
-
-class Room(models.Model):
-    """
-    教室
-    """
-    jw_id = models.IntegerField(unique=True)
-
-    code = models.CharField(max_length=20)
-    building = models.ForeignKey(Building, on_delete=models.SET_NULL, blank=True, null=True)
-    room_type = models.ForeignKey(RoomType, on_delete=models.SET_NULL, blank=True, null=True)
-
-    name_cn = models.CharField(max_length=100)
-    name_en = models.CharField(max_length=100, blank=True, null=True)
-    floor = models.IntegerField()
-    virtual = models.BooleanField(default=False)
-    seats_for_section = models.IntegerField()
-    remark = models.TextField(blank=True, null=True)
-    seats = models.IntegerField()
-
-    def __str__(self):
-        return self.name_cn
-
-    class Meta:
-        verbose_name_plural = "Rooms"
+        ordering = ["name_cn"]
 
 
 class Department(models.Model):
@@ -67,17 +30,19 @@ class Department(models.Model):
     开课单位
     """
 
+    # fmt: off
     code = models.CharField(max_length=20, unique=True)
-    name_cn = models.CharField(max_length=100)
+    name_cn = models.CharField(max_length=100, unique=True)
     name_en = models.CharField(max_length=100, blank=True, null=True)
     is_college = models.BooleanField(default=False)
+    # fmt: on
 
     def __str__(self):
         return self.name_cn if self.name_cn else self.name_en or "Unnamed Department"
 
     class Meta:
         verbose_name_plural = "Departments"
-        ordering = ['code']
+        ordering = ["code"]
 
 
 class AdminClass(models.Model):
@@ -85,58 +50,70 @@ class AdminClass(models.Model):
     行政班
     """
 
+    # fmt: off
     name_cn = models.CharField(max_length=100, unique=True)
     name_en = models.CharField(max_length=100, blank=True, null=True)
+    # fmt: on
 
     def __str__(self):
         return self.name_cn
 
     class Meta:
         verbose_name_plural = "Admin Classes"
-        ordering = ['name_cn']
+        ordering = ["name_cn"]
 
 
 class Teacher(models.Model):
     """
     教师
     """
-    department = models.ForeignKey(Department, on_delete=models.SET_NULL, blank=True, null=True)
 
+    # fmt: off
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, blank=True, null=True)
+    
     name_cn = models.CharField(max_length=100)
     name_en = models.CharField(max_length=100, blank=True, null=True)
     teacher_id = models.IntegerField(blank=True, null=True)
     person_id = models.IntegerField(blank=True, null=True)
+    # fmt: on
 
     def __str__(self):
         return self.name_cn
 
     class Meta:
         verbose_name_plural = "Teachers"
-        ordering = ['name_cn']
+        ordering = ["name_cn"]
 
 
 class Semester(models.Model):
     """
     学期
     """
-    jw_id = models.IntegerField(unique=True)
 
+    # fmt: off
+    jw_id = models.IntegerField(unique=True)
+    
     code = models.CharField(max_length=10, unique=True)
     name = models.CharField(max_length=20, unique=True)
     start_date = models.DateField(null=True)
     end_date = models.DateField(null=True)
+    # fmt: on
 
     def __str__(self):
         return self.name
 
     class Meta:
         verbose_name_plural = "Semesters"
-        ordering = ['-start_date']
+        ordering = ["-start_date"]
 
     def is_current(self):
         """Determine if the semester is the current semester."""
         today = date.today()
-        return self.start_date <= today <= self.end_date if self.start_date and self.end_date else False
+        return (
+            self.start_date <= today <= self.end_date
+            if self.start_date and self.end_date
+            else False
+        )
 
     def is_finished(self):
         """Determine if the semester is finished."""
@@ -150,37 +127,46 @@ class Course(models.Model):
 
     此项记录课程本身的信息（不随开课学期而发生变化的信息）
     """
+
+    # fmt: off
     jw_id = models.IntegerField(unique=True)
-
+    
     education_level = models.ForeignKey(EducationLevel, on_delete=models.SET_NULL, blank=True, null=True)
-    gradation = models.ForeignKey(CourseGradation, on_delete=models.SET_NULL, blank=True, null=True)
     category = models.ForeignKey(CourseCategory, on_delete=models.SET_NULL, blank=True, null=True)
-    class_type = models.ForeignKey(ClassType, on_delete=models.SET_NULL, blank=True, null=True)
-    type = models.ForeignKey(CourseType, on_delete=models.SET_NULL, blank=True, null=True)
     classify = models.ForeignKey(CourseClassify, on_delete=models.SET_NULL, blank=True, null=True)
-
+    class_type = models.ForeignKey(ClassType, on_delete=models.SET_NULL, blank=True, null=True)
+    gradation = models.ForeignKey(CourseGradation, on_delete=models.SET_NULL, blank=True, null=True)
+    type = models.ForeignKey(CourseType, on_delete=models.SET_NULL, blank=True, null=True)
+    
     code = models.CharField(max_length=20)
     name_cn = models.CharField(max_length=100)
     name_en = models.CharField(max_length=100)
+    # fmt: on
 
     def __str__(self):
         return f"{self.code} - {self.name_cn}"
 
     class Meta:
         verbose_name_plural = "Courses"
-        ordering = ['code']
+        ordering = ["code"]
 
 
 class Section(models.Model):
     """
     开课信息
     """
+
+    # fmt: off
     jw_id = models.IntegerField(unique=True)
 
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     semester = models.ForeignKey(Semester, on_delete=models.SET_NULL, blank=True, null=True)
-    open_department = models.ForeignKey(Department, on_delete=models.SET_NULL, blank=True, null=True)
+    
     campus = models.ForeignKey(Campus, on_delete=models.SET_NULL, blank=True, null=True)
+    open_department = models.ForeignKey(Department, on_delete=models.SET_NULL, blank=True, null=True)
+    admin_classes = models.ManyToManyField(AdminClass, related_name="sections")
+    teachers = models.ManyToManyField(Teacher, related_name="sections")
+    
     exam_mode = models.ForeignKey(ExamMode, on_delete=models.SET_NULL, blank=True, null=True)
     teach_language = models.ForeignKey(TeachLanguage, on_delete=models.SET_NULL, blank=True, null=True)
 
@@ -193,9 +179,7 @@ class Section(models.Model):
     graduate_and_postgraduate = models.BooleanField(blank=True, null=True)  # 是否本研贯通
     date_time_place_text = models.TextField(blank=True, null=True)
     date_time_place_person_text = models.JSONField(blank=True, null=True)
-
-    teachers = models.ManyToManyField(Teacher, related_name="sections")
-    admin_classes = models.ManyToManyField(AdminClass, related_name="sections")
+    # fmt: on
 
     def __str__(self):
         return f"{self.code} - {self.course.name_cn} - {s.name if (s := self.semester) else ''}"
@@ -205,7 +189,6 @@ class Section(models.Model):
         Convert the section's schedule to an iCalendar format
         Returns a string in iCalendar format
         """
-        from .ical_utils import create_calendar, create_event_from_schedule
 
         # Create calendar
         cal_name = f"{self.course.code} {self.course.name_cn}"
@@ -221,17 +204,19 @@ class Section(models.Model):
             event = create_event_from_schedule(schedule)
             cal.add_component(event)
 
-        return cal.to_ical().decode('utf-8')
+        return cal.to_ical().decode("utf-8")
 
     class Meta:
         verbose_name_plural = "Sections"
-        ordering = ['code', 'semester__start_date']
+        ordering = ["code", "semester__start_date"]
 
 
 class ScheduleGroup(models.Model):
     """
     排课组
     """
+
+    # fmt: off
     jw_id = models.IntegerField(unique=True)
 
     section = models.ForeignKey(Section, on_delete=models.CASCADE)
@@ -241,6 +226,7 @@ class ScheduleGroup(models.Model):
     std_count = models.IntegerField()
     actual_periods = models.IntegerField()
     default = models.BooleanField(default=False)
+    # fmt: on
 
     def __str__(self):
         return f"Group {self.no} for Lesson {self.section.code}"
@@ -253,6 +239,8 @@ class Schedule(models.Model):
     """
     排课信息
     """
+
+    # fmt: off
     section = models.ForeignKey(Section, on_delete=models.CASCADE)
     schedule_group = models.ForeignKey(ScheduleGroup, on_delete=models.CASCADE)
     room = models.ForeignKey(Room, on_delete=models.SET_NULL, blank=True, null=True)
@@ -270,6 +258,7 @@ class Schedule(models.Model):
     exercise_class = models.BooleanField(default=False)
     start_unit = models.IntegerField()
     end_unit = models.IntegerField()
+    # fmt: on
 
     def __str__(self):
         return f"Schedule for Section {self.section.code} on {self.date}"
@@ -282,7 +271,9 @@ class Schedule(models.Model):
         from .ical_utils import create_calendar, create_event_from_schedule
 
         # Create calendar
-        cal_name = f"{self.section.course.code} {self.section.course.name_cn} - {self.date}"
+        cal_name = (
+            f"{self.section.course.code} {self.section.course.name_cn} - {self.date}"
+        )
         description = f"Schedule for {self.section.code} on {self.date}"
 
         cal = create_calendar(cal_name, description)
@@ -291,7 +282,7 @@ class Schedule(models.Model):
         event = create_event_from_schedule(self)
         cal.add_component(event)
 
-        return cal.to_ical().decode('utf-8')
+        return cal.to_ical().decode("utf-8")
 
     class Meta:
         verbose_name_plural = "Schedules"

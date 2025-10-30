@@ -2,15 +2,17 @@ from django.shortcuts import render, get_object_or_404
 from django.core.paginator import Paginator
 from django.db import models
 from django.http import HttpResponse
-from rest_framework import viewsets
+
+from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import action
 from rest_framework.response import Response
+
 from .models import *
 from .serializers import *
 from .views_extra import *
 
 
-class BaseViewSet(viewsets.ModelViewSet):
+class BaseViewSet(ModelViewSet):
     """Base ViewSet with common actions for all models"""
 
     @action(detail=False, url_path="jw-id/(?P<jw_id>[^/.]+)")
@@ -26,9 +28,24 @@ class BaseViewSet(viewsets.ModelViewSet):
             return Response({"error": str(e)}, status=404)
 
 
-class CampusViewSet(viewsets.ModelViewSet):
+class CampusViewSet(ModelViewSet):
     queryset = Campus.objects.all()
     serializer_class = CampusSerializer
+
+
+class DepartmentViewSet(ModelViewSet):
+    queryset = Department.objects.all()
+    serializer_class = DepartmentSerializer
+
+
+class AdminClassViewSet(ModelViewSet):
+    queryset = AdminClass.objects.all().order_by("name_cn")
+    serializer_class = AdminClassSerializer
+
+
+class TeacherViewSet(ModelViewSet):
+    queryset = Teacher.objects.all()
+    serializer_class = TeacherSerializer
 
 
 class SemesterViewSet(BaseViewSet):
@@ -36,27 +53,12 @@ class SemesterViewSet(BaseViewSet):
     serializer_class = SemesterSerializer
 
 
-class DepartmentViewSet(viewsets.ModelViewSet):
-    queryset = Department.objects.all()
-    serializer_class = DepartmentSerializer
-
-
 class CourseViewSet(BaseViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
 
 
-class TeacherViewSet(viewsets.ModelViewSet):
-    queryset = Teacher.objects.all()
-    serializer_class = TeacherSerializer
-
-
-class AdminClassViewSet(viewsets.ModelViewSet):
-    queryset = AdminClass.objects.all().order_by("name_cn")
-    serializer_class = AdminClassSerializer
-
-
-class ScheduleViewSet(viewsets.ModelViewSet):
+class ScheduleViewSet(ModelViewSet):
     queryset = Schedule.objects.all()
     serializer_class = ScheduleSerializer
 
@@ -70,6 +72,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
                 content_type="application/json",
                 status=500,
             )
+
         section_code = schedule.section.code
         date_str = schedule.date.strftime("%Y%m%d")
         filename = f"{section_code}_{date_str}.ics"
@@ -131,10 +134,8 @@ def home(request):
     return render(request, "ustc/home.html.jinja", context)
 
 
-def semester_list(request):
-    return generic_list_view(
-        request, Semester, "ustc/semester_list.html.jinja", "semesters"
-    )
+def campus_list(request):
+    return generic_list_view(request, Campus, "ustc/campus_list.html.jinja", "campuses")
 
 
 def department_list(request):
@@ -143,8 +144,16 @@ def department_list(request):
     )
 
 
-def campus_list(request):
-    return generic_list_view(request, Campus, "ustc/campus_list.html.jinja", "campuses")
+def admin_class_list(request):
+    return generic_list_view(
+        request, AdminClass, "ustc/admin_class_list.html.jinja", "admin_classes"
+    )
+
+
+def semester_list(request):
+    return generic_list_view(
+        request, Semester, "ustc/semester_list.html.jinja", "semesters"
+    )
 
 
 def course_list(request):
@@ -217,12 +226,6 @@ def teacher_list(request):
     return render(request, "ustc/teacher_list.html.jinja", context)
 
 
-def admin_class_list(request):
-    return generic_list_view(
-        request, AdminClass, "ustc/admin_class_list.html.jinja", "admin_classes"
-    )
-
-
 def section_list(request):
     queryset = (
         Section.objects.all().select_related("course", "semester").order_by("-jw_id")
@@ -261,6 +264,38 @@ def section_list(request):
         "departments": departments,
     }
     return render(request, "ustc/section_list.html.jinja", context)
+
+
+def campus_detail(request, pk):
+    return generic_detail_view(
+        request, Campus, "ustc/campus_detail.html.jinja", "campus", pk=pk
+    )
+
+
+def department_detail(request, pk):
+    return generic_detail_view(
+        request,
+        Department,
+        "ustc/department_detail.html.jinja",
+        "department",
+        pk=pk,
+    )
+
+
+def admin_class_detail(request, pk):
+    return generic_detail_view(
+        request,
+        AdminClass,
+        "ustc/admin_class_detail.html.jinja",
+        "admin_class",
+        pk=pk,
+    )
+
+
+def teacher_detail(request, pk):
+    return generic_detail_view(
+        request, Teacher, "ustc/teacher_detail.html.jinja", "teacher", pk=pk
+    )
 
 
 def semester_detail(request, pk):
@@ -338,19 +373,13 @@ def semester_detail(request, pk):
     return render(request, "ustc/semester_detail.html.jinja", context)
 
 
-def department_detail(request, pk):
+def semester_detail_by_jw_id(request, jw_id):
     return generic_detail_view(
         request,
-        Department,
-        "ustc/department_detail.html.jinja",
-        "department",
-        pk=pk,
-    )
-
-
-def campus_detail(request, pk):
-    return generic_detail_view(
-        request, Campus, "ustc/campus_detail.html.jinja", "campus", pk=pk
+        Semester,
+        "ustc/semester_detail.html.jinja",
+        "semester",
+        jw_id=jw_id,
     )
 
 
@@ -365,20 +394,13 @@ def course_detail(request, pk):
     return render(request, "ustc/course_detail.html.jinja", context)
 
 
-def teacher_detail(request, pk):
-    return generic_detail_view(
-        request, Teacher, "ustc/teacher_detail.html.jinja", "teacher", pk=pk
-    )
+def course_detail_by_jw_id(request, jw_id):
+    course = get_object_or_404(Course, jw_id=jw_id)
+    # Get sections for this course, ordered by -jw_id
+    sections = Section.objects.filter(course=course).order_by("-jw_id")
 
-
-def admin_class_detail(request, pk):
-    return generic_detail_view(
-        request,
-        AdminClass,
-        "ustc/admin_class_detail.html.jinja",
-        "admin_class",
-        pk=pk,
-    )
+    context = {"course": course, "sections": sections}
+    return render(request, "ustc/course_detail.html.jinja", context)
 
 
 def section_detail(request, pk):
@@ -387,25 +409,6 @@ def section_detail(request, pk):
     # Schedule data will be loaded asynchronously via JavaScript
     context = {"section": section}
     return render(request, "ustc/section_detail.html.jinja", context)
-
-
-def semester_detail_by_jw_id(request, jw_id):
-    return generic_detail_view(
-        request,
-        Semester,
-        "ustc/semester_detail.html.jinja",
-        "semester",
-        jw_id=jw_id,
-    )
-
-
-def course_detail_by_jw_id(request, jw_id):
-    course = get_object_or_404(Course, jw_id=jw_id)
-    # Get sections for this course, ordered by -jw_id
-    sections = Section.objects.filter(course=course).order_by("-jw_id")
-
-    context = {"course": course, "sections": sections}
-    return render(request, "ustc/course_detail.html.jinja", context)
 
 
 def section_detail_by_jw_id(request, jw_id):

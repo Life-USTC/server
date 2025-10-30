@@ -1,94 +1,43 @@
 from rest_framework import serializers
-from .models import (
-    Semester, CourseType, CourseGradation, CourseCategory, CourseClassify,
-    ExamMode, TeachLanguage, EducationLevel, ClassType, Department,
-    Campus, Course, Teacher, AdminClass, Section, Schedule, ScheduleGroup,
-    Room, Building
-)
 
-
-class SemesterSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Semester
-        fields = '__all__'
-
-
-class CourseTypeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CourseType
-        fields = '__all__'
-
-
-class CourseGradationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CourseGradation
-        fields = '__all__'
-
-
-class CourseCategorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CourseCategory
-        fields = '__all__'
-
-
-class CourseClassifySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CourseClassify
-        fields = '__all__'
-
-
-class ExamModeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ExamMode
-        fields = '__all__'
-
-
-class TeachLanguageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TeachLanguage
-        fields = '__all__'
-
-
-class EducationLevelSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = EducationLevel
-        fields = '__all__'
-
-
-class ClassTypeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ClassType
-        fields = '__all__'
-
-
-class DepartmentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Department
-        fields = '__all__'
+from .models import *
+from .serializers_extra import *
 
 
 class CampusSerializer(serializers.ModelSerializer):
     class Meta:
         model = Campus
-        fields = '__all__'
+        fields = "__all__"
 
 
-class TeacherSerializer(serializers.ModelSerializer):
+class DepartmentSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Teacher
-        fields = '__all__'
+        model = Department
+        fields = "__all__"
 
 
 class AdminClassSerializer(serializers.ModelSerializer):
     class Meta:
         model = AdminClass
-        fields = '__all__'
+        fields = "__all__"
+
+
+class TeacherSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Teacher
+        fields = "__all__"
+
+
+class SemesterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Semester
+        fields = "__all__"
 
 
 class CourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course
-        fields = '__all__'
+        fields = "__all__"
         depth = 1  # Include related objects one level deep
 
 
@@ -97,31 +46,15 @@ class SectionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Section
-        fields = '__all__'
+        fields = "__all__"
         depth = 1  # Include related objects one level deep
 
     def get_ical_url(self, obj):
         """Return URL to download this section's schedule as iCalendar"""
-        request = self.context.get('request')
+        request = self.context.get("request")
         if request is None:
             return None
-        return request.build_absolute_uri(f'/api/v1/sections/{obj.id}/ical/')
-
-
-class BuildingSerializer(serializers.ModelSerializer):
-    campus = CampusSerializer(read_only=True)
-
-    class Meta:
-        model = Building
-        fields = ['id', 'jw_id', 'code', 'name_cn', 'name_en', 'campus']
-
-
-class RoomSerializer(serializers.ModelSerializer):
-    building = BuildingSerializer(read_only=True)
-
-    class Meta:
-        model = Room
-        fields = ['id', 'jw_id', 'code', 'name_cn', 'name_en', 'building', 'floor', 'seats']
+        return request.build_absolute_uri(f"/api/v1/ustc/section/{obj.id}/ical/")
 
 
 class TeacherNestedSerializer(serializers.ModelSerializer):
@@ -129,19 +62,44 @@ class TeacherNestedSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Teacher
-        fields = ['id', 'name_cn', 'name_en', 'department']
+        fields = ["id", "name_cn", "name_en", "department"]
 
 
 class ScheduleGroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = ScheduleGroup
-        fields = ['id', 'jw_id', 'no', 'limit_count', 'std_count']
+        fields = ["id", "jw_id", "no", "limit_count", "std_count"]
 
 
 class CourseNestedSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course
-        fields = ['id', 'code', 'name_cn', 'name_en']
+        fields = ["id", "code", "name_cn", "name_en"]
+
+
+class BuildingSerializer(serializers.ModelSerializer):
+    campus = CampusSerializer(read_only=True)
+
+    class Meta:
+        model = Building
+        fields = ["id", "jw_id", "code", "name_cn", "name_en", "campus"]
+
+
+class RoomSerializer(serializers.ModelSerializer):
+    building = BuildingSerializer(read_only=True)
+
+    class Meta:
+        model = Room
+        fields = [
+            "id",
+            "jw_id",
+            "code",
+            "name_cn",
+            "name_en",
+            "building",
+            "floor",
+            "seats",
+        ]
 
 
 class ScheduleSerializer(serializers.ModelSerializer):
@@ -155,10 +113,25 @@ class ScheduleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Schedule
         fields = [
-            'id', 'date', 'weekday', 'start_time', 'end_time', 'periods',
-            'custom_place', 'lesson_type', 'week_index', 'exercise_class',
-            'start_unit', 'end_unit', 'room', 'teacher', 'schedule_group',
-            'group', 'course', 'experiment', 'ical_url'
+            "id",
+            "date",
+            "weekday",
+            "start_time",
+            "end_time",
+            "periods",
+            "custom_place",
+            "lesson_type",
+            "week_index",
+            "exercise_class",
+            "start_unit",
+            "end_unit",
+            "room",
+            "teacher",
+            "schedule_group",
+            "group",
+            "course",
+            "experiment",
+            "ical_url",
         ]
 
     def get_group(self, obj):
@@ -175,7 +148,7 @@ class ScheduleSerializer(serializers.ModelSerializer):
 
     def get_ical_url(self, obj):
         """Return URL to download this schedule as iCalendar"""
-        request = self.context.get('request')
+        request = self.context.get("request")
         if request is None:
             return None
-        return request.build_absolute_uri(f'/api/v1/schedules/{obj.id}/ical/')
+        return request.build_absolute_uri(f"/api/v1/schedules/{obj.id}/ical/")

@@ -8,7 +8,9 @@ WORKDIR /app
 COPY . .
 
 RUN apt-get update && apt-get install -y gettext && rm -rf /var/lib/apt/lists/* \
-    && pip install --no-cache-dir -r requirements.txt \
-    && python manage.py compilemessages
+    && pip install --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
+
+RUN python manage.py compilemessages
 
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
