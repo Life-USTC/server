@@ -4,17 +4,19 @@
   "service": "web",
   "workspaceFolder": "/app",
   "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
   },
   "customizations": {
     "vscode": {
       "extensions": [
+        "ms-python.black-formatter",
+        "ms-python.isort",
         "ms-python.python",
-        "ms-python.autopep8",
-        "ms-azuretools.vscode-docker",
         "GitHub.copilot",
+        "GitHub.copilot-chat"
         "esbenp.prettier-vscode",
         "samuelcolvin.jinjahtml",
-        "eamodio.gitlens"
       ],
       "settings": {
         "python.defaultInterpreterPath": "/usr/local/bin/python"
