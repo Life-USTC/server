@@ -27,9 +27,15 @@ SECRET_KEY = os.getenv(
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv(
+    "DJANGO_DEBUG",
+    "False",
+).lower() in ("true", "1")
 
-ALLOWED_HOSTS = ["life-ustc.tiankaima.dev", "localhost"]
+ALLOWED_HOSTS = os.getenv(
+    "DJANGO_ALLOWED_HOSTS",
+    "localhost",
+).split(",")
 
 DATE_FORMAT = "Y-m-d"
 
@@ -87,7 +93,7 @@ DATABASES = {
         "NAME": os.getenv("POSTGRES_DB"),
         "USER": os.getenv("POSTGRES_USER"),
         "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
-        "HOST": "db",  # docker-compose service name
+        "HOST": os.getenv("POSTGRES_HOST", "localhost"),
         "PORT": os.getenv("POSTGRES_PORT", 5432),
     }
 }

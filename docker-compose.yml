@@ -2,7 +2,12 @@ services:
     db:
         image: postgres:15
         restart: always
-        env_file: .env
+        environment:
+            - POSTGRES_DB=${POSTGRES_DB:-db}
+            - POSTGRES_USER=${POSTGRES_USER:-user}
+            - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+            - POSTGRES_HOST=${POSTGRES_HOST:-db}
+            - POSTGRES_PORT=${POSTGRES_PORT:-5432}
         volumes:
             - ./pgdata:/var/lib/postgresql/data
         ports:
@@ -11,8 +16,7 @@ services:
             - backend
 
     web:
-        build:
-            context: ./src
+        image: ghcr.io/Life-USTC/server:latest
         command: python manage.py runserver 0.0.0.0:8000
         volumes:
             - .:/workspace
@@ -21,7 +25,15 @@ services:
             - "8000:8000"
         depends_on:
             - db
-        env_file: .env
+        environment:
+            - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+            - DJANGO_DEBUG=True
+            - DJANGO_ALLOWED_HOSTS=life-ustc.tiankaima.dev
+            - POSTGRES_DB=${POSTGRES_DB:-db}
+            - POSTGRES_USER=${POSTGRES_USER:-user}
+            - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+            - POSTGRES_HOST=${POSTGRES_HOST:-db}
+            - POSTGRES_PORT=${POSTGRES_PORT:-5432}
         networks:
             - backend
 
