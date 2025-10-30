@@ -2,9 +2,8 @@
   "name": "Django Dev",
   "dockerComposeFile": ["../docker-compose.yml"],
   "service": "web",
-  "workspaceFolder": "/workspace",
+  "workspaceFolder": "/app",
   "features": {
-    "git": {}
   },
   "customizations": {
     "vscode": {
