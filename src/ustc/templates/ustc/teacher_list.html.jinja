@@ -1,0 +1,52 @@
+{% extends "ustc/base.html.jinja" %}
+{% load i18n %}
+{% load ustc_extras %}
+{% block title %}
+  {% trans "Teachers" %} - {% trans "Life@USTC" %}
+{% endblock %}
+{% block content %}
+  <div class="list-header">
+    <div class="list-title-row">
+      <h1>{% trans "Teachers" %}</h1>
+      <form method="get" class="list-search-form" id="search-form">
+        <input type="text"
+               name="q"
+               class="form-control list-search-input"
+               placeholder="{% trans 'Search teachers...' %}"
+               value="{{ request.GET.q|default:'' }}" />
+        <button type="submit" class="btn btn-primary">{% trans 'Search' %}</button>
+      </form>
+    </div>
+  </div>
+  {% include 'ustc/partials/result_count.html.jinja' with item_name="teachers" %}
+  <div class="list-cards">
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+      {% for teacher in teachers %}
+        <div class="col">
+          <div class="card list-card">
+            <div class="card-body">
+              <h5 class="card-title">
+                <a href="{% url 'ustc:teacher-detail' teacher.pk %}"
+                   class="subtle-link text-primary">{{ teacher|translated_name }}</a>
+              </h5>
+              {% if teacher.department %}
+                <div class="card-text">
+                  <small class="text-muted">
+                    <strong>{% trans 'Department' %}:</strong>
+                    <a href="{% url 'ustc:department-detail' teacher.department.pk %}"
+                       class="subtle-link text-decoration-none">{{ teacher.department|translated_name }}</a>
+                  </small>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="col-12">
+          <div class="alert alert-info">{% trans 'No teachers found.' %}</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% include 'ustc/partials/pagination.html.jinja' %}
+{% endblock %}

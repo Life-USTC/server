@@ -1,0 +1,43 @@
+{% extends "ustc/base.html.jinja" %}
+{% load i18n %}
+{% load ustc_extras %}
+{% block title %}
+  {% trans "Campuses" %} - {% trans "Life@USTC" %}
+{% endblock %}
+{% block content %}
+  <div class="list-header">
+    <div class="list-title-row">
+      <h1>{% trans "Campuses" %}</h1>
+      <form method="get" class="list-search-form" id="search-form">
+        <input type="text"
+               name="q"
+               class="form-control list-search-input"
+               placeholder="{% trans 'Search campuses...' %}"
+               value="{{ request.GET.q|default:'' }}" />
+        <button type="submit" class="btn btn-primary">{% trans 'Search' %}</button>
+      </form>
+    </div>
+  </div>
+  {% include 'ustc/partials/result_count.html.jinja' with item_name="campuses" %}
+  <div class="list-cards">
+    <div class="row row-cols-2 row-cols-lg-4 g-4">
+      {% for campus in campuses %}
+        <div class="col">
+          <div class="card list-card">
+            <div class="card-body">
+              <h5 class="card-title">
+                <a href="{% url 'ustc:campus-detail' campus.pk %}"
+                   class="subtle-link text-primary">{{ campus|translated_name }}</a>
+              </h5>
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="col-12">
+          <div class="alert alert-info">{% trans 'No campuses found.' %}</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% include 'ustc/partials/pagination.html.jinja' %}
+{% endblock %}

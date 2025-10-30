@@ -15,596 +15,596 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: ustc/templates/ustc/admin_class_detail.html:5
+#: ustc/templates/ustc/admin_class_detail.html.jinja:5
 msgid "Admin Class Detail"
 msgstr "行政班详情"
 
-#: ustc/templates/ustc/admin_class_detail.html:8
-#: ustc/templates/ustc/campus_detail.html:8
-#: ustc/templates/ustc/course_detail.html:8
-#: ustc/templates/ustc/course_list.html:8
-#: ustc/templates/ustc/department_detail.html:8
-#: ustc/templates/ustc/partials/section_table.html:4
-#: ustc/templates/ustc/section_detail.html:52
-#: ustc/templates/ustc/semester_detail.html:8
-#: ustc/templates/ustc/teacher_detail.html:8
+#: ustc/templates/ustc/admin_class_detail.html.jinja:8
+#: ustc/templates/ustc/campus_detail.html.jinja:8
+#: ustc/templates/ustc/course_detail.html.jinja:8
+#: ustc/templates/ustc/course_list.html.jinja:8
+#: ustc/templates/ustc/department_detail.html.jinja:8
+#: ustc/templates/ustc/partials/section_table.html.jinja:4
+#: ustc/templates/ustc/section_detail.html.jinja:52
+#: ustc/templates/ustc/semester_detail.html.jinja:8
+#: ustc/templates/ustc/teacher_detail.html.jinja:8
 msgid "N/A"
 msgstr "暂无"
 
-#: ustc/templates/ustc/admin_class_detail.html:12
+#: ustc/templates/ustc/admin_class_detail.html.jinja:12
 msgid "View all admin classes"
 msgstr "查看所有行政班"
 
-#: ustc/templates/ustc/admin_class_detail.html:19
+#: ustc/templates/ustc/admin_class_detail.html.jinja:19
 msgid "Sections for this Admin Class"
 msgstr "该行政班的开课信息"
 
-#: ustc/templates/ustc/admin_class_list.html:5
-#: ustc/templates/ustc/admin_class_list.html:10
-#: ustc/templates/ustc/base.html:371
-#: ustc/templates/ustc/section_detail.html:185
+#: ustc/templates/ustc/admin_class_list.html.jinja:5
+#: ustc/templates/ustc/admin_class_list.html.jinja:10
+#: ustc/templates/ustc/base.html.jinja:371
+#: ustc/templates/ustc/section_detail.html.jinja:185
 msgid "Admin Classes"
 msgstr "行政班"
 
-#: ustc/templates/ustc/admin_class_list.html:5 ustc/templates/ustc/base.html:10
-#: ustc/templates/ustc/base.html:309 ustc/templates/ustc/base.html:412
-#: ustc/templates/ustc/campus_list.html:5
-#: ustc/templates/ustc/course_detail.html:5
-#: ustc/templates/ustc/course_list.html:5
-#: ustc/templates/ustc/department_list.html:5 ustc/templates/ustc/home.html:5
-#: ustc/templates/ustc/home.html:9 ustc/templates/ustc/section_list.html:5
-#: ustc/templates/ustc/semester_detail.html:5
-#: ustc/templates/ustc/semester_list.html:5
-#: ustc/templates/ustc/teacher_list.html:5
+#: ustc/templates/ustc/admin_class_list.html.jinja:5 ustc/templates/ustc/base.html.jinja:10
+#: ustc/templates/ustc/base.html.jinja:309 ustc/templates/ustc/base.html.jinja:412
+#: ustc/templates/ustc/campus_list.html.jinja:5
+#: ustc/templates/ustc/course_detail.html.jinja:5
+#: ustc/templates/ustc/course_list.html.jinja:5
+#: ustc/templates/ustc/department_list.html.jinja:5 ustc/templates/ustc/home.html.jinja:5
+#: ustc/templates/ustc/home.html.jinja:9 ustc/templates/ustc/section_list.html.jinja:5
+#: ustc/templates/ustc/semester_detail.html.jinja:5
+#: ustc/templates/ustc/semester_list.html.jinja:5
+#: ustc/templates/ustc/teacher_list.html.jinja:5
 msgid "Life@USTC"
 msgstr "Life@USTC"
 
-#: ustc/templates/ustc/admin_class_list.html:16
+#: ustc/templates/ustc/admin_class_list.html.jinja:16
 msgid "Search admin classes..."
 msgstr "搜索行政班..."
 
-#: ustc/templates/ustc/admin_class_list.html:19
-#: ustc/templates/ustc/campus_list.html:19
-#: ustc/templates/ustc/department_list.html:19
-#: ustc/templates/ustc/semester_list.html:19
-#: ustc/templates/ustc/teacher_list.html:19
+#: ustc/templates/ustc/admin_class_list.html.jinja:19
+#: ustc/templates/ustc/campus_list.html.jinja:19
+#: ustc/templates/ustc/department_list.html.jinja:19
+#: ustc/templates/ustc/semester_list.html.jinja:19
+#: ustc/templates/ustc/teacher_list.html.jinja:19
 msgid "Search"
 msgstr "搜索"
 
-#: ustc/templates/ustc/admin_class_list.html:24
+#: ustc/templates/ustc/admin_class_list.html.jinja:24
 msgid "admin classes"
 msgstr "行政班"
 
-#: ustc/templates/ustc/admin_class_list.html:43
+#: ustc/templates/ustc/admin_class_list.html.jinja:43
 msgid "No admin classes found."
 msgstr "未找到行政班。"
 
-#: ustc/templates/ustc/base.html:325 ustc/templates/ustc/home.html:17
-#: ustc/templates/ustc/semester_list.html:5
-#: ustc/templates/ustc/semester_list.html:10
+#: ustc/templates/ustc/base.html.jinja:325 ustc/templates/ustc/home.html.jinja:17
+#: ustc/templates/ustc/semester_list.html.jinja:5
+#: ustc/templates/ustc/semester_list.html.jinja:10
 msgid "Semesters"
 msgstr "学期"
 
-#: ustc/templates/ustc/base.html:330 ustc/templates/ustc/course_list.html:5
-#: ustc/templates/ustc/course_list.html:12 ustc/templates/ustc/home.html:26
+#: ustc/templates/ustc/base.html.jinja:330 ustc/templates/ustc/course_list.html.jinja:5
+#: ustc/templates/ustc/course_list.html.jinja:12 ustc/templates/ustc/home.html.jinja:26
 msgid "Courses"
 msgstr "课程"
 
-#: ustc/templates/ustc/base.html:335 ustc/templates/ustc/home.html:44
-#: ustc/templates/ustc/partials/section_table.html:16
-#: ustc/templates/ustc/section_detail.html:164
-#: ustc/templates/ustc/teacher_list.html:5
-#: ustc/templates/ustc/teacher_list.html:10
+#: ustc/templates/ustc/base.html.jinja:335 ustc/templates/ustc/home.html.jinja:44
+#: ustc/templates/ustc/partials/section_table.html.jinja:16
+#: ustc/templates/ustc/section_detail.html.jinja:164
+#: ustc/templates/ustc/teacher_list.html.jinja:5
+#: ustc/templates/ustc/teacher_list.html.jinja:10
 msgid "Teachers"
 msgstr "教师"
 
-#: ustc/templates/ustc/base.html:340 ustc/templates/ustc/home.html:35
-#: ustc/templates/ustc/section_list.html:5
+#: ustc/templates/ustc/base.html.jinja:340 ustc/templates/ustc/home.html.jinja:35
+#: ustc/templates/ustc/section_list.html.jinja:5
 msgid "Sections"
 msgstr "开课信息"
 
-#: ustc/templates/ustc/base.html:352
+#: ustc/templates/ustc/base.html.jinja:352
 msgid "More"
 msgstr "更多"
 
-#: ustc/templates/ustc/base.html:359 ustc/templates/ustc/department_list.html:5
-#: ustc/templates/ustc/department_list.html:10
+#: ustc/templates/ustc/base.html.jinja:359 ustc/templates/ustc/department_list.html.jinja:5
+#: ustc/templates/ustc/department_list.html.jinja:10
 msgid "Departments"
 msgstr "院系"
 
-#: ustc/templates/ustc/base.html:364 ustc/templates/ustc/campus_list.html:5
-#: ustc/templates/ustc/campus_list.html:10
+#: ustc/templates/ustc/base.html.jinja:364 ustc/templates/ustc/campus_list.html.jinja:5
+#: ustc/templates/ustc/campus_list.html.jinja:10
 msgid "Campuses"
 msgstr "校区"
 
-#: ustc/templates/ustc/base.html:375
+#: ustc/templates/ustc/base.html.jinja:375
 msgid "Admin Panel"
 msgstr "管理后台"
 
-#: ustc/templates/ustc/base.html:412
+#: ustc/templates/ustc/base.html.jinja:412
 msgid "All Rights Reserved"
 msgstr "版权所有"
 
-#: ustc/templates/ustc/campus_detail.html:5
+#: ustc/templates/ustc/campus_detail.html.jinja:5
 msgid "Campus Detail"
 msgstr "校区详情"
 
-#: ustc/templates/ustc/campus_detail.html:12
+#: ustc/templates/ustc/campus_detail.html.jinja:12
 msgid "View all campuses"
 msgstr "查看所有校区"
 
-#: ustc/templates/ustc/campus_list.html:16
+#: ustc/templates/ustc/campus_list.html.jinja:16
 msgid "Search campuses..."
 msgstr "搜索校区..."
 
-#: ustc/templates/ustc/campus_list.html:24
+#: ustc/templates/ustc/campus_list.html.jinja:24
 msgid "campuses"
 msgstr "校区"
 
-#: ustc/templates/ustc/campus_list.html:43
+#: ustc/templates/ustc/campus_list.html.jinja:43
 msgid "No campuses found."
 msgstr "未找到校区。"
 
-#: ustc/templates/ustc/course_detail.html:11
+#: ustc/templates/ustc/course_detail.html.jinja:11
 msgid "View all courses"
 msgstr "查看所有课程"
 
-#: ustc/templates/ustc/course_detail.html:20
+#: ustc/templates/ustc/course_detail.html.jinja:20
 msgid "Course Type"
 msgstr "课程类型"
 
-#: ustc/templates/ustc/course_detail.html:24
+#: ustc/templates/ustc/course_detail.html.jinja:24
 msgid "Course Gradation"
 msgstr "课程层次"
 
-#: ustc/templates/ustc/course_detail.html:28
+#: ustc/templates/ustc/course_detail.html.jinja:28
 msgid "Course Category"
 msgstr "课程分类"
 
-#: ustc/templates/ustc/course_detail.html:32
-#: ustc/templates/ustc/course_list.html:53
+#: ustc/templates/ustc/course_detail.html.jinja:32
+#: ustc/templates/ustc/course_list.html.jinja:53
 msgid "Education Level"
 msgstr "教育层次"
 
-#: ustc/templates/ustc/course_detail.html:38
-#: ustc/templates/ustc/section_list.html:10
+#: ustc/templates/ustc/course_detail.html.jinja:38
+#: ustc/templates/ustc/section_list.html.jinja:10
 msgid "Course Sections"
 msgstr "课程开课信息"
 
-#: ustc/templates/ustc/course_list.html:18
+#: ustc/templates/ustc/course_list.html.jinja:18
 msgid "Search by name or code..."
 msgstr "按名称或代码搜索..."
 
-#: ustc/templates/ustc/course_list.html:22
+#: ustc/templates/ustc/course_list.html.jinja:22
 msgid "All Course Types"
 msgstr "所有课程类型"
 
-#: ustc/templates/ustc/course_list.html:30
+#: ustc/templates/ustc/course_list.html.jinja:30
 msgid "All Education Levels"
 msgstr "所有教育层次"
 
-#: ustc/templates/ustc/course_list.html:37
-#: ustc/templates/ustc/section_list.html:35
-#: ustc/templates/ustc/semester_detail.html:58
+#: ustc/templates/ustc/course_list.html.jinja:37
+#: ustc/templates/ustc/section_list.html.jinja:35
+#: ustc/templates/ustc/semester_detail.html.jinja:58
 msgid "Filter"
 msgstr "筛选"
 
-#: ustc/templates/ustc/course_list.html:42
+#: ustc/templates/ustc/course_list.html.jinja:42
 msgid "courses"
 msgstr "课程"
 
-#: ustc/templates/ustc/course_list.html:50
-#: ustc/templates/ustc/department_list.html:40
-#: ustc/templates/ustc/partials/section_table.html:13
-#: ustc/templates/ustc/teacher_detail.html:48
-#: ustc/templates/ustc/teacher_detail.html:97
+#: ustc/templates/ustc/course_list.html.jinja:50
+#: ustc/templates/ustc/department_list.html.jinja:40
+#: ustc/templates/ustc/partials/section_table.html.jinja:13
+#: ustc/templates/ustc/teacher_detail.html.jinja:48
+#: ustc/templates/ustc/teacher_detail.html.jinja:97
 msgid "Code"
 msgstr "代码"
 
-#: ustc/templates/ustc/course_list.html:51
-#: ustc/templates/ustc/partials/section_table.html:14
+#: ustc/templates/ustc/course_list.html.jinja:51
+#: ustc/templates/ustc/partials/section_table.html.jinja:14
 msgid "Name"
 msgstr "名称"
 
-#: ustc/templates/ustc/course_list.html:52
-#: ustc/templates/ustc/department_detail.html:21
-#: ustc/templates/ustc/section_detail.html:265
+#: ustc/templates/ustc/course_list.html.jinja:52
+#: ustc/templates/ustc/department_detail.html.jinja:21
+#: ustc/templates/ustc/section_detail.html.jinja:265
 msgid "Type"
 msgstr "类型"
 
-#: ustc/templates/ustc/course_list.html:54
+#: ustc/templates/ustc/course_list.html.jinja:54
 msgid "Gradation"
 msgstr "课程层次"
 
-#: ustc/templates/ustc/course_list.html:55
+#: ustc/templates/ustc/course_list.html.jinja:55
 msgid "Category"
 msgstr "课程分类"
 
-#: ustc/templates/ustc/course_list.html:56
+#: ustc/templates/ustc/course_list.html.jinja:56
 msgid "Class Type"
 msgstr "班级类型"
 
-#: ustc/templates/ustc/course_list.html:57
+#: ustc/templates/ustc/course_list.html.jinja:57
 msgid "Classify"
 msgstr "分类"
 
-#: ustc/templates/ustc/course_list.html:74
+#: ustc/templates/ustc/course_list.html.jinja:74
 msgid "No courses found."
 msgstr "未找到课程。"
 
-#: ustc/templates/ustc/department_detail.html:5
+#: ustc/templates/ustc/department_detail.html.jinja:5
 msgid "Department Detail"
 msgstr "院系详情"
 
-#: ustc/templates/ustc/department_detail.html:12
+#: ustc/templates/ustc/department_detail.html.jinja:12
 msgid "View all departments"
 msgstr "查看所有院系"
 
-#: ustc/templates/ustc/department_detail.html:24
-#: ustc/templates/ustc/department_list.html:43
+#: ustc/templates/ustc/department_detail.html.jinja:24
+#: ustc/templates/ustc/department_list.html.jinja:43
 msgid "College"
 msgstr "学院"
 
-#: ustc/templates/ustc/department_detail.html:26
-#: ustc/templates/ustc/partials/section_table.html:17
-#: ustc/templates/ustc/teacher_detail.html:19
-#: ustc/templates/ustc/teacher_detail.html:97
-#: ustc/templates/ustc/teacher_list.html:41
+#: ustc/templates/ustc/department_detail.html.jinja:26
+#: ustc/templates/ustc/partials/section_table.html.jinja:17
+#: ustc/templates/ustc/teacher_detail.html.jinja:19
+#: ustc/templates/ustc/teacher_detail.html.jinja:97
+#: ustc/templates/ustc/teacher_list.html.jinja:41
 msgid "Department"
 msgstr "院系"
 
-#: ustc/templates/ustc/department_list.html:16
+#: ustc/templates/ustc/department_list.html.jinja:16
 msgid "Search departments..."
 msgstr "搜索院系..."
 
-#: ustc/templates/ustc/department_list.html:24
+#: ustc/templates/ustc/department_list.html.jinja:24
 msgid "departments"
 msgstr "院系"
 
-#: ustc/templates/ustc/department_list.html:51
+#: ustc/templates/ustc/department_list.html.jinja:51
 msgid "No departments found."
 msgstr "未找到院系。"
 
-#: ustc/templates/ustc/home.html:5
+#: ustc/templates/ustc/home.html.jinja:5
 msgid "Home"
 msgstr "首页"
 
-#: ustc/templates/ustc/home.html:10
+#: ustc/templates/ustc/home.html.jinja:10
 msgid "Welcome to Life@USTC."
 msgstr "欢迎使用 Life@USTC"
 
-#: ustc/templates/ustc/home.html:19
+#: ustc/templates/ustc/home.html.jinja:19
 msgid "Browse Semesters"
 msgstr "浏览学期"
 
-#: ustc/templates/ustc/home.html:28
+#: ustc/templates/ustc/home.html.jinja:28
 msgid "Browse Courses"
 msgstr "浏览课程"
 
-#: ustc/templates/ustc/home.html:37
+#: ustc/templates/ustc/home.html.jinja:37
 msgid "Browse Sections"
 msgstr "浏览开课信息"
 
-#: ustc/templates/ustc/home.html:46
+#: ustc/templates/ustc/home.html.jinja:46
 msgid "Browse Teachers"
 msgstr "浏览教师"
 
-#: ustc/templates/ustc/home.html:52
+#: ustc/templates/ustc/home.html.jinja:52
 msgid "Recent Semesters"
 msgstr "最近的学期"
 
-#: ustc/templates/ustc/home.html:63
+#: ustc/templates/ustc/home.html.jinja:63
 msgid "No semesters available."
 msgstr "暂无学期数据。"
 
-#: ustc/templates/ustc/home.html:68
+#: ustc/templates/ustc/home.html.jinja:68
 msgid "API Access"
 msgstr "API 访问"
 
-#: ustc/templates/ustc/home.html:69
+#: ustc/templates/ustc/home.html.jinja:69
 msgid "This system provides a RESTful API for programmatic access:"
 msgstr "本系统提供 RESTful API 供程序化访问："
 
-#: ustc/templates/ustc/home.html:71
+#: ustc/templates/ustc/home.html.jinja:71
 msgid "List all items"
 msgstr "列出所有项目"
 
-#: ustc/templates/ustc/home.html:72
+#: ustc/templates/ustc/home.html.jinja:72
 msgid "Get item by ID"
 msgstr "根据 ID 获取项目"
 
-#: ustc/templates/ustc/home.html:74
+#: ustc/templates/ustc/home.html.jinja:74
 msgid "Get item by JW ID (for models with JW ID)"
 msgstr "根据教务 ID 获取项目（适用于有教务 ID 的模型）"
 
-#: ustc/templates/ustc/home.html:77
+#: ustc/templates/ustc/home.html.jinja:77
 msgid "Visit the"
 msgstr "访问"
 
-#: ustc/templates/ustc/home.html:77
+#: ustc/templates/ustc/home.html.jinja:77
 msgid "API browser"
 msgstr "API 浏览器"
 
-#: ustc/templates/ustc/home.html:77
+#: ustc/templates/ustc/home.html.jinja:77
 msgid "for interactive documentation."
 msgstr "获取交互式文档。"
 
-#: ustc/templates/ustc/partials/enrollment_display.html:29
-#: ustc/templates/ustc/teacher_detail.html:116
+#: ustc/templates/ustc/partials/enrollment_display.html.jinja:29
+#: ustc/templates/ustc/teacher_detail.html.jinja:116
 msgid "-"
 msgstr "-"
 
-#: ustc/templates/ustc/partials/pagination.html:7
-#: ustc/templates/ustc/partials/pagination.html:18
+#: ustc/templates/ustc/partials/pagination.html.jinja:7
+#: ustc/templates/ustc/partials/pagination.html.jinja:18
 msgid "First"
 msgstr "首页"
 
-#: ustc/templates/ustc/partials/pagination.html:12
-#: ustc/templates/ustc/partials/pagination.html:23
+#: ustc/templates/ustc/partials/pagination.html.jinja:12
+#: ustc/templates/ustc/partials/pagination.html.jinja:23
 msgid "Previous"
 msgstr "上一页"
 
-#: ustc/templates/ustc/partials/pagination.html:37
-#: ustc/templates/ustc/partials/pagination.html:48
+#: ustc/templates/ustc/partials/pagination.html.jinja:37
+#: ustc/templates/ustc/partials/pagination.html.jinja:48
 msgid "Next"
 msgstr "下一页"
 
-#: ustc/templates/ustc/partials/pagination.html:42
-#: ustc/templates/ustc/partials/pagination.html:53
+#: ustc/templates/ustc/partials/pagination.html.jinja:42
+#: ustc/templates/ustc/partials/pagination.html.jinja:53
 msgid "Last"
 msgstr "末页"
 
-#: ustc/templates/ustc/partials/result_count.html:5
+#: ustc/templates/ustc/partials/result_count.html.jinja:5
 msgid "Showing"
 msgstr "显示"
 
-#: ustc/templates/ustc/partials/result_count.html:5
+#: ustc/templates/ustc/partials/result_count.html.jinja:5
 msgid "of"
 msgstr "共"
 
-#: ustc/templates/ustc/partials/result_count.html:7
+#: ustc/templates/ustc/partials/result_count.html.jinja:7
 msgid "filtered"
 msgstr "筛选后"
 
-#: ustc/templates/ustc/partials/section_table.html:11
-#: ustc/templates/ustc/section_detail.html:64
+#: ustc/templates/ustc/partials/section_table.html.jinja:11
+#: ustc/templates/ustc/section_detail.html.jinja:64
 msgid "Semester"
 msgstr "学期"
 
-#: ustc/templates/ustc/partials/section_table.html:15
-#: ustc/templates/ustc/section_detail.html:156
-#: ustc/templates/ustc/teacher_detail.html:51
-#: ustc/templates/ustc/teacher_detail.html:106
+#: ustc/templates/ustc/partials/section_table.html.jinja:15
+#: ustc/templates/ustc/section_detail.html.jinja:156
+#: ustc/templates/ustc/teacher_detail.html.jinja:51
+#: ustc/templates/ustc/teacher_detail.html.jinja:106
 msgid "Credits"
 msgstr "学分"
 
-#: ustc/templates/ustc/partials/section_table.html:18
-#: ustc/templates/ustc/section_detail.html:82
+#: ustc/templates/ustc/partials/section_table.html.jinja:18
+#: ustc/templates/ustc/section_detail.html.jinja:82
 msgid "Campus"
 msgstr "校区"
 
-#: ustc/templates/ustc/partials/section_table.html:19
-#: ustc/templates/ustc/section_detail.html:113
+#: ustc/templates/ustc/partials/section_table.html.jinja:19
+#: ustc/templates/ustc/section_detail.html.jinja:113
 msgid "Exam Mode"
 msgstr "考试方式"
 
-#: ustc/templates/ustc/partials/section_table.html:20
-#: ustc/templates/ustc/teacher_detail.html:50
+#: ustc/templates/ustc/partials/section_table.html.jinja:20
+#: ustc/templates/ustc/teacher_detail.html.jinja:50
 msgid "Enrollment"
 msgstr "选课人数"
 
-#: ustc/templates/ustc/partials/section_table.html:101
+#: ustc/templates/ustc/partials/section_table.html.jinja:101
 msgid "No sections found."
 msgstr "未找到开课信息。"
 
-#: ustc/templates/ustc/section_detail.html:5
+#: ustc/templates/ustc/section_detail.html.jinja:5
 msgid "Section Detail"
 msgstr "开课信息详情"
 
-#: ustc/templates/ustc/section_detail.html:57
+#: ustc/templates/ustc/section_detail.html.jinja:57
 msgid "View all sections"
 msgstr "查看所有开课信息"
 
-#: ustc/templates/ustc/section_detail.html:91
+#: ustc/templates/ustc/section_detail.html.jinja:91
 msgid "Opening Department"
 msgstr "开课院系"
 
-#: ustc/templates/ustc/section_detail.html:106
+#: ustc/templates/ustc/section_detail.html.jinja:106
 msgid "Course Code"
 msgstr "课程代码"
 
-#: ustc/templates/ustc/section_detail.html:122
+#: ustc/templates/ustc/section_detail.html.jinja:122
 msgid "Teaching Language"
 msgstr "授课语言"
 
-#: ustc/templates/ustc/section_detail.html:131
+#: ustc/templates/ustc/section_detail.html.jinja:131
 msgid "Graduate & Postgraduate"
 msgstr "本研同堂"
 
-#: ustc/templates/ustc/section_detail.html:134
+#: ustc/templates/ustc/section_detail.html.jinja:134
 msgid "Yes"
 msgstr "是"
 
-#: ustc/templates/ustc/section_detail.html:136
+#: ustc/templates/ustc/section_detail.html.jinja:136
 msgid "No"
 msgstr "否"
 
-#: ustc/templates/ustc/section_detail.html:146
+#: ustc/templates/ustc/section_detail.html.jinja:146
 msgid "Period (Hours)"
 msgstr "课时"
 
-#: ustc/templates/ustc/section_detail.html:151
+#: ustc/templates/ustc/section_detail.html.jinja:151
 msgid "Periods per Week"
 msgstr "周课时"
 
-#: ustc/templates/ustc/section_detail.html:182
+#: ustc/templates/ustc/section_detail.html.jinja:182
 msgid "No teachers assigned."
 msgstr "未分配教师。"
 
-#: ustc/templates/ustc/section_detail.html:195
+#: ustc/templates/ustc/section_detail.html.jinja:195
 msgid "No admin classes assigned."
 msgstr "未分配行政班。"
 
-#: ustc/templates/ustc/section_detail.html:200
+#: ustc/templates/ustc/section_detail.html.jinja:200
 msgid "Schedule Information"
 msgstr "课程安排信息"
 
-#: ustc/templates/ustc/section_detail.html:204
+#: ustc/templates/ustc/section_detail.html.jinja:204
 msgid "Course Schedule Calendar"
 msgstr ""
 
-#: ustc/templates/ustc/section_detail.html:217
+#: ustc/templates/ustc/section_detail.html.jinja:217
 msgid "Calendar View"
 msgstr ""
 
-#: ustc/templates/ustc/section_detail.html:231
+#: ustc/templates/ustc/section_detail.html.jinja:231
 msgid "Table View"
 msgstr ""
 
-#: ustc/templates/ustc/section_detail.html:243
-#: ustc/templates/ustc/section_detail.html:275
+#: ustc/templates/ustc/section_detail.html.jinja:243
+#: ustc/templates/ustc/section_detail.html.jinja:275
 msgid "Loading schedule data..."
 msgstr ""
 
-#: ustc/templates/ustc/section_detail.html:247
-#: ustc/templates/ustc/section_detail.html:282
+#: ustc/templates/ustc/section_detail.html.jinja:247
+#: ustc/templates/ustc/section_detail.html.jinja:282
 msgid "Failed to load schedule data. Please try refreshing the page."
 msgstr ""
 
-#: ustc/templates/ustc/section_detail.html:250
-#: ustc/templates/ustc/section_detail.html:285
+#: ustc/templates/ustc/section_detail.html.jinja:250
+#: ustc/templates/ustc/section_detail.html.jinja:285
 msgid "No schedule information available for this section."
 msgstr ""
 
-#: ustc/templates/ustc/section_detail.html:260
+#: ustc/templates/ustc/section_detail.html.jinja:260
 msgid "Date (Weekday)"
 msgstr ""
 
-#: ustc/templates/ustc/section_detail.html:261
+#: ustc/templates/ustc/section_detail.html.jinja:261
 msgid "Time"
 msgstr ""
 
-#: ustc/templates/ustc/section_detail.html:262
+#: ustc/templates/ustc/section_detail.html.jinja:262
 #, fuzzy
 #| msgid "section"
 msgid "Location"
 msgstr "门课程"
 
-#: ustc/templates/ustc/section_detail.html:263
+#: ustc/templates/ustc/section_detail.html.jinja:263
 msgid "Custom Place"
 msgstr ""
 
-#: ustc/templates/ustc/section_detail.html:264
+#: ustc/templates/ustc/section_detail.html.jinja:264
 #, fuzzy
 #| msgid "Teachers"
 msgid "Teacher"
 msgstr "教师"
 
-#: ustc/templates/ustc/section_list.html:16
+#: ustc/templates/ustc/section_list.html.jinja:16
 msgid "Search by code..."
 msgstr "按代码搜索..."
 
-#: ustc/templates/ustc/section_list.html:20
+#: ustc/templates/ustc/section_list.html.jinja:20
 msgid "All Semesters"
 msgstr "所有学期"
 
-#: ustc/templates/ustc/section_list.html:28
-#: ustc/templates/ustc/semester_detail.html:29
+#: ustc/templates/ustc/section_list.html.jinja:28
+#: ustc/templates/ustc/semester_detail.html.jinja:29
 msgid "All Departments"
 msgstr "所有院系"
 
-#: ustc/templates/ustc/section_list.html:40
+#: ustc/templates/ustc/section_list.html.jinja:40
 msgid "sections"
 msgstr "条开课信息"
 
-#: ustc/templates/ustc/semester_detail.html:12
+#: ustc/templates/ustc/semester_detail.html.jinja:12
 msgid "View all semesters"
 msgstr "查看所有学期"
 
-#: ustc/templates/ustc/semester_detail.html:19
+#: ustc/templates/ustc/semester_detail.html.jinja:19
 msgid "Sections in this Semester"
 msgstr "本学期开课信息"
 
-#: ustc/templates/ustc/semester_detail.html:25
+#: ustc/templates/ustc/semester_detail.html.jinja:25
 msgid "Search sections..."
 msgstr "搜索开课信息..."
 
-#: ustc/templates/ustc/semester_detail.html:39
+#: ustc/templates/ustc/semester_detail.html.jinja:39
 msgid "All Campuses"
 msgstr "所有校区"
 
-#: ustc/templates/ustc/semester_detail.html:49
+#: ustc/templates/ustc/semester_detail.html.jinja:49
 msgid "All Exam Modes"
 msgstr "所有考试方式"
 
-#: ustc/templates/ustc/semester_list.html:16
+#: ustc/templates/ustc/semester_list.html.jinja:16
 msgid "Search semesters..."
 msgstr "搜索学期..."
 
-#: ustc/templates/ustc/semester_list.html:24
+#: ustc/templates/ustc/semester_list.html.jinja:24
 msgid "semesters"
 msgstr "学期"
 
-#: ustc/templates/ustc/semester_list.html:50
+#: ustc/templates/ustc/semester_list.html.jinja:50
 msgid "No semesters found."
 msgstr "未找到学期。"
 
-#: ustc/templates/ustc/teacher_detail.html:11
+#: ustc/templates/ustc/teacher_detail.html.jinja:11
 msgid "View all teachers"
 msgstr "查看所有教师"
 
-#: ustc/templates/ustc/teacher_detail.html:30
+#: ustc/templates/ustc/teacher_detail.html.jinja:30
 msgid "Sections Taught"
 msgstr "任教课程"
 
-#: ustc/templates/ustc/teacher_detail.html:33
-#: ustc/templates/ustc/teacher_detail.html:162
+#: ustc/templates/ustc/teacher_detail.html.jinja:33
+#: ustc/templates/ustc/teacher_detail.html.jinja:162
 msgid "Collapse All"
 msgstr "全部收起"
 
-#: ustc/templates/ustc/teacher_detail.html:36
-#: ustc/templates/ustc/teacher_detail.html:205
+#: ustc/templates/ustc/teacher_detail.html.jinja:36
+#: ustc/templates/ustc/teacher_detail.html.jinja:205
 msgid "Oldest First"
 msgstr "按时间排序"
 
-#: ustc/templates/ustc/teacher_detail.html:47
+#: ustc/templates/ustc/teacher_detail.html.jinja:47
 msgid "Course"
 msgstr "课程"
 
-#: ustc/templates/ustc/teacher_detail.html:69
-#: ustc/templates/ustc/teacher_detail.html:78
+#: ustc/templates/ustc/teacher_detail.html.jinja:69
+#: ustc/templates/ustc/teacher_detail.html.jinja:78
 msgid "section"
 msgstr "门课程"
 
-#: ustc/templates/ustc/teacher_detail.html:76
+#: ustc/templates/ustc/teacher_detail.html.jinja:76
 msgid "No Semester Specified"
 msgstr "未指定学期"
 
-#: ustc/templates/ustc/teacher_detail.html:106
+#: ustc/templates/ustc/teacher_detail.html.jinja:106
 msgid "Students"
 msgstr "学生"
 
-#: ustc/templates/ustc/teacher_detail.html:125
+#: ustc/templates/ustc/teacher_detail.html.jinja:125
 msgid "This teacher has not taught any sections yet."
 msgstr "该教师尚未任教任何课程。"
 
-#: ustc/templates/ustc/teacher_detail.html:156
+#: ustc/templates/ustc/teacher_detail.html.jinja:156
 msgid "Expand All"
 msgstr "展开全部"
 
-#: ustc/templates/ustc/teacher_detail.html:202
+#: ustc/templates/ustc/teacher_detail.html.jinja:202
 msgid "Newest First"
 msgstr "最新优先"
 
-#: ustc/templates/ustc/teacher_list.html:16
+#: ustc/templates/ustc/teacher_list.html.jinja:16
 msgid "Search teachers..."
 msgstr "搜索教师..."
 
-#: ustc/templates/ustc/teacher_list.html:24
+#: ustc/templates/ustc/teacher_list.html.jinja:24
 msgid "teachers"
 msgstr "教师"
 
-#: ustc/templates/ustc/teacher_list.html:53
+#: ustc/templates/ustc/teacher_list.html.jinja:53
 msgid "No teachers found."
 msgstr "未找到教师。"
 

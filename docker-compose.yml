@@ -3,15 +3,13 @@ services:
         image: postgres:15
         restart: always
         environment:
-            - POSTGRES_DB=${POSTGRES_DB:-db}
+            - POSTGRES_DB=${POSTGRES_DB:-postgres}
             - POSTGRES_USER=${POSTGRES_USER:-user}
             - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
             - POSTGRES_HOST=${POSTGRES_HOST:-db}
             - POSTGRES_PORT=${POSTGRES_PORT:-5432}
         volumes:
             - ./pgdata:/var/lib/postgresql/data
-        ports:
-            - "5432:5432"
         networks:
             - backend
 
@@ -28,10 +26,10 @@ services:
         depends_on:
             - db
         environment:
-            - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
             - DJANGO_DEBUG=True
-            - DJANGO_ALLOWED_HOSTS=life-ustc.tiankaima.dev
-            - POSTGRES_DB=${POSTGRES_DB:-db}
+            - DJANGO_ALLOWED_HOSTS=localhost,
+
+            - POSTGRES_DB=${POSTGRES_DB:-postgres}
             - POSTGRES_USER=${POSTGRES_USER:-user}
             - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
             - POSTGRES_HOST=${POSTGRES_HOST:-db}

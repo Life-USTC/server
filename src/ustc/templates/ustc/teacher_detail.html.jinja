@@ -1,0 +1,207 @@
+{% extends "ustc/base.html.jinja" %}
+{% load i18n %}
+{% load ustc_extras %}
+{% block title %}{{ teacher|translated_name }} - Teach{% endblock %}
+{% block content %}
+  {% trans "N/A" as na_text %}
+  <div class="detail-header">
+    <div>
+      <a href="{% url 'ustc:teacher-list' %}" class="subtle-link">{% trans "View all teachers" %}</a>
+      <div class="text-start gap-2">
+        <h1 class="mb-0">{{ teacher|translated_name }}</h1>
+      </div>
+    </div>
+    <div class="flex-grow-1"></div>
+    <div class="detail-info-grid">
+      <div>
+        <div class="detail-info-label">{% trans "Department" %}</div>
+        <div>
+          {% if teacher.department %}
+            <a class="subtle-link"
+               href="{% url 'ustc:department-detail' teacher.department.pk %}">{{ teacher.department|translated_name }}</a>
+          {% else %}
+            {{ na_text }}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="d-flex justify-content-between align-items-center mt-5 mb-3">
+    <h4 class="mb-0">{% trans "Sections Taught" %}</h4>
+    <div>
+      <button class="btn btn-sm btn-outline-secondary me-2"
+              onclick="toggleAllSemesters()">
+        <span id="toggleText">{% trans "Collapse All" %}</span>
+      </button>
+      <button class="btn btn-sm btn-outline-primary" onclick="toggleSortOrder()">
+        <span id="sortText">{% trans "Oldest First" %}</span>
+      </button>
+    </div>
+  </div>
+  {% if teacher.sections.all %}
+    {% regroup teacher.sections.all|dictsort:"semester.start_date"|slice:"::-1" by semester as sections_by_semester %}
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead class="table-light">
+          <tr>
+            <th>{% trans "Course" %}</th>
+            <th>{% trans "Code" %}</th>
+            <th style="max-width: 20%; min-width: 0px"></th>
+            <th>{% trans "Enrollment" %}</th>
+            <th class="text-center">{% trans "Credits" %}</th>
+          </tr>
+        </thead>
+        <tbody id="sectionsTableBody">
+          {% for semester_group in sections_by_semester %}
+            {% if semester_group.grouper %}
+              <tr class="table-info semester-header"
+                  data-semester="{{ forloop.counter }}"
+                  onclick="toggleSemester({{ forloop.counter }})">
+                <td colspan="5" style="cursor: pointer">
+                  <i class="bi bi-chevron-down semester-icon"
+                     id="icon-{{ forloop.counter }}"></i>
+                  <strong>
+                    <a href="{% url 'ustc:semester-detail' semester_group.grouper.pk %}"
+                       class="text-decoration-none"
+                       onclick="event.stopPropagation();">{{ semester_group.grouper.name }}</a>
+                  </strong>
+                  <small class="text-muted ms-2">
+                    ({{ semester_group.grouper.start_date|date:"Y.m" }} - {{ semester_group.grouper.end_date|date:"Y.m" }})
+                  </small>
+                  <span class="badge bg-primary ms-2">{{ semester_group.list|length }} {% trans "section" %}{{ semester_group.list|length|pluralize }}</span>
+                </td>
+              </tr>
+            {% else %}
+              <tr class="table-warning semester-header"
+                  data-semester="{{ forloop.counter }}"
+                  onclick="toggleSemester({{ forloop.counter }})">
+                <td colspan="5" style="cursor: pointer">
+                  <i class="bi bi-chevron-down semester-icon"
+                     id="icon-{{ forloop.counter }}"></i>
+                  <strong class="text-muted">{% trans "No Semester Specified" %}</strong>
+                  <span class="badge bg-secondary ms-2">{{ semester_group.list|length }} {% trans "section" %}{{ semester_group.list|length|pluralize }}</span>
+                </td>
+              </tr>
+            {% endif %}
+            {% for section in semester_group.list %}
+              <tr class="semester-content clickable-row"
+                  data-semester="{{ forloop.parentloop.counter }}"
+                  onclick="window.location='{% url 'ustc:section-detail' section.pk %}'">
+                <td>
+                  <div>
+                    <a href="{% url 'ustc:course-detail' section.course.pk %}"
+                       class="text-decoration-none"
+                       data-bs-toggle="tooltip"
+                       data-bs-placement="top"
+                       data-bs-title="{% trans 'Code' %}: {{ section.course.code }}{% if section.open_department %} | {% trans 'Department' %}: {{ section.open_department|translated_name }}{% endif %}">{{ section.course|translated_name }}</a>
+                  </div>
+                </td>
+                <td>
+                  <span data-bs-toggle="tooltip"
+                        data-bs-placement="top"
+                        data-bs-title="{% trans 'Credits' %}: {{ section.credits|default:'N/A' }} | {% trans 'Students' %}: {{ section.std_count|default:'N/A' }}{% if section.limit_count %}/{{ section.limit_count }}{% endif %}">{{ section.code }}
+                  </span>
+                </td>
+                <td></td>
+                <td>
+                  {% include 'ustc/partials/enrollment_display.html.jinja' with std_count=section.std_count limit_count=section.limit_count %}
+                </td>
+                <td class="text-center">
+                  {% if section.credits %}
+                    <span class="badge bg-info">{{ section.credits }}</span>
+                  {% else %}
+                    <span class="text-muted">{% trans '-' %}</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="alert alert-info">{% trans "This teacher has not taught any sections yet." %}</div>
+  {% endif %}
+  <script>
+  let currentSort = 'newest'; // newest or oldest
+  let allExpanded = true;
+
+  function toggleSemester(semesterNum) {
+    const semesterRows = document.querySelectorAll(`tr[data-semester="${semesterNum}"].semester-content`);
+    const icon = document.getElementById(`icon-${semesterNum}`);
+
+    semesterRows.forEach((row) => {
+      if (row.style.display === 'none') {
+        row.style.display = '';
+        icon.className = 'bi bi-chevron-down semester-icon';
+      } else {
+        row.style.display = 'none';
+        icon.className = 'bi bi-chevron-right semester-icon';
+      }
+    });
+  }
+
+  function toggleAllSemesters() {
+    const allContentRows = document.querySelectorAll('.semester-content');
+    const allIcons = document.querySelectorAll('.semester-icon');
+    const toggleButton = document.getElementById('toggleText');
+
+    if (allExpanded) {
+      // Collapse all
+      allContentRows.forEach((row) => (row.style.display = 'none'));
+      allIcons.forEach((icon) => (icon.className = 'bi bi-chevron-right semester-icon'));
+      toggleButton.textContent = '{% trans "Expand All" %}';
+      allExpanded = false;
+    } else {
+      // Expand all
+      allContentRows.forEach((row) => (row.style.display = ''));
+      allIcons.forEach((icon) => (icon.className = 'bi bi-chevron-down semester-icon'));
+      toggleButton.textContent = '{% trans "Collapse All" %}';
+      allExpanded = true;
+    }
+  }
+
+  function toggleSortOrder() {
+    const tbody = document.getElementById('sectionsTableBody');
+    const sortButton = document.getElementById('sortText');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+
+    // Group rows by semester
+    const semesterGroups = [];
+    let currentGroup = [];
+
+    rows.forEach((row) => {
+      if (row.classList.contains('semester-header')) {
+        if (currentGroup.length > 0) {
+          semesterGroups.push(currentGroup);
+        }
+        currentGroup = [row];
+      } else {
+        currentGroup.push(row);
+      }
+    });
+
+    if (currentGroup.length > 0) {
+      semesterGroups.push(currentGroup);
+    }
+
+    // Reverse the order of semester groups
+    semesterGroups.reverse();
+
+    // Clear tbody and re-add rows in new order
+    tbody.innerHTML = '';
+    semesterGroups.forEach((group) => {
+      group.forEach((row) => tbody.appendChild(row));
+    });
+
+    // Update button text
+    if (currentSort === 'newest') {
+      sortButton.textContent = '{% trans "Newest First" %}';
+      currentSort = 'oldest';
+    } else {
+      sortButton.textContent = '{% trans "Oldest First" %}';
+      currentSort = 'newest';
+    }
+  }
+  </script>
+{% endblock %}

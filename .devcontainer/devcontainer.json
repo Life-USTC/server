@@ -5,7 +5,7 @@
   "workspaceFolder": "/app",
   "features": {
     "ghcr.io/devcontainers/features/git:1": {},
-    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
   },
   "customizations": {
     "vscode": {
@@ -14,14 +14,15 @@
         "ms-python.isort",
         "ms-python.python",
         "GitHub.copilot",
-        "GitHub.copilot-chat"
+        "GitHub.copilot-chat",
         "esbenp.prettier-vscode",
         "samuelcolvin.jinjahtml",
+        "monosans.djlint"
       ],
       "settings": {
         "python.defaultInterpreterPath": "/usr/local/bin/python"
       }
     }
   },
-  "postCreateCommand": ""
+  "postCreateCommand": "pip install djlint"
 }

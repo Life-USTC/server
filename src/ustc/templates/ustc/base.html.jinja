@@ -1,14 +1,21 @@
-<!-- prettier-ignore -->
 {% load i18n %}
 {% load ustc_extras %}
-
 <!DOCTYPE html>
 <html lang="{% get_current_language as LANGUAGE_CODE %}{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}{% trans "SiGNAL" %}{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <meta name="description"
+          content="{% block meta_description %}{% trans "Life@USTC - Course and teacher information system" %}{% endblock %}" />
+    <meta name="keywords"
+          content="{% block meta_keywords %}{% trans "courses, teachers, semesters, sections, university" %}{% endblock %}" />
+    <title>
+      {% block title %}
+        {% trans "Life@USTC" %}
+      {% endblock %}
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+          rel="stylesheet" />
     <style>
       /* Override Bootstrap's primary color with purple */
       :root {
@@ -299,102 +306,92 @@
         background-color: rgba(111, 66, 193, 0.05) !important;
       }
     </style>
-    {% block extra_css %}
-    <!-- prettier-ignore -->
-    {% endblock %}
+    {% block extra_css %}{% endblock %}
   </head>
   <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
       <div class="container">
-        <a class="navbar-brand" href="{% url 'ustc:home' %}">{% trans "SiGNAL" %}</a>
-        <button
-          class="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-          aria-controls="navbarNav"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
-        >
+        <a class="navbar-brand" href="{% url 'ustc:home' %}">{% trans "Life@USTC" %}</a>
+        <button class="navbar-toggler"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#navbarNav"
+                aria-controls="navbarNav"
+                aria-expanded="false"
+                aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav me-auto">
             <li class="nav-item">
-              <a class="nav-link {% if 'semester' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'ustc:semester-list' %}"
-                >{% trans "Semesters" %}</a
-              >
+              <a class="nav-link {% if 'semester' in request.resolver_match.url_name %}active{% endif %}"
+                 href="{% url 'ustc:semester-list' %}">{% trans "Semesters" %}</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link {% if 'course' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'ustc:course-list' %}"
-                >{% trans "Courses" %}</a
-              >
+              <a class="nav-link {% if 'course' in request.resolver_match.url_name %}active{% endif %}"
+                 href="{% url 'ustc:course-list' %}">{% trans "Courses" %}</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link {% if 'teacher' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'ustc:teacher-list' %}"
-                >{% trans "Teachers" %}</a
-              >
+              <a class="nav-link {% if 'teacher' in request.resolver_match.url_name %}active{% endif %}"
+                 href="{% url 'ustc:teacher-list' %}">{% trans "Teachers" %}</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link {% if 'section' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'ustc:section-list' %}"
-                >{% trans "Sections" %}</a
-              >
+              <a class="nav-link {% if 'section' in request.resolver_match.url_name %}active{% endif %}"
+                 href="{% url 'ustc:section-list' %}">{% trans "Sections" %}</a>
             </li>
             <li class="nav-item dropdown">
-              <a
-                class="nav-link dropdown-toggle {% if 'department' in request.resolver_match.url_name or 'campus' in request.resolver_match.url_name or 'admin-class' in request.resolver_match.url_name %}active{% endif %}"
-                href="#"
-                id="navbarDropdown"
-                role="button"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-              >
-                {% trans "More" %}
-              </a>
+              <a class="nav-link dropdown-toggle {% if 'department' in request.resolver_match.url_name or 'campus' in request.resolver_match.url_name or 'admin-class' in request.resolver_match.url_name %}active{% endif %}"
+                 href="#"
+                 id="navbarDropdown"
+                 role="button"
+                 data-bs-toggle="dropdown"
+                 aria-expanded="false">{% trans "More" %}</a>
               <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                <li
-                  ><a
-                    class="dropdown-item {% if 'department' in request.resolver_match.url_name %}active{% endif %}"
-                    href="{% url 'ustc:department-list' %}"
-                    >{% trans "Departments" %}</a
-                  ></li
-                >
-                <li
-                  ><a class="dropdown-item {% if 'campus' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'ustc:campus-list' %}"
-                    >{% trans "Campuses" %}</a
-                  ></li
-                >
-                <li
-                  ><a
-                    class="dropdown-item {% if 'admin-class' in request.resolver_match.url_name %}active{% endif %}"
-                    href="{% url 'ustc:admin-class-list' %}"
-                    >{% trans "Admin Classes" %}</a
-                  ></li
-                >
-                <li><hr class="dropdown-divider" /></li>
-                <li><a class="dropdown-item" href="/admin/">{% trans "Admin Panel" %}</a></li>
+                <li>
+                  <a class="dropdown-item {% if 'department' in request.resolver_match.url_name %}active{% endif %}"
+                     href="{% url 'ustc:department-list' %}">{% trans "Departments" %}</a>
+                </li>
+                <li>
+                  <a class="dropdown-item {% if 'campus' in request.resolver_match.url_name %}active{% endif %}"
+                     href="{% url 'ustc:campus-list' %}">{% trans "Campuses" %}</a>
+                </li>
+                <li>
+                  <a class="dropdown-item {% if 'admin-class' in request.resolver_match.url_name %}active{% endif %}"
+                     href="{% url 'ustc:admin-class-list' %}">{% trans "Admin Classes" %}</a>
+                </li>
+                <li>
+                  <hr class="dropdown-divider" />
+                </li>
+                <li>
+                  <a class="dropdown-item" href="/admin/">{% trans "Admin Panel" %}</a>
+                </li>
               </ul>
             </li>
           </ul>
-
           <!-- Language Switcher -->
           <div class="navbar-nav">
             <div class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="languageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                {% get_language_name %}
-              </a>
-              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
-                {% get_available_languages as languages %} {% for language_code, language_name in languages %}
-                <li>
-                  <form action="{% url 'set_language' %}" method="post" class="d-inline">
-                    {% csrf_token %}
-                    <input type="hidden" name="language" value="{{ language_code }}" />
-                    <input type="hidden" name="next" value="{{ request.get_full_path }}" />
-                    <button type="submit" class="dropdown-item {% if language_code == LANGUAGE_CODE %}active{% endif %}">
-                      {{ language_name }}
-                    </button>
-                  </form>
-                </li>
+              <a class="nav-link dropdown-toggle"
+                 href="#"
+                 id="languageDropdown"
+                 role="button"
+                 data-bs-toggle="dropdown"
+                 aria-expanded="false">{% get_language_name %}</a>
+              <ul class="dropdown-menu dropdown-menu-end"
+                  aria-labelledby="languageDropdown">
+                {% get_available_languages as languages %}
+                {% for language_code, language_name in languages %}
+                  <li>
+                    <form action="{% url 'set_language' %}" method="post" class="d-inline">
+                      {% csrf_token %}
+                      <input type="hidden" name="language" value="{{ language_code }}" />
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+                      <button type="submit"
+                              class="dropdown-item {% if language_code == LANGUAGE_CODE %}active{% endif %}">
+                        {{ language_name }}
+                      </button>
+                    </form>
+                  </li>
                 {% endfor %}
               </ul>
             </div>
@@ -402,17 +399,16 @@
         </div>
       </div>
     </nav>
-
     <div class="main-content">
-      <div class="container"> {% block content %}{% endblock %} </div>
+      <div class="container">
+        {% block content %}{% endblock %}
+      </div>
     </div>
-
     <footer class="footer">
       <div class="container">
-        <p>© {% now "Y" %} {% trans "SiGNAL" %} - {% trans "All Rights Reserved" %}</p>
+        <p>© {% now "Y" %} {% trans "Life@USTC" %} - {% trans "All Rights Reserved" %}</p>
       </div>
     </footer>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
       // Initialize all tooltips
@@ -435,8 +431,6 @@
         }
       });
     </script>
-    {% block extra_js %}
-    <!-- prettier-ignore -->
-    {% endblock %}
+    {% block extra_js %}{% endblock %}
   </body>
 </html>

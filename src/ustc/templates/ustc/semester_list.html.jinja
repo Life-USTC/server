@@ -1,0 +1,54 @@
+{% extends "ustc/base.html.jinja" %}
+{% load i18n %}
+{% load ustc_extras %}
+{% block title %}
+  {% trans "Semesters" %} - {% trans "Life@USTC" %}
+{% endblock %}
+{% block content %}
+  <div class="list-header">
+    <div class="list-title-row">
+      <h1>{% trans "Semesters" %}</h1>
+      <form method="get" class="list-search-form" id="search-form">
+        <input type="text"
+               name="q"
+               class="form-control list-search-input"
+               placeholder="{% trans 'Search semesters...' %}"
+               value="{{ request.GET.q|default:'' }}" />
+        <button type="submit" class="btn btn-primary">{% trans 'Search' %}</button>
+      </form>
+    </div>
+  </div>
+  {% include 'ustc/partials/result_count.html.jinja' with item_name="semesters" %}
+  <div class="list-cards">
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+      {% for semester in semesters %}
+        <div class="col">
+          {% now "Y-m-d" as today %}
+          <div class="card list-card {% if semester.start_date|date:'Y-m-d' <= today and today <= semester.end_date|date:'Y-m-d' %}border-success{% endif %}">
+            <div class="card-body">
+              <h5 class="card-title">
+                <a href="{% url 'ustc:semester-detail' semester.pk %}"
+                   class="subtle-link text-primary">{{ semester.name }}</a>
+                {% if semester.start_date|date:'Y-m-d' <= today and today <= semester.end_date|date:'Y-m-d' %}
+                  <canvas class="rounded-circle bg-success mx-2"
+                          width="10"
+                          height="10"
+                          style="display: inline-block;
+                                 vertical-align: middle"></canvas>
+                {% endif %}
+              </h5>
+              <p class="card-text font-monospace text-muted">
+                {{ semester.start_date|date:"Y.m.d" }} - {{ semester.end_date|date:"Y.m.d" }}
+              </p>
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="col-12">
+          <div class="alert alert-info">{% trans 'No semesters found.' %}</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% include 'ustc/partials/pagination.html.jinja' %}
+{% endblock %}
