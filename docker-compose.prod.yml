@@ -16,10 +16,8 @@ services:
             - backend
 
     web:
-        image: ghcr.io/Life-USTC/server:latest
+        image: ghcr.io/life-ustc/server:latest
         command: python -m gunicorn server.wsgi:application --bind 0.0.0.0:8000
-        volumes:
-            - ./src:/app
         ports:
             - "8000:8000"
         depends_on:

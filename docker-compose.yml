@@ -16,7 +16,9 @@ services:
             - backend
 
     web:
-        image: ghcr.io/Life-USTC/server:latest
+        build:
+            context: ./src
+            dockerfile: Dockerfile
         command: python manage.py runserver 0.0.0.0:8000
         volumes:
             - .:/workspace
