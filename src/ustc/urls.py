@@ -1,6 +1,25 @@
 from django.urls import path
 
-from .views import *
+from .views import (
+    home,
+    campus_list,
+    campus_detail,
+    department_list,
+    department_detail,
+    admin_class_list,
+    admin_class_detail,
+    teacher_list,
+    teacher_detail,
+    semester_list,
+    semester_detail,
+    semester_detail_by_jw_id,
+    course_list,
+    course_detail,
+    course_detail_by_jw_id,
+    section_list,
+    section_detail,
+    section_detail_by_jw_id,
+)
 
 app_name = "ustc"
 
@@ -23,8 +42,6 @@ urlpatterns = [
     path("course/jw-id/<int:jw_id>/",course_detail_by_jw_id,name="course-detail-by-jw-id"),
     path("section/", section_list, name="section-list"),
     path("section/<int:pk>/", section_detail, name="section-detail"),
-    path("section/<int:pk>/ical/", section_ical, name="section-ical"),
     path("section/jw-id/<int:jw_id>/", section_detail_by_jw_id, name="section-detail-by-jw-id"),
-    path("schedule/<int:pk>/ical/", schedule_ical, name="schedule-ical"),
     # fmt: on
 ]

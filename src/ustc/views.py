@@ -1,125 +1,75 @@
 from django.shortcuts import render, get_object_or_404
 from django.core.paginator import Paginator
 from django.db import models
-from django.http import HttpResponse
 
-from rest_framework.viewsets import ModelViewSet
-from rest_framework.decorators import action
-from rest_framework.response import Response
-
-from .models import *
-from .serializers import *
-from .views_extra import *
-
-
-class BaseViewSet(ModelViewSet):
-    """Base ViewSet with common actions for all models"""
-
-    @action(detail=False, url_path="jw-id/(?P<jw_id>[^/.]+)")
-    def get_by_jw_id(self, request, jw_id=None):
-        """Get object by JW ID"""
-        try:
-            # This will only work for models that have jw_id
-            queryset = self.get_queryset()
-            instance = queryset.get(jw_id=jw_id)
-            serializer = self.get_serializer(instance)
-            return Response(serializer.data)
-        except Exception as e:
-            return Response({"error": str(e)}, status=404)
+from .models import (
+    Campus,
+    Department,
+    AdminClass,
+    Teacher,
+    Semester,
+    Course,
+    CourseType,
+    EducationLevel,
+    Section,
+    ExamMode,
+)
 
 
-class CampusViewSet(ModelViewSet):
-    queryset = Campus.objects.all()
-    serializer_class = CampusSerializer
+def generic_list_view(
+    request, model_class, template_name, context_object_name, paginate_by=50
+):
+    """Generic function for list views"""
+    queryset = model_class.objects.all()
+
+    # Handle search
+    search_query = request.GET.get("q", "")
+    if search_query:
+        if hasattr(model_class, "name_cn"):
+            queryset = queryset.filter(name_cn__icontains=search_query)
+        elif hasattr(model_class, "name_en"):
+            queryset = queryset.filter(name_en__icontains=search_query)
+        elif hasattr(model_class, "name"):
+            queryset = queryset.filter(name__icontains=search_query)
+        elif hasattr(model_class, "code"):
+            queryset = queryset.filter(code__icontains=search_query)
+
+    paginator = Paginator(queryset, paginate_by)
+    page_number = request.GET.get("page", 1)
+    page_obj = paginator.get_page(page_number)
+
+    return render(
+        request,
+        template_name,
+        {
+            context_object_name: page_obj,
+            "page_obj": page_obj,
+            "search_query": search_query,
+        },
+    )
 
 
-class DepartmentViewSet(ModelViewSet):
-    queryset = Department.objects.all()
-    serializer_class = DepartmentSerializer
+def generic_detail_view(
+    request,
+    model_class,
+    template_name,
+    context_object_name,
+    pk=None,
+    jw_id=None,
+):
+    """Generic function for detail views"""
+    if pk:
+        obj = get_object_or_404(model_class, pk=pk)
+    elif jw_id:
+        obj = get_object_or_404(model_class, jw_id=jw_id)
+    else:
+        return render(request, "404.html.jinja", {}, status=404)
 
-
-class AdminClassViewSet(ModelViewSet):
-    queryset = AdminClass.objects.all().order_by("name_cn")
-    serializer_class = AdminClassSerializer
-
-
-class TeacherViewSet(ModelViewSet):
-    queryset = Teacher.objects.all()
-    serializer_class = TeacherSerializer
-
-
-class SemesterViewSet(BaseViewSet):
-    queryset = Semester.objects.all()
-    serializer_class = SemesterSerializer
-
-
-class CourseViewSet(BaseViewSet):
-    queryset = Course.objects.all()
-    serializer_class = CourseSerializer
-
-
-class ScheduleViewSet(ModelViewSet):
-    queryset = Schedule.objects.all()
-    serializer_class = ScheduleSerializer
-
-    def get_schedule_ical_response(self, schedule):
-        """Helper to generate iCalendar file response for a schedule"""
-        try:
-            ical_content = schedule.to_ical()
-        except Exception as e:
-            return HttpResponse(
-                {"error": f"Failed to generate iCalendar: {str(e)}"},
-                content_type="application/json",
-                status=500,
-            )
-
-        section_code = schedule.section.code
-        date_str = schedule.date.strftime("%Y%m%d")
-        filename = f"{section_code}_{date_str}.ics"
-        response = HttpResponse(ical_content, content_type="text/calendar")
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
-        return response
-
-    @action(detail=True, methods=["get"])
-    def ical(self, request, pk=None):
-        """Export a single schedule as iCalendar"""
-        schedule = self.get_object()
-        return self.get_schedule_ical_response(schedule)
-
-
-class SectionViewSet(BaseViewSet):
-    queryset = Section.objects.all()
-    serializer_class = SectionSerializer
-
-    @action(detail=True, methods=["get"])
-    def schedules(self, request, pk=None):
-        """Get schedules for a specific section using serializer"""
-        section = self.get_object()
-        schedules = Schedule.objects.filter(section=section).select_related(
-            "room",
-            "room__building",
-            "room__building__campus",
-            "teacher",
-            "teacher__department",
-            "schedule_group",
-            "section__course",
-        )
-
-        # Use the serializer to format the data
-        serializer = ScheduleSerializer(
-            schedules, many=True, context={"request": request}
-        )
-        return Response(serializer.data)
-
-    @action(detail=True, methods=["get"])
-    def ical(self, request, pk=None):
-        """Export section schedules as iCalendar"""
-        section = self.get_object()
-        ical_content = section.to_ical()
-        course_code = section.course.code
-        section_code = section.code
-        filename = f"{course_code}_{section_code}.ics"
-        return generate_ical_response(ical_content, filename)
+    return render(
+        request,
+        template_name,
+        context={context_object_name: obj},
+    )
 
 
 def home(request):
@@ -135,24 +85,38 @@ def home(request):
 
 
 def campus_list(request):
-    return generic_list_view(request, Campus, "ustc/campus_list.html.jinja", "campuses")
+    return generic_list_view(
+        request,
+        Campus,
+        "ustc/campus_list.html.jinja",
+        "campuses",
+    )
 
 
 def department_list(request):
     return generic_list_view(
-        request, Department, "ustc/department_list.html.jinja", "departments"
+        request,
+        Department,
+        "ustc/department_list.html.jinja",
+        "departments",
     )
 
 
 def admin_class_list(request):
     return generic_list_view(
-        request, AdminClass, "ustc/admin_class_list.html.jinja", "admin_classes"
+        request,
+        AdminClass,
+        "ustc/admin_class_list.html.jinja",
+        "admin_classes",
     )
 
 
 def semester_list(request):
     return generic_list_view(
-        request, Semester, "ustc/semester_list.html.jinja", "semesters"
+        request,
+        Semester,
+        "ustc/semester_list.html.jinja",
+        "semesters",
     )
 
 
@@ -160,7 +124,12 @@ def course_list(request):
     queryset = (
         Course.objects.all()
         .select_related(
-            "type", "education_level", "gradation", "category", "class_type", "classify"
+            "type",
+            "education_level",
+            "gradation",
+            "category",
+            "class_type",
+            "classify",
         )
         .order_by("-jw_id")
     )
@@ -268,7 +237,11 @@ def section_list(request):
 
 def campus_detail(request, pk):
     return generic_detail_view(
-        request, Campus, "ustc/campus_detail.html.jinja", "campus", pk=pk
+        request,
+        Campus,
+        "ustc/campus_detail.html.jinja",
+        "campus",
+        pk=pk,
     )
 
 
@@ -294,7 +267,11 @@ def admin_class_detail(request, pk):
 
 def teacher_detail(request, pk):
     return generic_detail_view(
-        request, Teacher, "ustc/teacher_detail.html.jinja", "teacher", pk=pk
+        request,
+        Teacher,
+        "ustc/teacher_detail.html.jinja",
+        "teacher",
+        pk=pk,
     )
 
 
@@ -303,7 +280,11 @@ def semester_detail(request, pk):
 
     # Get sections for this semester
     queryset = Section.objects.filter(semester=semester).select_related(
-        "course", "open_department", "campus", "exam_mode", "teach_language"
+        "course",
+        "open_department",
+        "campus",
+        "exam_mode",
+        "teach_language",
     )
 
     # Handle search
@@ -385,59 +366,57 @@ def semester_detail_by_jw_id(request, jw_id):
 
 def course_detail(request, pk):
     course = get_object_or_404(Course, pk=pk)
-    # Get sections for this course, ordered by -jw_id
     sections = Section.objects.filter(course=course).order_by(
-        "-semester__start_date", "-jw_id"
+        "-semester__start_date",
+        "-jw_id",
     )
 
-    context = {"course": course, "sections": sections}
-    return render(request, "ustc/course_detail.html.jinja", context)
+    return render(
+        request,
+        "ustc/course_detail.html.jinja",
+        {
+            "course": course,
+            "sections": sections,
+        },
+    )
 
 
 def course_detail_by_jw_id(request, jw_id):
     course = get_object_or_404(Course, jw_id=jw_id)
-    # Get sections for this course, ordered by -jw_id
-    sections = Section.objects.filter(course=course).order_by("-jw_id")
+    sections = Section.objects.filter(course=course).order_by(
+        "-semester__start_date",
+        "-jw_id",
+    )
 
-    context = {"course": course, "sections": sections}
-    return render(request, "ustc/course_detail.html.jinja", context)
+    return render(
+        request,
+        "ustc/course_detail.html.jinja",
+        {
+            "course": course,
+            "sections": sections,
+        },
+    )
 
 
 def section_detail(request, pk):
     section = get_object_or_404(Section, pk=pk)
-    # We only load basic section data for the initial page load
-    # Schedule data will be loaded asynchronously via JavaScript
-    context = {"section": section}
-    return render(request, "ustc/section_detail.html.jinja", context)
+
+    return render(
+        request,
+        "ustc/section_detail.html.jinja",
+        context={
+            "section": section,
+        },
+    )
 
 
 def section_detail_by_jw_id(request, jw_id):
-    """Get section by JW ID and redirect to the main detail view"""
-    # Find the section by jw_id first
     section = get_object_or_404(Section, jw_id=jw_id)
-    # Redirect to the main detail view using the primary key
-    return section_detail(request, pk=section.pk)
 
-
-def generate_ical_response(ical_content, filename):
-    """Helper to return iCalendar content as a file download"""
-    response = HttpResponse(ical_content, content_type="text/calendar")
-    response["Content-Disposition"] = f'attachment; filename="{filename}"'
-    return response
-
-
-def section_ical(request, pk):
-    """Export section schedules as iCalendar (web view)"""
-    section = get_object_or_404(Section, pk=pk)
-    ical_content = section.to_ical()
-    course_code = section.course.code
-    section_code = section.code
-    filename = f"{course_code}_{section_code}.ics"
-    return generate_ical_response(ical_content, filename)
-
-
-def schedule_ical(request, pk):
-    """Export a single schedule as iCalendar (web view)"""
-    schedule = get_object_or_404(Schedule, pk=pk)
-    # Use the helper from ScheduleViewSet for consistent response
-    return ScheduleViewSet().get_schedule_ical_response(schedule)
+    return render(
+        request,
+        "ustc/section_detail.html.jinja",
+        context={
+            "section": section,
+        },
+    )

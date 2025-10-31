@@ -1,8 +1,20 @@
 from django.db import models
 from datetime import date
 
-from .models_extra import *
 from .ical_utils import create_calendar, create_event_from_schedule
+from .models_extra import (
+    Building,
+    RoomType,
+    Room,
+    EducationLevel,
+    CourseCategory,
+    CourseClassify,
+    ClassType,
+    CourseGradation,
+    CourseType,
+    ExamMode,
+    TeachLanguage,
+)
 
 
 class Campus(models.Model):
@@ -286,3 +298,27 @@ class Schedule(models.Model):
 
     class Meta:
         verbose_name_plural = "Schedules"
+
+
+__all__ = [
+    "Campus",
+    "Department",
+    "AdminClass",
+    "Teacher",
+    "Semester",
+    "Course",
+    "Section",
+    "ScheduleGroup",
+    "Schedule",
+    "Building",
+    "RoomType",
+    "Room",
+    "EducationLevel",
+    "CourseCategory",
+    "CourseClassify",
+    "ClassType",
+    "CourseGradation",
+    "CourseType",
+    "ExamMode",
+    "TeachLanguage",
+]

@@ -1,7 +1,29 @@
 from django.contrib import admin
 
-from .models import *
-from .admin_extra import *
+from .models import (
+    Campus,
+    Department,
+    AdminClass,
+    Teacher,
+    Semester,
+    Course,
+    Section,
+    ScheduleGroup,
+    Schedule,
+)
+from .admin_extra import (
+    BuildingAdmin,
+    RoomTypeAdmin,
+    RoomAdmin,
+    EducationLevelAdmin,
+    CourseCategoryAdmin,
+    CourseClassifyAdmin,
+    ClassTypeAdmin,
+    CourseTypeAdmin,
+    CourseGradationAdmin,
+    ExamModeAdmin,
+    TeachLanguageAdmin,
+)
 
 
 @admin.register(Campus)
@@ -289,3 +311,27 @@ class ScheduleAdmin(admin.ModelAdmin):
         "teacher",
         "section__course",
     ]
+
+
+__all__ = [
+    "CampusAdmin",
+    "DepartmentAdmin",
+    "AdminClassAdmin",
+    "TeacherAdmin",
+    "SemesterAdmin",
+    "CourseAdmin",
+    "SectionAdmin",
+    "ScheduleGroupAdmin",
+    "ScheduleAdmin",
+    "BuildingAdmin",
+    "RoomTypeAdmin",
+    "RoomAdmin",
+    "EducationLevelAdmin",
+    "CourseCategoryAdmin",
+    "CourseClassifyAdmin",
+    "ClassTypeAdmin",
+    "CourseTypeAdmin",
+    "CourseGradationAdmin",
+    "ExamModeAdmin",
+    "TeachLanguageAdmin",
+]

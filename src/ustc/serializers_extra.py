@@ -1,7 +1,15 @@
 from rest_framework import serializers
 
-from .models import *
-
+from .models import (
+    EducationLevel,
+    CourseCategory,
+    CourseClassify,
+    ClassType,
+    CourseType,
+    CourseGradation,
+    ExamMode,
+    TeachLanguage,
+)
 
 # BuidlingSerializer & RoomSerializer are moved to avoid circular import
 

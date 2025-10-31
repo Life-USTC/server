@@ -1,7 +1,20 @@
 from django.contrib import admin
 from django.db.models.functions import Cast
+from django.db import models
 
-from .models import *
+from .models import (
+    Building,
+    RoomType,
+    Room,
+    EducationLevel,
+    CourseCategory,
+    CourseClassify,
+    ClassType,
+    CourseType,
+    CourseGradation,
+    ExamMode,
+    TeachLanguage,
+)
 
 
 @admin.register(Building)
