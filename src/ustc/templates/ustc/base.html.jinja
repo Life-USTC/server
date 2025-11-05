@@ -21,120 +21,198 @@
       /* Modern gradient color scheme with OKLCH */
       :root {
         /* Primary purple gradient colors in OKLCH for better perceptual uniformity */
-        --color-primary-start: oklch(0.60 0.20 280); /* #667eea equivalent */
-        --color-primary-end: oklch(0.50 0.18 300); /* #764ba2 equivalent */
-        --color-primary: oklch(0.60 0.20 280);
+        --color-primary-start: oklch(0.60 0.20 280); /* Main purple */
+        --color-primary-end: oklch(0.50 0.18 300); /* Darker purple */
+        
+        /* Bootstrap theme color overrides using OKLCH */
+        --bs-primary: oklch(0.60 0.20 280);
+        --bs-primary-rgb: 102, 126, 234;
+        --bs-secondary: oklch(0.70 0.18 290);
+        --bs-secondary-rgb: 147, 123, 240;
+        --bs-success: oklch(0.65 0.16 285);
+        --bs-success-rgb: 128, 123, 219;
+        --bs-info: oklch(0.68 0.14 275);
+        --bs-info-rgb: 123, 135, 229;
+        --bs-warning: oklch(0.75 0.12 290);
+        --bs-warning-rgb: 181, 167, 240;
+        --bs-danger: oklch(0.58 0.16 295);
+        --bs-danger-rgb: 143, 89, 176;
+        --bs-light: oklch(0.96 0.006 280);
+        --bs-light-rgb: 244, 244, 248;
+        --bs-dark: oklch(0.38 0.020 280);
+        --bs-dark-rgb: 83, 77, 104;
+        
+        /* Convenience variables mapping to Bootstrap theme */
+        --color-primary: var(--bs-primary);
         --color-primary-dark: oklch(0.55 0.19 285);
         --color-primary-light: oklch(0.60 0.20 280 / 0.1);
+        --color-secondary: var(--bs-secondary);
+        --color-success: var(--bs-success);
+        --color-success-dark: oklch(0.55 0.15 285);
+        --color-warning: var(--bs-warning);
+        --color-warning-dark: oklch(0.65 0.11 290);
+        --color-info: var(--bs-info);
+        --color-danger: var(--bs-danger);
         
-        /* Gradients using OKLCH */
-        --gradient-primary: linear-gradient(135deg, var(--color-primary-start) 0%, var(--color-primary-end) 100%);
-        --gradient-secondary: linear-gradient(135deg, oklch(0.75 0.18 330) 0%, oklch(0.65 0.25 15) 100%); /* pink to red */
-        --gradient-accent: linear-gradient(135deg, oklch(0.70 0.15 240) 0%, oklch(0.75 0.18 200) 100%); /* blue cyan */
+        /* Gradients using Bootstrap theme colors */
+        --gradient-primary: linear-gradient(135deg, var(--bs-primary) 0%, var(--color-primary-end) 100%);
+        --gradient-secondary: linear-gradient(135deg, var(--bs-secondary) 0%, oklch(0.60 0.20 295) 100%);
+        --gradient-accent: linear-gradient(135deg, var(--bs-info) 0%, oklch(0.70 0.15 260) 100%);
         --gradient-light: linear-gradient(135deg, oklch(0.60 0.20 280 / 0.05) 0%, oklch(0.50 0.18 300 / 0.05) 100%);
         
-        /* Semantic colors in OKLCH */
-        --color-success: oklch(0.65 0.20 145);
-        --color-success-dark: oklch(0.55 0.18 145);
-        --color-warning: oklch(0.75 0.15 75);
-        --color-warning-dark: oklch(0.65 0.14 70);
-        --color-info: oklch(0.70 0.10 240);
-        --color-danger: oklch(0.60 0.22 25);
+        /* Neutrals in OKLCH with purple tint for consistency */
+        --color-gray-50: var(--bs-light);
+        --color-gray-100: oklch(0.94 0.008 280);
+        --color-gray-200: oklch(0.92 0.008 280);
+        --color-gray-300: oklch(0.86 0.010 280);
+        --color-gray-400: oklch(0.70 0.012 280);
+        --color-gray-500: oklch(0.58 0.015 280);
+        --color-gray-600: oklch(0.48 0.018 280);
+        --color-gray-700: oklch(0.38 0.020 280);
+        --color-gray-800: oklch(0.28 0.020 280);
+        --color-gray-900: var(--bs-dark);
         
-        /* Neutrals in OKLCH for consistent lightness */
-        --color-gray-50: oklch(0.98 0.002 280);
-        --color-gray-100: oklch(0.96 0.002 280);
-        --color-gray-200: oklch(0.92 0.005 280);
-        --color-gray-300: oklch(0.86 0.005 280);
-        --color-gray-400: oklch(0.70 0.008 280);
-        --color-gray-500: oklch(0.58 0.010 280);
-        --color-gray-600: oklch(0.48 0.010 280);
-        --color-gray-700: oklch(0.38 0.010 280);
-        --color-gray-800: oklch(0.28 0.010 280);
-        --color-gray-900: oklch(0.18 0.010 280);
-        
-        /* Shadows */
-        --shadow-sm: 0 2px 4px oklch(0 0 0 / 0.05);
-        --shadow-md: 0 4px 6px oklch(0 0 0 / 0.07);
-        --shadow-lg: 0 8px 16px oklch(0 0 0 / 0.1);
+        /* Shadows with slight purple tint */
+        --shadow-sm: 0 2px 4px oklch(0.30 0.02 280 / 0.08);
+        --shadow-md: 0 4px 6px oklch(0.30 0.02 280 / 0.12);
+        --shadow-lg: 0 8px 16px oklch(0.30 0.02 280 / 0.15);
         
         /* Border radius */
         --radius-sm: 8px;
         --radius-md: 12px;
         --radius-lg: 16px;
       }
-
-      /* Override Bootstrap's primary color */
-      .bg-primary {
-        background: var(--gradient-primary) !important;
-      }
-
+      
+      /* Override Bootstrap button colors to use our theme */
       .btn-primary {
         background: var(--gradient-primary);
         border: none;
-        font-weight: 600;
-        padding: 0.5rem 1.25rem;
-        border-radius: var(--radius-sm);
-        transition: all 0.2s ease;
-        box-shadow: var(--shadow-sm);
-      }
-
-      .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-md);
-        opacity: 0.9;
-      }
-
-      .btn-outline-primary {
-        color: var(--color-primary);
-        border: 2px solid var(--color-primary);
-        font-weight: 600;
-        padding: 0.5rem 1.25rem;
-        border-radius: var(--radius-sm);
-        transition: all 0.2s ease;
-        background: transparent;
-      }
-
-      .btn-outline-primary:hover {
         color: white;
+      }
+      
+      .btn-primary:hover,
+      .btn-primary:focus {
+        background: linear-gradient(135deg, oklch(0.55 0.19 285) 0%, oklch(0.45 0.17 305) 100%);
+        border: none;
+      }
+      
+      .btn-secondary {
+        background: var(--gradient-secondary);
+        border: none;
+        color: white;
+      }
+      
+      .btn-secondary:hover,
+      .btn-secondary:focus {
+        background: linear-gradient(135deg, oklch(0.65 0.17 295) 0%, oklch(0.55 0.19 300) 100%);
+        border: none;
+      }
+      
+      .btn-outline-primary {
+        border: 2px solid var(--bs-primary);
+        color: var(--bs-primary);
+      }
+      
+      .btn-outline-primary:hover,
+      .btn-outline-primary:focus {
         background: var(--gradient-primary);
         border-color: transparent;
-        transform: translateY(-2px);
+        color: white;
+      }
+      
+      .btn-outline-secondary {
+        border: 2px solid var(--bs-secondary);
+        color: var(--bs-secondary);
+      }
+      
+      .btn-outline-secondary:hover,
+      .btn-outline-secondary:focus {
+        background: var(--gradient-secondary);
+        border-color: transparent;
+        color: white;
+      }
+      
+      /* Override Bootstrap badge colors */
+      .badge.bg-primary {
+        background: var(--gradient-primary) !important;
+      }
+      
+      .badge.bg-secondary {
+        background: var(--gradient-secondary) !important;
+      }
+      
+      .badge.bg-success {
+        background: linear-gradient(135deg, var(--bs-success) 0%, var(--color-success-dark) 100%) !important;
+      }
+      
+      .badge.bg-warning {
+        background: linear-gradient(135deg, var(--bs-warning) 0%, var(--color-warning-dark) 100%) !important;
+      }
+      
+      .badge.bg-info {
+        background: linear-gradient(135deg, var(--bs-info) 0%, oklch(0.63 0.13 270) 100%) !important;
+      }
+      
+      .badge.bg-danger {
+        background: linear-gradient(135deg, var(--bs-danger) 0%, oklch(0.53 0.15 300) 100%) !important;
+      }
+      
+      /* Override Bootstrap alert colors */
+      .alert-primary {
+        background-color: oklch(0.60 0.20 280 / 0.1);
+        border-color: var(--bs-primary);
+        color: var(--color-primary-dark);
+      }
+      
+      .alert-success {
+        background-color: oklch(0.65 0.16 285 / 0.1);
+        border-color: var(--bs-success);
+        color: var(--color-success-dark);
+      }
+      
+      .alert-warning {
+        background-color: oklch(0.75 0.12 290 / 0.1);
+        border-color: var(--bs-warning);
+        color: var(--color-warning-dark);
+      }
+      
+      .alert-info {
+        background-color: oklch(0.68 0.14 275 / 0.1);
+        border-color: var(--bs-info);
+        color: oklch(0.48 0.12 275);
+      }
+      
+      .alert-danger {
+        background-color: oklch(0.58 0.16 295 / 0.1);
+        border-color: var(--bs-danger);
+        color: oklch(0.48 0.15 295);
+      }
+      
+      /* Common button styles - enhance Bootstrap buttons */
+      .btn {
+        font-weight: 600;
+        padding: 0.5rem 1.25rem;
+        border-radius: var(--radius-sm);
+        transition: all 0.2s ease;
         box-shadow: var(--shadow-sm);
       }
 
-      .btn-outline-secondary {
-        border-radius: var(--radius-sm);
-        font-weight: 600;
-        transition: all 0.2s ease;
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
       }
 
+      .btn-outline-primary:hover,
       .btn-outline-secondary:hover {
         transform: translateY(-2px);
         box-shadow: var(--shadow-sm);
       }
 
-      /* Badge styling */
+      /* Badge styling - common properties only */
       .badge {
         font-weight: 600;
         padding: 0.35rem 0.65rem;
         border-radius: var(--radius-sm);
-      }
-
-      .badge.bg-primary {
-        background: var(--gradient-primary) !important;
-      }
-
-      .badge.bg-success {
-        background: linear-gradient(135deg, var(--color-success) 0%, var(--color-success-dark) 100%) !important;
-      }
-
-      .badge.bg-warning {
-        background: linear-gradient(135deg, var(--color-warning) 0%, var(--color-warning-dark) 100%) !important;
-      }
-
-      .badge.bg-secondary {
-        background: linear-gradient(135deg, oklch(0.60 0.20 290) 0%, oklch(0.55 0.22 285) 100%) !important;
       }
 
       /* Card styling */

@@ -188,9 +188,9 @@
     padding: 4px 6px;
   }
   
-  /* Event color scheme - Modern, vibrant colors */
+  /* Event color scheme - Use Bootstrap theme colors */
   .fc-event.lesson-lecture {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    background: var(--gradient-primary) !important;
     color: #ffffff !important;
   }
   
@@ -200,7 +200,7 @@
   }
   
   .fc-event.lesson-experiment {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+    background: var(--gradient-secondary) !important;
     color: #ffffff !important;
   }
   
@@ -210,7 +210,7 @@
   }
   
   .fc-event.lesson-practice {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+    background: var(--gradient-accent) !important;
     color: #ffffff !important;
   }
   
@@ -220,13 +220,13 @@
   }
   
   .fc-event.lesson-other {
-    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%) !important;
-    color: #495057 !important;
+    background: linear-gradient(135deg, oklch(0.80 0.08 285) 0%, oklch(0.85 0.06 280) 100%) !important;
+    color: oklch(0.35 0.08 285) !important;
   }
   
   .fc-event.lesson-other .fc-event-time,
   .fc-event.lesson-other .fc-event-title {
-    color: #495057 !important;
+    color: oklch(0.35 0.08 285) !important;
   }
   
   /* More events link */
@@ -527,19 +527,19 @@
           </div>
           <div id="calendar-legend" class="calendar-legend" style="display: none">
             <div class="legend-item">
-              <div class="legend-color lesson-lecture" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>
+              <div class="legend-color lesson-lecture" style="background: var(--gradient-primary);"></div>
               <span>{% trans 'Lecture' %}</span>
             </div>
             <div class="legend-item">
-              <div class="legend-color lesson-experiment" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);"></div>
+              <div class="legend-color lesson-experiment" style="background: var(--gradient-secondary);"></div>
               <span>{% trans 'Experiment' %}</span>
             </div>
             <div class="legend-item">
-              <div class="legend-color lesson-practice" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);"></div>
+              <div class="legend-color lesson-practice" style="background: var(--gradient-accent);"></div>
               <span>{% trans 'Practice' %}</span>
             </div>
             <div class="legend-item">
-              <div class="legend-color lesson-other" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);"></div>
+              <div class="legend-color lesson-other" style="background: linear-gradient(135deg, oklch(0.80 0.08 285) 0%, oklch(0.85 0.06 280) 100%);"></div>
               <span>{% trans 'Other' %}</span>
             </div>
           </div>
