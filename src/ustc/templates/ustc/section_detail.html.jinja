@@ -687,16 +687,17 @@
           <table class="table table-striped table-hover schedule-table">
             <thead>
               <tr>
+                <th>{% trans 'Week' %}</th>
                 <th>{% trans 'Date (Weekday)' %}</th>
                 <th>{% trans 'Time' %}</th>
                 <th>{% trans 'Location' %}</th>
-                <th>{% trans 'Type' %}</th>
+                <th>{% trans 'Teacher' %}</th>
               </tr>
             </thead>
             <tbody id="schedule-table-body">
               <!-- Will be populated by JavaScript -->
               <tr id="table-loading">
-                <td colspan="4" class="text-center py-4">
+                <td colspan="5" class="text-center py-4">
                   <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
                   </div>
@@ -1081,17 +1082,26 @@
         // Get location data - prefer room location over custom place
         const location = formatLocation(schedule.room) || schedule.custom_place || '-';
 
-        // Get lesson type
-        const lessonType = schedule.lesson_type || '-';
+        // Get teacher name
+        let teacherName = '-';
+        if (schedule.teacher) {
+          teacherName = schedule.teacher.name_cn || '';
+          if (schedule.teacher.department) {
+            teacherName += `<br><small class="text-muted">${schedule.teacher.department.name_cn}</small>`;
+          }
+        }
 
-        // Create table row with color coding
-        const lessonClass = getLessonTypeClass(schedule.lesson_type);
+        // Get week index
+        const weekIndex = schedule.week_index || '-';
+
+        // Create table row
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td data-label="{% trans 'Date (Weekday)' %}"><strong>${formattedDate}</strong><br><small class="text-muted">{% trans "Week" %} ${schedule.week_index || '-'}</small></td>
+          <td data-label="{% trans 'Week' %}">${weekIndex}</td>
+          <td data-label="{% trans 'Date (Weekday)' %}"><strong>${formattedDate}</strong></td>
           <td data-label="{% trans 'Time' %}"><strong>${timeRange}</strong><br><small class="text-muted">${schedule.periods || '-'} {% trans "periods" %}</small></td>
           <td data-label="{% trans 'Location' %}">${location}</td>
-          <td data-label="{% trans 'Type' %}"><span class="badge ${lessonClass === 'lesson-lecture' ? 'bg-primary' : lessonClass === 'lesson-experiment' ? 'bg-success' : lessonClass === 'lesson-practice' ? 'bg-warning' : 'bg-secondary'}">${lessonType}</span></td>
+          <td data-label="{% trans 'Teacher' %}">${teacherName}</td>
         `;
 
         tableBody.appendChild(row);
