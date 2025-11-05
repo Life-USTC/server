@@ -8,13 +8,16 @@
   {% trans "N/A" as na_text %}
   <div class="list-header">
     <div class="list-title-row">
-      <h1>{% trans "Courses" %}</h1>
-      <form method="get" class="list-filter-form" id="search-form">
-        <input type="text"
-               name="q"
-               class="form-control list-filter-input search me-2"
-               placeholder="{% trans 'Search by name or code...' %}"
-               value="{{ request.GET.q|default:'' }}" />
+      <h1><i class="bi bi-book"></i> {% trans "Courses" %}</h1>
+      <form method="get" class="list-filter-form" id="search-form" data-auto-submit="true">
+        <div class="input-group list-filter-input search me-2">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text"
+                 name="q"
+                 class="form-control"
+                 placeholder="{% trans 'Search by name or code...' %}"
+                 value="{{ request.GET.q|default:'' }}" />
+        </div>
         <select name="type" class="form-select list-filter-input select me-2">
           <option value="">{% trans "All Course Types" %}</option>
           {% for type in course_types %}
@@ -34,7 +37,9 @@
             </option>
           {% endfor %}
         </select>
-        <button type="submit" class="btn btn-primary">{% trans "Filter" %}</button>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-funnel"></i> {% trans "Filter" %}
+        </button>
       </form>
     </div>
   </div>
@@ -77,29 +82,4 @@
     </div>
   </div>
   {% include 'ustc/partials/pagination.html.jinja' %}
-  {% block extra_js %}
-    <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const typeSelect = document.querySelector('select[name="type"]');
-    const educationLevelSelect = document.querySelector('select[name="education_level"]');
-    let searchTimeout;
-
-    function performSearch() {
-        const form = document.getElementById('search-form');
-        if (form) {
-            form.submit();
-        }
-    }
-
-    // Instant filter on select changes
-    if (typeSelect) {
-        typeSelect.addEventListener('change', performSearch);
-    }
-    
-    if (educationLevelSelect) {
-        educationLevelSelect.addEventListener('change', performSearch);
-    }
-});
-    </script>
-  {% endblock %}
 {% endblock %}

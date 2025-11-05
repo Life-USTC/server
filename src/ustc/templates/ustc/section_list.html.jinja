@@ -7,13 +7,16 @@
 {% block content %}
   <div class="list-header">
     <div class="list-title-row">
-      <h1>{% trans 'Course Sections' %}</h1>
-      <form method="get" class="list-filter-form" id="search-form">
-        <input type="text"
-               name="q"
-               class="form-control list-filter-input search-compact me-2"
-               placeholder="{% trans 'Search by code...' %}"
-               value="{{ request.GET.q|default:'' }}" />
+      <h1><i class="bi bi-grid-3x3"></i> {% trans 'Course Sections' %}</h1>
+      <form method="get" class="list-filter-form" id="search-form" data-auto-submit="true">
+        <div class="input-group list-filter-input search-compact me-2">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text"
+                 name="q"
+                 class="form-control"
+                 placeholder="{% trans 'Search by code...' %}"
+                 value="{{ request.GET.q|default:'' }}" />
+        </div>
         <select name="semester" class="form-select list-filter-input select me-2">
           <option value="">{% trans 'All Semesters' %}</option>
           {% for sem in semesters %}
@@ -30,7 +33,9 @@
             </option>
           {% endfor %}
         </select>
-        <button type="submit" class="btn btn-primary">{% trans 'Filter' %}</button>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-funnel"></i> {% trans 'Filter' %}
+        </button>
       </form>
     </div>
   </div>
@@ -39,29 +44,4 @@
     {% include 'ustc/partials/section_table.html.jinja' with sections=sections show_semester=True empty_message="No sections found." %}
   </div>
   {% include 'ustc/partials/pagination.html.jinja' %}
-  {% block extra_js %}
-    <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const semesterSelect = document.querySelector('select[name="semester"]');
-    const departmentSelect = document.querySelector('select[name="department"]');
-    let searchTimeout;
-
-    function performSearch() {
-        const form = document.getElementById('search-form');
-        if (form) {
-            form.submit();
-        }
-    }
-
-    // Instant filter on select changes
-    if (semesterSelect) {
-        semesterSelect.addEventListener('change', performSearch);
-    }
-    
-    if (departmentSelect) {
-        departmentSelect.addEventListener('change', performSearch);
-    }
-});
-    </script>
-  {% endblock %}
 {% endblock %}

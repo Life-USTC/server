@@ -6,58 +6,67 @@
 {% endblock %}
 {% block content %}
   {% trans "N/A" as na_text %}
-  <div class="detail-header">
-    <div>
-      <a href="{% url 'ustc:course-list' %}" class="subtle-link">{% trans "View all courses" %}</a>
-      <div class="text-start gap-2">
-        <h1 class="mb-0">{{ course|translated_name }}</h1>
-        <span class="mb-0 detail-code">{{ course.code }}</span>
-      </div>
+  <div class="detail-header-container">
+    <div class="detail-back-button">
+      <a href="{% url 'ustc:course-list' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-chevron-left"></i> {% trans "Back to Courses" %}
+      </a>
     </div>
-    <div class="flex-grow-1"></div>
-    <div class="detail-info-grid">
+    <div class="detail-header">
       <div>
-        <div class="detail-info-label">{% trans "Course Type" %}</div>
-        <div>
-          {% if course.type %}
-            {{ course.type|translated_name }}
-          {% else %}
-            {{ na_text }}
-          {% endif %}
+        <div class="text-start gap-2">
+          <h1 class="mb-0">{{ course|translated_name }}</h1>
+          <span class="mb-0 detail-code">{{ course.code }}</span>
         </div>
       </div>
-      <div>
-        <div class="detail-info-label">{% trans "Course Gradation" %}</div>
+      <div class="flex-grow-1"></div>
+      <div class="detail-info-grid">
         <div>
-          {% if course.gradation %}
-            {{ course.gradation|translated_name }}
-          {% else %}
-            {{ na_text }}
-          {% endif %}
+          <div class="detail-info-label">{% trans "Course Type" %}</div>
+          <div>
+            {% if course.type %}
+              {{ course.type|translated_name }}
+            {% else %}
+              {{ na_text }}
+            {% endif %}
+          </div>
         </div>
-      </div>
-      <div>
-        <div class="detail-info-label">{% trans "Course Category" %}</div>
         <div>
-          {% if course.category %}
-            {{ course.category|translated_name }}
-          {% else %}
-            {{ na_text }}
-          {% endif %}
+          <div class="detail-info-label">{% trans "Course Gradation" %}</div>
+          <div>
+            {% if course.gradation %}
+              {{ course.gradation|translated_name }}
+            {% else %}
+              {{ na_text }}
+            {% endif %}
+          </div>
         </div>
-      </div>
-      <div>
-        <div class="detail-info-label">{% trans "Education Level" %}</div>
         <div>
-          {% if course.education_level %}
-            {{ course.education_level|translated_name }}
-          {% else %}
-            {{ na_text }}
-          {% endif %}
+          <div class="detail-info-label">{% trans "Course Category" %}</div>
+          <div>
+            {% if course.category %}
+              {{ course.category|translated_name }}
+            {% else %}
+              {{ na_text }}
+            {% endif %}
+          </div>
+        </div>
+        <div>
+          <div class="detail-info-label">{% trans "Education Level" %}</div>
+          <div>
+            {% if course.education_level %}
+              {{ course.education_level|translated_name }}
+            {% else %}
+              {{ na_text }}
+            {% endif %}
+          </div>
         </div>
       </div>
     </div>
   </div>
-  <h4 class="mb-3">{% trans "Course Sections" %}</h4>
-  {% include 'ustc/partials/section_table.html.jinja' with sections=sections show_semester=True empty_message="No sections found for this course." %}
+  
+  <h4 class="mt-4 mb-3">{% trans "Course Sections" %}</h4>
+  <div class="list-table-container">
+    {% include 'ustc/partials/section_table.html.jinja' with sections=sections show_semester=True empty_message="No sections found for this course." %}
+  </div>
 {% endblock %}

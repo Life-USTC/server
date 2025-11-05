@@ -7,14 +7,19 @@
 {% block content %}
   <div class="list-header">
     <div class="list-title-row">
-      <h1>{% trans "Teachers" %}</h1>
+      <h1><i class="bi bi-person-badge"></i> {% trans "Teachers" %}</h1>
       <form method="get" class="list-search-form" id="search-form">
-        <input type="text"
-               name="q"
-               class="form-control list-search-input"
-               placeholder="{% trans 'Search teachers...' %}"
-               value="{{ request.GET.q|default:'' }}" />
-        <button type="submit" class="btn btn-primary">{% trans 'Search' %}</button>
+        <div class="input-group list-search-input">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text"
+                 name="q"
+                 class="form-control"
+                 placeholder="{% trans 'Search teachers...' %}"
+                 value="{{ request.GET.q|default:'' }}" />
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-search"></i> {% trans 'Search' %}
+        </button>
       </form>
     </div>
   </div>

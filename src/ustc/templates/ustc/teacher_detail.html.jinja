@@ -4,29 +4,36 @@
 {% block title %}{{ teacher|translated_name }} - Teach{% endblock %}
 {% block content %}
   {% trans "N/A" as na_text %}
-  <div class="detail-header">
-    <div>
-      <a href="{% url 'ustc:teacher-list' %}" class="subtle-link">{% trans "View all teachers" %}</a>
-      <div class="text-start gap-2">
-        <h1 class="mb-0">{{ teacher|translated_name }}</h1>
-      </div>
+  <div class="detail-header-container">
+    <div class="detail-back-button">
+      <a href="{% url 'ustc:teacher-list' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-chevron-left"></i> {% trans "Back to Teachers" %}
+      </a>
     </div>
-    <div class="flex-grow-1"></div>
-    <div class="detail-info-grid">
+    <div class="detail-header">
       <div>
-        <div class="detail-info-label">{% trans "Department" %}</div>
+        <div class="text-start gap-2">
+          <h1 class="mb-0">{{ teacher|translated_name }}</h1>
+        </div>
+      </div>
+      <div class="flex-grow-1"></div>
+      <div class="detail-info-grid">
         <div>
-          {% if teacher.department %}
-            <a class="subtle-link"
-               href="{% url 'ustc:department-detail' teacher.department.pk %}">{{ teacher.department|translated_name }}</a>
-          {% else %}
-            {{ na_text }}
-          {% endif %}
+          <div class="detail-info-label">{% trans "Department" %}</div>
+          <div>
+            {% if teacher.department %}
+              <a class="subtle-link"
+                 href="{% url 'ustc:department-detail' teacher.department.pk %}">{{ teacher.department|translated_name }}</a>
+            {% else %}
+              {{ na_text }}
+            {% endif %}
+          </div>
         </div>
       </div>
     </div>
   </div>
-  <div class="d-flex justify-content-between align-items-center mt-5 mb-3">
+  
+  <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
     <h4 class="mb-0">{% trans "Sections Taught" %}</h4>
     <div>
       <button class="btn btn-sm btn-outline-secondary me-2"

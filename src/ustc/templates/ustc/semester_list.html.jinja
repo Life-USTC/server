@@ -7,14 +7,12 @@
 {% block content %}
   <div class="list-header">
     <div class="list-title-row">
-      <h1>{% trans "Semesters" %}</h1>
-      <form method="get" class="list-search-form" id="search-form">
-        <input type="text"
-               name="q"
-               class="form-control list-search-input"
-               placeholder="{% trans 'Search semesters...' %}"
-               value="{{ request.GET.q|default:'' }}" />
-        <button type="submit" class="btn btn-primary">{% trans 'Search' %}</button>
+      {% include 'ustc/partials/page_header.html.jinja' with icon='calendar3' title=_('Semesters') %}
+      <form method="get" class="list-search-form" id="search-form" data-auto-submit="true">
+        {% include 'ustc/partials/search_input.html.jinja' with name='q' placeholder=_('Search semesters...') value=request.GET.q %}
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-search"></i> {% trans 'Search' %}
+        </button>
       </form>
     </div>
   </div>
