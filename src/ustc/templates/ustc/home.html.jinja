@@ -138,8 +138,87 @@
       font-size: 2.5rem;
     }
 
+    .hero-section p {
+      font-size: 1.1rem;
+    }
+
     .stats-grid {
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+    }
+
+    .recent-semesters,
+    .api-section {
+      padding: 1.5rem;
+    }
+
+    .recent-semesters h2,
+    .api-section h2 {
+      font-size: 1.5rem;
+    }
+
+    .semester-item {
+      padding: 1rem;
+    }
+
+    .semester-item:hover {
+      transform: translateX(4px);
+    }
+  }
+
+  @media (max-width: 576px) {
+    .hero-section {
+      padding: 2rem 1.5rem;
+    }
+
+    .hero-section h1 {
+      font-size: 2rem;
+    }
+
+    .hero-section p {
+      font-size: 1rem;
+    }
+
+    .stats-grid {
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+
+    .stats-card {
+      padding: 1rem;
+    }
+
+    .recent-semesters,
+    .api-section {
+      padding: 1rem;
+    }
+
+    .recent-semesters h2,
+    .api-section h2 {
+      font-size: 1.25rem;
+    }
+
+    .semester-item {
+      padding: 0.875rem;
+    }
+
+    .semester-item h5 {
+      font-size: 1rem;
+    }
+
+    .semester-item p,
+    .semester-item small {
+      font-size: 0.8rem;
+    }
+
+    .api-section li {
+      padding: 0.75rem;
+      font-size: 0.875rem;
+    }
+
+    .api-section code {
+      font-size: 0.75rem;
+      word-break: break-all;
     }
   }
   </style>

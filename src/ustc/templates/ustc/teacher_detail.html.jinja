@@ -94,7 +94,7 @@
               <tr class="semester-content clickable-row"
                   data-semester="{{ forloop.parentloop.counter }}"
                   onclick="window.location='{% url 'ustc:section-detail' section.pk %}'">
-                <td>
+                <td data-label="{% trans 'Course' %}">
                   <div>
                     <a href="{% url 'ustc:course-detail' section.course.pk %}"
                        class="text-decoration-none"
@@ -103,17 +103,17 @@
                        data-bs-title="{% trans 'Code' %}: {{ section.course.code }}{% if section.open_department %} | {% trans 'Department' %}: {{ section.open_department|translated_name }}{% endif %}">{{ section.course|translated_name }}</a>
                   </div>
                 </td>
-                <td>
+                <td data-label="{% trans 'Code' %}">
                   <span data-bs-toggle="tooltip"
                         data-bs-placement="top"
                         data-bs-title="{% trans 'Credits' %}: {{ section.credits|default:'N/A' }} | {% trans 'Students' %}: {{ section.std_count|default:'N/A' }}{% if section.limit_count %}/{{ section.limit_count }}{% endif %}">{{ section.code }}
                   </span>
                 </td>
                 <td></td>
-                <td>
+                <td data-label="{% trans 'Enrollment' %}">
                   {% include 'ustc/partials/enrollment_display.html.jinja' with std_count=section.std_count limit_count=section.limit_count %}
                 </td>
-                <td class="text-center">
+                <td class="text-center" data-label="{% trans 'Credits' %}">
                   {% if section.credits %}
                     <span class="badge bg-info">{{ section.credits }}</span>
                   {% else %}

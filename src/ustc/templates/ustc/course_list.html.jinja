@@ -63,14 +63,14 @@
           {% for course in courses %}
             <tr class="clickable-row"
                 onclick="window.location='{% url 'ustc:course-detail' course.id %}'">
-              <td>{{ course.code }}</td>
-              <td>{{ course|translated_name }}</td>
-              <td>{{ course.type|translated_name|default:na_text }}</td>
-              <td>{{ course.education_level|translated_name|default:na_text }}</td>
-              <td>{{ course.gradation|translated_name|default:na_text }}</td>
-              <td>{{ course.category|translated_name|default:na_text }}</td>
-              <td>{{ course.class_type|translated_name|default:na_text }}</td>
-              <td>{{ course.classify|translated_name|default:na_text }}</td>
+              <td data-label="{% trans 'Code' %}">{{ course.code }}</td>
+              <td data-label="{% trans 'Name' %}">{{ course|translated_name }}</td>
+              <td data-label="{% trans 'Type' %}">{{ course.type|translated_name|default:na_text }}</td>
+              <td data-label="{% trans 'Education Level' %}">{{ course.education_level|translated_name|default:na_text }}</td>
+              <td data-label="{% trans 'Gradation' %}">{{ course.gradation|translated_name|default:na_text }}</td>
+              <td data-label="{% trans 'Category' %}">{{ course.category|translated_name|default:na_text }}</td>
+              <td data-label="{% trans 'Class Type' %}">{{ course.class_type|translated_name|default:na_text }}</td>
+              <td data-label="{% trans 'Classify' %}">{{ course.classify|translated_name|default:na_text }}</td>
             </tr>
           {% empty %}
             <tr>

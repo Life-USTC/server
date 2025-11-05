@@ -27,7 +27,7 @@
         onclick="window.location='{% url "ustc:section-detail" section.id %}'"
       >
         {% if show_semester %}
-        <td class="text-truncate" style="max-width: 150px;">
+        <td class="text-truncate" style="max-width: 150px;" data-label="{% trans 'Semester' %}">
 
           {% if section.semester %}
           <a href="{% url 'ustc:semester-detail' section.semester.pk %}" class="subtle-link text-body"
@@ -41,15 +41,15 @@
         </td>
         {% endif %}
 
-        <td>{{ section.code }}</td>
+        <td data-label="{% trans 'Code' %}">{{ section.code }}</td>
 
-        <td class="text-truncate" style="max-width: 200px;">
+        <td class="text-truncate" style="max-width: 200px;" data-label="{% trans 'Name' %}">
           {{ section.course|translated_name }}
         </td>
 
-        <td>{{ section.credits|default:na_text }}</td>
+        <td data-label="{% trans 'Credits' %}">{{ section.credits|default:na_text }}</td>
 
-        <td class="text-truncate" style="max-width: 150px;">
+        <td class="text-truncate" style="max-width: 150px;" data-label="{% trans 'Teachers' %}">
           {% if section.teachers.exists %}
             {% for teacher in section.teachers.all %}
             <a href="{% url 'ustc:teacher-detail' teacher.pk %}" 
@@ -64,7 +64,7 @@
           {% endif %}
         </td>
 
-        <td class="text-truncate" style="max-width: 150px;">
+        <td class="text-truncate" style="max-width: 150px;" data-label="{% trans 'Department' %}">
           {% if section.open_department %}
           <a href="{% url 'ustc:department-detail' section.open_department.pk %}" 
              class="text-decoration-none text-body">
@@ -75,7 +75,7 @@
           {% endif %}
         </td>
 
-        <td class="text-truncate" style="max-width: 100px;">
+        <td class="text-truncate" style="max-width: 100px;" data-label="{% trans 'Campus' %}">
           {% if section.campus %}
           <a href="{% url 'ustc:campus-detail' section.campus.pk %}" 
              class="text-decoration-none text-body">
@@ -86,11 +86,11 @@
           {% endif %}
         </td>
 
-        <td class="text-truncate" style="max-width: 120px;">
+        <td class="text-truncate" style="max-width: 120px;" data-label="{% trans 'Exam Mode' %}">
           {{ section.exam_mode|translated_name|default:na_text }}
         </td>
 
-        <td>
+        <td data-label="{% trans 'Enrollment' %}">
           {% include 'ustc/partials/enrollment_display.html.jinja' with std_count=section.std_count limit_count=section.limit_count %}
         </td>
       </tr>

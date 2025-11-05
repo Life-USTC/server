@@ -749,22 +749,47 @@
           flex: 1 1 100%;
           max-width: 100%;
         }
+
+        /* Make tables horizontally scrollable on tablets */
+        .table-responsive {
+          -webkit-overflow-scrolling: touch;
+        }
       }
 
       @media (max-width: 768px) {
-        .detail-header {
-          padding: 1.5rem;
+        /* Navbar adjustments */
+        .navbar-brand {
+          font-size: 1.25rem;
         }
 
-        .detail-info-grid {
-          gap: 2rem;
+        /* Main content padding */
+        .main-content {
+          padding: 1rem 0;
+        }
+
+        /* Detail header mobile */
+        .detail-header {
+          padding: 1.5rem;
           flex-direction: column;
           align-items: stretch;
         }
 
+        .detail-info-grid {
+          gap: 1.5rem;
+          flex-direction: column;
+          align-items: stretch;
+          min-width: auto;
+        }
+
+        .detail-header h1 {
+          font-size: 1.75rem;
+        }
+
+        /* List title row mobile */
         .list-title-row h1 {
           padding: 1.5rem;
           text-align: center;
+          font-size: 1.75rem;
         }
 
         .list-title-row .list-search-form,
@@ -777,10 +802,12 @@
           padding: 1rem;
         }
 
+        /* Section box mobile */
         .section-box {
           padding: 1.5rem;
         }
 
+        /* Form inputs mobile */
         .list-search-input {
           max-width: 100%;
           width: 100%;
@@ -806,6 +833,112 @@
         .list-search-form .btn,
         .list-filter-form .btn {
           width: 100%;
+        }
+
+        /* Table mobile - convert to card layout */
+        .table-responsive {
+          border: none;
+          box-shadow: none;
+        }
+
+        .list-table-container .table {
+          font-size: 0.875rem;
+        }
+
+        .list-table-container .table thead {
+          display: none;
+        }
+
+        .list-table-container .table tbody tr {
+          display: block;
+          margin-bottom: 1rem;
+          border: none;
+          border-radius: var(--radius-md);
+          box-shadow: var(--shadow-sm);
+          background: white;
+          padding: 1rem;
+        }
+
+        .list-table-container .table tbody tr:hover {
+          background: white;
+          box-shadow: var(--shadow-md);
+        }
+
+        .list-table-container .table tbody td {
+          display: block;
+          text-align: left;
+          border: none;
+          padding: 0.5rem 0;
+          border-bottom: 1px solid var(--color-gray-100);
+        }
+
+        .list-table-container .table tbody td:last-child {
+          border-bottom: none;
+        }
+
+        .list-table-container .table tbody td::before {
+          content: attr(data-label);
+          font-weight: 600;
+          color: var(--color-gray-600);
+          display: block;
+          margin-bottom: 0.25rem;
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        /* Stats card mobile */
+        .stats-card h3 {
+          font-size: 2rem;
+        }
+
+        /* Footer mobile */
+        .footer {
+          padding: 1.5rem 0;
+          text-align: center;
+        }
+
+        .footer .d-flex {
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        /* Card hover effects disabled on mobile */
+        .card:hover {
+          transform: none;
+        }
+
+        .list-card:hover {
+          transform: none;
+        }
+
+        .stats-card:hover {
+          transform: none;
+        }
+      }
+
+      @media (max-width: 576px) {
+        /* Extra small devices */
+        .detail-header h1 {
+          font-size: 1.5rem;
+        }
+
+        .list-title-row h1 {
+          font-size: 1.5rem;
+        }
+
+        .btn {
+          font-size: 0.875rem;
+          padding: 0.5rem 1rem;
+        }
+
+        .stats-card h3 {
+          font-size: 1.75rem;
+        }
+
+        .badge {
+          font-size: 0.75rem;
+          padding: 0.25rem 0.5rem;
         }
       }
     </style>
