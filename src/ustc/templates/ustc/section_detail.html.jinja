@@ -10,40 +10,334 @@
   <style>
   .calendar-container {
     margin: 20px 0;
-    padding: 20px;
-    border: 1px solid #e2e2e2;
+    padding: 0;
+    border: none;
+    border-radius: 12px;
+    background-color: transparent;
+  }
+  
+  /* FullCalendar base styling */
+  .fc {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+  
+  /* Toolbar styling */
+  .fc .fc-toolbar {
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px 12px 0 0;
+    margin-bottom: 0 !important;
+  }
+  
+  .fc .fc-toolbar-title {
+    font-size: 1.75rem !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+    letter-spacing: -0.5px;
+  }
+  
+  .fc .fc-button {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    color: #ffffff !important;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
     border-radius: 8px;
-    background-color: #fff;
+    text-transform: capitalize;
+    transition: all 0.2s ease;
   }
-  .fc-event {
-    cursor: pointer;
+  
+  .fc .fc-button:hover {
+    background-color: rgba(255, 255, 255, 0.3) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+    transform: translateY(-1px);
   }
-  .fc-event-title {
+  
+  .fc .fc-button:disabled {
+    opacity: 0.5;
+  }
+  
+  .fc .fc-button-active {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    color: #667eea !important;
+    border-color: rgba(255, 255, 255, 0.9) !important;
+  }
+  
+  .fc .fc-button-group {
+    gap: 0.25rem;
+  }
+  
+  /* Calendar body */
+  .fc .fc-view-harness {
+    background-color: #ffffff;
+    border-radius: 0 0 12px 12px;
+    overflow: hidden;
+  }
+  
+  /* Day headers */
+  .fc .fc-col-header {
+    background-color: #f8f9fa;
+  }
+  
+  .fc .fc-col-header-cell {
+    padding: 1rem 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #495057;
+    border-color: #e9ecef !important;
+  }
+  
+  /* Day cells */
+  .fc .fc-daygrid-day {
+    transition: background-color 0.2s ease;
+  }
+  
+  .fc .fc-daygrid-day:hover {
+    background-color: #f8f9fa;
+  }
+  
+  .fc .fc-daygrid-day-number {
+    padding: 0.5rem;
+    font-weight: 600;
+    color: #495057;
+  }
+  
+  .fc .fc-day-today {
+    background-color: rgba(102, 126, 234, 0.08) !important;
+  }
+  
+  .fc .fc-day-today .fc-daygrid-day-number {
+    background-color: #667eea;
+    color: white;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0.25rem;
+  }
+  
+  /* Time grid */
+  .fc .fc-timegrid-slot {
+    height: 3rem;
+    border-color: #e9ecef !important;
+  }
+  
+  .fc .fc-timegrid-slot-label {
+    color: #6c757d;
+    font-size: 0.8rem;
     font-weight: 500;
   }
-  #calendar {
-    height: 600px;
+  
+  .fc .fc-timegrid-axis {
+    background-color: #fafbfc;
   }
-  .event-details {
-    margin-bottom: 10px;
-    padding: 10px;
-    background-color: rgba(111, 66, 193, 0.05);
-    border-radius: 5px;
+  
+  /* All borders */
+  .fc td, .fc th {
+    border-color: #e9ecef !important;
+  }
+  
+  /* Events */
+  .fc-event {
+    cursor: pointer;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 4px 8px !important;
+    font-size: 0.875rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+    margin: 2px !important;
+  }
+  
+  .fc-event:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  }
+  
+  .fc-event-title {
+    font-weight: 600 !important;
+    line-height: 1.4;
+  }
+  
+  .fc-event-time {
+    font-weight: 700 !important;
+    font-size: 0.75rem;
+    opacity: 0.95;
+  }
+  
+  #calendar {
+    min-height: 600px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+    border-radius: 12px;
+  }
+  
+  .fc-daygrid-event {
+    white-space: normal !important;
+    padding: 4px 6px !important;
+  }
+  
+  .fc-timegrid-event {
+    border-radius: 6px !important;
+  }
+  
+  .fc-timegrid-event .fc-event-main {
+    padding: 4px 6px;
+  }
+  
+  /* Event color scheme - Modern, vibrant colors */
+  .fc-event.lesson-lecture {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: #ffffff !important;
+  }
+  
+  .fc-event.lesson-lecture .fc-event-time,
+  .fc-event.lesson-lecture .fc-event-title {
+    color: #ffffff !important;
+  }
+  
+  .fc-event.lesson-experiment {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+    color: #ffffff !important;
+  }
+  
+  .fc-event.lesson-experiment .fc-event-time,
+  .fc-event.lesson-experiment .fc-event-title {
+    color: #ffffff !important;
+  }
+  
+  .fc-event.lesson-practice {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+    color: #ffffff !important;
+  }
+  
+  .fc-event.lesson-practice .fc-event-time,
+  .fc-event.lesson-practice .fc-event-title {
+    color: #ffffff !important;
+  }
+  
+  .fc-event.lesson-other {
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%) !important;
+    color: #495057 !important;
+  }
+  
+  .fc-event.lesson-other .fc-event-time,
+  .fc-event.lesson-other .fc-event-title {
+    color: #495057 !important;
+  }
+  
+  /* More events link */
+  .fc .fc-daygrid-more-link {
+    color: #667eea;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+  }
+  
+  .fc .fc-daygrid-more-link:hover {
+    background-color: rgba(102, 126, 234, 0.1);
+    text-decoration: none;
+  }
+  
+  /* Popover for "more" events */
+  .fc .fc-popover {
+    border: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    border-radius: 12px;
+  }
+  
+  .fc .fc-popover-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 12px 12px 0 0;
   }
   /* Table styles for events list */
   .schedule-table {
-    margin-top: 30px;
+    margin-top: 0;
+    font-size: 0.9rem;
   }
   .schedule-table th {
     background-color: #f8f9fa;
     position: sticky;
     top: 0;
     z-index: 10;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
   }
   .schedule-table-container {
     max-height: 600px;
     overflow-y: auto;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+  }
+  .schedule-table tbody tr:hover {
+    background-color: #f8f9fa;
+  }
+  /* Event modal styles */
+  .event-detail-modal .modal-body {
+    padding: 1.5rem;
+  }
+  .event-detail-item {
+    display: flex;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e9ecef;
+  }
+  .event-detail-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+  .event-detail-label {
+    font-weight: 600;
+    color: #495057;
+    min-width: 120px;
+    flex-shrink: 0;
+  }
+  .event-detail-value {
+    color: #212529;
+  }
+  /* Toolbar improvements */
+  .fc-toolbar {
+    margin-bottom: 1.5rem !important;
+  }
+  .fc-toolbar-title {
+    font-size: 1.5rem !important;
+    font-weight: 600 !important;
+  }
+  /* Legend */
+  .calendar-legend {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+    border-radius: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #495057;
+  }
+  
+  .legend-color {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
   </style>
 {% endblock %}
@@ -51,10 +345,14 @@
 {% block content %}
   <!-- prettier-ignore -->
   {% trans "N/A" as na_text %}
-  <div class="mt-4 mb-3">
+  <div class="detail-header-container">
+    <div class="detail-back-button">
+      <a href="{% url 'ustc:section-list' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-chevron-left"></i> {% trans 'Back to Sections' %}
+      </a>
+    </div>
     <div class="detail-header">
       <div>
-        <a href="{% url 'ustc:section-list' %}" class="subtle-link">{% trans 'View all sections' %}</a>
         <h1 class="mb-0">{{ section.course|translated_name }}</h1>
         <span class="mb-0 detail-code">{{ section.code }}</span>
       </div>
@@ -98,64 +396,60 @@
         </div>
       </div>
     </div>
-    <div style="border-width: 1.5pt;
-                border-style: solid;
-                border-color: #eee;
-                border-radius: 0.25rem;
-                padding: 1rem">
-      <div class="detail-info-grid">
+  </div>
+  <div class="section-box">
+    <div class="detail-info-grid">
+      <div>
+        <div class="detail-info-label">{% trans 'Course Code' %}</div>
         <div>
-          <div class="detail-info-label">{% trans 'Course Code' %}</div>
-          <div>
-            <a href="{% url 'ustc:course-detail' section.course.pk %}"
-               class="subtle-link">{{ section.course.code }}</a>
-          </div>
+          <a href="{% url 'ustc:course-detail' section.course.pk %}"
+             class="subtle-link">{{ section.course.code }}</a>
         </div>
+      </div>
+      <div>
+        <div class="detail-info-label">{% trans 'Exam Mode' %}</div>
         <div>
-          <div class="detail-info-label">{% trans 'Exam Mode' %}</div>
-          <div>
-            {% if section.exam_mode %}
-              <span>{{ section.exam_mode|translated_name }}</span>
-            {% else %}
-              {{ na_text }}
-            {% endif %}
-          </div>
+          {% if section.exam_mode %}
+            <span>{{ section.exam_mode|translated_name }}</span>
+          {% else %}
+            {{ na_text }}
+          {% endif %}
         </div>
+      </div>
+      <div>
+        <div class="detail-info-label">{% trans 'Teaching Language' %}</div>
         <div>
-          <div class="detail-info-label">{% trans 'Teaching Language' %}</div>
-          <div>
-            {% if section.teach_language %}
-              <span>{{ section.teach_language|translated_name }}</span>
-            {% else %}
-              {{ na_text }}
-            {% endif %}
-          </div>
+          {% if section.teach_language %}
+            <span>{{ section.teach_language|translated_name }}</span>
+          {% else %}
+            {{ na_text }}
+          {% endif %}
         </div>
+      </div>
+      <div>
+        <div class="detail-info-label">{% trans 'Graduate & Postgraduate' %}</div>
         <div>
-          <div class="detail-info-label">{% trans 'Graduate & Postgraduate' %}</div>
-          <div>
-            {% if section.graduate_and_postgraduate %}
-              <span class="badge bg-success">{% trans 'Yes' %}</span>
-            {% elif section.graduate_and_postgraduate == False %}
-              <span class="badge bg-secondary">{% trans 'No' %}</span>
-            {% else %}
-              <span class="badge bg-light text-dark">{{ na_text }}</span>
-            {% endif %}
-          </div>
+          {% if section.graduate_and_postgraduate %}
+            <span class="badge bg-success">{% trans 'Yes' %}</span>
+          {% elif section.graduate_and_postgraduate == False %}
+            <span class="badge bg-secondary">{% trans 'No' %}</span>
+          {% else %}
+            <span class="badge bg-light text-dark">{{ na_text }}</span>
+          {% endif %}
         </div>
-        <div class="flex-grow-1"></div>
-        <div>
-          <div class="detail-info-label">{% trans 'Period (Hours)' %}</div>
-          <div>{{ section.period|default:na_text }}</div>
-        </div>
-        <div>
-          <div class="detail-info-label">{% trans 'Periods per Week' %}</div>
-          <div>{{ section.periods_per_week|default:na_text }}</div>
-        </div>
-        <div>
-          <div class="detail-info-label">{% trans 'Credits' %}</div>
-          <div>{{ section.credits|default:na_text }}</div>
-        </div>
+      </div>
+      <div class="flex-grow-1"></div>
+      <div>
+        <div class="detail-info-label">{% trans 'Period (Hours)' %}</div>
+        <div>{{ section.period|default:na_text }}</div>
+      </div>
+      <div>
+        <div class="detail-info-label">{% trans 'Periods per Week' %}</div>
+        <div>{{ section.periods_per_week|default:na_text }}</div>
+      </div>
+      <div>
+        <div class="detail-info-label">{% trans 'Credits' %}</div>
+        <div>{{ section.credits|default:na_text }}</div>
       </div>
     </div>
   </div>
@@ -231,6 +525,24 @@
             </div>
             <p class="mt-2">{% trans 'Loading schedule data...' %}</p>
           </div>
+          <div id="calendar-legend" class="calendar-legend" style="display: none">
+            <div class="legend-item">
+              <div class="legend-color lesson-lecture" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>
+              <span>{% trans 'Lecture' %}</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color lesson-experiment" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);"></div>
+              <span>{% trans 'Experiment' %}</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color lesson-practice" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);"></div>
+              <span>{% trans 'Practice' %}</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color lesson-other" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);"></div>
+              <span>{% trans 'Other' %}</span>
+            </div>
+          </div>
           <div id="calendar" style="display: none"></div>
           <div id="calendar-error"
                class="alert alert-danger my-3"
@@ -280,6 +592,30 @@
     <!-- Add spacer to prevent overlap with content below calendar -->
     <div class="calendar-spacer"></div>
   </div>
+  <!-- Event Detail Modal -->
+  <div class="modal fade event-detail-modal"
+       id="eventDetailModal"
+       tabindex="-1"
+       aria-labelledby="eventDetailModalLabel"
+       aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="eventDetailModalLabel">{% trans 'Schedule Details' %}</h5>
+          <button type="button"
+                  class="btn-close"
+                  data-bs-dismiss="modal"
+                  aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="eventDetailContent">
+          <!-- Content will be populated by JavaScript -->
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans 'Close' %}</button>
+        </div>
+      </div>
+    </div>
+  </div>
   <!-- prettier-ignore -->
 {% endblock %}
 {% block extra_js %}
@@ -307,7 +643,7 @@
     }
 
     function getWeekdayNameFromNumber(weekday) {
-      const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      const weekdays = ['{% trans "Monday" %}', '{% trans "Tuesday" %}', '{% trans "Wednesday" %}', '{% trans "Thursday" %}', '{% trans "Friday" %}', '{% trans "Saturday" %}', '{% trans "Sunday" %}'];
       return weekdays[weekday - 1] || '';
     }
 
@@ -317,9 +653,25 @@
       let location = roomData.name_cn || '';
       if (roomData.building) {
         const buildingName = roomData.building.name_cn || '';
-        location = buildingName ? `${buildingName} ${location}` : location;
+        const campusName = roomData.building.campus ? roomData.building.campus.name_cn : '';
+        if (buildingName) {
+          location = `${buildingName} ${location}`;
+        }
+        if (campusName && !location.includes(campusName)) {
+          location = `${campusName} ${location}`;
+        }
       }
-      return location;
+      return location.trim();
+    }
+
+    function getLessonTypeClass(lessonType) {
+      if (!lessonType) return 'lesson-lecture';
+      const type = lessonType.toLowerCase();
+      if (type.includes('实验') || type.includes('experiment') || type.includes('lab')) return 'lesson-experiment';
+      if (type.includes('实践') || type.includes('practice') || type.includes('习题') || type.includes('exercise')) return 'lesson-practice';
+      if (type.includes('授课') || type.includes('lecture') || type.includes('理论') || type.includes('讲授')) return 'lesson-lecture';
+      // Default to lecture for any other type
+      return 'lesson-lecture';
     }
 
     // Convert raw schedules to calendar events
@@ -329,12 +681,17 @@
         const startTime = formatTime(schedule.start_time);
         const endTime = formatTime(schedule.end_time);
 
-        // Build title
+        // Build title - just course name for cleaner display
         let title = schedule.course ? schedule.course.name_cn : '';
         const location = formatLocation(schedule.room);
-        if (location) {
-          title += ` - ${location}`;
+        
+        // Add lesson type indicator
+        if (schedule.lesson_type) {
+          title = `[${schedule.lesson_type}] ${title}`;
         }
+
+        // Determine event class based on lesson type
+        const lessonClass = getLessonTypeClass(schedule.lesson_type);
 
         // Build the event object for FullCalendar
         return {
@@ -342,6 +699,7 @@
           title: title,
           start: `${schedule.date}T${startTime}:00`,
           end: `${schedule.date}T${endTime}:00`,
+          className: lessonClass,
           extendedProps: {
             // Include all the raw data for easy access
             ...schedule,
@@ -353,6 +711,99 @@
           },
         };
       });
+    }
+
+    // Show event details in modal
+    function showEventDetails(event) {
+      const props = event.extendedProps;
+      const modal = new bootstrap.Modal(document.getElementById('eventDetailModal'));
+      const content = document.getElementById('eventDetailContent');
+
+      let html = '';
+
+      // Course name
+      if (props.course) {
+        html += `<div class="event-detail-item">
+          <div class="event-detail-label">{% trans "Course" %}:</div>
+          <div class="event-detail-value">${props.course.name_cn || ''}</div>
+        </div>`;
+      }
+
+      // Date and time
+      const dateObj = new Date(event.start);
+      const dateStr = dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+      html += `<div class="event-detail-item">
+        <div class="event-detail-label">{% trans "Date" %}:</div>
+        <div class="event-detail-value">${dateStr}</div>
+      </div>`;
+
+      html += `<div class="event-detail-item">
+        <div class="event-detail-label">{% trans "Time" %}:</div>
+        <div class="event-detail-value">${props.formatted_start_time} - ${props.formatted_end_time}</div>
+      </div>`;
+
+      // Location
+      if (props.formatted_location) {
+        html += `<div class="event-detail-item">
+          <div class="event-detail-label">{% trans "Location" %}:</div>
+          <div class="event-detail-value">${props.formatted_location}</div>
+        </div>`;
+      }
+
+      // Custom place
+      if (props.custom_place) {
+        html += `<div class="event-detail-item">
+          <div class="event-detail-label">{% trans "Custom Place" %}:</div>
+          <div class="event-detail-value">${props.custom_place}</div>
+        </div>`;
+      }
+
+      // Teacher
+      if (props.teacher) {
+        let teacherInfo = props.teacher.name_cn || '';
+        if (props.teacher.department) {
+          teacherInfo += ` (${props.teacher.department.name_cn})`;
+        }
+        html += `<div class="event-detail-item">
+          <div class="event-detail-label">{% trans "Teacher" %}:</div>
+          <div class="event-detail-value">${teacherInfo}</div>
+        </div>`;
+      }
+
+      // Lesson type
+      if (props.lesson_type) {
+        html += `<div class="event-detail-item">
+          <div class="event-detail-label">{% trans "Type" %}:</div>
+          <div class="event-detail-value">${props.lesson_type}</div>
+        </div>`;
+      }
+
+      // Week index
+      if (props.week_index) {
+        html += `<div class="event-detail-item">
+          <div class="event-detail-label">{% trans "Week" %}:</div>
+          <div class="event-detail-value">${props.week_index}</div>
+        </div>`;
+      }
+
+      // Periods
+      if (props.periods) {
+        html += `<div class="event-detail-item">
+          <div class="event-detail-label">{% trans "Periods" %}:</div>
+          <div class="event-detail-value">${props.periods}</div>
+        </div>`;
+      }
+
+      // Experiment info
+      if (props.experiment) {
+        html += `<div class="event-detail-item">
+          <div class="event-detail-label">{% trans "Experiment" %}:</div>
+          <div class="event-detail-value">${props.experiment}</div>
+        </div>`;
+      }
+
+      content.innerHTML = html;
+      modal.show();
     }
 
     // Fetch schedule data from API
@@ -378,8 +829,9 @@
         // Convert raw schedules to calendar events
         const calendarEvents = convertToCalendarEvents(rawSchedules);
 
-        // Show calendar and initialize it
+        // Show calendar, legend and initialize it
         document.getElementById('calendar').style.display = 'block';
+        document.getElementById('calendar-legend').style.display = 'flex';
         initializeCalendar(calendarEvents);
 
         // Populate table with raw schedule data
@@ -410,71 +862,62 @@
         if (!maxDate || eventDate > maxDate) maxDate = new Date(eventDate);
       });
 
-      // Set initial date in the middle of the range
-      const initialDate = minDate ? new Date((minDate.getTime() + maxDate.getTime()) / 2) : new Date();
+      // Set initial date to the first event date
+      const initialDate = minDate || new Date();
+
+      // Determine initial view based on date range
+      const daysDiff = maxDate && minDate ? (maxDate - minDate) / (1000 * 60 * 60 * 24) : 0;
+      const initialView = daysDiff <= 7 ? 'timeGridWeek' : 'dayGridMonth';
 
       // Initialize calendar
       const calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth', // Default to month view
+        initialView: initialView,
         initialDate: initialDate,
         headerToolbar: {
           left: 'prev,next today',
           center: 'title',
-          right: 'dayGridMonth,timeGridWeek',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay',
+        },
+        buttonText: {
+          today: '{% trans "Today" %}',
+          month: '{% trans "Month" %}',
+          week: '{% trans "Week" %}',
+          day: '{% trans "Day" %}',
         },
         height: 'auto',
         expandRows: true,
-        slotMinTime: '07:50:00', // Start time for day views
-        slotMaxTime: '21:55:00', // End time for day views
+        slotMinTime: '07:50:00',
+        slotMaxTime: '21:55:00',
         allDaySlot: false,
         navLinks: true,
         editable: false,
-        dayMaxEvents: true,
+        dayMaxEvents: 3,
         events: calendarEvents,
         eventTimeFormat: {
           hour: '2-digit',
           minute: '2-digit',
           hour12: false,
         },
-        eventClick: function (info) {
-          // Get the raw data from extendedProps
-          const event = info.event;
-          const props = event.extendedProps;
-
-          // Build the tooltip content
-          let tooltipContent = `${event.title}<br>`;
-          tooltipContent += `Date: ${new Date(event.start).toLocaleDateString()}<br>`;
-          tooltipContent += `Time: ${props.formatted_start_time} - ${props.formatted_end_time}<br>`;
-
-          if (props.teacher) {
-            tooltipContent += `Teacher: ${props.teacher.name_cn}<br>`;
-          }
-
-          if (props.lesson_type) {
-            tooltipContent += `Type: ${props.lesson_type}<br>`;
-          }
-
-          if (props.custom_place) {
-            tooltipContent += `Custom Place: ${props.custom_place}`;
-          }
-
-          // Show tooltip
-          var tooltip = new bootstrap.Tooltip(info.el, {
-            title: tooltipContent,
-            html: true,
-            placement: 'top',
-            trigger: 'manual',
-          });
-          tooltip.show();
-
-          // Hide tooltip after 3 seconds
-          setTimeout(function () {
-            tooltip.hide();
-          }, 3000);
+        slotLabelFormat: {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
         },
+        eventClick: function (info) {
+          info.jsEvent.preventDefault();
+          showEventDetails(info.event);
+        },
+        eventMouseEnter: function(info) {
+          info.el.style.cursor = 'pointer';
+        },
+        firstDay: 1, // Start week on Monday
+        locale: 'en-gb',
       });
 
       calendar.render();
+
+      // Store calendar instance for later use
+      window.sectionCalendar = calendar;
     }
 
     // Populate schedule table
@@ -503,33 +946,34 @@
         // Format start and end times: HH:MM-HH:MM
         const startTime = formatTime(schedule.start_time);
         const endTime = formatTime(schedule.end_time);
-        const timeRange = `${startTime}-${endTime}`;
+        const timeRange = `${startTime} - ${endTime}`;
 
         // Get location data
         const location = formatLocation(schedule.room);
-        const customPlace = schedule.custom_place || '';
+        const customPlace = schedule.custom_place || '-';
 
         // Get teacher name
-        let teacherName = '';
+        let teacherName = '-';
         if (schedule.teacher) {
           teacherName = schedule.teacher.name_cn || '';
           if (schedule.teacher.department) {
-            teacherName += ` (${schedule.teacher.department.name_cn})`;
+            teacherName += `<br><small class="text-muted">${schedule.teacher.department.name_cn}</small>`;
           }
         }
 
         // Get lesson type
-        const lessonType = schedule.lesson_type || '';
+        const lessonType = schedule.lesson_type || '-';
 
-        // Create table row
+        // Create table row with color coding
+        const lessonClass = getLessonTypeClass(schedule.lesson_type);
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${formattedDate}</td>
-          <td>${timeRange}</td>
-          <td>${location}</td>
+          <td><strong>${formattedDate}</strong><br><small class="text-muted">{% trans "Week" %} ${schedule.week_index || '-'}</small></td>
+          <td><strong>${timeRange}</strong><br><small class="text-muted">${schedule.periods || '-'} {% trans "periods" %}</small></td>
+          <td>${location || '-'}</td>
           <td>${customPlace}</td>
           <td>${teacherName}</td>
-          <td>${lessonType}</td>
+          <td><span class="badge ${lessonClass === 'lesson-lecture' ? 'bg-primary' : lessonClass === 'lesson-experiment' ? 'bg-success' : lessonClass === 'lesson-practice' ? 'bg-warning' : 'bg-secondary'}">${lessonType}</span></td>
         `;
 
         tableBody.appendChild(row);
@@ -542,12 +986,8 @@
 
     calendarTab.addEventListener('shown.bs.tab', function (event) {
       // Force calendar to resize when its tab is shown
-      const calendarEl = document.getElementById('calendar');
-      if (calendarEl.querySelector('.fc')) {
-        const fcApi = calendarEl.querySelector('.fc').fcApi;
-        if (fcApi) {
-          setTimeout(() => fcApi.updateSize(), 10);
-        }
+      if (window.sectionCalendar) {
+        setTimeout(() => window.sectionCalendar.updateSize(), 10);
       }
     });
   });
