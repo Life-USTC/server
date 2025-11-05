@@ -14,6 +14,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 
 #: ustc/templates/ustc/admin_class_detail.html.jinja:5
 msgid "Admin Class Detail"
@@ -607,6 +608,22 @@ msgstr "教师"
 #: ustc/templates/ustc/teacher_list.html.jinja:53
 msgid "No teachers found."
 msgstr "未找到教师。"
+
+#: ustc/templates/ustc/course_detail.html.jinja:12
+msgid "Back to Courses"
+msgstr "返回课程列表"
+
+#: ustc/templates/ustc/section_detail.html.jinja:351
+msgid "Back to Sections"
+msgstr "返回开课列表"
+
+#: ustc/templates/ustc/semester_detail.html.jinja:12
+msgid "Back to Semesters"
+msgstr "返回学期列表"
+
+#: ustc/templates/ustc/teacher_detail.html.jinja:10
+msgid "Back to Teachers"
+msgstr "返回教师列表"
 
 #~ msgid ""
 #~ "Welcome to the University of Science and Technology of China Timetable "
