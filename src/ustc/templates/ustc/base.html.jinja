@@ -436,6 +436,15 @@
         font-weight: 500;
       }
 
+      .footer a {
+        color: var(--color-gray-500);
+        transition: color 0.2s ease;
+      }
+
+      .footer a:hover {
+        color: var(--bs-primary);
+      }
+
       /* Tooltip styling */
       .tooltip {
         font-size: 0.875rem;
@@ -869,14 +878,6 @@
                     <i class="bi bi-people"></i> {% trans "Admin Classes" %}
                   </a>
                 </li>
-                <li>
-                  <hr class="dropdown-divider" />
-                </li>
-                <li>
-                  <a class="dropdown-item" href="/admin/">
-                    <i class="bi bi-gear"></i> {% trans "Admin Panel" %}
-                  </a>
-                </li>
               </ul>
             </li>
           </ul>
@@ -920,7 +921,12 @@
     </div>
     <footer class="footer">
       <div class="container">
-        <p>© {% now "Y" %} {% trans "Life@USTC" %} - {% trans "All Rights Reserved" %}</p>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <p class="mb-0">© {% now "Y" %} {% trans "Life@USTC" %} - {% trans "All Rights Reserved" %}</p>
+          <a href="/admin/" class="text-muted text-decoration-none small">
+            <i class="bi bi-gear"></i> {% trans "Admin Panel" %}
+          </a>
+        </div>
       </div>
     </footer>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
