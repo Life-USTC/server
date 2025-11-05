@@ -1,0 +1,9 @@
+{% load i18n %}
+{% comment %}
+Reusable page header component with icon
+Usage: {% include 'ustc/partials/page_header.html.jinja' with icon='book' title='Courses' %}
+{% endcomment %}
+<h1>
+  {% if icon %}<i class="bi bi-{{ icon }}"></i> {% endif %}
+  {{ title }}
+</h1>

@@ -1,0 +1,12 @@
+{% comment %}
+Reusable search input component with icon
+Usage: {% include 'ustc/partials/search_input.html.jinja' with name='q' placeholder='Search...' value=request.GET.q %}
+{% endcomment %}
+<div class="input-group {{ input_class|default:'list-search-input' }}">
+  <span class="input-group-text"><i class="bi bi-search"></i></span>
+  <input type="text"
+         name="{{ name|default:'q' }}"
+         class="form-control"
+         placeholder="{{ placeholder }}"
+         value="{{ value|default:'' }}" />
+</div>
