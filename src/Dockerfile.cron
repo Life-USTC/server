@@ -1,0 +1,27 @@
+FROM python:3.13-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+COPY . .
+
+# Install cron, gettext, and git (needed for load_from_static to clone repos)
+RUN apt-get update && apt-get install -y cron gettext git && rm -rf /var/lib/apt/lists/* \
+    && pip install --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
+
+RUN python manage.py compilemessages
+
+# Copy crontab file and set up cron
+COPY crontab /etc/cron.d/django-cron
+RUN chmod 0644 /etc/cron.d/django-cron \
+    && crontab /etc/cron.d/django-cron \
+    && touch /var/log/cron.log
+
+# Create entrypoint script
+RUN echo '#!/bin/bash\nset -e\nprintenv | grep -v "no_proxy" >> /etc/environment\ncron && tail -f /var/log/cron.log' > /entrypoint.sh \
+    && chmod +x /entrypoint.sh
+
+CMD ["/entrypoint.sh"]

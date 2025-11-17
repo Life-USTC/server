@@ -33,6 +33,23 @@ services:
         networks:
             - backend
 
+    cron:
+        image: ghcr.io/life-ustc/server-cron:latest
+        restart: always
+        depends_on:
+            - db
+        environment:
+            - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+            - DJANGO_DEBUG=False
+            - DJANGO_ALLOWED_HOSTS=life-ustc.tiankaima.dev
+            - POSTGRES_DB=${POSTGRES_DB:-postgres}
+            - POSTGRES_USER=${POSTGRES_USER:-user}
+            - POSTGRES_PASSWORD=${POSTGRES_password}
+            - POSTGRES_HOST=${POSTGRES_HOST:-db}
+            - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+        networks:
+            - backend
+
 networks:
     backend:
         driver: bridge
