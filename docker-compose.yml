@@ -36,6 +36,25 @@ services:
         networks:
             - backend
 
+    cron:
+        build:
+            context: ./src
+            dockerfile: Dockerfile.cron
+        volumes:
+            - ./src:/app
+        depends_on:
+            - db
+        environment:
+            - DJANGO_DEBUG=True
+            - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+            - POSTGRES_DB=${POSTGRES_DB:-postgres}
+            - POSTGRES_USER=${POSTGRES_USER:-user}
+            - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+            - POSTGRES_HOST=${POSTGRES_HOST:-db}
+            - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+        networks:
+            - backend
+
 networks:
     backend:
         driver: bridge
