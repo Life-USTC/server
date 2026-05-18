@@ -6,6 +6,7 @@ import type { AppLocale } from "@/i18n/config";
 import { findCurrentSemester } from "@/lib/current-semester";
 import { getPrisma, prisma } from "@/lib/db/prisma";
 import { listUserCalendarEvents } from "./calendar-events";
+import { getSubscribedSectionIds } from "./subscription-read-model";
 
 function isUpcomingEventAt(value: string | null | undefined, now: Date) {
   if (!value) return false;
@@ -26,10 +27,12 @@ export async function getAssistantDashboardSnapshot(input: {
   const dateTo = new Date(now.getTime() + dayLimit * 24 * 60 * 60 * 1000);
   const currentSemester = await findCurrentSemester(prisma.semester, now);
   const localizedPrisma = getPrisma(input.locale);
+  const sectionIdsPromise = getSubscribedSectionIds(input.userId);
 
   const [
     user,
-    subscriptionState,
+    sectionIds,
+    currentSemesterSections,
     events,
     incompleteTodos,
     incompleteTodoCount,
@@ -44,64 +47,63 @@ export async function getAssistantDashboardSnapshot(input: {
         image: true,
       },
     }),
-    localizedPrisma.user.findUniqueOrThrow({
-      where: { id: input.userId },
-      select: {
-        _count: {
-          select: {
-            subscribedSections: true,
-          },
-        },
-        subscribedSections: {
-          where: currentSemester
-            ? { semesterId: currentSemester.id }
-            : { id: -1 },
-          orderBy: [{ code: "asc" }],
-          select: {
-            id: true,
-            jwId: true,
-            code: true,
-            course: {
-              select: {
-                jwId: true,
-                code: true,
-                namePrimary: true,
-                nameSecondary: true,
+    sectionIdsPromise,
+    sectionIdsPromise.then((sectionIds) =>
+      currentSemester && sectionIds.length > 0
+        ? localizedPrisma.section.findMany({
+            where: {
+              id: { in: sectionIds },
+              semesterId: currentSemester.id,
+            },
+            orderBy: [{ code: "asc" }],
+            select: {
+              id: true,
+              jwId: true,
+              code: true,
+              course: {
+                select: {
+                  jwId: true,
+                  code: true,
+                  namePrimary: true,
+                  nameSecondary: true,
+                },
+              },
+              semester: {
+                select: {
+                  id: true,
+                  jwId: true,
+                  code: true,
+                  nameCn: true,
+                },
+              },
+              campus: {
+                select: {
+                  id: true,
+                  namePrimary: true,
+                  nameSecondary: true,
+                },
+              },
+              teachers: {
+                select: {
+                  id: true,
+                  namePrimary: true,
+                  nameSecondary: true,
+                },
+                orderBy: [{ nameCn: "asc" }],
               },
             },
-            semester: {
-              select: {
-                id: true,
-                jwId: true,
-                code: true,
-                nameCn: true,
-              },
-            },
-            campus: {
-              select: {
-                id: true,
-                namePrimary: true,
-                nameSecondary: true,
-              },
-            },
-            teachers: {
-              select: {
-                id: true,
-                namePrimary: true,
-                nameSecondary: true,
-              },
-              orderBy: [{ nameCn: "asc" }],
-            },
-          },
-        },
-      },
-    }),
-    listUserCalendarEvents(input.userId, {
-      locale: input.locale,
-      dateFrom: now,
-      dateTo,
-      eventWindowMode: "start",
-    }),
+          })
+        : Promise.resolve([]),
+    ),
+    sectionIdsPromise.then((sectionIds) =>
+      listUserCalendarEvents(input.userId, {
+        locale: input.locale,
+        dateFrom: now,
+        dateTo,
+        eventWindowMode: "start",
+        sectionIds,
+      }),
+    ),
     prisma.todo.findMany({
       where: {
         userId: input.userId,
@@ -173,9 +175,9 @@ export async function getAssistantDashboardSnapshot(input: {
         }
       : null,
     subscriptions: {
-      totalCount: subscriptionState._count.subscribedSections,
-      currentSemesterCount: subscriptionState.subscribedSections.length,
-      currentSemesterSections: subscriptionState.subscribedSections,
+      totalCount: sectionIds.length,
+      currentSemesterCount: currentSemesterSections.length,
+      currentSemesterSections,
     },
     nextClass,
     upcomingDeadlines,

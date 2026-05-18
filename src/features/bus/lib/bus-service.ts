@@ -55,6 +55,28 @@ type BusApplicableRoute = {
   upcomingTrips: BusApplicableTrip[];
 };
 
+const busVersionRuntimeSelect = {
+  id: true,
+  key: true,
+  title: true,
+  sourceMessage: true,
+  sourceUrl: true,
+  effectiveFrom: true,
+  effectiveUntil: true,
+  importedAt: true,
+} as const;
+
+type BusVersionRuntime = {
+  id: number;
+  key: string;
+  title: string;
+  sourceMessage: string | null;
+  sourceUrl: string | null;
+  effectiveFrom: Date | null;
+  effectiveUntil: Date | null;
+  importedAt: Date;
+};
+
 function hhmmToMinutes(value: string | null) {
   if (!value) return null;
   const [hourText, minuteText] = value.split(":");
@@ -141,18 +163,19 @@ async function findEffectiveBusVersion(
   if (versionKey) {
     return prisma.busScheduleVersion.findUnique({
       where: { key: versionKey },
+      select: busVersionRuntimeSelect,
     });
   }
 
-  const versions = await prisma.busScheduleVersion.findMany({
-    where: { isEnabled: true },
-    orderBy: [
-      { effectiveFrom: "desc" },
-      { importedAt: "desc" },
-      { id: "desc" },
-    ],
-  });
+  const versions = await listEnabledBusVersionRecords();
 
+  return findEffectiveBusVersionFromRecords(versions, dateKey);
+}
+
+function findEffectiveBusVersionFromRecords(
+  versions: BusVersionRuntime[],
+  dateKey: string,
+) {
   return (
     versions.find((version) => isVersionEffectiveOn(version, dateKey)) ??
     versions[0] ??
@@ -160,16 +183,19 @@ async function findEffectiveBusVersion(
   );
 }
 
-async function listBusVersions() {
-  const versions = await prisma.busScheduleVersion.findMany({
+async function listEnabledBusVersionRecords() {
+  return prisma.busScheduleVersion.findMany({
     where: { isEnabled: true },
+    select: busVersionRuntimeSelect,
     orderBy: [
       { effectiveFrom: "desc" },
       { importedAt: "desc" },
       { id: "desc" },
     ],
   });
+}
 
+function summarizeBusVersions(versions: BusVersionRuntime[]) {
   return versions.map((version) => ({
     id: version.id,
     key: version.key,
@@ -519,22 +545,23 @@ export async function getBusTimetableData(
   const now = input.now ? shanghaiDayjs(input.now) : shanghaiDayjs();
   const dateKey = now.format("YYYY-MM-DD");
 
-  const version = await findEffectiveBusVersion(dateKey, input.versionKey);
+  const versionRecords = await listEnabledBusVersionRecords();
+  const version = input.versionKey
+    ? await findEffectiveBusVersion(dateKey, input.versionKey)
+    : findEffectiveBusVersionFromRecords(versionRecords, dateKey);
   if (!version) return null;
 
-  const [routeRecords, campuses, preference, versions, tripRows] =
-    await Promise.all([
-      getRouteRecords(locale),
-      getBusCampuses(locale),
-      getBusPreference(input.userId ?? null),
-      listBusVersions(),
-      prisma.busTrip.findMany({
-        where: {
-          versionId: version.id,
-        },
-        orderBy: [{ dayType: "asc" }, { routeId: "asc" }, { position: "asc" }],
-      }),
-    ]);
+  const [routeRecords, campuses, preference, tripRows] = await Promise.all([
+    getRouteRecords(locale),
+    getBusCampuses(locale),
+    getBusPreference(input.userId ?? null),
+    prisma.busTrip.findMany({
+      where: {
+        versionId: version.id,
+      },
+      orderBy: [{ dayType: "asc" }, { routeId: "asc" }, { position: "asc" }],
+    }),
+  ]);
 
   const versionRouteIds = new Set(tripRows.map((trip) => trip.routeId));
   const routes = routeRecords
@@ -572,7 +599,7 @@ export async function getBusTimetableData(
     campuses,
     routes,
     trips,
-    availableVersions: versions,
+    availableVersions: summarizeBusVersions(versionRecords),
     preferences: preference,
     notice:
       version.sourceMessage || version.sourceUrl
@@ -884,25 +911,15 @@ export async function getBusRouteTimetable(input: {
   const listing = toRouteListing(locale, record);
   if (!listing) return null;
 
-  // Fetch weekday + weekend trips
-  const [weekdayTrips, weekendTrips] = await Promise.all([
-    prisma.busTrip.findMany({
-      where: {
-        versionId: version.id,
-        dayType: "weekday",
-        routeId: input.routeId,
-      },
-      orderBy: { position: "asc" },
-    }),
-    prisma.busTrip.findMany({
-      where: {
-        versionId: version.id,
-        dayType: "weekend",
-        routeId: input.routeId,
-      },
-      orderBy: { position: "asc" },
-    }),
-  ]);
+  const routeTrips = await prisma.busTrip.findMany({
+    where: {
+      versionId: version.id,
+      routeId: input.routeId,
+    },
+    orderBy: [{ dayType: "asc" }, { position: "asc" }],
+  });
+  const weekdayTrips = routeTrips.filter((trip) => trip.dayType === "weekday");
+  const weekendTrips = routeTrips.filter((trip) => trip.dayType === "weekend");
 
   const toSlots = (trips: typeof weekdayTrips): BusTripSlot[] =>
     trips.map((t) => ({
@@ -954,24 +971,17 @@ export async function getBusMapData(input: {
     getRouteRecords(locale),
     getBusCampuses(locale),
     prisma.busTrip.findMany({
-      where: { versionId: version.id, dayType: todayType },
-      orderBy: [{ routeId: "asc" }, { position: "asc" }],
+      where: { versionId: version.id },
+      orderBy: [{ dayType: "asc" }, { routeId: "asc" }, { position: "asc" }],
     }),
   ]);
 
-  // Count trips per route per day type for edge labels
-  const weekdayCounts = await prisma.busTrip.groupBy({
-    by: ["routeId"],
-    where: { versionId: version.id, dayType: "weekday" },
-    _count: true,
-  });
-  const weekendCounts = await prisma.busTrip.groupBy({
-    by: ["routeId"],
-    where: { versionId: version.id, dayType: "weekend" },
-    _count: true,
-  });
-  const wdMap = new Map(weekdayCounts.map((c) => [c.routeId, c._count]));
-  const weMap = new Map(weekendCounts.map((c) => [c.routeId, c._count]));
+  const tripCounts = new Map<number, { weekday: number; weekend: number }>();
+  for (const trip of allTrips) {
+    const count = tripCounts.get(trip.routeId) ?? { weekday: 0, weekend: 0 };
+    count[trip.dayType] += 1;
+    tripCounts.set(trip.routeId, count);
+  }
 
   const campusNodes: BusMapCampusNode[] = campuses.map((c) => ({
     id: c.id,
@@ -992,8 +1002,8 @@ export async function getBusMapData(input: {
           campusId: s.campus.id,
           campusName: s.campus.namePrimary,
         })),
-        weekdayTrips: wdMap.get(r.id) ?? 0,
-        weekendTrips: weMap.get(r.id) ?? 0,
+        weekdayTrips: tripCounts.get(r.id)?.weekday ?? 0,
+        weekendTrips: tripCounts.get(r.id)?.weekend ?? 0,
       };
     });
 
@@ -1001,7 +1011,7 @@ export async function getBusMapData(input: {
   const nowMinutes = now.hour() * 60 + now.minute();
   const activeTrips: BusMapActiveTrip[] = [];
 
-  for (const trip of allTrips) {
+  for (const trip of allTrips.filter((item) => item.dayType === todayType)) {
     const stopTimes = trip.stopTimes as Array<string | null>;
     const parsedTimes = stopTimes.map((t) => hhmmToMinutes(t));
     const firstTime = parsedTimes.find((t) => t != null);

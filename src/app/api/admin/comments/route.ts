@@ -108,6 +108,9 @@ export async function GET(request: Request) {
       take: limit,
     });
 
-    return jsonResponse({ comments });
+    return jsonResponse(
+      { comments },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   });
 }

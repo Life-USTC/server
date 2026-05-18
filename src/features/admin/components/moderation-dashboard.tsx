@@ -39,7 +39,13 @@ import type {
   DescriptionContentFilter,
 } from "./moderation-types";
 
-export function ModerationDashboard() {
+type ModerationDashboardProps = {
+  initialSearchQuery?: string;
+};
+
+export function ModerationDashboard({
+  initialSearchQuery = "",
+}: ModerationDashboardProps) {
   const locale = useLocale();
   const t = useTranslations("moderation");
   const { toast } = useToast();
@@ -52,7 +58,7 @@ export function ModerationDashboard() {
   // Note: descriptionTargetTab was used by the previous nested-tab design.
   const [descriptionContentFilter, setDescriptionContentFilter] =
     useState<DescriptionContentFilter>("withContent");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const deferredSearchQuery = useDeferredValue(searchQuery);
 
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);

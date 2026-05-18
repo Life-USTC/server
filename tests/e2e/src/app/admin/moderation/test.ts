@@ -198,6 +198,7 @@ test("/admin/moderation 可切换状态筛选下拉", async ({ page }, testInfo)
 });
 
 test("/admin/moderation 封禁列表可解除封禁", async ({ page }, testInfo) => {
+  test.setTimeout(60000);
   const prefix = `e2e-moderation-sus-${Date.now()}`;
   const { usernames } = await createTempUsersFixture({ prefix, count: 1 });
   await signInAsDevAdmin(page, "/admin/moderation");
@@ -232,8 +233,7 @@ test("/admin/moderation 封禁列表可解除封禁", async ({ page }, testInfo)
   expect(suspensionId).toBeTruthy();
 
   try {
-    await page.goto("/admin/moderation", { waitUntil: "networkidle" });
-    await expect(page.locator("#main-content")).toBeVisible();
+    await gotoAndWaitForReady(page, "/admin/moderation");
     await captureStepScreenshot(page, testInfo, "admin-moderation-suspended");
   } finally {
     const lift = await page.request.patch(

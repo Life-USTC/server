@@ -626,25 +626,10 @@ export async function CalendarPanel({
                       </div>
                       {week.map((day) => {
                         const dateKey = day.format("YYYY-MM-DD");
-                        const daySessions = allSessions.filter((item) =>
-                          shanghaiDayjs(item.date).isSame(day, "day"),
-                        );
-                        const dayExams = allExams.filter(
-                          (item) =>
-                            item.date &&
-                            shanghaiDayjs(item.date).isSame(day, "day"),
-                        );
-                        const dayHomeworks = semesterHomeworks.filter(
-                          (hw) =>
-                            hw.submissionDueAt &&
-                            shanghaiDayjs(hw.submissionDueAt).isSame(
-                              day,
-                              "day",
-                            ),
-                        );
-                        const dayTodos = semesterTodos.filter((todo) =>
-                          shanghaiDayjs(todo.dueAt).isSame(day, "day"),
-                        );
+                        const daySessions = sessionsByDay.get(dateKey) ?? [];
+                        const dayExams = examsByDay.get(dateKey) ?? [];
+                        const dayHomeworks = homeworksByDay.get(dateKey) ?? [];
+                        const dayTodos = todosByDay.get(dateKey) ?? [];
                         const isToday = day.isSame(todayStart, "day");
 
                         return (

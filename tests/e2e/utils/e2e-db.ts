@@ -1,9 +1,13 @@
 import { execFile } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { promisify } from "node:util";
+import { Pool } from "pg";
 
 export { getCurrentSessionUser, PLAYWRIGHT_BASE_URL } from "./e2e-db/core";
 
 const execFileAsync = promisify(execFile);
+const DB_FIXTURE_ATTEMPTS = 3;
+const DB_FIXTURE_TIMEOUT_MS = 10_000;
 
 function buildFixtureEnv() {
   const env = { ...process.env };
@@ -13,17 +17,106 @@ function buildFixtureEnv() {
 }
 
 async function runDbFixture<T>(operation: string, args: unknown[] = []) {
-  const { stdout } = await execFileAsync(
-    "bun",
-    ["run", "tests/e2e/utils/e2e-db/cli.ts", operation, JSON.stringify(args)],
-    {
-      cwd: process.cwd(),
-      env: buildFixtureEnv(),
-      maxBuffer: 1024 * 1024,
-    },
-  );
+  let lastError: unknown;
 
-  return JSON.parse(stdout) as T;
+  for (let attempt = 1; attempt <= DB_FIXTURE_ATTEMPTS; attempt += 1) {
+    try {
+      const { stdout } = await execFileAsync(
+        "bun",
+        [
+          "run",
+          "tests/e2e/utils/e2e-db/cli.ts",
+          operation,
+          JSON.stringify(args),
+        ],
+        {
+          cwd: process.cwd(),
+          env: buildFixtureEnv(),
+          maxBuffer: 1024 * 1024,
+          timeout: DB_FIXTURE_TIMEOUT_MS,
+        },
+      );
+
+      return JSON.parse(stdout) as T;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError;
+}
+
+function createFixturePool() {
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error("DATABASE_URL is required for E2E DB fixtures");
+  }
+
+  return new Pool({ connectionString, max: 1 });
+}
+
+async function withFixturePool<T>(callback: (pool: Pool) => Promise<T>) {
+  const pool = createFixturePool();
+  try {
+    return await callback(pool);
+  } finally {
+    await pool.end();
+  }
+}
+
+async function createTempUsersFixtureDirect(options: {
+  prefix: string;
+  count: number;
+}) {
+  const usernames: string[] = [];
+
+  await withFixturePool(async (pool) => {
+    for (let index = 0; index < options.count; index += 1) {
+      const username = `${options.prefix}-${String(index).padStart(2, "0")}`;
+      const email = `${username}@users.local`;
+      usernames.push(username);
+
+      const userResult = await pool.query<{ id: string }>(
+        `
+          INSERT INTO "User" ("id", "username", "email", "emailVerified", "name", "updatedAt")
+          VALUES ($1, $2, $3, TRUE, $4, NOW())
+          ON CONFLICT ("username") DO UPDATE
+          SET "email" = EXCLUDED."email",
+              "emailVerified" = TRUE,
+              "name" = EXCLUDED."name",
+              "updatedAt" = NOW()
+          RETURNING "id"
+        `,
+        [randomUUID(), username, email, `E2E ${username}`],
+      );
+
+      const userId = userResult.rows[0]?.id;
+      if (!userId) {
+        throw new Error(`Failed to create E2E user fixture: ${username}`);
+      }
+
+      await pool.query(
+        `
+          INSERT INTO "VerifiedEmail" ("email", "provider", "userId", "updatedAt")
+          VALUES ($1, 'oidc', $2, NOW())
+          ON CONFLICT ("provider", "email") DO UPDATE
+          SET "userId" = EXCLUDED."userId",
+              "updatedAt" = NOW()
+        `,
+        [`${username}@example.test`, userId],
+      );
+    }
+  });
+
+  return { usernames };
+}
+
+async function deleteUsersByPrefixDirect(prefix: string) {
+  await withFixturePool(async (pool) => {
+    await pool.query('DELETE FROM "User" WHERE "username" LIKE $1', [
+      `${prefix}%`,
+    ]);
+  });
 }
 
 type OAuthClientFixtureOptions = {
@@ -134,8 +227,7 @@ export const replaceUserSubscribedSectionIds = (
 export const createTempUsersFixture = (options: {
   prefix: string;
   count: number;
-}) =>
-  runDbFixture<{ usernames: string[] }>("createTempUsersFixture", [options]);
+}) => createTempUsersFixtureDirect(options);
 
 export const deleteUsersByPrefix = (prefix: string) =>
-  runDbFixture<null>("deleteUsersByPrefix", [prefix]);
+  deleteUsersByPrefixDirect(prefix);

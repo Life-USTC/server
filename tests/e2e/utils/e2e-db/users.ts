@@ -88,16 +88,31 @@ export async function createTempUsersFixture(options: {
   for (let index = 0; index < options.count; index += 1) {
     const username = `${options.prefix}-${String(index).padStart(2, "0")}`;
     usernames.push(username);
-    const user = await prisma.user.create({
-      data: {
+    const user = await prisma.user.upsert({
+      where: { username },
+      update: {
+        email: `${username}@users.local`,
+        emailVerified: true,
+        name: `E2E ${username}`,
+      },
+      create: {
         username,
         email: `${username}@users.local`,
         emailVerified: true,
         name: `E2E ${username}`,
       },
     });
-    await prisma.verifiedEmail.create({
-      data: {
+    await prisma.verifiedEmail.upsert({
+      where: {
+        provider_email: {
+          provider: "oidc",
+          email: `${username}@example.test`,
+        },
+      },
+      update: {
+        userId: user.id,
+      },
+      create: {
         userId: user.id,
         provider: "oidc",
         email: `${username}@example.test`,

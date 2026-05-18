@@ -18,16 +18,21 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function ModerationPage() {
+export default async function ModerationPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ search?: string }>;
+}) {
   const admin = await requireAdminPage("/admin/moderation");
   if (!admin) {
     notFound();
   }
 
-  const [t, tCommon, tAdmin] = await Promise.all([
+  const [t, tCommon, tAdmin, params] = await Promise.all([
     getTranslations("moderation"),
     getTranslations("common"),
     getTranslations("admin"),
+    searchParams,
   ]);
 
   return (
@@ -44,7 +49,7 @@ export default async function ModerationPage() {
         />
       }
     >
-      <ModerationDashboard />
+      <ModerationDashboard initialSearchQuery={params.search ?? ""} />
     </PageLayout>
   );
 }

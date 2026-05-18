@@ -12,6 +12,7 @@ import {
 import {
   getDashboardNavStats,
   getDashboardOverviewData,
+  getDashboardUserContext,
 } from "@/features/home/server/dashboard-overview-data";
 import {
   getBusTabData,
@@ -57,6 +58,7 @@ export default async function HomePage({
     const params = await searchParams;
     const tab = params.tab ?? "overview";
     const referenceNow = parseSnapshotReferenceTime(params.snapshotAt);
+    const dashboardUserContext = await getDashboardUserContext(session.user.id);
     const parsedCalendarSemester = parseInt(params.calendarSemester ?? "", 10);
     const overviewOptions =
       tab === "calendar" &&
@@ -71,6 +73,14 @@ export default async function HomePage({
           ? { skipLinks: true, referenceNow }
           : { referenceNow };
 
+    if (!dashboardUserContext) {
+      return (
+        <main className="page-main flex flex-col gap-5 md:gap-6">
+          <p className="text-muted-foreground">User not found.</p>
+        </main>
+      );
+    }
+
     const [
       navStats,
       overviewData,
@@ -81,9 +91,17 @@ export default async function HomePage({
       todosData,
       busData,
     ] = await Promise.all([
-      getDashboardNavStats(session.user.id, referenceNow),
+      getDashboardNavStats(
+        dashboardUserContext.user,
+        dashboardUserContext.sectionIds,
+        referenceNow,
+      ),
       tab === "overview" || tab === "calendar"
-        ? getDashboardOverviewData(session.user.id, overviewOptions)
+        ? getDashboardOverviewData(session.user.id, {
+            ...overviewOptions,
+            user: dashboardUserContext.user,
+            sectionIds: dashboardUserContext.sectionIds,
+          })
         : Promise.resolve(null),
       tab === "links"
         ? getLinksTabData(session.user.id)
@@ -95,21 +113,16 @@ export default async function HomePage({
         ? getSubscriptionsTabData(session.user.id)
         : Promise.resolve(null),
       tab === "calendar"
-        ? getCalendarSubscriptionUrl(session.user.id)
+        ? getCalendarSubscriptionUrl(
+            session.user.id,
+            dashboardUserContext.user.calendarFeedToken,
+          )
         : Promise.resolve(null),
       tab === "todos" || tab === "overview"
         ? getTodosTabData(session.user.id)
         : Promise.resolve(null),
       tab === "bus" ? getBusTabData(session.user.id) : Promise.resolve(null),
     ]);
-
-    if (!navStats) {
-      return (
-        <main className="page-main flex flex-col gap-5 md:gap-6">
-          <p className="text-muted-foreground">User not found.</p>
-        </main>
-      );
-    }
 
     return (
       <HomeView

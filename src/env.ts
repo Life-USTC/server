@@ -42,6 +42,8 @@ const commonEnvSchema = z.object({
   UPLOAD_TOTAL_QUOTA_MB: optionalPositiveIntSchema,
   OAUTH_DEBUG_LOGGING: optionalStringSchema,
   E2E_DEBUG_AUTH: optionalStringSchema,
+  PRISMA_QUERY_DEBUG: optionalStringSchema,
+  PRISMA_SLOW_QUERY_MS: optionalStringSchema,
 
   // Deployment metadata
   VERCEL: optionalStringSchema,
@@ -123,6 +125,8 @@ const envCacheKeys = [
   "UPLOAD_TOTAL_QUOTA_MB",
   "OAUTH_DEBUG_LOGGING",
   "E2E_DEBUG_AUTH",
+  "PRISMA_QUERY_DEBUG",
+  "PRISMA_SLOW_QUERY_MS",
   "VERCEL",
   "VERCEL_URL",
   "VERCEL_PROJECT_PRODUCTION_URL",

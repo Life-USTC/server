@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/db/prisma";
 import {
   createOAuthClientFixture,
   deleteLinkedAccountFixture,
@@ -47,8 +48,12 @@ if (!operationName || !operation) {
 }
 
 const args = JSON.parse(process.argv[3] ?? "[]") as unknown[];
-const result = await (operation as (...args: unknown[]) => Promise<unknown>)(
-  ...args,
-);
+try {
+  const result = await (operation as (...args: unknown[]) => Promise<unknown>)(
+    ...args,
+  );
 
-process.stdout.write(`${JSON.stringify(result ?? null)}\n`);
+  process.stdout.write(`${JSON.stringify(result ?? null)}\n`);
+} finally {
+  await prisma.$disconnect();
+}

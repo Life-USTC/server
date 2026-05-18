@@ -31,7 +31,6 @@ import type {
   SessionItem,
 } from "./dashboard-types";
 import {
-  getSubscribedSectionIds,
   listSubscribedDashboardSections,
   listSubscribedHomeworks,
 } from "./subscription-read-model";
@@ -43,20 +42,65 @@ export type OverviewDataOptions = {
   skipLinks?: boolean;
   /** Override the current time for deterministic snapshot and test views. */
   referenceNow?: Date;
+  /** User row already loaded by the page shell. */
+  user?: DashboardUserSummary;
+  /** Subscription ids already loaded by the page shell. */
+  sectionIds?: readonly number[];
+};
+
+export type DashboardUserSummary = {
+  id: string;
+  name: string | null;
+  username: string | null;
+};
+
+export type DashboardUserContext = {
+  user: DashboardUserSummary & { calendarFeedToken: string | null };
+  sectionIds: number[];
 };
 
 export type DashboardNavStats = {
-  user: { id: string; name: string | null; username: string | null };
+  user: DashboardUserSummary;
   pendingHomeworksCount: number;
   highlightPendingHomeworks: boolean;
   examsCount: number;
   pendingTodosCount: number;
 };
 
-export async function getDashboardNavStats(
+export async function getDashboardUserContext(
   userId: string,
+): Promise<DashboardUserContext | null> {
+  const user = await basePrisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      username: true,
+      calendarFeedToken: true,
+      subscribedSections: {
+        select: { id: true },
+      },
+    },
+  });
+
+  if (!user) return null;
+
+  return {
+    user: {
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      calendarFeedToken: user.calendarFeedToken,
+    },
+    sectionIds: user.subscribedSections.map((section) => section.id),
+  };
+}
+
+export async function getDashboardNavStats(
+  user: DashboardUserSummary,
+  sectionIds: readonly number[],
   referenceDate?: Date,
-): Promise<DashboardNavStats | null> {
+): Promise<DashboardNavStats> {
   const referenceNow = referenceDate
     ? shanghaiDayjs(referenceDate)
     : shanghaiDayjs();
@@ -64,24 +108,13 @@ export async function getDashboardNavStats(
   const tomorrowStart = todayStart.add(1, "day");
   const nowHHmm = referenceNow.hour() * 100 + referenceNow.minute();
 
-  const [user, sectionIds, pendingTodosCount] = await Promise.all([
-    basePrisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        name: true,
-        username: true,
-      },
-    }),
-    getSubscribedSectionIds(userId),
-    basePrisma.todo.count({
-      where: { userId, completed: false },
-    }),
-  ]);
-
-  if (!user) return null;
+  const pendingTodosCountPromise = basePrisma.todo.count({
+    where: { userId: user.id, completed: false },
+  });
 
   if (sectionIds.length === 0) {
+    const pendingTodosCount = await pendingTodosCountPromise;
+
     return {
       user: { id: user.id, name: user.name, username: user.username },
       pendingHomeworksCount: 0,
@@ -91,28 +124,37 @@ export async function getDashboardNavStats(
     };
   }
 
-  const [pendingHomeworksCount, dueTodayCount, examsCount] = await Promise.all([
+  const scopedSectionIds = Array.from(sectionIds);
+  const [
+    pendingTodosCount,
+    pendingHomeworksCount,
+    dueTodayHomework,
+    examsCount,
+  ] = await Promise.all([
+    pendingTodosCountPromise,
     basePrisma.homework.count({
       where: {
         deletedAt: null,
-        sectionId: { in: sectionIds },
-        homeworkCompletions: { none: { userId } },
+        sectionId: { in: scopedSectionIds },
+        homeworkCompletions: { none: { userId: user.id } },
       },
     }),
-    basePrisma.homework.count({
+    basePrisma.homework.findFirst({
       where: {
         deletedAt: null,
-        sectionId: { in: sectionIds },
+        sectionId: { in: scopedSectionIds },
         submissionDueAt: {
           gte: todayStart.toDate(),
           lt: tomorrowStart.toDate(),
         },
-        homeworkCompletions: { none: { userId } },
+        homeworkCompletions: { none: { userId: user.id } },
       },
+      select: { id: true },
+      orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
     }),
     basePrisma.exam.count({
       where: {
-        sectionId: { in: sectionIds },
+        sectionId: { in: scopedSectionIds },
         OR: [
           { examDate: null },
           { examDate: { gte: tomorrowStart.toDate() } },
@@ -141,7 +183,7 @@ export async function getDashboardNavStats(
   return {
     user: { id: user.id, name: user.name, username: user.username },
     pendingHomeworksCount,
-    highlightPendingHomeworks: dueTodayCount > 0,
+    highlightPendingHomeworks: Boolean(dueTodayHomework),
     examsCount,
     pendingTodosCount,
   };
@@ -213,14 +255,16 @@ export async function getDashboardOverviewData(
       },
       orderBy: { startDate: "asc" },
     }),
-    basePrisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        name: true,
-        username: true,
-      },
-    }),
+    options.user
+      ? Promise.resolve(options.user)
+      : basePrisma.user.findUnique({
+          where: { id: userId },
+          select: {
+            id: true,
+            name: true,
+            username: true,
+          },
+        }),
   ]);
 
   if (!user) return null;
@@ -267,6 +311,7 @@ export async function getDashboardOverviewData(
     locale,
     dateFrom: scheduleDateStart,
     dateTo: scheduleDateEnd,
+    sectionIds: options.sectionIds,
   });
   const {
     hasAnySelection,
@@ -329,6 +374,7 @@ export async function getDashboardOverviewData(
       locale,
       completed: false,
       sectionIds: homeworkSectionIds,
+      shape: "dashboard",
     },
   );
   const todaySessions = filterSessionsByDay(sessions, todayStart);

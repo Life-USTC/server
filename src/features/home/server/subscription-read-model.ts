@@ -9,7 +9,10 @@ import { getPrisma, prisma } from "@/lib/db/prisma";
 import { sectionCompactInclude } from "@/lib/query-helpers";
 import { getPublicOrigin } from "@/lib/site-url";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
-import type { SectionWithRelations } from "./dashboard-types";
+import type {
+  HomeworkWithSection,
+  SectionWithRelations,
+} from "./dashboard-types";
 
 export const SECTION_SUBSCRIPTION_NOTE =
   "Life@USTC section subscriptions only affect your dashboard and calendar here. They are not official USTC course enrollment.";
@@ -25,6 +28,46 @@ const userSectionSubscriptionSelect = {
 type UserSectionSubscriptionRecord = Prisma.UserGetPayload<{
   select: typeof userSectionSubscriptionSelect;
 }>;
+
+type ListSubscribedHomeworksOptions = {
+  locale?: string;
+  completed?: boolean;
+  includeDeleted?: boolean;
+  includeEditors?: boolean;
+  limit?: number;
+  dueAtFrom?: Date;
+  dueAtTo?: Date;
+  requireDueDate?: boolean;
+  sectionIds?: readonly number[];
+  shape?: "full" | "dashboard";
+};
+
+type SubscribedHomeworkBaseRecord = Prisma.HomeworkGetPayload<{
+  include: {
+    section: { include: { course: true; semester: true } };
+    description: true;
+    homeworkCompletions: { select: { completedAt: true } };
+  };
+}>;
+
+type SubscribedHomeworkSection = NonNullable<
+  SubscribedHomeworkBaseRecord["section"]
+>;
+
+type SubscribedHomeworkRecord = Omit<
+  SubscribedHomeworkBaseRecord,
+  "section"
+> & {
+  section:
+    | (Omit<SubscribedHomeworkSection, "course"> & {
+        course:
+          | (SubscribedHomeworkSection["course"] & {
+              namePrimary: string | null;
+            })
+          | null;
+      })
+    | null;
+};
 
 export interface UserSectionSubscriptionState {
   userId: string;
@@ -162,7 +205,14 @@ export async function getUserCalendarSubscription(
   };
 }
 
-export async function getCalendarSubscriptionUrl(userId: string) {
+export async function getCalendarSubscriptionUrl(
+  userId: string,
+  calendarFeedToken?: string | null,
+) {
+  if (calendarFeedToken !== undefined) {
+    return buildCalendarFeedPath(userId, calendarFeedToken);
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, calendarFeedToken: true },
@@ -342,72 +392,130 @@ export async function listSubscribedDashboardSections(
     locale = DEFAULT_LOCALE,
     dateFrom,
     dateTo,
+    sectionIds,
   }: {
     locale?: string;
     dateFrom?: Date;
     dateTo?: Date;
+    sectionIds?: readonly number[];
   } = {},
 ): Promise<SectionWithRelations[]> {
   const localizedPrisma = getPrisma(locale);
-  const sectionIds = await getSubscribedSectionIds(userId);
-  if (sectionIds.length === 0) {
+  const scopedSectionIds = await resolveSubscribedSectionIds(
+    userId,
+    sectionIds,
+  );
+  if (scopedSectionIds.length === 0) {
     return [];
   }
 
-  return localizedPrisma.section.findMany({
-    where: { id: { in: sectionIds } },
-    select: {
-      id: true,
-      jwId: true,
-      course: { select: { namePrimary: true } },
-      semester: { select: { id: true } },
-      schedules: {
-        where:
-          dateFrom || dateTo
-            ? {
-                date: {
-                  ...(dateFrom ? { gte: dateFrom } : {}),
-                  ...(dateTo ? { lte: dateTo } : {}),
-                },
-              }
-            : undefined,
-        select: {
-          id: true,
-          date: true,
-          startTime: true,
-          endTime: true,
-          customPlace: true,
-          room: {
-            select: {
-              namePrimary: true,
-              building: {
-                select: {
-                  namePrimary: true,
-                  campus: { select: { namePrimary: true } },
-                },
+  const [sectionRows, scheduleRows, examRows] = await Promise.all([
+    localizedPrisma.section.findMany({
+      where: { id: { in: scopedSectionIds } },
+      select: {
+        id: true,
+        jwId: true,
+        course: { select: { namePrimary: true } },
+        semester: { select: { id: true } },
+      },
+      orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
+    }),
+    localizedPrisma.schedule.findMany({
+      where: {
+        sectionId: { in: scopedSectionIds },
+        ...(dateFrom || dateTo
+          ? {
+              date: {
+                ...(dateFrom ? { gte: dateFrom } : {}),
+                ...(dateTo ? { lte: dateTo } : {}),
+              },
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+        sectionId: true,
+        date: true,
+        startTime: true,
+        endTime: true,
+        customPlace: true,
+        room: {
+          select: {
+            namePrimary: true,
+            building: {
+              select: {
+                namePrimary: true,
+                campus: { select: { namePrimary: true } },
               },
             },
           },
-          teachers: { select: { namePrimary: true } },
         },
-        orderBy: [{ date: "asc" }, { startTime: "asc" }],
+        teachers: { select: { namePrimary: true } },
       },
-      exams: {
-        select: {
-          id: true,
-          examDate: true,
-          startTime: true,
-          endTime: true,
-          examType: true,
-          examTakeCount: true,
-          examMode: true,
-          examRooms: { select: { room: true, count: true } },
+      orderBy: [{ date: "asc" }, { startTime: "asc" }],
+    }),
+    localizedPrisma.exam.findMany({
+      where: { sectionId: { in: scopedSectionIds } },
+      select: {
+        id: true,
+        sectionId: true,
+        examDate: true,
+        startTime: true,
+        endTime: true,
+        examType: true,
+        examTakeCount: true,
+        examMode: true,
+        examRooms: {
+          select: { room: true, count: true },
+          orderBy: { room: "asc" },
         },
-        orderBy: { examDate: "asc" },
       },
-    },
-    orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
-  });
+      orderBy: [{ examDate: "asc" }, { startTime: "asc" }, { jwId: "asc" }],
+    }),
+  ]);
+
+  const schedulesBySectionId = new Map<
+    number,
+    SectionWithRelations["schedules"]
+  >();
+  for (const row of scheduleRows) {
+    const list = schedulesBySectionId.get(row.sectionId) ?? [];
+    list.push({
+      id: row.id,
+      date: row.date,
+      startTime: row.startTime,
+      endTime: row.endTime,
+      customPlace: row.customPlace,
+      room: row.room,
+      teachers: row.teachers,
+    });
+    schedulesBySectionId.set(row.sectionId, list);
+  }
+
+  const examsBySectionId = new Map<number, SectionWithRelations["exams"]>();
+  for (const row of examRows) {
+    const list = examsBySectionId.get(row.sectionId) ?? [];
+    list.push({
+      id: row.id,
+      examDate: row.examDate,
+      startTime: row.startTime,
+      endTime: row.endTime,
+      examType: row.examType,
+      examTakeCount: row.examTakeCount,
+      examMode: row.examMode,
+      examRooms: row.examRooms ?? [],
+    });
+    examsBySectionId.set(row.sectionId, list);
+  }
+
+  return sectionRows.map((section) => ({
+    id: section.id,
+    jwId: section.jwId,
+    course: { namePrimary: section.course.namePrimary },
+    semester: section.semester,
+    schedules: schedulesBySectionId.get(section.id) ?? [],
+    exams: examsBySectionId.get(section.id) ?? [],
+  }));
 }
 
 function buildSubscribedHomeworkInclude(
@@ -442,6 +550,33 @@ function buildSubscribedHomeworkInclude(
   } satisfies Prisma.HomeworkInclude;
 }
 
+function buildDashboardHomeworkSelect(userId: string) {
+  return {
+    id: true,
+    title: true,
+    submissionDueAt: true,
+    description: { select: { content: true } },
+    homeworkCompletions: {
+      where: { userId },
+      select: { completedAt: true },
+    },
+    section: {
+      select: {
+        jwId: true,
+        course: true,
+      },
+    },
+  } satisfies Prisma.HomeworkSelect;
+}
+
+export async function listSubscribedHomeworks(
+  userId: string,
+  options: ListSubscribedHomeworksOptions & { shape: "dashboard" },
+): Promise<HomeworkWithSection[]>;
+export async function listSubscribedHomeworks(
+  userId: string,
+  options?: ListSubscribedHomeworksOptions,
+): Promise<SubscribedHomeworkRecord[]>;
 export async function listSubscribedHomeworks(
   userId: string,
   {
@@ -454,18 +589,9 @@ export async function listSubscribedHomeworks(
     dueAtTo,
     requireDueDate = false,
     sectionIds,
-  }: {
-    locale?: string;
-    completed?: boolean;
-    includeDeleted?: boolean;
-    includeEditors?: boolean;
-    limit?: number;
-    dueAtFrom?: Date;
-    dueAtTo?: Date;
-    requireDueDate?: boolean;
-    sectionIds?: readonly number[];
-  } = {},
-) {
+    shape = "full",
+  }: ListSubscribedHomeworksOptions = {},
+): Promise<HomeworkWithSection[] | SubscribedHomeworkRecord[]> {
   const scopedSectionIds = await resolveSubscribedSectionIds(
     userId,
     sectionIds,
@@ -475,7 +601,7 @@ export async function listSubscribedHomeworks(
   }
 
   const localizedPrisma = getPrisma(locale);
-  return localizedPrisma.homework.findMany({
+  const query = {
     where: {
       sectionId: { in: scopedSectionIds },
       ...(includeDeleted ? {} : { deletedAt: null }),
@@ -495,9 +621,20 @@ export async function listSubscribedHomeworks(
           }
         : {}),
     },
-    include: buildSubscribedHomeworkInclude(userId, includeEditors),
     orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
     ...(limit ? { take: limit } : {}),
+  } satisfies Prisma.HomeworkFindManyArgs;
+
+  if (shape === "dashboard") {
+    return localizedPrisma.homework.findMany({
+      ...query,
+      select: buildDashboardHomeworkSelect(userId),
+    }) as Promise<HomeworkWithSection[]>;
+  }
+
+  return localizedPrisma.homework.findMany({
+    ...query,
+    include: buildSubscribedHomeworkInclude(userId, includeEditors),
   });
 }
 

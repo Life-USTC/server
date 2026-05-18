@@ -79,6 +79,7 @@ export async function listUserCalendarEvents(
     dateToIsDateOnly = false,
     dateToInclusive = false,
     eventWindowMode = "overlap",
+    sectionIds,
   }: {
     locale?: string;
     dateFrom?: Date | null;
@@ -87,6 +88,7 @@ export async function listUserCalendarEvents(
     dateToIsDateOnly?: boolean;
     dateToInclusive?: boolean;
     eventWindowMode?: "overlap" | "start";
+    sectionIds?: readonly number[];
   } = {},
 ) {
   const windowStart = dateFrom
@@ -103,28 +105,30 @@ export async function listUserCalendarEvents(
   );
   const calendarDateStart = startOfShanghaiDay(windowStart);
   const calendarDateEnd = endOfCalendarDateWindow(windowEnd);
-  const sectionIds = await getSubscribedSectionIds(userId);
+  const scopedSectionIds = sectionIds
+    ? Array.from(sectionIds)
+    : await getSubscribedSectionIds(userId);
 
   const [schedules, homeworks, exams] = await Promise.all([
     listSubscribedSchedules(userId, {
       locale,
       dateFrom: calendarDateStart,
       dateTo: calendarDateEnd,
-      sectionIds,
+      sectionIds: scopedSectionIds,
     }),
     listSubscribedHomeworks(userId, {
       locale,
       completed: false,
       dueAtFrom: windowStart,
       dueAtTo: windowEnd,
-      sectionIds,
+      sectionIds: scopedSectionIds,
     }),
     listSubscribedExams(userId, {
       locale,
       dateFrom: calendarDateStart,
       dateTo: calendarDateEnd,
       includeDateUnknown: false,
-      sectionIds,
+      sectionIds: scopedSectionIds,
     }),
   ]);
   const homeworkItems = await withHomeworkItemState(homeworks);

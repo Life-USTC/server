@@ -327,6 +327,7 @@ model Schedule {
   @@index([date])
   @@index([roomId])
   @@index([sectionId])
+  @@index([sectionId, date, startTime])
   @@index([scheduleGroupId])
 }
 
@@ -448,6 +449,7 @@ model Exam {
   @@index([examDate])
   @@index([examBatchId])
   @@index([sectionId])
+  @@index([sectionId, examDate, startTime])
 }
 
 model ExamBatch {
@@ -593,6 +595,7 @@ model Homework {
   @@index([deletedAt])
   @@index([createdById])
   @@index([sectionId, deletedAt])
+  @@index([sectionId, deletedAt, submissionDueAt])
   @@index([sectionId, submissionDueAt])
 }
 
@@ -908,6 +911,7 @@ model Comment {
   @@index([teacherId])
   @@index([sectionTeacherId])
   @@index([homeworkId])
+  @@index([homeworkId, status])
   @@index([status])
   @@index([visibility])
   @@index([userId, status])
@@ -1361,4 +1365,3 @@ model Jwks {
   createdAt DateTime @default(now())
   expiresAt DateTime?
 }
-
