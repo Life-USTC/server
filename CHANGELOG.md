@@ -1,3 +1,10 @@
+## [1.29.3](https://github.com/Life-USTC/server-nextjs/compare/v1.29.2...v1.29.3) (2026-05-18)
+
+
+### Performance Improvements
+
+* **home:** optimize dashboard and bus queries ([49bf97e](https://github.com/Life-USTC/server-nextjs/commit/49bf97ec6481b5d3ed5c0e0bc7d758f88e49e4f0))
+
 ## [1.29.2](https://github.com/Life-USTC/server-nextjs/compare/v1.29.1...v1.29.2) (2026-05-16)
 
 
