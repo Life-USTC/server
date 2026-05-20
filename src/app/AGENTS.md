@@ -38,8 +38,8 @@ export const dynamic = "force-dynamic"; // only if truly dynamic
 
 ```typescript
 /**
- * @params { page?: number }
- * @response PaginatedResponse<Course>
+ * @params coursesQuerySchema
+ * @response paginatedCourseResponseSchema
  */
 export async function GET(request: Request) {}
 ```

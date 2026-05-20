@@ -49,29 +49,34 @@ const SENSITIVE_QUERY_KEYS = new Set([
 export function summarizeOAuthRedirectUri(
   redirect: string | null,
 ): Record<string, unknown> {
+  let redirectOrigin: string | null = null;
   let redirectHost: string | null = null;
   let redirectHostname: string | null = null;
   let redirectPort: string | null = null;
   let redirectPath: string | null = null;
+  let redirectQueryKeys: string[] = [];
 
   if (redirect) {
     try {
       const redirectUrl = new URL(redirect);
+      redirectOrigin = redirectUrl.origin;
       redirectHost = redirectUrl.host;
       redirectHostname = redirectUrl.hostname;
       redirectPort = redirectUrl.port || null;
       redirectPath = redirectUrl.pathname;
+      redirectQueryKeys = [...redirectUrl.searchParams.keys()].sort();
     } catch {
       redirectHost = "invalid_redirect_uri";
     }
   }
 
   return {
-    redirectUri: redirect,
+    redirectOrigin,
     redirectHost,
     redirectHostname,
     redirectPort,
     redirectPath,
+    redirectQueryKeys,
   };
 }
 

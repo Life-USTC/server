@@ -17,7 +17,7 @@ const jsonHelperAllowlist = new Set([
   "src/app/.well-known/openid-configuration/api/auth/route.ts",
   "src/app/.well-known/openid-configuration/route.ts",
   "src/app/api/auth/.well-known/openid-configuration/route.ts",
-  "src/app/api/auth/[...nextauth]/route.ts",
+  "src/app/api/auth/[...auth]/route.ts",
   "src/app/api/auth/oauth2/device-authorization/route.ts",
   "src/app/api/auth/oauth2/token/route.ts",
   "src/app/api/dashboard-links/pin/route.ts",

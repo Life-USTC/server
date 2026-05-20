@@ -29,6 +29,7 @@ export async function GET(request: Request) {
 
 ## Key Rules
 
+- Export `dynamic = "force-dynamic"` unless `tools/dev/check/check-route-conventions.ts` allowlists the route.
 - Return status responses, not redirects
 - Use `jsonResponse()` for date serialization
 - Validate with Zod schemas
@@ -39,14 +40,15 @@ export async function GET(request: Request) {
 
 ```typescript
 /**
- * @params { page?: number }
- * @pathParams { id: string }
- * @body CreateBody
- * @response { id: string }
+ * @params coursesQuerySchema
+ * @pathParams jwIdPathParamsSchema
+ * @body homeworkCreateRequestSchema
+ * @response idResponseSchema
+ * @response 400:openApiErrorSchema
  */
 export async function POST(request: Request) {}
 ```
 
-Run `bun run build:artifacts` after changes.
+Use schema names only; inline TypeScript object shapes are ignored by the generator. Run `bun run check:routes` and `bun run build:artifacts` after route changes.
 
 See root `AGENTS.md` for auth, dates, errors, validation.

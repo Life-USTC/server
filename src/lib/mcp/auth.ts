@@ -97,7 +97,7 @@ function accessTokenLooksLikeJwt(token: string): boolean {
  */
 async function verifyOpaqueAccessTokenForMcp(
   token: string,
-): Promise<{ authInfo: AuthInfo } | { failure: AuthFailure } | null> {
+): Promise<AuthFailure | null> {
   if (accessTokenLooksLikeJwt(token)) return null;
 
   const tokenHash = hashOAuthClientSecretForDbStorage(token);
@@ -107,11 +107,9 @@ async function verifyOpaqueAccessTokenForMcp(
   if (!row || row.expiresAt.getTime() <= Date.now()) return null;
   if (!row.scopes.includes(MCP_TOOLS_SCOPE)) return null;
   return {
-    failure: {
-      error: INVALID_TOKEN_ERROR,
-      status: 401,
-      description: "Access token is not bound to this MCP resource",
-    },
+    error: INVALID_TOKEN_ERROR,
+    status: 401,
+    description: "Access token is not bound to this MCP resource",
   };
 }
 
@@ -184,10 +182,7 @@ export async function verifyAccessToken(
 
   const opaque = await verifyOpaqueAccessTokenForMcp(token);
   if (opaque) {
-    if ("failure" in opaque) {
-      return opaque.failure;
-    }
-    return opaque.authInfo;
+    return opaque;
   }
 
   if (isOAuthDebugLogging()) {

@@ -57,7 +57,7 @@
             "auth": "anon"
           },
           {
-            "path": "/api/auth/{nextauth}",
+            "path": "/api/auth/{auth}",
             "method": "POST",
             "returns": "Better Auth OAuth provider response",
             "auth": "anon"
@@ -134,7 +134,7 @@
             "returns": "{ access_token, token_type, expires_in, refresh_token?, scope? } | { error }",
             "notes": [
               "The device polls this endpoint with grant_type=urn:ietf:params:oauth:grant-type:device_code and device_code to obtain an access token.",
-              "During polling, returns authorization_pending, slow_down, expired_token, or access_denied error codes based on state."
+              "During polling, returns authorization_pending, slow_down, expired_token, access_denied, invalid_scope, or invalid_grant error codes based on state."
             ]
           }
         ]

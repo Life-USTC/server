@@ -7,7 +7,6 @@ Database schema and migrations.
 ```
 schema.prisma    Source of truth
 migrations/      Migration history
-seed.ts          Dev seed data
 ```
 
 ## Generated Output
@@ -24,11 +23,17 @@ import { prisma, getPrisma } from "@/lib/db/prisma";
 import type { User } from "@/generated/prisma/client";
 
 // Scripts
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import {
+  createToolPrisma,
+  disconnectToolPrisma,
+} from "@tools/shared/tool-prisma";
+
+const prisma = createToolPrisma();
 // ... use ...
-await prisma.$disconnect();
+await disconnectToolPrisma(prisma);
 ```
+
+Canonical seed data lives in `tests/e2e/fixtures/scenario.json`, `tools/dev/seed/seed-dev-scenarios.ts`, and `tools/dev/seed/dev-seed.ts`.
 
 ## Model Boundaries
 

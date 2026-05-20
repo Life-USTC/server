@@ -842,7 +842,7 @@
         }
       }
     },
-    "/api/auth/{nextauth}": {
+    "/api/auth/{auth}": {
       "get": {
         "operationId": "getAuth",
         "summary": "",

@@ -29,6 +29,36 @@ function jsonError(status: number, error: string, error_description: string) {
   );
 }
 
+function resolveRequestedScopes(
+  scope: FormDataEntryValue | null,
+  allowedScopes: string[],
+) {
+  if (scope instanceof File) {
+    return {
+      error: jsonError(400, "invalid_request", "scope must be a string"),
+    };
+  }
+
+  const requestedScopes =
+    typeof scope === "string" && scope.trim().length > 0
+      ? scope.trim().split(/\s+/)
+      : allowedScopes;
+
+  const allowed = new Set(allowedScopes);
+  const invalidScopes = requestedScopes.filter((value) => !allowed.has(value));
+  if (invalidScopes.length > 0) {
+    return {
+      error: jsonError(
+        400,
+        "invalid_scope",
+        "Requested scope is not allowed for this client",
+      ),
+    };
+  }
+
+  return { scopes: [...new Set(requestedScopes)] };
+}
+
 export function OPTIONS() {
   return new Response(null, { status: 204, headers: CORS_HEADERS });
 }
@@ -75,10 +105,15 @@ export async function POST(request: Request) {
     return jsonError(400, "invalid_client", "Unknown or disabled client");
   }
 
-  const requestedScopes =
-    scope && typeof scope === "string"
-      ? scope.split(" ").filter(Boolean)
-      : client.scopes;
+  const requestedScopesResult = resolveRequestedScopes(scope, client.scopes);
+  if ("error" in requestedScopesResult) {
+    logOAuthDebug("device-auth.reject", request, {
+      reason: "invalid_scope",
+      clientIdPrefix: clientId.slice(0, 8),
+    });
+    return requestedScopesResult.error;
+  }
+  const requestedScopes = requestedScopesResult.scopes;
 
   const deviceCode = generateDeviceCode();
   const userCode = generateUserCode();

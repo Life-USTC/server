@@ -15,22 +15,21 @@ production/load/     Production imports
 ## Prisma in Scripts
 
 ```typescript
-import { PrismaClient } from "@prisma/client";
-import { createPrismaAdapter } from "@/lib/db/adapter";
-import pg from "pg";
+import {
+  createToolPrisma,
+  disconnectToolPrisma,
+} from "@tools/shared/tool-prisma";
 
-const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
-const adapter = createPrismaAdapter(pool);
-const prisma = new PrismaClient({ adapter });
+const prisma = createToolPrisma();
 
 try {
-  await prisma.$connect();
   // work
 } finally {
-  await prisma.$disconnect();
-  await pool.end();
+  await disconnectToolPrisma(prisma);
 }
 ```
+
+Use `tools/shared/tool-prisma.ts` for Prisma 7 adapter setup in scripts. Do not create ad hoc clients unless the script has a documented reason.
 
 ## Seed
 

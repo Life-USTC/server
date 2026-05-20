@@ -55,8 +55,8 @@ async function maybeNormalizeAuthorizeLoopbackRedirectRequest(
   logOAuthDebug("oauth.loopback-redirect-normalized", request, {
     path: url.pathname,
     clientIdPrefix: clientId.slice(0, 16),
-    fromRedirectUri: redirectUri,
-    toRedirectUri: normalizedRedirectUri,
+    fromRedirect: summarizeOAuthRedirectUri(redirectUri),
+    toRedirect: summarizeOAuthRedirectUri(normalizedRedirectUri),
   });
   return new Request(url, request);
 }

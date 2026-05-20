@@ -75,8 +75,8 @@ async function maybeNormalizeTokenLoopbackRedirectRequest(
   logOAuthDebug("oauth.loopback-redirect-normalized", request, {
     path: new URL(request.url).pathname,
     clientIdPrefix: clientId.slice(0, 16),
-    fromRedirectUri: redirectUri,
-    toRedirectUri: normalizedRedirectUri,
+    fromRedirect: summarizeOAuthRedirectUri(redirectUri),
+    toRedirect: summarizeOAuthRedirectUri(normalizedRedirectUri),
   });
   return new Request(request.url, {
     method: request.method,
@@ -155,6 +155,7 @@ async function handleDeviceCodeGrant(
   if (!record.userId) {
     return deviceCodeError("server_error", 500);
   }
+  const userId = record.userId;
 
   // Generate opaque access token and refresh token
   const accessTokenPlain = randomBytes(32).toString("base64url");
@@ -165,35 +166,47 @@ async function handleDeviceCodeGrant(
   const accessExpiresAt = new Date(Date.now() + 3600 * 1000); // 1 hour
   const refreshExpiresAt = new Date(Date.now() + 30 * 24 * 3600 * 1000); // 30 days
 
-  // Create refresh token first (access token references it)
-  const refreshRecord = await prisma.oAuthRefreshToken.create({
-    data: {
-      token: refreshTokenHash,
-      clientId: record.client.clientId,
-      userId: record.userId,
-      scopes: record.scopes,
-      expiresAt: refreshExpiresAt,
-      authTime: new Date(),
-    },
+  const issued = await prisma.$transaction(async (tx) => {
+    const claimed = await tx.deviceCode.deleteMany({
+      where: {
+        id: record.id,
+        status: DEVICE_CODE_STATUS.APPROVED,
+      },
+    });
+    if (claimed.count !== 1) return false;
+
+    const refreshRecord = await tx.oAuthRefreshToken.create({
+      data: {
+        token: refreshTokenHash,
+        clientId: record.client.clientId,
+        userId,
+        scopes: record.scopes,
+        expiresAt: refreshExpiresAt,
+        authTime: new Date(),
+      },
+    });
+
+    await tx.oAuthAccessToken.create({
+      data: {
+        token: accessTokenHash,
+        clientId: record.client.clientId,
+        userId,
+        scopes: record.scopes,
+        expiresAt: accessExpiresAt,
+        refreshId: refreshRecord.id,
+      },
+    });
+
+    return true;
   });
 
-  await prisma.oAuthAccessToken.create({
-    data: {
-      token: accessTokenHash,
-      clientId: record.client.clientId,
-      userId: record.userId,
-      scopes: record.scopes,
-      expiresAt: accessExpiresAt,
-      refreshId: refreshRecord.id,
-    },
-  });
-
-  // Delete the used device code
-  await prisma.deviceCode.delete({ where: { id: record.id } });
+  if (!issued) {
+    return deviceCodeError("invalid_grant");
+  }
 
   logOAuthDebug("device-token.success", request, {
     clientIdPrefix: clientId.slice(0, 8),
-    userId: record.userId,
+    userId,
     scopeCount: record.scopes.length,
   });
 

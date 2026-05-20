@@ -1,6 +1,22 @@
 # Life@USTC Server - Agent Guide
 
-Next.js campus workspace with REST + MCP APIs.
+Next.js campus workspace with REST + MCP APIs. This is the canonical coding-agent instruction file; nested `AGENTS.md` files only add scoped rules.
+
+## Repo Map
+
+```text
+src/app/              Next.js App Router pages, layouts, REST handlers, OAuth/MCP routes
+src/features/         Domain logic and feature-owned components
+src/lib/              Infrastructure helpers: auth, API, DB, MCP, OAuth, storage, time
+src/components/       Shared UI components and layout primitives
+messages/             i18n strings (`zh-cn`, `en-us`)
+prisma/               Prisma schema and migrations
+docs/features/        JSON feature contracts checked against schema/API/MCP parity
+tests/                Unit, integration MCP harness, and Playwright E2E tests
+tools/                Build, check, seed, import, benchmark, and release scripts
+.github/workflows/    CI/CD workflows
+scripts/              Small agent-friendly wrappers around existing Bun commands
+```
 
 ## Commands
 
@@ -34,7 +50,36 @@ bun run test:e2e:server     # One-command standalone E2E server
 bun run build:artifacts      # Generate Prisma + OpenAPI
 bun run build
 docker build .
+
+# Agent-friendly wrappers
+scripts/bootstrap.sh [--with-infra]
+scripts/doctor.sh
+scripts/verify.sh [fast|full|e2e|check|typecheck|unit|integration]
+scripts/test-target.sh unit tests/unit/parse-date-input.test.ts
+scripts/test-target.sh integration tests/integration/mcp-tools.test.ts
+scripts/test-target.sh e2e tests/e2e/src/app/api/mcp/test.ts
 ```
+
+## Agent Operating Contract
+
+- Treat this file as the compact project contract. Before touching a scoped area, also read the nearest `AGENTS.md`; closer files override broader guidance.
+- Keep durable rules here short and actionable. Move repeated, specialized workflows into the closest scoped `AGENTS.md` or a checked-in skill instead of bloating root guidance.
+- Keep `AGENTS.md` as the canonical agent instruction surface. Do not add parallel files such as `copilot-instructions.md`, `CLAUDE.md`, or `GEMINI.md` unless the user explicitly asks for a compatibility shim.
+- For non-trivial changes, work in this loop: inspect code/docs first, plan the smallest safe edit, implement, run the relevant gate, inspect the diff, and verify the final behavior against the user request.
+- Done means evidence-backed: cite the files changed, commands run, and any skipped checks with the reason. Passing tests alone is not enough if they do not cover the requested behavior.
+- Do not infer contracts from old docs, generated files, or optimistic commit messages. Check the source of truth: route handlers, Prisma schema/migrations, feature JSON, tests, and current package scripts.
+- Think forward: prefer clean, simple, durable code over monkeypatches, brittle one-off shortcuts, or fixes that knowingly leave avoidable tech debt.
+- Inspect `git diff` before the final answer. Call out unverified commands, risky changes, and any docs updates intentionally skipped.
+- Do not rewrite git history, remove attribution, or force-push unless the user explicitly asks for that operation in the current task.
+- Update the nearest `AGENTS.md` when repeated agent mistakes reveal missing durable guidance; keep the change concise and operational.
+
+## Architecture Boundaries
+
+- Keep `src/app` thin: routing, pages, handlers, metadata. Put domain logic in `src/features`.
+- Keep `src/lib` for infrastructure helpers and cross-cutting utilities, not feature rules.
+- Keep shared `src/components` free of feature-specific data fetching and mutations.
+- REST, MCP, feature JSON, OpenAPI annotations, and tests are coupled surfaces; check all matching surfaces when one changes.
+- Treat `prisma/schema.prisma`, migrations, route handlers, feature JSON, and tests as source of truth over stale docs or generated output.
 
 ## Shared Test Seed
 
@@ -58,6 +103,7 @@ docker build .
 ## Documentation Structure
 
 ```
+docs/index.md          Navigation map for repo docs
 docs/features/          Feature specs (modular JSON)
   _meta.json           Product metadata
   _product.json        Roles, workflow
@@ -77,8 +123,8 @@ src/*/AGENTS.md         Scoped implementation guides
 
 ### Auth
 - **Pages**: `requireSignedInUserId()` → redirects to `/signin`
-- **API/MCP**: `resolveApiUserId()` → accepts Bearer OR cookie
-- **MCP**: Bearer only, audience `/api/mcp`
+- **API**: `resolveApiUserId()` → accepts Bearer OR cookie
+- **MCP**: Bearer only, audience `/api/mcp`; read user id with `getUserId(extra.authInfo)`
 - Check permissions BEFORE mutations
 - Suspended users blocked from collaborative writes
 
@@ -91,12 +137,12 @@ src/*/AGENTS.md         Scoped implementation guides
 - **Import**: `import { prisma, getPrisma } from "@/lib/db/prisma"`
 - **Writes**: `prisma.model.create()`
 - **Localized reads**: `getPrisma(locale).model.findMany()`
-- **Scripts**: Create own client, disconnect after use
+- **Scripts**: Use `createToolPrisma()` / `disconnectToolPrisma()` from `@tools/shared/tool-prisma`
 
 ### Errors
 - **API**: `handleRouteError(err)`
 - **Status**: `unauthorized()`, `forbidden()`, `notFound()`, `badRequest()`
-- **MCP**: `toolError(msg, err)`
+- **MCP**: validate inputs with Zod; let unexpected errors throw so the SDK reports tool failure
 
 ### i18n
 - Supported: `zh-cn` (default), `en-us`
@@ -127,6 +173,20 @@ buildPaginatedResponse(items, page, pageSize, total)
 3. Run `bun run verify:fast`
 4. Update tests, then escalate to `bun run verify:full` when the change touches integration or browser flows
 
+**Documentation Alignment**:
+- Public REST API change → update route OpenAPI annotations, `docs/features/openapi.json` when relevant, then run `bun run build:artifacts`.
+- MCP tool/parameter/output change → update the matching `docs/features/<module>.json` and integration coverage.
+- User-visible behavior change → update the affected feature JSON and user-facing docs if present.
+- Architecture or dependency-boundary change → update `docs/index.md`, the nearest scoped `AGENTS.md`, or an ADR/runbook if one exists.
+- Operational/setup/config change → update `README.md`, `docs/index.md`, workflow docs, or `.env.example` as applicable.
+- If no docs update is needed, state why in the final summary.
+
+**Security & Privacy**:
+- Never log tokens, secrets, session cookies, OAuth codes, upload URLs, or personal data beyond what a test explicitly requires.
+- Preserve auth surface differences: pages redirect, REST returns status responses, MCP is bearer-only with `/api/mcp` audience.
+- Check permissions before mutations; suspended users are blocked from collaborative writes.
+- Upload downloads are owner-scoped unless a feature change explicitly updates the permission model and docs.
+
 **Documentation Changes**:
 - Ask before broad documentation rewrites or restructures when the user did not explicitly request doc edits.
 - When docs must change as part of code work, keep the edits narrow and run the same default gate.
@@ -138,9 +198,14 @@ buildPaginatedResponse(items, page, pageSize, total)
 - Use `bun run verify:e2e` before `bun run test:e2e`; `test:e2e:bootstrap` is now just a compatibility alias.
 
 **No Stray Reports**:
-- Do not leave migration plans, improvement reports, or status summaries in the repo
-- Temporary planning files are acceptable only if removed before finishing
+- Do not leave migration plans, improvement reports, status summaries, scratch artifacts, or one-time analysis outputs in the repo.
+- Temporary planning files, local verification scripts, ad hoc probes, and throwaway code are acceptable only if removed before finishing.
+- Before handoff, inspect `git status --short` and ensure only intentional durable source, docs, config, or test changes remain.
 - Use GitHub issues/PRs for durable tracking
+
+**PR / Change Summary**:
+- Summaries should name changed files, behavior/doc impact, commands run, skipped checks with reasons, and residual risks.
+- Review the diff for unrelated rewrites, generated-file edits, missing docs/tests, and REST/MCP parity gaps before handing off.
 
 ## Scoped Guides
 
@@ -161,3 +226,13 @@ buildPaginatedResponse(items, page, pageSize, total)
 **Better Auth social providers**: Profile types must match library exactly:
 - `GithubProfile.email` is `string | null` not `string | undefined`
 - Mismatches break typecheck and Docker build
+
+## Agent Audit Guardrails
+
+History shows agent-assisted changes in this repo most often went wrong when they trusted stale shape assumptions or created convenience artifacts that later had to be removed. Guard against these patterns:
+
+- **Feature docs**: Keep feature JSON hand-maintained and schema-checked. Do not add one-off generators or broad rewrites unless the user explicitly asks for that migration.
+- **OAuth/Auth**: Prefer Better Auth provider APIs and shared URL helpers over hand-built OAuth/DCR/JWKS/cookie logic. Watch for doubled `/api/auth` paths, audience/resource mismatches, and public PKCE vs trusted-client boundaries.
+- **REST/MCP parity**: When changing one surface, check the matching feature JSON, REST route, MCP tool, OpenAPI annotation, and seeded E2E/integration coverage.
+- **Shared seed tests**: Do not mutate canonical seed records in parallel tests. Use unique temporary records, cleanup, `DEV_SEED_ANCHOR`, and E2E locks where shared user state is involved.
+- **Tooling/runtime**: Scripts that run in Docker/CI/Copilot must use the same Bun-based setup, generated Prisma client, and bundled production tool paths as the workflows.

@@ -19,7 +19,7 @@
       "rest": {
         "routes": [
           {
-            "path": "/api/auth/{nextauth}",
+            "path": "/api/auth/{auth}",
             "method": "POST",
             "returns": "{ ok, userId, email, sessionToken, expires } | { error }",
             "notes": [

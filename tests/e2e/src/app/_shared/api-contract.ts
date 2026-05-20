@@ -320,7 +320,7 @@ export async function assertApiContract(
       return;
     }
 
-    case "/api/auth/[...nextauth]": {
+    case "/api/auth/[...auth]": {
       const response = await request.get("/api/auth/get-session");
       expect(response.status()).toBe(200);
       return;
@@ -346,7 +346,7 @@ export async function assertApiContract(
           .replace("[id]", "invalid-e2e")
           .replace("[userId]", "invalid-e2e")
           .replace("[jwId]", "invalid-e2e")
-          .replace("[...nextauth]", "session"),
+          .replace("[...auth]", "session"),
       );
       expectSuccessfulResponse(fallbackResponse);
     }

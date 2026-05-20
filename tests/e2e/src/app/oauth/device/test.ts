@@ -30,14 +30,7 @@ type DeviceAuthorizationResult = {
   interval: number;
 };
 
-function getVerificationPath(verificationUriComplete: string) {
-  const url = new URL(verificationUriComplete);
-  return `${url.pathname}${url.search}`;
-}
-
-async function requestDeviceCode(
-  request: APIRequestContext,
-): Promise<DeviceAuthorizationResult> {
+async function registerDeviceClient(request: APIRequestContext) {
   const registerResponse = await request.post("/api/auth/oauth2/register", {
     data: {
       client_name: `device-e2e-${Date.now()}`,
@@ -56,8 +49,18 @@ async function requestDeviceCode(
     client_id?: string;
   };
   expect(typeof registerBody.client_id).toBe("string");
+  return registerBody.client_id as string;
+}
 
-  const clientId = registerBody.client_id as string;
+function getVerificationPath(verificationUriComplete: string) {
+  const url = new URL(verificationUriComplete);
+  return `${url.pathname}${url.search}`;
+}
+
+async function requestDeviceCode(
+  request: APIRequestContext,
+): Promise<DeviceAuthorizationResult> {
+  const clientId = await registerDeviceClient(request);
   const deviceResponse = await request.post(
     "/api/auth/oauth2/device-authorization",
     {
@@ -123,6 +126,24 @@ test("/oauth/device device-authorization endpoint returns required fields", asyn
   expect(verificationUrl.searchParams.get("step")).toBe("approve");
   expect(result.expiresIn).toBeGreaterThan(0);
   expect(result.interval).toBeGreaterThan(0);
+});
+
+test("/oauth/device rejects scopes outside the registered client allowance", async ({
+  request,
+}) => {
+  const clientId = await registerDeviceClient(request);
+  const response = await request.post("/api/auth/oauth2/device-authorization", {
+    form: {
+      client_id: clientId,
+      scope: "openid profile unsupported:e2e-scope",
+    },
+  });
+
+  expect(response.status()).toBe(400);
+  expect(await response.json()).toMatchObject({
+    error: "invalid_scope",
+    error_description: "Requested scope is not allowed for this client",
+  });
 });
 
 test("/oauth/device unauthenticated verification link redirects to sign-in", async ({

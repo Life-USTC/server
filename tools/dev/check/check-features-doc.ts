@@ -214,10 +214,10 @@ function isDocumentedRestRouteChecked(route: string): boolean {
 
 function isImplementedRestRouteIgnored(route: string): boolean {
   return (
-    route === "GET /api/auth/{nextauth}" ||
-    route === "PATCH /api/auth/{nextauth}" ||
-    route === "PUT /api/auth/{nextauth}" ||
-    route === "DELETE /api/auth/{nextauth}"
+    route === "GET /api/auth/{auth}" ||
+    route === "PATCH /api/auth/{auth}" ||
+    route === "PUT /api/auth/{auth}" ||
+    route === "DELETE /api/auth/{auth}"
   );
 }
 
