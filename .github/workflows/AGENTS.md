@@ -21,6 +21,8 @@ Keep Bun versions aligned with:
 - Use repo's `bun`-based commands; do not add Node setup steps
 - Production build: `docker build .`
 - Never commit secrets
+- `copilot-setup-steps.yml` must keep a direct job named exactly `copilot-setup-steps`; inline `runs-on`, `permissions`, `services`, `timeout-minutes`, and `steps` instead of delegating the job through a reusable workflow.
+- When changing Copilot setup, run it through `workflow_dispatch` or a PR check. If setup fails, Copilot can still start from the partially prepared environment, so setup logs are part of the verification evidence.
 
 ## Common Tasks
 

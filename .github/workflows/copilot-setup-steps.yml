@@ -4,27 +4,57 @@ on:
   workflow_dispatch:
   push:
     paths:
+      - .github/actions/setup-bun-env/action.yml
       - .github/workflows/copilot-setup-steps.yml
       - .github/workflows/db-backed-bun-job.yml
   pull_request:
     paths:
+      - .github/actions/setup-bun-env/action.yml
       - .github/workflows/copilot-setup-steps.yml
       - .github/workflows/db-backed-bun-job.yml
 
 jobs:
   # The job name must be exactly `copilot-setup-steps`
   copilot-setup-steps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 59
     permissions:
       contents: read
-    uses: ./.github/workflows/db-backed-bun-job.yml
-    with:
-      database-name: life_ustc_copilot
-      timeout-minutes: 59
-      jwt-secret: copilot-local-secret
-      webhook-secret: copilot-local-secret
-      auth-secret: copilot-local-secret
-      extra-env: E2E_MOCK_S3=1
-      job-command: |
-        bun run prisma:deploy
-        bun run build:artifacts
-        bun run dev:seed-scenarios
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: life_ustc_copilot
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Configure job environment
+        shell: bash
+        run: |
+          {
+            echo "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_copilot"
+            echo "JWT_SECRET=copilot-local-secret"
+            echo "WEBHOOK_SECRET=copilot-local-secret"
+            echo "AUTH_SECRET=copilot-local-secret"
+          } >> "$GITHUB_ENV"
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup-bun-env
+
+      - name: Prepare database and generated artifacts
+        shell: bash
+        run: |
+          bun run prisma:deploy
+          bun run build:artifacts
+          bun run dev:seed-scenarios
