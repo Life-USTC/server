@@ -75,7 +75,7 @@ Something went wrong.
     {
       title: t("mdxTitle"),
       description: t("mdxDescription"),
-      code: `![Cute Cat](https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=a+cute+cat&image_size=landscape_4_3){width=200 align=center}
+      code: `![Life@USTC icon](/images/icon.png){width=96 align=center}
 
 ::::center
 **Centered content using Directives**

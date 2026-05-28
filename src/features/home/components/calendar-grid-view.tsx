@@ -13,13 +13,13 @@ import { CalendarDayCell } from "./calendar-day-cell";
 type HomeworkCalendarItem = OverviewData["semesterHomeworks"][number];
 
 const calendarGridFrameClass =
-  "grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] gap-1 rounded-2xl border border-border/70 bg-card/50 p-1";
+  "grid min-w-full grid-cols-[1.75rem_repeat(7,minmax(0,1fr))] gap-0.5 rounded-xl border border-border/70 bg-card/50 p-0.5 sm:grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] sm:gap-1 sm:rounded-2xl sm:p-1";
 
 const calendarGridHeaderCellClass =
-  "rounded-xl bg-background/85 px-1 py-3 text-center font-medium text-muted-foreground text-xs";
+  "rounded-lg bg-background/85 px-0.5 py-2 text-center font-medium text-muted-foreground text-[0.65rem] sm:rounded-xl sm:px-1 sm:py-3 sm:text-xs";
 
 const calendarGridWeekLabelClass =
-  "flex items-start justify-center rounded-xl bg-background/70 px-1 py-2 font-medium text-[0.65rem] text-muted-foreground";
+  "flex items-start justify-center rounded-lg bg-background/70 px-0.5 py-1.5 font-medium text-muted-foreground text-[0.55rem] sm:rounded-xl sm:px-1 sm:py-2 sm:text-[0.65rem]";
 
 type CalendarWeekRow = {
   days: dayjs.Dayjs[];
@@ -51,9 +51,9 @@ export function CalendarGridView({
   weekdayLabels: string[];
 }) {
   return (
-    <div className="space-y-2">
-      <div className="overflow-x-auto">
-        <div className="min-w-[640px]">
+    <div className="min-w-0 space-y-2">
+      <div className="min-w-0 max-w-full overflow-x-auto overscroll-x-contain">
+        <div className="min-w-full">
           <div className={calendarGridFrameClass}>
             <div className={cn(calendarGridHeaderCellClass, "rounded-t-xl")}>
               {tSection("weekLabel")}

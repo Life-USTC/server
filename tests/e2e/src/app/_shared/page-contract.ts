@@ -2,6 +2,7 @@ import { expect, type Page, type TestInfo } from "@playwright/test";
 import { signInAsDebugUser } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { getCurrentSessionUser } from "../../../utils/e2e-db";
+import { visibleText } from "../../../utils/locators";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
@@ -69,10 +70,8 @@ export async function assertPageContract(
         testInfo,
       );
       await expectMainContent(page);
-      await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
-      await expect(
-        page.getByText(DEV_SEED.course.nameCn).first(),
-      ).toBeVisible();
+      await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
+      await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
       await maybeCapture(page, testInfo, "sections-jwId");
       return;
     }
@@ -84,11 +83,9 @@ export async function assertPageContract(
         testInfo,
       );
       await expectMainContent(page);
-      await expect(
-        page.getByText(DEV_SEED.course.nameCn).first(),
-      ).toBeVisible();
-      await expect(page.getByText(DEV_SEED.course.code).first()).toBeVisible();
-      await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
+      await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
+      await expect(visibleText(page, DEV_SEED.course.code)).toBeVisible();
+      await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
       await maybeCapture(page, testInfo, "courses-jwId");
       return;
     }
@@ -100,10 +97,8 @@ export async function assertPageContract(
         testInfo,
       );
       await expectMainContent(page);
-      await expect(
-        page.getByText(DEV_SEED.teacher.nameCn).first(),
-      ).toBeVisible();
-      await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
+      await expect(visibleText(page, DEV_SEED.teacher.nameCn)).toBeVisible();
+      await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
       await maybeCapture(page, testInfo, "teachers-id");
       return;
     }
@@ -111,9 +106,9 @@ export async function assertPageContract(
     case "/u/[username]": {
       await gotoContractPage(page, `/u/${DEV_SEED.debugUsername}`, testInfo);
       await expectMainContent(page);
-      await expect(page.getByText(DEV_SEED.debugName).first()).toBeVisible();
+      await expect(visibleText(page, DEV_SEED.debugName)).toBeVisible();
       await expect(
-        page.getByText(`@${DEV_SEED.debugUsername}`).first(),
+        visibleText(page, `@${DEV_SEED.debugUsername}`),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "u-username");
       return;
@@ -125,7 +120,7 @@ export async function assertPageContract(
       await gotoContractPage(page, `/u/id/${sessionUser.id}`, testInfo);
       await expectMainContent(page);
       await expect(
-        page.getByText(`@${DEV_SEED.debugUsername}`).first(),
+        visibleText(page, `@${DEV_SEED.debugUsername}`),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "u-id-uid");
       return;
@@ -173,17 +168,19 @@ export async function assertPageContract(
       );
       await expectMainContent(page);
       // section-list.display.fields: code, course.namePrimary, campus.namePrimary
-      await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
+      await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
       await expect(
         page
           .getByText(DEV_SEED.course.nameCn)
           .or(page.getByText(DEV_SEED.course.nameEn))
+          .filter({ visible: true })
           .first(),
       ).toBeVisible();
       await expect(
         page
           .getByText(DEV_SEED.campus.nameCn)
           .or(page.getByText(DEV_SEED.campus.nameEn))
+          .filter({ visible: true })
           .first(),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "sections");
@@ -202,12 +199,14 @@ export async function assertPageContract(
         page
           .getByText(DEV_SEED.teacher.nameCn)
           .or(page.getByText(DEV_SEED.teacher.nameEn))
+          .filter({ visible: true })
           .first(),
       ).toBeVisible();
       await expect(
         page
           .getByText(DEV_SEED.teacher.departmentNameCn)
           .or(page.getByText(DEV_SEED.teacher.departmentNameEn))
+          .filter({ visible: true })
           .first(),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "teachers");
@@ -221,9 +220,7 @@ export async function assertPageContract(
         testInfo,
       );
       await expectMainContent(page);
-      await expect(
-        page.getByText(DEV_SEED.course.nameCn).first(),
-      ).toBeVisible();
+      await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
       await maybeCapture(page, testInfo, "courses");
       return;
     }

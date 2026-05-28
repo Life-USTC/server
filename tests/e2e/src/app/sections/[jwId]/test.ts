@@ -45,6 +45,10 @@ import { assertPageContract } from "../../_shared/page-contract";
 
 const SECTION_URL = `/sections/${DEV_SEED.section.jwId}`;
 
+function escapeForRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 test.describe("/sections/[jwId]", () => {
   test("contract", async ({ page }, testInfo) => {
     await assertPageContract(page, {
@@ -380,10 +384,26 @@ test.describe("/sections/[jwId]", () => {
     await captureStepScreenshot(page, testInfo, "section/breadcrumb-back");
   });
 
-  test("non-enrollment disclaimer is visible", async ({ page }, testInfo) => {
+  test("non-enrollment disclaimer is visible in subscribe dialog", async ({
+    page,
+  }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
+
+    const subscribeButton = page
+      .getByRole("button", { name: /关注班级|Subscribe to section/i })
+      .first();
+    await expect(subscribeButton).toBeVisible();
+    await subscribeButton.click();
+
+    const subscribeDialog = page
+      .getByRole("dialog")
+      .or(page.getByRole("alertdialog"))
+      .first();
+    await expect(subscribeDialog).toBeVisible();
     await expect(
-      page.getByText(/非官方|非正式|not.*official|not.*enrollment/i).first(),
+      subscribeDialog
+        .getByText(/非官方|非正式|not.*official|not.*enrollment/i)
+        .first(),
     ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "section/disclaimer");
   });
@@ -436,6 +456,16 @@ test.describe("/sections/[jwId]", () => {
 
     if ((await subscribe.count()) > 0) {
       await subscribe.first().click();
+      const subscribeDialog = page.getByRole("dialog").first();
+      await expect(subscribeDialog).toBeVisible();
+      await expect(
+        subscribeDialog
+          .getByText(/非官方|非正式|not.*official|not.*enrollment/i)
+          .first(),
+      ).toBeVisible();
+      await subscribeDialog
+        .getByRole("button", { name: /关注班级|Subscribe to section/i })
+        .click();
       await expect(unsubscribe.first()).toBeVisible({ timeout: 15_000 });
       await captureStepScreenshot(page, testInfo, "section/subscribed");
     }
@@ -522,6 +552,44 @@ test.describe("/sections/[jwId]", () => {
 
   // ── Homework CRUD ───────────────────────────────────────────────────────────
 
+  test("can switch section homework tab to list view and persist preference", async ({
+    page,
+  }, testInfo) => {
+    await gotoAndWaitForReady(page, SECTION_URL);
+
+    const homeworksTab = page
+      .getByRole("tab", { name: /作业|Homework/i })
+      .first();
+    if ((await homeworksTab.count()) === 0) {
+      await expect(page.locator("#main-content")).toBeVisible();
+      return;
+    }
+    await homeworksTab.click();
+
+    await expect(page.getByTestId("section-homeworks-cards")).toBeVisible();
+    await page
+      .getByRole("button", { name: /列表|List/i })
+      .first()
+      .click();
+    await expect(page).toHaveURL(/homeworkView=list/);
+    await expect(page.getByTestId("section-homeworks-list")).toBeVisible();
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          localStorage.getItem("life-ustc-dashboard-homework-view-mode"),
+        ),
+      )
+      .toBe("list");
+
+    await gotoAndWaitForReady(page, SECTION_URL);
+    await homeworksTab.click();
+    await expect(page).toHaveURL(
+      new RegExp(`/sections/${DEV_SEED.section.jwId}$`),
+    );
+    await expect(page.getByTestId("section-homeworks-list")).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "section/homework-list-view");
+  });
+
   test("signed-in user can create homework, inspect discussion, toggle completion, and delete", async ({
     page,
   }, testInfo) => {
@@ -562,19 +630,19 @@ test.describe("/sections/[jwId]", () => {
     await waitForUiSettled(page);
 
     const hwCard = page
-      .locator('[data-slot="card"]')
-      .filter({
-        has: page.locator('[data-slot="card-title"]', { hasText: title }),
-      })
+      .getByRole("button", { name: new RegExp(escapeForRegExp(title)) })
       .first();
     await expect(hwCard).toBeVisible();
 
     // homework.title is displayed
     await expect(hwCard.getByText(title)).toBeVisible();
     await captureStepScreenshot(page, testInfo, "section/homework-created");
+    await hwCard.click();
+    const homeworkPopout = page.locator('[data-slot="dialog-popup"]').first();
+    await expect(homeworkPopout).toBeVisible();
 
     // Discuss link/button (section-homework-tab.display.fields: commentCount)
-    const discussBtn = hwCard
+    const discussBtn = homeworkPopout
       .getByRole("button", { name: /讨论|Discuss/i })
       .first();
     if ((await discussBtn.count()) > 0) {
@@ -589,8 +657,12 @@ test.describe("/sections/[jwId]", () => {
     }
 
     // Toggle completion (section-homework-tab.display.fields: user completion status)
-    const completionLabel = hwCard.locator('label[for^="homework-completed-"]');
-    if ((await completionLabel.count()) > 0) {
+    const completionButton = hwCard
+      .getByRole("button", {
+        name: /标记为完成|取消完成|Mark as complete|Mark as incomplete/i,
+      })
+      .first();
+    if ((await completionButton.count()) > 0) {
       const toggleResponse = page.waitForResponse(
         (r) =>
           r.url().includes("/api/homeworks/") &&
@@ -598,7 +670,7 @@ test.describe("/sections/[jwId]", () => {
           r.request().method() === "PUT" &&
           r.status() === 200,
       );
-      await completionLabel.first().click();
+      await completionButton.click();
       await toggleResponse;
       await captureStepScreenshot(
         page,
@@ -824,7 +896,7 @@ test.describe("/sections/[jwId]", () => {
       .getByRole("button", { name: /发布评论|Post comment/i })
       .click();
     await createComment;
-    await page.waitForLoadState("networkidle");
+    await waitForUiSettled(page);
 
     const commentCard = page
       .locator('[id^="comment-"]')

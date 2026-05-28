@@ -30,7 +30,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toastManager } from "@/components/ui/toast";
 import type { Semester } from "@/generated/prisma/client";
 import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
-import { matchSectionCodesResponseSchema } from "@/lib/api/schemas";
+import { matchSectionCodesResponseSchema } from "@/lib/api/schemas/response-schemas";
 
 type SectionData = z.infer<
   typeof matchSectionCodesResponseSchema

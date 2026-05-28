@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataState } from "@/components/data-state";
+import { SignInLink } from "@/components/sign-in-link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardPanel } from "@/components/ui/card";
@@ -13,13 +14,12 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { useUploadsSummary } from "@/features/uploads/hooks/use-uploads-summary";
-import { Link } from "@/i18n/routing";
 import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
 import {
   commentsListResponseSchema,
   commentUpdateResponseSchema,
   successResponseSchema,
-} from "@/lib/api/schemas";
+} from "@/lib/api/schemas/response-schemas";
 import { logClientError } from "@/lib/log/app-logger";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import { CommentEditor } from "./comment-editor";
@@ -505,7 +505,7 @@ export function CommentsSection({
             <Button
               size="sm"
               variant="outline"
-              render={<Link className="no-underline" href="/signin" />}
+              render={<SignInLink className="no-underline" />}
             >
               {t("loginToView")}
             </Button>

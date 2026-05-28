@@ -1,35 +1,46 @@
 "use client";
 
-import { CheckCircle2, RotateCcw } from "lucide-react";
+import { CheckCircle2, LayoutGrid, List, RotateCcw } from "lucide-react";
+
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataState } from "@/components/data-state";
+import {
+  DashboardTabToolbarGroup,
+  dashboardTabToolbarItemClass,
+} from "@/components/filters/dashboard-tab-toolbar";
+import { SignInLink } from "@/components/sign-in-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
 import {
-  Sheet,
-  SheetHeader,
-  SheetPanel,
-  SheetPopup,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogHeader,
+  DialogPanel,
+  DialogPopup,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CommentMarkdown } from "@/features/comments/components/comment-markdown";
 import { CommentsSection } from "@/features/comments/components/comments-section";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "@/i18n/routing";
 import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
 import {
   homeworkCompletionResponseSchema,
   homeworksListResponseSchema,
-} from "@/lib/api/schemas";
+} from "@/lib/api/schemas/response-schemas";
 import { logClientError } from "@/lib/log/app-logger";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import {
   createShanghaiDateTimeFormatter,
   parseShanghaiDateTimeLocalInput,
 } from "@/lib/time/shanghai-format";
+import { formatDueRelativeTime } from "@/shared/lib/time-utils";
+import {
+  type HomeworkViewMode,
+  useHomeworkViewMode,
+} from "../hooks/use-homework-view-mode";
 import { AuditLogSheet } from "./homework-audit-log-sheet";
 import { HomeworkCardEditForm } from "./homework-card-edit-form";
 import { HomeworkCreateSheet } from "./homework-create-sheet";
@@ -40,6 +51,22 @@ import {
   type HomeworkEntry,
   type ViewerSummary,
 } from "./homework-types";
+
+const HOMEWORK_ERROR_KEY_MAP: Record<string, string> = {
+  "Title required": "errorTitleRequired",
+  "Title too long": "errorTitleTooLong",
+  "Description too long": "errorDescriptionTooLong",
+  "Invalid publish date": "errorInvalidPublishDate",
+  "Invalid submission start": "errorInvalidSubmissionStart",
+  "Invalid submission due": "errorInvalidSubmissionDue",
+  "Submission start must be before due": "errorSubmissionRange",
+  Unauthorized: "errorUnauthorized",
+  Suspended: "errorSuspended",
+  "Section not found": "errorSectionNotFound",
+  "Not found": "errorNotFound",
+  "Homework deleted": "errorHomeworkDeleted",
+  "No changes": "errorNoChanges",
+};
 
 type HomeworkPanelProps = {
   sectionId: number;
@@ -63,6 +90,7 @@ export function HomeworkPanel({
   const tComments = useTranslations("comments");
   const tDescriptions = useTranslations("descriptions");
   const { toast } = useToast();
+  const { viewMode, changeViewMode } = useHomeworkViewMode();
   const [homeworks, setHomeworks] = useState<HomeworkEntry[]>(
     initialData?.homeworks ?? [],
   );
@@ -75,6 +103,7 @@ export function HomeworkPanel({
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [completionSaving, setCompletionSaving] = useState<
     Record<string, boolean>
   >({});
@@ -106,45 +135,15 @@ export function HomeworkPanel({
   const resolveHomeworkError = useCallback(
     (error: string | null) => {
       if (!error) return t("errorGeneric");
-      switch (error) {
-        case "Title required":
-          return t("errorTitleRequired");
-        case "Title too long":
-          return t("errorTitleTooLong");
-        case "Description too long":
-          return t("errorDescriptionTooLong");
-        case "Invalid publish date":
-          return t("errorInvalidPublishDate");
-        case "Invalid submission start":
-          return t("errorInvalidSubmissionStart");
-        case "Invalid submission due":
-          return t("errorInvalidSubmissionDue");
-        case "Submission start must be before due":
-          return t("errorSubmissionRange");
-        case "Unauthorized":
-          return t("errorUnauthorized");
-        case "Suspended":
-          return t("errorSuspended");
-        case "Section not found":
-          return t("errorSectionNotFound");
-        case "Not found":
-          return t("errorNotFound");
-        case "Homework deleted":
-          return t("errorHomeworkDeleted");
-        case "No changes":
-          return t("errorNoChanges");
-        default:
-          return t("errorGeneric");
-      }
+      const key = HOMEWORK_ERROR_KEY_MAP[error];
+      return key ? t(key) : t("errorGeneric");
     },
     [t],
   );
 
   const resolveApiErrorMessage = useCallback(
-    (errorBody: unknown) => {
-      const errorMessage = extractApiErrorMessage(errorBody);
-      return resolveHomeworkError(errorMessage);
-    },
+    (errorBody: unknown) =>
+      resolveHomeworkError(extractApiErrorMessage(errorBody)),
     [resolveHomeworkError],
   );
 
@@ -194,9 +193,6 @@ export function HomeworkPanel({
       )}
       {homework.isMajor && <Badge variant="secondary">{t("tagMajor")}</Badge>}
       {homework.requiresTeam && <Badge variant="outline">{t("tagTeam")}</Badge>}
-      {!homework.isMajor && !homework.requiresTeam && (
-        <Badge variant="outline">{t("tagDefault")}</Badge>
-      )}
     </div>
   );
 
@@ -271,43 +267,373 @@ export function HomeworkPanel({
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        {canCreate ? (
-          <HomeworkCreateSheet
-            canCreate={canCreate}
+  const renderHomeworkActions = (homework: HomeworkEntry) =>
+    canEdit ? (
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => setEditingId(homework.id)}
+      >
+        {t("editAction")}
+      </Button>
+    ) : null;
+
+  const renderCompletionButton = (
+    homework: HomeworkEntry,
+    className?: string,
+  ) =>
+    viewer.isAuthenticated ? (
+      <Button
+        size="xs"
+        variant="outline"
+        className={className}
+        onClick={() =>
+          void handleCompletionToggle(homework.id, !homework.completion)
+        }
+        disabled={Boolean(completionSaving[homework.id])}
+        aria-label={
+          homework.completion ? t("markIncomplete") : t("markComplete")
+        }
+      >
+        {homework.completion ? (
+          <RotateCcw className="h-3.5 w-3.5" />
+        ) : (
+          <CheckCircle2 className="h-3.5 w-3.5" />
+        )}
+        {homework.completion ? t("markIncomplete") : t("markComplete")}
+      </Button>
+    ) : null;
+
+  const renderHomeworkDetailCard = (
+    homework: HomeworkEntry,
+    submissionDueValue: string,
+    submissionDueRelativeLabel?: string,
+  ) => (
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,26rem)]">
+      <div className="space-y-5">
+        <div className="border-primary/35 border-l-2 py-1 pl-4">
+          {homework.description?.content ? (
+            <CommentMarkdown content={homework.description.content} />
+          ) : (
+            <p className="text-muted-foreground text-sm">
+              {t("descriptionEmpty")}
+            </p>
+          )}
+        </div>
+        <div className="rounded-lg border border-border/70 bg-background px-4 py-3">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div className="space-y-1">
+              <p className="font-medium text-muted-foreground text-xs">
+                {t("submissionDue")}
+              </p>
+              <p className="font-semibold text-foreground text-xl tabular-nums leading-7">
+                {submissionDueValue}
+              </p>
+            </div>
+            {submissionDueRelativeLabel ? (
+              <p className="text-muted-foreground text-xs">
+                {submissionDueRelativeLabel}
+              </p>
+            ) : null}
+          </div>
+        </div>
+        <div className="space-y-1.5 border-border/40 border-b pb-3 text-[11px] text-muted-foreground/64">
+          <p className="leading-4">
+            {t("submissionStart")} ·{" "}
+            {homework.submissionStartAt
+              ? formatTimestamp(homework.submissionStartAt)
+              : t("dateTBD")}
+          </p>
+          <p className="leading-4">
+            {t("homeworkPublishedAt")} ·{" "}
+            {homework.publishedAt
+              ? formatTimestamp(homework.publishedAt)
+              : t("dateTBD")}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-2 border-border/60 border-t pt-1">
+          {renderHomeworkActions(homework)}
+          {renderCompletionButton(homework)}
+        </div>
+      </div>
+      <section className="min-w-0 space-y-3 border-border/60 border-t pt-5 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="font-medium text-sm">{t("commentsTitle")}</h3>
+          <span className="text-muted-foreground text-xs">
+            {t("commentsAction")} ({homework.commentCount})
+          </span>
+        </div>
+        <CommentsSection
+          targets={[
+            {
+              key: "homework",
+              label: t("commentsLabel"),
+              type: "homework",
+              homeworkId: homework.id,
+            },
+          ]}
+        />
+      </section>
+    </div>
+  );
+
+  const renderEditCard = (homework: HomeworkEntry, createdAtLabel: string) => {
+    const canDelete =
+      viewer.isAuthenticated &&
+      !viewer.isSuspended &&
+      (viewer.isAdmin || homework.createdById === viewer.userId);
+
+    return (
+      <Card key={homework.id} className="border-border/60">
+        <CardHeader className="gap-3">
+          <div className="space-y-1">
+            <CardTitle className="text-base">{homework.title}</CardTitle>
+            <p className="text-muted-foreground text-xs">{createdAtLabel}</p>
+          </div>
+        </CardHeader>
+        <CardPanel className="space-y-4">
+          <HomeworkCardEditForm
+            homework={homework}
+            formatTimestamp={formatTimestamp}
+            canDelete={canDelete}
+            semesterStartDate={semesterStartDate}
+            semesterEndDate={semesterEndDate}
+            onUpdate={async (homeworkId, data, currentDescription) => {
+              if (!data.title.trim()) {
+                toast({
+                  title: t("titleRequired"),
+                  variant: "destructive",
+                });
+                return false;
+              }
+
+              try {
+                const publishedAtDate = parseShanghaiDateTimeLocalInput(
+                  data.publishedAt,
+                );
+                const submissionStartAtDate = parseShanghaiDateTimeLocalInput(
+                  data.submissionStartAt,
+                );
+                const submissionDueAtDate = parseShanghaiDateTimeLocalInput(
+                  data.submissionDueAt,
+                );
+                if (
+                  publishedAtDate === undefined ||
+                  submissionStartAtDate === undefined ||
+                  submissionDueAtDate === undefined
+                ) {
+                  toast({
+                    title: t("updateFailed"),
+                    description: t("errorInvalidSubmissionDue"),
+                    variant: "destructive",
+                  });
+                  return false;
+                }
+
+                const updateResult = await apiClient.PATCH(
+                  "/api/homeworks/{id}",
+                  {
+                    params: {
+                      path: { id: homeworkId },
+                    },
+                    body: {
+                      title: data.title.trim(),
+                      publishedAt: publishedAtDate
+                        ? toShanghaiIsoString(publishedAtDate)
+                        : null,
+                      submissionStartAt: submissionStartAtDate
+                        ? toShanghaiIsoString(submissionStartAtDate)
+                        : null,
+                      submissionDueAt: submissionDueAtDate
+                        ? toShanghaiIsoString(submissionDueAtDate)
+                        : null,
+                      isMajor: data.isMajor,
+                      requiresTeam: data.requiresTeam,
+                    },
+                  },
+                );
+
+                if (!updateResult.response.ok) {
+                  const message = resolveApiErrorMessage(updateResult.error);
+                  toast({
+                    title: t("updateFailed"),
+                    description: message,
+                    variant: "destructive",
+                  });
+                  return false;
+                }
+
+                const nextDescription = data.description.trim();
+                if (nextDescription !== currentDescription) {
+                  const descriptionResult = await apiClient.POST(
+                    "/api/descriptions",
+                    {
+                      body: {
+                        targetType: "homework",
+                        targetId: homeworkId,
+                        content: nextDescription,
+                      },
+                    },
+                  );
+
+                  if (!descriptionResult.response.ok) {
+                    const message = resolveApiErrorMessage(
+                      descriptionResult.error,
+                    );
+                    toast({
+                      title: t("updateFailed"),
+                      description: message,
+                      variant: "destructive",
+                    });
+                    return false;
+                  }
+                }
+
+                toast({
+                  title: t("updateSuccess"),
+                  variant: "success",
+                });
+                setEditingId(null);
+                await loadHomeworks();
+                return true;
+              } catch (err) {
+                logClientError("Failed to update homework", err, {
+                  component: "HomeworkPanel",
+                  sectionId,
+                  homeworkId: homework.id,
+                });
+                toast({
+                  title: t("updateFailed"),
+                  variant: "destructive",
+                });
+                return false;
+              }
+            }}
+            onDelete={async (homeworkId) => {
+              try {
+                const deleteResult = await apiClient.DELETE(
+                  "/api/homeworks/{id}",
+                  {
+                    params: {
+                      path: { id: homeworkId },
+                    },
+                  },
+                );
+
+                if (!deleteResult.response.ok) {
+                  const message = resolveApiErrorMessage(deleteResult.error);
+                  toast({
+                    title: t("deleteFailed"),
+                    description: message,
+                    variant: "destructive",
+                  });
+                  return false;
+                }
+
+                toast({
+                  title: t("deleteSuccess"),
+                  variant: "success",
+                });
+                setEditingId(null);
+                await loadHomeworks();
+                return true;
+              } catch (err) {
+                logClientError("Failed to delete homework", err, {
+                  component: "HomeworkPanel",
+                  sectionId,
+                  homeworkId: homework.id,
+                });
+                toast({
+                  title: t("deleteFailed"),
+                  variant: "destructive",
+                });
+                return false;
+              }
+            }}
+            onCancel={() => setEditingId(null)}
             t={t}
             tComments={tComments}
-            fixedSectionId={sectionId}
-            fixedSemesterEnd={semesterEnd}
-            idPrefix="section-homework"
-            onCreated={loadHomeworks}
-            triggerRender={<Button size="sm" variant="outline" />}
-            triggerChildren={t("showCreate")}
+            tDescriptions={tDescriptions}
           />
-        ) : (
-          <Button
-            size="sm"
-            variant="outline"
-            render={<Link className="no-underline" href="/signin" />}
-          >
-            {t("loginToCreate")}
-          </Button>
-        )}
-        <AuditLogSheet
-          auditLogs={auditLogs}
-          formatTimestamp={formatTimestamp}
-          labels={{
-            title: t("auditTitle"),
-            empty: t("auditEmpty"),
-            created: t("auditCreated"),
-            deleted: t("auditDeleted"),
-            meta: ({ name, date }: { name: string; date: string }) =>
-              t("auditMeta", { name, date }),
-            trigger: t("auditTitle"),
-          }}
-        />
+        </CardPanel>
+      </Card>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <DashboardTabToolbarGroup aria-label={t("viewMode")}>
+          {(
+            [
+              {
+                mode: "cards" as const,
+                label: t("cardView"),
+                icon: LayoutGrid,
+              },
+              {
+                mode: "list" as const,
+                label: t("listView"),
+                icon: List,
+              },
+            ] satisfies {
+              mode: HomeworkViewMode;
+              label: string;
+              icon: typeof LayoutGrid;
+            }[]
+          ).map(({ mode, label, icon: Icon }) => (
+            <button
+              key={mode}
+              type="button"
+              className={dashboardTabToolbarItemClass(
+                viewMode === mode,
+                "inline-flex items-center gap-2",
+              )}
+              aria-pressed={viewMode === mode}
+              title={label}
+              onClick={() => changeViewMode(mode)}
+            >
+              <Icon className="h-4 w-4" />
+              <span>{label}</span>
+            </button>
+          ))}
+        </DashboardTabToolbarGroup>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {canCreate ? (
+            <HomeworkCreateSheet
+              canCreate={canCreate}
+              t={t}
+              tComments={tComments}
+              fixedSectionId={sectionId}
+              fixedSemesterEnd={semesterEnd}
+              idPrefix="section-homework"
+              onCreated={loadHomeworks}
+              triggerRender={<Button size="sm" variant="outline" />}
+              triggerChildren={t("showCreate")}
+            />
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              render={<SignInLink className="no-underline" />}
+            >
+              {t("loginToCreate")}
+            </Button>
+          )}
+          <AuditLogSheet
+            auditLogs={auditLogs}
+            formatTimestamp={formatTimestamp}
+            labels={{
+              title: t("auditTitle"),
+              empty: t("auditEmpty"),
+              created: t("auditCreated"),
+              deleted: t("auditDeleted"),
+              meta: ({ name, date }: { name: string; date: string }) =>
+                t("auditMeta", { name, date }),
+              trigger: t("auditTitle"),
+            }}
+          />
+        </div>
       </div>
 
       {viewer.isSuspended && (
@@ -339,301 +665,177 @@ export function HomeworkPanel({
           </div>
         }
       >
-        <div className="space-y-4">
+        <div
+          className={
+            viewMode === "list"
+              ? "divide-y divide-border/70 overflow-hidden rounded-xl border border-border/70 bg-card/72"
+              : "grid gap-3 md:grid-cols-2 xl:grid-cols-3"
+          }
+          data-testid={
+            viewMode === "list"
+              ? "section-homeworks-list"
+              : "section-homeworks-cards"
+          }
+        >
           {homeworks.map((homework) => {
             const isEditing = editingId === homework.id;
-            const canDelete =
-              viewer.isAuthenticated &&
-              !viewer.isSuspended &&
-              (viewer.isAdmin || homework.createdById === viewer.userId);
+            const isExpanded = expandedId === homework.id;
             const createdAtLabel = t("createdAt", {
               date: formatTimestamp(homework.createdAt),
             });
+            const submissionDueValue = homework.submissionDueAt
+              ? formatTimestamp(homework.submissionDueAt)
+              : t("dateTBD");
+            const submissionDueRelativeLabel = homework.submissionDueAt
+              ? formatDueRelativeTime(
+                  homework.submissionDueAt,
+                  new Date(),
+                  locale,
+                )
+              : undefined;
 
-            if (!isEditing) {
+            if (isEditing) {
+              return viewMode === "list" ? (
+                <div key={homework.id} className="bg-background/40 p-3">
+                  {renderEditCard(homework, createdAtLabel)}
+                </div>
+              ) : (
+                <div key={homework.id} className="md:col-span-2 xl:col-span-3">
+                  {renderEditCard(homework, createdAtLabel)}
+                </div>
+              );
+            }
+
+            if (viewMode === "list") {
               return (
-                <HomeworkItemCard
+                <div
                   key={homework.id}
-                  cardId={`homework-${homework.id}`}
-                  cardClassName="group"
-                  title={homework.title}
-                  createdAtLabel={createdAtLabel}
-                  headerActions={
-                    <div className="flex flex-wrap gap-2 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
-                      <Sheet>
-                        <SheetTrigger
-                          render={<Button size="sm" variant="outline" />}
-                        >
-                          {t("commentsAction")} ({homework.commentCount})
-                        </SheetTrigger>
-                        <SheetPopup side="right">
-                          <SheetHeader>
-                            <SheetTitle>{t("commentsTitle")}</SheetTitle>
-                          </SheetHeader>
-                          <SheetPanel>
-                            <CommentsSection
-                              targets={[
-                                {
-                                  key: "homework",
-                                  label: t("commentsLabel"),
-                                  type: "homework",
-                                  homeworkId: homework.id,
-                                },
-                              ]}
-                            />
-                          </SheetPanel>
-                        </SheetPopup>
-                      </Sheet>
-                      {canEdit ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setEditingId(homework.id)}
-                        >
-                          {t("editAction")}
-                        </Button>
-                      ) : null}
-                    </div>
-                  }
-                  submissionDueLabel={t("submissionDue")}
-                  submissionDueValue={
-                    homework.submissionDueAt
-                      ? formatTimestamp(homework.submissionDueAt)
-                      : t("dateTBD")
-                  }
-                  description={homework.description?.content ?? null}
-                  descriptionEmptyLabel={t("descriptionEmpty")}
-                  startAtLabel={t("submissionStart")}
-                  startAtValue={
-                    homework.submissionStartAt
-                      ? formatTimestamp(homework.submissionStartAt)
-                      : t("dateTBD")
-                  }
-                  publishedAtLabel={t("publishedAt")}
-                  publishedAtValue={
-                    homework.publishedAt
-                      ? formatTimestamp(homework.publishedAt)
-                      : t("dateTBD")
-                  }
-                  footerStart={renderTagBadges(homework)}
-                  footerEnd={
-                    viewer.isAuthenticated ? (
-                      <div className="min-h-7">
-                        <Button
-                          size="xs"
-                          variant="outline"
-                          className="pointer-events-none pointer-coarse:pointer-events-auto opacity-0 pointer-coarse:opacity-100 transition-opacity group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"
-                          onClick={() =>
-                            void handleCompletionToggle(
-                              homework.id,
-                              !homework.completion,
-                            )
-                          }
-                          disabled={Boolean(completionSaving[homework.id])}
-                          aria-label={
-                            homework.completion
-                              ? t("markIncomplete")
-                              : t("markComplete")
-                          }
-                        >
-                          {homework.completion ? (
-                            <RotateCcw className="h-3.5 w-3.5" />
-                          ) : (
-                            <CheckCircle2 className="h-3.5 w-3.5" />
+                  id={`homework-${homework.id}`}
+                  className="group px-3 py-2.5 transition-colors hover:bg-background/90"
+                >
+                  <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center md:gap-4">
+                    <Dialog
+                      open={isExpanded}
+                      onOpenChange={(open) =>
+                        setExpandedId(open ? homework.id : null)
+                      }
+                    >
+                      <DialogTrigger
+                        render={
+                          <button
+                            type="button"
+                            className="grid min-w-0 gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:col-span-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-4"
+                            aria-expanded={isExpanded}
+                          />
+                        }
+                      >
+                        <div className="min-w-0 space-y-1">
+                          <p className="truncate font-medium text-sm leading-5">
+                            {homework.title}
+                          </p>
+                          {renderTagBadges(homework)}
+                        </div>
+                        <div className="text-xs md:text-right">
+                          <p className="font-semibold text-foreground tabular-nums">
+                            {submissionDueValue}
+                          </p>
+                          {submissionDueRelativeLabel ? (
+                            <p className="text-muted-foreground leading-4">
+                              {submissionDueRelativeLabel}
+                            </p>
+                          ) : null}
+                        </div>
+                      </DialogTrigger>
+                      <DialogPopup
+                        className="max-w-5xl"
+                        bottomStickOnMobile={false}
+                      >
+                        <DialogHeader className="gap-3 border-border/60 border-b bg-muted/18 pb-4">
+                          <DialogTitle className="pr-8 text-[1.35rem] leading-7">
+                            {homework.title}
+                          </DialogTitle>
+                          {renderTagBadges(homework)}
+                        </DialogHeader>
+                        <DialogPanel className="pt-5!">
+                          {renderHomeworkDetailCard(
+                            homework,
+                            submissionDueValue,
+                            submissionDueRelativeLabel,
                           )}
-                          {homework.completion
-                            ? t("markIncomplete")
-                            : t("markComplete")}
-                        </Button>
-                      </div>
-                    ) : null
-                  }
-                />
+                        </DialogPanel>
+                      </DialogPopup>
+                    </Dialog>
+                    <div className="flex justify-start md:justify-end">
+                      {renderCompletionButton(homework)}
+                    </div>
+                  </div>
+                </div>
               );
             }
 
             return (
-              <Card key={homework.id} className="border-border/60">
-                <CardHeader className="gap-3">
-                  <div className="space-y-1">
-                    <CardTitle className="text-base">
-                      {homework.title}
-                    </CardTitle>
-                    <p className="text-muted-foreground text-xs">
-                      {createdAtLabel}
-                    </p>
+              <HomeworkItemCard
+                key={homework.id}
+                cardId={`homework-${homework.id}`}
+                cardClassName="group"
+                title={homework.title}
+                expanded={isExpanded}
+                onOpenChange={(open) =>
+                  setExpandedId(open ? homework.id : null)
+                }
+                headerActions={
+                  canEdit ? (
+                    <div className="flex flex-wrap gap-2">
+                      {renderHomeworkActions(homework)}
+                    </div>
+                  ) : undefined
+                }
+                submissionDueLabel={t("submissionDue")}
+                submissionDueValue={submissionDueValue}
+                submissionDueRelativeLabel={submissionDueRelativeLabel}
+                description={homework.description?.content ?? null}
+                descriptionEmptyLabel={t("descriptionEmpty")}
+                startAtLabel={t("submissionStart")}
+                startAtValue={
+                  homework.submissionStartAt
+                    ? formatTimestamp(homework.submissionStartAt)
+                    : t("dateTBD")
+                }
+                publishedAtLabel={t("homeworkPublishedAt")}
+                publishedAtValue={
+                  homework.publishedAt
+                    ? formatTimestamp(homework.publishedAt)
+                    : t("dateTBD")
+                }
+                detailAfter={
+                  <section className="space-y-3 border-border/60 border-t pt-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="font-medium text-sm">
+                        {t("commentsTitle")}
+                      </h3>
+                      <span className="text-muted-foreground text-xs">
+                        {t("commentsAction")} ({homework.commentCount})
+                      </span>
+                    </div>
+                    <CommentsSection
+                      targets={[
+                        {
+                          key: "homework",
+                          label: t("commentsLabel"),
+                          type: "homework",
+                          homeworkId: homework.id,
+                        },
+                      ]}
+                    />
+                  </section>
+                }
+                footerStart={renderTagBadges(homework)}
+                footerEnd={
+                  <div className="min-h-7">
+                    {renderCompletionButton(homework)}
                   </div>
-                </CardHeader>
-                <CardPanel className="space-y-4">
-                  <HomeworkCardEditForm
-                    homework={homework}
-                    formatTimestamp={formatTimestamp}
-                    canDelete={canDelete}
-                    semesterStartDate={semesterStartDate}
-                    semesterEndDate={semesterEndDate}
-                    onUpdate={async (homeworkId, data, currentDescription) => {
-                      if (!data.title.trim()) {
-                        toast({
-                          title: t("titleRequired"),
-                          variant: "destructive",
-                        });
-                        return false;
-                      }
-
-                      try {
-                        const publishedAtDate = parseShanghaiDateTimeLocalInput(
-                          data.publishedAt,
-                        );
-                        const submissionStartAtDate =
-                          parseShanghaiDateTimeLocalInput(
-                            data.submissionStartAt,
-                          );
-                        const submissionDueAtDate =
-                          parseShanghaiDateTimeLocalInput(data.submissionDueAt);
-                        if (
-                          publishedAtDate === undefined ||
-                          submissionStartAtDate === undefined ||
-                          submissionDueAtDate === undefined
-                        ) {
-                          toast({
-                            title: t("updateFailed"),
-                            description: t("errorInvalidSubmissionDue"),
-                            variant: "destructive",
-                          });
-                          return false;
-                        }
-
-                        const updateResult = await apiClient.PATCH(
-                          "/api/homeworks/{id}",
-                          {
-                            params: {
-                              path: { id: homeworkId },
-                            },
-                            body: {
-                              title: data.title.trim(),
-                              publishedAt: publishedAtDate
-                                ? toShanghaiIsoString(publishedAtDate)
-                                : null,
-                              submissionStartAt: submissionStartAtDate
-                                ? toShanghaiIsoString(submissionStartAtDate)
-                                : null,
-                              submissionDueAt: submissionDueAtDate
-                                ? toShanghaiIsoString(submissionDueAtDate)
-                                : null,
-                              isMajor: data.isMajor,
-                              requiresTeam: data.requiresTeam,
-                            },
-                          },
-                        );
-
-                        if (!updateResult.response.ok) {
-                          const message = resolveApiErrorMessage(
-                            updateResult.error,
-                          );
-                          toast({
-                            title: t("updateFailed"),
-                            description: message,
-                            variant: "destructive",
-                          });
-                          return false;
-                        }
-
-                        const nextDescription = data.description.trim();
-                        if (nextDescription !== currentDescription) {
-                          const descriptionResult = await apiClient.POST(
-                            "/api/descriptions",
-                            {
-                              body: {
-                                targetType: "homework",
-                                targetId: homeworkId,
-                                content: nextDescription,
-                              },
-                            },
-                          );
-
-                          if (!descriptionResult.response.ok) {
-                            const message = resolveApiErrorMessage(
-                              descriptionResult.error,
-                            );
-                            toast({
-                              title: t("updateFailed"),
-                              description: message,
-                              variant: "destructive",
-                            });
-                            return false;
-                          }
-                        }
-
-                        toast({
-                          title: t("updateSuccess"),
-                          variant: "success",
-                        });
-                        setEditingId(null);
-                        await loadHomeworks();
-                        return true;
-                      } catch (err) {
-                        logClientError("Failed to update homework", err, {
-                          component: "HomeworkPanel",
-                          sectionId,
-                          homeworkId: homework.id,
-                        });
-                        toast({
-                          title: t("updateFailed"),
-                          variant: "destructive",
-                        });
-                        return false;
-                      }
-                    }}
-                    onDelete={async (homeworkId) => {
-                      try {
-                        const deleteResult = await apiClient.DELETE(
-                          "/api/homeworks/{id}",
-                          {
-                            params: {
-                              path: { id: homeworkId },
-                            },
-                          },
-                        );
-
-                        if (!deleteResult.response.ok) {
-                          const message = resolveApiErrorMessage(
-                            deleteResult.error,
-                          );
-                          toast({
-                            title: t("deleteFailed"),
-                            description: message,
-                            variant: "destructive",
-                          });
-                          return false;
-                        }
-
-                        toast({
-                          title: t("deleteSuccess"),
-                          variant: "success",
-                        });
-                        setEditingId(null);
-                        await loadHomeworks();
-                        return true;
-                      } catch (err) {
-                        logClientError("Failed to delete homework", err, {
-                          component: "HomeworkPanel",
-                          sectionId,
-                          homeworkId: homework.id,
-                        });
-                        toast({
-                          title: t("deleteFailed"),
-                          variant: "destructive",
-                        });
-                        return false;
-                      }
-                    }}
-                    onCancel={() => setEditingId(null)}
-                    t={t}
-                    tComments={tComments}
-                    tDescriptions={tDescriptions}
-                  />
-                </CardPanel>
-              </Card>
+                }
+              />
             );
           })}
         </div>

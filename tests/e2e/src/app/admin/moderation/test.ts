@@ -9,6 +9,7 @@ import {
   createTempUsersFixture,
   deleteUsersByPrefix,
 } from "../../../../utils/e2e-db";
+import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { resolveSeedSectionId } from "../../../../utils/subscriptions";
@@ -51,8 +52,8 @@ test("/admin/moderation 管理员可打开评论管理弹窗并切换状态选�
   await page
     .getByPlaceholder(/搜索评论内容或用户名|Search comments/i)
     .fill(keyword);
-  await expect(page.getByText(keyword).first()).toBeVisible();
-  await page.getByText(keyword).first().click();
+  await expect(visibleText(page, keyword)).toBeVisible();
+  await visibleText(page, keyword).click();
   const dialog = page.getByRole("dialog").filter({
     has: page.getByRole("heading", { name: /管理评论|Manage Comment/i }),
   });
@@ -93,8 +94,8 @@ test("/admin/moderation 可更新评论状态与备注", async ({ page }, testIn
     page,
     `/admin/moderation?search=${encodeURIComponent(keyword)}`,
   );
-  await expect(page.getByText(keyword).first()).toBeVisible();
-  await page.getByText(keyword).first().click();
+  await expect(visibleText(page, keyword)).toBeVisible();
+  await visibleText(page, keyword).click();
   const dialog = page
     .getByRole("dialog", { name: /管理评论|Manage Comment/i })
     .first();
@@ -148,8 +149,8 @@ test("/admin/moderation 目标链接可跳转到原页面锚点", async ({
   await page
     .getByPlaceholder(/搜索评论内容或用户名|Search comments/i)
     .fill(body);
-  await expect(page.getByText(body).first()).toBeVisible();
-  await page.getByText(body).first().click();
+  await expect(visibleText(page, body)).toBeVisible();
+  await visibleText(page, body).click();
   const manageDialog = page.getByRole("dialog").filter({
     has: page.getByRole("heading", { name: /管理评论|Manage Comment/i }),
   });
@@ -280,8 +281,8 @@ test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
     await page
       .getByPlaceholder(/搜索评论内容或用户名|Search comments/i)
       .fill(body);
-    await expect(page.getByText(body).first()).toBeVisible();
-    await page.getByText(body).first().click();
+    await expect(visibleText(page, body)).toBeVisible();
+    await visibleText(page, body).click();
 
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();

@@ -1,6 +1,5 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { SelectItemOption } from "@/components/filters/list-filters-toolbar";
 import { ListFiltersToolbar } from "@/components/filters/list-filters-toolbar";
@@ -20,8 +19,6 @@ export function TeachersFilter({
 }: TeachersFilterProps) {
   const t = useTranslations("teachers");
   const tCommon = useTranslations("common");
-  const searchParams = useSearchParams();
-  const currentView = searchParams.get("view");
 
   const getSelectItems = (
     options: Array<{ id: number; namePrimary: string }>,
@@ -44,7 +41,6 @@ export function TeachersFilter({
   return (
     <ListFiltersToolbar<TeachersFilterProps["defaultValues"]>
       defaultValues={defaultValues}
-      preserveKeys={["view"]}
       submitLabel={tCommon("search")}
       clearRender={<Link href="/teachers" />}
       clearLabel={tCommon("clear")}
@@ -55,7 +51,7 @@ export function TeachersFilter({
           name: "departmentId",
           value: defaultValues.departmentId || "",
           items: departmentItems,
-          triggerClassName: "w-50",
+          triggerClassName: "w-full sm:w-50",
         },
         {
           kind: "search",
@@ -63,15 +59,6 @@ export function TeachersFilter({
           defaultValue: defaultValues.search,
           placeholder: t("searchPlaceholder"),
         },
-        ...(currentView
-          ? [
-              {
-                kind: "extra" as const,
-                key: "preserve-view",
-                node: <input type="hidden" name="view" value={currentView} />,
-              },
-            ]
-          : []),
       ]}
     />
   );

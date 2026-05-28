@@ -38,7 +38,7 @@ export async function getAssistantDashboardSnapshot(input: {
     incompleteTodoCount,
     busPreference,
   ] = await Promise.all([
-    prisma.user.findUniqueOrThrow({
+    prisma.user.findUnique({
       where: { id: input.userId },
       select: {
         id: true,
@@ -130,6 +130,10 @@ export async function getAssistantDashboardSnapshot(input: {
     }),
     getBusPreference(input.userId),
   ]);
+
+  if (!user) {
+    throw new Error(`User ${input.userId} not found`);
+  }
 
   const nextClass =
     events.find(

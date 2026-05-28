@@ -3,6 +3,14 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { ClickableTableRow } from "@/components/clickable-table-row";
 import { DataState } from "@/components/data-state";
 import {
+  MobileList,
+  MobileListCard,
+  MobileListCardBody,
+  MobileListCardDescription,
+  MobileListCardMeta,
+  MobileListCardTitle,
+} from "@/components/mobile-list-card";
+import {
   PageBreadcrumbs,
   PageLayout,
   PageMeta,
@@ -19,6 +27,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Prisma } from "@/generated/prisma/client";
+import { parseInteger } from "@/lib/api/request-integers";
 import { getPrisma } from "@/lib/db/prisma";
 import { buildSearchParams } from "@/lib/navigation/search-params";
 import { ilike, paginatedTeacherQuery } from "@/lib/query-helpers";
@@ -33,8 +42,8 @@ async function fetchTeachers(
   const where: Prisma.TeacherWhereInput = {};
 
   if (departmentId) {
-    const parsedDepartmentId = parseInt(departmentId, 10);
-    if (!Number.isNaN(parsedDepartmentId)) {
+    const parsedDepartmentId = parseInteger(departmentId);
+    if (parsedDepartmentId !== null) {
       where.departmentId = parsedDepartmentId;
     }
   }
@@ -47,7 +56,13 @@ async function fetchTeachers(
     ];
   }
 
-  return paginatedTeacherQuery(page, where, { nameCn: "asc" }, locale);
+  return paginatedTeacherQuery(
+    page,
+    undefined,
+    where,
+    { nameCn: "asc" },
+    locale,
+  );
 }
 
 async function fetchDepartments(locale: string) {
@@ -82,15 +97,13 @@ export default async function TeachersPage({
     page?: string;
     departmentId?: string;
     search?: string;
-    view?: string;
   }>;
 }) {
   const locale = await getLocale();
   const searchP = await searchParams;
-  const page = parseInt(searchP.page || "1", 10);
+  const page = parseInteger(searchP.page) ?? 1;
   const departmentId = searchP.departmentId;
   const search = searchP.search;
-  const view = searchP.view || "table";
   const isEnglish = locale === "en-us";
 
   const [data, departments, t, tCommon] = await Promise.all([
@@ -111,7 +124,6 @@ export default async function TeachersPage({
       values: {
         departmentId,
         search,
-        view: view !== "table" ? view : "",
         page: page > 1 ? String(page) : "",
       },
     });
@@ -164,60 +176,99 @@ export default async function TeachersPage({
                 : null
           }
         >
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("name")}</TableHead>
-                <TableHead>{t("department")}</TableHead>
-                <TableHead>{t("title_label")}</TableHead>
-                <TableHead>{t("email")}</TableHead>
-                <TableHead>{t("sectionCount")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {teachers.map((teacher) => (
-                <ClickableTableRow
-                  key={teacher.id}
-                  href={`/teachers/${teacher.id}`}
-                >
-                  <TableCell>
-                    <div className="font-medium">
-                      {teacher.namePrimary}
-                      {isEnglish && teacher.nameSecondary ? (
-                        <span className="ml-2 text-muted-foreground">
-                          ({teacher.nameSecondary})
-                        </span>
-                      ) : null}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {teacher.department ? (
-                      <Badge variant="outline">
-                        {teacher.department.namePrimary}
+          <MobileList>
+            {teachers.map((teacher) => (
+              <MobileListCard key={teacher.id} href={`/teachers/${teacher.id}`}>
+                <MobileListCardBody className="space-y-0">
+                  <MobileListCardTitle>
+                    {teacher.namePrimary}
+                    {isEnglish && teacher.nameSecondary ? (
+                      <span className="ml-2 text-muted-foreground">
+                        ({teacher.nameSecondary})
+                      </span>
+                    ) : null}
+                  </MobileListCardTitle>
+                  <MobileListCardDescription className="mt-1">
+                    {teacher.email ?? "—"}
+                  </MobileListCardDescription>
+                </MobileListCardBody>
+                <MobileListCardMeta>
+                  {teacher.department ? (
+                    <Badge variant="outline">
+                      {teacher.department.namePrimary}
+                    </Badge>
+                  ) : null}
+                  {teacher.teacherTitle ? (
+                    <Badge variant="outline">
+                      {teacher.teacherTitle.namePrimary}
+                    </Badge>
+                  ) : null}
+                  <Badge variant="secondary">
+                    {t("sections")}: {teacher._count.sections}
+                  </Badge>
+                </MobileListCardMeta>
+              </MobileListCard>
+            ))}
+          </MobileList>
+
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("name")}</TableHead>
+                  <TableHead>{t("department")}</TableHead>
+                  <TableHead>{t("title_label")}</TableHead>
+                  <TableHead>{t("email")}</TableHead>
+                  <TableHead>{t("sectionCount")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {teachers.map((teacher) => (
+                  <ClickableTableRow
+                    key={teacher.id}
+                    href={`/teachers/${teacher.id}`}
+                  >
+                    <TableCell>
+                      <div className="font-medium">
+                        {teacher.namePrimary}
+                        {isEnglish && teacher.nameSecondary ? (
+                          <span className="ml-2 text-muted-foreground">
+                            ({teacher.nameSecondary})
+                          </span>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {teacher.department ? (
+                        <Badge variant="outline">
+                          {teacher.department.namePrimary}
+                        </Badge>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {teacher.teacherTitle
+                        ? teacher.teacherTitle.namePrimary
+                        : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {teacher.email ? (
+                        <span className="text-sm">{teacher.email}</span>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">
+                        {teacher._count.sections}
                       </Badge>
-                    ) : (
-                      "—"
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {teacher.teacherTitle
-                      ? teacher.teacherTitle.namePrimary
-                      : "—"}
-                  </TableCell>
-                  <TableCell>
-                    {teacher.email ? (
-                      <span className="text-sm">{teacher.email}</span>
-                    ) : (
-                      "—"
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{teacher._count.sections}</Badge>
-                  </TableCell>
-                </ClickableTableRow>
-              ))}
-            </TableBody>
-          </Table>
+                    </TableCell>
+                  </ClickableTableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </DataState>
       </PageSection>
 

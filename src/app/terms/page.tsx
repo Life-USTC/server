@@ -20,12 +20,12 @@ export default async function TermsPage() {
     <PageLayout
       title={t("title")}
       description={t("intro")}
-      contentClassName="mx-auto max-w-3xl"
+      contentClassName="mx-auto w-full max-w-3xl"
     >
       {sections.map((section) => (
-        <section key={section.title} className="space-y-3">
+        <section key={section.title} className="min-w-0 space-y-3">
           <h2 className="text-title-2">{section.title}</h2>
-          <ul className="list-disc space-y-2 pl-6 text-body text-muted-foreground">
+          <ul className="list-disc space-y-2 break-words pl-6 text-body text-muted-foreground">
             {section.items.map((item) => (
               <li key={item}>{item}</li>
             ))}

@@ -27,6 +27,8 @@ import { CommentAwareTabs } from "@/features/comments/components/comment-aware-t
 import { CommentsSection } from "@/features/comments/components/comments-section";
 import { getCommentsPayload } from "@/features/comments/server/comments-server";
 import { DescriptionLoader } from "@/features/descriptions/components/description-loader";
+import { Link } from "@/i18n/routing";
+import { parseInteger } from "@/lib/api/request-integers";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma as basePrisma, getPrisma } from "@/lib/db/prisma";
 
@@ -39,9 +41,9 @@ export async function generateMetadata({
   const locale = await getLocale();
   const prisma = getPrisma(locale);
   const { jwId } = await params;
-  const parsedId = parseInt(jwId, 10);
+  const parsedId = parseInteger(jwId);
 
-  if (Number.isNaN(parsedId)) {
+  if (parsedId === null) {
     return { title: t("pages.courses") };
   }
 
@@ -73,17 +75,13 @@ export async function generateMetadata({
 
 export default async function CoursePage({
   params,
-  searchParams,
 }: {
   params: Promise<{ jwId: string }>;
-  searchParams: Promise<{ view?: string }>;
 }) {
   const { jwId } = await params;
-  const searchP = await searchParams;
-  const _view = searchP.view || "table";
-  const parsedId = parseInt(jwId, 10);
+  const parsedId = parseInteger(jwId);
 
-  if (Number.isNaN(parsedId)) {
+  if (parsedId === null) {
     notFound();
   }
 
@@ -138,16 +136,21 @@ export default async function CoursePage({
         />
       }
     >
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-        <div className="space-y-8">
+      <div className="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <div className="min-w-0 space-y-8">
           <div className="mt-2">
-            <h1 className="mb-2 text-display">{course.namePrimary}</h1>
+            <h1 className="mb-2 break-words text-display">
+              {course.namePrimary}
+            </h1>
             {course.nameSecondary ? (
-              <p className="text-muted-foreground text-subtitle">
+              <p className="break-words text-muted-foreground text-subtitle">
                 {course.nameSecondary}
               </p>
             ) : null}
           </div>
+          <Suspense fallback={<DescriptionSkeleton />}>
+            <DescriptionLoader targetType="course" targetId={course.id} />
+          </Suspense>
 
           <CommentAwareTabs
             defaultValue="sections"
@@ -175,33 +178,107 @@ export default async function CoursePage({
             </TabsPanel>
             <TabsPanel value="sections" keepMounted>
               <div className="space-y-4">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t("semester")}</TableHead>
-                      <TableHead>{t("sectionCode")}</TableHead>
-                      <TableHead>{t("teachers")}</TableHead>
-                      <TableHead>{t("campus")}</TableHead>
-                      <TableHead>{t("capacity")}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {course.sections.map((section) => (
-                      <ClickableTableRow
-                        key={section.jwId}
-                        href={`/sections/${section.jwId}`}
-                      >
-                        <TableCell>
-                          {section.semester ? section.semester.nameCn : "—"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{section.code}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div
-                            className="max-w-[12ch] truncate"
-                            title={
-                              section.teachers && section.teachers.length > 0
+                {course.sections.length > 0 ? (
+                  <div className="space-y-3 md:hidden">
+                    {course.sections.map((section) => {
+                      const teachers =
+                        section.teachers && section.teachers.length > 0
+                          ? section.teachers
+                              .map((teacher) =>
+                                teacher.nameSecondary
+                                  ? `${teacher.namePrimary} (${teacher.nameSecondary})`
+                                  : teacher.namePrimary,
+                              )
+                              .join(", ")
+                          : "—";
+
+                      return (
+                        <Link
+                          key={section.jwId}
+                          href={`/sections/${section.jwId}`}
+                          className="block rounded-lg border border-border/70 bg-card/70 p-4 text-sm no-underline"
+                        >
+                          <div className="flex min-w-0 items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-medium text-foreground">
+                                {section.semester
+                                  ? section.semester.nameCn
+                                  : "—"}
+                              </p>
+                              <p className="mt-1 break-words text-muted-foreground leading-6">
+                                {teachers}
+                              </p>
+                            </div>
+                            <Badge variant="outline" className="shrink-0">
+                              {section.code}
+                            </Badge>
+                          </div>
+                          <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
+                            <div>
+                              <p className="text-muted-foreground">
+                                {t("campus")}
+                              </p>
+                              <p className="mt-1 font-medium text-foreground">
+                                {section.campus
+                                  ? section.campus.namePrimary
+                                  : "—"}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">
+                                {t("capacity")}
+                              </p>
+                              <p className="mt-1 font-medium text-foreground">
+                                {section.stdCount ?? 0} /{" "}
+                                {section.limitCount ?? "—"}
+                              </p>
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ) : null}
+
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t("semester")}</TableHead>
+                        <TableHead>{t("sectionCode")}</TableHead>
+                        <TableHead>{t("teachers")}</TableHead>
+                        <TableHead>{t("campus")}</TableHead>
+                        <TableHead>{t("capacity")}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {course.sections.map((section) => (
+                        <ClickableTableRow
+                          key={section.jwId}
+                          href={`/sections/${section.jwId}`}
+                        >
+                          <TableCell>
+                            {section.semester ? section.semester.nameCn : "—"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{section.code}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div
+                              className="max-w-[12ch] truncate"
+                              title={
+                                section.teachers && section.teachers.length > 0
+                                  ? section.teachers
+                                      .map((teacher) =>
+                                        teacher.nameSecondary
+                                          ? `${teacher.namePrimary} (${teacher.nameSecondary})`
+                                          : teacher.namePrimary,
+                                      )
+                                      .join(", ")
+                                  : undefined
+                              }
+                            >
+                              {section.teachers && section.teachers.length > 0
                                 ? section.teachers
                                     .map((teacher) =>
                                       teacher.nameSecondary
@@ -209,33 +286,23 @@ export default async function CoursePage({
                                         : teacher.namePrimary,
                                     )
                                     .join(", ")
-                                : undefined
-                            }
-                          >
-                            {section.teachers && section.teachers.length > 0
-                              ? section.teachers
-                                  .map((teacher) =>
-                                    teacher.nameSecondary
-                                      ? `${teacher.namePrimary} (${teacher.nameSecondary})`
-                                      : teacher.namePrimary,
-                                  )
-                                  .join(", ")
-                              : "—"}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {section.campus ? section.campus.namePrimary : "—"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {section.stdCount ?? 0} /{" "}
-                            {section.limitCount ?? "—"}
-                          </Badge>
-                        </TableCell>
-                      </ClickableTableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                                : "—"}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {section.campus ? section.campus.namePrimary : "—"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {section.stdCount ?? 0} /{" "}
+                              {section.limitCount ?? "—"}
+                            </Badge>
+                          </TableCell>
+                        </ClickableTableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
 
                 {course.sections.length === 0 ? (
                   <Empty>
@@ -249,10 +316,7 @@ export default async function CoursePage({
           </CommentAwareTabs>
         </div>
 
-        <aside className="space-y-4">
-          <Suspense fallback={<DescriptionSkeleton />}>
-            <DescriptionLoader targetType="course" targetId={course.id} />
-          </Suspense>
+        <aside className="min-w-0 space-y-4">
           <Collapsible className="space-y-4" defaultOpen>
             <CollapsibleTrigger className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2 font-medium text-foreground text-sm lg:hidden">
               <span>{tCourse("basicInfo")}</span>

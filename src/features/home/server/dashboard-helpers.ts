@@ -129,17 +129,20 @@ export const selectWeeklySessions = (
 export const buildWeekDays = (weekStart: dayjs.Dayjs) =>
   Array.from({ length: 7 }, (_, index) => weekStart.add(index, "day"));
 
-export const buildTimeSlots = (weeklySessions: SessionItem[]): TimeSlot[] =>
-  Array.from(
-    new Set(weeklySessions.map((item) => `${item.startTime}-${item.endTime}`)),
-  )
-    .map((value) => {
-      const [startTime, endTime] = value
-        .split("-")
-        .map((item) => parseInt(item, 10));
-      return { key: value, startTime, endTime };
-    })
-    .sort((a, b) => toMinutes(a.startTime) - toMinutes(b.startTime));
+export const buildTimeSlots = (weeklySessions: SessionItem[]): TimeSlot[] => {
+  const slotsByKey = new Map<string, TimeSlot>();
+
+  for (const { startTime, endTime } of weeklySessions) {
+    const key = `${startTime}-${endTime}`;
+    if (!slotsByKey.has(key)) {
+      slotsByKey.set(key, { key, startTime, endTime });
+    }
+  }
+
+  return [...slotsByKey.values()].sort(
+    (a, b) => toMinutes(a.startTime) - toMinutes(b.startTime),
+  );
+};
 
 export const computeHomeworkBuckets = (
   homeworks: HomeworkWithSection[],
@@ -148,15 +151,18 @@ export const computeHomeworkBuckets = (
   const incompleteHomeworks = homeworks.filter(
     (homework) => homework.homeworkCompletions.length === 0,
   );
-  const dueToday = incompleteHomeworks.filter((homework) => {
-    if (!homework.submissionDueAt) return false;
-    return shanghaiDayjs(homework.submissionDueAt).isSame(todayStart, "day");
-  });
-  const dueWithin3Days = incompleteHomeworks.filter((homework) => {
-    if (!homework.submissionDueAt) return false;
-    const due = shanghaiDayjs(homework.submissionDueAt);
-    return due.isAfter(todayStart) && due.isBefore(todayStart.add(4, "day"));
-  });
+  const incompleteWithDueAt = incompleteHomeworks.flatMap((homework) =>
+    homework.submissionDueAt
+      ? [{ homework, due: shanghaiDayjs(homework.submissionDueAt) }]
+      : [],
+  );
+  const dueToday = incompleteWithDueAt
+    .filter(({ due }) => due.isSame(todayStart, "day"))
+    .map(({ homework }) => homework);
+  const dueSoonEnd = todayStart.add(4, "day");
+  const dueWithin3Days = incompleteWithDueAt
+    .filter(({ due }) => due.isAfter(todayStart) && due.isBefore(dueSoonEnd))
+    .map(({ homework }) => homework);
 
   return { incompleteHomeworks, dueToday, dueWithin3Days };
 };

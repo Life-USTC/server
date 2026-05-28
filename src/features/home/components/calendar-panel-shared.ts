@@ -50,3 +50,45 @@ export function getWeekStart(date: dayjs.Dayjs, weekStartsOn: 0 | 1) {
   }
   return start;
 }
+
+export function getSemesterWeekNumber({
+  semesterEnd,
+  semesterStart,
+  weekStart,
+  weekStartsOn,
+}: {
+  semesterEnd: dayjs.ConfigType | null | undefined;
+  semesterStart: dayjs.ConfigType | null | undefined;
+  weekStart: dayjs.Dayjs;
+  weekStartsOn: 0 | 1;
+}) {
+  if (!semesterStart || !semesterEnd) return null;
+
+  const start = shanghaiDayjs(semesterStart);
+  const end = shanghaiDayjs(semesterEnd);
+  const weekEnd = weekStart.add(6, "day");
+  if (weekEnd.isBefore(start, "day") || weekStart.isAfter(end, "day")) {
+    return null;
+  }
+
+  return weekStart.diff(getWeekStart(start, weekStartsOn), "week") + 1;
+}
+
+export function groupByShanghaiDay<T>(
+  items: readonly T[],
+  getDate: (item: T) => dayjs.ConfigType | null | undefined,
+) {
+  const byDay = new Map<string, T[]>();
+
+  for (const item of items) {
+    const date = getDate(item);
+    if (!date) continue;
+
+    const key = shanghaiDayjs(date).format("YYYY-MM-DD");
+    const group = byDay.get(key) ?? [];
+    group.push(item);
+    byDay.set(key, group);
+  }
+
+  return byDay;
+}

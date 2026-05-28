@@ -14,7 +14,7 @@ import {
   commentThreadResponseSchema,
   commentUpdateResponseSchema,
   successResponseSchema,
-} from "@/lib/api/schemas";
+} from "@/lib/api/schemas/response-schemas";
 import { CommentEditor } from "./comment-editor";
 import { CommentThread } from "./comment-thread";
 import type { CommentNode, CommentViewer } from "./comment-types";

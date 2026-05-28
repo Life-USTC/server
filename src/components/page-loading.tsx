@@ -11,6 +11,7 @@ export function PageLoading({
 }) {
   return (
     <div
+      data-slot="page-loading"
       className={cn(
         "flex min-h-[400px] items-center justify-center",
         className,

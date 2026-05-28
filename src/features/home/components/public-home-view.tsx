@@ -1,11 +1,11 @@
 import { getTranslations } from "next-intl/server";
 import { PageLayout } from "@/components/page-layout";
+import { SignInLink } from "@/components/sign-in-link";
 import { Button } from "@/components/ui/button";
 import { BusPanel } from "@/features/bus/components/bus-panel";
 import type { BusTimetableData } from "@/features/bus/lib/bus-types";
 import { LinksTabPanel } from "@/features/dashboard-links/components/links-tab-panel";
 import type { DashboardLinkSummary } from "@/features/home/server/dashboard-link-data";
-import { Link } from "@/i18n/routing";
 import { type HomeTabId, HomeTabNav } from "./home-tab-nav";
 
 const VALID_PUBLIC_TABS = ["bus", "links"] as const satisfies HomeTabId[];
@@ -50,7 +50,7 @@ export async function PublicHomeView({
           trailingContent={
             <Button
               variant="outline"
-              render={<Link className="no-underline" href="/signin" />}
+              render={<SignInLink className="no-underline" />}
             >
               {t("actions.signIn")}
             </Button>

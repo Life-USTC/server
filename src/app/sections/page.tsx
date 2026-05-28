@@ -3,6 +3,14 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { ClickableTableRow } from "@/components/clickable-table-row";
 import { DataState } from "@/components/data-state";
 import {
+  MobileList,
+  MobileListCard,
+  MobileListCardBody,
+  MobileListCardDescription,
+  MobileListCardMeta,
+  MobileListCardTitle,
+} from "@/components/mobile-list-card";
+import {
   PageBreadcrumbs,
   PageLayout,
   PageMeta,
@@ -18,6 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { parseInteger } from "@/lib/api/request-integers";
 import { buildSectionListQuery } from "@/lib/course-section-queries";
 import { prisma } from "@/lib/db/prisma";
 import { buildSearchParams } from "@/lib/navigation/search-params";
@@ -38,7 +47,7 @@ async function fetchSections(
   // Default orderBy if none specified
   const resolvedOrderBy = orderBy ?? { semester: { jwId: "desc" as const } };
 
-  return paginatedSectionQuery(page, where, resolvedOrderBy, locale);
+  return paginatedSectionQuery(page, undefined, where, resolvedOrderBy, locale);
 }
 
 async function fetchSemesters() {
@@ -66,15 +75,13 @@ export default async function SectionsPage({
     page?: string;
     semesterId?: string;
     search?: string;
-    view?: string;
   }>;
 }) {
   const locale = await getLocale();
   const searchP = await searchParams;
-  const page = parseInt(searchP.page || "1", 10);
+  const page = parseInteger(searchP.page) ?? 1;
   const semesterId = searchP.semesterId;
   const search = searchP.search;
-  const view = searchP.view || "table";
 
   const [data, semesters, t, tCommon] = await Promise.all([
     fetchSections(page, semesterId, search, locale),
@@ -94,7 +101,6 @@ export default async function SectionsPage({
       values: {
         semesterId,
         search,
-        view: view !== "table" ? view : "",
         page: page > 1 ? String(page) : "",
       },
     });
@@ -143,68 +149,121 @@ export default async function SectionsPage({
                 : null
           }
         >
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("semester")}</TableHead>
-                <TableHead>{t("courseName")}</TableHead>
-                <TableHead>{t("sectionCode")}</TableHead>
-                <TableHead>{t("teachers")}</TableHead>
-                <TableHead>{t("credits")}</TableHead>
-                <TableHead>{t("capacity")}</TableHead>
-                <TableHead>{t("campus")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sections.map((section) => (
-                <ClickableTableRow
+          <MobileList>
+            {sections.map((section) => {
+              const teacherNames =
+                section.teachers && section.teachers.length > 0
+                  ? section.teachers
+                      .map((teacher) => teacher.namePrimary)
+                      .join(", ")
+                  : "—";
+
+              return (
+                <MobileListCard
                   key={section.jwId}
                   href={`/sections/${section.jwId}`}
                 >
-                  <TableCell>
+                  <MobileListCardBody>
+                    <MobileListCardTitle>
+                      {section.course.namePrimary}
+                    </MobileListCardTitle>
+                    <MobileListCardDescription>
+                      {teacherNames}
+                    </MobileListCardDescription>
+                  </MobileListCardBody>
+                  <MobileListCardMeta>
                     {section.semester ? (
                       <Badge variant="outline">{section.semester.nameCn}</Badge>
                     ) : null}
-                  </TableCell>
-                  <TableCell>{section.course.namePrimary}</TableCell>
-                  <TableCell>
                     <Badge variant="outline" className="font-mono">
                       {section.code}
                     </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div
-                      className="max-w-[12ch] truncate"
-                      title={
-                        section.teachers && section.teachers.length > 0
+                    <Badge variant="outline">
+                      {t("capacity")}: {section.stdCount ?? 0} /{" "}
+                      {section.limitCount ?? "—"}
+                    </Badge>
+                    {section.campus ? (
+                      <Badge variant="outline">
+                        {section.campus.namePrimary}
+                      </Badge>
+                    ) : null}
+                    {section.credits !== null ? (
+                      <Badge variant="secondary">
+                        {t("credits")}: {section.credits}
+                      </Badge>
+                    ) : null}
+                  </MobileListCardMeta>
+                </MobileListCard>
+              );
+            })}
+          </MobileList>
+
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("semester")}</TableHead>
+                  <TableHead>{t("courseName")}</TableHead>
+                  <TableHead>{t("sectionCode")}</TableHead>
+                  <TableHead>{t("teachers")}</TableHead>
+                  <TableHead>{t("credits")}</TableHead>
+                  <TableHead>{t("capacity")}</TableHead>
+                  <TableHead>{t("campus")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sections.map((section) => (
+                  <ClickableTableRow
+                    key={section.jwId}
+                    href={`/sections/${section.jwId}`}
+                  >
+                    <TableCell>
+                      {section.semester ? (
+                        <Badge variant="outline">
+                          {section.semester.nameCn}
+                        </Badge>
+                      ) : null}
+                    </TableCell>
+                    <TableCell>{section.course.namePrimary}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="font-mono">
+                        {section.code}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div
+                        className="max-w-[12ch] truncate"
+                        title={
+                          section.teachers && section.teachers.length > 0
+                            ? section.teachers
+                                .map((teacher) => teacher.namePrimary)
+                                .join(", ")
+                            : undefined
+                        }
+                      >
+                        {section.teachers && section.teachers.length > 0
                           ? section.teachers
                               .map((teacher) => teacher.namePrimary)
                               .join(", ")
-                          : undefined
-                      }
-                    >
-                      {section.teachers && section.teachers.length > 0
-                        ? section.teachers
-                            .map((teacher) => teacher.namePrimary)
-                            .join(", ")
-                        : "—"}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {section.credits !== null ? section.credits : "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {section.stdCount ?? 0} / {section.limitCount ?? "—"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {section.campus ? section.campus.namePrimary : "—"}
-                  </TableCell>
-                </ClickableTableRow>
-              ))}
-            </TableBody>
-          </Table>
+                          : "—"}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {section.credits !== null ? section.credits : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {section.stdCount ?? 0} / {section.limitCount ?? "—"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {section.campus ? section.campus.namePrimary : "—"}
+                    </TableCell>
+                  </ClickableTableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </DataState>
       </PageSection>
 

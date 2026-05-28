@@ -52,20 +52,22 @@
 
 @layer components {
   .page-main {
+    --page-layout-width: min(var(--layout-wide-width), calc(100vw - 1rem));
+
     box-sizing: border-box;
-    max-width: var(--layout-content-width);
-    width: min(100%, var(--layout-content-width));
+    max-width: var(--page-layout-width);
+    width: min(100%, var(--page-layout-width));
     margin-inline: auto;
-    padding: 2rem 1.5rem;
+    padding: 0.75rem 1.5rem 2rem;
     padding-bottom: 2rem;
 
     @media (min-width: 800px) {
-      padding: 3rem 2rem;
+      padding: 1rem 2rem 2rem;
       padding-bottom: 2rem;
     }
 
     @media (min-width: 1024px) {
-      padding: 4rem 3rem;
+      padding: 1.25rem 3rem 3rem;
       padding-bottom: 3rem;
     }
   }
@@ -76,6 +78,7 @@
 
   @supports selector(:has(*)) {
     #main-content:has(.home-dashboard-layout) > #app-brand-row {
+      z-index: 10;
       padding-top: 1.6rem;
 
       @media (min-width: 800px) {
@@ -85,6 +88,10 @@
       @media (min-width: 1024px) {
         padding-top: 2.45rem;
       }
+    }
+
+    #main-content:has(main.page-main) > #app-brand-row {
+      --page-layout-width: min(var(--layout-wide-width), calc(100vw - 1rem));
     }
 
     #main-content:has(.home-dashboard-layout)

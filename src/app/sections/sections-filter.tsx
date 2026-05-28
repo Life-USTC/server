@@ -1,6 +1,5 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { SelectItemOption } from "@/components/filters/list-filters-toolbar";
 import { ListFiltersToolbar } from "@/components/filters/list-filters-toolbar";
@@ -25,8 +24,6 @@ export function SectionsFilter({
 }: SectionsFilterProps) {
   const t = useTranslations("sections");
   const tCommon = useTranslations("common");
-  const searchParams = useSearchParams();
-  const currentView = searchParams.get("view");
 
   const getSelectItems = (options: SemesterOption[], allLabel: string) => {
     return [
@@ -46,7 +43,6 @@ export function SectionsFilter({
   return (
     <ListFiltersToolbar<SectionsFilterValues>
       defaultValues={defaultValues}
-      preserveKeys={["view"]}
       submitLabel={tCommon("search")}
       clearRender={<Link href="/sections" />}
       clearLabel={tCommon("clear")}
@@ -58,7 +54,7 @@ export function SectionsFilter({
           name: "semesterId",
           value: defaultValues.semesterId || "",
           items: semesterItems,
-          triggerClassName: "w-50",
+          triggerClassName: "w-full sm:w-50",
         },
         {
           kind: "search",
@@ -79,15 +75,6 @@ export function SectionsFilter({
             />
           ),
         },
-        ...(currentView
-          ? [
-              {
-                kind: "extra" as const,
-                key: "preserve-view",
-                node: <input type="hidden" name="view" value={currentView} />,
-              },
-            ]
-          : []),
       ]}
     />
   );

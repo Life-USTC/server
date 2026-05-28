@@ -55,6 +55,7 @@ export function AccountDeletionSection() {
         }
         // Redirect to home after successful deletion
         router.push("/");
+        router.refresh();
         return {
           title: t("deleteAccountSuccess"),
           description: t("deleteAccountSuccessDescription"),

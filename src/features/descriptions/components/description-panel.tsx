@@ -4,6 +4,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { z } from "zod";
 import { DataState } from "@/components/data-state";
+import { SignInLink } from "@/components/sign-in-link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,9 +27,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CommentMarkdown } from "@/features/comments/components/comment-markdown";
 import { MarkdownEditor } from "@/features/comments/components/markdown-editor";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "@/i18n/routing";
 import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
-import { descriptionsResponseSchema } from "@/lib/api/schemas";
+import { descriptionsResponseSchema } from "@/lib/api/schemas/response-schemas";
 import { logClientError } from "@/lib/log/app-logger";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 
@@ -292,7 +292,7 @@ export function DescriptionPanel({
             <Button
               size="sm"
               variant="outline"
-              render={<Link className="no-underline" href="/signin" />}
+              render={<SignInLink className="no-underline" />}
             >
               {t("loginToEdit")}
             </Button>

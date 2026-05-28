@@ -30,7 +30,8 @@
           "link.slug visit action",
           "link.group",
           "link.isPinned (if authenticated)",
-          "Search input/query"
+          "Search input/query",
+          "Grid/list view mode persisted in browser storage"
         ]
       }
     },

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiClient } from "@/lib/api/client";
-import { uploadsListResponseSchema } from "@/lib/api/schemas";
+import { uploadsListResponseSchema } from "@/lib/api/schemas/response-schemas";
 import { logClientError } from "@/lib/log/app-logger";
 import type { UploadSummary } from "../lib/upload-client";
 

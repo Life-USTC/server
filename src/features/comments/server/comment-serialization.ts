@@ -1,3 +1,8 @@
+import type {
+  CommentReactionType,
+  CommentStatus,
+  CommentVisibility,
+} from "@/generated/prisma/client";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
 export type CommentAuthorSummary = {
@@ -27,8 +32,8 @@ export type CommentReactionSummary = {
 export type CommentNode = {
   id: string;
   body: string;
-  visibility: string;
-  status: string;
+  visibility: CommentVisibility;
+  status: CommentStatus;
   author: CommentAuthorSummary | null;
   authorHidden: boolean;
   isAnonymous: boolean;
@@ -80,15 +85,15 @@ type RawAttachment = {
 };
 
 type RawReaction = {
-  type: unknown;
+  type: CommentReactionType;
   userId: string | null;
 };
 
 export type RawComment = {
   id: string;
   body: string;
-  visibility: unknown;
-  status: unknown;
+  visibility: CommentVisibility;
+  status: CommentStatus;
   authorName?: string | null;
   isAnonymous?: boolean | null;
   userId?: string | null;
@@ -124,7 +129,7 @@ function buildReactionSummary(comment: RawComment, viewer: ViewerInfo) {
   const reactions = Array.isArray(comment.reactions) ? comment.reactions : [];
 
   for (const reaction of reactions) {
-    const type = String(reaction.type);
+    const type = reaction.type;
     const entry = reactionMap.get(type) ?? {
       type,
       count: 0,
@@ -163,12 +168,11 @@ function shouldHideComment(
   isAuthor: boolean,
   hasVisibleDescendant: boolean,
 ) {
-  const status = String(comment.status);
-  const visibility = String(comment.visibility);
-
-  if (status === "deleted" && !hasVisibleDescendant) return true;
-  if (status === "softbanned" && !viewer.isAdmin && !isAuthor) return true;
-  if (visibility === "logged_in_only" && !viewer.isAuthenticated) return true;
+  if (comment.status === "deleted" && !hasVisibleDescendant) return true;
+  if (comment.status === "softbanned" && !viewer.isAdmin && !isAuthor)
+    return true;
+  if (comment.visibility === "logged_in_only" && !viewer.isAuthenticated)
+    return true;
 
   return false;
 }
@@ -188,7 +192,7 @@ export function buildCommentNodes(
 
   const nonDeletedIds = new Set(
     rawComments
-      .filter((comment) => String(comment.status) !== "deleted")
+      .filter((comment) => comment.status !== "deleted")
       .map((comment) => comment.id),
   );
 
@@ -211,13 +215,13 @@ export function buildCommentNodes(
 
   for (const comment of rawComments) {
     const isAuthor = Boolean(viewer.userId && comment.userId === viewer.userId);
-    const rawStatus = String(comment.status);
+    const rawStatus = comment.status;
     const hasDescendant = computeHasVisibleDescendant(comment.id);
     if (shouldHideComment(comment, viewer, isAuthor, hasDescendant)) {
       if (
-        String(comment.visibility) === "logged_in_only" &&
+        comment.visibility === "logged_in_only" &&
         !viewer.isAuthenticated &&
-        String(comment.status) !== "deleted"
+        comment.status !== "deleted"
       ) {
         hiddenCount += 1;
       }
@@ -225,8 +229,7 @@ export function buildCommentNodes(
     }
 
     const authorHidden =
-      (String(comment.visibility) === "anonymous" ||
-        Boolean(comment.isAnonymous)) &&
+      (comment.visibility === "anonymous" || Boolean(comment.isAnonymous)) &&
       !viewer.isAdmin &&
       !isAuthor;
     const author = authorHidden ? null : buildAuthorSummary(comment, viewer);
@@ -236,7 +239,7 @@ export function buildCommentNodes(
     visibleNodes.set(comment.id, {
       id: comment.id,
       body: comment.body,
-      visibility: String(comment.visibility),
+      visibility: comment.visibility,
       status,
       author,
       authorHidden,

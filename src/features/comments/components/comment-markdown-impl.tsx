@@ -205,9 +205,9 @@ function directivePlugin() {
         directive.data.hProperties = {
           ...attributes,
           className: cn(
-            "markdown-directive",
-            `directive-${name}`,
-            name === "center" && "text-center",
+            name === "center"
+              ? "text-center"
+              : ["markdown-directive", `directive-${name}`],
             classValue,
             classNameValue,
           ),
@@ -315,6 +315,7 @@ export function CommentMarkdown({ content, className }: CommentMarkdownProps) {
                 const align = (props as { align?: unknown }).align;
                 const safeSrc = typeof src === "string" ? src : "";
                 const safeAlt = typeof alt === "string" ? alt : "";
+                const hasExplicitWidth = width !== undefined && width !== null;
                 const w = Number(width) || 800;
                 const h = Number(height) || 450;
                 return (
@@ -324,7 +325,11 @@ export function CommentMarkdown({ content, className }: CommentMarkdownProps) {
                     unoptimized
                     width={w}
                     height={h}
-                    style={{ maxWidth: "100%", height: "auto", width: "auto" }}
+                    style={{
+                      maxWidth: "100%",
+                      height: "auto",
+                      width: hasExplicitWidth ? w : "auto",
+                    }}
                     className={cn(
                       "rounded-lg",
                       align === "center" && "mx-auto block",
@@ -335,11 +340,11 @@ export function CommentMarkdown({ content, className }: CommentMarkdownProps) {
                 );
               },
               center: ({ children, ...props }) => {
-                const { node: _node, ...rest } = props;
+                const { node: _node, ref: _ref, ...rest } = props;
                 return (
-                  <span className="block text-center" {...rest}>
+                  <div className="text-center" {...rest}>
                     {children}
-                  </span>
+                  </div>
                 );
               },
               // Ensure typography elements are rendered correctly

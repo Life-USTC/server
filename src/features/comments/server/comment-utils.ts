@@ -15,6 +15,8 @@ export type ResolvedCommentTarget = {
   targetId: number | string | null;
   teacherId: number | null;
   whereTarget: Record<string, number | string>;
+  /** True when the underlying target entity was verified to exist in the DB. */
+  verified: boolean;
 };
 
 export async function resolveSectionTeacherId(
@@ -47,8 +49,59 @@ export async function resolveSectionTeacherId(
   return sectionTeacher.id as number;
 }
 
+/**
+ * Verify that a target entity actually exists in the DB.
+ * Prevents orphan comments pointing at deleted or nonexistent entities.
+ */
+async function verifyTargetEntity(
+  targetType: CommentTargetType,
+  whereTarget: Record<string, number | string>,
+): Promise<boolean> {
+  if (targetType === "section" && typeof whereTarget.sectionId === "number") {
+    const section = await prisma.section.findUnique({
+      where: { id: whereTarget.sectionId },
+      select: { id: true },
+    });
+    return section !== null;
+  }
+  if (targetType === "course" && typeof whereTarget.courseId === "number") {
+    const course = await prisma.course.findUnique({
+      where: { id: whereTarget.courseId },
+      select: { id: true },
+    });
+    return course !== null;
+  }
+  if (targetType === "teacher" && typeof whereTarget.teacherId === "number") {
+    const teacher = await prisma.teacher.findUnique({
+      where: { id: whereTarget.teacherId },
+      select: { id: true },
+    });
+    return teacher !== null;
+  }
+  if (targetType === "homework" && typeof whereTarget.homeworkId === "string") {
+    const homework = await prisma.homework.findUnique({
+      where: { id: whereTarget.homeworkId },
+      select: { id: true },
+    });
+    return homework !== null;
+  }
+  if (
+    targetType === "section-teacher" &&
+    typeof whereTarget.sectionTeacherId === "number"
+  ) {
+    const st = await prisma.sectionTeacher.findUnique({
+      where: { id: whereTarget.sectionTeacherId },
+      select: { id: true },
+    });
+    return st !== null;
+  }
+  return true;
+}
+
 export async function resolveCommentTarget(input: {
   allowDirectSectionTeacherId?: boolean;
+  /** Whether to verify the target entity exists in the DB before returning. */
+  verifyExistence?: boolean;
   rawTargetId: unknown;
   sectionId?: unknown;
   targetType: CommentTargetType;
@@ -89,6 +142,11 @@ export async function resolveCommentTarget(input: {
     return null;
   }
 
+  const verified =
+    input.verifyExistence === true
+      ? await verifyTargetEntity(input.targetType, whereTarget)
+      : true;
+
   return {
     homeworkId,
     sectionId,
@@ -96,5 +154,6 @@ export async function resolveCommentTarget(input: {
     targetId: input.targetType === "homework" ? homeworkId : normalizedTargetId,
     teacherId,
     whereTarget,
+    verified,
   };
 }

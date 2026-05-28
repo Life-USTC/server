@@ -1,4 +1,5 @@
 {
+  "Layout Principles": "* Put reading-first content in the left/main column: introductions, descriptions, markdown, homework content, and comments.\n* Put structured facts in the right/side column: identifiers, metadata, dates, counts, actions, mini calendars, and quick links.\n* On mobile, stack in that order.\n* Reuse existing grids, cards, borders, muted text, tabs, and buttons.\n* Popups with discussion use details on the left and discussion on the right on desktop; stack on mobile.",
   "List Table": "* Used for discovery-type lists such as courses, sections, and teachers.\n* Primary display information is placed in the first visual column.\n* Structured fields serve disambiguation and comparison.\n* Rows are fully clickable and navigate to the detail page.",
   "Detail Hero": "* Used at the top of course, section, and teacher detail pages.\n* Contains breadcrumb, h1, and an optional subtitle.\n* h1 uses the primary display name of the current object, not an internal ID.",
   "Basic Info Card": "* Used in detail page sidebars or collapsible panels.\n* Displays structured fields; does not carry comment or homework interactions.",

@@ -12,6 +12,7 @@ import { CommentAwareTabs } from "@/features/comments/components/comment-aware-t
 import { DescriptionLoader } from "@/features/descriptions/components/description-loader";
 import type { Prisma } from "@/generated/prisma/client";
 import { Link } from "@/i18n/routing";
+import { parseInteger } from "@/lib/api/request-integers";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma as basePrisma, getPrisma } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
@@ -106,9 +107,9 @@ export async function generateMetadata({
   const t = await getTranslations("metadata");
   const locale = await getLocale();
   const { jwId } = await params;
-  const parsedId = parseInt(jwId, 10);
+  const parsedId = parseInteger(jwId);
 
-  if (Number.isNaN(parsedId)) {
+  if (parsedId === null) {
     return { title: t("pages.sections") };
   }
 
@@ -139,9 +140,9 @@ export default async function SectionPage({
   params: Promise<{ jwId: string }>;
 }) {
   const { jwId } = await params;
-  const parsedJwId = parseInt(jwId, 10);
+  const parsedJwId = parseInteger(jwId);
 
-  if (Number.isNaN(parsedJwId)) {
+  if (parsedJwId === null) {
     notFound();
   }
 
@@ -297,8 +298,10 @@ export default async function SectionPage({
             courseNameSecondary={section.course.nameSecondary}
             sectionId={section.id}
             sectionJwId={section.jwId}
-            subscriptionDisclaimer={t("subscriptionDisclaimer")}
           />
+          <Suspense fallback={<DescriptionSkeleton />}>
+            <DescriptionLoader targetType="section" targetId={section.id} />
+          </Suspense>
 
           <CommentAwareTabs
             defaultValue="homeworks"
@@ -385,9 +388,6 @@ export default async function SectionPage({
         </div>
 
         <aside className="space-y-4">
-          <Suspense fallback={<DescriptionSkeleton />}>
-            <DescriptionLoader targetType="section" targetId={section.id} />
-          </Suspense>
           <BasicInfoCard
             section={section}
             otherSections={otherSections}
