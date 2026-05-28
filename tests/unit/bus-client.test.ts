@@ -3,6 +3,7 @@ import {
   getApplicableBusRoutes,
   getShanghaiMinutesSinceMidnight,
 } from "@/features/bus/lib/bus-client";
+import { parseBusTimeMinutes } from "@/features/bus/lib/bus-time";
 import type {
   BusTimetableData,
   BusTripSummary,
@@ -19,15 +20,12 @@ function createTrip(input: {
 }): BusTripSummary {
   const stopTimes = input.times.map(
     ([stopOrder, campusId, campusName, time]) => {
-      const [hourText, minuteText] = time.split(":");
       return {
         stopOrder,
         campusId,
         campusName,
         time,
-        minutesSinceMidnight:
-          Number.parseInt(hourText ?? "0", 10) * 60 +
-          Number.parseInt(minuteText ?? "0", 10),
+        minutesSinceMidnight: parseBusTimeMinutes(time) ?? 0,
         isPassThrough: false,
       };
     },

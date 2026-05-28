@@ -7,7 +7,7 @@ import type {
 export const AUTO_SAVE_DELAY_MS = 600;
 
 export const BUS_ROUTE_TABLE_SHELL_CLASS =
-  "min-w-0 overflow-hidden rounded-2xl border border-border/70 bg-card/80 shadow-sm";
+  "min-w-0 overflow-hidden bg-transparent";
 
 export type BusTranslator = (
   key: string,

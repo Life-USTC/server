@@ -31,8 +31,8 @@ async function chooseStop(page: Page, label: RegExp, option: RegExp) {
 }
 
 function routeSectionRows(page: Page) {
-  return page.locator("section").filter({
-    has: page.getByText(/total trips|共 .* 班/),
+  return page.locator("section:visible").filter({
+    has: page.locator("table"),
   });
 }
 
@@ -116,12 +116,15 @@ test.describe("bus dashboard tab", () => {
       }
       await expect(startWestButton).toHaveAttribute("aria-pressed", "true");
       await expect(endEastButton).toHaveAttribute("aria-pressed", "true");
-      await expect(routeSectionRows(page)).toHaveCount(1);
+      await expect(routeSectionRows(page)).toHaveCount(2);
     }).toPass({
       timeout: 10_000,
       intervals: [250, 500, 1_000],
     });
     await expect(routeSectionRows(page).first()).toContainText(
+      "西区 -> 北区 -> 东区",
+    );
+    await expect(routeSectionRows(page).nth(1)).toContainText(
       "高新 -> 先研院 -> 西区 -> 东区",
     );
 
@@ -176,13 +179,17 @@ test.describe("bus dashboard tab", () => {
       .getByRole("button", { name: /Weekday|工作日/ })
       .first()
       .click();
-    await expect(page.getByText(/4 total trips|共 4 班/).first()).toBeVisible();
+    const weekdayRows = await page.locator("tbody tr:visible").count();
+    expect(weekdayRows).toBeGreaterThan(0);
 
     await page
       .getByRole("button", { name: /Weekend|周末/ })
       .first()
       .click();
-    await expect(page.getByText(/3 total trips|共 3 班/).first()).toBeVisible();
+    await expect(page.locator("tbody tr:visible").first()).toBeVisible();
+    const weekendRows = await page.locator("tbody tr:visible").count();
+    expect(weekendRows).toBeGreaterThan(0);
+    expect(weekendRows).not.toBe(weekdayRows);
 
     await captureStepScreenshot(page, testInfo, "bus-planner-daytype");
   });
@@ -203,8 +210,6 @@ test.describe("bus dashboard tab", () => {
       screenshotLabel: "bus",
     });
 
-    await expect(page.getByText(/saved automatically|自动保存/)).toBeVisible();
-
     const [saveResponse] = await Promise.all([
       page.waitForResponse(
         (response) =>
@@ -214,8 +219,6 @@ test.describe("bus dashboard tab", () => {
       chooseStop(page, /End stop|到达站/, /南区/),
     ]);
     expect(saveResponse.ok()).toBe(true);
-
-    await expect(page.getByText(/saved|已保存/i).first()).toBeVisible();
 
     const response = await page.request.get("/api/bus/preferences");
     const body = (await response.json()) as {

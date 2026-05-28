@@ -158,7 +158,7 @@ export function BusTransitMap({ data }: { data: BusMapData | null }) {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 md:px-6">
+    <main className="page-main flex flex-col gap-4">
       {/* Header */}
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <Link
@@ -367,7 +367,7 @@ export function BusTransitMap({ data }: { data: BusMapData | null }) {
             {data.campuses.map((campus) => {
               const pos = positions.get(campus.id);
               if (!pos) return null;
-              const lbl = labelOffset(pos);
+              const lbl = labelOffset(pos, campus.namePrimary);
               const routeCount = data.routes.filter((r) =>
                 r.stops.some((s) => s.campusId === campus.id),
               ).length;
@@ -390,21 +390,33 @@ export function BusTransitMap({ data }: { data: BusMapData | null }) {
                     opacity={routeCount > 3 ? 0.55 : 0.25}
                   />
                   <text
-                    x={pos.x}
+                    x={pos.x + lbl.dx}
                     y={pos.y + lbl.dy}
-                    textAnchor="middle"
-                    className="fill-foreground font-semibold text-[13px]"
-                    style={{ fontFamily: "system-ui, sans-serif" }}
+                    textAnchor={lbl.textAnchor}
+                    className="hidden fill-foreground font-semibold text-[13px] sm:block"
+                    style={{
+                      fontFamily: "system-ui, sans-serif",
+                      paintOrder: "stroke",
+                      stroke: "hsl(var(--card))",
+                      strokeLinejoin: "round",
+                      strokeWidth: 5,
+                    }}
                   >
                     {campus.namePrimary}
                   </text>
                   {campus.nameSecondary && (
                     <text
-                      x={pos.x}
+                      x={pos.x + lbl.dx}
                       y={pos.y + lbl.dy + 15}
-                      textAnchor="middle"
-                      className="fill-muted-foreground text-[10px]"
-                      style={{ fontFamily: "system-ui, sans-serif" }}
+                      textAnchor={lbl.textAnchor}
+                      className="hidden fill-muted-foreground text-[10px] sm:block"
+                      style={{
+                        fontFamily: "system-ui, sans-serif",
+                        paintOrder: "stroke",
+                        stroke: "hsl(var(--card))",
+                        strokeLinejoin: "round",
+                        strokeWidth: 4,
+                      }}
                     >
                       {campus.nameSecondary}
                     </text>
@@ -554,6 +566,6 @@ export function BusTransitMap({ data }: { data: BusMapData | null }) {
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

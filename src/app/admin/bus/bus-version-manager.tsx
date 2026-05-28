@@ -102,9 +102,14 @@ export function BusVersionManager({ versions }: { versions: VersionRow[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="font-semibold text-lg">{t("versionsTitle")}</h2>
-        <Button onClick={handleImport} disabled={isPending} size="sm">
+        <Button
+          className="w-full sm:w-auto"
+          onClick={handleImport}
+          disabled={isPending}
+          size="sm"
+        >
           {loadingAction === "import" ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
@@ -119,94 +124,184 @@ export function BusVersionManager({ versions }: { versions: VersionRow[] }) {
           {t("noVersions")}
         </p>
       ) : (
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("colTitle")}</TableHead>
-                <TableHead>{t("colKey")}</TableHead>
-                <TableHead className="text-right">{t("colTrips")}</TableHead>
-                <TableHead>{t("colImported")}</TableHead>
-                <TableHead>{t("colEffective")}</TableHead>
-                <TableHead>{t("colStatus")}</TableHead>
-                <TableHead className="text-right">{t("colActions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {versions.map((v) => (
-                <TableRow key={v.id}>
-                  <TableCell>
-                    <div>
-                      <span className="font-medium">{v.title}</span>
-                      {v.sourceMessage ? (
-                        <p className="text-muted-foreground text-xs">
-                          {v.sourceMessage}
-                        </p>
-                      ) : null}
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">{v.key}</TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {v.tripCount}
-                  </TableCell>
-                  <TableCell className="text-xs tabular-nums">
-                    {v.importedAt.slice(0, 16).replace("T", " ")}
-                  </TableCell>
-                  <TableCell className="text-xs tabular-nums">
-                    {v.effectiveFrom || v.effectiveUntil
-                      ? `${v.effectiveFrom?.slice(0, 10) ?? "—"} ~ ${v.effectiveUntil?.slice(0, 10) ?? "—"}`
-                      : "—"}
-                  </TableCell>
-                  <TableCell>
-                    {v.isEnabled ? (
-                      <Badge variant="default" size="sm">
-                        {t("statusActive")}
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" size="sm">
-                        {t("statusInactive")}
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      {!v.isEnabled && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleActivate(v.id)}
-                          disabled={isPending}
-                          aria-label={t("activateAction")}
-                        >
-                          {loadingAction === `activate-${v.id}` ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <CheckCircle className="h-3.5 w-3.5" />
-                          )}
-                        </Button>
+        <>
+          <div className="grid gap-3 md:hidden">
+            {versions.map((v) => (
+              <div
+                key={v.id}
+                className="rounded-lg border border-border/60 bg-background/70 p-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-1">
+                    <p className="font-medium leading-5">{v.title}</p>
+                    <p className="break-all font-mono text-muted-foreground text-xs">
+                      {v.key}
+                    </p>
+                  </div>
+                  {v.isEnabled ? (
+                    <Badge variant="default" size="sm">
+                      {t("statusActive")}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" size="sm">
+                      {t("statusInactive")}
+                    </Badge>
+                  )}
+                </div>
+                {v.sourceMessage ? (
+                  <p className="mt-2 text-muted-foreground text-xs">
+                    {v.sourceMessage}
+                  </p>
+                ) : null}
+                <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <dt className="text-muted-foreground">{t("colTrips")}</dt>
+                    <dd className="font-medium tabular-nums">{v.tripCount}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">
+                      {t("colImported")}
+                    </dt>
+                    <dd className="tabular-nums">
+                      {v.importedAt.slice(0, 16).replace("T", " ")}
+                    </dd>
+                  </div>
+                  <div className="col-span-2">
+                    <dt className="text-muted-foreground">
+                      {t("colEffective")}
+                    </dt>
+                    <dd className="tabular-nums">
+                      {v.effectiveFrom || v.effectiveUntil
+                        ? `${v.effectiveFrom?.slice(0, 10) ?? "—"} ~ ${v.effectiveUntil?.slice(0, 10) ?? "—"}`
+                        : "—"}
+                    </dd>
+                  </div>
+                </dl>
+                {!v.isEnabled ? (
+                  <div className="mt-3 flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleActivate(v.id)}
+                      disabled={isPending}
+                    >
+                      {loadingAction === `activate-${v.id}` ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <CheckCircle className="h-3.5 w-3.5" />
                       )}
-                      {!v.isEnabled && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setVersionToDelete(v)}
-                          disabled={isPending}
-                          aria-label={t("deleteAction")}
-                        >
-                          {loadingAction === `delete-${v.id}` ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-3.5 w-3.5" />
-                          )}
-                        </Button>
+                      {t("activateAction")}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setVersionToDelete(v)}
+                      disabled={isPending}
+                    >
+                      {loadingAction === `delete-${v.id}` ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3.5 w-3.5" />
                       )}
-                    </div>
-                  </TableCell>
+                      {t("deleteAction")}
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("colTitle")}</TableHead>
+                  <TableHead>{t("colKey")}</TableHead>
+                  <TableHead className="text-right">{t("colTrips")}</TableHead>
+                  <TableHead>{t("colImported")}</TableHead>
+                  <TableHead>{t("colEffective")}</TableHead>
+                  <TableHead>{t("colStatus")}</TableHead>
+                  <TableHead className="text-right">
+                    {t("colActions")}
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {versions.map((v) => (
+                  <TableRow key={v.id}>
+                    <TableCell>
+                      <div>
+                        <span className="font-medium">{v.title}</span>
+                        {v.sourceMessage ? (
+                          <p className="text-muted-foreground text-xs">
+                            {v.sourceMessage}
+                          </p>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{v.key}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {v.tripCount}
+                    </TableCell>
+                    <TableCell className="text-xs tabular-nums">
+                      {v.importedAt.slice(0, 16).replace("T", " ")}
+                    </TableCell>
+                    <TableCell className="text-xs tabular-nums">
+                      {v.effectiveFrom || v.effectiveUntil
+                        ? `${v.effectiveFrom?.slice(0, 10) ?? "—"} ~ ${v.effectiveUntil?.slice(0, 10) ?? "—"}`
+                        : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {v.isEnabled ? (
+                        <Badge variant="default" size="sm">
+                          {t("statusActive")}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" size="sm">
+                          {t("statusInactive")}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {!v.isEnabled && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleActivate(v.id)}
+                            disabled={isPending}
+                            aria-label={t("activateAction")}
+                          >
+                            {loadingAction === `activate-${v.id}` ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <CheckCircle className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        )}
+                        {!v.isEnabled && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setVersionToDelete(v)}
+                            disabled={isPending}
+                            aria-label={t("deleteAction")}
+                          >
+                            {loadingAction === `delete-${v.id}` ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </>
       )}
       <AlertDialog
         open={versionToDelete !== null}

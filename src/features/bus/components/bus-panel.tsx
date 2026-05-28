@@ -1,7 +1,5 @@
 "use client";
 
-import { Eye, EyeOff, Map as MapIcon } from "lucide-react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import {
   useCallback,
@@ -11,7 +9,6 @@ import {
   useState,
   useTransition,
 } from "react";
-import { dashboardTabToolbarItemClass } from "@/components/filters/dashboard-tab-toolbar";
 import {
   getApplicableBusRoutes,
   getDefaultBusSelection,
@@ -21,7 +18,7 @@ import type { BusTimetableData } from "@/features/bus/lib/bus-types";
 import { extractApiErrorMessage } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 import { AUTO_SAVE_DELAY_MS } from "./bus-panel-shared";
-import { BusPlannerControls } from "./bus-planner-controls";
+import { BusPlannerControls, BusPlannerSettings } from "./bus-planner-controls";
 import { BusRouteTable } from "./bus-route-table";
 
 type BusPanelProps = {
@@ -65,6 +62,7 @@ export function BusPanel({
   const dirtyRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const saveGenerationRef = useRef(0);
 
   useEffect(() => {
     setSelectedDayType(resolveClientBusDayType(new Date()));
@@ -91,6 +89,14 @@ export function BusPanel({
       }),
     [data, selectedDayType, startCampusId, endCampusId, showDepartedTrips, now],
   );
+  const startCampus = useMemo(
+    () => data.campuses.find((campus) => campus.id === startCampusId) ?? null,
+    [data.campuses, startCampusId],
+  );
+  const endCampus = useMemo(
+    () => data.campuses.find((campus) => campus.id === endCampusId) ?? null,
+    [data.campuses, endCampusId],
+  );
 
   const showPlannerEstimatedHint = useMemo(() => {
     const inVisibleRows = applicableRoutes.some((route) =>
@@ -115,6 +121,7 @@ export function BusPanel({
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
+      const saveGeneration = saveGenerationRef.current;
       setSaveState("saving");
       setSaveError(null);
 
@@ -140,7 +147,10 @@ export function BusPanel({
             body = null;
           }
 
+          if (saveGeneration !== saveGenerationRef.current) return;
+
           if (!response.ok) {
+            dirtyRef.current = true;
             setSaveState("error");
             setSaveError(
               extractApiErrorMessage(body) ?? t("preferences.saveFailed"),
@@ -148,9 +158,12 @@ export function BusPanel({
             return;
           }
 
+          dirtyRef.current = false;
           setSaveState("saved");
         } catch (error) {
           if ((error as Error).name === "AbortError") return;
+          if (saveGeneration !== saveGenerationRef.current) return;
+          dirtyRef.current = true;
           setSaveState("error");
           setSaveError(t("preferences.saveFailed"));
         }
@@ -168,7 +181,6 @@ export function BusPanel({
 
     timerRef.current = setTimeout(() => {
       savePreference(startCampusId, endCampusId, showDepartedTrips);
-      dirtyRef.current = false;
     }, AUTO_SAVE_DELAY_MS);
 
     return () => {
@@ -188,6 +200,7 @@ export function BusPanel({
   const markDirty = useCallback(() => {
     if (!signedIn || !showPreferences) return;
     dirtyRef.current = true;
+    saveGenerationRef.current += 1;
     setSaveState("idle");
     setSaveError(null);
   }, [showPreferences, signedIn]);
@@ -205,91 +218,53 @@ export function BusPanel({
         ? t("preferences.saved")
         : saveState === "error"
           ? (saveError ?? t("preferences.saveFailed"))
-          : showPreferences && signedIn
-            ? t("preferences.autosaveHint")
-            : t("planner.clientHint");
-
-  const plannerActions = (
-    <>
-      <Link
-        href="/bus-map"
-        className={cn(
-          dashboardTabToolbarItemClass(
-            false,
-            "inline-flex min-h-9 items-center justify-center gap-2 rounded-xl border border-border/70 bg-background px-3 font-medium text-sm shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
-          ),
-        )}
-      >
-        <MapIcon aria-hidden="true" className="h-4 w-4" />
-        <span>{t("transitMap")}</span>
-      </Link>
-
-      <button
-        type="button"
-        onClick={() => {
-          markDirty();
-          setShowDepartedTrips((value) => !value);
-        }}
-        className={cn(
-          "inline-flex min-h-9 items-center justify-center gap-2 rounded-xl border px-3 font-medium text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          showDepartedTrips
-            ? "border-foreground bg-foreground text-background shadow-[0_1px_2px_rgba(15,23,42,0.08)]"
-            : "border-border/70 bg-background text-foreground hover:bg-muted/30",
-        )}
-        aria-pressed={showDepartedTrips}
-        aria-label={t("query.showDepartedTrips")}
-      >
-        {showDepartedTrips ? (
-          <Eye aria-hidden="true" className="h-4 w-4" />
-        ) : (
-          <EyeOff aria-hidden="true" className="h-4 w-4" />
-        )}
-        <span>{t("query.showDepartedTrips")}</span>
-      </button>
-    </>
-  );
+          : t("preferences.autosaveHint");
 
   return (
-    <div
-      className={cn(
-        "flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:gap-6",
-        className,
-      )}
-    >
-      <BusPlannerControls
-        data={data}
-        endCampusId={endCampusId}
-        handleSwap={handleSwap}
+    <div className={cn("relative min-w-0", className)}>
+      <BusPlannerSettings
         markDirty={markDirty}
         selectedDayType={selectedDayType}
-        setEndCampusId={setEndCampusId}
         setSelectedDayType={setSelectedDayType}
-        setStartCampusId={setStartCampusId}
-        startCampusId={startCampusId}
+        setShowDepartedTrips={setShowDepartedTrips}
+        showDepartedTrips={showDepartedTrips}
         t={t}
       />
 
-      <div className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:min-w-0 lg:flex-1">
-        {signedIn && showPreferences ? (
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border/50 bg-muted/10 px-3 py-2.5">
-            <p
-              aria-live="polite"
-              className={cn(
-                "text-xs leading-5",
-                saveState === "error"
-                  ? "text-destructive"
-                  : "text-muted-foreground",
-              )}
-            >
-              {plannerMeta}
-            </p>
-          </div>
-        ) : null}
+      {signedIn && showPreferences ? (
+        <p
+          aria-live="polite"
+          className={cn(
+            "mb-3 text-xs leading-5",
+            saveState === "error"
+              ? "text-destructive"
+              : "text-muted-foreground",
+          )}
+        >
+          {plannerMeta}
+        </p>
+      ) : null}
+
+      <div className="grid min-w-0 gap-5 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start xl:grid-cols-[22rem_minmax(0,1fr)]">
+        <BusPlannerControls
+          data={data}
+          endCampusId={endCampusId}
+          handleSwap={handleSwap}
+          markDirty={markDirty}
+          setEndCampusId={setEndCampusId}
+          setStartCampusId={setStartCampusId}
+          startCampusId={startCampusId}
+          t={t}
+        />
 
         <BusRouteTable
+          dayType={selectedDayType}
+          endCampusName={endCampus?.namePrimary ?? null}
+          hideHeader={true}
+          onReverse={handleSwap}
           routes={applicableRoutes}
+          startCampusName={startCampus?.namePrimary ?? null}
           t={t}
-          actions={plannerActions}
           footer={
             data.notice?.message || showPlannerEstimatedHint ? (
               <>

@@ -27,7 +27,7 @@ describe("bus static source", () => {
     expect(payload).toMatchObject({ versionKey: "2026.04" });
     expect(fetchMock).toHaveBeenCalledWith(
       "https://static.life-ustc.tiankaima.dev/bus_data_v3.json",
-      { cache: "force-cache" },
+      expect.objectContaining({ cache: "force-cache" }),
     );
   });
 
