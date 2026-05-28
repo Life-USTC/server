@@ -25,7 +25,7 @@ import { withSeedLock } from "./seed-lock";
 const prisma = createToolPrisma();
 const scenario = scenarioData;
 
-const { debugUsername, debugName, adminUsername } =
+const { debugUsername, debugName, adminUsername, adminName } =
   getDevScenarioRuntimeConfig();
 
 const SEMESTER_JW_ID = DEV_SCENARIO_IDS.semesterJwId;
@@ -41,6 +41,7 @@ const DEV_ROOM_JW_ID = DEV_SCENARIO_IDS.roomJwId;
 const DEV_TEACHER_TITLE_JW_ID = DEV_SCENARIO_IDS.teacherTitleJwId;
 const DEV_TEACHER_LESSON_TYPE_JW_ID = DEV_SCENARIO_IDS.teacherLessonTypeJwId;
 const DEV_BUS_VERSION_KEY = DEV_SEED.bus.versionKey;
+const STATIC_BUS_VERSION_KEY = "static-bus-structured";
 
 const DEV_BUS_PAYLOAD: BusStaticPayload = {
   campuses: [
@@ -224,6 +225,13 @@ const DEV_BUS_PAYLOAD: BusStaticPayload = {
   },
 };
 
+type DevBusSeed = {
+  payload: BusStaticPayload;
+  versionTitle: string;
+  effectiveFrom: Date | null;
+  effectiveUntil: Date | null;
+};
+
 const SEED_ANCHOR_DATE = new Date(2026, 3, 29, 0, 0, 0, 0);
 
 function makeDateAt(hour: number, minute: number, offsetDays = 0) {
@@ -243,6 +251,36 @@ function toWeekday(date: Date) {
   return day === 0 ? 7 : day;
 }
 
+async function resolveDevBusSeed(): Promise<DevBusSeed> {
+  if (DEV_BUS_VERSION_KEY === STATIC_BUS_VERSION_KEY) {
+    const importedStaticVersion = await prisma.busScheduleVersion.findUnique({
+      where: { key: STATIC_BUS_VERSION_KEY },
+      select: {
+        rawJson: true,
+        title: true,
+        effectiveFrom: true,
+        effectiveUntil: true,
+      },
+    });
+
+    if (importedStaticVersion) {
+      return {
+        payload: importedStaticVersion.rawJson as unknown as BusStaticPayload,
+        versionTitle: importedStaticVersion.title,
+        effectiveFrom: importedStaticVersion.effectiveFrom,
+        effectiveUntil: importedStaticVersion.effectiveUntil,
+      };
+    }
+  }
+
+  return {
+    payload: DEV_BUS_PAYLOAD,
+    versionTitle: DEV_SEED.bus.versionTitle,
+    effectiveFrom: makeDateAt(0, 0, -7),
+    effectiveUntil: null,
+  };
+}
+
 async function main() {
   const debugUserData = {
     email: `${debugUsername}@users.local`,
@@ -253,7 +291,7 @@ async function main() {
   const adminUserData = {
     email: `${adminUsername}@users.local`,
     emailVerified: true,
-    name: DEV_SEED.adminName,
+    name: adminName,
     isAdmin: true,
     image: `https://api.dicebear.com/9.x/shapes/svg?seed=${DEV_SEED.adminAvatarSeed}`,
   };
@@ -271,6 +309,7 @@ async function main() {
       select: { id: true, username: true },
     }),
   ]);
+  const busSeed = await resolveDevBusSeed();
 
   await cleanupDevScenarioData(prisma, [debugUser.id, adminUser.id], {
     userSuspensions: "byUser",
@@ -652,33 +691,33 @@ async function main() {
       jwId: SECTION_JW_IDS[0],
       code: scenario.sections[0].code,
       courseId: courses[0].id,
-      credits: 3,
-      stdCount: 46,
-      limitCount: 60,
+      credits: scenario.sections[0].credits,
+      stdCount: scenario.sections[0].stdCount,
+      limitCount: scenario.sections[0].limitCount,
       teacherIndexes: [0, 1],
-      remark: "项目型课堂，强调周内迭代与代码评审。",
+      remark: scenario.sections[0].remark,
       groupIds: [SCHEDULE_GROUP_JW_IDS[0], SCHEDULE_GROUP_JW_IDS[1]],
     },
     {
       jwId: SECTION_JW_IDS[1],
       code: scenario.sections[1].code,
       courseId: courses[1].id,
-      credits: 4,
-      stdCount: 72,
-      limitCount: 90,
+      credits: scenario.sections[1].credits,
+      stdCount: scenario.sections[1].stdCount,
+      limitCount: scenario.sections[1].limitCount,
       teacherIndexes: [1],
-      remark: "理论课 + 习题课双节奏安排。",
+      remark: scenario.sections[1].remark,
       groupIds: [SCHEDULE_GROUP_JW_IDS[2], SCHEDULE_GROUP_JW_IDS[3]],
     },
     {
       jwId: SECTION_JW_IDS[2],
       code: scenario.sections[2].code,
       courseId: courses[2].id,
-      credits: 2,
-      stdCount: 28,
-      limitCount: 36,
+      credits: scenario.sections[2].credits,
+      stdCount: scenario.sections[2].stdCount,
+      limitCount: scenario.sections[2].limitCount,
       teacherIndexes: [2],
-      remark: "小班实验与阶段汇报并行。",
+      remark: scenario.sections[2].remark,
       groupIds: [SCHEDULE_GROUP_JW_IDS[4], SCHEDULE_GROUP_JW_IDS[5]],
     },
   ];
@@ -1441,10 +1480,11 @@ async function main() {
     },
   });
 
-  await importBusStaticPayload(prisma, DEV_BUS_PAYLOAD, {
+  await importBusStaticPayload(prisma, busSeed.payload, {
     versionKey: DEV_BUS_VERSION_KEY,
-    versionTitle: DEV_SEED.bus.versionTitle,
-    effectiveFrom: makeDateAt(0, 0, -7),
+    versionTitle: busSeed.versionTitle,
+    effectiveFrom: busSeed.effectiveFrom,
+    effectiveUntil: busSeed.effectiveUntil,
     disablePreviousVersions: true,
   });
 

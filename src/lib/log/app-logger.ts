@@ -1,16 +1,32 @@
+import { getOptionalTrimmedEnv } from "@/env";
 import { formatShanghaiTimestamp } from "@/lib/time/shanghai-format";
 
 const LOG_LEVEL_ORDER = ["debug", "info", "warn", "error"] as const;
 type AppLogLevel = (typeof LOG_LEVEL_ORDER)[number];
+const DEFAULT_LOG_LEVEL: AppLogLevel = "info";
+const LOG_LEVEL_INDEX = Object.fromEntries(
+  LOG_LEVEL_ORDER.map((level, index) => [level, index]),
+) as Record<AppLogLevel, number>;
 
 type AppLogContext = Record<string, unknown>;
 
+function getRuntimeEnvironment() {
+  return process.env.NODE_ENV ?? "development";
+}
+
+function isProductionEnvironment() {
+  return getRuntimeEnvironment() === "production";
+}
+
+function parseConfiguredLogLevel(): AppLogLevel {
+  const configured = getOptionalTrimmedEnv("LOG_LEVEL")?.toLowerCase();
+  return configured && Object.hasOwn(LOG_LEVEL_INDEX, configured)
+    ? (configured as AppLogLevel)
+    : DEFAULT_LOG_LEVEL;
+}
+
 export function shouldLog(level: AppLogLevel): boolean {
-  const configured = process.env.LOG_LEVEL ?? "info";
-  const configuredIdx = LOG_LEVEL_ORDER.indexOf(configured as AppLogLevel);
-  const levelIdx = LOG_LEVEL_ORDER.indexOf(level);
-  const effectiveConfigIdx = configuredIdx >= 0 ? configuredIdx : 1;
-  return levelIdx >= effectiveConfigIdx;
+  return LOG_LEVEL_INDEX[level] >= LOG_LEVEL_INDEX[parseConfiguredLogLevel()];
 }
 
 function serializeError(error: unknown) {
@@ -20,7 +36,7 @@ function serializeError(error: unknown) {
     return {
       name: error.name,
       message: error.message,
-      ...(process.env.NODE_ENV !== "production" && error.stack
+      ...(!isProductionEnvironment() && error.stack
         ? { stack: error.stack }
         : {}),
     };
@@ -36,6 +52,13 @@ function getLogMethod(level: AppLogLevel) {
   return console.info;
 }
 
+function baseLogPayload() {
+  return {
+    timestamp: formatShanghaiTimestamp(new Date()),
+    environment: getRuntimeEnvironment(),
+  };
+}
+
 function emitLog(
   prefix: string,
   level: AppLogLevel,
@@ -45,7 +68,7 @@ function emitLog(
   const method = getLogMethod(level);
   const serializedError = serializeError(error);
 
-  if (process.env.NODE_ENV === "production") {
+  if (isProductionEnvironment()) {
     const logObj = {
       prefix,
       ...payload,
@@ -71,8 +94,7 @@ export function logAppEvent(
   if (!shouldLog(level)) return;
 
   const payload = {
-    timestamp: formatShanghaiTimestamp(new Date()),
-    environment: process.env.NODE_ENV ?? "development",
+    ...baseLogPayload(),
     runtime: typeof window === "undefined" ? "server" : "client",
     message,
     ...context,
@@ -91,8 +113,7 @@ export function logApiRequest(
   if (!shouldLog("info")) return;
 
   const payload = {
-    timestamp: formatShanghaiTimestamp(new Date()),
-    environment: process.env.NODE_ENV ?? "development",
+    ...baseLogPayload(),
     method,
     path,
     status,
@@ -103,33 +124,13 @@ export function logApiRequest(
   emitLog("[api]", "info", payload);
 }
 
-export function logAuditEvent(
-  action: string,
-  userId: string | null,
-  targetId: string | null,
-  metadata: AppLogContext = {},
-) {
-  if (!shouldLog("info")) return;
-
-  const payload = {
-    timestamp: formatShanghaiTimestamp(new Date()),
-    environment: process.env.NODE_ENV ?? "development",
-    action,
-    userId,
-    targetId,
-    ...metadata,
-  };
-
-  emitLog("[audit]", "info", payload);
-}
-
 export function logRouteFailure(
   message: string,
   status: number,
   error: unknown,
   context: AppLogContext = {},
 ) {
-  if (status < 500 && process.env.NODE_ENV === "production") {
+  if (status < 500 && isProductionEnvironment()) {
     return;
   }
   logAppEvent(

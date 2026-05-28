@@ -7,23 +7,25 @@
  * Never logs secrets, authorization codes, refresh tokens, access tokens, or cookies.
  */
 
+import { getOptionalTrimmedEnv } from "@/env";
+import { OAUTH_TOKEN_ENDPOINT_PATH } from "@/lib/oauth/constants";
 import { formatShanghaiTimestamp } from "@/lib/time/shanghai-format";
 
 export type OAuthDebugMode = "off" | "standard" | "verbose";
 
+const OAUTH_DEBUG_DISABLED_VALUES = new Set(["", "0", "false"]);
+const OAUTH_DEBUG_VERBOSE_VALUES = new Set(["verbose", "2"]);
+
 export function getOAuthDebugMode(): OAuthDebugMode {
-  const v = (process.env.OAUTH_DEBUG_LOGGING ?? "").trim().toLowerCase();
-  if (!v || v === "0" || v === "false") return "off";
-  if (v === "verbose" || v === "2") return "verbose";
+  const value =
+    getOptionalTrimmedEnv("OAUTH_DEBUG_LOGGING")?.toLowerCase() ?? "";
+  if (OAUTH_DEBUG_DISABLED_VALUES.has(value)) return "off";
+  if (OAUTH_DEBUG_VERBOSE_VALUES.has(value)) return "verbose";
   return "standard";
 }
 
 export function isOAuthDebugLogging(): boolean {
   return getOAuthDebugMode() !== "off";
-}
-
-export function isOAuthDebugVerbose(): boolean {
-  return getOAuthDebugMode() === "verbose";
 }
 
 export function oauthDebugCorrelationId(request: Request): string {
@@ -49,35 +51,37 @@ const SENSITIVE_QUERY_KEYS = new Set([
 export function summarizeOAuthRedirectUri(
   redirect: string | null,
 ): Record<string, unknown> {
-  let redirectOrigin: string | null = null;
-  let redirectHost: string | null = null;
-  let redirectHostname: string | null = null;
-  let redirectPort: string | null = null;
-  let redirectPath: string | null = null;
-  let redirectQueryKeys: string[] = [];
-
-  if (redirect) {
-    try {
-      const redirectUrl = new URL(redirect);
-      redirectOrigin = redirectUrl.origin;
-      redirectHost = redirectUrl.host;
-      redirectHostname = redirectUrl.hostname;
-      redirectPort = redirectUrl.port || null;
-      redirectPath = redirectUrl.pathname;
-      redirectQueryKeys = [...redirectUrl.searchParams.keys()].sort();
-    } catch {
-      redirectHost = "invalid_redirect_uri";
-    }
+  if (!redirect) {
+    return {
+      redirectOrigin: null,
+      redirectHost: null,
+      redirectHostname: null,
+      redirectPort: null,
+      redirectPath: null,
+      redirectQueryKeys: [],
+    };
   }
 
-  return {
-    redirectOrigin,
-    redirectHost,
-    redirectHostname,
-    redirectPort,
-    redirectPath,
-    redirectQueryKeys,
-  };
+  try {
+    const redirectUrl = new URL(redirect);
+    return {
+      redirectOrigin: redirectUrl.origin,
+      redirectHost: redirectUrl.host,
+      redirectHostname: redirectUrl.hostname,
+      redirectPort: redirectUrl.port || null,
+      redirectPath: redirectUrl.pathname,
+      redirectQueryKeys: [...redirectUrl.searchParams.keys()].sort(),
+    };
+  } catch {
+    return {
+      redirectOrigin: null,
+      redirectHost: "invalid_redirect_uri",
+      redirectHostname: null,
+      redirectPort: null,
+      redirectPath: null,
+      redirectQueryKeys: [],
+    };
+  }
 }
 
 export function summarizeOAuthForwardingHeaders(
@@ -151,9 +155,12 @@ export function logOAuthDebug(
   console.info(JSON.stringify(payload));
 }
 
-function shouldLogBetterAuthPath(pathname: string): boolean {
+function shouldLogBetterAuthPath(
+  pathname: string,
+  mode: Exclude<OAuthDebugMode, "off">,
+): boolean {
   if (!pathname.startsWith("/api/auth")) return false;
-  if (isOAuthDebugVerbose()) return true;
+  if (mode === "verbose") return true;
   return pathname.includes("/oauth2");
 }
 
@@ -165,14 +172,15 @@ export async function withBetterAuthOAuthDebug(
   request: Request,
   run: (req: Request) => Promise<Response>,
 ): Promise<Response> {
-  if (!isOAuthDebugLogging()) {
+  const debugMode = getOAuthDebugMode();
+  if (debugMode === "off") {
     return run(request);
   }
 
   const url = new URL(request.url);
   const path = url.pathname;
 
-  if (!shouldLogBetterAuthPath(path)) {
+  if (!shouldLogBetterAuthPath(path, debugMode)) {
     return run(request);
   }
 
@@ -184,7 +192,7 @@ export async function withBetterAuthOAuthDebug(
 
   // For token endpoint POSTs, capture request fingerprint to distinguish sources
   let tokenRequestFingerprint: Record<string, unknown> | undefined;
-  if (method === "POST" && path.endsWith("/oauth2/token")) {
+  if (method === "POST" && path === OAUTH_TOKEN_ENDPOINT_PATH) {
     try {
       const cloned = request.clone();
       const fd = await cloned.formData();
@@ -229,7 +237,7 @@ export async function withBetterAuthOAuthDebug(
 
     // For 4xx/5xx on token endpoint, capture the error body for debugging
     let errorBody: Record<string, unknown> | undefined;
-    if (res.status >= 400 && path.endsWith("/oauth2/token")) {
+    if (res.status >= 400 && path === OAUTH_TOKEN_ENDPOINT_PATH) {
       try {
         const cloned = res.clone();
         const json = await cloned.json();

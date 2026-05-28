@@ -18,17 +18,25 @@ function requireEnv(value: string | undefined, name: string) {
   return value;
 }
 
+function getS3Config() {
+  const env = getStorageEnv();
+  return {
+    bucket: env.S3_BUCKET,
+    region: env.AWS_REGION ?? "us-east-1",
+    endpoint: env.AWS_ENDPOINT_URL_S3,
+  };
+}
+
 export function getS3Bucket() {
-  return requireEnv(getStorageEnv().S3_BUCKET, "S3_BUCKET");
+  return requireEnv(getS3Config().bucket, "S3_BUCKET");
 }
 
 export function getS3Region() {
-  return getStorageEnv().AWS_REGION ?? "us-east-1";
+  return getS3Config().region;
 }
 
 export function getS3Endpoint() {
-  const { AWS_ENDPOINT_URL_S3, AWS_ENDPOINT_URL } = getStorageEnv();
-  return AWS_ENDPOINT_URL_S3 ?? AWS_ENDPOINT_URL;
+  return getS3Config().endpoint;
 }
 
 function toOrigin(value: string | undefined) {
@@ -41,31 +49,32 @@ function toOrigin(value: string | undefined) {
   }
 }
 
+function getAwsS3ConnectSources(bucket: string, region: string) {
+  return [
+    `https://${bucket}.s3.${region}.amazonaws.com`,
+    `https://s3.${region}.amazonaws.com`,
+  ];
+}
+
 export function getS3ConnectSources() {
-  const endpoint = getS3Endpoint();
+  const { bucket, region, endpoint } = getS3Config();
   const endpointOrigin = toOrigin(endpoint);
   if (endpointOrigin) {
     return [endpointOrigin];
   }
 
-  const { S3_BUCKET } = getStorageEnv();
-  if (!S3_BUCKET) {
+  if (!bucket) {
     return [];
   }
 
-  const region = getS3Region();
-  return [
-    `https://${S3_BUCKET}.s3.${region}.amazonaws.com`,
-    `https://s3.${region}.amazonaws.com`,
-  ];
+  return getAwsS3ConnectSources(bucket, region);
 }
 
 function createS3Client() {
-  const endpoint = getS3Endpoint();
+  const { region, endpoint } = getS3Config();
   return new S3Client({
-    region: getS3Region(),
-    ...(endpoint ? { forcePathStyle: true } : {}),
-    ...(endpoint ? { endpoint } : {}),
+    region,
+    ...(endpoint ? { endpoint, forcePathStyle: true } : {}),
   });
 }
 

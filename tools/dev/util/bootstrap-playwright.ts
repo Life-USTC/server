@@ -11,12 +11,6 @@ function run(command: string) {
   });
 }
 
-if (process.env.npm_lifecycle_event === "test:e2e:bootstrap") {
-  console.warn(
-    "test:e2e:bootstrap is a compatibility alias; prefer bun run verify:e2e",
-  );
-}
-
 if (args.has("--minio")) {
   run("bun run dev:minio:e2e");
 }

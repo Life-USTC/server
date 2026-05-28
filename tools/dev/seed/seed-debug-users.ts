@@ -12,24 +12,25 @@
  */
 import { hashPassword } from "better-auth/crypto";
 import { createToolPrisma } from "../../shared/tool-prisma";
-import { DEV_SEED } from "./dev-seed";
+import { DEV_SEED, getDevDebugCredentialConfig } from "./dev-seed";
 
 const prisma = createToolPrisma();
+const { debug, admin } = getDevDebugCredentialConfig();
 
 const USERS = [
   {
-    username: DEV_SEED.debugUsername,
-    name: DEV_SEED.debugName,
-    email: `${DEV_SEED.debugUsername}@debug.local`,
-    password: process.env.DEV_DEBUG_PASSWORD?.trim() || "dev-debug-password",
+    username: debug.username,
+    name: debug.name,
+    email: debug.email,
+    password: debug.password,
     isAdmin: false,
     image: `https://api.dicebear.com/9.x/shapes/svg?seed=${DEV_SEED.debugAvatarSeed}`,
   },
   {
-    username: DEV_SEED.adminUsername,
-    name: DEV_SEED.adminName,
-    email: `${DEV_SEED.adminUsername}@debug.local`,
-    password: process.env.DEV_ADMIN_PASSWORD?.trim() || "dev-admin-password",
+    username: admin.username,
+    name: admin.name,
+    email: admin.email,
+    password: admin.password,
     isAdmin: true,
     image: `https://api.dicebear.com/9.x/shapes/svg?seed=${DEV_SEED.adminAvatarSeed}`,
   },

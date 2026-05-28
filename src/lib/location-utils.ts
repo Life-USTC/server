@@ -54,33 +54,40 @@ interface BuildingImgRule {
 const GEO_DATA_FILE = "geo_data.json";
 const BUILDING_IMG_RULES_FILE = "building_img_rules.json";
 
-let geoDataCache: GeoData | null = null;
-let buildingImgRulesCache: BuildingImgRule[] | null = null;
+function createStaticJsonLoader<T>(pathname: string, fallback: T) {
+  let cached: T | null = null;
 
-async function readStaticJson<T>(fileName: string, fallback: T): Promise<T> {
-  return await fetchLifeUstcStaticJson(fileName, fallback);
+  return async () => {
+    if (cached !== null) return cached;
+    cached = await fetchLifeUstcStaticJson(pathname, fallback);
+    return cached;
+  };
 }
 
 /**
  * Loads geographic data from the published static host.
+ * Exported for batch operations that pre-load data once and do synchronous lookups.
  */
-async function loadGeoData(): Promise<GeoData> {
-  if (geoDataCache) return geoDataCache;
-  geoDataCache = await readStaticJson(GEO_DATA_FILE, { locations: [] });
-  return geoDataCache;
-}
+export const loadGeoData = createStaticJsonLoader<GeoData>(GEO_DATA_FILE, {
+  locations: [],
+});
 
 /**
  * Loads building image rules from the published static host.
+ * Exported for batch operations that pre-load data once and do synchronous lookups.
  */
-async function loadBuildingImgRules(): Promise<BuildingImgRule[]> {
-  if (buildingImgRulesCache) return buildingImgRulesCache;
-  buildingImgRulesCache = await readStaticJson(BUILDING_IMG_RULES_FILE, []);
-  return buildingImgRulesCache;
+export const loadBuildingImgRules = createStaticJsonLoader<BuildingImgRule[]>(
+  BUILDING_IMG_RULES_FILE,
+  [],
+);
+
+function normalizeGeoLocationName(location: GeoLocation) {
+  return location.name.toLowerCase();
 }
 
 /**
- * Finds geographic coordinates for a location by name
+ * Finds geographic coordinates for a location by name.
+ * Async version for one-off lookups.
  */
 export async function getLocationGeo(
   locationName: string,
@@ -88,24 +95,35 @@ export async function getLocationGeo(
   if (!locationName) return null;
 
   const geoData = await loadGeoData();
-
-  // Try exact match first
-  let location = geoData.locations.find(
-    (loc) => loc.name.toLowerCase() === locationName.toLowerCase(),
-  );
-
-  // Try starts with match if exact match not found
-  if (!location) {
-    location = geoData.locations.find((loc) =>
-      locationName.toLowerCase().startsWith(loc.name.toLowerCase()),
-    );
-  }
-
-  return location || null;
+  return lookupLocationGeo(geoData, locationName);
 }
 
 /**
- * Finds the building image path based on room code
+ * Synchronous geo lookup from pre-loaded data.
+ * Use with `loadGeoData()` for batch operations to avoid repeated async overhead.
+ */
+export function lookupLocationGeo(
+  geoData: GeoData,
+  locationName: string,
+): GeoLocation | null {
+  if (!locationName) return null;
+
+  const normalizedLocationName = locationName.toLowerCase();
+  const location = geoData.locations.find(
+    (loc) => normalizeGeoLocationName(loc) === normalizedLocationName,
+  );
+  return (
+    location ??
+    geoData.locations.find((loc) =>
+      normalizedLocationName.startsWith(normalizeGeoLocationName(loc)),
+    ) ??
+    null
+  );
+}
+
+/**
+ * Finds the building image path based on room code.
+ * Async version for one-off lookups.
  */
 export async function getBuildingImagePath(
   roomCode: string,
@@ -113,6 +131,18 @@ export async function getBuildingImagePath(
   if (!roomCode) return null;
 
   const rules = await loadBuildingImgRules();
+  return lookupBuildingImagePath(rules, roomCode);
+}
+
+/**
+ * Synchronous building image lookup from pre-loaded rules.
+ * Use with `loadBuildingImgRules()` for batch operations to avoid repeated async overhead.
+ */
+export function lookupBuildingImagePath(
+  rules: BuildingImgRule[],
+  roomCode: string,
+): string | null {
+  if (!roomCode) return null;
 
   const rule = rules.find((r) => {
     try {

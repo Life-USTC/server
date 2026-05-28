@@ -4,13 +4,119 @@ import {
   ICalEventBusyStatus,
 } from "ical-generator";
 import type { Prisma } from "@/generated/prisma/client";
-import { getBuildingImagePath, getLocationGeo } from "@/lib/location-utils";
+import type { AppLocale } from "@/i18n/config";
+import {
+  loadBuildingImgRules,
+  loadGeoData,
+  lookupBuildingImagePath,
+  lookupLocationGeo,
+} from "@/lib/location-utils";
 import { APP_TIME_ZONE } from "@/lib/time/parse-date-input";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
+/* ------------------------------------------------------------------ */
+/*  iCal locale labels                                                 */
+/* ------------------------------------------------------------------ */
+
+const LABELS: Record<
+  AppLocale,
+  {
+    courseCategory: string;
+    examCategory: string;
+    homeworkCategory: string;
+    todoCategory: string;
+    majorHomework: string;
+    requiresTeam: string;
+    teacherPrefix: string;
+    experimentPrefix: string;
+    examTypePrefix: string;
+    examModePrefix: string;
+    examTakeCountPrefix: string;
+    examRoomPrefix: string;
+    homeworkDuePrefix: string;
+    todoDuePrefix: string;
+    priorityHigh: string;
+    priorityMedium: string;
+    priorityLow: string;
+    examTypeLabels: Record<number, string>;
+    examTypeFallback: string;
+    locationTbd: string;
+    examLocationTbd: string;
+  }
+> = {
+  "zh-cn": {
+    courseCategory: "课程",
+    examCategory: "考试",
+    homeworkCategory: "作业",
+    todoCategory: "待办",
+    majorHomework: "重要作业",
+    requiresTeam: "需要组队",
+    teacherPrefix: "教师：",
+    experimentPrefix: "实验：",
+    examTypePrefix: "类型：",
+    examModePrefix: "考试方式：",
+    examTakeCountPrefix: "考试人数：",
+    examRoomPrefix: "考场：",
+    homeworkDuePrefix: "作业截止：",
+    todoDuePrefix: "待办截止：",
+    priorityHigh: "高优先级",
+    priorityMedium: "中优先级",
+    priorityLow: "低优先级",
+    examTypeLabels: { 1: "期中考试", 2: "期末考试" },
+    examTypeFallback: "考试",
+    locationTbd: "地点待定",
+    examLocationTbd: "考场待定",
+  },
+  "en-us": {
+    courseCategory: "Course",
+    examCategory: "Exam",
+    homeworkCategory: "Homework",
+    todoCategory: "Todo",
+    majorHomework: "Major Homework",
+    requiresTeam: "Requires Team",
+    teacherPrefix: "Teacher: ",
+    experimentPrefix: "Experiment: ",
+    examTypePrefix: "Type: ",
+    examModePrefix: "Mode: ",
+    examTakeCountPrefix: "Take Count: ",
+    examRoomPrefix: "Room: ",
+    homeworkDuePrefix: "HW Due: ",
+    todoDuePrefix: "Todo Due: ",
+    priorityHigh: "High Priority",
+    priorityMedium: "Medium Priority",
+    priorityLow: "Low Priority",
+    examTypeLabels: { 1: "Midterm", 2: "Final" },
+    examTypeFallback: "Exam",
+    locationTbd: "Location TBD",
+    examLocationTbd: "Exam Location TBD",
+  },
+};
+
+function getLabels(locale: AppLocale) {
+  return LABELS[locale] ?? LABELS["zh-cn"];
+}
+
+function examTypeLabel(examType: number | null, locale: AppLocale): string {
+  const labels = getLabels(locale);
+  return labels.examTypeLabels[examType ?? -1] ?? labels.examTypeFallback;
+}
+
+function priorityLabel(priority: string, locale: AppLocale): string {
+  const labels = getLabels(locale);
+  const map: Record<string, string> = {
+    high: labels.priorityHigh,
+    medium: labels.priorityMedium,
+    low: labels.priorityLow,
+  };
+  return map[priority] ?? labels.priorityLow;
+}
+
+/* ------------------------------------------------------------------ */
+/*  iCal timezone & helpers                                           */
+/* ------------------------------------------------------------------ */
+
 function generateShanghaiVTimezone(timezone: string): string | null {
   if (timezone !== APP_TIME_ZONE) return null;
-
   return [
     "BEGIN:VTIMEZONE",
     `TZID:${APP_TIME_ZONE}`,
@@ -25,43 +131,62 @@ function generateShanghaiVTimezone(timezone: string): string | null {
   ].join("\r\n");
 }
 
+const SHANGHAI_TZ_CONFIG = {
+  name: APP_TIME_ZONE,
+  generator: generateShanghaiVTimezone,
+};
+
+function parseTimeHHMM(date: Date, hhmm: number) {
+  return shanghaiDayjs(date)
+    .hour(Math.floor(hhmm / 100))
+    .minute(hhmm % 100)
+    .second(0);
+}
+
+function toCategories(names: (string | null | undefined)[]): ICalCategory[] {
+  return names
+    .filter((n) => n && n.trim() !== "")
+    .map((n) => new ICalCategory({ name: n as string }));
+}
+
+type GeoData = Awaited<ReturnType<typeof loadGeoData>>;
+type ImgRules = Awaited<ReturnType<typeof loadBuildingImgRules>>;
+
+function buildLocationField(locationTitle: string, geoData: GeoData) {
+  const geo = lookupLocationGeo(geoData, locationTitle);
+  return {
+    title: locationTitle,
+    address: "",
+    radius: 10,
+    geo: geo ? { lat: geo.latitude, lon: geo.longitude } : undefined,
+  };
+}
+
+async function loadLocationAssets() {
+  return Promise.all([loadGeoData(), loadBuildingImgRules()]);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
+
 type CalendarSection = Prisma.SectionGetPayload<{
   include: {
     course: true;
     schedules: {
       include: {
-        room: {
-          include: {
-            building: {
-              include: {
-                campus: true;
-              };
-            };
-          };
-        };
+        room: { include: { building: { include: { campus: true } } } };
         teachers: true;
       };
     };
-    exams: {
-      include: {
-        examRooms: true;
-      };
-    };
+    exams: { include: { examRooms: true } };
   };
 }>;
 
 type CalendarHomework = Prisma.HomeworkGetPayload<{
   include: {
-    description: {
-      select: {
-        content: true;
-      };
-    };
-    section: {
-      include: {
-        course: true;
-      };
-    };
+    description: { select: { content: true } };
+    section: { include: { course: true } };
   };
 }>;
 
@@ -73,69 +198,49 @@ type CalendarTodo = {
   priority: "low" | "medium" | "high";
 };
 
-function createBaseCalendar(
-  config: ConstructorParameters<typeof ICalCalendar>[0],
-): ICalCalendar {
-  return new ICalCalendar(config);
-}
+/* ------------------------------------------------------------------ */
+/*  Calendar creation (public API)                                     */
+/* ------------------------------------------------------------------ */
 
-async function appendSectionEvents(
-  calendar: ICalCalendar,
-  sections: CalendarSection[],
-): Promise<void> {
-  for (const section of sections) {
-    for (const schedule of section.schedules) {
-      await createScheduleEvent(schedule, section, calendar);
-    }
+const SITE_URL = "https://life-ustc.tiankaima.dev";
 
-    for (const exam of section.exams) {
-      await createExamEvent(exam, section, calendar);
-    }
-  }
-}
-
-/**
- * Creates an iCal calendar for a specific section
- */
-export async function createSectionCalendar(
-  section: CalendarSection,
-): Promise<ICalCalendar> {
-  const calendar = createBaseCalendar({
-    name: `${section.course.nameCn} (${section.code})`,
-    description: `Calendar for ${section.course.nameCn} (${section.code}), brought to you by Life@USTC`,
-    timezone: {
-      name: APP_TIME_ZONE,
-      generator: generateShanghaiVTimezone,
-    },
-    url: `https://life-ustc.tiankaima.dev/sections/${section.jwId}`,
+function createCalendar(name: string, description: string, url: string) {
+  return new ICalCalendar({
+    name,
+    description,
+    timezone: SHANGHAI_TZ_CONFIG,
+    url,
     scale: "GREGORIAN",
   });
+}
 
-  await appendSectionEvents(calendar, [section]);
+export async function createSectionCalendar(
+  section: CalendarSection,
+  locale: AppLocale = "zh-cn",
+) {
+  const calendar = createCalendar(
+    `${section.course.nameCn} (${section.code})`,
+    `Calendar for ${section.course.nameCn} (${section.code}), brought to you by Life@USTC`,
+    `${SITE_URL}/sections/${section.jwId}`,
+  );
 
+  const [geoData, imgRules] = await loadLocationAssets();
+  appendSectionEvents(calendar, [section], geoData, imgRules, locale);
   return calendar;
 }
 
-/**
- * Creates an iCal calendar for multiple sections
- */
 export async function createMultiSectionCalendar(
   sections: CalendarSection[],
-): Promise<ICalCalendar> {
-  const calendar = createBaseCalendar({
-    name: "Life @ USTC",
-    description:
-      "Calendar for subscribed courses, brought to you by Life@USTC <https://life-ustc.tiankaima.dev/>",
-    timezone: {
-      name: APP_TIME_ZONE,
-      generator: generateShanghaiVTimezone,
-    },
-    url: "https://life-ustc.tiankaima.dev",
-    scale: "GREGORIAN",
-  });
+  locale: AppLocale = "zh-cn",
+) {
+  const calendar = createCalendar(
+    "Life @ USTC",
+    `Calendar for subscribed courses, brought to you by Life@USTC <${SITE_URL}/>`,
+    SITE_URL,
+  );
 
-  await appendSectionEvents(calendar, sections);
-
+  const [geoData, imgRules] = await loadLocationAssets();
+  appendSectionEvents(calendar, sections, geoData, imgRules, locale);
   return calendar;
 }
 
@@ -143,308 +248,251 @@ export async function createUserCalendar({
   sections,
   homeworks,
   todos,
+  locale = "zh-cn",
 }: {
   sections: CalendarSection[];
   homeworks: CalendarHomework[];
   todos: CalendarTodo[];
-}): Promise<ICalCalendar> {
-  const calendar = createBaseCalendar({
-    name: "Life @ USTC",
-    description:
-      "Calendar for the current user, including subscribed courses and personal deadlines, brought to you by Life@USTC <https://life-ustc.tiankaima.dev/>",
-    timezone: {
-      name: APP_TIME_ZONE,
-      generator: generateShanghaiVTimezone,
-    },
-    url: "https://life-ustc.tiankaima.dev",
-    scale: "GREGORIAN",
-  });
+  locale?: AppLocale;
+}) {
+  const calendar = createCalendar(
+    "Life @ USTC",
+    `Calendar for the current user, including subscribed courses and personal deadlines, brought to you by Life@USTC <${SITE_URL}/>`,
+    SITE_URL,
+  );
 
-  await appendSectionEvents(calendar, sections);
-
-  for (const homework of homeworks) {
-    await createHomeworkEvent(homework, calendar);
-  }
-
-  for (const todo of todos) {
-    createTodoEvent(todo, calendar);
-  }
-
+  const [geoData, imgRules] = await loadLocationAssets();
+  appendSectionEvents(calendar, sections, geoData, imgRules, locale);
+  for (const hw of homeworks) createHomeworkEvent(hw, calendar, locale);
+  for (const todo of todos) createTodoEvent(todo, calendar, locale);
   return calendar;
 }
 
-/**
- * Creates an iCal event from a schedule
- */
-async function createScheduleEvent(
+/* ------------------------------------------------------------------ */
+/*  Section event batching                                             */
+/* ------------------------------------------------------------------ */
+
+function appendSectionEvents(
+  calendar: ICalCalendar,
+  sections: CalendarSection[],
+  geoData: GeoData,
+  imgRules: ImgRules,
+  locale: AppLocale,
+) {
+  for (const section of sections) {
+    for (const schedule of section.schedules) {
+      createScheduleEvent(
+        schedule,
+        section,
+        calendar,
+        geoData,
+        imgRules,
+        locale,
+      );
+    }
+    for (const exam of section.exams) {
+      createExamEvent(exam, section, calendar, geoData, imgRules, locale);
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Schedule event                                                     */
+/* ------------------------------------------------------------------ */
+
+function createScheduleEvent(
   schedule: Prisma.ScheduleGetPayload<{
     include: {
-      room: {
-        include: {
-          building: {
-            include: {
-              campus: true;
-            };
-          };
-        };
-      };
+      room: { include: { building: { include: { campus: true } } } };
       teachers: true;
     };
   }>,
-  section: Prisma.SectionGetPayload<{
-    include: {
-      course: true;
-    };
-  }>,
+  section: Prisma.SectionGetPayload<{ include: { course: true } }>,
   calendar: ICalCalendar,
-): Promise<void> {
+  geoData: GeoData,
+  imgRules: ImgRules,
+  locale: AppLocale,
+) {
   if (!schedule.date) return;
 
-  const startDate = shanghaiDayjs(schedule.date)
-    .hour(Math.floor(schedule.startTime / 100))
-    .minute(schedule.startTime % 100)
-    .second(0);
-
-  const endDate = shanghaiDayjs(schedule.date)
-    .hour(Math.floor(schedule.endTime / 100))
-    .minute(schedule.endTime % 100)
-    .second(0);
+  const L = getLabels(locale);
+  const start = parseTimeHHMM(schedule.date, schedule.startTime);
+  const end = parseTimeHHMM(schedule.date, schedule.endTime);
 
   const location = schedule.room?.building?.campus
     ? `${schedule.room.nameCn} (${schedule.room.building.campus.nameCn}-${schedule.room.building.nameCn})`
-    : schedule.customPlace || "Location TBD";
+    : schedule.customPlace || L.locationTbd;
 
   const teacherNames =
-    schedule.teachers && schedule.teachers.length > 0
+    schedule.teachers?.length > 0
       ? schedule.teachers
           .map((t) => [t.nameCn, t.nameEn].filter(Boolean).join(" / "))
           .join(", ")
       : "";
 
-  const summary = `${section.course.nameCn}`;
   const description = [
     section.course.nameCn,
-    teacherNames && `教师：${teacherNames}`,
-    schedule.experiment && `实验：${schedule.experiment}`,
+    teacherNames && `${L.teacherPrefix}${teacherNames}`,
+    schedule.experiment && `${L.experimentPrefix}${schedule.experiment}`,
   ]
     .filter(Boolean)
     .join("\n");
 
-  const categories = [
-    "课程",
-    section.course.nameCn,
-    section.code,
-    section.course.code,
-  ]
-    .filter((category) => category && category.trim() !== "")
-    .map((category) => new ICalCategory({ name: category }));
-
-  // Get geo coordinates if available
-  const geoData = await getLocationGeo(location);
-
-  // Get building image if room code is available
-  const buildingImageUrl = schedule.room?.code
-    ? await getBuildingImagePath(schedule.room.code)
+  const buildingImg = schedule.room?.code
+    ? lookupBuildingImagePath(imgRules, schedule.room.code)
     : null;
 
-  const eventData: Parameters<typeof calendar.createEvent>[0] = {
-    start: startDate,
-    end: endDate,
+  calendar.createEvent({
+    start,
+    end,
     timezone: APP_TIME_ZONE,
-    summary,
+    summary: section.course.nameCn,
     description,
-    location: {
-      title: location,
-      address: "",
-      radius: 10,
-      geo: geoData
-        ? {
-            lat: geoData.latitude,
-            lon: geoData.longitude,
-          }
-        : undefined,
-    },
-    id: `life-ustc.tiankaima.dev/schedule/${schedule.id}`,
+    location: buildLocationField(location, geoData),
+    id: `${SITE_URL}/schedule/${schedule.id}`,
     sequence: 0,
     busystatus: ICalEventBusyStatus.BUSY,
-    categories,
-    attachments: buildingImageUrl ? [buildingImageUrl] : undefined,
-  };
-
-  calendar.createEvent(eventData);
+    categories: toCategories([
+      L.courseCategory,
+      section.course.nameCn,
+      section.code,
+      section.course.code,
+    ]),
+    attachments: buildingImg ? [buildingImg] : undefined,
+  });
 }
 
-/**
- * Creates an iCal event from an exam
- */
-async function createExamEvent(
-  exam: Prisma.ExamGetPayload<{
-    include: {
-      examRooms: true;
-    };
-  }>,
-  section: Prisma.SectionGetPayload<{
-    include: {
-      course: true;
-    };
-  }>,
+/* ------------------------------------------------------------------ */
+/*  Exam event                                                         */
+/* ------------------------------------------------------------------ */
+
+function createExamEvent(
+  exam: Prisma.ExamGetPayload<{ include: { examRooms: true } }>,
+  section: Prisma.SectionGetPayload<{ include: { course: true } }>,
   calendar: ICalCalendar,
-): Promise<void> {
+  geoData: GeoData,
+  imgRules: ImgRules,
+  locale: AppLocale,
+) {
   if (!exam.examDate) return;
 
-  const startDate = shanghaiDayjs(exam.examDate)
-    .hour(Math.floor((exam.startTime || 0) / 100))
-    .minute((exam.startTime || 0) % 100)
-    .second(0);
-
-  const endDate = shanghaiDayjs(exam.examDate)
-    .hour(Math.floor((exam.endTime || 0) / 100))
-    .minute((exam.endTime || 0) % 100)
-    .second(0);
+  const L = getLabels(locale);
+  const start = parseTimeHHMM(exam.examDate, exam.startTime ?? 0);
+  const end = parseTimeHHMM(exam.examDate, exam.endTime ?? 0);
 
   const rooms = exam.examRooms
-    .map((examRoom) => examRoom.room)
+    .map((r) => r.room)
     .filter(Boolean)
     .join(", ");
+  const location = rooms || L.examLocationTbd;
+  const typeLabel = examTypeLabel(exam.examType, locale);
 
-  const location = rooms || "Exam Location TBD";
-
-  const examTypeLabel =
-    exam.examType === 1
-      ? "期中考试"
-      : exam.examType === 2
-        ? "期末考试"
-        : "考试";
-
-  const summary = `${section.course.nameCn} - ${examTypeLabel}`;
   const description = [
     `${section.course.nameCn} (${section.code})`,
-    `类型：${examTypeLabel}`,
-    exam.examMode && `考试方式：${exam.examMode}`,
-    exam.examTakeCount && `考试人数：${exam.examTakeCount}`,
-    rooms && `考场：${rooms}`,
+    `${L.examTypePrefix}${typeLabel}`,
+    exam.examMode && `${L.examModePrefix}${exam.examMode}`,
+    exam.examTakeCount && `${L.examTakeCountPrefix}${exam.examTakeCount}`,
+    rooms && `${L.examRoomPrefix}${rooms}`,
   ]
     .filter(Boolean)
     .join("\n");
 
-  const categories = [
-    "考试",
-    examTypeLabel,
-    section.course.nameCn,
-    section.code,
-    section.course.code,
-  ]
-    .filter((category) => category && category.trim() !== "")
-    .map((category) => new ICalCategory({ name: category }));
-
-  const geoData = await getLocationGeo(location);
-
-  // Get building image if room code is available
-  const buildingImageUrl =
+  const buildingImg =
     exam.examRooms.length > 0
-      ? await getBuildingImagePath(exam.examRooms[0].room)
+      ? lookupBuildingImagePath(imgRules, exam.examRooms[0].room)
       : null;
 
-  const eventData: Parameters<typeof calendar.createEvent>[0] = {
-    start: startDate,
-    end: endDate,
+  calendar.createEvent({
+    start,
+    end,
     timezone: APP_TIME_ZONE,
-    summary,
+    summary: `${section.course.nameCn} - ${typeLabel}`,
     description,
-    location: {
-      title: location,
-      address: "",
-      radius: 10,
-      geo: geoData
-        ? {
-            lat: geoData.latitude,
-            lon: geoData.longitude,
-          }
-        : undefined,
-    },
-    id: `life-ustc.tiankaima.dev/exam/${exam.id}`,
+    location: buildLocationField(location, geoData),
+    id: `${SITE_URL}/exam/${exam.id}`,
     sequence: 0,
     busystatus: ICalEventBusyStatus.BUSY,
-    categories,
-    attachments: buildingImageUrl ? [buildingImageUrl] : undefined,
-  };
-
-  calendar.createEvent(eventData);
+    categories: toCategories([
+      L.examCategory,
+      typeLabel,
+      section.course.nameCn,
+      section.code,
+      section.course.code,
+    ]),
+    attachments: buildingImg ? [buildingImg] : undefined,
+  });
 }
 
-async function createHomeworkEvent(
+/* ------------------------------------------------------------------ */
+/*  Homework event                                                     */
+/* ------------------------------------------------------------------ */
+
+function createHomeworkEvent(
   homework: CalendarHomework,
   calendar: ICalCalendar,
-): Promise<void> {
+  locale: AppLocale,
+) {
   if (!homework.submissionDueAt) return;
 
+  const L = getLabels(locale);
   const dueDate = shanghaiDayjs(homework.submissionDueAt);
-  const endDate = dueDate.add(30, "minute");
+  const courseName = homework.section.course.nameCn;
   const section = homework.section;
-  const courseName = section.course.nameCn;
-  const summary = `${courseName} - 作业截止: ${homework.title}`;
+
   const description = [
     `${courseName} (${section.code})`,
-    homework.isMajor ? "重要作业" : null,
-    homework.requiresTeam ? "需要组队" : null,
+    homework.isMajor ? L.majorHomework : null,
+    homework.requiresTeam ? L.requiresTeam : null,
     homework.description?.content?.trim() || null,
   ]
     .filter(Boolean)
     .join("\n");
 
-  const categories = [
-    "作业",
-    courseName,
-    section.code,
-    section.course.code,
-    homework.isMajor ? "重要作业" : null,
-  ]
-    .filter((category): category is string => Boolean(category?.trim()))
-    .map((category) => new ICalCategory({ name: category }));
-
-  const eventData: Parameters<typeof calendar.createEvent>[0] = {
+  calendar.createEvent({
     start: dueDate,
-    end: endDate,
+    end: dueDate.add(30, "minute"),
     timezone: APP_TIME_ZONE,
-    summary,
+    summary: `${courseName} - ${L.homeworkDuePrefix}${homework.title}`,
     description,
-    id: `life-ustc.tiankaima.dev/homework/${homework.id}`,
+    id: `${SITE_URL}/homework/${homework.id}`,
     sequence: 0,
     busystatus: ICalEventBusyStatus.FREE,
-    categories,
-  };
-
-  calendar.createEvent(eventData);
+    categories: toCategories([
+      L.homeworkCategory,
+      courseName,
+      section.code,
+      section.course.code,
+      homework.isMajor ? L.majorHomework : null,
+    ]),
+  });
 }
 
-function createTodoEvent(todo: CalendarTodo, calendar: ICalCalendar): void {
+/* ------------------------------------------------------------------ */
+/*  Todo event                                                         */
+/* ------------------------------------------------------------------ */
+
+function createTodoEvent(
+  todo: CalendarTodo,
+  calendar: ICalCalendar,
+  locale: AppLocale,
+) {
+  const L = getLabels(locale);
   const dueDate = shanghaiDayjs(todo.dueAt);
-  const endDate = dueDate.add(30, "minute");
-  const priorityLabel =
-    todo.priority === "high"
-      ? "高优先级"
-      : todo.priority === "medium"
-        ? "中优先级"
-        : "低优先级";
-  const description = [priorityLabel, todo.content?.trim() || null]
+  const pLabel = priorityLabel(todo.priority, locale);
+
+  const description = [pLabel, todo.content?.trim() || null]
     .filter(Boolean)
     .join("\n");
 
-  const categories = ["待办", priorityLabel]
-    .filter((category): category is string => Boolean(category?.trim()))
-    .map((category) => new ICalCategory({ name: category }));
-
-  const eventData: Parameters<typeof calendar.createEvent>[0] = {
+  calendar.createEvent({
     start: dueDate,
-    end: endDate,
+    end: dueDate.add(30, "minute"),
     timezone: APP_TIME_ZONE,
-    summary: `待办截止: ${todo.title}`,
+    summary: `${L.todoDuePrefix}${todo.title}`,
     description,
-    id: `life-ustc.tiankaima.dev/todo/${todo.id}`,
+    id: `${SITE_URL}/todo/${todo.id}`,
     sequence: 0,
     busystatus: ICalEventBusyStatus.FREE,
-    categories,
-  };
-
-  calendar.createEvent(eventData);
+    categories: toCategories([L.todoCategory, pLabel]),
+  });
 }

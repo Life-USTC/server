@@ -13,10 +13,40 @@ export function resolveSnapshotRoot(
   kind: SnapshotKind,
   env: NodeJS.ProcessEnv = process.env,
 ) {
-  const base =
-    env.E2E_SNAPSHOT_DIR?.trim() ||
-    path.join(process.cwd(), "test-results", "e2e-snapshots");
-  return path.join(base, kind);
+  return path.join(resolveSnapshotBase(env), kind);
+}
+
+export function resolveSnapshotBase(env: NodeJS.ProcessEnv = process.env) {
+  const explicitBase = env.SNAPSHOT_DIR?.trim();
+  if (explicitBase) return explicitBase;
+
+  return path.join(
+    process.cwd(),
+    "test-results",
+    buildScreenshotFolderName(env.SNAPSHOT_REASON),
+  );
+}
+
+export function buildScreenshotFolderName(
+  reason?: string,
+  date: Date = new Date(),
+) {
+  const timestamp = [
+    date.getFullYear().toString().slice(-2),
+    padDatePart(date.getMonth() + 1),
+    padDatePart(date.getDate()),
+    padDatePart(date.getHours()),
+    padDatePart(date.getMinutes()),
+    padDatePart(date.getSeconds()),
+  ].join("");
+  const sanitizedReason = reason?.trim()
+    ? sanitizeFileSegment(reason).replace(/^_$/g, "")
+    : "";
+  return [timestamp, "screenshot", sanitizedReason].filter(Boolean).join("-");
+}
+
+function padDatePart(value: number) {
+  return value.toString().padStart(2, "0");
 }
 
 export function sanitizeFileSegment(value: string) {

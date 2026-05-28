@@ -14,13 +14,13 @@ type Options = {
 function usage() {
   return [
     "Usage:",
-    "  bun run tools/dev/artifacts/diff-e2e-snapshots.ts <baseline-dir> <candidate-dir> [--output <file>] [--max-diff-lines <n>]",
+    "  bun run tools/dev/artifacts/snapshots/diff-snapshots.ts <baseline-dir> <candidate-dir> [--output <file>] [--max-diff-lines <n>]",
     "",
     "Example:",
-    "  bun run snapshot:e2e",
+    "  bun run snapshot",
     "  git switch feature",
-    "  E2E_SNAPSHOT_DIR=test-results/e2e-snapshots-feature bun run snapshot:e2e",
-    "  bun run snapshot:e2e:diff test-results/e2e-snapshots test-results/e2e-snapshots-feature --output test-results/snapshot-diff.md",
+    "  SNAPSHOT_REASON=feature bun run snapshot",
+    "  bun run snapshot:diff test-results/260521120000-screenshot test-results/260521121000-screenshot-feature --output test-results/snapshot-diff.md",
   ].join("\n");
 }
 

@@ -13,7 +13,9 @@ import type {
   ScreenshotMode,
   TraceMode,
 } from "@playwright/test";
+import { DEV_SEED } from "../seed/dev-seed";
 import { resolveAppPort, resolveStandaloneServerPath } from "./app-runtime";
+import { parseCliInteger, parseOptionalCliInteger } from "./cli-numbers";
 import {
   resolveMinioAwsRegion,
   resolveMinioCredentials,
@@ -24,10 +26,26 @@ import {
 const PLAYWRIGHT_NO_PROXY = "127.0.0.1,localhost,::1";
 const MINIO_PROVISION_ATTEMPTS = 15;
 const MINIO_PROVISION_RETRY_MS = 500;
+const DEFAULT_PLAYWRIGHT_WORKERS = 4;
+const MAX_PORT = 65_535;
 const DEFAULT_WEB_SERVER_TIMEOUT_MS = 300 * 1000;
+const DEFAULT_E2E_DEBUG_PASSWORD = "e2e-debug-local-only";
+const DEFAULT_E2E_ADMIN_PASSWORD = "e2e-admin-local-only";
 
 function appendNoProxy(value: string | undefined) {
   return value ? `${value},${PLAYWRIGHT_NO_PROXY}` : PLAYWRIGHT_NO_PROXY;
+}
+
+function buildPlaywrightDebugAuthEnv(env: NodeJS.ProcessEnv) {
+  return {
+    E2E_DEBUG_AUTH: "1",
+    DEV_DEBUG_USERNAME: env.DEV_DEBUG_USERNAME ?? DEV_SEED.debugUsername,
+    DEV_DEBUG_NAME: env.DEV_DEBUG_NAME ?? DEV_SEED.debugName,
+    DEV_DEBUG_PASSWORD: env.DEV_DEBUG_PASSWORD ?? DEFAULT_E2E_DEBUG_PASSWORD,
+    DEV_ADMIN_USERNAME: env.DEV_ADMIN_USERNAME ?? DEV_SEED.adminUsername,
+    DEV_ADMIN_NAME: env.DEV_ADMIN_NAME ?? DEV_SEED.adminName,
+    DEV_ADMIN_PASSWORD: env.DEV_ADMIN_PASSWORD ?? DEFAULT_E2E_ADMIN_PASSWORD,
+  };
 }
 
 export function resolvePlaywrightServerRuntime(
@@ -35,37 +53,43 @@ export function resolvePlaywrightServerRuntime(
 ) {
   const host =
     env.PLAYWRIGHT_HOST?.trim() || env.APP_HOST?.trim() || "127.0.0.1";
-  const port = env.PLAYWRIGHT_PORT?.trim() || resolveAppPort(env);
+  const playwrightPort = parseOptionalCliInteger(env.PLAYWRIGHT_PORT, {
+    min: 1,
+    max: MAX_PORT,
+  });
+  const port =
+    playwrightPort === null ? resolveAppPort(env) : String(playwrightPort);
   const baseUrl = env.APP_PUBLIC_ORIGIN?.trim() || `http://${host}:${port}`;
 
   return { host, port, baseUrl };
-}
-
-function parsePositiveInteger(value: string | undefined, fallback: number) {
-  if (!value) return fallback;
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 export function resolvePlaywrightHarnessRuntime(
   env: NodeJS.ProcessEnv = process.env,
 ) {
   const { host, port, baseUrl } = resolvePlaywrightServerRuntime(env);
-  const defaultWorkers = env.CI ? 4 : 4;
-  const retries = Number.parseInt(
-    env.PLAYWRIGHT_RETRIES ?? (env.CI ? "2" : "0"),
-    10,
+  const isCi = Boolean(env.CI);
+  const transparentArtifacts = env.E2E_TRANSPARENCY === "1";
+  const retries = parseCliInteger(
+    env.PLAYWRIGHT_RETRIES ?? (isCi ? "2" : "0"),
+    0,
+    { min: 0 },
   );
-  const workers = parsePositiveInteger(env.PLAYWRIGHT_WORKERS, defaultWorkers);
-  const webServerTimeoutMs = Number.parseInt(
+  const workers = parseCliInteger(
+    env.PLAYWRIGHT_WORKERS,
+    DEFAULT_PLAYWRIGHT_WORKERS,
+    { min: 1 },
+  );
+  const webServerTimeoutMs = parseCliInteger(
     env.PLAYWRIGHT_WEB_SERVER_TIMEOUT_MS ?? `${DEFAULT_WEB_SERVER_TIMEOUT_MS}`,
-    10,
+    DEFAULT_WEB_SERVER_TIMEOUT_MS,
+    { min: 0 },
   );
-  const reporter: ReporterDescription[] = env.CI ? [["github"]] : [["list"]];
-  const trace: TraceMode =
-    env.E2E_TRANSPARENCY === "1" ? "on" : "on-first-retry";
-  const screenshot: ScreenshotMode =
-    env.E2E_TRANSPARENCY === "1" ? "on" : "only-on-failure";
+  const reporter: ReporterDescription[] = isCi ? [["github"]] : [["list"]];
+  const trace: TraceMode = transparentArtifacts ? "on" : "on-first-retry";
+  const screenshot: ScreenshotMode = transparentArtifacts
+    ? "on"
+    : "only-on-failure";
 
   return {
     host,
@@ -73,17 +97,15 @@ export function resolvePlaywrightHarnessRuntime(
     baseUrl,
     reuseExistingServer:
       env.PLAYWRIGHT_REUSE_SERVER === "1" ||
-      (env.PLAYWRIGHT_REUSE_SERVER !== "0" && !env.CI),
-    retries: Number.isNaN(retries) ? 0 : retries,
-    workers: Number.isNaN(workers) ? 1 : workers,
+      (env.PLAYWRIGHT_REUSE_SERVER !== "0" && !isCi),
+    retries,
+    workers,
     fullyParallel: env.PLAYWRIGHT_FULLY_PARALLEL === "1",
-    forbidOnly: Boolean(env.CI),
+    forbidOnly: isCi,
     reporter,
     trace,
     screenshot,
-    webServerTimeoutMs: Number.isNaN(webServerTimeoutMs)
-      ? DEFAULT_WEB_SERVER_TIMEOUT_MS
-      : webServerTimeoutMs,
+    webServerTimeoutMs,
   };
 }
 
@@ -108,20 +130,9 @@ export function buildPlaywrightServerEnv(options: {
       NO_PROXY: appendNoProxy(env.NO_PROXY),
       no_proxy: appendNoProxy(env.no_proxy),
       APP_PUBLIC_ORIGIN: baseUrl,
-      AUTH_TRUST_HOST: "true",
-      AUTH_URL: baseUrl,
-      BETTER_AUTH_URL: baseUrl,
-      NEXTAUTH_URL: baseUrl,
-      E2E_DEBUG_AUTH: "1",
-      DEV_DEBUG_USERNAME: env.DEV_DEBUG_USERNAME ?? "liuyang",
-      DEV_DEBUG_NAME: env.DEV_DEBUG_NAME ?? "刘洋",
-      DEV_DEBUG_PASSWORD: env.DEV_DEBUG_PASSWORD ?? "e2e-debug-local-only",
-      DEV_ADMIN_USERNAME: env.DEV_ADMIN_USERNAME ?? "dev-admin",
-      DEV_ADMIN_NAME: env.DEV_ADMIN_NAME ?? "校园管理员",
-      DEV_ADMIN_PASSWORD: env.DEV_ADMIN_PASSWORD ?? "e2e-admin-local-only",
+      ...buildPlaywrightDebugAuthEnv(env),
       S3_BUCKET: e2eBucket,
       AWS_REGION: awsRegion,
-      AWS_DEFAULT_REGION: awsRegion,
       AWS_ACCESS_KEY_ID: credentials.accessKeyId,
       AWS_SECRET_ACCESS_KEY: credentials.secretAccessKey,
       AWS_ENDPOINT_URL_S3: resolveMinioEndpoint(env),

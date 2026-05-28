@@ -195,7 +195,7 @@ buildPaginatedResponse(items, page, pageSize, total)
 - Use `bun run verify:fast` for most commits and PR updates.
 - Use `bun run check:static-import -- --baseline-ref <git-ref>` only when changing `tools/production/load/load-from-static.ts` and you need a DB-backed regression comparison against a real baseline.
 - Use `bun run verify:full` before pushing changes that affect data flows, auth, browser flows, docs contracts, or shared tooling.
-- Use `bun run verify:e2e` before `bun run test:e2e`; `test:e2e:bootstrap` is now just a compatibility alias.
+- Use `bun run verify:e2e` before `bun run test:e2e`.
 
 **No Stray Reports**:
 - Do not leave migration plans, improvement reports, status summaries, scratch artifacts, or one-time analysis outputs in the repo.

@@ -1,18 +1,23 @@
 import { spawn } from "node:child_process";
 import * as path from "node:path";
-import { nowIso, writeJsonFile } from "./artifact-utils";
+import { nowIso, resolveSnapshotBase, writeJsonFile } from "./artifact-utils";
 
 const commands = [
-  ["pages", "tools/dev/artifacts/dump-page-snapshots.ts"],
-  ["api", "tools/dev/artifacts/dump-api-snapshots.ts"],
-  ["mcp", "tools/dev/artifacts/dump-mcp-snapshots.ts"],
+  ["pages", "tools/dev/artifacts/snapshots/dump-page-snapshots.ts"],
+  ["api", "tools/dev/artifacts/snapshots/dump-api-snapshots.ts"],
+  ["mcp", "tools/dev/artifacts/snapshots/dump-mcp-snapshots.ts"],
 ] as const;
+
+const root = resolveSnapshotBase();
 
 function run(label: string, script: string) {
   return new Promise<Error | undefined>((resolve) => {
     const child = spawn("bun", ["run", script], {
       cwd: process.cwd(),
-      env: process.env,
+      env: {
+        ...process.env,
+        SNAPSHOT_DIR: root,
+      },
       stdio: "inherit",
     });
     child.on("exit", (code) => {
@@ -29,11 +34,8 @@ for (const [label, script] of commands) {
   if (failure) failures.push(failure);
 }
 
-const root =
-  process.env.E2E_SNAPSHOT_DIR?.trim() ||
-  path.join(process.cwd(), "test-results", "e2e-snapshots");
 await writeJsonFile(path.join(root, "manifest.json"), {
-  kind: "e2e-snapshots",
+  kind: "snapshots",
   generatedAt: nowIso(),
   children: commands.map(([label]) => ({
     kind: label,

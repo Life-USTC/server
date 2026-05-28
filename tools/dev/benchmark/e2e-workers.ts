@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { performance } from "node:perf_hooks";
 import "dotenv/config";
+import { parseCliInteger, parseCliIntegerList } from "../util/cli-numbers";
 import {
   buildPlaywrightServerEnv,
   resolvePlaywrightServerRuntime,
@@ -56,15 +57,21 @@ function parseArgs() {
     } else if (arg === "--reuse-existing-server") {
       options.reuseExistingServer = true;
     } else if (arg.startsWith("--workers=")) {
-      options.workers = arg
-        .slice("--workers=".length)
-        .split(",")
-        .map((value) => Number.parseInt(value.trim(), 10))
-        .filter((value) => Number.isFinite(value) && value > 0);
+      options.workers = parseCliIntegerList(arg.slice("--workers=".length), {
+        min: 1,
+      });
     } else if (arg.startsWith("--repeat=")) {
-      options.repeat = Number.parseInt(arg.slice("--repeat=".length), 10);
+      options.repeat = parseCliInteger(
+        arg.slice("--repeat=".length),
+        DEFAULT_REPEAT,
+        { min: 1 },
+      );
     } else if (arg.startsWith("--warmup=")) {
-      options.warmup = Number.parseInt(arg.slice("--warmup=".length), 10);
+      options.warmup = parseCliInteger(
+        arg.slice("--warmup=".length),
+        DEFAULT_WARMUP,
+        { min: 0 },
+      );
     } else if (arg.startsWith("--output=")) {
       options.output = arg.slice("--output=".length);
     } else {
@@ -75,13 +82,6 @@ function parseArgs() {
   if (options.workers.length === 0) {
     throw new Error("At least one positive worker count is required.");
   }
-  if (!Number.isFinite(options.repeat) || options.repeat < 1) {
-    options.repeat = DEFAULT_REPEAT;
-  }
-  if (!Number.isFinite(options.warmup) || options.warmup < 0) {
-    options.warmup = DEFAULT_WARMUP;
-  }
-
   return options;
 }
 

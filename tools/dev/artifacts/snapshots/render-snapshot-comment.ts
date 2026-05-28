@@ -49,7 +49,7 @@ const IGNORED_PAGE_QUERY_PARAMS = new Set(["snapshotAt"]);
 function usage() {
   return [
     "Usage:",
-    "  bun run tools/dev/artifacts/render-e2e-snapshot-comment.ts --snapshot-dir <dir> --artifact-url <url> --commit <sha> --status <status> --output <file> [--screenshot-base-url <url>] [--workflow-url <url>]",
+    "  bun run tools/dev/artifacts/snapshots/render-snapshot-comment.ts --snapshot-dir <dir> --artifact-url <url> --commit <sha> --status <status> --output <file> [--screenshot-base-url <url>] [--workflow-url <url>]",
   ].join("\n");
 }
 
@@ -235,7 +235,7 @@ function responsePreviewJson(entry: SnapshotEntry, json: string | undefined) {
 }
 
 function snapshotRelativePath(filePath: string) {
-  return filePath.replace(/^test-results\/e2e-snapshots\//, "");
+  return filePath.replace(/^test-results\/[^/]+\//, "");
 }
 
 function encodeUrlPath(filePath: string) {

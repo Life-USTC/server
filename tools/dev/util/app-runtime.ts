@@ -1,17 +1,34 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { parseCliInteger } from "./cli-numbers";
+
+const DEFAULT_APP_PORT = 3000;
+const MAX_PORT = 65_535;
+
+function configuredValue(value: string | undefined) {
+  const trimmed = value?.trim();
+  return trimmed || undefined;
+}
 
 export function resolveAppHost(env: NodeJS.ProcessEnv = process.env) {
-  return env.APP_HOST?.trim() || env.HOSTNAME?.trim() || "127.0.0.1";
+  return (
+    configuredValue(env.APP_HOST) ??
+    configuredValue(env.HOSTNAME) ??
+    "127.0.0.1"
+  );
 }
 
 export function resolveAppPort(env: NodeJS.ProcessEnv = process.env) {
-  return env.PORT?.trim() || "3000";
+  return String(
+    parseCliInteger(env.PORT, DEFAULT_APP_PORT, { min: 1, max: MAX_PORT }),
+  );
 }
 
 export function resolveHealthcheckUrl(env: NodeJS.ProcessEnv = process.env) {
-  const configuredUrl = env.HEALTHCHECK_URL?.trim();
-  return configuredUrl || `http://127.0.0.1:${resolveAppPort(env)}/`;
+  return (
+    configuredValue(env.HEALTHCHECK_URL) ??
+    `http://127.0.0.1:${resolveAppPort(env)}/`
+  );
 }
 
 export function resolveStandaloneServerPath(

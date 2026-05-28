@@ -19,6 +19,8 @@ const sectionJwIds = [...DEV_SCENARIO_IDS.sectionJwIds];
 const courseJwIds = [...DEV_SCENARIO_IDS.courseJwIds];
 const teacherCodes = [...DEV_SCENARIO_IDS.teacherCodes];
 const scheduleGroupJwIds = [...DEV_SCENARIO_IDS.scheduleGroupJwIds];
+const STATIC_BUS_VERSION_KEY = "static-bus-structured";
+const LEGACY_DEV_BUS_VERSION_KEYS = ["scenario-bus-2025"] as const;
 
 export async function cleanupDevScenarioData(
   prisma: ToolPrismaClient,
@@ -264,12 +266,19 @@ export async function cleanupDevScenarioData(
   }
 
   if (removeBusVersion) {
-    // busTrip FKs into busScheduleVersion → must precede.
-    await prisma.busTrip.deleteMany({
-      where: { version: { key: DEV_SEED.bus.versionKey } },
-    });
-    await prisma.busScheduleVersion.deleteMany({
-      where: { key: DEV_SEED.bus.versionKey },
-    });
+    const removableBusVersionKeys =
+      DEV_SEED.bus.versionKey === STATIC_BUS_VERSION_KEY
+        ? [...LEGACY_DEV_BUS_VERSION_KEYS]
+        : [DEV_SEED.bus.versionKey];
+
+    if (removableBusVersionKeys.length > 0) {
+      // busTrip FKs into busScheduleVersion → must precede.
+      await prisma.busTrip.deleteMany({
+        where: { version: { key: { in: removableBusVersionKeys } } },
+      });
+      await prisma.busScheduleVersion.deleteMany({
+        where: { key: { in: removableBusVersionKeys } },
+      });
+    }
   }
 }

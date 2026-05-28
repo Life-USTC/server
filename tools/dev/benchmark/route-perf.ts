@@ -31,6 +31,8 @@ import {
   createToolPrisma,
   disconnectToolPrisma,
 } from "../../shared/tool-prisma";
+import { getDevDebugCredentialConfig } from "../seed/dev-seed";
+import { parseCliInteger } from "../util/cli-numbers";
 
 // ---------------------------------------------------------------------------
 // CLI args
@@ -48,12 +50,12 @@ const { values: args } = parseArgs({
 });
 
 const BASE_URL = args["base-url"] ?? "http://127.0.0.1:3000";
-const REPEAT = Math.max(1, Number.parseInt(args.repeat ?? "8", 10));
-const WARMUP = Math.max(0, Number.parseInt(args.warmup ?? "2", 10));
-const SUBSCRIPTION_COUNT = Math.max(
-  1,
-  Math.min(10, Number.parseInt(args.subscriptions ?? "4", 10)),
-);
+const REPEAT = parseCliInteger(args.repeat, 8, { min: 1 });
+const WARMUP = parseCliInteger(args.warmup, 2, { min: 0 });
+const SUBSCRIPTION_COUNT = parseCliInteger(args.subscriptions, 4, {
+  min: 1,
+  max: 10,
+});
 const OUTPUT = args.output;
 
 // ---------------------------------------------------------------------------
@@ -116,19 +118,16 @@ async function resolveRealSections(count: number) {
 }
 
 async function setupBenchmarkUser(sectionIds: number[]) {
-  const email =
-    process.env.DEV_DEBUG_EMAIL?.trim().toLowerCase() || "dev-user@debug.local";
-  const password =
-    process.env.DEV_DEBUG_PASSWORD?.trim() || "dev-debug-password";
+  const { username, email, password } = getDevDebugCredentialConfig().debug;
 
   const user = await prisma.user.findFirst({
-    where: { username: "dev-user" },
+    where: { username },
     select: { id: true, calendarFeedToken: true },
   });
 
   if (!user) {
     throw new Error(
-      "Debug user 'dev-user' not found. Run `bun run dev:seed-scenarios`.",
+      `Debug user '${username}' not found. Run \`bun run dev:seed-scenarios\`.`,
     );
   }
 
@@ -181,10 +180,7 @@ async function setupBenchmarkUser(sectionIds: number[]) {
 // ---------------------------------------------------------------------------
 
 async function getSessionCookie(): Promise<string> {
-  const email =
-    process.env.DEV_DEBUG_EMAIL?.trim().toLowerCase() || "dev-user@debug.local";
-  const password =
-    process.env.DEV_DEBUG_PASSWORD?.trim() || "dev-debug-password";
+  const { email, password } = getDevDebugCredentialConfig().debug;
 
   const res = await fetch(`${BASE_URL}/api/auth/sign-in/email`, {
     method: "POST",

@@ -1,9 +1,9 @@
 {
   "users": {
     "debug": {
-      "username": "liuyang",
-      "name": "刘洋",
-      "avatarSeed": "life-ustc-liuyang"
+      "username": "dev-user",
+      "name": "Dev User",
+      "avatarSeed": "life-ustc-dev-user"
     },
     "admin": {
       "username": "dev-admin",
@@ -13,8 +13,8 @@
   },
   "semester": {
     "jwId": 9900001,
-    "nameCn": "2025-2026 学年第二学期",
-    "code": "2025-2026-2"
+    "nameCn": "2026年春季学期",
+    "code": "421"
   },
   "catalog": {
     "campus": {
@@ -24,9 +24,9 @@
       "nameEn": "East Campus"
     },
     "department": {
-      "code": "DPT-CS",
-      "nameCn": "计算机科学与技术学院",
-      "nameEn": "School of Computer Science and Technology"
+      "code": "DPT-IS",
+      "nameCn": "网络空间安全学院",
+      "nameEn": "School of Cyber Science and Technology"
     },
     "building": {
       "jwId": 9910021,
@@ -76,33 +76,33 @@
       "nameEn": "CS Class 01"
     },
     "examBatch": {
-      "nameCn": "2025-2026-2 期末考试",
-      "nameEn": "Final Exam 2025-2026-2"
+      "nameCn": "2026年春季学期 期末考试",
+      "nameEn": "Final Exam 2026 Spring"
     }
   },
   "teachers": [
     {
       "index": 0,
       "code": "T2401001",
-      "nameCn": "陈建平",
-      "nameEn": "Chen Jianping",
-      "email": "cjp@cs.ustc.edu.cn",
+      "nameCn": "林璟锵",
+      "nameEn": "Lin Jingqiang",
+      "email": "jqlin@ustc.edu.cn",
       "mobile": "13800001111"
     },
     {
       "index": 1,
       "code": "T2401002",
-      "nameCn": "李明远",
-      "nameEn": "Li Mingyuan",
-      "email": "lmy@math.ustc.edu.cn",
+      "nameCn": "王伟",
+      "nameEn": "Wang Wei",
+      "email": "wangwei@ustc.edu.cn",
       "mobile": "13800002222"
     },
     {
       "index": 2,
       "code": "T2401003",
-      "nameCn": "张晓燕",
-      "nameEn": "Zhang Xiaoyan",
-      "email": "zxy@phys.ustc.edu.cn",
+      "nameCn": "童中华",
+      "nameEn": "Tong Zhonghua",
+      "email": "zhtong@ustc.edu.cn",
       "mobile": "13800003333"
     }
   ],
@@ -110,55 +110,55 @@
     {
       "index": 0,
       "jwId": 9901001,
-      "code": "CS0501",
-      "nameCn": "软件工程实践",
-      "nameEn": "Software Engineering Practice"
+      "code": "IS3003",
+      "nameCn": "密码工程原理与实践",
+      "nameEn": "Cryptographic Engineering: Principles and Practice"
     },
     {
       "index": 1,
       "jwId": 9901002,
-      "code": "MA0301",
-      "nameCn": "高等线性代数",
-      "nameEn": "Advanced Linear Algebra"
+      "code": "ASTRON1501",
+      "nameCn": "天体物理概观",
+      "nameEn": "Introduction to Astrophysics"
     },
     {
       "index": 2,
       "jwId": 9901003,
-      "code": "PH0201",
-      "nameCn": "近代实验方法",
-      "nameEn": "Modern Experimental Methods"
+      "code": "ENVS3002",
+      "nameCn": "环境微生物学",
+      "nameEn": "Environmental Microbiology"
     }
   ],
   "sections": [
     {
       "index": 0,
       "jwId": 9902001,
-      "code": "CS0501.01",
-      "credits": 3,
-      "stdCount": 46,
-      "limitCount": 60,
+      "code": "IS3003.01",
+      "credits": 2.5,
+      "stdCount": 58,
+      "limitCount": 80,
       "teacherIndexes": [0, 1],
-      "remark": "项目型课堂，强调周内迭代与代码评审。"
+      "remark": "结合密码协议与工程实现，强调课堂演示和实验复盘。"
     },
     {
       "index": 1,
       "jwId": 9902002,
-      "code": "MA0301.02",
-      "credits": 4,
-      "stdCount": 72,
-      "limitCount": 90,
+      "code": "ASTRON1501.01",
+      "credits": 2,
+      "stdCount": 33,
+      "limitCount": 60,
       "teacherIndexes": [1],
-      "remark": "理论课 + 习题课双节奏安排。"
+      "remark": "围绕天体物理基础主题组织阅读、讨论和期末考核。"
     },
     {
       "index": 2,
       "jwId": 9902003,
-      "code": "PH0201.03",
-      "credits": 2,
-      "stdCount": 28,
-      "limitCount": 36,
+      "code": "ENVS3002.01",
+      "credits": 3,
+      "stdCount": 57,
+      "limitCount": 90,
       "teacherIndexes": [2],
-      "remark": "小班实验与阶段汇报并行。"
+      "remark": "课程覆盖环境样品分析、微生物过程与阶段性实验报告。"
     }
   ],
   "scheduleGroups": [9903001, 9903002, 9903003, 9903004, 9903005, 9903006],
@@ -178,8 +178,8 @@
     "firstFilename": "software-engineering-checklist.pdf"
   },
   "bus": {
-    "versionKey": "scenario-bus-2025",
-    "versionTitle": "校车时刻表 2025-2026",
+    "versionKey": "static-bus-structured",
+    "versionTitle": "Static Structured Bus Timetable",
     "routeId": 8,
     "recommendedRouteId": 8,
     "originCampusId": 1,
@@ -187,7 +187,7 @@
     "originCampusName": "东区",
     "destinationCampusName": "高新",
     "recommendedRoute": "东区 -> 西区 -> 先研院 -> 高新",
-    "recommendedDeparture": "07:40"
+    "recommendedDeparture": "06:50"
   },
   "suspensions": {
     "reasonKeyword": "账号异常临时限制"

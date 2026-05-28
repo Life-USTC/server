@@ -76,7 +76,6 @@ services:
       PORT: 3000
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/life_ustc_dev
       APP_PUBLIC_ORIGIN: http://127.0.0.1:3000
-      BETTER_AUTH_URL: http://127.0.0.1:3000
       S3_BUCKET: *minio-dev-bucket
       AWS_ENDPOINT_URL_S3: *minio-internal-endpoint
       CHOKIDAR_USEPOLLING: "1"

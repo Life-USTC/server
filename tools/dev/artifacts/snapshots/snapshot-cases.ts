@@ -1,6 +1,11 @@
-import { DEV_SEED, DEV_SEED_ANCHOR } from "../seed/dev-seed";
+import { DEV_SEED, DEV_SEED_ANCHOR } from "../../seed/dev-seed";
 
 export type SnapshotAuth = "public" | "debug" | "admin";
+
+export type PageSnapshotAction =
+  | "section-calendar-subscription"
+  | "section-homework-create"
+  | "section-homework-edit";
 
 export type PageSnapshotCase = {
   id: string;
@@ -10,6 +15,7 @@ export type PageSnapshotCase = {
   fullPage?: boolean;
   waitUntil?: "load" | "domcontentloaded";
   note?: string;
+  actions?: PageSnapshotAction[];
 };
 
 export type ApiSnapshotCase = {
@@ -76,6 +82,17 @@ export const PAGE_SNAPSHOT_CASES: PageSnapshotCase[] = [
     auth: "public",
   },
   {
+    id: "section-detail-actions",
+    path: `/sections/${DEV_SEED.section.jwId}`,
+    auth: "debug",
+    actions: [
+      "section-calendar-subscription",
+      "section-homework-create",
+      "section-homework-edit",
+    ],
+    note: "Signed-in section detail action states for calendar subscription and homework forms.",
+  },
+  {
     id: "teachers",
     path: `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
     auth: "public",
@@ -88,10 +105,11 @@ export const PAGE_SNAPSHOT_CASES: PageSnapshotCase[] = [
   },
   { id: "comments-guide", path: "/comments/guide", auth: "public" },
   {
-    id: "comment-detail",
+    id: "comment-redirect-target",
     path: "/comments/__resolved__",
     auth: "debug",
     resolvePath: "comment-detail",
+    note: "Comment permalinks redirect to the owning target page with a focused comment anchor.",
   },
   {
     id: "user-profile",
@@ -148,7 +166,7 @@ export const PAGE_SNAPSHOT_CASES: PageSnapshotCase[] = [
   { id: "admin-users", path: "/admin/users", auth: "admin" },
   { id: "admin-bus", path: "/admin/bus", auth: "admin" },
   { id: "admin-moderation", path: "/admin/moderation", auth: "admin" },
-  { id: "admin-oauth", path: "/admin/oauth", auth: "admin", fullPage: false },
+  { id: "admin-oauth", path: "/admin/oauth", auth: "admin" },
   { id: "oauth-device", path: "/oauth/device", auth: "public" },
   {
     id: "oauth-authorize",

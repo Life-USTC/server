@@ -9,7 +9,6 @@ services:
       APP_PUBLIC_ORIGIN: ${APP_PUBLIC_ORIGIN:?Set APP_PUBLIC_ORIGIN to the public https:// origin served by this deployment}
       APP_CANONICAL_ORIGIN: ${APP_CANONICAL_ORIGIN:-}
       DATABASE_URL: ${DATABASE_URL}
-      JWT_SECRET: ${JWT_SECRET}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET}
       AUTH_SECRET: ${AUTH_SECRET}
       S3_BUCKET: ${S3_BUCKET}

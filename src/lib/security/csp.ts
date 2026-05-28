@@ -39,13 +39,18 @@ export function buildContentSecurityPolicy(
     scriptSources.push("'unsafe-eval'");
   }
 
+  const connectSources = [
+    ...ANALYTICS_CONNECT_SOURCES,
+    ...getS3ConnectSources(),
+  ];
+
   const directives = [
     "default-src 'self'",
     `script-src ${scriptSources.join(" ")}`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     `img-src 'self' data: blob: ${EXTERNAL_IMAGE_SOURCES.join(" ")}`,
     "font-src 'self' https://fonts.gstatic.com",
-    `connect-src 'self' ${[...ANALYTICS_CONNECT_SOURCES, ...getS3ConnectSources()].join(" ")}`,
+    `connect-src 'self' ${connectSources.join(" ")}`,
     "frame-ancestors 'none'",
     "form-action 'self'",
     "base-uri 'self'",

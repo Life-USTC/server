@@ -1,6 +1,5 @@
 import { spawnSync } from "node:child_process";
 import {
-  configuredValue,
   resolveMinioConsolePort,
   resolveMinioContainerName,
   resolveMinioCorsAllowOrigin,
@@ -61,9 +60,7 @@ function startContainer(name: string) {
   }
 }
 
-const containerName =
-  configuredValue(process.env.PLAYWRIGHT_MINIO_CONTAINER) ??
-  resolveMinioContainerName(process.env);
+const containerName = resolveMinioContainerName(process.env);
 
 if (!inspectRunningContainer(containerName)) {
   spawnSync("docker", ["rm", "-f", containerName], {

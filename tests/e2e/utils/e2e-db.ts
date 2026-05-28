@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { promisify } from "node:util";
 import { Pool } from "pg";
+import type { SupportedOAuthClientAuthMethod } from "@/lib/oauth/constants";
 
 export { getCurrentSessionUser, PLAYWRIGHT_BASE_URL } from "./e2e-db/core";
 
@@ -126,10 +127,7 @@ type OAuthClientFixtureOptions = {
   grantTypes?: string[];
   clientId?: string;
   clientSecret?: string;
-  tokenEndpointAuthMethod?:
-    | "client_secret_basic"
-    | "client_secret_post"
-    | "none";
+  tokenEndpointAuthMethod?: SupportedOAuthClientAuthMethod;
 };
 
 type LinkedAccountFixtureOptions = {

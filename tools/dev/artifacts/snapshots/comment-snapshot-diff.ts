@@ -10,7 +10,7 @@ type Options = {
 function usage() {
   return [
     "Usage:",
-    "  bun run tools/dev/artifacts/comment-e2e-snapshot-diff.ts --body-file <report.md> (--pr <number> | --commit <sha>)",
+    "  bun run tools/dev/artifacts/snapshots/comment-snapshot-diff.ts --body-file <report.md> (--pr <number> | --commit <sha>)",
   ].join("\n");
 }
 

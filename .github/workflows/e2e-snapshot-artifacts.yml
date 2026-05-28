@@ -118,7 +118,7 @@ jobs:
             exit 1
           fi
 
-          bun run snapshot:e2e
+          bun run snapshot
 
       - name: Upload E2E snapshot artifact
         id: upload
@@ -176,7 +176,7 @@ jobs:
         if: ${{ always() }}
         shell: bash
         run: |
-          bun run tools/dev/artifacts/render-e2e-snapshot-comment.ts \
+          bun run tools/dev/artifacts/snapshots/render-snapshot-comment.ts \
             --snapshot-dir test-results/e2e-snapshots \
             --artifact-url "${{ steps.upload.outputs.artifact-url }}" \
             --commit "${{ matrix.sha }}" \
@@ -191,7 +191,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          bun run tools/dev/artifacts/comment-e2e-snapshot-diff.ts \
+          bun run tools/dev/artifacts/snapshots/comment-snapshot-diff.ts \
             --body-file test-results/e2e-snapshot-comment.md \
             --commit "${{ matrix.sha }}"
 
