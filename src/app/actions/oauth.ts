@@ -7,71 +7,83 @@ import { auth, authApi } from "@/auth";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { logServerActionError } from "@/lib/log/app-logger";
-import { resolveOAuthClientScopes } from "@/lib/oauth/client-registration";
-import { asOAuthProviderApi } from "@/lib/oauth/provider-api";
 import {
-  DEFAULT_OAUTH_CLIENT_SCOPES,
+  resolveOAuthClientGrantTypes,
+  resolveOAuthClientScopes,
+} from "@/lib/oauth/client-registration";
+import {
+  isSupportedOAuthClientAuthMethod,
   OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD,
   OAUTH_CLIENT_SECRET_POST_AUTH_METHOD,
+  OAUTH_CODE_RESPONSE_TYPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
-} from "@/lib/oauth/utils";
+  type SupportedOAuthClientAuthMethod,
+} from "@/lib/oauth/constants";
+import { asOAuthProviderApi } from "@/lib/oauth/provider-api";
 
 type CreateOAuthClientResult =
   | { error: string }
   | { success: true; clientId: string; clientSecret: string | null };
 
-function resolveAdminOAuthClientPattern(tokenEndpointAuthMethod: string) {
-  if (tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD) {
-    return {
-      pattern: "public_pkce",
-      skipConsent: false,
-      enableEndSession: false,
-    } as const;
+const ADMIN_OAUTH_CLIENT_PATTERNS: Record<
+  SupportedOAuthClientAuthMethod,
+  {
+    pattern: "public_pkce" | "confidential_connector" | "trusted_first_party";
+    skipConsent: boolean;
+    enableEndSession: boolean;
   }
-
-  if (tokenEndpointAuthMethod === OAUTH_CLIENT_SECRET_POST_AUTH_METHOD) {
-    return {
-      pattern: "confidential_connector",
-      skipConsent: false,
-      enableEndSession: false,
-    } as const;
-  }
-
-  return {
+> = {
+  [OAUTH_PUBLIC_CLIENT_AUTH_METHOD]: {
+    pattern: "public_pkce",
+    skipConsent: false,
+    enableEndSession: false,
+  },
+  [OAUTH_CLIENT_SECRET_POST_AUTH_METHOD]: {
+    pattern: "confidential_connector",
+    skipConsent: false,
+    enableEndSession: false,
+  },
+  [OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD]: {
     pattern: "trusted_first_party",
     skipConsent: true,
     enableEndSession: true,
-  } as const;
+  },
+} as const;
+
+function resolveAdminOAuthClientPattern(tokenEndpointAuthMethod: string) {
+  return isSupportedOAuthClientAuthMethod(tokenEndpointAuthMethod)
+    ? ADMIN_OAUTH_CLIENT_PATTERNS[tokenEndpointAuthMethod]
+    : null;
+}
+
+function nonEmptyString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
 }
 
 function getOAuthActionErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof Error && error.message.trim().length > 0) {
-    return error.message;
+  const errorMessage =
+    error instanceof Error ? nonEmptyString(error.message) : null;
+  if (errorMessage) {
+    return errorMessage;
   }
 
   if (error && typeof error === "object") {
     const record = error as Record<string, unknown>;
-    if (
-      typeof record.message === "string" &&
-      record.message.trim().length > 0
-    ) {
-      return record.message;
+    const recordMessage = nonEmptyString(record.message);
+    if (recordMessage) {
+      return recordMessage;
     }
 
     const body = record.body;
     if (body && typeof body === "object") {
       const bodyRecord = body as Record<string, unknown>;
-      if (
-        typeof bodyRecord.error_description === "string" &&
-        bodyRecord.error_description.trim().length > 0
-      ) {
-        return bodyRecord.error_description;
+      const errorDescription = nonEmptyString(bodyRecord.error_description);
+      if (errorDescription) {
+        return errorDescription;
       }
-      if (
-        typeof bodyRecord.message === "string" &&
-        bodyRecord.message.trim().length > 0
-      ) {
-        return bodyRecord.message;
+      const bodyMessage = nonEmptyString(bodyRecord.message);
+      if (bodyMessage) {
+        return bodyMessage;
       }
     }
   }
@@ -120,21 +132,16 @@ export async function createOAuthClient(
     .map((s) => s.trim())
     .filter(Boolean);
 
-  const scopesResult = resolveOAuthClientScopes({
-    defaultScopes: [...DEFAULT_OAUTH_CLIENT_SCOPES],
-    requestedScopes: requestedScopes.length > 0 ? requestedScopes : undefined,
-  });
+  const scopesResult = resolveOAuthClientScopes(
+    requestedScopes.length > 0 ? requestedScopes : undefined,
+  );
   if ("error" in scopesResult) {
     return { error: scopesResult.error };
   }
   const scopes = scopesResult.scopes;
   const clientPattern = resolveAdminOAuthClientPattern(tokenEndpointAuthMethod);
 
-  if (
-    tokenEndpointAuthMethod !== OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD &&
-    tokenEndpointAuthMethod !== OAUTH_CLIENT_SECRET_POST_AUTH_METHOD &&
-    tokenEndpointAuthMethod !== OAUTH_PUBLIC_CLIENT_AUTH_METHOD
-  ) {
+  if (!clientPattern) {
     return { error: "Unsupported token endpoint auth method" };
   }
 
@@ -145,10 +152,8 @@ export async function createOAuthClient(
         client_name: name,
         redirect_uris: redirectUris,
         token_endpoint_auth_method: tokenEndpointAuthMethod,
-        grant_types: scopes.includes("offline_access")
-          ? ["authorization_code", "refresh_token"]
-          : ["authorization_code"],
-        response_types: ["code"],
+        grant_types: resolveOAuthClientGrantTypes(scopes),
+        response_types: [OAUTH_CODE_RESPONSE_TYPE],
         scope: scopes.join(" "),
         require_pkce: true,
         skip_consent: clientPattern.skipConsent,

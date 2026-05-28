@@ -1,4 +1,3 @@
-import { getOptionalTrimmedEnv } from "@/env";
 import { getCanonicalOrigin, getPublicOrigin } from "@/lib/site-url";
 
 const LOCALHOST_DEV_PORT = 3000;
@@ -8,32 +7,30 @@ const LOCALHOST_AUTH_ORIGINS = [
 ];
 const VERCEL_PREVIEW_AUTH_ORIGIN = "https://*.vercel.app";
 
+function uniqueOrigins(origins: string[]): string[] {
+  return Array.from(new Set(origins));
+}
+
+function normalizeOriginOrNull(origin: string): string | null {
+  try {
+    return new URL(origin).origin;
+  } catch {
+    return null;
+  }
+}
+
 export function getAuthTrustedOrigins(): string[] {
-  return Array.from(
-    new Set([
-      getPublicOrigin(),
-      getCanonicalOrigin(),
-      ...LOCALHOST_AUTH_ORIGINS,
-      VERCEL_PREVIEW_AUTH_ORIGIN,
-    ]),
-  );
+  return uniqueOrigins([
+    getPublicOrigin(),
+    getCanonicalOrigin(),
+    ...LOCALHOST_AUTH_ORIGINS,
+    VERCEL_PREVIEW_AUTH_ORIGIN,
+  ]);
 }
 
 export function getAuthAllowedHosts(): string[] {
-  return Array.from(
-    new Set(
-      [
-        getPublicOrigin(),
-        getCanonicalOrigin(),
-        ...LOCALHOST_AUTH_ORIGINS,
-        VERCEL_PREVIEW_AUTH_ORIGIN,
-      ].map((origin) => {
-        if (origin.includes("://")) {
-          return new URL(origin).host;
-        }
-        return origin.replace(/^https?:\/\//, "");
-      }),
-    ),
+  return uniqueOrigins(
+    getAuthTrustedOrigins().map((origin) => new URL(origin).host),
   );
 }
 
@@ -46,40 +43,23 @@ function matchesTrustedOrigin(origin: string, trustedOrigin: string) {
     return origin === trustedOrigin;
   }
 
-  const protocolSeparator = trustedOrigin.indexOf("://");
-  const trustedProtocol = trustedOrigin.slice(0, protocolSeparator);
-  const trustedHostPattern = trustedOrigin.slice(protocolSeparator + 3);
-  const trustedHostSuffix = trustedHostPattern.slice(1);
-
+  const trustedUrl = new URL(trustedOrigin);
+  const trustedHostSuffix = trustedUrl.hostname.slice(1);
   const url = new URL(origin);
   return (
-    url.protocol === `${trustedProtocol}:` &&
+    url.protocol === trustedUrl.protocol &&
     url.hostname.endsWith(trustedHostSuffix) &&
     url.hostname.length > trustedHostSuffix.length
   );
 }
 
 export function isTrustedAuthOrigin(origin: string): boolean {
-  let normalizedOrigin: string;
-  try {
-    normalizedOrigin = new URL(origin).origin;
-  } catch {
+  const normalizedOrigin = normalizeOriginOrNull(origin);
+  if (!normalizedOrigin) {
     return false;
   }
 
   return getAuthTrustedOrigins().some((trustedOrigin) =>
     matchesTrustedOrigin(normalizedOrigin, trustedOrigin),
   );
-}
-
-export function getOAuthProxyProductionUrl(): string {
-  return getCanonicalOrigin();
-}
-
-export function getOAuthProxyCurrentUrl(): string {
-  return getPublicOrigin();
-}
-
-export function getOAuthProxySecret(): string | undefined {
-  return getOptionalTrimmedEnv("OAUTH_PROXY_SECRET");
 }

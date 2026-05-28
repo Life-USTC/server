@@ -69,6 +69,7 @@ async function applyCachedSession(
     await page.context().addCookies(storageState.cookies);
     await gotoAndWaitForReady(page, expectedPath);
     await completeWelcomeProfileIfNeeded(page, role, expectedPath);
+    await expectPagePath(page, expectedPath);
     await expectAuthenticatedSession(page, { isAdmin: role === "admin" });
     return true;
   } catch {

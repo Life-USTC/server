@@ -1,12 +1,14 @@
 "use client";
 
 import { User as UserIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useState } from "react";
+import { signOutCurrentUser } from "@/app/actions/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu";
 import { Link } from "@/i18n/routing";
-import { signOut } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
 
 type UserMenuProps = {
@@ -20,12 +22,15 @@ type UserMenuProps = {
 };
 
 export function UserMenu({ className, initialUser = null }: UserMenuProps) {
+  const router = useRouter();
   const tProfile = useTranslations("profile");
   const tSettings = useTranslations("settings");
   const tCommon = useTranslations("common");
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isSignedOut, setIsSignedOut] = useState(false);
   const user = initialUser;
 
-  if (!user) {
+  if (!user || isSignedOut) {
     return null;
   }
 
@@ -36,6 +41,21 @@ export function UserMenu({ className, initialUser = null }: UserMenuProps) {
     : user.id
       ? `/u/id/${user.id}`
       : "/";
+
+  const handleSignOut = async () => {
+    if (isSigningOut) return;
+
+    setIsSigningOut(true);
+    const result = await signOutCurrentUser();
+    if (result.error) {
+      setIsSigningOut(false);
+      return;
+    }
+
+    setIsSignedOut(true);
+    router.push("/");
+    router.refresh();
+  };
 
   return (
     <div className={cn("flex items-center", className)}>
@@ -75,7 +95,7 @@ export function UserMenu({ className, initialUser = null }: UserMenuProps) {
           >
             {tSettings("title")}
           </MenuItem>
-          <MenuItem onClick={() => signOut({ callbackUrl: "/" })}>
+          <MenuItem disabled={isSigningOut} onClick={handleSignOut}>
             {tProfile("signOut")}
           </MenuItem>
         </MenuPopup>

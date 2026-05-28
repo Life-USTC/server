@@ -44,8 +44,6 @@ export async function resolveApiUserId(
           // General protected REST endpoints only accept issuer-bound JWT access
           // tokens. Opaque/no-resource tokens are reserved for the MCP transport,
           // where resource and scope checks happen in src/lib/mcp/auth.ts.
-          // Keep the legacy bare-origin audience in one helper while the
-          // canonical issuer remains path-based at `/api/auth`.
           verifyOptions: {
             issuer: getOAuthTokenVerificationIssuers(),
             audience: getOAuthRestAudienceUrls(),
@@ -69,6 +67,23 @@ export async function resolveApiUserId(
 }
 
 /**
+ * Require an authenticated user ID from a request.
+ *
+ * Returns `{ userId }` on success, or a 401 Response on failure.
+ * Use this for routes that need auth but don't need suspension checks.
+ *
+ *   const auth = await requireAuth(request);
+ *   if (auth instanceof Response) return auth;
+ *   const { userId } = auth;
+ */
+export async function requireAuth(
+  request: Request,
+): Promise<{ userId: string } | Response> {
+  const userId = await resolveApiUserId(request);
+  return userId ? { userId } : unauthorized();
+}
+
+/**
  * Check auth + suspension for collaborative write routes.
  *
  * Returns `{ userId }` on success, or a Response (401/403) on failure.
@@ -84,6 +99,6 @@ export async function requireWriteAuth(
   if (!userId) return unauthorized();
   const data = await getViewerAuthDataForUserId(userId);
   if (!data) return unauthorized();
-  if (data?.suspension) return suspensionForbidden(data.suspension.reason);
+  if (data.suspension) return suspensionForbidden(data.suspension.reason);
   return { userId };
 }

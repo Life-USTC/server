@@ -2,32 +2,21 @@ import { oauthProvider } from "@better-auth/oauth-provider";
 import type { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 import { genericOAuth, jwt, oAuthProxy } from "better-auth/plugins";
+import { getAuthEnv } from "@/env";
 import {
-  AUTH_GITHUB,
-  AUTH_GOOGLE,
-  AUTH_OIDC,
-  AUTH_PUBLIC_ORIGIN,
-  AUTH_PUBLIC_PROTOCOL,
   allowDebugAuth,
   getBetterAuthSecret,
   isDevelopment,
-  OAUTH_PROVIDER_SCOPES,
-  OAUTH_PROXY_SECRET,
-  OIDC_DISCOVERY_URL,
-  OIDC_ISSUER,
 } from "@/lib/auth/auth-config";
 import {
   getAuthAllowedHosts,
   getAuthTrustedOrigins,
-  getOAuthProxyCurrentUrl,
-  getOAuthProxyProductionUrl,
 } from "@/lib/auth/auth-origins";
 import { createBetterAuthPrismaAdapter } from "@/lib/auth/better-auth-prisma-adapter";
 import {
-  fallbackEmail,
+  mapGithubProfileToUser,
+  mapGoogleProfileToUser,
   mapOidcProfileToUser,
-  profileImage,
-  profileName,
 } from "@/lib/auth/oauth-profile";
 import { webhookLoginPlugin } from "@/lib/auth/webhook-login-plugin";
 import { prisma } from "@/lib/db/prisma";
@@ -37,6 +26,43 @@ import {
   getCanonicalOAuthIssuer,
   getOAuthProviderValidAudiences,
 } from "@/lib/mcp/urls";
+import {
+  OAUTH_OPENID_SCOPE,
+  OAUTH_PROFILE_SCOPE,
+  OAUTH_PROVIDER_SCOPES,
+} from "@/lib/oauth/constants";
+import { getCanonicalOrigin, getPublicOrigin } from "@/lib/site-url";
+
+const authEnv = getAuthEnv();
+const AUTH_PUBLIC_ORIGIN = getPublicOrigin();
+const AUTH_PUBLIC_PROTOCOL = getAuthPublicProtocol(AUTH_PUBLIC_ORIGIN);
+const OAUTH_PROXY_SECRET = authEnv.OAUTH_PROXY_SECRET;
+const OIDC_ISSUER =
+  authEnv.AUTH_OIDC_ISSUER ?? "https://sso-proxy.lug.ustc.edu.cn/auth/oauth2";
+const OIDC_DISCOVERY_URL = `${OIDC_ISSUER.replace(/\/$/, "")}/.well-known/openid-configuration`;
+const AUTH_GITHUB = getProviderCredentials(
+  authEnv.AUTH_GITHUB_ID,
+  authEnv.AUTH_GITHUB_SECRET,
+);
+const AUTH_GOOGLE = getProviderCredentials(
+  authEnv.AUTH_GOOGLE_ID,
+  authEnv.AUTH_GOOGLE_SECRET,
+);
+
+function getAuthPublicProtocol(origin: string): "http" | "https" {
+  const protocol = new URL(origin).protocol;
+  if (protocol === "http:" || protocol === "https:") {
+    return protocol.slice(0, -1) as "http" | "https";
+  }
+  throw new Error(`Unsupported auth origin protocol: ${protocol}`);
+}
+
+function getProviderCredentials(
+  clientId: string | undefined,
+  clientSecret: string | undefined,
+) {
+  return clientId && clientSecret ? { clientId, clientSecret } : null;
+}
 
 export function buildBetterAuthOptions() {
   const options = {
@@ -64,26 +90,7 @@ export function buildBetterAuthOptions() {
             github: {
               clientId: AUTH_GITHUB.clientId,
               clientSecret: AUTH_GITHUB.clientSecret,
-              mapProfileToUser: (profile: {
-                email?: string | null;
-                id: string;
-                name?: string;
-                login?: string;
-                avatar_url?: string;
-              }) => {
-                const hasEmail =
-                  typeof profile.email === "string" && profile.email.length > 0;
-                return {
-                  email: hasEmail
-                    ? profile.email
-                    : fallbackEmail("github", profile.id),
-                  name: profileName(profile.name ?? profile.login),
-                  image: profileImage(profile.avatar_url),
-                  // GitHub may return unverified or hidden emails; do not mark
-                  // fallback/local emails as verified.
-                  emailVerified: false,
-                };
-              },
+              mapProfileToUser: mapGithubProfileToUser,
             },
           }
         : {}),
@@ -92,27 +99,7 @@ export function buildBetterAuthOptions() {
             google: {
               clientId: AUTH_GOOGLE.clientId,
               clientSecret: AUTH_GOOGLE.clientSecret,
-              mapProfileToUser: (profile: {
-                email?: string;
-                sub: string;
-                name?: string;
-                picture?: string;
-                email_verified?: boolean;
-              }) => {
-                const hasEmail =
-                  typeof profile.email === "string" && profile.email.length > 0;
-                return {
-                  email: hasEmail
-                    ? profile.email
-                    : fallbackEmail("google", profile.sub),
-                  name: profileName(profile.name),
-                  image: profileImage(profile.picture),
-                  emailVerified:
-                    hasEmail && typeof profile.email_verified === "boolean"
-                      ? profile.email_verified
-                      : false,
-                };
-              },
+              mapProfileToUser: mapGoogleProfileToUser,
             },
           }
         : {}),
@@ -186,8 +173,8 @@ export function buildBetterAuthOptions() {
         },
       }),
       oAuthProxy({
-        productionURL: getOAuthProxyProductionUrl(),
-        currentURL: getOAuthProxyCurrentUrl(),
+        productionURL: getCanonicalOrigin(),
+        currentURL: AUTH_PUBLIC_ORIGIN,
         ...(OAUTH_PROXY_SECRET ? { secret: OAUTH_PROXY_SECRET } : {}),
       }),
       webhookLoginPlugin(),
@@ -243,7 +230,7 @@ export function buildBetterAuthOptions() {
           scopes: string[];
         }) {
           const claims: Record<string, unknown> = {};
-          if (scopes.includes("profile")) {
+          if (scopes.includes(OAUTH_PROFILE_SCOPE)) {
             const username = user.username;
             if (typeof username === "string" && username.length > 0) {
               claims.preferred_username = username;
@@ -258,9 +245,9 @@ export function buildBetterAuthOptions() {
             providerId: "oidc",
             discoveryUrl: OIDC_DISCOVERY_URL,
             issuer: OIDC_ISSUER,
-            clientId: AUTH_OIDC.clientId,
-            clientSecret: AUTH_OIDC.clientSecret,
-            scopes: ["openid"],
+            clientId: authEnv.AUTH_OIDC_CLIENT_ID ?? "",
+            clientSecret: authEnv.AUTH_OIDC_CLIENT_SECRET ?? "",
+            scopes: [OAUTH_OPENID_SCOPE],
             pkce: true,
             mapProfileToUser: mapOidcProfileToUser,
           },
@@ -279,9 +266,12 @@ export function buildBetterAuthOptions() {
           );
         }
         if (isOAuthDebugLogging()) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          const errorName = error instanceof Error ? error.name : "unknown";
           logOAuthDebug("better-auth.api-error", undefined, {
-            message: error instanceof Error ? error.message : String(error),
-            name: error instanceof Error ? error.name : "unknown",
+            message: errorMessage,
+            name: errorName,
           });
         }
       },

@@ -4,9 +4,12 @@ import {
 } from "@better-auth/oauth-provider";
 import { NextResponse } from "next/server";
 import { betterAuthInstance } from "@/auth";
+import {
+  OAUTH_DEVICE_AUTHORIZATION_ENDPOINT_PATH,
+  OAUTH_DEVICE_CODE_GRANT_TYPE,
+} from "@/lib/oauth/constants";
 import { asOAuthProviderMetadataAuth } from "@/lib/oauth/provider-api";
 
-const DEVICE_CODE_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:device_code";
 const DISCOVERY_CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -46,11 +49,11 @@ function augmentDiscoveryMetadata(
 
   return {
     ...body,
-    device_authorization_endpoint: `${siteOrigin}/api/auth/oauth2/device-authorization`,
+    device_authorization_endpoint: `${siteOrigin}${OAUTH_DEVICE_AUTHORIZATION_ENDPOINT_PATH}`,
     grant_types_supported: [
       ...new Set([
         ...(body.grant_types_supported ?? []),
-        DEVICE_CODE_GRANT_TYPE,
+        OAUTH_DEVICE_CODE_GRANT_TYPE,
       ]),
     ],
   };
@@ -63,9 +66,9 @@ async function buildDiscoveryMetadataResponse(
   const response = await handler(request);
   const body = (await response.json()) as DiscoveryMetadata;
 
-  return new Response(JSON.stringify(augmentDiscoveryMetadata(request, body)), {
+  return createDiscoveryJsonResponse(augmentDiscoveryMetadata(request, body), {
     status: response.status,
-    headers: withDiscoveryCorsHeaders(response.headers),
+    headers: response.headers,
   });
 }
 
@@ -77,23 +80,28 @@ export async function getOpenIdMetadataResponse(request: Request) {
   return buildDiscoveryMetadataResponse(request, openIdConfigMetadataHandler);
 }
 
-export function getDiscoveryOptionsResponse() {
+function getDiscoveryOptionsResponse() {
   return new Response(null, {
     status: 204,
     headers: withDiscoveryCorsHeaders(),
   });
 }
 
-export function getDiscoveryRedirectResponse(url: URL | string, status = 307) {
-  const response = NextResponse.redirect(url, status);
-  const headers = withDiscoveryCorsHeaders(response.headers);
-  response.headers.forEach((_, key) => {
-    response.headers.delete(key);
+function getDiscoveryRedirectResponse(url: URL | string, status = 307) {
+  return NextResponse.redirect(url, {
+    status,
+    headers: withDiscoveryCorsHeaders(),
   });
-  headers.forEach((value, key) => {
-    response.headers.set(key, value);
+}
+
+export function createDiscoveryJsonResponse(
+  body: unknown,
+  init: ResponseInit = {},
+) {
+  return NextResponse.json(body, {
+    ...init,
+    headers: withDiscoveryCorsHeaders(init.headers),
   });
-  return response;
 }
 
 type DiscoveryRouteHandlers = {

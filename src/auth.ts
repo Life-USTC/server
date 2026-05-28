@@ -84,8 +84,8 @@ export async function signIn(providerId?: string, options: SignInOptions = {}) {
       const debugConfig = getDebugProviderConfig(decision.providerId);
       result = await authInstance.api.signInEmail({
         body: {
-          email: debugConfig?.email ?? "",
-          password: debugConfig?.password ?? "",
+          email: debugConfig.email,
+          password: debugConfig.password,
           callbackURL: redirectTo,
         },
       });

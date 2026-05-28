@@ -2,9 +2,9 @@ import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { verifyAccessToken as verifyOAuthAccessToken } from "better-auth/oauth2";
 import { prisma } from "@/lib/db/prisma";
 import { isOAuthDebugLogging, logOAuthDebug } from "@/lib/log/oauth-debug";
+import { MCP_TOOLS_SCOPE } from "@/lib/oauth/constants";
 import {
   hashOAuthClientSecretForDbStorage,
-  MCP_TOOLS_SCOPE,
   resourceIndicatorsMatch,
 } from "@/lib/oauth/utils";
 import {
@@ -25,12 +25,10 @@ type AuthFailure = {
 };
 
 function buildBearerHeader({
-  request,
   error,
   description,
   scopes,
 }: {
-  request: Request;
   error: string;
   description: string;
   scopes?: string[];
@@ -38,7 +36,7 @@ function buildBearerHeader({
   const parts = [
     `Bearer error="${error}"`,
     `error_description="${description}"`,
-    `resource_metadata="${getOAuthProtectedResourceMetadataUrl(request).toString()}"`,
+    `resource_metadata="${getOAuthProtectedResourceMetadataUrl().toString()}"`,
   ];
 
   if (scopes && scopes.length > 0) {
@@ -48,17 +46,12 @@ function buildBearerHeader({
   return parts.join(", ");
 }
 
-function buildAuthErrorResponse(
-  request: Request,
-  failure: AuthFailure,
-  scopes?: string[],
-) {
+function buildAuthErrorResponse(failure: AuthFailure, scopes?: string[]) {
   return new Response(JSON.stringify({ error: failure.error }), {
     status: failure.status,
     headers: {
       "Content-Type": "application/json",
       "WWW-Authenticate": buildBearerHeader({
-        request,
         error: failure.error,
         description: failure.description,
         scopes,
@@ -128,13 +121,18 @@ export async function verifyAccessToken(
           audience: getOAuthMcpAudienceUrls(),
         },
       });
+      const jwtClaims = jwt as {
+        aud?: unknown;
+        azp?: unknown;
+        exp?: unknown;
+        scope?: unknown;
+        sub?: unknown;
+      };
 
       const scopeValue =
-        typeof (jwt as { scope?: unknown }).scope === "string"
-          ? (jwt as { scope: string }).scope
-          : "";
+        typeof jwtClaims.scope === "string" ? jwtClaims.scope : "";
       const scopes = scopeValue.split(" ").filter(Boolean);
-      const aud = (jwt as { aud?: unknown }).aud;
+      const aud = jwtClaims.aud;
       let audValue = "";
       if (typeof aud === "string") {
         audValue = aud;
@@ -148,21 +146,15 @@ export async function verifyAccessToken(
 
       return {
         token,
-        clientId:
-          typeof (jwt as { azp?: unknown }).azp === "string"
-            ? (jwt as { azp: string }).azp
-            : "unknown",
+        clientId: typeof jwtClaims.azp === "string" ? jwtClaims.azp : "unknown",
         scopes,
         expiresAt:
-          typeof (jwt as { exp?: unknown }).exp === "number"
-            ? (jwt as { exp: number }).exp
+          typeof jwtClaims.exp === "number"
+            ? jwtClaims.exp
             : Math.floor(Date.now() / 1000) + 60,
         resource: audValue ? new URL(audValue) : undefined,
         extra: {
-          userId:
-            typeof (jwt as { sub?: unknown }).sub === "string"
-              ? (jwt as { sub: string }).sub
-              : undefined,
+          userId: typeof jwtClaims.sub === "string" ? jwtClaims.sub : undefined,
         },
       };
     } catch (err) {
@@ -204,7 +196,7 @@ export async function authenticateMcpRequest(
   const token = parseBearerToken(request);
   if (!token) {
     return {
-      response: buildAuthErrorResponse(request, {
+      response: buildAuthErrorResponse({
         error: INVALID_TOKEN_ERROR,
         status: 401,
         description: "Missing bearer token",
@@ -214,7 +206,7 @@ export async function authenticateMcpRequest(
 
   const authInfo = await verifyAccessToken(request, token);
   if ("error" in authInfo) {
-    return { response: buildAuthErrorResponse(request, authInfo) };
+    return { response: buildAuthErrorResponse(authInfo) };
   }
 
   if (
@@ -222,7 +214,7 @@ export async function authenticateMcpRequest(
     !resourceIndicatorsMatch(authInfo.resource, getOAuthMcpResourceUrl())
   ) {
     return {
-      response: buildAuthErrorResponse(request, {
+      response: buildAuthErrorResponse({
         error: INVALID_TOKEN_ERROR,
         status: 401,
         description: "Access token is not bound to this MCP resource",
@@ -233,7 +225,6 @@ export async function authenticateMcpRequest(
   if (!authInfo.scopes.includes(MCP_TOOLS_SCOPE)) {
     return {
       response: buildAuthErrorResponse(
-        request,
         {
           error: INSUFFICIENT_SCOPE_ERROR,
           status: 403,

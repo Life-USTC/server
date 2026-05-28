@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { resolveSignInCallbackUrl } from "@/lib/auth/auth-routing";
+import {
+  MCP_TOOLS_SCOPE,
+  OAUTH_CODE_RESPONSE_TYPE,
+  OAUTH_OPENID_SCOPE,
+  OAUTH_PROFILE_SCOPE,
+} from "@/lib/oauth/constants";
 
 describe("resolveSignInCallbackUrl", () => {
   it("prefers explicit callbackUrl", () => {
@@ -14,10 +20,10 @@ describe("resolveSignInCallbackUrl", () => {
   it("reconstructs oauth authorize continuation from raw sign-in params", () => {
     expect(
       resolveSignInCallbackUrl({
-        response_type: "code",
+        response_type: OAUTH_CODE_RESPONSE_TYPE,
         client_id: "client-1",
         redirect_uri: "http://127.0.0.1:3000/callback",
-        scope: "openid profile mcp:tools",
+        scope: `${OAUTH_OPENID_SCOPE} ${OAUTH_PROFILE_SCOPE} ${MCP_TOOLS_SCOPE}`,
         state: "state-1",
         code_challenge: "challenge",
         code_challenge_method: "S256",

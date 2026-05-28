@@ -41,7 +41,7 @@ export function ProfileView({
   return (
     <PageLayout>
       <div className="grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
-        <Card>
+        <Card className="min-w-0">
           <CardHeader>
             <div className="flex items-center gap-4">
               <Avatar className="h-16 w-16">
@@ -110,25 +110,25 @@ export function ProfileView({
           </CardPanel>
         </Card>
 
-        <Card>
+        <Card className="min-w-0">
           <CardHeader>
             <CardTitle>
               {t("contribution.title", { count: totalContributions })}
             </CardTitle>
             <CardDescription>{t("contribution.description")}</CardDescription>
           </CardHeader>
-          <CardPanel>
-            <div className="overflow-x-auto pb-2">
-              <div className="inline-flex gap-px">
+          <CardPanel className="min-w-0">
+            <div className="w-full max-w-full pb-2">
+              <div className="grid w-full auto-cols-fr grid-flow-col gap-px">
                 {weeks.map((week, weekIndex) => (
                   <div
                     key={week[0]?.date ?? `week-${weekIndex}`}
-                    className="flex flex-col gap-px"
+                    className="flex min-w-0 flex-col gap-px"
                   >
                     {week.map((day) => (
                       <div
                         key={day.date}
-                        className={`${colorForCount(day.count)} h-2 w-2 rounded-[2px] md:h-2.5 md:w-2.5`}
+                        className={`${colorForCount(day.count)} aspect-square w-full rounded-[1px] md:rounded-[2px]`}
                         title={t("contribution.cell", {
                           count: day.count,
                           date: dateFormatter.format(new Date(day.date)),
@@ -139,7 +139,7 @@ export function ProfileView({
                 ))}
               </div>
             </div>
-            <div className="mt-4 flex items-center justify-end gap-2 text-muted-foreground text-xs">
+            <div className="mt-4 flex flex-wrap items-center justify-end gap-2 text-muted-foreground text-xs">
               <span>{t("contribution.less")}</span>
               <span className="h-2 w-2 rounded-[2px] bg-muted/40 md:h-2.5 md:w-2.5" />
               <span className="h-2 w-2 rounded-[2px] bg-emerald-200 md:h-2.5 md:w-2.5" />

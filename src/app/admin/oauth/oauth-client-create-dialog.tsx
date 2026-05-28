@@ -20,7 +20,6 @@ import { cn } from "@/lib/utils";
 import {
   AUTH_METHOD_OPTIONS,
   getAuthMethodOption,
-  getClientTypeBadgeVariant,
   getScopeInputId,
   type OAuthTranslator,
   parseRedirectUris,
@@ -88,7 +87,7 @@ export function OAuthClientCreateDialog({
                       htmlFor={inputId}
                       key={option.value}
                       className={cn(
-                        "cursor-pointer rounded-2xl border p-4 transition-colors",
+                        "cursor-pointer rounded-lg border p-4 transition-colors",
                         checked
                           ? option.accentClassName
                           : "border-border bg-card/72 hover:bg-accent/40",
@@ -106,7 +105,7 @@ export function OAuthClientCreateDialog({
                       <div className="flex items-start gap-3">
                         <div
                           className={cn(
-                            "flex size-10 shrink-0 items-center justify-center rounded-2xl border",
+                            "flex size-10 shrink-0 items-center justify-center rounded-lg border",
                             checked
                               ? option.accentIconClassName
                               : "border-border bg-background/80 text-muted-foreground",
@@ -119,9 +118,7 @@ export function OAuthClientCreateDialog({
                             <span className="font-medium text-sm">
                               {t(option.strategyTitleKey)}
                             </span>
-                            <Badge
-                              variant={getClientTypeBadgeVariant(option.value)}
-                            >
+                            <Badge variant="outline">
                               {t(option.labelKey)}
                             </Badge>
                           </div>

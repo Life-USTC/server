@@ -53,7 +53,6 @@ test("/admin/oauth 管理员可创建并删除客户端", async ({ page }, testI
     await expect(
       page.getByRole("heading", { name: /OAuth 客户端管理|OAuth Clients/i }),
     ).toBeVisible();
-    await page.waitForLoadState("networkidle");
 
     const createBtn = page
       .getByRole("button", { name: /创建客户端|Create Client/i })
@@ -102,9 +101,15 @@ test("/admin/oauth 管理员可创建并删除客户端", async ({ page }, testI
     ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "admin-oauth-created");
 
-    const clientCard = page.locator('[class*="rounded-2xl"]').filter({
-      has: page.getByText(clientName, { exact: true }),
-    });
+    await page.getByRole("button", { name: /完成|Done/i }).click();
+
+    const clientCard = page
+      .locator("article")
+      .filter({
+        has: page.getByText(clientName, { exact: true }),
+      })
+      .first();
+    await expect(clientCard).toBeVisible();
     await clientCard.getByRole("button", { name: /删除|Delete/i }).click();
 
     await expect(page.getByText(clientName)).toHaveCount(0, {
@@ -125,7 +130,6 @@ test("/admin/oauth created client shows all required fields", async ({
   try {
     // Force fresh sign-in (ui:true) to avoid stale auth-cache from previous test
     await signInAsDevAdmin(page, "/admin/oauth", "/admin/oauth", { ui: true });
-    await page.waitForLoadState("networkidle");
 
     const createBtn = page
       .getByRole("button", { name: /创建客户端|Create Client/i })
@@ -157,7 +161,7 @@ test("/admin/oauth created client shows all required fields", async ({
       .click();
 
     const clientCard = page
-      .locator('[class*="rounded"]')
+      .locator("article, [class*='rounded']")
       .filter({
         has: page.getByText(clientName, { exact: true }),
       })

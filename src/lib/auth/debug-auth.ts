@@ -1,12 +1,12 @@
 import { hashPassword } from "better-auth/crypto";
-import { getOptionalLowercaseEnv, getOptionalTrimmedEnv } from "@/env";
+import { getOptionalTrimmedEnv } from "@/env";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import { allowDebugAuth, isDevelopment } from "./auth-config";
+import { allowE2EDebugAuth, isDevelopment } from "./auth-config";
 import {
+  DEV_ADMIN_PROVIDER_ID,
   DEV_DEBUG_PROVIDER_ID,
   type DebugProviderId,
-  isDebugProviderId,
 } from "./provider-ids";
 
 type DebugProviderConfig = {
@@ -18,69 +18,100 @@ type DebugProviderConfig = {
   image: string;
 };
 
-const DEV_DEBUG_USERNAME =
-  getOptionalLowercaseEnv("DEV_DEBUG_USERNAME") ?? "dev-user";
-const DEV_DEBUG_NAME =
-  getOptionalTrimmedEnv("DEV_DEBUG_NAME") ?? "Dev Debug User";
-const DEV_ADMIN_USERNAME =
-  getOptionalLowercaseEnv("DEV_ADMIN_USERNAME") ?? "dev-admin";
-const DEV_ADMIN_NAME =
-  getOptionalTrimmedEnv("DEV_ADMIN_NAME") ?? "Dev Admin User";
-const DEV_DEBUG_EMAIL =
-  getOptionalLowercaseEnv("DEV_DEBUG_EMAIL") ??
-  `${DEV_DEBUG_USERNAME}@debug.local`;
-const DEV_ADMIN_EMAIL =
-  getOptionalLowercaseEnv("DEV_ADMIN_EMAIL") ??
-  `${DEV_ADMIN_USERNAME}@debug.local`;
+type DebugProviderDefaults = {
+  usernameEnv: string;
+  username: string;
+  nameEnv: string;
+  name: string;
+  emailEnv: string;
+  passwordEnv: string;
+  password: string;
+  isAdmin: boolean;
+  imageSeed: string;
+};
 
-const DEV_DEBUG_PASSWORD = (() => {
-  const value = getOptionalTrimmedEnv("DEV_DEBUG_PASSWORD");
-  if (allowDebugAuth && !isDevelopment) {
+const DEBUG_PROVIDER_DEFAULTS: Record<DebugProviderId, DebugProviderDefaults> =
+  {
+    [DEV_DEBUG_PROVIDER_ID]: {
+      usernameEnv: "DEV_DEBUG_USERNAME",
+      username: "dev-user",
+      nameEnv: "DEV_DEBUG_NAME",
+      name: "Dev User",
+      emailEnv: "DEV_DEBUG_EMAIL",
+      passwordEnv: "DEV_DEBUG_PASSWORD",
+      password: "dev-debug-password",
+      isAdmin: false,
+      imageSeed: "life-ustc-dev-user",
+    },
+    [DEV_ADMIN_PROVIDER_ID]: {
+      usernameEnv: "DEV_ADMIN_USERNAME",
+      username: "dev-admin",
+      nameEnv: "DEV_ADMIN_NAME",
+      name: "Dev Admin User",
+      emailEnv: "DEV_ADMIN_EMAIL",
+      passwordEnv: "DEV_ADMIN_PASSWORD",
+      password: "dev-admin-password",
+      isAdmin: true,
+      imageSeed: "life-ustc-dev-admin",
+    },
+  };
+
+const requiresExplicitDebugPassword = allowE2EDebugAuth && !isDevelopment;
+
+function getLowercaseDebugEnv(envName: string, fallback: string) {
+  return getOptionalTrimmedEnv(envName)?.toLowerCase() ?? fallback;
+}
+
+function getDebugPassword(envName: string, fallback: string) {
+  const value = getOptionalTrimmedEnv(envName);
+  if (requiresExplicitDebugPassword) {
     if (!value) {
       throw new Error(
-        "DEV_DEBUG_PASSWORD is required when E2E_DEBUG_AUTH=1 (non-development NODE_ENV)",
+        `${envName} is required when E2E_DEBUG_AUTH=1 (non-development NODE_ENV)`,
       );
     }
     return value;
   }
-  return value || "dev-debug-password";
-})();
 
-const DEV_ADMIN_PASSWORD = (() => {
-  const value = getOptionalTrimmedEnv("DEV_ADMIN_PASSWORD");
-  if (allowDebugAuth && !isDevelopment) {
-    if (!value) {
-      throw new Error(
-        "DEV_ADMIN_PASSWORD is required when E2E_DEBUG_AUTH=1 (non-development NODE_ENV)",
-      );
-    }
-    return value;
-  }
-  return value || "dev-admin-password";
-})();
+  return value || fallback;
+}
+
+function buildDebugProviderConfig({
+  usernameEnv,
+  username: fallbackUsername,
+  nameEnv,
+  name,
+  emailEnv,
+  passwordEnv,
+  password,
+  isAdmin,
+  imageSeed,
+}: DebugProviderDefaults): DebugProviderConfig {
+  const username = getLowercaseDebugEnv(usernameEnv, fallbackUsername);
+
+  return {
+    username,
+    name: getOptionalTrimmedEnv(nameEnv) ?? name,
+    email: getLowercaseDebugEnv(emailEnv, `${username}@debug.local`),
+    password: getDebugPassword(passwordEnv, password),
+    isAdmin,
+    image: `https://api.dicebear.com/9.x/shapes/svg?seed=${imageSeed}`,
+  };
+}
+
+const DEBUG_PROVIDER_CONFIGS: Record<DebugProviderId, DebugProviderConfig> = {
+  [DEV_DEBUG_PROVIDER_ID]: buildDebugProviderConfig(
+    DEBUG_PROVIDER_DEFAULTS[DEV_DEBUG_PROVIDER_ID],
+  ),
+  [DEV_ADMIN_PROVIDER_ID]: buildDebugProviderConfig(
+    DEBUG_PROVIDER_DEFAULTS[DEV_ADMIN_PROVIDER_ID],
+  ),
+};
 
 export function getDebugProviderConfig(
   providerId: DebugProviderId,
 ): DebugProviderConfig {
-  if (providerId === DEV_DEBUG_PROVIDER_ID) {
-    return {
-      username: DEV_DEBUG_USERNAME,
-      name: DEV_DEBUG_NAME,
-      email: DEV_DEBUG_EMAIL,
-      password: DEV_DEBUG_PASSWORD,
-      isAdmin: false,
-      image: "https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev",
-    };
-  }
-
-  return {
-    username: DEV_ADMIN_USERNAME,
-    name: DEV_ADMIN_NAME,
-    email: DEV_ADMIN_EMAIL,
-    password: DEV_ADMIN_PASSWORD,
-    isAdmin: true,
-    image: "https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev-admin",
-  };
+  return DEBUG_PROVIDER_CONFIGS[providerId];
 }
 
 export async function ensureDebugCredentialUser(providerId: DebugProviderId) {
@@ -157,5 +188,3 @@ export async function ensureDebugCredentialUser(providerId: DebugProviderId) {
     },
   });
 }
-
-export { isDebugProviderId };

@@ -8,6 +8,7 @@ import {
   summarizeOAuthRedirectUri,
   withBetterAuthOAuthDebug,
 } from "@/lib/log/oauth-debug";
+import { OAUTH_DEVICE_CODE_GRANT_TYPE } from "@/lib/oauth/constants";
 import {
   DEVICE_CODE_ERRORS,
   DEVICE_CODE_POLL_INTERVAL,
@@ -18,7 +19,8 @@ import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
 
 export const dynamic = "force-dynamic";
 
-const DEVICE_CODE_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:device_code";
+const DEVICE_ACCESS_TOKEN_EXPIRES_IN = 3600;
+const DEVICE_REFRESH_TOKEN_EXPIRES_IN = 30 * 24 * 3600;
 
 function deviceCodeError(error: string, status = 400) {
   return jsonResponse({ error }, { status });
@@ -96,7 +98,6 @@ async function handleDeviceCodeGrant(
     return deviceCodeError("invalid_request");
   }
 
-  // Find the device code record
   const record = await prisma.deviceCode.findUnique({
     where: { deviceCode },
     select: {
@@ -118,16 +119,13 @@ async function handleDeviceCodeGrant(
     return deviceCodeError("invalid_client");
   }
 
-  // Check expiry
   if (record.expiresAt < new Date()) {
     return deviceCodeError(DEVICE_CODE_ERRORS.EXPIRED_TOKEN);
   }
 
-  // Check polling rate (slow_down)
   if (record.lastPolledAt) {
     const elapsed = Date.now() - record.lastPolledAt.getTime();
     if (elapsed < DEVICE_CODE_POLL_INTERVAL * 1000) {
-      // Update lastPolledAt even on slow_down
       await prisma.deviceCode.update({
         where: { id: record.id },
         data: { lastPolledAt: new Date() },
@@ -136,13 +134,11 @@ async function handleDeviceCodeGrant(
     }
   }
 
-  // Update lastPolledAt
   await prisma.deviceCode.update({
     where: { id: record.id },
     data: { lastPolledAt: new Date() },
   });
 
-  // Check status
   if (record.status === DEVICE_CODE_STATUS.DENIED) {
     return deviceCodeError(DEVICE_CODE_ERRORS.ACCESS_DENIED);
   }
@@ -151,20 +147,22 @@ async function handleDeviceCodeGrant(
     return deviceCodeError(DEVICE_CODE_ERRORS.AUTHORIZATION_PENDING);
   }
 
-  // Status is APPROVED - issue tokens
   if (!record.userId) {
     return deviceCodeError("server_error", 500);
   }
   const userId = record.userId;
 
-  // Generate opaque access token and refresh token
   const accessTokenPlain = randomBytes(32).toString("base64url");
   const refreshTokenPlain = randomBytes(32).toString("base64url");
   const accessTokenHash = hashOAuthClientSecretForDbStorage(accessTokenPlain);
   const refreshTokenHash = hashOAuthClientSecretForDbStorage(refreshTokenPlain);
 
-  const accessExpiresAt = new Date(Date.now() + 3600 * 1000); // 1 hour
-  const refreshExpiresAt = new Date(Date.now() + 30 * 24 * 3600 * 1000); // 30 days
+  const accessExpiresAt = new Date(
+    Date.now() + DEVICE_ACCESS_TOKEN_EXPIRES_IN * 1000,
+  );
+  const refreshExpiresAt = new Date(
+    Date.now() + DEVICE_REFRESH_TOKEN_EXPIRES_IN * 1000,
+  );
 
   const issued = await prisma.$transaction(async (tx) => {
     const claimed = await tx.deviceCode.deleteMany({
@@ -213,14 +211,13 @@ async function handleDeviceCodeGrant(
   return jsonResponse({
     access_token: accessTokenPlain,
     token_type: "Bearer",
-    expires_in: 3600,
+    expires_in: DEVICE_ACCESS_TOKEN_EXPIRES_IN,
     refresh_token: refreshTokenPlain,
     scope: record.scopes.join(" "),
   });
 }
 
 export async function POST(request: Request) {
-  // Clone request to read body without consuming it
   const cloned = request.clone();
 
   let params: URLSearchParams;
@@ -232,13 +229,12 @@ export async function POST(request: Request) {
     return withBetterAuthOAuthDebug("POST", request, handlers.POST);
   }
 
-  if (params.get("grant_type") === DEVICE_CODE_GRANT_TYPE) {
+  if (params.get("grant_type") === OAUTH_DEVICE_CODE_GRANT_TYPE) {
     return handleDeviceCodeGrant(request, params);
   }
 
   logObservedTokenRedirectRequest(request, params);
 
-  // Delegate all other grant types to Better Auth
   return withBetterAuthOAuthDebug(
     "POST",
     await maybeNormalizeTokenLoopbackRedirectRequest(request, params),
@@ -246,7 +242,6 @@ export async function POST(request: Request) {
   );
 }
 
-// GET is not used for token endpoint but delegate just in case
 export function GET(request: Request) {
   return withBetterAuthOAuthDebug("GET", request, handlers.GET);
 }

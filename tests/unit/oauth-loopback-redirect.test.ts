@@ -11,7 +11,7 @@ describe("oauth loopback redirect normalization", () => {
     ).toBe("http://127.0.0.1:52877/callback");
   });
 
-  it("keeps strict matching for path and port", () => {
+  it("keeps strict matching for path, port, query, and fragment", () => {
     expect(
       resolveEquivalentLoopbackRedirectUri(
         ["http://127.0.0.1:52877/callback"],
@@ -22,6 +22,18 @@ describe("oauth loopback redirect normalization", () => {
       resolveEquivalentLoopbackRedirectUri(
         ["http://127.0.0.1:52877/callback"],
         "http://localhost:52877/other",
+      ),
+    ).toBeNull();
+    expect(
+      resolveEquivalentLoopbackRedirectUri(
+        ["http://127.0.0.1:52877/callback?code=1#done"],
+        "http://localhost:52877/callback?code=2#done",
+      ),
+    ).toBeNull();
+    expect(
+      resolveEquivalentLoopbackRedirectUri(
+        ["http://127.0.0.1:52877/callback?code=1#done"],
+        "http://localhost:52877/callback?code=1#other",
       ),
     ).toBeNull();
   });

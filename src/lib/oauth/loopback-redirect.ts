@@ -1,14 +1,33 @@
-const IPV4_LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost"]);
-const IPV6_LOOPBACK_HOSTS = new Set(["[::1]", "::1"]);
+const LOOPBACK_HOST_FAMILY_BY_HOSTNAME = new Map<string, "ipv4" | "ipv6">([
+  ["127.0.0.1", "ipv4"],
+  ["localhost", "ipv4"],
+  ["[::1]", "ipv6"],
+  ["::1", "ipv6"],
+]);
+const STRICT_REDIRECT_URL_PARTS = [
+  "protocol",
+  "port",
+  "pathname",
+  "search",
+  "hash",
+] as const;
 
 function getLoopbackHostFamily(hostname: string): "ipv4" | "ipv6" | null {
-  if (IPV4_LOOPBACK_HOSTS.has(hostname)) {
-    return "ipv4";
+  return LOOPBACK_HOST_FAMILY_BY_HOSTNAME.get(hostname) ?? null;
+}
+
+function hasSameRedirectTarget(registeredUrl: URL, requestedUrl: URL) {
+  return STRICT_REDIRECT_URL_PARTS.every(
+    (part) => registeredUrl[part] === requestedUrl[part],
+  );
+}
+
+function parseUrlOrNull(value: string): URL | null {
+  try {
+    return new URL(value);
+  } catch {
+    return null;
   }
-  if (IPV6_LOOPBACK_HOSTS.has(hostname)) {
-    return "ipv6";
-  }
-  return null;
 }
 
 /**
@@ -20,10 +39,8 @@ export function resolveEquivalentLoopbackRedirectUri(
   registeredRedirectUris: string[],
   requestedRedirectUri: string,
 ): string | null {
-  let requestedUrl: URL;
-  try {
-    requestedUrl = new URL(requestedRedirectUri);
-  } catch {
+  const requestedUrl = parseUrlOrNull(requestedRedirectUri);
+  if (!requestedUrl) {
     return null;
   }
 
@@ -33,29 +50,15 @@ export function resolveEquivalentLoopbackRedirectUri(
   }
 
   for (const registeredRedirectUri of registeredRedirectUris) {
-    let registeredUrl: URL;
-    try {
-      registeredUrl = new URL(registeredRedirectUri);
-    } catch {
+    const registeredUrl = parseUrlOrNull(registeredRedirectUri);
+    if (!registeredUrl) {
       continue;
     }
 
     if (getLoopbackHostFamily(registeredUrl.hostname) !== requestedFamily) {
       continue;
     }
-    if (registeredUrl.protocol !== requestedUrl.protocol) {
-      continue;
-    }
-    if (registeredUrl.port !== requestedUrl.port) {
-      continue;
-    }
-    if (registeredUrl.pathname !== requestedUrl.pathname) {
-      continue;
-    }
-    if (registeredUrl.search !== requestedUrl.search) {
-      continue;
-    }
-    if (registeredUrl.hash !== requestedUrl.hash) {
+    if (!hasSameRedirectTarget(registeredUrl, requestedUrl)) {
       continue;
     }
 

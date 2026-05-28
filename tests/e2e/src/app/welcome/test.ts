@@ -89,7 +89,7 @@ test("/welcome displays required fields", async ({ page }, testInfo) => {
       // Seed semester name should be selectable
       await semesterSelector.click();
       await expect(
-        page.getByRole("option", { name: DEV_SEED.semesterNameCn }),
+        page.getByRole("option", { name: DEV_SEED.semesterNameCn }).first(),
       ).toBeVisible({ timeout: 5_000 });
       // Close dialog
       await page.keyboard.press("Escape");

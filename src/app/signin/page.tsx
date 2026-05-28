@@ -60,18 +60,16 @@ export default async function SignInPage({
 
   const t = await getTranslations("signIn");
   const showDebugProviders = allowDebugAuth;
+  const providerNames = {
+    [OIDC_PROVIDER_ID]: "USTC",
+    github: "GitHub",
+    google: "Google",
+    [DEV_DEBUG_PROVIDER_ID]: t("devDebugProvider"),
+    [DEV_ADMIN_PROVIDER_ID]: t("devAdminProvider"),
+  } satisfies Record<ReturnType<typeof getSignInProviderIds>[number], string>;
   const providers = getSignInProviderIds(showDebugProviders).map((id) => ({
     id,
-    name:
-      id === OIDC_PROVIDER_ID
-        ? "USTC"
-        : id === DEV_DEBUG_PROVIDER_ID
-          ? t("devDebugProvider")
-          : id === DEV_ADMIN_PROVIDER_ID
-            ? t("devAdminProvider")
-            : id === "github"
-              ? "GitHub"
-              : "Google",
+    name: providerNames[id],
   }));
 
   return (

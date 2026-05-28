@@ -63,6 +63,7 @@
       "display": {
         "fields": [
           "callbackUrl query parameter (origin page)",
+          "Sign-in action links include the current path and query as callbackUrl",
           "Fallback to home page if no origin"
         ]
       }

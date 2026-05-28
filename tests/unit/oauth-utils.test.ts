@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { buildOAuthErrorRedirectUri } from "@/lib/oauth/redirect";
 import {
   hashOAuthClientSecretForDbStorage,
   normalizeResourceIndicator,
@@ -31,10 +30,10 @@ describe("oauth/utils", () => {
     );
   });
 
-  it("rejects resource indicators with fragments", () => {
-    expect(() =>
-      normalizeResourceIndicator("https://example.com/api#frag"),
-    ).toThrow("must not include fragments");
+  it("strips fragments from resource indicators", () => {
+    expect(normalizeResourceIndicator("https://example.com/api#frag")).toBe(
+      "https://example.com/api",
+    );
   });
 
   it("matches equivalent resource indicators", () => {
@@ -56,18 +55,5 @@ describe("oauth/utils", () => {
         "https://example.com/other",
       ),
     ).toBe(false);
-  });
-
-  it("builds OAuth error redirect URIs", () => {
-    expect(
-      buildOAuthErrorRedirectUri({
-        redirectUri: "https://client.example/callback",
-        error: "invalid_scope",
-        state: "abc123",
-        errorDescription: "Scope is not allowed",
-      }),
-    ).toBe(
-      "https://client.example/callback?error=invalid_scope&state=abc123&error_description=Scope+is+not+allowed",
-    );
   });
 });

@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { PageBreadcrumbs, PageLayout } from "@/components/page-layout";
 import { requireAdminPage } from "@/lib/admin-utils";
 import { prisma } from "@/lib/db/prisma";
+import { OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD } from "@/lib/oauth/constants";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { OAuthClientManager } from "./oauth-client-manager";
 
@@ -62,7 +63,7 @@ export default async function AdminOAuthPage() {
           clientId: c.clientId,
           name: c.name ?? "",
           tokenEndpointAuthMethod:
-            c.tokenEndpointAuthMethod ?? "client_secret_basic",
+            c.tokenEndpointAuthMethod ?? OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD,
           redirectUris: c.redirectUris,
           scopes: c.scopes,
           isTrusted: Boolean(c.skipConsent),

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildCurrentPathCallbackUrl,
   buildSignInPageUrl,
   buildSignInRedirectUrl,
   resolveAuthRedirectTarget,
@@ -23,6 +24,16 @@ describe("auth provider routing", () => {
     expect(buildSignInPageUrl("/oauth/authorize?client_id=test")).toBe(
       "/signin?callbackUrl=%2Foauth%2Fauthorize%3Fclient_id%3Dtest",
     );
+  });
+
+  it("builds current-page callback URLs from path and query", () => {
+    expect(
+      buildCurrentPathCallbackUrl(
+        "/sections/123",
+        new URLSearchParams({ tab: "homeworks", comment: "new" }),
+      ),
+    ).toBe("/sections/123?tab=homeworks&comment=new");
+    expect(buildCurrentPathCallbackUrl("/courses/456")).toBe("/courses/456");
   });
 
   it("builds sign-in redirects from the resolved destination", () => {

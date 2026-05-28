@@ -2,9 +2,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getAuthAllowedHosts,
   getAuthTrustedOrigins,
-  getOAuthProxyCurrentUrl,
-  getOAuthProxyProductionUrl,
-  getOAuthProxySecret,
   isTrustedAuthOrigin,
 } from "@/lib/auth/auth-origins";
 
@@ -26,22 +23,6 @@ describe("auth origin helpers", () => {
     ]);
   });
 
-  it("uses canonical origin as the OAuth proxy production URL", () => {
-    vi.stubEnv("APP_PUBLIC_ORIGIN", "https://preview-123.vercel.app");
-    vi.stubEnv("APP_CANONICAL_ORIGIN", "https://life-ustc.tiankaima.dev");
-
-    expect(getOAuthProxyProductionUrl()).toBe(
-      "https://life-ustc.tiankaima.dev",
-    );
-  });
-
-  it("uses the current public origin as the OAuth proxy current URL", () => {
-    vi.stubEnv("APP_PUBLIC_ORIGIN", "https://preview-123.vercel.app");
-    vi.stubEnv("APP_CANONICAL_ORIGIN", "https://life-ustc.tiankaima.dev");
-
-    expect(getOAuthProxyCurrentUrl()).toBe("https://preview-123.vercel.app");
-  });
-
   it("returns Better Auth allowed hosts for dynamic base URL resolution", () => {
     vi.stubEnv("APP_PUBLIC_ORIGIN", "https://preview-123.vercel.app");
     vi.stubEnv("APP_CANONICAL_ORIGIN", "https://life-ustc.tiankaima.dev");
@@ -55,14 +36,16 @@ describe("auth origin helpers", () => {
     ]);
   });
 
-  it("returns the configured OAuth proxy secret when present", () => {
-    vi.stubEnv("OAUTH_PROXY_SECRET", "shared-proxy-secret");
-    expect(getOAuthProxySecret()).toBe("shared-proxy-secret");
-  });
+  it("deduplicates matching public and canonical origins", () => {
+    vi.stubEnv("APP_PUBLIC_ORIGIN", "https://life-ustc.tiankaima.dev");
+    vi.stubEnv("APP_CANONICAL_ORIGIN", "https://life-ustc.tiankaima.dev");
 
-  it("ignores blank OAuth proxy secret values", () => {
-    vi.stubEnv("OAUTH_PROXY_SECRET", "   ");
-    expect(getOAuthProxySecret()).toBeUndefined();
+    expect(getAuthTrustedOrigins()).toEqual([
+      "https://life-ustc.tiankaima.dev",
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "https://*.vercel.app",
+    ]);
   });
 });
 

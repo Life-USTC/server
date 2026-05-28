@@ -11,8 +11,8 @@ import {
   type CreatedCredentials,
   DEFAULT_AUTH_METHOD,
   DEFAULT_SCOPE_VALUES,
-  OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD,
-  OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+  isPublicClientAuthMethod,
+  isTrustedClientAuthMethod,
   type OAuthClientInfo,
   parseRedirectUris,
 } from "./oauth-client-manager-shared";
@@ -43,9 +43,8 @@ export function OAuthClientManager({
   );
   const publicClients = useMemo(
     () =>
-      clients.filter(
-        (client) =>
-          client.tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+      clients.filter((client) =>
+        isPublicClientAuthMethod(client.tokenEndpointAuthMethod),
       ),
     [clients],
   );
@@ -96,8 +95,7 @@ export function OAuthClientManager({
       .getAll("scopes")
       .map((value) => String(value).trim())
       .filter(Boolean);
-    const isTrusted =
-      tokenEndpointAuthMethod === OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD;
+    const isTrusted = isTrustedClientAuthMethod(tokenEndpointAuthMethod);
 
     setLoading(true);
     const result = await createOAuthClient(formData);

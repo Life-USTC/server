@@ -1,32 +1,35 @@
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
   MCP_TOOLS_SCOPE,
-} from "@/lib/oauth/utils";
-
-export const DEFAULT_DYNAMIC_OAUTH_CLIENT_SCOPES = [
-  ...DEFAULT_OAUTH_CLIENT_SCOPES,
-  MCP_TOOLS_SCOPE,
-];
+  OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
+  OAUTH_OFFLINE_ACCESS_SCOPE,
+  OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+} from "@/lib/oauth/constants";
 
 type ValidationErrorResult = { error: string };
 type ScopesResult = ValidationErrorResult | { scopes: string[] };
 
 const SUPPORTED_DYNAMIC_CLIENT_SCOPES = new Set([
-  ...DEFAULT_DYNAMIC_OAUTH_CLIENT_SCOPES,
-  "offline_access",
+  ...DEFAULT_OAUTH_CLIENT_SCOPES,
+  MCP_TOOLS_SCOPE,
+  OAUTH_OFFLINE_ACCESS_SCOPE,
 ]);
 
-export function resolveOAuthClientScopes(options: {
-  defaultScopes: string[];
-  requestedScopes?: string[] | string | null;
-}): ScopesResult {
-  const requestedScopes =
-    typeof options.requestedScopes === "string"
-      ? options.requestedScopes.split(" ").filter(Boolean)
-      : (options.requestedScopes ?? []);
+function parseRequestedScopes(input?: string[] | string | null) {
+  if (typeof input === "string") {
+    return input.split(" ").filter(Boolean);
+  }
+
+  return input ?? [];
+}
+
+export function resolveOAuthClientScopes(
+  requestedScopesInput?: string[] | string | null,
+): ScopesResult {
+  const requestedScopes = parseRequestedScopes(requestedScopesInput);
 
   if (requestedScopes.length === 0) {
-    return { scopes: [...options.defaultScopes] };
+    return { scopes: [...DEFAULT_OAUTH_CLIENT_SCOPES] };
   }
 
   const invalidScopes = requestedScopes.filter(
@@ -40,4 +43,10 @@ export function resolveOAuthClientScopes(options: {
   }
 
   return { scopes: [...new Set(requestedScopes)] };
+}
+
+export function resolveOAuthClientGrantTypes(scopes: readonly string[]) {
+  return scopes.includes(OAUTH_OFFLINE_ACCESS_SCOPE)
+    ? [OAUTH_AUTHORIZATION_CODE_GRANT_TYPE, OAUTH_REFRESH_TOKEN_GRANT_TYPE]
+    : [OAUTH_AUTHORIZATION_CODE_GRANT_TYPE];
 }

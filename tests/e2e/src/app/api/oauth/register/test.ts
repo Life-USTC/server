@@ -19,6 +19,15 @@
  */
 import { createHash } from "node:crypto";
 import { expect, test } from "@playwright/test";
+import {
+  MCP_TOOLS_SCOPE,
+  OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
+  OAUTH_CODE_RESPONSE_TYPE,
+  OAUTH_EMAIL_SCOPE,
+  OAUTH_OPENID_SCOPE,
+  OAUTH_PROFILE_SCOPE,
+  OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+} from "@/lib/oauth/constants";
 import { signInAsDebugUser } from "../../../../../utils/auth";
 import { PLAYWRIGHT_BASE_URL } from "../../../../../utils/e2e-db";
 
@@ -32,6 +41,12 @@ const CODE_VERIFIER =
   "oauth-provider-e2e-verifier-0123456789012345678901234567890123456789";
 const LOOPBACK_REDIRECT_URI = "http://127.0.0.1:61000/callback";
 const LOOPBACK_LOCALHOST_REDIRECT_URI = "http://localhost:61000/callback";
+const DCR_CLIENT_SCOPE = [
+  OAUTH_OPENID_SCOPE,
+  OAUTH_PROFILE_SCOPE,
+  OAUTH_EMAIL_SCOPE,
+  MCP_TOOLS_SCOPE,
+].join(" ");
 
 test.describe("OAuth provider", () => {
   test("canonical well-known endpoints are exposed and legacy aliases redirect", async ({
@@ -144,10 +159,10 @@ test.describe("OAuth provider", () => {
         data: {
           client_name: `e2e-public-${Date.now()}`,
           redirect_uris: [REDIRECT_URI],
-          token_endpoint_auth_method: "none",
-          grant_types: ["authorization_code"],
-          response_types: ["code"],
-          scope: "openid profile email mcp:tools",
+          token_endpoint_auth_method: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+          grant_types: [OAUTH_AUTHORIZATION_CODE_GRANT_TYPE],
+          response_types: [OAUTH_CODE_RESPONSE_TYPE],
+          scope: DCR_CLIENT_SCOPE,
         },
       },
     );
@@ -170,10 +185,10 @@ test.describe("OAuth provider", () => {
       "/api/auth/oauth2/authorize",
       {
         params: {
-          response_type: "code",
+          response_type: OAUTH_CODE_RESPONSE_TYPE,
           client_id: clientId,
           redirect_uri: REDIRECT_URI,
-          scope: "openid profile email mcp:tools",
+          scope: DCR_CLIENT_SCOPE,
           state: "e2e-state",
           prompt: "consent",
           code_challenge: generateCodeChallenge(CODE_VERIFIER),
@@ -214,7 +229,7 @@ test.describe("OAuth provider", () => {
     // Exchange code for token.
     const tokenResponse = await request.post("/api/auth/oauth2/token", {
       form: {
-        grant_type: "authorization_code",
+        grant_type: OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
         client_id: clientId,
         code,
         code_verifier: CODE_VERIFIER,
@@ -247,10 +262,10 @@ test.describe("OAuth provider", () => {
         data: {
           client_name: `e2e-loopback-${Date.now()}`,
           redirect_uris: [LOOPBACK_REDIRECT_URI],
-          token_endpoint_auth_method: "none",
-          grant_types: ["authorization_code"],
-          response_types: ["code"],
-          scope: "openid profile email mcp:tools",
+          token_endpoint_auth_method: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+          grant_types: [OAUTH_AUTHORIZATION_CODE_GRANT_TYPE],
+          response_types: [OAUTH_CODE_RESPONSE_TYPE],
+          scope: DCR_CLIENT_SCOPE,
           type: "native",
         },
       },
@@ -271,10 +286,10 @@ test.describe("OAuth provider", () => {
       "/api/auth/oauth2/authorize",
       {
         params: {
-          response_type: "code",
+          response_type: OAUTH_CODE_RESPONSE_TYPE,
           client_id: clientId,
           redirect_uri: LOOPBACK_LOCALHOST_REDIRECT_URI,
-          scope: "openid profile email mcp:tools",
+          scope: DCR_CLIENT_SCOPE,
           state: "e2e-loopback-state",
           prompt: "consent",
           code_challenge: generateCodeChallenge(CODE_VERIFIER),

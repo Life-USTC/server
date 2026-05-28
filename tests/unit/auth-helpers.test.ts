@@ -22,14 +22,8 @@ vi.mock("@/lib/auth/viewer-context", () => ({
 
 vi.mock("@/lib/mcp/urls", () => ({
   getJwksUrlForOAuthVerification: () => "https://life.example/api/auth/jwks",
-  getOAuthRestAudienceUrls: () => [
-    "https://life.example",
-    "https://life.example/api/auth",
-  ],
-  getOAuthTokenVerificationIssuers: () => [
-    "https://life.example/api/auth",
-    "https://life.example",
-  ],
+  getOAuthRestAudienceUrls: () => ["https://life.example/api/auth"],
+  getOAuthTokenVerificationIssuers: () => ["https://life.example/api/auth"],
 }));
 
 describe("auth helpers", () => {
@@ -71,8 +65,8 @@ describe("auth helpers", () => {
       expect.objectContaining({
         jwksUrl: "https://life.example/api/auth/jwks",
         verifyOptions: {
-          issuer: ["https://life.example/api/auth", "https://life.example"],
-          audience: ["https://life.example", "https://life.example/api/auth"],
+          issuer: ["https://life.example/api/auth"],
+          audience: ["https://life.example/api/auth"],
         },
       }),
     );

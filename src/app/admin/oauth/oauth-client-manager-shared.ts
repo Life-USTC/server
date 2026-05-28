@@ -1,11 +1,20 @@
 import type { LucideIcon } from "lucide-react";
 import { Bot, KeyRound, Server, Sparkles } from "lucide-react";
+import {
+  DEFAULT_OAUTH_CLIENT_SCOPES,
+  MCP_TOOLS_SCOPE,
+  OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD,
+  OAUTH_CLIENT_SECRET_POST_AUTH_METHOD,
+  OAUTH_OPENID_SCOPE,
+  OAUTH_PROFILE_SCOPE,
+  OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+  type SupportedOAuthClientAuthMethod,
+} from "@/lib/oauth/constants";
 
-export const MCP_TOOLS_SCOPE = "mcp:tools";
-export const OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD = "client_secret_basic";
-export const OAUTH_CLIENT_SECRET_POST_AUTH_METHOD = "client_secret_post";
-export const OAUTH_PUBLIC_CLIENT_AUTH_METHOD = "none";
-export const DEFAULT_SCOPE_VALUES = ["openid", "profile", MCP_TOOLS_SCOPE];
+export const DEFAULT_SCOPE_VALUES = [
+  ...DEFAULT_OAUTH_CLIENT_SCOPES,
+  MCP_TOOLS_SCOPE,
+];
 export const DEFAULT_AUTH_METHOD = OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD;
 
 export interface OAuthClientInfo {
@@ -34,7 +43,7 @@ export type OAuthTranslator = (
 ) => string;
 
 export type AuthMethodOption = {
-  value: string;
+  value: SupportedOAuthClientAuthMethod;
   icon: LucideIcon;
   labelKey: string;
   descriptionKey: string;
@@ -43,6 +52,7 @@ export type AuthMethodOption = {
   strategyHintKey: string;
   accentClassName: string;
   accentIconClassName: string;
+  badgeVariant: "info" | "success" | "warning";
 };
 
 export const AUTH_METHOD_OPTIONS: AuthMethodOption[] = [
@@ -54,10 +64,9 @@ export const AUTH_METHOD_OPTIONS: AuthMethodOption[] = [
     strategyTitleKey: "strategyFirstPartyTitle",
     strategyDescriptionKey: "strategyFirstPartyDescription",
     strategyHintKey: "strategyFirstPartyHint",
-    accentClassName:
-      "border-sky-500/24 bg-sky-500/[0.08] text-sky-800 dark:text-sky-200",
-    accentIconClassName:
-      "border-sky-500/24 bg-sky-500/[0.12] text-sky-700 dark:text-sky-200",
+    accentClassName: "border-foreground bg-muted/45 text-foreground",
+    accentIconClassName: "border-border bg-background text-foreground",
+    badgeVariant: "info",
   },
   {
     value: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
@@ -67,10 +76,9 @@ export const AUTH_METHOD_OPTIONS: AuthMethodOption[] = [
     strategyTitleKey: "strategyPublicTitle",
     strategyDescriptionKey: "strategyPublicDescription",
     strategyHintKey: "strategyPublicHint",
-    accentClassName:
-      "border-emerald-500/24 bg-emerald-500/[0.08] text-emerald-800 dark:text-emerald-200",
-    accentIconClassName:
-      "border-emerald-500/24 bg-emerald-500/[0.12] text-emerald-700 dark:text-emerald-200",
+    accentClassName: "border-foreground bg-muted/45 text-foreground",
+    accentIconClassName: "border-border bg-background text-foreground",
+    badgeVariant: "success",
   },
   {
     value: OAUTH_CLIENT_SECRET_POST_AUTH_METHOD,
@@ -80,20 +88,19 @@ export const AUTH_METHOD_OPTIONS: AuthMethodOption[] = [
     strategyTitleKey: "strategyAdvancedTitle",
     strategyDescriptionKey: "strategyAdvancedDescription",
     strategyHintKey: "strategyAdvancedHint",
-    accentClassName:
-      "border-amber-500/24 bg-amber-500/[0.08] text-amber-800 dark:text-amber-100",
-    accentIconClassName:
-      "border-amber-500/24 bg-amber-500/[0.12] text-amber-700 dark:text-amber-100",
+    accentClassName: "border-foreground bg-muted/45 text-foreground",
+    accentIconClassName: "border-border bg-background text-foreground",
+    badgeVariant: "warning",
   },
 ];
 
 export const SCOPE_OPTIONS = [
   {
-    value: "openid",
+    value: OAUTH_OPENID_SCOPE,
     descriptionKey: "scopeOpenIdDescription",
   },
   {
-    value: "profile",
+    value: OAUTH_PROFILE_SCOPE,
     descriptionKey: "scopeProfileDescription",
   },
   {
@@ -103,23 +110,11 @@ export const SCOPE_OPTIONS = [
 ] as const;
 
 export function getClientTypeBadgeVariant(method: string) {
-  if (method === OAUTH_PUBLIC_CLIENT_AUTH_METHOD) {
-    return "success" as const;
-  }
-  if (method === OAUTH_CLIENT_SECRET_POST_AUTH_METHOD) {
-    return "warning" as const;
-  }
-  return "info" as const;
+  return getAuthMethodOption(method).badgeVariant;
 }
 
 export function getClientTypeLabel(t: OAuthTranslator, method: string) {
-  if (method === OAUTH_PUBLIC_CLIENT_AUTH_METHOD) {
-    return t("clientTypePublic");
-  }
-  if (method === OAUTH_CLIENT_SECRET_POST_AUTH_METHOD) {
-    return t("clientTypeConfidentialPost");
-  }
-  return t("clientTypeConfidentialBasic");
+  return t(getAuthMethodOption(method).labelKey);
 }
 
 export function getScopeInputId(scope: string) {
@@ -140,14 +135,22 @@ export function getAuthMethodOption(value: string) {
   );
 }
 
+export function isTrustedClientAuthMethod(method: string) {
+  return method === OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD;
+}
+
+export function isPublicClientAuthMethod(method: string) {
+  return method === OAUTH_PUBLIC_CLIENT_AUTH_METHOD;
+}
+
 export function getClientPatternDescriptionKey(client: OAuthClientInfo) {
   if (client.isTrusted) {
     return "clientKindTrustedDescription";
   }
-  if (client.tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD) {
+  if (isPublicClientAuthMethod(client.tokenEndpointAuthMethod)) {
     return "clientKindPublicDescription";
   }
   return "clientKindExternalDescription";
 }
 
-export const authMethodLeadIcon = KeyRound;
+export const AuthMethodLeadIcon = KeyRound;

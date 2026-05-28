@@ -1,4 +1,4 @@
-export type AdminCreateOAuthClientInput = {
+type AdminCreateOAuthClientInput = {
   headers: Headers;
   body: {
     client_name: string;
@@ -14,17 +14,17 @@ export type AdminCreateOAuthClientInput = {
   };
 };
 
-export type AdminCreateOAuthClientResult = {
+type AdminCreateOAuthClientResult = {
   client_id: string;
   client_secret?: string | null;
 };
 
-export type OAuthClientPublicResult = {
+type OAuthClientPublicResult = {
   client_id: string;
   client_name?: string | null;
 };
 
-export type OAuthProviderApi = {
+type OAuthProviderApi = {
   adminCreateOAuthClient(
     input: AdminCreateOAuthClientInput,
   ): Promise<AdminCreateOAuthClientResult>;
@@ -34,42 +34,34 @@ export type OAuthProviderApi = {
   }): Promise<OAuthClientPublicResult>;
 };
 
-export type OAuthProviderMetadataAuth = {
+type OAuthProviderMetadataAuth = {
   api: {
     getOAuthServerConfig: (...args: unknown[]) => unknown;
     getOpenIdConfig: (...args: unknown[]) => unknown;
   };
 };
 
-export type GenericOAuthApi = {
+type GenericOAuthApi = {
   signInWithOAuth2(input: {
-    body: {
-      providerId: string;
-      callbackURL: string;
-    };
+    body: { providerId: string; callbackURL: string };
   }): Promise<unknown>;
 };
 
-function asRecord(
-  value: unknown,
-  errorMessage: string,
-): Record<string, unknown> {
-  if (value && typeof value === "object") {
+function asRecord(value: unknown, message: string): Record<string, unknown> {
+  if (value && typeof value === "object")
     return value as Record<string, unknown>;
-  }
-  throw new Error(errorMessage);
+  throw new Error(message);
 }
 
 function requireMethod<TArgs extends unknown[], TReturn>(
   target: Record<string, unknown>,
-  methodName: string,
-  errorMessage: string,
+  label: string,
+  method: string,
 ): (...args: TArgs) => TReturn {
-  const method = target[methodName];
-  if (typeof method !== "function") {
-    throw new Error(errorMessage);
-  }
-  return method.bind(target) as (...args: TArgs) => TReturn;
+  const fn = target[method];
+  if (typeof fn !== "function")
+    throw new Error(`${label} is unavailable: missing ${method}()`);
+  return fn.bind(target) as (...args: TArgs) => TReturn;
 }
 
 export function asOAuthProviderApi(api: unknown): OAuthProviderApi {
@@ -77,17 +69,16 @@ export function asOAuthProviderApi(api: unknown): OAuthProviderApi {
     api,
     "Better Auth OAuth provider API is unavailable: expected an object API surface",
   );
-
   return {
     adminCreateOAuthClient: requireMethod(
       record,
+      "Better Auth OAuth provider API",
       "adminCreateOAuthClient",
-      "Better Auth OAuth provider API is unavailable: missing adminCreateOAuthClient()",
     ),
     getOAuthClientPublic: requireMethod(
       record,
+      "Better Auth OAuth provider API",
       "getOAuthClientPublic",
-      "Better Auth OAuth provider API is unavailable: missing getOAuthClientPublic()",
     ),
   };
 }
@@ -103,18 +94,17 @@ export function asOAuthProviderMetadataAuth(
     authRecord.api,
     "Better Auth OAuth metadata API is unavailable: missing auth.api object",
   );
-
   return {
     api: {
       getOAuthServerConfig: requireMethod(
         apiRecord,
+        "Better Auth OAuth metadata API",
         "getOAuthServerConfig",
-        "Better Auth OAuth metadata API is unavailable: missing getOAuthServerConfig()",
       ),
       getOpenIdConfig: requireMethod(
         apiRecord,
+        "Better Auth OAuth metadata API",
         "getOpenIdConfig",
-        "Better Auth OAuth metadata API is unavailable: missing getOpenIdConfig()",
       ),
     },
   };
@@ -125,12 +115,11 @@ export function asGenericOAuthApi(api: unknown): GenericOAuthApi {
     api,
     "Better Auth generic OAuth API is unavailable: expected an object API surface",
   );
-
   return {
     signInWithOAuth2: requireMethod(
       record,
+      "Better Auth generic OAuth API",
       "signInWithOAuth2",
-      "Better Auth generic OAuth API is unavailable: missing signInWithOAuth2()",
     ),
   };
 }

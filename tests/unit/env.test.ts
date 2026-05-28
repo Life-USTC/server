@@ -9,7 +9,6 @@ describe("env validation", () => {
   it("throws for invalid production environment variables", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("DATABASE_URL", "");
-    vi.stubEnv("JWT_SECRET", "");
     vi.stubEnv("AUTH_SECRET", "");
 
     const { loadEnv } = await import("@/env");
@@ -20,7 +19,6 @@ describe("env validation", () => {
   it("throws for invalid test environment variables", async () => {
     vi.stubEnv("NODE_ENV", "test");
     vi.stubEnv("DATABASE_URL", "");
-    vi.stubEnv("JWT_SECRET", "");
     vi.stubEnv("AUTH_SECRET", "");
 
     const { loadEnv } = await import("@/env");
@@ -32,7 +30,6 @@ describe("env validation", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("NEXT_PHASE", "phase-production-build");
     vi.stubEnv("DATABASE_URL", "");
-    vi.stubEnv("JWT_SECRET", "");
     vi.stubEnv("AUTH_SECRET", "");
 
     const { loadEnv } = await import("@/env");
@@ -45,7 +42,6 @@ describe("env validation", () => {
   it("returns a typed partial environment in development", async () => {
     vi.stubEnv("NODE_ENV", "development");
     vi.stubEnv("DATABASE_URL", "");
-    vi.stubEnv("JWT_SECRET", "");
     vi.stubEnv("AUTH_SECRET", "");
 
     const { loadEnv } = await import("@/env");
@@ -58,25 +54,56 @@ describe("env validation", () => {
   it("shares trimmed env helpers across auth/runtime call sites", async () => {
     vi.stubEnv("NODE_ENV", "development");
     vi.stubEnv("DATABASE_URL", "");
-    vi.stubEnv("JWT_SECRET", "");
     vi.stubEnv("AUTH_SECRET", "");
-    vi.stubEnv("FEATURE_FLAG", " 1 ");
-    vi.stubEnv("FIRST_SECRET", "   ");
     vi.stubEnv("SECOND_SECRET", " value ");
-    vi.stubEnv("USERNAME", " Dev-User ");
 
-    const {
-      getEnvFlag,
-      getFirstOptionalTrimmedEnv,
-      getOptionalLowercaseEnv,
-      getOptionalTrimmedEnv,
-    } = await import("@/env");
+    const { getOptionalTrimmedEnv } = await import("@/env");
 
     expect(getOptionalTrimmedEnv("SECOND_SECRET")).toBe("value");
-    expect(getOptionalLowercaseEnv("USERNAME")).toBe("dev-user");
-    expect(getFirstOptionalTrimmedEnv(["FIRST_SECRET", "SECOND_SECRET"])).toBe(
-      "value",
+  });
+
+  it("leaves logger-only settings out of env validation", async () => {
+    const { loadEnv } = await import("@/env");
+
+    expect(
+      loadEnv({
+        input: {
+          NODE_ENV: "development",
+          LOG_LEVEL: "invalid",
+        },
+      }),
+    ).toEqual({
+      NODE_ENV: "development",
+    });
+  });
+
+  it("keeps storage env scoped to app-read settings", async () => {
+    const { getStorageEnv } = await import("@/env");
+
+    expect(
+      getStorageEnv({
+        S3_BUCKET: " bucket ",
+        AWS_REGION: " us-east-1 ",
+        AWS_ENDPOINT_URL_S3: " http://127.0.0.1:9000 ",
+        AWS_ACCESS_KEY_ID: "sdk-managed",
+        AWS_SECRET_ACCESS_KEY: "sdk-managed",
+        AWS_SESSION_TOKEN: "sdk-managed",
+      }),
+    ).toEqual({
+      S3_BUCKET: "bucket",
+      AWS_REGION: "us-east-1",
+      AWS_ENDPOINT_URL_S3: "http://127.0.0.1:9000",
+    });
+  });
+
+  it("parses upload quota as an exact positive integer", async () => {
+    const { getUploadEnv } = await import("@/env");
+
+    expect(getUploadEnv({ UPLOAD_TOTAL_QUOTA_MB: " 2048 " })).toEqual({
+      UPLOAD_TOTAL_QUOTA_MB: 2048,
+    });
+    expect(() => getUploadEnv({ UPLOAD_TOTAL_QUOTA_MB: "2048mb" })).toThrow(
+      "Invalid upload environment variables",
     );
-    expect(getEnvFlag("FEATURE_FLAG")).toBe(true);
   });
 });

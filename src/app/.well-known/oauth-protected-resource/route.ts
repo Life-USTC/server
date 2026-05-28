@@ -1,5 +1,4 @@
-import { getOAuthProtectedResourceMetadataUrl } from "@/lib/mcp/urls";
-import { createDiscoveryRedirectRoute } from "@/lib/oauth/discovery-metadata";
+import { createOAuthDiscoveryRoute } from "@/lib/oauth/discovery-routes";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +7,6 @@ export const dynamic = "force-dynamic";
  * The canonical RFC 9728 URL is path-specific for resource `/api/mcp`.
  * @response 307
  */
-export const { GET, OPTIONS } = createDiscoveryRedirectRoute(() =>
-  getOAuthProtectedResourceMetadataUrl(),
+export const { GET, OPTIONS } = createOAuthDiscoveryRoute(
+  "protectedResourceAlias",
 );

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
+  OAUTH_CODE_RESPONSE_TYPE,
+  OAUTH_OPENID_SCOPE,
+  OAUTH_PROFILE_SCOPE,
+  OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+} from "@/lib/oauth/constants";
+import {
   asGenericOAuthApi,
   asOAuthProviderApi,
   asOAuthProviderMetadataAuth,
@@ -18,10 +25,10 @@ describe("provider-api guards", () => {
         body: {
           client_name: "Client",
           redirect_uris: ["https://example.com/callback"],
-          token_endpoint_auth_method: "none",
-          grant_types: ["authorization_code"],
-          response_types: ["code"],
-          scope: "openid profile",
+          token_endpoint_auth_method: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+          grant_types: [OAUTH_AUTHORIZATION_CODE_GRANT_TYPE],
+          response_types: [OAUTH_CODE_RESPONSE_TYPE],
+          scope: `${OAUTH_OPENID_SCOPE} ${OAUTH_PROFILE_SCOPE}`,
           require_pkce: true,
           skip_consent: false,
           enable_end_session: false,

@@ -1,3 +1,5 @@
+import { buildSearchParams } from "@/lib/navigation/search-params";
+
 type SignInSearchParams = {
   callbackUrl?: string;
   error?: string;
@@ -20,6 +22,14 @@ export function buildSignInPageUrl(callbackUrl: string) {
   return `/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`;
 }
 
+export function buildCurrentPathCallbackUrl(
+  pathname: string,
+  searchParams?: { toString(): string } | null,
+) {
+  const queryString = searchParams?.toString();
+  return queryString ? `${pathname}?${queryString}` : pathname;
+}
+
 export function buildSignInRedirectUrl(
   options: AuthRedirectOptions = {},
   fallbackUrl = "/",
@@ -32,15 +42,14 @@ export function resolveSignInCallbackUrl(params: SignInSearchParams): string {
     return params.callbackUrl;
   }
 
-  const authorizeQuery = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (key === "callbackUrl" || key === "error") {
-      continue;
-    }
-    if (typeof value === "string" && value.length > 0) {
-      authorizeQuery.set(key, value);
-    }
-  }
+  const {
+    callbackUrl: _callbackUrl,
+    error: _error,
+    ...continuationParams
+  } = params;
+  const authorizeQuery = new URLSearchParams(
+    buildSearchParams({ values: continuationParams }),
+  );
 
   if (!authorizeQuery.has("client_id") || !authorizeQuery.has("redirect_uri")) {
     return "/";
@@ -49,7 +58,7 @@ export function resolveSignInCallbackUrl(params: SignInSearchParams): string {
   return `/oauth/authorize?${authorizeQuery.toString()}`;
 }
 
-export function isOAuthCallbackContinuation(url: URL): boolean {
+function isOAuthCallbackContinuation(url: URL): boolean {
   const hasState = url.searchParams.has("state");
   const hasResult =
     url.searchParams.has("code") || url.searchParams.has("error");

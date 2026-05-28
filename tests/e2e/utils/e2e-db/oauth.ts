@@ -1,4 +1,13 @@
 import { prisma } from "@/lib/db/prisma";
+import {
+  DEFAULT_OAUTH_CLIENT_SCOPES,
+  OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
+  OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD,
+  OAUTH_CODE_RESPONSE_TYPE,
+  OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+  OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+  type SupportedOAuthClientAuthMethod,
+} from "@/lib/oauth/constants";
 import { generateToken, PLAYWRIGHT_BASE_URL } from "./core";
 
 export async function createOAuthClientFixture(
@@ -9,17 +18,14 @@ export async function createOAuthClientFixture(
     grantTypes?: string[];
     clientId?: string;
     clientSecret?: string;
-    tokenEndpointAuthMethod?:
-      | "client_secret_basic"
-      | "client_secret_post"
-      | "none";
+    tokenEndpointAuthMethod?: SupportedOAuthClientAuthMethod;
   } = {},
 ) {
   const clientId = options.clientId ?? generateToken(16);
   const tokenEndpointAuthMethod =
-    options.tokenEndpointAuthMethod ?? "client_secret_basic";
+    options.tokenEndpointAuthMethod ?? OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD;
   const clientSecret =
-    tokenEndpointAuthMethod === "none"
+    tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD
       ? null
       : (options.clientSecret ?? generateToken(24));
   const publicClientStoredSecret = generateToken(24);
@@ -28,10 +34,10 @@ export async function createOAuthClientFixture(
   ];
   const grantTypes =
     options.grantTypes ??
-    (tokenEndpointAuthMethod === "none"
-      ? ["authorization_code"]
-      : ["authorization_code", "refresh_token"]);
-  const scopes = options.scopes ?? ["openid", "profile"];
+    (tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD
+      ? [OAUTH_AUTHORIZATION_CODE_GRANT_TYPE]
+      : [OAUTH_AUTHORIZATION_CODE_GRANT_TYPE, OAUTH_REFRESH_TOKEN_GRANT_TYPE]);
+  const scopes = options.scopes ?? [...DEFAULT_OAUTH_CLIENT_SCOPES];
   const name = options.name ?? `e2e-oauth-${Date.now()}`;
 
   const client = await prisma.oAuthClient.create({
@@ -39,16 +45,19 @@ export async function createOAuthClientFixture(
       name,
       clientId,
       clientSecret:
-        tokenEndpointAuthMethod === "none"
+        tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD
           ? publicClientStoredSecret
           : clientSecret,
       redirectUris,
-      type: tokenEndpointAuthMethod === "none" ? "public" : "web",
+      type:
+        tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD
+          ? "public"
+          : "web",
       tokenEndpointAuthMethod,
       disabled: false,
       scopes,
       grantTypes,
-      responseTypes: ["code"],
+      responseTypes: [OAUTH_CODE_RESPONSE_TYPE],
       requirePKCE: true,
       metadata: { source: "e2e_fixture" },
     },
@@ -65,7 +74,7 @@ export async function createOAuthClientFixture(
   return {
     ...client,
     tokenEndpointAuthMethod:
-      client.tokenEndpointAuthMethod ?? "client_secret_basic",
+      client.tokenEndpointAuthMethod ?? OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD,
     clientSecret,
   };
 }

@@ -1,5 +1,4 @@
-import { getOAuthAuthorizationServerMetadataUrl } from "@/lib/mcp/urls";
-import { createDiscoveryRedirectRoute } from "@/lib/oauth/discovery-metadata";
+import { createOAuthDiscoveryRoute } from "@/lib/oauth/discovery-routes";
 export const dynamic = "force-dynamic";
 
 /**
@@ -7,6 +6,4 @@ export const dynamic = "force-dynamic";
  * The canonical metadata URL for issuer `/api/auth` is path-specific.
  * @response 307
  */
-export const { GET, OPTIONS } = createDiscoveryRedirectRoute(() =>
-  getOAuthAuthorizationServerMetadataUrl(),
-);
+export const { GET, OPTIONS } = createOAuthDiscoveryRoute("authServerAlias");
