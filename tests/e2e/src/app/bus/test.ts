@@ -116,15 +116,12 @@ test.describe("bus dashboard tab", () => {
       }
       await expect(startWestButton).toHaveAttribute("aria-pressed", "true");
       await expect(endEastButton).toHaveAttribute("aria-pressed", "true");
-      await expect(routeSectionRows(page)).toHaveCount(2);
+      await expect(routeSectionRows(page)).toHaveCount(1);
     }).toPass({
       timeout: 10_000,
       intervals: [250, 500, 1_000],
     });
     await expect(routeSectionRows(page).first()).toContainText(
-      "西区 -> 北区 -> 东区",
-    );
-    await expect(routeSectionRows(page).nth(1)).toContainText(
       "高新 -> 先研院 -> 西区 -> 东区",
     );
 
@@ -174,6 +171,10 @@ test.describe("bus dashboard tab", () => {
       testInfo,
       screenshotLabel: "bus",
     });
+
+    await page
+      .getByRole("button", { name: /Show departed trips|显示已发车班次/ })
+      .click();
 
     await page
       .getByRole("button", { name: /Weekday|工作日/ })

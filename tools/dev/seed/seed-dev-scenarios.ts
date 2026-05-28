@@ -40,9 +40,6 @@ const DEV_BUILDING_JW_ID = DEV_SCENARIO_IDS.buildingJwId;
 const DEV_ROOM_JW_ID = DEV_SCENARIO_IDS.roomJwId;
 const DEV_TEACHER_TITLE_JW_ID = DEV_SCENARIO_IDS.teacherTitleJwId;
 const DEV_TEACHER_LESSON_TYPE_JW_ID = DEV_SCENARIO_IDS.teacherLessonTypeJwId;
-const DEV_BUS_VERSION_KEY = DEV_SEED.bus.versionKey;
-const STATIC_BUS_VERSION_KEY = "static-bus-structured";
-
 const DEV_BUS_PAYLOAD: BusStaticPayload = {
   campuses: [
     { id: 1, name: "东区", latitude: 117.268264, longitude: 31.83892 },
@@ -252,27 +249,6 @@ function toWeekday(date: Date) {
 }
 
 async function resolveDevBusSeed(): Promise<DevBusSeed> {
-  if (DEV_BUS_VERSION_KEY === STATIC_BUS_VERSION_KEY) {
-    const importedStaticVersion = await prisma.busScheduleVersion.findUnique({
-      where: { key: STATIC_BUS_VERSION_KEY },
-      select: {
-        rawJson: true,
-        title: true,
-        effectiveFrom: true,
-        effectiveUntil: true,
-      },
-    });
-
-    if (importedStaticVersion) {
-      return {
-        payload: importedStaticVersion.rawJson as unknown as BusStaticPayload,
-        versionTitle: importedStaticVersion.title,
-        effectiveFrom: importedStaticVersion.effectiveFrom,
-        effectiveUntil: importedStaticVersion.effectiveUntil,
-      };
-    }
-  }
-
   return {
     payload: DEV_BUS_PAYLOAD,
     versionTitle: DEV_SEED.bus.versionTitle,
@@ -1481,7 +1457,7 @@ async function main() {
   });
 
   await importBusStaticPayload(prisma, busSeed.payload, {
-    versionKey: DEV_BUS_VERSION_KEY,
+    versionKey: DEV_SEED.bus.versionKey,
     versionTitle: busSeed.versionTitle,
     effectiveFrom: busSeed.effectiveFrom,
     effectiveUntil: busSeed.effectiveUntil,

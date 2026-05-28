@@ -64,9 +64,7 @@ test.describe("GET /api/bus", () => {
       ),
     ).toBe(true);
     const routeIds = body.routes?.map((route) => route.id).sort() ?? [];
-    expect(routeIds).toEqual(
-      expect.arrayContaining([1, 2, 3, 4, 5, 6, 7, 8, 11, 12]),
-    );
+    expect(routeIds).toEqual(expect.arrayContaining([1, 3, 7, 8]));
 
     const weekdayTrips =
       body.trips?.filter((trip) => trip.dayType === "weekday").length ?? 0;
@@ -124,16 +122,7 @@ test.describe("GET /api/bus", () => {
       .filter(Boolean)
       .sort();
 
-    expect(route8WeekdayDepartures).toEqual([
-      "06:50",
-      "08:00",
-      "12:50",
-      "14:30",
-      "16:00",
-      "18:30",
-      "21:20",
-      "22:05",
-    ]);
+    expect(route8WeekdayDepartures).toEqual(["06:50", "12:50", "21:20"]);
   });
 
   test("route topology matches the seed data", async ({ request }) => {

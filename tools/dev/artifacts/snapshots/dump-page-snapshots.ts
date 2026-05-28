@@ -200,6 +200,15 @@ async function performSnapshotAction(page: Page, action: PageSnapshotAction) {
     return;
   }
 
+  const homeworkDetailTrigger = page
+    .locator('[id^="homework-"] button[aria-expanded]')
+    .first();
+  await expect(homeworkDetailTrigger).toBeVisible({ timeout: 10_000 });
+  await homeworkDetailTrigger.click();
+  await expect(page.locator('[data-slot="dialog-popup"]').first()).toBeVisible({
+    timeout: 10_000,
+  });
+
   const editButton = page
     .getByRole("button", { name: /编辑信息|Edit details/i })
     .first();
