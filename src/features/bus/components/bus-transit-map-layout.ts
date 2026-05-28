@@ -206,8 +206,30 @@ export function routeColor(routeId: number, allIds: number[]): string {
   return ROUTE_PALETTE[idx >= 0 ? idx % ROUTE_PALETTE.length : 0];
 }
 
-export function labelOffset(pos: Pos): { dy: number } {
-  return pos.y < SVG_H / 2 ? { dy: NODE_R + 18 } : { dy: -(NODE_R + 8) };
+type LabelOffset = {
+  dx: number;
+  dy: number;
+  textAnchor: "start" | "middle" | "end";
+};
+
+export function labelOffset(pos: Pos, label?: string): LabelOffset {
+  if (label?.includes("东区")) {
+    return { dx: NODE_R + 14, dy: 6, textAnchor: "start" };
+  }
+
+  if (label?.includes("南区")) {
+    return { dx: -(NODE_R + 14), dy: 6, textAnchor: "end" };
+  }
+
+  if (label?.includes("先研院") || label?.includes("高新")) {
+    return { dx: -(NODE_R + 14), dy: 6, textAnchor: "end" };
+  }
+
+  return {
+    dx: 0,
+    dy: pos.y < SVG_H / 2 ? NODE_R + 18 : -(NODE_R + 8),
+    textAnchor: "middle",
+  };
 }
 
 export function hhmmToMin(t: string | null): number | null {

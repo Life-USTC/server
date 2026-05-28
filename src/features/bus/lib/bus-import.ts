@@ -7,6 +7,13 @@ import type {
   BusStaticRouteSchedule,
 } from "./bus-types";
 
+const SEASON_START_MONTH = {
+  春: 2,
+  夏: 6,
+  秋: 9,
+  冬: 12,
+} as const;
+
 function checksumPayload(payload: BusStaticPayload) {
   return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
 }
@@ -48,10 +55,9 @@ function inferEffectiveFrom(
   const yearSeason = message?.match(/(\d{4})\s*([春夏秋冬])/);
   if (!yearSeason) return null;
 
-  const year = Number.parseInt(yearSeason[1], 10);
-  const season = yearSeason[2];
-  const month =
-    season === "春" ? 2 : season === "夏" ? 6 : season === "秋" ? 9 : 12;
+  const year = Number(yearSeason[1]);
+  const season = yearSeason[2] as keyof typeof SEASON_START_MONTH;
+  const month = SEASON_START_MONTH[season];
 
   return new Date(Date.UTC(year, month - 1, 1));
 }

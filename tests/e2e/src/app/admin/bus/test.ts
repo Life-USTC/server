@@ -27,6 +27,7 @@ import {
   signInAsDevAdmin,
 } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
@@ -47,16 +48,16 @@ test("/admin/bus displays all required version fields", async ({
   await signInAsDevAdmin(page, "/admin/bus");
 
   // Heading
-  await expect(page.getByText(/Versions|时刻表版本/).first()).toBeVisible();
+  await expect(visibleText(page, /Versions|时刻表版本/)).toBeVisible();
 
   // version title (admin.yml bus-management.display.fields)
-  await expect(page.getByText(DEV_SEED.bus.versionTitle).first()).toBeVisible();
+  await expect(visibleText(page, DEV_SEED.bus.versionTitle)).toBeVisible();
   // version key
-  await expect(page.getByText(DEV_SEED.bus.versionKey).first()).toBeVisible();
+  await expect(visibleText(page, DEV_SEED.bus.versionKey)).toBeVisible();
   // importedAt — date/time text (e.g. "2026-05-06 21:07")
-  await expect(page.getByText(/\d{4}-\d{2}-\d{2}/).first()).toBeVisible();
+  await expect(visibleText(page, /\d{4}-\d{2}-\d{2}/)).toBeVisible();
   // enabled status — "Active" in English, "启用" in Chinese
-  await expect(page.getByText(/Active|启用/i).first()).toBeVisible();
+  await expect(visibleText(page, /Active|启用/i)).toBeVisible();
 
   await captureStepScreenshot(page, testInfo, "admin-bus/version-fields");
 });
