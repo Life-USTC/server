@@ -1,8 +1,12 @@
 import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { prisma } from "@/lib/db/prisma";
+import { toDateTimeFromHHmm } from "@/lib/mcp/tools/_helpers";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
-import { formatShanghaiDate } from "@/lib/time/shanghai-format";
+import {
+  addShanghaiTime,
+  startOfShanghaiDay,
+} from "@/lib/time/shanghai-format";
 import {
   getSubscribedSectionIds,
   listSubscribedExams,
@@ -10,26 +14,8 @@ import {
   listSubscribedSchedules,
 } from "./subscription-read-model";
 
-function startOfShanghaiDay(date: Date) {
-  return new Date(`${formatShanghaiDate(date)}T00:00:00+08:00`);
-}
-
-function addDays(date: Date, days: number) {
-  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
-}
-
-function toDateTimeFromHHmm(baseDate: Date | null, hhmm: number | null) {
-  if (!baseDate) return null;
-
-  const hours = hhmm ? Math.trunc(hhmm / 100) : 0;
-  const minutes = hhmm ? hhmm % 100 : 0;
-  return new Date(
-    `${formatShanghaiDate(baseDate)}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00+08:00`,
-  );
-}
-
 function endOfCalendarDateWindow(windowEnd: Date) {
-  return addDays(startOfShanghaiDay(windowEnd), 1);
+  return addShanghaiTime(startOfShanghaiDay(windowEnd), 1, "day");
 }
 
 function isWithinExactWindow(
@@ -98,8 +84,8 @@ export async function listUserCalendarEvents(
     : startOfShanghaiDay(new Date());
   const windowEnd =
     dateTo && dateToIsDateOnly
-      ? addDays(startOfShanghaiDay(dateTo), 1)
-      : (dateTo ?? addDays(windowStart, 7));
+      ? addShanghaiTime(startOfShanghaiDay(dateTo), 1, "day")
+      : (dateTo ?? addShanghaiTime(windowStart, 7, "day"));
   const includeWindowEnd = Boolean(
     dateTo && dateToInclusive && !dateToIsDateOnly,
   );
@@ -187,7 +173,7 @@ export async function listUserCalendarEvents(
       const filterEnd =
         endsAt ??
         (exam.examDate && exam.startTime === null
-          ? addDays(startOfShanghaiDay(exam.examDate), 1)
+          ? addShanghaiTime(startOfShanghaiDay(exam.examDate), 1, "day")
           : null);
       return {
         type: "exam" as const,

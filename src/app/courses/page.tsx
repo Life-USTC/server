@@ -3,6 +3,14 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { ClickableTableRow } from "@/components/clickable-table-row";
 import { DataState } from "@/components/data-state";
 import {
+  MobileList,
+  MobileListCard,
+  MobileListCardBody,
+  MobileListCardDescription,
+  MobileListCardMeta,
+  MobileListCardTitle,
+} from "@/components/mobile-list-card";
+import {
   PageBreadcrumbs,
   PageLayout,
   PageMeta,
@@ -18,6 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { parseInteger } from "@/lib/api/request-integers";
 import { buildCourseListWhere } from "@/lib/course-section-queries";
 import { getPrisma } from "@/lib/db/prisma";
 import { buildSearchParams } from "@/lib/navigation/search-params";
@@ -34,6 +43,7 @@ async function fetchCourses(
 ) {
   return paginatedCourseQuery(
     page,
+    undefined,
     buildCourseListWhere({
       search,
       educationLevelId,
@@ -86,17 +96,15 @@ export default async function CoursesPage({
     educationLevelId?: string;
     categoryId?: string;
     classTypeId?: string;
-    view?: string;
   }>;
 }) {
   const locale = await getLocale();
   const searchP = await searchParams;
-  const page = parseInt(searchP.page || "1", 10);
+  const page = parseInteger(searchP.page) ?? 1;
   const search = searchP.search;
   const educationLevelId = searchP.educationLevelId;
   const categoryId = searchP.categoryId;
   const classTypeId = searchP.classTypeId;
-  const view = searchP.view || "table";
 
   const [data, filterOptions, t, tCommon] = await Promise.all([
     fetchCourses(
@@ -122,7 +130,6 @@ export default async function CoursesPage({
         educationLevelId,
         categoryId,
         classTypeId,
-        view: view !== "table" ? view : "",
         page: page > 1 ? String(page) : "",
       },
     });
@@ -167,60 +174,102 @@ export default async function CoursesPage({
           emptyTitle={t("noCoursesFound")}
           emptyDescription={search ? t("searchFor", { query: search }) : null}
         >
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("courseName")}</TableHead>
-                <TableHead>{t("courseCode")}</TableHead>
-                <TableHead>{t("educationLevel")}</TableHead>
-                <TableHead>{t("category")}</TableHead>
-                <TableHead>{t("classType")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {courses.map((course) => (
-                <ClickableTableRow
-                  key={course.jwId}
-                  href={`/courses/${course.jwId}`}
-                >
-                  <TableCell>
+          <MobileList>
+            {courses.map((course) => (
+              <MobileListCard
+                key={course.jwId}
+                href={`/courses/${course.jwId}`}
+              >
+                <MobileListCardBody>
+                  <MobileListCardTitle>
                     {course.namePrimary}
-                    {course.nameSecondary ? (
-                      <div className="text-muted-foreground text-xs">
-                        {course.nameSecondary}
-                      </div>
-                    ) : null}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="font-mono">
-                      {course.code}
+                  </MobileListCardTitle>
+                  {course.nameSecondary ? (
+                    <MobileListCardDescription>
+                      {course.nameSecondary}
+                    </MobileListCardDescription>
+                  ) : null}
+                </MobileListCardBody>
+                <MobileListCardMeta>
+                  <Badge variant="outline" className="font-mono">
+                    {course.code}
+                  </Badge>
+                  {course.educationLevel ? (
+                    <Badge variant="outline">
+                      {course.educationLevel.namePrimary}
                     </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {course.educationLevel ? (
-                      <Badge variant="outline">
-                        {course.educationLevel.namePrimary}
+                  ) : null}
+                  {course.category ? (
+                    <Badge variant="outline">
+                      {course.category.namePrimary}
+                    </Badge>
+                  ) : null}
+                  {course.classType ? (
+                    <Badge variant="outline">
+                      {course.classType.namePrimary}
+                    </Badge>
+                  ) : null}
+                </MobileListCardMeta>
+              </MobileListCard>
+            ))}
+          </MobileList>
+
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("courseName")}</TableHead>
+                  <TableHead>{t("courseCode")}</TableHead>
+                  <TableHead>{t("educationLevel")}</TableHead>
+                  <TableHead>{t("category")}</TableHead>
+                  <TableHead>{t("classType")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {courses.map((course) => (
+                  <ClickableTableRow
+                    key={course.jwId}
+                    href={`/courses/${course.jwId}`}
+                  >
+                    <TableCell>
+                      {course.namePrimary}
+                      {course.nameSecondary ? (
+                        <div className="text-muted-foreground text-xs">
+                          {course.nameSecondary}
+                        </div>
+                      ) : null}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="font-mono">
+                        {course.code}
                       </Badge>
-                    ) : null}
-                  </TableCell>
-                  <TableCell>
-                    {course.category ? (
-                      <Badge variant="outline">
-                        {course.category.namePrimary}
-                      </Badge>
-                    ) : null}
-                  </TableCell>
-                  <TableCell>
-                    {course.classType ? (
-                      <Badge variant="outline">
-                        {course.classType.namePrimary}
-                      </Badge>
-                    ) : null}
-                  </TableCell>
-                </ClickableTableRow>
-              ))}
-            </TableBody>
-          </Table>
+                    </TableCell>
+                    <TableCell>
+                      {course.educationLevel ? (
+                        <Badge variant="outline">
+                          {course.educationLevel.namePrimary}
+                        </Badge>
+                      ) : null}
+                    </TableCell>
+                    <TableCell>
+                      {course.category ? (
+                        <Badge variant="outline">
+                          {course.category.namePrimary}
+                        </Badge>
+                      ) : null}
+                    </TableCell>
+                    <TableCell>
+                      {course.classType ? (
+                        <Badge variant="outline">
+                          {course.classType.namePrimary}
+                        </Badge>
+                      ) : null}
+                    </TableCell>
+                  </ClickableTableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </DataState>
       </PageSection>
 

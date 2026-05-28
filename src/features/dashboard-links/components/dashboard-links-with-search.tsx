@@ -5,6 +5,8 @@ import {
   Building,
   ClipboardList,
   GraduationCap,
+  LayoutGrid,
+  List,
   Mail,
   MonitorPlay,
   Network,
@@ -19,36 +21,35 @@ import {
   useDeferredValue,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
-import { DashboardTabToolbar } from "@/components/filters/dashboard-tab-toolbar";
+import {
+  DashboardTabToolbar,
+  DashboardTabToolbarGroup,
+  dashboardTabToolbarItemClass,
+} from "@/components/filters/dashboard-tab-toolbar";
 import { FiltersBarSearch } from "@/components/filters/filters-bar";
 import { Button } from "@/components/ui/button";
 import type { DashboardLinkSummary } from "@/features/home/server/dashboard-link-data";
 import { useToast } from "@/hooks/use-toast";
 import { usePathname, useRouter } from "@/i18n/routing";
+import { cn } from "@/lib/utils";
 import type {
   DashboardLinkGroup,
   DashboardLinkIcon,
 } from "../lib/dashboard-links";
 
-type SearchShortcutHint = {
-  modifier: "Cmd" | "Ctrl";
-  key: "K";
-};
+type LinkViewMode = "grid" | "list";
 
-function resolveSearchShortcutHint(): SearchShortcutHint | null {
-  if (typeof navigator === "undefined") return null;
+const LINK_VIEW_MODE_PARAM = "linkView";
+const LINK_VIEW_MODE_STORAGE_KEY = "life-ustc-dashboard-links-view-mode";
 
-  const normalizedPlatform = (navigator.platform ?? "").toLowerCase();
-  const normalizedUserAgent = (navigator.userAgent ?? "").toLowerCase();
+function normalizeLinkViewMode(value: string | null): LinkViewMode {
+  return value === "list" ? "list" : "grid";
+}
 
-  return /mac|iphone|ipad|ipod/.test(
-    `${normalizedPlatform} ${normalizedUserAgent}`,
-  )
-    ? { modifier: "Cmd", key: "K" }
-    : { modifier: "Ctrl", key: "K" };
+function isLinkViewMode(value: string | null): value is LinkViewMode {
+  return value === "grid" || value === "list";
 }
 
 const ICON_MAP: Record<DashboardLinkIcon, typeof BookOpen> = {
@@ -134,17 +135,39 @@ export function DashboardLinksWithSearch({
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [linksState, setLinksState] = useState(groupedLinks);
   const [updatingSlug, setUpdatingSlug] = useState<string | null>(null);
-  const [searchShortcutHint, setSearchShortcutHint] =
-    useState<SearchShortcutHint | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [linkViewMode, setLinkViewMode] = useState<LinkViewMode>(() =>
+    showSearch
+      ? normalizeLinkViewMode(searchParams.get(LINK_VIEW_MODE_PARAM))
+      : "grid",
+  );
 
   useEffect(() => {
     setLinksState(groupedLinks);
   }, [groupedLinks]);
 
   useEffect(() => {
-    setSearchShortcutHint(resolveSearchShortcutHint());
-  }, []);
+    if (!showSearch) return;
+
+    const viewModeParam = searchParams.get(LINK_VIEW_MODE_PARAM);
+    if (isLinkViewMode(viewModeParam)) {
+      setLinkViewMode(viewModeParam);
+      window.localStorage.setItem(LINK_VIEW_MODE_STORAGE_KEY, viewModeParam);
+      return;
+    }
+
+    const cachedViewMode = window.localStorage.getItem(
+      LINK_VIEW_MODE_STORAGE_KEY,
+    );
+    if (isLinkViewMode(cachedViewMode)) {
+      setLinkViewMode(cachedViewMode);
+      return;
+    }
+
+    if (cachedViewMode !== null) {
+      window.localStorage.removeItem(LINK_VIEW_MODE_STORAGE_KEY);
+    }
+    setLinkViewMode("grid");
+  }, [searchParams, showSearch]);
 
   useEffect(() => {
     if (searchParams.get("dashboardLinkPinError") !== "1") {
@@ -169,6 +192,11 @@ export function DashboardLinksWithSearch({
     () => filterGroupedBySearch(linksState, deferredSearchQuery),
     [deferredSearchQuery, linksState],
   );
+  const pinReturnTo = useMemo(() => {
+    if (!showSearch) return returnTo;
+    const query = searchParams.toString();
+    return query ? `${pathname}?${query}` : pathname;
+  }, [pathname, returnTo, searchParams, showSearch]);
 
   const handlePinSubmit = useCallback(
     async (slug: string, nextAction: "pin" | "unpin") => {
@@ -177,7 +205,7 @@ export function DashboardLinksWithSearch({
         const formData = new FormData();
         formData.set("slug", slug);
         formData.set("action", nextAction);
-        formData.set("returnTo", returnTo);
+        formData.set("returnTo", pinReturnTo);
 
         const response = await fetch("/api/dashboard-links/pin", {
           method: "POST",
@@ -224,24 +252,27 @@ export function DashboardLinksWithSearch({
         setUpdatingSlug(null);
       }
     },
-    [returnTo, t, toast],
+    [pinReturnTo, t, toast],
   );
 
-  const focusSearch = useCallback(() => {
-    inputRef.current?.focus();
-  }, []);
+  const handleViewModeChange = useCallback(
+    (mode: LinkViewMode) => {
+      setLinkViewMode(mode);
+      window.localStorage.setItem(LINK_VIEW_MODE_STORAGE_KEY, mode);
 
-  useEffect(() => {
-    if (!showSearch) return;
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        focusSearch();
+      const nextParams = new URLSearchParams(searchParams.toString());
+      if (mode === "grid") {
+        nextParams.delete(LINK_VIEW_MODE_PARAM);
+      } else {
+        nextParams.set(LINK_VIEW_MODE_PARAM, mode);
       }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [showSearch, focusSearch]);
+      const nextQuery = nextParams.toString();
+      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
+        scroll: false,
+      });
+    },
+    [pathname, router, searchParams],
+  );
 
   return (
     <div className="space-y-4">
@@ -249,24 +280,46 @@ export function DashboardLinksWithSearch({
         <DashboardTabToolbar>
           <FiltersBarSearch
             className="sm:max-w-xl"
-            inputRef={inputRef}
             ariaLabel={t("linkHub.searchPlaceholder")}
             placeholder={t("linkHub.searchPlaceholder")}
             value={searchQuery}
             onChange={setSearchQuery}
-            endAddon={
-              searchShortcutHint ? (
-                <span className="inline-flex items-center gap-1 text-muted-foreground">
-                  <kbd className="inline-flex h-6 items-center rounded-md border border-border/60 bg-background/90 px-1.5 font-medium font-sans text-[11px] leading-none shadow-[0_1px_1px_rgba(15,23,42,0.04)]">
-                    {searchShortcutHint.modifier}
-                  </kbd>
-                  <kbd className="inline-flex h-6 min-w-6 items-center justify-center rounded-md border border-border/60 bg-background/90 px-1.5 font-medium font-sans text-[11px] leading-none shadow-[0_1px_1px_rgba(15,23,42,0.04)]">
-                    {searchShortcutHint.key}
-                  </kbd>
-                </span>
-              ) : null
-            }
           />
+          <DashboardTabToolbarGroup aria-label={t("linkHub.viewMode")}>
+            {(
+              [
+                {
+                  mode: "grid" as const,
+                  label: t("linkHub.gridView"),
+                  icon: LayoutGrid,
+                },
+                {
+                  mode: "list" as const,
+                  label: t("linkHub.listView"),
+                  icon: List,
+                },
+              ] satisfies {
+                mode: LinkViewMode;
+                label: string;
+                icon: typeof LayoutGrid;
+              }[]
+            ).map(({ mode, label, icon: Icon }) => (
+              <button
+                key={mode}
+                type="button"
+                className={dashboardTabToolbarItemClass(
+                  linkViewMode === mode,
+                  "inline-flex items-center gap-2",
+                )}
+                aria-pressed={linkViewMode === mode}
+                title={label}
+                onClick={() => handleViewModeChange(mode)}
+              >
+                <Icon className="h-4 w-4" />
+                <span>{label}</span>
+              </button>
+            ))}
+          </DashboardTabToolbarGroup>
         </DashboardTabToolbar>
       )}
       {filteredGroups.map((entry) => (
@@ -279,7 +332,13 @@ export function DashboardLinksWithSearch({
               {entry.label}
             </h3>
           ) : null}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <div
+            className={cn(
+              linkViewMode === "grid"
+                ? "grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+                : "divide-y divide-border/70 overflow-hidden rounded-xl border border-border/70 bg-card/72",
+            )}
+          >
             {entry.links.map((link) => {
               const Icon = ICON_MAP[link.icon];
               const pinLabel = link.isPinned
@@ -288,7 +347,11 @@ export function DashboardLinksWithSearch({
               return (
                 <div
                   key={link.slug}
-                  className="group relative min-w-0 overflow-hidden rounded-xl border border-border/70 bg-card/72 transition-colors hover:bg-background/90"
+                  className={cn(
+                    "group relative min-w-0 overflow-hidden transition-colors hover:bg-background/90",
+                    linkViewMode === "grid" &&
+                      "rounded-xl border border-border/70 bg-card/72",
+                  )}
                 >
                   <form
                     action="/api/dashboard-links/visit"
@@ -299,17 +362,66 @@ export function DashboardLinksWithSearch({
                     <input type="hidden" name="slug" value={link.slug} />
                     <button
                       type="submit"
-                      className="flex min-h-24 w-full flex-col justify-between gap-3 px-3.5 py-3 text-left no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className={cn(
+                        "w-full text-left no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                        linkViewMode === "grid"
+                          ? "flex min-h-20 flex-col justify-between gap-2.5 px-3 py-2.5"
+                          : "flex min-h-12 items-center gap-2.5 px-3 py-2",
+                        allowPinning &&
+                          (linkViewMode === "grid" ? "pr-12" : "pr-14"),
+                      )}
                     >
-                      <div className="flex items-start gap-3">
-                        <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-background/85 text-primary">
-                          <Icon className="h-4 w-4" />
+                      <div
+                        className={cn(
+                          "flex gap-3",
+                          linkViewMode === "grid"
+                            ? "items-start"
+                            : "items-center",
+                          linkViewMode === "list" && "w-full",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "inline-flex shrink-0 items-center justify-center border border-border/60 bg-background/85 text-primary",
+                            linkViewMode === "grid"
+                              ? "size-8 rounded-md"
+                              : "size-7 rounded-md",
+                          )}
+                        >
+                          <Icon
+                            className={
+                              linkViewMode === "grid"
+                                ? "h-4 w-4"
+                                : "h-3.5 w-3.5"
+                            }
+                          />
                         </span>
-                        <div className="min-w-0 space-y-1">
-                          <p className="line-clamp-2 font-medium text-sm leading-5">
+                        <div
+                          className={cn(
+                            "min-w-0",
+                            linkViewMode === "grid"
+                              ? "space-y-1"
+                              : "flex-1 space-y-0.5 sm:grid sm:grid-cols-[minmax(10rem,16rem)_1fr] sm:items-center sm:gap-4 sm:space-y-0",
+                          )}
+                        >
+                          <p
+                            className={cn(
+                              "break-words font-medium text-sm",
+                              linkViewMode === "grid"
+                                ? "line-clamp-2 leading-5"
+                                : "line-clamp-1 leading-4.5",
+                            )}
+                          >
                             {link.title}
                           </p>
-                          <p className="line-clamp-2 text-muted-foreground text-xs leading-5">
+                          <p
+                            className={cn(
+                              "break-words text-muted-foreground",
+                              linkViewMode === "grid"
+                                ? "line-clamp-1 text-xs leading-4.5"
+                                : "line-clamp-1 text-xs leading-4.5",
+                            )}
+                          >
                             {link.description}
                           </p>
                         </div>
@@ -327,10 +439,21 @@ export function DashboardLinksWithSearch({
                           link.isPinned ? "unpin" : "pin",
                         );
                       }}
-                      className={`pointer-events-auto absolute top-2 right-2 opacity-100 transition-opacity ${link.isPinned ? "" : "md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100"}`}
+                      className={cn(
+                        "pointer-events-auto absolute right-2 opacity-100 transition-opacity",
+                        linkViewMode === "grid"
+                          ? "top-2"
+                          : "top-1/2 -translate-y-1/2",
+                        !link.isPinned &&
+                          "md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100",
+                      )}
                     >
                       <input type="hidden" name="slug" value={link.slug} />
-                      <input type="hidden" name="returnTo" value={returnTo} />
+                      <input
+                        type="hidden"
+                        name="returnTo"
+                        value={pinReturnTo}
+                      />
                       <input
                         type="hidden"
                         name="action"

@@ -41,7 +41,7 @@ import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
 import {
   uploadDeleteResponseSchema,
   uploadRenameResponseSchema,
-} from "@/lib/api/schemas";
+} from "@/lib/api/schemas/response-schemas";
 import { logClientError } from "@/lib/log/app-logger";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import { cn } from "@/lib/utils";

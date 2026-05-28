@@ -16,7 +16,7 @@ import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
 import {
   adminCommentsResponseSchema,
   adminDescriptionsResponseSchema,
-} from "@/lib/api/schemas";
+} from "@/lib/api/schemas/response-schemas";
 import { logClientError } from "@/lib/log/app-logger";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import {

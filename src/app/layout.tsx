@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans, JetBrains_Mono, Noto_Sans_SC } from "next/font/google";
 import { headers } from "next/headers";
 import Script from "next/script";
 import { NextIntlClientProvider } from "next-intl";
@@ -13,25 +12,60 @@ import { UserMenu } from "@/components/user-menu";
 import { getCanonicalOrigin } from "@/lib/site-url";
 import "./globals.css";
 
-const ibmPlexSans = IBM_Plex_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  variable: "--font-sans",
-});
+type FontClassNames = {
+  sans: string;
+  fallback: string;
+  mono: string;
+};
 
-const notoSansSc = Noto_Sans_SC({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  variable: "--font-sans-fallback",
-});
+let fontClassNamesCache: FontClassNames = {
+  sans: "",
+  fallback: "",
+  mono: "",
+};
+let fontClassNamesLoaded = false;
 
-const jetBrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-mono",
-});
+async function getFontClassNames(): Promise<FontClassNames> {
+  if (fontClassNamesLoaded) return fontClassNamesCache;
+  fontClassNamesLoaded = true;
+
+  try {
+    const googleFonts = await import("next/font/google");
+    const [ibmPlexSans, notoSansSc, jetBrainsMono] = await Promise.all([
+      googleFonts.IBM_Plex_Sans({
+        subsets: ["latin"],
+        weight: ["400", "500", "600", "700"],
+        display: "swap",
+        variable: "--font-sans",
+      }),
+      googleFonts.Noto_Sans_SC({
+        subsets: ["latin"],
+        weight: ["400", "500", "600", "700"],
+        display: "swap",
+        variable: "--font-sans-fallback",
+      }),
+      googleFonts.JetBrains_Mono({
+        subsets: ["latin"],
+        display: "swap",
+        variable: "--font-mono",
+      }),
+    ]);
+
+    fontClassNamesCache = {
+      sans: ibmPlexSans.variable,
+      fallback: notoSansSc.variable,
+      mono: jetBrainsMono.variable,
+    };
+  } catch {
+    fontClassNamesCache = {
+      sans: "",
+      fallback: "",
+      mono: "",
+    };
+  }
+
+  return fontClassNamesCache;
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("metadata");
@@ -60,6 +94,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const fontClassNames = await getFontClassNames();
   const headerStore = await headers();
   const nonce = headerStore.get("x-csp-nonce") ?? undefined;
 
@@ -75,7 +110,7 @@ export default async function RootLayout({
     <html
       lang={locale}
       suppressHydrationWarning
-      className={`${ibmPlexSans.variable} ${notoSansSc.variable} ${jetBrainsMono.variable}`}
+      className={`${fontClassNames.sans} ${fontClassNames.fallback} ${fontClassNames.mono}`}
     >
       <head>
         <Script
@@ -106,7 +141,7 @@ gtag('config', 'G-JNK35J2Q3R');`}
                     <div className="scroll-mt-4" id="main-content">
                       <div
                         id="app-brand-row"
-                        className="page-main pointer-events-none relative z-10 flex items-start justify-between gap-4 pt-4 pb-0 md:pt-5 lg:pt-6"
+                        className="page-main pointer-events-none relative flex items-start justify-between gap-4 pt-4 pb-0 md:pt-5 lg:pt-6"
                       >
                         <div className="pointer-events-auto" id="app-logo">
                           <AppLogo />

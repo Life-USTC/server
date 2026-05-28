@@ -18,13 +18,11 @@ export function SectionHeader({
   courseNameSecondary,
   sectionId,
   sectionJwId,
-  subscriptionDisclaimer,
 }: {
   courseName: string;
   courseNameSecondary: string | null;
   sectionId: number;
   sectionJwId: number;
-  subscriptionDisclaimer: string;
 }) {
   return (
     <div className="mt-2">
@@ -36,9 +34,6 @@ export function SectionHeader({
               {courseNameSecondary}
             </p>
           ) : null}
-          <p className="max-w-2xl text-muted-foreground text-xs">
-            {subscriptionDisclaimer}
-          </p>
         </div>
         <SubscriptionCalendarButton
           sectionDatabaseId={sectionId}
@@ -353,9 +348,9 @@ export function BasicInfoCard({
             <div className="mt-6">
               <Link
                 href={`/courses/${section.course.jwId}`}
-                className="text-muted-foreground text-sm hover:underline"
+                className="inline-flex max-w-full text-muted-foreground text-sm hover:underline"
               >
-                {t("viewAllCourseSections")} ({otherSections.length + 1}) {"->"}
+                {t("viewAllCourseSections")} ({otherSections.length + 1})
               </Link>
             </div>
           </CardPanel>

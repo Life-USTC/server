@@ -1,8 +1,8 @@
-import { Search } from "lucide-react";
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { FiltersBarSearch } from "@/components/filters/filters-bar";
 import {
   PageBreadcrumbs,
   PageLayout,
@@ -11,15 +11,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Form } from "@/components/ui/form";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-  InputGroupText,
-} from "@/components/ui/input-group";
 import { Link } from "@/i18n/routing";
 import { requireAdminPage } from "@/lib/admin-utils";
+import { parseInteger } from "@/lib/api/request-integers";
 import { prisma } from "@/lib/db/prisma";
+import { buildSearchParams } from "@/lib/navigation/search-params";
 import { ilike } from "@/lib/query-helpers";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { ADMIN_USERS_PAGE_SIZE } from "./constants";
@@ -43,22 +39,21 @@ export default async function AdminUsersPage({
   searchParams: Promise<{ page?: string; search?: string }>;
 }) {
   const searchP = await searchParams;
-  const callbackParams = new URLSearchParams();
-  if (searchP.page) {
-    callbackParams.set("page", searchP.page);
-  }
-  if (searchP.search) {
-    callbackParams.set("search", searchP.search);
-  }
-  const callbackUrl = callbackParams.size
-    ? `/admin/users?${callbackParams.toString()}`
+  const callbackQuery = buildSearchParams({
+    values: {
+      page: searchP.page,
+      search: searchP.search,
+    },
+  });
+  const callbackUrl = callbackQuery
+    ? `/admin/users?${callbackQuery}`
     : "/admin/users";
   const admin = await requireAdminPage(callbackUrl);
   if (!admin) {
     notFound();
   }
 
-  const page = Math.max(parseInt(searchP.page ?? "1", 10) || 1, 1);
+  const page = Math.max(parseInteger(searchP.page) ?? 1, 1);
   const search = searchP.search?.trim() ?? "";
   const skip = (page - 1) * ADMIN_USERS_PAGE_SIZE;
 
@@ -120,21 +115,13 @@ export default async function AdminUsersPage({
         <Form action="/admin/users" layout="toolbar" method="get">
           <Field className="min-w-64 max-w-xl flex-1">
             <FieldLabel className="sr-only">{tCommon("search")}</FieldLabel>
-            <InputGroup>
-              <InputGroupAddon>
-                <InputGroupText>
-                  <Search className="size-4" />
-                </InputGroupText>
-              </InputGroupAddon>
-              <InputGroupInput
-                autoComplete="off"
-                defaultValue={search}
-                inputMode="search"
-                name="search"
-                placeholder={t("searchPlaceholder")}
-                type="search"
-              />
-            </InputGroup>
+            <FiltersBarSearch
+              autoComplete="off"
+              defaultValue={search}
+              inputMode="search"
+              name="search"
+              placeholder={t("searchPlaceholder")}
+            />
           </Field>
           <Button type="submit">{tCommon("search")}</Button>
           {search ? (

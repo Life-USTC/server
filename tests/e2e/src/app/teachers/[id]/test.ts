@@ -26,6 +26,7 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import { visibleText } from "../../../../utils/locators";
 import { withE2eLock } from "../../../../utils/locks";
 import {
   gotoAndWaitForReady,
@@ -39,9 +40,11 @@ async function navigateToSeedTeacher(
 ) {
   await gotoAndWaitForReady(
     page,
-    `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
+    `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}`,
   );
-  const detailLink = page.locator("tbody a[href^='/teachers/']").first();
+  const detailLink = page
+    .locator("tbody a[href^='/teachers/']:visible")
+    .first();
   await expect(detailLink).toBeVisible();
   await detailLink.click();
   await expect(page).toHaveURL(/\/teachers\/\d+/);
@@ -81,6 +84,7 @@ test.describe("/teachers/[id]", () => {
             name: DEV_SEED.teacher.nameEn,
           }),
         )
+        .filter({ visible: true })
         .first(),
     ).toBeVisible();
 
@@ -97,6 +101,7 @@ test.describe("/teachers/[id]", () => {
       page
         .getByText(DEV_SEED.teacher.departmentNameCn)
         .or(page.getByText(DEV_SEED.teacher.departmentNameEn))
+        .filter({ visible: true })
         .first(),
     ).toBeVisible();
     // teacher.teacherTitle.namePrimary (locale-dependent)
@@ -107,7 +112,7 @@ test.describe("/teachers/[id]", () => {
         .first(),
     ).toBeVisible();
     // teacher.email (if not null)
-    await expect(page.getByText(DEV_SEED.teacher.email).first()).toBeVisible();
+    await expect(visibleText(page, DEV_SEED.teacher.email)).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "teacher/basic-info");
   });
@@ -118,19 +123,20 @@ test.describe("/teachers/[id]", () => {
     await navigateToSeedTeacher(page);
 
     // section.semester.nameCn badge
-    await expect(page.getByText(DEV_SEED.semesterNameCn).first()).toBeVisible();
+    await expect(visibleText(page, DEV_SEED.semesterNameCn)).toBeVisible();
     // section.course.namePrimary (locale-dependent)
     await expect(
       page
         .getByText(DEV_SEED.course.nameCn)
         .or(page.getByText(DEV_SEED.course.nameEn))
+        .filter({ visible: true })
         .first(),
     ).toBeVisible();
     // section.code badge (monospace)
-    await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
+    await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
     // section.credits
     await expect(
-      page.getByText(String(DEV_SEED.section.credits)).first(),
+      visibleText(page, String(DEV_SEED.section.credits)),
     ).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "teacher/sections-table");
@@ -141,7 +147,9 @@ test.describe("/teachers/[id]", () => {
   }, testInfo) => {
     await navigateToSeedTeacher(page);
 
-    const sectionLink = page.locator("tbody a[href^='/sections/']").first();
+    const sectionLink = page
+      .locator("tbody a[href^='/sections/']:visible")
+      .first();
     await expect(sectionLink).toBeVisible();
     await sectionLink.click();
     await expect(page).toHaveURL(/\/sections\/\d+/);

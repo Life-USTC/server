@@ -24,6 +24,7 @@
 import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { getSeedSectionSemesterFixture } from "../../../utils/e2e-db";
+import { visibleText } from "../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../utils/request-url";
 import { captureStepScreenshot } from "../../../utils/screenshot";
@@ -47,15 +48,23 @@ test.describe("/sections", () => {
     expect(html).toContain(DEV_SEED.section.code);
   });
 
-  test("can navigate from list to detail", async ({ page }, testInfo) => {
+  test("mobile cards stay tappable and navigate to detail", async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
     await gotoAndWaitForReady(
       page,
       `/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
       { testInfo, screenshotLabel: "sections-list" },
     );
 
-    const detailLink = page.locator("tbody a[href^='/sections/']").first();
+    const detailLink = page
+      .locator("#main-content a[href^='/sections/']:visible")
+      .first();
     await expect(detailLink).toBeVisible();
+    const box = await detailLink.boundingBox();
+    expect(box?.width ?? 0).toBeGreaterThan(250);
+    await captureStepScreenshot(page, testInfo, "sections-mobile-list");
     await detailLink.click();
 
     await expect(page).toHaveURL(/\/sections\/\d+(?:\?.*)?$/);
@@ -87,8 +96,8 @@ test.describe("/sections", () => {
     await expect(page).toHaveURL(
       new RegExp(`search=${encodeURIComponent(DEV_SEED.section.code)}`),
     );
-    await expect(page.getByText(DEV_SEED.course.nameEn).first()).toBeVisible();
-    await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
+    await expect(visibleText(page, DEV_SEED.course.nameEn)).toBeVisible();
+    await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
     await captureStepScreenshot(page, testInfo, "sections-search-results");
 
     const clearLink = page.getByRole("link", { name: /清除|Clear/i }).first();
@@ -116,8 +125,8 @@ test.describe("/sections", () => {
       { testInfo, screenshotLabel: "sections-semester" },
     );
     await expect(page).toHaveURL(new RegExp(`semesterId=${filter.semesterId}`));
-    await expect(page.getByText(DEV_SEED.course.nameEn).first()).toBeVisible();
-    await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
+    await expect(visibleText(page, DEV_SEED.course.nameEn)).toBeVisible();
+    await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
     await captureStepScreenshot(page, testInfo, "sections-filter-semester");
   });
 });

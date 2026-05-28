@@ -611,27 +611,18 @@ export function getDashboardLinkGroup(slug: string): DashboardLinkGroup {
 
 export type LinkClickStats = Record<string, number>;
 
-export type RecommendationStrategy = "frequency-v1";
-
 export function recommendDashboardLinks(
   clickStats: LinkClickStats,
   options: {
-    strategy?: RecommendationStrategy;
     limit?: number;
     excludeSlugs?: string[];
   } = {},
 ): DashboardLinkItem[] {
-  const strategy = options.strategy ?? "frequency-v1";
   const limit = options.limit ?? 3;
   const excluded = new Set(options.excludeSlugs ?? []);
   const candidateLinks = USTC_DASHBOARD_LINKS.filter(
     (link) => !excluded.has(link.slug),
   );
-
-  // Keep strategy switch for future ML/personalization algorithms.
-  if (strategy !== "frequency-v1") {
-    return candidateLinks.slice(0, limit);
-  }
 
   return [...candidateLinks]
     .sort((left, right) => {

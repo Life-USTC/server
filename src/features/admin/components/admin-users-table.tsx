@@ -43,7 +43,7 @@ import {
 import { SUSPENSION_DURATION_OPTIONS } from "@/features/admin/constants";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
-import { adminUserResponseSchema } from "@/lib/api/schemas";
+import { adminUserResponseSchema } from "@/lib/api/schemas/response-schemas";
 import { logClientError } from "@/lib/log/app-logger";
 import { getPaginationTokens } from "@/lib/navigation/pagination";
 import { buildSearchParams } from "@/lib/navigation/search-params";
@@ -248,36 +248,69 @@ export function AdminUsersTable({
       <p className="mb-3 text-muted-foreground text-sm">
         {t("showing", { count: users.length, total })}
       </p>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>{t("name")}</TableHead>
-            <TableHead>{t("username")}</TableHead>
-            <TableHead>{t("email")}</TableHead>
-            <TableHead>{t("role")}</TableHead>
-            <TableHead>{t("createdAt")}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {users.map((entry) => (
-            <TableRow
-              key={entry.id}
-              className="cursor-pointer hover:bg-muted/50"
-              onClick={() => openDialog(entry)}
-            >
-              <TableCell className="font-medium">{entry.name ?? "—"}</TableCell>
-              <TableCell>{entry.username ?? "—"}</TableCell>
-              <TableCell className="text-sm">{entry.email ?? "—"}</TableCell>
-              <TableCell>
+      <div className="grid gap-3 md:hidden">
+        {users.map((entry) => (
+          <button
+            key={entry.id}
+            type="button"
+            className="rounded-lg border border-border/60 bg-background/70 p-3 text-left transition-colors hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={() => openDialog(entry)}
+          >
+            <div className="space-y-1">
+              <div className="font-medium leading-5">{entry.name ?? "—"}</div>
+              <div className="text-muted-foreground text-sm">
+                {entry.username ?? "—"}
+              </div>
+              <div className="break-words text-muted-foreground text-xs leading-5">
+                {entry.email ?? "—"}
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+              <span className="rounded-md border border-border/60 px-2 py-1">
                 {entry.isAdmin ? t("adminRole") : t("userRole")}
-              </TableCell>
-              <TableCell className="text-muted-foreground text-sm">
+              </span>
+              <span className="text-muted-foreground">
                 {formatTimestamp(entry.createdAt)}
-              </TableCell>
+              </span>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <div className="hidden md:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t("name")}</TableHead>
+              <TableHead>{t("username")}</TableHead>
+              <TableHead>{t("email")}</TableHead>
+              <TableHead>{t("role")}</TableHead>
+              <TableHead>{t("createdAt")}</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {users.map((entry) => (
+              <TableRow
+                key={entry.id}
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => openDialog(entry)}
+              >
+                <TableCell className="font-medium">
+                  {entry.name ?? "—"}
+                </TableCell>
+                <TableCell>{entry.username ?? "—"}</TableCell>
+                <TableCell className="text-sm">{entry.email ?? "—"}</TableCell>
+                <TableCell>
+                  {entry.isAdmin ? t("adminRole") : t("userRole")}
+                </TableCell>
+                <TableCell className="text-muted-foreground text-sm">
+                  {formatTimestamp(entry.createdAt)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
 
       {totalPages > 1 && (
         <Pagination className="mt-6">

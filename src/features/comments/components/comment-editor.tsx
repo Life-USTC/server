@@ -3,6 +3,7 @@
 import { UploadCloud, XIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
+import { SignInLink } from "@/components/sign-in-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,7 +27,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "@/i18n/routing";
 import { logClientError } from "@/lib/log/app-logger";
 import { useCommentUpload } from "../hooks/use-comment-upload";
 import type { CommentViewer } from "./comment-types";
@@ -431,7 +431,7 @@ export function CommentEditor({
             <Button
               variant="outline"
               size="sm"
-              render={<Link href="/signin" />}
+              render={<SignInLink />}
               className="h-9 px-4 text-xs"
             >
               {t("loginToComment")}

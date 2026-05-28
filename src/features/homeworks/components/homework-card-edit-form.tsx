@@ -28,7 +28,7 @@ import { Switch } from "@/components/ui/switch";
 import { CommentMarkdown } from "@/features/comments/components/comment-markdown";
 import { MarkdownEditor } from "@/features/comments/components/markdown-editor";
 import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
-import { descriptionsResponseSchema } from "@/lib/api/schemas";
+import { descriptionsResponseSchema } from "@/lib/api/schemas/response-schemas";
 import { logClientError } from "@/lib/log/app-logger";
 import {
   addShanghaiTime,

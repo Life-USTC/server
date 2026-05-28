@@ -22,6 +22,15 @@ export async function waitForUiSettled(
   } = {},
 ) {
   await page.waitForLoadState(options.waitUntil ?? "domcontentloaded");
+  await page.waitForFunction(() => !/^Loading\b/i.test(document.title), null, {
+    timeout: 10_000,
+  });
+  await expect(page.locator('[data-slot="page-loading"]:visible')).toHaveCount(
+    0,
+    {
+      timeout: 10_000,
+    },
+  );
   await expect(page.locator('[data-slot="skeleton"]:visible')).toHaveCount(0, {
     timeout: 10_000,
   });

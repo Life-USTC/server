@@ -21,6 +21,7 @@
 import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { getSeedTeacherDepartmentFixture } from "../../../utils/e2e-db";
+import { visibleText } from "../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../utils/request-url";
 import { captureStepScreenshot } from "../../../utils/screenshot";
@@ -44,15 +45,23 @@ test.describe("/teachers", () => {
     expect(html).toContain(DEV_SEED.teacher.nameCn);
   });
 
-  test("list-to-detail navigation", async ({ page }, testInfo) => {
+  test("mobile cards stay tappable and navigate to detail", async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
     await gotoAndWaitForReady(
       page,
       `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
       { testInfo, screenshotLabel: "teachers-list" },
     );
 
-    const detailLink = page.locator("tbody a[href^='/teachers/']").first();
+    const detailLink = page
+      .locator("#main-content a[href^='/teachers/']:visible")
+      .first();
     await expect(detailLink).toBeVisible();
+    const box = await detailLink.boundingBox();
+    expect(box?.width ?? 0).toBeGreaterThan(250);
+    await captureStepScreenshot(page, testInfo, "teachers-mobile-list");
     await detailLink.click();
 
     await expect(page).toHaveURL(/\/teachers\/\d+(?:\?.*)?$/);
@@ -111,7 +120,7 @@ test.describe("/teachers", () => {
     await expect(page).toHaveURL(
       new RegExp(`departmentId=${filter.departmentId}`),
     );
-    await expect(page.getByText(DEV_SEED.teacher.nameCn).first()).toBeVisible();
+    await expect(visibleText(page, DEV_SEED.teacher.nameCn)).toBeVisible();
     await captureStepScreenshot(page, testInfo, "teachers-filter-department");
   });
 });

@@ -17,6 +17,7 @@ import {
   removeSectionFromSubscription,
   type SubscriptionState,
 } from "@/app/actions/subscription";
+import { SignInLink } from "@/components/sign-in-link";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -210,21 +211,53 @@ export function SubscriptionCalendarButton({
     <div className="flex gap-2">
       {/* Subscribe/Unsubscribe Button or Login Prompt */}
       {showSubscribeButton &&
-        (isAuthenticated ? (
+        (isAuthenticated && isSubscribed ? (
           <Button
             onClick={handleSubscribeToggle}
             disabled={isOperating}
-            variant={isSubscribed ? "default" : "outline"}
-            aria-label={
-              isSubscribed ? t("unsubscribeLabel") : t("subscribeLabel")
-            }
+            variant="default"
+            aria-label={t("unsubscribeLabel")}
           >
-            {isSubscribed ? (
-              <BellOff className="h-5 w-5" />
-            ) : (
-              <Bell className="h-5 w-5" />
-            )}
+            <BellOff className="h-5 w-5" />
           </Button>
+        ) : isAuthenticated ? (
+          <Dialog>
+            <DialogTrigger
+              render={
+                <Button
+                  variant="outline"
+                  disabled={isOperating}
+                  aria-label={t("subscribeLabel")}
+                />
+              }
+            >
+              <Bell className="h-5 w-5" />
+            </DialogTrigger>
+            <DialogPopup>
+              <DialogHeader>
+                <DialogTitle>{t("subscribeLabel")}</DialogTitle>
+                <DialogDescription>
+                  {t("subscriptionDisclaimer")}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <DialogClose render={<Button variant="outline" />}>
+                  {t("close")}
+                </DialogClose>
+                <DialogClose
+                  render={
+                    <Button
+                      disabled={isOperating}
+                      onClick={handleSubscribeToggle}
+                    />
+                  }
+                >
+                  <Bell className="mr-2 h-4 w-4" />
+                  {t("subscribeLabel")}
+                </DialogClose>
+              </DialogFooter>
+            </DialogPopup>
+          </Dialog>
         ) : (
           <Dialog>
             <DialogTrigger
@@ -245,12 +278,10 @@ export function SubscriptionCalendarButton({
                 <DialogClose render={<Button variant="outline" />}>
                   {t("close")}
                 </DialogClose>
-                <Link href="/signin">
-                  <Button>
-                    <LogIn className="mr-2 h-4 w-4" />
-                    {t("loginToSubscribe")}
-                  </Button>
-                </Link>
+                <Button render={<SignInLink />}>
+                  <LogIn className="mr-2 h-4 w-4" />
+                  {t("loginToSubscribe")}
+                </Button>
               </DialogFooter>
             </DialogPopup>
           </Dialog>

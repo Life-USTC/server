@@ -83,16 +83,15 @@ test.describe("dashboard homeworks", () => {
 
     // homework.title
     await expect(hwCard.getByText(DEV_SEED.homeworks.title)).toBeVisible();
-    // section.course.namePrimary
+    await expect(hwCard.getByText(/\d{1,2}:\d{2}/).first()).toBeVisible();
+
+    // section.course.namePrimary appears in the homework subtitle.
     await expect(
       hwCard
         .getByText(DEV_SEED.course.nameCn)
         .or(hwCard.getByText(DEV_SEED.course.nameEn))
         .first(),
     ).toBeVisible();
-    // homework.submissionDueAt — due date shown as smart date (e.g. "May 10, 3:00 PM")
-    // The card always shows a time component (HH:MM)
-    await expect(hwCard.getByText(/\d{1,2}:\d{2}/).first()).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "homeworks/seed-card-fields");
   });
@@ -139,6 +138,43 @@ test.describe("dashboard homeworks", () => {
     await expect(allTab).toBeVisible();
     await allTab.click();
     await captureStepScreenshot(page, testInfo, "homeworks/filter-all");
+  });
+
+  test("can switch to list view and persist preference", async ({
+    page,
+  }, testInfo) => {
+    await signInAsDebugUser(page, "/?tab=homeworks");
+    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, "/?tab=homeworks", {
+      testInfo,
+      screenshotLabel: "homeworks",
+    });
+
+    await page
+      .getByRole("button", { name: /全部|All/i })
+      .first()
+      .click();
+
+    await expect(page.getByTestId("dashboard-homeworks-cards")).toBeVisible();
+    await page.getByRole("button", { name: /列表|List/i }).click();
+    await expect(page).toHaveURL(/homeworkView=list/);
+    await expect(page.getByTestId("dashboard-homeworks-list")).toBeVisible();
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          localStorage.getItem("life-ustc-dashboard-homework-view-mode"),
+        ),
+      )
+      .toBe("list");
+
+    await gotoAndWaitForReady(page, "/?tab=homeworks");
+    await page
+      .getByRole("button", { name: /全部|All/i })
+      .first()
+      .click();
+    await expect(page).toHaveURL(/\/\?tab=homeworks$/);
+    await expect(page.getByTestId("dashboard-homeworks-list")).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "homeworks/list-view");
   });
 
   test("can toggle homework completion status", async ({ page }, testInfo) => {
@@ -202,29 +238,38 @@ test.describe("dashboard homeworks", () => {
   test("view details links to section page with homework anchor", async ({
     page,
   }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=homeworks");
-    await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/?tab=homeworks", {
-      testInfo,
-      screenshotLabel: "homeworks",
+    await withE2eLock(DEBUG_USER_SUBSCRIPTIONS_LOCK, async () => {
+      await signInAsDebugUser(page, "/?tab=homeworks");
+      await ensureSeedSectionSubscription(page);
+      await gotoAndWaitForReady(page, "/?tab=homeworks", {
+        testInfo,
+        screenshotLabel: "homeworks",
+      });
+
+      await page
+        .getByRole("button", { name: /全部|All/i })
+        .first()
+        .click();
+
+      const detailLink = page
+        .locator('[data-slot="card"]')
+        .filter({ hasText: DEV_SEED.homeworks.title })
+        .first();
+      await detailLink
+        .getByRole("button", { name: new RegExp(DEV_SEED.homeworks.title) })
+        .first()
+        .click();
+      const popout = page.locator('[data-slot="dialog-popup"]').first();
+      await expect(popout).toBeVisible();
+      const sectionLink = popout
+        .locator(`a[href*="/sections/${DEV_SEED.section.jwId}#homework-"]`)
+        .first();
+      await expect(sectionLink).toBeVisible();
+      await sectionLink.click();
+
+      await expect(page).toHaveURL(/\/sections\/\d+#homework-/);
+      await captureStepScreenshot(page, testInfo, "homeworks/view-details");
     });
-
-    await page
-      .getByRole("button", { name: /全部|All/i })
-      .first()
-      .click();
-
-    const detailLink = page
-      .locator('[data-slot="card"]')
-      .filter({ hasText: DEV_SEED.homeworks.title })
-      .first()
-      .locator(`a[href*="/sections/${DEV_SEED.section.jwId}#homework-"]`)
-      .first();
-    await expect(detailLink).toBeVisible();
-    await detailLink.click();
-
-    await expect(page).toHaveURL(/\/sections\/\d+#homework-/);
-    await captureStepScreenshot(page, testInfo, "homeworks/view-details");
   });
 
   test("can create a new homework", async ({ page }, testInfo) => {

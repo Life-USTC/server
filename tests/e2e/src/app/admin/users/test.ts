@@ -9,6 +9,7 @@ import {
   createTempUsersFixture,
   deleteUsersByPrefix,
 } from "../../../../utils/e2e-db";
+import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
@@ -30,8 +31,8 @@ test("/admin/users 管理员可看到 seed 用户", async ({ page }, testInfo) =
 
   await expect(page).toHaveURL(/\/admin\/users(?:\?.*)?$/);
   await expect(page.locator("#main-content")).toBeVisible();
-  await expect(page.getByText(DEV_SEED.debugUsername).first()).toBeVisible();
-  await expect(page.getByText(DEV_SEED.adminUsername).first()).toBeVisible();
+  await expect(visibleText(page, DEV_SEED.debugUsername)).toBeVisible();
+  await expect(visibleText(page, DEV_SEED.adminUsername)).toBeVisible();
   await captureStepScreenshot(page, testInfo, "admin-users-seed");
 });
 
@@ -42,7 +43,7 @@ test("/admin/users 搜索表单可过滤用户", async ({ page }, testInfo) => {
   await page.getByRole("button", { name: /搜索|Search/i }).click();
 
   await expect(page).toHaveURL(new RegExp(`search=${DEV_SEED.debugUsername}`));
-  await expect(page.getByText(DEV_SEED.debugUsername).first()).toBeVisible();
+  await expect(visibleText(page, DEV_SEED.debugUsername)).toBeVisible();
   await captureStepScreenshot(page, testInfo, "admin-users-search");
 
   const clearButton = page.getByRole("button", { name: /清除|Clear/i }).first();
@@ -83,9 +84,8 @@ test("/admin/users 用户名非法保存返回 400", async ({ page }, testInfo) 
   test.setTimeout(60000);
   await signInAsDevAdmin(page, "/admin/users");
 
-  await page.waitForLoadState("networkidle");
   const row = page
-    .locator("tr")
+    .locator("tr:visible")
     .filter({ hasText: DEV_SEED.debugUsername })
     .first();
   await expect(row).toBeVisible({ timeout: 10_000 });
@@ -121,7 +121,10 @@ test("/admin/users 可打开管理弹窗并保存姓名", async ({ page }, testI
       `/admin/users?search=${encodeURIComponent(usernames[0] ?? prefix)}`,
     );
 
-    const row = page.locator("tr").filter({ hasText: usernames[0] }).first();
+    const row = page
+      .locator("tr:visible")
+      .filter({ hasText: usernames[0] })
+      .first();
     await expect(row).toBeVisible();
     await row.click();
 
@@ -147,7 +150,9 @@ test("/admin/users 可打开管理弹窗并保存姓名", async ({ page }, testI
       page,
       `/admin/users?search=${encodeURIComponent(usernames[0] ?? prefix)}`,
     );
-    await expect(page.locator("tr").filter({ hasText: newName })).toBeVisible();
+    await expect(
+      page.locator("tr:visible").filter({ hasText: newName }),
+    ).toBeVisible();
   } finally {
     await deleteUsersByPrefix(prefix);
   }
@@ -166,7 +171,10 @@ test("/admin/users 自定义封禁时长会展示到期时间输入框", async (
       `/admin/users?search=${encodeURIComponent(usernames[0] ?? prefix)}`,
     );
 
-    const row = page.locator("tr").filter({ hasText: usernames[0] }).first();
+    const row = page
+      .locator("tr:visible")
+      .filter({ hasText: usernames[0] })
+      .first();
     await expect(row).toBeVisible();
     await row.click();
 
@@ -218,7 +226,10 @@ test("/admin/users 可创建默认时长封禁并通过 API 解除", async ({
       `/admin/users?search=${encodeURIComponent(usernames[0] ?? prefix)}`,
     );
 
-    const row = page.locator("tr").filter({ hasText: usernames[0] }).first();
+    const row = page
+      .locator("tr:visible")
+      .filter({ hasText: usernames[0] })
+      .first();
     await expect(row).toBeVisible();
     await row.click();
 

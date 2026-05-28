@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { getBusTimetableData } from "@/features/bus/lib/bus-service";
 import type { BusLocale } from "@/features/bus/lib/bus-types";
+import type { HomeTabId } from "@/features/home/components/home-tab-nav";
 import { HomeView } from "@/features/home/components/home-view";
 import { PublicHomeView } from "@/features/home/components/public-home-view";
 import {
@@ -21,6 +22,8 @@ import {
   getSubscriptionsTabData,
   getTodosTabData,
 } from "@/features/home/server/dashboard-tab-data";
+import { parseInteger } from "@/lib/api/request-integers";
+import { allowE2EDebugAuth } from "@/lib/auth/auth-config";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
@@ -33,10 +36,28 @@ type HomeSearchParams = {
   snapshotAt?: string;
 };
 
+const PRIVATE_HOME_TABS = [
+  "overview",
+  "calendar",
+  "bus",
+  "links",
+  "homeworks",
+  "todos",
+  "exams",
+  "subscriptions",
+] as const satisfies HomeTabId[];
+
 function parseSnapshotReferenceTime(value: string | undefined) {
-  if (process.env.E2E_DEBUG_AUTH !== "1" || !value) return undefined;
+  if (!allowE2EDebugAuth || !value) return undefined;
   const parsed = parseDateInput(value);
   return parsed instanceof Date ? parsed : undefined;
+}
+
+function normalizePrivateHomeTab(tab: string | undefined): HomeTabId {
+  if (PRIVATE_HOME_TABS.includes(tab as HomeTabId)) {
+    return tab as HomeTabId;
+  }
+  return "overview";
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -56,13 +77,15 @@ export default async function HomePage({
 
   if (session?.user?.id) {
     const params = await searchParams;
-    const tab = params.tab ?? "overview";
+    const tab = normalizePrivateHomeTab(params.tab);
+    const normalizedSearchParams =
+      tab === params.tab ? searchParams : Promise.resolve({ ...params, tab });
     const referenceNow = parseSnapshotReferenceTime(params.snapshotAt);
     const dashboardUserContext = await getDashboardUserContext(session.user.id);
-    const parsedCalendarSemester = parseInt(params.calendarSemester ?? "", 10);
+    const parsedCalendarSemester = parseInteger(params.calendarSemester);
     const overviewOptions =
       tab === "calendar" &&
-      Number.isFinite(parsedCalendarSemester) &&
+      parsedCalendarSemester !== null &&
       parsedCalendarSemester > 0
         ? {
             calendarSemesterId: parsedCalendarSemester,
@@ -126,7 +149,7 @@ export default async function HomePage({
 
     return (
       <HomeView
-        searchParams={searchParams}
+        searchParams={normalizedSearchParams}
         navStats={navStats}
         referenceNow={referenceNow ? toShanghaiIsoString(referenceNow) : null}
         overviewData={overviewData}

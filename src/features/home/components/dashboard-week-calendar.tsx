@@ -2,10 +2,15 @@ import type dayjs from "dayjs";
 import { getTranslations } from "next-intl/server";
 import { CalendarEventCardInteractive } from "@/components/calendar-event-card-interactive";
 import { CalendarDayTodoCards } from "@/features/home/components/calendar-day-todo-cards";
-import type {
-  CalendarTodoItem,
-  OverviewData,
-} from "@/features/home/server/dashboard-overview-data";
+import {
+  compactLocation,
+  getSemesterWeekNumber,
+  getWeekStart,
+  groupByShanghaiDay,
+  parseWeekParam,
+  WEEKDAY_KEYS,
+} from "@/features/home/components/calendar-panel-shared";
+import type { OverviewData } from "@/features/home/server/dashboard-overview-data";
 import type {
   ExamItem,
   SessionItem,
@@ -15,38 +20,6 @@ import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { cn } from "@/lib/utils";
 import { formatExamTypeLabel } from "@/shared/lib/exam-utils";
 import { formatTime } from "@/shared/lib/time-utils";
-
-const WEEKDAY_KEYS = [
-  "sunday",
-  "monday",
-  "tuesday",
-  "wednesday",
-  "thursday",
-  "friday",
-  "saturday",
-] as const;
-
-function compactLocation(raw: string | null | undefined): string | undefined {
-  const value = raw?.trim();
-  if (!value) return undefined;
-  const first = value.split(" · ")[0]?.trim();
-  return first || undefined;
-}
-
-function parseWeekParam(raw: string | undefined): dayjs.Dayjs | null {
-  if (!raw) return null;
-  const d = shanghaiDayjs(raw);
-  if (!d.isValid()) return null;
-  return d.startOf("day");
-}
-
-function getWeekStart(date: dayjs.Dayjs, weekStartsOn: 0 | 1) {
-  let start = date.startOf("day");
-  while (start.day() !== weekStartsOn) {
-    start = start.subtract(1, "day");
-  }
-  return start;
-}
 
 type WeekCalendarData = Pick<
   OverviewData,
@@ -94,47 +67,13 @@ export async function DashboardWeekCalendar({
   const weekLabelTemplate = tSection("weekNumber", { week: "{week}" });
   const weekStartsOn: 0 | 1 = 0;
 
-  const sessionsByDay = new Map<string, SessionItem[]>();
-  for (const item of allSessions) {
-    const key = shanghaiDayjs(item.date).format("YYYY-MM-DD");
-    const list = sessionsByDay.get(key) ?? [];
-    list.push(item);
-    sessionsByDay.set(key, list);
-  }
-  const examsByDay = new Map<string, ExamItem[]>();
-  for (const exam of allExams) {
-    if (!exam.date) continue;
-    const key = shanghaiDayjs(exam.date).format("YYYY-MM-DD");
-    const list = examsByDay.get(key) ?? [];
-    list.push(exam);
-    examsByDay.set(key, list);
-  }
-  const homeworksByDay = new Map<string, typeof semesterHomeworks>();
-  for (const hw of semesterHomeworks) {
-    if (!hw.submissionDueAt) continue;
-    const key = shanghaiDayjs(hw.submissionDueAt).format("YYYY-MM-DD");
-    const list = homeworksByDay.get(key) ?? [];
-    list.push(hw);
-    homeworksByDay.set(key, list);
-  }
-  const todosByDay = new Map<string, CalendarTodoItem[]>();
-  for (const todo of semesterTodos) {
-    const key = shanghaiDayjs(todo.dueAt).format("YYYY-MM-DD");
-    const list = todosByDay.get(key) ?? [];
-    list.push(todo);
-    todosByDay.set(key, list);
-  }
-
-  const resolveWeekNumber = (weekStart: dayjs.Dayjs) => {
-    if (!semesterStart || !semesterEnd) return null;
-    const start = shanghaiDayjs(semesterStart);
-    const end = shanghaiDayjs(semesterEnd);
-    const weekEnd = weekStart.add(6, "day");
-    if (weekEnd.isBefore(start, "day") || weekStart.isAfter(end, "day"))
-      return null;
-    const semesterWeekStart = getWeekStart(start, weekStartsOn);
-    return weekStart.diff(semesterWeekStart, "week") + 1;
-  };
+  const sessionsByDay = groupByShanghaiDay(allSessions, (item) => item.date);
+  const examsByDay = groupByShanghaiDay(allExams, (exam) => exam.date);
+  const homeworksByDay = groupByShanghaiDay(
+    semesterHomeworks,
+    (homework) => homework.submissionDueAt,
+  );
+  const todosByDay = groupByShanghaiDay(semesterTodos, (todo) => todo.dueAt);
 
   const weekBase =
     parseWeekParam(week) ?? getWeekStart(referenceNow, weekStartsOn);
@@ -142,7 +81,12 @@ export async function DashboardWeekCalendar({
   const weekDays = Array.from({ length: 7 }, (_, i) => weekStart.add(i, "day"));
   const weekPrev = weekStart.subtract(7, "day");
   const weekNext = weekStart.add(7, "day");
-  const weekNumber = resolveWeekNumber(weekStart);
+  const weekNumber = getSemesterWeekNumber({
+    semesterEnd,
+    semesterStart,
+    weekStart,
+    weekStartsOn,
+  });
   const weekLabel =
     weekNumber != null
       ? weekLabelTemplate.replace("{week}", String(weekNumber))
@@ -154,11 +98,11 @@ export async function DashboardWeekCalendar({
   const weekNavButtonClass =
     "rounded-lg border border-border/70 bg-card/72 px-2.5 py-1.5 text-sm no-underline transition-colors hover:bg-background/90";
   const weekGridFrameClass =
-    "grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] gap-1 rounded-2xl border border-border/70 bg-card/50 p-1";
+    "grid grid-cols-1 gap-1 rounded-2xl border border-border/70 bg-card/50 p-1 sm:grid-cols-[3.5rem_repeat(7,minmax(0,1fr))]";
   const weekGridHeaderCellClass =
-    "rounded-xl bg-background/85 px-1 py-3 text-center font-medium text-muted-foreground text-xs";
+    "hidden rounded-xl bg-background/85 px-1 py-3 text-center font-medium text-muted-foreground text-xs sm:block";
   const weekGridWeekLabelClass =
-    "flex items-start justify-center rounded-xl bg-background/70 px-1 py-2 font-medium text-[0.65rem] text-muted-foreground";
+    "flex items-center justify-start rounded-xl bg-background/70 px-2 py-1.5 font-medium text-muted-foreground text-xs sm:items-start sm:justify-center sm:px-1 sm:py-2 sm:text-[0.65rem]";
 
   return (
     <div className="space-y-2">
@@ -176,8 +120,8 @@ export async function DashboardWeekCalendar({
         </div>
       ) : null}
 
-      <div className="overflow-x-auto">
-        <div className="min-w-[640px]">
+      <div className="min-w-0 max-w-full overflow-x-auto overscroll-x-contain">
+        <div className="min-w-full">
           <div className={weekGridFrameClass}>
             <div className={cn(weekGridHeaderCellClass, "rounded-t-xl")}>
               {tSection("weekLabel")}
@@ -190,7 +134,7 @@ export async function DashboardWeekCalendar({
 
             <div className="contents">
               <div className={weekGridWeekLabelClass}>
-                <span className="[text-orientation:mixed] [writing-mode:vertical-rl]">
+                <span className="sm:[text-orientation:mixed] sm:[writing-mode:vertical-rl]">
                   {weekLabel}
                 </span>
               </div>
@@ -204,7 +148,7 @@ export async function DashboardWeekCalendar({
                 return (
                   <div
                     key={dateKey}
-                    className="min-h-[7rem] min-w-0 overflow-hidden rounded-xl border border-border/50 bg-background/95 p-1.5 text-xs shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+                    className="min-h-[5rem] min-w-0 overflow-hidden rounded-xl border border-border/50 bg-background/95 p-1.5 text-xs shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:min-h-[7rem]"
                   >
                     <div className="mb-1.5 flex items-center justify-between">
                       <span
@@ -217,11 +161,14 @@ export async function DashboardWeekCalendar({
                       >
                         {day.format("D")}
                       </span>
-                      {day.date() === 1 && (
-                        <span className="text-[0.65rem] text-muted-foreground">
-                          {day.format("M 月")}
-                        </span>
-                      )}
+                      <span className="min-w-0 truncate text-[0.65rem] text-muted-foreground">
+                        <span className="sm:hidden">{day.format("ddd")}</span>
+                        {day.date() === 1 ? (
+                          <span className="ml-1 sm:ml-0">
+                            {day.format("M 月")}
+                          </span>
+                        ) : null}
+                      </span>
                     </div>
 
                     <div className="min-w-0 space-y-1 overflow-hidden">

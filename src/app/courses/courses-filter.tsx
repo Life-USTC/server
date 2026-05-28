@@ -1,6 +1,5 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { SelectItemOption } from "@/components/filters/list-filters-toolbar";
 import { ListFiltersToolbar } from "@/components/filters/list-filters-toolbar";
@@ -34,8 +33,6 @@ export function CoursesFilter({
 }: CoursesFilterProps) {
   const t = useTranslations("courses");
   const tCommon = useTranslations("common");
-  const searchParams = useSearchParams();
-  const currentView = searchParams.get("view");
 
   const getSelectItems = (options: FilterOption[], allLabel: string) => {
     return [
@@ -63,9 +60,8 @@ export function CoursesFilter({
   return (
     <ListFiltersToolbar<CoursesFilterValues>
       defaultValues={defaultValues}
-      preserveKeys={["view"]}
       submitLabel={tCommon("search")}
-      formClassName="flex-wrap md:flex-nowrap md:gap-2"
+      formClassName="flex-wrap md:gap-2 xl:flex-nowrap"
       clearRender={<Link href="/courses" />}
       clearLabel={tCommon("clear")}
       showClearWhen={(values) =>
@@ -82,38 +78,29 @@ export function CoursesFilter({
           name: "educationLevelId",
           value: defaultValues.educationLevelId || "",
           items: educationLevelItems,
-          triggerClassName: "w-40",
+          triggerClassName: "w-full sm:w-40",
         },
         {
           kind: "select",
           name: "categoryId",
           value: defaultValues.categoryId || "",
           items: categoryItems,
-          triggerClassName: "w-40",
+          triggerClassName: "w-full sm:w-40",
         },
         {
           kind: "select",
           name: "classTypeId",
           value: defaultValues.classTypeId || "",
           items: classTypeItems,
-          triggerClassName: "w-40",
+          triggerClassName: "w-full sm:w-40",
         },
         {
           kind: "search",
           name: "search",
           defaultValue: defaultValues.search,
           placeholder: t("searchPlaceholder"),
-          fieldClassName: "min-w-0 flex-1",
+          fieldClassName: "min-w-full flex-1 sm:min-w-64",
         },
-        ...(currentView
-          ? [
-              {
-                kind: "extra" as const,
-                key: "preserve-view",
-                node: <input type="hidden" name="view" value={currentView} />,
-              },
-            ]
-          : []),
       ]}
     />
   );

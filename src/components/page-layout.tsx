@@ -64,7 +64,7 @@ function PageLayout({
         >
           {hasIntro ? (
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div className="max-w-3xl space-y-2">
+              <div className="min-w-0 max-w-3xl space-y-2">
                 {title && (
                   <h1 className="text-balance font-heading text-title-2 md:text-title">
                     {title}
@@ -86,7 +86,7 @@ function PageLayout({
           {headerChildren ? <div>{headerChildren}</div> : null}
         </header>
       )}
-      <div className={cn("flex flex-col gap-4", contentClassName)}>
+      <div className={cn("flex min-w-0 flex-col gap-4", contentClassName)}>
         {children}
       </div>
     </main>
@@ -162,12 +162,7 @@ function PageBreadcrumbs({
 
 function PageToolbar({ className, children }: React.ComponentProps<"div">) {
   return (
-    <div
-      className={cn(
-        "rounded-xl border border-border/70 bg-card/72 p-4 md:p-5",
-        className,
-      )}
-    >
+    <div className={cn("border-border/70 border-y py-3 md:py-4", className)}>
       {children}
     </div>
   );

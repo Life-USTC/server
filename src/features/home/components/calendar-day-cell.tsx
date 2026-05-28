@@ -39,30 +39,52 @@ export function CalendarDayCell({
   todos: CalendarTodoItem[];
   tTodos: (key: string, values?: Record<string, string | number>) => string;
 }) {
+  const mobileIndicators = [
+    { key: "sessions", count: sessions.length, className: "bg-sky-500" },
+    { key: "exams", count: exams.length, className: "bg-rose-500" },
+    { key: "homeworks", count: homeworks.length, className: "bg-amber-500" },
+    { key: "todos", count: todos.length, className: "bg-emerald-500" },
+  ].filter((item) => item.count > 0);
+
   return (
     <div
       className={cn(
-        "min-h-[7rem] min-w-0 overflow-hidden rounded-xl border border-border/50 bg-background/95 p-1.5 text-xs shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
+        "min-h-[3.75rem] min-w-0 overflow-hidden rounded-lg border border-border/50 bg-background/95 p-1 text-xs shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:min-h-[7rem] sm:rounded-xl sm:p-1.5",
         !isCurrentMonth && "bg-background/75 opacity-70",
       )}
     >
-      <div className="mb-1.5 flex items-center justify-between">
+      <div className="mb-1 flex items-center justify-between sm:mb-1.5">
         <span
           className={cn(
-            "inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full font-semibold tabular-nums leading-none",
+            "inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full font-semibold text-[0.68rem] tabular-nums leading-none sm:h-6 sm:min-w-6 sm:text-xs",
             isToday ? "bg-foreground text-background" : "text-foreground",
           )}
         >
           {day.format("D")}
         </span>
-        {day.date() === 1 ? (
-          <span className="text-[0.65rem] text-muted-foreground">
-            {day.format("M 月")}
-          </span>
-        ) : null}
+        <span className="min-w-0 truncate text-[0.65rem] text-muted-foreground">
+          <span className="sm:hidden">{day.format("ddd")}</span>
+          {day.date() === 1 ? (
+            <span className="ml-1 sm:ml-0">{day.format("M 月")}</span>
+          ) : null}
+        </span>
       </div>
 
-      <div className="min-w-0 space-y-1 overflow-hidden">
+      {mobileIndicators.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-0.5 sm:hidden">
+          {mobileIndicators.map((item) => (
+            <span
+              key={item.key}
+              className={cn(
+                "inline-flex h-1.5 w-1.5 rounded-full",
+                item.className,
+              )}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      <div className="hidden min-w-0 space-y-1 overflow-hidden sm:block">
         {sessions.map((item) => {
           const timeLabel = `${formatTime(item.startTime)}-${formatTime(item.endTime)}`;
           const location = compactLocation(item.location);

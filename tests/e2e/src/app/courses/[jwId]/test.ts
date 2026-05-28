@@ -26,6 +26,7 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
@@ -66,7 +67,7 @@ test.describe("/courses/[jwId]", () => {
       heading.locator("xpath=following-sibling::*[1]"),
     ).toContainText(expectedSubtitle);
     // course.code (monospace badge)
-    await expect(page.getByText(DEV_SEED.course.code).first()).toBeVisible();
+    await expect(visibleText(page, DEV_SEED.course.code)).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "course/heading-and-code");
   });
@@ -81,6 +82,7 @@ test.describe("/courses/[jwId]", () => {
       page
         .getByText(DEV_SEED.course.educationLevelNameCn)
         .or(page.getByText(DEV_SEED.course.educationLevelNameEn))
+        .filter({ visible: true })
         .first(),
     ).toBeVisible();
     // course.category.namePrimary (locale-dependent)
@@ -88,6 +90,7 @@ test.describe("/courses/[jwId]", () => {
       page
         .getByText(DEV_SEED.course.categoryNameCn)
         .or(page.getByText(DEV_SEED.course.categoryNameEn))
+        .filter({ visible: true })
         .first(),
     ).toBeVisible();
     // course.classType.namePrimary (locale-dependent)
@@ -95,6 +98,7 @@ test.describe("/courses/[jwId]", () => {
       page
         .getByText(DEV_SEED.course.classTypeNameCn)
         .or(page.getByText(DEV_SEED.course.classTypeNameEn))
+        .filter({ visible: true })
         .first(),
     ).toBeVisible();
 
@@ -107,14 +111,15 @@ test.describe("/courses/[jwId]", () => {
     await gotoAndWaitForReady(page, COURSE_URL);
 
     // section.semester.nameCn
-    await expect(page.getByText(DEV_SEED.semesterNameCn).first()).toBeVisible();
+    await expect(visibleText(page, DEV_SEED.semesterNameCn)).toBeVisible();
     // section.code badge
-    await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
+    await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
     // section.teachers[].namePrimary (locale-dependent)
     await expect(
       page
         .getByText(DEV_SEED.teacher.nameCn)
         .or(page.getByText(DEV_SEED.teacher.nameEn))
+        .filter({ visible: true })
         .first(),
     ).toBeVisible();
     // section.campus.namePrimary (locale-dependent)
@@ -122,6 +127,7 @@ test.describe("/courses/[jwId]", () => {
       page
         .getByText(DEV_SEED.campus.nameCn)
         .or(page.getByText(DEV_SEED.campus.nameEn))
+        .filter({ visible: true })
         .first(),
     ).toBeVisible();
 
@@ -172,8 +178,8 @@ test.describe("/courses/[jwId]", () => {
   test("section row links to section detail", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, COURSE_URL);
     const sectionLink = page
-      .locator(`a[href*="/sections/${DEV_SEED.section.jwId}"]`)
-      .or(page.locator("tbody a[href^='/sections/']"))
+      .locator(`a[href="/sections/${DEV_SEED.section.jwId}"]:visible`)
+      .or(page.locator("tbody a[href^='/sections/']:visible"))
       .first();
     await expect(sectionLink).toBeVisible();
     await sectionLink.click();
@@ -214,7 +220,6 @@ test.describe("/courses/[jwId]", () => {
     );
     await descCard.getByRole("button", { name: /保存|Save/i }).click();
     await saveResponse;
-    await page.waitForLoadState("networkidle");
     await expect(page.getByText(content).first()).toBeVisible();
     await captureStepScreenshot(page, testInfo, "course/description-updated");
   });
@@ -246,7 +251,6 @@ test.describe("/courses/[jwId]", () => {
     );
     await page.getByRole("button", { name: /发布评论|Post comment/i }).click();
     await createResponse;
-    await page.waitForLoadState("networkidle");
 
     const commentCard = page
       .locator('[id^="comment-"]')
@@ -272,7 +276,6 @@ test.describe("/courses/[jwId]", () => {
     );
     await commentCard.getByRole("button", { name: /保存|Save/i }).click();
     await editResponse;
-    await page.waitForLoadState("networkidle");
     await expect(page.getByText(editedBody).first()).toBeVisible();
 
     // Delete

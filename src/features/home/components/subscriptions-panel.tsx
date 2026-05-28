@@ -33,9 +33,9 @@ export async function SubscriptionsPanel({
 
   return (
     <div className="space-y-6">
-      <div className="grid min-w-0 max-w-5xl gap-6">
+      <div className="mx-auto grid w-full min-w-0 max-w-5xl gap-6">
         {subscriptions.length === 0 ? (
-          <Empty>
+          <Empty className="min-h-64">
             <EmptyHeader>
               <EmptyTitle>{t("noSubscriptions")}</EmptyTitle>
               <EmptyDescription>

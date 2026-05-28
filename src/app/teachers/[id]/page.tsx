@@ -21,6 +21,8 @@ import { CommentAwareTabs } from "@/features/comments/components/comment-aware-t
 import { CommentsSection } from "@/features/comments/components/comments-section";
 import { getCommentsPayload } from "@/features/comments/server/comments-server";
 import { DescriptionLoader } from "@/features/descriptions/components/description-loader";
+import { Link } from "@/i18n/routing";
+import { parseInteger } from "@/lib/api/request-integers";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma as basePrisma, getPrisma } from "@/lib/db/prisma";
 
@@ -33,9 +35,9 @@ export async function generateMetadata({
   const locale = await getLocale();
   const prisma = getPrisma(locale);
   const { id } = await params;
-  const parsedId = parseInt(id, 10);
+  const parsedId = parseInteger(id);
 
-  if (Number.isNaN(parsedId)) {
+  if (parsedId === null) {
     return { title: t("pages.teachers") };
   }
 
@@ -74,8 +76,8 @@ export default async function TeacherPage({
   const prisma = getPrisma(locale);
   const isEnglish = locale === "en-us";
 
-  const parsedId = parseInt(id, 10);
-  if (Number.isNaN(parsedId)) {
+  const parsedId = parseInteger(id);
+  if (parsedId === null) {
     notFound();
   }
 
@@ -126,10 +128,10 @@ export default async function TeacherPage({
         />
       }
     >
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-        <div className="space-y-8">
+      <div className="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <div className="min-w-0 space-y-8">
           <div className="mt-2">
-            <h1 className="mb-2 text-display">
+            <h1 className="mb-2 break-words text-display">
               {teacher.namePrimary}
               {isEnglish && teacher.nameSecondary ? (
                 <span className="ml-3 text-muted-foreground">
@@ -138,11 +140,14 @@ export default async function TeacherPage({
               ) : null}
             </h1>
             {teacher.department ? (
-              <p className="text-muted-foreground text-subtitle">
+              <p className="break-words text-muted-foreground text-subtitle">
                 {teacher.department.namePrimary}
               </p>
             ) : null}
           </div>
+          <Suspense fallback={<DescriptionSkeleton />}>
+            <DescriptionLoader targetType="teacher" targetId={teacher.id} />
+          </Suspense>
 
           <CommentAwareTabs
             defaultValue="sections"
@@ -160,49 +165,98 @@ export default async function TeacherPage({
             </TabsList>
             <TabsPanel value="sections" keepMounted>
               {teacher.sections.length > 0 ? (
-                <div>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{t("semester")}</TableHead>
-                        <TableHead>{t("courseName")}</TableHead>
-                        <TableHead>{t("sectionCode")}</TableHead>
-                        <TableHead>{t("credits")}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {teacher.sections.map((section) => (
-                        <ClickableTableRow
-                          key={section.id}
-                          href={`/sections/${section.jwId}`}
-                        >
-                          <TableCell>
-                            {section.semester ? (
-                              <Badge variant="outline">
-                                {section.semester.nameCn}
-                              </Badge>
-                            ) : null}
-                          </TableCell>
-                          <TableCell>
-                            {section.course.namePrimary}
+                <div className="space-y-3">
+                  <div className="space-y-3 md:hidden">
+                    {teacher.sections.map((section) => (
+                      <Link
+                        key={section.id}
+                        href={`/sections/${section.jwId}`}
+                        className="block rounded-lg border border-border/70 bg-card/70 p-4 text-sm no-underline"
+                      >
+                        <div className="flex min-w-0 items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="font-medium text-foreground">
+                              {section.course.namePrimary}
+                            </p>
                             {section.course.nameSecondary ? (
-                              <span className="ml-1 text-muted-foreground text-xs">
-                                ({section.course.nameSecondary})
-                              </span>
+                              <p className="mt-1 truncate text-muted-foreground">
+                                {section.course.nameSecondary}
+                              </p>
                             ) : null}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="font-mono">
-                              {section.code}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {section.credits !== null ? section.credits : "—"}
-                          </TableCell>
-                        </ClickableTableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className="shrink-0 font-mono"
+                          >
+                            {section.code}
+                          </Badge>
+                        </div>
+                        <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
+                          <div>
+                            <p className="text-muted-foreground">
+                              {t("semester")}
+                            </p>
+                            <p className="mt-1 font-medium text-foreground">
+                              {section.semester ? section.semester.nameCn : "—"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">
+                              {t("credits")}
+                            </p>
+                            <p className="mt-1 font-medium text-foreground">
+                              {section.credits !== null ? section.credits : "—"}
+                            </p>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+
+                  <div className="hidden md:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{t("semester")}</TableHead>
+                          <TableHead>{t("courseName")}</TableHead>
+                          <TableHead>{t("sectionCode")}</TableHead>
+                          <TableHead>{t("credits")}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {teacher.sections.map((section) => (
+                          <ClickableTableRow
+                            key={section.id}
+                            href={`/sections/${section.jwId}`}
+                          >
+                            <TableCell>
+                              {section.semester ? (
+                                <Badge variant="outline">
+                                  {section.semester.nameCn}
+                                </Badge>
+                              ) : null}
+                            </TableCell>
+                            <TableCell>
+                              {section.course.namePrimary}
+                              {section.course.nameSecondary ? (
+                                <span className="ml-1 text-muted-foreground text-xs">
+                                  ({section.course.nameSecondary})
+                                </span>
+                              ) : null}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="font-mono">
+                                {section.code}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {section.credits !== null ? section.credits : "—"}
+                            </TableCell>
+                          </ClickableTableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               ) : (
                 <Empty>
@@ -225,10 +279,7 @@ export default async function TeacherPage({
           </CommentAwareTabs>
         </div>
 
-        <aside className="space-y-4">
-          <Suspense fallback={<DescriptionSkeleton />}>
-            <DescriptionLoader targetType="teacher" targetId={teacher.id} />
-          </Suspense>
+        <aside className="min-w-0 space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>{t("basicInfo")}</CardTitle>

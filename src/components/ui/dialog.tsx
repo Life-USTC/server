@@ -65,7 +65,9 @@ function DialogPopup({
       <DialogBackdrop />
       <DialogViewport
         className={cn(
-          bottomStickOnMobile && "max-sm:grid-rows-[1fr_auto] max-sm:pt-12",
+          bottomStickOnMobile
+            ? "max-sm:grid-rows-[1fr_auto] max-sm:pt-12"
+            : "grid-rows-[1fr_auto_1fr]",
         )}
       >
         <DialogPrimitive.Popup
