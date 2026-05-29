@@ -58,7 +58,8 @@ export function transferScalarKeys(
 }
 
 export function redactCalendarFeedLocation(value: string | null | undefined) {
-  if (!value) return value ?? null;
+  if (value == null) return null;
+  if (value === "") return value;
   return value.replace(
     /(\/api\/users\/[^/:]+:)([^/?#]+)(\/calendar\.ics)/,
     "$1[redacted]$3",
