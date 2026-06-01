@@ -1,3 +1,10 @@
+## [1.30.1](https://github.com/Life-USTC/server-nextjs/compare/v1.30.0...v1.30.1) (2026-06-01)
+
+
+### Bug Fixes
+
+* **openapi:** harden generated client contract ([773e523](https://github.com/Life-USTC/server-nextjs/commit/773e52306fc94a41ca24d70105c85c02c60b035e))
+
 # [1.30.0](https://github.com/Life-USTC/server-nextjs/compare/v1.29.3...v1.30.0) (2026-05-29)
 
 
