@@ -56,6 +56,44 @@ test.describe("GET /api/openapi", () => {
     ).toBeTruthy();
   });
 
+  test("spec exposes concrete schemas for generated clients", async ({
+    request,
+  }) => {
+    const response = await request.get("/api/openapi");
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as {
+      paths?: Record<
+        string,
+        {
+          get?: {
+            parameters?: Array<{
+              name?: string;
+              schema?: { type?: string; format?: string };
+            }>;
+          };
+        }
+      >;
+      components?: { schemas?: Record<string, unknown> };
+    };
+
+    expect(
+      body.components?.schemas?.adminHomeworksResponseSchema,
+    ).toMatchObject({
+      type: "object",
+    });
+    expect(body.components?.schemas?.adminHomeworksResponseSchema).not.toEqual(
+      {},
+    );
+
+    const adminHomeworksLimit = body.paths?.[
+      "/api/admin/homeworks"
+    ]?.get?.parameters?.find((parameter) => parameter.name === "limit");
+    expect(adminHomeworksLimit?.schema).toMatchObject({
+      type: "integer",
+      format: "int64",
+    });
+  });
+
   test("redirect-only endpoints keep redirect response codes in the spec", async ({
     request,
   }) => {

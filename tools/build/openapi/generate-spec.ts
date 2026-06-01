@@ -76,7 +76,7 @@ for (const [name, value] of Object.entries({
   }
 }
 
-function zodToJsonSchema(schema: z.ZodTypeAny): JsonSchema {
+function zodToJsonSchema(name: string, schema: z.ZodTypeAny): JsonSchema {
   try {
     const result = z.toJSONSchema(schema, {
       cycles: "ref",
@@ -84,15 +84,19 @@ function zodToJsonSchema(schema: z.ZodTypeAny): JsonSchema {
     }) as JsonSchema;
     const { $schema: _unused, ...rest } = result;
     return rest;
-  } catch {
-    return {};
+  } catch (error) {
+    throw new Error(`Failed to convert OpenAPI schema ${name}`, {
+      cause: error,
+    });
   }
 }
 
 function getSchemaJsonSchema(name: string): JsonSchema {
   const schema = allSchemas[name];
-  if (!schema) return {};
-  return zodToJsonSchema(schema);
+  if (!schema) {
+    throw new Error(`OpenAPI annotation references unknown schema: ${name}`);
+  }
+  return zodToJsonSchema(name, schema);
 }
 
 // ── Path parsing ───────────────────────────────────────────────────────────────
@@ -250,7 +254,7 @@ function buildParameters(annotations: HandlerAnnotations): OpenApiParameter[] {
       params.push({
         in: "path",
         name,
-        schema: { type: "string", ...propSchema },
+        schema: normalizeParameterSchema({ type: "string", ...propSchema }),
         required: required.includes(name),
         example: "123",
       });
@@ -266,13 +270,22 @@ function buildParameters(annotations: HandlerAnnotations): OpenApiParameter[] {
       params.push({
         in: "query",
         name,
-        schema: propSchema,
+        schema: normalizeParameterSchema(propSchema),
         required: required.includes(name),
       });
     }
   }
 
   return params;
+}
+
+function normalizeParameterSchema(schema: JsonSchema): JsonSchema {
+  if (schema.openapiType !== "integer") {
+    return schema;
+  }
+
+  const { openapiType: _unused, ...rest } = schema;
+  return { ...rest, type: "integer", format: "int64" };
 }
 
 // ── Response building ──────────────────────────────────────────────────────────
