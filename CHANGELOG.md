@@ -1,3 +1,10 @@
+# [1.31.0](https://github.com/Life-USTC/server-nextjs/compare/v1.30.4...v1.31.0) (2026-06-06)
+
+
+### Features
+
+* **observability:** add MCP telemetry and metrics ([8a33050](https://github.com/Life-USTC/server-nextjs/commit/8a33050ac41b100d18297f9f8d3a6da97cf19302))
+
 ## [1.30.4](https://github.com/Life-USTC/server-nextjs/compare/v1.30.3...v1.30.4) (2026-06-06)
 
 
