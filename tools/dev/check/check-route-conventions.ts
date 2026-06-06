@@ -23,6 +23,7 @@ const jsonHelperAllowlist = new Set([
   "src/app/api/dashboard-links/pin/route.ts",
   "src/app/api/dashboard-links/visit/route.ts",
   "src/app/api/mcp/route.ts",
+  "src/app/api/metrics/route.ts",
   "src/app/api/sections/[jwId]/calendar.ics/route.ts",
   "src/app/api/sections/calendar.ics/route.ts",
   "src/app/api/uploads/[id]/download/route.ts",

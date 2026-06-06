@@ -9,6 +9,7 @@ import {
   withBetterAuthOAuthDebug,
 } from "@/lib/log/oauth-debug";
 import { getOAuthMcpResourceUrl } from "@/lib/mcp/urls";
+import { recordOAuthTokenRequestMetric } from "@/lib/metrics/observability-metrics";
 import {
   MCP_TOOLS_SCOPE,
   OAUTH_DEVICE_CODE_GRANT_TYPE,
@@ -261,6 +262,31 @@ async function handleDeviceCodeGrant(
   });
 }
 
+async function withTokenMetrics(
+  params: URLSearchParams,
+  run: () => Promise<Response>,
+) {
+  const start = Date.now();
+  try {
+    const response = await run();
+    recordOAuthTokenRequestMetric({
+      grantType: params.get("grant_type"),
+      hasResource: params.has("resource"),
+      status: response.status,
+      durationMs: Date.now() - start,
+    });
+    return response;
+  } catch (error) {
+    recordOAuthTokenRequestMetric({
+      grantType: params.get("grant_type"),
+      hasResource: params.has("resource"),
+      status: 500,
+      durationMs: Date.now() - start,
+    });
+    throw error;
+  }
+}
+
 export async function POST(request: Request) {
   const cloned = request.clone();
 
@@ -274,18 +300,22 @@ export async function POST(request: Request) {
   }
 
   if (params.get("grant_type") === OAUTH_DEVICE_CODE_GRANT_TYPE) {
-    return handleDeviceCodeGrant(request, params);
+    return withTokenMetrics(params, () =>
+      handleDeviceCodeGrant(request, params),
+    );
   }
 
   logObservedTokenRedirectRequest(request, params);
 
-  return withBetterAuthOAuthDebug(
-    "POST",
-    await maybeBindMcpRefreshRequest(
-      await maybeNormalizeTokenLoopbackRedirectRequest(request, params),
-      params,
+  return withTokenMetrics(params, async () =>
+    withBetterAuthOAuthDebug(
+      "POST",
+      await maybeBindMcpRefreshRequest(
+        await maybeNormalizeTokenLoopbackRedirectRequest(request, params),
+        params,
+      ),
+      handlers.POST,
     ),
-    handlers.POST,
   );
 }
 
