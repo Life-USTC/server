@@ -8,7 +8,12 @@ import {
   summarizeOAuthRedirectUri,
   withBetterAuthOAuthDebug,
 } from "@/lib/log/oauth-debug";
-import { OAUTH_DEVICE_CODE_GRANT_TYPE } from "@/lib/oauth/constants";
+import { getOAuthMcpResourceUrl } from "@/lib/mcp/urls";
+import {
+  MCP_TOOLS_SCOPE,
+  OAUTH_DEVICE_CODE_GRANT_TYPE,
+  OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+} from "@/lib/oauth/constants";
 import {
   DEVICE_CODE_ERRORS,
   DEVICE_CODE_POLL_INTERVAL,
@@ -79,6 +84,45 @@ async function maybeNormalizeTokenLoopbackRedirectRequest(
     clientIdPrefix: clientId.slice(0, 16),
     fromRedirect: summarizeOAuthRedirectUri(redirectUri),
     toRedirect: summarizeOAuthRedirectUri(normalizedRedirectUri),
+  });
+  return new Request(request.url, {
+    method: request.method,
+    headers,
+    body: params.toString(),
+  });
+}
+
+async function maybeBindMcpRefreshRequest(
+  request: Request,
+  params: URLSearchParams,
+): Promise<Request> {
+  if (
+    params.get("grant_type") !== OAUTH_REFRESH_TOKEN_GRANT_TYPE ||
+    params.has("resource")
+  ) {
+    return request;
+  }
+
+  const refreshToken = params.get("refresh_token");
+  if (!refreshToken) {
+    return request;
+  }
+
+  const refreshTokenHash = hashOAuthClientSecretForDbStorage(refreshToken);
+  const refreshRecord = await prisma.oAuthRefreshToken.findUnique({
+    where: { token: refreshTokenHash },
+    select: { scopes: true },
+  });
+  if (!refreshRecord?.scopes.includes(MCP_TOOLS_SCOPE)) {
+    return request;
+  }
+
+  params.set("resource", getOAuthMcpResourceUrl());
+  const headers = new Headers(request.headers);
+  headers.delete("content-length");
+  logOAuthDebug("oauth.mcp-refresh-resource-bound", request, {
+    path: new URL(request.url).pathname,
+    scopeCount: refreshRecord.scopes.length,
   });
   return new Request(request.url, {
     method: request.method,
@@ -237,7 +281,10 @@ export async function POST(request: Request) {
 
   return withBetterAuthOAuthDebug(
     "POST",
-    await maybeNormalizeTokenLoopbackRedirectRequest(request, params),
+    await maybeBindMcpRefreshRequest(
+      await maybeNormalizeTokenLoopbackRedirectRequest(request, params),
+      params,
+    ),
     handlers.POST,
   );
 }

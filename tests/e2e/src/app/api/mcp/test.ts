@@ -26,7 +26,9 @@ import {
   MCP_TOOLS_SCOPE,
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
   OAUTH_CODE_RESPONSE_TYPE,
+  OAUTH_OFFLINE_ACCESS_SCOPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+  OAUTH_REFRESH_TOKEN_GRANT_TYPE,
 } from "@/lib/oauth/constants";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../../utils/dev-seed";
@@ -190,12 +192,14 @@ async function issueAccessToken(
   expect(tokenResponse.status()).toBe(200);
   const tokenBody = (await tokenResponse.json()) as {
     access_token?: string;
+    refresh_token?: string;
   };
   expect(typeof tokenBody.access_token).toBe("string");
 
   return {
     clientId,
     accessToken: tokenBody.access_token as string,
+    refreshToken: tokenBody.refresh_token,
   };
 }
 
@@ -521,6 +525,61 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
     });
 
     expect(response.status()).toBe(401);
+  });
+
+  test("MCP refresh token without resource refreshes to a usable MCP access token", async ({
+    page,
+    request,
+  }) => {
+    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
+    await signInAsDebugUser(page, "/");
+
+    const { clientId, refreshToken } = await issueAccessToken(page, request, {
+      scope: `${MCP_CLIENT_SCOPE} ${OAUTH_OFFLINE_ACCESS_SCOPE}`,
+      clientScopes: [...MCP_CLIENT_SCOPES, OAUTH_OFFLINE_ACCESS_SCOPE],
+      resource,
+    });
+    expect(typeof refreshToken).toBe("string");
+    if (typeof refreshToken !== "string") {
+      throw new Error("Expected refresh token");
+    }
+
+    const refreshResponse = await request.post("/api/auth/oauth2/token", {
+      form: {
+        grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+        client_id: clientId,
+        refresh_token: refreshToken,
+      },
+    });
+    expect(refreshResponse.status()).toBe(200);
+    const refreshBody = (await refreshResponse.json()) as {
+      access_token?: string;
+    };
+    expect(typeof refreshBody.access_token).toBe("string");
+    expect(refreshBody.access_token?.split(".").length).toBe(3);
+
+    const response = await request.post("/api/mcp", {
+      data: {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-03-26",
+          capabilities: {},
+          clientInfo: {
+            name: "refreshed-token-e2e-client",
+            version: "1.0.0",
+          },
+        },
+      },
+      headers: {
+        Accept: "application/json, text/event-stream",
+        Authorization: `Bearer ${refreshBody.access_token}`,
+        "MCP-Protocol-Version": "2025-03-26",
+      },
+    });
+
+    expect(response.status()).toBe(200);
   });
 
   test("OAuth PKCE token can connect to /api/mcp and call all seeded tools", async ({
