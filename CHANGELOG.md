@@ -1,3 +1,10 @@
+## [1.30.4](https://github.com/Life-USTC/server-nextjs/compare/v1.30.3...v1.30.4) (2026-06-06)
+
+
+### Bug Fixes
+
+* **mcp:** preserve resource binding on token refresh ([9b0eb0b](https://github.com/Life-USTC/server-nextjs/commit/9b0eb0be9ddc5f0c6127881eebe4859064764beb))
+
 ## [1.30.3](https://github.com/Life-USTC/server-nextjs/compare/v1.30.2...v1.30.3) (2026-06-01)
 
 
