@@ -1,5 +1,6 @@
 import { jsonResponse } from "@/lib/api/helpers";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
 import {
   DEVICE_CODE_EXPIRES_IN,
@@ -32,7 +33,7 @@ function jsonError(status: number, error: string, error_description: string) {
 function resolveRequestedScopes(
   scope: FormDataEntryValue | null,
   allowedScopes: string[],
-) {
+): { error: Response } | { scopes: string[] } {
   if (scope instanceof File) {
     return {
       error: jsonError(400, "invalid_request", "scope must be a string"),
@@ -59,11 +60,12 @@ function resolveRequestedScopes(
   return { scopes: [...new Set(requestedScopes)] };
 }
 
-export function OPTIONS() {
+function optionsRoute() {
   return new Response(null, { status: 204, headers: CORS_HEADERS });
 }
+export const OPTIONS = observedApiRoute(optionsRoute);
 
-export async function POST(request: Request) {
+async function postRoute(request: Request): Promise<Response> {
   logOAuthDebug("device-auth.request", request, {
     path: new URL(request.url).pathname,
   });
@@ -160,3 +162,4 @@ export async function POST(request: Request) {
     { headers: CORS_HEADERS },
   );
 }
+export const POST = observedApiRoute(postRoute);

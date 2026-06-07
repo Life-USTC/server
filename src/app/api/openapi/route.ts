@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { handleRouteError, jsonResponse } from "@/lib/api/helpers";
+import { observedApiRoute } from "@/lib/log/api-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
  * Get generated OpenAPI document.
  * @response openApiDocumentResponseSchema
  */
-export async function GET() {
+async function getRoute() {
   try {
     const specPath = path.join(
       process.cwd(),
@@ -22,3 +23,4 @@ export async function GET() {
     return handleRouteError("Failed to read generated OpenAPI document", error);
   }
 }
+export const GET = observedApiRoute(getRoute);

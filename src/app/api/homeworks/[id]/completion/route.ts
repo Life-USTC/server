@@ -8,6 +8,7 @@ import {
 import { homeworkCompletionRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { requireAuth } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export const dynamic = "force-dynamic";
  * @response homeworkCompletionResponseSchema
  * @response 400:openApiErrorSchema
  */
-export async function PUT(
+async function putRoute(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -72,3 +73,5 @@ export async function PUT(
     return handleRouteError("Failed to update completion", error);
   }
 }
+
+export const PUT = observedApiRoute(putRoute);

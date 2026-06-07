@@ -10,6 +10,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getStorageEnv } from "@/env";
+import { recordStorageOperationMetric } from "@/lib/metrics/observability-metrics";
 
 function requireEnv(value: string | undefined, name: string) {
   if (!value) {
@@ -92,7 +93,24 @@ export function sendS3(
   command: DeleteObjectCommand,
 ): Promise<DeleteObjectCommandOutput>;
 export async function sendS3(command: unknown) {
-  return getS3Client().send(command as never);
+  const operation = getStorageOperationName(command);
+  const start = Date.now();
+  try {
+    const result = await getS3Client().send(command as never);
+    recordStorageOperationMetric({
+      operation,
+      status: "success",
+      durationMs: Date.now() - start,
+    });
+    return result;
+  } catch (error) {
+    recordStorageOperationMetric({
+      operation,
+      status: "error",
+      durationMs: Date.now() - start,
+    });
+    throw error;
+  }
 }
 
 export function getS3SignedUrl(
@@ -103,12 +121,37 @@ export async function getS3SignedUrl(
   command: unknown,
   options: { expiresIn: number },
 ) {
-  return getSignedUrl(getS3Client(), command as never, {
-    expiresIn: options.expiresIn,
-  });
+  const operation = `${getStorageOperationName(command)}SignedUrl`;
+  const start = Date.now();
+  try {
+    const result = await getSignedUrl(getS3Client(), command as never, {
+      expiresIn: options.expiresIn,
+    });
+    recordStorageOperationMetric({
+      operation,
+      status: "success",
+      durationMs: Date.now() - start,
+    });
+    return result;
+  } catch (error) {
+    recordStorageOperationMetric({
+      operation,
+      status: "error",
+      durationMs: Date.now() - start,
+    });
+    throw error;
+  }
 }
 
 export function buildUploadKey(userId: string) {
   const uniqueSuffix = randomUUID();
   return `uploads/${userId}/${Date.now()}-${uniqueSuffix}`;
+}
+
+function getStorageOperationName(command: unknown) {
+  const constructorName =
+    command && typeof command === "object"
+      ? command.constructor?.name
+      : undefined;
+  return constructorName?.replace(/Command$/, "") || "unknown";
 }

@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/schemas/request-schemas";
 import { requireAuth } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +23,7 @@ export const dynamic = "force-dynamic";
  * @response todosListResponseSchema
  * @response 401:openApiErrorSchema
  */
-export async function GET(request: Request) {
+async function getRoute(request: Request) {
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const { userId } = auth;
@@ -66,6 +67,7 @@ export async function GET(request: Request) {
     return handleRouteError("Failed to fetch todos", error);
   }
 }
+export const GET = observedApiRoute(getRoute);
 
 /**
  * Create a todo for the current user.
@@ -73,7 +75,7 @@ export async function GET(request: Request) {
  * @response idResponseSchema
  * @response 400:openApiErrorSchema
  */
-export async function POST(request: Request) {
+async function postRoute(request: Request) {
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const { userId } = auth;
@@ -112,3 +114,4 @@ export async function POST(request: Request) {
     return handleRouteError("Failed to create todo", error);
   }
 }
+export const POST = observedApiRoute(postRoute);

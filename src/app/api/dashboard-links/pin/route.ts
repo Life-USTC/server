@@ -7,6 +7,7 @@ import {
 import { dashboardLinkPinRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 import { logAppEvent } from "@/lib/log/app-logger";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ export const dynamic = "force-dynamic";
  * @body dashboardLinkPinRequestSchema
  * @response 303
  */
-export async function POST(request: Request) {
+async function postRoute(request: Request) {
   const wantsJson =
     request.headers.get("accept")?.includes("application/json") ?? false;
   const formData = await request.formData();
@@ -135,3 +136,4 @@ export async function POST(request: Request) {
     returnTo,
   });
 }
+export const POST = observedApiRoute(postRoute);

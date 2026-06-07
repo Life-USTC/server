@@ -6,6 +6,7 @@ import {
 } from "@/lib/api/helpers";
 import { adminHomeworksQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 import { ilike } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ export const dynamic = "force-dynamic";
  * @response adminHomeworksResponseSchema
  * @response 400:openApiErrorSchema
  */
-export async function GET(request: Request) {
+async function getRoute(request: Request) {
   return withAdminRoute(
     "Failed to fetch homework moderation queue",
     async () => {
@@ -105,3 +106,4 @@ export async function GET(request: Request) {
     },
   );
 }
+export const GET = observedApiRoute(getRoute);

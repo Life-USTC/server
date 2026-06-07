@@ -1,4 +1,7 @@
-import { recordMcpJsonRpcMetric } from "@/lib/metrics/observability-metrics";
+import {
+  recordMcpJsonRpcMetric,
+  recordMcpToolCallMetric,
+} from "@/lib/metrics/observability-metrics";
 
 type JsonRpcMessage = {
   id?: unknown;
@@ -196,6 +199,27 @@ export function recordMcpJsonRpcSummaryMetrics(
     recordMcpJsonRpcMetric({
       rpcMethod: "tools/call",
       toolName,
+    });
+  }
+}
+
+export function recordMcpToolResultMetrics(
+  summary: McpRequestSummary,
+  knownToolNames: Set<string>,
+  input: {
+    durationMs: number;
+    status: number;
+  },
+) {
+  const status =
+    input.status >= 200 && input.status < 400 ? "success" : "error";
+  for (const toolCall of summary.toolCalls) {
+    recordMcpToolCallMetric({
+      toolName: knownToolNames.has(toolCall.toolName)
+        ? toolCall.toolName
+        : "unknown",
+      status,
+      durationMs: input.durationMs,
     });
   }
 }

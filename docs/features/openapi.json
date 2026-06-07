@@ -10,7 +10,8 @@
     "aligned-with-web": "The goal of REST / OpenAPI is to expose capabilities aligned with the web, not to create an additional product layer.",
     "no-developer-model": "Public documentation helps callers understand the existing product capability boundaries, not to introduce a separate developer-specific business model.",
     "session-and-bearer": "Current user-side business REST endpoints support both in-site session from the request cookie and OAuth bearer tokens; bearer-token access is no longer limited to MCP.",
-    "rest-mcp-consistent": "The same abstract endpoint currently maintains the same core fields, state information, and action results in both REST and MCP; differences mainly appear in interaction form and serialization level."
+    "rest-mcp-consistent": "The same abstract endpoint currently maintains the same core fields, state information, and action results in both REST and MCP; differences mainly appear in interaction form and serialization level.",
+    "rest-observability": "REST API handling records production-safe structured request-start/request-finish logs and bounded in-memory metrics with request ID, method, status, auth mode, duration, and normalized route template; it does not log request bodies, credentials, raw query strings, or high-cardinality resource IDs."
   },
   "capabilities": {
     "api-docs-page": {
@@ -77,6 +78,14 @@
             "method": "POST",
             "returns": "{ success: Boolean }",
             "notes": ["Sets the user language preference cookie."]
+          },
+          {
+            "path": "/api/readiness",
+            "method": "GET",
+            "returns": "{ status, checks, uptimeSeconds }",
+            "notes": [
+              "Internal readiness endpoint for dependency checks; readable only from localhost or with the configured readiness/metrics bearer token."
+            ]
           }
         ]
       },
@@ -84,6 +93,7 @@
         "fields": [
           "Metadata endpoint",
           "Locale endpoint",
+          "Readiness endpoint",
           "OAuth/provider catch-all endpoints",
           "Webhook endpoint via Better Auth catch-all"
         ]

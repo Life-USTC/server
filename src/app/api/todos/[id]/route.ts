@@ -11,6 +11,7 @@ import {
 import { todoUpdateRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { requireAuth } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +23,7 @@ export const dynamic = "force-dynamic";
  * @response successResponseSchema
  * @response 400:openApiErrorSchema
  */
-export async function PATCH(
+async function patchRoute(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -87,6 +88,7 @@ export async function PATCH(
     return handleRouteError("Failed to update todo", error);
   }
 }
+export const PATCH = observedApiRoute(patchRoute);
 
 /**
  * Delete one todo.
@@ -94,7 +96,7 @@ export async function PATCH(
  * @response successResponseSchema
  * @response 404:openApiErrorSchema
  */
-export async function DELETE(
+async function deleteRoute(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -129,3 +131,4 @@ export async function DELETE(
     return handleRouteError("Failed to delete todo", error);
   }
 }
+export const DELETE = observedApiRoute(deleteRoute);

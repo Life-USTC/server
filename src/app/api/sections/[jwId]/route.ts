@@ -9,6 +9,7 @@ import {
 } from "@/lib/api/helpers";
 import { jwIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
 import { findSectionDetailByJwId } from "@/lib/course-section-queries";
+import { observedApiRoute } from "@/lib/log/api-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export const dynamic = "force-dynamic";
  * @response sectionDetailSchema
  * @response 404:openApiErrorSchema
  */
-export async function GET(
+async function getRoute(
   _request: NextRequest,
   context: { params: Promise<{ jwId: string }> },
 ) {
@@ -50,3 +51,4 @@ export async function GET(
     return handleRouteError("Failed to fetch section", error);
   }
 }
+export const GET = observedApiRoute(getRoute);

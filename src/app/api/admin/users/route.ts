@@ -9,6 +9,7 @@ import {
 } from "@/lib/api/helpers";
 import { adminUsersQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 import { ilike } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,7 @@ export const dynamic = "force-dynamic";
  * @response adminUsersResponseSchema
  * @response 400:openApiErrorSchema
  */
-export async function GET(request: NextRequest) {
+async function getRoute(request: NextRequest) {
   return withAdminRoute("Failed to fetch users", async () => {
     const searchParams = getRequestSearchParams(request);
     const parsed = parseRouteQuery(
@@ -95,3 +96,4 @@ export async function GET(request: NextRequest) {
     );
   });
 }
+export const GET = observedApiRoute(getRoute);

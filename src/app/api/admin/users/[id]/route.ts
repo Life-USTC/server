@@ -7,6 +7,7 @@ import {
 } from "@/lib/api/helpers";
 import { adminUpdateUserRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ function normalizeUsername(value: unknown) {
  * @response adminUserResponseSchema
  * @response 400:openApiErrorSchema
  */
-export async function PATCH(
+async function patchRoute(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -110,3 +111,4 @@ export async function PATCH(
     });
   });
 }
+export const PATCH = observedApiRoute(patchRoute);

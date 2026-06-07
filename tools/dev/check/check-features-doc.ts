@@ -112,7 +112,7 @@ function parseImplementedRoutePath(filePath: string): string {
 
 function collectImplementedRestRoutes(): Set<string> {
   const methodPattern =
-    /export\s+(?:async\s+function|const)\s+(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b/g;
+    /export\s+(?:async\s+function|const)\s+(GET|POST|PUT|PATCH|DELETE)\b/g;
   const routes = new Set<string>();
 
   for (const file of walkFiles(apiDir).filter((path) =>

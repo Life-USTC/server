@@ -1,10 +1,19 @@
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { logRouteFailure, shouldLog } from "@/lib/log/app-logger";
+import { logAppEvent, logRouteFailure, shouldLog } from "@/lib/log/app-logger";
 
 describe("app logger", () => {
+  let tempDirs: string[] = [];
+
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
+    for (const dir of tempDirs) {
+      rmSync(dir, { force: true, recursive: true });
+    }
+    tempDirs = [];
   });
 
   it("honors configured log levels", () => {
@@ -61,5 +70,27 @@ describe("app logger", () => {
       },
     });
     expect(String(payload)).not.toContain("stack");
+  });
+
+  it("persists server logs as JSON lines when APP_LOG_DIR is configured", () => {
+    const logDir = mkdtempSync(join(tmpdir(), "life-ustc-logs-"));
+    tempDirs.push(logDir);
+    vi.stubEnv("APP_LOG_DIR", logDir);
+    vi.stubEnv("NODE_ENV", "production");
+    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
+
+    logAppEvent("info", "test.event", { requestId: "req_123" });
+
+    expect(infoSpy).toHaveBeenCalledOnce();
+    const files = process.getBuiltinModule("fs").readdirSync(logDir);
+    expect(files).toHaveLength(1);
+    const content = readFileSync(join(logDir, files[0] ?? ""), "utf8");
+    expect(JSON.parse(content.trim())).toMatchObject({
+      prefix: "[app]",
+      environment: "production",
+      runtime: "server",
+      message: "test.event",
+      requestId: "req_123",
+    });
   });
 });

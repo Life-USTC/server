@@ -3,6 +3,7 @@ import { jsonResponse, notFound, parseRouteJsonBody } from "@/lib/api/helpers";
 import { adminCreateSuspensionRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { fireAuditLog } from "@/lib/audit/write-audit-log";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ function parseDate(value: string | null) {
  * List suspensions.
  * @response adminSuspensionsResponseSchema
  */
-export async function GET() {
+async function getRoute() {
   return withAdminRoute("Failed to fetch suspensions", async () => {
     const suspensions = await prisma.userSuspension.findMany({
       include: {
@@ -30,6 +31,7 @@ export async function GET() {
     return jsonResponse({ suspensions });
   });
 }
+export const GET = observedApiRoute(getRoute);
 
 /**
  * Create suspension for one user.
@@ -37,7 +39,7 @@ export async function GET() {
  * @response adminSuspensionResponseSchema
  * @response 400:openApiErrorSchema
  */
-export async function POST(request: Request) {
+async function postRoute(request: Request) {
   return withAdminRoute("Failed to suspend user", async (admin) => {
     const parsedBody = await parseRouteJsonBody(
       request,
@@ -78,3 +80,4 @@ export async function POST(request: Request) {
     return jsonResponse({ suspension });
   });
 }
+export const POST = observedApiRoute(postRoute);

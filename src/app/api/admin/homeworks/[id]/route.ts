@@ -5,6 +5,7 @@ import {
   parseResourceIdParam,
 } from "@/lib/api/helpers";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export const dynamic = "force-dynamic";
  * @response successResponseSchema
  * @response 404:openApiErrorSchema
  */
-export async function DELETE(
+async function deleteRoute(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -61,3 +62,4 @@ export async function DELETE(
     return jsonResponse({ success: true });
   });
 }
+export const DELETE = observedApiRoute(deleteRoute);

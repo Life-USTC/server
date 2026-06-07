@@ -6,6 +6,7 @@ import {
 } from "@/lib/api/helpers";
 import { calendarSubscriptionCreateRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { requireAuth } from "@/lib/auth/helpers";
+import { observedApiRoute } from "@/lib/log/api-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export const dynamic = "force-dynamic";
  * @response calendarSubscriptionCreateResponseSchema
  * @response 400:openApiErrorSchema
  */
-export async function POST(request: Request) {
+async function postRoute(request: Request) {
   try {
     const auth = await requireAuth(request);
     if (auth instanceof Response) return auth;
@@ -43,3 +44,4 @@ export async function POST(request: Request) {
     return handleRouteError("Failed to update calendar subscription", error);
   }
 }
+export const POST = observedApiRoute(postRoute);

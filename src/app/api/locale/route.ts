@@ -6,6 +6,7 @@ import {
   parseRouteJsonBody,
 } from "@/lib/api/helpers";
 import { localeUpdateRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { observedApiRoute } from "@/lib/log/api-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export const dynamic = "force-dynamic";
  * @response successResponseSchema
  * @response 400:openApiErrorSchema
  */
-export async function POST(request: NextRequest) {
+async function postRoute(request: NextRequest) {
   try {
     const parsedBody = await parseRouteJsonBody(
       request,
@@ -40,3 +41,4 @@ export async function POST(request: NextRequest) {
     return handleRouteError("Failed to set locale", error);
   }
 }
+export const POST = observedApiRoute(postRoute);

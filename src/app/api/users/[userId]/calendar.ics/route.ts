@@ -11,6 +11,7 @@ import { userCalendarPathParamsSchema } from "@/lib/api/schemas/request-schemas"
 import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 import { createUserCalendar } from "@/lib/ical";
+import { observedApiRoute } from "@/lib/log/api-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,7 @@ function parseUserCalendarIdentifier(rawUserId: string) {
  * @response 403:openApiErrorSchema
  * @response 404:openApiErrorSchema
  */
-export async function GET(
+async function getRoute(
   request: NextRequest,
   context: { params: Promise<{ userId: string }> },
 ) {
@@ -196,3 +197,4 @@ export async function GET(
     return handleRouteError("Failed to generate user calendar", error);
   }
 }
+export const GET = observedApiRoute(getRoute);

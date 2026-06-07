@@ -15,6 +15,7 @@ import {
 } from "@/lib/audit/write-audit-log";
 import { requireAuth } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 import { getS3Bucket, sendS3 } from "@/lib/storage/s3";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +29,7 @@ export const dynamic = "force-dynamic";
  * @response 401:openApiErrorSchema
  * @response 404:openApiErrorSchema
  */
-export async function PATCH(
+async function patchRoute(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -90,6 +91,7 @@ export async function PATCH(
     return handleRouteError("Failed to rename upload", error);
   }
 }
+export const PATCH = observedApiRoute(patchRoute);
 
 /**
  * Delete one upload.
@@ -98,7 +100,7 @@ export async function PATCH(
  * @response 401:openApiErrorSchema
  * @response 404:openApiErrorSchema
  */
-export async function DELETE(
+async function deleteRoute(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -157,3 +159,4 @@ export async function DELETE(
     return handleRouteError("Failed to delete upload", error);
   }
 }
+export const DELETE = observedApiRoute(deleteRoute);

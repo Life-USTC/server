@@ -16,6 +16,7 @@ import {
 import { uploadCreateRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { requireAuth } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 import { buildUploadKey, getS3Bucket, getS3SignedUrl } from "@/lib/storage/s3";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +31,7 @@ function parseFileSize(value: unknown) {
  * List uploads of current user.
  * @response uploadsListResponseSchema
  */
-export async function GET(request: Request) {
+async function getRoute(request: Request) {
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const { userId } = auth;
@@ -81,6 +82,7 @@ export async function GET(request: Request) {
     return handleRouteError("Failed to list uploads", error);
   }
 }
+export const GET = observedApiRoute(getRoute);
 
 /**
  * Create a signed upload URL.
@@ -88,7 +90,7 @@ export async function GET(request: Request) {
  * @response uploadCreateResponseSchema
  * @response 400:openApiErrorSchema
  */
-export async function POST(request: Request) {
+async function postRoute(request: Request) {
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const { userId } = auth;
@@ -180,3 +182,4 @@ export async function POST(request: Request) {
     return handleRouteError("Failed to create upload", error);
   }
 }
+export const POST = observedApiRoute(postRoute);

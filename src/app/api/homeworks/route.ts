@@ -15,6 +15,7 @@ import {
 import { requireWriteAuth, resolveApiUserId } from "@/lib/auth/helpers";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { getPrisma, prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ export const dynamic = "force-dynamic";
  * @response homeworksListResponseSchema
  * @response 400:openApiErrorSchema
  */
-export async function GET(request: Request) {
+async function getRoute(request: Request) {
   const { searchParams } = new URL(request.url);
   const parsedQuery = parseRouteSearchParams(
     searchParams,
@@ -139,6 +140,7 @@ export async function GET(request: Request) {
     return handleRouteError("Failed to fetch homeworks", error);
   }
 }
+export const GET = observedApiRoute(getRoute);
 
 /**
  * Create one homework.
@@ -146,7 +148,7 @@ export async function GET(request: Request) {
  * @response idResponseSchema
  * @response 400:openApiErrorSchema
  */
-export async function POST(request: Request) {
+async function postRoute(request: Request) {
   const parsedBody = await parseRouteJsonBody(
     request,
     homeworkCreateRequestSchema,
@@ -256,3 +258,4 @@ export async function POST(request: Request) {
     return handleRouteError("Failed to create homework", error);
   }
 }
+export const POST = observedApiRoute(postRoute);

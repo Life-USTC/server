@@ -10,6 +10,8 @@ const LOG_LEVEL_INDEX = Object.fromEntries(
 
 type AppLogContext = Record<string, unknown>;
 
+let fileLogFailureReported = false;
+
 function getRuntimeEnvironment() {
   return process.env.NODE_ENV ?? "development";
 }
@@ -59,6 +61,40 @@ function baseLogPayload() {
   };
 }
 
+function getLogFileDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function writeLogFileLine(payload: Record<string, unknown>) {
+  if (typeof window !== "undefined") return;
+
+  const logDir = getOptionalTrimmedEnv("APP_LOG_DIR");
+  if (!logDir) return;
+
+  try {
+    const fs = process.getBuiltinModule("fs");
+    const path = process.getBuiltinModule("path");
+    fs.mkdirSync(logDir, { recursive: true });
+    fs.appendFileSync(
+      path.join(logDir, `app-${getLogFileDate()}.log`),
+      `${JSON.stringify(payload)}\n`,
+      "utf8",
+    );
+  } catch (error) {
+    if (fileLogFailureReported) return;
+    fileLogFailureReported = true;
+    console.error(
+      JSON.stringify({
+        prefix: "[app]",
+        ...baseLogPayload(),
+        runtime: "server",
+        message: "app.log_file_write_failed",
+        error: serializeError(error),
+      }),
+    );
+  }
+}
+
 function emitLog(
   prefix: string,
   level: AppLogLevel,
@@ -75,8 +111,15 @@ function emitLog(
       ...(serializedError ? { error: serializedError } : {}),
     };
     method(JSON.stringify(logObj));
+    writeLogFileLine(logObj);
     return;
   }
+
+  writeLogFileLine({
+    prefix,
+    ...payload,
+    ...(serializedError ? { error: serializedError } : {}),
+  });
 
   if (serializedError) {
     method(prefix, payload, serializedError);

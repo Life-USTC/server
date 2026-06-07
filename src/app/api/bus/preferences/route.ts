@@ -9,6 +9,7 @@ import {
 } from "@/lib/api/helpers";
 import { busPreferenceRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { requireAuth } from "@/lib/auth/helpers";
+import { observedApiRoute } from "@/lib/log/api-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export const dynamic = "force-dynamic";
  * @response busPreferenceResponseSchema
  * @response 401:openApiErrorSchema
  */
-export async function GET(request: Request) {
+async function getRoute(request: Request) {
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const { userId } = auth;
@@ -29,6 +30,7 @@ export async function GET(request: Request) {
     return handleRouteError("Failed to fetch bus preferences", error);
   }
 }
+export const GET = observedApiRoute(getRoute);
 
 /**
  * Update bus preferences for the current user.
@@ -37,7 +39,7 @@ export async function GET(request: Request) {
  * @response 401:openApiErrorSchema
  * @response 400:openApiErrorSchema
  */
-export async function POST(request: Request) {
+async function postRoute(request: Request) {
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const { userId } = auth;
@@ -58,3 +60,4 @@ export async function POST(request: Request) {
     return handleRouteError("Failed to save bus preferences", error);
   }
 }
+export const POST = observedApiRoute(postRoute);

@@ -7,6 +7,7 @@ import {
 } from "@/lib/api/helpers";
 import { adminCommentsQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ const STATUS_FILTERS = ["active", "softbanned", "deleted"] as const;
  * @response adminCommentsResponseSchema
  * @response 400:openApiErrorSchema
  */
-export async function GET(request: Request) {
+async function getRoute(request: Request) {
   return withAdminRoute("Failed to fetch moderation queue", async () => {
     const searchParams = getRequestSearchParams(request);
     const parsed = parseRouteQuery(
@@ -111,3 +112,4 @@ export async function GET(request: Request) {
     );
   });
 }
+export const GET = observedApiRoute(getRoute);

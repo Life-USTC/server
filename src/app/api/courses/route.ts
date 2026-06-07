@@ -6,6 +6,7 @@ import {
 } from "@/lib/api/helpers";
 import { coursesQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { buildCourseListWhere } from "@/lib/course-section-queries";
+import { observedApiRoute } from "@/lib/log/api-observability";
 import { paginatedCourseQuery } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ export const dynamic = "force-dynamic";
  * @response paginatedCourseResponseSchema
  * @response 400:openApiErrorSchema
  */
-export async function GET(request: NextRequest) {
+async function getRoute(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const parsed = parseRouteQuery(
     searchParams,
@@ -48,3 +49,4 @@ export async function GET(request: NextRequest) {
     return handleRouteError("Failed to fetch courses", error);
   }
 }
+export const GET = observedApiRoute(getRoute);

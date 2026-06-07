@@ -47,6 +47,20 @@ describe("auth origin helpers", () => {
       "https://*.vercel.app",
     ]);
   });
+
+  it("includes loopback sibling origin for custom localhost ports", () => {
+    vi.stubEnv("APP_PUBLIC_ORIGIN", "http://localhost:3010");
+    vi.stubEnv("APP_CANONICAL_ORIGIN", "https://life-ustc.tiankaima.dev");
+
+    expect(getAuthTrustedOrigins()).toEqual([
+      "http://localhost:3010",
+      "http://127.0.0.1:3010",
+      "https://life-ustc.tiankaima.dev",
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "https://*.vercel.app",
+    ]);
+  });
 });
 
 describe("isTrustedAuthOrigin", () => {
@@ -77,6 +91,11 @@ describe("isTrustedAuthOrigin", () => {
   it("accepts http://127.0.0.1:3000 which is always trusted", () => {
     withOrigins("https://preview.example.com", "https://life.example.com");
     expect(isTrustedAuthOrigin("http://127.0.0.1:3000")).toBe(true);
+  });
+
+  it("accepts the loopback sibling for a custom local public origin", () => {
+    withOrigins("http://127.0.0.1:3010", "https://life.example.com");
+    expect(isTrustedAuthOrigin("http://localhost:3010")).toBe(true);
   });
 
   it("accepts a wildcard subdomain matching https://*.vercel.app", () => {

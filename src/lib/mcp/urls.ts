@@ -17,6 +17,19 @@ function toUrl(target: URL | string): URL {
   return new URL(target.toString());
 }
 
+function getLocalLoopbackSiblingUrl(target: string): string | null {
+  const url = new URL(target);
+  if (url.hostname === "localhost") {
+    url.hostname = "127.0.0.1";
+    return url.toString();
+  }
+  if (url.hostname === "127.0.0.1") {
+    url.hostname = "localhost";
+    return url.toString();
+  }
+  return null;
+}
+
 function insertWellKnownPath(target: URL | string, suffix: string): URL {
   const url = toUrl(target);
   const normalizedPathname = normalizePathname(url.pathname);
@@ -43,6 +56,15 @@ export function getOAuthMcpResourceUrl(): string {
   return `${getPublicOrigin()}${MCP_ROUTE_PATH}`;
 }
 
+function getOAuthMcpResourceUrls(): string[] {
+  const mcpResourceUrl = getOAuthMcpResourceUrl();
+  const localMcpResourceUrl = getLocalLoopbackSiblingUrl(mcpResourceUrl);
+  return uniqueUrls([
+    mcpResourceUrl,
+    ...(localMcpResourceUrl ? [localMcpResourceUrl] : []),
+  ]);
+}
+
 export function getCanonicalOAuthIssuer(): string {
   return getBetterAuthBaseUrl();
 }
@@ -58,14 +80,17 @@ export function getOAuthRestAudienceUrls(): string[] {
 export function getOAuthMcpAudienceUrls(): string[] {
   const issuer = getCanonicalOAuthIssuer();
   return uniqueUrls([
-    getOAuthMcpResourceUrl(),
+    ...getOAuthMcpResourceUrls(),
     `${issuer}/oauth2/userinfo`,
     issuer,
   ]);
 }
 
 export function getOAuthProviderValidAudiences(): string[] {
-  return uniqueUrls([...getOAuthRestAudienceUrls(), getOAuthMcpResourceUrl()]);
+  return uniqueUrls([
+    ...getOAuthRestAudienceUrls(),
+    ...getOAuthMcpResourceUrls(),
+  ]);
 }
 
 export function getJwksUrlForOAuthVerification(): string {

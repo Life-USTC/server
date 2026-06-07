@@ -1,6 +1,7 @@
 import { handleRouteError, jsonResponse, notFound } from "@/lib/api/helpers";
 import { requireAuth } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
  * @response meResponseSchema
  * @response 401:openApiErrorSchema
  */
-export async function GET(request: Request) {
+async function getRoute(request: Request) {
   try {
     const auth = await requireAuth(request);
     if (auth instanceof Response) return auth;
@@ -36,3 +37,4 @@ export async function GET(request: Request) {
     return handleRouteError("Failed to fetch user profile", error);
   }
 }
+export const GET = observedApiRoute(getRoute);

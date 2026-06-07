@@ -7,6 +7,7 @@ import { withHomeworkItemState } from "@/features/homeworks/server/homework-item
 import { handleRouteError, jsonResponse } from "@/lib/api/helpers";
 import { requireAuth } from "@/lib/auth/helpers";
 import { getViewerContext } from "@/lib/auth/viewer-context";
+import { observedApiRoute } from "@/lib/log/api-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export const dynamic = "force-dynamic";
  * @response subscribedHomeworksResponseSchema
  * @response 401:openApiErrorSchema
  */
-export async function GET(request: Request) {
+async function getRoute(request: Request) {
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const { userId } = auth;
@@ -58,3 +59,4 @@ export async function GET(request: Request) {
     return handleRouteError("Failed to fetch subscribed homeworks", error);
   }
 }
+export const GET = observedApiRoute(getRoute);

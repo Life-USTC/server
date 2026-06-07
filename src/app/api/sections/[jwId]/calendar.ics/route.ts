@@ -9,6 +9,7 @@ import {
 import { jwIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
 import { createSectionCalendar } from "@/lib/ical";
+import { observedApiRoute } from "@/lib/log/api-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export const dynamic = "force-dynamic";
  * @response 200:binary
  * @response 404:openApiErrorSchema
  */
-export async function GET(
+async function getRoute(
   _: NextRequest,
   context: { params: Promise<{ jwId: string }> },
 ) {
@@ -83,3 +84,4 @@ export async function GET(
     return handleRouteError("Failed to generate calendar", error);
   }
 }
+export const GET = observedApiRoute(getRoute);

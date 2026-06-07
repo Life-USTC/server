@@ -10,6 +10,7 @@ import {
 import { busQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { busQueryResponseSchema } from "@/lib/api/schemas/response-schemas";
 import { resolveApiUserId } from "@/lib/auth/helpers";
+import { observedApiRoute } from "@/lib/log/api-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export const dynamic = "force-dynamic";
  * @response busQueryResponseSchema
  * @response 400:openApiErrorSchema
  */
-export async function GET(request: NextRequest) {
+async function getRoute(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const parsedQuery = parseRouteSearchParams(
     searchParams,
@@ -52,3 +53,4 @@ export async function GET(request: NextRequest) {
     return handleRouteError("Failed to query shuttle bus schedules", error);
   }
 }
+export const GET = observedApiRoute(getRoute);

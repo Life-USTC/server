@@ -19,9 +19,25 @@ function normalizeOriginOrNull(origin: string): string | null {
   }
 }
 
+function getLocalSiblingOrigin(origin: string): string | null {
+  const url = new URL(origin);
+  if (url.hostname === "localhost") {
+    url.hostname = "127.0.0.1";
+    return url.origin;
+  }
+  if (url.hostname === "127.0.0.1") {
+    url.hostname = "localhost";
+    return url.origin;
+  }
+  return null;
+}
+
 export function getAuthTrustedOrigins(): string[] {
+  const publicOrigin = getPublicOrigin();
+  const localSiblingOrigin = getLocalSiblingOrigin(publicOrigin);
   return uniqueOrigins([
-    getPublicOrigin(),
+    publicOrigin,
+    ...(localSiblingOrigin ? [localSiblingOrigin] : []),
     getCanonicalOrigin(),
     ...LOCALHOST_AUTH_ORIGINS,
     VERCEL_PREVIEW_AUTH_ORIGIN,

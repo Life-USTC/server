@@ -66,4 +66,20 @@ describe("MCP URL helpers", () => {
       "https://life.example.com/.well-known/oauth-protected-resource/api/mcp",
     );
   });
+
+  it("includes loopback sibling MCP audiences for custom local ports", () => {
+    vi.stubEnv("APP_PUBLIC_ORIGIN", "http://localhost:3010");
+
+    expect(getOAuthProviderValidAudiences()).toEqual([
+      "http://localhost:3010/api/auth",
+      "http://localhost:3010/api/mcp",
+      "http://127.0.0.1:3010/api/mcp",
+    ]);
+    expect(getOAuthMcpAudienceUrls()).toEqual([
+      "http://localhost:3010/api/mcp",
+      "http://127.0.0.1:3010/api/mcp",
+      "http://localhost:3010/api/auth/oauth2/userinfo",
+      "http://localhost:3010/api/auth",
+    ]);
+  });
 });

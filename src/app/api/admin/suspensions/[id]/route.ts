@@ -6,6 +6,7 @@ import {
 } from "@/lib/api/helpers";
 import { fireAuditLog } from "@/lib/audit/write-audit-log";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export const dynamic = "force-dynamic";
  * @response adminSuspensionResponseSchema
  * @response 404:openApiErrorSchema
  */
-export async function PATCH(
+async function patchRoute(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -53,3 +54,4 @@ export async function PATCH(
     return jsonResponse({ suspension });
   });
 }
+export const PATCH = observedApiRoute(patchRoute);

@@ -8,6 +8,7 @@ import {
 import { sectionsCalendarQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
 import { createMultiSectionCalendar } from "@/lib/ical";
+import { observedApiRoute } from "@/lib/log/api-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export const dynamic = "force-dynamic";
  * @response 200:binary
  * @response 400:openApiErrorSchema
  */
-export async function GET(request: NextRequest) {
+async function getRoute(request: NextRequest) {
   try {
     const parsedQuery = parseRouteSearchParams(
       request.nextUrl.searchParams,
@@ -91,3 +92,4 @@ export async function GET(request: NextRequest) {
     return handleRouteError("Failed to generate calendar", error);
   }
 }
+export const GET = observedApiRoute(getRoute);

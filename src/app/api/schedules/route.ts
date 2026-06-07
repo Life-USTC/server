@@ -7,6 +7,7 @@ import {
 } from "@/lib/api/helpers";
 import { schedulesQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { getPrisma, prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 import {
   buildScheduleListWhere,
   publicScheduleInclude,
@@ -32,7 +33,7 @@ function parseScheduleDateParam(name: "dateFrom" | "dateTo", value?: string) {
  * @response paginatedScheduleResponseSchema
  * @response 400:openApiErrorSchema
  */
-export async function GET(request: NextRequest) {
+async function getRoute(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const parsed = parseRouteQuery(
@@ -108,3 +109,4 @@ export async function GET(request: NextRequest) {
     return handleRouteError("Failed to fetch schedules", error);
   }
 }
+export const GET = observedApiRoute(getRoute);

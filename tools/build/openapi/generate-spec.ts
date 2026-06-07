@@ -169,10 +169,27 @@ function extractJsDocAnnotations(
           "g",
         );
   const match = pattern.exec(source);
-  if (!match) return null;
+  if (!match) {
+    const wrappedMatch = new RegExp(
+      `export\\s+const\\s+${httpMethod}\\s*=\\s*observedApiRoute\\((\\w+)\\)`,
+    ).exec(source);
+    if (!wrappedMatch) return null;
 
-  const jsdoc = match[0];
+    const handlerName = wrappedMatch[1];
+    const handlerPattern = new RegExp(
+      `/\\*\\*[\\s\\S]*?\\*/\\s*(?:async\\s+)?function\\s+${handlerName}\\b`,
+      "g",
+    );
+    const handlerMatch = handlerPattern.exec(source);
+    if (!handlerMatch) return null;
 
+    return parseJsDocAnnotations(handlerMatch[0]);
+  }
+
+  return parseJsDocAnnotations(match[0]);
+}
+
+function parseJsDocAnnotations(jsdoc: string): HandlerAnnotations {
   // Extract summary (first non-tag line)
   const summaryMatch = /\/\*\*\s*\n\s*\*\s*([^@\n][^\n]*)/.exec(jsdoc);
   const summary = summaryMatch
@@ -387,6 +404,11 @@ const HTTP_METHODS = [
   "OPTIONS",
 ] as const;
 
+const OPENAPI_EXCLUDED_ROUTES = new Set([
+  "src/app/api/metrics/route.ts",
+  "src/app/api/readiness/route.ts",
+]);
+
 async function processRouteFile(
   filePath: string,
   usedSchemas: Set<string>,
@@ -403,7 +425,7 @@ async function processRouteFile(
     }
 
     const annotations =
-      exportKind === "function" ||
+      exportKind !== "destructured" ||
       (exportKind === "destructured" && method !== "OPTIONS")
         ? extractJsDocAnnotations(source, method, exportKind)
         : null;
@@ -485,6 +507,10 @@ async function main() {
   const pathEntries: Array<[string, OpenApiPathItem]> = [];
 
   for (const filePath of routeFiles) {
+    if (OPENAPI_EXCLUDED_ROUTES.has(filePath)) {
+      continue;
+    }
+
     const result = await processRouteFile(filePath, usedSchemas);
     if (result) {
       pathEntries.push([result.apiPath, result.pathItem]);

@@ -8,6 +8,7 @@ import {
 } from "@/lib/api/helpers";
 import { requireAuth } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 import { getS3Bucket, getS3SignedUrl } from "@/lib/storage/s3";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,7 @@ export const dynamic = "force-dynamic";
  * @response 401:openApiErrorSchema
  * @response 404:openApiErrorSchema
  */
-export async function GET(
+async function getRoute(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -55,3 +56,4 @@ export async function GET(
     return handleRouteError("Failed to prepare download", error);
   }
 }
+export const GET = observedApiRoute(getRoute);

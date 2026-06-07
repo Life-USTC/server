@@ -12,6 +12,7 @@ import { homeworkUpdateRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { requireWriteAuth } from "@/lib/auth/helpers";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +24,7 @@ export const dynamic = "force-dynamic";
  * @response successResponseSchema
  * @response 400:openApiErrorSchema
  */
-export async function PATCH(
+async function patchRoute(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -137,6 +138,7 @@ export async function PATCH(
     return handleRouteError("Failed to update homework", error);
   }
 }
+export const PATCH = observedApiRoute(patchRoute);
 
 /**
  * Soft delete one homework.
@@ -144,7 +146,7 @@ export async function PATCH(
  * @response successResponseSchema
  * @response 404:openApiErrorSchema
  */
-export async function DELETE(
+async function deleteRoute(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -203,3 +205,4 @@ export async function DELETE(
     return handleRouteError("Failed to delete homework", error);
   }
 }
+export const DELETE = observedApiRoute(deleteRoute);

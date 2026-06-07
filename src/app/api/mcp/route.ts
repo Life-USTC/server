@@ -6,6 +6,7 @@ import { authenticateMcpRequest } from "@/lib/mcp/auth";
 import {
   type McpRequestSummary,
   recordMcpJsonRpcSummaryMetrics,
+  recordMcpToolResultMetrics,
   summarizeMcpJsonRpcRequest,
 } from "@/lib/mcp/observability";
 import { createMcpServer } from "@/lib/mcp/server";
@@ -209,6 +210,10 @@ async function handleMcpRequest(request: Request) {
     phase: "handled",
     status: res.status,
     start,
+  });
+  recordMcpToolResultMetrics(rpcSummary, knownToolNames, {
+    durationMs,
+    status: res.status,
   });
   logAppEvent("info", "mcp.transport.response", {
     correlationId,

@@ -56,6 +56,21 @@ export function recordMcpJsonRpcMetric(input: {
   }
 }
 
+export function recordMcpToolCallMetric(input: {
+  toolName: string;
+  status: "success" | "error";
+  durationMs: number;
+}) {
+  const labels = {
+    status: input.status,
+    tool: input.toolName,
+  };
+  incrementCounter("life_ustc_mcp_tool_call_results_total", labels);
+  observeDurationMs("life_ustc_mcp_tool_call_duration_ms", input.durationMs, {
+    tool: input.toolName,
+  });
+}
+
 export function recordOAuthTokenRequestMetric(input: {
   grantType?: string | null;
   hasResource: boolean;
@@ -76,4 +91,38 @@ export function recordOAuthTokenRequestMetric(input: {
       has_resource: input.hasResource,
     },
   );
+}
+
+export function recordStorageOperationMetric(input: {
+  operation: string;
+  status: "success" | "error";
+  durationMs: number;
+}) {
+  const labels = {
+    operation: input.operation,
+    status: input.status,
+  };
+  incrementCounter("life_ustc_storage_operations_total", labels);
+  observeDurationMs(
+    "life_ustc_storage_operation_duration_ms",
+    input.durationMs,
+    {
+      operation: input.operation,
+    },
+  );
+}
+
+export function recordAuditWriteMetric(input: {
+  action: string;
+  status: "success" | "error";
+  durationMs: number;
+}) {
+  const labels = {
+    action: input.action,
+    status: input.status,
+  };
+  incrementCounter("life_ustc_audit_writes_total", labels);
+  observeDurationMs("life_ustc_audit_write_duration_ms", input.durationMs, {
+    action: input.action,
+  });
 }

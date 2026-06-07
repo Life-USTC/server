@@ -1,6 +1,7 @@
 import { handleRouteError, jsonResponse, notFound } from "@/lib/api/helpers";
 import { findCurrentSemester } from "@/lib/current-semester";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
  * @response semesterSchema
  * @response 404:openApiErrorSchema
  */
-export async function GET() {
+async function getRoute() {
   try {
     const now = new Date();
 
@@ -24,3 +25,4 @@ export async function GET() {
     return handleRouteError("Failed to fetch current semester", error);
   }
 }
+export const GET = observedApiRoute(getRoute);

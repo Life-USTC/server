@@ -21,6 +21,7 @@ import {
 } from "@/lib/audit/write-audit-log";
 import { requireWriteAuth } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ export const dynamic = "force-dynamic";
  * @response descriptionsResponseSchema
  * @response 400:openApiErrorSchema
  */
-export async function GET(request: Request) {
+async function getRoute(request: Request) {
   const { searchParams } = new URL(request.url);
   const parsedQuery = parseRouteSearchParams(
     searchParams,
@@ -57,6 +58,7 @@ export async function GET(request: Request) {
     return handleRouteError("Failed to fetch description", error);
   }
 }
+export const GET = observedApiRoute(getRoute);
 
 /**
  * Upsert description by target.
@@ -64,7 +66,7 @@ export async function GET(request: Request) {
  * @response descriptionUpsertResponseSchema
  * @response 400:openApiErrorSchema
  */
-export async function POST(request: Request) {
+async function postRoute(request: Request) {
   const parsedBody = await parseRouteJsonBody(
     request,
     descriptionUpsertRequestSchema,
@@ -151,3 +153,4 @@ export async function POST(request: Request) {
     return handleRouteError("Failed to update description", error);
   }
 }
+export const POST = observedApiRoute(postRoute);

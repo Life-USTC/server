@@ -30,6 +30,7 @@
 - [docs/features/openapi.json](features/openapi.json) - OpenAPI feature surface.
 - [docs/features/mcp.json](features/mcp.json) - MCP feature surface.
 - [docs/features/security.json](features/security.json) - security and permission expectations.
+- [docs/observability.md](observability.md) - production logs, metrics, readiness, alerts, and dashboard guidance.
 
 ## Verification
 

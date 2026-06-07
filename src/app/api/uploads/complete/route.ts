@@ -15,6 +15,7 @@ import {
 import { uploadCompleteRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { requireAuth } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 import { getS3Bucket, sendS3 } from "@/lib/storage/s3";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ export const dynamic = "force-dynamic";
  * @response uploadCompleteResponseSchema
  * @response 400:openApiErrorSchema
  */
-export async function POST(request: Request) {
+async function postRoute(request: Request) {
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const { userId } = auth;
@@ -181,3 +182,4 @@ export async function POST(request: Request) {
     return handleRouteError("Failed to finalize upload", error);
   }
 }
+export const POST = observedApiRoute(postRoute);

@@ -16,6 +16,9 @@ services:
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+      APP_LOG_DIR: ${APP_LOG_DIR:-/var/log/life-ustc}
+    volumes:
+      - ${APP_LOG_HOST_DIR:-./logs/app}:/var/log/life-ustc
     restart: unless-stopped
     cap_drop:
       - ALL

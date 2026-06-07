@@ -20,6 +20,7 @@ import {
 import { resolveApiUserId } from "@/lib/auth/helpers";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,7 @@ function findComment(nodes: CommentNode[], id: string): CommentNode | null {
  * @response commentThreadResponseSchema
  * @response 404:openApiErrorSchema
  */
-export async function GET(
+async function getRoute(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -193,6 +194,7 @@ export async function GET(
     return handleRouteError("Failed to fetch comment", error);
   }
 }
+export const GET = observedApiRoute(getRoute);
 
 /**
  * Update one comment.
@@ -201,7 +203,7 @@ export async function GET(
  * @response commentUpdateResponseSchema
  * @response 400:openApiErrorSchema
  */
-export async function PATCH(
+async function patchRoute(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -359,6 +361,7 @@ export async function PATCH(
     return handleRouteError("Failed to update comment", error);
   }
 }
+export const PATCH = observedApiRoute(patchRoute);
 
 /**
  * Delete one comment.
@@ -366,7 +369,7 @@ export async function PATCH(
  * @response successResponseSchema
  * @response 404:openApiErrorSchema
  */
-export async function DELETE(
+async function deleteRoute(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -416,3 +419,4 @@ export async function DELETE(
     return handleRouteError("Failed to delete comment", error);
   }
 }
+export const DELETE = observedApiRoute(deleteRoute);

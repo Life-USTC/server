@@ -1,5 +1,6 @@
 import { handleRouteError, jsonResponse } from "@/lib/api/helpers";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -7,7 +8,7 @@ export const dynamic = "force-dynamic";
  * Get metadata dictionaries for filters.
  * @response metadataResponseSchema
  */
-export async function GET() {
+async function getRoute() {
   try {
     const [
       educationLevels,
@@ -49,3 +50,4 @@ export async function GET() {
     return handleRouteError("Failed to fetch metadata", error);
   }
 }
+export const GET = observedApiRoute(getRoute);

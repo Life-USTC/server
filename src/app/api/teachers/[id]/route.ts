@@ -9,6 +9,7 @@ import {
 } from "@/lib/api/helpers";
 import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
 import { getPrisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 import { teacherDetailInclude } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,7 @@ export const dynamic = "force-dynamic";
  * @response teacherDetailSchema
  * @response 404:openApiErrorSchema
  */
-export async function GET(
+async function getRoute(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
@@ -52,3 +53,4 @@ export async function GET(
     return handleRouteError("Failed to fetch teacher", error);
   }
 }
+export const GET = observedApiRoute(getRoute);

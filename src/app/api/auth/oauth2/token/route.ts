@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { handlers } from "@/auth";
 import { jsonResponse } from "@/lib/api/helpers";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 import {
   logOAuthDebug,
   summarizeOAuthForwardingHeaders,
@@ -287,7 +288,7 @@ async function withTokenMetrics(
   }
 }
 
-export async function POST(request: Request) {
+async function postRoute(request: Request) {
   const cloned = request.clone();
 
   let params: URLSearchParams;
@@ -318,7 +319,9 @@ export async function POST(request: Request) {
     ),
   );
 }
+export const POST = observedApiRoute(postRoute);
 
-export function GET(request: Request) {
+function getRoute(request: Request) {
   return withBetterAuthOAuthDebug("GET", request, handlers.GET);
 }
+export const GET = observedApiRoute(getRoute);

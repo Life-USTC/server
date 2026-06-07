@@ -79,5 +79,5 @@
       "description": "Reserved for future admin description moderation actions."
     }
   },
-  "writer": "writeAuditLog in src/lib/audit/write-audit-log.ts writes a record. Calls are fire-and-forget (.catch(() => {})) so audit failures never block the main request."
+  "writer": "writeAuditLog in src/lib/audit/write-audit-log.ts writes a record and records bounded production-safe audit write metrics by action, status, and duration. Calls are fire-and-forget (.catch(() => {})) so audit failures never block the main request."
 }

@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { LOCALE_COOKIE, negotiateLocale } from "@/i18n/config";
 import { shouldRedirectIncompleteProfileToWelcome } from "@/lib/auth/auth-routing";
-import { logApiRequest, shouldLog } from "@/lib/log/app-logger";
+import { recordApiRequestStart } from "@/lib/log/api-observability";
 import {
   buildContentSecurityPolicy,
   createScriptNonce,
@@ -19,13 +19,13 @@ export default async function proxy(request: NextRequest) {
       request.headers.get("x-request-id") ?? crypto.randomUUID();
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-request-id", requestId);
+    requestHeaders.set("x-request-start-ms", Date.now().toString());
 
-    if (shouldLog("debug")) {
-      logApiRequest(request.method, pathname, 0, 0, {
-        requestId,
-        event: "request.start",
-      });
-    }
+    recordApiRequestStart({
+      method: request.method,
+      pathname,
+      requestId,
+    });
 
     const response = NextResponse.next({
       request: { headers: requestHeaders },

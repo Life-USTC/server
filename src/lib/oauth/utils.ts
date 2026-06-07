@@ -26,9 +26,41 @@ export function normalizeResourceIndicator(value: string | URL): string {
   return `${protocol}//${hostname}${port}${pathname}${parsed.search}`;
 }
 
+function getNormalizedResourceParts(value: string | URL) {
+  const parsed = new URL(normalizeResourceIndicator(value));
+  return {
+    protocol: parsed.protocol,
+    hostname: parsed.hostname,
+    port: parsed.port,
+    pathname: parsed.pathname,
+    search: parsed.search,
+  };
+}
+
+function areLocalLoopbackHostnames(left: string, right: string) {
+  return (
+    (left === "localhost" && right === "127.0.0.1") ||
+    (left === "127.0.0.1" && right === "localhost")
+  );
+}
+
 export function resourceIndicatorsMatch(
   left: string | URL,
   right: string | URL,
 ): boolean {
-  return normalizeResourceIndicator(left) === normalizeResourceIndicator(right);
+  const normalizedLeft = normalizeResourceIndicator(left);
+  const normalizedRight = normalizeResourceIndicator(right);
+  if (normalizedLeft === normalizedRight) {
+    return true;
+  }
+
+  const leftParts = getNormalizedResourceParts(normalizedLeft);
+  const rightParts = getNormalizedResourceParts(normalizedRight);
+  return (
+    areLocalLoopbackHostnames(leftParts.hostname, rightParts.hostname) &&
+    leftParts.protocol === rightParts.protocol &&
+    leftParts.port === rightParts.port &&
+    leftParts.pathname === rightParts.pathname &&
+    leftParts.search === rightParts.search
+  );
 }

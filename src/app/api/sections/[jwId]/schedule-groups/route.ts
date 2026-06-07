@@ -9,6 +9,7 @@ import {
 } from "@/lib/api/helpers";
 import { jwIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
 import { getPrisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export const dynamic = "force-dynamic";
  * @response 200:array
  * @response 404:openApiErrorSchema
  */
-export async function GET(
+async function getRoute(
   _request: NextRequest,
   context: { params: Promise<{ jwId: string }> },
 ) {
@@ -58,3 +59,4 @@ export async function GET(
     return handleRouteError("Failed to fetch schedule groups", error);
   }
 }
+export const GET = observedApiRoute(getRoute);

@@ -56,4 +56,28 @@ describe("oauth/utils", () => {
       ),
     ).toBe(false);
   });
+
+  it("matches localhost and 127.0.0.1 resource indicators on the same port", () => {
+    expect(
+      resourceIndicatorsMatch(
+        "http://localhost:3010/api/mcp",
+        "http://127.0.0.1:3010/api/mcp",
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects loopback resource indicators with different ports or paths", () => {
+    expect(
+      resourceIndicatorsMatch(
+        "http://localhost:3010/api/mcp",
+        "http://127.0.0.1:3000/api/mcp",
+      ),
+    ).toBe(false);
+    expect(
+      resourceIndicatorsMatch(
+        "http://localhost:3010/api/mcp",
+        "http://127.0.0.1:3010/api/other",
+      ),
+    ).toBe(false);
+  });
 });

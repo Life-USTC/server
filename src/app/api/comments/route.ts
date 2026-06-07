@@ -19,6 +19,7 @@ import {
 import { requireWriteAuth, resolveApiUserId } from "@/lib/auth/helpers";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export const dynamic = "force-dynamic";
  * @response commentsListResponseSchema
  * @response 400:openApiErrorSchema
  */
-export async function GET(request: Request) {
+async function getRoute(request: Request) {
   const { searchParams } = new URL(request.url);
   const parsedQuery = parseRouteSearchParams(
     searchParams,
@@ -114,6 +115,7 @@ export async function GET(request: Request) {
     return handleRouteError("Failed to fetch comments", error);
   }
 }
+export const GET = observedApiRoute(getRoute);
 
 /**
  * Create one comment.
@@ -121,7 +123,7 @@ export async function GET(request: Request) {
  * @response idResponseSchema
  * @response 400:openApiErrorSchema
  */
-export async function POST(request: Request) {
+async function postRoute(request: Request) {
   const parsedBody = await parseRouteJsonBody(
     request,
     commentCreateRequestSchema,
@@ -239,3 +241,4 @@ export async function POST(request: Request) {
     return handleRouteError("Failed to create comment", error);
   }
 }
+export const POST = observedApiRoute(postRoute);

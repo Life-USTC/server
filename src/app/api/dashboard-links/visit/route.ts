@@ -6,6 +6,7 @@ import {
 } from "@/lib/api/schemas/request-schemas";
 import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 import { logAppEvent } from "@/lib/log/app-logger";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +24,7 @@ function resolveVisitTarget(
  * @params dashboardLinkVisitQuerySchema
  * @response 307
  */
-export async function GET(request: Request) {
+async function getRoute(request: Request) {
   const { searchParams } = new URL(request.url);
   const target = resolveVisitTarget(
     dashboardLinkVisitQuerySchema,
@@ -36,13 +37,14 @@ export async function GET(request: Request) {
 
   return NextResponse.redirect(target.url);
 }
+export const GET = observedApiRoute(getRoute);
 
 /**
  * Record one dashboard link visit and redirect.
  * @body dashboardLinkVisitRequestSchema
  * @response 303
  */
-export async function POST(request: Request) {
+async function postRoute(request: Request) {
   const formData = await request.formData();
   const target = resolveVisitTarget(
     dashboardLinkVisitRequestSchema,
@@ -91,3 +93,4 @@ export async function POST(request: Request) {
 
   return NextResponse.redirect(target.url, 303);
 }
+export const POST = observedApiRoute(postRoute);

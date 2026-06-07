@@ -9,6 +9,7 @@ import {
 import { commentReactionRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { requireAuth, requireWriteAuth } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
+import { observedApiRoute } from "@/lib/log/api-observability";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export const dynamic = "force-dynamic";
  * @body commentReactionRequestSchema
  * @response 200:successResponseSchema
  */
-export async function POST(
+async function postRoute(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -74,6 +75,7 @@ export async function POST(
     return handleRouteError("Failed to add reaction", error);
   }
 }
+export const POST = observedApiRoute(postRoute);
 
 /**
  * Remove one reaction from a comment.
@@ -81,7 +83,7 @@ export async function POST(
  * @params commentReactionRequestSchema
  * @response 200:successResponseSchema
  */
-export async function DELETE(
+async function deleteRoute(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -120,3 +122,4 @@ export async function DELETE(
     return handleRouteError("Failed to remove reaction", error);
   }
 }
+export const DELETE = observedApiRoute(deleteRoute);
