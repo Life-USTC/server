@@ -171,7 +171,7 @@ function extractJsDocAnnotations(
   const match = pattern.exec(source);
   if (!match) {
     const wrappedMatch = new RegExp(
-      `export\\s+const\\s+${httpMethod}\\s*=\\s*observedApiRoute\\((\\w+)\\)`,
+      `export\\s+const\\s+${httpMethod}\\s*=\\s*observedApiRoute\\s*\\(\\s*(\\w+)\\s*\\)`,
     ).exec(source);
     if (!wrappedMatch) return null;
 

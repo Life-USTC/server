@@ -65,6 +65,20 @@ function getLogFileDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function reportLogFileFailure(error: unknown) {
+  if (fileLogFailureReported) return;
+  fileLogFailureReported = true;
+  console.error(
+    JSON.stringify({
+      prefix: "[app]",
+      ...baseLogPayload(),
+      runtime: "server",
+      message: "app.log_file_write_failed",
+      error: serializeError(error),
+    }),
+  );
+}
+
 function writeLogFileLine(payload: Record<string, unknown>) {
   if (typeof window !== "undefined") return;
 
@@ -74,24 +88,23 @@ function writeLogFileLine(payload: Record<string, unknown>) {
   try {
     const fs = process.getBuiltinModule("fs");
     const path = process.getBuiltinModule("path");
-    fs.mkdirSync(logDir, { recursive: true });
-    fs.appendFileSync(
-      path.join(logDir, `app-${getLogFileDate()}.log`),
-      `${JSON.stringify(payload)}\n`,
-      "utf8",
-    );
+    const logFile = path.join(logDir, `app-${getLogFileDate()}.log`);
+    const line = `${JSON.stringify(payload)}\n`;
+
+    fs.mkdir(logDir, { recursive: true }, (mkdirError) => {
+      if (mkdirError) {
+        reportLogFileFailure(mkdirError);
+        return;
+      }
+
+      fs.appendFile(logFile, line, "utf8", (appendError) => {
+        if (appendError) {
+          reportLogFileFailure(appendError);
+        }
+      });
+    });
   } catch (error) {
-    if (fileLogFailureReported) return;
-    fileLogFailureReported = true;
-    console.error(
-      JSON.stringify({
-        prefix: "[app]",
-        ...baseLogPayload(),
-        runtime: "server",
-        message: "app.log_file_write_failed",
-        error: serializeError(error),
-      }),
-    );
+    reportLogFileFailure(error);
   }
 }
 

@@ -17,6 +17,11 @@ Docker Compose sets `APP_LOG_DIR=/var/log/life-ustc` and mounts
 - production default: `./logs/app`
 - Docker dev default: `./logs/app-dev`
 
+Create the host directory before starting Compose and make it writable by the
+container user. If Docker auto-creates the bind mount as root and the app cannot
+write to it, stdout/stderr logging still works and the app emits one
+`app.log_file_write_failed` message.
+
 Caddy access logs remain separate from the app log file.
 
 ## Request Tracing

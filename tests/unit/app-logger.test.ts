@@ -4,6 +4,21 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { logAppEvent, logRouteFailure, shouldLog } from "@/lib/log/app-logger";
 
+async function waitForLogFileContent(logDir: string) {
+  const fs = process.getBuiltinModule("fs");
+  const deadline = Date.now() + 1_000;
+
+  while (Date.now() < deadline) {
+    const files = fs.readdirSync(logDir);
+    if (files.length > 0) {
+      return readFileSync(join(logDir, files[0] ?? ""), "utf8");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+
+  throw new Error("Timed out waiting for log file");
+}
+
 describe("app logger", () => {
   let tempDirs: string[] = [];
 
@@ -72,7 +87,7 @@ describe("app logger", () => {
     expect(String(payload)).not.toContain("stack");
   });
 
-  it("persists server logs as JSON lines when APP_LOG_DIR is configured", () => {
+  it("persists server logs as JSON lines when APP_LOG_DIR is configured", async () => {
     const logDir = mkdtempSync(join(tmpdir(), "life-ustc-logs-"));
     tempDirs.push(logDir);
     vi.stubEnv("APP_LOG_DIR", logDir);
@@ -82,9 +97,7 @@ describe("app logger", () => {
     logAppEvent("info", "test.event", { requestId: "req_123" });
 
     expect(infoSpy).toHaveBeenCalledOnce();
-    const files = process.getBuiltinModule("fs").readdirSync(logDir);
-    expect(files).toHaveLength(1);
-    const content = readFileSync(join(logDir, files[0] ?? ""), "utf8");
+    const content = await waitForLogFileContent(logDir);
     expect(JSON.parse(content.trim())).toMatchObject({
       prefix: "[app]",
       environment: "production",
