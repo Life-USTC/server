@@ -28,7 +28,7 @@ function parseSetCookie(value: string) {
   if (separatorIndex <= 0) return null;
   const name = nameValue.slice(0, separatorIndex).trim();
   const rawCookieValue = nameValue.slice(separatorIndex + 1);
-  let cookieValue = rawCookieValue;
+  let cookieValue: string;
   try {
     cookieValue = decodeURIComponent(rawCookieValue);
   } catch {
