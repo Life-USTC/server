@@ -1,4 +1,4 @@
-export { APP_PRODUCTION_BUILD_PHASE } from "@/lib/env/env-constants";
+export { APP_PRODUCTION_BUILD_PHASE } from "./lib/env/env-constants";
 export {
   getAuthEnv,
   getOptionalTrimmedEnv,
@@ -6,4 +6,4 @@ export {
   getUploadEnv,
   isAppProductionBuildPhase,
   loadEnv,
-} from "@/lib/env/env-getters";
+} from "./lib/env/env-getters";
