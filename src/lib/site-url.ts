@@ -1,6 +1,15 @@
-import { getOptionalTrimmedEnv } from "@/env";
+import { getOptionalTrimmedEnv } from "@/app-env";
 
-const DEFAULT_LOCAL_ORIGIN = "http://localhost:3000";
+function resolveLocalHostForOrigin(host: string) {
+  return host === "0.0.0.0" || host === "::" ? "127.0.0.1" : host;
+}
+
+function getDefaultLocalOrigin() {
+  const host = resolveLocalHostForOrigin("localhost");
+  return `http://${host}:3000`;
+}
+
+const DEFAULT_LOCAL_ORIGIN = getDefaultLocalOrigin();
 
 function normalizeAbsoluteOrigin(value: string, envName: string): string {
   try {
@@ -10,48 +19,25 @@ function normalizeAbsoluteOrigin(value: string, envName: string): string {
   }
 }
 
-function normalizeVercelHost(value: string, envName: string): string {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    throw new Error(`${envName} must not be blank`);
-  }
-  return normalizeAbsoluteOrigin(`https://${trimmed}`, envName);
-}
-
 function getAbsoluteOriginEnv(envName: string) {
   const value = getOptionalTrimmedEnv(envName);
   if (!value) return undefined;
   return normalizeAbsoluteOrigin(value, envName);
 }
 
-function getVercelOriginEnv(envName: string) {
-  const value = getOptionalTrimmedEnv(envName);
-  if (!value) return undefined;
-  return normalizeVercelHost(value, envName);
-}
-
 /**
- * Public origin of the current deployment. Prefer explicit configuration, then
- * fall back to Vercel runtime metadata, then localhost for local development.
+ * Public origin of the current deployment. Production sets APP_PUBLIC_ORIGIN;
+ * local development falls back to the pinned localhost origin.
  */
 export function getPublicOrigin(): string {
-  return (
-    getAbsoluteOriginEnv("APP_PUBLIC_ORIGIN") ??
-    getVercelOriginEnv("VERCEL_URL") ??
-    DEFAULT_LOCAL_ORIGIN
-  );
+  return getAbsoluteOriginEnv("APP_PUBLIC_ORIGIN") ?? DEFAULT_LOCAL_ORIGIN;
 }
 
 /**
- * Canonical production origin for SEO and stable metadata. Vercel provides the
- * production host even in previews, which is a useful fallback when unset.
+ * Canonical origin follows the public origin; keep one production URL setting.
  */
 export function getCanonicalOrigin(): string {
-  return (
-    getAbsoluteOriginEnv("APP_CANONICAL_ORIGIN") ??
-    getVercelOriginEnv("VERCEL_PROJECT_PRODUCTION_URL") ??
-    getPublicOrigin()
-  );
+  return getPublicOrigin();
 }
 
 export function getBetterAuthBaseUrl(): string {

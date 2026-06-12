@@ -57,7 +57,7 @@ Start Postgres first for local migration work:
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d postgres
-bun run prisma:migrate  # Create migration
+bun run prisma migrate dev # Create migration
 bun run build:artifacts # Generate client + OpenAPI
 # Update seed scenarios
 # Update E2E tests

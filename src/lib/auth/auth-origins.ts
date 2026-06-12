@@ -1,11 +1,19 @@
-import { getCanonicalOrigin, getPublicOrigin } from "@/lib/site-url";
+import { getPublicOrigin } from "@/lib/site-url";
 
-const LOCALHOST_DEV_PORT = 3000;
-const LOCALHOST_AUTH_ORIGINS = [
-  `http://localhost:${LOCALHOST_DEV_PORT}`,
-  `http://127.0.0.1:${LOCALHOST_DEV_PORT}`,
+function getLocalOriginAlternates(origin: string) {
+  const url = new URL(origin);
+  if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+    return [
+      origin,
+      `http://${url.hostname === "localhost" ? "127.0.0.1" : "localhost"}${url.port ? `:${url.port}` : ""}`,
+    ];
+  }
+  return [origin];
+}
+const DEFAULT_LOCAL_AUTH_ORIGINS = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
 ];
-const VERCEL_PREVIEW_AUTH_ORIGIN = "https://*.vercel.app";
 
 function uniqueOrigins(origins: string[]): string[] {
   return Array.from(new Set(origins));
@@ -38,9 +46,8 @@ export function getAuthTrustedOrigins(): string[] {
   return uniqueOrigins([
     publicOrigin,
     ...(localSiblingOrigin ? [localSiblingOrigin] : []),
-    getCanonicalOrigin(),
-    ...LOCALHOST_AUTH_ORIGINS,
-    VERCEL_PREVIEW_AUTH_ORIGIN,
+    ...getLocalOriginAlternates(publicOrigin),
+    ...DEFAULT_LOCAL_AUTH_ORIGINS,
   ]);
 }
 
@@ -50,23 +57,8 @@ export function getAuthAllowedHosts(): string[] {
   );
 }
 
-function isWildcardOriginPattern(origin: string) {
-  return origin.includes("://*.");
-}
-
 function matchesTrustedOrigin(origin: string, trustedOrigin: string) {
-  if (!isWildcardOriginPattern(trustedOrigin)) {
-    return origin === trustedOrigin;
-  }
-
-  const trustedUrl = new URL(trustedOrigin);
-  const trustedHostSuffix = trustedUrl.hostname.slice(1);
-  const url = new URL(origin);
-  return (
-    url.protocol === trustedUrl.protocol &&
-    url.hostname.endsWith(trustedHostSuffix) &&
-    url.hostname.length > trustedHostSuffix.length
-  );
+  return origin === trustedOrigin;
 }
 
 export function isTrustedAuthOrigin(origin: string): boolean {

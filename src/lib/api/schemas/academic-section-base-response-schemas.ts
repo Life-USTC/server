@@ -1,0 +1,62 @@
+import * as z from "zod";
+import { dateTimeSchema } from "./response-schema-primitives";
+
+export const semesterSchema = z.object({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  nameCn: z.string(),
+  code: z.string(),
+  startDate: dateTimeSchema.nullable(),
+  endDate: dateTimeSchema.nullable(),
+});
+
+export const adminClassSchema = z.object({
+  id: z.number().int(),
+  jwId: z.number().int().nullable(),
+  code: z.string().nullable(),
+  grade: z.string().nullable(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+  stdCount: z.number().int().nullable(),
+  planCount: z.number().int().nullable(),
+  enabled: z.boolean().nullable(),
+  abbrZh: z.string().nullable(),
+  abbrEn: z.string().nullable(),
+});
+
+export const sectionBaseSchema = z.object({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  code: z.string(),
+  bizTypeId: z.number().int().nullable(),
+  credits: z.number().nullable(),
+  period: z.number().int().nullable(),
+  periodsPerWeek: z.number().int().nullable(),
+  timesPerWeek: z.number().int().nullable(),
+  stdCount: z.number().int().nullable(),
+  limitCount: z.number().int().nullable(),
+  graduateAndPostgraduate: z.boolean().nullable(),
+  dateTimePlaceText: z.string().nullable(),
+  dateTimePlacePersonText: z.unknown().nullable(),
+  actualPeriods: z.number().int().nullable(),
+  theoryPeriods: z.number().nullable(),
+  practicePeriods: z.number().nullable(),
+  experimentPeriods: z.number().nullable(),
+  machinePeriods: z.number().nullable(),
+  designPeriods: z.number().nullable(),
+  testPeriods: z.number().nullable(),
+  scheduleState: z.string().nullable(),
+  suggestScheduleWeeks: z.unknown().nullable(),
+  suggestScheduleWeekInfo: z.string().nullable(),
+  scheduleJsonParams: z.unknown().nullable(),
+  selectedStdCount: z.number().int().nullable(),
+  remark: z.string().nullable(),
+  scheduleRemark: z.string().nullable(),
+  courseId: z.number().int(),
+  semesterId: z.number().int().nullable(),
+  campusId: z.number().int().nullable(),
+  examModeId: z.number().int().nullable(),
+  openDepartmentId: z.number().int().nullable(),
+  teachLanguageId: z.number().int().nullable(),
+  roomTypeId: z.number().int().nullable(),
+});

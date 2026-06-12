@@ -1,55 +1,59 @@
-import { parseInteger, parseIntegerList } from "@/lib/api/helpers";
+/** Case-insensitive string contains filter for Prisma queries. */
+export function ilike(value: string): {
+  contains: string;
+  mode: "insensitive";
+} {
+  return { contains: value, mode: "insensitive" };
+}
 
 export type IntegerFilter = number | string | null | undefined;
 
-export const parseIdsFilter = (value: number[] | string | null | undefined) => {
-  if (Array.isArray(value)) {
-    return value.filter(Number.isInteger);
-  }
-  return parseIntegerList(value);
-};
-
-/**
- * Build a `{ <key>?, code? }` filter object for a related entity.
- * Returns `undefined` if neither id nor code resolves to a value.
- */
-export function buildRelatedFilter(
-  key: "id" | "jwId",
-  idValue: IntegerFilter,
-  code?: string | null,
-): Record<string, number | string> | undefined {
-  const filter: Record<string, number | string> = {};
-  const parsedId = parseInteger(idValue);
-  if (parsedId !== null) {
-    filter[key] = parsedId;
-  }
-  const trimmedCode = code?.trim();
-  if (trimmedCode) {
-    filter.code = trimmedCode;
-  }
-  return Object.keys(filter).length > 0 ? filter : undefined;
+export function parseIntegerFilter(value: IntegerFilter): number | null {
+  if (typeof value === "number" && Number.isInteger(value)) return value;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  return Number.isInteger(parsed) ? parsed : null;
 }
 
-/**
- * Assigns a parsed integer value to a dynamic key on a Prisma where input.
- * Uses `as any` for the dynamic key because TypeScript cannot verify
- * string-keyed assignments on strongly-typed Prisma where inputs at compile time.
- */
 export function applyIntegerFilter<T extends Record<string, unknown>>(
   where: T,
-  key: string,
+  key: keyof T,
   value: IntegerFilter,
 ) {
-  const parsed = parseInteger(value);
+  const parsed = parseIntegerFilter(value);
   if (parsed !== null) {
-    Object.assign(where, { [key]: parsed });
+    where[key] = parsed as T[keyof T];
   }
 }
 
-/**
- * Build a `{ jwId }` filter for a relation, or `undefined` if the value is not a valid integer.
- */
 export function buildJwIdFilter(value: IntegerFilter) {
-  const jwId = parseInteger(value);
-  return jwId === null ? undefined : { jwId };
+  const parsed = parseIntegerFilter(value);
+  return parsed === null ? null : { jwId: parsed };
+}
+
+export function buildRelatedFilter(
+  idKey: string,
+  idValue: IntegerFilter,
+  codeValue?: string | null,
+) {
+  const parsedId = parseIntegerFilter(idValue);
+  const code = codeValue?.trim();
+  if (parsedId === null && !code) return null;
+  return {
+    ...(parsedId === null ? {} : { [idKey]: parsedId }),
+    ...(code ? { code } : {}),
+  };
+}
+
+export function parseIdsFilter(value: number[] | string | null | undefined) {
+  if (Array.isArray(value)) {
+    return value.filter((item) => Number.isInteger(item));
+  }
+  if (typeof value !== "string") return [];
+  return value
+    .split(",")
+    .map((item) => parseIntegerFilter(item))
+    .filter((item): item is number => item !== null);
 }

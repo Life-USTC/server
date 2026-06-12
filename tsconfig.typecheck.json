@@ -1,13 +1,10 @@
 {
   "extends": "./tsconfig.json",
   "include": [
-    "next-env.d.ts",
     "src/**/*.ts",
-    "src/**/*.tsx",
-    "next.config.ts",
+    "src/**/*.svelte",
     "tailwind.config.ts",
-    "postcss.config.mjs",
-    ".next/types/**/*.ts"
+    "postcss.config.mjs"
   ],
   "exclude": [
     "node_modules",

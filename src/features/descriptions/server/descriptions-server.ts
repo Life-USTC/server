@@ -4,47 +4,13 @@ import {
 } from "@/features/descriptions/lib/description-targets";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
-import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
-
-type EditorSummary = {
-  id: string;
-  name: string | null;
-  username: string | null;
-  image: string | null;
-};
-
-type DescriptionData = {
-  id: string | null;
-  content: string;
-  updatedAt: string | null;
-  lastEditedAt: string | null;
-  lastEditedBy: EditorSummary | null;
-};
-
-type HistoryItem = {
-  id: string;
-  createdAt: string;
-  previousContent: string | null;
-  nextContent: string;
-  editor: EditorSummary | null;
-};
-
-type ViewerSummary = {
-  userId: string | null;
-  name: string | null;
-  image: string | null;
-  isAdmin: boolean;
-  isAuthenticated: boolean;
-  isSuspended: boolean;
-  suspensionReason: string | null;
-  suspensionExpiresAt: string | null;
-};
-
-export type DescriptionPayload = {
-  description: DescriptionData;
-  history: HistoryItem[];
-  viewer: ViewerSummary;
-};
+import {
+  type DescriptionPayload,
+  emptyDescriptionPayload,
+  serializeDescriptionHistory,
+  serializeDescriptionRecord,
+  type ViewerSummary,
+} from "./description-payload";
 
 export async function getDescriptionPayload(
   targetType: DescriptionTargetType,
@@ -56,17 +22,7 @@ export async function getDescriptionPayload(
     viewerOverride ?? (await getViewerContext({ includeAdmin: false }));
 
   if (!target) {
-    return {
-      description: {
-        id: null,
-        content: "",
-        updatedAt: null,
-        lastEditedAt: null,
-        lastEditedBy: null,
-      },
-      history: [],
-      viewer,
-    };
+    return emptyDescriptionPayload(viewer);
   }
 
   const description = await prisma.description.findFirst({
@@ -92,39 +48,8 @@ export async function getDescriptionPayload(
     : [];
 
   return {
-    description: description
-      ? {
-          id: description.id,
-          content: description.content ?? "",
-          updatedAt: description.updatedAt
-            ? toShanghaiIsoString(description.updatedAt)
-            : null,
-          lastEditedAt: description.lastEditedAt
-            ? toShanghaiIsoString(description.lastEditedAt)
-            : null,
-          lastEditedBy: description.lastEditedBy ?? null,
-        }
-      : {
-          id: null,
-          content: "",
-          updatedAt: null,
-          lastEditedAt: null,
-          lastEditedBy: null,
-        },
-    history: history.map((entry) => ({
-      id: entry.id,
-      createdAt: toShanghaiIsoString(entry.createdAt),
-      previousContent: entry.previousContent ?? null,
-      nextContent: entry.nextContent ?? "",
-      editor: entry.editor
-        ? {
-            id: entry.editor.id,
-            name: entry.editor.name,
-            username: entry.editor.username,
-            image: entry.editor.image,
-          }
-        : null,
-    })),
+    description: serializeDescriptionRecord(description),
+    history: serializeDescriptionHistory(history),
     viewer,
   };
 }

@@ -1,5 +1,3 @@
-import { cache } from "react";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
@@ -58,22 +56,13 @@ export async function getViewerAuthDataForUserId(
   return { user, suspension };
 }
 
-/**
- * Internal per-request cached viewer data fetcher.
- * Deduplicates auth() + user lookup + suspension check within a single request.
- */
-const getViewerAuthData = cache(async () => {
-  const session = await auth();
-  return session?.user?.id ? getViewerAuthDataForUserId(session.user.id) : null;
-});
-
 export async function getViewerContext(
   options: { includeAdmin?: boolean; userId?: string | null } = {},
 ): Promise<ViewerContext> {
   const data =
     typeof options.userId === "string"
       ? await getViewerAuthDataForUserId(options.userId)
-      : await getViewerAuthData();
+      : null;
 
   if (!data) {
     return {

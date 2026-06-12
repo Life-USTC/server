@@ -1,7 +1,7 @@
-import { getLocale } from "next-intl/server";
 import { getBusTimetableData } from "@/features/bus/lib/bus-service";
 import type { BusLocale, BusTimetableData } from "@/features/bus/lib/bus-types";
 import type { TodoPriority } from "@/generated/prisma/client";
+import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { prisma as basePrisma } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
@@ -21,8 +21,10 @@ export type BusDashboardData = {
   data: BusTimetableData | null;
 };
 
-export async function getBusTabData(userId: string): Promise<BusDashboardData> {
-  const locale = await getLocale();
+export async function getBusTabData(
+  userId: string,
+  locale: AppLocale = DEFAULT_LOCALE,
+): Promise<BusDashboardData> {
   const referenceNow = shanghaiDayjs();
   const busLocale: BusLocale = locale === "en-us" ? "en-us" : "zh-cn";
 

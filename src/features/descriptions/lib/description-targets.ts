@@ -1,5 +1,4 @@
 import { parseInteger } from "@/lib/api/helpers";
-import { prisma } from "@/lib/db/prisma";
 
 export type DescriptionTargetType =
   | "section"
@@ -52,38 +51,46 @@ const descriptionTargetConfig: {
 } = {
   section: {
     parseId: parsePositiveIntegerId,
-    findTarget: (targetId) =>
-      prisma.section.findUnique({
+    findTarget: async (targetId) => {
+      const { prisma } = await import("@/lib/db/prisma");
+      return prisma.section.findUnique({
         where: { id: targetId },
         select: { id: true },
-      }),
+      });
+    },
     where: (targetId) => ({ sectionId: targetId }),
   },
   course: {
     parseId: parsePositiveIntegerId,
-    findTarget: (targetId) =>
-      prisma.course.findUnique({
+    findTarget: async (targetId) => {
+      const { prisma } = await import("@/lib/db/prisma");
+      return prisma.course.findUnique({
         where: { id: targetId },
         select: { id: true },
-      }),
+      });
+    },
     where: (targetId) => ({ courseId: targetId }),
   },
   teacher: {
     parseId: parsePositiveIntegerId,
-    findTarget: (targetId) =>
-      prisma.teacher.findUnique({
+    findTarget: async (targetId) => {
+      const { prisma } = await import("@/lib/db/prisma");
+      return prisma.teacher.findUnique({
         where: { id: targetId },
         select: { id: true },
-      }),
+      });
+    },
     where: (targetId) => ({ teacherId: targetId }),
   },
   homework: {
     parseId: parseHomeworkTargetId,
-    findTarget: (targetId) =>
-      prisma.homework.findUnique({
+    findTarget: async (targetId) => {
+      const { prisma } = await import("@/lib/db/prisma");
+      return prisma.homework.findUnique({
         where: { id: targetId },
         select: { id: true },
-      }),
+      });
+    },
     where: (targetId) => ({ homeworkId: targetId }),
   },
 };

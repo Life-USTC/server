@@ -16,7 +16,6 @@ export const localeSchema = z.enum(APP_LOCALES);
 
 /**
  * Resolves locale from cookie, then Accept-Language, then default.
- * Used by the edge proxy; keep behavior aligned with next-intl routing.
  */
 export function negotiateLocale(
   cookieLocale: string | undefined,

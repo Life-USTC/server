@@ -1,5 +1,6 @@
 import { parseInteger } from "@/lib/api/helpers";
-import { prisma } from "@/lib/db/prisma";
+import { resolveSectionTeacherId } from "./comment-section-teacher";
+import { verifyCommentTargetEntity } from "./comment-target-verification";
 
 export type CommentTargetType =
   | "section"
@@ -19,84 +20,7 @@ export type ResolvedCommentTarget = {
   verified: boolean;
 };
 
-export async function resolveSectionTeacherId(
-  sectionId: number,
-  teacherId: number,
-) {
-  const section = await prisma.section.findFirst({
-    where: {
-      id: sectionId,
-      teachers: {
-        some: { id: teacherId },
-      },
-    },
-    select: { id: true },
-  });
-
-  if (!section) return null;
-
-  const sectionTeacher = await prisma.sectionTeacher.upsert({
-    where: {
-      sectionId_teacherId: {
-        sectionId,
-        teacherId,
-      },
-    },
-    update: {},
-    create: { sectionId, teacherId },
-  });
-
-  return sectionTeacher.id as number;
-}
-
-/**
- * Verify that a target entity actually exists in the DB.
- * Prevents orphan comments pointing at deleted or nonexistent entities.
- */
-async function verifyTargetEntity(
-  targetType: CommentTargetType,
-  whereTarget: Record<string, number | string>,
-): Promise<boolean> {
-  if (targetType === "section" && typeof whereTarget.sectionId === "number") {
-    const section = await prisma.section.findUnique({
-      where: { id: whereTarget.sectionId },
-      select: { id: true },
-    });
-    return section !== null;
-  }
-  if (targetType === "course" && typeof whereTarget.courseId === "number") {
-    const course = await prisma.course.findUnique({
-      where: { id: whereTarget.courseId },
-      select: { id: true },
-    });
-    return course !== null;
-  }
-  if (targetType === "teacher" && typeof whereTarget.teacherId === "number") {
-    const teacher = await prisma.teacher.findUnique({
-      where: { id: whereTarget.teacherId },
-      select: { id: true },
-    });
-    return teacher !== null;
-  }
-  if (targetType === "homework" && typeof whereTarget.homeworkId === "string") {
-    const homework = await prisma.homework.findUnique({
-      where: { id: whereTarget.homeworkId },
-      select: { id: true },
-    });
-    return homework !== null;
-  }
-  if (
-    targetType === "section-teacher" &&
-    typeof whereTarget.sectionTeacherId === "number"
-  ) {
-    const st = await prisma.sectionTeacher.findUnique({
-      where: { id: whereTarget.sectionTeacherId },
-      select: { id: true },
-    });
-    return st !== null;
-  }
-  return true;
-}
+export { resolveSectionTeacherId };
 
 export async function resolveCommentTarget(input: {
   allowDirectSectionTeacherId?: boolean;
@@ -144,7 +68,7 @@ export async function resolveCommentTarget(input: {
 
   const verified =
     input.verifyExistence === true
-      ? await verifyTargetEntity(input.targetType, whereTarget)
+      ? await verifyCommentTargetEntity(input.targetType, whereTarget)
       : true;
 
   return {

@@ -1,39 +1,19 @@
 import type { AppLocale } from "@/i18n/config";
 import { prisma } from "@/lib/db/prisma";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
-import type { RouteRecord } from "./bus-route-builder";
 import {
-  describeRoute,
   getBusCampuses,
   getRouteRecords,
   getVersionRouteIds,
 } from "./bus-route-builder";
+import { toRouteListing } from "./bus-route-listing";
+import { busTripsToSlots } from "./bus-route-slots";
 import type {
   BusCampusSummary,
   BusRouteListing,
   BusRouteTimetable,
-  BusTripSlot,
 } from "./bus-types";
 import { findEffectiveBusVersion } from "./bus-version";
-
-function toRouteListing(
-  locale: AppLocale,
-  route: RouteRecord,
-): BusRouteListing | null {
-  if (route.stops.length < 2) return null;
-  const desc = describeRoute(locale, route.stops);
-  return {
-    id: route.id,
-    nameCn: route.nameCn,
-    nameEn: route.nameEn,
-    descriptionPrimary: desc.descriptionPrimary,
-    stops: route.stops.map((s) => ({
-      stopOrder: s.stopOrder,
-      campusId: s.campus.id,
-      campusName: s.campus.namePrimary,
-    })),
-  };
-}
 
 export async function listBusRoutes(
   locale: AppLocale,
@@ -83,15 +63,6 @@ export async function getBusRouteTimetable(input: {
   const weekdayTrips = routeTrips.filter((trip) => trip.dayType === "weekday");
   const weekendTrips = routeTrips.filter((trip) => trip.dayType === "weekend");
 
-  const toSlots = (trips: typeof weekdayTrips): BusTripSlot[] =>
-    trips.map((t) => ({
-      position: t.position,
-      stopTimes: (t.stopTimes as Array<string | null>).map((time, i) => ({
-        stopOrder: i,
-        time,
-      })),
-    }));
-
   const firstCampusId = record.stops[0]?.campus.id;
   const lastCampusId = record.stops[record.stops.length - 1]?.campus.id;
   const alternateRoutes = records
@@ -107,8 +78,8 @@ export async function getBusRouteTimetable(input: {
 
   return {
     route: listing,
-    weekday: toSlots(weekdayTrips),
-    weekend: toSlots(weekendTrips),
+    weekday: busTripsToSlots(weekdayTrips),
+    weekend: busTripsToSlots(weekendTrips),
     alternateRoutes,
   };
 }

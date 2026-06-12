@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
 import { USTC_DASHBOARD_LINKS } from "@/features/dashboard-links/lib/dashboard-links";
+import { jsonResponse } from "@/lib/api/helpers";
 
-export const MAX_PINNED_LINKS = 5;
+export const MAX_PINNED_LINKS = 4;
 
 export type PinApiResponse = {
   pinnedSlugs: string[];
@@ -40,7 +40,7 @@ export function jsonOrRedirectForPinnedLinks({
   error?: string | null;
 }) {
   if (wantsJson) {
-    return NextResponse.json<PinApiResponse>(
+    return jsonResponse(
       { pinnedSlugs, maxPinnedLinks: MAX_PINNED_LINKS, error },
       { status },
     );
@@ -53,5 +53,5 @@ export function jsonOrRedirectForPinnedLinks({
     redirectUrl.searchParams.delete("dashboardLinkPinError");
   }
 
-  return NextResponse.redirect(redirectUrl, 303);
+  return Response.redirect(redirectUrl, 303);
 }

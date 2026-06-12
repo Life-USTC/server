@@ -19,7 +19,6 @@ bus/           Public timetable
 
 ```
 feature/
-  components/  React components
   server/      Server data functions
   lib/         Domain utilities
 ```

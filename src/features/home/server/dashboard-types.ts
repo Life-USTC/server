@@ -1,9 +1,8 @@
-import type { LucideIcon } from "lucide-react";
-import type { useTranslations } from "next-intl";
-
 export type HomeworkWithSection = {
   id: string;
   title: string;
+  publishedAt: Date | null;
+  submissionStartAt: Date | null;
   submissionDueAt: Date | null;
   description?: { content: string } | null;
   homeworkCompletions: Array<{ completedAt: Date }>;
@@ -45,14 +44,17 @@ export type TimeSlot = {
 
 export type FocusCardItem = {
   key: string;
-  icon: LucideIcon;
+  icon: unknown;
   title: string;
   name: string;
   meta: string;
   sub: string;
 };
 
-export type Translate = ReturnType<typeof useTranslations>;
+export type Translate = (
+  key: string,
+  values?: Record<string, string | number | Date>,
+) => string;
 
 export type SemesterSummary = {
   id: number;

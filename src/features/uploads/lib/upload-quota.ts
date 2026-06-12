@@ -1,5 +1,4 @@
 import type { Prisma } from "@/generated/prisma/client";
-import { prisma } from "@/lib/db/prisma";
 
 export class UploadError extends Error {
   code: string;
@@ -44,6 +43,7 @@ export async function runUploadSerializableTransaction<T>(
   const maxAttempts = 3;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
+      const { prisma } = await import("@/lib/db/prisma");
       return await prisma.$transaction(action, {
         isolationLevel: "Serializable",
       });

@@ -1,5 +1,5 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { getOptionalTrimmedEnv } from "@/env";
+import { getOptionalTrimmedEnv } from "@/app-env";
 import { logAppEvent } from "@/lib/log/app-logger";
 
 export function createPrismaAdapter(

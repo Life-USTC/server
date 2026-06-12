@@ -8,7 +8,7 @@
     --color-primary-light: oklch(0.7 0.18 250);
     --color-primary-dark: oklch(0.48 0.2 250);
     --color-primary-bg: oklch(0.58 0.2 250 / 0.08);
-    --color-accent: oklch(0.7 0.16 40);
+    --color-accent: oklch(0.58 0.2 250);
 
     /* Neutral scale */
     --color-gray-50: oklch(0.98 0.01 250);
@@ -34,9 +34,9 @@
     --shadow-lg: 0 14px 30px oklch(0.12 0.02 250 / 0.1);
 
     /* Border radius */
-    --radius-sm: 6px;
-    --radius-md: 10px;
-    --radius-lg: 16px;
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 22px;
 
     /* Spacing scale */
     --spacing-xs: 8px;

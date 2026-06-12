@@ -1,5 +1,8 @@
-import { redactCalendarFeedLocation } from "@/lib/mcp/compact-payload";
-import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
+import {
+  currentSemesterCalendarSections,
+  redactCalendarLocationPair,
+  summarizeCalendarSection,
+} from "./calendar-summary-sections";
 
 type CalendarSubscriptionSummaryInput = {
   userId: unknown;
@@ -30,45 +33,21 @@ type CalendarSubscriptionSummaryInput = {
 export function summarizeCalendarSubscription(
   subscription: CalendarSubscriptionSummaryInput,
 ) {
-  const now = shanghaiDayjs();
-  const currentSemesterSections = subscription.sections.filter((section) => {
-    const startDate = section.semester?.startDate;
-    const endDate = section.semester?.endDate;
-    const start = startDate ? shanghaiDayjs(startDate) : null;
-    const end = endDate ? shanghaiDayjs(endDate) : null;
-    return (
-      (!start || now.isAfter(start, "day") || now.isSame(start, "day")) &&
-      (!end || now.isBefore(end, "day") || now.isSame(end, "day"))
-    );
-  });
+  const currentSemesterSections = currentSemesterCalendarSections(
+    subscription.sections,
+  );
+  const { calendarPath, calendarUrl } =
+    redactCalendarLocationPair(subscription);
 
   return {
     userId: typeof subscription.userId === "string" ? subscription.userId : "",
     sectionCount: subscription.sections.length,
     currentSemesterSectionCount: currentSemesterSections.length,
-    currentSemesterSections: currentSemesterSections.map((section) => ({
-      id: section.id,
-      jwId: section.jwId,
-      code: section.code,
-      course: section.course
-        ? {
-            jwId: section.course.jwId,
-            code: section.course.code,
-            namePrimary: section.course.namePrimary,
-            nameSecondary: section.course.nameSecondary,
-          }
-        : null,
-      semester: section.semester
-        ? {
-            id: section.semester.id,
-            jwId: section.semester.jwId,
-            code: section.semester.code,
-            nameCn: section.semester.nameCn,
-          }
-        : null,
-    })),
-    calendarPath: redactCalendarFeedLocation(subscription.calendarPath),
-    calendarUrl: redactCalendarFeedLocation(subscription.calendarUrl),
+    currentSemesterSections: currentSemesterSections.map(
+      summarizeCalendarSection,
+    ),
+    calendarPath,
+    calendarUrl,
     note: subscription.note,
   };
 }
