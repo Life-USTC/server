@@ -16,6 +16,11 @@
     "nameCn": "2026年春季学期",
     "code": "421"
   },
+  "previousSemester": {
+    "jwId": 9900000,
+    "nameCn": "2025年秋季学期",
+    "code": "420"
+  },
   "catalog": {
     "campus": {
       "jwId": 9910001,
@@ -127,6 +132,13 @@
       "code": "ENVS3002",
       "nameCn": "环境微生物学",
       "nameEn": "Environmental Microbiology"
+    },
+    {
+      "index": 3,
+      "jwId": 9901004,
+      "code": "MATH2001",
+      "nameCn": "线性代数进阶",
+      "nameEn": "Advanced Linear Algebra"
     }
   ],
   "sections": [
@@ -159,17 +171,49 @@
       "limitCount": 90,
       "teacherIndexes": [2],
       "remark": "课程覆盖环境样品分析、微生物过程与阶段性实验报告。"
+    },
+    {
+      "index": 3,
+      "jwId": 9902004,
+      "code": "MATH2001.01",
+      "credits": 4,
+      "stdCount": 45,
+      "limitCount": 70,
+      "teacherIndexes": [0],
+      "semester": "previous",
+      "remark": "用于验证跨学期关注班级、历史考试与订阅分组展示。"
     }
   ],
-  "scheduleGroups": [9903001, 9903002, 9903003, 9903004, 9903005, 9903006],
-  "exams": [{ "jwId": 9904001 }, { "jwId": 9904002 }, { "jwId": 9904003 }],
+  "scheduleGroups": [
+    9903001, 9903002, 9903003, 9903004, 9903005, 9903006, 9903007, 9903008
+  ],
+  "exams": [
+    { "jwId": 9904001 },
+    { "jwId": 9904002 },
+    { "jwId": 9904003 },
+    { "jwId": 9904004 }
+  ],
   "homeworks": {
     "title": "迭代二系统设计评审",
+    "overdueTitle": "逾期实验数据补交",
+    "dueTodayTitle": "今日课堂反馈整理",
     "completedTitle": "迭代一需求拆解"
   },
   "todos": {
     "dueTodayTitle": "期末报告提交",
+    "overdueTitle": "补交培养方案确认",
     "completedTitle": "代码评审会议记录"
+  },
+  "dashboardLinks": {
+    "pinnedSlugs": ["jw", "confession-wall", "mail", "official"],
+    "clickedSlugs": [
+      { "slug": "jw", "count": 6 },
+      { "slug": "mail", "count": 5 },
+      { "slug": "confession-wall", "count": 4 },
+      { "slug": "official", "count": 3 },
+      { "slug": "icourse", "count": 2 }
+    ],
+    "overviewLimit": 4
   },
   "comments": {
     "sectionRootBody": "这门课节奏快，建议每周固定做一次代码评审。"

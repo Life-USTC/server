@@ -30,6 +30,8 @@ function homework(
   return {
     id,
     title: id,
+    publishedAt: null,
+    submissionStartAt: null,
     submissionDueAt: submissionDueAt ? new Date(submissionDueAt) : null,
     homeworkCompletions: completed
       ? [{ completedAt: new Date("2026-05-20T00:00:00.000Z") }]

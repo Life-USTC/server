@@ -28,7 +28,6 @@ import {
 } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { visibleText } from "../../../../utils/locators";
-import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test("/admin/bus 未登录重定向到登录页", async ({ page }, testInfo) => {
@@ -38,7 +37,10 @@ test("/admin/bus 未登录重定向到登录页", async ({ page }, testInfo) => 
 
 test("/admin/bus 普通用户访问返回 404", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/admin/bus", "/admin/bus");
-  await expect(page.locator("h1")).toHaveText("404");
+  await expect(page.getByText("404").first()).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),
+  ).toBeVisible();
   await captureStepScreenshot(page, testInfo, "admin-bus/404");
 });
 
@@ -58,6 +60,9 @@ test("/admin/bus displays all required version fields", async ({
   await expect(visibleText(page, /\d{4}-\d{2}-\d{2}/)).toBeVisible();
   // enabled status — "Active" in English, "启用" in Chinese
   await expect(visibleText(page, /Active|启用/i)).toBeVisible();
+  await expect(visibleText(page, /Versions|时刻表版本/)).toBeVisible();
+  await expect(visibleText(page, /Campuses|校区数/)).toBeVisible();
+  await expect(visibleText(page, /Routes|路线数/)).toBeVisible();
 
   await captureStepScreenshot(page, testInfo, "admin-bus/version-fields");
 });
@@ -89,7 +94,7 @@ test("/admin/bus card visible on admin home and navigates", async ({
   await captureStepScreenshot(page, testInfo, "admin-bus/navigate-from-home");
 });
 
-test("/admin/bus can delete and re-import a version", async ({
+test("/admin/bus active version is protected and import dialog opens", async ({
   page,
 }, testInfo) => {
   test.setTimeout(60_000);
@@ -104,45 +109,17 @@ test("/admin/bus can delete and re-import a version", async ({
     .first();
   await expect(versionRow).toBeVisible();
 
-  // Delete action
-  const deleteBtn = versionRow.getByRole("button", { name: /删除|Delete/i });
-  if ((await deleteBtn.count()) === 0) {
-    await expect(page.locator("#main-content")).toBeVisible();
-    return;
-  }
+  await expect(
+    versionRow.getByRole("button", { name: /删除|Delete/i }),
+  ).toHaveCount(0);
 
-  await deleteBtn.click();
-  const confirmDialog = page
-    .getByRole("alertdialog")
-    .or(page.getByRole("dialog"))
-    .first();
-  if (await confirmDialog.isVisible()) {
-    const confirmBtn = confirmDialog.getByRole("button", {
-      name: /删除|Delete|确认|Confirm/i,
-    });
-    const deleteResponse = page.waitForResponse(
-      (r) => r.url().includes("/api/admin/bus") && r.status() === 200,
-    );
-    await confirmBtn.click();
-    await deleteResponse;
-  }
-
-  // After delete, the version should not be present
-  await expect(page.getByText(DEV_SEED.bus.versionKey)).toHaveCount(0, {
-    timeout: 10_000,
-  });
-  await captureStepScreenshot(page, testInfo, "admin-bus/version-deleted");
-
-  // Re-import using the import button
   const importBtn = page.getByRole("button", { name: /导入|Import/i }).first();
-  if ((await importBtn.count()) > 0) {
-    await importBtn.click();
-    const importDialog = page.getByRole("dialog").first();
-    await expect(importDialog).toBeVisible({ timeout: 5_000 });
-    await captureStepScreenshot(page, testInfo, "admin-bus/import-dialog");
-    await importDialog.getByRole("button", { name: /取消|Cancel/i }).click();
-  }
-
-  // Restore seed via navigation
-  await gotoAndWaitForReady(page, "/admin/bus");
+  await expect(importBtn).toBeVisible();
+  await importBtn.click();
+  const importDialog = page.getByRole("dialog", {
+    name: /从 Static 导入|Import from Static/i,
+  });
+  await expect(importDialog).toBeVisible({ timeout: 5_000 });
+  await captureStepScreenshot(page, testInfo, "admin-bus/import-dialog");
+  await importDialog.getByRole("button", { name: /取消|Cancel/i }).click();
 });

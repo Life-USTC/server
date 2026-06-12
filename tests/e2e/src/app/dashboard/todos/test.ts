@@ -1,5 +1,5 @@
 /**
- * E2E tests for the Todos Tab (`?tab=todos`)
+ * E2E tests for the todos dashboard (`/dashboard/todos`)
  *
  * ## Data Represented
  * - Seed todos: DEV_SEED.todos.dueTodayTitle (due today, incomplete) and
@@ -9,13 +9,13 @@
  *
  * ## UI/UX Elements
  * - Filter toolbar: incomplete (default) / completed / all
- * - Completion button appears when hovering or focusing a todo card
- * - Add button opens a sheet form (title, priority, due date, content)
- * - Clicking a todo title opens an edit sheet with a delete button
- * - Todo cards display priority icons (high/medium/low)
+ * - Completion button is available from each todo card
+ * - Add button opens a modal form (title, priority, due date, content)
+ * - Clicking a todo title opens a detail modal with a delete button
+ * - Todo cards display priority badges (high/medium/low)
  *
  * ## Edge Cases
- * - Unauthenticated users see public links view (todos tab is auth-only)
+ * - Unauthenticated users see the public dashboard view (todos tab is auth-only)
  * - Optimistic updates via useOptimistic for toggle/delete/add
  * - Empty state shown when filter yields no matching todos
  */
@@ -26,7 +26,7 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe("dashboard todos", () => {
-  test("unauthenticated ?tab=todos shows public view", async ({
+  test("unauthenticated ?tab=todos falls back to public view", async ({
     page,
   }, testInfo) => {
     await gotoAndWaitForReady(page, "/?tab=todos", {
@@ -38,21 +38,24 @@ test.describe("dashboard todos", () => {
     await expect(page.locator("#main-content")).toBeVisible();
 
     await expect(
-      page.getByRole("link", { name: /^(网站|Websites)$/i }),
+      page.getByRole("tab", { name: /^(网站|Websites)$/i }),
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: /^(登录|Sign in)$/i }),
+      page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
     ).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "dashboard-todos-unauthorized");
   });
 
   test("authenticated shows seed todos", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=todos");
+    await signInAsDebugUser(page, "/dashboard/todos");
 
     await expect(page.locator("#main-content")).toBeVisible();
     await expect(
       page.getByText(DEV_SEED.todos.dueTodayTitle).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByText(DEV_SEED.todos.overdueTitle).first(),
     ).toBeVisible();
     await expect(page.getByRole("switch")).toHaveCount(0);
 
@@ -64,18 +67,18 @@ test.describe("dashboard todos", () => {
     const completionButton = card
       .getByRole("button", { name: /标记为完成|Mark as complete/i })
       .first();
-    await expect(completionButton).toHaveCSS("opacity", "0");
     await card.hover();
-    await expect(completionButton).toHaveCSS("opacity", "1");
+    await expect(completionButton).toBeVisible();
+    await expect(completionButton).toBeEnabled();
 
     await captureStepScreenshot(page, testInfo, "dashboard-todos-seed");
   });
 
   test("completed filter shows completed todo", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=todos");
+    await signInAsDebugUser(page, "/dashboard/todos");
 
     const completedFilter = page
-      .getByRole("button", { name: /已完成|Completed/i })
+      .getByRole("tab", { name: /已完成|Completed/i })
       .first();
     const completedTodo = page.getByText(DEV_SEED.todos.completedTitle).first();
     await expect(async () => {
@@ -91,11 +94,11 @@ test.describe("dashboard todos", () => {
 
   test("can create and delete a todo", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
-    await signInAsDebugUser(page, "/?tab=todos");
+    await signInAsDebugUser(page, "/dashboard/todos");
 
     const title = `e2e-dashboard-todo-${Date.now()}`;
 
-    // Create a new todo via sheet form
+    // Create a new todo via modal form
     const addTodoButton = page
       .getByRole("button", { name: /添加待办|Add Todo/i })
       .first();
@@ -120,7 +123,7 @@ test.describe("dashboard todos", () => {
     });
     await captureStepScreenshot(page, testInfo, "dashboard-todos-created");
 
-    // Delete the todo via edit sheet
+    // Delete the todo via detail modal
     await page.getByText(title).first().click();
     await page
       .getByRole("button", { name: /删除待办|Delete todo/i })

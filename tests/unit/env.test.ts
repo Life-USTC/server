@@ -11,7 +11,7 @@ describe("env validation", () => {
     vi.stubEnv("DATABASE_URL", "");
     vi.stubEnv("AUTH_SECRET", "");
 
-    const { loadEnv } = await import("@/env");
+    const { loadEnv } = await import("@/app-env");
 
     expect(() => loadEnv()).toThrow("Invalid environment variables");
   });
@@ -21,18 +21,18 @@ describe("env validation", () => {
     vi.stubEnv("DATABASE_URL", "");
     vi.stubEnv("AUTH_SECRET", "");
 
-    const { loadEnv } = await import("@/env");
+    const { loadEnv } = await import("@/app-env");
 
     expect(() => loadEnv()).toThrow("Invalid environment variables");
   });
 
   it("allows production builds to skip runtime-only secrets", async () => {
     vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("NEXT_PHASE", "phase-production-build");
+    vi.stubEnv("APP_PHASE", "phase-production-build");
     vi.stubEnv("DATABASE_URL", "");
     vi.stubEnv("AUTH_SECRET", "");
 
-    const { loadEnv } = await import("@/env");
+    const { loadEnv } = await import("@/app-env");
     const loadedEnv = loadEnv();
 
     expect(loadedEnv.NODE_ENV).toBe("production");
@@ -44,7 +44,7 @@ describe("env validation", () => {
     vi.stubEnv("DATABASE_URL", "");
     vi.stubEnv("AUTH_SECRET", "");
 
-    const { loadEnv } = await import("@/env");
+    const { loadEnv } = await import("@/app-env");
     const loadedEnv = loadEnv();
 
     expect(loadedEnv.NODE_ENV).toBe("development");
@@ -57,13 +57,13 @@ describe("env validation", () => {
     vi.stubEnv("AUTH_SECRET", "");
     vi.stubEnv("SECOND_SECRET", " value ");
 
-    const { getOptionalTrimmedEnv } = await import("@/env");
+    const { getOptionalTrimmedEnv } = await import("@/app-env");
 
     expect(getOptionalTrimmedEnv("SECOND_SECRET")).toBe("value");
   });
 
   it("leaves logger-only settings out of env validation", async () => {
-    const { loadEnv } = await import("@/env");
+    const { loadEnv } = await import("@/app-env");
 
     expect(
       loadEnv({
@@ -78,7 +78,7 @@ describe("env validation", () => {
   });
 
   it("keeps storage env scoped to app-read settings", async () => {
-    const { getStorageEnv } = await import("@/env");
+    const { getStorageEnv } = await import("@/app-env");
 
     expect(
       getStorageEnv({
@@ -97,7 +97,7 @@ describe("env validation", () => {
   });
 
   it("parses upload quota as an exact positive integer", async () => {
-    const { getUploadEnv } = await import("@/env");
+    const { getUploadEnv } = await import("@/app-env");
 
     expect(getUploadEnv({ UPLOAD_TOTAL_QUOTA_MB: " 2048 " })).toEqual({
       UPLOAD_TOTAL_QUOTA_MB: 2048,

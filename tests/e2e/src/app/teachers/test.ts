@@ -76,28 +76,21 @@ test.describe("/teachers", () => {
     });
 
     const searchbox = page.getByRole("searchbox").first();
-    if ((await searchbox.count()) === 0) {
-      await expect(page.locator("#main-content")).toBeVisible();
-      return;
-    }
+    await expect(searchbox).toBeVisible();
 
     await searchbox.fill(DEV_SEED.teacher.nameCn);
     const searchButton = page
       .getByRole("button", { name: /搜索|Search/i })
       .first();
-    if ((await searchButton.count()) > 0) {
-      await searchButton.click();
-    }
+    await expect(searchButton).toBeVisible();
+    await searchButton.click();
 
     await expect(page).toHaveURL(/search=/);
 
-    const clearButton = page
-      .getByRole("button", { name: /清除|Clear/i })
-      .first();
-    if ((await clearButton.count()) > 0) {
-      await clearButton.click();
-      await expect(page).not.toHaveURL(/search=/);
-    }
+    const clearLink = page.getByRole("link", { name: /清除|Clear/i }).first();
+    await expect(clearLink).toBeVisible();
+    await clearLink.click();
+    await expect(page).not.toHaveURL(/search=/);
 
     await captureStepScreenshot(page, testInfo, "teachers-search-clear");
   });

@@ -49,7 +49,7 @@ async function expectSignedOutAfterMenuClick(page: Page) {
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(page.locator("#app-user-menu")).toHaveCount(0);
   await expect(
-    page.getByRole("link", { name: /^(登录|Sign in)$/i }),
+    page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
   ).toBeVisible();
 }
 

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const resolveApiUserIdMock = vi.fn();
 const transactionMock = vi.fn();
 
-vi.mock("@/lib/auth/helpers", () => ({
+vi.mock("@/lib/auth/api-auth", () => ({
   resolveApiUserId: resolveApiUserIdMock,
 }));
 
@@ -30,14 +30,16 @@ describe("POST /api/dashboard-links/pin", () => {
 
   it("returns a 500 JSON error when persisting a pin fails", async () => {
     transactionMock.mockRejectedValue(new Error("db write failed"));
-    const { POST } = await import("@/app/api/dashboard-links/pin/route");
+    const { postDashboardLinkPinRoute } = await import(
+      "@/lib/api/routes/dashboard-links"
+    );
 
     const form = new FormData();
     form.set("slug", "jw");
     form.set("action", "pin");
     form.set("returnTo", "/");
 
-    const response = await POST(
+    const response = await postDashboardLinkPinRoute(
       new Request("http://localhost/api/dashboard-links/pin", {
         method: "POST",
         body: form,
@@ -50,7 +52,7 @@ describe("POST /api/dashboard-links/pin", () => {
     expect(response.status).toBe(500);
     await expect(response.json()).resolves.toMatchObject({
       pinnedSlugs: [],
-      maxPinnedLinks: 5,
+      maxPinnedLinks: 4,
       error: "Failed to update dashboard link pin state",
     });
   });

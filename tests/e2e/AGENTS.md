@@ -9,21 +9,18 @@ focused variants still include:
 
 ```bash
 bun run test:e2e -- path/to/test
-PLAYWRIGHT_REUSE_SERVER=1 bun run test:e2e -- path/to/test
-bun run test:e2e:headed
-bun run test:e2e:ui
+playwright test --headed path/to/test
+playwright test --ui
 ```
 
 ## Local Setup
 
 Use the root `AGENTS.md` for the shared setup flow. E2E-only caveats:
 
-- `bun run dev:minio:e2e` starts the standalone MinIO variant used by CI when
-  you do not want the full local dev stack.
-- Playwright bootstrap handles standalone prep, default auth env, and the
-  `life-ustc-e2e` bucket automatically unless you override `PLAYWRIGHT_S3_BUCKET`.
-- `bun run test:e2e:server` keeps the standalone server hot; pair it with
-  `PLAYWRIGHT_REUSE_SERVER=1` for focused reruns.
+- CI starts the standalone MinIO variant inline in workflow YAML when the full
+  local dev stack is not used. Keep Docker orchestration in shell/YAML, not TypeScript.
+- Package scripts handle standalone prep and seed data. Playwright global setup only validates/provisions the `life-ustc-e2e` bucket.
+- CI and Playwright start the standalone E2E server directly with `node build/index.js`.
 
 ## Test Data
 
@@ -40,7 +37,7 @@ Use the repo root `AGENTS.md` for the canonical shared seed/setup flow and
 tests/e2e/fixtures/             Canonical test data (scenario.json)
 tests/e2e/src/app/**/test.ts    Route tests
 tests/e2e/src/app/_shared/      Helpers
-tests/e2e/utils/                Auth, DB, locks, subscriptions, uploads
+tests/e2e/utils/                Auth, DB, subscriptions, uploads
 ```
 
 ## Helpers
@@ -84,16 +81,26 @@ await expect(element).toBeVisible();
 await page.waitForTimeout(1000); // ❌ rejected by check:e2e
 ```
 
-## Concurrency & Locks
+## Concurrency
 
-Tests that mutate the debug user's profile use `withE2eLock("debug-user-profile", ...)`.
-Files with multiple such tests use `test.describe.configure({ mode: "serial" })` to
-prevent intra-file lock contention:
+The canonical Playwright run uses one worker because multiple files mutate the
+same seeded debug user. Files with shared-state mutations also use
+`test.describe.configure({ mode: "serial" })` to make the dependency explicit.
+Current examples:
 
+- `tests/e2e/src/app/test.ts`
 - `tests/e2e/src/app/welcome/test.ts`
 - `tests/e2e/src/app/settings/profile/test.ts`
+- `tests/e2e/src/app/dashboard/homeworks/test.ts`
+- `tests/e2e/src/app/dashboard/subscriptions/sections/test.ts`
+- `tests/e2e/src/app/teachers/[id]/test.ts`
+- `tests/e2e/src/app/api/calendar-subscriptions/test.ts`
+- `tests/e2e/src/app/api/calendar-subscriptions/current/test.ts`
+- `tests/e2e/src/app/api/users/[userId]/calendar.ics/test.ts`
+- `tests/e2e/src/app/api/mcp/test.ts`
 
-Lock timeout: 300 s. If you add a lock-mutating test to a new file, add serial mode.
+If you add a shared-state mutating test to a new file, add serial mode and
+restore the original seeded state in `finally`.
 
 ## Coverage Priorities
 

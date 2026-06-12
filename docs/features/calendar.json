@@ -7,7 +7,7 @@
     "agent": "Can read timeline information with the same semantics through OAuth REST and MCP."
   },
   "rules": {
-    "views": "Currently provides semester, month, and week views simultaneously.",
+    "views": "Provides selectable semester, month, and week views.",
     "week-starts-sunday": "The week view starts on Sunday.",
     "event-card-types": "Calendar event cards uniformly carry course, exam, homework, and todo events."
   },
@@ -19,7 +19,7 @@
         "models": ["Schedule", "Homework", "Exam", "Todo"]
       },
       "web": {
-        "pages": ["/?tab=calendar"]
+        "pages": ["/dashboard/calendar"]
       },
       "rest": "unavailable",
       "mcp": {

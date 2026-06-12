@@ -33,10 +33,6 @@ import {
   ensureUserCalendarFeedFixture,
   getCurrentSessionUser,
 } from "../../../../../../utils/e2e-db";
-import {
-  DEBUG_USER_SUBSCRIPTIONS_LOCK,
-  withE2eLock,
-} from "../../../../../../utils/locks";
 import { assertApiContract } from "../../../../_shared/api-contract";
 
 const ROUTE_PATH = "/api/users/[userId]/calendar.ics";
@@ -46,6 +42,8 @@ function unfoldICalendar(text: string) {
 }
 
 test.describe("GET /api/users/[userId]/calendar.ics", () => {
+  test.describe.configure({ mode: "serial" });
+
   test("contract", async ({ request }) => {
     await assertApiContract(request, { routePath: ROUTE_PATH });
   });
@@ -78,64 +76,62 @@ test.describe("GET /api/users/[userId]/calendar.ics", () => {
   test("returns valid iCalendar for own calendar via session auth", async ({
     page,
   }) => {
-    await withE2eLock(DEBUG_USER_SUBSCRIPTIONS_LOCK, async () => {
-      await signInAsDebugUser(page, "/");
-      const { id: userId } = await getCurrentSessionUser(page);
+    await signInAsDebugUser(page, "/");
+    const { id: userId } = await getCurrentSessionUser(page);
 
-      const currentRes = await page.request.get(
-        "/api/calendar-subscriptions/current",
-      );
-      const currentBody = (await currentRes.json()) as {
-        subscription?: { sections?: Array<{ id?: number }> } | null;
-      };
-      const originalIds =
-        currentBody.subscription?.sections?.map((s) => s.id as number) ?? [];
+    const currentRes = await page.request.get(
+      "/api/calendar-subscriptions/current",
+    );
+    const currentBody = (await currentRes.json()) as {
+      subscription?: { sections?: Array<{ id?: number }> } | null;
+    };
+    const originalIds =
+      currentBody.subscription?.sections?.map((s) => s.id as number) ?? [];
 
-      const matchRes = await page.request.post("/api/sections/match-codes", {
-        data: { codes: [DEV_SEED.section.code] },
-      });
-      expect(matchRes.status()).toBe(200);
-      const matchBody = (await matchRes.json()) as {
-        sections?: Array<{ id?: number; code?: string | null }>;
-      };
-      const seedSection = matchBody.sections?.find(
-        (s) => s.code === DEV_SEED.section.code,
-      );
-      expect(seedSection?.id).toBeDefined();
-      if (seedSection?.id == null) {
-        throw new Error("Expected seed section id");
-      }
-
-      try {
-        await page.request.post("/api/calendar-subscriptions", {
-          data: { sectionIds: [seedSection.id] },
-        });
-
-        const response = await page.request.get(
-          `/api/users/${userId}/calendar.ics`,
-        );
-        expect(response.status()).toBe(200);
-        expect(response.headers()["content-type"]).toContain("text/calendar");
-
-        const body = await response.text();
-        const unfoldedBody = unfoldICalendar(body);
-        expect(body.trim().length).toBeGreaterThan(0);
-        expect(unfoldedBody).toContain("BEGIN:VCALENDAR");
-
-        // Seed data should include homework, todos, and exam events
-        expect(unfoldedBody).toContain(DEV_SEED.homeworks.title);
-        expect(unfoldedBody).toContain(DEV_SEED.todos.dueTodayTitle);
-        expect(unfoldedBody).toContain(`${DEV_SEED.course.nameCn} - 期中考试`);
-
-        // Completed todos and deleted homework must not appear
-        expect(unfoldedBody).not.toContain(DEV_SEED.todos.completedTitle);
-        expect(unfoldedBody).not.toContain("已删除作业");
-      } finally {
-        await page.request.post("/api/calendar-subscriptions", {
-          data: { sectionIds: originalIds },
-        });
-      }
+    const matchRes = await page.request.post("/api/sections/match-codes", {
+      data: { codes: [DEV_SEED.section.code] },
     });
+    expect(matchRes.status()).toBe(200);
+    const matchBody = (await matchRes.json()) as {
+      sections?: Array<{ id?: number; code?: string | null }>;
+    };
+    const seedSection = matchBody.sections?.find(
+      (s) => s.code === DEV_SEED.section.code,
+    );
+    expect(seedSection?.id).toBeDefined();
+    if (seedSection?.id == null) {
+      throw new Error("Expected seed section id");
+    }
+
+    try {
+      await page.request.post("/api/calendar-subscriptions", {
+        data: { sectionIds: [seedSection.id] },
+      });
+
+      const response = await page.request.get(
+        `/api/users/${userId}/calendar.ics`,
+      );
+      expect(response.status()).toBe(200);
+      expect(response.headers()["content-type"]).toContain("text/calendar");
+
+      const body = await response.text();
+      const unfoldedBody = unfoldICalendar(body);
+      expect(body.trim().length).toBeGreaterThan(0);
+      expect(unfoldedBody).toContain("BEGIN:VCALENDAR");
+
+      // Seed data should include homework, todos, and exam events
+      expect(unfoldedBody).toContain(DEV_SEED.homeworks.title);
+      expect(unfoldedBody).toContain(DEV_SEED.todos.dueTodayTitle);
+      expect(unfoldedBody).toContain(`${DEV_SEED.course.nameCn} - 期中考试`);
+
+      // Completed todos and deleted homework must not appear
+      expect(unfoldedBody).not.toContain(DEV_SEED.todos.completedTitle);
+      expect(unfoldedBody).not.toContain("已删除作业");
+    } finally {
+      await page.request.post("/api/calendar-subscriptions", {
+        data: { sectionIds: originalIds },
+      });
+    }
   });
 
   test("returns valid iCalendar via path token (anonymous)", async ({

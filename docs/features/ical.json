@@ -49,7 +49,7 @@
         "ui": ["Calendar Export Dialog"]
       },
       "web": {
-        "pages": ["/?tab=calendar"]
+        "pages": ["/dashboard/calendar"]
       },
       "rest": {
         "routes": [

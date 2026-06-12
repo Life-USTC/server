@@ -9,7 +9,7 @@
  * - Legend sidebar lists all routes with colors + status indicators
  * - Auto-refreshes every 60 seconds; manual refresh button available
  * - "Experimental" badge shown in header
- * - "Back to timetable" link returns to /?tab=bus
+ * - "Back to timetable" link returns to /dashboard/bus
  *
  * ## Edge Cases
  * - Page works without authentication (public data)
@@ -85,7 +85,7 @@ test.describe("bus transit map", () => {
       .getByRole("link", { name: /Back to timetable|返回时刻表/ })
       .first();
     await expect(backLink).toBeVisible();
-    await expect(backLink).toHaveAttribute("href", "/?tab=bus");
+    await expect(backLink).toHaveAttribute("href", "/dashboard/bus");
   });
 
   test("day type and time info shown in sidebar", async ({
@@ -108,10 +108,9 @@ test.describe("bus transit map", () => {
       screenshotLabel: "bus-map",
     });
 
-    // Refresh button with RefreshCw icon
-    const refreshBtn = page.locator("button").filter({
-      has: page.locator("svg.lucide-refresh-cw"),
-    });
+    const refreshBtn = page.getByRole("button", { name: /Refresh|刷新/ });
+    await expect(refreshBtn).toBeVisible();
+    await refreshBtn.click();
     await expect(refreshBtn).toBeVisible();
   });
 });

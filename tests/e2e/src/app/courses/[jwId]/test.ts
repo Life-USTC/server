@@ -42,7 +42,10 @@ test.describe("/courses/[jwId]", () => {
     await gotoAndWaitForReady(page, "/courses/999999999", {
       expectMainContent: false,
     });
-    await expect(page.locator("h1")).toHaveText("404");
+    await expect(page.getByText("404").first()).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),
+    ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "course/404");
   });
 
@@ -129,6 +132,13 @@ test.describe("/courses/[jwId]", () => {
         .or(page.getByText(DEV_SEED.campus.nameEn))
         .filter({ visible: true })
         .first(),
+    ).toBeVisible();
+    // section.stdCount / section.limitCount
+    await expect(
+      visibleText(
+        page,
+        `${DEV_SEED.section.stdCount} / ${DEV_SEED.section.limitCount}`,
+      ),
     ).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "course/sections-table");
@@ -267,20 +277,30 @@ test.describe("/courses/[jwId]", () => {
     await commentCard.hover();
     await commentCard.getByRole("button", { name: /编辑|Edit/i }).click();
     const editedBody = `${body}-edited`;
-    await commentCard.locator("textarea").first().fill(editedBody);
+    const editCard = page
+      .locator('[id^="comment-"]')
+      .filter({ has: page.locator(".sr-only", { hasText: body }) })
+      .first();
+    await expect(editCard.locator("textarea").first()).toBeVisible();
+    await editCard.locator("textarea").first().fill(editedBody);
     const editResponse = page.waitForResponse(
       (r) =>
         r.url().includes("/api/comments/") &&
         r.request().method() === "PATCH" &&
         r.status() === 200,
     );
-    await commentCard.getByRole("button", { name: /保存|Save/i }).click();
+    await editCard.getByRole("button", { name: /保存|Save/i }).click();
     await editResponse;
     await expect(page.getByText(editedBody).first()).toBeVisible();
+    const editedCommentCard = page
+      .locator('[id^="comment-"]')
+      .filter({ hasText: editedBody })
+      .first();
+    await expect(editedCommentCard).toBeVisible();
 
     // Delete
-    await commentCard.hover();
-    await commentCard
+    await editedCommentCard.hover();
+    await editedCommentCard
       .getByRole("button", { name: /更多操作|More actions/i })
       .first()
       .click();
@@ -291,7 +311,9 @@ test.describe("/courses/[jwId]", () => {
         r.status() === 200,
     );
     await page.getByRole("menuitem", { name: /删除|Delete/i }).click();
-    const dialog = page.getByRole("alertdialog");
+    const dialog = page.getByRole("dialog", {
+      name: /删除评论|Delete Comment/i,
+    });
     await expect(dialog).toBeVisible();
     await dialog.getByRole("button", { name: /删除|Delete/i }).click();
     await deleteResponse;

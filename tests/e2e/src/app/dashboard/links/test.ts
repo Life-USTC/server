@@ -1,5 +1,5 @@
 /**
- * E2E tests for the Links Tab (`?tab=links`)
+ * E2E tests for the links dashboard (`/dashboard/links`)
  *
  * ## Data Represented
  * - Dashboard links grouped by category (study, life, tech, classroom, etc.)
@@ -22,16 +22,15 @@
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
-import {
-  gotoAndWaitForReady,
-  waitForUiSettled,
-} from "../../../../utils/page-ready";
+import { DEV_SEED } from "../../../../utils/dev-seed";
+import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe.configure({ mode: "serial" });
 
 const PIN_LABEL = /^(?:置顶|Pin)$/i;
 const UNPIN_LABEL = /^(?:取消置顶|Unpin)$/i;
+const JSON_HEADERS = { accept: "application/json" };
 
 test.describe("dashboard links", () => {
   test("public ?tab=links shows search and links without pin controls", async ({
@@ -60,27 +59,32 @@ test.describe("dashboard links", () => {
   }, testInfo) => {
     await signInAsDebugUser(page, "/");
 
-    const linksTab = page.getByRole("link", { name: /网站|Websites/i }).first();
+    const linksTab = page.getByRole("tab", { name: /网站|Websites/i }).first();
     await expect(linksTab).toBeVisible();
     await linksTab.click();
 
-    await expect(page).toHaveURL(/\/\?tab=links$/);
+    await expect(page).toHaveURL(/\/dashboard\/links$/);
     await expect(
       page.getByRole("searchbox", {
         name: /搜索网站名称或描述|Search by name or description/i,
       }),
     ).toBeVisible();
+    await expect(
+      page.locator('input[name="action"][value="unpin"]'),
+    ).toHaveCount(DEV_SEED.dashboardLinks.overviewLimit);
 
     await captureStepScreenshot(page, testInfo, "dashboard-links-tab");
   });
 
   test("search filters links", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=links");
+    await signInAsDebugUser(page, "/dashboard/links");
 
     const searchInput = page.getByRole("searchbox", {
       name: /搜索网站名称或描述|Search by name or description/i,
     });
     await expect(searchInput).toBeVisible();
+    await page.keyboard.press("Control+K");
+    await expect(searchInput).toBeFocused();
 
     // Search for a specific link
     await expect(async () => {
@@ -104,7 +108,15 @@ test.describe("dashboard links", () => {
   test("can pin and unpin a link with state restoration", async ({
     page,
   }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=links");
+    await signInAsDebugUser(page, "/dashboard/links");
+    await page.request.post("/api/dashboard-links/pin", {
+      form: { slug: "jw", action: "unpin", returnTo: "/dashboard/links" },
+      headers: JSON_HEADERS,
+    });
+    await gotoAndWaitForReady(page, "/dashboard/links", {
+      testInfo,
+      screenshotLabel: "dashboard-links",
+    });
 
     const locatePinButton = async () => {
       const linkButton = page
@@ -131,54 +143,65 @@ test.describe("dashboard links", () => {
       return pinButton;
     };
 
-    const pinButton = await locatePinButton();
-    const initialLabel = await pinButton.getAttribute("aria-label");
-    expect(initialLabel).toMatch(/^(?:置顶|Pin|取消置顶|Unpin)$/i);
-    const togglesToPinned = PIN_LABEL.test(initialLabel ?? "");
-    const expectedInitialLabel = togglesToPinned ? PIN_LABEL : UNPIN_LABEL;
-
-    // Toggle pin state
-    await expect(async () => {
+    async function clickPinButtonAndWait() {
       const currentPinButton = await locatePinButton();
-      const currentLabel = await currentPinButton.getAttribute("aria-label");
-      if (
-        !(togglesToPinned ? UNPIN_LABEL : PIN_LABEL).test(currentLabel ?? "")
-      ) {
-        await currentPinButton.click({ force: true });
-      }
+      const [response] = await Promise.all([
+        page.waitForResponse(
+          (res) =>
+            res.url().includes("/api/dashboard-links/pin") &&
+            res.request().method() === "POST",
+        ),
+        currentPinButton.click({ force: true }),
+      ]);
+      expect(response.ok()).toBe(true);
+      await page.reload({ waitUntil: "domcontentloaded" });
+    }
+
+    try {
       await expect(await locatePinButton()).toHaveAttribute(
         "aria-label",
-        togglesToPinned ? UNPIN_LABEL : PIN_LABEL,
+        PIN_LABEL,
       );
-    }).toPass({
-      timeout: 10_000,
-      intervals: [250, 500, 1_000],
-    });
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "dashboard-links-toggle-request",
-    );
 
-    // Restore original state
-    const restoreResponse = await page.request.post(
-      "/api/dashboard-links/pin",
-      {
-        form: {
-          slug: "jw",
-          action: togglesToPinned ? "unpin" : "pin",
-          returnTo: "/?tab=links",
-        },
-        headers: { accept: "application/json" },
-      },
-    );
-    expect(restoreResponse.status()).toBe(200);
+      await expect(async () => {
+        const currentPinButton = await locatePinButton();
+        const currentLabel = await currentPinButton.getAttribute("aria-label");
+        if (!UNPIN_LABEL.test(currentLabel ?? "")) {
+          await clickPinButtonAndWait();
+        }
+        await expect(await locatePinButton()).toHaveAttribute(
+          "aria-label",
+          UNPIN_LABEL,
+        );
+      }).toPass({
+        timeout: 10_000,
+        intervals: [250, 500, 1_000],
+      });
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "dashboard-links-toggle-request",
+      );
 
-    await page.reload({ waitUntil: "domcontentloaded" });
-    await waitForUiSettled(page);
-    await expect(await locatePinButton()).toHaveAttribute(
-      "aria-label",
-      expectedInitialLabel,
-    );
+      await expect(async () => {
+        const restoreButton = await locatePinButton();
+        const restoreLabel = await restoreButton.getAttribute("aria-label");
+        if (!PIN_LABEL.test(restoreLabel ?? "")) {
+          await clickPinButtonAndWait();
+        }
+        await expect(await locatePinButton()).toHaveAttribute(
+          "aria-label",
+          PIN_LABEL,
+        );
+      }).toPass({
+        timeout: 10_000,
+        intervals: [250, 500, 1_000],
+      });
+    } finally {
+      await page.request.post("/api/dashboard-links/pin", {
+        form: { slug: "jw", action: "pin", returnTo: "/dashboard/links" },
+        headers: JSON_HEADERS,
+      });
+    }
   });
 });

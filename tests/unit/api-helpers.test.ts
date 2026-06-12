@@ -1,4 +1,3 @@
-import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
 import * as z from "zod";
 import {
@@ -39,12 +38,10 @@ describe("api helpers", () => {
     expect(parseIntegerList(null)).toEqual([]);
   });
 
-  it("reads search params from both Request and NextRequest", () => {
+  it("reads search params from Request", () => {
     const request = new Request("https://example.test/path?page=2");
-    const nextRequest = new NextRequest("https://example.test/path?limit=10");
 
     expect(getRequestSearchParams(request).get("page")).toBe("2");
-    expect(getRequestSearchParams(nextRequest).get("limit")).toBe("10");
   });
 
   it("parses route input with zod schemas", () => {

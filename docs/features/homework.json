@@ -20,7 +20,7 @@
         "models": ["Homework"]
       },
       "web": {
-        "pages": ["/?tab=homeworks"]
+        "pages": ["/dashboard/homeworks", "/?tab=homeworks"]
       },
       "rest": {
         "routes": [

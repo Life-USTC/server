@@ -19,13 +19,13 @@ describe("/api/readiness", () => {
     vi.stubEnv("S3_BUCKET", "life-ustc-test");
     queryRawMock.mockResolvedValue([{ "?column?": 1 }]);
     vi.spyOn(console, "info").mockImplementation(() => {});
-    const { GET } = await import("@/app/api/readiness/route");
+    const { GET } = await import("@/routes/api/readiness/+server");
 
-    const response = await GET(
-      new Request("http://127.0.0.1:3000/api/readiness", {
+    const response = await GET({
+      request: new Request("http://127.0.0.1:3000/api/readiness", {
         headers: { "x-request-id": "request-1" },
       }),
-    );
+    });
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
@@ -39,13 +39,13 @@ describe("/api/readiness", () => {
 
   it("hides readiness from remote requests without a token", async () => {
     vi.spyOn(console, "info").mockImplementation(() => {});
-    const { GET } = await import("@/app/api/readiness/route");
+    const { GET } = await import("@/routes/api/readiness/+server");
 
-    const response = await GET(
-      new Request("https://example.test/api/readiness", {
+    const response = await GET({
+      request: new Request("https://example.test/api/readiness", {
         headers: { host: "example.test" },
       }),
-    );
+    });
 
     expect(response.status).toBe(404);
     expect(queryRawMock).not.toHaveBeenCalled();

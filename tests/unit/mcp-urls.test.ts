@@ -26,15 +26,13 @@ describe("MCP URL helpers", () => {
     expect(getBetterAuthBaseUrl()).toBe("https://preview.example.com/api/auth");
   });
 
-  it("falls back to VERCEL_URL when APP_PUBLIC_ORIGIN is unset", () => {
+  it("falls back to pinned local origin when APP_PUBLIC_ORIGIN is unset", () => {
     vi.stubEnv("APP_PUBLIC_ORIGIN", "");
-    vi.stubEnv("VERCEL_URL", "life-preview.vercel.app");
-    expect(getPublicOrigin()).toBe("https://life-preview.vercel.app");
+    expect(getPublicOrigin()).toBe("http://localhost:3000");
   });
 
-  it("falls back to VERCEL_PROJECT_PRODUCTION_URL for canonical origin", () => {
-    vi.stubEnv("APP_CANONICAL_ORIGIN", "");
-    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "life-ustc.tiankaima.dev");
+  it("uses public origin as canonical origin", () => {
+    vi.stubEnv("APP_PUBLIC_ORIGIN", "https://life-ustc.tiankaima.dev");
     expect(getCanonicalOrigin()).toBe("https://life-ustc.tiankaima.dev");
   });
 

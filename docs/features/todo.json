@@ -19,7 +19,7 @@
         "models": ["Todo"]
       },
       "web": {
-        "pages": ["/?tab=todos"]
+        "pages": ["/dashboard/todos", "/?tab=todos"]
       },
       "rest": {
         "routes": [
@@ -57,13 +57,13 @@
       }
     },
     "todo-edit": {
-      "title": "Todo Edit Sheet",
+      "title": "Todo Create/Edit Form",
       "auth": "user",
       "links": {
         "models": ["Todo"]
       },
       "web": {
-        "pages": ["/?tab=todos"]
+        "pages": ["/dashboard/todos", "/?tab=todos"]
       },
       "rest": {
         "routes": [

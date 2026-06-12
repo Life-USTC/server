@@ -91,7 +91,10 @@ test.describe("/u/id/[uid]", () => {
     await gotoAndWaitForReady(page, "/u/id/non-existing-user-id", {
       expectMainContent: false,
     });
-    await expect(page.locator("h1")).toHaveText("404");
+    await expect(page.getByText("404").first()).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),
+    ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "u-id/404");
   });
 });

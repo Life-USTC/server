@@ -1,5 +1,5 @@
 /**
- * E2E tests for the Calendar Tab (`?tab=calendar`)
+ * E2E tests for the calendar dashboard (`/dashboard/calendar`)
  *
  * ## Data Represented (calendar.yml → personal-calendar-view.display.fields)
  * - calendarEvents (schedules + exams + homeworks + todos)
@@ -40,14 +40,14 @@ test.describe("dashboard calendar", () => {
 
     // Public view: links/bus tabs, sign-in CTA
     await expect(
-      page.getByRole("link", { name: /^(网站|Websites)$/i }),
+      page.getByRole("tab", { name: /^(网站|Websites)$/i }),
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: /^(登录|Sign in)$/i }),
+      page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
     ).toBeVisible();
     // Calendar tab NOT in public nav
     await expect(
-      page.getByRole("link", { name: /^(日历|Calendar)$/i }),
+      page.getByRole("tab", { name: /^(日历|Calendar)$/i }),
     ).toHaveCount(0);
 
     await captureStepScreenshot(page, testInfo, "calendar/unauthenticated");
@@ -56,9 +56,9 @@ test.describe("dashboard calendar", () => {
   test("authenticated shows calendar with section event links and weekday labels", async ({
     page,
   }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=calendar");
+    await signInAsDebugUser(page, "/dashboard/calendar");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/?tab=calendar", {
+    await gotoAndWaitForReady(page, "/dashboard/calendar", {
       testInfo,
       screenshotLabel: "calendar",
     });
@@ -82,9 +82,9 @@ test.describe("dashboard calendar", () => {
   test("section event link navigates to section detail", async ({
     page,
   }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=calendar");
+    await signInAsDebugUser(page, "/dashboard/calendar");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/?tab=calendar", {
+    await gotoAndWaitForReady(page, "/dashboard/calendar", {
       testInfo,
       screenshotLabel: "calendar",
     });
@@ -98,50 +98,33 @@ test.describe("dashboard calendar", () => {
   });
 
   test("exam card links to exams tab", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=calendar");
+    await signInAsDebugUser(page, "/dashboard/calendar");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/?tab=calendar", {
+    await gotoAndWaitForReady(page, "/dashboard/calendar", {
       testInfo,
       screenshotLabel: "calendar",
     });
 
-    const examLink = page.locator('a[href="/?tab=exams"]').first();
-    if ((await examLink.count()) > 0) {
-      await expect(examLink).toBeVisible();
-      await examLink.click();
-      await expect(page).toHaveURL(/tab=exams/);
-      await captureStepScreenshot(page, testInfo, "calendar/exam-link");
-    } else {
-      await expect(page.locator("#main-content")).toBeVisible();
-    }
+    const examLink = page.locator('a[href="/dashboard/exams"]').first();
+    await expect(examLink).toBeVisible();
+    await examLink.click();
+    await expect(page).toHaveURL(/\/dashboard\/exams(?:\?.*)?$/);
+    await captureStepScreenshot(page, testInfo, "calendar/exam-link");
   });
 
   test("semester navigation controls are present", async ({
     page,
   }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=calendar");
+    await signInAsDebugUser(page, "/dashboard/calendar");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/?tab=calendar", {
+    await gotoAndWaitForReady(page, "/dashboard/calendar", {
       testInfo,
       screenshotLabel: "calendar",
     });
 
     // calendar.yml: Previous/next semester controls
-    const prevButton = page
-      .getByRole("button", { name: /上学期|Previous semester|上一个/i })
-      .or(page.getByLabel(/previous/i).first());
-    const nextButton = page
-      .getByRole("button", { name: /下学期|Next semester|下一个/i })
-      .or(page.getByLabel(/next/i).first());
-
-    if ((await prevButton.count()) > 0 || (await nextButton.count()) > 0) {
-      if ((await prevButton.count()) > 0) {
-        await expect(prevButton.first()).toBeVisible();
-      }
-      if ((await nextButton.count()) > 0) {
-        await expect(nextButton.first()).toBeVisible();
-      }
-    }
+    await expect(page.getByText(/上一学期|Previous semester/i)).toBeVisible();
+    await expect(page.getByText(/下一学期|Next semester/i)).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "calendar/navigation-controls");
   });
@@ -149,30 +132,56 @@ test.describe("dashboard calendar", () => {
   test("view toggle switches between semester/month/week", async ({
     page,
   }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=calendar");
+    await signInAsDebugUser(page, "/dashboard/calendar");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/?tab=calendar", {
+    await gotoAndWaitForReady(page, "/dashboard/calendar", {
       testInfo,
       screenshotLabel: "calendar",
     });
 
     // calendar.yml: View tabs
-    const monthTab = page
-      .getByRole("button", { name: /月|Month/i })
-      .or(page.getByRole("tab", { name: /月|Month/i }))
-      .first();
-    if ((await monthTab.count()) > 0) {
-      await monthTab.click();
-      await captureStepScreenshot(page, testInfo, "calendar/month-view");
-    }
+    const calendarTabs = page.getByRole("tablist", {
+      name: /日历|Calendar/i,
+    });
+    const monthTab = calendarTabs.getByRole("tab", {
+      name: /本月|This month/i,
+    });
+    await monthTab.click();
+    await expect(page).toHaveURL(/calendarView=month/);
+    await expect(monthTab).toHaveAttribute("aria-selected", "true");
+    await captureStepScreenshot(page, testInfo, "calendar/month-view");
 
-    const weekTab = page
-      .getByRole("button", { name: /周|Week/i })
-      .or(page.getByRole("tab", { name: /周|Week/i }))
-      .first();
-    if ((await weekTab.count()) > 0) {
-      await weekTab.click();
-      await captureStepScreenshot(page, testInfo, "calendar/week-view");
-    }
+    const weekTab = calendarTabs.getByRole("tab", {
+      name: /本周|This week/i,
+    });
+    await weekTab.click();
+    await expect(page).toHaveURL(/calendarView=week/);
+    await expect(weekTab).toHaveAttribute("aria-selected", "true");
+    await captureStepScreenshot(page, testInfo, "calendar/week-view");
+  });
+
+  test("copy calendar link produces valid iCal URL", async ({ page }) => {
+    await page
+      .context()
+      .grantPermissions(["clipboard-read", "clipboard-write"]);
+    await signInAsDebugUser(page, "/dashboard/calendar");
+    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, "/dashboard/calendar");
+
+    const copyButton = page.getByRole("button", { name: /复制日历链接|iCal/i });
+    await expect(copyButton).toBeVisible();
+    await copyButton.click();
+
+    const clipboardText = await page.evaluate(async () =>
+      navigator.clipboard.readText(),
+    );
+    expect(clipboardText).toMatch(/\/api\/users\/[^/]+:[^/]+\/calendar\.ics$/);
+
+    const calendarResponse = await page.request.get(clipboardText);
+    expect(calendarResponse.status()).toBe(200);
+    expect(calendarResponse.headers()["content-type"]).toContain(
+      "text/calendar",
+    );
+    await expect(page.getByText(/已复制链接|Link Copied/i)).toBeVisible();
   });
 });

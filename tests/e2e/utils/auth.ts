@@ -134,6 +134,9 @@ async function signInWithDevButton(
   } catch (error) {
     try {
       await expectAuthenticatedSession(page, { isAdmin: role === "admin" });
+      await completeWelcomeProfileIfNeeded(page, role, expectedPath);
+      await expectPagePath(page, expectedPath);
+      await waitForUiSettled(page);
       await expect(page.locator("#main-content")).toBeVisible();
       authStorageStateCache.set(role, await page.context().storageState());
       return;

@@ -50,7 +50,29 @@ describe("provider-api guards", () => {
     );
   });
 
+  it("accepts the generic OAuth API methods used by Svelte auth actions", () => {
+    const api = asGenericOAuthApi({
+      signInWithOAuth2: async () => ({
+        headers: new Headers(),
+        response: { url: "https://example.com/signin" },
+      }),
+      oAuth2LinkAccount: async () => ({
+        headers: new Headers(),
+        response: { url: "https://example.com/link" },
+      }),
+    });
+
+    expect(api.signInWithOAuth2).toBeTypeOf("function");
+    expect(api.oAuth2LinkAccount).toBeTypeOf("function");
+  });
+
   it("throws a clear error when generic OAuth API is missing signInWithOAuth2", () => {
     expect(() => asGenericOAuthApi({})).toThrow(/missing signInWithOAuth2\(\)/);
+  });
+
+  it("throws a clear error when generic OAuth API is missing oAuth2LinkAccount", () => {
+    expect(() =>
+      asGenericOAuthApi({ signInWithOAuth2: async () => ({}) }),
+    ).toThrow(/missing oAuth2LinkAccount\(\)/);
   });
 });

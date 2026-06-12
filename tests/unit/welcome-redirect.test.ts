@@ -22,6 +22,14 @@ describe("welcome redirect policy", () => {
     expect(shouldRedirect("/oauth/authorize")).toBe(false);
   });
 
+  it("does not redirect API, discovery, or static asset requests", () => {
+    expect(shouldRedirect("/api/me")).toBe(false);
+    expect(shouldRedirect("/.well-known/openid-configuration")).toBe(false);
+    expect(shouldRedirect("/_app/immutable/start.js")).toBe(false);
+    expect(shouldRedirect("/robots.txt")).toBe(false);
+    expect(shouldRedirect("/sitemap.xml")).toBe(false);
+  });
+
   it("allows OAuth callback continuations by protocol shape, not test path", () => {
     expect(
       shouldRedirect(

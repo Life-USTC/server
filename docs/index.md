@@ -12,7 +12,7 @@
 
 | Change area | Update docs |
 |-------------|-------------|
-| Public REST API, route params, response shape, or status | Route OpenAPI JSDoc in `src/app/api/**/route.ts`; `docs/features/openapi.json` when feature coverage changes; regenerate with `bun run build:artifacts`. |
+| Public REST API, route params, response shape, or status | Route OpenAPI JSDoc in `src/routes/api/**/+server.ts`; `docs/features/openapi.json` when feature coverage changes; regenerate with `bun run build:artifacts`. |
 | MCP tool, input parameter, auth behavior, output shape, or compaction | Matching `docs/features/<module>.json`; integration tests under `tests/integration/`. |
 | User-visible web behavior, permissions, workflows, or labels | Matching `docs/features/<module>.json`; both message files when text changes. |
 | Prisma model, enum, relation, migration, or seed contract | `prisma/schema.prisma`, migrations, `docs/features/_models.json` or `_enums.json`, and shared seed files when tests depend on it. |
@@ -34,7 +34,7 @@
 
 ## Verification
 
-- Default gate: `bun run verify:fast`.
+- Default gate: `bun run verify:commit`.
 - Feature contract check: `bun run check:features`.
 - API/OpenAPI generation: `bun run build:artifacts`.
 - Full flow for auth, data, browser, or shared tooling changes: `bun run verify:full`.

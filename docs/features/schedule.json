@@ -19,7 +19,7 @@
         "models": ["Schedule"]
       },
       "web": {
-        "pages": ["/?tab=calendar"]
+        "pages": ["/dashboard/calendar"]
       },
       "rest": "unavailable",
       "mcp": {

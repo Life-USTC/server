@@ -2,6 +2,8 @@ import { mkdir } from "node:fs/promises";
 import * as path from "node:path";
 import type { Page, TestInfo } from "@playwright/test";
 
+const CAPTURE_STEP_SCREENSHOTS = false;
+
 function sanitizePathSegment(value: string) {
   const trimmed = value.trim();
   if (!trimmed) return "_";
@@ -30,10 +32,7 @@ function urlToFolderParts(rawUrl: string) {
 }
 
 export function resolveGlobalArtifactsRoot() {
-  return path.join(
-    process.cwd(),
-    process.env.E2E_ARTIFACTS_DIR?.trim() || "test-results/e2e",
-  );
+  return path.join(process.cwd(), "test-results/e2e");
 }
 
 const ensuredDirs = new Set<string>();
@@ -70,9 +69,7 @@ export async function captureStepScreenshot(
   testInfo: TestInfo,
   name: string,
 ) {
-  if (process.env.E2E_CAPTURE_STEPS !== "1") {
-    return;
-  }
+  if (!CAPTURE_STEP_SCREENSHOTS) return;
 
   const parts = name.replace(/[^a-zA-Z0-9\-_/]/g, "-").split("/");
   const fileName = `${parts.pop()}.png`;

@@ -20,6 +20,18 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe("dashboard invalid tab (comments)", () => {
+  test("/dashboard/comments is not a routed dashboard page", async ({
+    page,
+  }, testInfo) => {
+    const response = await gotoAndWaitForReady(page, "/dashboard/comments", {
+      testInfo,
+      screenshotLabel: "dashboard-invalid-comments-route",
+    });
+
+    expect(response?.status()).toBe(404);
+    await expect(page.getByText(/not found|找不到/i)).toBeVisible();
+  });
+
   test("unauthenticated ?tab=comments falls back to public bus view", async ({
     page,
   }, testInfo) => {
@@ -34,10 +46,10 @@ test.describe("dashboard invalid tab (comments)", () => {
 
     // Public view renders bus content as default (bus + links grouped)
     await expect(
-      page.getByRole("link", { name: /^(校车|Shuttle Bus)$/i }),
+      page.getByRole("tab", { name: /^(校车|Shuttle Bus)$/i }),
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: /^(登录|Sign in)$/i }),
+      page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
     ).toBeVisible();
     // Bus toolbar should be visible (day type pills)
     await expect(
@@ -57,7 +69,7 @@ test.describe("dashboard invalid tab (comments)", () => {
 
     // Overview is the fallback — should show the overview tab as active
     await expect(
-      page.getByRole("link", { name: /^(总览|Overview)$/i }),
+      page.getByRole("tab", { name: /^(总览|Overview)$/i }),
     ).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "home-comments-seed");

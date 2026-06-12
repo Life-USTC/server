@@ -18,7 +18,7 @@
       "title": "Link Browse & Search",
       "auth": "anon",
       "web": {
-        "pages": ["/?tab=links", "/?tab=overview"]
+        "pages": ["/dashboard/links", "/?tab=links", "/dashboard"]
       },
       "rest": "unavailable",
       "mcp": "unavailable",
@@ -38,7 +38,9 @@
     "link-pin-and-visit": {
       "title": "Link Pin & Visit",
       "auth": "user",
-      "web": "stable",
+      "web": {
+        "pages": ["/dashboard/links"]
+      },
       "rest": {
         "routes": [
           {

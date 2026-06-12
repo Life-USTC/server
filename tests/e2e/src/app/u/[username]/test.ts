@@ -23,7 +23,7 @@
  * - Empty username param → 404
  */
 import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../../utils/auth";
+import { signInAsDevAdmin } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../../utils/request-url";
@@ -36,13 +36,13 @@ test.describe("/u/[username]", () => {
   });
 
   test("displays all required profile fields", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, `/u/${DEV_SEED.debugUsername}`);
+    await gotoAndWaitForReady(page, `/u/${DEV_SEED.adminUsername}`);
 
     // user.name (display name)
-    await expect(page.getByText(DEV_SEED.debugName).first()).toBeVisible();
+    await expect(page.getByText(DEV_SEED.adminName).first()).toBeVisible();
     // user.username (@username)
     await expect(
-      page.getByText(`@${DEV_SEED.debugUsername}`).first(),
+      page.getByText(`@${DEV_SEED.adminUsername}`).first(),
     ).toBeVisible();
 
     // user.image (avatar) — img element should be present
@@ -57,7 +57,7 @@ test.describe("/u/[username]", () => {
   });
 
   test("displays stat counters grid", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, `/u/${DEV_SEED.debugUsername}`);
+    await gotoAndWaitForReady(page, `/u/${DEV_SEED.adminUsername}`);
 
     // sectionCount, _count.comments, _count.uploads, _count.homeworksCreated
     // Stats grid must contain numeric counters
@@ -101,7 +101,7 @@ test.describe("/u/[username]", () => {
   }) => {
     // user.yml: public-identity-display rule — internal ids hidden (permission.yml)
     const res = await fetch(
-      absoluteTestUrl(`/u/${DEV_SEED.debugUsername}`, baseURL),
+      absoluteTestUrl(`/u/${DEV_SEED.adminUsername}`, baseURL),
     );
     expect(res.status).toBe(200);
     const html = await res.text();
@@ -114,7 +114,10 @@ test.describe("/u/[username]", () => {
     await gotoAndWaitForReady(page, "/u/non-existing-username", {
       expectMainContent: false,
     });
-    await expect(page.locator("h1")).toHaveText("404");
+    await expect(page.getByText("404").first()).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),
+    ).toBeVisible();
     await expect(
       page.getByRole("link", { name: /返回首页|Home/i }),
     ).toBeVisible();
@@ -128,7 +131,7 @@ test.describe("/u/id/[uid]", () => {
   });
 
   test("shows profile by internal user ID", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/");
+    await signInAsDevAdmin(page, "/");
     const sessionResponse = await page.request.get("/api/auth/get-session");
     expect(sessionResponse.status()).toBe(200);
     const session = (await sessionResponse.json()) as {
@@ -138,9 +141,9 @@ test.describe("/u/id/[uid]", () => {
 
     await gotoAndWaitForReady(page, `/u/id/${session.user?.id}`);
     await expect(
-      page.getByText(`@${DEV_SEED.debugUsername}`).first(),
+      page.getByText(`@${DEV_SEED.adminUsername}`).first(),
     ).toBeVisible();
-    await expect(page.getByText(DEV_SEED.debugName).first()).toBeVisible();
+    await expect(page.getByText(DEV_SEED.adminName).first()).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "u-id/profile");
   });
@@ -149,7 +152,10 @@ test.describe("/u/id/[uid]", () => {
     await gotoAndWaitForReady(page, "/u/id/non-existent-uid-000000000", {
       expectMainContent: false,
     });
-    await expect(page.locator("h1")).toHaveText("404");
+    await expect(page.getByText("404").first()).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),
+    ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "u-id/404");
   });
 });

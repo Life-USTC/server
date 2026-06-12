@@ -2,7 +2,7 @@
  * E2E tests for the Settings Hub Page (`/settings`)
  *
  * ## Data Represented
- * - Central settings page using tab-based navigation via `?tab=` query param.
+ * - Central settings page using tab-based navigation via path aliases or `?tab=`.
  * - Tabs: profile (default), accounts, content, danger.
  * - Each tab renders a different section component server-side.
  * - Layout requires authentication (`requireSignedInUserId`).
@@ -21,6 +21,7 @@
 import { expect, test } from "@playwright/test";
 import { expectRequiresSignIn, signInAsDebugUser } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
+import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 
 test.describe("/settings", () => {
@@ -51,7 +52,7 @@ test.describe("/settings", () => {
     });
     await expect(accountsTab).toBeVisible();
     await accountsTab.click();
-    await expect(page).toHaveURL(/tab=accounts/);
+    await expect(page).toHaveURL(/\/settings\/accounts|tab=accounts/);
     await expect(page.getByText("GitHub").first()).toBeVisible();
     await captureStepScreenshot(page, testInfo, "settings-accounts-tab");
 
@@ -61,7 +62,7 @@ test.describe("/settings", () => {
     });
     await expect(dangerTab).toBeVisible();
     await dangerTab.click();
-    await expect(page).toHaveURL(/tab=danger/);
+    await expect(page).toHaveURL(/\/settings\/danger|tab=danger/);
     await expect(
       page.getByRole("button", { name: /删除|Delete/i }).first(),
     ).toBeVisible();
@@ -73,8 +74,30 @@ test.describe("/settings", () => {
     });
     await expect(profileTab).toBeVisible();
     await profileTab.click();
-    await expect(page).toHaveURL(/tab=profile/);
+    await expect(page).toHaveURL(/\/settings\/profile|tab=profile/);
     await expect(page.locator("input#name")).toBeVisible();
     await captureStepScreenshot(page, testInfo, "settings-profile-tab");
+  });
+
+  test("settings path aliases render the matching sections", async ({
+    page,
+  }, testInfo) => {
+    await signInAsDebugUser(page, "/settings/accounts");
+    await expect(page).toHaveURL(/\/settings\/accounts(?:\?.*)?$/);
+    await expect(page.getByText("GitHub").first()).toBeVisible();
+
+    await gotoAndWaitForReady(page, "/settings/content");
+    await expect(
+      page.getByRole("link", { name: /浏览班级|Browse sections/i }),
+    ).toBeVisible();
+
+    await gotoAndWaitForReady(page, "/settings/danger");
+    await expect(
+      page.getByRole("button", { name: /删除|Delete/i }).first(),
+    ).toBeVisible();
+
+    await gotoAndWaitForReady(page, "/settings/profile");
+    await expect(page.locator("input#name")).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "settings-path-profile");
   });
 });

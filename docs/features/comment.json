@@ -3,7 +3,7 @@
   "access": {
     "anon": "Can read public comments but cannot create sign-in-required comments.",
     "user": "Can post, reply, react, edit, and delete their own comments; suspended users cannot post new comments.",
-    "admin": "Can hide, delete, and moderate comments, and handle reports or suspensions.",
+    "admin": "Can hide, delete, and moderate comments, and handle suspensions.",
     "agent": "No comment read/write capability is currently provided."
   },
   "rules": {

@@ -1,44 +1,41 @@
-import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { promisify } from "node:util";
 import { Pool } from "pg";
 import type { SupportedOAuthClientAuthMethod } from "@/lib/oauth/constants";
+import * as oauthFixtures from "./e2e-db/oauth";
+import * as seedFixtures from "./e2e-db/seed";
+import * as userFixtures from "./e2e-db/users";
 
 export { getCurrentSessionUser, PLAYWRIGHT_BASE_URL } from "./e2e-db/core";
 
-const execFileAsync = promisify(execFile);
 const DB_FIXTURE_ATTEMPTS = 3;
-const DB_FIXTURE_TIMEOUT_MS = 10_000;
 
-function buildFixtureEnv() {
-  const env = { ...process.env };
-  delete env.FORCE_COLOR;
-  delete env.NO_COLOR;
-  return env;
-}
+const operations = {
+  createOAuthClientFixture: oauthFixtures.createOAuthClientFixture,
+  deleteLinkedAccountFixture: oauthFixtures.deleteLinkedAccountFixture,
+  deleteOAuthClientsByName: oauthFixtures.deleteOAuthClientsByName,
+  ensureLinkedAccountFixture: oauthFixtures.ensureLinkedAccountFixture,
+  getSeedCourseFilterFixture: seedFixtures.getSeedCourseFilterFixture,
+  getSeedSectionSemesterFixture: seedFixtures.getSeedSectionSemesterFixture,
+  getSeedTeacherDepartmentFixture: seedFixtures.getSeedTeacherDepartmentFixture,
+  ensureUserCalendarFeedFixture: userFixtures.ensureUserCalendarFeedFixture,
+  getUserProfileById: userFixtures.getUserProfileById,
+  getUserSubscribedSectionIds: userFixtures.getUserSubscribedSectionIds,
+  replaceUserSubscribedSectionIds: userFixtures.replaceUserSubscribedSectionIds,
+  updateUserProfileById: userFixtures.updateUserProfileById,
+};
 
 async function runDbFixture<T>(operation: string, args: unknown[] = []) {
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= DB_FIXTURE_ATTEMPTS; attempt += 1) {
     try {
-      const { stdout } = await execFileAsync(
-        "bun",
-        [
-          "run",
-          "tests/e2e/utils/e2e-db/cli.ts",
-          operation,
-          JSON.stringify(args),
-        ],
-        {
-          cwd: process.cwd(),
-          env: buildFixtureEnv(),
-          maxBuffer: 1024 * 1024,
-          timeout: DB_FIXTURE_TIMEOUT_MS,
-        },
-      );
-
-      return JSON.parse(stdout) as T;
+      const fn = operations[operation as keyof typeof operations];
+      if (!fn) {
+        throw new Error(`Unknown E2E DB fixture operation: ${operation}`);
+      }
+      return (await (fn as (...input: unknown[]) => Promise<unknown>)(
+        ...args,
+      )) as T;
     } catch (error) {
       lastError = error;
     }

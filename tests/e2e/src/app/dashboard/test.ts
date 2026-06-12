@@ -11,7 +11,7 @@
  *   together as public queries after calendar.
  *
  * ## UI/UX Elements
- * - Tab navigation bar (`HomeTabNav`) with pill-style links
+ * - Tab navigation bar with pill-style tabs
  * - Homeworks/exams/todos tabs show badge counts next to their labels
  * - User menu visible when authenticated; sign-in CTA when not
  *
@@ -40,15 +40,15 @@ test.describe("dashboard", () => {
 
     // Public view shows bus + links tabs and sign-in CTA
     await expect(
-      page.getByRole("link", { name: /^(校车|Shuttle Bus)$/i }),
+      page.getByRole("tab", { name: /^(校车|Shuttle Bus)$/i }),
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: /^(登录|Sign in)$/i }),
+      page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
     ).toBeVisible();
 
     // Auth-only tabs should not be present
     await expect(
-      page.getByRole("link", { name: /^(总览|Overview)$/i }),
+      page.getByRole("tab", { name: /^(总览|Overview)$/i }),
     ).toHaveCount(0);
 
     await captureStepScreenshot(page, testInfo, "home-public-with-tab");
@@ -72,10 +72,10 @@ test.describe("dashboard", () => {
     const nav = page.getByLabel(/Dashboard section switcher/i);
     for (const label of [
       /^(总览|Overview)$/i,
-      /^(日历|Calendar)$/i,
-      /^(网站|Websites)$/i,
+      /日历|Calendar/i,
+      /网站|Websites/i,
     ]) {
-      await expect(nav.getByRole("link", { name: label })).toBeVisible();
+      await expect(nav.getByRole("tab", { name: label })).toBeVisible();
     }
 
     // Seed homework title visible on overview. Retry the subscription+reload
@@ -90,6 +90,9 @@ test.describe("dashboard", () => {
         timeout: 2_000,
       });
     }).toPass({ timeout: 15_000 });
+    await expect(
+      page.locator('form[action="/api/dashboard-links/visit"]'),
+    ).toHaveCount(DEV_SEED.dashboardLinks.overviewLimit);
 
     await captureStepScreenshot(page, testInfo, "dashboard-home");
   });
@@ -100,12 +103,49 @@ test.describe("dashboard", () => {
     await signInAsDebugUser(page, "/");
 
     const homeworksTab = page
-      .getByRole("link", { name: /作业|Homework/i })
+      .getByRole("tab", { name: /作业|Homework/i })
       .first();
     await expect(homeworksTab).toBeVisible();
     await homeworksTab.click();
 
-    await expect(page).toHaveURL(/tab=homeworks/);
+    await expect(page).toHaveURL(/\/dashboard\/homeworks(?:\?.*)?$/);
     await captureStepScreenshot(page, testInfo, "dashboard-navigate-homeworks");
+  });
+
+  test("dashboard path aliases render the matching tabs", async ({
+    page,
+  }, testInfo) => {
+    await gotoAndWaitForReady(page, "/dashboard/links", {
+      testInfo,
+      screenshotLabel: "dashboard-links-path",
+    });
+    await expect(
+      page.getByRole("searchbox", {
+        name: /搜索网站名称或描述|Search by name or description/i,
+      }),
+    ).toBeVisible();
+
+    await signInAsDebugUser(page, "/dashboard/homeworks");
+    const homeworksDashboardTab = page
+      .getByRole("tab", { name: /作业|Homework/i })
+      .first();
+    await expect(homeworksDashboardTab).toBeVisible();
+    await expect(homeworksDashboardTab).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    await gotoAndWaitForReady(page, "/dashboard/subscriptions");
+    await expect(page).toHaveURL(/\/dashboard\/subscriptions(?:\?.*)?$/);
+    await expect(
+      page.getByRole("tab", {
+        name: /Subscriptions|Section Management|订阅/i,
+      }),
+    ).toBeVisible();
+    await expect(page.getByText(DEV_SEED.semesterNameCn).first()).toBeVisible();
+    await expect(
+      page.getByText(DEV_SEED.previousSemesterNameCn).first(),
+    ).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "dashboard-subscriptions-path");
   });
 });

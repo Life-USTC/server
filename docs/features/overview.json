@@ -23,14 +23,14 @@
       },
       "web": {
         "pages": [
-          "/?tab=overview",
-          "/?tab=calendar",
-          "/?tab=subscriptions",
-          "/?tab=exams",
-          "/?tab=homeworks",
-          "/?tab=todos",
-          "/?tab=bus",
-          "/?tab=links"
+          "/dashboard/overview",
+          "/dashboard/calendar",
+          "/dashboard/subscriptions/sections",
+          "/dashboard/exams",
+          "/dashboard/homeworks",
+          "/dashboard/todos",
+          "/dashboard/bus",
+          "/dashboard/links"
         ]
       },
       "rest": "unavailable",

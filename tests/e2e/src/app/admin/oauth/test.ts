@@ -39,7 +39,10 @@ test("/admin/oauth 未登录重定向到登录页", async ({ page }, testInfo) =
 
 test("/admin/oauth 普通用户访问返回 404", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/admin/oauth", "/admin/oauth");
-  await expect(page.locator("h1")).toHaveText("404");
+  await expect(page.getByText("404").first()).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),
+  ).toBeVisible();
   await captureStepScreenshot(page, testInfo, "admin-oauth-404");
 });
 
@@ -60,9 +63,7 @@ test("/admin/oauth 管理员可创建并删除客户端", async ({ page }, testI
     await expect(createBtn).toBeVisible();
     await expect(createBtn).toBeEnabled();
     const createDialog = page
-      .locator(
-        '[role="dialog"]:not([data-nextjs-dialog]), [data-slot="dialog-popup"]',
-      )
+      .locator('[role="dialog"], [data-slot="dialog-popup"]')
       .last();
     await expect(async () => {
       await createBtn.click();
@@ -111,6 +112,13 @@ test("/admin/oauth 管理员可创建并删除客户端", async ({ page }, testI
       .first();
     await expect(clientCard).toBeVisible();
     await clientCard.getByRole("button", { name: /删除|Delete/i }).click();
+    const deleteDialog = page.getByRole("dialog", {
+      name: /删除客户端|Delete client|删除|Delete/i,
+    });
+    await expect(deleteDialog).toBeVisible();
+    await deleteDialog
+      .getByRole("button", { name: /删除客户端|Delete client|删除|Delete/i })
+      .click();
 
     await expect(page.getByText(clientName)).toHaveCount(0, {
       timeout: 15000,
@@ -137,9 +145,7 @@ test("/admin/oauth created client shows all required fields", async ({
     await expect(createBtn).toBeVisible();
     await expect(createBtn).toBeEnabled();
     const createDialog = page
-      .locator(
-        '[role="dialog"]:not([data-nextjs-dialog]), [data-slot="dialog-popup"]',
-      )
+      .locator('[role="dialog"], [data-slot="dialog-popup"]')
       .last();
     await expect(async () => {
       await createBtn.click();

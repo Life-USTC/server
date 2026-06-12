@@ -67,7 +67,7 @@ export async function gotoAndWaitForReady(
     }
   }
 
-  const verbose = process.env.E2E_TRANSPARENCY === "1";
+  const verbose = false;
   const t0 = performance.now();
   const initialUrl = page.url();
   const loadStateWaitUntil =

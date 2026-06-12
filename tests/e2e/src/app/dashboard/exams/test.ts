@@ -1,5 +1,5 @@
 /**
- * E2E tests for the Exams Tab (`?tab=exams`)
+ * E2E tests for the exams dashboard (`/dashboard/exams`)
  *
  * ## Data Represented (exam.yml → cross-section-exam-list.display.fields)
  * - exam.examDate
@@ -40,14 +40,14 @@ test.describe("dashboard exams", () => {
 
     // Public view: sign-in CTA, no auth-only tabs
     await expect(
-      page.getByRole("link", { name: /^(网站|Websites)$/i }),
+      page.getByRole("tab", { name: /^(网站|Websites)$/i }),
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: /^(登录|Sign in)$/i }),
+      page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
     ).toBeVisible();
     // Exams tab should NOT appear in public nav
     await expect(
-      page.getByRole("link", { name: /^(考试|Exams)$/i }),
+      page.getByRole("tab", { name: /^(考试|Exams)$/i }),
     ).toHaveCount(0);
 
     await captureStepScreenshot(page, testInfo, "exams/unauthenticated");
@@ -56,9 +56,9 @@ test.describe("dashboard exams", () => {
   test("authenticated shows exam filter toolbar and cards", async ({
     page,
   }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=exams");
+    await signInAsDebugUser(page, "/dashboard/exams");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/?tab=exams", {
+    await gotoAndWaitForReady(page, "/dashboard/exams", {
       testInfo,
       screenshotLabel: "exams",
     });
@@ -67,11 +67,17 @@ test.describe("dashboard exams", () => {
 
     // Filter toolbar (exam.yml cross-section-exam-list.display.fields: completion filter)
     // In English locale: "Upcoming" / "Ended" / "All"
-    await expect(page.getByRole("button", { name: /全部|All/i })).toBeVisible();
+    const filterTabs = page.getByRole("tablist", { name: /考试|Exams/i });
+    await expect(
+      filterTabs.getByRole("tab", { name: /全部|All/i }),
+    ).toBeVisible();
     // "Ended" in English, "已结束" or "已完成" in Chinese
     await expect(
-      page.getByRole("button", { name: /Ended|已结束|已完成/i }).first(),
+      filterTabs.getByRole("tab", { name: /Ended|已结束|已完成/i }),
     ).toBeVisible();
+    await expect(
+      filterTabs.getByRole("tab", { name: /Upcoming|即将|即将考试|待完成/i }),
+    ).toHaveAttribute("aria-selected", "true");
 
     await captureStepScreenshot(page, testInfo, "exams/filter-toolbar");
   });
@@ -79,15 +85,19 @@ test.describe("dashboard exams", () => {
   test("exam cards display required fields (course name, date, times, mode, rooms)", async ({
     page,
   }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=exams");
+    await signInAsDebugUser(page, "/dashboard/exams");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/?tab=exams", {
+    await gotoAndWaitForReady(page, "/dashboard/exams", {
       testInfo,
       screenshotLabel: "exams",
     });
 
     // Switch to "all" to see all exams regardless of completion
-    await page.getByRole("button", { name: /全部|All/i }).click();
+    const filterTabs = page.getByRole("tablist", { name: /考试|Exams/i });
+    await filterTabs.getByRole("tab", { name: /全部|All/i }).click();
+    await expect(
+      filterTabs.getByRole("tab", { name: /全部|All/i }),
+    ).toHaveAttribute("aria-selected", "true");
 
     // exam cards should be visible
     const examCards = page.locator('[data-slot="card"]').filter({
@@ -96,14 +106,15 @@ test.describe("dashboard exams", () => {
     await expect(examCards.first()).toBeVisible({ timeout: 15_000 });
 
     const firstCard = examCards.first();
+    await expect(firstCard).toBeVisible();
 
     // section.course.namePrimary (exam.yml cross-section-exam-list.display.fields)
     await expect(
-      firstCard
-        .getByText(DEV_SEED.course.nameCn)
-        .or(firstCard.getByText(DEV_SEED.course.nameEn))
-        .first(),
+      firstCard.locator('a[href^="/sections/"]').first(),
     ).toBeVisible();
+    await expect(firstCard.locator('a[href^="/sections/"]').first()).toHaveText(
+      /.+/,
+    );
 
     // exam.examDate — YYYY-MM-DD format visible
     await expect(
@@ -114,27 +125,42 @@ test.describe("dashboard exams", () => {
     await expect(firstCard.getByText(/\d{2}:\d{2}/).first()).toBeVisible();
 
     // exam.examMode — Exam.examMode is a raw string (e.g. "闭卷"), not locale-dependent
-    // Check for any mode text or skip gracefully if null
-    const modeText = firstCard.getByText(/闭卷|开卷|closed|open/i).first();
-    if ((await modeText.count()) > 0) {
-      await expect(modeText).toBeVisible();
-    }
+    await expect(
+      firstCard.getByText(/闭卷|开卷|closed|open/i).first(),
+    ).toBeVisible();
 
     // exam.examRooms[] — room name present
     await expect(firstCard.getByText(/考场|room|一教/i).first()).toBeVisible();
+
+    // Cross-section exam cards must identify semester and exam batch metadata.
+    await expect(
+      firstCard.getByText(
+        new RegExp(
+          `${DEV_SEED.semesterNameCn}|${DEV_SEED.previousSemesterNameCn}`,
+        ),
+      ),
+    ).toBeVisible();
+    await expect(
+      firstCard
+        .getByText(DEV_SEED.examBatch.nameCn)
+        .or(firstCard.getByText(DEV_SEED.examBatch.nameEn)),
+    ).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "exams/card-fields");
   });
 
   test("exam card links to section detail page", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=exams");
+    await signInAsDebugUser(page, "/dashboard/exams");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/?tab=exams", {
+    await gotoAndWaitForReady(page, "/dashboard/exams", {
       testInfo,
       screenshotLabel: "exams",
     });
 
-    await page.getByRole("button", { name: /全部|All/i }).click();
+    await page
+      .getByRole("tablist", { name: /考试|Exams/i })
+      .getByRole("tab", { name: /全部|All/i })
+      .click();
 
     const sectionLink = page.locator('a[href^="/sections/"]').first();
     await expect(sectionLink).toBeVisible();
@@ -147,25 +173,30 @@ test.describe("dashboard exams", () => {
   test("completed filter shows past exams, incomplete shows upcoming", async ({
     page,
   }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=exams");
+    await signInAsDebugUser(page, "/dashboard/exams");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/?tab=exams", {
+    await gotoAndWaitForReady(page, "/dashboard/exams", {
       testInfo,
       screenshotLabel: "exams",
     });
 
+    const filterTabs = page.getByRole("tablist", { name: /考试|Exams/i });
+
     // Switch to completed/ended filter
-    await page
-      .getByRole("button", { name: /Ended|已结束|已完成/i })
-      .first()
-      .click();
+    const completedTab = filterTabs.getByRole("tab", {
+      name: /Ended|已结束|已完成/i,
+    });
+    await completedTab.click();
+    await expect(completedTab).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByText(DEV_SEED.previousSemesterNameCn)).toBeVisible();
     await captureStepScreenshot(page, testInfo, "exams/filter-completed");
 
     // Switch back to incomplete/upcoming
-    await page
-      .getByRole("button", { name: /Upcoming|即将|即将考试|待完成/i })
-      .first()
-      .click();
+    const incompleteTab = filterTabs.getByRole("tab", {
+      name: /Upcoming|即将|即将考试|待完成/i,
+    });
+    await incompleteTab.click();
+    await expect(incompleteTab).toHaveAttribute("aria-selected", "true");
     await captureStepScreenshot(page, testInfo, "exams/filter-incomplete");
   });
 });

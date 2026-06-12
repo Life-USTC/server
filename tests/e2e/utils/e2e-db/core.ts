@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { expect, type Page } from "@playwright/test";
 
-export const PLAYWRIGHT_BASE_URL = `http://${process.env.PLAYWRIGHT_HOST ?? "127.0.0.1"}:${process.env.PLAYWRIGHT_PORT ?? "3000"}`;
+export const PLAYWRIGHT_BASE_URL = "http://127.0.0.1:3000";
 
 export function generateToken(bytes = 24) {
   return randomBytes(bytes).toString("base64url");

@@ -25,12 +25,10 @@ import {
   signInAsDebugUser,
 } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
-import { withE2eLock } from "../../../../utils/locks";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe("/settings?tab=profile", () => {
-  // Serial mode avoids intra-file contention on the shared debug-user-profile
-  // lock that also protects welcome-flow tests.
+  // Serial mode avoids intra-file contention on the shared debug user profile.
   test.describe.configure({ mode: "serial" });
 
   test("requires authentication", async ({ page }, testInfo) => {
@@ -44,68 +42,64 @@ test.describe("/settings?tab=profile", () => {
 
   test("displays all required profile fields", async ({ page }, testInfo) => {
     test.setTimeout(300_000);
-    await withE2eLock("debug-user-profile", async () => {
-      await signInAsDebugUser(page, "/settings?tab=profile");
+    await signInAsDebugUser(page, "/settings?tab=profile");
 
-      await expectPagePath(page, "/settings?tab=profile");
-      await expect(page.locator("input#name")).toHaveValue(DEV_SEED.debugName);
-      await expect(page.locator("input#username")).toHaveValue(
-        DEV_SEED.debugUsername,
-      );
+    await expectPagePath(page, "/settings?tab=profile");
+    await expect(page.locator("input#name")).toHaveValue(DEV_SEED.debugName);
+    await expect(page.locator("input#username")).toHaveValue(
+      DEV_SEED.debugUsername,
+    );
 
-      const avatarImg = page
-        .locator('img[alt*="avatar"], img[alt*="Avatar"], img[src*="avatar"]')
-        .or(page.locator('[data-testid="current-avatar"]'))
-        .or(page.locator("img"))
-        .first();
-      await expect(avatarImg).toBeVisible();
-      await expect(
-        page.getByText(/头像|Avatar|Profile picture/i).first(),
-      ).toBeVisible();
+    const avatarImg = page
+      .locator('img[alt*="avatar"], img[alt*="Avatar"], img[src*="avatar"]')
+      .or(page.locator('[data-testid="current-avatar"]'))
+      .or(page.locator("img"))
+      .first();
+    await expect(avatarImg).toBeVisible();
+    await expect(
+      page.getByText(/头像|Avatar|Profile picture/i).first(),
+    ).toBeVisible();
 
-      await captureStepScreenshot(page, testInfo, "settings/profile-fields");
-    });
+    await captureStepScreenshot(page, testInfo, "settings/profile-fields");
   });
 
   test("can save name and rollback", async ({ page }, testInfo) => {
     test.setTimeout(300_000);
-    await withE2eLock("debug-user-profile", async () => {
-      await signInAsDebugUser(page, "/settings?tab=profile");
+    await signInAsDebugUser(page, "/settings?tab=profile");
 
-      const nameInput = page.locator("input#name");
-      const saveButton = page.getByRole("button", { name: /保存|Save/i });
-      const successToast = page.getByRole("heading", {
-        name: /成功|Success/i,
-      });
-      const originalName = await nameInput.inputValue();
-      const newName = `e2e-${Date.now()}`;
+    const nameInput = page.locator("input#name");
+    const saveButton = page.getByRole("button", { name: /保存|Save/i });
+    const successToast = page.getByRole("heading", {
+      name: /成功|Success/i,
+    });
+    const originalName = await nameInput.inputValue();
+    const newName = `e2e-${Date.now()}`;
 
-      await nameInput.fill(newName);
-      const saveResponsePromise = page.waitForResponse(
-        (r) => r.url().includes("/settings") && r.request().method() === "POST",
-      );
-      await saveButton.click();
-      await saveResponsePromise;
-      await expect(successToast).toBeVisible();
-      await page.reload();
-      await page.waitForLoadState("networkidle");
-      await expect(page.locator("input#name")).toHaveValue(newName, {
-        timeout: 10_000,
-      });
-      await captureStepScreenshot(page, testInfo, "settings/profile-saved");
+    await nameInput.fill(newName);
+    const saveResponsePromise = page.waitForResponse(
+      (r) => r.url().includes("/settings") && r.request().method() === "POST",
+    );
+    await saveButton.click();
+    await saveResponsePromise;
+    await expect(successToast).toBeVisible();
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("input#name")).toHaveValue(newName, {
+      timeout: 10_000,
+    });
+    await captureStepScreenshot(page, testInfo, "settings/profile-saved");
 
-      await page.locator("input#name").fill(originalName);
-      const rollbackResponsePromise = page.waitForResponse(
-        (r) => r.url().includes("/settings") && r.request().method() === "POST",
-      );
-      await saveButton.click();
-      await rollbackResponsePromise;
-      await expect(successToast).toBeVisible();
-      await page.reload();
-      await page.waitForLoadState("networkidle");
-      await expect(page.locator("input#name")).toHaveValue(originalName, {
-        timeout: 10_000,
-      });
+    await page.locator("input#name").fill(originalName);
+    const rollbackResponsePromise = page.waitForResponse(
+      (r) => r.url().includes("/settings") && r.request().method() === "POST",
+    );
+    await saveButton.click();
+    await rollbackResponsePromise;
+    await expect(successToast).toBeVisible();
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("input#name")).toHaveValue(originalName, {
+      timeout: 10_000,
     });
   });
 });

@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const authMock = vi.fn();
+const getSessionFromHeadersMock = vi.fn();
 const verifyAccessTokenMock = vi.fn();
 const getViewerAuthDataForUserIdMock = vi.fn();
 
-vi.mock("@/auth", () => ({
-  auth: authMock,
+vi.mock("@/lib/auth/core", () => ({
+  getSessionFromHeaders: getSessionFromHeadersMock,
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
@@ -29,14 +29,16 @@ vi.mock("@/lib/mcp/urls", () => ({
 describe("auth helpers", () => {
   beforeEach(() => {
     vi.resetModules();
-    authMock.mockReset();
+    getSessionFromHeadersMock.mockReset();
     verifyAccessTokenMock.mockReset();
     getViewerAuthDataForUserIdMock.mockReset();
   });
 
   it("uses the route request headers for session-cookie fallback", async () => {
-    authMock.mockResolvedValue({ user: { id: "user-from-cookie" } });
-    const { resolveApiUserId } = await import("@/lib/auth/helpers");
+    getSessionFromHeadersMock.mockResolvedValue({
+      user: { id: "user-from-cookie" },
+    });
+    const { resolveApiUserId } = await import("@/lib/auth/api-auth");
     const request = new Request("https://life.example/api/me", {
       headers: {
         cookie: "better-auth.session_token=session-token",
@@ -44,13 +46,13 @@ describe("auth helpers", () => {
     });
 
     await expect(resolveApiUserId(request)).resolves.toBe("user-from-cookie");
-    expect(authMock).toHaveBeenCalledWith(request.headers);
+    expect(getSessionFromHeadersMock).toHaveBeenCalledWith(request.headers);
     expect(verifyAccessTokenMock).not.toHaveBeenCalled();
   });
 
   it("prefers a valid bearer access token over session cookies", async () => {
     verifyAccessTokenMock.mockResolvedValue({ sub: "user-from-token" });
-    const { resolveApiUserId } = await import("@/lib/auth/helpers");
+    const { resolveApiUserId } = await import("@/lib/auth/api-auth");
     const request = new Request("https://life.example/api/me", {
       headers: {
         authorization: "Bearer access-token",
@@ -59,7 +61,7 @@ describe("auth helpers", () => {
     });
 
     await expect(resolveApiUserId(request)).resolves.toBe("user-from-token");
-    expect(authMock).not.toHaveBeenCalled();
+    expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
     expect(verifyAccessTokenMock).toHaveBeenCalledWith(
       "access-token",
       expect.objectContaining({
@@ -75,7 +77,7 @@ describe("auth helpers", () => {
   it("rejects write auth when the resolved user no longer exists", async () => {
     verifyAccessTokenMock.mockResolvedValue({ sub: "deleted-user" });
     getViewerAuthDataForUserIdMock.mockResolvedValue(null);
-    const { requireWriteAuth } = await import("@/lib/auth/helpers");
+    const { requireWriteAuth } = await import("@/lib/auth/api-auth");
     const request = new Request("https://life.example/api/comments", {
       method: "POST",
       headers: {

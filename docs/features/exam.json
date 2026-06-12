@@ -19,7 +19,7 @@
         "models": ["Exam"]
       },
       "web": {
-        "pages": ["/?tab=exams"]
+        "pages": ["/dashboard/exams", "/?tab=exams"]
       },
       "rest": "unavailable",
       "mcp": {
@@ -38,8 +38,12 @@
           "exam.examDate",
           "exam.startTime - endTime",
           "exam.examMode",
+          "exam.examBatch.namePrimary",
+          "exam.examType",
+          "exam.examTakeCount",
           "exam.examRooms[] (locations)",
           "section.course.namePrimary",
+          "section.semester.nameCn",
           "completion filter: incomplete/completed/all"
         ]
       }

@@ -25,7 +25,7 @@
       "title": "Bus Dashboard",
       "auth": "anon",
       "web": {
-        "pages": ["/?tab=bus"]
+        "pages": ["/dashboard/bus", "/?tab=bus"]
       },
       "rest": {
         "routes": [

@@ -1,5 +1,5 @@
 /**
- * E2E tests for the Homeworks Tab (`?tab=homeworks`)
+ * E2E tests for the homeworks dashboard (`/dashboard/homeworks`)
  *
  * ## Data Represented (homework.yml → cross-section-homework-summary.display.fields)
  * - homework.title
@@ -14,7 +14,7 @@
  * ## Features
  * - Hover card to reveal completion button
  * - "View details" link → /sections/{jwId}#homework-{id}
- * - Create homework button → sheet form
+ * - Create homework button → modal form
  *
  * ## Edge Cases
  * - Unauthenticated → public links view (homeworks tab auth-only)
@@ -24,16 +24,14 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
-import {
-  DEBUG_USER_SUBSCRIPTIONS_LOCK,
-  withE2eLock,
-} from "../../../../utils/locks";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
 
 test.describe("dashboard homeworks", () => {
-  test("unauthenticated ?tab=homeworks shows public view", async ({
+  test.describe.configure({ mode: "serial" });
+
+  test("unauthenticated ?tab=homeworks falls back to public view", async ({
     page,
   }, testInfo) => {
     await gotoAndWaitForReady(page, "/?tab=homeworks", {
@@ -46,14 +44,14 @@ test.describe("dashboard homeworks", () => {
 
     // Public view: sign-in CTA visible, no auth-only tabs
     await expect(
-      page.getByRole("link", { name: /^(登录|Sign in)$/i }),
+      page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: /^(网站|Websites)$/i }),
+      page.getByRole("tab", { name: /^(网站|Websites)$/i }),
     ).toBeVisible();
     // Homeworks tab NOT in public nav
     await expect(
-      page.getByRole("link", { name: /^(作业|Homework)$/i }),
+      page.getByRole("tab", { name: /^(作业|Homework)$/i }),
     ).toHaveCount(0);
 
     await captureStepScreenshot(page, testInfo, "homeworks/unauthenticated");
@@ -62,16 +60,16 @@ test.describe("dashboard homeworks", () => {
   test("authenticated shows seed homework with all required fields", async ({
     page,
   }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=homeworks");
+    await signInAsDebugUser(page, "/dashboard/homeworks");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/?tab=homeworks", {
+    await gotoAndWaitForReady(page, "/dashboard/homeworks", {
       testInfo,
       screenshotLabel: "homeworks",
     });
 
     // Switch to All to see all homeworks
     await page
-      .getByRole("button", { name: /全部|All/i })
+      .getByRole("tab", { name: /全部|All/i })
       .first()
       .click();
 
@@ -99,15 +97,15 @@ test.describe("dashboard homeworks", () => {
   test("seeded collaborative homework shows major and team badges", async ({
     page,
   }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=homeworks");
+    await signInAsDebugUser(page, "/dashboard/homeworks");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/?tab=homeworks", {
+    await gotoAndWaitForReady(page, "/dashboard/homeworks", {
       testInfo,
       screenshotLabel: "homeworks",
     });
 
     await page
-      .getByRole("button", { name: /全部|All/i })
+      .getByRole("tab", { name: /全部|All/i })
       .first()
       .click();
 
@@ -123,72 +121,85 @@ test.describe("dashboard homeworks", () => {
   });
 
   test("can switch between filter tabs", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=homeworks");
+    await signInAsDebugUser(page, "/dashboard/homeworks");
+    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, "/dashboard/homeworks", {
+      testInfo,
+      screenshotLabel: "homeworks",
+    });
+    await expect(page.getByText(DEV_SEED.homeworks.overdueTitle)).toBeVisible();
 
     // Completed filter
     const completedTab = page
-      .getByRole("button", { name: /已完成|Completed/i })
+      .getByRole("tab", { name: /已完成|Completed/i })
       .first();
     await expect(completedTab).toBeVisible();
     await completedTab.click();
+    await expect(
+      page.getByText(DEV_SEED.homeworks.completedTitle),
+    ).toBeVisible();
+    await expect(page.getByText(DEV_SEED.homeworks.overdueTitle)).toHaveCount(
+      0,
+    );
     await captureStepScreenshot(page, testInfo, "homeworks/filter-completed");
 
     // All filter
-    const allTab = page.getByRole("button", { name: /全部|All/i }).first();
+    const allTab = page.getByRole("tab", { name: /全部|All/i }).first();
     await expect(allTab).toBeVisible();
     await allTab.click();
+    await expect(page.getByText(DEV_SEED.homeworks.overdueTitle)).toBeVisible();
     await captureStepScreenshot(page, testInfo, "homeworks/filter-all");
   });
 
   test("can switch to list view and persist preference", async ({
     page,
   }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=homeworks");
+    await signInAsDebugUser(page, "/dashboard/homeworks");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/?tab=homeworks", {
+    await gotoAndWaitForReady(page, "/dashboard/homeworks", {
       testInfo,
       screenshotLabel: "homeworks",
     });
 
     await page
-      .getByRole("button", { name: /全部|All/i })
+      .getByRole("tab", { name: /全部|All/i })
       .first()
       .click();
 
     await expect(page.getByTestId("dashboard-homeworks-cards")).toBeVisible();
-    await page.getByRole("button", { name: /列表|List/i }).click();
+    await page.getByRole("tab", { name: /列表|List/i }).click();
     await expect(page).toHaveURL(/homeworkView=list/);
     await expect(page.getByTestId("dashboard-homeworks-list")).toBeVisible();
     await expect
       .poll(() =>
         page.evaluate(() =>
-          localStorage.getItem("life-ustc-dashboard-homework-view-mode"),
+          localStorage.getItem("life-ustc-dashboard-view-mode"),
         ),
       )
       .toBe("list");
 
-    await gotoAndWaitForReady(page, "/?tab=homeworks");
+    await gotoAndWaitForReady(page, "/dashboard/homeworks");
     await page
-      .getByRole("button", { name: /全部|All/i })
+      .getByRole("tab", { name: /全部|All/i })
       .first()
       .click();
-    await expect(page).toHaveURL(/\/\?tab=homeworks$/);
+    await expect(page).toHaveURL(/\/dashboard\/homeworks$/);
     await expect(page.getByTestId("dashboard-homeworks-list")).toBeVisible();
     await captureStepScreenshot(page, testInfo, "homeworks/list-view");
   });
 
   test("can toggle homework completion status", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
-    await signInAsDebugUser(page, "/?tab=homeworks");
+    await signInAsDebugUser(page, "/dashboard/homeworks");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/?tab=homeworks", {
+    await gotoAndWaitForReady(page, "/dashboard/homeworks", {
       testInfo,
       screenshotLabel: "homeworks",
     });
 
     // Switch to "all" filter
     await page
-      .getByRole("button", { name: /全部|All/i })
+      .getByRole("tab", { name: /全部|All/i })
       .first()
       .click();
 
@@ -238,68 +249,64 @@ test.describe("dashboard homeworks", () => {
   test("view details links to section page with homework anchor", async ({
     page,
   }, testInfo) => {
-    await withE2eLock(DEBUG_USER_SUBSCRIPTIONS_LOCK, async () => {
-      await signInAsDebugUser(page, "/?tab=homeworks");
-      await ensureSeedSectionSubscription(page);
-      await gotoAndWaitForReady(page, "/?tab=homeworks", {
-        testInfo,
-        screenshotLabel: "homeworks",
-      });
-
-      await page
-        .getByRole("button", { name: /全部|All/i })
-        .first()
-        .click();
-
-      const detailLink = page
-        .locator('[data-slot="card"]')
-        .filter({ hasText: DEV_SEED.homeworks.title })
-        .first();
-      await detailLink
-        .getByRole("button", { name: new RegExp(DEV_SEED.homeworks.title) })
-        .first()
-        .click();
-      const popout = page.locator('[data-slot="dialog-popup"]').first();
-      await expect(popout).toBeVisible();
-      const sectionLink = popout
-        .locator(`a[href*="/sections/${DEV_SEED.section.jwId}#homework-"]`)
-        .first();
-      await expect(sectionLink).toBeVisible();
-      await sectionLink.click();
-
-      await expect(page).toHaveURL(/\/sections\/\d+#homework-/);
-      await captureStepScreenshot(page, testInfo, "homeworks/view-details");
+    await signInAsDebugUser(page, "/dashboard/homeworks");
+    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, "/dashboard/homeworks", {
+      testInfo,
+      screenshotLabel: "homeworks",
     });
+
+    await page
+      .getByRole("tab", { name: /全部|All/i })
+      .first()
+      .click();
+
+    const detailLink = page
+      .locator('[data-slot="card"]')
+      .filter({ hasText: DEV_SEED.homeworks.title })
+      .first();
+    await detailLink
+      .getByRole("button", { name: new RegExp(DEV_SEED.homeworks.title) })
+      .first()
+      .click();
+    const popout = page.locator('[data-slot="dialog-popup"]').first();
+    await expect(popout).toBeVisible();
+    const sectionLink = popout
+      .locator(`a[href*="/sections/${DEV_SEED.section.jwId}#homework-"]`)
+      .first();
+    await expect(sectionLink).toBeVisible();
+    await sectionLink.click();
+
+    await expect(page).toHaveURL(/\/sections\/\d+#homework-/);
+    await captureStepScreenshot(page, testInfo, "homeworks/view-details");
   });
 
   test("can create a new homework", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
-    await withE2eLock(DEBUG_USER_SUBSCRIPTIONS_LOCK, async () => {
-      await signInAsDebugUser(page, "/?tab=homeworks");
-      await ensureSeedSectionSubscription(page);
-      await gotoAndWaitForReady(page, "/?tab=homeworks", {
-        testInfo,
-        screenshotLabel: "homeworks",
-      });
-
-      const addButton = page.getByTestId("dashboard-homeworks-add").first();
-      const title = `e2e-dashboard-homework-${Date.now()}`;
-      const titleInput = page.getByTestId("dashboard-homework-title");
-      await expect(async () => {
-        await expect(addButton).toBeVisible({ timeout: 3_000 });
-        await addButton.click();
-        await expect(titleInput).toBeVisible({ timeout: 3_000 });
-      }).toPass({
-        timeout: 10_000,
-        intervals: [250, 500, 1_000],
-      });
-      await titleInput.fill(title);
-      await page.getByTestId("dashboard-homework-create").click();
-
-      await expect(page.getByText(title).first()).toBeVisible({
-        timeout: 15_000,
-      });
-      await captureStepScreenshot(page, testInfo, "homeworks/created");
+    await signInAsDebugUser(page, "/dashboard/homeworks");
+    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, "/dashboard/homeworks", {
+      testInfo,
+      screenshotLabel: "homeworks",
     });
+
+    const addButton = page.getByTestId("dashboard-homeworks-add").first();
+    const title = `e2e-dashboard-homework-${Date.now()}`;
+    const titleInput = page.getByTestId("dashboard-homework-title");
+    await expect(async () => {
+      await expect(addButton).toBeVisible({ timeout: 3_000 });
+      await addButton.click();
+      await expect(titleInput).toBeVisible({ timeout: 3_000 });
+    }).toPass({
+      timeout: 10_000,
+      intervals: [250, 500, 1_000],
+    });
+    await titleInput.fill(title);
+    await page.getByTestId("dashboard-homework-create").click();
+
+    await expect(page.getByText(title).first()).toBeVisible({
+      timeout: 15_000,
+    });
+    await captureStepScreenshot(page, testInfo, "homeworks/created");
   });
 });

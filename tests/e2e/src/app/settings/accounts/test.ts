@@ -79,18 +79,20 @@ test.describe("/settings?tab=accounts", () => {
     await waitForUiSettled(page);
     await expect(connectButton).toBeEnabled();
 
-    const currentOrigin = new URL(page.url()).origin;
-    const localAuthStartRequestPromise = page.waitForRequest(
+    const linkActionRequestPromise = page.waitForRequest(
       (request) => {
         const url = new URL(request.url());
-        if (url.origin !== currentOrigin) return false;
-        return url.pathname === "/api/auth/oauth2/link";
+        return (
+          request.method() === "POST" &&
+          url.pathname === "/settings" &&
+          url.search.includes("/linkAccount")
+        );
       },
       { timeout: 15_000 },
     );
 
     await connectButton.click();
-    await localAuthStartRequestPromise;
+    await linkActionRequestPromise;
 
     try {
       await captureStepScreenshot(page, testInfo, "settings-accounts-oauth");

@@ -22,7 +22,7 @@
  *
  * ## Edge Cases
  * - Unknown slug returns 200 with empty pinnedSlugs (not an error)
- * - Maximum 5 pinned links enforced; oldest pins are evicted on overflow
+ * - Maximum 4 pinned links enforced; oldest pins are evicted on overflow
  * - Pinning an already-pinned link is a no-op
  */
 import { expect, test } from "@playwright/test";
@@ -30,6 +30,7 @@ import { signInAsDebugUser } from "../../../../../utils/auth";
 
 const BASE = "/api/dashboard-links/pin";
 const JSON_HEADERS = { accept: "application/json" };
+const MAX_PINNED_LINKS = 4;
 
 type PinResponse = {
   pinnedSlugs?: string[];
@@ -46,7 +47,7 @@ test.describe("POST /api/dashboard-links/pin", () => {
     expect(response.status()).toBe(401);
     const body = (await response.json()) as PinResponse;
     expect(body.pinnedSlugs).toEqual([]);
-    expect(body.maxPinnedLinks).toBe(5);
+    expect(body.maxPinnedLinks).toBe(MAX_PINNED_LINKS);
   });
 
   test("redirects when not authenticated in non-JSON mode", async ({
@@ -90,7 +91,7 @@ test.describe("POST /api/dashboard-links/pin", () => {
       expect(pinRes.status()).toBe(200);
       const pinBody = (await pinRes.json()) as PinResponse;
       expect(pinBody.pinnedSlugs).toContain(testSlug);
-      expect(pinBody.maxPinnedLinks).toBe(5);
+      expect(pinBody.maxPinnedLinks).toBe(MAX_PINNED_LINKS);
 
       // Unpin the link
       const unpinRes = await page.request.post(BASE, {
@@ -120,7 +121,7 @@ test.describe("POST /api/dashboard-links/pin", () => {
     });
     expect(response.status()).toBe(200);
     const body = (await response.json()) as PinResponse;
-    expect(body.maxPinnedLinks).toBe(5);
+    expect(body.maxPinnedLinks).toBe(MAX_PINNED_LINKS);
   });
 
   test("redirect mode returns 303 for authenticated user", async ({ page }) => {

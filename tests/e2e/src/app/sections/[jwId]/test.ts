@@ -61,7 +61,10 @@ test.describe("/sections/[jwId]", () => {
     await gotoAndWaitForReady(page, "/sections/999999999", {
       expectMainContent: false,
     });
-    await expect(page.locator("h1")).toHaveText("404");
+    await expect(page.getByText("404").first()).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),
+    ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "section/404");
   });
 
@@ -163,9 +166,11 @@ test.describe("/sections/[jwId]", () => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     // Expand "More Details" inner collapsible to reveal teachLanguage and roomType
-    const moreBtn = page
-      .getByRole("button", { name: /更多信息|More Details/i })
+    const moreDetails = page
+      .locator('details[data-slot="accordion-item"]')
+      .filter({ hasText: /更多信息|More Details/i })
       .first();
+    const moreSummary = moreDetails.locator("summary").first();
     const teachLanguage = page
       .getByText(DEV_SEED.section.teachLanguageNameCn)
       .or(page.getByText(DEV_SEED.section.teachLanguageNameEn))
@@ -175,11 +180,9 @@ test.describe("/sections/[jwId]", () => {
       .or(page.getByText(DEV_SEED.section.roomTypeNameEn))
       .first();
     await expect(async () => {
-      if ((await moreBtn.count()) > 0) {
-        await expect(moreBtn).toBeVisible();
-        if ((await moreBtn.getAttribute("aria-expanded")) !== "true") {
-          await moreBtn.click();
-        }
+      await expect(moreSummary).toBeVisible();
+      if ((await moreDetails.getAttribute("open")) === null) {
+        await moreSummary.click();
       }
       await expect(teachLanguage).toBeVisible({ timeout: 2_000 });
       await expect(roomType).toBeVisible({ timeout: 2_000 });
@@ -200,20 +203,16 @@ test.describe("/sections/[jwId]", () => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     // section.adminClasses[] — expand collapsible if needed
-    const adminClassTrigger = page
-      .getByRole("button", { name: /行政班级|Admin classes/i })
-      .or(
-        page
-          .getByText(DEV_SEED.section.adminClassNameCn)
-          .or(page.getByText(DEV_SEED.section.adminClassNameEn)),
-      )
+    const adminClasses = page
+      .locator('details[data-slot="accordion-item"]')
+      .filter({ hasText: /行政班级|Admin Classes/i })
       .first();
-    if ((await adminClassTrigger.count()) > 0) {
-      // If it's a trigger, click to expand
+    if ((await adminClasses.count()) > 0) {
+      const adminClassTrigger = adminClasses.locator("summary").first();
       const adminClassText = page
         .getByText(DEV_SEED.section.adminClassNameCn)
         .or(page.getByText(DEV_SEED.section.adminClassNameEn));
-      if ((await adminClassText.first().isVisible()) === false) {
+      if ((await adminClasses.getAttribute("open")) === null) {
         await adminClassTrigger.click();
       }
       await expect(adminClassText.first()).toBeVisible();
@@ -238,37 +237,32 @@ test.describe("/sections/[jwId]", () => {
       intervals: [250, 500, 1_000],
     });
 
-    // Find an event card (schedule event) and click to open the popover/details
-    const eventCard = page
-      .locator(`a[href*="/sections/${DEV_SEED.section.jwId}"]`)
+    const classEvent = page
+      .locator("article")
+      .filter({ hasText: /上课事件|Class event/i })
       .first();
-    await expect(eventCard).toBeVisible();
-    await eventCard.click();
+    await expect(classEvent).toBeVisible();
 
-    // The popover shows schedule.room, building, teachers (calendar.yml display fields)
-    // Popover appears with full event details
-    const popover = page
-      .locator('[data-slot="popover-popup"], [role="tooltip"], [role="dialog"]')
-      .first();
-    if (await popover.isVisible()) {
-      // schedule.room.namePrimary (locale-dependent)
-      await expect(
-        popover
-          .getByText(DEV_SEED.room.nameCn, { exact: false })
-          .or(popover.getByText(DEV_SEED.room.nameEn, { exact: false }))
-          .first(),
-      ).toBeVisible();
-      // schedule.room.building.namePrimary (locale-dependent)
-      await expect(
-        popover
-          .getByText(DEV_SEED.building.nameCn, { exact: false })
-          .or(popover.getByText(DEV_SEED.building.nameEn, { exact: false }))
-          .first(),
-      ).toBeVisible();
-    } else {
-      // If no popover, the event card itself should be visible
-      await expect(eventCard).toBeVisible();
-    }
+    // schedule.room.namePrimary and schedule.room.building.namePrimary
+    // are rendered in the event detail cards.
+    await expect(
+      classEvent
+        .getByText(DEV_SEED.room.nameCn, { exact: false })
+        .or(classEvent.getByText(DEV_SEED.room.nameEn, { exact: false }))
+        .first(),
+    ).toBeVisible();
+    await expect(
+      classEvent
+        .getByText(DEV_SEED.building.nameCn, { exact: false })
+        .or(classEvent.getByText(DEV_SEED.building.nameEn, { exact: false }))
+        .first(),
+    ).toBeVisible();
+    await expect(
+      classEvent
+        .getByText(DEV_SEED.campus.nameCn, { exact: false })
+        .or(classEvent.getByText(DEV_SEED.campus.nameEn, { exact: false }))
+        .first(),
+    ).toBeVisible();
 
     // schedule.teachers[].namePrimary appears in the sidebar (always visible)
     await expect(
@@ -506,46 +500,42 @@ test.describe("/sections/[jwId]", () => {
     await expect(singleUrl).toBeVisible();
 
     // Single section URL
-    const singlePlaceholder =
-      (await singleUrl.getAttribute("placeholder")) ?? "";
-    expect(singlePlaceholder).toContain(
+    const singleValue = await singleUrl.inputValue();
+    expect(singleValue).toContain(
       `/api/sections/${DEV_SEED.section.jwId}/calendar.ics`,
     );
 
     // Subscription URL includes a user-specific tokenized feed path
-    const subPlaceholder =
-      (await subscriptionUrl.getAttribute("placeholder")) ?? "";
-    expect(subPlaceholder).toMatch(
+    const subscriptionValue = await subscriptionUrl.inputValue();
+    expect(subscriptionValue).toMatch(
       /\/api\/users\/[^/]+:[A-Za-z0-9_-]+\/calendar\.ics$/,
     );
 
     // Copy single URL
-    const singleRow = calDialog
-      .locator("div")
-      .filter({ has: singleUrl })
-      .first();
-    await singleRow
+    await calDialog
       .getByRole("button", { name: /复制|Copy/i })
-      .first()
+      .nth(0)
       .click();
     const singleClipboard = await page.evaluate(async () =>
       navigator.clipboard.readText(),
     );
-    expect(singleClipboard).toBe(singlePlaceholder);
+    expect(singleClipboard).toBe(singleValue);
 
     // Copy subscription URL
-    const subscriptionRow = calDialog
-      .locator("div")
-      .filter({ has: subscriptionUrl })
-      .first();
-    await subscriptionRow
+    await calDialog
       .getByRole("button", { name: /复制|Copy/i })
-      .first()
+      .nth(1)
       .click();
     const subscriptionClipboard = await page.evaluate(async () =>
       navigator.clipboard.readText(),
     );
-    expect(subscriptionClipboard).toBe(subPlaceholder);
+    expect(subscriptionClipboard).toBe(subscriptionValue);
+
+    await expect(
+      calDialog.getByRole("link", {
+        name: /查看关注班级|View section subscriptions/i,
+      }),
+    ).toHaveAttribute("href", "/dashboard/subscriptions");
 
     await captureStepScreenshot(page, testInfo, "section/calendar-dialog");
   });
@@ -568,7 +558,7 @@ test.describe("/sections/[jwId]", () => {
 
     await expect(page.getByTestId("section-homeworks-cards")).toBeVisible();
     await page
-      .getByRole("button", { name: /列表|List/i })
+      .getByRole("tab", { name: /列表|List/i })
       .first()
       .click();
     await expect(page).toHaveURL(/homeworkView=list/);
@@ -584,7 +574,7 @@ test.describe("/sections/[jwId]", () => {
     await gotoAndWaitForReady(page, SECTION_URL);
     await homeworksTab.click();
     await expect(page).toHaveURL(
-      new RegExp(`/sections/${DEV_SEED.section.jwId}$`),
+      new RegExp(`/sections/${DEV_SEED.section.jwId}(#tab-homework)?$`),
     );
     await expect(page.getByTestId("section-homeworks-list")).toBeVisible();
     await captureStepScreenshot(page, testInfo, "section/homework-list-view");
@@ -612,18 +602,18 @@ test.describe("/sections/[jwId]", () => {
     if ((await showCreate.count()) > 0) {
       await showCreate.click();
     }
-    const sheet = page.locator('[data-slot="sheet-popup"]').first();
-    await expect(sheet).toBeVisible({ timeout: 5_000 });
+    const createDialog = page.locator('[data-slot="dialog-popup"]').first();
+    await expect(createDialog).toBeVisible({ timeout: 5_000 });
 
     const title = `e2e-section-hw-${Date.now()}`;
-    await sheet.getByTestId("section-homework-title").fill(title);
+    await createDialog.getByTestId("section-homework-title").fill(title);
     const createResponse = page.waitForResponse(
       (r) =>
         r.url().includes("/api/homeworks") &&
         r.request().method() === "POST" &&
         r.status() === 200,
     );
-    await sheet
+    await createDialog
       .getByRole("button", { name: /创建作业|Create homework/i })
       .click();
     await createResponse;
@@ -641,65 +631,54 @@ test.describe("/sections/[jwId]", () => {
     const homeworkPopout = page.locator('[data-slot="dialog-popup"]').first();
     await expect(homeworkPopout).toBeVisible();
 
-    // Discuss link/button (section-homework-tab.display.fields: commentCount)
-    const discussBtn = homeworkPopout
-      .getByRole("button", { name: /讨论|Discuss/i })
-      .first();
-    if ((await discussBtn.count()) > 0) {
-      await discussBtn.click();
-      const discussSheet = page.locator('[data-slot="sheet-popup"]').first();
-      await expect(discussSheet).toBeVisible();
-      await captureStepScreenshot(page, testInfo, "section/homework-discuss");
-      await discussSheet
-        .getByRole("button", { name: /关闭|Close|取消|Cancel/i })
-        .first()
-        .click();
-    }
+    // Homework discussion is embedded in the detail dialog.
+    await expect(
+      homeworkPopout.getByText(/评论|Comments/i).first(),
+    ).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "section/homework-discuss");
 
     // Toggle completion (section-homework-tab.display.fields: user completion status)
-    const completionButton = hwCard
+    const completionButton = homeworkPopout
       .getByRole("button", {
         name: /标记为完成|取消完成|Mark as complete|Mark as incomplete/i,
       })
       .first();
-    if ((await completionButton.count()) > 0) {
-      const toggleResponse = page.waitForResponse(
-        (r) =>
-          r.url().includes("/api/homeworks/") &&
-          r.url().includes("/completion") &&
-          r.request().method() === "PUT" &&
-          r.status() === 200,
-      );
-      await completionButton.click();
-      await toggleResponse;
-      await captureStepScreenshot(
-        page,
-        testInfo,
-        "section/homework-completion-toggled",
-      );
-    }
+    await expect(completionButton).toBeVisible();
+    const toggleResponse = page.waitForResponse(
+      (r) =>
+        r.url().includes("/api/homeworks/") &&
+        r.url().includes("/completion") &&
+        r.request().method() === "PUT" &&
+        r.status() === 200,
+    );
+    await completionButton.click();
+    await toggleResponse;
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "section/homework-completion-toggled",
+    );
 
     // Delete
-    const deleteButton = hwCard
+    const deleteButton = homeworkPopout
       .getByRole("button", { name: /删除|Delete/i })
       .first();
-    if ((await deleteButton.count()) > 0) {
-      await deleteButton.click();
-      const deleteDialog = page.getByRole("alertdialog");
-      await expect(deleteDialog).toBeVisible();
-      const deleteResponse = page.waitForResponse(
-        (r) =>
-          r.url().includes("/api/homeworks/") &&
-          r.request().method() === "DELETE" &&
-          r.status() === 200,
-      );
-      await deleteDialog
-        .getByRole("button", { name: /确认删除|Delete/i })
-        .click();
-      await deleteResponse;
-      await page.waitForLoadState("networkidle");
-      await expect(hwCard).toHaveCount(0);
-    }
+    await expect(deleteButton).toBeVisible();
+    await deleteButton.click();
+    const deleteDialog = page.locator('[data-slot="dialog-popup"]').last();
+    await expect(deleteDialog).toBeVisible();
+    const deleteResponse = page.waitForResponse(
+      (r) =>
+        r.url().includes("/api/homeworks/") &&
+        r.request().method() === "DELETE" &&
+        r.status() === 200,
+    );
+    await deleteDialog
+      .getByRole("button", { name: /确认删除|Delete/i })
+      .click();
+    await deleteResponse;
+    await page.waitForLoadState("networkidle");
+    await expect(hwCard).toHaveCount(0);
   });
 
   // ── Comment CRUD ────────────────────────────────────────────────────────────
@@ -737,6 +716,8 @@ test.describe("/sections/[jwId]", () => {
       .filter({ hasText: body })
       .first();
     await expect(commentCard).toBeVisible();
+    const commentCardId = await commentCard.getAttribute("id");
+    expect(commentCardId).toBeTruthy();
 
     // comment.author.name (display.fields)
     await expect(
@@ -758,30 +739,37 @@ test.describe("/sections/[jwId]", () => {
       .click({ force: true });
     await page.getByRole("menuitem", { name: /点赞|Upvote/i }).click();
     await reactionResponse;
+    await waitForUiSettled(page);
     await expect(commentCard.getByRole("button", { name: /👍/ })).toBeVisible();
     await captureStepScreenshot(page, testInfo, "section/comment-upvoted");
 
     // Edit comment (canEdit action)
-    await commentCard
-      .getByRole("button", { name: /编辑|Edit/i })
-      .click({ force: true });
+    await commentCard.hover();
+    await commentCard.getByRole("button", { name: /编辑|Edit/i }).click();
     const editedBody = `${body}-edited`;
-    await commentCard.locator("textarea").first().fill(editedBody);
+    const editCard = page.locator(`[id="${commentCardId}"]`);
+    await expect(editCard.locator("textarea").first()).toBeVisible();
+    await editCard.locator("textarea").first().fill(editedBody);
     const editResponse = page.waitForResponse(
       (r) =>
         r.url().includes("/api/comments/") &&
         r.request().method() === "PATCH" &&
         r.status() === 200,
     );
-    await commentCard.getByRole("button", { name: /保存|Save/i }).click();
+    await editCard.getByRole("button", { name: /保存|Save/i }).click();
     await editResponse;
     await page.waitForLoadState("networkidle");
     // comment.updatedAt / edited timestamp visible
     await expect(page.getByText(editedBody).first()).toBeVisible();
     await captureStepScreenshot(page, testInfo, "section/comment-edited");
+    const editedCommentCard = page
+      .locator('[id^="comment-"]')
+      .filter({ hasText: editedBody })
+      .first();
+    await expect(editedCommentCard).toBeVisible();
 
     // Reply (canReply action, comment.replies[])
-    await commentCard
+    await editedCommentCard
       .getByRole("button", { name: /回复|Reply/i })
       .click({ force: true });
     const replyBody = `e2e-reply-${Date.now()}`;
@@ -803,7 +791,7 @@ test.describe("/sections/[jwId]", () => {
     await captureStepScreenshot(page, testInfo, "section/comment-replied");
 
     // Delete comment
-    await commentCard
+    await editedCommentCard
       .getByRole("button", { name: /更多操作|More actions/i })
       .first()
       .click({ force: true });
@@ -814,12 +802,14 @@ test.describe("/sections/[jwId]", () => {
         r.status() === 200,
     );
     await page.getByRole("menuitem", { name: /删除|Delete/i }).click();
-    const deleteDialog = page.getByRole("alertdialog");
+    const deleteDialog = page.getByRole("dialog", {
+      name: /删除评论|Delete Comment/i,
+    });
     await expect(deleteDialog).toBeVisible();
     await deleteDialog.getByRole("button", { name: /删除|Delete/i }).click();
     await deleteResponse;
     await page.waitForLoadState("networkidle");
-    await expect(commentCard).toHaveCount(0);
+    await expect(editedCommentCard).toHaveCount(0);
     await captureStepScreenshot(page, testInfo, "section/comment-deleted");
   });
 
@@ -829,7 +819,7 @@ test.describe("/sections/[jwId]", () => {
     page,
   }, testInfo) => {
     test.setTimeout(60_000);
-    await signInAsDebugUser(page, SECTION_URL);
+    await signInAsDebugUser(page, "/");
     await gotoAndWaitForReady(page, SECTION_URL);
 
     await expect(async () => {
@@ -865,7 +855,8 @@ test.describe("/sections/[jwId]", () => {
     const uploadPut = page.waitForResponse(
       (r) =>
         r.request().method() === "PUT" &&
-        r.status() === 200 &&
+        r.status() >= 200 &&
+        r.status() < 300 &&
         r.url().startsWith("http"),
     );
     const uploadComplete = page.waitForResponse(
@@ -906,7 +897,7 @@ test.describe("/sections/[jwId]", () => {
     // comment.attachments[] filename/open action (comment.yml display.fields)
     await expect(
       commentCard
-        .getByRole("button", { name: /打开附件|Open attachment/i })
+        .getByRole("link", { name: /打开附件|Open attachment/i })
         .first(),
     ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "section/comment-attachment");
@@ -914,7 +905,7 @@ test.describe("/sections/[jwId]", () => {
     // Download uses signed URL (upload.yml download-signed-url rule)
     const popupPromise = page.waitForEvent("popup");
     await commentCard
-      .getByRole("button", { name: /打开附件|Open attachment/i })
+      .getByRole("link", { name: /打开附件|Open attachment/i })
       .first()
       .click();
     const popup = await popupPromise;
@@ -935,7 +926,9 @@ test.describe("/sections/[jwId]", () => {
         r.status() === 200,
     );
     await page.getByRole("menuitem", { name: /删除|Delete/i }).click();
-    const dlg = page.getByRole("alertdialog");
+    const dlg = page.getByRole("dialog", {
+      name: /删除评论|Delete Comment/i,
+    });
     await expect(dlg).toBeVisible();
     await dlg.getByRole("button", { name: /删除|Delete/i }).click();
     await deleteResponse;

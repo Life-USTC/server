@@ -27,7 +27,7 @@ Caddy access logs remain separate from the app log file.
 ## Request Tracing
 
 - Caddy access logs remain the edge source of truth for every HTTP request.
-- Next.js REST routes propagate `x-request-id` and `x-request-start-ms`.
+- SvelteKit REST routes propagate `x-request-id` and `x-request-start-ms`.
 - REST route logs use normalized route templates such as `/api/todos/:id`.
 - MCP transport logs include JSON-RPC method summaries, tool names, argument
   keys, status, duration, and registered tool count.
