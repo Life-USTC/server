@@ -606,16 +606,20 @@ async function performSnapshotAction(page: Page, action: PageSnapshotAction) {
       .first();
     await expect(createButton).toBeVisible({ timeout: 10_000 });
     await createButton.click();
-    const sheet = page.locator('[data-slot="sheet-popup"]').first();
-    await expect(sheet).toBeVisible({ timeout: 10_000 });
+    const dialog = page.locator('[data-slot="dialog-popup"]').first();
+    await expect(dialog).toBeVisible({ timeout: 10_000 });
     await expect(
-      sheet.getByRole("heading", { name: /新建作业|New Homework/i }),
+      dialog.getByRole("heading", {
+        name: /新建作业|Create homework|New Homework/i,
+      }),
     ).toBeVisible({ timeout: 10_000 });
     return;
   }
 
   const homeworkDetailTrigger = page
-    .locator('[id^="homework-"] button[aria-expanded]')
+    .locator(
+      '[data-testid="section-homeworks-cards"] [id^="homework-"], [data-testid="section-homeworks-list"] [id^="homework-"]',
+    )
     .first();
   await expect(homeworkDetailTrigger).toBeVisible({ timeout: 10_000 });
   await homeworkDetailTrigger.click();
