@@ -1,7 +1,7 @@
 import type { ConfigType } from "dayjs";
 import dayjs from "dayjs";
-import timezone from "dayjs/plugin/timezone";
-import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone.js";
+import utc from "dayjs/plugin/utc.js";
 import { APP_TIME_ZONE, parseDateInput } from "@/lib/time/parse-date-input";
 
 dayjs.extend(utc);
