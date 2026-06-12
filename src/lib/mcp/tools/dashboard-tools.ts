@@ -1,26 +1,15 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
-import { getAssistantDashboardSnapshot } from "@/features/home/server/assistant-dashboard-snapshot";
-import { listUserCalendarEvents } from "@/features/home/server/calendar-events";
 import {
   flexDateInputSchema,
-  getUserId,
-  jsonToolResult,
   mcpLocaleInputSchema,
   mcpModeInputSchema,
-  parseOptionalMcpDate,
-  resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
 import {
-  compactDashboardSnapshot,
-  summarizeDashboardSnapshot,
-} from "@/lib/mcp/tools/dashboard-summary";
-
-function parseOptionalAtTime(atTime: string | undefined) {
-  return parseOptionalMcpDate("atTime", atTime, {
-    dateOnlyAsShanghaiStart: true,
-  });
-}
+  getMyDashboardTool,
+  getNextClassTool,
+  getUpcomingDeadlinesTool,
+} from "./dashboard-tool-actions";
 
 export function registerDashboardTools(server: McpServer) {
   server.registerTool(
@@ -39,27 +28,7 @@ export function registerDashboardTools(server: McpServer) {
           ),
       },
     },
-    async ({ locale, mode, atTime }, extra) => {
-      const resolvedMode = resolveMcpMode(mode);
-      const parsedAtTime = parseOptionalAtTime(atTime);
-      if (!parsedAtTime.ok) return parsedAtTime.result;
-      const snapshot = await getAssistantDashboardSnapshot({
-        userId: getUserId(extra.authInfo),
-        locale,
-        atTime: parsedAtTime.value,
-      });
-      if (resolvedMode === "full") {
-        return jsonToolResult(snapshot, { mode: "full" });
-      }
-      if (resolvedMode === "summary") {
-        return jsonToolResult(summarizeDashboardSnapshot(snapshot), {
-          mode: "default",
-        });
-      }
-      return jsonToolResult(compactDashboardSnapshot(snapshot), {
-        mode: "default",
-      });
-    },
+    getMyDashboardTool,
   );
 
   server.registerTool(
@@ -77,23 +46,7 @@ export function registerDashboardTools(server: McpServer) {
           ),
       },
     },
-    async ({ locale, mode, atTime }, extra) => {
-      const parsedAtTime = parseOptionalAtTime(atTime);
-      if (!parsedAtTime.ok) return parsedAtTime.result;
-      const snapshot = await getAssistantDashboardSnapshot({
-        userId: getUserId(extra.authInfo),
-        locale,
-        atTime: parsedAtTime.value,
-      });
-      return jsonToolResult(
-        {
-          found: Boolean(snapshot.nextClass),
-          nextClass: snapshot.nextClass,
-          currentSemester: snapshot.currentSemester,
-        },
-        { mode: resolveMcpMode(mode) },
-      );
-    },
+    getNextClassTool,
   );
 
   server.registerTool(
@@ -113,32 +66,6 @@ export function registerDashboardTools(server: McpServer) {
         mode: mcpModeInputSchema,
       },
     },
-    async ({ dayLimit, atTime, locale, mode }, extra) => {
-      const userId = getUserId(extra.authInfo);
-      const parsedAtTime = parseOptionalAtTime(atTime);
-      if (!parsedAtTime.ok) return parsedAtTime.result;
-      const now = parsedAtTime.value ?? new Date();
-      const dateTo = new Date(now.getTime() + dayLimit * 24 * 60 * 60 * 1000);
-      const events = await listUserCalendarEvents(userId, {
-        locale,
-        dateFrom: now,
-        dateTo,
-        eventWindowMode: "start",
-      });
-      const deadlines = events.filter(
-        (event) =>
-          event.type === "homework_due" ||
-          event.type === "exam" ||
-          event.type === "todo_due",
-      );
-
-      return jsonToolResult(
-        {
-          total: deadlines.length,
-          deadlines,
-        },
-        { mode: resolveMcpMode(mode) },
-      );
-    },
+    getUpcomingDeadlinesTool,
   );
 }

@@ -1,120 +1,19 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
 import {
-  buildNextBusDeparturesFromData,
-  getBusRouteTimetable,
-  getBusTimetableData,
-  getNextBusDepartures,
-  listBusRoutes,
-  searchBusRoutes,
-} from "@/features/bus/lib/bus-service";
-import {
   flexDateInputSchema,
-  getUserId,
-  jsonToolResult,
   mcpLocaleInputSchema,
   mcpModeInputSchema,
-  parseOptionalMcpDate,
-  resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
-import { summarizeBusDeparture } from "@/lib/mcp/tools/event-summary";
+import {
+  getBusRouteTimetableTool,
+  getNextBusesTool,
+  listBusRoutesTool,
+  queryBusTimetableTool,
+  searchBusRoutesTool,
+} from "@/lib/mcp/tools/bus-tool-handlers";
 
 const busDayTypeSchema = z.enum(["auto", "weekday", "weekend"]).default("auto");
-
-function summarizeBusTimetable(
-  result: NonNullable<Awaited<ReturnType<typeof getBusTimetableData>>>,
-) {
-  const weekdayTrips = result.trips.filter(
-    (trip) => trip.dayType === "weekday",
-  );
-  const weekendTrips = result.trips.filter(
-    (trip) => trip.dayType === "weekend",
-  );
-  const nextDepartures =
-    result.preferences?.preferredOriginCampusId != null &&
-    result.preferences?.preferredDestinationCampusId != null
-      ? buildNextBusDeparturesFromData(result, {
-          originCampusId: result.preferences.preferredOriginCampusId,
-          destinationCampusId: result.preferences.preferredDestinationCampusId,
-          atTime: result.fetchedAt,
-          includeDeparted: result.preferences.showDepartedTrips,
-          limit: 3,
-        }).departures
-      : [];
-  const nextDeparturesMessage =
-    result.preferences?.preferredOriginCampusId == null ||
-    result.preferences?.preferredDestinationCampusId == null
-      ? "Save preferred origin and destination campuses or call get_next_buses for a specific route query."
-      : nextDepartures.length === 0
-        ? "No immediate departures are available for the saved campus preference."
-        : null;
-
-  return {
-    locale: result.locale,
-    fetchedAt: result.fetchedAt,
-    version: result.version
-      ? {
-          key: result.version.key,
-          title: result.version.title,
-          effectiveFrom: result.version.effectiveFrom,
-          effectiveUntil: result.version.effectiveUntil,
-        }
-      : null,
-    counts: {
-      campuses: result.campuses.length,
-      routes: result.routes.length,
-      weekdayTrips: weekdayTrips.length,
-      weekendTrips: weekendTrips.length,
-    },
-    campuses: result.campuses.map((campus) => ({
-      id: campus.id,
-      namePrimary: campus.namePrimary,
-      nameSecondary: campus.nameSecondary,
-    })),
-    routes: result.routes.slice(0, 10).map((route) => ({
-      id: route.id,
-      nameCn: route.nameCn,
-      nameEn: route.nameEn,
-      descriptionPrimary: route.descriptionPrimary,
-      descriptionSecondary: route.descriptionSecondary,
-    })),
-    preferences: result.preferences,
-    nextDepartures,
-    nextDeparturesMessage,
-    notice: result.notice?.message ? { message: result.notice.message } : null,
-  };
-}
-
-function summarizeBusTimetableBrief(
-  result: NonNullable<Awaited<ReturnType<typeof getBusTimetableData>>>,
-) {
-  const compact = summarizeBusTimetable(result);
-  return {
-    locale: compact.locale,
-    fetchedAt: compact.fetchedAt,
-    version: compact.version,
-    counts: compact.counts,
-    preferences: compact.preferences,
-    nextDepartures: compact.nextDepartures,
-    nextDeparturesMessage: compact.nextDeparturesMessage,
-    notice: compact.notice,
-  };
-}
-
-function omitRepeatedCampusesFromDepartures<
-  T extends {
-    originCampus?: unknown;
-    destinationCampus?: unknown;
-  },
->(departures: T[]) {
-  return departures.map(
-    ({
-      originCampus: _originCampus,
-      destinationCampus: _destinationCampus,
-      ...departure
-    }) => departure,
-  );
-}
 
 export function registerBusTools(server: McpServer) {
   server.registerTool(
@@ -128,37 +27,7 @@ export function registerBusTools(server: McpServer) {
         mode: mcpModeInputSchema,
       },
     },
-    async ({ versionKey, locale, mode }, extra) => {
-      const resolvedMode = resolveMcpMode(mode);
-      const result = await getBusTimetableData({
-        locale,
-        versionKey,
-        userId: getUserId(extra.authInfo),
-      });
-
-      if (result && resolvedMode === "summary") {
-        return jsonToolResult(summarizeBusTimetableBrief(result), {
-          mode: "default",
-        });
-      }
-
-      if (result && resolvedMode === "default") {
-        return jsonToolResult(summarizeBusTimetable(result), {
-          mode: "default",
-        });
-      }
-
-      return jsonToolResult(
-        result ?? {
-          locale,
-          hasData: false,
-          message: "No bus schedule data available",
-        },
-        {
-          mode: resolvedMode,
-        },
-      );
-    },
+    queryBusTimetableTool,
   );
 
   server.registerTool(
@@ -170,10 +39,7 @@ export function registerBusTools(server: McpServer) {
         locale: mcpLocaleInputSchema,
       },
     },
-    async ({ locale }) => {
-      const result = await listBusRoutes(locale);
-      return jsonToolResult(result, { mode: "default" });
-    },
+    listBusRoutesTool,
   );
 
   server.registerTool(
@@ -188,23 +54,7 @@ export function registerBusTools(server: McpServer) {
         mode: mcpModeInputSchema,
       },
     },
-    async ({ routeId, versionKey, locale, mode }) => {
-      const result = await getBusRouteTimetable({
-        routeId,
-        locale,
-        versionKey,
-      });
-
-      if (!result) {
-        return jsonToolResult({
-          routeId,
-          hasData: false,
-          message: `No timetable found for route ${routeId}. Use list_bus_routes to see available route IDs.`,
-        });
-      }
-
-      return jsonToolResult(result, { mode: resolveMcpMode(mode) });
-    },
+    getBusRouteTimetableTool,
   );
 
   server.registerTool(
@@ -220,28 +70,7 @@ export function registerBusTools(server: McpServer) {
         mode: mcpModeInputSchema,
       },
     },
-    async ({
-      originCampusId,
-      destinationCampusId,
-      versionKey,
-      locale,
-      mode,
-    }) => {
-      const result = await searchBusRoutes({
-        locale,
-        originCampusId,
-        destinationCampusId,
-        versionKey,
-      });
-
-      return jsonToolResult(
-        result ?? {
-          hasData: false,
-          message: "No bus schedule data available",
-        },
-        { mode: resolveMcpMode(mode) },
-      );
-    },
+    searchBusRoutesTool,
   );
 
   server.registerTool(
@@ -265,58 +94,6 @@ export function registerBusTools(server: McpServer) {
         mode: mcpModeInputSchema,
       },
     },
-    async (
-      {
-        originCampusId,
-        destinationCampusId,
-        atTime,
-        dayType,
-        includeDeparted,
-        limit,
-        versionKey,
-        locale,
-        mode,
-      },
-      extra,
-    ) => {
-      const resolvedMode = resolveMcpMode(mode);
-      const parsedAtTime = parseOptionalMcpDate("atTime", atTime);
-      if (!parsedAtTime.ok) {
-        return parsedAtTime.result;
-      }
-
-      const result = await getNextBusDepartures({
-        locale,
-        originCampusId,
-        destinationCampusId,
-        atTime: parsedAtTime.value?.toISOString(),
-        dayType,
-        includeDeparted,
-        limit,
-        versionKey,
-        userId: getUserId(extra.authInfo),
-      });
-
-      if (result && resolvedMode !== "full") {
-        return jsonToolResult(
-          {
-            ...result,
-            departures: omitRepeatedCampusesFromDepartures(result.departures),
-            nextAvailableDeparture: result.nextAvailableDeparture
-              ? summarizeBusDeparture(result.nextAvailableDeparture)
-              : null,
-          },
-          { mode: resolvedMode },
-        );
-      }
-
-      return jsonToolResult(
-        result ?? {
-          hasData: false,
-          message: "No bus schedule data available",
-        },
-        { mode: resolvedMode },
-      );
-    },
+    getNextBusesTool,
   );
 }

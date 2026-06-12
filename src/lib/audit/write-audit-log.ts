@@ -1,5 +1,4 @@
 import type { AuditAction, Prisma } from "@/generated/prisma/client";
-import { prisma } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { recordAuditWriteMetric } from "@/lib/metrics/observability-metrics";
 
@@ -17,6 +16,7 @@ export async function writeAuditLog(params: {
   const { metadata, ...rest } = params;
   const start = Date.now();
   try {
+    const { prisma } = await import("@/lib/db/prisma");
     await prisma.auditLog.create({
       data: {
         ...rest,

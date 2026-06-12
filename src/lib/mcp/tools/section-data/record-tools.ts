@@ -1,26 +1,15 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
-import { buildPaginatedResponse, normalizePagination } from "@/lib/api/helpers";
-import { getPrisma } from "@/lib/db/prisma";
 import {
   flexDateInputSchema,
-  jsonToolResult,
   mcpLocaleInputSchema,
   mcpModeInputSchema,
-  parseMcpDateRange,
-  resolveMcpMode,
-  resolveSectionByJwId,
 } from "@/lib/mcp/tools/_helpers";
-import { summarizeScheduleCard } from "@/lib/mcp/tools/event-summary";
 import {
-  buildScheduleListWhere,
-  publicScheduleInclude,
-} from "@/lib/schedule-queries";
-import {
-  sectionExamInclude,
-  sectionNotFoundToolResult,
-  sectionScheduleListInclude,
-} from "./shared";
+  listExamsBySectionAction,
+  listSchedulesBySectionAction,
+  querySchedulesAction,
+} from "./record-tool-actions";
 
 export function registerSectionRecordTools(server: McpServer) {
   server.registerTool(
@@ -50,64 +39,7 @@ export function registerSectionRecordTools(server: McpServer) {
         mode: mcpModeInputSchema,
       },
     },
-    async ({
-      sectionId,
-      sectionJwId,
-      sectionCode,
-      teacherId,
-      teacherCode,
-      roomId,
-      roomJwId,
-      weekday,
-      dateFrom,
-      dateTo,
-      page,
-      limit,
-      locale,
-      mode,
-    }) => {
-      const localizedPrisma = getPrisma(locale);
-      const pagination = normalizePagination({ page, pageSize: limit });
-      const dateRange = parseMcpDateRange({ dateFrom, dateTo });
-      if (!dateRange.ok) {
-        return dateRange.result;
-      }
-      const where = buildScheduleListWhere({
-        sectionId,
-        sectionJwId,
-        sectionCode,
-        teacherId,
-        teacherCode,
-        roomId,
-        roomJwId,
-        weekday,
-        dateFrom: dateRange.dateFrom,
-        dateTo: dateRange.dateTo,
-      });
-
-      const [schedules, total] = await Promise.all([
-        localizedPrisma.schedule.findMany({
-          where,
-          skip: pagination.skip,
-          take: pagination.pageSize,
-          include: publicScheduleInclude,
-          orderBy: [{ date: "asc" }, { startTime: "asc" }],
-        }),
-        localizedPrisma.schedule.count({ where }),
-      ]);
-
-      return jsonToolResult(
-        buildPaginatedResponse(
-          schedules,
-          pagination.page,
-          pagination.pageSize,
-          total,
-        ),
-        {
-          mode: resolveMcpMode(mode),
-        },
-      );
-    },
+    querySchedulesAction,
   );
 
   server.registerTool(
@@ -132,67 +64,7 @@ export function registerSectionRecordTools(server: McpServer) {
         mode: mcpModeInputSchema,
       },
     },
-    async ({ sectionJwId, dateFrom, dateTo, limit, locale, mode }) => {
-      const resolvedMode = resolveMcpMode(mode);
-      const { localizedPrisma, section } = await resolveSectionByJwId(
-        sectionJwId,
-        locale,
-      );
-
-      if (!section) {
-        return sectionNotFoundToolResult(sectionJwId, mode);
-      }
-
-      const dateRange = parseMcpDateRange({ dateFrom, dateTo });
-      if (!dateRange.ok) {
-        return dateRange.result;
-      }
-
-      const dateFilter =
-        dateRange.dateFrom || dateRange.dateTo
-          ? {
-              date: {
-                ...(dateRange.dateFrom ? { gte: dateRange.dateFrom } : {}),
-                ...(dateRange.dateTo ? { lte: dateRange.dateTo } : {}),
-              },
-            }
-          : {};
-
-      const schedules = await localizedPrisma.schedule.findMany({
-        where: { sectionId: section.id, ...dateFilter },
-        include: sectionScheduleListInclude,
-        orderBy: [{ date: "asc" }, { startTime: "asc" }],
-        take: limit,
-      });
-      const scopedSchedules = schedules.map(
-        ({ section: _section, ...schedule }) => schedule,
-      );
-
-      if (resolvedMode === "summary") {
-        return jsonToolResult(
-          {
-            found: true,
-            section,
-            schedules: {
-              total: schedules.length,
-              items: scopedSchedules.slice(0, 5).map(summarizeScheduleCard),
-            },
-          },
-          { mode: "default" },
-        );
-      }
-
-      return jsonToolResult(
-        {
-          found: true,
-          section,
-          schedules: resolvedMode === "full" ? schedules : scopedSchedules,
-        },
-        {
-          mode: resolvedMode,
-        },
-      );
-    },
+    listSchedulesBySectionAction,
   );
 
   server.registerTool(
@@ -205,32 +77,6 @@ export function registerSectionRecordTools(server: McpServer) {
         mode: mcpModeInputSchema,
       },
     },
-    async ({ sectionJwId, locale, mode }) => {
-      const { localizedPrisma, section } = await resolveSectionByJwId(
-        sectionJwId,
-        locale,
-      );
-
-      if (!section) {
-        return sectionNotFoundToolResult(sectionJwId, mode);
-      }
-
-      const exams = await localizedPrisma.exam.findMany({
-        where: { sectionId: section.id },
-        include: sectionExamInclude,
-        orderBy: [{ examDate: "asc" }, { startTime: "asc" }, { jwId: "asc" }],
-      });
-
-      return jsonToolResult(
-        {
-          found: true,
-          section,
-          exams,
-        },
-        {
-          mode: resolveMcpMode(mode),
-        },
-      );
-    },
+    listExamsBySectionAction,
   );
 }

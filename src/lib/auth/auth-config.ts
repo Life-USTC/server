@@ -1,4 +1,4 @@
-import { getAuthEnv, isNextProductionBuildPhase } from "@/env";
+import { getAuthEnv, isAppProductionBuildPhase } from "@/app-env";
 
 const authEnv = getAuthEnv();
 
@@ -17,8 +17,8 @@ export function getBetterAuthSecret() {
     return authEnv.AUTH_SECRET;
   }
 
-  if (isNextProductionBuildPhase()) {
-    return "life-ustc-next-build-placeholder-not-for-production";
+  if (isAppProductionBuildPhase()) {
+    return "life-ustc-build-placeholder-not-for-production";
   }
 
   if (authEnv.NODE_ENV === "production") {

@@ -2,42 +2,24 @@ import {
   oauthProviderAuthServerMetadata,
   oauthProviderOpenIdConfigMetadata,
 } from "@better-auth/oauth-provider";
-import { NextResponse } from "next/server";
-import { betterAuthInstance } from "@/auth";
 import {
   OAUTH_DEVICE_AUTHORIZATION_ENDPOINT_PATH,
   OAUTH_DEVICE_CODE_GRANT_TYPE,
 } from "@/lib/oauth/constants";
+import {
+  createDiscoveryJsonResponse,
+  getDiscoveryOptionsResponse,
+  getDiscoveryRedirectResponse,
+} from "@/lib/oauth/discovery-responses";
 import { asOAuthProviderMetadataAuth } from "@/lib/oauth/provider-api";
 
-const DISCOVERY_CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-} as const;
+export { createDiscoveryJsonResponse } from "@/lib/oauth/discovery-responses";
 
 type DiscoveryMetadata = {
   issuer?: string;
   grant_types_supported?: string[];
   [key: string]: unknown;
 };
-
-const oauthProviderMetadataAuth =
-  asOAuthProviderMetadataAuth(betterAuthInstance);
-const authServerMetadataHandler = oauthProviderAuthServerMetadata(
-  oauthProviderMetadataAuth,
-);
-const openIdConfigMetadataHandler = oauthProviderOpenIdConfigMetadata(
-  oauthProviderMetadataAuth,
-);
-
-function withDiscoveryCorsHeaders(headers?: HeadersInit): Headers {
-  const responseHeaders = new Headers(headers);
-  for (const [key, value] of Object.entries(DISCOVERY_CORS_HEADERS)) {
-    responseHeaders.set(key, value);
-  }
-  return responseHeaders;
-}
 
 function augmentDiscoveryMetadata(
   request: Request,
@@ -73,35 +55,19 @@ async function buildDiscoveryMetadataResponse(
 }
 
 export async function getAuthServerMetadataResponse(request: Request) {
+  const { betterAuthInstance } = await import("@/lib/auth/core");
+  const authServerMetadataHandler = oauthProviderAuthServerMetadata(
+    asOAuthProviderMetadataAuth(betterAuthInstance),
+  );
   return buildDiscoveryMetadataResponse(request, authServerMetadataHandler);
 }
 
 export async function getOpenIdMetadataResponse(request: Request) {
+  const { betterAuthInstance } = await import("@/lib/auth/core");
+  const openIdConfigMetadataHandler = oauthProviderOpenIdConfigMetadata(
+    asOAuthProviderMetadataAuth(betterAuthInstance),
+  );
   return buildDiscoveryMetadataResponse(request, openIdConfigMetadataHandler);
-}
-
-function getDiscoveryOptionsResponse() {
-  return new Response(null, {
-    status: 204,
-    headers: withDiscoveryCorsHeaders(),
-  });
-}
-
-function getDiscoveryRedirectResponse(url: URL | string, status = 307) {
-  return NextResponse.redirect(url, {
-    status,
-    headers: withDiscoveryCorsHeaders(),
-  });
-}
-
-export function createDiscoveryJsonResponse(
-  body: unknown,
-  init: ResponseInit = {},
-) {
-  return NextResponse.json(body, {
-    ...init,
-    headers: withDiscoveryCorsHeaders(init.headers),
-  });
 }
 
 type DiscoveryRouteHandlers = {

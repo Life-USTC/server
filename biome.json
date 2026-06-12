@@ -10,7 +10,6 @@
     "includes": [
       "**",
       "!node_modules",
-      "!.next",
       "!dist",
       "!build",
       "!public/openapi.generated.json",
@@ -47,7 +46,6 @@
       }
     },
     "domains": {
-      "next": "recommended",
       "react": "recommended"
     }
   },
@@ -57,5 +55,21 @@
         "organizeImports": "on"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.svelte"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedImports": "off",
+            "noUnusedVariables": "off"
+          },
+          "style": {
+            "useImportType": "off"
+          }
+        }
+      }
+    }
+  ]
 }

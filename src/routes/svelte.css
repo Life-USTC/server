@@ -1,0 +1,60 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes:
+    light --default,
+    dark;
+}
+@source "../**/*.{svelte,ts}";
+
+@theme {
+  --color-background: #fafafa;
+  --color-foreground: #27272a;
+  --color-border: #d4d4d8;
+  --color-input: #d4d4d8;
+  --color-ring: #0f766e;
+  --color-muted: #f4f4f5;
+  --color-muted-foreground: #71717a;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #27272a;
+  --color-primary: #0f766e;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #eef2f1;
+  --color-secondary-foreground: #27272a;
+  --color-accent: #dbe7e4;
+  --color-accent-foreground: #27272a;
+  --color-destructive: #dc2626;
+  --radius-md: 0.5rem;
+}
+
+:root {
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+html {
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-base-100: oklch(0.095 0.01 210);
+  --color-base-200: oklch(0.065 0.008 210);
+  --color-base-300: oklch(0.18 0.012 210);
+  --color-base-content: oklch(0.94 0.012 210);
+  --color-primary: oklch(0.72 0.13 185);
+  --color-primary-content: oklch(0.08 0.012 185);
+  --color-secondary: oklch(0.24 0.025 185);
+  --color-secondary-content: oklch(0.92 0.012 185);
+  --color-neutral: oklch(0.15 0.012 210);
+  --color-neutral-content: oklch(0.94 0.012 210);
+  --color-info: oklch(0.7 0.1 225);
+  --color-success: oklch(0.72 0.12 155);
+  --color-warning: oklch(0.78 0.12 75);
+  --color-error: oklch(0.68 0.16 28);
+}
+
+body {
+  background: var(--color-base-200, #f6f8fa);
+}

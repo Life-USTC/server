@@ -27,7 +27,7 @@ import {
 } from "@/lib/api/helpers";
 
 // Auth
-import { requireSignedInUserId, resolveApiUserId } from "@/lib/auth/helpers";
+import { requireAuth, requireWriteAuth, resolveApiUserId } from "@/lib/auth/api-auth";
 
 // DB
 import { prisma, getPrisma } from "@/lib/db/prisma";
