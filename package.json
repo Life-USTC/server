@@ -16,7 +16,7 @@
     "check:features": "bun run tools/dev/check.ts features",
     "check:i18n": "bun run tools/dev/check.ts i18n",
     "check:routes": "bun run tools/dev/check.ts routes",
-    "dev": "bun run prisma generate && bun run prisma migrate deploy && vite dev --host 127.0.0.1 --port 3000 --strictPort",
+    "dev": "svelte-kit sync && bun run prisma generate && bun run prisma migrate deploy && vite dev --host 127.0.0.1 --port 3000 --strictPort",
     "dev:infra:clean": "docker compose -f docker-compose.dev.yml down -v --remove-orphans",
     "dev:docker": "docker compose -f docker-compose.dev.yml --profile app up -d app",
     "dev:down": "docker compose -f docker-compose.dev.yml --profile app down",
@@ -45,7 +45,7 @@
     "verify:feature": "bun run check:all && bun run typecheck && bun run test",
     "verify:commit": "bun run check:all && bun run typecheck && bun run test",
     "verify:full": "bun run verify:commit && bun run test:integration && bun run verify:e2e && bun run test:e2e",
-    "build:artifacts": "bun run prisma generate && bun run openapi:generate"
+    "build:artifacts": "svelte-kit sync && bun run prisma generate && bun run openapi:generate"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1050.0",
