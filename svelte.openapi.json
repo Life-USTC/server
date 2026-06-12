@@ -3,7 +3,7 @@
   "info": {
     "title": "Life@USTC API",
     "version": "1.0.0",
-    "description": "OpenAPI document generated from Next.js route handlers"
+    "description": "OpenAPI document generated from SvelteKit route handlers"
   },
   "servers": [
     {

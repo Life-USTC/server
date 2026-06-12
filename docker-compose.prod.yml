@@ -1,13 +1,12 @@
 services:
   app:
-    container_name: life-ustc-nextjs
-    image: ${APP_IMAGE:?Set APP_IMAGE to an explicit ghcr.io/life-ustc/server-nextjs:<release-tag> or @sha256:<digest>; latest is alias-only}
+    container_name: life-ustc-svelte
+    image: ${APP_IMAGE:?Set APP_IMAGE to an explicit ghcr.io/life-ustc/server:<release-tag> or @sha256:<digest>; latest is alias-only}
     ports:
       - "127.0.0.1:3000:3000"
     environment:
       NODE_ENV: production
       APP_PUBLIC_ORIGIN: ${APP_PUBLIC_ORIGIN:?Set APP_PUBLIC_ORIGIN to the public https:// origin served by this deployment}
-      APP_CANONICAL_ORIGIN: ${APP_CANONICAL_ORIGIN:-}
       DATABASE_URL: ${DATABASE_URL}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET}
       AUTH_SECRET: ${AUTH_SECRET}

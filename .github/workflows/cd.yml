@@ -69,4 +69,4 @@ jobs:
           echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Production compose:** \`APP_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }} APP_PUBLIC_ORIGIN=https://your-public-origin.example APP_CANONICAL_ORIGIN=https://your-canonical-origin.example docker compose -f docker-compose.prod.yml up -d\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Production compose:** \`APP_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }} APP_PUBLIC_ORIGIN=https://your-public-origin.example docker compose -f docker-compose.prod.yml up -d\`" >> $GITHUB_STEP_SUMMARY

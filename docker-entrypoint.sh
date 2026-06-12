@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 set -eu
 
-bun run app:prepare:runtime
+bun run prisma migrate deploy
 
 exec "$@"

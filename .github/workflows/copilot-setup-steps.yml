@@ -55,6 +55,6 @@ jobs:
       - name: Prepare database and generated artifacts
         shell: bash
         run: |
-          bun run prisma:deploy
+          bun run prisma migrate deploy
           bun run build:artifacts
           bun run dev:seed-scenarios

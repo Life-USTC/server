@@ -15,8 +15,8 @@
 /playwright-report
 /test-results
 
-# next.js
-/.next/
+# svelte
+/.svelte-kit/
 /out/
 
 # production
@@ -41,7 +41,6 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
 
 # python
 __pycache__/

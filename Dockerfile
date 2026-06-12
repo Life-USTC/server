@@ -22,21 +22,26 @@ COPY --from=install-dev /temp/dev/node_modules node_modules
 COPY . .
 
 ENV NODE_ENV=production
+ENV APP_PHASE=phase-production-build
 ENV DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_build
 
-RUN bun run build:release
+RUN bun run build \
+ && bun build tools/production/load/load-from-static.ts \
+      --target=bun \
+      --outdir=dist/tools/production/load \
+      --external '@prisma/*' \
+      --external pg
 
 # Collect all runtime files into a single staging directory
-RUN mkdir -p /output/.next /output/dist \
- && cp -a .next/standalone/. /output/ \
- && cp -a .next/static /output/.next/static \
+RUN mkdir -p /output/dist \
+ && cp -a build /output/build \
  && cp -a public/. /output/public \
  && cp package.json /output/package.json \
  && cp prisma.config.ts /output/prisma.config.ts \
  && cp -a dist/tools /output/dist/tools \
  && cp -a prisma /output/prisma
 
-# Final runtime image using Next.js standalone output
+# Final runtime image using SvelteKit adapter-node output
 FROM base AS release
 WORKDIR /usr/src/app
 
@@ -49,19 +54,20 @@ RUN mkdir -p /usr/src/app/.cache \
 USER bun
 
 ENV NODE_ENV=production
-ENV HOSTNAME=0.0.0.0
+ENV HOST=0.0.0.0
+ENV PORT=3000
 
 # Copy all build output in one layer, then overlay production dependencies
 COPY --chown=bun:bun --from=builder /output ./
 COPY --chown=bun:bun --from=install-prod /temp/prod/node_modules node_modules
 
-# Expose default Next.js port
+# Expose default app port
 EXPOSE 3000/tcp
 
 # Health check (optional, lightweight)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-    CMD bun --eval 'const port = process.env.PORT?.trim() || "3000"; const url = process.env.HEALTHCHECK_URL?.trim() || `http://127.0.0.1:${port}/`; fetch(url).then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1));'
+    CMD bun --eval 'fetch("http://127.0.0.1:3000/").then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1));'
 
 ENTRYPOINT ["docker-entrypoint.sh"]
-# Run the staged Next.js standalone server directly.
-CMD ["bun", "server.js"]
+# Run the staged SvelteKit server directly.
+CMD ["node", "build/index.js"]

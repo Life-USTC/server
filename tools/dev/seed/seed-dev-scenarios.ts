@@ -7,7 +7,9 @@ import {
   HomeworkAuditAction,
   type Prisma,
 } from "../../../src/generated/prisma/client";
-import scenarioData from "../../../tests/e2e/fixtures/scenario.json";
+import scenarioData from "../../../tests/e2e/fixtures/scenario.json" with {
+  type: "json",
+};
 import {
   createToolPrisma,
   disconnectToolPrisma,
@@ -20,7 +22,6 @@ import {
   DEV_SEED,
   getDevScenarioRuntimeConfig,
 } from "./dev-seed";
-import { withSeedLock } from "./seed-lock";
 
 const prisma = createToolPrisma();
 const scenario = scenarioData;
@@ -537,8 +538,10 @@ async function main() {
 
   const semesterStart = makeDateAt(0, 0, -21);
   const semesterEnd = makeDateAt(0, 0, 130);
+  const previousSemesterStart = makeDateAt(0, 0, -190);
+  const previousSemesterEnd = makeDateAt(0, 0, -30);
 
-  const [rooms, semester] = await Promise.all([
+  const [rooms, semester, previousSemester] = await Promise.all([
     prisma.room.findMany({
       select: { id: true, nameCn: true },
       take: 8,
@@ -558,6 +561,23 @@ async function main() {
         code: scenario.semester.code,
         startDate: semesterStart,
         endDate: semesterEnd,
+      },
+      select: { id: true },
+    }),
+    prisma.semester.upsert({
+      where: { jwId: DEV_SEED.previousSemesterJwId },
+      update: {
+        nameCn: DEV_SEED.previousSemesterNameCn,
+        code: scenario.previousSemester.code,
+        startDate: previousSemesterStart,
+        endDate: previousSemesterEnd,
+      },
+      create: {
+        jwId: DEV_SEED.previousSemesterJwId,
+        nameCn: DEV_SEED.previousSemesterNameCn,
+        code: scenario.previousSemester.code,
+        startDate: previousSemesterStart,
+        endDate: previousSemesterEnd,
       },
       select: { id: true },
     }),
@@ -626,6 +646,12 @@ async function main() {
         nameCn: scenario.courses[2].nameCn,
         nameEn: scenario.courses[2].nameEn,
       },
+      {
+        jwId: COURSE_JW_IDS[3],
+        code: scenario.courses[3].code,
+        nameCn: scenario.courses[3].nameCn,
+        nameEn: scenario.courses[3].nameEn,
+      },
     ].map((courseSeed) =>
       prisma.course.upsert({
         where: { jwId: courseSeed.jwId },
@@ -656,6 +682,7 @@ async function main() {
     jwId: number;
     code: string;
     courseId: number;
+    semesterId: number;
     credits: number;
     stdCount: number;
     limitCount: number;
@@ -667,6 +694,7 @@ async function main() {
       jwId: SECTION_JW_IDS[0],
       code: scenario.sections[0].code,
       courseId: courses[0].id,
+      semesterId: semester.id,
       credits: scenario.sections[0].credits,
       stdCount: scenario.sections[0].stdCount,
       limitCount: scenario.sections[0].limitCount,
@@ -678,6 +706,7 @@ async function main() {
       jwId: SECTION_JW_IDS[1],
       code: scenario.sections[1].code,
       courseId: courses[1].id,
+      semesterId: semester.id,
       credits: scenario.sections[1].credits,
       stdCount: scenario.sections[1].stdCount,
       limitCount: scenario.sections[1].limitCount,
@@ -689,12 +718,25 @@ async function main() {
       jwId: SECTION_JW_IDS[2],
       code: scenario.sections[2].code,
       courseId: courses[2].id,
+      semesterId: semester.id,
       credits: scenario.sections[2].credits,
       stdCount: scenario.sections[2].stdCount,
       limitCount: scenario.sections[2].limitCount,
       teacherIndexes: [2],
       remark: scenario.sections[2].remark,
       groupIds: [SCHEDULE_GROUP_JW_IDS[4], SCHEDULE_GROUP_JW_IDS[5]],
+    },
+    {
+      jwId: SECTION_JW_IDS[3],
+      code: scenario.sections[3].code,
+      courseId: courses[3].id,
+      semesterId: previousSemester.id,
+      credits: scenario.sections[3].credits,
+      stdCount: scenario.sections[3].stdCount,
+      limitCount: scenario.sections[3].limitCount,
+      teacherIndexes: [0],
+      remark: scenario.sections[3].remark,
+      groupIds: [SCHEDULE_GROUP_JW_IDS[6], SCHEDULE_GROUP_JW_IDS[7]],
     },
   ];
 
@@ -705,7 +747,7 @@ async function main() {
         update: {
           code: sectionInput.code,
           courseId: sectionInput.courseId,
-          semesterId: semester.id,
+          semesterId: sectionInput.semesterId,
           credits: sectionInput.credits,
           stdCount: sectionInput.stdCount,
           limitCount: sectionInput.limitCount,
@@ -732,7 +774,7 @@ async function main() {
           jwId: sectionInput.jwId,
           code: sectionInput.code,
           courseId: sectionInput.courseId,
-          semesterId: semester.id,
+          semesterId: sectionInput.semesterId,
           credits: sectionInput.credits,
           stdCount: sectionInput.stdCount,
           limitCount: sectionInput.limitCount,
@@ -921,7 +963,7 @@ async function main() {
           examType: 1,
           startTime: 900,
           endTime: 1100,
-          examDate: makeDateAt(0, 0, 10 + index),
+          examDate: makeDateAt(0, 0, index === 3 ? -40 : 10 + index),
           examTakeCount: 1,
           examMode: "闭卷",
         },
@@ -932,7 +974,7 @@ async function main() {
           examType: 1,
           startTime: 900,
           endTime: 1100,
-          examDate: makeDateAt(0, 0, 10 + index),
+          examDate: makeDateAt(0, 0, index === 3 ? -40 : 10 + index),
           examTakeCount: 1,
           examMode: "闭卷",
         },
@@ -954,14 +996,28 @@ async function main() {
   const homeworkSeeds = [
     {
       sectionId: sectionRecords[0].id,
-      title: "迭代一需求拆解",
-      submissionDueAt: makeDateAt(23, 0, 1),
+      title: DEV_SEED.homeworks.completedTitle,
+      submissionDueAt: makeDateAt(20, 0, -2),
       isMajor: false,
       requiresTeam: false,
     },
     {
       sectionId: sectionRecords[0].id,
-      title: "迭代二系统设计评审",
+      title: DEV_SEED.homeworks.overdueTitle,
+      submissionDueAt: makeDateAt(22, 0, -1),
+      isMajor: true,
+      requiresTeam: false,
+    },
+    {
+      sectionId: sectionRecords[0].id,
+      title: DEV_SEED.homeworks.dueTodayTitle,
+      submissionDueAt: makeDateAt(23, 0, 0),
+      isMajor: false,
+      requiresTeam: false,
+    },
+    {
+      sectionId: sectionRecords[0].id,
+      title: DEV_SEED.homeworks.title,
       submissionDueAt: makeDateAt(23, 0, 4),
       isMajor: true,
       requiresTeam: true,
@@ -986,6 +1042,13 @@ async function main() {
       submissionDueAt: makeDateAt(21, 0, 3),
       isMajor: true,
       requiresTeam: true,
+    },
+    {
+      sectionId: sectionRecords[3].id,
+      title: "历史学期复盘作业",
+      submissionDueAt: makeDateAt(20, 0, -40),
+      isMajor: false,
+      requiresTeam: false,
     },
     {
       sectionId: sectionRecords[0].id,
@@ -1016,11 +1079,11 @@ async function main() {
       {
         userId: debugUser.id,
         homeworkId: homeworks[0].id,
-        completedAt: makeDateAt(20, 0, 0),
+        completedAt: makeDateAt(21, 0, -2),
       },
       {
         userId: debugUser.id,
-        homeworkId: homeworks[2].id,
+        homeworkId: homeworks[4].id,
         completedAt: makeDateAt(20, 30, 1),
       },
     ],
@@ -1133,7 +1196,7 @@ async function main() {
     prisma.comment.create({
       data: {
         userId: debugUser.id,
-        homeworkId: homeworks[4].id,
+        homeworkId: homeworks[6].id,
         body: "注意提交报告时附上原始数据截图。",
         visibility: CommentVisibility.public,
         status: CommentStatus.softbanned,
@@ -1204,10 +1267,13 @@ async function main() {
 
   const homeworkDescriptionContents = [
     "作业要求：提交仓库链接和测试截图。",
+    "逾期补交实验数据，保留原始记录并说明补交原因。",
+    "整理今日课堂反馈，标注需要二次确认的问题。",
     "完成系统设计文档，包含模块划分与接口说明，并在评审会上做 10 分钟展示。",
     "证明题需写出完整推导过程，可参考教材第三章习题 3.2。",
     "综合运用特征值与特征向量，建议先化简再计算。",
     "实验报告需包含：实验目的、步骤、数据记录、误差分析与结论。",
+    "历史学期复盘作业用于验证跨学期订阅数据。",
   ];
 
   const descriptions = await Promise.all([
@@ -1271,6 +1337,13 @@ async function main() {
 
   const todoSeeds = [
     {
+      title: DEV_SEED.todos.overdueTitle,
+      content: "用于验证逾期待办展示",
+      dueAt: makeDateAt(9, 0, -1),
+      completed: false,
+      priority: "high" as const,
+    },
+    {
       title: DEV_SEED.todos.dueTodayTitle,
       content: "需今日完成",
       dueAt: makeDateAt(23, 59, 0),
@@ -1318,33 +1391,19 @@ async function main() {
   });
 
   await prisma.dashboardLinkClick.createMany({
-    data: [
-      {
-        userId: debugUser.id,
-        slug: "jw",
-        count: 3,
-        lastClickedAt: makeDateAt(10, 0, 0),
-      },
-      {
-        userId: debugUser.id,
-        slug: "icourse",
-        count: 1,
-        lastClickedAt: makeDateAt(9, 30, 0),
-      },
-      {
-        userId: debugUser.id,
-        slug: "confession-wall",
-        count: 2,
-        lastClickedAt: makeDateAt(14, 0, 0),
-      },
-    ],
+    data: scenario.dashboardLinks.clickedSlugs.map((link, index) => ({
+      userId: debugUser.id,
+      slug: link.slug,
+      count: link.count,
+      lastClickedAt: makeDateAt(10 + index, 0, 0),
+    })),
     skipDuplicates: true,
   });
   await prisma.dashboardLinkPin.createMany({
-    data: [
-      { userId: debugUser.id, slug: "jw" },
-      { userId: debugUser.id, slug: "confession-wall" },
-    ],
+    data: DEV_SEED.dashboardLinks.pinnedSlugs.map((slug) => ({
+      userId: debugUser.id,
+      slug,
+    })),
     skipDuplicates: true,
   });
 
@@ -1492,10 +1551,35 @@ async function main() {
   );
 }
 
-withSeedLock("dev-seed-scenarios", main)
+async function resetMain() {
+  const users = await prisma.user.findMany({
+    where: { username: { in: [debugUsername, adminUsername] } },
+    select: { id: true, username: true },
+  });
+
+  await cleanupDevScenarioData(
+    prisma,
+    users.map((user) => user.id),
+    {
+      removeCatalogMetadata: true,
+      userSuspensions: "byMarker",
+    },
+  );
+
+  console.log("开发调试场景数据清理完成");
+  console.log(`已处理用户数: ${users.length}`);
+}
+
+const isReset = process.argv.includes("--reset");
+const selectedMain = isReset ? resetMain : main;
+
+selectedMain()
   .catch((error: unknown) => {
     const err = error as Error;
-    console.error("测试场景数据初始化失败", err.message);
+    console.error(
+      isReset ? "开发调试场景数据清理失败" : "测试场景数据初始化失败",
+      err.message,
+    );
     process.exitCode = 1;
   })
   .finally(async () => {

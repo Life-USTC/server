@@ -1,13 +1,15 @@
 # tools/
 
-Build, seed, import scripts.
+Build, seed, import, E2E, and snapshot scripts.
 
 ## Structure
 
 ```
 shared/              Helper code
 build/openapi/       OpenAPI generation
-dev/check/           Convention checks
+dev/check.ts         Convention checks
+dev/e2e.ts           E2E infra, standalone runtime, and MinIO helperdev/artifacts/snapshots/
+                     Visual snapshot capture and report workflow
 dev/seed/            Dev seed data
 production/load/     Production imports
 ```
@@ -38,7 +40,7 @@ Start local infra first when a script needs DB/storage:
 ```bash
 docker compose -f docker-compose.dev.yml up -d
 bun run dev:seed-scenarios  # Create
-bun run dev:reset-scenarios # Clean
+bun run dev:reset-scenarios # Clean via the shared seed entrypoint
 ```
 
 Seed data:
@@ -67,7 +69,7 @@ bun run build:artifacts  # Generate + postprocess
 Default path for tool changes:
 
 ```bash
-bun run verify:fast  # Most edits
+bun run verify:commit # Most edits
 bun run verify:full  # Shared tooling, seed flows, or integration-sensitive edits
 ```
 

@@ -4,7 +4,6 @@ npm-debug.log
 bun.lockb
 
 # Build artifacts
-.next
 out
 dist
 build

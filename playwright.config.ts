@@ -1,8 +1,18 @@
+import "dotenv/config";
 import { defineConfig, devices } from "@playwright/test";
 import {
   buildPlaywrightServerEnv,
   resolvePlaywrightHarnessRuntime,
-} from "./tools/dev/util/playwright-runtime";
+} from "./tools/dev/e2e";
+
+const LOCAL_NO_PROXY = "127.0.0.1,localhost,::1";
+
+function appendNoProxy(value: string | undefined) {
+  return value ? `${value},${LOCAL_NO_PROXY}` : LOCAL_NO_PROXY;
+}
+
+process.env.NO_PROXY = appendNoProxy(process.env.NO_PROXY);
+process.env.no_proxy = appendNoProxy(process.env.no_proxy);
 
 const playwrightRuntime = resolvePlaywrightHarnessRuntime();
 
@@ -10,12 +20,13 @@ export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: ["**/*.spec.ts", "**/*.test.ts", "**/test.ts"],
   globalSetup: "./tests/e2e/global-setup.ts",
-  globalTeardown: "./tests/e2e/global-teardown.ts",
   outputDir: "test-results/e2e",
   fullyParallel: playwrightRuntime.fullyParallel,
   forbidOnly: playwrightRuntime.forbidOnly,
   retries: playwrightRuntime.retries,
-  workers: playwrightRuntime.workers,
+  // Shared seeded users are mutated by several E2E files. Keep the suite
+  // single-worker so those stateful cases run sequentially.
+  workers: 1,
   reporter: playwrightRuntime.reporter,
   use: {
     baseURL: playwrightRuntime.baseUrl,
@@ -23,7 +34,7 @@ export default defineConfig({
     screenshot: playwrightRuntime.screenshot,
   },
   webServer: {
-    command: "bun run test:e2e:server",
+    command: "node build/index.js",
     env: buildPlaywrightServerEnv({
       host: playwrightRuntime.host,
       port: playwrightRuntime.port,
@@ -33,7 +44,7 @@ export default defineConfig({
     reuseExistingServer: playwrightRuntime.reuseExistingServer,
     stdout: "ignore",
     stderr: "pipe",
-    // The dedicated Playwright bootstrap owns build-time staging and server startup.
+    // Package scripts own build-time staging; Playwright starts the staged server directly.
     timeout: playwrightRuntime.webServerTimeoutMs,
   },
   projects: [

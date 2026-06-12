@@ -16,7 +16,7 @@ jobs:
       database-name: life_ustc_ci
       jwt-secret: ci-check-secret-0123456789abcdef0123456789abcdef
       auth-secret: ci-check-secret-0123456789abcdef0123456789abcdef
-      job-command: bun run verify:fast
+      job-command: bun run verify:commit
 
   build-e2e-artifacts:
     name: Build E2E artifacts
@@ -32,7 +32,7 @@ jobs:
       extra-env: NO_PROXY=127.0.0.1,localhost,::1
       job-command: bun run test:e2e:artifacts
       upload-artifact-name: playwright-standalone
-      upload-artifact-path: .next/standalone
+      upload-artifact-path: build
       upload-artifact-no-files-found: error
       upload-artifact-include-hidden-files: true
 
@@ -46,17 +46,7 @@ jobs:
       matrix:
         include:
           - scope: api-mcp
-            workers: 4
             paths: tests/e2e/src/app/api
-          - scope: public-web
-            workers: 4
-            paths: tests/e2e/src/app/api-docs tests/e2e/src/app/bus tests/e2e/src/app/bus-map tests/e2e/src/app/courses tests/e2e/src/app/guides tests/e2e/src/app/mobile-app tests/e2e/src/app/privacy tests/e2e/src/app/terms tests/e2e/src/app/u
-          - scope: signed-in-web
-            workers: 2
-            paths: tests/e2e/src/app/test.ts tests/e2e/src/app/dashboard tests/e2e/src/app/oauth tests/e2e/src/app/sections tests/e2e/src/app/settings tests/e2e/src/app/signin tests/e2e/src/app/teachers tests/e2e/src/app/welcome
-          - scope: admin-stateful
-            workers: 1
-            paths: tests/e2e/src/app/admin tests/e2e/src/app/comments
     permissions:
       contents: read
     uses: ./.github/workflows/db-backed-bun-job.yml
@@ -68,11 +58,26 @@ jobs:
       auth-secret: e2e-ci-secret
       extra-env: |
         NO_PROXY=127.0.0.1,localhost,::1
-        PLAYWRIGHT_WORKERS=${{ matrix.workers }}
       download-artifact-name: playwright-standalone
       download-artifact-path: .
       job-command: |
-        bun run test:e2e:bootstrap -- --minio --migrate
+        docker rm -f life-ustc-minio-dev >/dev/null 2>&1 || true
+        docker run -d \
+          --name life-ustc-minio-dev \
+          -p 9000:9000 \
+          -p 9001:9001 \
+          -e MINIO_ROOT_USER=minioadmin \
+          -e MINIO_ROOT_PASSWORD=minioadmin \
+          -e MINIO_API_CORS_ALLOW_ORIGIN=http://127.0.0.1:3000,http://localhost:3000 \
+          minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1 \
+          server /data --console-address ":9001"
+        for _ in $(seq 1 30); do
+          curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null && break
+          sleep 1
+        done
+        curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null
+        bun run prisma migrate deploy
+        bun run verify:e2e
         bun run test:e2e -- ${{ matrix.paths }}
       upload-artifact-name: playwright-report-${{ matrix.scope }}
       upload-artifact-path: playwright-report/

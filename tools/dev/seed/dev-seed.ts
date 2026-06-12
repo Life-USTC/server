@@ -1,4 +1,6 @@
-import scenarioData from "../../../tests/e2e/fixtures/scenario.json";
+import scenarioData from "../../../tests/e2e/fixtures/scenario.json" with {
+  type: "json",
+};
 
 const s = scenarioData;
 
@@ -18,6 +20,8 @@ export const DEV_SEED = {
   adminAvatarSeed: s.users.admin.avatarSeed,
   semesterJwId: s.semester.jwId,
   semesterNameCn: s.semester.nameCn,
+  previousSemesterJwId: s.previousSemester.jwId,
+  previousSemesterNameCn: s.previousSemester.nameCn,
   course: {
     jwId: s.courses[0].jwId,
     code: s.courses[0].code,
@@ -34,7 +38,9 @@ export const DEV_SEED = {
     jwId: s.sections[0].jwId,
     code: s.sections[0].code,
     credits: s.sections[0].credits,
+    limitCount: s.sections[0].limitCount,
     remark: s.sections[0].remark,
+    stdCount: s.sections[0].stdCount,
     examModeNameCn: s.catalog.examMode.nameCn,
     examModeNameEn: s.catalog.examMode.nameEn,
     teachLanguageNameCn: s.catalog.teachLanguage.nameCn,
@@ -44,6 +50,10 @@ export const DEV_SEED = {
     adminClassNameCn: s.catalog.adminClass.nameCn,
     adminClassNameEn: s.catalog.adminClass.nameEn,
   },
+  sections: s.sections.map((section) => ({
+    jwId: section.jwId,
+    code: section.code,
+  })),
   teacher: {
     code: s.teachers[0].code,
     nameCn: s.teachers[0].nameCn,
@@ -74,11 +84,18 @@ export const DEV_SEED = {
   comments: { sectionRootBody: s.comments.sectionRootBody },
   homeworks: {
     title: s.homeworks.title,
+    overdueTitle: s.homeworks.overdueTitle,
+    dueTodayTitle: s.homeworks.dueTodayTitle,
     completedTitle: s.homeworks.completedTitle,
   },
   todos: {
     dueTodayTitle: s.todos.dueTodayTitle,
+    overdueTitle: s.todos.overdueTitle,
     completedTitle: s.todos.completedTitle,
+  },
+  dashboardLinks: {
+    pinnedSlugs: s.dashboardLinks.pinnedSlugs,
+    overviewLimit: s.dashboardLinks.overviewLimit,
   },
   bus: {
     versionKey: s.bus.versionKey,
@@ -100,6 +117,10 @@ export const DEV_SCENARIO_KEY_PREFIX = "dev-scenario/";
 
 export const DEV_SCENARIO_IDS = {
   semesterJwId: s.semester.jwId,
+  semesterJwIds: [
+    s.semester.jwId,
+    s.previousSemester.jwId,
+  ] as readonly number[],
   courseJwIds: s.courses.map((course) => course.jwId) as readonly number[],
   sectionJwIds: s.sections.map((section) => section.jwId) as readonly number[],
   scheduleGroupJwIds: s.scheduleGroups as readonly number[],

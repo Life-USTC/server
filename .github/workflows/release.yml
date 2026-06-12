@@ -9,7 +9,7 @@ jobs:
   semantic-release:
     name: Semantic
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.repository == 'Life-USTC/server-nextjs' && !contains(github.event.head_commit.message, '[skip ci]')
+    if: github.ref == 'refs/heads/main' && github.repository == 'Life-USTC/server' && !contains(github.event.head_commit.message, '[skip ci]')
     permissions:
       contents: write
       issues: write

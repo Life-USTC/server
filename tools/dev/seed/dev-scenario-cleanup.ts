@@ -1,4 +1,6 @@
-import scenarioData from "../../../tests/e2e/fixtures/scenario.json";
+import scenarioData from "../../../tests/e2e/fixtures/scenario.json" with {
+  type: "json",
+};
 import type { ToolPrismaClient } from "../../shared/tool-prisma";
 import {
   DEV_SCENARIO_IDS,
@@ -199,7 +201,7 @@ export async function cleanupDevScenarioData(
     }),
   ]);
   await prisma.semester.deleteMany({
-    where: { jwId: DEV_SCENARIO_IDS.semesterJwId },
+    where: { jwId: { in: [...DEV_SCENARIO_IDS.semesterJwIds] } },
   });
 
   if (removeCatalogMetadata) {

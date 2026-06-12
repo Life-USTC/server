@@ -1,11 +1,11 @@
 # Life@USTC Server - Agent Guide
 
-Next.js campus workspace with REST + MCP APIs. This is the canonical coding-agent instruction file; nested `AGENTS.md` files only add scoped rules.
+SvelteKit campus workspace with REST + MCP APIs. This is the canonical coding-agent instruction file; nested `AGENTS.md` files only add scoped rules.
 
 ## Repo Map
 
 ```text
-src/app/              Next.js App Router pages, layouts, REST handlers, OAuth/MCP routes
+src/routes/           SvelteKit pages, layouts, REST handlers, OAuth/MCP routes
 src/features/         Domain logic and feature-owned components
 src/lib/              Infrastructure helpers: auth, API, DB, MCP, OAuth, storage, time
 src/components/       Shared UI components and layout primitives
@@ -13,9 +13,8 @@ messages/             i18n strings (`zh-cn`, `en-us`)
 prisma/               Prisma schema and migrations
 docs/features/        JSON feature contracts checked against schema/API/MCP parity
 tests/                Unit, integration MCP harness, and Playwright E2E tests
-tools/                Build, check, seed, import, benchmark, and release scripts
+tools/                Build, check, seed, import, E2E, and snapshot scripts
 .github/workflows/    CI/CD workflows
-scripts/              Small agent-friendly wrappers around existing Bun commands
 ```
 
 ## Commands
@@ -23,8 +22,6 @@ scripts/              Small agent-friendly wrappers around existing Bun commands
 ```bash
 # Development
 bun install --frozen-lockfile
-bun run app:prepare
-bun run app:prepare:dev
 bun run dev        # Host app dev; auto-runs prisma generate + migrate deploy
 bun run dev:infra  # Infra only (postgres, minio, minio-setup)
 bun run dev:docker # Full dev stack in Docker
@@ -32,11 +29,11 @@ bun run dev:down   # Stop dev Docker stack
 
 # Quality
 bun run check --write        # Lint + format fixes
-bun run verify:fast         # Default local gate: static checks + typecheck + unit tests
+bun run verify:edit         # After a small edit: lint + typecheck
+bun run verify:feature      # After a feature: static checks + typecheck + unit tests
+bun run verify:commit       # Before commit/PR: default local gate
 bun run verify:full         # Full gate: fast verification + integration + E2E
-bun run check:static-import -- --baseline-ref HEAD~1
-                             # Explicit DB-backed importer regression check when touching static import
-bun run verify:e2e          # Canonical E2E env prep (e.g. check:e2e, MinIO, migrations)
+bun run verify:e2e          # E2E convention check; start MinIO/migrations explicitly
 
 # Tests
 bun run test                # Unit only
@@ -44,20 +41,18 @@ bun run test:integration    # Integration; runs shared dev-seed setup automatica
 bun run test:e2e            # E2E (full build)
 bun run test:e2e:artifacts  # Prebuild + typecheck + standalone E2E runtime
 bun run test:e2e:prepare    # Build and stage standalone output for E2E
-bun run test:e2e:server     # One-command standalone E2E server
 
 # Build
 bun run build:artifacts      # Generate Prisma + OpenAPI
 bun run build
 docker build .
 
-# Agent-friendly wrappers
-scripts/bootstrap.sh [--with-infra]
-scripts/doctor.sh
-scripts/verify.sh [fast|full|e2e|check|typecheck|unit|integration]
-scripts/test-target.sh unit tests/unit/parse-date-input.test.ts
-scripts/test-target.sh integration tests/integration/mcp-tools.test.ts
-scripts/test-target.sh e2e tests/e2e/src/app/api/mcp/test.ts
+# Tool CLIs used by repo workflows
+bun run prisma generate
+bun run prisma migrate dev
+bun run prisma migrate reset
+bun run prisma studio
+
 ```
 
 ## Agent Operating Contract
@@ -75,7 +70,7 @@ scripts/test-target.sh e2e tests/e2e/src/app/api/mcp/test.ts
 
 ## Architecture Boundaries
 
-- Keep `src/app` thin: routing, pages, handlers, metadata. Put domain logic in `src/features`.
+- Keep `src/routes` thin: routing, pages, handlers, metadata. Put domain logic in `src/features`.
 - Keep `src/lib` for infrastructure helpers and cross-cutting utilities, not feature rules.
 - Keep shared `src/components` free of feature-specific data fetching and mutations.
 - REST, MCP, feature JSON, OpenAPI annotations, and tests are coupled surfaces; check all matching surfaces when one changes.
@@ -85,17 +80,17 @@ scripts/test-target.sh e2e tests/e2e/src/app/api/mcp/test.ts
 
 - Canonical seeded fixture data lives in `tests/e2e/fixtures/scenario.json`; `tools/dev/seed/seed-dev-scenarios.ts` materializes it and `tools/dev/seed/dev-seed.ts` exports the named constants used by tests.
 - The shared anchor comes from `DEV_SEED_ANCHOR` in `tools/dev/seed/dev-seed.ts`. Use `.date` for bare date filters, `.recommendedAtTime` for time-sensitive tool calls, and `.startOfDayAtTime` when a test needs the seed day boundary.
-- `bun run test:integration` already runs `bun run test:integration:setup`; if you invoke Vitest integration specs directly, run the setup command first.
+- `bun run test:integration` already seeds the shared scenario data; if you invoke Vitest integration specs directly, run `bun run dev:seed-scenarios` first.
 - Scoped `tests/**/AGENTS.md` files should only add layer-specific caveats and link shared commands/setup back here or to helper files such as `tests/integration/utils/mcp-harness.ts`.
 
 ## Local Dev Environment
 
 - `.env` is configured for host-native dev (`bun run dev`) against local Docker infra on `127.0.0.1`.
-- `docker-compose.dev.yml` can also run the Next.js dev server via profile `app`; in that mode Compose overrides `DATABASE_URL` and S3 endpoint to use service DNS names.
+- `docker-compose.dev.yml` can also run the SvelteKit dev server via profile `app`; in that mode Compose overrides `DATABASE_URL` and S3 endpoint to use service DNS names.
 - `minio-setup` auto-creates bucket `life-ustc-dev` and exits successfully; that is expected.
-- Both host-native `bun run dev` and compose app dev auto-run `prisma generate` + `prisma migrate deploy` before `next dev`.
+- Both host-native `bun run dev` and compose app dev auto-run `prisma generate` + `prisma migrate deploy` before starting the SvelteKit dev process.
 - The compose app exposes a healthcheck via `bun run health`.
-- Host-native `bun run dev` and compose app dev both use port `3000`; run only one app server at a time.
+- Host-native `bun run dev` and compose app dev are pinned to `127.0.0.1:3000`; run only one app server at a time.
 - Prefer these flows for pain-free setup:
   1. `bun run dev:docker` for one-command full stack
   2. `bun run dev:infra && bun run dev` for host-native app dev
@@ -170,7 +165,7 @@ buildPaginatedResponse(items, page, pageSize, total)
 **Feature Changes**:
 1. Update `docs/features/<module>.json` first
 2. Implement code
-3. Run `bun run verify:fast`
+3. Run `bun run verify:commit`
 4. Update tests, then escalate to `bun run verify:full` when the change touches integration or browser flows
 
 **Documentation Alignment**:
@@ -192,8 +187,7 @@ buildPaginatedResponse(items, page, pageSize, total)
 - When docs must change as part of code work, keep the edits narrow and run the same default gate.
 
 **Default Verification**:
-- Use `bun run verify:fast` for most commits and PR updates.
-- Use `bun run check:static-import -- --baseline-ref <git-ref>` only when changing `tools/production/load/load-from-static.ts` and you need a DB-backed regression comparison against a real baseline.
+- Use `bun run verify:commit` for most commits and PR updates.
 - Use `bun run verify:full` before pushing changes that affect data flows, auth, browser flows, docs contracts, or shared tooling.
 - Use `bun run verify:e2e` before `bun run test:e2e`.
 
@@ -211,8 +205,7 @@ buildPaginatedResponse(items, page, pageSize, total)
 
 - **Features**: `docs/features/<module>.json` - Specifications
 - **Source**: `src/AGENTS.md` - Organization
-- **App**: `src/app/AGENTS.md` - App Router
-- **API**: `src/app/api/AGENTS.md` - REST handlers
+- **Routes**: `src/routes/` - SvelteKit pages and REST handlers
 - **MCP**: `src/lib/mcp/AGENTS.md` - MCP tools
 - **Features**: `src/features/AGENTS.md` - Business logic
 - **Components**: `src/components/AGENTS.md` - UI
@@ -234,5 +227,5 @@ History shows agent-assisted changes in this repo most often went wrong when the
 - **Feature docs**: Keep feature JSON hand-maintained and schema-checked. Do not add one-off generators or broad rewrites unless the user explicitly asks for that migration.
 - **OAuth/Auth**: Prefer Better Auth provider APIs and shared URL helpers over hand-built OAuth/DCR/JWKS/cookie logic. Watch for doubled `/api/auth` paths, audience/resource mismatches, and public PKCE vs trusted-client boundaries.
 - **REST/MCP parity**: When changing one surface, check the matching feature JSON, REST route, MCP tool, OpenAPI annotation, and seeded E2E/integration coverage.
-- **Shared seed tests**: Do not mutate canonical seed records in parallel tests. Use unique temporary records, cleanup, `DEV_SEED_ANCHOR`, and E2E locks where shared user state is involved.
+- **Shared seed tests**: Do not mutate canonical seed records in parallel tests. Use unique temporary records, cleanup, `DEV_SEED_ANCHOR`, and serial E2E execution for shared user state.
 - **Tooling/runtime**: Scripts that run in Docker/CI/Copilot must use the same Bun-based setup, generated Prisma client, and bundled production tool paths as the workflows.
