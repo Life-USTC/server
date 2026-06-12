@@ -75,7 +75,9 @@ jobs:
 
       - name: Generate Prisma client
         shell: bash
-        run: bun run prisma generate
+        run: |
+          bun run svelte-kit sync
+          bun run prisma generate
 
       - name: Build standalone app
         shell: bash
@@ -190,13 +192,19 @@ jobs:
         if: ${{ always() }}
         shell: bash
         run: |
+          artifact_url="${{ steps.upload.outputs.artifact-url }}"
+          workflow_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          if [ -z "$artifact_url" ]; then
+            artifact_url="$workflow_url"
+          fi
+
           bun run tools/dev/artifacts/snapshots/snapshot-report.ts render-comment \
             --snapshot-dir test-results/snapshots \
-            --artifact-url "${{ steps.upload.outputs.artifact-url }}" \
+            --artifact-url "$artifact_url" \
             --commit "${{ matrix.sha }}" \
             --status "${{ steps.snapshots.outcome }}" \
             --screenshot-base-url "${{ steps.previews.outputs.base-url }}" \
-            --workflow-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --workflow-url "$workflow_url" \
             --output test-results/e2e-snapshot-comment.md
 
       - name: Comment on commit
@@ -205,6 +213,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
+          if [ ! -s test-results/e2e-snapshot-comment.md ]; then
+            echo "No E2E snapshot comment was generated."
+            exit 0
+          fi
+
           jq -n --rawfile body test-results/e2e-snapshot-comment.md \
             '{body: $body}' > test-results/e2e-snapshot-comment.json
           gh api \
