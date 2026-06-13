@@ -16,7 +16,11 @@
     "binding": "ASSETS"
   },
   "observability": {
-    "enabled": true
+    "enabled": true,
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.1
+    }
   },
   "routes": [
     {
@@ -38,6 +42,12 @@
     {
       "binding": "HYPERDRIVE",
       "id": "84d80963a096419cb1f1c9846f164bf1"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "R2_UPLOADS",
+      "bucket_name": "life-ustc"
     }
   ]
 }

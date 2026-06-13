@@ -29,7 +29,6 @@ export async function loadSignedDashboardTabData(input: {
       input.context.user,
       input.context.sectionIds,
       input.referenceNow,
-      input.locale,
     ),
     input.tab === "overview" || input.tab === "calendar"
       ? dashboard.getDashboardOverviewData(input.userId, {

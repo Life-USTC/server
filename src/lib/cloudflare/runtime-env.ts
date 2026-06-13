@@ -1,7 +1,24 @@
+export type CloudflareR2Object = {
+  body?: ReadableStream<Uint8Array>;
+  httpMetadata?: { contentType?: string };
+  size: number;
+};
+
+export type CloudflareR2Bucket = {
+  delete(key: string): Promise<void>;
+  get(
+    key: string,
+  ): Promise<
+    (CloudflareR2Object & { body: ReadableStream<Uint8Array> }) | null
+  >;
+  head(key: string): Promise<CloudflareR2Object | null>;
+};
+
 type CloudflareRuntimeEnv = Record<string, unknown> & {
   HYPERDRIVE?: {
     connectionString?: unknown;
   };
+  R2_UPLOADS?: CloudflareR2Bucket;
 };
 
 const globalForCloudflareRuntime = globalThis as typeof globalThis & {
@@ -35,4 +52,8 @@ export function getCloudflareHyperdriveConnectionString() {
     globalForCloudflareRuntime.__lifeUstcCloudflareRuntimeEnv?.HYPERDRIVE
       ?.connectionString;
   return typeof value === "string" ? value.trim() || undefined : undefined;
+}
+
+export function getCloudflareR2UploadsBucket() {
+  return globalForCloudflareRuntime.__lifeUstcCloudflareRuntimeEnv?.R2_UPLOADS;
 }

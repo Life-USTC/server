@@ -13,6 +13,10 @@ Cloudflare Workers production logs are collected through Cloudflare observabilit
 ## Request Tracing
 
 - Caddy access logs remain the edge source of truth for every HTTP request.
+- Cloudflare Workers production enables logs and trace sampling in
+  `wrangler.jsonc`.
+- HTML page responses include `x-request-id` and emit `page.request.finish`
+  logs with route, status, duration, and response size when available.
 - SvelteKit REST routes propagate `x-request-id` and `x-request-start-ms`.
 - REST route logs use normalized route templates such as `/api/todos/:id`.
 - MCP transport logs include JSON-RPC method summaries, tool names, argument

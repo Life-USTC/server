@@ -1,4 +1,3 @@
-import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { buildContentDisposition } from "@/features/uploads/lib/upload-utils";
 import { handleRouteError, notFound } from "@/lib/api/helpers";
 import {
@@ -6,7 +5,7 @@ import {
   uploadPreviewHtml,
 } from "@/lib/api/routes/upload-route-helpers";
 import { requireAuth } from "@/lib/auth/api-auth";
-import { getS3Bucket, getS3SignedUrl } from "@/lib/storage/s3";
+import { getStorageObjectResponse } from "@/lib/storage/r2-object";
 
 type IdParams = { id: string };
 
@@ -34,20 +33,24 @@ export async function getUploadDownloadRoute(
       return notFound();
     }
 
-    const command = new GetObjectCommand({
-      Bucket: getS3Bucket(),
-      Key: upload.key,
-      ResponseContentDisposition: buildContentDisposition(upload.filename),
-      ResponseContentType: upload.contentType ?? undefined,
+    const objectResponse = await getStorageObjectResponse({
+      contentDisposition: buildContentDisposition(upload.filename),
+      contentType: upload.contentType,
+      key: upload.key,
     });
+    if (!objectResponse) return notFound();
 
-    const url = await getS3SignedUrl(command, { expiresIn: 60 });
     if (new URL(request.url).searchParams.get("preview") === "1") {
-      return new Response(uploadPreviewHtml(upload.filename, url), {
-        headers: { "Content-Type": "text/html; charset=utf-8" },
-      });
+      const downloadUrl = new URL(request.url);
+      downloadUrl.searchParams.delete("preview");
+      return new Response(
+        uploadPreviewHtml(upload.filename, downloadUrl.href),
+        {
+          headers: { "Content-Type": "text/html; charset=utf-8" },
+        },
+      );
     }
-    return Response.redirect(url);
+    return objectResponse;
   } catch (error) {
     return handleRouteError("Failed to prepare download", error);
   }

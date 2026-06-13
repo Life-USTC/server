@@ -1,4 +1,3 @@
-import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { prisma as basePrisma } from "@/lib/db/prisma";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { getDashboardCalendarItemsCount } from "./dashboard-calendar-count";
@@ -28,7 +27,6 @@ export async function getDashboardNavStats(
   user: DashboardUserSummary,
   sectionIds: readonly number[],
   referenceDate?: Date,
-  locale: AppLocale = DEFAULT_LOCALE,
 ): Promise<DashboardNavStats> {
   const referenceNow = referenceDate
     ? shanghaiDayjs(referenceDate)
@@ -83,12 +81,7 @@ export async function getDashboardNavStats(
         tomorrowStart,
       }),
     }),
-    getDashboardCalendarItemsCount(
-      user.id,
-      scopedSectionIds,
-      referenceNow,
-      locale,
-    ),
+    getDashboardCalendarItemsCount(user.id, scopedSectionIds, referenceNow),
   ]);
 
   return {

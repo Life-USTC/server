@@ -7,12 +7,15 @@ import {
 } from "@/lib/page-data-utils";
 
 export async function getSectionListPage(url: URL, locale = "zh-cn") {
-  const [{ buildSectionListQuery }, { paginatedSectionQuery }, { getPrisma }] =
-    await Promise.all([
-      import("@/lib/course-section-queries"),
-      import("@/lib/query-helpers"),
-      import("@/lib/db/prisma"),
-    ]);
+  const [
+    { buildSectionListQuery },
+    { paginatedSectionCompactQuery },
+    { getPrisma },
+  ] = await Promise.all([
+    import("@/lib/course-section-queries"),
+    import("@/lib/query-helpers"),
+    import("@/lib/db/prisma"),
+  ]);
   const page = parsePositivePage(url.searchParams.get("page"));
   const search = optionalValue(url.searchParams.get("search"));
   const semesterId = optionalValue(url.searchParams.get("semesterId"));
@@ -20,7 +23,7 @@ export async function getSectionListPage(url: URL, locale = "zh-cn") {
   const prisma = getPrisma(locale);
 
   const [result, semesters, messages] = await Promise.all([
-    paginatedSectionQuery(
+    paginatedSectionCompactQuery(
       page,
       PAGE_SIZE,
       where,

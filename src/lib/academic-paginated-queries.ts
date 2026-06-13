@@ -1,6 +1,7 @@
 import type { Prisma } from "@/generated/prisma/client";
 import {
   courseInclude,
+  sectionCompactInclude,
   sectionInclude,
   teacherListInclude,
 } from "@/lib/academic-query-includes";
@@ -24,6 +25,31 @@ export function paginatedSectionQuery(
         skip,
         take,
         include: sectionInclude,
+        orderBy,
+      }),
+    () => prisma.section.count({ where }),
+    page,
+    pageSize,
+  );
+}
+
+export function paginatedSectionCompactQuery(
+  page: number,
+  pageSize?: number,
+  where?: Prisma.SectionWhereInput,
+  orderBy?:
+    | Prisma.SectionOrderByWithRelationInput
+    | Prisma.SectionOrderByWithRelationInput[],
+  locale = "zh-cn",
+) {
+  const prisma = getPrisma(locale);
+  return paginatedQuery(
+    (skip, take) =>
+      prisma.section.findMany({
+        where,
+        skip,
+        take,
+        include: sectionCompactInclude,
         orderBy,
       }),
     () => prisma.section.count({ where }),

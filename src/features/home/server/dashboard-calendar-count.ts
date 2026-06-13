@@ -1,22 +1,14 @@
 import type dayjs from "dayjs";
-import type { AppLocale } from "@/i18n/config";
 import { selectCurrentSemesterFromList } from "@/lib/current-semester";
-import { prisma as basePrisma, getPrisma } from "@/lib/db/prisma";
+import { prisma as basePrisma } from "@/lib/db/prisma";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
-import { buildExams, buildSessions } from "./dashboard-helpers";
-import {
-  listSubscribedDashboardSections,
-  listSubscribedHomeworks,
-} from "./subscription-read-model";
 
 export async function getDashboardCalendarItemsCount(
   userId: string,
   sectionIds: readonly number[],
   referenceNow: dayjs.Dayjs,
-  locale: AppLocale,
 ) {
-  const localizedPrisma = getPrisma(locale);
-  const semesters = await localizedPrisma.semester.findMany({
+  const semesters = await basePrisma.semester.findMany({
     select: {
       id: true,
       nameCn: true,
@@ -40,50 +32,70 @@ export async function getDashboardCalendarItemsCount(
     currentSemester.endDate != null
       ? shanghaiDayjs(currentSemester.endDate).endOf("day")
       : referenceNow.add(6, "month").endOf("day");
-  const sections = await listSubscribedDashboardSections(userId, {
-    locale,
-    dateFrom: semesterStart.toDate(),
-    dateTo: semesterEnd.toDate(),
-    sectionIds,
+  const semesterSections = await basePrisma.section.findMany({
+    where: {
+      id: { in: Array.from(sectionIds) },
+      semesterId: currentSemester.id,
+    },
+    select: { id: true },
   });
-  const semesterSections = sections.filter(
-    (section) => section.semester?.id === currentSemester.id,
-  );
 
   if (semesterSections.length === 0) return 0;
 
   const semesterSectionIds = semesterSections.map((section) => section.id);
-  const [homeworks, todosCount] = await Promise.all([
-    listSubscribedHomeworks(userId, {
-      locale,
-      completed: false,
-      sectionIds: semesterSectionIds,
-      shape: "dashboard",
-    }),
-    basePrisma.todo.count({
-      where: {
-        userId,
-        completed: false,
-        dueAt: {
-          not: null,
-          gte: semesterStart.toDate(),
-          lte: semesterEnd.toDate(),
+  const [sessionsCount, examsCount, homeworksCount, todosCount] =
+    await Promise.all([
+      basePrisma.schedule.count({
+        where: {
+          sectionId: { in: semesterSectionIds },
+          date: {
+            gte: semesterStart.toDate(),
+            lte: semesterEnd.toDate(),
+          },
         },
-      },
-    }),
-  ]);
-  const homeworksCount = homeworks.filter((homework) => {
-    if (!homework.submissionDueAt) return false;
-    const due = shanghaiDayjs(homework.submissionDueAt);
-    return (
-      !due.isBefore(semesterStart, "day") && !due.isAfter(semesterEnd, "day")
-    );
-  }).length;
+      }),
+      basePrisma.exam.count({
+        where: {
+          sectionId: { in: semesterSectionIds },
+          OR: [
+            { examDate: { not: null } },
+            { startTime: { not: null } },
+            { endTime: { not: null } },
+            { examType: { not: null } },
+            { examTakeCount: { not: null } },
+            { examMode: { not: null } },
+            {
+              examRooms: {
+                some: { OR: [{ room: { not: "" } }, { count: { gt: 0 } }] },
+              },
+            },
+          ],
+        },
+      }),
+      basePrisma.homework.count({
+        where: {
+          deletedAt: null,
+          sectionId: { in: semesterSectionIds },
+          submissionDueAt: {
+            not: null,
+            gte: semesterStart.toDate(),
+            lte: semesterEnd.toDate(),
+          },
+          homeworkCompletions: { none: { userId } },
+        },
+      }),
+      basePrisma.todo.count({
+        where: {
+          userId,
+          completed: false,
+          dueAt: {
+            not: null,
+            gte: semesterStart.toDate(),
+            lte: semesterEnd.toDate(),
+          },
+        },
+      }),
+    ]);
 
-  return (
-    buildSessions(semesterSections).length +
-    buildExams(semesterSections).length +
-    homeworksCount +
-    todosCount
-  );
+  return sessionsCount + examsCount + homeworksCount + todosCount;
 }

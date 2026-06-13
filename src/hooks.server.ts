@@ -8,6 +8,7 @@ import {
   recordApiRequestStart,
   setApiRequestObservabilityContext,
 } from "@/lib/log/api-observability";
+import { logAppEvent } from "@/lib/log/app-logger";
 import {
   buildContentSecurityPolicy,
   createScriptNonce,
@@ -75,11 +76,14 @@ function responseWithMutableHeaders(response: Response) {
   return new Response(response.body, response);
 }
 
-function prepareApiObservability(request: Request, pathname: string) {
+function prepareApiObservability(
+  request: Request,
+  pathname: string,
+  requestId: string,
+  startMs: number,
+) {
   if (!isApiRequest(pathname)) return null;
 
-  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
-  const startMs = Date.now();
   setApiRequestObservabilityContext(request, { requestId, startMs });
   recordApiRequestStart({
     method: request.method,
@@ -87,6 +91,37 @@ function prepareApiObservability(request: Request, pathname: string) {
     requestId,
   });
   return { requestId };
+}
+
+function contentLength(response: Response) {
+  const value = response.headers.get("content-length");
+  if (!value || !/^\d+$/.test(value)) return undefined;
+  return Number(value);
+}
+
+function routeId(event: Parameters<Handle>[0]["event"]) {
+  return event.route.id ?? event.url.pathname;
+}
+
+function recordPageRequestFinish(input: {
+  durationMs: number;
+  event: Parameters<Handle>[0]["event"];
+  requestId: string;
+  response: Response;
+}) {
+  if (isApiRequest(input.event.url.pathname)) return;
+  if (!isHtmlResponse(input.response)) return;
+
+  logAppEvent("info", "page.request.finish", {
+    durationMs: input.durationMs,
+    event: "page.request.finish",
+    method: input.event.request.method,
+    requestId: input.requestId,
+    responseBytes: contentLength(input.response),
+    route: routeId(input.event),
+    source: "sveltekit",
+    status: input.response.status,
+  });
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -102,9 +137,14 @@ export const handle: Handle = async ({ event, resolve }) => {
     event.request.headers.get("accept-language"),
   );
   event.locals.locale = locale;
+  const requestId =
+    event.request.headers.get("x-request-id") ?? crypto.randomUUID();
+  const startMs = Date.now();
   const apiObservability = prepareApiObservability(
     event.request,
     event.url.pathname,
+    requestId,
+    startMs,
   );
   const nonce = createScriptNonce();
 
@@ -133,6 +173,12 @@ export const handle: Handle = async ({ event, resolve }) => {
       ),
   });
   const shouldSetCsp = isHtmlResponse(response);
+  recordPageRequestFinish({
+    durationMs: Date.now() - startMs,
+    event,
+    requestId,
+    response,
+  });
 
   if (!apiObservability && !shouldSetCsp) {
     return response;
@@ -141,6 +187,8 @@ export const handle: Handle = async ({ event, resolve }) => {
   const mutableResponse = responseWithMutableHeaders(response);
   if (apiObservability) {
     mutableResponse.headers.set("x-request-id", apiObservability.requestId);
+  } else if (shouldSetCsp) {
+    mutableResponse.headers.set("x-request-id", requestId);
   }
   if (shouldSetCsp) {
     mutableResponse.headers.set(
