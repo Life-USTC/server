@@ -1,9 +1,9 @@
-import type { PrismaClient } from "@/generated/prisma/client";
+import type { BusImportPrisma } from "./bus-import-prisma";
 import { buildBusScheduleVersionData } from "./bus-import-version-data";
 import type { BusStaticPayload } from "./bus-types";
 
 export async function findExistingBusScheduleVersion(
-  prisma: PrismaClient,
+  prisma: BusImportPrisma,
   {
     checksum,
     versionKey,
@@ -21,7 +21,7 @@ export async function findExistingBusScheduleVersion(
 }
 
 export async function refreshExistingBusScheduleVersion(
-  prisma: PrismaClient,
+  prisma: BusImportPrisma,
   {
     checksum,
     effectiveFrom,
@@ -55,7 +55,7 @@ export async function refreshExistingBusScheduleVersion(
 }
 
 export async function disablePreviousBusScheduleVersions(
-  prisma: PrismaClient,
+  prisma: BusImportPrisma,
   {
     existingId,
     versionKey,
@@ -73,7 +73,7 @@ export async function disablePreviousBusScheduleVersions(
 }
 
 export function upsertImportedBusScheduleVersion(
-  prisma: PrismaClient,
+  prisma: BusImportPrisma,
   {
     checksum,
     effectiveFrom,

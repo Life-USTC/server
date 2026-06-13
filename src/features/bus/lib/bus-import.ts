@@ -1,4 +1,3 @@
-import type { PrismaClient } from "@/generated/prisma/client";
 import {
   checksumBusPayload,
   inferBusEffectiveFrom,
@@ -6,6 +5,7 @@ import {
   inferBusVersionTitle,
 } from "./bus-import-metadata";
 import type { BusImportOptions } from "./bus-import-options";
+import type { BusImportPrisma } from "./bus-import-prisma";
 import {
   disablePreviousBusScheduleVersions,
   findExistingBusScheduleVersion,
@@ -21,7 +21,7 @@ import {
 import type { BusImportResult, BusStaticPayload } from "./bus-types";
 
 export async function importBusStaticPayload(
-  prisma: PrismaClient,
+  prisma: BusImportPrisma,
   payload: BusStaticPayload,
   options?: BusImportOptions,
 ): Promise<BusImportResult> {

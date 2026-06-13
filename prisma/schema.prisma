@@ -4,6 +4,12 @@ generator client {
   output   = "../src/generated/prisma"
 }
 
+generator toolClient {
+  provider = "prisma-client"
+  runtime  = "nodejs"
+  output   = "../src/generated/prisma-node"
+}
+
 datasource db {
   provider = "postgresql"
 }

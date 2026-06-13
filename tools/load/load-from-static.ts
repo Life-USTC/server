@@ -10,7 +10,10 @@ import type {
   BusStaticRoute,
   BusStaticRouteSchedule,
 } from "../../src/features/bus/lib/bus-types";
-import type { Prisma, PrismaClient } from "../../src/generated/prisma/client";
+import type {
+  Prisma,
+  PrismaClient,
+} from "../../src/generated/prisma-node/client";
 import { createToolPrisma } from "../shared/tool-prisma";
 
 const { values: args } = parseArgs({

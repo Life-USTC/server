@@ -12,7 +12,8 @@ migrations/      Migration history
 ## Generated Output
 
 ```
-src/generated/prisma/  → DO NOT EDIT
+src/generated/prisma/       → Cloudflare app client, DO NOT EDIT
+src/generated/prisma-node/  → Node/Bun tool client, DO NOT EDIT
 ```
 
 ## Imports

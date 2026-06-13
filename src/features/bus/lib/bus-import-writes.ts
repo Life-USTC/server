@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@/generated/prisma/client";
+import type { BusImportPrisma } from "./bus-import-prisma";
 import {
   buildBusRouteNameData,
   normalizeBusCampusName,
@@ -20,7 +20,7 @@ export function assertBusRouteConsistency(payload: BusStaticPayload) {
 }
 
 export async function upsertBusCampuses(
-  prisma: PrismaClient,
+  prisma: BusImportPrisma,
   payload: BusStaticPayload,
 ) {
   for (const campus of payload.campuses) {
@@ -42,7 +42,7 @@ export async function upsertBusCampuses(
 }
 
 export async function upsertBusRoutes(
-  prisma: PrismaClient,
+  prisma: BusImportPrisma,
   payload: BusStaticPayload,
 ) {
   for (const route of payload.routes) {
@@ -71,7 +71,7 @@ export async function upsertBusRoutes(
 }
 
 export async function createBusTripsForDayType(
-  prisma: PrismaClient,
+  prisma: BusImportPrisma,
   versionId: number,
   dayType: "weekday" | "weekend",
   schedules: BusStaticRouteSchedule[],

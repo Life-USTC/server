@@ -6,7 +6,7 @@ import {
   CommentVisibility,
   HomeworkAuditAction,
   type Prisma,
-} from "../../../src/generated/prisma/client";
+} from "../../../src/generated/prisma-node/client";
 import scenarioData from "../../../tests/e2e/fixtures/scenario.json" with {
   type: "json",
 };
