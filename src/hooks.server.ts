@@ -3,6 +3,40 @@ import { LOCALE_COOKIE, negotiateLocale } from "@/i18n/config";
 import { shouldRedirectIncompleteProfileToWelcome } from "@/lib/auth/auth-routing";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
 import { setCloudflareRuntimeEnv } from "@/lib/cloudflare/runtime-env";
+import {
+  recordApiRequestStart,
+  setApiRequestObservabilityContext,
+} from "@/lib/log/api-observability";
+import {
+  buildContentSecurityPolicy,
+  createScriptNonce,
+} from "@/lib/security/csp";
+
+function isApiRequest(pathname: string) {
+  return pathname.startsWith("/api/");
+}
+
+function isHtmlResponse(response: Response) {
+  return response.headers.get("content-type")?.includes("text/html");
+}
+
+function addScriptNonce(html: string, nonce: string) {
+  return html.replace(/<script(?![^>]*\bnonce=)/g, `<script nonce="${nonce}"`);
+}
+
+function prepareApiObservability(request: Request, pathname: string) {
+  if (!isApiRequest(pathname)) return null;
+
+  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  const startMs = Date.now();
+  setApiRequestObservabilityContext(request, { requestId, startMs });
+  recordApiRequestStart({
+    method: request.method,
+    pathname,
+    requestId,
+  });
+  return { requestId };
+}
 
 export const handle: Handle = async ({ event, resolve }) => {
   setCloudflareRuntimeEnv(
@@ -14,6 +48,11 @@ export const handle: Handle = async ({ event, resolve }) => {
     event.request.headers.get("accept-language"),
   );
   event.locals.locale = locale;
+  const apiObservability = prepareApiObservability(
+    event.request,
+    event.url.pathname,
+  );
+  const nonce = createScriptNonce();
 
   const session = hasRequestAuthSignal(event.request.headers)
     ? await import("@/lib/auth/core").then(({ getSessionFromHeaders }) =>
@@ -32,10 +71,27 @@ export const handle: Handle = async ({ event, resolve }) => {
     throw redirect(303, `/welcome?callbackUrl=${encodeURIComponent(returnTo)}`);
   }
 
-  return resolve(event, {
+  const response = await resolve(event, {
     transformPageChunk: ({ html }) =>
-      html.replace('<html lang="zh-CN">', `<html lang="${locale}">`),
+      addScriptNonce(
+        html.replace('<html lang="zh-CN">', `<html lang="${locale}">`),
+        nonce,
+      ),
   });
+
+  if (apiObservability) {
+    response.headers.set("x-request-id", apiObservability.requestId);
+  }
+  if (isHtmlResponse(response)) {
+    response.headers.set(
+      "Content-Security-Policy",
+      buildContentSecurityPolicy(nonce, {
+        isDevelopment: process.env.NODE_ENV === "development",
+      }),
+    );
+  }
+
+  return response;
 };
 
 function sanitizeErrorText(value: string) {
