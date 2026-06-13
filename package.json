@@ -36,7 +36,7 @@
     "test": "vitest run",
     "test:e2e": "bun run test:e2e:prepare && bun run dev:seed-scenarios && playwright test --reporter=list",
     "test:e2e:artifacts": "bun run typecheck && bun run test:e2e:prepare",
-    "test:e2e:prepare": "bun run build && bun run tools/dev/e2e.ts prepare",
+    "test:e2e:prepare": "SVELTEKIT_ADAPTER=node bun run build && bun run tools/dev/e2e.ts prepare",
     "test:watch": "vitest",
     "test:integration": "bun run dev:seed-scenarios && vitest run --config vitest.integration.config.ts",
     "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc --noEmit -p tsconfig.typecheck.json && tsc --noEmit -p tsconfig.typecheck.tests.json && tsc --noEmit -p tsconfig.typecheck.operational.json",
