@@ -97,6 +97,7 @@ export function shouldRedirectIncompleteProfileToWelcome({
   if (
     pathname === "/welcome" ||
     pathname === "/signin" ||
+    pathname === "/signout" ||
     pathname.startsWith("/oauth/") ||
     isOAuthCallbackContinuation(url)
   ) {

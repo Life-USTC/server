@@ -1,3 +1,4 @@
+import type { RequestHandler } from "@sveltejs/kit";
 import {
   getMcpServerUrl,
   getOAuthAuthorizationServerMetadataUrl,
@@ -54,12 +55,27 @@ const DISCOVERY_TARGETS = {
 } as const;
 
 type DiscoveryRouteTarget = keyof typeof DISCOVERY_TARGETS;
+type RequestDiscoveryHandlers = ReturnType<typeof createDiscoveryMetadataRoute>;
+
+function adaptDiscoveryRouteHandlers(handlers: RequestDiscoveryHandlers): {
+  GET: RequestHandler;
+  OPTIONS: RequestHandler;
+} {
+  return {
+    GET: (event) => handlers.GET(event.request),
+    OPTIONS: () => handlers.OPTIONS(),
+  };
+}
 
 export function createOAuthDiscoveryRoute(target: DiscoveryRouteTarget) {
   const route = DISCOVERY_TARGETS[target];
   if (route.type === "metadata") {
-    return createDiscoveryMetadataRoute(route.getResponse);
+    return adaptDiscoveryRouteHandlers(
+      createDiscoveryMetadataRoute(route.getResponse),
+    );
   }
 
-  return createDiscoveryRedirectRoute(route.resolveUrl);
+  return adaptDiscoveryRouteHandlers(
+    createDiscoveryRedirectRoute(route.resolveUrl),
+  );
 }
