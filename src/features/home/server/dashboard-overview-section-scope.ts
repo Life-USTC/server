@@ -26,6 +26,10 @@ export async function resolveDashboardOverviewSectionScope(input: {
     locale: input.locale,
     dateFrom: input.scheduleDateStart,
     dateTo: input.scheduleDateEnd,
+    detailSemesterIds: [
+      input.currentSemester?.id,
+      input.gridSemesterRow?.id,
+    ].filter((id): id is number => id != null),
     sectionIds: input.sectionIds,
   });
 
