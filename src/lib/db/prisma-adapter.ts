@@ -1,22 +1,13 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { getOptionalTrimmedEnv } from "@/app-env";
+import { getCloudflareHyperdriveConnectionString } from "@/lib/cloudflare/runtime-env";
 import { logAppEvent } from "@/lib/log/app-logger";
-import { env as privateEnv } from "$env/dynamic/private";
-
-type RuntimeEnv = Record<string, unknown> & {
-  HYPERDRIVE?: {
-    connectionString?: unknown;
-  };
-};
 
 function getRuntimeDatabaseUrl() {
-  const hyperdriveConnectionString = (privateEnv as RuntimeEnv).HYPERDRIVE
-    ?.connectionString;
-  if (typeof hyperdriveConnectionString === "string") {
-    return hyperdriveConnectionString.trim() || undefined;
-  }
-
-  return getOptionalTrimmedEnv("DATABASE_URL");
+  return (
+    getCloudflareHyperdriveConnectionString() ??
+    getOptionalTrimmedEnv("DATABASE_URL")
+  );
 }
 
 export function createPrismaAdapter(

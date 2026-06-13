@@ -21,7 +21,6 @@ export async function buildSemesterCalendarPayload({
     startDate: Date | null;
     endDate: Date | null;
   } | null;
-  incompleteHomeworks: HomeworkWithSection[];
   sectionsForCalendarGrid: Parameters<typeof buildSessions>[0];
   userId: string;
 }) {

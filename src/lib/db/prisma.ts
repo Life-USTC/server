@@ -2,7 +2,7 @@ import type { PrismaClient } from "@/generated/prisma/client";
 import { localizedNamesExtension } from "@/lib/db/prisma-localized-names";
 import { createBasePrisma, logPrismaQuery } from "@/lib/db/prisma-query-events";
 import { shouldEnablePrismaQueryLogging } from "@/lib/db/prisma-query-logging";
-import { env as privateEnv } from "$env/dynamic/private";
+import { getCloudflareHyperdriveConnectionString } from "@/lib/cloudflare/runtime-env";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -12,7 +12,7 @@ const globalForPrisma = globalThis as unknown as {
 let basePrisma: PrismaClient | undefined;
 
 function isHyperdriveRuntime() {
-  return Boolean((privateEnv as Record<string, unknown>).HYPERDRIVE);
+  return Boolean(getCloudflareHyperdriveConnectionString());
 }
 
 function getBasePrisma() {

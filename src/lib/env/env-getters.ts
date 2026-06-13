@@ -1,4 +1,3 @@
-import { env as privateEnv } from "$env/dynamic/private";
 import { APP_PRODUCTION_BUILD_PHASE } from "./env-constants";
 import { trimOrUndefined, normalizeEnvInput } from "./env-normalize";
 import { formatIssues, parseEnv } from "./env-parse";
@@ -9,7 +8,7 @@ import {
 } from "./env-schema";
 
 function getDefaultEnvInput(): NodeJS.ProcessEnv {
-  return { ...process.env, ...privateEnv };
+  return { ...process.env };
 }
 
 export function loadEnv(
