@@ -11,7 +11,9 @@ export type DashboardPublicCounts = {
 
 export type DashboardPageLoadEvent = {
   locals: {
+    authUser?: App.Locals["authUser"];
     locale: string;
+    requestId?: string;
   };
   request: Request;
   url: URL;

@@ -139,6 +139,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   event.locals.locale = locale;
   const requestId =
     event.request.headers.get("x-request-id") ?? crypto.randomUUID();
+  event.locals.requestId = requestId;
   const startMs = Date.now();
   const apiObservability = prepareApiObservability(
     event.request,
@@ -153,6 +154,7 @@ export const handle: Handle = async ({ event, resolve }) => {
         getSessionFromHeaders(event.request.headers),
       )
     : null;
+  event.locals.authUser = session?.user ?? null;
   if (
     shouldRedirectIncompleteProfileToWelcome({
       pathname: event.url.pathname,

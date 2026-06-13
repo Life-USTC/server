@@ -17,6 +17,8 @@ Cloudflare Workers production logs are collected through Cloudflare observabilit
   `wrangler.jsonc`.
 - HTML page responses include `x-request-id` and emit `page.request.finish`
   logs with route, status, duration, and response size when available.
+- Dashboard page loads emit `dashboard.load.finish` logs with tab, signed-in
+  state, subscription count, status, duration, and request id.
 - SvelteKit REST routes propagate `x-request-id` and `x-request-start-ms`.
 - REST route logs use normalized route templates such as `/api/todos/:id`.
 - MCP transport logs include JSON-RPC method summaries, tool names, argument

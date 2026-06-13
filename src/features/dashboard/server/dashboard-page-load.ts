@@ -10,15 +10,37 @@ import {
   parseSnapshotReferenceTime,
 } from "@/features/dashboard/server/dashboard-page-server";
 import type { AppLocale } from "@/i18n/config";
+import { logAppEvent } from "@/lib/log/app-logger";
+
+function recordDashboardLoadFinish(input: {
+  durationMs: number;
+  requestId: string | undefined;
+  signedIn: boolean;
+  status: "ok" | "user-missing";
+  subscribedSectionCount?: number;
+  tab: string;
+}) {
+  logAppEvent("info", "dashboard.load.finish", {
+    durationMs: input.durationMs,
+    event: "dashboard.load.finish",
+    requestId: input.requestId,
+    signedIn: input.signedIn,
+    source: "dashboard",
+    status: input.status,
+    subscribedSectionCount: input.subscribedSectionCount,
+    tab: input.tab,
+  });
+}
 
 export async function loadDashboardPage({
   locals,
   request,
   url,
 }: DashboardPageLoadEvent) {
+  const startMs = Date.now();
   const locale = locals.locale as AppLocale;
   const pageCopy = getDashboardPageCopy(locale);
-  const userId = await getDashboardUserId(request);
+  const userId = locals.authUser?.id ?? (await getDashboardUserId(request));
   const calendarSemesterId =
     url.searchParams.get("tab") === "calendar"
       ? parsePositiveCalendarSemester(url.searchParams.get("calendarSemester"))
@@ -50,7 +72,7 @@ export async function loadDashboardPage({
 
   if (!userId) {
     const publicSummary = await publicSummaryPromise;
-    return loadAnonymousDashboardPageData({
+    const data = loadAnonymousDashboardPageData({
       counts: publicSummary.counts,
       locale,
       overviewLinks: publicSummary.links.overviewLinks,
@@ -58,6 +80,14 @@ export async function loadDashboardPage({
       publicLinks: publicSummary.links.dashboardLinks,
       tab,
     });
+    recordDashboardLoadFinish({
+      durationMs: Date.now() - startMs,
+      requestId: locals.requestId,
+      signedIn: false,
+      status: "ok",
+      tab,
+    });
+    return data;
   }
 
   const [publicSummary, signedData] = await Promise.all([
@@ -72,6 +102,17 @@ export async function loadDashboardPage({
       userId,
     }),
   ]);
+  recordDashboardLoadFinish({
+    durationMs: Date.now() - startMs,
+    requestId: locals.requestId,
+    signedIn: true,
+    status: "userMissing" in signedData ? "user-missing" : "ok",
+    subscribedSectionCount:
+      "subscribedSectionCount" in signedData
+        ? signedData.subscribedSectionCount
+        : undefined,
+    tab,
+  });
 
   return {
     ...signedData,
