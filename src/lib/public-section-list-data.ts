@@ -5,8 +5,22 @@ import {
   parsePositivePage,
   toLoadData,
 } from "@/lib/page-data-utils";
+import {
+  cachedPublicRuntimeData,
+  publicRuntimeCacheKey,
+} from "@/lib/public-runtime-cache";
+
+const SECTION_LIST_CACHE_TTL_MS = 60_000;
 
 export async function getSectionListPage(url: URL, locale = "zh-cn") {
+  return cachedPublicRuntimeData(
+    publicRuntimeCacheKey(`section-list:${locale}`, url.searchParams),
+    SECTION_LIST_CACHE_TTL_MS,
+    () => getUncachedSectionListPage(url, locale),
+  );
+}
+
+async function getUncachedSectionListPage(url: URL, locale = "zh-cn") {
   const [
     { buildSectionListQuery },
     { paginatedSectionSummaryQuery },

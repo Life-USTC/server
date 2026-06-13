@@ -7,6 +7,9 @@ import {
 } from "@/lib/api/helpers";
 import { semestersQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { findCurrentSemester } from "@/lib/current-semester";
+import { cachedPublicRuntimeData } from "@/lib/public-runtime-cache";
+
+const SEMESTERS_API_CACHE_TTL_MS = 60_000;
 
 export async function getMetadataRoute() {
   try {
@@ -66,15 +69,22 @@ export async function getSemestersRoute(request: Request) {
     }
     const { page, pageSize, skip } = parsed.pagination;
 
-    const { prisma } = await import("@/lib/db/prisma");
-    const [semesters, total] = await Promise.all([
-      prisma.semester.findMany({
-        skip,
-        take: pageSize,
-        orderBy: { startDate: "desc" },
-      }),
-      prisma.semester.count(),
-    ]);
+    const { semesters, total } = await cachedPublicRuntimeData(
+      `api:semesters:${JSON.stringify({ page, pageSize, skip })}`,
+      SEMESTERS_API_CACHE_TTL_MS,
+      async () => {
+        const { prisma } = await import("@/lib/db/prisma");
+        const [semesters, total] = await Promise.all([
+          prisma.semester.findMany({
+            skip,
+            take: pageSize,
+            orderBy: { startDate: "desc" },
+          }),
+          prisma.semester.count(),
+        ]);
+        return { semesters, total };
+      },
+    );
 
     return jsonResponse(
       buildPaginatedResponse(semesters, page, pageSize, total),
