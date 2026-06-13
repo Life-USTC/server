@@ -1,4 +1,5 @@
 import { jsonResponse } from "@/lib/api/helpers";
+import { PUBLIC_CATALOG_CACHE_CONTROL } from "@/lib/public-cache-control";
 import { cachedPublicRuntimeData } from "@/lib/public-runtime-cache";
 
 const SECTION_LIST_API_CACHE_TTL_MS = 60_000;
@@ -27,7 +28,9 @@ export async function listSectionsAction(
     SECTION_LIST_API_CACHE_TTL_MS,
     () => listUncachedSectionsAction(parsedQuery, pagination),
   );
-  return jsonResponse(result);
+  return jsonResponse(result, {
+    headers: { "Cache-Control": PUBLIC_CATALOG_CACHE_CONTROL },
+  });
 }
 
 async function listUncachedSectionsAction(

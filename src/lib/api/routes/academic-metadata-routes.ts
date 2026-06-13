@@ -7,6 +7,7 @@ import {
 } from "@/lib/api/helpers";
 import { semestersQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { findCurrentSemester } from "@/lib/current-semester";
+import { PUBLIC_CATALOG_CACHE_CONTROL } from "@/lib/public-cache-control";
 import { cachedPublicRuntimeData } from "@/lib/public-runtime-cache";
 
 const SEMESTERS_API_CACHE_TTL_MS = 60_000;
@@ -88,6 +89,9 @@ export async function getSemestersRoute(request: Request) {
 
     return jsonResponse(
       buildPaginatedResponse(semesters, page, pageSize, total),
+      {
+        headers: { "Cache-Control": PUBLIC_CATALOG_CACHE_CONTROL },
+      },
     );
   } catch (error) {
     return handleRouteError("Failed to fetch semesters", error);
