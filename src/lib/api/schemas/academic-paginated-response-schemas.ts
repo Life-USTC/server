@@ -1,6 +1,6 @@
 import { courseSchema } from "./academic-course-response-schemas";
 import {
-  sectionCompactSchema,
+  sectionSummarySchema,
   semesterSchema,
 } from "./academic-section-response-schemas";
 import { teacherListSchema } from "./academic-teacher-response-schemas";
@@ -9,7 +9,7 @@ import { createPaginatedSchema } from "./response-schema-primitives";
 export const paginatedCourseResponseSchema =
   createPaginatedSchema(courseSchema);
 export const paginatedSectionResponseSchema =
-  createPaginatedSchema(sectionCompactSchema);
+  createPaginatedSchema(sectionSummarySchema);
 export const paginatedTeacherResponseSchema =
   createPaginatedSchema(teacherListSchema);
 export const paginatedSemesterResponseSchema =

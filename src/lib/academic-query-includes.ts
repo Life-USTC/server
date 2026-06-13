@@ -1,5 +1,54 @@
 import type { Prisma } from "@/generated/prisma/client";
 
+export const sectionSummarySelect = {
+  id: true,
+  jwId: true,
+  code: true,
+  credits: true,
+  stdCount: true,
+  limitCount: true,
+  courseId: true,
+  semesterId: true,
+  campusId: true,
+  openDepartmentId: true,
+  course: {
+    select: {
+      id: true,
+      jwId: true,
+      code: true,
+      nameCn: true,
+      nameEn: true,
+    },
+  },
+  semester: {
+    select: {
+      id: true,
+      jwId: true,
+      nameCn: true,
+      code: true,
+    },
+  },
+  campus: {
+    select: {
+      id: true,
+      jwId: true,
+      nameCn: true,
+      nameEn: true,
+      code: true,
+    },
+  },
+  teachers: {
+    select: {
+      id: true,
+      personId: true,
+      teacherId: true,
+      code: true,
+      nameCn: true,
+      nameEn: true,
+    },
+  },
+} satisfies Prisma.SectionSelect;
+
 /** Lightweight section include for list/match scenarios. */
 export const sectionCompactInclude = {
   course: {

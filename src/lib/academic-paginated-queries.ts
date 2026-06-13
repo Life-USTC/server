@@ -3,6 +3,7 @@ import {
   courseInclude,
   sectionCompactInclude,
   sectionInclude,
+  sectionSummarySelect,
   teacherListInclude,
 } from "@/lib/academic-query-includes";
 import { getPrisma } from "@/lib/db/prisma";
@@ -50,6 +51,31 @@ export function paginatedSectionCompactQuery(
         skip,
         take,
         include: sectionCompactInclude,
+        orderBy,
+      }),
+    () => prisma.section.count({ where }),
+    page,
+    pageSize,
+  );
+}
+
+export function paginatedSectionSummaryQuery(
+  page: number,
+  pageSize?: number,
+  where?: Prisma.SectionWhereInput,
+  orderBy?:
+    | Prisma.SectionOrderByWithRelationInput
+    | Prisma.SectionOrderByWithRelationInput[],
+  locale = "zh-cn",
+) {
+  const prisma = getPrisma(locale);
+  return paginatedQuery(
+    (skip, take) =>
+      prisma.section.findMany({
+        where,
+        skip,
+        take,
+        select: sectionSummarySelect,
         orderBy,
       }),
     () => prisma.section.count({ where }),

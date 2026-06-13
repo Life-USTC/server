@@ -9,7 +9,7 @@ import {
 export async function getSectionListPage(url: URL, locale = "zh-cn") {
   const [
     { buildSectionListQuery },
-    { paginatedSectionCompactQuery },
+    { paginatedSectionSummaryQuery },
     { getPrisma },
   ] = await Promise.all([
     import("@/lib/course-section-queries"),
@@ -23,7 +23,7 @@ export async function getSectionListPage(url: URL, locale = "zh-cn") {
   const prisma = getPrisma(locale);
 
   const [result, semesters, messages] = await Promise.all([
-    paginatedSectionCompactQuery(
+    paginatedSectionSummaryQuery(
       page,
       PAGE_SIZE,
       where,

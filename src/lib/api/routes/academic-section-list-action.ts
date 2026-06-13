@@ -27,8 +27,8 @@ export async function listSectionsAction(
     ids: parsedQuery.ids ? Array.from(parsedQuery.ids) : undefined,
     jwIds: parsedQuery.jwIds ? Array.from(parsedQuery.jwIds) : undefined,
   });
-  const { paginatedSectionCompactQuery } = await import("@/lib/query-helpers");
-  const result = await paginatedSectionCompactQuery(
+  const { paginatedSectionSummaryQuery } = await import("@/lib/query-helpers");
+  const result = await paginatedSectionSummaryQuery(
     pagination.page,
     pagination.pageSize,
     where,

@@ -18,6 +18,7 @@ export {
   courseDetailSectionSchema,
   sectionCompactSchema,
   sectionListSchema,
+  sectionSummarySchema,
   teacherDetailSchema,
   teacherDetailSectionSchema,
 } from "./academic-section-list-response-schemas";
