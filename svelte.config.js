@@ -12,6 +12,9 @@ const config = {
       checkOrigin: false,
     },
     alias: {
+      "@/generated/prisma/client": useNodeAdapter
+        ? "./src/generated/prisma-node/client"
+        : "./src/generated/prisma/client",
       "@/*": "./src/*",
       "@tools/*": "./tools/*",
     },
