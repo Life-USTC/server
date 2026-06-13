@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client"
-  runtime  = "cloudflare"
   output   = "../src/generated/prisma"
 }
 
