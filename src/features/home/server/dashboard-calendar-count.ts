@@ -2,16 +2,16 @@ import type dayjs from "dayjs";
 import { selectCurrentSemesterFromList } from "@/lib/current-semester";
 import { prisma as basePrisma } from "@/lib/db/prisma";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
+import type { DashboardSubscribedSection } from "./dashboard-user-context";
 
 export async function getDashboardCalendarItemsCount(
   userId: string,
-  sectionIds: readonly number[],
+  subscribedSections: readonly DashboardSubscribedSection[],
   referenceNow: dayjs.Dayjs,
 ) {
   const semesters = await basePrisma.semester.findMany({
     select: {
       id: true,
-      nameCn: true,
       startDate: true,
       endDate: true,
     },
@@ -24,6 +24,12 @@ export async function getDashboardCalendarItemsCount(
 
   if (!currentSemester) return 0;
 
+  const semesterSectionIds = subscribedSections
+    .filter((section) => section.semesterId === currentSemester.id)
+    .map((section) => section.id);
+
+  if (semesterSectionIds.length === 0) return 0;
+
   const semesterStart =
     currentSemester.startDate != null
       ? shanghaiDayjs(currentSemester.startDate).startOf("day")
@@ -32,17 +38,6 @@ export async function getDashboardCalendarItemsCount(
     currentSemester.endDate != null
       ? shanghaiDayjs(currentSemester.endDate).endOf("day")
       : referenceNow.add(6, "month").endOf("day");
-  const semesterSections = await basePrisma.section.findMany({
-    where: {
-      id: { in: Array.from(sectionIds) },
-      semesterId: currentSemester.id,
-    },
-    select: { id: true },
-  });
-
-  if (semesterSections.length === 0) return 0;
-
-  const semesterSectionIds = semesterSections.map((section) => section.id);
   const [sessionsCount, examsCount, homeworksCount, todosCount] =
     await Promise.all([
       basePrisma.schedule.count({

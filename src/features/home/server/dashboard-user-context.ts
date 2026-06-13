@@ -6,9 +6,15 @@ export type DashboardUserSummary = {
   username: string | null;
 };
 
+export type DashboardSubscribedSection = {
+  id: number;
+  semesterId: number | null;
+};
+
 export type DashboardUserContext = {
   user: DashboardUserSummary & { calendarFeedToken: string | null };
   sectionIds: number[];
+  subscribedSections: DashboardSubscribedSection[];
 };
 
 export async function getDashboardUserContext(
@@ -22,7 +28,7 @@ export async function getDashboardUserContext(
       username: true,
       calendarFeedToken: true,
       subscribedSections: {
-        select: { id: true },
+        select: { id: true, semesterId: true },
       },
     },
   });
@@ -37,5 +43,6 @@ export async function getDashboardUserContext(
       calendarFeedToken: user.calendarFeedToken,
     },
     sectionIds: user.subscribedSections.map((section) => section.id),
+    subscribedSections: user.subscribedSections,
   };
 }
