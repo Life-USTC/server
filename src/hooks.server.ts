@@ -28,13 +28,6 @@ const FORM_CONTENT_TYPES = [
   "multipart/form-data",
   "text/plain",
 ];
-const PUBLIC_PAGE_CACHE_PATHS = new Set(["/courses", "/sections", "/teachers"]);
-const RETURNED_PUBLIC_PAGE_CACHE_CONTROL = "private, no-store";
-type PublicCachePlatform = {
-  caches?: { default?: Cache };
-  context?: { waitUntil: (promise: Promise<unknown>) => void };
-  ctx?: { waitUntil: (promise: Promise<unknown>) => void };
-};
 
 function configuredTrustedFormOrigins() {
   const publicOrigin = getOptionalTrimmedEnv("APP_PUBLIC_ORIGIN");
@@ -110,97 +103,6 @@ function routeId(event: Parameters<Handle>[0]["event"]) {
   return event.route.id ?? event.url.pathname;
 }
 
-function isPublicPageCachePath(pathname: string) {
-  return PUBLIC_PAGE_CACHE_PATHS.has(pathname);
-}
-
-function requestBypassesPublicCache(request: Request) {
-  const cacheControl = request.headers.get("cache-control") ?? "";
-  return (
-    cacheControl.includes("no-cache") ||
-    cacheControl.includes("no-store") ||
-    request.headers.get("pragma") === "no-cache"
-  );
-}
-
-function publicPageCacheForEvent(
-  event: Parameters<Handle>[0]["event"],
-  locale: string,
-  hasAuthSignal: boolean,
-) {
-  if (event.request.method !== "GET") return null;
-  if (hasAuthSignal) return null;
-  if (!isPublicPageCachePath(event.url.pathname)) return null;
-  if (requestBypassesPublicCache(event.request)) return null;
-
-  const platform = event.platform as PublicCachePlatform | undefined;
-  const cacheStorage =
-    platform?.caches ?? (typeof caches === "undefined" ? undefined : caches);
-  const cache = (cacheStorage as { default?: Cache } | undefined)?.default;
-  if (!cache) return null;
-
-  const cacheUrl = new URL(event.url);
-  cacheUrl.searchParams.set("__life_ustc_locale", locale);
-  return {
-    cache,
-    key: new Request(cacheUrl, { method: "GET" }),
-  };
-}
-
-function cachedPublicPageResponse(input: {
-  cached: Response;
-  durationMs: number;
-  event: Parameters<Handle>[0]["event"];
-  requestId: string;
-}) {
-  const response = responseWithMutableHeaders(input.cached);
-  response.headers.set("Cache-Control", RETURNED_PUBLIC_PAGE_CACHE_CONTROL);
-  response.headers.set("x-request-id", input.requestId);
-  response.headers.set("x-life-ustc-cache", "HIT");
-  logAppEvent("info", "public.page.cache.hit", {
-    durationMs: input.durationMs,
-    event: "public.page.cache.hit",
-    method: input.event.request.method,
-    requestId: input.requestId,
-    route: input.event.url.pathname,
-    source: "sveltekit",
-    status: response.status,
-  });
-  return response;
-}
-
-function shouldStorePublicPageResponse(response: Response) {
-  if (response.status !== 200) return false;
-  if (response.headers.has("set-cookie")) return false;
-  return isHtmlResponse(response);
-}
-
-function storePublicPageResponse(input: {
-  cache: Cache;
-  event: Parameters<Handle>[0]["event"];
-  key: Request;
-  response: Response;
-}) {
-  if (!shouldStorePublicPageResponse(input.response)) return;
-
-  input.response.headers.set("x-life-ustc-cache", "MISS");
-
-  const responseToStore = input.response.clone();
-  input.response.headers.set(
-    "Cache-Control",
-    RETURNED_PUBLIC_PAGE_CACHE_CONTROL,
-  );
-
-  const storePromise = input.cache.put(input.key, responseToStore);
-  const platform = input.event.platform as PublicCachePlatform | undefined;
-  const context = platform?.ctx ?? platform?.context;
-  if (context) {
-    context.waitUntil(storePromise);
-  } else {
-    void storePromise.catch(() => {});
-  }
-}
-
 function recordPageRequestFinish(input: {
   durationMs: number;
   event: Parameters<Handle>[0]["event"];
@@ -240,19 +142,6 @@ export const handle: Handle = async ({ event, resolve }) => {
   event.locals.requestId = requestId;
   const startMs = Date.now();
   const hasAuthSignal = hasRequestAuthSignal(event.request.headers);
-  const publicPageCache = publicPageCacheForEvent(event, locale, hasAuthSignal);
-  const cachedPublicPage = publicPageCache
-    ? await publicPageCache.cache.match(publicPageCache.key)
-    : null;
-  if (cachedPublicPage) {
-    return cachedPublicPageResponse({
-      cached: cachedPublicPage,
-      durationMs: Date.now() - startMs,
-      event,
-      requestId,
-    });
-  }
-
   const apiObservability = prepareApiObservability(
     event.request,
     event.url.pathname,
@@ -294,7 +183,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     response,
   });
 
-  if (!apiObservability && !shouldSetCsp && !publicPageCache) {
+  if (!apiObservability && !shouldSetCsp) {
     return response;
   }
 
@@ -311,14 +200,6 @@ export const handle: Handle = async ({ event, resolve }) => {
         isDevelopment: getOptionalTrimmedEnv("NODE_ENV") === "development",
       }),
     );
-  }
-  if (publicPageCache) {
-    storePublicPageResponse({
-      cache: publicPageCache.cache,
-      event,
-      key: publicPageCache.key,
-      response: mutableResponse,
-    });
   }
 
   return mutableResponse;
