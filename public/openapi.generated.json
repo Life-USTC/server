@@ -13870,54 +13870,6 @@
                   "additionalProperties": false,
                   "nullable": true
                 },
-                "examMode": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
-                    },
-                    "nameCn": {
-                      "type": "string"
-                    },
-                    "nameEn": {
-                      "type": "string",
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "nameCn",
-                    "nameEn"
-                  ],
-                  "additionalProperties": false,
-                  "nullable": true
-                },
-                "teachLanguage": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
-                    },
-                    "nameCn": {
-                      "type": "string"
-                    },
-                    "nameEn": {
-                      "type": "string",
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "nameCn",
-                    "nameEn"
-                  ],
-                  "additionalProperties": false,
-                  "nullable": true
-                },
                 "teachers": {
                   "type": "array",
                   "items": {
@@ -14018,78 +13970,6 @@
                     ],
                     "additionalProperties": false
                   }
-                },
-                "adminClasses": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
-                      "jwId": {
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991,
-                        "nullable": true
-                      },
-                      "code": {
-                        "type": "string",
-                        "nullable": true
-                      },
-                      "grade": {
-                        "type": "string",
-                        "nullable": true
-                      },
-                      "nameCn": {
-                        "type": "string"
-                      },
-                      "nameEn": {
-                        "type": "string",
-                        "nullable": true
-                      },
-                      "stdCount": {
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991,
-                        "nullable": true
-                      },
-                      "planCount": {
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991,
-                        "nullable": true
-                      },
-                      "enabled": {
-                        "type": "boolean",
-                        "nullable": true
-                      },
-                      "abbrZh": {
-                        "type": "string",
-                        "nullable": true
-                      },
-                      "abbrEn": {
-                        "type": "string",
-                        "nullable": true
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "jwId",
-                      "code",
-                      "grade",
-                      "nameCn",
-                      "nameEn",
-                      "stdCount",
-                      "planCount",
-                      "enabled",
-                      "abbrZh",
-                      "abbrEn"
-                    ],
-                    "additionalProperties": false
-                  }
                 }
               },
               "required": [
@@ -14131,10 +14011,7 @@
                 "semester",
                 "campus",
                 "openDepartment",
-                "examMode",
-                "teachLanguage",
-                "teachers",
-                "adminClasses"
+                "teachers"
               ],
               "additionalProperties": false
             }
