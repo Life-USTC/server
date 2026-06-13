@@ -1,16 +1,11 @@
 import { serializeDashboardOverview } from "@/features/dashboard/server/dashboard-overview-serialization";
-import type {
-  DashboardPageCopy,
-  DashboardPublicCounts,
-} from "@/features/dashboard/server/dashboard-page-load-types";
+import type { DashboardPageCopy } from "@/features/dashboard/server/dashboard-page-load-types";
 import { loadSignedDashboardTabData } from "@/features/dashboard/server/dashboard-page-tab-data";
 import type { AppLocale } from "@/i18n/config";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
 export async function loadSignedDashboardPageData(input: {
   calendarSemesterId: number | undefined;
-  counts: DashboardPublicCounts;
-  currentTermName: string | null;
   locale: AppLocale;
   overviewWeek: string | null;
   pageCopy: DashboardPageCopy;
@@ -30,7 +25,6 @@ export async function loadSignedDashboardPageData(input: {
       signedIn: true,
       tab: input.tab,
       userMissing: true,
-      counts: input.counts,
     };
   }
 
@@ -59,10 +53,8 @@ export async function loadSignedDashboardPageData(input: {
     signedIn: true,
     tab: input.tab,
     overviewWeek: input.overviewWeek,
-    counts: input.counts,
     navStats,
     subscribedSectionCount: context.sectionIds.length,
-    currentTermName: input.currentTermName,
     overview: overview ? serializeDashboardOverview(overview) : null,
     links,
     homeworks,

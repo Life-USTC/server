@@ -30,21 +30,26 @@ export async function loadDashboardPage({
   const referenceNow = parseSnapshotReferenceTime(
     url.searchParams.get("snapshotAt"),
   );
-  let publicSummary: Awaited<ReturnType<typeof loadDashboardPublicSummary>>;
-  try {
-    const { getPrisma } = await import("@/lib/db/prisma");
-    publicSummary = await loadDashboardPublicSummary(
-      getPrisma(locale),
-      referenceNow ?? null,
-    );
-  } catch {
-    publicSummary = await loadDashboardPublicSummary(
-      null,
-      referenceNow ?? null,
-    );
-  }
+
+  const publicSummaryPromise = (async () => {
+    let publicSummary: Awaited<ReturnType<typeof loadDashboardPublicSummary>>;
+    try {
+      const { getPrisma } = await import("@/lib/db/prisma");
+      publicSummary = await loadDashboardPublicSummary(
+        getPrisma(locale),
+        referenceNow ?? null,
+      );
+    } catch {
+      publicSummary = await loadDashboardPublicSummary(
+        null,
+        referenceNow ?? null,
+      );
+    }
+    return publicSummary;
+  })();
 
   if (!userId) {
+    const publicSummary = await publicSummaryPromise;
     return loadAnonymousDashboardPageData({
       counts: publicSummary.counts,
       locale,
@@ -55,15 +60,22 @@ export async function loadDashboardPage({
     });
   }
 
-  return loadSignedDashboardPageData({
-    calendarSemesterId,
+  const [publicSummary, signedData] = await Promise.all([
+    publicSummaryPromise,
+    loadSignedDashboardPageData({
+      calendarSemesterId,
+      locale,
+      overviewWeek: url.searchParams.get("overviewWeek"),
+      pageCopy,
+      referenceNow,
+      tab,
+      userId,
+    }),
+  ]);
+
+  return {
+    ...signedData,
     counts: publicSummary.counts,
     currentTermName: publicSummary.currentTermName,
-    locale,
-    overviewWeek: url.searchParams.get("overviewWeek"),
-    pageCopy,
-    referenceNow,
-    tab,
-    userId,
-  });
+  };
 }
