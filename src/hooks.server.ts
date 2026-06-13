@@ -24,6 +24,10 @@ function addScriptNonce(html: string, nonce: string) {
   return html.replace(/<script(?![^>]*\bnonce=)/g, `<script nonce="${nonce}"`);
 }
 
+function responseWithMutableHeaders(response: Response) {
+  return new Response(response.body, response);
+}
+
 function prepareApiObservability(request: Request, pathname: string) {
   if (!isApiRequest(pathname)) return null;
 
@@ -78,12 +82,18 @@ export const handle: Handle = async ({ event, resolve }) => {
         nonce,
       ),
   });
+  const shouldSetCsp = isHtmlResponse(response);
 
-  if (apiObservability) {
-    response.headers.set("x-request-id", apiObservability.requestId);
+  if (!apiObservability && !shouldSetCsp) {
+    return response;
   }
-  if (isHtmlResponse(response)) {
-    response.headers.set(
+
+  const mutableResponse = responseWithMutableHeaders(response);
+  if (apiObservability) {
+    mutableResponse.headers.set("x-request-id", apiObservability.requestId);
+  }
+  if (shouldSetCsp) {
+    mutableResponse.headers.set(
       "Content-Security-Policy",
       buildContentSecurityPolicy(nonce, {
         isDevelopment: process.env.NODE_ENV === "development",
@@ -91,7 +101,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     );
   }
 
-  return response;
+  return mutableResponse;
 };
 
 function sanitizeErrorText(value: string) {
