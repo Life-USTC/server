@@ -2,7 +2,46 @@ import { serializeDashboardOverview } from "@/features/dashboard/server/dashboar
 import type { DashboardPageCopy } from "@/features/dashboard/server/dashboard-page-load-types";
 import { loadSignedDashboardTabData } from "@/features/dashboard/server/dashboard-page-tab-data";
 import type { AppLocale } from "@/i18n/config";
+import { logAppEvent } from "@/lib/log/app-logger";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
+
+async function timeSignedDashboardStage<T>(
+  stage: string,
+  input: {
+    requestId: string | undefined;
+    subscribedSectionCount?: number;
+    tab: string;
+  },
+  work: () => Promise<T>,
+) {
+  const startMs = Date.now();
+  try {
+    const result = await work();
+    logAppEvent("info", "dashboard.load.stage", {
+      durationMs: Date.now() - startMs,
+      event: "dashboard.load.stage",
+      requestId: input.requestId,
+      source: "dashboard",
+      stage,
+      status: "ok",
+      subscribedSectionCount: input.subscribedSectionCount,
+      tab: input.tab,
+    });
+    return result;
+  } catch (error) {
+    logAppEvent("warn", "dashboard.load.stage", {
+      durationMs: Date.now() - startMs,
+      event: "dashboard.load.stage",
+      requestId: input.requestId,
+      source: "dashboard",
+      stage,
+      status: "error",
+      subscribedSectionCount: input.subscribedSectionCount,
+      tab: input.tab,
+    });
+    throw error;
+  }
+}
 
 export async function loadSignedDashboardPageData(input: {
   calendarSemesterId: number | undefined;
@@ -10,13 +49,21 @@ export async function loadSignedDashboardPageData(input: {
   overviewWeek: string | null;
   pageCopy: DashboardPageCopy;
   referenceNow: Date | null | undefined;
+  requestId: string | undefined;
   tab: string;
   userId: string;
 }) {
   const dashboard = await import(
     "@/features/home/server/dashboard-overview-data"
   );
-  const context = await dashboard.getDashboardUserContext(input.userId);
+  const context = await timeSignedDashboardStage(
+    "user-context",
+    {
+      requestId: input.requestId,
+      tab: input.tab,
+    },
+    () => dashboard.getDashboardUserContext(input.userId),
+  );
 
   if (!context) {
     return {
@@ -37,14 +84,24 @@ export async function loadSignedDashboardPageData(input: {
     overview,
     subscriptions,
     todos,
-  } = await loadSignedDashboardTabData({
-    calendarSemesterId: input.calendarSemesterId,
-    context,
-    locale: input.locale,
-    referenceNow: input.referenceNow ?? undefined,
-    tab: input.tab,
-    userId: input.userId,
-  });
+  } = await timeSignedDashboardStage(
+    "tab-data",
+    {
+      requestId: input.requestId,
+      subscribedSectionCount: context.sectionIds.length,
+      tab: input.tab,
+    },
+    () =>
+      loadSignedDashboardTabData({
+        calendarSemesterId: input.calendarSemesterId,
+        context,
+        locale: input.locale,
+        referenceNow: input.referenceNow ?? undefined,
+        requestId: input.requestId,
+        tab: input.tab,
+        userId: input.userId,
+      }),
+  );
 
   return {
     copy: input.pageCopy,

@@ -98,6 +98,7 @@ export async function loadDashboardPage({
       overviewWeek: url.searchParams.get("overviewWeek"),
       pageCopy,
       referenceNow,
+      requestId: locals.requestId,
       tab,
       userId,
     }),
