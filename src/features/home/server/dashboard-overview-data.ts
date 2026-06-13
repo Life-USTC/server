@@ -39,6 +39,10 @@ export async function getDashboardOverviewData(
     scheduleDateStart,
   } = semesterContext;
 
+  const linksPromise = getDashboardOverviewLinksData(userId, {
+    skipLinks: options.skipLinks,
+  });
+
   const {
     calendarSemesterNavList,
     calendarSemesterPicker,
@@ -59,10 +63,6 @@ export async function getDashboardOverviewData(
     scheduleDateStart,
     semesters,
     userId,
-  });
-
-  const linksPromise = getDashboardOverviewLinksData(userId, {
-    skipLinks: options.skipLinks,
   });
 
   const now = referenceNow;
