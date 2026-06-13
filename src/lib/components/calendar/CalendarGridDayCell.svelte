@@ -38,6 +38,7 @@ export let variant: "week" | "month" = "week";
         meta={event.meta}
         detail={event.detail}
         tone={event.tone}
+        done={event.done}
       />
     {:else}
       {#if emptyLabel}

@@ -1,3 +1,4 @@
+import { env as privateEnv } from "$env/dynamic/private";
 import { APP_PRODUCTION_BUILD_PHASE } from "./env-constants";
 import { trimOrUndefined, normalizeEnvInput } from "./env-normalize";
 import { formatIssues, parseEnv } from "./env-parse";
@@ -7,10 +8,14 @@ import {
   runtimeRequiredEnvSchema,
 } from "./env-schema";
 
+function getDefaultEnvInput(): NodeJS.ProcessEnv {
+  return { ...process.env, ...privateEnv };
+}
+
 export function loadEnv(
   options: { input?: NodeJS.ProcessEnv; appPhase?: string } = {},
 ): Env {
-  const input = options.input ?? process.env;
+  const input = options.input ?? getDefaultEnvInput();
   const appPhase = options.appPhase ?? trimOrUndefined(input.APP_PHASE);
 
   const result = commonEnvSchema.safeParse(normalizeEnvInput(input));
@@ -43,20 +48,20 @@ export function loadEnv(
 
 export function getOptionalTrimmedEnv(
   name: string,
-  input: NodeJS.ProcessEnv = process.env,
+  input: NodeJS.ProcessEnv = getDefaultEnvInput(),
 ) {
   return trimOrUndefined(input[name]);
 }
 
 export function isAppProductionBuildPhase(
-  input: NodeJS.ProcessEnv = process.env,
+  input: NodeJS.ProcessEnv = getDefaultEnvInput(),
 ) {
   return (
     getOptionalTrimmedEnv("APP_PHASE", input) === APP_PRODUCTION_BUILD_PHASE
   );
 }
 
-export function getAuthEnv(input: NodeJS.ProcessEnv = process.env) {
+export function getAuthEnv(input: NodeJS.ProcessEnv = getDefaultEnvInput()) {
   return parseEnv(
     commonEnvSchema.pick({
       AUTH_GITHUB_ID: true,
@@ -77,7 +82,7 @@ export function getAuthEnv(input: NodeJS.ProcessEnv = process.env) {
   );
 }
 
-export function getUploadEnv(input: NodeJS.ProcessEnv = process.env) {
+export function getUploadEnv(input: NodeJS.ProcessEnv = getDefaultEnvInput()) {
   return parseEnv(
     commonEnvSchema.pick({ UPLOAD_TOTAL_QUOTA_MB: true }),
     input,
@@ -85,7 +90,7 @@ export function getUploadEnv(input: NodeJS.ProcessEnv = process.env) {
   );
 }
 
-export function getStorageEnv(input: NodeJS.ProcessEnv = process.env) {
+export function getStorageEnv(input: NodeJS.ProcessEnv = getDefaultEnvInput()) {
   return parseEnv(
     commonEnvSchema.pick({
       S3_BUCKET: true,

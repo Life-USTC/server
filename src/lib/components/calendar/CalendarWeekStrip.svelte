@@ -2,6 +2,7 @@
 import CalendarEventChip from "./CalendarEventChip.svelte";
 
 type CalendarWeekEvent = {
+  done?: boolean;
   href?: string;
   label: string;
   title?: string;
@@ -55,6 +56,7 @@ export let moreLabel: (count: number) => string = (count) => `+${count}`;
               meta={event.meta}
               detail={event.detail}
               tone={event.tone}
+              done={event.done}
             />
           {:else}
             {#if emptyLabel}

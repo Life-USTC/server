@@ -56,6 +56,7 @@ export function buildCalendarTimelineItemsForDay<
       tone: "error",
     })),
     ...events.homeworks.map((homework) => ({
+      done: Boolean(homework.completed ?? homework.completion),
       key: `homework-${homework.id}`,
       href: options.homeworkHref(homework),
       label: options.homeworkLabel,
@@ -65,6 +66,7 @@ export function buildCalendarTimelineItemsForDay<
       tone: "warning",
     })),
     ...events.todos.map((todo) => ({
+      done: Boolean(todo.completed),
       key: `todo-${todo.id}`,
       href: options.todosHref,
       label: options.todoLabel,

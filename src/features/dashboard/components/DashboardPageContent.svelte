@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { ComponentProps } from "svelte";
+import { onMount } from "svelte";
 import type { DashboardBusCopy } from "@/features/dashboard/lib/bus-tab-types";
 import type {
   AnonymousDashboardData,
@@ -71,6 +72,12 @@ export let todoFilter: TodoFilter;
 $: signedDashboardContentProps = $$props as unknown as ComponentProps<
   typeof SignedDashboardContent
 >;
+
+let mounted = false;
+
+onMount(() => {
+  mounted = true;
+});
 </script>
 
 <div class="mx-auto grid w-full max-w-6xl gap-6">
@@ -112,6 +119,10 @@ $: signedDashboardContentProps = $$props as unknown as ComponentProps<
     />
   {:else if data.signedIn && data.userMissing}
     <Alert variant="warning">{commonCopy.userNotFound}</Alert>
+  {:else if anonymousBranch.data?.tab === "bus" && !mounted}
+    <div class="rounded-xl border border-base-300 bg-base-100 p-4 text-base-content/70 text-sm">
+      {busCopy.empty}
+    </div>
   {:else if anonymousBranch.data}
     <AnonymousDashboardView
       anonymousData={anonymousBranch.data}

@@ -1,5 +1,6 @@
 import { parseInteger } from "@/lib/api/request-integers";
 import { allowE2EDebugAuth } from "@/lib/auth/auth-config";
+import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
@@ -25,6 +26,7 @@ const SIGNED_IN_TABS = new Set([
 ]);
 
 export async function getDashboardUserId(request: Request) {
+  if (!hasRequestAuthSignal(request.headers)) return null;
   const { getSessionFromHeaders } = await import("@/lib/auth/core");
   return (await getSessionFromHeaders(request.headers))?.user?.id ?? null;
 }
@@ -45,8 +47,10 @@ export function dashboardHomeworkItem(homework: {
   submissionDueAt: Date | null;
   submissionStartAt: Date | null;
   title: string;
+  homeworkCompletions?: Array<unknown>;
 }) {
   return {
+    completed: (homework.homeworkCompletions?.length ?? 0) > 0,
     id: homework.id,
     title: homework.title,
     publishedAt: homework.publishedAt,

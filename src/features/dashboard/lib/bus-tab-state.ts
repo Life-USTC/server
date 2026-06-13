@@ -1,4 +1,3 @@
-import { onMount } from "svelte";
 import { getApplicableBusRoutes } from "@/features/bus/lib/bus-client";
 import {
   type BusDayType,
@@ -74,8 +73,6 @@ export function createBusTabState({
       invalidate();
     },
   });
-
-  onMount(() => planner.mount());
 
   return {
     actions: planner,

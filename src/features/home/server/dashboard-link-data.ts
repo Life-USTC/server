@@ -1,5 +1,4 @@
 import { DASHBOARD_LINK_GROUPS } from "@/features/dashboard-links/lib/dashboard-links";
-import { prisma } from "@/lib/db/prisma";
 import {
   buildDashboardLinkSummaries,
   dashboardLinksForSlugs,
@@ -38,6 +37,7 @@ export function getPublicDashboardLinksData(): {
 export async function getSignedInDashboardLinksData(
   userId: string,
 ): Promise<DashboardLinksData> {
+  const { prisma } = await import("@/lib/db/prisma");
   const [clickRows, pinRows] = await Promise.all([
     prisma.dashboardLinkClick.findMany({
       where: { userId },

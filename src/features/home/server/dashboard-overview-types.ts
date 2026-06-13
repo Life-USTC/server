@@ -31,6 +31,7 @@ export type OverviewDataOptions = {
 };
 
 export type CalendarTodoItem = {
+  completed: boolean;
   id: string;
   title: string;
   dueAt: string;

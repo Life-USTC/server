@@ -1,6 +1,6 @@
 import type dayjs from "dayjs";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
-import { getDefaultWeekStart } from "@/shared/lib/date-utils";
+import { getWeekStart, SUNDAY_WEEK_STARTS_ON } from "@/shared/lib/date-utils";
 import type { SessionItem } from "./dashboard-types";
 
 export const filterSessionsByDay = (
@@ -15,8 +15,8 @@ export const getSemesterWeeks = (
   semesterEnd: dayjs.Dayjs,
 ): dayjs.Dayjs[][] => {
   const weeks: dayjs.Dayjs[][] = [];
-  let weekStart = getDefaultWeekStart(semesterStart);
-  const lastWeekStart = getDefaultWeekStart(semesterEnd);
+  let weekStart = getWeekStart(semesterStart, SUNDAY_WEEK_STARTS_ON);
+  const lastWeekStart = getWeekStart(semesterEnd, SUNDAY_WEEK_STARTS_ON);
 
   while (
     weekStart.isBefore(lastWeekStart, "day") ||

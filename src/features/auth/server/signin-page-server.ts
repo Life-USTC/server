@@ -6,6 +6,7 @@ import {
   DEV_DEBUG_PROVIDER_ID,
   getSignInProviderIds,
 } from "@/lib/auth/provider-ids";
+import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
 import { signInFromSvelteAction } from "@/lib/auth/svelte-auth-actions";
 import {
   parseTermsNotice,
@@ -27,9 +28,12 @@ export async function loadSignInPage({
   request: Request;
   url: URL;
 }) {
-  const { getSessionFromHeaders } = await import("@/lib/auth/core");
   const callbackUrl = resolveSignInCallbackUrl(searchParamsObject(url));
-  const session = await getSessionFromHeaders(request.headers);
+  const session = hasRequestAuthSignal(request.headers)
+    ? await import("@/lib/auth/core").then(({ getSessionFromHeaders }) =>
+        getSessionFromHeaders(request.headers),
+      )
+    : null;
   if (session?.user) {
     throw redirect(303, callbackUrl);
   }
@@ -48,7 +52,7 @@ export async function loadSignInPage({
     copy: {
       title: copy.title,
       description: copy.description,
-      devDebugHint: copy.devDebugHint,
+      devDebugHint: allowDebugAuth ? copy.devDebugHint : "",
       errorAccountNotLinked: copy.errorAccountNotLinked,
       errorGeneric: copy.errorGeneric,
       termsNotice: parseTermsNotice(copy.termsNotice),

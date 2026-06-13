@@ -7,6 +7,7 @@ export type CalendarTone =
   | "neutral";
 
 export type CalendarGridEvent = {
+  done?: boolean;
   href?: string;
   label: string;
   title?: string;

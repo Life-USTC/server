@@ -2,10 +2,26 @@ import { selectCurrentSemesterFromList } from "@/lib/current-semester";
 import type { getPrisma } from "@/lib/db/prisma";
 
 export async function loadDashboardPublicSummary(
-  prisma: ReturnType<typeof getPrisma>,
+  prisma: ReturnType<typeof getPrisma> | null,
   referenceNow: Date | null,
 ) {
-  const [semesterCount, courseCount, sectionCount, semesters, links] =
+  const links = await import("@/features/home/server/dashboard-link-data").then(
+    (mod) => mod.getPublicDashboardLinksData(),
+  );
+
+  if (!prisma) {
+    return {
+      counts: {
+        semesters: 0,
+        courses: 0,
+        sections: 0,
+      },
+      currentTermName: null,
+      links,
+    };
+  }
+
+  const [semesterCount, courseCount, sectionCount, semesters] =
     await Promise.all([
       prisma.semester.count(),
       prisma.course.count(),
@@ -18,9 +34,6 @@ export async function loadDashboardPublicSummary(
           endDate: true,
         },
       }),
-      import("@/features/home/server/dashboard-link-data").then((mod) =>
-        mod.getPublicDashboardLinksData(),
-      ),
     ]);
 
   return {
