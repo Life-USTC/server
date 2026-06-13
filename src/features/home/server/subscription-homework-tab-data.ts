@@ -11,10 +11,13 @@ export type { HomeworkSummaryItem };
 export async function getHomeworksTabData(
   userId: string,
   locale = DEFAULT_LOCALE,
+  options: { sectionIds?: readonly number[] } = {},
 ) {
   const [sections, homeworks] = await Promise.all([
-    listSubscribedSectionOptions(userId, locale),
-    listSubscribedHomeworks(userId, { locale }),
+    listSubscribedSectionOptions(userId, locale, {
+      sectionIds: options.sectionIds,
+    }),
+    listSubscribedHomeworks(userId, { locale, sectionIds: options.sectionIds }),
   ]);
 
   const homeworkSummaries: HomeworkSummaryItem[] = homeworks.map(

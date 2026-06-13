@@ -9,6 +9,7 @@ import {
 export async function listSubscribedSectionOptions(
   userId: string,
   locale = DEFAULT_LOCALE,
+  options: { sectionIds?: readonly number[] } = {},
 ): Promise<SectionOption[]> {
   return withSubscribedSections(
     userId,
@@ -28,6 +29,6 @@ export async function listSubscribedSectionOptions(
       });
       return sections.map(sectionOptionFromRow);
     },
-    undefined,
+    options.sectionIds,
   );
 }
