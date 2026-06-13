@@ -3,18 +3,15 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { parseArgs } from "node:util";
 
-import { importBusStaticPayload } from "../../../src/features/bus/lib/bus-import";
+import { importBusStaticPayload } from "../../src/features/bus/lib/bus-import";
 import type {
   BusStaticCampus,
   BusStaticPayload,
   BusStaticRoute,
   BusStaticRouteSchedule,
-} from "../../../src/features/bus/lib/bus-types";
-import type {
-  Prisma,
-  PrismaClient,
-} from "../../../src/generated/prisma/client";
-import { createToolPrisma } from "../../shared/tool-prisma";
+} from "../../src/features/bus/lib/bus-types";
+import type { Prisma, PrismaClient } from "../../src/generated/prisma/client";
+import { createToolPrisma } from "../shared/tool-prisma";
 
 const { values: args } = parseArgs({
   options: {
@@ -28,7 +25,7 @@ const { values: args } = parseArgs({
 });
 
 if (args.help) {
-  console.log(`Usage: bun run production:load:static -- [options]
+  console.log(`Usage: bun run load:static -- [options]
 
 Options:
   --cache-dir <path>      Snapshot download cache directory (default: .cache/life-ustc/static)

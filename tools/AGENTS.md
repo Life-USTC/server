@@ -11,7 +11,7 @@ dev/check.ts         Convention checks
 dev/e2e.ts           E2E infra, standalone runtime, and MinIO helperdev/artifacts/snapshots/
                      Visual snapshot capture and report workflow
 dev/seed/            Dev seed data
-production/load/     Production imports
+load/                Static data imports
 ```
 
 ## Prisma in Scripts
@@ -51,12 +51,14 @@ Seed data:
 ## Import
 
 ```bash
-bun tools/production/load/load-from-static.ts
+bun run load:static
+DATABASE_URL=... docker compose -f docker-compose.load.yml run --rm static-loader
 ```
 
 - Import from SQLite snapshot
 - Preserve JW facts
 - Bus import via `src/features/bus/lib/bus-import.ts`
+- Loader Docker runtime only accepts `DATABASE_URL`; pass import choices as CLI flags such as `--skip-bus`.
 
 ## OpenAPI
 

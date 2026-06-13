@@ -15,7 +15,6 @@ bun run dev        # prepare DB and start SvelteKit
 ```bash
 bun run dev:down        # stop dev containers
 bun run dev:infra:clean # reset local dev containers/volumes when needed
-bun run dev:docker      # run the full dev stack in Docker
 bun run test:e2e        # build and run Playwright E2E
 ```
 
@@ -27,6 +26,10 @@ bun run test:e2e        # build and run Playwright E2E
 - 页面级回归：`bun run test:e2e -- tests/e2e/src/app/<page>/test.ts`
 - 涉及浏览器/认证/数据流时：`bun run verify:full`
 - 本地开发固定监听 `127.0.0.1:3000`
+
+生产部署：
+- 应用运行在 Cloudflare Workers，使用 `bun run deploy:cloudflare` 发布。
+- Docker 只保留静态数据加载环境：`DATABASE_URL=... docker compose -f docker-compose.load.yml run --rm static-loader`
 
 ## 常用入口
 

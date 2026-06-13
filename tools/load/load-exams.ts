@@ -3,8 +3,8 @@ import type {
   ExamBatch,
   PrismaClient,
   Section,
-} from "../../../src/generated/prisma/client";
-import { parseDateInput } from "../../../src/lib/time/parse-date-input";
+} from "../../src/generated/prisma/client";
+import { parseDateInput } from "../../src/lib/time/parse-date-input";
 
 interface ExamBatchInterface {
   id: number;

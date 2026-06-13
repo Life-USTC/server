@@ -24,7 +24,6 @@ tools/                Build, check, seed, import, E2E, and snapshot scripts
 bun install --frozen-lockfile
 bun run dev        # Host app dev; auto-runs prisma generate + migrate deploy
 bun run dev:infra  # Infra only (postgres, minio, minio-setup)
-bun run dev:docker # Full dev stack in Docker
 bun run dev:down   # Stop dev Docker stack
 
 # Quality
@@ -45,7 +44,8 @@ bun run test:e2e:prepare    # Build and stage standalone output for E2E
 # Build
 bun run build:artifacts      # Generate Prisma + OpenAPI
 bun run build
-docker build .
+bun run deploy:cloudflare    # Production app deploy
+DATABASE_URL=... docker compose -f docker-compose.load.yml run --rm static-loader
 
 # Tool CLIs used by repo workflows
 bun run prisma generate
@@ -86,14 +86,16 @@ bun run prisma studio
 ## Local Dev Environment
 
 - `.env` is configured for host-native dev (`bun run dev`) against local Docker infra on `127.0.0.1`.
-- `docker-compose.dev.yml` can also run the SvelteKit dev server via profile `app`; in that mode Compose overrides `DATABASE_URL` and S3 endpoint to use service DNS names.
 - `minio-setup` auto-creates bucket `life-ustc-dev` and exits successfully; that is expected.
-- Both host-native `bun run dev` and compose app dev auto-run `prisma generate` + `prisma migrate deploy` before starting the SvelteKit dev process.
-- The compose app exposes a healthcheck via `bun run health`.
-- Host-native `bun run dev` and compose app dev are pinned to `127.0.0.1:3000`; run only one app server at a time.
+- Host-native `bun run dev` auto-runs `prisma generate` + `prisma migrate deploy` before starting the SvelteKit dev process.
+- Host-native `bun run dev` is pinned to `127.0.0.1:3000`.
 - Prefer these flows for pain-free setup:
-  1. `bun run dev:docker` for one-command full stack
-  2. `bun run dev:infra && bun run dev` for host-native app dev
+  1. `bun run dev:infra && bun run dev` for host-native app dev
+
+## Production Deployment
+
+- The production app runs on Cloudflare Workers via `wrangler.jsonc`; do not reintroduce Docker app or compose runtime paths for frontend/backend serving.
+- The only durable Docker image in this repo is the static data loader. It requires `DATABASE_URL`, runs migrations, then executes `tools/load/load-from-static.ts`.
 
 ## Documentation Structure
 

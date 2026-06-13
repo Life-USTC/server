@@ -1,8 +1,5 @@
-import type {
-  PrismaClient,
-  Semester,
-} from "../../../src/generated/prisma/client";
-import { parseDateInput } from "../../../src/lib/time/parse-date-input";
+import type { PrismaClient, Semester } from "../../src/generated/prisma/client";
+import { parseDateInput } from "../../src/lib/time/parse-date-input";
 
 interface SemesterInterface {
   id: number;

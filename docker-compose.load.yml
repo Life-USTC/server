@@ -1,0 +1,6 @@
+services:
+  static-loader:
+    build:
+      context: .
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL to the target PostgreSQL connection string}

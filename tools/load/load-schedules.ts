@@ -11,8 +11,8 @@ import type {
   Teacher,
   TeacherLessonType,
   TeacherTitle,
-} from "../../../src/generated/prisma/client";
-import { parseDateInput } from "../../../src/lib/time/parse-date-input";
+} from "../../src/generated/prisma/client";
+import { parseDateInput } from "../../src/lib/time/parse-date-input";
 
 interface ContactInfoInterface {
   email: string | null;

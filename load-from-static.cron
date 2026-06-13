@@ -1,1 +1,0 @@
-0 */6 * * * docker compose --file /srv/docker/life-ustc/docker-compose.yml exec --user root -T app bun run load:static
