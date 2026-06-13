@@ -46,15 +46,13 @@ export async function getBusTimetableData(
     : findEffectiveBusVersionFromRecords(versionRecords, dateKey);
   if (!version) return null;
 
-  const [routeRecords, campuses, preference, tripRows] = await Promise.all([
-    getRouteRecords(locale),
-    getBusCampuses(locale),
-    getBusPreference(input.userId ?? null),
-    prisma.busTrip.findMany({
-      where: { versionId: version.id },
-      orderBy: [{ dayType: "asc" }, { routeId: "asc" }, { position: "asc" }],
-    }),
-  ]);
+  const routeRecords = await getRouteRecords(locale);
+  const campuses = await getBusCampuses(locale);
+  const preference = await getBusPreference(input.userId ?? null);
+  const tripRows = await prisma.busTrip.findMany({
+    where: { versionId: version.id },
+    orderBy: [{ dayType: "asc" }, { routeId: "asc" }, { position: "asc" }],
+  });
 
   const versionRouteIds = new Set(tripRows.map((trip) => trip.routeId));
   const routes = routeRecords

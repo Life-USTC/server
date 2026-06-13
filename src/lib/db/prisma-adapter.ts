@@ -1,9 +1,26 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { getOptionalTrimmedEnv } from "@/app-env";
 import { logAppEvent } from "@/lib/log/app-logger";
+import { env as privateEnv } from "$env/dynamic/private";
+
+type RuntimeEnv = Record<string, unknown> & {
+  HYPERDRIVE?: {
+    connectionString?: unknown;
+  };
+};
+
+function getRuntimeDatabaseUrl() {
+  const hyperdriveConnectionString = (privateEnv as RuntimeEnv).HYPERDRIVE
+    ?.connectionString;
+  if (typeof hyperdriveConnectionString === "string") {
+    return hyperdriveConnectionString.trim() || undefined;
+  }
+
+  return getOptionalTrimmedEnv("DATABASE_URL");
+}
 
 export function createPrismaAdapter(
-  connectionString = getOptionalTrimmedEnv("DATABASE_URL"),
+  connectionString = getRuntimeDatabaseUrl(),
 ) {
   if (!connectionString) {
     throw new Error("DATABASE_URL is required to initialize Prisma");

@@ -16,9 +16,7 @@ export async function loadDashboardPage({
   request,
   url,
 }: DashboardPageLoadEvent) {
-  const { getPrisma } = await import("@/lib/db/prisma");
   const locale = locals.locale as AppLocale;
-  const prisma = getPrisma(locale);
   const pageCopy = getDashboardPageCopy(locale);
   const userId = await getDashboardUserId(request);
   const calendarSemesterId =
@@ -32,10 +30,19 @@ export async function loadDashboardPage({
   const referenceNow = parseSnapshotReferenceTime(
     url.searchParams.get("snapshotAt"),
   );
-  const publicSummary = await loadDashboardPublicSummary(
-    prisma,
-    referenceNow ?? null,
-  );
+  let publicSummary: Awaited<ReturnType<typeof loadDashboardPublicSummary>>;
+  try {
+    const { getPrisma } = await import("@/lib/db/prisma");
+    publicSummary = await loadDashboardPublicSummary(
+      getPrisma(locale),
+      referenceNow ?? null,
+    );
+  } catch {
+    publicSummary = await loadDashboardPublicSummary(
+      null,
+      referenceNow ?? null,
+    );
+  }
 
   if (!userId) {
     return loadAnonymousDashboardPageData({

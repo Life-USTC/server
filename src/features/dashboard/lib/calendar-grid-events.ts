@@ -9,10 +9,13 @@ type CalendarExam = {
 };
 
 type CalendarHomework = {
+  completion?: unknown;
+  completed?: boolean;
   title: string;
 };
 
 type CalendarTodo = {
+  completed?: boolean;
   title: string;
 };
 
@@ -76,6 +79,7 @@ export function calendarGridEventsForDay<
       tone: "error" as const,
     })),
     ...events.homeworks.map((homework) => ({
+      done: Boolean(homework.completed ?? homework.completion),
       href: options.calendarHomeworkHref(homework),
       label: homework.title,
       meta: options.calendarHomeworkDetail(homework),
@@ -86,6 +90,7 @@ export function calendarGridEventsForDay<
       tone: "warning" as const,
     })),
     ...events.todos.map((todo) => ({
+      done: Boolean(todo.completed),
       href: options.dashboardTabHref("todos"),
       label: todo.title,
       meta: options.calendarTodoDetail(todo),

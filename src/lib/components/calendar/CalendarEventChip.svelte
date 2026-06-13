@@ -8,6 +8,7 @@ export let meta = "";
 export let detail = "";
 export let tooltip = "";
 export let tone: CalendarTone = "primary";
+export let done = false;
 
 function toneClass() {
   const currentTone = tone ?? "primary";
@@ -31,7 +32,7 @@ function toneClass() {
 </script>
 
 <a
-  class={`block min-w-0 rounded-md border px-2 py-1.5 text-xs no-underline transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 ${toneClass()}`}
+  class={`block min-w-0 rounded-md border px-2 py-1.5 text-xs no-underline transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 ${toneClass()} ${done ? "grayscale opacity-60" : ""}`}
   {href}
   title={tooltip || title || label}
 >

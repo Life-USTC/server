@@ -35,6 +35,7 @@ export function overviewCalendarWeekDays(
         title: item.title,
         meta: item.meta,
         tone: item.tone,
+        done: item.done,
       })),
     };
   });

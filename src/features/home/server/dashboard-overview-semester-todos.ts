@@ -16,7 +16,6 @@ export async function listSemesterCalendarTodos({
       ? await basePrisma.todo.findMany({
           where: {
             userId,
-            completed: false,
             dueAt: {
               not: null,
               gte: semesterStart.toDate(),
@@ -30,6 +29,7 @@ export async function listSemesterCalendarTodos({
             dueAt: true,
             priority: true,
             content: true,
+            completed: true,
           },
         })
       : [];
@@ -43,6 +43,7 @@ export async function listSemesterCalendarTodos({
             dueAt: toShanghaiIsoString(row.dueAt),
             priority: row.priority,
             content: row.content ?? null,
+            completed: row.completed,
           },
         ]
       : [],

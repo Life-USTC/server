@@ -1,3 +1,4 @@
+import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
 import {
   buildLayoutCopy,
   layoutUserSummary,
@@ -5,8 +6,11 @@ import {
 import type { LayoutServerLoad } from "./$types";
 
 export const load: LayoutServerLoad = async ({ locals, request }) => {
-  const { getSessionFromHeaders } = await import("@/lib/auth/core");
-  const session = await getSessionFromHeaders(request.headers);
+  const session = hasRequestAuthSignal(request.headers)
+    ? await import("@/lib/auth/core").then(({ getSessionFromHeaders }) =>
+        getSessionFromHeaders(request.headers),
+      )
+    : null;
   return {
     locale: locals.locale,
     copy: buildLayoutCopy(locals.locale),

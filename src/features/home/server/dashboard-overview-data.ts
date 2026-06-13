@@ -72,6 +72,12 @@ export async function getDashboardOverviewData(
     sectionIds: homeworkSectionIds,
     shape: "dashboard",
   });
+  const calendarHomeworks = await listSubscribedHomeworks(userId, {
+    locale,
+    requireDueDate: true,
+    sectionIds: homeworkSectionIds,
+    shape: "dashboard",
+  });
   const schedule = buildDashboardOverviewSchedule({
     dashboardSections,
     homeworks,
@@ -91,8 +97,8 @@ export async function getDashboardOverviewData(
     { dashboardLinks, recommendedLinks, pinnedLinks, overviewLinks },
   ] = await Promise.all([
     buildSemesterCalendarPayload({
+      calendarHomeworks,
       gridSemesterRow,
-      incompleteHomeworks: schedule.incompleteHomeworks,
       sectionsForCalendarGrid,
       userId,
     }),

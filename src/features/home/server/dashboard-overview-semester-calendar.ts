@@ -9,11 +9,12 @@ import { listSemesterCalendarTodos } from "./dashboard-overview-semester-todos";
 import type { HomeworkWithSection } from "./dashboard-types";
 
 export async function buildSemesterCalendarPayload({
+  calendarHomeworks,
   gridSemesterRow,
-  incompleteHomeworks,
   sectionsForCalendarGrid,
   userId,
 }: {
+  calendarHomeworks: HomeworkWithSection[];
   gridSemesterRow: {
     id: number;
     nameCn: string | null;
@@ -42,7 +43,7 @@ export async function buildSemesterCalendarPayload({
   const allExams = buildExams(sectionsForCalendarGrid);
   const semesterHomeworks =
     semesterStart && semesterEnd
-      ? incompleteHomeworks.filter((homework) => {
+      ? calendarHomeworks.filter((homework) => {
           if (!homework.submissionDueAt) return false;
           const due = shanghaiDayjs(homework.submissionDueAt);
           return (

@@ -1,4 +1,5 @@
 <script lang="ts">
+import { onMount } from "svelte";
 import {
   hasEstimatedBusTimes,
   nextBusTripHighlightKey,
@@ -8,6 +9,7 @@ import type {
   DashboardBusCopy,
   DashboardBusData,
 } from "@/features/dashboard/lib/bus-tab-types";
+import { browser } from "$app/environment";
 import { Alert } from "$lib/components/ui/alert/index.js";
 import BusTabSettings from "./BusTabSettings.svelte";
 import BusTabTimetable from "./BusTabTimetable.svelte";
@@ -16,6 +18,7 @@ export let busCopy: DashboardBusCopy;
 export let bus: DashboardBusData | null;
 export let savePreferences = false;
 
+let loadedBus: DashboardBusData | null = bus;
 let busStateVersion = 0;
 let busDayType: "weekday" | "weekend" = "weekday";
 let busEndCampusId: number | null = null;
@@ -23,7 +26,7 @@ let busPlannerReady = false;
 let busShowDepartedTrips = false;
 let busStartCampusId: number | null = null;
 const state = createBusTabState({
-  getBus: () => bus,
+  getBus: () => loadedBus,
   getBusCopy: () => busCopy,
   getSavePreferences: () => savePreferences,
   invalidate: () => {
@@ -32,9 +35,26 @@ const state = createBusTabState({
 });
 let busApplicableRoutes: ReturnType<typeof state.applicableRoutes> = [];
 
+async function loadPublicBusData() {
+  if (loadedBus) return;
+  const response = await fetch("/api/bus");
+  if (!response.ok) return;
+  loadedBus = (await response.json()) as DashboardBusData;
+  state.initializeWhenNeeded();
+}
+
+if (browser) {
+  onMount(() => {
+    const cleanup = state.actions.mount();
+    void loadPublicBusData();
+    return cleanup;
+  });
+}
+
 $: {
   void busStateVersion;
-  busApplicableRoutes = bus ? state.applicableRoutes() : [];
+  if (bus) loadedBus = bus;
+  busApplicableRoutes = browser && loadedBus ? state.applicableRoutes() : [];
   busDayType = state.values.busDayType;
   busEndCampusId = state.values.busEndCampusId;
   busPlannerReady = state.values.busPlannerReady;
@@ -43,18 +63,16 @@ $: {
 }
 $: busNextTripHighlightKey = nextBusTripHighlightKey(busApplicableRoutes);
 $: busShowsEstimatedHint = hasEstimatedBusTimes(
-  bus,
+  loadedBus,
   busApplicableRoutes,
   busDayType,
 );
-
-$: state.initializeWhenNeeded();
 </script>
 
       <div class="grid gap-4 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start">
-        {#if bus}
+        {#if loadedBus && browser}
           <BusTabTimetable
-            {bus}
+            bus={loadedBus}
             {busApplicableRoutes}
             {busCopy}
             {busNextTripHighlightKey}
@@ -64,7 +82,7 @@ $: state.initializeWhenNeeded();
           />
 
           <BusTabSettings
-            {bus}
+            bus={loadedBus}
             {busCopy}
             {busDayType}
             {busEndCampusId}

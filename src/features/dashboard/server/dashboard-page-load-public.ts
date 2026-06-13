@@ -12,16 +12,6 @@ export async function loadAnonymousDashboardPageData(input: {
   publicLinks: DashboardLinkSummary[];
   tab: string;
 }) {
-  const bus =
-    input.tab === "bus"
-      ? await import("@/features/bus/lib/bus-service").then((mod) =>
-          mod.getBusTimetableData({
-            locale: input.locale === "en-us" ? "en-us" : "zh-cn",
-            userId: null,
-          }),
-        )
-      : null;
-
   return {
     copy: input.pageCopy,
     locale: input.locale,
@@ -30,6 +20,6 @@ export async function loadAnonymousDashboardPageData(input: {
     counts: input.counts,
     publicLinks: input.publicLinks,
     overviewLinks: input.overviewLinks,
-    bus,
+    bus: null,
   };
 }

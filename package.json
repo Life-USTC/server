@@ -100,6 +100,7 @@
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^10.3.5",
     "@semantic-release/release-notes-generator": "^14.1.1",
+    "@sveltejs/adapter-cloudflare": "^7.2.8",
     "@sveltejs/adapter-node": "^5.5.4",
     "@sveltejs/kit": "^2.63.0",
     "@sveltejs/vite-plugin-svelte": "^7.1.2",

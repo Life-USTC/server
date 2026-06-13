@@ -18,6 +18,8 @@ export type CalendarExamEvent = {
 };
 
 export type CalendarHomeworkEvent = {
+  completion?: unknown;
+  completed?: boolean;
   id: string | number;
   description?: string | null;
   section?: { jwId?: number | string | null } | null;
@@ -26,6 +28,7 @@ export type CalendarHomeworkEvent = {
 };
 
 export type CalendarTodoEvent = {
+  completed?: boolean;
   id: string | number;
   content?: string | null;
   dueAt?: Date | string | null;
