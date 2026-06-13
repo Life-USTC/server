@@ -29,6 +29,7 @@ const FORM_CONTENT_TYPES = [
   "text/plain",
 ];
 const PUBLIC_PAGE_CACHE_PATHS = new Set(["/courses", "/sections", "/teachers"]);
+const RETURNED_PUBLIC_PAGE_CACHE_CONTROL = "private, no-store";
 type PublicCachePlatform = {
   caches?: { default?: Cache };
   context?: { waitUntil: (promise: Promise<unknown>) => void };
@@ -153,6 +154,7 @@ function cachedPublicPageResponse(input: {
   requestId: string;
 }) {
   const response = responseWithMutableHeaders(input.cached);
+  response.headers.set("Cache-Control", RETURNED_PUBLIC_PAGE_CACHE_CONTROL);
   response.headers.set("x-request-id", input.requestId);
   response.headers.set("x-life-ustc-cache", "HIT");
   logAppEvent("info", "public.page.cache.hit", {
@@ -183,7 +185,13 @@ function storePublicPageResponse(input: {
 
   input.response.headers.set("x-life-ustc-cache", "MISS");
 
-  const storePromise = input.cache.put(input.key, input.response.clone());
+  const responseToStore = input.response.clone();
+  input.response.headers.set(
+    "Cache-Control",
+    RETURNED_PUBLIC_PAGE_CACHE_CONTROL,
+  );
+
+  const storePromise = input.cache.put(input.key, responseToStore);
   const platform = input.event.platform as PublicCachePlatform | undefined;
   const context = platform?.ctx ?? platform?.context;
   if (context) {
