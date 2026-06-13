@@ -1,10 +1,34 @@
 import { normalizeApiRoutePath } from "@/lib/log/api-observability-path";
 
+type ApiRequestObservabilityContext = {
+  requestId: string;
+  startMs: number;
+};
+
+const apiRequestObservabilityContexts = new WeakMap<
+  Request,
+  ApiRequestObservabilityContext
+>();
+
+export function setApiRequestObservabilityContext(
+  request: Request,
+  context: ApiRequestObservabilityContext,
+) {
+  apiRequestObservabilityContexts.set(request, context);
+}
+
 function getRequestId(request: Request) {
-  return request.headers.get("x-request-id") ?? "unknown";
+  return (
+    apiRequestObservabilityContexts.get(request)?.requestId ??
+    request.headers.get("x-request-id") ??
+    "unknown"
+  );
 }
 
 function getRequestStartMs(request: Request) {
+  const contextStartMs = apiRequestObservabilityContexts.get(request)?.startMs;
+  if (contextStartMs) return contextStartMs;
+
   const value = Number(request.headers.get("x-request-start-ms"));
   return Number.isFinite(value) && value > 0 ? value : Date.now();
 }

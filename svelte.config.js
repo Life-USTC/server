@@ -9,9 +9,6 @@ const config = {
   preprocess: vitePreprocess(),
   kit: {
     adapter: useNodeAdapter ? adapterNode() : adapterCloudflare(),
-    csrf: {
-      trustedOrigins: ["*"],
-    },
     alias: {
       "@/*": "./src/*",
       "@tools/*": "./tools/*",

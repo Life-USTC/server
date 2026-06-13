@@ -23,6 +23,7 @@ COPY . .
 
 ENV NODE_ENV=production
 ENV APP_PHASE=phase-production-build
+ENV SVELTEKIT_ADAPTER=node
 ENV DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_build
 
 RUN bun run build \

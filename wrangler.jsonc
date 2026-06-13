@@ -5,7 +5,11 @@
   "compatibility_date": "2026-06-08",
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "APP_PUBLIC_ORIGIN": "https://cf.life-ustc.tiankaima.dev",
+    "S3_BUCKET": "life-ustc",
+    "AWS_REGION": "auto",
+    "AWS_ENDPOINT_URL_S3": "https://3488b7b4f9cb9b6088c87dc44e88859e.r2.cloudflarestorage.com"
   },
   "assets": {
     "directory": ".svelte-kit/cloudflare",
@@ -34,12 +38,6 @@
     {
       "binding": "HYPERDRIVE",
       "id": "84d80963a096419cb1f1c9846f164bf1"
-    }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "R2_BUCKET",
-      "bucket_name": "life-ustc"
     }
   ]
 }
