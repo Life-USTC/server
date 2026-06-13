@@ -11,12 +11,13 @@ import {
 export async function getSubscriptionsTabData(
   userId: string,
   locale = DEFAULT_LOCALE,
-  options: { includeExams?: boolean } = {},
+  options: { includeExams?: boolean; sectionIds?: readonly number[] } = {},
 ) {
   const localizedPrisma = getPrisma(locale);
   const [sections, semesters, calendarSubscriptionUrl] = await Promise.all([
     listSubscribedSectionsForSubscriptionsTab(userId, locale, {
       includeExams: options.includeExams,
+      sectionIds: options.sectionIds,
     }),
     localizedPrisma.semester.findMany({
       select: { id: true, nameCn: true, startDate: true, endDate: true },

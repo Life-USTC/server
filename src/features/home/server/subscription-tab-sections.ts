@@ -26,7 +26,7 @@ type SubscriptionTabExam = {
 export async function listSubscribedSectionsForSubscriptionsTab(
   userId: string,
   locale = DEFAULT_LOCALE,
-  options: { includeExams?: boolean } = {},
+  options: { includeExams?: boolean; sectionIds?: readonly number[] } = {},
 ) {
   const includeExams = options.includeExams === true;
 
@@ -72,7 +72,7 @@ export async function listSubscribedSectionsForSubscriptionsTab(
         orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
       });
     },
-    undefined,
+    options.sectionIds,
   );
 }
 

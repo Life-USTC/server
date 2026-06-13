@@ -100,13 +100,16 @@ export async function loadSignedDashboardTabData(input: {
       : inactiveStage(null),
     input.tab === "homeworks"
       ? timeDashboardTabStage("homeworks", stageContext, () =>
-          dashboardTabs.getHomeworksTabData(input.userId, input.locale),
+          dashboardTabs.getHomeworksTabData(input.userId, input.locale, {
+            sectionIds: input.context.sectionIds,
+          }),
         )
       : inactiveStage(null),
     input.tab === "subscriptions" || input.tab === "exams"
       ? timeDashboardTabStage("subscriptions", stageContext, () =>
           dashboardTabs.getSubscriptionsTabData(input.userId, input.locale, {
             includeExams: input.tab === "exams",
+            sectionIds: input.context.sectionIds,
           }),
         )
       : inactiveStage(null),
