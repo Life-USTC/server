@@ -27,7 +27,7 @@ export async function loadSignedDashboardTabData(input: {
   ] = await Promise.all([
     dashboard.getDashboardNavStats(
       input.context.user,
-      input.context.sectionIds,
+      input.context.subscribedSections,
       input.referenceNow,
     ),
     input.tab === "overview" || input.tab === "calendar"

@@ -6,7 +6,10 @@ import {
   emptyDashboardNavStats,
   upcomingDashboardExamWhere,
 } from "./dashboard-nav-stats-helpers";
-import type { DashboardUserSummary } from "./dashboard-user-context";
+import type {
+  DashboardSubscribedSection,
+  DashboardUserSummary,
+} from "./dashboard-user-context";
 
 export {
   type DashboardUserContext,
@@ -25,7 +28,7 @@ export type DashboardNavStats = {
 
 export async function getDashboardNavStats(
   user: DashboardUserSummary,
-  sectionIds: readonly number[],
+  subscribedSections: readonly DashboardSubscribedSection[],
   referenceDate?: Date,
 ): Promise<DashboardNavStats> {
   const referenceNow = referenceDate
@@ -39,12 +42,12 @@ export async function getDashboardNavStats(
     where: { userId: user.id, completed: false },
   });
 
-  if (sectionIds.length === 0) {
+  if (subscribedSections.length === 0) {
     const pendingTodosCount = await pendingTodosCountPromise;
     return emptyDashboardNavStats({ pendingTodosCount, user });
   }
 
-  const scopedSectionIds = Array.from(sectionIds);
+  const scopedSectionIds = subscribedSections.map((section) => section.id);
   const [
     pendingTodosCount,
     pendingHomeworksCount,
@@ -81,7 +84,7 @@ export async function getDashboardNavStats(
         tomorrowStart,
       }),
     }),
-    getDashboardCalendarItemsCount(user.id, scopedSectionIds, referenceNow),
+    getDashboardCalendarItemsCount(user.id, subscribedSections, referenceNow),
   ]);
 
   return {
