@@ -1,8 +1,8 @@
 import type { PrismaClient } from "@/generated/prisma/client";
+import { getCloudflareHyperdriveConnectionString } from "@/lib/cloudflare/runtime-env";
 import { localizedNamesExtension } from "@/lib/db/prisma-localized-names";
 import { createBasePrisma, logPrismaQuery } from "@/lib/db/prisma-query-events";
 import { shouldEnablePrismaQueryLogging } from "@/lib/db/prisma-query-logging";
-import { getCloudflareHyperdriveConnectionString } from "@/lib/cloudflare/runtime-env";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;

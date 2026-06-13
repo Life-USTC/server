@@ -21,4 +21,3 @@ export function getCloudflareHyperdriveConnectionString() {
       ?.connectionString;
   return typeof value === "string" ? value.trim() || undefined : undefined;
 }
-
