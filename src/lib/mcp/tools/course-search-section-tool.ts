@@ -1,7 +1,7 @@
 import { buildPaginatedResponse, normalizePagination } from "@/lib/api/helpers";
 import { buildSectionListQuery } from "@/lib/course-section-queries";
 import { getPrisma } from "@/lib/db/prisma";
-import { sectionInclude } from "@/lib/query-helpers";
+import { sectionCompactInclude } from "@/lib/query-helpers";
 
 type SearchSectionsForMcpToolInput = {
   campusId?: number;
@@ -57,7 +57,7 @@ export async function searchSectionsForMcpTool({
       where,
       skip: pagination.skip,
       take: pagination.pageSize,
-      include: sectionInclude,
+      include: sectionCompactInclude,
       orderBy,
     }),
     localizedPrisma.section.count({ where }),
