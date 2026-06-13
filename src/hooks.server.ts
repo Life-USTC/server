@@ -9,7 +9,6 @@ import {
   setApiRequestObservabilityContext,
 } from "@/lib/log/api-observability";
 import { logAppEvent } from "@/lib/log/app-logger";
-import { PUBLIC_CATALOG_CACHE_CONTROL } from "@/lib/public-cache-control";
 import {
   buildContentSecurityPolicy,
   createScriptNonce,
@@ -30,8 +29,6 @@ const FORM_CONTENT_TYPES = [
   "text/plain",
 ];
 const PUBLIC_PAGE_CACHE_PATHS = new Set(["/courses", "/sections", "/teachers"]);
-const PUBLIC_PAGE_DATA_PATH_PATTERN =
-  /^\/(?:courses|sections|teachers)\/__data\.json$/;
 type PublicCachePlatform = {
   caches?: { default?: Cache };
   context?: { waitUntil: (promise: Promise<unknown>) => void };
@@ -77,10 +74,6 @@ function isHtmlResponse(response: Response) {
   return response.headers.get("content-type")?.includes("text/html");
 }
 
-function isJsonResponse(response: Response) {
-  return response.headers.get("content-type")?.includes("application/json");
-}
-
 function addScriptNonce(html: string, nonce: string) {
   return html.replace(/<script(?![^>]*\bnonce=)/g, `<script nonce="${nonce}"`);
 }
@@ -117,10 +110,7 @@ function routeId(event: Parameters<Handle>[0]["event"]) {
 }
 
 function isPublicPageCachePath(pathname: string) {
-  return (
-    PUBLIC_PAGE_CACHE_PATHS.has(pathname) ||
-    PUBLIC_PAGE_DATA_PATH_PATTERN.test(pathname)
-  );
+  return PUBLIC_PAGE_CACHE_PATHS.has(pathname);
 }
 
 function requestBypassesPublicCache(request: Request) {
@@ -180,7 +170,7 @@ function cachedPublicPageResponse(input: {
 function shouldStorePublicPageResponse(response: Response) {
   if (response.status !== 200) return false;
   if (response.headers.has("set-cookie")) return false;
-  return isHtmlResponse(response) || isJsonResponse(response);
+  return isHtmlResponse(response);
 }
 
 function storePublicPageResponse(input: {
@@ -191,8 +181,6 @@ function storePublicPageResponse(input: {
 }) {
   if (!shouldStorePublicPageResponse(input.response)) return;
 
-  input.response.headers.set("Cache-Control", PUBLIC_CATALOG_CACHE_CONTROL);
-  input.response.headers.set("Vary", "Accept-Language");
   input.response.headers.set("x-life-ustc-cache", "MISS");
 
   const storePromise = input.cache.put(input.key, input.response.clone());
