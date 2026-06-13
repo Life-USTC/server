@@ -47,7 +47,9 @@ export async function loadSignedDashboardTabData(input: {
       ? dashboardTabs.getHomeworksTabData(input.userId, input.locale)
       : Promise.resolve(null),
     input.tab === "subscriptions" || input.tab === "exams"
-      ? dashboardTabs.getSubscriptionsTabData(input.userId, input.locale)
+      ? dashboardTabs.getSubscriptionsTabData(input.userId, input.locale, {
+          includeExams: input.tab === "exams",
+        })
       : Promise.resolve(null),
     input.tab === "calendar"
       ? dashboardTabs.getCalendarSubscriptionUrl(

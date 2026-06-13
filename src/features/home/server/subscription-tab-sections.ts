@@ -3,45 +3,72 @@ import { getPrisma } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { withSubscribedSections } from "./subscription-read-model-shared";
 
+type SubscriptionTabExam = {
+  id: number;
+  examDate: Date | null;
+  startTime: number | null;
+  endTime: number | null;
+  examType: number | null;
+  examMode: string | null;
+  examTakeCount: number | null;
+  examBatch: {
+    nameCn: string;
+    nameEn: string | null;
+    namePrimary: string;
+    nameSecondary: string | null;
+  } | null;
+  examRooms: Array<{
+    room: string;
+    count: number;
+  }>;
+};
+
 export async function listSubscribedSectionsForSubscriptionsTab(
   userId: string,
   locale = DEFAULT_LOCALE,
+  options: { includeExams?: boolean } = {},
 ) {
+  const includeExams = options.includeExams === true;
+
   return withSubscribedSections(
     userId,
     async (ids) => {
+      const baseSelect = {
+        id: true,
+        jwId: true,
+        code: true,
+        credits: true,
+        course: { select: { namePrimary: true } },
+        semester: { select: { id: true, nameCn: true, startDate: true } },
+        teachers: { select: { namePrimary: true } },
+      };
+      const examSelect = {
+        exams: {
+          select: {
+            id: true,
+            examDate: true,
+            startTime: true,
+            endTime: true,
+            examType: true,
+            examMode: true,
+            examTakeCount: true,
+            examBatch: {
+              select: {
+                nameCn: true,
+                nameEn: true,
+                namePrimary: true,
+                nameSecondary: true,
+              },
+            },
+            examRooms: { select: { room: true, count: true } },
+          },
+          orderBy: [{ examDate: "asc" as const }],
+        },
+      };
+
       return getPrisma(locale).section.findMany({
         where: { id: { in: ids } },
-        select: {
-          id: true,
-          jwId: true,
-          code: true,
-          credits: true,
-          course: { select: { namePrimary: true } },
-          semester: { select: { id: true, nameCn: true, startDate: true } },
-          teachers: { select: { namePrimary: true } },
-          exams: {
-            select: {
-              id: true,
-              examDate: true,
-              startTime: true,
-              endTime: true,
-              examType: true,
-              examMode: true,
-              examTakeCount: true,
-              examBatch: {
-                select: {
-                  nameCn: true,
-                  nameEn: true,
-                  namePrimary: true,
-                  nameSecondary: true,
-                },
-              },
-              examRooms: { select: { room: true, count: true } },
-            },
-            orderBy: [{ examDate: "asc" }],
-          },
-        },
+        select: includeExams ? { ...baseSelect, ...examSelect } : baseSelect,
         orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
       });
     },
@@ -54,6 +81,9 @@ export function subscriptionSectionFromRow(
     ReturnType<typeof listSubscribedSectionsForSubscriptionsTab>
   >[number],
 ) {
+  const exams: SubscriptionTabExam[] =
+    "exams" in row ? (row.exams as SubscriptionTabExam[]) : [];
+
   return {
     id: row.id,
     jwId: row.jwId,
@@ -74,7 +104,7 @@ export function subscriptionSectionFromRow(
     teachers: row.teachers.map((teacher) => ({
       namePrimary: teacher.namePrimary,
     })),
-    exams: row.exams.map((exam) => ({
+    exams: exams.map((exam) => ({
       id: exam.id,
       examDate: exam.examDate ? toShanghaiIsoString(exam.examDate) : null,
       startTime: exam.startTime,
