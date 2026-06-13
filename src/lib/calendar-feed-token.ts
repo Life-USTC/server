@@ -1,8 +1,8 @@
-import { randomBytes } from "node:crypto";
+import { randomBytesBase64Url } from "@/lib/crypto/web-crypto";
 import { prisma } from "@/lib/db/prisma";
 
 function createCalendarFeedToken(): string {
-  return randomBytes(24).toString("base64url");
+  return randomBytesBase64Url(24);
 }
 
 export async function ensureUserCalendarFeedToken(

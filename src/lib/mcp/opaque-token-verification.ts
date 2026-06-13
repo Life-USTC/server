@@ -24,7 +24,7 @@ export async function verifyOpaqueAccessTokenForMcp(
 ): Promise<AuthFailure | null> {
   if (accessTokenLooksLikeJwt(token)) return null;
 
-  const tokenHash = hashOAuthClientSecretForDbStorage(token);
+  const tokenHash = await hashOAuthClientSecretForDbStorage(token);
   const row = await prisma.oAuthAccessToken.findUnique({
     where: { token: tokenHash },
   });

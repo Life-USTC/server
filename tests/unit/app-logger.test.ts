@@ -1,34 +1,10 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { logAppEvent, logRouteFailure, shouldLog } from "@/lib/log/app-logger";
 
-async function waitForLogFileContent(logDir: string) {
-  const fs = process.getBuiltinModule("fs");
-  const deadline = Date.now() + 1_000;
-
-  while (Date.now() < deadline) {
-    const files = fs.readdirSync(logDir);
-    if (files.length > 0) {
-      return readFileSync(join(logDir, files[0] ?? ""), "utf8");
-    }
-    await new Promise((resolve) => setTimeout(resolve, 10));
-  }
-
-  throw new Error("Timed out waiting for log file");
-}
-
 describe("app logger", () => {
-  let tempDirs: string[] = [];
-
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
-    for (const dir of tempDirs) {
-      rmSync(dir, { force: true, recursive: true });
-    }
-    tempDirs = [];
   });
 
   it("honors configured log levels", () => {
@@ -87,18 +63,15 @@ describe("app logger", () => {
     expect(String(payload)).not.toContain("stack");
   });
 
-  it("persists server logs as JSON lines when APP_LOG_DIR is configured", async () => {
-    const logDir = mkdtempSync(join(tmpdir(), "life-ustc-logs-"));
-    tempDirs.push(logDir);
-    vi.stubEnv("APP_LOG_DIR", logDir);
+  it("emits app events as structured production JSON", () => {
     vi.stubEnv("NODE_ENV", "production");
     const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
 
     logAppEvent("info", "test.event", { requestId: "req_123" });
 
     expect(infoSpy).toHaveBeenCalledOnce();
-    const content = await waitForLogFileContent(logDir);
-    expect(JSON.parse(content.trim())).toMatchObject({
+    const [payload] = infoSpy.mock.calls[0] ?? [];
+    expect(JSON.parse(String(payload))).toMatchObject({
       prefix: "[app]",
       environment: "production",
       runtime: "server",

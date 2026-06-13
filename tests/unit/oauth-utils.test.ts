@@ -6,16 +6,18 @@ import {
 } from "@/lib/oauth/utils";
 
 describe("oauth/utils", () => {
-  it("hashes client secrets deterministically with SHA-256 base64url", () => {
+  it("hashes client secrets deterministically with SHA-256 base64url", async () => {
     const secret = "super-secret-value";
-    const hash = hashOAuthClientSecretForDbStorage(secret);
+    const hash = await hashOAuthClientSecretForDbStorage(secret);
 
     expect(hash).not.toBe(secret);
     expect(hash).toMatch(/^[A-Za-z0-9_-]+$/);
     // Same input produces the same hash
-    expect(hashOAuthClientSecretForDbStorage(secret)).toBe(hash);
+    await expect(hashOAuthClientSecretForDbStorage(secret)).resolves.toBe(hash);
     // Different input produces a different hash
-    expect(hashOAuthClientSecretForDbStorage("other-secret")).not.toBe(hash);
+    await expect(
+      hashOAuthClientSecretForDbStorage("other-secret"),
+    ).resolves.not.toBe(hash);
   });
 
   it("normalizes resource indicators", () => {

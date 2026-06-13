@@ -1,4 +1,3 @@
-import { writeLogFileLine } from "@/lib/log/app-log-file-sink";
 import {
   type AppLogLevel,
   getLogMethod,
@@ -22,15 +21,8 @@ export function emitLog(
       ...(serializedError ? { error: serializedError } : {}),
     };
     method(JSON.stringify(logObj));
-    writeLogFileLine(logObj);
     return;
   }
-
-  writeLogFileLine({
-    prefix,
-    ...payload,
-    ...(serializedError ? { error: serializedError } : {}),
-  });
 
   if (serializedError) {
     method(prefix, payload, serializedError);

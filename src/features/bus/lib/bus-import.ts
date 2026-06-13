@@ -27,7 +27,7 @@ export async function importBusStaticPayload(
 ): Promise<BusImportResult> {
   assertBusRouteConsistency(payload);
 
-  const checksum = checksumBusPayload(payload);
+  const checksum = await checksumBusPayload(payload);
   const versionKey = inferBusVersionKey(payload, options?.versionKey);
   const versionTitle = inferBusVersionTitle(payload, options?.versionTitle);
   const effectiveFrom = inferBusEffectiveFrom(payload, options?.effectiveFrom);

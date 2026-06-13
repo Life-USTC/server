@@ -1,4 +1,4 @@
-import { randomBytes, randomInt } from "node:crypto";
+import { randomBytesBase64Url, randomInt } from "@/lib/crypto/web-crypto";
 
 /** RFC 8628 device authorization grant constants and helpers. */
 
@@ -28,7 +28,7 @@ export const DEVICE_CODE_ERRORS = {
  * 32 bytes → 43-char base64url string.
  */
 export function generateDeviceCode(): string {
-  return randomBytes(32).toString("base64url");
+  return randomBytesBase64Url(32);
 }
 
 /**

@@ -1,11 +1,11 @@
-import { createHash } from "node:crypto";
+import { sha256Base64Url } from "@/lib/crypto/web-crypto";
 
 /**
  * Matches `@better-auth/oauth-provider` default client secret storage when the JWT
  * plugin is enabled: SHA-256 over UTF-8, base64url without padding (`storeClientSecret: "hashed"`).
  */
-export function hashOAuthClientSecretForDbStorage(plainSecret: string): string {
-  return createHash("sha256").update(plainSecret, "utf8").digest("base64url");
+export function hashOAuthClientSecretForDbStorage(plainSecret: string) {
+  return sha256Base64Url(plainSecret);
 }
 
 export function normalizeResourceIndicator(value: string | URL): string {

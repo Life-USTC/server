@@ -51,7 +51,6 @@ export async function GET({ request }: { request: Request }) {
         database,
         storage,
       },
-      uptimeSeconds: Math.floor(process.uptime()),
     },
     { status: ready ? 200 : 503 },
   );

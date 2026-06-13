@@ -1,4 +1,5 @@
 import { type Handle, type HandleServerError, redirect } from "@sveltejs/kit";
+import { getOptionalTrimmedEnv } from "@/app-env";
 import { LOCALE_COOKIE, negotiateLocale } from "@/i18n/config";
 import { shouldRedirectIncompleteProfileToWelcome } from "@/lib/auth/auth-routing";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
@@ -28,7 +29,7 @@ const FORM_CONTENT_TYPES = [
 ];
 
 function configuredTrustedFormOrigins() {
-  const publicOrigin = process.env.APP_PUBLIC_ORIGIN;
+  const publicOrigin = getOptionalTrimmedEnv("APP_PUBLIC_ORIGIN");
   return new Set(
     [...TRUSTED_FORM_ORIGINS, publicOrigin].filter((origin): origin is string =>
       Boolean(origin),
@@ -42,7 +43,7 @@ function isFormContentType(request: Request) {
 }
 
 function crossSiteFormResponse(event: Parameters<Handle>[0]["event"]) {
-  if (process.env.NODE_ENV === "development") return null;
+  if (getOptionalTrimmedEnv("NODE_ENV") === "development") return null;
   if (!FORM_METHODS.has(event.request.method)) return null;
   if (!isFormContentType(event.request)) return null;
 
@@ -145,7 +146,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     mutableResponse.headers.set(
       "Content-Security-Policy",
       buildContentSecurityPolicy(nonce, {
-        isDevelopment: process.env.NODE_ENV === "development",
+        isDevelopment: getOptionalTrimmedEnv("NODE_ENV") === "development",
       }),
     );
   }

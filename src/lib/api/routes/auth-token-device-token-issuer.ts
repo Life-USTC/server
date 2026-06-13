@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { randomBytesBase64Url } from "@/lib/crypto/web-crypto";
 import { DEVICE_CODE_STATUS } from "@/lib/oauth/device-code";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
 
@@ -52,10 +52,12 @@ export async function issueDeviceGrantTokens(
     userId: string;
   },
 ) {
-  const accessToken = randomBytes(32).toString("base64url");
-  const refreshToken = randomBytes(32).toString("base64url");
-  const accessTokenHash = hashOAuthClientSecretForDbStorage(accessToken);
-  const refreshTokenHash = hashOAuthClientSecretForDbStorage(refreshToken);
+  const accessToken = randomBytesBase64Url(32);
+  const refreshToken = randomBytesBase64Url(32);
+  const [accessTokenHash, refreshTokenHash] = await Promise.all([
+    hashOAuthClientSecretForDbStorage(accessToken),
+    hashOAuthClientSecretForDbStorage(refreshToken),
+  ]);
 
   const accessExpiresAt = new Date(
     Date.now() + DEVICE_ACCESS_TOKEN_EXPIRES_IN * 1000,

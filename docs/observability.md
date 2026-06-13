@@ -7,10 +7,8 @@ high-cardinality resource IDs.
 
 ## Log Storage
 
-Structured app logs are always emitted to the app process stdout/stderr. Cloudflare
-Workers production logs are collected through Cloudflare observability. In local
-or non-Cloudflare runs, setting `APP_LOG_DIR` also appends server-side logs as
-JSON Lines to `APP_LOG_DIR/app-YYYY-MM-DD.log`.
+Structured app logs are emitted to `console.info`/`console.warn`/`console.error`.
+Cloudflare Workers production logs are collected through Cloudflare observability.
 
 ## Request Tracing
 
@@ -59,7 +57,7 @@ OAuth, audit, and storage:
 ## Readiness
 
 `/api/readiness` returns internal dependency status for DB reachability, storage
-configuration, and process uptime. It is readable from localhost, with
+configuration, and deployment checks. It is readable from localhost, with
 `READINESS_BEARER_TOKEN`, or with `METRICS_BEARER_TOKEN`.
 
 Use readiness for operator diagnostics.

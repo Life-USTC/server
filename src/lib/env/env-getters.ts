@@ -6,9 +6,12 @@ import {
   type Env,
   runtimeRequiredEnvSchema,
 } from "./env-schema";
+import { getCloudflareRuntimeEnvInput } from "@/lib/cloudflare/runtime-env";
 
 function getDefaultEnvInput(): NodeJS.ProcessEnv {
-  return { ...process.env };
+  const processEnv =
+    typeof process === "undefined" || !process.env ? {} : process.env;
+  return { ...processEnv, ...getCloudflareRuntimeEnvInput() };
 }
 
 export function loadEnv(

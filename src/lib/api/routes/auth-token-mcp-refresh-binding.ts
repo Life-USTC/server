@@ -23,7 +23,8 @@ export async function maybeBindMcpRefreshRequest(
     return request;
   }
 
-  const refreshTokenHash = hashOAuthClientSecretForDbStorage(refreshToken);
+  const refreshTokenHash =
+    await hashOAuthClientSecretForDbStorage(refreshToken);
   const { prisma } = await import("@/lib/db/prisma");
   const refreshRecord = await prisma.oAuthRefreshToken.findUnique({
     where: { token: refreshTokenHash },

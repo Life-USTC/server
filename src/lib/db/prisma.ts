@@ -1,4 +1,6 @@
+import { getOptionalTrimmedEnv } from "@/app-env";
 import type { PrismaClient } from "@/generated/prisma/client";
+import { hasCloudflareRuntimeEnv } from "@/lib/cloudflare/runtime-env";
 import { localizedNamesExtension } from "@/lib/db/prisma-localized-names";
 import { createBasePrisma, logPrismaQuery } from "@/lib/db/prisma-query-events";
 import { shouldEnablePrismaQueryLogging } from "@/lib/db/prisma-query-logging";
@@ -10,22 +12,31 @@ const globalForPrisma = globalThis as unknown as {
 
 let basePrisma: PrismaClient | undefined;
 
+function createPrismaClient() {
+  const client = createBasePrisma();
+  if (
+    shouldEnablePrismaQueryLogging() &&
+    (hasCloudflareRuntimeEnv() || !globalForPrisma.prismaQueryLoggerAttached)
+  ) {
+    (client as PrismaClient<"query">).$on("query", logPrismaQuery);
+    globalForPrisma.prismaQueryLoggerAttached = true;
+  }
+  return client;
+}
+
 function getBasePrisma() {
+  if (hasCloudflareRuntimeEnv()) {
+    return createPrismaClient();
+  }
+
   const cached = globalForPrisma.prisma ?? basePrisma;
   if (cached) {
     return cached;
   }
 
-  const client = createBasePrisma();
-  if (
-    shouldEnablePrismaQueryLogging() &&
-    !globalForPrisma.prismaQueryLoggerAttached
-  ) {
-    (client as PrismaClient<"query">).$on("query", logPrismaQuery);
-    globalForPrisma.prismaQueryLoggerAttached = true;
-  }
+  const client = createPrismaClient();
 
-  if (process.env.NODE_ENV !== "production") {
+  if (getOptionalTrimmedEnv("NODE_ENV") !== "production") {
     globalForPrisma.prisma = client;
   }
   basePrisma = client;
@@ -49,6 +60,10 @@ type ExtendedPrismaClient = ReturnType<typeof _makeExtendedClient>;
 const extendedClientCache = new Map<string, ExtendedPrismaClient>();
 
 export const getPrisma = (locale: string): ExtendedPrismaClient => {
+  if (hasCloudflareRuntimeEnv()) {
+    return _makeExtendedClient(locale);
+  }
+
   const cached = extendedClientCache.get(locale);
   if (cached) return cached;
   const extended = _makeExtendedClient(locale);

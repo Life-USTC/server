@@ -11,7 +11,7 @@ const LOG_LEVEL_INDEX = Object.fromEntries(
 ) as Record<AppLogLevel, number>;
 
 export function getRuntimeEnvironment() {
-  return process.env.NODE_ENV ?? "development";
+  return getOptionalTrimmedEnv("NODE_ENV") ?? "development";
 }
 
 export function isProductionEnvironment() {

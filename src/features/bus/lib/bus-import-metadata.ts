@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { sha256Hex } from "@/lib/crypto/web-crypto";
 import type { BusStaticPayload } from "./bus-types";
 
 const SEASON_START_MONTH = {
@@ -9,7 +9,7 @@ const SEASON_START_MONTH = {
 } as const;
 
 export function checksumBusPayload(payload: BusStaticPayload) {
-  return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
+  return sha256Hex(JSON.stringify(payload));
 }
 
 export function inferBusVersionKey(

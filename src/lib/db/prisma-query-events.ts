@@ -1,4 +1,4 @@
-import { format as formatLogArgs } from "node:util";
+import { getOptionalTrimmedEnv } from "@/app-env";
 import { type Prisma, PrismaClient } from "@/generated/prisma/client";
 import { createPrismaAdapter } from "@/lib/db/prisma-adapter";
 import {
@@ -24,22 +24,22 @@ function logPrismaQueryEvent(
 ) {
   if (!shouldLog(level)) return;
 
+  const environment = getOptionalTrimmedEnv("NODE_ENV") ?? "development";
   const payload = {
     timestamp: formatShanghaiTimestamp(new Date()),
-    environment: process.env.NODE_ENV ?? "development",
+    environment,
     runtime: typeof window === "undefined" ? "server" : "client",
     message,
     ...context,
   };
+  const method = level === "warn" ? console.warn : console.info;
 
-  if (process.env.NODE_ENV === "production") {
-    process.stderr.write(
-      `${JSON.stringify({ prefix: "[app]", ...payload })}\n`,
-    );
+  if (environment === "production") {
+    method(JSON.stringify({ prefix: "[app]", ...payload }));
     return;
   }
 
-  process.stderr.write(`${formatLogArgs("[app]", payload)}\n`);
+  method("[app]", payload);
 }
 
 export function logPrismaQuery(event: Prisma.QueryEvent) {

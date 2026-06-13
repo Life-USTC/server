@@ -15,6 +15,21 @@ export function setCloudflareRuntimeEnv(env: unknown) {
   }
 }
 
+export function getCloudflareRuntimeEnvInput(): NodeJS.ProcessEnv {
+  const env = globalForCloudflareRuntime.__lifeUstcCloudflareRuntimeEnv;
+  if (!env) return {};
+
+  return Object.fromEntries(
+    Object.entries(env).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string",
+    ),
+  );
+}
+
+export function hasCloudflareRuntimeEnv() {
+  return Boolean(globalForCloudflareRuntime.__lifeUstcCloudflareRuntimeEnv);
+}
+
 export function getCloudflareHyperdriveConnectionString() {
   const value =
     globalForCloudflareRuntime.__lifeUstcCloudflareRuntimeEnv?.HYPERDRIVE

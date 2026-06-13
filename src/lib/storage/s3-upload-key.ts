@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID } from "@/lib/crypto/web-crypto";
 
 export function buildUploadKey(userId: string) {
   const uniqueSuffix = randomUUID();
