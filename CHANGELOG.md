@@ -1,3 +1,10 @@
+## [1.33.2](https://github.com/Life-USTC/server/compare/v1.33.1...v1.33.2) (2026-06-14)
+
+
+### Bug Fixes
+
+* **e2e:** use node prisma fixtures for worker tests ([94337a3](https://github.com/Life-USTC/server/commit/94337a3cbd130cb361044185b5ca146f65832e67))
+
 ## [1.33.1](https://github.com/Life-USTC/server/compare/v1.33.0...v1.33.1) (2026-06-14)
 
 
