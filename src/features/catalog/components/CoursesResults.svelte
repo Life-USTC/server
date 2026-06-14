@@ -5,7 +5,6 @@ import {
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Table from "$lib/components/ui/table/index.js";
 import CatalogResultsEmpty from "./CatalogResultsEmpty.svelte";
 import CatalogResultsSummary from "./CatalogResultsSummary.svelte";
 import type {
@@ -33,96 +32,50 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
 );
 </script>
 
-<div class="grid gap-3 md:hidden">
-  {#each data.data as course}
-    <a
-      class="border-base-300 border-b py-3 no-underline transition-colors hover:bg-base-200/30"
-      href={`/courses/${course.jwId}`}
-    >
-      <div class="grid gap-3">
-        <div>
-          <h2 class="font-semibold text-base">{primaryName(course)}</h2>
-          {#if secondaryName(course)}<p class="mt-1 text-base-content/60 text-sm">{secondaryName(course)}</p>{/if}
-        </div>
-        <div class="flex flex-wrap gap-1.5 text-sm">
-          <Badge class="font-mono" variant="outline">{course.code}</Badge>
-          {#if course.educationLevel}<Badge variant="ghost">{primaryName(course.educationLevel)}</Badge>{/if}
-          {#if course.category}<Badge variant="ghost">{primaryName(course.category)}</Badge>{/if}
-          {#if course.classType}<Badge variant="ghost">{primaryName(course.classType)}</Badge>{/if}
-        </div>
-      </div>
-    </a>
-  {:else}
-    <CatalogResultsEmpty
-      description={courseEmptyDescription()}
-      title={courseLabels.noCoursesFound}
-    />
-  {/each}
-</div>
-
-<section class="hidden min-w-0 gap-3 md:grid">
+<section class="grid min-w-0 gap-3">
   <CatalogResultsSummary
     base={courseSummaryBase}
     {page}
     searchText={courseSearchSummary}
     {totalPages}
   />
-  <div class="overflow-x-auto">
-    {#if data.data.length > 0}
-      <Table.Root>
-        <Table.Header>
-          <Table.Row>
-            <Table.Head>{courseLabels.courseName}</Table.Head>
-            <Table.Head>{courseLabels.courseCode}</Table.Head>
-            <Table.Head>{courseLabels.educationLevel}</Table.Head>
-            <Table.Head>{courseLabels.category}</Table.Head>
-            <Table.Head>{courseLabels.classType}</Table.Head>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {#each data.data as course}
-            {@const courseHref = `/courses/${course.jwId}`}
-            <Table.Row>
-              <Table.Cell class="min-w-80 p-0">
-                <Table.CellLink class="text-base-content" href={courseHref}>
-                  <span class="font-medium hover:underline">{primaryName(course)}</span>
-                  {#if secondaryName(course)}
-                    <span class="block text-base-content/60 text-xs">{secondaryName(course)}</span>
-                  {/if}
-                </Table.CellLink>
-              </Table.Cell>
-              <Table.Cell class="p-0">
-                <Table.CellLink href={courseHref}>
-                  <Badge class="font-mono" variant="outline">{course.code}</Badge>
-                </Table.CellLink>
-              </Table.Cell>
-              <Table.Cell class="p-0">
-                <Table.CellLink href={courseHref}>
-                  {#if course.educationLevel}<Badge variant="ghost">{primaryName(course.educationLevel)}</Badge>{:else}<span class="text-base-content/40">-</span>{/if}
-                </Table.CellLink>
-              </Table.Cell>
-              <Table.Cell class="p-0">
-                <Table.CellLink href={courseHref}>
-                  {#if course.category}<Badge variant="ghost">{primaryName(course.category)}</Badge>{:else}<span class="text-base-content/40">-</span>{/if}
-                </Table.CellLink>
-              </Table.Cell>
-              <Table.Cell class="p-0">
-                <Table.CellLink href={courseHref}>
-                  {#if course.classType}<Badge variant="ghost">{primaryName(course.classType)}</Badge>{:else}<span class="text-base-content/40">-</span>{/if}
-                </Table.CellLink>
-              </Table.Cell>
-            </Table.Row>
-          {/each}
-        </Table.Body>
-      </Table.Root>
-    {:else}
-      <div class="py-10">
-        <CatalogResultsEmpty
-          centered
-          description={courseEmptyDescription()}
-          title={courseLabels.noCoursesFound}
-        />
-      </div>
-    {/if}
-  </div>
+  {#if data.data.length > 0}
+    <div class="grid min-w-0 overflow-hidden rounded-md border border-base-300">
+      {#each data.data as course}
+        {@const courseHref = `/courses/${course.jwId}`}
+        <a
+          class="grid min-w-0 gap-3 border-base-300 border-b p-3 text-base-content no-underline transition-colors last:border-b-0 hover:bg-base-200/30 md:grid-cols-[minmax(16rem,1.7fr)_minmax(7rem,0.7fr)_minmax(8rem,0.8fr)_minmax(9rem,0.9fr)_minmax(8rem,0.8fr)] md:items-center md:gap-4"
+          href={courseHref}
+        >
+          <div class="grid min-w-0 gap-1">
+            <span class="truncate font-medium">{primaryName(course)}</span>
+            {#if secondaryName(course)}
+              <span class="truncate text-base-content/60 text-xs">{secondaryName(course)}</span>
+            {/if}
+          </div>
+          <Badge class="w-fit font-mono" variant="outline">{course.code}</Badge>
+          <div class="flex items-center justify-between gap-3 text-sm md:block">
+            <span class="text-base-content/55 md:sr-only">{courseLabels.educationLevel}</span>
+            <span>{course.educationLevel ? primaryName(course.educationLevel) : "-"}</span>
+          </div>
+          <div class="flex items-center justify-between gap-3 text-sm md:block">
+            <span class="text-base-content/55 md:sr-only">{courseLabels.category}</span>
+            <span>{course.category ? primaryName(course.category) : "-"}</span>
+          </div>
+          <div class="flex items-center justify-between gap-3 text-sm md:block">
+            <span class="text-base-content/55 md:sr-only">{courseLabels.classType}</span>
+            <span>{course.classType ? primaryName(course.classType) : "-"}</span>
+          </div>
+        </a>
+      {/each}
+    </div>
+  {:else}
+    <div class="py-10">
+      <CatalogResultsEmpty
+        centered
+        description={courseEmptyDescription()}
+        title={courseLabels.noCoursesFound}
+      />
+    </div>
+  {/if}
 </section>

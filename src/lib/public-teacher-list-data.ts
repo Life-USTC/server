@@ -6,8 +6,22 @@ import {
   parsePositivePage,
   toLoadData,
 } from "@/lib/page-data-utils";
+import {
+  cachedPublicRuntimeData,
+  publicRuntimeCacheKey,
+} from "@/lib/public-runtime-cache";
+
+const TEACHER_LIST_CACHE_TTL_MS = 60_000;
 
 export async function getTeacherListPage(url: URL, locale = "zh-cn") {
+  return cachedPublicRuntimeData(
+    publicRuntimeCacheKey(`teacher-list:${locale}`, url.searchParams),
+    TEACHER_LIST_CACHE_TTL_MS,
+    () => getUncachedTeacherListPage(url, locale),
+  );
+}
+
+async function getUncachedTeacherListPage(url: URL, locale = "zh-cn") {
   const [{ ilike, paginatedTeacherQuery }, { getPrisma }] = await Promise.all([
     import("@/lib/query-helpers"),
     import("@/lib/db/prisma"),
