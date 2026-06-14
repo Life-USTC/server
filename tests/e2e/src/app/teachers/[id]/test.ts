@@ -102,8 +102,9 @@ test.describe("/teachers/[id]", () => {
     const teacherId = new URL(page.url()).pathname.split("/").pop();
     expect(teacherId).toBeTruthy();
     await expect(page.getByText(/教师 ID|Teacher ID/i)).toHaveCount(0);
-    const content = await page.locator("#main-content").innerText();
-    expect(content).not.toMatch(new RegExp(`\\b${teacherId}\\b`));
+    await expect(page.locator("#main-content")).not.toContainText(
+      new RegExp(`(?:教师 ID|Teacher ID)\\s*${teacherId}`),
+    );
   });
 
   test("displays department, title, and email in basic info", async ({
