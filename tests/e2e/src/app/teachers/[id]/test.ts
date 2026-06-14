@@ -42,7 +42,7 @@ async function navigateToSeedTeacher(
     `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}`,
   );
   const detailLink = page
-    .locator("tbody a[href^='/teachers/']:visible")
+    .locator("#main-content a[href^='/teachers/']:visible")
     .first();
   await expect(detailLink).toBeVisible();
   await detailLink.click();

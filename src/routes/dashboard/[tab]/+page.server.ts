@@ -1,9 +1,11 @@
 import { error } from "@sveltejs/kit";
-import { dashboardPageActions } from "@/features/dashboard/server/dashboard-page-actions";
-import { loadDashboardPage } from "@/features/dashboard/server/dashboard-page-load";
-import type { Actions, PageServerLoad } from "./$types";
+import {
+  actions as dashboardActions,
+  load as loadDashboard,
+} from "../+page.server";
+import type { PageServerLoad } from "./$types";
 
-type DashboardLoadEvent = Parameters<typeof loadDashboardPage>[0];
+type DashboardLoadEvent = Parameters<typeof loadDashboard>[0];
 
 const DASHBOARD_TABS = new Set([
   "overview",
@@ -23,7 +25,7 @@ export const load: PageServerLoad = async (event) => {
   const url = new URL(event.url);
   url.searchParams.set("tab", event.params.tab);
 
-  return loadDashboardPage({ ...event, url } as unknown as DashboardLoadEvent);
+  return loadDashboard({ ...event, url } as unknown as DashboardLoadEvent);
 };
 
-export const actions: Actions = dashboardPageActions;
+export const actions = dashboardActions;
