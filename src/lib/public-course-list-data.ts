@@ -5,8 +5,22 @@ import {
   parsePositivePage,
   toLoadData,
 } from "@/lib/page-data-utils";
+import {
+  cachedPublicRuntimeData,
+  publicRuntimeCacheKey,
+} from "@/lib/public-runtime-cache";
+
+const COURSE_LIST_CACHE_TTL_MS = 60_000;
 
 export async function getCourseListPage(url: URL, locale = "zh-cn") {
+  return cachedPublicRuntimeData(
+    publicRuntimeCacheKey(`course-list:${locale}`, url.searchParams),
+    COURSE_LIST_CACHE_TTL_MS,
+    () => getUncachedCourseListPage(url, locale),
+  );
+}
+
+async function getUncachedCourseListPage(url: URL, locale = "zh-cn") {
   const [{ buildCourseListWhere }, { paginatedCourseQuery }, { getPrisma }] =
     await Promise.all([
       import("@/lib/course-section-queries"),
