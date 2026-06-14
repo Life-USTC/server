@@ -1,10 +1,3 @@
-x-minio-env: &minio-env
-  MINIO_ROOT_USER: minioadmin
-  MINIO_ROOT_PASSWORD: minioadmin
-  MINIO_API_CORS_ALLOW_ORIGIN: http://127.0.0.1:3000,http://localhost:3000
-
-x-minio-dev-bucket: &minio-dev-bucket life-ustc-dev
-
 services:
   postgres:
     image: postgres:16
@@ -22,41 +15,5 @@ services:
     volumes:
       - postgres-data-dev:/var/lib/postgresql/data
 
-  minio:
-    image: minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
-    environment: *minio-env
-    command: server /data --console-address ":9001"
-    ports:
-      - "127.0.0.1:9000:9000"
-      - "127.0.0.1:9001:9001"
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9000/minio/health/live || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    volumes:
-      - minio-data-dev:/data
-
-  minio-setup:
-    image: minio/mc:RELEASE.2025-08-13T08-35-41Z-cpuv1
-    depends_on:
-      minio:
-        condition: service_healthy
-    restart: "no"
-    environment:
-      <<: *minio-env
-      MINIO_BUCKET: *minio-dev-bucket
-    entrypoint: >
-      /bin/sh -c '
-      for attempt in 1 2 3 4 5 6 7 8 9 10; do
-        mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD" &&
-        mc mb --ignore-existing "local/$$MINIO_BUCKET" &&
-        exit 0;
-        sleep 2;
-      done;
-      exit 1
-      '
-
 volumes:
   postgres-data-dev:
-  minio-data-dev:

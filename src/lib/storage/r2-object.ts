@@ -1,49 +1,36 @@
-import {
-  DeleteObjectCommand,
-  GetObjectCommand,
-  HeadObjectCommand,
-} from "@aws-sdk/client-s3";
 import { getCloudflareR2UploadsBucket } from "@/lib/cloudflare/runtime-env";
 import { recordStorageOperationMetric } from "@/lib/metrics/observability-metrics";
-import { getS3Bucket, getS3SignedUrl, sendS3 } from "@/lib/storage/s3";
 
 export type StorageObjectHead = {
   contentType?: string;
   size: number;
 };
 
+function requireR2UploadsBucket() {
+  const r2Bucket = getCloudflareR2UploadsBucket();
+  if (!r2Bucket) {
+    throw new Error("R2_UPLOADS binding is required for upload storage");
+  }
+  return r2Bucket;
+}
+
 export async function headStorageObject(
   key: string,
 ): Promise<StorageObjectHead> {
-  const r2Bucket = getCloudflareR2UploadsBucket();
-  if (r2Bucket) {
-    const object = await recordR2Operation("HeadObject", () =>
-      r2Bucket.head(key),
-    );
-    if (!object) return { size: 0 };
-    return {
-      contentType: object.httpMetadata?.contentType,
-      size: object.size,
-    };
-  }
-
-  const head = await sendS3(
-    new HeadObjectCommand({ Bucket: getS3Bucket(), Key: key }),
+  const r2Bucket = requireR2UploadsBucket();
+  const object = await recordR2Operation("HeadObject", () =>
+    r2Bucket.head(key),
   );
+  if (!object) return { size: 0 };
   return {
-    contentType: head.ContentType,
-    size: head.ContentLength ?? 0,
+    contentType: object.httpMetadata?.contentType,
+    size: object.size,
   };
 }
 
 export async function deleteStorageObject(key: string) {
-  const r2Bucket = getCloudflareR2UploadsBucket();
-  if (r2Bucket) {
-    await recordR2Operation("DeleteObject", () => r2Bucket.delete(key));
-    return;
-  }
-
-  await sendS3(new DeleteObjectCommand({ Bucket: getS3Bucket(), Key: key }));
+  const r2Bucket = requireR2UploadsBucket();
+  await recordR2Operation("DeleteObject", () => r2Bucket.delete(key));
 }
 
 export async function getStorageObjectResponse(input: {
@@ -51,33 +38,48 @@ export async function getStorageObjectResponse(input: {
   contentType?: string | null;
   key: string;
 }) {
-  const r2Bucket = getCloudflareR2UploadsBucket();
-  if (r2Bucket) {
-    const object = await recordR2Operation("GetObject", () =>
-      r2Bucket.get(input.key),
-    );
-    if (!object) return null;
+  const r2Bucket = requireR2UploadsBucket();
+  const object = await recordR2Operation("GetObject", () =>
+    r2Bucket.get(input.key),
+  );
+  if (!object) return null;
 
-    const headers = new Headers();
-    headers.set("Content-Disposition", input.contentDisposition);
-    headers.set(
-      "Content-Type",
-      input.contentType ??
-        object.httpMetadata?.contentType ??
-        "application/octet-stream",
-    );
-    headers.set("Content-Length", String(object.size));
-    return new Response(object.body, { headers });
-  }
+  const headers = new Headers();
+  headers.set("Content-Disposition", input.contentDisposition);
+  headers.set(
+    "Content-Type",
+    input.contentType ??
+      object.httpMetadata?.contentType ??
+      "application/octet-stream",
+  );
+  headers.set("Content-Length", String(object.size));
+  return new Response(object.body, { headers });
+}
 
-  const command = new GetObjectCommand({
-    Bucket: getS3Bucket(),
-    Key: input.key,
-    ResponseContentDisposition: input.contentDisposition,
-    ResponseContentType: input.contentType ?? undefined,
-  });
-  const url = await getS3SignedUrl(command, { expiresIn: 60 });
-  return Response.redirect(url);
+export async function putStorageObject(input: {
+  body: ReadableStream<Uint8Array> | null;
+  contentType?: string | null;
+  key: string;
+}) {
+  const r2Bucket = requireR2UploadsBucket();
+  await recordR2Operation("PutObject", () =>
+    r2Bucket.put(input.key, input.body, {
+      httpMetadata: {
+        contentType: input.contentType ?? "application/octet-stream",
+      },
+    }),
+  );
+}
+
+export function hasStorageBinding() {
+  return Boolean(getCloudflareR2UploadsBucket());
+}
+
+export function storageReadiness() {
+  return {
+    status: hasStorageBinding() ? "ok" : "missing_r2_binding",
+    binding: "R2_UPLOADS",
+  };
 }
 
 async function recordR2Operation<T>(operation: string, run: () => Promise<T>) {

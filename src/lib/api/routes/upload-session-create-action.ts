@@ -1,4 +1,3 @@
-import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { uploadConfig } from "@/features/uploads/lib/upload-config";
 import {
   runUploadSerializableTransaction,
@@ -11,11 +10,12 @@ import {
   getUploadUsedBytes,
 } from "@/lib/api/routes/upload-session-helpers";
 import type { UploadCreateInput } from "@/lib/api/routes/upload-session-types";
-import { buildUploadKey, getS3Bucket, getS3SignedUrl } from "@/lib/storage/s3";
+import { buildUploadKey } from "@/lib/storage/upload-key";
 
 export async function createUploadSessionAction(
   userId: string,
   uploadInput: UploadCreateInput,
+  origin: string,
 ) {
   const { prisma } = await import("@/lib/db/prisma");
   const now = new Date();
@@ -44,18 +44,12 @@ export async function createUploadSessionAction(
     return { usedBytes };
   }, "Failed to reserve upload quota");
 
-  const command = new PutObjectCommand({
-    Bucket: getS3Bucket(),
-    Key: key,
-    ContentType: uploadInput.contentType,
-  });
-  const url = await getS3SignedUrl(command, {
-    expiresIn: MAX_UPLOAD_EXPIRES_SECONDS,
-  });
+  const uploadUrl = new URL("/api/uploads/object", origin);
+  uploadUrl.searchParams.set("key", key);
 
   return jsonResponse({
     key,
-    url,
+    url: uploadUrl.toString(),
     maxFileSizeBytes: uploadConfig.maxFileSizeBytes,
     quotaBytes: uploadConfig.totalQuotaBytes,
     usedBytes: reservation.usedBytes,

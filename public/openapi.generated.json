@@ -3867,7 +3867,7 @@
     "/api/uploads/{id}/download": {
       "get": {
         "operationId": "downloadUpload",
-        "summary": "Redirect to signed URL for one upload.",
+        "summary": "Stream one upload from Cloudflare R2 after authorization.",
         "description": "",
         "tags": [
           "Uploads"
@@ -3885,13 +3885,13 @@
           }
         ],
         "responses": {
-          "302": {
-            "description": "Redirect",
-            "headers": {
-              "Location": {
+          "200": {
+            "description": "Binary response",
+            "content": {
+              "application/octet-stream": {
                 "schema": {
                   "type": "string",
-                  "format": "uri"
+                  "format": "binary"
                 }
               }
             }
@@ -3922,7 +3922,7 @@
     "/api/uploads/complete": {
       "post": {
         "operationId": "completeUpload",
-        "summary": "Finalize one upload after S3 put.",
+        "summary": "Finalize one upload after the R2 object write.",
         "description": "",
         "tags": [
           "Uploads"
@@ -3955,6 +3955,79 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/uploadCompleteRequestSchema"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/uploads/object": {
+      "put": {
+        "operationId": "put-api-uploads-object",
+        "summary": "Write one pending upload object through the Cloudflare R2 binding.",
+        "description": "",
+        "tags": [
+          "Uploads"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "key",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/successResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
               }
             }
           }
@@ -17107,7 +17180,7 @@
     },
     {
       "name": "Uploads",
-      "description": "Upload presign, finalize, and file management"
+      "description": "Upload session, R2 object write, finalize, and file management"
     },
     {
       "name": "Descriptions",

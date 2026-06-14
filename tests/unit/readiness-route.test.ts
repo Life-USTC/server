@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const queryRawMock = vi.fn();
+const { queryRawMock, storageReadinessMock } = vi.hoisted(() => ({
+  queryRawMock: vi.fn(),
+  storageReadinessMock: vi.fn(() => ({
+    status: "ok",
+    binding: "R2_UPLOADS",
+  })),
+}));
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
@@ -8,15 +14,19 @@ vi.mock("@/lib/db/prisma", () => ({
   },
 }));
 
+vi.mock("@/lib/storage/r2-object", () => ({
+  storageReadiness: storageReadinessMock,
+}));
+
 describe("/api/readiness", () => {
   afterEach(() => {
     queryRawMock.mockReset();
+    storageReadinessMock.mockClear();
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
   });
 
   it("returns readiness checks for local requests", async () => {
-    vi.stubEnv("S3_BUCKET", "life-ustc-test");
     queryRawMock.mockResolvedValue([{ "?column?": 1 }]);
     vi.spyOn(console, "info").mockImplementation(() => {});
     const { GET } = await import("@/routes/api/readiness/+server");

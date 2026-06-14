@@ -23,7 +23,7 @@ tools/                Build, check, seed, import, E2E, and snapshot scripts
 # Development
 bun install --frozen-lockfile
 bun run dev        # Host app dev; auto-runs prisma generate + migrate deploy
-bun run dev:infra  # Infra only (postgres, minio, minio-setup)
+bun run dev:infra  # Infra only (postgres)
 bun run dev:down   # Stop dev Docker stack
 
 # Quality
@@ -32,19 +32,19 @@ bun run verify:edit         # After a small edit: lint + typecheck
 bun run verify:feature      # After a feature: static checks + typecheck + unit tests
 bun run verify:commit       # Before commit/PR: default local gate
 bun run verify:full         # Full gate: fast verification + integration + E2E
-bun run verify:e2e          # E2E convention check; start MinIO/migrations explicitly
+bun run verify:e2e          # E2E convention check; start migrations explicitly
 
 # Tests
 bun run test                # Unit only
 bun run test:integration    # Integration; runs shared dev-seed setup automatically
 bun run test:e2e            # E2E (full build)
-bun run test:e2e:artifacts  # Prebuild + typecheck + standalone E2E runtime
-bun run test:e2e:prepare    # Build and stage standalone output for E2E
+bun run test:e2e:artifacts  # Typecheck + build Cloudflare Worker E2E runtime
+bun run test:e2e:prepare    # Build and validate Cloudflare Worker output
 
 # Build
 bun run build:artifacts      # Generate Prisma + OpenAPI
 bun run build
-bun run deploy:cloudflare    # Production app deploy
+# Production app deploys through Cloudflare Git integration
 DATABASE_URL=... docker compose -f docker-compose.load.yml run --rm static-loader
 
 # Tool CLIs used by repo workflows
@@ -85,8 +85,8 @@ bun run prisma studio
 
 ## Local Dev Environment
 
-- `.env` is configured for host-native dev (`bun run dev`) against local Docker infra on `127.0.0.1`.
-- `minio-setup` auto-creates bucket `life-ustc-dev` and exits successfully; that is expected.
+- `.env` is configured for host-native dev (`bun run dev`) against local Postgres on `127.0.0.1`.
+- Upload storage is provided by the Cloudflare `R2_UPLOADS` binding; use `wrangler dev` based flows when exercising upload storage locally.
 - Host-native `bun run dev` auto-runs `prisma generate` + `prisma migrate deploy` before starting the SvelteKit dev process.
 - Host-native `bun run dev` is pinned to `127.0.0.1:3000`.
 - Prefer these flows for pain-free setup:
@@ -94,7 +94,7 @@ bun run prisma studio
 
 ## Production Deployment
 
-- The production app runs on Cloudflare Workers via `wrangler.jsonc`; do not reintroduce Docker app or compose runtime paths for frontend/backend serving.
+- The production app runs on Cloudflare Workers via Cloudflare Git integration and `wrangler.jsonc`; do not reintroduce GitHub Actions deploy jobs, manual deploy scripts, Docker app, or compose runtime paths for frontend/backend serving.
 - The only durable Docker image in this repo is the static data loader. It requires `DATABASE_URL`, runs migrations, then executes `tools/load/load-from-static.ts`.
 
 ## Documentation Structure

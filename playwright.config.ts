@@ -34,7 +34,7 @@ export default defineConfig({
     screenshot: playwrightRuntime.screenshot,
   },
   webServer: {
-    command: "node build/index.js",
+    command: "bun run tools/dev/e2e.ts start",
     env: buildPlaywrightServerEnv({
       host: playwrightRuntime.host,
       port: playwrightRuntime.port,
@@ -44,7 +44,7 @@ export default defineConfig({
     reuseExistingServer: playwrightRuntime.reuseExistingServer,
     stdout: "ignore",
     stderr: "pipe",
-    // Package scripts own build-time staging; Playwright starts the staged server directly.
+    // Package scripts own build-time staging; Playwright starts the staged Worker locally.
     timeout: playwrightRuntime.webServerTimeoutMs,
   },
   projects: [

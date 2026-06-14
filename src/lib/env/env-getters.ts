@@ -91,15 +91,3 @@ export function getUploadEnv(input: NodeJS.ProcessEnv = getDefaultEnvInput()) {
     "Invalid upload environment variables",
   );
 }
-
-export function getStorageEnv(input: NodeJS.ProcessEnv = getDefaultEnvInput()) {
-  return parseEnv(
-    commonEnvSchema.pick({
-      S3_BUCKET: true,
-      AWS_REGION: true,
-      AWS_ENDPOINT_URL_S3: true,
-    }),
-    input,
-    "Invalid storage environment variables",
-  );
-}

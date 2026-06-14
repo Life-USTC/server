@@ -2,11 +2,10 @@
  * E2E tests for GET /api/uploads/[id]/download.
  *
  * ## GET /api/uploads/[id]/download
- * - Response: 307 redirect to signed S3 GetObject URL (follows to 200)
+ * - Response: 200 streamed from R2
  * - Auth required (401 if unauthenticated)
  * - Ownership check: returns 404 if upload belongs to another user
  * - Sets Content-Disposition header with filename
- * - Signed URL expires after 60 seconds
  *
  * ## Edge cases
  * - Non-owner gets 404 (not 403, to avoid leaking upload existence)

@@ -1,5 +1,3 @@
-import { getS3ConnectSources } from "@/lib/storage/s3";
-
 const ANALYTICS_SCRIPT_SOURCES = [
   "https://www.googletagmanager.com",
   "https://www.google-analytics.com",
@@ -39,10 +37,7 @@ export function buildContentSecurityPolicy(
     scriptSources.push("'unsafe-eval'");
   }
 
-  const connectSources = [
-    ...ANALYTICS_CONNECT_SOURCES,
-    ...getS3ConnectSources(),
-  ];
+  const connectSources = [...ANALYTICS_CONNECT_SOURCES];
 
   const directives = [
     "default-src 'self'",

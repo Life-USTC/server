@@ -9,6 +9,13 @@ import {
   parseResourceIdRouteParam,
 } from "@/lib/api/routes/academic-route-helpers";
 import { teachersQuerySchema } from "@/lib/api/schemas/request-schemas";
+import { PUBLIC_CATALOG_CACHE_CONTROL } from "@/lib/public-cache-control";
+import {
+  cachedPublicRuntimeData,
+  publicRuntimeCacheKey,
+} from "@/lib/public-runtime-cache";
+
+const TEACHERS_API_CACHE_TTL_MS = 60_000;
 
 export async function getTeachersRoute(request: Request) {
   const searchParams = new URL(request.url).searchParams;
@@ -24,19 +31,27 @@ export async function getTeachersRoute(request: Request) {
 
   const { query: parsedQuery, pagination } = parsed;
   const { departmentId, search } = parsedQuery;
-  const where = await buildTeacherWhere({ departmentId, search });
 
   try {
-    const { paginatedTeacherQuery } = await import("@/lib/query-helpers");
-    const result = await paginatedTeacherQuery(
-      pagination.page,
-      pagination.pageSize,
-      where,
-      {
-        nameCn: "asc",
+    const result = await cachedPublicRuntimeData(
+      publicRuntimeCacheKey("api:teachers", searchParams),
+      TEACHERS_API_CACHE_TTL_MS,
+      async () => {
+        const where = await buildTeacherWhere({ departmentId, search });
+        const { paginatedTeacherQuery } = await import("@/lib/query-helpers");
+        return paginatedTeacherQuery(
+          pagination.page,
+          pagination.pageSize,
+          where,
+          {
+            nameCn: "asc",
+          },
+        );
       },
     );
-    return jsonResponse(result);
+    return jsonResponse(result, {
+      headers: { "Cache-Control": PUBLIC_CATALOG_CACHE_CONTROL },
+    });
   } catch (error) {
     return handleRouteError("Failed to fetch teachers", error);
   }

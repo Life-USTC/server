@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import {
   buildPlaywrightServerEnv,
-  preparePlaywrightStandaloneRuntime,
+  preparePlaywrightWorkerRuntime,
   resolvePlaywrightHarnessRuntime,
 } from "@tools/dev/e2e";
 import { DEV_SEED } from "@tools/dev/seed/dev-seed";
@@ -51,15 +51,18 @@ describe("playwright runtime", () => {
     const env = buildPlaywrightServerEnv({
       host: "127.0.0.1",
       port: "3000",
-      env: {},
+      env: {
+        DATABASE_URL: "postgresql://example",
+      },
     });
 
     expect(env).toMatchObject({
       PORT: "3000",
       ORIGIN: "http://127.0.0.1:3000",
       APP_PUBLIC_ORIGIN: "http://127.0.0.1:3000",
+      CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE:
+        "postgresql://example",
       E2E_DEBUG_AUTH: "1",
-      AWS_REGION: "us-east-1",
       DEV_DEBUG_USERNAME: DEV_SEED.debugUsername,
       DEV_DEBUG_NAME: DEV_SEED.debugName,
       DEV_DEBUG_PASSWORD: "e2e-debug-local-only",
@@ -75,6 +78,7 @@ describe("playwright runtime", () => {
       port: "3000",
       env: {
         ALL_PROXY: "http://proxy.local:8080",
+        DATABASE_URL: "postgresql://example",
         all_proxy: "http://proxy.local:8080",
         HTTPS_PROXY: "https://proxy.local:8080",
       },
@@ -82,28 +86,42 @@ describe("playwright runtime", () => {
 
     expect(env).toMatchObject({
       PORT: "3000",
-      ALL_PROXY: "http://proxy.local:8080",
-      all_proxy: "http://proxy.local:8080",
-      HTTPS_PROXY: "https://proxy.local:8080",
+      NO_PROXY: "127.0.0.1,localhost,::1",
+      no_proxy: "127.0.0.1,localhost,::1",
     });
+    expect(env.ALL_PROXY).toBeUndefined();
+    expect(env.all_proxy).toBeUndefined();
+    expect(env.HTTPS_PROXY).toBeUndefined();
   });
 
-  it("merges public assets without deleting SvelteKit client assets", () => {
+  it("requires the Cloudflare Worker build output", () => {
     const root = mkdtempSync(path.join(tmpdir(), "life-ustc-playwright-"));
     try {
-      mkdirSync(path.join(root, "build", "client"), { recursive: true });
-      mkdirSync(path.join(root, "public", "images"), { recursive: true });
-      writeFileSync(path.join(root, "build", "index.js"), "");
-      writeFileSync(path.join(root, "build", "client", "app.js"), "");
-      writeFileSync(path.join(root, "public", "images", "icon.png"), "");
-
-      preparePlaywrightStandaloneRuntime(root);
-
-      expect(existsSync(path.join(root, "build", "client", "app.js"))).toBe(
-        true,
+      mkdirSync(path.join(root, ".svelte-kit", "cloudflare"), {
+        recursive: true,
+      });
+      mkdirSync(path.join(root, ".svelte-kit", "cloudflare-tmp"), {
+        recursive: true,
+      });
+      mkdirSync(path.join(root, ".svelte-kit", "output", "server"), {
+        recursive: true,
+      });
+      writeFileSync(
+        path.join(root, ".svelte-kit", "cloudflare", "_worker.js"),
+        "",
       );
+      writeFileSync(
+        path.join(root, ".svelte-kit", "cloudflare-tmp", "manifest.js"),
+        "",
+      );
+      writeFileSync(
+        path.join(root, ".svelte-kit", "output", "server", "index.js"),
+        "",
+      );
+
+      expect(() => preparePlaywrightWorkerRuntime(root)).not.toThrow();
       expect(
-        existsSync(path.join(root, "build", "client", "images", "icon.png")),
+        existsSync(path.join(root, ".svelte-kit", "cloudflare", "_worker.js")),
       ).toBe(true);
     } finally {
       rmSync(root, { recursive: true, force: true });

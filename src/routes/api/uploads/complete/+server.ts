@@ -3,7 +3,7 @@ import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * Finalize one upload after S3 put.
+ * Finalize one upload after the R2 object write.
  * @body uploadCompleteRequestSchema
  * @response uploadCompleteResponseSchema
  * @response 400:openApiErrorSchema

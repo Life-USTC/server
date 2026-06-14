@@ -5,11 +5,11 @@ import {
 } from "./upload-client-errors";
 import type {
   UploadCompleteResponse,
-  UploadPresignResponse,
+  UploadCreateResponse,
   UploadSummary,
 } from "./upload-client-types";
 
-export async function uploadFileWithPresign<TUpload>({
+export async function uploadFileWithR2<TUpload>({
   file,
   maxFileSizeBytes,
 }: {
@@ -18,17 +18,17 @@ export async function uploadFileWithPresign<TUpload>({
 }): Promise<{
   upload: TUpload;
   summary: UploadSummary;
-  presign: UploadPresignResponse;
+  uploadSession: UploadCreateResponse;
 }> {
   if (maxFileSizeBytes && file.size > maxFileSizeBytes) {
     throw new UploadFlowError("File too large");
   }
 
   const {
-    data: presignData,
-    error: presignError,
-    response: presignResponse,
-  } = await apiClient.POST<UploadPresignResponse>("/api/uploads", {
+    data: uploadSession,
+    error: uploadSessionError,
+    response: uploadSessionResponse,
+  } = await apiClient.POST<UploadCreateResponse>("/api/uploads", {
     body: {
       filename: file.name,
       contentType: file.type || "application/octet-stream",
@@ -36,12 +36,12 @@ export async function uploadFileWithPresign<TUpload>({
     },
   });
 
-  if (!presignResponse.ok || !presignData) {
-    const errorCode = extractUploadErrorCode(presignError);
-    throw new UploadFlowError(errorCode ?? "Presign failed");
+  if (!uploadSessionResponse.ok || !uploadSession) {
+    const errorCode = extractUploadErrorCode(uploadSessionError);
+    throw new UploadFlowError(errorCode ?? "Upload session failed");
   }
 
-  const uploadResponse = await fetch(presignData.url, {
+  const uploadResponse = await fetch(uploadSession.url, {
     method: "PUT",
     body: file,
     headers: {
@@ -61,7 +61,7 @@ export async function uploadFileWithPresign<TUpload>({
     "/api/uploads/complete",
     {
       body: {
-        key: presignData.key,
+        key: uploadSession.key,
         filename: file.name,
         contentType: file.type || "application/octet-stream",
       },
@@ -74,7 +74,7 @@ export async function uploadFileWithPresign<TUpload>({
   }
 
   const summary: UploadSummary = {
-    maxFileSizeBytes: presignData.maxFileSizeBytes,
+    maxFileSizeBytes: uploadSession.maxFileSizeBytes,
     quotaBytes: completeData.quotaBytes,
     usedBytes: completeData.usedBytes,
   };
@@ -82,6 +82,6 @@ export async function uploadFileWithPresign<TUpload>({
   return {
     upload: completeData.upload as TUpload,
     summary,
-    presign: presignData,
+    uploadSession,
   };
 }

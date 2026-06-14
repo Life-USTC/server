@@ -22,4 +22,5 @@ export {
   dashboardLinkVisitQuerySchema,
   semestersQuerySchema,
   todosQuerySchema,
+  uploadObjectQuerySchema,
 } from "./misc-query-schemas";

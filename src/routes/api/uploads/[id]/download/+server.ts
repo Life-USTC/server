@@ -3,9 +3,9 @@ import { getUploadDownloadRoute } from "@/lib/api/routes/uploads";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * Redirect to signed URL for one upload.
+ * Stream one upload from Cloudflare R2 after authorization.
  * @pathParams resourceIdPathParamsSchema
- * @response 302
+ * @response 200:binary
  * @response 401:openApiErrorSchema
  * @response 404:openApiErrorSchema
  */

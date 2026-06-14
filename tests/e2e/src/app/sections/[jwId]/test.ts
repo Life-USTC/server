@@ -902,7 +902,7 @@ test.describe("/sections/[jwId]", () => {
     ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "section/comment-attachment");
 
-    // Download uses signed URL (upload.yml download-signed-url rule)
+    // Download is served by the authorized on-site R2 streaming route.
     const popupPromise = page.waitForEvent("popup");
     await commentCard
       .getByRole("link", { name: /打开附件|Open attachment/i })

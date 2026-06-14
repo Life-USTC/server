@@ -17,6 +17,7 @@
 
 # svelte
 /.svelte-kit/
+/.wrangler/
 /out/
 
 # production

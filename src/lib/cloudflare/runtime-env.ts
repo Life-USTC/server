@@ -12,6 +12,16 @@ export type CloudflareR2Bucket = {
     (CloudflareR2Object & { body: ReadableStream<Uint8Array> }) | null
   >;
   head(key: string): Promise<CloudflareR2Object | null>;
+  put(
+    key: string,
+    value:
+      | ReadableStream<Uint8Array>
+      | ArrayBuffer
+      | ArrayBufferView
+      | string
+      | null,
+    options?: { httpMetadata?: { contentType?: string } },
+  ): Promise<unknown>;
 };
 
 type CloudflareRuntimeEnv = Record<string, unknown> & {

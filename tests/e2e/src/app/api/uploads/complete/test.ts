@@ -7,11 +7,11 @@
  * - Auth required (401 if unauthenticated)
  * - Returns 403 if key prefix doesn't match user's upload path
  * - Returns 400 "Upload session expired" if no pending record exists
- * - Cleans up S3 object on failure (expired session, quota exceeded)
+ * - Cleans up R2 object on failure (expired session, quota exceeded)
  * - Uses serializable transaction for race condition safety
  *
  * ## Edge cases
- * - Missing/expired pending upload → deletes S3 object and returns 400
+ * - Missing/expired pending upload -> deletes R2 object and returns 400
  * - Key prefix mismatch → 403
  */
 import { expect, test } from "@playwright/test";
@@ -43,7 +43,7 @@ test("/api/uploads/complete POST key 前缀不匹配返回 403", async ({ page }
   expect(response.status()).toBe(403);
 });
 
-test("/api/uploads/complete POST 无 pending 时返回 400 且清理 S3 对象", async ({
+test("/api/uploads/complete POST 无 pending 时返回 400 且清理 R2 对象", async ({
   page,
 }) => {
   test.setTimeout(60_000);

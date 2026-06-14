@@ -573,7 +573,7 @@ const TAG_DESCRIPTIONS: Record<string, string> = {
   Admin: "Admin and moderation endpoints",
   Comments: "Comment threads, reactions, and moderation",
   Homeworks: "Homework management and completion status",
-  Uploads: "Upload presign, finalize, and file management",
+  Uploads: "Upload session, R2 object write, finalize, and file management",
   Descriptions: "User-generated description content and history",
   Sections: "Course sections, calendars, and schedules",
   Courses: "Course catalog and search",

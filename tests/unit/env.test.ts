@@ -77,25 +77,6 @@ describe("env validation", () => {
     });
   });
 
-  it("keeps storage env scoped to app-read settings", async () => {
-    const { getStorageEnv } = await import("@/app-env");
-
-    expect(
-      getStorageEnv({
-        S3_BUCKET: " bucket ",
-        AWS_REGION: " us-east-1 ",
-        AWS_ENDPOINT_URL_S3: " http://127.0.0.1:9000 ",
-        AWS_ACCESS_KEY_ID: "sdk-managed",
-        AWS_SECRET_ACCESS_KEY: "sdk-managed",
-        AWS_SESSION_TOKEN: "sdk-managed",
-      }),
-    ).toEqual({
-      S3_BUCKET: "bucket",
-      AWS_REGION: "us-east-1",
-      AWS_ENDPOINT_URL_S3: "http://127.0.0.1:9000",
-    });
-  });
-
   it("parses upload quota as an exact positive integer", async () => {
     const { getUploadEnv } = await import("@/app-env");
 

@@ -17,9 +17,6 @@ export const commonEnvSchema = z.object({
   AUTH_OIDC_CLIENT_ID: optionalString,
   AUTH_OIDC_CLIENT_SECRET: optionalString,
   OAUTH_PROXY_SECRET: optionalString,
-  S3_BUCKET: optionalString,
-  AWS_REGION: optionalString,
-  AWS_ENDPOINT_URL_S3: optionalUrl,
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),

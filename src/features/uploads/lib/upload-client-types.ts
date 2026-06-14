@@ -4,7 +4,7 @@ export type UploadSummary = {
   usedBytes: number;
 };
 
-export type UploadPresignResponse = {
+export type UploadCreateResponse = {
   key: string;
   url: string;
   maxFileSizeBytes: number;

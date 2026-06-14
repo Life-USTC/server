@@ -6,7 +6,7 @@
 
 ```bash
 bun install --frozen-lockfile
-bun run dev:infra  # start postgres/minio
+bun run dev:infra  # start postgres
 bun run dev        # prepare DB and start SvelteKit
 ```
 
@@ -28,7 +28,7 @@ bun run test:e2e        # build and run Playwright E2E
 - 本地开发固定监听 `127.0.0.1:3000`
 
 生产部署：
-- 应用运行在 Cloudflare Workers，使用 `bun run deploy:cloudflare` 发布。
+- 应用运行在 Cloudflare Workers，生产发布由 Cloudflare Git integration 负责。
 - Docker 只保留静态数据加载环境：`DATABASE_URL=... docker compose -f docker-compose.load.yml run --rm static-loader`
 
 ## 常用入口

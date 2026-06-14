@@ -3,7 +3,7 @@ import { extractApiErrorMessage } from "@/lib/api/client";
 export type UploadErrorCode =
   | "Quota exceeded"
   | "File too large"
-  | "Presign failed"
+  | "Upload session failed"
   | "Upload failed"
   | "Finalize failed";
 

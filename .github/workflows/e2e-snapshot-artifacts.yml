@@ -79,28 +79,13 @@ jobs:
           bun run svelte-kit sync
           bun run prisma generate
 
-      - name: Build standalone app
+      - name: Build Worker app
         shell: bash
         run: bun run test:e2e:artifacts
 
       - name: Bootstrap E2E services
         shell: bash
         run: |
-          docker rm -f life-ustc-minio-dev >/dev/null 2>&1 || true
-          docker run -d \
-            --name life-ustc-minio-dev \
-            -p 9000:9000 \
-            -p 9001:9001 \
-            -e MINIO_ROOT_USER=minioadmin \
-            -e MINIO_ROOT_PASSWORD=minioadmin \
-            -e MINIO_API_CORS_ALLOW_ORIGIN=http://127.0.0.1:3000,http://localhost:3000 \
-            minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1 \
-            server /data --console-address ":9001"
-          for _ in $(seq 1 30); do
-            curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null && break
-            sleep 1
-          done
-          curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null
           bun run prisma migrate deploy
           bun run verify:e2e
 

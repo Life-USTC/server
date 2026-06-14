@@ -10,7 +10,7 @@ auth/      Session resolution, permissions
 db/        Prisma instances
 mcp/       MCP server (see mcp/AGENTS.md)
 oauth/     OAuth provider, tokens
-storage/   S3 client, signed URLs
+storage/   Cloudflare R2 object helpers
 security/  CSP, content security
 time/      Date parsing, serialization
 log/       Structured logging

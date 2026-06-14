@@ -9,18 +9,17 @@ focused variants still include:
 
 ```bash
 bun run test:e2e -- path/to/test
-playwright test --headed path/to/test
-playwright test --ui
+bunx playwright test --headed path/to/test
+bunx playwright test --ui
 ```
 
 ## Local Setup
 
 Use the root `AGENTS.md` for the shared setup flow. E2E-only caveats:
 
-- CI starts the standalone MinIO variant inline in workflow YAML when the full
-  local dev stack is not used. Keep Docker orchestration in shell/YAML, not TypeScript.
-- Package scripts handle standalone prep and seed data. Playwright global setup only validates/provisions the `life-ustc-e2e` bucket.
-- CI and Playwright start the standalone E2E server directly with `node build/index.js`.
+- Package scripts build the Cloudflare Worker bundle before Playwright starts.
+- Playwright starts the local Worker with `bun run tools/dev/e2e.ts start`, which runs `wrangler dev` with proxy variables cleared for localhost.
+- Playwright global setup validates the database environment only; R2 is provided by Wrangler's local `R2_UPLOADS` binding.
 
 ## Test Data
 

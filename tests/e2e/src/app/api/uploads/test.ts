@@ -11,11 +11,11 @@
  * - Response: { key, url, maxFileSizeBytes, quotaBytes, usedBytes }
  * - Auth required (401 if unauthenticated)
  * - Creates a pending upload with 5-minute expiry
- * - Returns pre-signed S3 PutObject URL
+ * - Returns on-site Workers upload object URL
  *
  * ## Edge cases
  * - Unauthenticated GET/POST → 401
- * - Full upload flow: POST presign → PUT to S3 → POST /api/uploads/complete
+ * - Full upload flow: POST upload session → PUT to Workers/R2 route → POST /api/uploads/complete
  * - GET response includes quota metadata fields
  */
 import { expect, test } from "@playwright/test";

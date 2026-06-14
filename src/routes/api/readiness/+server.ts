@@ -1,6 +1,6 @@
-import { getStorageEnv } from "@/app-env";
 import { canReadInternalEndpoint } from "@/lib/http/access-control";
 import { jsonResponse, notFoundText } from "@/lib/http/responses";
+import { storageReadiness } from "@/lib/storage/r2-object";
 
 async function checkDatabase() {
   const start = Date.now();
@@ -14,20 +14,7 @@ async function checkDatabase() {
 }
 
 function checkStorageConfig() {
-  try {
-    const env = getStorageEnv();
-    return {
-      status: env.S3_BUCKET ? "ok" : "missing_bucket",
-      endpointConfigured: Boolean(env.AWS_ENDPOINT_URL_S3),
-      region: env.AWS_REGION ?? "us-east-1",
-    };
-  } catch {
-    return {
-      status: "error",
-      endpointConfigured: false,
-      region: "unknown",
-    };
-  }
+  return storageReadiness();
 }
 
 export async function GET({ request }: { request: Request }) {

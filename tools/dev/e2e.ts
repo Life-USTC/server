@@ -1,13 +1,6 @@
+import { spawn } from "node:child_process";
 import * as fs from "node:fs";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
-import {
-  CreateBucketCommand,
-  HeadBucketCommand,
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type {
   ReporterDescription,
   ScreenshotMode,
@@ -18,42 +11,29 @@ import { DEV_SEED } from "./seed/dev-seed";
 const PLAYWRIGHT_HOST = "127.0.0.1";
 const PLAYWRIGHT_PORT = "3000";
 const PLAYWRIGHT_BASE_URL = "http://127.0.0.1:3000";
-const E2E_AWS_REGION = "us-east-1";
-const MINIO_ENDPOINT = "http://127.0.0.1:9000";
-const MINIO_ACCESS_KEY_ID = "minioadmin";
-const MINIO_SECRET_ACCESS_KEY = "minioadmin";
-const E2E_BUCKET = "life-ustc-e2e";
-const MINIO_HEALTHCHECK_PATH = "/minio/health/live";
-const MINIO_STARTUP_ATTEMPTS = 30;
-const MINIO_STARTUP_RETRY_MS = 1_000;
-const MINIO_PROVISION_ATTEMPTS = 15;
-const MINIO_PROVISION_RETRY_MS = 500;
 const DEFAULT_WEB_SERVER_TIMEOUT_MS = 300 * 1000;
 const DEFAULT_E2E_DEBUG_PASSWORD = "e2e-debug-local-only";
 const DEFAULT_E2E_ADMIN_PASSWORD = "e2e-admin-local-only";
-
-async function waitForMinio(options?: { attempts?: number; retryMs?: number }) {
-  const attempts = options?.attempts ?? MINIO_STARTUP_ATTEMPTS;
-  const retryMs = options?.retryMs ?? MINIO_STARTUP_RETRY_MS;
-  const healthUrl = new URL(MINIO_HEALTHCHECK_PATH, `${MINIO_ENDPOINT}/`);
-
-  for (let attempt = 1; attempt <= attempts; attempt++) {
-    try {
-      const response = await fetch(healthUrl);
-      if (response.ok) {
-        return;
-      }
-    } catch {
-      // Retry until the endpoint is ready.
-    }
-
-    if (attempt < attempts) {
-      await delay(retryMs);
-    }
-  }
-
-  throw new Error(`MinIO did not become healthy at ${healthUrl.toString()}`);
-}
+const LOCAL_NO_PROXY = "127.0.0.1,localhost,::1";
+const WRANGLER_E2E_CONFIG_PATH = path.join(".wrangler", "e2e", "wrangler.json");
+const WRANGLER_E2E_PERSIST_PATH = path.join(".wrangler", "e2e", "state");
+const E2E_WORKER_VAR_KEYS = [
+  "AUTH_SECRET",
+  "JWT_SECRET",
+  "WEBHOOK_SECRET",
+  "OAUTH_PROXY_SECRET",
+  "E2E_DEBUG_AUTH",
+  "DEV_DEBUG_USERNAME",
+  "DEV_DEBUG_NAME",
+  "DEV_DEBUG_EMAIL",
+  "DEV_DEBUG_PASSWORD",
+  "DEV_ADMIN_USERNAME",
+  "DEV_ADMIN_NAME",
+  "DEV_ADMIN_EMAIL",
+  "DEV_ADMIN_PASSWORD",
+  "METRICS_BEARER_TOKEN",
+  "UPLOAD_TOTAL_QUOTA_MB",
+] as const;
 
 function buildPlaywrightDebugAuthEnv() {
   return {
@@ -65,6 +45,10 @@ function buildPlaywrightDebugAuthEnv() {
     DEV_ADMIN_NAME: DEV_SEED.adminName,
     DEV_ADMIN_PASSWORD: DEFAULT_E2E_ADMIN_PASSWORD,
   };
+}
+
+function appendNoProxy(value: string | undefined) {
+  return value ? `${value},${LOCAL_NO_PROXY}` : LOCAL_NO_PROXY;
 }
 
 export function resolvePlaywrightServerRuntime(
@@ -109,6 +93,9 @@ export function buildPlaywrightServerEnv(options: {
 }): Record<string, string> {
   const env = options.env ?? process.env;
   const baseUrl = options.baseUrl ?? `http://${options.host}:${options.port}`;
+  const hyperdriveLocalConnection =
+    env.CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE ??
+    env.DATABASE_URL;
 
   const serverEnv = Object.fromEntries(
     Object.entries({
@@ -117,14 +104,24 @@ export function buildPlaywrightServerEnv(options: {
       PORT: options.port,
       ORIGIN: baseUrl,
       APP_PUBLIC_ORIGIN: baseUrl,
+      CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE:
+        hyperdriveLocalConnection,
+      NO_PROXY: appendNoProxy(env.NO_PROXY),
+      no_proxy: appendNoProxy(env.no_proxy),
       ...buildPlaywrightDebugAuthEnv(),
-      S3_BUCKET: E2E_BUCKET,
-      AWS_REGION: E2E_AWS_REGION,
-      AWS_ACCESS_KEY_ID: MINIO_ACCESS_KEY_ID,
-      AWS_SECRET_ACCESS_KEY: MINIO_SECRET_ACCESS_KEY,
-      AWS_ENDPOINT_URL_S3: MINIO_ENDPOINT,
     }).filter(([, value]) => value !== undefined),
   ) as Record<string, string>;
+
+  for (const proxyEnv of [
+    "all_proxy",
+    "ALL_PROXY",
+    "http_proxy",
+    "HTTP_PROXY",
+    "https_proxy",
+    "HTTPS_PROXY",
+  ]) {
+    delete serverEnv[proxyEnv];
+  }
 
   if (serverEnv.FORCE_COLOR) {
     delete serverEnv.NO_COLOR;
@@ -133,63 +130,136 @@ export function buildPlaywrightServerEnv(options: {
   return serverEnv;
 }
 
-function copyDirectoryContents(source: string, target: string) {
-  if (!fs.existsSync(source)) {
-    return;
-  }
-
-  fs.mkdirSync(target, { recursive: true });
-  for (const entry of fs.readdirSync(source)) {
-    fs.cpSync(path.join(source, entry), path.join(target, entry), {
-      recursive: true,
-    });
-  }
-}
-
-export function preparePlaywrightStandaloneRuntime(root = process.cwd()) {
-  resolveStandaloneServerPath(
-    root,
-    "bun run test:e2e:prepare or bun run build",
-  );
-
-  copyDirectoryContents(
-    path.join(root, "public"),
-    path.join(root, "build", "client"),
-  );
-}
-
-export async function startPlaywrightStandaloneRuntime(root = process.cwd()) {
-  const runtime = resolvePlaywrightServerRuntime();
-  Object.assign(
-    process.env,
-    buildPlaywrightServerEnv({
-      host: runtime.host,
-      port: runtime.port,
-      baseUrl: runtime.baseUrl,
-    }),
-  );
-  await import(
-    pathToFileURL(
-      resolveStandaloneServerPath(
-        root,
-        "bun run test:e2e:prepare or bun run build",
-      ),
-    ).href
-  );
-}
-
-function resolveStandaloneServerPath(
+function resolveWorkerEntrypoint(
   root = process.cwd(),
   commandHint = "bun run build",
 ) {
-  const adapterServerPath = path.join(root, "build", "index.js");
-  if (fs.existsSync(adapterServerPath)) {
-    return adapterServerPath;
+  const workerPath = path.join(root, ".svelte-kit", "cloudflare", "_worker.js");
+  if (fs.existsSync(workerPath)) {
+    return workerPath;
   }
 
   throw new Error(
-    `Missing SvelteKit adapter-node server. Run \`${commandHint}\` before starting the standalone app.`,
+    `Missing Cloudflare Worker bundle. Run \`${commandHint}\` before starting the E2E app.`,
   );
+}
+
+function requireBuiltFile(root: string, relativePath: string) {
+  const filePath = path.join(root, relativePath);
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Missing Cloudflare E2E build file: ${relativePath}`);
+  }
+}
+
+export function preparePlaywrightWorkerRuntime(root = process.cwd()) {
+  resolveWorkerEntrypoint(root, "bun run test:e2e:prepare or bun run build");
+  requireBuiltFile(root, ".svelte-kit/cloudflare-tmp/manifest.js");
+  requireBuiltFile(root, ".svelte-kit/output/server/index.js");
+}
+
+function pickE2EWorkerVars(env: Record<string, string>) {
+  return Object.fromEntries(
+    E2E_WORKER_VAR_KEYS.flatMap((key) => {
+      const value = env[key];
+      return value ? [[key, value]] : [];
+    }),
+  );
+}
+
+function writePlaywrightWranglerConfig(
+  root: string,
+  baseUrl: string,
+  env: Record<string, string>,
+) {
+  const sourceConfigPath = path.join(root, "wrangler.jsonc");
+  const targetConfigPath = path.join(root, WRANGLER_E2E_CONFIG_PATH);
+  const config = JSON.parse(fs.readFileSync(sourceConfigPath, "utf8")) as {
+    alias?: Record<string, string>;
+    assets?: { directory?: string };
+    main?: string;
+    routes?: unknown;
+    vars?: Record<string, string>;
+  };
+
+  delete config.routes;
+  config.main = path.resolve(root, ".svelte-kit/cloudflare/_worker.js");
+  config.assets = {
+    ...config.assets,
+    directory: path.resolve(root, ".svelte-kit/cloudflare"),
+  };
+  config.vars = {
+    ...config.vars,
+    ...pickE2EWorkerVars(env),
+    NODE_ENV: "test",
+    APP_PUBLIC_ORIGIN: baseUrl,
+  };
+  if (config.alias) {
+    config.alias = Object.fromEntries(
+      Object.entries(config.alias).map(([key, value]) => [
+        key,
+        path.resolve(root, value),
+      ]),
+    );
+  }
+
+  fs.mkdirSync(path.dirname(targetConfigPath), { recursive: true });
+  fs.writeFileSync(targetConfigPath, `${JSON.stringify(config, null, 2)}\n`);
+  return targetConfigPath;
+}
+
+export async function startPlaywrightWorkerRuntime(root = process.cwd()) {
+  preparePlaywrightWorkerRuntime(root);
+  const runtime = resolvePlaywrightServerRuntime();
+  const env = buildPlaywrightServerEnv({
+    host: runtime.host,
+    port: runtime.port,
+    baseUrl: runtime.baseUrl,
+  });
+  const configPath = writePlaywrightWranglerConfig(root, runtime.baseUrl, env);
+  const persistPath = path.join(root, WRANGLER_E2E_PERSIST_PATH);
+
+  const child = spawn(
+    "bunx",
+    [
+      "wrangler",
+      "dev",
+      "--config",
+      configPath,
+      "--ip",
+      runtime.host,
+      "--port",
+      runtime.port,
+      "--local",
+      "--persist-to",
+      persistPath,
+      "--log-level",
+      "info",
+    ],
+    {
+      cwd: root,
+      env,
+      stdio: "inherit",
+    },
+  );
+
+  const stop = (signal: NodeJS.Signals) => {
+    if (!child.killed) child.kill(signal);
+  };
+  process.once("SIGINT", stop);
+  process.once("SIGTERM", stop);
+
+  await new Promise<void>((resolve, reject) => {
+    child.once("error", reject);
+    child.once("exit", (code, signal) => {
+      process.off("SIGINT", stop);
+      process.off("SIGTERM", stop);
+      if (code === 0 || signal) {
+        resolve();
+        return;
+      }
+      reject(new Error(`wrangler dev exited with code ${code}`));
+    });
+  });
 }
 
 export function assertPlaywrightDatabaseUrl(
@@ -200,94 +270,10 @@ export function assertPlaywrightDatabaseUrl(
   }
 }
 
-function isBucketMissingError(error: unknown) {
-  if (!(error instanceof Error)) return false;
-  return error.name === "NotFound" || error.name === "NoSuchBucket";
-}
-
-async function delay(ms: number) {
-  await new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function retry<T>(attempts: number, fn: () => Promise<T>) {
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= attempts; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      lastError = error;
-      if (attempt < attempts) {
-        await delay(MINIO_PROVISION_RETRY_MS);
-      }
-    }
-  }
-  throw lastError;
-}
-
-export async function ensurePlaywrightMinio(
-  _env: NodeJS.ProcessEnv = process.env,
-) {
-  await waitForMinio();
-}
-
-export async function provisionPlaywrightBucket(
-  _env: NodeJS.ProcessEnv = process.env,
-) {
-  const s3 = new S3Client({
-    region: E2E_AWS_REGION,
-    endpoint: MINIO_ENDPOINT,
-    forcePathStyle: true,
-    credentials: {
-      accessKeyId: MINIO_ACCESS_KEY_ID,
-      secretAccessKey: MINIO_SECRET_ACCESS_KEY,
-    },
-  });
-
-  await retry(MINIO_PROVISION_ATTEMPTS, async () => {
-    try {
-      await s3.send(new HeadBucketCommand({ Bucket: E2E_BUCKET }));
-      return;
-    } catch (error) {
-      if (!isBucketMissingError(error)) {
-        throw error;
-      }
-    }
-
-    await s3.send(new CreateBucketCommand({ Bucket: E2E_BUCKET }));
-  });
-
-  const smokeKey = `e2e-smoke/${Date.now()}.txt`;
-  await retry(MINIO_PROVISION_ATTEMPTS, async () => {
-    const smokeUrl = await getSignedUrl(
-      s3,
-      new PutObjectCommand({
-        Bucket: E2E_BUCKET,
-        Key: smokeKey,
-        ContentType: "text/plain",
-      }),
-      { expiresIn: 60 },
-    );
-    const smokeRes = await fetch(smokeUrl, {
-      method: "PUT",
-      headers: { "Content-Type": "text/plain" },
-      body: "ok",
-    });
-
-    if (!smokeRes.ok) {
-      throw new Error(
-        `MinIO smoke upload failed (${smokeRes.status}). ` +
-          "Is MinIO running? Start it with: docker compose -f docker-compose.dev.yml up -d minio",
-      );
-    }
-  });
-}
-
 export async function bootstrapPlaywrightData(
   env: NodeJS.ProcessEnv = process.env,
 ) {
   assertPlaywrightDatabaseUrl(env);
-  await ensurePlaywrightMinio(env);
-  await provisionPlaywrightBucket(env);
 }
 
 if (process.argv[1]?.endsWith("e2e.ts")) {
@@ -296,9 +282,9 @@ if (process.argv[1]?.endsWith("e2e.ts")) {
   const command = process.argv[2];
 
   if (command === "prepare") {
-    preparePlaywrightStandaloneRuntime();
+    preparePlaywrightWorkerRuntime();
   } else if (command === "start") {
-    await startPlaywrightStandaloneRuntime();
+    await startPlaywrightWorkerRuntime();
   } else {
     console.error("Usage: bun run tools/dev/e2e.ts <prepare|start>");
     process.exit(2);

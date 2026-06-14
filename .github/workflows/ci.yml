@@ -31,8 +31,8 @@ jobs:
       auth-secret: e2e-ci-secret
       extra-env: NO_PROXY=127.0.0.1,localhost,::1
       job-command: bun run test:e2e:artifacts
-      upload-artifact-name: playwright-standalone
-      upload-artifact-path: build
+      upload-artifact-name: playwright-worker
+      upload-artifact-path: .svelte-kit
       upload-artifact-no-files-found: error
       upload-artifact-include-hidden-files: true
 
@@ -64,27 +64,13 @@ jobs:
       auth-secret: e2e-ci-secret
       extra-env: |
         NO_PROXY=127.0.0.1,localhost,::1
-      download-artifact-name: playwright-standalone
+      download-artifact-name: playwright-worker
       download-artifact-path: .
       job-command: |
-        docker rm -f life-ustc-minio-dev >/dev/null 2>&1 || true
-        docker run -d \
-          --name life-ustc-minio-dev \
-          -p 9000:9000 \
-          -p 9001:9001 \
-          -e MINIO_ROOT_USER=minioadmin \
-          -e MINIO_ROOT_PASSWORD=minioadmin \
-          -e MINIO_API_CORS_ALLOW_ORIGIN=http://127.0.0.1:3000,http://localhost:3000 \
-          minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1 \
-          server /data --console-address ":9001"
-        for _ in $(seq 1 30); do
-          curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null && break
-          sleep 1
-        done
-        curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null
         bun run prisma migrate deploy
         bun run verify:e2e
-        bun run test:e2e -- ${{ matrix.paths }}
+        bun run dev:seed-scenarios
+        bunx playwright test --reporter=list -- ${{ matrix.paths }}
       upload-artifact-name: playwright-report-${{ matrix.scope }}
       upload-artifact-path: playwright-report/
       upload-artifact-no-files-found: ignore

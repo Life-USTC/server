@@ -17,6 +17,7 @@ const probeOnlyRoutes = new Set([
   "/api/uploads/[id]",
   "/api/uploads/[id]/download",
   "/api/uploads/complete",
+  "/api/uploads/object",
   "/api/calendar-subscriptions",
   "/api/calendar-subscriptions/current",
   "/api/admin/comments",

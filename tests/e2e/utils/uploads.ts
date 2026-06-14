@@ -80,23 +80,23 @@ export async function createUploadedFileViaApi(
     contents: string;
   },
 ) {
-  const presignResponse = await request.post("/api/uploads", {
+  const uploadSessionResponse = await request.post("/api/uploads", {
     data: {
       filename: options.filename,
       contentType: options.mimeType ?? "text/plain",
       size: Buffer.byteLength(options.contents),
     },
   });
-  expect(presignResponse.status()).toBe(200);
-  const presignBody = (await presignResponse.json()) as {
+  expect(uploadSessionResponse.status()).toBe(200);
+  const uploadSessionBody = (await uploadSessionResponse.json()) as {
     key?: string;
     url?: string;
     maxFileSizeBytes?: number;
   };
-  expect(presignBody.url).toMatch(/^https?:\/\//);
-  expect(typeof presignBody.key).toBe("string");
+  expect(uploadSessionBody.url).toMatch(/^https?:\/\//);
+  expect(typeof uploadSessionBody.key).toBe("string");
 
-  const putResponse = await request.put(presignBody.url as string, {
+  const putResponse = await request.put(uploadSessionBody.url as string, {
     data: Buffer.from(options.contents),
     headers: {
       "Content-Type": options.mimeType ?? "text/plain",
@@ -106,7 +106,7 @@ export async function createUploadedFileViaApi(
 
   const completeResponse = await request.post("/api/uploads/complete", {
     data: {
-      key: presignBody.key,
+      key: uploadSessionBody.key,
       filename: options.filename,
       contentType: options.mimeType ?? "text/plain",
     },
@@ -118,7 +118,7 @@ export async function createUploadedFileViaApi(
   expect(typeof completeBody.upload?.id).toBe("string");
 
   return {
-    key: presignBody.key as string,
+    key: uploadSessionBody.key as string,
     uploadId: completeBody.upload?.id as string,
     completeResponse,
   };

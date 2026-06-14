@@ -35,7 +35,11 @@ export async function postUploadRoute(request: Request) {
   if (uploadInput instanceof Response) return uploadInput;
 
   try {
-    return await createUploadSessionAction(userId, uploadInput);
+    return await createUploadSessionAction(
+      userId,
+      uploadInput,
+      new URL(request.url).origin,
+    );
   } catch (error) {
     return uploadCreateErrorResponse(error);
   }

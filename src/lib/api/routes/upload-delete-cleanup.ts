@@ -8,8 +8,11 @@ import { deleteStorageObject } from "@/lib/storage/r2-object";
 export async function cleanupDeletedUploadObject(upload: { key: string }) {
   try {
     await deleteStorageObject(upload.key);
-  } catch (s3Error) {
-    handleRouteError("S3 object cleanup failed after upload deletion", s3Error);
+  } catch (storageError) {
+    handleRouteError(
+      "R2 object cleanup failed after upload deletion",
+      storageError,
+    );
   }
 }
 

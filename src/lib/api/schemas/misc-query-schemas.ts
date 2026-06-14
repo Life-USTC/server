@@ -34,3 +34,7 @@ export const todosQuerySchema = z.object({
   dueBefore: z.string().trim().datetime().optional(),
   dueAfter: z.string().trim().datetime().optional(),
 });
+
+export const uploadObjectQuerySchema = z.object({
+  key: z.string().trim().min(1),
+});

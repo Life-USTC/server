@@ -1,0 +1,15 @@
+import { putUploadObjectRoute } from "@/lib/api/routes/upload-object-put-route";
+import { observedApiRoute } from "@/lib/log/api-observability";
+import type { RequestHandler } from "./$types";
+
+/**
+ * Write one pending upload object through the Cloudflare R2 binding.
+ * @params uploadObjectQuerySchema
+ * @response 200:successResponseSchema
+ * @response 400:openApiErrorSchema
+ * @response 401:openApiErrorSchema
+ * @response 403:openApiErrorSchema
+ * @response 413:openApiErrorSchema
+ */
+export const PUT: RequestHandler = ({ request }) =>
+  observedApiRoute(putUploadObjectRoute)(request);

@@ -6,6 +6,13 @@ import {
 } from "@/lib/api/helpers";
 import { parseJwIdRouteParam } from "@/lib/api/routes/academic-route-helpers";
 import { coursesQuerySchema } from "@/lib/api/schemas/request-schemas";
+import { PUBLIC_CATALOG_CACHE_CONTROL } from "@/lib/public-cache-control";
+import {
+  cachedPublicRuntimeData,
+  publicRuntimeCacheKey,
+} from "@/lib/public-runtime-cache";
+
+const COURSES_API_CACHE_TTL_MS = 60_000;
 
 export async function getCoursesRoute(request: Request) {
   const searchParams = new URL(request.url).searchParams;
@@ -21,22 +28,33 @@ export async function getCoursesRoute(request: Request) {
 
   const { query: parsedQuery, pagination } = parsed;
   const { search, educationLevelId, categoryId, classTypeId } = parsedQuery;
-  const { buildCourseListWhere } = await import("@/lib/course-section-queries");
-  const where = buildCourseListWhere({
-    search,
-    educationLevelId,
-    categoryId,
-    classTypeId,
-  });
 
   try {
-    const { paginatedCourseQuery } = await import("@/lib/query-helpers");
-    const result = await paginatedCourseQuery(
-      pagination.page,
-      pagination.pageSize,
-      where,
+    const result = await cachedPublicRuntimeData(
+      publicRuntimeCacheKey("api:courses", searchParams),
+      COURSES_API_CACHE_TTL_MS,
+      async () => {
+        const [{ buildCourseListWhere }, { paginatedCourseQuery }] =
+          await Promise.all([
+            import("@/lib/course-section-queries"),
+            import("@/lib/query-helpers"),
+          ]);
+        const where = buildCourseListWhere({
+          search,
+          educationLevelId,
+          categoryId,
+          classTypeId,
+        });
+        return paginatedCourseQuery(
+          pagination.page,
+          pagination.pageSize,
+          where,
+        );
+      },
     );
-    return jsonResponse(result);
+    return jsonResponse(result, {
+      headers: { "Cache-Control": PUBLIC_CATALOG_CACHE_CONTROL },
+    });
   } catch (error) {
     return handleRouteError("Failed to fetch courses", error);
   }

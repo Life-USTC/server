@@ -3,9 +3,9 @@ export {
   type UploadErrorCode,
   UploadFlowError,
 } from "./upload-client-errors";
-export { uploadFileWithPresign } from "./upload-client-presign-flow";
+export { uploadFileWithR2 } from "./upload-client-r2-flow";
 export type {
   UploadCompleteResponse,
-  UploadPresignResponse,
+  UploadCreateResponse,
   UploadSummary,
 } from "./upload-client-types";

@@ -3,7 +3,6 @@ import {
   buildContentSecurityPolicy,
   createScriptNonce,
 } from "@/lib/security/csp";
-import { getS3ConnectSources, getS3Region } from "@/lib/storage/s3";
 
 describe("csp helpers", () => {
   afterEach(() => {
@@ -41,48 +40,15 @@ describe("csp helpers", () => {
     expect(imageDirective).toContain("https://api.dicebear.com");
   });
 
-  it("treats a blank AWS_REGION as unset", () => {
-    vi.stubEnv("AWS_REGION", "   ");
-    expect(getS3Region()).toBe("us-east-1");
-  });
-
-  it("allows both AWS S3 URL shapes for uploads", () => {
-    vi.stubEnv("S3_BUCKET", "bucket.with.dots");
-    vi.stubEnv("AWS_REGION", "us-east-1");
-    vi.stubEnv("AWS_ENDPOINT_URL_S3", "");
-
+  it("keeps uploads on the same origin", () => {
     const policy = buildContentSecurityPolicy("abc123");
     const connectDirective = policy
       .split("; ")
       .find((directive) => directive.startsWith("connect-src"));
 
     expect(connectDirective).toBeDefined();
-    expect(connectDirective).toContain(
-      "https://bucket.with.dots.s3.us-east-1.amazonaws.com",
-    );
-    expect(connectDirective).toContain("https://s3.us-east-1.amazonaws.com");
-  });
-
-  it("allows a configured S3-compatible endpoint origin", () => {
-    vi.stubEnv("S3_BUCKET", "bucket.with.dots");
-    vi.stubEnv(
-      "AWS_ENDPOINT_URL_S3",
-      "https://account-id.r2.cloudflarestorage.com",
-    );
-
-    expect(getS3ConnectSources()).toEqual([
-      "https://account-id.r2.cloudflarestorage.com",
-    ]);
-
-    const policy = buildContentSecurityPolicy("abc123");
-    const connectDirective = policy
-      .split("; ")
-      .find((directive) => directive.startsWith("connect-src"));
-
-    expect(connectDirective).toBeDefined();
-    expect(connectDirective).toContain(
-      "https://account-id.r2.cloudflarestorage.com",
-    );
+    expect(connectDirective).toContain("'self'");
     expect(connectDirective).not.toContain("amazonaws.com");
+    expect(connectDirective).not.toContain("r2.cloudflarestorage.com");
   });
 });

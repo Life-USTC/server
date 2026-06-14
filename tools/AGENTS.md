@@ -8,7 +8,8 @@ Build, seed, import, E2E, and snapshot scripts.
 shared/              Helper code
 build/openapi/       OpenAPI generation
 dev/check.ts         Convention checks
-dev/e2e.ts           E2E infra, standalone runtime, and MinIO helperdev/artifacts/snapshots/
+dev/e2e.ts           E2E Cloudflare Worker runtime helper
+dev/artifacts/snapshots/
                      Visual snapshot capture and report workflow
 dev/seed/            Dev seed data
 load/                Static data imports

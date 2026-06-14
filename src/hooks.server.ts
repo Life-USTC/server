@@ -217,7 +217,9 @@ export const handle: Handle = async ({ event, resolve }) => {
     mutableResponse.headers.set("x-request-id", requestId);
   }
   if (shouldSetCsp) {
-    mutableResponse.headers.set("Cache-Control", "no-store");
+    if (!mutableResponse.headers.has("Cache-Control")) {
+      mutableResponse.headers.set("Cache-Control", "no-store");
+    }
     mutableResponse.headers.set(
       "Content-Security-Policy",
       buildContentSecurityPolicy(nonce, {

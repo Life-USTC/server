@@ -10,7 +10,7 @@
  * ## DELETE /api/uploads/[id]
  * - Response: { deletedId, deletedSize }
  * - Auth required (401) + ownership check (404 if not owner)
- * - Deletes object from S3 then removes DB record
+ * - Deletes object from R2 then removes DB record
  *
  * ## Edge cases
  * - Renamed filename reflects in subsequent download
