@@ -1,3 +1,10 @@
+## [1.33.1](https://github.com/Life-USTC/server/compare/v1.33.0...v1.33.1) (2026-06-14)
+
+
+### Bug Fixes
+
+* **ci:** restore worker e2e artifact in place ([8c1c3fa](https://github.com/Life-USTC/server/commit/8c1c3fa89507a4d7cf1e01290b9fa26e1a76bda1))
+
 # [1.33.0](https://github.com/Life-USTC/server/compare/v1.32.0...v1.33.0) (2026-06-14)
 
 
