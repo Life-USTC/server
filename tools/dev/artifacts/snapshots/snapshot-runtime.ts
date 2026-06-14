@@ -1,11 +1,15 @@
 import type { BrowserContext, Page } from "@playwright/test";
 import { chromium, expect } from "@playwright/test";
-import { prisma } from "@/lib/db/prisma";
+import {
+  createToolPrisma,
+  disconnectToolPrisma,
+} from "@tools/shared/tool-prisma";
 import type { SnapshotAuth } from "./snapshot-cases";
 
 const DEBUG_LOGIN_BUTTON = /Debug User \(Dev\)|调试用户（开发）/i;
 const ADMIN_LOGIN_BUTTON = /Admin User \(Dev\)|调试管理员（开发）/i;
 const SNAPSHOT_CLIENT_NAME_PREFIX = "mcp-snapshot-";
+let snapshotCleanupPrisma: ReturnType<typeof createToolPrisma> | null = null;
 
 export function launchSnapshotBrowser() {
   return chromium.launch();
@@ -62,12 +66,19 @@ export function createSnapshotOAuthClientName() {
   return `${SNAPSHOT_CLIENT_NAME_PREFIX}${Date.now()}`;
 }
 
+function getSnapshotCleanupPrisma() {
+  snapshotCleanupPrisma ??= createToolPrisma();
+  return snapshotCleanupPrisma;
+}
+
 export async function cleanupSnapshotOAuthClients() {
-  await prisma.oAuthClient.deleteMany({
+  await getSnapshotCleanupPrisma().oAuthClient.deleteMany({
     where: { name: { startsWith: SNAPSHOT_CLIENT_NAME_PREFIX } },
   });
 }
 
 export async function disconnectSnapshotOAuthCleanup() {
-  await prisma.$disconnect();
+  if (!snapshotCleanupPrisma) return;
+  await disconnectToolPrisma(snapshotCleanupPrisma);
+  snapshotCleanupPrisma = null;
 }
