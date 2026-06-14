@@ -1,17 +1,19 @@
-import { prisma } from "@/lib/db/prisma";
+import { withE2ePrisma } from "./prisma";
 
 export async function getSeedCourseFilterFixture(jwId: number) {
-  const course = await prisma.course.findUniqueOrThrow({
-    where: { jwId },
-    select: {
-      educationLevelId: true,
-      categoryId: true,
-      classTypeId: true,
-      educationLevel: { select: { nameCn: true } },
-      category: { select: { nameCn: true } },
-      classType: { select: { nameCn: true } },
-    },
-  });
+  const course = await withE2ePrisma((prisma) =>
+    prisma.course.findUniqueOrThrow({
+      where: { jwId },
+      select: {
+        educationLevelId: true,
+        categoryId: true,
+        classTypeId: true,
+        educationLevel: { select: { nameCn: true } },
+        category: { select: { nameCn: true } },
+        classType: { select: { nameCn: true } },
+      },
+    }),
+  );
 
   return {
     educationLevelId: course.educationLevelId,
@@ -24,13 +26,15 @@ export async function getSeedCourseFilterFixture(jwId: number) {
 }
 
 export async function getSeedTeacherDepartmentFixture(code: string) {
-  const teacher = await prisma.teacher.findUniqueOrThrow({
-    where: { code },
-    select: {
-      departmentId: true,
-      department: { select: { nameCn: true } },
-    },
-  });
+  const teacher = await withE2ePrisma((prisma) =>
+    prisma.teacher.findUniqueOrThrow({
+      where: { code },
+      select: {
+        departmentId: true,
+        department: { select: { nameCn: true } },
+      },
+    }),
+  );
 
   return {
     departmentId: teacher.departmentId,
@@ -39,13 +43,15 @@ export async function getSeedTeacherDepartmentFixture(code: string) {
 }
 
 export async function getSeedSectionSemesterFixture(jwId: number) {
-  const section = await prisma.section.findUniqueOrThrow({
-    where: { jwId },
-    select: {
-      semesterId: true,
-      semester: { select: { nameCn: true } },
-    },
-  });
+  const section = await withE2ePrisma((prisma) =>
+    prisma.section.findUniqueOrThrow({
+      where: { jwId },
+      select: {
+        semesterId: true,
+        semester: { select: { nameCn: true } },
+      },
+    }),
+  );
 
   return {
     semesterId: section.semesterId,

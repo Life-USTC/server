@@ -19,7 +19,6 @@ async function fetchStatic(pathname: string) {
   let response: Response | undefined;
   try {
     response = await fetch(url, {
-      cache: "force-cache",
       signal: controller.signal,
     });
   } finally {

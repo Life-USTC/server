@@ -94,7 +94,7 @@ test.describe("GET /api/openapi", () => {
     });
   });
 
-  test("redirect-only endpoints keep redirect response codes in the spec", async ({
+  test("binary and redirect endpoints keep response codes in the spec", async ({
     request,
   }) => {
     const response = await request.get("/api/openapi");
@@ -110,10 +110,10 @@ test.describe("GET /api/openapi", () => {
     };
 
     expect(
-      body.paths?.["/api/uploads/{id}/download"]?.get?.responses?.["302"],
+      body.paths?.["/api/uploads/{id}/download"]?.get?.responses?.["200"],
     ).toBeTruthy();
     expect(
-      body.paths?.["/api/uploads/{id}/download"]?.get?.responses?.["200"],
+      body.paths?.["/api/uploads/{id}/download"]?.get?.responses?.["302"],
     ).toBeUndefined();
     expect(
       body.paths?.["/api/dashboard-links/visit"]?.get?.responses?.["307"],

@@ -1,4 +1,3 @@
-import { prisma } from "@/lib/db/prisma";
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
@@ -9,6 +8,7 @@ import {
   type SupportedOAuthClientAuthMethod,
 } from "@/lib/oauth/constants";
 import { generateToken, PLAYWRIGHT_BASE_URL } from "./core";
+import { withE2ePrisma } from "./prisma";
 
 export async function createOAuthClientFixture(
   options: {
@@ -40,36 +40,38 @@ export async function createOAuthClientFixture(
   const scopes = options.scopes ?? [...DEFAULT_OAUTH_CLIENT_SCOPES];
   const name = options.name ?? `e2e-oauth-${Date.now()}`;
 
-  const client = await prisma.oAuthClient.create({
-    data: {
-      name,
-      clientId,
-      clientSecret:
-        tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD
-          ? publicClientStoredSecret
-          : clientSecret,
-      redirectUris,
-      type:
-        tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD
-          ? "public"
-          : "web",
-      tokenEndpointAuthMethod,
-      disabled: false,
-      scopes,
-      grantTypes,
-      responseTypes: [OAUTH_CODE_RESPONSE_TYPE],
-      requirePKCE: true,
-      metadata: { source: "e2e_fixture" },
-    },
-    select: {
-      id: true,
-      clientId: true,
-      name: true,
-      tokenEndpointAuthMethod: true,
-      redirectUris: true,
-      scopes: true,
-    },
-  });
+  const client = await withE2ePrisma((prisma) =>
+    prisma.oAuthClient.create({
+      data: {
+        name,
+        clientId,
+        clientSecret:
+          tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD
+            ? publicClientStoredSecret
+            : clientSecret,
+        redirectUris,
+        type:
+          tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD
+            ? "public"
+            : "web",
+        tokenEndpointAuthMethod,
+        disabled: false,
+        scopes,
+        grantTypes,
+        responseTypes: [OAUTH_CODE_RESPONSE_TYPE],
+        requirePKCE: true,
+        metadata: { source: "e2e_fixture" },
+      },
+      select: {
+        id: true,
+        clientId: true,
+        name: true,
+        tokenEndpointAuthMethod: true,
+        redirectUris: true,
+        scopes: true,
+      },
+    }),
+  );
 
   return {
     ...client,
@@ -80,9 +82,11 @@ export async function createOAuthClientFixture(
 }
 
 export async function deleteOAuthClientsByName(name: string) {
-  await prisma.oAuthClient.deleteMany({
-    where: { name },
-  });
+  await withE2ePrisma((prisma) =>
+    prisma.oAuthClient.deleteMany({
+      where: { name },
+    }),
+  );
 }
 
 export async function ensureLinkedAccountFixture(options: {
@@ -98,21 +102,23 @@ export async function ensureLinkedAccountFixture(options: {
     options.email ??
     `${options.provider}-${Date.now()}-${generateToken(6)}@example.test`;
 
-  await prisma.account.create({
-    data: {
-      userId: options.userId,
-      type: "oauth",
-      provider: options.provider,
-      providerAccountId,
-    },
-  });
+  await withE2ePrisma(async (prisma) => {
+    await prisma.account.create({
+      data: {
+        userId: options.userId,
+        type: "oauth",
+        provider: options.provider,
+        providerAccountId,
+      },
+    });
 
-  await prisma.verifiedEmail.create({
-    data: {
-      userId: options.userId,
-      provider: options.provider,
-      email,
-    },
+    await prisma.verifiedEmail.create({
+      data: {
+        userId: options.userId,
+        provider: options.provider,
+        email,
+      },
+    });
   });
 
   return {
@@ -126,17 +132,19 @@ export async function deleteLinkedAccountFixture(options: {
   userId: string;
   provider: string;
 }) {
-  await prisma.account.deleteMany({
-    where: {
-      userId: options.userId,
-      provider: options.provider,
-    },
-  });
+  await withE2ePrisma(async (prisma) => {
+    await prisma.account.deleteMany({
+      where: {
+        userId: options.userId,
+        provider: options.provider,
+      },
+    });
 
-  await prisma.verifiedEmail.deleteMany({
-    where: {
-      userId: options.userId,
-      provider: options.provider,
-    },
+    await prisma.verifiedEmail.deleteMany({
+      where: {
+        userId: options.userId,
+        provider: options.provider,
+      },
+    });
   });
 }

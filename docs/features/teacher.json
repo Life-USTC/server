@@ -9,7 +9,7 @@
   "rules": {
     "identified-by-name": "Teacher objects are naturally identified by name.",
     "section-code-auxiliary": "Section codes retain value on teacher pages but appear only as auxiliary fields in the teaching section list.",
-    "public-list-cache": "Anonymous teacher list page and REST responses may use short public CDN/runtime caching because teacher fact data is read-only in this app."
+    "public-list-cache": "Anonymous teacher list REST responses and server-side list data may use short public runtime/CDN caching because teacher fact data is read-only; localized HTML pages must not use shared edge caching unless the cache key varies by locale."
   },
   "capabilities": {
     "teacher-list": {

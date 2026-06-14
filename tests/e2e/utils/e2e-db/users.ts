@@ -1,18 +1,34 @@
-import {
-  buildUserCalendarFeedPath,
-  ensureUserCalendarFeedToken,
-} from "@/lib/calendar-feed-token";
-import { prisma } from "@/lib/db/prisma";
+import { generateToken } from "./core";
+import { withE2ePrisma } from "./prisma";
+
+function buildUserCalendarFeedPath(userId: string, token: string): string {
+  return `/api/users/${userId}:${token}/calendar.ics`;
+}
 
 export async function getUserProfileById(userId: string) {
-  return prisma.user.findUniqueOrThrow({
-    where: { id: userId },
-    select: { name: true, username: true, image: true },
-  });
+  return await withE2ePrisma((prisma) =>
+    prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { name: true, username: true, image: true },
+    }),
+  );
 }
 
 export async function ensureUserCalendarFeedFixture(userId: string) {
-  const token = await ensureUserCalendarFeedToken(userId);
+  const token = await withE2ePrisma(async (prisma) => {
+    const existing = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { calendarFeedToken: true },
+    });
+    if (existing?.calendarFeedToken) return existing.calendarFeedToken;
+
+    const createdToken = generateToken(24);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { calendarFeedToken: createdToken },
+    });
+    return createdToken;
+  });
 
   return {
     userId,
@@ -45,22 +61,26 @@ export async function updateUserProfileById(
     normalizedData.image = data.image ?? null;
   }
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: normalizedData,
-  });
+  await withE2ePrisma((prisma) =>
+    prisma.user.update({
+      where: { id: userId },
+      data: normalizedData,
+    }),
+  );
 }
 
 export async function getUserSubscribedSectionIds(userId: string) {
-  const user = await prisma.user.findUniqueOrThrow({
-    where: { id: userId },
-    select: {
-      subscribedSections: {
-        select: { id: true },
-        orderBy: { id: "asc" },
+  const user = await withE2ePrisma((prisma) =>
+    prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: {
+        subscribedSections: {
+          select: { id: true },
+          orderBy: { id: "asc" },
+        },
       },
-    },
-  });
+    }),
+  );
 
   return user.subscribedSections.map((section) => section.id);
 }
@@ -69,14 +89,16 @@ export async function replaceUserSubscribedSectionIds(
   userId: string,
   sectionIds: number[],
 ) {
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      subscribedSections: {
-        set: sectionIds.map((id) => ({ id })),
+  await withE2ePrisma((prisma) =>
+    prisma.user.update({
+      where: { id: userId },
+      data: {
+        subscribedSections: {
+          set: sectionIds.map((id) => ({ id })),
+        },
       },
-    },
-  });
+    }),
+  );
 }
 
 export async function createTempUsersFixture(options: {
@@ -88,35 +110,37 @@ export async function createTempUsersFixture(options: {
   for (let index = 0; index < options.count; index += 1) {
     const username = `${options.prefix}-${String(index).padStart(2, "0")}`;
     usernames.push(username);
-    const user = await prisma.user.upsert({
-      where: { username },
-      update: {
-        email: `${username}@users.local`,
-        emailVerified: true,
-        name: `E2E ${username}`,
-      },
-      create: {
-        username,
-        email: `${username}@users.local`,
-        emailVerified: true,
-        name: `E2E ${username}`,
-      },
-    });
-    await prisma.verifiedEmail.upsert({
-      where: {
-        provider_email: {
+    await withE2ePrisma(async (prisma) => {
+      const user = await prisma.user.upsert({
+        where: { username },
+        update: {
+          email: `${username}@users.local`,
+          emailVerified: true,
+          name: `E2E ${username}`,
+        },
+        create: {
+          username,
+          email: `${username}@users.local`,
+          emailVerified: true,
+          name: `E2E ${username}`,
+        },
+      });
+      await prisma.verifiedEmail.upsert({
+        where: {
+          provider_email: {
+            provider: "oidc",
+            email: `${username}@example.test`,
+          },
+        },
+        update: {
+          userId: user.id,
+        },
+        create: {
+          userId: user.id,
           provider: "oidc",
           email: `${username}@example.test`,
         },
-      },
-      update: {
-        userId: user.id,
-      },
-      create: {
-        userId: user.id,
-        provider: "oidc",
-        email: `${username}@example.test`,
-      },
+      });
     });
   }
 
@@ -124,11 +148,13 @@ export async function createTempUsersFixture(options: {
 }
 
 export async function deleteUsersByPrefix(prefix: string) {
-  await prisma.user.deleteMany({
-    where: {
-      username: {
-        startsWith: prefix,
+  await withE2ePrisma((prisma) =>
+    prisma.user.deleteMany({
+      where: {
+        username: {
+          startsWith: prefix,
+        },
       },
-    },
-  });
+    }),
+  );
 }
