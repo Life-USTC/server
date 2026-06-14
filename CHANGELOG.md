@@ -1,3 +1,10 @@
+## [1.33.3](https://github.com/Life-USTC/server/compare/v1.33.2...v1.33.3) (2026-06-14)
+
+
+### Bug Fixes
+
+* **snapshots:** use tool prisma for cleanup ([cd702b4](https://github.com/Life-USTC/server/commit/cd702b4b29729d9dc1743300d12dbca72398ab33))
+
 ## [1.33.2](https://github.com/Life-USTC/server/compare/v1.33.1...v1.33.2) (2026-06-14)
 
 
