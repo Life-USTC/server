@@ -10,46 +10,57 @@ import { findCurrentSemester } from "@/lib/current-semester";
 import { PUBLIC_CATALOG_CACHE_CONTROL } from "@/lib/public-cache-control";
 import { cachedPublicRuntimeData } from "@/lib/public-runtime-cache";
 
+const METADATA_API_CACHE_TTL_MS = 60_000;
 const SEMESTERS_API_CACHE_TTL_MS = 60_000;
 
 export async function getMetadataRoute() {
   try {
-    const { prisma } = await import("@/lib/db/prisma");
-    const [
-      educationLevels,
-      courseCategories,
-      courseClassifies,
-      classTypes,
-      courseTypes,
-      courseGradations,
-      examModes,
-      teachLanguages,
-      campuses,
-    ] = await Promise.all([
-      prisma.educationLevel.findMany({ orderBy: { nameCn: "asc" } }),
-      prisma.courseCategory.findMany({ orderBy: { nameCn: "asc" } }),
-      prisma.courseClassify.findMany({ orderBy: { nameCn: "asc" } }),
-      prisma.classType.findMany({ orderBy: { nameCn: "asc" } }),
-      prisma.courseType.findMany({ orderBy: { nameCn: "asc" } }),
-      prisma.courseGradation.findMany({ orderBy: { nameCn: "asc" } }),
-      prisma.examMode.findMany({ orderBy: { nameCn: "asc" } }),
-      prisma.teachLanguage.findMany({ orderBy: { nameCn: "asc" } }),
-      prisma.campus.findMany({
-        orderBy: { nameCn: "asc" },
-        include: { buildings: true },
-      }),
-    ]);
+    const metadata = await cachedPublicRuntimeData(
+      "api:metadata",
+      METADATA_API_CACHE_TTL_MS,
+      async () => {
+        const { prisma } = await import("@/lib/db/prisma");
+        const [
+          educationLevels,
+          courseCategories,
+          courseClassifies,
+          classTypes,
+          courseTypes,
+          courseGradations,
+          examModes,
+          teachLanguages,
+          campuses,
+        ] = await Promise.all([
+          prisma.educationLevel.findMany({ orderBy: { nameCn: "asc" } }),
+          prisma.courseCategory.findMany({ orderBy: { nameCn: "asc" } }),
+          prisma.courseClassify.findMany({ orderBy: { nameCn: "asc" } }),
+          prisma.classType.findMany({ orderBy: { nameCn: "asc" } }),
+          prisma.courseType.findMany({ orderBy: { nameCn: "asc" } }),
+          prisma.courseGradation.findMany({ orderBy: { nameCn: "asc" } }),
+          prisma.examMode.findMany({ orderBy: { nameCn: "asc" } }),
+          prisma.teachLanguage.findMany({ orderBy: { nameCn: "asc" } }),
+          prisma.campus.findMany({
+            orderBy: { nameCn: "asc" },
+            include: { buildings: true },
+          }),
+        ]);
 
-    return jsonResponse({
-      educationLevels,
-      courseCategories,
-      courseClassifies,
-      classTypes,
-      courseTypes,
-      courseGradations,
-      examModes,
-      teachLanguages,
-      campuses,
+        return {
+          educationLevels,
+          courseCategories,
+          courseClassifies,
+          classTypes,
+          courseTypes,
+          courseGradations,
+          examModes,
+          teachLanguages,
+          campuses,
+        };
+      },
+    );
+
+    return jsonResponse(metadata, {
+      headers: { "Cache-Control": PUBLIC_CATALOG_CACHE_CONTROL },
     });
   } catch (error) {
     return handleRouteError("Failed to fetch metadata", error);
