@@ -6,10 +6,11 @@ export const isDevelopment = authEnv.NODE_ENV === "development";
 export const allowE2EDebugAuth = authEnv.E2E_DEBUG_AUTH === "1";
 export const allowDebugAuth = isDevelopment || allowE2EDebugAuth;
 
-if (allowE2EDebugAuth && authEnv.VERCEL === "1") {
-  throw new Error(
-    "E2E_DEBUG_AUTH must not be set on Vercel/production hosting",
-  );
+if (
+  allowE2EDebugAuth &&
+  (authEnv.VERCEL === "1" || authEnv.NODE_ENV === "production")
+) {
+  throw new Error("E2E_DEBUG_AUTH must not be set in production hosting");
 }
 
 export function getBetterAuthSecret() {

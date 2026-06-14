@@ -36,6 +36,13 @@ describe("MCP URL helpers", () => {
     expect(getCanonicalOrigin()).toBe("https://life-ustc.tiankaima.dev");
   });
 
+  it("prefers APP_CANONICAL_ORIGIN for canonical origin", () => {
+    vi.stubEnv("APP_PUBLIC_ORIGIN", "https://preview.example.com");
+    vi.stubEnv("APP_CANONICAL_ORIGIN", "https://life.example.com");
+
+    expect(getCanonicalOrigin()).toBe("https://life.example.com");
+  });
+
   it("derives canonical OAuth and MCP metadata URLs from path-based issuer/resource identifiers", () => {
     vi.stubEnv("APP_PUBLIC_ORIGIN", "https://life.example.com");
     expect(getCanonicalOAuthIssuer()).toBe("https://life.example.com/api/auth");

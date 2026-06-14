@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import {
   CreateBucketCommand,
   HeadBucketCommand,
@@ -157,6 +158,26 @@ export function preparePlaywrightStandaloneRuntime(root = process.cwd()) {
   );
 }
 
+export async function startPlaywrightStandaloneRuntime(root = process.cwd()) {
+  const runtime = resolvePlaywrightServerRuntime();
+  Object.assign(
+    process.env,
+    buildPlaywrightServerEnv({
+      host: runtime.host,
+      port: runtime.port,
+      baseUrl: runtime.baseUrl,
+    }),
+  );
+  await import(
+    pathToFileURL(
+      resolveStandaloneServerPath(
+        root,
+        "bun run test:e2e:prepare or bun run build",
+      ),
+    ).href
+  );
+}
+
 function resolveStandaloneServerPath(
   root = process.cwd(),
   commandHint = "bun run build",
@@ -276,8 +297,10 @@ if (process.argv[1]?.endsWith("e2e.ts")) {
 
   if (command === "prepare") {
     preparePlaywrightStandaloneRuntime();
+  } else if (command === "start") {
+    await startPlaywrightStandaloneRuntime();
   } else {
-    console.error("Usage: bun run tools/dev/e2e.ts prepare");
+    console.error("Usage: bun run tools/dev/e2e.ts <prepare|start>");
     process.exit(2);
   }
 }

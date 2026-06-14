@@ -38,7 +38,17 @@ describe("auth config", () => {
     vi.stubEnv("VERCEL", "1");
 
     await expect(import("@/lib/auth/auth-config")).rejects.toThrow(
-      "E2E_DEBUG_AUTH must not be set on Vercel/production hosting",
+      "E2E_DEBUG_AUTH must not be set in production hosting",
+    );
+  });
+
+  it("rejects E2E debug auth in production without Vercel", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("E2E_DEBUG_AUTH", "1");
+    vi.stubEnv("VERCEL", "");
+
+    await expect(import("@/lib/auth/auth-config")).rejects.toThrow(
+      "E2E_DEBUG_AUTH must not be set in production hosting",
     );
   });
 });

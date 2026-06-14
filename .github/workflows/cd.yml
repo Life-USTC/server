@@ -26,5 +26,10 @@ jobs:
       - name: Setup workspace
         uses: ./.github/actions/setup-bun-env
 
+      - name: Run production migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: bun run prisma migrate deploy
+
       - name: Deploy to Cloudflare
         run: bun run deploy:cloudflare

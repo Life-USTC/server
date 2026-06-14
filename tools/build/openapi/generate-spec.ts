@@ -415,6 +415,7 @@ const OPENAPI_EXCLUDED_ROUTES = new Set([
   "src/routes/api/metrics/+server.ts",
   "src/routes/api/readiness/+server.ts",
 ]);
+const OPENAPI_ROUTE_ROOTS = ["src/routes/api", "src/routes/.well-known"];
 
 async function processRouteFile(
   filePath: string,
@@ -507,8 +508,11 @@ async function generateOpenApiSpec() {
 
   const usedSchemas = new Set<string>();
 
-  // Find all SvelteKit endpoint files, including hidden segments such as .well-known.
-  const routeFiles = await collectRouteFiles("src/routes");
+  const routeFiles = (
+    await Promise.all(
+      OPENAPI_ROUTE_ROOTS.map((root) => collectRouteFiles(root)),
+    )
+  ).flat();
   routeFiles.sort();
 
   const pathEntries: Array<[string, OpenApiPathItem]> = [];

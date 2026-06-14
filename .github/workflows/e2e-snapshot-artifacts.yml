@@ -114,7 +114,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p test-results/snapshots
-          node build/index.js > test-results/e2e-snapshot-server.log 2>&1 &
+          bun run tools/dev/e2e.ts start > test-results/e2e-snapshot-server.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true; wait "$server_pid" 2>/dev/null || true' EXIT
 

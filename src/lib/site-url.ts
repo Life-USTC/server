@@ -34,10 +34,11 @@ export function getPublicOrigin(): string {
 }
 
 /**
- * Canonical origin follows the public origin; keep one production URL setting.
+ * Canonical origin may differ from preview/public deployments; fall back to
+ * public origin when it is not set.
  */
 export function getCanonicalOrigin(): string {
-  return getPublicOrigin();
+  return getAbsoluteOriginEnv("APP_CANONICAL_ORIGIN") ?? getPublicOrigin();
 }
 
 export function getBetterAuthBaseUrl(): string {
