@@ -55,7 +55,7 @@ test.describe("bus dashboard tab", () => {
   test("public bus tab shows the planner controls", async ({
     page,
   }, testInfo) => {
-    await gotoAndWaitForReady(page, "/dashboard/bus", {
+    await gotoAndWaitForReady(page, "/?tab=bus", {
       testInfo,
       screenshotLabel: "bus",
     });
@@ -87,7 +87,7 @@ test.describe("bus dashboard tab", () => {
   test("default stop pair shows every applicable route ordered by next available bus", async ({
     page,
   }, testInfo) => {
-    await gotoAndWaitForReady(page, "/dashboard/bus", {
+    await gotoAndWaitForReady(page, "/?tab=bus", {
       testInfo,
       screenshotLabel: "bus",
     });
@@ -107,7 +107,7 @@ test.describe("bus dashboard tab", () => {
   test("reverse swaps direction and recomputes applicable routes", async ({
     page,
   }, testInfo) => {
-    await gotoAndWaitForReady(page, "/dashboard/bus", {
+    await gotoAndWaitForReady(page, "/?tab=bus", {
       testInfo,
       screenshotLabel: "bus",
     });
@@ -143,7 +143,7 @@ test.describe("bus dashboard tab", () => {
   test("selecting 东区 to 南区 narrows the list to the direct route", async ({
     page,
   }, testInfo) => {
-    await gotoAndWaitForReady(page, "/dashboard/bus", {
+    await gotoAndWaitForReady(page, "/?tab=bus", {
       testInfo,
       screenshotLabel: "bus",
     });
@@ -158,7 +158,7 @@ test.describe("bus dashboard tab", () => {
   test("departed toggle keeps the timetable visible and switchable", async ({
     page,
   }, testInfo) => {
-    await gotoAndWaitForReady(page, "/dashboard/bus", {
+    await gotoAndWaitForReady(page, "/?tab=bus", {
       testInfo,
       screenshotLabel: "bus",
     });
@@ -179,7 +179,7 @@ test.describe("bus dashboard tab", () => {
   test("weekday/weekend toggle updates the selected route timetable", async ({
     page,
   }, testInfo) => {
-    await gotoAndWaitForReady(page, "/dashboard/bus", {
+    await gotoAndWaitForReady(page, "/?tab=bus", {
       testInfo,
       screenshotLabel: "bus",
     });
