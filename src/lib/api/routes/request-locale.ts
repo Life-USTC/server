@@ -5,7 +5,11 @@ function getCookieValue(request: Request, name: string) {
   for (const part of cookies.split(";")) {
     const [key, ...valueParts] = part.trim().split("=");
     if (key === name) {
-      return decodeURIComponent(valueParts.join("="));
+      try {
+        return decodeURIComponent(valueParts.join("="));
+      } catch {
+        return undefined;
+      }
     }
   }
   return undefined;

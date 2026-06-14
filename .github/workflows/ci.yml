@@ -47,6 +47,12 @@ jobs:
         include:
           - scope: api-mcp
             paths: tests/e2e/src/app/api
+          - scope: public-web
+            paths: tests/e2e/src/app/test.ts tests/e2e/src/app/api-docs tests/e2e/src/app/bus tests/e2e/src/app/bus-map tests/e2e/src/app/courses tests/e2e/src/app/guides tests/e2e/src/app/mobile-app tests/e2e/src/app/privacy tests/e2e/src/app/sections tests/e2e/src/app/signin tests/e2e/src/app/teachers tests/e2e/src/app/terms tests/e2e/src/app/u tests/e2e/src/app/welcome
+          - scope: signed-in
+            paths: tests/e2e/src/app/dashboard tests/e2e/src/app/e2e tests/e2e/src/app/oauth tests/e2e/src/app/settings
+          - scope: admin-comments
+            paths: tests/e2e/src/app/admin tests/e2e/src/app/comments tests/e2e/src/app/error
     permissions:
       contents: read
     uses: ./.github/workflows/db-backed-bun-job.yml

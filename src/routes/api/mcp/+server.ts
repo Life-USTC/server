@@ -6,6 +6,8 @@ import {
 } from "@/lib/api/routes/mcp";
 import type { RequestHandler } from "./$types";
 
+export const trailingSlash = "ignore";
+
 export const GET: RequestHandler = ({ request }) => mcpGetRoute(request);
 export const POST: RequestHandler = ({ request }) => mcpPostRoute(request);
 export const DELETE: RequestHandler = ({ request }) => mcpDeleteRoute(request);

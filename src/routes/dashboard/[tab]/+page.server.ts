@@ -1,5 +1,9 @@
-import { error, redirect } from "@sveltejs/kit";
-import type { PageServerLoad } from "./$types";
+import { error } from "@sveltejs/kit";
+import { dashboardPageActions } from "@/features/dashboard/server/dashboard-page-actions";
+import { loadDashboardPage } from "@/features/dashboard/server/dashboard-page-load";
+import type { Actions, PageServerLoad } from "./$types";
+
+type DashboardLoadEvent = Parameters<typeof loadDashboardPage>[0];
 
 const DASHBOARD_TABS = new Set([
   "overview",
@@ -18,7 +22,8 @@ export const load: PageServerLoad = async (event) => {
 
   const url = new URL(event.url);
   url.searchParams.set("tab", event.params.tab);
-  url.pathname = "/";
 
-  throw redirect(303, `${url.pathname}${url.search}`);
+  return loadDashboardPage({ ...event, url } as unknown as DashboardLoadEvent);
 };
+
+export const actions: Actions = dashboardPageActions;

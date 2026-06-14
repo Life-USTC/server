@@ -10,10 +10,20 @@ import {
 } from "@/lib/log/api-observability";
 import { logAppEvent } from "@/lib/log/app-logger";
 import {
+  OAUTH_DEVICE_AUTHORIZATION_ENDPOINT_PATH,
+  OAUTH_TOKEN_ENDPOINT_PATH,
+} from "@/lib/oauth/constants";
+import {
   buildContentSecurityPolicy,
   createScriptNonce,
 } from "@/lib/security/csp";
 
+const SECURITY_HEADERS = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "SAMEORIGIN",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+} as const;
 const TRUSTED_FORM_ORIGINS = [
   "http://127.0.0.1:3000",
   "http://localhost:3000",
@@ -28,6 +38,10 @@ const FORM_CONTENT_TYPES = [
   "multipart/form-data",
   "text/plain",
 ];
+const OAUTH_FORM_CORS_ENDPOINTS = new Set([
+  OAUTH_DEVICE_AUTHORIZATION_ENDPOINT_PATH,
+  OAUTH_TOKEN_ENDPOINT_PATH,
+]);
 
 function configuredTrustedFormOrigins() {
   const publicOrigin = getOptionalTrimmedEnv("APP_PUBLIC_ORIGIN");
@@ -47,6 +61,7 @@ function crossSiteFormResponse(event: Parameters<Handle>[0]["event"]) {
   if (getOptionalTrimmedEnv("NODE_ENV") === "development") return null;
   if (!FORM_METHODS.has(event.request.method)) return null;
   if (!isFormContentType(event.request)) return null;
+  if (OAUTH_FORM_CORS_ENDPOINTS.has(event.url.pathname)) return null;
 
   const requestOrigin = event.request.headers.get("origin");
   if (!requestOrigin) return null;
@@ -74,6 +89,18 @@ function addScriptNonce(html: string, nonce: string) {
 
 function responseWithMutableHeaders(response: Response) {
   return new Response(response.body, response);
+}
+
+function setSecurityHeaders(headers: Headers) {
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    headers.set(name, value);
+  }
+}
+
+function responseWithSecurityHeaders(response: Response) {
+  const mutableResponse = responseWithMutableHeaders(response);
+  setSecurityHeaders(mutableResponse.headers);
+  return mutableResponse;
 }
 
 function prepareApiObservability(
@@ -130,7 +157,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   );
 
   const csrfResponse = crossSiteFormResponse(event);
-  if (csrfResponse) return csrfResponse;
+  if (csrfResponse) return responseWithSecurityHeaders(csrfResponse);
 
   const locale = negotiateLocale(
     event.cookies.get(LOCALE_COOKIE),
@@ -183,11 +210,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     response,
   });
 
-  if (!apiObservability && !shouldSetCsp) {
-    return response;
-  }
-
-  const mutableResponse = responseWithMutableHeaders(response);
+  const mutableResponse = responseWithSecurityHeaders(response);
   if (apiObservability) {
     mutableResponse.headers.set("x-request-id", apiObservability.requestId);
   } else if (shouldSetCsp) {

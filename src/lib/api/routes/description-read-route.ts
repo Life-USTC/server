@@ -9,6 +9,8 @@ import {
   parseRouteSearchParams,
 } from "@/lib/api/helpers";
 import { descriptionsQuerySchema } from "@/lib/api/schemas/request-schemas";
+import { resolveApiUserId } from "@/lib/auth/api-auth";
+import { getViewerContext } from "@/lib/auth/viewer-context";
 
 export async function getDescriptionRoute(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -31,10 +33,16 @@ export async function getDescriptionRoute(request: Request) {
   }
 
   try {
+    const viewerUserId = await resolveApiUserId(request);
+    const viewer = await getViewerContext({ userId: viewerUserId });
     const { getDescriptionPayload } = await import(
       "@/features/descriptions/server/descriptions-server"
     );
-    const payload = await getDescriptionPayload(targetType, target.targetId);
+    const payload = await getDescriptionPayload(
+      targetType,
+      target.targetId,
+      viewer,
+    );
     return jsonResponse(payload);
   } catch (error) {
     return handleRouteError("Failed to fetch description", error);

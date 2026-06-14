@@ -4025,69 +4025,6 @@
           }
         }
       }
-    },
-    "/robots.txt": {
-      "get": {
-        "operationId": "get-robots.txt",
-        "summary": "",
-        "description": "",
-        "tags": [
-          "Api"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/signout": {
-      "post": {
-        "operationId": "post-signout",
-        "summary": "",
-        "description": "",
-        "tags": [
-          "Api"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/sitemap.xml": {
-      "get": {
-        "operationId": "get-sitemap.xml",
-        "summary": "",
-        "description": "",
-        "tags": [
-          "Api"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
