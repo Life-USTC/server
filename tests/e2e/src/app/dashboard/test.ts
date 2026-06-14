@@ -115,10 +115,16 @@ test.describe("dashboard", () => {
   test("dashboard path aliases render the matching tabs", async ({
     page,
   }, testInfo) => {
+    await signInAsDebugUser(page, "/dashboard/links");
     await gotoAndWaitForReady(page, "/dashboard/links", {
       testInfo,
       screenshotLabel: "dashboard-links-path",
     });
+    const linksDashboardTab = page
+      .getByRole("tab", { name: /网站|Websites/i })
+      .first();
+    await expect(linksDashboardTab).toBeVisible();
+    await expect(linksDashboardTab).toHaveAttribute("aria-selected", "true");
     await expect(
       page.getByRole("searchbox", {
         name: /搜索网站名称或描述|Search by name or description/i,
