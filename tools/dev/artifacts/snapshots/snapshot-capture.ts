@@ -879,7 +879,6 @@ async function capturePageSnapshots() {
 const allSnapshotModes = ["pages", "api", "mcp"] as const;
 
 async function captureAllSnapshots() {
-  const root = resolveSnapshotBase();
   const failures: Error[] = [];
 
   for (const label of allSnapshotModes) {
@@ -892,6 +891,15 @@ async function captureAllSnapshots() {
     }
   }
 
+  await writeSnapshotManifest();
+
+  if (failures.length > 0) {
+    throw new Error(failures.map((failure) => failure.message).join("\n"));
+  }
+}
+
+async function writeSnapshotManifest() {
+  const root = resolveSnapshotBase();
   await writeJsonFile(path.join(root, "manifest.json"), {
     kind: "snapshots",
     generatedAt: nowIso(),
@@ -900,10 +908,6 @@ async function captureAllSnapshots() {
       manifest: path.join(label, "manifest.json"),
     })),
   });
-
-  if (failures.length > 0) {
-    throw new Error(failures.map((failure) => failure.message).join("\n"));
-  }
 }
 
 function captureUsage() {
@@ -913,6 +917,7 @@ function captureUsage() {
     "  bun run tools/dev/artifacts/snapshots/snapshot-capture.ts pages",
     "  bun run tools/dev/artifacts/snapshots/snapshot-capture.ts api",
     "  bun run tools/dev/artifacts/snapshots/snapshot-capture.ts mcp",
+    "  bun run tools/dev/artifacts/snapshots/snapshot-capture.ts manifest",
   ].join("\n");
 }
 
@@ -933,6 +938,10 @@ async function main() {
   }
   if (mode === "mcp") {
     await captureMcpSnapshots();
+    return;
+  }
+  if (mode === "manifest") {
+    await writeSnapshotManifest();
     return;
   }
 

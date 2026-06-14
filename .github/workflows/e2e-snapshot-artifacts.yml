@@ -119,7 +119,10 @@ jobs:
             exit 1
           fi
 
-          bun run snapshot
+          bun run snapshot pages
+          bun run snapshot api
+          bun run snapshot mcp
+          bun run snapshot manifest
 
       - name: Upload E2E snapshot artifact
         id: upload
