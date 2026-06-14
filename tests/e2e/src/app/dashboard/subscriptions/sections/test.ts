@@ -79,32 +79,36 @@ test.describe("dashboard subscriptions", () => {
       await expect(page).toHaveURL(/\/dashboard\/subscriptions(?:\?.*)?$/);
       await expect(page.locator("#main-content")).toBeVisible();
 
-      const subscriptionsTable = page.locator("tbody").first();
-      await expect(subscriptionsTable).toBeVisible({ timeout: 3_000 });
+      const subscriptionsContent = page.locator("#main-content").first();
+      await expect(
+        subscriptionsContent.locator("a[href^='/sections/']").first(),
+      ).toBeVisible({ timeout: 3_000 });
 
       // subscription.sections[].course.namePrimary
       await expect(
-        subscriptionsTable
+        subscriptionsContent
           .getByText(DEV_SEED.course.nameCn)
-          .or(subscriptionsTable.getByText(DEV_SEED.course.nameEn))
+          .or(subscriptionsContent.getByText(DEV_SEED.course.nameEn))
           .first(),
       ).toBeVisible({ timeout: 3_000 });
       // subscription.sections[].code
       await expect(
-        subscriptionsTable.getByText(DEV_SEED.section.code).first(),
+        subscriptionsContent.getByText(DEV_SEED.section.code).first(),
       ).toBeVisible({
         timeout: 3_000,
       });
       // section.teachers[] (locale-dependent)
       await expect(
-        subscriptionsTable
+        subscriptionsContent
           .getByText(DEV_SEED.teacher.nameCn)
-          .or(subscriptionsTable.getByText(DEV_SEED.teacher.nameEn))
+          .or(subscriptionsContent.getByText(DEV_SEED.teacher.nameEn))
           .first(),
       ).toBeVisible({ timeout: 3_000 });
       // section.credits
       await expect(
-        subscriptionsTable.getByText(String(DEV_SEED.section.credits)).first(),
+        subscriptionsContent
+          .getByText(String(DEV_SEED.section.credits))
+          .first(),
       ).toBeVisible({ timeout: 3_000 });
       // semester group label — semester name shown as group header
       await expect(page.getByText(DEV_SEED.semesterNameCn).first()).toBeVisible(
@@ -140,9 +144,7 @@ test.describe("dashboard subscriptions", () => {
         name: /浏览课程|Browse Courses/i,
       });
       if ((await browseSectionsLink.count()) === 0) {
-        const firstRow = page.locator("tbody tr").first();
-        await firstRow.hover();
-        const rowActionButton = firstRow
+        const rowActionButton = page
           .getByRole("button", { name: /移除|Opt out|确认|Confirm/i })
           .first();
         const rowActionLabel = (await rowActionButton.textContent()) ?? "";
@@ -151,10 +153,11 @@ test.describe("dashboard subscriptions", () => {
         } else {
           await rowActionButton.click({ force: true });
           await expect(
-            firstRow.getByRole("button", { name: /确认|Confirm/i }),
+            page.getByRole("button", { name: /确认|Confirm/i }).first(),
           ).toBeVisible({ timeout: 3_000 });
-          await firstRow
+          await page
             .getByRole("button", { name: /确认|Confirm/i })
+            .first()
             .click({ force: true });
         }
       }
@@ -175,14 +178,14 @@ test.describe("dashboard subscriptions", () => {
     );
   });
 
-  test("can navigate to section detail from table row", async ({
+  test("can navigate to section detail from subscription row", async ({
     page,
   }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/subscriptions");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/dashboard/subscriptions");
 
-    const rowLink = page.locator("tbody a[href^='/sections/']").first();
+    const rowLink = page.locator("#main-content a[href^='/sections/']").first();
     await expect(rowLink).toBeVisible();
     await rowLink.click();
 
@@ -199,18 +202,16 @@ test.describe("dashboard subscriptions", () => {
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/dashboard/subscriptions");
 
-    const firstRow = page.locator("tbody tr").first();
-    await expect(firstRow).toBeVisible();
-    await firstRow.hover();
-
-    const optOutButton = firstRow.getByRole("button", {
-      name: /移除|Opt out/i,
-    });
+    const optOutButton = page
+      .getByRole("button", {
+        name: /移除|Opt out/i,
+      })
+      .first();
     await expect(optOutButton).toBeVisible();
     await optOutButton.click();
 
     await expect(
-      firstRow.getByRole("button", { name: /确认|Confirm/i }),
+      page.getByRole("button", { name: /确认|Confirm/i }).first(),
     ).toBeVisible();
 
     await captureStepScreenshot(
