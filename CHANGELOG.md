@@ -1,3 +1,10 @@
+## [1.33.4](https://github.com/Life-USTC/server/compare/v1.33.3...v1.33.4) (2026-06-14)
+
+
+### Bug Fixes
+
+* **snapshots:** split artifact capture phases ([cb2200b](https://github.com/Life-USTC/server/commit/cb2200b9447852babe50eea50b7eab547904e2ee))
+
 ## [1.33.3](https://github.com/Life-USTC/server/compare/v1.33.2...v1.33.3) (2026-06-14)
 
 
