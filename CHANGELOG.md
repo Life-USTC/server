@@ -1,3 +1,63 @@
+# [1.33.0](https://github.com/Life-USTC/server/compare/v1.32.0...v1.33.0) (2026-06-14)
+
+
+### Bug Fixes
+
+* **auth:** address PR review comments ([c99069c](https://github.com/Life-USTC/server/commit/c99069cecb65f251b3771afae6f2daf8c1ed79a2))
+* **auth:** remove redundant cookie assignment ([3f20d6d](https://github.com/Life-USTC/server/commit/3f20d6d9d6db601d7465c3f051854873f5fba423))
+* **ci:** handle missing snapshot artifact URL ([ff99dc7](https://github.com/Life-USTC/server/commit/ff99dc74dedd70b7d04fa7085847f8ed7817df2b))
+* **ci:** sync SvelteKit before Prisma generation ([8fed2c0](https://github.com/Life-USTC/server/commit/8fed2c0aa2873fdcb6cc97bdf2c79bbd81419604))
+* **ci:** use node prisma client for node adapter ([6f21335](https://github.com/Life-USTC/server/commit/6f21335e043afc3c13a050f7ee40cb0bc3051cfa))
+* **cloudflare:** address migration review ([77570dd](https://github.com/Life-USTC/server/commit/77570ddb2b9b567d4df5331fb3db9dfe00e52350))
+* **cloudflare:** preserve stale catalog assets ([66b7926](https://github.com/Life-USTC/server/commit/66b79263275452627efa0ad074e2fa352af97ef5))
+* **cloudflare:** prevent stale html caching ([d6491fb](https://github.com/Life-USTC/server/commit/d6491fb7f1bb7be458eaf25a8501d1e5952ff02f))
+* **config:** trust explicit form origins ([54de1d2](https://github.com/Life-USTC/server/commit/54de1d2acf8f057c528b0aee991a20fa0aa6725b))
+* **deploy:** keep prisma tooling node compatible ([d2a1c13](https://github.com/Life-USTC/server/commit/d2a1c13dbf4ec786a21cb20c4746d67ac2e62142))
+* **deploy:** pass cloudflare runtime env without virtual imports ([8622f8b](https://github.com/Life-USTC/server/commit/8622f8b746f89c000255fe7fb344be2c18310613))
+* **e2e:** align dashboard alias coverage ([e5f71a6](https://github.com/Life-USTC/server/commit/e5f71a6bee7429c8503471263d42025760c6dbf2))
+* **e2e:** align public route expectations ([77922a5](https://github.com/Life-USTC/server/commit/77922a5f6ca5233dd1cbc53170870cb31f85fe05))
+* **e2e:** authenticate dashboard link alias test ([1778dd9](https://github.com/Life-USTC/server/commit/1778dd929f5151e3239881720b71044fedd8aa67))
+* **e2e:** build node standalone artifacts explicitly ([43b212b](https://github.com/Life-USTC/server/commit/43b212bf8b842d223d10167a56a17c69a9216484))
+* **env:** track environment helpers ([c5a52ae](https://github.com/Life-USTC/server/commit/c5a52ae8f1c06037c0120347b7a2b9f9f18dce69))
+* **log:** preserve node file log sink ([efdccec](https://github.com/Life-USTC/server/commit/efdccec120a1107ff1c4badd5136570bff168907))
+* **public:** keep page cache internal ([0e68351](https://github.com/Life-USTC/server/commit/0e683513cd203547518ef1ec9213f017a4d5cf1f))
+* **public:** prevent catalog page browser caching ([808f695](https://github.com/Life-USTC/server/commit/808f695b5c97607f55374e41f3065832d88496fd))
+* **runtime:** address remaining PR review comments ([9e5172d](https://github.com/Life-USTC/server/commit/9e5172db53d71e138e8a87e3d37d65a2453617c2))
+* **runtime:** avoid mutating immutable responses ([cd06927](https://github.com/Life-USTC/server/commit/cd06927818df79aeda0db8059a279a5294cc0104))
+* **runtime:** enforce CSRF in SvelteKit hook ([007550b](https://github.com/Life-USTC/server/commit/007550bfa66904756a885018f56a8d1a3b3f5154))
+* **runtime:** harden cloudflare deploy ([2537a2a](https://github.com/Life-USTC/server/commit/2537a2accd9a1a08cccb6da3f048bd71666bf70d))
+* **runtime:** improve cloudflare storage and tracing ([c77e319](https://github.com/Life-USTC/server/commit/c77e3194fecfaeede40d745d5a0b8834f0cba73e))
+* **snapshots:** sync section homework selectors ([63adc23](https://github.com/Life-USTC/server/commit/63adc237a4887298273960f67a572faf851e3e3f))
+* **time:** use Node-compatible dayjs imports ([9696785](https://github.com/Life-USTC/server/commit/969678577c016b3b4c14bdafdae7e19ed9f59d65))
+* **tools:** avoid app alias in Prisma helper ([b420444](https://github.com/Life-USTC/server/commit/b4204442a1f076fa4582c9128f64da1231c33135))
+* **tools:** use node prisma client for loaders ([d2b21d1](https://github.com/Life-USTC/server/commit/d2b21d183b331aeb9b883ba4fe787d1298ea625d))
+
+
+### Features
+
+* **app:** migrate app to SvelteKit ([da0a081](https://github.com/Life-USTC/server/commit/da0a081a4a79cd62bf520ce124a67aeb2d0f582b))
+* **deploy:** deploy sveltekit app on cloudflare workers ([534f3bd](https://github.com/Life-USTC/server/commit/534f3bdce7711042672819991d441fea86466cdb))
+
+
+### Performance Improvements
+
+* **api:** select section summary fields ([b088b1e](https://github.com/Life-USTC/server/commit/b088b1ee768347325671f7cbc0cc49dfdf9237b6))
+* **dashboard:** avoid current term section lookup ([6392ed4](https://github.com/Life-USTC/server/commit/6392ed486d90af7088d41ef4c50ea8f90c06c526))
+* **dashboard:** overlap overview link loading ([5c0c902](https://github.com/Life-USTC/server/commit/5c0c9024c48aea35117026ce5e700ddd60d5928a))
+* **dashboard:** reduce subscription tab markup ([667c310](https://github.com/Life-USTC/server/commit/667c31050c21a88848d19e848d01113da69fac1d))
+* **dashboard:** reuse page auth session ([693d607](https://github.com/Life-USTC/server/commit/693d60708ca6871759053441a68807de0c23c2a6))
+* **dashboard:** reuse subscription ids for tabs ([a8710c1](https://github.com/Life-USTC/server/commit/a8710c1fce061d4468f2766627b72bcbbaef7f24))
+* **dashboard:** scope overview detail queries ([0298df1](https://github.com/Life-USTC/server/commit/0298df1212e9ea7cf65d2ff187a0285a60e87a8e))
+* **public:** cache anonymous catalog pages ([3da905d](https://github.com/Life-USTC/server/commit/3da905deaf7f9a5ff4a7b409506d483971248261))
+* **public:** cache catalog list data briefly ([8005319](https://github.com/Life-USTC/server/commit/8005319ee4dfc6208f41d88628a641af36263e56))
+* **public:** reduce catalog list markup ([c774eab](https://github.com/Life-USTC/server/commit/c774eabf8d64a585b4a857856ed580e1dae358ad))
+* **runtime:** trim section list payloads ([bd59d1a](https://github.com/Life-USTC/server/commit/bd59d1a924044589cfd16db12f47fb775b444cfe))
+
+
+### Reverts
+
+* **public:** remove catalog page cache ([325d5bf](https://github.com/Life-USTC/server/commit/325d5bf79b995258f634d4b5c4caccc584153661))
+
 # [1.32.0](https://github.com/Life-USTC/server-nextjs/compare/v1.31.0...v1.32.0) (2026-06-07)
 
 
