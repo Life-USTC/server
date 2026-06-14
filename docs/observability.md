@@ -13,7 +13,7 @@ Cloudflare Workers production logs are collected through Cloudflare observabilit
 ## Request Tracing
 
 - Caddy access logs remain the edge source of truth for every HTTP request.
-- Cloudflare Workers production enables logs and trace sampling in
+- Cloudflare Workers production enables persisted logs and trace sampling in
   `wrangler.jsonc`.
 - HTML page responses include `x-request-id` and emit `page.request.finish`
   logs with route, status, duration, and response size when available.
