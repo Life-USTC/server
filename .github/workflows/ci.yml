@@ -65,7 +65,7 @@ jobs:
       extra-env: |
         NO_PROXY=127.0.0.1,localhost,::1
       download-artifact-name: playwright-worker
-      download-artifact-path: .
+      download-artifact-path: .svelte-kit
       job-command: |
         bun run prisma migrate deploy
         bun run verify:e2e
