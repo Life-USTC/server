@@ -487,10 +487,6 @@ async function generateOpenApiSpec() {
 
   const outputPath = path.join(ROOT, OPENAPI_SPEC_RELATIVE_PATH);
   await writeFile(outputPath, `${JSON.stringify(doc, null, 2)}\n`, "utf8");
-  console.log(
-    `Generated ${pathEntries.length} paths, ${usedSchemas.size} component schemas.`,
-  );
-  console.log(`Written to ${outputPath}`);
 }
 
 // ── Postprocess generated document ───────────────────────────────────────────

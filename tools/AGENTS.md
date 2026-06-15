@@ -1,6 +1,6 @@
 # tools/
 
-Build, seed, import, E2E, and snapshot scripts.
+Build, check, seed, import, E2E, and snapshot scripts.
 
 ## Structure
 
@@ -9,6 +9,7 @@ shared/              Helper code
 build/openapi/       OpenAPI generation
 dev/check.ts         Convention checks
 dev/e2e.ts           E2E Cloudflare Worker runtime helper
+dev/quiet.ts         Hide successful command output; print captured output on failure
 dev/artifacts/snapshots/
                      Visual snapshot capture and report workflow
 dev/seed/            Dev seed data
@@ -36,13 +37,9 @@ Use `tools/shared/tool-prisma.ts` for Prisma 7 adapter setup in scripts. Do not 
 
 ## Seed
 
-Start local infra first when a script needs DB/storage:
-
-```bash
-docker compose -f docker-compose.dev.yml up -d
-bun run dev:seed-scenarios  # Create
-bun run dev:reset-scenarios # Clean via the shared seed entrypoint
-```
+Start local infra first when a script needs DB/storage. Use the shared seed
+entrypoint to create or reset scenarios; do not hand-edit seeded records.
+Use `bun run seed -- --reset` when a full scenario reset is needed.
 
 Seed data:
 - Debug users (admin, normal, suspended)
@@ -51,35 +48,20 @@ Seed data:
 
 ## Import
 
-```bash
-bun run load:static
-DATABASE_URL=... docker compose -f docker-compose.load.yml run --rm static-loader
-```
-
 - Import from SQLite snapshot
 - Preserve JW facts
 - Bus import via `src/features/bus/lib/bus-import.ts`
 - Loader Docker runtime only accepts `DATABASE_URL`; pass import choices as CLI flags such as `--skip-bus`.
 
-## OpenAPI
+## Tool Stages
 
 ```bash
-bun run build:artifacts  # Generate + postprocess
+bun run build          # regenerate Prisma/OpenAPI artifacts and build
+bun --silent run verify      # most tool edits
+bun --silent run verify:full # shared tooling, seed flows, integration-sensitive edits
 ```
 
-## Verification
-
-Default path for tool changes:
-
-```bash
-bun run verify:commit # Most edits
-bun run verify:full  # Shared tooling, seed flows, or integration-sensitive edits
-```
-
-## Convention Checks
-
-```bash
-bun run check:all      # Lint + docs + i18n + route/static import checks
-bun run check:e2e      # E2E conventions
-bun run check:features # Feature docs
-```
+Convention checks are internal tool phases and are intentionally quiet on success.
+Snapshot/E2E artifact changes are phase-sensitive: keep Worker build output,
+Node Prisma fixtures, capture, cleanup, and publish steps aligned with the
+existing workflow instead of moving work across phases casually.

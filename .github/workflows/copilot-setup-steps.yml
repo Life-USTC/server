@@ -55,6 +55,6 @@ jobs:
       - name: Prepare database and generated artifacts
         shell: bash
         run: |
-          bun run prisma migrate deploy
-          bun run build:artifacts
-          bun run dev:seed-scenarios
+          bun run db migrate deploy
+          bun --silent run tools/dev/quiet.ts -- sh -c 'svelte-kit sync && bun run db generate && bun run tools/build/openapi/generate-spec.ts'
+          bun run seed

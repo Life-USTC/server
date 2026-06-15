@@ -1,42 +1,4 @@
 {
-  "fields": {
-    "id": {
-      "type": "String (cuid)",
-      "note": "Primary key"
-    },
-    "action": {
-      "type": "AuditAction",
-      "note": "Enum value (see below)"
-    },
-    "userId": {
-      "type": "String",
-      "note": "Actor who performed the action"
-    },
-    "targetId": {
-      "type": "String?",
-      "note": "ID of the affected object"
-    },
-    "targetType": {
-      "type": "String?",
-      "note": "\"comment\", \"description\", \"upload\", \"user\""
-    },
-    "metadata": {
-      "type": "Json?",
-      "note": "Extra context (body snippet, reason, etc.)"
-    },
-    "ipAddress": {
-      "type": "String?",
-      "note": "From x-forwarded-for / x-real-ip"
-    },
-    "userAgent": {
-      "type": "String?",
-      "note": "From user-agent header"
-    },
-    "createdAt": {
-      "type": "DateTime",
-      "note": "When the action occurred"
-    }
-  },
   "actions": {
     "comment_create": {
       "trigger": "POST /api/comments",

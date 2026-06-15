@@ -4,11 +4,13 @@ Playwright browser tests.
 
 ## Commands
 
-Use the root `AGENTS.md` command list for the canonical E2E workflow. Common
-focused variants still include:
+Use the root `AGENTS.md` command list for the canonical E2E workflow. For a
+focused local Playwright run, prepare the Worker runtime and seed data first:
 
 ```bash
-bun run test:e2e -- path/to/test
+bun run build
+bun --silent run tools/dev/e2e.ts prepare
+bun run seed
 bunx playwright test --headed path/to/test
 bunx playwright test --ui
 ```
@@ -77,7 +79,7 @@ await expect(page).toHaveURL(/expected/);
 await expect(element).toBeVisible();
 
 // DON'T
-await page.waitForTimeout(1000); // ❌ rejected by check:e2e
+await page.waitForTimeout(1000); // ❌ rejected by tools/dev/check.ts e2e
 ```
 
 ## Concurrency

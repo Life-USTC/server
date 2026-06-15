@@ -1,39 +1,26 @@
 # Life@USTC
 
-- Feature specs: [docs/features/](./docs/features/)
+Start with [docs/index.md](./docs/index.md) for the project map. Product/API/MCP
+contracts live in [docs/contracts/](./docs/contracts/).
 
 ## 快速开始
 
 ```bash
 bun install --frozen-lockfile
-bun run dev:infra  # start postgres
-bun run dev        # prepare DB and start SvelteKit
+docker compose -f docker-compose.dev.yml up -d
+bun run dev
 ```
 
-可用命令（开发）:
-
-```bash
-bun run dev:down        # stop dev containers
-bun run dev:infra:clean # reset local dev containers/volumes when needed
-bun run test:e2e        # build and run Playwright E2E
-```
+本地数据库/存储由 Docker Compose 管理；需要数据库时先启动本地 infra，再运行应用。生产应用由 Cloudflare Git integration 发布，Docker 只保留静态数据加载环境。
 
 开发期建议节奏：
-- 代码迭代：`bun run dev`
-- 改完一个文件后：`bun run verify:edit`
-- 完成一个功能后：`bun run verify:feature`
-- 提交前：`bun run verify:commit`
-- 页面级回归：`bun run test:e2e -- tests/e2e/src/app/<page>/test.ts`
-- 涉及浏览器/认证/数据流时：`bun run verify:full`
-- 本地开发固定监听 `127.0.0.1:3000`
-
-生产部署：
-- 应用运行在 Cloudflare Workers，生产发布由 Cloudflare Git integration 负责。
-- Docker 只保留静态数据加载环境：`DATABASE_URL=... docker compose -f docker-compose.load.yml run --rm static-loader`
+- 默认提交门禁：`bun --silent run verify`
+- 认证、数据流、浏览器流程或共享工具：`bun --silent run verify:full`
+- 本地应用固定监听 `127.0.0.1:3000`
 
 ## 常用入口
 
 - 开发/测试/构建工作流以 [AGENTS.md](./AGENTS.md) 为唯一准则
 - 文档导航见 [docs/index.md](./docs/index.md)
-- 领域契约与功能规格见 [docs/features/](./docs/features/)
+- 产品/API/MCP 契约见 [docs/contracts/](./docs/contracts/)
 - 代码组织从 `src/routes/`、`src/features/`、`src/lib/` 开始阅读

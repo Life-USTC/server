@@ -152,7 +152,7 @@ function requireBuiltFile(root: string, relativePath: string) {
 }
 
 export function preparePlaywrightWorkerRuntime(root = process.cwd()) {
-  resolveWorkerEntrypoint(root, "bun run test:e2e:prepare or bun run build");
+  resolveWorkerEntrypoint(root, "bun run build");
   requireBuiltFile(root, ".svelte-kit/cloudflare-tmp/manifest.js");
   requireBuiltFile(root, ".svelte-kit/output/server/index.js");
 }

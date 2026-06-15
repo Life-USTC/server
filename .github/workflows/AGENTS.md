@@ -28,10 +28,8 @@ Keep Bun versions aligned with:
 
 ```bash
 bun install --frozen-lockfile
-bun run check
-bun run typecheck
 bun run test
-bun run test:integration  # needs DATABASE_URL
-bun run test:e2e          # needs build
+bun run verify       # default gate
+bun run verify:full  # expensive gate; needs DATABASE_URL and Playwright
 Cloudflare Git integration handles production deploys from the connected branch.
 ```

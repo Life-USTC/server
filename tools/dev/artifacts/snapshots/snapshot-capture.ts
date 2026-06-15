@@ -171,7 +171,6 @@ async function captureApiSnapshots() {
         };
         await writeJsonFile(path.join(dir, "metadata.json"), metadata);
         entries.push(metadata);
-        console.log(`api ${snapshotCase.id}: ${metadata.status}`);
       } catch (error) {
         const metadata = {
           id: snapshotCase.id,
@@ -416,7 +415,6 @@ async function captureMcpSnapshots() {
         };
         await writeJsonFile(path.join(dir, "metadata.json"), metadata);
         entries.push(metadata);
-        console.log(`mcp ${snapshotCase.name}: ok`);
       } catch (error) {
         const metadata = {
           id: snapshotCase.name,
@@ -817,7 +815,6 @@ async function capturePageSnapshots() {
               actionMetadata,
             );
             entries.push(actionMetadata);
-            console.log(`page ${snapshotCase.id}:${action}: ok`);
           } catch (actionError) {
             await resetDirectory(actionDir);
             const actionMetadata = {
@@ -842,7 +839,6 @@ async function capturePageSnapshots() {
             console.error(`page ${snapshotCase.id}:${action}: failed`);
           }
         }
-        console.log(`page ${snapshotCase.id}: ${metadata.status}`);
       } catch (error) {
         await resetDirectory(dir);
         const metadata = {

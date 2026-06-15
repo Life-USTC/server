@@ -18,13 +18,13 @@
     "todo": "Personal user task; not attached to any class."
   },
   "workflow": [
-    "Update the affected docs/features/<module>.json first whenever capabilities, tool surfaces, parameters, or outputs change.",
+    "Update the affected docs/contracts/<module>.json first whenever capabilities, tool surfaces, parameters, or outputs change.",
     "Use jq to inspect the affected module or metadata file while editing.",
     "Implement the behavior change in code.",
-    "Check docs/features, AGENTS.md, and implementation for consistency before concluding."
+    "Check docs/contracts, AGENTS.md, and implementation for consistency before concluding."
   ],
   "display_conventions": {
-    "real-models-only": "models mirrors prisma/schema.prisma model fields; API return DTO names stay in returns only.",
+    "real-models-only": "model links use Prisma model names only; API return DTO names stay in returns only.",
     "compact-surfaces": "surface status defaults to stable; use unavailable/planned/stable string shorthand when no page, route, tool, or group is listed.",
     "inherited-auth": "route and tool auth inherit capability auth unless explicitly overridden.",
     "compact-display": "display uses fields and filters only; keep field lists short and user-visible."

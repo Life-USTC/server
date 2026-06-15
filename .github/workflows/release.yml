@@ -27,6 +27,6 @@ jobs:
         uses: ./.github/actions/setup-bun-env
 
       - name: Run semantic-release
-        run: bun run release:semantic
+        run: bun run release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
