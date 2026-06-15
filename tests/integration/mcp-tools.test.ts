@@ -2,7 +2,7 @@
  * MCP tool integration tests.
  *
  * Shared seed/setup guidance lives in the repo root `AGENTS.md`.
- * Use `bun run test:integration` for the normal entry point.
+ * Use `bun run verify:full` for the normal integration gate.
  *
  * The shared dev-seed anchor comes from `DEV_SEED_ANCHOR`, so date filters and
  * deterministic atTime calls stay aligned with the seeded schedules, exams, and

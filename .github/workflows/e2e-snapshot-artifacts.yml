@@ -77,21 +77,21 @@ jobs:
         shell: bash
         run: |
           bun run svelte-kit sync
-          bun run prisma generate
+          bun run db generate
 
       - name: Build Worker app
         shell: bash
-        run: bun run test:e2e:artifacts
+        run: bun run build && bun --silent run tools/dev/e2e.ts prepare
 
       - name: Bootstrap E2E services
         shell: bash
         run: |
-          bun run prisma migrate deploy
-          bun run verify:e2e
+          bun run db migrate deploy
+          bun --silent run tools/dev/check.ts e2e
 
       - name: Seed E2E scenarios
         shell: bash
-        run: bun run dev:seed-scenarios
+        run: bun run seed
 
       - name: Capture E2E snapshots
         id: snapshots
@@ -119,10 +119,10 @@ jobs:
             exit 1
           fi
 
-          bun run snapshot pages
-          bun run snapshot api
-          bun run snapshot mcp
-          bun run snapshot manifest
+          bun run tools/dev/artifacts/snapshots/snapshot-capture.ts pages
+          bun run tools/dev/artifacts/snapshots/snapshot-capture.ts api
+          bun run tools/dev/artifacts/snapshots/snapshot-capture.ts mcp
+          bun run tools/dev/artifacts/snapshots/snapshot-capture.ts manifest
 
       - name: Upload E2E snapshot artifact
         id: upload

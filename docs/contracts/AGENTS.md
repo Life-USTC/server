@@ -1,6 +1,6 @@
-# docs/features/
+# docs/contracts/
 
-Modular feature specifications stored as formatted JSON.
+Modular product/API/MCP contracts stored as formatted JSON.
 
 ## Structure
 
@@ -8,13 +8,11 @@ Modular feature specifications stored as formatted JSON.
 Shared metadata
   _meta.json       Product metadata and query examples
   _product.json    Roles, workflow, display conventions
-  _models.json     Prisma model documentation
-  _enums.json      Enum definitions
   _ui.json         UI pattern library
   _cases.json      Edge cases and scenarios
   _audit.json      Audit actions
 
-Feature modules
+Contract modules
   <module>.json
 ```
 
@@ -22,9 +20,9 @@ Feature modules
 
 When behavior, API, MCP, parameters, or outputs change:
 
-1. Update the affected `docs/features/<module>.json` first.
+1. Update the affected `docs/contracts/<module>.json` first.
 2. Implement code changes.
-3. Run `bun run check:features` to validate the merged contract against schema, Prisma, REST, and MCP parity checks.
+3. Run `bun run verify` to validate the merged contract against schema, Prisma, REST, and MCP checks.
 4. Update relevant tests.
 
 If the user did not explicitly ask for documentation changes, ask before broad restructures or rewrites and keep any required doc edits tightly scoped.
@@ -33,15 +31,15 @@ If the user did not explicitly ask for documentation changes, ask before broad r
 
 ```bash
 # Single module
-jq '.capabilities | keys' docs/features/homework.json
-jq '.rules' docs/features/user.json
+jq '.capabilities | keys' docs/contracts/homework.json
+jq '.rules' docs/contracts/user.json
 
 # Models and enums
-jq 'keys' docs/features/_models.json
-jq 'keys' docs/features/_enums.json
+rg '^model ' prisma/schema.prisma
+rg '^enum ' prisma/schema.prisma
 
 # All modules
-find docs/features -maxdepth 1 -type f -name '*.json' ! -name '_*.json' -exec basename {} .json \; | sort
+find docs/contracts -maxdepth 1 -type f -name '*.json' ! -name '_*.json' -exec basename {} .json \; | sort
 ```
 
 ## Module Shape
@@ -52,4 +50,4 @@ Each module file contains:
 - `rules`
 - `capabilities`
 
-Keep module files focused. Shared model, enum, UI, case, and audit metadata stays in the `_*.json` files.
+Keep module files focused. Shared UI, case, and audit metadata stays in the `_*.json` files; model and enum shape stays in `prisma/schema.prisma`.

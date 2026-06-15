@@ -1,7 +1,7 @@
 import "dotenv/config";
 
 import type { Dirent } from "node:fs";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { join, relative } from "node:path";
@@ -23,7 +23,7 @@ function walkFiles(dir: string): string[] {
   });
 }
 
-type CheckMode = "e2e" | "features" | "i18n" | "routes";
+type CheckMode = "contracts" | "e2e" | "i18n" | "routes";
 
 function fail(message: string): never {
   console.error(message);
@@ -31,7 +31,7 @@ function fail(message: string): never {
 }
 
 function requireMode(value: string | undefined): CheckMode {
-  const modes = new Set<CheckMode>(["e2e", "features", "i18n", "routes"]);
+  const modes = new Set<CheckMode>(["contracts", "e2e", "i18n", "routes"]);
 
   if (value && modes.has(value as CheckMode)) {
     return value as CheckMode;
@@ -42,8 +42,8 @@ function requireMode(value: string | undefined): CheckMode {
       "Usage: bun run tools/dev/check.ts <mode> [options]",
       "",
       "Modes:",
+      "  contracts",
       "  e2e",
-      "  features",
       "  i18n",
       "  routes",
     ].join("\n"),
@@ -105,15 +105,11 @@ function checkE2eConventions() {
     }
     process.exit(1);
   }
-
-  console.log(
-    `E2E convention check passed for ${statSync(e2eRoot).isDirectory() ? "tests/e2e" : "unknown"}.`,
-  );
 }
 
-function checkFeaturesDoc() {
-  const featuresDir = "docs/features";
-  const schemaPath = "docs/features.schema.json";
+function checkContractsDoc() {
+  const contractsDir = "docs/contracts";
+  const schemaPath = "docs/contracts.schema.json";
   const prismaPath = "prisma/schema.prisma";
   const apiDir = "src/routes/api";
   const mcpDir = "src/lib/mcp/tools";
@@ -126,7 +122,7 @@ function checkFeaturesDoc() {
     >;
   };
 
-  type FeatureDoc = {
+  type ContractDoc = {
     capabilities?: Record<
       string,
       {
@@ -145,6 +141,7 @@ function checkFeaturesDoc() {
           | {
               status?: string;
               tools?: Array<string | { name?: string; status?: string }>;
+              groups?: Array<{ tools?: string[] }>;
             };
       }
     >;
@@ -185,10 +182,6 @@ function checkFeaturesDoc() {
     return { enums, models };
   }
 
-  function stableJson(value: unknown): string {
-    return JSON.stringify(value, null, 2);
-  }
-
   function parseImplementedRoutePath(filePath: string): string {
     const routePath = relative("src/routes", filePath)
       .replace(/\\/g, "/")
@@ -227,7 +220,7 @@ function checkFeaturesDoc() {
   ): Set<string> {
     const routes = new Set<string>();
 
-    for (const moduleDoc of Object.values(modules) as FeatureDoc[]) {
+    for (const moduleDoc of Object.values(modules) as ContractDoc[]) {
       for (const capability of Object.values(moduleDoc.capabilities ?? {})) {
         if (!capability || typeof capability !== "object") continue;
         if (!capability.rest || typeof capability.rest !== "object") continue;
@@ -261,7 +254,7 @@ function checkFeaturesDoc() {
   ): Set<string> {
     const tools = new Set<string>();
 
-    for (const moduleDoc of Object.values(modules) as FeatureDoc[]) {
+    for (const moduleDoc of Object.values(modules) as ContractDoc[]) {
       for (const capability of Object.values(moduleDoc.capabilities ?? {})) {
         if (!capability || typeof capability !== "object") continue;
         if (!capability.mcp || typeof capability.mcp !== "object") continue;
@@ -273,10 +266,57 @@ function checkFeaturesDoc() {
           if (tool.status === "unavailable") continue;
           if (tool.name) tools.add(tool.name);
         }
+        for (const group of capability.mcp.groups ?? []) {
+          for (const tool of group.tools ?? []) {
+            tools.add(tool);
+          }
+        }
       }
     }
 
     return tools;
+  }
+
+  function collectDocumentedModelLinks(
+    modules: Record<string, unknown>,
+  ): Set<string> {
+    const models = new Set<string>();
+
+    function addModelRef(ref: unknown) {
+      if (typeof ref === "string") {
+        models.add(ref);
+        return;
+      }
+      if (ref && typeof ref === "object" && "name" in ref) {
+        const name = (ref as { name?: unknown }).name;
+        if (typeof name === "string") models.add(name);
+      }
+    }
+
+    for (const moduleDoc of Object.values(modules) as Array<{
+      links?: { models?: unknown[] };
+      capabilities?: Record<string, { links?: { models?: unknown[] } }>;
+    }>) {
+      for (const ref of moduleDoc.links?.models ?? []) addModelRef(ref);
+      for (const capability of Object.values(moduleDoc.capabilities ?? {})) {
+        for (const ref of capability.links?.models ?? []) addModelRef(ref);
+      }
+    }
+
+    return models;
+  }
+
+  function collectDocumentedAuditActions(audit: unknown): Set<string> {
+    if (!audit || typeof audit !== "object" || !("actions" in audit)) {
+      return new Set();
+    }
+
+    const actions = (audit as { actions?: unknown }).actions;
+    if (!actions || typeof actions !== "object" || Array.isArray(actions)) {
+      return new Set();
+    }
+
+    return new Set(Object.keys(actions));
   }
 
   function isDocumentedRestRouteChecked(route: string): boolean {
@@ -295,24 +335,20 @@ function checkFeaturesDoc() {
     );
   }
 
-  if (!existsSync(featuresDir)) {
-    fail(`Features directory not found: ${featuresDir}`);
+  if (!existsSync(contractsDir)) {
+    fail(`Contracts directory not found: ${contractsDir}`);
   }
 
-  const files = readdirSync(featuresDir).filter((file) =>
+  const files = readdirSync(contractsDir).filter((file) =>
     file.endsWith(".json"),
   );
   if (files.length === 0) {
-    fail("No feature files found");
+    fail("No contract files found");
   }
-
-  console.log(`Found ${files.length} feature files`);
 
   const metadataTargets = {
     "_meta.json": "meta",
     "_product.json": "product",
-    "_models.json": "models",
-    "_enums.json": "enums",
     "_ui.json": "ui",
     "_cases.json": "cases",
     "_audit.json": "audit",
@@ -323,8 +359,6 @@ function checkFeaturesDoc() {
   } = {
     meta: {},
     product: {},
-    models: {},
-    enums: {},
     ui: {},
     modules: {},
     cases: {},
@@ -332,14 +366,14 @@ function checkFeaturesDoc() {
   };
 
   for (const file of files.sort()) {
-    const featurePath = join(featuresDir, file);
-    const content = readFileSync(featurePath, "utf8");
+    const contractPath = join(contractsDir, file);
+    const content = readFileSync(contractPath, "utf8");
     const data = JSON.parse(content);
 
     if (file.startsWith("_")) {
       const target = metadataTargets[file as keyof typeof metadataTargets];
       if (!target) {
-        fail(`Unknown metadata file: ${featurePath}`);
+        fail(`Unknown metadata file: ${contractPath}`);
       }
       merged[target] = data;
       continue;
@@ -347,7 +381,7 @@ function checkFeaturesDoc() {
 
     const moduleName = file.replace(".json", "");
     if (!data || typeof data !== "object" || Array.isArray(data)) {
-      fail(`Module file must contain a JSON object: ${featurePath}`);
+      fail(`Module file must contain a JSON object: ${contractPath}`);
     }
     merged.modules[moduleName] = data;
   }
@@ -357,7 +391,7 @@ function checkFeaturesDoc() {
   const validate = ajv.compile(schema);
 
   if (!validate(merged)) {
-    console.error("Feature document schema validation failed:");
+    console.error("Contract schema validation failed:");
     for (const error of validate.errors ?? []) {
       console.error(
         `- ${error.instancePath || "/"} ${error.message ?? "is invalid"}`,
@@ -366,13 +400,38 @@ function checkFeaturesDoc() {
     process.exit(1);
   }
 
-  const expected = parsePrismaSchema(readFileSync(prismaPath, "utf8"));
-  const actual = { enums: merged.enums, models: merged.models };
+  const prismaDocs = parsePrismaSchema(readFileSync(prismaPath, "utf8"));
+  const documentedModelLinks = collectDocumentedModelLinks(merged.modules);
+  const unknownModelLinks = [...documentedModelLinks]
+    .filter((model) => !(model in prismaDocs.models))
+    .sort();
 
-  if (stableJson(actual) !== stableJson(expected)) {
-    fail(
-      "Feature document model metadata is out of sync with prisma/schema.prisma.",
-    );
+  if (unknownModelLinks.length > 0) {
+    console.error("Contract model links are not in prisma/schema.prisma:");
+    for (const model of unknownModelLinks) {
+      console.error(`- ${model}`);
+    }
+    process.exit(1);
+  }
+
+  const documentedAuditActions = collectDocumentedAuditActions(merged.audit);
+  const prismaAuditActions = new Set(prismaDocs.enums.AuditAction ?? []);
+  const missingAuditActions = [...prismaAuditActions]
+    .filter((action) => !documentedAuditActions.has(action))
+    .sort();
+  const unknownAuditActions = [...documentedAuditActions]
+    .filter((action) => !prismaAuditActions.has(action))
+    .sort();
+
+  if (missingAuditActions.length > 0 || unknownAuditActions.length > 0) {
+    console.error("Contract audit actions do not match AuditAction:");
+    for (const action of missingAuditActions) {
+      console.error(`- enum value not documented: ${action}`);
+    }
+    for (const action of unknownAuditActions) {
+      console.error(`- documented but not in enum: ${action}`);
+    }
+    process.exit(1);
   }
 
   const documentedRestRoutes = collectDocumentedRestRoutes(merged.modules);
@@ -389,7 +448,7 @@ function checkFeaturesDoc() {
     .sort();
 
   if (missingRestRoutes.length > 0 || undocumentedRestRoutes.length > 0) {
-    console.error("Feature document REST route parity check failed:");
+    console.error("Contract REST route parity check failed:");
     for (const route of missingRestRoutes) {
       console.error(`- documented but not implemented: ${route}`);
     }
@@ -411,7 +470,7 @@ function checkFeaturesDoc() {
     .sort();
 
   if (missingMcpTools.length > 0 || undocumentedMcpTools.length > 0) {
-    console.error("Feature document MCP tool parity check failed:");
+    console.error("Contract MCP tool parity check failed:");
     for (const tool of missingMcpTools) {
       console.error(`- documented but not implemented: ${tool}`);
     }
@@ -420,9 +479,6 @@ function checkFeaturesDoc() {
     }
     process.exit(1);
   }
-
-  console.log("✅ Features validate against schema, Prisma, REST, and MCP");
-  console.log(`   ${files.length} files merged successfully`);
 }
 
 function checkI18nKeys() {
@@ -710,10 +766,6 @@ function checkI18nKeys() {
   if (hasMissing) {
     process.exit(1);
   }
-
-  console.log(
-    `i18n key check passed. Scanned ${files.length} files, ${usedKeys.size} keys.`,
-  );
 }
 
 async function checkRouteConventions() {
@@ -809,8 +861,6 @@ async function checkRouteConventions() {
     }
     process.exit(1);
   }
-
-  console.log(`Checked ${routeFiles.length} route handlers`);
 }
 
 async function main() {
@@ -821,8 +871,8 @@ async function main() {
       case "e2e":
         checkE2eConventions();
         break;
-      case "features":
-        checkFeaturesDoc();
+      case "contracts":
+        checkContractsDoc();
         break;
       case "i18n":
         checkI18nKeys();

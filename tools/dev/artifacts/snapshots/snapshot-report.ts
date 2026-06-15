@@ -17,9 +17,9 @@ function diffUsage() {
     "  bun run tools/dev/artifacts/snapshots/snapshot-report.ts diff <baseline-dir> <candidate-dir> [--output <file>] [--max-diff-lines <n>]",
     "",
     "Example:",
-    "  bun run snapshot",
+    "  bun run tools/dev/artifacts/snapshots/snapshot-capture.ts all",
     "  git switch feature",
-    "  bun run snapshot",
+    "  bun run tools/dev/artifacts/snapshots/snapshot-capture.ts all",
     "  bun run tools/dev/artifacts/snapshots/snapshot-report.ts diff test-results/260521120000-screenshot test-results/260521121000-screenshot-feature --output test-results/snapshot-diff.md",
   ].join("\n");
 }
