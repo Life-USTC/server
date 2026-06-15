@@ -7,7 +7,7 @@ const config = {
   kit: {
     adapter: adapterCloudflare(),
     csrf: {
-      checkOrigin: false,
+      trustedOrigins: ["*"],
     },
     alias: {
       "@/generated/prisma/client": "./src/generated/prisma/client",

@@ -53,6 +53,10 @@ export function notFound(message = "Not found") {
   return errorResponse(message, 404);
 }
 
+export function notFoundText() {
+  return new Response("Not found\n", { status: 404 });
+}
+
 export function payloadTooLarge(message = "Payload too large") {
   return errorResponse(message, 413);
 }

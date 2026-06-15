@@ -3,7 +3,7 @@ import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * List uploads of current user.
+ * List uploads.
  * @response uploadsListResponseSchema
  */
 export const GET = svelteRequestHandler(observedApiRoute(getUploadsRoute));

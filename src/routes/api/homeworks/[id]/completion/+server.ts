@@ -3,7 +3,7 @@ import { putHomeworkCompletionRoute } from "@/lib/api/routes/homework-completion
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * Update completion state for one homework.
+ * Update homework completion.
  * @pathParams resourceIdPathParamsSchema
  * @body homeworkCompletionRequestSchema
  * @response homeworkCompletionResponseSchema

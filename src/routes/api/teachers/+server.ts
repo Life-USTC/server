@@ -3,7 +3,7 @@ import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * List teachers with department/search filters.
+ * List teachers.
  * @params teachersQuerySchema
  * @response paginatedTeacherResponseSchema
  * @response 400:openApiErrorSchema

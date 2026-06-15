@@ -6,7 +6,7 @@ import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * List homeworks by section.
+ * List homeworks.
  * @params homeworksQuerySchema
  * @response homeworksListResponseSchema
  * @response 400:openApiErrorSchema

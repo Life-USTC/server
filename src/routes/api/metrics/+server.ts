@@ -1,5 +1,5 @@
+import { notFoundText } from "@/lib/api/helpers";
 import { canReadInternalEndpoint } from "@/lib/http/access-control";
-import { notFoundText } from "@/lib/http/responses";
 import { renderPrometheusMetrics } from "@/lib/metrics/runtime-metrics";
 
 export function GET({ request }: { request: Request }) {

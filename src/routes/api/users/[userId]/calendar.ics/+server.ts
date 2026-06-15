@@ -3,7 +3,7 @@ import { getUserCalendarRoute } from "@/lib/api/routes/calendars";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * Generate calendar ICS for a user's subscribed sections and personal deadlines.
+ * Generate user calendar.
  * @pathParams userCalendarPathParamsSchema
  * @response 200:binary
  * @response 401:openApiErrorSchema

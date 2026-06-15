@@ -3,7 +3,7 @@ import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * List sections with filters and pagination.
+ * List sections.
  * @params sectionsQuerySchema
  * @response paginatedSectionResponseSchema
  * @response 400:openApiErrorSchema

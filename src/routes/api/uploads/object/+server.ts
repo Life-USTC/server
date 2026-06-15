@@ -3,7 +3,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
 import type { RequestHandler } from "./$types";
 
 /**
- * Write one pending upload object through the Cloudflare R2 binding.
+ * Write upload object.
  * @params uploadObjectQuerySchema
  * @response 200:successResponseSchema
  * @response 400:openApiErrorSchema

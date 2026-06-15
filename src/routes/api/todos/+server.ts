@@ -3,14 +3,14 @@ import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * List todos for the current user.
+ * List todos.
  * @params todosQuerySchema
  * @response todosListResponseSchema
  * @response 401:openApiErrorSchema
  */
 export const GET = svelteRequestHandler(observedApiRoute(getTodosRoute));
 /**
- * Create a todo for the current user.
+ * Create a todo.
  * @body todoCreateRequestSchema
  * @response idResponseSchema
  * @response 400:openApiErrorSchema

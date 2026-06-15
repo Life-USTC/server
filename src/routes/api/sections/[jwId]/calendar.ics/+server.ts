@@ -3,7 +3,7 @@ import { getSectionCalendarRoute } from "@/lib/api/routes/calendars";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * Generate calendar ICS for one section.
+ * Generate section calendar.
  * @pathParams jwIdPathParamsSchema
  * @response 200:binary
  * @response 404:openApiErrorSchema

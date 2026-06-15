@@ -3,7 +3,7 @@ import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * List users for admin console.
+ * List users.
  * @params adminUsersQuerySchema
  * @response adminUsersResponseSchema
  * @response 400:openApiErrorSchema

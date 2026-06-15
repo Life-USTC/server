@@ -47,7 +47,12 @@ export const PAGE_SNAPSHOT_CASES: PageSnapshotCase[] = [
   { id: "home", path: "/", auth: "public" },
   { id: "signin", path: "/signin", auth: "public" },
   { id: "settings", path: "/settings", auth: "debug" },
-  { id: "api-docs", path: "/api-docs", auth: "public", waitUntil: "load" },
+  {
+    id: "api-docs",
+    path: "/api/docs/tag/sections",
+    auth: "public",
+    waitUntil: "load",
+  },
   { id: "privacy", path: "/privacy", auth: "public" },
   { id: "terms", path: "/terms", auth: "public" },
   { id: "mobile-app", path: "/mobile-app", auth: "public" },

@@ -3,7 +3,7 @@ import { deleteAdminHomeworkRoute } from "@/lib/api/routes/admin";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * Soft delete one homework (admin).
+ * Delete one homework.
  * @pathParams resourceIdPathParamsSchema
  * @response successResponseSchema
  * @response 404:openApiErrorSchema

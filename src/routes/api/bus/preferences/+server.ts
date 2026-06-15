@@ -6,7 +6,7 @@ import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * Get bus preferences for the current user.
+ * Get bus preferences.
  * @response busPreferenceResponseSchema
  * @response 401:openApiErrorSchema
  */
@@ -14,7 +14,7 @@ export const GET = svelteRequestHandler(
   observedApiRoute(getBusPreferencesRoute),
 );
 /**
- * Update bus preferences for the current user.
+ * Update bus preferences.
  * @body busPreferenceRequestSchema
  * @response busPreferenceResponseSchema
  * @response 401:openApiErrorSchema

@@ -7,7 +7,7 @@ const ROUTES = [
   "/sections",
   "/teachers",
   "/bus-map",
-  "/api-docs",
+  "/api/docs/tag/sections",
   "/privacy",
   "/terms",
 ];

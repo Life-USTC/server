@@ -23,7 +23,10 @@ type PageContractCase = {
 };
 
 function getContractWaitUntil(routePath: string) {
-  if (routePath === "/api-docs" || routePath === "/guides/markdown-support") {
+  if (
+    routePath === "/api/docs/tag/sections" ||
+    routePath === "/guides/markdown-support"
+  ) {
     return "load" as const;
   }
   return "domcontentloaded" as const;
@@ -472,11 +475,11 @@ export async function assertPageContract(
       return;
     }
 
-    case "/api-docs": {
+    case "/api/docs/tag/sections": {
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await waitForUiSettled(page);
-      await expect(page.locator("#swagger-ui")).toBeVisible();
+      await expect(page.locator("#api-reference")).toBeVisible();
       await maybeCapture(page, testInfo, "api-docs");
       return;
     }

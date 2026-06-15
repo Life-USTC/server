@@ -23,7 +23,10 @@ async function getProtectedResourceMetadataResponse() {
     authorization_servers: [issuerUrl.toString()],
     scopes_supported: [MCP_TOOLS_SCOPE],
     bearer_methods_supported: ["header"],
-    resource_documentation: new URL("/api-docs", issuerUrl).toString(),
+    resource_documentation: new URL(
+      "/api/docs/tag/sections",
+      issuerUrl,
+    ).toString(),
   });
 }
 

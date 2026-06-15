@@ -3,7 +3,7 @@ import { getSectionScheduleGroupsRoute } from "@/lib/api/routes/academic";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * Get schedule groups for one section.
+ * Get schedule groups.
  * @pathParams jwIdPathParamsSchema
  * @response 200:array
  * @response 404:openApiErrorSchema

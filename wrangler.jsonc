@@ -44,7 +44,8 @@
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      "id": "84d80963a096419cb1f1c9846f164bf1"
+      "id": "84d80963a096419cb1f1c9846f164bf1",
+      "localConnectionString": "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev"
     }
   ],
   "r2_buckets": [

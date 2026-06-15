@@ -3,7 +3,7 @@ import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * List schedules with filters and pagination.
+ * List schedules.
  * @params schedulesQuerySchema
  * @response paginatedScheduleResponseSchema
  * @response 400:openApiErrorSchema

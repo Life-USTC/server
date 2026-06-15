@@ -3,7 +3,7 @@ import { getCourseDetailRoute } from "@/lib/api/routes/academic";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * Get course detail by JW ID.
+ * Get course.
  * @pathParams jwIdPathParamsSchema
  * @response courseDetailSchema
  * @response 404:openApiErrorSchema

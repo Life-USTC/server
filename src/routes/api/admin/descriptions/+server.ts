@@ -3,7 +3,7 @@ import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * List descriptions for moderation review.
+ * List descriptions.
  * @params adminDescriptionsQuerySchema
  * @response adminDescriptionsResponseSchema
  * @response 400:openApiErrorSchema

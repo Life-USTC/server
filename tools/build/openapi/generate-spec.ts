@@ -1,35 +1,32 @@
 /**
  * Custom OpenAPI spec generator replacing next-openapi-gen.
  *
- * Reads route files, extracts JSDoc annotations, and generates
- * the pre-postprocessed OpenAPI document consumed by the postprocess step.
+ * Reads route files, extracts JSDoc annotations, and lets zod-openapi render
+ * Zod request/response schemas into the generated OpenAPI document.
  */
 
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { z } from "zod";
+import { createDocument } from "zod-openapi";
 import * as requestSchemas from "../../../src/lib/api/schemas/request-schemas";
 import * as responseSchemas from "../../../src/lib/api/schemas/response-schemas";
 import { OPENAPI_SPEC_RELATIVE_PATH } from "../../../src/lib/openapi/spec";
+import { buildScenarioOpenApiExamples } from "./scenario-examples";
 
 const ROOT = new URL("../../..", import.meta.url).pathname;
 
 type JsonSchema = Record<string, unknown>;
 
-type OpenApiParameter = {
-  in: "query" | "path";
-  name: string;
-  schema: JsonSchema;
-  required: boolean;
-  example?: string;
-};
-
 type OpenApiOperation = {
   operationId: string;
   summary: string;
-  description: string;
+  description?: string;
   tags: string[];
-  parameters: OpenApiParameter[];
+  requestParams?: {
+    path?: z.ZodTypeAny;
+    query?: z.ZodTypeAny;
+  };
   requestBody?: unknown;
   responses: Record<string, unknown>;
 };
@@ -45,7 +42,9 @@ type OpenApiDocument = {
 };
 
 const generatorConfigSchema = z.object({
-  openapi: z.string().optional(),
+  openapi: z
+    .enum(["3.0.0", "3.0.1", "3.0.2", "3.0.3", "3.1.0", "3.1.1", "3.2.0"])
+    .optional(),
   info: z
     .object({
       title: z.string(),
@@ -66,6 +65,7 @@ const generatorConfigSchema = z.object({
 // ── Schema registry ────────────────────────────────────────────────────────────
 
 const allSchemas: Record<string, z.ZodTypeAny> = {};
+const componentSchemas = new Map<string, z.ZodTypeAny>();
 
 for (const [name, value] of Object.entries({
   ...requestSchemas,
@@ -76,27 +76,23 @@ for (const [name, value] of Object.entries({
   }
 }
 
-function zodToJsonSchema(name: string, schema: z.ZodTypeAny): JsonSchema {
-  try {
-    const result = z.toJSONSchema(schema, {
-      cycles: "ref",
-      unrepresentable: "any",
-    }) as JsonSchema;
-    const { $schema: _unused, ...rest } = result;
-    return rest;
-  } catch (error) {
-    throw new Error(`Failed to convert OpenAPI schema ${name}`, {
-      cause: error,
-    });
-  }
-}
-
-function getSchemaJsonSchema(name: string): JsonSchema {
+function getSchema(name: string): z.ZodTypeAny {
   const schema = allSchemas[name];
   if (!schema) {
     throw new Error(`OpenAPI annotation references unknown schema: ${name}`);
   }
-  return zodToJsonSchema(name, schema);
+  return schema;
+}
+
+function getComponentSchema(name: string): z.ZodTypeAny {
+  const existing = componentSchemas.get(name);
+  if (existing) {
+    return existing;
+  }
+
+  const schema = getSchema(name).meta({ id: name });
+  componentSchemas.set(name, schema);
+  return schema;
 }
 
 // ── Path parsing ───────────────────────────────────────────────────────────────
@@ -161,46 +157,54 @@ function extractJsDocAnnotations(
   httpMethod: string,
   exportKind: RouteExportKind,
 ): HandlerAnnotations | null {
-  // Find the exported handler function preceded by a JSDoc comment
-  const pattern =
+  const exportPattern =
     exportKind === "destructured"
       ? new RegExp(
-          `/\\*\\*[\\s\\S]*?\\*/\\s*export\\s+const\\s*\\{(?=[^}]*\\b${httpMethod}\\b)[^}]*\\}\\s*=`,
-          "g",
+          `export\\s+const\\s*\\{(?=[^}]*\\b${httpMethod}\\b)[^}]*\\}\\s*=`,
+          "s",
         )
       : new RegExp(
           exportKind === "const"
-            ? `/\\*\\*[\\s\\S]*?\\*/\\s*export\\s+const\\s+${httpMethod}\\b(?:\\s*:[^=]+)?\\s*=`
-            : `/\\*\\*[\\s\\S]*?\\*/\\s*export\\s+(?:async\\s+)?function\\s+${httpMethod}\\b`,
-          "g",
+            ? `export\\s+const\\s+${httpMethod}\\b(?:\\s*:[^=]+)?\\s*=`
+            : `export\\s+(?:async\\s+)?function\\s+${httpMethod}\\b`,
         );
-  const match = pattern.exec(source);
-  if (!match) {
-    const wrappedMatch = new RegExp(
-      `export\\s+const\\s+${httpMethod}\\s*=\\s*observedApiRoute\\s*\\(\\s*(\\w+)\\s*\\)`,
-    ).exec(source);
-    if (!wrappedMatch) return null;
 
-    const handlerName = wrappedMatch[1];
-    const handlerPattern = new RegExp(
-      `/\\*\\*[\\s\\S]*?\\*/\\s*(?:async\\s+)?function\\s+${handlerName}\\b`,
-      "g",
-    );
-    const handlerMatch = handlerPattern.exec(source);
-    if (!handlerMatch) return null;
+  const match = exportPattern.exec(source);
+  const annotations = match ? parseJsDocBefore(source, match.index) : null;
+  if (annotations) return annotations;
 
-    return parseJsDocAnnotations(handlerMatch[0]);
-  }
+  const wrappedMatch = new RegExp(
+    `export\\s+const\\s+${httpMethod}\\s*=\\s*observedApiRoute\\s*\\(\\s*(\\w+)\\s*\\)`,
+  ).exec(source);
+  if (!wrappedMatch) return null;
 
-  return parseJsDocAnnotations(match[0]);
+  const handlerName = wrappedMatch[1];
+  const handlerPattern = new RegExp(
+    `(?:async\\s+)?function\\s+${handlerName}\\b`,
+  );
+  const handlerMatch = handlerPattern.exec(source);
+  if (!handlerMatch) return null;
+
+  return parseJsDocBefore(source, handlerMatch.index);
+}
+
+function parseJsDocBefore(
+  source: string,
+  declarationIndex: number,
+): HandlerAnnotations | null {
+  const prefix = source.slice(0, declarationIndex);
+  const commentStart = prefix.lastIndexOf("/**");
+  if (commentStart === -1) return null;
+
+  const candidate = prefix.slice(commentStart);
+  if (!/^\/\*\*[\s\S]*?\*\/\s*$/.test(candidate)) return null;
+  return parseJsDocAnnotations(candidate);
 }
 
 function parseJsDocAnnotations(jsdoc: string): HandlerAnnotations {
   // Extract summary (first non-tag line)
   const summaryMatch = /\/\*\*\s*\n\s*\*\s*([^@\n][^\n]*)/.exec(jsdoc);
-  const summary = summaryMatch
-    ? `${summaryMatch[1].trim().replace(/\.$/, "")}.`
-    : "";
+  const summary = summaryMatch ? summaryMatch[1].trim().replace(/\.$/, "") : "";
 
   const annotations: HandlerAnnotations = { summary, responses: [] };
 
@@ -241,74 +245,24 @@ function parseJsDocAnnotations(jsdoc: string): HandlerAnnotations {
   return annotations;
 }
 
-function buildDefaultResponses(source: string, method: string) {
-  if (
-    method === "OPTIONS" &&
-    /create(?:OAuthDiscovery|Discovery(?:Metadata|Redirect))Route\(/.test(
-      source,
-    )
-  ) {
-    return {
-      "204": {
-        description: "Response 204",
-      },
-    };
-  }
+// ── Request params building ────────────────────────────────────────────────────
 
-  return {
-    "200": {
-      description: "Successful response",
-      content: { "application/json": { schema: {} } },
-    },
-  };
-}
-
-// ── Parameter building ─────────────────────────────────────────────────────────
-
-function buildParameters(annotations: HandlerAnnotations): OpenApiParameter[] {
-  const params: OpenApiParameter[] = [];
-
+function buildRequestParams(
+  annotations: HandlerAnnotations,
+  usedSchemas: Set<string>,
+): OpenApiOperation["requestParams"] | undefined {
+  const requestParams: NonNullable<OpenApiOperation["requestParams"]> = {};
   if (annotations.pathParams) {
-    const jsonSchema = getSchemaJsonSchema(annotations.pathParams);
-    const properties =
-      (jsonSchema.properties as Record<string, JsonSchema>) ?? {};
-    const required = (jsonSchema.required as string[]) ?? [];
-    for (const [name, propSchema] of Object.entries(properties)) {
-      params.push({
-        in: "path",
-        name,
-        schema: normalizeParameterSchema({ type: "string", ...propSchema }),
-        required: required.includes(name),
-        example: "123",
-      });
-    }
+    usedSchemas.add(annotations.pathParams);
+    requestParams.path = getSchema(annotations.pathParams);
   }
 
   if (annotations.params) {
-    const jsonSchema = getSchemaJsonSchema(annotations.params);
-    const properties =
-      (jsonSchema.properties as Record<string, JsonSchema>) ?? {};
-    const required = (jsonSchema.required as string[]) ?? [];
-    for (const [name, propSchema] of Object.entries(properties)) {
-      params.push({
-        in: "query",
-        name,
-        schema: normalizeParameterSchema(propSchema),
-        required: required.includes(name),
-      });
-    }
+    usedSchemas.add(annotations.params);
+    requestParams.query = getSchema(annotations.params);
   }
 
-  return params;
-}
-
-function normalizeParameterSchema(schema: JsonSchema): JsonSchema {
-  if (schema.openapiType !== "integer") {
-    return schema;
-  }
-
-  const { openapiType: _unused, ...rest } = schema;
-  return { ...rest, type: "integer", format: "int64" };
+  return Object.keys(requestParams).length > 0 ? requestParams : undefined;
 }
 
 // ── Response building ──────────────────────────────────────────────────────────
@@ -364,7 +318,7 @@ function buildResponses(
       description: code === 200 ? "Successful response" : "Error response",
       content: {
         "application/json": {
-          schema: { $ref: `#/components/schemas/${schemaName}` },
+          schema: getComponentSchema(schemaName as string),
         },
       },
     };
@@ -392,7 +346,7 @@ function buildRequestBody(
   return {
     content: {
       "application/json": {
-        schema: { $ref: `#/components/schemas/${annotations.body}` },
+        schema: getComponentSchema(annotations.body),
       },
     },
   };
@@ -438,35 +392,27 @@ async function processRouteFile(
         ? extractJsDocAnnotations(source, method, exportKind)
         : null;
     if (!annotations) {
-      // Handler exists but no JSDoc - create minimal operation
-      const operationId = `${method.toLowerCase()}-${apiPath.replace(/\//g, "-").replace(/[{}]/g, "").replace(/^-/, "")}`;
-      pathItem[method.toLowerCase()] = {
-        operationId,
-        summary: "",
-        description: "",
-        tags: [],
-        parameters: [],
-        responses: buildDefaultResponses(source, method),
-      };
       continue;
     }
 
     const operationId = `${method.toLowerCase()}-${apiPath.replace(/\//g, "-").replace(/[{}]/g, "").replace(/^-/, "")}`;
-    const parameters = buildParameters(annotations);
+    const requestParams = buildRequestParams(annotations, usedSchemas);
     const responses = buildResponses(annotations, usedSchemas);
     const requestBody = buildRequestBody(annotations, usedSchemas);
 
     const operation: OpenApiOperation = {
       operationId,
       summary: annotations.summary,
-      description: "",
       tags: [],
-      parameters,
       responses,
     };
 
+    if (requestParams) {
+      operation.requestParams = requestParams;
+    }
+
     if (requestBody) {
-      (operation as Record<string, unknown>).requestBody = requestBody;
+      operation.requestBody = requestBody;
     }
 
     pathItem[method.toLowerCase()] = operation;
@@ -528,25 +474,16 @@ async function generateOpenApiSpec() {
     }
   }
 
-  // Build component schemas for all used schema names
-  const componentSchemas: Record<string, JsonSchema> = {};
-  for (const name of usedSchemas) {
-    componentSchemas[name] = getSchemaJsonSchema(name);
-  }
-
-  const doc: OpenApiDocument = {
+  const doc = createDocument({
     openapi: config.openapi ?? "3.0.0",
     info: config.info ?? {
       title: "Life@USTC API",
       version: "1.0.0",
       description: "OpenAPI document generated from SvelteKit routes",
     },
-    servers: config.servers ?? [
-      { url: "http://localhost:3000", description: "Local server" },
-    ],
+    servers: config.servers ?? [{ url: "/", description: "Current origin" }],
     paths: Object.fromEntries(pathEntries),
-    components: { schemas: componentSchemas },
-  };
+  }) as OpenApiDocument;
 
   const outputPath = path.join(ROOT, OPENAPI_SPEC_RELATIVE_PATH);
   await writeFile(outputPath, `${JSON.stringify(doc, null, 2)}\n`, "utf8");
@@ -564,10 +501,18 @@ type MutableOpenApiDocument = {
   servers?: unknown;
   paths?: Record<string, Record<string, Record<string, unknown>>>;
   components?: unknown;
-  tags?: Array<{ name: string; description?: string }>;
+  tags?: Array<{
+    name: string;
+    description?: string;
+    "x-displayName"?: string;
+  }>;
+  "x-tagGroups"?: Array<{ name: string; tags: string[] }>;
 };
 
 type MutableOpenApiOperation = Record<string, unknown>;
+type MutableOpenApiMediaType = Record<string, unknown>;
+
+const SCENARIO_OPENAPI_EXAMPLES = buildScenarioOpenApiExamples();
 
 const TAG_DESCRIPTIONS: Record<string, string> = {
   Admin: "Admin and moderation endpoints",
@@ -591,6 +536,11 @@ const TAG_DESCRIPTIONS: Record<string, string> = {
   Api: "General API endpoints",
 };
 
+const TAG_DISPLAY_NAMES: Record<string, string> = {
+  DashboardLinks: "Dashboard Links",
+  OpenAPI: "OpenAPI",
+};
+
 const TAG_ORDER = [
   "Admin",
   "Comments",
@@ -611,6 +561,33 @@ const TAG_ORDER = [
   "Metadata",
   "OpenAPI",
   "Api",
+];
+
+const TAG_GROUPS = [
+  {
+    name: "Catalog",
+    tags: ["Sections", "Courses", "Teachers", "Schedules", "Semesters"],
+  },
+  {
+    name: "Workspace",
+    tags: ["Homeworks", "Todos", "Calendar", "Me", "DashboardLinks"],
+  },
+  {
+    name: "Community",
+    tags: ["Comments", "Descriptions", "Uploads"],
+  },
+  {
+    name: "Campus Services",
+    tags: ["Bus"],
+  },
+  {
+    name: "Platform",
+    tags: ["Metadata", "Locale", "OpenAPI", "Api"],
+  },
+  {
+    name: "Admin",
+    tags: ["Admin"],
+  },
 ];
 
 const TAG_BY_SEGMENT: Record<string, string> = {
@@ -958,7 +935,21 @@ function buildTopLevelTags(
     return a.name.localeCompare(b.name);
   });
 
-  return tags.map((t) => ({ name: t.name, description: t.description }));
+  return tags.map((t) => ({
+    name: t.name,
+    description: t.description,
+    ...(TAG_DISPLAY_NAMES[t.name]
+      ? { "x-displayName": TAG_DISPLAY_NAMES[t.name] }
+      : {}),
+  }));
+}
+
+function buildTagGroups(tags: NonNullable<MutableOpenApiDocument["tags"]>) {
+  const tagNames = new Set(tags.map((tag) => tag.name));
+  return TAG_GROUPS.map((group) => ({
+    name: group.name,
+    tags: group.tags.filter((tag) => tagNames.has(tag)),
+  })).filter((group) => group.tags.length > 0);
 }
 
 function setRedirectResponse(
@@ -1028,261 +1019,81 @@ function patchRedirectOperations(
   }
 }
 
-// ── Fix OpenAPI 3.1 → 3.0 exclusive min/max ─────────────────────────────────
+function getContentMediaType(
+  operation: MutableOpenApiOperation,
+  location: "requestBody" | "response",
+): MutableOpenApiMediaType | undefined {
+  const source =
+    location === "requestBody"
+      ? operation.requestBody
+      : (operation.responses as Record<string, unknown> | undefined)?.["200"];
 
-/**
- * In OpenAPI 3.1 / JSON Schema 2020-12, exclusiveMinimum and exclusiveMaximum
- * are numbers. In 3.0 they are booleans and the threshold is set via
- * minimum / maximum. Zod's toJSONSchema emits the 3.1 form but we declare
- * 3.0, so we patch here.
- */
-function fixExclusiveMinMax(obj: unknown): void {
-  if (obj === null || typeof obj !== "object") return;
-  if (Array.isArray(obj)) {
-    for (const item of obj) fixExclusiveMinMax(item);
-    return;
+  if (!source || typeof source !== "object") {
+    return undefined;
   }
-  const record = obj as Record<string, unknown>;
-  if (typeof record.exclusiveMinimum === "number") {
-    record.minimum = record.exclusiveMinimum;
-    record.exclusiveMinimum = true;
+
+  const content = (source as { content?: unknown }).content;
+  if (!content || typeof content !== "object") {
+    return undefined;
   }
-  if (typeof record.exclusiveMaximum === "number") {
-    record.maximum = record.exclusiveMaximum;
-    record.exclusiveMaximum = true;
-  }
-  for (const value of Object.values(record)) {
-    fixExclusiveMinMax(value);
-  }
+
+  const mediaType = (content as Record<string, unknown>)["application/json"];
+  return mediaType && typeof mediaType === "object"
+    ? (mediaType as MutableOpenApiMediaType)
+    : undefined;
 }
 
-/**
- * Zod's toJSONSchema may emit `$defs` with `$ref: "#/$defs/..."` inside
- * component schemas. OpenAPI 3.0 doesn't support `$defs`, so we inline
- * every `$ref` that points at a `$defs` entry and then remove the key.
- *
- * For recursive schemas (e.g. comment replies referencing the comment schema),
- * we replace self-references with an empty object to break the cycle.
- */
-function inlineDefs(obj: unknown): void {
-  if (obj === null || typeof obj !== "object") return;
-  if (Array.isArray(obj)) {
-    for (const item of obj) inlineDefs(item);
-    return;
-  }
-  const record = obj as Record<string, unknown>;
-  const defs = record.$defs as Record<string, unknown> | undefined;
-  if (defs && typeof defs === "object") {
-    // Recursively resolve $ref: "#/$defs/..." inside this schema
-    resolveLocalRefs(record, defs, 0);
-    delete record.$defs;
-  }
-  for (const value of Object.values(record)) {
-    inlineDefs(value);
-  }
-}
-
-const MAX_INLINE_DEPTH = 3;
-
-function resolveLocalRefs(
-  obj: unknown,
-  defs: Record<string, unknown>,
-  depth: number,
-): void {
-  if (obj === null || typeof obj !== "object") return;
-  if (Array.isArray(obj)) {
-    for (let i = 0; i < obj.length; i++) {
-      const item = obj[i] as Record<string, unknown>;
+function applyScenarioExamples(
+  paths: NonNullable<MutableOpenApiDocument["paths"]>,
+) {
+  for (const [path, pathItem] of Object.entries(paths)) {
+    for (const [method, operation] of Object.entries(pathItem)) {
       if (
-        item &&
-        typeof item.$ref === "string" &&
-        item.$ref.startsWith("#/$defs/")
+        !isOperationKey(method) ||
+        !operation ||
+        typeof operation !== "object"
       ) {
-        const defName = item.$ref.slice("#/$defs/".length);
-        if (defs[defName] && depth < MAX_INLINE_DEPTH) {
-          const inlined = JSON.parse(JSON.stringify(defs[defName]));
-          resolveLocalRefs(inlined, defs, depth + 1);
-          obj[i] = inlined;
-        } else {
-          // Recursive or too deep — replace with empty schema
-          obj[i] = { type: "object", description: "(recursive)" };
-        }
-      } else {
-        resolveLocalRefs(item, defs, depth);
+        continue;
       }
-    }
-    return;
-  }
-  const record = obj as Record<string, unknown>;
-  for (const [key, value] of Object.entries(record)) {
-    if (
-      value &&
-      typeof value === "object" &&
-      !Array.isArray(value) &&
-      typeof (value as Record<string, unknown>).$ref === "string"
-    ) {
-      const ref = (value as Record<string, unknown>).$ref as string;
-      if (ref.startsWith("#/$defs/")) {
-        const defName = ref.slice("#/$defs/".length);
-        if (defs[defName] && depth < MAX_INLINE_DEPTH) {
-          const inlined = JSON.parse(JSON.stringify(defs[defName]));
-          resolveLocalRefs(inlined, defs, depth + 1);
-          record[key] = inlined;
-        } else {
-          record[key] = { type: "object", description: "(recursive)" };
-        }
+
+      const example =
+        SCENARIO_OPENAPI_EXAMPLES[
+          `${method.toUpperCase()} ${path}` as keyof typeof SCENARIO_OPENAPI_EXAMPLES
+        ];
+      if (!example) {
+        continue;
       }
-    }
-    resolveLocalRefs(value, defs, depth);
-  }
-}
 
-/**
- * Convert OpenAPI 3.1 nullable patterns to 3.0 style.
- * 3.1: `anyOf: [{type: "string"}, {type: "null"}]`
- * 3.0: `{type: "string", nullable: true}`
- */
-function fixAnyOfNullable(obj: unknown): void {
-  if (obj === null || typeof obj !== "object") return;
-  if (Array.isArray(obj)) {
-    for (const item of obj) fixAnyOfNullable(item);
-    return;
-  }
-  const record = obj as Record<string, unknown>;
-
-  if (Array.isArray(record.anyOf) && record.anyOf.length === 2) {
-    const variants = record.anyOf as Array<Record<string, unknown>>;
-    const nullIdx = variants.findIndex(
-      (v) =>
-        typeof v === "object" &&
-        v !== null &&
-        (v as Record<string, unknown>).type === "null",
-    );
-    if (nullIdx !== -1) {
-      const other = variants[1 - nullIdx];
-      if (other && typeof other === "object") {
-        // Replace this schema node in-place with the non-null variant + nullable: true
-        delete record.anyOf;
-        for (const [k, v] of Object.entries(other)) {
-          record[k] = v;
-        }
-        record.nullable = true;
-      }
-    }
-  }
-
-  for (const value of Object.values(record)) {
-    fixAnyOfNullable(value);
-  }
-}
-
-/**
- * Simplify remaining anyOf unions that oapi-codegen can't handle.
- * - `anyOf: [{type: "string"}, {type: "number"}]` → `{type: "string"}`
- *   (Zod coerce patterns — server accepts both, string is most permissive)
- * - `anyOf: [{type: "integer"}, {type: "string"}, {type: "null"}]` → `{type: "string", nullable: true}`
- * - `anyOf: [{obj: prop: null}, {obj: prop: {...}}]` → `{obj: prop: {... nullable: true}}`
- */
-function simplifyAnyOfUnions(obj: unknown): void {
-  if (obj === null || typeof obj !== "object") return;
-  if (Array.isArray(obj)) {
-    for (const item of obj) simplifyAnyOfUnions(item);
-    return;
-  }
-  const record = obj as Record<string, unknown>;
-
-  if (Array.isArray(record.anyOf)) {
-    const variants = record.anyOf as Array<Record<string, unknown>>;
-    const types = variants
-      .filter((v) => typeof v === "object" && v !== null && "type" in v)
-      .map((v) => v.type as string);
-
-    // Only simplify if all variants are simple type objects (no $ref, no complex schemas)
-    const allSimple = variants.every(
-      (v) =>
-        typeof v === "object" &&
-        v !== null &&
-        "type" in v &&
-        typeof v.type === "string",
-    );
-
-    if (allSimple && types.length >= 2) {
-      const hasNull = types.includes("null");
-      const nonNull = types.filter((t) => t !== "null");
-
-      // Only simplify scalar type unions (string, number, integer, boolean)
-      // Don't simplify object unions — they're genuine discriminated unions
-      const scalarTypes = ["string", "number", "integer", "boolean"];
-      const allScalar = nonNull.every((t) => scalarTypes.includes(t));
-
-      if (allScalar) {
-        // Pick the most permissive type: prefer "string" if present, else first non-null
-        const chosen = nonNull.includes("string") ? "string" : nonNull[0];
-        if (chosen) {
-          delete record.anyOf;
-          record.type = chosen;
-          if (hasNull) {
-            record.nullable = true;
+      const parameters = (operation as { parameters?: unknown }).parameters;
+      if (example.parameters && Array.isArray(parameters)) {
+        for (const parameter of parameters) {
+          if (!parameter || typeof parameter !== "object") {
+            continue;
+          }
+          const name = (parameter as { name?: unknown }).name;
+          if (typeof name === "string" && name in example.parameters) {
+            (parameter as { example?: unknown }).example =
+              example.parameters[name];
           }
         }
       }
-    }
 
-    // Handle object-union nullable pattern:
-    // anyOf: [{type:object, props:{x: {type:null}}}, {type:object, props:{x: {type:object,...}}}]
-    // → {type:object, props:{x: {..., nullable:true}}}
-    if (
-      variants.length === 2 &&
-      variants.every(
-        (v) =>
-          v.type === "object" &&
-          v.properties &&
-          typeof v.properties === "object",
-      )
-    ) {
-      const [a, b] = variants;
-      const propsA = a.properties as Record<string, Record<string, unknown>>;
-      const propsB = b.properties as Record<string, Record<string, unknown>>;
-      const keysA = Object.keys(propsA);
-      const keysB = Object.keys(propsB);
+      const requestMediaType = getContentMediaType(
+        operation as MutableOpenApiOperation,
+        "requestBody",
+      );
+      if (requestMediaType && example.requestBody !== undefined) {
+        requestMediaType.example = example.requestBody;
+      }
 
-      // Same keys — try to merge nullable properties
-      if (
-        keysA.length === keysB.length &&
-        keysA.every((k) => keysB.includes(k))
-      ) {
-        const merged: Record<string, Record<string, unknown>> = {};
-        let canMerge = true;
-
-        for (const key of keysA) {
-          const valA = propsA[key];
-          const valB = propsB[key];
-          if (valA?.type === "null" && valB?.type !== "null") {
-            merged[key] = { ...valB, nullable: true };
-          } else if (valB?.type === "null" && valA?.type !== "null") {
-            merged[key] = { ...valA, nullable: true };
-          } else if (JSON.stringify(valA) === JSON.stringify(valB)) {
-            merged[key] = valA;
-          } else {
-            canMerge = false;
-            break;
-          }
-        }
-
-        if (canMerge) {
-          delete record.anyOf;
-          record.type = "object";
-          record.properties = merged;
-          // Use required from the variant with the real types
-          record.required = b.required ?? a.required;
-          record.additionalProperties = false;
-        }
+      const responseMediaType = getContentMediaType(
+        operation as MutableOpenApiOperation,
+        "response",
+      );
+      if (responseMediaType && example.response !== undefined) {
+        responseMediaType.example = example.response;
       }
     }
-  }
-
-  for (const value of Object.values(record)) {
-    simplifyAnyOfUnions(value);
   }
 }
 
@@ -1337,20 +1148,10 @@ async function postprocessOpenApiSpec() {
 
   doc.paths = sortedPaths;
   patchRedirectOperations(sortedPaths);
+  applyScenarioExamples(sortedPaths);
 
   doc.tags = buildTopLevelTags(sortedPaths);
-
-  // Fix OpenAPI 3.1-style exclusiveMinimum/exclusiveMaximum (number) to 3.0 (boolean)
-  fixExclusiveMinMax(doc);
-
-  // Inline $defs from Zod's JSON Schema output (not valid in OpenAPI 3.0)
-  inlineDefs(doc);
-
-  // Convert anyOf nullable patterns to OpenAPI 3.0 nullable: true
-  fixAnyOfNullable(doc);
-
-  // Simplify anyOf union types (e.g. string|number) to a single type for 3.0 compat
-  simplifyAnyOfUnions(doc);
+  doc["x-tagGroups"] = buildTagGroups(doc.tags);
 
   await writeFile(filePath, `${JSON.stringify(doc, null, 2)}\n`, "utf8");
 }

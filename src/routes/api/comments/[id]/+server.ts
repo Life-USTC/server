@@ -7,7 +7,7 @@ import {
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * Get one comment thread by comment ID.
+ * Get comment thread.
  * @pathParams resourceIdPathParamsSchema
  * @response commentThreadResponseSchema
  * @response 404:openApiErrorSchema

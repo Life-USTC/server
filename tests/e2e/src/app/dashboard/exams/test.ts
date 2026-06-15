@@ -105,7 +105,14 @@ test.describe("dashboard exams", () => {
     });
     await expect(examCards.first()).toBeVisible({ timeout: 15_000 });
 
-    const firstCard = examCards.first();
+    const seedExamCard = examCards
+      .filter({
+        hasText: new RegExp(
+          `${DEV_SEED.examBatch.nameCn}|${DEV_SEED.examBatch.nameEn}`,
+        ),
+      })
+      .first();
+    const firstCard = seedExamCard;
     await expect(firstCard).toBeVisible();
 
     // section.course.namePrimary (exam.yml cross-section-exam-list.display.fields)
@@ -130,7 +137,9 @@ test.describe("dashboard exams", () => {
     ).toBeVisible();
 
     // exam.examRooms[] — room name present
-    await expect(firstCard.getByText(/考场|room|一教/i).first()).toBeVisible();
+    const roomValue = firstCard.locator("dl dd").nth(2);
+    await expect(roomValue).toHaveText(/\S/);
+    await expect(roomValue).not.toHaveText(/TBD|待定|未定|—/i);
 
     // Cross-section exam cards must identify semester and exam batch metadata.
     await expect(

@@ -3,7 +3,7 @@ import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * Get metadata dictionaries for filters.
+ * Get metadata.
  * @response metadataResponseSchema
  */
 export const GET = svelteRequestHandler(

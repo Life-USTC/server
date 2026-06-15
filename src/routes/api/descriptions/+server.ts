@@ -6,14 +6,14 @@ import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * Get description and history by target.
+ * Get description history.
  * @params descriptionsQuerySchema
  * @response descriptionsResponseSchema
  * @response 400:openApiErrorSchema
  */
 export const GET = svelteRequestHandler(observedApiRoute(getDescriptionRoute));
 /**
- * Upsert description by target.
+ * Upsert description.
  * @body descriptionUpsertRequestSchema
  * @response descriptionUpsertResponseSchema
  * @response 400:openApiErrorSchema

@@ -3,7 +3,7 @@ import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * Pin or unpin one dashboard link for the current user.
+ * Pin dashboard link.
  * @body dashboardLinkPinRequestSchema
  * @response 303
  */

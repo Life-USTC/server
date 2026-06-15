@@ -1,5 +1,5 @@
+import { jsonResponse, notFoundText } from "@/lib/api/helpers";
 import { canReadInternalEndpoint } from "@/lib/http/access-control";
-import { jsonResponse, notFoundText } from "@/lib/http/responses";
 import { storageReadiness } from "@/lib/storage/r2-object";
 
 async function checkDatabase() {

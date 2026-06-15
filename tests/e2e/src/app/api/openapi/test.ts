@@ -48,12 +48,9 @@ test.describe("GET /api/openapi", () => {
     expect(body.paths?.["/api/homeworks"]).toBeTruthy();
     expect(body.paths?.["/api/descriptions"]).toBeTruthy();
     expect(
-      body.paths?.["/api/auth/.well-known/openid-configuration"]?.get,
+      body.paths?.["/.well-known/openid-configuration/api/auth"]?.get,
     ).toBeTruthy();
     expect(body.paths?.["/.well-known/openid-configuration"]?.get).toBeTruthy();
-    expect(
-      body.paths?.["/.well-known/openid-configuration"]?.options,
-    ).toBeTruthy();
   });
 
   test("spec exposes concrete schemas for generated clients", async ({

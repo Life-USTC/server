@@ -3,7 +3,7 @@ import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * Get the current user's section subscriptions.
+ * Get section subscriptions.
  * @response currentCalendarSubscriptionResponseSchema
  * @response 401:openApiErrorSchema
  */

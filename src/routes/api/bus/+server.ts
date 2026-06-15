@@ -3,7 +3,7 @@ import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * Public shuttle-bus query API.
+ * Query shuttle buses.
  * @params busQuerySchema
  * @response busQueryResponseSchema
  * @response 400:openApiErrorSchema

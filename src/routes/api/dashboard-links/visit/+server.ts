@@ -6,7 +6,7 @@ import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * Redirect to one dashboard link without side effects.
+ * Preview dashboard link.
  * @params dashboardLinkVisitQuerySchema
  * @response 307
  */

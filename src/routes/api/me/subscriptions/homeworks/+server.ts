@@ -3,7 +3,7 @@ import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * List homeworks for all subscribed sections in a single call.
+ * List subscribed homeworks.
  * @response subscribedHomeworksResponseSchema
  * @response 401:openApiErrorSchema
  */

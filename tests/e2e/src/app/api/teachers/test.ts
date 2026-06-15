@@ -120,8 +120,9 @@ test.describe("GET /api/teachers", () => {
   test("detail route returns seed teacher with sections", async ({
     request,
   }) => {
+    const cacheBust = `teacher-detail-${Date.now()}`;
     const teacherListResponse = await request.get(
-      `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}&limit=5`,
+      `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}&limit=5&cacheBust=${cacheBust}`,
     );
     expect(teacherListResponse.status()).toBe(200);
     const teacherListBody = (await teacherListResponse.json()) as {

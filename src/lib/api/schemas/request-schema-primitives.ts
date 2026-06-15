@@ -28,7 +28,7 @@ export const integerStringSchema = z
   .refine((value) => parseInteger(value) !== null, {
     message: "Invalid integer",
   })
-  .meta({ openapiType: "integer" });
+  .meta({ override: { type: "integer", format: "int64" } });
 
 export const commentReactionTypeSchema = z.enum([
   "upvote",

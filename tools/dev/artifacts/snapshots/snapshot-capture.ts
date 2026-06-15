@@ -566,7 +566,7 @@ async function waitForSnapshotReady(
     timeout: 10_000,
   });
   if (snapshotCase.id === "api-docs") {
-    await expect(page.locator("#swagger-ui .opblock").first()).toBeVisible({
+    await expect(page.locator("#api-reference")).toBeVisible({
       timeout: 10_000,
     });
   } else {

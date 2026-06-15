@@ -3,7 +3,7 @@ import { getSectionSchedulesRoute } from "@/lib/api/routes/academic";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * Get all schedules for one section.
+ * Get section schedules.
  * @pathParams jwIdPathParamsSchema
  * @response 200:array
  * @response 404:openApiErrorSchema

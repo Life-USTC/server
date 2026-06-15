@@ -3,7 +3,7 @@ import { getUploadDownloadRoute } from "@/lib/api/routes/uploads";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * Stream one upload from Cloudflare R2 after authorization.
+ * Download upload.
  * @pathParams resourceIdPathParamsSchema
  * @response 200:binary
  * @response 401:openApiErrorSchema

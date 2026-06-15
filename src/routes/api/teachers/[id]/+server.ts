@@ -3,7 +3,7 @@ import { getTeacherDetailRoute } from "@/lib/api/routes/academic";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * Get teacher detail by numeric ID.
+ * Get teacher.
  * @pathParams resourceIdPathParamsSchema
  * @response teacherDetailSchema
  * @response 404:openApiErrorSchema

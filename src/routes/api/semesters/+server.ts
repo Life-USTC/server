@@ -3,7 +3,7 @@ import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * List semesters with pagination.
+ * List semesters.
  * @params semestersQuerySchema
  * @response paginatedSemesterResponseSchema
  * @response 400:openApiErrorSchema
