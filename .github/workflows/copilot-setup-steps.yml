@@ -34,7 +34,6 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -47,10 +46,46 @@ jobs:
             echo "JWT_SECRET=copilot-local-secret"
             echo "WEBHOOK_SECRET=copilot-local-secret"
             echo "AUTH_SECRET=copilot-local-secret"
+            echo "S3_BUCKET=life-ustc-copilot"
+            echo "AWS_REGION=us-east-1"
+            echo "AWS_DEFAULT_REGION=us-east-1"
+            echo "AWS_ENDPOINT_URL_S3=http://127.0.0.1:9000"
+            echo "AWS_ACCESS_KEY_ID=minioadmin"
+            echo "AWS_SECRET_ACCESS_KEY=minioadmin"
           } >> "$GITHUB_ENV"
 
       - name: Setup workspace
         uses: ./.github/actions/setup-bun-env
+
+      - name: Start MinIO service
+        shell: bash
+        run: |
+          docker run -d --name minio \
+            -p 9000:9000 \
+            -e MINIO_ROOT_USER=minioadmin \
+            -e MINIO_ROOT_PASSWORD=minioadmin \
+            -e MINIO_API_CORS_ALLOW_ORIGIN=http://127.0.0.1:3000 \
+            minio/minio:latest \
+            server /data --console-address ":9001"
+
+          for _ in $(seq 1 60); do
+            if curl --noproxy "*" -fsS http://127.0.0.1:9000/minio/health/live >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          if ! curl --noproxy "*" -fsS http://127.0.0.1:9000/minio/health/live >/dev/null; then
+            echo "MinIO failed to become ready" >&2
+            docker logs minio >&2 || true
+            exit 1
+          fi
+
+      - name: Provision MinIO bucket
+        shell: bash
+        run: |
+          docker exec minio mc alias set local http://127.0.0.1:9000 "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY"
+          docker exec minio mc mb --ignore-existing "local/$S3_BUCKET"
 
       - name: Prepare database and generated artifacts
         shell: bash
