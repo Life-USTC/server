@@ -14,6 +14,7 @@ jobs:
     uses: ./.github/workflows/db-backed-bun-job.yml
     with:
       database-name: life_ustc_ci
+      minio-bucket: life-ustc-ci
       jwt-secret: ci-check-secret-0123456789abcdef0123456789abcdef
       auth-secret: ci-check-secret-0123456789abcdef0123456789abcdef
       job-command: bun run verify
@@ -26,6 +27,7 @@ jobs:
     uses: ./.github/workflows/db-backed-bun-job.yml
     with:
       database-name: life_ustc_e2e
+      minio-bucket: life-ustc-e2e
       jwt-secret: e2e-ci-secret
       webhook-secret: e2e-ci-secret
       auth-secret: e2e-ci-secret
@@ -58,6 +60,7 @@ jobs:
     uses: ./.github/workflows/db-backed-bun-job.yml
     with:
       database-name: life_ustc_e2e
+      minio-bucket: life-ustc-e2e
       install-playwright: true
       jwt-secret: e2e-ci-secret
       webhook-secret: e2e-ci-secret
