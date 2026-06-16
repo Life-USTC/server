@@ -60,12 +60,6 @@ jobs:
       WEBHOOK_SECRET: e2e-snapshot-ci-secret
       AUTH_SECRET: e2e-snapshot-ci-secret
       NO_PROXY: 127.0.0.1,localhost,::1
-      S3_BUCKET: life-ustc-e2e-snapshots
-      AWS_REGION: us-east-1
-      AWS_DEFAULT_REGION: us-east-1
-      AWS_ENDPOINT_URL_S3: http://127.0.0.1:9000
-      AWS_ACCESS_KEY_ID: minioadmin
-      AWS_SECRET_ACCESS_KEY: minioadmin
 
     steps:
       - name: Checkout code
@@ -78,36 +72,6 @@ jobs:
         uses: ./.github/actions/setup-bun-env
         with:
           install-playwright: "true"
-
-      - name: Start MinIO service
-        shell: bash
-        run: |
-          docker run -d --name minio \
-            -p 9000:9000 \
-            -e MINIO_ROOT_USER=minioadmin \
-            -e MINIO_ROOT_PASSWORD=minioadmin \
-            -e MINIO_API_CORS_ALLOW_ORIGIN=http://127.0.0.1:3000 \
-            minio/minio:latest \
-            server /data --console-address ":9001"
-
-          for _ in $(seq 1 60); do
-            if curl --noproxy "*" -fsS http://127.0.0.1:9000/minio/health/live >/dev/null; then
-              break
-            fi
-            sleep 1
-          done
-
-          if ! curl --noproxy "*" -fsS http://127.0.0.1:9000/minio/health/live >/dev/null; then
-            echo "MinIO failed to become ready" >&2
-            docker logs minio >&2 || true
-            exit 1
-          fi
-
-      - name: Provision MinIO bucket
-        shell: bash
-        run: |
-          docker exec minio mc alias set local http://127.0.0.1:9000 "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY"
-          docker exec minio mc mb --ignore-existing "local/$S3_BUCKET"
 
       - name: Generate Prisma client
         shell: bash
