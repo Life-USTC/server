@@ -7,34 +7,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  collect-commits:
-    name: Collect commits
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    outputs:
-      shas: ${{ steps.commits.outputs.shas }}
-    steps:
-      - name: Collect commit SHAs
-        id: commits
-        shell: bash
-        run: |
-          # Always snapshot the workflow commit only. Replaying every commit from a
-          # multi-commit push breaks when intermediate commits have stale tooling
-          # paths or transient build failures that the head commit has already fixed.
-          shas="$(jq -c --arg sha "$GITHUB_SHA" '[$sha]' <<< '{}')"
-          echo "shas=$shas" >> "$GITHUB_OUTPUT"
-
   comment-artifacts:
-    name: Comment E2E artifacts (${{ matrix.sha }})
-    needs: collect-commits
+    name: Comment E2E artifacts (${{ github.sha }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        sha: ${{ fromJson(needs.collect-commits.outputs.shas) }}
     concurrency:
       group: e2e-snapshot-artifacts-publisher
       cancel-in-progress: false
@@ -65,7 +41,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
         with:
-          ref: ${{ matrix.sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
 
       - name: Setup workspace
@@ -129,7 +105,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: e2e-snapshot-artifacts-${{ matrix.sha }}
+          name: e2e-snapshot-artifacts-${{ github.sha }}
           path: |
             test-results/snapshots
             test-results/e2e-snapshot-server.log
@@ -153,28 +129,28 @@ jobs:
             git -C "$preview_root" rm -rf . >/dev/null 2>&1 || true
           fi
 
-          rm -rf "$preview_root/${{ matrix.sha }}"
-          mkdir -p "$preview_root/${{ matrix.sha }}"
+          rm -rf "$preview_root/${{ github.sha }}"
+          mkdir -p "$preview_root/${{ github.sha }}"
 
           if [ -d test-results/snapshots/pages ]; then
             find test-results/snapshots/pages -name screenshot.png -print0 |
               while IFS= read -r -d '' screenshot; do
                 relative_path="${screenshot#test-results/snapshots/}"
-                mkdir -p "$preview_root/${{ matrix.sha }}/$(dirname "$relative_path")"
-                cp "$screenshot" "$preview_root/${{ matrix.sha }}/$relative_path"
+                mkdir -p "$preview_root/${{ github.sha }}/$(dirname "$relative_path")"
+                cp "$screenshot" "$preview_root/${{ github.sha }}/$relative_path"
               done
           fi
 
           git -C "$preview_root" config user.name "github-actions[bot]"
           git -C "$preview_root" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git -C "$preview_root" add "${{ matrix.sha }}"
+          git -C "$preview_root" add "${{ github.sha }}"
 
           if ! git -C "$preview_root" diff --cached --quiet; then
-            git -C "$preview_root" commit -m "chore: publish e2e screenshots for ${{ matrix.sha }}"
+            git -C "$preview_root" commit -m "chore: publish e2e screenshots for ${{ github.sha }} [skip ci]"
             git -C "$preview_root" push origin "HEAD:$preview_branch"
           fi
 
-          echo "base-url=https://raw.githubusercontent.com/${{ github.repository }}/$preview_branch/${{ matrix.sha }}" >> "$GITHUB_OUTPUT"
+          echo "base-url=https://raw.githubusercontent.com/${{ github.repository }}/$preview_branch/${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
       - name: Render commit comment
         if: ${{ always() }}
@@ -189,7 +165,7 @@ jobs:
           bun run tools/dev/artifacts/snapshots/snapshot-report.ts render-comment \
             --snapshot-dir test-results/snapshots \
             --artifact-url "$artifact_url" \
-            --commit "${{ matrix.sha }}" \
+            --commit "${{ github.sha }}" \
             --status "${{ steps.snapshots.outcome }}" \
             --screenshot-base-url "${{ steps.previews.outputs.base-url }}" \
             --workflow-url "$workflow_url" \
@@ -210,7 +186,7 @@ jobs:
             '{body: $body}' > test-results/e2e-snapshot-comment.json
           gh api \
             --method POST \
-            "repos/${{ github.repository }}/commits/${{ matrix.sha }}/comments" \
+            "repos/${{ github.repository }}/commits/${{ github.sha }}/comments" \
             --input test-results/e2e-snapshot-comment.json
 
       - name: Fail when snapshot capture failed

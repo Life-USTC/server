@@ -132,17 +132,7 @@ jobs:
         run: ${{ inputs.job-command }}
 
       - name: Upload artifact
-        if: ${{ inputs.upload-artifact-path != '' && !inputs.upload-artifact-always }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ inputs.upload-artifact-name }}
-          path: ${{ inputs.upload-artifact-path }}
-          if-no-files-found: ${{ inputs.upload-artifact-no-files-found }}
-          retention-days: ${{ inputs.upload-artifact-retention-days }}
-          include-hidden-files: ${{ inputs.upload-artifact-include-hidden-files }}
-
-      - name: Upload artifact (always)
-        if: ${{ inputs.upload-artifact-path != '' && inputs.upload-artifact-always && always() }}
+        if: ${{ always() && inputs.upload-artifact-path != '' && (inputs.upload-artifact-always || success()) }}
         uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.upload-artifact-name }}
