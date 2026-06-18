@@ -73,32 +73,7 @@ jobs:
         id: snapshots
         continue-on-error: true
         shell: bash
-        run: |
-          mkdir -p test-results/snapshots
-          bun run tools/dev/e2e.ts start > test-results/e2e-snapshot-server.log 2>&1 &
-          server_pid=$!
-          trap 'kill "$server_pid" 2>/dev/null || true; wait "$server_pid" 2>/dev/null || true' EXIT
-
-          for _ in $(seq 1 90); do
-            if bun run health; then
-              break
-            fi
-            if ! kill -0 "$server_pid" 2>/dev/null; then
-              cat test-results/e2e-snapshot-server.log
-              exit 1
-            fi
-            sleep 2
-          done
-
-          if ! bun run health; then
-            cat test-results/e2e-snapshot-server.log
-            exit 1
-          fi
-
-          bun run tools/dev/artifacts/snapshots/snapshot-capture.ts pages
-          bun run tools/dev/artifacts/snapshots/snapshot-capture.ts api
-          bun run tools/dev/artifacts/snapshots/snapshot-capture.ts mcp
-          bun run tools/dev/artifacts/snapshots/snapshot-capture.ts manifest
+        run: bun run tools/dev/artifacts/snapshots/snapshot-ci.ts capture
 
       - name: Upload E2E snapshot artifact
         id: upload
@@ -116,41 +91,10 @@ jobs:
         id: previews
         if: ${{ always() }}
         shell: bash
-        run: |
-          preview_branch="e2e-snapshot-artifacts"
-          preview_root="$(mktemp -d)"
-          git fetch origin "$preview_branch" || true
-
-          if git rev-parse --verify "origin/$preview_branch" >/dev/null 2>&1; then
-            git worktree add "$preview_root" "origin/$preview_branch"
-          else
-            git worktree add --detach "$preview_root"
-            git -C "$preview_root" switch --orphan "$preview_branch"
-            git -C "$preview_root" rm -rf . >/dev/null 2>&1 || true
-          fi
-
-          rm -rf "$preview_root/${{ github.sha }}"
-          mkdir -p "$preview_root/${{ github.sha }}"
-
-          if [ -d test-results/snapshots/pages ]; then
-            find test-results/snapshots/pages -name screenshot.png -print0 |
-              while IFS= read -r -d '' screenshot; do
-                relative_path="${screenshot#test-results/snapshots/}"
-                mkdir -p "$preview_root/${{ github.sha }}/$(dirname "$relative_path")"
-                cp "$screenshot" "$preview_root/${{ github.sha }}/$relative_path"
-              done
-          fi
-
-          git -C "$preview_root" config user.name "github-actions[bot]"
-          git -C "$preview_root" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git -C "$preview_root" add "${{ github.sha }}"
-
-          if ! git -C "$preview_root" diff --cached --quiet; then
-            git -C "$preview_root" commit -m "chore: publish e2e screenshots for ${{ github.sha }} [skip ci]"
-            git -C "$preview_root" push origin "HEAD:$preview_branch"
-          fi
-
-          echo "base-url=https://raw.githubusercontent.com/${{ github.repository }}/$preview_branch/${{ github.sha }}" >> "$GITHUB_OUTPUT"
+        run: >
+          bun run tools/dev/artifacts/snapshots/snapshot-ci.ts publish-previews
+          --commit "${{ github.sha }}"
+          --repository "${{ github.repository }}"
 
       - name: Render commit comment
         if: ${{ always() }}

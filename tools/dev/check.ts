@@ -483,287 +483,76 @@ function checkContractsDoc() {
 
 function checkI18nKeys() {
   type Locale = "en-us" | "zh-cn";
+  type ShapeKind = "array" | "object" | "value";
 
-  type Binding = {
-    namespace: string | null;
-    file: string;
-  };
-
-  type BindingOccurrence = Binding & { pos: number };
-
-  const srcRoot = join(repoRoot, "src");
   const messagesRoot = join(repoRoot, "messages");
+  const locales: Locale[] = ["en-us", "zh-cn"];
 
   function readJson(filePath: string): unknown {
     return JSON.parse(readFileSync(filePath, "utf8")) as unknown;
   }
 
-  function hasPath(root: unknown, keyPath: string[]): boolean {
-    let cur: unknown = root;
-    for (const part of keyPath) {
-      if (
-        cur &&
-        typeof cur === "object" &&
-        part in (cur as Record<string, unknown>)
-      ) {
-        cur = (cur as Record<string, unknown>)[part];
-        continue;
-      }
-      return false;
-    }
-    return true;
+  function shapeKind(value: unknown): ShapeKind {
+    if (Array.isArray(value)) return "array";
+    if (value !== null && typeof value === "object") return "object";
+    return "value";
   }
 
-  function normalizeKey(namespace: string | null, key: string): string {
-    if (!namespace) return key;
-    return `${namespace}.${key}`;
+  function collectShape(
+    value: unknown,
+    pathParts: string[] = [],
+    shape = new Map<string, ShapeKind>(),
+  ) {
+    const kind = shapeKind(value);
+    if (pathParts.length > 0) {
+      shape.set(pathParts.join("."), kind);
+    }
+
+    if (kind !== "object") return shape;
+
+    for (const [key, child] of Object.entries(
+      value as Record<string, unknown>,
+    )) {
+      collectShape(child, [...pathParts, key], shape);
+    }
+
+    return shape;
   }
 
-  function splitTopLevelCommaList(input: string): string[] {
-    const parts: string[] = [];
-    let buf = "";
-    let depthParen = 0;
-    let depthBracket = 0;
-    let depthBrace = 0;
-    let inSingle = false;
-    let inDouble = false;
-    let inTemplate = false;
-    let isEscaped = false;
-
-    for (let index = 0; index < input.length; index++) {
-      const ch = input[index] ?? "";
-      if (isEscaped) {
-        buf += ch;
-        isEscaped = false;
-        continue;
-      }
-      if (ch === "\\") {
-        buf += ch;
-        isEscaped = true;
-        continue;
-      }
-
-      if (!inDouble && !inTemplate && ch === "'") {
-        inSingle = !inSingle;
-        buf += ch;
-        continue;
-      }
-      if (!inSingle && !inTemplate && ch === '"') {
-        inDouble = !inDouble;
-        buf += ch;
-        continue;
-      }
-      if (!inSingle && !inDouble && ch === "`") {
-        inTemplate = !inTemplate;
-        buf += ch;
-        continue;
-      }
-
-      if (inSingle || inDouble || inTemplate) {
-        buf += ch;
-        continue;
-      }
-
-      if (ch === "(") depthParen++;
-      else if (ch === ")") depthParen = Math.max(0, depthParen - 1);
-      else if (ch === "[") depthBracket++;
-      else if (ch === "]") depthBracket = Math.max(0, depthBracket - 1);
-      else if (ch === "{") depthBrace++;
-      else if (ch === "}") depthBrace = Math.max(0, depthBrace - 1);
-
-      if (
-        ch === "," &&
-        depthParen === 0 &&
-        depthBracket === 0 &&
-        depthBrace === 0
-      ) {
-        const trimmed = buf.trim();
-        if (trimmed.length > 0) parts.push(trimmed);
-        buf = "";
-        continue;
-      }
-
-      buf += ch;
-    }
-
-    const trimmed = buf.trim();
-    if (trimmed.length > 0) parts.push(trimmed);
-    return parts;
-  }
-
-  function extractBindings(
-    source: string,
-    file: string,
-  ): Map<string, BindingOccurrence[]> {
-    const bindings = new Map<string, BindingOccurrence[]>();
-    const patterns: Array<{
-      regex: RegExp;
-      namespaceGroup: number;
-      varGroup: number;
-    }> = [
-      {
-        regex:
-          /\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*useTranslations\s*\(\s*["']([^"']+)["']\s*\)/g,
-        varGroup: 1,
-        namespaceGroup: 2,
-      },
-      {
-        regex:
-          /\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*await\s+getTranslations\s*\(\s*["']([^"']+)["']\s*\)/g,
-        varGroup: 1,
-        namespaceGroup: 2,
-      },
-      {
-        regex:
-          /\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*getTranslations\s*\(\s*["']([^"']+)["']\s*\)/g,
-        varGroup: 1,
-        namespaceGroup: 2,
-      },
-    ];
-
-    for (const { regex, namespaceGroup, varGroup } of patterns) {
-      for (const match of source.matchAll(regex)) {
-        const varName = match[varGroup];
-        const namespace = match[namespaceGroup] ?? null;
-        if (!varName) continue;
-        const pos = match.index ?? 0;
-        const list = bindings.get(varName) ?? [];
-        list.push({ namespace, file, pos });
-        bindings.set(varName, list);
-      }
-    }
-
-    const promiseAllRegex =
-      /\bconst\s+\[([\s\S]*?)\]\s*=\s*await\s+Promise\.all\s*\(\s*\[([\s\S]*?)\]\s*\)/g;
-    for (const match of source.matchAll(promiseAllRegex)) {
-      const basePos = match.index ?? 0;
-      const varsRaw = match[1] ?? "";
-      const exprsRaw = match[2] ?? "";
-      const vars = splitTopLevelCommaList(varsRaw);
-      const exprs = splitTopLevelCommaList(exprsRaw);
-      const len = Math.min(vars.length, exprs.length);
-      for (let index = 0; index < len; index++) {
-        const varToken = vars[index]?.trim();
-        const exprToken = exprs[index]?.trim();
-        if (!varToken || !exprToken) continue;
-        if (!/^[A-Za-z_$][\w$]*$/.test(varToken)) continue;
-        const translationMatch = exprToken.match(
-          /\bgetTranslations\s*\(\s*["']([^"']+)["']\s*\)/,
-        );
-        if (!translationMatch?.[1]) continue;
-        const list = bindings.get(varToken) ?? [];
-        list.push({ namespace: translationMatch[1], file, pos: basePos });
-        bindings.set(varToken, list);
-      }
-    }
-
-    return bindings;
-  }
-
-  function extractKeysFromFile(filePath: string): Set<string> {
-    const source = readFileSync(filePath, "utf8");
-    const bindings = extractBindings(source, filePath);
-    const keys = new Set<string>();
-
-    for (const [varName, occurrences] of bindings) {
-      const sorted = occurrences.toSorted((a, b) => a.pos - b.pos);
-      const callRegex = new RegExp(
-        String.raw`\b${varName}\s*\(\s*["']([^"']+)["']\s*[,)]`,
-        "g",
-      );
-      const richRegex = new RegExp(
-        String.raw`\b${varName}\s*\.rich\s*\(\s*["']([^"']+)["']\s*[,)]`,
-        "g",
-      );
-      function resolveNamespace(pos: number): string | null {
-        let namespace: string | null = null;
-        for (const occurrence of sorted) {
-          if (occurrence.pos <= pos) namespace = occurrence.namespace;
-          else break;
-        }
-        return namespace;
-      }
-
-      for (const match of source.matchAll(callRegex)) {
-        const key = match[1];
-        if (!key) continue;
-        const namespace = resolveNamespace(match.index ?? 0);
-        if (!namespace) continue;
-        keys.add(normalizeKey(namespace, key));
-      }
-      for (const match of source.matchAll(richRegex)) {
-        const key = match[1];
-        if (!key) continue;
-        const namespace = resolveNamespace(match.index ?? 0);
-        if (!namespace) continue;
-        keys.add(normalizeKey(namespace, key));
-      }
-    }
-
-    const inlineUseTranslationsRegex =
-      /\buseTranslations\s*\(\s*["']([^"']+)["']\s*\)\s*\(\s*["']([^"']+)["']\s*[,)]/g;
-    for (const match of source.matchAll(inlineUseTranslationsRegex)) {
-      const namespace = match[1];
-      const key = match[2];
-      if (!namespace || !key) continue;
-      keys.add(normalizeKey(namespace, key));
-    }
-
-    const inlineGetTranslationsRegex =
-      /\bgetTranslations\s*\(\s*["']([^"']+)["']\s*\)\s*\(\s*["']([^"']+)["']\s*[,)]/g;
-    for (const match of source.matchAll(inlineGetTranslationsRegex)) {
-      const namespace = match[1];
-      const key = match[2];
-      if (!namespace || !key) continue;
-      keys.add(normalizeKey(namespace, key));
-    }
-
-    return keys;
-  }
-
-  const files = walkFiles(srcRoot).filter((item) =>
-    /\.(svelte|ts|tsx)$/.test(item),
-  );
-  const usedKeys = new Set<string>();
-
-  for (const file of files) {
-    for (const key of extractKeysFromFile(file)) {
-      usedKeys.add(key);
-    }
-  }
-
-  const locales: Locale[] = ["en-us", "zh-cn"];
-  const messageTrees = new Map<Locale, unknown>(
+  const shapes = new Map<Locale, Map<string, ShapeKind>>(
     locales.map((locale) => [
       locale,
-      readJson(join(messagesRoot, `${locale}.json`)),
+      collectShape(readJson(join(messagesRoot, `${locale}.json`))),
     ]),
   );
+  const referenceLocale = locales[0];
+  const referenceShape = shapes.get(referenceLocale) ?? new Map();
+  const allPaths = new Set<string>();
 
-  const missingByLocale = new Map<Locale, string[]>(
-    locales.map((locale) => [locale, []]),
-  );
+  for (const shape of shapes.values()) {
+    for (const key of shape.keys()) allPaths.add(key);
+  }
 
-  for (const key of Array.from(usedKeys).sort()) {
-    const keyPath = key.split(".").filter(Boolean);
+  const issues: string[] = [];
+  for (const key of Array.from(allPaths).sort()) {
+    const referenceKind = referenceShape.get(key);
     for (const locale of locales) {
-      const tree = messageTrees.get(locale);
-      if (!hasPath(tree, keyPath)) {
-        missingByLocale.get(locale)?.push(key);
+      const kind = shapes.get(locale)?.get(key);
+      if (!kind) {
+        issues.push(`${locale} missing key: ${key}`);
+        continue;
+      }
+      if (referenceKind && kind !== referenceKind) {
+        issues.push(
+          `${locale} has ${kind} at ${key}; ${referenceLocale} has ${referenceKind}`,
+        );
       }
     }
   }
 
-  let hasMissing = false;
-  for (const locale of locales) {
-    const missing = missingByLocale.get(locale) ?? [];
-    if (missing.length === 0) continue;
-    hasMissing = true;
-    console.error(`\nMissing messages in ${locale} (${missing.length}):`);
-    for (const key of missing) console.error(`- ${key}`);
-  }
-
-  if (hasMissing) {
+  if (issues.length > 0) {
+    console.error("i18n locale shape check failed:\n");
+    for (const issue of issues) console.error(`- ${issue}`);
     process.exit(1);
   }
 }

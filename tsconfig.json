@@ -15,7 +15,7 @@
     "incremental": true,
     "types": ["node"]
   },
-  "include": ["**/*.ts", "**/*.svelte", "**/*.mts", "postcss.config.mjs"],
+  "include": ["**/*.ts", "**/*.svelte", "**/*.mts"],
   "exclude": [
     "node_modules",
     "scripts",
