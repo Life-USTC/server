@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { logPrismaQuery } from "@/lib/db/prisma-query-events";
 import {
   getPrismaQueryDebugMode,
   getPrismaSlowQueryThresholdMs,
@@ -6,6 +7,11 @@ import {
 } from "@/lib/db/prisma-query-logging";
 
 describe("prisma query logging env", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
   it.each([
     [{}, "off"],
     [{ PRISMA_QUERY_DEBUG: "0" }, "off"],
@@ -43,5 +49,28 @@ describe("prisma query logging env", () => {
     expect(shouldEnablePrismaQueryLogging({ PRISMA_SLOW_QUERY_MS: "0" })).toBe(
       true,
     );
+  });
+
+  it("omits verbose query params from production logs", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("PRISMA_QUERY_DEBUG", "verbose");
+    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
+
+    logPrismaQuery({
+      duration: 1,
+      params: '["secret-user-id"]',
+      query: "SELECT $1",
+      target: "quaint::connector::metrics",
+    } as Parameters<typeof logPrismaQuery>[0]);
+
+    expect(infoSpy).toHaveBeenCalledOnce();
+    const [payload] = infoSpy.mock.calls[0] ?? [];
+    expect(JSON.parse(String(payload))).toMatchObject({
+      event: "prisma.query",
+      environment: "production",
+      query: "SELECT $1",
+    });
+    expect(String(payload)).not.toContain("secret-user-id");
+    expect(JSON.parse(String(payload))).not.toHaveProperty("params");
   });
 });

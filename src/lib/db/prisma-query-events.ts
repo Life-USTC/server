@@ -46,6 +46,9 @@ export function logPrismaQuery(event: Prisma.QueryEvent) {
   const slowThresholdMs = getPrismaSlowQueryThresholdMs();
   const debugMode = getPrismaQueryDebugMode();
   const isSlow = slowThresholdMs != null && event.duration >= slowThresholdMs;
+  const shouldLogParams =
+    debugMode === "verbose" &&
+    getOptionalTrimmedEnv("NODE_ENV") !== "production";
 
   if (!isSlow && debugMode === "off") {
     return;
@@ -57,14 +60,12 @@ export function logPrismaQuery(event: Prisma.QueryEvent) {
     durationMs: event.duration,
     target: event.target,
     query: compactQueryText(event.query),
-    ...(debugMode === "verbose"
-      ? { params: compactQueryText(event.params) }
-      : {}),
+    ...(shouldLogParams ? { params: compactQueryText(event.params) } : {}),
   });
 }
 
-export function createBasePrisma() {
-  const adapter = createPrismaAdapter();
+export function createBasePrisma(connectionString?: string) {
+  const adapter = createPrismaAdapter(connectionString);
   if (!shouldEnablePrismaQueryLogging()) {
     return new PrismaClient({ adapter });
   }
