@@ -1,8 +1,8 @@
-import { badRequest, parseInteger } from "@/lib/api/helpers";
 import {
   homeworkDateError,
   parseHomeworkDateInput,
-} from "./homework-mutation-dates";
+} from "@/features/homeworks/server/homework-dates";
+import { badRequest, parseInteger } from "@/lib/api/helpers";
 
 export function parseCreateHomeworkInput(parsedBody: {
   description?: string | null;

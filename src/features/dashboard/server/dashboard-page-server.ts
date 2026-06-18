@@ -2,7 +2,6 @@ import { parseInteger } from "@/lib/api/request-integers";
 import { allowE2EDebugAuth } from "@/lib/auth/auth-config";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
 import { parseDateInput } from "@/lib/time/parse-date-input";
-import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { parseShanghaiDateTimeLocalInput } from "@/lib/time/shanghai-format";
 
@@ -87,15 +86,4 @@ export function parseOptionalLocalDateTime(value: FormDataEntryValue | null) {
   if (!raw) return { ok: true as const, value: null };
   const parsed = parseShanghaiDateTimeLocalInput(raw);
   return parsed ? { ok: true as const, value: parsed } : { ok: false as const };
-}
-
-export function serializeOptionalLocalDateTime(
-  value: FormDataEntryValue | null,
-) {
-  const parsed = parseOptionalLocalDateTime(value);
-  if (!parsed.ok) return parsed;
-  return {
-    ok: true as const,
-    value: parsed.value ? toShanghaiIsoString(parsed.value) : "",
-  };
 }

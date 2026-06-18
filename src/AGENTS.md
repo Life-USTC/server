@@ -8,6 +8,7 @@ Source code organization.
 routes/       SvelteKit pages and endpoint handlers
 features/     Business domain logic
 lib/          Infrastructure
+  components/ Shared UI primitives
   mcp/        MCP server
 i18n/         Locale config
 shared/       Pure utilities

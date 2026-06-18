@@ -7,8 +7,7 @@ SvelteKit campus workspace with REST + MCP APIs. This is the canonical coding-ag
 ```text
 src/routes/           SvelteKit pages, layouts, REST handlers, OAuth/MCP routes
 src/features/         Domain logic and feature-owned components
-src/lib/              Infrastructure helpers: auth, API, DB, MCP, OAuth, storage, time
-src/components/       Shared UI components and layout primitives
+src/lib/              Infrastructure helpers plus shared UI in `src/lib/components`
 messages/             i18n strings (`zh-cn`, `en-us`)
 prisma/               Prisma schema and migrations
 docs/contracts/        Product/API/MCP contracts checked against schema/API/MCP parity
@@ -53,7 +52,8 @@ static loader.
 
 - Keep `src/routes` thin: routing, pages, handlers, metadata. Put domain logic in `src/features`.
 - Keep `src/lib` for infrastructure helpers and cross-cutting utilities, not feature rules.
-- Keep shared `src/components` free of feature-specific data fetching and mutations.
+- Keep shared `src/lib/components` free of feature-specific data fetching and mutations.
+- Do not call SvelteKit page handlers or REST route handlers from features or page actions. Extract shared work into `src/features/*/server` and let routes adapt it to HTTP.
 - REST, MCP, contract JSON, OpenAPI annotations, and tests are coupled surfaces; check all matching surfaces when one changes.
 - Treat `prisma/schema.prisma`, migrations, route handlers, contract JSON, and tests as source of truth over stale docs or generated output.
 
@@ -144,10 +144,10 @@ buildPaginatedResponse(items, page, pageSize, total)
 - `public/openapi.generated.json`
 
 **Feature Changes**:
-1. Update `docs/contracts/<module>.json` first
-2. Implement code
-3. Update tests where behavior is observed
-4. Run `bun run verify`, then escalate to `bun run verify:full` for integration or browser flows
+1. Check the affected contract module before implementation.
+2. Update `docs/contracts/<module>.json` only when behavior, API/MCP shape, permissions, or user-visible workflow changes.
+3. Implement code and update tests where behavior is observed.
+4. Run `bun run verify`, then escalate to `bun run verify:full` for integration or browser flows.
 
 **Documentation Alignment**:
 - Public REST API change → update route OpenAPI annotations, `docs/contracts/openapi.json` when relevant, then run `bun run build`.
@@ -189,7 +189,7 @@ buildPaginatedResponse(items, page, pageSize, total)
 - **Routes**: `src/routes/` - SvelteKit pages and REST handlers
 - **MCP**: `src/lib/mcp/AGENTS.md` - MCP tools
 - **Features**: `src/features/AGENTS.md` - Business logic
-- **Components**: `src/components/AGENTS.md` - UI
+- **Components**: `src/lib/components/AGENTS.md` - UI
 - **Prisma**: `prisma/AGENTS.md` - Schema
 - **Tests**: `tests/{e2e,integration,unit}/AGENTS.md` (layer-specific notes only)
 - **Tools**: `tools/AGENTS.md` - Scripts

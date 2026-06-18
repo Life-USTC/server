@@ -1,6 +1,11 @@
-import { handleRouteError, parseRouteJsonBody } from "@/lib/api/helpers";
+import { createHomeworkForSection } from "@/features/homeworks/server/homework-create";
 import {
-  createHomeworkAction,
+  handleRouteError,
+  jsonResponse,
+  notFound,
+  parseRouteJsonBody,
+} from "@/lib/api/helpers";
+import {
   deleteHomeworkAction,
   updateHomeworkAction,
 } from "@/lib/api/routes/homework-mutation-actions";
@@ -34,7 +39,9 @@ export async function postHomeworkRoute(request: Request) {
   const { userId } = auth;
 
   try {
-    return await createHomeworkAction(userId, homeworkInput);
+    const homework = await createHomeworkForSection(userId, homeworkInput);
+    if (!homework) return notFound("Section not found");
+    return jsonResponse({ id: homework.id });
   } catch (error) {
     return handleRouteError("Failed to create homework", error);
   }

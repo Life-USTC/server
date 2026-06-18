@@ -7,6 +7,7 @@ Infrastructure and shared helpers.
 ```
 api/       Request/response, schemas, status
 auth/      Session resolution, permissions
+components/ Shared UI primitives and layout components
 db/        Prisma instances
 mcp/       MCP server (see mcp/AGENTS.md)
 oauth/     OAuth provider, tokens
@@ -40,6 +41,7 @@ import { formatShanghaiDate } from "@/lib/time/shanghai-format";
 ## Rules
 
 - No business logic (use `src/features/`)
+- `src/lib/api/routes` adapts HTTP to feature/server functions; do not call route handlers from features or page actions
 - No raw `@prisma/client` imports outside approved adapters/scripts
 - Use shared helpers
 - OAuth: never log tokens/secrets

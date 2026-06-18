@@ -3,8 +3,13 @@ import {
   getDashboardUserId,
   HOMEWORK_DESCRIPTION_MAX_LENGTH,
   HOMEWORK_TITLE_MAX_LENGTH,
-  serializeOptionalLocalDateTime,
+  parseOptionalLocalDateTime,
 } from "@/features/dashboard/server/dashboard-page-server";
+import {
+  type CreateHomeworkInput,
+  createHomeworkForSection,
+} from "@/features/homeworks/server/homework-create";
+import { homeworkDateError } from "@/features/homeworks/server/homework-dates";
 import type { AppLocale } from "@/i18n/config";
 import { getDashboardActionCopy } from "./dashboard-action-copy";
 import type { DashboardPageLoadEvent } from "./dashboard-page-load-types";
@@ -32,37 +37,39 @@ export async function createHomeworkDashboardAction({
   if (!Number.isInteger(sectionId)) {
     return fail(400, { error: copy.errorSectionNotFound });
   }
-  const publishedAt = serializeOptionalLocalDateTime(form.get("publishedAt"));
-  const submissionStartAt = serializeOptionalLocalDateTime(
+  const publishedAt = parseOptionalLocalDateTime(form.get("publishedAt"));
+  const submissionStartAt = parseOptionalLocalDateTime(
     form.get("submissionStartAt"),
   );
-  const submissionDueAt = serializeOptionalLocalDateTime(
+  const submissionDueAt = parseOptionalLocalDateTime(
     form.get("submissionDueAt"),
   );
   if (!publishedAt.ok || !submissionStartAt.ok || !submissionDueAt.ok) {
     return fail(400, { error: copy.errorInvalidSubmissionDue });
   }
-  const headers = new Headers(request.headers);
-  headers.set("content-type", "application/json");
-  const { postHomeworkRoute } = await import("@/lib/api/routes/homeworks");
-  const response = await postHomeworkRoute(
-    new Request(request.url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        sectionId,
-        title,
-        description,
-        publishedAt: publishedAt.value,
-        submissionStartAt: submissionStartAt.value,
-        submissionDueAt: submissionDueAt.value,
-        isMajor: form.has("isMajor"),
-        requiresTeam: form.has("requiresTeam"),
-      }),
-    }),
-  );
-  if (!response.ok) {
-    return fail(response.status, { error: copy.createFailed });
+  const dateError = homeworkDateError({
+    publishedAt: publishedAt.value,
+    submissionDueAt: submissionDueAt.value,
+    submissionStartAt: submissionStartAt.value,
+  });
+  if (dateError) {
+    return fail(400, { error: copy.errorInvalidSubmissionDue });
   }
+
+  const homeworkInput: CreateHomeworkInput = {
+    sectionId,
+    title,
+    description,
+    publishedAt: publishedAt.value,
+    submissionStartAt: submissionStartAt.value,
+    submissionDueAt: submissionDueAt.value,
+    isMajor: form.has("isMajor"),
+    requiresTeam: form.has("requiresTeam"),
+  };
+  const homework = await createHomeworkForSection(userId, homeworkInput);
+  if (!homework) {
+    return fail(404, { error: copy.errorSectionNotFound });
+  }
+
   throw redirect(303, "/dashboard/homeworks");
 }
