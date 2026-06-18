@@ -1,30 +1,19 @@
 import { getOptionalTrimmedEnv } from "@/app-env";
 import type { PrismaClient } from "@/generated/prisma/client";
-import {
-  getCloudflareHyperdriveConnectionString,
-  hasCloudflareRuntimeEnv,
-} from "@/lib/cloudflare/runtime-env";
+import { hasCloudflareRuntimeEnv } from "@/lib/cloudflare/runtime-env";
 import { localizedNamesExtension } from "@/lib/db/prisma-localized-names";
 import { createBasePrisma, logPrismaQuery } from "@/lib/db/prisma-query-events";
 import { shouldEnablePrismaQueryLogging } from "@/lib/db/prisma-query-logging";
 
 const globalForPrisma = globalThis as unknown as {
-  cloudflarePrismaByConnectionString: Map<string, PrismaClient> | undefined;
   prisma: PrismaClient | undefined;
   prismaQueryLoggerAttached: boolean | undefined;
 };
 
 let basePrisma: PrismaClient | undefined;
 
-function getRuntimeConnectionString() {
-  return (
-    getCloudflareHyperdriveConnectionString() ??
-    getOptionalTrimmedEnv("DATABASE_URL")
-  );
-}
-
-function createPrismaClient(connectionString?: string) {
-  const client = createBasePrisma(connectionString);
+function createPrismaClient() {
+  const client = createBasePrisma();
   if (
     shouldEnablePrismaQueryLogging() &&
     (hasCloudflareRuntimeEnv() || !globalForPrisma.prismaQueryLoggerAttached)
@@ -35,23 +24,9 @@ function createPrismaClient(connectionString?: string) {
   return client;
 }
 
-function getCloudflarePrisma() {
-  const connectionString = getRuntimeConnectionString();
-  const cacheKey = connectionString ?? "__missing_database_url__";
-  const cache = globalForPrisma.cloudflarePrismaByConnectionString ?? new Map();
-  globalForPrisma.cloudflarePrismaByConnectionString = cache;
-
-  const cached = cache.get(cacheKey);
-  if (cached) return cached;
-
-  const client = createPrismaClient(connectionString);
-  cache.set(cacheKey, client);
-  return client;
-}
-
 function getBasePrisma() {
   if (hasCloudflareRuntimeEnv()) {
-    return getCloudflarePrisma();
+    return createPrismaClient();
   }
 
   const cached = globalForPrisma.prisma ?? basePrisma;
@@ -84,16 +59,14 @@ type ExtendedPrismaClient = ReturnType<typeof _makeExtendedClient>;
 
 const extendedClientCache = new Map<string, ExtendedPrismaClient>();
 
-function extendedClientCacheKey(locale: string) {
-  if (!hasCloudflareRuntimeEnv()) return locale;
-  return `cloudflare:${getRuntimeConnectionString() ?? "__missing_database_url__"}:${locale}`;
-}
-
 export const getPrisma = (locale: string): ExtendedPrismaClient => {
-  const cacheKey = extendedClientCacheKey(locale);
-  const cached = extendedClientCache.get(cacheKey);
+  if (hasCloudflareRuntimeEnv()) {
+    return _makeExtendedClient(locale);
+  }
+
+  const cached = extendedClientCache.get(locale);
   if (cached) return cached;
   const extended = _makeExtendedClient(locale);
-  extendedClientCache.set(cacheKey, extended);
+  extendedClientCache.set(locale, extended);
   return extended;
 };
