@@ -1,11 +1,6 @@
 {
   "extends": "./tsconfig.json",
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.svelte",
-    "tailwind.config.ts",
-    "postcss.config.mjs"
-  ],
+  "include": ["src/**/*.ts", "src/**/*.svelte"],
   "exclude": [
     "node_modules",
     "scripts",
