@@ -1,9 +1,9 @@
-import type { Prisma } from "@/generated/prisma/client";
-import { badRequest } from "@/lib/api/helpers";
 import {
   homeworkDateError,
   parseHomeworkDateInput,
-} from "./homework-mutation-dates";
+} from "@/features/homeworks/server/homework-dates";
+import type { Prisma } from "@/generated/prisma/client";
+import { badRequest } from "@/lib/api/helpers";
 
 export function parseUpdateHomeworkInput(
   parsedBody: {

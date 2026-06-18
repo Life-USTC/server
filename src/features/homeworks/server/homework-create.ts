@@ -1,29 +1,28 @@
-import { jsonResponse, notFound } from "@/lib/api/helpers";
+import { prisma } from "@/lib/db/prisma";
 
-export async function createHomeworkAction(
+export type CreateHomeworkInput = {
+  description?: string | null;
+  isMajor: boolean;
+  publishedAt?: Date | null;
+  requiresTeam: boolean;
+  sectionId: number;
+  submissionDueAt?: Date | null;
+  submissionStartAt?: Date | null;
+  title: string;
+};
+
+export async function createHomeworkForSection(
   userId: string,
-  homeworkInput: {
-    description?: string | null;
-    isMajor: boolean;
-    publishedAt?: Date | null;
-    requiresTeam: boolean;
-    sectionId: number;
-    submissionDueAt?: Date | null;
-    submissionStartAt?: Date | null;
-    title: string;
-  },
+  homeworkInput: CreateHomeworkInput,
 ) {
-  const { prisma } = await import("@/lib/db/prisma");
   const section = await prisma.section.findUnique({
     where: { id: homeworkInput.sectionId },
     select: { id: true },
   });
 
-  if (!section) {
-    return notFound("Section not found");
-  }
+  if (!section) return null;
 
-  const result = await prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx) => {
     const homework = await tx.homework.create({
       data: {
         sectionId: homeworkInput.sectionId,
@@ -70,6 +69,4 @@ export async function createHomeworkAction(
 
     return homework;
   });
-
-  return jsonResponse({ id: result.id });
 }
