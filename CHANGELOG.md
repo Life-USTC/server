@@ -1,3 +1,10 @@
+## [1.33.5](https://github.com/Life-USTC/server/compare/v1.33.4...v1.33.5) (2026-06-19)
+
+
+### Bug Fixes
+
+* **ci:** stabilize snapshot artifact publishing ([3f6620e](https://github.com/Life-USTC/server/commit/3f6620e887998d3669c12f95a375b7a79dabad77))
+
 ## [1.33.4](https://github.com/Life-USTC/server/compare/v1.33.3...v1.33.4) (2026-06-14)
 
 
