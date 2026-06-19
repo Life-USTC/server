@@ -184,6 +184,15 @@
             "path": "/api/homeworks/[id]/completion",
             "method": "PUT",
             "returns": "{ completed: Boolean, completedAt: DateTime? }"
+          },
+          {
+            "path": "/api/homeworks/completions",
+            "method": "PUT",
+            "returns": "{ results: Array<{ success: Boolean, homeworkId: String, completed: Boolean, completedAt?: DateTime?, error?: { code: String, message: String } }> }",
+            "notes": [
+              "Batch completion updates are partial by item: missing or deleted homework IDs return per-item errors while valid items still update.",
+              "MCP remains single-item through set_my_homework_completion; this REST batch route exists for HTTP clients that otherwise fan out single-item requests."
+            ]
           }
         ]
       },

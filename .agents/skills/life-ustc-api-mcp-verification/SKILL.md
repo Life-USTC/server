@@ -13,11 +13,12 @@ Use this skill to verify public API and MCP behavior by inspecting representativ
 
 1. Read root `AGENTS.md`, `docs/contracts/AGENTS.md`, and `src/lib/mcp/AGENTS.md` when MCP is involved.
 2. Identify the coupled surfaces: route handler, MCP tool, feature/server function, contract JSON, OpenAPI annotation, seed data, and tests.
-3. Pick representative public calls. Cover at least one success shape and one relevant validation, auth, permission, or not-found path when those behaviors changed.
-4. Exercise the route or MCP tool through the narrowest realistic public surface.
-5. Inspect the serialized status/body or `jsonToolResult` output and compare it with contracts, OpenAPI, and tests.
-6. Add or update tests where behavior is observed.
-7. Remove temporary probes, logs, scripts, and copied payloads before committing.
+3. Decide REST/MCP parity explicitly. If only one surface changes, record why the other stays unchanged in the PR body or final handoff.
+4. Pick representative public calls. Cover at least one success shape and one relevant validation, auth, permission, or not-found path when those behaviors changed.
+5. Exercise the route or MCP tool through the narrowest realistic public surface.
+6. Inspect the serialized status/body or `jsonToolResult` output and compare it with contracts, OpenAPI, and tests.
+7. Add or update tests where behavior is observed.
+8. Remove temporary probes, logs, scripts, and copied payloads before committing.
 
 ## REST Checks
 
@@ -47,3 +48,4 @@ Use the highest relevant gate:
 ## Handoff Evidence
 
 Summarize the representative call or tool exercised, the status/result shape inspected, contracts/tests updated, commands run, and any skipped output checks with the reason.
+Include the REST/MCP parity decision when only one public surface changed.

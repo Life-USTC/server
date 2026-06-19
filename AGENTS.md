@@ -63,7 +63,7 @@ static loader.
 ## Complete-Loop Checks
 
 - UI/layout changes: run the narrowest browser check that exercises the changed screen, inspect a screenshot/headed run/trace for the affected area, and iterate on visible regressions before handoff.
-- REST/MCP behavior changes: exercise at least one representative public request or MCP tool call when feasible, inspect the serialized success/error output, and compare it with contracts/tests.
+- REST/MCP behavior changes: decide whether both surfaces should change. If only one changes, document why; then exercise at least one representative public request or MCP tool call when feasible, inspect the serialized success/error output, and compare it with contracts/tests.
 - Keep screenshots, traces, temporary payloads, and ad hoc probes out of the repo unless they are intentional fixtures.
 
 ## Shared Test Seed

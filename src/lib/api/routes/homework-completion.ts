@@ -1,10 +1,13 @@
+import { setHomeworkCompletions } from "@/features/homeworks/server/homework-completion";
 import {
   handleRouteError,
+  jsonResponse,
   parseRouteInput,
   parseRouteJsonBody,
 } from "@/lib/api/helpers";
 import { updateHomeworkCompletionAction } from "@/lib/api/routes/homework-completion-action";
 import {
+  homeworkCompletionBatchRequestSchema,
   homeworkCompletionRequestSchema,
   resourceIdPathParamsSchema,
 } from "@/lib/api/schemas/request-schemas";
@@ -46,5 +49,30 @@ export async function putHomeworkCompletionRoute(
     });
   } catch (error) {
     return handleRouteError("Failed to update completion", error);
+  }
+}
+
+export async function putHomeworkCompletionsRoute(request: Request) {
+  const parsedBody = await parseRouteJsonBody(
+    request,
+    homeworkCompletionBatchRequestSchema,
+    "Invalid completion batch payload",
+  );
+  if (parsedBody instanceof Response) {
+    return parsedBody;
+  }
+
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+
+  try {
+    return jsonResponse(
+      await setHomeworkCompletions({
+        items: parsedBody.items,
+        userId: auth.userId,
+      }),
+    );
+  } catch (error) {
+    return handleRouteError("Failed to update completion batch", error);
   }
 }

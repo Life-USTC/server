@@ -81,6 +81,28 @@ export const homeworkCompletionResponseSchema = z.object({
   completedAt: dateTimeSchema.nullable(),
 });
 
+export const homeworkCompletionBatchResponseSchema = z.object({
+  results: z.array(
+    z.discriminatedUnion("success", [
+      z.object({
+        success: z.literal(true),
+        homeworkId: z.string(),
+        completed: z.boolean(),
+        completedAt: dateTimeSchema.nullable(),
+      }),
+      z.object({
+        success: z.literal(false),
+        homeworkId: z.string(),
+        completed: z.boolean(),
+        error: z.object({
+          code: z.enum(["not_found", "deleted"]),
+          message: z.string(),
+        }),
+      }),
+    ]),
+  ),
+});
+
 export const subscribedHomeworksResponseSchema = z.object({
   viewer: viewerContextSchema,
   homeworks: z.array(homeworkListItemSchema),
