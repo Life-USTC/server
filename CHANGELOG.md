@@ -1,3 +1,10 @@
+# [1.34.0](https://github.com/Life-USTC/server/compare/v1.33.6...v1.34.0) (2026-06-19)
+
+
+### Features
+
+* **api:** add batch homework completions ([28c02df](https://github.com/Life-USTC/server/commit/28c02df84c33348f023430b397feebc934e9963d))
+
 ## [1.33.6](https://github.com/Life-USTC/server/compare/v1.33.5...v1.33.6) (2026-06-19)
 
 
