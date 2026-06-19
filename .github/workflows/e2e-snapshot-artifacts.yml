@@ -84,7 +84,7 @@ jobs:
           path: |
             test-results/snapshots
             test-results/e2e-snapshot-server.log
-          if-no-files-found: error
+          if-no-files-found: ignore
           retention-days: 14
 
       - name: Publish screenshot previews
