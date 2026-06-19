@@ -1,14 +1,12 @@
 import {
-  jsonOrRedirectForPinnedLinks,
+  logDashboardLinkPinFailure,
   resolveDashboardLinkBySlug,
   sanitizeDashboardReturnTo,
-} from "@/features/dashboard-links/server/route-helpers";
-import {
-  logDashboardLinkPinFailure,
   updateDashboardLinkPinState,
-} from "@/lib/api/routes/dashboard-link-actions";
+} from "@/features/dashboard-links/server/dashboard-link-service";
 import { dashboardLinkPinRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { resolveApiUserId } from "@/lib/auth/api-auth";
+import { jsonOrRedirectForPinnedLinks } from "./dashboard-link-pin-response";
 
 export async function postDashboardLinkPinRoute(request: Request) {
   const wantsJson =

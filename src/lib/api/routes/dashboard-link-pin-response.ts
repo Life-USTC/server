@@ -1,28 +1,5 @@
-import { USTC_DASHBOARD_LINKS } from "@/features/dashboard-links/lib/dashboard-links";
+import { MAX_PINNED_LINKS } from "@/features/dashboard-links/server/dashboard-link-service";
 import { jsonResponse } from "@/lib/api/helpers";
-
-export const MAX_PINNED_LINKS = 4;
-
-export type PinApiResponse = {
-  pinnedSlugs: string[];
-  maxPinnedLinks: number;
-  error?: string | null;
-};
-
-export function resolveDashboardLinkBySlug(slug: string | null | undefined) {
-  const normalizedSlug = slug?.trim();
-  if (!normalizedSlug) return null;
-  return (
-    USTC_DASHBOARD_LINKS.find((link) => link.slug === normalizedSlug) ?? null
-  );
-}
-
-export function sanitizeDashboardReturnTo(value: string | undefined): string {
-  if (!value?.startsWith("/")) return "/";
-  if (value.startsWith("//")) return "/";
-  if (/[\\\r\n]/.test(value)) return "/";
-  return value;
-}
 
 export function jsonOrRedirectForPinnedLinks({
   request,

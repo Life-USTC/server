@@ -59,7 +59,7 @@ test.describe("dashboard links", () => {
   }, testInfo) => {
     await signInAsDebugUser(page, "/");
 
-    const linksTab = page.getByRole("tab", { name: /网站|Websites/i }).first();
+    const linksTab = page.getByRole("link", { name: /网站|Websites/i }).first();
     await expect(linksTab).toBeVisible();
     await linksTab.click();
 

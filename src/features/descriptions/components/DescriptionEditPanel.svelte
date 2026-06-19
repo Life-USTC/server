@@ -23,6 +23,7 @@ export let saveDescription: () => void;
 <div class="grid gap-3">
   <MarkdownEditor
     bind:value={draft}
+    campusReferences
     disabled={isDisabled}
     guideLabel={copy.markdownGuide}
     modeLabel={copy.title}

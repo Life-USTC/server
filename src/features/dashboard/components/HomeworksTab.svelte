@@ -178,10 +178,10 @@ $: ({
       {homeworkSectionLabel}
       {homeworkStatus}
       {isCreatingHomework}
+      sections={signedData.homeworks.sections}
       bind:selectedHomework
       {selectedCreateHomeworkSection}
       bind:showCreateHomework
-      {signedData}
       {toggleHomeworkCompletion}
     />
   {/if}

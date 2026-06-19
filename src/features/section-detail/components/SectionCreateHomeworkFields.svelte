@@ -40,6 +40,7 @@ export let titleMaxLength: number;
   <label class="grid gap-2">
     <span class="font-medium text-sm">{homeworkCopy.descriptionLabel}</span>
     <MarkdownEditor
+      campusReferences
       guideLabel={commentsCopy.markdownGuide}
       maxlength={descriptionMaxLength}
       modeLabel={homeworkCopy.descriptionLabel}

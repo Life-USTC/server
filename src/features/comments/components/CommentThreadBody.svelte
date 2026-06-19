@@ -49,7 +49,7 @@ export let visibilityOptions: CommentSelectOption[];
 {:else if comment.status === "deleted"}
   <p class="text-base-content/60 text-sm">{commentCopy.deletedMessage}</p>
 {:else}
-  <MarkdownPreview class="break-words" content={comment.body} />
+  <MarkdownPreview campusReferences class="break-words" content={comment.body} />
   <CommentLinkCards content={comment.body} copy={commentCopy} />
 {/if}
 

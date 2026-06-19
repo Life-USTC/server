@@ -1,18 +1,21 @@
 import {
+  resolveCreateCommentParent,
+  validateCommentAttachmentIds,
+} from "@/features/comments/server/comment-mutations";
+import {
   badRequest,
   handleRouteError,
   jsonResponse,
+  notFound,
   parseRouteJsonBody,
 } from "@/lib/api/helpers";
 import { commentCreateRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { requireWriteAuth } from "@/lib/auth/api-auth";
 import {
   createCommentRecord,
-  resolveCreateCommentParent,
   resolveCreateCommentTarget,
   writeCommentCreateAuditLog,
 } from "./comments-create-helpers";
-import { validateCommentAttachmentIds } from "./comments-update-attachments";
 
 export async function postCommentRoute(request: Request) {
   const parsedBody = await parseRouteJsonBody(
@@ -36,7 +39,6 @@ export async function postCommentRoute(request: Request) {
   const { userId } = auth;
 
   try {
-    const { prisma } = await import("@/lib/db/prisma");
     const target = await resolveCreateCommentTarget({
       rawTargetId: parsedBody.targetId,
       sectionId: parsedBody.sectionId,
@@ -46,23 +48,25 @@ export async function postCommentRoute(request: Request) {
     if (!target.ok) return target.response;
 
     const parent = await resolveCreateCommentParent(
-      prisma,
       parsedBody.parentId,
       target.target.whereTarget,
     );
-    if (!parent.ok) return parent.response;
+    if (!parent.ok) {
+      if (parent.error === "parent_not_found") {
+        return notFound("Parent not found");
+      }
+      return badRequest("Parent target mismatch");
+    }
 
     const attachmentIds = parsedBody.attachmentIds ?? [];
 
     if (attachmentIds.length > 0) {
-      if (
-        !(await validateCommentAttachmentIds(prisma, userId, attachmentIds))
-      ) {
+      if (!(await validateCommentAttachmentIds(userId, attachmentIds))) {
         return badRequest("Invalid attachments");
       }
     }
 
-    const comment = await createCommentRecord(prisma, {
+    const comment = await createCommentRecord({
       attachmentIds,
       content,
       isAnonymous,

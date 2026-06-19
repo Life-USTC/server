@@ -25,7 +25,7 @@
 
 ## Docs
 
-- [ ] Updated affected `docs/features/<module>.json`, or N/A.
+- [ ] Updated affected `docs/contracts/<module>.json`, or N/A.
 - [ ] Updated route OpenAPI annotations / regenerated artifacts, or N/A.
 - [ ] Checked REST/MCP parity, or N/A.
 - [ ] Updated setup, operations, or architecture docs, or N/A.

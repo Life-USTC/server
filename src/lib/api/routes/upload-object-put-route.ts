@@ -1,5 +1,9 @@
 import { uploadConfig } from "@/features/uploads/lib/upload-config";
-import { normalizeContentType } from "@/features/uploads/lib/upload-utils";
+import { UploadError } from "@/features/uploads/lib/upload-quota";
+import {
+  uploadKeyBelongsToUser,
+  validatePendingUploadObject,
+} from "@/features/uploads/server/upload-service";
 import {
   badRequest,
   forbidden,
@@ -7,8 +11,7 @@ import {
   jsonResponse,
   payloadTooLarge,
 } from "@/lib/api/helpers";
-import { uploadKeyBelongsToUser } from "@/lib/api/routes/upload-session-helpers";
-import { requireAuth } from "@/lib/auth/api-auth";
+import { requireWriteAuth } from "@/lib/auth/api-auth";
 import { putStorageObject } from "@/lib/storage/r2-object";
 
 function contentLength(request: Request) {
@@ -18,7 +21,7 @@ function contentLength(request: Request) {
 }
 
 export async function putUploadObjectRoute(request: Request) {
-  const auth = await requireAuth(request);
+  const auth = await requireWriteAuth(request);
   if (auth instanceof Response) return auth;
   const { userId } = auth;
 
@@ -35,34 +38,29 @@ export async function putUploadObjectRoute(request: Request) {
   }
 
   try {
-    const { prisma } = await import("@/lib/db/prisma");
-    const pending = await prisma.uploadPending.findUnique({
-      where: { key },
-      select: {
-        contentType: true,
-        expiresAt: true,
-        size: true,
-        userId: true,
-      },
+    const object = await validatePendingUploadObject({
+      key,
+      requestContentLength: requestSize,
+      requestContentType: request.headers.get("content-type"),
+      userId,
     });
-    const now = new Date();
-    if (!pending || pending.userId !== userId || pending.expiresAt < now) {
-      return badRequest("Upload session expired");
-    }
-    if (requestSize > pending.size) {
-      return payloadTooLarge("File too large");
-    }
 
     await putStorageObject({
       body: request.body,
-      contentType:
-        normalizeContentType(request.headers.get("content-type")) ??
-        pending.contentType,
+      contentType: object.contentType,
       key,
     });
 
     return jsonResponse({ success: true });
   } catch (error) {
+    if (error instanceof UploadError) {
+      if (error.code === "File too large") {
+        return payloadTooLarge(error.code);
+      }
+      if (error.code === "Upload session expired") {
+        return badRequest(error.code);
+      }
+    }
     return handleRouteError("Failed to upload object", error);
   }
 }

@@ -39,7 +39,12 @@ export let reactionOptions: ReactionOption[];
       {commentCopy.reactionMenu}
     </Button>
     {#if reactionMenuId === comment.id}
-      <Menu.Root class="w-56">
+      <Menu.Root
+        class="w-56"
+        onClose={() => {
+          reactionMenuId = null;
+        }}
+      >
         {#each reactionOptions as option}
           <Menu.Item
             checked={reactionEntry(comment, option.type)?.viewerHasReacted ?? false}

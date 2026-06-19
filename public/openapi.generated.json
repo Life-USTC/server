@@ -653,6 +653,97 @@
         }
       }
     },
+    "/api/auth/.well-known/openid-configuration": {
+      "get": {
+        "operationId": "get-api-auth-.well-known-openid-configuration",
+        "summary": "OpenID Connect discovery metadata for issuer `/api/auth`",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          }
+        }
+      }
+    },
+    "/api/auth/oauth2/device-authorization": {
+      "post": {
+        "operationId": "post-api-auth-oauth2-device-authorization",
+        "summary": "Start OAuth 2.0 device authorization",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/oauth2/token": {
+      "get": {
+        "operationId": "get-api-auth-oauth2-token",
+        "summary": "Return method guidance for OAuth token clients",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "405": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "post-api-auth-oauth2-token",
+        "summary": "Exchange OAuth 2.0 authorization/device/refresh grants for tokens",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/bus": {
       "get": {
         "operationId": "queryBus",
@@ -2031,6 +2122,130 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mcp": {
+      "get": {
+        "operationId": "listMcp",
+        "summary": "Open an MCP Streamable HTTP transport session",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createMcp",
+        "summary": "Send an MCP Streamable HTTP JSON-RPC message",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete-api-mcp",
+        "summary": "Close an MCP Streamable HTTP transport session",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-api-mcp",
+        "summary": "Return MCP transport CORS preflight headers",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "204": {
+            "description": "Response 204"
+          }
+        }
+      }
+    },
+    "/api/mcp/.well-known/oauth-authorization-server": {
+      "get": {
+        "operationId": "get-api-mcp-.well-known-oauth-authorization-server",
+        "summary": "MCP resource-relative authorization server metadata compatibility alias",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mcp/.well-known/openid-configuration": {
+      "get": {
+        "operationId": "get-api-mcp-.well-known-openid-configuration",
+        "summary": "MCP resource-relative OpenID discovery compatibility alias",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
                 }
               }
             }
@@ -4785,6 +5000,11 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 200
+          },
+          "description": {
+            "nullable": true,
+            "type": "string",
+            "maxLength": 4000
           },
           "publishedAt": {
             "anyOf": [

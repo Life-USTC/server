@@ -1,30 +1,36 @@
 <script lang="ts">
-// biome-ignore-all lint/suspicious/noExplicitAny: route-owned callbacks, CommentsPanel, and page-shaped dashboard data are passed from the dashboard page boundary.
+import type { DashboardMyHomeworksCopy } from "@/features/dashboard/lib/dashboard-controller-types";
 import CheckCircleIcon from "$lib/components/icons/check-circle.svelte";
 import RefreshCw from "$lib/components/icons/refresh-cw.svelte";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import type {
+  DashboardHomeworkCommentsPanel,
+  DashboardHomeworkCompletionToggle,
+  DashboardHomeworkDetailAction,
+  DashboardHomeworkDetailCopy,
+  DashboardHomeworkDetailFormatter,
+  DashboardHomeworkDetailItem,
+} from "./dashboard-homework-detail-types";
 import HomeworkDetailActions from "./HomeworkDetailActions.svelte";
 import HomeworkDetailCommentsAside from "./HomeworkDetailCommentsAside.svelte";
 import HomeworkDetailDescription from "./HomeworkDetailDescription.svelte";
 import HomeworkDetailMetadata from "./HomeworkDetailMetadata.svelte";
 
-export let CommentsPanel: any;
+export let CommentsPanel: DashboardHomeworkCommentsPanel;
 
-export let fmtDate: (value: string | Date | null | undefined) => string;
-export let homework: any | null;
-export let homeworkCompletionActionLabel: (homework: any) => string;
-export let homeworkDetailHref: (homework: any) => string;
-export let homeworkEtaLabel: (
-  value: string | Date | null | undefined,
-) => string;
-export let homeworkCourseLabel: (homework: any) => string;
+export let fmtDate: DashboardHomeworkDetailFormatter;
+export let homework: DashboardHomeworkDetailItem | null;
+export let homeworkCompletionActionLabel: DashboardHomeworkDetailAction;
+export let homeworkDetailHref: DashboardHomeworkDetailAction;
+export let homeworkEtaLabel: DashboardHomeworkDetailFormatter;
+export let homeworkCourseLabel: DashboardHomeworkDetailAction;
 export let homeworkSavingById: Record<string, boolean>;
-export let homeworkSectionHref: (homework: any) => string;
-export let homeworksCopy: any;
-export let homeworkCopy: any;
-export let homeworkStatus: (homework: any) => string;
+export let homeworkSectionHref: DashboardHomeworkDetailAction;
+export let homeworksCopy: DashboardHomeworkDetailCopy;
+export let homeworkCopy: DashboardMyHomeworksCopy;
+export let homeworkStatus: DashboardHomeworkDetailAction;
 export let onClose: () => void;
-export let toggleHomeworkCompletion: (homework: any) => void;
+export let toggleHomeworkCompletion: DashboardHomeworkCompletionToggle;
 </script>
 
 {#if homework}
@@ -40,7 +46,7 @@ export let toggleHomeworkCompletion: (homework: any) => void;
     <Dialog.Header>
       <Dialog.Title>{homework.title}</Dialog.Title>
       <Dialog.Description>
-        {selectedCourseLabel} · {homeworkCopy.due}
+        {selectedCourseLabel} · {homeworkCopy.due}:
         {fmtDate(homework.submissionDueAt)}
       </Dialog.Description>
     </Dialog.Header>

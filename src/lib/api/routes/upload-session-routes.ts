@@ -1,24 +1,27 @@
-import { badRequest, forbidden, parseRouteJsonBody } from "@/lib/api/helpers";
+import {
+  completeUploadSession,
+  createUploadSession,
+  uploadKeyBelongsToUser,
+} from "@/features/uploads/server/upload-service";
+import {
+  badRequest,
+  forbidden,
+  jsonResponse,
+  parseRouteJsonBody,
+} from "@/lib/api/helpers";
 import {
   uploadCompleteErrorResponse,
   uploadCreateErrorResponse,
 } from "@/lib/api/routes/upload-route-errors";
-import {
-  completeUploadSessionAction,
-  createUploadSessionAction,
-} from "@/lib/api/routes/upload-session-actions";
-import {
-  parseUploadCreateInput,
-  uploadKeyBelongsToUser,
-} from "@/lib/api/routes/upload-session-helpers";
+import { parseUploadCreateInput } from "@/lib/api/routes/upload-route-helpers";
 import {
   uploadCompleteRequestSchema,
   uploadCreateRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
-import { requireAuth } from "@/lib/auth/api-auth";
+import { requireWriteAuth } from "@/lib/auth/api-auth";
 
 export async function postUploadRoute(request: Request) {
-  const auth = await requireAuth(request);
+  const auth = await requireWriteAuth(request);
   if (auth instanceof Response) return auth;
   const { userId } = auth;
 
@@ -35,18 +38,19 @@ export async function postUploadRoute(request: Request) {
   if (uploadInput instanceof Response) return uploadInput;
 
   try {
-    return await createUploadSessionAction(
+    const result = await createUploadSession({
+      origin: new URL(request.url).origin,
+      upload: uploadInput,
       userId,
-      uploadInput,
-      new URL(request.url).origin,
-    );
+    });
+    return jsonResponse(result);
   } catch (error) {
     return uploadCreateErrorResponse(error);
   }
 }
 
 export async function postUploadCompleteRoute(request: Request) {
-  const auth = await requireAuth(request);
+  const auth = await requireWriteAuth(request);
   if (auth instanceof Response) return auth;
   const { userId } = auth;
 
@@ -70,11 +74,12 @@ export async function postUploadCompleteRoute(request: Request) {
   }
 
   try {
-    return await completeUploadSessionAction(userId, {
+    const result = await completeUploadSession(userId, {
       contentType: parsedBody.contentType,
       filename,
       key,
     });
+    return jsonResponse(result);
   } catch (error) {
     return uploadCompleteErrorResponse(error, key);
   }

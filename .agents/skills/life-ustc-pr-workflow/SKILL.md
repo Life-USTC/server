@@ -16,9 +16,9 @@ Use this sequence for non-trivial repo work:
 5. Edit only the files needed for the request.
 6. Run the relevant local checks and any focused complete-loop checks.
 7. Inspect `git diff` and remove generated scratch artifacts.
-8. Commit with a conventional message, push, open or update the PR, then wait for checks.
+8. When the user asks for a PR or the task is already on an active PR branch, commit with a conventional message, push, open or update the PR, then wait for checks.
 9. If a check fails, inspect logs, reproduce locally where possible, fix, push, and wait again.
-10. Before handoff, confirm PR status, local `git status -sb`, commands run, skipped checks, and residual risk.
+10. Before handoff, confirm PR status when applicable, local `git status -sb`, commands run, skipped checks, and residual risk.
 
 ## Implementation Rules
 

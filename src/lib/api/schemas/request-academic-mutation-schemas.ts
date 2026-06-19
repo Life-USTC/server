@@ -1,5 +1,9 @@
 import * as z from "zod";
 import {
+  HOMEWORK_DESCRIPTION_MAX_LENGTH,
+  HOMEWORK_TITLE_MAX_LENGTH,
+} from "@/features/homeworks/lib/homework-limits";
+import {
   parseOptionalIntLike,
   sectionCodeSchema,
 } from "./request-schema-primitives";
@@ -13,8 +17,8 @@ export const matchSectionCodesRequestSchema = z.object({
 
 export const homeworkCreateRequestSchema = z.object({
   sectionId: z.union([z.string(), z.number()]),
-  title: z.string().trim().min(1).max(200),
-  description: z.string().max(4000).optional(),
+  title: z.string().trim().min(1).max(HOMEWORK_TITLE_MAX_LENGTH),
+  description: z.string().max(HOMEWORK_DESCRIPTION_MAX_LENGTH).optional(),
   publishedAt: z.union([z.string(), z.null()]).optional(),
   submissionStartAt: z.union([z.string(), z.null()]).optional(),
   submissionDueAt: z.union([z.string(), z.null()]).optional(),
@@ -39,7 +43,12 @@ export const homeworkCompletionBatchRequestSchema = z.object({
 });
 
 export const homeworkUpdateRequestSchema = z.object({
-  title: z.string().trim().min(1).max(200).optional(),
+  title: z.string().trim().min(1).max(HOMEWORK_TITLE_MAX_LENGTH).optional(),
+  description: z
+    .string()
+    .max(HOMEWORK_DESCRIPTION_MAX_LENGTH)
+    .optional()
+    .nullable(),
   publishedAt: z.union([z.string(), z.null()]).optional(),
   submissionStartAt: z.union([z.string(), z.null()]).optional(),
   submissionDueAt: z.union([z.string(), z.null()]).optional(),

@@ -1,3 +1,9 @@
+import {
+  createTodo,
+  deleteOwnedTodo,
+  listTodos,
+  updateOwnedTodo,
+} from "@/features/todos/server/todo-service";
 import type { Prisma, TodoPriority } from "@/generated/prisma/client";
 import {
   badRequest,
@@ -5,15 +11,9 @@ import {
   jsonResponse,
   notFound,
 } from "@/lib/api/helpers";
-import { buildTodoUpdateData } from "./todo-update-data";
 
 export async function listTodosAction(where: Prisma.TodoWhereInput) {
-  const { prisma } = await import("@/lib/db/prisma");
-  const todos = await prisma.todo.findMany({
-    where,
-    orderBy: [{ completed: "asc" }, { dueAt: "asc" }, { createdAt: "desc" }],
-  });
-
+  const todos = await listTodos(where);
   return jsonResponse({ todos });
 }
 
@@ -26,30 +26,15 @@ export async function createTodoAction(
   },
   dueAt: Date | null | undefined,
 ) {
-  const { prisma } = await import("@/lib/db/prisma");
-  const todo = await prisma.todo.create({
-    data: {
-      userId,
-      title: parsedBody.title,
-      content: parsedBody.content?.trim() || null,
-      priority: (parsedBody.priority ?? "medium") as TodoPriority,
-      ...(dueAt !== undefined && { dueAt }),
-    },
+  const todo = await createTodo({
+    userId,
+    title: parsedBody.title,
+    content: parsedBody.content,
+    priority: parsedBody.priority as TodoPriority | undefined,
+    dueAt,
   });
 
   return jsonResponse({ id: todo.id });
-}
-
-async function requireOwnedTodo(id: string, userId: string) {
-  const { prisma } = await import("@/lib/db/prisma");
-  const todo = await prisma.todo.findUnique({
-    where: { id },
-    select: { id: true, userId: true },
-  });
-
-  if (!todo) return { prisma, response: notFound() };
-  if (todo.userId !== userId) return { prisma, response: forbidden() };
-  return { prisma, response: null };
 }
 
 export async function updateTodoAction(
@@ -64,25 +49,35 @@ export async function updateTodoAction(
   dueAt: Date | null | undefined,
   hasDueAt: boolean,
 ) {
-  const { prisma, response } = await requireOwnedTodo(id, userId);
-  if (response) return response;
+  const result = await updateOwnedTodo({
+    id,
+    userId,
+    data: {
+      completed: parsedBody.completed,
+      content: parsedBody.content,
+      dueAt,
+      hasContent: Object.hasOwn(parsedBody, "content"),
+      hasDueAt,
+      priority: parsedBody.priority as TodoPriority | undefined,
+      title: parsedBody.title,
+    },
+  });
 
-  const updates = buildTodoUpdateData(parsedBody, dueAt, hasDueAt);
-
-  if (Object.keys(updates).length === 0) {
+  if (!result.ok) {
+    if (result.error === "not_found") return notFound();
+    if (result.error === "forbidden") return forbidden();
     return badRequest("No changes");
   }
-
-  await prisma.todo.update({ where: { id }, data: updates });
 
   return jsonResponse({ success: true });
 }
 
 export async function deleteTodoAction(id: string, userId: string) {
-  const { prisma, response } = await requireOwnedTodo(id, userId);
-  if (response) return response;
-
-  await prisma.todo.delete({ where: { id } });
+  const result = await deleteOwnedTodo(id, userId);
+  if (!result.ok) {
+    if (result.error === "not_found") return notFound();
+    return forbidden();
+  }
 
   return jsonResponse({ success: true });
 }

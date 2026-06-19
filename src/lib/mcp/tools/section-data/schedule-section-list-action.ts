@@ -5,6 +5,7 @@ import {
   resolveSectionByJwId,
 } from "@/lib/mcp/tools/_helpers";
 import { summarizeScheduleCard } from "@/lib/mcp/tools/event-summary";
+import { serializeScheduleTimeFields } from "@/lib/schedule-serialization";
 import {
   omitScheduleSection,
   parseScheduleDateFilter,
@@ -54,7 +55,8 @@ export async function listSchedulesBySectionAction({
     orderBy: [{ date: "asc" }, { startTime: "asc" }],
     take: limit,
   });
-  const scopedSchedules = omitScheduleSection(schedules);
+  const serializedSchedules = schedules.map(serializeScheduleTimeFields);
+  const scopedSchedules = omitScheduleSection(serializedSchedules);
 
   if (resolvedMode === "summary") {
     return jsonToolResult(
@@ -74,7 +76,8 @@ export async function listSchedulesBySectionAction({
     {
       found: true,
       section,
-      schedules: resolvedMode === "full" ? schedules : scopedSchedules,
+      schedules:
+        resolvedMode === "full" ? serializedSchedules : scopedSchedules,
     },
     {
       mode: resolvedMode,

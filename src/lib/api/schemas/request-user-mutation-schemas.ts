@@ -1,4 +1,8 @@
 import * as z from "zod";
+import {
+  TODO_CONTENT_MAX_LENGTH,
+  TODO_TITLE_MAX_LENGTH,
+} from "@/features/todos/lib/todo-limits";
 import { APP_LOCALES } from "@/i18n/config";
 import { todoPrioritySchema } from "./request-schema-primitives";
 
@@ -21,15 +25,15 @@ export const dashboardLinkPinRequestSchema = z.object({
 });
 
 export const todoCreateRequestSchema = z.object({
-  title: z.string().trim().min(1).max(200),
-  content: z.string().max(4000).optional().nullable(),
+  title: z.string().trim().min(1).max(TODO_TITLE_MAX_LENGTH),
+  content: z.string().max(TODO_CONTENT_MAX_LENGTH).optional().nullable(),
   priority: todoPrioritySchema.optional(),
   dueAt: z.union([z.string(), z.null()]).optional(),
 });
 
 export const todoUpdateRequestSchema = z.object({
-  title: z.string().trim().min(1).max(200).optional(),
-  content: z.string().max(4000).optional().nullable(),
+  title: z.string().trim().min(1).max(TODO_TITLE_MAX_LENGTH).optional(),
+  content: z.string().max(TODO_CONTENT_MAX_LENGTH).optional().nullable(),
   priority: todoPrioritySchema.optional(),
   dueAt: z.union([z.string(), z.null()]).optional(),
   completed: z.boolean().optional(),

@@ -40,14 +40,14 @@ test.describe("dashboard exams", () => {
 
     // Public view: sign-in CTA, no auth-only tabs
     await expect(
-      page.getByRole("tab", { name: /^(网站|Websites)$/i }),
+      page.getByRole("link", { name: /^(网站|Websites)$/i }),
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
     ).toBeVisible();
     // Exams tab should NOT appear in public nav
     await expect(
-      page.getByRole("tab", { name: /^(考试|Exams)$/i }),
+      page.getByRole("link", { name: /^(考试|Exams)$/i }),
     ).toHaveCount(0);
 
     await captureStepScreenshot(page, testInfo, "exams/unauthenticated");
@@ -67,17 +67,19 @@ test.describe("dashboard exams", () => {
 
     // Filter toolbar (exam.yml cross-section-exam-list.display.fields: completion filter)
     // In English locale: "Upcoming" / "Ended" / "All"
-    const filterTabs = page.getByRole("tablist", { name: /考试|Exams/i });
+    const filterTabs = page.getByRole("group", { name: /考试|Exams/i });
     await expect(
-      filterTabs.getByRole("tab", { name: /全部|All/i }),
+      filterTabs.getByRole("button", { name: /全部|All/i }),
     ).toBeVisible();
     // "Ended" in English, "已结束" or "已完成" in Chinese
     await expect(
-      filterTabs.getByRole("tab", { name: /Ended|已结束|已完成/i }),
+      filterTabs.getByRole("button", { name: /Ended|已结束|已完成/i }),
     ).toBeVisible();
     await expect(
-      filterTabs.getByRole("tab", { name: /Upcoming|即将|即将考试|待完成/i }),
-    ).toHaveAttribute("aria-selected", "true");
+      filterTabs.getByRole("button", {
+        name: /Upcoming|即将|即将考试|待完成/i,
+      }),
+    ).toHaveAttribute("aria-pressed", "true");
 
     await captureStepScreenshot(page, testInfo, "exams/filter-toolbar");
   });
@@ -93,11 +95,11 @@ test.describe("dashboard exams", () => {
     });
 
     // Switch to "all" to see all exams regardless of completion
-    const filterTabs = page.getByRole("tablist", { name: /考试|Exams/i });
-    await filterTabs.getByRole("tab", { name: /全部|All/i }).click();
+    const filterTabs = page.getByRole("group", { name: /考试|Exams/i });
+    await filterTabs.getByRole("button", { name: /全部|All/i }).click();
     await expect(
-      filterTabs.getByRole("tab", { name: /全部|All/i }),
-    ).toHaveAttribute("aria-selected", "true");
+      filterTabs.getByRole("button", { name: /全部|All/i }),
+    ).toHaveAttribute("aria-pressed", "true");
 
     // exam cards should be visible
     const examCards = page.locator('[data-slot="card"]').filter({
@@ -167,8 +169,8 @@ test.describe("dashboard exams", () => {
     });
 
     await page
-      .getByRole("tablist", { name: /考试|Exams/i })
-      .getByRole("tab", { name: /全部|All/i })
+      .getByRole("group", { name: /考试|Exams/i })
+      .getByRole("button", { name: /全部|All/i })
       .click();
 
     const sectionLink = page.locator('a[href^="/sections/"]').first();
@@ -189,23 +191,23 @@ test.describe("dashboard exams", () => {
       screenshotLabel: "exams",
     });
 
-    const filterTabs = page.getByRole("tablist", { name: /考试|Exams/i });
+    const filterTabs = page.getByRole("group", { name: /考试|Exams/i });
 
     // Switch to completed/ended filter
-    const completedTab = filterTabs.getByRole("tab", {
+    const completedTab = filterTabs.getByRole("button", {
       name: /Ended|已结束|已完成/i,
     });
     await completedTab.click();
-    await expect(completedTab).toHaveAttribute("aria-selected", "true");
+    await expect(completedTab).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByText(DEV_SEED.previousSemesterNameCn)).toBeVisible();
     await captureStepScreenshot(page, testInfo, "exams/filter-completed");
 
     // Switch back to incomplete/upcoming
-    const incompleteTab = filterTabs.getByRole("tab", {
+    const incompleteTab = filterTabs.getByRole("button", {
       name: /Upcoming|即将|即将考试|待完成/i,
     });
     await incompleteTab.click();
-    await expect(incompleteTab).toHaveAttribute("aria-selected", "true");
+    await expect(incompleteTab).toHaveAttribute("aria-pressed", "true");
     await captureStepScreenshot(page, testInfo, "exams/filter-incomplete");
   });
 });

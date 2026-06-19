@@ -22,7 +22,7 @@ export let toggleMobileMenu: () => void;
     {copy.shell.menu}
   </Button>
   {#if mobileMenuOpen}
-    <Menu.Root align="right" class="w-44">
+    <Menu.Root align="right" class="w-44" onClose={closeMenus}>
       {#each primaryLinks as link}
         <Menu.Item href={link.href} onclick={closeMenus}>
           {link.label}

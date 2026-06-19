@@ -1,14 +1,18 @@
+import {
+  listAdminUsers,
+  updateAdminUser,
+} from "@/features/admin/server/admin-api-service";
 import { withAdminApiRoute } from "@/lib/admin-api";
 import { ADMIN_USERS_PAGE_SIZE } from "@/lib/admin-constants";
 import {
+  badRequest,
+  buildPaginatedResponse,
   getRequestSearchParams,
+  jsonResponse,
+  notFound,
   parseRouteJsonBody,
   parseRouteQuery,
 } from "@/lib/api/helpers";
-import {
-  listAdminUsersAction,
-  updateAdminUserAction,
-} from "@/lib/api/routes/admin-user-actions";
 import {
   adminUpdateUserRequestSchema,
   adminUsersQuerySchema,
@@ -31,7 +35,15 @@ export async function getAdminUsersRoute(request: Request) {
     );
     if (parsed instanceof Response) return parsed;
 
-    return listAdminUsersAction(parsed);
+    const result = await listAdminUsers(parsed);
+    return jsonResponse(
+      buildPaginatedResponse(
+        result.users,
+        parsed.pagination.page,
+        parsed.pagination.pageSize,
+        result.total,
+      ),
+    );
   });
 }
 
@@ -46,6 +58,16 @@ export async function patchAdminUserRoute(request: Request, params: IdParams) {
     );
     if (parsedBody instanceof Response) return parsedBody;
 
-    return updateAdminUserAction(parsed.id, parsedBody);
+    const result = await updateAdminUser(parsed.id, parsedBody);
+    if (!result.ok) {
+      if (result.reason === "invalid_username")
+        return badRequest("Invalid username");
+      if (result.reason === "username_taken") {
+        return badRequest("Username already taken");
+      }
+      return notFound("User not found");
+    }
+
+    return jsonResponse({ user: result.user });
   });
 }

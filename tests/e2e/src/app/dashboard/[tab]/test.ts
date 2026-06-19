@@ -27,7 +27,7 @@ test("/dashboard/homeworks loads authenticated tab", async ({
 
   await expect(page).toHaveURL(/\/dashboard\/homeworks(?:[/?#].*)?$/);
   await expect(
-    page.getByRole("tab", { name: /作业|Homework/i }),
-  ).toHaveAttribute("aria-selected", "true");
+    page.getByRole("link", { name: /作业|Homework/i }),
+  ).toHaveAttribute("aria-current", "page");
   await captureStepScreenshot(page, testInfo, "dashboard-homeworks");
 });

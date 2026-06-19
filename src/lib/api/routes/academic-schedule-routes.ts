@@ -4,9 +4,9 @@ import {
   jsonResponse,
   parseRouteQuery,
 } from "@/lib/api/helpers";
-import { formatScheduleTimeFields } from "@/lib/api/routes/academic-route-helpers";
 import { buildAcademicScheduleWhere } from "@/lib/api/routes/academic-schedule-query";
 import { schedulesQuerySchema } from "@/lib/api/schemas/request-schemas";
+import { serializeScheduleTimeFields } from "@/lib/schedule-serialization";
 
 export async function getSchedulesRoute(request: Request) {
   try {
@@ -45,7 +45,7 @@ export async function getSchedulesRoute(request: Request) {
 
     return jsonResponse(
       buildPaginatedResponse(
-        schedules.map(formatScheduleTimeFields),
+        schedules.map(serializeScheduleTimeFields),
         pagination.page,
         pagination.pageSize,
         total,

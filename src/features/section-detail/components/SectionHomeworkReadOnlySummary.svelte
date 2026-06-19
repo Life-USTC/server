@@ -14,7 +14,7 @@ export let homeworkCopy: SectionHomeworkCopy;
 
 <div class="rounded-md border border-base-300 bg-base-200/40 p-4">
   {#if homework.description?.content}
-    <MarkdownPreview content={homework.description.content} />
+    <MarkdownPreview campusReferences content={homework.description.content} />
   {:else}
     <p class="text-base-content/60 text-sm">{homeworkCopy.descriptionEmpty}</p>
   {/if}

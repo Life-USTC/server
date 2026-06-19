@@ -1,5 +1,10 @@
 import { fail, redirect } from "@sveltejs/kit";
 import { getDashboardUserId } from "@/features/dashboard/server/dashboard-page-server";
+import {
+  createTodo,
+  deleteOwnedTodo,
+  updateOwnedTodo,
+} from "@/features/todos/server/todo-service";
 import type { AppLocale } from "@/i18n/config";
 import { getDashboardActionCopy } from "./dashboard-action-copy";
 import type { DashboardPageLoadEvent } from "./dashboard-page-load-types";
@@ -18,13 +23,7 @@ export async function createTodoDashboardAction({
   const parsed = await readTodoForm(request, copy);
   if ("error" in parsed) return parsed.error;
 
-  const { prisma } = await import("@/lib/db/prisma");
-  await prisma.todo.create({
-    data: {
-      userId,
-      ...parsed.todo,
-    },
-  });
+  await createTodo({ userId, ...parsed.todo });
   throw redirect(303, "/dashboard/todos");
 }
 
@@ -42,11 +41,16 @@ export async function updateTodoDashboardAction({
   const id = String(parsed.form.get("id") ?? "").trim();
   if (!id) return fail(400, { error: copy.saveFailed });
 
-  const { prisma } = await import("@/lib/db/prisma");
-  await prisma.todo.updateMany({
-    where: { id, userId },
-    data: parsed.todo,
+  const result = await updateOwnedTodo({
+    id,
+    userId,
+    data: {
+      ...parsed.todo,
+      hasContent: true,
+      hasDueAt: true,
+    },
   });
+  if (!result.ok) return fail(400, { error: copy.saveFailed });
   throw redirect(303, "/dashboard/todos");
 }
 
@@ -60,11 +64,16 @@ export async function toggleTodoDashboardAction({
   const form = await request.formData();
   const id = String(form.get("id") ?? "");
   const completed = String(form.get("completed") ?? "") === "true";
-  const { prisma } = await import("@/lib/db/prisma");
-  await prisma.todo.updateMany({
-    where: { id, userId },
-    data: { completed },
+  const result = await updateOwnedTodo({
+    id,
+    userId,
+    data: {
+      completed,
+      dueAt: undefined,
+      hasDueAt: false,
+    },
   });
+  if (!result.ok) return fail(400, { error: copy.saveFailed });
   throw redirect(303, "/dashboard/todos");
 }
 
@@ -77,7 +86,7 @@ export async function deleteTodoDashboardAction({
   if (!userId) return fail(401, { error: copy.saveFailed });
   const form = await request.formData();
   const id = String(form.get("id") ?? "");
-  const { prisma } = await import("@/lib/db/prisma");
-  await prisma.todo.deleteMany({ where: { id, userId } });
+  const result = await deleteOwnedTodo(id, userId);
+  if (!result.ok) return fail(400, { error: copy.saveFailed });
   throw redirect(303, "/dashboard/todos");
 }

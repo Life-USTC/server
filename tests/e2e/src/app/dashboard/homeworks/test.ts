@@ -47,11 +47,11 @@ test.describe("dashboard homeworks", () => {
       page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
     ).toBeVisible();
     await expect(
-      page.getByRole("tab", { name: /^(网站|Websites)$/i }),
+      page.getByRole("link", { name: /^(网站|Websites)$/i }),
     ).toBeVisible();
     // Homeworks tab NOT in public nav
     await expect(
-      page.getByRole("tab", { name: /^(作业|Homework)$/i }),
+      page.getByRole("link", { name: /^(作业|Homework)$/i }),
     ).toHaveCount(0);
 
     await captureStepScreenshot(page, testInfo, "homeworks/unauthenticated");
@@ -69,7 +69,7 @@ test.describe("dashboard homeworks", () => {
 
     // Switch to All to see all homeworks
     await page
-      .getByRole("tab", { name: /全部|All/i })
+      .getByRole("button", { name: /全部|All/i })
       .first()
       .click();
 
@@ -105,7 +105,7 @@ test.describe("dashboard homeworks", () => {
     });
 
     await page
-      .getByRole("tab", { name: /全部|All/i })
+      .getByRole("button", { name: /全部|All/i })
       .first()
       .click();
 
@@ -131,7 +131,7 @@ test.describe("dashboard homeworks", () => {
 
     // Completed filter
     const completedTab = page
-      .getByRole("tab", { name: /已完成|Completed/i })
+      .getByRole("button", { name: /已完成|Completed/i })
       .first();
     await expect(completedTab).toBeVisible();
     await completedTab.click();
@@ -144,7 +144,7 @@ test.describe("dashboard homeworks", () => {
     await captureStepScreenshot(page, testInfo, "homeworks/filter-completed");
 
     // All filter
-    const allTab = page.getByRole("tab", { name: /全部|All/i }).first();
+    const allTab = page.getByRole("button", { name: /全部|All/i }).first();
     await expect(allTab).toBeVisible();
     await allTab.click();
     await expect(page.getByText(DEV_SEED.homeworks.overdueTitle)).toBeVisible();
@@ -162,12 +162,12 @@ test.describe("dashboard homeworks", () => {
     });
 
     await page
-      .getByRole("tab", { name: /全部|All/i })
+      .getByRole("button", { name: /全部|All/i })
       .first()
       .click();
 
     await expect(page.getByTestId("dashboard-homeworks-cards")).toBeVisible();
-    await page.getByRole("tab", { name: /列表|List/i }).click();
+    await page.getByRole("button", { name: /列表|List/i }).click();
     await expect(page).toHaveURL(/homeworkView=list/);
     await expect(page.getByTestId("dashboard-homeworks-list")).toBeVisible();
     await expect
@@ -180,7 +180,7 @@ test.describe("dashboard homeworks", () => {
 
     await gotoAndWaitForReady(page, "/dashboard/homeworks");
     await page
-      .getByRole("tab", { name: /全部|All/i })
+      .getByRole("button", { name: /全部|All/i })
       .first()
       .click();
     await expect(page).toHaveURL(/\/dashboard\/homeworks$/);
@@ -199,7 +199,7 @@ test.describe("dashboard homeworks", () => {
 
     // Switch to "all" filter
     await page
-      .getByRole("tab", { name: /全部|All/i })
+      .getByRole("button", { name: /全部|All/i })
       .first()
       .click();
 
@@ -257,7 +257,7 @@ test.describe("dashboard homeworks", () => {
     });
 
     await page
-      .getByRole("tab", { name: /全部|All/i })
+      .getByRole("button", { name: /全部|All/i })
       .first()
       .click();
 

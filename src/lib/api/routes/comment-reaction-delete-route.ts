@@ -1,3 +1,4 @@
+import { deleteCommentReaction } from "@/features/comments/server/comment-mutations";
 import {
   handleRouteError,
   jsonResponse,
@@ -8,7 +9,7 @@ import {
   commentReactionRequestSchema,
   resourceIdPathParamsSchema,
 } from "@/lib/api/schemas/request-schemas";
-import { requireAuth } from "@/lib/auth/api-auth";
+import { requireWriteAuth } from "@/lib/auth/api-auth";
 
 type IdParams = { id: string };
 
@@ -16,7 +17,7 @@ export async function deleteCommentReactionRoute(
   request: Request,
   params: IdParams,
 ) {
-  const auth = await requireAuth(request);
+  const auth = await requireWriteAuth(request);
   if (auth instanceof Response) return auth;
   const { userId } = auth;
 
@@ -42,14 +43,7 @@ export async function deleteCommentReactionRoute(
   const type = parsedBody.type;
 
   try {
-    const { prisma } = await import("@/lib/db/prisma");
-    await prisma.commentReaction.deleteMany({
-      where: {
-        commentId: id,
-        userId,
-        type,
-      },
-    });
+    await deleteCommentReaction({ commentId: id, type, userId });
 
     return jsonResponse({ success: true });
   } catch (error) {

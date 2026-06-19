@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db/prisma";
+import { createHomeworkForSection } from "@/features/homeworks/server/homework-create";
 
 export async function createHomeworkOnSectionRecord(input: {
   description?: string | null;
@@ -13,50 +13,20 @@ export async function createHomeworkOnSectionRecord(input: {
 }) {
   const trimmedDescription = (input.description ?? "").trim();
 
-  return prisma.$transaction(async (tx) => {
-    const created = await tx.homework.create({
-      data: {
-        sectionId: input.sectionId,
-        title: input.title,
-        isMajor: input.isMajor === true,
-        requiresTeam: input.requiresTeam === true,
-        publishedAt: input.publishedAt,
-        submissionStartAt: input.submissionStartAt,
-        submissionDueAt: input.submissionDueAt,
-        createdById: input.userId,
-        updatedById: input.userId,
-      },
-    });
-
-    if (trimmedDescription) {
-      const descriptionRecord = await tx.description.create({
-        data: {
-          content: trimmedDescription,
-          lastEditedAt: new Date(),
-          lastEditedById: input.userId,
-          homeworkId: created.id,
-        },
-      });
-      await tx.descriptionEdit.create({
-        data: {
-          descriptionId: descriptionRecord.id,
-          editorId: input.userId,
-          previousContent: null,
-          nextContent: trimmedDescription,
-        },
-      });
-    }
-
-    await tx.homeworkAuditLog.create({
-      data: {
-        action: "created",
-        sectionId: input.sectionId,
-        homeworkId: created.id,
-        actorId: input.userId,
-        titleSnapshot: input.title,
-      },
-    });
-
-    return created;
+  const created = await createHomeworkForSection(input.userId, {
+    description: trimmedDescription || null,
+    isMajor: input.isMajor === true,
+    publishedAt: input.publishedAt,
+    requiresTeam: input.requiresTeam === true,
+    sectionId: input.sectionId,
+    submissionDueAt: input.submissionDueAt,
+    submissionStartAt: input.submissionStartAt,
+    title: input.title,
   });
+
+  if (!created) {
+    throw new Error("Resolved section was not found while creating homework");
+  }
+
+  return created;
 }

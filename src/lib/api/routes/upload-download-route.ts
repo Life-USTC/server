@@ -1,4 +1,5 @@
 import { buildContentDisposition } from "@/features/uploads/lib/upload-utils";
+import { findOwnedUpload } from "@/features/uploads/server/upload-service";
 import { handleRouteError, notFound } from "@/lib/api/helpers";
 import {
   parseUploadId,
@@ -24,11 +25,7 @@ export async function getUploadDownloadRoute(
   const id = parsed.id;
 
   try {
-    const { prisma } = await import("@/lib/db/prisma");
-    const upload = await prisma.upload.findFirst({
-      where: { id, userId },
-    });
-
+    const upload = await findOwnedUpload(id, userId);
     if (!upload) {
       return notFound();
     }

@@ -1,5 +1,9 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
+import {
+  HOMEWORK_DESCRIPTION_MAX_LENGTH,
+  HOMEWORK_TITLE_MAX_LENGTH,
+} from "@/features/homeworks/lib/homework-limits";
 import { mcpModeInputSchema } from "@/lib/mcp/tools/_helpers";
 import { updateHomeworkOnSectionTool } from "./homework-update-tool-handler";
 
@@ -11,8 +15,17 @@ export function registerUpdateHomeworkOnSectionTool(server: McpServer) {
         "Update a homework by ID and optionally replace/upsert its description. Requires collaborator permissions and unsuspended user.",
       inputSchema: {
         homeworkId: z.string().trim().min(1),
-        title: z.string().trim().min(1).max(200).optional(),
-        description: z.string().max(20000).optional().nullable(),
+        title: z
+          .string()
+          .trim()
+          .min(1)
+          .max(HOMEWORK_TITLE_MAX_LENGTH)
+          .optional(),
+        description: z
+          .string()
+          .max(HOMEWORK_DESCRIPTION_MAX_LENGTH)
+          .optional()
+          .nullable(),
         isMajor: z.boolean().optional(),
         requiresTeam: z.boolean().optional(),
         publishedAt: z.union([z.string(), z.null()]).optional(),

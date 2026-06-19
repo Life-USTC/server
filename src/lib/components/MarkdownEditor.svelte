@@ -5,6 +5,7 @@ import * as Tabs from "$lib/components/ui/tabs/index.js";
 import { Textarea } from "$lib/components/ui/textarea/index.js";
 
 export let disabled = false;
+export let campusReferences = false;
 export let guideHref = "/guides/markdown-support";
 export let guideLabel = "";
 export let isDragActive = false;
@@ -61,7 +62,7 @@ export { className as class };
     {:else}
       <div class="min-h-32 p-3">
         {#if value.trim()}
-          <MarkdownPreview content={value} />
+          <MarkdownPreview {campusReferences} content={value} />
         {:else}
           <p class="text-center text-base-content/50 text-sm italic">
             {previewEmptyLabel}

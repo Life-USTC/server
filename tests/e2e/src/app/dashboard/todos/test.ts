@@ -38,7 +38,7 @@ test.describe("dashboard todos", () => {
     await expect(page.locator("#main-content")).toBeVisible();
 
     await expect(
-      page.getByRole("tab", { name: /^(网站|Websites)$/i }),
+      page.getByRole("link", { name: /^(网站|Websites)$/i }),
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
@@ -78,7 +78,7 @@ test.describe("dashboard todos", () => {
     await signInAsDebugUser(page, "/dashboard/todos");
 
     const completedFilter = page
-      .getByRole("tab", { name: /已完成|Completed/i })
+      .getByRole("button", { name: /已完成|Completed/i })
       .first();
     const completedTodo = page.getByText(DEV_SEED.todos.completedTitle).first();
     await expect(async () => {

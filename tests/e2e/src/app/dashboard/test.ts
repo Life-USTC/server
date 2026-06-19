@@ -40,7 +40,7 @@ test.describe("dashboard", () => {
 
     // Public view shows bus + links tabs and sign-in CTA
     await expect(
-      page.getByRole("tab", { name: /^(校车|Shuttle Bus)$/i }),
+      page.getByRole("link", { name: /^(校车|Shuttle Bus)$/i }),
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
@@ -48,7 +48,7 @@ test.describe("dashboard", () => {
 
     // Auth-only tabs should not be present
     await expect(
-      page.getByRole("tab", { name: /^(总览|Overview)$/i }),
+      page.getByRole("link", { name: /^(总览|Overview)$/i }),
     ).toHaveCount(0);
 
     await captureStepScreenshot(page, testInfo, "home-public-with-tab");
@@ -75,7 +75,7 @@ test.describe("dashboard", () => {
       /日历|Calendar/i,
       /网站|Websites/i,
     ]) {
-      await expect(nav.getByRole("tab", { name: label })).toBeVisible();
+      await expect(nav.getByRole("link", { name: label })).toBeVisible();
     }
 
     // Seed homework title visible on overview. Retry the subscription+reload
@@ -103,7 +103,7 @@ test.describe("dashboard", () => {
     await signInAsDebugUser(page, "/");
 
     const homeworksTab = page
-      .getByRole("tab", { name: /作业|Homework/i })
+      .getByRole("link", { name: /作业|Homework/i })
       .first();
     await expect(homeworksTab).toBeVisible();
     await homeworksTab.click();
@@ -121,10 +121,10 @@ test.describe("dashboard", () => {
       screenshotLabel: "dashboard-links-path",
     });
     const linksDashboardTab = page
-      .getByRole("tab", { name: /网站|Websites/i })
+      .getByRole("link", { name: /网站|Websites/i })
       .first();
     await expect(linksDashboardTab).toBeVisible();
-    await expect(linksDashboardTab).toHaveAttribute("aria-selected", "true");
+    await expect(linksDashboardTab).toHaveAttribute("aria-current", "page");
     await expect(
       page.getByRole("searchbox", {
         name: /搜索网站名称或描述|Search by name or description/i,
@@ -133,18 +133,15 @@ test.describe("dashboard", () => {
 
     await signInAsDebugUser(page, "/dashboard/homeworks");
     const homeworksDashboardTab = page
-      .getByRole("tab", { name: /作业|Homework/i })
+      .getByRole("link", { name: /作业|Homework/i })
       .first();
     await expect(homeworksDashboardTab).toBeVisible();
-    await expect(homeworksDashboardTab).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
+    await expect(homeworksDashboardTab).toHaveAttribute("aria-current", "page");
 
     await gotoAndWaitForReady(page, "/dashboard/subscriptions");
     await expect(page).toHaveURL(/\/dashboard\/subscriptions(?:\?.*)?$/);
     await expect(
-      page.getByRole("tab", {
+      page.getByRole("link", {
         name: /Subscriptions|Section Management|订阅/i,
       }),
     ).toBeVisible();

@@ -37,6 +37,8 @@ function routeSectionRows(page: Page) {
 }
 
 test.describe("bus dashboard tab", () => {
+  test.describe.configure({ mode: "serial" });
+
   test("/bus returns 404 (redirect removed)", async ({ page }) => {
     const response = await page.goto("/bus");
     expect(response?.status()).toBe(404);
@@ -61,7 +63,7 @@ test.describe("bus dashboard tab", () => {
     });
 
     await expect(
-      page.getByRole("tab", { name: /Weekday|工作日/ }).first(),
+      page.getByRole("button", { name: /Weekday|工作日/ }).first(),
     ).toBeVisible();
     await expect(
       page.locator("[data-testid='bus-start-stop-group']"),
@@ -189,14 +191,14 @@ test.describe("bus dashboard tab", () => {
       .click();
 
     await page
-      .getByRole("tab", { name: /Weekday|工作日/ })
+      .getByRole("button", { name: /Weekday|工作日/ })
       .first()
       .click();
     const weekdayRows = await page.locator("tbody tr:visible").count();
     expect(weekdayRows).toBeGreaterThan(0);
 
     await page
-      .getByRole("tab", { name: /Weekend|周末/ })
+      .getByRole("button", { name: /Weekend|周末/ })
       .first()
       .click();
     await expect(page.locator("tbody tr:visible").first()).toBeVisible();
@@ -211,64 +213,79 @@ test.describe("bus dashboard tab", () => {
     page,
   }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/bus");
-    await page.request.post("/api/bus/preferences", {
-      data: {
-        preferredOriginCampusId: null,
-        preferredDestinationCampusId: null,
-        showDepartedTrips: false,
-      },
-    });
-    await gotoAndWaitForReady(page, "/dashboard/bus", {
-      testInfo,
-      screenshotLabel: "bus",
-    });
+    const originalResponse = await page.request.get("/api/bus/preferences");
+    expect(originalResponse.status()).toBe(200);
+    const original = (await originalResponse.json()) as {
+      preference?: {
+        preferredDestinationCampusId?: number | null;
+        preferredOriginCampusId?: number | null;
+        showDepartedTrips?: boolean;
+      };
+    };
 
-    const departedToggle = page.getByRole("checkbox", {
-      name: /Show departed trips|显示已发车班次/,
-    });
-    const [toggleSaveResponse] = await Promise.all([
-      page.waitForResponse(
-        (response) =>
-          response.url().includes("/api/bus/preferences") &&
-          response.request().method() === "POST",
-      ),
-      departedToggle.click(),
-    ]);
-    expect(toggleSaveResponse.ok()).toBe(true);
+    try {
+      await page.request.post("/api/bus/preferences", {
+        data: {
+          preferredOriginCampusId: null,
+          preferredDestinationCampusId: null,
+          showDepartedTrips: false,
+        },
+      });
+      await gotoAndWaitForReady(page, "/dashboard/bus", {
+        testInfo,
+        screenshotLabel: "bus",
+      });
 
-    const endSouthButton = page
-      .locator("[data-testid='bus-end-stop-group']")
-      .getByRole("button", { name: /南区/ });
-    if ((await endSouthButton.getAttribute("aria-pressed")) !== "true") {
-      const [stopSaveResponse] = await Promise.all([
+      const departedToggle = page.getByRole("checkbox", {
+        name: /Show departed trips|显示已发车班次/,
+      });
+      const [toggleSaveResponse] = await Promise.all([
         page.waitForResponse(
           (response) =>
             response.url().includes("/api/bus/preferences") &&
             response.request().method() === "POST",
         ),
-        endSouthButton.click(),
+        departedToggle.click(),
       ]);
-      expect(stopSaveResponse.ok()).toBe(true);
-    }
+      expect(toggleSaveResponse.ok()).toBe(true);
 
-    const response = await page.request.get("/api/bus/preferences");
-    const body = (await response.json()) as {
-      preference?: {
-        preferredOriginCampusId?: number | null;
-        preferredDestinationCampusId?: number | null;
+      const endSouthButton = page
+        .locator("[data-testid='bus-end-stop-group']")
+        .getByRole("button", { name: /南区/ });
+      if ((await endSouthButton.getAttribute("aria-pressed")) !== "true") {
+        const [stopSaveResponse] = await Promise.all([
+          page.waitForResponse(
+            (response) =>
+              response.url().includes("/api/bus/preferences") &&
+              response.request().method() === "POST",
+          ),
+          endSouthButton.click(),
+        ]);
+        expect(stopSaveResponse.ok()).toBe(true);
+      }
+
+      const response = await page.request.get("/api/bus/preferences");
+      const body = (await response.json()) as {
+        preference?: {
+          preferredOriginCampusId?: number | null;
+          preferredDestinationCampusId?: number | null;
+        };
       };
-    };
-    expect(body.preference?.preferredOriginCampusId).toBe(1);
-    expect(body.preference?.preferredDestinationCampusId).toBe(4);
+      expect(body.preference?.preferredOriginCampusId).toBe(1);
+      expect(body.preference?.preferredDestinationCampusId).toBe(4);
 
-    await page.request.post("/api/bus/preferences", {
-      data: {
-        preferredOriginCampusId: null,
-        preferredDestinationCampusId: null,
-        showDepartedTrips: false,
-      },
-    });
-
-    await captureStepScreenshot(page, testInfo, "bus-planner-autosave");
+      await captureStepScreenshot(page, testInfo, "bus-planner-autosave");
+    } finally {
+      const restoreResponse = await page.request.post("/api/bus/preferences", {
+        data: {
+          preferredOriginCampusId:
+            original.preference?.preferredOriginCampusId ?? null,
+          preferredDestinationCampusId:
+            original.preference?.preferredDestinationCampusId ?? null,
+          showDepartedTrips: original.preference?.showDepartedTrips ?? false,
+        },
+      });
+      expect(restoreResponse.status()).toBe(200);
+    }
   });
 });

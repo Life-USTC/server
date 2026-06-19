@@ -45,7 +45,12 @@ export let toggleReply: (comment: CommentNode) => void;
       {commentCopy.moreActions}
     </Button>
     {#if actionMenuId === comment.id}
-      <Menu.Root align="right">
+      <Menu.Root
+        align="right"
+        onClose={() => {
+          actionMenuId = null;
+        }}
+      >
         <Menu.Item onclick={() => copyCommentLink(comment)}>
           {commentCopy.copyLinkAction}
         </Menu.Item>

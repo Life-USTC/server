@@ -249,14 +249,25 @@ function expectMcpCorsHeaders(
   expect(exposeHeaders).toContain("www-authenticate");
 }
 
-async function resetBusPreference(request: Page["request"]) {
-  await request.post("/api/bus/preferences", {
+type BusPreference = {
+  preferredDestinationCampusId?: number | null;
+  preferredOriginCampusId?: number | null;
+  showDepartedTrips?: boolean;
+};
+
+async function saveBusPreference(
+  request: Page["request"],
+  preference: BusPreference,
+) {
+  const response = await request.post("/api/bus/preferences", {
     data: {
-      preferredOriginCampusId: null,
-      preferredDestinationCampusId: null,
-      showDepartedTrips: false,
+      preferredOriginCampusId: preference.preferredOriginCampusId ?? null,
+      preferredDestinationCampusId:
+        preference.preferredDestinationCampusId ?? null,
+      showDepartedTrips: preference.showDepartedTrips ?? false,
     },
   });
+  expect(response.status()).toBe(200);
 }
 
 test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
@@ -587,13 +598,15 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
     const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
     await signInAsDebugUser(page, "/");
     const currentUser = await getCurrentSessionUser(page);
-    await page.request.post("/api/bus/preferences", {
-      data: {
-        preferredOriginCampusId: 1,
-        preferredDestinationCampusId: 4,
-        showDepartedTrips: true,
-      },
-    });
+    const originalBusPreferenceResponse = await page.request.get(
+      "/api/bus/preferences",
+    );
+    expect(originalBusPreferenceResponse.status()).toBe(200);
+    const originalBusPreference = (
+      (await originalBusPreferenceResponse.json()) as {
+        preference?: BusPreference;
+      }
+    ).preference;
     const { accessToken } = await issueAccessToken(page, request, {
       scope: MCP_CLIENT_SCOPE,
       clientScopes: MCP_CLIENT_SCOPES,
@@ -647,6 +660,12 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
     });
 
     try {
+      await saveBusPreference(page.request, {
+        preferredOriginCampusId: 1,
+        preferredDestinationCampusId: 4,
+        showDepartedTrips: true,
+      });
+
       await page.request.post("/api/calendar-subscriptions", {
         data: { sectionIds: [seedSection.id] },
       });
@@ -1784,7 +1803,7 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       await page.request.post("/api/calendar-subscriptions", {
         data: { sectionIds: originalSectionIds },
       });
-      await resetBusPreference(page.request);
+      await saveBusPreference(page.request, originalBusPreference ?? {});
     }
   });
 });

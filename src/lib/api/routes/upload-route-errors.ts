@@ -1,6 +1,6 @@
 import { UploadError } from "@/features/uploads/lib/upload-quota";
+import { deleteUploadObject } from "@/features/uploads/server/upload-service";
 import { badRequest, handleRouteError } from "@/lib/api/helpers";
-import { deleteUploadObject } from "@/lib/api/routes/upload-session-actions";
 
 export function uploadCreateErrorResponse(error: unknown) {
   if (error instanceof UploadError) {

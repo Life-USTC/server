@@ -1,6 +1,5 @@
 import { parseRouteInput } from "@/lib/api/helpers";
 import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
-import { parseDateInput } from "@/lib/time/parse-date-input";
 
 export type IdParams = { id: string };
 
@@ -14,9 +13,4 @@ export function parseIdParam(params: IdParams, label: string) {
     resourceIdPathParamsSchema,
     `Invalid ${label} ID`,
   );
-}
-
-export function parseDate(value: string | null) {
-  const parsed = parseDateInput(value);
-  return parsed instanceof Date ? parsed : null;
 }

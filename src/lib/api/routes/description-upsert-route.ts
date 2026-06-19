@@ -2,6 +2,7 @@ import {
   type DescriptionTargetType,
   resolveDescriptionTarget,
 } from "@/features/descriptions/lib/description-targets";
+import { upsertDescriptionContent } from "@/features/descriptions/server/description-upsert";
 import {
   badRequest,
   handleRouteError,
@@ -15,7 +16,6 @@ import {
   getAuditRequestMetadata,
 } from "@/lib/audit/write-audit-log";
 import { requireWriteAuth } from "@/lib/auth/api-auth";
-import { upsertDescriptionContent } from "./description-upsert-mutation";
 
 export async function postDescriptionRoute(request: Request) {
   const parsedBody = await parseRouteJsonBody(

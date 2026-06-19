@@ -49,6 +49,14 @@ type PreferenceResponse = {
   };
 };
 
+async function saveBusPreference(
+  request: import("@playwright/test").APIRequestContext,
+  preference: PreferenceResponse["preference"],
+) {
+  const response = await request.post(PREF_BASE, { data: preference });
+  expect(response.status()).toBe(200);
+}
+
 test.describe("GET /api/bus", () => {
   test("returns raw timetable data with both weekday and weekend trips", async ({
     request,
@@ -150,6 +158,8 @@ test.describe("GET /api/bus", () => {
 });
 
 test.describe("/api/bus/preferences", () => {
+  test.describe.configure({ mode: "serial" });
+
   test("GET without auth returns 401", async ({ request }) => {
     const response = await request.get(PREF_BASE);
     expect(response.status()).toBe(401);
@@ -170,48 +180,72 @@ test.describe("/api/bus/preferences", () => {
     page,
   }) => {
     await signInAsDebugUser(page, "/");
+    const originalResponse = await page.request.get(PREF_BASE);
+    expect(originalResponse.status()).toBe(200);
+    const original = ((await originalResponse.json()) as PreferenceResponse)
+      .preference;
 
-    const response = await page.request.get(PREF_BASE);
-    expect(response.status()).toBe(200);
-    const body = (await response.json()) as PreferenceResponse;
+    try {
+      await saveBusPreference(page.request, {
+        preferredOriginCampusId: null,
+        preferredDestinationCampusId: null,
+        showDepartedTrips: false,
+      });
 
-    expect(body.preference?.preferredOriginCampusId).toBeNull();
-    expect(body.preference?.preferredDestinationCampusId).toBeNull();
-    expect(body.preference?.showDepartedTrips).toBe(false);
+      const response = await page.request.get(PREF_BASE);
+      expect(response.status()).toBe(200);
+      const body = (await response.json()) as PreferenceResponse;
+
+      expect(body.preference?.preferredOriginCampusId).toBeNull();
+      expect(body.preference?.preferredDestinationCampusId).toBeNull();
+      expect(body.preference?.showDepartedTrips).toBe(false);
+    } finally {
+      await saveBusPreference(page.request, {
+        preferredOriginCampusId: original?.preferredOriginCampusId ?? null,
+        preferredDestinationCampusId:
+          original?.preferredDestinationCampusId ?? null,
+        showDepartedTrips: original?.showDepartedTrips ?? false,
+      });
+    }
   });
 
   test("POST saves planner defaults and GET reads them back", async ({
     page,
   }) => {
     await signInAsDebugUser(page, "/");
+    const originalResponse = await page.request.get(PREF_BASE);
+    expect(originalResponse.status()).toBe(200);
+    const original = ((await originalResponse.json()) as PreferenceResponse)
+      .preference;
 
-    const saveResponse = await page.request.post(PREF_BASE, {
-      data: {
-        preferredOriginCampusId: 1,
-        preferredDestinationCampusId: 4,
-        showDepartedTrips: true,
-      },
-    });
-    expect(saveResponse.status()).toBe(200);
-    const saveBody = (await saveResponse.json()) as PreferenceResponse;
-    expect(saveBody.preference?.preferredOriginCampusId).toBe(1);
-    expect(saveBody.preference?.preferredDestinationCampusId).toBe(4);
-    expect(saveBody.preference?.showDepartedTrips).toBe(true);
+    try {
+      const saveResponse = await page.request.post(PREF_BASE, {
+        data: {
+          preferredOriginCampusId: 1,
+          preferredDestinationCampusId: 4,
+          showDepartedTrips: true,
+        },
+      });
+      expect(saveResponse.status()).toBe(200);
+      const saveBody = (await saveResponse.json()) as PreferenceResponse;
+      expect(saveBody.preference?.preferredOriginCampusId).toBe(1);
+      expect(saveBody.preference?.preferredDestinationCampusId).toBe(4);
+      expect(saveBody.preference?.showDepartedTrips).toBe(true);
 
-    const getResponse = await page.request.get(PREF_BASE);
-    expect(getResponse.status()).toBe(200);
-    const getBody = (await getResponse.json()) as PreferenceResponse;
-    expect(getBody.preference?.preferredOriginCampusId).toBe(1);
-    expect(getBody.preference?.preferredDestinationCampusId).toBe(4);
-    expect(getBody.preference?.showDepartedTrips).toBe(true);
-
-    await page.request.post(PREF_BASE, {
-      data: {
-        preferredOriginCampusId: null,
-        preferredDestinationCampusId: null,
-        showDepartedTrips: false,
-      },
-    });
+      const getResponse = await page.request.get(PREF_BASE);
+      expect(getResponse.status()).toBe(200);
+      const getBody = (await getResponse.json()) as PreferenceResponse;
+      expect(getBody.preference?.preferredOriginCampusId).toBe(1);
+      expect(getBody.preference?.preferredDestinationCampusId).toBe(4);
+      expect(getBody.preference?.showDepartedTrips).toBe(true);
+    } finally {
+      await saveBusPreference(page.request, {
+        preferredOriginCampusId: original?.preferredOriginCampusId ?? null,
+        preferredDestinationCampusId:
+          original?.preferredDestinationCampusId ?? null,
+        showDepartedTrips: original?.showDepartedTrips ?? false,
+      });
+    }
   });
 
   test("POST with invalid body returns 400", async ({ page }) => {
