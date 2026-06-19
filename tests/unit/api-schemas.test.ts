@@ -4,6 +4,7 @@ import {
   commentReactionRequestSchema,
   coursesQuerySchema,
   descriptionUpsertRequestSchema,
+  homeworkCompletionBatchRequestSchema,
   homeworkCreateRequestSchema,
   localeUpdateRequestSchema,
   matchSectionCodesRequestSchema,
@@ -56,6 +57,30 @@ describe("homeworkCreateRequestSchema", () => {
       title: "",
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("homeworkCompletionBatchRequestSchema", () => {
+  it("accepts completion updates", () => {
+    const result = homeworkCompletionBatchRequestSchema.safeParse({
+      items: [
+        { homeworkId: "homework-1", completed: true },
+        { homeworkId: "homework-2", completed: false },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects empty item lists and blank homework IDs", () => {
+    expect(
+      homeworkCompletionBatchRequestSchema.safeParse({ items: [] }).success,
+    ).toBe(false);
+    expect(
+      homeworkCompletionBatchRequestSchema.safeParse({
+        items: [{ homeworkId: "", completed: true }],
+      }).success,
+    ).toBe(false);
   });
 });
 

@@ -1958,6 +1958,46 @@
         }
       }
     },
+    "/api/homeworks/completions": {
+      "put": {
+        "operationId": "put-api-homeworks-completions",
+        "summary": "Update homework completions in a batch",
+        "tags": [
+          "Homeworks"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/homeworkCompletionBatchRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/homeworkCompletionBatchResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/locale": {
       "post": {
         "operationId": "setLocale",
@@ -4805,6 +4845,35 @@
         },
         "required": [
           "completed"
+        ]
+      },
+      "homeworkCompletionBatchRequestSchema": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "homeworkId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "completed": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "homeworkId",
+                "completed"
+              ]
+            }
+          }
+        },
+        "required": [
+          "items"
         ]
       },
       "localeUpdateRequestSchema": {
@@ -10297,6 +10366,97 @@
         "required": [
           "completed",
           "completedAt"
+        ],
+        "additionalProperties": false
+      },
+      "homeworkCompletionBatchResponseSchema": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "homeworkId": {
+                      "type": "string"
+                    },
+                    "completed": {
+                      "type": "boolean"
+                    },
+                    "completedAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "homeworkId",
+                    "completed",
+                    "completedAt"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "homeworkId": {
+                      "type": "string"
+                    },
+                    "completed": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "not_found",
+                            "deleted"
+                          ]
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "homeworkId",
+                    "completed",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "results"
         ],
         "additionalProperties": false
       },

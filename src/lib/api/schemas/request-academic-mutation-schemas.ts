@@ -26,6 +26,18 @@ export const homeworkCompletionRequestSchema = z.object({
   completed: z.boolean(),
 });
 
+export const homeworkCompletionBatchRequestSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        homeworkId: z.string().trim().min(1),
+        completed: z.boolean(),
+      }),
+    )
+    .min(1)
+    .max(100),
+});
+
 export const homeworkUpdateRequestSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
   publishedAt: z.union([z.string(), z.null()]).optional(),

@@ -1,5 +1,6 @@
 export {
   type HomeworkCreateRequest,
+  homeworkCompletionBatchRequestSchema,
   homeworkCompletionRequestSchema,
   homeworkCreateRequestSchema,
   homeworkUpdateRequestSchema,
