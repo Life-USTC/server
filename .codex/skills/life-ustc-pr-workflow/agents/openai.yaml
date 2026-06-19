@@ -1,0 +1,4 @@
+interface:
+  display_name: "Life USTC PR Workflow"
+  short_description: "End-to-end repo PR development flow"
+  default_prompt: "Use $life-ustc-pr-workflow to implement a repo change, verify it, publish a PR, and monitor checks."
