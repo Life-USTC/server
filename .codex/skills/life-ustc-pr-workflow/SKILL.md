@@ -1,6 +1,6 @@
 ---
-name: life-ustc-pr-workflow
-description: End-to-end development workflow for the Life-USTC/server repository. Use when implementing fixes or features, updating contracts/docs/tests, publishing or updating PRs, monitoring GitHub Actions and Cloudflare checks, or addressing PR review feedback in this repo.
+name: "life-ustc-pr-workflow"
+description: "End-to-end development workflow for the Life-USTC/server repository. Use when implementing fixes or features, updating contracts/docs/tests, publishing or updating PRs, monitoring GitHub Actions and Cloudflare checks, or addressing PR review feedback in this repo."
 ---
 
 # Life-USTC PR Workflow
