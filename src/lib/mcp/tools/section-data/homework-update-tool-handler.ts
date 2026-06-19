@@ -1,4 +1,5 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import { updateHomeworkDescription } from "@/features/homeworks/server/homework-description";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { findActiveSuspension } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
@@ -8,7 +9,6 @@ import {
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
 import { getHomeworkItemById } from "./homework-tool-helpers";
-import { updateHomeworkDescription } from "./homework-update-description";
 import {
   buildHomeworkUpdates,
   parseHomeworkUpdateDates,

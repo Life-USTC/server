@@ -12,6 +12,7 @@ const probeOnlyRoutes = new Set([
   "/api/homeworks",
   "/api/homeworks/[id]",
   "/api/homeworks/[id]/completion",
+  "/api/homeworks/completions",
   "/api/todos/[id]",
   "/api/uploads",
   "/api/uploads/[id]",
@@ -204,6 +205,40 @@ export async function assertApiContract(
       return;
     }
 
+    case "/api/courses/[jwId]": {
+      const response = await request.get(
+        `/api/courses/${DEV_SEED.course.jwId}`,
+      );
+      expect(response.status()).toBe(200);
+      const body = (await response.json()) as {
+        jwId?: number | null;
+        nameCn?: string | null;
+      };
+      expect(body.jwId).toBe(DEV_SEED.course.jwId);
+      expect(body.nameCn).toBe(DEV_SEED.course.nameCn);
+      return;
+    }
+
+    case "/api/teachers/[id]": {
+      const searchResponse = await request.get(
+        `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
+      );
+      expect(searchResponse.status()).toBe(200);
+      const searchBody = (await searchResponse.json()) as {
+        data?: Array<{ id?: number; nameCn?: string }>;
+      };
+      const teacher = searchBody.data?.find((entry) =>
+        entry.nameCn?.includes(DEV_SEED.teacher.nameCn),
+      );
+      expect(teacher?.id).toBeDefined();
+
+      const response = await request.get(`/api/teachers/${teacher?.id}`);
+      expect(response.status()).toBe(200);
+      const body = (await response.json()) as { nameCn?: string | null };
+      expect(body.nameCn).toContain(DEV_SEED.teacher.nameCn);
+      return;
+    }
+
     case "/api/schedules": {
       const section = await resolveSeedSectionMatch(request);
       const response = await request.get(
@@ -342,14 +377,7 @@ export async function assertApiContract(
         return;
       }
 
-      const fallbackResponse = await request.get(
-        routePath
-          .replace("[id]", "invalid-e2e")
-          .replace("[userId]", "invalid-e2e")
-          .replace("[jwId]", "invalid-e2e")
-          .replace("[...auth]", "session"),
-      );
-      expectSuccessfulResponse(fallbackResponse);
+      throw new Error(`No API contract assertion registered for ${routePath}`);
     }
   }
 }

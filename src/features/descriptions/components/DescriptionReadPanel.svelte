@@ -30,7 +30,7 @@ export let history: DescriptionHistoryItem[];
   {#if activePanelTab === "history"}
     <DescriptionHistoryList {copy} {formatDate} {history} />
   {:else if description.content}
-    <MarkdownPreview content={description.content} />
+    <MarkdownPreview campusReferences content={description.content} />
   {:else}
     <Alert>{copy.empty}</Alert>
   {/if}

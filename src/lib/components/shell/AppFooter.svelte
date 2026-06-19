@@ -43,7 +43,13 @@ export let toggleLocaleMenu: () => void;
           <span aria-hidden="true" class="font-semibold text-xs">文</span>
         </Button>
         {#if localeMenuOpen}
-          <Menu.Root align="right" class="bottom-full mb-2 mt-0 w-40">
+          <Menu.Root
+            align="right"
+            class="bottom-full mb-2 mt-0 w-40"
+            onClose={() => {
+              localeMenuOpen = false;
+            }}
+          >
             <Menu.Item
               checked={locale === "en-us"}
               onclick={() => setLocale("en-us")}

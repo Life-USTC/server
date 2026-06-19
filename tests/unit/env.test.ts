@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 describe("env validation", () => {
-  afterEach(() => {
+  afterEach(async () => {
+    const { setCloudflareRuntimeEnv } = await import(
+      "@/lib/cloudflare/runtime-env"
+    );
+    setCloudflareRuntimeEnv(null);
     vi.resetModules();
     vi.unstubAllEnvs();
   });
@@ -31,6 +35,27 @@ describe("env validation", () => {
     vi.stubEnv("APP_PHASE", "phase-production-build");
     vi.stubEnv("DATABASE_URL", "");
     vi.stubEnv("AUTH_SECRET", "");
+
+    const { loadEnv } = await import("@/app-env");
+    const loadedEnv = loadEnv();
+
+    expect(loadedEnv.NODE_ENV).toBe("production");
+    expect(loadedEnv.DATABASE_URL).toBeUndefined();
+  });
+
+  it("allows Cloudflare Hyperdrive to satisfy the runtime database requirement", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DATABASE_URL", "");
+    vi.stubEnv("AUTH_SECRET", "production-secret");
+
+    const { setCloudflareRuntimeEnv } = await import(
+      "@/lib/cloudflare/runtime-env"
+    );
+    setCloudflareRuntimeEnv({
+      HYPERDRIVE: {
+        connectionString: "postgresql://postgres:postgres@localhost:5432/app",
+      },
+    });
 
     const { loadEnv } = await import("@/app-env");
     const loadedEnv = loadEnv();

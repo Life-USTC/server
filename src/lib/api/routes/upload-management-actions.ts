@@ -1,3 +1,5 @@
-export { deleteUploadAction } from "./upload-delete-action";
-export { listUploadsAction } from "./upload-list-action";
-export { renameUploadAction } from "./upload-rename-action";
+export {
+  deleteUploadRecord,
+  listUploads,
+  renameUpload,
+} from "@/features/uploads/server/upload-service";

@@ -6,7 +6,6 @@ import AppHeader from "$lib/components/shell/AppHeader.svelte";
 import {
   cycleStoredThemeMode,
   loadStoredThemeMode,
-  setShellLocale,
 } from "$lib/components/shell/app-shell-actions";
 import {
   applyShellTheme,
@@ -18,6 +17,7 @@ import {
   type ThemeMode,
 } from "$lib/components/shell/layout-shell";
 import RouteLoadingBar from "$lib/components/shell/RouteLoadingBar.svelte";
+import { setClientLocale } from "$lib/locale/client-locale";
 import type {
   LayoutCopy,
   LayoutUserSummary,
@@ -72,7 +72,7 @@ function closeMenus() {
 }
 
 async function setLocale(locale: "en-us" | "zh-cn") {
-  await setShellLocale({
+  await setClientLocale({
     currentLocale: data.locale,
     locale,
     onBeforeRequest: closeMenus,

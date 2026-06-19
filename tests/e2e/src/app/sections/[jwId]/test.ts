@@ -228,10 +228,10 @@ test.describe("/sections/[jwId]", () => {
 
     await expect(async () => {
       const calendarTab = page
-        .getByRole("tab", { name: /日历|Calendar/i })
+        .getByRole("button", { name: /日历|Calendar/i })
         .first();
       await calendarTab.click();
-      await expect(calendarTab).toHaveAttribute("aria-selected", "true");
+      await expect(calendarTab).toHaveAttribute("aria-pressed", "true");
     }).toPass({
       timeout: 10_000,
       intervals: [250, 500, 1_000],
@@ -282,10 +282,10 @@ test.describe("/sections/[jwId]", () => {
 
     await expect(async () => {
       const calendarTab = page
-        .getByRole("tab", { name: /日历|Calendar/i })
+        .getByRole("button", { name: /日历|Calendar/i })
         .first();
       await calendarTab.click();
-      await expect(calendarTab).toHaveAttribute("aria-selected", "true");
+      await expect(calendarTab).toHaveAttribute("aria-pressed", "true");
     }).toPass({
       timeout: 10_000,
       intervals: [250, 500, 1_000],
@@ -348,14 +348,18 @@ test.describe("/sections/[jwId]", () => {
   test("tab switching works", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
-    const nextTab = page.locator('[role="tab"][aria-selected="false"]').first();
+    const nextTab = page
+      .locator('[role="button"][aria-pressed="false"]')
+      .first();
     if ((await nextTab.count()) > 0) {
       const nextTabLabel = ((await nextTab.textContent()) ?? "").trim();
       expect(nextTabLabel).toBeTruthy();
       await expect(async () => {
-        const targetTab = page.getByRole("tab", { name: nextTabLabel }).first();
+        const targetTab = page
+          .getByRole("button", { name: nextTabLabel })
+          .first();
         await targetTab.click();
-        await expect(targetTab).toHaveAttribute("aria-selected", "true");
+        await expect(targetTab).toHaveAttribute("aria-pressed", "true");
       }).toPass({
         timeout: 10_000,
         intervals: [250, 500, 1_000],
@@ -548,7 +552,7 @@ test.describe("/sections/[jwId]", () => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     const homeworksTab = page
-      .getByRole("tab", { name: /作业|Homework/i })
+      .getByRole("button", { name: /作业|Homework/i })
       .first();
     if ((await homeworksTab.count()) === 0) {
       await expect(page.locator("#main-content")).toBeVisible();
@@ -558,7 +562,7 @@ test.describe("/sections/[jwId]", () => {
 
     await expect(page.getByTestId("section-homeworks-cards")).toBeVisible();
     await page
-      .getByRole("tab", { name: /列表|List/i })
+      .getByRole("button", { name: /列表|List/i })
       .first()
       .click();
     await expect(page).toHaveURL(/homeworkView=list/);
@@ -587,7 +591,7 @@ test.describe("/sections/[jwId]", () => {
     await signInAsDebugUser(page, SECTION_URL);
 
     const homeworksTab = page
-      .getByRole("tab", { name: /作业|Homework/i })
+      .getByRole("button", { name: /作业|Homework/i })
       .first();
     if ((await homeworksTab.count()) === 0) {
       await expect(page.locator("#main-content")).toBeVisible();
@@ -690,10 +694,10 @@ test.describe("/sections/[jwId]", () => {
     await signInAsDevAdmin(page, SECTION_URL);
 
     const commentsTab = page
-      .getByRole("tab", { name: /评论|Comments/i })
+      .getByRole("button", { name: /评论|Comments/i })
       .first();
     await commentsTab.click();
-    await expect(commentsTab).toHaveAttribute("aria-selected", "true");
+    await expect(commentsTab).toHaveAttribute("aria-pressed", "true");
 
     // Post comment
     const body = `e2e-section-comment-${Date.now()}`;
@@ -827,10 +831,10 @@ test.describe("/sections/[jwId]", () => {
         await gotoAndWaitForReady(page, SECTION_URL);
       }
       const commentsTab = page
-        .getByRole("tab", { name: /评论|Comments/i })
+        .getByRole("button", { name: /评论|Comments/i })
         .first();
       await commentsTab.click();
-      await expect(commentsTab).toHaveAttribute("aria-selected", "true");
+      await expect(commentsTab).toHaveAttribute("aria-pressed", "true");
     }).toPass({
       timeout: 10_000,
       intervals: [250, 500, 1_000],

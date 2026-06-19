@@ -68,6 +68,7 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
   <label class="grid gap-2">
     <span class="font-medium text-sm">{homeworksCopy.descriptionLabel}</span>
     <MarkdownEditor
+      campusReferences
       disabled={isCreatingHomework}
       guideLabel={commentsCopy.markdownGuide}
       maxlength={HOMEWORK_DESCRIPTION_MAX_LENGTH}

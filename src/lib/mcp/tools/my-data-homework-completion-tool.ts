@@ -1,5 +1,5 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
-import { prisma } from "@/lib/db/prisma";
+import { setHomeworkCompletion } from "@/features/homeworks/server/homework-completion";
 import {
   getUserId,
   jsonToolResult,
@@ -20,50 +20,30 @@ export async function setMyHomeworkCompletionTool(
 ) {
   const resolvedMode = resolveMcpMode(mode);
   const userId = getUserId(extra.authInfo);
-  const homework = await prisma.homework.findUnique({
-    where: { id: homeworkId },
-    select: { id: true, deletedAt: true },
+  const result = await setHomeworkCompletion({
+    completed,
+    homeworkId,
+    userId,
   });
 
-  if (!homework || homework.deletedAt) {
+  if (!result.success) {
     return jsonToolResult({
       success: false,
-      message: "Homework not found",
+      message:
+        result.error.code === "deleted"
+          ? "Homework not found"
+          : result.error.message,
       hint: "Use list_my_homeworks or list_homeworks_by_section to confirm the homeworkId before updating completion.",
     });
   }
-
-  if (completed) {
-    const record = await prisma.homeworkCompletion.upsert({
-      where: { userId_homeworkId: { userId, homeworkId } },
-      update: { completedAt: new Date() },
-      create: { userId, homeworkId },
-    });
-
-    return jsonToolResult(
-      {
-        success: true,
-        completion: {
-          homeworkId,
-          completed: true,
-          completedAt: record.completedAt,
-        },
-      },
-      { mode: resolvedMode },
-    );
-  }
-
-  await prisma.homeworkCompletion.deleteMany({
-    where: { userId, homeworkId },
-  });
 
   return jsonToolResult(
     {
       success: true,
       completion: {
-        homeworkId,
-        completed: false,
-        completedAt: null,
+        homeworkId: result.homeworkId,
+        completed: result.completed,
+        completedAt: result.completedAt,
       },
     },
     { mode: resolvedMode },

@@ -25,3 +25,12 @@ test("/settings/profile alias is routed", async ({ page }, testInfo) => {
   await expect(page.locator("input#name")).toBeVisible();
   await captureStepScreenshot(page, testInfo, "settings-profile");
 });
+
+test("/settings invalid alias returns 404", async ({ page }) => {
+  await signInAsDebugUser(page, "/settings/profile");
+  await gotoAndWaitForReady(page, "/settings/not-a-tab", {
+    expectMainContent: false,
+  });
+
+  await expect(page.locator("h1")).toHaveText("404");
+});

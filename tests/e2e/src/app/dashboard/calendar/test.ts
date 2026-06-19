@@ -40,14 +40,14 @@ test.describe("dashboard calendar", () => {
 
     // Public view: links/bus tabs, sign-in CTA
     await expect(
-      page.getByRole("tab", { name: /^(网站|Websites)$/i }),
+      page.getByRole("link", { name: /^(网站|Websites)$/i }),
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
     ).toBeVisible();
     // Calendar tab NOT in public nav
     await expect(
-      page.getByRole("tab", { name: /^(日历|Calendar)$/i }),
+      page.getByRole("link", { name: /^(日历|Calendar)$/i }),
     ).toHaveCount(0);
 
     await captureStepScreenshot(page, testInfo, "calendar/unauthenticated");
@@ -140,23 +140,23 @@ test.describe("dashboard calendar", () => {
     });
 
     // calendar.yml: View tabs
-    const calendarTabs = page.getByRole("tablist", {
+    const calendarTabs = page.getByRole("group", {
       name: /日历|Calendar/i,
     });
-    const monthTab = calendarTabs.getByRole("tab", {
+    const monthTab = calendarTabs.getByRole("button", {
       name: /本月|This month/i,
     });
     await monthTab.click();
     await expect(page).toHaveURL(/calendarView=month/);
-    await expect(monthTab).toHaveAttribute("aria-selected", "true");
+    await expect(monthTab).toHaveAttribute("aria-pressed", "true");
     await captureStepScreenshot(page, testInfo, "calendar/month-view");
 
-    const weekTab = calendarTabs.getByRole("tab", {
+    const weekTab = calendarTabs.getByRole("button", {
       name: /本周|This week/i,
     });
     await weekTab.click();
     await expect(page).toHaveURL(/calendarView=week/);
-    await expect(weekTab).toHaveAttribute("aria-selected", "true");
+    await expect(weekTab).toHaveAttribute("aria-pressed", "true");
     await captureStepScreenshot(page, testInfo, "calendar/week-view");
   });
 

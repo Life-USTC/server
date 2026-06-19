@@ -1,0 +1,107 @@
+import type { Prisma } from "@/generated/prisma/client";
+import { getViewerContext } from "@/lib/auth/viewer-context";
+import { prisma } from "@/lib/db/prisma";
+import { updateHomeworkDescription } from "./homework-description";
+
+type HomeworkUpdateInput = {
+  description?: string | null;
+  updates: Prisma.HomeworkUpdateInput;
+};
+
+type HomeworkMutationError = "deleted" | "forbidden" | "not_found";
+
+export async function updateHomework(input: {
+  homeworkId: string;
+  update: HomeworkUpdateInput;
+  userId: string;
+}) {
+  const homework = await prisma.homework.findUnique({
+    where: { id: input.homeworkId },
+    select: { id: true, deletedAt: true },
+  });
+
+  if (!homework) {
+    return { ok: false as const, error: "not_found" as HomeworkMutationError };
+  }
+
+  if (homework.deletedAt) {
+    return { ok: false as const, error: "deleted" as HomeworkMutationError };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    if (Object.keys(input.update.updates).length > 1) {
+      await tx.homework.update({
+        where: { id: input.homeworkId },
+        data: input.update.updates,
+      });
+    }
+
+    await updateHomeworkDescription(tx, {
+      description: input.update.description,
+      homeworkId: input.homeworkId,
+      userId: input.userId,
+    });
+  });
+
+  return { ok: true as const };
+}
+
+export async function deleteHomework(input: {
+  allowAnyOwner?: boolean;
+  homeworkId: string;
+  userId: string;
+}) {
+  const [viewer, homework] = await Promise.all([
+    input.allowAnyOwner
+      ? Promise.resolve({ isAdmin: true })
+      : getViewerContext({
+          includeAdmin: true,
+          userId: input.userId,
+        }),
+    prisma.homework.findUnique({
+      where: { id: input.homeworkId },
+      select: {
+        id: true,
+        title: true,
+        createdById: true,
+        deletedAt: true,
+        sectionId: true,
+      },
+    }),
+  ]);
+
+  if (!homework) {
+    return { ok: false as const, error: "not_found" as HomeworkMutationError };
+  }
+
+  if (!viewer.isAdmin && homework.createdById !== input.userId) {
+    return { ok: false as const, error: "forbidden" as HomeworkMutationError };
+  }
+
+  if (homework.deletedAt) {
+    return { ok: true as const, alreadyDeleted: true };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.homework.update({
+      where: { id: input.homeworkId },
+      data: {
+        deletedAt: new Date(),
+        deletedById: input.userId,
+        updatedById: input.userId,
+      },
+    });
+
+    await tx.homeworkAuditLog.create({
+      data: {
+        action: "deleted",
+        sectionId: homework.sectionId,
+        homeworkId: homework.id,
+        actorId: input.userId,
+        titleSnapshot: homework.title,
+      },
+    });
+  });
+
+  return { ok: true as const, alreadyDeleted: false };
+}

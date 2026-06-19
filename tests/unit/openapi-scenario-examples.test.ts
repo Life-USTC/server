@@ -22,6 +22,7 @@ const OPENAPI_HTTP_METHODS = [
   "put",
   "patch",
   "delete",
+  "options",
   "head",
 ] as const;
 
@@ -138,6 +139,17 @@ describe("buildScenarioOpenApiExamples", () => {
       "Update one comment",
     );
     expect(spec.paths["/api/auth/{auth}"]).toBeUndefined();
-    expect(spec.paths["/api/mcp"]).toBeUndefined();
+    expect(spec.paths["/api/mcp"]?.get?.summary).toBe(
+      "Open an MCP Streamable HTTP transport session",
+    );
+    expect(spec.paths["/api/mcp"]?.post?.summary).toBe(
+      "Send an MCP Streamable HTTP JSON-RPC message",
+    );
+    expect(spec.paths["/api/mcp"]?.delete?.summary).toBe(
+      "Close an MCP Streamable HTTP transport session",
+    );
+    expect(spec.paths["/api/mcp"]?.options?.summary).toBe(
+      "Return MCP transport CORS preflight headers",
+    );
   });
 });

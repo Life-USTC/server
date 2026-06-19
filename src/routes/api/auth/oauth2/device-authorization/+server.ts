@@ -5,4 +5,10 @@ import {
 import { svelteRequestHandler } from "@/lib/api/svelte-route";
 
 export const OPTIONS = svelteRequestHandler(deviceAuthorizationOptionsRoute);
+
+/**
+ * Start OAuth 2.0 device authorization.
+ * @response 200
+ * @response 400:openApiErrorSchema
+ */
 export const POST = svelteRequestHandler(deviceAuthorizationPostRoute);

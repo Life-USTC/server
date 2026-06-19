@@ -147,7 +147,9 @@ test("/admin/moderation 目标链接可跳转到原页面锚点", async ({
   await signInAsDevAdmin(page, sectionPath);
   await gotoAndWaitForReady(page, sectionPath);
 
-  const commentsTab = page.getByRole("tab", { name: /评论|Comments/i }).first();
+  const commentsTab = page
+    .getByRole("button", { name: /评论|Comments/i })
+    .first();
   await expect(commentsTab).toBeVisible();
   await commentsTab.click();
 
@@ -275,11 +277,11 @@ test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
   try {
     await expect(async () => {
       const commentsTab = page
-        .getByRole("tab", { name: /评论|Comments/i })
+        .getByRole("button", { name: /评论|Comments/i })
         .first();
       await expect(commentsTab).toBeVisible();
       await commentsTab.click();
-      await expect(commentsTab).toHaveAttribute("aria-selected", "true");
+      await expect(commentsTab).toHaveAttribute("aria-pressed", "true");
     }).toPass({
       timeout: 10_000,
       intervals: [250, 500, 1_000],
@@ -352,7 +354,7 @@ test("/admin/moderation description governance table visible", async ({
   await signInAsDevAdmin(page, "/admin/moderation");
 
   // admin.yml moderation.display.fields: Description moderation table
-  const descTab = page.getByRole("tab", { name: /简介|Description/i }).first();
+  const descTab = page.getByRole("link", { name: /简介|Description/i }).first();
   if ((await descTab.count()) > 0) {
     await descTab.click();
     // description.content / preview visible
@@ -391,7 +393,7 @@ test("/admin/moderation homework governance accessible", async ({
   await signInAsDevAdmin(page, "/admin/moderation");
 
   // admin.yml moderation.display.fields (via homework.yml → homework-governance)
-  const hwTab = page.getByRole("tab", { name: /作业|Homework/i }).first();
+  const hwTab = page.getByRole("link", { name: /作业|Homework/i }).first();
   if ((await hwTab.count()) > 0) {
     await hwTab.click();
     await captureStepScreenshot(

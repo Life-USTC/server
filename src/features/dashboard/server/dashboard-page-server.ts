@@ -1,3 +1,4 @@
+import { isSignedDashboardTab } from "@/features/dashboard/lib/dashboard-nav";
 import { parseInteger } from "@/lib/api/request-integers";
 import { allowE2EDebugAuth } from "@/lib/auth/auth-config";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
@@ -13,17 +14,6 @@ export {
   TODO_TITLE_MAX_LENGTH,
 } from "@/features/dashboard/lib/dashboard-limits";
 
-const SIGNED_IN_TABS = new Set([
-  "overview",
-  "calendar",
-  "bus",
-  "links",
-  "homeworks",
-  "todos",
-  "exams",
-  "subscriptions",
-]);
-
 export async function getDashboardUserId(request: Request) {
   if (!hasRequestAuthSignal(request.headers)) return null;
   const { getSessionFromHeaders } = await import("@/lib/auth/core");
@@ -31,7 +21,7 @@ export async function getDashboardUserId(request: Request) {
 }
 
 export function normalizeDashboardTab(tab: string | null, signedIn: boolean) {
-  if (signedIn && tab && SIGNED_IN_TABS.has(tab)) return tab;
+  if (signedIn && isSignedDashboardTab(tab)) return tab;
   if (signedIn) return "overview";
   return tab === "links" ? "links" : "bus";
 }

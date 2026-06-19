@@ -1,13 +1,12 @@
-import { prisma } from "@/lib/db/prisma";
+import { deleteOwnedTodo } from "@/features/todos/server/todo-service";
 import {
   getUserId,
   jsonToolResult,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
-import {
-  findOwnedTodo,
-  type McpMode,
-  type ToolExtra,
+import type {
+  McpMode,
+  ToolExtra,
 } from "@/lib/mcp/tools/profile-tool-todo-common";
 
 export async function deleteMyTodoAction(
@@ -15,23 +14,14 @@ export async function deleteMyTodoAction(
   extra: ToolExtra,
 ) {
   const userId = getUserId(extra.authInfo);
-  const todo = await findOwnedTodo(id);
+  const result = await deleteOwnedTodo(id, userId);
 
-  if (!todo) {
+  if (!result.ok) {
     return jsonToolResult({
       success: false,
-      message: "Todo not found",
+      message: result.error === "not_found" ? "Todo not found" : "Forbidden",
     });
   }
-
-  if (todo.userId !== userId) {
-    return jsonToolResult({
-      success: false,
-      message: "Forbidden",
-    });
-  }
-
-  await prisma.todo.delete({ where: { id } });
   return jsonToolResult(
     {
       success: true,

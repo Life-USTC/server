@@ -35,7 +35,7 @@ export let userMenuOpen: boolean;
       {/if}
     </Button>
     {#if userMenuOpen}
-      <Menu.Root align="right" class="w-44">
+      <Menu.Root align="right" class="w-44" onClose={closeMenus}>
         <Menu.Item href="/" onclick={closeMenus}>
           {copy.menu.home}
         </Menu.Item>

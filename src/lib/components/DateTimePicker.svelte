@@ -14,6 +14,7 @@ import { cn } from "$lib/utils.js";
 export let disabled = false;
 export let name: string | undefined = undefined;
 export let placeholder = "";
+export let calendarButtonLabel: string | undefined = undefined;
 export let value = "";
 export let defaultTime = "23:59";
 let className = "";
@@ -51,6 +52,8 @@ function handleInput(event: Event) {
 $: if ((value ?? "") !== lastSyncedValue) {
   syncFromValue(value ?? "");
 }
+
+$: resolvedCalendarButtonLabel = calendarButtonLabel ?? placeholder;
 </script>
 
 <div class={cn("relative min-w-0", className)}>
@@ -69,7 +72,7 @@ $: if ((value ?? "") !== lastSyncedValue) {
       {#snippet child({ props })}
         <Button
           {...props}
-          aria-label="Select date"
+          aria-label={resolvedCalendarButtonLabel}
           class="absolute end-1 top-1/2 size-7 -translate-y-1/2"
           disabled={disabled}
           size="icon-sm"

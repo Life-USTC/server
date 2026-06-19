@@ -1,4 +1,5 @@
 import { error } from "@sveltejs/kit";
+import { isSignedDashboardTab } from "@/features/dashboard/lib/dashboard-nav";
 import {
   actions as dashboardActions,
   load as loadDashboard,
@@ -7,18 +8,8 @@ import type { PageServerLoad } from "./$types";
 
 type DashboardLoadEvent = Parameters<typeof loadDashboard>[0];
 
-const DASHBOARD_TABS = new Set([
-  "overview",
-  "calendar",
-  "bus",
-  "links",
-  "homeworks",
-  "todos",
-  "exams",
-  "subscriptions",
-]);
 export const load: PageServerLoad = async (event) => {
-  if (!DASHBOARD_TABS.has(event.params.tab)) {
+  if (!isSignedDashboardTab(event.params.tab)) {
     error(404, "Dashboard page not found");
   }
 

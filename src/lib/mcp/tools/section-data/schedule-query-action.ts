@@ -10,6 +10,7 @@ import {
   buildScheduleListWhere,
   publicScheduleInclude,
 } from "@/lib/schedule-queries";
+import { serializeScheduleTimeFields } from "@/lib/schedule-serialization";
 
 type McpModeInput = Parameters<typeof resolveMcpMode>[0];
 
@@ -78,7 +79,7 @@ export async function querySchedulesAction({
 
   return jsonToolResult(
     buildPaginatedResponse(
-      schedules,
+      schedules.map(serializeScheduleTimeFields),
       pagination.page,
       pagination.pageSize,
       total,

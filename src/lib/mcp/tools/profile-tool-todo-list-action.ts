@@ -1,10 +1,10 @@
+import { todoSnapshotSelect } from "@/features/todos/server/todo-service";
 import { prisma } from "@/lib/db/prisma";
 import {
   getUserId,
   jsonToolResult,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
-import { todoSnapshotSelect } from "@/lib/mcp/tools/profile-tool-helpers";
 import type {
   McpMode,
   ToolExtra,

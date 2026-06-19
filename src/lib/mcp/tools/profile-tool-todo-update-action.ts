@@ -1,19 +1,17 @@
-import { prisma } from "@/lib/db/prisma";
+import {
+  getTodoSnapshot,
+  updateOwnedTodo,
+} from "@/features/todos/server/todo-service";
 import {
   getUserId,
   jsonToolResult,
   parseOptionalFieldDate,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
-import {
-  buildTodoUpdateInput,
-  todoSnapshotSelect,
-} from "@/lib/mcp/tools/profile-tool-helpers";
-import {
-  findOwnedTodo,
-  type McpMode,
-  type TodoPriority,
-  type ToolExtra,
+import type {
+  McpMode,
+  TodoPriority,
+  ToolExtra,
 } from "@/lib/mcp/tools/profile-tool-todo-common";
 
 export async function updateMyTodoAction(
@@ -37,53 +35,38 @@ export async function updateMyTodoAction(
   extra: ToolExtra,
 ) {
   const userId = getUserId(extra.authInfo);
-  const todo = await findOwnedTodo(id);
-
-  if (!todo) {
-    return jsonToolResult({
-      success: false,
-      message: "Todo not found",
-    });
-  }
-
-  if (todo.userId !== userId) {
-    return jsonToolResult({
-      success: false,
-      message: "Forbidden",
-    });
-  }
-
   const hasDueAt = dueAt !== undefined;
   const parsedDueAt = parseOptionalFieldDate("dueAt", dueAt, hasDueAt);
   if (!parsedDueAt.ok) {
     return parsedDueAt.result;
   }
 
-  const updates = buildTodoUpdateInput({
-    completed,
-    content,
-    dueAt: parsedDueAt.value,
-    hasDueAt,
-    priority,
-    title,
+  const result = await updateOwnedTodo({
+    id,
+    userId,
+    data: {
+      completed,
+      content,
+      dueAt: parsedDueAt.value,
+      hasDueAt,
+      priority,
+      title,
+    },
   });
 
-  if (Object.keys(updates).length === 0) {
+  if (!result.ok) {
     return jsonToolResult({
       success: false,
-      message: "No changes",
+      message:
+        result.error === "not_found"
+          ? "Todo not found"
+          : result.error === "forbidden"
+            ? "Forbidden"
+            : "No changes",
     });
   }
 
-  await prisma.todo.update({
-    where: { id },
-    data: updates,
-  });
-
-  const updatedTodo = await prisma.todo.findUnique({
-    where: { id },
-    select: todoSnapshotSelect,
-  });
+  const updatedTodo = await getTodoSnapshot(id);
 
   return jsonToolResult(
     {

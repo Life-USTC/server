@@ -2,7 +2,7 @@
  * E2E tests for PATCH /api/homeworks/[id] and DELETE /api/homeworks/[id].
  *
  * ## PATCH /api/homeworks/[id]
- * - Body: { title?, sectionId?, publishedAt?, submissionStartAt?, submissionDueAt? }
+ * - Body: { title?, description?, publishedAt?, submissionStartAt?, submissionDueAt? }
  * - Response: { success: true }
  * - Auth required (401 if unauthenticated)
  * - Returns 404 for non-existent homework
@@ -85,16 +85,19 @@ test("/api/homeworks/[id] PATCH 未登录返回 401", async ({ request }) => {
   expect(response.status()).toBe(401);
 });
 
-test("/api/homeworks/[id] PATCH 登录后可更新作业标题", async ({ page }) => {
+test("/api/homeworks/[id] PATCH 登录后可更新作业标题和描述", async ({
+  page,
+}) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
   const homeworkId = await createTempHomework(page.request, sectionId);
 
   try {
     const newTitle = `e2e-homework-title-${Date.now()}`;
+    const newDescription = `e2e-homework-description-${Date.now()}`;
     const patchResponse = await page.request.patch(
       `/api/homeworks/${homeworkId}`,
-      { data: { title: newTitle } },
+      { data: { title: newTitle, description: newDescription } },
     );
     expect(patchResponse.status()).toBe(200);
     expect((await patchResponse.json()) as { success?: boolean }).toMatchObject(
@@ -106,11 +109,18 @@ test("/api/homeworks/[id] PATCH 登录后可更新作业标题", async ({ page }
       `/api/homeworks?sectionId=${sectionId}`,
     );
     const listBody = (await listResponse.json()) as {
-      homeworks?: Array<{ id?: string; title?: string }>;
+      homeworks?: Array<{
+        description?: { content?: string | null } | null;
+        id?: string;
+        title?: string;
+      }>;
     };
     expect(
       listBody.homeworks?.some(
-        (h) => h.id === homeworkId && h.title === newTitle,
+        (h) =>
+          h.id === homeworkId &&
+          h.title === newTitle &&
+          h.description?.content === newDescription,
       ),
     ).toBe(true);
   } finally {

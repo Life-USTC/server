@@ -1,16 +1,17 @@
+import {
+  createAdminSuspension,
+  liftAdminSuspension,
+  listAdminSuspensions,
+} from "@/features/admin/server/admin-api-service";
 import { withAdminApiRoute } from "@/lib/admin-api";
-import { parseRouteJsonBody } from "@/lib/api/helpers";
+import { jsonResponse, notFound, parseRouteJsonBody } from "@/lib/api/helpers";
 import { adminCreateSuspensionRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { type IdParams, parseIdParam } from "./admin-shared";
-import {
-  createAdminSuspensionAction,
-  liftAdminSuspensionAction,
-  listAdminSuspensionsAction,
-} from "./admin-suspension-actions";
 
 export async function getAdminSuspensionsRoute(request: Request) {
   return withAdminApiRoute(request, "Failed to fetch suspensions", async () => {
-    return listAdminSuspensionsAction();
+    const suspensions = await listAdminSuspensions();
+    return jsonResponse({ suspensions });
   });
 }
 
@@ -23,7 +24,10 @@ export async function postAdminSuspensionRoute(request: Request) {
     );
     if (parsedBody instanceof Response) return parsedBody;
 
-    return createAdminSuspensionAction(admin.userId, parsedBody);
+    const result = await createAdminSuspension(admin.userId, parsedBody);
+    if (!result.ok) return notFound("User not found");
+
+    return jsonResponse({ suspension: result.suspension });
   });
 }
 
@@ -39,7 +43,10 @@ export async function patchAdminSuspensionRoute(
       if (parsed instanceof Response) return parsed;
       const id = parsed.id;
 
-      return liftAdminSuspensionAction(admin.userId, id);
+      const result = await liftAdminSuspension(admin.userId, id);
+      if (!result.ok) return notFound();
+
+      return jsonResponse({ suspension: result.suspension });
     },
   );
 }

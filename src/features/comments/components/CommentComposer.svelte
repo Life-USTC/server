@@ -51,6 +51,7 @@ export let visibilityOptions: CommentSelectOption[];
     />
     <MarkdownEditor
       bind:value={body}
+      campusReferences
       disabled={!viewer.isAuthenticated || viewer.isSuspended}
       guideLabel={commentCopy.markdownGuide}
       {isDragActive}

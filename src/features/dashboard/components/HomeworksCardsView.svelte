@@ -48,7 +48,7 @@ export let toggleHomeworkCompletion: (
           {/if}
         </div>
         <p class="text-base-content/60 text-sm">
-          {homework.section?.courseName ?? homeworkCopy.section} · {homeworkCopy.due}
+          {homework.section?.courseName ?? homeworkCopy.section} · {homeworkCopy.due}:
           {fmtDate(homework.submissionDueAt)}
         </p>
         <div class="flex flex-wrap gap-2">

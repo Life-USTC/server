@@ -1,5 +1,7 @@
-import { resolveDashboardLinkBySlug } from "@/features/dashboard-links/server/route-helpers";
-import { recordDashboardLinkClick } from "@/lib/api/routes/dashboard-link-actions";
+import {
+  recordDashboardLinkClick,
+  resolveDashboardLinkBySlug,
+} from "@/features/dashboard-links/server/dashboard-link-service";
 import {
   dashboardLinkVisitQuerySchema,
   dashboardLinkVisitRequestSchema,

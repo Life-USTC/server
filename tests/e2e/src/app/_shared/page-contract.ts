@@ -106,7 +106,7 @@ export async function assertPageContract(
     await gotoContractPage(page, routePath, testInfo);
     await expectMainContent(page);
     await expect(
-      page.getByRole("tab", { name: /总览|Overview|Calendar|日历/i }),
+      page.getByRole("link", { name: /总览|Overview|Calendar|日历/i }),
     ).toBeVisible({ timeout: 10_000 });
     return;
   }
@@ -157,7 +157,7 @@ export async function assertPageContract(
         page.getByRole("heading", { name: /内容审核|Moderation/i }),
       ).toBeVisible();
       await expect(
-        page.getByRole("tab", { name: /评论|Comments/i }),
+        page.getByRole("link", { name: /评论|Comments/i }),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "admin-moderation");
       return;
@@ -466,10 +466,10 @@ export async function assertPageContract(
       await expectMainContent(page);
       // Public home defaults to bus tab with bus+links grouped as public queries
       await expect(
-        page.getByRole("tab", { name: /^(校车|Shuttle Bus)$/i }),
+        page.getByRole("link", { name: /^(校车|Shuttle Bus)$/i }),
       ).toBeVisible();
       await expect(
-        page.getByRole("tab", { name: /^(网站|Websites)$/i }),
+        page.getByRole("link", { name: /^(网站|Websites)$/i }),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "home");
       return;

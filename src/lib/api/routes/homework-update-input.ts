@@ -7,6 +7,7 @@ import { badRequest } from "@/lib/api/helpers";
 
 export function parseUpdateHomeworkInput(
   parsedBody: {
+    description?: string | null;
     isMajor?: boolean | null;
     publishedAt?: string | null;
     requiresTeam?: boolean | null;
@@ -17,6 +18,7 @@ export function parseUpdateHomeworkInput(
   userId: string,
 ) {
   const title = parsedBody.title;
+  const hasDescription = Object.hasOwn(parsedBody, "description");
   const hasPublishedAt = Object.hasOwn(parsedBody, "publishedAt");
   const hasSubmissionStartAt = Object.hasOwn(parsedBody, "submissionStartAt");
   const hasSubmissionDueAt = Object.hasOwn(parsedBody, "submissionDueAt");
@@ -43,6 +45,7 @@ export function parseUpdateHomeworkInput(
 
   const userFieldCount = [
     title !== undefined,
+    hasDescription,
     parsedBody.isMajor !== undefined,
     parsedBody.requiresTeam !== undefined,
     hasPublishedAt,
@@ -73,5 +76,8 @@ export function parseUpdateHomeworkInput(
     updates.submissionDueAt = submissionDueAt;
   }
 
-  return updates;
+  return {
+    description: hasDescription ? (parsedBody.description ?? null) : undefined,
+    updates,
+  };
 }

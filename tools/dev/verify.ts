@@ -1,4 +1,20 @@
+import { readFile } from "node:fs/promises";
 import { runCommand, runMain } from "./run-steps";
+
+const OPENAPI_GENERATED_PATH = "public/openapi.generated.json";
+
+async function ensureGeneratedOpenApiFresh() {
+  const before = await readFile(OPENAPI_GENERATED_PATH, "utf8");
+  await runCommand("bun", ["run", "tools/build/openapi/generate-spec.ts"], {
+    quiet: true,
+  });
+  const after = await readFile(OPENAPI_GENERATED_PATH, "utf8");
+  if (before !== after) {
+    throw new Error(
+      `${OPENAPI_GENERATED_PATH} was stale. Re-run verify after reviewing and keeping the generated diff.`,
+    );
+  }
+}
 
 async function runDefaultVerify() {
   await runCommand("bun", ["run", "biome", "check"], { quiet: true });
@@ -11,6 +27,8 @@ async function runDefaultVerify() {
   await runCommand("bun", ["--silent", "run", "tools/dev/check.ts", "i18n"]);
   await runCommand("bun", ["--silent", "run", "tools/dev/check.ts", "routes"]);
   await runCommand("bun", ["run", "svelte-kit", "sync"], { quiet: true });
+  await runCommand("bun", ["run", "db", "generate"], { quiet: true });
+  await ensureGeneratedOpenApiFresh();
   await runCommand(
     "bun",
     ["run", "svelte-check", "--tsconfig", "./tsconfig.json"],

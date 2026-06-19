@@ -24,25 +24,41 @@ function normalizeMarkdownInput(value: string) {
   return value.replace(/^::::/gm, ":::");
 }
 
-const processor = unified()
-  .use(remarkParse)
-  .use(remarkGfm)
-  .use(remarkMath)
-  .use(remarkDirective)
-  .use(remarkEmoji)
-  .use(remarkCalloutDirectives)
-  .use(remarkImageAttributes)
-  .use(remarkInlineExtensions)
-  .use(remarkCampusReferences)
-  .use(remarkRehype)
-  .use(rehypeAttr, {})
-  .use(rehypeSanitize, markdownSanitizeSchema)
-  .use(rehypeKatex)
-  .use(rehypeNormalizeMarkdownElements)
-  .use(rehypeStringify);
+function createProcessor(options: { campusReferences?: boolean } = {}) {
+  const processor = unified()
+    .use(remarkParse)
+    .use(remarkGfm)
+    .use(remarkMath)
+    .use(remarkDirective)
+    .use(remarkEmoji)
+    .use(remarkCalloutDirectives)
+    .use(remarkImageAttributes)
+    .use(remarkInlineExtensions);
 
-export function renderMarkdown(value: string) {
+  if (options.campusReferences) {
+    processor.use(remarkCampusReferences);
+  }
+
+  return processor
+    .use(remarkRehype)
+    .use(rehypeAttr, {})
+    .use(rehypeSanitize, markdownSanitizeSchema)
+    .use(rehypeKatex)
+    .use(rehypeNormalizeMarkdownElements)
+    .use(rehypeStringify);
+}
+
+const defaultProcessor = createProcessor();
+const campusReferencesProcessor = createProcessor({ campusReferences: true });
+
+export function renderMarkdown(
+  value: string,
+  options: { campusReferences?: boolean } = {},
+) {
   try {
+    const processor = options.campusReferences
+      ? campusReferencesProcessor
+      : defaultProcessor;
     return String(processor.processSync(normalizeMarkdownInput(value)));
   } catch {
     return "";

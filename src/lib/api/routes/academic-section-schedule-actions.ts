@@ -1,4 +1,8 @@
 import { jsonResponse, notFound } from "@/lib/api/helpers";
+import {
+  serializeScheduleGroupTimeFields,
+  serializeScheduleTimeFields,
+} from "@/lib/schedule-serialization";
 
 export async function getSectionSchedulesAction(parsedJwId: number) {
   const { getPrisma } = await import("@/lib/db/prisma");
@@ -33,7 +37,7 @@ export async function getSectionSchedulesAction(parsedJwId: number) {
     return notFound("Section not found");
   }
 
-  return jsonResponse(section.schedules);
+  return jsonResponse(section.schedules.map(serializeScheduleTimeFields));
 }
 
 export async function getSectionScheduleGroupsAction(parsedJwId: number) {
@@ -52,5 +56,7 @@ export async function getSectionScheduleGroupsAction(parsedJwId: number) {
     return notFound("Section not found");
   }
 
-  return jsonResponse(section.scheduleGroups);
+  return jsonResponse(
+    section.scheduleGroups.map(serializeScheduleGroupTimeFields),
+  );
 }

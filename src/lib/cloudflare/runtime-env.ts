@@ -39,7 +39,9 @@ export function setCloudflareRuntimeEnv(env: unknown) {
   if (env && typeof env === "object") {
     globalForCloudflareRuntime.__lifeUstcCloudflareRuntimeEnv =
       env as CloudflareRuntimeEnv;
+    return;
   }
+  delete globalForCloudflareRuntime.__lifeUstcCloudflareRuntimeEnv;
 }
 
 export function getCloudflareRuntimeEnvInput(): NodeJS.ProcessEnv {

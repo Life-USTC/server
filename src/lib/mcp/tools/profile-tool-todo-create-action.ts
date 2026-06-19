@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db/prisma";
+import { createTodo } from "@/features/todos/server/todo-service";
 import {
   getUserId,
   jsonToolResult,
@@ -33,15 +33,12 @@ export async function createMyTodoAction(
     return parsedDueAt.result;
   }
 
-  const todo = await prisma.todo.create({
-    select: { id: true },
-    data: {
-      userId,
-      title,
-      content: content?.trim() || null,
-      priority,
-      dueAt: parsedDueAt.value,
-    },
+  const todo = await createTodo({
+    userId,
+    title,
+    content,
+    priority,
+    dueAt: parsedDueAt.value,
   });
 
   return jsonToolResult(

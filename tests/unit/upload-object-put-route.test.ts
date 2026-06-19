@@ -1,15 +1,21 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { findUniqueMock, putStorageObjectMock, requireAuthMock } = vi.hoisted(
-  () => ({
-    findUniqueMock: vi.fn(),
-    putStorageObjectMock: vi.fn(),
-    requireAuthMock: vi.fn(),
-  }),
-);
+const {
+  deleteStorageObjectMock,
+  findUniqueMock,
+  headStorageObjectMock,
+  putStorageObjectMock,
+  requireWriteAuthMock,
+} = vi.hoisted(() => ({
+  deleteStorageObjectMock: vi.fn(),
+  findUniqueMock: vi.fn(),
+  headStorageObjectMock: vi.fn(),
+  putStorageObjectMock: vi.fn(),
+  requireWriteAuthMock: vi.fn(),
+}));
 
 vi.mock("@/lib/auth/api-auth", () => ({
-  requireAuth: requireAuthMock,
+  requireWriteAuth: requireWriteAuthMock,
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
@@ -21,6 +27,8 @@ vi.mock("@/lib/db/prisma", () => ({
 }));
 
 vi.mock("@/lib/storage/r2-object", () => ({
+  deleteStorageObject: deleteStorageObjectMock,
+  headStorageObject: headStorageObjectMock,
   putStorageObject: putStorageObjectMock,
 }));
 
@@ -44,14 +52,16 @@ function uploadRequest(input: {
 
 describe("putUploadObjectRoute", () => {
   afterEach(() => {
+    deleteStorageObjectMock.mockReset();
     findUniqueMock.mockReset();
+    headStorageObjectMock.mockReset();
     putStorageObjectMock.mockReset();
-    requireAuthMock.mockReset();
+    requireWriteAuthMock.mockReset();
     vi.resetModules();
   });
 
   it("requires content length before writing to R2", async () => {
-    requireAuthMock.mockResolvedValue({ userId: "user-1" });
+    requireWriteAuthMock.mockResolvedValue({ userId: "user-1" });
     const { putUploadObjectRoute } = await import(
       "@/lib/api/routes/upload-object-put-route"
     );
@@ -67,7 +77,7 @@ describe("putUploadObjectRoute", () => {
   });
 
   it("rejects keys outside the authenticated user's upload prefix", async () => {
-    requireAuthMock.mockResolvedValue({ userId: "user-1" });
+    requireWriteAuthMock.mockResolvedValue({ userId: "user-1" });
     const { putUploadObjectRoute } = await import(
       "@/lib/api/routes/upload-object-put-route"
     );
@@ -85,7 +95,7 @@ describe("putUploadObjectRoute", () => {
   });
 
   it("rejects expired upload sessions", async () => {
-    requireAuthMock.mockResolvedValue({ userId: "user-1" });
+    requireWriteAuthMock.mockResolvedValue({ userId: "user-1" });
     findUniqueMock.mockResolvedValue({
       contentType: "text/plain",
       expiresAt: new Date(Date.now() - 1_000),
@@ -108,7 +118,7 @@ describe("putUploadObjectRoute", () => {
   });
 
   it("rejects bodies larger than the pending reservation", async () => {
-    requireAuthMock.mockResolvedValue({ userId: "user-1" });
+    requireWriteAuthMock.mockResolvedValue({ userId: "user-1" });
     findUniqueMock.mockResolvedValue({
       contentType: "text/plain",
       expiresAt: new Date(Date.now() + 60_000),
@@ -128,7 +138,7 @@ describe("putUploadObjectRoute", () => {
   });
 
   it("writes a valid pending upload to R2", async () => {
-    requireAuthMock.mockResolvedValue({ userId: "user-1" });
+    requireWriteAuthMock.mockResolvedValue({ userId: "user-1" });
     findUniqueMock.mockResolvedValue({
       contentType: "text/plain",
       expiresAt: new Date(Date.now() + 60_000),

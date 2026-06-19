@@ -1,4 +1,4 @@
-import type { CommentReactionType } from "@/generated/prisma/client";
+import { createCommentReaction } from "@/features/comments/server/comment-mutations";
 import { jsonResponse, notFound } from "@/lib/api/helpers";
 
 export async function createCommentReactionAction(input: {
@@ -6,31 +6,10 @@ export async function createCommentReactionAction(input: {
   type: string;
   userId: string;
 }) {
-  const { prisma } = await import("@/lib/db/prisma");
-  const comment = await prisma.comment.findUnique({
-    where: { id: input.commentId },
-    select: { id: true },
-  });
-
-  if (!comment) {
+  const result = await createCommentReaction(input);
+  if (!result.ok) {
     return notFound();
   }
-
-  await prisma.commentReaction.upsert({
-    where: {
-      commentId_userId_type: {
-        commentId: input.commentId,
-        userId: input.userId,
-        type: input.type as CommentReactionType,
-      },
-    },
-    update: {},
-    create: {
-      commentId: input.commentId,
-      userId: input.userId,
-      type: input.type as CommentReactionType,
-    },
-  });
 
   return jsonResponse({ success: true });
 }

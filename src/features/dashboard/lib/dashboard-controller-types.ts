@@ -194,15 +194,42 @@ export type DashboardSubscriptionsCopy = DashboardRecord & {
 };
 
 export type DashboardHomeworksCopy = Record<string, string> & {
+  advancedHide: string;
+  advancedShow: string;
+  cancel: string;
+  commentsLabel: string;
+  commentsTitle: string;
   completionFailed: string;
+  createAction: string;
   createFailed: string;
+  createTitle: string;
+  descriptionEmpty: string;
+  descriptionLabel: string;
+  descriptionPlaceholder: string;
   errorDescriptionTooLong: string;
   errorInvalidSubmissionDue: string;
   errorSectionNotFound: string;
   errorTitleRequired: string;
   errorTitleTooLong: string;
+  helperClear: string;
+  helperMonth: string;
+  helperPublishNow: string;
+  helperSemesterEnd: string;
+  helperStartNow: string;
+  helperWeek: string;
+  homeworkPublishedAt: string;
   markComplete: string;
   markIncomplete: string;
+  publishedAt: string;
+  saving: string;
+  sectionLabel: string;
+  submissionDue: string;
+  submissionStart: string;
+  subtitle: string;
+  tagMajor: string;
+  tagTeam: string;
+  titleLabel: string;
+  viewDetails: string;
 };
 
 export type DashboardMyHomeworksCopy = Record<string, string> & {
@@ -336,7 +363,21 @@ export type DashboardCalendarData = DashboardRecord & {
 
 export type DashboardHomeworksData = DashboardRecord & {
   homeworkSummaries: DashboardHomeworkItem[];
-  sections: DashboardRecord[];
+  sections: DashboardHomeworkSectionOption[];
+};
+
+export type DashboardHomeworkSectionOption = DashboardRecord & {
+  code?: string | null;
+  course?: {
+    code?: string | null;
+    name?: string | null;
+  } | null;
+  courseCode?: string | null;
+  courseName?: string | null;
+  id: number | string;
+  semesterEnd?: string | null;
+  semesterName?: string | null;
+  teacherName?: string | null;
 };
 
 export type DashboardSubscribedSection = DashboardRecord &

@@ -158,14 +158,18 @@ test.describe("/courses/[jwId]", () => {
   test("tab switching works", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, COURSE_URL);
 
-    const nextTab = page.locator('[role="tab"][aria-selected="false"]').first();
+    const nextTab = page
+      .locator('[role="button"][aria-pressed="false"]')
+      .first();
     if ((await nextTab.count()) > 0) {
       const nextTabLabel = ((await nextTab.textContent()) ?? "").trim();
       expect(nextTabLabel).toBeTruthy();
       await expect(async () => {
-        const targetTab = page.getByRole("tab", { name: nextTabLabel }).first();
+        const targetTab = page
+          .getByRole("button", { name: nextTabLabel })
+          .first();
         await targetTab.click();
-        await expect(targetTab).toHaveAttribute("aria-selected", "true");
+        await expect(targetTab).toHaveAttribute("aria-pressed", "true");
       }).toPass({
         timeout: 10_000,
         intervals: [250, 500, 1_000],
@@ -243,11 +247,11 @@ test.describe("/courses/[jwId]", () => {
     await signInAsDebugUser(page, COURSE_URL);
 
     const commentsTab = page
-      .getByRole("tab", { name: /评论|Comments/i })
+      .getByRole("button", { name: /评论|Comments/i })
       .first();
     await expect(commentsTab).toBeVisible();
     await commentsTab.click();
-    await expect(commentsTab).toHaveAttribute("aria-selected", "true");
+    await expect(commentsTab).toHaveAttribute("aria-pressed", "true");
 
     const body = `e2e-course-comment-${Date.now()}`;
     const composer = page.locator("textarea").first();

@@ -46,7 +46,7 @@ test.describe("dashboard invalid tab (comments)", () => {
 
     // Public view renders bus content as default (bus + links grouped)
     await expect(
-      page.getByRole("tab", { name: /^(校车|Shuttle Bus)$/i }),
+      page.getByRole("link", { name: /^(校车|Shuttle Bus)$/i }),
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
@@ -69,7 +69,7 @@ test.describe("dashboard invalid tab (comments)", () => {
 
     // Overview is the fallback — should show the overview tab as active
     await expect(
-      page.getByRole("tab", { name: /^(总览|Overview)$/i }),
+      page.getByRole("link", { name: /^(总览|Overview)$/i }),
     ).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "home-comments-seed");

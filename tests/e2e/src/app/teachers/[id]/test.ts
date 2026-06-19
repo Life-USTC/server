@@ -244,11 +244,11 @@ test.describe("/teachers/[id]", () => {
         await navigateToSeedTeacher(page);
       }
       const commentsTab = page
-        .getByRole("tab", { name: /评论|Comments/i })
+        .getByRole("button", { name: /评论|Comments/i })
         .first();
       await expect(commentsTab).toBeVisible();
       await commentsTab.click();
-      await expect(commentsTab).toHaveAttribute("aria-selected", "true");
+      await expect(commentsTab).toHaveAttribute("aria-pressed", "true");
     }).toPass({
       timeout: 10_000,
       intervals: [250, 500, 1_000],

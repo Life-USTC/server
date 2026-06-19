@@ -41,6 +41,7 @@ export let viewer: ViewerContext;
 <div class="rounded-2xl border border-dashed border-base-300 bg-base-200/40 p-4">
   <MarkdownEditor
     bind:value={replyDraft}
+    campusReferences
     compact
     guideLabel={commentCopy.markdownGuide}
     modeLabel={commentCopy.markdownModeLabel}

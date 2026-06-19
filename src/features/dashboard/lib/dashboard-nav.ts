@@ -11,6 +11,8 @@ export const signedTabIds = [
 
 export type SignedTabId = (typeof signedTabIds)[number];
 
+const signedTabIdSet = new Set<string>(signedTabIds);
+
 type DashboardNavData = {
   navStats: {
     calendarItemsCount: number;
@@ -20,6 +22,12 @@ type DashboardNavData = {
   };
   subscribedSectionCount: number;
 };
+
+export function isSignedDashboardTab(
+  value: string | null | undefined,
+): value is SignedTabId {
+  return Boolean(value && signedTabIdSet.has(value));
+}
 
 export function dashboardTabHref(
   id: SignedTabId,

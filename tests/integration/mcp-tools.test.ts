@@ -17,6 +17,18 @@ import { createMcpHarness, type McpHarness } from "./utils/mcp-harness";
 const SEED_DATE = DEV_SEED_ANCHOR.date;
 const SEED_AT_TIME = DEV_SEED_ANCHOR.recommendedAtTime;
 
+function seedDatePlusDays(days: number) {
+  const date = new Date(`${SEED_DATE}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+const SEED_PLUS_THREE_DAYS = seedDatePlusDays(3);
+const SEED_PLUS_SIX_DAYS = seedDatePlusDays(6);
+const SEED_PLUS_SEVEN_DAYS = seedDatePlusDays(7);
+const SEED_PLUS_ELEVEN_DAYS = seedDatePlusDays(11);
+const SEED_PLUS_TWELVE_DAYS = seedDatePlusDays(12);
+
 let devUserId: string;
 let mcp: McpHarness;
 
@@ -90,7 +102,7 @@ describe("todo CRUD — update_my_todo returns updated entity", () => {
       {
         title: "[integration-test] update returns todo",
         priority: "high",
-        dueAt: "2026-05-10",
+        dueAt: SEED_PLUS_ELEVEN_DAYS,
       },
     );
     expect(result.success).toBe(true);
@@ -144,7 +156,7 @@ describe("flexDateInputSchema — bare YYYY-MM-DD accepted by date-filter tools"
       schedules?: Array<{ id?: number; date?: string }>;
     }>("list_my_schedules", {
       dateFrom: SEED_DATE, // bare date — would have been rejected by old dateTimeSchema
-      dateTo: "2026-05-10",
+      dateTo: SEED_PLUS_ELEVEN_DAYS,
       limit: 20,
       locale: "zh-cn",
     });
@@ -156,7 +168,7 @@ describe("flexDateInputSchema — bare YYYY-MM-DD accepted by date-filter tools"
     for (const schedule of result.schedules ?? []) {
       if (schedule.date) {
         expect(schedule.date >= SEED_DATE).toBe(true);
-        expect(schedule.date <= "2026-05-11").toBe(true); // lte "2026-05-10" end-of-day
+        expect(schedule.date <= SEED_PLUS_TWELVE_DAYS).toBe(true); // lte dateTo end-of-day
       }
     }
   });
@@ -179,7 +191,7 @@ describe("flexDateInputSchema — bare YYYY-MM-DD accepted by date-filter tools"
       events?: Array<{ type?: string; at?: string }>;
     }>("list_my_calendar_events", {
       dateFrom: SEED_DATE,
-      dateTo: "2026-05-10",
+      dateTo: SEED_PLUS_ELEVEN_DAYS,
       locale: "zh-cn",
     });
 
@@ -210,7 +222,7 @@ describe("flexDateInputSchema — bare YYYY-MM-DD accepted by date-filter tools"
   });
 
   it("list_my_calendar_events honors an exact inclusive dateTo bound", async () => {
-    const dueAt = "2026-05-02T21:00:00+08:00";
+    const dueAt = `${SEED_PLUS_THREE_DAYS}T21:00:00+08:00`;
     const result = await mcp.call<{
       events?: Array<{ type?: string; at?: string }>;
     }>("list_my_calendar_events", {
@@ -453,7 +465,7 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
 
     // Range anchored to seed date
     expect(result.range?.from).toMatch(new RegExp(`^${SEED_DATE}`));
-    expect(result.range?.to).toMatch(/^2026-05-06/);
+    expect(result.range?.to).toMatch(new RegExp(`^${SEED_PLUS_SEVEN_DAYS}`));
     expect(typeof result.total).toBe("number");
     expect(Array.isArray(result.events)).toBe(true);
 
@@ -637,7 +649,7 @@ describe("list_schedules_by_section — date range filter", () => {
     }>("list_schedules_by_section", {
       sectionJwId: DEV_SEED.section.jwId,
       dateFrom: SEED_DATE,
-      dateTo: "2026-05-05",
+      dateTo: SEED_PLUS_SIX_DAYS,
       locale: "zh-cn",
     });
 
@@ -647,7 +659,7 @@ describe("list_schedules_by_section — date range filter", () => {
       if (s.date) {
         const d = s.date.slice(0, 10);
         expect(d >= SEED_DATE).toBe(true);
-        expect(d <= "2026-05-05").toBe(true);
+        expect(d <= SEED_PLUS_SIX_DAYS).toBe(true);
       }
     }
   });
@@ -685,21 +697,23 @@ describe("list_schedules_by_section — date range filter", () => {
 describe("query_schedules — flexible date filters", () => {
   it("accepts bare dates and returns paginated public schedules", async () => {
     const result = await mcp.call<{
-      data?: Array<{ date?: string }>;
+      data?: Array<{ date?: string; endTime?: unknown; startTime?: unknown }>;
       pagination?: { total?: number };
     }>("query_schedules", {
       sectionJwId: DEV_SEED.section.jwId,
       dateFrom: SEED_DATE,
-      dateTo: "2026-05-05",
+      dateTo: SEED_PLUS_SIX_DAYS,
       locale: "zh-cn",
     });
 
     expect(result.pagination?.total).toBeGreaterThan(0);
+    expect(typeof result.data?.[0]?.startTime).toBe("string");
+    expect(typeof result.data?.[0]?.endTime).toBe("string");
     for (const s of result.data ?? []) {
       if (s.date) {
         const d = s.date.slice(0, 10);
         expect(d >= SEED_DATE).toBe(true);
-        expect(d <= "2026-05-05").toBe(true);
+        expect(d <= SEED_PLUS_SIX_DAYS).toBe(true);
       }
     }
   });

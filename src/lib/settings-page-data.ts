@@ -1,15 +1,7 @@
 import { redirect } from "@sveltejs/kit";
+import { normalizeSettingsTab } from "@/features/settings/lib/settings-tabs";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
 import { buildSettingsAccountProviders } from "@/lib/settings-account-providers";
-
-export const SETTINGS_TABS = [
-  "profile",
-  "accounts",
-  "content",
-  "danger",
-] as const;
-
-export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 export type SettingsAccountProvider = {
   id: "oidc" | "github" | "google";
@@ -18,12 +10,6 @@ export type SettingsAccountProvider = {
   accountId: string | null;
   providerAccountId: string | null;
 };
-
-export function normalizeSettingsTab(value: string | null): SettingsTab {
-  return SETTINGS_TABS.includes(value as SettingsTab)
-    ? (value as SettingsTab)
-    : "profile";
-}
 
 export async function requireSettingsUser(request: Request, url: URL) {
   const { getSessionFromHeaders } = await import("@/lib/auth/core");

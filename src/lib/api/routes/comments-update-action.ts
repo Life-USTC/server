@@ -1,21 +1,14 @@
 import type * as z from "zod";
+import { updateOwnComment } from "@/features/comments/server/comment-mutations";
 import {
   badRequest,
+  forbidden,
   jsonResponse,
   notFound,
-  unauthorized,
 } from "@/lib/api/helpers";
 import type { commentUpdateRequestSchema } from "@/lib/api/schemas/request-schemas";
-import { resolveApiUserId } from "@/lib/auth/api-auth";
-import {
-  syncCommentAttachments,
-  validateCommentAttachmentIds,
-} from "./comments-update-attachments";
-import { loadEditableCommentContext } from "./comments-update-context";
-import {
-  loadUpdatedCommentResponse,
-  writeCommentEditAuditLog,
-} from "./comments-update-response";
+import { requireWriteAuth } from "@/lib/auth/api-auth";
+import { writeCommentEditAuditLog } from "./comments-update-response";
 
 type CommentUpdateBody = z.infer<typeof commentUpdateRequestSchema>;
 
@@ -24,14 +17,9 @@ export async function updateCommentAction(
   id: string,
   parsedBody: CommentUpdateBody,
 ) {
-  const userId = await resolveApiUserId(request);
-  if (!userId) {
-    return unauthorized();
-  }
-
-  const context = await loadEditableCommentContext({ id, userId });
-  if ("error" in context) return context.error;
-  const { prisma, viewer } = context;
+  const auth = await requireWriteAuth(request);
+  if (auth instanceof Response) return auth;
+  const { userId } = auth;
 
   const content = parsedBody.body;
   const visibility = parsedBody.visibility;
@@ -41,39 +29,23 @@ export async function updateCommentAction(
     ? (parsedBody.attachmentIds ?? [])
     : [];
 
-  if (hasAttachmentUpdate) {
-    const attachmentsValid = await validateCommentAttachmentIds(
-      prisma,
-      userId,
-      attachmentIds,
-    );
-    if (!attachmentsValid) {
-      return badRequest("Invalid attachments");
-    }
-  }
-
-  await prisma.$transaction(async (tx) => {
-    await tx.comment.update({
-      where: { id },
-      data: {
-        body: content,
-        visibility,
-        isAnonymous,
-      },
-    });
-
-    if (hasAttachmentUpdate) {
-      await syncCommentAttachments(tx, id, attachmentIds);
-    }
+  const result = await updateOwnComment({
+    attachmentIds,
+    body: content,
+    hasAttachmentUpdate,
+    id,
+    isAnonymous,
+    userId,
+    visibility,
   });
 
-  const updatedCommentResponse = await loadUpdatedCommentResponse(
-    prisma,
-    id,
-    viewer,
-  );
-  if (!updatedCommentResponse) {
-    return notFound();
+  if (!result.ok) {
+    if (result.error === "not_found") return notFound();
+    if (result.error === "invalid_attachments") {
+      return badRequest("Invalid attachments");
+    }
+    if (result.error === "locked") return forbidden("Comment locked");
+    return forbidden();
   }
 
   writeCommentEditAuditLog({
@@ -83,5 +55,5 @@ export async function updateCommentAction(
     commentId: id,
   });
 
-  return jsonResponse({ success: true, comment: updatedCommentResponse });
+  return jsonResponse({ success: true, comment: result.comment });
 }

@@ -28,6 +28,7 @@ export async function updateHomeworkDescription(
   ) {
     return;
   }
+
   const next = existingDescription
     ? await tx.description.update({
         where: { id: existingDescription.id },
@@ -45,6 +46,7 @@ export async function updateHomeworkDescription(
           homeworkId,
         },
       });
+
   await tx.descriptionEdit.create({
     data: {
       descriptionId: next.id,

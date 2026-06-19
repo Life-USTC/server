@@ -357,5 +357,7 @@ export type ScheduleItem =
   SectionDetailPageData["section"]["schedules"][number];
 export type ExamItem = SectionDetailPageData["section"]["exams"][number];
 
-export const HOMEWORK_TITLE_MAX_LENGTH = 200;
-export const HOMEWORK_DESCRIPTION_MAX_LENGTH = 4000;
+export {
+  HOMEWORK_DESCRIPTION_MAX_LENGTH,
+  HOMEWORK_TITLE_MAX_LENGTH,
+} from "@/features/homeworks/lib/homework-limits";

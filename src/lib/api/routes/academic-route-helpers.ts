@@ -10,7 +10,6 @@ import {
   resourceIdPathParamsSchema,
 } from "@/lib/api/schemas/request-schemas";
 import { parseDateInput } from "@/lib/time/parse-date-input";
-import { formatTime } from "@/shared/lib/time-utils";
 
 export function parseJwIdRouteParam(params: { jwId: string }, label: string) {
   const parsedParams = parseRouteInput(params, jwIdPathParamsSchema, label);
@@ -74,17 +73,4 @@ export async function buildTeacherWhere(input: {
   }
 
   return where;
-}
-
-export function formatScheduleTimeFields<
-  Schedule extends {
-    endTime: number | null;
-    startTime: number | null;
-  },
->(schedule: Schedule) {
-  return {
-    ...schedule,
-    startTime: formatTime(schedule.startTime),
-    endTime: formatTime(schedule.endTime),
-  };
 }

@@ -1,3 +1,4 @@
+import { deleteOwnComment } from "@/features/comments/server/comment-mutations";
 import { forbidden, jsonResponse, notFound } from "@/lib/api/helpers";
 import {
   fireAuditLog,
@@ -9,27 +10,10 @@ export async function deleteOwnCommentAction(input: {
   request: Request;
   userId: string;
 }) {
-  const { prisma } = await import("@/lib/db/prisma");
-  const comment = await prisma.comment.findUnique({
-    where: { id: input.commentId },
-    select: { id: true, userId: true },
-  });
-
-  if (!comment) {
-    return notFound();
+  const result = await deleteOwnComment(input);
+  if (!result.ok) {
+    return result.error === "not_found" ? notFound() : forbidden();
   }
-
-  if (comment.userId !== input.userId) {
-    return forbidden();
-  }
-
-  await prisma.comment.update({
-    where: { id: input.commentId },
-    data: {
-      status: "deleted",
-      deletedAt: new Date(),
-    },
-  });
 
   fireAuditLog({
     action: "comment_delete",

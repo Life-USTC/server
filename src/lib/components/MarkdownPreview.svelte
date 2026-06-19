@@ -4,12 +4,15 @@ import "$lib/components/markdown-preview.css";
 import "katex/dist/katex.min.css";
 
 export let content = "";
+export let campusReferences = false;
 export let emptyLabel = "";
 let className = "";
 
 export { className as class };
 
-$: renderedHtml = content.trim() ? renderMarkdown(content) : "";
+$: renderedHtml = content.trim()
+  ? renderMarkdown(content, { campusReferences })
+  : "";
 </script>
 
 <div class={`markdown-preview grid gap-3 text-sm leading-6 ${className}`} data-slot="markdown-preview">
