@@ -11,10 +11,13 @@ import {
 } from "@/features/homeworks/server/homework-create";
 import { homeworkDateError } from "@/features/homeworks/server/homework-dates";
 import type { AppLocale } from "@/i18n/config";
+import { getViewerAuthDataForUserId } from "@/lib/auth/viewer-context";
 import { getDashboardActionCopy } from "./dashboard-action-copy";
-import type { DashboardPageLoadEvent } from "./dashboard-page-load-types";
 
-type DashboardActionEvent = Pick<DashboardPageLoadEvent, "locals" | "request">;
+type DashboardActionEvent = {
+  locals: { locale: string };
+  request: Request;
+};
 
 export async function createHomeworkDashboardAction({
   locals,
@@ -23,6 +26,9 @@ export async function createHomeworkDashboardAction({
   const copy = getDashboardActionCopy(locals.locale as AppLocale).homeworks;
   const userId = await getDashboardUserId(request);
   if (!userId) return fail(401, { error: copy.errorUnauthorized });
+  const viewerAuth = await getViewerAuthDataForUserId(userId);
+  if (!viewerAuth) return fail(401, { error: copy.errorUnauthorized });
+  if (viewerAuth.suspension) return fail(403, { error: copy.errorSuspended });
   const form = await request.formData();
   const title = String(form.get("title") ?? "").trim();
   if (!title) return fail(400, { error: copy.errorTitleRequired });
