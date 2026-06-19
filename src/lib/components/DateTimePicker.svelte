@@ -53,7 +53,7 @@ $: if ((value ?? "") !== lastSyncedValue) {
   syncFromValue(value ?? "");
 }
 
-$: resolvedCalendarButtonLabel = calendarButtonLabel ?? placeholder;
+$: resolvedCalendarButtonLabel = calendarButtonLabel ?? "Open calendar picker";
 </script>
 
 <div class={cn("relative min-w-0", className)}>
