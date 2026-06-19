@@ -1,3 +1,13 @@
+## [1.33.6](https://github.com/Life-USTC/server/compare/v1.33.5...v1.33.6) (2026-06-19)
+
+
+### Bug Fixes
+
+* **ci:** resolve e2e workflow failures ([fbb8dab](https://github.com/Life-USTC/server/commit/fbb8dab652f1e0077a7cf5400aa4a88992d8db29))
+* **dashboard:** enforce homework write auth ([37f1a64](https://github.com/Life-USTC/server/commit/37f1a64bbb889a711a432fdff48b572dde879503))
+* **db:** cache cloudflare prisma clients ([88e7169](https://github.com/Life-USTC/server/commit/88e71696ed92425cd0ea25fe11ec997d7fa224fb))
+* **skills:** quote pr workflow metadata ([ca2d9ca](https://github.com/Life-USTC/server/commit/ca2d9ca5b8053f7cd4b49fd54f03b9d0930ce654))
+
 ## [1.33.5](https://github.com/Life-USTC/server/compare/v1.33.4...v1.33.5) (2026-06-19)
 
 
