@@ -575,7 +575,10 @@ async function waitForSnapshotReady(
 }
 
 async function openTab(page: Page, name: RegExp) {
-  const tab = page.getByRole("button", { name }).first();
+  const tab = page
+    .locator('[data-slot="tabs-list"]')
+    .getByRole("button", { name })
+    .first();
   await expect(tab).toBeVisible({ timeout: 10_000 });
   await tab.click();
   await expect(tab).toHaveAttribute("aria-pressed", "true");

@@ -33,7 +33,7 @@
  * - Homework CRUD with completion toggle
  * - Comment CRUD with reactions, replies, attachments
  */
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { signInAsDebugUser, signInAsDevAdmin } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import {
@@ -47,6 +47,13 @@ const SECTION_URL = `/sections/${DEV_SEED.section.jwId}`;
 
 function escapeForRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function getSectionTab(page: Page, name: RegExp) {
+  return page
+    .locator('[data-slot="tabs-list"]')
+    .getByRole("button", { name })
+    .first();
 }
 
 test.describe("/sections/[jwId]", () => {
@@ -227,9 +234,7 @@ test.describe("/sections/[jwId]", () => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     await expect(async () => {
-      const calendarTab = page
-        .getByRole("button", { name: /日历|Calendar/i })
-        .first();
+      const calendarTab = getSectionTab(page, /日历|Calendar/i);
       await calendarTab.click();
       await expect(calendarTab).toHaveAttribute("aria-pressed", "true");
     }).toPass({
@@ -281,9 +286,7 @@ test.describe("/sections/[jwId]", () => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     await expect(async () => {
-      const calendarTab = page
-        .getByRole("button", { name: /日历|Calendar/i })
-        .first();
+      const calendarTab = getSectionTab(page, /日历|Calendar/i);
       await calendarTab.click();
       await expect(calendarTab).toHaveAttribute("aria-pressed", "true");
     }).toPass({
