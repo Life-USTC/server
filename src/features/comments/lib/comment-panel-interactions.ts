@@ -14,6 +14,7 @@ type CommentInteractionCopy = {
   pleaseRetry: string;
   reactionFailed: string;
   submitFailed: string;
+  suspendedMessage: string;
 };
 
 export function createCommentPanelInteractions(input: {
@@ -39,6 +40,10 @@ export function createCommentPanelInteractions(input: {
     const copy = input.getCommentCopy();
     if (!input.getViewer().isAuthenticated) {
       input.setMessage(copy.loginRequiredDescription);
+      return;
+    }
+    if (input.getViewer().isSuspended) {
+      input.setMessage(copy.suspendedMessage);
       return;
     }
     const pendingKey = commentReactionKey(comment.id, type);

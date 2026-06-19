@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { ReactionOption } from "@/features/comments/lib/comment-ui";
 import type { CommentNode } from "@/features/comments/server/comment-types";
+import type { ViewerContext } from "@/lib/auth/viewer-context";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Menu from "$lib/components/ui/menu/index.js";
 import type { CommentsCopy } from "./comment-component-types";
@@ -23,6 +24,11 @@ export let reactionLabel: (type: string) => string;
 export let reactionMenuId: string | null;
 export let reactionName: (type: string) => string;
 export let reactionOptions: ReactionOption[];
+export let viewer: ViewerContext;
+
+$: if (viewer.isSuspended && reactionMenuId === comment.id) {
+  reactionMenuId = null;
+}
 </script>
 
 <div class="flex flex-wrap items-center gap-2">
@@ -31,6 +37,7 @@ export let reactionOptions: ReactionOption[];
       aria-expanded={reactionMenuId === comment.id}
       aria-haspopup="menu"
       aria-label={commentCopy.reactionMenu}
+      disabled={viewer.isSuspended}
       onclick={() => (reactionMenuId = reactionMenuId === comment.id ? null : comment.id)}
       size="sm"
       type="button"
@@ -49,7 +56,7 @@ export let reactionOptions: ReactionOption[];
           <Menu.Item
             checked={reactionEntry(comment, option.type)?.viewerHasReacted ?? false}
             class={`${reactionEntry(comment, option.type)?.viewerHasReacted ? "bg-base-200 font-semibold" : ""} ${pendingReactionKey ? "opacity-70" : ""}`}
-            disabled={Boolean(pendingReactionKey)}
+            disabled={viewer.isSuspended || Boolean(pendingReactionKey)}
             onclick={() => react(comment, option.type)}
             radio
           >
@@ -69,7 +76,7 @@ export let reactionOptions: ReactionOption[];
     <Button
       aria-label={`${reactionLabel(reaction.type)} ${reaction.count}`}
       class={reaction.viewerHasReacted ? "border-primary/40 bg-primary/10 text-primary" : ""}
-      disabled={pendingReactionKey === reactionKey(comment.id, reaction.type)}
+      disabled={viewer.isSuspended || pendingReactionKey === reactionKey(comment.id, reaction.type)}
       size="sm"
       type="button"
       variant="outline"

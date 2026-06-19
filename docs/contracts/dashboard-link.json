@@ -10,7 +10,7 @@
     "navigation-not-feed": "Frequent links are a navigation capability, not a content feed.",
     "search-fuzzy": "Search supports Chinese, pinyin, and whitespace-tolerant matching.",
     "links-vs-buttons": "Links are for navigation; buttons are for actions.",
-    "pin-limit": "Currently a maximum of 5 links can be pinned; exceeding this displaces the earliest pinned link.",
+    "pin-limit": "Currently a maximum of 4 links can be pinned; exceeding this displaces the earliest pinned link.",
     "pin-error-clear": "When pin/unpin writes fail, the endpoint returns a clear error; failures are not disguised as successes."
   },
   "capabilities": {

@@ -196,6 +196,7 @@ export type DashboardSubscriptionsCopy = DashboardRecord & {
 export type DashboardHomeworksCopy = Record<string, string> & {
   advancedHide: string;
   advancedShow: string;
+  calendarButtonLabel: string;
   cancel: string;
   commentsLabel: string;
   commentsTitle: string;
@@ -240,6 +241,7 @@ export type DashboardMyHomeworksCopy = Record<string, string> & {
 };
 
 export type DashboardTodosCopy = DashboardRecord & {
+  calendarButtonLabel: string;
   cancel: string;
   contentLabel: string;
   contentPlaceholder: string;

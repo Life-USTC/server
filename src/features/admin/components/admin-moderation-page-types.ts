@@ -19,6 +19,7 @@ export type AdminModerationCopy = AdminModerationCommentsCopy &
   AdminModerationDescriptionCopy & {
     active: string;
     cancelButton: string;
+    calendarButtonLabel: string;
     close: string;
     confirmButton: string;
     currentView: string;

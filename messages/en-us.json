@@ -1391,6 +1391,7 @@
     "homeworkPublishedAt": "Homework published",
     "submissionStart": "Submission opens",
     "submissionDue": "Submission due",
+    "calendarButtonLabel": "Open calendar picker",
     "helperPublishNow": "Publish now",
     "helperStartNow": "Start now",
     "helperClear": "Clear",
@@ -1629,6 +1630,7 @@
     "suspendUserId": "User ID",
     "suspendReason": "Reason (optional)",
     "suspendExpires": "Expires at (optional)",
+    "calendarButtonLabel": "Open calendar picker",
     "suspendAction": "Suspend",
     "noReason": "No reason provided",
     "lifted": "Lifted",
@@ -1745,6 +1747,7 @@
     "priorityLabel": "Priority",
     "dueAtLabel": "Due date",
     "dueLabel": "Due",
+    "calendarButtonLabel": "Open calendar picker",
     "priority": {
       "low": "Low",
       "medium": "Medium",

@@ -1,6 +1,6 @@
+import { getUserCalendarRecord } from "@/features/home/server/calendar-export-data";
 import { forbidden, notFound, unauthorized } from "@/lib/api/helpers";
 import { resolveApiUserId } from "@/lib/auth/api-auth";
-import { getUserCalendarRecord } from "./calendar-route-data";
 import { parseUserCalendarIdentifier } from "./calendar-route-utils";
 
 export async function resolveUserCalendarAccess({

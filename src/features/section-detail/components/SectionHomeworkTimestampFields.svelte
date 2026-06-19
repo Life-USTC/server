@@ -23,6 +23,7 @@ export let submissionStartAt: string;
     <span class="font-medium text-sm">{homeworkCopy.publishedAt}</span>
     <DateTimePicker
       bind:value={publishedAt}
+      calendarButtonLabel={homeworkCopy.calendarButtonLabel}
       defaultTime="00:00"
       name="publishedAt"
       placeholder={homeworkCopy.publishedAt}
@@ -47,6 +48,7 @@ export let submissionStartAt: string;
     <span class="font-medium text-sm">{homeworkCopy.submissionStart}</span>
     <DateTimePicker
       bind:value={submissionStartAt}
+      calendarButtonLabel={homeworkCopy.calendarButtonLabel}
       defaultTime="00:00"
       name="submissionStartAt"
       placeholder={homeworkCopy.submissionStart}
@@ -80,6 +82,7 @@ export let submissionStartAt: string;
     <span class="font-medium text-sm">{homeworkCopy.submissionDue}</span>
     <DateTimePicker
       bind:value={submissionDueAt}
+      calendarButtonLabel={homeworkCopy.calendarButtonLabel}
       name="submissionDueAt"
       placeholder={homeworkCopy.submissionDue}
     />

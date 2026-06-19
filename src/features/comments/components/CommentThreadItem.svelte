@@ -127,6 +127,7 @@ export let viewer: ViewerContext;
         bind:reactionMenuId
         {reactionName}
         {reactionOptions}
+        {viewer}
       />
 
       {#if replyingId === comment.id}

@@ -95,8 +95,8 @@ export function buildHomeworkUpdates(
   userId: string,
   dates: ParsedHomeworkUpdateDates,
 ) {
-  const updates: Prisma.HomeworkUncheckedUpdateInput = {
-    updatedById: userId,
+  const updates: Prisma.HomeworkUpdateInput = {
+    updatedBy: { connect: { id: userId } },
   };
   if (title !== undefined) updates.title = title;
   if (isMajor !== undefined) updates.isMajor = isMajor === true;

@@ -44,6 +44,7 @@ export let todosCopy: DashboardTodosCopy;
   <span class="font-medium text-sm">{todosCopy.dueAtLabel}</span>
   <DateTimePicker
     {disabled}
+    calendarButtonLabel={todosCopy.calendarButtonLabel}
     name="dueAt"
     placeholder={todosCopy.dueAtLabel}
     value={dueAtValue}

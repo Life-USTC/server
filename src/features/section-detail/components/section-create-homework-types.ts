@@ -1,4 +1,5 @@
 export type SectionCreateHomeworkFieldsCopy = {
+  calendarButtonLabel: string;
   descriptionLabel: string;
   descriptionPlaceholder: string;
   helperClear: string;

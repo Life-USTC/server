@@ -54,6 +54,7 @@ export let suspensionLabel: AdminUserFormatter;
         <span class="font-medium text-sm">{moderationCopy.suspendExpires}</span>
         <DateTimePicker
           bind:value={suspendExpiresAt}
+          calendarButtonLabel={moderationCopy.calendarButtonLabel}
           placeholder={moderationCopy.suspendExpires}
         />
       </label>

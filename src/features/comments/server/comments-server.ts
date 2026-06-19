@@ -26,6 +26,7 @@ export async function getCommentsPayload(
     image: viewer.image,
     isAdmin: viewer.isAdmin,
     isAuthenticated: viewer.isAuthenticated,
+    isSuspended: viewer.isSuspended,
   };
 
   let whereTarget: Record<string, number | string> | null = null;

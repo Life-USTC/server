@@ -122,9 +122,12 @@ async function buildAdminUserUpdateData(
   return { data, ok: true as const };
 }
 
-function parseSuspensionDate(value: string | null) {
+function parseSuspensionDate(value: string | null | undefined) {
   const parsed = parseDateInput(value);
-  return parsed instanceof Date ? parsed : null;
+  if (parsed === undefined) {
+    return { ok: false as const, reason: "invalid_expires_at" as const };
+  }
+  return { expiresAt: parsed, ok: true as const };
 }
 
 export async function listAdminUsers({
@@ -218,6 +221,9 @@ export async function createAdminSuspension(
   adminUserId: string,
   input: AdminCreateSuspensionInput,
 ) {
+  const expiresAt = parseSuspensionDate(input.expiresAt);
+  if (!expiresAt.ok) return expiresAt;
+
   const userId = input.userId.trim();
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -231,7 +237,7 @@ export async function createAdminSuspension(
       createdById: adminUserId,
       reason: input.reason?.trim() || null,
       note: input.note?.trim() || null,
-      expiresAt: parseSuspensionDate(input.expiresAt ?? null),
+      expiresAt: expiresAt.expiresAt,
     },
   });
 

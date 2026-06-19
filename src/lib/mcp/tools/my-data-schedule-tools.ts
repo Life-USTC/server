@@ -13,6 +13,7 @@ import {
   parseMcpDateRange,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
+import { serializeScheduleTimeFields } from "@/lib/schedule-serialization";
 
 export function registerMyScheduleTools(server: McpServer) {
   server.registerTool(
@@ -44,7 +45,10 @@ export function registerMyScheduleTools(server: McpServer) {
         limit,
       });
 
-      return jsonToolResult({ schedules }, { mode: resolvedMode });
+      return jsonToolResult(
+        { schedules: schedules.map(serializeScheduleTimeFields) },
+        { mode: resolvedMode },
+      );
     },
   );
 

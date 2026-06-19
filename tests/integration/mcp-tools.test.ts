@@ -153,7 +153,12 @@ describe("todo CRUD — update_my_todo returns updated entity", () => {
 describe("flexDateInputSchema — bare YYYY-MM-DD accepted by date-filter tools", () => {
   it("list_my_schedules accepts bare date strings (no timezone offset)", async () => {
     const result = await mcp.call<{
-      schedules?: Array<{ id?: number; date?: string }>;
+      schedules?: Array<{
+        id?: number;
+        date?: string;
+        endTime?: unknown;
+        startTime?: unknown;
+      }>;
     }>("list_my_schedules", {
       dateFrom: SEED_DATE, // bare date — would have been rejected by old dateTimeSchema
       dateTo: SEED_PLUS_ELEVEN_DAYS,
@@ -164,6 +169,8 @@ describe("flexDateInputSchema — bare YYYY-MM-DD accepted by date-filter tools"
     // Should not error, and the seeded schedules should be returned
     expect(Array.isArray(result.schedules)).toBe(true);
     expect((result.schedules?.length ?? 0) > 0).toBe(true);
+    expect(typeof result.schedules?.[0]?.startTime).toBe("string");
+    expect(typeof result.schedules?.[0]?.endTime).toBe("string");
     // Every date should fall within the requested window
     for (const schedule of result.schedules ?? []) {
       if (schedule.date) {

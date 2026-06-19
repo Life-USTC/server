@@ -19,6 +19,7 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
     <span class="font-medium text-sm">{homeworksCopy.publishedAt}</span>
     <DateTimePicker
       bind:value={createHomeworkPublishedAt}
+      calendarButtonLabel={homeworksCopy.calendarButtonLabel}
       disabled={isCreatingHomework}
       defaultTime="00:00"
       name="publishedAt"
@@ -53,6 +54,7 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
     <span class="font-medium text-sm">{homeworksCopy.submissionStart}</span>
     <DateTimePicker
       bind:value={createHomeworkSubmissionStartAt}
+      calendarButtonLabel={homeworksCopy.calendarButtonLabel}
       disabled={isCreatingHomework}
       defaultTime="00:00"
       name="submissionStartAt"

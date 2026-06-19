@@ -55,6 +55,7 @@ export type ViewerInfo = {
   image: string | null;
   isAdmin: boolean;
   isAuthenticated: boolean;
+  isSuspended: boolean;
 };
 
 export type RawAccount = {

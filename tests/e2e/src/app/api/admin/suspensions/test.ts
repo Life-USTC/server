@@ -67,6 +67,48 @@ test.describe("GET/POST /api/admin/suspensions", () => {
     expect(response.status()).toBe(404);
   });
 
+  test("POST with invalid expiresAt returns 400 and creates no suspension", async ({
+    page,
+  }) => {
+    const prefix = `e2e-sus-invalid-${Date.now()}`;
+    const { usernames } = await createTempUsersFixture({ prefix, count: 1 });
+
+    try {
+      await signInAsDevAdmin(page, "/admin");
+
+      const searchResponse = await page.request.get(
+        `/api/admin/users?search=${usernames[0]}`,
+      );
+      expect(searchResponse.status()).toBe(200);
+      const userId = (
+        (await searchResponse.json()) as {
+          data?: Array<{ id?: string; username?: string | null }>;
+        }
+      ).data?.find((u) => u.username === usernames[0])?.id;
+      expect(userId).toBeTruthy();
+
+      const postResponse = await page.request.post(BASE, {
+        data: {
+          userId,
+          reason: "invalid expiration should fail",
+          expiresAt: "not-a-date",
+        },
+      });
+      expect(postResponse.status()).toBe(400);
+
+      const listResponse = await page.request.get(BASE);
+      expect(listResponse.status()).toBe(200);
+      const body = (await listResponse.json()) as {
+        suspensions?: Array<{ userId?: string }>;
+      };
+      expect(
+        (body.suspensions ?? []).some((item) => item.userId === userId),
+      ).toBe(false);
+    } finally {
+      await deleteUsersByPrefix(prefix);
+    }
+  });
+
   test("admin can create a suspension for a temp user", async ({ page }) => {
     const prefix = `e2e-sus-${Date.now()}`;
     const { usernames } = await createTempUsersFixture({ prefix, count: 1 });
@@ -97,6 +139,7 @@ test.describe("GET/POST /api/admin/suspensions", () => {
       expect(postResponse.status()).toBe(200);
       const postBody = (await postResponse.json()) as {
         suspension?: {
+          expiresAt?: string | null;
           id?: string;
           userId?: string;
           reason?: string | null;
@@ -104,6 +147,7 @@ test.describe("GET/POST /api/admin/suspensions", () => {
       };
       expect(postBody.suspension?.userId).toBe(userId);
       expect(postBody.suspension?.reason).toBe("e2e suspension test");
+      expect(postBody.suspension?.expiresAt).toBeNull();
 
       // Lift the suspension so user can be cleanly deleted.
       if (postBody.suspension?.id) {
