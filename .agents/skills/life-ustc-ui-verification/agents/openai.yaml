@@ -1,0 +1,4 @@
+interface:
+  display_name: "Life USTC UI Verification"
+  short_description: "Screenshot-driven UI verification loop"
+  default_prompt: "Use $life-ustc-ui-verification to verify a UI change with Playwright, screenshots, and focused refinement."

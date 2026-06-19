@@ -1,0 +1,4 @@
+interface:
+  display_name: "Life USTC API MCP Verification"
+  short_description: "REST and MCP output verification loop"
+  default_prompt: "Use $life-ustc-api-mcp-verification to verify REST or MCP behavior by inspecting representative serialized outputs."

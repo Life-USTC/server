@@ -6,6 +6,7 @@ is the project map: start here, then follow the closest source of truth.
 ## Start Here
 
 - [Root agent guide](../AGENTS.md) - setup, commands, architecture boundaries, testing, and definition of done.
+- [Repo skills](../.agents/skills/) - reusable task workflows for PRs, UI verification, and REST/MCP verification.
 - [README](../README.md) - short project entry point and local quick start.
 - [Contracts](contracts/) - modular JSON product/API/MCP contracts.
 
@@ -14,9 +15,11 @@ is the project map: start here, then follow the closest source of truth.
 | Task | Read first |
 |------|------------|
 | Understand the system | [Root agent guide](../AGENTS.md), then the closest scoped `AGENTS.md` |
+| Run a PR/check workflow | `$life-ustc-pr-workflow` in [repo skills](../.agents/skills/) |
 | Change a feature | `docs/contracts/<module>.json`, then `src/features/` and related routes/tools |
-| Change REST behavior | Route handler, route OpenAPI JSDoc, `docs/contracts/openapi.json` |
-| Change MCP behavior | `src/lib/mcp/AGENTS.md`, tool handler, `docs/contracts/mcp.json` |
+| Refine UI or layout | `$life-ustc-ui-verification`, affected component/page, and related Playwright spec |
+| Change REST behavior | `$life-ustc-api-mcp-verification`, route handler, route OpenAPI JSDoc, `docs/contracts/openapi.json` |
+| Change MCP behavior | `$life-ustc-api-mcp-verification`, `src/lib/mcp/AGENTS.md`, tool handler, `docs/contracts/mcp.json` |
 | Change data shape | `prisma/schema.prisma` and migrations |
 | Change setup or operations | [README](../README.md), [Observability](observability.md), closest scoped `AGENTS.md` |
 
@@ -29,10 +32,11 @@ is the project map: start here, then follow the closest source of truth.
 | User-visible web behavior, permissions, workflows, or labels | Matching `docs/contracts/<module>.json`; both message files when text changes. |
 | Prisma model, enum, relation, migration, or seed contract | `prisma/schema.prisma`, migrations, and shared seed files when tests depend on it. |
 | Setup, environment, Docker, CI, release, or operations | `README.md`, `.env.example`, `.github/workflows/AGENTS.md`, or the closest operational doc. |
-| Architecture boundary or recurring agent mistake | The nearest scoped `AGENTS.md`, keeping guidance concise and specific. |
+| Architecture boundary or recurring agent mistake | The nearest scoped `AGENTS.md` for always-on rules, or `.agents/skills` for reusable workflows. |
 
 ## Major Docs
 
+- [.agents/skills](../.agents/skills/) - checked-in reusable agent workflows.
 - [docs/AGENTS.md](AGENTS.md) - documentation editing rules.
 - [docs/contracts/AGENTS.md](contracts/AGENTS.md) - contract JSON workflow and validation.
 - [docs/contracts.schema.json](contracts.schema.json) - schema for contract files.

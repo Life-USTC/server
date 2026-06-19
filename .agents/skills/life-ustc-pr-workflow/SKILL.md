@@ -11,13 +11,14 @@ Use this sequence for non-trivial repo work:
 
 1. Read `AGENTS.md` and the nearest scoped `AGENTS.md` before editing.
 2. Inspect the current source of truth: route handlers, feature/server code, Prisma schema/migrations, contract JSON, tests, workflows, and package scripts.
-3. State the smallest verifiable plan when the task has more than one step.
-4. Edit only the files needed for the request.
-5. Run the relevant local checks.
-6. Inspect `git diff` and remove generated scratch artifacts.
-7. Commit with a conventional message, push, open or update the PR, then wait for checks.
-8. If a check fails, inspect logs, reproduce locally where possible, fix, push, and wait again.
-9. Before handoff, confirm PR status, local `git status -sb`, commands run, skipped checks, and residual risk.
+3. Use focused repo skills when they apply: `$life-ustc-ui-verification` for UI/browser changes and `$life-ustc-api-mcp-verification` for REST/MCP behavior changes.
+4. State the smallest verifiable plan when the task has more than one step.
+5. Edit only the files needed for the request.
+6. Run the relevant local checks and any focused complete-loop checks.
+7. Inspect `git diff` and remove generated scratch artifacts.
+8. Commit with a conventional message, push, open or update the PR, then wait for checks.
+9. If a check fails, inspect logs, reproduce locally where possible, fix, push, and wait again.
+10. Before handoff, confirm PR status, local `git status -sb`, commands run, skipped checks, and residual risk.
 
 ## Implementation Rules
 
@@ -25,6 +26,7 @@ Use this sequence for non-trivial repo work:
 - Do not call SvelteKit page handlers or REST route handlers from features or page actions. Extract shared work into feature/server functions and keep HTTP response mapping in API route adapters.
 - Update `docs/contracts/*`, OpenAPI annotations, user docs, or scoped `AGENTS.md` only when behavior, API/MCP contracts, setup, permissions, or architecture guidance changes.
 - Treat REST, MCP, contract JSON, OpenAPI, tests, and seed data as coupled surfaces.
+- Keep durable repo skills in `.agents/skills`; do not add `.codex/skills` unless the user explicitly asks for a Codex-private experiment.
 - Do not rewrite history or force-push. For stacked PRs, prefer merging the updated base branch into the head branch.
 - Do not leave local snapshot reports, Playwright output, temporary logs, or ad hoc probes behind.
 
@@ -51,6 +53,12 @@ Stop local Docker services you started with:
 docker compose -f docker-compose.dev.yml down
 ```
 
+## Complete-Loop Evidence
+
+- UI/layout changes need browser evidence. Use `$life-ustc-ui-verification` when a screen, route, component, CSS, copy, or responsive layout is affected.
+- REST/MCP behavior changes need serialized output evidence. Use `$life-ustc-api-mcp-verification` when request/response shape, tool output, status codes, permissions, pagination, or date serialization changes.
+- If a complete-loop check is not feasible, state why and what evidence covers the risk instead.
+
 ## PR Flow
 
 Before creating or updating a PR:
@@ -65,6 +73,7 @@ PR body should include:
 - What changed.
 - Docs/contracts impact.
 - Verification commands.
+- Complete-loop evidence, when applicable.
 - Skipped checks with reasons.
 - Residual risks.
 - Stacked PR base, if applicable.

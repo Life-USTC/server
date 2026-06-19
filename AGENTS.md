@@ -13,6 +13,7 @@ prisma/               Prisma schema and migrations
 docs/contracts/        Product/API/MCP contracts checked against schema/API/MCP parity
 tests/                Unit, integration MCP harness, and Playwright E2E tests
 tools/                Build, check, seed, import, E2E, and snapshot scripts
+.agents/skills/       Repo-scoped reusable agent workflows
 .github/workflows/    CI/CD workflows
 ```
 
@@ -37,8 +38,10 @@ static loader.
 ## Agent Operating Contract
 
 - Treat this file as the compact project contract. Before touching a scoped area, also read the nearest `AGENTS.md`; closer files override broader guidance.
-- Keep durable rules here short and actionable. Move repeated, specialized workflows into the closest scoped `AGENTS.md` or a checked-in skill instead of bloating root guidance.
+- Keep durable rules here short and actionable. Move repeated, specialized workflows into `.agents/skills` or the closest scoped `AGENTS.md` instead of bloating root guidance.
 - Keep `AGENTS.md` as the canonical agent instruction surface. Do not add parallel files such as `copilot-instructions.md`, `CLAUDE.md`, or `GEMINI.md` unless the user explicitly asks for a compatibility shim.
+- Keep reusable repo skills in `.agents/skills` so they follow the open Agent Skills discovery path. Do not add `.codex/skills` unless the user explicitly asks for a Codex-private experiment.
+- Use checked-in skills for repeatable workflows: `$life-ustc-pr-workflow` for PR/check loops, `$life-ustc-ui-verification` for UI/browser evidence, and `$life-ustc-api-mcp-verification` for REST/MCP output checks.
 - For non-trivial feature or fix work, split the job into at least two fresh passes when tooling allows: one checks/updates contracts and docs, the other implements against current source. Integrate, verify, and repeat until behavior and contracts match.
 - Work in this loop: inspect code/docs first, plan the smallest safe edit, implement, run the relevant gate, inspect the diff, and verify the final behavior against the user request.
 - Done means evidence-backed: cite the files changed, commands run, and any skipped checks with the reason. Passing tests alone is not enough if they do not cover the requested behavior.
@@ -56,6 +59,12 @@ static loader.
 - Do not call SvelteKit page handlers or REST route handlers from features or page actions. Extract shared work into `src/features/*/server` and let routes adapt it to HTTP.
 - REST, MCP, contract JSON, OpenAPI annotations, and tests are coupled surfaces; check all matching surfaces when one changes.
 - Treat `prisma/schema.prisma`, migrations, route handlers, contract JSON, and tests as source of truth over stale docs or generated output.
+
+## Complete-Loop Checks
+
+- UI/layout changes: run the narrowest browser check that exercises the changed screen, inspect a screenshot/headed run/trace for the affected area, and iterate on visible regressions before handoff.
+- REST/MCP behavior changes: exercise at least one representative public request or MCP tool call when feasible, inspect the serialized success/error output, and compare it with contracts/tests.
+- Keep screenshots, traces, temporary payloads, and ad hoc probes out of the repo unless they are intentional fixtures.
 
 ## Shared Test Seed
 
@@ -93,6 +102,7 @@ docs/contracts/          Product/API/MCP contracts (modular JSON)
   ...
 
 src/*/AGENTS.md         Scoped implementation guides
+.agents/skills/         Reusable repo workflows loaded on demand
 ```
 
 ## Common Patterns
