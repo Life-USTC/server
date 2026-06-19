@@ -30,6 +30,7 @@ export let suspensionReason: string;
     {#if suspensionDuration === "custom"}
       <DateTimePicker
         bind:value={customExpiresAt}
+        calendarButtonLabel={copy.calendarButtonLabel}
         placeholder={copy.suspendExpires}
       />
     {/if}

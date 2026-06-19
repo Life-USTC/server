@@ -36,6 +36,10 @@ export let uploading: boolean;
 export let uploadFile: (file: File, mode?: "edit" | "new" | "reply") => void;
 export let visibilityOptions: CommentSelectOption[];
 export let viewer: ViewerContext;
+
+let replyDisabled = true;
+
+$: replyDisabled = !viewer.isAuthenticated || viewer.isSuspended;
 </script>
 
 <div class="rounded-2xl border border-dashed border-base-300 bg-base-200/40 p-4">
@@ -43,6 +47,7 @@ export let viewer: ViewerContext;
     bind:value={replyDraft}
     campusReferences
     compact
+    disabled={replyDisabled}
     guideLabel={commentCopy.markdownGuide}
     modeLabel={commentCopy.markdownModeLabel}
     placeholder={commentCopy.replyPlaceholder}
@@ -59,36 +64,39 @@ export let viewer: ViewerContext;
   />
   <div class="mt-3 flex flex-wrap items-center gap-3 text-sm">
     <label class="flex items-center gap-2">
-      <Checkbox bind:checked={replyIsAnonymous} disabled={!viewer.isAuthenticated || viewer.isSuspended} />
+      <Checkbox bind:checked={replyIsAnonymous} disabled={replyDisabled} />
       <span>{commentCopy.visibilityAnonymous}</span>
     </label>
     <Select
       bind:value={replyVisibility}
-      disabled={!viewer.isAuthenticated || viewer.isSuspended}
+      disabled={replyDisabled}
       items={visibilityOptions}
     />
   </div>
   <div class="mt-2 flex justify-end gap-2">
     <CommentUploadButton
-      disabled={uploading}
+      disabled={replyDisabled || uploading}
       uploadLabel={uploadCopy.uploadAction}
       uploading={uploading}
       uploadingLabel={uploadCopy.uploading}
       onFile={(file) => {
+        if (replyDisabled) return;
         uploadFile(file, "reply");
       }}
     />
     <Button size="sm" type="button" variant="ghost" onclick={cancelReply}>{commentCopy.cancelAction}</Button>
     <Button
-      disabled={!replyDraft.trim() || submitting}
+      disabled={!replyDraft.trim() || replyDisabled || submitting}
       size="sm"
       type="button"
-      onclick={() =>
+      onclick={() => {
+        if (replyDisabled) return;
         submitComment(
           comment.id,
           replyDraft,
           commentTarget(comment),
-        )}
+        );
+      }}
     >
       {commentCopy.postReply}
     </Button>

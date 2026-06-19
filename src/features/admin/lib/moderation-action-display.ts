@@ -21,7 +21,8 @@ export function expiresAtFromModerationDuration(
 ) {
   if (duration === "custom") {
     const parsed = parseShanghaiDateTimeLocalInput(customExpiresAt);
-    return parsed ? toShanghaiIsoString(parsed) : undefined;
+    if (parsed) return toShanghaiIsoString(parsed);
+    return parsed === null ? undefined : customExpiresAt.trim();
   }
   if (duration === "permanent") return undefined;
   const days = Number(duration.replace("d", ""));

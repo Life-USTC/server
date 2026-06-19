@@ -4,7 +4,12 @@ import {
   listAdminSuspensions,
 } from "@/features/admin/server/admin-api-service";
 import { withAdminApiRoute } from "@/lib/admin-api";
-import { jsonResponse, notFound, parseRouteJsonBody } from "@/lib/api/helpers";
+import {
+  badRequest,
+  jsonResponse,
+  notFound,
+  parseRouteJsonBody,
+} from "@/lib/api/helpers";
 import { adminCreateSuspensionRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { type IdParams, parseIdParam } from "./admin-shared";
 
@@ -25,7 +30,11 @@ export async function postAdminSuspensionRoute(request: Request) {
     if (parsedBody instanceof Response) return parsedBody;
 
     const result = await createAdminSuspension(admin.userId, parsedBody);
-    if (!result.ok) return notFound("User not found");
+    if (!result.ok) {
+      return result.reason === "invalid_expires_at"
+        ? badRequest("Invalid expiresAt")
+        : notFound("User not found");
+    }
 
     return jsonResponse({ suspension: result.suspension });
   });

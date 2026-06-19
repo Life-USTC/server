@@ -55,7 +55,8 @@ export function adminUserSuspensionExpiresAt(
   if (duration === "permanent") return undefined;
   if (duration === "custom") {
     const parsed = parseShanghaiDateTimeLocalInput(customExpiresAt);
-    return parsed ? toShanghaiIsoString(parsed) : undefined;
+    if (parsed) return toShanghaiIsoString(parsed);
+    return parsed === null ? undefined : customExpiresAt.trim();
   }
   const days =
     duration === "1d" ? 1 : duration === "7d" ? 7 : duration === "30d" ? 30 : 3;

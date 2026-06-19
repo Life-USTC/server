@@ -1,14 +1,14 @@
+import {
+  getIncompleteHomeworkCalendarItems,
+  getSectionForCalendar,
+  getSectionsForCalendar,
+} from "@/features/home/server/calendar-export-data";
 import { handleRouteError, notFound } from "@/lib/api/helpers";
 import {
   createMultiSectionCalendar,
   createSectionCalendar,
   createUserCalendar,
 } from "@/lib/ical";
-import {
-  getIncompleteHomeworkCalendarItems,
-  getSectionForCalendar,
-  getSectionsForCalendar,
-} from "./calendar-route-data";
 import { calendarResponse } from "./calendar-route-utils";
 import {
   hasUserCalendarItems,

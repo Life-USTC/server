@@ -20,6 +20,7 @@ export let selectedCreateHomeworkSection: DashboardHomeworkCreateSectionGetter;
   <span class="font-medium text-sm">{homeworksCopy.submissionDue}</span>
   <DateTimePicker
     bind:value={createHomeworkSubmissionDueAt}
+    calendarButtonLabel={homeworksCopy.calendarButtonLabel}
     disabled={isCreatingHomework}
     name="submissionDueAt"
     placeholder={homeworksCopy.submissionDue}

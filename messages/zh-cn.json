@@ -1357,6 +1357,7 @@
     "homeworkPublishedAt": "作业发布日期",
     "submissionStart": "提交开始",
     "submissionDue": "提交截止",
+    "calendarButtonLabel": "打开日历选择器",
     "helperPublishNow": "立即发布",
     "helperStartNow": "立即开始",
     "helperClear": "清空",
@@ -1595,6 +1596,7 @@
     "suspendUserId": "用户 ID",
     "suspendReason": "原因（可选）",
     "suspendExpires": "到期时间（可选）",
+    "calendarButtonLabel": "打开日历选择器",
     "suspendAction": "封禁",
     "noReason": "未填写原因",
     "lifted": "已解除",
@@ -1711,6 +1713,7 @@
     "priorityLabel": "优先级",
     "dueAtLabel": "截止时间",
     "dueLabel": "截止",
+    "calendarButtonLabel": "打开日历选择器",
     "priority": {
       "low": "低",
       "medium": "中",

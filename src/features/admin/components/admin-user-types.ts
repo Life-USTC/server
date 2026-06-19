@@ -71,6 +71,7 @@ export type AdminUsersCommonCopy = {
 
 export type AdminUsersModerationCopy = {
   cancelButton: string;
+  calendarButtonLabel: string;
   duration1Day: string;
   duration3Days: string;
   duration1Month: string;

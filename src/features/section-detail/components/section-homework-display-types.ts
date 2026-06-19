@@ -4,6 +4,7 @@ export type SectionHomeworkCopy = Record<string, string> & {
   auditEmpty: string;
   auditMeta: string;
   auditTitle: string;
+  calendarButtonLabel: string;
   cancel: string;
   contentHistoryAction: string;
   contentHistoryActor: string;

@@ -9,7 +9,8 @@
   "rules": {
     "divided-by-responsibility": "The admin backend is divided by governance responsibility, not all actions on one page.",
     "moderation-centralized": "Comment and description governance are currently centralized on the moderation page.",
-    "high-risk-feedback": "High-risk admin actions such as delete, suspend, and hide must have clear feedback."
+    "high-risk-feedback": "High-risk admin actions such as delete, suspend, and hide must have clear feedback.",
+    "suspension-expiration-validation": "Suspension expiration accepts omitted, null, or empty input as permanent and rejects invalid non-empty date strings."
   },
   "capabilities": {
     "admin-home": {

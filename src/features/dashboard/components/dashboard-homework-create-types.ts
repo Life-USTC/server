@@ -1,6 +1,7 @@
 export type DashboardHomeworkCreateCopy = Record<string, string> & {
   advancedHide: string;
   advancedShow: string;
+  calendarButtonLabel: string;
   cancel: string;
   createAction: string;
   createTitle: string;

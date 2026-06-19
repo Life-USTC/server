@@ -152,6 +152,7 @@ export type SectionDetailCopy = {
     auditTitle: string;
     auditEmpty: string;
     auditMeta: string;
+    calendarButtonLabel: string;
     cancel: string;
     completedLabel: string;
     contentHistoryAction: string;

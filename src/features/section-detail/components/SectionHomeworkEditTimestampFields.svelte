@@ -25,6 +25,7 @@ export let semesterDate: SectionHomeworkSemesterDate;
     <span class="font-medium text-sm">{homeworkCopy.publishedAt}</span>
     <DateTimePicker
       bind:value={editHomeworkPublishedAt}
+      calendarButtonLabel={homeworkCopy.calendarButtonLabel}
       defaultTime="00:00"
       name="publishedAt"
       placeholder={homeworkCopy.publishedAt}
@@ -49,6 +50,7 @@ export let semesterDate: SectionHomeworkSemesterDate;
     <span class="font-medium text-sm">{homeworkCopy.submissionStart}</span>
     <DateTimePicker
       bind:value={editHomeworkSubmissionStartAt}
+      calendarButtonLabel={homeworkCopy.calendarButtonLabel}
       defaultTime="00:00"
       name="submissionStartAt"
       placeholder={homeworkCopy.submissionStart}
@@ -82,6 +84,7 @@ export let semesterDate: SectionHomeworkSemesterDate;
     <span class="font-medium text-sm">{homeworkCopy.submissionDue}</span>
     <DateTimePicker
       bind:value={editHomeworkSubmissionDueAt}
+      calendarButtonLabel={homeworkCopy.calendarButtonLabel}
       name="submissionDueAt"
       placeholder={homeworkCopy.submissionDue}
     />
