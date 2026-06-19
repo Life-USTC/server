@@ -29,11 +29,17 @@ async function captureSnapshots() {
   await fs.mkdir(path.dirname(SERVER_LOG_PATH), { recursive: true });
 
   const logStream = createWriteStream(SERVER_LOG_PATH, { flags: "w" });
+  // Bun 1.3 on CI cannot accept a WriteStream directly in child stdio.
   const server = spawn("bun", ["run", "tools/dev/e2e.ts", "start"], {
-    stdio: ["ignore", logStream, logStream],
+    stdio: ["ignore", "pipe", "pipe"],
   });
+  server.stdout?.pipe(logStream, { end: false });
+  server.stderr?.pipe(logStream, { end: false });
 
   let serverExitCode: number | null = null;
+  const serverClosed = new Promise<void>((resolve) => {
+    server.once("close", () => resolve());
+  });
   server.once("exit", (code) => {
     serverExitCode = code;
   });
@@ -72,6 +78,9 @@ async function captureSnapshots() {
     process.off("SIGINT", stopServer);
     process.off("SIGTERM", stopServer);
     stopServer();
+    await Promise.race([serverClosed, sleep(5_000)]);
+    server.stdout?.unpipe(logStream);
+    server.stderr?.unpipe(logStream);
     logStream.end();
   }
 }
