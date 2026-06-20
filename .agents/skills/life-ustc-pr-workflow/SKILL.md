@@ -38,7 +38,9 @@ Use the highest relevant gate:
 - Data/auth/browser/shared-tooling changes: `bun --silent run verify:full`
 - Production build or Cloudflare concern: `bun run build` and, when useful, `bunx wrangler deploy --dry-run --outdir /tmp/life-ustc-wrangler-dry-run`
 - E2E scope reproduction:
+  - Run `bunx playwright install chromium` once on a new local machine. Use `bunx playwright install --with-deps chromium` on Linux if browser system libraries are missing.
   - `docker compose -f docker-compose.dev.yml up -d`
+  - If Linux Docker port publishing accepts TCP but Postgres clients time out, use `docker compose -f docker-compose.dev.host.yml up -d` instead.
   - `bun run db migrate deploy`
   - `bun run seed`
   - `bun run build`
@@ -52,6 +54,8 @@ Stop local Docker services you started with:
 ```bash
 docker compose -f docker-compose.dev.yml down
 ```
+
+Use `docker compose -f docker-compose.dev.host.yml down` if you started the host-network fallback.
 
 ## Complete-Loop Evidence
 

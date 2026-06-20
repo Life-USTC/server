@@ -13,9 +13,19 @@ bun run dev
 
 本地数据库/存储由 Docker Compose 管理；需要数据库时先启动本地 infra，再运行应用。生产应用由 Cloudflare Git integration 发布，Docker 只保留静态数据加载环境。
 
+如果 Linux 环境下 Compose 内的 Postgres 已 healthy，但宿主机上的 `psql`、Prisma 或 `bun run dev` 连接 `127.0.0.1:5432` 超时，改用 host network 版本：
+
+```bash
+docker compose -f docker-compose.dev.host.yml up -d
+bun run dev
+```
+
+对应停止命令为 `docker compose -f docker-compose.dev.host.yml down`。
+
 开发期建议节奏：
 - 默认提交门禁：`bun --silent run verify`
 - 认证、数据流、浏览器流程或共享工具：`bun --silent run verify:full`
+- 首次本地跑浏览器/E2E 前先执行 `bunx playwright install chromium`
 - 本地应用固定监听 `127.0.0.1:3000`
 
 ## 常用入口

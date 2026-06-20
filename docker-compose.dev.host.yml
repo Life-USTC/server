@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:16
+    network_mode: host
+    environment:
+      POSTGRES_DB: life_ustc_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d life_ustc_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres-data-dev:/var/lib/postgresql/data
+
+volumes:
+  postgres-data-dev:
