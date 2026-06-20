@@ -1,18 +1,20 @@
-import type { Prisma } from "@/generated/prisma/client";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
 import { updateHomeworkDescription } from "./homework-description";
+import {
+  type HomeworkUpdateIntent,
+  hasHomeworkUpdateIntentChanges,
+} from "./homework-update-intent";
 
-type HomeworkUpdateInput = {
-  description?: string | null;
-  updates: Prisma.HomeworkUpdateInput;
-};
-
-type HomeworkMutationError = "deleted" | "forbidden" | "not_found";
+type HomeworkMutationError =
+  | "deleted"
+  | "forbidden"
+  | "no_changes"
+  | "not_found";
 
 export async function updateHomework(input: {
   homeworkId: string;
-  update: HomeworkUpdateInput;
+  update: HomeworkUpdateIntent;
   userId: string;
 }) {
   const homework = await prisma.homework.findUnique({
@@ -28,11 +30,15 @@ export async function updateHomework(input: {
     return { ok: false as const, error: "deleted" as HomeworkMutationError };
   }
 
+  if (!hasHomeworkUpdateIntentChanges(input.update)) {
+    return { ok: false as const, error: "no_changes" as HomeworkMutationError };
+  }
+
   await prisma.$transaction(async (tx) => {
-    if (Object.keys(input.update.updates).length > 1) {
+    if (input.update.homeworkUpdates) {
       await tx.homework.update({
         where: { id: input.homeworkId },
-        data: input.update.updates,
+        data: input.update.homeworkUpdates,
       });
     }
 

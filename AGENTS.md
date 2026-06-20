@@ -57,6 +57,7 @@ static loader.
 - Keep `src/lib` for infrastructure helpers and cross-cutting utilities, not feature rules.
 - Keep shared `src/lib/components` free of feature-specific data fetching and mutations.
 - Do not call SvelteKit page handlers or REST route handlers from features or page actions. Extract shared work into `src/features/*/server` and let routes adapt it to HTTP.
+- Before exposing a feature through multiple surfaces, put shared gates, common operations, and update/read services in `src/features/<feature>/server`; surface code should only handle transport-specific auth, validation, redirects, serialization, or output shaping.
 - REST, MCP, contract JSON, OpenAPI annotations, and tests are coupled surfaces; check all matching surfaces when one changes.
 - Treat `prisma/schema.prisma`, migrations, route handlers, contract JSON, and tests as source of truth over stale docs or generated output.
 

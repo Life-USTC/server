@@ -1,4 +1,4 @@
-import type { Prisma } from "@/generated/prisma/client";
+import { buildHomeworkUpdateIntent } from "@/features/homeworks/server/homework-update-intent";
 import {
   parseOptionalFieldDate,
   type resolveMcpMode,
@@ -90,20 +90,19 @@ export function parseHomeworkUpdateDates({
   };
 }
 
-export function buildHomeworkUpdates(
+export function buildHomeworkUpdateIntentForTool(
   { isMajor, requiresTeam, title }: HomeworkUpdateScalarInputs,
   userId: string,
   dates: ParsedHomeworkUpdateDates,
+  description?: string | null,
 ) {
-  const updates: Prisma.HomeworkUpdateInput = {
-    updatedBy: { connect: { id: userId } },
-  };
-  if (title !== undefined) updates.title = title;
-  if (isMajor !== undefined) updates.isMajor = isMajor === true;
-  if (requiresTeam !== undefined) updates.requiresTeam = requiresTeam === true;
-  if (dates.hasPublishedAt) updates.publishedAt = dates.publishedAt;
-  if (dates.hasSubmissionStartAt)
-    updates.submissionStartAt = dates.submissionStartAt;
-  if (dates.hasSubmissionDueAt) updates.submissionDueAt = dates.submissionDueAt;
-  return updates;
+  return buildHomeworkUpdateIntent({
+    dates,
+    description,
+    hasDescription: description !== undefined,
+    isMajor,
+    requiresTeam,
+    title,
+    userId,
+  });
 }

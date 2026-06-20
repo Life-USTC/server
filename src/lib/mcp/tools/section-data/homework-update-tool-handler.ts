@@ -1,5 +1,6 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { updateHomework } from "@/features/homeworks/server/homework-mutations";
+import { hasHomeworkUpdateIntentChanges } from "@/features/homeworks/server/homework-update-intent";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { findActiveSuspension } from "@/lib/auth/viewer-context";
 import {
@@ -9,7 +10,7 @@ import {
 } from "@/lib/mcp/tools/_helpers";
 import { getHomeworkItemById } from "./homework-tool-helpers";
 import {
-  buildHomeworkUpdates,
+  buildHomeworkUpdateIntentForTool,
   parseHomeworkUpdateDates,
   type UpdateHomeworkOnSectionArgs,
 } from "./homework-update-input";
@@ -53,14 +54,14 @@ export async function updateHomeworkOnSectionTool(
     return parsedDates.result;
   }
 
-  const updates = buildHomeworkUpdates(
+  const update = buildHomeworkUpdateIntentForTool(
     { isMajor, requiresTeam, title },
     userId,
     parsedDates.value,
+    description,
   );
-  const wantsDescription = description !== undefined;
 
-  if (Object.keys(updates).length === 1 && !wantsDescription) {
+  if (!hasHomeworkUpdateIntentChanges(update)) {
     return jsonToolResult(
       { success: false, message: "No changes" },
       { mode: resolvedMode },
@@ -69,10 +70,16 @@ export async function updateHomeworkOnSectionTool(
 
   const result = await updateHomework({
     homeworkId,
-    update: { description, updates },
+    update,
     userId,
   });
   if (!result.ok) {
+    if (result.error === "no_changes") {
+      return jsonToolResult(
+        { success: false, message: "No changes" },
+        { mode: resolvedMode },
+      );
+    }
     if (result.error === "not_found") {
       return jsonToolResult(
         {

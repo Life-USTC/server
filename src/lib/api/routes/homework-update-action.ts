@@ -1,5 +1,10 @@
 import { updateHomework } from "@/features/homeworks/server/homework-mutations";
-import { forbidden, jsonResponse, notFound } from "@/lib/api/helpers";
+import {
+  badRequest,
+  forbidden,
+  jsonResponse,
+  notFound,
+} from "@/lib/api/helpers";
 import { parseUpdateHomeworkInput } from "@/lib/api/routes/homework-mutation-helpers";
 
 export async function updateHomeworkAction(
@@ -16,6 +21,7 @@ export async function updateHomeworkAction(
     userId,
   });
   if (!result.ok) {
+    if (result.error === "no_changes") return badRequest("No changes");
     if (result.error === "not_found") return notFound();
     return forbidden("Homework deleted");
   }
