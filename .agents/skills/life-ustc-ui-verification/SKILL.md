@@ -23,12 +23,16 @@ Use this skill to close the loop on user-visible UI work with browser evidence, 
 For seeded Worker-backed E2E reproduction:
 
 ```bash
+bunx playwright install chromium
 docker compose -f docker-compose.dev.yml up -d
 bun run build
 bun --silent run tools/dev/e2e.ts prepare
 bun run seed
 bunx playwright test --reporter=list -- <path>
 ```
+
+On Linux, use `bunx playwright install --with-deps chromium` if browser system
+libraries are missing.
 
 For interactive visual refinement:
 
@@ -44,6 +48,10 @@ Stop Docker services you started:
 ```bash
 docker compose -f docker-compose.dev.yml down
 ```
+
+If Linux Docker port publishing accepts TCP but Postgres clients time out, use
+`docker compose -f docker-compose.dev.host.yml up -d` and the matching `down`
+command instead.
 
 ## Screenshot Review Checklist
 
