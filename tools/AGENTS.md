@@ -7,14 +7,9 @@ Build, check, seed, import, E2E, and snapshot scripts.
 ```
 shared/              Helper code
 build/openapi/       OpenAPI generation
-dev/build.ts         Production build task wrapper
 dev/check.ts         Convention checks
-dev/dev.ts           Host-native dev server task wrapper
 dev/e2e.ts           E2E Cloudflare Worker runtime helper
 dev/health.ts        Local app health probe
-dev/quiet.ts         Hide successful command output; print captured output on failure
-dev/run-steps.ts     Shared command runner for task wrappers
-dev/verify.ts        Default/full verification task wrapper
 dev/artifacts/snapshots/
                      Visual snapshot capture and report workflow
 dev/seed/            Dev seed data
@@ -61,12 +56,15 @@ Seed data:
 ## Tool Stages
 
 ```bash
-bun run build          # regenerate Prisma/OpenAPI artifacts and build
+bun run build                # regenerate Prisma/OpenAPI artifacts and build
 bun --silent run verify      # most tool edits
 bun --silent run verify:full # shared tooling, seed flows, integration-sensitive edits
 ```
 
-Convention checks are internal tool phases and are intentionally quiet on success.
+Default entrypoints live in `package.json`; do not reintroduce TypeScript
+wrappers whose only job is to spawn standard CLI commands.
+Convention checks are internal tool phases and should stay focused on project
+rules rather than general command orchestration.
 Snapshot/E2E artifact changes are phase-sensitive: keep Worker build output,
 Node Prisma fixtures, capture, cleanup, and publish steps aligned with the
 existing workflow instead of moving work across phases casually. Keep long CI

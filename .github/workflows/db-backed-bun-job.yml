@@ -116,9 +116,7 @@ jobs:
 
       - name: Generate Prisma client
         shell: bash
-        run: |
-          bun run svelte-kit sync
-          bun run db generate
+        run: bun --silent run app:prepare
 
       - name: Download artifact
         if: ${{ inputs.download-artifact-name != '' }}

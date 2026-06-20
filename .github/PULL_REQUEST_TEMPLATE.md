@@ -2,31 +2,22 @@
 
 <!-- What should this change accomplish? -->
 
-## Non-Goals
+## Changed Surfaces
 
-<!-- What is intentionally out of scope? -->
+<!-- Code paths, docs/contracts, routes/MCP tools, UI screens, data shape, CI/workflows. -->
 
-## Acceptance Criteria
+## Evidence
 
-<!-- Observable behavior, API contract, or workflow that must hold. -->
+<!-- Commands run plus any browser screenshot/API/MCP output inspected. Say N/A with reason for skipped checks. -->
 
-## Constraints / Risk Areas
+## Docs / Contracts
+
+<!-- Updated docs/contracts/OpenAPI/message files, or explain why no docs change is needed. -->
+
+## Risk Areas
 
 <!-- Auth, OAuth/MCP, Prisma/migrations, uploads, seeds, i18n, CI, external APIs, privacy/security. -->
 
-## Test Plan
+## Cleanup
 
-<!-- Commands run and relevant manual checks. If a check was skipped, say why. -->
-
-## Cleanup / Maintainability
-
-- [ ] Removed scratch artifacts, one-time verification code, ad hoc probes, and temporary files.
-- [ ] Kept the implementation clean and durable; no known avoidable tech debt, monkeypatches, or brittle shortcuts.
-
-## Docs
-
-- [ ] Updated affected `docs/contracts/<module>.json`, or N/A.
-- [ ] Updated route OpenAPI annotations / regenerated artifacts, or N/A.
-- [ ] Checked REST/MCP parity, or N/A.
-- [ ] Updated setup, operations, or architecture docs, or N/A.
-- [ ] Did not manually edit generated files.
+<!-- Confirm no scratch artifacts, one-time probes, unrelated rewrites, or manual generated-file edits remain. -->

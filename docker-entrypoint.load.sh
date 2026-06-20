@@ -6,5 +6,5 @@ if [ -z "${DATABASE_URL:-}" ]; then
   exit 1
 fi
 
-bun run db migrate deploy
+bun --silent run db:migrate:deploy
 exec bun dist/tools/load/load-from-static.js "$@"

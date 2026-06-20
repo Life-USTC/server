@@ -51,19 +51,17 @@ jobs:
 
       - name: Generate Prisma client
         shell: bash
-        run: |
-          bun run svelte-kit sync
-          bun run db generate
+        run: bun --silent run app:prepare
 
       - name: Build Worker app
         shell: bash
-        run: bun run build && bun --silent run tools/dev/e2e.ts prepare
+        run: bun run build && bun --silent run e2e:prepare
 
       - name: Bootstrap E2E services
         shell: bash
         run: |
-          bun run db migrate deploy
-          bun --silent run tools/dev/check.ts e2e
+          bun --silent run db:migrate:deploy
+          bun --silent run check:e2e
 
       - name: Seed E2E scenarios
         shell: bash

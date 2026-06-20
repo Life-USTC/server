@@ -15,8 +15,7 @@ COPY . .
 
 ENV DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_generate
 
-RUN bun run svelte-kit sync \
-  && bun run db generate \
+RUN bun --silent run app:prepare \
   && bun build tools/load/load-from-static.ts \
     --target=bun \
     --outdir=dist/tools/load \
