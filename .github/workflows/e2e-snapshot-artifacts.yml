@@ -51,17 +51,17 @@ jobs:
 
       - name: Generate Prisma client
         shell: bash
-        run: bun --silent run app:prepare
+        run: bun run app:prepare
 
       - name: Build Worker app
         shell: bash
-        run: bun run build && bun --silent run e2e:prepare
+        run: bun run build && bun run e2e:prepare
 
       - name: Bootstrap E2E services
         shell: bash
         run: |
-          bun --silent run db:migrate:deploy
-          bun --silent run check:e2e
+          bun run db:migrate:deploy
+          bun run check:e2e
 
       - name: Seed E2E scenarios
         shell: bash

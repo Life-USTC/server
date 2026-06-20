@@ -14,8 +14,8 @@ bun run dev
 本地数据库/存储由 Docker Compose 管理；需要数据库时先启动本地 infra，再运行应用。生产应用由 Cloudflare Git integration 发布，Docker 只保留静态数据加载环境。
 
 开发期建议节奏：
-- 默认提交门禁：`bun --silent run verify`
-- 认证、数据流、浏览器流程或共享工具：`bun --silent run verify:full`
+- 默认提交门禁：`bun run verify`
+- 认证、数据流、浏览器流程或共享工具：`bun run verify:full`
 - 首次本地跑浏览器/E2E 前先执行 `bunx playwright install chromium`
 - 本地应用固定监听 `127.0.0.1:3000`
 

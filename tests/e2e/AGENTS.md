@@ -9,7 +9,7 @@ focused local Playwright run, prepare the Worker runtime and seed data first:
 
 ```bash
 bun run build
-bun --silent run e2e:prepare
+bun run e2e:prepare
 bun run seed
 bunx playwright test --headed path/to/test
 bunx playwright test --ui
