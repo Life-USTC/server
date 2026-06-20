@@ -1,5 +1,4 @@
 <script lang="ts">
-import { DropdownMenu as MenuPrimitive } from "bits-ui";
 import { onMount } from "svelte";
 
 export let align: "left" | "right" = "left";
@@ -50,18 +49,17 @@ onMount(() => {
 });
 </script>
 
-<MenuPrimitive.Root open={true}>
+<div
+  bind:this={menuElement}
+  class={`absolute ${alignmentClass} z-20 mt-1 w-40 ${className}`}
+>
   <div
-    bind:this={menuElement}
-    class={`absolute ${alignmentClass} z-20 mt-1 w-40 ${className}`}
+    class="grid w-full gap-1 rounded-md border border-base-300 bg-base-100 p-1 shadow-lg outline-none"
+    data-slot="menu"
+    role="menu"
+    tabindex="-1"
+    {...$$restProps}
   >
-    <MenuPrimitive.ContentStatic
-      class="grid w-full gap-1 rounded-md border border-base-300 bg-base-100 p-1 shadow-lg outline-none"
-      data-slot="menu"
-      loop
-      {...$$restProps}
-    >
-      <slot />
-    </MenuPrimitive.ContentStatic>
+    <slot />
   </div>
-</MenuPrimitive.Root>
+</div>

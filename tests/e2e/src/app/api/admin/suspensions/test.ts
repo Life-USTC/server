@@ -87,7 +87,12 @@ test.describe("GET/POST /api/admin/suspensions", () => {
       ).data?.find((u) => u.username === usernames[0])?.id;
       expect(userId).toBeTruthy();
 
-      for (const expiresAt of ["not-a-date", "2026-02-31", "2026/02/31"]) {
+      for (const expiresAt of [
+        "not-a-date",
+        "2026-02-31",
+        "2026/02/31",
+        "2026.02.31",
+      ]) {
         const postResponse = await page.request.post(BASE, {
           data: {
             userId,

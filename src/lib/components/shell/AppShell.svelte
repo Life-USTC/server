@@ -65,6 +65,14 @@ function toggleLocaleMenu() {
   userMenuOpen = false;
 }
 
+function closeMobileMenu() {
+  mobileMenuOpen = false;
+}
+
+function closeUserMenu() {
+  userMenuOpen = false;
+}
+
 function closeMenus() {
   mobileMenuOpen = false;
   userMenuOpen = false;
@@ -106,7 +114,9 @@ onMount(() => {
 
   <AppHeader
     {avatarFallback}
+    {closeMobileMenu}
     {closeMenus}
+    {closeUserMenu}
     copy={data.copy}
     {mobileMenuOpen}
     {primaryLinks}

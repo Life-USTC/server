@@ -5,6 +5,7 @@ import type { ShellCopy, ShellUser } from "./types";
 
 export let avatarFallback: string;
 export let closeMenus: () => void;
+export let closeUserMenu: () => void;
 export let copy: ShellCopy;
 export let profileHref: string;
 export let toggleUserMenu: () => void;
@@ -35,7 +36,7 @@ export let userMenuOpen: boolean;
       {/if}
     </Button>
     {#if userMenuOpen}
-      <Menu.Root align="right" class="w-44" onClose={closeMenus}>
+      <Menu.Root align="right" class="w-44" onClose={closeUserMenu}>
         <Menu.Item href="/" onclick={closeMenus}>
           {copy.menu.home}
         </Menu.Item>
