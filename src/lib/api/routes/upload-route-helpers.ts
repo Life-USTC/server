@@ -3,7 +3,11 @@ import {
   normalizeContentType,
   sanitizeFilename,
 } from "@/features/uploads/lib/upload-utils";
-import { badRequest, parseRouteInput } from "@/lib/api/helpers";
+import {
+  badRequest,
+  parseRouteInput,
+  payloadTooLarge,
+} from "@/lib/api/helpers";
 import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
 
 type IdParams = { id: string };
@@ -38,8 +42,11 @@ export function parseUploadCreateInput(input: {
   size: number | string;
 }) {
   const size = parseFileSize(input.size);
-  if (size == null || size <= 0 || size > uploadConfig.maxFileSizeBytes) {
+  if (size == null || size <= 0) {
     return badRequest("Invalid upload size");
+  }
+  if (size > uploadConfig.maxFileSizeBytes) {
+    return payloadTooLarge("File too large");
   }
 
   const filename = sanitizeFilename(input.filename);
