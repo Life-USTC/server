@@ -15,6 +15,7 @@ const DATE_TIME_WITHOUT_TZ_PATTERN =
 const DATE_TIME_WITH_TZ_PATTERN =
   /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/i;
 const EXPLICIT_TIMEZONE_PATTERN = /(Z|[+-]\d{2}:\d{2})$/i;
+const NUMERIC_DATE_PREFIX_PATTERN = /^\d{4}[-/]\d{1,2}[-/]\d{1,2}/;
 const DATE_TIME_WITHOUT_TZ_FORMATS = [
   "YYYY-MM-DDTHH:mm",
   "YYYY-MM-DDTHH:mm:ss",
@@ -60,7 +61,13 @@ export function parseDateInput(value: unknown): Date | null | undefined {
   const isDateTimeWithoutTimezone =
     !hasExplicitTimezone && DATE_TIME_WITHOUT_TZ_PATTERN.test(normalized);
   const isDateTimeWithTimezone = DATE_TIME_WITH_TZ_PATTERN.test(normalized);
+  const isUnsupportedNumericDate =
+    NUMERIC_DATE_PREFIX_PATTERN.test(normalized) &&
+    !isDateOnly &&
+    !isDateTimeWithoutTimezone &&
+    !isDateTimeWithTimezone;
 
+  if (isUnsupportedNumericDate) return undefined;
   if (isDateOnly && !isStrictDateOnly(normalized)) return undefined;
   if (
     isDateTimeWithoutTimezone &&
