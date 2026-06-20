@@ -87,14 +87,16 @@ test.describe("GET/POST /api/admin/suspensions", () => {
       ).data?.find((u) => u.username === usernames[0])?.id;
       expect(userId).toBeTruthy();
 
-      const postResponse = await page.request.post(BASE, {
-        data: {
-          userId,
-          reason: "invalid expiration should fail",
-          expiresAt: "not-a-date",
-        },
-      });
-      expect(postResponse.status()).toBe(400);
+      for (const expiresAt of ["not-a-date", "2026-02-31"]) {
+        const postResponse = await page.request.post(BASE, {
+          data: {
+            userId,
+            reason: "invalid expiration should fail",
+            expiresAt,
+          },
+        });
+        expect(postResponse.status()).toBe(400);
+      }
 
       const listResponse = await page.request.get(BASE);
       expect(listResponse.status()).toBe(200);
