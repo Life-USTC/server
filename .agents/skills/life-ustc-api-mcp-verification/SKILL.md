@@ -1,6 +1,6 @@
 ---
 name: life-ustc-api-mcp-verification
-description: "REST API and MCP complete-loop verification workflow for Life-USTC. Use when modifying API routes, MCP tools, contracts, OpenAPI annotations, auth or permission behavior, pagination, status codes, error bodies, date serialization, or tool output shape."
+description: "Verify Life-USTC REST API and MCP behavior after route, tool, contract, OpenAPI, auth, permission, status, pagination, date, or output-shape changes."
 ---
 
 # Life USTC API MCP Verification

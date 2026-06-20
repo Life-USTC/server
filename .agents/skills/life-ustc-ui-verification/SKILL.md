@@ -1,6 +1,6 @@
 ---
 name: life-ustc-ui-verification
-description: "Browser and screenshot verification workflow for Life-USTC UI changes. Use when modifying Svelte pages, shared or feature UI components, CSS, responsive layouts, visible copy, Playwright snapshots, or fixing visual regressions."
+description: "Verify Life-USTC UI changes with browser evidence after Svelte page, component, CSS, responsive layout, copy, snapshot, or visual-regression changes."
 ---
 
 # Life USTC UI Verification
@@ -26,7 +26,7 @@ For seeded Worker-backed E2E reproduction:
 bunx playwright install chromium
 docker compose -f docker-compose.dev.yml up -d
 bun run build
-bun --silent run tools/dev/e2e.ts prepare
+bun --silent run e2e:prepare
 bun run seed
 bunx playwright test --reporter=list -- <path>
 ```

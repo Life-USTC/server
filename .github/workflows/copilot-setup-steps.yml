@@ -54,8 +54,7 @@ jobs:
       - name: Prepare database and generated artifacts
         shell: bash
         run: |
-          bun run db migrate deploy
-          bun --silent run tools/dev/quiet.ts -- bun run svelte-kit sync
-          bun --silent run tools/dev/quiet.ts -- bun run db generate
-          bun --silent run tools/dev/quiet.ts -- bun run tools/build/openapi/generate-spec.ts
+          bun --silent run db:migrate:deploy
+          bun --silent run app:prepare
+          bun --silent run openapi:generate
           bun run seed

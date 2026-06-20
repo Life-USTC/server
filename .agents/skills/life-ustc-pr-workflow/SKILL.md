@@ -1,6 +1,6 @@
 ---
 name: "life-ustc-pr-workflow"
-description: "End-to-end development workflow for the Life-USTC/server repository. Use when implementing fixes or features, updating contracts/docs/tests, publishing or updating PRs, monitoring GitHub Actions and Cloudflare checks, or addressing PR review feedback in this repo."
+description: "Run the Life-USTC implementation-to-PR loop for fixes, features, docs/contracts/tests updates, CI monitoring, or PR review feedback."
 ---
 
 # Life-USTC PR Workflow
@@ -40,10 +40,10 @@ Use the highest relevant gate:
 - E2E scope reproduction:
   - Run `bunx playwright install chromium` once on a new local machine. Use `bunx playwright install --with-deps chromium` on Linux if browser system libraries are missing.
   - `docker compose -f docker-compose.dev.yml up -d`
-  - `bun run db migrate deploy`
+  - `bun --silent run db:migrate:deploy`
   - `bun run seed`
   - `bun run build`
-  - `bun --silent run tools/dev/e2e.ts prepare`
+  - `bun --silent run e2e:prepare`
   - `bunx playwright test --reporter=list -- <paths>`
 - Snapshot workflow changes:
   - `bun run tools/dev/artifacts/snapshots/snapshot-ci.ts capture`

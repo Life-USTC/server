@@ -3,7 +3,6 @@ import { createWriteStream, existsSync } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { runCommand, runMain } from "../../run-steps";
 
 const SNAPSHOT_DIR = path.join("test-results", "snapshots");
 const SERVER_LOG_PATH = path.join("test-results", "e2e-snapshot-server.log");
@@ -22,6 +21,20 @@ async function printServerLog() {
   if (!existsSync(SERVER_LOG_PATH)) return;
   const log = await fs.readFile(SERVER_LOG_PATH, "utf8");
   if (log) process.stderr.write(log);
+}
+
+async function runCommand(command: string, args: string[]) {
+  const child = spawn(command, args, { stdio: "inherit" });
+  const exitCode = await new Promise<number | null>((resolve, reject) => {
+    child.once("error", reject);
+    child.once("close", resolve);
+  });
+
+  if (exitCode !== 0) {
+    throw new Error(
+      `${[command, ...args].join(" ")} exited with code ${exitCode ?? 1}`,
+    );
+  }
 }
 
 async function captureSnapshots() {
@@ -211,7 +224,7 @@ async function publishPreviews() {
 
 const command = process.argv[2];
 
-await runMain(async () => {
+async function main() {
   if (command === "capture") {
     await captureSnapshots();
     return;
@@ -226,4 +239,13 @@ await runMain(async () => {
     "Usage: bun run tools/dev/artifacts/snapshots/snapshot-ci.ts <capture|publish-previews>",
   );
   process.exit(2);
-});
+}
+
+try {
+  await main();
+} catch (error) {
+  const message =
+    error instanceof Error ? (error.stack ?? error.message) : String(error);
+  console.error(message);
+  process.exit(1);
+}

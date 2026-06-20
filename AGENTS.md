@@ -181,7 +181,7 @@ buildPaginatedResponse(items, page, pageSize, total)
 **Default Verification**:
 - Use `bun --silent run verify` for most commits and PR updates.
 - Use `bun --silent run verify:full` before pushing changes that affect data flows, auth, browser flows, docs contracts, or shared tooling.
-- Repo-owned checks should stay quiet on success and print only actionable failures.
+- Repo-owned checks should keep success output concise and print actionable failures.
 
 **No Stray Reports**:
 - Do not leave migration plans, improvement reports, status summaries, scratch artifacts, or one-time analysis outputs in the repo.

@@ -30,7 +30,7 @@ jobs:
       webhook-secret: e2e-ci-secret
       auth-secret: e2e-ci-secret
       extra-env: NO_PROXY=127.0.0.1,localhost,::1
-      job-command: bun run build && bun --silent run tools/dev/e2e.ts prepare
+      job-command: bun run build && bun --silent run e2e:prepare
       upload-artifact-name: playwright-worker
       upload-artifact-path: .svelte-kit
       upload-artifact-no-files-found: error
@@ -67,8 +67,8 @@ jobs:
       download-artifact-name: playwright-worker
       download-artifact-path: .svelte-kit
       job-command: |
-        bun run db migrate deploy
-        bun --silent run tools/dev/check.ts e2e
+        bun --silent run db:migrate:deploy
+        bun --silent run check:e2e
         bun run seed
         bunx playwright test --reporter=list -- ${{ matrix.paths }}
       upload-artifact-name: playwright-report-${{ matrix.scope }}
