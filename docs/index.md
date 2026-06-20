@@ -48,6 +48,6 @@ is the project map: start here, then follow the closest source of truth.
 
 ## Verification
 
-- Default gate: `bun --silent run verify`.
-- Escalate to `bun --silent run verify:full` for auth, data, browser, or shared tooling.
+- Default gate: `bun run verify`.
+- Escalate to `bun run verify:full` for auth, data, browser, or shared tooling.
 - Regenerate Prisma/OpenAPI artifacts with `bun run build`.

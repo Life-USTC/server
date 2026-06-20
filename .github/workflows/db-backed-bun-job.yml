@@ -116,7 +116,7 @@ jobs:
 
       - name: Generate Prisma client
         shell: bash
-        run: bun --silent run app:prepare
+        run: bun run app:prepare
 
       - name: Download artifact
         if: ${{ inputs.download-artifact-name != '' }}

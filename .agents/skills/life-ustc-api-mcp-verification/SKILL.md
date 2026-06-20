@@ -41,8 +41,8 @@ Use this skill to verify public API and MCP behavior by inspecting representativ
 Use the highest relevant gate:
 
 - Focused unit or integration spec for the changed route/tool.
-- `bun --silent run verify` for most API/MCP work.
-- `bun --silent run verify:full` for auth, data, browser, docs contracts, or shared tooling changes.
+- `bun run verify` for most API/MCP work.
+- `bun run verify:full` for auth, data, browser, docs contracts, or shared tooling changes.
 - `bun run build` when OpenAPI generation, Worker packaging, or production build output is affected.
 
 ## Handoff Evidence

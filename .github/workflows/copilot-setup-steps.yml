@@ -54,7 +54,7 @@ jobs:
       - name: Prepare database and generated artifacts
         shell: bash
         run: |
-          bun --silent run db:migrate:deploy
-          bun --silent run app:prepare
-          bun --silent run openapi:generate
+          bun run db:migrate:deploy
+          bun run app:prepare
+          bun run openapi:generate
           bun run seed

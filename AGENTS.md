@@ -24,8 +24,8 @@ Call the highest stage that fits; use lower stages only to diagnose failures.
 ```bash
 bun install --frozen-lockfile
 bun run dev             # app dev; start local Docker infra first when DB/storage is needed
-bun --silent run verify          # default gate
-bun --silent run verify:full     # auth/data/browser/shared-tooling changes
+bun run verify          # default gate
+bun run verify:full     # auth/data/browser/shared-tooling changes
 bun run build           # regenerate artifacts and run production build
 ```
 
@@ -179,8 +179,8 @@ buildPaginatedResponse(items, page, pageSize, total)
 - When docs must change as part of code work, keep the edits narrow and run the same default gate.
 
 **Default Verification**:
-- Use `bun --silent run verify` for most commits and PR updates.
-- Use `bun --silent run verify:full` before pushing changes that affect data flows, auth, browser flows, docs contracts, or shared tooling.
+- Use `bun run verify` for most commits and PR updates.
+- Use `bun run verify:full` before pushing changes that affect data flows, auth, browser flows, docs contracts, or shared tooling.
 - Repo-owned checks should keep success output concise and print actionable failures.
 
 **No Stray Reports**:

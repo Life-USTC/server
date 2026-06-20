@@ -57,8 +57,8 @@ Seed data:
 
 ```bash
 bun run build                # regenerate Prisma/OpenAPI artifacts and build
-bun --silent run verify      # most tool edits
-bun --silent run verify:full # shared tooling, seed flows, integration-sensitive edits
+bun run verify      # most tool edits
+bun run verify:full # shared tooling, seed flows, integration-sensitive edits
 ```
 
 Default entrypoints live in `package.json`; do not reintroduce TypeScript

@@ -26,7 +26,7 @@ For seeded Worker-backed E2E reproduction:
 bunx playwright install chromium
 docker compose -f docker-compose.dev.yml up -d
 bun run build
-bun --silent run e2e:prepare
+bun run e2e:prepare
 bun run seed
 bunx playwright test --reporter=list -- <path>
 ```
@@ -41,7 +41,7 @@ bunx playwright test --headed <path>
 bunx playwright test --ui
 ```
 
-Use `bun --silent run verify:full` before pushing when the change affects browser flows broadly.
+Use `bun run verify:full` before pushing when the change affects browser flows broadly.
 
 Stop Docker services you started:
 
