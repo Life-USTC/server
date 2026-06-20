@@ -33,6 +33,22 @@ describe("admin suspension expiration input", () => {
     expect(result.success).toBe(false);
   });
 
+  it("rejects overflowing expiration calendar dates", () => {
+    for (const expiresAt of [
+      "2026-02-31",
+      "2026-13-01",
+      "2026-02-31T12:00",
+      "2026-02-31T12:00:00Z",
+    ]) {
+      expect(
+        adminCreateSuspensionRequestSchema.safeParse({
+          userId: "user-1",
+          expiresAt,
+        }).success,
+      ).toBe(false);
+    }
+  });
+
   it("preserves invalid custom UI expiration values for API rejection", () => {
     expect(adminUserSuspensionExpiresAt("custom", "not-a-date")).toBe(
       "not-a-date",

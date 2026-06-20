@@ -26,4 +26,12 @@ describe("parseDateInput", () => {
   test("returns undefined for invalid input", () => {
     expect(parseDateInput("not-a-date")).toBeUndefined();
   });
+
+  test("rejects overflowing calendar dates", () => {
+    expect(parseDateInput("2026-02-31")).toBeUndefined();
+    expect(parseDateInput("2026-13-01")).toBeUndefined();
+    expect(parseDateInput("2026-02-31T12:00")).toBeUndefined();
+    expect(parseDateInput("2026-02-31T12:00:00Z")).toBeUndefined();
+    expect(parseDateInput("2026-02-31T12:00:00+08:00")).toBeUndefined();
+  });
 });
