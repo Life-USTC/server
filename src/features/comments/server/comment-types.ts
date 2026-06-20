@@ -40,6 +40,7 @@ export type CommentNode = {
   reactions: CommentReaction[];
   canReply: boolean;
   canEdit: boolean;
+  canDelete: boolean;
   canModerate: boolean;
 };
 

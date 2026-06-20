@@ -16538,6 +16538,9 @@
           "canEdit": {
             "type": "boolean"
           },
+          "canDelete": {
+            "type": "boolean"
+          },
           "canModerate": {
             "type": "boolean"
           }
@@ -16560,6 +16563,7 @@
           "reactions",
           "canReply",
           "canEdit",
+          "canDelete",
           "canModerate"
         ],
         "additionalProperties": false

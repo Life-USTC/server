@@ -73,7 +73,7 @@
           "comment.reactions[] (counts per reaction type)",
           "comment.replies[] (threaded)",
           "comment.attachments[] filename/open action",
-          "canReply/canEdit/canModerate actions",
+          "canReply/canEdit/canDelete/canModerate actions",
           "Copy link action"
         ]
       }

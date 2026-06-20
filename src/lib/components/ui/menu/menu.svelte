@@ -12,9 +12,21 @@ export { className as class };
 $: alignmentClass = align === "right" ? "right-0" : "left-0";
 
 onMount(() => {
+  let closeTimer: number | null = null;
+
+  function scheduleClose() {
+    if (closeTimer) {
+      window.clearTimeout(closeTimer);
+    }
+    closeTimer = window.setTimeout(() => {
+      closeTimer = null;
+      onClose();
+    }, 0);
+  }
+
   function handlePointerDown(event: PointerEvent) {
     if (menuElement && !menuElement.contains(event.target as Node)) {
-      onClose();
+      scheduleClose();
     }
   }
 
@@ -29,6 +41,9 @@ onMount(() => {
   document.addEventListener("keydown", handleKeydown);
 
   return () => {
+    if (closeTimer) {
+      window.clearTimeout(closeTimer);
+    }
     document.removeEventListener("pointerdown", handlePointerDown);
     document.removeEventListener("keydown", handleKeydown);
   };

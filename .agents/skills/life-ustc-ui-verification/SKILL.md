@@ -49,10 +49,6 @@ Stop Docker services you started:
 docker compose -f docker-compose.dev.yml down
 ```
 
-If Linux Docker port publishing accepts TCP but Postgres clients time out, use
-`docker compose -f docker-compose.dev.host.yml up -d` and the matching `down`
-command instead.
-
 ## Screenshot Review Checklist
 
 - Check the affected screen at a representative desktop viewport.

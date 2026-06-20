@@ -22,6 +22,7 @@ function comment(overrides: Partial<CommentNode> = {}): CommentNode {
     reactions: [],
     canReply: false,
     canEdit: false,
+    canDelete: false,
     canModerate: false,
     ...overrides,
   };

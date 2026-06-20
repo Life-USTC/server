@@ -54,7 +54,7 @@ export let toggleReply: (comment: CommentNode) => void;
         <Menu.Item onclick={() => copyCommentLink(comment)}>
           {commentCopy.copyLinkAction}
         </Menu.Item>
-        {#if comment.isAuthor || comment.canModerate}
+        {#if comment.canDelete}
           <Menu.Item destructive onclick={() => openDeleteDialog(comment)}>
             {commentCopy.deleteAction}
           </Menu.Item>

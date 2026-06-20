@@ -53,6 +53,8 @@ export function buildVisibleCommentNode({
     reactions: buildReactionSummary(comment, viewer),
     canReply: canWrite,
     canEdit: canWrite && isAuthor && rawStatus !== "deleted",
+    canDelete:
+      rawStatus !== "deleted" && ((canWrite && isAuthor) || viewer.isAdmin),
     canModerate: viewer.isAdmin,
   };
 }

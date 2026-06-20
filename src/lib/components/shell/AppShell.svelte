@@ -126,7 +126,7 @@ onMount(() => {
     {cycleTheme}
     {footerLinks}
     locale={data.locale}
-    {localeMenuOpen}
+    bind:localeMenuOpen
     {setLocale}
     {themeButtonLabel}
     {toggleLocaleMenu}

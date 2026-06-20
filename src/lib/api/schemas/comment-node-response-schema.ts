@@ -43,6 +43,7 @@ export type CommentNode = {
   reactions: z.infer<typeof commentReactionSummarySchema>[];
   canReply: boolean;
   canEdit: boolean;
+  canDelete: boolean;
   canModerate: boolean;
 };
 
@@ -65,6 +66,7 @@ export const commentNodeSchema: z.ZodType<CommentNode> = z.lazy(() =>
     reactions: z.array(commentReactionSummarySchema),
     canReply: z.boolean(),
     canEdit: z.boolean(),
+    canDelete: z.boolean(),
     canModerate: z.boolean(),
   }),
 );
