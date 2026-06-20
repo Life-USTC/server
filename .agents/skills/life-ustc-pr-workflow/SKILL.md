@@ -54,24 +54,6 @@ Stop local Docker services you started with:
 docker compose -f docker-compose.dev.yml down
 ```
 
-If Compose Postgres is healthy and raw TCP connects to `127.0.0.1:5432` but
-Postgres clients or Prisma time out, inspect host routing before changing repo
-files:
-
-```bash
-docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' server-postgres-1
-ip route get <container-ip>
-tailscale debug prefs
-```
-
-On this Fedora host, an active Tailscale exit node without LAN access routed
-Docker bridge subnets through `tailscale0`. Preserve the exit node and restore
-local Docker routing with:
-
-```bash
-sudo tailscale set --exit-node-allow-lan-access=true
-```
-
 Prefer skills and documented procedures for agent workflow steps. Do not add
 new TypeScript command-orchestration scripts for one-off local setup or PR
 process guidance.
