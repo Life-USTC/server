@@ -1697,6 +1697,53 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
         "homework updated by mcp e2e",
       );
 
+      const descriptionOnlyResult = await mcpClient.callTool({
+        name: "update_homework_on_section",
+        arguments: {
+          homeworkId: createHomeworkPayload.id,
+          description: "homework description-only update by mcp e2e",
+        },
+      });
+      const descriptionOnlyPayload = parseTextContent(
+        descriptionOnlyResult,
+      ) as {
+        success?: boolean;
+        homework?: {
+          description?: { content?: string } | null;
+          id?: string;
+          requiresTeam?: boolean;
+          title?: string;
+        } | null;
+      };
+      expect(descriptionOnlyPayload.success).toBe(true);
+      expect(descriptionOnlyPayload.homework?.id).toBe(
+        createHomeworkPayload.id,
+      );
+      expect(descriptionOnlyPayload.homework?.title).toBe(
+        `${homeworkTitle}-updated`,
+      );
+      expect(descriptionOnlyPayload.homework?.requiresTeam).toBe(true);
+      expect(descriptionOnlyPayload.homework?.description?.content).toBe(
+        "homework description-only update by mcp e2e",
+      );
+
+      const noChangeHomeworkResult = await mcpClient.callTool({
+        name: "update_homework_on_section",
+        arguments: {
+          homeworkId: createHomeworkPayload.id,
+        },
+      });
+      const noChangeHomeworkPayload = parseTextContent(
+        noChangeHomeworkResult,
+      ) as {
+        message?: string;
+        success?: boolean;
+      };
+      expect(noChangeHomeworkPayload).toMatchObject({
+        message: "No changes",
+        success: false,
+      });
+
       const calendarSubscriptionResult = await mcpClient.callTool({
         name: "get_my_calendar_subscription",
         arguments: {

@@ -47,9 +47,10 @@ async function createTempHomework(
   sectionId: number,
 ) {
   const now = new Date();
+  const title = `e2e-temp-hw-${Date.now()}`;
   const createResponse = await request.post("/api/homeworks", {
     data: {
-      title: `e2e-temp-hw-${Date.now()}`,
+      title,
       sectionId: String(sectionId),
       publishedAt: now.toISOString(),
       submissionStartAt: now.toISOString(),
@@ -57,21 +58,11 @@ async function createTempHomework(
     },
   });
   expect(createResponse.status()).toBe(200);
-
-  // Fetch the list and find the just-created homework
-  const listResponse = await request.get(
-    `/api/homeworks?sectionId=${sectionId}`,
-  );
-  expect(listResponse.status()).toBe(200);
-  const listBody = (await listResponse.json()) as {
-    homeworks?: Array<{ id?: string; title?: string }>;
-  };
-  const hw = listBody.homeworks?.find((h) =>
-    h.title?.startsWith("e2e-temp-hw-"),
-  );
-  expect(hw?.id).toBeTruthy();
-  // biome-ignore lint/style/noNonNullAssertion: guarded by expect above
-  return hw!.id!;
+  const body = (await createResponse.json()) as { id?: string };
+  if (!body.id) {
+    throw new Error("Expected created homework id");
+  }
+  return { id: body.id, title };
 }
 
 test("/api/homeworks/[id]", async ({ request }) => {
@@ -90,13 +81,13 @@ test("/api/homeworks/[id] PATCH 登录后可更新作业标题和描述", async 
 }) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
-  const homeworkId = await createTempHomework(page.request, sectionId);
+  const homework = await createTempHomework(page.request, sectionId);
 
   try {
     const newTitle = `e2e-homework-title-${Date.now()}`;
     const newDescription = `e2e-homework-description-${Date.now()}`;
     const patchResponse = await page.request.patch(
-      `/api/homeworks/${homeworkId}`,
+      `/api/homeworks/${homework.id}`,
       { data: { title: newTitle, description: newDescription } },
     );
     expect(patchResponse.status()).toBe(200);
@@ -118,13 +109,71 @@ test("/api/homeworks/[id] PATCH 登录后可更新作业标题和描述", async 
     expect(
       listBody.homeworks?.some(
         (h) =>
-          h.id === homeworkId &&
+          h.id === homework.id &&
           h.title === newTitle &&
           h.description?.content === newDescription,
       ),
     ).toBe(true);
   } finally {
-    await page.request.delete(`/api/homeworks/${homeworkId}`);
+    await page.request.delete(`/api/homeworks/${homework.id}`);
+  }
+});
+
+test("/api/homeworks/[id] PATCH 登录后可只更新作业描述", async ({ page }) => {
+  await signInAsDebugUser(page, "/");
+  const sectionId = await resolveSeedSectionId(page.request);
+  const homework = await createTempHomework(page.request, sectionId);
+
+  try {
+    const newDescription = `e2e-homework-description-only-${Date.now()}`;
+    const patchResponse = await page.request.patch(
+      `/api/homeworks/${homework.id}`,
+      { data: { description: newDescription } },
+    );
+    expect(patchResponse.status()).toBe(200);
+    expect((await patchResponse.json()) as { success?: boolean }).toMatchObject(
+      { success: true },
+    );
+
+    const listResponse = await page.request.get(
+      `/api/homeworks?sectionId=${sectionId}`,
+    );
+    const listBody = (await listResponse.json()) as {
+      homeworks?: Array<{
+        description?: { content?: string | null } | null;
+        id?: string;
+        title?: string;
+      }>;
+    };
+    expect(
+      listBody.homeworks?.some(
+        (h) =>
+          h.id === homework.id &&
+          h.title === homework.title &&
+          h.description?.content === newDescription,
+      ),
+    ).toBe(true);
+  } finally {
+    await page.request.delete(`/api/homeworks/${homework.id}`);
+  }
+});
+
+test("/api/homeworks/[id] PATCH 登录后空更新返回 400", async ({ page }) => {
+  await signInAsDebugUser(page, "/");
+  const sectionId = await resolveSeedSectionId(page.request);
+  const homework = await createTempHomework(page.request, sectionId);
+
+  try {
+    const patchResponse = await page.request.patch(
+      `/api/homeworks/${homework.id}`,
+      { data: {} },
+    );
+    expect(patchResponse.status()).toBe(400);
+    expect((await patchResponse.json()) as { error?: string }).toMatchObject({
+      error: "No changes",
+    });
+  } finally {
+    await page.request.delete(`/api/homeworks/${homework.id}`);
   }
 });
 
@@ -136,10 +185,10 @@ test("/api/homeworks/[id] DELETE 未登录返回 401", async ({ request }) => {
 test("/api/homeworks/[id] DELETE 登录后可删除作业", async ({ page }) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
-  const homeworkId = await createTempHomework(page.request, sectionId);
+  const homework = await createTempHomework(page.request, sectionId);
 
   const deleteResponse = await page.request.delete(
-    `/api/homeworks/${homeworkId}`,
+    `/api/homeworks/${homework.id}`,
   );
   expect(deleteResponse.status()).toBe(200);
   expect((await deleteResponse.json()) as { success?: boolean }).toMatchObject({
@@ -153,5 +202,5 @@ test("/api/homeworks/[id] DELETE 登录后可删除作业", async ({ page }) => 
   const listBody = (await listResponse.json()) as {
     homeworks?: Array<{ id?: string }>;
   };
-  expect(listBody.homeworks?.some((h) => h.id === homeworkId)).toBe(false);
+  expect(listBody.homeworks?.some((h) => h.id === homework.id)).toBe(false);
 });
