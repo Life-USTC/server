@@ -49,6 +49,7 @@ describe("comment serialization permissions", () => {
 
     expect(roots).toHaveLength(1);
     expect(roots[0]).toMatchObject({
+      canDelete: true,
       canEdit: true,
       canModerate: false,
       canReply: true,
@@ -64,6 +65,7 @@ describe("comment serialization permissions", () => {
 
     expect(roots).toHaveLength(1);
     expect(roots[0]).toMatchObject({
+      canDelete: false,
       canEdit: false,
       canModerate: false,
       canReply: false,
@@ -83,6 +85,7 @@ describe("comment serialization permissions", () => {
 
     expect(roots).toHaveLength(1);
     expect(roots[0]).toMatchObject({
+      canDelete: true,
       canEdit: false,
       canModerate: true,
       canReply: false,

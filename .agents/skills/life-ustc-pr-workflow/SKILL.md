@@ -40,7 +40,6 @@ Use the highest relevant gate:
 - E2E scope reproduction:
   - Run `bunx playwright install chromium` once on a new local machine. Use `bunx playwright install --with-deps chromium` on Linux if browser system libraries are missing.
   - `docker compose -f docker-compose.dev.yml up -d`
-  - If Linux Docker port publishing accepts TCP but Postgres clients time out, use `docker compose -f docker-compose.dev.host.yml up -d` instead.
   - `bun run db migrate deploy`
   - `bun run seed`
   - `bun run build`
@@ -55,7 +54,27 @@ Stop local Docker services you started with:
 docker compose -f docker-compose.dev.yml down
 ```
 
-Use `docker compose -f docker-compose.dev.host.yml down` if you started the host-network fallback.
+If Compose Postgres is healthy and raw TCP connects to `127.0.0.1:5432` but
+Postgres clients or Prisma time out, inspect host routing before changing repo
+files:
+
+```bash
+docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' server-postgres-1
+ip route get <container-ip>
+tailscale debug prefs
+```
+
+On this Fedora host, an active Tailscale exit node without LAN access routed
+Docker bridge subnets through `tailscale0`. Preserve the exit node and restore
+local Docker routing with:
+
+```bash
+sudo tailscale set --exit-node-allow-lan-access=true
+```
+
+Prefer skills and documented procedures for agent workflow steps. Do not add
+new TypeScript command-orchestration scripts for one-off local setup or PR
+process guidance.
 
 ## Complete-Loop Evidence
 
