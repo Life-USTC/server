@@ -5,7 +5,9 @@ import AppUserMenu from "./AppUserMenu.svelte";
 import type { ShellCopy, ShellLink, ShellUser } from "./types";
 
 export let avatarFallback: string;
+export let closeMobileMenu: () => void;
 export let closeMenus: () => void;
+export let closeUserMenu: () => void;
 export let copy: ShellCopy;
 export let mobileMenuOpen: boolean;
 export let primaryLinks: ShellLink[];
@@ -16,7 +18,7 @@ export let user: ShellUser;
 export let userMenuOpen: boolean;
 </script>
 
-<header class="border-base-300 border-b bg-base-100/95 backdrop-blur">
+<header class="relative z-30 border-base-300 border-b bg-base-100/95 backdrop-blur">
   <div class="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
     <div class="min-w-0 flex-1">
       <a
@@ -39,6 +41,7 @@ export let userMenuOpen: boolean;
       {/each}
     </nav>
     <AppMobileMenu
+      {closeMobileMenu}
       {closeMenus}
       {copy}
       {mobileMenuOpen}
@@ -48,6 +51,7 @@ export let userMenuOpen: boolean;
     <AppUserMenu
       {avatarFallback}
       {closeMenus}
+      {closeUserMenu}
       {copy}
       {profileHref}
       {toggleUserMenu}

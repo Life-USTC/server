@@ -4,6 +4,7 @@ import * as Menu from "$lib/components/ui/menu/index.js";
 import type { ShellCopy, ShellLink } from "./types";
 
 export let closeMenus: () => void;
+export let closeMobileMenu: () => void;
 export let copy: ShellCopy;
 export let mobileMenuOpen: boolean;
 export let primaryLinks: ShellLink[];
@@ -22,7 +23,7 @@ export let toggleMobileMenu: () => void;
     {copy.shell.menu}
   </Button>
   {#if mobileMenuOpen}
-    <Menu.Root align="right" class="w-44" onClose={closeMenus}>
+    <Menu.Root align="right" class="w-44" onClose={closeMobileMenu}>
       {#each primaryLinks as link}
         <Menu.Item href={link.href} onclick={closeMenus}>
           {link.label}

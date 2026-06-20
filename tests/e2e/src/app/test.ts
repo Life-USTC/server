@@ -75,6 +75,30 @@ test("/ 主题切换可写入 localStorage", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "theme-dark");
 });
 
+test("/ shell menus can switch in one click", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  await signInAsDebugUser(page, "/");
+
+  const profileMenuButton = page.getByRole("button", {
+    name: /个人菜单|Profile menu/i,
+  });
+  await profileMenuButton.click();
+  await expect(
+    page.getByRole("link", { name: /设置|Settings/i }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: /^菜单$|^Menu$/i }).click();
+
+  await expect(
+    page
+      .locator('[data-slot="menu"]')
+      .getByRole("link", { name: /课程|Courses/i }),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: /设置|Settings/i })).toHaveCount(
+    0,
+  );
+});
+
 test("/ 登录用户在空状态总览页可看到班级发现入口", async ({
   page,
 }, testInfo) => {

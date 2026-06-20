@@ -35,5 +35,6 @@ describe("parseDateInput", () => {
     expect(parseDateInput("2026-02-31T12:00:00+08:00")).toBeUndefined();
     expect(parseDateInput("2026-2-31")).toBeUndefined();
     expect(parseDateInput("2026/02/31")).toBeUndefined();
+    expect(parseDateInput("2026.02.31")).toBeUndefined();
   });
 });

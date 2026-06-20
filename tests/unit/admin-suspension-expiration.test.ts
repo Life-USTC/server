@@ -41,6 +41,7 @@ describe("admin suspension expiration input", () => {
       "2026-02-31T12:00:00Z",
       "2026-2-31",
       "2026/02/31",
+      "2026.02.31",
     ]) {
       expect(
         adminCreateSuspensionRequestSchema.safeParse({
