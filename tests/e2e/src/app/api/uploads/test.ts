@@ -19,6 +19,7 @@
  * - GET response includes quota metadata fields
  */
 import { expect, test } from "@playwright/test";
+import { uploadConfig } from "@/features/uploads/lib/upload-config";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { createUploadedFileViaApi } from "../../../../utils/uploads";
 
@@ -54,6 +55,21 @@ test("/api/uploads POST 未登录返回 401", async ({ request }) => {
     },
   });
   expect(response.status()).toBe(401);
+});
+
+test("/api/uploads POST 超出单文件大小返回 413", async ({ page }) => {
+  await signInAsDebugUser(page, "/");
+
+  const response = await page.request.post("/api/uploads", {
+    data: {
+      filename: "too-large.txt",
+      contentType: "text/plain",
+      size: uploadConfig.maxFileSizeBytes + 1,
+    },
+  });
+
+  expect(response.status()).toBe(413);
+  expect(await response.json()).toEqual({ error: "File too large" });
 });
 
 test("/api/uploads POST 可申请上传并完成文件入库", async ({ page }) => {
