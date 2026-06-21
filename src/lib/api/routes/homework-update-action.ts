@@ -1,4 +1,6 @@
 import { updateHomework } from "@/features/homeworks/server/homework-mutations";
+import { requireHomeworkItemById } from "@/features/homeworks/server/homework-read-model";
+import { DEFAULT_LOCALE } from "@/i18n/config";
 import {
   badRequest,
   forbidden,
@@ -26,5 +28,11 @@ export async function updateHomeworkAction(
     return forbidden("Homework deleted");
   }
 
-  return jsonResponse({ success: true });
+  const homework = await requireHomeworkItemById({
+    homeworkId: id,
+    locale: DEFAULT_LOCALE,
+    userId,
+  });
+
+  return jsonResponse({ success: true, homework });
 }

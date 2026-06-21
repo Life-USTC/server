@@ -85,7 +85,14 @@ export const todoItemSchema = z.object({
   updatedAt: dateTimeSchema,
 });
 
+export const todoCountsSchema = z.object({
+  incomplete: z.number().int().nonnegative(),
+  completed: z.number().int().nonnegative(),
+  overdue: z.number().int().nonnegative(),
+});
+
 export const todosListResponseSchema = z.object({
+  counts: todoCountsSchema,
   todos: z.array(todoItemSchema),
 });
 

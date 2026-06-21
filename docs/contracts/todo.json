@@ -25,9 +25,9 @@
         "routes": [
           {
             "path": "/api/todos",
-            "returns": "{ todos: TodoItem[] }",
+            "returns": "{ counts: { incomplete: Int, completed: Int, overdue: Int }, todos: TodoItem[] }",
             "notes": [
-              "Returns todos[]; each item contains id, title, content, completed, priority, dueAt, createdAt, and updatedAt."
+              "Returns the same count summary as list_my_todos plus todos[]; each item contains id, title, content, completed, priority, dueAt, createdAt, and updatedAt."
             ]
           }
         ]

@@ -1,6 +1,9 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
-import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
+import {
+  homeworkItemIncludeForViewer,
+  homeworkItemResponse,
+} from "@/features/homeworks/server/homework-read-model";
 import {
   jsonToolResult,
   mcpLocaleInputSchema,
@@ -10,7 +13,6 @@ import {
 } from "@/lib/mcp/tools/_helpers";
 import { summarizeHomeworkCard } from "@/lib/mcp/tools/event-summary";
 import { registerCreateHomeworkOnSectionTool } from "./homework-create-tool";
-import { buildHomeworkToolInclude } from "./homework-tool-helpers";
 import { registerUpdateHomeworkOnSectionTool } from "./homework-update-tool";
 import { sectionNotFoundToolResult } from "./shared";
 
@@ -48,10 +50,10 @@ export function registerSectionHomeworkTools(server: McpServer) {
           sectionId: section.id,
           ...(includeDeleted ? {} : { deletedAt: null }),
         },
-        include: buildHomeworkToolInclude(viewerUserId),
+        include: homeworkItemIncludeForViewer(viewerUserId),
         orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
       });
-      const homeworkItems = await withHomeworkItemState(homeworks);
+      const homeworkItems = homeworks.map(homeworkItemResponse);
       const scopedHomeworkItems = homeworkItems.map(
         ({
           section: _section,

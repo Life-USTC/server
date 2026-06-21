@@ -12,6 +12,12 @@ export const todoSnapshotSelect = {
   updatedAt: true,
 } as const satisfies Prisma.TodoSelect;
 
+const todoListOrderBy = [
+  { completed: "asc" },
+  { dueAt: "asc" },
+  { createdAt: "desc" },
+] as const satisfies Prisma.TodoOrderByWithRelationInput[];
+
 type TodoMutationDataInput = {
   completed?: boolean;
   content?: string | null;
@@ -58,8 +64,49 @@ export async function createTodo(input: TodoCreateInput) {
 export async function listTodos(where: Prisma.TodoWhereInput) {
   return prisma.todo.findMany({
     where,
-    orderBy: [{ completed: "asc" }, { dueAt: "asc" }, { createdAt: "desc" }],
+    select: todoSnapshotSelect,
+    orderBy: todoListOrderBy,
   });
+}
+
+export async function listTodoSummary(input: {
+  now?: Date;
+  take?: number;
+  userId: string;
+  where: Prisma.TodoWhereInput;
+}) {
+  const now = input.now ?? new Date();
+  const [incompleteCount, completedCount, overdueCount, todos] =
+    await Promise.all([
+      prisma.todo.count({
+        where: { userId: input.userId, completed: false },
+      }),
+      prisma.todo.count({
+        where: { userId: input.userId, completed: true },
+      }),
+      prisma.todo.count({
+        where: {
+          userId: input.userId,
+          completed: false,
+          dueAt: { lt: now },
+        },
+      }),
+      prisma.todo.findMany({
+        where: input.where,
+        select: todoSnapshotSelect,
+        orderBy: todoListOrderBy,
+        ...(input.take !== undefined && { take: input.take }),
+      }),
+    ]);
+
+  return {
+    counts: {
+      incomplete: incompleteCount,
+      completed: completedCount,
+      overdue: overdueCount,
+    },
+    todos,
+  };
 }
 
 export async function requireOwnedTodo(id: string, userId: string) {

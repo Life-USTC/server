@@ -1,5 +1,6 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { updateHomework } from "@/features/homeworks/server/homework-mutations";
+import { requireHomeworkItemById } from "@/features/homeworks/server/homework-read-model";
 import { hasHomeworkUpdateIntentChanges } from "@/features/homeworks/server/homework-update-intent";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { findActiveSuspension } from "@/lib/auth/viewer-context";
@@ -8,7 +9,6 @@ import {
   jsonToolResult,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
-import { getHomeworkItemById } from "./homework-tool-helpers";
 import {
   buildHomeworkUpdateIntentForTool,
   parseHomeworkUpdateDates,
@@ -96,11 +96,11 @@ export async function updateHomeworkOnSectionTool(
     );
   }
 
-  const homeworkItem = await getHomeworkItemById(
+  const homeworkItem = await requireHomeworkItemById({
     homeworkId,
-    DEFAULT_LOCALE,
+    locale: DEFAULT_LOCALE,
     userId,
-  );
+  });
 
   return jsonToolResult(
     { success: true, homework: homeworkItem },

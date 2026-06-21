@@ -1,4 +1,6 @@
 import { createHomeworkForSection } from "@/features/homeworks/server/homework-create";
+import { requireHomeworkItemById } from "@/features/homeworks/server/homework-read-model";
+import { DEFAULT_LOCALE } from "@/i18n/config";
 import {
   handleRouteError,
   jsonResponse,
@@ -41,7 +43,12 @@ export async function postHomeworkRoute(request: Request) {
   try {
     const homework = await createHomeworkForSection(userId, homeworkInput);
     if (!homework) return notFound("Section not found");
-    return jsonResponse({ id: homework.id });
+    const homeworkItem = await requireHomeworkItemById({
+      homeworkId: homework.id,
+      locale: DEFAULT_LOCALE,
+      userId,
+    });
+    return jsonResponse({ id: homework.id, homework: homeworkItem });
   } catch (error) {
     return handleRouteError("Failed to create homework", error);
   }

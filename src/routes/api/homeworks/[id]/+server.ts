@@ -9,7 +9,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * Update one homework.
  * @pathParams resourceIdPathParamsSchema
  * @body homeworkUpdateRequestSchema
- * @response successResponseSchema
+ * @response homeworkUpdateResponseSchema
  * @response 400:openApiErrorSchema
  */
 export const PATCH: RequestHandler = ({ request, params }) =>

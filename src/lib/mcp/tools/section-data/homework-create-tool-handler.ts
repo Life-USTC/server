@@ -1,3 +1,4 @@
+import { requireHomeworkItemById } from "@/features/homeworks/server/homework-read-model";
 import type { AppLocale } from "@/i18n/config";
 import {
   getUserId,
@@ -10,7 +11,6 @@ import {
   parseCreateHomeworkTimestamps,
   suspendedCreateHomeworkResult,
 } from "./homework-create-actions";
-import { getHomeworkItemById } from "./homework-tool-helpers";
 import { sectionNotFoundToolResult } from "./shared";
 
 type McpModeInput = Parameters<typeof resolveMcpMode>[0];
@@ -72,7 +72,11 @@ export async function createHomeworkOnSectionTool(
     title,
     userId,
   });
-  const homeworkItem = await getHomeworkItemById(homework.id, locale, userId);
+  const homeworkItem = await requireHomeworkItemById({
+    homeworkId: homework.id,
+    locale,
+    userId,
+  });
 
   return jsonToolResult(
     { success: true, id: homework.id, homework: homeworkItem },

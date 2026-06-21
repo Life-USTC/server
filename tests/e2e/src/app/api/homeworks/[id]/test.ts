@@ -3,7 +3,7 @@
  *
  * ## PATCH /api/homeworks/[id]
  * - Body: { title?, description?, publishedAt?, submissionStartAt?, submissionDueAt? }
- * - Response: { success: true }
+ * - Response: { success: true, homework }
  * - Auth required (401 if unauthenticated)
  * - Returns 404 for non-existent homework
  *
@@ -58,10 +58,15 @@ async function createTempHomework(
     },
   });
   expect(createResponse.status()).toBe(200);
-  const body = (await createResponse.json()) as { id?: string };
+  const body = (await createResponse.json()) as {
+    homework?: { id?: string; title?: string } | null;
+    id?: string;
+  };
   if (!body.id) {
     throw new Error("Expected created homework id");
   }
+  expect(body.homework?.id).toBe(body.id);
+  expect(body.homework?.title).toBe(title);
   return { id: body.id, title };
 }
 
@@ -91,9 +96,18 @@ test("/api/homeworks/[id] PATCH 登录后可更新作业标题和描述", async 
       { data: { title: newTitle, description: newDescription } },
     );
     expect(patchResponse.status()).toBe(200);
-    expect((await patchResponse.json()) as { success?: boolean }).toMatchObject(
-      { success: true },
-    );
+    const patchBody = (await patchResponse.json()) as {
+      homework?: {
+        description?: { content?: string | null } | null;
+        id?: string;
+        title?: string;
+      } | null;
+      success?: boolean;
+    };
+    expect(patchBody.success).toBe(true);
+    expect(patchBody.homework?.id).toBe(homework.id);
+    expect(patchBody.homework?.title).toBe(newTitle);
+    expect(patchBody.homework?.description?.content).toBe(newDescription);
 
     // Verify the title was updated
     const listResponse = await page.request.get(
@@ -131,9 +145,18 @@ test("/api/homeworks/[id] PATCH 登录后可只更新作业描述", async ({ pag
       { data: { description: newDescription } },
     );
     expect(patchResponse.status()).toBe(200);
-    expect((await patchResponse.json()) as { success?: boolean }).toMatchObject(
-      { success: true },
-    );
+    const patchBody = (await patchResponse.json()) as {
+      homework?: {
+        description?: { content?: string | null } | null;
+        id?: string;
+        title?: string;
+      } | null;
+      success?: boolean;
+    };
+    expect(patchBody.success).toBe(true);
+    expect(patchBody.homework?.id).toBe(homework.id);
+    expect(patchBody.homework?.title).toBe(homework.title);
+    expect(patchBody.homework?.description?.content).toBe(newDescription);
 
     const listResponse = await page.request.get(
       `/api/homeworks?sectionId=${sectionId}`,

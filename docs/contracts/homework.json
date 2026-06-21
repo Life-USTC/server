@@ -78,14 +78,20 @@
           {
             "path": "/api/homeworks",
             "method": "POST",
-            "returns": "{ id: String }",
-            "auth": "user"
+            "returns": "{ id: String, homework: HomeworkItem }",
+            "auth": "user",
+            "notes": [
+              "Returns the created homework snapshot so REST and MCP clients can continue with follow-up actions without an extra list call."
+            ]
           },
           {
             "path": "/api/homeworks/[id]",
             "method": "PATCH",
-            "returns": "{ success: Boolean }",
-            "auth": "user"
+            "returns": "{ success: Boolean, homework: HomeworkItem }",
+            "auth": "user",
+            "notes": [
+              "Returns the updated homework snapshot after metadata and/or description changes are applied."
+            ]
           },
           {
             "path": "/api/homeworks/[id]",

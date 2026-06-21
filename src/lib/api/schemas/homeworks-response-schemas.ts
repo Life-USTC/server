@@ -28,7 +28,7 @@ const homeworkDescriptionSchema = z.object({
   homeworkId: z.string().nullable(),
 });
 
-const homeworkListItemSchema = z.object({
+export const homeworkItemSchema = z.object({
   id: z.string(),
   title: z.string(),
   isMajor: z.boolean(),
@@ -72,8 +72,18 @@ const homeworkAuditLogSchema = z.object({
 
 export const homeworksListResponseSchema = z.object({
   viewer: viewerContextSchema,
-  homeworks: z.array(homeworkListItemSchema),
+  homeworks: z.array(homeworkItemSchema),
   auditLogs: z.array(homeworkAuditLogSchema),
+});
+
+export const homeworkCreateResponseSchema = z.object({
+  id: z.string(),
+  homework: homeworkItemSchema,
+});
+
+export const homeworkUpdateResponseSchema = z.object({
+  success: z.boolean(),
+  homework: homeworkItemSchema,
 });
 
 export const homeworkCompletionResponseSchema = z.object({
@@ -105,7 +115,7 @@ export const homeworkCompletionBatchResponseSchema = z.object({
 
 export const subscribedHomeworksResponseSchema = z.object({
   viewer: viewerContextSchema,
-  homeworks: z.array(homeworkListItemSchema),
+  homeworks: z.array(homeworkItemSchema),
   auditLogs: z.array(homeworkAuditLogSchema),
   sectionIds: z.array(z.number().int()),
 });

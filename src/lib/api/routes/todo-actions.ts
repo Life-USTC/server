@@ -1,7 +1,7 @@
 import {
   createTodo,
   deleteOwnedTodo,
-  listTodos,
+  listTodoSummary,
   updateOwnedTodo,
 } from "@/features/todos/server/todo-service";
 import type { Prisma, TodoPriority } from "@/generated/prisma/client";
@@ -12,9 +12,11 @@ import {
   notFound,
 } from "@/lib/api/helpers";
 
-export async function listTodosAction(where: Prisma.TodoWhereInput) {
-  const todos = await listTodos(where);
-  return jsonResponse({ todos });
+export async function listTodosAction(
+  userId: string,
+  where: Prisma.TodoWhereInput,
+) {
+  return jsonResponse(await listTodoSummary({ userId, where }));
 }
 
 export async function createTodoAction(

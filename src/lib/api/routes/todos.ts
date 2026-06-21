@@ -29,7 +29,7 @@ export async function getTodosRoute(request: Request) {
   }
 
   try {
-    return await listTodosAction(buildTodoWhere(userId, parsedQuery));
+    return await listTodosAction(userId, buildTodoWhere(userId, parsedQuery));
   } catch (error) {
     return handleRouteError("Failed to fetch todos", error);
   }
