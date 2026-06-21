@@ -92,6 +92,7 @@ test.describe("GET/POST /api/admin/suspensions", () => {
         "2026-02-31",
         "2026/02/31",
         "2026.02.31",
+        "02/31/2026",
       ]) {
         const postResponse = await page.request.post(BASE, {
           data: {
