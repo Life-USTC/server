@@ -104,7 +104,7 @@ async function captureApiSnapshots() {
 
       const context = await browser.newContext({ baseURL: baseUrl });
       const page = await createAuthedPage(context, auth);
-      await page.close();
+      await withSnapshotTimeout(`api ${auth} auth page close`, page.close());
       const storageState = await context.storageState();
       await withSnapshotTimeout(
         `api ${auth} auth context close`,
@@ -357,8 +357,8 @@ async function authorizeMcp(baseUrl: string) {
 
     return { accessToken, endpoint, resource };
   } finally {
-    await context.close();
-    await browser.close();
+    await withSnapshotTimeout("mcp auth context close", context.close());
+    await withSnapshotTimeout("mcp auth browser close", browser.close());
   }
 }
 
@@ -449,7 +449,7 @@ async function captureMcpSnapshots() {
       }
     }
   } finally {
-    await transport.close();
+    await withSnapshotTimeout("mcp client close", mcpClient.close());
     await cleanupSnapshotOAuthClients().catch(() => undefined);
     await disconnectSnapshotOAuthCleanup();
   }
@@ -989,4 +989,10 @@ async function main() {
   throw new Error(captureUsage());
 }
 
-await main();
+try {
+  await main();
+  process.exit(0);
+} catch (error) {
+  console.error(error);
+  process.exit(1);
+}
