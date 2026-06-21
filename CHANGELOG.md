@@ -1,3 +1,23 @@
+## [1.34.1](https://github.com/Life-USTC/server/compare/v1.34.0...v1.34.1) (2026-06-21)
+
+
+### Bug Fixes
+
+* **admin:** reject overflowing suspension dates ([915056d](https://github.com/Life-USTC/server/commit/915056d03afb0a3faee77f75f78a716880fe3f0d))
+* **agent:** resolve audit follow-ups ([3d3d891](https://github.com/Life-USTC/server/commit/3d3d89148a20b3d699319194579e06efb478d764))
+* **ci:** scope section tab selectors ([456a986](https://github.com/Life-USTC/server/commit/456a98678e62b40afc3ccdc101263d68ceb60a2c))
+* **ci:** update snapshot tab selector ([0956f60](https://github.com/Life-USTC/server/commit/0956f60af25f1c16788361b5935394518d74caad))
+* **dev:** document local environment fallback ([d4bd2c5](https://github.com/Life-USTC/server/commit/d4bd2c50212d1207f08f27cd3ca2adc5b3819c84))
+* **dev:** resolve local routing and reviews ([850f2eb](https://github.com/Life-USTC/server/commit/850f2eb068e87e12d89b7e554c47a66e133ffd2a))
+* **homeworks:** share update intent across surfaces ([bae2831](https://github.com/Life-USTC/server/commit/bae28313dc98b80fca851bc447f528cec3a18b4a))
+* **mcp:** clear todo content on explicit null ([9840cec](https://github.com/Life-USTC/server/commit/9840cecf7e635ad47ed6e5d1d8495605e7fdcc4c))
+* **review:** harden menus and date validation ([9f5e974](https://github.com/Life-USTC/server/commit/9f5e97420dd52fcd516cb687b818876842f2181d))
+* **time:** reject ambiguous numeric dates ([89ecd12](https://github.com/Life-USTC/server/commit/89ecd12e65f45b5a8de77ba1bdf891e27ee22bf6))
+* **time:** reject unsupported date formats ([1914f8a](https://github.com/Life-USTC/server/commit/1914f8a45b5d1ac10495034263489f9bb292f32d))
+* **time:** reject unsupported numeric dates ([800f2f6](https://github.com/Life-USTC/server/commit/800f2f6e9612367220f1f5014ec4d4f96048f48d))
+* **ui:** separate datetime picker button label ([2a6ce30](https://github.com/Life-USTC/server/commit/2a6ce30bd7535e5f500b9a722d7ba7d2d4bd27a3))
+* **upload:** restore oversized reservation status ([4dffd04](https://github.com/Life-USTC/server/commit/4dffd04d0dbea21aff12f3781087e8317f5b49a5))
+
 # [1.34.0](https://github.com/Life-USTC/server/compare/v1.33.6...v1.34.0) (2026-06-19)
 
 
