@@ -10,6 +10,7 @@ import {
   matchSectionCodesRequestSchema,
   schedulesQuerySchema,
   sectionsQuerySchema,
+  todosQuerySchema,
   uploadCreateRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
 import {
@@ -144,6 +145,9 @@ describe("other request schemas", () => {
     expect(
       schedulesQuerySchema.safeParse({ dateFrom: "2026-03-01" }).success,
     ).toBe(true);
+    expect(
+      todosQuerySchema.safeParse({ dueBefore: "2026-03-01" }).success,
+    ).toBe(true);
     expect(coursesQuerySchema.safeParse({ search: "math" }).success).toBe(true);
 
     expect(sectionsQuerySchema.safeParse({ courseId: "abc" }).success).toBe(
@@ -161,6 +165,13 @@ describe("other request schemas", () => {
     expect(schedulesQuerySchema.safeParse({ dateFrom: "" }).success).toBe(
       false,
     );
+    expect(
+      schedulesQuerySchema.safeParse({ dateFrom: "not-a-date" }).success,
+    ).toBe(false);
+    expect(todosQuerySchema.safeParse({ dueBefore: "" }).success).toBe(false);
+    expect(
+      todosQuerySchema.safeParse({ dueBefore: "not-a-date" }).success,
+    ).toBe(false);
   });
 
   it("validates new section query fields added in filter expansion", () => {

@@ -1,5 +1,5 @@
+import { selectCurrentSemesterFromList } from "@/features/catalog/lib/current-semester";
 import { DEFAULT_LOCALE } from "@/i18n/config";
-import { selectCurrentSemesterFromList } from "@/lib/current-semester";
 import { getPrisma } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { getCalendarSubscriptionUrl } from "./subscription-calendar-read-model";

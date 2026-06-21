@@ -91,6 +91,22 @@ export const openApiDocumentResponseSchema = z.object({
   paths: z.record(z.string(), z.unknown()),
 });
 
+export const readinessResponseSchema = z.object({
+  status: z.enum(["ok", "degraded"]),
+  uptimeSeconds: z.number().nonnegative(),
+  checks: z.object({
+    database: z.object({
+      status: z.enum(["ok", "error"]),
+      durationMs: z.number().nonnegative(),
+    }),
+    storage: z.object({
+      status: z.string(),
+      binding: z.string(),
+      reason: z.string().optional(),
+    }),
+  }),
+});
+
 export const meResponseSchema = z.object({
   id: z.string(),
   email: z.string().nullable(),

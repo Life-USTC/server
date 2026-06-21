@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildCurrentSemesterWhere,
   selectCurrentSemesterFromList,
-} from "@/lib/current-semester";
+} from "@/features/catalog/lib/current-semester";
 
 type SemesterLike = {
   id: number;

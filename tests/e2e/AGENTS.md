@@ -10,6 +10,7 @@ focused local Playwright run, prepare the Worker runtime and seed data first:
 ```bash
 bun run build
 bun run e2e:prepare
+bun run db:migrate:deploy
 bun run seed
 bunx playwright test --headed path/to/test
 bunx playwright test --ui

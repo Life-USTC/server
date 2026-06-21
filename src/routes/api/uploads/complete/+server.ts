@@ -7,6 +7,8 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @body uploadCompleteRequestSchema
  * @response uploadCompleteResponseSchema
  * @response 400:openApiErrorSchema
+ * @response 401:openApiErrorSchema
+ * @response 403:openApiErrorSchema
  */
 export const POST = svelteRequestHandler(
   observedApiRoute(postUploadCompleteRoute),

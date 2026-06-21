@@ -1,12 +1,12 @@
+import type {
+  loadMyOverviewCounts,
+  loadMyOverviewSamples,
+} from "@/features/home/server/my-overview-read-model";
 import {
   summarizeExamCard,
   summarizeHomeworkCard,
   summarizeTodoCard,
 } from "@/lib/mcp/tools/event-summary";
-import type {
-  loadMyOverviewCounts,
-  loadMyOverviewSamples,
-} from "./my-data-overview-loaders";
 
 type MyOverviewCounts = Awaited<ReturnType<typeof loadMyOverviewCounts>>;
 type MyOverviewSamples = Awaited<ReturnType<typeof loadMyOverviewSamples>>;

@@ -1,16 +1,10 @@
+import { listPublicSchedules } from "@/features/catalog/server/schedule-read-model";
 import type { AppLocale } from "@/i18n/config";
-import { buildPaginatedResponse, normalizePagination } from "@/lib/api/helpers";
-import { getPrisma } from "@/lib/db/prisma";
 import {
   jsonToolResult,
   parseMcpDateRange,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
-import {
-  buildScheduleListWhere,
-  publicScheduleInclude,
-} from "@/lib/schedule-queries";
-import { serializeScheduleTimeFields } from "@/lib/schedule-serialization";
 
 type McpModeInput = Parameters<typeof resolveMcpMode>[0];
 
@@ -47,45 +41,29 @@ export async function querySchedulesAction({
   locale,
   mode,
 }: QuerySchedulesInput) {
-  const localizedPrisma = getPrisma(locale);
-  const pagination = normalizePagination({ page, pageSize: limit });
   const dateRange = parseMcpDateRange({ dateFrom, dateTo });
   if (!dateRange.ok) {
     return dateRange.result;
   }
-  const where = buildScheduleListWhere({
-    sectionId,
-    sectionJwId,
-    sectionCode,
-    teacherId,
-    teacherCode,
-    roomId,
-    roomJwId,
-    weekday,
-    dateFrom: dateRange.dateFrom,
-    dateTo: dateRange.dateTo,
+  const result = await listPublicSchedules({
+    filters: {
+      sectionId,
+      sectionJwId,
+      sectionCode,
+      teacherId,
+      teacherCode,
+      roomId,
+      roomJwId,
+      weekday,
+      dateFrom: dateRange.dateFrom,
+      dateTo: dateRange.dateTo,
+    },
+    locale,
+    page: page ?? 1,
+    pageSize: limit,
   });
 
-  const [schedules, total] = await Promise.all([
-    localizedPrisma.schedule.findMany({
-      where,
-      skip: pagination.skip,
-      take: pagination.pageSize,
-      include: publicScheduleInclude,
-      orderBy: [{ date: "asc" }, { startTime: "asc" }],
-    }),
-    localizedPrisma.schedule.count({ where }),
-  ]);
-
-  return jsonToolResult(
-    buildPaginatedResponse(
-      schedules.map(serializeScheduleTimeFields),
-      pagination.page,
-      pagination.pageSize,
-      total,
-    ),
-    {
-      mode: resolveMcpMode(mode),
-    },
-  );
+  return jsonToolResult(result, {
+    mode: resolveMcpMode(mode),
+  });
 }

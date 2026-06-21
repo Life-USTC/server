@@ -6,7 +6,7 @@ import {
   type IntegerFilter,
 } from "@/lib/query-filter-helpers";
 
-type ScheduleListFilters = {
+export type ScheduleListFilters = {
   sectionId?: IntegerFilter;
   sectionJwId?: IntegerFilter;
   sectionCode?: string | null;
@@ -19,30 +19,18 @@ type ScheduleListFilters = {
   dateTo?: Date;
 };
 
-export const publicScheduleInclude = {
-  room: {
-    include: {
-      building: {
-        include: {
-          campus: true,
+export function buildScheduleDateWhere(
+  input: Pick<ScheduleListFilters, "dateFrom" | "dateTo">,
+) {
+  return input.dateFrom || input.dateTo
+    ? {
+        date: {
+          ...(input.dateFrom && { gte: input.dateFrom }),
+          ...(input.dateTo && { lte: input.dateTo }),
         },
-      },
-      roomType: true,
-    },
-  },
-  teachers: {
-    include: {
-      department: true,
-    },
-  },
-  section: {
-    include: {
-      course: true,
-      semester: true,
-    },
-  },
-  scheduleGroup: true,
-} as const;
+      }
+    : {};
+}
 
 export function buildScheduleListWhere(filters: ScheduleListFilters) {
   const {
@@ -54,8 +42,6 @@ export function buildScheduleListWhere(filters: ScheduleListFilters) {
     roomId,
     roomJwId,
     weekday,
-    dateFrom,
-    dateTo,
   } = filters;
 
   const where: Prisma.ScheduleWhereInput = {};
@@ -79,13 +65,7 @@ export function buildScheduleListWhere(filters: ScheduleListFilters) {
     where.room = roomFilter;
   }
 
-  if (dateFrom || dateTo) {
-    where.date = {
-      ...(dateFrom && { gte: dateFrom }),
-      ...(dateTo && { lte: dateTo }),
-    };
-  }
-
+  Object.assign(where, buildScheduleDateWhere(filters));
   applyIntegerFilter(where, "weekday", weekday);
 
   return where;

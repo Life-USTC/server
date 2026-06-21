@@ -57,6 +57,13 @@ type TodoCreateInput = {
   userId: string;
 };
 
+export type TodoListFilters = {
+  completed?: boolean;
+  dueAfter?: Date;
+  dueBefore?: Date;
+  priority?: TodoPriority;
+};
+
 export function buildTodoMutationData(input: TodoMutationDataInput) {
   const updates: Prisma.TodoUpdateInput = {};
   if (input.title !== undefined) updates.title = input.title;
@@ -84,6 +91,22 @@ export async function createTodo(input: TodoCreateInput) {
 
 export async function listTodos(where: Prisma.TodoWhereInput) {
   return listTodoSnapshots({ where });
+}
+
+function buildTodoListWhere(userId: string, filters?: TodoListFilters) {
+  const where: Prisma.TodoWhereInput = { userId };
+  if (!filters) return where;
+
+  if (filters.completed !== undefined) where.completed = filters.completed;
+  if (filters.priority) where.priority = filters.priority;
+  if (filters.dueBefore || filters.dueAfter) {
+    where.dueAt = {
+      ...(filters.dueBefore ? { lt: filters.dueBefore } : {}),
+      ...(filters.dueAfter ? { gte: filters.dueAfter } : {}),
+    };
+  }
+
+  return where;
 }
 
 export async function listTodoSnapshots(input: {
@@ -174,12 +197,13 @@ function buildDueTodoWhere(input: {
 }
 
 export async function listTodoSummary(input: {
+  filters?: TodoListFilters;
   now?: Date;
   take?: number;
   userId: string;
-  where: Prisma.TodoWhereInput;
 }) {
   const now = input.now ?? new Date();
+  const where = buildTodoListWhere(input.userId, input.filters);
   const [incompleteCount, completedCount, overdueCount, todos] =
     await Promise.all([
       countIncompleteTodos(input.userId),
@@ -194,7 +218,7 @@ export async function listTodoSummary(input: {
         },
       }),
       listTodoSnapshots({
-        where: input.where,
+        where,
         take: input.take,
       }),
     ]);

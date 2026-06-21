@@ -1,8 +1,9 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
-import { buildPaginatedResponse, normalizePagination } from "@/lib/api/helpers";
-import { findCurrentSemester } from "@/lib/current-semester";
-import { prisma } from "@/lib/db/prisma";
+import {
+  getCurrentSemester,
+  listSemesters,
+} from "@/features/catalog/server/academic-metadata-read-model";
 import {
   jsonToolResult,
   mcpModeInputSchema,
@@ -22,27 +23,11 @@ export function registerCourseSemesterTools(server: McpServer) {
       },
     },
     async ({ page, limit, mode }) => {
-      const pagination = normalizePagination({ page, pageSize: limit });
-      const [semesters, total] = await Promise.all([
-        prisma.semester.findMany({
-          skip: pagination.skip,
-          take: pagination.pageSize,
-          orderBy: { startDate: "desc" },
-        }),
-        prisma.semester.count(),
-      ]);
+      const result = await listSemesters({ page, pageSize: limit });
 
-      return jsonToolResult(
-        buildPaginatedResponse(
-          semesters,
-          pagination.page,
-          pagination.pageSize,
-          total,
-        ),
-        {
-          mode: resolveMcpMode(mode),
-        },
-      );
+      return jsonToolResult(result, {
+        mode: resolveMcpMode(mode),
+      });
     },
   );
 
@@ -56,7 +41,7 @@ export function registerCourseSemesterTools(server: McpServer) {
       },
     },
     async ({ mode }) => {
-      const semester = await findCurrentSemester(prisma.semester, new Date());
+      const semester = await getCurrentSemester(new Date());
 
       return jsonToolResult(
         {

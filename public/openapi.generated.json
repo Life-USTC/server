@@ -823,6 +823,16 @@
         "tags": [
           "Api"
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/oauthDeviceAuthorizationRequestSchema"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Response 200"
@@ -866,6 +876,16 @@
         "tags": [
           "Api"
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/oauthTokenRequestSchema"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Response 200"
@@ -3072,7 +3092,8 @@
             "name": "dateFrom",
             "schema": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "YYYY-MM-DD or ISO date/time accepted by parseDateInput"
             }
           },
           {
@@ -3080,7 +3101,8 @@
             "name": "dateTo",
             "schema": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "YYYY-MM-DD or ISO date/time accepted by parseDateInput"
             }
           },
           {
@@ -3264,6 +3286,40 @@
         }
       }
     },
+    "/api/readiness": {
+      "get": {
+        "operationId": "listReadiness",
+        "summary": "Check internal dependency readiness",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/readinessResponseSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Response 404"
+          },
+          "503": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/readinessResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/schedules": {
       "get": {
         "operationId": "listSchedules",
@@ -3343,7 +3399,8 @@
             "name": "dateFrom",
             "schema": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "YYYY-MM-DD or ISO date/time accepted by parseDateInput"
             }
           },
           {
@@ -3351,7 +3408,8 @@
             "name": "dateTo",
             "schema": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "YYYY-MM-DD or ISO date/time accepted by parseDateInput"
             }
           },
           {
@@ -4851,8 +4909,8 @@
             "name": "dueBefore",
             "schema": {
               "type": "string",
-              "format": "date-time",
-              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              "minLength": 1,
+              "description": "YYYY-MM-DD or ISO date/time accepted by parseDateInput"
             }
           },
           {
@@ -4860,8 +4918,8 @@
             "name": "dueAfter",
             "schema": {
               "type": "string",
-              "format": "date-time",
-              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              "minLength": 1,
+              "description": "YYYY-MM-DD or ISO date/time accepted by parseDateInput"
             }
           },
           {
@@ -5081,6 +5139,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       }
@@ -5287,6 +5365,26 @@
             }
           },
           "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
             "description": "Error response",
             "content": {
               "application/json": {
@@ -5524,6 +5622,69 @@
             "type": "boolean"
           }
         }
+      },
+      "oauthDeviceAuthorizationRequestSchema": {
+        "type": "object",
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "client_id"
+        ]
+      },
+      "oauthTokenRequestSchema": {
+        "type": "object",
+        "properties": {
+          "grant_type": {
+            "type": "string",
+            "minLength": 1
+          },
+          "client_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "client_secret": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "code_verifier": {
+            "type": "string",
+            "minLength": 1
+          },
+          "device_code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "redirect_uri": {
+            "type": "string",
+            "minLength": 1
+          },
+          "refresh_token": {
+            "type": "string",
+            "minLength": 1
+          },
+          "resource": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "grant_type"
+        ]
       },
       "busPreferenceRequestSchema": {
         "type": "object",
@@ -20488,6 +20649,78 @@
           "openapi",
           "info",
           "paths"
+        ],
+        "additionalProperties": false
+      },
+      "readinessResponseSchema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "degraded"
+            ]
+          },
+          "uptimeSeconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "checks": {
+            "type": "object",
+            "properties": {
+              "database": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "ok",
+                      "error"
+                    ]
+                  },
+                  "durationMs": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "status",
+                  "durationMs"
+                ],
+                "additionalProperties": false
+              },
+              "storage": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string"
+                  },
+                  "binding": {
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "status",
+                  "binding"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "database",
+              "storage"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "status",
+          "uptimeSeconds",
+          "checks"
         ],
         "additionalProperties": false
       },

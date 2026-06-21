@@ -60,6 +60,21 @@
             "auth": "anon"
           },
           {
+            "path": "/.well-known/oauth-authorization-server",
+            "returns": "307 redirect to /.well-known/oauth-authorization-server/api/auth",
+            "auth": "anon"
+          },
+          {
+            "path": "/.well-known/openid-configuration",
+            "returns": "307 redirect to /api/auth/.well-known/openid-configuration",
+            "auth": "anon"
+          },
+          {
+            "path": "/.well-known/oauth-protected-resource",
+            "returns": "307 redirect to /.well-known/oauth-protected-resource/api/mcp",
+            "auth": "anon"
+          },
+          {
             "path": "/api/auth/{auth}",
             "method": "POST",
             "returns": "Better Auth OAuth provider response",

@@ -12,15 +12,6 @@ export function parseScheduleDateFilter(input: {
 
   return {
     ok: true as const,
-    dateFilter:
-      dateRange.dateFrom || dateRange.dateTo
-        ? {
-            date: {
-              ...(dateRange.dateFrom ? { gte: dateRange.dateFrom } : {}),
-              ...(dateRange.dateTo ? { lte: dateRange.dateTo } : {}),
-            },
-          }
-        : {},
     dateRange,
   };
 }

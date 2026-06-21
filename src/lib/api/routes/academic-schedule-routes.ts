@@ -1,12 +1,11 @@
+import { listPublicSchedules } from "@/features/catalog/server/schedule-read-model";
 import {
-  buildPaginatedResponse,
   handleRouteError,
   jsonResponse,
   parseRouteQuery,
 } from "@/lib/api/helpers";
-import { buildAcademicScheduleWhere } from "@/lib/api/routes/academic-schedule-query";
+import { parseAcademicScheduleFilters } from "@/lib/api/routes/academic-schedule-query";
 import { schedulesQuerySchema } from "@/lib/api/schemas/request-schemas";
-import { serializeScheduleTimeFields } from "@/lib/schedule-serialization";
 
 export async function getSchedulesRoute(request: Request) {
   try {
@@ -22,34 +21,15 @@ export async function getSchedulesRoute(request: Request) {
     }
 
     const { query: parsedQuery, pagination } = parsed;
-    const whereClause = await buildAcademicScheduleWhere(parsedQuery);
-    if (whereClause instanceof Response) return whereClause;
-
-    const [{ getPrisma, prisma }, { publicScheduleInclude }] =
-      await Promise.all([
-        import("@/lib/db/prisma"),
-        import("@/lib/schedule-queries"),
-      ]);
-
-    const localizedPrisma = getPrisma("zh-cn");
-    const [schedules, total] = await Promise.all([
-      localizedPrisma.schedule.findMany({
-        where: whereClause,
-        skip: pagination.skip,
-        take: pagination.pageSize,
-        include: publicScheduleInclude,
-        orderBy: [{ date: "asc" }, { startTime: "asc" }],
-      }),
-      prisma.schedule.count({ where: whereClause }),
-    ]);
+    const filters = parseAcademicScheduleFilters(parsedQuery);
+    if (filters instanceof Response) return filters;
 
     return jsonResponse(
-      buildPaginatedResponse(
-        schedules.map(serializeScheduleTimeFields),
-        pagination.page,
-        pagination.pageSize,
-        total,
-      ),
+      await listPublicSchedules({
+        filters,
+        page: pagination.page,
+        pageSize: pagination.pageSize,
+      }),
     );
   } catch (error) {
     return handleRouteError("Failed to fetch schedules", error);

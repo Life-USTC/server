@@ -114,10 +114,6 @@ jobs:
         with:
           install-playwright: ${{ inputs.install-playwright && 'true' || 'false' }}
 
-      - name: Generate Prisma client
-        shell: bash
-        run: bun run app:prepare
-
       - name: Download artifact
         if: ${{ inputs.download-artifact-name != '' }}
         uses: actions/download-artifact@v8

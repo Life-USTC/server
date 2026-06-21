@@ -1,3 +1,4 @@
+import type { ScheduleListFilters } from "@/features/catalog/lib/schedule-filters";
 import { parseInteger } from "@/lib/api/helpers";
 import { parseScheduleDateParam } from "@/lib/api/routes/academic-route-helpers";
 
@@ -14,7 +15,7 @@ type AcademicScheduleQuery = {
   weekday?: number | string;
 };
 
-export async function buildAcademicScheduleWhere(
+export function parseAcademicScheduleFilters(
   parsedQuery: AcademicScheduleQuery,
 ) {
   const {
@@ -39,14 +40,13 @@ export async function buildAcademicScheduleWhere(
     return parsedDateTo;
   }
 
-  const { buildScheduleListWhere } = await import("@/lib/schedule-queries");
   const toNumber = (value: number | string | undefined) =>
     typeof value === "number"
       ? value
       : value
         ? (parseInteger(value) ?? undefined)
         : undefined;
-  return buildScheduleListWhere({
+  return {
     sectionId: toNumber(sectionId),
     sectionJwId: toNumber(sectionJwId),
     sectionCode,
@@ -57,5 +57,5 @@ export async function buildAcademicScheduleWhere(
     weekday: toNumber(weekday),
     dateFrom: parsedDateFrom,
     dateTo: parsedDateTo,
-  });
+  } satisfies ScheduleListFilters;
 }

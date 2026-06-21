@@ -38,13 +38,15 @@ describe("/api/readiness", () => {
     });
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
+    const body = await response.json();
+    expect(body).toMatchObject({
       status: "ok",
       checks: {
         database: { status: "ok" },
         storage: { status: "ok" },
       },
     });
+    expect(typeof body.uptimeSeconds).toBe("number");
   });
 
   it("hides readiness from remote requests without a token", async () => {

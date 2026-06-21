@@ -13,6 +13,11 @@ import { createDocument } from "zod-openapi";
 import * as requestSchemas from "../../../src/lib/api/schemas/request-schemas";
 import * as responseSchemas from "../../../src/lib/api/schemas/response-schemas";
 import { OPENAPI_SPEC_RELATIVE_PATH } from "../../../src/lib/openapi/spec";
+import {
+  getRouteExportKind,
+  HTTP_METHODS,
+  type RouteExportKind,
+} from "../../shared/route-exports";
 import { buildScenarioOpenApiExamples } from "./scenario-examples";
 
 const ROOT = new URL("../../..", import.meta.url).pathname;
@@ -118,40 +123,6 @@ type HandlerAnnotations = {
   body?: string; // schema name for request body
   responses: Array<{ status: number | null; schemaName: string | null }>;
 };
-
-type RouteExportKind = "function" | "const" | "destructured";
-
-function getRouteExportKind(
-  source: string,
-  httpMethod: (typeof HTTP_METHODS)[number],
-): RouteExportKind | null {
-  if (
-    new RegExp(`export\\s+(?:async\\s+)?function\\s+${httpMethod}\\b`).test(
-      source,
-    )
-  ) {
-    return "function";
-  }
-
-  if (
-    new RegExp(`export\\s+const\\s+${httpMethod}\\b(?:\\s*:[^=]+)?\\s*=`).test(
-      source,
-    )
-  ) {
-    return "const";
-  }
-
-  if (
-    new RegExp(
-      `export\\s+const\\s*\\{(?=[^}]*\\b${httpMethod}\\b)[^}]*\\}\\s*=`,
-      "s",
-    ).test(source)
-  ) {
-    return "destructured";
-  }
-
-  return null;
-}
 
 function extractJsDocAnnotations(
   source: string,
@@ -355,21 +326,10 @@ function buildRequestBody(
 
 // ── Route file processing ─────────────────────────────────────────────────────
 
-const HTTP_METHODS = [
-  "GET",
-  "POST",
-  "PUT",
-  "PATCH",
-  "DELETE",
-  "HEAD",
-  "OPTIONS",
-] as const;
-
 const OPENAPI_EXCLUDED_ROUTES = new Set([
   "src/routes/api/auth/[...auth]/+server.ts",
   "src/routes/api/health/+server.ts",
   "src/routes/api/metrics/+server.ts",
-  "src/routes/api/readiness/+server.ts",
 ]);
 const OPENAPI_ROUTE_ROOTS = ["src/routes/api", "src/routes/.well-known"];
 
@@ -1016,6 +976,25 @@ function patchRedirectOperations(
       "#/components/schemas/dashboardLinkVisitRequestSchema",
     );
     setRedirectResponse(visitPost, 303, "Redirect after recording link click");
+  }
+
+  const deviceAuthorizationPost = paths["/api/auth/oauth2/device-authorization"]
+    ?.post as MutableOpenApiOperation | undefined;
+  if (deviceAuthorizationPost) {
+    setFormRequestBody(
+      deviceAuthorizationPost,
+      "#/components/schemas/oauthDeviceAuthorizationRequestSchema",
+    );
+  }
+
+  const tokenPost = paths["/api/auth/oauth2/token"]?.post as
+    | MutableOpenApiOperation
+    | undefined;
+  if (tokenPost) {
+    setFormRequestBody(
+      tokenPost,
+      "#/components/schemas/oauthTokenRequestSchema",
+    );
   }
 }
 

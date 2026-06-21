@@ -8,6 +8,7 @@ export const OPTIONS = svelteRequestHandler(deviceAuthorizationOptionsRoute);
 
 /**
  * Start OAuth 2.0 device authorization.
+ * @body oauthDeviceAuthorizationRequestSchema
  * @response 200
  * @response 400:openApiErrorSchema
  */

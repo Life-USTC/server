@@ -20,7 +20,7 @@
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
-import { DEV_SEED } from "../../../../utils/dev-seed";
+import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../../utils/dev-seed";
 import { assertApiContract } from "../../_shared/api-contract";
 
 test("/api/todos", async ({ request }) => {
@@ -63,6 +63,34 @@ test("/api/todos GET supports completed filter and limit", async ({ page }) => {
 
   expect(body.todos).toHaveLength(1);
   expect(body.todos?.every((todo) => todo.completed === false)).toBe(true);
+});
+
+test("/api/todos GET accepts bare date filters and rejects invalid dates", async ({
+  page,
+}) => {
+  await signInAsDebugUser(page, "/");
+
+  const response = await page.request.get(
+    `/api/todos?completed=false&dueBefore=${DEV_SEED_ANCHOR.date}&limit=10`,
+  );
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as {
+    todos?: Array<{ completed?: boolean; title?: string }>;
+  };
+  expect(
+    body.todos?.some(
+      (todo) =>
+        todo.title === DEV_SEED.todos.overdueTitle && todo.completed === false,
+    ),
+  ).toBe(true);
+  expect(
+    body.todos?.some((todo) => todo.title === DEV_SEED.todos.dueTodayTitle),
+  ).toBe(false);
+
+  const invalidResponse = await page.request.get(
+    "/api/todos?dueBefore=not-a-date",
+  );
+  expect(invalidResponse.status()).toBe(400);
 });
 
 test("/api/todos GET rejects invalid limit", async ({ page }) => {

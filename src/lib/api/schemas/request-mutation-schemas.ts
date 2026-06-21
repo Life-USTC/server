@@ -22,6 +22,10 @@ export {
   descriptionUpsertRequestSchema,
 } from "@/lib/api/schemas/request-description-mutation-schemas";
 export {
+  oauthDeviceAuthorizationRequestSchema,
+  oauthTokenRequestSchema,
+} from "@/lib/api/schemas/request-oauth-form-schemas";
+export {
   uploadCompleteRequestSchema,
   uploadCreateRequestSchema,
   uploadRenameRequestSchema,
