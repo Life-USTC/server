@@ -53,14 +53,16 @@ async function listUncachedSectionsAction(
   },
 ) {
   const { buildSectionListQuery } = await import(
-    "@/lib/course-section-queries"
+    "@/features/catalog/server/course-section-queries"
   );
   const { where, orderBy } = buildSectionListQuery({
     ...parsedQuery,
     ids: parsedQuery.ids ? Array.from(parsedQuery.ids) : undefined,
     jwIds: parsedQuery.jwIds ? Array.from(parsedQuery.jwIds) : undefined,
   });
-  const { paginatedSectionSummaryQuery } = await import("@/lib/query-helpers");
+  const { paginatedSectionSummaryQuery } = await import(
+    "@/features/catalog/server/academic-paginated-queries"
+  );
   const result = await paginatedSectionSummaryQuery(
     pagination.page,
     pagination.pageSize,

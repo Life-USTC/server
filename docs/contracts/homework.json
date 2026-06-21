@@ -127,6 +127,7 @@
             "returns": "{ success: Boolean, homework: HomeworkItem }",
             "rest_equivalent": "PATCH /api/homeworks/[id]",
             "notes": [
+              "Accepts locale for the returned homework snapshot, matching create/list localization.",
               "Returns the updated homework snapshot after metadata and/or description changes are applied."
             ]
           }

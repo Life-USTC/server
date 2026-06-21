@@ -1,14 +1,11 @@
-import { withAdminApiRoute } from "@/lib/admin-api";
+import { listAdminModerationDescriptions } from "@/features/admin/server/admin-moderation-api-lists";
 import {
   getRequestSearchParams,
   jsonResponse,
   parseRouteQuery,
 } from "@/lib/api/helpers";
+import { withAdminApiRoute } from "@/lib/api/routes/admin-route-auth";
 import { adminDescriptionsQuerySchema } from "@/lib/api/schemas/request-schemas";
-import {
-  adminDescriptionInclude,
-  buildAdminDescriptionWhere,
-} from "./admin-description-filters";
 
 export async function getAdminDescriptionsRoute(request: Request) {
   return withAdminApiRoute(
@@ -31,18 +28,11 @@ export async function getAdminDescriptionsRoute(request: Request) {
       const hasContent = parsedQuery.hasContent ?? "withContent";
       const search = parsedQuery.search?.trim() ?? "";
       const { pageSize: limit } = pagination;
-      const where = buildAdminDescriptionWhere({
+      const descriptions = await listAdminModerationDescriptions({
         hasContent,
+        limit,
         search,
         targetType,
-      });
-
-      const { prisma } = await import("@/lib/db/prisma");
-      const descriptions = await prisma.description.findMany({
-        where,
-        include: adminDescriptionInclude,
-        orderBy: [{ lastEditedAt: "desc" }, { updatedAt: "desc" }],
-        take: limit,
       });
 
       return jsonResponse({ descriptions });

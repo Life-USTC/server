@@ -21,12 +21,13 @@ import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import {
   getUserId,
   jsonToolResult,
+  mcpModeInputSchema,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
 
 const inputSchema = z.object({
   sectionJwId: z.number().describe("Section JW ID"),
-  mode: z.enum(["summary", "default", "full"]).optional(),
+  mode: mcpModeInputSchema.optional(),
 });
 
 export async function myTool(args: unknown, authInfo?: AuthInfo) {

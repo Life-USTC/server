@@ -1,5 +1,5 @@
 import { error } from "@sveltejs/kit";
-import { getSectionPage } from "@/lib/page-data";
+import { getSectionPage } from "@/features/section-detail/server/section-page-data";
 import { getSectionDetailDescriptionAndComments } from "./section-detail-comments-data";
 import { getSectionHomeworkData } from "./section-detail-homework-data";
 import {

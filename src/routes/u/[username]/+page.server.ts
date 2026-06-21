@@ -1,6 +1,6 @@
 import { error } from "@sveltejs/kit";
-import { getUserProfileByUsername } from "@/lib/page-data";
-import { getProfileCopy } from "@/lib/profile-copy";
+import { getProfileCopy } from "@/features/profile/lib/profile-copy";
+import { getUserProfileByUsername } from "@/features/profile/server/user-profile-page-data";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {

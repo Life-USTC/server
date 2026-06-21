@@ -1,13 +1,13 @@
 import {
+  findSectionCodeMatches,
+  findSectionCompactByJwId,
+} from "@/features/catalog/server/course-section-queries";
+import {
   getSubscribedSectionIds,
   getUserCalendarSubscription,
 } from "@/features/home/server/subscription-read-model";
 import { addUserSectionSubscriptions } from "@/features/home/server/subscriptions";
 import type { AppLocale } from "@/i18n/config";
-import {
-  findSectionCodeMatches,
-  findSectionCompactByJwId,
-} from "@/lib/course-section-queries";
 import {
   getUserId,
   jsonToolResult,

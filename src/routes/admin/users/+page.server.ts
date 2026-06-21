@@ -1,5 +1,5 @@
+import { getAdminUsersPage } from "@/features/admin/server/admin-page-data";
 import type { AppLocale } from "@/i18n/config";
-import { getAdminUsersPage } from "@/lib/admin-page-data";
 import enUsMessages from "../../../../messages/en-us.json";
 import zhCnMessages from "../../../../messages/zh-cn.json";
 import type { PageServerLoad } from "./$types";

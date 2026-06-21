@@ -28,6 +28,11 @@ export async function putHomeworkCompletionRoute(
     return parsedParams;
   }
   const id = parsedParams.id;
+
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const { userId } = auth;
+
   const parsedBody = await parseRouteJsonBody(
     request,
     homeworkCompletionRequestSchema,
@@ -36,10 +41,6 @@ export async function putHomeworkCompletionRoute(
   if (parsedBody instanceof Response) {
     return parsedBody;
   }
-
-  const auth = await requireAuth(request);
-  if (auth instanceof Response) return auth;
-  const { userId } = auth;
 
   try {
     return await updateHomeworkCompletionAction({
@@ -53,6 +54,9 @@ export async function putHomeworkCompletionRoute(
 }
 
 export async function putHomeworkCompletionsRoute(request: Request) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+
   const parsedBody = await parseRouteJsonBody(
     request,
     homeworkCompletionBatchRequestSchema,
@@ -61,9 +65,6 @@ export async function putHomeworkCompletionsRoute(request: Request) {
   if (parsedBody instanceof Response) {
     return parsedBody;
   }
-
-  const auth = await requireAuth(request);
-  if (auth instanceof Response) return auth;
 
   try {
     return jsonResponse(

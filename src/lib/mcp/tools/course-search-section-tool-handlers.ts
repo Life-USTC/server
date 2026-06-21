@@ -1,8 +1,8 @@
-import { DEFAULT_LOCALE } from "@/i18n/config";
 import {
   findSectionByJwId,
   type listCoursesBySearch,
-} from "@/lib/course-section-queries";
+} from "@/features/catalog/server/course-section-queries";
+import { DEFAULT_LOCALE } from "@/i18n/config";
 import { jsonToolResult, resolveMcpMode } from "@/lib/mcp/tools/_helpers";
 import { searchSectionsForMcpTool } from "./course-search-section-tool";
 

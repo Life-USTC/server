@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { todoPrioritySchema } from "@/features/todos/lib/todo-schema";
 import {
   busCampusSchema,
   sectionCompactSchema,
@@ -61,8 +62,15 @@ export const matchSectionCodesResponseSchema = z.object({
   }),
   matchedCodes: z.array(z.string()),
   unmatchedCodes: z.array(z.string()),
+  suggestions: z.record(z.string(), z.array(z.string())),
   sections: z.array(sectionCompactSchema),
   total: z.number().int().nonnegative(),
+});
+
+export const dashboardLinkPinResponseSchema = z.object({
+  pinnedSlugs: z.array(z.string()),
+  maxPinnedLinks: z.number().int().positive(),
+  error: z.string().nullable(),
 });
 
 export const openApiDocumentResponseSchema = z.object({
@@ -96,7 +104,7 @@ export const todoItemSchema = z.object({
   id: z.string(),
   title: z.string(),
   content: z.string().nullable(),
-  priority: z.enum(["low", "medium", "high"]),
+  priority: todoPrioritySchema,
   completed: z.boolean(),
   dueAt: dateTimeSchema.nullable(),
   createdAt: dateTimeSchema,

@@ -1,6 +1,7 @@
 import type { CommentStatus } from "@/generated/prisma/client";
 import { fireAuditLog } from "@/lib/audit/write-audit-log";
 import { prisma } from "@/lib/db/prisma";
+import { ilike } from "@/lib/query-filter-helpers";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 
 type AdminUsersParsedQuery = {
@@ -31,10 +32,6 @@ type AdminModerateCommentInput = {
   moderationNote?: string | null;
   status: CommentStatus;
 };
-
-function ilike(value: string) {
-  return { contains: value, mode: "insensitive" as const };
-}
 
 function normalizeAdminUserName(value: unknown) {
   if (typeof value !== "string") return undefined;

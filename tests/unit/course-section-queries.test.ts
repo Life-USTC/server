@@ -9,11 +9,13 @@ vi.mock("@/lib/db/prisma", () => ({
   },
 }));
 
-let buildCourseListWhere: typeof import("@/lib/course-section-queries").buildCourseListWhere;
-let buildSectionListQuery: typeof import("@/lib/course-section-queries").buildSectionListQuery;
+let buildCourseListWhere: typeof import("@/features/catalog/server/course-section-queries").buildCourseListWhere;
+let buildSectionListQuery: typeof import("@/features/catalog/server/course-section-queries").buildSectionListQuery;
 
 beforeAll(async () => {
-  const queries = await import("@/lib/course-section-queries");
+  const queries = await import(
+    "@/features/catalog/server/course-section-queries"
+  );
   buildCourseListWhere = queries.buildCourseListWhere;
   buildSectionListQuery = queries.buildSectionListQuery;
 });

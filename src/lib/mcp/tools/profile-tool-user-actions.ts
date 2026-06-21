@@ -3,15 +3,15 @@ import { prisma } from "@/lib/db/prisma";
 import {
   getUserId,
   jsonToolResult,
+  type McpModeInput,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
 import { userProfileSelect } from "@/lib/mcp/tools/profile-tool-helpers";
 
-type McpMode = "summary" | "default" | "full";
 type ToolExtra = { authInfo?: AuthInfo };
 
 export async function getMyProfileAction(
-  { mode }: { mode?: McpMode },
+  { mode }: { mode?: McpModeInput },
   extra: ToolExtra,
 ) {
   const userId = getUserId(extra.authInfo);

@@ -1,4 +1,6 @@
 import * as z from "zod";
+import { sectionCodeSchema } from "@/features/catalog/lib/section-code-schema";
+import { todoPrioritySchema } from "@/features/todos/lib/todo-schema";
 import { parseInteger } from "../request-integers";
 import { commentVisibilitySchema } from "./shared-enum-schemas";
 
@@ -41,14 +43,7 @@ export const commentReactionTypeSchema = z.enum([
   "eyes",
 ]);
 
-export const sectionCodeSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .max(64)
-  .regex(/^[A-Za-z0-9_.-]+$/);
-
-export { commentVisibilitySchema };
+export { commentVisibilitySchema, sectionCodeSchema };
 
 export const commentTargetTypeSchema = z.enum([
   "section",
@@ -65,6 +60,4 @@ export const descriptionTargetTypeSchema = z.enum([
   "homework",
 ]);
 
-export const todoPrioritySchema = z.enum(["low", "medium", "high"]);
-
-export { parseOptionalInt, parseOptionalIntLike };
+export { parseOptionalInt, parseOptionalIntLike, todoPrioritySchema };

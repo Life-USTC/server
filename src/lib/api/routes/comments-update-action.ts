@@ -7,7 +7,6 @@ import {
   notFound,
 } from "@/lib/api/helpers";
 import type { commentUpdateRequestSchema } from "@/lib/api/schemas/request-schemas";
-import { requireWriteAuth } from "@/lib/auth/api-auth";
 import { writeCommentEditAuditLog } from "./comments-update-response";
 
 type CommentUpdateBody = z.infer<typeof commentUpdateRequestSchema>;
@@ -16,11 +15,8 @@ export async function updateCommentAction(
   request: Request,
   id: string,
   parsedBody: CommentUpdateBody,
+  userId: string,
 ) {
-  const auth = await requireWriteAuth(request);
-  if (auth instanceof Response) return auth;
-  const { userId } = auth;
-
   const content = parsedBody.body;
   const visibility = parsedBody.visibility;
   const isAnonymous = parsedBody.isAnonymous;

@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { ADMIN_COMMENT_STATUS_FILTERS } from "@/features/admin/lib/admin-moderation-filters";
 import { integerStringSchema } from "./request-schema-primitives";
 
 export const adminUsersQuerySchema = z.object({
@@ -8,7 +9,7 @@ export const adminUsersQuerySchema = z.object({
 });
 
 export const adminCommentsQuerySchema = z.object({
-  status: z.enum(["active", "softbanned", "deleted", "suspended"]).optional(),
+  status: z.enum(ADMIN_COMMENT_STATUS_FILTERS).optional(),
   limit: integerStringSchema.optional(),
 });
 

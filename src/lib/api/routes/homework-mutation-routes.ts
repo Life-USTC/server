@@ -22,6 +22,12 @@ import { requireWriteAuth } from "@/lib/auth/api-auth";
 type IdParams = { id: string };
 
 export async function postHomeworkRoute(request: Request) {
+  const auth = await requireWriteAuth(request);
+  if (auth instanceof Response) {
+    return auth;
+  }
+  const { userId } = auth;
+
   const parsedBody = await parseRouteJsonBody(
     request,
     homeworkCreateRequestSchema,
@@ -33,12 +39,6 @@ export async function postHomeworkRoute(request: Request) {
 
   const homeworkInput = parseCreateHomeworkInput(parsedBody);
   if (homeworkInput instanceof Response) return homeworkInput;
-
-  const auth = await requireWriteAuth(request);
-  if (auth instanceof Response) {
-    return auth;
-  }
-  const { userId } = auth;
 
   try {
     const homework = await createHomeworkForSection(userId, homeworkInput);
@@ -57,6 +57,13 @@ export async function postHomeworkRoute(request: Request) {
 export async function patchHomeworkRoute(request: Request, params: IdParams) {
   const id = parseHomeworkId(params);
   if (id instanceof Response) return id;
+
+  const auth = await requireWriteAuth(request);
+  if (auth instanceof Response) {
+    return auth;
+  }
+  const { userId } = auth;
+
   const parsedBody = await parseRouteJsonBody(
     request,
     homeworkUpdateRequestSchema,
@@ -65,12 +72,6 @@ export async function patchHomeworkRoute(request: Request, params: IdParams) {
   if (parsedBody instanceof Response) {
     return parsedBody;
   }
-
-  const auth = await requireWriteAuth(request);
-  if (auth instanceof Response) {
-    return auth;
-  }
-  const { userId } = auth;
 
   try {
     return await updateHomeworkAction(id, userId, parsedBody);

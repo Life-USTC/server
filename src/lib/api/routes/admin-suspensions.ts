@@ -3,13 +3,13 @@ import {
   liftAdminSuspension,
   listAdminSuspensions,
 } from "@/features/admin/server/admin-api-service";
-import { withAdminApiRoute } from "@/lib/admin-api";
 import {
   badRequest,
   jsonResponse,
   notFound,
   parseRouteJsonBody,
 } from "@/lib/api/helpers";
+import { withAdminApiRoute } from "@/lib/api/routes/admin-route-auth";
 import { adminCreateSuspensionRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { type IdParams, parseIdParam } from "./admin-shared";
 

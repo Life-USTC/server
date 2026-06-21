@@ -1,14 +1,11 @@
-import { withAdminApiRoute } from "@/lib/admin-api";
+import { listAdminModerationHomeworks } from "@/features/admin/server/admin-moderation-api-lists";
 import {
   getRequestSearchParams,
   jsonResponse,
   parseRouteQuery,
 } from "@/lib/api/helpers";
+import { withAdminApiRoute } from "@/lib/api/routes/admin-route-auth";
 import { adminHomeworksQuerySchema } from "@/lib/api/schemas/request-schemas";
-import {
-  adminHomeworkInclude,
-  buildAdminHomeworkWhere,
-} from "./admin-homework-filters";
 
 export async function getAdminHomeworksRoute(request: Request) {
   return withAdminApiRoute(
@@ -30,14 +27,10 @@ export async function getAdminHomeworksRoute(request: Request) {
       const status = parsedQuery.status ?? "all";
       const { pageSize: limit } = pagination;
       const search = parsedQuery.search?.trim() ?? "";
-      const where = buildAdminHomeworkWhere({ search, status });
-
-      const { prisma } = await import("@/lib/db/prisma");
-      const homeworks = await prisma.homework.findMany({
-        where,
-        include: adminHomeworkInclude,
-        orderBy: [{ deletedAt: "desc" }, { createdAt: "desc" }],
-        take: limit,
+      const homeworks = await listAdminModerationHomeworks({
+        limit,
+        search,
+        status,
       });
 
       return jsonResponse({ homeworks });

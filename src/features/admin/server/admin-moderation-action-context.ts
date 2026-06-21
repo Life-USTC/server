@@ -1,6 +1,6 @@
 import { fail } from "@sveltejs/kit";
+import { requireAdminPage } from "@/features/admin/server/admin-page-data";
 import type { AppLocale } from "@/i18n/config";
-import { requireAdminPage } from "@/lib/admin-page-data";
 import { getAdminModerationPageCopy } from "./admin-moderation-page-copy";
 
 export type AdminModerationActionEvent = {

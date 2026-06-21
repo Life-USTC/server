@@ -7,6 +7,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @body homeworkCompletionBatchRequestSchema
  * @response homeworkCompletionBatchResponseSchema
  * @response 400:openApiErrorSchema
+ * @response 401:openApiErrorSchema
  */
 export const PUT = svelteRequestHandler(
   observedApiRoute(putHomeworkCompletionsRoute),

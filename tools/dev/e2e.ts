@@ -9,8 +9,7 @@ import type {
 import { DEV_SEED } from "./seed/dev-seed";
 
 const PLAYWRIGHT_HOST = "127.0.0.1";
-const PLAYWRIGHT_PORT = "3000";
-const PLAYWRIGHT_BASE_URL = "http://127.0.0.1:3000";
+const DEFAULT_PLAYWRIGHT_PORT = "3000";
 const DEFAULT_WEB_SERVER_TIMEOUT_MS = 300 * 1000;
 const DEFAULT_E2E_DEBUG_PASSWORD = "e2e-debug-local-only";
 const DEFAULT_E2E_ADMIN_PASSWORD = "e2e-admin-local-only";
@@ -52,12 +51,19 @@ function appendNoProxy(value: string | undefined) {
 }
 
 export function resolvePlaywrightServerRuntime(
-  _env: NodeJS.ProcessEnv = process.env,
+  env: NodeJS.ProcessEnv = process.env,
 ) {
+  const baseUrlOverride = env.PLAYWRIGHT_BASE_URL;
+  const baseUrlPort = baseUrlOverride
+    ? new URL(baseUrlOverride).port
+    : undefined;
+  const port = baseUrlPort || env.PLAYWRIGHT_PORT || DEFAULT_PLAYWRIGHT_PORT;
+  const baseUrl = baseUrlOverride ?? `http://${PLAYWRIGHT_HOST}:${port}`;
+
   return {
     host: PLAYWRIGHT_HOST,
-    port: PLAYWRIGHT_PORT,
-    baseUrl: PLAYWRIGHT_BASE_URL,
+    port,
+    baseUrl,
   };
 }
 

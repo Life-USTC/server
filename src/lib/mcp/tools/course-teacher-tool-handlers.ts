@@ -1,11 +1,11 @@
+import {
+  teacherDetailInclude,
+  teacherListInclude,
+} from "@/features/catalog/server/academic-query-includes";
 import { buildPaginatedResponse, normalizePagination } from "@/lib/api/helpers";
 import { getPrisma } from "@/lib/db/prisma";
 import { jsonToolResult, resolveMcpMode } from "@/lib/mcp/tools/_helpers";
-import {
-  ilike,
-  teacherDetailInclude,
-  teacherListInclude,
-} from "@/lib/query-helpers";
+import { ilike } from "@/lib/query-filter-helpers";
 
 type McpModeInput = Parameters<typeof resolveMcpMode>[0];
 

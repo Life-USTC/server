@@ -5,7 +5,11 @@ import { observedApiRoute } from "@/lib/log/api-observability";
 /**
  * Pin dashboard link.
  * @body dashboardLinkPinRequestSchema
+ * @response dashboardLinkPinResponseSchema
  * @response 303
+ * @response 400:dashboardLinkPinResponseSchema
+ * @response 401:dashboardLinkPinResponseSchema
+ * @response 500:dashboardLinkPinResponseSchema
  */
 export const POST = svelteRequestHandler(
   observedApiRoute(postDashboardLinkPinRoute),

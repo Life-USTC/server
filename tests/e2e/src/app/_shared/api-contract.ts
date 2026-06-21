@@ -154,9 +154,11 @@ export async function assertApiContract(
       expect(response.status()).toBe(200);
       const body = (await response.json()) as {
         matchedCodes?: string[];
+        suggestions?: Record<string, string[]>;
         total?: number;
       };
       expect(body.matchedCodes?.includes(DEV_SEED.section.code)).toBe(true);
+      expect(body.suggestions).toBeDefined();
       expect((body.total ?? 0) > 0).toBe(true);
       return;
     }

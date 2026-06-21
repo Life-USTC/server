@@ -54,11 +54,14 @@ export async function createHomeworkOnSectionTool(
     return sectionNotFoundToolResult(sectionJwId, resolvedMode);
   }
 
-  const parsedTimestamps = parseCreateHomeworkTimestamps({
-    publishedAt,
-    submissionStartAt,
-    submissionDueAt,
-  });
+  const parsedTimestamps = parseCreateHomeworkTimestamps(
+    {
+      publishedAt,
+      submissionStartAt,
+      submissionDueAt,
+    },
+    resolvedMode,
+  );
   if (!parsedTimestamps.ok) return parsedTimestamps.result;
 
   const homework = await createHomeworkOnSectionRecord({

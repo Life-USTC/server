@@ -4,6 +4,7 @@ import {
   getUserId,
   getViewerInfo,
   jsonToolResult,
+  type McpModeInput,
   parseOptionalMcpDate,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
@@ -14,11 +15,14 @@ import {
   loadMyOverviewSamples,
 } from "./my-data-overview-payload";
 
-type McpMode = "summary" | "default" | "full";
 type ToolExtra = { authInfo?: Parameters<typeof getUserId>[0] };
 
 export async function getMyOverviewAction(
-  { locale, atTime, mode }: { locale: string; atTime?: string; mode?: McpMode },
+  {
+    locale,
+    atTime,
+    mode,
+  }: { locale: string; atTime?: string; mode?: McpModeInput },
   extra: ToolExtra,
 ) {
   const resolvedMode = resolveMcpMode(mode);

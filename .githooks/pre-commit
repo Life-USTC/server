@@ -5,7 +5,7 @@ if ! command -v bun >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! bun run biome check --write; then
+if ! bun run biome check; then
   echo "Biome check failed. Commit aborted." >&2
   exit 1
 fi

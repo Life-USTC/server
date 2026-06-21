@@ -18,6 +18,12 @@ import {
 } from "./comments-create-helpers";
 
 export async function postCommentRoute(request: Request) {
+  const auth = await requireWriteAuth(request);
+  if (auth instanceof Response) {
+    return auth;
+  }
+  const { userId } = auth;
+
   const parsedBody = await parseRouteJsonBody(
     request,
     commentCreateRequestSchema,
@@ -31,12 +37,6 @@ export async function postCommentRoute(request: Request) {
   const content = parsedBody.body;
   const visibility = parsedBody.visibility ?? "public";
   const isAnonymous = parsedBody.isAnonymous === true;
-
-  const auth = await requireWriteAuth(request);
-  if (auth instanceof Response) {
-    return auth;
-  }
-  const { userId } = auth;
 
   try {
     const target = await resolveCreateCommentTarget({

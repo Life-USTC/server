@@ -79,7 +79,7 @@ export async function postCalendarSubscriptionImportCodesRoute(
       { getSubscribedSectionIds, getUserCalendarSubscription },
       { addUserSectionSubscriptions },
     ] = await Promise.all([
-      import("@/lib/course-section-queries"),
+      import("@/features/catalog/server/course-section-queries"),
       import("@/features/home/server/subscription-read-model"),
       import("@/features/home/server/subscriptions"),
     ]);

@@ -13,10 +13,13 @@ function parseToolPayload(result: {
 
 describe("MCP homework date parsing", () => {
   test("uses the shared homework date rule for create submission windows", () => {
-    const result = parseCreateHomeworkTimestamps({
-      submissionDueAt: "2026-04-01T00:00:00Z",
-      submissionStartAt: "2026-04-02T00:00:00Z",
-    });
+    const result = parseCreateHomeworkTimestamps(
+      {
+        submissionDueAt: "2026-04-01T00:00:00Z",
+        submissionStartAt: "2026-04-02T00:00:00Z",
+      },
+      "full",
+    );
 
     expect(result.ok).toBe(false);
     if (result.ok) return;
@@ -28,10 +31,13 @@ describe("MCP homework date parsing", () => {
   });
 
   test("uses the shared homework date rule for update submission windows", () => {
-    const result = parseHomeworkUpdateDates({
-      submissionDueAt: "2026-04-01T00:00:00Z",
-      submissionStartAt: "2026-04-02T00:00:00Z",
-    });
+    const result = parseHomeworkUpdateDates(
+      {
+        submissionDueAt: "2026-04-01T00:00:00Z",
+        submissionStartAt: "2026-04-02T00:00:00Z",
+      },
+      "full",
+    );
 
     expect(result.ok).toBe(false);
     if (result.ok) return;

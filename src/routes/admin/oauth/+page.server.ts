@@ -2,8 +2,8 @@ import {
   createAdminOAuthClientAction,
   deleteAdminOAuthClientAction,
   getAdminOAuthCopy,
-} from "@/features/admin/lib/admin-oauth-page-server";
-import { getAdminOAuthPage } from "@/lib/admin-page-data";
+} from "@/features/admin/server/admin-oauth-page-server";
+import { getAdminOAuthPage } from "@/features/admin/server/admin-page-data";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, request }) => {

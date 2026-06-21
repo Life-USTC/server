@@ -8,6 +8,8 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @body homeworkCompletionRequestSchema
  * @response homeworkCompletionResponseSchema
  * @response 400:openApiErrorSchema
+ * @response 401:openApiErrorSchema
+ * @response 404:openApiErrorSchema
  */
 export const PUT: RequestHandler = ({ request, params }) =>
   observedApiRoute(() =>

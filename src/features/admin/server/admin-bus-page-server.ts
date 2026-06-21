@@ -1,8 +1,11 @@
 import type { RequestEvent } from "@sveltejs/kit";
+import {
+  getAdminBusPage,
+  requireAdminPage,
+} from "@/features/admin/server/admin-page-data";
 import { importBusStaticPayload } from "@/features/bus/lib/bus-import";
 import { loadBusStaticPayload } from "@/features/bus/lib/bus-static-source";
 import type { AppLocale } from "@/i18n/config";
-import { getAdminBusPage, requireAdminPage } from "@/lib/admin-page-data";
 import enUsMessages from "../../../../messages/en-us.json";
 import zhCnMessages from "../../../../messages/zh-cn.json";
 import {

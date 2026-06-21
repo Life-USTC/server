@@ -36,6 +36,16 @@ jobs:
       upload-artifact-no-files-found: error
       upload-artifact-include-hidden-files: true
 
+  static-loader-image:
+    name: Static Loader Image
+    needs: check
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: docker build --target loader -t life-ustc-static-loader:check .
+
   test-e2e:
     name: E2E Test (${{ matrix.scope }})
     needs:

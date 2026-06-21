@@ -345,6 +345,7 @@ export function buildScenarioOpenApiExamples(): OpenApiExampleMap {
         },
         matchedCodes: s.sections.slice(0, 2).map((section) => section.code),
         unmatchedCodes: [],
+        suggestions: {},
         sections: s.sections.slice(0, 2).map(sectionCompact),
         total: 2,
       },

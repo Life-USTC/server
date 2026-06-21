@@ -2,7 +2,7 @@ import { jsonResponse, notFound } from "@/lib/api/helpers";
 
 export async function getSectionDetailAction(parsedJwId: number) {
   const { findSectionDetailByJwId } = await import(
-    "@/lib/course-section-queries"
+    "@/features/catalog/server/course-section-queries"
   );
   const section = await findSectionDetailByJwId(parsedJwId, "zh-cn");
 

@@ -24,11 +24,45 @@ describe("playwright runtime", () => {
     );
   });
 
-  it("uses the pinned Playwright host and port", () => {
+  it("uses the default Playwright host and port", () => {
     expect(resolvePlaywrightHarnessRuntime({})).toMatchObject({
       host: "127.0.0.1",
       port: "3000",
       baseUrl: "http://127.0.0.1:3000",
+    });
+  });
+
+  it("honors the local Playwright port override", () => {
+    expect(
+      resolvePlaywrightHarnessRuntime({ PLAYWRIGHT_PORT: "3100" }),
+    ).toMatchObject({
+      host: "127.0.0.1",
+      port: "3100",
+      baseUrl: "http://127.0.0.1:3100",
+    });
+  });
+
+  it("derives the server port from a Playwright base URL override", () => {
+    expect(
+      resolvePlaywrightHarnessRuntime({
+        PLAYWRIGHT_BASE_URL: "http://127.0.0.1:3101",
+      }),
+    ).toMatchObject({
+      host: "127.0.0.1",
+      port: "3101",
+      baseUrl: "http://127.0.0.1:3101",
+    });
+  });
+
+  it("uses the base URL port when both Playwright URL variables are set", () => {
+    expect(
+      resolvePlaywrightHarnessRuntime({
+        PLAYWRIGHT_BASE_URL: "http://127.0.0.1:3102",
+        PLAYWRIGHT_PORT: "3103",
+      }),
+    ).toMatchObject({
+      port: "3102",
+      baseUrl: "http://127.0.0.1:3102",
     });
   });
 

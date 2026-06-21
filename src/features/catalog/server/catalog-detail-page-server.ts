@@ -1,5 +1,6 @@
 import { error } from "@sveltejs/kit";
-import { getCoursePage, getTeacherPage } from "@/lib/page-data";
+import { getCoursePage } from "@/features/catalog/server/course-page-data";
+import { getTeacherPage } from "@/features/catalog/server/teacher-page-data";
 import { loadCatalogDetailCommentsData } from "./catalog-detail-comments";
 import {
   getCourseDetailCopy,

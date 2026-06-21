@@ -1,4 +1,4 @@
-import { getSectionListPage } from "@/lib/page-data";
+import { getSectionListPage } from "@/features/catalog/server/public-page-list-data";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, url }) => {

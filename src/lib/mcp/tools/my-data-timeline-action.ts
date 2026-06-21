@@ -3,17 +3,21 @@ import {
   getTodayBounds,
   getUserId,
   jsonToolResult,
+  type McpModeInput,
   parseOptionalMcpDate,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
 import { summarizeCalendarEventCollection } from "@/lib/mcp/tools/event-summary";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
-type McpMode = "summary" | "default" | "full";
 type ToolExtra = { authInfo?: Parameters<typeof getUserId>[0] };
 
 export async function getMySevenDaysTimelineAction(
-  { locale, atTime, mode }: { locale: string; atTime?: string; mode?: McpMode },
+  {
+    locale,
+    atTime,
+    mode,
+  }: { locale: string; atTime?: string; mode?: McpModeInput },
   extra: ToolExtra,
 ) {
   const resolvedMode = resolveMcpMode(mode);

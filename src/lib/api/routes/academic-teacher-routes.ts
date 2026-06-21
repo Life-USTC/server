@@ -38,7 +38,9 @@ export async function getTeachersRoute(request: Request) {
       TEACHERS_API_CACHE_TTL_MS,
       async () => {
         const where = await buildTeacherWhere({ departmentId, search });
-        const { paginatedTeacherQuery } = await import("@/lib/query-helpers");
+        const { paginatedTeacherQuery } = await import(
+          "@/features/catalog/server/academic-paginated-queries"
+        );
         return paginatedTeacherQuery(
           pagination.page,
           pagination.pageSize,
@@ -64,7 +66,7 @@ export async function getTeacherDetailRoute(params: { id: string }) {
 
     const [{ getPrisma }, { teacherDetailInclude }] = await Promise.all([
       import("@/lib/db/prisma"),
-      import("@/lib/query-helpers"),
+      import("@/features/catalog/server/academic-query-includes"),
     ]);
     const teacher = await getPrisma("zh-cn").teacher.findUnique({
       where: { id: parsedId },

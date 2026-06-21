@@ -4,7 +4,10 @@ import {
   HOMEWORK_DESCRIPTION_MAX_LENGTH,
   HOMEWORK_TITLE_MAX_LENGTH,
 } from "@/features/homeworks/lib/homework-limits";
-import { mcpModeInputSchema } from "@/lib/mcp/tools/_helpers";
+import {
+  mcpLocaleInputSchema,
+  mcpModeInputSchema,
+} from "@/lib/mcp/tools/_helpers";
 import { updateHomeworkOnSectionTool } from "./homework-update-tool-handler";
 
 export function registerUpdateHomeworkOnSectionTool(server: McpServer) {
@@ -31,6 +34,7 @@ export function registerUpdateHomeworkOnSectionTool(server: McpServer) {
         publishedAt: z.union([z.string(), z.null()]).optional(),
         submissionStartAt: z.union([z.string(), z.null()]).optional(),
         submissionDueAt: z.union([z.string(), z.null()]).optional(),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },

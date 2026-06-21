@@ -27,11 +27,14 @@ export async function suspendedCreateHomeworkResult(
   );
 }
 
-export function parseCreateHomeworkTimestamps(input: {
-  publishedAt?: string | null;
-  submissionDueAt?: string | null;
-  submissionStartAt?: string | null;
-}) {
+export function parseCreateHomeworkTimestamps(
+  input: {
+    publishedAt?: string | null;
+    submissionDueAt?: string | null;
+    submissionStartAt?: string | null;
+  },
+  mode: McpMode,
+) {
   const parsedPublishedAt = parseOptionalFieldDate(
     "publishedAt",
     input.publishedAt,
@@ -64,10 +67,7 @@ export function parseCreateHomeworkTimestamps(input: {
   if (dateError) {
     return {
       ok: false as const,
-      result: jsonToolResult(
-        { success: false, message: dateError },
-        { mode: "default" },
-      ),
+      result: jsonToolResult({ success: false, message: dateError }, { mode }),
     };
   }
 
