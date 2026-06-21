@@ -104,9 +104,9 @@ async function captureApiSnapshots() {
 
       const context = await browser.newContext({ baseURL: baseUrl });
       const page = await createAuthedPage(context, auth);
-      await withSnapshotTimeout(`api ${auth} auth page close`, page.close());
+      await settleSnapshotTeardown(`api ${auth} auth page close`, page.close());
       const storageState = await context.storageState();
-      await withSnapshotTimeout(
+      await settleSnapshotTeardown(
         `api ${auth} auth context close`,
         context.close(),
       );
@@ -115,7 +115,7 @@ async function captureApiSnapshots() {
         await playwrightRequest.newContext({ baseURL: baseUrl, storageState }),
       );
     }
-    await withSnapshotTimeout("api auth browser close", browser.close());
+    await settleSnapshotTeardown("api auth browser close", browser.close());
 
     for (const snapshotCase of API_SNAPSHOT_CASES) {
       const startedAt = performance.now();
@@ -197,13 +197,13 @@ async function captureApiSnapshots() {
     }
   } finally {
     for (const [auth, request] of requests) {
-      await withSnapshotTimeout(
+      await settleSnapshotTeardown(
         `api ${auth} request dispose`,
         request.dispose({ reason: "snapshot api complete" }),
       );
     }
     if (browser.isConnected()) {
-      await withSnapshotTimeout("api browser close", browser.close());
+      await settleSnapshotTeardown("api browser close", browser.close());
     }
   }
 
@@ -357,8 +357,8 @@ async function authorizeMcp(baseUrl: string) {
 
     return { accessToken, endpoint, resource };
   } finally {
-    await withSnapshotTimeout("mcp auth context close", context.close());
-    await withSnapshotTimeout("mcp auth browser close", browser.close());
+    await settleSnapshotTeardown("mcp auth context close", context.close());
+    await settleSnapshotTeardown("mcp auth browser close", browser.close());
   }
 }
 
@@ -449,7 +449,7 @@ async function captureMcpSnapshots() {
       }
     }
   } finally {
-    await withSnapshotTimeout("mcp client close", mcpClient.close());
+    await settleSnapshotTeardown("mcp client close", mcpClient.close());
     await cleanupSnapshotOAuthClients().catch(() => undefined);
     await disconnectSnapshotOAuthCleanup();
   }
@@ -877,12 +877,12 @@ async function capturePageSnapshots() {
         entries.push(metadata);
         console.error(`page ${snapshotCase.id}: failed`);
       } finally {
-        await withSnapshotTimeout("page page close", page.close());
-        await withSnapshotTimeout("page context close", context.close());
+        await settleSnapshotTeardown("page page close", page.close());
+        await settleSnapshotTeardown("page context close", context.close());
       }
     }
   } finally {
-    await withSnapshotTimeout("page browser close", browser.close());
+    await settleSnapshotTeardown("page browser close", browser.close());
     await disconnectSnapshotOAuthCleanup();
   }
 
@@ -898,8 +898,13 @@ async function capturePageSnapshots() {
 
 const allSnapshotModes = ["pages", "api", "mcp"] as const;
 const SNAPSHOT_OPERATION_TIMEOUT_MS = 30_000;
+const SNAPSHOT_TEARDOWN_TIMEOUT_MS = 10_000;
 
-async function withSnapshotTimeout<T>(label: string, operation: Promise<T>) {
+async function withSnapshotTimeout<T>(
+  label: string,
+  operation: Promise<T>,
+  timeoutMs = SNAPSHOT_OPERATION_TIMEOUT_MS,
+) {
   let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
@@ -908,14 +913,29 @@ async function withSnapshotTimeout<T>(label: string, operation: Promise<T>) {
         timeout = setTimeout(() => {
           reject(
             new Error(
-              `Snapshot operation timed out after ${SNAPSHOT_OPERATION_TIMEOUT_MS}ms: ${label}`,
+              `Snapshot operation timed out after ${timeoutMs}ms: ${label}`,
             ),
           );
-        }, SNAPSHOT_OPERATION_TIMEOUT_MS);
+        }, timeoutMs);
       }),
     ]);
   } finally {
     if (timeout) clearTimeout(timeout);
+  }
+}
+
+async function settleSnapshotTeardown(
+  label: string,
+  operation: Promise<unknown>,
+) {
+  try {
+    await withSnapshotTimeout(label, operation, SNAPSHOT_TEARDOWN_TIMEOUT_MS);
+  } catch (error) {
+    console.warn(
+      `Snapshot teardown timed out and will be left to process cleanup: ${label}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
   }
 }
 
