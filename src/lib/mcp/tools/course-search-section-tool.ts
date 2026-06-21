@@ -1,7 +1,5 @@
-import { sectionSummarySelect } from "@/features/catalog/server/academic-query-includes";
-import { buildSectionListQuery } from "@/features/catalog/server/course-section-queries";
-import { buildPaginatedResponse, normalizePagination } from "@/lib/api/helpers";
-import { getPrisma } from "@/lib/db/prisma";
+import { listSectionSummaries } from "@/features/catalog/server/course-section-queries";
+import type { AppLocale } from "@/i18n/config";
 
 type SearchSectionsForMcpToolInput = {
   campusId?: number;
@@ -11,7 +9,7 @@ type SearchSectionsForMcpToolInput = {
   ids?: number[];
   jwIds?: number[];
   limit: number;
-  locale: Parameters<typeof getPrisma>[0];
+  locale: AppLocale;
   page: number;
   search?: string;
   semesterId?: number;
@@ -36,37 +34,21 @@ export async function searchSectionsForMcpTool({
   teacherCode,
   teacherId,
 }: SearchSectionsForMcpToolInput) {
-  const localizedPrisma = getPrisma(locale);
-  const pagination = normalizePagination({ page, pageSize: limit });
-  const { where, orderBy } = buildSectionListQuery({
-    campusId,
-    courseId,
-    courseJwId,
-    departmentId,
-    ids,
-    jwIds,
-    search,
-    semesterId,
-    semesterJwId,
-    teacherCode,
-    teacherId,
+  return listSectionSummaries({
+    filters: {
+      campusId,
+      courseId,
+      courseJwId,
+      departmentId,
+      ids,
+      jwIds,
+      search,
+      semesterId,
+      semesterJwId,
+      teacherCode,
+      teacherId,
+    },
+    locale,
+    pagination: { page, pageSize: limit },
   });
-
-  const [sections, total] = await Promise.all([
-    localizedPrisma.section.findMany({
-      where,
-      skip: pagination.skip,
-      take: pagination.pageSize,
-      select: sectionSummarySelect,
-      orderBy,
-    }),
-    localizedPrisma.section.count({ where }),
-  ]);
-
-  return buildPaginatedResponse(
-    sections,
-    pagination.page,
-    pagination.pageSize,
-    total,
-  );
 }

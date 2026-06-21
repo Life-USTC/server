@@ -6,8 +6,9 @@ import {
   parseRouteQuery,
 } from "@/lib/api/helpers";
 import { parseResourceIdRouteParam } from "@/lib/api/routes/academic-route-helpers";
+import { getRequestLocale } from "@/lib/api/routes/request-locale";
 import { teachersQuerySchema } from "@/lib/api/schemas/request-schemas";
-import { PUBLIC_CATALOG_CACHE_CONTROL } from "@/lib/public-cache-control";
+import { PUBLIC_LOCALE_CATALOG_HEADERS } from "@/lib/public-cache-control";
 import {
   cachedPublicRuntimeData,
   publicRuntimeCacheKey,
@@ -29,10 +30,11 @@ export async function getTeachersRoute(request: Request) {
 
   const { query: parsedQuery, pagination } = parsed;
   const { departmentId, search } = parsedQuery;
+  const locale = getRequestLocale(request);
 
   try {
     const result = await cachedPublicRuntimeData(
-      publicRuntimeCacheKey("api:teachers", searchParams),
+      publicRuntimeCacheKey(`api:teachers:${locale}`, searchParams),
       TEACHERS_API_CACHE_TTL_MS,
       async () => {
         const where = await buildTeacherWhere({ departmentId, search });
@@ -46,18 +48,22 @@ export async function getTeachersRoute(request: Request) {
           {
             nameCn: "asc",
           },
+          locale,
         );
       },
     );
     return jsonResponse(result, {
-      headers: { "Cache-Control": PUBLIC_CATALOG_CACHE_CONTROL },
+      headers: PUBLIC_LOCALE_CATALOG_HEADERS,
     });
   } catch (error) {
     return handleRouteError("Failed to fetch teachers", error);
   }
 }
 
-export async function getTeacherDetailRoute(params: { id: string }) {
+export async function getTeacherDetailRoute(
+  request: Request,
+  params: { id: string },
+) {
   try {
     const parsedId = parseResourceIdRouteParam(params, "teacher ID");
     if (parsedId instanceof Response) return parsedId;
@@ -66,7 +72,9 @@ export async function getTeacherDetailRoute(params: { id: string }) {
       import("@/lib/db/prisma"),
       import("@/features/catalog/server/academic-query-includes"),
     ]);
-    const teacher = await getPrisma("zh-cn").teacher.findUnique({
+    const teacher = await getPrisma(
+      getRequestLocale(request),
+    ).teacher.findUnique({
       where: { id: parsedId },
       include: teacherDetailInclude,
     });

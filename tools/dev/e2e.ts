@@ -38,6 +38,29 @@ const E2E_WORKER_VAR_KEYS = [
   "UPLOAD_TOTAL_QUOTA_MB",
 ] as const;
 
+function parseLocalPlaywrightBaseUrl(value: string) {
+  const url = new URL(value);
+  const loopbackHosts = new Set(["127.0.0.1", "localhost", "::1", "[::1]"]);
+
+  if (url.protocol !== "http:") {
+    throw new Error(
+      "PLAYWRIGHT_BASE_URL must use http because the E2E harness starts a plain local Wrangler server.",
+    );
+  }
+  if (!loopbackHosts.has(url.hostname)) {
+    throw new Error(
+      "PLAYWRIGHT_BASE_URL must point to localhost or 127.0.0.1 because the E2E harness starts a local Wrangler server.",
+    );
+  }
+  if (!url.port) {
+    throw new Error(
+      "PLAYWRIGHT_BASE_URL must include an explicit port for the local Wrangler server.",
+    );
+  }
+
+  return url;
+}
+
 function buildPlaywrightDebugAuthEnv() {
   return {
     E2E_DEBUG_AUTH: "1",
@@ -58,16 +81,16 @@ export function resolvePlaywrightServerRuntime(
   env: NodeJS.ProcessEnv = process.env,
 ) {
   const baseUrlOverride = env.PLAYWRIGHT_BASE_URL;
-  const baseUrlPort = baseUrlOverride
-    ? new URL(baseUrlOverride).port
+  const parsedBaseUrl = baseUrlOverride
+    ? parseLocalPlaywrightBaseUrl(baseUrlOverride)
     : undefined;
+  const baseUrlPort = parsedBaseUrl?.port;
   const port = baseUrlPort || env.PLAYWRIGHT_PORT || DEFAULT_PLAYWRIGHT_PORT;
-  const baseUrl = baseUrlOverride ?? `http://${PLAYWRIGHT_HOST}:${port}`;
 
   return {
     host: PLAYWRIGHT_HOST,
     port,
-    baseUrl,
+    baseUrl: baseUrlOverride ?? `http://${PLAYWRIGHT_HOST}:${port}`,
   };
 }
 

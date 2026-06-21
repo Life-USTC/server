@@ -118,6 +118,7 @@
             "returns": "{ success: Boolean, id: String, homework: HomeworkItem }",
             "rest_equivalent": "POST /api/homeworks",
             "notes": [
+              "REST accepts either sectionId for compatibility or sectionJwId to match the MCP tool's public section identifier.",
               "Returns the created homework snapshot so MCP clients can continue with follow-up actions without an extra read."
             ]
           },

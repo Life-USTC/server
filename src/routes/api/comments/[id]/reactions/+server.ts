@@ -10,6 +10,9 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @pathParams resourceIdPathParamsSchema
  * @body commentReactionRequestSchema
  * @response 200:successResponseSchema
+ * @response 400:openApiErrorSchema
+ * @response 401:openApiErrorSchema
+ * @response 403:openApiErrorSchema
  */
 export const POST: RequestHandler = ({ request, params }) =>
   observedApiRoute(() => postCommentReactionRoute(request, { id: params.id }))(
@@ -21,6 +24,9 @@ export const POST: RequestHandler = ({ request, params }) =>
  * @pathParams resourceIdPathParamsSchema
  * @params commentReactionRequestSchema
  * @response 200:successResponseSchema
+ * @response 400:openApiErrorSchema
+ * @response 401:openApiErrorSchema
+ * @response 403:openApiErrorSchema
  */
 export const DELETE: RequestHandler = ({ request, params }) =>
   observedApiRoute(() =>

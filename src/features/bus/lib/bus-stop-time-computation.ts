@@ -1,4 +1,4 @@
-import { formatMinutesAsTime } from "./bus-route-builder";
+import { formatMinutesAsTime } from "./bus-route-slots";
 import type { BusTripStopTime } from "./bus-types";
 
 export type BusComputedStopTime = BusTripStopTime & {

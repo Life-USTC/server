@@ -15,8 +15,7 @@ export const matchSectionCodesRequestSchema = z.object({
     .optional(),
 });
 
-export const homeworkCreateRequestSchema = z.object({
-  sectionId: z.union([z.string(), z.number()]),
+const homeworkCreateBaseRequestSchema = z.object({
   title: z.string().trim().min(1).max(HOMEWORK_TITLE_MAX_LENGTH),
   description: z.string().max(HOMEWORK_DESCRIPTION_MAX_LENGTH).optional(),
   publishedAt: z.union([z.string(), z.null()]).optional(),
@@ -25,6 +24,17 @@ export const homeworkCreateRequestSchema = z.object({
   isMajor: z.boolean().optional(),
   requiresTeam: z.boolean().optional(),
 });
+
+export const homeworkCreateRequestSchema = z.union([
+  homeworkCreateBaseRequestSchema.extend({
+    sectionId: z.union([z.string(), z.number()]),
+    sectionJwId: z.union([z.string(), z.number()]).optional(),
+  }),
+  homeworkCreateBaseRequestSchema.extend({
+    sectionId: z.union([z.string(), z.number()]).optional(),
+    sectionJwId: z.union([z.string(), z.number()]),
+  }),
+]);
 
 export const homeworkCompletionRequestSchema = z.object({
   completed: z.boolean(),

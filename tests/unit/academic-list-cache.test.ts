@@ -69,6 +69,7 @@ describe("academic list route caching", () => {
     expect(first.headers.get("Cache-Control")).toBe(
       "public, max-age=0, s-maxage=60, stale-while-revalidate=300",
     );
+    expect(first.headers.get("Vary")).toBe("Accept-Language, Cookie");
     expect(second.status).toBe(200);
     expect(paginatedCourseQueryMock).toHaveBeenCalledTimes(1);
   });
@@ -88,6 +89,7 @@ describe("academic list route caching", () => {
     expect(first.headers.get("Cache-Control")).toBe(
       "public, max-age=0, s-maxage=60, stale-while-revalidate=300",
     );
+    expect(first.headers.get("Vary")).toBe("Accept-Language, Cookie");
     expect(second.status).toBe(200);
     expect(paginatedTeacherQueryMock).toHaveBeenCalledTimes(1);
   });

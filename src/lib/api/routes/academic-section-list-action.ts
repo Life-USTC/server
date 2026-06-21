@@ -1,5 +1,6 @@
+import type { AppLocale } from "@/i18n/config";
 import { jsonResponse } from "@/lib/api/helpers";
-import { PUBLIC_CATALOG_CACHE_CONTROL } from "@/lib/public-cache-control";
+import { PUBLIC_LOCALE_CATALOG_HEADERS } from "@/lib/public-cache-control";
 import { cachedPublicRuntimeData } from "@/lib/public-runtime-cache";
 
 const SECTION_LIST_API_CACHE_TTL_MS = 60_000;
@@ -22,14 +23,15 @@ export async function listSectionsAction(
     page: number;
     pageSize: number;
   },
+  locale: AppLocale,
 ) {
   const result = await cachedPublicRuntimeData(
-    `api:sections:${JSON.stringify({ parsedQuery, pagination })}`,
+    `api:sections:${JSON.stringify({ locale, parsedQuery, pagination })}`,
     SECTION_LIST_API_CACHE_TTL_MS,
-    () => listUncachedSectionsAction(parsedQuery, pagination),
+    () => listUncachedSectionsAction(parsedQuery, pagination, locale),
   );
   return jsonResponse(result, {
-    headers: { "Cache-Control": PUBLIC_CATALOG_CACHE_CONTROL },
+    headers: PUBLIC_LOCALE_CATALOG_HEADERS,
   });
 }
 
@@ -51,23 +53,18 @@ async function listUncachedSectionsAction(
     page: number;
     pageSize: number;
   },
+  locale: AppLocale,
 ) {
-  const { buildSectionListQuery } = await import(
+  const { listSectionSummaries } = await import(
     "@/features/catalog/server/course-section-queries"
   );
-  const { where, orderBy } = buildSectionListQuery({
-    ...parsedQuery,
-    ids: parsedQuery.ids ? Array.from(parsedQuery.ids) : undefined,
-    jwIds: parsedQuery.jwIds ? Array.from(parsedQuery.jwIds) : undefined,
+  return listSectionSummaries({
+    filters: {
+      ...parsedQuery,
+      ids: parsedQuery.ids ? Array.from(parsedQuery.ids) : undefined,
+      jwIds: parsedQuery.jwIds ? Array.from(parsedQuery.jwIds) : undefined,
+    },
+    locale,
+    pagination,
   });
-  const { paginatedSectionSummaryQuery } = await import(
-    "@/features/catalog/server/academic-paginated-queries"
-  );
-  const result = await paginatedSectionSummaryQuery(
-    pagination.page,
-    pagination.pageSize,
-    where,
-    orderBy,
-  );
-  return result;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildNextBusDeparturesFromData } from "@/features/bus/lib/bus-service";
+import { buildNextBusDeparturesFromData } from "@/features/bus/lib/bus-departures";
 import { parseBusTimeMinutes } from "@/features/bus/lib/bus-time";
 import type {
   BusCampusSummary,

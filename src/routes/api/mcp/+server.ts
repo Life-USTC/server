@@ -12,6 +12,7 @@ export const trailingSlash = "ignore";
  * Open an MCP Streamable HTTP transport session.
  * @response 200
  * @response 401:openApiErrorSchema
+ * @response 403:openApiErrorSchema
  */
 export const GET: RequestHandler = ({ request }) => mcpGetRoute(request);
 
@@ -19,6 +20,7 @@ export const GET: RequestHandler = ({ request }) => mcpGetRoute(request);
  * Send an MCP Streamable HTTP JSON-RPC message.
  * @response 200
  * @response 401:openApiErrorSchema
+ * @response 403:openApiErrorSchema
  */
 export const POST: RequestHandler = ({ request }) => mcpPostRoute(request);
 
@@ -26,6 +28,7 @@ export const POST: RequestHandler = ({ request }) => mcpPostRoute(request);
  * Close an MCP Streamable HTTP transport session.
  * @response 200
  * @response 401:openApiErrorSchema
+ * @response 403:openApiErrorSchema
  */
 export const DELETE: RequestHandler = ({ request }) => mcpDeleteRoute(request);
 

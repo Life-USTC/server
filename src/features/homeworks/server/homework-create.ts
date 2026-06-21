@@ -11,6 +11,28 @@ export type CreateHomeworkInput = {
   title: string;
 };
 
+export async function resolveSectionIdForHomeworkCreate(input: {
+  sectionId: number | null;
+  sectionJwId: number | null;
+}) {
+  if (input.sectionJwId == null) {
+    return input.sectionId;
+  }
+
+  const section = await prisma.section.findUnique({
+    where: { jwId: input.sectionJwId },
+    select: { id: true },
+  });
+  if (!section) {
+    return null;
+  }
+  if (input.sectionId != null && input.sectionId !== section.id) {
+    return null;
+  }
+
+  return section.id;
+}
+
 export async function createHomeworkForSection(
   userId: string,
   homeworkInput: CreateHomeworkInput,

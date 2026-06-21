@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "bun run app:prepare && bun run openapi:generate && bun run vite build",
-    "dev": "bun run app:prepare && bun run db:migrate:deploy && bun run vite dev --host 127.0.0.1 --port 3000 --strictPort",
+    "dev": "bun run app:prepare && bun run openapi:generate && bun run db:migrate:deploy && bun run vite dev --host 127.0.0.1 --port 3000 --strictPort",
     "format": "biome format",
     "health": "bun run tools/dev/health.ts",
     "hooks:install": "git config core.hooksPath .githooks",
@@ -27,7 +27,10 @@
     "check:e2e": "bun run tools/dev/check.ts e2e",
     "check:i18n": "bun run tools/dev/check.ts i18n",
     "check:routes": "bun run tools/dev/check.ts routes",
+    "e2e:build-artifacts": "bun run build && bun run e2e:prepare",
+    "e2e:db:prepare": "bun run db:migrate:deploy && bun run check:e2e",
     "e2e:prepare": "bun run tools/dev/e2e.ts prepare",
+    "e2e:test": "bunx playwright test --reporter=list",
     "release": "semantic-release",
     "seed": "bun run tools/dev/seed/seed-dev-scenarios.ts",
     "test": "vitest run",
@@ -37,7 +40,7 @@
     "verify:types": "bun run app:prepare && bun run svelte-check --tsconfig ./tsconfig.json && bun run tsc --noEmit -p tsconfig.typecheck.json && bun run tsc --noEmit -p tsconfig.typecheck.tests.json && bun run tsc --noEmit -p tsconfig.typecheck.operational.json",
     "verify:full": "bun run verify:default && bun run verify:integration && bun run verify:e2e",
     "verify:integration": "bun run db:migrate:deploy && bun run seed && bun run vitest run --config vitest.integration.config.ts",
-    "verify:e2e": "bun run db:migrate:deploy && bun run check:e2e && bun run build && bun run e2e:prepare && bun run seed && bunx playwright test --reporter=list"
+    "verify:e2e": "bun run e2e:db:prepare && bun run e2e:build-artifacts && bun run seed && bun run e2e:test"
   },
   "dependencies": {
     "@better-auth/oauth-provider": "^1.6.11",

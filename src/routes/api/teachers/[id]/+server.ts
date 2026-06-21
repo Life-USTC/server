@@ -9,4 +9,6 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 404:openApiErrorSchema
  */
 export const GET: RequestHandler = ({ request, params }) =>
-  observedApiRoute(() => getTeacherDetailRoute({ id: params.id }))(request);
+  observedApiRoute(() => getTeacherDetailRoute(request, { id: params.id }))(
+    request,
+  );

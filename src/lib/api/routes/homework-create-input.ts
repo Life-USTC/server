@@ -9,14 +9,24 @@ export function parseCreateHomeworkInput(parsedBody: {
   isMajor?: boolean | null;
   publishedAt?: string | null;
   requiresTeam?: boolean | null;
-  sectionId: unknown;
+  sectionId?: unknown;
+  sectionJwId?: unknown;
   submissionDueAt?: string | null;
   submissionStartAt?: string | null;
   title: string;
 }) {
-  const sectionId = parseInteger(parsedBody.sectionId);
+  const sectionId =
+    parsedBody.sectionId == null ? null : parseInteger(parsedBody.sectionId);
+  const sectionJwId =
+    parsedBody.sectionJwId == null
+      ? null
+      : parseInteger(parsedBody.sectionJwId);
 
-  if (!sectionId) {
+  if (
+    (parsedBody.sectionId != null && !sectionId) ||
+    (parsedBody.sectionJwId != null && !sectionJwId) ||
+    (!sectionId && !sectionJwId)
+  ) {
     return badRequest("Invalid section");
   }
 
@@ -39,6 +49,7 @@ export function parseCreateHomeworkInput(parsedBody: {
     publishedAt,
     requiresTeam: parsedBody.requiresTeam === true,
     sectionId,
+    sectionJwId,
     submissionDueAt,
     submissionStartAt,
     title: parsedBody.title,

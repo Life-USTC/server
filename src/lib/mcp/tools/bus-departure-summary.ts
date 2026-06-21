@@ -1,4 +1,4 @@
-import type { getNextBusDepartures } from "@/features/bus/lib/bus-service";
+import type { getNextBusDepartures } from "@/features/bus/server/bus-service";
 import { summarizeBusDeparture } from "@/lib/mcp/tools/event-summary";
 
 type NextBusDeparturesResult = NonNullable<

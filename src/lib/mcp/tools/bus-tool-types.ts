@@ -3,7 +3,7 @@ import type * as z from "zod";
 import type {
   getNextBusDepartures,
   listBusRoutes,
-} from "@/features/bus/lib/bus-service";
+} from "@/features/bus/server/bus-service";
 import type {
   flexDateInputSchema,
   resolveMcpMode,

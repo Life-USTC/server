@@ -1,7 +1,9 @@
+import type { AppLocale } from "@/i18n/config";
 import { handleRouteError, jsonResponse } from "@/lib/api/helpers";
 
 export async function matchSectionCodesAction(
   codes: readonly string[],
+  locale: AppLocale,
   parsedSemesterId?: number,
 ) {
   const { findSectionCodeMatches } = await import(
@@ -9,7 +11,7 @@ export async function matchSectionCodesAction(
   );
   const matches = await findSectionCodeMatches(
     Array.from(codes),
-    "zh-cn",
+    locale,
     parsedSemesterId,
   );
 

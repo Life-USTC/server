@@ -1,13 +1,6 @@
 import type { AppLocale } from "@/i18n/config";
 import { getPrisma, prisma } from "@/lib/db/prisma";
-import type { BusRouteStopSummary } from "./bus-types";
-
-export type RouteRecord = {
-  id: number;
-  nameCn: string;
-  nameEn: string | null;
-  stops: BusRouteStopSummary[];
-};
+import type { RouteRecord } from "../lib/bus-route-record-types";
 
 export async function getRouteRecords(locale: AppLocale) {
   const localizedPrisma = getPrisma(locale);

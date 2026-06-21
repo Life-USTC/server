@@ -9,7 +9,9 @@ const messages = {
 } satisfies Record<AppLocale, typeof enUsMessages>;
 
 export const load: PageServerLoad = async ({ locals }) => {
-  const { getBusMapData } = await import("@/features/bus/lib/bus-transit-map");
+  const { getBusMapData } = await import(
+    "@/features/bus/server/bus-transit-map"
+  );
   const copy = messages[locals.locale];
   return {
     copy: {

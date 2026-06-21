@@ -1,7 +1,7 @@
 import {
   type DescriptionTargetType,
   resolveDescriptionTarget,
-} from "@/features/descriptions/lib/description-targets";
+} from "@/features/descriptions/server/description-targets";
 import {
   badRequest,
   handleRouteError,

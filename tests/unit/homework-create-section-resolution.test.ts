@@ -1,0 +1,39 @@
+import { describe, expect, it, vi } from "vitest";
+import { resolveSectionIdForHomeworkCreate } from "@/features/homeworks/server/homework-create";
+
+const { findUniqueMock } = vi.hoisted(() => ({
+  findUniqueMock: vi.fn(),
+}));
+
+vi.mock("@/lib/db/prisma", () => ({
+  prisma: {
+    section: {
+      findUnique: findUniqueMock,
+    },
+  },
+}));
+
+describe("homework create section resolution", () => {
+  it("uses sectionId when no sectionJwId is provided", async () => {
+    await expect(
+      resolveSectionIdForHomeworkCreate({ sectionId: 12, sectionJwId: null }),
+    ).resolves.toBe(12);
+    expect(findUniqueMock).not.toHaveBeenCalled();
+  });
+
+  it("resolves sectionJwId to the internal section id", async () => {
+    findUniqueMock.mockResolvedValueOnce({ id: 34 });
+
+    await expect(
+      resolveSectionIdForHomeworkCreate({ sectionId: null, sectionJwId: 5678 }),
+    ).resolves.toBe(34);
+  });
+
+  it("rejects conflicting sectionId and sectionJwId references", async () => {
+    findUniqueMock.mockResolvedValueOnce({ id: 34 });
+
+    await expect(
+      resolveSectionIdForHomeworkCreate({ sectionId: 12, sectionJwId: 5678 }),
+    ).resolves.toBeNull();
+  });
+});

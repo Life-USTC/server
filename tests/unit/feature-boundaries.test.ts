@@ -99,4 +99,28 @@ describe("source import boundaries", () => {
 
     expect(violations).toEqual([]);
   });
+
+  it("keeps feature lib and components free of direct app database imports", async () => {
+    const featureFiles = await collectSourceFiles(
+      path.join(process.cwd(), "src/features"),
+    );
+    const violations: string[] = [];
+
+    for (const filePath of featureFiles) {
+      const relativePath = path
+        .relative(process.cwd(), filePath)
+        .replace(/\\/g, "/");
+      if (!/\/(?:components|lib)\//.test(relativePath)) continue;
+
+      const source = await fs.readFile(filePath, "utf8");
+      const dbImports = importSpecifiers(source).filter(
+        (specifier) => specifier === "@/lib/db/prisma",
+      );
+      if (dbImports.length > 0) {
+        violations.push(`${relativePath} -> ${dbImports.join(", ")}`);
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
 });

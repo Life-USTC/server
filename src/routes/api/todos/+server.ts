@@ -14,5 +14,6 @@ export const GET = svelteRequestHandler(observedApiRoute(getTodosRoute));
  * @body todoCreateRequestSchema
  * @response idResponseSchema
  * @response 400:openApiErrorSchema
+ * @response 401:openApiErrorSchema
  */
 export const POST = svelteRequestHandler(observedApiRoute(postTodoRoute));
