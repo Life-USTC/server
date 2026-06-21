@@ -1,15 +1,4 @@
-import type { Prisma } from "@/generated/prisma/client";
 import { jsonToolResult, resolveMcpMode } from "@/lib/mcp/tools/_helpers";
-
-export const sectionExamInclude = {
-  examBatch: true,
-  examRooms: true,
-  section: {
-    include: {
-      course: true,
-    },
-  },
-} satisfies Prisma.ExamInclude;
 
 export function sectionNotFoundToolResult(
   sectionJwId: number,

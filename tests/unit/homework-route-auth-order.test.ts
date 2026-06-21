@@ -1,11 +1,18 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { requireAuthMock, requireWriteAuthMock, setHomeworkCompletionsMock } =
-  vi.hoisted(() => ({
-    requireAuthMock: vi.fn(),
-    requireWriteAuthMock: vi.fn(),
-    setHomeworkCompletionsMock: vi.fn(),
-  }));
+const {
+  requireAuthMock,
+  requireHomeworkItemByIdMock,
+  requireWriteAuthMock,
+  setHomeworkCompletionsMock,
+  updateHomeworkMock,
+} = vi.hoisted(() => ({
+  requireAuthMock: vi.fn(),
+  requireHomeworkItemByIdMock: vi.fn(),
+  requireWriteAuthMock: vi.fn(),
+  setHomeworkCompletionsMock: vi.fn(),
+  updateHomeworkMock: vi.fn(),
+}));
 
 vi.mock("@/lib/auth/api-auth", () => ({
   requireAuth: requireAuthMock,
@@ -14,15 +21,16 @@ vi.mock("@/lib/auth/api-auth", () => ({
 
 vi.mock("@/features/homeworks/server/homework-create", () => ({
   createHomeworkForSection: vi.fn(),
+  resolveSectionIdForHomeworkCreate: vi.fn(),
 }));
 
 vi.mock("@/features/homeworks/server/homework-read-model", () => ({
-  requireHomeworkItemById: vi.fn(),
+  requireHomeworkItemById: requireHomeworkItemByIdMock,
 }));
 
 vi.mock("@/features/homeworks/server/homework-mutations", () => ({
   deleteHomework: vi.fn(),
-  updateHomework: vi.fn(),
+  updateHomework: updateHomeworkMock,
 }));
 
 vi.mock("@/features/homeworks/server/homework-completion", () => ({
@@ -44,8 +52,10 @@ function jsonRequest(method: string, body: string) {
 describe("homework mutation route auth order", () => {
   afterEach(() => {
     requireAuthMock.mockReset();
+    requireHomeworkItemByIdMock.mockReset();
     requireWriteAuthMock.mockReset();
     setHomeworkCompletionsMock.mockReset();
+    updateHomeworkMock.mockReset();
     vi.resetModules();
   });
 
@@ -59,6 +69,34 @@ describe("homework mutation route auth order", () => {
 
     expect(response.status).toBe(401);
     expect(requireWriteAuthMock).toHaveBeenCalledOnce();
+  });
+
+  it("passes the request locale to updated homework response reads", async () => {
+    requireWriteAuthMock.mockResolvedValue({ userId: "user-1" });
+    updateHomeworkMock.mockResolvedValue({ ok: true });
+    requireHomeworkItemByIdMock.mockResolvedValue({ id: "homework-1" });
+    const { patchHomeworkRoute } = await import(
+      "@/lib/api/routes/homework-mutation-routes"
+    );
+
+    const response = await patchHomeworkRoute(
+      new Request("https://example.test/api/homeworks/homework-1", {
+        body: JSON.stringify({ title: "Updated homework" }),
+        headers: {
+          "Accept-Language": "en-US",
+          "Content-Type": "application/json",
+        },
+        method: "PATCH",
+      }),
+      { id: "homework-1" },
+    );
+
+    expect(response.status).toBe(200);
+    expect(requireHomeworkItemByIdMock).toHaveBeenCalledWith({
+      homeworkId: "homework-1",
+      locale: "en-us",
+      userId: "user-1",
+    });
   });
 
   it("authenticates homework updates before parsing the JSON body", async () => {

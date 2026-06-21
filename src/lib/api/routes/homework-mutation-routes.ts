@@ -83,7 +83,12 @@ export async function patchHomeworkRoute(request: Request, params: IdParams) {
   }
 
   try {
-    return await updateHomeworkAction(id, userId, parsedBody);
+    return await updateHomeworkAction(
+      id,
+      userId,
+      getRequestLocale(request),
+      parsedBody,
+    );
   } catch (error) {
     return handleRouteError("Failed to update homework", error);
   }

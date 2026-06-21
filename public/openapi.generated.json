@@ -1768,6 +1768,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       },
@@ -2961,6 +2971,16 @@
         "responses": {
           "204": {
             "description": "Response 204"
+          },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       }
@@ -5180,6 +5200,26 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       },
@@ -5212,6 +5252,16 @@
             }
           },
           "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
             "description": "Error response",
             "content": {
               "application/json": {
@@ -6107,6 +6157,7 @@
                 "maxLength": 200
               },
               "description": {
+                "nullable": true,
                 "type": "string",
                 "maxLength": 4000
               },
@@ -6193,6 +6244,7 @@
                 "maxLength": 200
               },
               "description": {
+                "nullable": true,
                 "type": "string",
                 "maxLength": 4000
               },

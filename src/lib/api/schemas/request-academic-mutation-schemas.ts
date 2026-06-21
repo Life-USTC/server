@@ -17,7 +17,11 @@ export const matchSectionCodesRequestSchema = z.object({
 
 const homeworkCreateBaseRequestSchema = z.object({
   title: z.string().trim().min(1).max(HOMEWORK_TITLE_MAX_LENGTH),
-  description: z.string().max(HOMEWORK_DESCRIPTION_MAX_LENGTH).optional(),
+  description: z
+    .string()
+    .max(HOMEWORK_DESCRIPTION_MAX_LENGTH)
+    .optional()
+    .nullable(),
   publishedAt: z.union([z.string(), z.null()]).optional(),
   submissionStartAt: z.union([z.string(), z.null()]).optional(),
   submissionDueAt: z.union([z.string(), z.null()]).optional(),

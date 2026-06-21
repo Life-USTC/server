@@ -1,7 +1,8 @@
-import { paginatedTeacherQuery } from "@/features/catalog/server/academic-paginated-queries";
-import { teacherDetailInclude } from "@/features/catalog/server/academic-query-includes";
-import { buildTeacherWhere } from "@/features/catalog/server/teacher-query";
-import { getPrisma } from "@/lib/db/prisma";
+import {
+  findTeacherDetailById,
+  listTeacherSummaries,
+} from "@/features/catalog/server/course-section-queries";
+import type { AppLocale } from "@/i18n/config";
 import { jsonToolResult, resolveMcpMode } from "@/lib/mcp/tools/_helpers";
 
 type McpModeInput = Parameters<typeof resolveMcpMode>[0];
@@ -18,16 +19,14 @@ export async function searchTeachersTool({
   search?: string;
   page: number;
   limit: number;
-  locale: string;
+  locale: AppLocale;
   mode?: McpModeInput;
 }) {
-  const result = await paginatedTeacherQuery(
-    page,
-    limit,
-    buildTeacherWhere({ departmentId, search }),
-    { nameCn: "asc" },
+  const result = await listTeacherSummaries({
+    filters: { departmentId, search },
     locale,
-  );
+    pagination: { page, pageSize: limit },
+  });
 
   return jsonToolResult(result, {
     mode: resolveMcpMode(mode),
@@ -40,14 +39,10 @@ export async function getTeacherByIdTool({
   mode,
 }: {
   id: number;
-  locale: string;
+  locale: AppLocale;
   mode?: McpModeInput;
 }) {
-  const localizedPrisma = getPrisma(locale);
-  const teacher = await localizedPrisma.teacher.findUnique({
-    where: { id },
-    include: teacherDetailInclude,
-  });
+  const teacher = await findTeacherDetailById(id, locale);
 
   return jsonToolResult(
     {

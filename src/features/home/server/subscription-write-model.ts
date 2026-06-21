@@ -38,6 +38,22 @@ async function getMutableUserSubscriptions(userId: string) {
   });
 }
 
+export async function hasUserSubscribedSectionByJwId(
+  userId: string,
+  jwId: number,
+) {
+  const existingSubscription = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      subscribedSections: {
+        where: { jwId },
+        select: { id: true },
+      },
+    },
+  });
+  return (existingSubscription?.subscribedSections.length ?? 0) > 0;
+}
+
 async function connectUserSectionIds(
   userId: string,
   sectionIds: readonly number[],

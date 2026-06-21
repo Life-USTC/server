@@ -1,6 +1,6 @@
+import { buildBusScheduleVersionData } from "../lib/bus-import-version-data";
+import type { BusStaticPayload } from "../lib/bus-types";
 import type { BusImportPrisma } from "./bus-import-prisma";
-import { buildBusScheduleVersionData } from "./bus-import-version-data";
-import type { BusStaticPayload } from "./bus-types";
 
 export async function findExistingBusScheduleVersion(
   prisma: BusImportPrisma,

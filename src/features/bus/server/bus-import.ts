@@ -3,8 +3,9 @@ import {
   inferBusEffectiveFrom,
   inferBusVersionKey,
   inferBusVersionTitle,
-} from "./bus-import-metadata";
-import type { BusImportOptions } from "./bus-import-options";
+} from "../lib/bus-import-metadata";
+import type { BusImportOptions } from "../lib/bus-import-options";
+import type { BusImportResult, BusStaticPayload } from "../lib/bus-types";
 import type { BusImportPrisma } from "./bus-import-prisma";
 import {
   disablePreviousBusScheduleVersions,
@@ -18,7 +19,6 @@ import {
   upsertBusCampuses,
   upsertBusRoutes,
 } from "./bus-import-writes";
-import type { BusImportResult, BusStaticPayload } from "./bus-types";
 
 export async function importBusStaticPayload(
   prisma: BusImportPrisma,

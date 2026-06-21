@@ -35,6 +35,7 @@ export const DELETE: RequestHandler = ({ request }) => mcpDeleteRoute(request);
 /**
  * Return MCP transport CORS preflight headers.
  * @response 204
+ * @response 403:openApiErrorSchema
  */
 export const OPTIONS: RequestHandler = ({ request }) =>
   mcpOptionsRoute(request);

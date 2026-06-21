@@ -1,5 +1,5 @@
-import { importBusStaticPayload } from "../../../src/features/bus/lib/bus-import";
 import type { BusStaticPayload } from "../../../src/features/bus/lib/bus-types";
+import { importBusStaticPayload } from "../../../src/features/bus/server/bus-import";
 import {
   CommentReactionType,
   CommentStatus,

@@ -6,8 +6,11 @@ const {
   findCourseDetailByJwIdMock,
   findSectionCodeMatchesMock,
   findSectionDetailByJwIdMock,
+  findTeacherDetailByIdMock,
   getPrismaMock,
+  listCourseSummariesMock,
   listSectionSummariesMock,
+  listTeacherSummariesMock,
   paginatedCourseQueryMock,
   paginatedTeacherQueryMock,
   parseJwIdRouteParamMock,
@@ -27,12 +30,21 @@ const {
       unmatchedCodes: [],
     })),
     findSectionDetailByJwIdMock: vi.fn(async () => ({ id: 2 })),
+    findTeacherDetailByIdMock: vi.fn(async () => ({ id: 456 })),
     getPrismaMock: vi.fn(() => ({
       teacher: {
         findUnique: teacherFindUniqueMock,
       },
     })),
     listSectionSummariesMock: vi.fn(async () => ({
+      data: [],
+      meta: { page: 1, pageSize: 20, total: 0, totalPages: 0 },
+    })),
+    listCourseSummariesMock: vi.fn(async () => ({
+      data: [],
+      meta: { page: 1, pageSize: 20, total: 0, totalPages: 0 },
+    })),
+    listTeacherSummariesMock: vi.fn(async () => ({
       data: [],
       meta: { page: 1, pageSize: 20, total: 0, totalPages: 0 },
     })),
@@ -60,7 +72,10 @@ vi.mock("@/features/catalog/server/course-section-queries", () => ({
   findCourseDetailByJwId: findCourseDetailByJwIdMock,
   findSectionCodeMatches: findSectionCodeMatchesMock,
   findSectionDetailByJwId: findSectionDetailByJwIdMock,
+  findTeacherDetailById: findTeacherDetailByIdMock,
+  listCourseSummaries: listCourseSummariesMock,
   listSectionSummaries: listSectionSummariesMock,
+  listTeacherSummaries: listTeacherSummariesMock,
 }));
 
 vi.mock("@/features/catalog/server/teacher-query", () => ({
@@ -133,7 +148,7 @@ describe("academic REST locale adapters", () => {
 
     await getTeacherDetailRoute(request("/api/teachers/456"), { id: "456" });
 
-    expect(getPrismaMock).toHaveBeenCalledWith("en-us");
+    expect(findTeacherDetailByIdMock).toHaveBeenCalledWith(456, "en-us");
   });
 
   it("passes request locale to section-code matching", async () => {
@@ -179,19 +194,19 @@ describe("academic REST locale adapters", () => {
     await getCoursesRoute(request("/api/courses?search=math&page=1"));
     await getTeachersRoute(request("/api/teachers?search=li&page=1"));
 
-    expect(paginatedCourseQueryMock).toHaveBeenCalledWith(
-      1,
-      20,
-      { courseWhere: true },
-      undefined,
-      "en-us",
+    expect(listCourseSummariesMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filters: expect.objectContaining({ search: "math" }),
+        locale: "en-us",
+        pagination: expect.objectContaining({ page: 1, pageSize: 20 }),
+      }),
     );
-    expect(paginatedTeacherQueryMock).toHaveBeenCalledWith(
-      1,
-      20,
-      { teacherWhere: true },
-      { nameCn: "asc" },
-      "en-us",
+    expect(listTeacherSummariesMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filters: expect.objectContaining({ search: "li" }),
+        locale: "en-us",
+        pagination: expect.objectContaining({ page: 1, pageSize: 20 }),
+      }),
     );
   });
 });

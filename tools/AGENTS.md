@@ -50,7 +50,7 @@ Seed data:
 
 - Import from SQLite snapshot
 - Preserve JW facts
-- Bus import via `src/features/bus/lib/bus-import.ts`
+- Bus import via `src/features/bus/server/bus-import.ts`
 - Loader Docker runtime only accepts `DATABASE_URL`; pass import choices as CLI flags such as `--skip-bus`.
 
 ## Tool Stages

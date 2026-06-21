@@ -1,4 +1,3 @@
-import { buildTeacherWhere } from "@/features/catalog/server/teacher-query";
 import {
   handleRouteError,
   jsonResponse,
@@ -29,7 +28,6 @@ export async function getTeachersRoute(request: Request) {
   }
 
   const { query: parsedQuery, pagination } = parsed;
-  const { departmentId, search } = parsedQuery;
   const locale = getRequestLocale(request);
 
   try {
@@ -37,19 +35,14 @@ export async function getTeachersRoute(request: Request) {
       publicRuntimeCacheKey(`api:teachers:${locale}`, searchParams),
       TEACHERS_API_CACHE_TTL_MS,
       async () => {
-        const where = await buildTeacherWhere({ departmentId, search });
-        const { paginatedTeacherQuery } = await import(
-          "@/features/catalog/server/academic-paginated-queries"
+        const { listTeacherSummaries } = await import(
+          "@/features/catalog/server/course-section-queries"
         );
-        return paginatedTeacherQuery(
-          pagination.page,
-          pagination.pageSize,
-          where,
-          {
-            nameCn: "asc",
-          },
+        return listTeacherSummaries({
+          filters: parsedQuery,
           locale,
-        );
+          pagination,
+        });
       },
     );
     return jsonResponse(result, {
@@ -68,16 +61,13 @@ export async function getTeacherDetailRoute(
     const parsedId = parseResourceIdRouteParam(params, "teacher ID");
     if (parsedId instanceof Response) return parsedId;
 
-    const [{ getPrisma }, { teacherDetailInclude }] = await Promise.all([
-      import("@/lib/db/prisma"),
-      import("@/features/catalog/server/academic-query-includes"),
-    ]);
-    const teacher = await getPrisma(
+    const { findTeacherDetailById } = await import(
+      "@/features/catalog/server/course-section-queries"
+    );
+    const teacher = await findTeacherDetailById(
+      parsedId,
       getRequestLocale(request),
-    ).teacher.findUnique({
-      where: { id: parsedId },
-      include: teacherDetailInclude,
-    });
+    );
 
     if (!teacher) {
       return notFound("Teacher not found");

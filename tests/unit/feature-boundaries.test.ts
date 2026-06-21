@@ -100,7 +100,7 @@ describe("source import boundaries", () => {
     expect(violations).toEqual([]);
   });
 
-  it("keeps feature lib and components free of direct app database imports", async () => {
+  it("keeps feature lib and components free of database access", async () => {
     const featureFiles = await collectSourceFiles(
       path.join(process.cwd(), "src/features"),
     );
@@ -116,8 +116,11 @@ describe("source import boundaries", () => {
       const dbImports = importSpecifiers(source).filter(
         (specifier) => specifier === "@/lib/db/prisma",
       );
-      if (dbImports.length > 0) {
-        violations.push(`${relativePath} -> ${dbImports.join(", ")}`);
+      const modelAccess = /\bprisma\.[a-zA-Z]/.test(source);
+      if (dbImports.length > 0 || modelAccess) {
+        violations.push(
+          `${relativePath}${dbImports.length > 0 ? ` -> ${dbImports.join(", ")}` : " -> prisma.*"}`,
+        );
       }
     }
 
