@@ -7,9 +7,11 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../utils/auth";
 import { DEV_SEED } from "../../../../../utils/dev-seed";
+import { withE2ePrisma } from "../../../../../utils/e2e-db/prisma";
 import { assertApiContract } from "../../../_shared/api-contract";
 
 const BASE = "/api/me/overview";
+const PAST_SAME_DAY_EXAM_JW_ID = 88_051_001;
 
 test.describe("GET /api/me/overview", () => {
   test("contract", async ({ request }) => {
@@ -66,6 +68,69 @@ test.describe("GET /api/me/overview", () => {
     ).toBe(true);
     expect((body.homeworks?.items?.length ?? 0) > 0).toBe(true);
     expect((body.exams?.items?.length ?? 0) > 0).toBe(true);
+  });
+
+  test("excludes same-day exams that already ended", async ({ page }) => {
+    await signInAsDebugUser(page, "/");
+
+    const atTime = "2026-04-29T12:00:00+08:00";
+    const url = `${BASE}?atTime=${encodeURIComponent(atTime)}&limit=30`;
+    const beforeResponse = await page.request.get(url);
+    expect(beforeResponse.status()).toBe(200);
+    const beforeBody = (await beforeResponse.json()) as {
+      counts?: { upcomingExams?: number };
+    };
+
+    await withE2ePrisma(async (prisma) => {
+      const section = await prisma.section.findUniqueOrThrow({
+        where: { jwId: DEV_SEED.section.jwId },
+        select: { id: true },
+      });
+      await prisma.exam.upsert({
+        where: { jwId: PAST_SAME_DAY_EXAM_JW_ID },
+        update: {
+          examDate: new Date("2026-04-29T00:00:00.000Z"),
+          endTime: 1000,
+          examMode: "closed",
+          examTakeCount: 1,
+          examType: 1,
+          sectionId: section.id,
+          startTime: 900,
+        },
+        create: {
+          jwId: PAST_SAME_DAY_EXAM_JW_ID,
+          examDate: new Date("2026-04-29T00:00:00.000Z"),
+          endTime: 1000,
+          examMode: "closed",
+          examTakeCount: 1,
+          examType: 1,
+          sectionId: section.id,
+          startTime: 900,
+        },
+      });
+    });
+
+    try {
+      const response = await page.request.get(url);
+      expect(response.status()).toBe(200);
+      const body = (await response.json()) as {
+        counts?: { upcomingExams?: number };
+        exams?: { items?: Array<{ jwId?: number }> };
+      };
+
+      expect(body.counts?.upcomingExams).toBe(beforeBody.counts?.upcomingExams);
+      expect(
+        body.exams?.items?.some(
+          (exam) => exam.jwId === PAST_SAME_DAY_EXAM_JW_ID,
+        ),
+      ).toBe(false);
+    } finally {
+      await withE2ePrisma((prisma) =>
+        prisma.exam.deleteMany({
+          where: { jwId: PAST_SAME_DAY_EXAM_JW_ID },
+        }),
+      );
+    }
   });
 
   test("invalid atTime returns 400", async ({ page }) => {

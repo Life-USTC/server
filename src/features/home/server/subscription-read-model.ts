@@ -17,8 +17,10 @@ export {
   type UserSectionSubscriptionState,
 } from "./subscription-read-model-shared";
 export {
+  countUpcomingSubscribedExams,
   listSubscribedExams,
   listSubscribedSchedules,
+  listUpcomingSubscribedExams,
 } from "./subscription-schedule-exam-read-model";
 export {
   getSubscriptionsTabData,

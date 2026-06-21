@@ -1,6 +1,7 @@
 import {
-  listSubscribedExams,
+  countUpcomingSubscribedExams,
   listSubscribedHomeworks,
+  listUpcomingSubscribedExams,
 } from "@/features/home/server/subscription-read-model";
 import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
 import { prisma } from "@/lib/db/prisma";
@@ -13,11 +14,13 @@ function countWhenSubscribed(
 }
 
 export async function loadMyOverviewCounts({
+  now,
   sectionIds,
   todayStart,
   tomorrowStart,
   userId,
 }: {
+  now: Date;
   sectionIds: number[];
   todayStart: Date;
   tomorrowStart: Date;
@@ -48,12 +51,7 @@ export async function loadMyOverviewCounts({
       }),
     ),
     countWhenSubscribed(sectionIds, () =>
-      prisma.exam.count({
-        where: {
-          sectionId: { in: sectionIds },
-          examDate: { gte: todayStart },
-        },
-      }),
+      countUpcomingSubscribedExams({ atTime: now, sectionIds }),
     ),
   ]);
 
@@ -100,10 +98,9 @@ export async function loadMyOverviewSamples({
       limit: 5,
       sectionIds,
     }),
-    listSubscribedExams(userId, {
+    listUpcomingSubscribedExams(userId, {
+      atTime: now,
       locale,
-      dateFrom: now,
-      includeDateUnknown: false,
       limit: 5,
       sectionIds,
     }),

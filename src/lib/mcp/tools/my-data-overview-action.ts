@@ -31,6 +31,7 @@ export async function getMyOverviewAction(
   }
   const { now, todayStart, tomorrowStart } = getTodayBounds(atTimeDate.value);
   const counts = await loadMyOverviewCounts({
+    now,
     sectionIds,
     todayStart,
     tomorrowStart,
