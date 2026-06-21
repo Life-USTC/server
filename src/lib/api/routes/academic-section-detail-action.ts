@@ -1,5 +1,6 @@
 import type { AppLocale } from "@/i18n/config";
 import { jsonResponse, notFound } from "@/lib/api/helpers";
+import { PUBLIC_LOCALE_CATALOG_HEADERS } from "@/lib/public-cache-control";
 
 export async function getSectionDetailAction(
   parsedJwId: number,
@@ -14,5 +15,7 @@ export async function getSectionDetailAction(
     return notFound("Section not found");
   }
 
-  return jsonResponse(section);
+  return jsonResponse(section, {
+    headers: PUBLIC_LOCALE_CATALOG_HEADERS,
+  });
 }

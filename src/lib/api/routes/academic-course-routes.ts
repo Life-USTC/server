@@ -73,7 +73,9 @@ export async function getCourseDetailRoute(
       return notFound("Course not found");
     }
 
-    return jsonResponse(course);
+    return jsonResponse(course, {
+      headers: PUBLIC_LOCALE_CATALOG_HEADERS,
+    });
   } catch (error) {
     return handleRouteError("Failed to fetch course", error);
   }
