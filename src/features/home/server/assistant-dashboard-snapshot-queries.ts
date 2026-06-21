@@ -1,3 +1,8 @@
+import {
+  countIncompleteTodos,
+  listTodoSnapshots,
+  todoDueDateOrderBy,
+} from "@/features/todos/server/todo-service";
 import type { AppLocale } from "@/i18n/config";
 import { findCurrentSemester } from "@/lib/current-semester";
 import { getPrisma, prisma } from "@/lib/db/prisma";
@@ -53,30 +58,15 @@ export async function loadAssistantDashboardSnapshotData(input: {
         sectionIds,
       }),
     ),
-    prisma.todo.findMany({
+    listTodoSnapshots({
       where: {
         userId: input.userId,
         completed: false,
       },
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        priority: true,
-        dueAt: true,
-        completed: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-      orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
+      orderBy: todoDueDateOrderBy,
       take: 5,
     }),
-    prisma.todo.count({
-      where: {
-        userId: input.userId,
-        completed: false,
-      },
-    }),
+    countIncompleteTodos(input.userId),
     resolveAssistantBusSnapshot({
       locale: input.locale,
       now: input.now,

@@ -4,6 +4,10 @@ import {
   listUpcomingSubscribedExams,
 } from "@/features/home/server/subscription-read-model";
 import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
+import {
+  countIncompleteTodos,
+  listDueTodoSamples,
+} from "@/features/todos/server/todo-service";
 import { prisma } from "@/lib/db/prisma";
 
 function countWhenSubscribed(
@@ -32,7 +36,7 @@ export async function loadMyOverviewCounts({
     todaySchedulesCount,
     upcomingExamsCount,
   ] = await Promise.all([
-    prisma.todo.count({ where: { userId, completed: false } }),
+    countIncompleteTodos(userId),
     countWhenSubscribed(sectionIds, () =>
       prisma.homework.count({
         where: {
@@ -74,21 +78,10 @@ export async function loadMyOverviewSamples({
   sectionIds: number[];
   userId: string;
 }) {
-  const dueTodos = await prisma.todo.findMany({
-    where: {
-      userId,
-      completed: false,
-      dueAt: { not: null },
-    },
-    select: {
-      id: true,
-      title: true,
-      priority: true,
-      dueAt: true,
-      createdAt: true,
-    },
-    orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
+  const dueTodos = await listDueTodoSamples({
+    completed: false,
     take: 5,
+    userId,
   });
   const [dueHomeworksRaw, upcomingExams] = await Promise.all([
     listSubscribedHomeworks(userId, {

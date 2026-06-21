@@ -12,11 +12,32 @@ export const todoSnapshotSelect = {
   updatedAt: true,
 } as const satisfies Prisma.TodoSelect;
 
-const todoListOrderBy = [
+export const todoDueSampleSelect = {
+  id: true,
+  title: true,
+  priority: true,
+  dueAt: true,
+  createdAt: true,
+} as const satisfies Prisma.TodoSelect;
+
+export const todoListOrderBy = [
   { completed: "asc" },
   { dueAt: "asc" },
   { createdAt: "desc" },
-] as const satisfies Prisma.TodoOrderByWithRelationInput[];
+] satisfies Prisma.TodoOrderByWithRelationInput[];
+
+export const todoDueDateOrderBy = [
+  { dueAt: "asc" },
+  { createdAt: "desc" },
+] satisfies Prisma.TodoOrderByWithRelationInput[];
+
+export type TodoSnapshot = Prisma.TodoGetPayload<{
+  select: typeof todoSnapshotSelect;
+}>;
+
+export type TodoDueSample = Prisma.TodoGetPayload<{
+  select: typeof todoDueSampleSelect;
+}>;
 
 type TodoMutationDataInput = {
   completed?: boolean;
@@ -62,11 +83,94 @@ export async function createTodo(input: TodoCreateInput) {
 }
 
 export async function listTodos(where: Prisma.TodoWhereInput) {
+  return listTodoSnapshots({ where });
+}
+
+export async function listTodoSnapshots(input: {
+  orderBy?: Prisma.TodoOrderByWithRelationInput[];
+  take?: number;
+  where: Prisma.TodoWhereInput;
+}) {
   return prisma.todo.findMany({
-    where,
+    where: input.where,
     select: todoSnapshotSelect,
-    orderBy: todoListOrderBy,
+    orderBy: input.orderBy ?? todoListOrderBy,
+    ...(input.take !== undefined && { take: input.take }),
   });
+}
+
+export async function listDueTodoSnapshots(input: {
+  completed?: boolean;
+  dueAtFrom?: Date;
+  dueAtTo?: Date;
+  includeDueAtTo?: boolean;
+  take?: number;
+  userId: string;
+}) {
+  return listTodoSnapshots({
+    orderBy: todoDueDateOrderBy,
+    take: input.take,
+    where: buildDueTodoWhere(input),
+  });
+}
+
+export async function listDueTodoSamples(input: {
+  completed?: boolean;
+  dueAtFrom?: Date;
+  dueAtTo?: Date;
+  includeDueAtTo?: boolean;
+  take?: number;
+  userId: string;
+}) {
+  return prisma.todo.findMany({
+    where: buildDueTodoWhere(input),
+    select: todoDueSampleSelect,
+    orderBy: todoDueDateOrderBy,
+    ...(input.take !== undefined && { take: input.take }),
+  });
+}
+
+export async function countIncompleteTodos(userId: string) {
+  return prisma.todo.count({
+    where: { userId, completed: false },
+  });
+}
+
+export async function countDueTodos(input: {
+  completed?: boolean;
+  dueAtFrom?: Date;
+  dueAtTo?: Date;
+  includeDueAtTo?: boolean;
+  userId: string;
+}) {
+  return prisma.todo.count({
+    where: buildDueTodoWhere(input),
+  });
+}
+
+function buildDueTodoWhere(input: {
+  completed?: boolean;
+  dueAtFrom?: Date;
+  dueAtTo?: Date;
+  includeDueAtTo?: boolean;
+  userId: string;
+}) {
+  const dueAt: Prisma.DateTimeNullableFilter = { not: null };
+  if (input.dueAtFrom) dueAt.gte = input.dueAtFrom;
+  if (input.dueAtTo) {
+    if (input.includeDueAtTo) {
+      dueAt.lte = input.dueAtTo;
+    } else {
+      dueAt.lt = input.dueAtTo;
+    }
+  }
+
+  const where: Prisma.TodoWhereInput = {
+    userId: input.userId,
+    dueAt,
+  };
+  if (input.completed !== undefined) where.completed = input.completed;
+  return where;
 }
 
 export async function listTodoSummary(input: {
@@ -78,9 +182,7 @@ export async function listTodoSummary(input: {
   const now = input.now ?? new Date();
   const [incompleteCount, completedCount, overdueCount, todos] =
     await Promise.all([
-      prisma.todo.count({
-        where: { userId: input.userId, completed: false },
-      }),
+      countIncompleteTodos(input.userId),
       prisma.todo.count({
         where: { userId: input.userId, completed: true },
       }),
@@ -91,11 +193,9 @@ export async function listTodoSummary(input: {
           dueAt: { lt: now },
         },
       }),
-      prisma.todo.findMany({
+      listTodoSnapshots({
         where: input.where,
-        select: todoSnapshotSelect,
-        orderBy: todoListOrderBy,
-        ...(input.take !== undefined && { take: input.take }),
+        take: input.take,
       }),
     ]);
 

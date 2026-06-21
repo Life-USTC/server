@@ -5,6 +5,7 @@ import {
   deleteTodoAction,
   listTodosAction,
   parseTodoDueAt,
+  parseTodoLimit,
   updateTodoAction,
 } from "@/lib/api/routes/todo-route-actions";
 import {
@@ -27,9 +28,15 @@ export async function getTodosRoute(request: Request) {
   if (parsedQuery instanceof Response) {
     return parsedQuery;
   }
+  const limit = parseTodoLimit(parsedQuery.limit);
+  if (limit instanceof Response) return limit;
 
   try {
-    return await listTodosAction(userId, buildTodoWhere(userId, parsedQuery));
+    return await listTodosAction(
+      userId,
+      buildTodoWhere(userId, parsedQuery),
+      limit,
+    );
   } catch (error) {
     return handleRouteError("Failed to fetch todos", error);
   }

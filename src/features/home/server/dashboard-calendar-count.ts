@@ -1,4 +1,5 @@
 import type dayjs from "dayjs";
+import { countDueTodos } from "@/features/todos/server/todo-service";
 import { selectCurrentSemesterFromList } from "@/lib/current-semester";
 import { prisma as basePrisma } from "@/lib/db/prisma";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
@@ -79,16 +80,12 @@ export async function getDashboardCalendarItemsCount(
           homeworkCompletions: { none: { userId } },
         },
       }),
-      basePrisma.todo.count({
-        where: {
-          userId,
-          completed: false,
-          dueAt: {
-            not: null,
-            gte: semesterStart.toDate(),
-            lte: semesterEnd.toDate(),
-          },
-        },
+      countDueTodos({
+        completed: false,
+        dueAtFrom: semesterStart.toDate(),
+        dueAtTo: semesterEnd.toDate(),
+        includeDueAtTo: true,
+        userId,
       }),
     ]);
 

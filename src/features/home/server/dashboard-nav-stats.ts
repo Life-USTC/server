@@ -1,3 +1,4 @@
+import { countIncompleteTodos } from "@/features/todos/server/todo-service";
 import { prisma as basePrisma } from "@/lib/db/prisma";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { getDashboardCalendarItemsCount } from "./dashboard-calendar-count";
@@ -38,9 +39,7 @@ export async function getDashboardNavStats(
   const tomorrowStart = todayStart.add(1, "day");
   const nowHHmm = referenceNow.hour() * 100 + referenceNow.minute();
 
-  const pendingTodosCountPromise = basePrisma.todo.count({
-    where: { userId: user.id, completed: false },
-  });
+  const pendingTodosCountPromise = countIncompleteTodos(user.id);
 
   if (subscribedSections.length === 0) {
     const pendingTodosCount = await pendingTodosCountPromise;

@@ -3,6 +3,7 @@ import {
   getSectionForCalendar,
   getSectionsForCalendar,
 } from "@/features/home/server/calendar-export-data";
+import type { TodoPriority } from "@/generated/prisma/client";
 import { handleRouteError, notFound } from "@/lib/api/helpers";
 import {
   createMultiSectionCalendar,
@@ -54,7 +55,7 @@ export async function generateUserCalendarAction(
       content?: string | null;
       dueAt?: Date | null;
       id: string;
-      priority: string;
+      priority: TodoPriority;
       title: string;
     }>;
   },
@@ -83,7 +84,7 @@ export async function generateUserCalendarAction(
       typeof createUserCalendar
     >[0]["sections"],
     homeworks,
-    todos: todos as Parameters<typeof createUserCalendar>[0]["todos"],
+    todos,
   });
 
   return calendarResponse(

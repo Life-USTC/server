@@ -18,7 +18,7 @@ import {
 import { formatCatalogDetailMessage as formatMessage } from "../lib/course-detail-display";
 import CatalogDetailTabs from "./CatalogDetailTabs.svelte";
 import type {
-  CatalogDetailCopy,
+  TeacherDetailCopy,
   TeacherDetailSection,
 } from "./catalog-detail-component-types";
 import type {
@@ -47,7 +47,7 @@ type PageData = {
     common: { home: string; teachers: string };
     descriptions: CatalogDetailDescriptionCopy;
     metadata: { pages: { teacherDetail: string } };
-    teacherDetail: CatalogDetailCopy["teacherDetail"] & {
+    teacherDetail: TeacherDetailCopy["teacherDetail"] & {
       notAvailable: string;
       teachingSectionsTitle: string;
     };
@@ -63,7 +63,7 @@ export let data: PageData;
 let activeTab: CatalogDetailTab = normalizeCatalogDetailTab(data.tab);
 
 $: copy = data.copy;
-$: detailCopy = copy as unknown as CatalogDetailCopy;
+$: detailCopy = copy satisfies TeacherDetailCopy;
 $: notAvailable = copy.teacherDetail.notAvailable;
 $: displayName = primaryName(data.teacher);
 $: secondaryDisplayName = secondaryName(data.teacher);

@@ -52,6 +52,26 @@ test("/api/todos GET 登录后返回 seed 待办", async ({ page }) => {
   ).toBe(true);
 });
 
+test("/api/todos GET supports completed filter and limit", async ({ page }) => {
+  await signInAsDebugUser(page, "/");
+
+  const response = await page.request.get("/api/todos?completed=false&limit=1");
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as {
+    todos?: Array<{ completed?: boolean }>;
+  };
+
+  expect(body.todos).toHaveLength(1);
+  expect(body.todos?.every((todo) => todo.completed === false)).toBe(true);
+});
+
+test("/api/todos GET rejects invalid limit", async ({ page }) => {
+  await signInAsDebugUser(page, "/");
+
+  const response = await page.request.get("/api/todos?limit=0");
+  expect(response.status()).toBe(400);
+});
+
 test("todos have all required TodoItem fields", async ({ page }) => {
   await signInAsDebugUser(page, "/");
 

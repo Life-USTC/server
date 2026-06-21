@@ -16,8 +16,9 @@ import {
 export async function listTodosAction(
   userId: string,
   where: Prisma.TodoWhereInput,
+  take?: number,
 ) {
-  return jsonResponse(await listTodoSummary({ userId, where }));
+  return jsonResponse(await listTodoSummary({ userId, take, where }));
 }
 
 export async function createTodoAction(

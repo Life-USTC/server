@@ -1,13 +1,13 @@
 <script lang="ts">
 import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
 import type {
-  CatalogDetailCopy,
+  TeacherDetailCopy,
   TeacherDetailTeacher,
 } from "./catalog-detail-component-types";
 import TeacherDetailSectionsMobile from "./TeacherDetailSectionsMobile.svelte";
 import TeacherDetailSectionsTable from "./TeacherDetailSectionsTable.svelte";
 
-export let copy: CatalogDetailCopy;
+export let copy: TeacherDetailCopy;
 export let notAvailable: string;
 export let primaryName: (item: CatalogNamed | null | undefined) => string;
 export let secondaryName: (item: CatalogNamed | null | undefined) => string;

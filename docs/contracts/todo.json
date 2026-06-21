@@ -27,7 +27,8 @@
             "path": "/api/todos",
             "returns": "{ counts: { incomplete: Int, completed: Int, overdue: Int }, todos: TodoItem[] }",
             "notes": [
-              "Returns the same count summary as list_my_todos plus todos[]; each item contains id, title, content, completed, priority, dueAt, createdAt, and updatedAt."
+              "Returns the same count summary as list_my_todos plus todos[]; each item contains id, title, content, completed, priority, dueAt, createdAt, and updatedAt.",
+              "Supports completed, priority, dueBefore, dueAfter, and limit query parameters."
             ]
           }
         ]
@@ -37,7 +38,7 @@
           {
             "name": "list_my_todos",
             "returns": "{ counts: { incomplete: Int, completed: Int, overdue: Int }, todos: TodoItem[] }",
-            "rest_equivalent": "GET /api/todos",
+            "rest_equivalent": "GET /api/todos?completed=false&limit=50",
             "notes": [
               "Default parameters: includeCompleted=false, limit=50.",
               "Incomplete items are returned first; completed items are excluded unless includeCompleted=true."

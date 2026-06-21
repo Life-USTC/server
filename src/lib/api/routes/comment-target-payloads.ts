@@ -1,29 +1,24 @@
-type CommentRouteTargetSource = {
-  course?: { jwId?: number | null; nameCn?: string | null } | null;
-  courseId?: number | null;
-  homework?: {
-    id?: string | null;
-    section?: { code?: string | null; jwId?: number | null } | null;
-    title?: string | null;
-  } | null;
-  section?: { code?: string | null; jwId?: number | null } | null;
-  sectionId?: number | null;
-  sectionTeacher?: {
-    section?: {
-      code?: string | null;
-      course?: { jwId?: number | null; nameCn?: string | null } | null;
-      jwId?: number | null;
-    } | null;
-    sectionId?: number | null;
-    teacher?: { nameCn?: string | null } | null;
-    teacherId?: number | null;
-  } | null;
-  sectionTeacherId?: number | null;
-  teacher?: { nameCn?: string | null } | null;
-  teacherId?: number | null;
-};
+import type { CommentTargetLookupRecord } from "@/features/comments/server/comment-read-model";
+import type {
+  CommentTargetType,
+  ResolvedCommentTarget,
+} from "@/features/comments/server/comment-utils";
 
-export function buildCommentRouteTarget(comment: CommentRouteTargetSource) {
+export function commentListTargetPayload(
+  targetType: CommentTargetType,
+  target: ResolvedCommentTarget,
+) {
+  return {
+    type: targetType,
+    targetId: target.targetId,
+    sectionId: target.sectionId,
+    teacherId: target.teacherId,
+    sectionTeacherId: target.sectionTeacherId,
+    homeworkId: target.homeworkId,
+  };
+}
+
+export function buildCommentRouteTarget(comment: CommentTargetLookupRecord) {
   return {
     sectionId: comment.sectionId ?? null,
     courseId: comment.courseId ?? null,

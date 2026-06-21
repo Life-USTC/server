@@ -7,7 +7,7 @@ import {
   notFound,
 } from "@/lib/api/helpers";
 import type { commentUpdateRequestSchema } from "@/lib/api/schemas/request-schemas";
-import { writeCommentEditAuditLog } from "./comments-update-response";
+import { writeCommentEditAuditLog } from "./comments-update-audit";
 
 type CommentUpdateBody = z.infer<typeof commentUpdateRequestSchema>;
 

@@ -3,11 +3,11 @@ import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import type {
-  CatalogDetailCopy,
+  CourseDetailCopy,
   CourseDetailCourse,
 } from "./catalog-detail-component-types";
 
-export let copy: CatalogDetailCopy;
+export let copy: CourseDetailCopy;
 export let course: CourseDetailCourse;
 export let notAvailable: string;
 export let primaryName: (item: CatalogNamed | null | undefined) => string;

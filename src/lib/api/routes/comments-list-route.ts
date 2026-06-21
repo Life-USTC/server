@@ -1,3 +1,4 @@
+import { loadCommentThread } from "@/features/comments/server/comment-read-model";
 import { resolveCommentTarget } from "@/features/comments/server/comment-utils";
 import {
   badRequest,
@@ -5,11 +6,9 @@ import {
   jsonResponse,
   parseRouteSearchParams,
 } from "@/lib/api/helpers";
-import {
-  commentListTargetPayload,
-  loadCommentThread,
-} from "@/lib/api/routes/comments-list-response";
 import { commentsQuerySchema } from "@/lib/api/schemas/request-schemas";
+import { resolveApiUserId } from "@/lib/auth/api-auth";
+import { commentListTargetPayload } from "./comment-target-payloads";
 
 export async function getCommentsRoute(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -37,9 +36,10 @@ export async function getCommentsRoute(request: Request) {
       return badRequest("Invalid target");
     }
 
+    const viewerUserId = await resolveApiUserId(request);
     const { comments, hiddenCount, viewer } = await loadCommentThread({
-      request,
       target,
+      viewerUserId,
     });
 
     return jsonResponse({

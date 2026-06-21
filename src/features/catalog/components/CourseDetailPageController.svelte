@@ -22,7 +22,7 @@ import CatalogDetailTabs from "./CatalogDetailTabs.svelte";
 import CourseDetailBasicInfo from "./CourseDetailBasicInfo.svelte";
 import CourseDetailSections from "./CourseDetailSections.svelte";
 import type {
-  CatalogDetailCopy,
+  CourseDetailCopy,
   CourseDetailSection,
 } from "./catalog-detail-component-types";
 import type {
@@ -45,8 +45,8 @@ type PageData = {
   commentsData: CatalogDetailCommentsData;
   copy: {
     common: { courses: string; home: string };
-    course: CatalogDetailCopy["course"];
-    courseDetail: {
+    course: CourseDetailCopy["course"];
+    courseDetail: CourseDetailCopy["courseDetail"] & {
       basicInfoDescription: string;
       campus: string;
       capacity: string;
@@ -73,7 +73,7 @@ export let data: PageData;
 let activeTab: CatalogDetailTab = normalizeCatalogDetailTab(data.tab);
 
 $: copy = data.copy;
-$: detailCopy = copy as unknown as CatalogDetailCopy;
+$: detailCopy = copy satisfies CourseDetailCopy;
 $: notAvailable = copy.courseDetail.notAvailable;
 $: displayName = primaryName(data.course) || data.course.code;
 $: secondaryDisplayName = secondaryName(data.course);

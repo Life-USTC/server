@@ -67,6 +67,7 @@ export const todosQuerySchema = z.object({
   priority: todoPrioritySchema.optional(),
   dueBefore: z.string().trim().datetime().optional(),
   dueAfter: z.string().trim().datetime().optional(),
+  limit: integerStringSchema.optional(),
 });
 
 export const uploadObjectQuerySchema = z.object({

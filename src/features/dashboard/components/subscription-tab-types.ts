@@ -55,7 +55,7 @@ export type DashboardSubscriptionsSignedData = SignedDashboardData & {
   };
 };
 
-export type DashboardSubscriptionSectionId = number | string;
+export type DashboardSubscriptionSectionId = number;
 
 export type DashboardSubscriptionsTabProps = {
   bulkImportError: string;

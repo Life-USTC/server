@@ -1,18 +1,15 @@
 import type { DashboardLinkGroup } from "@/features/dashboard-links/lib/dashboard-links";
 import { dashboardExamRows } from "./dashboard-controller-display";
 import {
-  type AnonymousLinkGroup,
   type CalendarData,
   type DashboardLinkItem,
   type DashboardPageData,
   type ExamRow,
   isAnonymousDashboardData,
   isSignedDashboardData,
-  type SignedLinkGroup,
   type TodoFilter,
   type TodoItem,
 } from "./dashboard-controller-helpers";
-import type { DashboardLinkSearchable } from "./dashboard-link-ui";
 import { groupDashboardLinks } from "./dashboard-link-ui";
 import type { ExamFilter } from "./exams";
 import { filterExamRows } from "./exams";
@@ -47,17 +44,17 @@ export function buildDashboardControllerDerivedState(input: {
     ? signedData.links.dashboardLinks
     : input.previousDashboardLinkItems;
   const overviewLinkItems = signedData?.overview?.overviewLinks
-    ? (signedData.overview.overviewLinks as DashboardLinkItem[]).slice(0, 4)
+    ? signedData.overview.overviewLinks.slice(0, 4)
     : input.previousOverviewLinkItems;
 
   return {
     anonymousData,
     anonymousLinkGroups: anonymousData
-      ? (groupDashboardLinks(
-          anonymousData.publicLinks as DashboardLinkSearchable[],
+      ? groupDashboardLinks(
+          anonymousData.publicLinks,
           input.linkSearchQuery,
           input.dashboardLinkGroupLabels,
-        ) as unknown as AnonymousLinkGroup[])
+        )
       : [],
     calendarData: (signedData?.overview?.calendar ??
       null) as CalendarData | null,
@@ -69,11 +66,11 @@ export function buildDashboardControllerDerivedState(input: {
     overviewLinkItems,
     signedData,
     signedLinkGroups: signedData?.links
-      ? (groupDashboardLinks(
-          dashboardLinkItems as unknown as DashboardLinkSearchable[],
+      ? groupDashboardLinks(
+          dashboardLinkItems,
           input.linkSearchQuery,
           input.dashboardLinkGroupLabels,
-        ) as unknown as SignedLinkGroup[])
+        )
       : [],
     todoItems,
   };

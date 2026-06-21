@@ -5,4 +5,4 @@ export {
   updateTodoAction,
 } from "./todo-actions";
 export { parseTodoDueAt } from "./todo-due-date";
-export { buildTodoWhere } from "./todo-query-builder";
+export { buildTodoWhere, parseTodoLimit } from "./todo-query-builder";

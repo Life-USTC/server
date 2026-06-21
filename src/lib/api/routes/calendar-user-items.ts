@@ -1,12 +1,14 @@
+import type { CalendarTodo } from "@/lib/ical-event-builders";
+
 export function userCalendarTodoItems(
   todos: Array<{
     content?: string | null;
     dueAt?: Date | null;
     id: string;
-    priority: string;
+    priority: CalendarTodo["priority"];
     title: string;
   }>,
-) {
+): CalendarTodo[] {
   return todos.flatMap((todo) =>
     todo.dueAt
       ? [
@@ -15,7 +17,7 @@ export function userCalendarTodoItems(
             title: todo.title,
             content: todo.content ?? null,
             dueAt: todo.dueAt,
-            priority: todo.priority as "high" | "low" | "medium",
+            priority: todo.priority,
           },
         ]
       : [],

@@ -1,4 +1,4 @@
-import { prisma as basePrisma } from "@/lib/db/prisma";
+import { listDueTodoSnapshots } from "@/features/todos/server/todo-service";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import type { CalendarTodoItem } from "./dashboard-overview-types";
 
@@ -13,24 +13,12 @@ export async function listSemesterCalendarTodos({
 }): Promise<CalendarTodoItem[]> {
   const semesterTodoRows =
     semesterStart && semesterEnd
-      ? await basePrisma.todo.findMany({
-          where: {
-            userId,
-            dueAt: {
-              not: null,
-              gte: semesterStart.toDate(),
-              lte: semesterEnd.endOf("day").toDate(),
-            },
-          },
-          orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
-          select: {
-            id: true,
-            title: true,
-            dueAt: true,
-            priority: true,
-            content: true,
-            completed: true,
-          },
+      ? await listDueTodoSnapshots({
+          completed: false,
+          dueAtFrom: semesterStart.toDate(),
+          dueAtTo: semesterEnd.endOf("day").toDate(),
+          includeDueAtTo: true,
+          userId,
         })
       : [];
 
