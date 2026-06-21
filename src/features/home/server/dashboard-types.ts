@@ -1,15 +1,29 @@
+import type { Prisma } from "@/generated/prisma/client";
+import type { buildDashboardHomeworkSelect } from "./subscription-homework-selects";
+
+type DashboardHomeworkBase = Prisma.HomeworkGetPayload<{
+  select: ReturnType<typeof buildDashboardHomeworkSelect>;
+}>;
+
+type DashboardHomeworkSection = NonNullable<DashboardHomeworkBase["section"]>;
+type DashboardHomeworkCourse = NonNullable<DashboardHomeworkSection["course"]>;
+
 export type HomeworkWithSection = {
-  id: string;
-  title: string;
-  publishedAt: Date | null;
-  submissionStartAt: Date | null;
-  submissionDueAt: Date | null;
-  description?: { content: string } | null;
-  homeworkCompletions: Array<{ completedAt: Date }>;
-  section: {
-    jwId: number | null;
-    course: { namePrimary: string | null } | null;
-  } | null;
+  [Key in keyof Omit<
+    DashboardHomeworkBase,
+    "description" | "section"
+  >]: DashboardHomeworkBase[Key];
+} & {
+  description?: DashboardHomeworkBase["description"];
+  section:
+    | (Omit<DashboardHomeworkSection, "course"> & {
+        course:
+          | (DashboardHomeworkCourse & {
+              namePrimary: string | null;
+            })
+          | null;
+      })
+    | null;
 };
 
 export type SessionItem = {

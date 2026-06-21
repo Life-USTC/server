@@ -3,6 +3,7 @@ import { createWriteStream, existsSync } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import { resolvePlaywrightServerRuntime } from "../../e2e";
 
 const SNAPSHOT_DIR = path.join("test-results", "snapshots");
 const SERVER_LOG_PATH = path.join("test-results", "e2e-snapshot-server.log");
@@ -12,8 +13,8 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function isHealthy() {
-  const response = await fetch("http://127.0.0.1:3000/").catch(() => null);
+async function isHealthy(baseUrl: string) {
+  const response = await fetch(new URL("/", baseUrl)).catch(() => null);
   return response?.ok === true;
 }
 
@@ -38,6 +39,7 @@ async function runCommand(command: string, args: string[]) {
 }
 
 async function captureSnapshots() {
+  const { baseUrl } = resolvePlaywrightServerRuntime();
   await fs.mkdir(SNAPSHOT_DIR, { recursive: true });
   await fs.mkdir(path.dirname(SERVER_LOG_PATH), { recursive: true });
 
@@ -65,7 +67,7 @@ async function captureSnapshots() {
 
   try {
     for (let attempt = 0; attempt < 90; attempt++) {
-      if (await isHealthy()) break;
+      if (await isHealthy(baseUrl)) break;
       if (serverExitCode !== null) {
         await printServerLog();
         throw new Error(
@@ -75,7 +77,7 @@ async function captureSnapshots() {
       await sleep(2000);
     }
 
-    if (!(await isHealthy())) {
+    if (!(await isHealthy(baseUrl))) {
       await printServerLog();
       throw new Error("E2E snapshot server did not become healthy");
     }

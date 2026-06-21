@@ -4,6 +4,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { APIRequestContext, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
+import { resolvePlaywrightServerRuntime } from "../../e2e";
 import { DEV_SEED } from "../../seed/dev-seed";
 import {
   assertNoSnapshotErrors,
@@ -86,7 +87,7 @@ function stableResponseHeaders(headers: Record<string, string>) {
 }
 
 async function captureApiSnapshots() {
-  const baseUrl = "http://127.0.0.1:3000";
+  const { baseUrl } = resolvePlaywrightServerRuntime();
   const root = resolveSnapshotRoot("api");
   const browser = await launchSnapshotBrowser();
   const contexts = new Map<
@@ -349,7 +350,7 @@ async function authorizeMcp(baseUrl: string) {
 }
 
 async function captureMcpSnapshots() {
-  const baseUrl = "http://127.0.0.1:3000";
+  const { baseUrl } = resolvePlaywrightServerRuntime();
   const root = resolveSnapshotRoot("mcp");
   await cleanupSnapshotOAuthClients();
   const { accessToken, endpoint, resource } = await authorizeMcp(baseUrl);
@@ -686,7 +687,7 @@ async function gotoSnapshotPage(
 }
 
 async function capturePageSnapshots() {
-  const baseUrl = "http://127.0.0.1:3000";
+  const { baseUrl } = resolvePlaywrightServerRuntime();
   const root = resolveSnapshotRoot("pages");
   await cleanupSnapshotOAuthClients();
   const browser = await launchSnapshotBrowser();

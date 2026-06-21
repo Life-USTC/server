@@ -1,5 +1,5 @@
 import { CATALOG_PAGE_SIZE } from "@/features/catalog/server/catalog-page-constants";
-import type { Prisma } from "@/generated/prisma/client";
+import { buildTeacherWhere } from "@/features/catalog/server/teacher-query";
 import { getMessages } from "@/i18n/messages.server";
 import {
   optionalValue,
@@ -22,31 +22,14 @@ export async function getTeacherListPage(url: URL, locale = "zh-cn") {
 }
 
 async function getUncachedTeacherListPage(url: URL, locale = "zh-cn") {
-  const [{ ilike }, { paginatedTeacherQuery }, { getPrisma }] =
-    await Promise.all([
-      import("@/lib/query-filter-helpers"),
-      import("@/features/catalog/server/academic-paginated-queries"),
-      import("@/lib/db/prisma"),
-    ]);
+  const [{ paginatedTeacherQuery }, { getPrisma }] = await Promise.all([
+    import("@/features/catalog/server/academic-paginated-queries"),
+    import("@/lib/db/prisma"),
+  ]);
   const page = parsePositivePage(url.searchParams.get("page"));
   const search = optionalValue(url.searchParams.get("search"));
   const departmentId = optionalValue(url.searchParams.get("departmentId"));
-  const where: Prisma.TeacherWhereInput = {};
-
-  if (departmentId) {
-    const parsedDepartmentId = Number(departmentId);
-    if (Number.isInteger(parsedDepartmentId)) {
-      where.departmentId = parsedDepartmentId;
-    }
-  }
-
-  if (search) {
-    where.OR = [
-      { nameCn: ilike(search) },
-      { nameEn: ilike(search) },
-      { code: ilike(search) },
-    ];
-  }
+  const where = buildTeacherWhere({ departmentId, search });
 
   const prisma = getPrisma(locale);
   const [result, departments, messages] = await Promise.all([

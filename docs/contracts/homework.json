@@ -73,7 +73,7 @@
         "routes": [
           {
             "path": "/api/homeworks",
-            "returns": "{ viewer: String, homeworks: HomeworkItem[], auditLogs: AuditLog[] }"
+            "returns": "{ viewer: ViewerContext, homeworks: HomeworkItem[], auditLogs: AuditLog[] }"
           },
           {
             "path": "/api/homeworks",

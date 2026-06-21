@@ -7,6 +7,10 @@ bun.lockb
 out
 dist
 build
+.svelte-kit
+.wrangler
+src/generated
+*.tsbuildinfo
 
 # Development
 .cache
@@ -17,6 +21,7 @@ build
 .env.production
 .git
 .editorconfig
+logs
 
 # IDE
 .vscode

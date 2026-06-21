@@ -29,11 +29,12 @@ bun run verify:full     # auth/data/browser/shared-tooling changes
 bun run build           # regenerate artifacts and run production build
 ```
 
-Local Postgres and storage run through Docker Compose directly:
+Local Postgres runs through Docker Compose directly:
 `docker compose -f docker-compose.dev.yml up -d` to start and
-`docker compose -f docker-compose.dev.yml down` to stop. Production deploys
-through Cloudflare Git integration. The only durable Docker runtime is the
-static loader.
+`docker compose -f docker-compose.dev.yml down` to stop. Upload storage is the
+Cloudflare `R2_UPLOADS` binding and needs Wrangler-backed flows when exercised
+locally. Production deploys through Cloudflare Git integration. The only durable
+Docker runtime is the static loader.
 
 ## Agent Operating Contract
 

@@ -1,6 +1,18 @@
 import * as z from "zod";
 import { integerStringSchema } from "./request-schema-primitives";
 
+const weekdayStringSchema = integerStringSchema
+  .refine(
+    (value) => {
+      const weekday = Number.parseInt(value, 10);
+      return weekday >= 1 && weekday <= 7;
+    },
+    { message: "Weekday must be between 1 and 7" },
+  )
+  .meta({
+    override: { type: "integer", format: "int64", minimum: 1, maximum: 7 },
+  });
+
 export const sectionsQuerySchema = z.object({
   courseId: integerStringSchema.optional(),
   courseJwId: integerStringSchema.optional(),
@@ -25,9 +37,9 @@ export const schedulesQuerySchema = z.object({
   teacherCode: z.string().trim().min(1).optional(),
   roomId: integerStringSchema.optional(),
   roomJwId: integerStringSchema.optional(),
-  weekday: integerStringSchema.optional(),
-  dateFrom: z.string().trim().datetime().optional(),
-  dateTo: z.string().trim().datetime().optional(),
+  weekday: weekdayStringSchema.optional(),
+  dateFrom: z.string().trim().min(1).optional(),
+  dateTo: z.string().trim().min(1).optional(),
   page: integerStringSchema.optional(),
   limit: integerStringSchema.optional(),
 });

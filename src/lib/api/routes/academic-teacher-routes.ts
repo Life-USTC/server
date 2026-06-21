@@ -1,13 +1,11 @@
+import { buildTeacherWhere } from "@/features/catalog/server/teacher-query";
 import {
   handleRouteError,
   jsonResponse,
   notFound,
   parseRouteQuery,
 } from "@/lib/api/helpers";
-import {
-  buildTeacherWhere,
-  parseResourceIdRouteParam,
-} from "@/lib/api/routes/academic-route-helpers";
+import { parseResourceIdRouteParam } from "@/lib/api/routes/academic-route-helpers";
 import { teachersQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { PUBLIC_CATALOG_CACHE_CONTROL } from "@/lib/public-cache-control";
 import {

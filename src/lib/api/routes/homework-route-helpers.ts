@@ -1,11 +1,6 @@
 import { badRequest, parseInteger, parseRouteInput } from "@/lib/api/helpers";
 import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
 
-export {
-  homeworkItemIncludeForViewer as homeworkIncludeForViewer,
-  homeworkItemResponse as homeworkResponseItem,
-} from "@/features/homeworks/server/homework-read-model";
-
 type IdParams = { id: string };
 
 export function parseHomeworkId(params: IdParams) {
@@ -35,10 +30,4 @@ export function parseHomeworkSectionIds(input: {
   return sectionIdList.length > 0
     ? sectionIdList
     : badRequest("Invalid section - provide sectionId or sectionIds");
-}
-
-export function homeworkSectionFilter(sectionIds: number[]) {
-  return sectionIds.length === 1
-    ? { sectionId: sectionIds[0] }
-    : { sectionId: { in: sectionIds } };
 }

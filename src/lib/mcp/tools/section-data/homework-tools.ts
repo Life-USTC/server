@@ -1,9 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
-import {
-  homeworkItemIncludeForViewer,
-  homeworkItemResponse,
-} from "@/features/homeworks/server/homework-read-model";
+import { listSectionHomeworkItems } from "@/features/homeworks/server/homework-list-read-model";
 import {
   jsonToolResult,
   mcpLocaleInputSchema,
@@ -32,10 +29,7 @@ export function registerSectionHomeworkTools(server: McpServer) {
     },
     async ({ sectionJwId, includeDeleted, locale, mode }, extra) => {
       const resolvedMode = resolveMcpMode(mode);
-      const { localizedPrisma, section } = await resolveSectionByJwId(
-        sectionJwId,
-        locale,
-      );
+      const { section } = await resolveSectionByJwId(sectionJwId, locale);
 
       if (!section) {
         return sectionNotFoundToolResult(sectionJwId, mode);
@@ -45,15 +39,12 @@ export function registerSectionHomeworkTools(server: McpServer) {
         typeof extra.authInfo?.extra?.userId === "string"
           ? extra.authInfo.extra.userId
           : null;
-      const homeworks = await localizedPrisma.homework.findMany({
-        where: {
-          sectionId: section.id,
-          ...(includeDeleted ? {} : { deletedAt: null }),
-        },
-        include: homeworkItemIncludeForViewer(viewerUserId),
-        orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
+      const homeworkItems = await listSectionHomeworkItems({
+        includeDeleted,
+        locale,
+        sectionIds: [section.id],
+        viewerUserId,
       });
-      const homeworkItems = homeworks.map(homeworkItemResponse);
       const scopedHomeworkItems = homeworkItems.map(
         ({
           section: _section,
