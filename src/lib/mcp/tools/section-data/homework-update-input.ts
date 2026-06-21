@@ -1,9 +1,10 @@
+import { homeworkDateError } from "@/features/homeworks/server/homework-dates";
 import { buildHomeworkUpdateIntent } from "@/features/homeworks/server/homework-update-intent";
 import {
+  jsonToolResult,
   parseOptionalFieldDate,
   type resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
-import { invalidSubmissionWindow } from "./homework-tool-helpers";
 
 export type UpdateHomeworkOnSectionArgs = {
   homeworkId: string;
@@ -69,12 +70,22 @@ export function parseHomeworkUpdateDates({
   if (!parsedSubmissionDueAt.ok) {
     return parsedSubmissionDueAt;
   }
-  const submissionWindowError = invalidSubmissionWindow(
-    parsedSubmissionStartAt.value,
-    parsedSubmissionDueAt.value,
-  );
-  if (submissionWindowError) {
-    return { ok: false as const, result: submissionWindowError };
+  const dateError = homeworkDateError({
+    publishedAt: parsedPublishedAt.value,
+    publishedAtProvided: hasPublishedAt,
+    submissionDueAt: parsedSubmissionDueAt.value,
+    submissionDueAtProvided: hasSubmissionDueAt,
+    submissionStartAt: parsedSubmissionStartAt.value,
+    submissionStartAtProvided: hasSubmissionStartAt,
+  });
+  if (dateError) {
+    return {
+      ok: false as const,
+      result: jsonToolResult(
+        { success: false, message: dateError },
+        { mode: "default" },
+      ),
+    };
   }
 
   return {

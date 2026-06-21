@@ -1,10 +1,10 @@
+import { homeworkDateError } from "@/features/homeworks/server/homework-dates";
 import { findActiveSuspension } from "@/lib/auth/viewer-context";
 import {
   jsonToolResult,
   parseOptionalFieldDate,
   type resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
-import { invalidSubmissionWindow } from "./homework-tool-helpers";
 
 export { createHomeworkOnSectionRecord } from "./homework-create-record";
 
@@ -56,12 +56,19 @@ export function parseCreateHomeworkTimestamps(input: {
     return parsedSubmissionDueAt;
   }
 
-  const submissionWindowError = invalidSubmissionWindow(
-    parsedSubmissionStartAt.value,
-    parsedSubmissionDueAt.value,
-  );
-  if (submissionWindowError) {
-    return { ok: false as const, result: submissionWindowError };
+  const dateError = homeworkDateError({
+    publishedAt: parsedPublishedAt.value,
+    submissionDueAt: parsedSubmissionDueAt.value,
+    submissionStartAt: parsedSubmissionStartAt.value,
+  });
+  if (dateError) {
+    return {
+      ok: false as const,
+      result: jsonToolResult(
+        { success: false, message: dateError },
+        { mode: "default" },
+      ),
+    };
   }
 
   return {
