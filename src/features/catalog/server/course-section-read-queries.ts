@@ -87,7 +87,7 @@ export async function findSectionCompactByJwId(
   });
 }
 
-export function findSectionToolSummaryByJwId(
+export function findSectionSummaryByJwId(
   jwId: number,
   locale: AppLocale = DEFAULT_LOCALE,
 ) {

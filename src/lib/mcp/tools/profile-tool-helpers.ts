@@ -1,12 +1,11 @@
 import * as z from "zod";
 import {
-  TODO_CONTENT_MAX_LENGTH,
-  TODO_TITLE_MAX_LENGTH,
-} from "@/features/todos/lib/todo-limits";
-import {
-  mcpModeInputSchema,
+  todoContentSchema,
+  todoDueAtInputSchema,
   todoPrioritySchema,
-} from "@/lib/mcp/tools/_helpers";
+  todoTitleSchema,
+} from "@/features/todos/lib/todo-schema";
+import { mcpModeInputSchema } from "@/lib/mcp/tools/_helpers";
 
 export const getMyProfileInputSchema = {
   mode: mcpModeInputSchema,
@@ -19,19 +18,19 @@ export const listMyTodosInputSchema = {
 };
 
 export const createMyTodoInputSchema = {
-  title: z.string().trim().min(1).max(TODO_TITLE_MAX_LENGTH),
-  content: z.string().max(TODO_CONTENT_MAX_LENGTH).optional().nullable(),
+  title: todoTitleSchema,
+  content: todoContentSchema,
   priority: todoPrioritySchema.default("medium"),
-  dueAt: z.union([z.string(), z.null()]).optional(),
+  dueAt: todoDueAtInputSchema,
   mode: mcpModeInputSchema,
 };
 
 export const updateMyTodoInputSchema = {
   id: z.string().trim().min(1),
-  title: z.string().trim().min(1).max(TODO_TITLE_MAX_LENGTH).optional(),
-  content: z.string().max(TODO_CONTENT_MAX_LENGTH).optional().nullable(),
+  title: todoTitleSchema.optional(),
+  content: todoContentSchema,
   priority: todoPrioritySchema.optional(),
-  dueAt: z.union([z.string(), z.null()]).optional(),
+  dueAt: todoDueAtInputSchema,
   completed: z.boolean().optional(),
   mode: mcpModeInputSchema,
 };

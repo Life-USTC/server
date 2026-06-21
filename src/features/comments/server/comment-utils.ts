@@ -1,4 +1,4 @@
-import { parseInteger } from "@/lib/api/helpers";
+import { parseInteger } from "@/lib/integers";
 import { resolveSectionTeacherId } from "./comment-section-teacher";
 import { verifyCommentTargetEntity } from "./comment-target-verification";
 

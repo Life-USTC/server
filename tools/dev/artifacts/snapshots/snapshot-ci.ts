@@ -82,13 +82,11 @@ async function captureSnapshots() {
       throw new Error("E2E snapshot server did not become healthy");
     }
 
-    for (const mode of ["pages", "api", "mcp", "manifest"]) {
-      await runCommand("bun", [
-        "run",
-        "tools/dev/artifacts/snapshots/snapshot-capture.ts",
-        mode,
-      ]);
-    }
+    await runCommand("bun", [
+      "run",
+      "tools/dev/artifacts/snapshots/snapshot-capture.ts",
+      "all",
+    ]);
   } finally {
     process.off("SIGINT", stopServer);
     process.off("SIGTERM", stopServer);

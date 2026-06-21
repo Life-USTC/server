@@ -30,7 +30,7 @@
     "e2e:build-artifacts": "bun run build && bun run e2e:prepare",
     "e2e:db:prepare": "bun run db:migrate:deploy && bun run check:e2e",
     "e2e:prepare": "bun run tools/dev/e2e.ts prepare",
-    "e2e:test": "bunx playwright test --reporter=list",
+    "e2e:test": "bunx playwright test",
     "release": "semantic-release",
     "seed": "bun run tools/dev/seed/seed-dev-scenarios.ts",
     "test": "vitest run",

@@ -10,7 +10,7 @@ export const userProfileSelect = {
   updatedAt: true,
 } as const;
 
-export function findUserProfileForTool(userId: string) {
+export function findUserProfileById(userId: string) {
   return prisma.user.findUnique({
     where: { id: userId },
     select: userProfileSelect,

@@ -1,15 +1,19 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const {
+  createHomeworkForSectionMock,
   requireAuthMock,
   requireHomeworkItemByIdMock,
   requireWriteAuthMock,
+  resolveSectionIdForHomeworkCreateMock,
   setHomeworkCompletionsMock,
   updateHomeworkMock,
 } = vi.hoisted(() => ({
+  createHomeworkForSectionMock: vi.fn(),
   requireAuthMock: vi.fn(),
   requireHomeworkItemByIdMock: vi.fn(),
   requireWriteAuthMock: vi.fn(),
+  resolveSectionIdForHomeworkCreateMock: vi.fn(),
   setHomeworkCompletionsMock: vi.fn(),
   updateHomeworkMock: vi.fn(),
 }));
@@ -20,8 +24,8 @@ vi.mock("@/lib/auth/api-auth", () => ({
 }));
 
 vi.mock("@/features/homeworks/server/homework-create", () => ({
-  createHomeworkForSection: vi.fn(),
-  resolveSectionIdForHomeworkCreate: vi.fn(),
+  createHomeworkForSection: createHomeworkForSectionMock,
+  resolveSectionIdForHomeworkCreate: resolveSectionIdForHomeworkCreateMock,
 }));
 
 vi.mock("@/features/homeworks/server/homework-read-model", () => ({
@@ -52,8 +56,10 @@ function jsonRequest(method: string, body: string) {
 describe("homework mutation route auth order", () => {
   afterEach(() => {
     requireAuthMock.mockReset();
+    createHomeworkForSectionMock.mockReset();
     requireHomeworkItemByIdMock.mockReset();
     requireWriteAuthMock.mockReset();
+    resolveSectionIdForHomeworkCreateMock.mockReset();
     setHomeworkCompletionsMock.mockReset();
     updateHomeworkMock.mockReset();
     vi.resetModules();
@@ -69,6 +75,31 @@ describe("homework mutation route auth order", () => {
 
     expect(response.status).toBe(401);
     expect(requireWriteAuthMock).toHaveBeenCalledOnce();
+  });
+
+  it("returns 400 when homework creation has conflicting section identifiers", async () => {
+    requireWriteAuthMock.mockResolvedValue({ userId: "user-1" });
+    resolveSectionIdForHomeworkCreateMock.mockResolvedValue({
+      ok: false,
+      error: "mismatch",
+    });
+    const { postHomeworkRoute } = await import(
+      "@/lib/api/routes/homework-mutation-routes"
+    );
+
+    const response = await postHomeworkRoute(
+      jsonRequest(
+        "POST",
+        JSON.stringify({
+          sectionId: 12,
+          sectionJwId: 5678,
+          title: "Conflicting section refs",
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    expect(createHomeworkForSectionMock).not.toHaveBeenCalled();
   });
 
   it("passes the request locale to updated homework response reads", async () => {

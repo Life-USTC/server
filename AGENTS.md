@@ -80,7 +80,7 @@ Docker runtime is the static loader.
 - `.env` is configured for host-native dev (`bun run dev`) against local Postgres on `127.0.0.1`.
 - Upload storage is provided by the Cloudflare `R2_UPLOADS` binding; use `wrangler dev` based flows when exercising upload storage locally.
 - Install local browser runtime once before browser/E2E checks: `bunx playwright install chromium`. Use `bunx playwright install --with-deps chromium` on Linux if system libraries are missing.
-- Host-native `bun run dev` auto-runs `prisma generate` + `prisma migrate deploy` before starting the SvelteKit dev process.
+- Host-native `bun run dev` auto-runs Prisma generation, OpenAPI generation, and `prisma migrate deploy` before starting the SvelteKit dev process.
 - Host-native `bun run dev` is pinned to `127.0.0.1:3000`.
 - Prefer these flows for pain-free setup:
   1. `docker compose -f docker-compose.dev.yml up -d && bun run dev` for host-native app dev
