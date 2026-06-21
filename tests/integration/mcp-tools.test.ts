@@ -28,6 +28,7 @@ const SEED_PLUS_SIX_DAYS = seedDatePlusDays(6);
 const SEED_PLUS_SEVEN_DAYS = seedDatePlusDays(7);
 const SEED_PLUS_ELEVEN_DAYS = seedDatePlusDays(11);
 const SEED_PLUS_TWELVE_DAYS = seedDatePlusDays(12);
+const PAST_SAME_DAY_EXAM_JW_ID = 88_051_002;
 
 let devUserId: string;
 let mcp: McpHarness;
@@ -647,6 +648,66 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
     // The seed day has seeded schedules so today's count should be > 0
     expect((result.overview?.todaySchedulesCount ?? 0) > 0).toBe(true);
     expect(typeof result.overview?.upcomingExamsCount).toBe("number");
+  });
+
+  it("get_my_overview excludes same-day exams that already ended", async () => {
+    const atTime = `${SEED_DATE}T12:00:00+08:00`;
+    const before = await mcp.call<{
+      overview?: { upcomingExamsCount?: number };
+    }>("get_my_overview", {
+      locale: "zh-cn",
+      atTime,
+    });
+
+    const section = await prisma.section.findUniqueOrThrow({
+      where: { jwId: DEV_SEED.section.jwId },
+      select: { id: true },
+    });
+    await prisma.exam.upsert({
+      where: { jwId: PAST_SAME_DAY_EXAM_JW_ID },
+      update: {
+        examDate: new Date(`${SEED_DATE}T00:00:00.000Z`),
+        endTime: 1000,
+        examMode: "closed",
+        examTakeCount: 1,
+        examType: 1,
+        sectionId: section.id,
+        startTime: 900,
+      },
+      create: {
+        jwId: PAST_SAME_DAY_EXAM_JW_ID,
+        examDate: new Date(`${SEED_DATE}T00:00:00.000Z`),
+        endTime: 1000,
+        examMode: "closed",
+        examTakeCount: 1,
+        examType: 1,
+        sectionId: section.id,
+        startTime: 900,
+      },
+    });
+
+    try {
+      const result = await mcp.call<{
+        overview?: { upcomingExamsCount?: number };
+        samples?: { upcomingExams?: Array<{ jwId?: number }> };
+      }>("get_my_overview", {
+        locale: "zh-cn",
+        atTime,
+      });
+
+      expect(result.overview?.upcomingExamsCount).toBe(
+        before.overview?.upcomingExamsCount,
+      );
+      expect(
+        result.samples?.upcomingExams?.some(
+          (exam) => exam.jwId === PAST_SAME_DAY_EXAM_JW_ID,
+        ),
+      ).toBe(false);
+    } finally {
+      await prisma.exam.deleteMany({
+        where: { jwId: PAST_SAME_DAY_EXAM_JW_ID },
+      });
+    }
   });
 });
 

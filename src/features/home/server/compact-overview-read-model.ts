@@ -7,10 +7,11 @@ import { parseDateInput } from "@/lib/time/parse-date-input";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { formatShanghaiDate } from "@/lib/time/shanghai-format";
 import {
+  countUpcomingSubscribedExams,
   getSubscribedSectionIds,
-  listSubscribedExams,
   listSubscribedHomeworks,
   listSubscribedSchedules,
+  listUpcomingSubscribedExams,
 } from "./subscription-read-model";
 
 const DEFAULT_OVERVIEW_LIMIT = 3;
@@ -84,11 +85,9 @@ export async function getCompactOverview(
               sectionId: { in: sectionIds },
             },
           }),
-          prisma.exam.count({
-            where: {
-              examDate: { gte: todayStart },
-              sectionId: { in: sectionIds },
-            },
+          countUpcomingSubscribedExams({
+            atTime: now,
+            sectionIds,
           }),
           prisma.homework.count({
             where: {
@@ -115,9 +114,8 @@ export async function getCompactOverview(
             requireDueDate: true,
             sectionIds,
           }),
-          listSubscribedExams(userId, {
-            dateFrom: todayStart,
-            includeDateUnknown: false,
+          listUpcomingSubscribedExams(userId, {
+            atTime: now,
             limit,
             locale,
             sectionIds,
