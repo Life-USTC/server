@@ -101,6 +101,7 @@ describe("todo CRUD — update_my_todo returns updated entity", () => {
       "create_my_todo",
       {
         title: "[integration-test] update returns todo",
+        content: "clear me through mcp",
         priority: "high",
         dueAt: SEED_PLUS_ELEVEN_DAYS,
       },
@@ -136,6 +137,24 @@ describe("todo CRUD — update_my_todo returns updated entity", () => {
     expect(result.todo?.completed).toBe(true);
     // updatedAt should be a valid Shanghai-offset datetime
     expect(result.todo?.updatedAt).toMatch(/\+08:00$/);
+  });
+
+  it("update_my_todo clears content when content is explicitly null", async () => {
+    const result = await mcp.call<{
+      success?: boolean;
+      todo?: {
+        id?: string;
+        content?: string | null;
+      } | null;
+    }>("update_my_todo", {
+      id: todoId,
+      content: null,
+      mode: "full",
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.todo?.id).toBe(todoId);
+    expect(result.todo?.content).toBeNull();
   });
 
   it("deletes the todo (cleanup)", async () => {
