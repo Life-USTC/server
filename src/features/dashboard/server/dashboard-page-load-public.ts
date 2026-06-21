@@ -3,10 +3,11 @@ import type {
   DashboardPublicCounts,
 } from "@/features/dashboard/server/dashboard-page-load-types";
 import type { DashboardLinkSummary } from "@/features/home/server/dashboard-link-data";
+import type { AppLocale } from "@/i18n/config";
 
 export async function loadAnonymousDashboardPageData(input: {
   counts: DashboardPublicCounts;
-  locale: string;
+  locale: AppLocale;
   overviewLinks: DashboardLinkSummary[];
   pageCopy: DashboardPageCopy;
   publicLinks: DashboardLinkSummary[];

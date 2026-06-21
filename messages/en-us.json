@@ -1776,6 +1776,7 @@
     "errorTitleRequired": "Please enter a title",
     "errorTitleTooLong": "Title is too long (max 200 characters)",
     "errorContentTooLong": "Description is too long (max 4000 characters)",
+    "errorInvalidPriority": "Invalid priority",
     "errorInvalidDueAt": "Invalid due date"
   },
   "welcome": {

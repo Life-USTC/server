@@ -1,4 +1,6 @@
 import type { DashboardLinkSummary } from "@/features/home/server/dashboard-link-data";
+import type { AppLocale } from "@/i18n/config";
+import type { AppSession } from "@/lib/auth/session";
 import type { getDashboardPageCopy } from "./dashboard-page-copy";
 
 export type DashboardPageCopy = ReturnType<typeof getDashboardPageCopy>;
@@ -11,8 +13,8 @@ export type DashboardPublicCounts = {
 
 export type DashboardPageLoadEvent = {
   locals: {
-    authUser?: App.Locals["authUser"];
-    locale: string;
+    authUser?: AppSession["user"] | null;
+    locale: AppLocale;
     requestId?: string;
   };
   request: Request;

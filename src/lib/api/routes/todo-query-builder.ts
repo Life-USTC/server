@@ -1,4 +1,5 @@
-import type { Prisma, TodoPriority } from "@/generated/prisma/client";
+import type { TodoPriorityValue } from "@/features/todos/lib/todo-priority";
+import type { Prisma } from "@/generated/prisma/client";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 
 export function buildTodoWhere(
@@ -7,14 +8,13 @@ export function buildTodoWhere(
     completed?: string;
     dueAfter?: string;
     dueBefore?: string;
-    priority?: string;
+    priority?: TodoPriorityValue;
   },
 ) {
   const where: Prisma.TodoWhereInput = { userId };
   if (parsedQuery.completed === "true") where.completed = true;
   else if (parsedQuery.completed === "false") where.completed = false;
-  if (parsedQuery.priority)
-    where.priority = parsedQuery.priority as TodoPriority;
+  if (parsedQuery.priority) where.priority = parsedQuery.priority;
   if (parsedQuery.dueBefore || parsedQuery.dueAfter) {
     const dueAtFilter: Prisma.TodoWhereInput["dueAt"] = {};
     if (parsedQuery.dueBefore) {

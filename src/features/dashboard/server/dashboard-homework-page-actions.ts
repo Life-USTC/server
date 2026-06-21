@@ -15,7 +15,7 @@ import { getViewerAuthDataForUserId } from "@/lib/auth/viewer-context";
 import { getDashboardActionCopy } from "./dashboard-action-copy";
 
 type DashboardActionEvent = {
-  locals: { locale: string };
+  locals: { locale: AppLocale };
   request: Request;
 };
 
@@ -23,7 +23,7 @@ export async function createHomeworkDashboardAction({
   locals,
   request,
 }: DashboardActionEvent) {
-  const copy = getDashboardActionCopy(locals.locale as AppLocale).homeworks;
+  const copy = getDashboardActionCopy(locals.locale).homeworks;
   const userId = await getDashboardUserId(request);
   if (!userId) return fail(401, { error: copy.errorUnauthorized });
   const viewerAuth = await getViewerAuthDataForUserId(userId);

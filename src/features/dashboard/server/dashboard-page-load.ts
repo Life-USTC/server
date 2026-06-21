@@ -9,7 +9,6 @@ import {
   parsePositiveCalendarSemester,
   parseSnapshotReferenceTime,
 } from "@/features/dashboard/server/dashboard-page-server";
-import type { AppLocale } from "@/i18n/config";
 import { logAppEvent } from "@/lib/log/app-logger";
 
 function recordDashboardLoadFinish(input: {
@@ -38,7 +37,7 @@ export async function loadDashboardPage({
   url,
 }: DashboardPageLoadEvent) {
   const startMs = Date.now();
-  const locale = locals.locale as AppLocale;
+  const locale = locals.locale;
   const pageCopy = getDashboardPageCopy(locale);
   const userId = locals.authUser?.id ?? (await getDashboardUserId(request));
   const calendarSemesterId =

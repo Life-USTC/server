@@ -1,12 +1,8 @@
 import { redirect } from "@sveltejs/kit";
+import { dashboardPageActions } from "@/features/dashboard/server/dashboard-page-actions";
+import { loadDashboardPage } from "@/features/dashboard/server/dashboard-page-load";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
-import {
-  actions as dashboardActions,
-  load as loadDashboard,
-} from "../+page.server";
-import type { PageServerLoad } from "./$types";
-
-type DashboardLoadEvent = Parameters<typeof loadDashboard>[0];
+import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
   if (!event.locals.authUser?.id) {
@@ -16,7 +12,11 @@ export const load: PageServerLoad = async (event) => {
     );
   }
 
-  return loadDashboard(event as unknown as DashboardLoadEvent);
+  return loadDashboardPage({
+    locals: event.locals,
+    request: event.request,
+    url: event.url,
+  });
 };
 
-export const actions = dashboardActions;
+export const actions: Actions = dashboardPageActions;

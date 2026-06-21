@@ -1742,6 +1742,7 @@
     "errorTitleRequired": "请输入标题",
     "errorTitleTooLong": "标题过长（最多 200 字）",
     "errorContentTooLong": "内容过长（最多 4000 字）",
+    "errorInvalidPriority": "优先级无效",
     "errorInvalidDueAt": "截止时间无效"
   },
   "welcome": {

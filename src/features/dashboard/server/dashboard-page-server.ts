@@ -10,7 +10,6 @@ export {
   HOMEWORK_DESCRIPTION_MAX_LENGTH,
   HOMEWORK_TITLE_MAX_LENGTH,
   TODO_CONTENT_MAX_LENGTH,
-  TODO_PRIORITIES,
   TODO_TITLE_MAX_LENGTH,
 } from "@/features/dashboard/lib/dashboard-limits";
 
