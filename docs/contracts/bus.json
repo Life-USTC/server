@@ -92,12 +92,24 @@
       "title": "Bus Route Search",
       "auth": "anon",
       "web": "unavailable",
-      "rest": "unavailable",
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/bus/routes",
+            "returns": "{ originCampus?, destinationCampus?, total: Int, routes: BusRouteSearchResult[] }",
+            "notes": [
+              "Filtered route discovery helper for origin/destination clients.",
+              "Preserves concrete route variants rather than merging routes with the same campus pair."
+            ]
+          }
+        ]
+      },
       "mcp": {
         "tools": [
           {
             "name": "search_bus_routes",
             "returns": "{ originCampus?, destinationCampus?, total: Int, routes: BusRouteSearchResult[] }",
+            "rest_equivalent": "GET /api/bus/routes",
             "notes": [
               "Filtered discovery helper for origin/destination prompts.",
               "Use list_bus_routes when the caller needs the entire current route catalog."
@@ -119,12 +131,26 @@
       "title": "Bus Next Departures",
       "auth": "user",
       "web": "unavailable",
-      "rest": "unavailable",
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/bus/next",
+            "returns": "{ originCampus, destinationCampus, atTime, dayType, totalRoutes: Int, departures: BusDeparture[], nextAvailableDeparture?, message? }",
+            "auth": "anon",
+            "notes": [
+              "Requires originCampusId and destinationCampusId.",
+              "Supports atTime, dayType, includeDeparted, limit, versionKey, and locale query parameters.",
+              "Departures include status and minutesUntilDeparture so clients can mark departed rows and the next upcoming trip."
+            ]
+          }
+        ]
+      },
       "mcp": {
         "tools": [
           {
             "name": "get_next_buses",
             "returns": "{ originCampus, destinationCampus, atTime, dayType, totalRoutes: Int, departures: BusDeparture[] }",
+            "rest_equivalent": "GET /api/bus/next",
             "notes": [
               "Task-oriented convenience tool for 'when is the next bus?' prompts.",
               "Default parameters: dayType=auto, includeDeparted=false, limit=5.",

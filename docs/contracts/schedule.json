@@ -21,12 +21,25 @@
       "web": {
         "pages": ["/dashboard/calendar"]
       },
-      "rest": "unavailable",
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/me/subscriptions/schedules",
+            "returns": "{ schedules: ScheduleEntry[] }",
+            "notes": [
+              "Resolves the current user's subscribed sections server-side.",
+              "Supports dateFrom/dateTo, weekday, limit, and locale filters.",
+              "Use /api/schedules for public schedule queries without personal subscription scope."
+            ]
+          }
+        ]
+      },
       "mcp": {
         "tools": [
           {
             "name": "list_my_schedules",
             "returns": "{ schedules: ScheduleEntry[] }",
+            "rest_equivalent": "GET /api/me/subscriptions/schedules",
             "notes": [
               "Returns schedules[]; each item contains date, weekday, startTime, endTime, section.course.namePrimary, section.code, room, teachers[], and scheduleGroup."
             ]

@@ -8,6 +8,12 @@
  * - Includes both weekday and weekend trips without server-side filtering/ranking
  * - Returns 404 when no schedule data exists for the requested version
  *
+ * ## GET /api/bus/routes
+ * Public filtered route discovery.
+ *
+ * ## GET /api/bus/next
+ * Public ranked next departures for one origin/destination pair.
+ *
  * ## GET/POST /api/bus/preferences
  * Authenticated endpoint for user bus planner defaults.
  * - GET: returns current preference or default values
@@ -17,9 +23,12 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import { assertApiContract } from "../../_shared/api-contract";
 
 const BASE = "/api/bus";
 const PREF_BASE = "/api/bus/preferences";
+const ROUTES_BASE = "/api/bus/routes";
+const NEXT_BASE = "/api/bus/next";
 const SEED_VERSION = `versionKey=${DEV_SEED.bus.versionKey}`;
 
 type BusResponse = {
@@ -47,6 +56,32 @@ type PreferenceResponse = {
     preferredDestinationCampusId?: number | null;
     showDepartedTrips?: boolean;
   };
+};
+
+type BusRouteSearchResponse = {
+  originCampus?: { id?: number; namePrimary?: string } | null;
+  destinationCampus?: { id?: number; namePrimary?: string } | null;
+  total?: number;
+  routes?: Array<{
+    id?: number;
+    stopCount?: number;
+    weekdayTrips?: number;
+    weekendTrips?: number;
+    stops?: Array<{ campus?: { id?: number } }>;
+  }>;
+};
+
+type BusNextResponse = {
+  originCampus?: { id?: number } | null;
+  destinationCampus?: { id?: number } | null;
+  dayType?: string;
+  totalRoutes?: number;
+  departures?: Array<{
+    routeId?: number;
+    status?: string;
+    minutesUntilDeparture?: number | null;
+    departureTime?: string | null;
+  }>;
 };
 
 async function saveBusPreference(
@@ -154,6 +189,69 @@ test.describe("GET /api/bus", () => {
       `${BASE}?versionKey=missing-bus-version`,
     );
     expect(response.status()).toBe(404);
+  });
+});
+
+test.describe("GET /api/bus/routes", () => {
+  test("contract", async ({ request }) => {
+    await assertApiContract(request, { routePath: ROUTES_BASE });
+  });
+
+  test("returns concrete route variants for an origin/destination", async ({
+    request,
+  }) => {
+    const response = await request.get(
+      `${ROUTES_BASE}?originCampusId=${DEV_SEED.bus.originCampusId}&destinationCampusId=${DEV_SEED.bus.destinationCampusId}&${SEED_VERSION}`,
+    );
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as BusRouteSearchResponse;
+
+    expect(body.originCampus?.id).toBe(DEV_SEED.bus.originCampusId);
+    expect(body.destinationCampus?.id).toBe(DEV_SEED.bus.destinationCampusId);
+    expect((body.total ?? 0) > 0).toBe(true);
+
+    const seedRoute = body.routes?.find(
+      (route) => route.id === DEV_SEED.bus.routeId,
+    );
+    expect(seedRoute).toBeDefined();
+    expect(seedRoute?.stopCount).toBeGreaterThan(1);
+    expect(seedRoute?.weekdayTrips).toBeGreaterThan(0);
+    expect(seedRoute?.stops?.[0]?.campus?.id).toBe(DEV_SEED.bus.originCampusId);
+  });
+});
+
+test.describe("GET /api/bus/next", () => {
+  test("contract", async ({ request }) => {
+    await assertApiContract(request, { routePath: NEXT_BASE });
+  });
+
+  test("returns ranked next departures with status metadata", async ({
+    request,
+  }) => {
+    const response = await request.get(
+      `${NEXT_BASE}?originCampusId=${DEV_SEED.bus.originCampusId}&destinationCampusId=${DEV_SEED.bus.destinationCampusId}&atTime=${encodeURIComponent(DEV_SEED.seedAnchorAtTime)}&dayType=weekday&includeDeparted=true&limit=5&${SEED_VERSION}`,
+    );
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as BusNextResponse;
+
+    expect(body.originCampus?.id).toBe(DEV_SEED.bus.originCampusId);
+    expect(body.destinationCampus?.id).toBe(DEV_SEED.bus.destinationCampusId);
+    expect(body.dayType).toBe("weekday");
+    expect((body.totalRoutes ?? 0) > 0).toBe(true);
+    expect((body.departures?.length ?? 0) > 0).toBe(true);
+    expect(body.departures?.some((trip) => trip.status === "upcoming")).toBe(
+      true,
+    );
+    expect(
+      body.departures?.some(
+        (trip) => typeof trip.minutesUntilDeparture === "number",
+      ),
+    ).toBe(true);
+  });
+
+  test("missing required campus IDs returns 400", async ({ request }) => {
+    const response = await request.get(NEXT_BASE);
+    expect(response.status()).toBe(400);
   });
 });
 

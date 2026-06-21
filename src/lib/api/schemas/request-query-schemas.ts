@@ -17,10 +17,14 @@ export {
   sectionsCalendarQuerySchema,
 } from "./content-query-schemas";
 export {
+  busNextDeparturesQuerySchema,
   busPreferenceRequestSchema,
   busQuerySchema,
+  busRouteSearchQuerySchema,
+  compactOverviewQuerySchema,
   dashboardLinkVisitQuerySchema,
   semestersQuerySchema,
+  subscribedSchedulesQuerySchema,
   todosQuerySchema,
   uploadObjectQuerySchema,
 } from "./misc-query-schemas";

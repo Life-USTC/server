@@ -2,6 +2,11 @@ import * as z from "zod";
 import { busCampusSchema } from "./misc-response-schema-core";
 import { dateTimeSchema } from "./response-schema-primitives";
 
+const busCampusSummarySchema = busCampusSchema.extend({
+  namePrimary: z.string(),
+  nameSecondary: z.string().nullable(),
+});
+
 const busTripStopTimeSummarySchema = z.object({
   stopOrder: z.number().int(),
   campusId: z.number().int(),
@@ -20,12 +25,17 @@ const busRouteSummarySchema = z.object({
   stops: z.array(
     z.object({
       stopOrder: z.number().int(),
-      campus: busCampusSchema.extend({
-        namePrimary: z.string(),
-        nameSecondary: z.string().nullable(),
-      }),
+      campus: busCampusSummarySchema,
     }),
   ),
+});
+
+const busRouteCoreSchema = busRouteSummarySchema.pick({
+  id: true,
+  nameCn: true,
+  nameEn: true,
+  descriptionPrimary: true,
+  descriptionSecondary: true,
 });
 
 const busTripSummarySchema = z.object({
@@ -75,12 +85,7 @@ export const busQueryResponseSchema = z.object({
         .nullable(),
     }),
   ),
-  campuses: z.array(
-    busCampusSchema.extend({
-      namePrimary: z.string(),
-      nameSecondary: z.string().nullable(),
-    }),
-  ),
+  campuses: z.array(busCampusSummarySchema),
   routes: z.array(busRouteSummarySchema),
   trips: z.array(busTripSummarySchema),
   preferences: z
@@ -104,4 +109,51 @@ export const busPreferenceResponseSchema = z.object({
     preferredDestinationCampusId: z.number().int().nullable(),
     showDepartedTrips: z.boolean(),
   }),
+});
+
+export const busRouteSearchResponseSchema = z.object({
+  originCampus: busCampusSummarySchema.nullable(),
+  destinationCampus: busCampusSummarySchema.nullable(),
+  total: z.number().int().nonnegative(),
+  routes: z.array(
+    busRouteCoreSchema.extend({
+      originCampus: busCampusSummarySchema.nullable(),
+      destinationCampus: busCampusSummarySchema.nullable(),
+      stopCount: z.number().int().nonnegative(),
+      weekdayTrips: z.number().int().nonnegative(),
+      weekendTrips: z.number().int().nonnegative(),
+      stops: z.array(
+        z.object({
+          stopOrder: z.number().int(),
+          campus: busCampusSummarySchema,
+        }),
+      ),
+    }),
+  ),
+});
+
+const busNextDepartureSchema = z.object({
+  tripId: z.number().int(),
+  routeId: z.number().int(),
+  route: busRouteCoreSchema,
+  originCampus: busCampusSummarySchema.nullable(),
+  destinationCampus: busCampusSummarySchema.nullable(),
+  departureTime: z.string().nullable(),
+  arrivalTime: z.string().nullable(),
+  departureEstimated: z.boolean(),
+  arrivalEstimated: z.boolean(),
+  minutesUntilDeparture: z.number().int().nullable(),
+  dayType: z.enum(["weekday", "weekend"]),
+  status: z.enum(["upcoming", "departed"]),
+});
+
+export const busNextDeparturesResponseSchema = z.object({
+  originCampus: busCampusSummarySchema.nullable(),
+  destinationCampus: busCampusSummarySchema.nullable(),
+  atTime: dateTimeSchema,
+  dayType: z.enum(["weekday", "weekend"]),
+  totalRoutes: z.number().int().nonnegative(),
+  departures: z.array(busNextDepartureSchema),
+  nextAvailableDeparture: busNextDepartureSchema.nullable(),
+  message: z.string().nullable(),
 });
