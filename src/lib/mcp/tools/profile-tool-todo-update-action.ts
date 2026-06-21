@@ -48,6 +48,7 @@ export async function updateMyTodoAction(
       completed,
       content,
       dueAt: parsedDueAt.value,
+      hasContent: content !== undefined,
       hasDueAt,
       priority,
       title,
