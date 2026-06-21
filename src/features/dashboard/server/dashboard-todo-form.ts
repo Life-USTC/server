@@ -2,24 +2,17 @@ import { fail } from "@sveltejs/kit";
 import {
   parseOptionalLocalDateTime,
   TODO_CONTENT_MAX_LENGTH,
-  TODO_PRIORITIES,
   TODO_TITLE_MAX_LENGTH,
 } from "@/features/dashboard/server/dashboard-page-server";
+import { parseTodoPriorityInput } from "@/features/todos/lib/todo-priority";
 
 type TodoActionCopy = {
   errorContentTooLong: string;
   errorInvalidDueAt: string;
+  errorInvalidPriority: string;
   errorTitleRequired: string;
   errorTitleTooLong: string;
 };
-
-function todoPriorityFromForm(value: FormDataEntryValue | null) {
-  const priorityRaw = String(value ?? "medium");
-  return (TODO_PRIORITIES.has(priorityRaw) ? priorityRaw : "medium") as
-    | "low"
-    | "medium"
-    | "high";
-}
 
 export async function readTodoForm(request: Request, copy: TodoActionCopy) {
   const form = await request.formData();
@@ -36,13 +29,17 @@ export async function readTodoForm(request: Request, copy: TodoActionCopy) {
 
   const dueAt = parseOptionalLocalDateTime(form.get("dueAt"));
   if (!dueAt.ok) return { error: fail(400, { error: copy.errorInvalidDueAt }) };
+  const priority = parseTodoPriorityInput(form.get("priority"));
+  if (!priority.ok) {
+    return { error: fail(400, { error: copy.errorInvalidPriority }) };
+  }
 
   return {
     form,
     todo: {
       content: content || null,
       dueAt: dueAt.value,
-      priority: todoPriorityFromForm(form.get("priority")),
+      priority: priority.value,
       title,
     },
   };

@@ -5,7 +5,6 @@ import {
   deleteOwnedTodo,
   updateOwnedTodo,
 } from "@/features/todos/server/todo-service";
-import type { AppLocale } from "@/i18n/config";
 import { getDashboardActionCopy } from "./dashboard-action-copy";
 import type { DashboardPageLoadEvent } from "./dashboard-page-load-types";
 import { readTodoForm } from "./dashboard-todo-form";
@@ -16,7 +15,7 @@ export async function createTodoDashboardAction({
   locals,
   request,
 }: DashboardActionEvent) {
-  const copy = getDashboardActionCopy(locals.locale as AppLocale).todos;
+  const copy = getDashboardActionCopy(locals.locale).todos;
   const userId = await getDashboardUserId(request);
   if (!userId) return fail(401, { error: copy.saveFailed });
 
@@ -31,7 +30,7 @@ export async function updateTodoDashboardAction({
   locals,
   request,
 }: DashboardActionEvent) {
-  const copy = getDashboardActionCopy(locals.locale as AppLocale).todos;
+  const copy = getDashboardActionCopy(locals.locale).todos;
   const userId = await getDashboardUserId(request);
   if (!userId) return fail(401, { error: copy.saveFailed });
 
@@ -58,7 +57,7 @@ export async function toggleTodoDashboardAction({
   locals,
   request,
 }: DashboardActionEvent) {
-  const copy = getDashboardActionCopy(locals.locale as AppLocale).todos;
+  const copy = getDashboardActionCopy(locals.locale).todos;
   const userId = await getDashboardUserId(request);
   if (!userId) return fail(401, { error: copy.saveFailed });
   const form = await request.formData();
@@ -81,7 +80,7 @@ export async function deleteTodoDashboardAction({
   locals,
   request,
 }: DashboardActionEvent) {
-  const copy = getDashboardActionCopy(locals.locale as AppLocale).todos;
+  const copy = getDashboardActionCopy(locals.locale).todos;
   const userId = await getDashboardUserId(request);
   if (!userId) return fail(401, { error: copy.saveFailed });
   const form = await request.formData();

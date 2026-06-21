@@ -1,37 +1,6 @@
-import { getSettingsPageData } from "@/features/settings/server/settings-page-data";
-import {
-  deleteSettingsAccountAction,
-  getSettingsPageCopy,
-  linkSettingsAccountAction,
-  unlinkSettingsAccountAction,
-  updateSettingsProfileAction,
-} from "@/features/settings/server/settings-page-server";
+import { settingsPageActions } from "@/features/settings/server/settings-page-actions";
+import { loadSettingsPage } from "@/features/settings/server/settings-page-load";
 import type { Actions, PageServerLoad } from "./$types";
 
-export const load: PageServerLoad = async ({ locals, request, url }) => {
-  return {
-    ...(await getSettingsPageData(request, url)),
-    copy: getSettingsPageCopy(locals.locale),
-  };
-};
-
-export const actions: Actions = {
-  updateProfile: async ({ cookies, locals, request, url }) =>
-    updateSettingsProfileAction({
-      cookies,
-      locale: locals.locale,
-      request,
-      url,
-    }),
-  unlinkAccount: async ({ locals, request, url }) =>
-    unlinkSettingsAccountAction({ locale: locals.locale, request, url }),
-  linkAccount: async ({ cookies, locals, request, url }) =>
-    linkSettingsAccountAction({ cookies, locale: locals.locale, request, url }),
-  deleteAccount: async ({ cookies, locals, request, url }) =>
-    deleteSettingsAccountAction({
-      cookies,
-      locale: locals.locale,
-      request,
-      url,
-    }),
-};
+export const load: PageServerLoad = loadSettingsPage;
+export const actions: Actions = settingsPageActions;

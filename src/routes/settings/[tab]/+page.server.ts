@@ -1,9 +1,8 @@
 import { error } from "@sveltejs/kit";
 import { isSettingsTab } from "@/features/settings/lib/settings-tabs";
-import { actions, load as loadSettings } from "../+page.server";
-import type { PageServerLoad } from "./$types";
-
-type SettingsLoadEvent = Parameters<typeof loadSettings>[0];
+import { settingsPageActions } from "@/features/settings/server/settings-page-actions";
+import { loadSettingsPage } from "@/features/settings/server/settings-page-load";
+import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
   if (!isSettingsTab(event.params.tab)) {
@@ -13,7 +12,11 @@ export const load: PageServerLoad = async (event) => {
   const url = new URL(event.url);
   url.searchParams.set("tab", event.params.tab);
 
-  return loadSettings({ ...event, url } as unknown as SettingsLoadEvent);
+  return loadSettingsPage({
+    locals: event.locals,
+    request: event.request,
+    url,
+  });
 };
 
-export { actions };
+export const actions: Actions = settingsPageActions;

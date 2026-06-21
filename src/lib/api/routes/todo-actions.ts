@@ -1,10 +1,11 @@
+import type { TodoPriorityValue } from "@/features/todos/lib/todo-priority";
 import {
   createTodo,
   deleteOwnedTodo,
   listTodoSummary,
   updateOwnedTodo,
 } from "@/features/todos/server/todo-service";
-import type { Prisma, TodoPriority } from "@/generated/prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 import {
   badRequest,
   forbidden,
@@ -23,7 +24,7 @@ export async function createTodoAction(
   userId: string,
   parsedBody: {
     content?: string | null;
-    priority?: string;
+    priority?: TodoPriorityValue;
     title: string;
   },
   dueAt: Date | null | undefined,
@@ -32,7 +33,7 @@ export async function createTodoAction(
     userId,
     title: parsedBody.title,
     content: parsedBody.content,
-    priority: parsedBody.priority as TodoPriority | undefined,
+    priority: parsedBody.priority,
     dueAt,
   });
 
@@ -45,7 +46,7 @@ export async function updateTodoAction(
   parsedBody: {
     completed?: boolean;
     content?: string | null;
-    priority?: string;
+    priority?: TodoPriorityValue;
     title?: string;
   },
   dueAt: Date | null | undefined,
@@ -60,7 +61,7 @@ export async function updateTodoAction(
       dueAt,
       hasContent: Object.hasOwn(parsedBody, "content"),
       hasDueAt,
-      priority: parsedBody.priority as TodoPriority | undefined,
+      priority: parsedBody.priority,
       title: parsedBody.title,
     },
   });
