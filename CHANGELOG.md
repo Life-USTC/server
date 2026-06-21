@@ -1,3 +1,10 @@
+# [1.35.0](https://github.com/Life-USTC/server/compare/v1.34.1...v1.35.0) (2026-06-21)
+
+
+### Features
+
+* **api:** align todo and homework surface responses ([f67a5f6](https://github.com/Life-USTC/server/commit/f67a5f60c274e571e204e8987ef82e43c47de2c4))
+
 ## [1.34.1](https://github.com/Life-USTC/server/compare/v1.34.0...v1.34.1) (2026-06-21)
 
 
