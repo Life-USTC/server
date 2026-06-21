@@ -1,13 +1,15 @@
 ---
 name: "life-ustc-pr-workflow"
-description: "Run the Life-USTC implementation-to-PR loop for fixes, features, docs/contracts/tests updates, CI monitoring, or PR review feedback."
+description: "Use for Life-USTC pull request work: branch publishing, PR body updates, GitHub Actions or Cloudflare checks, CI failures, review feedback, review-thread resolution, merges, or active PR handoff."
 ---
 
 # Life-USTC PR Workflow
 
 ## Core Loop
 
-Use this sequence for non-trivial repo work:
+Use this sequence when the user asks for PR, check, review, publish, merge, or
+active-PR lifecycle work. For ordinary implementation without PR lifecycle work,
+follow root `AGENTS.md` and the nearest scoped guide instead.
 
 1. Read `AGENTS.md` and the nearest scoped `AGENTS.md` before editing.
 2. Inspect the current source of truth: route handlers, feature/server code, Prisma schema/migrations, contract JSON, tests, workflows, and package scripts.
@@ -20,12 +22,12 @@ Use this sequence for non-trivial repo work:
 9. If a check fails, inspect logs, reproduce locally where possible, fix, push, and wait again.
 10. Before handoff, confirm PR status when applicable, local `git status -sb`, commands run, skipped checks, and residual risk.
 
-## Implementation Rules
+## Workflow Guardrails
 
-- Keep `src/routes` thin. Put reusable domain work in `src/features/*/server`.
-- Do not call SvelteKit page handlers or REST route handlers from features or page actions. Extract shared work into feature/server functions and keep HTTP response mapping in API route adapters.
-- Update `docs/contracts/*`, OpenAPI annotations, user docs, or scoped `AGENTS.md` only when behavior, API/MCP contracts, setup, permissions, or architecture guidance changes.
-- Treat REST, MCP, contract JSON, OpenAPI, tests, and seed data as coupled surfaces.
+- Use root `AGENTS.md` and scoped guides for architecture, contract, and feature
+  rules; this skill only adds PR lifecycle procedure.
+- For code changes, check matching contracts, OpenAPI, tests, and docs according
+  to the source/scoped guides before pushing.
 - Keep durable repo skills in `.agents/skills`; do not add `.codex/skills` unless the user explicitly asks for a Codex-private experiment.
 - Do not rewrite history or force-push. For stacked PRs, prefer merging the updated base branch into the head branch.
 - Do not leave local snapshot reports, Playwright output, temporary logs, or ad hoc probes behind.
@@ -73,15 +75,19 @@ Before creating or updating a PR:
 - Commit only intentional durable changes.
 - Push the branch.
 
-PR body should include:
+PR body should follow `.github/PULL_REQUEST_TEMPLATE.md` and include:
 
 - What changed.
 - Docs/contracts impact.
-- Verification commands.
+- Verification commands grouped by intent, not a raw command or CI transcript.
 - Complete-loop evidence, when applicable.
 - Skipped checks with reasons.
 - Residual risks.
 - Stacked PR base, if applicable.
+
+Use one concise line for remote check status, such as the current commit and
+whether CI, E2E, CodeQL, Cloudflare, or other required checks are green. Do not
+paste every job entry into the PR body.
 
 Use draft PRs when work is still under active agent iteration.
 
@@ -119,8 +125,13 @@ For stacked PRs:
 When asked to review or address review feedback:
 
 - Lead with findings if doing a review.
-- Use GitHub metadata/comments plus local source inspection.
+- Use GitHub metadata/comments plus local source inspection. For unresolved
+  inline threads, use the thread-aware GitHub review workflow rather than flat
+  comment lists.
 - Implement only actionable review fixes.
 - Re-run relevant local checks.
 - Push and wait for PR checks after changes.
+- If the user explicitly asks to resolve review comments or threads, resolve the
+  GitHub review thread after the fix is implemented, pushed, and verified.
+  Do not resolve ambiguous, unfixed, or intentionally deferred threads.
 - Summarize addressed comments, commands run, and anything intentionally deferred.

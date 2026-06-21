@@ -1,6 +1,6 @@
 ---
 name: life-ustc-api-mcp-verification
-description: "Verify Life-USTC REST API and MCP behavior after route, tool, contract, OpenAPI, auth, permission, status, pagination, date, or output-shape changes."
+description: "Verify Life-USTC REST API or MCP behavior after public route/tool/contract/OpenAPI/auth/permission/status/pagination/output-shape changes, including API/MCP date validation, filtering, or serialization."
 ---
 
 # Life USTC API MCP Verification

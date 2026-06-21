@@ -1,6 +1,6 @@
 ---
 name: life-ustc-ui-verification
-description: "Verify Life-USTC UI changes with browser evidence after Svelte page, component, CSS, responsive layout, copy, snapshot, or visual-regression changes."
+description: "Verify Life-USTC user-visible UI changes with browser evidence after Svelte page, component, CSS, responsive layout, copy, navigation, snapshot, or visual-regression changes."
 ---
 
 # Life USTC UI Verification
