@@ -73,7 +73,9 @@ export async function getTeacherDetailRoute(
       return notFound("Teacher not found");
     }
 
-    return jsonResponse(teacher);
+    return jsonResponse(teacher, {
+      headers: PUBLIC_LOCALE_CATALOG_HEADERS,
+    });
   } catch (error) {
     return handleRouteError("Failed to fetch teacher", error);
   }

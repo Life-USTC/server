@@ -124,9 +124,12 @@ describe("academic REST locale adapters", () => {
       "@/lib/api/routes/academic-course-routes"
     );
 
-    await getCourseDetailRoute(request("/api/courses/123"), { jwId: "123" });
+    const response = await getCourseDetailRoute(request("/api/courses/123"), {
+      jwId: "123",
+    });
 
     expect(findCourseDetailByJwIdMock).toHaveBeenCalledWith(123, "en-us");
+    expect(response.headers.get("Vary")).toBe("Accept-Language, Cookie");
   });
 
   it("passes request locale to section detail reads", async () => {
@@ -134,11 +137,12 @@ describe("academic REST locale adapters", () => {
       "@/lib/api/routes/academic-section-routes"
     );
 
-    await getSectionDetailRoute(request("/api/sections/123"), {
+    const response = await getSectionDetailRoute(request("/api/sections/123"), {
       jwId: "123",
     });
 
     expect(findSectionDetailByJwIdMock).toHaveBeenCalledWith(123, "en-us");
+    expect(response.headers.get("Vary")).toBe("Accept-Language, Cookie");
   });
 
   it("passes request locale to teacher detail reads", async () => {
@@ -146,9 +150,12 @@ describe("academic REST locale adapters", () => {
       "@/lib/api/routes/academic-teacher-routes"
     );
 
-    await getTeacherDetailRoute(request("/api/teachers/456"), { id: "456" });
+    const response = await getTeacherDetailRoute(request("/api/teachers/456"), {
+      id: "456",
+    });
 
     expect(findTeacherDetailByIdMock).toHaveBeenCalledWith(456, "en-us");
+    expect(response.headers.get("Vary")).toBe("Accept-Language, Cookie");
   });
 
   it("passes request locale to section-code matching", async () => {
