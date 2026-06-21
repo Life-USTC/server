@@ -27,7 +27,7 @@
         },
         "query": {
           "type": "string",
-          "enum": ["sh", "yq"]
+          "enum": ["contract-index"]
         },
         "queries": {
           "type": "object",

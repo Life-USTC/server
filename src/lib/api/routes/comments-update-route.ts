@@ -8,6 +8,7 @@ import {
   commentUpdateRequestSchema,
   resourceIdPathParamsSchema,
 } from "@/lib/api/schemas/request-schemas";
+import { requireWriteAuth } from "@/lib/auth/api-auth";
 
 type IdParams = { id: string };
 
@@ -23,6 +24,11 @@ export async function patchCommentRoute(
   if (parsedParams instanceof Response) {
     return parsedParams;
   }
+
+  const auth = await requireWriteAuth(request);
+  if (auth instanceof Response) return auth;
+  const { userId } = auth;
+
   const parsedBody = await parseRouteJsonBody(
     request,
     commentUpdateRequestSchema,
@@ -37,6 +43,7 @@ export async function patchCommentRoute(
       request,
       parsedParams.id,
       parsedBody,
+      userId,
     );
     return (
       response ??

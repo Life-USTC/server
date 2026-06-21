@@ -7,4 +7,6 @@ export {
   TODO_TITLE_MAX_LENGTH,
 } from "@/features/todos/lib/todo-limits";
 
-export const TODO_PRIORITIES = new Set<string>(["low", "medium", "high"]);
+import { TODO_PRIORITY_VALUES } from "@/features/todos/lib/todo-priority";
+
+export const TODO_PRIORITIES = new Set<string>(TODO_PRIORITY_VALUES);

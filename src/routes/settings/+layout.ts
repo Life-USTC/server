@@ -1,9 +1,9 @@
+import { getSettingsCopy } from "@/features/settings/lib/settings-copy";
 import {
   normalizeSettingsTab,
   SETTINGS_TABS,
   type SettingsTab,
 } from "@/features/settings/lib/settings-tabs";
-import { getSettingsCopy } from "@/lib/settings-copy";
 import type { LayoutLoad } from "./$types";
 
 function settingsNavItem(

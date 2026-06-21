@@ -1,6 +1,6 @@
 import { deleteHomework } from "@/features/homeworks/server/homework-mutations";
-import { withAdminApiRoute } from "@/lib/admin-api";
 import { jsonResponse, notFound } from "@/lib/api/helpers";
+import { withAdminApiRoute } from "@/lib/api/routes/admin-route-auth";
 import { type IdParams, parseIdParam } from "./admin-shared";
 
 export async function deleteAdminHomeworkRoute(

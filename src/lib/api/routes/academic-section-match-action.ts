@@ -5,7 +5,7 @@ export async function matchSectionCodesAction(
   parsedSemesterId?: number,
 ) {
   const { findSectionCodeMatches } = await import(
-    "@/lib/course-section-queries"
+    "@/features/catalog/server/course-section-queries"
   );
   const matches = await findSectionCodeMatches(
     Array.from(codes),
@@ -21,6 +21,7 @@ export async function matchSectionCodesAction(
     semester: matches.semester,
     matchedCodes: matches.matchedCodes,
     unmatchedCodes: matches.unmatchedCodes,
+    suggestions: matches.suggestions,
     sections: matches.sections,
     total: matches.total,
   });

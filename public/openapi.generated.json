@@ -32,6 +32,26 @@
             }
           }
         }
+      },
+      "options": {
+        "operationId": "options-.well-known-oauth-authorization-server",
+        "summary": "Compatibility alias for legacy clients that probe the root well-known path",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/.well-known/oauth-authorization-server/api/auth": {
@@ -46,11 +66,43 @@
             "description": "Response 200"
           }
         }
+      },
+      "options": {
+        "operationId": "options-.well-known-oauth-authorization-server-api-auth",
+        "summary": "Canonical RFC 8414 authorization server metadata for issuer `/api/auth`",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          }
+        }
       }
     },
     "/.well-known/oauth-authorization-server/api/mcp": {
       "get": {
         "operationId": "get-.well-known-oauth-authorization-server-api-mcp",
+        "summary": "Compatibility alias for clients that probe resource-path authorization-server metadata",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-.well-known-oauth-authorization-server-api-mcp",
         "summary": "Compatibility alias for clients that probe resource-path authorization-server metadata",
         "tags": [
           "Api"
@@ -90,11 +142,43 @@
             }
           }
         }
+      },
+      "options": {
+        "operationId": "options-.well-known-oauth-protected-resource",
+        "summary": "Compatibility alias for clients that probe the resource-origin root path",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/.well-known/oauth-protected-resource/api/mcp": {
       "get": {
         "operationId": "get-.well-known-oauth-protected-resource-api-mcp",
+        "summary": "Canonical RFC 9728 protected resource metadata for MCP",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-.well-known-oauth-protected-resource-api-mcp",
         "summary": "Canonical RFC 9728 protected resource metadata for MCP",
         "tags": [
           "Api"
@@ -126,6 +210,26 @@
             }
           }
         }
+      },
+      "options": {
+        "operationId": "options-.well-known-openid-configuration",
+        "summary": "Compatibility alias for clients that look up root OpenID discovery directly",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/.well-known/openid-configuration/api/auth": {
@@ -140,11 +244,43 @@
             "description": "Response 200"
           }
         }
+      },
+      "options": {
+        "operationId": "options-.well-known-openid-configuration-api-auth",
+        "summary": "RFC 8414-compatible path form for OpenID provider metadata",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          }
+        }
       }
     },
     "/.well-known/openid-configuration/api/mcp": {
       "get": {
         "operationId": "get-.well-known-openid-configuration-api-mcp",
+        "summary": "Compatibility alias for clients that probe resource-path OIDC metadata",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-.well-known-openid-configuration-api-mcp",
         "summary": "Compatibility alias for clients that probe resource-path OIDC metadata",
         "tags": [
           "Api"
@@ -178,6 +314,7 @@
             "schema": {
               "type": "string",
               "enum": [
+                "all",
                 "active",
                 "softbanned",
                 "deleted",
@@ -656,6 +793,18 @@
     "/api/auth/.well-known/openid-configuration": {
       "get": {
         "operationId": "get-api-auth-.well-known-openid-configuration",
+        "summary": "OpenID Connect discovery metadata for issuer `/api/auth`",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-api-auth-.well-known-openid-configuration",
         "summary": "OpenID Connect discovery metadata for issuer `/api/auth`",
         "tags": [
           "Api"
@@ -1297,6 +1446,36 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       }
@@ -1388,6 +1567,36 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       },
@@ -1415,6 +1624,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/successResponseSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
                 }
               }
             }
@@ -2062,6 +2291,36 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       }
@@ -2160,6 +2419,36 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       }
@@ -2211,6 +2500,36 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       },
@@ -2238,6 +2557,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/successResponseSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
                 }
               }
             }
@@ -2302,6 +2641,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       }
@@ -2334,6 +2693,16 @@
             }
           },
           "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
             "description": "Error response",
             "content": {
               "application/json": {
@@ -2486,11 +2855,51 @@
             }
           }
         }
+      },
+      "options": {
+        "operationId": "options-api-mcp-.well-known-oauth-authorization-server",
+        "summary": "MCP resource-relative authorization server metadata compatibility alias",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/mcp/.well-known/openid-configuration": {
       "get": {
         "operationId": "get-api-mcp-.well-known-openid-configuration",
+        "summary": "MCP resource-relative OpenID discovery compatibility alias",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-api-mcp-.well-known-openid-configuration",
         "summary": "MCP resource-relative OpenID discovery compatibility alias",
         "tags": [
           "Api"
@@ -3692,6 +4101,7 @@
                     "ASTRON1501.01"
                   ],
                   "unmatchedCodes": [],
+                  "suggestions": {},
                   "sections": [
                     {
                       "id": 2001,
@@ -13541,6 +13951,32 @@
         ],
         "additionalProperties": false
       },
+      "dashboardLinkPinResponseSchema": {
+        "type": "object",
+        "properties": {
+          "pinnedSlugs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "maxPinnedLinks": {
+            "type": "integer",
+            "exclusiveMinimum": true,
+            "maximum": 9007199254740991
+          },
+          "error": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "pinnedSlugs",
+          "maxPinnedLinks",
+          "error"
+        ],
+        "additionalProperties": false
+      },
       "descriptionsResponseSchema": {
         "type": "object",
         "properties": {
@@ -22646,6 +23082,15 @@
               "type": "string"
             }
           },
+          "suggestions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
           "sections": {
             "type": "array",
             "items": {
@@ -23307,6 +23752,7 @@
           "semester",
           "matchedCodes",
           "unmatchedCodes",
+          "suggestions",
           "sections",
           "total"
         ],

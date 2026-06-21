@@ -11,6 +11,9 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @body homeworkUpdateRequestSchema
  * @response homeworkUpdateResponseSchema
  * @response 400:openApiErrorSchema
+ * @response 401:openApiErrorSchema
+ * @response 403:openApiErrorSchema
+ * @response 404:openApiErrorSchema
  */
 export const PATCH: RequestHandler = ({ request, params }) =>
   observedApiRoute(() => patchHomeworkRoute(request, { id: params.id }))(
@@ -21,6 +24,8 @@ export const PATCH: RequestHandler = ({ request, params }) =>
  * Soft delete one homework.
  * @pathParams resourceIdPathParamsSchema
  * @response successResponseSchema
+ * @response 401:openApiErrorSchema
+ * @response 403:openApiErrorSchema
  * @response 404:openApiErrorSchema
  */
 export const DELETE: RequestHandler = ({ request, params }) =>

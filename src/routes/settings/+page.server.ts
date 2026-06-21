@@ -1,11 +1,11 @@
+import { getSettingsPageData } from "@/features/settings/server/settings-page-data";
 import {
   deleteSettingsAccountAction,
   getSettingsPageCopy,
   linkSettingsAccountAction,
   unlinkSettingsAccountAction,
   updateSettingsProfileAction,
-} from "@/features/settings/lib/settings-page-server";
-import { getSettingsPageData } from "@/lib/settings-page-data";
+} from "@/features/settings/server/settings-page-server";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, request, url }) => {

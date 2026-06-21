@@ -1,6 +1,6 @@
 <script lang="ts">
+import type { ProfileCopy } from "@/features/profile/lib/profile-copy";
 import type { AppLocale } from "@/i18n/config";
-import type { ProfileCopy } from "@/lib/profile-copy";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import ProfileContributionCard from "./ProfileContributionCard.svelte";
 import ProfileSummaryCard from "./ProfileSummaryCard.svelte";

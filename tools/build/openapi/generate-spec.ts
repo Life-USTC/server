@@ -5,7 +5,8 @@
  * Zod request/response schemas into the generated OpenAPI document.
  */
 
-import { readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { z } from "zod";
 import { createDocument } from "zod-openapi";
@@ -365,11 +366,16 @@ const HTTP_METHODS = [
 ] as const;
 
 const OPENAPI_EXCLUDED_ROUTES = new Set([
+  "src/routes/api/auth/[...auth]/+server.ts",
   "src/routes/api/health/+server.ts",
   "src/routes/api/metrics/+server.ts",
   "src/routes/api/readiness/+server.ts",
 ]);
 const OPENAPI_ROUTE_ROOTS = ["src/routes/api", "src/routes/.well-known"];
+
+function isOpenApiExcludedRoute(filePath: string) {
+  return OPENAPI_EXCLUDED_ROUTES.has(filePath);
+}
 
 async function processRouteFile(
   filePath: string,
@@ -386,13 +392,12 @@ async function processRouteFile(
       continue;
     }
 
-    const annotations =
-      exportKind !== "destructured" ||
-      (exportKind === "destructured" && method !== "OPTIONS")
-        ? extractJsDocAnnotations(source, method, exportKind)
-        : null;
+    const annotations = extractJsDocAnnotations(source, method, exportKind);
     if (!annotations) {
-      continue;
+      if (method === "OPTIONS") {
+        continue;
+      }
+      throw new Error(`Missing OpenAPI JSDoc for ${method} ${filePath}`);
     }
 
     const operationId = `${method.toLowerCase()}-${apiPath.replace(/\//g, "-").replace(/[{}]/g, "").replace(/^-/, "")}`;
@@ -446,7 +451,7 @@ async function collectRouteFiles(dirPath: string): Promise<string[]> {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-async function generateOpenApiSpec() {
+async function generateOpenApiSpec(outputPath: string) {
   const configPath = path.join(ROOT, "svelte.openapi.json");
   const config = generatorConfigSchema.parse(
     JSON.parse(await readFile(configPath, "utf8")),
@@ -464,7 +469,7 @@ async function generateOpenApiSpec() {
   const pathEntries: Array<[string, OpenApiPathItem]> = [];
 
   for (const filePath of routeFiles) {
-    if (OPENAPI_EXCLUDED_ROUTES.has(filePath)) {
+    if (isOpenApiExcludedRoute(filePath)) {
       continue;
     }
 
@@ -485,7 +490,6 @@ async function generateOpenApiSpec() {
     paths: Object.fromEntries(pathEntries),
   }) as OpenApiDocument;
 
-  const outputPath = path.join(ROOT, OPENAPI_SPEC_RELATIVE_PATH);
   await writeFile(outputPath, `${JSON.stringify(doc, null, 2)}\n`, "utf8");
 }
 
@@ -1093,11 +1097,7 @@ function applyScenarioExamples(
   }
 }
 
-async function postprocessOpenApiSpec() {
-  const filePath = new URL(
-    `../../../${OPENAPI_SPEC_RELATIVE_PATH}`,
-    import.meta.url,
-  );
+async function postprocessOpenApiSpec(filePath: string) {
   const raw = await readFile(filePath, "utf8");
   const doc = JSON.parse(raw) as MutableOpenApiDocument;
 
@@ -1151,5 +1151,37 @@ async function postprocessOpenApiSpec() {
 
   await writeFile(filePath, `${JSON.stringify(doc, null, 2)}\n`, "utf8");
 }
-await generateOpenApiSpec();
-await postprocessOpenApiSpec();
+
+async function writeOpenApiSpec(outputPath: string) {
+  await generateOpenApiSpec(outputPath);
+  await postprocessOpenApiSpec(outputPath);
+}
+
+async function checkOpenApiSpec(outputPath: string) {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "life-ustc-openapi-"));
+  const tempPath = path.join(tempDir, "openapi.generated.json");
+
+  try {
+    await writeOpenApiSpec(tempPath);
+    const [currentSpec, generatedSpec] = await Promise.all([
+      readFile(outputPath, "utf8"),
+      readFile(tempPath, "utf8"),
+    ]);
+
+    if (currentSpec !== generatedSpec) {
+      throw new Error(
+        "OpenAPI spec is stale. Run `bun run openapi:generate` and commit public/openapi.generated.json.",
+      );
+    }
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
+}
+
+const outputPath = path.join(ROOT, OPENAPI_SPEC_RELATIVE_PATH);
+
+if (process.argv.includes("--check")) {
+  await checkOpenApiSpec(outputPath);
+} else {
+  await writeOpenApiSpec(outputPath);
+}

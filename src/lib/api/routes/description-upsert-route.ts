@@ -18,6 +18,12 @@ import {
 import { requireWriteAuth } from "@/lib/auth/api-auth";
 
 export async function postDescriptionRoute(request: Request) {
+  const auth = await requireWriteAuth(request);
+  if (auth instanceof Response) {
+    return auth;
+  }
+  const { userId } = auth;
+
   const parsedBody = await parseRouteJsonBody(
     request,
     descriptionUpsertRequestSchema,
@@ -29,12 +35,6 @@ export async function postDescriptionRoute(request: Request) {
 
   const targetType = parsedBody.targetType;
   const content = parsedBody.content.trim();
-
-  const auth = await requireWriteAuth(request);
-  if (auth instanceof Response) {
-    return auth;
-  }
-  const { userId } = auth;
 
   const target = resolveDescriptionTarget(
     targetType as DescriptionTargetType,

@@ -1,7 +1,7 @@
 import {
   findCourseDetailByJwId,
   listCoursesBySearch,
-} from "@/lib/course-section-queries";
+} from "@/features/catalog/server/course-section-queries";
 import { jsonToolResult, resolveMcpMode } from "@/lib/mcp/tools/_helpers";
 
 type McpModeInput = Parameters<typeof resolveMcpMode>[0];

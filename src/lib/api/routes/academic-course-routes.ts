@@ -36,8 +36,8 @@ export async function getCoursesRoute(request: Request) {
       async () => {
         const [{ buildCourseListWhere }, { paginatedCourseQuery }] =
           await Promise.all([
-            import("@/lib/course-section-queries"),
-            import("@/lib/query-helpers"),
+            import("@/features/catalog/server/course-section-queries"),
+            import("@/features/catalog/server/academic-paginated-queries"),
           ]);
         const where = buildCourseListWhere({
           search,
@@ -66,7 +66,7 @@ export async function getCourseDetailRoute(params: { jwId: string }) {
     if (parsedJwId instanceof Response) return parsedJwId;
 
     const { findCourseDetailByJwId } = await import(
-      "@/lib/course-section-queries"
+      "@/features/catalog/server/course-section-queries"
     );
     const course = await findCourseDetailByJwId(parsedJwId, "zh-cn");
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { ProfileCopy } from "@/lib/profile-copy";
+import type { ProfileCopy } from "@/features/profile/lib/profile-copy";
 import type { ProfileStat } from "./profile-contribution-types";
 
 type LegendItem = {

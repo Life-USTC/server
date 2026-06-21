@@ -1,6 +1,6 @@
+import { sectionCompactInclude } from "@/features/catalog/server/academic-query-includes";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma, prisma } from "@/lib/db/prisma";
-import { sectionCompactInclude } from "@/lib/query-helpers";
 import { getPublicOrigin } from "@/lib/site-url";
 import {
   buildCalendarFeedPath,

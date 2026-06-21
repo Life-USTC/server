@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
-import { findSectionCodeMatches } from "@/lib/course-section-queries";
+import { findSectionCodeMatches } from "@/features/catalog/server/course-section-queries";
 import {
   jsonToolResult,
   mcpLocaleInputSchema,

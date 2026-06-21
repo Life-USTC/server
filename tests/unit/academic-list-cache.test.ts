@@ -24,11 +24,11 @@ vi.mock("@/lib/api/routes/academic-route-helpers", () => ({
   parseResourceIdRouteParam: vi.fn(),
 }));
 
-vi.mock("@/lib/course-section-queries", () => ({
+vi.mock("@/features/catalog/server/course-section-queries", () => ({
   buildCourseListWhere: buildCourseListWhereMock,
 }));
 
-vi.mock("@/lib/query-helpers", () => ({
+vi.mock("@/features/catalog/server/academic-paginated-queries", () => ({
   paginatedCourseQuery: paginatedCourseQueryMock,
   paginatedTeacherQuery: paginatedTeacherQueryMock,
 }));

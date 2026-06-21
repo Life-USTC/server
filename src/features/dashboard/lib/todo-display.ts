@@ -1,8 +1,10 @@
+import type { TodoPriorityValue } from "@/features/todos/lib/todo-priority";
+
 type TodoState = {
   completed: boolean;
 };
 
-type TodoPriority = "high" | "medium" | "low" | string;
+type TodoPriority = TodoPriorityValue | string;
 
 type TodoStatusLabels = {
   completed: string;

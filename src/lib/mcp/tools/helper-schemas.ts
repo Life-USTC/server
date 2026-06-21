@@ -1,4 +1,6 @@
 import * as z from "zod";
+import { sectionCodeSchema } from "@/features/catalog/lib/section-code-schema";
+import { todoPrioritySchema } from "@/features/todos/lib/todo-schema";
 import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
 
 export type Locale = z.infer<typeof localeSchema>;
@@ -16,15 +18,10 @@ export const flexDateInputSchema = z
     "Accepts ISO 8601 with offset (2026-05-01T08:00:00+08:00), date-only (2026-05-01), or datetime without timezone (2026-05-01T08:00:00, interpreted as Asia/Shanghai).",
   );
 
-export const sectionCodeSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .max(64)
-  .regex(/^[A-Za-z0-9_.-]+$/);
-export const todoPrioritySchema = z.enum(["low", "medium", "high"]);
+export { sectionCodeSchema, todoPrioritySchema };
 
 export const mcpModeSchema = z.enum(["summary", "default", "full"]);
+export type McpModeInput = z.infer<typeof mcpModeSchema>;
 export const mcpModeInputSchema = mcpModeSchema
   .default("default")
   .describe(
@@ -39,8 +36,6 @@ export const mcpLocaleInputSchema = localeSchema
     "Language for localized names: zh-cn (Chinese, default) or en-us (English).",
   );
 
-export function resolveMcpMode(
-  mode: z.infer<typeof mcpModeSchema> | undefined,
-) {
+export function resolveMcpMode(mode: McpModeInput | undefined) {
   return mode ?? "default";
 }

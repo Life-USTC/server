@@ -1,7 +1,7 @@
+import { sectionSummarySelect } from "@/features/catalog/server/academic-query-includes";
+import { buildSectionListQuery } from "@/features/catalog/server/course-section-queries";
 import { buildPaginatedResponse, normalizePagination } from "@/lib/api/helpers";
-import { buildSectionListQuery } from "@/lib/course-section-queries";
 import { getPrisma } from "@/lib/db/prisma";
-import { sectionSummarySelect } from "@/lib/query-helpers";
 
 type SearchSectionsForMcpToolInput = {
   campusId?: number;

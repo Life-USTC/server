@@ -1,5 +1,6 @@
 import { homeworkDateError } from "@/features/homeworks/server/homework-dates";
 import { buildHomeworkUpdateIntent } from "@/features/homeworks/server/homework-update-intent";
+import type { AppLocale } from "@/i18n/config";
 import {
   jsonToolResult,
   parseOptionalFieldDate,
@@ -15,6 +16,7 @@ export type UpdateHomeworkOnSectionArgs = {
   publishedAt?: string | null;
   submissionStartAt?: string | null;
   submissionDueAt?: string | null;
+  locale: AppLocale;
   mode?: Parameters<typeof resolveMcpMode>[0];
 };
 
@@ -37,11 +39,10 @@ type ParsedHomeworkUpdateDates = {
   submissionStartAt: Date | null | undefined;
 };
 
-export function parseHomeworkUpdateDates({
-  publishedAt,
-  submissionDueAt,
-  submissionStartAt,
-}: HomeworkUpdateDateInputs) {
+export function parseHomeworkUpdateDates(
+  { publishedAt, submissionDueAt, submissionStartAt }: HomeworkUpdateDateInputs,
+  mode: ReturnType<typeof resolveMcpMode>,
+) {
   const hasPublishedAt = publishedAt !== undefined;
   const hasSubmissionStartAt = submissionStartAt !== undefined;
   const hasSubmissionDueAt = submissionDueAt !== undefined;
@@ -81,10 +82,7 @@ export function parseHomeworkUpdateDates({
   if (dateError) {
     return {
       ok: false as const,
-      result: jsonToolResult(
-        { success: false, message: dateError },
-        { mode: "default" },
-      ),
+      result: jsonToolResult({ success: false, message: dateError }, { mode }),
     };
   }
 

@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { todoPrioritySchema } from "@/features/todos/lib/todo-schema";
 import { subscribedExamSchema } from "./academic-exam-response-schemas";
 import { homeworkItemSchema } from "./homeworks-response-schemas";
 import {
@@ -41,7 +42,7 @@ export const compactOverviewResponseSchema = z.object({
         id: z.string(),
         title: z.string(),
         content: z.string().nullable(),
-        priority: z.enum(["low", "medium", "high"]),
+        priority: todoPrioritySchema,
         completed: z.boolean(),
         dueAt: dateTimeSchema.nullable(),
         createdAt: dateTimeSchema,

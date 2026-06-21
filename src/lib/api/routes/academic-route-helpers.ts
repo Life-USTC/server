@@ -64,7 +64,7 @@ export async function buildTeacherWhere(input: {
   }
 
   if (input.search) {
-    const { ilike } = await import("@/lib/query-helpers");
+    const { ilike } = await import("@/lib/query-filter-helpers");
     where.OR = [
       { nameCn: ilike(input.search) },
       { nameEn: ilike(input.search) },

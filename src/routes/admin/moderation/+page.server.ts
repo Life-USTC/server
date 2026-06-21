@@ -1,6 +1,6 @@
 import { adminModerationPageActions } from "@/features/admin/server/admin-moderation-page-actions";
 import { getAdminModerationPageCopy } from "@/features/admin/server/admin-moderation-page-copy";
-import { getAdminModerationPage } from "@/lib/admin-page-data";
+import { getAdminModerationPage } from "@/features/admin/server/admin-page-data";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, request, url }) => {

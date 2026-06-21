@@ -2,8 +2,7 @@ import {
   listAdminUsers,
   updateAdminUser,
 } from "@/features/admin/server/admin-api-service";
-import { withAdminApiRoute } from "@/lib/admin-api";
-import { ADMIN_USERS_PAGE_SIZE } from "@/lib/admin-constants";
+import { ADMIN_USERS_PAGE_SIZE } from "@/features/admin/server/admin-constants";
 import {
   badRequest,
   buildPaginatedResponse,
@@ -13,6 +12,7 @@ import {
   parseRouteJsonBody,
   parseRouteQuery,
 } from "@/lib/api/helpers";
+import { withAdminApiRoute } from "@/lib/api/routes/admin-route-auth";
 import {
   adminUpdateUserRequestSchema,
   adminUsersQuerySchema,

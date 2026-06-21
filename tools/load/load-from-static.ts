@@ -815,6 +815,7 @@ async function executeJsonbBatch<T>(
   }
 
   await forEachChunk(rows, batchSize, async (batch) => {
+    // SQL is module-owned static text; only row data is dynamic and bound as JSON.
     await db.$executeRawUnsafe(sql, JSON.stringify(batch));
   });
 }

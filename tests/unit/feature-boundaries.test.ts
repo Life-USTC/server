@@ -10,7 +10,7 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
       if (entry.isDirectory()) {
         return collectSourceFiles(entryPath);
       }
-      if (entry.isFile() && /\.(ts|tsx)$/.test(entry.name)) {
+      if (entry.isFile() && /\.(svelte|ts|tsx)$/.test(entry.name)) {
         return [entryPath];
       }
       return [];
@@ -20,38 +20,83 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
   return files.flat();
 }
 
-function isMissingPathError(error: unknown) {
-  return error instanceof Error && "code" in error && error.code === "ENOENT";
+function importSpecifiers(source: string) {
+  return Array.from(
+    source.matchAll(
+      /\b(?:import\s*(?:type\s*)?(?:[^"']*?\s+from\s*)?|export\s*(?:type\s*)?[^"']*?\s+from\s*|import\s*\(\s*)(["'])(@\/[^"']+)\1/g,
+    ),
+    (match) => match[2],
+  );
 }
 
-describe("feature import boundaries", () => {
-  it("keeps dashboard feature code independent from the app layer", async () => {
-    const featureRoot = path.join(process.cwd(), "src/features");
-    const featureFiles = await collectSourceFiles(featureRoot);
+const libFeatureImportAllowedPrefixes = [
+  "src/lib/api/routes/",
+  "src/lib/api/schemas/",
+  "src/lib/mcp/",
+];
+
+function isAllowedLibFeatureAdapter(filePath: string) {
+  const relativePath = path
+    .relative(process.cwd(), filePath)
+    .replace(/\\/g, "/");
+  return libFeatureImportAllowedPrefixes.some((prefix) =>
+    relativePath.startsWith(prefix),
+  );
+}
+
+const deprecatedFeatureLibImports = [
+  /^@\/lib\/admin-/,
+  /^@\/lib\/course-(?:page|query|section)/,
+  /^@\/lib\/page-data(?:-utils)?$/,
+  /^@\/lib\/profile-copy$/,
+  /^@\/lib\/public-(?:catalog|course-list|page-list|section-list|teacher-list)-data$/,
+  /^@\/lib\/section-(?:code-match|page|query|search)/,
+  /^@\/lib\/settings-/,
+  /^@\/lib\/teacher-page-data$/,
+  /^@\/lib\/user-profile-/,
+];
+
+describe("source import boundaries", () => {
+  it("keeps src/lib infrastructure from importing feature modules outside surface adapters", async () => {
+    const libFiles = await collectSourceFiles(
+      path.join(process.cwd(), "src/lib"),
+    );
     const violations: string[] = [];
 
-    for (const filePath of featureFiles) {
+    for (const filePath of libFiles) {
+      if (isAllowedLibFeatureAdapter(filePath)) continue;
       const source = await fs.readFile(filePath, "utf8");
-      if (source.includes('from "@/app/dashboard/')) {
-        violations.push(path.relative(process.cwd(), filePath));
+      const featureImports = importSpecifiers(source).filter((specifier) =>
+        specifier.startsWith("@/features/"),
+      );
+      if (featureImports.length > 0) {
+        violations.push(
+          `${path.relative(process.cwd(), filePath)} -> ${featureImports.join(", ")}`,
+        );
       }
     }
 
     expect(violations).toEqual([]);
   });
 
-  it("keeps reusable dashboard business logic out of the app layer", async () => {
-    const legacyDashboardRoot = path.join(process.cwd(), "src/app/dashboard");
-    const files = await fs
-      .stat(legacyDashboardRoot)
-      .then(() => collectSourceFiles(legacyDashboardRoot))
-      .catch((error: unknown) => {
-        if (isMissingPathError(error)) {
-          return [];
-        }
-        throw error;
-      });
+  it("keeps feature code off deprecated src/lib domain barrels", async () => {
+    const featureFiles = await collectSourceFiles(
+      path.join(process.cwd(), "src/features"),
+    );
+    const violations: string[] = [];
 
-    expect(files).toEqual([]);
+    for (const filePath of featureFiles) {
+      const source = await fs.readFile(filePath, "utf8");
+      const forbiddenImports = importSpecifiers(source).filter((specifier) =>
+        deprecatedFeatureLibImports.some((pattern) => pattern.test(specifier)),
+      );
+      if (forbiddenImports.length > 0) {
+        violations.push(
+          `${path.relative(process.cwd(), filePath)} -> ${forbiddenImports.join(", ")}`,
+        );
+      }
+    }
+
+    expect(violations).toEqual([]);
   });
 });

@@ -1,6 +1,6 @@
 <script lang="ts">
+import type { ProfileCopy } from "@/features/profile/lib/profile-copy";
 import type { AppLocale } from "@/i18n/config";
-import type { ProfileCopy } from "@/lib/profile-copy";
 import * as Card from "$lib/components/ui/card/index.js";
 import ProfileContributionFooter from "./ProfileContributionFooter.svelte";
 import ProfileContributionHeatmap from "./ProfileContributionHeatmap.svelte";

@@ -1,5 +1,7 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import type { TodoPriorityValue } from "@/features/todos/lib/todo-priority";
+import type { McpModeInput } from "@/lib/mcp/tools/_helpers";
 
-export type McpMode = "summary" | "default" | "full";
+export type McpMode = McpModeInput;
 export type ToolExtra = { authInfo?: AuthInfo };
-export type TodoPriority = "low" | "medium" | "high";
+export type TodoPriority = TodoPriorityValue;

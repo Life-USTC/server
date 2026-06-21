@@ -21,6 +21,9 @@ export const GET: RequestHandler = ({ request, params }) =>
  * @body commentUpdateRequestSchema
  * @response commentUpdateResponseSchema
  * @response 400:openApiErrorSchema
+ * @response 401:openApiErrorSchema
+ * @response 403:openApiErrorSchema
+ * @response 404:openApiErrorSchema
  */
 export const PATCH: RequestHandler = ({ request, params }) =>
   observedApiRoute(() => patchCommentRoute(request, { id: params.id }))(
@@ -31,6 +34,8 @@ export const PATCH: RequestHandler = ({ request, params }) =>
  * Delete one comment.
  * @pathParams resourceIdPathParamsSchema
  * @response successResponseSchema
+ * @response 401:openApiErrorSchema
+ * @response 403:openApiErrorSchema
  * @response 404:openApiErrorSchema
  */
 export const DELETE: RequestHandler = ({ request, params }) =>

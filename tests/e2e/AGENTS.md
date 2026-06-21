@@ -21,6 +21,7 @@ Use the root `AGENTS.md` for the shared setup flow. E2E-only caveats:
 
 - Package scripts build the Cloudflare Worker bundle before Playwright starts.
 - Playwright starts the local Worker with `bun run tools/dev/e2e.ts start`, which runs `wrangler dev` with proxy variables cleared for localhost.
+- Playwright defaults to `127.0.0.1:3000`; set `PLAYWRIGHT_PORT` only when a local non-project process already owns that port.
 - Playwright global setup validates the database environment only; R2 is provided by Wrangler's local `R2_UPLOADS` binding.
 
 ## Test Data

@@ -2,7 +2,6 @@ import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { updateHomework } from "@/features/homeworks/server/homework-mutations";
 import { requireHomeworkItemById } from "@/features/homeworks/server/homework-read-model";
 import { hasHomeworkUpdateIntentChanges } from "@/features/homeworks/server/homework-update-intent";
-import { DEFAULT_LOCALE } from "@/i18n/config";
 import { findActiveSuspension } from "@/lib/auth/viewer-context";
 import {
   getUserId,
@@ -27,6 +26,7 @@ export async function updateHomeworkOnSectionTool(
     publishedAt,
     submissionStartAt,
     submissionDueAt,
+    locale,
     mode,
   }: UpdateHomeworkOnSectionArgs,
   extra: ToolExtra,
@@ -45,11 +45,14 @@ export async function updateHomeworkOnSectionTool(
     );
   }
 
-  const parsedDates = parseHomeworkUpdateDates({
-    publishedAt,
-    submissionDueAt,
-    submissionStartAt,
-  });
+  const parsedDates = parseHomeworkUpdateDates(
+    {
+      publishedAt,
+      submissionDueAt,
+      submissionStartAt,
+    },
+    resolvedMode,
+  );
   if (!parsedDates.ok) {
     return parsedDates.result;
   }
@@ -98,7 +101,7 @@ export async function updateHomeworkOnSectionTool(
 
   const homeworkItem = await requireHomeworkItemById({
     homeworkId,
-    locale: DEFAULT_LOCALE,
+    locale,
     userId,
   });
 

@@ -32,6 +32,10 @@ export async function patchUploadRoute(request: Request, params: IdParams) {
   if (parsed instanceof Response) {
     return parsed;
   }
+
+  const auth = await requireWriteAuth(request);
+  if (auth instanceof Response) return auth;
+
   const parsedBody = await parseRouteJsonBody(
     request,
     uploadRenameRequestSchema,
@@ -46,17 +50,16 @@ export async function patchUploadRoute(request: Request, params: IdParams) {
     return badRequest("Filename required");
   }
 
-  return withUploadAuth(
-    request,
-    "Failed to rename upload",
-    (userId) =>
-      renameUpload({
-        filename,
-        id: parsed.id,
-        userId,
-      }).then((upload) => (upload ? jsonResponse({ upload }) : notFound())),
-    { write: true },
-  );
+  try {
+    const upload = await renameUpload({
+      filename,
+      id: parsed.id,
+      userId: auth.userId,
+    });
+    return upload ? jsonResponse({ upload }) : notFound();
+  } catch (error) {
+    return handleRouteError("Failed to rename upload", error);
+  }
 }
 
 export async function deleteUploadRoute(request: Request, params: IdParams) {
