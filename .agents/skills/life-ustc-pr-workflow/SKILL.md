@@ -42,11 +42,10 @@ Use the highest relevant gate:
 - E2E scope reproduction:
   - Run `bunx playwright install chromium` once on a new local machine. Use `bunx playwright install --with-deps chromium` on Linux if browser system libraries are missing.
   - `docker compose -f docker-compose.dev.yml up -d`
-  - `bun run db:migrate:deploy`
+  - `bun run e2e:db:prepare`
+  - `bun run e2e:build-artifacts`
   - `bun run seed`
-  - `bun run build`
-  - `bun run e2e:prepare`
-  - `bunx playwright test --reporter=list -- <paths>`
+  - `bun run e2e:test -- <paths>`
 - Snapshot workflow changes:
   - `bun run tools/dev/artifacts/snapshots/snapshot-ci.ts capture`
 

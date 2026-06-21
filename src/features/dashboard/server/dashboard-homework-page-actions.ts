@@ -1,10 +1,10 @@
 import { fail, redirect } from "@sveltejs/kit";
 import {
-  getDashboardUserId,
   HOMEWORK_DESCRIPTION_MAX_LENGTH,
   HOMEWORK_TITLE_MAX_LENGTH,
-  parseOptionalLocalDateTime,
-} from "@/features/dashboard/server/dashboard-page-server";
+} from "@/features/dashboard/lib/dashboard-limits";
+import { parseOptionalLocalDateTime } from "@/features/dashboard/server/dashboard-form-dates";
+import { getDashboardUserId } from "@/features/dashboard/server/dashboard-page-server";
 import {
   type CreateHomeworkInput,
   createHomeworkForSection,

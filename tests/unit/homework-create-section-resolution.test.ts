@@ -17,7 +17,14 @@ describe("homework create section resolution", () => {
   it("uses sectionId when no sectionJwId is provided", async () => {
     await expect(
       resolveSectionIdForHomeworkCreate({ sectionId: 12, sectionJwId: null }),
-    ).resolves.toBe(12);
+    ).resolves.toEqual({ ok: true, sectionId: 12 });
+    expect(findUniqueMock).not.toHaveBeenCalled();
+  });
+
+  it("reports missing section references when no id is provided", async () => {
+    await expect(
+      resolveSectionIdForHomeworkCreate({ sectionId: null, sectionJwId: null }),
+    ).resolves.toEqual({ ok: false, error: "not_found" });
     expect(findUniqueMock).not.toHaveBeenCalled();
   });
 
@@ -26,7 +33,7 @@ describe("homework create section resolution", () => {
 
     await expect(
       resolveSectionIdForHomeworkCreate({ sectionId: null, sectionJwId: 5678 }),
-    ).resolves.toBe(34);
+    ).resolves.toEqual({ ok: true, sectionId: 34 });
   });
 
   it("rejects conflicting sectionId and sectionJwId references", async () => {
@@ -34,6 +41,14 @@ describe("homework create section resolution", () => {
 
     await expect(
       resolveSectionIdForHomeworkCreate({ sectionId: 12, sectionJwId: 5678 }),
-    ).resolves.toBeNull();
+    ).resolves.toEqual({ ok: false, error: "mismatch" });
+  });
+
+  it("reports missing sectionJwId targets separately from conflicts", async () => {
+    findUniqueMock.mockResolvedValueOnce(null);
+
+    await expect(
+      resolveSectionIdForHomeworkCreate({ sectionId: 12, sectionJwId: 5678 }),
+    ).resolves.toEqual({ ok: false, error: "not_found" });
   });
 });

@@ -16,7 +16,10 @@ export async function resolveSectionIdForHomeworkCreate(input: {
   sectionJwId: number | null;
 }) {
   if (input.sectionJwId == null) {
-    return input.sectionId;
+    if (input.sectionId == null) {
+      return { ok: false as const, error: "not_found" as const };
+    }
+    return { ok: true as const, sectionId: input.sectionId };
   }
 
   const section = await prisma.section.findUnique({
@@ -24,13 +27,13 @@ export async function resolveSectionIdForHomeworkCreate(input: {
     select: { id: true },
   });
   if (!section) {
-    return null;
+    return { ok: false as const, error: "not_found" as const };
   }
   if (input.sectionId != null && input.sectionId !== section.id) {
-    return null;
+    return { ok: false as const, error: "mismatch" as const };
   }
 
-  return section.id;
+  return { ok: true as const, sectionId: section.id };
 }
 
 export async function createHomeworkForSection(

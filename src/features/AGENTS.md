@@ -6,7 +6,7 @@ Business domain logic.
 
 ```
 home/          Dashboard panels, overview
-homework/      Section homework (not todos)
+homeworks/     Section homework (not todos)
 todos/         Personal tasks
 comments/      Object-scoped discussions
 uploads/       Comment attachments
@@ -25,7 +25,7 @@ feature/
 
 ## Key Rules
 
-### homework/
+### homeworks/
 - Attached to section, not user
 - Signed-in, unsuspended can create/update
 - Delete: creator or admin only

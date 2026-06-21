@@ -1,10 +1,10 @@
 import { fail } from "@sveltejs/kit";
 import {
-  parseOptionalLocalDateTime,
   TODO_CONTENT_MAX_LENGTH,
   TODO_TITLE_MAX_LENGTH,
-} from "@/features/dashboard/server/dashboard-page-server";
+} from "@/features/todos/lib/todo-limits";
 import { parseTodoPriorityInput } from "@/features/todos/lib/todo-priority";
+import { parseOptionalLocalDateTime } from "./dashboard-form-dates";
 
 type TodoActionCopy = {
   errorContentTooLong: string;

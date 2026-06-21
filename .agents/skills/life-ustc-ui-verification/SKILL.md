@@ -25,11 +25,10 @@ For seeded Worker-backed E2E reproduction:
 ```bash
 bunx playwright install chromium
 docker compose -f docker-compose.dev.yml up -d
-bun run build
-bun run e2e:prepare
-bun run db:migrate:deploy
+bun run e2e:db:prepare
+bun run e2e:build-artifacts
 bun run seed
-bunx playwright test --reporter=list -- <path>
+bun run e2e:test -- <path>
 ```
 
 On Linux, use `bunx playwright install --with-deps chromium` if browser system

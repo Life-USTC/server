@@ -3,7 +3,7 @@ import * as path from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { APIRequestContext, Page } from "@playwright/test";
-import { expect } from "@playwright/test";
+import { expect, request as playwrightRequest } from "@playwright/test";
 import { resolvePlaywrightServerRuntime } from "../../e2e";
 import { DEV_SEED } from "../../seed/dev-seed";
 import {
@@ -90,24 +90,32 @@ async function captureApiSnapshots() {
   const { baseUrl } = resolvePlaywrightServerRuntime();
   const root = resolveSnapshotRoot("api");
   const browser = await launchSnapshotBrowser();
-  const contexts = new Map<
-    SnapshotAuth,
-    Awaited<ReturnType<typeof browser.newContext>>
-  >();
   const requests = new Map<SnapshotAuth, APIRequestContext>();
   const entries: Array<Record<string, unknown>> = [];
   await resetDirectory(root);
 
   try {
+    requests.set(
+      "public",
+      await playwrightRequest.newContext({ baseURL: baseUrl }),
+    );
     for (const auth of ["public", "debug", "admin"] as const) {
+      if (auth === "public") continue;
+
       const context = await browser.newContext({ baseURL: baseUrl });
-      contexts.set(auth, context);
-      if (auth !== "public") {
-        const page = await createAuthedPage(context, auth);
-        await page.close();
-      }
-      requests.set(auth, context.request);
+      const page = await createAuthedPage(context, auth);
+      await page.close();
+      const storageState = await context.storageState();
+      await withSnapshotTimeout(
+        `api ${auth} auth context close`,
+        context.close(),
+      );
+      requests.set(
+        auth,
+        await playwrightRequest.newContext({ baseURL: baseUrl, storageState }),
+      );
     }
+    await withSnapshotTimeout("api auth browser close", browser.close());
 
     for (const snapshotCase of API_SNAPSHOT_CASES) {
       const startedAt = performance.now();
@@ -188,10 +196,15 @@ async function captureApiSnapshots() {
       }
     }
   } finally {
-    for (const context of contexts.values()) {
-      await context.close();
+    for (const [auth, request] of requests) {
+      await withSnapshotTimeout(
+        `api ${auth} request dispose`,
+        request.dispose({ reason: "snapshot api complete" }),
+      );
     }
-    await browser.close();
+    if (browser.isConnected()) {
+      await withSnapshotTimeout("api browser close", browser.close());
+    }
   }
 
   await writeJsonFile(path.join(root, "manifest.json"), {
@@ -365,11 +378,14 @@ async function captureMcpSnapshots() {
   await resetDirectory(root);
 
   try {
-    await mcpClient.connect(transport);
+    await withSnapshotTimeout("mcp connect", mcpClient.connect(transport));
     const toolsDir = path.join(root, "_tools");
     await resetDirectory(toolsDir);
     const toolsPath = path.join(toolsDir, "list-tools.json");
-    const listed = await mcpClient.listTools();
+    const listed = await withSnapshotTimeout(
+      "mcp list-tools",
+      mcpClient.listTools(),
+    );
     await writeJsonFile(toolsPath, listed);
     entries.push({
       id: "list-tools",
@@ -384,10 +400,13 @@ async function captureMcpSnapshots() {
       const dir = path.join(root, sanitizeFileSegment(snapshotCase.name));
       await resetDirectory(dir);
       try {
-        const result = await mcpClient.callTool({
-          name: snapshotCase.name,
-          arguments: snapshotCase.arguments,
-        });
+        const result = await withSnapshotTimeout(
+          `mcp ${snapshotCase.name}`,
+          mcpClient.callTool({
+            name: snapshotCase.name,
+            arguments: snapshotCase.arguments,
+          }),
+        );
         const text = textContentFromResult(result);
         let parsedText: unknown = text;
         if (text) {
@@ -858,12 +877,12 @@ async function capturePageSnapshots() {
         entries.push(metadata);
         console.error(`page ${snapshotCase.id}: failed`);
       } finally {
-        await page.close();
-        await context.close();
+        await withSnapshotTimeout("page page close", page.close());
+        await withSnapshotTimeout("page context close", context.close());
       }
     }
   } finally {
-    await browser.close();
+    await withSnapshotTimeout("page browser close", browser.close());
     await disconnectSnapshotOAuthCleanup();
   }
 
@@ -878,6 +897,27 @@ async function capturePageSnapshots() {
 }
 
 const allSnapshotModes = ["pages", "api", "mcp"] as const;
+const SNAPSHOT_OPERATION_TIMEOUT_MS = 30_000;
+
+async function withSnapshotTimeout<T>(label: string, operation: Promise<T>) {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => {
+          reject(
+            new Error(
+              `Snapshot operation timed out after ${SNAPSHOT_OPERATION_TIMEOUT_MS}ms: ${label}`,
+            ),
+          );
+        }, SNAPSHOT_OPERATION_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
 
 async function captureAllSnapshots() {
   const failures: Error[] = [];

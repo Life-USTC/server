@@ -1,4 +1,4 @@
-import { parseInteger } from "@/lib/api/helpers";
+import { parseInteger } from "@/lib/integers";
 
 export type DescriptionTargetType =
   | "section"

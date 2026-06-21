@@ -4,6 +4,7 @@ import {
 } from "@/features/homeworks/server/homework-create";
 import { requireHomeworkItemById } from "@/features/homeworks/server/homework-read-model";
 import {
+  badRequest,
   handleRouteError,
   jsonResponse,
   notFound,
@@ -44,12 +45,18 @@ export async function postHomeworkRoute(request: Request) {
   if (homeworkInput instanceof Response) return homeworkInput;
 
   try {
-    const sectionId = await resolveSectionIdForHomeworkCreate(homeworkInput);
-    if (!sectionId) return notFound("Section not found");
+    const sectionResolution =
+      await resolveSectionIdForHomeworkCreate(homeworkInput);
+    if (!sectionResolution.ok) {
+      if (sectionResolution.error === "mismatch") {
+        return badRequest("Invalid section");
+      }
+      return notFound("Section not found");
+    }
 
     const homework = await createHomeworkForSection(userId, {
       ...homeworkInput,
-      sectionId,
+      sectionId: sectionResolution.sectionId,
     });
     if (!homework) return notFound("Section not found");
     const homeworkItem = await requireHomeworkItemById({

@@ -8,12 +8,11 @@ Use the root `AGENTS.md` command list for the canonical E2E workflow. For a
 focused local Playwright run, prepare the Worker runtime and seed data first:
 
 ```bash
-bun run build
-bun run e2e:prepare
-bun run db:migrate:deploy
+bun run e2e:db:prepare
+bun run e2e:build-artifacts
 bun run seed
-bunx playwright test --headed path/to/test
-bunx playwright test --ui
+bun run e2e:test -- --headed path/to/test
+bun run e2e:test -- --ui
 ```
 
 ## Local Setup

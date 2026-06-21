@@ -7,7 +7,7 @@ export {
   findSectionByJwId,
   findSectionCompactByJwId,
   findSectionDetailByJwId,
-  findSectionToolSummaryByJwId,
+  findSectionSummaryByJwId,
   listCoursesBySearch,
 } from "@/features/catalog/server/course-section-read-queries";
 export { findSectionCodeMatches } from "@/features/catalog/server/section-code-match-query";
