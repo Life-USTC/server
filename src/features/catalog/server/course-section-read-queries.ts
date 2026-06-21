@@ -86,3 +86,32 @@ export async function findSectionCompactByJwId(
     include: sectionCompactInclude,
   });
 }
+
+export function findSectionToolSummaryByJwId(
+  jwId: number,
+  locale: AppLocale = DEFAULT_LOCALE,
+) {
+  return getPrisma(locale).section.findUnique({
+    where: { jwId },
+    select: {
+      id: true,
+      jwId: true,
+      code: true,
+      course: {
+        select: {
+          jwId: true,
+          code: true,
+          nameCn: true,
+          nameEn: true,
+        },
+      },
+      semester: {
+        select: {
+          jwId: true,
+          code: true,
+          nameCn: true,
+        },
+      },
+    },
+  });
+}

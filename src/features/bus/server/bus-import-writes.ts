@@ -1,9 +1,12 @@
-import type { BusImportPrisma } from "./bus-import-prisma";
 import {
   buildBusRouteNameData,
   normalizeBusCampusName,
-} from "./bus-import-route-data";
-import type { BusStaticPayload, BusStaticRouteSchedule } from "./bus-types";
+} from "../lib/bus-import-route-data";
+import type {
+  BusStaticPayload,
+  BusStaticRouteSchedule,
+} from "../lib/bus-types";
+import type { BusImportPrisma } from "./bus-import-prisma";
 
 export function assertBusRouteConsistency(payload: BusStaticPayload) {
   const routeIds = new Set(payload.routes.map((route) => route.id));

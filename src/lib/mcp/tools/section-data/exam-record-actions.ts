@@ -1,10 +1,7 @@
+import { listExamsBySectionJwId } from "@/features/catalog/server/course-section-queries";
 import type { AppLocale } from "@/i18n/config";
-import {
-  jsonToolResult,
-  resolveMcpMode,
-  resolveSectionByJwId,
-} from "@/lib/mcp/tools/_helpers";
-import { sectionExamInclude, sectionNotFoundToolResult } from "./shared";
+import { jsonToolResult, resolveMcpMode } from "@/lib/mcp/tools/_helpers";
+import { sectionNotFoundToolResult } from "./shared";
 
 type McpModeInput = Parameters<typeof resolveMcpMode>[0];
 
@@ -19,20 +16,11 @@ export async function listExamsBySectionAction({
   locale,
   mode,
 }: ListExamsBySectionInput) {
-  const { localizedPrisma, section } = await resolveSectionByJwId(
-    sectionJwId,
-    locale,
-  );
-
-  if (!section) {
+  const result = await listExamsBySectionJwId(sectionJwId, locale);
+  if (!result) {
     return sectionNotFoundToolResult(sectionJwId, mode);
   }
-
-  const exams = await localizedPrisma.exam.findMany({
-    where: { sectionId: section.id },
-    include: sectionExamInclude,
-    orderBy: [{ examDate: "asc" }, { startTime: "asc" }, { jwId: "asc" }],
-  });
+  const { exams, section } = result;
 
   return jsonToolResult(
     {

@@ -64,7 +64,7 @@
             "path": "/api/sections/match-codes",
             "method": "POST",
             "auth": "anon",
-            "returns": "{ semester: Semester, matchedCodes: String[], unmatchedCodes: String[], suggestions?: Record<String, String[]>, sections: Section[], total: Int }"
+            "returns": "{ semester: Semester, matchedCodes: String[], unmatchedCodes: String[], suggestions: Record<String, String[]>, sections: Section[], total: Int }"
           },
           {
             "path": "/api/calendar-subscriptions",
@@ -89,7 +89,7 @@
         "tools": [
           {
             "name": "match_section_codes",
-            "returns": "{ semester: Semester, matchedCodes: String[], unmatchedCodes: String[], suggestions?: Record<String, String[]>, sections: Section[], total: Int }",
+            "returns": "{ semester: Semester, matchedCodes: String[], unmatchedCodes: String[], suggestions: Record<String, String[]>, sections: Section[], total: Int }",
             "rest_equivalent": "POST /api/sections/match-codes",
             "notes": [
               "Returns suggestions for unmatched inputs when close section codes in the selected semester share a strong code-prefix or edit-distance match; unrelated section codes should be filtered out.",

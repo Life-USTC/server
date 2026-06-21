@@ -9,6 +9,8 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response successResponseSchema
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
+ * @response 403:openApiErrorSchema
+ * @response 404:openApiErrorSchema
  */
 export const PATCH: RequestHandler = ({ request, params }) =>
   observedApiRoute(() => patchTodoRoute(request, { id: params.id }))(request);
@@ -18,6 +20,7 @@ export const PATCH: RequestHandler = ({ request, params }) =>
  * @pathParams resourceIdPathParamsSchema
  * @response successResponseSchema
  * @response 401:openApiErrorSchema
+ * @response 403:openApiErrorSchema
  * @response 404:openApiErrorSchema
  */
 export const DELETE: RequestHandler = ({ request, params }) =>

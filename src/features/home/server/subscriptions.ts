@@ -4,6 +4,7 @@ export {
 } from "./subscription-read-model";
 export {
   addUserSectionSubscriptions,
+  hasUserSubscribedSectionByJwId,
   importUserSectionSubscriptionsByCodes,
   removeUserSectionSubscriptions,
   replaceUserSectionSubscriptions,

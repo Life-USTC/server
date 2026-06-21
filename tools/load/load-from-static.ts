@@ -2,14 +2,13 @@ import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { parseArgs } from "node:util";
-
-import { importBusStaticPayload } from "../../src/features/bus/lib/bus-import";
 import type {
   BusStaticCampus,
   BusStaticPayload,
   BusStaticRoute,
   BusStaticRouteSchedule,
 } from "../../src/features/bus/lib/bus-types";
+import { importBusStaticPayload } from "../../src/features/bus/server/bus-import";
 import type {
   Prisma,
   PrismaClient,

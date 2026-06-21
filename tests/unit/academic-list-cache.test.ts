@@ -1,39 +1,26 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const {
-  buildCourseListWhereMock,
-  buildTeacherWhereMock,
-  paginatedCourseQueryMock,
-  paginatedTeacherQueryMock,
-} = vi.hoisted(() => ({
-  buildCourseListWhereMock: vi.fn(() => ({ courseWhere: true })),
-  buildTeacherWhereMock: vi.fn(async () => ({ teacherWhere: true })),
-  paginatedCourseQueryMock: vi.fn(async () => ({
-    data: [{ id: 1 }],
-    meta: { total: 1 },
-  })),
-  paginatedTeacherQueryMock: vi.fn(async () => ({
-    data: [{ id: 2 }],
-    meta: { total: 1 },
-  })),
-}));
+const { listCourseSummariesMock, listTeacherSummariesMock } = vi.hoisted(
+  () => ({
+    listCourseSummariesMock: vi.fn(async () => ({
+      data: [{ id: 1 }],
+      meta: { total: 1 },
+    })),
+    listTeacherSummariesMock: vi.fn(async () => ({
+      data: [{ id: 2 }],
+      meta: { total: 1 },
+    })),
+  }),
+);
 
 vi.mock("@/lib/api/routes/academic-route-helpers", () => ({
   parseJwIdRouteParam: vi.fn(),
   parseResourceIdRouteParam: vi.fn(),
 }));
 
-vi.mock("@/features/catalog/server/teacher-query", () => ({
-  buildTeacherWhere: buildTeacherWhereMock,
-}));
-
 vi.mock("@/features/catalog/server/course-section-queries", () => ({
-  buildCourseListWhere: buildCourseListWhereMock,
-}));
-
-vi.mock("@/features/catalog/server/academic-paginated-queries", () => ({
-  paginatedCourseQuery: paginatedCourseQueryMock,
-  paginatedTeacherQuery: paginatedTeacherQueryMock,
+  listCourseSummaries: listCourseSummariesMock,
+  listTeacherSummaries: listTeacherSummariesMock,
 }));
 
 function clearPublicRuntimeCache() {
@@ -46,10 +33,8 @@ function clearPublicRuntimeCache() {
 
 describe("academic list route caching", () => {
   afterEach(() => {
-    buildCourseListWhereMock.mockClear();
-    buildTeacherWhereMock.mockClear();
-    paginatedCourseQueryMock.mockClear();
-    paginatedTeacherQueryMock.mockClear();
+    listCourseSummariesMock.mockClear();
+    listTeacherSummariesMock.mockClear();
     clearPublicRuntimeCache();
     vi.resetModules();
   });
@@ -71,7 +56,7 @@ describe("academic list route caching", () => {
     );
     expect(first.headers.get("Vary")).toBe("Accept-Language, Cookie");
     expect(second.status).toBe(200);
-    expect(paginatedCourseQueryMock).toHaveBeenCalledTimes(1);
+    expect(listCourseSummariesMock).toHaveBeenCalledTimes(1);
   });
 
   it("caches teacher list responses for equivalent query strings", async () => {
@@ -91,6 +76,6 @@ describe("academic list route caching", () => {
     );
     expect(first.headers.get("Vary")).toBe("Accept-Language, Cookie");
     expect(second.status).toBe(200);
-    expect(paginatedTeacherQueryMock).toHaveBeenCalledTimes(1);
+    expect(listTeacherSummariesMock).toHaveBeenCalledTimes(1);
   });
 });

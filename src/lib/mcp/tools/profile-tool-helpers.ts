@@ -8,16 +8,6 @@ import {
   todoPrioritySchema,
 } from "@/lib/mcp/tools/_helpers";
 
-export const userProfileSelect = {
-  id: true,
-  username: true,
-  name: true,
-  image: true,
-  isAdmin: true,
-  createdAt: true,
-  updatedAt: true,
-} as const;
-
 export const getMyProfileInputSchema = {
   mode: mcpModeInputSchema,
 };

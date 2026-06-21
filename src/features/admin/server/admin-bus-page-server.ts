@@ -3,8 +3,8 @@ import {
   getAdminBusPage,
   requireAdminPage,
 } from "@/features/admin/server/admin-page-data";
-import { importBusStaticPayload } from "@/features/bus/lib/bus-import";
 import { loadBusStaticPayload } from "@/features/bus/lib/bus-static-source";
+import { importBusStaticPayload } from "@/features/bus/server/bus-import";
 import type { AppLocale } from "@/i18n/config";
 import enUsMessages from "../../../../messages/en-us.json";
 import zhCnMessages from "../../../../messages/zh-cn.json";

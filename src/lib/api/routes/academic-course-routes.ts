@@ -28,7 +28,6 @@ export async function getCoursesRoute(request: Request) {
   }
 
   const { query: parsedQuery, pagination } = parsed;
-  const { search, educationLevelId, categoryId, classTypeId } = parsedQuery;
   const locale = getRequestLocale(request);
 
   try {
@@ -36,24 +35,14 @@ export async function getCoursesRoute(request: Request) {
       publicRuntimeCacheKey(`api:courses:${locale}`, searchParams),
       COURSES_API_CACHE_TTL_MS,
       async () => {
-        const [{ buildCourseListWhere }, { paginatedCourseQuery }] =
-          await Promise.all([
-            import("@/features/catalog/server/course-section-queries"),
-            import("@/features/catalog/server/academic-paginated-queries"),
-          ]);
-        const where = buildCourseListWhere({
-          search,
-          educationLevelId,
-          categoryId,
-          classTypeId,
-        });
-        return paginatedCourseQuery(
-          pagination.page,
-          pagination.pageSize,
-          where,
-          undefined,
-          locale,
+        const { listCourseSummaries } = await import(
+          "@/features/catalog/server/course-section-queries"
         );
+        return listCourseSummaries({
+          filters: parsedQuery,
+          locale,
+          pagination,
+        });
       },
     );
     return jsonResponse(result, {

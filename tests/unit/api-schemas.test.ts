@@ -52,6 +52,15 @@ describe("homeworkCreateRequestSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts nullable description like the MCP create tool", () => {
+    const result = homeworkCreateRequestSchema.safeParse({
+      sectionJwId: "12345",
+      title: "作业 1",
+      description: null,
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("rejects missing title", () => {
     const result = homeworkCreateRequestSchema.safeParse({
       sectionId: 3,

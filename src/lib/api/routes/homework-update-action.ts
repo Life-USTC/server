@@ -1,6 +1,6 @@
 import { updateHomework } from "@/features/homeworks/server/homework-mutations";
 import { requireHomeworkItemById } from "@/features/homeworks/server/homework-read-model";
-import { DEFAULT_LOCALE } from "@/i18n/config";
+import type { AppLocale } from "@/i18n/config";
 import {
   badRequest,
   forbidden,
@@ -12,6 +12,7 @@ import { parseUpdateHomeworkInput } from "@/lib/api/routes/homework-mutation-hel
 export async function updateHomeworkAction(
   id: string,
   userId: string,
+  locale: AppLocale,
   parsedBody: Parameters<typeof parseUpdateHomeworkInput>[0],
 ) {
   const parsedUpdate = parseUpdateHomeworkInput(parsedBody, userId);
@@ -30,7 +31,7 @@ export async function updateHomeworkAction(
 
   const homework = await requireHomeworkItemById({
     homeworkId: id,
-    locale: DEFAULT_LOCALE,
+    locale,
     userId,
   });
 
