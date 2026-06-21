@@ -22,7 +22,7 @@
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
-import { DEV_SEED } from "../../../../utils/dev-seed";
+import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../../utils/dev-seed";
 import { assertApiContract } from "../../_shared/api-contract";
 
 const BASE = "/api/bus";
@@ -229,7 +229,7 @@ test.describe("GET /api/bus/next", () => {
     request,
   }) => {
     const response = await request.get(
-      `${NEXT_BASE}?originCampusId=${DEV_SEED.bus.originCampusId}&destinationCampusId=${DEV_SEED.bus.destinationCampusId}&atTime=${encodeURIComponent(DEV_SEED.seedAnchorAtTime)}&dayType=weekday&includeDeparted=true&limit=5&${SEED_VERSION}`,
+      `${NEXT_BASE}?originCampusId=${DEV_SEED.bus.originCampusId}&destinationCampusId=${DEV_SEED.bus.destinationCampusId}&atTime=${encodeURIComponent(DEV_SEED_ANCHOR.recommendedAtTime)}&dayType=weekday&includeDeparted=true&limit=1&${SEED_VERSION}`,
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as BusNextResponse;
@@ -238,15 +238,14 @@ test.describe("GET /api/bus/next", () => {
     expect(body.destinationCampus?.id).toBe(DEV_SEED.bus.destinationCampusId);
     expect(body.dayType).toBe("weekday");
     expect((body.totalRoutes ?? 0) > 0).toBe(true);
-    expect((body.departures?.length ?? 0) > 0).toBe(true);
-    expect(body.departures?.some((trip) => trip.status === "upcoming")).toBe(
-      true,
+    expect(body.departures).toHaveLength(1);
+    expect(body.departures?.[0]?.status).toBe("upcoming");
+    expect(body.departures?.[0]?.departureTime).not.toBe(
+      DEV_SEED.bus.recommendedDeparture,
     );
-    expect(
-      body.departures?.some(
-        (trip) => typeof trip.minutesUntilDeparture === "number",
-      ),
-    ).toBe(true);
+    expect(body.departures?.[0]?.minutesUntilDeparture).toBeGreaterThanOrEqual(
+      0,
+    );
   });
 
   test("missing required campus IDs returns 400", async ({ request }) => {
