@@ -32,7 +32,7 @@
     "seed": "bun run tools/dev/seed/seed-dev-scenarios.ts",
     "test": "vitest run",
     "verify": "bun run verify:default",
-    "verify:default": "bun run verify:conventions && bun run verify:types && bun run test",
+    "verify:default": "bun run verify:types && bun run verify:conventions && bun run test",
     "verify:conventions": "bun run biome check && bun run openapi:check && bun run check:contracts && bun run check:i18n && bun run check:routes",
     "verify:types": "bun run app:prepare && bun run svelte-check --tsconfig ./tsconfig.json && bun run tsc --noEmit -p tsconfig.typecheck.json && bun run tsc --noEmit -p tsconfig.typecheck.tests.json && bun run tsc --noEmit -p tsconfig.typecheck.operational.json",
     "verify:full": "bun run verify:default && bun run verify:integration && bun run verify:e2e",
