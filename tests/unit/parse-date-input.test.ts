@@ -39,9 +39,11 @@ describe("parseDateInput", () => {
     expect(parseDateInput("02/31/2026")).toBeUndefined();
     expect(parseDateInput("2/31/2026")).toBeUndefined();
     expect(parseDateInput("02.31.2026")).toBeUndefined();
+    expect(parseDateInput("February 31, 2026")).toBeUndefined();
   });
 
-  test("rejects unsupported non-YMD numeric dates", () => {
+  test("rejects unsupported date formats", () => {
     expect(parseDateInput("03/26/2026")).toBeUndefined();
+    expect(parseDateInput("February 28, 2026")).toBeUndefined();
   });
 });
