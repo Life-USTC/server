@@ -1,6 +1,17 @@
 import type { BusApplicableRoute } from "./bus-applicable-routes";
 import type { BusCampusSummary } from "./bus-types";
 
+function compareDepartureMinutes(
+  left: number | null,
+  right: number | null,
+  direction: "asc" | "desc",
+) {
+  const lm = left ?? Number.MAX_SAFE_INTEGER;
+  const rm = right ?? Number.MAX_SAFE_INTEGER;
+  if (lm === rm) return 0;
+  return direction === "asc" ? lm - rm : rm - lm;
+}
+
 export function buildVisibleBusDepartures({
   applicableRoutes,
   destinationCampus,
@@ -36,9 +47,15 @@ export function buildVisibleBusDepartures({
       })),
     )
     .sort((left, right) => {
-      const lm = left.minutesUntilDeparture ?? Number.MAX_SAFE_INTEGER;
-      const rm = right.minutesUntilDeparture ?? Number.MAX_SAFE_INTEGER;
-      return lm !== rm ? lm - rm : left.routeId - right.routeId;
+      if (left.status !== right.status) {
+        return left.status === "upcoming" ? -1 : 1;
+      }
+      const timeOrder = compareDepartureMinutes(
+        left.minutesUntilDeparture,
+        right.minutesUntilDeparture,
+        left.status === "upcoming" ? "asc" : "desc",
+      );
+      return timeOrder !== 0 ? timeOrder : left.routeId - right.routeId;
     })
     .slice(0, limit);
 }
