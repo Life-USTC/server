@@ -63,6 +63,7 @@
           {
             "path": "/api/sections/match-codes",
             "method": "POST",
+            "auth": "anon",
             "returns": "{ semester: Semester, matchedCodes: String[], unmatchedCodes: String[], sections: Section[], total: Int }"
           },
           {

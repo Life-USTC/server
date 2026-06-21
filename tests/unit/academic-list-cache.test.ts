@@ -19,9 +19,12 @@ const {
 }));
 
 vi.mock("@/lib/api/routes/academic-route-helpers", () => ({
-  buildTeacherWhere: buildTeacherWhereMock,
   parseJwIdRouteParam: vi.fn(),
   parseResourceIdRouteParam: vi.fn(),
+}));
+
+vi.mock("@/features/catalog/server/teacher-query", () => ({
+  buildTeacherWhere: buildTeacherWhereMock,
 }));
 
 vi.mock("@/features/catalog/server/course-section-queries", () => ({

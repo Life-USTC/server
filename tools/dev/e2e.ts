@@ -6,6 +6,10 @@ import type {
   ScreenshotMode,
   TraceMode,
 } from "@playwright/test";
+import {
+  flattenDiagnosticMessageText,
+  parseConfigFileTextToJson,
+} from "typescript";
 import { DEV_SEED } from "./seed/dev-seed";
 
 const PLAYWRIGHT_HOST = "127.0.0.1";
@@ -157,6 +161,22 @@ function requireBuiltFile(root: string, relativePath: string) {
   }
 }
 
+function readJsoncFile<T>(filePath: string): T {
+  const parsed = parseConfigFileTextToJson(
+    filePath,
+    fs.readFileSync(filePath, "utf8"),
+  );
+  if (parsed.error) {
+    throw new Error(
+      `Invalid JSONC in ${filePath}: ${flattenDiagnosticMessageText(
+        parsed.error.messageText,
+        "\n",
+      )}`,
+    );
+  }
+  return parsed.config as T;
+}
+
 export function preparePlaywrightWorkerRuntime(root = process.cwd()) {
   resolveWorkerEntrypoint(root, "bun run build");
   requireBuiltFile(root, ".svelte-kit/cloudflare-tmp/manifest.js");
@@ -179,13 +199,13 @@ function writePlaywrightWranglerConfig(
 ) {
   const sourceConfigPath = path.join(root, "wrangler.jsonc");
   const targetConfigPath = path.join(root, WRANGLER_E2E_CONFIG_PATH);
-  const config = JSON.parse(fs.readFileSync(sourceConfigPath, "utf8")) as {
+  const config = readJsoncFile<{
     alias?: Record<string, string>;
     assets?: { directory?: string };
     main?: string;
     routes?: unknown;
     vars?: Record<string, string>;
-  };
+  }>(sourceConfigPath);
 
   delete config.routes;
   config.main = path.resolve(root, ".svelte-kit/cloudflare/_worker.js");

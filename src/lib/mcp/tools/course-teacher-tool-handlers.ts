@@ -1,11 +1,8 @@
-import {
-  teacherDetailInclude,
-  teacherListInclude,
-} from "@/features/catalog/server/academic-query-includes";
-import { buildPaginatedResponse, normalizePagination } from "@/lib/api/helpers";
+import { paginatedTeacherQuery } from "@/features/catalog/server/academic-paginated-queries";
+import { teacherDetailInclude } from "@/features/catalog/server/academic-query-includes";
+import { buildTeacherWhere } from "@/features/catalog/server/teacher-query";
 import { getPrisma } from "@/lib/db/prisma";
 import { jsonToolResult, resolveMcpMode } from "@/lib/mcp/tools/_helpers";
-import { ilike } from "@/lib/query-filter-helpers";
 
 type McpModeInput = Parameters<typeof resolveMcpMode>[0];
 
@@ -24,43 +21,17 @@ export async function searchTeachersTool({
   locale: string;
   mode?: McpModeInput;
 }) {
-  const localizedPrisma = getPrisma(locale);
-  const pagination = normalizePagination({ page, pageSize: limit });
-  const where = {
-    ...(departmentId ? { departmentId } : {}),
-    ...(search
-      ? {
-          OR: [
-            { nameCn: ilike(search) },
-            { nameEn: ilike(search) },
-            { code: ilike(search) },
-          ],
-        }
-      : {}),
-  };
-
-  const [teachers, total] = await Promise.all([
-    localizedPrisma.teacher.findMany({
-      where,
-      skip: pagination.skip,
-      take: pagination.pageSize,
-      include: teacherListInclude,
-      orderBy: { nameCn: "asc" },
-    }),
-    localizedPrisma.teacher.count({ where }),
-  ]);
-
-  return jsonToolResult(
-    buildPaginatedResponse(
-      teachers,
-      pagination.page,
-      pagination.pageSize,
-      total,
-    ),
-    {
-      mode: resolveMcpMode(mode),
-    },
+  const result = await paginatedTeacherQuery(
+    page,
+    limit,
+    buildTeacherWhere({ departmentId, search }),
+    { nameCn: "asc" },
+    locale,
   );
+
+  return jsonToolResult(result, {
+    mode: resolveMcpMode(mode),
+  });
 }
 
 export async function getTeacherByIdTool({

@@ -1,4 +1,3 @@
-import type { Prisma } from "@/generated/prisma/client";
 import {
   handleRouteError,
   invalidParamResponse,
@@ -48,29 +47,4 @@ export function parseScheduleDateParam(
   return parsed instanceof Date
     ? parsed
     : handleRouteError("Invalid schedule query", `Invalid ${name}`, 400);
-}
-
-export async function buildTeacherWhere(input: {
-  departmentId?: string;
-  search?: string;
-}) {
-  const where: Prisma.TeacherWhereInput = {};
-
-  if (input.departmentId) {
-    const parsedDepartmentId = parseInteger(input.departmentId);
-    if (parsedDepartmentId !== null) {
-      where.departmentId = parsedDepartmentId;
-    }
-  }
-
-  if (input.search) {
-    const { ilike } = await import("@/lib/query-filter-helpers");
-    where.OR = [
-      { nameCn: ilike(input.search) },
-      { nameEn: ilike(input.search) },
-      { code: ilike(input.search) },
-    ];
-  }
-
-  return where;
 }

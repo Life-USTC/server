@@ -52,7 +52,7 @@ export async function listSubscribedHomeworks(
         return localizedPrisma.homework.findMany({
           ...query,
           select: buildDashboardHomeworkSelect(userId),
-        }) as unknown as Promise<HomeworkWithSection[]>;
+        });
       }
 
       return localizedPrisma.homework.findMany({

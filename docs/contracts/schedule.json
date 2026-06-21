@@ -156,7 +156,7 @@
           "schedule.date",
           "schedule.startTime - endTime",
           "schedule.room (with building/campus)",
-          "schedule.weekday (0=Sunday)",
+          "schedule.weekday (1=Monday, 7=Sunday)",
           "schedule.teachers[] names"
         ]
       }

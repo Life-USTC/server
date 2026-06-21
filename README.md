@@ -11,7 +11,7 @@ docker compose -f docker-compose.dev.yml up -d
 bun run dev
 ```
 
-本地数据库/存储由 Docker Compose 管理；需要数据库时先启动本地 infra，再运行应用。生产应用由 Cloudflare Git integration 发布，Docker 只保留静态数据加载环境。
+本地数据库由 Docker Compose 管理；需要数据库时先启动本地 infra，再运行应用。上传存储使用 Cloudflare `R2_UPLOADS` 绑定，需通过 Wrangler 相关流程本地验证。生产应用由 Cloudflare Git integration 发布，Docker 只保留静态数据加载环境。
 
 开发期建议节奏：
 - 默认提交门禁：`bun run verify`

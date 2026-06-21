@@ -1,4 +1,4 @@
-import { toDateTimeFromHHmm } from "@/lib/mcp/tools/_helpers";
+import { toDateTimeFromHHmm } from "@/lib/time/date-time-from-hhmm";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import {
   addShanghaiTime,

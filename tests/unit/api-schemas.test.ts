@@ -141,12 +141,24 @@ describe("other request schemas", () => {
     expect(
       schedulesQuerySchema.safeParse({ weekday: "2", page: "1" }).success,
     ).toBe(true);
+    expect(
+      schedulesQuerySchema.safeParse({ dateFrom: "2026-03-01" }).success,
+    ).toBe(true);
     expect(coursesQuerySchema.safeParse({ search: "math" }).success).toBe(true);
 
     expect(sectionsQuerySchema.safeParse({ courseId: "abc" }).success).toBe(
       false,
     );
     expect(schedulesQuerySchema.safeParse({ weekday: "x" }).success).toBe(
+      false,
+    );
+    expect(schedulesQuerySchema.safeParse({ weekday: "0" }).success).toBe(
+      false,
+    );
+    expect(schedulesQuerySchema.safeParse({ weekday: "8" }).success).toBe(
+      false,
+    );
+    expect(schedulesQuerySchema.safeParse({ dateFrom: "" }).success).toBe(
       false,
     );
   });
