@@ -1,4 +1,4 @@
-import { UploadError } from "@/features/uploads/lib/upload-quota";
+import { UploadError } from "@/features/uploads/server/upload-quota";
 import { deleteUploadObject } from "@/features/uploads/server/upload-service";
 import { badRequest, handleRouteError } from "@/lib/api/helpers";
 

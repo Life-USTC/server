@@ -1,9 +1,12 @@
 import type { AppLocale } from "@/i18n/config";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
-import { buildNextBusDeparturesFromData } from "./bus-departures";
-import { searchBusRoutesFromData } from "./bus-route-search";
+import { buildNextBusDeparturesFromData } from "../lib/bus-departures";
+import { searchBusRoutesFromData } from "../lib/bus-route-search";
+import type {
+  BusNextDeparturesResult,
+  BusResolvedDayType,
+} from "../lib/bus-types";
 import { getBusTimetableData } from "./bus-timetable-data";
-import type { BusNextDeparturesResult, BusResolvedDayType } from "./bus-types";
 
 export async function getNextBusDepartures(input: {
   locale: AppLocale;

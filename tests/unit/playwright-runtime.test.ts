@@ -67,6 +67,24 @@ describe("playwright runtime", () => {
     });
   });
 
+  it("rejects Playwright base URLs that cannot match the spawned local server", () => {
+    expect(() =>
+      resolvePlaywrightHarnessRuntime({
+        PLAYWRIGHT_BASE_URL: "https://example.test:3102",
+      }),
+    ).toThrow(/must use http/);
+    expect(() =>
+      resolvePlaywrightHarnessRuntime({
+        PLAYWRIGHT_BASE_URL: "https://127.0.0.1:3102",
+      }),
+    ).toThrow(/must use http/);
+    expect(() =>
+      resolvePlaywrightHarnessRuntime({
+        PLAYWRIGHT_BASE_URL: "http://127.0.0.1",
+      }),
+    ).toThrow(/explicit port/);
+  });
+
   it("resolves CI once into Playwright settings", () => {
     expect(
       resolvePlaywrightHarnessRuntime({

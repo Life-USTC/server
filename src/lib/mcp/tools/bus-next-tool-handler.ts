@@ -1,4 +1,4 @@
-import { getNextBusDepartures } from "@/features/bus/lib/bus-service";
+import { getNextBusDepartures } from "@/features/bus/server/bus-service";
 import {
   getUserId,
   jsonToolResult,

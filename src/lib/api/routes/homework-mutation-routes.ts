@@ -1,6 +1,8 @@
-import { createHomeworkForSection } from "@/features/homeworks/server/homework-create";
+import {
+  createHomeworkForSection,
+  resolveSectionIdForHomeworkCreate,
+} from "@/features/homeworks/server/homework-create";
 import { requireHomeworkItemById } from "@/features/homeworks/server/homework-read-model";
-import { DEFAULT_LOCALE } from "@/i18n/config";
 import {
   handleRouteError,
   jsonResponse,
@@ -13,6 +15,7 @@ import {
 } from "@/lib/api/routes/homework-mutation-actions";
 import { parseCreateHomeworkInput } from "@/lib/api/routes/homework-mutation-helpers";
 import { parseHomeworkId } from "@/lib/api/routes/homework-route-helpers";
+import { getRequestLocale } from "@/lib/api/routes/request-locale";
 import {
   homeworkCreateRequestSchema,
   homeworkUpdateRequestSchema,
@@ -41,11 +44,17 @@ export async function postHomeworkRoute(request: Request) {
   if (homeworkInput instanceof Response) return homeworkInput;
 
   try {
-    const homework = await createHomeworkForSection(userId, homeworkInput);
+    const sectionId = await resolveSectionIdForHomeworkCreate(homeworkInput);
+    if (!sectionId) return notFound("Section not found");
+
+    const homework = await createHomeworkForSection(userId, {
+      ...homeworkInput,
+      sectionId,
+    });
     if (!homework) return notFound("Section not found");
     const homeworkItem = await requireHomeworkItemById({
       homeworkId: homework.id,
-      locale: DEFAULT_LOCALE,
+      locale: getRequestLocale(request),
       userId,
     });
     return jsonResponse({ id: homework.id, homework: homeworkItem });

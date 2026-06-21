@@ -5,12 +5,14 @@ import {
   sectionInclude,
 } from "@/features/catalog/server/academic-query-includes";
 import { buildCourseListWhere } from "@/features/catalog/server/course-section-query-filters";
+import type { AppLocale } from "@/i18n/config";
+import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma } from "@/lib/db/prisma";
 
 export async function listCoursesBySearch(
   search: string,
   limit: number,
-  locale = "zh-cn",
+  locale: AppLocale = DEFAULT_LOCALE,
 ) {
   const localizedPrisma = getPrisma(locale);
 
@@ -22,21 +24,30 @@ export async function listCoursesBySearch(
   });
 }
 
-export async function findCourseDetailByJwId(jwId: number, locale = "zh-cn") {
+export async function findCourseDetailByJwId(
+  jwId: number,
+  locale: AppLocale = DEFAULT_LOCALE,
+) {
   return getPrisma(locale).course.findUnique({
     where: { jwId },
     include: courseDetailInclude,
   });
 }
 
-export async function findSectionByJwId(jwId: number, locale = "zh-cn") {
+export async function findSectionByJwId(
+  jwId: number,
+  locale: AppLocale = DEFAULT_LOCALE,
+) {
   return getPrisma(locale).section.findUnique({
     where: { jwId },
     include: sectionInclude,
   });
 }
 
-export async function findSectionDetailByJwId(jwId: number, locale = "zh-cn") {
+export async function findSectionDetailByJwId(
+  jwId: number,
+  locale: AppLocale = DEFAULT_LOCALE,
+) {
   return getPrisma(locale).section.findUnique({
     where: { jwId },
     include: {
@@ -66,7 +77,10 @@ export async function findSectionDetailByJwId(jwId: number, locale = "zh-cn") {
   });
 }
 
-export async function findSectionCompactByJwId(jwId: number, locale = "zh-cn") {
+export async function findSectionCompactByJwId(
+  jwId: number,
+  locale: AppLocale = DEFAULT_LOCALE,
+) {
   return getPrisma(locale).section.findUnique({
     where: { jwId },
     include: sectionCompactInclude,

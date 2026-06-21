@@ -35,7 +35,7 @@ export async function getBusRoute(request: Request) {
 
   try {
     const { getBusTimetableData } = await import(
-      "@/features/bus/lib/bus-service"
+      "@/features/bus/server/bus-service"
     );
     const result = await getBusTimetableData({
       locale: locale === "en-us" ? "en-us" : "zh-cn",
@@ -78,7 +78,9 @@ export async function getBusRoutesSearchRoute(request: Request) {
   if (destinationCampusId instanceof Response) return destinationCampusId;
 
   try {
-    const { searchBusRoutes } = await import("@/features/bus/lib/bus-service");
+    const { searchBusRoutes } = await import(
+      "@/features/bus/server/bus-service"
+    );
     const result = await searchBusRoutes({
       destinationCampusId,
       locale: parsedQuery.locale ?? getRequestLocale(request),
@@ -143,7 +145,7 @@ export async function getBusNextDeparturesRoute(request: Request) {
 
   try {
     const { getNextBusDepartures } = await import(
-      "@/features/bus/lib/bus-service"
+      "@/features/bus/server/bus-service"
     );
     const result = await getNextBusDepartures({
       atTime: atTime?.toISOString(),
@@ -173,7 +175,9 @@ export async function getBusPreferencesRoute(request: Request) {
   const { userId } = auth;
 
   try {
-    const { getBusPreference } = await import("@/features/bus/lib/bus-service");
+    const { getBusPreference } = await import(
+      "@/features/bus/server/bus-service"
+    );
     const preference = await getBusPreference(userId);
     return jsonResponse({ preference });
   } catch (error) {
@@ -193,7 +197,7 @@ export async function postBusPreferencesRoute(request: Request) {
 
   try {
     const { saveBusPreference } = await import(
-      "@/features/bus/lib/bus-service"
+      "@/features/bus/server/bus-service"
     );
     const preference = await saveBusPreference(userId, parsedBody);
     return jsonResponse({ preference });

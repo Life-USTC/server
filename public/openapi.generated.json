@@ -735,6 +735,16 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       }
@@ -1266,6 +1276,16 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       }
@@ -1718,6 +1738,36 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       },
@@ -1763,6 +1813,36 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/successResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
                 }
               }
             }
@@ -2795,6 +2875,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       },
@@ -2817,6 +2907,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       },
@@ -2831,6 +2931,16 @@
             "description": "Response 200"
           },
           "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
             "description": "Error response",
             "content": {
               "application/json": {
@@ -4436,6 +4546,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       }
@@ -4989,6 +5109,16 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       }
@@ -5040,6 +5170,16 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       },
@@ -5067,6 +5207,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/successResponseSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
                 }
               }
             }
@@ -5947,79 +6097,179 @@
         ]
       },
       "homeworkCreateRequestSchema": {
-        "type": "object",
-        "properties": {
-          "sectionId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              }
-            ]
-          },
-          "title": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200
-          },
-          "description": {
-            "type": "string",
-            "maxLength": 4000
-          },
-          "publishedAt": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "title": {
                 "type": "string",
-                "nullable": true,
-                "enum": [
-                  null
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "description": {
+                "type": "string",
+                "maxLength": 4000
+              },
+              "publishedAt": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": [
+                      null
+                    ]
+                  }
+                ]
+              },
+              "submissionStartAt": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": [
+                      null
+                    ]
+                  }
+                ]
+              },
+              "submissionDueAt": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": [
+                      null
+                    ]
+                  }
+                ]
+              },
+              "isMajor": {
+                "type": "boolean"
+              },
+              "requiresTeam": {
+                "type": "boolean"
+              },
+              "sectionId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "sectionJwId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  }
                 ]
               }
+            },
+            "required": [
+              "title",
+              "sectionId"
             ]
           },
-          "submissionStartAt": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
+          {
+            "type": "object",
+            "properties": {
+              "title": {
                 "type": "string",
-                "nullable": true,
-                "enum": [
-                  null
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "description": {
+                "type": "string",
+                "maxLength": 4000
+              },
+              "publishedAt": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": [
+                      null
+                    ]
+                  }
+                ]
+              },
+              "submissionStartAt": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": [
+                      null
+                    ]
+                  }
+                ]
+              },
+              "submissionDueAt": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "string",
+                    "nullable": true,
+                    "enum": [
+                      null
+                    ]
+                  }
+                ]
+              },
+              "isMajor": {
+                "type": "boolean"
+              },
+              "requiresTeam": {
+                "type": "boolean"
+              },
+              "sectionId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "sectionJwId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  }
                 ]
               }
+            },
+            "required": [
+              "title",
+              "sectionJwId"
             ]
-          },
-          "submissionDueAt": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "string",
-                "nullable": true,
-                "enum": [
-                  null
-                ]
-              }
-            ]
-          },
-          "isMajor": {
-            "type": "boolean"
-          },
-          "requiresTeam": {
-            "type": "boolean"
           }
-        },
-        "required": [
-          "sectionId",
-          "title"
         ]
       },
       "homeworkUpdateRequestSchema": {
@@ -9465,35 +9715,184 @@
         "additionalProperties": false
       },
       "currentCalendarSubscriptionResponseSchema": {
-        "anyOf": [
-          {
+        "type": "object",
+        "properties": {
+          "subscription": {
+            "nullable": true,
             "type": "object",
             "properties": {
-              "subscription": {
-                "type": "string",
-                "nullable": true,
-                "enum": [
-                  null
-                ]
-              }
-            },
-            "required": [
-              "subscription"
-            ],
-            "additionalProperties": false
-          },
-          {
-            "type": "object",
-            "properties": {
-              "subscription": {
-                "type": "object",
-                "properties": {
-                  "userId": {
-                    "type": "string"
-                  },
-                  "sections": {
-                    "type": "array",
-                    "items": {
+              "userId": {
+                "type": "string"
+              },
+              "sections": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "jwId": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "bizTypeId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "credits": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "period": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "periodsPerWeek": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "timesPerWeek": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "stdCount": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "limitCount": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "graduateAndPostgraduate": {
+                      "nullable": true,
+                      "type": "boolean"
+                    },
+                    "dateTimePlaceText": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "dateTimePlacePersonText": {
+                      "nullable": true
+                    },
+                    "actualPeriods": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "theoryPeriods": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "practicePeriods": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "experimentPeriods": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "machinePeriods": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "designPeriods": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "testPeriods": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "scheduleState": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "suggestScheduleWeeks": {
+                      "nullable": true
+                    },
+                    "suggestScheduleWeekInfo": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "scheduleJsonParams": {
+                      "nullable": true
+                    },
+                    "selectedStdCount": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "remark": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "scheduleRemark": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "courseId": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "semesterId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "campusId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "examModeId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "openDepartmentId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "teachLanguageId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "roomTypeId": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "course": {
                       "type": "object",
                       "properties": {
                         "id": {
@@ -9509,435 +9908,54 @@
                         "code": {
                           "type": "string"
                         },
-                        "bizTypeId": {
-                          "nullable": true,
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
+                        "nameCn": {
+                          "type": "string"
                         },
-                        "credits": {
-                          "nullable": true,
-                          "type": "number"
-                        },
-                        "period": {
-                          "nullable": true,
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        },
-                        "periodsPerWeek": {
-                          "nullable": true,
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        },
-                        "timesPerWeek": {
-                          "nullable": true,
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        },
-                        "stdCount": {
-                          "nullable": true,
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        },
-                        "limitCount": {
-                          "nullable": true,
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        },
-                        "graduateAndPostgraduate": {
-                          "nullable": true,
-                          "type": "boolean"
-                        },
-                        "dateTimePlaceText": {
+                        "nameEn": {
                           "nullable": true,
                           "type": "string"
                         },
-                        "dateTimePlacePersonText": {
-                          "nullable": true
-                        },
-                        "actualPeriods": {
+                        "categoryId": {
                           "nullable": true,
                           "type": "integer",
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
                         },
-                        "theoryPeriods": {
-                          "nullable": true,
-                          "type": "number"
-                        },
-                        "practicePeriods": {
-                          "nullable": true,
-                          "type": "number"
-                        },
-                        "experimentPeriods": {
-                          "nullable": true,
-                          "type": "number"
-                        },
-                        "machinePeriods": {
-                          "nullable": true,
-                          "type": "number"
-                        },
-                        "designPeriods": {
-                          "nullable": true,
-                          "type": "number"
-                        },
-                        "testPeriods": {
-                          "nullable": true,
-                          "type": "number"
-                        },
-                        "scheduleState": {
-                          "nullable": true,
-                          "type": "string"
-                        },
-                        "suggestScheduleWeeks": {
-                          "nullable": true
-                        },
-                        "suggestScheduleWeekInfo": {
-                          "nullable": true,
-                          "type": "string"
-                        },
-                        "scheduleJsonParams": {
-                          "nullable": true
-                        },
-                        "selectedStdCount": {
+                        "classTypeId": {
                           "nullable": true,
                           "type": "integer",
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
                         },
-                        "remark": {
-                          "nullable": true,
-                          "type": "string"
-                        },
-                        "scheduleRemark": {
-                          "nullable": true,
-                          "type": "string"
-                        },
-                        "courseId": {
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        },
-                        "semesterId": {
+                        "classifyId": {
                           "nullable": true,
                           "type": "integer",
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
                         },
-                        "campusId": {
+                        "educationLevelId": {
                           "nullable": true,
                           "type": "integer",
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
                         },
-                        "examModeId": {
+                        "gradationId": {
                           "nullable": true,
                           "type": "integer",
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
                         },
-                        "openDepartmentId": {
+                        "typeId": {
                           "nullable": true,
                           "type": "integer",
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
                         },
-                        "teachLanguageId": {
-                          "nullable": true,
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        },
-                        "roomTypeId": {
-                          "nullable": true,
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        },
-                        "course": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "integer",
-                              "minimum": -9007199254740991,
-                              "maximum": 9007199254740991
-                            },
-                            "jwId": {
-                              "type": "integer",
-                              "minimum": -9007199254740991,
-                              "maximum": 9007199254740991
-                            },
-                            "code": {
-                              "type": "string"
-                            },
-                            "nameCn": {
-                              "type": "string"
-                            },
-                            "nameEn": {
-                              "nullable": true,
-                              "type": "string"
-                            },
-                            "categoryId": {
-                              "nullable": true,
-                              "type": "integer",
-                              "minimum": -9007199254740991,
-                              "maximum": 9007199254740991
-                            },
-                            "classTypeId": {
-                              "nullable": true,
-                              "type": "integer",
-                              "minimum": -9007199254740991,
-                              "maximum": 9007199254740991
-                            },
-                            "classifyId": {
-                              "nullable": true,
-                              "type": "integer",
-                              "minimum": -9007199254740991,
-                              "maximum": 9007199254740991
-                            },
-                            "educationLevelId": {
-                              "nullable": true,
-                              "type": "integer",
-                              "minimum": -9007199254740991,
-                              "maximum": 9007199254740991
-                            },
-                            "gradationId": {
-                              "nullable": true,
-                              "type": "integer",
-                              "minimum": -9007199254740991,
-                              "maximum": 9007199254740991
-                            },
-                            "typeId": {
-                              "nullable": true,
-                              "type": "integer",
-                              "minimum": -9007199254740991,
-                              "maximum": 9007199254740991
-                            },
-                            "category": {
-                              "nullable": true,
-                              "type": "object",
-                              "properties": {
-                                "id": {
-                                  "type": "integer",
-                                  "minimum": -9007199254740991,
-                                  "maximum": 9007199254740991
-                                },
-                                "nameCn": {
-                                  "type": "string"
-                                },
-                                "nameEn": {
-                                  "nullable": true,
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "id",
-                                "nameCn",
-                                "nameEn"
-                              ],
-                              "additionalProperties": false
-                            },
-                            "classType": {
-                              "nullable": true,
-                              "type": "object",
-                              "properties": {
-                                "id": {
-                                  "type": "integer",
-                                  "minimum": -9007199254740991,
-                                  "maximum": 9007199254740991
-                                },
-                                "nameCn": {
-                                  "type": "string"
-                                },
-                                "nameEn": {
-                                  "nullable": true,
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "id",
-                                "nameCn",
-                                "nameEn"
-                              ],
-                              "additionalProperties": false
-                            },
-                            "classify": {
-                              "nullable": true,
-                              "type": "object",
-                              "properties": {
-                                "id": {
-                                  "type": "integer",
-                                  "minimum": -9007199254740991,
-                                  "maximum": 9007199254740991
-                                },
-                                "nameCn": {
-                                  "type": "string"
-                                },
-                                "nameEn": {
-                                  "nullable": true,
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "id",
-                                "nameCn",
-                                "nameEn"
-                              ],
-                              "additionalProperties": false
-                            },
-                            "educationLevel": {
-                              "nullable": true,
-                              "type": "object",
-                              "properties": {
-                                "id": {
-                                  "type": "integer",
-                                  "minimum": -9007199254740991,
-                                  "maximum": 9007199254740991
-                                },
-                                "nameCn": {
-                                  "type": "string"
-                                },
-                                "nameEn": {
-                                  "nullable": true,
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "id",
-                                "nameCn",
-                                "nameEn"
-                              ],
-                              "additionalProperties": false
-                            },
-                            "gradation": {
-                              "nullable": true,
-                              "type": "object",
-                              "properties": {
-                                "id": {
-                                  "type": "integer",
-                                  "minimum": -9007199254740991,
-                                  "maximum": 9007199254740991
-                                },
-                                "nameCn": {
-                                  "type": "string"
-                                },
-                                "nameEn": {
-                                  "nullable": true,
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "id",
-                                "nameCn",
-                                "nameEn"
-                              ],
-                              "additionalProperties": false
-                            },
-                            "type": {
-                              "nullable": true,
-                              "type": "object",
-                              "properties": {
-                                "id": {
-                                  "type": "integer",
-                                  "minimum": -9007199254740991,
-                                  "maximum": 9007199254740991
-                                },
-                                "nameCn": {
-                                  "type": "string"
-                                },
-                                "nameEn": {
-                                  "nullable": true,
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "id",
-                                "nameCn",
-                                "nameEn"
-                              ],
-                              "additionalProperties": false
-                            }
-                          },
-                          "required": [
-                            "id",
-                            "jwId",
-                            "code",
-                            "nameCn",
-                            "nameEn",
-                            "categoryId",
-                            "classTypeId",
-                            "classifyId",
-                            "educationLevelId",
-                            "gradationId",
-                            "typeId",
-                            "category",
-                            "classType",
-                            "classify",
-                            "educationLevel",
-                            "gradation",
-                            "type"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "semester": {
+                        "category": {
                           "nullable": true,
                           "type": "object",
                           "properties": {
                             "id": {
-                              "type": "integer",
-                              "minimum": -9007199254740991,
-                              "maximum": 9007199254740991
-                            },
-                            "jwId": {
-                              "type": "integer",
-                              "minimum": -9007199254740991,
-                              "maximum": 9007199254740991
-                            },
-                            "nameCn": {
-                              "type": "string"
-                            },
-                            "code": {
-                              "type": "string"
-                            },
-                            "startDate": {
-                              "nullable": true,
-                              "type": "string",
-                              "format": "date-time",
-                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                            },
-                            "endDate": {
-                              "nullable": true,
-                              "type": "string",
-                              "format": "date-time",
-                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                            }
-                          },
-                          "required": [
-                            "id",
-                            "jwId",
-                            "nameCn",
-                            "code",
-                            "startDate",
-                            "endDate"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "campus": {
-                          "nullable": true,
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "integer",
-                              "minimum": -9007199254740991,
-                              "maximum": 9007199254740991
-                            },
-                            "jwId": {
-                              "nullable": true,
                               "type": "integer",
                               "minimum": -9007199254740991,
                               "maximum": 9007199254740991
@@ -9948,22 +9966,16 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
-                            },
-                            "code": {
-                              "nullable": true,
-                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
-                            "jwId",
                             "nameCn",
-                            "nameEn",
-                            "code"
+                            "nameEn"
                           ],
                           "additionalProperties": false
                         },
-                        "openDepartment": {
+                        "classType": {
                           "nullable": true,
                           "type": "object",
                           "properties": {
@@ -9972,8 +9984,29 @@
                               "minimum": -9007199254740991,
                               "maximum": 9007199254740991
                             },
-                            "code": {
+                            "nameCn": {
                               "type": "string"
+                            },
+                            "nameEn": {
+                              "nullable": true,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "nameCn",
+                            "nameEn"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "classify": {
+                          "nullable": true,
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
                             },
                             "nameCn": {
                               "type": "string"
@@ -9981,193 +10014,391 @@
                             "nameEn": {
                               "nullable": true,
                               "type": "string"
-                            },
-                            "isCollege": {
-                              "nullable": true,
-                              "type": "boolean"
                             }
                           },
                           "required": [
                             "id",
-                            "code",
                             "nameCn",
-                            "nameEn",
-                            "isCollege"
+                            "nameEn"
                           ],
                           "additionalProperties": false
                         },
-                        "teachers": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "integer",
-                                "minimum": -9007199254740991,
-                                "maximum": 9007199254740991
-                              },
-                              "personId": {
-                                "nullable": true,
-                                "type": "integer",
-                                "minimum": -9007199254740991,
-                                "maximum": 9007199254740991
-                              },
-                              "teacherId": {
-                                "nullable": true,
-                                "type": "integer",
-                                "minimum": -9007199254740991,
-                                "maximum": 9007199254740991
-                              },
-                              "code": {
-                                "nullable": true,
-                                "type": "string"
-                              },
-                              "nameCn": {
-                                "type": "string"
-                              },
-                              "nameEn": {
-                                "nullable": true,
-                                "type": "string"
-                              },
-                              "age": {
-                                "nullable": true,
-                                "type": "integer",
-                                "minimum": -9007199254740991,
-                                "maximum": 9007199254740991
-                              },
-                              "email": {
-                                "nullable": true,
-                                "type": "string"
-                              },
-                              "telephone": {
-                                "nullable": true,
-                                "type": "string"
-                              },
-                              "mobile": {
-                                "nullable": true,
-                                "type": "string"
-                              },
-                              "address": {
-                                "nullable": true,
-                                "type": "string"
-                              },
-                              "postcode": {
-                                "nullable": true,
-                                "type": "string"
-                              },
-                              "qq": {
-                                "nullable": true,
-                                "type": "string"
-                              },
-                              "wechat": {
-                                "nullable": true,
-                                "type": "string"
-                              },
-                              "departmentId": {
-                                "nullable": true,
-                                "type": "integer",
-                                "minimum": -9007199254740991,
-                                "maximum": 9007199254740991
-                              },
-                              "teacherTitleId": {
-                                "nullable": true,
-                                "type": "integer",
-                                "minimum": -9007199254740991,
-                                "maximum": 9007199254740991
-                              }
+                        "educationLevel": {
+                          "nullable": true,
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
                             },
-                            "required": [
-                              "id",
-                              "personId",
-                              "teacherId",
-                              "code",
-                              "nameCn",
-                              "nameEn",
-                              "age",
-                              "email",
-                              "telephone",
-                              "mobile",
-                              "address",
-                              "postcode",
-                              "qq",
-                              "wechat",
-                              "departmentId",
-                              "teacherTitleId"
-                            ],
-                            "additionalProperties": false
-                          }
+                            "nameCn": {
+                              "type": "string"
+                            },
+                            "nameEn": {
+                              "nullable": true,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "nameCn",
+                            "nameEn"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "gradation": {
+                          "nullable": true,
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "nameCn": {
+                              "type": "string"
+                            },
+                            "nameEn": {
+                              "nullable": true,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "nameCn",
+                            "nameEn"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "type": {
+                          "nullable": true,
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "nameCn": {
+                              "type": "string"
+                            },
+                            "nameEn": {
+                              "nullable": true,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "nameCn",
+                            "nameEn"
+                          ],
+                          "additionalProperties": false
                         }
                       },
                       "required": [
                         "id",
                         "jwId",
                         "code",
-                        "bizTypeId",
-                        "credits",
-                        "period",
-                        "periodsPerWeek",
-                        "timesPerWeek",
-                        "stdCount",
-                        "limitCount",
-                        "graduateAndPostgraduate",
-                        "dateTimePlaceText",
-                        "dateTimePlacePersonText",
-                        "actualPeriods",
-                        "theoryPeriods",
-                        "practicePeriods",
-                        "experimentPeriods",
-                        "machinePeriods",
-                        "designPeriods",
-                        "testPeriods",
-                        "scheduleState",
-                        "suggestScheduleWeeks",
-                        "suggestScheduleWeekInfo",
-                        "scheduleJsonParams",
-                        "selectedStdCount",
-                        "remark",
-                        "scheduleRemark",
-                        "courseId",
-                        "semesterId",
-                        "campusId",
-                        "examModeId",
-                        "openDepartmentId",
-                        "teachLanguageId",
-                        "roomTypeId",
-                        "course",
-                        "semester",
-                        "campus",
-                        "openDepartment",
-                        "teachers"
+                        "nameCn",
+                        "nameEn",
+                        "categoryId",
+                        "classTypeId",
+                        "classifyId",
+                        "educationLevelId",
+                        "gradationId",
+                        "typeId",
+                        "category",
+                        "classType",
+                        "classify",
+                        "educationLevel",
+                        "gradation",
+                        "type"
                       ],
                       "additionalProperties": false
+                    },
+                    "semester": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "jwId": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "nameCn": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "startDate": {
+                          "nullable": true,
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "endDate": {
+                          "nullable": true,
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "jwId",
+                        "nameCn",
+                        "code",
+                        "startDate",
+                        "endDate"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "campus": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "jwId": {
+                          "nullable": true,
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "nameCn": {
+                          "type": "string"
+                        },
+                        "nameEn": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "code": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "jwId",
+                        "nameCn",
+                        "nameEn",
+                        "code"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "openDepartment": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "nameCn": {
+                          "type": "string"
+                        },
+                        "nameEn": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "isCollege": {
+                          "nullable": true,
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "code",
+                        "nameCn",
+                        "nameEn",
+                        "isCollege"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "teachers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "personId": {
+                            "nullable": true,
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "teacherId": {
+                            "nullable": true,
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "code": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "nameCn": {
+                            "type": "string"
+                          },
+                          "nameEn": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "age": {
+                            "nullable": true,
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "email": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "telephone": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "mobile": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "address": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "postcode": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "qq": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "wechat": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "departmentId": {
+                            "nullable": true,
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "teacherTitleId": {
+                            "nullable": true,
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "personId",
+                          "teacherId",
+                          "code",
+                          "nameCn",
+                          "nameEn",
+                          "age",
+                          "email",
+                          "telephone",
+                          "mobile",
+                          "address",
+                          "postcode",
+                          "qq",
+                          "wechat",
+                          "departmentId",
+                          "teacherTitleId"
+                        ],
+                        "additionalProperties": false
+                      }
                     }
                   },
-                  "calendarPath": {
-                    "type": "string"
-                  },
-                  "calendarUrl": {
-                    "type": "string"
-                  },
-                  "note": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "userId",
-                  "sections",
-                  "calendarPath",
-                  "calendarUrl",
-                  "note"
-                ],
-                "additionalProperties": false
+                  "required": [
+                    "id",
+                    "jwId",
+                    "code",
+                    "bizTypeId",
+                    "credits",
+                    "period",
+                    "periodsPerWeek",
+                    "timesPerWeek",
+                    "stdCount",
+                    "limitCount",
+                    "graduateAndPostgraduate",
+                    "dateTimePlaceText",
+                    "dateTimePlacePersonText",
+                    "actualPeriods",
+                    "theoryPeriods",
+                    "practicePeriods",
+                    "experimentPeriods",
+                    "machinePeriods",
+                    "designPeriods",
+                    "testPeriods",
+                    "scheduleState",
+                    "suggestScheduleWeeks",
+                    "suggestScheduleWeekInfo",
+                    "scheduleJsonParams",
+                    "selectedStdCount",
+                    "remark",
+                    "scheduleRemark",
+                    "courseId",
+                    "semesterId",
+                    "campusId",
+                    "examModeId",
+                    "openDepartmentId",
+                    "teachLanguageId",
+                    "roomTypeId",
+                    "course",
+                    "semester",
+                    "campus",
+                    "openDepartment",
+                    "teachers"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "calendarPath": {
+                "type": "string"
+              },
+              "calendarUrl": {
+                "type": "string"
+              },
+              "note": {
+                "type": "string"
               }
             },
             "required": [
-              "subscription"
+              "userId",
+              "sections",
+              "calendarPath",
+              "calendarUrl",
+              "note"
             ],
             "additionalProperties": false
           }
-        ]
+        },
+        "required": [
+          "subscription"
+        ],
+        "additionalProperties": false
       },
       "calendarSubscriptionImportResponseSchema": {
         "type": "object",

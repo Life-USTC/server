@@ -1,8 +1,8 @@
-export { getBusRouteTimetable, listBusRoutes } from "./bus-catalog";
 export {
   buildNextBusDeparturesFromData,
   resolveBusDayType,
-} from "./bus-departures";
+} from "../lib/bus-departures";
+export { getBusRouteTimetable, listBusRoutes } from "./bus-catalog";
 export {
   getBusPreference,
   saveBusPreference,

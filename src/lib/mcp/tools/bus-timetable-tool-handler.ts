@@ -1,4 +1,4 @@
-import { getBusTimetableData } from "@/features/bus/lib/bus-service";
+import { getBusTimetableData } from "@/features/bus/server/bus-service";
 import {
   getUserId,
   jsonToolResult,

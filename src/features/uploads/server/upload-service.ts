@@ -1,9 +1,9 @@
 import { uploadConfig } from "@/features/uploads/lib/upload-config";
+import { normalizeContentType } from "@/features/uploads/lib/upload-utils";
 import {
   runUploadSerializableTransaction,
   UploadError,
-} from "@/features/uploads/lib/upload-quota";
-import { normalizeContentType } from "@/features/uploads/lib/upload-utils";
+} from "@/features/uploads/server/upload-quota";
 import { prisma } from "@/lib/db/prisma";
 import {
   deleteStorageObject,

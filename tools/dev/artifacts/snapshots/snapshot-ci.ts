@@ -155,73 +155,86 @@ async function publishPreviews() {
     path.join(os.tmpdir(), "life-ustc-e2e-snapshots-"),
   );
 
-  await runGit(["fetch", "origin", PREVIEW_BRANCH], { quiet: true });
-  const hasPreviewBranch =
-    (await runGit(["rev-parse", "--verify", `origin/${PREVIEW_BRANCH}`], {
-      quiet: true,
-    })) === 0;
+  try {
+    await runGit(["fetch", "origin", PREVIEW_BRANCH], { quiet: true });
+    const hasPreviewBranch =
+      (await runGit(["rev-parse", "--verify", `origin/${PREVIEW_BRANCH}`], {
+        quiet: true,
+      })) === 0;
 
-  if (hasPreviewBranch) {
-    await requireGit([
-      "worktree",
-      "add",
+    if (hasPreviewBranch) {
+      await requireGit([
+        "worktree",
+        "add",
+        previewRoot,
+        `origin/${PREVIEW_BRANCH}`,
+      ]);
+    } else {
+      await requireGit(["worktree", "add", "--detach", previewRoot]);
+      await requireGit(["switch", "--orphan", PREVIEW_BRANCH], previewRoot);
+      await runGit(["rm", "-rf", "."], { cwd: previewRoot, quiet: true });
+    }
+
+    const commitRoot = path.join(previewRoot, commit);
+    await fs.rm(commitRoot, { recursive: true, force: true });
+    await fs.mkdir(commitRoot, { recursive: true });
+
+    for (const screenshot of await collectScreenshots(
+      path.join(SNAPSHOT_DIR, "pages"),
+    )) {
+      const relativePath = path.relative(SNAPSHOT_DIR, screenshot);
+      const targetPath = path.join(commitRoot, relativePath);
+      await fs.mkdir(path.dirname(targetPath), { recursive: true });
+      await fs.copyFile(screenshot, targetPath);
+    }
+
+    await requireGit(
+      ["config", "user.name", "github-actions[bot]"],
       previewRoot,
-      `origin/${PREVIEW_BRANCH}`,
-    ]);
-  } else {
-    await requireGit(["worktree", "add", "--detach", previewRoot]);
-    await requireGit(["switch", "--orphan", PREVIEW_BRANCH], previewRoot);
-    await runGit(["rm", "-rf", "."], { cwd: previewRoot, quiet: true });
-  }
-
-  const commitRoot = path.join(previewRoot, commit);
-  await fs.rm(commitRoot, { recursive: true, force: true });
-  await fs.mkdir(commitRoot, { recursive: true });
-
-  for (const screenshot of await collectScreenshots(
-    path.join(SNAPSHOT_DIR, "pages"),
-  )) {
-    const relativePath = path.relative(SNAPSHOT_DIR, screenshot);
-    const targetPath = path.join(commitRoot, relativePath);
-    await fs.mkdir(path.dirname(targetPath), { recursive: true });
-    await fs.copyFile(screenshot, targetPath);
-  }
-
-  await requireGit(["config", "user.name", "github-actions[bot]"], previewRoot);
-  await requireGit(
-    [
-      "config",
-      "user.email",
-      "41898282+github-actions[bot]@users.noreply.github.com",
-    ],
-    previewRoot,
-  );
-  await requireGit(["add", commit], previewRoot);
-
-  const hasChanges =
-    (await runGit(["diff", "--cached", "--quiet"], {
-      cwd: previewRoot,
-      quiet: true,
-    })) !== 0;
-
-  if (hasChanges) {
+    );
     await requireGit(
       [
-        "commit",
-        "-m",
-        `chore: publish e2e screenshots for ${commit} [skip ci]`,
+        "config",
+        "user.email",
+        "41898282+github-actions[bot]@users.noreply.github.com",
       ],
       previewRoot,
     );
-    await requireGit(["push", "origin", `HEAD:${PREVIEW_BRANCH}`], previewRoot);
-  }
+    await requireGit(["add", commit], previewRoot);
 
-  const baseUrl = `https://raw.githubusercontent.com/${repository}/${PREVIEW_BRANCH}/${commit}`;
-  const githubOutput = process.env.GITHUB_OUTPUT;
-  if (githubOutput) {
-    await fs.appendFile(githubOutput, `base-url=${baseUrl}\n`);
+    const hasChanges =
+      (await runGit(["diff", "--cached", "--quiet"], {
+        cwd: previewRoot,
+        quiet: true,
+      })) !== 0;
+
+    if (hasChanges) {
+      await requireGit(
+        [
+          "commit",
+          "-m",
+          `chore: publish e2e screenshots for ${commit} [skip ci]`,
+        ],
+        previewRoot,
+      );
+      await requireGit(
+        ["push", "origin", `HEAD:${PREVIEW_BRANCH}`],
+        previewRoot,
+      );
+    }
+
+    const baseUrl = `https://raw.githubusercontent.com/${repository}/${PREVIEW_BRANCH}/${commit}`;
+    const githubOutput = process.env.GITHUB_OUTPUT;
+    if (githubOutput) {
+      await fs.appendFile(githubOutput, `base-url=${baseUrl}\n`);
+    }
+    console.log(baseUrl);
+  } finally {
+    await runGit(["worktree", "remove", "--force", previewRoot], {
+      quiet: true,
+    });
+    await fs.rm(previewRoot, { recursive: true, force: true });
   }
-  console.log(baseUrl);
 }
 
 const command = process.argv[2];

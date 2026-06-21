@@ -25,12 +25,9 @@ export const calendarSubscriptionSchema = z.object({
   note: z.string(),
 });
 
-export const currentCalendarSubscriptionResponseSchema = z.union([
-  z.object({ subscription: z.null() }),
-  z.object({
-    subscription: calendarSubscriptionSchema,
-  }),
-]);
+export const currentCalendarSubscriptionResponseSchema = z.object({
+  subscription: calendarSubscriptionSchema.nullable(),
+});
 
 export const calendarSubscriptionCreateResponseSchema = z.object({
   subscription: calendarSubscriptionSchema.nullable(),

@@ -1,7 +1,7 @@
 import {
   buildNextBusDeparturesFromData,
   type getBusTimetableData,
-} from "@/features/bus/lib/bus-service";
+} from "@/features/bus/server/bus-service";
 
 type BusTimetableResult = NonNullable<
   Awaited<ReturnType<typeof getBusTimetableData>>

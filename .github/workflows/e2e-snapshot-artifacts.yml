@@ -51,13 +51,11 @@ jobs:
 
       - name: Build Worker app
         shell: bash
-        run: bun run build && bun run e2e:prepare
+        run: bun run e2e:build-artifacts
 
       - name: Bootstrap E2E services
         shell: bash
-        run: |
-          bun run db:migrate:deploy
-          bun run check:e2e
+        run: bun run e2e:db:prepare
 
       - name: Seed E2E scenarios
         shell: bash

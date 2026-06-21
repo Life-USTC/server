@@ -1,6 +1,9 @@
+import { findSectionCodeMatches } from "@/features/catalog/server/course-section-queries";
+import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { prisma } from "@/lib/db/prisma";
 import {
+  getSubscribedSectionIds,
   getUserCalendarSubscription,
   getUserSectionSubscriptionState,
 } from "./subscription-read-model";
@@ -87,6 +90,43 @@ export async function addUserSectionSubscriptions(
   );
 
   return getUserSectionSubscriptionState(userId);
+}
+
+export async function importUserSectionSubscriptionsByCodes({
+  codes,
+  locale = DEFAULT_LOCALE,
+  semesterId,
+  userId,
+}: {
+  codes: string[];
+  locale?: AppLocale;
+  semesterId?: number;
+  userId: string;
+}) {
+  const matches = await findSectionCodeMatches(codes, locale, semesterId);
+  if (!matches) {
+    return null;
+  }
+
+  const existingIds = new Set(await getSubscribedSectionIds(userId));
+  const addedSections = matches.sections.filter(
+    (section) => !existingIds.has(section.id),
+  );
+  const alreadySubscribedSections = matches.sections.filter((section) =>
+    existingIds.has(section.id),
+  );
+
+  await addUserSectionSubscriptions(
+    userId,
+    matches.sections.map((section) => section.id),
+  );
+
+  return {
+    matches,
+    addedSections,
+    alreadySubscribedSections,
+    subscription: await getUserCalendarSubscription(userId, locale),
+  };
 }
 
 export async function removeUserSectionSubscriptions(

@@ -1,5 +1,5 @@
 import type { AppLocale } from "@/i18n/config";
-import type { RouteRecord } from "./bus-route-records";
+import type { RouteRecord } from "./bus-route-record-types";
 import type { BusRouteStopSummary, BusRouteSummary } from "./bus-types";
 
 export function describeRoute(

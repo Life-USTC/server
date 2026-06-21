@@ -1,5 +1,5 @@
-import { getBusTimetableData } from "@/features/bus/lib/bus-service";
 import type { BusLocale, BusTimetableData } from "@/features/bus/lib/bus-types";
+import { getBusTimetableData } from "@/features/bus/server/bus-service";
 import { listTodos } from "@/features/todos/server/todo-service";
 import type { TodoPriority } from "@/generated/prisma/client";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";

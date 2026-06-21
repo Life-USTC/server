@@ -1,6 +1,6 @@
 import type { AppLocale } from "@/i18n/config";
-import { describeRoute } from "./bus-route-builder";
-import type { RouteRecord } from "./bus-route-records";
+import { describeRoute } from "./bus-route-descriptions";
+import type { RouteRecord } from "./bus-route-record-types";
 import type { BusMapRouteEdge } from "./bus-types";
 
 export function buildBusRouteTripCounts(

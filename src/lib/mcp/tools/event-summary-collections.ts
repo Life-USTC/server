@@ -1,4 +1,4 @@
-import type { getNextBusDepartures } from "@/features/bus/lib/bus-service";
+import type { getNextBusDepartures } from "@/features/bus/server/bus-service";
 import type { listUserCalendarEvents } from "@/features/home/server/calendar-events";
 import {
   summarizeBusDeparture,

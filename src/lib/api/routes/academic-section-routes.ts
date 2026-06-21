@@ -11,6 +11,7 @@ import {
   parseSectionMatchCodesRequest,
   parseSectionsRouteQuery,
 } from "@/lib/api/routes/academic-section-route-request";
+import { getRequestLocale } from "@/lib/api/routes/request-locale";
 
 export async function getSectionsRoute(request: Request) {
   const parsed = parseSectionsRouteQuery(request);
@@ -20,6 +21,7 @@ export async function getSectionsRoute(request: Request) {
 
   const { query: parsedQuery, pagination } = parsed;
   try {
+    const locale = getRequestLocale(request);
     return await listSectionsAction(
       {
         ...parsedQuery,
@@ -27,17 +29,22 @@ export async function getSectionsRoute(request: Request) {
         jwIds: parseIntegerList(parsedQuery.jwIds),
       },
       pagination,
+      locale,
     );
   } catch (error) {
     return handleRouteError("Failed to fetch sections", error);
   }
 }
 
-export async function getSectionDetailRoute(params: { jwId: string }) {
+export async function getSectionDetailRoute(
+  request: Request,
+  params: { jwId: string },
+) {
+  const locale = getRequestLocale(request);
   return withParsedSectionJwId(
     params,
     "Failed to fetch section",
-    getSectionDetailAction,
+    (parsedJwId) => getSectionDetailAction(parsedJwId, locale),
   );
 }
 
@@ -64,7 +71,11 @@ export async function postSectionMatchCodesRoute(request: Request) {
       return parsed;
     }
 
-    return await matchSectionCodesAction(parsed.codes, parsed.semesterId);
+    return await matchSectionCodesAction(
+      parsed.codes,
+      getRequestLocale(request),
+      parsed.semesterId,
+    );
   } catch (error) {
     return handleRouteError("Failed to match section codes", error);
   }

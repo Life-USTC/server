@@ -1,18 +1,15 @@
 import type { AppLocale } from "@/i18n/config";
 import { prisma } from "@/lib/db/prisma";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
-import {
-  getBusCampuses,
-  getRouteRecords,
-  getVersionRouteIds,
-} from "./bus-route-builder";
-import { toRouteListing } from "./bus-route-listing";
-import { busTripsToSlots } from "./bus-route-slots";
+import { toRouteListing } from "../lib/bus-route-listing";
+import { busTripsToSlots } from "../lib/bus-route-slots";
 import type {
   BusCampusSummary,
   BusRouteListing,
   BusRouteTimetable,
-} from "./bus-types";
+} from "../lib/bus-types";
+import { getBusCampuses } from "./bus-campus-records";
+import { getRouteRecords, getVersionRouteIds } from "./bus-route-records";
 import { findEffectiveBusVersion } from "./bus-version";
 
 export async function listBusRoutes(

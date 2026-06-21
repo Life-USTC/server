@@ -1,12 +1,5 @@
-import {
-  findSectionCodeMatches,
-  findSectionCompactByJwId,
-} from "@/features/catalog/server/course-section-queries";
-import {
-  getSubscribedSectionIds,
-  getUserCalendarSubscription,
-} from "@/features/home/server/subscription-read-model";
-import { addUserSectionSubscriptions } from "@/features/home/server/subscriptions";
+import { findSectionCompactByJwId } from "@/features/catalog/server/course-section-queries";
+import { importUserSectionSubscriptionsByCodes } from "@/features/home/server/subscriptions";
 import type { AppLocale } from "@/i18n/config";
 import {
   getUserId,
@@ -57,23 +50,20 @@ export async function subscribeMySectionsByCodesTool(
   const resolvedMode = resolveMcpMode(mode);
   const userId = getUserId(extra.authInfo);
 
-  const matches = await findSectionCodeMatches(codes, locale, semesterId);
-  if (!matches) {
+  const result = await importUserSectionSubscriptionsByCodes({
+    codes,
+    locale,
+    semesterId,
+    userId,
+  });
+  if (!result) {
     return jsonToolResult({
       success: false,
       message: "No semester found",
     });
   }
-  const matchedSections = matches.sections;
-
-  const existingIdsBefore = new Set(await getSubscribedSectionIds(userId));
-  const matchedIds = matchedSections.map((section) => section.id);
-  const addedCount = matchedIds.filter(
-    (id) => !existingIdsBefore.has(id),
-  ).length;
-
-  await addUserSectionSubscriptions(userId, matchedIds);
-  const subscription = await getUserCalendarSubscription(userId, locale);
+  const { alreadySubscribedSections, addedSections, matches, subscription } =
+    result;
 
   return jsonToolResult(
     {
@@ -81,8 +71,8 @@ export async function subscribeMySectionsByCodesTool(
       semester: matches.semester,
       matchedCodes: matches.matchedCodes,
       unmatchedCodes: matches.unmatchedCodes,
-      addedCount,
-      alreadySubscribedCount: matchedIds.length - addedCount,
+      addedCount: addedSections.length,
+      alreadySubscribedCount: alreadySubscribedSections.length,
       subscription: subscription
         ? getCalendarSubscriptionMutationPayload(subscription, resolvedMode)
         : null,

@@ -9,4 +9,6 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 404:openApiErrorSchema
  */
 export const GET: RequestHandler = ({ request, params }) =>
-  observedApiRoute(() => getSectionDetailRoute({ jwId: params.jwId }))(request);
+  observedApiRoute(() => getSectionDetailRoute(request, { jwId: params.jwId }))(
+    request,
+  );

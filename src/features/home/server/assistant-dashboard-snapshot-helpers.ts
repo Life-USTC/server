@@ -1,7 +1,7 @@
 import {
   getBusPreference,
   getNextBusDepartures,
-} from "@/features/bus/lib/bus-service";
+} from "@/features/bus/server/bus-service";
 import type { AppLocale } from "@/i18n/config";
 import type { getPrisma } from "@/lib/db/prisma";
 

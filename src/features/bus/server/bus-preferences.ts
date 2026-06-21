@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db/prisma";
 import type {
   BusPreferencePayload,
   BusUserPreferenceSummary,
-} from "./bus-types";
+} from "../lib/bus-types";
 
 export async function getBusPreference(
   userId: string | null,

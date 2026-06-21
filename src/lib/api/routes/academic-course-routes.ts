@@ -5,8 +5,9 @@ import {
   parseRouteQuery,
 } from "@/lib/api/helpers";
 import { parseJwIdRouteParam } from "@/lib/api/routes/academic-route-helpers";
+import { getRequestLocale } from "@/lib/api/routes/request-locale";
 import { coursesQuerySchema } from "@/lib/api/schemas/request-schemas";
-import { PUBLIC_CATALOG_CACHE_CONTROL } from "@/lib/public-cache-control";
+import { PUBLIC_LOCALE_CATALOG_HEADERS } from "@/lib/public-cache-control";
 import {
   cachedPublicRuntimeData,
   publicRuntimeCacheKey,
@@ -28,10 +29,11 @@ export async function getCoursesRoute(request: Request) {
 
   const { query: parsedQuery, pagination } = parsed;
   const { search, educationLevelId, categoryId, classTypeId } = parsedQuery;
+  const locale = getRequestLocale(request);
 
   try {
     const result = await cachedPublicRuntimeData(
-      publicRuntimeCacheKey("api:courses", searchParams),
+      publicRuntimeCacheKey(`api:courses:${locale}`, searchParams),
       COURSES_API_CACHE_TTL_MS,
       async () => {
         const [{ buildCourseListWhere }, { paginatedCourseQuery }] =
@@ -49,18 +51,23 @@ export async function getCoursesRoute(request: Request) {
           pagination.page,
           pagination.pageSize,
           where,
+          undefined,
+          locale,
         );
       },
     );
     return jsonResponse(result, {
-      headers: { "Cache-Control": PUBLIC_CATALOG_CACHE_CONTROL },
+      headers: PUBLIC_LOCALE_CATALOG_HEADERS,
     });
   } catch (error) {
     return handleRouteError("Failed to fetch courses", error);
   }
 }
 
-export async function getCourseDetailRoute(params: { jwId: string }) {
+export async function getCourseDetailRoute(
+  request: Request,
+  params: { jwId: string },
+) {
   try {
     const parsedJwId = parseJwIdRouteParam(params, "course ID");
     if (parsedJwId instanceof Response) return parsedJwId;
@@ -68,7 +75,10 @@ export async function getCourseDetailRoute(params: { jwId: string }) {
     const { findCourseDetailByJwId } = await import(
       "@/features/catalog/server/course-section-queries"
     );
-    const course = await findCourseDetailByJwId(parsedJwId, "zh-cn");
+    const course = await findCourseDetailByJwId(
+      parsedJwId,
+      getRequestLocale(request),
+    );
 
     if (!course) {
       return notFound("Course not found");

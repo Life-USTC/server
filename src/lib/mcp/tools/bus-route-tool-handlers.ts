@@ -2,7 +2,7 @@ import {
   getBusRouteTimetable,
   listBusRoutes,
   searchBusRoutes,
-} from "@/features/bus/lib/bus-service";
+} from "@/features/bus/server/bus-service";
 import { jsonToolResult, resolveMcpMode } from "@/lib/mcp/tools/_helpers";
 import type { BusLocale, McpModeInput } from "./bus-tool-types";
 

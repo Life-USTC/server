@@ -1,5 +1,5 @@
 import { uploadConfig } from "@/features/uploads/lib/upload-config";
-import { UploadError } from "@/features/uploads/lib/upload-quota";
+import { UploadError } from "@/features/uploads/server/upload-quota";
 import {
   uploadKeyBelongsToUser,
   validatePendingUploadObject,

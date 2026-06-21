@@ -18,7 +18,10 @@ export async function getCurrentCalendarSubscriptionRoute(request: Request) {
     const { getUserCalendarSubscription } = await import(
       "@/features/home/server/subscription-read-model"
     );
-    const subscription = await getUserCalendarSubscription(userId);
+    const subscription = await getUserCalendarSubscription(
+      userId,
+      getRequestLocale(request),
+    );
 
     if (!subscription) {
       return jsonResponse({ subscription: null });
@@ -52,6 +55,7 @@ export async function postCalendarSubscriptionsRoute(request: Request) {
     const subscription = await replaceUserSectionSubscriptions(
       userId,
       sectionIds,
+      getRequestLocale(request),
     );
 
     return jsonResponse({ subscription });
@@ -74,38 +78,20 @@ export async function postCalendarSubscriptionImportCodesRoute(
     }
 
     const locale = getRequestLocale(request);
-    const [
-      { findSectionCodeMatches },
-      { getSubscribedSectionIds, getUserCalendarSubscription },
-      { addUserSectionSubscriptions },
-    ] = await Promise.all([
-      import("@/features/catalog/server/course-section-queries"),
-      import("@/features/home/server/subscription-read-model"),
-      import("@/features/home/server/subscriptions"),
-    ]);
-
-    const matches = await findSectionCodeMatches(
-      parsedBody.codes,
-      locale,
-      parsedBody.semesterId,
+    const { importUserSectionSubscriptionsByCodes } = await import(
+      "@/features/home/server/subscriptions"
     );
-    if (!matches) {
+    const result = await importUserSectionSubscriptionsByCodes({
+      codes: parsedBody.codes,
+      locale,
+      semesterId: parsedBody.semesterId,
+      userId,
+    });
+    if (!result) {
       return notFound("No semester found");
     }
-
-    const existingIds = new Set(await getSubscribedSectionIds(userId));
-    const addedSections = matches.sections.filter(
-      (section) => !existingIds.has(section.id),
-    );
-    const alreadySubscribedSections = matches.sections.filter((section) =>
-      existingIds.has(section.id),
-    );
-
-    await addUserSectionSubscriptions(
-      userId,
-      matches.sections.map((section) => section.id),
-    );
-    const subscription = await getUserCalendarSubscription(userId, locale);
+    const { alreadySubscribedSections, addedSections, matches, subscription } =
+      result;
 
     return jsonResponse({
       success: true,

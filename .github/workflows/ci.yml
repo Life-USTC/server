@@ -30,7 +30,7 @@ jobs:
       webhook-secret: e2e-ci-secret
       auth-secret: e2e-ci-secret
       extra-env: NO_PROXY=127.0.0.1,localhost,::1
-      job-command: bun run build && bun run e2e:prepare
+      job-command: bun run e2e:build-artifacts
       upload-artifact-name: playwright-worker
       upload-artifact-path: .svelte-kit
       upload-artifact-no-files-found: error
@@ -44,7 +44,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - run: docker build --target loader -t life-ustc-static-loader:check .
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+      - run: bun run build:loader-image
 
   test-e2e:
     name: E2E Test (${{ matrix.scope }})
@@ -78,10 +81,9 @@ jobs:
       download-artifact-path: .svelte-kit
       job-command: |
         bun run db:generate
-        bun run db:migrate:deploy
-        bun run check:e2e
+        bun run e2e:db:prepare
         bun run seed
-        bunx playwright test --reporter=list -- ${{ matrix.paths }}
+        bun run e2e:test -- ${{ matrix.paths }}
       upload-artifact-name: playwright-report-${{ matrix.scope }}
       upload-artifact-path: playwright-report/
       upload-artifact-no-files-found: ignore

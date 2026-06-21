@@ -1,19 +1,17 @@
 import { prisma } from "@/lib/db/prisma";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
-import { getBusPreference } from "./bus-preferences";
-import {
-  buildRouteSummary,
-  getBusCampuses,
-  getRouteRecords,
-} from "./bus-route-builder";
-import { buildTripSummary } from "./bus-trip-summary";
+import { buildRouteSummary } from "../lib/bus-route-descriptions";
+import { buildTripSummary } from "../lib/bus-trip-summary";
 import type {
   BusDashboardSnapshot,
   BusRouteSummary,
   BusTimetableData,
   BusTimetableInput,
   BusTripSummary,
-} from "./bus-types";
+} from "../lib/bus-types";
+import { getBusCampuses } from "./bus-campus-records";
+import { getBusPreference } from "./bus-preferences";
+import { getRouteRecords } from "./bus-route-records";
 import {
   findEffectiveBusVersion,
   findEffectiveBusVersionFromRecords,
