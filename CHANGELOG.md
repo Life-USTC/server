@@ -1,3 +1,16 @@
+# [1.36.0](https://github.com/Life-USTC/server/compare/v1.35.0...v1.36.0) (2026-06-21)
+
+
+### Bug Fixes
+
+* **bus:** keep upcoming departures first ([6f22044](https://github.com/Life-USTC/server/commit/6f22044de828e1c50ce50e2543ebe400ba6fdfbf))
+* **overview:** filter ended same-day exams ([9c36038](https://github.com/Life-USTC/server/commit/9c36038c9375408d8a001004d00e4a6519dccf69))
+
+
+### Features
+
+* **api:** add lightweight client REST surfaces ([f0dc3e7](https://github.com/Life-USTC/server/commit/f0dc3e7c973ee0f55696822aa9193e016d7799aa))
+
 # [1.35.0](https://github.com/Life-USTC/server/compare/v1.34.1...v1.35.0) (2026-06-21)
 
 
