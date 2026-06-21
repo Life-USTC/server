@@ -1,11 +1,11 @@
 import { handleRouteError } from "@/lib/api/helpers";
 import {
-  buildTodoWhere,
   createTodoAction,
   deleteTodoAction,
   listTodosAction,
   parseTodoDueAt,
   parseTodoLimit,
+  parseTodoListFilters,
   updateTodoAction,
 } from "@/lib/api/routes/todo-route-actions";
 import {
@@ -30,13 +30,11 @@ export async function getTodosRoute(request: Request) {
   }
   const limit = parseTodoLimit(parsedQuery.limit);
   if (limit instanceof Response) return limit;
+  const filters = parseTodoListFilters(parsedQuery);
+  if (filters instanceof Response) return filters;
 
   try {
-    return await listTodosAction(
-      userId,
-      buildTodoWhere(userId, parsedQuery),
-      limit,
-    );
+    return await listTodosAction(userId, filters, limit);
   } catch (error) {
     return handleRouteError("Failed to fetch todos", error);
   }

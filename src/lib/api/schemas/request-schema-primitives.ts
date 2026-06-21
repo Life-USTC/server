@@ -1,6 +1,7 @@
 import * as z from "zod";
 import { sectionCodeSchema } from "@/features/catalog/lib/section-code-schema";
 import { todoPrioritySchema } from "@/features/todos/lib/todo-schema";
+import { parseDateInput } from "@/lib/time/parse-date-input";
 import { parseInteger } from "../request-integers";
 import { commentVisibilitySchema } from "./shared-enum-schemas";
 
@@ -31,6 +32,21 @@ export const integerStringSchema = z
     message: "Invalid integer",
   })
   .meta({ override: { type: "integer", format: "int64" } });
+
+export const dateInputStringSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .refine((value) => parseDateInput(value) instanceof Date, {
+    message: "Invalid date",
+  })
+  .meta({
+    override: {
+      type: "string",
+      minLength: 1,
+      description: "YYYY-MM-DD or ISO date/time accepted by parseDateInput",
+    },
+  });
 
 export const commentReactionTypeSchema = z.enum([
   "upvote",

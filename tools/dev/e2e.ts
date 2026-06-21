@@ -50,7 +50,7 @@ function buildPlaywrightDebugAuthEnv() {
   };
 }
 
-function appendNoProxy(value: string | undefined) {
+export function appendLocalNoProxy(value: string | undefined) {
   return value ? `${value},${LOCAL_NO_PROXY}` : LOCAL_NO_PROXY;
 }
 
@@ -116,8 +116,8 @@ export function buildPlaywrightServerEnv(options: {
       APP_PUBLIC_ORIGIN: baseUrl,
       CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE:
         hyperdriveLocalConnection,
-      NO_PROXY: appendNoProxy(env.NO_PROXY),
-      no_proxy: appendNoProxy(env.no_proxy),
+      NO_PROXY: appendLocalNoProxy(env.NO_PROXY),
+      no_proxy: appendLocalNoProxy(env.no_proxy),
       ...buildPlaywrightDebugAuthEnv(),
     }).filter(([, value]) => value !== undefined),
   ) as Record<string, string>;

@@ -1,6 +1,6 @@
 import type dayjs from "dayjs";
+import { selectCurrentSemesterFromList } from "@/features/catalog/lib/current-semester";
 import { countDueTodos } from "@/features/todos/server/todo-service";
-import { selectCurrentSemesterFromList } from "@/lib/current-semester";
 import { prisma as basePrisma } from "@/lib/db/prisma";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import type { DashboardSubscribedSection } from "./dashboard-user-context";

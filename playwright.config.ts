@@ -1,18 +1,13 @@
 import "dotenv/config";
 import { defineConfig, devices } from "@playwright/test";
 import {
+  appendLocalNoProxy,
   buildPlaywrightServerEnv,
   resolvePlaywrightHarnessRuntime,
 } from "./tools/dev/e2e";
 
-const LOCAL_NO_PROXY = "127.0.0.1,localhost,::1";
-
-function appendNoProxy(value: string | undefined) {
-  return value ? `${value},${LOCAL_NO_PROXY}` : LOCAL_NO_PROXY;
-}
-
-process.env.NO_PROXY = appendNoProxy(process.env.NO_PROXY);
-process.env.no_proxy = appendNoProxy(process.env.no_proxy);
+process.env.NO_PROXY = appendLocalNoProxy(process.env.NO_PROXY);
+process.env.no_proxy = appendLocalNoProxy(process.env.no_proxy);
 
 const playwrightRuntime = resolvePlaywrightHarnessRuntime();
 

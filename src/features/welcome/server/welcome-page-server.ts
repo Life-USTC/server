@@ -1,7 +1,7 @@
 import { redirect, type ServerLoadEvent } from "@sveltejs/kit";
+import { getCurrentSemester } from "@/features/catalog/server/academic-metadata-read-model";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
 import { getSessionFromHeaders } from "@/lib/auth/core";
-import { findCurrentSemester } from "@/lib/current-semester";
 import { completeWelcomeProfile } from "./welcome-complete-action";
 import { getWelcomeCopy } from "./welcome-page-copy";
 
@@ -32,7 +32,7 @@ export const loadWelcomePage = async ({
       orderBy: { jwId: "desc" },
       take: 20,
     }),
-    findCurrentSemester(prisma.semester, new Date()),
+    getCurrentSemester(new Date()),
   ]);
 
   if (!user) {

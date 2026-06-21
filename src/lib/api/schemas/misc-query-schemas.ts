@@ -1,6 +1,7 @@
 import * as z from "zod";
 import { APP_LOCALES } from "@/i18n/config";
 import {
+  dateInputStringSchema,
   integerStringSchema,
   todoPrioritySchema,
 } from "./request-schema-primitives";
@@ -48,8 +49,8 @@ export const semestersQuerySchema = z.object({
 });
 
 export const subscribedSchedulesQuerySchema = z.object({
-  dateFrom: z.string().trim().min(1).optional(),
-  dateTo: z.string().trim().min(1).optional(),
+  dateFrom: dateInputStringSchema.optional(),
+  dateTo: dateInputStringSchema.optional(),
   weekday: integerStringSchema.optional(),
   limit: integerStringSchema.optional(),
   locale: z.enum(APP_LOCALES).optional(),
@@ -65,8 +66,8 @@ export const compactOverviewQuerySchema = z.object({
 export const todosQuerySchema = z.object({
   completed: z.enum(["true", "false"]).optional(),
   priority: todoPrioritySchema.optional(),
-  dueBefore: z.string().trim().datetime().optional(),
-  dueAfter: z.string().trim().datetime().optional(),
+  dueBefore: dateInputStringSchema.optional(),
+  dueAfter: dateInputStringSchema.optional(),
   limit: integerStringSchema.optional(),
 });
 

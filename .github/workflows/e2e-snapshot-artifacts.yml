@@ -49,10 +49,6 @@ jobs:
         with:
           install-playwright: "true"
 
-      - name: Generate Prisma client
-        shell: bash
-        run: bun run app:prepare
-
       - name: Build Worker app
         shell: bash
         run: bun run build && bun run e2e:prepare

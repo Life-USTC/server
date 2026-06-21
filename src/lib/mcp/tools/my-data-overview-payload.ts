@@ -1,7 +1,7 @@
 export {
   loadMyOverviewCounts,
   loadMyOverviewSamples,
-} from "./my-data-overview-loaders";
+} from "@/features/home/server/my-overview-read-model";
 export {
   buildMyOverviewFullPayload,
   buildMyOverviewSummaryPayload,

@@ -8,6 +8,7 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
+  appendLocalNoProxy,
   buildPlaywrightServerEnv,
   preparePlaywrightWorkerRuntime,
   resolvePlaywrightHarnessRuntime,
@@ -126,6 +127,13 @@ describe("playwright runtime", () => {
     expect(env.ALL_PROXY).toBeUndefined();
     expect(env.all_proxy).toBeUndefined();
     expect(env.HTTPS_PROXY).toBeUndefined();
+  });
+
+  it("centralizes local no-proxy merging", () => {
+    expect(appendLocalNoProxy(undefined)).toBe("127.0.0.1,localhost,::1");
+    expect(appendLocalNoProxy("internal.local")).toBe(
+      "internal.local,127.0.0.1,localhost,::1",
+    );
   });
 
   it("requires the Cloudflare Worker build output", () => {

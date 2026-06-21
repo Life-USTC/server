@@ -1,19 +1,12 @@
+import { getSectionSchedulesByJwId } from "@/features/catalog/server/schedule-read-model";
 import type { AppLocale } from "@/i18n/config";
-import {
-  jsonToolResult,
-  resolveMcpMode,
-  resolveSectionByJwId,
-} from "@/lib/mcp/tools/_helpers";
+import { jsonToolResult, resolveMcpMode } from "@/lib/mcp/tools/_helpers";
 import { summarizeScheduleCard } from "@/lib/mcp/tools/event-summary";
-import { serializeScheduleTimeFields } from "@/lib/schedule-serialization";
 import {
   omitScheduleSection,
   parseScheduleDateFilter,
 } from "./schedule-record-query";
-import {
-  sectionNotFoundToolResult,
-  sectionScheduleListInclude,
-} from "./shared";
+import { sectionNotFoundToolResult } from "./shared";
 
 type McpModeInput = Parameters<typeof resolveMcpMode>[0];
 
@@ -35,36 +28,33 @@ export async function listSchedulesBySectionAction({
   mode,
 }: ListSchedulesBySectionInput) {
   const resolvedMode = resolveMcpMode(mode);
-  const { localizedPrisma, section } = await resolveSectionByJwId(
-    sectionJwId,
-    locale,
-  );
-
-  if (!section) {
-    return sectionNotFoundToolResult(sectionJwId, mode);
-  }
-
   const parsedDateFilter = parseScheduleDateFilter({ dateFrom, dateTo });
   if (!parsedDateFilter.ok) {
     return parsedDateFilter.result;
   }
 
-  const schedules = await localizedPrisma.schedule.findMany({
-    where: { sectionId: section.id, ...parsedDateFilter.dateFilter },
-    include: sectionScheduleListInclude,
-    orderBy: [{ date: "asc" }, { startTime: "asc" }],
-    take: limit,
+  const result = await getSectionSchedulesByJwId({
+    dateFrom: parsedDateFilter.dateRange.dateFrom,
+    dateTo: parsedDateFilter.dateRange.dateTo,
+    includeSection: true,
+    limit,
+    locale,
+    sectionJwId,
   });
-  const serializedSchedules = schedules.map(serializeScheduleTimeFields);
-  const scopedSchedules = omitScheduleSection(serializedSchedules);
+
+  if (!result.found) {
+    return sectionNotFoundToolResult(sectionJwId, mode);
+  }
+
+  const scopedSchedules = omitScheduleSection(result.schedules);
 
   if (resolvedMode === "summary") {
     return jsonToolResult(
       {
         found: true,
-        section,
+        section: result.section,
         schedules: {
-          total: schedules.length,
+          total: result.schedules.length,
           items: scopedSchedules.slice(0, 5).map(summarizeScheduleCard),
         },
       },
@@ -75,9 +65,8 @@ export async function listSchedulesBySectionAction({
   return jsonToolResult(
     {
       found: true,
-      section,
-      schedules:
-        resolvedMode === "full" ? serializedSchedules : scopedSchedules,
+      section: result.section,
+      schedules: resolvedMode === "full" ? result.schedules : scopedSchedules,
     },
     {
       mode: resolvedMode,

@@ -20,11 +20,8 @@ export async function listMyTodosAction(
   const userId = getUserId(extra.authInfo);
   return jsonToolResult(
     await listTodoSummary({
+      filters: includeCompleted ? undefined : { completed: false },
       userId,
-      where: {
-        userId,
-        ...(includeCompleted ? {} : { completed: false }),
-      },
       take: limit,
     }),
     {

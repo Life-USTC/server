@@ -1,10 +1,10 @@
+import { getCurrentSemester } from "@/features/catalog/server/academic-metadata-read-model";
 import {
   countIncompleteTodos,
   listTodoSnapshots,
   todoDueDateOrderBy,
 } from "@/features/todos/server/todo-service";
 import type { AppLocale } from "@/i18n/config";
-import { findCurrentSemester } from "@/lib/current-semester";
 import { getPrisma, prisma } from "@/lib/db/prisma";
 import {
   listAssistantCurrentSemesterSections,
@@ -19,7 +19,7 @@ export async function loadAssistantDashboardSnapshotData(input: {
   now: Date;
   userId: string;
 }) {
-  const currentSemester = await findCurrentSemester(prisma.semester, input.now);
+  const currentSemester = await getCurrentSemester(input.now);
   const localizedPrisma = getPrisma(input.locale);
   const sectionIdsPromise = getSubscribedSectionIds(input.userId);
 

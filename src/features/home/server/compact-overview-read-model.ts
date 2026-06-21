@@ -54,10 +54,10 @@ export async function getCompactOverview(
     }),
     getSubscribedSectionIds(userId),
     listTodoSummary({
+      filters: { completed: false },
       now,
       take: limit,
       userId,
-      where: { userId, completed: false },
     }),
   ]);
 

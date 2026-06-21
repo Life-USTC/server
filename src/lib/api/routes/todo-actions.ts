@@ -3,9 +3,9 @@ import {
   createTodo,
   deleteOwnedTodo,
   listTodoSummary,
+  type TodoListFilters,
   updateOwnedTodo,
 } from "@/features/todos/server/todo-service";
-import type { Prisma } from "@/generated/prisma/client";
 import {
   badRequest,
   forbidden,
@@ -15,10 +15,10 @@ import {
 
 export async function listTodosAction(
   userId: string,
-  where: Prisma.TodoWhereInput,
+  filters: TodoListFilters,
   take?: number,
 ) {
-  return jsonResponse(await listTodoSummary({ userId, take, where }));
+  return jsonResponse(await listTodoSummary({ userId, take, filters }));
 }
 
 export async function createTodoAction(

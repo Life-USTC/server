@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildScheduleListWhere } from "@/lib/schedule-queries";
+import { buildScheduleListWhere } from "@/features/catalog/lib/schedule-filters";
 
 describe("buildScheduleListWhere", () => {
   it("returns an empty where clause when no filters are given", () => {

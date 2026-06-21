@@ -6,6 +6,10 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { join, relative } from "node:path";
 import Ajv2020 from "ajv/dist/2020";
+import {
+  getExportedRouteMethods,
+  type HttpMethod,
+} from "../shared/route-exports";
 
 const repoRoot = process.cwd();
 
@@ -111,7 +115,7 @@ function checkContractsDoc() {
   const contractsDir = "docs/contracts";
   const schemaPath = "docs/contracts.schema.json";
   const prismaPath = "prisma/schema.prisma";
-  const apiDir = "src/routes/api";
+  const restRouteRoots = ["src/routes/api", "src/routes/.well-known"];
   const mcpDir = "src/lib/mcp/tools";
 
   type PrismaDocs = {
@@ -198,17 +202,32 @@ function checkContractsDoc() {
   }
 
   function collectImplementedRestRoutes(): Set<string> {
-    const methodPattern =
-      /export\s+(?:async\s+function\s+|const\s+)(GET|POST|PUT|PATCH|DELETE)\b/g;
+    const contractMethods = [
+      "GET",
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE",
+    ] as const satisfies readonly HttpMethod[];
+    const contractExcludedRoutes = new Set([
+      "src/routes/api/health/+server.ts",
+      "src/routes/api/metrics/+server.ts",
+    ]);
     const routes = new Set<string>();
 
-    for (const file of walkFiles(apiDir).filter((item) =>
-      item.endsWith("/+server.ts"),
-    )) {
-      const source = readFileSync(file, "utf8");
-      const routePath = parseImplementedRoutePath(file);
-      for (const match of source.matchAll(methodPattern)) {
-        routes.add(`${match[1]} ${routePath}`);
+    for (const routeRoot of restRouteRoots) {
+      for (const file of walkFiles(routeRoot).filter((item) =>
+        item.endsWith("/+server.ts"),
+      )) {
+        const relativeFile = relative(repoRoot, file).replace(/\\/g, "/");
+        if (contractExcludedRoutes.has(relativeFile)) {
+          continue;
+        }
+        const source = readFileSync(file, "utf8");
+        const routePath = parseImplementedRoutePath(file);
+        for (const method of getExportedRouteMethods(source, contractMethods)) {
+          routes.add(`${method} ${routePath}`);
+        }
       }
     }
 
@@ -322,7 +341,7 @@ function checkContractsDoc() {
   function isDocumentedRestRouteChecked(route: string): boolean {
     const [, routePath] = route.split(" ", 2);
     return (
-      routePath.startsWith("/api/") && !routePath.includes("/.well-known/")
+      routePath.startsWith("/api/") || routePath.startsWith("/.well-known/")
     );
   }
 

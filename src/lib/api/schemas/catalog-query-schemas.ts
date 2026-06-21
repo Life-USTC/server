@@ -1,5 +1,8 @@
 import * as z from "zod";
-import { integerStringSchema } from "./request-schema-primitives";
+import {
+  dateInputStringSchema,
+  integerStringSchema,
+} from "./request-schema-primitives";
 
 const weekdayStringSchema = integerStringSchema
   .refine(
@@ -38,8 +41,8 @@ export const schedulesQuerySchema = z.object({
   roomId: integerStringSchema.optional(),
   roomJwId: integerStringSchema.optional(),
   weekday: weekdayStringSchema.optional(),
-  dateFrom: z.string().trim().min(1).optional(),
-  dateTo: z.string().trim().min(1).optional(),
+  dateFrom: dateInputStringSchema.optional(),
+  dateTo: dateInputStringSchema.optional(),
   page: integerStringSchema.optional(),
   limit: integerStringSchema.optional(),
 });

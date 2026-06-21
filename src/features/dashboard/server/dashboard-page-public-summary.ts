@@ -1,4 +1,4 @@
-import { selectCurrentSemesterFromList } from "@/lib/current-semester";
+import { selectCurrentSemesterFromList } from "@/features/catalog/lib/current-semester";
 import type { getPrisma } from "@/lib/db/prisma";
 
 export async function loadDashboardPublicSummary(

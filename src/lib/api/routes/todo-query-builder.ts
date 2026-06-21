@@ -1,34 +1,37 @@
 import type { TodoPriorityValue } from "@/features/todos/lib/todo-priority";
-import type { Prisma } from "@/generated/prisma/client";
-import { parseDateInput } from "@/lib/time/parse-date-input";
-import { parsePositiveIntegerQuery } from "./query-value-parsing";
+import type { TodoListFilters } from "@/features/todos/server/todo-service";
+import {
+  parseOptionalDateQuery,
+  parsePositiveIntegerQuery,
+} from "./query-value-parsing";
 
-export function buildTodoWhere(
-  userId: string,
-  parsedQuery: {
-    completed?: string;
-    dueAfter?: string;
-    dueBefore?: string;
-    priority?: TodoPriorityValue;
-  },
-) {
-  const where: Prisma.TodoWhereInput = { userId };
-  if (parsedQuery.completed === "true") where.completed = true;
-  else if (parsedQuery.completed === "false") where.completed = false;
-  if (parsedQuery.priority) where.priority = parsedQuery.priority;
-  if (parsedQuery.dueBefore || parsedQuery.dueAfter) {
-    const dueAtFilter: Prisma.TodoWhereInput["dueAt"] = {};
-    if (parsedQuery.dueBefore) {
-      const parsed = parseDateInput(parsedQuery.dueBefore);
-      if (parsed) dueAtFilter.lt = parsed;
-    }
-    if (parsedQuery.dueAfter) {
-      const parsed = parseDateInput(parsedQuery.dueAfter);
-      if (parsed) dueAtFilter.gte = parsed;
-    }
-    where.dueAt = dueAtFilter;
-  }
-  return where;
+export function parseTodoListFilters(parsedQuery: {
+  completed?: string;
+  dueAfter?: string;
+  dueBefore?: string;
+  priority?: TodoPriorityValue;
+}) {
+  const dueBefore = parseOptionalDateQuery(
+    "dueBefore",
+    parsedQuery.dueBefore,
+    "Invalid todo query",
+  );
+  if (dueBefore instanceof Response) return dueBefore;
+
+  const dueAfter = parseOptionalDateQuery(
+    "dueAfter",
+    parsedQuery.dueAfter,
+    "Invalid todo query",
+  );
+  if (dueAfter instanceof Response) return dueAfter;
+
+  return {
+    ...(parsedQuery.completed === "true" && { completed: true }),
+    ...(parsedQuery.completed === "false" && { completed: false }),
+    ...(parsedQuery.priority && { priority: parsedQuery.priority }),
+    ...(dueBefore && { dueBefore }),
+    ...(dueAfter && { dueAfter }),
+  } satisfies TodoListFilters;
 }
 
 export function parseTodoLimit(value: string | undefined) {

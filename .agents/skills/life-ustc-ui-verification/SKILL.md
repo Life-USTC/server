@@ -27,6 +27,7 @@ bunx playwright install chromium
 docker compose -f docker-compose.dev.yml up -d
 bun run build
 bun run e2e:prepare
+bun run db:migrate:deploy
 bun run seed
 bunx playwright test --reporter=list -- <path>
 ```
