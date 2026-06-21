@@ -3,11 +3,11 @@ import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
 import CourseDetailSectionsMobile from "./CourseDetailSectionsMobile.svelte";
 import CourseDetailSectionsTable from "./CourseDetailSectionsTable.svelte";
 import type {
-  CatalogDetailCopy,
+  CourseDetailCopy,
   CourseDetailCourse,
 } from "./catalog-detail-component-types";
 
-export let copy: CatalogDetailCopy;
+export let copy: CourseDetailCopy;
 export let course: CourseDetailCourse;
 export let notAvailable: string;
 export let primaryName: (item: CatalogNamed | null | undefined) => string;

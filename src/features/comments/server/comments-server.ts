@@ -1,5 +1,6 @@
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
+import { commentThreadInclude } from "./comment-read-model";
 import { buildCommentNodes } from "./comment-serialization";
 import type {
   CommentNode,
@@ -66,38 +67,7 @@ export async function getCommentsPayload(
 
   const comments = await prisma.comment.findMany({
     where: whereTarget,
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          image: true,
-          isAdmin: true,
-          accounts: {
-            select: {
-              provider: true,
-            },
-          },
-        },
-      },
-      attachments: {
-        include: {
-          upload: {
-            select: {
-              filename: true,
-              contentType: true,
-              size: true,
-            },
-          },
-        },
-      },
-      reactions: {
-        select: {
-          type: true,
-          userId: true,
-        },
-      },
-    },
+    include: commentThreadInclude,
     orderBy: { createdAt: "asc" },
   });
 

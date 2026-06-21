@@ -4,7 +4,8 @@ import type {
   Prisma,
 } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import type { RawComment, ViewerInfo } from "./comment-serialization";
+import { commentThreadInclude } from "./comment-read-model";
+import type { ViewerInfo } from "./comment-serialization";
 import { buildCommentNodes } from "./comment-serialization";
 
 type CommentMutationError = "forbidden" | "locked" | "not_found";
@@ -305,39 +306,10 @@ async function syncCommentAttachments(
 async function loadCommentResponse(id: string, viewer: ViewerInfo) {
   const updatedComment = await prisma.comment.findUnique({
     where: { id },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          image: true,
-          isAdmin: true,
-          accounts: {
-            select: { provider: true },
-          },
-        },
-      },
-      attachments: {
-        include: {
-          upload: {
-            select: {
-              filename: true,
-              contentType: true,
-              size: true,
-            },
-          },
-        },
-      },
-      reactions: {
-        select: {
-          type: true,
-          userId: true,
-        },
-      },
-    },
+    include: commentThreadInclude,
   });
 
   if (!updatedComment) return null;
-  const { roots } = buildCommentNodes([updatedComment as RawComment], viewer);
+  const { roots } = buildCommentNodes([updatedComment], viewer);
   return roots[0];
 }

@@ -1,6 +1,5 @@
 <script lang="ts">
 import { onMount } from "svelte";
-import DashboardPageContent from "@/features/dashboard/components/DashboardPageContent.svelte";
 import {
   addDays,
   addMonths,
@@ -67,6 +66,10 @@ import {
 } from "@/features/dashboard/lib/todos";
 import { invalidateAll, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
+import { Alert } from "$lib/components/ui/alert/index.js";
+import AnonymousDashboardView from "./AnonymousDashboardView.svelte";
+import DashboardStatusAlerts from "./DashboardStatusAlerts.svelte";
+import SignedDashboardContent from "./SignedDashboardContent.svelte";
 
 type PageData = DashboardPageData;
 type ActionData = DashboardActionData;
@@ -470,7 +473,10 @@ $: selectedImportCount = selectedImportSectionIds.length;
 $: canMatchImportSections =
   bulkImportText.trim().length > 0 && !isMatchingSections;
 
+let mounted = false;
+
 onMount(() => {
+  mounted = true;
   return mountDashboardController({
     applyViewState: applyDashboardViewState,
     clearPendingRemoveSection,
@@ -502,138 +508,164 @@ onMount(() => {
   <title>{copy.metadata.home} - Life@USTC</title>
 </svelte:head>
 
-<DashboardPageContent
-  {addDays}
-  {addMonths}
-  anonymousBranch={{ data: anonymousData, linkGroups: anonymousLinkGroups }}
-  {busCopy}
-  {calendarData}
-  {calendarEventParts}
-  {calendarEventsForDay}
-  {calendarExamDetail}
-  {calendarHomeworkDetail}
-  {calendarHomeworkHref}
-  {calendarMonth}
-  {calendarSemesterId}
-  {calendarSemesterIndex}
-  {calendarSessionDetail}
-  {calendarTodoDetail}
-  {calendarTimelineItemsForDay}
-  {calendarView}
-  {calendarWeekLabel}
-  {calendarWeekStart}
-  {calendarWeekdayLabels}
-  {canMatchImportSections}
-  {commentsCopy}
-  {commonCopy}
-  {confirmImportSections}
-  {copy}
-  {copyCalendarLink}
-  {createHomeworkAction}
-  bind:createHomeworkAdvancedOpen
-  bind:createHomeworkError
-  bind:createHomeworkPublishedAt
-  bind:createHomeworkSectionId
-  bind:createHomeworkSubmissionDueAt
-  bind:createHomeworkSubmissionStartAt
-  {createTodoAction}
-  bind:createTodoError
-  {dashboardCopy}
-  {dashboardTabHref}
-  {deleteTodo}
-  bind:editingTodo
-  bind:editTodoError
-  bind:examFilter
-  {examMetadataLabels}
-  {examRows}
-  {examTimeLabel}
-  {examView}
-  {filteredExamRows}
-  {filteredTodos}
-  {formatMessage}
-  {homeworkCopy}
-  homeworkDescriptionMaxLength={HOMEWORK_DESCRIPTION_MAX_LENGTH}
-  bind:homeworkFilter
-  bind:homeworkItems
-  {homeworkReferenceDate}
-  bind:homeworkSavingById
-  homeworkTitleMaxLength={HOMEWORK_TITLE_MAX_LENGTH}
-  bind:homeworkView
-  {homeworksCopy}
-  bind:isBulkImportOpen
-  bind:isConfirmImportOpen
-  bind:isCreatingHomework
-  {isCreatingTodo}
-  {isImportingSections}
-  {isMatchingSections}
-  {isUpdatingTodo}
-  {linkActionError}
-  {linkIconLabel}
-  {linkReturnTo}
-  bind:linkSearchInput
-  bind:linkSearchQuery
-  {linkView}
-  {matchedSections}
-  {matchImportSections}
-  {monthWeeks}
-  {namePrimary}
-  {nameSecondary}
-  {openBulkImportDialog}
-  {openCreateHomeworkDialog}
-  {openTodoEditor}
-  {overviewLinkItems}
-  {pendingRemoveSectionId}
-  {removeSubscribedSection}
-  {removingSectionId}
-  {resetBulkImport}
-  {sectionCopy}
-  bind:selectedHomework
-  {selectedImportCount}
-  {selectedImportSectionIdSet}
-  bind:selectedTodo
-  {selectedCreateHomeworkSection}
-  {sessionHref}
-  {setCalendarMonth}
-  {setCalendarSemester}
-  {setCalendarView}
-  {setCalendarWeek}
-  {setExamView}
-  {setHomeworkView}
-  {setLinkView}
-  {setTodoView}
-  bind:showCreateHomework
-  bind:showCreateTodo
-  {signedData}
-  {signedLinkGroups}
-  {signedTabBadge}
-  {signedTabs}
-  statusAlerts={{ actionError, calendarCopyError, calendarCopyMessage }}
-  {submitDashboardLinkPin}
-  {subscriptionActionError}
-  {subscriptionActionMessage}
-  {subscriptionsCopy}
-  {todoActionError}
-  bind:todoFilter
-  {todoPriorityClass}
-  {todoPriorityOptions}
-  {todoSavingById}
-  todoTitleMaxLength={TODO_TITLE_MAX_LENGTH}
-  todoContentMaxLength={TODO_CONTENT_MAX_LENGTH}
-  {todoView}
-  {todosCopy}
-  {toggleHomeworkCompletion}
-  {toggleImportSectionSelection}
-  {toggleTodoCompletion}
-  {unmatchedSectionCodes}
-  {updateTodoAction}
-  {updatingDashboardLinkSlug}
-  {applyHomeworkDueAtSemesterEnd}
-  {applyHomeworkDueInMonth}
-  {applyHomeworkDueInWeek}
-  {applyHomeworkStartNow}
-  {bulkImportError}
-  {bulkImportMessage}
-  bind:bulkImportSemesterId
-  bind:bulkImportText
-  {data}
-/>
+<div class="mx-auto grid w-full max-w-6xl gap-6">
+  <DashboardStatusAlerts
+    {actionError}
+    {calendarCopyError}
+    {calendarCopyMessage}
+  />
+
+  {#if signedData}
+    <SignedDashboardContent
+      {addDays}
+      {addMonths}
+      {busCopy}
+      {calendarData}
+      {calendarEventParts}
+      {calendarEventsForDay}
+      {calendarExamDetail}
+      {calendarHomeworkDetail}
+      {calendarHomeworkHref}
+      {calendarMonth}
+      {calendarSemesterId}
+      {calendarSemesterIndex}
+      {calendarSessionDetail}
+      {calendarTodoDetail}
+      {calendarTimelineItemsForDay}
+      {calendarView}
+      {calendarWeekLabel}
+      {calendarWeekStart}
+      {calendarWeekdayLabels}
+      {canMatchImportSections}
+      {commentsCopy}
+      {commonCopy}
+      {confirmImportSections}
+      {copy}
+      {copyCalendarLink}
+      {createHomeworkAction}
+      bind:createHomeworkAdvancedOpen
+      bind:createHomeworkError
+      bind:createHomeworkPublishedAt
+      bind:createHomeworkSectionId
+      bind:createHomeworkSubmissionDueAt
+      bind:createHomeworkSubmissionStartAt
+      {createTodoAction}
+      bind:createTodoError
+      {dashboardCopy}
+      {dashboardTabHref}
+      {data}
+      {deleteTodo}
+      bind:editingTodo
+      bind:editTodoError
+      bind:examFilter
+      {examMetadataLabels}
+      {examRows}
+      {examTimeLabel}
+      {examView}
+      {filteredExamRows}
+      {filteredTodos}
+      {formatMessage}
+      {homeworkCopy}
+      homeworkDescriptionMaxLength={HOMEWORK_DESCRIPTION_MAX_LENGTH}
+      bind:homeworkFilter
+      bind:homeworkItems
+      {homeworkReferenceDate}
+      bind:homeworkSavingById
+      homeworkTitleMaxLength={HOMEWORK_TITLE_MAX_LENGTH}
+      bind:homeworkView
+      {homeworksCopy}
+      bind:isBulkImportOpen
+      bind:isConfirmImportOpen
+      bind:isCreatingHomework
+      {isCreatingTodo}
+      {isImportingSections}
+      {isMatchingSections}
+      {isUpdatingTodo}
+      {linkActionError}
+      {linkIconLabel}
+      {linkReturnTo}
+      bind:linkSearchInput
+      bind:linkSearchQuery
+      {linkView}
+      {matchedSections}
+      {matchImportSections}
+      {monthWeeks}
+      {namePrimary}
+      {nameSecondary}
+      {openBulkImportDialog}
+      {openCreateHomeworkDialog}
+      {openTodoEditor}
+      {overviewLinkItems}
+      {pendingRemoveSectionId}
+      {removeSubscribedSection}
+      {removingSectionId}
+      {resetBulkImport}
+      {sectionCopy}
+      bind:selectedHomework
+      {selectedImportCount}
+      {selectedImportSectionIdSet}
+      bind:selectedTodo
+      {selectedCreateHomeworkSection}
+      {sessionHref}
+      {setCalendarMonth}
+      {setCalendarSemester}
+      {setCalendarView}
+      {setCalendarWeek}
+      {setExamView}
+      {setHomeworkView}
+      {setLinkView}
+      {setTodoView}
+      bind:showCreateHomework
+      bind:showCreateTodo
+      {signedData}
+      {signedLinkGroups}
+      {signedTabBadge}
+      {signedTabs}
+      {submitDashboardLinkPin}
+      {subscriptionActionError}
+      {subscriptionActionMessage}
+      {subscriptionsCopy}
+      {todoActionError}
+      bind:todoFilter
+      {todoPriorityClass}
+      {todoPriorityOptions}
+      {todoSavingById}
+      todoTitleMaxLength={TODO_TITLE_MAX_LENGTH}
+      todoContentMaxLength={TODO_CONTENT_MAX_LENGTH}
+      {todoView}
+      {todosCopy}
+      {toggleHomeworkCompletion}
+      {toggleImportSectionSelection}
+      {toggleTodoCompletion}
+      {unmatchedSectionCodes}
+      {updateTodoAction}
+      {updatingDashboardLinkSlug}
+      {applyHomeworkDueAtSemesterEnd}
+      {applyHomeworkDueInMonth}
+      {applyHomeworkDueInWeek}
+      {applyHomeworkStartNow}
+      {bulkImportError}
+      {bulkImportMessage}
+      bind:bulkImportSemesterId
+      bind:bulkImportText
+    />
+  {:else if data.signedIn && data.userMissing}
+    <Alert variant="warning">{commonCopy.userNotFound}</Alert>
+  {:else if anonymousData?.tab === "bus" && !mounted}
+    <div class="rounded-xl border border-base-300 bg-base-100 p-4 text-base-content/70 text-sm">
+      {busCopy.empty}
+    </div>
+  {:else if anonymousData}
+    <AnonymousDashboardView
+      {busCopy}
+      {dashboardCopy}
+      anonymousData={anonymousData}
+      anonymousLinkGroups={anonymousLinkGroups}
+      {linkIconLabel}
+      {linkView}
+      {setLinkView}
+      bind:linkSearchInput
+      bind:linkSearchQuery
+    />
+  {/if}
+</div>

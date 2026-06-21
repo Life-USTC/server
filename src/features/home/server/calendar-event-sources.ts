@@ -1,5 +1,5 @@
 import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
-import { prisma } from "@/lib/db/prisma";
+import { listDueTodoSnapshots } from "@/features/todos/server/todo-service";
 import {
   getSubscribedSectionIds,
   listSubscribedExams,
@@ -51,26 +51,12 @@ export async function loadCalendarEventSources({
       includeDateUnknown: false,
       sectionIds: scopedSectionIds,
     }),
-    prisma.todo.findMany({
-      where: {
-        userId,
-        completed: false,
-        dueAt: {
-          gte: windowStart,
-          ...(includeWindowEnd ? { lte: windowEnd } : { lt: windowEnd }),
-        },
-      },
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        dueAt: true,
-        priority: true,
-        completed: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-      orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
+    listDueTodoSnapshots({
+      completed: false,
+      dueAtFrom: windowStart,
+      dueAtTo: windowEnd,
+      includeDueAtTo: includeWindowEnd,
+      userId,
     }),
   ]);
 

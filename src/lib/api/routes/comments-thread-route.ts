@@ -1,3 +1,4 @@
+import { loadFocusedCommentThread } from "@/features/comments/server/comment-read-model";
 import {
   forbidden,
   handleRouteError,
@@ -5,14 +6,9 @@ import {
   notFound,
   parseRouteInput,
 } from "@/lib/api/helpers";
-import {
-  buildCommentRouteTarget,
-  commentTargetLookupSelect,
-  commentThreadInclude,
-  findComment,
-} from "@/lib/api/routes/comments-read-helpers";
 import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
 import { resolveApiUserId } from "@/lib/auth/api-auth";
+import { buildCommentRouteTarget } from "./comment-target-payloads";
 
 type IdParams = { id: string };
 
@@ -29,51 +25,24 @@ export async function getCommentRoute(request: Request, params: IdParams) {
 
   try {
     const viewerUserId = await resolveApiUserId(request);
-    const [{ getViewerContext }, { prisma }, { buildCommentNodes }] =
-      await Promise.all([
-        import("@/lib/auth/viewer-context"),
-        import("@/lib/db/prisma"),
-        import("@/features/comments/server/comment-serialization"),
-      ]);
-
-    const [comment, viewer] = await Promise.all([
-      prisma.comment.findUnique({
-        where: { id },
-        select: commentTargetLookupSelect,
-      }),
-      getViewerContext({
-        includeAdmin: false,
-        userId: viewerUserId,
-      }),
-    ]);
-
-    if (!comment) {
-      return notFound();
-    }
-
-    const threadKey = comment.rootId ?? comment.id;
-
-    const threadComments = await prisma.comment.findMany({
-      where: {
-        OR: [{ id: threadKey }, { rootId: threadKey }],
-      },
-      include: commentThreadInclude,
-      orderBy: { createdAt: "asc" },
+    const result = await loadFocusedCommentThread({
+      commentId: id,
+      viewerUserId,
     });
 
-    const { roots, hiddenCount } = buildCommentNodes(threadComments, viewer);
-    const focus = findComment(roots, id);
-
-    if (!focus) {
+    if (!result.ok && result.error === "not_found") {
+      return notFound();
+    }
+    if (!result.ok) {
       return forbidden();
     }
 
     return jsonResponse({
-      thread: roots,
-      focusId: id,
-      hiddenCount,
-      viewer,
-      target: buildCommentRouteTarget(comment),
+      thread: result.thread,
+      focusId: result.focusId,
+      hiddenCount: result.hiddenCount,
+      viewer: result.viewer,
+      target: buildCommentRouteTarget(result.target),
     });
   } catch (error) {
     return handleRouteError("Failed to fetch comment", error);

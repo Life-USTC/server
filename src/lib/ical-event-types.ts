@@ -1,4 +1,4 @@
-import type { Prisma } from "@/generated/prisma/client";
+import type { Prisma, TodoPriority } from "@/generated/prisma/client";
 
 export type CalendarSection = Prisma.SectionGetPayload<{
   include: {
@@ -25,5 +25,5 @@ export type CalendarTodo = {
   title: string;
   content: string | null;
   dueAt: Date;
-  priority: "low" | "medium" | "high";
+  priority: TodoPriority;
 };

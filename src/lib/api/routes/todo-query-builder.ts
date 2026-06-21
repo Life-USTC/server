@@ -1,6 +1,7 @@
 import type { TodoPriorityValue } from "@/features/todos/lib/todo-priority";
 import type { Prisma } from "@/generated/prisma/client";
 import { parseDateInput } from "@/lib/time/parse-date-input";
+import { parsePositiveIntegerQuery } from "./query-value-parsing";
 
 export function buildTodoWhere(
   userId: string,
@@ -28,4 +29,11 @@ export function buildTodoWhere(
     where.dueAt = dueAtFilter;
   }
   return where;
+}
+
+export function parseTodoLimit(value: string | undefined) {
+  return parsePositiveIntegerQuery("limit", value, {
+    max: 200,
+    message: "Invalid todo query",
+  });
 }

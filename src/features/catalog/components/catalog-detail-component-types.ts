@@ -1,6 +1,6 @@
 import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
 
-export type CatalogDetailCopy = {
+export type CourseDetailCopy = {
   course: {
     basicInfo: string;
     category: string;
@@ -18,6 +18,9 @@ export type CatalogDetailCopy = {
     semester: string;
     teachers: string;
   };
+};
+
+export type TeacherDetailCopy = {
   teacherDetail: {
     address: string;
     basicInfo: string;

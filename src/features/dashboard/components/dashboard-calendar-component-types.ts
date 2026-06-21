@@ -3,15 +3,10 @@ import type {
   DashboardBusData,
 } from "@/features/dashboard/lib/bus-tab-types";
 import type { CalendarView } from "@/features/dashboard/lib/calendar";
-import type {
-  CalendarEvents,
-  CalendarExamEvent,
-  CalendarHomeworkEvent,
-  CalendarSessionEvent,
-  CalendarTodoEvent,
-} from "@/features/dashboard/lib/calendar-display";
+import type { CalendarEvents } from "@/features/dashboard/lib/calendar-display";
 import type {
   DashboardCommonCopy,
+  CalendarData as DashboardControllerCalendarData,
   DashboardDashboardCopy,
   DashboardRootCopy,
   DashboardSectionCopy,
@@ -20,35 +15,14 @@ import type {
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import type { dashboardTabHref } from "@/features/dashboard/lib/dashboard-nav";
 
-export type DashboardCalendarSession = CalendarSessionEvent & {
-  dateKey?: string | null;
-  sectionJwId: number | null;
-};
-
-export type DashboardCalendarExam = CalendarExamEvent & {
-  dateKey?: string | null;
-};
-
-export type DashboardCalendarHomework = CalendarHomeworkEvent & {
-  dateKey?: string | null;
-};
-
-export type DashboardCalendarTodo = CalendarTodoEvent & {
-  dateKey?: string | null;
-  priority: string;
-};
-
-export type DashboardCalendarData = {
-  activeCalendarSemesterId: number | null;
-  activeCalendarSemesterName?: string | null;
-  allExams: DashboardCalendarExam[];
-  allSessions: DashboardCalendarSession[];
-  calendarSemesterNavList: Array<{ id: number; name?: string | null }>;
-  semesterHomeworks: DashboardCalendarHomework[];
-  semesterTodos: DashboardCalendarTodo[];
-  semesterWeeks: string[][];
-  todayDate: string;
-};
+export type DashboardCalendarData = DashboardControllerCalendarData;
+export type DashboardCalendarSession =
+  DashboardCalendarData["allSessions"][number];
+export type DashboardCalendarExam = DashboardCalendarData["allExams"][number];
+export type DashboardCalendarHomework =
+  DashboardCalendarData["semesterHomeworks"][number];
+export type DashboardCalendarTodo =
+  DashboardCalendarData["semesterTodos"][number];
 
 export type DashboardCalendarEvents = CalendarEvents<
   DashboardCalendarSession,

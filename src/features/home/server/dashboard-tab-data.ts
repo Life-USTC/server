@@ -1,8 +1,8 @@
 import { getBusTimetableData } from "@/features/bus/lib/bus-service";
 import type { BusLocale, BusTimetableData } from "@/features/bus/lib/bus-types";
+import { listTodos } from "@/features/todos/server/todo-service";
 import type { TodoPriority } from "@/generated/prisma/client";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
-import { prisma as basePrisma } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
@@ -49,20 +49,7 @@ export type TodoItem = {
 };
 
 export async function getTodosTabData(userId: string): Promise<TodoItem[]> {
-  const todos = await basePrisma.todo.findMany({
-    where: { userId },
-    select: {
-      id: true,
-      title: true,
-      content: true,
-      completed: true,
-      priority: true,
-      dueAt: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-    orderBy: [{ completed: "asc" }, { dueAt: "asc" }, { createdAt: "desc" }],
-  });
+  const todos = await listTodos({ userId });
 
   return todos.map((todo) => ({
     id: todo.id,

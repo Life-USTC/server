@@ -1,3 +1,4 @@
+import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import type {
   DashboardBusCopy,
   DashboardBusData,
@@ -8,7 +9,11 @@ import type {
   DashboardExamSection,
 } from "@/features/dashboard/lib/exams";
 import type { MatchedSubscriptionSection } from "@/features/dashboard/lib/subscriptions";
-import type { DashboardLinkGroup } from "@/features/dashboard-links/lib/dashboard-links";
+import type {
+  DashboardLinkGroup,
+  DashboardLinkIcon,
+} from "@/features/dashboard-links/lib/dashboard-links";
+import type { DashboardLinkSearchable } from "./dashboard-link-search";
 
 type DashboardRecord = Record<string, unknown>;
 
@@ -28,7 +33,7 @@ export type DashboardRootCopy = DashboardRecord & {
     todo: string;
   };
   bus: DashboardBusCopy;
-  comments: DashboardRecord;
+  comments: CommentsCopy;
   common: DashboardCommonCopy;
   dashboard: DashboardDashboardCopy;
   homepage: DashboardRecord;
@@ -267,6 +272,9 @@ export type DashboardTodosCopy = DashboardRecord & {
 
 export type DashboardHomeworkItem = DashboardRecord & {
   completion?: unknown | null;
+  completed?: boolean;
+  dateKey?: string | null;
+  description?: string | null;
   id: string;
   section?: {
     code?: string | null;
@@ -292,6 +300,7 @@ export type DashboardTodoItem = DashboardRecord & {
 };
 
 export type DashboardCalendarTodoItem = DashboardRecord & {
+  completed?: boolean;
   content?: string | null;
   dateKey?: string | null;
   dueAt?: Date | string | null;
@@ -307,16 +316,19 @@ export type DashboardTodoPriorityOption = {
 
 export type DashboardSessionItem = DashboardRecord & {
   courseName: string;
+  dateKey?: string | null;
   endTime: number;
   id: number | string;
   location: string;
   sectionJwId: number | null;
   startTime: number;
+  teacherDisplay?: string | null;
 };
 
 export type DashboardOverviewExamItem = DashboardRecord & {
   courseName: string;
   date?: Date | string | null;
+  dateKey?: string | null;
   endTime?: number | null;
   examMode?: string | null;
   id: number | string;
@@ -329,13 +341,16 @@ export type DashboardOverviewUpcomingExamItem = DashboardRecord & {
   date: string;
 };
 
-export type DashboardOverviewLinkItem = DashboardRecord & {
-  description?: string | null;
-  icon: string;
-  isPinned: boolean;
-  slug: string;
-  title: string;
-};
+export type DashboardLinkItem = DashboardRecord &
+  DashboardLinkSearchable & {
+    clickCount: number;
+    icon: DashboardLinkIcon;
+    isPinned: boolean;
+    slug: string;
+    url: string;
+  };
+
+export type DashboardOverviewLinkItem = DashboardLinkItem;
 
 export type DashboardLinkPinAction = "pin" | "unpin";
 export type DashboardLinkPinSubmit = (
@@ -348,12 +363,14 @@ export type DashboardOverviewData = DashboardRecord & {
   dueToday: DashboardHomeworkItem[];
   hasAnySelection?: boolean;
   hasCurrentTermSelection: boolean;
+  overviewLinks: DashboardOverviewLinkItem[];
   pendingHomeworks: DashboardHomeworkItem[];
   todaySessions: DashboardSessionItem[];
 };
 
 export type DashboardCalendarData = DashboardRecord & {
   activeCalendarSemesterId: number | null;
+  activeCalendarSemesterName?: string | null;
   allExams: DashboardOverviewExamItem[];
   allSessions: DashboardSessionItem[];
   calendarSemesterNavList: Array<{ id: number; name?: string | null }>;
@@ -386,8 +403,8 @@ export type DashboardSubscribedSection = DashboardRecord &
   DashboardExamSection & {
     code: string;
     credits?: number | string | null;
-    id: number | string;
-    jwId: number | string;
+    id: number;
+    jwId: number;
     semester?: {
       id?: number | string | null;
       nameCn?: string | null;
@@ -406,11 +423,13 @@ export type DashboardSubscriptionsData = DashboardRecord & {
 };
 
 export type DashboardLinksData = DashboardRecord & {
-  dashboardLinks: DashboardOverviewLinkItem[];
+  dashboardLinks: DashboardLinkItem[];
 };
 
 export type DashboardNavStats = DashboardRecord & {
+  calendarItemsCount: number;
   examsCount: number;
+  pendingHomeworksCount: number;
   pendingTodosCount: number;
 };
 
@@ -424,7 +443,7 @@ export type DashboardPageData = DashboardRecord & {
   locale: string;
   navStats?: DashboardNavStats | null;
   overview?: DashboardOverviewData | null;
-  publicLinks?: unknown[] | null;
+  publicLinks?: DashboardLinkItem[] | null;
   referenceNow?: Date | string | null;
   signedIn: boolean;
   subscribedSectionCount?: number | null;
@@ -470,9 +489,6 @@ export type TodoItem = NonNullable<SignedDashboardData["todos"]>[number];
 export type TodoFilter = "incomplete" | "completed" | "all";
 export type TodoView = "cards" | "list";
 export type ExamView = "cards" | "list";
-export type DashboardLinkItem = NonNullable<
-  SignedDashboardData["links"]
->["dashboardLinks"][number];
 export type LinkView = "grid" | "list";
 export type CalendarData = NonNullable<
   NonNullable<SignedDashboardData["overview"]>["calendar"]

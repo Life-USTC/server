@@ -44,7 +44,7 @@ export function buildCalendarTimelineItemsForDay<
       meta: options.sessionDetail(session),
       sort: session.startTime ?? 2400,
       title: session.courseName,
-      tone: "info",
+      tone: "info" as const,
     })),
     ...events.exams.map((exam) => ({
       key: `exam-${exam.id}`,
@@ -53,7 +53,7 @@ export function buildCalendarTimelineItemsForDay<
       meta: options.examDetail(exam),
       sort: exam.startTime ?? 2400,
       title: exam.courseName,
-      tone: "error",
+      tone: "error" as const,
     })),
     ...events.homeworks.map((homework) => ({
       done: Boolean(homework.completed ?? homework.completion),
@@ -63,7 +63,7 @@ export function buildCalendarTimelineItemsForDay<
       meta: options.homeworkDetail(homework),
       sort: timeSortValue(homework.submissionDueAt),
       title: homework.title,
-      tone: "warning",
+      tone: "warning" as const,
     })),
     ...events.todos.map((todo) => ({
       done: Boolean(todo.completed),
@@ -73,7 +73,7 @@ export function buildCalendarTimelineItemsForDay<
       meta: options.todoDetail(todo),
       sort: timeSortValue(todo.dueAt),
       title: todo.title,
-      tone: "success",
+      tone: "success" as const,
     })),
   ].sort(
     (left, right) =>

@@ -3,11 +3,11 @@ import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import type {
-  CatalogDetailCopy,
+  TeacherDetailCopy,
   TeacherDetailTeacher,
 } from "./catalog-detail-component-types";
 
-export let copy: CatalogDetailCopy;
+export let copy: TeacherDetailCopy;
 export let displayName: string;
 export let notAvailable: string;
 export let primaryName: (item: CatalogNamed | null | undefined) => string;
