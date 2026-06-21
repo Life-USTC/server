@@ -35,6 +35,24 @@ export const calendarSubscriptionCreateResponseSchema = z.object({
   subscription: calendarSubscriptionSchema.nullable(),
 });
 
+export const calendarSubscriptionImportResponseSchema = z.object({
+  success: z.boolean(),
+  semester: z.object({
+    id: z.number().int(),
+    nameCn: z.string().nullable(),
+    code: z.string().nullable(),
+  }),
+  matchedCodes: z.array(z.string()),
+  unmatchedCodes: z.array(z.string()),
+  ambiguousCodes: z.array(z.string()),
+  sections: z.array(sectionCompactSchema),
+  addedCount: z.number().int().nonnegative(),
+  addedSections: z.array(sectionCompactSchema),
+  alreadySubscribedCount: z.number().int().nonnegative(),
+  alreadySubscribedSections: z.array(sectionCompactSchema),
+  subscription: calendarSubscriptionSchema.nullable(),
+});
+
 export const matchSectionCodesResponseSchema = z.object({
   semester: z.object({
     id: z.number().int(),

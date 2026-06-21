@@ -1,4 +1,9 @@
 import * as z from "zod";
+import { localizedCourseBaseSchema } from "./academic-course-response-schemas";
+import {
+  sectionBaseSchema,
+  semesterSchema,
+} from "./academic-section-base-response-schemas";
 import { dateTimeSchema } from "./response-schema-primitives";
 
 export const examRoomSchema = z.object({
@@ -27,4 +32,11 @@ export const examSchema = z.object({
   sectionId: z.number().int(),
   examBatch: examBatchSchema.nullable(),
   examRooms: z.array(examRoomSchema),
+});
+
+export const subscribedExamSchema = examSchema.extend({
+  section: sectionBaseSchema.extend({
+    course: localizedCourseBaseSchema,
+    semester: semesterSchema.nullable(),
+  }),
 });

@@ -20,7 +20,10 @@ const probeOnlyRoutes = new Set([
   "/api/uploads/complete",
   "/api/uploads/object",
   "/api/calendar-subscriptions",
+  "/api/calendar-subscriptions/import-codes",
   "/api/calendar-subscriptions/current",
+  "/api/me/overview",
+  "/api/me/subscriptions/schedules",
   "/api/admin/comments",
   "/api/admin/comments/[id]",
   "/api/admin/users",
@@ -249,6 +252,35 @@ export async function assertApiContract(
         (((await response.json()) as { data?: unknown[] }).data?.length ?? 0) >
           0,
       ).toBe(true);
+      return;
+    }
+
+    case "/api/bus/routes": {
+      const response = await request.get(
+        `/api/bus/routes?originCampusId=${DEV_SEED.bus.originCampusId}&destinationCampusId=${DEV_SEED.bus.destinationCampusId}&versionKey=${DEV_SEED.bus.versionKey}`,
+      );
+      expect(response.status()).toBe(200);
+      const body = (await response.json()) as {
+        routes?: Array<{ id?: number; stops?: unknown[] }>;
+        total?: number;
+      };
+      expect((body.total ?? 0) > 0).toBe(true);
+      expect(
+        body.routes?.some((route) => route.id === DEV_SEED.bus.routeId),
+      ).toBe(true);
+      return;
+    }
+
+    case "/api/bus/next": {
+      const response = await request.get(
+        `/api/bus/next?originCampusId=${DEV_SEED.bus.originCampusId}&destinationCampusId=${DEV_SEED.bus.destinationCampusId}&atTime=${encodeURIComponent(DEV_SEED.seedAnchorAtTime)}&dayType=weekday&versionKey=${DEV_SEED.bus.versionKey}`,
+      );
+      expect(response.status()).toBe(200);
+      const body = (await response.json()) as {
+        departures?: Array<{ routeId?: number; status?: string }>;
+      };
+      expect((body.departures?.length ?? 0) > 0).toBe(true);
+      expect(body.departures?.[0]?.status).toBe("upcoming");
       return;
     }
 

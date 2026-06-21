@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { APP_LOCALES } from "@/i18n/config";
 import {
   integerStringSchema,
   todoPrioritySchema,
@@ -6,6 +7,24 @@ import {
 
 export const busQuerySchema = z.object({
   versionKey: z.string().trim().min(1).optional(),
+});
+
+export const busRouteSearchQuerySchema = z.object({
+  originCampusId: integerStringSchema.optional(),
+  destinationCampusId: integerStringSchema.optional(),
+  versionKey: z.string().trim().min(1).optional(),
+  locale: z.enum(APP_LOCALES).optional(),
+});
+
+export const busNextDeparturesQuerySchema = z.object({
+  originCampusId: integerStringSchema,
+  destinationCampusId: integerStringSchema,
+  atTime: z.string().trim().min(1).optional(),
+  dayType: z.enum(["auto", "weekday", "weekend"]).optional(),
+  includeDeparted: z.enum(["true", "false"]).optional(),
+  limit: integerStringSchema.optional(),
+  versionKey: z.string().trim().min(1).optional(),
+  locale: z.enum(APP_LOCALES).optional(),
 });
 
 export const busPreferenceRequestSchema = z.object({
@@ -26,6 +45,21 @@ export const dashboardLinkVisitQuerySchema = z.object({
 export const semestersQuerySchema = z.object({
   page: integerStringSchema.optional(),
   limit: integerStringSchema.optional(),
+});
+
+export const subscribedSchedulesQuerySchema = z.object({
+  dateFrom: z.string().trim().min(1).optional(),
+  dateTo: z.string().trim().min(1).optional(),
+  weekday: integerStringSchema.optional(),
+  limit: integerStringSchema.optional(),
+  locale: z.enum(APP_LOCALES).optional(),
+});
+
+export const compactOverviewQuerySchema = z.object({
+  atTime: z.string().trim().min(1).optional(),
+  homeworkWindowDays: integerStringSchema.optional(),
+  limit: integerStringSchema.optional(),
+  locale: z.enum(APP_LOCALES).optional(),
 });
 
 export const todosQuerySchema = z.object({

@@ -72,6 +72,15 @@
             "notes": [
               "subscription.sections[] is the user's new set of subscribed sections."
             ]
+          },
+          {
+            "path": "/api/calendar-subscriptions/import-codes",
+            "method": "POST",
+            "returns": "{ success: Boolean, semester, matchedCodes, unmatchedCodes, ambiguousCodes, sections, addedCount, addedSections, alreadySubscribedCount, alreadySubscribedSections, subscription }",
+            "notes": [
+              "Combines section-code matching with an append-only subscription mutation.",
+              "Does not replace the caller's whole subscription set, so concurrent additions are not overwritten by stale client-side read-merge-replace flows."
+            ]
           }
         ]
       },
@@ -89,7 +98,7 @@
           {
             "name": "subscribe_my_sections_by_codes",
             "returns": "{ success: Boolean, semester, matchedCodes, unmatchedCodes, addedCount, alreadySubscribedCount, subscription }",
-            "rest_equivalent": "POST /api/calendar-subscriptions",
+            "rest_equivalent": "POST /api/calendar-subscriptions/import-codes",
             "notes": [
               "Convenience mutation that combines matching with subscription update.",
               "Use match_section_codes first when the caller needs a dry-run style preview.",

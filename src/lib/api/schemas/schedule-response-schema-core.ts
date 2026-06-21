@@ -48,7 +48,7 @@ const localizedTeacherWithDepartmentSchema = teacherSchema.extend({
     .nullable(),
 });
 
-const scheduleWithRelationsSchema = scheduleBaseSchema.extend({
+export const scheduleEntrySchema = scheduleBaseSchema.extend({
   room: localizedRoomWithBuildingCampusSchema.nullable(),
   teachers: z.array(localizedTeacherWithDepartmentSchema),
   section: sectionBaseSchema.extend({
@@ -58,6 +58,9 @@ const scheduleWithRelationsSchema = scheduleBaseSchema.extend({
   scheduleGroup: scheduleGroupSchema,
 });
 
-export const paginatedScheduleResponseSchema = createPaginatedSchema(
-  scheduleWithRelationsSchema,
-);
+export const paginatedScheduleResponseSchema =
+  createPaginatedSchema(scheduleEntrySchema);
+
+export const subscribedSchedulesResponseSchema = z.object({
+  schedules: z.array(scheduleEntrySchema),
+});

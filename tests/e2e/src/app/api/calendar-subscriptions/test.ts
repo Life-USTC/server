@@ -26,6 +26,7 @@ import { DEV_SEED } from "../../../../utils/dev-seed";
 import { assertApiContract } from "../../_shared/api-contract";
 
 const BASE = "/api/calendar-subscriptions";
+const IMPORT_BASE = "/api/calendar-subscriptions/import-codes";
 
 test.describe("POST /api/calendar-subscriptions", () => {
   test.describe.configure({ mode: "serial" });
@@ -34,11 +35,88 @@ test.describe("POST /api/calendar-subscriptions", () => {
     await assertApiContract(request, { routePath: BASE });
   });
 
+  test("import-codes contract", async ({ request }) => {
+    await assertApiContract(request, { routePath: IMPORT_BASE });
+  });
+
   test("returns 401 when not authenticated", async ({ request }) => {
     const response = await request.post(BASE, {
       data: { sectionIds: [1] },
     });
     expect(response.status()).toBe(401);
+  });
+
+  test("import-codes returns 401 when not authenticated", async ({
+    request,
+  }) => {
+    const response = await request.post(IMPORT_BASE, {
+      data: { codes: [DEV_SEED.section.code] },
+    });
+    expect(response.status()).toBe(401);
+  });
+
+  test("import-codes appends matched section codes and reports repeats", async ({
+    page,
+  }) => {
+    await signInAsDebugUser(page, "/");
+
+    const currentRes = await page.request.get(
+      "/api/calendar-subscriptions/current",
+    );
+    const currentBody = (await currentRes.json()) as {
+      subscription?: { sections?: Array<{ id?: number }> } | null;
+    };
+    const originalIds =
+      currentBody.subscription?.sections?.map((s) => s.id as number) ?? [];
+
+    try {
+      await page.request.post(BASE, { data: { sectionIds: [] } });
+
+      const firstResponse = await page.request.post(IMPORT_BASE, {
+        data: {
+          codes: [DEV_SEED.section.code, "MISSING.CODE"],
+        },
+      });
+      expect(firstResponse.status()).toBe(200);
+      const firstBody = (await firstResponse.json()) as {
+        addedCount?: number;
+        addedSections?: Array<{ id?: number; code?: string }>;
+        alreadySubscribedCount?: number;
+        matchedCodes?: string[];
+        subscription?: { sections?: Array<{ id?: number; code?: string }> };
+        unmatchedCodes?: string[];
+      };
+
+      expect(firstBody.matchedCodes).toContain(DEV_SEED.section.code);
+      expect(firstBody.unmatchedCodes).toContain("MISSING.CODE");
+      expect(firstBody.addedCount).toBe(1);
+      expect(firstBody.alreadySubscribedCount).toBe(0);
+      expect(firstBody.addedSections?.[0]?.code).toBe(DEV_SEED.section.code);
+      expect(
+        firstBody.subscription?.sections?.some(
+          (section) => section.code === DEV_SEED.section.code,
+        ),
+      ).toBe(true);
+
+      const secondResponse = await page.request.post(IMPORT_BASE, {
+        data: { codes: [DEV_SEED.section.code] },
+      });
+      expect(secondResponse.status()).toBe(200);
+      const secondBody = (await secondResponse.json()) as {
+        addedCount?: number;
+        alreadySubscribedCount?: number;
+        alreadySubscribedSections?: Array<{ code?: string }>;
+      };
+      expect(secondBody.addedCount).toBe(0);
+      expect(secondBody.alreadySubscribedCount).toBe(1);
+      expect(secondBody.alreadySubscribedSections?.[0]?.code).toBe(
+        DEV_SEED.section.code,
+      );
+    } finally {
+      await page.request.post(BASE, {
+        data: { sectionIds: originalIds },
+      });
+    }
   });
 
   test("subscribes to seed section and returns correct shape", async ({

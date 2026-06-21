@@ -5,7 +5,6 @@ import {
   getUserSectionSubscriptionState,
 } from "./subscription-read-model";
 import {
-  mergeSectionIds,
   removeSectionIds,
   uniqueSectionIds,
 } from "./subscription-section-id-helpers";
@@ -36,6 +35,24 @@ async function getMutableUserSubscriptions(userId: string) {
   });
 }
 
+async function connectUserSectionIds(
+  userId: string,
+  sectionIds: readonly number[],
+) {
+  if (sectionIds.length === 0) {
+    return;
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      subscribedSections: {
+        connect: uniqueSectionIds(sectionIds).map((id) => ({ id })),
+      },
+    },
+  });
+}
+
 export async function replaceUserSectionSubscriptions(
   userId: string,
   sectionIds: number[],
@@ -61,12 +78,12 @@ export async function addUserSectionSubscriptions(
     return null;
   }
 
-  await replaceUserSectionIds(
+  const existingIds = new Set(
+    user.subscribedSections.map((section) => section.id),
+  );
+  await connectUserSectionIds(
     userId,
-    mergeSectionIds(
-      user.subscribedSections.map((section) => section.id),
-      sectionIds,
-    ),
+    sectionIds.filter((id) => !existingIds.has(id)),
   );
 
   return getUserSectionSubscriptionState(userId);
