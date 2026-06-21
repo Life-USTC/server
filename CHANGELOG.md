@@ -1,3 +1,10 @@
+## [1.36.1](https://github.com/Life-USTC/server/compare/v1.36.0...v1.36.1) (2026-06-21)
+
+
+### Bug Fixes
+
+* **verify:** prepare app before convention checks ([e29f7dc](https://github.com/Life-USTC/server/commit/e29f7dca4c2e1d5ba51a0161cf29d06e78963856))
+
 # [1.36.0](https://github.com/Life-USTC/server/compare/v1.35.0...v1.36.0) (2026-06-21)
 
 
