@@ -10,7 +10,7 @@
  *
  * ## POST /api/homeworks
  * - Body: { title, sectionId, publishedAt, submissionStartAt, submissionDueAt }
- * - Response: { success: true }
+ * - Response: { id, homework }
  * - Auth required (401 if unauthenticated)
  * - Creates a homework with an audit log entry (action: "created")
  * - Returns 400 for missing required fields
@@ -142,8 +142,14 @@ test("/api/homeworks POST 登录后可创建作业并清理", async ({ page }) =
     },
   });
   expect(createResponse.status()).toBe(200);
-  const createBody = (await createResponse.json()) as { id?: string };
+  const createBody = (await createResponse.json()) as {
+    homework?: { commentCount?: number; id?: string; title?: string } | null;
+    id?: string;
+  };
   expect(createBody.id).toBeTruthy();
+  expect(createBody.homework?.id).toBe(createBody.id);
+  expect(createBody.homework?.title).toBe(title);
+  expect(createBody.homework?.commentCount).toBe(0);
 
   // Verify the created homework appears in the list
   const listResponse = await page.request.get(

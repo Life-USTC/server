@@ -2,7 +2,7 @@
  * E2E tests for GET /api/todos and POST /api/todos.
  *
  * ## GET /api/todos
- * - Response: { todos: Array<{ id, title, content, priority, completed, dueAt, ... }> }
+ * - Response: { counts: { incomplete, completed, overdue }, todos: Array<{ id, title, content, priority, completed, dueAt, ... }> }
  * - Auth required (401 if unauthenticated)
  * - Returns all todos belonging to the current user
  *
@@ -38,8 +38,12 @@ test("/api/todos GET 登录后返回 seed 待办", async ({ page }) => {
   const response = await page.request.get("/api/todos");
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
+    counts?: { completed?: number; incomplete?: number; overdue?: number };
     todos?: Array<{ title?: string; completed?: boolean }>;
   };
+  expect(typeof body.counts?.incomplete).toBe("number");
+  expect(typeof body.counts?.completed).toBe("number");
+  expect(typeof body.counts?.overdue).toBe("number");
   expect(
     body.todos?.some(
       (todo) =>

@@ -15,7 +15,7 @@ export const GET = svelteRequestHandler(observedApiRoute(getHomeworksRoute));
 /**
  * Create one homework.
  * @body homeworkCreateRequestSchema
- * @response idResponseSchema
+ * @response homeworkCreateResponseSchema
  * @response 400:openApiErrorSchema
  */
 export const POST = svelteRequestHandler(observedApiRoute(postHomeworkRoute));

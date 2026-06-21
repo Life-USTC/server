@@ -1,5 +1,4 @@
-import { todoSnapshotSelect } from "@/features/todos/server/todo-service";
-import { prisma } from "@/lib/db/prisma";
+import { listTodoSummary } from "@/features/todos/server/todo-service";
 import {
   getUserId,
   jsonToolResult,
@@ -19,44 +18,15 @@ export async function listMyTodosAction(
   extra: ToolExtra,
 ) {
   const userId = getUserId(extra.authInfo);
-  const [incompleteCount, completedCount, overdueCount, todos] =
-    await Promise.all([
-      prisma.todo.count({
-        where: { userId, completed: false },
-      }),
-      prisma.todo.count({
-        where: { userId, completed: true },
-      }),
-      prisma.todo.count({
-        where: {
-          userId,
-          completed: false,
-          dueAt: { lt: new Date() },
-        },
-      }),
-      prisma.todo.findMany({
-        where: {
-          userId,
-          ...(includeCompleted ? {} : { completed: false }),
-        },
-        select: todoSnapshotSelect,
-        orderBy: [
-          { completed: "asc" },
-          { dueAt: "asc" },
-          { createdAt: "desc" },
-        ],
-        take: limit,
-      }),
-    ]);
   return jsonToolResult(
-    {
-      counts: {
-        incomplete: incompleteCount,
-        completed: completedCount,
-        overdue: overdueCount,
+    await listTodoSummary({
+      userId,
+      where: {
+        userId,
+        ...(includeCompleted ? {} : { completed: false }),
       },
-      todos,
-    },
+      take: limit,
+    }),
     {
       mode: resolveMcpMode(mode),
     },
