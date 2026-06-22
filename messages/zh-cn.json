@@ -134,7 +134,7 @@
       "cancel": "取消",
       "subscribeSelected": "关注已选的 {count} 个班级",
       "success": "已加入",
-      "successDescription": "已成功关注 {count} 个班级",
+      "successDescription": "已新增关注 {count} 个班级",
       "importFailed": "关注失败"
     }
   },
@@ -1766,7 +1766,7 @@
     "selectSection": "选择 {code}",
     "importing": "导入中...",
     "subscribeSelected": "关注已选（{count}）",
-    "importedSummary": "已导入 {count} 个班级。"
+    "importedSummary": "已新增关注 {count} 个班级。"
   },
   "oauth": {
     "authorize": "授权应用",

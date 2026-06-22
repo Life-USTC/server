@@ -80,6 +80,7 @@ export async function confirmDashboardImportSections(input: {
 
     return formatMessage(input.copy.bulkImport.successDescription, {
       count: importedCount,
+      plural: importedCount === 1 ? "" : "s",
     });
   } catch (error) {
     throw new Error(

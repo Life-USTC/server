@@ -745,6 +745,14 @@ function rewriteOperationId(
   }
 
   if (
+    resource === "calendar-subscriptions" &&
+    resourceSegments.length === 1 &&
+    method === "patch"
+  ) {
+    return "appendCalendarSubscriptionSections";
+  }
+
+  if (
     resource === "users" &&
     segments.at(-1) === "calendar.ics" &&
     method === "get"

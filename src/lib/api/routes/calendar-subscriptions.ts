@@ -6,7 +6,10 @@ import {
 } from "@/lib/api/helpers";
 import { parseSectionMatchCodesRequest } from "@/lib/api/routes/academic-section-route-request";
 import { getRequestLocale } from "@/lib/api/routes/request-locale";
-import { calendarSubscriptionCreateRequestSchema } from "@/lib/api/schemas/request-schemas";
+import {
+  calendarSubscriptionAppendRequestSchema,
+  calendarSubscriptionCreateRequestSchema,
+} from "@/lib/api/schemas/request-schemas";
 import { requireAuth } from "@/lib/auth/api-auth";
 
 export async function getCurrentCalendarSubscriptionRoute(request: Request) {
@@ -108,5 +111,38 @@ export async function postCalendarSubscriptionImportCodesRoute(
     });
   } catch (error) {
     return handleRouteError("Failed to import section subscriptions", error);
+  }
+}
+
+export async function patchCalendarSubscriptionsRoute(request: Request) {
+  try {
+    const auth = await requireAuth(request);
+    if (auth instanceof Response) return auth;
+    const { userId } = auth;
+
+    const parsedBody = await parseRouteJsonBody(
+      request,
+      calendarSubscriptionAppendRequestSchema,
+      "Invalid subscription append request",
+    );
+    if (parsedBody instanceof Response) {
+      return parsedBody;
+    }
+
+    const { appendUserSectionSubscriptions } = await import(
+      "@/features/home/server/subscriptions"
+    );
+    const result = await appendUserSectionSubscriptions({
+      locale: getRequestLocale(request),
+      sectionIds: parsedBody.sectionIds,
+      userId,
+    });
+    if (!result) {
+      return notFound();
+    }
+
+    return jsonResponse(result);
+  } catch (error) {
+    return handleRouteError("Failed to append section subscriptions", error);
   }
 }

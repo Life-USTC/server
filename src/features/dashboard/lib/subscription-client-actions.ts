@@ -42,11 +42,10 @@ export async function matchSubscriptionSections(input: {
 }
 
 export async function importSubscriptionSections(input: {
-  copy: Pick<BulkImportCopy, "fetchFailed" | "importFailed">;
+  copy: Pick<BulkImportCopy, "importFailed">;
   selectedSectionIds: number[];
 }) {
   return appendSubscribedSectionIds({
-    fetchFailedMessage: input.copy.fetchFailed,
     importFailedMessage: input.copy.importFailed,
     selectedSectionIds: input.selectedSectionIds,
   });

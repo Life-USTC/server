@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { HOMEWORK_DESCRIPTION_MAX_LENGTH } from "@/features/homeworks/lib/homework-limits";
 import { TODO_CONTENT_MAX_LENGTH } from "@/features/todos/lib/todo-limits";
 import {
+  calendarSubscriptionAppendRequestSchema,
   calendarSubscriptionCreateRequestSchema,
   commentReactionRequestSchema,
   coursesQuerySchema,
@@ -161,6 +162,16 @@ describe("other request schemas", () => {
       sectionIds: [1, 2, 3],
     });
     expect(valid.success).toBe(true);
+  });
+
+  it("validates calendar subscription append payload", () => {
+    const valid = calendarSubscriptionAppendRequestSchema.safeParse({
+      sectionIds: [1, 2, 3],
+    });
+    const missingIds = calendarSubscriptionAppendRequestSchema.safeParse({});
+
+    expect(valid.success).toBe(true);
+    expect(missingIds.success).toBe(false);
   });
 
   it("rejects invalid reaction type", () => {

@@ -1,6 +1,7 @@
 import type * as z from "zod";
 import { extractApiErrorMessage } from "@/lib/api/client";
 import {
+  calendarSubscriptionAppendResponseSchema,
   calendarSubscriptionCreateResponseSchema,
   currentCalendarSubscriptionResponseSchema,
   matchSectionCodesResponseSchema,
@@ -103,21 +104,28 @@ export async function updateSubscribedSectionIds(
 }
 
 export async function appendSubscribedSectionIds({
-  fetchFailedMessage,
   importFailedMessage,
   selectedSectionIds,
 }: {
-  fetchFailedMessage: string;
   importFailedMessage: string;
   selectedSectionIds: number[];
 }) {
-  const currentSectionIds =
-    await fetchCurrentSubscribedSectionIds(fetchFailedMessage);
-  const nextSectionIds = Array.from(
-    new Set([...currentSectionIds, ...selectedSectionIds]),
+  if (selectedSectionIds.length === 0) {
+    return 0;
+  }
+
+  const response = await fetch("/api/calendar-subscriptions", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sectionIds: selectedSectionIds }),
+  });
+  const payload = await readJsonPayload(response);
+  assertOkResponse(response, payload, importFailedMessage);
+  const data = validatedPayload(
+    calendarSubscriptionAppendResponseSchema,
+    payload,
+    importFailedMessage,
   );
 
-  await updateSubscribedSectionIds(nextSectionIds, importFailedMessage);
-
-  return selectedSectionIds.length;
+  return data.addedCount;
 }
