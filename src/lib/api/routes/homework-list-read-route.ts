@@ -5,6 +5,7 @@ import {
   parseRouteSearchParams,
 } from "@/lib/api/helpers";
 import { parseHomeworkSectionIds } from "@/lib/api/routes/homework-route-helpers";
+import { getRequestLocale } from "@/lib/api/routes/request-locale";
 import { homeworksQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { resolveApiUserId } from "@/lib/auth/api-auth";
 
@@ -29,6 +30,7 @@ export async function getHomeworksRoute(request: Request) {
     const viewerUserId = await resolveApiUserId(request);
     const result = await listSectionHomeworksWithAudit({
       includeDeleted,
+      locale: getRequestLocale(request),
       sectionIds: sectionIdList,
       userId: viewerUserId,
     });

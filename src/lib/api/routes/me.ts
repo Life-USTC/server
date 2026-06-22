@@ -1,3 +1,4 @@
+import { findUserApiProfileById } from "@/features/profile/server/profile-read-model";
 import { handleRouteError, jsonResponse, notFound } from "@/lib/api/helpers";
 import { requireAuth } from "@/lib/auth/api-auth";
 
@@ -7,18 +8,7 @@ export async function getMeRoute(request: Request) {
     if (auth instanceof Response) return auth;
     const { userId } = auth;
 
-    const { prisma } = await import("@/lib/db/prisma");
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        image: true,
-        username: true,
-        isAdmin: true,
-      },
-    });
+    const user = await findUserApiProfileById(userId);
 
     if (!user) {
       return notFound("User not found");

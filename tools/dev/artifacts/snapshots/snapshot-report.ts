@@ -248,6 +248,7 @@ type SnapshotEntry = {
   expectedStatus?: unknown;
   ok?: unknown;
   screenshot?: unknown;
+  mobileScreenshot?: unknown;
   response?: unknown;
   error?: unknown;
   durationMs?: unknown;
@@ -267,12 +268,13 @@ type RouteTreeNode = {
 
 const MAX_EMBEDDED_JSON_CHARS = 600;
 const SCREENSHOT_WIDTH = 480;
+const MOBILE_SCREENSHOT_WIDTH = 220;
 const IGNORED_PAGE_QUERY_PARAMS = new Set(["snapshotAt"]);
 
 function renderUsage() {
   return [
     "Usage:",
-    "  bun run tools/dev/artifacts/snapshots/snapshot-report.ts render-comment --snapshot-dir <dir> --artifact-url <url> --commit <sha> --status <status> --output <file> [--screenshot-base-url <url>] [--workflow-url <url>]",
+    "  bun run snapshot:report -- render-comment --snapshot-dir <dir> --artifact-url <url> --commit <sha> --status <status> --output <file> [--screenshot-base-url <url>] [--workflow-url <url>]",
   ].join("\n");
 }
 
@@ -465,20 +467,54 @@ function encodeUrlPath(filePath: string) {
   return filePath.split("/").map(encodeURIComponent).join("/");
 }
 
+function renderScreenshotFile(
+  entry: SnapshotEntry,
+  filePath: string,
+  label: string,
+  width: number,
+  options: Pick<RenderOptions, "artifactUrl" | "screenshotBaseUrl">,
+) {
+  if (!options.screenshotBaseUrl) {
+    return linkToArtifact(
+      `${label} ${path.basename(filePath)}`,
+      options.artifactUrl,
+      filePath,
+    );
+  }
+
+  const screenshotUrl = `${options.screenshotBaseUrl}/${encodeUrlPath(snapshotRelativePath(filePath))}`;
+  const alt = escapeAttribute(`${entry.id ?? "snapshot"} ${label}`);
+  return `<strong>${escapeHtml(label)}</strong><br><a href="${screenshotUrl}"><img src="${screenshotUrl}" width="${width}" alt="${alt} screenshot"></a>`;
+}
+
 function screenshotCell(
   entry: SnapshotEntry,
   options: Pick<RenderOptions, "artifactUrl" | "screenshotBaseUrl">,
 ) {
-  const filePath = asString(entry.screenshot);
-  if (!filePath) return "-";
+  const desktopPath = asString(entry.screenshot);
+  const mobilePath = asString(entry.mobileScreenshot);
+  const screenshots = [
+    desktopPath
+      ? renderScreenshotFile(
+          entry,
+          desktopPath,
+          "Desktop",
+          SCREENSHOT_WIDTH,
+          options,
+        )
+      : undefined,
+    mobilePath
+      ? renderScreenshotFile(
+          entry,
+          mobilePath,
+          "Mobile",
+          MOBILE_SCREENSHOT_WIDTH,
+          options,
+        )
+      : undefined,
+  ].filter((item): item is string => item !== undefined);
 
-  if (!options.screenshotBaseUrl) {
-    return linkToArtifact("screenshot.png", options.artifactUrl, filePath);
-  }
-
-  const screenshotUrl = `${options.screenshotBaseUrl}/${encodeUrlPath(snapshotRelativePath(filePath))}`;
-  const label = escapeAttribute(entry.id ?? "screenshot");
-  return `<a href="${screenshotUrl}"><img src="${screenshotUrl}" width="${SCREENSHOT_WIDTH}" alt="${label} screenshot"></a>`;
+  return screenshots.length > 0 ? screenshots.join("<br><br>") : "-";
 }
 
 function finePrint(items: Array<[string, unknown]>) {
@@ -704,8 +740,9 @@ function screenshotPanel(
   entry: SnapshotEntry,
   options: Pick<RenderOptions, "artifactUrl" | "screenshotBaseUrl">,
 ) {
-  const filePath = asString(entry.screenshot);
-  if (!filePath) return "<em>No screenshot captured.</em>";
+  const hasScreenshot =
+    asString(entry.screenshot) || asString(entry.mobileScreenshot);
+  if (!hasScreenshot) return "<em>No screenshot captured.</em>";
   return screenshotCell(entry, options);
 }
 
@@ -727,7 +764,9 @@ function screenshotTreeLines(
   options: Pick<RenderOptions, "artifactUrl" | "screenshotBaseUrl">,
 ) {
   const filePath = asString(entry.screenshot);
-  const label = filePath ? path.basename(filePath) : "screenshot";
+  const mobilePath = asString(entry.mobileScreenshot);
+  const label =
+    filePath && !mobilePath ? path.basename(filePath) : "screenshots";
 
   return [
     "<ul>",
@@ -878,8 +917,8 @@ async function renderSnapshotComment(argv: string[]) {
 function reportUsage() {
   return [
     "Usage:",
-    "  bun run tools/dev/artifacts/snapshots/snapshot-report.ts diff <baseline-dir> <candidate-dir> [--output <file>] [--max-diff-lines <n>]",
-    "  bun run tools/dev/artifacts/snapshots/snapshot-report.ts render-comment --snapshot-dir <dir> --artifact-url <url> --commit <sha> --status <status> --output <file> [--screenshot-base-url <url>] [--workflow-url <url>]",
+    "  bun run snapshot:report -- diff <baseline-dir> <candidate-dir> [--output <file>] [--max-diff-lines <n>]",
+    "  bun run snapshot:report -- render-comment --snapshot-dir <dir> --artifact-url <url> --commit <sha> --status <status> --output <file> [--screenshot-base-url <url>] [--workflow-url <url>]",
   ].join("\n");
 }
 

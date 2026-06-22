@@ -28,7 +28,8 @@
             "path": "/api/me/subscriptions/homeworks",
             "returns": "{ viewer, homeworks: HomeworkItem[], auditLogs: AuditLog[], sectionIds: Int[] }",
             "notes": [
-              "Returns homeworks across all subscribed sections in a single call; includes audit logs and viewer context."
+              "Returns homeworks across all subscribed sections in a single call; includes audit logs and viewer context.",
+              "REST localizes returned homework relation fields from the request locale; MCP accepts an explicit locale input."
             ]
           }
         ]
@@ -73,7 +74,10 @@
         "routes": [
           {
             "path": "/api/homeworks",
-            "returns": "{ viewer: ViewerContext, homeworks: HomeworkItem[], auditLogs: AuditLog[] }"
+            "returns": "{ viewer: ViewerContext, homeworks: HomeworkItem[], auditLogs: AuditLog[] }",
+            "notes": [
+              "REST localizes returned homework relation fields from the request locale; MCP accepts an explicit locale input."
+            ]
           },
           {
             "path": "/api/homeworks",

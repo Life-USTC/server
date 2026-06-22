@@ -9,6 +9,6 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 404:openApiErrorSchema
  */
 export const GET: RequestHandler = ({ request, params }) =>
-  observedApiRoute(() => getSectionScheduleGroupsRoute({ jwId: params.jwId }))(
-    request,
-  );
+  observedApiRoute(() =>
+    getSectionScheduleGroupsRoute(request, { jwId: params.jwId }),
+  )(request);

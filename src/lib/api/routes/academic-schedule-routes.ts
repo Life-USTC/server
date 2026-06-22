@@ -5,7 +5,9 @@ import {
   parseRouteQuery,
 } from "@/lib/api/helpers";
 import { parseAcademicScheduleFilters } from "@/lib/api/routes/academic-schedule-query";
+import { getRequestLocale } from "@/lib/api/routes/request-locale";
 import { schedulesQuerySchema } from "@/lib/api/schemas/request-schemas";
+import { PUBLIC_LOCALE_CATALOG_HEADERS } from "@/lib/public-cache-control";
 
 export async function getSchedulesRoute(request: Request) {
   try {
@@ -27,9 +29,11 @@ export async function getSchedulesRoute(request: Request) {
     return jsonResponse(
       await listPublicSchedules({
         filters,
+        locale: getRequestLocale(request),
         page: pagination.page,
         pageSize: pagination.pageSize,
       }),
+      { headers: PUBLIC_LOCALE_CATALOG_HEADERS },
     );
   } catch (error) {
     return handleRouteError("Failed to fetch schedules", error);

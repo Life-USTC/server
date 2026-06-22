@@ -47,7 +47,7 @@ Use the highest relevant gate:
   - `bun run seed`
   - `bun run e2e:test -- <paths>`
 - Snapshot workflow changes:
-  - `bun run tools/dev/artifacts/snapshots/snapshot-ci.ts capture`
+  - `bun run snapshot:capture`
 
 Stop local Docker services you started with:
 

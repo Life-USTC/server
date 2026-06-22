@@ -73,7 +73,8 @@
             "returns": "PaginatedResponse<ScheduleEntry>",
             "notes": [
               "Supports filtering by section, teacher, room, date range, and day of week.",
-              "REST/MCP both accept exact JW/code-style filters for schedules so callers do not need to resolve internal numeric IDs first."
+              "REST/MCP both accept exact JW/code-style filters for schedules so callers do not need to resolve internal numeric IDs first.",
+              "REST localizes nested schedule labels from the request locale; MCP accepts an explicit locale input."
             ]
           }
         ]
@@ -116,14 +117,16 @@
             "path": "/api/sections/[jwId]/schedules",
             "returns": "ScheduleEntry[]",
             "notes": [
-              "Returns a simplified variant of ScheduleEntry[] for the section."
+              "Returns a simplified variant of ScheduleEntry[] for the section.",
+              "REST localizes nested schedule labels from the request locale; MCP accepts an explicit locale input."
             ]
           },
           {
             "path": "/api/sections/[jwId]/schedule-groups",
             "returns": "ScheduleGroupEntry[] (with schedules)",
             "notes": [
-              "Returns schedule groups with schedules, not separate aggregated period summaries."
+              "Returns schedule groups with schedules, not separate aggregated period summaries.",
+              "REST localizes nested schedule labels from the request locale; MCP accepts an explicit locale input."
             ]
           }
         ]

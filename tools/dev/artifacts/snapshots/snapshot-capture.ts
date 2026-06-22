@@ -162,6 +162,11 @@ async function captureApiSnapshots() {
           await writeTextFile(path.join(dir, "response.txt"), text);
         }
 
+        const error = apiSnapshotError({
+          expectedStatus: snapshotCase.expectedStatus,
+          ok: response.ok(),
+          status: response.status(),
+        });
         const metadata = {
           id: snapshotCase.id,
           kind: "api",
@@ -174,6 +179,7 @@ async function captureApiSnapshots() {
           ok: response.ok(),
           contentType,
           note: snapshotCase.note,
+          error,
           durationMs: Math.round(performance.now() - startedAt),
           response: relativeFromRoot(responsePath),
           responseSha256: await sha256File(responsePath),
@@ -235,6 +241,31 @@ function textContentFromResult(result: unknown) {
       typeof entry.text === "string",
   );
   return text?.text;
+}
+
+function apiSnapshotError({
+  expectedStatus,
+  ok,
+  status,
+}: {
+  expectedStatus: number | undefined;
+  ok: boolean;
+  status: number;
+}) {
+  if (expectedStatus !== undefined && status !== expectedStatus) {
+    return `Expected HTTP ${expectedStatus}, received ${status}`;
+  }
+  if (expectedStatus === undefined && !ok) {
+    return `Unexpected HTTP ${status}`;
+  }
+  return undefined;
+}
+
+function mcpSnapshotError(result: unknown) {
+  if (isRecord(result) && result.isError === true) {
+    return "MCP tool returned isError";
+  }
+  return undefined;
 }
 
 async function authorizeMcp(baseUrl: string) {
@@ -424,11 +455,13 @@ async function captureMcpSnapshots() {
           result,
           parsedText,
         });
+        const error = mcpSnapshotError(result);
         const metadata = {
           id: snapshotCase.name,
           kind: "mcp",
           arguments: snapshotCase.arguments,
           note: snapshotCase.note,
+          error,
           durationMs: Math.round(performance.now() - startedAt),
           response: relativeFromRoot(responsePath),
           responseSha256: await sha256File(responsePath),
@@ -677,7 +710,6 @@ async function captureActionViewport({
   await waitForSnapshotReady(page, snapshotCase);
   await performSnapshotAction(page, action);
   await waitForSnapshotReady(page, snapshotCase);
-  await page.waitForTimeout(350);
 }
 
 async function gotoSnapshotPage(
