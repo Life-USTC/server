@@ -1,3 +1,10 @@
+## [1.36.11](https://github.com/Life-USTC/server/compare/v1.36.10...v1.36.11) (2026-06-22)
+
+
+### Bug Fixes
+
+* **subscriptions:** share import client parsing ([4b898b2](https://github.com/Life-USTC/server/commit/4b898b2e1b24c67115d6be3bd9b18c90edc7b5af))
+
 ## [1.36.10](https://github.com/Life-USTC/server/compare/v1.36.9...v1.36.10) (2026-06-22)
 
 
