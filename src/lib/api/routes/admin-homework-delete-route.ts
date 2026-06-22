@@ -1,5 +1,5 @@
 import { deleteHomework } from "@/features/homeworks/server/homework-mutations";
-import { jsonResponse, notFound } from "@/lib/api/helpers";
+import { forbidden, jsonResponse, notFound } from "@/lib/api/helpers";
 import { withAdminApiRoute } from "@/lib/api/routes/admin-route-auth";
 import { type IdParams, parseIdParam } from "./admin-shared";
 
@@ -19,7 +19,9 @@ export async function deleteAdminHomeworkRoute(
         homeworkId: id,
         userId: admin.userId,
       });
-      if (!result.ok) return notFound();
+      if (!result.ok) {
+        return result.error === "not_found" ? notFound() : forbidden();
+      }
 
       return jsonResponse({ success: true });
     },

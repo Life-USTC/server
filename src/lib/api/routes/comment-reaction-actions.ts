@@ -1,5 +1,10 @@
 import { createCommentReaction } from "@/features/comments/server/comment-mutations";
-import { forbidden, jsonResponse, notFound } from "@/lib/api/helpers";
+import {
+  forbidden,
+  jsonResponse,
+  notFound,
+  suspensionForbidden,
+} from "@/lib/api/helpers";
 
 export async function createCommentReactionAction(input: {
   commentId: string;
@@ -8,6 +13,9 @@ export async function createCommentReactionAction(input: {
 }) {
   const result = await createCommentReaction(input);
   if (!result.ok) {
+    if (result.error === "suspended") {
+      return suspensionForbidden("reason" in result ? result.reason : null);
+    }
     return result.error === "not_found" ? notFound() : forbidden();
   }
 

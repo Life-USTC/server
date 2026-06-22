@@ -1,6 +1,9 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
-import { listSectionHomeworkItems } from "@/features/homeworks/server/homework-list-read-model";
+import {
+  listSectionHomeworkItems,
+  resolveHomeworkSectionIds,
+} from "@/features/homeworks/server/homework-list-read-model";
 import {
   jsonToolResult,
   mcpLocaleInputSchema,
@@ -29,9 +32,12 @@ export function registerSectionHomeworkTools(server: McpServer) {
     },
     async ({ sectionJwId, includeDeleted, locale, mode }, extra) => {
       const resolvedMode = resolveMcpMode(mode);
-      const { section } = await resolveSectionByJwId(sectionJwId, locale);
+      const [resolvedSections, { section }] = await Promise.all([
+        resolveHomeworkSectionIds({ sectionJwId }),
+        resolveSectionByJwId(sectionJwId, locale),
+      ]);
 
-      if (!section) {
+      if (!resolvedSections.ok || !section) {
         return sectionNotFoundToolResult(sectionJwId, mode);
       }
 
@@ -42,7 +48,7 @@ export function registerSectionHomeworkTools(server: McpServer) {
       const homeworkItems = await listSectionHomeworkItems({
         includeDeleted,
         locale,
-        sectionIds: [section.id],
+        sectionIds: resolvedSections.sectionIds,
         viewerUserId,
       });
       const scopedHomeworkItems = homeworkItems.map(

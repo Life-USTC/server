@@ -1,7 +1,4 @@
-import {
-  createHomeworkForSection,
-  resolveSectionIdForHomeworkCreate,
-} from "@/features/homeworks/server/homework-create";
+import { createHomeworkForSection } from "@/features/homeworks/server/homework-create";
 import { requireHomeworkItemById } from "@/features/homeworks/server/homework-read-model";
 import {
   badRequest,
@@ -10,6 +7,7 @@ import {
   jsonResponse,
   notFound,
   parseRouteJsonBody,
+  suspensionForbidden,
 } from "@/lib/api/helpers";
 import {
   deleteHomeworkAction,
@@ -22,12 +20,12 @@ import {
   homeworkCreateRequestSchema,
   homeworkUpdateRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
-import { requireWriteAuth } from "@/lib/auth/api-auth";
+import { requireAuth } from "@/lib/auth/api-auth";
 
 type IdParams = { id: string };
 
 export async function postHomeworkRoute(request: Request) {
-  const auth = await requireWriteAuth(request);
+  const auth = await requireAuth(request);
   if (auth instanceof Response) {
     return auth;
   }
@@ -46,24 +44,14 @@ export async function postHomeworkRoute(request: Request) {
   if (homeworkInput instanceof Response) return homeworkInput;
 
   try {
-    const sectionResolution =
-      await resolveSectionIdForHomeworkCreate(homeworkInput);
-    if (!sectionResolution.ok) {
-      if (sectionResolution.error === "mismatch") {
-        return badRequest("Invalid section");
-      }
-      return notFound("Section not found");
-    }
-
-    const result = await createHomeworkForSection(userId, {
-      ...homeworkInput,
-      sectionId: sectionResolution.sectionId,
-    });
+    const result = await createHomeworkForSection(userId, homeworkInput);
     if (!result.ok) {
+      if (result.error === "mismatch") return badRequest("Invalid section");
       if (result.error === "not_found") return notFound("Section not found");
-      return forbidden(
-        result.error === "suspended" ? "Suspended" : "Forbidden",
-      );
+      if (result.error === "suspended") {
+        return suspensionForbidden("reason" in result ? result.reason : null);
+      }
+      return forbidden();
     }
 
     const homework = result.homework;
@@ -82,7 +70,7 @@ export async function patchHomeworkRoute(request: Request, params: IdParams) {
   const id = parseHomeworkId(params);
   if (id instanceof Response) return id;
 
-  const auth = await requireWriteAuth(request);
+  const auth = await requireAuth(request);
   if (auth instanceof Response) {
     return auth;
   }
@@ -112,7 +100,7 @@ export async function patchHomeworkRoute(request: Request, params: IdParams) {
 export async function deleteHomeworkRoute(request: Request, params: IdParams) {
   const id = parseHomeworkId(params);
   if (id instanceof Response) return id;
-  const auth = await requireWriteAuth(request);
+  const auth = await requireAuth(request);
   if (auth instanceof Response) {
     return auth;
   }

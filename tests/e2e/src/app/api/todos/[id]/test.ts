@@ -60,16 +60,36 @@ test("/api/todos/[id] PATCH 登录后可更新待办", async ({ page }) => {
     expect(patchResponse.status()).toBe(200);
     const patchBody = (await patchResponse.json()) as {
       success?: boolean;
-      todo?: { completed?: boolean; id?: string; title?: string };
+      todo?: {
+        completed?: boolean;
+        content?: string | null;
+        createdAt?: string;
+        dueAt?: string | null;
+        id?: string;
+        priority?: string;
+        title?: string;
+        updatedAt?: string;
+      };
     };
     expect(patchBody).toMatchObject({
       success: true,
       todo: {
         completed: true,
+        content: null,
         id: todoId,
+        priority: "medium",
         title: "updated todo title",
       },
     });
+    expect(patchBody.todo?.dueAt).toBeNull();
+    expect(typeof patchBody.todo?.createdAt).toBe("string");
+    expect(typeof patchBody.todo?.updatedAt).toBe("string");
+    expect(Number.isNaN(Date.parse(patchBody.todo?.createdAt ?? ""))).toBe(
+      false,
+    );
+    expect(Number.isNaN(Date.parse(patchBody.todo?.updatedAt ?? ""))).toBe(
+      false,
+    );
   } finally {
     await page.request.delete(`/api/todos/${todoId}`);
   }

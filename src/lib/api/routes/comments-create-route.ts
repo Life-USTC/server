@@ -6,13 +6,14 @@ import {
   jsonResponse,
   notFound,
   parseRouteJsonBody,
+  suspensionForbidden,
 } from "@/lib/api/helpers";
 import { commentCreateRequestSchema } from "@/lib/api/schemas/request-schemas";
-import { requireWriteAuth } from "@/lib/auth/api-auth";
+import { requireAuth } from "@/lib/auth/api-auth";
 import { writeCommentCreateAuditLog } from "./comments-create-helpers";
 
 export async function postCommentRoute(request: Request) {
-  const auth = await requireWriteAuth(request);
+  const auth = await requireAuth(request);
   if (auth instanceof Response) {
     return auth;
   }
@@ -60,6 +61,9 @@ export async function postCommentRoute(request: Request) {
       }
       if (result.error === "invalid_attachments") {
         return badRequest("Invalid attachments");
+      }
+      if (result.error === "suspended") {
+        return suspensionForbidden("reason" in result ? result.reason : null);
       }
       return forbidden();
     }

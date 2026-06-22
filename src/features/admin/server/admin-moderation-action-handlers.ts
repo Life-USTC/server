@@ -99,7 +99,9 @@ export async function deleteHomeworkAction({
     userId: admin.id,
   });
   if (!result.ok) {
-    return fail(404, { kind: "error", message: copy.homeworkNotFound });
+    return result.error === "not_found"
+      ? fail(404, { kind: "error", message: copy.homeworkNotFound })
+      : fail(403, { kind: "error", message: copy.homeworkForbidden });
   }
   return { kind: "success", message: copy.deleteHomeworkSuccess };
 }

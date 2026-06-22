@@ -16,6 +16,18 @@ const weekdayStringSchema = integerStringSchema
     override: { type: "integer", format: "int64", minimum: 1, maximum: 7 },
   });
 
+const sectionScheduleLimitSchema = integerStringSchema
+  .refine(
+    (value) => {
+      const limit = Number.parseInt(value, 10);
+      return limit >= 1 && limit <= 200;
+    },
+    { message: "Limit must be between 1 and 200" },
+  )
+  .meta({
+    override: { type: "integer", format: "int64", minimum: 1, maximum: 200 },
+  });
+
 export const sectionsQuerySchema = z.object({
   courseId: integerStringSchema.optional(),
   courseJwId: integerStringSchema.optional(),
@@ -50,7 +62,7 @@ export const schedulesQuerySchema = z.object({
 export const sectionSchedulesQuerySchema = z.object({
   dateFrom: dateInputStringSchema.optional(),
   dateTo: dateInputStringSchema.optional(),
-  limit: integerStringSchema.optional(),
+  limit: sectionScheduleLimitSchema.optional(),
 });
 
 export const teachersQuerySchema = z.object({

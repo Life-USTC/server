@@ -1,3 +1,4 @@
+import { resolveHomeworkSectionIds } from "@/features/homeworks/server/homework-list-read-model";
 import {
   badRequest,
   notFound,
@@ -5,7 +6,6 @@ import {
   parseRouteInput,
 } from "@/lib/api/helpers";
 import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
-import { prisma } from "@/lib/db/prisma";
 
 type IdParams = { id: string };
 
@@ -18,35 +18,36 @@ export function parseHomeworkId(params: IdParams) {
   return parsedParams instanceof Response ? parsedParams : parsedParams.id;
 }
 
-export async function resolveHomeworkSectionIds(input: {
+export async function resolveHomeworkRouteSectionIds(input: {
   sectionId?: string;
   sectionIds?: string;
   sectionJwId?: string;
 }) {
-  const sectionIdList: number[] = [];
+  const sectionIds: number[] = [];
   if (input.sectionIds) {
     for (const value of input.sectionIds.split(",")) {
       const id = parseInteger(value.trim());
-      if (id) sectionIdList.push(id);
-    }
-  } else if (input.sectionId) {
-    const id = parseInteger(input.sectionId);
-    if (id) sectionIdList.push(id);
-  }
-  if (input.sectionJwId) {
-    const jwId = parseInteger(input.sectionJwId);
-    if (jwId) {
-      const section = await prisma.section.findUnique({
-        where: { jwId },
-        select: { id: true },
-      });
-      if (!section) return notFound("Section not found");
-      sectionIdList.push(section.id);
+      if (id) sectionIds.push(id);
     }
   }
 
-  return sectionIdList.length > 0
-    ? sectionIdList
+  const sectionId =
+    !input.sectionIds && input.sectionId ? parseInteger(input.sectionId) : null;
+  const sectionJwId = input.sectionJwId
+    ? parseInteger(input.sectionJwId)
+    : null;
+
+  const result = await resolveHomeworkSectionIds({
+    sectionId,
+    sectionIds,
+    sectionJwId,
+  });
+  if (result.ok) {
+    return result.sectionIds;
+  }
+
+  return result.error === "not_found"
+    ? notFound("Section not found")
     : badRequest(
         "Invalid section - provide sectionId, sectionIds, or sectionJwId",
       );

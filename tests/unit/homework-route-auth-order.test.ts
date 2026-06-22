@@ -4,28 +4,22 @@ const {
   createHomeworkForSectionMock,
   requireAuthMock,
   requireHomeworkItemByIdMock,
-  requireWriteAuthMock,
-  resolveSectionIdForHomeworkCreateMock,
   setHomeworkCompletionsMock,
   updateHomeworkMock,
 } = vi.hoisted(() => ({
   createHomeworkForSectionMock: vi.fn(),
   requireAuthMock: vi.fn(),
   requireHomeworkItemByIdMock: vi.fn(),
-  requireWriteAuthMock: vi.fn(),
-  resolveSectionIdForHomeworkCreateMock: vi.fn(),
   setHomeworkCompletionsMock: vi.fn(),
   updateHomeworkMock: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/api-auth", () => ({
   requireAuth: requireAuthMock,
-  requireWriteAuth: requireWriteAuthMock,
 }));
 
 vi.mock("@/features/homeworks/server/homework-create", () => ({
   createHomeworkForSection: createHomeworkForSectionMock,
-  resolveSectionIdForHomeworkCreate: resolveSectionIdForHomeworkCreateMock,
 }));
 
 vi.mock("@/features/homeworks/server/homework-read-model", () => ({
@@ -58,15 +52,13 @@ describe("homework mutation route auth order", () => {
     requireAuthMock.mockReset();
     createHomeworkForSectionMock.mockReset();
     requireHomeworkItemByIdMock.mockReset();
-    requireWriteAuthMock.mockReset();
-    resolveSectionIdForHomeworkCreateMock.mockReset();
     setHomeworkCompletionsMock.mockReset();
     updateHomeworkMock.mockReset();
     vi.resetModules();
   });
 
   it("authenticates homework creation before parsing the JSON body", async () => {
-    requireWriteAuthMock.mockResolvedValue(unauthorizedResponse());
+    requireAuthMock.mockResolvedValue(unauthorizedResponse());
     const { postHomeworkRoute } = await import(
       "@/lib/api/routes/homework-mutation-routes"
     );
@@ -74,12 +66,12 @@ describe("homework mutation route auth order", () => {
     const response = await postHomeworkRoute(jsonRequest("POST", "{"));
 
     expect(response.status).toBe(401);
-    expect(requireWriteAuthMock).toHaveBeenCalledOnce();
+    expect(requireAuthMock).toHaveBeenCalledOnce();
   });
 
   it("returns 400 when homework creation has conflicting section identifiers", async () => {
-    requireWriteAuthMock.mockResolvedValue({ userId: "user-1" });
-    resolveSectionIdForHomeworkCreateMock.mockResolvedValue({
+    requireAuthMock.mockResolvedValue({ userId: "user-1" });
+    createHomeworkForSectionMock.mockResolvedValue({
       ok: false,
       error: "mismatch",
     });
@@ -99,11 +91,21 @@ describe("homework mutation route auth order", () => {
     );
 
     expect(response.status).toBe(400);
-    expect(createHomeworkForSectionMock).not.toHaveBeenCalled();
+    expect(createHomeworkForSectionMock).toHaveBeenCalledWith("user-1", {
+      description: "",
+      isMajor: false,
+      publishedAt: null,
+      requiresTeam: false,
+      sectionId: 12,
+      sectionJwId: 5678,
+      submissionDueAt: null,
+      submissionStartAt: null,
+      title: "Conflicting section refs",
+    });
   });
 
   it("passes the request locale to updated homework response reads", async () => {
-    requireWriteAuthMock.mockResolvedValue({ userId: "user-1" });
+    requireAuthMock.mockResolvedValue({ userId: "user-1" });
     updateHomeworkMock.mockResolvedValue({ ok: true });
     requireHomeworkItemByIdMock.mockResolvedValue({ id: "homework-1" });
     const { patchHomeworkRoute } = await import(
@@ -131,7 +133,7 @@ describe("homework mutation route auth order", () => {
   });
 
   it("authenticates homework updates before parsing the JSON body", async () => {
-    requireWriteAuthMock.mockResolvedValue(unauthorizedResponse());
+    requireAuthMock.mockResolvedValue(unauthorizedResponse());
     const { patchHomeworkRoute } = await import(
       "@/lib/api/routes/homework-mutation-routes"
     );
@@ -141,7 +143,7 @@ describe("homework mutation route auth order", () => {
     });
 
     expect(response.status).toBe(401);
-    expect(requireWriteAuthMock).toHaveBeenCalledOnce();
+    expect(requireAuthMock).toHaveBeenCalledOnce();
   });
 
   it("authenticates completion updates before parsing the JSON body", async () => {

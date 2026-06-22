@@ -11,6 +11,11 @@ import { buildCommentNodes } from "./comment-serialization";
 import { type CommentTargetType, resolveCommentTarget } from "./comment-utils";
 
 type CommentMutationError = "forbidden" | "locked" | "not_found" | "suspended";
+type CommentMutationFailure = {
+  ok: false;
+  error: CommentMutationError;
+  reason?: string | null;
+};
 
 type CreateCommentParent = {
   parentId: string | null;
@@ -337,15 +342,13 @@ async function loadEditableCommentContext({
 }: {
   id: string;
   userId: string;
-}): Promise<
-  { ok: true; viewer: ViewerInfo } | { ok: false; error: CommentMutationError }
-> {
+}): Promise<{ ok: true; viewer: ViewerInfo } | CommentMutationFailure> {
   const viewer = await getViewerContext({ userId });
   if (!viewer.isAuthenticated) {
     return { ok: false, error: "forbidden" };
   }
   if (viewer.isSuspended) {
-    return { ok: false, error: "suspended" };
+    return { ok: false, error: "suspended", reason: viewer.suspensionReason };
   }
 
   const comment = await prisma.comment.findUnique({
@@ -370,15 +373,13 @@ async function loadEditableCommentContext({
 
 async function loadActiveCommentActor(
   userId: string,
-): Promise<
-  { ok: true; viewer: ViewerInfo } | { ok: false; error: CommentMutationError }
-> {
+): Promise<{ ok: true; viewer: ViewerInfo } | CommentMutationFailure> {
   const viewer = await getViewerContext({ userId });
   if (!viewer.isAuthenticated) {
     return { ok: false, error: "forbidden" };
   }
   if (viewer.isSuspended) {
-    return { ok: false, error: "suspended" };
+    return { ok: false, error: "suspended", reason: viewer.suspensionReason };
   }
   return { ok: true, viewer };
 }

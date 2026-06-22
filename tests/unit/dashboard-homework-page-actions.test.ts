@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const createHomeworkForSectionMock = vi.fn();
 const getSessionFromHeadersMock = vi.fn();
-const getViewerAuthDataForUserIdMock = vi.fn();
 
 vi.mock("@/features/homeworks/server/homework-create", () => ({
   createHomeworkForSection: createHomeworkForSectionMock,
@@ -10,10 +9,6 @@ vi.mock("@/features/homeworks/server/homework-create", () => ({
 
 vi.mock("@/lib/auth/core", () => ({
   getSessionFromHeaders: getSessionFromHeadersMock,
-}));
-
-vi.mock("@/lib/auth/viewer-context", () => ({
-  getViewerAuthDataForUserId: getViewerAuthDataForUserIdMock,
 }));
 
 function actionRequest() {
@@ -35,16 +30,16 @@ describe("dashboard homework page actions", () => {
   beforeEach(() => {
     createHomeworkForSectionMock.mockReset();
     getSessionFromHeadersMock.mockReset();
-    getViewerAuthDataForUserIdMock.mockReset();
   });
 
-  it("blocks suspended users before creating dashboard homework", async () => {
+  it("maps suspended dashboard homework creation failures", async () => {
     getSessionFromHeadersMock.mockResolvedValue({
       user: { id: "suspended-user" },
     });
-    getViewerAuthDataForUserIdMock.mockResolvedValue({
-      user: { id: "suspended-user", isAdmin: false, image: null, name: null },
-      suspension: { reason: "policy" },
+    createHomeworkForSectionMock.mockResolvedValue({
+      ok: false,
+      error: "suspended",
+      reason: "policy",
     });
     const { createHomeworkDashboardAction } = await import(
       "@/features/dashboard/server/dashboard-homework-page-actions"
@@ -59,9 +54,9 @@ describe("dashboard homework page actions", () => {
     expect(result.data).toEqual({
       error: "Your account is suspended and cannot update homework.",
     });
-    expect(getViewerAuthDataForUserIdMock).toHaveBeenCalledWith(
+    expect(createHomeworkForSectionMock).toHaveBeenCalledWith(
       "suspended-user",
+      expect.objectContaining({ sectionId: 1, title: "Blocked homework" }),
     );
-    expect(createHomeworkForSectionMock).not.toHaveBeenCalled();
   });
 });

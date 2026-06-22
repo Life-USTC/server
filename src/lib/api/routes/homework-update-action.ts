@@ -6,6 +6,7 @@ import {
   forbidden,
   jsonResponse,
   notFound,
+  suspensionForbidden,
 } from "@/lib/api/helpers";
 import { parseUpdateHomeworkInput } from "@/lib/api/routes/homework-mutation-helpers";
 
@@ -27,6 +28,9 @@ export async function updateHomeworkAction(
     if (result.error === "no_changes") return badRequest("No changes");
     if (result.error === "not_found") return notFound();
     if (result.error === "deleted") return forbidden("Homework deleted");
+    if (result.error === "suspended") {
+      return suspensionForbidden("reason" in result ? result.reason : null);
+    }
     return forbidden();
   }
 

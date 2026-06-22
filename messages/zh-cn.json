@@ -1641,6 +1641,7 @@
     "deleteHomeworkSuccess": "作业已删除",
     "deleteHomeworkFailed": "作业删除失败",
     "missingHomeworkId": "缺少作业 ID",
+    "homeworkForbidden": "你没有权限删除此作业",
     "homeworkNotFound": "未找到作业",
     "descriptionTarget": "目标",
     "descriptionPreview": "预览",

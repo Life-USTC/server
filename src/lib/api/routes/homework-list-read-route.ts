@@ -4,7 +4,7 @@ import {
   jsonResponse,
   parseRouteSearchParams,
 } from "@/lib/api/helpers";
-import { resolveHomeworkSectionIds } from "@/lib/api/routes/homework-route-helpers";
+import { resolveHomeworkRouteSectionIds } from "@/lib/api/routes/homework-route-helpers";
 import { getRequestLocale } from "@/lib/api/routes/request-locale";
 import { homeworksQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { resolveApiUserId } from "@/lib/auth/api-auth";
@@ -24,7 +24,7 @@ export async function getHomeworksRoute(request: Request) {
   const includeDeleted = parsedQuery.includeDeleted === "true";
 
   try {
-    const sectionIdList = await resolveHomeworkSectionIds(parsedQuery);
+    const sectionIdList = await resolveHomeworkRouteSectionIds(parsedQuery);
     if (sectionIdList instanceof Response) return sectionIdList;
 
     const viewerUserId = await resolveApiUserId(request);

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { resolveSectionIdForHomeworkCreate } from "@/features/homeworks/server/homework-create";
 
 const { findUniqueMock } = vi.hoisted(() => ({
@@ -14,11 +14,28 @@ vi.mock("@/lib/db/prisma", () => ({
 }));
 
 describe("homework create section resolution", () => {
-  it("uses sectionId when no sectionJwId is provided", async () => {
+  afterEach(() => {
+    findUniqueMock.mockReset();
+  });
+
+  it("verifies sectionId when no sectionJwId is provided", async () => {
+    findUniqueMock.mockResolvedValueOnce({ id: 12 });
+
     await expect(
       resolveSectionIdForHomeworkCreate({ sectionId: 12, sectionJwId: null }),
     ).resolves.toEqual({ ok: true, sectionId: 12 });
-    expect(findUniqueMock).not.toHaveBeenCalled();
+    expect(findUniqueMock).toHaveBeenCalledWith({
+      where: { id: 12 },
+      select: { id: true },
+    });
+  });
+
+  it("reports missing internal section ids", async () => {
+    findUniqueMock.mockResolvedValueOnce(null);
+
+    await expect(
+      resolveSectionIdForHomeworkCreate({ sectionId: 12, sectionJwId: null }),
+    ).resolves.toEqual({ ok: false, error: "not_found" });
   });
 
   it("reports missing section references when no id is provided", async () => {

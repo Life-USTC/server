@@ -36,7 +36,17 @@ test("/api/sections/[jwId]/schedules 支持日期窗口", async ({ request }) =>
   expect(response.status()).toBe(200);
   const body = (await response.json()) as Array<{ date?: string }>;
   expect(body.length).toBeGreaterThan(0);
+  expect(body.length).toBeLessThanOrEqual(5);
   expect(body.every((item) => item.date?.startsWith(seedDate))).toBe(true);
+});
+
+test("/api/sections/[jwId]/schedules 支持 limit", async ({ request }) => {
+  const response = await request.get(
+    `/api/sections/${DEV_SEED.section.jwId}/schedules?limit=1`,
+  );
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as Array<unknown>;
+  expect(body.length).toBeLessThanOrEqual(1);
 });
 
 test("/api/sections/[jwId]/schedules 无效日期返回 400", async ({ request }) => {
@@ -44,4 +54,15 @@ test("/api/sections/[jwId]/schedules 无效日期返回 400", async ({ request }
     `/api/sections/${DEV_SEED.section.jwId}/schedules?dateFrom=not-a-date`,
   );
   expect(response.status()).toBe(400);
+});
+
+test("/api/sections/[jwId]/schedules 无效 limit 返回 400", async ({
+  request,
+}) => {
+  for (const limit of [0, 201]) {
+    const response = await request.get(
+      `/api/sections/${DEV_SEED.section.jwId}/schedules?limit=${limit}`,
+    );
+    expect(response.status()).toBe(400);
+  }
 });
