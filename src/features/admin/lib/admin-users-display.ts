@@ -1,3 +1,4 @@
+import { readApiErrorMessage } from "@/lib/api/client";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import {
   addShanghaiTime,
@@ -67,10 +68,5 @@ export async function adminUserResponseMessage(
   response: Response,
   fallback: string,
 ) {
-  try {
-    const body = await response.json();
-    return String(body?.message ?? body?.error?.message ?? fallback);
-  } catch {
-    return fallback;
-  }
+  return readApiErrorMessage(response, fallback);
 }

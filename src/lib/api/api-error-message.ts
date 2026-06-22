@@ -72,3 +72,14 @@ export function extractApiErrorMessage(errorBody: unknown): string | null {
 
   return null;
 }
+
+export async function readApiErrorMessage(
+  response: Response,
+  fallback: string,
+) {
+  try {
+    return extractApiErrorMessage(await response.json()) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}

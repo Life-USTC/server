@@ -1,6 +1,9 @@
 "use client";
 
-export { extractApiErrorMessage } from "@/lib/api/api-error-message";
+export {
+  extractApiErrorMessage,
+  readApiErrorMessage,
+} from "@/lib/api/api-error-message";
 export { apiClient } from "@/lib/api/client-methods";
 export type {
   ApiError,
