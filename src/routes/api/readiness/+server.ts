@@ -1,5 +1,7 @@
 import { jsonResponse, notFoundText } from "@/lib/api/helpers";
+import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { canReadInternalEndpoint } from "@/lib/http/access-control";
+import { observedApiRoute } from "@/lib/log/api-observability";
 import { storageReadiness } from "@/lib/storage/r2-object";
 
 const startedAt = Date.now();
@@ -19,13 +21,7 @@ function checkStorageConfig() {
   return storageReadiness();
 }
 
-/**
- * Check internal dependency readiness.
- * @response readinessResponseSchema
- * @response 503:readinessResponseSchema
- * @response 404
- */
-export async function GET({ request }: { request: Request }) {
+async function getReadinessRoute(request: Request) {
   if (
     !canReadInternalEndpoint(request, [
       "READINESS_BEARER_TOKEN",
@@ -51,3 +47,11 @@ export async function GET({ request }: { request: Request }) {
     { status: ready ? 200 : 503 },
   );
 }
+
+/**
+ * Check internal dependency readiness.
+ * @response readinessResponseSchema
+ * @response 503:readinessResponseSchema
+ * @response 404
+ */
+export const GET = svelteRequestHandler(observedApiRoute(getReadinessRoute));
