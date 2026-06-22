@@ -11,6 +11,7 @@
 
 import { DEV_SEED, DEV_SEED_ANCHOR } from "@tools/dev/seed/dev-seed";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { TODO_CONTENT_MAX_LENGTH } from "@/features/todos/lib/todo-limits";
 import { prisma } from "@/lib/db/prisma";
 import { createMcpHarness, type McpHarness } from "./utils/mcp-harness";
 
@@ -138,6 +139,25 @@ describe("todo CRUD — update_my_todo returns updated entity", () => {
     expect(result.todo?.completed).toBe(true);
     // updatedAt should be a valid Shanghai-offset datetime
     expect(result.todo?.updatedAt).toMatch(/\+08:00$/);
+  });
+
+  it("update_my_todo validates normalized content length", async () => {
+    const content = "x".repeat(TODO_CONTENT_MAX_LENGTH);
+    const result = await mcp.call<{
+      success?: boolean;
+      todo?: {
+        id?: string;
+        content?: string | null;
+      } | null;
+    }>("update_my_todo", {
+      id: todoId,
+      content: ` ${content} `,
+      mode: "full",
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.todo?.id).toBe(todoId);
+    expect(result.todo?.content).toBe(content);
   });
 
   it("update_my_todo clears content when content is explicitly null", async () => {

@@ -1,7 +1,7 @@
 import {
-  HOMEWORK_DESCRIPTION_MAX_LENGTH,
-  HOMEWORK_TITLE_MAX_LENGTH,
-} from "@/features/homeworks/lib/homework-limits";
+  getHomeworkDescriptionValidationError,
+  getHomeworkTitleValidationError,
+} from "@/features/homeworks/lib/homework-schema";
 import { parseShanghaiDateTimeLocalInput } from "@/lib/time/shanghai-format";
 import type { SectionDetailPageData } from "./section-detail-controller-helpers";
 
@@ -34,11 +34,12 @@ function validateSectionHomeworkInput(
   },
   homeworkCopy: HomeworkCopy,
 ) {
-  if (!input.title) return homeworkCopy.titleRequired;
-  if (input.title.length > HOMEWORK_TITLE_MAX_LENGTH) {
+  const titleError = getHomeworkTitleValidationError(input.title);
+  if (titleError === "required") return homeworkCopy.titleRequired;
+  if (titleError === "too_long") {
     return homeworkCopy.errorTitleTooLong;
   }
-  if (input.description.length > HOMEWORK_DESCRIPTION_MAX_LENGTH) {
+  if (getHomeworkDescriptionValidationError(input.description)) {
     return homeworkCopy.errorDescriptionTooLong;
   }
   const publishedAt = parseShanghaiDateTimeLocalInput(input.publishedAt);

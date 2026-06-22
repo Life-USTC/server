@@ -92,6 +92,32 @@ test.describe("dashboard todos", () => {
     await captureStepScreenshot(page, testInfo, "dashboard-todos-completed");
   });
 
+  test("server action errors render on nested todos route", async ({
+    page,
+  }, testInfo) => {
+    await signInAsDebugUser(page, "/dashboard/todos");
+
+    const postResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        response.url().includes("/dashboard/todos?/createTodo"),
+    );
+    await page.evaluate(() => {
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = "/dashboard/todos?/createTodo";
+      document.body.append(form);
+      form.requestSubmit();
+    });
+
+    await expect((await postResponse).status()).toBe(400);
+    await expect(
+      page.getByText(/请输入标题|Please enter a title/i).first(),
+    ).toBeVisible();
+
+    await captureStepScreenshot(page, testInfo, "dashboard-todos-action-error");
+  });
+
   test("can create and delete a todo", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     await signInAsDebugUser(page, "/dashboard/todos");

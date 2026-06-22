@@ -1,10 +1,10 @@
 import { fail, redirect } from "@sveltejs/kit";
-import {
-  HOMEWORK_DESCRIPTION_MAX_LENGTH,
-  HOMEWORK_TITLE_MAX_LENGTH,
-} from "@/features/dashboard/lib/dashboard-limits";
 import { parseOptionalLocalDateTime } from "@/features/dashboard/server/dashboard-form-dates";
 import { getDashboardUserId } from "@/features/dashboard/server/dashboard-page-server";
+import {
+  getHomeworkDescriptionValidationError,
+  getHomeworkTitleValidationError,
+} from "@/features/homeworks/lib/homework-schema";
 import {
   type CreateHomeworkInput,
   createHomeworkForSection,
@@ -27,12 +27,15 @@ export async function createHomeworkDashboardAction({
   if (!userId) return fail(401, { error: copy.errorUnauthorized });
   const form = await request.formData();
   const title = String(form.get("title") ?? "").trim();
-  if (!title) return fail(400, { error: copy.errorTitleRequired });
-  if (title.length > HOMEWORK_TITLE_MAX_LENGTH) {
+  const titleError = getHomeworkTitleValidationError(title);
+  if (titleError === "required") {
+    return fail(400, { error: copy.errorTitleRequired });
+  }
+  if (titleError === "too_long") {
     return fail(400, { error: copy.errorTitleTooLong });
   }
   const description = String(form.get("description") ?? "").trim();
-  if (description.length > HOMEWORK_DESCRIPTION_MAX_LENGTH) {
+  if (getHomeworkDescriptionValidationError(description)) {
     return fail(400, { error: copy.errorDescriptionTooLong });
   }
   const sectionId = Number(form.get("sectionId"));

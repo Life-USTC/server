@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { HOMEWORK_DESCRIPTION_MAX_LENGTH } from "@/features/homeworks/lib/homework-limits";
+import { TODO_CONTENT_MAX_LENGTH } from "@/features/todos/lib/todo-limits";
 import {
   calendarSubscriptionCreateRequestSchema,
   commentReactionRequestSchema,
@@ -10,6 +12,7 @@ import {
   matchSectionCodesRequestSchema,
   schedulesQuerySchema,
   sectionsQuerySchema,
+  todoCreateRequestSchema,
   todosQuerySchema,
   uploadCreateRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
@@ -68,6 +71,35 @@ describe("homeworkCreateRequestSchema", () => {
       title: "",
     });
     expect(result.success).toBe(false);
+  });
+
+  it("validates homework description after trimming surrounding whitespace", () => {
+    const description = "x".repeat(HOMEWORK_DESCRIPTION_MAX_LENGTH);
+    const result = homeworkCreateRequestSchema.safeParse({
+      sectionId: "12",
+      title: "作业 1",
+      description: ` ${description} `,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.description).toBe(description);
+    }
+  });
+});
+
+describe("todoCreateRequestSchema", () => {
+  it("validates todo content after trimming surrounding whitespace", () => {
+    const content = "x".repeat(TODO_CONTENT_MAX_LENGTH);
+    const result = todoCreateRequestSchema.safeParse({
+      title: "Read Chapter 1",
+      content: ` ${content} `,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.content).toBe(content);
+    }
   });
 });
 

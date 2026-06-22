@@ -1,8 +1,9 @@
 <script lang="ts">
-import type { PageData } from "../../$types";
 import DashboardPage from "../+page.svelte";
+import type { ActionData, PageData } from "./$types";
 
 export let data: PageData;
+export let form: ActionData | undefined = undefined;
 </script>
 
-<DashboardPage {data} />
+<DashboardPage {data} {form} />

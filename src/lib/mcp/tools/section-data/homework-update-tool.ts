@@ -1,9 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
 import {
-  HOMEWORK_DESCRIPTION_MAX_LENGTH,
-  HOMEWORK_TITLE_MAX_LENGTH,
-} from "@/features/homeworks/lib/homework-limits";
+  homeworkDateInputSchema,
+  homeworkDescriptionInputSchema,
+  homeworkTitleSchema,
+} from "@/features/homeworks/lib/homework-schema";
 import {
   mcpLocaleInputSchema,
   mcpModeInputSchema,
@@ -18,22 +19,13 @@ export function registerUpdateHomeworkOnSectionTool(server: McpServer) {
         "Update a homework by ID and optionally replace/upsert its description. Requires collaborator permissions and unsuspended user.",
       inputSchema: {
         homeworkId: z.string().trim().min(1),
-        title: z
-          .string()
-          .trim()
-          .min(1)
-          .max(HOMEWORK_TITLE_MAX_LENGTH)
-          .optional(),
-        description: z
-          .string()
-          .max(HOMEWORK_DESCRIPTION_MAX_LENGTH)
-          .optional()
-          .nullable(),
+        title: homeworkTitleSchema.optional(),
+        description: homeworkDescriptionInputSchema,
         isMajor: z.boolean().optional(),
         requiresTeam: z.boolean().optional(),
-        publishedAt: z.union([z.string(), z.null()]).optional(),
-        submissionStartAt: z.union([z.string(), z.null()]).optional(),
-        submissionDueAt: z.union([z.string(), z.null()]).optional(),
+        publishedAt: homeworkDateInputSchema,
+        submissionStartAt: homeworkDateInputSchema,
+        submissionDueAt: homeworkDateInputSchema,
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },

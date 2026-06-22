@@ -1,10 +1,10 @@
 import { fail } from "@sveltejs/kit";
-import {
-  TODO_CONTENT_MAX_LENGTH,
-  TODO_TITLE_MAX_LENGTH,
-} from "@/features/todos/lib/todo-limits";
 import { parseTodoPriorityInput } from "@/features/todos/lib/todo-priority";
-import { parseOptionalLocalDateTime } from "./dashboard-form-dates";
+import {
+  getTodoContentValidationError,
+  getTodoTitleValidationError,
+  parseTodoDueAtInput,
+} from "@/features/todos/lib/todo-schema";
 
 type TodoActionCopy = {
   errorContentTooLong: string;
@@ -17,18 +17,23 @@ type TodoActionCopy = {
 export async function readTodoForm(request: Request, copy: TodoActionCopy) {
   const form = await request.formData();
   const title = String(form.get("title") ?? "").trim();
-  if (!title) return { error: fail(400, { error: copy.errorTitleRequired }) };
-  if (title.length > TODO_TITLE_MAX_LENGTH) {
+  const titleError = getTodoTitleValidationError(title);
+  if (titleError === "required") {
+    return { error: fail(400, { error: copy.errorTitleRequired }) };
+  }
+  if (titleError === "too_long") {
     return { error: fail(400, { error: copy.errorTitleTooLong }) };
   }
 
   const content = String(form.get("content") ?? "").trim();
-  if (content.length > TODO_CONTENT_MAX_LENGTH) {
+  if (getTodoContentValidationError(content)) {
     return { error: fail(400, { error: copy.errorContentTooLong }) };
   }
 
-  const dueAt = parseOptionalLocalDateTime(form.get("dueAt"));
-  if (!dueAt.ok) return { error: fail(400, { error: copy.errorInvalidDueAt }) };
+  const dueAt = parseTodoDueAtInput(form.get("dueAt"));
+  if (dueAt === undefined) {
+    return { error: fail(400, { error: copy.errorInvalidDueAt }) };
+  }
   const priority = parseTodoPriorityInput(form.get("priority"));
   if (!priority.ok) {
     return { error: fail(400, { error: copy.errorInvalidPriority }) };
@@ -38,7 +43,7 @@ export async function readTodoForm(request: Request, copy: TodoActionCopy) {
     form,
     todo: {
       content: content || null,
-      dueAt: dueAt.value,
+      dueAt,
       priority: priority.value,
       title,
     },

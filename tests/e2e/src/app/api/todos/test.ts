@@ -19,6 +19,7 @@
  * - Full create → verify in list → cleanup via DELETE
  */
 import { expect, test } from "@playwright/test";
+import { TODO_CONTENT_MAX_LENGTH } from "@/features/todos/lib/todo-limits";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../../utils/dev-seed";
 import { assertApiContract } from "../../_shared/api-contract";
@@ -137,10 +138,11 @@ test("/api/todos POST 登录后可创建新待办并清理", async ({ page }) =>
   await signInAsDebugUser(page, "/");
 
   const title = `e2e-api-todo-${Date.now()}`;
+  const content = "x".repeat(TODO_CONTENT_MAX_LENGTH);
   const createResponse = await page.request.post("/api/todos", {
     data: {
       title,
-      content: "from api test",
+      content: ` ${content} `,
       priority: "high",
     },
   });
@@ -153,12 +155,18 @@ test("/api/todos POST 登录后可创建新待办并清理", async ({ page }) =>
     const listResponse = await page.request.get("/api/todos");
     expect(listResponse.status()).toBe(200);
     const listBody = (await listResponse.json()) as {
-      todos?: Array<{ id?: string; title?: string; priority?: string }>;
+      todos?: Array<{
+        content?: string | null;
+        id?: string;
+        priority?: string;
+        title?: string;
+      }>;
     };
     expect(
       listBody.todos?.some(
         (todo) =>
           todo.id === createdId &&
+          todo.content === content &&
           todo.title === title &&
           todo.priority === "high",
       ),

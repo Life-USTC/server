@@ -1,9 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
 import {
-  HOMEWORK_DESCRIPTION_MAX_LENGTH,
-  HOMEWORK_TITLE_MAX_LENGTH,
-} from "@/features/homeworks/lib/homework-limits";
+  homeworkDateInputSchema,
+  homeworkDescriptionInputSchema,
+  homeworkTitleSchema,
+} from "@/features/homeworks/lib/homework-schema";
 import {
   mcpLocaleInputSchema,
   mcpModeInputSchema,
@@ -18,17 +19,13 @@ export function registerCreateHomeworkOnSectionTool(server: McpServer) {
         "Create a homework under one section by section JW ID. Requires unsuspended signed-in user; does not mutate JW/import facts.",
       inputSchema: {
         sectionJwId: z.number().int().positive(),
-        title: z.string().trim().min(1).max(HOMEWORK_TITLE_MAX_LENGTH),
-        description: z
-          .string()
-          .max(HOMEWORK_DESCRIPTION_MAX_LENGTH)
-          .optional()
-          .nullable(),
+        title: homeworkTitleSchema,
+        description: homeworkDescriptionInputSchema,
         isMajor: z.boolean().optional(),
         requiresTeam: z.boolean().optional(),
-        publishedAt: z.union([z.string(), z.null()]).optional(),
-        submissionStartAt: z.union([z.string(), z.null()]).optional(),
-        submissionDueAt: z.union([z.string(), z.null()]).optional(),
+        publishedAt: homeworkDateInputSchema,
+        submissionStartAt: homeworkDateInputSchema,
+        submissionDueAt: homeworkDateInputSchema,
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
