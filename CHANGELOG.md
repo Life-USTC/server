@@ -1,3 +1,10 @@
+## [1.36.5](https://github.com/Life-USTC/server/compare/v1.36.4...v1.36.5) (2026-06-22)
+
+
+### Bug Fixes
+
+* **tooling:** simplify shared tooling and surface drift ([f12905e](https://github.com/Life-USTC/server/commit/f12905ec27e01a3228201fdf913cd1c6558a7db6))
+
 ## [1.36.4](https://github.com/Life-USTC/server/compare/v1.36.3...v1.36.4) (2026-06-22)
 
 
