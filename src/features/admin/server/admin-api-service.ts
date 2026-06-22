@@ -1,19 +1,8 @@
+import { getAdminUserListItem } from "@/features/admin/server/admin-user-read-model";
 import type { CommentStatus } from "@/generated/prisma/client";
 import { fireAuditLog } from "@/lib/audit/write-audit-log";
 import { prisma } from "@/lib/db/prisma";
-import { ilike } from "@/lib/query-filter-helpers";
 import { parseDateInput } from "@/lib/time/parse-date-input";
-
-type AdminUsersParsedQuery = {
-  pagination: {
-    page: number;
-    pageSize: number;
-    skip: number;
-  };
-  query: {
-    search?: string | null;
-  };
-};
 
 type AdminUpdateUserBody = {
   isAdmin?: boolean;
@@ -44,43 +33,6 @@ function normalizeAdminUsername(value: unknown) {
   if (typeof value !== "string") return undefined;
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
-}
-
-function buildAdminUsersWhere(search: string) {
-  return search
-    ? {
-        OR: [
-          { id: ilike(search) },
-          { name: ilike(search) },
-          { username: ilike(search) },
-          {
-            verifiedEmails: {
-              some: {
-                email: ilike(search),
-              },
-            },
-          },
-        ],
-      }
-    : {};
-}
-
-function adminUserListItem(user: {
-  createdAt: Date;
-  id: string;
-  isAdmin: boolean;
-  name: string | null;
-  username: string | null;
-  verifiedEmails?: Array<{ email: string }>;
-}) {
-  return {
-    id: user.id,
-    name: user.name,
-    username: user.username,
-    isAdmin: user.isAdmin,
-    email: user.verifiedEmails?.[0]?.email ?? null,
-    createdAt: user.createdAt,
-  };
 }
 
 async function buildAdminUserUpdateData(
@@ -127,40 +79,6 @@ function parseSuspensionDate(value: string | null | undefined) {
   return { expiresAt: parsed, ok: true as const };
 }
 
-export async function listAdminUsers({
-  pagination,
-  query,
-}: AdminUsersParsedQuery) {
-  const search = query.search ?? "";
-  const where = buildAdminUsersWhere(search);
-
-  const [users, total] = await Promise.all([
-    prisma.user.findMany({
-      where,
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        isAdmin: true,
-        createdAt: true,
-        verifiedEmails: {
-          select: { email: true },
-          take: 1,
-        },
-      },
-      orderBy: { createdAt: "desc" },
-      skip: pagination.skip,
-      take: pagination.pageSize,
-    }),
-    prisma.user.count({ where }),
-  ]);
-
-  return {
-    total,
-    users: users.map(adminUserListItem),
-  };
-}
-
 export async function updateAdminUser(
   id: string,
   parsedBody: AdminUpdateUserBody,
@@ -179,27 +97,15 @@ export async function updateAdminUser(
   const updated = await prisma.user.update({
     where: { id },
     data: parsed.data,
-    select: {
-      id: true,
-      name: true,
-      username: true,
-      isAdmin: true,
-      createdAt: true,
-    },
+    select: { id: true },
   });
 
-  const email = await prisma.verifiedEmail.findFirst({
-    where: { userId: id },
-    orderBy: { createdAt: "desc" },
-    select: { email: true },
-  });
+  const user = await getAdminUserListItem(updated.id);
+  if (!user) return { ok: false as const, reason: "not_found" as const };
 
   return {
     ok: true as const,
-    user: adminUserListItem({
-      ...updated,
-      verifiedEmails: email ? [email] : [],
-    }),
+    user,
   };
 }
 
