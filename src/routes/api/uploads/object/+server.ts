@@ -5,6 +5,7 @@ import type { RequestHandler } from "./$types";
 /**
  * Write upload object.
  * @params uploadObjectQuerySchema
+ * @body binary
  * @response 200:successResponseSchema
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema

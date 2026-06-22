@@ -4,6 +4,10 @@ import {
 } from "@/lib/api/routes/auth-device-authorization";
 import { svelteRequestHandler } from "@/lib/api/svelte-route";
 
+/**
+ * Return OAuth device authorization CORS preflight headers.
+ * @response 204
+ */
 export const OPTIONS = svelteRequestHandler(deviceAuthorizationOptionsRoute);
 
 /**
