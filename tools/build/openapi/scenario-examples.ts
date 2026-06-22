@@ -50,6 +50,16 @@ function named(id: number, value: { nameCn: string; nameEn?: string | null }) {
   return { id, nameCn: value.nameCn, nameEn: value.nameEn ?? null };
 }
 
+function localizedNameFields(value: {
+  nameCn: string;
+  nameEn?: string | null;
+}) {
+  return {
+    namePrimary: value.nameCn,
+    nameSecondary: value.nameEn ?? null,
+  };
+}
+
 function semester(value = s.semester) {
   return {
     id: ids.semester,
@@ -71,6 +81,13 @@ function campus() {
   };
 }
 
+function localizedCampus() {
+  return {
+    ...campus(),
+    ...localizedNameFields(s.catalog.campus),
+  };
+}
+
 function department() {
   return {
     id: ids.department,
@@ -78,6 +95,13 @@ function department() {
     nameCn: s.catalog.department.nameCn,
     nameEn: s.catalog.department.nameEn,
     isCollege: true,
+  };
+}
+
+function localizedDepartment() {
+  return {
+    ...department(),
+    ...localizedNameFields(s.catalog.department),
   };
 }
 
@@ -103,6 +127,13 @@ function course(value = firstCourse) {
   };
 }
 
+function localizedCourse(value = firstCourse) {
+  return {
+    ...course(value),
+    ...localizedNameFields(value),
+  };
+}
+
 function teacher(value = firstTeacher) {
   return {
     id: ids.teacher + value.index,
@@ -121,6 +152,13 @@ function teacher(value = firstTeacher) {
     wechat: null,
     departmentId: ids.department,
     teacherTitleId: ids.teacherTitle,
+  };
+}
+
+function localizedTeacher(value = firstTeacher) {
+  return {
+    ...teacher(value),
+    ...localizedNameFields(value),
   };
 }
 
@@ -216,12 +254,12 @@ function sectionSummary(value = firstSection) {
 function sectionCompact(value = firstSection) {
   return {
     ...sectionBase(value),
-    course: course(s.courses[value.index] ?? firstCourse),
+    course: localizedCourse(s.courses[value.index] ?? firstCourse),
     semester: semester(),
-    campus: campus(),
-    openDepartment: department(),
+    campus: localizedCampus(),
+    openDepartment: localizedDepartment(),
     teachers: value.teacherIndexes.map((index) =>
-      teacher(s.teachers[index] ?? firstTeacher),
+      localizedTeacher(s.teachers[index] ?? firstTeacher),
     ),
   };
 }

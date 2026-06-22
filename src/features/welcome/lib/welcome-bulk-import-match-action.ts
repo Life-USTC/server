@@ -1,7 +1,7 @@
 import {
-  extractSectionCodes,
-  matchWelcomeSectionCodes,
-} from "@/features/welcome/lib/welcome-bulk-import-client";
+  extractSubscriptionSectionCodes,
+  matchSubscriptionSectionCodes,
+} from "@/features/home/lib/subscription-import-client";
 import type { WelcomeBulkImportActionInput } from "./welcome-bulk-import-action-types";
 
 export async function matchWelcomeBulkImportSections(
@@ -9,7 +9,7 @@ export async function matchWelcomeBulkImportSections(
 ) {
   const bulkCopy = input.getBulkCopy();
   const welcomeCopy = input.getWelcomeCopy();
-  const codes = extractSectionCodes(input.getImportText());
+  const codes = extractSubscriptionSectionCodes(input.getImportText());
   input.setImportMessage("");
   input.setImportError("");
 
@@ -21,7 +21,7 @@ export async function matchWelcomeBulkImportSections(
   input.setMatching(true);
   try {
     const selectedSemesterId = input.getSelectedSemesterId();
-    const payload = await matchWelcomeSectionCodes({
+    const payload = await matchSubscriptionSectionCodes({
       codes,
       fetchFailedMessage: bulkCopy.fetchFailed,
       semesterId: selectedSemesterId ? Number(selectedSemesterId) : undefined,

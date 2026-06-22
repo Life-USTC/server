@@ -16,6 +16,16 @@ import {
   teacherWithDepartmentTitleSchema,
 } from "./academic-teacher-response-schemas";
 
+const localizedNameFields = {
+  namePrimary: z.string(),
+  nameSecondary: z.string().nullable(),
+};
+
+const localizedCourseSchema = courseSchema.extend(localizedNameFields);
+const localizedCampusSchema = campusSchema.extend(localizedNameFields);
+const localizedDepartmentSchema = departmentSchema.extend(localizedNameFields);
+const localizedTeacherSchema = teacherSchema.extend(localizedNameFields);
+
 const courseSummarySchema = z.object({
   id: z.number().int(),
   jwId: z.number().int(),
@@ -66,11 +76,11 @@ export const sectionSummarySchema = z.object({
 });
 
 export const sectionCompactSchema = sectionBaseSchema.extend({
-  course: courseSchema,
+  course: localizedCourseSchema,
   semester: semesterSchema.nullable(),
-  campus: campusSchema.nullable(),
-  openDepartment: departmentSchema.nullable(),
-  teachers: z.array(teacherSchema),
+  campus: localizedCampusSchema.nullable(),
+  openDepartment: localizedDepartmentSchema.nullable(),
+  teachers: z.array(localizedTeacherSchema),
 });
 
 export const sectionListSchema = sectionBaseSchema.extend({
