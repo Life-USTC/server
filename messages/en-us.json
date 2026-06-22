@@ -1675,6 +1675,7 @@
     "deleteHomeworkSuccess": "Homework deleted",
     "deleteHomeworkFailed": "Failed to delete homework",
     "missingHomeworkId": "Missing homework id",
+    "homeworkForbidden": "You do not have permission to delete this homework",
     "homeworkNotFound": "Homework not found",
     "descriptionTarget": "Target",
     "descriptionPreview": "Preview",

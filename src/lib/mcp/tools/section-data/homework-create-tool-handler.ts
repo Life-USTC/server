@@ -4,12 +4,10 @@ import {
   getUserId,
   jsonToolResult,
   resolveMcpMode,
-  resolveSectionByJwId,
 } from "@/lib/mcp/tools/_helpers";
 import {
   createHomeworkOnSectionRecord,
   parseCreateHomeworkTimestamps,
-  suspendedCreateHomeworkResult,
 } from "./homework-create-actions";
 import { sectionNotFoundToolResult } from "./shared";
 
@@ -43,16 +41,6 @@ export async function createHomeworkOnSectionTool(
 ) {
   const resolvedMode = resolveMcpMode(mode);
   const userId = getUserId(extra.authInfo);
-  const suspensionResult = await suspendedCreateHomeworkResult(
-    userId,
-    resolvedMode,
-  );
-  if (suspensionResult) return suspensionResult;
-
-  const { section } = await resolveSectionByJwId(sectionJwId, locale);
-  if (!section) {
-    return sectionNotFoundToolResult(sectionJwId, resolvedMode);
-  }
 
   const parsedTimestamps = parseCreateHomeworkTimestamps(
     {
@@ -69,7 +57,7 @@ export async function createHomeworkOnSectionTool(
     isMajor,
     publishedAt: parsedTimestamps.publishedAt ?? null,
     requiresTeam,
-    sectionId: section.id,
+    sectionJwId,
     submissionDueAt: parsedTimestamps.submissionDueAt ?? null,
     submissionStartAt: parsedTimestamps.submissionStartAt ?? null,
     title,
@@ -79,13 +67,18 @@ export async function createHomeworkOnSectionTool(
     if (createResult.error === "not_found") {
       return sectionNotFoundToolResult(sectionJwId, resolvedMode);
     }
-    return jsonToolResult(
-      {
-        success: false,
-        message: createResult.error === "suspended" ? "Suspended" : "Forbidden",
-      },
-      { mode: resolvedMode },
-    );
+    const payload: {
+      message: string;
+      reason?: string | null;
+      success: false;
+    } = {
+      success: false,
+      message: createResult.error === "suspended" ? "Suspended" : "Forbidden",
+    };
+    if (createResult.error === "suspended") {
+      payload.reason = createResult.reason ?? null;
+    }
+    return jsonToolResult(payload, { mode: resolvedMode });
   }
 
   const homework = createResult.homework;

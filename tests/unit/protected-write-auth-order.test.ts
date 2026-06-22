@@ -1,11 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const {
+  requireAuthMock,
   requireWriteAuthMock,
   resolveApiUserIdMock,
   updateDashboardLinkPinStateMock,
   renameUploadMock,
 } = vi.hoisted(() => ({
+  requireAuthMock: vi.fn(),
   requireWriteAuthMock: vi.fn(),
   resolveApiUserIdMock: vi.fn(),
   updateDashboardLinkPinStateMock: vi.fn(),
@@ -13,6 +15,7 @@ const {
 }));
 
 vi.mock("@/lib/auth/api-auth", () => ({
+  requireAuth: requireAuthMock,
   requireWriteAuth: requireWriteAuthMock,
   resolveApiUserId: resolveApiUserIdMock,
 }));
@@ -54,6 +57,7 @@ function jsonRequest(url: string, method: string) {
 
 describe("protected write route auth order", () => {
   afterEach(() => {
+    requireAuthMock.mockReset();
     requireWriteAuthMock.mockReset();
     resolveApiUserIdMock.mockReset();
     updateDashboardLinkPinStateMock.mockReset();
@@ -62,7 +66,7 @@ describe("protected write route auth order", () => {
   });
 
   it("authenticates comment creation before parsing the JSON body", async () => {
-    requireWriteAuthMock.mockResolvedValue(unauthorizedResponse());
+    requireAuthMock.mockResolvedValue(unauthorizedResponse());
     const { postCommentRoute } = await import(
       "@/lib/api/routes/comments-create-route"
     );
@@ -72,11 +76,11 @@ describe("protected write route auth order", () => {
     );
 
     expect(response.status).toBe(401);
-    expect(requireWriteAuthMock).toHaveBeenCalledOnce();
+    expect(requireAuthMock).toHaveBeenCalledOnce();
   });
 
   it("authenticates comment updates before parsing the JSON body", async () => {
-    requireWriteAuthMock.mockResolvedValue(unauthorizedResponse());
+    requireAuthMock.mockResolvedValue(unauthorizedResponse());
     const { patchCommentRoute } = await import(
       "@/lib/api/routes/comments-update-route"
     );
@@ -87,11 +91,11 @@ describe("protected write route auth order", () => {
     );
 
     expect(response.status).toBe(401);
-    expect(requireWriteAuthMock).toHaveBeenCalledOnce();
+    expect(requireAuthMock).toHaveBeenCalledOnce();
   });
 
   it("authenticates description writes before parsing the JSON body", async () => {
-    requireWriteAuthMock.mockResolvedValue(unauthorizedResponse());
+    requireAuthMock.mockResolvedValue(unauthorizedResponse());
     const { postDescriptionRoute } = await import(
       "@/lib/api/routes/description-upsert-route"
     );
@@ -101,7 +105,7 @@ describe("protected write route auth order", () => {
     );
 
     expect(response.status).toBe(401);
-    expect(requireWriteAuthMock).toHaveBeenCalledOnce();
+    expect(requireAuthMock).toHaveBeenCalledOnce();
   });
 
   it("authenticates upload renames before parsing the JSON body", async () => {

@@ -5,7 +5,7 @@ export async function createHomeworkOnSectionRecord(input: {
   isMajor?: boolean;
   publishedAt: Date | null;
   requiresTeam?: boolean;
-  sectionId: number;
+  sectionJwId: number;
   submissionDueAt: Date | null;
   submissionStartAt: Date | null;
   title: string;
@@ -18,7 +18,7 @@ export async function createHomeworkOnSectionRecord(input: {
     isMajor: input.isMajor === true,
     publishedAt: input.publishedAt,
     requiresTeam: input.requiresTeam === true,
-    sectionId: input.sectionId,
+    sectionJwId: input.sectionJwId,
     submissionDueAt: input.submissionDueAt,
     submissionStartAt: input.submissionStartAt,
     title: input.title,

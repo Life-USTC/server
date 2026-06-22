@@ -1,5 +1,4 @@
 import { homeworkDateError } from "@/features/homeworks/server/homework-dates";
-import { findActiveSuspension } from "@/lib/auth/viewer-context";
 import {
   jsonToolResult,
   parseOptionalFieldDate,
@@ -9,23 +8,6 @@ import {
 export { createHomeworkOnSectionRecord } from "./homework-create-record";
 
 type McpMode = ReturnType<typeof resolveMcpMode>;
-
-export async function suspendedCreateHomeworkResult(
-  userId: string,
-  mode: McpMode,
-) {
-  const suspension = await findActiveSuspension(userId);
-  if (!suspension) return null;
-
-  return jsonToolResult(
-    {
-      success: false,
-      message: "Suspended",
-      reason: suspension.reason ?? null,
-    },
-    { mode },
-  );
-}
 
 export function parseCreateHomeworkTimestamps(
   input: {

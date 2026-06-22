@@ -26,7 +26,11 @@ export async function upsertDescriptionContent({
     return { ok: false as const, error: "forbidden" as DescriptionUpsertError };
   }
   if (viewer.isSuspended) {
-    return { ok: false as const, error: "suspended" as DescriptionUpsertError };
+    return {
+      ok: false as const,
+      error: "suspended" as DescriptionUpsertError,
+      reason: viewer.suspensionReason,
+    };
   }
 
   const target = resolveDescriptionTarget(targetType, targetId);

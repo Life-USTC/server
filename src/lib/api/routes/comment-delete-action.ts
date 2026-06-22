@@ -1,5 +1,10 @@
 import { deleteOwnComment } from "@/features/comments/server/comment-mutations";
-import { forbidden, jsonResponse, notFound } from "@/lib/api/helpers";
+import {
+  forbidden,
+  jsonResponse,
+  notFound,
+  suspensionForbidden,
+} from "@/lib/api/helpers";
 import {
   fireAuditLog,
   getAuditRequestMetadata,
@@ -12,6 +17,9 @@ export async function deleteOwnCommentAction(input: {
 }) {
   const result = await deleteOwnComment(input);
   if (!result.ok) {
+    if (result.error === "suspended") {
+      return suspensionForbidden("reason" in result ? result.reason : null);
+    }
     return result.error === "not_found" ? notFound() : forbidden();
   }
 

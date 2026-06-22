@@ -9,7 +9,8 @@ export type CreateHomeworkInput = {
   isMajor: boolean;
   publishedAt?: Date | null;
   requiresTeam: boolean;
-  sectionId: number;
+  sectionId?: number | null;
+  sectionJwId?: number | null;
   submissionDueAt?: Date | null;
   submissionStartAt?: Date | null;
   title: string;
@@ -23,7 +24,14 @@ export async function resolveSectionIdForHomeworkCreate(input: {
     if (input.sectionId == null) {
       return { ok: false as const, error: "not_found" as const };
     }
-    return { ok: true as const, sectionId: input.sectionId };
+    const section = await prisma.section.findUnique({
+      where: { id: input.sectionId },
+      select: { id: true },
+    });
+    if (!section) {
+      return { ok: false as const, error: "not_found" as const };
+    }
+    return { ok: true as const, sectionId: section.id };
   }
 
   const section = await prisma.section.findUnique({
@@ -47,19 +55,18 @@ export async function createHomeworkForSection(
   const writer = await requireActiveHomeworkWriter(userId);
   if (!writer.ok) return writer;
 
-  const section = await prisma.section.findUnique({
-    where: { id: homeworkInput.sectionId },
-    select: { id: true },
+  const sectionResolution = await resolveSectionIdForHomeworkCreate({
+    sectionId: homeworkInput.sectionId ?? null,
+    sectionJwId: homeworkInput.sectionJwId ?? null,
   });
+  if (!sectionResolution.ok) return sectionResolution;
 
-  if (!section) {
-    return { ok: false as const, error: "not_found" as const };
-  }
+  const sectionId = sectionResolution.sectionId;
 
   const homework = await prisma.$transaction(async (tx) => {
     const homework = await tx.homework.create({
       data: {
-        sectionId: homeworkInput.sectionId,
+        sectionId,
         title: homeworkInput.title,
         isMajor: homeworkInput.isMajor,
         requiresTeam: homeworkInput.requiresTeam,
@@ -94,7 +101,7 @@ export async function createHomeworkForSection(
     await tx.homeworkAuditLog.create({
       data: {
         action: "created",
-        sectionId: homeworkInput.sectionId,
+        sectionId,
         homeworkId: homework.id,
         actorId: userId,
         titleSnapshot: homeworkInput.title,
@@ -107,4 +114,7 @@ export async function createHomeworkForSection(
   return { ok: true as const, homework };
 }
 
-export type CreateHomeworkError = HomeworkWriteAuthError | "not_found";
+export type CreateHomeworkError =
+  | HomeworkWriteAuthError
+  | "mismatch"
+  | "not_found";

@@ -1,12 +1,7 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const {
-  findActiveSuspensionMock,
-  requireHomeworkItemByIdMock,
-  updateHomeworkMock,
-} = vi.hoisted(() => ({
-  findActiveSuspensionMock: vi.fn(),
+const { requireHomeworkItemByIdMock, updateHomeworkMock } = vi.hoisted(() => ({
   requireHomeworkItemByIdMock: vi.fn(),
   updateHomeworkMock: vi.fn(),
 }));
@@ -19,20 +14,14 @@ vi.mock("@/features/homeworks/server/homework-read-model", () => ({
   requireHomeworkItemById: requireHomeworkItemByIdMock,
 }));
 
-vi.mock("@/lib/auth/viewer-context", () => ({
-  findActiveSuspension: findActiveSuspensionMock,
-}));
-
 describe("updateHomeworkOnSectionTool", () => {
   afterEach(() => {
-    findActiveSuspensionMock.mockReset();
     requireHomeworkItemByIdMock.mockReset();
     updateHomeworkMock.mockReset();
     vi.resetModules();
   });
 
   it("passes the requested locale to the homework read model", async () => {
-    findActiveSuspensionMock.mockResolvedValue(null);
     updateHomeworkMock.mockResolvedValue({ ok: true });
     requireHomeworkItemByIdMock.mockResolvedValue({
       id: "homework-1",

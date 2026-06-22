@@ -7,6 +7,7 @@ const {
   listSubscribedHomeworkAuditLogsMock,
   listSubscribedHomeworksMock,
   requireAuthMock,
+  resolveHomeworkSectionIdsMock,
   resolveApiUserIdMock,
   withHomeworkItemStateMock,
 } = vi.hoisted(() => ({
@@ -16,6 +17,7 @@ const {
   listSubscribedHomeworkAuditLogsMock: vi.fn(),
   listSubscribedHomeworksMock: vi.fn(),
   requireAuthMock: vi.fn(),
+  resolveHomeworkSectionIdsMock: vi.fn(),
   resolveApiUserIdMock: vi.fn(),
   withHomeworkItemStateMock: vi.fn(async (homeworks: unknown) => homeworks),
 }));
@@ -41,6 +43,7 @@ vi.mock("@/features/homeworks/server/homework-item-state", () => ({
 
 vi.mock("@/features/homeworks/server/homework-list-read-model", () => ({
   listSectionHomeworksWithAudit: listSectionHomeworksWithAuditMock,
+  resolveHomeworkSectionIds: resolveHomeworkSectionIdsMock,
 }));
 
 function request(path: string) {
@@ -59,6 +62,10 @@ describe("homework REST locale adapters", () => {
 
   it("passes request locale to public homework list reads", async () => {
     resolveApiUserIdMock.mockResolvedValue("viewer-1");
+    resolveHomeworkSectionIdsMock.mockResolvedValue({
+      ok: true,
+      sectionIds: [12],
+    });
     listSectionHomeworksWithAuditMock.mockResolvedValue({
       auditLogs: [],
       homeworks: [],

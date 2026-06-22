@@ -21,6 +21,14 @@ type SectionHomeworkListWithAuditInput = SectionHomeworkListInput & {
   userId?: string | null;
 };
 
+type HomeworkSectionReferencesInput = {
+  sectionId?: number | null;
+  sectionIds?: readonly number[];
+  sectionJwId?: number | null;
+};
+
+type HomeworkSectionReferencesError = "invalid" | "not_found";
+
 const homeworkAuditActorInclude = {
   actor: {
     select: { id: true, name: true, username: true, image: true },
@@ -31,6 +39,35 @@ export function homeworkSectionWhere(sectionIds: readonly number[]) {
   return sectionIds.length === 1
     ? { sectionId: sectionIds[0] }
     : { sectionId: { in: [...sectionIds] } };
+}
+
+export async function resolveHomeworkSectionIds({
+  sectionId,
+  sectionIds,
+  sectionJwId,
+}: HomeworkSectionReferencesInput): Promise<
+  | { ok: true; sectionIds: number[] }
+  | { ok: false; error: HomeworkSectionReferencesError }
+> {
+  const resolvedSectionIds = [...(sectionIds ?? [])];
+  if (sectionId != null) {
+    resolvedSectionIds.push(sectionId);
+  }
+
+  if (sectionJwId != null) {
+    const section = await prisma.section.findUnique({
+      where: { jwId: sectionJwId },
+      select: { id: true },
+    });
+    if (!section) {
+      return { ok: false, error: "not_found" };
+    }
+    resolvedSectionIds.push(section.id);
+  }
+
+  return resolvedSectionIds.length > 0
+    ? { ok: true, sectionIds: resolvedSectionIds }
+    : { ok: false, error: "invalid" };
 }
 
 export async function listSectionHomeworkItems({

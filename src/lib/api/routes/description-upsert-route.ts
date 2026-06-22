@@ -6,16 +6,17 @@ import {
   jsonResponse,
   notFound,
   parseRouteJsonBody,
+  suspensionForbidden,
 } from "@/lib/api/helpers";
 import { descriptionUpsertRequestSchema } from "@/lib/api/schemas/request-schemas";
 import {
   fireAuditLog,
   getAuditRequestMetadata,
 } from "@/lib/audit/write-audit-log";
-import { requireWriteAuth } from "@/lib/auth/api-auth";
+import { requireAuth } from "@/lib/auth/api-auth";
 
 export async function postDescriptionRoute(request: Request) {
-  const auth = await requireWriteAuth(request);
+  const auth = await requireAuth(request);
   if (auth instanceof Response) {
     return auth;
   }
@@ -44,6 +45,8 @@ export async function postDescriptionRoute(request: Request) {
       if (result.error === "invalid_target")
         return badRequest("Invalid target");
       if (result.error === "not_found") return notFound("Target not found");
+      if (result.error === "suspended")
+        return suspensionForbidden("reason" in result ? result.reason : null);
       return forbidden();
     }
 

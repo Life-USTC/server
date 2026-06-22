@@ -8,7 +8,7 @@ import {
   commentUpdateRequestSchema,
   resourceIdPathParamsSchema,
 } from "@/lib/api/schemas/request-schemas";
-import { requireWriteAuth } from "@/lib/auth/api-auth";
+import { requireAuth } from "@/lib/auth/api-auth";
 
 type IdParams = { id: string };
 
@@ -25,7 +25,7 @@ export async function patchCommentRoute(
     return parsedParams;
   }
 
-  const auth = await requireWriteAuth(request);
+  const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const { userId } = auth;
 

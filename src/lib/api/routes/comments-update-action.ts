@@ -5,6 +5,7 @@ import {
   forbidden,
   jsonResponse,
   notFound,
+  suspensionForbidden,
 } from "@/lib/api/helpers";
 import type { commentUpdateRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { writeCommentEditAuditLog } from "./comments-update-audit";
@@ -41,6 +42,9 @@ export async function updateCommentAction(
       return badRequest("Invalid attachments");
     }
     if (result.error === "locked") return forbidden("Comment locked");
+    if (result.error === "suspended") {
+      return suspensionForbidden("reason" in result ? result.reason : null);
+    }
     return forbidden();
   }
 

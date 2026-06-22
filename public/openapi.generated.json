@@ -569,6 +569,16 @@
               }
             }
           },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Error response",
             "content": {
@@ -4220,7 +4230,9 @@
             "name": "limit",
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 200
             }
           }
         ],

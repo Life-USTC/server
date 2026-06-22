@@ -2,7 +2,6 @@ import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { updateHomework } from "@/features/homeworks/server/homework-mutations";
 import { requireHomeworkItemById } from "@/features/homeworks/server/homework-read-model";
 import { hasHomeworkUpdateIntentChanges } from "@/features/homeworks/server/homework-update-intent";
-import { findActiveSuspension } from "@/lib/auth/viewer-context";
 import {
   getUserId,
   jsonToolResult,
@@ -33,17 +32,6 @@ export async function updateHomeworkOnSectionTool(
 ) {
   const resolvedMode = resolveMcpMode(mode);
   const userId = getUserId(extra.authInfo);
-  const suspension = await findActiveSuspension(userId);
-  if (suspension) {
-    return jsonToolResult(
-      {
-        success: false,
-        message: "Suspended",
-        reason: suspension.reason ?? null,
-      },
-      { mode: resolvedMode },
-    );
-  }
 
   const parsedDates = parseHomeworkUpdateDates(
     {
@@ -95,7 +83,11 @@ export async function updateHomeworkOnSectionTool(
     }
     if (result.error === "suspended") {
       return jsonToolResult(
-        { success: false, message: "Suspended" },
+        {
+          success: false,
+          message: "Suspended",
+          reason: "reason" in result ? (result.reason ?? null) : null,
+        },
         { mode: resolvedMode },
       );
     }

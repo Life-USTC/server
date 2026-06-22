@@ -37,6 +37,7 @@ export type AdminModerationCopy = AdminModerationCommentsCopy &
     guestLabel: string;
     homeworkStatusActive: string;
     homeworkStatusDeleted: string;
+    homeworkForbidden: string;
     homeworkTiming: string;
     lifted: string;
     liftSuspensionAction: string;

@@ -659,6 +659,7 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       version: "1.0.0",
     });
 
+    let createdHomeworkId: string | null = null;
     try {
       await saveBusPreference(page.request, {
         preferredOriginCampusId: 1,
@@ -1659,6 +1660,7 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       };
       expect(createHomeworkPayload.success).toBe(true);
       expect(typeof createHomeworkPayload.id).toBe("string");
+      createdHomeworkId = createHomeworkPayload.id ?? null;
       expect(createHomeworkPayload.homework?.id).toBe(createHomeworkPayload.id);
       expect(createHomeworkPayload.homework?.title).toBe(homeworkTitle);
       expect(createHomeworkPayload.homework?.section?.jwId).toBe(
@@ -1847,6 +1849,9 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       expect(missingSectionPayload.message).toContain("999999999");
     } finally {
       await transport.close();
+      if (createdHomeworkId) {
+        await page.request.delete(`/api/homeworks/${createdHomeworkId}`);
+      }
       await page.request.post("/api/calendar-subscriptions", {
         data: { sectionIds: originalSectionIds },
       });

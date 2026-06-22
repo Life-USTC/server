@@ -8,7 +8,7 @@ import {
   commentReactionRequestSchema,
   resourceIdPathParamsSchema,
 } from "@/lib/api/schemas/request-schemas";
-import { requireWriteAuth } from "@/lib/auth/api-auth";
+import { requireAuth } from "@/lib/auth/api-auth";
 
 type IdParams = { id: string };
 
@@ -16,7 +16,7 @@ export async function postCommentReactionRoute(
   request: Request,
   params: IdParams,
 ) {
-  const auth = await requireWriteAuth(request);
+  const auth = await requireAuth(request);
   if (auth instanceof Response) {
     return auth;
   }

@@ -6,6 +6,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * Delete one homework.
  * @pathParams resourceIdPathParamsSchema
  * @response successResponseSchema
+ * @response 403:openApiErrorSchema
  * @response 404:openApiErrorSchema
  */
 export const DELETE: RequestHandler = ({ request, params }) =>
