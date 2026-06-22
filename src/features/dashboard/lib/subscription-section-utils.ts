@@ -6,10 +6,6 @@ type SectionWithSemester = {
   } | null;
 };
 
-export function extractSectionCodes(value: string) {
-  return Array.from(new Set(value.match(/[A-Z0-9_.-]+\.[A-Z0-9]{2}/g) ?? []));
-}
-
 export function groupSubscribedSectionsBySemester<
   Section extends SectionWithSemester,
 >(sections: Section[], fallbackLabel: string) {

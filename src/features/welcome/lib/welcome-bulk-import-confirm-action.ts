@@ -1,7 +1,4 @@
-import {
-  fetchCurrentSubscribedSectionIds,
-  updateSubscribedSectionIds,
-} from "@/features/welcome/lib/welcome-bulk-import-client";
+import { appendSubscribedSectionIds } from "@/features/home/lib/subscription-import-client";
 import type { WelcomeBulkImportActionInput } from "./welcome-bulk-import-action-types";
 import { resetWelcomeBulkImport } from "./welcome-bulk-import-reset-actions";
 
@@ -14,17 +11,12 @@ export async function confirmWelcomeBulkImport(
   input.setImportMessage("");
 
   try {
-    const currentSectionIds = await fetchCurrentSubscribedSectionIds(
-      bulkCopy.fetchFailed,
-    );
     const selectedSectionIds = input.getSelectedSectionIds();
-    const nextSectionIds = Array.from(
-      new Set([...currentSectionIds, ...selectedSectionIds]),
-    );
-
-    await updateSubscribedSectionIds(nextSectionIds, bulkCopy.importFailed);
-
-    const importedCount = selectedSectionIds.length;
+    const importedCount = await appendSubscribedSectionIds({
+      fetchFailedMessage: bulkCopy.fetchFailed,
+      importFailedMessage: bulkCopy.importFailed,
+      selectedSectionIds,
+    });
     input.setConfirmImportOpen(false);
     input.setBulkImportOpen(false);
     resetWelcomeBulkImport(input);

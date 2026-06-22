@@ -4565,7 +4565,9 @@
                           "id": 406,
                           "nameCn": "专业核心",
                           "nameEn": "Core Major"
-                        }
+                        },
+                        "namePrimary": "密码工程原理与实践",
+                        "nameSecondary": "Cryptographic Engineering: Principles and Practice"
                       },
                       "semester": {
                         "id": 701,
@@ -4580,14 +4582,18 @@
                         "jwId": 9910001,
                         "nameCn": "东校区",
                         "nameEn": "East Campus",
-                        "code": "EAST"
+                        "code": "EAST",
+                        "namePrimary": "东校区",
+                        "nameSecondary": "East Campus"
                       },
                       "openDepartment": {
                         "id": 501,
                         "code": "DPT-IS",
                         "nameCn": "网络空间安全学院",
                         "nameEn": "School of Cyber Science and Technology",
-                        "isCollege": true
+                        "isCollege": true,
+                        "namePrimary": "网络空间安全学院",
+                        "nameSecondary": "School of Cyber Science and Technology"
                       },
                       "teachers": [
                         {
@@ -4606,7 +4612,9 @@
                           "qq": null,
                           "wechat": null,
                           "departmentId": 501,
-                          "teacherTitleId": 801
+                          "teacherTitleId": 801,
+                          "namePrimary": "林璟锵",
+                          "nameSecondary": "Lin Jingqiang"
                         },
                         {
                           "id": 8002,
@@ -4624,7 +4632,9 @@
                           "qq": null,
                           "wechat": null,
                           "departmentId": 501,
-                          "teacherTitleId": 801
+                          "teacherTitleId": 801,
+                          "namePrimary": "王伟",
+                          "nameSecondary": "Wang Wei"
                         }
                       ]
                     },
@@ -4704,7 +4714,9 @@
                           "id": 406,
                           "nameCn": "专业核心",
                           "nameEn": "Core Major"
-                        }
+                        },
+                        "namePrimary": "天体物理概观",
+                        "nameSecondary": "Introduction to Astrophysics"
                       },
                       "semester": {
                         "id": 701,
@@ -4719,14 +4731,18 @@
                         "jwId": 9910001,
                         "nameCn": "东校区",
                         "nameEn": "East Campus",
-                        "code": "EAST"
+                        "code": "EAST",
+                        "namePrimary": "东校区",
+                        "nameSecondary": "East Campus"
                       },
                       "openDepartment": {
                         "id": 501,
                         "code": "DPT-IS",
                         "nameCn": "网络空间安全学院",
                         "nameEn": "School of Cyber Science and Technology",
-                        "isCollege": true
+                        "isCollege": true,
+                        "namePrimary": "网络空间安全学院",
+                        "nameSecondary": "School of Cyber Science and Technology"
                       },
                       "teachers": [
                         {
@@ -4745,7 +4761,9 @@
                           "qq": null,
                           "wechat": null,
                           "departmentId": 501,
-                          "teacherTitleId": 801
+                          "teacherTitleId": 801,
+                          "namePrimary": "王伟",
+                          "nameSecondary": "Wang Wei"
                         }
                       ]
                     }
@@ -9766,6 +9784,13 @@
                             "nameEn"
                           ],
                           "additionalProperties": false
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -9785,7 +9810,9 @@
                         "classify",
                         "educationLevel",
                         "gradation",
-                        "type"
+                        "type",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -9857,6 +9884,13 @@
                         "code": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -9864,7 +9898,9 @@
                         "jwId",
                         "nameCn",
                         "nameEn",
-                        "code"
+                        "code",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -9890,6 +9926,13 @@
                         "isCollege": {
                           "nullable": true,
                           "type": "boolean"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -9897,7 +9940,9 @@
                         "code",
                         "nameCn",
                         "nameEn",
-                        "isCollege"
+                        "isCollege",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -9979,6 +10024,13 @@
                             "type": "integer",
                             "minimum": -9007199254740991,
                             "maximum": 9007199254740991
+                          },
+                          "namePrimary": {
+                            "type": "string"
+                          },
+                          "nameSecondary": {
+                            "nullable": true,
+                            "type": "string"
                           }
                         },
                         "required": [
@@ -9997,7 +10049,9 @@
                           "qq",
                           "wechat",
                           "departmentId",
-                          "teacherTitleId"
+                          "teacherTitleId",
+                          "namePrimary",
+                          "nameSecondary"
                         ],
                         "additionalProperties": false
                       }
@@ -10452,6 +10506,13 @@
                             "nameEn"
                           ],
                           "additionalProperties": false
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -10471,7 +10532,9 @@
                         "classify",
                         "educationLevel",
                         "gradation",
-                        "type"
+                        "type",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -10543,6 +10606,13 @@
                         "code": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -10550,7 +10620,9 @@
                         "jwId",
                         "nameCn",
                         "nameEn",
-                        "code"
+                        "code",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -10576,6 +10648,13 @@
                         "isCollege": {
                           "nullable": true,
                           "type": "boolean"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -10583,7 +10662,9 @@
                         "code",
                         "nameCn",
                         "nameEn",
-                        "isCollege"
+                        "isCollege",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -10665,6 +10746,13 @@
                             "type": "integer",
                             "minimum": -9007199254740991,
                             "maximum": 9007199254740991
+                          },
+                          "namePrimary": {
+                            "type": "string"
+                          },
+                          "nameSecondary": {
+                            "nullable": true,
+                            "type": "string"
                           }
                         },
                         "required": [
@@ -10683,7 +10771,9 @@
                           "qq",
                           "wechat",
                           "departmentId",
-                          "teacherTitleId"
+                          "teacherTitleId",
+                          "namePrimary",
+                          "nameSecondary"
                         ],
                         "additionalProperties": false
                       }
@@ -11176,6 +11266,13 @@
                         "nameEn"
                       ],
                       "additionalProperties": false
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -11195,7 +11292,9 @@
                     "classify",
                     "educationLevel",
                     "gradation",
-                    "type"
+                    "type",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -11267,6 +11366,13 @@
                     "code": {
                       "nullable": true,
                       "type": "string"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -11274,7 +11380,9 @@
                     "jwId",
                     "nameCn",
                     "nameEn",
-                    "code"
+                    "code",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -11300,6 +11408,13 @@
                     "isCollege": {
                       "nullable": true,
                       "type": "boolean"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -11307,7 +11422,9 @@
                     "code",
                     "nameCn",
                     "nameEn",
-                    "isCollege"
+                    "isCollege",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -11389,6 +11506,13 @@
                         "type": "integer",
                         "minimum": -9007199254740991,
                         "maximum": 9007199254740991
+                      },
+                      "namePrimary": {
+                        "type": "string"
+                      },
+                      "nameSecondary": {
+                        "nullable": true,
+                        "type": "string"
                       }
                     },
                     "required": [
@@ -11407,7 +11531,9 @@
                       "qq",
                       "wechat",
                       "departmentId",
-                      "teacherTitleId"
+                      "teacherTitleId",
+                      "namePrimary",
+                      "nameSecondary"
                     ],
                     "additionalProperties": false
                   }
@@ -11832,6 +11958,13 @@
                         "nameEn"
                       ],
                       "additionalProperties": false
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -11851,7 +11984,9 @@
                     "classify",
                     "educationLevel",
                     "gradation",
-                    "type"
+                    "type",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -11923,6 +12058,13 @@
                     "code": {
                       "nullable": true,
                       "type": "string"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -11930,7 +12072,9 @@
                     "jwId",
                     "nameCn",
                     "nameEn",
-                    "code"
+                    "code",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -11956,6 +12100,13 @@
                     "isCollege": {
                       "nullable": true,
                       "type": "boolean"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -11963,7 +12114,9 @@
                     "code",
                     "nameCn",
                     "nameEn",
-                    "isCollege"
+                    "isCollege",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -12045,6 +12198,13 @@
                         "type": "integer",
                         "minimum": -9007199254740991,
                         "maximum": 9007199254740991
+                      },
+                      "namePrimary": {
+                        "type": "string"
+                      },
+                      "nameSecondary": {
+                        "nullable": true,
+                        "type": "string"
                       }
                     },
                     "required": [
@@ -12063,7 +12223,9 @@
                       "qq",
                       "wechat",
                       "departmentId",
-                      "teacherTitleId"
+                      "teacherTitleId",
+                      "namePrimary",
+                      "nameSecondary"
                     ],
                     "additionalProperties": false
                   }
@@ -12488,6 +12650,13 @@
                         "nameEn"
                       ],
                       "additionalProperties": false
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -12507,7 +12676,9 @@
                     "classify",
                     "educationLevel",
                     "gradation",
-                    "type"
+                    "type",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -12579,6 +12750,13 @@
                     "code": {
                       "nullable": true,
                       "type": "string"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -12586,7 +12764,9 @@
                     "jwId",
                     "nameCn",
                     "nameEn",
-                    "code"
+                    "code",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -12612,6 +12792,13 @@
                     "isCollege": {
                       "nullable": true,
                       "type": "boolean"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -12619,7 +12806,9 @@
                     "code",
                     "nameCn",
                     "nameEn",
-                    "isCollege"
+                    "isCollege",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -12701,6 +12890,13 @@
                         "type": "integer",
                         "minimum": -9007199254740991,
                         "maximum": 9007199254740991
+                      },
+                      "namePrimary": {
+                        "type": "string"
+                      },
+                      "nameSecondary": {
+                        "nullable": true,
+                        "type": "string"
                       }
                     },
                     "required": [
@@ -12719,7 +12915,9 @@
                       "qq",
                       "wechat",
                       "departmentId",
-                      "teacherTitleId"
+                      "teacherTitleId",
+                      "namePrimary",
+                      "nameSecondary"
                     ],
                     "additionalProperties": false
                   }
@@ -13146,6 +13344,13 @@
                             "nameEn"
                           ],
                           "additionalProperties": false
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -13165,7 +13370,9 @@
                         "classify",
                         "educationLevel",
                         "gradation",
-                        "type"
+                        "type",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -13237,6 +13444,13 @@
                         "code": {
                           "nullable": true,
                           "type": "string"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -13244,7 +13458,9 @@
                         "jwId",
                         "nameCn",
                         "nameEn",
-                        "code"
+                        "code",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -13270,6 +13486,13 @@
                         "isCollege": {
                           "nullable": true,
                           "type": "boolean"
+                        },
+                        "namePrimary": {
+                          "type": "string"
+                        },
+                        "nameSecondary": {
+                          "nullable": true,
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -13277,7 +13500,9 @@
                         "code",
                         "nameCn",
                         "nameEn",
-                        "isCollege"
+                        "isCollege",
+                        "namePrimary",
+                        "nameSecondary"
                       ],
                       "additionalProperties": false
                     },
@@ -13359,6 +13584,13 @@
                             "type": "integer",
                             "minimum": -9007199254740991,
                             "maximum": 9007199254740991
+                          },
+                          "namePrimary": {
+                            "type": "string"
+                          },
+                          "nameSecondary": {
+                            "nullable": true,
+                            "type": "string"
                           }
                         },
                         "required": [
@@ -13377,7 +13609,9 @@
                           "qq",
                           "wechat",
                           "departmentId",
-                          "teacherTitleId"
+                          "teacherTitleId",
+                          "namePrimary",
+                          "nameSecondary"
                         ],
                         "additionalProperties": false
                       }
@@ -24291,6 +24525,13 @@
                         "nameEn"
                       ],
                       "additionalProperties": false
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -24310,7 +24551,9 @@
                     "classify",
                     "educationLevel",
                     "gradation",
-                    "type"
+                    "type",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -24382,6 +24625,13 @@
                     "code": {
                       "nullable": true,
                       "type": "string"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -24389,7 +24639,9 @@
                     "jwId",
                     "nameCn",
                     "nameEn",
-                    "code"
+                    "code",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -24415,6 +24667,13 @@
                     "isCollege": {
                       "nullable": true,
                       "type": "boolean"
+                    },
+                    "namePrimary": {
+                      "type": "string"
+                    },
+                    "nameSecondary": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -24422,7 +24681,9 @@
                     "code",
                     "nameCn",
                     "nameEn",
-                    "isCollege"
+                    "isCollege",
+                    "namePrimary",
+                    "nameSecondary"
                   ],
                   "additionalProperties": false
                 },
@@ -24504,6 +24765,13 @@
                         "type": "integer",
                         "minimum": -9007199254740991,
                         "maximum": 9007199254740991
+                      },
+                      "namePrimary": {
+                        "type": "string"
+                      },
+                      "nameSecondary": {
+                        "nullable": true,
+                        "type": "string"
                       }
                     },
                     "required": [
@@ -24522,7 +24790,9 @@
                       "qq",
                       "wechat",
                       "departmentId",
-                      "teacherTitleId"
+                      "teacherTitleId",
+                      "namePrimary",
+                      "nameSecondary"
                     ],
                     "additionalProperties": false
                   }
