@@ -1,18 +1,48 @@
-type DescriptionTarget = {
-  where: Record<string, number | string>;
-};
+import { getViewerContext } from "@/lib/auth/viewer-context";
+import {
+  type DescriptionTargetType,
+  resolveDescriptionTarget,
+} from "./description-targets";
+
+type DescriptionUpsertError =
+  | "forbidden"
+  | "invalid_target"
+  | "not_found"
+  | "suspended";
 
 export async function upsertDescriptionContent({
   content,
-  target,
+  targetId,
+  targetType,
   userId,
 }: {
   content: string;
-  target: DescriptionTarget;
+  targetId: number | string;
+  targetType: DescriptionTargetType;
   userId: string;
 }) {
+  const viewer = await getViewerContext({ userId });
+  if (!viewer.isAuthenticated) {
+    return { ok: false as const, error: "forbidden" as DescriptionUpsertError };
+  }
+  if (viewer.isSuspended) {
+    return { ok: false as const, error: "suspended" as DescriptionUpsertError };
+  }
+
+  const target = resolveDescriptionTarget(targetType, targetId);
+  if (!target) {
+    return {
+      ok: false as const,
+      error: "invalid_target" as DescriptionUpsertError,
+    };
+  }
+  const existingTarget = await target.ensureExists();
+  if (!existingTarget) {
+    return { ok: false as const, error: "not_found" as DescriptionUpsertError };
+  }
+
   const { prisma } = await import("@/lib/db/prisma");
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const existing = await tx.description.findFirst({
       where: target.where,
     });
@@ -49,4 +79,6 @@ export async function upsertDescriptionContent({
 
     return { id: description.id, updated: true };
   });
+
+  return { ok: true as const, ...result };
 }

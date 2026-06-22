@@ -102,6 +102,17 @@ test("/api/homeworks GET 返回 seed 作业、completion 与审计日志", async
   expect(Object.hasOwn(seedHomework, "updatedAt")).toBe(true);
   expect(typeof seedHomework.sectionId).toBe("number");
 
+  const jwResponse = await page.request.get(
+    `/api/homeworks?sectionJwId=${DEV_SEED.section.jwId}`,
+  );
+  expect(jwResponse.status()).toBe(200);
+  const jwBody = (await jwResponse.json()) as {
+    homeworks?: Array<Record<string, unknown>>;
+  };
+  expect(
+    jwBody.homeworks?.some((item) => item.title === DEV_SEED.homeworks.title),
+  ).toBe(true);
+
   const section = seedHomework.section as
     | { code?: unknown; course?: { nameCn?: unknown } }
     | undefined;
@@ -110,6 +121,11 @@ test("/api/homeworks GET 返回 seed 作业、completion 与审计日志", async
 
   expect(Object.hasOwn(seedHomework, "createdBy")).toBe(true);
   expect(Object.hasOwn(seedHomework, "updatedBy")).toBe(true);
+});
+
+test("/api/homeworks GET 未找到 sectionJwId 返回 404", async ({ request }) => {
+  const response = await request.get("/api/homeworks?sectionJwId=999999999");
+  expect(response.status()).toBe(404);
 });
 
 test("/api/homeworks POST 未登录返回 401", async ({ request }) => {

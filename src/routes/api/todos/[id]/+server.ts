@@ -6,7 +6,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * Update one todo.
  * @pathParams resourceIdPathParamsSchema
  * @body todoUpdateRequestSchema
- * @response successResponseSchema
+ * @response todoUpdateResponseSchema
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
  * @response 403:openApiErrorSchema

@@ -93,6 +93,18 @@ export async function updateHomeworkOnSectionTool(
         { mode: resolvedMode },
       );
     }
+    if (result.error === "suspended") {
+      return jsonToolResult(
+        { success: false, message: "Suspended" },
+        { mode: resolvedMode },
+      );
+    }
+    if (result.error === "forbidden") {
+      return jsonToolResult(
+        { success: false, message: "Forbidden" },
+        { mode: resolvedMode },
+      );
+    }
     return jsonToolResult(
       { success: false, message: "Homework deleted" },
       { mode: resolvedMode },

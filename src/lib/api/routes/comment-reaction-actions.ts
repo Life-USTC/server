@@ -1,5 +1,5 @@
 import { createCommentReaction } from "@/features/comments/server/comment-mutations";
-import { jsonResponse, notFound } from "@/lib/api/helpers";
+import { forbidden, jsonResponse, notFound } from "@/lib/api/helpers";
 
 export async function createCommentReactionAction(input: {
   commentId: string;
@@ -8,7 +8,7 @@ export async function createCommentReactionAction(input: {
 }) {
   const result = await createCommentReaction(input);
   if (!result.ok) {
-    return notFound();
+    return result.error === "not_found" ? notFound() : forbidden();
   }
 
   return jsonResponse({ success: true });

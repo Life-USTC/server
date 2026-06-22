@@ -76,7 +76,10 @@
           {
             "path": "/api/todos/[id]",
             "method": "PATCH",
-            "returns": "{ success: Boolean }"
+            "returns": "{ success: Boolean, todo: TodoItem }",
+            "notes": [
+              "Returns the updated todo snapshot so callers can confirm the applied changes without an extra read."
+            ]
           },
           {
             "path": "/api/todos/[id]",

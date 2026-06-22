@@ -12,6 +12,10 @@ import {
   type ViewerSummary,
 } from "./description-payload";
 
+type ResolvedDescriptionTarget = NonNullable<
+  ReturnType<typeof resolveDescriptionTarget>
+>;
+
 export async function getDescriptionPayload(
   targetType: DescriptionTargetType,
   targetId: number | string,
@@ -24,6 +28,16 @@ export async function getDescriptionPayload(
   if (!target) {
     return emptyDescriptionPayload(viewer);
   }
+
+  return getResolvedDescriptionPayload(target, viewer);
+}
+
+export async function getResolvedDescriptionPayload(
+  target: ResolvedDescriptionTarget,
+  viewerOverride?: ViewerSummary,
+): Promise<DescriptionPayload> {
+  const viewer =
+    viewerOverride ?? (await getViewerContext({ includeAdmin: false }));
 
   const description = await prisma.description.findFirst({
     where: target.where,

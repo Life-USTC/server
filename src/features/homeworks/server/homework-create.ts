@@ -1,4 +1,8 @@
 import { prisma } from "@/lib/db/prisma";
+import {
+  type HomeworkWriteAuthError,
+  requireActiveHomeworkWriter,
+} from "./homework-write-auth";
 
 export type CreateHomeworkInput = {
   description?: string | null;
@@ -40,14 +44,19 @@ export async function createHomeworkForSection(
   userId: string,
   homeworkInput: CreateHomeworkInput,
 ) {
+  const writer = await requireActiveHomeworkWriter(userId);
+  if (!writer.ok) return writer;
+
   const section = await prisma.section.findUnique({
     where: { id: homeworkInput.sectionId },
     select: { id: true },
   });
 
-  if (!section) return null;
+  if (!section) {
+    return { ok: false as const, error: "not_found" as const };
+  }
 
-  return prisma.$transaction(async (tx) => {
+  const homework = await prisma.$transaction(async (tx) => {
     const homework = await tx.homework.create({
       data: {
         sectionId: homeworkInput.sectionId,
@@ -94,4 +103,8 @@ export async function createHomeworkForSection(
 
     return homework;
   });
+
+  return { ok: true as const, homework };
 }
+
+export type CreateHomeworkError = HomeworkWriteAuthError | "not_found";

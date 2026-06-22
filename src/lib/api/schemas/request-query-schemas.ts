@@ -7,6 +7,7 @@ export {
 export {
   coursesQuerySchema,
   schedulesQuerySchema,
+  sectionSchedulesQuerySchema,
   sectionsQuerySchema,
   teachersQuerySchema,
 } from "./catalog-query-schemas";

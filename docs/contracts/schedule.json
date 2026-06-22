@@ -118,6 +118,7 @@
             "returns": "ScheduleEntry[]",
             "notes": [
               "Returns a simplified variant of ScheduleEntry[] for the section.",
+              "Accepts optional dateFrom/dateTo and limit query parameters to narrow results to the same window supported by list_schedules_by_section.",
               "REST localizes nested schedule labels from the request locale; MCP accepts an explicit locale input."
             ]
           },

@@ -26,7 +26,8 @@ export async function updateHomeworkAction(
   if (!result.ok) {
     if (result.error === "no_changes") return badRequest("No changes");
     if (result.error === "not_found") return notFound();
-    return forbidden("Homework deleted");
+    if (result.error === "deleted") return forbidden("Homework deleted");
+    return forbidden();
   }
 
   const homework = await requireHomeworkItemById({

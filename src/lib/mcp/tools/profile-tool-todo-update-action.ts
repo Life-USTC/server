@@ -1,7 +1,4 @@
-import {
-  getTodoSnapshot,
-  updateOwnedTodo,
-} from "@/features/todos/server/todo-service";
+import { updateOwnedTodo } from "@/features/todos/server/todo-service";
 import {
   getUserId,
   jsonToolResult,
@@ -67,12 +64,10 @@ export async function updateMyTodoAction(
     });
   }
 
-  const updatedTodo = await getTodoSnapshot(id);
-
   return jsonToolResult(
     {
       success: true,
-      todo: updatedTodo,
+      todo: result.todo,
     },
     {
       mode: resolveMcpMode(mode),

@@ -1,9 +1,7 @@
-import {
-  resolveCreateCommentParent,
-  validateCommentAttachmentIds,
-} from "@/features/comments/server/comment-mutations";
+import { createComment } from "@/features/comments/server/comment-mutations";
 import {
   badRequest,
+  forbidden,
   handleRouteError,
   jsonResponse,
   notFound,
@@ -11,11 +9,7 @@ import {
 } from "@/lib/api/helpers";
 import { commentCreateRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { requireWriteAuth } from "@/lib/auth/api-auth";
-import {
-  createCommentRecord,
-  resolveCreateCommentTarget,
-  writeCommentCreateAuditLog,
-} from "./comments-create-helpers";
+import { writeCommentCreateAuditLog } from "./comments-create-helpers";
 
 export async function postCommentRoute(request: Request) {
   const auth = await requireWriteAuth(request);
@@ -39,51 +33,45 @@ export async function postCommentRoute(request: Request) {
   const isAnonymous = parsedBody.isAnonymous === true;
 
   try {
-    const target = await resolveCreateCommentTarget({
+    const result = await createComment({
+      attachmentIds: parsedBody.attachmentIds,
+      content,
+      isAnonymous,
+      parentId: parsedBody.parentId,
       rawTargetId: parsedBody.targetId,
       sectionId: parsedBody.sectionId,
       targetType,
       teacherId: parsedBody.teacherId,
-    });
-    if (!target.ok) return target.response;
-
-    const parent = await resolveCreateCommentParent(
-      parsedBody.parentId,
-      target.target.whereTarget,
-    );
-    if (!parent.ok) {
-      if (parent.error === "parent_not_found") {
-        return notFound("Parent not found");
-      }
-      return badRequest("Parent target mismatch");
-    }
-
-    const attachmentIds = parsedBody.attachmentIds ?? [];
-
-    if (attachmentIds.length > 0) {
-      if (!(await validateCommentAttachmentIds(userId, attachmentIds))) {
-        return badRequest("Invalid attachments");
-      }
-    }
-
-    const comment = await createCommentRecord({
-      attachmentIds,
-      content,
-      isAnonymous,
-      parent,
-      target,
       userId,
       visibility,
     });
+    if (!result.ok) {
+      if (result.error === "invalid_target") {
+        return badRequest("Invalid target");
+      }
+      if (result.error === "target_not_found") {
+        return notFound("Target not found");
+      }
+      if (result.error === "parent_not_found") {
+        return notFound("Parent not found");
+      }
+      if (result.error === "target_mismatch") {
+        return badRequest("Parent target mismatch");
+      }
+      if (result.error === "invalid_attachments") {
+        return badRequest("Invalid attachments");
+      }
+      return forbidden();
+    }
 
     writeCommentCreateAuditLog({
       body: content,
-      commentId: comment.id,
+      commentId: result.comment.id,
       request,
       userId,
     });
 
-    return jsonResponse({ id: comment.id });
+    return jsonResponse({ id: result.comment.id });
   } catch (error) {
     return handleRouteError("Failed to create comment", error);
   }

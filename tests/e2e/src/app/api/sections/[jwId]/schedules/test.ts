@@ -27,3 +27,21 @@ test("/api/sections/[jwId]/schedules 返回排课明细", async ({ request }) =>
     ),
   ).toBe(true);
 });
+
+test("/api/sections/[jwId]/schedules 支持日期窗口", async ({ request }) => {
+  const seedDate = DEV_SEED.seedAnchorAtTime.slice(0, 10);
+  const response = await request.get(
+    `/api/sections/${DEV_SEED.section.jwId}/schedules?dateFrom=${seedDate}&dateTo=${seedDate}&limit=5`,
+  );
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as Array<{ date?: string }>;
+  expect(body.length).toBeGreaterThan(0);
+  expect(body.every((item) => item.date?.startsWith(seedDate))).toBe(true);
+});
+
+test("/api/sections/[jwId]/schedules 无效日期返回 400", async ({ request }) => {
+  const response = await request.get(
+    `/api/sections/${DEV_SEED.section.jwId}/schedules?dateFrom=not-a-date`,
+  );
+  expect(response.status()).toBe(400);
+});

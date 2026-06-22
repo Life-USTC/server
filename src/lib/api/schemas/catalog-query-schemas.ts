@@ -47,6 +47,12 @@ export const schedulesQuerySchema = z.object({
   limit: integerStringSchema.optional(),
 });
 
+export const sectionSchedulesQuerySchema = z.object({
+  dateFrom: dateInputStringSchema.optional(),
+  dateTo: dateInputStringSchema.optional(),
+  limit: integerStringSchema.optional(),
+});
+
 export const teachersQuerySchema = z.object({
   departmentId: integerStringSchema.optional(),
   search: z.string().trim().optional(),

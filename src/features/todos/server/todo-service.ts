@@ -259,8 +259,12 @@ export async function updateOwnedTodo(input: {
     return { ok: false as const, error: "no_changes" as const };
   }
 
-  await prisma.todo.update({ where: { id: input.id }, data: updates });
-  return { ok: true as const };
+  const todo = await prisma.todo.update({
+    where: { id: input.id },
+    data: updates,
+    select: todoSnapshotSelect,
+  });
+  return { ok: true as const, todo };
 }
 
 export async function deleteOwnedTodo(id: string, userId: string) {
@@ -269,11 +273,4 @@ export async function deleteOwnedTodo(id: string, userId: string) {
 
   await prisma.todo.delete({ where: { id } });
   return { ok: true as const };
-}
-
-export async function getTodoSnapshot(id: string) {
-  return prisma.todo.findUnique({
-    where: { id },
-    select: todoSnapshotSelect,
-  });
 }

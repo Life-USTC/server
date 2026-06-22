@@ -35,14 +35,10 @@ export async function getDescriptionRoute(request: Request) {
   try {
     const viewerUserId = await resolveApiUserId(request);
     const viewer = await getViewerContext({ userId: viewerUserId });
-    const { getDescriptionPayload } = await import(
+    const { getResolvedDescriptionPayload } = await import(
       "@/features/descriptions/server/descriptions-server"
     );
-    const payload = await getDescriptionPayload(
-      targetType,
-      target.targetId,
-      viewer,
-    );
+    const payload = await getResolvedDescriptionPayload(target, viewer);
     return jsonResponse(payload);
   } catch (error) {
     return handleRouteError("Failed to fetch description", error);

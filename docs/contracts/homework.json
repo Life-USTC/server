@@ -76,6 +76,7 @@
             "path": "/api/homeworks",
             "returns": "{ viewer: ViewerContext, homeworks: HomeworkItem[], auditLogs: AuditLog[] }",
             "notes": [
+              "Accepts sectionJwId to match the MCP tool's public section identifier, while preserving sectionId and sectionIds for existing REST clients.",
               "REST localizes returned homework relation fields from the request locale; MCP accepts an explicit locale input."
             ]
           },

@@ -13,7 +13,7 @@ export async function createHomeworkOnSectionRecord(input: {
 }) {
   const trimmedDescription = (input.description ?? "").trim();
 
-  const created = await createHomeworkForSection(input.userId, {
+  const result = await createHomeworkForSection(input.userId, {
     description: trimmedDescription || null,
     isMajor: input.isMajor === true,
     publishedAt: input.publishedAt,
@@ -24,9 +24,5 @@ export async function createHomeworkOnSectionRecord(input: {
     title: input.title,
   });
 
-  if (!created) {
-    throw new Error("Resolved section was not found while creating homework");
-  }
-
-  return created;
+  return result;
 }

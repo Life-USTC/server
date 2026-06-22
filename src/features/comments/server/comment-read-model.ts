@@ -1,5 +1,8 @@
 import type { Prisma } from "@/generated/prisma/client";
-import { getViewerContext } from "@/lib/auth/viewer-context";
+import {
+  getViewerContext,
+  type ViewerContext,
+} from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
 import { buildCommentNodes, type CommentNode } from "./comment-serialization";
 import type { ResolvedCommentTarget } from "./comment-utils";
@@ -88,10 +91,13 @@ export type CommentTargetLookupRecord = Prisma.CommentGetPayload<{
 
 export async function loadCommentThread(input: {
   target: ResolvedCommentTarget;
+  viewer?: ViewerContext;
   viewerUserId: string | null;
 }) {
   const [viewer, comments] = await Promise.all([
-    getViewerContext({ includeAdmin: false, userId: input.viewerUserId }),
+    input.viewer
+      ? Promise.resolve(input.viewer)
+      : getViewerContext({ includeAdmin: false, userId: input.viewerUserId }),
     prisma.comment.findMany({
       where: input.target.whereTarget,
       include: commentThreadInclude,

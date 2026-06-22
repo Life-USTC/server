@@ -3,10 +3,10 @@ import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { prisma } from "@/lib/db/prisma";
 import {
-  getSubscribedSectionIds,
   getUserCalendarSubscription,
   getUserSectionSubscriptionState,
-} from "./subscription-read-model";
+} from "./subscription-calendar-read-model";
+import { getSubscribedSectionIds } from "./subscription-read-model-shared";
 import {
   removeSectionIds,
   uniqueSectionIds,
