@@ -26,8 +26,6 @@ export let dashboardCopy: DashboardDashboardCopy;
 export let sectionCopy: DashboardSectionCopy;
 export let commentsCopy: CommentsCopy;
 export let todoPriorityOptions: DashboardTodoPriorityOption[];
-export let TODO_TITLE_MAX_LENGTH: number;
-export let TODO_CONTENT_MAX_LENGTH: number;
 export let locale: string;
 export let referenceDate: Date | string;
 
@@ -110,8 +108,6 @@ $: ({ datetimeLocalValue, fmtDate, todoActionLabel, todoStatus } =
   {/if}
 
   <TodosTabDialogs
-    {TODO_CONTENT_MAX_LENGTH}
-    {TODO_TITLE_MAX_LENGTH}
     {commentsCopy}
     {createTodoAction}
     bind:createTodoError

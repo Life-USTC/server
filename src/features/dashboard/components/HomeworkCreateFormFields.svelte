@@ -1,4 +1,8 @@
 <script lang="ts">
+import {
+  HOMEWORK_DESCRIPTION_MAX_LENGTH,
+  HOMEWORK_TITLE_MAX_LENGTH,
+} from "@/features/homeworks/lib/homework-limits";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 import { Alert } from "$lib/components/ui/alert/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
@@ -13,8 +17,6 @@ import type {
 } from "./dashboard-homework-create-types";
 import HomeworkCreateScheduleFields from "./HomeworkCreateScheduleFields.svelte";
 
-export let HOMEWORK_DESCRIPTION_MAX_LENGTH: number;
-export let HOMEWORK_TITLE_MAX_LENGTH: number;
 export let applyHomeworkDueAtSemesterEnd: DashboardHomeworkDateShortcut;
 export let applyHomeworkDueInMonth: DashboardHomeworkDateShortcut;
 export let applyHomeworkDueInWeek: DashboardHomeworkDateShortcut;

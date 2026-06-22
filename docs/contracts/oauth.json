@@ -150,7 +150,7 @@
           {
             "path": "/api/auth/oauth2/token",
             "method": "POST",
-            "returns": "{ access_token, token_type, expires_in, expires_at?, refresh_token?, scope?, id_token? } | { error }",
+            "returns": "{ access_token, token_type, expires_in, expires_at?, refresh_token?, scope?, id_token? } | { error, error_description? }",
             "notes": [
               "The device polls this endpoint with grant_type=urn:ietf:params:oauth:grant-type:device_code and device_code to obtain an access token.",
               "During polling, returns authorization_pending, slow_down, expired_token, access_denied, invalid_scope, or invalid_grant error codes based on state."
@@ -159,7 +159,7 @@
           {
             "path": "/api/auth/oauth2/token",
             "method": "GET",
-            "returns": "{ error: \"invalid_request\" }"
+            "returns": "{ error: \"invalid_request\", error_description? }"
           }
         ]
       },

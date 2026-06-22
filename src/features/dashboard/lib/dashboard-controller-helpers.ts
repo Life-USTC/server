@@ -2,13 +2,7 @@ export {
   buildCalendarWeekdayLabels,
   buildSignedTabs,
 } from "./dashboard-controller-labels";
-export {
-  HOMEWORK_DESCRIPTION_MAX_LENGTH,
-  HOMEWORK_TITLE_MAX_LENGTH,
-  TODO_CONTENT_MAX_LENGTH,
-  TODO_TITLE_MAX_LENGTH,
-  todoPriorityOrder,
-} from "./dashboard-controller-limits";
+export { todoPriorityOrder } from "./dashboard-controller-limits";
 export {
   isAnonymousDashboardData,
   isSignedDashboardData,

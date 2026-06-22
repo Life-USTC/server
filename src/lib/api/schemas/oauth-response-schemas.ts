@@ -18,3 +18,8 @@ export const oauthTokenResponseSchema = z.object({
   scope: z.string().optional(),
   id_token: z.string().optional(),
 });
+
+export const oauthErrorResponseSchema = z.object({
+  error: z.string(),
+  error_description: z.string().optional(),
+});

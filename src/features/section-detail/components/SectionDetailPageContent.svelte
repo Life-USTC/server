@@ -54,10 +54,8 @@ export let homeworkAuditActionLabel: SectionDetailPageContentProps["homeworkAudi
 export let homeworkAuditActorName: SectionDetailPageContentProps["homeworkAuditActorName"];
 export let homeworkAuditLogs: SectionDetailPageContentProps["homeworkAuditLogs"];
 export let homeworkCopy: SectionDetailPageContentProps["homeworkCopy"];
-export let homeworkDescriptionMaxLength: number;
 export let homeworkMessage: string;
 export let homeworkStatus: SectionDetailPageContentProps["homeworkStatus"];
-export let homeworkTitleMaxLength: number;
 export let homeworkView: SectionDetailPageContentProps["homeworkView"];
 export let homeworks: SectionDetailPageContentProps["homeworks"];
 export let isCalendarDialogOpen: boolean;
@@ -206,10 +204,8 @@ export let isSameMonth: IsSameMonth;
   {homeworkAuditActorName}
   {homeworkAuditLogs}
   {homeworkCopy}
-  {homeworkDescriptionMaxLength}
   {homeworkMessage}
   {homeworkStatus}
-  {homeworkTitleMaxLength}
   {isCalendarDialogOpen}
   {isHomeworkAuditDialogOpen}
   {sectionCopy}

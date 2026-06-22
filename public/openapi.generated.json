@@ -959,7 +959,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/openApiErrorSchema"
+                  "$ref": "#/components/schemas/oauthErrorResponseSchema"
                 }
               }
             }
@@ -980,7 +980,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/openApiErrorSchema"
+                  "$ref": "#/components/schemas/oauthErrorResponseSchema"
                 }
               }
             }
@@ -1019,7 +1019,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/openApiErrorSchema"
+                  "$ref": "#/components/schemas/oauthErrorResponseSchema"
                 }
               }
             }
@@ -1029,7 +1029,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/openApiErrorSchema"
+                  "$ref": "#/components/schemas/oauthErrorResponseSchema"
                 }
               }
             }
@@ -8031,6 +8031,21 @@
           "verification_uri_complete",
           "expires_in",
           "interval"
+        ],
+        "additionalProperties": false
+      },
+      "oauthErrorResponseSchema": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "error_description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
         ],
         "additionalProperties": false
       },

@@ -48,10 +48,8 @@ export let homeworkAuditActionLabel: SectionDetailHomeworkDialogsProps["homework
 export let homeworkAuditActorName: SectionDetailHomeworkDialogsProps["homeworkAuditActorName"];
 export let homeworkAuditLogs: SectionDetailHomeworkDialogsProps["homeworkAuditLogs"];
 export let homeworkCopy: SectionDetailHomeworkDialogsProps["homeworkCopy"];
-export let homeworkDescriptionMaxLength: number;
 export let homeworkMessage: string;
 export let homeworkStatus: SectionDetailHomeworkDialogsProps["homeworkStatus"];
-export let homeworkTitleMaxLength: number;
 export let isHomeworkAuditDialogOpen: boolean;
 export let sectionCopy: SectionDetailHomeworkDialogsProps["sectionCopy"];
 export let selectedHomework: SectionDetailHomeworkDialogsProps["selectedHomework"];
@@ -75,7 +73,6 @@ export let updateHomework: SectionDetailHomeworkDialogsProps["updateHomework"];
   close={closeCreateHomeworkDialog}
   {commentsCopy}
   {createHomework}
-  descriptionMaxLength={homeworkDescriptionMaxLength}
   {hasSemesterEnd}
   {hasSemesterStart}
   {homeworkCopy}
@@ -85,13 +82,10 @@ export let updateHomework: SectionDetailHomeworkDialogsProps["updateHomework"];
   show={showCreateHomework}
   bind:submissionDueAt={createHomeworkSubmissionDueAt}
   bind:submissionStartAt={createHomeworkSubmissionStartAt}
-  titleMaxLength={homeworkTitleMaxLength}
 />
 
 <SectionHomeworkDetailDialog
   {CommentsPanel}
-  HOMEWORK_DESCRIPTION_MAX_LENGTH={homeworkDescriptionMaxLength}
-  HOMEWORK_TITLE_MAX_LENGTH={homeworkTitleMaxLength}
   _applyEditDueAtSemesterEnd={applyEditDueAtSemesterEnd}
   _applyEditDueInMonth={applyEditDueInMonth}
   _applyEditDueInWeek={applyEditDueInWeek}

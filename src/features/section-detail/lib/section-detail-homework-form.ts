@@ -1,9 +1,9 @@
-import { parseShanghaiDateTimeLocalInput } from "@/lib/time/shanghai-format";
 import {
   HOMEWORK_DESCRIPTION_MAX_LENGTH,
   HOMEWORK_TITLE_MAX_LENGTH,
-  type SectionDetailPageData,
-} from "./section-detail-controller-helpers";
+} from "@/features/homeworks/lib/homework-limits";
+import { parseShanghaiDateTimeLocalInput } from "@/lib/time/shanghai-format";
+import type { SectionDetailPageData } from "./section-detail-controller-helpers";
 
 type HomeworkCopy = SectionDetailPageData["copy"]["homeworks"];
 

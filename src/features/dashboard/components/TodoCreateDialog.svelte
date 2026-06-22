@@ -11,8 +11,6 @@ import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import TodoFormFields from "./TodoFormFields.svelte";
 
-export let TODO_CONTENT_MAX_LENGTH: number;
-export let TODO_TITLE_MAX_LENGTH: number;
 export let commentsCopy: CommentsCopy;
 export let createTodoAction: SubmitFunction;
 export let createTodoError: string;
@@ -43,8 +41,6 @@ export let todosCopy: DashboardTodosCopy;
           </Alert>
         {/if}
         <TodoFormFields
-          {TODO_CONTENT_MAX_LENGTH}
-          {TODO_TITLE_MAX_LENGTH}
           {commentsCopy}
           disabled={isCreatingTodo}
           {todoPriorityOptions}

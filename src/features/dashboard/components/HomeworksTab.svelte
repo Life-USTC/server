@@ -43,8 +43,6 @@ export let homeworkCopy: HomeworkCopy;
 export let commentsCopy: CommentsCopy;
 export let signedData: SignedDashboardData;
 
-export let HOMEWORK_TITLE_MAX_LENGTH: number;
-export let HOMEWORK_DESCRIPTION_MAX_LENGTH: number;
 export let locale: string;
 export let referenceDate: Date | string;
 export let selectedCreateHomeworkSection: DashboardHomeworkCreateSectionGetter;
@@ -152,8 +150,6 @@ $: ({
 
     <HomeworksTabDialogs
       {CommentsPanel}
-      {HOMEWORK_DESCRIPTION_MAX_LENGTH}
-      {HOMEWORK_TITLE_MAX_LENGTH}
       {applyHomeworkDueAtSemesterEnd}
       {applyHomeworkDueInMonth}
       {applyHomeworkDueInWeek}

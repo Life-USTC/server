@@ -2,7 +2,7 @@ import type { SubmitFunction } from "@sveltejs/kit";
 import {
   TODO_CONTENT_MAX_LENGTH,
   TODO_TITLE_MAX_LENGTH,
-} from "./dashboard-controller-helpers";
+} from "./dashboard-limits";
 import {
   actionResultError,
   validateTodoForm as validateTodoFormData,

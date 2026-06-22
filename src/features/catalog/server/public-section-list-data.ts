@@ -1,4 +1,5 @@
 import { CATALOG_PAGE_SIZE } from "@/features/catalog/server/catalog-page-constants";
+import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { getMessages } from "@/i18n/messages.server";
 import {
   optionalValue,
@@ -12,7 +13,10 @@ import {
 
 const SECTION_LIST_CACHE_TTL_MS = 60_000;
 
-export async function getSectionListPage(url: URL, locale = "zh-cn") {
+export async function getSectionListPage(
+  url: URL,
+  locale: AppLocale = DEFAULT_LOCALE,
+) {
   return cachedPublicRuntimeData(
     publicRuntimeCacheKey(`section-list:${locale}`, url.searchParams),
     SECTION_LIST_CACHE_TTL_MS,
@@ -20,30 +24,25 @@ export async function getSectionListPage(url: URL, locale = "zh-cn") {
   );
 }
 
-async function getUncachedSectionListPage(url: URL, locale = "zh-cn") {
-  const [
-    { buildSectionListQuery },
-    { paginatedSectionSummaryQuery },
-    { getPrisma },
-  ] = await Promise.all([
+async function getUncachedSectionListPage(
+  url: URL,
+  locale: AppLocale = DEFAULT_LOCALE,
+) {
+  const [{ listSectionSummaries }, { getPrisma }] = await Promise.all([
     import("@/features/catalog/server/course-section-queries"),
-    import("@/features/catalog/server/academic-paginated-queries"),
     import("@/lib/db/prisma"),
   ]);
   const page = parsePositivePage(url.searchParams.get("page"));
   const search = optionalValue(url.searchParams.get("search"));
   const semesterId = optionalValue(url.searchParams.get("semesterId"));
-  const { where, orderBy } = buildSectionListQuery({ semesterId, search });
   const prisma = getPrisma(locale);
 
   const [result, semesters, messages] = await Promise.all([
-    paginatedSectionSummaryQuery(
-      page,
-      CATALOG_PAGE_SIZE,
-      where,
-      orderBy ?? { semester: { jwId: "desc" as const } },
+    listSectionSummaries({
+      filters: { semesterId, search },
       locale,
-    ),
+      pagination: { page, pageSize: CATALOG_PAGE_SIZE },
+    }),
     prisma.semester.findMany({
       select: { id: true, nameCn: true },
       take: 100,

@@ -1,4 +1,8 @@
 <script lang="ts">
+import {
+  HOMEWORK_DESCRIPTION_MAX_LENGTH,
+  HOMEWORK_TITLE_MAX_LENGTH,
+} from "@/features/homeworks/lib/homework-limits";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
@@ -29,8 +33,6 @@ export let homework: SectionHomeworkDisplay;
 export let homeworkCopy: SectionHomeworkCopy;
 export let semesterDate: SectionHomeworkSemesterDate;
 export let updateHomework: SectionHomeworkSubmitHandler;
-export let descriptionMaxLength: number;
-export let titleMaxLength: number;
 </script>
 
 <form
@@ -40,7 +42,7 @@ export let titleMaxLength: number;
   <label class="grid gap-2">
     <span class="font-medium text-sm">{homeworkCopy.titleLabel}</span>
     <Input
-      maxlength={titleMaxLength}
+      maxlength={HOMEWORK_TITLE_MAX_LENGTH}
       name="title"
       required
       value={homework.title}
@@ -51,7 +53,7 @@ export let titleMaxLength: number;
     <MarkdownEditor
       campusReferences
       guideLabel={commentsCopy.markdownGuide}
-      maxlength={descriptionMaxLength}
+      maxlength={HOMEWORK_DESCRIPTION_MAX_LENGTH}
       modeLabel={homeworkCopy.descriptionLabel}
       name="description"
       placeholder={homeworkCopy.descriptionPlaceholder}

@@ -4,13 +4,15 @@ import type {
   DashboardTodoPriorityOption,
   DashboardTodosCopy,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
+import {
+  TODO_CONTENT_MAX_LENGTH,
+  TODO_TITLE_MAX_LENGTH,
+} from "@/features/todos/lib/todo-limits";
 import DateTimePicker from "$lib/components/DateTimePicker.svelte";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 import { Input } from "$lib/components/ui/input/index.js";
 import { Select } from "$lib/components/ui/select/index.js";
 
-export let TODO_CONTENT_MAX_LENGTH: number;
-export let TODO_TITLE_MAX_LENGTH: number;
 export let commentsCopy: CommentsCopy;
 export let contentValue = "";
 export let disabled = false;

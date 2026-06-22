@@ -41,10 +41,8 @@ export let homeworkAuditActionLabel: SectionDetailDialogsProps["homeworkAuditAct
 export let homeworkAuditActorName: SectionDetailDialogsProps["homeworkAuditActorName"];
 export let homeworkAuditLogs: SectionDetailDialogsProps["homeworkAuditLogs"];
 export let homeworkCopy: SectionDetailDialogsProps["homeworkCopy"];
-export let homeworkDescriptionMaxLength: number;
 export let homeworkMessage: string;
 export let homeworkStatus: SectionDetailDialogsProps["homeworkStatus"];
-export let homeworkTitleMaxLength: number;
 export let isCalendarDialogOpen: boolean;
 export let isHomeworkAuditDialogOpen: boolean;
 export let sectionCopy: SectionDetailDialogsProps["sectionCopy"];
@@ -117,10 +115,8 @@ export let applyEditStartNow: SectionDetailDialogsProps["applyEditStartNow"];
   {homeworkAuditActorName}
   {homeworkAuditLogs}
   {homeworkCopy}
-  {homeworkDescriptionMaxLength}
   {homeworkMessage}
   {homeworkStatus}
-  {homeworkTitleMaxLength}
   {isHomeworkAuditDialogOpen}
   {sectionCopy}
   {selectedHomework}

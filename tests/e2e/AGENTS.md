@@ -80,7 +80,7 @@ await expect(page).toHaveURL(/expected/);
 await expect(element).toBeVisible();
 
 // DON'T
-await page.waitForTimeout(1000); // ❌ rejected by tools/dev/check.ts e2e
+await page.waitForTimeout(1000); // rejected by tools/dev/check/e2e.ts
 ```
 
 ## Concurrency

@@ -8,10 +8,6 @@ export type {
   SectionHomework,
 } from "./section-detail-controller-types";
 export {
-  HOMEWORK_DESCRIPTION_MAX_LENGTH,
-  HOMEWORK_TITLE_MAX_LENGTH,
-} from "./section-detail-controller-types";
-export {
   dateTimeInputValue,
   homeworkDueAtSemesterEnd,
   homeworkDueInDays,

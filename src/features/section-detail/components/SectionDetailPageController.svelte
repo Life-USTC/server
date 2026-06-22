@@ -23,8 +23,6 @@ import { createSectionHomeworkTimestampActions } from "@/features/section-detail
 import { createSectionDetailUiActions } from "@/features/section-detail/lib/section-detail-ui-actions";
 import { createSectionDetailControllerDefaultState } from "@/features/section-detail/lib/section-detail-controller-default-state";
 import {
-  HOMEWORK_DESCRIPTION_MAX_LENGTH,
-  HOMEWORK_TITLE_MAX_LENGTH,
   type SectionDetailActionData,
   type SectionDetailPageData,
   type SectionHomework,
@@ -408,10 +406,8 @@ onMount(() => {
   homeworkAuditActorName={_homeworkAuditActorName}
   homeworkAuditLogs={_homeworkAuditLogs}
   homeworkCopy={_homeworkCopy}
-  homeworkDescriptionMaxLength={HOMEWORK_DESCRIPTION_MAX_LENGTH}
   homeworkMessage={_homeworkMessage}
   homeworkStatus={_homeworkStatus}
-  homeworkTitleMaxLength={HOMEWORK_TITLE_MAX_LENGTH}
   homeworkView={_homeworkView}
   homeworks={_homeworks}
   isCalendarDialogOpen={_isCalendarDialogOpen}

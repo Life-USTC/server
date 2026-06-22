@@ -15,6 +15,7 @@ import {
 } from "@/lib/api/schemas/request-schemas";
 import {
   meResponseSchema,
+  oauthErrorResponseSchema,
   openApiErrorSchema,
 } from "@/lib/api/schemas/response-schemas";
 
@@ -235,5 +236,11 @@ describe("other request schemas", () => {
     expect(openApiErrorSchema.safeParse({ error: "bad request" }).success).toBe(
       true,
     );
+    expect(
+      oauthErrorResponseSchema.safeParse({
+        error: "invalid_request",
+        error_description: "Use POST",
+      }).success,
+    ).toBe(true);
   });
 });
