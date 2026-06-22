@@ -1,3 +1,10 @@
+## [1.36.13](https://github.com/Life-USTC/server/compare/v1.36.12...v1.36.13) (2026-06-22)
+
+
+### Bug Fixes
+
+* **subscriptions:** append selected imports server-side ([316aba9](https://github.com/Life-USTC/server/commit/316aba9efb7eb9a13efd5ca6b3d70a3c9c77de3e))
+
 ## [1.36.12](https://github.com/Life-USTC/server/compare/v1.36.11...v1.36.12) (2026-06-22)
 
 
