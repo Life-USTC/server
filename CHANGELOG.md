@@ -1,3 +1,10 @@
+## [1.36.8](https://github.com/Life-USTC/server/compare/v1.36.7...v1.36.8) (2026-06-22)
+
+
+### Bug Fixes
+
+* **openapi:** align request bodies ([2325e42](https://github.com/Life-USTC/server/commit/2325e4267634c9a7c5995b09564375fe71146d07))
+
 ## [1.36.7](https://github.com/Life-USTC/server/compare/v1.36.6...v1.36.7) (2026-06-22)
 
 
