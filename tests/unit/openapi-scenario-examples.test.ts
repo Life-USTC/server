@@ -233,4 +233,37 @@ describe("buildScenarioOpenApiExamples", () => {
       ].sort(),
     );
   });
+
+  it("documents OAuth error response details", () => {
+    const spec = generatedOpenApiDocument as GeneratedOpenApiDocument;
+    const deviceErrorSchema = resolveGeneratedSchema(
+      spec,
+      spec.paths["/api/auth/oauth2/device-authorization"]?.post?.responses?.[
+        "400"
+      ]?.content?.["application/json"]?.schema,
+    );
+    const tokenGetErrorSchema = resolveGeneratedSchema(
+      spec,
+      spec.paths["/api/auth/oauth2/token"]?.get?.responses?.["405"]?.content?.[
+        "application/json"
+      ]?.schema,
+    );
+    const tokenPostErrorSchema = resolveGeneratedSchema(
+      spec,
+      spec.paths["/api/auth/oauth2/token"]?.post?.responses?.["400"]?.content?.[
+        "application/json"
+      ]?.schema,
+    );
+
+    for (const schema of [
+      deviceErrorSchema,
+      tokenGetErrorSchema,
+      tokenPostErrorSchema,
+    ]) {
+      expect(schema?.required).toEqual(expect.arrayContaining(["error"]));
+      expect(Object.keys(schema?.properties ?? {})).toEqual(
+        expect.arrayContaining(["error", "error_description"]),
+      );
+    }
+  });
 });

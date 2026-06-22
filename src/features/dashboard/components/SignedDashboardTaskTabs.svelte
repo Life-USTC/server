@@ -39,12 +39,10 @@ export let examView: DashboardTaskTabsProps["examView"];
 export let filteredExamRows: DashboardTaskTabsProps["filteredExamRows"];
 export let filteredTodos: DashboardTaskTabsProps["filteredTodos"];
 export let homeworkCopy: DashboardTaskTabsProps["homeworkCopy"];
-export let homeworkDescriptionMaxLength: number;
 export let homeworkFilter: DashboardTaskTabsProps["homeworkFilter"];
 export let homeworkItems: DashboardTaskTabsProps["homeworkItems"];
 export let homeworkReferenceDate: DashboardTaskTabsProps["homeworkReferenceDate"];
 export let homeworkSavingById: DashboardTaskTabsProps["homeworkSavingById"];
-export let homeworkTitleMaxLength: number;
 export let homeworkView: DashboardTaskTabsProps["homeworkView"];
 export let homeworksCopy: DashboardTaskTabsProps["homeworksCopy"];
 export let isCreatingHomework: boolean;
@@ -65,12 +63,10 @@ export let showCreateTodo: boolean;
 export let signedData: DashboardTaskTabsProps["signedData"];
 export let subscriptionsCopy: DashboardTaskTabsProps["subscriptionsCopy"];
 export let todoActionError: string;
-export let todoContentMaxLength: number;
 export let todoFilter: DashboardTaskTabsProps["todoFilter"];
 export let todoPriorityClass: DashboardTaskTabsProps["todoPriorityClass"];
 export let todoPriorityOptions: DashboardTaskTabsProps["todoPriorityOptions"];
 export let todoSavingById: DashboardTaskTabsProps["todoSavingById"];
-export let todoTitleMaxLength: number;
 export let todoView: DashboardTaskTabsProps["todoView"];
 export let todosCopy: DashboardTaskTabsProps["todosCopy"];
 export let toggleHomeworkCompletion: DashboardTaskTabsProps["toggleHomeworkCompletion"];
@@ -86,8 +82,6 @@ export let updateTodoAction: DashboardTaskTabsProps["updateTodoAction"];
     {commentsCopy}
     {data}
     {todoPriorityOptions}
-    todoTitleMaxLength={todoTitleMaxLength}
-    todoContentMaxLength={todoContentMaxLength}
     homeworkReferenceDate={homeworkReferenceDate}
     {openTodoEditor}
     {todoPriorityClass}
@@ -119,8 +113,6 @@ export let updateTodoAction: DashboardTaskTabsProps["updateTodoAction"];
     {commentsCopy}
     {data}
     {signedData}
-    homeworkTitleMaxLength={homeworkTitleMaxLength}
-    homeworkDescriptionMaxLength={homeworkDescriptionMaxLength}
     homeworkReferenceDate={homeworkReferenceDate}
     {selectedCreateHomeworkSection}
     {openCreateHomeworkDialog}

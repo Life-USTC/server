@@ -12,8 +12,6 @@ import type {
 } from "./dashboard-homework-create-types";
 import HomeworkCreateFormFields from "./HomeworkCreateFormFields.svelte";
 
-export let HOMEWORK_DESCRIPTION_MAX_LENGTH: number;
-export let HOMEWORK_TITLE_MAX_LENGTH: number;
 export let applyHomeworkDueAtSemesterEnd: DashboardHomeworkDateShortcut;
 export let applyHomeworkDueInMonth: DashboardHomeworkDateShortcut;
 export let applyHomeworkDueInWeek: DashboardHomeworkDateShortcut;
@@ -52,8 +50,6 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
         <Dialog.Description>{homeworksCopy.subtitle}</Dialog.Description>
       </Dialog.Header>
       <HomeworkCreateFormFields
-        {HOMEWORK_DESCRIPTION_MAX_LENGTH}
-        {HOMEWORK_TITLE_MAX_LENGTH}
         {applyHomeworkDueAtSemesterEnd}
         {applyHomeworkDueInMonth}
         {applyHomeworkDueInWeek}

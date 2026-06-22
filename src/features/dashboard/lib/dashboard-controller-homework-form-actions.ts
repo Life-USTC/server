@@ -2,7 +2,7 @@ import type { SubmitFunction } from "@sveltejs/kit";
 import {
   HOMEWORK_DESCRIPTION_MAX_LENGTH,
   HOMEWORK_TITLE_MAX_LENGTH,
-} from "./dashboard-controller-helpers";
+} from "./dashboard-limits";
 import {
   actionResultError,
   validateCreateHomeworkForm as validateCreateHomeworkFormData,

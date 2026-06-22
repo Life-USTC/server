@@ -1,4 +1,8 @@
 <script lang="ts">
+import {
+  HOMEWORK_DESCRIPTION_MAX_LENGTH,
+  HOMEWORK_TITLE_MAX_LENGTH,
+} from "@/features/homeworks/lib/homework-limits";
 import SectionHomeworkTagFields from "@/features/section-detail/components/SectionHomeworkTagFields.svelte";
 import SectionHomeworkTimestampFields from "@/features/section-detail/components/SectionHomeworkTimestampFields.svelte";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
@@ -15,7 +19,6 @@ export let applyPublishNow: () => void;
 export let applyStartAtSemesterStart: () => void;
 export let applyStartNow: () => void;
 export let commentsCopy: SectionCreateHomeworkCommentsCopy;
-export let descriptionMaxLength: number;
 export let hasSemesterEnd: boolean;
 export let hasSemesterStart: boolean;
 export let homeworkCopy: SectionCreateHomeworkFieldsCopy;
@@ -23,7 +26,6 @@ export let homeworkMessage: string;
 export let publishedAt: string;
 export let submissionDueAt: string;
 export let submissionStartAt: string;
-export let titleMaxLength: number;
 </script>
 
 <div class="grid gap-4 px-5 py-4">
@@ -31,7 +33,7 @@ export let titleMaxLength: number;
     <span class="font-medium text-sm">{homeworkCopy.titleLabel}</span>
     <Input
       data-testid="section-homework-title"
-      maxlength={titleMaxLength}
+      maxlength={HOMEWORK_TITLE_MAX_LENGTH}
       name="title"
       placeholder={homeworkCopy.titlePlaceholder}
       required
@@ -42,7 +44,7 @@ export let titleMaxLength: number;
     <MarkdownEditor
       campusReferences
       guideLabel={commentsCopy.markdownGuide}
-      maxlength={descriptionMaxLength}
+      maxlength={HOMEWORK_DESCRIPTION_MAX_LENGTH}
       modeLabel={homeworkCopy.descriptionLabel}
       name="description"
       placeholder={homeworkCopy.descriptionPlaceholder}

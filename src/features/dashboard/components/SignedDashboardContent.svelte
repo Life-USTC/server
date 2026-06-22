@@ -81,12 +81,10 @@ export let filteredExamRows: DashboardTaskTabsProps["filteredExamRows"];
 export let filteredTodos: DashboardTaskTabsProps["filteredTodos"];
 export let formatMessage: FormatMessage;
 export let homeworkCopy: DashboardTaskTabsProps["homeworkCopy"];
-export let homeworkDescriptionMaxLength: number;
 export let homeworkFilter: DashboardTaskTabsProps["homeworkFilter"];
 export let homeworkItems: DashboardTaskTabsProps["homeworkItems"];
 export let homeworkReferenceDate: DashboardTaskTabsProps["homeworkReferenceDate"];
 export let homeworkSavingById: DashboardTaskTabsProps["homeworkSavingById"];
-export let homeworkTitleMaxLength: number;
 export let homeworkView: DashboardTaskTabsProps["homeworkView"];
 export let homeworksCopy: DashboardTaskTabsProps["homeworksCopy"];
 export let isBulkImportOpen: boolean;
@@ -143,12 +141,10 @@ export let subscriptionActionError: string;
 export let subscriptionActionMessage: string;
 export let subscriptionsCopy: DashboardSubscriptionsTabProps["subscriptionsCopy"];
 export let todoActionError: string;
-export let todoContentMaxLength: number;
 export let todoFilter: DashboardTaskTabsProps["todoFilter"];
 export let todoPriorityClass: DashboardTaskTabsProps["todoPriorityClass"];
 export let todoPriorityOptions: DashboardTaskTabsProps["todoPriorityOptions"];
 export let todoSavingById: DashboardTaskTabsProps["todoSavingById"];
-export let todoTitleMaxLength: number;
 export let todoView: DashboardTaskTabsProps["todoView"];
 export let todosCopy: DashboardTodosCopy;
 export let toggleHomeworkCompletion: DashboardTaskTabsProps["toggleHomeworkCompletion"];
@@ -216,9 +212,7 @@ export let matchImportSections: DashboardSubscriptionsTabProps["matchImportSecti
     {filteredExamRows}
     {filteredTodos}
     {homeworkCopy}
-    {homeworkDescriptionMaxLength}
     {homeworkReferenceDate}
-    {homeworkTitleMaxLength}
     {homeworksCopy}
     {isCreatingTodo}
     {isUpdatingTodo}
@@ -233,11 +227,9 @@ export let matchImportSections: DashboardSubscriptionsTabProps["matchImportSecti
     {signedData}
     {subscriptionsCopy}
     {todoActionError}
-    {todoContentMaxLength}
     {todoPriorityClass}
     {todoPriorityOptions}
     {todoSavingById}
-    {todoTitleMaxLength}
     {todoView}
     {todosCopy}
     {toggleHomeworkCompletion}

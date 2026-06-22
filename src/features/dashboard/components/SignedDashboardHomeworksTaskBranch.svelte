@@ -19,12 +19,10 @@ export let createHomeworkSubmissionStartAt: DashboardHomeworksTaskProps["createH
 export let dashboardCopy: DashboardHomeworksTaskProps["dashboardCopy"];
 export let data: DashboardHomeworksTaskProps["data"];
 export let homeworkCopy: DashboardHomeworksTaskProps["homeworkCopy"];
-export let homeworkDescriptionMaxLength: number;
 export let homeworkFilter: DashboardHomeworksTaskProps["homeworkFilter"];
 export let homeworkItems: DashboardHomeworksTaskProps["homeworkItems"];
 export let homeworkReferenceDate: DashboardHomeworksTaskProps["homeworkReferenceDate"];
 export let homeworkSavingById: DashboardHomeworksTaskProps["homeworkSavingById"];
-export let homeworkTitleMaxLength: number;
 export let homeworkView: DashboardHomeworksTaskProps["homeworkView"];
 export let homeworksCopy: DashboardHomeworksTaskProps["homeworksCopy"];
 export let isCreatingHomework: boolean;
@@ -47,8 +45,6 @@ export let toggleHomeworkCompletion: DashboardHomeworksTaskProps["toggleHomework
   {homeworkCopy}
   {commentsCopy}
   {signedData}
-  HOMEWORK_TITLE_MAX_LENGTH={homeworkTitleMaxLength}
-  HOMEWORK_DESCRIPTION_MAX_LENGTH={homeworkDescriptionMaxLength}
   locale={data.locale}
   referenceDate={homeworkReferenceDate}
   {selectedCreateHomeworkSection}

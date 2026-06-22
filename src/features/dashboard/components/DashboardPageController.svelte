@@ -31,10 +31,6 @@ import {
   type DashboardActionData,
   type DashboardPageData,
   type DashboardViewState,
-  HOMEWORK_DESCRIPTION_MAX_LENGTH,
-  HOMEWORK_TITLE_MAX_LENGTH,
-  TODO_CONTENT_MAX_LENGTH,
-  TODO_TITLE_MAX_LENGTH,
   type TodoItem,
   todoPriorityOrder,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
@@ -566,12 +562,10 @@ onMount(() => {
       {filteredTodos}
       {formatMessage}
       {homeworkCopy}
-      homeworkDescriptionMaxLength={HOMEWORK_DESCRIPTION_MAX_LENGTH}
       bind:homeworkFilter
       bind:homeworkItems
       {homeworkReferenceDate}
       bind:homeworkSavingById
-      homeworkTitleMaxLength={HOMEWORK_TITLE_MAX_LENGTH}
       bind:homeworkView
       {homeworksCopy}
       bind:isBulkImportOpen
@@ -630,8 +624,6 @@ onMount(() => {
       {todoPriorityClass}
       {todoPriorityOptions}
       {todoSavingById}
-      todoTitleMaxLength={TODO_TITLE_MAX_LENGTH}
-      todoContentMaxLength={TODO_CONTENT_MAX_LENGTH}
       {todoView}
       {todosCopy}
       {toggleHomeworkCompletion}

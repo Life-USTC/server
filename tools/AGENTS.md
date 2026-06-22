@@ -7,7 +7,7 @@ Build, check, seed, import, E2E, and snapshot scripts.
 ```
 shared/              Helper code
 build/openapi/       OpenAPI generation
-dev/check.ts         Convention checks
+dev/check/           Convention checks
 dev/e2e.ts           E2E Cloudflare Worker runtime helper
 dev/health.ts        Local app health probe
 dev/artifacts/snapshots/

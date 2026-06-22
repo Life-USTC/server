@@ -17,7 +17,6 @@ export let applyStartNow: () => void;
 export let close: () => void;
 export let commentsCopy: SectionCreateHomeworkCommentsCopy;
 export let createHomework: (event: SubmitEvent) => void;
-export let descriptionMaxLength: number;
 export let hasSemesterEnd: boolean;
 export let hasSemesterStart: boolean;
 export let homeworkCopy: SectionCreateHomeworkCopy;
@@ -27,7 +26,6 @@ export let sectionCopy: SectionCreateHomeworkSectionCopy;
 export let show: boolean;
 export let submissionDueAt: string;
 export let submissionStartAt: string;
-export let titleMaxLength: number;
 </script>
 
 {#if show}
@@ -54,7 +52,6 @@ export let titleMaxLength: number;
         {applyStartAtSemesterStart}
         {applyStartNow}
         {commentsCopy}
-        {descriptionMaxLength}
         {hasSemesterEnd}
         {hasSemesterStart}
         {homeworkCopy}
@@ -62,7 +59,6 @@ export let titleMaxLength: number;
         bind:publishedAt
         bind:submissionDueAt
         bind:submissionStartAt
-        {titleMaxLength}
       />
       <Dialog.Footer>
         <Button type="button" variant="outline" onclick={close}>

@@ -81,11 +81,9 @@ export type DashboardHomeworksTaskProps = DashboardTaskBaseProps & {
   createHomeworkSubmissionDueAt: DashboardTaskStringDraft;
   createHomeworkSubmissionStartAt: DashboardTaskStringDraft;
   homeworkCopy: DashboardTaskHomeworkCopy;
-  homeworkDescriptionMaxLength: number;
   homeworkFilter: HomeworkFilter;
   homeworkItems: DashboardHomeworkItem[];
   homeworkSavingById: DashboardTaskSavingById;
-  homeworkTitleMaxLength: number;
   homeworkView: HomeworkView;
   homeworksCopy: DashboardTaskHomeworksCopy;
   isCreatingHomework: boolean;
@@ -112,12 +110,10 @@ export type DashboardTodosTaskProps = DashboardTaskBaseProps & {
   setTodoView: (view: TodoView) => void;
   showCreateTodo: boolean;
   todoActionError: string;
-  todoContentMaxLength: number;
   todoFilter: TodoFilter;
   todoPriorityClass: DashboardTodoPriorityClass;
   todoPriorityOptions: DashboardTodoPriorityOption[];
   todoSavingById: DashboardTaskSavingById;
-  todoTitleMaxLength: number;
   todoView: TodoView;
   todosCopy: DashboardTodosCopy;
   toggleTodoCompletion: DashboardTodoToggle;

@@ -10,8 +10,6 @@ import TodoCreateDialog from "./TodoCreateDialog.svelte";
 import TodoDetailDialog from "./TodoDetailDialog.svelte";
 import TodoEditDialog from "./TodoEditDialog.svelte";
 
-export let TODO_CONTENT_MAX_LENGTH: number;
-export let TODO_TITLE_MAX_LENGTH: number;
 export let commentsCopy: CommentsCopy;
 export let createTodoAction: SubmitFunction;
 export let createTodoError: string;
@@ -40,8 +38,6 @@ export let updateTodoAction: SubmitFunction;
 </script>
 
 <TodoCreateDialog
-  {TODO_CONTENT_MAX_LENGTH}
-  {TODO_TITLE_MAX_LENGTH}
   {commentsCopy}
   {createTodoAction}
   {createTodoError}
@@ -76,8 +72,6 @@ export let updateTodoAction: SubmitFunction;
 />
 
 <TodoEditDialog
-  {TODO_CONTENT_MAX_LENGTH}
-  {TODO_TITLE_MAX_LENGTH}
   {commentsCopy}
   {datetimeLocalValue}
   {editTodoError}

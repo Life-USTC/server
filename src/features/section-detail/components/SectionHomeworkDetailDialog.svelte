@@ -25,8 +25,6 @@ export let CommentsPanel: Component<{
   targetId: string;
   targetType: "homework";
 }>;
-export let HOMEWORK_DESCRIPTION_MAX_LENGTH: number;
-export let HOMEWORK_TITLE_MAX_LENGTH: number;
 export let _applyEditDueAtSemesterEnd: SectionHomeworkTimestampAction;
 export let _applyEditDueInMonth: SectionHomeworkTimestampAction;
 export let _applyEditDueInWeek: SectionHomeworkTimestampAction;
@@ -94,7 +92,6 @@ export let close: () => void;
               applyStartNow={_applyEditStartNow}
               cancelEdit={_cancelEditHomework}
               commentsCopy={_commentsCopy}
-              descriptionMaxLength={HOMEWORK_DESCRIPTION_MAX_LENGTH}
               bind:editHomeworkMessage={_editHomeworkMessage}
               bind:editHomeworkPublishedAt={_editHomeworkPublishedAt}
               bind:editHomeworkSubmissionDueAt={_editHomeworkSubmissionDueAt}
@@ -102,7 +99,6 @@ export let close: () => void;
               homework={_selectedHomework}
               homeworkCopy={_homeworkCopy}
               semesterDate={_semesterDate}
-              titleMaxLength={HOMEWORK_TITLE_MAX_LENGTH}
               updateHomework={_updateHomework}
             />
           {:else}

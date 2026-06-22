@@ -1,3 +1,4 @@
+import { jsonResponse } from "@/lib/api/helpers";
 import { observedApiRoute } from "@/lib/log/api-observability";
 import { withBetterAuthOAuthDebug } from "@/lib/log/oauth-debug";
 import { recordOAuthTokenRequestMetric } from "@/lib/metrics/observability-metrics";
@@ -12,6 +13,59 @@ import {
 async function authHandler(request: Request) {
   const { betterAuthInstance } = await import("@/lib/auth/core");
   return betterAuthInstance.handler(request);
+}
+
+function getOAuthErrorCode(status: number, body: unknown) {
+  if (
+    body &&
+    typeof body === "object" &&
+    "error" in body &&
+    typeof body.error === "string"
+  ) {
+    return body.error;
+  }
+  if (status === 401) return "invalid_client";
+  if (status >= 500) return "server_error";
+  return "invalid_request";
+}
+
+function getOAuthErrorDescription(body: unknown) {
+  if (!body || typeof body !== "object") return undefined;
+  if (
+    "error_description" in body &&
+    typeof body.error_description === "string"
+  ) {
+    return body.error_description;
+  }
+  if ("message" in body && typeof body.message === "string") {
+    return body.message;
+  }
+  return undefined;
+}
+
+async function parseJsonBody(response: Response) {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) return undefined;
+
+  try {
+    return await response.clone().json();
+  } catch {
+    return undefined;
+  }
+}
+
+async function normalizeOAuthTokenErrorResponse(response: Response) {
+  if (response.ok) return response;
+
+  const body = await parseJsonBody(response);
+  const error_description = getOAuthErrorDescription(body);
+  return jsonResponse(
+    {
+      error: getOAuthErrorCode(response.status, body),
+      ...(error_description ? { error_description } : {}),
+    },
+    { status: response.status },
+  );
 }
 
 async function withTokenMetrics(
@@ -51,7 +105,9 @@ async function postRoute(request: Request) {
     params = new URLSearchParams(body);
   } catch {
     // If body parsing fails, delegate to Better Auth
-    return withBetterAuthOAuthDebug("POST", request, authHandler);
+    return normalizeOAuthTokenErrorResponse(
+      await withBetterAuthOAuthDebug("POST", request, authHandler),
+    );
   }
 
   if (params.get("grant_type") === OAUTH_DEVICE_CODE_GRANT_TYPE) {
@@ -62,20 +118,28 @@ async function postRoute(request: Request) {
 
   logObservedTokenRedirectRequest(request, params);
 
-  return withTokenMetrics(params, async () =>
-    withBetterAuthOAuthDebug(
+  return withTokenMetrics(params, async () => {
+    const delegatedRequest = await maybeBindMcpRefreshRequest(
+      await maybeNormalizeTokenLoopbackRedirectRequest(request, params),
+      params,
+    );
+    const delegatedResponse = await withBetterAuthOAuthDebug(
       "POST",
-      await maybeBindMcpRefreshRequest(
-        await maybeNormalizeTokenLoopbackRedirectRequest(request, params),
-        params,
-      ),
+      delegatedRequest,
       authHandler,
-    ),
-  );
+    );
+    return normalizeOAuthTokenErrorResponse(delegatedResponse);
+  });
 }
 export const tokenPostRoute = observedApiRoute(postRoute);
 
-function getRoute(request: Request) {
-  return withBetterAuthOAuthDebug("GET", request, authHandler);
+function getRoute() {
+  return jsonResponse(
+    {
+      error: "invalid_request",
+      error_description: "Use POST to exchange OAuth grants.",
+    },
+    { status: 405, headers: { Allow: "POST" } },
+  );
 }
 export const tokenGetRoute = observedApiRoute(getRoute);

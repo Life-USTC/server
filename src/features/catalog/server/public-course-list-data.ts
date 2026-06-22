@@ -1,4 +1,5 @@
 import { CATALOG_PAGE_SIZE } from "@/features/catalog/server/catalog-page-constants";
+import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { getMessages } from "@/i18n/messages.server";
 import {
   optionalValue,
@@ -12,7 +13,10 @@ import {
 
 const COURSE_LIST_CACHE_TTL_MS = 60_000;
 
-export async function getCourseListPage(url: URL, locale = "zh-cn") {
+export async function getCourseListPage(
+  url: URL,
+  locale: AppLocale = DEFAULT_LOCALE,
+) {
   return cachedPublicRuntimeData(
     publicRuntimeCacheKey(`course-list:${locale}`, url.searchParams),
     COURSE_LIST_CACHE_TTL_MS,
@@ -20,13 +24,14 @@ export async function getCourseListPage(url: URL, locale = "zh-cn") {
   );
 }
 
-async function getUncachedCourseListPage(url: URL, locale = "zh-cn") {
-  const [{ buildCourseListWhere }, { paginatedCourseQuery }, { getPrisma }] =
-    await Promise.all([
-      import("@/features/catalog/server/course-section-queries"),
-      import("@/features/catalog/server/academic-paginated-queries"),
-      import("@/lib/db/prisma"),
-    ]);
+async function getUncachedCourseListPage(
+  url: URL,
+  locale: AppLocale = DEFAULT_LOCALE,
+) {
+  const [{ listCourseSummaries }, { getPrisma }] = await Promise.all([
+    import("@/features/catalog/server/course-section-queries"),
+    import("@/lib/db/prisma"),
+  ]);
   const page = parsePositivePage(url.searchParams.get("page"));
   const search = optionalValue(url.searchParams.get("search"));
   const educationLevelId = optionalValue(
@@ -38,18 +43,16 @@ async function getUncachedCourseListPage(url: URL, locale = "zh-cn") {
 
   const [result, educationLevels, categories, classTypes, messages] =
     await Promise.all([
-      paginatedCourseQuery(
-        page,
-        CATALOG_PAGE_SIZE,
-        buildCourseListWhere({
+      listCourseSummaries({
+        filters: {
           search,
           educationLevelId,
           categoryId,
           classTypeId,
-        }),
-        [{ code: "asc" }, { jwId: "asc" }],
+        },
         locale,
-      ),
+        pagination: { page, pageSize: CATALOG_PAGE_SIZE },
+      }),
       prisma.educationLevel.findMany({ orderBy: { nameCn: "asc" } }),
       prisma.courseCategory.findMany({ orderBy: { nameCn: "asc" } }),
       prisma.classType.findMany({ orderBy: { nameCn: "asc" } }),

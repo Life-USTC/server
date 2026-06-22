@@ -20,12 +20,10 @@ export let selectedTodo: DashboardTodosTaskProps["selectedTodo"];
 export let setTodoView: DashboardTodosTaskProps["setTodoView"];
 export let showCreateTodo: boolean;
 export let todoActionError: string;
-export let todoContentMaxLength: number;
 export let todoFilter: DashboardTodosTaskProps["todoFilter"];
 export let todoPriorityClass: DashboardTodosTaskProps["todoPriorityClass"];
 export let todoPriorityOptions: DashboardTodosTaskProps["todoPriorityOptions"];
 export let todoSavingById: DashboardTodosTaskProps["todoSavingById"];
-export let todoTitleMaxLength: number;
 export let todoView: DashboardTodosTaskProps["todoView"];
 export let todosCopy: DashboardTodosTaskProps["todosCopy"];
 export let toggleTodoCompletion: DashboardTodosTaskProps["toggleTodoCompletion"];
@@ -38,8 +36,6 @@ export let updateTodoAction: DashboardTodosTaskProps["updateTodoAction"];
   {sectionCopy}
   {commentsCopy}
   {todoPriorityOptions}
-  TODO_TITLE_MAX_LENGTH={todoTitleMaxLength}
-  TODO_CONTENT_MAX_LENGTH={todoContentMaxLength}
   locale={data.locale}
   referenceDate={homeworkReferenceDate}
   {openTodoEditor}

@@ -1,3 +1,4 @@
+import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { paginatedSectionSummaryQuery } from "./academic-paginated-queries";
@@ -5,6 +6,10 @@ import {
   buildSectionListQuery,
   type SectionListFilters,
 } from "./course-section-query-filters";
+
+export const SECTION_SUMMARY_DEFAULT_ORDER_BY = {
+  semester: { jwId: "desc" },
+} satisfies Prisma.SectionOrderByWithRelationInput;
 
 export function listSectionSummaries({
   filters,
@@ -23,7 +28,7 @@ export function listSectionSummaries({
     pagination.page,
     pagination.pageSize,
     where,
-    orderBy,
+    orderBy ?? SECTION_SUMMARY_DEFAULT_ORDER_BY,
     locale,
   );
 }

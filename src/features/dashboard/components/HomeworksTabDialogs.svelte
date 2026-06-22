@@ -22,8 +22,6 @@ import HomeworkDetailDialog from "./HomeworkDetailDialog.svelte";
 type HomeworkAction = (homework: DashboardHomeworkItem) => string;
 
 export let CommentsPanel: DashboardHomeworkCommentsPanel;
-export let HOMEWORK_DESCRIPTION_MAX_LENGTH: number;
-export let HOMEWORK_TITLE_MAX_LENGTH: number;
 export let applyHomeworkDueAtSemesterEnd: DashboardHomeworkDateShortcut;
 export let applyHomeworkDueInMonth: DashboardHomeworkDateShortcut;
 export let applyHomeworkDueInWeek: DashboardHomeworkDateShortcut;
@@ -60,8 +58,6 @@ export let toggleHomeworkCompletion: (
 </script>
 
 <HomeworkCreateDialog
-  {HOMEWORK_DESCRIPTION_MAX_LENGTH}
-  {HOMEWORK_TITLE_MAX_LENGTH}
   {applyHomeworkDueAtSemesterEnd}
   {applyHomeworkDueInMonth}
   {applyHomeworkDueInWeek}

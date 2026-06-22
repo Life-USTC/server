@@ -80,7 +80,6 @@ jobs:
       download-artifact-name: playwright-worker
       download-artifact-path: .svelte-kit
       job-command: |
-        bun run db:generate
         bun run e2e:db:prepare
         bun run seed
         bun run e2e:test -- ${{ matrix.paths }}
