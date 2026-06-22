@@ -1,3 +1,10 @@
+## [1.36.9](https://github.com/Life-USTC/server/compare/v1.36.8...v1.36.9) (2026-06-22)
+
+
+### Bug Fixes
+
+* **api:** share client error messages ([7f8240d](https://github.com/Life-USTC/server/commit/7f8240d3ecba3056eac06157f731216ee67b2e86))
+
 ## [1.36.8](https://github.com/Life-USTC/server/compare/v1.36.7...v1.36.8) (2026-06-22)
 
 
