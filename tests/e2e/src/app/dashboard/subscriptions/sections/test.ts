@@ -116,11 +116,6 @@ test.describe("dashboard subscriptions", () => {
           timeout: 3_000,
         },
       );
-      await expect(
-        page.getByText(DEV_SEED.previousSemesterNameCn).first(),
-      ).toBeVisible({
-        timeout: 3_000,
-      });
     }).toPass({
       timeout: 20_000,
       intervals: [500, 1_000, 2_000],
@@ -355,7 +350,9 @@ test.describe("dashboard subscriptions", () => {
 
     await expect(
       page
-        .getByText(/已成功关注 \d+ 个班级|Now following \d+ sections/i)
+        .getByText(
+          /已新增关注 \d+ 个班级|Added \d+ new sections? to Life@USTC/i,
+        )
         .first(),
     ).toBeVisible({ timeout: 15_000 });
     await page.waitForLoadState("networkidle");

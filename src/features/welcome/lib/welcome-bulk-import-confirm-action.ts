@@ -13,7 +13,6 @@ export async function confirmWelcomeBulkImport(
   try {
     const selectedSectionIds = input.getSelectedSectionIds();
     const importedCount = await appendSubscribedSectionIds({
-      fetchFailedMessage: bulkCopy.fetchFailed,
       importFailedMessage: bulkCopy.importFailed,
       selectedSectionIds,
     });

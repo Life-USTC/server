@@ -31,6 +31,7 @@ export {
   uploadRenameRequestSchema,
 } from "@/lib/api/schemas/request-upload-mutation-schemas";
 export {
+  calendarSubscriptionAppendRequestSchema,
   calendarSubscriptionCreateRequestSchema,
   dashboardLinkPinRequestSchema,
   dashboardLinkVisitRequestSchema,

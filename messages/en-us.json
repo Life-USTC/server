@@ -134,7 +134,7 @@
       "cancel": "Cancel",
       "subscribeSelected": "Follow {count} sections",
       "success": "Added successfully",
-      "successDescription": "Now following {count} sections in Life@USTC",
+      "successDescription": "Added {count} new section{plural} to Life@USTC",
       "importFailed": "Add failed"
     }
   },
@@ -1800,7 +1800,7 @@
     "selectSection": "Select {code}",
     "importing": "Importing...",
     "subscribeSelected": "Subscribe selected ({count})",
-    "importedSummary": "Imported {count} section{plural}."
+    "importedSummary": "Added {count} new section{plural}."
   },
   "oauth": {
     "authorize": "Authorize Application",

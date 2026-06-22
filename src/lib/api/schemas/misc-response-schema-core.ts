@@ -33,6 +33,12 @@ export const calendarSubscriptionCreateResponseSchema = z.object({
   subscription: calendarSubscriptionSchema.nullable(),
 });
 
+export const calendarSubscriptionAppendResponseSchema =
+  calendarSubscriptionCreateResponseSchema.extend({
+    addedCount: z.number().int().nonnegative(),
+    alreadySubscribedCount: z.number().int().nonnegative(),
+  });
+
 export const calendarSubscriptionImportResponseSchema = z.object({
   success: z.boolean(),
   semester: z.object({

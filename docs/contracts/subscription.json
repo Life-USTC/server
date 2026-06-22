@@ -79,6 +79,17 @@
             ]
           },
           {
+            "path": "/api/calendar-subscriptions",
+            "method": "PATCH",
+            "returns": "{ subscription: CalendarSubscription, addedCount: Int, alreadySubscribedCount: Int }",
+            "notes": [
+              "Append selected section IDs after a preview flow without replacing the caller's whole subscription set.",
+              "Used by dashboard and welcome bulk-import confirmation after users deselect unwanted matched sections.",
+              "Unknown positive section IDs are ignored; malformed or non-positive IDs return 400.",
+              "Already-subscribed selected sections are counted but not duplicated."
+            ]
+          },
+          {
             "path": "/api/calendar-subscriptions/import-codes",
             "method": "POST",
             "returns": "{ success: Boolean, semester, matchedCodes, unmatchedCodes, ambiguousCodes, sections, addedCount, addedSections, alreadySubscribedCount, alreadySubscribedSections, subscription }",
@@ -97,7 +108,8 @@
             "rest_equivalent": "POST /api/sections/match-codes",
             "notes": [
               "Returns suggestions for unmatched inputs when close section codes in the selected semester share a strong code-prefix or edit-distance match; unrelated section codes should be filtered out.",
-              "Prefer this read-only preview before subscribe_my_sections_by_codes when the caller needs confirmation or typo recovery."
+              "Prefer this read-only preview before subscribe_my_sections_by_codes when the caller needs confirmation or typo recovery.",
+              "MCP callers that need per-section selection can subscribe selected preview results by calling subscribe_section_by_jw_id with each section.jwId."
             ]
           },
           {

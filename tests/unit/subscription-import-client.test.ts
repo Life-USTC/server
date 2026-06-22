@@ -119,6 +119,14 @@ function subscriptionPayload(sectionIds: number[]) {
   };
 }
 
+function appendPayload(sectionIds: number[], addedCount = sectionIds.length) {
+  return {
+    ...subscriptionPayload(sectionIds),
+    addedCount,
+    alreadySubscribedCount: sectionIds.length - addedCount,
+  };
+}
+
 describe("subscription import client", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -216,25 +224,38 @@ describe("subscription import client", () => {
     });
   });
 
-  it("appends selected section ids without duplicating existing ids", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(subscriptionPayload([1, 2])))
-      .mockResolvedValueOnce(jsonResponse(subscriptionPayload([1, 2, 3])));
+  it("appends selected section ids through the server-owned append route", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse(appendPayload([1, 2, 3], 2)),
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(
       appendSubscribedSectionIds({
-        fetchFailedMessage: "fetch failed",
         importFailedMessage: "import failed",
         selectedSectionIds: [2, 3],
       }),
     ).resolves.toBe(2);
 
-    expect(fetchMock).toHaveBeenLastCalledWith("/api/calendar-subscriptions", {
-      method: "POST",
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledWith("/api/calendar-subscriptions", {
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sectionIds: [1, 2, 3] }),
+      body: JSON.stringify({ sectionIds: [2, 3] }),
     });
+  });
+
+  it("does not call the append route when no section ids are selected", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      appendSubscribedSectionIds({
+        importFailedMessage: "import failed",
+        selectedSectionIds: [],
+      }),
+    ).resolves.toBe(0);
+
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

@@ -9,6 +9,10 @@ export const calendarSubscriptionCreateRequestSchema = z.object({
   sectionIds: z.array(z.number().int().positive()).optional(),
 });
 
+export const calendarSubscriptionAppendRequestSchema = z.object({
+  sectionIds: z.array(z.number().int().positive()),
+});
+
 export const localeUpdateRequestSchema = z.object({
   locale: z.enum(APP_LOCALES),
 });

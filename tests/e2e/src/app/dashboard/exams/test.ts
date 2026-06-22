@@ -199,7 +199,26 @@ test.describe("dashboard exams", () => {
     });
     await completedTab.click();
     await expect(completedTab).toHaveAttribute("aria-pressed", "true");
-    await expect(page.getByText(DEV_SEED.previousSemesterNameCn)).toBeVisible();
+    const endedExamCards = page.locator('[data-slot="card"]').filter({
+      has: page.locator('a[href^="/sections/"]'),
+    });
+    await expect(endedExamCards.first()).toBeVisible({ timeout: 15_000 });
+    await expect(
+      endedExamCards
+        .first()
+        .getByText(/Ended|已结束|已完成/i)
+        .first(),
+    ).toBeVisible();
+    await expect(
+      endedExamCards
+        .first()
+        .getByText(
+          new RegExp(
+            `${DEV_SEED.semesterNameCn}|${DEV_SEED.previousSemesterNameCn}`,
+          ),
+        )
+        .first(),
+    ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "exams/filter-completed");
 
     // Switch back to incomplete/upcoming

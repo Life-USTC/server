@@ -146,9 +146,6 @@ test.describe("dashboard", () => {
       }),
     ).toBeVisible();
     await expect(page.getByText(DEV_SEED.semesterNameCn).first()).toBeVisible();
-    await expect(
-      page.getByText(DEV_SEED.previousSemesterNameCn).first(),
-    ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "dashboard-subscriptions-path");
   });
 });

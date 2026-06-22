@@ -1,11 +1,13 @@
 /**
- * E2E tests for POST /api/calendar-subscriptions
+ * E2E tests for the calendar subscription API
  *
- * ## Endpoint
+ * ## Endpoints
  * - `POST /api/calendar-subscriptions` — Replace the current user's subscribed sections
+ * - `PATCH /api/calendar-subscriptions` — Append selected section IDs
  *
  * ## Request
- * - Body: `{ sectionIds?: number[] }` (optional; omitting clears subscriptions)
+ * - POST Body: `{ sectionIds?: number[] }` (optional; omitting clears subscriptions)
+ * - PATCH Body: `{ sectionIds: number[] }`
  *
  * ## Response
  * - 200: `{ subscription: { userId: string, sections: { id: number }[] } }`
@@ -16,19 +18,20 @@
  * - Requires session authentication
  *
  * ## Edge Cases
- * - `sectionIds` is optional — omitting it clears all subscriptions
- * - Non-existent section IDs are silently dropped
+ * - POST `sectionIds` is optional — omitting it clears all subscriptions
+ * - Unknown positive section IDs are silently dropped
  * - Invalid body types (e.g. string instead of array) return 400
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import { resolveSeedSectionMatches } from "../../../../utils/seed-lookups";
 import { assertApiContract } from "../../_shared/api-contract";
 
 const BASE = "/api/calendar-subscriptions";
 const IMPORT_BASE = "/api/calendar-subscriptions/import-codes";
 
-test.describe("POST /api/calendar-subscriptions", () => {
+test.describe("calendar subscription API", () => {
   test.describe.configure({ mode: "serial" });
 
   test("contract", async ({ request }) => {
@@ -53,6 +56,27 @@ test.describe("POST /api/calendar-subscriptions", () => {
       data: { codes: [DEV_SEED.section.code] },
     });
     expect(response.status()).toBe(401);
+  });
+
+  test("append sections returns 401 when not authenticated", async ({
+    request,
+  }) => {
+    const response = await request.patch(BASE, {
+      data: { sectionIds: [1] },
+    });
+    expect(response.status()).toBe(401);
+  });
+
+  test("append sections returns 400 for malformed section ids", async ({
+    page,
+  }) => {
+    await signInAsDebugUser(page, "/");
+
+    const response = await page.request.patch(BASE, {
+      data: { sectionIds: [0] },
+    });
+
+    expect(response.status()).toBe(400);
   });
 
   test("import-codes appends matched section codes and reports repeats", async ({
@@ -112,6 +136,63 @@ test.describe("POST /api/calendar-subscriptions", () => {
       expect(secondBody.alreadySubscribedSections?.[0]?.code).toBe(
         DEV_SEED.section.code,
       );
+    } finally {
+      await page.request.post(BASE, {
+        data: { sectionIds: originalIds },
+      });
+    }
+  });
+
+  test("append sections adds selected ids without replacing existing subscriptions", async ({
+    page,
+  }) => {
+    await signInAsDebugUser(page, "/");
+    const [firstSection, secondSection] = await resolveSeedSectionMatches(page);
+    expect(firstSection?.id).toBeDefined();
+    expect(secondSection?.id).toBeDefined();
+
+    const currentRes = await page.request.get(
+      "/api/calendar-subscriptions/current",
+    );
+    const currentBody = (await currentRes.json()) as {
+      subscription?: { sections?: Array<{ id?: number }> } | null;
+    };
+    const originalIds =
+      currentBody.subscription?.sections?.map((s) => s.id as number) ?? [];
+
+    try {
+      await page.request.post(BASE, {
+        data: { sectionIds: [firstSection.id] },
+      });
+
+      const unknownPositiveSectionId = 999_999_999;
+      const response = await page.request.patch(BASE, {
+        data: { sectionIds: [secondSection.id, unknownPositiveSectionId] },
+      });
+      expect(response.status()).toBe(200);
+      const body = (await response.json()) as {
+        addedCount?: number;
+        alreadySubscribedCount?: number;
+        subscription?: { sections?: Array<{ id?: number }> };
+      };
+
+      expect(body.addedCount).toBe(1);
+      expect(body.alreadySubscribedCount).toBe(0);
+      const sectionIds = body.subscription?.sections?.map((s) => s.id) ?? [];
+      expect(sectionIds).toContain(firstSection.id);
+      expect(sectionIds).toContain(secondSection.id);
+      expect(sectionIds).not.toContain(unknownPositiveSectionId);
+
+      const repeatResponse = await page.request.patch(BASE, {
+        data: { sectionIds: [secondSection.id] },
+      });
+      expect(repeatResponse.status()).toBe(200);
+      const repeatBody = (await repeatResponse.json()) as {
+        addedCount?: number;
+        alreadySubscribedCount?: number;
+      };
+      expect(repeatBody.addedCount).toBe(0);
+      expect(repeatBody.alreadySubscribedCount).toBe(1);
     } finally {
       await page.request.post(BASE, {
         data: { sectionIds: originalIds },

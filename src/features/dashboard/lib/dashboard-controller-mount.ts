@@ -39,6 +39,7 @@ export function mountDashboardController(input: {
     input.setBulkImportMessage(
       formatMessage(input.copy.subscriptions.bulkImport.successDescription, {
         count: importedCount,
+        plural: importedCount === "1" ? "" : "s",
       }),
     );
   }

@@ -26,6 +26,18 @@ async function replaceUserSectionIds(
   });
 }
 
+async function getExistingSectionIds(sectionIds: readonly number[]) {
+  if (sectionIds.length === 0) {
+    return [];
+  }
+
+  const sections = await prisma.section.findMany({
+    where: { id: { in: uniqueSectionIds(sectionIds) } },
+    select: { id: true },
+  });
+  return sections.map((section) => section.id);
+}
+
 async function getMutableUserSubscriptions(userId: string) {
   return prisma.user.findUnique({
     where: { id: userId },
@@ -77,15 +89,41 @@ export async function replaceUserSectionSubscriptions(
   sectionIds: number[],
   locale = DEFAULT_LOCALE,
 ) {
-  const existingSections = await prisma.section.findMany({
-    where: { id: { in: sectionIds } },
-    select: { id: true },
-  });
-  const validSectionIds = existingSections.map((section) => section.id);
+  const validSectionIds = await getExistingSectionIds(sectionIds);
 
   await replaceUserSectionIds(userId, validSectionIds);
 
   return getUserCalendarSubscription(userId, locale);
+}
+
+export async function appendUserSectionSubscriptions({
+  locale = DEFAULT_LOCALE,
+  sectionIds,
+  userId,
+}: {
+  locale?: AppLocale;
+  sectionIds: readonly number[];
+  userId: string;
+}) {
+  const user = await getMutableUserSubscriptions(userId);
+  if (!user) {
+    return null;
+  }
+
+  const currentIdSet = new Set(
+    user.subscribedSections.map((section) => section.id),
+  );
+  const validSectionIds = await getExistingSectionIds(sectionIds);
+  const addedSectionIds = validSectionIds.filter((id) => !currentIdSet.has(id));
+
+  await connectUserSectionIds(userId, addedSectionIds);
+
+  return {
+    addedCount: addedSectionIds.length,
+    alreadySubscribedCount: validSectionIds.filter((id) => currentIdSet.has(id))
+      .length,
+    subscription: await getUserCalendarSubscription(userId, locale),
+  };
 }
 
 export async function addUserSectionSubscriptions(
