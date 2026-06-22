@@ -3,12 +3,14 @@ import type {
   CommentVisibility,
   Prisma,
 } from "@/generated/prisma/client";
+import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
 import { commentThreadInclude } from "./comment-read-model";
 import type { ViewerInfo } from "./comment-serialization";
 import { buildCommentNodes } from "./comment-serialization";
+import { type CommentTargetType, resolveCommentTarget } from "./comment-utils";
 
-type CommentMutationError = "forbidden" | "locked" | "not_found";
+type CommentMutationError = "forbidden" | "locked" | "not_found" | "suspended";
 
 type CreateCommentParent = {
   parentId: string | null;
@@ -16,12 +18,86 @@ type CreateCommentParent = {
 };
 
 type CreateCommentTarget = {
-  target: {
-    whereTarget: Record<string, unknown>;
-  };
+  whereTarget: Record<string, unknown>;
 };
 
-export async function createCommentRecord({
+type CreateCommentError =
+  | "forbidden"
+  | "invalid_attachments"
+  | "invalid_target"
+  | "parent_not_found"
+  | "suspended"
+  | "target_mismatch"
+  | "target_not_found";
+
+export async function createComment(input: {
+  attachmentIds?: string[];
+  content: string;
+  isAnonymous: boolean;
+  parentId?: string | null;
+  rawTargetId: unknown;
+  sectionId?: unknown;
+  targetType: CommentTargetType;
+  teacherId?: unknown;
+  userId: string;
+  visibility: CommentVisibility;
+}) {
+  const actor = await loadActiveCommentActor(input.userId);
+  if (!actor.ok) return actor;
+
+  const target = await resolveCommentTarget({
+    rawTargetId: input.rawTargetId,
+    sectionId: input.sectionId,
+    targetType: input.targetType,
+    teacherId: input.teacherId,
+    verifyExistence: true,
+  });
+  if (!target) {
+    return {
+      ok: false as const,
+      error: "invalid_target" as CreateCommentError,
+    };
+  }
+  if (!target.verified) {
+    return {
+      ok: false as const,
+      error: "target_not_found" as CreateCommentError,
+    };
+  }
+
+  const parent = await resolveCreateCommentParent(
+    input.parentId,
+    target.whereTarget,
+  );
+  if (!parent.ok) {
+    return { ok: false as const, error: parent.error };
+  }
+
+  const attachmentIds = input.attachmentIds ?? [];
+  if (
+    attachmentIds.length > 0 &&
+    !(await validateCommentAttachmentIds(input.userId, attachmentIds))
+  ) {
+    return {
+      ok: false as const,
+      error: "invalid_attachments" as CreateCommentError,
+    };
+  }
+
+  const comment = await createCommentRecord({
+    attachmentIds,
+    content: input.content,
+    isAnonymous: input.isAnonymous,
+    parent,
+    target,
+    userId: input.userId,
+    visibility: input.visibility,
+  });
+
+  return { ok: true as const, comment };
+}
+
+async function createCommentRecord({
   attachmentIds,
   content,
   isAnonymous,
@@ -48,7 +124,7 @@ export async function createCommentRecord({
       userId,
       parentId: parent.parentId,
       rootId: parent.rootId,
-      ...target.target.whereTarget,
+      ...target.whereTarget,
     },
   });
 
@@ -129,6 +205,9 @@ export async function deleteOwnComment(input: {
   commentId: string;
   userId: string;
 }) {
+  const actor = await loadActiveCommentActor(input.userId);
+  if (!actor.ok) return actor;
+
   const comment = await prisma.comment.findUnique({
     where: { id: input.commentId },
     select: { id: true, userId: true },
@@ -158,6 +237,9 @@ export async function createCommentReaction(input: {
   type: string;
   userId: string;
 }) {
+  const actor = await loadActiveCommentActor(input.userId);
+  if (!actor.ok) return actor;
+
   const comment = await prisma.comment.findUnique({
     where: { id: input.commentId },
     select: { id: true },
@@ -191,6 +273,9 @@ export async function deleteCommentReaction(input: {
   type: CommentReactionType;
   userId: string;
 }) {
+  const actor = await loadActiveCommentActor(input.userId);
+  if (!actor.ok) return actor;
+
   await prisma.commentReaction.deleteMany({
     where: {
       commentId: input.commentId,
@@ -198,6 +283,8 @@ export async function deleteCommentReaction(input: {
       type: input.type,
     },
   });
+
+  return { ok: true as const };
 }
 
 export async function validateCommentAttachmentIds(
@@ -215,7 +302,7 @@ export async function validateCommentAttachmentIds(
   return uploads.length === attachmentIds.length;
 }
 
-export async function resolveCreateCommentParent(
+async function resolveCreateCommentParent(
   parentId: string | null | undefined,
   whereTarget: Record<string, unknown>,
 ) {
@@ -253,8 +340,14 @@ async function loadEditableCommentContext({
 }): Promise<
   { ok: true; viewer: ViewerInfo } | { ok: false; error: CommentMutationError }
 > {
-  const { getViewerContext } = await import("@/lib/auth/viewer-context");
   const viewer = await getViewerContext({ userId });
+  if (!viewer.isAuthenticated) {
+    return { ok: false, error: "forbidden" };
+  }
+  if (viewer.isSuspended) {
+    return { ok: false, error: "suspended" };
+  }
+
   const comment = await prisma.comment.findUnique({
     where: { id },
     select: { id: true, status: true, userId: true },
@@ -272,6 +365,21 @@ async function loadEditableCommentContext({
     return { ok: false, error: "forbidden" };
   }
 
+  return { ok: true, viewer };
+}
+
+async function loadActiveCommentActor(
+  userId: string,
+): Promise<
+  { ok: true; viewer: ViewerInfo } | { ok: false; error: CommentMutationError }
+> {
+  const viewer = await getViewerContext({ userId });
+  if (!viewer.isAuthenticated) {
+    return { ok: false, error: "forbidden" };
+  }
+  if (viewer.isSuspended) {
+    return { ok: false, error: "suspended" };
+  }
   return { ok: true, viewer };
 }
 

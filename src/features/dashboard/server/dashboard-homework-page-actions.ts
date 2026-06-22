@@ -72,8 +72,14 @@ export async function createHomeworkDashboardAction({
     isMajor: form.has("isMajor"),
     requiresTeam: form.has("requiresTeam"),
   };
-  const homework = await createHomeworkForSection(userId, homeworkInput);
-  if (!homework) {
+  const result = await createHomeworkForSection(userId, homeworkInput);
+  if (!result.ok) {
+    if (result.error === "suspended") {
+      return fail(403, { error: copy.errorSuspended });
+    }
+    if (result.error === "forbidden") {
+      return fail(403, { error: copy.errorUnauthorized });
+    }
     return fail(404, { error: copy.errorSectionNotFound });
   }
 

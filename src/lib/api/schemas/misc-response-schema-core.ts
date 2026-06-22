@@ -135,6 +135,11 @@ export const todosListResponseSchema = z.object({
   todos: z.array(todoItemSchema),
 });
 
+export const todoUpdateResponseSchema = z.object({
+  success: z.boolean(),
+  todo: todoItemSchema,
+});
+
 export const openApiErrorSchema = z.object({
   error: z.string(),
 });

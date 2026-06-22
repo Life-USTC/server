@@ -64,7 +64,7 @@ export async function createHomeworkOnSectionTool(
   );
   if (!parsedTimestamps.ok) return parsedTimestamps.result;
 
-  const homework = await createHomeworkOnSectionRecord({
+  const createResult = await createHomeworkOnSectionRecord({
     description,
     isMajor,
     publishedAt: parsedTimestamps.publishedAt ?? null,
@@ -75,6 +75,20 @@ export async function createHomeworkOnSectionTool(
     title,
     userId,
   });
+  if (!createResult.ok) {
+    if (createResult.error === "not_found") {
+      return sectionNotFoundToolResult(sectionJwId, resolvedMode);
+    }
+    return jsonToolResult(
+      {
+        success: false,
+        message: createResult.error === "suspended" ? "Suspended" : "Forbidden",
+      },
+      { mode: resolvedMode },
+    );
+  }
+
+  const homework = createResult.homework;
   const homeworkItem = await requireHomeworkItemById({
     homeworkId: homework.id,
     locale,

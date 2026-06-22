@@ -130,12 +130,20 @@ export async function completeUploadSession(
 ) {
   const now = new Date();
   await deleteExpiredPendingUploads(prisma, userId, now);
+  if (!uploadKeyBelongsToUser(input.key, userId)) {
+    throw new UploadError("Upload session expired");
+  }
 
   const existing = await prisma.upload.findUnique({
     where: { key: input.key },
   });
   if (existing) {
-    await prisma.uploadPending.deleteMany({ where: { key: input.key } });
+    if (existing.userId !== userId) {
+      throw new UploadError("Upload session expired");
+    }
+    await prisma.uploadPending.deleteMany({
+      where: { key: input.key, userId },
+    });
     const usedBytes = await getUploadUsedBytes({ prisma, userId, now });
     return uploadUsagePayload(existing, usedBytes || existing.size);
   }

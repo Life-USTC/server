@@ -95,7 +95,6 @@ export async function deleteHomeworkAction({
   const id = requiredModerationFormId(form, copy.missingHomeworkId);
   if (typeof id !== "string") return id;
   const result = await deleteHomework({
-    allowAnyOwner: true,
     homeworkId: id,
     userId: admin.id,
   });

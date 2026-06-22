@@ -5,6 +5,7 @@ import {
 import { requireHomeworkItemById } from "@/features/homeworks/server/homework-read-model";
 import {
   badRequest,
+  forbidden,
   handleRouteError,
   jsonResponse,
   notFound,
@@ -54,11 +55,18 @@ export async function postHomeworkRoute(request: Request) {
       return notFound("Section not found");
     }
 
-    const homework = await createHomeworkForSection(userId, {
+    const result = await createHomeworkForSection(userId, {
       ...homeworkInput,
       sectionId: sectionResolution.sectionId,
     });
-    if (!homework) return notFound("Section not found");
+    if (!result.ok) {
+      if (result.error === "not_found") return notFound("Section not found");
+      return forbidden(
+        result.error === "suspended" ? "Suspended" : "Forbidden",
+      );
+    }
+
+    const homework = result.homework;
     const homeworkItem = await requireHomeworkItemById({
       homeworkId: homework.id,
       locale: getRequestLocale(request),

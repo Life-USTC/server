@@ -1,10 +1,7 @@
-import {
-  type DescriptionTargetType,
-  resolveDescriptionTarget,
-} from "@/features/descriptions/server/description-targets";
 import { upsertDescriptionContent } from "@/features/descriptions/server/description-upsert";
 import {
   badRequest,
+  forbidden,
   handleRouteError,
   jsonResponse,
   notFound,
@@ -36,25 +33,19 @@ export async function postDescriptionRoute(request: Request) {
   const targetType = parsedBody.targetType;
   const content = parsedBody.content.trim();
 
-  const target = resolveDescriptionTarget(
-    targetType as DescriptionTargetType,
-    parsedBody.targetId,
-  );
-  if (!target) {
-    return badRequest("Invalid target");
-  }
-
   try {
-    const existingTarget = await target.ensureExists();
-    if (!existingTarget) {
-      return notFound("Target not found");
-    }
-
     const result = await upsertDescriptionContent({
       content,
-      target,
+      targetId: parsedBody.targetId,
+      targetType,
       userId,
     });
+    if (!result.ok) {
+      if (result.error === "invalid_target")
+        return badRequest("Invalid target");
+      if (result.error === "not_found") return notFound("Target not found");
+      return forbidden();
+    }
 
     if (result.updated) {
       fireAuditLog({

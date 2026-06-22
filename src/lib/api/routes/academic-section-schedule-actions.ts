@@ -9,8 +9,12 @@ import { PUBLIC_LOCALE_CATALOG_HEADERS } from "@/lib/public-cache-control";
 export async function getSectionSchedulesAction(
   parsedJwId: number,
   locale: AppLocale,
+  filters: { dateFrom?: Date; dateTo?: Date; limit?: number } = {},
 ) {
   const result = await getSectionSchedulesByJwId({
+    dateFrom: filters.dateFrom,
+    dateTo: filters.dateTo,
+    limit: filters.limit,
     locale,
     sectionJwId: parsedJwId,
   });

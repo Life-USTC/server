@@ -3,9 +3,11 @@ import {
   parseInteger,
   parseRouteJsonBody,
   parseRouteQuery,
+  parseRouteSearchParams,
 } from "@/lib/api/helpers";
 import {
   matchSectionCodesRequestSchema,
+  sectionSchedulesQuerySchema,
   sectionsQuerySchema,
 } from "@/lib/api/schemas/request-schemas";
 
@@ -15,6 +17,16 @@ export function parseSectionsRouteQuery(request: Request) {
     searchParams,
     sectionsQuerySchema,
     "Invalid section query",
+    { logErrors: true },
+  );
+}
+
+export function parseSectionSchedulesRouteQuery(request: Request) {
+  const searchParams = new URL(request.url).searchParams;
+  return parseRouteSearchParams(
+    searchParams,
+    sectionSchedulesQuerySchema,
+    "Invalid section schedule query",
     { logErrors: true },
   );
 }

@@ -1,5 +1,6 @@
 import { deleteCommentReaction } from "@/features/comments/server/comment-mutations";
 import {
+  forbidden,
   handleRouteError,
   jsonResponse,
   parseRouteInput,
@@ -43,7 +44,8 @@ export async function deleteCommentReactionRoute(
   const type = parsedBody.type;
 
   try {
-    await deleteCommentReaction({ commentId: id, type, userId });
+    const result = await deleteCommentReaction({ commentId: id, type, userId });
+    if (!result.ok) return forbidden();
 
     return jsonResponse({ success: true });
   } catch (error) {

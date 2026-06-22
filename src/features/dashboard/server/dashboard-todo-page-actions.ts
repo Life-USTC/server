@@ -2,7 +2,6 @@ import { fail, redirect } from "@sveltejs/kit";
 import { getDashboardUserId } from "@/features/dashboard/server/dashboard-page-server";
 import {
   createTodo,
-  deleteOwnedTodo,
   updateOwnedTodo,
 } from "@/features/todos/server/todo-service";
 import { getDashboardActionCopy } from "./dashboard-action-copy";
@@ -49,43 +48,6 @@ export async function updateTodoDashboardAction({
       hasDueAt: true,
     },
   });
-  if (!result.ok) return fail(400, { error: copy.saveFailed });
-  throw redirect(303, "/dashboard/todos");
-}
-
-export async function toggleTodoDashboardAction({
-  locals,
-  request,
-}: DashboardActionEvent) {
-  const copy = getDashboardActionCopy(locals.locale).todos;
-  const userId = await getDashboardUserId(request);
-  if (!userId) return fail(401, { error: copy.saveFailed });
-  const form = await request.formData();
-  const id = String(form.get("id") ?? "");
-  const completed = String(form.get("completed") ?? "") === "true";
-  const result = await updateOwnedTodo({
-    id,
-    userId,
-    data: {
-      completed,
-      dueAt: undefined,
-      hasDueAt: false,
-    },
-  });
-  if (!result.ok) return fail(400, { error: copy.saveFailed });
-  throw redirect(303, "/dashboard/todos");
-}
-
-export async function deleteTodoDashboardAction({
-  locals,
-  request,
-}: DashboardActionEvent) {
-  const copy = getDashboardActionCopy(locals.locale).todos;
-  const userId = await getDashboardUserId(request);
-  if (!userId) return fail(401, { error: copy.saveFailed });
-  const form = await request.formData();
-  const id = String(form.get("id") ?? "");
-  const result = await deleteOwnedTodo(id, userId);
   if (!result.ok) return fail(400, { error: copy.saveFailed });
   throw redirect(303, "/dashboard/todos");
 }

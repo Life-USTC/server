@@ -73,7 +73,7 @@ export async function updateTodoAction(
     return badRequest("No changes");
   }
 
-  return jsonResponse({ success: true });
+  return jsonResponse({ success: true, todo: result.todo });
 }
 
 export async function deleteTodoAction(id: string, userId: string) {

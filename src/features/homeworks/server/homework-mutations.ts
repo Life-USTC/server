@@ -1,22 +1,29 @@
-import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
 import { updateHomeworkDescription } from "./homework-description";
 import {
   type HomeworkUpdateIntent,
   hasHomeworkUpdateIntentChanges,
 } from "./homework-update-intent";
+import {
+  type HomeworkWriteAuthError,
+  requireActiveHomeworkWriter,
+} from "./homework-write-auth";
 
 type HomeworkMutationError =
   | "deleted"
   | "forbidden"
   | "no_changes"
-  | "not_found";
+  | "not_found"
+  | HomeworkWriteAuthError;
 
 export async function updateHomework(input: {
   homeworkId: string;
   update: HomeworkUpdateIntent;
   userId: string;
 }) {
+  const writer = await requireActiveHomeworkWriter(input.userId);
+  if (!writer.ok) return writer;
+
   const homework = await prisma.homework.findUnique({
     where: { id: input.homeworkId },
     select: { id: true, deletedAt: true },
@@ -53,17 +60,11 @@ export async function updateHomework(input: {
 }
 
 export async function deleteHomework(input: {
-  allowAnyOwner?: boolean;
   homeworkId: string;
   userId: string;
 }) {
   const [viewer, homework] = await Promise.all([
-    input.allowAnyOwner
-      ? Promise.resolve({ isAdmin: true })
-      : getViewerContext({
-          includeAdmin: true,
-          userId: input.userId,
-        }),
+    requireActiveHomeworkWriter(input.userId),
     prisma.homework.findUnique({
       where: { id: input.homeworkId },
       select: {
@@ -75,12 +76,13 @@ export async function deleteHomework(input: {
       },
     }),
   ]);
+  if (!viewer.ok) return viewer;
 
   if (!homework) {
     return { ok: false as const, error: "not_found" as HomeworkMutationError };
   }
 
-  if (!viewer.isAdmin && homework.createdById !== input.userId) {
+  if (!viewer.viewer.isAdmin && homework.createdById !== input.userId) {
     return { ok: false as const, error: "forbidden" as HomeworkMutationError };
   }
 

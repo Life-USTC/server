@@ -18,14 +18,8 @@ vi.mock("@/lib/auth/api-auth", () => ({
 }));
 
 vi.mock("@/features/comments/server/comment-mutations", () => ({
-  createCommentRecord: vi.fn(),
-  resolveCreateCommentParent: vi.fn(),
+  createComment: vi.fn(),
   updateOwnComment: vi.fn(),
-  validateCommentAttachmentIds: vi.fn(),
-}));
-
-vi.mock("@/features/comments/server/comment-utils", () => ({
-  resolveCommentTarget: vi.fn(),
 }));
 
 vi.mock("@/features/descriptions/server/description-upsert", () => ({

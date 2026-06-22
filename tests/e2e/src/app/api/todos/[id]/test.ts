@@ -3,7 +3,7 @@
  *
  * ## PATCH /api/todos/[id]
  * - Body: { title?, content?, priority?, completed?, dueAt? }
- * - Response: { success: true }
+ * - Response: { success: true, todo: TodoItem }
  * - Auth required (401 if unauthenticated)
  * - Ownership check: returns 403 if todo belongs to another user
  * - Returns 404 for non-existent todo
@@ -58,23 +58,18 @@ test("/api/todos/[id] PATCH 登录后可更新待办", async ({ page }) => {
       },
     });
     expect(patchResponse.status()).toBe(200);
-    expect((await patchResponse.json()) as { success?: boolean }).toEqual({
-      success: true,
-    });
-
-    const listResponse = await page.request.get("/api/todos");
-    expect(listResponse.status()).toBe(200);
-    const listBody = (await listResponse.json()) as {
-      todos?: Array<{ id?: string; title?: string; completed?: boolean }>;
+    const patchBody = (await patchResponse.json()) as {
+      success?: boolean;
+      todo?: { completed?: boolean; id?: string; title?: string };
     };
-    expect(
-      listBody.todos?.some(
-        (todo) =>
-          todo.id === todoId &&
-          todo.title === "updated todo title" &&
-          todo.completed === true,
-      ),
-    ).toBe(true);
+    expect(patchBody).toMatchObject({
+      success: true,
+      todo: {
+        completed: true,
+        id: todoId,
+        title: "updated todo title",
+      },
+    });
   } finally {
     await page.request.delete(`/api/todos/${todoId}`);
   }
