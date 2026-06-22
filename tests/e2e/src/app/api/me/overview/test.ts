@@ -44,6 +44,7 @@ test.describe("GET /api/me/overview", () => {
         items?: Array<{ section?: { code?: string } }>;
       };
       todos?: { items?: Array<{ title?: string }> };
+      dueTodos?: { items?: Array<{ title?: string; dueAt?: string }> };
       homeworks?: { items?: Array<{ title?: string }> };
       exams?: { items?: Array<{ section?: { code?: string } }> };
       user?: { userId?: string; name?: string | null };
@@ -64,6 +65,13 @@ test.describe("GET /api/me/overview", () => {
     expect(
       body.todos?.items?.some(
         (todo) => todo.title === DEV_SEED.todos.dueTodayTitle,
+      ),
+    ).toBe(true);
+    expect(
+      body.dueTodos?.items?.some(
+        (todo) =>
+          todo.title === DEV_SEED.todos.dueTodayTitle &&
+          typeof todo.dueAt === "string",
       ),
     ).toBe(true);
     expect((body.homeworks?.items?.length ?? 0) > 0).toBe(true);

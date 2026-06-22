@@ -1,8 +1,7 @@
-import { getSubscribedSectionIds } from "@/features/home/server/subscription-read-model";
+import { getCompactOverview } from "@/features/home/server/compact-overview-read-model";
+import { DEFAULT_LOCALE, isAppLocale } from "@/i18n/config";
 import {
-  getTodayBounds,
   getUserId,
-  getViewerInfo,
   jsonToolResult,
   type McpModeInput,
   parseOptionalMcpDate,
@@ -11,9 +10,7 @@ import {
 import {
   buildMyOverviewFullPayload,
   buildMyOverviewSummaryPayload,
-  loadMyOverviewCounts,
-  loadMyOverviewSamples,
-} from "./my-data-overview-payload";
+} from "./my-data-overview-response";
 
 type ToolExtra = { authInfo?: Parameters<typeof getUserId>[0] };
 
@@ -27,35 +24,23 @@ export async function getMyOverviewAction(
 ) {
   const resolvedMode = resolveMcpMode(mode);
   const userId = getUserId(extra.authInfo);
-  const user = await getViewerInfo(userId);
-  const sectionIds = await getSubscribedSectionIds(userId);
   const atTimeDate = parseOptionalMcpDate("atTime", atTime);
   if (!atTimeDate.ok) {
     return atTimeDate.result;
   }
-  const { now, todayStart, tomorrowStart } = getTodayBounds(atTimeDate.value);
-  const counts = await loadMyOverviewCounts({
-    now,
-    sectionIds,
-    todayStart,
-    tomorrowStart,
-    userId,
-  });
-  const samples = await loadMyOverviewSamples({
-    locale,
-    now,
-    sectionIds,
-    userId,
+
+  const overview = await getCompactOverview(userId, {
+    ...(atTimeDate.value ? { atTime: atTimeDate.value } : {}),
+    locale: isAppLocale(locale) ? locale : DEFAULT_LOCALE,
   });
 
   if (resolvedMode === "summary") {
-    return jsonToolResult(
-      buildMyOverviewSummaryPayload({ counts, samples, user }),
-      { mode: "default" },
-    );
+    return jsonToolResult(buildMyOverviewSummaryPayload(overview), {
+      mode: "default",
+    });
   }
 
-  return jsonToolResult(buildMyOverviewFullPayload({ counts, samples, user }), {
+  return jsonToolResult(buildMyOverviewFullPayload(overview), {
     mode: resolvedMode,
   });
 }
