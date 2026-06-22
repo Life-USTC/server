@@ -1,3 +1,5 @@
+import { readApiErrorMessage } from "@/lib/api/client";
+
 type PinnableDashboardLink = {
   isPinned: boolean;
   slug: string;
@@ -34,14 +36,15 @@ export async function submitDashboardLinkPinRequest(input: {
     body: formData,
     headers: { accept: "application/json" },
   });
+
+  if (!response.ok) {
+    throw new Error(await readApiErrorMessage(response, input.fallbackMessage));
+  }
+
   const payload = (await response.json()) as {
     error?: string | null;
     pinnedSlugs?: string[];
   };
-
-  if (!response.ok) {
-    throw new Error(payload.error ?? input.fallbackMessage);
-  }
 
   return payload.pinnedSlugs ?? [];
 }

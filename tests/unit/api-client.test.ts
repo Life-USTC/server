@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractApiErrorMessage } from "@/lib/api/client";
+import { extractApiErrorMessage, readApiErrorMessage } from "@/lib/api/client";
 
 describe("api client helpers", () => {
   it("extracts plain and Error messages", () => {
@@ -50,5 +50,26 @@ describe("api client helpers", () => {
   it("returns null when no usable message is present", () => {
     expect(extractApiErrorMessage(undefined)).toBeNull();
     expect(extractApiErrorMessage({ error: "   ", errors: [] })).toBeNull();
+  });
+
+  it("reads API error messages from response bodies", async () => {
+    await expect(
+      readApiErrorMessage(
+        new Response(JSON.stringify({ error: "  server failed  " }), {
+          headers: { "content-type": "application/json" },
+          status: 400,
+        }),
+        "fallback",
+      ),
+    ).resolves.toBe("server failed");
+  });
+
+  it("falls back when response bodies are not JSON error payloads", async () => {
+    await expect(
+      readApiErrorMessage(
+        new Response("plain text failure", { status: 500 }),
+        "fallback",
+      ),
+    ).resolves.toBe("fallback");
   });
 });

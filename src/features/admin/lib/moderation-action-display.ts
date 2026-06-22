@@ -1,3 +1,4 @@
+import { readApiErrorMessage } from "@/lib/api/client";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import {
   addShanghaiTime,
@@ -9,10 +10,7 @@ export function formAlertVariant(kind: unknown) {
 }
 
 export function responseMessage(response: Response, fallback: string) {
-  return response
-    .json()
-    .then((body) => String(body?.message ?? body?.error?.message ?? fallback))
-    .catch(() => fallback);
+  return readApiErrorMessage(response, fallback);
 }
 
 export function expiresAtFromModerationDuration(
