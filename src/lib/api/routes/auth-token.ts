@@ -59,12 +59,16 @@ async function normalizeOAuthTokenErrorResponse(response: Response) {
 
   const body = await parseJsonBody(response);
   const error_description = getOAuthErrorDescription(body);
+  const headers = new Headers(response.headers);
+  headers.delete("Content-Length");
+  headers.set("Content-Type", "application/json; charset=utf-8");
+
   return jsonResponse(
     {
       error: getOAuthErrorCode(response.status, body),
       ...(error_description ? { error_description } : {}),
     },
-    { status: response.status },
+    { status: response.status, statusText: response.statusText, headers },
   );
 }
 
