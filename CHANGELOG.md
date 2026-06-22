@@ -1,3 +1,12 @@
+## [1.36.3](https://github.com/Life-USTC/server/compare/v1.36.2...v1.36.3) (2026-06-22)
+
+
+### Bug Fixes
+
+* **api:** align service gates and public parity ([d34cdfd](https://github.com/Life-USTC/server/commit/d34cdfd4bcc576a471941c9704b432ea7fd137cf))
+* **api:** document admin auth responses ([bccf861](https://github.com/Life-USTC/server/commit/bccf86124c0b7a6cca39bd435129fa2e25fe4fd8))
+* **api:** resolve surface parity follow-ups ([44e243e](https://github.com/Life-USTC/server/commit/44e243e68b58d1fc8256f0fbd989800d8c7269cd))
+
 ## [1.36.2](https://github.com/Life-USTC/server/compare/v1.36.1...v1.36.2) (2026-06-22)
 
 
