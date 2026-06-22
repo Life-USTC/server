@@ -659,15 +659,70 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
         todaySchedulesCount?: number;
         upcomingExamsCount?: number;
       };
+      samples?: { dueTodos?: Array<{ dueAt?: string | null }> };
     }>("get_my_overview", {
       locale: "zh-cn",
       atTime: SEED_AT_TIME,
+      mode: "full",
     });
 
     expect(typeof result.overview?.pendingTodosCount).toBe("number");
     // The seed day has seeded schedules so today's count should be > 0
     expect((result.overview?.todaySchedulesCount ?? 0) > 0).toBe(true);
     expect(typeof result.overview?.upcomingExamsCount).toBe("number");
+    expect((result.samples?.dueTodos?.length ?? 0) > 0).toBe(true);
+    expect(
+      result.samples?.dueTodos?.every((todo) => typeof todo.dueAt === "string"),
+    ).toBe(true);
+  });
+
+  it("get_my_overview excludes homework samples outside the compact overview window", async () => {
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { id: devUserId },
+      select: {
+        subscribedSections: {
+          select: { id: true },
+          orderBy: { id: "asc" },
+          take: 1,
+        },
+      },
+    });
+    const sectionId = user.subscribedSections.at(0)?.id;
+    if (!sectionId) {
+      throw new Error("Dev seed user has no subscribed sections");
+    }
+
+    const title = `[integration-test] outside overview window ${Date.now()}`;
+    const homework = await prisma.homework.create({
+      data: {
+        createdById: devUserId,
+        isMajor: false,
+        requiresTeam: false,
+        sectionId,
+        submissionDueAt: new Date(`${SEED_PLUS_SEVEN_DAYS}T09:00:00+08:00`),
+        title,
+        updatedById: devUserId,
+      },
+      select: { id: true },
+    });
+
+    try {
+      const result = await mcp.call<{
+        samples?: { dueHomeworks?: Array<{ id?: string; title?: string }> };
+      }>("get_my_overview", {
+        locale: "zh-cn",
+        atTime: SEED_AT_TIME,
+        mode: "full",
+      });
+
+      expect(
+        result.samples?.dueHomeworks?.some(
+          (sample) => sample.id === homework.id || sample.title === title,
+        ),
+      ).toBe(false);
+    } finally {
+      await prisma.homework.deleteMany({ where: { id: homework.id } });
+    }
   });
 
   it("get_my_overview excludes same-day exams that already ended", async () => {

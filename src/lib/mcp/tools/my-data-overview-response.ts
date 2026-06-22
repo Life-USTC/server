@@ -1,32 +1,38 @@
-import type {
-  loadMyOverviewCounts,
-  loadMyOverviewSamples,
-} from "@/features/home/server/my-overview-read-model";
+import type { getCompactOverview } from "@/features/home/server/compact-overview-read-model";
 import {
   summarizeExamCard,
   summarizeHomeworkCard,
   summarizeTodoCard,
 } from "@/lib/mcp/tools/event-summary";
 
-type MyOverviewCounts = Awaited<ReturnType<typeof loadMyOverviewCounts>>;
-type MyOverviewSamples = Awaited<ReturnType<typeof loadMyOverviewSamples>>;
+type CompactOverview = Awaited<ReturnType<typeof getCompactOverview>>;
 
-export function buildMyOverviewSummaryPayload({
-  counts,
-  samples,
-  user,
-}: {
-  counts: MyOverviewCounts;
-  samples: MyOverviewSamples;
-  user: { id: string; image: string | null; name: string | null };
-}) {
+function buildOverviewCounts(overview: CompactOverview) {
+  return {
+    pendingTodosCount: overview.counts.todos.incomplete,
+    pendingHomeworksCount: overview.counts.pendingHomeworks,
+    todaySchedulesCount: overview.counts.todaySchedules,
+    upcomingExamsCount: overview.counts.upcomingExams,
+  };
+}
+
+function buildOverviewSamples(overview: CompactOverview) {
+  return {
+    dueTodos: overview.dueTodos.items,
+    dueHomeworks: overview.homeworks.items,
+    upcomingExams: overview.exams.items,
+  };
+}
+
+export function buildMyOverviewSummaryPayload(overview: CompactOverview) {
+  const samples = buildOverviewSamples(overview);
   return {
     user: {
-      id: user.id,
-      name: user.name,
-      image: user.image,
+      id: overview.user.userId,
+      name: overview.user.name,
+      image: overview.user.image,
     },
-    overview: counts,
+    overview: buildOverviewCounts(overview),
     samples: {
       dueTodos: {
         total: samples.dueTodos.length,
@@ -44,28 +50,15 @@ export function buildMyOverviewSummaryPayload({
   };
 }
 
-export function buildMyOverviewFullPayload({
-  counts,
-  samples,
-  user,
-}: {
-  counts: MyOverviewCounts;
-  samples: MyOverviewSamples;
-  user: {
-    id: string;
-    image: string | null;
-    isAdmin: boolean;
-    name: string | null;
-  };
-}) {
+export function buildMyOverviewFullPayload(overview: CompactOverview) {
   return {
     user: {
-      id: user.id,
-      name: user.name,
-      image: user.image,
-      isAdmin: user.isAdmin,
+      id: overview.user.userId,
+      name: overview.user.name,
+      image: overview.user.image,
+      isAdmin: overview.user.isAdmin,
     },
-    overview: counts,
-    samples,
+    overview: buildOverviewCounts(overview),
+    samples: buildOverviewSamples(overview),
   };
 }

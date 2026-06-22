@@ -37,11 +37,11 @@
         "routes": [
           {
             "path": "/api/me/overview",
-            "returns": "{ user, anchor, counts, schedules, todos, homeworks, exams }",
+            "returns": "{ user, anchor, counts, schedules, todos, dueTodos, homeworks, exams }",
             "notes": [
               "Compact authenticated overview for bot, CLI, and mobile clients.",
               "Supports atTime, homeworkWindowDays, limit, and locale query parameters.",
-              "Includes today schedule samples in addition to the counts and task/deadline samples exposed by get_my_overview."
+              "Includes today schedule samples and incomplete todo samples in addition to the due-todo, homework, and exam samples exposed by get_my_overview."
             ]
           }
         ]
@@ -54,9 +54,9 @@
             "rest_equivalent": "GET /api/me/overview",
             "notes": [
               "overview contains pending todo, homework, today's schedule, and upcoming exam counts.",
-              "samples contains dueTodos[], dueHomeworks[], and upcomingExams[].",
+              "samples contains dueTodos[], dueHomeworks[], and upcomingExams[] from the same compact overview read operation, default homework window, atTime anchoring, and sample limit semantics as GET /api/me/overview.",
               "Count-and-sample oriented tool; use get_my_dashboard for a richer single-call assistant snapshot.",
-              "Summary mode trims samples further; optional atTime anchors today's bounds for tests or specific-day questions."
+              "Summary mode summarizes samples into smaller cards; optional atTime anchors today's bounds for tests or specific-day questions."
             ]
           }
         ]

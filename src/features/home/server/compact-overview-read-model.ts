@@ -1,5 +1,9 @@
 import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
-import { listTodoSummary } from "@/features/todos/server/todo-service";
+import {
+  countDueTodos,
+  listDueTodoSamples,
+  listTodoSummary,
+} from "@/features/todos/server/todo-service";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { prisma } from "@/lib/db/prisma";
 import { serializeScheduleTimeFields } from "@/lib/schedule-serialization";
@@ -47,7 +51,7 @@ export async function getCompactOverview(
     .add(homeworkWindowDays, "day")
     .toDate();
 
-  const [user, sectionIds, todos] = await Promise.all([
+  const [user, sectionIds, todos, dueTodosCount, dueTodos] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, image: true, isAdmin: true, name: true },
@@ -56,6 +60,21 @@ export async function getCompactOverview(
     listTodoSummary({
       filters: { completed: false },
       now,
+      take: limit,
+      userId,
+    }),
+    countDueTodos({
+      completed: false,
+      dueAtFrom: now,
+      dueAtTo: homeworkWindowEnd,
+      includeDueAtTo: true,
+      userId,
+    }),
+    listDueTodoSamples({
+      completed: false,
+      dueAtFrom: now,
+      dueAtTo: homeworkWindowEnd,
+      includeDueAtTo: true,
       take: limit,
       userId,
     }),
@@ -154,6 +173,10 @@ export async function getCompactOverview(
     todos: {
       counts: todos.counts,
       items: todos.todos,
+    },
+    dueTodos: {
+      total: dueTodosCount,
+      items: dueTodos,
     },
     homeworks: {
       total: dueSoonHomeworksCount,

@@ -50,6 +50,18 @@ export const compactOverviewResponseSchema = z.object({
       }),
     ),
   }),
+  dueTodos: z.object({
+    total: z.number().int().nonnegative(),
+    items: z.array(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+        priority: todoPrioritySchema,
+        dueAt: dateTimeSchema,
+        createdAt: dateTimeSchema,
+      }),
+    ),
+  }),
   homeworks: z.object({
     total: z.number().int().nonnegative(),
     items: z.array(homeworkItemSchema),
