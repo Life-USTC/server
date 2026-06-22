@@ -55,4 +55,44 @@ describe("OAuth token route", () => {
       error_description: "[body.grant_type] Invalid option",
     });
   });
+
+  it("preserves delegated OAuth error headers", async () => {
+    betterAuthHandlerMock.mockResolvedValueOnce(
+      Response.json(
+        {
+          message: "Invalid client credentials",
+        },
+        {
+          status: 401,
+          headers: {
+            "Cache-Control": "no-store",
+            "Content-Length": "999",
+            "WWW-Authenticate": 'Basic realm="OAuth token"',
+          },
+        },
+      ),
+    );
+
+    const response = await tokenPostRoute(
+      new Request("http://localhost/api/auth/oauth2/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: "grant_type=client_credentials",
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("content-length")).toBeNull();
+    expect(response.headers.get("content-type")).toBe(
+      "application/json; charset=utf-8",
+    );
+    expect(response.headers.get("www-authenticate")).toBe(
+      'Basic realm="OAuth token"',
+    );
+    expect(await response.json()).toEqual({
+      error: "invalid_client",
+      error_description: "Invalid client credentials",
+    });
+  });
 });
