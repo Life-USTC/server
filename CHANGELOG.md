@@ -1,3 +1,10 @@
+## [1.36.10](https://github.com/Life-USTC/server/compare/v1.36.9...v1.36.10) (2026-06-22)
+
+
+### Bug Fixes
+
+* **api:** observe readiness responses ([62a1e47](https://github.com/Life-USTC/server/commit/62a1e47a0da40716031f13a0b9986744b21c3e47))
+
 ## [1.36.9](https://github.com/Life-USTC/server/compare/v1.36.8...v1.36.9) (2026-06-22)
 
 
