@@ -1,9 +1,5 @@
 import type { SubmitFunction } from "@sveltejs/kit";
 import {
-  HOMEWORK_DESCRIPTION_MAX_LENGTH,
-  HOMEWORK_TITLE_MAX_LENGTH,
-} from "./dashboard-limits";
-import {
   actionResultError,
   validateCreateHomeworkForm as validateCreateHomeworkFormData,
 } from "./forms";
@@ -15,10 +11,7 @@ export function validateDashboardCreateHomeworkForm(
   formData: FormData,
   homeworksCopy: HomeworksCopy,
 ) {
-  return validateCreateHomeworkFormData(formData, homeworksCopy, {
-    titleMaxLength: HOMEWORK_TITLE_MAX_LENGTH,
-    descriptionMaxLength: HOMEWORK_DESCRIPTION_MAX_LENGTH,
-  });
+  return validateCreateHomeworkFormData(formData, homeworksCopy);
 }
 
 export function createDashboardHomeworkAction({

@@ -44,4 +44,25 @@ describe("dashboard todo form", () => {
     expect(error.status).toBe(400);
     expect(error.data).toEqual({ error: "invalid priority" });
   });
+
+  it("rejects impossible due dates with the todo feature parser", async () => {
+    const body = new FormData();
+    body.set("title", "Read Chapter 1");
+    body.set("dueAt", "2026-02-30T10:00");
+
+    const parsed = await readTodoForm(
+      new Request("https://life.example/dashboard/todos?/createTodo", {
+        body,
+        method: "POST",
+      }),
+      copy,
+    );
+
+    expect("error" in parsed).toBe(true);
+    if (!("error" in parsed)) return;
+    const { error } = parsed;
+    if (!error) throw new Error("Expected invalid due date failure");
+    expect(error.status).toBe(400);
+    expect(error.data).toEqual({ error: "invalid due date" });
+  });
 });

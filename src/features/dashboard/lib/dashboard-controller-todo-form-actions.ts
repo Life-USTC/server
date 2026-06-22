@@ -1,9 +1,5 @@
 import type { SubmitFunction } from "@sveltejs/kit";
 import {
-  TODO_CONTENT_MAX_LENGTH,
-  TODO_TITLE_MAX_LENGTH,
-} from "./dashboard-limits";
-import {
   actionResultError,
   validateTodoForm as validateTodoFormData,
 } from "./forms";
@@ -16,10 +12,7 @@ export function validateDashboardTodoForm(
   formData: FormData,
   todosCopy: TodoCopy,
 ) {
-  return validateTodoFormData(formData, todosCopy, {
-    titleMaxLength: TODO_TITLE_MAX_LENGTH,
-    contentMaxLength: TODO_CONTENT_MAX_LENGTH,
-  });
+  return validateTodoFormData(formData, todosCopy);
 }
 
 export function createDashboardTodoAction({

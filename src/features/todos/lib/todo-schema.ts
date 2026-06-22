@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { parseDateInput } from "@/lib/time/parse-date-input";
 import { TODO_CONTENT_MAX_LENGTH, TODO_TITLE_MAX_LENGTH } from "./todo-limits";
 import { TODO_PRIORITY_VALUES } from "./todo-priority";
 
@@ -11,6 +12,7 @@ export const todoTitleSchema = z
   .max(TODO_TITLE_MAX_LENGTH);
 export const todoContentSchema = z
   .string()
+  .trim()
   .max(TODO_CONTENT_MAX_LENGTH)
   .optional()
   .nullable();
@@ -30,3 +32,33 @@ export const todoUpdateInputSchema = z.object({
   dueAt: todoDueAtInputSchema,
   completed: z.boolean().optional(),
 });
+
+export type TodoTitleValidationError = "required" | "too_long";
+export type TodoContentValidationError = "too_long";
+export type TodoDueAtValidationError = "invalid";
+
+export function getTodoTitleValidationError(
+  title: string,
+): TodoTitleValidationError | null {
+  const trimmedTitle = title.trim();
+  if (!trimmedTitle) return "required";
+  if (trimmedTitle.length > TODO_TITLE_MAX_LENGTH) return "too_long";
+  return null;
+}
+
+export function getTodoContentValidationError(
+  content: string,
+): TodoContentValidationError | null {
+  if (content.trim().length > TODO_CONTENT_MAX_LENGTH) return "too_long";
+  return null;
+}
+
+export function parseTodoDueAtInput(value: unknown) {
+  return parseDateInput(value);
+}
+
+export function getTodoDueAtValidationError(
+  value: unknown,
+): TodoDueAtValidationError | null {
+  return parseTodoDueAtInput(value) === undefined ? "invalid" : null;
+}

@@ -1,8 +1,9 @@
 import * as z from "zod";
 import {
-  HOMEWORK_DESCRIPTION_MAX_LENGTH,
-  HOMEWORK_TITLE_MAX_LENGTH,
-} from "@/features/homeworks/lib/homework-limits";
+  homeworkDateInputSchema,
+  homeworkDescriptionInputSchema,
+  homeworkTitleSchema,
+} from "@/features/homeworks/lib/homework-schema";
 import {
   parseOptionalIntLike,
   sectionCodeSchema,
@@ -16,15 +17,11 @@ export const matchSectionCodesRequestSchema = z.object({
 });
 
 const homeworkCreateBaseRequestSchema = z.object({
-  title: z.string().trim().min(1).max(HOMEWORK_TITLE_MAX_LENGTH),
-  description: z
-    .string()
-    .max(HOMEWORK_DESCRIPTION_MAX_LENGTH)
-    .optional()
-    .nullable(),
-  publishedAt: z.union([z.string(), z.null()]).optional(),
-  submissionStartAt: z.union([z.string(), z.null()]).optional(),
-  submissionDueAt: z.union([z.string(), z.null()]).optional(),
+  title: homeworkTitleSchema,
+  description: homeworkDescriptionInputSchema,
+  publishedAt: homeworkDateInputSchema,
+  submissionStartAt: homeworkDateInputSchema,
+  submissionDueAt: homeworkDateInputSchema,
   isMajor: z.boolean().optional(),
   requiresTeam: z.boolean().optional(),
 });
@@ -57,15 +54,11 @@ export const homeworkCompletionBatchRequestSchema = z.object({
 });
 
 export const homeworkUpdateRequestSchema = z.object({
-  title: z.string().trim().min(1).max(HOMEWORK_TITLE_MAX_LENGTH).optional(),
-  description: z
-    .string()
-    .max(HOMEWORK_DESCRIPTION_MAX_LENGTH)
-    .optional()
-    .nullable(),
-  publishedAt: z.union([z.string(), z.null()]).optional(),
-  submissionStartAt: z.union([z.string(), z.null()]).optional(),
-  submissionDueAt: z.union([z.string(), z.null()]).optional(),
+  title: homeworkTitleSchema.optional(),
+  description: homeworkDescriptionInputSchema,
+  publishedAt: homeworkDateInputSchema,
+  submissionStartAt: homeworkDateInputSchema,
+  submissionDueAt: homeworkDateInputSchema,
   isMajor: z.boolean().optional(),
   requiresTeam: z.boolean().optional(),
 });

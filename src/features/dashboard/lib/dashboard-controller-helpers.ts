@@ -2,7 +2,7 @@ export {
   buildCalendarWeekdayLabels,
   buildSignedTabs,
 } from "./dashboard-controller-labels";
-export { todoPriorityOrder } from "./dashboard-controller-limits";
+export const todoPriorityOrder = ["medium", "high", "low"] as const;
 export {
   isAnonymousDashboardData,
   isSignedDashboardData,
