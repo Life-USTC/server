@@ -7,6 +7,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @params adminHomeworksQuerySchema
  * @response adminHomeworksResponseSchema
  * @response 400:openApiErrorSchema
+ * @response 401:openApiErrorSchema
  */
 export const GET = svelteRequestHandler(
   observedApiRoute(getAdminHomeworksRoute),

@@ -8,6 +8,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @body adminUpdateUserRequestSchema
  * @response adminUserResponseSchema
  * @response 400:openApiErrorSchema
+ * @response 401:openApiErrorSchema
  */
 export const PATCH: RequestHandler = ({ request, params }) =>
   observedApiRoute(() => patchAdminUserRoute(request, { id: params.id }))(

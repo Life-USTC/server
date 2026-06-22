@@ -8,6 +8,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @body adminModerateCommentRequestSchema
  * @response adminModeratedCommentResponseSchema
  * @response 400:openApiErrorSchema
+ * @response 401:openApiErrorSchema
  */
 export const PATCH: RequestHandler = ({ request, params }) =>
   observedApiRoute(() => patchAdminCommentRoute(request, { id: params.id }))(
