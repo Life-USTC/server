@@ -1,3 +1,13 @@
+## [1.36.2](https://github.com/Life-USTC/server/compare/v1.36.1...v1.36.2) (2026-06-22)
+
+
+### Bug Fixes
+
+* **api:** align locale and snapshot tooling ([c876b9b](https://github.com/Life-USTC/server/commit/c876b9b67e20cafb6f5d208c12597c59730a3cb6))
+* **api:** vary localized detail responses ([011816a](https://github.com/Life-USTC/server/commit/011816a07ca4e895f22fbd58749d5f4c191cfadd))
+* **tooling:** keep snapshot teardown nonfatal ([e3f52ad](https://github.com/Life-USTC/server/commit/e3f52adefce834ead12d5d70ba738ca5acf1ca0f))
+* **tooling:** prevent snapshot capture teardown hangs ([bbe0ecc](https://github.com/Life-USTC/server/commit/bbe0ecca053bb453ffff6eeae5920276888e892c))
+
 ## [1.36.1](https://github.com/Life-USTC/server/compare/v1.36.0...v1.36.1) (2026-06-21)
 
 
