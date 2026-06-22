@@ -1,4 +1,9 @@
+import type { RequestEvent } from "@sveltejs/kit";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  renderPrometheusMetrics,
+  resetRuntimeMetricsForTest,
+} from "@/lib/metrics/runtime-metrics";
 
 const { queryRawMock, storageReadinessMock } = vi.hoisted(() => ({
   queryRawMock: vi.fn(),
@@ -18,8 +23,13 @@ vi.mock("@/lib/storage/r2-object", () => ({
   storageReadiness: storageReadinessMock,
 }));
 
+function eventWithRequest(request: Request) {
+  return { request } as RequestEvent;
+}
+
 describe("/api/readiness", () => {
   afterEach(() => {
+    resetRuntimeMetricsForTest();
     queryRawMock.mockReset();
     storageReadinessMock.mockClear();
     vi.restoreAllMocks();
@@ -31,11 +41,13 @@ describe("/api/readiness", () => {
     vi.spyOn(console, "info").mockImplementation(() => {});
     const { GET } = await import("@/routes/api/readiness/+server");
 
-    const response = await GET({
-      request: new Request("http://127.0.0.1:3000/api/readiness", {
-        headers: { "x-request-id": "request-1" },
-      }),
-    });
+    const response = await GET(
+      eventWithRequest(
+        new Request("http://127.0.0.1:3000/api/readiness", {
+          headers: { "x-request-id": "request-1" },
+        }),
+      ),
+    );
 
     expect(response.status).toBe(200);
     const body = await response.json();
@@ -47,17 +59,54 @@ describe("/api/readiness", () => {
       },
     });
     expect(typeof body.uptimeSeconds).toBe("number");
+
+    expect(renderPrometheusMetrics()).toContain(
+      'life_ustc_api_requests_total{auth_mode="anonymous",method="GET",route="/api/readiness",status="200"} 1',
+    );
+  });
+
+  it("records degraded readiness responses as api errors", async () => {
+    queryRawMock.mockRejectedValue(new Error("database unavailable"));
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    const { GET } = await import("@/routes/api/readiness/+server");
+
+    const response = await GET(
+      eventWithRequest(
+        new Request("http://127.0.0.1:3000/api/readiness", {
+          headers: { "x-request-id": "request-503" },
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({
+      status: "degraded",
+      checks: {
+        database: { status: "error" },
+        storage: { status: "ok" },
+      },
+    });
+
+    const metrics = renderPrometheusMetrics();
+    expect(metrics).toContain(
+      'life_ustc_api_requests_total{auth_mode="anonymous",method="GET",route="/api/readiness",status="503"} 1',
+    );
+    expect(metrics).toContain(
+      'life_ustc_api_errors_total{method="GET",route="/api/readiness",status="503"} 1',
+    );
   });
 
   it("hides readiness from remote requests without a token", async () => {
     vi.spyOn(console, "info").mockImplementation(() => {});
     const { GET } = await import("@/routes/api/readiness/+server");
 
-    const response = await GET({
-      request: new Request("https://example.test/api/readiness", {
-        headers: { host: "example.test" },
-      }),
-    });
+    const response = await GET(
+      eventWithRequest(
+        new Request("https://example.test/api/readiness", {
+          headers: { host: "example.test" },
+        }),
+      ),
+    );
 
     expect(response.status).toBe(404);
     expect(queryRawMock).not.toHaveBeenCalled();
