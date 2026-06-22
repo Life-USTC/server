@@ -62,11 +62,6 @@ export function createSectionHomeworkSubmitActions(
       input.setEditHomeworkMessage(homeworkCopy.updateFailed);
       return;
     }
-    if (updateResult === "description-error") {
-      input.setEditHomeworkMessage(homeworkCopy.updateFailed);
-      await loadHomeworks();
-      return;
-    }
 
     input.cancelEditHomework();
     await loadHomeworks();
