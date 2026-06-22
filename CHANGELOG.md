@@ -1,3 +1,10 @@
+## [1.36.7](https://github.com/Life-USTC/server/compare/v1.36.6...v1.36.7) (2026-06-22)
+
+
+### Bug Fixes
+
+* **dashboard:** consolidate form validation ([e1efd10](https://github.com/Life-USTC/server/commit/e1efd10d4c86d784592139c92ebdf62c00abf422))
+
 ## [1.36.6](https://github.com/Life-USTC/server/compare/v1.36.5...v1.36.6) (2026-06-22)
 
 
