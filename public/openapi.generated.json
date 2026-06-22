@@ -945,7 +945,14 @@
         },
         "responses": {
           "200": {
-            "description": "Response 200"
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/oauthDeviceAuthorizationResponseSchema"
+                }
+              }
+            }
           },
           "400": {
             "description": "Error response",
@@ -998,7 +1005,14 @@
         },
         "responses": {
           "200": {
-            "description": "Response 200"
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/oauthTokenResponseSchema"
+                }
+              }
+            }
           },
           "400": {
             "description": "Error response",
@@ -7979,6 +7993,83 @@
         },
         "required": [
           "user"
+        ],
+        "additionalProperties": false
+      },
+      "oauthDeviceAuthorizationResponseSchema": {
+        "type": "object",
+        "properties": {
+          "device_code": {
+            "type": "string"
+          },
+          "user_code": {
+            "type": "string"
+          },
+          "verification_uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "verification_uri_complete": {
+            "type": "string",
+            "format": "uri"
+          },
+          "expires_in": {
+            "type": "integer",
+            "exclusiveMinimum": true,
+            "maximum": 9007199254740991
+          },
+          "interval": {
+            "type": "integer",
+            "exclusiveMinimum": true,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "device_code",
+          "user_code",
+          "verification_uri",
+          "verification_uri_complete",
+          "expires_in",
+          "interval"
+        ],
+        "additionalProperties": false
+      },
+      "oauthTokenResponseSchema": {
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string",
+            "enum": [
+              "Bearer"
+            ]
+          },
+          "expires_in": {
+            "type": "integer",
+            "exclusiveMinimum": true,
+            "maximum": 9007199254740991
+          },
+          "expires_at": {
+            "type": "integer",
+            "exclusiveMinimum": true,
+            "maximum": 9007199254740991
+          },
+          "refresh_token": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "id_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "access_token",
+          "token_type",
+          "expires_in"
         ],
         "additionalProperties": false
       },

@@ -1,8 +1,6 @@
-import {
-  listAdminUsers,
-  updateAdminUser,
-} from "@/features/admin/server/admin-api-service";
+import { updateAdminUser } from "@/features/admin/server/admin-api-service";
 import { ADMIN_USERS_PAGE_SIZE } from "@/features/admin/server/admin-constants";
+import { listAdminUsers } from "@/features/admin/server/admin-user-read-model";
 import {
   badRequest,
   buildPaginatedResponse,

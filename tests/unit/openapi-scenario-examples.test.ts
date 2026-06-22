@@ -28,15 +28,45 @@ const OPENAPI_HTTP_METHODS = [
 
 type GeneratedOperation = {
   description?: string;
+  responses?: Record<
+    string,
+    {
+      content?: Record<
+        string,
+        {
+          schema?: GeneratedSchema;
+        }
+      >;
+    }
+  >;
   summary?: string;
 };
 
+type GeneratedSchema = {
+  $ref?: string;
+  properties?: Record<string, unknown>;
+  required?: string[];
+};
+
 type GeneratedOpenApiDocument = {
+  components?: {
+    schemas?: Record<string, GeneratedSchema>;
+  };
   paths: Record<
     string,
     Partial<Record<(typeof OPENAPI_HTTP_METHODS)[number], GeneratedOperation>>
   >;
 };
+
+function resolveGeneratedSchema(
+  spec: GeneratedOpenApiDocument,
+  schema: GeneratedSchema | undefined,
+) {
+  const ref = schema?.$ref;
+  if (!ref) return schema;
+  const schemaName = ref.match(/^#\/components\/schemas\/(.+)$/)?.[1];
+  return schemaName ? spec.components?.schemas?.[schemaName] : undefined;
+}
 
 describe("buildScenarioOpenApiExamples", () => {
   it("uses scenario fixture values for catalog response examples", () => {
@@ -150,6 +180,57 @@ describe("buildScenarioOpenApiExamples", () => {
     );
     expect(spec.paths["/api/mcp"]?.options?.summary).toBe(
       "Return MCP transport CORS preflight headers",
+    );
+  });
+
+  it("documents OAuth success response bodies", () => {
+    const spec = generatedOpenApiDocument as GeneratedOpenApiDocument;
+    const deviceSchema = resolveGeneratedSchema(
+      spec,
+      spec.paths["/api/auth/oauth2/device-authorization"]?.post?.responses?.[
+        "200"
+      ]?.content?.["application/json"]?.schema,
+    );
+    const tokenSchema = resolveGeneratedSchema(
+      spec,
+      spec.paths["/api/auth/oauth2/token"]?.post?.responses?.["200"]?.content?.[
+        "application/json"
+      ]?.schema,
+    );
+
+    expect(deviceSchema?.required).toEqual(
+      expect.arrayContaining([
+        "device_code",
+        "user_code",
+        "verification_uri",
+        "verification_uri_complete",
+        "expires_in",
+        "interval",
+      ]),
+    );
+    expect(Object.keys(deviceSchema?.properties ?? {})).toEqual(
+      expect.arrayContaining([
+        "device_code",
+        "user_code",
+        "verification_uri",
+        "verification_uri_complete",
+        "expires_in",
+        "interval",
+      ]),
+    );
+    expect(tokenSchema?.required).toEqual(
+      expect.arrayContaining(["access_token", "token_type", "expires_in"]),
+    );
+    expect(Object.keys(tokenSchema?.properties ?? {}).sort()).toEqual(
+      [
+        "access_token",
+        "expires_in",
+        "expires_at",
+        "id_token",
+        "refresh_token",
+        "scope",
+        "token_type",
+      ].sort(),
     );
   });
 });

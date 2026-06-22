@@ -4,7 +4,7 @@ import { svelteRequestHandler } from "@/lib/api/svelte-route";
 /**
  * Exchange OAuth 2.0 authorization/device/refresh grants for tokens.
  * @body oauthTokenRequestSchema
- * @response 200
+ * @response 200:oauthTokenResponseSchema
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
  */

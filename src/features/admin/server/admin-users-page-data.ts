@@ -3,9 +3,8 @@ import {
   getPrismaClient,
   requireAdminPage,
 } from "@/features/admin/server/admin-page-auth";
-import type { Prisma } from "@/generated/prisma/client";
+import { listAdminUsers } from "@/features/admin/server/admin-user-read-model";
 import { parsePositivePage, toLoadData } from "@/lib/load-data-utils";
-import { ilike } from "@/lib/query-filter-helpers";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
 export async function getAdminUsersPage(request: Request, url: URL) {
@@ -13,43 +12,14 @@ export async function getAdminUsersPage(request: Request, url: URL) {
   const prisma = await getPrismaClient();
   const page = parsePositivePage(url.searchParams.get("page"));
   const search = url.searchParams.get("search")?.trim() ?? "";
-  const where: Prisma.UserWhereInput = search
-    ? {
-        OR: [
-          { id: ilike(search) },
-          { name: ilike(search) },
-          { username: ilike(search) },
-          { verifiedEmails: { some: { email: ilike(search) } } },
-        ],
-      }
-    : {};
   const skip = (page - 1) * ADMIN_USERS_PAGE_SIZE;
 
-  const [users, total] = await Promise.all([
-    prisma.user.findMany({
-      where,
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        isAdmin: true,
-        createdAt: true,
-        verifiedEmails: { select: { email: true }, take: 1 },
-        suspensions: {
-          where: {
-            liftedAt: null,
-            OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-          },
-          select: { id: true, reason: true, expiresAt: true },
-          take: 1,
-        },
-      },
-      orderBy: { createdAt: "desc" },
-      skip,
-      take: ADMIN_USERS_PAGE_SIZE,
-    }),
-    prisma.user.count({ where }),
-  ]);
+  const { total, users } = await listAdminUsers({
+    pagination: { pageSize: ADMIN_USERS_PAGE_SIZE, skip },
+    query: { search },
+    includeActiveSuspension: true,
+    prismaClient: prisma,
+  });
 
   const totalPages = Math.max(1, Math.ceil(total / ADMIN_USERS_PAGE_SIZE));
 
@@ -58,14 +28,14 @@ export async function getAdminUsersPage(request: Request, url: URL) {
       id: user.id,
       name: user.name,
       username: user.username,
-      email: user.verifiedEmails[0]?.email ?? null,
+      email: user.email,
       isAdmin: user.isAdmin,
       createdAt: toShanghaiIsoString(user.createdAt),
-      activeSuspension: user.suspensions[0]
+      activeSuspension: user.activeSuspension
         ? {
-            ...user.suspensions[0],
-            expiresAt: user.suspensions[0].expiresAt
-              ? toShanghaiIsoString(user.suspensions[0].expiresAt)
+            ...user.activeSuspension,
+            expiresAt: user.activeSuspension.expiresAt
+              ? toShanghaiIsoString(user.activeSuspension.expiresAt)
               : null,
           }
         : null,
