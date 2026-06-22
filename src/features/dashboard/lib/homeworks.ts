@@ -1,8 +1,3 @@
-export type HomeworkCompletionResult = {
-  completed: boolean;
-  completedAt: string | null;
-};
-
 type HomeworkCompletionState = {
   completion?: unknown | null;
 };
@@ -82,21 +77,4 @@ export function homeworkCompletionActionLabel(
   },
 ) {
   return homework.completion ? labels.markIncomplete : labels.markComplete;
-}
-
-export async function updateHomeworkCompletion(input: {
-  completed: boolean;
-  errorMessage: string;
-  homeworkId: number | string;
-}): Promise<HomeworkCompletionResult> {
-  const response = await fetch(
-    `/api/homeworks/${input.homeworkId}/completion`,
-    {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ completed: input.completed }),
-    },
-  );
-  if (!response.ok) throw new Error(input.errorMessage);
-  return (await response.json()) as HomeworkCompletionResult;
 }

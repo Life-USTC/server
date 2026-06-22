@@ -8,15 +8,7 @@ export type SectionHomeworkRequest = {
   title: string;
 };
 
-export type HomeworkCompletionResult = {
-  completed: boolean;
-  completedAt: string | null;
-};
-
-export type SectionHomeworkUpdateResult =
-  | "ok"
-  | "homework-error"
-  | "description-error";
+export type SectionHomeworkUpdateResult = "ok" | "homework-error";
 
 export async function loadSectionHomeworks<Viewer, Homework, AuditLog>(
   sectionId: number | string,
@@ -61,6 +53,7 @@ export async function updateSectionHomework(
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       title: input.title,
+      description: input.description,
       publishedAt: input.publishedAt || null,
       submissionStartAt: input.submissionStartAt || null,
       submissionDueAt: input.submissionDueAt || null,
@@ -68,31 +61,7 @@ export async function updateSectionHomework(
       requiresTeam: input.requiresTeam,
     }),
   });
-  if (!response.ok) return "homework-error";
-
-  const descriptionResponse = await fetch("/api/descriptions", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      targetType: "homework",
-      targetId: homeworkId,
-      content: input.description,
-    }),
-  });
-  return descriptionResponse.ok ? "ok" : "description-error";
-}
-
-export async function updateSectionHomeworkCompletion(
-  homeworkId: number | string,
-  completed: boolean,
-): Promise<HomeworkCompletionResult | null> {
-  const response = await fetch(`/api/homeworks/${homeworkId}/completion`, {
-    method: "PUT",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ completed }),
-  });
-  if (!response.ok) return null;
-  return (await response.json()) as HomeworkCompletionResult;
+  return response.ok ? "ok" : "homework-error";
 }
 
 export async function deleteSectionHomework(homeworkId: number | string) {

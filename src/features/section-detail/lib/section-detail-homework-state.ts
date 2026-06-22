@@ -1,4 +1,7 @@
-import type { HomeworkCompletionResult } from "./homeworks";
+import {
+  applyHomeworkCompletionResult,
+  type HomeworkCompletionResult,
+} from "@/features/homeworks/lib/homework-completion-client";
 import type { SectionHomework } from "./section-detail-controller-helpers";
 
 export function applySectionHomeworkCompletion(input: {
@@ -9,12 +12,7 @@ export function applySectionHomeworkCompletion(input: {
 }) {
   const homeworks = input.homeworks.map((item) =>
     item.id === input.homeworkId
-      ? {
-          ...item,
-          completion: input.result.completed
-            ? { completedAt: input.result.completedAt }
-            : null,
-        }
+      ? applyHomeworkCompletionResult(item, input.result)
       : item,
   );
 
