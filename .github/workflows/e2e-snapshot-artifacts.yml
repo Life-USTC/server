@@ -65,7 +65,7 @@ jobs:
         id: snapshots
         continue-on-error: true
         shell: bash
-        run: bun run tools/dev/artifacts/snapshots/snapshot-ci.ts capture
+        run: bun run snapshot:capture
 
       - name: Upload E2E snapshot artifact
         id: upload
@@ -84,7 +84,7 @@ jobs:
         if: ${{ always() }}
         shell: bash
         run: >
-          bun run tools/dev/artifacts/snapshots/snapshot-ci.ts publish-previews
+          bun run snapshot:publish-previews --
           --commit "${{ github.sha }}"
           --repository "${{ github.repository }}"
 
@@ -98,7 +98,7 @@ jobs:
             artifact_url="$workflow_url"
           fi
 
-          bun run tools/dev/artifacts/snapshots/snapshot-report.ts render-comment \
+          bun run snapshot:report -- render-comment \
             --snapshot-dir test-results/snapshots \
             --artifact-url "$artifact_url" \
             --commit "${{ github.sha }}" \

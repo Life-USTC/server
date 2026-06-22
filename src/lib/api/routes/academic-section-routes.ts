@@ -48,19 +48,27 @@ export async function getSectionDetailRoute(
   );
 }
 
-export async function getSectionSchedulesRoute(params: { jwId: string }) {
+export async function getSectionSchedulesRoute(
+  request: Request,
+  params: { jwId: string },
+) {
+  const locale = getRequestLocale(request);
   return withParsedSectionJwId(
     params,
     "Failed to fetch section schedules",
-    getSectionSchedulesAction,
+    (parsedJwId) => getSectionSchedulesAction(parsedJwId, locale),
   );
 }
 
-export async function getSectionScheduleGroupsRoute(params: { jwId: string }) {
+export async function getSectionScheduleGroupsRoute(
+  request: Request,
+  params: { jwId: string },
+) {
+  const locale = getRequestLocale(request);
   return withParsedSectionJwId(
     params,
     "Failed to fetch schedule groups",
-    getSectionScheduleGroupsAction,
+    (parsedJwId) => getSectionScheduleGroupsAction(parsedJwId, locale),
   );
 }
 

@@ -2,10 +2,16 @@ import {
   getSectionScheduleGroupsByJwId,
   getSectionSchedulesByJwId,
 } from "@/features/catalog/server/schedule-read-model";
+import type { AppLocale } from "@/i18n/config";
 import { jsonResponse, notFound } from "@/lib/api/helpers";
+import { PUBLIC_LOCALE_CATALOG_HEADERS } from "@/lib/public-cache-control";
 
-export async function getSectionSchedulesAction(parsedJwId: number) {
+export async function getSectionSchedulesAction(
+  parsedJwId: number,
+  locale: AppLocale,
+) {
   const result = await getSectionSchedulesByJwId({
+    locale,
     sectionJwId: parsedJwId,
   });
 
@@ -13,11 +19,17 @@ export async function getSectionSchedulesAction(parsedJwId: number) {
     return notFound("Section not found");
   }
 
-  return jsonResponse(result.schedules);
+  return jsonResponse(result.schedules, {
+    headers: PUBLIC_LOCALE_CATALOG_HEADERS,
+  });
 }
 
-export async function getSectionScheduleGroupsAction(parsedJwId: number) {
+export async function getSectionScheduleGroupsAction(
+  parsedJwId: number,
+  locale: AppLocale,
+) {
   const result = await getSectionScheduleGroupsByJwId({
+    locale,
     sectionJwId: parsedJwId,
   });
 
@@ -25,5 +37,7 @@ export async function getSectionScheduleGroupsAction(parsedJwId: number) {
     return notFound("Section not found");
   }
 
-  return jsonResponse(result.scheduleGroups);
+  return jsonResponse(result.scheduleGroups, {
+    headers: PUBLIC_LOCALE_CATALOG_HEADERS,
+  });
 }

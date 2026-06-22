@@ -7,7 +7,10 @@ const {
   findSectionCodeMatchesMock,
   findSectionDetailByJwIdMock,
   findTeacherDetailByIdMock,
+  getSectionScheduleGroupsByJwIdMock,
+  getSectionSchedulesByJwIdMock,
   getPrismaMock,
+  listPublicSchedulesMock,
   listCourseSummariesMock,
   listSectionSummariesMock,
   listTeacherSummariesMock,
@@ -15,6 +18,7 @@ const {
   paginatedTeacherQueryMock,
   parseJwIdRouteParamMock,
   parseResourceIdRouteParamMock,
+  parseScheduleDateParamMock,
 } = vi.hoisted(() => {
   const teacherFindUniqueMock = vi.fn(async () => ({ id: 456 }));
   return {
@@ -31,10 +35,22 @@ const {
     })),
     findSectionDetailByJwIdMock: vi.fn(async () => ({ id: 2 })),
     findTeacherDetailByIdMock: vi.fn(async () => ({ id: 456 })),
+    getSectionScheduleGroupsByJwIdMock: vi.fn(async () => ({
+      found: true,
+      scheduleGroups: [],
+    })),
+    getSectionSchedulesByJwIdMock: vi.fn(async () => ({
+      found: true,
+      schedules: [],
+    })),
     getPrismaMock: vi.fn(() => ({
       teacher: {
         findUnique: teacherFindUniqueMock,
       },
+    })),
+    listPublicSchedulesMock: vi.fn(async () => ({
+      data: [],
+      pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
     })),
     listSectionSummariesMock: vi.fn(async () => ({
       data: [],
@@ -58,6 +74,9 @@ const {
     })),
     parseJwIdRouteParamMock: vi.fn(() => 123),
     parseResourceIdRouteParamMock: vi.fn(() => 456),
+    parseScheduleDateParamMock: vi.fn(
+      (_name: string, value?: string) => value && new Date(value),
+    ),
     teacherFindUniqueMock,
   };
 });
@@ -65,6 +84,7 @@ const {
 vi.mock("@/lib/api/routes/academic-route-helpers", () => ({
   parseJwIdRouteParam: parseJwIdRouteParamMock,
   parseResourceIdRouteParam: parseResourceIdRouteParamMock,
+  parseScheduleDateParam: parseScheduleDateParamMock,
 }));
 
 vi.mock("@/features/catalog/server/course-section-queries", () => ({
@@ -85,6 +105,12 @@ vi.mock("@/features/catalog/server/teacher-query", () => ({
 vi.mock("@/features/catalog/server/academic-paginated-queries", () => ({
   paginatedCourseQuery: paginatedCourseQueryMock,
   paginatedTeacherQuery: paginatedTeacherQueryMock,
+}));
+
+vi.mock("@/features/catalog/server/schedule-read-model", () => ({
+  getSectionScheduleGroupsByJwId: getSectionScheduleGroupsByJwIdMock,
+  getSectionSchedulesByJwId: getSectionSchedulesByJwIdMock,
+  listPublicSchedules: listPublicSchedulesMock,
 }));
 
 vi.mock("@/features/catalog/server/academic-query-includes", () => ({
@@ -215,5 +241,66 @@ describe("academic REST locale adapters", () => {
         pagination: expect.objectContaining({ page: 1, pageSize: 20 }),
       }),
     );
+  });
+
+  it("passes request locale to public schedule reads", async () => {
+    const { getSchedulesRoute } = await import(
+      "@/lib/api/routes/academic-schedule-routes"
+    );
+
+    const response = await getSchedulesRoute(
+      request("/api/schedules?sectionJwId=123&weekday=2&page=1"),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      data: [],
+      pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
+    });
+    expect(response.headers.get("Vary")).toBe("Accept-Language, Cookie");
+    expect(listPublicSchedulesMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filters: expect.objectContaining({
+          sectionJwId: 123,
+          weekday: 2,
+        }),
+        locale: "en-us",
+        page: 1,
+        pageSize: 20,
+      }),
+    );
+  });
+
+  it("passes request locale to section schedule reads", async () => {
+    const { getSectionSchedulesRoute, getSectionScheduleGroupsRoute } =
+      await import("@/lib/api/routes/academic-section-routes");
+
+    const schedulesResponse = await getSectionSchedulesRoute(
+      request("/api/sections/123/schedules"),
+      { jwId: "123" },
+    );
+    const scheduleGroupsResponse = await getSectionScheduleGroupsRoute(
+      request("/api/sections/123/schedule-groups"),
+      { jwId: "123" },
+    );
+
+    expect(schedulesResponse.status).toBe(200);
+    await expect(schedulesResponse.json()).resolves.toEqual([]);
+    expect(schedulesResponse.headers.get("Vary")).toBe(
+      "Accept-Language, Cookie",
+    );
+    expect(scheduleGroupsResponse.status).toBe(200);
+    await expect(scheduleGroupsResponse.json()).resolves.toEqual([]);
+    expect(scheduleGroupsResponse.headers.get("Vary")).toBe(
+      "Accept-Language, Cookie",
+    );
+    expect(getSectionSchedulesByJwIdMock).toHaveBeenCalledWith({
+      locale: "en-us",
+      sectionJwId: 123,
+    });
+    expect(getSectionScheduleGroupsByJwIdMock).toHaveBeenCalledWith({
+      locale: "en-us",
+      sectionJwId: 123,
+    });
   });
 });

@@ -8,6 +8,8 @@ import { resolvePlaywrightServerRuntime } from "../../e2e";
 const SNAPSHOT_DIR = path.join("test-results", "snapshots");
 const SERVER_LOG_PATH = path.join("test-results", "e2e-snapshot-server.log");
 const PREVIEW_BRANCH = "e2e-snapshot-artifacts";
+const PREVIEW_RETENTION_DAYS = 14;
+const PREVIEW_COMMIT_DIR = /^[0-9a-f]{40}$/;
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -45,7 +47,7 @@ async function captureSnapshots() {
 
   const logStream = createWriteStream(SERVER_LOG_PATH, { flags: "w" });
   // Bun 1.3 on CI cannot accept a WriteStream directly in child stdio.
-  const server = spawn("bun", ["run", "tools/dev/e2e.ts", "start"], {
+  const server = spawn("bun", ["run", "e2e:start"], {
     stdio: ["ignore", "pipe", "pipe"],
   });
   server.stdout?.pipe(logStream, { end: false });
@@ -112,6 +114,27 @@ async function runGit(
   });
 }
 
+async function gitOutput(args: string[], cwd: string) {
+  return new Promise<string>((resolve, reject) => {
+    const child = spawn("git", args, {
+      cwd,
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    const chunks: Buffer[] = [];
+    child.stdout.on("data", (chunk) => {
+      chunks.push(Buffer.from(chunk));
+    });
+    child.once("error", reject);
+    child.once("close", (code) => {
+      if (code !== 0) {
+        resolve("");
+        return;
+      }
+      resolve(Buffer.concat(chunks).toString("utf8").trim());
+    });
+  });
+}
+
 async function requireGit(args: string[], cwd?: string) {
   const exitCode = await runGit(args, { cwd });
   if (exitCode !== 0) {
@@ -127,11 +150,49 @@ async function collectScreenshots(dir: string): Promise<string[]> {
     entries.map(async (entry) => {
       const entryPath = path.join(dir, entry.name);
       if (entry.isDirectory()) return collectScreenshots(entryPath);
-      if (entry.isFile() && entry.name === "screenshot.png") return [entryPath];
+      if (
+        entry.isFile() &&
+        (entry.name === "screenshot.png" ||
+          entry.name === "mobile-screenshot.png")
+      ) {
+        return [entryPath];
+      }
       return [];
     }),
   );
   return files.flat();
+}
+
+async function pruneStalePreviewDirectories(
+  previewRoot: string,
+  currentCommit: string,
+) {
+  const cutoffSeconds =
+    Math.floor(Date.now() / 1000) - PREVIEW_RETENTION_DAYS * 24 * 60 * 60;
+  const entries = await fs.readdir(previewRoot, { withFileTypes: true });
+
+  for (const entry of entries) {
+    if (
+      !entry.isDirectory() ||
+      entry.name === currentCommit ||
+      !PREVIEW_COMMIT_DIR.test(entry.name)
+    ) {
+      continue;
+    }
+
+    const touchedAtText = await gitOutput(
+      ["log", "-1", "--format=%ct", "--", entry.name],
+      previewRoot,
+    );
+    const touchedAt = Number(touchedAtText);
+    if (!Number.isFinite(touchedAt) || touchedAt >= cutoffSeconds) continue;
+
+    await fs.rm(path.join(previewRoot, entry.name), {
+      recursive: true,
+      force: true,
+    });
+    console.log(`Pruned stale E2E snapshot previews for ${entry.name}`);
+  }
 }
 
 function readOption(name: string) {
@@ -185,6 +246,7 @@ async function publishPreviews() {
       await fs.mkdir(path.dirname(targetPath), { recursive: true });
       await fs.copyFile(screenshot, targetPath);
     }
+    await pruneStalePreviewDirectories(previewRoot, commit);
 
     await requireGit(
       ["config", "user.name", "github-actions[bot]"],
@@ -198,7 +260,7 @@ async function publishPreviews() {
       ],
       previewRoot,
     );
-    await requireGit(["add", commit], previewRoot);
+    await requireGit(["add", "--all", "."], previewRoot);
 
     const hasChanges =
       (await runGit(["diff", "--cached", "--quiet"], {
@@ -249,7 +311,7 @@ async function main() {
   }
 
   console.error(
-    "Usage: bun run tools/dev/artifacts/snapshots/snapshot-ci.ts <capture|publish-previews>",
+    "Usage: bun run snapshot:capture OR bun run snapshot:publish-previews -- --commit <sha>",
   );
   process.exit(2);
 }

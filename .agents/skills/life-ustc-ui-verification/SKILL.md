@@ -37,8 +37,8 @@ libraries are missing.
 For interactive visual refinement:
 
 ```bash
-bunx playwright test --headed <path>
-bunx playwright test --ui
+bun run e2e:test -- --headed <path>
+bun run e2e:test -- --ui
 ```
 
 Use `bun run verify:full` before pushing when the change affects browser flows broadly.
