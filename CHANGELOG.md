@@ -1,3 +1,10 @@
+## [1.36.4](https://github.com/Life-USTC/server/compare/v1.36.3...v1.36.4) (2026-06-22)
+
+
+### Bug Fixes
+
+* **api:** align admin users and oauth schemas ([881440d](https://github.com/Life-USTC/server/commit/881440d0f38d95038e4e48913c6d801c5128d02b))
+
 ## [1.36.3](https://github.com/Life-USTC/server/compare/v1.36.2...v1.36.3) (2026-06-22)
 
 
