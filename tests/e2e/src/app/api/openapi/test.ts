@@ -91,7 +91,7 @@ test.describe("GET /api/openapi", () => {
     });
   });
 
-  test("binary and redirect endpoints keep response codes in the spec", async ({
+  test("request bodies and redirect endpoints stay accurate in the spec", async ({
     request,
   }) => {
     const response = await request.get("/api/openapi");
@@ -101,11 +101,41 @@ test.describe("GET /api/openapi", () => {
         string,
         {
           get?: { responses?: Record<string, unknown> };
-          post?: { responses?: Record<string, unknown> };
+          options?: { responses?: Record<string, unknown> };
+          post?: {
+            requestBody?: {
+              required?: boolean;
+              content?: Record<
+                string,
+                { schema?: { $ref?: string; type?: string; format?: string } }
+              >;
+            };
+            responses?: Record<string, unknown>;
+          };
+          put?: {
+            requestBody?: {
+              required?: boolean;
+              content?: Record<
+                string,
+                { schema?: { $ref?: string; type?: string; format?: string } }
+              >;
+            };
+          };
         }
       >;
     };
 
+    expect(body.paths?.["/api/todos"]?.post?.requestBody?.required).toBe(true);
+    expect(
+      body.paths?.["/api/todos"]?.post?.requestBody?.content?.[
+        "application/json"
+      ]?.schema?.$ref,
+    ).toBe("#/components/schemas/todoCreateRequestSchema");
+    expect(
+      body.paths?.["/api/uploads/object"]?.put?.requestBody?.content?.[
+        "application/octet-stream"
+      ]?.schema,
+    ).toEqual({ type: "string", format: "binary" });
     expect(
       body.paths?.["/api/uploads/{id}/download"]?.get?.responses?.["200"],
     ).toBeTruthy();
@@ -117,6 +147,10 @@ test.describe("GET /api/openapi", () => {
     ).toBeTruthy();
     expect(
       body.paths?.["/api/dashboard-links/visit"]?.post?.responses?.["303"],
+    ).toBeTruthy();
+    expect(
+      body.paths?.["/api/auth/oauth2/device-authorization"]?.options
+        ?.responses?.["204"],
     ).toBeTruthy();
   });
 

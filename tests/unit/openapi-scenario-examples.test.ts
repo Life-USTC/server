@@ -28,24 +28,35 @@ const OPENAPI_HTTP_METHODS = [
 
 type GeneratedOperation = {
   description?: string;
+  parameters?: Array<{
+    name?: string;
+    example?: unknown;
+    schema?: GeneratedSchema;
+  }>;
+  requestBody?: {
+    required?: boolean;
+    content?: Record<string, GeneratedMediaType>;
+  };
   responses?: Record<
     string,
     {
-      content?: Record<
-        string,
-        {
-          schema?: GeneratedSchema;
-        }
-      >;
+      content?: Record<string, GeneratedMediaType>;
     }
   >;
   summary?: string;
 };
 
+type GeneratedMediaType = {
+  example?: unknown;
+  schema?: GeneratedSchema;
+};
+
 type GeneratedSchema = {
   $ref?: string;
+  format?: string;
   properties?: Record<string, unknown>;
   required?: string[];
+  type?: string;
 };
 
 type GeneratedOpenApiDocument = {
@@ -181,6 +192,42 @@ describe("buildScenarioOpenApiExamples", () => {
     expect(spec.paths["/api/mcp"]?.options?.summary).toBe(
       "Return MCP transport CORS preflight headers",
     );
+  });
+
+  it("documents request bodies and implemented preflight routes", () => {
+    const spec = generatedOpenApiDocument as GeneratedOpenApiDocument;
+
+    const todoCreateBody = spec.paths["/api/todos"]?.post?.requestBody;
+    expect(todoCreateBody?.required).toBe(true);
+    expect(todoCreateBody?.content?.["application/json"]?.schema?.$ref).toBe(
+      "#/components/schemas/todoCreateRequestSchema",
+    );
+
+    const uploadObjectBody =
+      spec.paths["/api/uploads/object"]?.put?.requestBody;
+    expect(uploadObjectBody?.required).toBe(true);
+    expect(
+      uploadObjectBody?.content?.["application/octet-stream"]?.schema,
+    ).toEqual({
+      type: "string",
+      format: "binary",
+    });
+
+    const deviceAuthorizationPost =
+      spec.paths["/api/auth/oauth2/device-authorization"]?.post;
+    expect(deviceAuthorizationPost?.requestBody?.required).toBe(true);
+    expect(
+      deviceAuthorizationPost?.requestBody?.content?.[
+        "application/x-www-form-urlencoded"
+      ]?.schema?.$ref,
+    ).toBe("#/components/schemas/oauthDeviceAuthorizationRequestSchema");
+
+    const deviceAuthorizationOptions =
+      spec.paths["/api/auth/oauth2/device-authorization"]?.options;
+    expect(deviceAuthorizationOptions?.summary).toBe(
+      "Return OAuth device authorization CORS preflight headers",
+    );
+    expect(deviceAuthorizationOptions?.responses?.["204"]).toBeTruthy();
   });
 
   it("documents OAuth success response bodies", () => {

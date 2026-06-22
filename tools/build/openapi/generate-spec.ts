@@ -314,8 +314,21 @@ function buildRequestBody(
   usedSchemas: Set<string>,
 ): unknown {
   if (!annotations.body) return undefined;
+
+  if (annotations.body === "binary") {
+    return {
+      required: true,
+      content: {
+        "application/octet-stream": {
+          schema: { type: "string", format: "binary" },
+        },
+      },
+    };
+  }
+
   usedSchemas.add(annotations.body);
   return {
+    required: true,
     content: {
       "application/json": {
         schema: getComponentSchema(annotations.body),
