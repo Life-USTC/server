@@ -6,6 +6,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * Lift one suspension.
  * @pathParams resourceIdPathParamsSchema
  * @response adminSuspensionResponseSchema
+ * @response 401:openApiErrorSchema
  * @response 404:openApiErrorSchema
  */
 export const PATCH: RequestHandler = ({ request, params }) =>

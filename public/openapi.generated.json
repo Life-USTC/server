@@ -351,6 +351,16 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       }
@@ -394,6 +404,16 @@
             }
           },
           "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
             "description": "Error response",
             "content": {
               "application/json": {
@@ -476,6 +496,16 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       }
@@ -536,6 +566,16 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       }
@@ -565,6 +605,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/successResponseSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
                 }
               }
             }
@@ -609,6 +659,16 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       },
@@ -647,6 +707,16 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
         }
       }
@@ -676,6 +746,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/adminSuspensionResponseSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
                 }
               }
             }
@@ -798,6 +878,16 @@
             }
           },
           "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
             "description": "Error response",
             "content": {
               "application/json": {
