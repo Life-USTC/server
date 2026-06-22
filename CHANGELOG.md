@@ -1,3 +1,10 @@
+## [1.36.12](https://github.com/Life-USTC/server/compare/v1.36.11...v1.36.12) (2026-06-22)
+
+
+### Bug Fixes
+
+* **homeworks:** share client update flows ([716dbb4](https://github.com/Life-USTC/server/commit/716dbb4563a39e725b5a5e3a47351f8b56759744))
+
 ## [1.36.11](https://github.com/Life-USTC/server/compare/v1.36.10...v1.36.11) (2026-06-22)
 
 
