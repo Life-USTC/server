@@ -1,3 +1,10 @@
+## [1.37.4](https://github.com/Life-USTC/server/compare/v1.37.3...v1.37.4) (2026-06-24)
+
+
+### Bug Fixes
+
+* **profile:** expose public profile API and MCP parity ([61565ec](https://github.com/Life-USTC/server/commit/61565ec5be7393ef1e4ed4590ef7a3c410f4caef))
+
 ## [1.37.3](https://github.com/Life-USTC/server/compare/v1.37.2...v1.37.3) (2026-06-24)
 
 
