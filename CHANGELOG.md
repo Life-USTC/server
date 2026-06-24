@@ -1,3 +1,17 @@
+# [1.37.0](https://github.com/Life-USTC/server/compare/v1.36.16...v1.37.0) (2026-06-24)
+
+
+### Bug Fixes
+
+* **comments:** keep read targets non-mutating ([f1078fa](https://github.com/Life-USTC/server/commit/f1078fa88f697aa24d1897fcd81a84652d22eca3))
+* **comments:** load empty section teacher targets ([a2ac5c1](https://github.com/Life-USTC/server/commit/a2ac5c1657cc67f64d64e59704934b354ae38557))
+* **comments:** return missing pair as not found ([4997dd1](https://github.com/Life-USTC/server/commit/4997dd188ba351cc4d778577fe530fe10f607c57))
+
+
+### Features
+
+* **mcp:** expose comment read tools ([58c3a9f](https://github.com/Life-USTC/server/commit/58c3a9f0a84de23573f7656ac55e55bd3027e86e))
+
 ## [1.36.16](https://github.com/Life-USTC/server/compare/v1.36.15...v1.36.16) (2026-06-24)
 
 
