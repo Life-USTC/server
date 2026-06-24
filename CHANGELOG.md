@@ -1,3 +1,10 @@
+## [1.36.15](https://github.com/Life-USTC/server/compare/v1.36.14...v1.36.15) (2026-06-24)
+
+
+### Bug Fixes
+
+* **profile:** share callback and username flow ([33f9944](https://github.com/Life-USTC/server/commit/33f994462437c451c50cc2f37b406c20433c5002))
+
 ## [1.36.14](https://github.com/Life-USTC/server/compare/v1.36.13...v1.36.14) (2026-06-24)
 
 
