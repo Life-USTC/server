@@ -27,7 +27,7 @@ test("section detail has all SectionDetail fields", async ({ request }) => {
   const body = (await response.json()) as {
     code?: unknown;
     teachers?: Array<{ id?: unknown; nameCn?: unknown }>;
-    schedules?: unknown[];
+    schedules?: Array<{ endTime?: unknown; startTime?: unknown }>;
     scheduleGroups?: unknown[];
     exams?: unknown[];
     examMode?: unknown;
@@ -41,6 +41,8 @@ test("section detail has all SectionDetail fields", async ({ request }) => {
     expect(typeof firstTeacher.nameCn).toBe("string");
   }
   expect(Array.isArray(body.schedules)).toBe(true);
+  expect(typeof body.schedules?.[0]?.startTime).toBe("string");
+  expect(typeof body.schedules?.[0]?.endTime).toBe("string");
   expect(Array.isArray(body.scheduleGroups)).toBe(true);
   expect(Array.isArray(body.exams)).toBe(true);
   expect(Object.hasOwn(body, "examMode")).toBe(true);
