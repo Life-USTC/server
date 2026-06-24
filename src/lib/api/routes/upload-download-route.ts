@@ -1,5 +1,5 @@
 import { buildContentDisposition } from "@/features/uploads/lib/upload-utils";
-import { findOwnedUpload } from "@/features/uploads/server/upload-service";
+import { findDownloadableUpload } from "@/features/uploads/server/upload-service";
 import { handleRouteError, notFound } from "@/lib/api/helpers";
 import {
   parseUploadId,
@@ -25,7 +25,7 @@ export async function getUploadDownloadRoute(
   const id = parsed.id;
 
   try {
-    const upload = await findOwnedUpload(id, userId);
+    const upload = await findDownloadableUpload(id, userId);
     if (!upload) {
       return notFound();
     }

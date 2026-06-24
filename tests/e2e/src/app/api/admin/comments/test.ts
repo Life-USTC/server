@@ -45,7 +45,9 @@ test.describe("GET /api/admin/comments", () => {
     );
   });
 
-  test("admin can list comments without status filter", async ({ page }) => {
+  test("admin can list active comments without status filter", async ({
+    page,
+  }) => {
     await signInAsDevAdmin(page, "/admin");
     const response = await page.request.get(`${BASE}?limit=5`);
     expect(response.status()).toBe(200);
@@ -54,5 +56,6 @@ test.describe("GET /api/admin/comments", () => {
     };
     expect((body.comments?.length ?? 0) > 0).toBe(true);
     expect(body.comments?.length).toBeLessThanOrEqual(5);
+    expect(body.comments?.every((item) => item.status === "active")).toBe(true);
   });
 });

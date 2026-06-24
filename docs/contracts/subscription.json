@@ -28,6 +28,7 @@
             "name": "subscribe_section_by_jw_id",
             "returns": "{ success: Boolean, action: String, sectionJwId: Int, subscription }",
             "notes": [
+              "Missing section jwId returns { success: false, action: \"not_found\", subscription: null }.",
               "Default/summary responses return a compact subscription update result instead of the full subscribed section list.",
               "Request full mode only when the caller explicitly needs the full CalendarSubscription with sections[]."
             ]
@@ -36,6 +37,7 @@
             "name": "unsubscribe_section_by_jw_id",
             "returns": "{ success: Boolean, action: String, sectionJwId: Int, subscription }",
             "notes": [
+              "Missing section jwId returns { success: false, action: \"not_found\", subscription: null }.",
               "Default/summary responses return a compact subscription update result instead of the full subscribed section list.",
               "Request full mode only when the caller explicitly needs the full CalendarSubscription with sections[]."
             ]

@@ -1,4 +1,5 @@
 import { fail, redirect } from "@sveltejs/kit";
+import type { AppLocale } from "@/i18n/config";
 import { getSectionDetailPageCopy } from "./section-detail-page-copy";
 import { parseSectionJwId } from "./section-detail-params";
 import { getSectionDetailUserId } from "./section-detail-session";
@@ -10,7 +11,7 @@ async function updateSectionSubscription({
   request,
 }: {
   action: "subscribe" | "unsubscribe";
-  locals: App.Locals;
+  locals: { locale: AppLocale };
   params: { jwId: string };
   request: Request;
 }) {
@@ -20,16 +21,16 @@ async function updateSectionSubscription({
   const jwId = parseSectionJwId(params.jwId);
   if (jwId === null) return fail(400, { error: copy.operationFailed });
   const subscriptions = await import("@/features/home/server/subscriptions");
-  if (action === "subscribe") {
-    await subscriptions.subscribeUserToSectionByJwId(userId, jwId);
-  } else {
-    await subscriptions.unsubscribeUserFromSectionByJwId(userId, jwId);
-  }
+  const result =
+    action === "subscribe"
+      ? await subscriptions.subscribeUserToSectionByJwId(userId, jwId)
+      : await subscriptions.unsubscribeUserFromSectionByJwId(userId, jwId);
+  if (!result) return fail(404, { error: copy.operationFailed });
   throw redirect(303, `/sections/${jwId}`);
 }
 
 export function subscribeSectionAction(input: {
-  locals: App.Locals;
+  locals: { locale: AppLocale };
   params: { jwId: string };
   request: Request;
 }) {
@@ -37,7 +38,7 @@ export function subscribeSectionAction(input: {
 }
 
 export function unsubscribeSectionAction(input: {
-  locals: App.Locals;
+  locals: { locale: AppLocale };
   params: { jwId: string };
   request: Request;
 }) {

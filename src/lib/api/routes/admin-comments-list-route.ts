@@ -1,3 +1,4 @@
+import { normalizeAdminCommentStatusFilter } from "@/features/admin/lib/admin-moderation-filters";
 import { listAdminModerationComments } from "@/features/admin/server/admin-moderation-api-lists";
 import {
   getRequestSearchParams,
@@ -24,7 +25,7 @@ export async function getAdminCommentsRoute(request: Request) {
       if (parsed instanceof Response) return parsed;
 
       const { query: parsedQuery, pagination } = parsed;
-      const status = parsedQuery.status ?? "all";
+      const status = normalizeAdminCommentStatusFilter(parsedQuery.status);
       const { pageSize: limit } = pagination;
       const comments = await listAdminModerationComments({ limit, status });
 
