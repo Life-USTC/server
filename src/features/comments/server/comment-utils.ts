@@ -1,13 +1,9 @@
 import { parseInteger } from "@/lib/integers";
+import type { CommentTargetType } from "../lib/comment-target-types";
 import { resolveSectionTeacherId } from "./comment-section-teacher";
 import { verifyCommentTargetEntity } from "./comment-target-verification";
 
-export type CommentTargetType =
-  | "section"
-  | "course"
-  | "teacher"
-  | "section-teacher"
-  | "homework";
+export type { CommentTargetType };
 
 export type ResolvedCommentTarget = {
   homeworkId: string | null;

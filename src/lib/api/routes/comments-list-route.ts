@@ -1,14 +1,15 @@
 import { loadCommentThread } from "@/features/comments/server/comment-read-model";
+import { commentListTargetPayload } from "@/features/comments/server/comment-target-payload";
 import { resolveCommentTarget } from "@/features/comments/server/comment-utils";
 import {
   badRequest,
   handleRouteError,
   jsonResponse,
+  notFound,
   parseRouteSearchParams,
 } from "@/lib/api/helpers";
 import { commentsQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { resolveApiUserId } from "@/lib/auth/api-auth";
-import { commentListTargetPayload } from "./comment-target-payloads";
 
 export async function getCommentsRoute(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -31,9 +32,13 @@ export async function getCommentsRoute(request: Request) {
       sectionId: parsedQuery.sectionId,
       targetType,
       teacherId: parsedQuery.teacherId,
+      verifyExistence: true,
     });
     if (!target) {
       return badRequest("Invalid target");
+    }
+    if (!target.verified) {
+      return notFound();
     }
 
     const viewerUserId = await resolveApiUserId(request);

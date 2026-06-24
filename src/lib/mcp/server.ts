@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerBusTools } from "@/lib/mcp/tools/bus-tools";
 import { registerCalendarTools } from "@/lib/mcp/tools/calendar-tools";
+import { registerCommentTools } from "@/lib/mcp/tools/comment-tools";
 import { registerCourseTools } from "@/lib/mcp/tools/course-tools";
 import { registerDashboardTools } from "@/lib/mcp/tools/dashboard-tools";
 import { registerMyDataTools } from "@/lib/mcp/tools/my-data-tools";
@@ -14,6 +15,7 @@ export function createMcpServer() {
   });
 
   registerBusTools(server);
+  registerCommentTools(server);
   registerProfileTools(server);
   registerCourseTools(server);
   registerDashboardTools(server);

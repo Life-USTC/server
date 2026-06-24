@@ -92,6 +92,104 @@ describe("get_my_profile", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Comments
+// ---------------------------------------------------------------------------
+
+describe("comment read tools — MCP exposes the REST comment hierarchy", () => {
+  it("list_comments returns threaded section comments with viewer/action fields", async () => {
+    const result = await mcp.call<{
+      found?: boolean;
+      comments?: Array<{
+        id?: string;
+        body?: string;
+        author?: { name?: string | null } | null;
+        replies?: Array<{ body?: string }>;
+        reactions?: Array<{ type?: string; count?: number }>;
+        canReply?: boolean;
+        canEdit?: boolean;
+        canDelete?: boolean;
+      }>;
+      hiddenCount?: number;
+      target?: { type?: string; targetId?: number | null };
+      viewer?: { userId?: string | null; isAuthenticated?: boolean };
+    }>("list_comments", {
+      targetType: "section",
+      sectionJwId: DEV_SEED.section.jwId,
+      mode: "full",
+    });
+
+    expect(result.found).toBe(true);
+    expect(result.target?.type).toBe("section");
+    expect(typeof result.target?.targetId).toBe("number");
+    expect(result.viewer?.userId).toBe(devUserId);
+    expect(result.viewer?.isAuthenticated).toBe(true);
+    expect(typeof result.hiddenCount).toBe("number");
+
+    const root = result.comments?.find((comment) =>
+      comment.body?.includes(DEV_SEED.comments.sectionRootBody),
+    );
+    expect(root).toBeDefined();
+    expect(root?.author?.name).toBe(DEV_SEED.debugName);
+    expect(root?.canReply).toBe(true);
+    expect(root?.canEdit).toBe(true);
+    expect(root?.canDelete).toBe(true);
+    expect(root?.replies?.length).toBeGreaterThan(0);
+    expect(
+      root?.reactions?.some(
+        (reaction) => reaction.type === "upvote" && reaction.count === 1,
+      ),
+    ).toBe(true);
+  });
+
+  it("get_comment_thread returns the focused thread and target metadata", async () => {
+    const seedComment = await prisma.comment.findFirst({
+      where: { body: DEV_SEED.comments.sectionRootBody },
+      select: { id: true },
+    });
+    expect(seedComment?.id).toBeTruthy();
+
+    const result = await mcp.call<{
+      found?: boolean;
+      focusId?: string;
+      thread?: Array<{
+        id?: string;
+        body?: string;
+        replies?: Array<{ body?: string }>;
+      }>;
+      target?: { sectionJwId?: number | null; sectionCode?: string | null };
+    }>("get_comment_thread", {
+      commentId: seedComment?.id,
+      mode: "full",
+    });
+
+    expect(result.found).toBe(true);
+    expect(result.focusId).toBe(seedComment?.id);
+    expect(result.thread?.[0]?.id).toBe(seedComment?.id);
+    expect(result.thread?.[0]?.body).toContain(
+      DEV_SEED.comments.sectionRootBody,
+    );
+    expect(result.thread?.[0]?.replies?.length).toBeGreaterThan(0);
+    expect(result.target?.sectionJwId).toBe(DEV_SEED.section.jwId);
+    expect(result.target?.sectionCode).toBe(DEV_SEED.section.code);
+  });
+
+  it("list_comments reports missing targets instead of returning an empty success", async () => {
+    const result = await mcp.call<{
+      success?: boolean;
+      found?: boolean;
+      error?: string;
+    }>("list_comments", {
+      targetType: "section",
+      sectionJwId: 2_147_483_647,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.found).toBe(false);
+    expect(result.error).toBe("target_not_found");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Todos
 // ---------------------------------------------------------------------------
 

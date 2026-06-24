@@ -4,13 +4,14 @@
     "anon": "Can read public comments but cannot create sign-in-required comments.",
     "user": "Can post, reply, react, edit, and delete their own comments; suspended users can read permitted comments but cannot use comment write actions or upload comment attachments.",
     "admin": "Can hide, delete, and moderate comments, and handle suspensions.",
-    "agent": "No comment read/write capability is currently provided."
+    "agent": "Can read visible comment lists and focused threads through MCP with authenticated viewer context; no comment write or moderation capability is currently provided."
   },
   "rules": {
     "attached-to-object": "Comments must be attached to a specific object; no decontextualized public feed entry is provided.",
     "attached-object-types": "Attached objects include courses, sections, teachers, homework, and section-teacher relationships.",
     "rich-content": "Supports Markdown, math formulas, emoji, tables, replies, and reactions.",
-    "visibility-modes": "Supports public, signed-in-only, and anonymous posting; anonymous comments hide identity from regular users but are traceable by admins in governance scenarios."
+    "visibility-modes": "Supports public, signed-in-only, and anonymous posting; anonymous comments hide identity from regular users but are traceable by admins in governance scenarios.",
+    "shared-read-policy": "Web, REST, and MCP comment reads share the same target resolution, thread serialization, visibility filtering, author masking, reaction, attachment, and viewer action-flag logic."
   },
   "capabilities": {
     "object-comment-section": {
@@ -21,7 +22,10 @@
         "routes": [
           {
             "path": "/api/comments",
-            "returns": "{ comments: Comment[], hiddenCount: Int, viewer, target }"
+            "returns": "{ comments: Comment[], hiddenCount: Int, viewer, target }",
+            "notes": [
+              "Returns 404 when the attached target entity does not exist."
+            ]
           },
           {
             "path": "/api/comments",
@@ -59,7 +63,22 @@
           }
         ]
       },
-      "mcp": "unavailable",
+      "mcp": {
+        "tools": [
+          {
+            "name": "list_comments",
+            "returns": "{ found: Boolean, comments: Comment[], hiddenCount: Int, viewer, target }",
+            "auth": "user",
+            "rest_equivalent": "GET /api/comments"
+          },
+          {
+            "name": "get_comment_thread",
+            "returns": "{ found: Boolean, thread: Comment[], focusId: String, hiddenCount: Int, viewer, target }",
+            "auth": "user",
+            "rest_equivalent": "GET /api/comments/[id]"
+          }
+        ]
+      },
       "display": {
         "fields": [
           "comment.id",

@@ -1,8 +1,5 @@
-import type { CommentTargetLookupRecord } from "@/features/comments/server/comment-read-model";
-import type {
-  CommentTargetType,
-  ResolvedCommentTarget,
-} from "@/features/comments/server/comment-utils";
+import type { CommentTargetLookupRecord } from "./comment-read-model";
+import type { CommentTargetType, ResolvedCommentTarget } from "./comment-utils";
 
 export function commentListTargetPayload(
   targetType: CommentTargetType,
@@ -18,7 +15,7 @@ export function commentListTargetPayload(
   };
 }
 
-export function buildCommentRouteTarget(comment: CommentTargetLookupRecord) {
+export function commentThreadTargetPayload(comment: CommentTargetLookupRecord) {
   return {
     sectionId: comment.sectionId ?? null,
     courseId: comment.courseId ?? null,

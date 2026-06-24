@@ -6,6 +6,7 @@
  * - Response: { comments: CommentNode[], hiddenCount: number, viewer: ViewerContext, target: {...} }
  * - Public endpoint (no auth required)
  * - Returns 400 for missing/invalid target
+ * - Returns 404 for missing target entity
  *
  * ## POST /api/comments
  * - Body: { targetType, targetId, body, visibility?, isAnonymous?, parentId?, attachmentIds?, sectionId?, teacherId? }
@@ -76,6 +77,13 @@ test("/api/comments GET 无效 targetType 返回 400", async ({ request }) => {
     "/api/comments?targetType=invalid&targetId=1",
   );
   expect(response.status()).toBe(400);
+});
+
+test("/api/comments GET 不存在的目标返回 404", async ({ request }) => {
+  const response = await request.get(
+    "/api/comments?targetType=section&targetId=2147483647",
+  );
+  expect(response.status()).toBe(404);
 });
 
 test("/api/comments POST 未登录返回 401", async ({ request }) => {
