@@ -11,7 +11,7 @@
     "no-developer-model": "Public documentation helps callers understand the existing product capability boundaries, not to introduce a separate developer-specific business model.",
     "session-and-bearer": "Current user-side business REST endpoints support both in-site session from the request cookie and OAuth bearer tokens; bearer-token access is no longer limited to MCP.",
     "rest-mcp-consistent": "The same abstract endpoint currently maintains the same core fields, state information, and action results in both REST and MCP; differences mainly appear in interaction form and serialization level.",
-    "security-schemes": "Generated OpenAPI marks protected REST operations with bearer/session alternatives and MCP operations with bearer-only auth.",
+    "security-schemes": "Generated OpenAPI marks protected REST operations with bearer/session alternatives, MCP operations with bearer-only auth, and personal calendar feed export with bearer/session/token alternatives.",
     "rest-observability": "REST API handling records production-safe structured request-start/request-finish logs and bounded in-memory metrics with request ID, method, status, auth mode, duration, and normalized route template; it does not log request bodies, credentials, raw query strings, or high-cardinality resource IDs."
   },
   "capabilities": {
@@ -28,7 +28,7 @@
           "Route-scoped tag and operation pages",
           "Endpoint path, method, parameters",
           "Request/response schemas where annotated",
-          "Auth/security schemes for protected operations",
+          "Auth/security schemes for protected operations and token-backed calendar feeds",
           "Try-it-out interface"
         ]
       }
@@ -49,7 +49,7 @@
         "fields": [
           "OpenAPI 3.x JSON",
           "Annotated routes with schemas",
-          "Security schemes and operation security",
+          "Security schemes and operation security, including calendar feed token access",
           "Some protocol routes without detailed schemas"
         ]
       }

@@ -236,7 +236,12 @@ describe("buildScenarioOpenApiExamples", () => {
     const spec = generatedOpenApiDocument as GeneratedOpenApiDocument;
 
     expect(Object.keys(spec.components?.securitySchemes ?? {})).toEqual(
-      expect.arrayContaining(["bearerAuth", "sessionCookie", "mcpBearerAuth"]),
+      expect.arrayContaining([
+        "bearerAuth",
+        "sessionCookie",
+        "mcpBearerAuth",
+        "calendarFeedToken",
+      ]),
     );
 
     expect(spec.paths["/api/todos"]?.get?.security).toEqual([
@@ -251,6 +256,13 @@ describe("buildScenarioOpenApiExamples", () => {
       { bearerAuth: [] },
       { sessionCookie: [] },
     ]);
+    expect(
+      spec.paths["/api/users/{userId}/calendar.ics"]?.get?.security,
+    ).toEqual([
+      { bearerAuth: [] },
+      { sessionCookie: [] },
+      { calendarFeedToken: [] },
+    ]);
     expect(spec.paths["/api/mcp"]?.get?.security).toEqual([
       { mcpBearerAuth: [] },
     ]);
@@ -259,6 +271,13 @@ describe("buildScenarioOpenApiExamples", () => {
     expect(
       spec.paths["/api/auth/oauth2/token"]?.post?.security,
     ).toBeUndefined();
+    expect(
+      spec.paths["/api/users/{userId}/calendar.ics"]?.get?.parameters,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ in: "query", name: "token" }),
+      ]),
+    );
   });
 
   it("documents OAuth success response bodies", () => {

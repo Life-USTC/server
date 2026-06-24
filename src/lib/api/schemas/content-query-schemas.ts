@@ -31,3 +31,12 @@ export const homeworksQuerySchema = z.object({
 export const sectionsCalendarQuerySchema = z.object({
   sectionIds: z.string().trim().min(1),
 });
+
+export const userCalendarQuerySchema = z.object({
+  token: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe("Calendar feed token for anonymous personal iCal access."),
+});

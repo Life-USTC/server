@@ -492,6 +492,10 @@ type MutableOpenApiMediaType = Record<string, unknown>;
 const SCENARIO_OPENAPI_EXAMPLES = buildScenarioOpenApiExamples();
 const REST_AUTH_SECURITY = [{ bearerAuth: [] }, { sessionCookie: [] }];
 const MCP_AUTH_SECURITY = [{ mcpBearerAuth: [] }];
+const CALENDAR_FEED_AUTH_SECURITY = [
+  ...REST_AUTH_SECURITY,
+  { calendarFeedToken: [] },
+];
 const SECURITY_SCHEMES = {
   bearerAuth: {
     type: "http",
@@ -513,6 +517,13 @@ const SECURITY_SCHEMES = {
     bearerFormat: "JWT",
     description:
       "OAuth bearer token for /api/mcp. MCP requires a bearer token with the MCP resource audience and does not accept session cookies.",
+  },
+  calendarFeedToken: {
+    type: "apiKey",
+    in: "query",
+    name: "token",
+    description:
+      "Calendar feed token accepted by the personal iCal endpoint. Token-bearing feed URLs may also embed the token in the userId:token path segment.",
   },
 };
 
@@ -1145,6 +1156,10 @@ function isProtectedRedirectOperation(path: string, method: string) {
   return path === "/api/dashboard-links/pin" && method === "post";
 }
 
+function isPersonalCalendarFeedOperation(path: string, method: string) {
+  return path === "/api/users/{userId}/calendar.ics" && method === "get";
+}
+
 function applySecurityMetadata(doc: MutableOpenApiDocument) {
   if (!doc.paths) return;
 
@@ -1165,6 +1180,11 @@ function applySecurityMetadata(doc: MutableOpenApiDocument) {
 
       if (path === "/api/mcp" && operationHasResponse(operation, "401")) {
         operation.security = MCP_AUTH_SECURITY;
+        continue;
+      }
+
+      if (isPersonalCalendarFeedOperation(path, method)) {
+        operation.security = CALENDAR_FEED_AUTH_SECURITY;
         continue;
       }
 

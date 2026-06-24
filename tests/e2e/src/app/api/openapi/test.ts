@@ -162,7 +162,7 @@ test.describe("GET /api/openapi", () => {
       paths?: Record<
         string,
         {
-          get?: { security?: unknown[] };
+          get?: { parameters?: unknown[]; security?: unknown[] };
           options?: { security?: unknown[] };
           post?: { security?: unknown[] };
         }
@@ -170,7 +170,12 @@ test.describe("GET /api/openapi", () => {
     };
 
     expect(Object.keys(body.components?.securitySchemes ?? {})).toEqual(
-      expect.arrayContaining(["bearerAuth", "sessionCookie", "mcpBearerAuth"]),
+      expect.arrayContaining([
+        "bearerAuth",
+        "sessionCookie",
+        "mcpBearerAuth",
+        "calendarFeedToken",
+      ]),
     );
     expect(body.paths?.["/api/todos"]?.get?.security).toEqual([
       { bearerAuth: [] },
@@ -179,11 +184,25 @@ test.describe("GET /api/openapi", () => {
     expect(body.paths?.["/api/mcp"]?.get?.security).toEqual([
       { mcpBearerAuth: [] },
     ]);
+    expect(
+      body.paths?.["/api/users/{userId}/calendar.ics"]?.get?.security,
+    ).toEqual([
+      { bearerAuth: [] },
+      { sessionCookie: [] },
+      { calendarFeedToken: [] },
+    ]);
     expect(body.paths?.["/api/mcp"]?.options?.security).toBeUndefined();
     expect(body.paths?.["/api/users/profile"]?.get?.security).toBeUndefined();
     expect(
       body.paths?.["/api/auth/oauth2/token"]?.post?.security,
     ).toBeUndefined();
+    expect(
+      body.paths?.["/api/users/{userId}/calendar.ics"]?.get?.parameters,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ in: "query", name: "token" }),
+      ]),
+    );
   });
 
   test("static openapi.generated.json is accessible", async ({ request }) => {

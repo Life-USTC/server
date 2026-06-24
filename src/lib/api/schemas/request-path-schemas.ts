@@ -10,5 +10,11 @@ export const jwIdPathParamsSchema = z.object({
 });
 
 export const userCalendarPathParamsSchema = z.object({
-  userId: z.string().trim().min(1),
+  userId: z
+    .string()
+    .trim()
+    .min(1)
+    .describe(
+      "User ID. Token-bearing feed URLs may also use the userId:token path segment form.",
+    ),
 });
