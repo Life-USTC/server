@@ -1,10 +1,13 @@
 import { parseInteger } from "@/lib/integers";
 
-export type DescriptionTargetType =
-  | "section"
-  | "course"
-  | "teacher"
-  | "homework";
+export const DESCRIPTION_TARGET_TYPES = [
+  "section",
+  "course",
+  "teacher",
+  "homework",
+] as const;
+
+export type DescriptionTargetType = (typeof DESCRIPTION_TARGET_TYPES)[number];
 
 type DescriptionTargetIdMap = {
   section: number;
@@ -109,4 +112,147 @@ export function resolveDescriptionTarget<
     where: config.where(targetId),
     ensureExists: () => config.findTarget(targetId),
   };
+}
+
+export type ResolvedDescriptionTarget = NonNullable<
+  ReturnType<typeof resolveDescriptionTarget>
+>;
+
+export type DescriptionTargetReferenceInput = {
+  courseJwId?: unknown;
+  homeworkId?: string;
+  rawTargetId?: unknown;
+  sectionJwId?: unknown;
+  targetType: DescriptionTargetType;
+  teacherId?: unknown;
+  verifyExistence?: boolean;
+};
+
+export type ResolvedDescriptionTargetReference =
+  | {
+      ok: true;
+      target: ResolvedDescriptionTarget;
+      targetId: number | string;
+      targetType: DescriptionTargetType;
+    }
+  | {
+      ok: false;
+      error: "invalid_target" | "target_not_found";
+      targetId: unknown;
+      targetType: DescriptionTargetType | string;
+    };
+
+async function findSectionIdByJwId(jwId: number) {
+  const { prisma } = await import("@/lib/db/prisma");
+  const section = await prisma.section.findUnique({
+    where: { jwId },
+    select: { id: true },
+  });
+  return section?.id ?? null;
+}
+
+async function findCourseIdByJwId(jwId: number) {
+  const { prisma } = await import("@/lib/db/prisma");
+  const course = await prisma.course.findUnique({
+    where: { jwId },
+    select: { id: true },
+  });
+  return course?.id ?? null;
+}
+
+function invalidTarget(
+  targetType: DescriptionTargetType,
+): ResolvedDescriptionTargetReference {
+  return {
+    ok: false,
+    error: "invalid_target",
+    targetId: undefined,
+    targetType,
+  };
+}
+
+function targetNotFound(
+  targetType: DescriptionTargetType | string,
+  targetId: unknown,
+): ResolvedDescriptionTargetReference {
+  return {
+    ok: false,
+    error: "target_not_found",
+    targetId,
+    targetType,
+  };
+}
+
+async function resolveVerifiedDescriptionTarget(
+  targetType: DescriptionTargetType,
+  rawTargetId: unknown,
+  verifyExistence: boolean | undefined,
+): Promise<ResolvedDescriptionTargetReference> {
+  if (typeof rawTargetId !== "string" && typeof rawTargetId !== "number") {
+    return invalidTarget(targetType);
+  }
+
+  const target = resolveDescriptionTarget(targetType, rawTargetId);
+  if (!target) return invalidTarget(targetType);
+
+  if (verifyExistence) {
+    const existingTarget = await target.ensureExists();
+    if (!existingTarget) return targetNotFound(targetType, target.targetId);
+  }
+
+  return {
+    ok: true,
+    target,
+    targetId: target.targetId,
+    targetType,
+  };
+}
+
+export async function resolveDescriptionTargetReference(
+  input: DescriptionTargetReferenceInput,
+): Promise<ResolvedDescriptionTargetReference> {
+  const sectionJwId = parseInteger(input.sectionJwId);
+  const courseJwId = parseInteger(input.courseJwId);
+
+  if (input.targetType === "section" && sectionJwId) {
+    const sectionId = await findSectionIdByJwId(sectionJwId);
+    if (!sectionId) return targetNotFound("section", sectionJwId);
+    return resolveVerifiedDescriptionTarget(
+      "section",
+      sectionId,
+      input.verifyExistence,
+    );
+  }
+
+  if (input.targetType === "course" && courseJwId) {
+    const courseId = await findCourseIdByJwId(courseJwId);
+    if (!courseId) return targetNotFound("course", courseJwId);
+    return resolveVerifiedDescriptionTarget(
+      "course",
+      courseId,
+      input.verifyExistence,
+    );
+  }
+
+  if (input.targetType === "teacher") {
+    return resolveVerifiedDescriptionTarget(
+      "teacher",
+      input.teacherId ?? input.rawTargetId,
+      input.verifyExistence,
+    );
+  }
+
+  if (input.targetType === "homework") {
+    return resolveVerifiedDescriptionTarget(
+      "homework",
+      input.homeworkId ?? input.rawTargetId,
+      input.verifyExistence,
+    );
+  }
+
+  return resolveVerifiedDescriptionTarget(
+    input.targetType,
+    input.rawTargetId,
+    input.verifyExistence,
+  );
 }
