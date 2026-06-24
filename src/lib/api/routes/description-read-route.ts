@@ -1,11 +1,12 @@
 import {
   type DescriptionTargetType,
-  resolveDescriptionTarget,
+  resolveDescriptionTargetReference,
 } from "@/features/descriptions/server/description-targets";
 import {
   badRequest,
   handleRouteError,
   jsonResponse,
+  notFound,
   parseRouteSearchParams,
 } from "@/lib/api/helpers";
 import { descriptionsQuerySchema } from "@/lib/api/schemas/request-schemas";
@@ -23,12 +24,19 @@ export async function getDescriptionRoute(request: Request) {
     return badRequest("Invalid target");
   }
 
-  const targetType = parsedQuery.targetType;
-  const target = resolveDescriptionTarget(
-    targetType as DescriptionTargetType,
-    parsedQuery.targetId,
-  );
-  if (!target) {
+  const target = await resolveDescriptionTargetReference({
+    courseJwId: parsedQuery.courseJwId,
+    homeworkId: parsedQuery.homeworkId,
+    rawTargetId: parsedQuery.targetId,
+    sectionJwId: parsedQuery.sectionJwId,
+    targetType: parsedQuery.targetType as DescriptionTargetType,
+    teacherId: parsedQuery.teacherId,
+    verifyExistence: true,
+  });
+  if (!target.ok && target.error === "target_not_found") {
+    return notFound("Target not found");
+  }
+  if (!target.ok) {
     return badRequest("Invalid target");
   }
 
@@ -38,7 +46,7 @@ export async function getDescriptionRoute(request: Request) {
     const { getResolvedDescriptionPayload } = await import(
       "@/features/descriptions/server/descriptions-server"
     );
-    const payload = await getResolvedDescriptionPayload(target, viewer);
+    const payload = await getResolvedDescriptionPayload(target.target, viewer);
     return jsonResponse(payload);
   } catch (error) {
     return handleRouteError("Failed to fetch description", error);

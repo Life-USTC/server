@@ -10,6 +10,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @params descriptionsQuerySchema
  * @response descriptionsResponseSchema
  * @response 400:openApiErrorSchema
+ * @response 404:openApiErrorSchema
  */
 export const GET = svelteRequestHandler(observedApiRoute(getDescriptionRoute));
 /**

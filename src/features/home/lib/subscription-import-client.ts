@@ -2,8 +2,7 @@ import type * as z from "zod";
 import { extractApiErrorMessage } from "@/lib/api/client";
 import {
   calendarSubscriptionAppendResponseSchema,
-  calendarSubscriptionCreateResponseSchema,
-  currentCalendarSubscriptionResponseSchema,
+  calendarSubscriptionRemoveResponseSchema,
   matchSectionCodesResponseSchema,
 } from "@/lib/api/schemas/misc-response-schema-core";
 
@@ -70,39 +69,6 @@ export async function matchSubscriptionSectionCodes({
   );
 }
 
-export async function fetchCurrentSubscribedSectionIds(
-  fetchFailedMessage: string,
-) {
-  const response = await fetch("/api/calendar-subscriptions/current");
-  const payload = await readJsonPayload(response);
-  assertOkResponse(response, payload, fetchFailedMessage);
-  const data = validatedPayload(
-    currentCalendarSubscriptionResponseSchema,
-    payload,
-    fetchFailedMessage,
-  );
-
-  return data.subscription?.sections.map((section) => section.id) ?? [];
-}
-
-export async function updateSubscribedSectionIds(
-  sectionIds: number[],
-  importFailedMessage: string,
-) {
-  const response = await fetch("/api/calendar-subscriptions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ sectionIds }),
-  });
-  const payload = await readJsonPayload(response);
-  assertOkResponse(response, payload, importFailedMessage);
-  validatedPayload(
-    calendarSubscriptionCreateResponseSchema,
-    payload,
-    importFailedMessage,
-  );
-}
-
 export async function appendSubscribedSectionIds({
   importFailedMessage,
   selectedSectionIds,
@@ -128,4 +94,29 @@ export async function appendSubscribedSectionIds({
   );
 
   return data.addedCount;
+}
+
+export async function removeSubscribedSectionIds({
+  errorMessage,
+  sectionIds,
+}: {
+  errorMessage: string;
+  sectionIds: number[];
+}) {
+  if (sectionIds.length === 0) {
+    return;
+  }
+
+  const response = await fetch("/api/calendar-subscriptions", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sectionIds }),
+  });
+  const payload = await readJsonPayload(response);
+  assertOkResponse(response, payload, errorMessage);
+  validatedPayload(
+    calendarSubscriptionRemoveResponseSchema,
+    payload,
+    errorMessage,
+  );
 }

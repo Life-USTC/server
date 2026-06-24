@@ -6,6 +6,30 @@ import {
   todoPrioritySchema,
 } from "./request-schema-primitives";
 
+const overviewHomeworkWindowDaysSchema = integerStringSchema
+  .refine(
+    (value) => {
+      const days = Number.parseInt(value, 10);
+      return days >= 1 && days <= 90;
+    },
+    { message: "homeworkWindowDays must be between 1 and 90" },
+  )
+  .meta({
+    override: { type: "integer", format: "int64", minimum: 1, maximum: 90 },
+  });
+
+const compactOverviewLimitSchema = integerStringSchema
+  .refine(
+    (value) => {
+      const limit = Number.parseInt(value, 10);
+      return limit >= 1 && limit <= 50;
+    },
+    { message: "limit must be between 1 and 50" },
+  )
+  .meta({
+    override: { type: "integer", format: "int64", minimum: 1, maximum: 50 },
+  });
+
 export const busQuerySchema = z.object({
   versionKey: z.string().trim().min(1).optional(),
 });
@@ -58,8 +82,8 @@ export const subscribedSchedulesQuerySchema = z.object({
 
 export const compactOverviewQuerySchema = z.object({
   atTime: z.string().trim().min(1).optional(),
-  homeworkWindowDays: integerStringSchema.optional(),
-  limit: integerStringSchema.optional(),
+  homeworkWindowDays: overviewHomeworkWindowDaysSchema.optional(),
+  limit: compactOverviewLimitSchema.optional(),
   locale: z.enum(APP_LOCALES).optional(),
 });
 

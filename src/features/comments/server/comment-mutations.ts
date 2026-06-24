@@ -5,6 +5,7 @@ import type {
 } from "@/generated/prisma/client";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
+import { canViewerWriteCommentInteraction } from "./comment-interaction-policy";
 import { commentThreadInclude } from "./comment-read-model";
 import type { ViewerInfo } from "./comment-serialization";
 import { buildCommentNodes } from "./comment-serialization";
@@ -30,6 +31,7 @@ type CreateCommentError =
   | "forbidden"
   | "invalid_attachments"
   | "invalid_target"
+  | "locked"
   | "parent_not_found"
   | "suspended"
   | "target_mismatch"
@@ -71,10 +73,11 @@ export async function createComment(input: {
     };
   }
 
-  const parent = await resolveCreateCommentParent(
-    input.parentId,
-    target.whereTarget,
-  );
+  const parent = await resolveCreateCommentParent({
+    parentId: input.parentId,
+    viewer: actor.viewer,
+    whereTarget: target.whereTarget,
+  });
   if (!parent.ok) {
     return { ok: false as const, error: parent.error };
   }
@@ -248,30 +251,28 @@ export async function createCommentReaction(input: {
 
   const comment = await prisma.comment.findUnique({
     where: { id: input.commentId },
-    select: { id: true },
+    select: { id: true, status: true, visibility: true },
   });
 
   if (!comment) {
     return { ok: false as const, error: "not_found" as const };
   }
+  if (!canViewerWriteCommentInteraction(comment, actor.viewer)) {
+    return { ok: false as const, error: "locked" as const };
+  }
 
-  await prisma.commentReaction.upsert({
-    where: {
-      commentId_userId_type: {
+  const result = await prisma.commentReaction.createMany({
+    data: [
+      {
         commentId: input.commentId,
         userId: input.userId,
         type: input.type as CommentReactionType,
       },
-    },
-    update: {},
-    create: {
-      commentId: input.commentId,
-      userId: input.userId,
-      type: input.type as CommentReactionType,
-    },
+    ],
+    skipDuplicates: true,
   });
 
-  return { ok: true as const };
+  return { ok: true as const, changed: result.count > 0 };
 }
 
 export async function deleteCommentReaction(input: {
@@ -282,7 +283,20 @@ export async function deleteCommentReaction(input: {
   const actor = await loadActiveCommentActor(input.userId);
   if (!actor.ok) return actor;
 
-  await prisma.commentReaction.deleteMany({
+  const comment = await prisma.comment.findUnique({
+    where: { id: input.commentId },
+    select: { id: true, status: true, visibility: true },
+  });
+
+  if (!comment) {
+    return { ok: true as const, changed: false };
+  }
+
+  if (!canViewerWriteCommentInteraction(comment, actor.viewer)) {
+    return { ok: false as const, error: "locked" as const };
+  }
+
+  const result = await prisma.commentReaction.deleteMany({
     where: {
       commentId: input.commentId,
       userId: input.userId,
@@ -290,7 +304,7 @@ export async function deleteCommentReaction(input: {
     },
   });
 
-  return { ok: true as const };
+  return { ok: true as const, changed: result.count > 0 };
 }
 
 export async function validateCommentAttachmentIds(
@@ -308,10 +322,15 @@ export async function validateCommentAttachmentIds(
   return uploads.length === attachmentIds.length;
 }
 
-async function resolveCreateCommentParent(
-  parentId: string | null | undefined,
-  whereTarget: Record<string, unknown>,
-) {
+async function resolveCreateCommentParent({
+  parentId,
+  viewer,
+  whereTarget,
+}: {
+  parentId: string | null | undefined;
+  viewer: ViewerInfo;
+  whereTarget: Record<string, unknown>;
+}) {
   if (!parentId) {
     return { ok: true as const, parentId: null, rootId: null };
   }
@@ -321,6 +340,9 @@ async function resolveCreateCommentParent(
   });
   if (!parent) {
     return { ok: false as const, error: "parent_not_found" as const };
+  }
+  if (!canViewerWriteCommentInteraction(parent, viewer)) {
+    return { ok: false as const, error: "locked" as const };
   }
 
   const sameTarget = Object.entries(whereTarget).every(
@@ -361,7 +383,7 @@ async function loadEditableCommentContext({
     return { ok: false, error: "not_found" };
   }
 
-  if (String(comment.status) === "deleted") {
+  if (String(comment.status) !== "active") {
     return { ok: false, error: "locked" };
   }
 

@@ -2,7 +2,10 @@ export {
   adminCommentsResponseSchema,
   adminModeratedCommentResponseSchema,
 } from "./admin-comment-response-schemas";
-export { adminDescriptionsResponseSchema } from "./admin-description-response-schemas";
+export {
+  adminDescriptionsResponseSchema,
+  adminModeratedDescriptionResponseSchema,
+} from "./admin-description-response-schemas";
 export { adminHomeworksResponseSchema } from "./admin-homework-response-schemas";
 export {
   adminSuspensionResponseSchema,

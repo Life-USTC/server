@@ -9,6 +9,7 @@ import { getRequestLocale } from "@/lib/api/routes/request-locale";
 import {
   calendarSubscriptionAppendRequestSchema,
   calendarSubscriptionCreateRequestSchema,
+  calendarSubscriptionRemoveRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
 import { requireAuth } from "@/lib/auth/api-auth";
 
@@ -144,5 +145,40 @@ export async function patchCalendarSubscriptionsRoute(request: Request) {
     return jsonResponse(result);
   } catch (error) {
     return handleRouteError("Failed to append section subscriptions", error);
+  }
+}
+
+export async function deleteCalendarSubscriptionsRoute(request: Request) {
+  try {
+    const auth = await requireAuth(request);
+    if (auth instanceof Response) return auth;
+    const { userId } = auth;
+
+    const parsedBody = await parseRouteJsonBody(
+      request,
+      calendarSubscriptionRemoveRequestSchema,
+      "Invalid subscription remove request",
+    );
+    if (parsedBody instanceof Response) {
+      return parsedBody;
+    }
+
+    const { getUserCalendarSubscription, removeUserSectionSubscriptions } =
+      await import("@/features/home/server/subscriptions");
+    const result = await removeUserSectionSubscriptions(
+      userId,
+      parsedBody.sectionIds,
+    );
+    if (!result) {
+      return notFound();
+    }
+
+    const subscription = await getUserCalendarSubscription(
+      userId,
+      getRequestLocale(request),
+    );
+    return jsonResponse({ subscription });
+  } catch (error) {
+    return handleRouteError("Failed to remove section subscriptions", error);
   }
 }

@@ -1064,6 +1064,7 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       const overviewResult = await mcpClient.callTool({
         name: "get_my_overview",
         arguments: {
+          limit: 2,
           locale: "zh-cn",
         },
       });
@@ -1073,6 +1074,11 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
           pendingHomeworksCount?: number;
           todaySchedulesCount?: number;
           upcomingExamsCount?: number;
+        };
+        samples?: {
+          dueTodos?: Array<{ id?: string }>;
+          dueHomeworks?: Array<{ id?: string }>;
+          upcomingExams?: Array<{ id?: number }>;
         };
       };
       expect(typeof overviewPayload.overview?.pendingTodosCount).toBe("number");
@@ -1084,6 +1090,13 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       );
       expect(typeof overviewPayload.overview?.upcomingExamsCount).toBe(
         "number",
+      );
+      expect((overviewPayload.samples?.dueTodos?.length ?? 0) <= 2).toBe(true);
+      expect((overviewPayload.samples?.dueHomeworks?.length ?? 0) <= 2).toBe(
+        true,
+      );
+      expect((overviewPayload.samples?.upcomingExams?.length ?? 0) <= 2).toBe(
+        true,
       );
       const overviewSummaryResult = await mcpClient.callTool({
         name: "get_my_overview",

@@ -7,10 +7,7 @@ import {
   getUserSectionSubscriptionState,
 } from "./subscription-calendar-read-model";
 import { getSubscribedSectionIds } from "./subscription-read-model-shared";
-import {
-  removeSectionIds,
-  uniqueSectionIds,
-} from "./subscription-section-id-helpers";
+import { uniqueSectionIds } from "./subscription-section-id-helpers";
 
 async function replaceUserSectionIds(
   userId: string,
@@ -87,6 +84,25 @@ async function connectUserSectionIds(
     data: {
       subscribedSections: {
         connect: uniqueSectionIds(sectionIds).map((id) => ({ id })),
+      },
+    },
+  });
+}
+
+async function disconnectUserSectionIds(
+  userId: string,
+  sectionIds: readonly number[],
+) {
+  const validSectionIds = await getExistingSectionIds(sectionIds);
+  if (validSectionIds.length === 0) {
+    return;
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      subscribedSections: {
+        disconnect: validSectionIds.map((id) => ({ id })),
       },
     },
   });
@@ -200,13 +216,7 @@ export async function removeUserSectionSubscriptions(
     return null;
   }
 
-  await replaceUserSectionIds(
-    userId,
-    removeSectionIds(
-      user.subscribedSections.map((section) => section.id),
-      sectionIds,
-    ),
-  );
+  await disconnectUserSectionIds(userId, sectionIds);
 
   return getUserSectionSubscriptionState(userId);
 }
@@ -239,17 +249,10 @@ export async function unsubscribeUserFromSectionByJwId(
     return null;
   }
 
-  const user = await getMutableUserSubscriptions(userId);
-  if (!user) {
+  const state = await removeUserSectionSubscriptions(userId, [sectionId]);
+  if (!state) {
     return null;
   }
-
-  await replaceUserSectionIds(
-    userId,
-    user.subscribedSections
-      .filter((section) => section.id !== sectionId)
-      .map((section) => section.id),
-  );
 
   return getUserCalendarSubscription(userId, locale);
 }

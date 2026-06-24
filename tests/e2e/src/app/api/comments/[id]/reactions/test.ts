@@ -14,6 +14,7 @@
  * - Response: { success: true }
  * - Auth required (401 if unauthenticated)
  * - Deletes matching reaction; no-op if not present (still returns success)
+ * - Returns 403 when the comment exists but is inactive
  *
  * ## Edge cases
  * - POST reaction on non-existent comment → 404
@@ -23,6 +24,7 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../../utils/auth";
 import { DEV_SEED } from "../../../../../../utils/dev-seed";
+import { withE2ePrisma } from "../../../../../../utils/e2e-db/prisma";
 import { assertApiContract } from "../../../../_shared/api-contract";
 
 /** Resolve the seed section's internal DB id via match-codes. */
@@ -94,15 +96,21 @@ test("/api/comments/[id]/reactions 登录后可添加并验证再删除", async 
   const sectionId = await resolveSeedSectionId(page.request);
   const commentId = await findSeedCommentId(page.request, sectionId);
 
-  // POST: add a rocket reaction
-  const createResponse = await page.request.post(
-    `/api/comments/${commentId}/reactions`,
-    { data: { type: "rocket" } },
-  );
-  expect(createResponse.status()).toBe(200);
-  expect((await createResponse.json()) as { success?: boolean }).toEqual({
-    success: true,
-  });
+  // POST is idempotent, including duplicate requests that arrive together.
+  const createResponses = await Promise.all([
+    page.request.post(`/api/comments/${commentId}/reactions`, {
+      data: { type: "rocket" },
+    }),
+    page.request.post(`/api/comments/${commentId}/reactions`, {
+      data: { type: "rocket" },
+    }),
+  ]);
+  for (const createResponse of createResponses) {
+    expect(createResponse.status()).toBe(200);
+    expect((await createResponse.json()) as { success?: boolean }).toEqual({
+      success: true,
+    });
+  }
 
   // Verify the reaction is visible in the thread
   const threadResponse = await page.request.get(`/api/comments/${commentId}`);
@@ -138,4 +146,118 @@ test("/api/comments/[id]/reactions POST 不存在的评论返回 404", async ({
     { data: { type: "heart" } },
   );
   expect(response.status()).toBe(404);
+});
+
+test("/api/comments/[id]/reactions POST refuses inactive comments", async ({
+  page,
+}) => {
+  await signInAsDebugUser(page, "/");
+  const sectionId = await resolveSeedSectionId(page.request);
+
+  const content = `e2e-inactive-reaction-${Date.now()}`;
+  const createResponse = await page.request.post("/api/comments", {
+    data: {
+      targetType: "section",
+      targetId: String(sectionId),
+      body: content,
+      visibility: "public",
+    },
+  });
+  expect(createResponse.status()).toBe(200);
+  const commentId = ((await createResponse.json()) as { id?: string }).id;
+  expect(commentId).toBeTruthy();
+  if (!commentId) {
+    throw new Error("Expected created comment id");
+  }
+
+  try {
+    await withE2ePrisma((prisma) =>
+      prisma.comment.update({
+        where: { id: commentId },
+        data: { deletedAt: new Date(), status: "deleted" },
+      }),
+    );
+
+    const deletedResponse = await page.request.post(
+      `/api/comments/${commentId}/reactions`,
+      { data: { type: "heart" } },
+    );
+    expect(deletedResponse.status()).toBe(403);
+
+    await withE2ePrisma((prisma) =>
+      prisma.comment.update({
+        where: { id: commentId },
+        data: { deletedAt: null, status: "softbanned" },
+      }),
+    );
+
+    const softbannedResponse = await page.request.post(
+      `/api/comments/${commentId}/reactions`,
+      { data: { type: "heart" } },
+    );
+    expect(softbannedResponse.status()).toBe(403);
+  } finally {
+    await withE2ePrisma((prisma) =>
+      prisma.comment.deleteMany({ where: { id: commentId } }),
+    );
+  }
+});
+
+test("/api/comments/[id]/reactions DELETE refuses inactive comments", async ({
+  page,
+}) => {
+  await signInAsDebugUser(page, "/");
+  const sectionId = await resolveSeedSectionId(page.request);
+
+  const content = `e2e-inactive-reaction-delete-${Date.now()}`;
+  const createResponse = await page.request.post("/api/comments", {
+    data: {
+      targetType: "section",
+      targetId: String(sectionId),
+      body: content,
+      visibility: "public",
+    },
+  });
+  expect(createResponse.status()).toBe(200);
+  const commentId = ((await createResponse.json()) as { id?: string }).id;
+  expect(commentId).toBeTruthy();
+  if (!commentId) {
+    throw new Error("Expected created comment id");
+  }
+
+  try {
+    const reactionResponse = await page.request.post(
+      `/api/comments/${commentId}/reactions`,
+      { data: { type: "heart" } },
+    );
+    expect(reactionResponse.status()).toBe(200);
+
+    await withE2ePrisma((prisma) =>
+      prisma.comment.update({
+        where: { id: commentId },
+        data: { deletedAt: new Date(), status: "deleted" },
+      }),
+    );
+
+    const deletedResponse = await page.request.delete(
+      `/api/comments/${commentId}/reactions?type=heart`,
+    );
+    expect(deletedResponse.status()).toBe(403);
+
+    await withE2ePrisma((prisma) =>
+      prisma.comment.update({
+        where: { id: commentId },
+        data: { deletedAt: null, status: "softbanned" },
+      }),
+    );
+
+    const softbannedResponse = await page.request.delete(
+      `/api/comments/${commentId}/reactions?type=heart`,
+    );
+    expect(softbannedResponse.status()).toBe(403);
+  } finally {
+    await withE2ePrisma((prisma) =>
+      prisma.comment.deleteMany({ where: { id: commentId } }),
+    );
+  }
 });

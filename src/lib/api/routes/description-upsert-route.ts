@@ -1,3 +1,4 @@
+import { resolveDescriptionTargetReference } from "@/features/descriptions/server/description-targets";
 import { upsertDescriptionContent } from "@/features/descriptions/server/description-upsert";
 import {
   badRequest,
@@ -32,10 +33,26 @@ export async function postDescriptionRoute(request: Request) {
   const content = parsedBody.content.trim();
 
   try {
+    const target = await resolveDescriptionTargetReference({
+      courseJwId: parsedBody.courseJwId,
+      homeworkId: parsedBody.homeworkId,
+      rawTargetId: parsedBody.targetId,
+      sectionJwId: parsedBody.sectionJwId,
+      targetType,
+      teacherId: parsedBody.teacherId,
+      verifyExistence: true,
+    });
+    if (!target.ok && target.error === "target_not_found") {
+      return notFound("Target not found");
+    }
+    if (!target.ok) {
+      return badRequest("Invalid target");
+    }
+
     const result = await upsertDescriptionContent({
       auditMetadata: getAuditRequestMetadata(request),
       content,
-      targetId: parsedBody.targetId,
+      targetId: target.targetId,
       targetType,
       userId,
     });

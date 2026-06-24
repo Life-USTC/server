@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
+import { DESCRIPTION_CONTENT_MAX_LENGTH } from "@/features/descriptions/lib/description-limits";
 import {
   DESCRIPTION_TARGET_TYPES,
   type DescriptionTargetType,
@@ -53,7 +54,7 @@ const descriptionTargetInputSchema = z.object({
 const descriptionUpsertInputSchema = descriptionTargetInputSchema.extend({
   content: z
     .string()
-    .max(4000)
+    .max(DESCRIPTION_CONTENT_MAX_LENGTH)
     .describe("Markdown description content. Matches POST /api/descriptions."),
 });
 

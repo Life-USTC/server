@@ -44,6 +44,7 @@ export type CommentNode = {
   replies: CommentNode[];
   attachments: CommentAttachmentSummary[];
   reactions: CommentReactionSummary[];
+  canReact: boolean;
   canReply: boolean;
   canEdit: boolean;
   canDelete: boolean;

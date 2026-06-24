@@ -23,6 +23,21 @@ import {
   oauthErrorResponseSchema,
   openApiErrorSchema,
 } from "@/lib/api/schemas/response-schemas";
+import generatedOpenApiDocument from "../../public/openapi.generated.json";
+
+const openApiSchemas = (
+  generatedOpenApiDocument as {
+    components?: { schemas?: Record<string, Record<string, unknown>> };
+  }
+).components?.schemas;
+
+function openApiSchema(name: string) {
+  const schema = openApiSchemas?.[name];
+  if (!schema) {
+    throw new Error(`OpenAPI schema ${name} not found`);
+  }
+  return schema;
+}
 
 describe("matchSectionCodesRequestSchema", () => {
   it("accepts valid payload", () => {
@@ -147,6 +162,22 @@ describe("descriptionUpsertRequestSchema", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("documents required target-reference alternatives in OpenAPI", () => {
+    const schema = openApiSchema("descriptionUpsertRequestSchema");
+    expect(schema.required).toEqual(
+      expect.arrayContaining(["targetType", "content"]),
+    );
+    expect(schema.anyOf).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ required: ["targetId"] }),
+        expect.objectContaining({ required: ["sectionJwId"] }),
+        expect.objectContaining({ required: ["courseJwId"] }),
+        expect.objectContaining({ required: ["teacherId"] }),
+        expect.objectContaining({ required: ["homeworkId"] }),
+      ]),
+    );
+  });
 });
 
 describe("other request schemas", () => {
@@ -200,6 +231,22 @@ describe("other request schemas", () => {
 
     expect(valid.success).toBe(true);
     expect(missingIds.success).toBe(false);
+  });
+
+  it("documents positive calendar subscription section IDs in OpenAPI", () => {
+    for (const name of [
+      "calendarSubscriptionAppendRequestSchema",
+      "calendarSubscriptionRemoveRequestSchema",
+    ]) {
+      const schema = openApiSchema(name);
+      const properties = schema.properties as
+        | Record<string, { items?: Record<string, unknown> }>
+        | undefined;
+      const items = properties?.sectionIds?.items;
+
+      expect(items).toMatchObject({ minimum: 1, type: "integer" });
+      expect(items).not.toHaveProperty("exclusiveMinimum");
+    }
   });
 
   it("rejects invalid reaction type", () => {

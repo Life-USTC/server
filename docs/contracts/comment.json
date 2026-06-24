@@ -3,7 +3,7 @@
   "access": {
     "anon": "Can read public comments but cannot create sign-in-required comments.",
     "user": "Can post, reply, react, edit, and delete their own comments; suspended users can read permitted comments but cannot use comment write actions or upload comment attachments.",
-    "admin": "Can hide, delete, and moderate comments, and handle suspensions.",
+    "admin": "Can hide, delete, and moderate comments through moderation surfaces, and handle suspensions.",
     "agent": "Can read visible comment lists and focused threads through MCP with authenticated viewer context; no comment write or moderation capability is currently provided."
   },
   "rules": {
@@ -11,7 +11,8 @@
     "attached-object-types": "Attached objects include courses, sections, teachers, homework, and section-teacher relationships.",
     "rich-content": "Supports Markdown, math formulas, emoji, tables, replies, and reactions.",
     "visibility-modes": "Supports public, signed-in-only, and anonymous posting; anonymous comments hide identity from regular users but are traceable by admins in governance scenarios.",
-    "shared-read-policy": "Web, REST, and MCP comment reads share the same target resolution, thread serialization, visibility filtering, author masking, reaction, attachment, and viewer action-flag logic; read-only paths must not create durable comment targets and valid empty section-teacher targets load as empty threads."
+    "shared-read-policy": "Web, REST, and MCP comment reads share the same target resolution, thread serialization, visibility filtering, author masking, reaction, attachment, and viewer action-flag logic; read-only paths must not create durable comment targets and valid empty section-teacher targets load as empty threads.",
+    "interaction-gate": "Edits, replies, and reaction changes require an authenticated, unsuspended viewer and an active visible comment target; deleted or softbanned comments must not expose canEdit/canReply/canReact or accept those write actions."
   },
   "capabilities": {
     "object-comment-section": {
@@ -54,7 +55,10 @@
           },
           {
             "path": "/api/comments/[id]",
-            "returns": "{ thread: Comment[], focusId: String, hiddenCount: Int, viewer, target }"
+            "returns": "{ thread: Comment[], focusId: String, hiddenCount: Int, viewer, target }",
+            "notes": [
+              "Returns 403 when the focused comment exists but is not visible to the viewer."
+            ]
           },
           {
             "path": "/api/comments/[id]/reactions",
@@ -93,7 +97,7 @@
           "comment.reactions[] (counts per reaction type)",
           "comment.replies[] (threaded)",
           "comment.attachments[] filename/open action for signed-in viewers with attachment access",
-          "canReply/canEdit/canDelete/canModerate actions",
+          "canReply/canReact/canEdit/canDelete/canModerate actions",
           "Copy link action"
         ]
       }

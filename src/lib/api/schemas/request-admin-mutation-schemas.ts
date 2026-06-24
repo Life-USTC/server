@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { DESCRIPTION_CONTENT_MAX_LENGTH } from "@/features/descriptions/lib/description-limits";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 
 const suspensionExpiresAtSchema = z
@@ -11,6 +12,10 @@ const suspensionExpiresAtSchema = z
 export const adminModerateCommentRequestSchema = z.object({
   status: z.enum(["active", "softbanned", "deleted"]),
   moderationNote: z.string().optional().nullable(),
+});
+
+export const adminModerateDescriptionRequestSchema = z.object({
+  content: z.string().max(DESCRIPTION_CONTENT_MAX_LENGTH),
 });
 
 export const adminCreateSuspensionRequestSchema = z.object({

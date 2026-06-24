@@ -312,3 +312,66 @@ test("/api/comments POST 可创建回复评论", async ({ page }) => {
     }
   }
 });
+
+test("/api/comments POST refuses replies to inactive parent comments", async ({
+  page,
+}) => {
+  await signInAsDebugUser(page, "/");
+  const sectionId = await resolveSeedSectionId(page.request);
+
+  const content = `e2e-inactive-parent-${Date.now()}`;
+  const createResponse = await page.request.post("/api/comments", {
+    data: {
+      targetType: "section",
+      targetId: String(sectionId),
+      body: content,
+      visibility: "public",
+    },
+  });
+  expect(createResponse.status()).toBe(200);
+  const commentId = ((await createResponse.json()) as { id?: string }).id;
+  expect(commentId).toBeTruthy();
+  if (!commentId) {
+    throw new Error("Expected created comment id");
+  }
+
+  try {
+    await withE2ePrisma((prisma) =>
+      prisma.comment.update({
+        where: { id: commentId },
+        data: { deletedAt: new Date(), status: "deleted" },
+      }),
+    );
+
+    const deletedReplyResponse = await page.request.post("/api/comments", {
+      data: {
+        targetType: "section",
+        targetId: String(sectionId),
+        body: `${content}-reply-deleted`,
+        parentId: commentId,
+      },
+    });
+    expect(deletedReplyResponse.status()).toBe(403);
+
+    await withE2ePrisma((prisma) =>
+      prisma.comment.update({
+        where: { id: commentId },
+        data: { deletedAt: null, status: "softbanned" },
+      }),
+    );
+
+    const softbannedReplyResponse = await page.request.post("/api/comments", {
+      data: {
+        targetType: "section",
+        targetId: String(sectionId),
+        body: `${content}-reply-softbanned`,
+        parentId: commentId,
+      },
+    });
+    expect(softbannedReplyResponse.status()).toBe(403);
+  } finally {
+    await withE2ePrisma((prisma) =>
+      prisma.comment.deleteMany({ where: { id: commentId } }),
+    );
+  }
+});

@@ -187,6 +187,7 @@ describe("comment read tools — MCP exposes the REST comment hierarchy", () => 
         author?: { name?: string | null } | null;
         replies?: Array<{ body?: string }>;
         reactions?: Array<{ type?: string; count?: number }>;
+        canReact?: boolean;
         canReply?: boolean;
         canEdit?: boolean;
         canDelete?: boolean;
@@ -223,6 +224,7 @@ describe("comment read tools — MCP exposes the REST comment hierarchy", () => 
     );
     expect(root).toBeDefined();
     expect(root?.author?.name).toBe(DEV_SEED.debugName);
+    expect(root?.canReact).toBe(true);
     expect(root?.canReply).toBe(true);
     expect(root?.canEdit).toBe(true);
     expect(root?.canDelete).toBe(true);
@@ -1098,7 +1100,7 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
     }
   });
 
-  it("get_my_overview with atTime reflects the seed day's schedule count", async () => {
+  it("get_my_overview with atTime reflects the seed day's schedule count and sample limit", async () => {
     const result = await mcp.call<{
       overview?: {
         pendingTodosCount?: number;
@@ -1109,6 +1111,7 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
     }>("get_my_overview", {
       locale: "zh-cn",
       atTime: SEED_AT_TIME,
+      limit: 2,
       mode: "full",
     });
 
@@ -1117,6 +1120,7 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
     expect((result.overview?.todaySchedulesCount ?? 0) > 0).toBe(true);
     expect(typeof result.overview?.upcomingExamsCount).toBe("number");
     expect((result.samples?.dueTodos?.length ?? 0) > 0).toBe(true);
+    expect((result.samples?.dueTodos?.length ?? 0) <= 2).toBe(true);
     expect(
       result.samples?.dueTodos?.every((todo) => typeof todo.dueAt === "string"),
     ).toBe(true);
@@ -1136,7 +1140,7 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
     expect((summary.samples?.dueTodos?.items?.length ?? 0) <= 3).toBe(true);
   });
 
-  it("get_my_overview excludes homework samples outside the compact overview window", async () => {
+  it("get_my_overview honors the compact overview homework window", async () => {
     const user = await prisma.user.findUniqueOrThrow({
       where: { id: devUserId },
       select: {
@@ -1180,6 +1184,22 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
           (sample) => sample.id === homework.id || sample.title === title,
         ),
       ).toBe(false);
+
+      const extendedWindowResult = await mcp.call<{
+        samples?: { dueHomeworks?: Array<{ id?: string; title?: string }> };
+      }>("get_my_overview", {
+        locale: "zh-cn",
+        atTime: SEED_AT_TIME,
+        homeworkWindowDays: 14,
+        limit: 50,
+        mode: "full",
+      });
+
+      expect(
+        extendedWindowResult.samples?.dueHomeworks?.some(
+          (sample) => sample.id === homework.id || sample.title === title,
+        ),
+      ).toBe(true);
     } finally {
       await prisma.homework.deleteMany({ where: { id: homework.id } });
     }

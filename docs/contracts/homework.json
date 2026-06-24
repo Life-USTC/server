@@ -158,7 +158,7 @@
     "homework-governance": {
       "title": "Homework Governance",
       "auth": "admin",
-      "web": "unavailable",
+      "web": "stable",
       "rest": {
         "routes": [
           {

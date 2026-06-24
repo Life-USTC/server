@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { SubmitFunction } from "@sveltejs/kit";
+import { DESCRIPTION_CONTENT_MAX_LENGTH } from "@/features/descriptions/lib/description-limits";
 import { enhance } from "$app/forms";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
@@ -69,6 +70,7 @@ export let targetLabel: (description: AdminModerationDescription) => string;
           <span class="font-medium text-sm">{copy.descriptionContent}</span>
           <Textarea
             class="min-h-56"
+            maxlength={DESCRIPTION_CONTENT_MAX_LENGTH}
             name="content"
             value={descriptionDraft}
             oninput={(event: Event) => {

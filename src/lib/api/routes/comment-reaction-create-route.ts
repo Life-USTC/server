@@ -44,6 +44,7 @@ export async function postCommentReactionRoute(
   try {
     return await createCommentReactionAction({
       commentId: id,
+      request,
       type,
       userId,
     });

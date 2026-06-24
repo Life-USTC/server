@@ -39,6 +39,9 @@ export const calendarSubscriptionAppendResponseSchema =
     alreadySubscribedCount: z.number().int().nonnegative(),
   });
 
+export const calendarSubscriptionRemoveResponseSchema =
+  calendarSubscriptionCreateResponseSchema;
+
 export const calendarSubscriptionImportResponseSchema = z.object({
   success: z.boolean(),
   semester: z.object({

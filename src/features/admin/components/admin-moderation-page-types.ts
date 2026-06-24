@@ -29,6 +29,7 @@ export type AdminModerationCopy = AdminModerationCommentsCopy &
     deleteHomeworkDescription: string;
     deleteHomeworkTitle: string;
     descriptionContent: string;
+    descriptionInvalidContent: string;
     filterAction: string;
     filterQueue: string;
     filterQueueDescription: string;

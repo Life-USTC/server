@@ -26,7 +26,10 @@ export let reactionName: (type: string) => string;
 export let reactionOptions: ReactionOption[];
 export let viewer: ViewerContext;
 
-$: if (viewer.isSuspended && reactionMenuId === comment.id) {
+$: if (
+  (!comment.canReact || viewer.isSuspended) &&
+  reactionMenuId === comment.id
+) {
   reactionMenuId = null;
 }
 </script>
@@ -37,7 +40,7 @@ $: if (viewer.isSuspended && reactionMenuId === comment.id) {
       aria-expanded={reactionMenuId === comment.id}
       aria-haspopup="menu"
       aria-label={commentCopy.reactionMenu}
-      disabled={viewer.isSuspended}
+      disabled={!comment.canReact}
       onclick={() => (reactionMenuId = reactionMenuId === comment.id ? null : comment.id)}
       size="sm"
       type="button"
@@ -56,7 +59,7 @@ $: if (viewer.isSuspended && reactionMenuId === comment.id) {
           <Menu.Item
             checked={reactionEntry(comment, option.type)?.viewerHasReacted ?? false}
             class={`${reactionEntry(comment, option.type)?.viewerHasReacted ? "bg-base-200 font-semibold" : ""} ${pendingReactionKey ? "opacity-70" : ""}`}
-            disabled={viewer.isSuspended || Boolean(pendingReactionKey)}
+            disabled={!comment.canReact || Boolean(pendingReactionKey)}
             onclick={() => react(comment, option.type)}
             radio
           >
@@ -76,7 +79,7 @@ $: if (viewer.isSuspended && reactionMenuId === comment.id) {
     <Button
       aria-label={`${reactionLabel(reaction.type)} ${reaction.count}`}
       class={reaction.viewerHasReacted ? "border-primary/40 bg-primary/10 text-primary" : ""}
-      disabled={viewer.isSuspended || pendingReactionKey === reactionKey(comment.id, reaction.type)}
+      disabled={!comment.canReact || pendingReactionKey === reactionKey(comment.id, reaction.type)}
       size="sm"
       type="button"
       variant="outline"

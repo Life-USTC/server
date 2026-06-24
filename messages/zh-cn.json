@@ -1673,6 +1673,7 @@
     "manageDescription": "管理课程简介",
     "close": "关闭",
     "missingDescriptionId": "缺少课程简介 ID",
+    "descriptionInvalidContent": "课程简介内容过长",
     "descriptionNotFound": "未找到课程简介",
     "descriptionUpdateSuccess": "课程简介已更新",
     "missingCommentId": "缺少评论 ID",

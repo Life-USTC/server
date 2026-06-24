@@ -2,14 +2,14 @@
  * E2E tests for GET /api/descriptions and POST /api/descriptions.
  *
  * ## GET /api/descriptions
- * - Query: targetType (section|course|teacher|homework), targetId
+ * - Query: targetType (section|course|teacher|homework) plus targetId or public identifiers such as sectionJwId/courseJwId/teacherId/homeworkId
  * - Response: { description: { id, content, ... } | null, history: DescriptionEdit[], viewer }
  * - Public endpoint (no auth required)
  * - Returns 400 for invalid/missing targetType or targetId
  * - Returns 200 with null description if target exists but has no description
  *
  * ## POST /api/descriptions
- * - Body: { targetType, targetId, content }
+ * - Body: { targetType, targetId|sectionJwId|courseJwId|teacherId|homeworkId, content }
  * - Response: { id: string, updated: boolean }
  * - Auth required (401 if unauthenticated)
  * - Returns 403 if user is suspended
@@ -26,6 +26,11 @@
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
+import {
+  restoreDescriptionSnapshot,
+  snapshotDescriptionForE2e,
+  waitForDescriptionAuditRows,
+} from "../../../../utils/description-state";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { assertApiContract } from "../../_shared/api-contract";
 
@@ -68,6 +73,22 @@ test("/api/descriptions GET 返回 seed 描述内容", async ({ request }) => {
   expect(body.viewer).toBeDefined();
 });
 
+test("/api/descriptions GET accepts public section JW id", async ({
+  request,
+}) => {
+  const response = await request.get(
+    `/api/descriptions?targetType=section&sectionJwId=${DEV_SEED.section.jwId}`,
+  );
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as {
+    description?: { content?: string } | null;
+    viewer?: object;
+  };
+
+  expect(body.description?.content).toContain("课程建议");
+  expect(body.viewer).toBeDefined();
+});
+
 test("/api/descriptions GET 无效 targetType 返回 400", async ({ request }) => {
   const response = await request.get(
     "/api/descriptions?targetType=invalid&targetId=1",
@@ -78,6 +99,13 @@ test("/api/descriptions GET 无效 targetType 返回 400", async ({ request }) =
 test("/api/descriptions GET 缺少 targetId 返回 400", async ({ request }) => {
   const response = await request.get("/api/descriptions?targetType=section");
   expect(response.status()).toBe(400);
+});
+
+test("/api/descriptions GET 不存在的 target 返回 404", async ({ request }) => {
+  const response = await request.get(
+    "/api/descriptions?targetType=section&sectionJwId=999999999",
+  );
+  expect(response.status()).toBe(404);
 });
 
 test("/api/descriptions POST 未登录返回 401", async ({ request }) => {
@@ -101,9 +129,15 @@ test("/api/descriptions POST 登录后可更新描述并还原", async ({ page }
   );
   expect(originalResponse.status()).toBe(200);
   const originalBody = (await originalResponse.json()) as {
-    description?: { content?: string } | null;
+    description?: { content?: string; id?: string | null } | null;
   };
-  const originalContent = originalBody.description?.content ?? "";
+  const descriptionId = originalBody.description?.id;
+  if (!descriptionId) {
+    throw new Error("Expected seed description id");
+  }
+  const snapshot = await snapshotDescriptionForE2e(descriptionId, [
+    "description_edit",
+  ]);
 
   const newContent = `e2e-description-${Date.now()}`;
   try {
@@ -149,16 +183,59 @@ test("/api/descriptions POST 登录后可更新描述并还原", async ({ page }
     expect(idempotentBody.id).toBeTruthy();
     expect(idempotentBody.updated).toBe(false);
   } finally {
-    // Restore original content
-    if (originalContent) {
-      await page.request.post("/api/descriptions", {
-        data: {
-          targetType: "section",
-          targetId: String(sectionId),
-          content: originalContent,
-        },
-      });
-    }
+    await waitForDescriptionAuditRows(snapshot, 1);
+    await restoreDescriptionSnapshot(snapshot);
+  }
+});
+
+test("/api/descriptions POST accepts public section JW id", async ({
+  page,
+}) => {
+  await signInAsDebugUser(page, "/");
+
+  const originalResponse = await page.request.get(
+    `/api/descriptions?targetType=section&sectionJwId=${DEV_SEED.section.jwId}`,
+  );
+  expect(originalResponse.status()).toBe(200);
+  const originalBody = (await originalResponse.json()) as {
+    description?: { content?: string; id?: string | null } | null;
+  };
+  const descriptionId = originalBody.description?.id;
+  if (!descriptionId) {
+    throw new Error("Expected seed description id");
+  }
+  const snapshot = await snapshotDescriptionForE2e(descriptionId, [
+    "description_edit",
+  ]);
+
+  const newContent = `e2e-description-public-id-${Date.now()}`;
+  try {
+    const postResponse = await page.request.post("/api/descriptions", {
+      data: {
+        targetType: "section",
+        sectionJwId: DEV_SEED.section.jwId,
+        content: newContent,
+      },
+    });
+    expect(postResponse.status()).toBe(200);
+    const postBody = (await postResponse.json()) as {
+      id?: string;
+      updated?: boolean;
+    };
+    expect(postBody.id).toBeTruthy();
+    expect(postBody.updated).toBe(true);
+
+    const getResponse = await page.request.get(
+      `/api/descriptions?targetType=section&sectionJwId=${DEV_SEED.section.jwId}`,
+    );
+    expect(getResponse.status()).toBe(200);
+    const getBody = (await getResponse.json()) as {
+      description?: { content?: string } | null;
+    };
+    expect(getBody.description?.content).toContain(newContent);
+  } finally {
+    await waitForDescriptionAuditRows(snapshot, 1);
+    await restoreDescriptionSnapshot(snapshot);
   }
 });
 

@@ -1,20 +1,11 @@
 import {
-  getIncompleteHomeworkCalendarItems,
   getSectionForCalendar,
   getSectionsForCalendar,
 } from "@/features/home/server/calendar-export-data";
-import type { TodoPriority } from "@/generated/prisma/client";
+import { buildUserCalendarExport } from "@/features/home/server/calendar-export-service";
 import { handleRouteError, notFound } from "@/lib/api/helpers";
-import {
-  createMultiSectionCalendar,
-  createSectionCalendar,
-  createUserCalendar,
-} from "@/lib/ical";
+import { createMultiSectionCalendar, createSectionCalendar } from "@/lib/ical";
 import { calendarResponse } from "./calendar-route-utils";
-import {
-  hasUserCalendarItems,
-  userCalendarTodoItems,
-} from "./calendar-user-items";
 
 export async function generateSectionsCalendarAction(sectionIds: number[]) {
   const sections = await getSectionsForCalendar(sectionIds);
@@ -49,47 +40,17 @@ export async function generateSectionCalendarAction(sectionJwId: number) {
 }
 
 export async function generateUserCalendarAction(
-  user: {
-    subscribedSections: Array<{ id: number; [key: string]: unknown }>;
-    todos: Array<{
-      content?: string | null;
-      dueAt?: Date | null;
-      id: string;
-      priority: TodoPriority;
-      title: string;
-    }>;
-  },
+  user: Parameters<typeof buildUserCalendarExport>[0],
   userId: string,
 ) {
-  const sectionIds = user.subscribedSections.map((section) => section.id);
-  const homeworks = await getIncompleteHomeworkCalendarItems(
-    userId,
-    sectionIds,
-  );
-
-  const todos = userCalendarTodoItems(user.todos);
-
-  if (
-    !hasUserCalendarItems({
-      homeworks,
-      sections: user.subscribedSections,
-      todos,
-    })
-  ) {
+  const calendar = await buildUserCalendarExport(user, userId);
+  if (!calendar) {
     return notFound("No calendar items found");
   }
 
-  const calendar = await createUserCalendar({
-    sections: user.subscribedSections as Parameters<
-      typeof createUserCalendar
-    >[0]["sections"],
-    homeworks,
-    todos,
-  });
-
   return calendarResponse(
-    calendar.toString(),
-    "life-ustc-subscriptions.ics",
-    "private, max-age=300",
+    calendar.text,
+    calendar.filename,
+    calendar.cacheControl,
   );
 }
