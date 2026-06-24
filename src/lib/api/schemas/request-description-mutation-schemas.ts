@@ -1,4 +1,5 @@
 import * as z from "zod";
+import type { JSONSchema } from "zod/v4/core";
 import { DESCRIPTION_CONTENT_MAX_LENGTH } from "@/features/descriptions/lib/description-limits";
 import {
   descriptionTargetTypeSchema,
@@ -10,7 +11,7 @@ const descriptionTargetIdReferenceSchema = z.union([
   z.number(),
 ]);
 
-const descriptionTargetReferenceOpenApiAnyOf = [
+const descriptionTargetReferenceOpenApiAnyOf: JSONSchema.JSONSchema[] = [
   { required: ["targetId"] },
   {
     properties: { targetType: { enum: ["section"], type: "string" } },
