@@ -187,6 +187,82 @@ describe("comment read tools — MCP exposes the REST comment hierarchy", () => 
     expect(result.found).toBe(false);
     expect(result.error).toBe("target_not_found");
   });
+
+  it("list_comments does not create section-teacher targets while reading", async () => {
+    const section = await prisma.section.findUnique({
+      where: { jwId: DEV_SEED.section.jwId },
+      select: { id: true },
+    });
+    if (!section) {
+      throw new Error(`Seed section ${DEV_SEED.section.jwId} not found`);
+    }
+
+    const marker = `[integration-test] mcp-section-teacher-read-${Date.now()}`;
+    let teacherId: number | null = null;
+
+    try {
+      const teacher = await prisma.teacher.create({
+        data: {
+          code: marker,
+          nameCn: marker,
+        },
+        select: { id: true },
+      });
+      teacherId = teacher.id;
+
+      await prisma.section.update({
+        where: { id: section.id },
+        data: { teachers: { connect: { id: teacherId } } },
+      });
+
+      const before = await prisma.sectionTeacher.findUnique({
+        where: {
+          sectionId_teacherId: {
+            sectionId: section.id,
+            teacherId,
+          },
+        },
+        select: { id: true },
+      });
+      expect(before).toBeNull();
+
+      const result = await mcp.call<{
+        success?: boolean;
+        found?: boolean;
+        error?: string;
+      }>("list_comments", {
+        targetType: "section-teacher",
+        sectionJwId: DEV_SEED.section.jwId,
+        teacherId,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.found).toBe(false);
+      expect(result.error).toBe("target_not_found");
+
+      const after = await prisma.sectionTeacher.findUnique({
+        where: {
+          sectionId_teacherId: {
+            sectionId: section.id,
+            teacherId,
+          },
+        },
+        select: { id: true },
+      });
+      expect(after).toBeNull();
+    } finally {
+      if (teacherId) {
+        await prisma.sectionTeacher.deleteMany({
+          where: { sectionId: section.id, teacherId },
+        });
+        await prisma.section.update({
+          where: { id: section.id },
+          data: { teachers: { disconnect: { id: teacherId } } },
+        });
+        await prisma.teacher.deleteMany({ where: { id: teacherId } });
+      }
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------
