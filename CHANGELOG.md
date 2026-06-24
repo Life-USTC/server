@@ -1,3 +1,12 @@
+## [1.37.7](https://github.com/Life-USTC/server/compare/v1.37.6...v1.37.7) (2026-06-24)
+
+
+### Bug Fixes
+
+* **api:** align REST and MCP surface gates ([7add15f](https://github.com/Life-USTC/server/commit/7add15f25a47c40b84ff9aaeaa4ec9b7c185136d))
+* **api:** narrow description OpenAPI override type ([57f0f68](https://github.com/Life-USTC/server/commit/57f0f684f7d8b9df77ef00e185bb3a9a3d2bccec))
+* **api:** type description OpenAPI override ([b54a253](https://github.com/Life-USTC/server/commit/b54a253fa3b5b8d308400055b9ef5d5c7b17231e))
+
 ## [1.37.6](https://github.com/Life-USTC/server/compare/v1.37.5...v1.37.6) (2026-06-24)
 
 
