@@ -674,6 +674,20 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
     expect(
       result.samples?.dueTodos?.every((todo) => typeof todo.dueAt === "string"),
     ).toBe(true);
+
+    const summary = await mcp.call<{
+      samples?: {
+        dueTodos?: { total?: number; items?: Array<{ id?: string }> };
+      };
+    }>("get_my_overview", {
+      locale: "zh-cn",
+      atTime: SEED_AT_TIME,
+      mode: "summary",
+    });
+    expect(summary.samples?.dueTodos?.total ?? 0).toBeGreaterThanOrEqual(
+      summary.samples?.dueTodos?.items?.length ?? 0,
+    );
+    expect((summary.samples?.dueTodos?.items?.length ?? 0) <= 3).toBe(true);
   });
 
   it("get_my_overview excludes homework samples outside the compact overview window", async () => {
@@ -723,6 +737,33 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
     } finally {
       await prisma.homework.deleteMany({ where: { id: homework.id } });
     }
+  });
+
+  it("get_my_overview summary mode stays smaller after all due samples pass", async () => {
+    const atTime = `${SEED_PLUS_TWELVE_DAYS}T12:00:00+08:00`;
+    const defaultPayload = await mcp.callTool("get_my_overview", {
+      locale: "zh-cn",
+      atTime,
+    });
+    const summaryPayload = (await mcp.callTool("get_my_overview", {
+      locale: "zh-cn",
+      atTime,
+      mode: "summary",
+    })) as {
+      samples?: {
+        dueTodos?: { total?: number; items?: unknown[] };
+        dueHomeworks?: { total?: number; items?: unknown[] };
+        upcomingExams?: { total?: number; items?: unknown[] };
+      };
+    };
+
+    expect(JSON.stringify(summaryPayload, null, 2).length).toBeLessThan(
+      JSON.stringify(defaultPayload, null, 2).length,
+    );
+    expect(typeof summaryPayload.samples?.dueTodos?.total).toBe("number");
+    expect(summaryPayload.samples?.dueTodos?.items).toBeUndefined();
+    expect(summaryPayload.samples?.dueHomeworks?.items).toBeUndefined();
+    expect(summaryPayload.samples?.upcomingExams?.items).toBeUndefined();
   });
 
   it("get_my_overview excludes same-day exams that already ended", async () => {

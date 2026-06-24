@@ -1070,6 +1070,11 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
         "number",
       );
       expect(
+        overviewSummaryPayload.samples?.dueTodos?.total ?? 0,
+      ).toBeGreaterThanOrEqual(
+        overviewSummaryPayload.samples?.dueTodos?.items?.length ?? 0,
+      );
+      expect(
         (overviewSummaryPayload.samples?.dueTodos?.items?.length ?? 0) <= 3,
       ).toBe(true);
 
