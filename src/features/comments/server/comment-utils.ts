@@ -1,6 +1,9 @@
 import { parseInteger } from "@/lib/integers";
 import type { CommentTargetType } from "../lib/comment-target-types";
-import { resolveSectionTeacherId } from "./comment-section-teacher";
+import {
+  findSectionTeacherId,
+  resolveSectionTeacherId,
+} from "./comment-section-teacher";
 import { verifyCommentTargetEntity } from "./comment-target-verification";
 
 export type { CommentTargetType };
@@ -20,6 +23,7 @@ export { resolveSectionTeacherId };
 
 export async function resolveCommentTarget(input: {
   allowDirectSectionTeacherId?: boolean;
+  createSectionTeacherTarget?: boolean;
   /** Whether to verify the target entity exists in the DB before returning. */
   verifyExistence?: boolean;
   rawTargetId: unknown;
@@ -50,7 +54,10 @@ export async function resolveCommentTarget(input: {
     if (input.allowDirectSectionTeacherId && normalizedTargetId) {
       sectionTeacherId = normalizedTargetId;
     } else if (sectionId && teacherId) {
-      sectionTeacherId = await resolveSectionTeacherId(sectionId, teacherId);
+      sectionTeacherId =
+        input.createSectionTeacherTarget === true
+          ? await resolveSectionTeacherId(sectionId, teacherId)
+          : await findSectionTeacherId(sectionId, teacherId);
     }
 
     if (sectionTeacherId) {

@@ -51,6 +51,7 @@ export async function createComment(input: {
   if (!actor.ok) return actor;
 
   const target = await resolveCommentTarget({
+    createSectionTeacherTarget: true,
     rawTargetId: input.rawTargetId,
     sectionId: input.sectionId,
     targetType: input.targetType,

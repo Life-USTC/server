@@ -28,3 +28,21 @@ export async function resolveSectionTeacherId(
 
   return sectionTeacher.id as number;
 }
+
+export async function findSectionTeacherId(
+  sectionId: number,
+  teacherId: number,
+) {
+  const { prisma } = await import("@/lib/db/prisma");
+  const sectionTeacher = await prisma.sectionTeacher.findUnique({
+    where: {
+      sectionId_teacherId: {
+        sectionId,
+        teacherId,
+      },
+    },
+    select: { id: true },
+  });
+
+  return sectionTeacher?.id ?? null;
+}
