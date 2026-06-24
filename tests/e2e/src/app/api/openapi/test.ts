@@ -154,6 +154,38 @@ test.describe("GET /api/openapi", () => {
     ).toBeTruthy();
   });
 
+  test("spec exposes auth security metadata", async ({ request }) => {
+    const response = await request.get("/api/openapi");
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as {
+      components?: { securitySchemes?: Record<string, unknown> };
+      paths?: Record<
+        string,
+        {
+          get?: { security?: unknown[] };
+          options?: { security?: unknown[] };
+          post?: { security?: unknown[] };
+        }
+      >;
+    };
+
+    expect(Object.keys(body.components?.securitySchemes ?? {})).toEqual(
+      expect.arrayContaining(["bearerAuth", "sessionCookie", "mcpBearerAuth"]),
+    );
+    expect(body.paths?.["/api/todos"]?.get?.security).toEqual([
+      { bearerAuth: [] },
+      { sessionCookie: [] },
+    ]);
+    expect(body.paths?.["/api/mcp"]?.get?.security).toEqual([
+      { mcpBearerAuth: [] },
+    ]);
+    expect(body.paths?.["/api/mcp"]?.options?.security).toBeUndefined();
+    expect(body.paths?.["/api/users/profile"]?.get?.security).toBeUndefined();
+    expect(
+      body.paths?.["/api/auth/oauth2/token"]?.post?.security,
+    ).toBeUndefined();
+  });
+
   test("static openapi.generated.json is accessible", async ({ request }) => {
     const response = await request.get("/openapi.generated.json");
     expect(response.status()).toBe(200);

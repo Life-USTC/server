@@ -43,6 +43,7 @@ type GeneratedOperation = {
       content?: Record<string, GeneratedMediaType>;
     }
   >;
+  security?: unknown[];
   summary?: string;
 };
 
@@ -62,6 +63,7 @@ type GeneratedSchema = {
 type GeneratedOpenApiDocument = {
   components?: {
     schemas?: Record<string, GeneratedSchema>;
+    securitySchemes?: Record<string, unknown>;
   };
   paths: Record<
     string,
@@ -228,6 +230,35 @@ describe("buildScenarioOpenApiExamples", () => {
       "Return OAuth device authorization CORS preflight headers",
     );
     expect(deviceAuthorizationOptions?.responses?.["204"]).toBeTruthy();
+  });
+
+  it("documents auth security for protected REST and MCP operations", () => {
+    const spec = generatedOpenApiDocument as GeneratedOpenApiDocument;
+
+    expect(Object.keys(spec.components?.securitySchemes ?? {})).toEqual(
+      expect.arrayContaining(["bearerAuth", "sessionCookie", "mcpBearerAuth"]),
+    );
+
+    expect(spec.paths["/api/todos"]?.get?.security).toEqual([
+      { bearerAuth: [] },
+      { sessionCookie: [] },
+    ]);
+    expect(spec.paths["/api/admin/users"]?.get?.security).toEqual([
+      { bearerAuth: [] },
+      { sessionCookie: [] },
+    ]);
+    expect(spec.paths["/api/dashboard-links/pin"]?.post?.security).toEqual([
+      { bearerAuth: [] },
+      { sessionCookie: [] },
+    ]);
+    expect(spec.paths["/api/mcp"]?.get?.security).toEqual([
+      { mcpBearerAuth: [] },
+    ]);
+    expect(spec.paths["/api/mcp"]?.options?.security).toBeUndefined();
+    expect(spec.paths["/api/users/profile"]?.get?.security).toBeUndefined();
+    expect(
+      spec.paths["/api/auth/oauth2/token"]?.post?.security,
+    ).toBeUndefined();
   });
 
   it("documents OAuth success response bodies", () => {
