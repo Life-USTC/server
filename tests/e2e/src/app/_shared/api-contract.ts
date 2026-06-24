@@ -163,6 +163,40 @@ export async function assertApiContract(
       return;
     }
 
+    case "/api/users/profile": {
+      const response = await request.get(
+        `/api/users/profile?username=${DEV_SEED.debugUsername}`,
+      );
+      expect(response.status()).toBe(200);
+      const body = (await response.json()) as {
+        user?: {
+          id?: string;
+          name?: string | null;
+          username?: string | null;
+          _count?: {
+            comments?: number;
+            homeworksCreated?: number;
+            subscribedSections?: number;
+            uploads?: number;
+          };
+        };
+        sectionCount?: number;
+        totalContributions?: number;
+        weeks?: unknown[];
+      };
+      expect(body.user?.id).toBeTruthy();
+      expect(body.user?.name).toBe(DEV_SEED.debugName);
+      expect(body.user?.username).toBe(DEV_SEED.debugUsername);
+      expect(typeof body.sectionCount).toBe("number");
+      expect(typeof body.totalContributions).toBe("number");
+      expect(Array.isArray(body.weeks)).toBe(true);
+      expect(typeof body.user?._count?.comments).toBe("number");
+      expect(typeof body.user?._count?.uploads).toBe("number");
+      expect(typeof body.user?._count?.homeworksCreated).toBe("number");
+      expect(typeof body.user?._count?.subscribedSections).toBe("number");
+      return;
+    }
+
     case "/api/teachers": {
       const response = await request.get(
         `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,

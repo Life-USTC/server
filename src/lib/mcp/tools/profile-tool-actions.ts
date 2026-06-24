@@ -4,4 +4,7 @@ export {
   listMyTodosAction,
   updateMyTodoAction,
 } from "./profile-tool-todo-actions";
-export { getMyProfileAction } from "./profile-tool-user-actions";
+export {
+  getMyProfileAction,
+  getPublicUserProfileAction,
+} from "./profile-tool-user-actions";

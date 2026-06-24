@@ -11,6 +11,12 @@ export const getMyProfileInputSchema = {
   mode: mcpModeInputSchema,
 };
 
+export const getPublicUserProfileInputSchema = {
+  username: z.string().trim().min(1).optional(),
+  userId: z.string().trim().min(1).optional(),
+  mode: mcpModeInputSchema,
+};
+
 export const listMyTodosInputSchema = {
   includeCompleted: z.boolean().default(false),
   limit: z.number().int().min(1).max(200).default(50),

@@ -677,6 +677,7 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       expect(tools.tools.map((tool) => tool.name)).toEqual(
         expect.arrayContaining([
           "get_my_profile",
+          "get_public_user_profile",
           "list_my_todos",
           "create_my_todo",
           "update_my_todo",
@@ -735,6 +736,32 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       expect(profile.createdAt).toMatch(/\+08:00$/);
       expect(typeof profile.updatedAt).toBe("string");
       expect(profile.updatedAt).toMatch(/\+08:00$/);
+
+      const publicProfileResult = await mcpClient.callTool({
+        name: "get_public_user_profile",
+        arguments: { username: DEV_SEED.debugUsername, mode: "full" },
+      });
+      const publicProfile = parseTextContent(publicProfileResult) as {
+        found?: boolean;
+        user?: {
+          id?: string;
+          name?: string | null;
+          username?: string | null;
+          _count?: { comments?: number; uploads?: number };
+        };
+        sectionCount?: number;
+        weeks?: unknown[];
+        totalContributions?: number;
+      };
+      expect(publicProfile.found).toBe(true);
+      expect(publicProfile.user?.id).toBe(currentUser.id);
+      expect(publicProfile.user?.name).toBe(DEV_SEED.debugName);
+      expect(publicProfile.user?.username).toBe(DEV_SEED.debugUsername);
+      expect(typeof publicProfile.sectionCount).toBe("number");
+      expect(typeof publicProfile.totalContributions).toBe("number");
+      expect(Array.isArray(publicProfile.weeks)).toBe(true);
+      expect(typeof publicProfile.user?._count?.comments).toBe("number");
+      expect(typeof publicProfile.user?._count?.uploads).toBe("number");
 
       const todosResult = await mcpClient.callTool({
         name: "list_my_todos",

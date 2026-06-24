@@ -3,6 +3,7 @@ import {
   createMyTodoAction,
   deleteMyTodoAction,
   getMyProfileAction,
+  getPublicUserProfileAction,
   listMyTodosAction,
   updateMyTodoAction,
 } from "@/lib/mcp/tools/profile-tool-actions";
@@ -10,6 +11,7 @@ import {
   createMyTodoInputSchema,
   deleteMyTodoInputSchema,
   getMyProfileInputSchema,
+  getPublicUserProfileInputSchema,
   listMyTodosInputSchema,
   updateMyTodoInputSchema,
 } from "@/lib/mcp/tools/profile-tool-helpers";
@@ -23,6 +25,16 @@ export function registerProfileTools(server: McpServer) {
       inputSchema: getMyProfileInputSchema,
     },
     getMyProfileAction,
+  );
+
+  server.registerTool(
+    "get_public_user_profile",
+    {
+      description:
+        "Return a public Life@USTC user profile by username or userId, including visible stats and contribution heatmap data from the web profile page.",
+      inputSchema: getPublicUserProfileInputSchema,
+    },
+    getPublicUserProfileAction,
   );
 
   server.registerTool(
