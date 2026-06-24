@@ -82,8 +82,13 @@
             "path": "/api/me",
             "returns": "{ id, email, name, image, username, isAdmin, createdAt, updatedAt }",
             "auth": "user",
+            "notes": ["Returns the authenticated user's core profile fields."]
+          },
+          {
+            "path": "/api/users/profile",
+            "returns": "{ user, sectionCount, weeks, totalContributions }",
             "notes": [
-              "Returns the authenticated user's core profile fields only; no separate public profile endpoint for other users is currently exposed."
+              "Accepts exactly one lookup key: username or userId. Returns the same public profile hierarchy as /u/$username and /u/id/$uid."
             ]
           }
         ]
@@ -98,7 +103,9 @@
           },
           {
             "name": "get_public_user_profile",
-            "status": "unavailable"
+            "returns": "{ found, user, sectionCount, weeks, totalContributions }",
+            "rest_equivalent": "GET /api/users/profile",
+            "notes": ["Accepts exactly one lookup key: username or userId."]
           }
         ]
       },

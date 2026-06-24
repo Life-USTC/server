@@ -24,6 +24,7 @@ export {
   busRouteSearchQuerySchema,
   compactOverviewQuerySchema,
   dashboardLinkVisitQuerySchema,
+  publicUserProfileQuerySchema,
   semestersQuerySchema,
   subscribedSchedulesQuerySchema,
   todosQuerySchema,

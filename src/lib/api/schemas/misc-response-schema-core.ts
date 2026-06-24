@@ -121,6 +121,32 @@ export const meResponseSchema = z.object({
   updatedAt: dateTimeSchema,
 });
 
+export const publicUserProfileResponseSchema = z.object({
+  user: z.object({
+    id: z.string(),
+    username: z.string().nullable(),
+    name: z.string().nullable(),
+    image: z.string().nullable(),
+    createdAt: dateTimeSchema,
+    _count: z.object({
+      comments: z.number().int().nonnegative(),
+      uploads: z.number().int().nonnegative(),
+      homeworksCreated: z.number().int().nonnegative(),
+      subscribedSections: z.number().int().nonnegative(),
+    }),
+  }),
+  sectionCount: z.number().int().nonnegative(),
+  weeks: z.array(
+    z.array(
+      z.object({
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        count: z.number().int().nonnegative(),
+      }),
+    ),
+  ),
+  totalContributions: z.number().int().nonnegative(),
+});
+
 export const todoItemSchema = z.object({
   id: z.string(),
   title: z.string(),

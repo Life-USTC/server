@@ -63,6 +63,30 @@ export const compactOverviewQuerySchema = z.object({
   locale: z.enum(APP_LOCALES).optional(),
 });
 
+export const publicUserProfileQuerySchema = z
+  .object({
+    username: z.string().trim().min(1).optional(),
+    userId: z.string().trim().min(1).optional(),
+  })
+  .superRefine((input, ctx) => {
+    if (input.username && input.userId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Provide either username or userId, not both",
+        path: ["username"],
+      });
+      return;
+    }
+
+    if (!input.username && !input.userId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Provide username or userId",
+        path: ["username"],
+      });
+    }
+  });
+
 export const todosQuerySchema = z.object({
   completed: z.enum(["true", "false"]).optional(),
   priority: todoPrioritySchema.optional(),

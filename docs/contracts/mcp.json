@@ -65,6 +65,7 @@
             "name": "Profile & Todo",
             "tools": [
               "get_my_profile",
+              "get_public_user_profile",
               "list_my_todos",
               "create_my_todo",
               "update_my_todo",
