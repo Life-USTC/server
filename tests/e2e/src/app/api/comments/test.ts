@@ -2,7 +2,7 @@
  * E2E tests for GET /api/comments and POST /api/comments.
  *
  * ## GET /api/comments
- * - Query: targetType (section|course|teacher|homework|section-teacher), targetId, sectionId, teacherId
+ * - Query: targetType (section|course|teacher|homework|section-teacher), targetId, sectionId, sectionJwId, courseJwId, teacherId, homeworkId, sectionTeacherId
  * - Response: { comments: CommentNode[], hiddenCount: number, viewer: ViewerContext, target: {...} }
  * - Public endpoint (no auth required)
  * - Returns 400 for missing/invalid target
@@ -69,6 +69,32 @@ test("/api/comments GET 返回 section 目标与 seed 评论", async ({ request 
   expect(
     body.comments?.some((c) =>
       c.body?.includes(DEV_SEED.comments.sectionRootBody),
+    ),
+  ).toBe(true);
+});
+
+test("/api/comments GET accepts public section JW id", async ({ request }) => {
+  const response = await request.get(
+    `/api/comments?targetType=section&sectionJwId=${DEV_SEED.section.jwId}`,
+  );
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as {
+    target?: {
+      courseJwId?: number | null;
+      courseName?: string | null;
+      type?: string;
+      sectionJwId?: number | null;
+    };
+    comments?: Array<{ body?: string }>;
+  };
+
+  expect(body.target?.type).toBe("section");
+  expect(body.target?.sectionJwId).toBe(DEV_SEED.section.jwId);
+  expect(body.target?.courseJwId).toBe(DEV_SEED.course.jwId);
+  expect(body.target?.courseName).toBe(DEV_SEED.course.nameCn);
+  expect(
+    body.comments?.some((comment) =>
+      comment.body?.includes(DEV_SEED.comments.sectionRootBody),
     ),
   ).toBe(true);
 });

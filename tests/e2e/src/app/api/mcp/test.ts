@@ -719,13 +719,22 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       });
       const profile = parseTextContent(profileResult) as {
         id?: string;
+        email?: string | null;
+        name?: string | null;
         username?: string | null;
+        isAdmin?: boolean;
         createdAt?: string;
+        updatedAt?: string;
       };
       expect(profile.id).toBe(currentUser.id);
+      expect(typeof profile.email).toBe("string");
+      expect(profile.name).toBe(DEV_SEED.debugName);
       expect(profile.username).toBe(currentUser.username ?? null);
+      expect(profile.isAdmin).toBe(false);
       expect(typeof profile.createdAt).toBe("string");
       expect(profile.createdAt).toMatch(/\+08:00$/);
+      expect(typeof profile.updatedAt).toBe("string");
+      expect(profile.updatedAt).toMatch(/\+08:00$/);
 
       const todosResult = await mcpClient.callTool({
         name: "list_my_todos",
@@ -765,14 +774,16 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
         },
       });
       const coursesPayload = parseTextContent(coursesResult) as {
-        courses?: Array<{
+        data?: Array<{
           jwId?: number;
           code?: string | null;
           namePrimary?: string | null;
         }>;
+        pagination?: { pageSize?: number; total?: number };
       };
+      expect(coursesPayload.pagination?.pageSize).toBe(5);
       expect(
-        coursesPayload.courses?.some(
+        coursesPayload.data?.some(
           (course) =>
             course.jwId === DEV_SEED.course.jwId &&
             course.code === DEV_SEED.course.code &&

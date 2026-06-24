@@ -1,4 +1,5 @@
-import { DEVICE_CODE_STATUS, normalizeUserCode } from "@/lib/oauth/device-code";
+import { normalizeUserCode } from "@/lib/oauth/device-code";
+import { getDeviceApprovalFailureReason } from "./device-approval-validation.server";
 import { requireDeviceUserId } from "./device-auth.server";
 import type { DeviceCopy } from "./device-copy.server";
 import { callbackPath } from "./device-url.server";
@@ -26,6 +27,7 @@ export async function loadDeviceApprovalState({
       client: {
         select: {
           clientId: true,
+          disabled: true,
           name: true,
         },
       },
@@ -41,7 +43,17 @@ export async function loadDeviceApprovalState({
     };
   }
 
-  if (record.expiresAt < new Date()) {
+  const failureReason = getDeviceApprovalFailureReason(record);
+  if (failureReason === "disabled") {
+    return {
+      state: "error",
+      title: copy.deviceErrorTitle,
+      reason: "invalid_or_expired",
+      copy,
+    };
+  }
+
+  if (failureReason === "expired") {
     return {
       state: "error",
       title: copy.deviceCodeExpiredTitle,
@@ -50,7 +62,7 @@ export async function loadDeviceApprovalState({
     };
   }
 
-  if (record.status !== DEVICE_CODE_STATUS.PENDING) {
+  if (failureReason === "used") {
     return {
       state: "error",
       title: copy.deviceCodeUsedTitle,

@@ -19,7 +19,7 @@ export function registerProfileTools(server: McpServer) {
     "get_my_profile",
     {
       description:
-        "Return the authenticated user's Life@USTC profile: id, username, name, image, isAdmin, timestamps.",
+        "Return the authenticated user's Life@USTC profile: id, email, username, name, image, isAdmin, and timestamps.",
       inputSchema: getMyProfileInputSchema,
     },
     getMyProfileAction,

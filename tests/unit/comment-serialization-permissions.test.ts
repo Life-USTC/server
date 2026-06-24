@@ -31,6 +31,18 @@ function comment(overrides: Partial<RawComment> = {}): RawComment {
   };
 }
 
+function attachment() {
+  return {
+    id: "attachment-1",
+    uploadId: "upload-1",
+    upload: {
+      contentType: "text/plain",
+      filename: "note.txt",
+      size: 123,
+    },
+  };
+}
+
 function viewer(overrides: Partial<ViewerInfo> = {}): ViewerInfo {
   return {
     userId: "user-1",
@@ -91,5 +103,47 @@ describe("comment serialization permissions", () => {
       canReply: false,
       isAuthor: false,
     });
+  });
+
+  it("keeps deleted tombstones for visible replies but omits attachments", () => {
+    const { roots } = buildCommentNodes(
+      [
+        comment({
+          attachments: [attachment()],
+          status: "deleted",
+        }),
+        comment({
+          id: "reply-1",
+          body: "reply",
+          parentId: "comment-1",
+          rootId: "comment-1",
+          userId: "user-2",
+        }),
+      ],
+      viewer(),
+    );
+
+    expect(roots).toHaveLength(1);
+    expect(roots[0]).toMatchObject({
+      status: "deleted",
+      attachments: [],
+    });
+    expect(roots[0].replies).toHaveLength(1);
+  });
+
+  it("exposes attachment actions only to authenticated viewers", () => {
+    const rawComment = comment({ attachments: [attachment()] });
+
+    const anonymous = buildCommentNodes(
+      [rawComment],
+      viewer({
+        isAuthenticated: false,
+        userId: null,
+      }),
+    );
+    const authenticated = buildCommentNodes([rawComment], viewer());
+
+    expect(anonymous.roots[0]?.attachments).toEqual([]);
+    expect(authenticated.roots[0]?.attachments).toHaveLength(1);
   });
 });

@@ -1,13 +1,10 @@
-import {
-  findSectionDetailByJwId,
-  type listCoursesBySearch,
-} from "@/features/catalog/server/course-section-queries";
+import { findSectionDetailByJwId } from "@/features/catalog/server/course-section-queries";
+import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { jsonToolResult, resolveMcpMode } from "@/lib/mcp/tools/_helpers";
 import { searchSectionsForMcpTool } from "./course-search-section-tool";
 
 type McpModeInput = Parameters<typeof resolveMcpMode>[0];
-type CourseSearchLocale = Parameters<typeof listCoursesBySearch>[2];
 
 export async function getSectionByJwIdTool({
   jwId,
@@ -15,10 +12,10 @@ export async function getSectionByJwIdTool({
   mode,
 }: {
   jwId: number;
-  locale: CourseSearchLocale;
+  locale?: AppLocale;
   mode?: McpModeInput;
 }) {
-  const section = await findSectionDetailByJwId(jwId, locale);
+  const section = await findSectionDetailByJwId(jwId, locale ?? DEFAULT_LOCALE);
 
   if (!section) {
     return jsonToolResult({
@@ -70,7 +67,7 @@ export async function searchSectionsTool({
   search?: string;
   page: number;
   limit: number;
-  locale: CourseSearchLocale;
+  locale?: AppLocale;
   mode?: McpModeInput;
 }) {
   return jsonToolResult(

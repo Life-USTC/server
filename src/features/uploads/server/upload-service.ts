@@ -1,13 +1,10 @@
+import { canViewerAccessCommentAttachment } from "@/features/comments/server/comment-attachment-access";
 import { uploadConfig } from "@/features/uploads/lib/upload-config";
 import { normalizeContentType } from "@/features/uploads/lib/upload-utils";
 import {
   runUploadSerializableTransaction,
   UploadError,
 } from "@/features/uploads/server/upload-quota";
-import type {
-  CommentStatus,
-  CommentVisibility,
-} from "@/generated/prisma/client";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
 import {
@@ -291,33 +288,9 @@ export async function findDownloadableUpload(id: string, userId: string) {
   if (upload.userId === userId) return upload;
 
   const canDownloadAttachedUpload = upload.commentAttachments.some(
-    ({ comment }) => canViewerDownloadCommentAttachment(comment, viewer),
+    ({ comment }) => canViewerAccessCommentAttachment(comment, viewer),
   );
   return canDownloadAttachedUpload ? upload : null;
-}
-
-function canViewerDownloadCommentAttachment(
-  comment: {
-    status: CommentStatus;
-    userId: string | null;
-    visibility: CommentVisibility;
-  },
-  viewer: {
-    isAdmin: boolean;
-    isAuthenticated: boolean;
-    userId: string | null;
-  },
-) {
-  if (!viewer.isAuthenticated) return false;
-  if (comment.status === "deleted") return false;
-  if (comment.status === "softbanned") {
-    return viewer.isAdmin || comment.userId === viewer.userId;
-  }
-  return (
-    comment.visibility === "public" ||
-    comment.visibility === "logged_in_only" ||
-    comment.visibility === "anonymous"
-  );
 }
 
 export async function validatePendingUploadObject(input: {

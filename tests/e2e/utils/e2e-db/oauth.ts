@@ -89,6 +89,15 @@ export async function deleteOAuthClientsByName(name: string) {
   );
 }
 
+export async function disableOAuthClientByName(name: string) {
+  await withE2ePrisma((prisma) =>
+    prisma.oAuthClient.updateMany({
+      where: { name },
+      data: { disabled: true },
+    }),
+  );
+}
+
 export async function ensureLinkedAccountFixture(options: {
   userId: string;
   provider: "github" | "google" | "oidc";

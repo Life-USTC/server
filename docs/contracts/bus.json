@@ -129,7 +129,7 @@
     },
     "bus-next-departures": {
       "title": "Bus Next Departures",
-      "auth": "user",
+      "auth": "anon",
       "web": "unavailable",
       "rest": {
         "routes": [

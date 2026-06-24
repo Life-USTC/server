@@ -80,7 +80,7 @@
         "routes": [
           {
             "path": "/api/me",
-            "returns": "{ id, email, name, image, username, isAdmin }",
+            "returns": "{ id, email, name, image, username, isAdmin, createdAt, updatedAt }",
             "auth": "user",
             "notes": [
               "Returns the authenticated user's core profile fields only; no separate public profile endpoint for other users is currently exposed."
@@ -93,7 +93,7 @@
           {
             "name": "get_my_profile",
             "auth": "user",
-            "returns": "{ id, username, name, image, isAdmin, createdAt, updatedAt }",
+            "returns": "{ id, email, username, name, image, isAdmin, createdAt, updatedAt }",
             "rest_equivalent": "GET /api/me"
           },
           {

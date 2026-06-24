@@ -77,17 +77,25 @@ afterAll(async () => {
 // ---------------------------------------------------------------------------
 
 describe("get_my_profile", () => {
-  it("returns the authenticated user's id and username", async () => {
+  it("returns the authenticated user's REST-equivalent profile fields", async () => {
     const profile = await mcp.call<{
       id?: string;
+      email?: string | null;
+      name?: string | null;
       username?: string | null;
+      isAdmin?: boolean;
       createdAt?: string;
+      updatedAt?: string;
     }>("get_my_profile");
 
     expect(profile.id).toBe(devUserId);
+    expect(typeof profile.email).toBe("string");
+    expect(profile.name).toBe(DEV_SEED.debugName);
     expect(profile.username).toBe(DEV_SEED.debugUsername);
+    expect(profile.isAdmin).toBe(false);
     // Dates are serialized in Asia/Shanghai (+08:00)
     expect(profile.createdAt).toMatch(/\+08:00$/);
+    expect(profile.updatedAt).toMatch(/\+08:00$/);
   });
 });
 
@@ -110,7 +118,14 @@ describe("comment read tools — MCP exposes the REST comment hierarchy", () => 
         canDelete?: boolean;
       }>;
       hiddenCount?: number;
-      target?: { type?: string; targetId?: number | null };
+      target?: {
+        courseJwId?: number | null;
+        courseName?: string | null;
+        type?: string;
+        targetId?: number | null;
+        sectionJwId?: number | null;
+        sectionCode?: string | null;
+      };
       viewer?: { userId?: string | null; isAuthenticated?: boolean };
     }>("list_comments", {
       targetType: "section",
@@ -121,6 +136,10 @@ describe("comment read tools — MCP exposes the REST comment hierarchy", () => 
     expect(result.found).toBe(true);
     expect(result.target?.type).toBe("section");
     expect(typeof result.target?.targetId).toBe("number");
+    expect(result.target?.sectionJwId).toBe(DEV_SEED.section.jwId);
+    expect(result.target?.sectionCode).toBe(DEV_SEED.section.code);
+    expect(result.target?.courseJwId).toBe(DEV_SEED.course.jwId);
+    expect(result.target?.courseName).toBe(DEV_SEED.course.nameCn);
     expect(result.viewer?.userId).toBe(devUserId);
     expect(result.viewer?.isAuthenticated).toBe(true);
     expect(typeof result.hiddenCount).toBe("number");
@@ -156,7 +175,12 @@ describe("comment read tools — MCP exposes the REST comment hierarchy", () => 
         body?: string;
         replies?: Array<{ body?: string }>;
       }>;
-      target?: { sectionJwId?: number | null; sectionCode?: string | null };
+      target?: {
+        courseJwId?: number | null;
+        courseName?: string | null;
+        sectionJwId?: number | null;
+        sectionCode?: string | null;
+      };
     }>("get_comment_thread", {
       commentId: seedComment?.id,
       mode: "full",
@@ -171,6 +195,8 @@ describe("comment read tools — MCP exposes the REST comment hierarchy", () => 
     expect(result.thread?.[0]?.replies?.length).toBeGreaterThan(0);
     expect(result.target?.sectionJwId).toBe(DEV_SEED.section.jwId);
     expect(result.target?.sectionCode).toBe(DEV_SEED.section.code);
+    expect(result.target?.courseJwId).toBe(DEV_SEED.course.jwId);
+    expect(result.target?.courseName).toBe(DEV_SEED.course.nameCn);
   });
 
   it("list_comments reports missing targets instead of returning an empty success", async () => {
@@ -1146,6 +1172,61 @@ describe("query_schedules — flexible date filters", () => {
 });
 
 describe("course and section lookups", () => {
+  it("search_courses returns the REST-equivalent paginated course hierarchy", async () => {
+    const seedCourseFilters = await prisma.course.findUnique({
+      where: { jwId: DEV_SEED.course.jwId },
+      select: {
+        categoryId: true,
+        classTypeId: true,
+        educationLevelId: true,
+      },
+    });
+    expect(seedCourseFilters).toBeTruthy();
+
+    const args: Record<string, unknown> = {
+      limit: 10,
+      locale: "zh-cn",
+      mode: "full",
+      page: 1,
+    };
+    for (const [key, value] of Object.entries(seedCourseFilters ?? {})) {
+      if (value != null) args[key] = value;
+    }
+
+    const result = await mcp.call<{
+      data?: Array<{
+        jwId?: number;
+        code?: string | null;
+        nameCn?: string | null;
+        educationLevel?: { nameCn?: string | null } | null;
+        category?: { nameCn?: string | null } | null;
+        classType?: { nameCn?: string | null } | null;
+      }>;
+      pagination?: {
+        page?: number;
+        pageSize?: number;
+        total?: number;
+        totalPages?: number;
+      };
+    }>("search_courses", args);
+
+    expect(result.pagination?.page).toBe(1);
+    expect(result.pagination?.pageSize).toBe(10);
+    expect(result.pagination?.total).toBeGreaterThan(0);
+    expect(result.pagination?.totalPages).toBeGreaterThanOrEqual(1);
+
+    const course = result.data?.find(
+      (item) => item.jwId === DEV_SEED.course.jwId,
+    );
+    expect(course?.code).toBe(DEV_SEED.course.code);
+    expect(course?.nameCn).toBe(DEV_SEED.course.nameCn);
+    expect(course?.educationLevel?.nameCn).toBe(
+      DEV_SEED.course.educationLevelNameCn,
+    );
+    expect(course?.category?.nameCn).toBe(DEV_SEED.course.categoryNameCn);
+    expect(course?.classType?.nameCn).toBe(DEV_SEED.course.classTypeNameCn);
+  });
+
   it("get_section_by_jw_id returns the same detail hierarchy as REST section detail", async () => {
     const result = await mcp.call<{
       found?: boolean;

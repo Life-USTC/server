@@ -1612,7 +1612,39 @@
           },
           {
             "in": "query",
+            "name": "sectionJwId",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "in": "query",
+            "name": "courseJwId",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "in": "query",
             "name": "teacherId",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "in": "query",
+            "name": "homeworkId",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "sectionTeacherId",
             "schema": {
               "type": "integer",
               "format": "int64"
@@ -14601,6 +14633,12 @@
                   }
                 ]
               },
+              "courseId": {
+                "nullable": true,
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
               "sectionId": {
                 "nullable": true,
                 "type": "integer",
@@ -14622,15 +14660,105 @@
               "homeworkId": {
                 "nullable": true,
                 "type": "string"
+              },
+              "sectionTeacherSectionId": {
+                "nullable": true,
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "sectionTeacherTeacherId": {
+                "nullable": true,
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "sectionTeacherSectionJwId": {
+                "nullable": true,
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "sectionTeacherSectionCode": {
+                "nullable": true,
+                "type": "string"
+              },
+              "sectionTeacherTeacherName": {
+                "nullable": true,
+                "type": "string"
+              },
+              "sectionTeacherCourseJwId": {
+                "nullable": true,
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "sectionTeacherCourseName": {
+                "nullable": true,
+                "type": "string"
+              },
+              "homeworkTitle": {
+                "nullable": true,
+                "type": "string"
+              },
+              "homeworkSectionJwId": {
+                "nullable": true,
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "homeworkSectionCode": {
+                "nullable": true,
+                "type": "string"
+              },
+              "sectionJwId": {
+                "nullable": true,
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "sectionCode": {
+                "nullable": true,
+                "type": "string"
+              },
+              "courseJwId": {
+                "nullable": true,
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "courseName": {
+                "nullable": true,
+                "type": "string"
+              },
+              "teacherName": {
+                "nullable": true,
+                "type": "string"
               }
             },
             "required": [
               "type",
               "targetId",
+              "courseId",
               "sectionId",
               "teacherId",
               "sectionTeacherId",
-              "homeworkId"
+              "homeworkId",
+              "sectionTeacherSectionId",
+              "sectionTeacherTeacherId",
+              "sectionTeacherSectionJwId",
+              "sectionTeacherSectionCode",
+              "sectionTeacherTeacherName",
+              "sectionTeacherCourseJwId",
+              "sectionTeacherCourseName",
+              "homeworkTitle",
+              "homeworkSectionJwId",
+              "homeworkSectionCode",
+              "sectionJwId",
+              "sectionCode",
+              "courseJwId",
+              "courseName",
+              "teacherName"
             ],
             "additionalProperties": false
           }
@@ -18070,6 +18198,16 @@
           },
           "isAdmin": {
             "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
           }
         },
         "required": [
@@ -18078,7 +18216,9 @@
           "name",
           "image",
           "username",
-          "isAdmin"
+          "isAdmin",
+          "createdAt",
+          "updatedAt"
         ],
         "additionalProperties": false
       },

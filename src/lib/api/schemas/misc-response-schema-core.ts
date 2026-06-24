@@ -117,6 +117,8 @@ export const meResponseSchema = z.object({
   image: z.string().nullable(),
   username: z.string().nullable(),
   isAdmin: z.boolean(),
+  createdAt: dateTimeSchema,
+  updatedAt: dateTimeSchema,
 });
 
 export const todoItemSchema = z.object({

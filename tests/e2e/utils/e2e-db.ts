@@ -13,6 +13,7 @@ const operations = {
   createOAuthClientFixture: oauthFixtures.createOAuthClientFixture,
   deleteLinkedAccountFixture: oauthFixtures.deleteLinkedAccountFixture,
   deleteOAuthClientsByName: oauthFixtures.deleteOAuthClientsByName,
+  disableOAuthClientByName: oauthFixtures.disableOAuthClientByName,
   ensureLinkedAccountFixture: oauthFixtures.ensureLinkedAccountFixture,
   getSeedCourseFilterFixture: seedFixtures.getSeedCourseFilterFixture,
   getSeedSectionSemesterFixture: seedFixtures.getSeedSectionSemesterFixture,
@@ -159,6 +160,9 @@ export const createOAuthClientFixture = (options?: OAuthClientFixtureOptions) =>
 
 export const deleteOAuthClientsByName = (name: string) =>
   runDbFixture<null>("deleteOAuthClientsByName", [name]);
+
+export const disableOAuthClientByName = (name: string) =>
+  runDbFixture<null>("disableOAuthClientByName", [name]);
 
 export const ensureLinkedAccountFixture = (
   options: LinkedAccountFixtureOptions,
