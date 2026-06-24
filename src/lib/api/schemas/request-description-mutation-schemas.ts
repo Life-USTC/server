@@ -1,5 +1,4 @@
 import * as z from "zod";
-import type { JSONSchema } from "zod/v4/core";
 import { DESCRIPTION_CONTENT_MAX_LENGTH } from "@/features/descriptions/lib/description-limits";
 import {
   descriptionTargetTypeSchema,
@@ -11,25 +10,36 @@ const descriptionTargetIdReferenceSchema = z.union([
   z.number(),
 ]);
 
-const descriptionTargetReferenceOpenApiAnyOf: JSONSchema.JSONSchema[] = [
-  { required: ["targetId"] },
-  {
-    properties: { targetType: { enum: ["section"], type: "string" } },
-    required: ["sectionJwId"],
-  },
-  {
-    properties: { targetType: { enum: ["course"], type: "string" } },
-    required: ["courseJwId"],
-  },
-  {
-    properties: { targetType: { enum: ["teacher"], type: "string" } },
-    required: ["teacherId"],
-  },
-  {
-    properties: { targetType: { enum: ["homework"], type: "string" } },
-    required: ["homeworkId"],
-  },
-];
+type DescriptionTargetReferenceOpenApiSchema = {
+  required: string[];
+  properties?: {
+    targetType: {
+      enum: string[];
+      type: "string";
+    };
+  };
+};
+
+const descriptionTargetReferenceOpenApiAnyOf: DescriptionTargetReferenceOpenApiSchema[] =
+  [
+    { required: ["targetId"] },
+    {
+      properties: { targetType: { enum: ["section"], type: "string" } },
+      required: ["sectionJwId"],
+    },
+    {
+      properties: { targetType: { enum: ["course"], type: "string" } },
+      required: ["courseJwId"],
+    },
+    {
+      properties: { targetType: { enum: ["teacher"], type: "string" } },
+      required: ["teacherId"],
+    },
+    {
+      properties: { targetType: { enum: ["homework"], type: "string" } },
+      required: ["homeworkId"],
+    },
+  ];
 
 function hasReference(value: unknown) {
   return value !== undefined && value !== null;
