@@ -1151,6 +1151,10 @@ describe("course and section lookups", () => {
       found?: boolean;
       section?: {
         code?: string;
+        schedules?: Array<{
+          endTime?: unknown;
+          startTime?: unknown;
+        }>;
         teacherAssignments?: unknown[];
         scheduleGroups?: unknown[];
         exams?: unknown[];
@@ -1164,6 +1168,8 @@ describe("course and section lookups", () => {
 
     expect(result.found).toBe(true);
     expect(result.section?.code).toBe(DEV_SEED.section.code);
+    expect(typeof result.section?.schedules?.[0]?.startTime).toBe("string");
+    expect(typeof result.section?.schedules?.[0]?.endTime).toBe("string");
     expect((result.section?.teacherAssignments?.length ?? 0) > 0).toBe(true);
     expect(Array.isArray(result.section?.scheduleGroups)).toBe(true);
     expect((result.section?.exams?.length ?? 0) > 0).toBe(true);

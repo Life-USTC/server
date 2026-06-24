@@ -8,6 +8,7 @@ import { buildCourseListWhere } from "@/features/catalog/server/course-section-q
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma } from "@/lib/db/prisma";
+import { serializeScheduleTimeFields } from "@/lib/schedule-serialization";
 
 export async function listCoursesBySearch(
   search: string,
@@ -48,7 +49,7 @@ export async function findSectionDetailByJwId(
   jwId: number,
   locale: AppLocale = DEFAULT_LOCALE,
 ) {
-  return getPrisma(locale).section.findUnique({
+  const section = await getPrisma(locale).section.findUnique({
     where: { jwId },
     include: {
       ...sectionInclude,
@@ -75,6 +76,13 @@ export async function findSectionDetailByJwId(
       },
     },
   });
+
+  if (!section) return null;
+
+  return {
+    ...section,
+    schedules: section.schedules.map(serializeScheduleTimeFields),
+  };
 }
 
 export async function findSectionCompactByJwId(
