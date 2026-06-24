@@ -1,3 +1,10 @@
+## [1.37.2](https://github.com/Life-USTC/server/compare/v1.37.1...v1.37.2) (2026-06-24)
+
+
+### Bug Fixes
+
+* **api:** align public rest and mcp surfaces ([3ef828b](https://github.com/Life-USTC/server/commit/3ef828bd6ebcfd179a044a07f456c28e43baaa5c))
+
 ## [1.37.1](https://github.com/Life-USTC/server/compare/v1.37.0...v1.37.1) (2026-06-24)
 
 
