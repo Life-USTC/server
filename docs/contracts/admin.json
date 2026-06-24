@@ -38,7 +38,10 @@
         "routes": [
           {
             "path": "/api/admin/comments",
-            "returns": "{ comments: Comment[] }"
+            "returns": "{ comments: Comment[] }",
+            "notes": [
+              "Omitted status defaults to the active moderation queue, matching /admin/moderation."
+            ]
           },
           {
             "path": "/api/admin/comments/[id]",

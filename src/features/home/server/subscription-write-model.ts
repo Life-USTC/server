@@ -38,6 +38,14 @@ async function getExistingSectionIds(sectionIds: readonly number[]) {
   return sections.map((section) => section.id);
 }
 
+async function getSectionIdByJwId(jwId: number) {
+  const section = await prisma.section.findUnique({
+    where: { jwId },
+    select: { id: true },
+  });
+  return section?.id ?? null;
+}
+
 async function getMutableUserSubscriptions(userId: string) {
   return prisma.user.findUnique({
     where: { id: userId },
@@ -208,15 +216,12 @@ export async function subscribeUserToSectionByJwId(
   sectionJwId: number,
   locale = DEFAULT_LOCALE,
 ) {
-  const section = await prisma.section.findUnique({
-    where: { jwId: sectionJwId },
-    select: { id: true },
-  });
-  if (!section) {
+  const sectionId = await getSectionIdByJwId(sectionJwId);
+  if (sectionId === null) {
     return null;
   }
 
-  const state = await addUserSectionSubscriptions(userId, [section.id]);
+  const state = await addUserSectionSubscriptions(userId, [sectionId]);
   if (!state) {
     return null;
   }
@@ -229,6 +234,11 @@ export async function unsubscribeUserFromSectionByJwId(
   sectionJwId: number,
   locale = DEFAULT_LOCALE,
 ) {
+  const sectionId = await getSectionIdByJwId(sectionJwId);
+  if (sectionId === null) {
+    return null;
+  }
+
   const user = await getMutableUserSubscriptions(userId);
   if (!user) {
     return null;
@@ -237,7 +247,7 @@ export async function unsubscribeUserFromSectionByJwId(
   await replaceUserSectionIds(
     userId,
     user.subscribedSections
-      .filter((section) => section.jwId !== sectionJwId)
+      .filter((section) => section.id !== sectionId)
       .map((section) => section.id),
   );
 

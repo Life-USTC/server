@@ -1115,4 +1115,39 @@ describe("subscribe_section_by_jw_id — returns action + compact subscription",
     expect(result.subscription?.currentSemesterSections).toBeUndefined();
     expect(typeof result.subscription?.sectionCount).toBe("number");
   });
+
+  it("returns not_found for missing subscribe and unsubscribe targets", async () => {
+    const missingJwId = 2_147_483_647;
+    const subscribeResult = await mcp.call<{
+      success?: boolean;
+      action?: string;
+      sectionJwId?: number;
+      subscription?: unknown;
+    }>("subscribe_section_by_jw_id", {
+      jwId: missingJwId,
+      locale: "zh-cn",
+    });
+    const unsubscribeResult = await mcp.call<{
+      success?: boolean;
+      action?: string;
+      sectionJwId?: number;
+      subscription?: unknown;
+    }>("unsubscribe_section_by_jw_id", {
+      jwId: missingJwId,
+      locale: "zh-cn",
+    });
+
+    expect(subscribeResult).toMatchObject({
+      action: "not_found",
+      sectionJwId: missingJwId,
+      success: false,
+      subscription: null,
+    });
+    expect(unsubscribeResult).toMatchObject({
+      action: "not_found",
+      sectionJwId: missingJwId,
+      success: false,
+      subscription: null,
+    });
+  });
 });

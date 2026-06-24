@@ -174,7 +174,7 @@ buildPaginatedResponse(items, page, pageSize, total)
 - Never log tokens, secrets, session cookies, OAuth codes, upload URLs, or personal data beyond what a test explicitly requires.
 - Preserve auth surface differences: pages redirect, REST returns status responses, MCP is bearer-only with `/api/mcp` audience.
 - Check permissions before mutations; suspended users are blocked from collaborative writes.
-- Upload downloads are owner-scoped unless a feature change explicitly updates the permission model and docs.
+- Upload downloads require a shared permission gate: owners may download their files, and signed-in viewers may download files attached to comments they are allowed to read.
 
 **Documentation Changes**:
 - Ask before broad documentation rewrites or restructures when the user did not explicitly request doc edits.
