@@ -1,7 +1,7 @@
 import { parseInteger } from "@/lib/integers";
 import type { CommentTargetType } from "../lib/comment-target-types";
 import {
-  findSectionTeacherId,
+  findSectionTeacherTarget,
   resolveSectionTeacherId,
 } from "./comment-section-teacher";
 import { verifyCommentTargetEntity } from "./comment-target-verification";
@@ -15,11 +15,15 @@ export type ResolvedCommentTarget = {
   targetId: number | string | null;
   teacherId: number | null;
   whereTarget: Record<string, number | string>;
+  /** True when the target is valid but cannot have comments yet. */
+  empty: boolean;
   /** True when the underlying target entity was verified to exist in the DB. */
   verified: boolean;
 };
 
 export { resolveSectionTeacherId };
+
+const EMPTY_SECTION_TEACHER_WHERE_TARGET = { sectionTeacherId: -1 } as const;
 
 export async function resolveCommentTarget(input: {
   allowDirectSectionTeacherId?: boolean;
@@ -41,6 +45,7 @@ export async function resolveCommentTarget(input: {
 
   let whereTarget: Record<string, number | string> | null = null;
   let sectionTeacherId: number | null = null;
+  let empty = false;
 
   if (input.targetType === "section" && normalizedTargetId) {
     whereTarget = { sectionId: normalizedTargetId };
@@ -54,13 +59,19 @@ export async function resolveCommentTarget(input: {
     if (input.allowDirectSectionTeacherId && normalizedTargetId) {
       sectionTeacherId = normalizedTargetId;
     } else if (sectionId && teacherId) {
-      sectionTeacherId =
-        input.createSectionTeacherTarget === true
-          ? await resolveSectionTeacherId(sectionId, teacherId)
-          : await findSectionTeacherId(sectionId, teacherId);
+      if (input.createSectionTeacherTarget === true) {
+        sectionTeacherId = await resolveSectionTeacherId(sectionId, teacherId);
+      } else {
+        const target = await findSectionTeacherTarget(sectionId, teacherId);
+        sectionTeacherId = target.id;
+        if (target.exists && target.id === null) {
+          whereTarget = EMPTY_SECTION_TEACHER_WHERE_TARGET;
+          empty = true;
+        }
+      }
     }
 
-    if (sectionTeacherId) {
+    if (!whereTarget && sectionTeacherId) {
       whereTarget = { sectionTeacherId };
     }
   }
@@ -69,12 +80,14 @@ export async function resolveCommentTarget(input: {
     return null;
   }
 
-  const verified =
-    input.verifyExistence === true
+  const verified = empty
+    ? true
+    : input.verifyExistence === true
       ? await verifyCommentTargetEntity(input.targetType, whereTarget)
       : true;
 
   return {
+    empty,
     homeworkId,
     sectionId,
     sectionTeacherId,

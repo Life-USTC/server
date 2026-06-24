@@ -227,18 +227,24 @@ describe("comment read tools — MCP exposes the REST comment hierarchy", () => 
       expect(before).toBeNull();
 
       const result = await mcp.call<{
-        success?: boolean;
         found?: boolean;
-        error?: string;
+        comments?: unknown[];
+        target?: {
+          sectionId?: number | null;
+          sectionTeacherId?: number | null;
+          teacherId?: number | null;
+        };
       }>("list_comments", {
         targetType: "section-teacher",
         sectionJwId: DEV_SEED.section.jwId,
         teacherId,
       });
 
-      expect(result.success).toBe(false);
-      expect(result.found).toBe(false);
-      expect(result.error).toBe("target_not_found");
+      expect(result.found).toBe(true);
+      expect(result.comments).toEqual([]);
+      expect(result.target?.sectionId).toBe(section.id);
+      expect(result.target?.teacherId).toBe(teacherId);
+      expect(result.target?.sectionTeacherId).toBeNull();
 
       const after = await prisma.sectionTeacher.findUnique({
         where: {

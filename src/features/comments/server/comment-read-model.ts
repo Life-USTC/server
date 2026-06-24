@@ -94,6 +94,16 @@ export async function loadCommentThread(input: {
   viewer?: ViewerContext;
   viewerUserId: string | null;
 }) {
+  if (input.target.empty) {
+    const viewer =
+      input.viewer ??
+      (await getViewerContext({
+        includeAdmin: false,
+        userId: input.viewerUserId,
+      }));
+    return { comments: [], hiddenCount: 0, viewer };
+  }
+
   const [viewer, comments] = await Promise.all([
     input.viewer
       ? Promise.resolve(input.viewer)
