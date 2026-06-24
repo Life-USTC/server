@@ -1,3 +1,10 @@
+## [1.37.5](https://github.com/Life-USTC/server/compare/v1.37.4...v1.37.5) (2026-06-24)
+
+
+### Bug Fixes
+
+* **openapi:** document protected route security ([8f979de](https://github.com/Life-USTC/server/commit/8f979de4a089e085db8f0679e9d00469b20073a2))
+
 ## [1.37.4](https://github.com/Life-USTC/server/compare/v1.37.3...v1.37.4) (2026-06-24)
 
 
