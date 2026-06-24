@@ -54,9 +54,9 @@
             "rest_equivalent": "GET /api/me/overview",
             "notes": [
               "overview contains pending todo, homework, today's schedule, and upcoming exam counts.",
-              "samples contains dueTodos[], dueHomeworks[], and upcomingExams[] from the same compact overview read operation, default homework window, atTime anchoring, and sample limit semantics as GET /api/me/overview.",
+              "Default/full samples contain dueTodos[], dueHomeworks[], and upcomingExams[] from the same compact overview read operation, default homework window, atTime anchoring, and sample limit semantics as GET /api/me/overview.",
               "Count-and-sample oriented tool; use get_my_dashboard for a richer single-call assistant snapshot.",
-              "Summary mode summarizes samples into smaller cards; optional atTime anchors today's bounds for tests or specific-day questions."
+              "Summary mode returns dueTodos, dueHomeworks, and upcomingExams groups with full totals and up to three smaller cards; optional atTime anchors today's bounds for tests or specific-day questions."
             ]
           }
         ]
