@@ -1,3 +1,10 @@
+## [1.36.14](https://github.com/Life-USTC/server/compare/v1.36.13...v1.36.14) (2026-06-24)
+
+
+### Bug Fixes
+
+* **overview:** share REST and MCP read model ([3079fb8](https://github.com/Life-USTC/server/commit/3079fb89c8e6c9da98092b2a352c865a81560849))
+
 ## [1.36.13](https://github.com/Life-USTC/server/compare/v1.36.12...v1.36.13) (2026-06-22)
 
 
