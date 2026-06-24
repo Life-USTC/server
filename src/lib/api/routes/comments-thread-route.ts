@@ -1,4 +1,5 @@
 import { loadFocusedCommentThread } from "@/features/comments/server/comment-read-model";
+import { commentThreadTargetPayload } from "@/features/comments/server/comment-target-payload";
 import {
   forbidden,
   handleRouteError,
@@ -8,7 +9,6 @@ import {
 } from "@/lib/api/helpers";
 import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
 import { resolveApiUserId } from "@/lib/auth/api-auth";
-import { buildCommentRouteTarget } from "./comment-target-payloads";
 
 type IdParams = { id: string };
 
@@ -42,7 +42,7 @@ export async function getCommentRoute(request: Request, params: IdParams) {
       focusId: result.focusId,
       hiddenCount: result.hiddenCount,
       viewer: result.viewer,
-      target: buildCommentRouteTarget(result.target),
+      target: commentThreadTargetPayload(result.target),
     });
   } catch (error) {
     return handleRouteError("Failed to fetch comment", error);

@@ -95,6 +95,10 @@
             ]
           },
           {
+            "name": "Comments",
+            "tools": ["list_comments", "get_comment_thread"]
+          },
+          {
             "name": "Calendar & Subscription",
             "tools": [
               "list_my_calendar_events",
