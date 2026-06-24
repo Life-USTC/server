@@ -4,7 +4,7 @@
     "anon": "Can read public descriptions.",
     "user": "When signed in and not suspended, can maintain descriptions.",
     "admin": "Can review and maintain descriptions in the admin backend.",
-    "agent": "No general description tools are currently provided."
+    "agent": "Can read and maintain object descriptions through MCP tools after authorization."
   },
   "rules": {
     "supplement-not-comment": "Description is a Markdown supplement on an object, not equivalent to comments expressing personal opinions.",
@@ -30,7 +30,25 @@
           }
         ]
       },
-      "mcp": "unavailable",
+      "mcp": {
+        "tools": [
+          {
+            "name": "get_description",
+            "returns": "{ found, target, description, history, viewer }",
+            "notes": [
+              "Inputs accept targetType plus targetId, or public identifiers such as sectionJwId, courseJwId, teacherId, homeworkId."
+            ]
+          },
+          {
+            "name": "upsert_description",
+            "returns": "{ success, id, updated, target, description, history, viewer }",
+            "auth": "user",
+            "notes": [
+              "Inputs accept targetType plus targetId, or public identifiers such as sectionJwId, courseJwId, teacherId, homeworkId."
+            ]
+          }
+        ]
+      },
       "display": {
         "fields": [
           "description.content (markdown-rendered)",

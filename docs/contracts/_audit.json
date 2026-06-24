@@ -17,7 +17,7 @@
       "description": "User adds or removes a reaction on a comment."
     },
     "description_edit": {
-      "trigger": "POST /api/descriptions",
+      "trigger": "POST /api/descriptions or MCP upsert_description",
       "description": "User updates an object description (content changed)."
     },
     "upload_delete": {

@@ -99,6 +99,10 @@
             "tools": ["list_comments", "get_comment_thread"]
           },
           {
+            "name": "Descriptions",
+            "tools": ["get_description", "upsert_description"]
+          },
+          {
             "name": "Calendar & Subscription",
             "tools": [
               "list_my_calendar_events",

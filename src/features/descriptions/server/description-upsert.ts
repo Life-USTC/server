@@ -1,3 +1,4 @@
+import { fireAuditLog } from "@/lib/audit/write-audit-log";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import {
   type DescriptionTargetType,
@@ -10,12 +11,20 @@ type DescriptionUpsertError =
   | "not_found"
   | "suspended";
 
+type DescriptionEditAuditMetadata = {
+  ipAddress?: string;
+  source?: string;
+  userAgent?: string;
+};
+
 export async function upsertDescriptionContent({
+  auditMetadata,
   content,
   targetId,
   targetType,
   userId,
 }: {
+  auditMetadata?: DescriptionEditAuditMetadata;
   content: string;
   targetId: number | string;
   targetType: DescriptionTargetType;
@@ -84,5 +93,43 @@ export async function upsertDescriptionContent({
     return { id: description.id, updated: true };
   });
 
+  if (result.updated) {
+    writeDescriptionEditAuditLog({
+      content,
+      descriptionId: result.id,
+      metadata: auditMetadata,
+      targetType,
+      userId,
+    });
+  }
+
   return { ok: true as const, ...result };
+}
+
+function writeDescriptionEditAuditLog({
+  content,
+  descriptionId,
+  metadata,
+  targetType,
+  userId,
+}: {
+  content: string;
+  descriptionId: string;
+  metadata?: DescriptionEditAuditMetadata;
+  targetType: DescriptionTargetType;
+  userId: string;
+}) {
+  const { source, ...requestMetadata } = metadata ?? {};
+  fireAuditLog({
+    action: "description_edit",
+    userId,
+    targetId: descriptionId,
+    targetType: "description",
+    metadata: {
+      targetType,
+      content: content.slice(0, 200),
+      ...(source ? { source } : {}),
+    },
+    ...requestMetadata,
+  });
 }
