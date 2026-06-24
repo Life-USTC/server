@@ -154,6 +154,37 @@ test("/api/comments GET section-teacher 空目标不会创建关系行", async (
   }
 });
 
+test("/api/comments GET 未关联的 section-teacher 目标返回 404", async ({
+  request,
+}) => {
+  const marker = `[e2e] section-teacher-missing-${Date.now()}`;
+  const { sectionId, teacherId } = await withE2ePrisma(async (prisma) => {
+    const section = await prisma.section.findUniqueOrThrow({
+      where: { jwId: DEV_SEED.section.jwId },
+      select: { id: true },
+    });
+    const teacher = await prisma.teacher.create({
+      data: {
+        code: marker,
+        nameCn: marker,
+      },
+      select: { id: true },
+    });
+    return { sectionId: section.id, teacherId: teacher.id };
+  });
+
+  try {
+    const response = await request.get(
+      `/api/comments?targetType=section-teacher&sectionId=${sectionId}&teacherId=${teacherId}`,
+    );
+    expect(response.status()).toBe(404);
+  } finally {
+    await withE2ePrisma((prisma) =>
+      prisma.teacher.deleteMany({ where: { id: teacherId } }),
+    );
+  }
+});
+
 test("/api/comments POST 未登录返回 401", async ({ request }) => {
   const response = await request.post("/api/comments", {
     data: {

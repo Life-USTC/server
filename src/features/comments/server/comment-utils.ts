@@ -46,6 +46,7 @@ export async function resolveCommentTarget(input: {
   let whereTarget: Record<string, number | string> | null = null;
   let sectionTeacherId: number | null = null;
   let empty = false;
+  let missing = false;
 
   if (input.targetType === "section" && normalizedTargetId) {
     whereTarget = { sectionId: normalizedTargetId };
@@ -67,6 +68,9 @@ export async function resolveCommentTarget(input: {
         if (target.exists && target.id === null) {
           whereTarget = EMPTY_SECTION_TEACHER_WHERE_TARGET;
           empty = true;
+        } else if (!target.exists && input.verifyExistence === true) {
+          whereTarget = EMPTY_SECTION_TEACHER_WHERE_TARGET;
+          missing = true;
         }
       }
     }
@@ -80,11 +84,13 @@ export async function resolveCommentTarget(input: {
     return null;
   }
 
-  const verified = empty
-    ? true
-    : input.verifyExistence === true
-      ? await verifyCommentTargetEntity(input.targetType, whereTarget)
-      : true;
+  const verified = missing
+    ? false
+    : empty
+      ? true
+      : input.verifyExistence === true
+        ? await verifyCommentTargetEntity(input.targetType, whereTarget)
+        : true;
 
   return {
     empty,

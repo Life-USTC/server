@@ -188,6 +188,35 @@ describe("comment read tools — MCP exposes the REST comment hierarchy", () => 
     expect(result.error).toBe("target_not_found");
   });
 
+  it("list_comments reports unattached section-teacher pairs as missing targets", async () => {
+    const marker = `[integration-test] mcp-section-teacher-missing-${Date.now()}`;
+    const teacher = await prisma.teacher.create({
+      data: {
+        code: marker,
+        nameCn: marker,
+      },
+      select: { id: true },
+    });
+
+    try {
+      const result = await mcp.call<{
+        success?: boolean;
+        found?: boolean;
+        error?: string;
+      }>("list_comments", {
+        targetType: "section-teacher",
+        sectionJwId: DEV_SEED.section.jwId,
+        teacherId: teacher.id,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.found).toBe(false);
+      expect(result.error).toBe("target_not_found");
+    } finally {
+      await prisma.teacher.deleteMany({ where: { id: teacher.id } });
+    }
+  });
+
   it("list_comments does not create section-teacher targets while reading", async () => {
     const section = await prisma.section.findUnique({
       where: { jwId: DEV_SEED.section.jwId },
