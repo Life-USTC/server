@@ -1,3 +1,11 @@
+## [1.37.1](https://github.com/Life-USTC/server/compare/v1.37.0...v1.37.1) (2026-06-24)
+
+
+### Bug Fixes
+
+* **mcp:** align section detail payload ([ca0f0c1](https://github.com/Life-USTC/server/commit/ca0f0c161ab6b5a52cba8d3094e4913d324ed420))
+* **mcp:** serialize section detail schedules ([eff670c](https://github.com/Life-USTC/server/commit/eff670c485cc7ee53dbe9edbd8a7c6c0d83989f1))
+
 # [1.37.0](https://github.com/Life-USTC/server/compare/v1.36.16...v1.37.0) (2026-06-24)
 
 
