@@ -24,6 +24,7 @@
             "path": "/api/comments",
             "returns": "{ comments: Comment[], hiddenCount: Int, viewer, target }",
             "notes": [
+              "Accepts REST-compatible internal targetId plus public identifiers such as sectionJwId, courseJwId, teacherId, homeworkId, and sectionTeacherId.",
               "Returns 404 when the attached target entity does not exist."
             ]
           },
@@ -91,7 +92,7 @@
           "comment.status (non-active states)",
           "comment.reactions[] (counts per reaction type)",
           "comment.replies[] (threaded)",
-          "comment.attachments[] filename/open action",
+          "comment.attachments[] filename/open action for signed-in viewers with attachment access",
           "canReply/canEdit/canDelete/canModerate actions",
           "Copy link action"
         ]

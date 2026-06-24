@@ -1,4 +1,5 @@
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
+import { canViewerAccessCommentAttachment } from "./comment-attachment-access";
 import {
   buildAttachments,
   buildAuthorSummary,
@@ -49,7 +50,16 @@ export function buildVisibleCommentNode({
     parentId: comment.parentId ?? null,
     rootId: comment.rootId ?? null,
     replies: [],
-    attachments: buildAttachments(comment),
+    attachments: canViewerAccessCommentAttachment(
+      {
+        status: rawStatus,
+        userId: comment.userId ?? null,
+        visibility: comment.visibility,
+      },
+      viewer,
+    )
+      ? buildAttachments(comment)
+      : [],
     reactions: buildReactionSummary(comment, viewer),
     canReply: canWrite,
     canEdit: canWrite && isAuthor && rawStatus !== "deleted",

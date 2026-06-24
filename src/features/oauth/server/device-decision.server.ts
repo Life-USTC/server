@@ -1,5 +1,6 @@
 import { redirect } from "@sveltejs/kit";
 import { DEVICE_CODE_STATUS, normalizeUserCode } from "@/lib/oauth/device-code";
+import { getDeviceApprovalFailureReason } from "./device-approval-validation.server";
 import { requireDeviceUserId } from "./device-auth.server";
 import {
   buildDeviceCallbackUrl,
@@ -31,14 +32,15 @@ export async function completeDeviceCodeDecision(
       id: true,
       status: true,
       expiresAt: true,
+      client: {
+        select: {
+          disabled: true,
+        },
+      },
     },
   });
 
-  if (
-    !record ||
-    record.status !== DEVICE_CODE_STATUS.PENDING ||
-    record.expiresAt < new Date()
-  ) {
+  if (!record || getDeviceApprovalFailureReason(record)) {
     throw redirect(
       303,
       buildDevicePageUrl({ result: "error", reason: "invalid_or_expired" }),

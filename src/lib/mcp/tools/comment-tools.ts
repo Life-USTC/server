@@ -9,12 +9,10 @@ import {
   commentListTargetPayload,
   commentThreadTargetPayload,
 } from "@/features/comments/server/comment-target-payload";
-import type { ResolvedCommentTarget } from "@/features/comments/server/comment-utils";
 import {
-  type CommentTargetType,
-  resolveCommentTarget,
-} from "@/features/comments/server/comment-utils";
-import { prisma } from "@/lib/db/prisma";
+  type ResolvedCommentTargetReference,
+  resolveCommentTargetReference,
+} from "@/features/comments/server/comment-target-resolution";
 import {
   getUserId,
   jsonToolResult,
@@ -67,21 +65,6 @@ const commentThreadInputSchema = z.object({
   mode: mcpModeInputSchema,
 });
 
-type CommentsTargetInput = z.infer<typeof commentsTargetInputSchema>;
-
-type ResolvedMcpCommentTarget =
-  | {
-      ok: true;
-      target: ResolvedCommentTarget;
-      targetType: CommentTargetType;
-    }
-  | {
-      ok: false;
-      error: "invalid_target" | "target_not_found";
-      message: string;
-      hint: string;
-    };
-
 export function registerCommentTools(server: McpServer) {
   server.registerTool(
     "list_comments",
@@ -93,15 +76,26 @@ export function registerCommentTools(server: McpServer) {
     },
     async (args, extra) => {
       const mode = resolveMcpMode(args.mode);
-      const resolved = await resolveMcpCommentTarget(args);
+      const resolved = await resolveCommentTargetReference({
+        allowDirectSectionTeacherId: true,
+        courseJwId: args.courseJwId,
+        homeworkId: args.homeworkId,
+        rawTargetId: args.targetId,
+        sectionJwId: args.sectionJwId,
+        sectionTeacherId: args.sectionTeacherId,
+        targetType: args.targetType,
+        teacherId: args.teacherId,
+        verifyExistence: true,
+      });
       if (!resolved.ok) {
+        const errorPayload = unresolvedCommentTargetPayload(resolved);
         return jsonToolResult(
           {
             success: false,
             found: false,
-            error: resolved.error,
-            message: resolved.message,
-            hint: resolved.hint,
+            error: errorPayload.error,
+            message: errorPayload.message,
+            hint: errorPayload.hint,
           },
           { mode },
         );
@@ -119,7 +113,7 @@ export function registerCommentTools(server: McpServer) {
           comments,
           hiddenCount,
           viewer,
-          target: commentListTargetPayload(
+          target: await commentListTargetPayload(
             resolved.targetType,
             resolved.target,
           ),
@@ -174,96 +168,15 @@ export function registerCommentTools(server: McpServer) {
   );
 }
 
-async function resolveMcpCommentTarget(
-  input: CommentsTargetInput,
-): Promise<ResolvedMcpCommentTarget> {
-  if (input.targetType === "section" && input.sectionJwId) {
-    const section = await prisma.section.findUnique({
-      where: { jwId: input.sectionJwId },
-      select: { id: true },
-    });
-    if (!section) return targetNotFound("section", input.sectionJwId);
-    return resolveVerifiedTarget("section", section.id);
+function unresolvedCommentTargetPayload(
+  result: Extract<ResolvedCommentTargetReference, { ok: false }>,
+) {
+  if (result.error === "target_not_found") {
+    return targetNotFound(result.targetType, result.targetId);
   }
-
-  if (input.targetType === "course" && input.courseJwId) {
-    const course = await prisma.course.findUnique({
-      where: { jwId: input.courseJwId },
-      select: { id: true },
-    });
-    if (!course) return targetNotFound("course", input.courseJwId);
-    return resolveVerifiedTarget("course", course.id);
-  }
-
-  if (input.targetType === "teacher") {
-    return resolveVerifiedTarget("teacher", input.teacherId ?? input.targetId);
-  }
-
-  if (input.targetType === "homework") {
-    return resolveVerifiedTarget(
-      "homework",
-      input.homeworkId ?? input.targetId,
-    );
-  }
-
-  if (input.targetType === "section-teacher") {
-    const directId = input.sectionTeacherId ?? input.targetId;
-    if (directId) {
-      return resolveVerifiedTarget("section-teacher", directId);
-    }
-
-    if (input.sectionJwId && input.teacherId) {
-      const section = await prisma.section.findUnique({
-        where: { jwId: input.sectionJwId },
-        select: { id: true },
-      });
-      if (!section) return targetNotFound("section", input.sectionJwId);
-
-      const target = await resolveCommentTarget({
-        rawTargetId: undefined,
-        sectionId: section.id,
-        targetType: "section-teacher",
-        teacherId: input.teacherId,
-        verifyExistence: true,
-      });
-      if (!target?.verified) {
-        return targetNotFound("section-teacher", input.sectionJwId);
-      }
-      return { ok: true, target, targetType: "section-teacher" };
-    }
-  }
-
-  return resolveVerifiedTarget(input.targetType, input.targetId);
-}
-
-async function resolveVerifiedTarget(
-  targetType: CommentTargetType,
-  rawTargetId: unknown,
-): Promise<ResolvedMcpCommentTarget> {
-  const target = await resolveCommentTarget({
-    allowDirectSectionTeacherId: true,
-    rawTargetId,
-    targetType,
-    verifyExistence: true,
-  });
-
-  if (!target) {
-    return invalidTarget(targetType);
-  }
-  if (!target.verified) {
-    return targetNotFound(targetType, rawTargetId);
-  }
-
-  return { ok: true, target, targetType };
-}
-
-function invalidTarget(
-  targetType: CommentTargetType,
-): ResolvedMcpCommentTarget {
   return {
-    ok: false,
     error: "invalid_target",
-    message: `Missing or invalid ${targetType} comment target`,
+    message: `Missing or invalid ${result.targetType} comment target`,
     hint: "Provide targetId for the REST-compatible internal id, or a public identifier such as sectionJwId, courseJwId, teacherId, homeworkId, or sectionTeacherId.",
   };
 }
@@ -271,9 +184,12 @@ function invalidTarget(
 function targetNotFound(
   targetType: string,
   targetId: unknown,
-): ResolvedMcpCommentTarget {
+): {
+  error: "target_not_found";
+  message: string;
+  hint: string;
+} {
   return {
-    ok: false,
     error: "target_not_found",
     message: `Comment target ${targetType}:${String(targetId)} was not found`,
     hint: "Use search_sections, search_courses, search_teachers, or get_section_by_jw_id to find a valid comment target.",

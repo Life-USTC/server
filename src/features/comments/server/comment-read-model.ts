@@ -75,7 +75,13 @@ export const commentTargetLookupSelect = {
     },
   },
   section: {
-    select: { jwId: true, code: true },
+    select: {
+      jwId: true,
+      code: true,
+      course: {
+        select: { jwId: true, nameCn: true },
+      },
+    },
   },
   course: {
     select: { jwId: true, nameCn: true },

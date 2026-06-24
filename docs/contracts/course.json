@@ -34,7 +34,7 @@
         "tools": [
           {
             "name": "search_courses",
-            "returns": "{ courses: Course[] }",
+            "returns": "PaginatedResponse<Course>",
             "rest_equivalent": "GET /api/courses"
           }
         ]

@@ -79,7 +79,12 @@ test("/api/comments/[id] GET 返回线程 focus 与 target 元数据", async ({
   expect(threadResponse.status()).toBe(200);
   const body = (await threadResponse.json()) as {
     focusId?: string;
-    target?: { sectionId?: number; sectionJwId?: number };
+    target?: {
+      courseJwId?: number | null;
+      courseName?: string | null;
+      sectionId?: number;
+      sectionJwId?: number;
+    };
     thread?: Array<{ id?: string }>;
     hiddenCount?: number;
     viewer?: object;
@@ -87,6 +92,8 @@ test("/api/comments/[id] GET 返回线程 focus 与 target 元数据", async ({
 
   expect(body.focusId).toBe(commentId);
   expect(body.target?.sectionJwId).toBe(DEV_SEED.section.jwId);
+  expect(body.target?.courseJwId).toBe(DEV_SEED.course.jwId);
+  expect(body.target?.courseName).toBe(DEV_SEED.course.nameCn);
   expect(body.thread?.length ?? 0).toBeGreaterThan(0);
   expect(typeof body.hiddenCount).toBe("number");
   expect(body.viewer).toBeDefined();

@@ -1,6 +1,6 @@
 import { loadCommentThread } from "@/features/comments/server/comment-read-model";
 import { commentListTargetPayload } from "@/features/comments/server/comment-target-payload";
-import { resolveCommentTarget } from "@/features/comments/server/comment-utils";
+import { resolveCommentTargetReference } from "@/features/comments/server/comment-target-resolution";
 import {
   badRequest,
   handleRouteError,
@@ -26,24 +26,28 @@ export async function getCommentsRoute(request: Request) {
   const targetIdParam = parsedQuery.targetId ?? null;
 
   try {
-    const target = await resolveCommentTarget({
+    const resolved = await resolveCommentTargetReference({
       allowDirectSectionTeacherId: true,
+      courseJwId: parsedQuery.courseJwId,
+      homeworkId: parsedQuery.homeworkId,
       rawTargetId: targetIdParam,
       sectionId: parsedQuery.sectionId,
+      sectionJwId: parsedQuery.sectionJwId,
+      sectionTeacherId: parsedQuery.sectionTeacherId,
       targetType,
       teacherId: parsedQuery.teacherId,
       verifyExistence: true,
     });
-    if (!target) {
+    if (!resolved.ok && resolved.error === "invalid_target") {
       return badRequest("Invalid target");
     }
-    if (!target.verified) {
+    if (!resolved.ok) {
       return notFound();
     }
 
     const viewerUserId = await resolveApiUserId(request);
     const { comments, hiddenCount, viewer } = await loadCommentThread({
-      target,
+      target: resolved.target,
       viewerUserId,
     });
 
@@ -51,7 +55,7 @@ export async function getCommentsRoute(request: Request) {
       comments,
       hiddenCount,
       viewer,
-      target: commentListTargetPayload(targetType, target),
+      target: await commentListTargetPayload(targetType, resolved.target),
     });
   } catch (error) {
     return handleRouteError("Failed to fetch comments", error);

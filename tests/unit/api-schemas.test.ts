@@ -5,6 +5,7 @@ import {
   calendarSubscriptionAppendRequestSchema,
   calendarSubscriptionCreateRequestSchema,
   commentReactionRequestSchema,
+  commentsQuerySchema,
   coursesQuerySchema,
   descriptionUpsertRequestSchema,
   homeworkCompletionBatchRequestSchema,
@@ -157,6 +158,33 @@ describe("other request schemas", () => {
     expect(valid.success).toBe(true);
   });
 
+  it("validates comment list public target identifiers", () => {
+    expect(
+      commentsQuerySchema.safeParse({
+        targetType: "section",
+        sectionJwId: "9902001",
+      }).success,
+    ).toBe(true);
+    expect(
+      commentsQuerySchema.safeParse({
+        targetType: "course",
+        courseJwId: "9901001",
+      }).success,
+    ).toBe(true);
+    expect(
+      commentsQuerySchema.safeParse({
+        targetType: "section-teacher",
+        sectionTeacherId: "123",
+      }).success,
+    ).toBe(true);
+    expect(
+      commentsQuerySchema.safeParse({
+        targetType: "section",
+        sectionJwId: "abc",
+      }).success,
+    ).toBe(false);
+  });
+
   it("validates calendar subscription payload", () => {
     const valid = calendarSubscriptionCreateRequestSchema.safeParse({
       sectionIds: [1, 2, 3],
@@ -273,6 +301,8 @@ describe("other request schemas", () => {
         image: null,
         username: "user",
         isAdmin: false,
+        createdAt: "2026-01-01T00:00:00+08:00",
+        updatedAt: "2026-01-01T00:00:00+08:00",
       }).success,
     ).toBe(true);
 

@@ -25,6 +25,7 @@ import { signInAsDebugUser } from "../../../../utils/auth";
 import {
   createOAuthClientFixture,
   deleteOAuthClientsByName,
+  disableOAuthClientByName,
   PLAYWRIGHT_BASE_URL,
 } from "../../../../utils/e2e-db";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
@@ -227,6 +228,35 @@ test("/oauth/device authenticated user sees approval screen", async ({
     ).toBeVisible({ timeout: 15_000 });
 
     await captureStepScreenshot(page, testInfo, "oauth/device/approval-screen");
+  } finally {
+    await deleteOAuthClientsByName(clientName);
+  }
+});
+
+test("/oauth/device disabled client code shows error instead of approval", async ({
+  page,
+  request,
+}, testInfo) => {
+  const clientName = `device-e2e-disabled-${Date.now()}`;
+  try {
+    const result = await requestDeviceCode(request, clientName);
+    const verificationPath = getVerificationPath(
+      result.verificationUriComplete,
+    );
+
+    await disableOAuthClientByName(clientName);
+    await gotoAndWaitForReady(page, verificationPath, {
+      expectMainContent: false,
+    });
+
+    await expect(page).not.toHaveURL(/\/signin(?:\?.*)?$/);
+    await expect(
+      page.getByText(/invalid or has expired|无效|已过期/i).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /允许|Allow|批准|Approve/i }),
+    ).toHaveCount(0);
+    await captureStepScreenshot(page, testInfo, "oauth/device/disabled-client");
   } finally {
     await deleteOAuthClientsByName(clientName);
   }

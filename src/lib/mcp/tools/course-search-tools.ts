@@ -16,10 +16,14 @@ export function registerCourseSearchTools(server: McpServer) {
     "search_courses",
     {
       description:
-        "Search courses by Chinese/English name or course code. Use this before search_sections when starting from a course name.",
+        "Search public courses by Chinese/English name, course code, education level, category, or class type. Use this before search_sections when starting from a course name.",
       inputSchema: {
-        search: z.string().trim().min(1),
-        limit: z.number().int().min(1).max(25).default(10),
+        search: z.string().trim().optional(),
+        educationLevelId: z.number().int().positive().optional(),
+        categoryId: z.number().int().positive().optional(),
+        classTypeId: z.number().int().positive().optional(),
+        page: z.number().int().min(1).default(1),
+        limit: z.number().int().min(1).max(100).default(20),
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },

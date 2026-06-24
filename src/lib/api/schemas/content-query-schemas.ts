@@ -9,7 +9,11 @@ export const commentsQuerySchema = z.object({
   targetType: commentTargetTypeSchema,
   targetId: z.string().optional(),
   sectionId: integerStringSchema.optional(),
+  sectionJwId: integerStringSchema.optional(),
+  courseJwId: integerStringSchema.optional(),
   teacherId: integerStringSchema.optional(),
+  homeworkId: z.string().trim().min(1).optional(),
+  sectionTeacherId: integerStringSchema.optional(),
 });
 
 export const descriptionsQuerySchema = z.object({

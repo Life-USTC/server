@@ -1,31 +1,49 @@
 import {
   findCourseDetailByJwId,
-  listCoursesBySearch,
+  listCourseSummaries,
 } from "@/features/catalog/server/course-section-queries";
+import type { AppLocale } from "@/i18n/config";
+import { DEFAULT_LOCALE } from "@/i18n/config";
 import { jsonToolResult, resolveMcpMode } from "@/lib/mcp/tools/_helpers";
 
 type McpModeInput = Parameters<typeof resolveMcpMode>[0];
-type CourseSearchLocale = Parameters<typeof listCoursesBySearch>[2];
 
 export async function searchCoursesTool({
   search,
+  educationLevelId,
+  categoryId,
+  classTypeId,
+  page,
   limit,
   locale,
   mode,
 }: {
-  search: string;
+  search?: string;
+  educationLevelId?: number;
+  categoryId?: number;
+  classTypeId?: number;
+  page: number;
   limit: number;
-  locale: CourseSearchLocale;
+  locale?: AppLocale;
   mode?: McpModeInput;
 }) {
-  const courses = await listCoursesBySearch(search, limit, locale);
-
-  return jsonToolResult(
-    { courses },
-    {
-      mode: resolveMcpMode(mode),
+  const result = await listCourseSummaries({
+    filters: {
+      categoryId,
+      classTypeId,
+      educationLevelId,
+      search,
     },
-  );
+    locale: locale ?? DEFAULT_LOCALE,
+    pagination: {
+      page,
+      pageSize: limit,
+    },
+  });
+
+  return jsonToolResult(result, {
+    mode: resolveMcpMode(mode),
+  });
 }
 
 export async function getCourseByJwIdTool({
@@ -34,10 +52,10 @@ export async function getCourseByJwIdTool({
   mode,
 }: {
   jwId: number;
-  locale: CourseSearchLocale;
+  locale?: AppLocale;
   mode?: McpModeInput;
 }) {
-  const course = await findCourseDetailByJwId(jwId, locale);
+  const course = await findCourseDetailByJwId(jwId, locale ?? DEFAULT_LOCALE);
 
   return jsonToolResult(
     {

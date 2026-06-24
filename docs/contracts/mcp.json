@@ -22,7 +22,7 @@
   "capabilities": {
     "protocol-endpoint": {
       "title": "Protocol Endpoint",
-      "auth": "anon",
+      "auth": "user",
       "web": "unavailable",
       "rest": {
         "routes": [
@@ -58,7 +58,7 @@
     },
     "tool-groups": {
       "title": "Tool Groups",
-      "auth": "anon",
+      "auth": "user",
       "mcp": {
         "groups": [
           {

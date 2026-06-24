@@ -1,5 +1,5 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
-import { findUserProfileById } from "@/features/profile/server/profile-read-model";
+import { findAuthenticatedUserProfileById } from "@/features/profile/server/profile-read-model";
 import {
   getUserId,
   jsonToolResult,
@@ -14,7 +14,7 @@ export async function getMyProfileAction(
   extra: ToolExtra,
 ) {
   const userId = getUserId(extra.authInfo);
-  const user = await findUserProfileById(userId);
+  const user = await findAuthenticatedUserProfileById(userId);
 
   if (!user) {
     return jsonToolResult({
