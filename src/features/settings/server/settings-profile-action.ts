@@ -1,12 +1,9 @@
 import { type Cookies, fail, redirect } from "@sveltejs/kit";
+import { updateOwnProfile } from "@/features/profile/server/profile-update-service";
 import { getSettingsCopy } from "@/features/settings/lib/settings-copy";
-import {
-  isValidSettingsUsername,
-  parseSettingsProfileForm,
-} from "@/features/settings/lib/settings-profile-form";
+import { parseSettingsProfileForm } from "@/features/settings/lib/settings-profile-form";
 import type { SettingsActionInput } from "@/features/settings/server/settings-page-common";
 import { requireSettingsUser } from "@/features/settings/server/settings-page-data";
-import { authApi } from "@/lib/auth/core";
 import { applyAuthResponseCookies } from "@/lib/auth/svelte-auth-actions";
 
 export async function updateSettingsProfileAction({
@@ -19,64 +16,44 @@ export async function updateSettingsProfileAction({
   const user = await requireSettingsUser(request, url);
   const form = await request.formData();
   const { image, name, username } = parseSettingsProfileForm(form);
-  if (!name) {
-    return fail(400, {
-      kind: "profile",
-      message: copy.profile.nameRequired,
-    });
-  }
-  if (username && !isValidSettingsUsername(username)) {
-    return fail(400, {
-      kind: "profile",
-      message: copy.profile.usernameInvalid,
-    });
-  }
-
-  const { prisma } = await import("@/lib/db/prisma");
-  const current = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { id: true, image: true, profilePictures: true },
+  const result = await updateOwnProfile({
+    headers: request.headers,
+    image,
+    name,
+    userId: user.id,
+    username,
   });
-  if (!current)
-    return fail(404, { kind: "profile", message: copy.common.userNotFound });
-  if (
-    image &&
-    image !== current.image &&
-    !current.profilePictures.includes(image)
-  ) {
-    return fail(400, {
-      kind: "profile",
-      message: copy.profile.avatarInvalid,
-    });
-  }
-
-  if (username) {
-    const existing = await prisma.user.findUnique({
-      where: { username },
-      select: { id: true },
-    });
-    if (existing && existing.id !== user.id) {
+  if (!result.ok) {
+    if (result.reason === "name_required") {
       return fail(400, {
         kind: "profile",
-        message: copy.profile.usernameTaken,
+        message: copy.profile.nameRequired,
       });
     }
+    if (result.reason === "invalid_username") {
+      return fail(400, {
+        kind: "profile",
+        message: copy.profile.usernameInvalid,
+      });
+    }
+    if (result.reason === "user_not_found") {
+      return fail(404, {
+        kind: "profile",
+        message: copy.common.userNotFound,
+      });
+    }
+    if (result.reason === "avatar_invalid") {
+      return fail(400, {
+        kind: "profile",
+        message: copy.profile.avatarInvalid,
+      });
+    }
+    return fail(400, {
+      kind: "profile",
+      message: copy.profile.usernameTaken,
+    });
   }
 
-  const updateBody: {
-    image?: string | null;
-    name: string;
-    username: string | null;
-  } = { name, username };
-  if (image !== null && image !== current.image) {
-    updateBody.image = image;
-  }
-
-  const response = await authApi.updateUser({
-    body: updateBody,
-    headers: request.headers,
-    returnHeaders: true,
-  });
-  applyAuthResponseCookies(response.headers, cookies);
+  applyAuthResponseCookies(result.headers, cookies);
   throw redirect(303, "/settings/profile?message=Success");
 }

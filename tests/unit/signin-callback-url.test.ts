@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { resolveSignInCallbackUrl } from "@/lib/auth/auth-routing";
+import {
+  resolveSignInCallbackUrl,
+  sanitizeAuthCallbackUrl,
+} from "@/lib/auth/auth-routing";
 import {
   MCP_TOOLS_SCOPE,
   OAUTH_CODE_RESPONSE_TYPE,
@@ -15,6 +18,27 @@ describe("resolveSignInCallbackUrl", () => {
         client_id: "ignored",
       }),
     ).toBe("/settings?tab=accounts");
+  });
+
+  it("rejects external callbackUrl values", () => {
+    expect(
+      resolveSignInCallbackUrl({ callbackUrl: "https://attacker.example" }),
+    ).toBe("/");
+    expect(
+      resolveSignInCallbackUrl({ callbackUrl: "//attacker.example" }),
+    ).toBe("/");
+    expect(
+      resolveSignInCallbackUrl({ callbackUrl: "javascript:alert(1)" }),
+    ).toBe("/");
+  });
+
+  it("sanitizes app-relative callback URLs", () => {
+    expect(sanitizeAuthCallbackUrl("/settings?tab=profile#accounts")).toBe(
+      "/settings?tab=profile#accounts",
+    );
+    expect(sanitizeAuthCallbackUrl("/\\attacker.example")).toBe("/");
+    expect(sanitizeAuthCallbackUrl("/%2f%2fattacker.example")).toBe("/");
+    expect(sanitizeAuthCallbackUrl("/%5cattacker.example")).toBe("/");
   });
 
   it("reconstructs oauth authorize continuation from raw sign-in params", () => {

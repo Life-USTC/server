@@ -20,6 +20,18 @@ describe("auth provider routing", () => {
     ).toBe("/dashboard");
   });
 
+  it("falls back when redirect targets are external", () => {
+    expect(
+      resolveAuthRedirectTarget(
+        {
+          redirectTo: "https://attacker.example",
+          callbackUrl: "//attacker.example",
+        },
+        "/settings",
+      ),
+    ).toBe("/settings");
+  });
+
   it("builds the sign-in page callback URL once", () => {
     expect(buildSignInPageUrl("/oauth/authorize?client_id=test")).toBe(
       "/signin?callbackUrl=%2Foauth%2Fauthorize%3Fclient_id%3Dtest",

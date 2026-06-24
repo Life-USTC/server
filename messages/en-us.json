@@ -1160,7 +1160,7 @@
     "publicProfileHint": "Public profile link",
     "publicProfileMissing": "Set a username to enable your public profile.",
     "publicProfileIdHint": "Public profile by ID",
-    "usernameValidation": "Lowercase letters and numbers only, max 20 chars",
+    "usernameValidation": "Lowercase letters, numbers, and hyphens only, max 20 chars",
     "usernameInvalid": "Username must be 1-20 lowercase letters, numbers, or hyphens.",
     "usernameTaken": "Username is already taken.",
     "avatarInvalid": "Select one of your uploaded avatars.",

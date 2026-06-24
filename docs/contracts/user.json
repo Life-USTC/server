@@ -10,8 +10,9 @@
     "sign-in-providers": "Sign-in supports USTC, GitHub, and Google OAuth; custom username/password login is not considered due to security and maintenance cost.",
     "oauth-callback-integrity": "On a canonical same-origin deployment, OAuth login callbacks must complete state validation and session creation directly, without losing state due to proxy wrapping or container-internal host differences.",
     "welcome-flow-required": "New users who have not set a name or username on first login must complete the welcome flow before proceeding.",
+    "welcome-completion-resume": "If the welcome flow was reached from an app-relative callbackUrl, successful completion returns to that page; otherwise completion returns home.",
     "auth-callback-not-intercepted": "Authorization callback continuation requests carrying OAuth code/error and state must be allowed to complete the protocol redirect; the welcome page interceptor must not break the authorization result redirect.",
-    "post-login-redirect": "After successful login, the user should be redirected back to the originally requested page whenever possible; if no origin page exists, redirect to the home page.",
+    "post-login-redirect": "After successful login, the user should be redirected back to the originally requested app-relative page whenever possible; unsafe external callbacks fall back to the home page.",
     "oauth-login-resume": "If an OAuth authorization request lands on /signin with raw authorization query parameters instead of callbackUrl, the sign-in flow should resume that exact authorization request after login rather than falling back to /.",
     "oauth-consent-loopback-continuation": "The OAuth consent step must continue working for loopback public clients even when the client uses 127.0.0.1 and the app itself is being browsed via localhost; consent submission should preserve the original authorization query and complete the redirect back to the registered loopback callback.",
     "public-identity-display": "Public identity defaults to displaying name or username, not internal identifiers."
@@ -63,6 +64,7 @@
       "display": {
         "fields": [
           "callbackUrl query parameter (origin page)",
+          "External or protocol-relative callbackUrl values are rejected",
           "Sign-in action links include the current path and query as callbackUrl",
           "Fallback to home page if no origin"
         ]

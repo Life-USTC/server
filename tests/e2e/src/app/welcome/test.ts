@@ -129,6 +129,48 @@ test("incomplete signed-in users are redirected to /welcome from normal pages", 
   }
 });
 
+test("/welcome completion returns to the original callback page", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(300_000);
+  await signInAsDebugUser(page, "/");
+  const sessionUser = await getCurrentSessionUser(page);
+  const originalUser = await getUserProfileById(sessionUser.id);
+
+  await updateUserProfileById(sessionUser.id, {
+    name: null,
+    username: null,
+  });
+
+  try {
+    await gotoAndWaitForReady(page, "/settings", {
+      expectMainContent: false,
+    });
+
+    await expect(page).toHaveURL(/\/welcome\?callbackUrl=%2Fsettings$/);
+    await page
+      .getByRole("textbox", { name: /^(姓名|Name)\b/i })
+      .fill(DEV_SEED.debugName);
+    await page
+      .getByRole("textbox", { name: /^(用户名|Username)\b/i })
+      .fill(DEV_SEED.debugUsername);
+
+    await page.getByRole("button", { name: /继续|Continue/i }).click();
+
+    await expect(page).toHaveURL(/\/settings(?:\?.*)?$/, {
+      timeout: 15_000,
+    });
+    await expect(page.locator("#main-content")).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "welcome/completed-callback");
+  } finally {
+    await updateUserProfileById(sessionUser.id, {
+      name: originalUser.name ?? DEV_SEED.debugName,
+      username: originalUser.username ?? DEV_SEED.debugUsername,
+      image: originalUser.image ?? null,
+    });
+  }
+});
+
 test("/welcome 未完善资料的用户可完成资料并返回首页", async ({
   page,
 }, testInfo) => {

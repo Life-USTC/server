@@ -83,6 +83,7 @@ export type WelcomePageUser = WelcomeProfileUser & {
 };
 
 export type WelcomePageData = {
+  callbackUrl: string;
   copy: WelcomePageCopy;
   defaultSemesterId?: number | string | null;
   locale: string;

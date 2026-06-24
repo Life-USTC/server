@@ -1,6 +1,9 @@
 import { type Cookies, fail, redirect } from "@sveltejs/kit";
 import { allowDebugAuth } from "@/lib/auth/auth-config";
-import { resolveSignInCallbackUrl } from "@/lib/auth/auth-routing";
+import {
+  resolveSignInCallbackUrl,
+  sanitizeAuthCallbackUrl,
+} from "@/lib/auth/auth-routing";
 import {
   DEV_ADMIN_PROVIDER_ID,
   DEV_DEBUG_PROVIDER_ID,
@@ -72,7 +75,7 @@ export async function signInPageDefaultAction({
 }) {
   const form = await request.formData();
   const providerId = String(form.get("providerId") ?? "");
-  const callbackUrl = String(form.get("callbackUrl") ?? "/") || "/";
+  const callbackUrl = sanitizeAuthCallbackUrl(form.get("callbackUrl"));
   try {
     const result = await signInFromSvelteAction({
       providerId,
