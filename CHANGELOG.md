@@ -1,3 +1,10 @@
+## [1.37.3](https://github.com/Life-USTC/server/compare/v1.37.2...v1.37.3) (2026-06-24)
+
+
+### Bug Fixes
+
+* **mcp:** expose description tools ([276dc01](https://github.com/Life-USTC/server/commit/276dc018dc733f4d4ed760a3b2259c1e8f698d80))
+
 ## [1.37.2](https://github.com/Life-USTC/server/compare/v1.37.1...v1.37.2) (2026-06-24)
 
 
