@@ -1,3 +1,10 @@
+## [1.37.6](https://github.com/Life-USTC/server/compare/v1.37.5...v1.37.6) (2026-06-24)
+
+
+### Bug Fixes
+
+* **openapi:** document calendar feed token auth ([5f1a525](https://github.com/Life-USTC/server/commit/5f1a52592e427ddd095b677a870b5c7ff481874c))
+
 ## [1.37.5](https://github.com/Life-USTC/server/compare/v1.37.4...v1.37.5) (2026-06-24)
 
 
