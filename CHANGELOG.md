@@ -1,3 +1,10 @@
+## [1.36.16](https://github.com/Life-USTC/server/compare/v1.36.15...v1.36.16) (2026-06-24)
+
+
+### Bug Fixes
+
+* **api:** align shared access gates ([5305fd8](https://github.com/Life-USTC/server/commit/5305fd8382e6387a9528691b4c7cfe14f488e353))
+
 ## [1.36.15](https://github.com/Life-USTC/server/compare/v1.36.14...v1.36.15) (2026-06-24)
 
 
