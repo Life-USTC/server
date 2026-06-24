@@ -1145,7 +1145,31 @@ describe("query_schedules — flexible date filters", () => {
   });
 });
 
-describe("course and section lookup errors", () => {
+describe("course and section lookups", () => {
+  it("get_section_by_jw_id returns the same detail hierarchy as REST section detail", async () => {
+    const result = await mcp.call<{
+      found?: boolean;
+      section?: {
+        code?: string;
+        teacherAssignments?: unknown[];
+        scheduleGroups?: unknown[];
+        exams?: unknown[];
+        roomType?: unknown;
+      };
+    }>("get_section_by_jw_id", {
+      jwId: DEV_SEED.section.jwId,
+      locale: "zh-cn",
+      mode: "full",
+    });
+
+    expect(result.found).toBe(true);
+    expect(result.section?.code).toBe(DEV_SEED.section.code);
+    expect((result.section?.teacherAssignments?.length ?? 0) > 0).toBe(true);
+    expect(Array.isArray(result.section?.scheduleGroups)).toBe(true);
+    expect((result.section?.exams?.length ?? 0) > 0).toBe(true);
+    expect(Object.hasOwn(result.section ?? {}, "roomType")).toBe(true);
+  });
+
   it("get_section_by_jw_id returns a recovery hint when the jwId is missing", async () => {
     const result = await mcp.call<{
       found?: boolean;

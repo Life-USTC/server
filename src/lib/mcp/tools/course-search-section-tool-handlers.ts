@@ -1,5 +1,5 @@
 import {
-  findSectionByJwId,
+  findSectionDetailByJwId,
   type listCoursesBySearch,
 } from "@/features/catalog/server/course-section-queries";
 import { DEFAULT_LOCALE } from "@/i18n/config";
@@ -18,7 +18,7 @@ export async function getSectionByJwIdTool({
   locale: CourseSearchLocale;
   mode?: McpModeInput;
 }) {
-  const section = await findSectionByJwId(jwId, locale);
+  const section = await findSectionDetailByJwId(jwId, locale);
 
   if (!section) {
     return jsonToolResult({
