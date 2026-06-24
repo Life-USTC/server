@@ -362,7 +362,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/admin/comments/{id}": {
@@ -424,7 +432,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/admin/descriptions": {
@@ -508,7 +524,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/admin/homeworks": {
@@ -578,7 +602,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/admin/homeworks/{id}": {
@@ -640,7 +672,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/admin/suspensions": {
@@ -671,7 +711,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       },
       "post": {
         "operationId": "createAdminSuspension",
@@ -720,7 +768,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/admin/suspensions/{id}": {
@@ -772,7 +828,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/admin/users": {
@@ -838,7 +902,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/admin/users/{id}": {
@@ -900,7 +972,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/auth/.well-known/openid-configuration": {
@@ -1240,7 +1320,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       },
       "post": {
         "operationId": "setBusPreferences",
@@ -1289,7 +1377,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/bus/routes": {
@@ -1418,7 +1514,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       },
       "patch": {
         "operationId": "appendCalendarSubscriptionSections",
@@ -1477,7 +1581,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/calendar-subscriptions/current": {
@@ -1508,7 +1620,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/calendar-subscriptions/import-codes": {
@@ -1569,7 +1689,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/comments": {
@@ -1751,7 +1879,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/comments/{id}": {
@@ -1873,7 +2009,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       },
       "delete": {
         "operationId": "deleteComment",
@@ -1933,7 +2077,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/comments/{id}/reactions": {
@@ -2015,7 +2167,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       },
       "delete": {
         "operationId": "removeCommentReaction",
@@ -2093,7 +2253,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/courses": {
@@ -2481,7 +2649,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/dashboard-links/visit": {
@@ -2669,7 +2845,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/homeworks": {
@@ -2816,7 +3000,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/homeworks/{id}": {
@@ -2898,7 +3090,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       },
       "delete": {
         "operationId": "deleteHomework",
@@ -2958,7 +3158,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/homeworks/{id}/completion": {
@@ -3030,7 +3238,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/homeworks/completions": {
@@ -3081,7 +3297,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/locale": {
@@ -3156,7 +3380,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "mcpBearerAuth": []
+          }
+        ]
       },
       "post": {
         "operationId": "createMcp",
@@ -3188,7 +3417,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "mcpBearerAuth": []
+          }
+        ]
       },
       "delete": {
         "operationId": "delete-api-mcp",
@@ -3220,7 +3454,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "mcpBearerAuth": []
+          }
+        ]
       },
       "options": {
         "operationId": "options-api-mcp",
@@ -3357,7 +3596,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/me/overview": {
@@ -3435,7 +3682,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/me/subscriptions/homeworks": {
@@ -3466,7 +3721,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/me/subscriptions/schedules": {
@@ -3554,7 +3817,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/metadata": {
@@ -5409,7 +5680,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       },
       "post": {
         "operationId": "createTodo",
@@ -5458,7 +5737,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/todos/{id}": {
@@ -5540,7 +5827,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       },
       "delete": {
         "operationId": "deleteTodo",
@@ -5600,7 +5895,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/uploads": {
@@ -5680,7 +5983,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/uploads/{id}": {
@@ -5752,7 +6063,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       },
       "delete": {
         "operationId": "deleteUpload",
@@ -5802,7 +6121,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/uploads/{id}/download": {
@@ -5855,7 +6182,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/uploads/complete": {
@@ -5916,7 +6251,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/uploads/object": {
@@ -5999,7 +6342,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/users/{userId}/calendar.ics": {
@@ -6062,7 +6413,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/users/profile": {
@@ -27617,6 +27976,26 @@
           "canModerate"
         ],
         "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "OAuth access token accepted by protected REST endpoints. These endpoints also accept an in-site Better Auth session cookie."
+      },
+      "sessionCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "better-auth.session_token",
+        "description": "Better Auth session cookie used by the web UI. Production cookies may use the __Secure- prefix."
+      },
+      "mcpBearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "OAuth bearer token for /api/mcp. MCP requires a bearer token with the MCP resource audience and does not accept session cookies."
       }
     }
   },

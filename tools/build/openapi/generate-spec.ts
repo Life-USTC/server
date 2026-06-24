@@ -473,7 +473,11 @@ type MutableOpenApiDocument = {
   info?: unknown;
   servers?: unknown;
   paths?: Record<string, Record<string, Record<string, unknown>>>;
-  components?: unknown;
+  components?: {
+    schemas?: Record<string, JsonSchema>;
+    securitySchemes?: Record<string, unknown>;
+    [key: string]: unknown;
+  };
   tags?: Array<{
     name: string;
     description?: string;
@@ -486,6 +490,31 @@ type MutableOpenApiOperation = Record<string, unknown>;
 type MutableOpenApiMediaType = Record<string, unknown>;
 
 const SCENARIO_OPENAPI_EXAMPLES = buildScenarioOpenApiExamples();
+const REST_AUTH_SECURITY = [{ bearerAuth: [] }, { sessionCookie: [] }];
+const MCP_AUTH_SECURITY = [{ mcpBearerAuth: [] }];
+const SECURITY_SCHEMES = {
+  bearerAuth: {
+    type: "http",
+    scheme: "bearer",
+    bearerFormat: "JWT",
+    description:
+      "OAuth access token accepted by protected REST endpoints. These endpoints also accept an in-site Better Auth session cookie.",
+  },
+  sessionCookie: {
+    type: "apiKey",
+    in: "cookie",
+    name: "better-auth.session_token",
+    description:
+      "Better Auth session cookie used by the web UI. Production cookies may use the __Secure- prefix.",
+  },
+  mcpBearerAuth: {
+    type: "http",
+    scheme: "bearer",
+    bearerFormat: "JWT",
+    description:
+      "OAuth bearer token for /api/mcp. MCP requires a bearer token with the MCP resource audience and does not accept session cookies.",
+  },
+};
 
 const TAG_DESCRIPTIONS: Record<string, string> = {
   Admin: "Admin and moderation endpoints",
@@ -1097,6 +1126,59 @@ function applyScenarioExamples(
   }
 }
 
+function operationHasResponse(
+  operation: MutableOpenApiOperation,
+  statusCode: string,
+) {
+  return Boolean(
+    operation.responses &&
+      typeof operation.responses === "object" &&
+      statusCode in operation.responses,
+  );
+}
+
+function isOAuthProtocolPath(path: string) {
+  return path.startsWith("/api/auth/oauth2/");
+}
+
+function isProtectedRedirectOperation(path: string, method: string) {
+  return path === "/api/dashboard-links/pin" && method === "post";
+}
+
+function applySecurityMetadata(doc: MutableOpenApiDocument) {
+  if (!doc.paths) return;
+
+  doc.components = {
+    ...(doc.components ?? {}),
+    securitySchemes: SECURITY_SCHEMES,
+  };
+
+  for (const [path, pathItem] of Object.entries(doc.paths)) {
+    for (const [method, operation] of Object.entries(pathItem)) {
+      if (
+        !isOperationKey(method) ||
+        !operation ||
+        typeof operation !== "object"
+      ) {
+        continue;
+      }
+
+      if (path === "/api/mcp" && operationHasResponse(operation, "401")) {
+        operation.security = MCP_AUTH_SECURITY;
+        continue;
+      }
+
+      if (
+        !isOAuthProtocolPath(path) &&
+        (operationHasResponse(operation, "401") ||
+          isProtectedRedirectOperation(path, method))
+      ) {
+        operation.security = REST_AUTH_SECURITY;
+      }
+    }
+  }
+}
+
 async function postprocessOpenApiSpec(filePath: string) {
   const raw = await readFile(filePath, "utf8");
   const doc = JSON.parse(raw) as MutableOpenApiDocument;
@@ -1145,6 +1227,7 @@ async function postprocessOpenApiSpec(filePath: string) {
   doc.paths = sortedPaths;
   patchRedirectOperations(sortedPaths);
   applyScenarioExamples(sortedPaths);
+  applySecurityMetadata(doc);
 
   doc.tags = buildTopLevelTags(sortedPaths);
   doc["x-tagGroups"] = buildTagGroups(doc.tags);
