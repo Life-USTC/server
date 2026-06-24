@@ -15,6 +15,7 @@
  * ## Edge Cases
  * - Unauthenticated → redirects to /signin
  * - Invalid username pattern → browser validation prevents submission
+ * - Empty username → browser validation prevents submission
  * - Save success → toast with "Success" heading
  * - Name change persists across page reload
  */
@@ -101,5 +102,28 @@ test.describe("/settings?tab=profile", () => {
     await expect(page.locator("input#name")).toHaveValue(originalName, {
       timeout: 10_000,
     });
+  });
+
+  test("requires username before saving", async ({ page }, testInfo) => {
+    test.setTimeout(300_000);
+    await signInAsDebugUser(page, "/settings?tab=profile");
+
+    const usernameInput = page.locator("input#username");
+    await usernameInput.fill("");
+    await page.getByRole("button", { name: /保存|Save/i }).click();
+
+    await expect(usernameInput).toBeFocused();
+    await expect
+      .poll(() =>
+        usernameInput.evaluate(
+          (input) => (input as HTMLInputElement).validationMessage.length,
+        ),
+      )
+      .toBeGreaterThan(0);
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "settings/profile-username-required",
+    );
   });
 });

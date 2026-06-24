@@ -11,15 +11,54 @@ type AuthRedirectOptions = {
   callbackUrl?: string;
 };
 
+const AUTH_CALLBACK_ORIGIN = "https://life-ustc.local";
+
+function hasUnsafeCallbackCharacter(value: string) {
+  for (const character of value) {
+    const code = character.charCodeAt(0);
+    if (code <= 31 || code === 127 || character === "\\") return true;
+  }
+  return false;
+}
+
+function parseAppRelativeCallbackUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+
+  const candidate = value.trim();
+  if (!candidate.startsWith("/") || candidate.startsWith("//")) return null;
+  if (/^\/%(?:2f|5c)/i.test(candidate)) return null;
+  if (hasUnsafeCallbackCharacter(candidate)) return null;
+
+  try {
+    const parsed = new URL(candidate, AUTH_CALLBACK_ORIGIN);
+    if (parsed.origin !== AUTH_CALLBACK_ORIGIN) return null;
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return null;
+  }
+}
+
+export function sanitizeAuthCallbackUrl(value: unknown, fallbackUrl = "/") {
+  return (
+    parseAppRelativeCallbackUrl(value) ??
+    parseAppRelativeCallbackUrl(fallbackUrl) ??
+    "/"
+  );
+}
+
 export function resolveAuthRedirectTarget(
   options: AuthRedirectOptions,
   fallbackUrl = "/",
 ): string {
-  return options.redirectTo ?? options.callbackUrl ?? fallbackUrl;
+  return (
+    parseAppRelativeCallbackUrl(options.redirectTo) ??
+    parseAppRelativeCallbackUrl(options.callbackUrl) ??
+    sanitizeAuthCallbackUrl(fallbackUrl)
+  );
 }
 
 export function buildSignInPageUrl(callbackUrl: string) {
-  return `/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+  return `/signin?callbackUrl=${encodeURIComponent(sanitizeAuthCallbackUrl(callbackUrl))}`;
 }
 
 export function buildCurrentPathCallbackUrl(
@@ -38,9 +77,8 @@ export function buildSignInRedirectUrl(
 }
 
 export function resolveSignInCallbackUrl(params: SignInSearchParams): string {
-  if (typeof params.callbackUrl === "string" && params.callbackUrl.length > 0) {
-    return params.callbackUrl;
-  }
+  const explicitCallbackUrl = parseAppRelativeCallbackUrl(params.callbackUrl);
+  if (explicitCallbackUrl) return explicitCallbackUrl;
 
   const {
     callbackUrl: _callbackUrl,

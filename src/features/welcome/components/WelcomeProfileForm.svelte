@@ -1,4 +1,8 @@
 <script lang="ts">
+import {
+  PROFILE_USERNAME_MAX_LENGTH,
+  PROFILE_USERNAME_PATTERN,
+} from "@/features/profile/lib/profile-username";
 import { enhance } from "$app/forms";
 import { Alert } from "$lib/components/ui/alert/index.js";
 import * as Avatar from "$lib/components/ui/avatar/index.js";
@@ -16,6 +20,7 @@ import type {
 } from "./welcome-component-types";
 
 export let avatarOptions: string[];
+export let callbackUrl: string;
 export let completeProfileAction: CompleteProfileAction;
 export let copy: WelcomeRootCopy;
 export let currentImage: string;
@@ -29,6 +34,7 @@ export let welcomeCopy: WelcomeCopy;
 </script>
 
 <form method="POST" action="?/complete" use:enhance={completeProfileAction}>
+  <input type="hidden" name="callbackUrl" value={callbackUrl} />
   <Card.Root class="border-base-300 bg-base-100">
     <Card.Header class="items-center text-center">
       <Badge class="w-fit" variant="secondary">{welcomeCopy.firstSignIn}</Badge>
@@ -85,7 +91,7 @@ export let welcomeCopy: WelcomeCopy;
 
       <label class="grid gap-2">
         <span class="font-medium text-sm">{profileCopy.username} <span class="text-error">*</span></span>
-        <Input id="username" name="username" value={user.username ?? ""} placeholder={profileCopy.usernamePlaceholder} pattern="[a-z0-9-]+" maxlength="20" required autocomplete="username" title={profileCopy.usernameValidation} />
+        <Input id="username" name="username" value={user.username ?? ""} placeholder={profileCopy.usernamePlaceholder} pattern={PROFILE_USERNAME_PATTERN} maxlength={PROFILE_USERNAME_MAX_LENGTH} required autocomplete="username" title={profileCopy.usernameValidation} />
         <span class="text-base-content/60 text-xs">{profileCopy.usernameValidation}</span>
       </label>
 

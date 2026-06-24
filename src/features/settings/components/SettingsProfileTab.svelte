@@ -1,4 +1,8 @@
 <script lang="ts">
+import {
+  PROFILE_USERNAME_MAX_LENGTH,
+  PROFILE_USERNAME_PATTERN,
+} from "@/features/profile/lib/profile-username";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
@@ -59,10 +63,11 @@ export let user: SettingsUser;
             name="username"
             value={user.username ?? ""}
             placeholder={copy.profile.usernamePlaceholder}
-            pattern="[a-z0-9-]+"
-            maxlength="20"
+            pattern={PROFILE_USERNAME_PATTERN}
+            maxlength={PROFILE_USERNAME_MAX_LENGTH}
             autocomplete="username"
             title={copy.profile.usernameValidation}
+            required
             disabled={!isMounted}
           />
           <span class="text-base-content/60 text-xs">

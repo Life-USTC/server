@@ -1,4 +1,5 @@
 import { getAdminUserListItem } from "@/features/admin/server/admin-user-read-model";
+import { isValidProfileUsername } from "@/features/profile/lib/profile-username";
 import type { CommentStatus } from "@/generated/prisma/client";
 import { fireAuditLog } from "@/lib/audit/write-audit-log";
 import { prisma } from "@/lib/db/prisma";
@@ -50,7 +51,7 @@ async function buildAdminUserUpdateData(
   if ("username" in parsedBody) {
     const username = normalizeAdminUsername(parsedBody.username);
     if (username) {
-      if (!/^[a-z0-9-]{1,20}$/.test(username)) {
+      if (!isValidProfileUsername(username)) {
         return { ok: false as const, reason: "invalid_username" as const };
       }
       const existing = await prisma.user.findUnique({

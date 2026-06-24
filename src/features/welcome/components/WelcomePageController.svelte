@@ -119,6 +119,7 @@ const completeProfileAction = createCompleteProfileAction({
 <section class="mx-auto grid min-h-[calc(100vh-14rem)] w-full max-w-5xl content-center gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)]">
   <WelcomeProfileForm
     {avatarOptions}
+    callbackUrl={data.callbackUrl}
     {completeProfileAction}
     {copy}
     {currentImage}

@@ -2,6 +2,7 @@ import { redirect, type ServerLoadEvent } from "@sveltejs/kit";
 import { getCurrentSemester } from "@/features/catalog/server/academic-metadata-read-model";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
 import { getSessionFromHeaders } from "@/lib/auth/core";
+import { resolveWelcomeCallbackUrl } from "./welcome-callback-url";
 import { completeWelcomeProfile } from "./welcome-complete-action";
 import { getWelcomeCopy } from "./welcome-page-copy";
 
@@ -10,9 +11,17 @@ export const loadWelcomePage = async ({
   request,
   url,
 }: ServerLoadEvent) => {
+  const callbackUrl = resolveWelcomeCallbackUrl(
+    url.searchParams.get("callbackUrl"),
+  );
   const session = await getSessionFromHeaders(request.headers);
   if (!session?.user?.id) {
-    throw redirect(303, buildSignInPageUrl(`${url.pathname}${url.search}`));
+    throw redirect(
+      303,
+      buildSignInPageUrl(
+        `${url.pathname}?callbackUrl=${encodeURIComponent(callbackUrl)}`,
+      ),
+    );
   }
 
   const { prisma } = await import("@/lib/db/prisma");
@@ -36,17 +45,23 @@ export const loadWelcomePage = async ({
   ]);
 
   if (!user) {
-    throw redirect(303, buildSignInPageUrl(`${url.pathname}${url.search}`));
+    throw redirect(
+      303,
+      buildSignInPageUrl(
+        `${url.pathname}?callbackUrl=${encodeURIComponent(callbackUrl)}`,
+      ),
+    );
   }
 
   if (user.name && user.username) {
-    throw redirect(303, "/");
+    throw redirect(303, callbackUrl);
   }
 
   return {
     user,
     semesters,
     defaultSemesterId: currentSemester?.id ?? null,
+    callbackUrl,
     locale: locals.locale,
     copy: getWelcomeCopy(locals.locale),
   };
