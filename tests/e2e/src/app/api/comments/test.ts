@@ -24,6 +24,7 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
 import { assertApiContract } from "../../_shared/api-contract";
 
 /** Resolve the seed section's internal DB id via match-codes. */
@@ -84,6 +85,73 @@ test("/api/comments GET 不存在的目标返回 404", async ({ request }) => {
     "/api/comments?targetType=section&targetId=2147483647",
   );
   expect(response.status()).toBe(404);
+});
+
+test("/api/comments GET section-teacher 空目标不会创建关系行", async ({
+  request,
+}) => {
+  const marker = `[e2e] section-teacher-read-${Date.now()}`;
+  const { sectionId, teacherId } = await withE2ePrisma(async (prisma) => {
+    const section = await prisma.section.findUniqueOrThrow({
+      where: { jwId: DEV_SEED.section.jwId },
+      select: { id: true },
+    });
+    const teacher = await prisma.teacher.create({
+      data: {
+        code: marker,
+        nameCn: marker,
+      },
+      select: { id: true },
+    });
+    await prisma.section.update({
+      where: { id: section.id },
+      data: { teachers: { connect: { id: teacher.id } } },
+    });
+    return { sectionId: section.id, teacherId: teacher.id };
+  });
+
+  try {
+    const response = await request.get(
+      `/api/comments?targetType=section-teacher&sectionId=${sectionId}&teacherId=${teacherId}`,
+    );
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as {
+      comments?: unknown[];
+      target?: {
+        sectionId?: number | null;
+        sectionTeacherId?: number | null;
+        teacherId?: number | null;
+      };
+    };
+    expect(body.comments).toEqual([]);
+    expect(body.target?.sectionId).toBe(sectionId);
+    expect(body.target?.teacherId).toBe(teacherId);
+    expect(body.target?.sectionTeacherId).toBeNull();
+
+    const created = await withE2ePrisma((prisma) =>
+      prisma.sectionTeacher.findUnique({
+        where: {
+          sectionId_teacherId: {
+            sectionId,
+            teacherId,
+          },
+        },
+        select: { id: true },
+      }),
+    );
+    expect(created).toBeNull();
+  } finally {
+    await withE2ePrisma(async (prisma) => {
+      await prisma.sectionTeacher.deleteMany({
+        where: { sectionId, teacherId },
+      });
+      await prisma.section.update({
+        where: { id: sectionId },
+        data: { teachers: { disconnect: { id: teacherId } } },
+      });
+      await prisma.teacher.deleteMany({ where: { id: teacherId } });
+    });
+  }
 });
 
 test("/api/comments POST 未登录返回 401", async ({ request }) => {

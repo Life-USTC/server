@@ -11,7 +11,7 @@
     "attached-object-types": "Attached objects include courses, sections, teachers, homework, and section-teacher relationships.",
     "rich-content": "Supports Markdown, math formulas, emoji, tables, replies, and reactions.",
     "visibility-modes": "Supports public, signed-in-only, and anonymous posting; anonymous comments hide identity from regular users but are traceable by admins in governance scenarios.",
-    "shared-read-policy": "Web, REST, and MCP comment reads share the same target resolution, thread serialization, visibility filtering, author masking, reaction, attachment, and viewer action-flag logic; read-only paths must not create durable comment targets."
+    "shared-read-policy": "Web, REST, and MCP comment reads share the same target resolution, thread serialization, visibility filtering, author masking, reaction, attachment, and viewer action-flag logic; read-only paths must not create durable comment targets and valid empty section-teacher targets load as empty threads."
   },
   "capabilities": {
     "object-comment-section": {

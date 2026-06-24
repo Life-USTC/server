@@ -46,3 +46,30 @@ export async function findSectionTeacherId(
 
   return sectionTeacher?.id ?? null;
 }
+
+export async function findSectionTeacherTarget(
+  sectionId: number,
+  teacherId: number,
+) {
+  const { prisma } = await import("@/lib/db/prisma");
+  const sectionTeacherId = await findSectionTeacherId(sectionId, teacherId);
+  if (sectionTeacherId) {
+    return { exists: true, id: sectionTeacherId } as const;
+  }
+
+  const section = await prisma.section.findFirst({
+    where: {
+      id: sectionId,
+      teachers: {
+        some: { id: teacherId },
+      },
+    },
+    select: { id: true },
+  });
+
+  if (!section) {
+    return { exists: false, id: null } as const;
+  }
+
+  return { exists: true, id: null } as const;
+}
