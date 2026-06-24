@@ -137,7 +137,11 @@
           "/settings?tab=profile",
           "/settings?tab=accounts",
           "/settings?tab=content",
-          "/settings?tab=danger"
+          "/settings?tab=danger",
+          "/settings/profile",
+          "/settings/accounts",
+          "/settings/content",
+          "/settings/danger"
         ]
       },
       "rest": "unavailable",

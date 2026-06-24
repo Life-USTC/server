@@ -14,7 +14,7 @@
  * - Response: { success: true, comment: CommentNode }
  * - Auth required (401 if unauthenticated)
  * - Only owner or admin can update (403 otherwise)
- * - Cannot update deleted comments (403 "Comment locked")
+ * - Cannot update deleted or softbanned comments (403 "Comment locked")
  *
  * ## DELETE /api/comments/{id}
  * - Response: { success: true }
@@ -26,6 +26,7 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../utils/auth";
 import { DEV_SEED } from "../../../../../utils/dev-seed";
+import { withE2ePrisma } from "../../../../../utils/e2e-db/prisma";
 import { assertApiContract } from "../../../_shared/api-contract";
 
 /** Resolve the seed section's internal DB id via match-codes. */
@@ -106,6 +107,37 @@ test("/api/comments/[id] GET 不存在的 ID 返回 404", async ({ request }) =>
   expect(response.status()).toBe(404);
 });
 
+test("/api/comments/[id] GET hidden focused thread returns 403", async ({
+  page,
+  request,
+}) => {
+  await signInAsDebugUser(page, "/");
+  const sectionId = await resolveSeedSectionId(page.request);
+
+  const content = `e2e-hidden-focused-comment-${Date.now()}`;
+  const createResponse = await page.request.post("/api/comments", {
+    data: {
+      targetType: "section",
+      targetId: String(sectionId),
+      body: content,
+      visibility: "logged_in_only",
+    },
+  });
+  expect(createResponse.status()).toBe(200);
+  const commentId = ((await createResponse.json()) as { id?: string }).id;
+  expect(commentId).toBeTruthy();
+  if (!commentId) {
+    throw new Error("Expected created comment id");
+  }
+
+  try {
+    const response = await request.get(`/api/comments/${commentId}`);
+    expect(response.status()).toBe(403);
+  } finally {
+    await page.request.delete(`/api/comments/${commentId}`);
+  }
+});
+
 test("/api/comments/[id] PATCH 未登录返回 401", async ({ request }) => {
   const response = await request.patch(
     "/api/comments/00000000-0000-0000-0000-000000000000",
@@ -175,5 +207,62 @@ test("/api/comments/[id] PATCH 可修改评论并 DELETE 清理", async ({ page 
     if (commentId) {
       await page.request.delete(`/api/comments/${commentId}`);
     }
+  }
+});
+
+test("/api/comments/[id] PATCH refuses inactive comments", async ({ page }) => {
+  await signInAsDebugUser(page, "/");
+  const sectionId = await resolveSeedSectionId(page.request);
+
+  const content = `e2e-inactive-edit-comment-${Date.now()}`;
+  const createResponse = await page.request.post("/api/comments", {
+    data: {
+      targetType: "section",
+      targetId: String(sectionId),
+      body: content,
+      visibility: "public",
+    },
+  });
+  expect(createResponse.status()).toBe(200);
+  const commentId = ((await createResponse.json()) as { id?: string }).id;
+  expect(commentId).toBeTruthy();
+  if (!commentId) {
+    throw new Error("Expected created comment id");
+  }
+
+  try {
+    await withE2ePrisma((prisma) =>
+      prisma.comment.update({
+        where: { id: commentId },
+        data: { status: "softbanned" },
+      }),
+    );
+
+    const softbannedResponse = await page.request.patch(
+      `/api/comments/${commentId}`,
+      {
+        data: { body: `${content}-edited` },
+      },
+    );
+    expect(softbannedResponse.status()).toBe(403);
+
+    await withE2ePrisma((prisma) =>
+      prisma.comment.update({
+        where: { id: commentId },
+        data: { deletedAt: new Date(), status: "deleted" },
+      }),
+    );
+
+    const deletedResponse = await page.request.patch(
+      `/api/comments/${commentId}`,
+      {
+        data: { body: `${content}-edited-deleted` },
+      },
+    );
+    expect(deletedResponse.status()).toBe(403);
+  } finally {
+    await withE2ePrisma((prisma) =>
+      prisma.comment.deleteMany({ where: { id: commentId } }),
+    );
   }
 });

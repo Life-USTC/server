@@ -53,8 +53,18 @@
             "returns": "{ descriptions: Description[] }"
           },
           {
+            "path": "/api/admin/descriptions/[id]",
+            "method": "PATCH",
+            "returns": "{ description: Description }"
+          },
+          {
             "path": "/api/admin/suspensions",
             "returns": "{ suspensions: Suspension[] }"
+          },
+          {
+            "path": "/api/admin/suspensions",
+            "method": "POST",
+            "returns": "{ suspension: Suspension }"
           },
           {
             "path": "/api/admin/suspensions/[id]",

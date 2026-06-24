@@ -2,9 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   appendSubscribedSectionIds,
   extractSubscriptionSectionCodes,
-  fetchCurrentSubscribedSectionIds,
   matchSubscriptionSectionCodes,
-  updateSubscribedSectionIds,
+  removeSubscribedSectionIds,
 } from "@/features/home/lib/subscription-import-client";
 
 const jsonResponse = (body: unknown, init?: ResponseInit) =>
@@ -182,8 +181,11 @@ describe("subscription import client", () => {
     );
 
     await expect(
-      fetchCurrentSubscribedSectionIds("fetch failed"),
-    ).rejects.toThrow("fetch failed");
+      removeSubscribedSectionIds({
+        errorMessage: "remove failed",
+        sectionIds: [1],
+      }),
+    ).rejects.toThrow("remove failed");
   });
 
   it("rejects malformed successful payloads", async () => {
@@ -200,28 +202,32 @@ describe("subscription import client", () => {
     ).rejects.toThrow("fetch failed");
   });
 
-  it("extracts current subscription section ids", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => jsonResponse(subscriptionPayload([1, 2]))),
-    );
-
-    await expect(
-      fetchCurrentSubscribedSectionIds("fetch failed"),
-    ).resolves.toEqual([1, 2]);
-  });
-
-  it("replaces subscription section ids with a validated request", async () => {
+  it("removes subscription section ids with a validated request", async () => {
     const fetchMock = vi.fn(async () => jsonResponse(subscriptionPayload([3])));
     vi.stubGlobal("fetch", fetchMock);
 
-    await updateSubscribedSectionIds([3], "import failed");
+    await removeSubscribedSectionIds({
+      errorMessage: "remove failed",
+      sectionIds: [3],
+    });
 
     expect(fetchMock).toHaveBeenCalledWith("/api/calendar-subscriptions", {
-      method: "POST",
+      method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sectionIds: [3] }),
     });
+  });
+
+  it("does not call the remove route when no section ids are selected", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await removeSubscribedSectionIds({
+      errorMessage: "remove failed",
+      sectionIds: [],
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("appends selected section ids through the server-owned append route", async () => {

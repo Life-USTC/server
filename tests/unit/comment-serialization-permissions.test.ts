@@ -64,6 +64,7 @@ describe("comment serialization permissions", () => {
       canDelete: true,
       canEdit: true,
       canModerate: false,
+      canReact: true,
       canReply: true,
       isAuthor: true,
     });
@@ -80,6 +81,7 @@ describe("comment serialization permissions", () => {
       canDelete: false,
       canEdit: false,
       canModerate: false,
+      canReact: false,
       canReply: false,
       isAuthor: true,
     });
@@ -97,9 +99,10 @@ describe("comment serialization permissions", () => {
 
     expect(roots).toHaveLength(1);
     expect(roots[0]).toMatchObject({
-      canDelete: true,
+      canDelete: false,
       canEdit: false,
       canModerate: true,
+      canReact: false,
       canReply: false,
       isAuthor: false,
     });
@@ -127,8 +130,34 @@ describe("comment serialization permissions", () => {
     expect(roots[0]).toMatchObject({
       status: "deleted",
       attachments: [],
+      canReact: false,
+      canReply: false,
     });
     expect(roots[0].replies).toHaveLength(1);
+  });
+
+  it("removes write affordances from softbanned comments", () => {
+    const authorView = buildCommentNodes(
+      [comment({ status: "softbanned" })],
+      viewer(),
+    );
+    const adminView = buildCommentNodes(
+      [comment({ status: "softbanned" })],
+      viewer({ isAdmin: true, userId: "admin-1" }),
+    );
+
+    expect(authorView.roots[0]).toMatchObject({
+      canEdit: false,
+      canReact: false,
+      canReply: false,
+      status: "active",
+    });
+    expect(adminView.roots[0]).toMatchObject({
+      canEdit: false,
+      canReact: false,
+      canReply: false,
+      status: "softbanned",
+    });
   });
 
   it("exposes attachment actions only to authenticated viewers", () => {

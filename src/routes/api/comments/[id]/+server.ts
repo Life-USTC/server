@@ -10,6 +10,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * Get comment thread.
  * @pathParams resourceIdPathParamsSchema
  * @response commentThreadResponseSchema
+ * @response 403:openApiErrorSchema
  * @response 404:openApiErrorSchema
  */
 export const GET: RequestHandler = ({ request, params }) =>

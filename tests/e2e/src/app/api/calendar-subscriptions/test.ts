@@ -4,10 +4,12 @@
  * ## Endpoints
  * - `POST /api/calendar-subscriptions` — Replace the current user's subscribed sections
  * - `PATCH /api/calendar-subscriptions` — Append selected section IDs
+ * - `DELETE /api/calendar-subscriptions` — Remove selected section IDs
  *
  * ## Request
  * - POST Body: `{ sectionIds?: number[] }` (optional; omitting clears subscriptions)
  * - PATCH Body: `{ sectionIds: number[] }`
+ * - DELETE Body: `{ sectionIds: number[] }`
  *
  * ## Response
  * - 200: `{ subscription: { userId: string, sections: { id: number }[] } }`
@@ -67,12 +69,33 @@ test.describe("calendar subscription API", () => {
     expect(response.status()).toBe(401);
   });
 
+  test("remove sections returns 401 when not authenticated", async ({
+    request,
+  }) => {
+    const response = await request.delete(BASE, {
+      data: { sectionIds: [1] },
+    });
+    expect(response.status()).toBe(401);
+  });
+
   test("append sections returns 400 for malformed section ids", async ({
     page,
   }) => {
     await signInAsDebugUser(page, "/");
 
     const response = await page.request.patch(BASE, {
+      data: { sectionIds: [0] },
+    });
+
+    expect(response.status()).toBe(400);
+  });
+
+  test("remove sections returns 400 for malformed section ids", async ({
+    page,
+  }) => {
+    await signInAsDebugUser(page, "/");
+
+    const response = await page.request.delete(BASE, {
       data: { sectionIds: [0] },
     });
 
@@ -193,6 +216,48 @@ test.describe("calendar subscription API", () => {
       };
       expect(repeatBody.addedCount).toBe(0);
       expect(repeatBody.alreadySubscribedCount).toBe(1);
+    } finally {
+      await page.request.post(BASE, {
+        data: { sectionIds: originalIds },
+      });
+    }
+  });
+
+  test("remove sections deletes selected ids without replacing concurrent additions", async ({
+    page,
+  }) => {
+    await signInAsDebugUser(page, "/");
+    const [firstSection, secondSection] = await resolveSeedSectionMatches(page);
+    expect(firstSection?.id).toBeDefined();
+    expect(secondSection?.id).toBeDefined();
+
+    const currentRes = await page.request.get(
+      "/api/calendar-subscriptions/current",
+    );
+    const currentBody = (await currentRes.json()) as {
+      subscription?: { sections?: Array<{ id?: number }> } | null;
+    };
+    const originalIds =
+      currentBody.subscription?.sections?.map((s) => s.id as number) ?? [];
+
+    try {
+      await page.request.post(BASE, {
+        data: { sectionIds: [firstSection.id] },
+      });
+      await page.request.patch(BASE, {
+        data: { sectionIds: [secondSection.id] },
+      });
+
+      const response = await page.request.delete(BASE, {
+        data: { sectionIds: [firstSection.id] },
+      });
+      expect(response.status()).toBe(200);
+      const body = (await response.json()) as {
+        subscription?: { sections?: Array<{ id?: number }> };
+      };
+      const sectionIds = body.subscription?.sections?.map((s) => s.id) ?? [];
+      expect(sectionIds).not.toContain(firstSection.id);
+      expect(sectionIds).toContain(secondSection.id);
     } finally {
       await page.request.post(BASE, {
         data: { sectionIds: originalIds },

@@ -18,8 +18,16 @@ export async function getMyOverviewAction(
   {
     locale,
     atTime,
+    homeworkWindowDays,
+    limit,
     mode,
-  }: { locale: string; atTime?: string; mode?: McpModeInput },
+  }: {
+    locale: string;
+    atTime?: string;
+    homeworkWindowDays?: number;
+    limit?: number;
+    mode?: McpModeInput;
+  },
   extra: ToolExtra,
 ) {
   const resolvedMode = resolveMcpMode(mode);
@@ -31,6 +39,8 @@ export async function getMyOverviewAction(
 
   const overview = await getCompactOverview(userId, {
     ...(atTimeDate.value ? { atTime: atTimeDate.value } : {}),
+    homeworkWindowDays,
+    limit,
     locale: isAppLocale(locale) ? locale : DEFAULT_LOCALE,
   });
 

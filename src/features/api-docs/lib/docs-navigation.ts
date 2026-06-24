@@ -1,4 +1,12 @@
-const HTTP_METHODS = ["get", "post", "put", "patch", "delete", "head"] as const;
+const HTTP_METHODS = [
+  "get",
+  "post",
+  "put",
+  "patch",
+  "delete",
+  "head",
+  "options",
+] as const;
 
 type HttpMethod = (typeof HTTP_METHODS)[number];
 
@@ -11,7 +19,7 @@ type OpenApiOperation = {
 
 type OpenApiPathItem = {
   parameters?: unknown;
-} & Partial<Record<HttpMethod | "options" | "trace", OpenApiOperation>>;
+} & Partial<Record<HttpMethod | "trace", OpenApiOperation>>;
 
 export type OpenApiDocument = {
   components?: Record<string, unknown>;

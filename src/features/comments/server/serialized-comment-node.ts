@@ -1,5 +1,6 @@
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { canViewerAccessCommentAttachment } from "./comment-attachment-access";
+import { canViewerWriteCommentInteraction } from "./comment-interaction-policy";
 import {
   buildAttachments,
   buildAuthorSummary,
@@ -35,6 +36,13 @@ export function buildVisibleCommentNode({
   const status =
     rawStatus === "softbanned" && !viewer.isAdmin ? "active" : rawStatus;
   const canWrite = viewer.isAuthenticated && !viewer.isSuspended;
+  const canInteract = canViewerWriteCommentInteraction(
+    {
+      status: rawStatus,
+      visibility: comment.visibility,
+    },
+    viewer,
+  );
 
   return {
     id: comment.id,
@@ -61,10 +69,10 @@ export function buildVisibleCommentNode({
       ? buildAttachments(comment)
       : [],
     reactions: buildReactionSummary(comment, viewer),
-    canReply: canWrite,
-    canEdit: canWrite && isAuthor && rawStatus !== "deleted",
-    canDelete:
-      rawStatus !== "deleted" && ((canWrite && isAuthor) || viewer.isAdmin),
+    canReact: canInteract,
+    canReply: canInteract,
+    canEdit: canInteract && isAuthor,
+    canDelete: rawStatus !== "deleted" && canWrite && isAuthor,
     canModerate: viewer.isAdmin,
   };
 }

@@ -1707,6 +1707,7 @@
     "manageDescription": "Manage Description",
     "close": "Close",
     "missingDescriptionId": "Missing description id",
+    "descriptionInvalidContent": "Description content is too long",
     "descriptionNotFound": "Description not found",
     "descriptionUpdateSuccess": "Description updated",
     "missingCommentId": "Missing comment id",

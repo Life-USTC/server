@@ -5,13 +5,28 @@ import {
 } from "@/features/todos/lib/todo-schema";
 import { APP_LOCALES } from "@/i18n/config";
 
+const subscriptionSectionIdSchema = z
+  .number()
+  .int()
+  .positive()
+  .meta({
+    override: ({ jsonSchema }: { jsonSchema: Record<string, unknown> }) => {
+      jsonSchema.type = "integer";
+      jsonSchema.minimum = 1;
+      delete jsonSchema.exclusiveMinimum;
+    },
+  });
+
 export const calendarSubscriptionCreateRequestSchema = z.object({
-  sectionIds: z.array(z.number().int().positive()).optional(),
+  sectionIds: z.array(subscriptionSectionIdSchema).optional(),
 });
 
 export const calendarSubscriptionAppendRequestSchema = z.object({
-  sectionIds: z.array(z.number().int().positive()),
+  sectionIds: z.array(subscriptionSectionIdSchema),
 });
+
+export const calendarSubscriptionRemoveRequestSchema =
+  calendarSubscriptionAppendRequestSchema;
 
 export const localeUpdateRequestSchema = z.object({
   locale: z.enum(APP_LOCALES),

@@ -2,6 +2,7 @@ export {
   getAdminCommentsRoute,
   patchAdminCommentRoute,
 } from "./admin-comments";
+export { patchAdminDescriptionRoute } from "./admin-description-update-route";
 export { getAdminDescriptionsRoute } from "./admin-descriptions";
 export {
   deleteAdminHomeworkRoute,

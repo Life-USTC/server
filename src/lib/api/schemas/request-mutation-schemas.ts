@@ -10,6 +10,7 @@ export {
 export {
   adminCreateSuspensionRequestSchema,
   adminModerateCommentRequestSchema,
+  adminModerateDescriptionRequestSchema,
   adminUpdateUserRequestSchema,
 } from "@/lib/api/schemas/request-admin-mutation-schemas";
 export {
@@ -33,6 +34,7 @@ export {
 export {
   calendarSubscriptionAppendRequestSchema,
   calendarSubscriptionCreateRequestSchema,
+  calendarSubscriptionRemoveRequestSchema,
   dashboardLinkPinRequestSchema,
   dashboardLinkVisitRequestSchema,
   localeUpdateRequestSchema,

@@ -20,13 +20,20 @@
         "routes": [
           {
             "path": "/api/descriptions",
-            "returns": "{ description, history, viewer }"
+            "returns": "{ description, history, viewer }",
+            "notes": [
+              "Inputs accept targetType plus targetId, or public identifiers such as sectionJwId, courseJwId, teacherId, homeworkId.",
+              "Returns 404 when the attached target entity does not exist."
+            ]
           },
           {
             "path": "/api/descriptions",
             "method": "POST",
             "returns": "{ id: String, updated: Boolean }",
-            "auth": "user"
+            "auth": "user",
+            "notes": [
+              "Inputs accept targetType plus targetId, or public identifiers such as sectionJwId, courseJwId, teacherId, homeworkId."
+            ]
           }
         ]
       },
@@ -72,6 +79,14 @@
           {
             "path": "/api/admin/descriptions",
             "returns": "{ descriptions: Description[] }"
+          },
+          {
+            "path": "/api/admin/descriptions/[id]",
+            "method": "PATCH",
+            "returns": "{ description: Description }",
+            "notes": [
+              "Shares the same admin moderation service as /admin/moderation description edits and records DescriptionEdit plus admin_description_moderate audit entries."
+            ]
           }
         ]
       },

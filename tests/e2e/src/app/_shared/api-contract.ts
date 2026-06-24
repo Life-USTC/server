@@ -26,6 +26,7 @@ const probeOnlyRoutes = new Set([
   "/api/me/subscriptions/schedules",
   "/api/admin/comments",
   "/api/admin/comments/[id]",
+  "/api/admin/descriptions/[id]",
   "/api/admin/users",
   "/api/admin/users/[id]",
   "/api/admin/suspensions",

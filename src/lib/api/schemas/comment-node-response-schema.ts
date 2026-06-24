@@ -41,6 +41,7 @@ export type CommentNode = {
   replies: CommentNode[];
   attachments: z.infer<typeof commentAttachmentSummarySchema>[];
   reactions: z.infer<typeof commentReactionSummarySchema>[];
+  canReact: boolean;
   canReply: boolean;
   canEdit: boolean;
   canDelete: boolean;
@@ -64,6 +65,7 @@ export const commentNodeSchema: z.ZodType<CommentNode> = z.lazy(() =>
     replies: z.array(commentNodeSchema),
     attachments: z.array(commentAttachmentSummarySchema),
     reactions: z.array(commentReactionSummarySchema),
+    canReact: z.boolean(),
     canReply: z.boolean(),
     canEdit: z.boolean(),
     canDelete: z.boolean(),

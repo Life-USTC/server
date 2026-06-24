@@ -5,7 +5,7 @@ import {
   dateTimeSchema,
 } from "./response-schema-primitives";
 
-const adminDescriptionSchema = z.object({
+export const adminDescriptionSchema = z.object({
   id: z.string(),
   content: z.string(),
   createdAt: dateTimeSchema,
@@ -59,3 +59,7 @@ export const adminDescriptionsResponseSchema = createCollectionSchema(
   "descriptions",
   adminDescriptionSchema,
 );
+
+export const adminModeratedDescriptionResponseSchema = z.object({
+  description: adminDescriptionSchema,
+});

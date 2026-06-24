@@ -1,9 +1,8 @@
 import {
   appendSubscribedSectionIds,
   extractSubscriptionSectionCodes,
-  fetchCurrentSubscribedSectionIds,
   matchSubscriptionSectionCodes,
-  updateSubscribedSectionIds,
+  removeSubscribedSectionIds,
 } from "@/features/home/lib/subscription-import-client";
 import type {
   BulkImportCopy,
@@ -55,12 +54,8 @@ export async function removeSubscriptionSection(input: {
   errorMessage: string;
   sectionId: number;
 }) {
-  const currentSectionIds = await fetchCurrentSubscribedSectionIds(
-    input.errorMessage,
-  );
-  const nextSectionIds = currentSectionIds.filter(
-    (currentSectionId: number) => currentSectionId !== input.sectionId,
-  );
-
-  await updateSubscribedSectionIds(nextSectionIds, input.errorMessage);
+  await removeSubscribedSectionIds({
+    errorMessage: input.errorMessage,
+    sectionIds: [input.sectionId],
+  });
 }

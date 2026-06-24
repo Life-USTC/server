@@ -1,7 +1,11 @@
 import { fail } from "@sveltejs/kit";
 import { deleteHomework } from "@/features/homeworks/server/homework-mutations";
 import type { CommentStatus } from "@/generated/prisma/client";
-import { liftAdminSuspension, moderateComment } from "./admin-api-service";
+import {
+  liftAdminSuspension,
+  moderateComment,
+  moderateDescription,
+} from "./admin-api-service";
 import {
   type AdminModerationActionEvent,
   getAdminModerationActionContext,
@@ -20,41 +24,15 @@ export async function moderateDescriptionAction({
   if (typeof id !== "string") return id;
   const content = String(form.get("content") ?? "");
 
-  const { prisma } = await import("@/lib/db/prisma");
-  const existing = await prisma.description.findUnique({
-    where: { id },
-    select: { id: true, content: true },
-  });
-  if (!existing)
+  const result = await moderateDescription(admin.id, id, { content });
+  if (!result.ok && result.reason === "invalid_content") {
+    return fail(400, {
+      kind: "error",
+      message: copy.descriptionInvalidContent,
+    });
+  }
+  if (!result.ok)
     return fail(404, { kind: "error", message: copy.descriptionNotFound });
-
-  await prisma.$transaction([
-    prisma.description.update({
-      where: { id },
-      data: {
-        content,
-        lastEditedAt: new Date(),
-        lastEditedById: admin.id,
-      },
-    }),
-    prisma.descriptionEdit.create({
-      data: {
-        descriptionId: id,
-        editorId: admin.id,
-        previousContent: existing.content,
-        nextContent: content,
-      },
-    }),
-    prisma.auditLog.create({
-      data: {
-        action: "admin_description_moderate",
-        userId: admin.id,
-        targetId: id,
-        targetType: "description",
-        metadata: { previousContent: existing.content, nextContent: content },
-      },
-    }),
-  ]);
 
   return { kind: "success", message: copy.descriptionUpdateSuccess };
 }

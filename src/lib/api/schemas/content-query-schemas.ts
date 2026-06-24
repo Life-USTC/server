@@ -18,7 +18,11 @@ export const commentsQuerySchema = z.object({
 
 export const descriptionsQuerySchema = z.object({
   targetType: descriptionTargetTypeSchema,
-  targetId: z.string().trim().min(1),
+  targetId: z.string().trim().min(1).optional(),
+  sectionJwId: integerStringSchema.optional(),
+  courseJwId: integerStringSchema.optional(),
+  teacherId: integerStringSchema.optional(),
+  homeworkId: z.string().trim().min(1).optional(),
 });
 
 export const homeworksQuerySchema = z.object({

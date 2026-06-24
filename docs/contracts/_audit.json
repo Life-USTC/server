@@ -10,11 +10,11 @@
     },
     "comment_delete": {
       "trigger": "DELETE /api/comments/[id]",
-      "description": "User or admin deletes a comment."
+      "description": "User deletes their own comment."
     },
     "comment_react": {
       "trigger": "POST /api/comments/[id]/reactions",
-      "description": "User adds or removes a reaction on a comment."
+      "description": "User adds or removes a reaction on an active visible comment. DELETE /api/comments/[id]/reactions records the same action for removals."
     },
     "description_edit": {
       "trigger": "POST /api/descriptions or MCP upsert_description",
@@ -22,7 +22,7 @@
     },
     "upload_delete": {
       "trigger": "DELETE /api/uploads/[id]",
-      "description": "User or admin deletes an upload."
+      "description": "User deletes an upload they own."
     },
     "admin_user_suspend": {
       "trigger": "POST /api/admin/suspensions",
@@ -37,9 +37,9 @@
       "description": "Admin hides or moderates a comment."
     },
     "admin_description_moderate": {
-      "trigger": "Reserved",
-      "description": "Reserved for future admin description moderation actions."
+      "trigger": "PATCH /api/admin/descriptions/[id] or /admin/moderation description action",
+      "description": "Admin updates description content from the moderation workflow."
     }
   },
-  "writer": "writeAuditLog in src/lib/audit/write-audit-log.ts writes a record and records bounded production-safe audit write metrics by action, status, and duration. Calls are fire-and-forget (.catch(() => {})) so audit failures never block the main request."
+  "writer": "writeAuditLog in src/lib/audit/write-audit-log.ts writes a record and records bounded production-safe audit write metrics by action, status, and duration. fireAuditLog wraps writeAuditLog for non-critical audit trails, logs write failures, and keeps those failures from blocking the main request."
 }

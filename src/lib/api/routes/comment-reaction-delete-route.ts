@@ -7,6 +7,7 @@ import {
   parseRouteSearchParams,
   suspensionForbidden,
 } from "@/lib/api/helpers";
+import { writeCommentReactionAuditLog } from "@/lib/api/routes/comment-reaction-actions";
 import {
   commentReactionRequestSchema,
   resourceIdPathParamsSchema,
@@ -51,6 +52,16 @@ export async function deleteCommentReactionRoute(
         return suspensionForbidden("reason" in result ? result.reason : null);
       }
       return forbidden();
+    }
+
+    if (result.changed) {
+      writeCommentReactionAuditLog({
+        commentId: id,
+        operation: "remove",
+        request,
+        type,
+        userId,
+      });
     }
 
     return jsonResponse({ success: true });

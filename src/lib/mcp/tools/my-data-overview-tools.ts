@@ -1,4 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 import {
   flexDateInputSchema,
   mcpLocaleInputSchema,
@@ -23,6 +24,20 @@ export function registerMyOverviewTools(server: McpServer) {
           .describe(
             "Override the current time for this query. Useful for testing or asking about a specific day.",
           ),
+        homeworkWindowDays: z
+          .number()
+          .int()
+          .min(1)
+          .max(90)
+          .optional()
+          .describe("Homework and due-todo lookahead window in days."),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(50)
+          .optional()
+          .describe("Maximum sample count for each overview group."),
         mode: mcpModeInputSchema,
       },
     },

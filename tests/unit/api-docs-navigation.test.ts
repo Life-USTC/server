@@ -44,6 +44,28 @@ describe("getApiDocsSelection", () => {
     });
   });
 
+  it("surfaces generated OPTIONS operations", () => {
+    const selection = getApiDocsSelection(document, "/api/docs");
+    const operation = selection.groups
+      .flatMap((group) => group.tags)
+      .flatMap((tag) => tag.operations)
+      .find(
+        (candidate) =>
+          candidate.method === "options" && candidate.path === "/api/mcp",
+      );
+
+    expect(operation).toBeDefined();
+
+    const operationSelection = getApiDocsSelection(
+      document,
+      operation?.href ?? "",
+    );
+    expect(operationSelection.activeHref).toBe(operation?.href);
+    expect(
+      operationSelection.document.paths["/api/mcp"]?.options,
+    ).toBeDefined();
+  });
+
   it("filters tag pages to the selected tag only", () => {
     const rootSelection = getApiDocsSelection(document, "/api/docs");
     const tag = rootSelection.groups

@@ -1,9 +1,11 @@
 import { getAdminUserListItem } from "@/features/admin/server/admin-user-read-model";
+import { DESCRIPTION_CONTENT_MAX_LENGTH } from "@/features/descriptions/lib/description-limits";
 import { isValidProfileUsername } from "@/features/profile/lib/profile-username";
 import type { CommentStatus } from "@/generated/prisma/client";
 import { fireAuditLog } from "@/lib/audit/write-audit-log";
 import { prisma } from "@/lib/db/prisma";
 import { parseDateInput } from "@/lib/time/parse-date-input";
+import { adminDescriptionInclude } from "./admin-description-filters";
 
 type AdminUpdateUserBody = {
   isAdmin?: boolean;
@@ -21,6 +23,10 @@ type AdminCreateSuspensionInput = {
 type AdminModerateCommentInput = {
   moderationNote?: string | null;
   status: CommentStatus;
+};
+
+type AdminModerateDescriptionInput = {
+  content: string;
 };
 
 function normalizeAdminUserName(value: unknown) {
@@ -214,4 +220,55 @@ export async function moderateComment(
   });
 
   return { comment, ok: true as const };
+}
+
+export async function moderateDescription(
+  adminUserId: string,
+  id: string,
+  input: AdminModerateDescriptionInput,
+) {
+  const existing = await prisma.description.findUnique({
+    where: { id },
+    select: { id: true, content: true },
+  });
+  if (!existing) return { ok: false as const, reason: "not_found" as const };
+  if (input.content.length > DESCRIPTION_CONTENT_MAX_LENGTH) {
+    return { ok: false as const, reason: "invalid_content" as const };
+  }
+
+  const description = await prisma.$transaction(async (tx) => {
+    const updated = await tx.description.update({
+      where: { id },
+      data: {
+        content: input.content,
+        lastEditedAt: new Date(),
+        lastEditedById: adminUserId,
+      },
+      include: adminDescriptionInclude,
+    });
+
+    await tx.descriptionEdit.create({
+      data: {
+        descriptionId: id,
+        editorId: adminUserId,
+        previousContent: existing.content,
+        nextContent: input.content,
+      },
+    });
+
+    return updated;
+  });
+
+  fireAuditLog({
+    action: "admin_description_moderate",
+    userId: adminUserId,
+    targetId: id,
+    targetType: "description",
+    metadata: {
+      previousContent: existing.content,
+      nextContent: input.content,
+    },
+  });
+
+  return { description, ok: true as const };
 }
