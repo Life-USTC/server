@@ -16,6 +16,7 @@ export {
   descriptionsQuerySchema,
   homeworksQuerySchema,
   sectionsCalendarQuerySchema,
+  userCalendarQuerySchema,
 } from "./content-query-schemas";
 export {
   busNextDeparturesQuerySchema,

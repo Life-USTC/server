@@ -1,7 +1,7 @@
 {
   "name": "Personal Calendar Subscription iCal",
   "access": {
-    "anon": "Can copy a single-section iCal link from the public section detail page.",
+    "anon": "Can copy a single-section iCal link from the public section detail page and can retrieve a personal feed only when holding its token-bearing URL.",
     "user": "Can copy their own personal subscription iCal link.",
     "admin": "No additional exclusive iCal capabilities.",
     "agent": "After authorization, can read the current user's personal calendar subscription information; REST and MCP should both return the same subscription feed information and description."
@@ -55,7 +55,11 @@
         "routes": [
           {
             "path": "/api/users/[userId]/calendar.ics",
-            "returns": "text/calendar"
+            "returns": "text/calendar",
+            "notes": [
+              "Same-user session or bearer access is accepted.",
+              "Anonymous feed access is accepted with either ?token=... or the userId:token path segment form."
+            ]
           },
           {
             "path": "/api/calendar-subscriptions/current",

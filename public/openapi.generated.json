@@ -6366,9 +6366,21 @@
             "name": "userId",
             "schema": {
               "type": "string",
+              "minLength": 1,
+              "description": "User ID. Token-bearing feed URLs may also use the userId:token path segment form."
+            },
+            "required": true,
+            "description": "User ID. Token-bearing feed URLs may also use the userId:token path segment form."
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "schema": {
+              "description": "Calendar feed token for anonymous personal iCal access.",
+              "type": "string",
               "minLength": 1
             },
-            "required": true
+            "description": "Calendar feed token for anonymous personal iCal access."
           }
         ],
         "responses": {
@@ -6420,6 +6432,9 @@
           },
           {
             "sessionCookie": []
+          },
+          {
+            "calendarFeedToken": []
           }
         ]
       }
@@ -27996,6 +28011,12 @@
         "scheme": "bearer",
         "bearerFormat": "JWT",
         "description": "OAuth bearer token for /api/mcp. MCP requires a bearer token with the MCP resource audience and does not accept session cookies."
+      },
+      "calendarFeedToken": {
+        "type": "apiKey",
+        "in": "query",
+        "name": "token",
+        "description": "Calendar feed token accepted by the personal iCal endpoint. Token-bearing feed URLs may also embed the token in the userId:token path segment."
       }
     }
   },
