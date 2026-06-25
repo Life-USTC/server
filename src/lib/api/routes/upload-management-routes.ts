@@ -1,8 +1,8 @@
 import { sanitizeFilename } from "@/features/uploads/lib/upload-utils";
 import {
-  deleteUploadRecord,
+  deleteOwnedUpload,
   listUploads,
-  renameUpload,
+  renameOwnedUpload,
 } from "@/features/uploads/server/upload-service";
 import {
   badRequest,
@@ -11,12 +11,9 @@ import {
   notFound,
   parseRouteJsonBody,
 } from "@/lib/api/helpers";
-import {
-  cleanupDeletedUploadObject,
-  writeUploadDeleteAuditLog,
-} from "@/lib/api/routes/upload-delete-cleanup";
 import { parseUploadId } from "@/lib/api/routes/upload-route-helpers";
 import { uploadRenameRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 import { requireAuth, requireWriteAuth } from "@/lib/auth/api-auth";
 
 type IdParams = { id: string };
@@ -51,12 +48,12 @@ export async function patchUploadRoute(request: Request, params: IdParams) {
   }
 
   try {
-    const upload = await renameUpload({
+    const result = await renameOwnedUpload({
       filename,
       id: parsed.id,
       userId: auth.userId,
     });
-    return upload ? jsonResponse({ upload }) : notFound();
+    return result.ok ? jsonResponse({ upload: result.upload }) : notFound();
   } catch (error) {
     return handleRouteError("Failed to rename upload", error);
   }
@@ -72,14 +69,16 @@ export async function deleteUploadRoute(request: Request, params: IdParams) {
     request,
     "Failed to delete upload",
     async (userId) => {
-      const upload = await deleteUploadRecord({ id: parsed.id, userId });
-      if (!upload) return notFound();
+      const result = await deleteOwnedUpload({
+        audit: getAuditRequestMetadata(request),
+        id: parsed.id,
+        userId,
+      });
+      if (!result.ok) return notFound();
 
-      await cleanupDeletedUploadObject(upload);
-      writeUploadDeleteAuditLog({ request, upload, userId });
       return jsonResponse({
-        deletedId: upload.id,
-        deletedSize: upload.size,
+        deletedId: result.deletedId,
+        deletedSize: result.deletedSize,
       });
     },
     { write: true },

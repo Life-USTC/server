@@ -97,6 +97,33 @@ async function findCommentAuditLog(input: {
   return null;
 }
 
+async function findUploadDeleteAuditLog(input: {
+  metadata: Record<string, unknown>;
+  uploadId: string;
+  userId?: string;
+}) {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const logs = await prisma.auditLog.findMany({
+      where: {
+        action: "upload_delete",
+        targetId: input.uploadId,
+        targetType: "upload",
+        userId: input.userId ?? devUserId,
+      },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, metadata: true },
+      take: 10,
+    });
+    const log = logs.find((entry) =>
+      metadataMatches(entry.metadata, input.metadata),
+    );
+    if (log) return log;
+    await sleep(25);
+  }
+
+  return null;
+}
+
 async function deleteCommentRecords(commentIds: string[]) {
   if (commentIds.length === 0) return;
 
@@ -803,6 +830,175 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
     }
   });
 
+  it("upload metadata tools list, rename, delete, and audit MCP source", async () => {
+    const filename = `mcp-upload-${Date.now()}.txt`;
+    const upload = await prisma.upload.create({
+      data: {
+        userId: devUserId,
+        key: `integration-test/${filename}`,
+        filename,
+        contentType: "text/plain",
+        size: 321,
+      },
+      select: { id: true, key: true, size: true },
+    });
+    const renamedFilename = `renamed-${filename}`;
+
+    try {
+      const listBefore = await mcp.call<{
+        uploads?: Array<{ filename?: string; id?: string; size?: number }>;
+        maxFileSizeBytes?: number;
+        quotaBytes?: number;
+        usedBytes?: number;
+      }>("list_my_uploads", { mode: "full" });
+      expect(typeof listBefore.maxFileSizeBytes).toBe("number");
+      expect(typeof listBefore.quotaBytes).toBe("number");
+      expect(typeof listBefore.usedBytes).toBe("number");
+      expect(
+        listBefore.uploads?.some(
+          (item) =>
+            item.id === upload.id &&
+            item.filename === filename &&
+            item.size === upload.size,
+        ),
+      ).toBe(true);
+
+      const renamed = await mcp.call<{
+        success?: boolean;
+        upload?: { filename?: string; id?: string };
+      }>("rename_my_upload", {
+        id: upload.id,
+        filename: renamedFilename,
+      });
+      expect(renamed).toMatchObject({
+        success: true,
+        upload: { id: upload.id, filename: renamedFilename },
+      });
+
+      const deleted = await mcp.call<{
+        deletedId?: string;
+        deletedSize?: number;
+        success?: boolean;
+      }>("delete_my_upload", { id: upload.id });
+      expect(deleted).toEqual({
+        success: true,
+        deletedId: upload.id,
+        deletedSize: upload.size,
+      });
+
+      const deletedUpload = await prisma.upload.findUnique({
+        where: { id: upload.id },
+      });
+      expect(deletedUpload).toBeNull();
+
+      const audit = await findUploadDeleteAuditLog({
+        uploadId: upload.id,
+        metadata: { source: "mcp", size: upload.size, key: upload.key },
+      });
+      expect(audit?.metadata).toMatchObject({
+        source: "mcp",
+        size: upload.size,
+        key: upload.key,
+      });
+    } finally {
+      await prisma.auditLog.deleteMany({
+        where: { targetId: upload.id, targetType: "upload" },
+      });
+      await prisma.upload.deleteMany({ where: { id: upload.id } });
+    }
+  });
+
+  it("upload metadata tools deny non-owner and suspended writes", async () => {
+    const otherUser = await prisma.user.create({
+      data: {
+        email: integrationUserEmail("mcp-upload-owner"),
+        name: "MCP Upload Owner",
+      },
+      select: { id: true },
+    });
+    const otherUpload = await prisma.upload.create({
+      data: {
+        userId: otherUser.id,
+        key: `integration-test/mcp-upload-other-${Date.now()}.txt`,
+        filename: "other-upload.txt",
+        contentType: "text/plain",
+        size: 123,
+      },
+      select: { id: true },
+    });
+    const suspendedUser = await prisma.user.create({
+      data: {
+        email: integrationUserEmail("mcp-upload-suspended"),
+        name: "MCP Upload Suspended",
+      },
+      select: { id: true },
+    });
+    const suspendedUpload = await prisma.upload.create({
+      data: {
+        userId: suspendedUser.id,
+        key: `integration-test/mcp-upload-suspended-${Date.now()}.txt`,
+        filename: "suspended-upload.txt",
+        contentType: "text/plain",
+        size: 124,
+      },
+      select: { id: true },
+    });
+    const suspension = await prisma.userSuspension.create({
+      data: {
+        userId: suspendedUser.id,
+        createdById: devUserId,
+        reason: "integration suspended",
+      },
+      select: { id: true },
+    });
+    const suspendedMcp = await createMcpHarness(suspendedUser.id);
+
+    try {
+      const nonOwnerRename = await mcp.call<{
+        error?: string;
+        success?: boolean;
+      }>("rename_my_upload", {
+        id: otherUpload.id,
+        filename: "stolen.txt",
+      });
+      expect(nonOwnerRename).toMatchObject({
+        success: false,
+        error: "not_found",
+      });
+
+      const nonOwnerDelete = await mcp.call<{
+        error?: string;
+        success?: boolean;
+      }>("delete_my_upload", { id: otherUpload.id });
+      expect(nonOwnerDelete).toMatchObject({
+        success: false,
+        error: "not_found",
+      });
+
+      const suspendedDelete = await suspendedMcp.call<{
+        error?: string;
+        reason?: string | null;
+        success?: boolean;
+      }>("delete_my_upload", { id: suspendedUpload.id });
+      expect(suspendedDelete).toMatchObject({
+        success: false,
+        error: "suspended",
+        reason: "integration suspended",
+      });
+    } finally {
+      await suspendedMcp.close();
+      await prisma.userSuspension.deleteMany({
+        where: { id: suspension.id },
+      });
+      await prisma.upload.deleteMany({
+        where: { id: { in: [otherUpload.id, suspendedUpload.id] } },
+      });
+      await prisma.user.deleteMany({
+        where: { id: { in: [otherUser.id, suspendedUser.id] } },
+      });
+    }
+  });
+
   it("comment write create_comment checks suspension before target lookup", async () => {
     const suspendedUser = await prisma.user.create({
       data: {
@@ -1119,6 +1315,123 @@ describe("todo CRUD — update_my_todo returns updated entity", () => {
       id: todoId,
     });
     expect(result.success).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Homeworks
+// ---------------------------------------------------------------------------
+
+describe("homework write tools — MCP mirrors ordinary-user REST writes", () => {
+  it("delete_homework_on_section deletes creator-owned homework and records audit", async () => {
+    const section = await prisma.section.findUnique({
+      where: { jwId: DEV_SEED.section.jwId },
+      select: { id: true },
+    });
+    expect(section?.id).toBeTypeOf("number");
+    if (!section) throw new Error("Expected seeded section");
+
+    const homework = await prisma.homework.create({
+      data: {
+        sectionId: section.id,
+        title: `[integration-test] mcp-homework-delete-${Date.now()}`,
+        createdById: devUserId,
+        updatedById: devUserId,
+      },
+      select: { id: true },
+    });
+
+    try {
+      const deleted = await mcp.call<{
+        alreadyDeleted?: boolean;
+        deletedId?: string;
+        success?: boolean;
+      }>("delete_homework_on_section", {
+        homeworkId: homework.id,
+      });
+      expect(deleted).toEqual({
+        success: true,
+        deletedId: homework.id,
+        alreadyDeleted: false,
+      });
+
+      const record = await prisma.homework.findUnique({
+        where: { id: homework.id },
+        select: { deletedAt: true, deletedById: true },
+      });
+      expect(record?.deletedAt).toBeInstanceOf(Date);
+      expect(record?.deletedById).toBe(devUserId);
+
+      const audit = await prisma.homeworkAuditLog.findFirst({
+        where: {
+          homeworkId: homework.id,
+          action: "deleted",
+          actorId: devUserId,
+        },
+      });
+      expect(audit?.id).toBeTypeOf("string");
+    } finally {
+      await prisma.homeworkAuditLog.deleteMany({
+        where: { homeworkId: homework.id },
+      });
+      await prisma.homework.deleteMany({ where: { id: homework.id } });
+    }
+  });
+
+  it("delete_homework_on_section serializes not-found and non-owner failures", async () => {
+    const section = await prisma.section.findUnique({
+      where: { jwId: DEV_SEED.section.jwId },
+      select: { id: true },
+    });
+    expect(section?.id).toBeTypeOf("number");
+    if (!section) throw new Error("Expected seeded section");
+
+    const otherUser = await prisma.user.create({
+      data: {
+        email: integrationUserEmail("mcp-homework-owner"),
+        name: "MCP Homework Owner",
+      },
+      select: { id: true },
+    });
+    const homework = await prisma.homework.create({
+      data: {
+        sectionId: section.id,
+        title: `[integration-test] mcp-homework-non-owner-${Date.now()}`,
+        createdById: otherUser.id,
+        updatedById: otherUser.id,
+      },
+      select: { id: true },
+    });
+
+    try {
+      const notFound = await mcp.call<{
+        error?: string;
+        success?: boolean;
+      }>("delete_homework_on_section", {
+        homeworkId: "missing-homework-id",
+      });
+      expect(notFound).toMatchObject({
+        success: false,
+        error: "not_found",
+      });
+
+      const forbidden = await mcp.call<{
+        error?: string;
+        success?: boolean;
+      }>("delete_homework_on_section", {
+        homeworkId: homework.id,
+      });
+      expect(forbidden).toMatchObject({
+        success: false,
+        error: "forbidden",
+      });
+    } finally {
+      await prisma.homeworkAuditLog.deleteMany({
+        where: { homeworkId: homework.id },
+      });
+      await prisma.homework.deleteMany({ where: { id: homework.id } });
+      await prisma.user.deleteMany({ where: { id: otherUser.id } });
+    }
   });
 });
 

@@ -5,13 +5,13 @@ const {
   requireWriteAuthMock,
   resolveApiUserIdMock,
   updateDashboardLinkPinStateMock,
-  renameUploadMock,
+  renameOwnedUploadMock,
 } = vi.hoisted(() => ({
   requireAuthMock: vi.fn(),
   requireWriteAuthMock: vi.fn(),
   resolveApiUserIdMock: vi.fn(),
   updateDashboardLinkPinStateMock: vi.fn(),
-  renameUploadMock: vi.fn(),
+  renameOwnedUploadMock: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/api-auth", () => ({
@@ -30,9 +30,9 @@ vi.mock("@/features/descriptions/server/description-upsert", () => ({
 }));
 
 vi.mock("@/features/uploads/server/upload-service", () => ({
-  deleteUploadRecord: vi.fn(),
+  deleteOwnedUpload: vi.fn(),
   listUploads: vi.fn(),
-  renameUpload: renameUploadMock,
+  renameOwnedUpload: renameOwnedUploadMock,
 }));
 
 vi.mock("@/features/dashboard-links/server/dashboard-link-service", () => ({
@@ -61,7 +61,7 @@ describe("protected write route auth order", () => {
     requireWriteAuthMock.mockReset();
     resolveApiUserIdMock.mockReset();
     updateDashboardLinkPinStateMock.mockReset();
-    renameUploadMock.mockReset();
+    renameOwnedUploadMock.mockReset();
     vi.resetModules();
   });
 
@@ -121,7 +121,7 @@ describe("protected write route auth order", () => {
 
     expect(response.status).toBe(401);
     expect(requireWriteAuthMock).toHaveBeenCalledOnce();
-    expect(renameUploadMock).not.toHaveBeenCalled();
+    expect(renameOwnedUploadMock).not.toHaveBeenCalled();
   });
 
   it("authenticates dashboard link pinning before parsing form data", async () => {

@@ -13,6 +13,7 @@ import {
 } from "@/lib/mcp/tools/_helpers";
 import { summarizeHomeworkCard } from "@/lib/mcp/tools/event-summary";
 import { registerCreateHomeworkOnSectionTool } from "./homework-create-tool";
+import { registerDeleteHomeworkOnSectionTool } from "./homework-delete-tool";
 import { registerUpdateHomeworkOnSectionTool } from "./homework-update-tool";
 import { sectionNotFoundToolResult } from "./shared";
 
@@ -91,4 +92,5 @@ export function registerSectionHomeworkTools(server: McpServer) {
 
   registerCreateHomeworkOnSectionTool(server);
   registerUpdateHomeworkOnSectionTool(server);
+  registerDeleteHomeworkOnSectionTool(server);
 }

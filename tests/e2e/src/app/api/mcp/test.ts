@@ -687,6 +687,9 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
           "get_upcoming_deadlines",
           "list_my_homeworks",
           "set_my_homework_completion",
+          "list_my_uploads",
+          "rename_my_upload",
+          "delete_my_upload",
           "list_my_schedules",
           "list_my_exams",
           "get_my_overview",
@@ -697,6 +700,7 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
           "subscribe_my_sections_by_codes",
           "get_section_by_jw_id",
           "list_homeworks_by_section",
+          "delete_homework_on_section",
           "list_schedules_by_section",
           "list_exams_by_section",
           "query_bus_timetable",
@@ -1804,6 +1808,24 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
         message: "No changes",
         success: false,
       });
+
+      const deleteHomeworkResult = await mcpClient.callTool({
+        name: "delete_homework_on_section",
+        arguments: {
+          homeworkId: createHomeworkPayload.id,
+        },
+      });
+      const deleteHomeworkPayload = parseTextContent(deleteHomeworkResult) as {
+        alreadyDeleted?: boolean;
+        deletedId?: string;
+        success?: boolean;
+      };
+      expect(deleteHomeworkPayload).toEqual({
+        success: true,
+        deletedId: createHomeworkPayload.id,
+        alreadyDeleted: false,
+      });
+      createdHomeworkId = null;
 
       const calendarSubscriptionResult = await mcpClient.callTool({
         name: "get_my_calendar_subscription",

@@ -4,7 +4,7 @@
     "anon": "Cannot upload attachments.",
     "user": "Can upload in the comment attachment flow; download permissions must be re-validated.",
     "admin": "No standalone public 'upload management console' currently exists.",
-    "agent": "No upload capability is currently provided."
+    "agent": "Can list, rename, and delete the current user's upload metadata through MCP; binary object transfer remains REST/HTTP-only."
   },
   "rules": {
     "comment-attachments-only": "Uploads serve only comment attachments; they are not an independent file space.",
@@ -15,7 +15,8 @@
     "e2e-r2": "E2E upload coverage should exercise the same Workers upload object route used in production.",
     "one-upload-one-comment": "A completed upload can be attached to at most one comment. Reusing an upload id across comments is rejected instead of treated as implicit file sharing.",
     "download-auth-required": "Downloads must not bypass authorization by obtaining a direct link.",
-    "download-delivery": "/api/uploads/[id]/download validates owner access or visible comment-attachment access before streaming the object from the R2 binding."
+    "download-delivery": "/api/uploads/[id]/download validates owner access or visible comment-attachment access before streaming the object from the R2 binding.",
+    "mcp-transfer-boundary": "MCP upload tools manage upload metadata and ownership actions only. Creating upload sessions, PUT object transfer, completion, and download delivery remain REST/HTTP surfaces because they depend on browser/client byte streams and R2 object responses rather than text-formatted JSON tool output."
   },
   "capabilities": {
     "upload-list": {
@@ -33,7 +34,18 @@
           }
         ]
       },
-      "mcp": "unavailable",
+      "mcp": {
+        "tools": [
+          {
+            "name": "list_my_uploads",
+            "returns": "{ maxFileSizeBytes, quotaBytes, uploads: Upload[], usedBytes }",
+            "rest_equivalent": "GET /api/uploads",
+            "notes": [
+              "Lists completed uploads and quota state for the current user; does not create upload sessions or stream object bytes."
+            ]
+          }
+        ]
+      },
       "display": {
         "fields": [
           "upload.filename",
@@ -126,7 +138,26 @@
           }
         ]
       },
-      "mcp": "unavailable",
+      "mcp": {
+        "tools": [
+          {
+            "name": "rename_my_upload",
+            "returns": "{ success: Boolean, upload: Upload }",
+            "rest_equivalent": "PATCH /api/uploads/[id]",
+            "notes": [
+              "Requires an unsuspended signed-in user and only renames uploads owned by the current user."
+            ]
+          },
+          {
+            "name": "delete_my_upload",
+            "returns": "{ success: Boolean, deletedId: String, deletedSize: Int }",
+            "rest_equivalent": "DELETE /api/uploads/[id]",
+            "notes": [
+              "Requires an unsuspended signed-in user, deletes only uploads owned by the current user, performs best-effort object cleanup, and writes metadata.source=mcp in the upload_delete audit log."
+            ]
+          }
+        ]
+      },
       "display": {
         "fields": [
           "Rename action",

@@ -117,6 +117,10 @@
             "tools": ["get_description", "upsert_description"]
           },
           {
+            "name": "Uploads",
+            "tools": ["list_my_uploads", "rename_my_upload", "delete_my_upload"]
+          },
+          {
             "name": "Calendar & Subscription",
             "tools": [
               "list_my_calendar_events",
@@ -139,6 +143,7 @@
               "list_homeworks_by_section",
               "create_homework_on_section",
               "update_homework_on_section",
+              "delete_homework_on_section",
               "query_schedules",
               "list_schedules_by_section",
               "list_exams_by_section"

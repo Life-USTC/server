@@ -5,8 +5,10 @@ import {
   runUploadSerializableTransaction,
   UploadError,
 } from "@/features/uploads/server/upload-quota";
+import { fireAuditLog } from "@/lib/audit/write-audit-log";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
+import { logAppEvent } from "@/lib/log/app-logger";
 import {
   deleteStorageObject,
   headStorageObject,
@@ -245,6 +247,19 @@ export async function renameUpload(input: {
   return publicUploadPayload(updated);
 }
 
+export async function renameOwnedUpload(input: {
+  filename: string;
+  id: string;
+  userId: string;
+}) {
+  const writer = await requireActiveUploadWriter(input.userId);
+  if (!writer.ok) return writer;
+
+  const upload = await renameUpload(input);
+  if (!upload) return { ok: false as const, error: "not_found" as const };
+  return { ok: true as const, upload };
+}
+
 export async function deleteUploadRecord(input: {
   id: string;
   userId: string;
@@ -258,6 +273,38 @@ export async function deleteUploadRecord(input: {
 
   await prisma.upload.delete({ where: { id: upload.id } });
   return upload;
+}
+
+export async function deleteOwnedUpload(input: {
+  audit?: {
+    ipAddress?: string;
+    source?: "mcp";
+    userAgent?: string;
+  };
+  id: string;
+  userId: string;
+}) {
+  const writer = await requireActiveUploadWriter(input.userId);
+  if (!writer.ok) return writer;
+
+  const upload = await deleteUploadRecord({
+    id: input.id,
+    userId: input.userId,
+  });
+  if (!upload) return { ok: false as const, error: "not_found" as const };
+
+  await cleanupDeletedUploadObject(upload);
+  writeUploadDeleteAuditLog({
+    audit: input.audit,
+    upload,
+    userId: input.userId,
+  });
+
+  return {
+    ok: true as const,
+    deletedId: upload.id,
+    deletedSize: upload.size,
+  };
 }
 
 export async function findDownloadableUpload(id: string, userId: string) {
@@ -324,6 +371,62 @@ export async function validatePendingUploadObject(input: {
 
 export async function deleteUploadObject(key: string) {
   await deleteStorageObject(key);
+}
+
+async function requireActiveUploadWriter(userId: string) {
+  const viewer = await getViewerContext({ includeAdmin: true, userId });
+  if (!viewer.isAuthenticated) {
+    return { ok: false as const, error: "forbidden" as const };
+  }
+  if (viewer.isSuspended) {
+    return {
+      ok: false as const,
+      error: "suspended" as const,
+      reason: viewer.suspensionReason,
+    };
+  }
+  return { ok: true as const };
+}
+
+async function cleanupDeletedUploadObject(upload: { key: string }) {
+  try {
+    await deleteStorageObject(upload.key);
+  } catch (error) {
+    logAppEvent(
+      "error",
+      "R2 object cleanup failed after upload deletion",
+      { source: "upload" },
+      error,
+    );
+  }
+}
+
+function writeUploadDeleteAuditLog({
+  audit,
+  upload,
+  userId,
+}: {
+  audit?: {
+    ipAddress?: string;
+    source?: "mcp";
+    userAgent?: string;
+  };
+  upload: { id: string; key: string; size: number };
+  userId: string;
+}) {
+  fireAuditLog({
+    action: "upload_delete",
+    userId,
+    targetId: upload.id,
+    targetType: "upload",
+    metadata: {
+      key: upload.key,
+      size: upload.size,
+      ...(audit?.source ? { source: audit.source } : {}),
+    },
+    ipAddress: audit?.ipAddress,
+    userAgent: audit?.userAgent,
+  });
 }
 
 async function deleteExpiredPendingUploads(

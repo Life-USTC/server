@@ -8,6 +8,7 @@ import { registerDescriptionTools } from "@/lib/mcp/tools/description-tools";
 import { registerMyDataTools } from "@/lib/mcp/tools/my-data-tools";
 import { registerProfileTools } from "@/lib/mcp/tools/profile-tools";
 import { registerSectionDataTools } from "@/lib/mcp/tools/section-data-tools";
+import { registerUploadTools } from "@/lib/mcp/tools/upload-tools";
 
 export function createMcpServer() {
   const server = new McpServer({
@@ -19,6 +20,7 @@ export function createMcpServer() {
   registerCommentTools(server);
   registerDescriptionTools(server);
   registerProfileTools(server);
+  registerUploadTools(server);
   registerCourseTools(server);
   registerDashboardTools(server);
   registerSectionDataTools(server);
