@@ -273,7 +273,7 @@
         },
         "method": {
           "type": "string",
-          "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+          "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"],
           "default": "GET"
         },
         "description": {
@@ -364,7 +364,7 @@
         },
         "rest_equivalent": {
           "type": "string",
-          "pattern": "^(GET|POST|PUT|PATCH|DELETE) /",
+          "pattern": "^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS) /",
           "maxLength": 180
         },
         "notes": {
@@ -523,7 +523,7 @@
             "routes": {
               "type": "array",
               "minItems": 1,
-              "maxItems": 12,
+              "maxItems": 24,
               "items": {
                 "$ref": "#/$defs/routeEntry"
               }
@@ -700,7 +700,7 @@
       "type": "string",
       "oneOf": [
         {
-          "pattern": "^(GET|POST|PUT|PATCH|DELETE) /"
+          "pattern": "^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS) /"
         },
         {
           "const": "Reserved"

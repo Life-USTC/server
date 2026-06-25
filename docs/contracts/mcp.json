@@ -45,6 +45,15 @@
             "path": "/api/mcp",
             "method": "DELETE",
             "returns": "MCP transport response"
+          },
+          {
+            "path": "/api/mcp",
+            "method": "OPTIONS",
+            "returns": "204 CORS preflight response",
+            "auth": "anon",
+            "notes": [
+              "Foreign Origin headers are rejected with 403 before CORS headers are returned."
+            ]
           }
         ]
       },

@@ -3,15 +3,53 @@ import { join, relative } from "node:path";
 import Ajv2020 from "ajv/dist/2020";
 import {
   getExportedRouteMethods,
+  HTTP_METHODS,
   type HttpMethod,
 } from "../../shared/route-exports";
 import { fail, reportUnexpectedError, walkFiles } from "./common";
+
+const REST_ROUTE_ROOTS = ["src/routes/api", "src/routes/.well-known"] as const;
+
+function parseImplementedRoutePath(filePath: string): string {
+  const routePath = relative("src/routes", filePath)
+    .replace(/\\/g, "/")
+    .replace(/\/\+server\.ts$/, "");
+
+  return `/${routePath
+    .split("/")
+    .map((segment) => {
+      const catchAll = segment.match(/^\[\.\.\.(.+)\]$/);
+      if (catchAll) return `{${catchAll[1]}}`;
+      return segment;
+    })
+    .join("/")}`;
+}
+
+export function collectImplementedRestRoutes(
+  routeRoots: readonly string[] = REST_ROUTE_ROOTS,
+  methods: readonly HttpMethod[] = HTTP_METHODS,
+): Set<string> {
+  const routes = new Set<string>();
+
+  for (const routeRoot of routeRoots) {
+    for (const file of walkFiles(routeRoot).filter((item) =>
+      item.endsWith("/+server.ts"),
+    )) {
+      const source = readFileSync(file, "utf8");
+      const routePath = parseImplementedRoutePath(file);
+      for (const method of getExportedRouteMethods(source, methods)) {
+        routes.add(`${method} ${routePath}`);
+      }
+    }
+  }
+
+  return routes;
+}
 
 function checkContractsDoc() {
   const contractsDir = "docs/contracts";
   const schemaPath = "docs/contracts.schema.json";
   const prismaPath = "prisma/schema.prisma";
-  const restRouteRoots = ["src/routes/api", "src/routes/.well-known"];
   const mcpDir = "src/lib/mcp/tools";
 
   type PrismaDocs = {
@@ -111,46 +149,6 @@ function checkContractsDoc() {
     }
 
     return { enums, models };
-  }
-
-  function parseImplementedRoutePath(filePath: string): string {
-    const routePath = relative("src/routes", filePath)
-      .replace(/\\/g, "/")
-      .replace(/\/\+server\.ts$/, "");
-
-    return `/${routePath
-      .split("/")
-      .map((segment) => {
-        const catchAll = segment.match(/^\[\.\.\.(.+)\]$/);
-        if (catchAll) return `{${catchAll[1]}}`;
-        return segment;
-      })
-      .join("/")}`;
-  }
-
-  function collectImplementedRestRoutes(): Set<string> {
-    const contractMethods = [
-      "GET",
-      "POST",
-      "PUT",
-      "PATCH",
-      "DELETE",
-    ] as const satisfies readonly HttpMethod[];
-    const routes = new Set<string>();
-
-    for (const routeRoot of restRouteRoots) {
-      for (const file of walkFiles(routeRoot).filter((item) =>
-        item.endsWith("/+server.ts"),
-      )) {
-        const source = readFileSync(file, "utf8");
-        const routePath = parseImplementedRoutePath(file);
-        for (const method of getExportedRouteMethods(source, contractMethods)) {
-          routes.add(`${method} ${routePath}`);
-        }
-      }
-    }
-
-    return routes;
   }
 
   function collectDocumentedRestRoutes(
@@ -595,8 +593,10 @@ function checkContractsDoc() {
   }
 }
 
-try {
-  checkContractsDoc();
-} catch (error: unknown) {
-  reportUnexpectedError(error);
+if (process.argv[1]?.endsWith("contracts.ts")) {
+  try {
+    checkContractsDoc();
+  } catch (error: unknown) {
+    reportUnexpectedError(error);
+  }
 }
