@@ -1,10 +1,10 @@
 import type { Prisma } from "@/generated/prisma/client";
+import { prisma } from "@/lib/db/prisma";
+import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import {
   buildUserCalendarFeedPath,
   ensureUserCalendarFeedToken,
-} from "@/lib/calendar-feed-token";
-import { prisma } from "@/lib/db/prisma";
-import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
+} from "./calendar-feed-token";
 
 export const SECTION_SUBSCRIPTION_NOTE =
   "Life@USTC section subscriptions only affect your dashboard and calendar here. They are not official USTC course enrollment.";
