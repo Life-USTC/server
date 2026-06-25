@@ -134,13 +134,15 @@ onMount(() => {
 
   <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
     <div class="grid min-w-0 gap-5">
-      <DescriptionCard
-        targetType="course"
-        targetId={data.course.id}
-        initialData={data.descriptionData}
-        locale={data.locale as "en-us" | "zh-cn"}
-        copy={copy.descriptions}
-      />
+      {#key `description:course:${data.course.id}`}
+        <DescriptionCard
+          targetType="course"
+          targetId={data.course.id}
+          initialData={data.descriptionData}
+          locale={data.locale as "en-us" | "zh-cn"}
+          copy={copy.descriptions}
+        />
+      {/key}
 
       <CatalogDetailTabs
         {activeTab}
@@ -150,11 +152,13 @@ onMount(() => {
       />
 
       {#if activeTab === "comments"}
-        <CommentsPanel
-          initialData={data.commentsData}
-          targetType="course"
-          targetId={data.course.id}
-        />
+        {#key `comments:course:${data.course.id}`}
+          <CommentsPanel
+            initialData={data.commentsData}
+            targetType="course"
+            targetId={data.course.id}
+          />
+        {/key}
       {:else}
         <CourseDetailSections
           copy={detailCopy}

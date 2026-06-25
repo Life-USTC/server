@@ -133,7 +133,9 @@ export let close: () => void;
         </section>
 
         <section class="min-w-0 border-base-300 border-t pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-5">
-          <CommentsPanel targetType="homework" targetId={_selectedHomework.id} />
+          {#key `comments:homework:${_selectedHomework.id}`}
+            <CommentsPanel targetType="homework" targetId={_selectedHomework.id} />
+          {/key}
         </section>
       </div>
     </section>
