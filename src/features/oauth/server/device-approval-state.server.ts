@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/db/prisma";
 import { normalizeUserCode } from "@/lib/oauth/device-code";
 import { getDeviceApprovalFailureReason } from "./device-approval-validation.server";
 import { requireDeviceUserId } from "./device-auth.server";
@@ -15,7 +16,6 @@ export async function loadDeviceApprovalState({
   request: Request;
   url: URL;
 }) {
-  const { prisma } = await import("@/lib/db/prisma");
   const userCode = normalizeUserCode(code);
   const record = await prisma.deviceCode.findUnique({
     where: { userCode },

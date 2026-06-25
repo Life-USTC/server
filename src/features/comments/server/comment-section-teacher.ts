@@ -1,8 +1,9 @@
+import { prisma } from "@/lib/db/prisma";
+
 export async function resolveSectionTeacherId(
   sectionId: number,
   teacherId: number,
 ) {
-  const { prisma } = await import("@/lib/db/prisma");
   const section = await prisma.section.findFirst({
     where: {
       id: sectionId,
@@ -33,7 +34,6 @@ export async function findSectionTeacherId(
   sectionId: number,
   teacherId: number,
 ) {
-  const { prisma } = await import("@/lib/db/prisma");
   const sectionTeacher = await prisma.sectionTeacher.findUnique({
     where: {
       sectionId_teacherId: {
@@ -53,7 +53,6 @@ export async function findSectionTeacherTarget(
   sectionId: number,
   teacherId: number,
 ) {
-  const { prisma } = await import("@/lib/db/prisma");
   const sectionTeacherId = await findSectionTeacherId(sectionId, teacherId);
   if (sectionTeacherId) {
     return { exists: true, id: sectionTeacherId } as const;

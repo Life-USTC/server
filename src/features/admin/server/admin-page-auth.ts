@@ -1,8 +1,8 @@
 import { error, redirect } from "@sveltejs/kit";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
+import { prisma } from "@/lib/db/prisma";
 
 export async function getPrismaClient() {
-  const { prisma } = await import("@/lib/db/prisma");
   return prisma;
 }
 

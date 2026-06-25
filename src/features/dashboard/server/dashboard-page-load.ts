@@ -9,6 +9,7 @@ import {
   parsePositiveCalendarSemester,
   parseSnapshotReferenceTime,
 } from "@/features/dashboard/server/dashboard-page-server";
+import { getPrisma } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 
 function recordDashboardLoadFinish(input: {
@@ -55,7 +56,6 @@ export async function loadDashboardPage({
   const publicSummaryPromise = (async () => {
     let publicSummary: Awaited<ReturnType<typeof loadDashboardPublicSummary>>;
     try {
-      const { getPrisma } = await import("@/lib/db/prisma");
       publicSummary = await loadDashboardPublicSummary(
         getPrisma(locale),
         referenceNow ?? null,

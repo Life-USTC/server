@@ -1,4 +1,5 @@
 import { deviceAuthJsonError } from "@/lib/api/routes/auth-device-authorization-helpers";
+import { prisma } from "@/lib/db/prisma";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
 import {
   DEVICE_CODE_EXPIRES_IN,
@@ -11,7 +12,6 @@ export async function createDeviceAuthorizationGrant(
   clientId: string,
   requestedScopes: string[],
 ) {
-  const { prisma } = await import("@/lib/db/prisma");
   const deviceCode = generateDeviceCode();
   const userCode = generateUserCode();
   const expiresAt = new Date(Date.now() + DEVICE_CODE_EXPIRES_IN * 1000);

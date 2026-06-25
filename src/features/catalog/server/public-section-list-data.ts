@@ -1,6 +1,8 @@
 import { CATALOG_PAGE_SIZE } from "@/features/catalog/server/catalog-page-constants";
+import { listSectionSummaries } from "@/features/catalog/server/course-section-queries";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { getMessages } from "@/i18n/messages.server";
+import { getPrisma } from "@/lib/db/prisma";
 import {
   optionalValue,
   parsePositivePage,
@@ -28,10 +30,6 @@ async function getUncachedSectionListPage(
   url: URL,
   locale: AppLocale = DEFAULT_LOCALE,
 ) {
-  const [{ listSectionSummaries }, { getPrisma }] = await Promise.all([
-    import("@/features/catalog/server/course-section-queries"),
-    import("@/lib/db/prisma"),
-  ]);
   const page = parsePositivePage(url.searchParams.get("page"));
   const search = optionalValue(url.searchParams.get("search"));
   const semesterId = optionalValue(url.searchParams.get("semesterId"));

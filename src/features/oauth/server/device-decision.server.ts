@@ -1,4 +1,5 @@
 import { redirect } from "@sveltejs/kit";
+import { prisma } from "@/lib/db/prisma";
 import { DEVICE_CODE_STATUS, normalizeUserCode } from "@/lib/oauth/device-code";
 import { getDeviceApprovalFailureReason } from "./device-approval-validation.server";
 import { requireDeviceUserId } from "./device-auth.server";
@@ -24,7 +25,6 @@ export async function completeDeviceCodeDecision(
     );
   }
 
-  const { prisma } = await import("@/lib/db/prisma");
   const userCode = normalizeUserCode(rawCode);
   const record = await prisma.deviceCode.findUnique({
     where: { userCode },

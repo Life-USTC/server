@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/db/prisma";
 import {
   logOAuthDebug,
   summarizeOAuthRedirectUri,
@@ -15,7 +16,6 @@ export async function maybeNormalizeTokenLoopbackRedirectRequest(
     return request;
   }
 
-  const { prisma } = await import("@/lib/db/prisma");
   const client = await prisma.oAuthClient.findUnique({
     where: { clientId },
     select: { redirectUris: true },

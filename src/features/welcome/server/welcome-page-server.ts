@@ -2,6 +2,7 @@ import { redirect, type ServerLoadEvent } from "@sveltejs/kit";
 import { getCurrentSemester } from "@/features/catalog/server/academic-metadata-read-model";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
 import { getSessionFromHeaders } from "@/lib/auth/core";
+import { prisma } from "@/lib/db/prisma";
 import { resolveWelcomeCallbackUrl } from "./welcome-callback-url";
 import { completeWelcomeProfile } from "./welcome-complete-action";
 import { getWelcomeCopy } from "./welcome-page-copy";
@@ -24,7 +25,6 @@ export const loadWelcomePage = async ({
     );
   }
 
-  const { prisma } = await import("@/lib/db/prisma");
   const [user, semesters, currentSemester] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },

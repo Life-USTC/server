@@ -1,6 +1,8 @@
+import { paginatedTeacherQuery } from "@/features/catalog/server/academic-paginated-queries";
 import { CATALOG_PAGE_SIZE } from "@/features/catalog/server/catalog-page-constants";
 import { buildTeacherWhere } from "@/features/catalog/server/teacher-query";
 import { getMessages } from "@/i18n/messages.server";
+import { getPrisma } from "@/lib/db/prisma";
 import {
   optionalValue,
   parsePositivePage,
@@ -22,10 +24,6 @@ export async function getTeacherListPage(url: URL, locale = "zh-cn") {
 }
 
 async function getUncachedTeacherListPage(url: URL, locale = "zh-cn") {
-  const [{ paginatedTeacherQuery }, { getPrisma }] = await Promise.all([
-    import("@/features/catalog/server/academic-paginated-queries"),
-    import("@/lib/db/prisma"),
-  ]);
   const page = parsePositivePage(url.searchParams.get("page"));
   const search = optionalValue(url.searchParams.get("search"));
   const departmentId = optionalValue(url.searchParams.get("departmentId"));
