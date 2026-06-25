@@ -3,6 +3,7 @@ import {
   assertStaticTeacherReferencesResolvable,
   buildStaticCourseIdentityKeyBySourceId,
   buildStaticCourseImportRows,
+  staticCourseMetadataSignature,
   staticDepartmentCode,
   staticTeacherIdentityKey,
   uniqueStaticTeacherReferences,
@@ -145,6 +146,41 @@ describe("static course import helpers", () => {
     expect(identityKeys.get(1)).not.toBe(identityKeys.get(2));
     expect(rows.map((row) => row.jwId)).toEqual([1_500_000_101, 1_500_000_102]);
     expect(rows.map((row) => row.categoryId)).toEqual([23, 24]);
+  });
+
+  it("preserves the stored canonical course metadata for duplicate codes", () => {
+    const newVariant = {
+      id: 1,
+      course_code: "HS2002",
+      name: "科学技术史",
+      course_type: "通识课",
+      course_gradation: "本科",
+      course_category: "人文素质",
+      education_type: "本科生",
+      class_type: "理论",
+    };
+    const storedCanonicalVariant = {
+      id: 2,
+      course_code: "HS2002",
+      name: "科学技术史",
+      course_type: "通识课",
+      course_gradation: "本科",
+      course_category: "通识教育",
+      education_type: "本科生",
+      class_type: "理论",
+    };
+
+    const identityKeys = buildStaticCourseIdentityKeyBySourceId(
+      [newVariant, storedCanonicalVariant],
+      {
+        canonicalSignatureByCode: new Map([
+          ["HS2002", staticCourseMetadataSignature(storedCanonicalVariant)],
+        ]),
+      },
+    );
+
+    expect(identityKeys.get(storedCanonicalVariant.id)).toBe("HS2002");
+    expect(identityKeys.get(newVariant.id)).not.toBe("HS2002");
   });
 
   it("derives static department identity from the name instead of looking up by name", () => {
