@@ -10,6 +10,7 @@ import { canViewerWriteCommentInteraction } from "./comment-interaction-policy";
 import { commentThreadInclude } from "./comment-read-model";
 import type { ViewerInfo } from "./comment-serialization";
 import { buildCommentNodes } from "./comment-serialization";
+import { resolveCommentMutationTargetReference } from "./comment-target-resolution";
 import { type CommentTargetType, resolveCommentTarget } from "./comment-utils";
 
 type CommentMutationError = "forbidden" | "locked" | "not_found" | "suspended";
@@ -41,10 +42,14 @@ type CreateCommentError =
 export async function createComment(input: {
   attachmentIds?: string[];
   content: string;
+  courseJwId?: unknown;
+  homeworkId?: string;
   isAnonymous: boolean;
   parentId?: string | null;
   rawTargetId: unknown;
   sectionId?: unknown;
+  sectionJwId?: unknown;
+  sectionTeacherId?: unknown;
   targetType: CommentTargetType;
   teacherId?: unknown;
   userId: string;
@@ -53,24 +58,50 @@ export async function createComment(input: {
   const actor = await loadActiveCommentActor(input.userId);
   if (!actor.ok) return actor;
 
-  const target = await resolveCommentTarget({
-    createSectionTeacherTarget: true,
+  const reference = await resolveCommentMutationTargetReference({
+    courseJwId: input.courseJwId,
+    homeworkId: input.homeworkId,
     rawTargetId: input.rawTargetId,
     sectionId: input.sectionId,
+    sectionJwId: input.sectionJwId,
+    sectionTeacherId: input.sectionTeacherId,
     targetType: input.targetType,
     teacherId: input.teacherId,
+  });
+  if (!reference.ok) {
+    return {
+      ok: false as const,
+      error: reference.error as Extract<
+        CreateCommentError,
+        "invalid_target" | "target_not_found"
+      >,
+      targetId: reference.targetId,
+      targetType: reference.targetType,
+    };
+  }
+
+  const target = await resolveCommentTarget({
+    createSectionTeacherTarget: true,
+    rawTargetId: reference.rawTargetId,
+    sectionId: reference.sectionId,
+    targetType: input.targetType,
+    teacherId: reference.teacherId,
     verifyExistence: true,
   });
   if (!target) {
     return {
       ok: false as const,
       error: "invalid_target" as CreateCommentError,
+      targetId: input.rawTargetId,
+      targetType: input.targetType,
     };
   }
   if (!target.verified) {
     return {
       ok: false as const,
       error: "target_not_found" as CreateCommentError,
+      targetId: reference.rawTargetId,
+      targetType: input.targetType,
     };
   }
 

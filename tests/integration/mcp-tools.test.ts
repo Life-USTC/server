@@ -97,6 +97,30 @@ async function findCommentAuditLog(input: {
   return null;
 }
 
+async function deleteCommentRecords(commentIds: string[]) {
+  if (commentIds.length === 0) return;
+
+  await prisma.auditLog.deleteMany({
+    where: {
+      targetId: { in: commentIds },
+      targetType: "comment",
+    },
+  });
+  await prisma.commentReaction.deleteMany({
+    where: { commentId: { in: commentIds } },
+  });
+  await prisma.commentAttachment.deleteMany({
+    where: { commentId: { in: commentIds } },
+  });
+  await prisma.comment.updateMany({
+    where: { id: { in: commentIds } },
+    data: { parentId: null, rootId: null },
+  });
+  await prisma.comment.deleteMany({
+    where: { id: { in: commentIds } },
+  });
+}
+
 const SEED_PLUS_THREE_DAYS = seedDatePlusDays(3);
 const SEED_PLUS_SIX_DAYS = seedDatePlusDays(6);
 const SEED_PLUS_SEVEN_DAYS = seedDatePlusDays(7);
@@ -591,20 +615,7 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
     } finally {
       if (commentId) {
         await sleep(50);
-        await prisma.auditLog.deleteMany({
-          where: {
-            targetId: commentId,
-            targetType: "comment",
-            userId: devUserId,
-          },
-        });
-        await prisma.commentReaction.deleteMany({ where: { commentId } });
-        await prisma.commentAttachment.deleteMany({ where: { commentId } });
-        await prisma.comment.updateMany({
-          where: { id: commentId },
-          data: { parentId: null, rootId: null },
-        });
-        await prisma.comment.deleteMany({ where: { id: commentId } });
+        await deleteCommentRecords([commentId]);
       }
     }
   });
@@ -625,6 +636,267 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
     expect(result.found).toBe(false);
     expect(result.error).toBe("target_not_found");
     expect(result.message).toContain("section");
+  });
+
+  it("comment write create_comment supports replies through the public MCP surface", async () => {
+    const marker = `[integration-test] mcp-comment-reply-${Date.now()}`;
+    const commentIds: string[] = [];
+
+    try {
+      const parent = await mcp.call<{ success?: boolean; id?: string }>(
+        "create_comment",
+        {
+          targetType: "section",
+          sectionJwId: DEV_SEED.section.jwId,
+          body: `${marker} parent`,
+        },
+      );
+      expect(parent.success).toBe(true);
+      expect(typeof parent.id).toBe("string");
+      commentIds.push(parent.id ?? "");
+
+      const reply = await mcp.call<{ success?: boolean; id?: string }>(
+        "create_comment",
+        {
+          targetType: "section",
+          sectionJwId: DEV_SEED.section.jwId,
+          parentId: parent.id,
+          body: `${marker} reply`,
+        },
+      );
+      expect(reply.success).toBe(true);
+      expect(typeof reply.id).toBe("string");
+      commentIds.push(reply.id ?? "");
+
+      const thread = await mcp.call<{
+        found?: boolean;
+        focusId?: string;
+        thread?: unknown;
+      }>("get_comment_thread", {
+        commentId: reply.id,
+        mode: "full",
+      });
+      expect(thread.found).toBe(true);
+      expect(thread.focusId).toBe(reply.id);
+      expect(JSON.stringify(thread.thread)).toContain(reply.id ?? "");
+    } finally {
+      await deleteCommentRecords(commentIds.filter(Boolean));
+    }
+  });
+
+  it("comment write tools deny non-owner edit and delete attempts", async () => {
+    const marker = `[integration-test] mcp-comment-non-owner-${Date.now()}`;
+    const otherUser = await prisma.user.create({
+      data: {
+        email: integrationUserEmail("mcp-comment-non-owner"),
+        name: "MCP Comment Non Owner",
+      },
+      select: { id: true },
+    });
+    const otherMcp = await createMcpHarness(otherUser.id);
+    let commentId: string | undefined;
+
+    try {
+      const created = await mcp.call<{ success?: boolean; id?: string }>(
+        "create_comment",
+        {
+          targetType: "section",
+          sectionJwId: DEV_SEED.section.jwId,
+          body: `${marker} owned`,
+        },
+      );
+      expect(created.success).toBe(true);
+      commentId = created.id;
+      expect(typeof commentId).toBe("string");
+
+      const update = await otherMcp.call<{
+        success?: boolean;
+        error?: string;
+      }>("update_own_comment", {
+        commentId,
+        body: `${marker} stolen edit`,
+      });
+      expect(update).toMatchObject({
+        success: false,
+        error: "forbidden",
+      });
+
+      const deletion = await otherMcp.call<{
+        success?: boolean;
+        error?: string;
+      }>("delete_own_comment", { commentId });
+      expect(deletion).toMatchObject({
+        success: false,
+        error: "forbidden",
+      });
+    } finally {
+      await otherMcp.close();
+      await deleteCommentRecords(commentId ? [commentId] : []);
+      await prisma.user.deleteMany({ where: { id: otherUser.id } });
+    }
+  });
+
+  it("comment write tools validate existing upload attachments", async () => {
+    const marker = `[integration-test] mcp-comment-attachments-${Date.now()}`;
+    const filename = `mcp-comment-attachment-${Date.now()}.txt`;
+    const upload = await prisma.upload.create({
+      data: {
+        userId: devUserId,
+        key: `integration-test/${filename}`,
+        filename,
+        contentType: "text/plain",
+        size: 128,
+      },
+      select: { id: true, filename: true },
+    });
+    const otherUser = await prisma.user.create({
+      data: {
+        email: integrationUserEmail("mcp-comment-attachment-owner"),
+        name: "MCP Comment Attachment Owner",
+      },
+      select: { id: true },
+    });
+    const otherUpload = await prisma.upload.create({
+      data: {
+        userId: otherUser.id,
+        key: `integration-test/other-${filename}`,
+        filename: `other-${filename}`,
+        contentType: "text/plain",
+        size: 256,
+      },
+      select: { id: true },
+    });
+    let commentId: string | undefined;
+
+    try {
+      const created = await mcp.call<{ success?: boolean; id?: string }>(
+        "create_comment",
+        {
+          targetType: "section",
+          sectionJwId: DEV_SEED.section.jwId,
+          body: `${marker} attached`,
+          attachmentIds: [upload.id],
+        },
+      );
+      expect(created.success).toBe(true);
+      commentId = created.id;
+      expect(typeof commentId).toBe("string");
+
+      const thread = await mcp.call<{
+        found?: boolean;
+        thread?: unknown;
+      }>("get_comment_thread", {
+        commentId,
+        mode: "full",
+      });
+      expect(thread.found).toBe(true);
+      expect(JSON.stringify(thread.thread)).toContain(upload.filename);
+
+      const invalidUpdate = await mcp.call<{
+        success?: boolean;
+        error?: string;
+      }>("update_own_comment", {
+        commentId,
+        body: `${marker} invalid attachment`,
+        attachmentIds: [otherUpload.id],
+      });
+      expect(invalidUpdate).toMatchObject({
+        success: false,
+        error: "invalid_attachments",
+      });
+    } finally {
+      await deleteCommentRecords(commentId ? [commentId] : []);
+      await prisma.upload.deleteMany({
+        where: { id: { in: [upload.id, otherUpload.id] } },
+      });
+      await prisma.user.deleteMany({ where: { id: otherUser.id } });
+    }
+  });
+
+  it("comment write create_comment checks suspension before target lookup", async () => {
+    const suspendedUser = await prisma.user.create({
+      data: {
+        email: integrationUserEmail("mcp-comment-suspended"),
+        name: "MCP Comment Suspended",
+      },
+      select: { id: true },
+    });
+    const suspension = await prisma.userSuspension.create({
+      data: {
+        userId: suspendedUser.id,
+        createdById: devUserId,
+        reason: "integration suspended",
+      },
+      select: { id: true },
+    });
+    const suspendedMcp = await createMcpHarness(suspendedUser.id);
+
+    try {
+      const result = await suspendedMcp.call<{
+        success?: boolean;
+        error?: string;
+        reason?: string | null;
+      }>("create_comment", {
+        targetType: "section",
+        sectionJwId: 2_147_483_647,
+        body: "[integration-test] suspended invalid target",
+      });
+
+      expect(result).toMatchObject({
+        success: false,
+        error: "suspended",
+        reason: "integration suspended",
+      });
+    } finally {
+      await suspendedMcp.close();
+      await prisma.userSuspension.deleteMany({ where: { id: suspension.id } });
+      await prisma.user.deleteMany({ where: { id: suspendedUser.id } });
+    }
+  });
+
+  it("comment write tools reject replies and reactions on deleted comments", async () => {
+    const marker = `[integration-test] mcp-comment-locked-${Date.now()}`;
+    let commentId: string | undefined;
+
+    try {
+      const created = await mcp.call<{ success?: boolean; id?: string }>(
+        "create_comment",
+        {
+          targetType: "section",
+          sectionJwId: DEV_SEED.section.jwId,
+          body: `${marker} deleted`,
+        },
+      );
+      expect(created.success).toBe(true);
+      commentId = created.id;
+      expect(typeof commentId).toBe("string");
+
+      await expect(
+        mcp.call<{ success?: boolean }>("delete_own_comment", { commentId }),
+      ).resolves.toEqual({ success: true });
+
+      const reply = await mcp.call<{ success?: boolean; error?: string }>(
+        "create_comment",
+        {
+          targetType: "section",
+          sectionJwId: DEV_SEED.section.jwId,
+          parentId: commentId,
+          body: `${marker} rejected reply`,
+        },
+      );
+      expect(reply).toMatchObject({ success: false, error: "locked" });
+
+      const reaction = await mcp.call<{ success?: boolean; error?: string }>(
+        "add_comment_reaction",
+        {
+          commentId,
+          type: "heart",
+        },
+      );
+      expect(reaction).toMatchObject({ success: false, error: "locked" });
+    } finally {
+      await deleteCommentRecords(commentId ? [commentId] : []);
+    }
   });
 });
 

@@ -1,20 +1,20 @@
 {
   "actions": {
     "comment_create": {
-      "trigger": "POST /api/comments",
-      "description": "User creates a new comment on an object."
+      "trigger": "POST /api/comments or MCP create_comment",
+      "description": "User creates a new comment on an object. MCP-originated writes include metadata.source=mcp."
     },
     "comment_edit": {
-      "trigger": "PATCH /api/comments/[id]",
-      "description": "User edits their own comment."
+      "trigger": "PATCH /api/comments/[id] or MCP update_own_comment",
+      "description": "User edits their own comment. MCP-originated writes include metadata.source=mcp."
     },
     "comment_delete": {
-      "trigger": "DELETE /api/comments/[id]",
-      "description": "User deletes their own comment."
+      "trigger": "DELETE /api/comments/[id] or MCP delete_own_comment",
+      "description": "User deletes their own comment. MCP-originated writes include metadata.source=mcp."
     },
     "comment_react": {
-      "trigger": "POST /api/comments/[id]/reactions",
-      "description": "User adds or removes a reaction on an active visible comment. DELETE /api/comments/[id]/reactions records the same action for removals."
+      "trigger": "POST /api/comments/[id]/reactions, DELETE /api/comments/[id]/reactions, MCP add_comment_reaction, or MCP remove_comment_reaction",
+      "description": "User adds or removes a reaction on an active visible comment. MCP-originated writes include metadata.source=mcp."
     },
     "description_edit": {
       "trigger": "POST /api/descriptions or MCP upsert_description",

@@ -32,6 +32,20 @@ export type ResolvedCommentTargetReference =
       targetType: CommentTargetType | string;
     };
 
+type UnresolvedCommentTargetReference = Extract<
+  ResolvedCommentTargetReference,
+  { ok: false }
+>;
+
+export type ResolvedCommentMutationTarget =
+  | {
+      ok: true;
+      rawTargetId: unknown;
+      sectionId?: unknown;
+      teacherId?: unknown;
+    }
+  | Extract<ResolvedCommentTargetReference, { ok: false }>;
+
 async function findSectionIdByJwId(jwId: number) {
   const section = await prisma.section.findUnique({
     where: { jwId },
@@ -50,7 +64,7 @@ async function findCourseIdByJwId(jwId: number) {
 
 function invalidTarget(
   targetType: CommentTargetType,
-): ResolvedCommentTargetReference {
+): UnresolvedCommentTargetReference {
   return {
     ok: false,
     error: "invalid_target",
@@ -62,7 +76,7 @@ function invalidTarget(
 function targetNotFound(
   targetType: CommentTargetType | string,
   targetId: unknown,
-): ResolvedCommentTargetReference {
+): UnresolvedCommentTargetReference {
   return {
     ok: false,
     error: "target_not_found",
@@ -156,4 +170,46 @@ export async function resolveCommentTargetReference(
   }
 
   return resolveVerifiedTarget(input.targetType, input.rawTargetId, input);
+}
+
+export async function resolveCommentMutationTargetReference(
+  input: CommentTargetReferenceInput,
+): Promise<ResolvedCommentMutationTarget> {
+  const resolved = await resolveCommentTargetReference({
+    ...input,
+    allowDirectSectionTeacherId: true,
+    verifyExistence: true,
+  });
+
+  if (!resolved.ok) return resolved;
+  if (input.targetType !== "section-teacher") {
+    return { ok: true, rawTargetId: resolved.target.targetId };
+  }
+
+  if (resolved.target.sectionId && resolved.target.teacherId) {
+    return {
+      ok: true,
+      rawTargetId: undefined,
+      sectionId: resolved.target.sectionId,
+      teacherId: resolved.target.teacherId,
+    };
+  }
+
+  if (resolved.target.sectionTeacherId) {
+    const sectionTeacher = await prisma.sectionTeacher.findFirst({
+      where: { id: resolved.target.sectionTeacherId, retiredAt: null },
+      select: { sectionId: true, teacherId: true },
+    });
+    if (sectionTeacher) {
+      return {
+        ok: true,
+        rawTargetId: undefined,
+        sectionId: sectionTeacher.sectionId,
+        teacherId: sectionTeacher.teacherId,
+      };
+    }
+    return targetNotFound("section-teacher", resolved.target.sectionTeacherId);
+  }
+
+  return invalidTarget("section-teacher");
 }
