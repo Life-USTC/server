@@ -11,7 +11,7 @@
     "no-developer-model": "Public documentation helps callers understand the existing product capability boundaries, not to introduce a separate developer-specific business model.",
     "session-and-bearer": "Current user-side business REST endpoints support both in-site session from the request cookie and OAuth bearer tokens; bearer-token access is no longer limited to MCP.",
     "rest-mcp-consistent": "The same abstract endpoint currently maintains the same core fields, state information, and action results in both REST and MCP; differences mainly appear in interaction form and serialization level.",
-    "security-schemes": "Generated OpenAPI derives operation security from contract route auth: user/admin REST operations use bearer/session alternatives, MCP uses bearer-only auth, internal operational endpoints use internal bearer auth, and personal calendar feed export also allows feed tokens.",
+    "security-schemes": "Generated OpenAPI derives operation security from contract route auth: user REST operations use bearer/session alternatives, admin REST operations use session-cookie auth only, MCP uses bearer-only auth, internal operational endpoints use internal bearer auth, and personal calendar feed export also allows feed tokens.",
     "rest-observability": "REST API handling records production-safe structured request-start/request-finish logs and bounded in-memory metrics with request ID, method, status, auth mode, duration, and normalized route template; it does not log request bodies, credentials, raw query strings, or high-cardinality resource IDs."
   },
   "capabilities": {

@@ -3,6 +3,7 @@ import { allowDebugAuth } from "@/lib/auth/auth-config";
 import { getOAuthProviderValidAudiences } from "@/lib/mcp/urls";
 import {
   OAUTH_PROFILE_SCOPE,
+  OAUTH_PROVIDER_GRANT_TYPES,
   OAUTH_PROVIDER_SCOPES,
 } from "@/lib/oauth/constants";
 
@@ -19,6 +20,7 @@ export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
         }
       : undefined,
     scopes: [...OAUTH_PROVIDER_SCOPES],
+    grantTypes: [...OAUTH_PROVIDER_GRANT_TYPES],
     clientRegistrationDefaultScopes: [...OAUTH_PROVIDER_SCOPES],
     clientRegistrationAllowedScopes: [...OAUTH_PROVIDER_SCOPES],
     validAudiences: getOAuthProviderValidAudiences(),

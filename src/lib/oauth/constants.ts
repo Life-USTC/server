@@ -5,6 +5,14 @@ export const OAUTH_AUTHORIZATION_CODE_GRANT_TYPE = "authorization_code";
 export const OAUTH_REFRESH_TOKEN_GRANT_TYPE = "refresh_token";
 export const OAUTH_DEVICE_CODE_GRANT_TYPE =
   "urn:ietf:params:oauth:grant-type:device_code";
+export const OAUTH_PROVIDER_GRANT_TYPES = [
+  OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
+  OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+] as const;
+export const OAUTH_USER_DELEGATED_GRANT_TYPES = [
+  ...OAUTH_PROVIDER_GRANT_TYPES,
+  OAUTH_DEVICE_CODE_GRANT_TYPE,
+] as const;
 export const OAUTH_CODE_RESPONSE_TYPE = "code";
 export const OAUTH_DEVICE_AUTHORIZATION_ENDPOINT_PATH =
   "/api/auth/oauth2/device-authorization";
