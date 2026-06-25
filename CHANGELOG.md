@@ -1,3 +1,13 @@
+## [1.39.2](https://github.com/Life-USTC/server/compare/v1.39.1...v1.39.2) (2026-06-25)
+
+
+### Bug Fixes
+
+* **ci:** avoid duplicate pull request ci runs ([9545e8a](https://github.com/Life-USTC/server/commit/9545e8aaac777bd0690e78bbb0df42620733d130))
+* **ci:** gate release and snapshot previews ([a9e093a](https://github.com/Life-USTC/server/commit/a9e093af4bc8c0536b2c1b68a0b984d78ef71dcd))
+* **ci:** keep snapshot failure comments ([73762bf](https://github.com/Life-USTC/server/commit/73762bf0ec8435c019be7a60983b66f9f1cd5ce0))
+* **loader:** preserve static section fields ([11feeee](https://github.com/Life-USTC/server/commit/11feeeed270adc0d2baf00a6b747a9a07ad39c0a))
+
 ## [1.39.1](https://github.com/Life-USTC/server/compare/v1.39.0...v1.39.1) (2026-06-25)
 
 
