@@ -213,13 +213,17 @@ test("/api/comments/[id] PATCH 可修改评论并 DELETE 清理", async ({ page 
 });
 
 test("/api/comments/[id] PATCH rejects admin when admin is not owner", async ({
-  page,
+  browser,
 }) => {
-  await signInAsDebugUser(page, "/");
-  const sectionId = await resolveSeedSectionId(page.request);
+  const debugContext = await browser.newContext();
+  const debugPage = await debugContext.newPage();
+  const adminContext = await browser.newContext();
+  const adminPage = await adminContext.newPage();
+  await signInAsDebugUser(debugPage, "/");
+  const sectionId = await resolveSeedSectionId(debugPage.request);
 
   const content = `e2e-admin-public-edit-forbidden-${Date.now()}`;
-  const createResponse = await page.request.post("/api/comments", {
+  const createResponse = await debugPage.request.post("/api/comments", {
     data: {
       targetType: "section",
       targetId: String(sectionId),
@@ -235,9 +239,9 @@ test("/api/comments/[id] PATCH rejects admin when admin is not owner", async ({
   }
 
   try {
-    await signInAsDevAdmin(page, "/");
+    await signInAsDevAdmin(adminPage, "/");
 
-    const patchResponse = await page.request.patch(
+    const patchResponse = await adminPage.request.patch(
       `/api/comments/${commentId}`,
       {
         data: { body: `${content}-admin-edited` },
@@ -248,6 +252,8 @@ test("/api/comments/[id] PATCH rejects admin when admin is not owner", async ({
     await withE2ePrisma((prisma) =>
       prisma.comment.deleteMany({ where: { id: commentId } }),
     );
+    await adminContext.close();
+    await debugContext.close();
   }
 });
 
