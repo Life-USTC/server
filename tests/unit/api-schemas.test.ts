@@ -246,6 +246,22 @@ describe("other request schemas", () => {
         body: "hello",
       }).success,
     ).toBe(true);
+    expect(
+      commentCreateRequestSchema.safeParse({
+        targetType: "section",
+        targetId: "123",
+        sectionJwId: "abc",
+        body: "hello",
+      }).success,
+    ).toBe(false);
+    expect(
+      commentCreateRequestSchema.safeParse({
+        targetType: "course",
+        targetId: "123",
+        courseJwId: "0",
+        body: "hello",
+      }).success,
+    ).toBe(false);
   });
 
   it("validates calendar subscription payload", () => {

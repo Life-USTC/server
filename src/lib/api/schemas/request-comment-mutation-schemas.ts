@@ -3,16 +3,32 @@ import {
   commentReactionTypeSchema,
   commentTargetTypeSchema,
   commentVisibilitySchema,
+  parseOptionalInt,
 } from "./request-schema-primitives";
 
 const commentTargetIdReferenceSchema = z.union([z.string(), z.number()]);
+
+const positiveIntegerTargetIdReferenceSchema = z.union([
+  z
+    .string()
+    .trim()
+    .min(1)
+    .refine(
+      (value) => {
+        const parsed = parseOptionalInt(value);
+        return parsed !== null && parsed > 0;
+      },
+      { message: "Invalid integer" },
+    ),
+  z.number().int().min(1),
+]);
 
 export const commentCreateRequestSchema = z.object({
   targetType: commentTargetTypeSchema,
   targetId: commentTargetIdReferenceSchema.optional(),
   sectionId: commentTargetIdReferenceSchema.optional(),
-  sectionJwId: commentTargetIdReferenceSchema.optional(),
-  courseJwId: commentTargetIdReferenceSchema.optional(),
+  sectionJwId: positiveIntegerTargetIdReferenceSchema.optional(),
+  courseJwId: positiveIntegerTargetIdReferenceSchema.optional(),
   teacherId: commentTargetIdReferenceSchema.optional(),
   homeworkId: z.string().trim().min(1).optional(),
   sectionTeacherId: commentTargetIdReferenceSchema.optional(),
