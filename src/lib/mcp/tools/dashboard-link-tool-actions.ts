@@ -20,6 +20,7 @@ import {
 
 type ToolExtra = { authInfo?: AuthInfo };
 type McpModeInput = Parameters<typeof resolveMcpMode>[0];
+type DashboardLinkSummary = DashboardLinksData["dashboardLinks"][number];
 
 function pinnedSlugsFromData(data: DashboardLinksData) {
   return data.pinnedLinks.map((link) => link.slug);
@@ -28,6 +29,18 @@ function pinnedSlugsFromData(data: DashboardLinksData) {
 function normalizeDashboardLinkQuery(query: string | undefined) {
   const normalized = query?.trim().replace(/\s+/g, " ");
   return normalized ? normalized : null;
+}
+
+function dashboardLinkToolSummary(link: DashboardLinkSummary) {
+  return {
+    slug: link.slug,
+    title: link.title,
+    url: link.url,
+    description: link.description,
+    icon: link.icon,
+    group: link.group,
+    isPinned: link.isPinned,
+  };
 }
 
 export async function listDashboardLinksTool(
@@ -50,7 +63,7 @@ export async function listDashboardLinksTool(
       query: normalizedQuery,
       total: data.dashboardLinks.length,
       returned: dashboardLinks.length,
-      dashboardLinks,
+      dashboardLinks: dashboardLinks.map(dashboardLinkToolSummary),
       pinnedSlugs: pinnedSlugsFromData(data),
       maxPinnedLinks: MAX_PINNED_LINKS,
     },

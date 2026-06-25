@@ -26,10 +26,11 @@
           {
             "name": "list_dashboard_links",
             "auth": "user",
-            "returns": "{ success, query, total, returned, dashboardLinks, pinnedSlugs, maxPinnedLinks }",
+            "returns": "{ success, query, total, returned, dashboardLinks: [{ slug, title, url, description, icon, group, isPinned }], pinnedSlugs, maxPinnedLinks }",
             "notes": [
               "Requires MCP user auth because each link summary includes the caller's current isPinned state.",
-              "Optional query reuses the web dashboard link search behavior across title, description, titlePinyin, and descriptionPinyin."
+              "Optional query reuses the web dashboard link search behavior across title, description, titlePinyin, and descriptionPinyin.",
+              "The MCP output exposes target URLs for client-side navigation but omits per-user click telemetry and internal pinyin search fields."
             ]
           }
         ]
