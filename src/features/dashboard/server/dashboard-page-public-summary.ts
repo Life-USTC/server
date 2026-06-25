@@ -5,9 +5,9 @@ export async function loadDashboardPublicSummary(
   prisma: ReturnType<typeof getPrisma> | null,
   referenceNow: Date | null,
 ) {
-  const links = await import("@/features/home/server/dashboard-link-data").then(
-    (mod) => mod.getPublicDashboardLinksData(),
-  );
+  const links = await import(
+    "@/features/dashboard-links/server/dashboard-link-data"
+  ).then((mod) => mod.getPublicDashboardLinksData());
 
   if (!prisma) {
     return {

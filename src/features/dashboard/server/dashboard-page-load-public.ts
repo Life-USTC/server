@@ -2,7 +2,7 @@ import type {
   DashboardPageCopy,
   DashboardPublicCounts,
 } from "@/features/dashboard/server/dashboard-page-load-types";
-import type { DashboardLinkSummary } from "@/features/home/server/dashboard-link-data";
+import type { DashboardLinkSummary } from "@/features/dashboard-links/server/dashboard-link-data";
 import type { AppLocale } from "@/i18n/config";
 
 export async function loadAnonymousDashboardPageData(input: {

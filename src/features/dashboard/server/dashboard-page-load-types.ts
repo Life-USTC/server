@@ -1,4 +1,4 @@
-import type { DashboardLinkSummary } from "@/features/home/server/dashboard-link-data";
+import type { DashboardLinkSummary } from "@/features/dashboard-links/server/dashboard-link-data";
 import type { AppLocale } from "@/i18n/config";
 import type { AppSession } from "@/lib/auth/session";
 import type { getDashboardPageCopy } from "./dashboard-page-copy";

@@ -1,4 +1,4 @@
-import { getSignedInDashboardLinksData } from "./dashboard-link-data";
+import { getSignedInDashboardLinksData } from "@/features/dashboard-links/server/dashboard-link-data";
 
 const EMPTY_DASHBOARD_OVERVIEW_LINKS = {
   dashboardLinks: [],
