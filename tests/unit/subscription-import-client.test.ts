@@ -153,6 +153,19 @@ describe("subscription import client", () => {
     ).toEqual(["MATH.01", "CS_A-2.03"]);
   });
 
+  it("ignores long mixed prose while preserving code-shaped tokens", () => {
+    const prose = Array.from(
+      { length: 520 },
+      (_, index) => `word${index}`,
+    ).join(" ");
+
+    expect(
+      extractSubscriptionSectionCodes(
+        `Paste ${prose} 2026-06-01 09.30 math_01 cs-a_2 DEV-CS201.01 math_01`,
+      ),
+    ).toEqual(["math_01", "cs-a_2", "DEV-CS201.01"]);
+  });
+
   it("posts match-code requests and validates successful payloads", async () => {
     const fetchMock = vi.fn(async () => jsonResponse(matchPayload()));
     vi.stubGlobal("fetch", fetchMock);
