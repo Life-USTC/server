@@ -417,7 +417,7 @@ async function loadEditableCommentContext({
     return { ok: false, error: "locked" };
   }
 
-  if (!viewer.isAdmin && comment.userId !== viewer.userId) {
+  if (comment.userId !== viewer.userId) {
     return { ok: false, error: "forbidden" };
   }
 

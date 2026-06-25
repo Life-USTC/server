@@ -44,6 +44,7 @@
             "returns": "{ success: Boolean, comment: Comment }",
             "auth": "user",
             "notes": [
+              "Only the comment owner may use the public edit endpoint; admins moderate through /api/admin/comments/[id].",
               "Returns 400 Invalid attachments when any requested upload is missing, owned by another user, or already attached to a different comment."
             ]
           },

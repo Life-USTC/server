@@ -13,7 +13,8 @@
  * - Body: { body, visibility?, isAnonymous?, attachmentIds? }
  * - Response: { success: true, comment: CommentNode }
  * - Auth required (401 if unauthenticated)
- * - Only owner or admin can update (403 otherwise)
+ * - Only the owner can update through the public endpoint (403 otherwise)
+ * - Admin moderation uses PATCH /api/admin/comments/{id}
  * - Cannot update deleted or softbanned comments (403 "Comment locked")
  *
  * ## DELETE /api/comments/{id}
@@ -24,7 +25,7 @@
  * - Returns 404 if comment does not exist
  */
 import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../../../utils/auth";
+import { signInAsDebugUser, signInAsDevAdmin } from "../../../../../utils/auth";
 import { DEV_SEED } from "../../../../../utils/dev-seed";
 import { withE2ePrisma } from "../../../../../utils/e2e-db/prisma";
 import { createUploadedFileViaApi } from "../../../../../utils/uploads";
@@ -208,6 +209,45 @@ test("/api/comments/[id] PATCH 可修改评论并 DELETE 清理", async ({ page 
     if (commentId) {
       await page.request.delete(`/api/comments/${commentId}`);
     }
+  }
+});
+
+test("/api/comments/[id] PATCH rejects admin when admin is not owner", async ({
+  page,
+}) => {
+  await signInAsDebugUser(page, "/");
+  const sectionId = await resolveSeedSectionId(page.request);
+
+  const content = `e2e-admin-public-edit-forbidden-${Date.now()}`;
+  const createResponse = await page.request.post("/api/comments", {
+    data: {
+      targetType: "section",
+      targetId: String(sectionId),
+      body: content,
+      visibility: "public",
+    },
+  });
+  expect(createResponse.status()).toBe(200);
+  const commentId = ((await createResponse.json()) as { id?: string }).id;
+  expect(commentId).toBeTruthy();
+  if (!commentId) {
+    throw new Error("Expected created comment id");
+  }
+
+  try {
+    await signInAsDevAdmin(page, "/");
+
+    const patchResponse = await page.request.patch(
+      `/api/comments/${commentId}`,
+      {
+        data: { body: `${content}-admin-edited` },
+      },
+    );
+    expect(patchResponse.status()).toBe(403);
+  } finally {
+    await withE2ePrisma((prisma) =>
+      prisma.comment.deleteMany({ where: { id: commentId } }),
+    );
   }
 });
 

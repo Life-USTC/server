@@ -363,6 +363,7 @@
             }
           }
         },
+        "x-auth-role": "admin",
         "security": [
           {
             "bearerAuth": []
@@ -433,6 +434,7 @@
             }
           }
         },
+        "x-auth-role": "admin",
         "security": [
           {
             "bearerAuth": []
@@ -525,6 +527,7 @@
             }
           }
         },
+        "x-auth-role": "admin",
         "security": [
           {
             "bearerAuth": []
@@ -605,6 +608,7 @@
             }
           }
         },
+        "x-auth-role": "admin",
         "security": [
           {
             "bearerAuth": []
@@ -683,6 +687,7 @@
             }
           }
         },
+        "x-auth-role": "admin",
         "security": [
           {
             "bearerAuth": []
@@ -753,6 +758,7 @@
             }
           }
         },
+        "x-auth-role": "admin",
         "security": [
           {
             "bearerAuth": []
@@ -792,6 +798,7 @@
             }
           }
         },
+        "x-auth-role": "admin",
         "security": [
           {
             "bearerAuth": []
@@ -849,6 +856,7 @@
             }
           }
         },
+        "x-auth-role": "admin",
         "security": [
           {
             "bearerAuth": []
@@ -909,6 +917,7 @@
             }
           }
         },
+        "x-auth-role": "admin",
         "security": [
           {
             "bearerAuth": []
@@ -983,6 +992,7 @@
             }
           }
         },
+        "x-auth-role": "admin",
         "security": [
           {
             "bearerAuth": []
@@ -1053,6 +1063,7 @@
             }
           }
         },
+        "x-auth-role": "admin",
         "security": [
           {
             "bearerAuth": []
@@ -2783,6 +2794,16 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dashboardLinkPinResponseSchema"
+                }
+              }
+            }
+          },
           "303": {
             "description": "Redirect after pin/unpin",
             "headers": {
@@ -2790,6 +2811,36 @@
                 "description": "Redirect target URL",
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dashboardLinkPinResponseSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dashboardLinkPinResponseSchema"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dashboardLinkPinResponseSchema"
                 }
               }
             }
@@ -2835,15 +2886,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "sessionCookie": []
-          }
-        ]
+        }
       },
       "post": {
         "operationId": "recordDashboardLinkVisit",
@@ -2873,15 +2916,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "sessionCookie": []
-          }
-        ]
+        }
       }
     },
     "/api/descriptions": {
