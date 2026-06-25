@@ -1,4 +1,5 @@
 import type * as z from "zod";
+import { extractSectionCodeTokens } from "@/features/catalog/lib/section-code-schema";
 import { apiClient, apiErrorMessage } from "@/lib/api/client";
 import {
   calendarSubscriptionAppendResponseSchema,
@@ -6,10 +7,8 @@ import {
   matchSectionCodesResponseSchema,
 } from "@/lib/api/schemas/misc-response-schema-core";
 
-const SECTION_CODE_PATTERN = /[A-Z0-9_.-]+\.[A-Z0-9]{2}/g;
-
 export function extractSubscriptionSectionCodes(value: string) {
-  return Array.from(new Set(value.match(SECTION_CODE_PATTERN) ?? []));
+  return extractSectionCodeTokens(value);
 }
 
 function validatedPayload<T>(
