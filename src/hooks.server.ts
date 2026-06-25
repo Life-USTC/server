@@ -1,5 +1,5 @@
 import { type Handle, type HandleServerError, redirect } from "@sveltejs/kit";
-import { getOptionalTrimmedEnv } from "@/app-env";
+import { getOptionalTrimmedEnv, loadEnv } from "@/app-env";
 import { LOCALE_COOKIE, negotiateLocale } from "@/i18n/config";
 import { shouldRedirectIncompleteProfileToWelcome } from "@/lib/auth/auth-routing";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
@@ -155,6 +155,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   setCloudflareRuntimeEnv(
     (event.platform as { env?: unknown } | undefined)?.env,
   );
+  loadEnv();
 
   const csrfResponse = crossSiteFormResponse(event);
   if (csrfResponse) return responseWithSecurityHeaders(csrfResponse);

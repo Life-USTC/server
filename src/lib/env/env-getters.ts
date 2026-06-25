@@ -2,6 +2,7 @@ import { APP_PRODUCTION_BUILD_PHASE } from "./env-constants";
 import { trimOrUndefined, normalizeEnvInput } from "./env-normalize";
 import { formatIssues, parseEnv } from "./env-parse";
 import {
+  cloudflareRuntimeRequiredEnvSchema,
   commonEnvSchema,
   type Env,
   runtimeRequiredEnvSchema,
@@ -9,6 +10,7 @@ import {
 import {
   getCloudflareHyperdriveConnectionString,
   getCloudflareRuntimeEnvInput,
+  hasCloudflareRuntimeEnv,
 } from "@/lib/cloudflare/runtime-env";
 
 function getDefaultEnvInput(): NodeJS.ProcessEnv {
@@ -40,10 +42,13 @@ export function loadEnv(
     return env;
   }
 
-  const runtimeResult = runtimeRequiredEnvSchema.safeParse({
-    ...env,
-    DATABASE_URL: env.DATABASE_URL ?? getCloudflareHyperdriveConnectionString(),
-  });
+  const runtimeResult = hasCloudflareRuntimeEnv()
+    ? cloudflareRuntimeRequiredEnvSchema.safeParse({
+        AUTH_SECRET: env.AUTH_SECRET,
+        HYPERDRIVE_CONNECTION_STRING:
+          getCloudflareHyperdriveConnectionString(),
+      })
+    : runtimeRequiredEnvSchema.safeParse(env);
   if (!runtimeResult.success) {
     console.error(
       `❌ Invalid environment variables:\n${formatIssues(runtimeResult.error.issues)}`,

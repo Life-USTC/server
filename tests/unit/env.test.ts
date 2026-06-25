@@ -64,6 +64,26 @@ describe("env validation", () => {
     expect(loadedEnv.DATABASE_URL).toBeUndefined();
   });
 
+  it("requires Cloudflare Hyperdrive in Worker runtime even when DATABASE_URL exists", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv(
+      "DATABASE_URL",
+      "postgresql://postgres:postgres@localhost:5432/app",
+    );
+    vi.stubEnv("AUTH_SECRET", "production-secret");
+
+    const { setCloudflareRuntimeEnv } = await import(
+      "@/lib/cloudflare/runtime-env"
+    );
+    setCloudflareRuntimeEnv({
+      DATABASE_URL: "postgresql://worker:worker@localhost:5432/app",
+    });
+
+    const { loadEnv } = await import("@/app-env");
+
+    expect(() => loadEnv()).toThrow("Invalid environment variables");
+  });
+
   it("returns a typed partial environment in development", async () => {
     vi.stubEnv("NODE_ENV", "development");
     vi.stubEnv("DATABASE_URL", "");

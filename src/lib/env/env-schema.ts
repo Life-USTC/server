@@ -30,4 +30,11 @@ export const runtimeRequiredEnvSchema = z.object({
   AUTH_SECRET: z.string().min(1, "AUTH_SECRET is required"),
 });
 
+export const cloudflareRuntimeRequiredEnvSchema = z.object({
+  HYPERDRIVE_CONNECTION_STRING: z
+    .string()
+    .min(1, "HYPERDRIVE.connectionString is required"),
+  AUTH_SECRET: z.string().min(1, "AUTH_SECRET is required"),
+});
+
 export type Env = z.output<typeof commonEnvSchema>;

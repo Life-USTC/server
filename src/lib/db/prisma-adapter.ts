@@ -1,13 +1,23 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { getOptionalTrimmedEnv } from "@/app-env";
-import { getCloudflareHyperdriveConnectionString } from "@/lib/cloudflare/runtime-env";
+import {
+  getCloudflareHyperdriveConnectionString,
+  hasCloudflareRuntimeEnv,
+} from "@/lib/cloudflare/runtime-env";
 import { logAppEvent } from "@/lib/log/app-logger";
 
 function getRuntimeDatabaseUrl() {
-  return (
-    getCloudflareHyperdriveConnectionString() ??
-    getOptionalTrimmedEnv("DATABASE_URL")
-  );
+  const hyperdriveConnectionString = getCloudflareHyperdriveConnectionString();
+  if (hasCloudflareRuntimeEnv()) {
+    if (!hyperdriveConnectionString) {
+      throw new Error(
+        "HYPERDRIVE is required to initialize Prisma in Cloudflare runtime",
+      );
+    }
+    return hyperdriveConnectionString;
+  }
+
+  return getOptionalTrimmedEnv("DATABASE_URL");
 }
 
 export function createPrismaAdapter(

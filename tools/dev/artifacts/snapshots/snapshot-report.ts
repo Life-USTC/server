@@ -400,6 +400,26 @@ function entryFailed(entry: SnapshotEntry) {
   return entry.status !== entry.expectedStatus;
 }
 
+function captureStatusText(status: string) {
+  const normalized = status.trim().toLowerCase();
+  if (normalized === "failure") return "failed";
+  if (normalized === "cancelled") return "was cancelled";
+  if (normalized === "skipped") return "was skipped";
+  return `finished with status ${status}`;
+}
+
+function snapshotResultText(status: string, failedCount: number) {
+  if (status.trim().toLowerCase() !== "success") {
+    return failedCount === 0
+      ? `snapshot capture ${captureStatusText(status)} before failed manifest entries were recorded.`
+      : `snapshot capture ${captureStatusText(status)} and recorded ${failedCount} failed entries.`;
+  }
+
+  return failedCount === 0
+    ? "snapshot capture completed without failed entries."
+    : `snapshot capture recorded ${failedCount} failed entries.`;
+}
+
 function linkToArtifact(label: string, artifactUrl: string, filePath?: string) {
   if (!filePath) return "-";
   return `<a href="${escapeAttribute(artifactUrl)}">${escapeHtml(label)}</a><br><sub>${escapeHtml(filePath)}</sub>`;
@@ -853,10 +873,7 @@ async function renderSnapshotComment(argv: string[]) {
   const workflowValue = options.workflowUrl
     ? `[open](${options.workflowUrl})`
     : "-";
-  const resultText =
-    failedCount === 0
-      ? "snapshot capture completed without failed entries."
-      : `snapshot capture recorded ${failedCount} failed entries.`;
+  const resultText = snapshotResultText(options.status, failedCount);
   const capturedText = [
     `${pageEntries.length} screenshots`,
     `${apiEntries.length} API responses`,
