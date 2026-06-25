@@ -1,3 +1,10 @@
+## [1.37.18](https://github.com/Life-USTC/server/compare/v1.37.17...v1.37.18) (2026-06-25)
+
+
+### Bug Fixes
+
+* **ui:** use accessible menu and row actions ([50f50a0](https://github.com/Life-USTC/server/commit/50f50a04cbbb2bf6086e552f840d12d5656a93f2))
+
 ## [1.37.17](https://github.com/Life-USTC/server/compare/v1.37.16...v1.37.17) (2026-06-25)
 
 
