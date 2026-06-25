@@ -1197,6 +1197,7 @@
     "deleteAccountConfirmTitle": "Are you absolutely sure?",
     "deleteAccountConfirmDescription": "This action cannot be undone. This will permanently delete your account, all linked accounts, section subscriptions, and remove all your data from our servers.",
     "deleteAccountConfirmPrompt": "Type {phrase} to confirm:",
+    "deleteAccountFinalAdmin": "At least one admin must remain before this account can be deleted.",
     "deleteAccountSuccess": "Account Deleted",
     "deleteAccountSuccessDescription": "Your account has been permanently deleted.",
     "deleteAccountError": "Error",

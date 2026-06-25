@@ -1,5 +1,6 @@
 import { fireAuditLog } from "@/lib/audit/write-audit-log";
 import { getViewerContext } from "@/lib/auth/viewer-context";
+import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
 import {
   type DescriptionTargetType,
   resolveDescriptionTarget,
@@ -55,43 +56,52 @@ export async function upsertDescriptionContent({
   }
 
   const { prisma } = await import("@/lib/db/prisma");
-  const result = await prisma.$transaction(async (tx) => {
-    const existing = await tx.description.findFirst({
-      where: target.where,
+  const writeDescription = () =>
+    prisma.$transaction(async (tx) => {
+      const existing = await tx.description.findFirst({
+        where: target.where,
+      });
+      if (existing && existing.content === content) {
+        return { id: existing.id, updated: false };
+      }
+
+      const description = existing
+        ? await tx.description.update({
+            where: { id: existing.id },
+            data: {
+              content,
+              lastEditedAt: new Date(),
+              lastEditedById: userId,
+            },
+          })
+        : await tx.description.create({
+            data: {
+              content,
+              lastEditedAt: new Date(),
+              lastEditedById: userId,
+              ...target.where,
+            },
+          });
+
+      await tx.descriptionEdit.create({
+        data: {
+          descriptionId: description.id,
+          editorId: userId,
+          previousContent: existing?.content ?? null,
+          nextContent: content,
+        },
+      });
+
+      return { id: description.id, updated: true };
     });
-    if (existing && existing.content === content) {
-      return { id: existing.id, updated: false };
-    }
 
-    const description = existing
-      ? await tx.description.update({
-          where: { id: existing.id },
-          data: {
-            content,
-            lastEditedAt: new Date(),
-            lastEditedById: userId,
-          },
-        })
-      : await tx.description.create({
-          data: {
-            content,
-            lastEditedAt: new Date(),
-            lastEditedById: userId,
-            ...target.where,
-          },
-        });
-
-    await tx.descriptionEdit.create({
-      data: {
-        descriptionId: description.id,
-        editorId: userId,
-        previousContent: existing?.content ?? null,
-        nextContent: content,
-      },
-    });
-
-    return { id: description.id, updated: true };
-  });
+  let result: Awaited<ReturnType<typeof writeDescription>>;
+  try {
+    result = await writeDescription();
+  } catch (error) {
+    if (!isPrismaUniqueConstraintError(error)) throw error;
+    result = await writeDescription();
+  }
 
   if (result.updated) {
     writeDescriptionEditAuditLog({

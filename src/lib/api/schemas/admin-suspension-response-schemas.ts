@@ -7,7 +7,7 @@ import {
 const adminSuspensionSchema = z.object({
   id: z.string(),
   userId: z.string(),
-  createdById: z.string(),
+  createdById: z.string().nullable(),
   createdAt: dateTimeSchema,
   reason: z.string().nullable(),
   note: z.string().nullable(),

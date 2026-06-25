@@ -25,6 +25,7 @@ import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
+import { createUploadedFileViaApi } from "../../../../utils/uploads";
 import { assertApiContract } from "../../_shared/api-contract";
 
 /** Resolve the seed section's internal DB id via match-codes. */
@@ -254,6 +255,54 @@ test("/api/comments POST 登录后可发布新评论并清理", async ({ page })
     if (createdId) {
       await page.request.delete(`/api/comments/${createdId}`);
     }
+  }
+});
+
+test("/api/comments POST rejects reusing an uploaded attachment", async ({
+  page,
+}) => {
+  await signInAsDebugUser(page, "/");
+  const sectionId = await resolveSeedSectionId(page.request);
+  const marker = `e2e-upload-reuse-${Date.now()}`;
+  const firstContent = `${marker}-first`;
+  const secondContent = `${marker}-second`;
+  const uploaded = await createUploadedFileViaApi(page.request, {
+    filename: `${marker}.txt`,
+    contents: "one upload should attach to one comment",
+  });
+
+  try {
+    const firstResponse = await page.request.post("/api/comments", {
+      data: {
+        targetType: "section",
+        targetId: String(sectionId),
+        body: firstContent,
+        visibility: "public",
+        attachmentIds: [uploaded.uploadId],
+      },
+    });
+    expect(firstResponse.status()).toBe(200);
+
+    const secondResponse = await page.request.post("/api/comments", {
+      data: {
+        targetType: "section",
+        targetId: String(sectionId),
+        body: secondContent,
+        visibility: "public",
+        attachmentIds: [uploaded.uploadId],
+      },
+    });
+    expect(secondResponse.status()).toBe(400);
+    await expect(secondResponse.json()).resolves.toEqual({
+      error: "Invalid attachments",
+    });
+  } finally {
+    await withE2ePrisma((prisma) =>
+      prisma.comment.deleteMany({
+        where: { body: { in: [firstContent, secondContent] } },
+      }),
+    );
+    await page.request.delete(`/api/uploads/${uploaded.uploadId}`);
   }
 });
 

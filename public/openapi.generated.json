@@ -9001,6 +9001,7 @@
                   "type": "string"
                 },
                 "createdById": {
+                  "nullable": true,
                   "type": "string"
                 },
                 "createdAt": {
@@ -9084,6 +9085,7 @@
                 "type": "string"
               },
               "createdById": {
+                "nullable": true,
                 "type": "string"
               },
               "createdAt": {

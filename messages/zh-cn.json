@@ -1163,6 +1163,7 @@
     "deleteAccountConfirmTitle": "您确定要删除吗？",
     "deleteAccountConfirmDescription": "此操作无法撤销。这将永久删除您的账户、所有关联账户、关注班级，并从我们的服务器中删除您的所有数据。",
     "deleteAccountConfirmPrompt": "输入 {phrase} 以确认：",
+    "deleteAccountFinalAdmin": "删除此账户前必须至少保留一名管理员。",
     "deleteAccountSuccess": "账户已删除",
     "deleteAccountSuccessDescription": "您的账户已被永久删除。",
     "deleteAccountError": "错误",

@@ -33,13 +33,19 @@
             "path": "/api/comments",
             "method": "POST",
             "returns": "{ id: String }",
-            "auth": "user"
+            "auth": "user",
+            "notes": [
+              "Returns 400 Invalid attachments when any requested upload is missing, owned by another user, or already attached to a comment."
+            ]
           },
           {
             "path": "/api/comments/[id]",
             "method": "PATCH",
             "returns": "{ success: Boolean, comment: Comment }",
-            "auth": "user"
+            "auth": "user",
+            "notes": [
+              "Returns 400 Invalid attachments when any requested upload is missing, owned by another user, or already attached to a different comment."
+            ]
           },
           {
             "path": "/api/comments/[id]",

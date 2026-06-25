@@ -646,8 +646,8 @@ model HomeworkAuditLog {
 model AuditLog {
   id         String      @id @default(cuid())
   action     AuditAction
-  userId     String
-  user       User        @relation(fields: [userId], references: [id])
+  userId     String?
+  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   targetId   String?
   targetType String?
   metadata   Json?
@@ -933,14 +933,13 @@ model CommentAttachment {
   id String @id @default(cuid())
 
   commentId String
-  uploadId  String
+  uploadId  String   @unique
   createdAt DateTime @default(now())
 
   comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   upload  Upload  @relation(fields: [uploadId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, uploadId])
-  @@index([uploadId])
 }
 
 model CommentReaction {
@@ -964,7 +963,7 @@ model UserSuspension {
   id String @id @default(cuid())
 
   userId      String
-  createdById String
+  createdById String?
   createdAt   DateTime @default(now())
   reason      String?
   note        String?
@@ -974,7 +973,7 @@ model UserSuspension {
   liftedById String?
 
   user      User  @relation("SuspendedUser", fields: [userId], references: [id], onDelete: Cascade)
-  createdBy User  @relation("SuspensionCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  createdBy User? @relation("SuspensionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   liftedBy  User? @relation("SuspensionLiftedBy", fields: [liftedById], references: [id], onDelete: SetNull)
 
   @@index([userId])

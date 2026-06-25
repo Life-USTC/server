@@ -15,7 +15,8 @@
     "post-login-redirect": "After successful login, the user should be redirected back to the originally requested app-relative page whenever possible; unsafe external callbacks fall back to the home page.",
     "oauth-login-resume": "If an OAuth authorization request lands on /signin with raw authorization query parameters instead of callbackUrl, the sign-in flow should resume that exact authorization request after login rather than falling back to /.",
     "oauth-consent-loopback-continuation": "The OAuth consent step must continue working for loopback public clients even when the client uses 127.0.0.1 and the app itself is being browsed via localhost; consent submission should preserve the original authorization query and complete the redirect back to the registered loopback callback.",
-    "public-identity-display": "Public identity defaults to displaying name or username, not internal identifiers."
+    "public-identity-display": "Public identity defaults to displaying name or username, not internal identifiers.",
+    "account-deletion-retention": "Settings account deletion runs through a transaction that anonymizes retained audit rows and issued suspension moderation records. Deleting an admin account is allowed only when at least one other admin remains."
   },
   "capabilities": {
     "sign-in": {
