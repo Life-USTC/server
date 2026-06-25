@@ -6,6 +6,7 @@ Infrastructure and shared helpers.
 
 ```
 api/       Request/response, schemas, status
+api/routes/ HTTP route adapters; scoped feature-import exception
 auth/      Session resolution, permissions
 components/ Shared UI primitives and layout components
 db/        Prisma instances
@@ -41,7 +42,8 @@ import { formatShanghaiDate } from "@/lib/time/shanghai-format";
 ## Rules
 
 - No business logic (use `src/features/`)
-- `src/lib/api/routes` adapts HTTP to feature/server functions; do not call route handlers from features or page actions
+- `src/lib/api/routes` is the scoped HTTP adapter exception: it may import feature server code to parse HTTP requests, call features, and serialize responses
+- Do not import route adapters from features, page actions, or generic `src/lib` helpers; `src/routes/api/**/+server.ts` should stay thin and delegate to them
 - No raw `@prisma/client` imports outside approved adapters/scripts
 - Use shared helpers
 - OAuth: never log tokens/secrets
