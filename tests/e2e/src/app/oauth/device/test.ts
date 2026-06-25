@@ -21,6 +21,7 @@ import {
   type APIRequestContext,
   expect,
   type Page,
+  type TestInfo,
   test,
 } from "@playwright/test";
 import {
@@ -38,7 +39,10 @@ import {
   PLAYWRIGHT_BASE_URL,
 } from "../../../../utils/e2e-db";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
+import {
+  capturePageScreenshot,
+  captureStepScreenshot,
+} from "../../../../utils/screenshot";
 
 type DeviceAuthorizationResult = {
   clientId: string;
@@ -141,11 +145,24 @@ async function requestDeviceCode(
 async function approveDeviceCode(
   page: Page,
   result: DeviceAuthorizationResult,
+  options: {
+    screenshot?: { label: string; testInfo: TestInfo };
+    visibleResources?: string[];
+  } = {},
 ) {
   await signInAsDebugUser(
     page,
     getVerificationPath(result.verificationUriComplete),
   );
+  for (const resource of options.visibleResources ?? []) {
+    await expect(page.getByText(resource, { exact: true })).toBeVisible();
+  }
+  if (options.screenshot) {
+    await capturePageScreenshot(page, options.screenshot.testInfo, {
+      url: page.url(),
+      label: options.screenshot.label,
+    });
+  }
   await page.getByRole("button", { name: /允许|Allow|批准|Approve/i }).click();
   await expect(page).toHaveURL(/\/oauth\/device\?result=approved/);
 }
@@ -350,7 +367,7 @@ test("/oauth/device authenticated user sees approval screen", async ({
 test("/oauth/device resource-bound token authenticates REST and MCP", async ({
   page,
   request,
-}) => {
+}, testInfo) => {
   const clientName = `device-e2e-resource-token-${Date.now()}`;
   const restResource = `${PLAYWRIGHT_BASE_URL}/api/auth`;
   const mcpResource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
@@ -362,7 +379,10 @@ test("/oauth/device resource-bound token authenticates REST and MCP", async ({
       scope: DEVICE_MCP_CLIENT_SCOPES.join(" "),
     });
 
-    await approveDeviceCode(page, result);
+    await approveDeviceCode(page, result, {
+      screenshot: { label: "resource-approval", testInfo },
+      visibleResources: resources,
+    });
     const { accessToken, refreshToken } = await exchangeDeviceToken(
       request,
       result,

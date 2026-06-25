@@ -41,6 +41,22 @@ $: clientRequestParts = copy.deviceClientRequest.split("{app}");
   </section>
 {/if}
 
+{#if approvalRequest.resources.length > 0}
+  <section class="min-w-0 rounded-md border border-base-300 bg-base-200/50 p-4">
+    <h2 class="flex min-w-0 items-center gap-2 font-medium text-sm">
+      <ShieldAlert />
+      <span class="min-w-0 break-words">{copy.deviceRequestedResources}</span>
+    </h2>
+    <div class="mt-3 flex flex-wrap gap-2">
+      {#each approvalRequest.resources as resource}
+        <Badge class="max-w-full whitespace-normal break-all font-mono text-left" variant="outline">
+          {resource}
+        </Badge>
+      {/each}
+    </div>
+  </section>
+{/if}
+
 <div class="grid grid-cols-2 gap-3">
   <form method="POST" action="?/deny" use:enhance={deviceDecisionAction("deny")}>
     <input type="hidden" name="userCode" value={approvalRequest.userCode} />

@@ -21,6 +21,7 @@ export async function loadDeviceApprovalState({
     where: { userCode },
     select: {
       userCode: true,
+      resources: true,
       scopes: true,
       status: true,
       expiresAt: true,
@@ -79,6 +80,7 @@ export async function loadDeviceApprovalState({
     request: {
       userCode: record.userCode,
       clientName: record.client.name ?? record.client.clientId,
+      resources: record.resources,
       scopes: record.scopes,
     },
     copy,

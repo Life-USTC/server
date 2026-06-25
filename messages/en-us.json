@@ -1831,6 +1831,7 @@
     "deviceCodeHint": "Enter the code displayed on your device.",
     "deviceClientRequest": "{app} is requesting access to your account.",
     "deviceRequestedPermissions": "Requested permissions",
+    "deviceRequestedResources": "Requested resources",
     "deviceApprovedBadge": "Approved",
     "deviceDeniedBadge": "Denied",
     "deviceApprovedTitle": "Device Approved",
