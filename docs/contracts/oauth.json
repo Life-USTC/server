@@ -58,21 +58,25 @@
         "routes": [
           {
             "path": "/api/auth/.well-known/openid-configuration",
+            "methods": ["GET", "OPTIONS"],
             "returns": "OIDCDiscoveryDocument",
             "auth": "anon"
           },
           {
             "path": "/.well-known/oauth-authorization-server",
+            "methods": ["GET", "OPTIONS"],
             "returns": "307 redirect to /.well-known/oauth-authorization-server/api/auth",
             "auth": "anon"
           },
           {
             "path": "/.well-known/openid-configuration",
+            "methods": ["GET", "OPTIONS"],
             "returns": "307 redirect to /api/auth/.well-known/openid-configuration",
             "auth": "anon"
           },
           {
             "path": "/.well-known/oauth-protected-resource",
+            "methods": ["GET", "OPTIONS"],
             "returns": "307 redirect to /.well-known/oauth-protected-resource/api/mcp",
             "auth": "anon"
           },
@@ -84,36 +88,43 @@
           },
           {
             "path": "/.well-known/oauth-authorization-server/api/auth",
+            "methods": ["GET", "OPTIONS"],
             "returns": "OAuthAuthorizationServerMetadata",
             "auth": "anon"
           },
           {
             "path": "/.well-known/oauth-authorization-server/api/mcp",
+            "methods": ["GET", "OPTIONS"],
             "returns": "307 redirect to /.well-known/oauth-authorization-server/api/auth",
             "auth": "anon"
           },
           {
             "path": "/.well-known/openid-configuration/api/auth",
+            "methods": ["GET", "OPTIONS"],
             "returns": "OIDCDiscoveryDocument",
             "auth": "anon"
           },
           {
             "path": "/.well-known/openid-configuration/api/mcp",
+            "methods": ["GET", "OPTIONS"],
             "returns": "307 redirect to /api/auth/.well-known/openid-configuration",
             "auth": "anon"
           },
           {
             "path": "/.well-known/oauth-protected-resource/api/mcp",
+            "methods": ["GET", "OPTIONS"],
             "returns": "OAuthProtectedResourceMetadata",
             "auth": "anon"
           },
           {
             "path": "/api/mcp/.well-known/oauth-authorization-server",
+            "methods": ["GET", "OPTIONS"],
             "returns": "307 redirect to /.well-known/oauth-authorization-server/api/auth",
             "auth": "anon"
           },
           {
             "path": "/api/mcp/.well-known/openid-configuration",
+            "methods": ["GET", "OPTIONS"],
             "returns": "307 redirect to /api/auth/.well-known/openid-configuration",
             "auth": "anon"
           }
@@ -148,6 +159,15 @@
               "The client must be an enabled public client registered with urn:ietf:params:oauth:grant-type:device_code; omitted scope defaults to low-risk openid/profile scopes allowed by the client, while optional repeated resource parameters are validated against provider audiences and persisted with the pending device code.",
               "Supports CORS (Access-Control-Allow-Origin: *); OPTIONS returns a 204 CORS preflight response.",
               ".well-known/openid-configuration already includes device_authorization_endpoint and urn:ietf:params:oauth:grant-type:device_code in grant_types_supported."
+            ]
+          },
+          {
+            "path": "/api/auth/oauth2/device-authorization",
+            "method": "OPTIONS",
+            "returns": "204 CORS preflight response",
+            "auth": "anon",
+            "notes": [
+              "Supports unauthenticated browser preflight for public OAuth device authorization clients."
             ]
           },
           {

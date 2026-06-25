@@ -1,10 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import Ajv2020 from "ajv/dist/2020";
-import {
-  getExportedRouteMethods,
-  type HttpMethod,
-} from "../../shared/route-exports";
+import { getExportedRouteMethods } from "../../shared/route-exports";
 import { fail, reportUnexpectedError, walkFiles } from "./common";
 
 function checkContractsDoc() {
@@ -53,6 +50,7 @@ function checkContractsDoc() {
   type ContractRouteEntry = {
     path: string;
     method?: string;
+    methods?: string[];
     auth?: ContractAuthLevel;
     returns?: string;
     notes?: string[];
@@ -129,13 +127,6 @@ function checkContractsDoc() {
   }
 
   function collectImplementedRestRoutes(): Set<string> {
-    const contractMethods = [
-      "GET",
-      "POST",
-      "PUT",
-      "PATCH",
-      "DELETE",
-    ] as const satisfies readonly HttpMethod[];
     const routes = new Set<string>();
 
     for (const routeRoot of restRouteRoots) {
@@ -144,7 +135,7 @@ function checkContractsDoc() {
       )) {
         const source = readFileSync(file, "utf8");
         const routePath = parseImplementedRoutePath(file);
-        for (const method of getExportedRouteMethods(source, contractMethods)) {
+        for (const method of getExportedRouteMethods(source)) {
           routes.add(`${method} ${routePath}`);
         }
       }
@@ -168,17 +159,18 @@ function checkContractsDoc() {
         if (!capability.rest || typeof capability.rest !== "object") continue;
         const capabilityAuth = capability.auth ?? "anon";
         for (const route of capability.rest.routes ?? []) {
-          const method = route.method ?? "GET";
-          const key = `${method} ${route.path}`;
-          routes.push({
-            key,
-            method,
-            path: route.path,
-            auth: route.auth ?? capabilityAuth,
-            moduleName,
-            capabilityName,
-            route,
-          });
+          for (const method of route.methods ?? [route.method ?? "GET"]) {
+            const key = `${method} ${route.path}`;
+            routes.push({
+              key,
+              method,
+              path: route.path,
+              auth: route.auth ?? capabilityAuth,
+              moduleName,
+              capabilityName,
+              route,
+            });
+          }
         }
       }
     }
