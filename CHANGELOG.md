@@ -1,3 +1,10 @@
+# [1.39.0](https://github.com/Life-USTC/server/compare/v1.38.1...v1.39.0) (2026-06-25)
+
+
+### Features
+
+* **mcp:** close upload and homework parity gaps ([a780d20](https://github.com/Life-USTC/server/commit/a780d2090ea766aa24f2c7f69d6893671a014a7c))
+
 ## [1.38.1](https://github.com/Life-USTC/server/compare/v1.38.0...v1.38.1) (2026-06-25)
 
 
