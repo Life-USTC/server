@@ -4,6 +4,10 @@ import type {
   BusUserPreferenceSummary,
 } from "../lib/bus-types";
 
+type SaveBusPreferenceResult =
+  | { ok: true; preference: BusUserPreferenceSummary }
+  | { ok: false; error: string };
+
 export async function getBusPreference(
   userId: string | null,
 ): Promise<BusUserPreferenceSummary | null> {
@@ -31,7 +35,12 @@ export async function getBusPreference(
 export async function saveBusPreference(
   userId: string,
   payload: BusPreferencePayload,
-) {
+): Promise<SaveBusPreferenceResult> {
+  const validationError = await validatePreferredBusCampuses(payload);
+  if (validationError) {
+    return { ok: false, error: validationError };
+  }
+
   const data = {
     preferredOriginCampusId: payload.preferredOriginCampusId,
     preferredDestinationCampusId: payload.preferredDestinationCampusId,
@@ -46,5 +55,43 @@ export async function saveBusPreference(
     update: data,
   });
 
-  return { ...data } satisfies BusUserPreferenceSummary;
+  return {
+    ok: true,
+    preference: { ...data } satisfies BusUserPreferenceSummary,
+  };
+}
+
+async function validatePreferredBusCampuses(payload: BusPreferencePayload) {
+  const campusIds = Array.from(
+    new Set(
+      [
+        payload.preferredOriginCampusId,
+        payload.preferredDestinationCampusId,
+      ].filter((id): id is number => id !== null),
+    ),
+  );
+
+  if (campusIds.length === 0) return null;
+
+  const campuses = await prisma.busCampus.findMany({
+    where: { id: { in: campusIds } },
+    select: { id: true },
+  });
+  const knownCampusIds = new Set(campuses.map((campus) => campus.id));
+
+  if (
+    payload.preferredOriginCampusId !== null &&
+    !knownCampusIds.has(payload.preferredOriginCampusId)
+  ) {
+    return "Unknown preferred origin campus";
+  }
+
+  if (
+    payload.preferredDestinationCampusId !== null &&
+    !knownCampusIds.has(payload.preferredDestinationCampusId)
+  ) {
+    return "Unknown preferred destination campus";
+  }
+
+  return null;
 }
