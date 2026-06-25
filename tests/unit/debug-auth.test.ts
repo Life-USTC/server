@@ -58,7 +58,9 @@ describe("debug auth config", () => {
     vi.stubEnv("NODE_ENV", "test");
     vi.stubEnv("E2E_DEBUG_AUTH", "1");
 
-    await expect(import("@/lib/auth/debug-auth")).rejects.toThrow(
+    const { getDebugProviderConfig } = await import("@/lib/auth/debug-auth");
+
+    expect(() => getDebugProviderConfig(DEV_DEBUG_PROVIDER_ID)).toThrow(
       "DEV_DEBUG_PASSWORD is required when E2E_DEBUG_AUTH=1 (non-development NODE_ENV)",
     );
   });

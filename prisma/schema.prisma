@@ -1268,6 +1268,7 @@ model DeviceCode {
   deviceCode String   @unique
   userCode   String   @unique
   scopes     String[] @default([])
+  resources  String[] @default([])
 
   clientId String
   client   OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)

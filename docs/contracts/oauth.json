@@ -11,13 +11,13 @@
     "user-consent-framing": "Users see 'what this app wants and whether I allow it', not technical protocol details.",
     "dcr-via-provider": "Dynamic client registration is handled by the standard /oauth2/register path of the Better Auth OAuth provider; the project no longer maintains a parallel hand-written DCR persistence logic.",
     "dcr-device-only-no-redirect": "Dynamic client registration for a device-only client may omit redirect_uris; any provider-adapter placeholder redirect URI must not be persisted or returned as registered client metadata.",
-    "dcr-rules-from-provider": "Default scopes, allowed scopes, public/confidential restrictions, and PKCE rules for DCR should be uniformly decided by the Better Auth provider configuration, not re-implemented as an approximate set of rules at the application layer.",
+    "dcr-rules-from-provider": "Default scopes, allowed scopes, public/confidential restrictions, and PKCE rules for DCR should be uniformly decided by the Better Auth provider configuration, not re-implemented as an approximate set of rules at the application layer. Public DCR defaults to low-risk openid/profile scopes; clients must explicitly request email, offline_access, or mcp:tools.",
     "trusted-clients-admin-backend": "First-party / internal applications prefer using trusted OAuth clients created in the admin backend; such clients can skip consent and can further be incorporated into the Better Auth provider's trusted / cached client scheme when needed, rather than relying on public DCR.",
     "public-clients-pkce": "Public MCP / CLI / native clients use public + PKCE mode; admin copy and grouping should explicitly separate trusted first-party from external/public to reduce admin misconfiguration probability.",
     "user-delegated-grants-only": "OAuth discovery metadata advertises only user-delegated grants: authorization_code, refresh_token, and the custom device_code grant. It must not advertise client_credentials unless a real service-account authority model is introduced.",
     "client-validation-from-provider": "When creating clients in the admin backend, redirect URI and client metadata validation should preferentially reuse the rules of the Better Auth OAuth provider, no longer maintaining a local forked rule document.",
     "loopback-redirect-tolerance": "For public native clients with loopback redirect URIs, the server should accommodate the hostname alias difference between 127.0.0.1 and localhost to avoid DCR registration and authorization requests failing solely due to these two local loopback representations; beyond this, strict matching is maintained for path, query, scheme, and non-loopback host rules.",
-    "device-grant-custom": "The device authorization flow is currently still implemented by the project as a custom implementation, because the existing Better Auth device-authorization plugin returns a session token rather than the OAuth bearer-token / refresh-token semantics of this project; it should not be forcibly replaced until the provider natively supports the OAuth device grant.",
+    "device-grant-custom": "The device authorization flow is currently still implemented by the project as a custom implementation, because the existing Better Auth device-authorization plugin returns a session token rather than the OAuth bearer-token / refresh-token semantics of this project. It is limited to enabled public clients registered with the custom device_code grant, and approved resource parameters are used to mint provider-compatible JWT access tokens for REST/MCP audiences.",
     "mcp-refresh-resource-binding": "Refresh-token requests for grants that already include mcp:tools are treated as MCP resource refreshes when the client omits resource, so the returned access token remains usable at /api/mcp without weakening the transport's audience check.",
     "token-endpoint-observability": "OAuth token handling records production-safe metrics for grant type, resource-parameter presence, status, and duration; token values, authorization codes, refresh tokens, client secrets, and cookies must never be logged or exported.",
     "oauth-proxy-for-dev": "Local development and preview deployments without fixed hostnames can reuse the production site's registered provider callback address through an OAuth proxy; after the preview/local instance shares the proxy encryption key with the production instance, the production site completes the provider callback and sends the encrypted user profile back to the current instance to establish a local session.",
@@ -132,6 +132,7 @@
     },
     "device-authorization-grant": {
       "title": "Device Authorization Grant (RFC 8628)",
+      "description": "No MCP tool starts device authorization; bearer tokens minted by this flow can call REST and MCP when the approved device request is resource-bound and scoped appropriately.",
       "auth": "anon",
       "web": {
         "pages": ["/oauth/device"]
@@ -144,8 +145,8 @@
             "returns": "{ device_code, user_code, verification_uri, verification_uri_complete, expires_in, interval }",
             "notes": [
               "Request body is application/x-www-form-urlencoded.",
-              "Supports CORS (Access-Control-Allow-Origin: *).",
-              "OPTIONS returns a 204 CORS preflight response.",
+              "The client must be an enabled public client registered with urn:ietf:params:oauth:grant-type:device_code; omitted scope defaults to low-risk openid/profile scopes allowed by the client, while optional repeated resource parameters are validated against provider audiences and persisted with the pending device code.",
+              "Supports CORS (Access-Control-Allow-Origin: *); OPTIONS returns a 204 CORS preflight response.",
               ".well-known/openid-configuration already includes device_authorization_endpoint and urn:ietf:params:oauth:grant-type:device_code in grant_types_supported."
             ]
           },
@@ -155,6 +156,8 @@
             "returns": "{ access_token, token_type, expires_in, expires_at?, refresh_token?, scope?, id_token? } | { error, error_description? }",
             "notes": [
               "The device polls this endpoint with grant_type=urn:ietf:params:oauth:grant-type:device_code and device_code to obtain an access token.",
+              "If resource parameters are included while polling, they must match the resources approved through the device authorization request; resource-bound device grants return JWT access tokens accepted by matching REST/MCP audiences.",
+              "A refresh token is returned only when the approved scope includes offline_access.",
               "During polling, returns authorization_pending, slow_down, expired_token, access_denied, invalid_scope, or invalid_grant error codes based on state."
             ]
           },

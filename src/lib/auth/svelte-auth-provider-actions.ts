@@ -12,7 +12,7 @@ export async function signInDebugProvider(
   providerId: DebugProviderId,
 ): Promise<AuthActionResponse> {
   const { allowDebugAuth } = await import("@/lib/auth/auth-config");
-  if (!allowDebugAuth) throw new Error("Debug auth is disabled");
+  if (!allowDebugAuth()) throw new Error("Debug auth is disabled");
 
   const { authApi } = await import("@/lib/auth/core");
   const { ensureDebugCredentialUser, getDebugProviderConfig } = await import(

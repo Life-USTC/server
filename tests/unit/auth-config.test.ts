@@ -14,9 +14,9 @@ describe("auth config", () => {
       "@/lib/auth/auth-config"
     );
 
-    expect(isDevelopment).toBe(true);
-    expect(allowE2EDebugAuth).toBe(false);
-    expect(allowDebugAuth).toBe(true);
+    expect(isDevelopment()).toBe(true);
+    expect(allowE2EDebugAuth()).toBe(false);
+    expect(allowDebugAuth()).toBe(true);
   });
 
   it("allows E2E debug auth outside development when explicitly enabled", async () => {
@@ -27,9 +27,9 @@ describe("auth config", () => {
       "@/lib/auth/auth-config"
     );
 
-    expect(isDevelopment).toBe(false);
-    expect(allowE2EDebugAuth).toBe(true);
-    expect(allowDebugAuth).toBe(true);
+    expect(isDevelopment()).toBe(false);
+    expect(allowE2EDebugAuth()).toBe(true);
+    expect(allowDebugAuth()).toBe(true);
   });
 
   it("rejects E2E debug auth on Vercel hosting", async () => {
@@ -37,7 +37,8 @@ describe("auth config", () => {
     vi.stubEnv("E2E_DEBUG_AUTH", "1");
     vi.stubEnv("VERCEL", "1");
 
-    await expect(import("@/lib/auth/auth-config")).rejects.toThrow(
+    const { allowDebugAuth } = await import("@/lib/auth/auth-config");
+    expect(() => allowDebugAuth()).toThrow(
       "E2E_DEBUG_AUTH must not be set in production hosting",
     );
   });
@@ -47,7 +48,8 @@ describe("auth config", () => {
     vi.stubEnv("E2E_DEBUG_AUTH", "1");
     vi.stubEnv("VERCEL", "");
 
-    await expect(import("@/lib/auth/auth-config")).rejects.toThrow(
+    const { allowDebugAuth } = await import("@/lib/auth/auth-config");
+    expect(() => allowDebugAuth()).toThrow(
       "E2E_DEBUG_AUTH must not be set in production hosting",
     );
   });

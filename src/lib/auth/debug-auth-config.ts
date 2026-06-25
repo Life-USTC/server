@@ -53,7 +53,9 @@ const DEBUG_PROVIDER_DEFAULTS: Record<DebugProviderId, DebugProviderDefaults> =
     },
   };
 
-const requiresExplicitDebugPassword = allowE2EDebugAuth && !isDevelopment;
+function requiresExplicitDebugPassword() {
+  return allowE2EDebugAuth() && !isDevelopment();
+}
 
 function getLowercaseDebugEnv(envName: string, fallback: string) {
   return getOptionalTrimmedEnv(envName)?.toLowerCase() ?? fallback;
@@ -61,7 +63,7 @@ function getLowercaseDebugEnv(envName: string, fallback: string) {
 
 function getDebugPassword(envName: string, fallback: string) {
   const value = getOptionalTrimmedEnv(envName);
-  if (requiresExplicitDebugPassword) {
+  if (requiresExplicitDebugPassword()) {
     if (!value) {
       throw new Error(
         `${envName} is required when E2E_DEBUG_AUTH=1 (non-development NODE_ENV)`,
@@ -96,17 +98,8 @@ function buildDebugProviderConfig({
   };
 }
 
-const DEBUG_PROVIDER_CONFIGS: Record<DebugProviderId, DebugProviderConfig> = {
-  [DEV_DEBUG_PROVIDER_ID]: buildDebugProviderConfig(
-    DEBUG_PROVIDER_DEFAULTS[DEV_DEBUG_PROVIDER_ID],
-  ),
-  [DEV_ADMIN_PROVIDER_ID]: buildDebugProviderConfig(
-    DEBUG_PROVIDER_DEFAULTS[DEV_ADMIN_PROVIDER_ID],
-  ),
-};
-
 export function getDebugProviderConfig(
   providerId: DebugProviderId,
 ): DebugProviderConfig {
-  return DEBUG_PROVIDER_CONFIGS[providerId];
+  return buildDebugProviderConfig(DEBUG_PROVIDER_DEFAULTS[providerId]);
 }

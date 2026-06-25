@@ -5,14 +5,7 @@ import {
   getAuthTrustedOrigins,
 } from "@/lib/auth/auth-origins";
 import { betterAuthApiErrorHandler } from "@/lib/auth/better-auth-api-errors";
-import {
-  AUTH_PUBLIC_ORIGIN,
-  AUTH_PUBLIC_PROTOCOL,
-  authEnv,
-  OAUTH_PROXY_SECRET,
-  OIDC_DISCOVERY_URL,
-  OIDC_ISSUER,
-} from "@/lib/auth/better-auth-option-env";
+import { getBetterAuthOptionEnv } from "@/lib/auth/better-auth-option-env";
 import { buildBetterAuthPlugins } from "@/lib/auth/better-auth-plugins";
 import { createBetterAuthPrismaAdapter } from "@/lib/auth/better-auth-prisma-adapter";
 import {
@@ -25,11 +18,20 @@ import { buildBetterAuthSocialProviders } from "@/lib/auth/better-auth-social-pr
 import { prisma } from "@/lib/db/prisma";
 
 export function buildBetterAuthOptions() {
+  const {
+    authEnv,
+    authPublicOrigin,
+    authPublicProtocol,
+    oauthProxySecret,
+    oidcDiscoveryUrl,
+    oidcIssuer,
+  } = getBetterAuthOptionEnv();
+  const debugAuthAllowed = allowDebugAuth();
   const options = {
     baseURL: {
       allowedHosts: getAuthAllowedHosts(),
-      fallback: AUTH_PUBLIC_ORIGIN,
-      protocol: AUTH_PUBLIC_PROTOCOL,
+      fallback: authPublicOrigin,
+      protocol: authPublicProtocol,
     },
     secret: getBetterAuthSecret(),
     database: createBetterAuthPrismaAdapter(prisma),
@@ -37,7 +39,7 @@ export function buildBetterAuthOptions() {
     // Disable Better Auth's built-in rate limiting in debug/E2E mode so that
     // rapid sequential requests (e.g. /api/auth/get-session during tests)
     // don't get throttled with 429 responses.
-    ...(allowDebugAuth ? { rateLimit: { enabled: false } } : {}),
+    ...(debugAuthAllowed ? { rateLimit: { enabled: false } } : {}),
     advanced: {
       // Reverse proxies should still forward the original scheme/host correctly
       // for request-aware Better Auth behavior, but deployment origin comes from config.
@@ -56,10 +58,10 @@ export function buildBetterAuthOptions() {
     verification: betterAuthVerificationOptions,
     plugins: buildBetterAuthPlugins({
       authEnv,
-      authPublicOrigin: AUTH_PUBLIC_ORIGIN,
-      oauthProxySecret: OAUTH_PROXY_SECRET,
-      oidcDiscoveryUrl: OIDC_DISCOVERY_URL,
-      oidcIssuer: OIDC_ISSUER,
+      authPublicOrigin,
+      oauthProxySecret,
+      oidcDiscoveryUrl,
+      oidcIssuer,
     }),
     onAPIError: betterAuthApiErrorHandler,
   } satisfies Parameters<typeof betterAuth>[0];

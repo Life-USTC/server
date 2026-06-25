@@ -11,14 +11,23 @@
  * - /oauth/device page renders user code entry form anonymously
  * - Unauthenticated pending approval link → redirect to /signin
  * - After login → approval/denial screen
+ * - Approved resource-bound device token can authenticate REST and MCP
  *
  * ## Edge Cases
  * - Invalid user code → shows error
  * - Expired user code → shows error
  */
-import { type APIRequestContext, expect, test } from "@playwright/test";
 import {
+  type APIRequestContext,
+  expect,
+  type Page,
+  test,
+} from "@playwright/test";
+import {
+  MCP_TOOLS_SCOPE,
+  OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
   OAUTH_DEVICE_CODE_GRANT_TYPE,
+  OAUTH_OFFLINE_ACCESS_SCOPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/constants";
 import { signInAsDebugUser } from "../../../../utils/auth";
@@ -32,6 +41,8 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 type DeviceAuthorizationResult = {
+  clientId: string;
+  deviceCode: string;
   userCode: string;
   verificationUri: string;
   verificationUriComplete: string;
@@ -39,13 +50,26 @@ type DeviceAuthorizationResult = {
   interval: number;
 };
 
-async function registerDeviceClient(clientName: string) {
+const DEVICE_MCP_CLIENT_SCOPES = [
+  "openid",
+  "profile",
+  MCP_TOOLS_SCOPE,
+  OAUTH_OFFLINE_ACCESS_SCOPE,
+];
+
+async function registerDeviceClient(
+  clientName: string,
+  options: {
+    grantTypes?: string[];
+    scopes?: string[];
+  } = {},
+) {
   const client = await createOAuthClientFixture({
     name: clientName,
     redirectUris: [`${PLAYWRIGHT_BASE_URL}/e2e/device/callback`],
     tokenEndpointAuthMethod: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
-    grantTypes: [OAUTH_DEVICE_CODE_GRANT_TYPE],
-    scopes: ["openid", "profile"],
+    grantTypes: options.grantTypes ?? [OAUTH_DEVICE_CODE_GRANT_TYPE],
+    scopes: options.scopes ?? ["openid", "profile"],
   });
   return client.clientId;
 }
@@ -58,18 +82,31 @@ function getVerificationPath(verificationUriComplete: string) {
 async function requestDeviceCode(
   request: APIRequestContext,
   clientName: string,
+  options: {
+    clientScopes?: string[];
+    resources?: string[];
+    scope?: string;
+  } = {},
 ): Promise<DeviceAuthorizationResult> {
-  const clientId = await registerDeviceClient(clientName);
+  const clientId = await registerDeviceClient(clientName, {
+    scopes: options.clientScopes,
+  });
+  const form = new URLSearchParams({
+    client_id: clientId,
+    scope: options.scope ?? "openid profile",
+  });
+  for (const resource of options.resources ?? []) {
+    form.append("resource", resource);
+  }
+
   const deviceResponse = await request.post(
     "/api/auth/oauth2/device-authorization",
     {
       headers: {
+        "content-type": "application/x-www-form-urlencoded",
         origin: PLAYWRIGHT_BASE_URL,
       },
-      form: {
-        client_id: clientId,
-        scope: "openid profile",
-      },
+      data: form.toString(),
     },
   );
   const deviceResponseText = await deviceResponse.text();
@@ -91,11 +128,56 @@ async function requestDeviceCode(
   expect(typeof deviceBody.interval).toBe("number");
 
   return {
+    clientId,
+    deviceCode: deviceBody.device_code as string,
     userCode: deviceBody.user_code as string,
     verificationUri: deviceBody.verification_uri as string,
     verificationUriComplete: deviceBody.verification_uri_complete as string,
     expiresIn: deviceBody.expires_in as number,
     interval: deviceBody.interval as number,
+  };
+}
+
+async function approveDeviceCode(
+  page: Page,
+  result: DeviceAuthorizationResult,
+) {
+  await signInAsDebugUser(
+    page,
+    getVerificationPath(result.verificationUriComplete),
+  );
+  await page.getByRole("button", { name: /允许|Allow|批准|Approve/i }).click();
+  await expect(page).toHaveURL(/\/oauth\/device\?result=approved/);
+}
+
+async function exchangeDeviceToken(
+  request: APIRequestContext,
+  result: DeviceAuthorizationResult,
+  resources: string[],
+) {
+  const form = new URLSearchParams({
+    grant_type: OAUTH_DEVICE_CODE_GRANT_TYPE,
+    client_id: result.clientId,
+    device_code: result.deviceCode,
+  });
+  for (const resource of resources) {
+    form.append("resource", resource);
+  }
+
+  const tokenResponse = await request.post("/api/auth/oauth2/token", {
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    data: form.toString(),
+  });
+  const tokenText = await tokenResponse.text();
+  expect(tokenResponse.status(), tokenText).toBe(200);
+  const tokenBody = JSON.parse(tokenText) as {
+    access_token?: string;
+    refresh_token?: string;
+  };
+  expect(typeof tokenBody.access_token).toBe("string");
+  return {
+    accessToken: tokenBody.access_token as string,
+    refreshToken: tokenBody.refresh_token,
   };
 }
 
@@ -178,6 +260,38 @@ test("/oauth/device rejects scopes outside the registered client allowance", asy
   }
 });
 
+test("/oauth/device rejects clients not registered for the device grant", async ({
+  request,
+}) => {
+  const clientName = `device-e2e-unsupported-grant-${Date.now()}`;
+  try {
+    const clientId = await registerDeviceClient(clientName, {
+      grantTypes: [OAUTH_AUTHORIZATION_CODE_GRANT_TYPE],
+    });
+    const response = await request.post(
+      "/api/auth/oauth2/device-authorization",
+      {
+        headers: {
+          origin: PLAYWRIGHT_BASE_URL,
+        },
+        form: {
+          client_id: clientId,
+          scope: "openid profile",
+        },
+      },
+    );
+
+    const responseText = await response.text();
+    expect(response.status(), responseText).toBe(400);
+    expect(JSON.parse(responseText)).toMatchObject({
+      error: "unauthorized_client",
+      error_description: "Client is not registered for device authorization",
+    });
+  } finally {
+    await deleteOAuthClientsByName(clientName);
+  }
+});
+
 test("/oauth/device unauthenticated pending approval redirects to sign-in", async ({
   page,
   request,
@@ -228,6 +342,63 @@ test("/oauth/device authenticated user sees approval screen", async ({
     ).toBeVisible({ timeout: 15_000 });
 
     await captureStepScreenshot(page, testInfo, "oauth/device/approval-screen");
+  } finally {
+    await deleteOAuthClientsByName(clientName);
+  }
+});
+
+test("/oauth/device resource-bound token authenticates REST and MCP", async ({
+  page,
+  request,
+}) => {
+  const clientName = `device-e2e-resource-token-${Date.now()}`;
+  const restResource = `${PLAYWRIGHT_BASE_URL}/api/auth`;
+  const mcpResource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
+  const resources = [restResource, mcpResource];
+  try {
+    const result = await requestDeviceCode(request, clientName, {
+      clientScopes: DEVICE_MCP_CLIENT_SCOPES,
+      resources,
+      scope: DEVICE_MCP_CLIENT_SCOPES.join(" "),
+    });
+
+    await approveDeviceCode(page, result);
+    const { accessToken, refreshToken } = await exchangeDeviceToken(
+      request,
+      result,
+      resources,
+    );
+    expect(accessToken.split(".")).toHaveLength(3);
+    expect(typeof refreshToken).toBe("string");
+
+    const todosResponse = await request.get("/api/todos", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    expect(todosResponse.status()).toBe(200);
+
+    const mcpResponse = await request.post("/api/mcp", {
+      data: {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-03-26",
+          capabilities: {},
+          clientInfo: {
+            name: "device-flow-e2e-client",
+            version: "1.0.0",
+          },
+        },
+      },
+      headers: {
+        Accept: "application/json, text/event-stream",
+        Authorization: `Bearer ${accessToken}`,
+        "MCP-Protocol-Version": "2025-03-26",
+      },
+    });
+    expect(mcpResponse.status()).toBe(200);
   } finally {
     await deleteOAuthClientsByName(clientName);
   }

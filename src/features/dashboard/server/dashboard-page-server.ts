@@ -52,7 +52,7 @@ export function calendarDateKey(value: Date | string | null | undefined) {
 }
 
 export function parseSnapshotReferenceTime(value: string | null) {
-  if (!allowE2EDebugAuth || !value) return undefined;
+  if (!allowE2EDebugAuth() || !value) return undefined;
   const parsed = parseDateInput(value);
   return parsed instanceof Date ? parsed : undefined;
 }

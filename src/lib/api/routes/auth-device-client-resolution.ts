@@ -1,7 +1,9 @@
 import {
   deviceAuthJsonError,
+  resolveRequestedDeviceResources,
   resolveRequestedDeviceScopes,
 } from "@/lib/api/routes/auth-device-authorization-helpers";
+import { getDeviceAuthorizationClientPolicyFailure } from "@/lib/api/routes/auth-device-client-policy";
 import { prisma } from "@/lib/db/prisma";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
 
@@ -9,10 +11,20 @@ export async function resolveDeviceAuthorizationClient(
   request: Request,
   clientId: string,
   scope: FormDataEntryValue | null,
+  resourceEntries: FormDataEntryValue[],
 ) {
   const client = await prisma.oAuthClient.findUnique({
     where: { clientId },
-    select: { clientId: true, disabled: true, scopes: true, name: true },
+    select: {
+      clientId: true,
+      disabled: true,
+      grantTypes: true,
+      name: true,
+      public: true,
+      scopes: true,
+      tokenEndpointAuthMethod: true,
+      type: true,
+    },
   });
 
   if (!client || client.disabled) {
@@ -29,6 +41,23 @@ export async function resolveDeviceAuthorizationClient(
     };
   }
 
+  const policyFailure = getDeviceAuthorizationClientPolicyFailure(client);
+  if (policyFailure) {
+    logOAuthDebug("device-auth.reject", request, {
+      reason: policyFailure,
+      clientIdPrefix: clientId.slice(0, 8),
+    });
+    return {
+      response: deviceAuthJsonError(
+        400,
+        "unauthorized_client",
+        policyFailure === "unsupported_grant"
+          ? "Client is not registered for device authorization"
+          : "Device authorization requires a public client",
+      ),
+    };
+  }
+
   const requestedScopesResult = resolveRequestedDeviceScopes(
     scope,
     client.scopes,
@@ -41,5 +70,21 @@ export async function resolveDeviceAuthorizationClient(
     return { response: requestedScopesResult.error };
   }
 
-  return { client, requestedScopes: requestedScopesResult.scopes };
+  const requestedResourcesResult = resolveRequestedDeviceResources(
+    resourceEntries,
+    requestedScopesResult.scopes,
+  );
+  if ("error" in requestedResourcesResult) {
+    logOAuthDebug("device-auth.reject", request, {
+      reason: "invalid_resource",
+      clientIdPrefix: clientId.slice(0, 8),
+    });
+    return { response: requestedResourcesResult.error };
+  }
+
+  return {
+    client,
+    requestedResources: requestedResourcesResult.resources,
+    requestedScopes: requestedScopesResult.scopes,
+  };
 }

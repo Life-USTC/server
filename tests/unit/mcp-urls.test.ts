@@ -77,6 +77,7 @@ describe("MCP URL helpers", () => {
 
     expect(getOAuthProviderValidAudiences()).toEqual([
       "http://localhost:3010/api/auth",
+      "http://127.0.0.1:3010/api/auth",
       "http://localhost:3010/api/mcp",
       "http://127.0.0.1:3010/api/mcp",
     ]);

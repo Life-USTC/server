@@ -20,6 +20,7 @@ export async function parseDeviceAuthorizationForm(request: Request) {
 
   const clientId = formData.get("client_id");
   const scope = formData.get("scope");
+  const resourceEntries = formData.getAll("resource");
 
   if (!clientId || typeof clientId !== "string") {
     logOAuthDebug("device-auth.reject", request, {
@@ -34,5 +35,5 @@ export async function parseDeviceAuthorizationForm(request: Request) {
     };
   }
 
-  return { clientId, scope };
+  return { clientId, resourceEntries, scope };
 }

@@ -43,10 +43,11 @@ export async function loadSignInPage({
 
   const copy = signInMessages[locals.locale];
   const names = providerNames(locals.locale);
+  const debugAuthAllowed = allowDebugAuth();
   return {
     callbackUrl,
     error: url.searchParams.get("error"),
-    providers: getSignInProviderIds(allowDebugAuth).map((id) => ({
+    providers: getSignInProviderIds(debugAuthAllowed).map((id) => ({
       id,
       name: names[id],
       label: signInWith(copy.signInWith, names[id]),
@@ -55,12 +56,12 @@ export async function loadSignInPage({
     copy: {
       title: copy.title,
       description: copy.description,
-      devDebugHint: allowDebugAuth ? copy.devDebugHint : "",
+      devDebugHint: debugAuthAllowed ? copy.devDebugHint : "",
       errorAccountNotLinked: copy.errorAccountNotLinked,
       errorGeneric: copy.errorGeneric,
       termsNotice: parseTermsNotice(copy.termsNotice),
     },
-    showDebugProviders: allowDebugAuth,
+    showDebugProviders: debugAuthAllowed,
   };
 }
 

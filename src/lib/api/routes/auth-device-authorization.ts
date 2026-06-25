@@ -32,6 +32,7 @@ async function postRoute(request: Request): Promise<Response> {
     request,
     parsedForm.clientId,
     parsedForm.scope,
+    parsedForm.resourceEntries,
   );
   if ("response" in resolvedClient) return resolvedClient.response as Response;
 
@@ -39,6 +40,7 @@ async function postRoute(request: Request): Promise<Response> {
     request,
     resolvedClient.client.clientId,
     resolvedClient.requestedScopes,
+    resolvedClient.requestedResources,
   );
   if ("response" in grant) return grant.response as Response;
 
@@ -46,6 +48,7 @@ async function postRoute(request: Request): Promise<Response> {
 
   logOAuthDebug("device-auth.success", request, {
     clientIdPrefix: parsedForm.clientId.slice(0, 8),
+    resourceCount: resolvedClient.requestedResources.length,
     userCodePrefix: grant.userCode.slice(0, 4),
     scopeCount: resolvedClient.requestedScopes.length,
   });
