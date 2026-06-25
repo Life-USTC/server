@@ -283,7 +283,11 @@ function checkContractsDoc() {
       return [{ internalBearerAuth: [] }];
     }
 
-    if (route.auth === "user" || route.auth === "admin") {
+    if (route.auth === "admin") {
+      return [{ sessionCookie: [] }];
+    }
+
+    if (route.auth === "user") {
       return [{ bearerAuth: [] }, { sessionCookie: [] }];
     }
 

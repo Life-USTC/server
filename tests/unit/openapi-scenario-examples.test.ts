@@ -265,7 +265,6 @@ describe("buildScenarioOpenApiExamples", () => {
       { sessionCookie: [] },
     ]);
     expect(spec.paths["/api/admin/users"]?.get?.security).toEqual([
-      { bearerAuth: [] },
       { sessionCookie: [] },
     ]);
     expect(spec.paths["/api/admin/users"]?.get?.["x-auth-role"]).toBe("admin");

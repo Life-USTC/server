@@ -3,10 +3,12 @@ import {
   resolveAdminByUserId,
 } from "@/features/admin/server/admin-api";
 import { handleRouteError, unauthorized } from "@/lib/api/helpers";
-import { resolveApiUserId } from "@/lib/auth/api-auth";
+import { resolveSessionUserId } from "@/lib/auth/api-auth";
 
 export async function requireAdminRequest(request: Request) {
-  const userId = await resolveApiUserId(request);
+  const userId = await resolveSessionUserId(request);
+  if (!userId) return unauthorized();
+
   const admin = await resolveAdminByUserId(userId);
   return admin ?? unauthorized();
 }

@@ -108,6 +108,41 @@ describe("auth helpers", () => {
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
   });
 
+  it("resolves session-only auth from cookies", async () => {
+    getSessionFromHeadersMock.mockResolvedValue({
+      user: { id: "user-from-cookie" },
+    });
+    const { resolveSessionUserId } = await import("@/lib/auth/api-auth");
+    const request = new Request("https://life.example/api/admin/users", {
+      headers: {
+        cookie: "better-auth.session_token=session-token",
+      },
+    });
+
+    await expect(resolveSessionUserId(request)).resolves.toBe(
+      "user-from-cookie",
+    );
+    expect(getSessionFromHeadersMock).toHaveBeenCalledWith(request.headers);
+    expect(verifyAccessTokenMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects bearer authorization for session-only auth", async () => {
+    getSessionFromHeadersMock.mockResolvedValue({
+      user: { id: "user-from-cookie" },
+    });
+    const { resolveSessionUserId } = await import("@/lib/auth/api-auth");
+    const request = new Request("https://life.example/api/admin/users", {
+      headers: {
+        authorization: "Bearer access-token",
+        cookie: "better-auth.session_token=session-token",
+      },
+    });
+
+    await expect(resolveSessionUserId(request)).resolves.toBeNull();
+    expect(verifyAccessTokenMock).not.toHaveBeenCalled();
+    expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
+  });
+
   it("rejects write auth when the resolved user no longer exists", async () => {
     verifyAccessTokenMock.mockResolvedValue({ sub: "deleted-user" });
     getViewerAuthDataForUserIdMock.mockResolvedValue(null);
