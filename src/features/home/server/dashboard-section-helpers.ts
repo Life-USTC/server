@@ -1,5 +1,5 @@
-import { formatScheduleLocation } from "@/lib/location-utils";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
+import { formatScheduleLocation } from "@/shared/lib/location/location-utils";
 import { toMinutes } from "@/shared/lib/time-utils";
 import type {
   ExamItem,

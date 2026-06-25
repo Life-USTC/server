@@ -1,10 +1,10 @@
 import { ICalCategory } from "ical-generator";
+import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import {
   loadBuildingImgRules,
   loadGeoData,
   lookupLocationGeo,
-} from "@/lib/location-utils";
-import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
+} from "@/shared/lib/location/location-utils";
 
 export type GeoData = Awaited<ReturnType<typeof loadGeoData>>;
 export type ImgRules = Awaited<ReturnType<typeof loadBuildingImgRules>>;

@@ -1,5 +1,5 @@
 import { createStaticJsonLoader } from "@/lib/static-json-loader";
-import type { GeoData, GeoLocation } from "@/lib/static-location-types";
+import type { GeoData, GeoLocation } from "./static-location-types";
 
 const GEO_DATA_FILE = "geo_data.json";
 

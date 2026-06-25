@@ -49,14 +49,18 @@ describe("location-utils", () => {
 
   describe("getLocationGeo", () => {
     it("returns null for empty string", async () => {
-      const { getLocationGeo } = await import("@/lib/location-utils");
+      const { getLocationGeo } = await import(
+        "@/shared/lib/location/location-utils"
+      );
       const result = await getLocationGeo("");
       expect(result).toBeNull();
     });
 
     it("finds exact match (case-insensitive)", async () => {
       mockStaticFiles();
-      const { getLocationGeo } = await import("@/lib/location-utils");
+      const { getLocationGeo } = await import(
+        "@/shared/lib/location/location-utils"
+      );
       const result = await getLocationGeo("library");
       expect(result).toEqual({
         name: "Library",
@@ -67,7 +71,9 @@ describe("location-utils", () => {
 
     it("finds exact match with different casing", async () => {
       mockStaticFiles();
-      const { getLocationGeo } = await import("@/lib/location-utils");
+      const { getLocationGeo } = await import(
+        "@/shared/lib/location/location-utils"
+      );
       const result = await getLocationGeo("SCIENCE BUILDING");
       expect(result).toEqual({
         name: "Science Building",
@@ -78,7 +84,9 @@ describe("location-utils", () => {
 
     it("falls back to starts-with match", async () => {
       mockStaticFiles();
-      const { getLocationGeo } = await import("@/lib/location-utils");
+      const { getLocationGeo } = await import(
+        "@/shared/lib/location/location-utils"
+      );
       const result = await getLocationGeo("East Campus Gate Room 101");
       expect(result).toEqual({
         name: "East Campus Gate",
@@ -89,7 +97,9 @@ describe("location-utils", () => {
 
     it("returns null when no match is found", async () => {
       mockStaticFiles();
-      const { getLocationGeo } = await import("@/lib/location-utils");
+      const { getLocationGeo } = await import(
+        "@/shared/lib/location/location-utils"
+      );
       const result = await getLocationGeo("Nonexistent Place");
       expect(result).toBeNull();
     });
@@ -99,7 +109,9 @@ describe("location-utils", () => {
         "fetch",
         vi.fn(async () => new Response("not found", { status: 404 })),
       );
-      const { getLocationGeo } = await import("@/lib/location-utils");
+      const { getLocationGeo } = await import(
+        "@/shared/lib/location/location-utils"
+      );
       const result = await getLocationGeo("Library");
       expect(result).toBeNull();
     });
@@ -111,7 +123,9 @@ describe("location-utils", () => {
         vi.fn(async () => new Response("{bad-json", { status: 200 })),
       );
 
-      const { getLocationGeo } = await import("@/lib/location-utils");
+      const { getLocationGeo } = await import(
+        "@/shared/lib/location/location-utils"
+      );
       const result = await getLocationGeo("Library");
 
       expect(result).toBeNull();
@@ -121,14 +135,18 @@ describe("location-utils", () => {
 
   describe("getBuildingImagePath", () => {
     it("returns null for empty string", async () => {
-      const { getBuildingImagePath } = await import("@/lib/location-utils");
+      const { getBuildingImagePath } = await import(
+        "@/shared/lib/location/location-utils"
+      );
       const result = await getBuildingImagePath("");
       expect(result).toBeNull();
     });
 
     it("matches regex rules and builds a URL from the published static host", async () => {
       mockStaticFiles();
-      const { getBuildingImagePath } = await import("@/lib/location-utils");
+      const { getBuildingImagePath } = await import(
+        "@/shared/lib/location/location-utils"
+      );
       const result = await getBuildingImagePath("5101");
       expect(result).toBe(
         "https://static.life-ustc.tiankaima.dev/imgs/teaching_building_5.jpg",
@@ -137,7 +155,9 @@ describe("location-utils", () => {
 
     it("uses the published static host for relative building image rules", async () => {
       mockStaticFiles();
-      const { getBuildingImagePath } = await import("@/lib/location-utils");
+      const { getBuildingImagePath } = await import(
+        "@/shared/lib/location/location-utils"
+      );
       const result = await getBuildingImagePath("3A201");
       expect(result).toBe(
         "https://static.life-ustc.tiankaima.dev/imgs/building_3.jpg",
@@ -150,14 +170,18 @@ describe("location-utils", () => {
           { regex: "5101", path: "https://cdn.example.com/5101.jpg" },
         ],
       });
-      const { getBuildingImagePath } = await import("@/lib/location-utils");
+      const { getBuildingImagePath } = await import(
+        "@/shared/lib/location/location-utils"
+      );
       const result = await getBuildingImagePath("5101");
       expect(result).toBe("https://cdn.example.com/5101.jpg");
     });
 
     it("returns null when no regex matches", async () => {
       mockStaticFiles();
-      const { getBuildingImagePath } = await import("@/lib/location-utils");
+      const { getBuildingImagePath } = await import(
+        "@/shared/lib/location/location-utils"
+      );
       const result = await getBuildingImagePath("UNKNOWN_CODE");
       expect(result).toBeNull();
     });

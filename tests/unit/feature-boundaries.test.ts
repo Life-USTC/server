@@ -1,3 +1,4 @@
+import type { Dirent } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -96,18 +97,21 @@ const deprecatedFeatureLibImports = [
 const explicitTopLevelDomainLibAllowlist = new Set([
   "src/lib/legal-content.ts",
   "src/lib/load-data-utils.ts",
-  "src/lib/location-utils.ts",
+  "src/lib/oauth/",
   "src/lib/query-filter-helpers.ts",
   "src/lib/query-pagination.ts",
-  "src/lib/schedule-location-format.ts",
-  "src/lib/static-geo-data.ts",
-  "src/lib/static-building-images.ts",
-  "src/lib/static-location-data.ts",
-  "src/lib/static-location-types.ts",
 ]);
 
 const topLevelDomainLibFilePattern =
   /(?:^|-)(?:admin|catalog|comment|comments|copy|course|data|homework|legal|location|oauth|page|profile|query|schedule|section|serialization|settings|subscription|teacher|todo|user)(?:-|\.|$)/;
+
+function topLevelLibEntryPath(entry: Dirent) {
+  if (entry.isDirectory()) return `src/lib/${entry.name}/`;
+  if (entry.isFile() && /\.(svelte|ts|tsx)$/.test(entry.name)) {
+    return `src/lib/${entry.name}`;
+  }
+  return null;
+}
 
 describe("source import boundaries", () => {
   it("resolves relative route adapter imports before applying the consumer rule", () => {
@@ -215,10 +219,8 @@ describe("source import boundaries", () => {
       withFileTypes: true,
     });
     const violations = libEntries
-      .filter(
-        (entry) => entry.isFile() && /\.(svelte|ts|tsx)$/.test(entry.name),
-      )
-      .map((entry) => `src/lib/${entry.name}`)
+      .map(topLevelLibEntryPath)
+      .filter((filePath): filePath is string => filePath !== null)
       .filter((filePath) =>
         topLevelDomainLibFilePattern.test(path.basename(filePath)),
       )
