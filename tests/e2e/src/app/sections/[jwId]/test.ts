@@ -744,7 +744,7 @@ test.describe("/sections/[jwId]", () => {
     await commentCard
       .getByRole("button", { name: /表情|Reactions/i })
       .click({ force: true });
-    await page.getByRole("menuitem", { name: /点赞|Upvote/i }).click();
+    await page.getByRole("menuitemcheckbox", { name: /点赞|Upvote/i }).click();
     await reactionResponse;
     await waitForUiSettled(page);
     await expect(commentCard.getByRole("button", { name: /👍/ })).toBeVisible();

@@ -85,7 +85,7 @@ test.describe("/courses", () => {
       .getByRole("button", { name: /语言选择|Language selector/i })
       .click();
     await page
-      .getByRole("menuitem", { name: /中文|Chinese/i })
+      .getByRole("menuitemradio", { name: /中文|Chinese/i })
       .first()
       .click();
 
