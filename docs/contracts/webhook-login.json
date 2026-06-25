@@ -21,11 +21,7 @@
           {
             "path": "/api/auth/{auth}",
             "method": "POST",
-            "returns": "{ ok, userId, email, sessionToken, expires } | { error }",
-            "notes": [
-              "Request body is JSON.",
-              "Also sets the better-auth.session_token cookie."
-            ]
+            "reference_only": true
           }
         ]
       },

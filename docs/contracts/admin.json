@@ -39,24 +39,21 @@
         "routes": [
           {
             "path": "/api/admin/comments",
-            "returns": "{ comments: Comment[] }",
-            "notes": [
-              "Omitted status defaults to the active moderation queue, matching /admin/moderation."
-            ]
+            "reference_only": true
           },
           {
             "path": "/api/admin/comments/[id]",
             "method": "PATCH",
-            "returns": "{ comment: Comment }"
+            "reference_only": true
           },
           {
             "path": "/api/admin/descriptions",
-            "returns": "{ descriptions: Description[] }"
+            "reference_only": true
           },
           {
             "path": "/api/admin/descriptions/[id]",
             "method": "PATCH",
-            "returns": "{ description: Description }"
+            "reference_only": true
           },
           {
             "path": "/api/admin/suspensions",
@@ -65,21 +62,21 @@
           {
             "path": "/api/admin/suspensions",
             "method": "POST",
-            "returns": "{ suspension: Suspension }"
+            "reference_only": true
           },
           {
             "path": "/api/admin/suspensions/[id]",
             "method": "PATCH",
-            "returns": "{ suspension: Suspension }"
+            "reference_only": true
           },
           {
             "path": "/api/admin/homeworks",
-            "returns": "{ homeworks: HomeworkItem[] }"
+            "reference_only": true
           },
           {
             "path": "/api/admin/homeworks/[id]",
             "method": "DELETE",
-            "returns": "{ success: Boolean }"
+            "reference_only": true
           }
         ]
       },

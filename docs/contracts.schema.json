@@ -255,7 +255,7 @@
     },
     "authLevel": {
       "type": "string",
-      "enum": ["anon", "user", "admin"]
+      "enum": ["anon", "user", "admin", "internal"]
     },
     "surfaceStatus": {
       "type": "string",
@@ -297,8 +297,44 @@
         "auth": {
           "$ref": "#/$defs/authLevel"
         },
+        "reference_only": {
+          "type": "boolean",
+          "const": true
+        },
         "notes": {
           "$ref": "#/$defs/notes"
+        }
+      },
+      "if": {
+        "properties": {
+          "reference_only": {
+            "const": true
+          }
+        },
+        "required": ["reference_only"]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": ["description"]
+            },
+            {
+              "required": ["returns"]
+            },
+            {
+              "required": ["content_type"]
+            },
+            {
+              "required": ["status"]
+            },
+            {
+              "required": ["auth"]
+            },
+            {
+              "required": ["notes"]
+            }
+          ]
         }
       }
     },
