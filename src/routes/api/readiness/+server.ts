@@ -1,5 +1,6 @@
 import { jsonResponse, notFoundText } from "@/lib/api/helpers";
 import { svelteRequestHandler } from "@/lib/api/svelte-route";
+import { prisma } from "@/lib/db/prisma";
 import { canReadInternalEndpoint } from "@/lib/http/access-control";
 import { observedApiRoute } from "@/lib/log/api-observability";
 import { storageReadiness } from "@/lib/storage/r2-object";
@@ -9,7 +10,6 @@ const startedAt = Date.now();
 async function checkDatabase() {
   const start = Date.now();
   try {
-    const { prisma } = await import("@/lib/db/prisma");
     await prisma.$queryRaw`SELECT 1`;
     return { status: "ok", durationMs: Date.now() - start };
   } catch {

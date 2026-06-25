@@ -2,6 +2,7 @@ import { fail } from "@sveltejs/kit";
 import { getAdminOAuthCopy } from "@/features/admin/lib/admin-oauth-page-copy";
 import { requireAdminPage } from "@/features/admin/server/admin-page-data";
 import type { AppLocale } from "@/i18n/config";
+import { prisma } from "@/lib/db/prisma";
 
 export async function deleteAdminOAuthClientAction(
   request: Request,
@@ -12,7 +13,6 @@ export async function deleteAdminOAuthClientAction(
   const form = await request.formData();
   const clientId = String(form.get("clientId") ?? "");
   if (!clientId) return fail(400, { message: copy.missingClientId });
-  const { prisma } = await import("@/lib/db/prisma");
   try {
     await prisma.oAuthClient.delete({ where: { clientId } });
   } catch (error) {

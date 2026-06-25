@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/db/prisma";
 import {
   logOAuthDebug,
   summarizeOAuthForwardingHeaders,
@@ -139,7 +140,6 @@ async function restoreDeviceRegistrationGrantTypes(
     return response;
   }
 
-  const { prisma } = await import("@/lib/db/prisma");
   await prisma.oAuthClient.update({
     where: { clientId: body.client_id },
     data: {
@@ -193,7 +193,6 @@ async function maybeNormalizeAuthorizeLoopbackRedirectRequest(
     ...summarizeOAuthForwardingHeaders(request, url),
   });
 
-  const { prisma } = await import("@/lib/db/prisma");
   const client = await prisma.oAuthClient.findUnique({
     where: { clientId },
     select: { redirectUris: true },

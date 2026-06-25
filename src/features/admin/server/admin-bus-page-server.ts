@@ -6,6 +6,7 @@ import {
 import { loadBusStaticPayload } from "@/features/bus/lib/bus-static-source";
 import { importBusStaticPayload } from "@/features/bus/server/bus-import";
 import type { AppLocale } from "@/i18n/config";
+import { prisma } from "@/lib/db/prisma";
 import enUsMessages from "../../../../messages/en-us.json";
 import zhCnMessages from "../../../../messages/zh-cn.json";
 import {
@@ -45,7 +46,6 @@ export const adminBusActions = {
     const form = await request.formData();
     const id = parseAdminBusVersionId(form);
     if (id === null) return failure(copy.invalidVersionId);
-    const { prisma } = await import("@/lib/db/prisma");
     const version = await prisma.busScheduleVersion.findUnique({
       where: { id },
       select: { id: true },
@@ -69,7 +69,6 @@ export const adminBusActions = {
     const form = await request.formData();
     const id = parseAdminBusVersionId(form);
     if (id === null) return failure(copy.invalidVersionId);
-    const { prisma } = await import("@/lib/db/prisma");
     const version = await prisma.busScheduleVersion.findUnique({
       where: { id },
       select: { id: true, isEnabled: true },
@@ -82,7 +81,6 @@ export const adminBusActions = {
   importStatic: async ({ locals, request }: AdminBusEvent) => {
     const copy = getCopy(locals.locale).adminBus;
     await requireAdminPage(request);
-    const { prisma } = await import("@/lib/db/prisma");
     let result: Awaited<ReturnType<typeof importBusStaticPayload>>;
     try {
       const payload = await loadBusStaticPayload();

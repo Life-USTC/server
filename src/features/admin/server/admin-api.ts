@@ -1,3 +1,5 @@
+import { prisma } from "@/lib/db/prisma";
+
 export type AdminSession = {
   userId: string;
 };
@@ -7,7 +9,6 @@ export async function resolveAdminByUserId(
 ): Promise<AdminSession | null> {
   if (!userId) return null;
 
-  const { prisma } = await import("@/lib/db/prisma");
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, isAdmin: true },

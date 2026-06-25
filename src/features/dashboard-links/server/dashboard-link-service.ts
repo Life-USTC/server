@@ -1,4 +1,5 @@
 import { USTC_DASHBOARD_LINKS } from "@/features/dashboard-links/lib/dashboard-links";
+import { prisma } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 
 export const MAX_PINNED_LINKS = 4;
@@ -48,7 +49,6 @@ export function sanitizeDashboardReturnTo(value: string | undefined): string {
 
 export async function recordDashboardLinkClick(userId: string, slug: string) {
   try {
-    const { prisma } = await import("@/lib/db/prisma");
     await prisma.dashboardLinkClick.upsert({
       where: {
         userId_slug: {
@@ -90,7 +90,6 @@ export async function updateDashboardLinkPinState({
   slug: string;
   userId: string;
 }) {
-  const { prisma } = await import("@/lib/db/prisma");
   if (action === "pin") {
     return pinDashboardLink(prisma, userId, slug);
   }

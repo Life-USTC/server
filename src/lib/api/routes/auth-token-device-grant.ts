@@ -1,4 +1,5 @@
 import { issueDeviceGrantTokens } from "@/lib/api/routes/auth-token-device-token-issuer";
+import { prisma } from "@/lib/db/prisma";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
 import { deviceCodeError } from "./auth-token-device-errors";
 import { resolveDeviceGrantRecord } from "./auth-token-device-record";
@@ -15,7 +16,6 @@ export async function handleDeviceCodeGrant(
     return deviceCodeError("invalid_request");
   }
 
-  const { prisma } = await import("@/lib/db/prisma");
   const recordResult = await resolveDeviceGrantRecord({
     clientId,
     deviceCode,

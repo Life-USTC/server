@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/db/prisma";
 import type { CommentTargetType } from "./comment-utils";
 
 /**
@@ -8,7 +9,6 @@ export async function verifyCommentTargetEntity(
   targetType: CommentTargetType,
   whereTarget: Record<string, number | string>,
 ): Promise<boolean> {
-  const { prisma } = await import("@/lib/db/prisma");
   if (targetType === "section" && typeof whereTarget.sectionId === "number") {
     const section = await prisma.section.findUnique({
       where: { id: whereTarget.sectionId },

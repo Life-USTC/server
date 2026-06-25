@@ -2,6 +2,7 @@ import {
   getPrismaClient,
   requireAdminPage,
 } from "@/features/admin/server/admin-page-auth";
+import { getPrisma } from "@/lib/db/prisma";
 
 export async function getAdminHomeData(request: Request) {
   await requireAdminPage(request);
@@ -41,7 +42,6 @@ export async function getAdminHomeData(request: Request) {
 }
 
 export async function getAdminSummary(locale = "zh-cn") {
-  const { getPrisma } = await import("@/lib/db/prisma");
   const prisma = getPrisma(locale);
   const [users, comments, homeworks, oauthClients, suspensions] =
     await Promise.all([

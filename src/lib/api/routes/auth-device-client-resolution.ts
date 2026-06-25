@@ -2,6 +2,7 @@ import {
   deviceAuthJsonError,
   resolveRequestedDeviceScopes,
 } from "@/lib/api/routes/auth-device-authorization-helpers";
+import { prisma } from "@/lib/db/prisma";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
 
 export async function resolveDeviceAuthorizationClient(
@@ -9,7 +10,6 @@ export async function resolveDeviceAuthorizationClient(
   clientId: string,
   scope: FormDataEntryValue | null,
 ) {
-  const { prisma } = await import("@/lib/db/prisma");
   const client = await prisma.oAuthClient.findUnique({
     where: { clientId },
     select: { clientId: true, disabled: true, scopes: true, name: true },

@@ -1,5 +1,6 @@
 import { fireAuditLog } from "@/lib/audit/write-audit-log";
 import { getViewerContext } from "@/lib/auth/viewer-context";
+import { prisma } from "@/lib/db/prisma";
 import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
 import {
   type DescriptionTargetType,
@@ -55,7 +56,6 @@ export async function upsertDescriptionContent({
     return { ok: false as const, error: "not_found" as DescriptionUpsertError };
   }
 
-  const { prisma } = await import("@/lib/db/prisma");
   const writeDescription = () =>
     prisma.$transaction(async (tx) => {
       const existing = await tx.description.findFirst({

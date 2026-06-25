@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/db/prisma";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
 import { getOAuthMcpResourceUrl } from "@/lib/mcp/urls";
 import {
@@ -25,7 +26,6 @@ export async function maybeBindMcpRefreshRequest(
 
   const refreshTokenHash =
     await hashOAuthClientSecretForDbStorage(refreshToken);
-  const { prisma } = await import("@/lib/db/prisma");
   const refreshRecord = await prisma.oAuthRefreshToken.findUnique({
     where: { token: refreshTokenHash },
     select: { scopes: true },

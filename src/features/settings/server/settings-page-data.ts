@@ -2,6 +2,7 @@ import { redirect } from "@sveltejs/kit";
 import { normalizeSettingsTab } from "@/features/settings/lib/settings-tabs";
 import { buildSettingsAccountProviders } from "@/features/settings/server/settings-account-providers";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
+import { prisma } from "@/lib/db/prisma";
 
 export type SettingsAccountProvider = {
   id: "oidc" | "github" | "google";
@@ -23,7 +24,6 @@ export async function requireSettingsUser(request: Request, url: URL) {
 
 export async function getSettingsPageData(request: Request, url: URL) {
   const sessionUser = await requireSettingsUser(request, url);
-  const { prisma } = await import("@/lib/db/prisma");
   const user = await prisma.user.findUnique({
     where: { id: sessionUser.id },
     select: {

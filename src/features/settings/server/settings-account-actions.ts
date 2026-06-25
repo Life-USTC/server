@@ -7,6 +7,7 @@ import {
   applyAuthResponseCookies,
   linkAccountFromSvelteAction,
 } from "@/lib/auth/svelte-auth-actions";
+import { prisma } from "@/lib/db/prisma";
 import { deleteOwnAccount } from "./account-deletion-service";
 
 export async function unlinkSettingsAccountAction({
@@ -18,7 +19,6 @@ export async function unlinkSettingsAccountAction({
   const user = await requireSettingsUser(request, url);
   const form = await request.formData();
   const provider = String(form.get("provider") ?? "");
-  const { prisma } = await import("@/lib/db/prisma");
   const accounts = await prisma.account.findMany({
     where: { userId: user.id },
     select: { id: true, provider: true },

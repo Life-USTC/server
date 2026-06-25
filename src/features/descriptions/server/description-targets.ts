@@ -5,6 +5,7 @@ export {
   type DescriptionTargetType,
 } from "@/features/descriptions/lib/description-target-types";
 
+import { prisma } from "@/lib/db/prisma";
 import { parseInteger } from "@/lib/integers";
 
 type DescriptionTargetIdMap = {
@@ -53,7 +54,6 @@ const descriptionTargetConfig: {
   section: {
     parseId: parsePositiveIntegerId,
     findTarget: async (targetId) => {
-      const { prisma } = await import("@/lib/db/prisma");
       return prisma.section.findUnique({
         where: { id: targetId },
         select: { id: true },
@@ -64,7 +64,6 @@ const descriptionTargetConfig: {
   course: {
     parseId: parsePositiveIntegerId,
     findTarget: async (targetId) => {
-      const { prisma } = await import("@/lib/db/prisma");
       return prisma.course.findUnique({
         where: { id: targetId },
         select: { id: true },
@@ -75,7 +74,6 @@ const descriptionTargetConfig: {
   teacher: {
     parseId: parsePositiveIntegerId,
     findTarget: async (targetId) => {
-      const { prisma } = await import("@/lib/db/prisma");
       return prisma.teacher.findUnique({
         where: { id: targetId },
         select: { id: true },
@@ -86,7 +84,6 @@ const descriptionTargetConfig: {
   homework: {
     parseId: parseHomeworkTargetId,
     findTarget: async (targetId) => {
-      const { prisma } = await import("@/lib/db/prisma");
       return prisma.homework.findUnique({
         where: { id: targetId },
         select: { id: true },
@@ -141,7 +138,6 @@ export type ResolvedDescriptionTargetReference =
     };
 
 async function findSectionIdByJwId(jwId: number) {
-  const { prisma } = await import("@/lib/db/prisma");
   const section = await prisma.section.findUnique({
     where: { jwId },
     select: { id: true },
@@ -150,7 +146,6 @@ async function findSectionIdByJwId(jwId: number) {
 }
 
 async function findCourseIdByJwId(jwId: number) {
-  const { prisma } = await import("@/lib/db/prisma");
   const course = await prisma.course.findUnique({
     where: { jwId },
     select: { id: true },
