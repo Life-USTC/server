@@ -1,3 +1,10 @@
+## [1.38.1](https://github.com/Life-USTC/server/compare/v1.38.0...v1.38.1) (2026-06-25)
+
+
+### Bug Fixes
+
+* **mcp:** add ordinary comment write tools ([22293e2](https://github.com/Life-USTC/server/commit/22293e2004d1cc1d6e2f222c1357f008b6d98bb4))
+
 # [1.38.0](https://github.com/Life-USTC/server/compare/v1.37.27...v1.38.0) (2026-06-25)
 
 
