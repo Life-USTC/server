@@ -1,3 +1,10 @@
+## [1.37.26](https://github.com/Life-USTC/server/compare/v1.37.25...v1.37.26) (2026-06-25)
+
+
+### Bug Fixes
+
+* **dashboard:** align legacy subscription route redirect ([ec53ec1](https://github.com/Life-USTC/server/commit/ec53ec1fc43a4d3ef91306b02cc8c8ccc5a6fbe5))
+
 ## [1.37.25](https://github.com/Life-USTC/server/compare/v1.37.24...v1.37.25) (2026-06-25)
 
 
