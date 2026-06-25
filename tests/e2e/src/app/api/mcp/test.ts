@@ -704,14 +704,17 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
           "get_bus_route_timetable",
           "search_bus_routes",
           "get_next_buses",
+          "list_comments",
+          "get_comment_thread",
+          "create_comment",
+          "update_own_comment",
+          "delete_own_comment",
+          "add_comment_reaction",
+          "remove_comment_reaction",
         ]),
       );
       expect(tools.tools.map((tool) => tool.name)).not.toEqual(
-        expect.arrayContaining([
-          "list_comments",
-          "create_comment",
-          "set_comment_reaction",
-        ]),
+        expect.arrayContaining(["set_comment_reaction"]),
       );
 
       const profileResult = await mcpClient.callTool({
