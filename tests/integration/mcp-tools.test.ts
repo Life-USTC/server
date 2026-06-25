@@ -28,6 +28,18 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function integrationUserEmail(prefix: string) {
+  return `integration-${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}@example.test`;
+}
+
+type BusPreferenceToolResponse = {
+  preference?: {
+    preferredOriginCampusId?: number | null;
+    preferredDestinationCampusId?: number | null;
+    showDepartedTrips?: boolean;
+  };
+};
+
 async function findDescriptionEditAuditLog(descriptionId: string) {
   for (let attempt = 0; attempt < 20; attempt += 1) {
     const log = await prisma.auditLog.findFirst({
@@ -1635,6 +1647,113 @@ describe("get_next_buses — default mode drops repeated campus objects", () => 
       // No departures → guidance message should be present
       expect(typeof result.message).toBe("string");
     }
+  });
+});
+
+describe("bus preference tools", () => {
+  let preferenceUserId: string | null = null;
+  let preferenceMcp: McpHarness | undefined;
+
+  beforeAll(async () => {
+    const user = await prisma.user.create({
+      data: {
+        email: integrationUserEmail("bus-preferences"),
+        name: "Bus Preference Integration",
+      },
+      select: { id: true },
+    });
+    preferenceUserId = user.id;
+    preferenceMcp = await createMcpHarness(user.id);
+  });
+
+  afterAll(async () => {
+    await preferenceMcp?.close();
+    if (preferenceUserId) {
+      await prisma.user.deleteMany({ where: { id: preferenceUserId } });
+    }
+  });
+
+  function preferenceHarness() {
+    if (!preferenceMcp) {
+      throw new Error("Bus preference MCP harness was not initialized");
+    }
+    return preferenceMcp;
+  }
+
+  function readPreference() {
+    return preferenceHarness().call<BusPreferenceToolResponse>(
+      "get_my_bus_preferences",
+    );
+  }
+
+  it("reads, saves, and resets the authenticated user's bus preferences", async () => {
+    const initial = await readPreference();
+
+    expect(initial.preference).toEqual({
+      preferredOriginCampusId: null,
+      preferredDestinationCampusId: null,
+      showDepartedTrips: false,
+    });
+
+    const saved = await preferenceHarness().call<BusPreferenceToolResponse>(
+      "save_my_bus_preferences",
+      {
+        preferredOriginCampusId: DEV_SEED.bus.originCampusId,
+        preferredDestinationCampusId: DEV_SEED.bus.destinationCampusId,
+        showDepartedTrips: true,
+      },
+    );
+
+    expect(saved.preference).toEqual({
+      preferredOriginCampusId: DEV_SEED.bus.originCampusId,
+      preferredDestinationCampusId: DEV_SEED.bus.destinationCampusId,
+      showDepartedTrips: true,
+    });
+
+    const readBack = await readPreference();
+
+    expect(readBack.preference).toEqual(saved.preference);
+
+    const reset = await preferenceHarness().call<BusPreferenceToolResponse>(
+      "save_my_bus_preferences",
+      {
+        preferredOriginCampusId: null,
+        preferredDestinationCampusId: null,
+        showDepartedTrips: false,
+      },
+    );
+
+    expect(reset.preference).toEqual({
+      preferredOriginCampusId: null,
+      preferredDestinationCampusId: null,
+      showDepartedTrips: false,
+    });
+  });
+
+  it("serializes unknown campus validation failures without writing", async () => {
+    const before = await readPreference();
+
+    const result = await preferenceHarness().call<{
+      success?: boolean;
+      error?: string;
+      message?: string;
+      hint?: string;
+    }>("save_my_bus_preferences", {
+      preferredOriginCampusId: 999_999_999,
+      preferredDestinationCampusId: null,
+      showDepartedTrips: false,
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      error: "invalid_bus_preference",
+      message: "Unknown preferred origin campus",
+    });
+    expect(result.hint).toContain("list_bus_routes");
+
+    const readBack = await readPreference();
+
+    expect(readBack.preference).toEqual(before.preference);
   });
 });
 

@@ -4,7 +4,7 @@
     "anon": "Can query bus information.",
     "user": "Can query bus information and save preferences.",
     "admin": "Can maintain bus data.",
-    "agent": "Can read bus timetable capabilities."
+    "agent": "Can read bus timetable capabilities and manage own bus preferences."
   },
   "rules": {
     "public-no-signin": "Bus is public campus life information; sign-in should not be a prerequisite.",
@@ -17,7 +17,7 @@
     "raw-data-returned": "/api/bus and query_bus_timetable return raw route/stop/trip data within the selected timetable version; the preferences field is null for anonymous callers and returns the authenticated caller's saved preferences; the server does not pre-apply recommendations, filtering, or sorting.",
     "current-version-only": "list_bus_routes only lists routes actually present in the current active timetable version; it does not expose historical route IDs outside the current version.",
     "dashboard-vs-map": "The dashboard prioritizes answering 'how to get the next trip'; the map page handles spatial understanding.",
-    "task-oriented-tool-hierarchy": "Use query_bus_timetable for raw/full datasets, list_bus_routes for unfiltered discovery, search_bus_routes for filtered discovery, get_bus_route_timetable for one route, and get_next_buses for immediate departure answers.",
+    "task-oriented-tool-hierarchy": "Use query_bus_timetable for raw/full datasets, list_bus_routes for unfiltered discovery, search_bus_routes for filtered discovery, get_bus_route_timetable for one route, get_next_buses for immediate departure answers, and get_my_bus_preferences/save_my_bus_preferences for personal defaults.",
     "summary-mode-compact": "query_bus_timetable summary mode should return compact counts, route/campus summaries, and only a few relevant departures rather than the full trip dataset."
   },
   "capabilities": {
@@ -74,6 +74,23 @@
             "rest_equivalent": "GET /api/bus",
             "notes": [
               "Single-route raw timetable tool; use get_next_buses when the caller only needs the next few departures."
+            ]
+          },
+          {
+            "name": "get_my_bus_preferences",
+            "returns": "{ preference: BusPreferences }",
+            "rest_equivalent": "GET /api/bus/preferences",
+            "notes": [
+              "Returns the authenticated caller's saved bus preferences or the default null-campus preference."
+            ]
+          },
+          {
+            "name": "save_my_bus_preferences",
+            "returns": "{ preference: BusPreferences }",
+            "rest_equivalent": "POST /api/bus/preferences",
+            "notes": [
+              "preferredOriginCampusId and preferredDestinationCampusId may be null to reset saved campuses.",
+              "Unknown non-null preferred origin or destination campus IDs return a serialized validation result with success=false and do not write preferences."
             ]
           }
         ]

@@ -7,13 +7,21 @@ import {
 } from "@/lib/mcp/tools/_helpers";
 import {
   getBusRouteTimetableTool,
+  getMyBusPreferencesTool,
   getNextBusesTool,
   listBusRoutesTool,
   queryBusTimetableTool,
+  saveMyBusPreferencesTool,
   searchBusRoutesTool,
 } from "@/lib/mcp/tools/bus-tool-handlers";
 
 const busDayTypeSchema = z.enum(["auto", "weekday", "weekend"]).default("auto");
+const busPreferenceCampusIdSchema = z
+  .number()
+  .int()
+  .positive()
+  .nullable()
+  .default(null);
 
 export function registerBusTools(server: McpServer) {
   server.registerTool(
@@ -55,6 +63,33 @@ export function registerBusTools(server: McpServer) {
       },
     },
     getBusRouteTimetableTool,
+  );
+
+  server.registerTool(
+    "get_my_bus_preferences",
+    {
+      description:
+        "Read the authenticated user's saved shuttle bus preferences.",
+      inputSchema: {
+        mode: mcpModeInputSchema,
+      },
+    },
+    getMyBusPreferencesTool,
+  );
+
+  server.registerTool(
+    "save_my_bus_preferences",
+    {
+      description:
+        "Save the authenticated user's preferred shuttle bus campuses and show-departed setting.",
+      inputSchema: {
+        preferredOriginCampusId: busPreferenceCampusIdSchema,
+        preferredDestinationCampusId: busPreferenceCampusIdSchema,
+        showDepartedTrips: z.boolean(),
+        mode: mcpModeInputSchema,
+      },
+    },
+    saveMyBusPreferencesTool,
   );
 
   server.registerTool(
