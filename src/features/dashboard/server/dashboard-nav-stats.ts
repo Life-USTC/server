@@ -1,3 +1,4 @@
+import { countUpcomingSubscribedExams } from "@/features/subscriptions/server/subscription-read-model";
 import { countIncompleteTodos } from "@/features/todos/server/todo-service";
 import { prisma as basePrisma } from "@/lib/db/prisma";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
@@ -5,7 +6,6 @@ import { getDashboardCalendarItemsCount } from "./dashboard-calendar-count";
 import {
   dashboardNavUserSummary,
   emptyDashboardNavStats,
-  upcomingDashboardExamWhere,
 } from "./dashboard-nav-stats-helpers";
 import type {
   DashboardSubscribedSection,
@@ -37,7 +37,6 @@ export async function getDashboardNavStats(
     : shanghaiDayjs();
   const todayStart = referenceNow.startOf("day");
   const tomorrowStart = todayStart.add(1, "day");
-  const nowHHmm = referenceNow.hour() * 100 + referenceNow.minute();
 
   const pendingTodosCountPromise = countIncompleteTodos(user.id);
 
@@ -75,13 +74,9 @@ export async function getDashboardNavStats(
       select: { id: true },
       orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
     }),
-    basePrisma.exam.count({
-      where: upcomingDashboardExamWhere({
-        nowHHmm,
-        scopedSectionIds,
-        todayStart,
-        tomorrowStart,
-      }),
+    countUpcomingSubscribedExams({
+      atTime: referenceNow.toDate(),
+      sectionIds: scopedSectionIds,
     }),
     getDashboardCalendarItemsCount(user.id, subscribedSections, referenceNow),
   ]);

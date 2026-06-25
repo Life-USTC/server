@@ -1,4 +1,4 @@
-import { getAssistantDashboardSnapshot } from "@/features/home/server/assistant-dashboard-snapshot";
+import { getAssistantDashboardSnapshot } from "@/features/dashboard/server/assistant-dashboard-snapshot";
 import type { AppLocale } from "@/i18n/config";
 import { getUserId, parseOptionalMcpDate } from "@/lib/mcp/tools/_helpers";
 

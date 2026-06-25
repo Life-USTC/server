@@ -1,12 +1,12 @@
 import {
+  getSectionForCalendar,
+  getSectionsForCalendar,
+} from "@/features/calendar/server/calendar-export-data";
+import { buildUserCalendarExport } from "@/features/calendar/server/calendar-export-service";
+import {
   createMultiSectionCalendar,
   createSectionCalendar,
 } from "@/features/calendar/server/ical";
-import {
-  getSectionForCalendar,
-  getSectionsForCalendar,
-} from "@/features/home/server/calendar-export-data";
-import { buildUserCalendarExport } from "@/features/home/server/calendar-export-service";
 import { handleRouteError, notFound } from "@/lib/api/helpers";
 import { calendarResponse } from "./calendar-route-utils";
 

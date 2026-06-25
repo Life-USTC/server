@@ -54,7 +54,7 @@ export async function loadSignedDashboardPageData(input: {
   userId: string;
 }) {
   const dashboard = await import(
-    "@/features/home/server/dashboard-overview-data"
+    "@/features/dashboard/server/dashboard-overview-data"
   );
   const context = await timeSignedDashboardStage(
     "user-context",

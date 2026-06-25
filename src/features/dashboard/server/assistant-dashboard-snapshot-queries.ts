@@ -1,3 +1,4 @@
+import { listUserCalendarEvents } from "@/features/calendar/server/calendar-events";
 import { getCurrentSemester } from "@/features/catalog/server/academic-metadata-read-model";
 import { getSubscribedSectionIds } from "@/features/subscriptions/server/subscription-read-model";
 import {
@@ -11,7 +12,6 @@ import {
   listAssistantCurrentSemesterSections,
   resolveAssistantBusSnapshot,
 } from "./assistant-dashboard-snapshot-helpers";
-import { listUserCalendarEvents } from "./calendar-events";
 
 export async function loadAssistantDashboardSnapshotData(input: {
   dateTo: Date;

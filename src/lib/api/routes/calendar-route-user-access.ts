@@ -1,4 +1,4 @@
-import { getUserCalendarRecord } from "@/features/home/server/calendar-export-data";
+import { getUserCalendarRecord } from "@/features/calendar/server/calendar-export-data";
 import { forbidden, notFound, unauthorized } from "@/lib/api/helpers";
 import { resolveApiUserId } from "@/lib/auth/api-auth";
 import { parseUserCalendarIdentifier } from "./calendar-route-utils";

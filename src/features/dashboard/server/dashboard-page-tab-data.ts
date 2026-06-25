@@ -1,4 +1,4 @@
-import type { DashboardUserContext } from "@/features/home/server/dashboard-user-context";
+import type { DashboardUserContext } from "@/features/dashboard/server/dashboard-user-context";
 import type { AppLocale } from "@/i18n/config";
 import { logAppEvent } from "@/lib/log/app-logger";
 
@@ -54,8 +54,8 @@ export async function loadSignedDashboardTabData(input: {
   userId: string;
 }) {
   const [dashboard, dashboardTabs, dashboardLinks] = await Promise.all([
-    import("@/features/home/server/dashboard-overview-data"),
-    import("@/features/home/server/dashboard-tab-data"),
+    import("@/features/dashboard/server/dashboard-overview-data"),
+    import("@/features/dashboard/server/dashboard-tab-data"),
     import("@/features/dashboard-links/server/dashboard-link-data"),
   ]);
   const stageContext = {

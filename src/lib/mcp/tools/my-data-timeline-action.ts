@@ -1,4 +1,4 @@
-import { listUserCalendarEvents } from "@/features/home/server/calendar-events";
+import { listUserCalendarEvents } from "@/features/calendar/server/calendar-events";
 import {
   getTodayBounds,
   getUserId,

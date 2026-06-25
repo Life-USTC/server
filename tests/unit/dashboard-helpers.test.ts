@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   buildTimeSlots,
   computeHomeworkBuckets,
-} from "@/features/home/server/dashboard-helpers";
+} from "@/features/dashboard/server/dashboard-helpers";
 import type {
   HomeworkWithSection,
   SessionItem,
-} from "@/features/home/server/dashboard-types";
+} from "@/features/dashboard/server/dashboard-types";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
 function session(startTime: number, endTime: number): SessionItem {

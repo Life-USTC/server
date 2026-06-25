@@ -1,8 +1,8 @@
+import type { OverviewData } from "@/features/dashboard/server/dashboard-overview-data";
 import {
   calendarDateKey,
   dashboardHomeworkItem,
 } from "@/features/dashboard/server/dashboard-page-server";
-import type { OverviewData } from "@/features/home/server/dashboard-overview-data";
 
 export function serializeDashboardOverview(overview: OverviewData) {
   const homeworkItems = new Map(

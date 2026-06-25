@@ -10,6 +10,7 @@
     "decision-page": "The home page is not a directory page but a decision page for 'what to do next'.",
     "current-semester-priority": "The above-the-fold area prioritizes personal learning tasks within the current semester, not historical semester content or complete directory information.",
     "homework-todo-layered": "Homework and todos are layered as 'due today / due soon / all incomplete'; homework with no due date does not participate in upcoming due date sorting.",
+    "upcoming-exam-counts": "Upcoming exam counts are shared between the dashboard web navigation, REST overview, and MCP overview. They include known-date exams that have not ended or start later today, and exclude date-unknown exam records that cannot be placed in the upcoming timeline.",
     "non-current-not-disguised": "Non-current-semester subscribed sections must not be disguised as current learning tasks.",
     "aggregate-first-for-assistants": "Prefer a single aggregated snapshot tool for common assistant prompts before fanning out into multiple narrower tool calls.",
     "focused-extracts-share-window": "Focused tools such as next-class and upcoming-deadlines should stay aligned with the same short-horizon window as the broader dashboard snapshot."
@@ -40,7 +41,7 @@
             "returns": "{ user, anchor, counts, schedules, todos, dueTodos, homeworks, exams }",
             "notes": [
               "Compact authenticated overview for bot, CLI, and mobile clients.",
-              "Supports atTime, homeworkWindowDays, limit, and locale query parameters.",
+              "Supports atTime, homeworkWindowDays, limit, and locale query parameters; date-only atTime values anchor to the start of that Asia/Shanghai day.",
               "Includes today schedule samples and incomplete todo samples in addition to the due-todo, homework, and exam samples exposed by get_my_overview."
             ]
           }
@@ -54,7 +55,7 @@
             "rest_equivalent": "GET /api/me/overview",
             "notes": [
               "overview contains pending todo, homework, today's schedule, and upcoming exam counts.",
-              "Accepts atTime, homeworkWindowDays, limit, and locale with the same bounds and sample-window semantics as GET /api/me/overview.",
+              "Accepts atTime, homeworkWindowDays, limit, and locale with the same bounds and sample-window semantics as GET /api/me/overview; date-only atTime values anchor to the start of that Asia/Shanghai day.",
               "Default/full samples contain dueTodos[], dueHomeworks[], and upcomingExams[] from the same compact overview read operation.",
               "Summary mode returns dueTodos, dueHomeworks, and upcomingExams groups with full totals and up to three smaller cards; use get_my_dashboard for a richer single-call assistant snapshot."
             ]

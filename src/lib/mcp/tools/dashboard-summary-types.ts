@@ -1,4 +1,4 @@
-import type { getAssistantDashboardSnapshot } from "@/features/home/server/assistant-dashboard-snapshot";
+import type { getAssistantDashboardSnapshot } from "@/features/dashboard/server/assistant-dashboard-snapshot";
 
 export type DashboardSnapshot = Awaited<
   ReturnType<typeof getAssistantDashboardSnapshot>

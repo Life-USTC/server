@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { listSemesterCalendarTodos } from "@/features/home/server/dashboard-overview-semester-todos";
+import { listSemesterCalendarTodos } from "@/features/dashboard/server/dashboard-overview-semester-todos";
 import { listDueTodoSnapshots } from "@/features/todos/server/todo-service";
 
 vi.mock("@/features/todos/server/todo-service", () => ({

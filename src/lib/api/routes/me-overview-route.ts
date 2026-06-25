@@ -28,6 +28,7 @@ export async function getMyCompactOverviewRoute(request: Request) {
     "atTime",
     parsedQuery.atTime,
     "Invalid overview query",
+    { dateOnlyAsShanghaiStart: true },
   );
   if (atTime instanceof Response) return atTime;
 
@@ -51,7 +52,7 @@ export async function getMyCompactOverviewRoute(request: Request) {
 
   try {
     const { getCompactOverview } = await import(
-      "@/features/home/server/compact-overview-read-model"
+      "@/features/dashboard/server/compact-overview-read-model"
     );
     const overview = await getCompactOverview(userId, {
       atTime,

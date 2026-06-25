@@ -1,5 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { listUserCalendarEvents } from "@/features/home/server/calendar-events";
+import { listUserCalendarEvents } from "@/features/calendar/server/calendar-events";
 import {
   flexDateInputSchema,
   getUserId,
