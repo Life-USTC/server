@@ -23,7 +23,7 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 function importSpecifiers(source: string) {
   return Array.from(
     source.matchAll(
-      /\b(?:import\s*(?:type\s*)?(?:[^"']*?\s+from\s*)?|export\s*(?:type\s*)?[^"']*?\s+from\s*|import\s*\(\s*)(["'])(@\/[^"']+)\1/g,
+      /\b(?:import\s*(?:type\s*)?(?:[^"']*?\s+from\s*)?|export\s*(?:type\s*)?[^"']*?\s+from\s*|import\s*\(\s*)(["'])([^"']+)\1/g,
     ),
     (match) => match[2],
   );
@@ -33,13 +33,21 @@ function relativeSourcePath(filePath: string) {
   return path.relative(process.cwd(), filePath).replace(/\\/g, "/");
 }
 
-function featureImports(source: string) {
+function sourceImportPath(filePath: string, specifier: string) {
+  if (specifier.startsWith("@/")) return `src/${specifier.slice(2)}`;
+  if (!specifier.startsWith(".")) return null;
+
+  return relativeSourcePath(path.resolve(path.dirname(filePath), specifier));
+}
+
+function featureImports(filePath: string, source: string) {
   return importSpecifiers(source).filter((specifier) =>
-    specifier.startsWith("@/features/"),
+    sourceImportPath(filePath, specifier)?.startsWith("src/features/"),
   );
 }
 
 const routeAdapterPrefix = "src/lib/api/routes/";
+const routeAdapterRoot = routeAdapterPrefix.slice(0, -1);
 const maxRouteAdapterFeatureImportFiles = 58;
 const maxRouteAdapterFeatureImports = 90;
 
@@ -65,6 +73,14 @@ function isAllowedRouteAdapterConsumer(filePath: string) {
   );
 }
 
+function isRouteAdapterImport(filePath: string, specifier: string) {
+  const sourcePath = sourceImportPath(filePath, specifier);
+  return (
+    sourcePath === routeAdapterRoot ||
+    sourcePath?.startsWith(routeAdapterPrefix) === true
+  );
+}
+
 const deprecatedFeatureLibImports = [
   /^@\/lib\/admin-/,
   /^@\/lib\/course-(?:page|query|section)/,
@@ -78,6 +94,21 @@ const deprecatedFeatureLibImports = [
 ];
 
 describe("source import boundaries", () => {
+  it("resolves relative route adapter imports before applying the consumer rule", () => {
+    const featureFile = path.join(
+      process.cwd(),
+      "src/features/comments/server/example.ts",
+    );
+
+    expect(
+      isRouteAdapterImport(featureFile, "../../../lib/api/routes/comments"),
+    ).toBe(true);
+    expect(isRouteAdapterImport(featureFile, "@/lib/api/routes/comments")).toBe(
+      true,
+    );
+    expect(isRouteAdapterImport(featureFile, "@/lib/api/helpers")).toBe(false);
+  });
+
   it("keeps src/lib infrastructure from importing feature modules outside surface adapters", async () => {
     const libFiles = await collectSourceFiles(
       path.join(process.cwd(), "src/lib"),
@@ -87,7 +118,7 @@ describe("source import boundaries", () => {
     for (const filePath of libFiles) {
       if (isAllowedLibFeatureAdapter(filePath)) continue;
       const source = await fs.readFile(filePath, "utf8");
-      const imports = featureImports(source);
+      const imports = featureImports(filePath, source);
       if (imports.length > 0) {
         violations.push(
           `${relativeSourcePath(filePath)} -> ${imports.join(", ")}`,
@@ -109,7 +140,7 @@ describe("source import boundaries", () => {
 
       const source = await fs.readFile(filePath, "utf8");
       const routeAdapterImports = importSpecifiers(source).filter((specifier) =>
-        specifier.startsWith("@/lib/api/routes"),
+        isRouteAdapterImport(filePath, specifier),
       );
       if (routeAdapterImports.length > 0) {
         violations.push(
@@ -130,7 +161,7 @@ describe("source import boundaries", () => {
 
     for (const filePath of routeAdapterFiles) {
       const source = await fs.readFile(filePath, "utf8");
-      for (const specifier of featureImports(source)) {
+      for (const specifier of featureImports(filePath, source)) {
         featureImportingFiles.add(relativeSourcePath(filePath));
         imports.push(`${relativeSourcePath(filePath)} -> ${specifier}`);
       }
