@@ -3,6 +3,7 @@ import {
   DEVICE_CODE_POLL_INTERVAL,
   DEVICE_CODE_STATUS,
 } from "@/lib/oauth/device-code";
+import { getDeviceAuthorizationClientPolicyFailure } from "./auth-device-client-policy";
 import { deviceCodeError } from "./auth-token-device-errors";
 
 type DeviceGrantPrisma = {
@@ -13,16 +14,34 @@ type DeviceGrantPrisma = {
         id: true;
         expiresAt: true;
         lastPolledAt: true;
+        resources: true;
         status: true;
         userId: true;
         scopes: true;
-        client: { select: { clientId: true; disabled: true } };
+        client: {
+          select: {
+            clientId: true;
+            disabled: true;
+            grantTypes: true;
+            public: true;
+            tokenEndpointAuthMethod: true;
+            type: true;
+          };
+        };
       };
     }) => Promise<{
-      client: { clientId: string; disabled: boolean };
+      client: {
+        clientId: string;
+        disabled: boolean;
+        grantTypes: string[];
+        public: boolean | null;
+        tokenEndpointAuthMethod: string | null;
+        type: string | null;
+      };
       expiresAt: Date;
       id: string;
       lastPolledAt: Date | null;
+      resources: string[];
       scopes: string[];
       status: string;
       userId: string | null;
@@ -34,6 +53,14 @@ type DeviceGrantPrisma = {
   };
 };
 
+type DeviceGrantRecord = NonNullable<
+  Awaited<ReturnType<DeviceGrantPrisma["deviceCode"]["findUnique"]>>
+>;
+
+type DeviceGrantRecordResult =
+  | { record: DeviceGrantRecord }
+  | { response: Response };
+
 export async function resolveDeviceGrantRecord({
   clientId,
   deviceCode,
@@ -42,17 +69,27 @@ export async function resolveDeviceGrantRecord({
   clientId: string;
   deviceCode: string;
   prisma: DeviceGrantPrisma;
-}) {
+}): Promise<DeviceGrantRecordResult> {
   const record = await prisma.deviceCode.findUnique({
     where: { deviceCode },
     select: {
       id: true,
       expiresAt: true,
       lastPolledAt: true,
+      resources: true,
       status: true,
       userId: true,
       scopes: true,
-      client: { select: { clientId: true, disabled: true } },
+      client: {
+        select: {
+          clientId: true,
+          disabled: true,
+          grantTypes: true,
+          public: true,
+          tokenEndpointAuthMethod: true,
+          type: true,
+        },
+      },
     },
   });
 
@@ -61,6 +98,10 @@ export async function resolveDeviceGrantRecord({
   }
 
   if (record.client.disabled) {
+    return { response: deviceCodeError("invalid_client") };
+  }
+
+  if (getDeviceAuthorizationClientPolicyFailure(record.client)) {
     return { response: deviceCodeError("invalid_client") };
   }
 

@@ -11,6 +11,7 @@ export async function createDeviceAuthorizationGrant(
   request: Request,
   clientId: string,
   requestedScopes: string[],
+  requestedResources: string[],
 ) {
   const deviceCode = generateDeviceCode();
   const userCode = generateUserCode();
@@ -23,6 +24,7 @@ export async function createDeviceAuthorizationGrant(
         userCode,
         clientId,
         scopes: requestedScopes,
+        resources: requestedResources,
         expiresAt,
       },
     });

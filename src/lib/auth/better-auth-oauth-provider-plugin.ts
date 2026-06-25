@@ -2,6 +2,7 @@ import { oauthProvider } from "@better-auth/oauth-provider";
 import { allowDebugAuth } from "@/lib/auth/auth-config";
 import { getOAuthProviderValidAudiences } from "@/lib/mcp/urls";
 import {
+  DEFAULT_OAUTH_CLIENT_SCOPES,
   OAUTH_PROFILE_SCOPE,
   OAUTH_PROVIDER_GRANT_TYPES,
   OAUTH_PROVIDER_SCOPES,
@@ -14,14 +15,14 @@ export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
     consentPage: `${input.authPublicOrigin}/oauth/authorize`,
     allowDynamicClientRegistration: true,
     allowUnauthenticatedClientRegistration: true,
-    rateLimit: allowDebugAuth
+    rateLimit: allowDebugAuth()
       ? {
           register: false,
         }
       : undefined,
     scopes: [...OAUTH_PROVIDER_SCOPES],
     grantTypes: [...OAUTH_PROVIDER_GRANT_TYPES],
-    clientRegistrationDefaultScopes: [...OAUTH_PROVIDER_SCOPES],
+    clientRegistrationDefaultScopes: [...DEFAULT_OAUTH_CLIENT_SCOPES],
     clientRegistrationAllowedScopes: [...OAUTH_PROVIDER_SCOPES],
     validAudiences: getOAuthProviderValidAudiences(),
     silenceWarnings: {

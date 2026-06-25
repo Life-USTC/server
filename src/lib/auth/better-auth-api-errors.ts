@@ -4,7 +4,7 @@ import { isOAuthDebugLogging, logOAuthDebug } from "@/lib/log/oauth-debug";
 
 export const betterAuthApiErrorHandler = {
   onError(error: unknown) {
-    if (isDevelopment) {
+    if (isDevelopment()) {
       logAppEvent(
         "error",
         "Better Auth API error",

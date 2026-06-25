@@ -29,7 +29,9 @@ export function getOAuthTokenVerificationIssuers(): string[] {
 }
 
 export function getOAuthRestAudienceUrls(): string[] {
-  return [getCanonicalOAuthIssuer()];
+  const issuer = getCanonicalOAuthIssuer();
+  const localIssuer = getLocalLoopbackSiblingUrl(issuer);
+  return uniqueUrls([issuer, ...(localIssuer ? [localIssuer] : [])]);
 }
 
 export function getOAuthMcpAudienceUrls(): string[] {
