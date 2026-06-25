@@ -10,6 +10,8 @@ import {
   dateKey,
   formatDate,
   formatDateTime,
+  formatMonth,
+  isSameMonth,
 } from "./date-display";
 
 export function createSectionDetailCalendarDisplayActions(input: {
@@ -26,6 +28,10 @@ export function createSectionDetailCalendarDisplayActions(input: {
 
   function fmtDateTime(value: string | Date | null | undefined) {
     return formatDateTime(value, input.getNotAvailable());
+  }
+
+  function fmtMonth(value: string | Date | null | undefined) {
+    return formatMonth(value, input.getNotAvailable());
   }
 
   function dateKeyValue(value: string | Date | null | undefined) {
@@ -45,12 +51,8 @@ export function createSectionDetailCalendarDisplayActions(input: {
     dateKey: dateKeyValue,
     fmtDate,
     fmtDateTime,
-    isSameMonth(day: Date, month: Date) {
-      return (
-        day.getFullYear() === month.getFullYear() &&
-        day.getMonth() === month.getMonth()
-      );
-    },
+    fmtMonth,
+    isSameMonth,
     sectionCalendarGridWeeks() {
       return buildSectionCalendarGridWeeks({
         dateKey: dateKeyValue,

@@ -93,6 +93,7 @@ const {
   dateKey: _dateKey,
   fmtDate: _fmtDate,
   fmtDateTime: _fmtDateTime,
+  fmtMonth: _fmtMonth,
   isSameMonth: _isSameMonth,
   sectionCalendarGridWeeks: _sectionCalendarGridWeeks,
 } = createSectionDetailCalendarDisplayActions({
@@ -136,10 +137,7 @@ $: calendarBaseMonth = findCalendarBaseMonth(sectionCalendarEvents);
 $: visibleCalendarMonth = _addMonths(calendarBaseMonth, _calendarMonthOffset);
 $: calendarMonthDays = _calendarMonthDays(visibleCalendarMonth);
 $: calendarMonthWeeks = _calendarWeeks(calendarMonthDays);
-$: calendarMonthLabel = visibleCalendarMonth.toLocaleDateString(undefined, {
-  month: "long",
-  year: "numeric",
-});
+$: calendarMonthLabel = _fmtMonth(visibleCalendarMonth);
 $: unscheduledCalendarEvents = sectionCalendarEvents.filter(
   (event) => !event.dateKey,
 );

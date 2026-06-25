@@ -1,3 +1,9 @@
+import {
+  campusDateKeyToLocalDate,
+  requireCampusDateKeyForValue,
+  toCampusDateKey,
+} from "@/lib/time/campus-date";
+
 export type SectionCalendarEvent = {
   id: string;
   kind: "class" | "exam";
@@ -21,8 +27,12 @@ type CalendarGridEvent = {
 
 export function findCalendarBaseMonth(events: SectionCalendarEvent[]) {
   const firstDated = events.find((event) => event.date);
-  const base = firstDated?.date ? new Date(firstDated.date) : new Date();
-  return new Date(base.getFullYear(), base.getMonth(), 1);
+  const baseKey = toCampusDateKey(firstDated?.date ?? new Date());
+  const monthKey = (baseKey ?? requireCampusDateKeyForValue(new Date())).slice(
+    0,
+    7,
+  );
+  return campusDateKeyToLocalDate(`${monthKey}-01`) ?? new Date();
 }
 
 export function calendarEventsForDay(
@@ -34,8 +44,8 @@ export function calendarEventsForDay(
 
 export function isSameMonth(day: Date, monthStart: Date) {
   return (
-    day.getFullYear() === monthStart.getFullYear() &&
-    day.getMonth() === monthStart.getMonth()
+    toCampusDateKey(day)?.slice(0, 7) ===
+    toCampusDateKey(monthStart)?.slice(0, 7)
   );
 }
 
@@ -80,11 +90,12 @@ export function buildSectionCalendarGridWeeks(input: {
   return input.monthWeeks.map((week) => ({
     label: input.semesterWeekLabel(week[0]),
     days: week.map((day) => {
-      const events = calendarEventsForDay(input.events, input.dateKey(day));
+      const dayKey = input.dateKey(day);
+      const events = calendarEventsForDay(input.events, dayKey);
       return {
-        key: day.toISOString(),
+        key: dayKey ?? day.toISOString(),
         label: String(day.getDate()),
-        isToday: input.dateKey(day) === input.todayKey,
+        isToday: dayKey === input.todayKey,
         isMuted: !isSameMonth(day, input.visibleMonth),
         events: events.map((event) =>
           buildCalendarGridEvent({
