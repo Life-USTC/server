@@ -16,7 +16,11 @@ const PLAYWRIGHT_HOST = "127.0.0.1";
 const DEFAULT_PLAYWRIGHT_PORT = "3000";
 const DEFAULT_WEB_SERVER_TIMEOUT_MS = 300 * 1000;
 const LOCAL_NO_PROXY = "127.0.0.1,localhost,::1";
-const WRANGLER_E2E_CONFIG_PATH = path.join(".wrangler", "e2e", "wrangler.json");
+const WRANGLER_E2E_CONFIG_PATH = path.join(
+  ".wrangler",
+  "tmp",
+  "e2e-wrangler.json",
+);
 const WRANGLER_E2E_PERSIST_PATH = path.join(".wrangler", "e2e", "state");
 const E2E_WORKER_VAR_KEYS = [
   "AUTH_SECRET",
@@ -206,6 +210,7 @@ export function preparePlaywrightWorkerRuntime(root = process.cwd()) {
   resolveWorkerEntrypoint(root, "bun run build");
   requireBuiltFile(root, ".svelte-kit/cloudflare-tmp/manifest.js");
   requireBuiltFile(root, ".svelte-kit/output/server/index.js");
+  requireBuiltFile(root, ".svelte-kit/output/server/nodes/0.js");
 }
 
 function pickE2EWorkerVars(env: Record<string, string>) {

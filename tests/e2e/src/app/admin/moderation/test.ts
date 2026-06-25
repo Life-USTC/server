@@ -9,6 +9,7 @@ import {
   createTempUsersFixture,
   deleteUsersByPrefix,
 } from "../../../../utils/e2e-db";
+import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
@@ -372,6 +373,12 @@ test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
     };
     suspensionId = createdBody.suspension?.id;
     expect(typeof suspensionId).toBe("string");
+    await expect(
+      dialog.getByText(/封禁成功|Suspended successfully/i),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: /^(封禁|Suspend)$/i }),
+    ).toBeEnabled();
     await captureStepScreenshot(
       page,
       testInfo,
@@ -385,10 +392,9 @@ test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
       expect(lift.status()).toBe(200);
     }
     if (commentId) {
-      const deleted = await userPage.request.delete(
-        `/api/comments/${commentId}`,
+      await withE2ePrisma((prisma) =>
+        prisma.comment.deleteMany({ where: { id: commentId } }),
       );
-      expect(deleted.status()).toBe(200);
     }
     await userContext.close();
   }
