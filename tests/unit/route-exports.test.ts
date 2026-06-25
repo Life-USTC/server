@@ -2,9 +2,22 @@ import { describe, expect, it } from "vitest";
 import {
   getExportedRouteMethods,
   getRouteExportKind,
+  HTTP_METHODS,
 } from "../../tools/shared/route-exports";
 
 describe("route export parser", () => {
+  it("keeps route parity checks aware of preflight and head methods", () => {
+    expect(HTTP_METHODS).toEqual([
+      "GET",
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE",
+      "HEAD",
+      "OPTIONS",
+    ]);
+  });
+
   it("detects function, const, and destructured route exports", () => {
     const source = `
       export async function GET() {}

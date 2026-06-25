@@ -273,7 +273,7 @@
         },
         "method": {
           "type": "string",
-          "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+          "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"],
           "default": "GET"
         },
         "description": {
@@ -523,7 +523,7 @@
             "routes": {
               "type": "array",
               "minItems": 1,
-              "maxItems": 12,
+              "maxItems": 32,
               "items": {
                 "$ref": "#/$defs/routeEntry"
               }
