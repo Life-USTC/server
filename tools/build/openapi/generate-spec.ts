@@ -535,7 +535,7 @@ const SECURITY_SCHEMES = {
     scheme: "bearer",
     bearerFormat: "JWT",
     description:
-      "OAuth access token accepted by protected REST endpoints. These endpoints also accept an in-site Better Auth session cookie.",
+      "OAuth access token accepted by protected REST endpoints when it carries rest:read for reads or rest:write for mutations. These endpoints also accept an in-site Better Auth session cookie.",
   },
   sessionCookie: {
     type: "apiKey",

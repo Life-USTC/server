@@ -10,6 +10,8 @@ import {
   OAUTH_OPENID_SCOPE,
   OAUTH_PROFILE_SCOPE,
   OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+  OAUTH_REST_READ_SCOPE,
+  OAUTH_REST_WRITE_SCOPE,
 } from "@/lib/oauth/constants";
 
 describe("resolveOAuthClientScopes", () => {
@@ -34,10 +36,16 @@ describe("resolveOAuthClientScopes", () => {
   it("accepts space-delimited requested scopes", () => {
     expect(
       resolveOAuthClientScopes(
-        `${OAUTH_OPENID_SCOPE} ${MCP_TOOLS_SCOPE} ${OAUTH_OFFLINE_ACCESS_SCOPE}`,
+        `${OAUTH_OPENID_SCOPE} ${MCP_TOOLS_SCOPE} ${OAUTH_OFFLINE_ACCESS_SCOPE} ${OAUTH_REST_READ_SCOPE} ${OAUTH_REST_WRITE_SCOPE}`,
       ),
     ).toEqual({
-      scopes: [OAUTH_OPENID_SCOPE, MCP_TOOLS_SCOPE, OAUTH_OFFLINE_ACCESS_SCOPE],
+      scopes: [
+        OAUTH_OPENID_SCOPE,
+        MCP_TOOLS_SCOPE,
+        OAUTH_OFFLINE_ACCESS_SCOPE,
+        OAUTH_REST_READ_SCOPE,
+        OAUTH_REST_WRITE_SCOPE,
+      ],
     });
   });
 

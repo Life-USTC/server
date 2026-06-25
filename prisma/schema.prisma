@@ -1307,6 +1307,7 @@ model OAuthRefreshToken {
   revoked     DateTime?
   authTime    DateTime?
   scopes      String[] @default([])
+  resources   String[] @default([])
 
   accessTokens OAuthAccessToken[]
 

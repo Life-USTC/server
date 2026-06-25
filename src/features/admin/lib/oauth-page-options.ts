@@ -1,3 +1,11 @@
+import {
+  MCP_TOOLS_SCOPE,
+  OAUTH_OPENID_SCOPE,
+  OAUTH_PROFILE_SCOPE,
+  OAUTH_REST_READ_SCOPE,
+  OAUTH_REST_WRITE_SCOPE,
+} from "@/lib/oauth/constants";
+
 export type OAuthAuthPatternOption = {
   descriptionKey: string;
   hintKey: string;
@@ -12,9 +20,14 @@ export type OAuthScopeOption = {
 };
 
 export const oauthScopeOptions: OAuthScopeOption[] = [
-  { value: "openid", descriptionKey: "scopeOpenIdDescription" },
-  { value: "profile", descriptionKey: "scopeProfileDescription" },
-  { value: "mcp:tools", descriptionKey: "scopeMcpToolsDescription" },
+  { value: OAUTH_OPENID_SCOPE, descriptionKey: "scopeOpenIdDescription" },
+  { value: OAUTH_PROFILE_SCOPE, descriptionKey: "scopeProfileDescription" },
+  { value: OAUTH_REST_READ_SCOPE, descriptionKey: "scopeRestReadDescription" },
+  {
+    value: OAUTH_REST_WRITE_SCOPE,
+    descriptionKey: "scopeRestWriteDescription",
+  },
+  { value: MCP_TOOLS_SCOPE, descriptionKey: "scopeMcpToolsDescription" },
 ];
 
 const defaultOAuthAuthPatternOption: OAuthAuthPatternOption = {

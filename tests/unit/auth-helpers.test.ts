@@ -1,4 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  MCP_TOOLS_SCOPE,
+  OAUTH_PROFILE_SCOPE,
+  OAUTH_REST_READ_SCOPE,
+  OAUTH_REST_WRITE_SCOPE,
+} from "@/lib/oauth/constants";
 
 const getSessionFromHeadersMock = vi.fn();
 const verifyAccessTokenMock = vi.fn();
@@ -51,7 +57,10 @@ describe("auth helpers", () => {
   });
 
   it("prefers a valid bearer access token over session cookies", async () => {
-    verifyAccessTokenMock.mockResolvedValue({ sub: "user-from-token" });
+    verifyAccessTokenMock.mockResolvedValue({
+      scope: OAUTH_REST_READ_SCOPE,
+      sub: "user-from-token",
+    });
     const { resolveApiUserId } = await import("@/lib/auth/api-auth");
     const request = new Request("https://life.example/api/me", {
       headers: {
@@ -72,6 +81,119 @@ describe("auth helpers", () => {
         },
       }),
     );
+  });
+
+  it("rejects profile-only bearer access for protected REST reads", async () => {
+    verifyAccessTokenMock.mockResolvedValue({
+      scope: OAUTH_PROFILE_SCOPE,
+      sub: "user-from-token",
+    });
+    const { requireAuth } = await import("@/lib/auth/api-auth");
+    const request = new Request("https://life.example/api/me", {
+      headers: {
+        authorization: "Bearer profile-token",
+      },
+    });
+
+    const result = await requireAuth(request);
+
+    expect(result).toBeInstanceOf(Response);
+    expect((result as Response).status).toBe(401);
+    await expect((result as Response).json()).resolves.toEqual({
+      error: "Unauthorized",
+    });
+    expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects MCP-only bearer access for protected REST reads", async () => {
+    verifyAccessTokenMock.mockResolvedValue({
+      scope: `${OAUTH_PROFILE_SCOPE} ${MCP_TOOLS_SCOPE}`,
+      sub: "user-from-token",
+    });
+    const { requireAuth } = await import("@/lib/auth/api-auth");
+    const request = new Request("https://life.example/api/todos", {
+      headers: {
+        authorization: "Bearer mcp-token",
+      },
+    });
+
+    const result = await requireAuth(request);
+
+    expect(result).toBeInstanceOf(Response);
+    expect((result as Response).status).toBe(401);
+    await expect((result as Response).json()).resolves.toEqual({
+      error: "Unauthorized",
+    });
+    expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects REST read-only bearer access for protected REST writes", async () => {
+    verifyAccessTokenMock.mockResolvedValue({
+      scope: OAUTH_REST_READ_SCOPE,
+      sub: "user-from-token",
+    });
+    const { requireWriteAuth } = await import("@/lib/auth/api-auth");
+    const request = new Request("https://life.example/api/todos", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer read-token",
+      },
+    });
+
+    const result = await requireWriteAuth(request);
+
+    expect(result).toBeInstanceOf(Response);
+    expect((result as Response).status).toBe(401);
+    await expect((result as Response).json()).resolves.toEqual({
+      error: "Unauthorized",
+    });
+    expect(getViewerAuthDataForUserIdMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects REST read-only bearer access for POST routes using requireAuth", async () => {
+    verifyAccessTokenMock.mockResolvedValue({
+      scope: OAUTH_REST_READ_SCOPE,
+      sub: "user-from-token",
+    });
+    const { requireAuth } = await import("@/lib/auth/api-auth");
+    const request = new Request("https://life.example/api/todos", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer read-token",
+      },
+    });
+
+    const result = await requireAuth(request);
+
+    expect(result).toBeInstanceOf(Response);
+    expect((result as Response).status).toBe(401);
+    await expect((result as Response).json()).resolves.toEqual({
+      error: "Unauthorized",
+    });
+    expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects MCP-only bearer access for protected REST writes", async () => {
+    verifyAccessTokenMock.mockResolvedValue({
+      scope: `${OAUTH_PROFILE_SCOPE} ${MCP_TOOLS_SCOPE}`,
+      sub: "user-from-token",
+    });
+    const { requireWriteAuth } = await import("@/lib/auth/api-auth");
+    const request = new Request("https://life.example/api/todos", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer mcp-token",
+      },
+    });
+
+    const result = await requireWriteAuth(request);
+
+    expect(result).toBeInstanceOf(Response);
+    expect((result as Response).status).toBe(401);
+    await expect((result as Response).json()).resolves.toEqual({
+      error: "Unauthorized",
+    });
+    expect(getViewerAuthDataForUserIdMock).not.toHaveBeenCalled();
   });
 
   it("does not fall back to session cookies when a bearer token is invalid", async () => {
@@ -144,7 +266,10 @@ describe("auth helpers", () => {
   });
 
   it("rejects write auth when the resolved user no longer exists", async () => {
-    verifyAccessTokenMock.mockResolvedValue({ sub: "deleted-user" });
+    verifyAccessTokenMock.mockResolvedValue({
+      scope: OAUTH_REST_WRITE_SCOPE,
+      sub: "deleted-user",
+    });
     getViewerAuthDataForUserIdMock.mockResolvedValue(null);
     const { requireWriteAuth } = await import("@/lib/auth/api-auth");
     const request = new Request("https://life.example/api/comments", {

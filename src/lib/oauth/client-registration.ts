@@ -4,6 +4,8 @@ import {
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
   OAUTH_OFFLINE_ACCESS_SCOPE,
   OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+  OAUTH_REST_READ_SCOPE,
+  OAUTH_REST_WRITE_SCOPE,
 } from "@/lib/oauth/constants";
 
 type ValidationErrorResult = { error: string };
@@ -13,6 +15,8 @@ const SUPPORTED_DYNAMIC_CLIENT_SCOPES = new Set([
   ...DEFAULT_OAUTH_CLIENT_SCOPES,
   MCP_TOOLS_SCOPE,
   OAUTH_OFFLINE_ACCESS_SCOPE,
+  OAUTH_REST_READ_SCOPE,
+  OAUTH_REST_WRITE_SCOPE,
 ]);
 
 function parseRequestedScopes(input?: string[] | string | null) {

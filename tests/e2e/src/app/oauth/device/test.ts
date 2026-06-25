@@ -11,7 +11,7 @@
  * - /oauth/device page renders user code entry form anonymously
  * - Unauthenticated pending approval link → redirect to /signin
  * - After login → approval/denial screen
- * - Approved resource-bound device token can authenticate REST and MCP
+ * - Approved, scoped resource-bound device token can authenticate REST and MCP
  *
  * ## Edge Cases
  * - Invalid user code → shows error
@@ -30,6 +30,7 @@ import {
   OAUTH_DEVICE_CODE_GRANT_TYPE,
   OAUTH_OFFLINE_ACCESS_SCOPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+  OAUTH_REST_READ_SCOPE,
 } from "@/lib/oauth/constants";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import {
@@ -57,6 +58,7 @@ type DeviceAuthorizationResult = {
 const DEVICE_MCP_CLIENT_SCOPES = [
   "openid",
   "profile",
+  OAUTH_REST_READ_SCOPE,
   MCP_TOOLS_SCOPE,
   OAUTH_OFFLINE_ACCESS_SCOPE,
 ];
@@ -419,6 +421,82 @@ test("/oauth/device resource-bound token authenticates REST and MCP", async ({
       },
     });
     expect(mcpResponse.status()).toBe(200);
+  } finally {
+    await deleteOAuthClientsByName(clientName);
+  }
+});
+
+test("/oauth/device profile-only REST token is rejected by protected REST", async ({
+  page,
+  request,
+}) => {
+  const clientName = `device-e2e-profile-rest-token-${Date.now()}`;
+  const restResource = `${PLAYWRIGHT_BASE_URL}/api/auth`;
+  const scopes = ["openid", "profile"];
+  try {
+    const result = await requestDeviceCode(request, clientName, {
+      clientScopes: scopes,
+      resources: [restResource],
+      scope: scopes.join(" "),
+    });
+
+    await approveDeviceCode(page, result, {
+      visibleResources: [restResource],
+    });
+    const { accessToken } = await exchangeDeviceToken(request, result, [
+      restResource,
+    ]);
+    expect(accessToken.split(".")).toHaveLength(3);
+
+    const todosResponse = await request.get("/api/todos", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    expect(todosResponse.status()).toBe(401);
+    await expect(todosResponse.json()).resolves.toEqual({
+      error: "Unauthorized",
+    });
+  } finally {
+    await deleteOAuthClientsByName(clientName);
+  }
+});
+
+test("/oauth/device MCP-scoped token without REST scope is rejected by protected REST", async ({
+  page,
+  request,
+}) => {
+  const clientName = `device-e2e-mcp-rest-token-${Date.now()}`;
+  const restResource = `${PLAYWRIGHT_BASE_URL}/api/auth`;
+  const mcpResource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
+  const scopes = ["openid", "profile", MCP_TOOLS_SCOPE];
+  const resources = [restResource, mcpResource];
+  try {
+    const result = await requestDeviceCode(request, clientName, {
+      clientScopes: scopes,
+      resources,
+      scope: scopes.join(" "),
+    });
+
+    await approveDeviceCode(page, result, {
+      visibleResources: resources,
+    });
+    const { accessToken } = await exchangeDeviceToken(
+      request,
+      result,
+      resources,
+    );
+    expect(accessToken.split(".")).toHaveLength(3);
+
+    const todosResponse = await request.get("/api/todos", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    expect(todosResponse.status()).toBe(401);
+    await expect(todosResponse.json()).resolves.toEqual({
+      error: "Unauthorized",
+    });
   } finally {
     await deleteOAuthClientsByName(clientName);
   }

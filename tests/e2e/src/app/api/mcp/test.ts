@@ -29,6 +29,7 @@ import {
   OAUTH_OFFLINE_ACCESS_SCOPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
   OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+  OAUTH_REST_READ_SCOPE,
 } from "@/lib/oauth/constants";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../../utils/dev-seed";
@@ -247,6 +248,35 @@ function expectMcpCorsHeaders(
   expect(allowHeaders).toContain("last-event-id");
   expect(exposeHeaders).toContain("mcp-session-id");
   expect(exposeHeaders).toContain("www-authenticate");
+}
+
+async function expectAccessTokenCannotInitializeMcp(
+  request: Page["request"],
+  accessToken: string,
+  clientName: string,
+) {
+  const response = await request.post("/api/mcp", {
+    data: {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "initialize",
+      params: {
+        protocolVersion: "2025-03-26",
+        capabilities: {},
+        clientInfo: {
+          name: clientName,
+          version: "1.0.0",
+        },
+      },
+    },
+    headers: {
+      Accept: "application/json, text/event-stream",
+      Authorization: `Bearer ${accessToken}`,
+      "MCP-Protocol-Version": "2025-03-26",
+    },
+  });
+
+  expect([401, 403]).toContain(response.status());
 }
 
 type BusPreference = {
@@ -589,6 +619,83 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
     });
 
     expect(response.status()).toBe(200);
+  });
+
+  test("resource-less MCP refresh token cannot omit resource to mint an MCP access token", async ({
+    page,
+    request,
+  }) => {
+    await signInAsDebugUser(page, "/");
+
+    const { clientId, refreshToken } = await issueAccessToken(page, request, {
+      scope: `${MCP_CLIENT_SCOPE} ${OAUTH_OFFLINE_ACCESS_SCOPE}`,
+      clientScopes: [...MCP_CLIENT_SCOPES, OAUTH_OFFLINE_ACCESS_SCOPE],
+    });
+    expect(typeof refreshToken).toBe("string");
+    if (typeof refreshToken !== "string") {
+      throw new Error("Expected refresh token");
+    }
+
+    const refreshResponse = await request.post("/api/auth/oauth2/token", {
+      form: {
+        grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+        client_id: clientId,
+        refresh_token: refreshToken,
+      },
+    });
+    expect(refreshResponse.status()).toBe(200);
+    const refreshBody = (await refreshResponse.json()) as {
+      access_token?: string;
+    };
+    expect(typeof refreshBody.access_token).toBe("string");
+
+    await expectAccessTokenCannotInitializeMcp(
+      request,
+      refreshBody.access_token as string,
+      "resource-less-refresh-e2e-client",
+    );
+  });
+
+  test("REST-only refresh token cannot omit resource to mint an MCP access token", async ({
+    page,
+    request,
+  }) => {
+    const restResource = `${PLAYWRIGHT_BASE_URL}/api/auth`;
+    const restClientScopes = [
+      ...DEFAULT_OAUTH_CLIENT_SCOPES,
+      OAUTH_OFFLINE_ACCESS_SCOPE,
+      OAUTH_REST_READ_SCOPE,
+    ];
+    await signInAsDebugUser(page, "/");
+
+    const { clientId, refreshToken } = await issueAccessToken(page, request, {
+      scope: restClientScopes.join(" "),
+      clientScopes: restClientScopes,
+      resource: restResource,
+    });
+    expect(typeof refreshToken).toBe("string");
+    if (typeof refreshToken !== "string") {
+      throw new Error("Expected refresh token");
+    }
+
+    const refreshResponse = await request.post("/api/auth/oauth2/token", {
+      form: {
+        grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+        client_id: clientId,
+        refresh_token: refreshToken,
+      },
+    });
+    expect(refreshResponse.status()).toBe(200);
+    const refreshBody = (await refreshResponse.json()) as {
+      access_token?: string;
+    };
+    expect(typeof refreshBody.access_token).toBe("string");
+
+    await expectAccessTokenCannotInitializeMcp(
+      request,
+      refreshBody.access_token as string,
+      "rest-only-refresh-e2e-client",
+    );
   });
 
   test("OAuth PKCE token can connect to /api/mcp and call all seeded tools", async ({

@@ -4,14 +4,14 @@
     "anon": "Can browse API documentation and public REST capabilities.",
     "user": "When signed in, can call their own restricted REST capabilities.",
     "admin": "Calls governance capabilities through the corresponding admin endpoints.",
-    "agent": "Can call public REST capabilities and, after OAuth authorization, can call restricted REST and MCP capabilities; both share the same authorization boundary by default."
+    "agent": "Can call public REST capabilities and, after OAuth authorization, can call restricted REST capabilities only with explicit rest:read/rest:write scopes and MCP capabilities with mcp:tools."
   },
   "rules": {
     "aligned-with-web": "The goal of REST / OpenAPI is to expose capabilities aligned with the web, not to create an additional product layer.",
     "no-developer-model": "Public documentation helps callers understand the existing product capability boundaries, not to introduce a separate developer-specific business model.",
-    "session-and-bearer": "Current user-side business REST endpoints support both in-site session from the request cookie and OAuth bearer tokens; bearer-token access is no longer limited to MCP.",
+    "session-and-bearer": "Current user-side business REST endpoints support both in-site session from the request cookie and OAuth bearer tokens; bearer-token access requires a REST audience plus rest:read/rest:write scopes.",
     "rest-mcp-consistent": "The same abstract endpoint currently maintains the same core fields, state information, and action results in both REST and MCP; differences mainly appear in interaction form and serialization level.",
-    "security-schemes": "Generated OpenAPI derives operation security from contract route auth: user REST operations use bearer/session alternatives, admin REST operations use session-cookie auth only, MCP uses bearer-only auth, internal operational endpoints use internal bearer auth, and personal calendar feed export also allows feed tokens.",
+    "security-schemes": "Generated OpenAPI derives operation security from contract route auth: user REST operations use scoped bearer/session alternatives, admin REST operations use session-cookie auth only, MCP uses bearer-only auth, internal operational endpoints use internal bearer auth, and personal calendar feed export also allows feed tokens.",
     "rest-observability": "REST API handling records production-safe structured request-start/request-finish logs and bounded in-memory metrics with request ID, method, status, auth mode, duration, and normalized route template; it does not log request bodies, credentials, raw query strings, or high-cardinality resource IDs."
   },
   "capabilities": {
