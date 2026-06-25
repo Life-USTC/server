@@ -305,7 +305,7 @@ function parseRenderArgs(argv: string[]): RenderOptions {
       options.output = readValue(argv, index);
       index += 1;
     } else if (arg === "--screenshot-base-url") {
-      options.screenshotBaseUrl = readValue(argv, index);
+      options.screenshotBaseUrl = argv[index + 1] || undefined;
       index += 1;
     } else if (arg === "--workflow-url") {
       options.workflowUrl = readValue(argv, index);
