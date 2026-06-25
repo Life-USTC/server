@@ -4,7 +4,7 @@ HTTP route adapters for SvelteKit API endpoints.
 
 ## Rules
 
-- This directory is the intentional exception to the generic `src/lib` infrastructure boundary: adapters may import `@/features/*/server` when adapting REST requests to feature operations.
+- This directory is the intentional exception to the generic `src/lib` infrastructure boundary: adapters may import feature-owned server operations and narrow feature-owned helpers when adapting REST requests to feature behavior.
 - Keep adapters transport-level: parse params/query/body, resolve auth or locale, call feature server functions, and shape HTTP success/error responses.
 - Keep business rules and reusable read/write operations in `src/features/<feature>/server`; do not add domain services here.
 - Do not import these adapters from features, page actions, or generic `src/lib` helpers. `src/routes/api/**/+server.ts` files may import them to keep SvelteKit route entries thin.
