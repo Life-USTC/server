@@ -1,16 +1,3 @@
-## [1.37.10](https://github.com/Life-USTC/server/compare/v1.37.9...v1.37.10) (2026-06-25)
-
-
-### Bug Fixes
-
-* harden bus imports and preferences ([fb721bd](https://github.com/Life-USTC/server/commit/fb721bd8156ce116b951b90b466e4a87ad7ec372))
-
-
-### Reverts
-
-* Revert "chore(release): 1.37.9 [skip ci]" ([1e9c0fa](https://github.com/Life-USTC/server/commit/1e9c0fa12020201a95529227c718f3d182e37e80))
-* Revert "fix: harden snapshot and e2e tooling" ([e5b4a8c](https://github.com/Life-USTC/server/commit/e5b4a8ca65beea46cadd3a48190a48c2eb1d131d))
-
 ## [1.37.8](https://github.com/Life-USTC/server/compare/v1.37.7...v1.37.8) (2026-06-25)
 
 
