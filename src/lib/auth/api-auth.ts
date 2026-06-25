@@ -5,6 +5,45 @@ import {
   getOAuthRestAudienceUrls,
   getOAuthTokenVerificationIssuers,
 } from "@/lib/mcp/urls";
+import {
+  OAUTH_REST_READ_SCOPE,
+  OAUTH_REST_WRITE_SCOPE,
+} from "@/lib/oauth/constants";
+
+type RestBearerScopeRequirement = "read" | "write";
+
+function parseScopeClaim(scope: unknown): Set<string> {
+  if (typeof scope === "string") {
+    return new Set(scope.split(/\s+/).filter(Boolean));
+  }
+  if (Array.isArray(scope)) {
+    return new Set(scope.filter((value) => typeof value === "string"));
+  }
+  return new Set();
+}
+
+function hasRequiredRestScope(
+  scope: unknown,
+  requirement: RestBearerScopeRequirement,
+) {
+  const scopes = parseScopeClaim(scope);
+  if (requirement === "write") {
+    return scopes.has(OAUTH_REST_WRITE_SCOPE);
+  }
+  return (
+    scopes.has(OAUTH_REST_READ_SCOPE) || scopes.has(OAUTH_REST_WRITE_SCOPE)
+  );
+}
+
+function resolveBearerScopeRequirement(
+  request: Request,
+  explicitRequirement?: RestBearerScopeRequirement,
+): RestBearerScopeRequirement {
+  if (explicitRequirement) return explicitRequirement;
+  return ["GET", "HEAD", "OPTIONS"].includes(request.method.toUpperCase())
+    ? "read"
+    : "write";
+}
 
 /**
  * Resolve the authenticated user ID from a request.
@@ -15,6 +54,7 @@ import {
  */
 export async function resolveApiUserId(
   request: Request,
+  options: { bearerScope?: RestBearerScopeRequirement } = {},
 ): Promise<string | null> {
   const authHeader = request.headers.get("authorization");
   const bearer = authHeader?.match(/^Bearer(?:\s+(.+))?$/);
@@ -31,7 +71,15 @@ export async function resolveApiUserId(
       });
 
       const sub = (jwt as { sub?: unknown }).sub;
-      if (typeof sub === "string" && sub.length > 0) {
+      const scope = (jwt as { scope?: unknown }).scope;
+      if (
+        typeof sub === "string" &&
+        sub.length > 0 &&
+        hasRequiredRestScope(
+          scope,
+          resolveBearerScopeRequirement(request, options.bearerScope),
+        )
+      ) {
         return sub;
       }
     } catch {
@@ -69,7 +117,7 @@ export async function requireAuth(
 export async function requireWriteAuth(
   request: Request,
 ): Promise<{ userId: string } | Response> {
-  const userId = await resolveApiUserId(request);
+  const userId = await resolveApiUserId(request, { bearerScope: "write" });
   if (!userId) return unauthorized();
   const { getViewerAuthDataForUserId } = await import("./viewer-context");
   const data = await getViewerAuthDataForUserId(userId);

@@ -10,6 +10,8 @@ import {
   OAUTH_PROFILE_SCOPE,
   OAUTH_PROVIDER_SCOPES,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+  OAUTH_REST_READ_SCOPE,
+  OAUTH_REST_WRITE_SCOPE,
 } from "@/lib/oauth/constants";
 
 describe("oauth constants", () => {
@@ -32,6 +34,8 @@ describe("oauth constants", () => {
       OAUTH_PROFILE_SCOPE,
       OAUTH_EMAIL_SCOPE,
       OAUTH_OFFLINE_ACCESS_SCOPE,
+      OAUTH_REST_READ_SCOPE,
+      OAUTH_REST_WRITE_SCOPE,
       MCP_TOOLS_SCOPE,
     ]);
   });

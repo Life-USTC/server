@@ -21,6 +21,8 @@ export const OAUTH_OPENID_SCOPE = "openid";
 export const OAUTH_PROFILE_SCOPE = "profile";
 export const OAUTH_EMAIL_SCOPE = "email";
 export const OAUTH_OFFLINE_ACCESS_SCOPE = "offline_access";
+export const OAUTH_REST_READ_SCOPE = "rest:read";
+export const OAUTH_REST_WRITE_SCOPE = "rest:write";
 export const MCP_TOOLS_SCOPE = "mcp:tools";
 export const DEFAULT_OAUTH_CLIENT_SCOPES = [
   OAUTH_OPENID_SCOPE,
@@ -31,6 +33,8 @@ export const OAUTH_PROVIDER_SCOPES = [
   OAUTH_PROFILE_SCOPE,
   OAUTH_EMAIL_SCOPE,
   OAUTH_OFFLINE_ACCESS_SCOPE,
+  OAUTH_REST_READ_SCOPE,
+  OAUTH_REST_WRITE_SCOPE,
   MCP_TOOLS_SCOPE,
 ] as const;
 export const SUPPORTED_OAUTH_CLIENT_AUTH_METHODS = [
