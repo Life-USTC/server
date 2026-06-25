@@ -47,30 +47,28 @@ function cycleTheme() {
   themeMode = cycleStoredThemeMode(themeMode);
 }
 
-function toggleMobileMenu() {
-  mobileMenuOpen = !mobileMenuOpen;
-  userMenuOpen = false;
-  localeMenuOpen = false;
+function setMobileMenuOpen(open: boolean) {
+  mobileMenuOpen = open;
+  if (open) {
+    userMenuOpen = false;
+    localeMenuOpen = false;
+  }
 }
 
-function toggleUserMenu() {
-  userMenuOpen = !userMenuOpen;
-  mobileMenuOpen = false;
-  localeMenuOpen = false;
+function setUserMenuOpen(open: boolean) {
+  userMenuOpen = open;
+  if (open) {
+    mobileMenuOpen = false;
+    localeMenuOpen = false;
+  }
 }
 
-function toggleLocaleMenu() {
-  localeMenuOpen = !localeMenuOpen;
-  mobileMenuOpen = false;
-  userMenuOpen = false;
-}
-
-function closeMobileMenu() {
-  mobileMenuOpen = false;
-}
-
-function closeUserMenu() {
-  userMenuOpen = false;
+function setLocaleMenuOpen(open: boolean) {
+  localeMenuOpen = open;
+  if (open) {
+    mobileMenuOpen = false;
+    userMenuOpen = false;
+  }
 }
 
 function closeMenus() {
@@ -114,15 +112,13 @@ onMount(() => {
 
   <AppHeader
     {avatarFallback}
-    {closeMobileMenu}
     {closeMenus}
-    {closeUserMenu}
     copy={data.copy}
     {mobileMenuOpen}
     {primaryLinks}
     {profileHref}
-    {toggleMobileMenu}
-    {toggleUserMenu}
+    {setMobileMenuOpen}
+    {setUserMenuOpen}
     user={data.user}
     {userMenuOpen}
   />
@@ -137,8 +133,8 @@ onMount(() => {
     {footerLinks}
     locale={data.locale}
     bind:localeMenuOpen
+    {setLocaleMenuOpen}
     {setLocale}
     {themeButtonLabel}
-    {toggleLocaleMenu}
   />
 </div>

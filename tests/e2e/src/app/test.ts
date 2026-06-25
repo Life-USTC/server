@@ -84,7 +84,7 @@ test("/ shell menus can switch in one click", async ({ page }) => {
   });
   await profileMenuButton.click();
   await expect(
-    page.getByRole("link", { name: /设置|Settings/i }),
+    page.getByRole("menuitem", { name: /设置|Settings/i }),
   ).toBeVisible();
 
   await page.getByRole("button", { name: /^菜单$|^Menu$/i }).click();
@@ -92,11 +92,52 @@ test("/ shell menus can switch in one click", async ({ page }) => {
   await expect(
     page
       .locator('[data-slot="menu"]')
-      .getByRole("link", { name: /课程|Courses/i }),
+      .getByRole("menuitem", { name: /课程|Courses/i }),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: /设置|Settings/i })).toHaveCount(
-    0,
+  await expect(
+    page.getByRole("menuitem", { name: /设置|Settings/i }),
+  ).toHaveCount(0);
+});
+
+test("/ shell menus expose keyboard menu semantics", async ({ page }) => {
+  await signInAsDebugUser(page, "/");
+
+  const profileMenuButton = page.getByRole("button", {
+    name: /个人菜单|Profile menu/i,
+  });
+  await profileMenuButton.focus();
+  await page.keyboard.press("Enter");
+
+  const menu = page.getByRole("menu");
+  await expect(menu).toBeVisible();
+  const homeItem = page.getByRole("menuitem", { name: /首页|Home/i });
+  await expect(homeItem).toBeFocused();
+  await page.evaluate(
+    () => new Promise((resolve) => requestAnimationFrame(resolve)),
   );
+
+  await page.keyboard.press("ArrowDown");
+  await expect(
+    page.getByRole("menuitem", { name: /^(我的|Me)$/i }),
+  ).toBeFocused();
+
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeHidden();
+  await expect(profileMenuButton).toBeFocused();
+
+  const languageButton = page.getByRole("button", {
+    name: /语言|Language/i,
+  });
+  await languageButton.focus();
+  await page.keyboard.press("Enter");
+
+  await expect(page.getByRole("menu")).toBeVisible();
+  const radioItems = page.getByRole("menuitemradio");
+  await expect(radioItems).toHaveCount(2);
+  const checkedStates = await radioItems.evaluateAll((items) =>
+    items.map((item) => item.getAttribute("aria-checked")),
+  );
+  expect(checkedStates.filter((state) => state === "true")).toHaveLength(1);
 });
 
 test("/ 登录用户在空状态总览页可看到班级发现入口", async ({

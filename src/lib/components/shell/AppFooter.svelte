@@ -9,8 +9,8 @@ export let footerLinks: ShellLink[];
 export let locale: "en-us" | "zh-cn";
 export let localeMenuOpen: boolean;
 export let setLocale: (locale: "en-us" | "zh-cn") => void;
+export let setLocaleMenuOpen: (open: boolean) => void;
 export let themeButtonLabel: string;
-export let toggleLocaleMenu: () => void;
 </script>
 
 <footer class="border-base-300 border-t bg-base-100">
@@ -31,41 +31,31 @@ export let toggleLocaleMenu: () => void;
     </nav>
     <div class="flex items-center gap-2">
       <div class="relative">
-        <Button
-          aria-label={copy.language.selector}
-          aria-expanded={localeMenuOpen}
-          aria-haspopup="menu"
-          onclick={toggleLocaleMenu}
-          size="icon-sm"
-          type="button"
-          variant="outline"
-        >
-          <span aria-hidden="true" class="font-semibold text-xs">文</span>
-        </Button>
-        {#if localeMenuOpen}
-          <Menu.Root
-            align="right"
-            class="bottom-full mb-2 mt-0 w-40"
-            onClose={() => {
-              localeMenuOpen = false;
-            }}
+        <Menu.Root open={localeMenuOpen} onOpenChange={setLocaleMenuOpen}>
+          <Menu.Trigger
+            aria-label={copy.language.selector}
+            size="icon-sm"
+            variant="outline"
           >
-            <Menu.Item
-              checked={locale === "en-us"}
-              onclick={() => setLocale("en-us")}
-              radio
-            >
-              {copy.language.english}
-            </Menu.Item>
-            <Menu.Item
-              checked={locale === "zh-cn"}
-              onclick={() => setLocale("zh-cn")}
-              radio
-            >
-              {copy.language.chinese}
-            </Menu.Item>
-          </Menu.Root>
-        {/if}
+            <span aria-hidden="true" class="font-semibold text-xs">文</span>
+          </Menu.Trigger>
+          <Menu.Content align="end" class="w-40" side="top">
+            <Menu.RadioGroup value={locale}>
+              <Menu.RadioItem
+                onclick={() => setLocale("en-us")}
+                value="en-us"
+              >
+                {copy.language.english}
+              </Menu.RadioItem>
+              <Menu.RadioItem
+                onclick={() => setLocale("zh-cn")}
+                value="zh-cn"
+              >
+                {copy.language.chinese}
+              </Menu.RadioItem>
+            </Menu.RadioGroup>
+          </Menu.Content>
+        </Menu.Root>
       </div>
       <Button
         aria-label={themeButtonLabel}

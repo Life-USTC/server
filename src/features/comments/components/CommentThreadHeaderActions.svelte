@@ -33,24 +33,20 @@ export let toggleReply: (comment: CommentNode) => void;
     </Button>
   {/if}
   <div class="relative">
-    <Button
-      aria-expanded={actionMenuId === comment.id}
-      aria-haspopup="menu"
-      aria-label={commentCopy.moreActions}
-      onclick={() => (actionMenuId = actionMenuId === comment.id ? null : comment.id)}
-      size="sm"
-      type="button"
-      variant="ghost"
+    <Menu.Root
+      open={actionMenuId === comment.id}
+      onOpenChange={(open) => {
+        actionMenuId = open ? comment.id : null;
+      }}
     >
-      {commentCopy.moreActions}
-    </Button>
-    {#if actionMenuId === comment.id}
-      <Menu.Root
-        align="right"
-        onClose={() => {
-          actionMenuId = null;
-        }}
+      <Menu.Trigger
+        aria-label={commentCopy.moreActions}
+        size="sm"
+        variant="ghost"
       >
+        {commentCopy.moreActions}
+      </Menu.Trigger>
+      <Menu.Content align="end">
         <Menu.Item onclick={() => copyCommentLink(comment)}>
           {commentCopy.copyLinkAction}
         </Menu.Item>
@@ -62,7 +58,7 @@ export let toggleReply: (comment: CommentNode) => void;
         <Menu.Item class="cursor-not-allowed opacity-60" disabled>
           {commentCopy.reportAction}
         </Menu.Item>
-      </Menu.Root>
-    {/if}
+      </Menu.Content>
+    </Menu.Root>
   </div>
 </div>

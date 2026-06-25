@@ -5,15 +5,13 @@ import AppUserMenu from "./AppUserMenu.svelte";
 import type { ShellCopy, ShellLink, ShellUser } from "./types";
 
 export let avatarFallback: string;
-export let closeMobileMenu: () => void;
 export let closeMenus: () => void;
-export let closeUserMenu: () => void;
 export let copy: ShellCopy;
 export let mobileMenuOpen: boolean;
 export let primaryLinks: ShellLink[];
 export let profileHref: string;
-export let toggleMobileMenu: () => void;
-export let toggleUserMenu: () => void;
+export let setMobileMenuOpen: (open: boolean) => void;
+export let setUserMenuOpen: (open: boolean) => void;
 export let user: ShellUser;
 export let userMenuOpen: boolean;
 </script>
@@ -41,20 +39,18 @@ export let userMenuOpen: boolean;
       {/each}
     </nav>
     <AppMobileMenu
-      {closeMobileMenu}
       {closeMenus}
       {copy}
       {mobileMenuOpen}
       {primaryLinks}
-      {toggleMobileMenu}
+      {setMobileMenuOpen}
     />
     <AppUserMenu
       {avatarFallback}
       {closeMenus}
-      {closeUserMenu}
       {copy}
       {profileHref}
-      {toggleUserMenu}
+      {setUserMenuOpen}
       {user}
       {userMenuOpen}
     />

@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Badge } from "$lib/components/ui/badge/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import type {
   AdminUserFormatter,
@@ -25,11 +26,12 @@ export let users: AdminUserRow[];
         <Table.Head>{copy.role}</Table.Head>
         <Table.Head>{copy.suspension}</Table.Head>
         <Table.Head>{copy.createdAt}</Table.Head>
+        <Table.Head class="w-24 text-right">{copy.editTitle}</Table.Head>
       </Table.Row>
     </Table.Header>
     <Table.Body>
       {#each users as user}
-        <Table.Row class="cursor-pointer" onclick={() => onSelect(user)}>
+        <Table.Row>
           <Table.Cell>
             <div class="font-medium">{displayName(user)}</div>
             <div class="break-all font-mono text-base-content/50 text-xs">{user.id}</div>
@@ -52,6 +54,16 @@ export let users: AdminUserRow[];
             {/if}
           </Table.Cell>
           <Table.Cell class="text-base-content/60 text-sm">{formatDate(user.createdAt)}</Table.Cell>
+          <Table.Cell class="text-right">
+            <Button
+              size="sm"
+              type="button"
+              variant="outline"
+              onclick={() => onSelect(user)}
+            >
+              {copy.editTitle}
+            </Button>
+          </Table.Cell>
         </Table.Row>
       {/each}
     </Table.Body>

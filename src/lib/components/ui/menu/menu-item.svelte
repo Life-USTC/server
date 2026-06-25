@@ -1,41 +1,62 @@
 <script lang="ts">
-export let destructive = false;
-export let disabled = false;
-export let href: string | undefined = undefined;
-export let radio = false;
-export let checked = false;
-export let rel: string | undefined = undefined;
-export let target: string | undefined = undefined;
-export let onclick: ((event: MouseEvent) => void) | undefined = undefined;
-let className = "";
+import { DropdownMenu as MenuPrimitive } from "bits-ui";
+import type { Snippet } from "svelte";
+import { cn } from "$lib/utils.js";
 
-export { className as class };
+let {
+  children,
+  class: className,
+  destructive = false,
+  disabled = false,
+  href = undefined,
+  onclick,
+  rel = undefined,
+  target = undefined,
+  type = "button",
+  ...restProps
+}: MenuPrimitive.ItemProps & {
+  children?: Snippet;
+  destructive?: boolean;
+  href?: string;
+  onclick?: (event: Event) => void;
+  rel?: string;
+  target?: string;
+  type?: "button" | "submit";
+} = $props();
+
+const itemClass =
+  "flex w-full cursor-default select-none items-center gap-2 rounded-md px-3 py-2 text-left text-sm outline-none transition-colors hover:bg-base-200 data-[highlighted]:bg-base-200 data-[disabled]:pointer-events-none data-[disabled]:opacity-50";
+
+function handleSelect(event: Event) {
+  onclick?.(event);
+}
 </script>
 
-{#if href}
-  <a
-    class={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-base-200 ${destructive ? "text-error" : ""} ${className}`}
-    data-slot="menu-item"
-    {href}
-    {rel}
-    {target}
-    onclick={onclick}
-    {...$$restProps}
-  >
-    <slot />
-  </a>
-{:else}
-  <button
-    class={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-base-200 ${destructive ? "text-error" : ""} ${className}`}
-    data-slot="menu-item"
-    data-checked={radio ? checked : undefined}
-    data-radio={radio || undefined}
-    {disabled}
-    onclick={onclick}
-    role="menuitem"
-    type="button"
-    {...$$restProps}
-  >
-    <slot />
-  </button>
-{/if}
+<MenuPrimitive.Item
+  {disabled}
+  onSelect={handleSelect}
+  {...restProps}
+>
+  {#snippet child({ props })}
+    {#if href}
+      <a
+        {...props}
+        class={cn(itemClass, destructive && "text-error", className)}
+        href={disabled ? undefined : href}
+        {rel}
+        {target}
+      >
+        {@render children?.()}
+      </a>
+    {:else}
+      <button
+        {...props}
+        class={cn(itemClass, destructive && "text-error", className)}
+        {disabled}
+        {type}
+      >
+        {@render children?.()}
+      </button>
+    {/if}
+  {/snippet}
+</MenuPrimitive.Item>
