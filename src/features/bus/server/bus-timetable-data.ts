@@ -9,9 +9,8 @@ import type {
   BusTimetableInput,
   BusTripSummary,
 } from "../lib/bus-types";
-import { getBusCampuses } from "./bus-campus-records";
 import { getBusPreference } from "./bus-preferences";
-import { getRouteRecords } from "./bus-route-records";
+import { getBusVersionTopology } from "./bus-route-records";
 import {
   findEffectiveBusVersion,
   findEffectiveBusVersionFromRecords,
@@ -44,16 +43,18 @@ export async function getBusTimetableData(
     : findEffectiveBusVersionFromRecords(versionRecords, dateKey);
   if (!version) return null;
 
-  const routeRecords = await getRouteRecords(locale);
-  const campuses = await getBusCampuses(locale);
-  const preference = await getBusPreference(input.userId ?? null);
-  const tripRows = await prisma.busTrip.findMany({
-    where: { versionId: version.id },
-    orderBy: [{ dayType: "asc" }, { routeId: "asc" }, { position: "asc" }],
-  });
+  const [topology, preference, tripRows] = await Promise.all([
+    getBusVersionTopology(locale, version.id),
+    getBusPreference(input.userId ?? null),
+    prisma.busTrip.findMany({
+      where: { versionId: version.id },
+      orderBy: [{ dayType: "asc" }, { routeId: "asc" }, { position: "asc" }],
+    }),
+  ]);
+  if (!topology) return null;
 
   const versionRouteIds = new Set(tripRows.map((trip) => trip.routeId));
-  const routes = routeRecords
+  const routes = topology.routes
     .filter((record) => versionRouteIds.has(record.id))
     .map((record) => buildRouteSummary(locale, record))
     .filter((record): record is BusRouteSummary => record != null);
@@ -79,7 +80,7 @@ export async function getBusTimetableData(
       importedAt: version.importedAt.toISOString(),
       notice: busVersionNotice(version),
     },
-    campuses,
+    campuses: topology.campuses,
     routes,
     trips,
     availableVersions: summarizeBusVersions(versionRecords),
