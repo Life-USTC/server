@@ -118,10 +118,42 @@ describe("playwright runtime", () => {
       E2E_DEBUG_AUTH: "1",
       DEV_DEBUG_USERNAME: DEV_SEED.debugUsername,
       DEV_DEBUG_NAME: DEV_SEED.debugName,
-      DEV_DEBUG_PASSWORD: "e2e-debug-local-only",
+      DEV_DEBUG_EMAIL: `${DEV_SEED.debugUsername}@debug.local`,
+      DEV_DEBUG_PASSWORD: "dev-debug-password",
       DEV_ADMIN_USERNAME: DEV_SEED.adminUsername,
       DEV_ADMIN_NAME: DEV_SEED.adminName,
-      DEV_ADMIN_PASSWORD: "e2e-admin-local-only",
+      DEV_ADMIN_EMAIL: `${DEV_SEED.adminUsername}@debug.local`,
+      DEV_ADMIN_PASSWORD: "dev-admin-password",
+    });
+  });
+
+  it("honors debug credential overrides from the provided E2E env", () => {
+    const env = buildPlaywrightServerEnv({
+      host: "127.0.0.1",
+      port: "3000",
+      env: {
+        DATABASE_URL: "postgresql://example",
+        DEV_DEBUG_USERNAME: " Custom-Debug ",
+        DEV_DEBUG_NAME: " Custom Debug ",
+        DEV_DEBUG_EMAIL: " Debug@Example.TEST ",
+        DEV_DEBUG_PASSWORD: " debug-secret ",
+        DEV_ADMIN_USERNAME: " Custom-Admin ",
+        DEV_ADMIN_NAME: " Custom Admin ",
+        DEV_ADMIN_EMAIL: " Admin@Example.TEST ",
+        DEV_ADMIN_PASSWORD: " admin-secret ",
+      },
+    });
+
+    expect(env).toMatchObject({
+      E2E_DEBUG_AUTH: "1",
+      DEV_DEBUG_USERNAME: "custom-debug",
+      DEV_DEBUG_NAME: "Custom Debug",
+      DEV_DEBUG_EMAIL: "debug@example.test",
+      DEV_DEBUG_PASSWORD: "debug-secret",
+      DEV_ADMIN_USERNAME: "custom-admin",
+      DEV_ADMIN_NAME: "Custom Admin",
+      DEV_ADMIN_EMAIL: "admin@example.test",
+      DEV_ADMIN_PASSWORD: "admin-secret",
     });
   });
 
