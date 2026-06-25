@@ -35,7 +35,7 @@ export const commentCreateRequestSchema = z.object({
   courseJwId: positiveIntegerTargetIdReferenceSchema.optional(),
   teacherId: commentTargetIdReferenceSchema.optional(),
   homeworkId: z.string().trim().min(1).optional(),
-  sectionTeacherId: commentTargetIdReferenceSchema.optional(),
+  sectionTeacherId: positiveIntegerTargetIdReferenceSchema.optional(),
   body: z.string().trim().min(1).max(8000),
   visibility: commentVisibilitySchema.optional(),
   isAnonymous: z.boolean().optional(),
