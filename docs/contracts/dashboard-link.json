@@ -4,7 +4,7 @@
     "anon": "Can browse frequent links and follow public visit redirects but cannot pin them.",
     "user": "Can pin and unpin links; authenticated POST visits record click counts before redirecting.",
     "admin": "Has no dedicated link management interface separate from regular users.",
-    "agent": "No frequent link management capability is currently provided."
+    "agent": "Can list/search dashboard links and manage the authenticated user's pin state through MCP; visit redirects remain browser/REST navigation."
   },
   "rules": {
     "navigation-not-feed": "Frequent links are a navigation capability, not a content feed.",
@@ -21,7 +21,19 @@
         "pages": ["/dashboard/links", "/?tab=links", "/dashboard"]
       },
       "rest": "unavailable",
-      "mcp": "unavailable",
+      "mcp": {
+        "tools": [
+          {
+            "name": "list_dashboard_links",
+            "auth": "user",
+            "returns": "{ success, query, total, returned, dashboardLinks, pinnedSlugs, maxPinnedLinks }",
+            "notes": [
+              "Requires MCP user auth because each link summary includes the caller's current isPinned state.",
+              "Optional query reuses the web dashboard link search behavior across title, description, titlePinyin, and descriptionPinyin."
+            ]
+          }
+        ]
+      },
       "display": {
         "fields": [
           "link.title",
@@ -69,7 +81,20 @@
           }
         ]
       },
-      "mcp": "unavailable",
+      "mcp": {
+        "tools": [
+          {
+            "name": "set_dashboard_link_pin_state",
+            "auth": "user",
+            "returns": "{ success, action, slug, pinnedSlugs, maxPinnedLinks }",
+            "notes": [
+              "Uses the shared dashboard link pin service and stores pins per authenticated MCP user.",
+              "Invalid slugs return { success: false, error: \"invalid_slug\", message, slug, pinnedSlugs, maxPinnedLinks } rather than an unexpected tool failure.",
+              "No MCP visit tool is exposed; visit redirects and click recording are browser/REST navigation behavior."
+            ]
+          }
+        ]
+      },
       "display": {
         "fields": [
           "link.slug visit action",

@@ -9,11 +9,11 @@ import type {
   DashboardExamSection,
 } from "@/features/dashboard/lib/exams";
 import type { MatchedSubscriptionSection } from "@/features/dashboard/lib/subscriptions";
+import type { DashboardLinkSearchable } from "@/features/dashboard-links/lib/dashboard-link-search";
 import type {
   DashboardLinkGroup,
   DashboardLinkIcon,
 } from "@/features/dashboard-links/lib/dashboard-links";
-import type { DashboardLinkSearchable } from "./dashboard-link-search";
 
 type DashboardRecord = Record<string, unknown>;
 

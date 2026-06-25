@@ -1,0 +1,108 @@
+import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import {
+  linkMatchesTokens,
+  searchQueryToTokens,
+} from "@/features/dashboard-links/lib/dashboard-link-search";
+import {
+  MAX_PINNED_LINKS,
+  resolveDashboardLinkBySlug,
+  updateDashboardLinkPinState,
+} from "@/features/dashboard-links/server/dashboard-link-service";
+import {
+  type DashboardLinksData,
+  getSignedInDashboardLinksData,
+} from "@/features/home/server/dashboard-link-data";
+import {
+  getUserId,
+  jsonToolResult,
+  resolveMcpMode,
+} from "@/lib/mcp/tools/_helpers";
+
+type ToolExtra = { authInfo?: AuthInfo };
+type McpModeInput = Parameters<typeof resolveMcpMode>[0];
+
+function pinnedSlugsFromData(data: DashboardLinksData) {
+  return data.pinnedLinks.map((link) => link.slug);
+}
+
+function normalizeDashboardLinkQuery(query: string | undefined) {
+  const normalized = query?.trim().replace(/\s+/g, " ");
+  return normalized ? normalized : null;
+}
+
+export async function listDashboardLinksTool(
+  { query, mode }: { query?: string; mode?: McpModeInput },
+  extra: ToolExtra,
+) {
+  const resolvedMode = resolveMcpMode(mode);
+  const userId = getUserId(extra.authInfo);
+  const data = await getSignedInDashboardLinksData(userId);
+  const normalizedQuery = normalizeDashboardLinkQuery(query);
+  const tokens = normalizedQuery ? searchQueryToTokens(normalizedQuery) : [];
+  const dashboardLinks =
+    tokens.length === 0
+      ? data.dashboardLinks
+      : data.dashboardLinks.filter((link) => linkMatchesTokens(link, tokens));
+
+  return jsonToolResult(
+    {
+      success: true,
+      query: normalizedQuery,
+      total: data.dashboardLinks.length,
+      returned: dashboardLinks.length,
+      dashboardLinks,
+      pinnedSlugs: pinnedSlugsFromData(data),
+      maxPinnedLinks: MAX_PINNED_LINKS,
+    },
+    { mode: resolvedMode },
+  );
+}
+
+export async function setDashboardLinkPinStateTool(
+  {
+    action,
+    slug,
+    mode,
+  }: {
+    action: "pin" | "unpin";
+    slug: string;
+    mode?: McpModeInput;
+  },
+  extra: ToolExtra,
+) {
+  const resolvedMode = resolveMcpMode(mode);
+  const userId = getUserId(extra.authInfo);
+  const link = resolveDashboardLinkBySlug(slug);
+
+  if (!link) {
+    const data = await getSignedInDashboardLinksData(userId);
+    return jsonToolResult(
+      {
+        success: false,
+        error: "invalid_slug",
+        message: `Unknown dashboard link slug: ${slug}`,
+        slug,
+        pinnedSlugs: pinnedSlugsFromData(data),
+        maxPinnedLinks: MAX_PINNED_LINKS,
+      },
+      { mode: resolvedMode },
+    );
+  }
+
+  const pinnedSlugs = await updateDashboardLinkPinState({
+    action,
+    slug: link.slug,
+    userId,
+  });
+
+  return jsonToolResult(
+    {
+      success: true,
+      action,
+      slug: link.slug,
+      pinnedSlugs,
+      maxPinnedLinks: MAX_PINNED_LINKS,
+    },
+    { mode: resolvedMode },
+  );
+}
