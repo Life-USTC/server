@@ -7126,10 +7126,14 @@
           "sectionTeacherId": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
               },
               {
-                "type": "number"
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
               }
             ]
           },
