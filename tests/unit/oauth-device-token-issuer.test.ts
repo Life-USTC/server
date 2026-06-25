@@ -45,7 +45,7 @@ describe("device token issuer", () => {
     signJwtMock.mockReset();
   });
 
-  it("uses a resource-bound JWT access token when device resources exist", async () => {
+  it("uses a resource-bound JWT access token without issuing refresh tokens", async () => {
     signJwtMock.mockResolvedValue({ token: "header.payload.signature" });
     const { prisma, accessTokenCreate, refreshTokenCreate } =
       createPrismaMock();
@@ -71,10 +71,10 @@ describe("device token issuer", () => {
 
     expect(issued).toMatchObject({
       accessToken: "header.payload.signature",
-      refreshToken: expect.any(String),
     });
+    expect(issued).not.toHaveProperty("refreshToken");
     expect(accessTokenCreate).not.toHaveBeenCalled();
-    expect(refreshTokenCreate).toHaveBeenCalled();
+    expect(refreshTokenCreate).not.toHaveBeenCalled();
     expect(signJwtMock).toHaveBeenCalledWith({
       body: {
         payload: expect.objectContaining({
@@ -117,6 +117,37 @@ describe("device token issuer", () => {
     expect(issued.accessToken.split(".").length).toBeLessThan(3);
     expect(accessTokenCreate).toHaveBeenCalled();
     expect(refreshTokenCreate).not.toHaveBeenCalled();
+    expect(signJwtMock).not.toHaveBeenCalled();
+  });
+
+  it("issues refresh tokens for resource-less device grants with offline_access", async () => {
+    const { prisma, accessTokenCreate, refreshTokenCreate } =
+      createPrismaMock();
+    const { issueDeviceGrantTokens } = await import(
+      "@/lib/api/routes/auth-token-device-token-issuer"
+    );
+
+    const issued = await issueDeviceGrantTokens(prisma, {
+      clientId: "client-1",
+      deviceCodeRecordId: "device-1",
+      resources: [],
+      scopes: [
+        OAUTH_OPENID_SCOPE,
+        OAUTH_PROFILE_SCOPE,
+        OAUTH_OFFLINE_ACCESS_SCOPE,
+      ],
+      userId: "user-1",
+    });
+
+    expect(issued).toEqual({
+      accessToken: expect.any(String),
+      expiresIn: expect.any(Number),
+      refreshToken: expect.any(String),
+    });
+    expect(accessTokenCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({ refreshId: "refresh-1" }),
+    });
+    expect(refreshTokenCreate).toHaveBeenCalled();
     expect(signJwtMock).not.toHaveBeenCalled();
   });
 });
