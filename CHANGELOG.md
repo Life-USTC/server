@@ -1,3 +1,10 @@
+## [1.37.14](https://github.com/Life-USTC/server/compare/v1.37.13...v1.37.14) (2026-06-25)
+
+
+### Bug Fixes
+
+* harden bus imports and preferences ([96e85de](https://github.com/Life-USTC/server/commit/96e85dec414e84ba25547498365fe411c9eaf631))
+
 ## [1.37.13](https://github.com/Life-USTC/server/compare/v1.37.12...v1.37.13) (2026-06-25)
 
 
