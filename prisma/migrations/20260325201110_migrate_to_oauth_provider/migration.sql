@@ -19,6 +19,11 @@ DROP INDEX "OAuthRefreshToken_tokenHash_idx";
 -- DropIndex
 DROP INDEX "OAuthRefreshToken_tokenHash_key";
 
+-- Legacy refresh tokens stored only tokenHash values. Plaintext provider tokens
+-- cannot be reconstructed, so this migration explicitly revokes them before
+-- adding the provider-owned non-null token column.
+DELETE FROM "OAuthRefreshToken";
+
 -- AlterTable
 ALTER TABLE "OAuthAccessToken" DROP COLUMN "resource",
 ADD COLUMN     "referenceId" TEXT,
@@ -127,4 +132,3 @@ ALTER TABLE "OAuthConsent" ADD CONSTRAINT "OAuthConsent_clientId_fkey" FOREIGN K
 
 -- AddForeignKey
 ALTER TABLE "OAuthConsent" ADD CONSTRAINT "OAuthConsent_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-

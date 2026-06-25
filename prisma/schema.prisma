@@ -693,10 +693,12 @@ model SectionTeacher {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  retiredAt DateTime?
 
   @@unique([sectionId, teacherId])
   @@index([sectionId])
   @@index([teacherId])
+  @@index([retiredAt])
 }
 
 model TeachLanguage {

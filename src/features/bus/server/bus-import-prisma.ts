@@ -11,7 +11,9 @@ export type BusImportWritePrisma = {
   };
   busScheduleVersion: {
     create(args: unknown): Promise<{ id: number; key: string }>;
-    findFirst(args: unknown): Promise<{ id: number } | null>;
+    findUnique(
+      args: unknown,
+    ): Promise<{ id: number; key: string; checksum: string } | null>;
     update(args: unknown): Promise<{ id: number; key: string }>;
     updateMany(args: unknown): Promise<unknown>;
   };

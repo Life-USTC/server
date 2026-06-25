@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 type LookupCache = ReadonlyMap<string, number>;
 
 export type StaticCourseLookupState = {
@@ -9,6 +11,7 @@ export type StaticCourseLookupState = {
 };
 
 export type StaticCourseForImport = {
+  id: number | string;
   course_code: string;
   name: string;
   course_type: string | null;
@@ -39,6 +42,63 @@ export type StaticTeacherReference = {
 function normalizeName(value: string | null | undefined) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
+}
+
+function requiredStaticValue(value: string, label: string) {
+  const normalized = normalizeName(value);
+  if (!normalized) {
+    throw new Error(`Static ${label} is missing`);
+  }
+  return normalized;
+}
+
+export function staticDepartmentCode(name: string) {
+  const normalized = requiredStaticValue(name, "department name");
+  return `static-${createHash("sha256").update(normalized).digest("hex").slice(0, 12)}`;
+}
+
+export function staticCourseMetadataSignature(course: StaticCourseForImport) {
+  return JSON.stringify([
+    requiredStaticValue(course.name, "course name"),
+    normalizeName(course.course_type),
+    requiredStaticValue(course.course_gradation, "course gradation"),
+    requiredStaticValue(course.course_category, "course category"),
+    requiredStaticValue(course.education_type, "education type"),
+    requiredStaticValue(course.class_type, "class type"),
+  ]);
+}
+
+export function buildStaticCourseIdentityKeyBySourceId<
+  T extends StaticCourseForImport,
+>(courses: T[]) {
+  const signaturesByCode = new Map<string, Set<string>>();
+  const canonicalSignatureByCode = new Map<string, string>();
+  for (const course of courses) {
+    const code = requiredStaticValue(course.course_code, "course code");
+    const signature = staticCourseMetadataSignature(course);
+    const signatures = signaturesByCode.get(code) ?? new Set<string>();
+    signatures.add(signature);
+    signaturesByCode.set(code, signatures);
+    if (!canonicalSignatureByCode.has(code)) {
+      canonicalSignatureByCode.set(code, signature);
+    }
+  }
+
+  const identityKeyBySourceId = new Map<T["id"], string>();
+  for (const course of courses) {
+    const code = requiredStaticValue(course.course_code, "course code");
+    const signature = staticCourseMetadataSignature(course);
+    const hasConflictingMetadata = (signaturesByCode.get(code)?.size ?? 0) > 1;
+    const canonicalSignature = canonicalSignatureByCode.get(code);
+    identityKeyBySourceId.set(
+      course.id,
+      hasConflictingMetadata && signature !== canonicalSignature
+        ? JSON.stringify(["code+metadata", code, signature])
+        : code,
+    );
+  }
+
+  return identityKeyBySourceId;
 }
 
 export function splitStaticTeacherNames(value: string | null | undefined) {
@@ -160,13 +220,13 @@ export function uniqueStaticTeacherReferences(
   return [...byKey.values()];
 }
 
-export function buildStaticCourseImportRows(
-  courses: StaticCourseForImport[],
+export function buildStaticCourseImportRows<T extends StaticCourseForImport>(
+  courses: T[],
   state: StaticCourseLookupState,
-  jwIdForCourseCode: (courseCode: string) => number,
+  jwIdForCourse: (course: T) => number,
 ): StaticCourseImportRow[] {
   return courses.map((course) => ({
-    jwId: jwIdForCourseCode(course.course_code),
+    jwId: jwIdForCourse(course),
     code: course.course_code,
     nameCn: course.name,
     typeId: course.course_type

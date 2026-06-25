@@ -22,7 +22,7 @@ export async function resolveSectionTeacherId(
         teacherId,
       },
     },
-    update: {},
+    update: { retiredAt: null },
     create: { sectionId, teacherId },
   });
 
@@ -41,10 +41,12 @@ export async function findSectionTeacherId(
         teacherId,
       },
     },
-    select: { id: true },
+    select: { id: true, retiredAt: true },
   });
 
-  return sectionTeacher?.id ?? null;
+  return sectionTeacher && sectionTeacher.retiredAt === null
+    ? sectionTeacher.id
+    : null;
 }
 
 export async function findSectionTeacherTarget(
