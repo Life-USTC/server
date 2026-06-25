@@ -157,7 +157,7 @@
             "notes": [
               "The device polls this endpoint with grant_type=urn:ietf:params:oauth:grant-type:device_code and device_code to obtain an access token.",
               "If resource parameters are included while polling, they must match the resources approved through the device authorization request; resource-bound device grants return JWT access tokens accepted by matching REST/MCP audiences.",
-              "A refresh token is returned only when the approved scope includes offline_access.",
+              "A refresh token is returned only for resource-less device grants when the approved scope includes offline_access; resource-bound device grants do not issue refresh tokens.",
               "During polling, returns authorization_pending, slow_down, expired_token, access_denied, invalid_scope, or invalid_grant error codes based on state."
             ]
           },

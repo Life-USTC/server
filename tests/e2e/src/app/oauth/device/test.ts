@@ -389,7 +389,7 @@ test("/oauth/device resource-bound token authenticates REST and MCP", async ({
       resources,
     );
     expect(accessToken.split(".")).toHaveLength(3);
-    expect(typeof refreshToken).toBe("string");
+    expect(refreshToken).toBeUndefined();
 
     const todosResponse = await request.get("/api/todos", {
       headers: {
