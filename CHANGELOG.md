@@ -1,3 +1,10 @@
+## [1.37.8](https://github.com/Life-USTC/server/compare/v1.37.7...v1.37.8) (2026-06-25)
+
+
+### Bug Fixes
+
+* **admin:** make final admin guard atomic ([eaaef5f](https://github.com/Life-USTC/server/commit/eaaef5f4ccc8b3cfe374fb919c0ac0c255dd29d0))
+
 ## [1.37.7](https://github.com/Life-USTC/server/compare/v1.37.6...v1.37.7) (2026-06-24)
 
 
