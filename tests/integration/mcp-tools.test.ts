@@ -58,6 +58,45 @@ async function findDescriptionEditAuditLog(descriptionId: string) {
   return null;
 }
 
+function metadataMatches(metadata: unknown, expected: Record<string, unknown>) {
+  if (typeof metadata !== "object" || metadata === null) return false;
+  const record = metadata as Record<string, unknown>;
+  return Object.entries(expected).every(
+    ([key, value]) => record[key] === value,
+  );
+}
+
+async function findCommentAuditLog(input: {
+  action:
+    | "comment_create"
+    | "comment_edit"
+    | "comment_delete"
+    | "comment_react";
+  commentId: string;
+  metadata: Record<string, unknown>;
+}) {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const logs = await prisma.auditLog.findMany({
+      where: {
+        action: input.action,
+        targetId: input.commentId,
+        targetType: "comment",
+        userId: devUserId,
+      },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, metadata: true },
+      take: 10,
+    });
+    const log = logs.find((entry) =>
+      metadataMatches(entry.metadata, input.metadata),
+    );
+    if (log) return log;
+    await sleep(25);
+  }
+
+  return null;
+}
+
 const SEED_PLUS_THREE_DAYS = seedDatePlusDays(3);
 const SEED_PLUS_SIX_DAYS = seedDatePlusDays(6);
 const SEED_PLUS_SEVEN_DAYS = seedDatePlusDays(7);
@@ -411,6 +450,181 @@ describe("comment read tools — MCP exposes the REST comment hierarchy", () => 
         await prisma.teacher.deleteMany({ where: { id: teacherId } });
       }
     }
+  });
+});
+
+describe("comment write tools — MCP mirrors ordinary-user REST writes", () => {
+  it("comment write create/update/delete and reaction calls serialize success and audit source", async () => {
+    const marker = `[integration-test] mcp-comment-write-${Date.now()}`;
+    let commentId: string | undefined;
+
+    try {
+      const created = await mcp.call<{
+        success?: boolean;
+        id?: string;
+      }>("create_comment", {
+        targetType: "section",
+        sectionJwId: DEV_SEED.section.jwId,
+        body: `${marker} created`,
+        visibility: "public",
+        isAnonymous: false,
+      });
+
+      expect(created.success).toBe(true);
+      expect(typeof created.id).toBe("string");
+      commentId = created.id;
+      if (!commentId) {
+        throw new Error("create_comment returned no comment id");
+      }
+
+      const createAudit = commentId
+        ? await findCommentAuditLog({
+            action: "comment_create",
+            commentId,
+            metadata: { source: "mcp" },
+          })
+        : null;
+      expect(createAudit?.metadata).toMatchObject({
+        body: `${marker} created`,
+        source: "mcp",
+      });
+
+      const updated = await mcp.call<{
+        success?: boolean;
+        comment?: {
+          id?: string;
+          body?: string;
+          isAnonymous?: boolean;
+          visibility?: string;
+          canEdit?: boolean;
+        };
+      }>("update_own_comment", {
+        commentId,
+        body: `${marker} updated`,
+        visibility: "logged_in_only",
+        isAnonymous: true,
+        mode: "full",
+      });
+
+      expect(updated.success).toBe(true);
+      expect(updated.comment).toMatchObject({
+        id: commentId,
+        body: `${marker} updated`,
+        isAnonymous: true,
+        visibility: "logged_in_only",
+        canEdit: true,
+      });
+
+      const editAudit = commentId
+        ? await findCommentAuditLog({
+            action: "comment_edit",
+            commentId,
+            metadata: { source: "mcp" },
+          })
+        : null;
+      expect(editAudit?.metadata).toMatchObject({
+        body: `${marker} updated`,
+        source: "mcp",
+      });
+
+      const addedReaction = await mcp.call<{
+        success?: boolean;
+        changed?: boolean;
+      }>("add_comment_reaction", {
+        commentId,
+        type: "heart",
+      });
+
+      expect(addedReaction).toEqual({ success: true, changed: true });
+
+      const addReactionAudit = commentId
+        ? await findCommentAuditLog({
+            action: "comment_react",
+            commentId,
+            metadata: { operation: "add", source: "mcp", type: "heart" },
+          })
+        : null;
+      expect(addReactionAudit?.metadata).toMatchObject({
+        operation: "add",
+        source: "mcp",
+        type: "heart",
+      });
+
+      const removedReaction = await mcp.call<{
+        success?: boolean;
+        changed?: boolean;
+      }>("remove_comment_reaction", {
+        commentId,
+        type: "heart",
+      });
+
+      expect(removedReaction).toEqual({ success: true, changed: true });
+
+      const removeReactionAudit = commentId
+        ? await findCommentAuditLog({
+            action: "comment_react",
+            commentId,
+            metadata: { operation: "remove", source: "mcp", type: "heart" },
+          })
+        : null;
+      expect(removeReactionAudit?.metadata).toMatchObject({
+        operation: "remove",
+        source: "mcp",
+        type: "heart",
+      });
+
+      const deleted = await mcp.call<{ success?: boolean }>(
+        "delete_own_comment",
+        { commentId },
+      );
+
+      expect(deleted).toEqual({ success: true });
+
+      const deleteAudit = commentId
+        ? await findCommentAuditLog({
+            action: "comment_delete",
+            commentId,
+            metadata: { source: "mcp" },
+          })
+        : null;
+      expect(deleteAudit?.metadata).toMatchObject({ source: "mcp" });
+    } finally {
+      if (commentId) {
+        await sleep(50);
+        await prisma.auditLog.deleteMany({
+          where: {
+            targetId: commentId,
+            targetType: "comment",
+            userId: devUserId,
+          },
+        });
+        await prisma.commentReaction.deleteMany({ where: { commentId } });
+        await prisma.commentAttachment.deleteMany({ where: { commentId } });
+        await prisma.comment.updateMany({
+          where: { id: commentId },
+          data: { parentId: null, rootId: null },
+        });
+        await prisma.comment.deleteMany({ where: { id: commentId } });
+      }
+    }
+  });
+
+  it("comment write create_comment returns a serialized invalid-target failure", async () => {
+    const result = await mcp.call<{
+      success?: boolean;
+      found?: boolean;
+      error?: string;
+      message?: string;
+    }>("create_comment", {
+      targetType: "section",
+      sectionJwId: 2_147_483_647,
+      body: "[integration-test] invalid mcp comment target",
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.found).toBe(false);
+    expect(result.error).toBe("target_not_found");
+    expect(result.message).toContain("section");
   });
 });
 

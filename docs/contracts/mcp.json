@@ -59,6 +59,9 @@
     "tool-groups": {
       "title": "Tool Groups",
       "auth": "user",
+      "rules": {
+        "comment-write-scope": "Ordinary signed-in user comment writes are available; admin moderation remains unavailable through MCP."
+      },
       "mcp": {
         "groups": [
           {
@@ -99,7 +102,15 @@
           },
           {
             "name": "Comments",
-            "tools": ["list_comments", "get_comment_thread"]
+            "tools": [
+              "list_comments",
+              "get_comment_thread",
+              "create_comment",
+              "update_own_comment",
+              "delete_own_comment",
+              "add_comment_reaction",
+              "remove_comment_reaction"
+            ]
           },
           {
             "name": "Descriptions",

@@ -1,3 +1,4 @@
+import { writeCommentReactionAuditLog } from "@/features/comments/server/comment-audit";
 import { createCommentReaction } from "@/features/comments/server/comment-mutations";
 import {
   forbidden,
@@ -5,10 +6,7 @@ import {
   notFound,
   suspensionForbidden,
 } from "@/lib/api/helpers";
-import {
-  fireAuditLog,
-  getAuditRequestMetadata,
-} from "@/lib/audit/write-audit-log";
+import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 
 export async function createCommentReactionAction(input: {
   commentId: string;
@@ -28,34 +26,11 @@ export async function createCommentReactionAction(input: {
     writeCommentReactionAuditLog({
       commentId: input.commentId,
       operation: "add",
-      request: input.request,
+      requestMetadata: getAuditRequestMetadata(input.request),
       type: input.type,
       userId: input.userId,
     });
   }
 
   return jsonResponse({ success: true });
-}
-
-export function writeCommentReactionAuditLog({
-  commentId,
-  operation,
-  request,
-  type,
-  userId,
-}: {
-  commentId: string;
-  operation: "add" | "remove";
-  request: Request;
-  type: string;
-  userId: string;
-}) {
-  fireAuditLog({
-    action: "comment_react",
-    userId,
-    targetId: commentId,
-    targetType: "comment",
-    metadata: { operation, type },
-    ...getAuditRequestMetadata(request),
-  });
 }

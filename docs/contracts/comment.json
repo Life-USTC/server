@@ -4,7 +4,7 @@
     "anon": "Can read public comments but cannot create sign-in-required comments.",
     "user": "Can post, reply, react, edit, and delete their own comments; suspended users can read permitted comments but cannot use comment write actions or upload comment attachments.",
     "admin": "Can hide, delete, and moderate comments through moderation surfaces, and handle suspensions.",
-    "agent": "Can read visible comment lists and focused threads through MCP with authenticated viewer context; no comment write or moderation capability is currently provided."
+    "agent": "Can read visible comment lists, focused threads, and ordinary signed-in user comment write actions through MCP with authenticated viewer context; no admin moderation capability is provided."
   },
   "rules": {
     "attached-to-object": "Comments must be attached to a specific object; no decontextualized public feed entry is provided.",
@@ -88,6 +88,42 @@
             "returns": "{ found: Boolean, thread: Comment[], focusId: String, hiddenCount: Int, viewer, target }",
             "auth": "user",
             "rest_equivalent": "GET /api/comments/[id]"
+          },
+          {
+            "name": "create_comment",
+            "returns": "{ success: Boolean, id: String }",
+            "auth": "user",
+            "rest_equivalent": "POST /api/comments",
+            "notes": [
+              "Uses the same target resolution and attachment validation as REST; MCP audit metadata records source=mcp."
+            ]
+          },
+          {
+            "name": "update_own_comment",
+            "returns": "{ success: Boolean, comment: Comment }",
+            "auth": "user",
+            "rest_equivalent": "PATCH /api/comments/[id]",
+            "notes": [
+              "Only the comment owner may edit through this ordinary-user MCP tool; moderation remains unavailable through MCP."
+            ]
+          },
+          {
+            "name": "delete_own_comment",
+            "returns": "{ success: Boolean }",
+            "auth": "user",
+            "rest_equivalent": "DELETE /api/comments/[id]"
+          },
+          {
+            "name": "add_comment_reaction",
+            "returns": "{ success: Boolean, changed: Boolean }",
+            "auth": "user",
+            "rest_equivalent": "POST /api/comments/[id]/reactions"
+          },
+          {
+            "name": "remove_comment_reaction",
+            "returns": "{ success: Boolean, changed: Boolean }",
+            "auth": "user",
+            "rest_equivalent": "DELETE /api/comments/[id]/reactions"
           }
         ]
       },
