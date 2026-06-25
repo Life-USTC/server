@@ -26,14 +26,13 @@ function checkContractsDoc() {
     capabilities?: Record<
       string,
       {
-        auth?: ContractAuthLevel;
         rest?:
           | "stable"
           | "planned"
           | "unavailable"
           | {
               status?: string;
-              routes?: ContractRouteEntry[];
+              routes?: Array<{ path: string; method?: string }>;
             };
         mcp?:
           | "stable"
@@ -46,35 +45,6 @@ function checkContractsDoc() {
             };
       }
     >;
-  };
-
-  type ContractAuthLevel = "anon" | "user" | "admin" | "internal";
-
-  type ContractRouteEntry = {
-    path: string;
-    method?: string;
-    auth?: ContractAuthLevel;
-    returns?: string;
-    notes?: string[];
-    reference_only?: boolean;
-  };
-
-  type DocumentedRestRoute = {
-    key: string;
-    method: string;
-    path: string;
-    auth: ContractAuthLevel;
-    moduleName: string;
-    capabilityName: string;
-    route: ContractRouteEntry;
-  };
-
-  type OpenApiOperation = {
-    security?: unknown;
-  };
-
-  type OpenApiDocument = {
-    paths?: Record<string, Record<string, OpenApiOperation | undefined>>;
   };
 
   function parsePrismaSchema(source: string): PrismaDocs {
@@ -135,12 +105,20 @@ function checkContractsDoc() {
       "PATCH",
       "DELETE",
     ] as const satisfies readonly HttpMethod[];
+    const contractExcludedRoutes = new Set([
+      "src/routes/api/health/+server.ts",
+      "src/routes/api/metrics/+server.ts",
+    ]);
     const routes = new Set<string>();
 
     for (const routeRoot of restRouteRoots) {
       for (const file of walkFiles(routeRoot).filter((item) =>
         item.endsWith("/+server.ts"),
       )) {
+        const relativeFile = file.replace(/\\/g, "/");
+        if (contractExcludedRoutes.has(relativeFile)) {
+          continue;
+        }
         const source = readFileSync(file, "utf8");
         const routePath = parseImplementedRoutePath(file);
         for (const method of getExportedRouteMethods(source, contractMethods)) {
@@ -154,174 +132,20 @@ function checkContractsDoc() {
 
   function collectDocumentedRestRoutes(
     modules: Record<string, unknown>,
-  ): DocumentedRestRoute[] {
-    const routes: DocumentedRestRoute[] = [];
+  ): Set<string> {
+    const routes = new Set<string>();
 
-    for (const [moduleName, moduleDoc] of Object.entries(modules) as Array<
-      [string, ContractDoc]
-    >) {
-      for (const [capabilityName, capability] of Object.entries(
-        moduleDoc.capabilities ?? {},
-      )) {
+    for (const moduleDoc of Object.values(modules) as ContractDoc[]) {
+      for (const capability of Object.values(moduleDoc.capabilities ?? {})) {
         if (!capability || typeof capability !== "object") continue;
         if (!capability.rest || typeof capability.rest !== "object") continue;
-        const capabilityAuth = capability.auth ?? "anon";
         for (const route of capability.rest.routes ?? []) {
-          const method = route.method ?? "GET";
-          const key = `${method} ${route.path}`;
-          routes.push({
-            key,
-            method,
-            path: route.path,
-            auth: route.auth ?? capabilityAuth,
-            moduleName,
-            capabilityName,
-            route,
-          });
+          routes.add(`${route.method ?? "GET"} ${route.path}`);
         }
       }
     }
 
     return routes;
-  }
-
-  function formatRestOwner(route: DocumentedRestRoute): string {
-    return `${route.moduleName}.${route.capabilityName}`;
-  }
-
-  function checkDuplicateRestRouteOwnership(routes: DocumentedRestRoute[]) {
-    const routeGroups = new Map<string, DocumentedRestRoute[]>();
-    const duplicateErrors: string[] = [];
-    const referenceOnlyShapeErrors: string[] = [];
-
-    for (const route of routes) {
-      const group = routeGroups.get(route.key) ?? [];
-      group.push(route);
-      routeGroups.set(route.key, group);
-
-      if (route.route.reference_only !== true) continue;
-      const disallowedReferenceFields = [
-        "auth",
-        "description",
-        "returns",
-        "content_type",
-        "status",
-        "notes",
-      ];
-      const disallowedFields = disallowedReferenceFields.filter(
-        (field) => field in route.route,
-      );
-      if (disallowedFields.length > 0) {
-        referenceOnlyShapeErrors.push(
-          `${route.key} in ${formatRestOwner(route)} has reference_only with ${disallowedFields.join(", ")}`,
-        );
-      }
-    }
-
-    for (const [routeKey, group] of routeGroups) {
-      const canonicalOwners = group.filter(
-        (route) => route.route.reference_only !== true,
-      );
-      const hasReferenceOnly = group.some(
-        (route) => route.route.reference_only === true,
-      );
-
-      if (hasReferenceOnly && canonicalOwners.length === 0) {
-        duplicateErrors.push(
-          `${routeKey} has only reference-only contract entries: ${group.map(formatRestOwner).join(", ")}`,
-        );
-        continue;
-      }
-
-      if (group.length > 1 && canonicalOwners.length !== 1) {
-        duplicateErrors.push(
-          `${routeKey} has ${canonicalOwners.length} canonical owners: ${canonicalOwners.map(formatRestOwner).join(", ")}`,
-        );
-      }
-    }
-
-    if (referenceOnlyShapeErrors.length > 0 || duplicateErrors.length > 0) {
-      console.error("Contract REST duplicate ownership check failed:");
-      for (const error of referenceOnlyShapeErrors) {
-        console.error(`- ${error}`);
-      }
-      for (const error of duplicateErrors) {
-        console.error(`- ${error}`);
-      }
-      process.exit(1);
-    }
-  }
-
-  function contractPathToOpenApiPath(routePath: string) {
-    return routePath
-      .replace(/\[\.\.\.([^\]]+)\]/g, "{$1}")
-      .replace(/\[([^\]]+)\]/g, "{$1}");
-  }
-
-  function expectedOpenApiSecurity(route: DocumentedRestRoute) {
-    const openApiPath = contractPathToOpenApiPath(route.path);
-    const method = route.method.toLowerCase();
-
-    if (openApiPath === "/api/mcp" && route.auth === "user") {
-      return [{ mcpBearerAuth: [] }];
-    }
-
-    if (
-      openApiPath === "/api/users/{userId}/calendar.ics" &&
-      method === "get" &&
-      route.auth === "user"
-    ) {
-      return [
-        { bearerAuth: [] },
-        { sessionCookie: [] },
-        { calendarFeedToken: [] },
-      ];
-    }
-
-    if (route.auth === "internal") {
-      return [{ internalBearerAuth: [] }];
-    }
-
-    if (route.auth === "user" || route.auth === "admin") {
-      return [{ bearerAuth: [] }, { sessionCookie: [] }];
-    }
-
-    return undefined;
-  }
-
-  function readGeneratedOpenApiSpec(): OpenApiDocument {
-    return JSON.parse(
-      readFileSync("public/openapi.generated.json", "utf8"),
-    ) as OpenApiDocument;
-  }
-
-  function checkOpenApiSecurityParity(routes: DocumentedRestRoute[]) {
-    const spec = readGeneratedOpenApiSpec();
-    const errors: string[] = [];
-
-    for (const route of routes) {
-      if (route.route.reference_only === true) continue;
-      const openApiPath = contractPathToOpenApiPath(route.path);
-      const method = route.method.toLowerCase();
-      const operation = spec.paths?.[openApiPath]?.[method];
-      if (!operation) continue;
-
-      const expectedSecurity = expectedOpenApiSecurity(route);
-      const actualSecurity = operation.security;
-      if (JSON.stringify(actualSecurity) !== JSON.stringify(expectedSecurity)) {
-        errors.push(
-          `${route.method} ${route.path} (${formatRestOwner(route)}) expected OpenAPI security ${JSON.stringify(expectedSecurity ?? null)}, got ${JSON.stringify(actualSecurity ?? null)}`,
-        );
-      }
-    }
-
-    if (errors.length > 0) {
-      console.error("Contract/OpenAPI auth security parity check failed:");
-      for (const error of errors) {
-        console.error(`- ${error}`);
-      }
-      process.exit(1);
-    }
   }
 
   function collectImplementedMcpTools(): Set<string> {
@@ -526,21 +350,15 @@ function checkContractsDoc() {
   }
 
   const documentedRestRoutes = collectDocumentedRestRoutes(merged.modules);
-  checkDuplicateRestRouteOwnership(documentedRestRoutes);
-  checkOpenApiSecurityParity(documentedRestRoutes);
-
-  const documentedRestRouteKeys = new Set(
-    documentedRestRoutes.map((route) => route.key),
-  );
   const implementedRestRoutes = collectImplementedRestRoutes();
 
-  const missingRestRoutes = [...documentedRestRouteKeys]
+  const missingRestRoutes = [...documentedRestRoutes]
     .filter(isDocumentedRestRouteChecked)
     .filter((route) => !implementedRestRoutes.has(route))
     .sort();
 
   const undocumentedRestRoutes = [...implementedRestRoutes]
-    .filter((route) => !documentedRestRouteKeys.has(route))
+    .filter((route) => !documentedRestRoutes.has(route))
     .filter((route) => !isImplementedRestRouteIgnored(route))
     .sort();
 

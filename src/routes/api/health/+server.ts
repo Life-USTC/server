@@ -1,7 +1,3 @@
-/**
- * Check process liveness.
- * @response 200:text
- */
 export function GET() {
   return new Response("ok\n", {
     headers: {

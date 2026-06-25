@@ -124,29 +124,6 @@ type HandlerAnnotations = {
   responses: Array<{ status: number | null; schemaName: string | null }>;
 };
 
-type ContractAuthLevel = "anon" | "user" | "admin" | "internal";
-
-type ContractRoute = {
-  path?: unknown;
-  method?: unknown;
-  auth?: unknown;
-  reference_only?: unknown;
-};
-
-type ContractDoc = {
-  capabilities?: Record<
-    string,
-    {
-      auth?: unknown;
-      rest?:
-        | string
-        | {
-            routes?: ContractRoute[];
-          };
-    }
-  >;
-};
-
 function extractJsDocAnnotations(
   source: string,
   httpMethod: string,
@@ -307,16 +284,6 @@ function buildResponses(
       continue;
     }
 
-    if (schemaName === "text") {
-      responses[String(code)] = {
-        description: "Text response",
-        content: {
-          "text/plain": { schema: { type: "string" } },
-        },
-      };
-      continue;
-    }
-
     // schemaName is always a non-null string here; null case was handled above
     usedSchemas.add(schemaName as string);
     responses[String(code)] = {
@@ -374,6 +341,8 @@ function buildRequestBody(
 
 const OPENAPI_EXCLUDED_ROUTES = new Set([
   "src/routes/api/auth/[...auth]/+server.ts",
+  "src/routes/api/health/+server.ts",
+  "src/routes/api/metrics/+server.ts",
 ]);
 const OPENAPI_ROUTE_ROOTS = ["src/routes/api", "src/routes/.well-known"];
 
@@ -523,7 +492,6 @@ type MutableOpenApiMediaType = Record<string, unknown>;
 const SCENARIO_OPENAPI_EXAMPLES = buildScenarioOpenApiExamples();
 const REST_AUTH_SECURITY = [{ bearerAuth: [] }, { sessionCookie: [] }];
 const MCP_AUTH_SECURITY = [{ mcpBearerAuth: [] }];
-const INTERNAL_AUTH_SECURITY = [{ internalBearerAuth: [] }];
 const CALENDAR_FEED_AUTH_SECURITY = [
   ...REST_AUTH_SECURITY,
   { calendarFeedToken: [] },
@@ -549,12 +517,6 @@ const SECURITY_SCHEMES = {
     bearerFormat: "JWT",
     description:
       "OAuth bearer token for /api/mcp. MCP requires a bearer token with the MCP resource audience and does not accept session cookies.",
-  },
-  internalBearerAuth: {
-    type: "http",
-    scheme: "bearer",
-    description:
-      "Configured internal bearer token for operational endpoints. Localhost requests may also be accepted by the server-side access policy.",
   },
   calendarFeedToken: {
     type: "apiKey",
@@ -1175,80 +1137,30 @@ function applyScenarioExamples(
   }
 }
 
+function operationHasResponse(
+  operation: MutableOpenApiOperation,
+  statusCode: string,
+) {
+  return Boolean(
+    operation.responses &&
+      typeof operation.responses === "object" &&
+      statusCode in operation.responses,
+  );
+}
+
+function isOAuthProtocolPath(path: string) {
+  return path.startsWith("/api/auth/oauth2/");
+}
+
+function isProtectedRedirectOperation(path: string, method: string) {
+  return path === "/api/dashboard-links/pin" && method === "post";
+}
+
 function isPersonalCalendarFeedOperation(path: string, method: string) {
   return path === "/api/users/{userId}/calendar.ics" && method === "get";
 }
 
-function isContractAuthLevel(value: unknown): value is ContractAuthLevel {
-  return (
-    value === "anon" ||
-    value === "user" ||
-    value === "admin" ||
-    value === "internal"
-  );
-}
-
-function contractRouteToOpenApiPath(routePath: string) {
-  return routePath
-    .replace(/\[\.\.\.([^\]]+)\]/g, "{$1}")
-    .replace(/\[([^\]]+)\]/g, "{$1}");
-}
-
-function contractRouteKey(method: string, routePath: string) {
-  return `${method.toLowerCase()} ${contractRouteToOpenApiPath(routePath)}`;
-}
-
-async function collectContractRestAuth(): Promise<
-  Map<string, ContractAuthLevel>
-> {
-  const contractsDir = path.join(ROOT, "docs/contracts");
-  const files = (await readdir(contractsDir))
-    .filter((file) => file.endsWith(".json") && !file.startsWith("_"))
-    .sort();
-  const authByRoute = new Map<string, ContractAuthLevel>();
-
-  for (const file of files) {
-    const moduleDoc = JSON.parse(
-      await readFile(path.join(contractsDir, file), "utf8"),
-    ) as ContractDoc;
-
-    for (const capability of Object.values(moduleDoc.capabilities ?? {})) {
-      if (!capability || typeof capability !== "object") continue;
-      if (!capability.rest || typeof capability.rest !== "object") continue;
-      const capabilityAuth = isContractAuthLevel(capability.auth)
-        ? capability.auth
-        : "anon";
-
-      for (const route of capability.rest.routes ?? []) {
-        if (!route || typeof route !== "object") continue;
-        if (route.reference_only === true) continue;
-        if (typeof route.path !== "string") continue;
-
-        const method = typeof route.method === "string" ? route.method : "GET";
-        const routeAuth = isContractAuthLevel(route.auth)
-          ? route.auth
-          : capabilityAuth;
-        const key = contractRouteKey(method, route.path);
-        const existingAuth = authByRoute.get(key);
-
-        if (existingAuth && existingAuth !== routeAuth) {
-          throw new Error(
-            `Conflicting contract auth for ${method} ${route.path}: ${existingAuth} vs ${routeAuth}`,
-          );
-        }
-
-        authByRoute.set(key, routeAuth);
-      }
-    }
-  }
-
-  return authByRoute;
-}
-
-function applySecurityMetadata(
-  doc: MutableOpenApiDocument,
-  contractAuthByRoute: Map<string, ContractAuthLevel>,
-) {
+function applySecurityMetadata(doc: MutableOpenApiDocument) {
   if (!doc.paths) return;
 
   doc.components = {
@@ -1266,27 +1178,21 @@ function applySecurityMetadata(
         continue;
       }
 
-      const contractAuth = contractAuthByRoute.get(`${method} ${path}`);
-
-      if (path === "/api/mcp" && contractAuth === "user") {
+      if (path === "/api/mcp" && operationHasResponse(operation, "401")) {
         operation.security = MCP_AUTH_SECURITY;
         continue;
       }
 
-      if (
-        isPersonalCalendarFeedOperation(path, method) &&
-        contractAuth === "user"
-      ) {
+      if (isPersonalCalendarFeedOperation(path, method)) {
         operation.security = CALENDAR_FEED_AUTH_SECURITY;
         continue;
       }
 
-      if (contractAuth === "internal") {
-        operation.security = INTERNAL_AUTH_SECURITY;
-        continue;
-      }
-
-      if (contractAuth === "user" || contractAuth === "admin") {
+      if (
+        !isOAuthProtocolPath(path) &&
+        (operationHasResponse(operation, "401") ||
+          isProtectedRedirectOperation(path, method))
+      ) {
         operation.security = REST_AUTH_SECURITY;
       }
     }
@@ -1341,7 +1247,7 @@ async function postprocessOpenApiSpec(filePath: string) {
   doc.paths = sortedPaths;
   patchRedirectOperations(sortedPaths);
   applyScenarioExamples(sortedPaths);
-  applySecurityMetadata(doc, await collectContractRestAuth());
+  applySecurityMetadata(doc);
 
   doc.tags = buildTopLevelTags(sortedPaths);
   doc["x-tagGroups"] = buildTagGroups(doc.tags);

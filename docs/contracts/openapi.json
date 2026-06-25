@@ -11,7 +11,7 @@
     "no-developer-model": "Public documentation helps callers understand the existing product capability boundaries, not to introduce a separate developer-specific business model.",
     "session-and-bearer": "Current user-side business REST endpoints support both in-site session from the request cookie and OAuth bearer tokens; bearer-token access is no longer limited to MCP.",
     "rest-mcp-consistent": "The same abstract endpoint currently maintains the same core fields, state information, and action results in both REST and MCP; differences mainly appear in interaction form and serialization level.",
-    "security-schemes": "Generated OpenAPI derives operation security from contract route auth: user/admin REST operations use bearer/session alternatives, MCP uses bearer-only auth, internal operational endpoints use internal bearer auth, and personal calendar feed export also allows feed tokens.",
+    "security-schemes": "Generated OpenAPI marks protected REST operations with bearer/session alternatives, MCP operations with bearer-only auth, and personal calendar feed export with bearer/session/token alternatives.",
     "rest-observability": "REST API handling records production-safe structured request-start/request-finish logs and bounded in-memory metrics with request ID, method, status, auth mode, duration, and normalized route template; it does not log request bodies, credentials, raw query strings, or high-cardinality resource IDs."
   },
   "capabilities": {
@@ -85,30 +85,11 @@
             "notes": ["Sets the user language preference cookie."]
           },
           {
-            "path": "/api/health",
-            "method": "GET",
-            "returns": "text/plain ok",
-            "content_type": "text/plain; charset=utf-8",
-            "notes": ["Plain liveness endpoint with no dependency checks."]
-          },
-          {
             "path": "/api/readiness",
             "method": "GET",
-            "auth": "internal",
             "returns": "{ status, checks, uptimeSeconds }",
-            "content_type": "application/json",
             "notes": [
               "Internal readiness endpoint for dependency checks; readable only from localhost or with the configured readiness/metrics bearer token."
-            ]
-          },
-          {
-            "path": "/api/metrics",
-            "method": "GET",
-            "auth": "internal",
-            "returns": "Prometheus text exposition",
-            "content_type": "text/plain; version=0.0.4; charset=utf-8",
-            "notes": [
-              "Internal runtime metrics endpoint; readable only from localhost or with the configured metrics bearer token."
             ]
           }
         ]
@@ -117,9 +98,7 @@
         "fields": [
           "Metadata endpoint",
           "Locale endpoint",
-          "Health endpoint",
           "Readiness endpoint",
-          "Metrics endpoint",
           "OAuth/provider catch-all endpoints",
           "Webhook endpoint via Better Auth catch-all"
         ]

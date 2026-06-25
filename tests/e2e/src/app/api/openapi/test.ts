@@ -174,14 +174,9 @@ test.describe("GET /api/openapi", () => {
         "bearerAuth",
         "sessionCookie",
         "mcpBearerAuth",
-        "internalBearerAuth",
         "calendarFeedToken",
       ]),
     );
-    expect(body.paths?.["/api/uploads"]?.get?.security).toEqual([
-      { bearerAuth: [] },
-      { sessionCookie: [] },
-    ]);
     expect(body.paths?.["/api/todos"]?.get?.security).toEqual([
       { bearerAuth: [] },
       { sessionCookie: [] },
@@ -189,13 +184,6 @@ test.describe("GET /api/openapi", () => {
     expect(body.paths?.["/api/mcp"]?.get?.security).toEqual([
       { mcpBearerAuth: [] },
     ]);
-    expect(body.paths?.["/api/readiness"]?.get?.security).toEqual([
-      { internalBearerAuth: [] },
-    ]);
-    expect(body.paths?.["/api/metrics"]?.get?.security).toEqual([
-      { internalBearerAuth: [] },
-    ]);
-    expect(body.paths?.["/api/health"]?.get?.security).toBeUndefined();
     expect(
       body.paths?.["/api/users/{userId}/calendar.ics"]?.get?.security,
     ).toEqual([

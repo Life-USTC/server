@@ -5,7 +5,6 @@ import { observedApiRoute } from "@/lib/log/api-observability";
 /**
  * List uploads.
  * @response uploadsListResponseSchema
- * @response 401:openApiErrorSchema
  */
 export const GET = svelteRequestHandler(observedApiRoute(getUploadsRoute));
 /**

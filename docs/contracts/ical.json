@@ -63,7 +63,10 @@
           },
           {
             "path": "/api/calendar-subscriptions/current",
-            "reference_only": true
+            "returns": "{ subscription: CalendarSubscription | null }",
+            "notes": [
+              "Returns subscribed section details, personal calendar feed path, full feed URL, and descriptive text."
+            ]
           }
         ]
       },

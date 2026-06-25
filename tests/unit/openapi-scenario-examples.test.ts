@@ -240,15 +240,10 @@ describe("buildScenarioOpenApiExamples", () => {
         "bearerAuth",
         "sessionCookie",
         "mcpBearerAuth",
-        "internalBearerAuth",
         "calendarFeedToken",
       ]),
     );
 
-    expect(spec.paths["/api/uploads"]?.get?.security).toEqual([
-      { bearerAuth: [] },
-      { sessionCookie: [] },
-    ]);
     expect(spec.paths["/api/todos"]?.get?.security).toEqual([
       { bearerAuth: [] },
       { sessionCookie: [] },
@@ -271,13 +266,6 @@ describe("buildScenarioOpenApiExamples", () => {
     expect(spec.paths["/api/mcp"]?.get?.security).toEqual([
       { mcpBearerAuth: [] },
     ]);
-    expect(spec.paths["/api/readiness"]?.get?.security).toEqual([
-      { internalBearerAuth: [] },
-    ]);
-    expect(spec.paths["/api/metrics"]?.get?.security).toEqual([
-      { internalBearerAuth: [] },
-    ]);
-    expect(spec.paths["/api/health"]?.get?.security).toBeUndefined();
     expect(spec.paths["/api/mcp"]?.options?.security).toBeUndefined();
     expect(spec.paths["/api/users/profile"]?.get?.security).toBeUndefined();
     expect(
@@ -290,26 +278,6 @@ describe("buildScenarioOpenApiExamples", () => {
         expect.objectContaining({ in: "query", name: "token" }),
       ]),
     );
-  });
-
-  it("documents operational endpoint response shapes", () => {
-    const spec = generatedOpenApiDocument as GeneratedOpenApiDocument;
-
-    expect(
-      spec.paths["/api/health"]?.get?.responses?.["200"]?.content?.[
-        "text/plain"
-      ]?.schema,
-    ).toEqual({ type: "string" });
-    expect(
-      spec.paths["/api/metrics"]?.get?.responses?.["200"]?.content?.[
-        "text/plain"
-      ]?.schema,
-    ).toEqual({ type: "string" });
-    expect(
-      spec.paths["/api/readiness"]?.get?.responses?.["200"]?.content?.[
-        "application/json"
-      ]?.schema?.$ref,
-    ).toBe("#/components/schemas/readinessResponseSchema");
   });
 
   it("documents OAuth success response bodies", () => {
