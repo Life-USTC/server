@@ -1,7 +1,4 @@
 import { createHash } from "node:crypto";
-import * as fs from "node:fs";
-import * as path from "node:path";
-import { parseArgs } from "node:util";
 import type {
   BusStaticCampus,
   BusStaticPayload,
@@ -25,142 +22,29 @@ import {
   staticTeacherIdentityKey,
   uniqueStaticTeacherReferences,
 } from "./static-course-import-helpers";
+import {
+  parseStaticLoaderOptions,
+  staticLoaderUsage,
+} from "./static-loader-options";
+import {
+  type SnapshotBusRouteStop,
+  type SnapshotBusTripStopTime,
+  type SnapshotCourse,
+  type SnapshotExam,
+  type SnapshotLecture,
+  type SnapshotSemester,
+  StaticSnapshot,
+} from "./static-snapshot";
+import { downloadStaticSnapshot } from "./static-snapshot-source";
 
-const { values: args } = parseArgs({
-  options: {
-    "cache-dir": { type: "string", default: "./.cache/life-ustc/static" },
-    "min-semester": { type: "string", default: "401" },
-    "skip-courses": { type: "boolean", default: false },
-    "skip-bus": { type: "boolean", default: false },
-    help: { type: "boolean", short: "h", default: false },
-  },
-  strict: true,
-});
+const options = parseStaticLoaderOptions();
 
-if (args.help) {
-  console.log(`Usage: bun run load:static -- [options]
-
-Options:
-  --cache-dir <path>      Snapshot download cache directory (default: .cache/life-ustc/static)
-  --min-semester <id>     Minimum semester jwId to import (default: 401)
-  --skip-courses          Skip course/exam/schedule import
-  --skip-bus              Skip bus data import
-  -h, --help              Show this help message`);
+if (options.help) {
+  console.log(staticLoaderUsage());
   process.exit(0);
 }
 
-const cacheDir = args["cache-dir"] ?? "./.cache/life-ustc/static";
-const minSemesterJwId = Number.parseInt(args["min-semester"] ?? "401", 10);
-
 const prisma = createToolPrisma();
-
-type SqliteStatement = {
-  get: (...params: unknown[]) => unknown;
-  all: (...params: unknown[]) => unknown[];
-};
-
-type SqliteDatabase = {
-  query: (sql: string) => SqliteStatement;
-  close: () => void;
-};
-
-const { Database } = require("bun:sqlite") as {
-  Database: new (
-    filename: string,
-    options?: { readonly?: boolean },
-  ) => SqliteDatabase;
-};
-
-type SnapshotSemester = {
-  id: string;
-  name: string;
-  start_date: number;
-  end_date: number;
-};
-
-type SnapshotCourse = {
-  id: number;
-  semester_id: string;
-  name: string;
-  course_code: string;
-  lesson_code: string;
-  teacher_name: string;
-  date_time_place_person_text: string | null;
-  course_type: string | null;
-  course_gradation: string;
-  course_category: string;
-  education_type: string;
-  class_type: string;
-  open_department: string;
-  description: string;
-  credit: number;
-};
-
-type SnapshotLecture = {
-  course_id: number;
-  position: number;
-  start_date: number;
-  end_date: number;
-  name: string;
-  location: string;
-  teacher_name: string;
-  periods: number;
-  start_index: number;
-  end_index: number;
-  start_hhmm: number;
-  end_hhmm: number;
-};
-
-type SnapshotExam = {
-  course_id: number;
-  position: number;
-  start_date: number;
-  end_date: number;
-  name: string;
-  location: string;
-  exam_type: string;
-  start_hhmm: number;
-  end_hhmm: number;
-  exam_mode: string | null;
-};
-
-type SnapshotBusNotice = {
-  message: string | null;
-  url: string | null;
-};
-
-type SnapshotBusCampus = {
-  id: number;
-  name: string;
-  latitude: number;
-  longitude: number;
-};
-
-type SnapshotBusRoute = {
-  id: number;
-};
-
-type SnapshotBusRouteStop = {
-  route_id: number;
-  stop_order: number;
-  campus_id: number;
-};
-
-type SnapshotBusTrip = {
-  day_type: "weekday" | "weekend";
-  schedule_id: number;
-  route_id: number;
-  position: number;
-};
-
-type SnapshotBusTripStopTime = {
-  day_type: "weekday" | "weekend";
-  schedule_id: number;
-  position: number;
-  stop_order: number;
-  campus_id: number;
-  departure_time: string | null;
-};
 
 const logger = {
   info: (msg: string) => console.log(`[INFO] ${msg}`),
@@ -168,10 +52,6 @@ const logger = {
   error: (msg: string) => console.error(`[ERROR] ${msg}`),
 };
 
-const STATIC_SNAPSHOT_URL =
-  "https://static.life-ustc.tiankaima.dev/life-ustc-static.sqlite";
-
-const STATIC_SCHEMA_VERSION = 2;
 const CHINA_OFFSET_SECONDS = 8 * 60 * 60;
 const SYNTHETIC_JWID_BASE = 1_500_000_000;
 const SYNTHETIC_JWID_SPAN = 400_000_000;
@@ -344,202 +224,6 @@ function examTypeToCode(value: string) {
   if (value.includes("期中")) return 1;
   if (value.includes("期末")) return 2;
   return null;
-}
-
-class StaticSnapshot {
-  private db: SqliteDatabase;
-  private statementCache = new Map<string, SqliteStatement>();
-
-  constructor(dbPath: string) {
-    this.db = new Database(dbPath, { readonly: true });
-  }
-
-  close() {
-    this.db.close();
-  }
-
-  private statement(sql: string) {
-    let statement = this.statementCache.get(sql);
-    if (!statement) {
-      statement = this.db.query(sql);
-      this.statementCache.set(sql, statement);
-    }
-    return statement;
-  }
-
-  private getOne<T>(sql: string, ...params: unknown[]) {
-    return this.statement(sql).get(...params) as T | null;
-  }
-
-  private getAll<T>(sql: string, ...params: unknown[]) {
-    return this.statement(sql).all(...params) as T[];
-  }
-
-  getMetadata(key: string) {
-    const row = this.getOne<{ value: string }>(
-      "SELECT value FROM metadata WHERE key = ?",
-      key,
-    );
-    return row?.value ?? null;
-  }
-
-  assertSupportedSchema() {
-    const schemaVersion = Number.parseInt(
-      this.getMetadata("schema_version") ?? "",
-      10,
-    );
-    if (schemaVersion !== STATIC_SCHEMA_VERSION) {
-      throw new Error(
-        `Unsupported static snapshot schema version: ${schemaVersion || "unknown"}`,
-      );
-    }
-  }
-
-  listSemesters() {
-    return this.getAll<SnapshotSemester>(
-      "SELECT id, name, start_date, end_date FROM semesters ORDER BY CAST(id AS INTEGER) DESC",
-    );
-  }
-
-  listCoursesForSemester(semesterId: string) {
-    return this.getAll<SnapshotCourse>(
-      `
-      SELECT
-        id,
-        semester_id,
-        name,
-        course_code,
-        lesson_code,
-        teacher_name,
-        date_time_place_person_text,
-        course_type,
-        course_gradation,
-        course_category,
-        education_type,
-        class_type,
-        open_department,
-        description,
-        credit
-      FROM courses
-      WHERE semester_id = ?
-      ORDER BY lesson_code ASC, id ASC
-      `,
-      semesterId,
-    );
-  }
-
-  listLecturesForSemester(semesterId: string) {
-    return this.getAll<SnapshotLecture>(
-      `
-      SELECT
-        lectures.course_id,
-        lectures.position,
-        lectures.start_date,
-        lectures.end_date,
-        lectures.name,
-        lectures.location,
-        lectures.teacher_name,
-        lectures.periods,
-        lectures.start_index,
-        lectures.end_index,
-        lectures.start_hhmm,
-        lectures.end_hhmm
-      FROM course_lectures AS lectures
-      INNER JOIN courses ON courses.id = lectures.course_id
-      WHERE courses.semester_id = ?
-      ORDER BY lectures.course_id ASC, lectures.position ASC
-      `,
-      semesterId,
-    );
-  }
-
-  listExamsForSemester(semesterId: string) {
-    return this.getAll<SnapshotExam>(
-      `
-      SELECT
-        exams.course_id,
-        exams.position,
-        exams.start_date,
-        exams.end_date,
-        exams.name,
-        exams.location,
-        exams.exam_type,
-        exams.start_hhmm,
-        exams.end_hhmm,
-        exams.exam_mode
-      FROM course_exams AS exams
-      INNER JOIN courses ON courses.id = exams.course_id
-      WHERE courses.semester_id = ?
-      ORDER BY exams.course_id ASC, exams.position ASC
-      `,
-      semesterId,
-    );
-  }
-
-  getBusNotice() {
-    return this.getOne<SnapshotBusNotice>(
-      "SELECT message, url FROM bus_notice WHERE id = 1",
-    );
-  }
-
-  listBusCampuses() {
-    return this.getAll<SnapshotBusCampus>(
-      "SELECT id, name, latitude, longitude FROM bus_campuses ORDER BY id ASC",
-    );
-  }
-
-  listBusRoutes() {
-    return this.getAll<SnapshotBusRoute>(
-      "SELECT id FROM bus_routes ORDER BY id ASC",
-    );
-  }
-
-  listBusRouteStops() {
-    return this.getAll<SnapshotBusRouteStop>(
-      "SELECT route_id, stop_order, campus_id FROM bus_route_stops ORDER BY route_id ASC, stop_order ASC",
-    );
-  }
-
-  listBusTrips(dayType: "weekday" | "weekend") {
-    return this.getAll<SnapshotBusTrip>(
-      `
-      SELECT day_type, schedule_id, route_id, position
-      FROM bus_trips
-      WHERE day_type = ?
-      ORDER BY schedule_id ASC, position ASC
-      `,
-      dayType,
-    );
-  }
-
-  listBusTripStopTimes(dayType: "weekday" | "weekend") {
-    return this.getAll<SnapshotBusTripStopTime>(
-      `
-      SELECT day_type, schedule_id, position, stop_order, campus_id, departure_time
-      FROM bus_trip_stop_times
-      WHERE day_type = ?
-      ORDER BY schedule_id ASC, position ASC, stop_order ASC
-      `,
-      dayType,
-    );
-  }
-}
-
-async function downloadStaticSnapshot(targetDir: string): Promise<string> {
-  const snapshotPath = path.join(targetDir, "life-ustc-static.sqlite");
-  fs.mkdirSync(targetDir, { recursive: true });
-
-  logger.info(`Downloading static snapshot from ${STATIC_SNAPSHOT_URL}`);
-  const response = await fetch(STATIC_SNAPSHOT_URL, {
-    headers: { "user-agent": "life-ustc-static-import/1.0" },
-  });
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} ${response.statusText}`);
-  }
-
-  const bytes = Buffer.from(await response.arrayBuffer());
-  fs.writeFileSync(snapshotPath, bytes);
-  return snapshotPath;
 }
 
 function chunkArray<T>(items: T[], size: number) {
@@ -1812,9 +1496,11 @@ async function loadBusData(snapshot: StaticSnapshot) {
 
 async function main() {
   try {
-    logger.info(`Starting data load (min semester code: ${minSemesterJwId})`);
+    logger.info(
+      `Starting data load (min semester code: ${options.minSemesterJwId})`,
+    );
     logger.info("Downloading static snapshot...");
-    const snapshotPath = await downloadStaticSnapshot(cacheDir);
+    const snapshotPath = await downloadStaticSnapshot(options.cacheDir, logger);
     const snapshot = new StaticSnapshot(snapshotPath);
     logger.info(`Static snapshot at: ${snapshotPath}`);
 
@@ -1825,13 +1511,13 @@ async function main() {
         logger.info(`Snapshot generated at: ${generatedAt}`);
       }
 
-      if (!args["skip-courses"]) {
-        await importCourses(snapshot, minSemesterJwId);
+      if (!options.skipCourses) {
+        await importCourses(snapshot, options.minSemesterJwId);
       } else {
         logger.info("Skipping course data (--skip-courses)");
       }
 
-      if (!args["skip-bus"]) {
+      if (!options.skipBus) {
         await loadBusData(snapshot);
       } else {
         logger.info("Skipping bus data (--skip-bus)");
