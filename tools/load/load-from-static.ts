@@ -14,6 +14,14 @@ import type {
   PrismaClient,
 } from "../../src/generated/prisma-node/client";
 import { createToolPrisma } from "../shared/tool-prisma";
+import {
+  buildStaticCourseImportRows,
+  type StaticCourseImportRow,
+  type StaticTeacherReference,
+  splitStaticTeacherNames,
+  staticTeacherIdentityKey,
+  uniqueStaticTeacherReferences,
+} from "./static-course-import-helpers";
 
 const { values: args } = parseArgs({
   options: {
@@ -192,18 +200,7 @@ type ImportLookupState = {
   educationLevelIdByName: LookupCache;
   classTypeIdByName: LookupCache;
   departmentIdByName: LookupCache;
-  teacherIdByName: LookupCache;
-};
-
-type CourseImportRow = {
-  jwId: number;
-  code: string;
-  nameCn: string;
-  typeId: number | null;
-  gradationId: number | null;
-  categoryId: number | null;
-  educationLevelId: number | null;
-  classTypeId: number | null;
+  teacherIdByIdentityKey: LookupCache;
 };
 
 type SectionImportRow = {
@@ -281,7 +278,7 @@ function createImportLookupState(): ImportLookupState {
     educationLevelIdByName: new Map(),
     classTypeIdByName: new Map(),
     departmentIdByName: new Map(),
-    teacherIdByName: new Map(),
+    teacherIdByIdentityKey: new Map(),
   };
 }
 
@@ -317,20 +314,7 @@ function examJwIdForCourse(courseId: number, position: number) {
   return stableNumericId("exam", `${courseId}:${position}`);
 }
 
-function splitNames(value: string | null | undefined) {
-  if (!value) {
-    return [];
-  }
-
-  return [
-    ...new Set(
-      value
-        .split(/[,，]/)
-        .map((item) => item.trim())
-        .filter(Boolean),
-    ),
-  ];
-}
+const splitNames = splitStaticTeacherNames;
 
 function toChinaLocalDate(unixSeconds: number) {
   const shifted = new Date((unixSeconds + CHINA_OFFSET_SECONDS) * 1000);
@@ -735,53 +719,108 @@ async function ensureDepartments(
 async function ensureTeachers(
   db: ImportDbClient,
   state: ImportLookupState,
-  names: Iterable<string | null | undefined>,
+  references: StaticTeacherReference[],
 ) {
-  const unresolved = uniqueNames(names).filter(
-    (name) => !state.teacherIdByName.has(name),
+  const unresolved = uniqueStaticTeacherReferences(references).filter(
+    (reference) =>
+      !state.teacherIdByIdentityKey.has(staticTeacherIdentityKey(reference)),
   );
   if (unresolved.length === 0) {
     return;
   }
 
   await forEachChunk(unresolved, SQLITE_READ_BATCH_SIZE, async (batch) => {
+    const names = [...new Set(batch.map((reference) => reference.nameCn))];
     const existing = await db.teacher.findMany({
-      where: { nameCn: { in: batch } },
+      where: { nameCn: { in: names } },
       select: { id: true, nameCn: true, departmentId: true },
       orderBy: { id: "asc" },
     });
-    for (const name of batch) {
-      const matches = existing.filter((teacher) => teacher.nameCn === name);
-      const preferred =
-        matches.find((teacher) => teacher.departmentId == null) ?? matches[0];
-      if (preferred) {
-        state.teacherIdByName.set(name, preferred.id);
+    for (const reference of batch) {
+      const key = staticTeacherIdentityKey(reference);
+      const departmentId = teacherReferenceDepartmentId(state, reference);
+      const matches = existing.filter(
+        (teacher) =>
+          teacher.nameCn === reference.nameCn &&
+          teacher.departmentId === departmentId,
+      );
+      if (matches.length > 1) {
+        throw new Error(
+          `Ambiguous existing teachers for ${reference.nameCn} in ${reference.departmentName ?? "no department"}`,
+        );
+      }
+      const [teacher] = matches;
+      if (teacher) {
+        state.teacherIdByIdentityKey.set(key, teacher.id);
       }
     }
   });
 
-  const missing = unresolved.filter((name) => !state.teacherIdByName.has(name));
+  const missing = unresolved.filter(
+    (reference) =>
+      !state.teacherIdByIdentityKey.has(staticTeacherIdentityKey(reference)),
+  );
   if (missing.length > 0) {
     await db.teacher.createMany({
-      data: missing.map((nameCn) => ({ nameCn, departmentId: null })),
+      data: missing.map((reference) => ({
+        nameCn: reference.nameCn,
+        departmentId: teacherReferenceDepartmentId(state, reference),
+      })),
+      skipDuplicates: true,
     });
   }
 
   await forEachChunk(unresolved, SQLITE_READ_BATCH_SIZE, async (batch) => {
+    const names = [...new Set(batch.map((reference) => reference.nameCn))];
     const resolved = await db.teacher.findMany({
-      where: { nameCn: { in: batch } },
+      where: { nameCn: { in: names } },
       select: { id: true, nameCn: true, departmentId: true },
       orderBy: { id: "asc" },
     });
-    for (const name of batch) {
-      const matches = resolved.filter((teacher) => teacher.nameCn === name);
-      const preferred =
-        matches.find((teacher) => teacher.departmentId == null) ?? matches[0];
-      if (preferred) {
-        state.teacherIdByName.set(name, preferred.id);
+    for (const reference of batch) {
+      const key = staticTeacherIdentityKey(reference);
+      const departmentId = teacherReferenceDepartmentId(state, reference);
+      const matches = resolved.filter(
+        (teacher) =>
+          teacher.nameCn === reference.nameCn &&
+          teacher.departmentId === departmentId,
+      );
+      if (matches.length > 1) {
+        throw new Error(
+          `Ambiguous existing teachers for ${reference.nameCn} in ${reference.departmentName ?? "no department"}`,
+        );
+      }
+      const [teacher] = matches;
+      if (teacher) {
+        state.teacherIdByIdentityKey.set(key, teacher.id);
       }
     }
   });
+}
+
+function teacherReferenceDepartmentId(
+  state: ImportLookupState,
+  reference: StaticTeacherReference,
+) {
+  const departmentName = reference.departmentName?.trim();
+  if (!departmentName) {
+    return null;
+  }
+
+  const departmentId = state.departmentIdByName.get(departmentName);
+  if (!departmentId) {
+    throw new Error(
+      `Missing department id for teacher context ${departmentName}`,
+    );
+  }
+  return departmentId;
+}
+
+function teacherIdForReference(
+  state: ImportLookupState,
+  reference: StaticTeacherReference,
+) {
+  return state.teacherIdByIdentityKey.get(staticTeacherIdentityKey(reference));
 }
 
 async function upsertSemester(db: ImportDbClient, semester: SnapshotSemester) {
@@ -827,6 +866,7 @@ const UPSERT_COURSES_SQL = `
         "nameEn",
         "categoryId",
         "classTypeId",
+        "classifyId",
         "educationLevelId",
         "gradationId",
         "typeId"
@@ -838,6 +878,7 @@ const UPSERT_COURSES_SQL = `
         NULL,
         x."categoryId",
         x."classTypeId",
+        x."classifyId",
         x."educationLevelId",
         x."gradationId",
         x."typeId"
@@ -849,7 +890,8 @@ const UPSERT_COURSES_SQL = `
         "gradationId" int,
         "categoryId" int,
         "educationLevelId" int,
-        "classTypeId" int
+        "classTypeId" int,
+        "classifyId" int
       )
       ON CONFLICT ("jwId") DO UPDATE SET
         "code" = EXCLUDED."code",
@@ -857,12 +899,16 @@ const UPSERT_COURSES_SQL = `
         "nameEn" = NULL,
         "categoryId" = EXCLUDED."categoryId",
         "classTypeId" = EXCLUDED."classTypeId",
+        "classifyId" = EXCLUDED."classifyId",
         "educationLevelId" = EXCLUDED."educationLevelId",
         "gradationId" = EXCLUDED."gradationId",
         "typeId" = EXCLUDED."typeId"
       `;
 
-async function upsertCourses(db: ImportDbClient, rows: CourseImportRow[]) {
+async function upsertCourses(
+  db: ImportDbClient,
+  rows: StaticCourseImportRow[],
+) {
   await executeJsonbBatch(db, rows, UPSERT_COURSES_SQL);
 }
 
@@ -1125,14 +1171,33 @@ async function deleteSectionChildren(db: ImportDbClient, sectionIds: number[]) {
   });
 }
 
-function collectTeacherNames(
+function courseTeacherReferences(course: SnapshotCourse) {
+  return splitNames(course.teacher_name).map((nameCn) => ({
+    nameCn,
+    departmentName: course.open_department,
+    source: `course:${course.id}`,
+  }));
+}
+
+function lectureTeacherReferences(
+  course: SnapshotCourse,
+  lecture: SnapshotLecture,
+) {
+  return splitNames(lecture.teacher_name).map((nameCn) => ({
+    nameCn,
+    departmentName: course.open_department,
+    source: `lecture:${course.id}:${lecture.position}`,
+  }));
+}
+
+function collectTeacherReferences(
   courses: SnapshotCourse[],
   lecturesByCourse: Map<number, SnapshotLecture[]>,
 ) {
   return courses.flatMap((course) => [
-    ...splitNames(course.teacher_name),
+    ...courseTeacherReferences(course),
     ...(lecturesByCourse.get(course.id) ?? []).flatMap((lecture) =>
-      splitNames(lecture.teacher_name),
+      lectureTeacherReferences(course, lecture),
     ),
   ]);
 }
@@ -1176,7 +1241,7 @@ async function resolveSemesterLookups(
   await ensureTeachers(
     db,
     state,
-    collectTeacherNames(courses, lecturesByCourse),
+    collectTeacherReferences(courses, lecturesByCourse),
   );
 }
 
@@ -1199,21 +1264,9 @@ async function importSemesterCourses(
   );
 
   const courseRows = dedupeByJwId(
-    courses.map((course) => ({
-      jwId: stableNumericId("course", course.course_code),
-      code: course.course_code,
-      nameCn: course.name,
-      typeId: course.course_type
-        ? (state.courseTypeIdByName.get(course.course_type) ?? null)
-        : null,
-      gradationId:
-        state.courseGradationIdByName.get(course.course_gradation) ?? null,
-      categoryId:
-        state.courseCategoryIdByName.get(course.course_category) ?? null,
-      educationLevelId:
-        state.educationLevelIdByName.get(course.education_type) ?? null,
-      classTypeId: state.classTypeIdByName.get(course.class_type) ?? null,
-    })),
+    buildStaticCourseImportRows(courses, state, (courseCode) =>
+      stableNumericId("course", courseCode),
+    ),
   );
 
   await measure(`Upsert courses for semester ${semester.id}`, async () => {
@@ -1274,8 +1327,8 @@ async function importSemesterCourses(
     if (!sectionId) {
       throw new Error(`Missing section id for ${course.id}`);
     }
-    return splitNames(course.teacher_name)
-      .map((name) => state.teacherIdByName.get(name))
+    return courseTeacherReferences(course)
+      .map((reference) => teacherIdForReference(state, reference))
       .filter((teacherId): teacherId is number => teacherId != null)
       .map((teacherId) => ({ sectionId, teacherId }));
   });
@@ -1331,8 +1384,8 @@ async function importSemesterCourses(
       if (!scheduleGroupJwId) {
         throw new Error(`Missing schedule group jwId for course ${course.id}`);
       }
-      const teacherIds = splitNames(lecture.teacher_name)
-        .map((name) => state.teacherIdByName.get(name))
+      const teacherIds = lectureTeacherReferences(course, lecture)
+        .map((reference) => teacherIdForReference(state, reference))
         .filter((teacherId): teacherId is number => teacherId != null);
       const scheduleRow = {
         sectionId,

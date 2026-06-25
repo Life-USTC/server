@@ -75,7 +75,8 @@
             "path": "/api/metadata",
             "returns": "{ educationLevels, courseCategories, campuses, ... }",
             "notes": [
-              "Returns filter dictionaries (education level, course category, campus, etc.)."
+              "Returns filter dictionaries (education level, course category, campus, etc.).",
+              "courseClassifies may be empty in static-loaded environments because the static snapshot has no classification source field."
             ]
           },
           {
