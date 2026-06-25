@@ -1,7 +1,7 @@
 import { toDateKey, weekStartFor } from "@/features/dashboard/lib/calendar";
 import type { CalendarExamEvent } from "@/features/dashboard/lib/calendar-display-types";
-import { dayStart } from "@/features/dashboard/lib/overview";
 import { formatCampusDate, toCampusDateKey } from "@/lib/time/campus-date";
+import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
 export function dashboardOverviewWeekStart(
   overviewWeek: string | null | undefined,
@@ -25,9 +25,8 @@ export function overviewUpcomingExams<Exam extends CalendarExamEvent>(
   calendar: { allExams: Exam[] },
   referenceDate: Date,
 ) {
-  const today = dayStart(referenceDate);
   return [...calendar.allExams]
-    .filter((exam) => !exam.date || dayStart(new Date(exam.date)) >= today)
+    .filter((exam) => examIsUpcoming(exam, referenceDate))
     .sort((left, right) => {
       const leftDate = left.date
         ? new Date(left.date).getTime()
@@ -38,6 +37,25 @@ export function overviewUpcomingExams<Exam extends CalendarExamEvent>(
       if (leftDate !== rightDate) return leftDate - rightDate;
       return (left.startTime ?? 2400) - (right.startTime ?? 2400);
     });
+}
+
+function examIsUpcoming(exam: CalendarExamEvent, referenceDate: Date) {
+  const examDay = toCampusDateKey(exam.date);
+  const referenceDay = toCampusDateKey(referenceDate);
+  if (!examDay || !referenceDay) return false;
+  if (examDay > referenceDay) return true;
+  if (examDay < referenceDay) return false;
+
+  const reference = shanghaiDayjs(referenceDate);
+  const referenceHHmm = reference.hour() * 100 + reference.minute();
+
+  if (exam.endTime === null || exam.endTime === undefined) {
+    return exam.startTime === null || exam.startTime === undefined
+      ? true
+      : exam.startTime >= referenceHHmm;
+  }
+
+  return exam.endTime >= referenceHHmm;
 }
 
 export function calendarSemesterIndex(calendar: {

@@ -5,7 +5,7 @@ Business domain logic.
 ## Structure
 
 ```
-home/          Dashboard panels, overview
+dashboard/     Personal workspace pages, panels, overview, and assistant snapshots
 homeworks/     Section homework (not todos)
 todos/         Personal tasks
 comments/      Object-scoped discussions
@@ -55,12 +55,12 @@ feature/
 - Import idempotent by version
 
 ### calendar/
-- Owns feature-specific iCal event construction for sections, homework, and todos
+- Owns feature-specific calendar event queries and iCal export construction for sections, homework, and todos
 - Keep generic time helpers in `src/lib/time`; keep calendar event semantics here
 
 ### subscriptions/
 - Owns section subscription reads/writes used by pages, REST routes, dashboard data, and MCP tools
-- Keep dashboard overview assembly in `home/` or `dashboard/`; consume subscription services from here
+- Keep dashboard overview assembly in `dashboard/`; consume subscription services from here
 - Subscription import matching helpers belong here, while public section matching facts stay in `catalog/`
 
 See root `AGENTS.md` for auth, dates, Prisma patterns.

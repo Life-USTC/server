@@ -154,6 +154,7 @@ const SEED_PLUS_SEVEN_DAYS = seedDatePlusDays(7);
 const SEED_PLUS_ELEVEN_DAYS = seedDatePlusDays(11);
 const SEED_PLUS_TWELVE_DAYS = seedDatePlusDays(12);
 const PAST_SAME_DAY_EXAM_JW_ID = 88_051_002;
+const UNKNOWN_DATE_EXAM_JW_ID = 88_051_003;
 
 let devUserId: string;
 let mcp: McpHarness;
@@ -1941,6 +1942,37 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
     expect((summary.samples?.dueTodos?.items?.length ?? 0) <= 3).toBe(true);
   });
 
+  it("get_my_overview treats date-only atTime as Shanghai day start", async () => {
+    const dueAt = `${SEED_DATE}T06:30:00+08:00`;
+    const todo = await prisma.todo.create({
+      data: {
+        userId: devUserId,
+        title: "[integration-test] early date-only overview todo",
+        dueAt: new Date(dueAt),
+      },
+      select: { id: true },
+    });
+
+    try {
+      const result = await mcp.call<{
+        samples?: { dueTodos?: Array<{ dueAt?: string; id?: string }> };
+      }>("get_my_overview", {
+        locale: "zh-cn",
+        atTime: SEED_DATE,
+        limit: 30,
+        mode: "full",
+      });
+
+      expect(
+        result.samples?.dueTodos?.some(
+          (item) => item.id === todo.id && item.dueAt === dueAt,
+        ),
+      ).toBe(true);
+    } finally {
+      await prisma.todo.deleteMany({ where: { id: todo.id } });
+    }
+  });
+
   it("get_my_overview honors the compact overview homework window", async () => {
     const user = await prisma.user.findUniqueOrThrow({
       where: { id: devUserId },
@@ -2089,6 +2121,66 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
     } finally {
       await prisma.exam.deleteMany({
         where: { jwId: PAST_SAME_DAY_EXAM_JW_ID },
+      });
+    }
+  });
+
+  it("get_my_overview excludes date-unknown exams from upcoming counts", async () => {
+    const before = await mcp.call<{
+      overview?: { upcomingExamsCount?: number };
+    }>("get_my_overview", {
+      locale: "zh-cn",
+      atTime: SEED_AT_TIME,
+    });
+
+    const section = await prisma.section.findUniqueOrThrow({
+      where: { jwId: DEV_SEED.section.jwId },
+      select: { id: true },
+    });
+    await prisma.exam.upsert({
+      where: { jwId: UNKNOWN_DATE_EXAM_JW_ID },
+      update: {
+        endTime: 1000,
+        examDate: null,
+        examMode: "closed",
+        examTakeCount: 1,
+        examType: 1,
+        sectionId: section.id,
+        startTime: 900,
+      },
+      create: {
+        jwId: UNKNOWN_DATE_EXAM_JW_ID,
+        endTime: 1000,
+        examDate: null,
+        examMode: "closed",
+        examTakeCount: 1,
+        examType: 1,
+        sectionId: section.id,
+        startTime: 900,
+      },
+    });
+
+    try {
+      const result = await mcp.call<{
+        overview?: { upcomingExamsCount?: number };
+        samples?: { upcomingExams?: Array<{ jwId?: number }> };
+      }>("get_my_overview", {
+        locale: "zh-cn",
+        atTime: SEED_AT_TIME,
+        limit: 30,
+      });
+
+      expect(result.overview?.upcomingExamsCount).toBe(
+        before.overview?.upcomingExamsCount,
+      );
+      expect(
+        result.samples?.upcomingExams?.some(
+          (exam) => exam.jwId === UNKNOWN_DATE_EXAM_JW_ID,
+        ),
+      ).toBe(false);
+    } finally {
+      await prisma.exam.deleteMany({
+        where: { jwId: UNKNOWN_DATE_EXAM_JW_ID },
       });
     }
   });

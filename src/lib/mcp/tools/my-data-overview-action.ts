@@ -1,4 +1,4 @@
-import { getCompactOverview } from "@/features/home/server/compact-overview-read-model";
+import { getCompactOverview } from "@/features/dashboard/server/compact-overview-read-model";
 import { DEFAULT_LOCALE, isAppLocale } from "@/i18n/config";
 import {
   getUserId,
@@ -32,7 +32,9 @@ export async function getMyOverviewAction(
 ) {
   const resolvedMode = resolveMcpMode(mode);
   const userId = getUserId(extra.authInfo);
-  const atTimeDate = parseOptionalMcpDate("atTime", atTime);
+  const atTimeDate = parseOptionalMcpDate("atTime", atTime, {
+    dateOnlyAsShanghaiStart: true,
+  });
   if (!atTimeDate.ok) {
     return atTimeDate.result;
   }

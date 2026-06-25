@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { listUserCalendarEvents } from "@/features/home/server/calendar-events";
+import type { listUserCalendarEvents } from "@/features/calendar/server/calendar-events";
 import {
   summarizeBusDeparture,
   summarizeCalendarEventCollection,

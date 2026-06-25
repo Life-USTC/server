@@ -1,4 +1,4 @@
-import type { getCompactOverview } from "@/features/home/server/compact-overview-read-model";
+import type { getCompactOverview } from "@/features/dashboard/server/compact-overview-read-model";
 import { pick } from "@/lib/mcp/compact-payload";
 import { isRecord } from "@/lib/utils";
 
