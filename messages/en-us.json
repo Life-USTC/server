@@ -377,7 +377,7 @@
     "findAccounts": "Find accounts",
     "findAccountsDescription": "Filter by id, display name, username, or verified email.",
     "accountsTitle": "Accounts",
-    "accountsDescription": "Click a row to manage profile fields, role, and collaborative-write restrictions.",
+    "accountsDescription": "Use the row action to manage profile fields, role, and collaborative-write restrictions.",
     "name": "Name",
     "username": "Username",
     "email": "Email",

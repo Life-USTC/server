@@ -377,7 +377,7 @@
     "findAccounts": "查找账号",
     "findAccountsDescription": "按 ID、显示名、用户名或已验证邮箱筛选。",
     "accountsTitle": "账号列表",
-    "accountsDescription": "点击行以管理资料字段、角色和协作写入限制。",
+    "accountsDescription": "使用行操作管理资料字段、角色和协作写入限制。",
     "name": "姓名",
     "username": "用户名",
     "email": "邮箱",

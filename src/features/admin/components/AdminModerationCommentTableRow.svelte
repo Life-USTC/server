@@ -21,10 +21,7 @@ export let targetHref: AdminModerationCommentFormatter;
 export let targetLabel: AdminModerationCommentFormatter;
 </script>
 
-<Table.Row
-  class={`cursor-pointer border-l-4 ${statusBorderClass(comment.status)}`}
-  onclick={() => onManage(comment)}
->
+<Table.Row class={`border-l-4 ${statusBorderClass(comment.status)}`}>
   <Table.Cell class="max-w-md">
     <p class="line-clamp-2 whitespace-pre-wrap text-sm">{comment.body}</p>
     {#if comment.moderationNote}
@@ -40,7 +37,6 @@ export let targetLabel: AdminModerationCommentFormatter;
     <a
       class="hover:underline"
       href={targetHref(comment)}
-      onclick={(event) => event.stopPropagation()}
     >
       {targetLabel(comment)}
     </a>
@@ -58,8 +54,7 @@ export let targetLabel: AdminModerationCommentFormatter;
       size="sm"
       type="button"
       variant="outline"
-      onclick={(event: MouseEvent) => {
-        event.stopPropagation();
+      onclick={() => {
         onManage(comment);
       }}
     >

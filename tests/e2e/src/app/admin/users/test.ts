@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import {
   expectRequiresSignIn,
   signInAsDebugUser,
@@ -14,6 +14,35 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe.configure({ mode: "serial" });
+
+function adminUserTableRow(page: Page, text: string) {
+  return page.locator("tbody tr:visible").filter({ hasText: text }).first();
+}
+
+async function openAdminUserDialog(
+  page: Page,
+  text: string,
+  activation: "click" | "keyboard" = "click",
+) {
+  const row = adminUserTableRow(page, text);
+  await expect(row).toBeVisible({ timeout: 10_000 });
+  const manageButton = row
+    .getByRole("button", { name: /管理用户|Manage User/i })
+    .first();
+  await expect(manageButton).toBeVisible({ timeout: 10_000 });
+
+  if (activation === "keyboard") {
+    await manageButton.focus();
+    await expect(manageButton).toBeFocused();
+    await page.keyboard.press("Enter");
+  } else {
+    await manageButton.click();
+  }
+
+  const dialog = page.getByRole("dialog", { name: /管理用户|Manage User/i });
+  await expect(dialog).toBeVisible({ timeout: 10_000 });
+  return dialog;
+}
 
 test("/admin/users 未登录重定向到登录页", async ({ page }, testInfo) => {
   await expectRequiresSignIn(page, "/admin/users");
@@ -34,6 +63,15 @@ test("/admin/users 管理员可看到 seed 用户", async ({ page }, testInfo) =
   await expect(visibleText(page, DEV_SEED.debugUsername)).toBeVisible();
   await expect(visibleText(page, DEV_SEED.adminUsername)).toBeVisible();
   await captureStepScreenshot(page, testInfo, "admin-users-seed");
+});
+
+test("/admin/users 桌面行操作可用键盘打开管理弹窗", async ({
+  page,
+}, testInfo) => {
+  await signInAsDevAdmin(page, "/admin/users");
+
+  await openAdminUserDialog(page, DEV_SEED.debugUsername, "keyboard");
+  await captureStepScreenshot(page, testInfo, "admin-users-keyboard-manage");
 });
 
 test("/admin/users 搜索表单可过滤用户", async ({ page }, testInfo) => {
@@ -84,15 +122,7 @@ test("/admin/users 用户名非法保存返回 400", async ({ page }, testInfo) 
   test.setTimeout(60000);
   await signInAsDevAdmin(page, "/admin/users");
 
-  const row = page
-    .locator("tr:visible")
-    .filter({ hasText: DEV_SEED.debugUsername })
-    .first();
-  await expect(row).toBeVisible({ timeout: 10_000 });
-  await row.click();
-
-  const dialog = page.getByRole("dialog", { name: /管理用户|Manage User/i });
-  await expect(dialog).toBeVisible({ timeout: 10_000 });
+  const dialog = await openAdminUserDialog(page, DEV_SEED.debugUsername);
 
   const usernameInput = dialog.getByPlaceholder(/用户名|Username/i).first();
   await expect(usernameInput).toBeVisible();
@@ -121,15 +151,7 @@ test("/admin/users 可打开管理弹窗并保存姓名", async ({ page }, testI
       `/admin/users?search=${encodeURIComponent(usernames[0] ?? prefix)}`,
     );
 
-    const row = page
-      .locator("tr:visible")
-      .filter({ hasText: usernames[0] })
-      .first();
-    await expect(row).toBeVisible();
-    await row.click();
-
-    const dialog = page.getByRole("dialog", { name: /管理用户|Manage User/i });
-    await expect(dialog).toBeVisible();
+    const dialog = await openAdminUserDialog(page, usernames[0] ?? prefix);
 
     const nameInput = dialog.getByPlaceholder(/姓名|Name/i).first();
     const newName = `e2e-${Date.now()}`;
@@ -171,15 +193,7 @@ test("/admin/users 自定义封禁时长会展示到期时间输入框", async (
       `/admin/users?search=${encodeURIComponent(usernames[0] ?? prefix)}`,
     );
 
-    const row = page
-      .locator("tr:visible")
-      .filter({ hasText: usernames[0] })
-      .first();
-    await expect(row).toBeVisible();
-    await row.click();
-
-    const dialog = page.getByRole("dialog", { name: /管理用户|Manage User/i });
-    await expect(dialog).toBeVisible();
+    const dialog = await openAdminUserDialog(page, usernames[0] ?? prefix);
 
     const durationSelect = dialog.getByRole("button", {
       name: /封禁时长|Duration/i,
@@ -226,15 +240,7 @@ test("/admin/users 可创建默认时长封禁并通过 API 解除", async ({
       `/admin/users?search=${encodeURIComponent(usernames[0] ?? prefix)}`,
     );
 
-    const row = page
-      .locator("tr:visible")
-      .filter({ hasText: usernames[0] })
-      .first();
-    await expect(row).toBeVisible();
-    await row.click();
-
-    const dialog = page.getByRole("dialog", { name: /管理用户|Manage User/i });
-    await expect(dialog).toBeVisible();
+    const dialog = await openAdminUserDialog(page, usernames[0] ?? prefix);
 
     const reason = `e2e-admin-users-suspend-${Date.now()}`;
     const reasonInput = dialog.getByLabel(/原因|Reason/i);

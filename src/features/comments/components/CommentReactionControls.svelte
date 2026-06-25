@@ -36,32 +36,27 @@ $: if (
 
 <div class="flex flex-wrap items-center gap-2">
   <div class="relative">
-    <Button
-      aria-expanded={reactionMenuId === comment.id}
-      aria-haspopup="menu"
-      aria-label={commentCopy.reactionMenu}
-      disabled={!comment.canReact}
-      onclick={() => (reactionMenuId = reactionMenuId === comment.id ? null : comment.id)}
-      size="sm"
-      type="button"
-      variant="outline"
+    <Menu.Root
+      open={reactionMenuId === comment.id}
+      onOpenChange={(open) => {
+        reactionMenuId = open ? comment.id : null;
+      }}
     >
-      {commentCopy.reactionMenu}
-    </Button>
-    {#if reactionMenuId === comment.id}
-      <Menu.Root
-        class="w-56"
-        onClose={() => {
-          reactionMenuId = null;
-        }}
+      <Menu.Trigger
+        aria-label={commentCopy.reactionMenu}
+        disabled={!comment.canReact}
+        size="sm"
+        variant="outline"
       >
+        {commentCopy.reactionMenu}
+      </Menu.Trigger>
+      <Menu.Content class="w-56">
         {#each reactionOptions as option}
-          <Menu.Item
+          <Menu.CheckboxItem
             checked={reactionEntry(comment, option.type)?.viewerHasReacted ?? false}
             class={`${reactionEntry(comment, option.type)?.viewerHasReacted ? "bg-base-200 font-semibold" : ""} ${pendingReactionKey ? "opacity-70" : ""}`}
             disabled={!comment.canReact || Boolean(pendingReactionKey)}
             onclick={() => react(comment, option.type)}
-            radio
           >
             <span>{option.emoji}</span>
             <span>{reactionName(option.type)}</span>
@@ -70,10 +65,10 @@ $: if (
                 {reactionEntry(comment, option.type)?.count}
               </span>
             {/if}
-          </Menu.Item>
+          </Menu.CheckboxItem>
         {/each}
-      </Menu.Root>
-    {/if}
+      </Menu.Content>
+    </Menu.Root>
   </div>
   {#each comment.reactions as reaction}
     <Button

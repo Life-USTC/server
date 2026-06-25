@@ -35,7 +35,7 @@ export let targetLabel: (description: AdminModerationDescription) => string;
       </Table.Header>
       <Table.Body>
         {#each descriptions as description}
-          <Table.Row class="cursor-pointer" onclick={() => onManage(description)}>
+          <Table.Row>
             <Table.Cell class="max-w-md font-medium">
               <p class="line-clamp-2 whitespace-pre-wrap text-sm">
                 {description.content?.trim() ? description.content : copy.emptyDescription}
@@ -48,7 +48,6 @@ export let targetLabel: (description: AdminModerationDescription) => string;
               <a
                 class="hover:underline"
                 href={descriptionTargetHref(description)}
-                onclick={(event) => event.stopPropagation()}
               >
                 {targetLabel(description)}
               </a>
@@ -61,8 +60,7 @@ export let targetLabel: (description: AdminModerationDescription) => string;
                 size="sm"
                 type="button"
                 variant="outline"
-                onclick={(event: MouseEvent) => {
-                  event.stopPropagation();
+                onclick={() => {
                   onManage(description);
                 }}
               >
