@@ -1,3 +1,14 @@
+## [1.39.5](https://github.com/Life-USTC/server/compare/v1.39.4...v1.39.5) (2026-06-25)
+
+
+### Bug Fixes
+
+* **catalog:** preserve alphanumeric section code imports ([54643f4](https://github.com/Life-USTC/server/commit/54643f451b4812bcbc3f9d4bff14b95c896219b4))
+* **subscriptions:** allow numeric dotted import codes ([1e67a54](https://github.com/Life-USTC/server/commit/1e67a54c1230dea32a2be70a196801c7fe0eac0d))
+* **subscriptions:** filter prose from code import tokens ([6aac5f6](https://github.com/Life-USTC/server/commit/6aac5f6a3c3973f29e4a4c7ffb28f691d605b69f))
+* **subscriptions:** share section code token parsing ([6943501](https://github.com/Life-USTC/server/commit/69435018e4b8902342152cbf2cf587d3562d6f79))
+* **subscriptions:** trim pasted code delimiters ([00000df](https://github.com/Life-USTC/server/commit/00000df073efb0788442370b35ef0be403a8180e))
+
 ## [1.39.4](https://github.com/Life-USTC/server/compare/v1.39.3...v1.39.4) (2026-06-25)
 
 
