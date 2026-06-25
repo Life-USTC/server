@@ -1,16 +1,14 @@
-WITH ranked_attachments AS (
-  SELECT
-    "id",
-    ROW_NUMBER() OVER (
-      PARTITION BY "uploadId"
-      ORDER BY "createdAt" ASC, "id" ASC
-    ) AS "attachmentRank"
-  FROM "CommentAttachment"
-)
-DELETE FROM "CommentAttachment"
-USING ranked_attachments
-WHERE "CommentAttachment"."id" = ranked_attachments."id"
-  AND ranked_attachments."attachmentRank" > 1;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM "CommentAttachment"
+    GROUP BY "uploadId"
+    HAVING COUNT(*) > 1
+  ) THEN
+    RAISE EXCEPTION 'Cannot make CommentAttachment.uploadId unique: at least one upload is attached to multiple comments';
+  END IF;
+END $$;
 
 ALTER TABLE "AuditLog" DROP CONSTRAINT "AuditLog_userId_fkey";
 ALTER TABLE "AuditLog" ALTER COLUMN "userId" DROP NOT NULL;

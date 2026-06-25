@@ -33,7 +33,7 @@
             "auth": "user",
             "notes": [
               "Inputs accept targetType plus targetId, or public identifiers such as sectionJwId, courseJwId, teacherId, homeworkId.",
-              "Concurrent first writes to the same target must resolve to a stable create/update result while preserving DescriptionEdit operation history; previousContent snapshots are best-effort under concurrent writes."
+              "Concurrent first writes to the same target must resolve to a stable create/update result while preserving DescriptionEdit history."
             ]
           }
         ]
@@ -52,8 +52,7 @@
             "returns": "{ success, id, updated, target, description, history, viewer }",
             "auth": "user",
             "notes": [
-              "Inputs accept targetType plus targetId, or public identifiers such as sectionJwId, courseJwId, teacherId, homeworkId.",
-              "Concurrent first writes to the same target must resolve to a stable create/update result while preserving DescriptionEdit operation history; previousContent snapshots are best-effort under concurrent writes."
+              "Inputs accept targetType plus targetId, or public identifiers such as sectionJwId, courseJwId, teacherId, homeworkId."
             ]
           }
         ]
