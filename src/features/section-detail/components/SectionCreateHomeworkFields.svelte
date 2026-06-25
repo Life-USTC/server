@@ -3,6 +3,7 @@ import {
   HOMEWORK_DESCRIPTION_MAX_LENGTH,
   HOMEWORK_TITLE_MAX_LENGTH,
 } from "@/features/homeworks/lib/homework-limits";
+import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
 import SectionHomeworkTagFields from "@/features/section-detail/components/SectionHomeworkTagFields.svelte";
 import SectionHomeworkTimestampFields from "@/features/section-detail/components/SectionHomeworkTimestampFields.svelte";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
@@ -39,20 +40,21 @@ export let submissionStartAt: string;
       required
     />
   </label>
-  <label class="grid gap-2">
+  <div class="grid gap-2">
     <span class="font-medium text-sm">{homeworkCopy.descriptionLabel}</span>
     <MarkdownEditor
-      campusReferences
+      aria-label={homeworkCopy.descriptionLabel}
       guideLabel={commentsCopy.markdownGuide}
       maxlength={HOMEWORK_DESCRIPTION_MAX_LENGTH}
       modeLabel={homeworkCopy.descriptionLabel}
       name="description"
       placeholder={homeworkCopy.descriptionPlaceholder}
       previewEmptyLabel={commentsCopy.previewEmpty}
+      remarkPlugins={campusReferenceMarkdownPlugins}
       tabPreviewLabel={commentsCopy.tabPreview}
       tabWriteLabel={commentsCopy.tabWrite}
     />
-  </label>
+  </div>
   <SectionHomeworkTimestampFields
     {applyDueAtSemesterEnd}
     {applyDueInMonth}

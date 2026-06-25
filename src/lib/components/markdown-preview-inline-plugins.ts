@@ -69,29 +69,3 @@ export function remarkInlineExtensions() {
     });
   };
 }
-
-export function remarkCampusReferences() {
-  return (tree: unknown) => {
-    visit(tree as MdastRoot, "text", (node: Text, index, parent) => {
-      const mutableParent = parent as MutableMarkdownParent | undefined;
-      if (index === undefined || !parent || parent.type === "link") return;
-      const value = String(node.value ?? "");
-      const children = replaceTextWithInlineTokens(
-        value,
-        /\b(section|teacher)#(\d+)\b/gi,
-        (token) => {
-          const [, rawKind, id] =
-            /\b(section|teacher)#(\d+)\b/i.exec(token) ?? [];
-          const kind = String(rawKind).toLowerCase();
-          return {
-            type: "link",
-            url: kind === "teacher" ? `/teachers/${id}` : `/sections/${id}`,
-            children: [{ type: "text", value: token }],
-          };
-        },
-      );
-      if (!children) return;
-      mutableParent?.children.splice(index, 1, ...children);
-    });
-  };
-}

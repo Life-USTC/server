@@ -1,4 +1,5 @@
 <script lang="ts">
+import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 
@@ -23,12 +24,13 @@ export let saveDescription: () => void;
 <div class="grid gap-3">
   <MarkdownEditor
     bind:value={draft}
-    campusReferences
+    aria-label={copy.title}
     disabled={isDisabled}
     guideLabel={copy.markdownGuide}
     modeLabel={copy.title}
     placeholder={copy.editorPlaceholder}
     previewEmptyLabel={copy.previewEmpty}
+    remarkPlugins={campusReferenceMarkdownPlugins}
     tabPreviewLabel={copy.tabPreview}
     tabWriteLabel={copy.tabWrite}
   />

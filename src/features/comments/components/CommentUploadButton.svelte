@@ -10,7 +10,7 @@ export let uploadingLabel: string;
 
 <Button
   as="label"
-  class="cursor-pointer"
+  class="cursor-pointer focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/30"
   {disabled}
   size="sm"
   variant="outline"

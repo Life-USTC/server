@@ -1,5 +1,6 @@
 <script lang="ts">
 import { formatDescriptionCopy } from "@/features/descriptions/lib/description-card-actions";
+import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
 import MarkdownPreview from "$lib/components/MarkdownPreview.svelte";
 import { Alert } from "$lib/components/ui/alert/index.js";
 import * as Tabs from "$lib/components/ui/tabs/index.js";
@@ -19,7 +20,7 @@ export let formatDate: (value: string | null | undefined) => string;
 export let history: DescriptionHistoryItem[];
 </script>
 
-<Tabs.Root>
+<Tabs.Root aria-label={copy.title}>
   <Tabs.List>
     <Tabs.Button selected={activePanelTab === "description"} onclick={() => (activePanelTab = "description")}>{copy.title}</Tabs.Button>
     <Tabs.Button selected={activePanelTab === "history"} onclick={() => (activePanelTab = "history")}>
@@ -30,7 +31,10 @@ export let history: DescriptionHistoryItem[];
   {#if activePanelTab === "history"}
     <DescriptionHistoryList {copy} {formatDate} {history} />
   {:else if description.content}
-    <MarkdownPreview campusReferences content={description.content} />
+    <MarkdownPreview
+      content={description.content}
+      remarkPlugins={campusReferenceMarkdownPlugins}
+    />
   {:else}
     <Alert>{copy.empty}</Alert>
   {/if}

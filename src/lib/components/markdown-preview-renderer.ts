@@ -7,11 +7,10 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
-import { unified } from "unified";
+import { type PluggableList, unified } from "unified";
 import {
   rehypeNormalizeMarkdownElements,
   remarkCalloutDirectives,
-  remarkCampusReferences,
   remarkImageAttributes,
   remarkInlineExtensions,
 } from "./markdown-preview-plugins";
@@ -24,7 +23,7 @@ function normalizeMarkdownInput(value: string) {
   return value.replace(/^::::/gm, ":::");
 }
 
-function createProcessor(options: { campusReferences?: boolean } = {}) {
+function createProcessor(options: { remarkPlugins?: PluggableList } = {}) {
   const processor = unified()
     .use(remarkParse)
     .use(remarkGfm)
@@ -35,8 +34,8 @@ function createProcessor(options: { campusReferences?: boolean } = {}) {
     .use(remarkImageAttributes)
     .use(remarkInlineExtensions);
 
-  if (options.campusReferences) {
-    processor.use(remarkCampusReferences);
+  if (options.remarkPlugins?.length) {
+    processor.use({ plugins: options.remarkPlugins });
   }
 
   return processor
@@ -49,15 +48,14 @@ function createProcessor(options: { campusReferences?: boolean } = {}) {
 }
 
 const defaultProcessor = createProcessor();
-const campusReferencesProcessor = createProcessor({ campusReferences: true });
 
 export function renderMarkdown(
   value: string,
-  options: { campusReferences?: boolean } = {},
+  options: { remarkPlugins?: PluggableList } = {},
 ) {
   try {
-    const processor = options.campusReferences
-      ? campusReferencesProcessor
+    const processor = options.remarkPlugins?.length
+      ? createProcessor(options)
       : defaultProcessor;
     return String(processor.processSync(normalizeMarkdownInput(value)));
   } catch {

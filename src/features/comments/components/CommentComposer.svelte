@@ -1,4 +1,5 @@
 <script lang="ts">
+import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 import * as Card from "$lib/components/ui/card/index.js";
@@ -51,13 +52,14 @@ export let visibilityOptions: CommentSelectOption[];
     />
     <MarkdownEditor
       bind:value={body}
-      campusReferences
+      aria-label={commentCopy.markdownModeLabel}
       disabled={!viewer.isAuthenticated || viewer.isSuspended}
       guideLabel={commentCopy.markdownGuide}
       {isDragActive}
       modeLabel={commentCopy.markdownModeLabel}
       placeholder={viewer.isAuthenticated ? commentCopy.editorPlaceholder : commentCopy.loginToComment}
       previewEmptyLabel={commentCopy.previewEmpty}
+      remarkPlugins={campusReferenceMarkdownPlugins}
       tabPreviewLabel={commentCopy.tabPreview}
       tabWriteLabel={commentCopy.tabWrite}
       ondragleave={() => {

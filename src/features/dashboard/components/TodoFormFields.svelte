@@ -42,19 +42,21 @@ export let todosCopy: DashboardTodosCopy;
     value={priorityValue}
   />
 </label>
-<label class="grid gap-2">
+<div class="grid gap-2">
   <span class="font-medium text-sm">{todosCopy.dueAtLabel}</span>
   <DateTimePicker
+    aria-label={todosCopy.dueAtLabel}
     {disabled}
     calendarButtonLabel={todosCopy.calendarButtonLabel}
     name="dueAt"
     placeholder={todosCopy.dueAtLabel}
     value={dueAtValue}
   />
-</label>
-<label class="grid gap-2">
+</div>
+<div class="grid gap-2">
   <span class="font-medium text-sm">{todosCopy.contentLabel}</span>
   <MarkdownEditor
+    aria-label={todosCopy.contentLabel}
     {disabled}
     guideLabel={commentsCopy.markdownGuide}
     maxlength={TODO_CONTENT_MAX_LENGTH}
@@ -66,4 +68,4 @@ export let todosCopy: DashboardTodosCopy;
     tabWriteLabel={commentsCopy.tabWrite}
     value={contentValue}
   />
-</label>
+</div>

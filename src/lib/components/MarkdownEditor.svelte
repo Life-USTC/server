@@ -1,11 +1,11 @@
 <script lang="ts">
+import type { PluggableList } from "unified";
 import MarkdownPreview from "$lib/components/MarkdownPreview.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Tabs from "$lib/components/ui/tabs/index.js";
 import { Textarea } from "$lib/components/ui/textarea/index.js";
 
 export let disabled = false;
-export let campusReferences = false;
 export let guideHref = "/guides/markdown-support";
 export let guideLabel = "";
 export let isDragActive = false;
@@ -13,6 +13,7 @@ export let modeLabel = "";
 export let name: string | undefined = undefined;
 export let placeholder = "";
 export let previewEmptyLabel = "";
+export let remarkPlugins: PluggableList = [];
 export let rows = 6;
 export let tabPreviewLabel = "";
 export let tabWriteLabel = "";
@@ -21,14 +22,28 @@ let activeTab: "write" | "preview" = "write";
 let className = "";
 
 export { className as class };
+
+function stringRestProp(name: string) {
+  const value = ($$restProps as Record<string, unknown>)[name];
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+$: labelledBy = stringRestProp("aria-labelledby");
+$: label = stringRestProp("aria-label");
 </script>
 
-<div class={`grid gap-3 ${className}`} data-slot="markdown-editor">
+<div
+  aria-label={labelledBy ? undefined : label}
+  aria-labelledby={labelledBy}
+  class={`grid gap-3 ${className}`}
+  data-slot="markdown-editor"
+  role={labelledBy || label ? "group" : undefined}
+>
   {#if name}
     <input type="hidden" {name} {value} />
   {/if}
 
-  <Tabs.List aria-label={modeLabel}>
+  <Tabs.List aria-label={modeLabel || undefined}>
     <Tabs.Button
       selected={activeTab === "write"}
       onclick={() => {
@@ -52,6 +67,8 @@ export { className as class };
   >
     {#if activeTab === "write"}
       <Textarea
+        aria-label={labelledBy ? undefined : label}
+        aria-labelledby={labelledBy}
         class="min-h-0 resize-y border-0 bg-transparent shadow-none focus-visible:ring-0"
         bind:value
         {disabled}
@@ -62,7 +79,7 @@ export { className as class };
     {:else}
       <div class="min-h-32 p-3">
         {#if value.trim()}
-          <MarkdownPreview {campusReferences} content={value} />
+          <MarkdownPreview content={value} {remarkPlugins} />
         {:else}
           <p class="text-center text-base-content/50 text-sm italic">
             {previewEmptyLabel}

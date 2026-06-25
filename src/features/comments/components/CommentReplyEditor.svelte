@@ -3,6 +3,7 @@ import type {
   CommentNodeWithContext,
   CommentTargetOption,
 } from "@/features/comments/lib/comment-ui";
+import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -45,13 +46,14 @@ $: replyDisabled = !viewer.isAuthenticated || viewer.isSuspended;
 <div class="rounded-2xl border border-dashed border-base-300 bg-base-200/40 p-4">
   <MarkdownEditor
     bind:value={replyDraft}
-    campusReferences
+    aria-label={commentCopy.markdownModeLabel}
     compact
     disabled={replyDisabled}
     guideLabel={commentCopy.markdownGuide}
     modeLabel={commentCopy.markdownModeLabel}
     placeholder={commentCopy.replyPlaceholder}
     previewEmptyLabel={commentCopy.previewEmpty}
+    remarkPlugins={campusReferenceMarkdownPlugins}
     rows={3}
     tabPreviewLabel={commentCopy.tabPreview}
     tabWriteLabel={commentCopy.tabWrite}
