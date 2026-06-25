@@ -45,6 +45,15 @@
             "path": "/api/mcp",
             "method": "DELETE",
             "returns": "MCP transport response"
+          },
+          {
+            "path": "/api/mcp",
+            "method": "OPTIONS",
+            "auth": "anon",
+            "returns": "204 CORS preflight response",
+            "notes": [
+              "Answers browser CORS preflight requests for trusted origins before bearer-token MCP transport handling."
+            ]
           }
         ]
       },
