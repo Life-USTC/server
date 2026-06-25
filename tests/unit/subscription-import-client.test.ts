@@ -166,6 +166,14 @@ describe("subscription import client", () => {
     ).toEqual(["001013.01", "math_01", "cs-a_2", "DEV-CS201.01"]);
   });
 
+  it("strips sentence delimiters from pasted section code tokens", () => {
+    expect(
+      extractSubscriptionSectionCodes(
+        "Use COMP3001.01. Numeric example: 001013.01.",
+      ),
+    ).toEqual(["COMP3001.01", "001013.01"]);
+  });
+
   it("posts match-code requests and validates successful payloads", async () => {
     const fetchMock = vi.fn(async () => jsonResponse(matchPayload()));
     vi.stubGlobal("fetch", fetchMock);
