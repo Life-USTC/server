@@ -1,3 +1,4 @@
+import { writeCommentCreateAuditLog } from "@/features/comments/server/comment-audit";
 import { createComment } from "@/features/comments/server/comment-mutations";
 import {
   badRequest,
@@ -9,8 +10,8 @@ import {
   suspensionForbidden,
 } from "@/lib/api/helpers";
 import { commentCreateRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 import { requireAuth } from "@/lib/auth/api-auth";
-import { writeCommentCreateAuditLog } from "./comments-create-helpers";
 
 export async function postCommentRoute(request: Request) {
   const auth = await requireAuth(request);
@@ -71,7 +72,7 @@ export async function postCommentRoute(request: Request) {
     writeCommentCreateAuditLog({
       body: content,
       commentId: result.comment.id,
-      request,
+      requestMetadata: getAuditRequestMetadata(request),
       userId,
     });
 

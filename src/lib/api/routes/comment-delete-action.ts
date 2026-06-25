@@ -1,3 +1,4 @@
+import { writeCommentDeleteAuditLog } from "@/features/comments/server/comment-audit";
 import { deleteOwnComment } from "@/features/comments/server/comment-mutations";
 import {
   forbidden,
@@ -5,10 +6,7 @@ import {
   notFound,
   suspensionForbidden,
 } from "@/lib/api/helpers";
-import {
-  fireAuditLog,
-  getAuditRequestMetadata,
-} from "@/lib/audit/write-audit-log";
+import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 
 export async function deleteOwnCommentAction(input: {
   commentId: string;
@@ -23,12 +21,10 @@ export async function deleteOwnCommentAction(input: {
     return result.error === "not_found" ? notFound() : forbidden();
   }
 
-  fireAuditLog({
-    action: "comment_delete",
+  writeCommentDeleteAuditLog({
+    commentId: input.commentId,
+    requestMetadata: getAuditRequestMetadata(input.request),
     userId: input.userId,
-    targetId: input.commentId,
-    targetType: "comment",
-    ...getAuditRequestMetadata(input.request),
   });
 
   return jsonResponse({ success: true });

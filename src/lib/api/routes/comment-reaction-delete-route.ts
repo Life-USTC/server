@@ -1,3 +1,4 @@
+import { writeCommentReactionAuditLog } from "@/features/comments/server/comment-audit";
 import { deleteCommentReaction } from "@/features/comments/server/comment-mutations";
 import {
   forbidden,
@@ -7,11 +8,11 @@ import {
   parseRouteSearchParams,
   suspensionForbidden,
 } from "@/lib/api/helpers";
-import { writeCommentReactionAuditLog } from "@/lib/api/routes/comment-reaction-actions";
 import {
   commentReactionRequestSchema,
   resourceIdPathParamsSchema,
 } from "@/lib/api/schemas/request-schemas";
+import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 import { requireAuth } from "@/lib/auth/api-auth";
 
 type IdParams = { id: string };
@@ -58,7 +59,7 @@ export async function deleteCommentReactionRoute(
       writeCommentReactionAuditLog({
         commentId: id,
         operation: "remove",
-        request,
+        requestMetadata: getAuditRequestMetadata(request),
         type,
         userId,
       });

@@ -1,4 +1,5 @@
 import type * as z from "zod";
+import { writeCommentEditAuditLog } from "@/features/comments/server/comment-audit";
 import { updateOwnComment } from "@/features/comments/server/comment-mutations";
 import {
   badRequest,
@@ -8,7 +9,7 @@ import {
   suspensionForbidden,
 } from "@/lib/api/helpers";
 import type { commentUpdateRequestSchema } from "@/lib/api/schemas/request-schemas";
-import { writeCommentEditAuditLog } from "./comments-update-audit";
+import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 
 type CommentUpdateBody = z.infer<typeof commentUpdateRequestSchema>;
 
@@ -50,7 +51,7 @@ export async function updateCommentAction(
 
   writeCommentEditAuditLog({
     body: content,
-    request,
+    requestMetadata: getAuditRequestMetadata(request),
     userId,
     commentId: id,
   });
