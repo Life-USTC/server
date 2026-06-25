@@ -1,3 +1,15 @@
+# [1.38.0](https://github.com/Life-USTC/server/compare/v1.37.27...v1.38.0) (2026-06-25)
+
+
+### Bug Fixes
+
+* **mcp:** narrow dashboard link output ([11251d8](https://github.com/Life-USTC/server/commit/11251d8da3de60165f11725fe5e662e3380fe635))
+
+
+### Features
+
+* **mcp:** add dashboard link tools ([ad766d2](https://github.com/Life-USTC/server/commit/ad766d24b78e86b7191b3a27ca88fbe840321371))
+
 ## [1.37.27](https://github.com/Life-USTC/server/compare/v1.37.26...v1.37.27) (2026-06-25)
 
 
