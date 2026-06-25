@@ -6,7 +6,7 @@ import {
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma } from "@/lib/db/prisma";
-import { serializeScheduleTimeFields } from "@/lib/schedule-serialization";
+import { serializeScheduleTimeFields } from "@/shared/lib/schedule-serialization";
 
 export async function findCourseDetailByJwId(
   jwId: number,

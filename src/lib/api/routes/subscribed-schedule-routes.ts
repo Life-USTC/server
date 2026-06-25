@@ -10,7 +10,7 @@ import {
 import { getRequestLocale } from "@/lib/api/routes/request-locale";
 import { subscribedSchedulesQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { requireAuth } from "@/lib/auth/api-auth";
-import { serializeScheduleTimeFields } from "@/lib/schedule-serialization";
+import { serializeScheduleTimeFields } from "@/shared/lib/schedule-serialization";
 
 export async function getMySubscribedSchedulesRoute(request: Request) {
   const auth = await requireAuth(request);

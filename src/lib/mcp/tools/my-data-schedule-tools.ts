@@ -13,7 +13,7 @@ import {
   parseMcpDateRange,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
-import { serializeScheduleTimeFields } from "@/lib/schedule-serialization";
+import { serializeScheduleTimeFields } from "@/shared/lib/schedule-serialization";
 
 export function registerMyScheduleTools(server: McpServer) {
   server.registerTool(

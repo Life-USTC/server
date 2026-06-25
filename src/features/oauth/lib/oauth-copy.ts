@@ -1,6 +1,6 @@
 import type { AppLocale } from "@/i18n/config";
-import enUsMessages from "../../messages/en-us.json";
-import zhCnMessages from "../../messages/zh-cn.json";
+import enUsMessages from "../../../../messages/en-us.json";
+import zhCnMessages from "../../../../messages/zh-cn.json";
 
 const oauthMessages = {
   "en-us": enUsMessages.oauth,

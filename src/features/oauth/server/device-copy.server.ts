@@ -1,4 +1,4 @@
-import { getOAuthCopy } from "@/lib/oauth-copy";
+import { getOAuthCopy } from "@/features/oauth/lib/oauth-copy";
 
 const deviceCopyKeys = [
   "deviceTitle",

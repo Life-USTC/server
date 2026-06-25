@@ -93,6 +93,22 @@ const deprecatedFeatureLibImports = [
   /^@\/lib\/user-profile-/,
 ];
 
+const explicitTopLevelDomainLibAllowlist = new Set([
+  "src/lib/legal-content.ts",
+  "src/lib/load-data-utils.ts",
+  "src/lib/location-utils.ts",
+  "src/lib/query-filter-helpers.ts",
+  "src/lib/query-pagination.ts",
+  "src/lib/schedule-location-format.ts",
+  "src/lib/static-geo-data.ts",
+  "src/lib/static-building-images.ts",
+  "src/lib/static-location-data.ts",
+  "src/lib/static-location-types.ts",
+]);
+
+const topLevelDomainLibFilePattern =
+  /(?:^|-)(?:admin|catalog|comment|comments|copy|course|data|homework|legal|location|oauth|page|profile|query|schedule|section|serialization|settings|subscription|teacher|todo|user)(?:-|\.|$)/;
+
 describe("source import boundaries", () => {
   it("resolves relative route adapter imports before applying the consumer rule", () => {
     const featureFile = path.join(
@@ -190,6 +206,23 @@ describe("source import boundaries", () => {
         );
       }
     }
+
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps top-level src/lib domain helpers behind an explicit allowlist", async () => {
+    const libEntries = await fs.readdir(path.join(process.cwd(), "src/lib"), {
+      withFileTypes: true,
+    });
+    const violations = libEntries
+      .filter(
+        (entry) => entry.isFile() && /\.(svelte|ts|tsx)$/.test(entry.name),
+      )
+      .map((entry) => `src/lib/${entry.name}`)
+      .filter((filePath) =>
+        topLevelDomainLibFilePattern.test(path.basename(filePath)),
+      )
+      .filter((filePath) => !explicitTopLevelDomainLibAllowlist.has(filePath));
 
     expect(violations).toEqual([]);
   });

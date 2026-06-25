@@ -1,6 +1,6 @@
 <script lang="ts">
+import { getOAuthCopy } from "@/features/oauth/lib/oauth-copy";
 import type { AppLocale } from "@/i18n/config";
-import { getOAuthCopy } from "@/lib/oauth-copy";
 import { page } from "$app/stores";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";

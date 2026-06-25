@@ -1,12 +1,12 @@
 import type { ServerLoadEvent } from "@sveltejs/kit";
 import { redirect } from "@sveltejs/kit";
-import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
-import { asOAuthProviderApi } from "@/lib/oauth/provider-api";
 import {
   formatOAuthMessage,
   getOAuthCopy,
   oauthScopeLabel,
-} from "@/lib/oauth-copy";
+} from "@/features/oauth/lib/oauth-copy";
+import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
+import { asOAuthProviderApi } from "@/lib/oauth/provider-api";
 import {
   currentOAuthAuthorizePath,
   parseOAuthScopes,

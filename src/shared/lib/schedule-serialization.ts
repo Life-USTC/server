@@ -1,4 +1,4 @@
-import { formatTime } from "@/shared/lib/time-utils";
+import { formatTime } from "./time-utils";
 
 export function serializeScheduleTimeFields<
   Schedule extends {

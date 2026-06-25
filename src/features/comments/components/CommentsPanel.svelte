@@ -35,9 +35,9 @@ import {
   type CommentTargetOption,
   type CommentTargetType as TargetType,
 } from "@/features/comments/lib/comment-ui";
+import { getCommentsCopy } from "@/features/comments/lib/comments-copy";
 import type { CommentNode } from "@/features/comments/server/comment-types";
 import type { AppLocale } from "@/i18n/config";
-import { getCommentsCopy } from "@/lib/comments-copy";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import { page } from "$app/stores";
 import { Alert } from "$lib/components/ui/alert/index.js";

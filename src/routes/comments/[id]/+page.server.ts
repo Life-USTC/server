@@ -1,6 +1,6 @@
 import { error, redirect } from "@sveltejs/kit";
+import { getCommentsCopy } from "@/features/comments/lib/comments-copy";
 import { resolveCommentCanonicalUrl } from "@/features/comments/server/comment-canonical-url";
-import { getCommentsCopy } from "@/lib/comments-copy";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {

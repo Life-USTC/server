@@ -13,10 +13,10 @@ import {
 } from "@/features/todos/server/todo-service";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { prisma } from "@/lib/db/prisma";
-import { serializeScheduleTimeFields } from "@/lib/schedule-serialization";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { formatShanghaiDate } from "@/lib/time/shanghai-format";
+import { serializeScheduleTimeFields } from "@/shared/lib/schedule-serialization";
 
 const DEFAULT_OVERVIEW_LIMIT = 3;
 const DEFAULT_HOMEWORK_WINDOW_DAYS = 7;

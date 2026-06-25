@@ -11,7 +11,7 @@ import { paginatedQuery } from "@/lib/query-pagination";
 import {
   serializeScheduleGroupTimeFields,
   serializeScheduleTimeFields,
-} from "@/lib/schedule-serialization";
+} from "@/shared/lib/schedule-serialization";
 
 export const publicScheduleInclude = {
   room: {
