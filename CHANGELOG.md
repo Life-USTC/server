@@ -1,3 +1,10 @@
+## [1.37.13](https://github.com/Life-USTC/server/compare/v1.37.12...v1.37.13) (2026-06-25)
+
+
+### Reverts
+
+* Revert "fix(api): align contract metadata" ([d118a82](https://github.com/Life-USTC/server/commit/d118a8286091a23e0a1132f34724eb9f2ab54733))
+
 ## [1.37.12](https://github.com/Life-USTC/server/compare/v1.37.11...v1.37.12) (2026-06-25)
 
 
