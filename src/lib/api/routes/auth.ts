@@ -4,7 +4,57 @@ import {
   summarizeOAuthRedirectUri,
   withBetterAuthOAuthDebug,
 } from "@/lib/log/oauth-debug";
+import { OAUTH_PROVIDER_GRANT_TYPES } from "@/lib/oauth/constants";
 import { resolveEquivalentLoopbackRedirectUri } from "@/lib/oauth/loopback-redirect";
+
+const OAUTH_PROVIDER_GRANT_TYPE_SET = new Set<string>(
+  OAUTH_PROVIDER_GRANT_TYPES,
+);
+
+function isOAuthClientRegistrationRequest(request: Request) {
+  return new URL(request.url).pathname.endsWith("/oauth2/register");
+}
+
+async function rejectUnsupportedOAuthClientGrantTypes(request: Request) {
+  if (!isOAuthClientRegistrationRequest(request)) {
+    return null;
+  }
+
+  let body: unknown;
+  try {
+    body = await request.clone().json();
+  } catch {
+    return null;
+  }
+
+  const grantTypes =
+    body &&
+    typeof body === "object" &&
+    "grant_types" in body &&
+    Array.isArray(body.grant_types)
+      ? body.grant_types
+      : null;
+  if (!grantTypes) {
+    return null;
+  }
+
+  const unsupportedGrantType = grantTypes.find(
+    (grantType) =>
+      typeof grantType !== "string" ||
+      !OAUTH_PROVIDER_GRANT_TYPE_SET.has(grantType),
+  );
+  if (!unsupportedGrantType) {
+    return null;
+  }
+
+  return Response.json(
+    {
+      error: "invalid_client_metadata",
+      error_description: `Unsupported grant type: ${String(unsupportedGrantType)}`,
+    },
+    { status: 400 },
+  );
+}
 
 async function authHandler(request: Request) {
   const { betterAuthInstance } = await import("@/lib/auth/core");
@@ -66,8 +116,11 @@ export const authGetRoute = async (request: Request) =>
     authHandler,
   );
 
-export const authPostRoute = (request: Request) =>
-  withBetterAuthOAuthDebug("POST", request, authHandler);
+export const authPostRoute = async (request: Request) => {
+  const grantTypeError = await rejectUnsupportedOAuthClientGrantTypes(request);
+  if (grantTypeError) return grantTypeError;
+  return withBetterAuthOAuthDebug("POST", request, authHandler);
+};
 
 export const authPatchRoute = (request: Request) =>
   withBetterAuthOAuthDebug("PATCH", request, authHandler);
