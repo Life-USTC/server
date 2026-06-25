@@ -149,6 +149,26 @@ test.describe("GET /api/openapi", () => {
       body.paths?.["/api/dashboard-links/visit"]?.post?.responses?.["303"],
     ).toBeTruthy();
     expect(
+      body.paths?.["/api/dashboard-links/pin"]?.post?.requestBody?.content?.[
+        "application/x-www-form-urlencoded"
+      ]?.schema?.$ref,
+    ).toBe("#/components/schemas/dashboardLinkPinRequestSchema");
+    expect(
+      body.paths?.["/api/dashboard-links/pin"]?.post?.responses?.["200"],
+    ).toBeTruthy();
+    expect(
+      body.paths?.["/api/dashboard-links/pin"]?.post?.responses?.["303"],
+    ).toBeTruthy();
+    expect(
+      body.paths?.["/api/dashboard-links/pin"]?.post?.responses?.["400"],
+    ).toBeTruthy();
+    expect(
+      body.paths?.["/api/dashboard-links/pin"]?.post?.responses?.["401"],
+    ).toBeTruthy();
+    expect(
+      body.paths?.["/api/dashboard-links/pin"]?.post?.responses?.["500"],
+    ).toBeTruthy();
+    expect(
       body.paths?.["/api/auth/oauth2/device-authorization"]?.options
         ?.responses?.["204"],
     ).toBeTruthy();
@@ -162,9 +182,14 @@ test.describe("GET /api/openapi", () => {
       paths?: Record<
         string,
         {
-          get?: { parameters?: unknown[]; security?: unknown[] };
+          get?: {
+            parameters?: unknown[];
+            security?: unknown[];
+            "x-auth-role"?: string;
+          };
           options?: { security?: unknown[] };
-          post?: { security?: unknown[] };
+          patch?: { security?: unknown[]; "x-auth-role"?: string };
+          post?: { security?: unknown[]; "x-auth-role"?: string };
         }
       >;
     };
@@ -186,6 +211,22 @@ test.describe("GET /api/openapi", () => {
       { bearerAuth: [] },
       { sessionCookie: [] },
     ]);
+    expect(body.paths?.["/api/admin/users"]?.get?.security).toEqual([
+      { bearerAuth: [] },
+      { sessionCookie: [] },
+    ]);
+    expect(body.paths?.["/api/admin/users"]?.get?.["x-auth-role"]).toBe(
+      "admin",
+    );
+    expect(
+      body.paths?.["/api/admin/comments/{id}"]?.patch?.["x-auth-role"],
+    ).toBe("admin");
+    expect(
+      body.paths?.["/api/dashboard-links/visit"]?.get?.security,
+    ).toBeUndefined();
+    expect(
+      body.paths?.["/api/dashboard-links/visit"]?.post?.security,
+    ).toBeUndefined();
     expect(body.paths?.["/api/mcp"]?.get?.security).toEqual([
       { mcpBearerAuth: [] },
     ]);

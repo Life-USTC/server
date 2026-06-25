@@ -45,6 +45,7 @@ type GeneratedOperation = {
   >;
   security?: unknown[];
   summary?: string;
+  "x-auth-role"?: string;
 };
 
 type GeneratedMediaType = {
@@ -267,10 +268,26 @@ describe("buildScenarioOpenApiExamples", () => {
       { bearerAuth: [] },
       { sessionCookie: [] },
     ]);
+    expect(spec.paths["/api/admin/users"]?.get?.["x-auth-role"]).toBe("admin");
+    expect(spec.paths["/api/admin/comments/{id}"]?.patch?.["x-auth-role"]).toBe(
+      "admin",
+    );
     expect(spec.paths["/api/dashboard-links/pin"]?.post?.security).toEqual([
       { bearerAuth: [] },
       { sessionCookie: [] },
     ]);
+    expect(
+      spec.paths["/api/dashboard-links/visit"]?.get?.security,
+    ).toBeUndefined();
+    expect(
+      spec.paths["/api/dashboard-links/visit"]?.post?.security,
+    ).toBeUndefined();
+    expect(
+      spec.paths["/api/dashboard-links/pin"]?.post?.responses?.["200"],
+    ).toBeTruthy();
+    expect(
+      spec.paths["/api/dashboard-links/pin"]?.post?.responses?.["303"],
+    ).toBeTruthy();
     expect(
       spec.paths["/api/users/{userId}/calendar.ics"]?.get?.security,
     ).toEqual([

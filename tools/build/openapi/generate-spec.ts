@@ -1011,21 +1011,41 @@ function buildTagGroups(tags: NonNullable<MutableOpenApiDocument["tags"]>) {
   })).filter((group) => group.tags.length > 0);
 }
 
+function redirectResponse(description: string) {
+  return {
+    description,
+    headers: {
+      Location: {
+        description: "Redirect target URL",
+        schema: { type: "string" },
+      },
+    },
+  };
+}
+
 function setRedirectResponse(
   operation: MutableOpenApiOperation,
   statusCode: number,
   description: string,
 ) {
   operation.responses = {
-    [String(statusCode)]: {
-      description,
-      headers: {
-        Location: {
-          description: "Redirect target URL",
-          schema: { type: "string" },
-        },
-      },
-    },
+    [String(statusCode)]: redirectResponse(description),
+  };
+}
+
+function addRedirectResponse(
+  operation: MutableOpenApiOperation,
+  statusCode: number,
+  description: string,
+) {
+  const responses =
+    operation.responses && typeof operation.responses === "object"
+      ? (operation.responses as Record<string, unknown>)
+      : {};
+
+  operation.responses = {
+    ...responses,
+    [String(statusCode)]: redirectResponse(description),
   };
 }
 
@@ -1056,7 +1076,7 @@ function patchRedirectOperations(
       pinPost,
       "#/components/schemas/dashboardLinkPinRequestSchema",
     );
-    setRedirectResponse(pinPost, 303, "Redirect after pin/unpin");
+    addRedirectResponse(pinPost, 303, "Redirect after pin/unpin");
   }
 
   const visitGet = paths["/api/dashboard-links/visit"]?.get as
@@ -1284,6 +1304,10 @@ function applySecurityMetadata(
       if (contractAuth === "internal") {
         operation.security = INTERNAL_AUTH_SECURITY;
         continue;
+      }
+
+      if (contractAuth === "admin") {
+        operation["x-auth-role"] = "admin";
       }
 
       if (contractAuth === "user" || contractAuth === "admin") {

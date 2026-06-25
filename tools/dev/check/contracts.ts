@@ -71,6 +71,7 @@ function checkContractsDoc() {
 
   type OpenApiOperation = {
     security?: unknown;
+    "x-auth-role"?: unknown;
   };
 
   type OpenApiDocument = {
@@ -289,6 +290,10 @@ function checkContractsDoc() {
     return undefined;
   }
 
+  function expectedOpenApiAuthRole(route: DocumentedRestRoute) {
+    return route.auth === "admin" ? "admin" : undefined;
+  }
+
   function readGeneratedOpenApiSpec(): OpenApiDocument {
     return JSON.parse(
       readFileSync("public/openapi.generated.json", "utf8"),
@@ -311,6 +316,14 @@ function checkContractsDoc() {
       if (JSON.stringify(actualSecurity) !== JSON.stringify(expectedSecurity)) {
         errors.push(
           `${route.method} ${route.path} (${formatRestOwner(route)}) expected OpenAPI security ${JSON.stringify(expectedSecurity ?? null)}, got ${JSON.stringify(actualSecurity ?? null)}`,
+        );
+      }
+
+      const expectedAuthRole = expectedOpenApiAuthRole(route);
+      const actualAuthRole = operation["x-auth-role"];
+      if (actualAuthRole !== expectedAuthRole) {
+        errors.push(
+          `${route.method} ${route.path} (${formatRestOwner(route)}) expected OpenAPI x-auth-role ${JSON.stringify(expectedAuthRole ?? null)}, got ${JSON.stringify(actualAuthRole ?? null)}`,
         );
       }
     }

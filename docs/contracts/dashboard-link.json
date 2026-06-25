@@ -1,8 +1,8 @@
 {
   "name": "Dashboard Link",
   "access": {
-    "anon": "Can browse frequent links but cannot pin them.",
-    "user": "Can pin, unpin, and record link visits.",
+    "anon": "Can browse frequent links and follow public visit redirects but cannot pin them.",
+    "user": "Can pin and unpin links; authenticated POST visits record click counts before redirecting.",
     "admin": "Has no dedicated link management interface separate from regular users.",
     "agent": "No frequent link management capability is currently provided."
   },
@@ -46,16 +46,26 @@
           {
             "path": "/api/dashboard-links/pin",
             "method": "POST",
-            "returns": "{ pinnedSlugs: String[], maxPinnedLinks: Int, error?: String }"
+            "returns": "200 JSON pin state when Accept requests JSON; otherwise 303 redirect",
+            "notes": [
+              "JSON mode returns { pinnedSlugs: String[], maxPinnedLinks: Int, error: String? } for success and 400/401/500 failures.",
+              "Redirect mode returns to returnTo, adding dashboardLinkPinError=1 on failed writes."
+            ]
+          },
+          {
+            "path": "/api/dashboard-links/visit",
+            "returns": "307 redirect",
+            "auth": "anon",
+            "notes": ["Invalid or missing slug redirects to /."]
           },
           {
             "path": "/api/dashboard-links/visit",
             "method": "POST",
-            "returns": "303 redirect"
-          },
-          {
-            "path": "/api/dashboard-links/visit",
-            "returns": "303 redirect"
+            "returns": "303 redirect",
+            "auth": "anon",
+            "notes": [
+              "Redirect is public; click count is recorded only when the request has an authenticated user."
+            ]
           }
         ]
       },
