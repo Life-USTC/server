@@ -8,7 +8,8 @@
   },
   "rules": {
     "grouped-by-semester": "The list is grouped by semester rather than presented as a single flat list.",
-    "section-codes-promoted": "In the 'subscribed context', users manage specific section relationships, so section codes are intentionally promoted."
+    "section-codes-promoted": "In the 'subscribed context', users manage specific section relationships, so section codes are intentionally promoted.",
+    "legacy-sections-route": "/dashboard/subscriptions/sections is a legacy redirect-only route to /dashboard/subscriptions and must not expose page actions."
   },
   "capabilities": {
     "subscribed-sections-tab": {
@@ -19,7 +20,7 @@
         "ui": ["List Table"]
       },
       "web": {
-        "pages": ["/dashboard/subscriptions/sections", "/?tab=subscriptions"]
+        "pages": ["/dashboard/subscriptions", "/?tab=subscriptions"]
       },
       "rest": {
         "routes": [
