@@ -11,7 +11,8 @@
     "moderation-centralized": "Comment and description governance are currently centralized on the moderation page.",
     "high-risk-feedback": "High-risk admin actions such as delete, suspend, and hide must have clear feedback.",
     "admin-self-protection": "Admin user management must reject self-suspension, self-demotion, and removing the final remaining admin.",
-    "suspension-expiration-validation": "Suspension expiration accepts omitted, null, or empty input as permanent and rejects invalid non-empty date strings."
+    "suspension-expiration-validation": "Suspension expiration accepts omitted, null, or empty input as permanent and rejects invalid non-empty date strings.",
+    "suspension-retention": "Suspension history is retained when an admin account is deleted; creator and lifter actor references may be null after account deletion."
   },
   "capabilities": {
     "admin-home": {

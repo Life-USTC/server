@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
+import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
 import { updateHomeworkDescription } from "./homework-description";
 import {
   type HomeworkUpdateIntent,
@@ -41,20 +42,28 @@ export async function updateHomework(input: {
     return { ok: false as const, error: "no_changes" as HomeworkMutationError };
   }
 
-  await prisma.$transaction(async (tx) => {
-    if (input.update.homeworkUpdates) {
-      await tx.homework.update({
-        where: { id: input.homeworkId },
-        data: input.update.homeworkUpdates,
-      });
-    }
+  const writeHomeworkUpdate = () =>
+    prisma.$transaction(async (tx) => {
+      if (input.update.homeworkUpdates) {
+        await tx.homework.update({
+          where: { id: input.homeworkId },
+          data: input.update.homeworkUpdates,
+        });
+      }
 
-    await updateHomeworkDescription(tx, {
-      description: input.update.description,
-      homeworkId: input.homeworkId,
-      userId: input.userId,
+      await updateHomeworkDescription(tx, {
+        description: input.update.description,
+        homeworkId: input.homeworkId,
+        userId: input.userId,
+      });
     });
-  });
+
+  try {
+    await writeHomeworkUpdate();
+  } catch (error) {
+    if (!isPrismaUniqueConstraintError(error)) throw error;
+    await writeHomeworkUpdate();
+  }
 
   return { ok: true as const };
 }

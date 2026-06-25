@@ -13,6 +13,7 @@
     "r2-backend": "Upload object create/read/head/delete operations use the Cloudflare R2 binding. The app runtime does not use S3-compatible signed URL fallbacks.",
     "storage-observability": "Shared storage helpers record production-safe bounded metrics for storage operation status and duration; metrics identify operation type but do not include bucket names, object keys, signed URLs, filenames, or user IDs.",
     "e2e-r2": "E2E upload coverage should exercise the same Workers upload object route used in production.",
+    "one-upload-one-comment": "A completed upload can be attached to at most one comment. Reusing an upload id across comments is rejected instead of treated as implicit file sharing.",
     "download-auth-required": "Downloads must not bypass authorization by obtaining a direct link.",
     "download-delivery": "/api/uploads/[id]/download validates owner access or visible comment-attachment access before streaming the object from the R2 binding."
   },

@@ -7,6 +7,7 @@ import {
   applyAuthResponseCookies,
   linkAccountFromSvelteAction,
 } from "@/lib/auth/svelte-auth-actions";
+import { deleteOwnAccount } from "./account-deletion-service";
 
 export async function unlinkSettingsAccountAction({
   locale,
@@ -93,8 +94,16 @@ export async function deleteSettingsAccountAction({
       message: copy.profile.deleteConfirmInvalid,
     });
   }
-  const { prisma } = await import("@/lib/db/prisma");
-  await prisma.user.delete({ where: { id: user.id } });
+  const result = await deleteOwnAccount(user.id);
+  if (!result.ok) {
+    return fail(400, {
+      kind: "danger",
+      message:
+        result.reason === "cannot_remove_last_admin"
+          ? copy.profile.deleteAccountFinalAdmin
+          : copy.profile.deleteAccountErrorDescription,
+    });
+  }
   const response = await authApi.signOut({
     headers: request.headers,
     returnHeaders: true,

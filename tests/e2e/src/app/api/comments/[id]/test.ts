@@ -27,6 +27,7 @@ import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../utils/auth";
 import { DEV_SEED } from "../../../../../utils/dev-seed";
 import { withE2ePrisma } from "../../../../../utils/e2e-db/prisma";
+import { createUploadedFileViaApi } from "../../../../../utils/uploads";
 import { assertApiContract } from "../../../_shared/api-contract";
 
 /** Resolve the seed section's internal DB id via match-codes. */
@@ -207,6 +208,67 @@ test("/api/comments/[id] PATCH 可修改评论并 DELETE 清理", async ({ page 
     if (commentId) {
       await page.request.delete(`/api/comments/${commentId}`);
     }
+  }
+});
+
+test("/api/comments/[id] PATCH rejects an upload attached to another comment", async ({
+  page,
+}) => {
+  await signInAsDebugUser(page, "/");
+  const sectionId = await resolveSeedSectionId(page.request);
+  const marker = `e2e-upload-edit-reuse-${Date.now()}`;
+  const firstContent = `${marker}-first`;
+  const secondContent = `${marker}-second`;
+  const uploaded = await createUploadedFileViaApi(page.request, {
+    filename: `${marker}.txt`,
+    contents: "one upload should not move across comments",
+  });
+
+  try {
+    const firstResponse = await page.request.post("/api/comments", {
+      data: {
+        targetType: "section",
+        targetId: String(sectionId),
+        body: firstContent,
+        visibility: "public",
+        attachmentIds: [uploaded.uploadId],
+      },
+    });
+    expect(firstResponse.status()).toBe(200);
+
+    const secondResponse = await page.request.post("/api/comments", {
+      data: {
+        targetType: "section",
+        targetId: String(sectionId),
+        body: secondContent,
+        visibility: "public",
+      },
+    });
+    expect(secondResponse.status()).toBe(200);
+    const secondCommentId = ((await secondResponse.json()) as { id?: string })
+      .id;
+    expect(secondCommentId).toBeTruthy();
+
+    const patchResponse = await page.request.patch(
+      `/api/comments/${secondCommentId}`,
+      {
+        data: {
+          body: `${secondContent}-edited`,
+          attachmentIds: [uploaded.uploadId],
+        },
+      },
+    );
+    expect(patchResponse.status()).toBe(400);
+    await expect(patchResponse.json()).resolves.toEqual({
+      error: "Invalid attachments",
+    });
+  } finally {
+    await withE2ePrisma((prisma) =>
+      prisma.comment.deleteMany({
+        where: { body: { startsWith: marker } },
+      }),
+    );
+    await page.request.delete(`/api/uploads/${uploaded.uploadId}`);
   }
 });
 
