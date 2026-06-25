@@ -161,9 +161,9 @@ describe("subscription import client", () => {
 
     expect(
       extractSubscriptionSectionCodes(
-        `Paste ${prose} 2026-06-01 09.30 math_01 cs-a_2 DEV-CS201.01 math_01`,
+        `Paste ${prose} 2026-06-01 09.30 001013.01 math_01 cs-a_2 DEV-CS201.01 math_01`,
       ),
-    ).toEqual(["math_01", "cs-a_2", "DEV-CS201.01"]);
+    ).toEqual(["001013.01", "math_01", "cs-a_2", "DEV-CS201.01"]);
   });
 
   it("posts match-code requests and validates successful payloads", async () => {
