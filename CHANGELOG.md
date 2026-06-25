@@ -1,3 +1,10 @@
+## [1.37.21](https://github.com/Life-USTC/server/compare/v1.37.20...v1.37.21) (2026-06-25)
+
+
+### Bug Fixes
+
+* **api:** align contract metadata ([5c8cb51](https://github.com/Life-USTC/server/commit/5c8cb51a9512afd54c078577a70bc66e77c4b1e8))
+
 ## [1.37.20](https://github.com/Life-USTC/server/compare/v1.37.19...v1.37.20) (2026-06-25)
 
 
