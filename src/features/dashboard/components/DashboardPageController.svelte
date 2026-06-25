@@ -29,8 +29,10 @@ import {
   buildCalendarWeekdayLabels,
   buildSignedTabs,
   type DashboardActionData,
+  type DashboardLinkItem,
   type DashboardPageData,
   type DashboardViewState,
+  isSignedDashboardData,
   type TodoItem,
   todoPriorityOrder,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
@@ -146,8 +148,9 @@ let {
   unmatchedSectionCodes,
   updatingDashboardLinkSlug,
 } = createDashboardControllerDefaultState();
-const fallbackDashboardLinkItems = dashboardLinkItems;
-const fallbackOverviewLinkItems = overviewLinkItems;
+let dashboardLinkSourceItems: DashboardLinkItem[] = [];
+let overviewLinkSourceItems: DashboardLinkItem[] = [];
+let linkSourceData: PageData | null = null;
 $: copy = data.copy;
 $: actionError = form?.error ?? "";
 $: commonCopy = copy.common;
@@ -164,6 +167,13 @@ $: todoPriorityOptions = buildTodoPriorityOptions(todoPriorityOrder, todosCopy);
 $: calendarWeekdayLabels = buildCalendarWeekdayLabels(sectionCopy);
 $: signedTabs = buildSignedTabs(signedTabIds, dashboardCopy);
 $: dashboardLinkGroupLabels = dashboardCopy.linkHub.groups;
+$: if (data !== linkSourceData) {
+  const signedPageData = isSignedDashboardData(data) ? data : null;
+  dashboardLinkSourceItems = signedPageData?.links?.dashboardLinks ?? [];
+  overviewLinkSourceItems =
+    signedPageData?.overview?.overviewLinks.slice(0, 4) ?? [];
+  linkSourceData = data;
+}
 
 function openTodoEditor(todo: TodoItem) {
   selectedTodo = null;
@@ -371,15 +381,15 @@ const { setLinkView, submitDashboardLinkPin } = createDashboardLinkStateActions(
   {
     applyDashboardViewState,
     getDashboardCopy: () => dashboardCopy,
-    getDashboardLinkItems: () => dashboardLinkItems,
+    getDashboardLinkItems: () => dashboardLinkSourceItems,
     getLinkReturnTo: () => linkReturnTo,
-    getOverviewLinkItems: () => overviewLinkItems,
+    getOverviewLinkItems: () => overviewLinkSourceItems,
     getUpdatingDashboardLinkSlug: () => updatingDashboardLinkSlug,
     replaceState: (href) => {
       replaceState(href, {});
     },
     setDashboardLinkItems: (value) => {
-      dashboardLinkItems = value;
+      dashboardLinkSourceItems = value;
     },
     setLinkActionError: (value) => {
       linkActionError = value;
@@ -388,7 +398,7 @@ const { setLinkView, submitDashboardLinkPin } = createDashboardLinkStateActions(
       linkReturnTo = value;
     },
     setOverviewLinkItems: (value) => {
-      overviewLinkItems = value;
+      overviewLinkSourceItems = value;
     },
     setUpdatingDashboardLinkSlug: (value) => {
       updatingDashboardLinkSlug = value;
@@ -452,8 +462,8 @@ $: derivedState = buildDashboardControllerDerivedState({
   examFilter,
   linkSearchQuery,
   notAvailable: dashboardCopy.notAvailable,
-  previousDashboardLinkItems: fallbackDashboardLinkItems,
-  previousOverviewLinkItems: fallbackOverviewLinkItems,
+  currentDashboardLinkItems: dashboardLinkSourceItems,
+  currentOverviewLinkItems: overviewLinkSourceItems,
   todoFilter,
 });
 $: signedData = derivedState.signedData;

@@ -39,7 +39,7 @@ export function createCommentPanelUploadActions(input: {
   setReplyAttachmentIds: (value: string[]) => void;
   setReplyUploadedFiles: (value: CommentUploadOption[]) => void;
   setSelectedAttachments: (value: string[]) => void;
-  setUploading: (value: boolean) => void;
+  updatePendingUploads: (mode: CommentEditorMode, delta: number) => void;
   setUploadedFiles: (value: CommentUploadOption[]) => void;
 }) {
   let uploadSummary: CommentUploadSummary | null = null;
@@ -53,7 +53,7 @@ export function createCommentPanelUploadActions(input: {
   }
 
   async function uploadFile(file: File, mode: CommentEditorMode = "new") {
-    input.setUploading(true);
+    input.updatePendingUploads(mode, 1);
     input.setMessage("");
     const uploadCopy = input.getUploadCopy();
     const token = `![${uploadCopy.uploading} ${file.name}](upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)})`;
@@ -94,7 +94,7 @@ export function createCommentPanelUploadActions(input: {
           : uploadCopy.toastUploadErrorDescription,
       );
     } finally {
-      input.setUploading(false);
+      input.updatePendingUploads(mode, -1);
     }
   }
 

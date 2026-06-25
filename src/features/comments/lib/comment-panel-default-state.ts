@@ -3,6 +3,7 @@ import type { CommentNodeWithContext } from "@/features/comments/lib/comment-ui"
 import type { CommentUploadOption as UploadOption } from "@/features/comments/lib/comment-upload-client";
 import type { CommentNode } from "@/features/comments/server/comment-types";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
+import { createCommentUploadPendingState } from "./comment-panel-upload-state";
 
 export function createCommentPanelDefaultState() {
   return {
@@ -35,7 +36,7 @@ export function createCommentPanelDefaultState() {
     _selectedAttachments: [] as string[],
     _submitting: false,
     _uploadedFiles: [] as UploadOption[],
-    _uploading: false,
+    _uploadPending: createCommentUploadPendingState(),
     _viewer: createDefaultCommentViewer() as ViewerContext,
     _visibility: "public",
   };

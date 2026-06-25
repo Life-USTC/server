@@ -33,6 +33,7 @@ export let editAttachmentOptions: (
   comment: CommentNode,
 ) => CommentUploadOption[];
 export let editDraft: string;
+export let editUploading: boolean;
 export let editingId: string | null;
 export let editIsAnonymous: boolean;
 export let editVisibility: string;
@@ -58,6 +59,7 @@ export let reactionName: (type: string) => string;
 export let reactionOptions: ReactionOption[];
 export let removeReplyAttachment: (uploadId: string) => void;
 export let replyDraft: string;
+export let replyUploading: boolean;
 export let replyingId: string | null;
 export let replyIsAnonymous: boolean;
 export let replyUploadedFiles: CommentUploadOption[];
@@ -69,7 +71,6 @@ export let submitting: boolean;
 export let submitComment: CommentThreadProps["submitComment"];
 export let toggleReply: (comment: CommentNode) => void;
 export let uploadCopy: UploadsCopy;
-export let uploading: boolean;
 export let uploadFile: (file: File, mode?: "edit" | "new" | "reply") => void;
 export let visibilityOptions: CommentSelectOption[];
 export let viewer: ViewerContext;
@@ -111,7 +112,7 @@ export let viewer: ViewerContext;
         {formatSize}
         {saveEdit}
         {uploadCopy}
-        {uploading}
+        uploading={editUploading}
         {uploadFile}
         {visibilityOptions}
       />
@@ -144,7 +145,7 @@ export let viewer: ViewerContext;
           {submitting}
           {submitComment}
           {uploadCopy}
-          {uploading}
+          uploading={replyUploading}
           {uploadFile}
           {visibilityOptions}
           {viewer}

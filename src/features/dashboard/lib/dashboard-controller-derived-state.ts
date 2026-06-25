@@ -22,8 +22,8 @@ export function buildDashboardControllerDerivedState(input: {
   examFilter: ExamFilter;
   linkSearchQuery: string;
   notAvailable: string;
-  previousDashboardLinkItems: DashboardLinkItem[];
-  previousOverviewLinkItems: DashboardLinkItem[];
+  currentDashboardLinkItems: DashboardLinkItem[];
+  currentOverviewLinkItems: DashboardLinkItem[];
   todoFilter: TodoFilter;
 }) {
   const signedData = isSignedDashboardData(input.data) ? input.data : null;
@@ -41,11 +41,11 @@ export function buildDashboardControllerDerivedState(input: {
       })
     : [];
   const dashboardLinkItems = signedData?.links
-    ? signedData.links.dashboardLinks
-    : input.previousDashboardLinkItems;
-  const overviewLinkItems = signedData?.overview?.overviewLinks
-    ? signedData.overview.overviewLinks.slice(0, 4)
-    : input.previousOverviewLinkItems;
+    ? input.currentDashboardLinkItems
+    : [];
+  const overviewLinkItems = signedData?.overview
+    ? input.currentOverviewLinkItems
+    : [];
 
   return {
     anonymousData,

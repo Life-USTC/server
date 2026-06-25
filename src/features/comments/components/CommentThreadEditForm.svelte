@@ -73,7 +73,12 @@ export let visibilityOptions: CommentSelectOption[];
     <Button size="sm" type="button" variant="ghost" onclick={cancelEdit}>
       {commentCopy.cancelAction}
     </Button>
-    <Button size="sm" type="button" onclick={() => saveEdit(comment)}>
+    <Button
+      disabled={!editDraft.trim() || uploading}
+      size="sm"
+      type="button"
+      onclick={() => saveEdit(comment)}
+    >
       {commentCopy.saveAction}
     </Button>
   </div>

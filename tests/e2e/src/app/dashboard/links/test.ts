@@ -204,4 +204,81 @@ test.describe("dashboard links", () => {
       });
     }
   });
+
+  test("keeps pin state when search recomputes links", async ({
+    page,
+  }, testInfo) => {
+    await signInAsDebugUser(page, "/dashboard/links");
+    await page.request.post("/api/dashboard-links/pin", {
+      form: { slug: "jw", action: "unpin", returnTo: "/dashboard/links" },
+      headers: JSON_HEADERS,
+    });
+    await gotoAndWaitForReady(page, "/dashboard/links");
+
+    const searchInput = page.getByRole("searchbox", {
+      name: /搜索网站名称或描述|Search by name or description/i,
+    });
+
+    const locateJwPinButton = async () => {
+      const linkButton = page
+        .getByRole("button", { name: /教务系统/i })
+        .first();
+      await expect(linkButton).toBeVisible();
+
+      const card = linkButton.locator(
+        "xpath=ancestor::div[contains(@class, 'group')][1]",
+      );
+      await card.hover();
+
+      return page
+        .locator('form[action="/api/dashboard-links/pin"]')
+        .filter({
+          has: page.locator('input[name="slug"][value="jw"]'),
+        })
+        .first()
+        .getByRole("button", { name: /置顶|Pin|取消置顶|Unpin/i })
+        .first();
+    };
+
+    async function submitPinChange(actionLabel: RegExp) {
+      const button = await locateJwPinButton();
+      await expect(button).toHaveAttribute("aria-label", actionLabel);
+      const [response] = await Promise.all([
+        page.waitForResponse(
+          (res) =>
+            res.url().includes("/api/dashboard-links/pin") &&
+            res.request().method() === "POST",
+        ),
+        button.click({ force: true }),
+      ]);
+      expect(response.ok()).toBe(true);
+    }
+
+    try {
+      await submitPinChange(PIN_LABEL);
+      await searchInput.fill("教务");
+      await expect(await locateJwPinButton()).toHaveAttribute(
+        "aria-label",
+        UNPIN_LABEL,
+      );
+
+      await submitPinChange(UNPIN_LABEL);
+      await searchInput.fill("教务系统");
+      await expect(await locateJwPinButton()).toHaveAttribute(
+        "aria-label",
+        PIN_LABEL,
+      );
+
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "dashboard-links-pin-search-stable",
+      );
+    } finally {
+      await page.request.post("/api/dashboard-links/pin", {
+        form: { slug: "jw", action: "pin", returnTo: "/dashboard/links" },
+        headers: JSON_HEADERS,
+      });
+    }
+  });
 });
