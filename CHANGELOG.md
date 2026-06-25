@@ -1,3 +1,12 @@
+## [1.37.22](https://github.com/Life-USTC/server/compare/v1.37.21...v1.37.22) (2026-06-25)
+
+
+### Bug Fixes
+
+* **data:** enforce import invariants ([6da7b6e](https://github.com/Life-USTC/server/commit/6da7b6e49b9f2acda857cc76d5d00a91a9599c85))
+* **loader:** preserve canonical course variant ([e0cc793](https://github.com/Life-USTC/server/commit/e0cc7935596aaff1027729e3b213c1d33b5fe17b))
+* **loader:** protect canonical course ids ([ef3af09](https://github.com/Life-USTC/server/commit/ef3af09d21afc1c87a4b405568a9dbadd2ec5eaa))
+
 ## [1.37.21](https://github.com/Life-USTC/server/compare/v1.37.20...v1.37.21) (2026-06-25)
 
 
