@@ -137,9 +137,19 @@ describe("subscription import client", () => {
     vi.unstubAllGlobals();
   });
 
-  it("extracts and deduplicates section codes", () => {
+  it("extracts and deduplicates schema-valid section code tokens", () => {
     expect(
-      extractSubscriptionSectionCodes("MATH.01 and CS_A-2.03 MATH.01 bad"),
+      extractSubscriptionSectionCodes(
+        "MATH.01 math.01 CS_A-2.03 cs-a_2 MATH.01",
+      ),
+    ).toEqual(["MATH.01", "math.01", "CS_A-2.03", "cs-a_2"]);
+  });
+
+  it("ignores tokens rejected by the shared section code schema", () => {
+    const tooLong = "A".repeat(65);
+
+    expect(
+      extractSubscriptionSectionCodes(`MATH.01 ${tooLong} CS_A-2.03`),
     ).toEqual(["MATH.01", "CS_A-2.03"]);
   });
 
