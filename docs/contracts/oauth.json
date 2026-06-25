@@ -58,26 +58,46 @@
         "routes": [
           {
             "path": "/api/auth/.well-known/openid-configuration",
-            "methods": ["GET", "OPTIONS"],
             "returns": "OIDCDiscoveryDocument",
             "auth": "anon"
           },
           {
+            "path": "/api/auth/.well-known/openid-configuration",
+            "method": "OPTIONS",
+            "returns": "204 CORS preflight response",
+            "auth": "anon"
+          },
+          {
             "path": "/.well-known/oauth-authorization-server",
-            "methods": ["GET", "OPTIONS"],
             "returns": "307 redirect to /.well-known/oauth-authorization-server/api/auth",
             "auth": "anon"
           },
           {
+            "path": "/.well-known/oauth-authorization-server",
+            "method": "OPTIONS",
+            "returns": "204 CORS preflight response",
+            "auth": "anon"
+          },
+          {
             "path": "/.well-known/openid-configuration",
-            "methods": ["GET", "OPTIONS"],
             "returns": "307 redirect to /api/auth/.well-known/openid-configuration",
             "auth": "anon"
           },
           {
+            "path": "/.well-known/openid-configuration",
+            "method": "OPTIONS",
+            "returns": "204 CORS preflight response",
+            "auth": "anon"
+          },
+          {
             "path": "/.well-known/oauth-protected-resource",
-            "methods": ["GET", "OPTIONS"],
             "returns": "307 redirect to /.well-known/oauth-protected-resource/api/mcp",
+            "auth": "anon"
+          },
+          {
+            "path": "/.well-known/oauth-protected-resource",
+            "method": "OPTIONS",
+            "returns": "204 CORS preflight response",
             "auth": "anon"
           },
           {
@@ -88,44 +108,79 @@
           },
           {
             "path": "/.well-known/oauth-authorization-server/api/auth",
-            "methods": ["GET", "OPTIONS"],
             "returns": "OAuthAuthorizationServerMetadata",
             "auth": "anon"
           },
           {
+            "path": "/.well-known/oauth-authorization-server/api/auth",
+            "method": "OPTIONS",
+            "returns": "204 CORS preflight response",
+            "auth": "anon"
+          },
+          {
             "path": "/.well-known/oauth-authorization-server/api/mcp",
-            "methods": ["GET", "OPTIONS"],
             "returns": "307 redirect to /.well-known/oauth-authorization-server/api/auth",
+            "auth": "anon"
+          },
+          {
+            "path": "/.well-known/oauth-authorization-server/api/mcp",
+            "method": "OPTIONS",
+            "returns": "204 CORS preflight response",
             "auth": "anon"
           },
           {
             "path": "/.well-known/openid-configuration/api/auth",
-            "methods": ["GET", "OPTIONS"],
             "returns": "OIDCDiscoveryDocument",
             "auth": "anon"
           },
           {
+            "path": "/.well-known/openid-configuration/api/auth",
+            "method": "OPTIONS",
+            "returns": "204 CORS preflight response",
+            "auth": "anon"
+          },
+          {
             "path": "/.well-known/openid-configuration/api/mcp",
-            "methods": ["GET", "OPTIONS"],
             "returns": "307 redirect to /api/auth/.well-known/openid-configuration",
+            "auth": "anon"
+          },
+          {
+            "path": "/.well-known/openid-configuration/api/mcp",
+            "method": "OPTIONS",
+            "returns": "204 CORS preflight response",
             "auth": "anon"
           },
           {
             "path": "/.well-known/oauth-protected-resource/api/mcp",
-            "methods": ["GET", "OPTIONS"],
             "returns": "OAuthProtectedResourceMetadata",
             "auth": "anon"
           },
           {
+            "path": "/.well-known/oauth-protected-resource/api/mcp",
+            "method": "OPTIONS",
+            "returns": "204 CORS preflight response",
+            "auth": "anon"
+          },
+          {
             "path": "/api/mcp/.well-known/oauth-authorization-server",
-            "methods": ["GET", "OPTIONS"],
             "returns": "307 redirect to /.well-known/oauth-authorization-server/api/auth",
             "auth": "anon"
           },
           {
+            "path": "/api/mcp/.well-known/oauth-authorization-server",
+            "method": "OPTIONS",
+            "returns": "204 CORS preflight response",
+            "auth": "anon"
+          },
+          {
             "path": "/api/mcp/.well-known/openid-configuration",
-            "methods": ["GET", "OPTIONS"],
             "returns": "307 redirect to /api/auth/.well-known/openid-configuration",
+            "auth": "anon"
+          },
+          {
+            "path": "/api/mcp/.well-known/openid-configuration",
+            "method": "OPTIONS",
+            "returns": "204 CORS preflight response",
             "auth": "anon"
           }
         ]
