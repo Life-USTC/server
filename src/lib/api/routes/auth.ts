@@ -67,7 +67,7 @@ async function prepareOAuthClientRegistrationRequest(
       typeof grantType !== "string" ||
       !DYNAMIC_CLIENT_REGISTRATION_GRANT_TYPE_SET.has(grantType),
   );
-  if (!unsupportedGrantType) {
+  if (unsupportedGrantType === undefined) {
     if (!grantTypes.includes(OAUTH_DEVICE_CODE_GRANT_TYPE)) {
       return { request, deviceRegistration: null };
     }

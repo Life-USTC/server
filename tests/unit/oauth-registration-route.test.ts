@@ -52,6 +52,27 @@ describe("OAuth registration route", () => {
     expect(oauthClientUpdateMock).not.toHaveBeenCalled();
   });
 
+  it("rejects falsy unsupported grant values during dynamic client registration", async () => {
+    const response = await authPostRoute(
+      new Request("https://life.example/api/auth/oauth2/register", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          client_name: "bad-device-client",
+          grant_types: ["", OAUTH_DEVICE_CODE_GRANT_TYPE],
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "invalid_client_metadata",
+      error_description: "Unsupported grant type: ",
+    });
+    expect(betterAuthHandlerMock).not.toHaveBeenCalled();
+    expect(oauthClientUpdateMock).not.toHaveBeenCalled();
+  });
+
   it("registers the custom device grant through the Better Auth adapter", async () => {
     betterAuthHandlerMock.mockImplementationOnce(async (request: Request) => {
       const delegatedBody = await request.json();
