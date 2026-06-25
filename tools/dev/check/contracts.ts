@@ -134,8 +134,15 @@ function checkContractsDoc() {
       )) {
         const source = readFileSync(file, "utf8");
         const routePath = parseImplementedRoutePath(file);
-        for (const method of getExportedRouteMethods(source)) {
+        const exportedMethods = getExportedRouteMethods(source);
+        for (const method of exportedMethods) {
           routes.add(`${method} ${routePath}`);
+        }
+        if (
+          exportedMethods.includes("GET") &&
+          !exportedMethods.includes("HEAD")
+        ) {
+          routes.add(`HEAD ${routePath}`);
         }
       }
     }
@@ -427,6 +434,7 @@ function checkContractsDoc() {
   function isImplementedRestRouteIgnored(route: string): boolean {
     return (
       route === "GET /api/auth/{auth}" ||
+      route === "HEAD /api/auth/{auth}" ||
       route === "PATCH /api/auth/{auth}" ||
       route === "PUT /api/auth/{auth}" ||
       route === "DELETE /api/auth/{auth}"
@@ -537,7 +545,10 @@ function checkContractsDoc() {
   checkOpenApiSecurityParity(documentedRestRoutes);
 
   const documentedRestRouteKeys = new Set(
-    documentedRestRoutes.map((route) => route.key),
+    documentedRestRoutes.flatMap((route) => {
+      if (route.method !== "GET") return [route.key];
+      return [route.key, `HEAD ${route.path}`];
+    }),
   );
   const implementedRestRoutes = collectImplementedRestRoutes();
 
