@@ -1,5 +1,6 @@
 import type { CommentNode } from "@/features/comments/server/comment-types";
 import { saveCommentEditRequest } from "./comment-panel-actions";
+import type { CommentEditorMode } from "./comment-panel-draft-state";
 import {
   type CommentEditDraftState,
   commentEditDraftFromComment,
@@ -17,6 +18,7 @@ export function createCommentPanelEditActions(input: {
   getEditDraft: () => string;
   getEditIsAnonymous: () => boolean;
   getEditVisibility: () => string;
+  hasPendingUploads: (mode: CommentEditorMode) => boolean;
   loadComments: () => Promise<void>;
   setActionMenuId: (value: string | null) => void;
   setMessage: (value: string) => void;
@@ -32,7 +34,7 @@ export function createCommentPanelEditActions(input: {
 
   async function saveEdit(comment: CommentNode) {
     const body = input.getEditDraft().trim();
-    if (!body) return;
+    if (!body || input.hasPendingUploads("edit")) return;
     const copy = input.getCommentCopy();
     try {
       await saveCommentEditRequest({

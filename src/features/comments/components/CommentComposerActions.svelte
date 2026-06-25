@@ -32,7 +32,7 @@ export let viewer: ViewerContext;
   />
   <Button
     class="ml-auto"
-    disabled={!body.trim() || !viewer.isAuthenticated || viewer.isSuspended || submitting}
+    disabled={!body.trim() || !viewer.isAuthenticated || viewer.isSuspended || submitting || uploading}
     size="sm"
     type="button"
     onclick={submitComment}

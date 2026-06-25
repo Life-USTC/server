@@ -27,6 +27,10 @@ import {
 import { createCommentPanelTargetActions } from "@/features/comments/lib/comment-panel-target-actions";
 import { createCommentPanelUploadActions } from "@/features/comments/lib/comment-panel-upload-actions";
 import {
+  commentUploadPendingForMode,
+  commentUploadPendingStateWithDelta,
+} from "@/features/comments/lib/comment-panel-upload-state";
+import {
   COMMENT_REACTION_OPTIONS,
   type CommentTargetOption,
   type CommentTargetType as TargetType,
@@ -82,7 +86,7 @@ let {
   _selectedAttachments,
   _submitting,
   _uploadedFiles,
-  _uploading,
+  _uploadPending,
   _viewer,
   _visibility,
 } = createCommentPanelDefaultState();
@@ -248,6 +252,8 @@ const { loadComments: _loadComments, submitComment: _submitComment } =
     getTargetType: () => targetType,
     getTargets: () => _resolvedTargets,
     getVisibility: () => _visibility,
+    hasPendingUploads: (mode) =>
+      commentUploadPendingForMode(_uploadPending, mode),
     scrollToHashComment: _scrollToHashComment,
     selectedPostTarget: _selectedPostTarget,
     setBody: (value) => {
@@ -310,8 +316,12 @@ const { uploadFile: _uploadFile } = createCommentPanelUploadActions({
   setUploadedFiles: (value) => {
     _uploadedFiles = value;
   },
-  setUploading: (value) => {
-    _uploading = value;
+  updatePendingUploads: (mode, delta) => {
+    _uploadPending = commentUploadPendingStateWithDelta({
+      delta,
+      mode,
+      state: _uploadPending,
+    });
   },
 });
 
@@ -355,6 +365,8 @@ const {
   getEditDraft: () => _editDraft,
   getEditIsAnonymous: () => _editIsAnonymous,
   getEditVisibility: () => _editVisibility,
+  hasPendingUploads: (mode) =>
+    commentUploadPendingForMode(_uploadPending, mode),
   loadComments: _loadComments,
   setActionMenuId: (value) => {
     _actionMenuId = value;
@@ -394,6 +406,10 @@ const {
     _reactionMenuId = value;
   },
 });
+
+$: _newUploading = commentUploadPendingForMode(_uploadPending, "new");
+$: _replyUploading = commentUploadPendingForMode(_uploadPending, "reply");
+$: _editUploading = commentUploadPendingForMode(_uploadPending, "edit");
 </script>
 
 <section class="grid gap-4">
@@ -424,7 +440,7 @@ const {
     uploadCopy={_uploadCopy}
     uploadedFiles={_uploadedFiles}
     uploadFile={_uploadFile}
-    uploading={_uploading}
+    uploading={_newUploading}
     viewer={_viewer}
     bind:visibility={_visibility}
     visibilityOptions={_visibilityOptions}
@@ -473,7 +489,8 @@ const {
     toggleReply={_toggleReply}
     uploadCopy={_uploadCopy}
     uploadFile={_uploadFile}
-    uploading={_uploading}
+    editUploading={_editUploading}
+    replyUploading={_replyUploading}
     viewer={_viewer}
     visibilityOptions={_visibilityOptions}
   />

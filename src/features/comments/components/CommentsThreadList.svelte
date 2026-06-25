@@ -19,6 +19,7 @@ export let copyCommentLink: CommentThreadProps["copyCommentLink"];
 export let editAttachmentIds: string[];
 export let editAttachmentOptions: CommentThreadProps["editAttachmentOptions"];
 export let editDraft: string;
+export let editUploading: boolean;
 export let editingId: string | null;
 export let editIsAnonymous: boolean;
 export let editVisibility: string;
@@ -36,6 +37,7 @@ export let reactionName: CommentThreadProps["reactionName"];
 export let reactionOptions: CommentThreadProps["reactionOptions"];
 export let removeReplyAttachment: CommentThreadProps["removeReplyAttachment"];
 export let replyDraft: string;
+export let replyUploading: boolean;
 export let replyingId: string | null;
 export let replyIsAnonymous: boolean;
 export let replyUploadedFiles: CommentUploadOption[];
@@ -47,7 +49,6 @@ export let submitting: boolean;
 export let submitComment: CommentThreadProps["submitComment"];
 export let toggleReply: CommentThreadProps["toggleReply"];
 export let uploadCopy: CommentThreadProps["uploadCopy"];
-export let uploading: boolean;
 export let uploadFile: CommentThreadProps["uploadFile"];
 export let viewer: ViewerContext;
 export let visibilityOptions: CommentThreadProps["visibilityOptions"];
@@ -67,6 +68,7 @@ export let visibilityOptions: CommentThreadProps["visibilityOptions"];
     bind:editAttachmentIds
     {editAttachmentOptions}
     bind:editDraft
+    {editUploading}
     bind:editingId
     bind:editIsAnonymous
     bind:editVisibility
@@ -84,6 +86,7 @@ export let visibilityOptions: CommentThreadProps["visibilityOptions"];
     {reactionOptions}
     {removeReplyAttachment}
     bind:replyDraft
+    {replyUploading}
     {replyingId}
     bind:replyIsAnonymous
     {replyUploadedFiles}
@@ -95,7 +98,6 @@ export let visibilityOptions: CommentThreadProps["visibilityOptions"];
     {submitComment}
     {toggleReply}
     {uploadCopy}
-    {uploading}
     {uploadFile}
     {visibilityOptions}
     {viewer}

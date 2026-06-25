@@ -1,6 +1,7 @@
 import type { ViewerContext } from "@/lib/auth/viewer-context";
 import { submitCommentRequest } from "./comment-panel-actions";
 import { loadCommentsForTargets } from "./comment-panel-data";
+import type { CommentEditorMode } from "./comment-panel-draft-state";
 import { buildCommentSubmitPayload } from "./comment-panel-submit-payload";
 import type {
   CommentNodeWithContext,
@@ -28,6 +29,7 @@ export function createCommentPanelLoadSubmitActions(input: {
   getTargetType: () => CommentTargetType;
   getTargets: () => CommentTargetOption[];
   getVisibility: () => string;
+  hasPendingUploads: (mode: CommentEditorMode) => boolean;
   scrollToHashComment: () => Promise<void>;
   selectedPostTarget: () => CommentTargetOption | null;
   setBody: (value: string) => void;
@@ -69,7 +71,8 @@ export function createCommentPanelLoadSubmitActions(input: {
     target: CommentTargetOption | null = input.selectedPostTarget(),
   ) {
     const body = (replyBody ?? input.getBody()).trim();
-    if (!body || input.getSubmitting()) return;
+    const mode = parentId ? "reply" : "new";
+    if (!body || input.getSubmitting() || input.hasPendingUploads(mode)) return;
     input.setSubmitting(true);
     input.setMessage("");
     const copy = input.getCommentCopy();

@@ -86,7 +86,7 @@ $: replyDisabled = !viewer.isAuthenticated || viewer.isSuspended;
     />
     <Button size="sm" type="button" variant="ghost" onclick={cancelReply}>{commentCopy.cancelAction}</Button>
     <Button
-      disabled={!replyDraft.trim() || replyDisabled || submitting}
+      disabled={!replyDraft.trim() || replyDisabled || submitting || uploading}
       size="sm"
       type="button"
       onclick={() => {
