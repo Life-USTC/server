@@ -50,7 +50,6 @@ function checkContractsDoc() {
   type ContractRouteEntry = {
     path: string;
     method?: string;
-    methods?: string[];
     auth?: ContractAuthLevel;
     returns?: string;
     notes?: string[];
@@ -159,18 +158,17 @@ function checkContractsDoc() {
         if (!capability.rest || typeof capability.rest !== "object") continue;
         const capabilityAuth = capability.auth ?? "anon";
         for (const route of capability.rest.routes ?? []) {
-          for (const method of route.methods ?? [route.method ?? "GET"]) {
-            const key = `${method} ${route.path}`;
-            routes.push({
-              key,
-              method,
-              path: route.path,
-              auth: route.auth ?? capabilityAuth,
-              moduleName,
-              capabilityName,
-              route,
-            });
-          }
+          const method = route.method ?? "GET";
+          const key = `${method} ${route.path}`;
+          routes.push({
+            key,
+            method,
+            path: route.path,
+            auth: route.auth ?? capabilityAuth,
+            moduleName,
+            capabilityName,
+            route,
+          });
         }
       }
     }
