@@ -7081,7 +7081,41 @@
               }
             ]
           },
+          "sectionJwId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "courseJwId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
           "teacherId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "homeworkId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sectionTeacherId": {
             "anyOf": [
               {
                 "type": "string"

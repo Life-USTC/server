@@ -5,11 +5,17 @@ import {
   commentVisibilitySchema,
 } from "./request-schema-primitives";
 
+const commentTargetIdReferenceSchema = z.union([z.string(), z.number()]);
+
 export const commentCreateRequestSchema = z.object({
   targetType: commentTargetTypeSchema,
-  targetId: z.union([z.string(), z.number()]).optional(),
-  sectionId: z.union([z.string(), z.number()]).optional(),
-  teacherId: z.union([z.string(), z.number()]).optional(),
+  targetId: commentTargetIdReferenceSchema.optional(),
+  sectionId: commentTargetIdReferenceSchema.optional(),
+  sectionJwId: commentTargetIdReferenceSchema.optional(),
+  courseJwId: commentTargetIdReferenceSchema.optional(),
+  teacherId: commentTargetIdReferenceSchema.optional(),
+  homeworkId: z.string().trim().min(1).optional(),
+  sectionTeacherId: commentTargetIdReferenceSchema.optional(),
   body: z.string().trim().min(1).max(8000),
   visibility: commentVisibilitySchema.optional(),
   isAnonymous: z.boolean().optional(),

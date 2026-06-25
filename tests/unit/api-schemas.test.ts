@@ -4,6 +4,7 @@ import { TODO_CONTENT_MAX_LENGTH } from "@/features/todos/lib/todo-limits";
 import {
   calendarSubscriptionAppendRequestSchema,
   calendarSubscriptionCreateRequestSchema,
+  commentCreateRequestSchema,
   commentReactionRequestSchema,
   commentsQuerySchema,
   coursesQuerySchema,
@@ -214,6 +215,37 @@ describe("other request schemas", () => {
         sectionJwId: "abc",
       }).success,
     ).toBe(false);
+  });
+
+  it("validates comment create public target identifiers", () => {
+    expect(
+      commentCreateRequestSchema.safeParse({
+        targetType: "section",
+        sectionJwId: "9902001",
+        body: "hello",
+      }).success,
+    ).toBe(true);
+    expect(
+      commentCreateRequestSchema.safeParse({
+        targetType: "course",
+        courseJwId: "9901001",
+        body: "hello",
+      }).success,
+    ).toBe(true);
+    expect(
+      commentCreateRequestSchema.safeParse({
+        targetType: "homework",
+        homeworkId: "homework-1",
+        body: "hello",
+      }).success,
+    ).toBe(true);
+    expect(
+      commentCreateRequestSchema.safeParse({
+        targetType: "section-teacher",
+        sectionTeacherId: "123",
+        body: "hello",
+      }).success,
+    ).toBe(true);
   });
 
   it("validates calendar subscription payload", () => {
