@@ -366,9 +366,6 @@
         "x-auth-role": "admin",
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
             "sessionCookie": []
           }
         ]
@@ -436,9 +433,6 @@
         },
         "x-auth-role": "admin",
         "security": [
-          {
-            "bearerAuth": []
-          },
           {
             "sessionCookie": []
           }
@@ -530,9 +524,6 @@
         "x-auth-role": "admin",
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
             "sessionCookie": []
           }
         ]
@@ -611,9 +602,6 @@
         "x-auth-role": "admin",
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
             "sessionCookie": []
           }
         ]
@@ -690,9 +678,6 @@
         "x-auth-role": "admin",
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
             "sessionCookie": []
           }
         ]
@@ -761,9 +746,6 @@
         "x-auth-role": "admin",
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
             "sessionCookie": []
           }
         ]
@@ -800,9 +782,6 @@
         },
         "x-auth-role": "admin",
         "security": [
-          {
-            "bearerAuth": []
-          },
           {
             "sessionCookie": []
           }
@@ -858,9 +837,6 @@
         },
         "x-auth-role": "admin",
         "security": [
-          {
-            "bearerAuth": []
-          },
           {
             "sessionCookie": []
           }
@@ -919,9 +895,6 @@
         },
         "x-auth-role": "admin",
         "security": [
-          {
-            "bearerAuth": []
-          },
           {
             "sessionCookie": []
           }
@@ -995,9 +968,6 @@
         "x-auth-role": "admin",
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
             "sessionCookie": []
           }
         ]
@@ -1065,9 +1035,6 @@
         },
         "x-auth-role": "admin",
         "security": [
-          {
-            "bearerAuth": []
-          },
           {
             "sessionCookie": []
           }

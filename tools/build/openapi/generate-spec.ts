@@ -522,6 +522,7 @@ type MutableOpenApiMediaType = Record<string, unknown>;
 
 const SCENARIO_OPENAPI_EXAMPLES = buildScenarioOpenApiExamples();
 const REST_AUTH_SECURITY = [{ bearerAuth: [] }, { sessionCookie: [] }];
+const ADMIN_AUTH_SECURITY = [{ sessionCookie: [] }];
 const MCP_AUTH_SECURITY = [{ mcpBearerAuth: [] }];
 const INTERNAL_AUTH_SECURITY = [{ internalBearerAuth: [] }];
 const CALENDAR_FEED_AUTH_SECURITY = [
@@ -1308,9 +1309,11 @@ function applySecurityMetadata(
 
       if (contractAuth === "admin") {
         operation["x-auth-role"] = "admin";
+        operation.security = ADMIN_AUTH_SECURITY;
+        continue;
       }
 
-      if (contractAuth === "user" || contractAuth === "admin") {
+      if (contractAuth === "user") {
         operation.security = REST_AUTH_SECURITY;
       }
     }

@@ -46,6 +46,19 @@ export async function resolveApiUserId(
   return session?.user?.id ?? null;
 }
 
+export async function resolveSessionUserId(
+  request: Request,
+): Promise<string | null> {
+  const authHeader = request.headers.get("authorization");
+  if (/^Bearer(?:\s|$)/i.test(authHeader?.trimStart() ?? "")) {
+    return null;
+  }
+
+  const { getSessionFromHeaders } = await import("@/lib/auth/core");
+  const session = await getSessionFromHeaders(request.headers);
+  return session?.user?.id ?? null;
+}
+
 export async function requireAuth(
   request: Request,
 ): Promise<{ userId: string } | Response> {

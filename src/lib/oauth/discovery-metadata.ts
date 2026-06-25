@@ -3,8 +3,10 @@ import {
   oauthProviderOpenIdConfigMetadata,
 } from "@better-auth/oauth-provider";
 import {
+  OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
   OAUTH_DEVICE_AUTHORIZATION_ENDPOINT_PATH,
   OAUTH_DEVICE_CODE_GRANT_TYPE,
+  OAUTH_REFRESH_TOKEN_GRANT_TYPE,
 } from "@/lib/oauth/constants";
 import {
   createDiscoveryJsonResponse,
@@ -21,6 +23,12 @@ type DiscoveryMetadata = {
   [key: string]: unknown;
 };
 
+const USER_DELEGATED_GRANT_TYPES = [
+  OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
+  OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+  OAUTH_DEVICE_CODE_GRANT_TYPE,
+];
+
 function augmentDiscoveryMetadata(
   request: Request,
   body: DiscoveryMetadata,
@@ -32,12 +40,7 @@ function augmentDiscoveryMetadata(
   return {
     ...body,
     device_authorization_endpoint: `${siteOrigin}${OAUTH_DEVICE_AUTHORIZATION_ENDPOINT_PATH}`,
-    grant_types_supported: [
-      ...new Set([
-        ...(body.grant_types_supported ?? []),
-        OAUTH_DEVICE_CODE_GRANT_TYPE,
-      ]),
-    ],
+    grant_types_supported: USER_DELEGATED_GRANT_TYPES,
   };
 }
 
