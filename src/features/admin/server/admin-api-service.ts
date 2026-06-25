@@ -4,6 +4,7 @@ import { isValidProfileUsername } from "@/features/profile/lib/profile-username"
 import type { CommentStatus } from "@/generated/prisma/client";
 import { fireAuditLog } from "@/lib/audit/write-audit-log";
 import { prisma } from "@/lib/db/prisma";
+import { runSerializableTransaction } from "@/lib/db/serializable-transaction";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import { adminDescriptionInclude } from "./admin-description-filters";
 
@@ -94,33 +95,37 @@ export async function updateAdminUser(
   const parsed = await buildAdminUserUpdateData(id, parsedBody);
   if (!parsed.ok) return parsed;
 
-  const existingUser = await prisma.user.findUnique({
-    where: { id },
-    select: { id: true, isAdmin: true },
-  });
-  if (!existingUser) {
-    return { ok: false as const, reason: "not_found" as const };
-  }
-
-  if (parsed.data.isAdmin === false && existingUser.isAdmin) {
-    if (id === adminUserId) {
-      return { ok: false as const, reason: "cannot_demote_self" as const };
+  const updated = await runSerializableTransaction(async (tx) => {
+    const existingUser = await tx.user.findUnique({
+      where: { id },
+      select: { id: true, isAdmin: true },
+    });
+    if (!existingUser) {
+      return { ok: false as const, reason: "not_found" as const };
     }
 
-    const adminCount = await prisma.user.count({ where: { isAdmin: true } });
-    if (adminCount <= 1) {
-      return {
-        ok: false as const,
-        reason: "cannot_remove_last_admin" as const,
-      };
-    }
-  }
+    if (parsed.data.isAdmin === false && existingUser.isAdmin) {
+      if (id === adminUserId) {
+        return { ok: false as const, reason: "cannot_demote_self" as const };
+      }
 
-  const updated = await prisma.user.update({
-    where: { id },
-    data: parsed.data,
-    select: { id: true },
-  });
+      const adminCount = await tx.user.count({ where: { isAdmin: true } });
+      if (adminCount <= 1) {
+        return {
+          ok: false as const,
+          reason: "cannot_remove_last_admin" as const,
+        };
+      }
+    }
+
+    const updatedUser = await tx.user.update({
+      where: { id },
+      data: parsed.data,
+      select: { id: true },
+    });
+    return { id: updatedUser.id, ok: true as const };
+  }, "Failed to update admin user");
+  if (!updated.ok) return updated;
 
   const user = await getAdminUserListItem(updated.id);
   if (!user) return { ok: false as const, reason: "not_found" as const };
