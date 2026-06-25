@@ -5,6 +5,7 @@ const { fireAuditLogMock, getAdminUserListItemMock, prismaMock } = vi.hoisted(
     fireAuditLogMock: vi.fn(),
     getAdminUserListItemMock: vi.fn(),
     prismaMock: {
+      $transaction: vi.fn(),
       user: {
         count: vi.fn(),
         findUnique: vi.fn(),
@@ -33,6 +34,10 @@ describe("admin API service", () => {
   beforeEach(() => {
     fireAuditLogMock.mockReset();
     getAdminUserListItemMock.mockReset();
+    prismaMock.$transaction.mockReset();
+    prismaMock.$transaction.mockImplementation(async (action) =>
+      action({ user: prismaMock.user }),
+    );
     prismaMock.user.count.mockReset();
     prismaMock.user.findUnique.mockReset();
     prismaMock.user.update.mockReset();
@@ -79,6 +84,33 @@ describe("admin API service", () => {
       ok: false,
       reason: "cannot_remove_last_admin",
     });
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
+  it("retries final-admin demotion checks after serialization conflicts", async () => {
+    prismaMock.$transaction
+      .mockRejectedValueOnce({ code: "P2034" })
+      .mockImplementationOnce(async (action) =>
+        action({ user: prismaMock.user }),
+      );
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: "admin-2",
+      isAdmin: true,
+    });
+    prismaMock.user.count.mockResolvedValue(1);
+    const { updateAdminUser } = await import(
+      "@/features/admin/server/admin-api-service"
+    );
+
+    const result = await updateAdminUser("admin-1", "admin-2", {
+      isAdmin: false,
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      reason: "cannot_remove_last_admin",
+    });
+    expect(prismaMock.$transaction).toHaveBeenCalledTimes(2);
     expect(prismaMock.user.update).not.toHaveBeenCalled();
   });
 
