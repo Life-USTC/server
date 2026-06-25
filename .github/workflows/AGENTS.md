@@ -10,7 +10,7 @@ CI/CD pipelines.
 | DB-backed Bun job | workflow_call | Reusable Postgres-backed Bun job |
 | E2E Snapshot Artifacts | push except preview branch, manual | Snapshot capture, artifact upload, screenshot preview publishing, commit comment |
 | Copilot Setup Steps | manual or setup workflow changes | Copilot bootstrap validation |
-| Release | push to main | Semantic release |
+| Release | successful CI completion on main | Semantic release |
 
 ## Version Alignment
 
