@@ -1,3 +1,14 @@
+## [1.37.24](https://github.com/Life-USTC/server/compare/v1.37.23...v1.37.24) (2026-06-25)
+
+
+### Bug Fixes
+
+* **auth:** keep admin rest session-only ([ac1c293](https://github.com/Life-USTC/server/commit/ac1c2939c47fe9f6595298fe371c9278f12c1a2f))
+* **auth:** reject falsy DCR grants ([ac06136](https://github.com/Life-USTC/server/commit/ac06136513f6451af63c131ec328bb43eed32105))
+* **auth:** reject unsupported DCR grants ([f3927bc](https://github.com/Life-USTC/server/commit/f3927bca41494a3dc8d64e84b66822e76c195ce8))
+* **auth:** support device DCR grants ([cb00f0d](https://github.com/Life-USTC/server/commit/cb00f0df8f23e1b689b912bc6695aa0fed17709a))
+* **auth:** support device-only DCR ([968acc7](https://github.com/Life-USTC/server/commit/968acc7fb479ab2007c8eedd175e0075a385aa42))
+
 ## [1.37.23](https://github.com/Life-USTC/server/compare/v1.37.22...v1.37.23) (2026-06-25)
 
 
