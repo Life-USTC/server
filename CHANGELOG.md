@@ -1,3 +1,17 @@
+## [1.37.19](https://github.com/Life-USTC/server/compare/v1.37.18...v1.37.19) (2026-06-25)
+
+
+### Bug Fixes
+
+* **api:** enforce collaborative invariants ([f9ae4ab](https://github.com/Life-USTC/server/commit/f9ae4ab8280fa2ead93064a64fb153c78ce9cc1e))
+* **db:** remediate duplicate comment attachments ([a478969](https://github.com/Life-USTC/server/commit/a47896949149fd3c9a1d4c61145dc7990a25979e))
+* **db:** simplify comment attachment constraint ([64d8bc3](https://github.com/Life-USTC/server/commit/64d8bc370db81932d0c4d85a96a7254a29866c4a))
+
+
+### Reverts
+
+* Revert "fix(db): remediate duplicate comment attachments" ([ec13d8b](https://github.com/Life-USTC/server/commit/ec13d8bda2d1c12c8ff456d7e965b1a1d2f92a15))
+
 ## [1.37.18](https://github.com/Life-USTC/server/compare/v1.37.17...v1.37.18) (2026-06-25)
 
 
