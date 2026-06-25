@@ -1,3 +1,10 @@
+## [1.39.3](https://github.com/Life-USTC/server/compare/v1.39.2...v1.39.3) (2026-06-25)
+
+
+### Bug Fixes
+
+* **logs:** redact calendar feed path tokens ([42d34af](https://github.com/Life-USTC/server/commit/42d34afc8472f42a28dda5abc98e3a0a4b7f3f34))
+
 ## [1.39.2](https://github.com/Life-USTC/server/compare/v1.39.1...v1.39.2) (2026-06-25)
 
 
