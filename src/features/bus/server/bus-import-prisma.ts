@@ -1,4 +1,4 @@
-export type BusImportPrisma = {
+export type BusImportWritePrisma = {
   busCampus: {
     upsert(args: unknown): Promise<unknown>;
   };
@@ -19,4 +19,10 @@ export type BusImportPrisma = {
     create(args: unknown): Promise<unknown>;
     deleteMany(args: unknown): Promise<unknown>;
   };
+};
+
+export type BusImportPrisma = BusImportWritePrisma & {
+  $transaction<Result>(
+    callback: (tx: BusImportWritePrisma) => Promise<Result>,
+  ): Promise<Result>;
 };

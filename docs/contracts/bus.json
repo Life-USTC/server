@@ -37,7 +37,10 @@
             "path": "/api/bus/preferences",
             "method": "POST",
             "returns": "{ preference: BusPreferences }",
-            "auth": "user"
+            "auth": "user",
+            "notes": [
+              "Unknown non-null preferred origin or destination campus IDs return 400 with { error } and do not write preferences."
+            ]
           },
           {
             "path": "/api/bus/preferences",

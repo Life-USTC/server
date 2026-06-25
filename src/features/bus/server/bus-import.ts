@@ -33,63 +33,63 @@ export async function importBusStaticPayload(
   const effectiveFrom = inferBusEffectiveFrom(payload, options?.effectiveFrom);
   const effectiveUntil = options?.effectiveUntil ?? null;
 
-  const existing = await findExistingBusScheduleVersion(prisma, {
-    checksum,
-    versionKey,
-  });
+  return prisma.$transaction(async (tx) => {
+    const existing = await findExistingBusScheduleVersion(tx, {
+      checksum,
+      versionKey,
+    });
 
-  if (existing) {
-    await refreshExistingBusScheduleVersion(prisma, {
+    if (existing) {
+      await refreshExistingBusScheduleVersion(tx, {
+        checksum,
+        effectiveFrom,
+        effectiveUntil,
+        existingId: existing.id,
+        payload,
+        versionKey,
+        versionTitle,
+      });
+    }
+
+    if (options?.disablePreviousVersions !== false) {
+      await disablePreviousBusScheduleVersions(tx, {
+        existingId: existing?.id,
+        versionKey,
+      });
+    }
+
+    await upsertBusCampuses(tx, payload);
+    await upsertBusRoutes(tx, payload);
+
+    const version = await upsertImportedBusScheduleVersion(tx, {
       checksum,
       effectiveFrom,
       effectiveUntil,
-      existingId: existing.id,
+      existingId: existing?.id,
       payload,
       versionKey,
       versionTitle,
     });
-  }
 
-  if (options?.disablePreviousVersions !== false) {
-    await disablePreviousBusScheduleVersions(prisma, {
-      existingId: existing?.id,
-      versionKey,
-    });
-  }
-
-  await upsertBusCampuses(prisma, payload);
-  await upsertBusRoutes(prisma, payload);
-
-  const version = await upsertImportedBusScheduleVersion(prisma, {
-    checksum,
-    effectiveFrom,
-    effectiveUntil,
-    existingId: existing?.id,
-    payload,
-    versionKey,
-    versionTitle,
-  });
-
-  const [weekdayTrips, weekendTrips] = await Promise.all([
-    createBusTripsForDayType(
-      prisma,
+    const weekdayTrips = await createBusTripsForDayType(
+      tx,
       version.id,
       "weekday",
       payload.weekday_routes,
-    ),
-    createBusTripsForDayType(
-      prisma,
+    );
+    const weekendTrips = await createBusTripsForDayType(
+      tx,
       version.id,
       "weekend",
       payload.weekend_routes,
-    ),
-  ]);
+    );
 
-  return {
-    versionId: version.id,
-    versionKey: version.key,
-    campuses: payload.campuses.length,
-    routes: payload.routes.length,
-    trips: weekdayTrips + weekendTrips,
-  };
+    return {
+      versionId: version.id,
+      versionKey: version.key,
+      campuses: payload.campuses.length,
+      routes: payload.routes.length,
+      trips: weekdayTrips + weekendTrips,
+    };
+  });
 }
