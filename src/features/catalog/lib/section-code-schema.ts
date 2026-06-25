@@ -15,7 +15,8 @@ const NUMERIC_DOTTED_SECTION_CODE_TOKEN_SHAPE = /^\d{5,}\.\d{2,}$/;
 export function extractSectionCodeTokens(value: string) {
   const codes = new Set<string>();
 
-  for (const token of value.match(SECTION_CODE_TOKEN_PATTERN) ?? []) {
+  for (const rawToken of value.match(SECTION_CODE_TOKEN_PATTERN) ?? []) {
+    const token = rawToken.replace(/[._-]+$/g, "");
     if (
       !ALPHANUMERIC_SECTION_CODE_TOKEN_SHAPE.test(token) &&
       !NUMERIC_DOTTED_SECTION_CODE_TOKEN_SHAPE.test(token)
