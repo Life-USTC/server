@@ -12,9 +12,15 @@ import { describe, expect, it } from "vitest";
 
 function renderSnapshotComment(options: {
   output: string;
+  screenshotBaseUrl?: string;
   snapshotDir: string;
   status: string;
 }) {
+  const screenshotBaseUrlArgs =
+    options.screenshotBaseUrl === undefined
+      ? []
+      : ["--screenshot-base-url", options.screenshotBaseUrl];
+
   execFileSync(
     "bun",
     [
@@ -29,6 +35,7 @@ function renderSnapshotComment(options: {
       "0123456789abcdef0123456789abcdef01234567",
       "--status",
       options.status,
+      ...screenshotBaseUrlArgs,
       "--output",
       options.output,
     ],
@@ -61,6 +68,32 @@ describe("snapshot artifact report", () => {
       );
       expect(comment).not.toContain(
         "snapshot capture completed without failed entries.",
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("renders failed capture comments when screenshot previews were skipped", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "life-ustc-snapshot-report-"));
+    try {
+      const snapshotDir = path.join(root, "snapshots");
+      const output = path.join(root, "comment.md");
+      mkdirSync(path.join(snapshotDir, "pages"), { recursive: true });
+      writeFileSync(
+        path.join(snapshotDir, "pages", "manifest.json"),
+        JSON.stringify({ entries: [] }),
+      );
+
+      renderSnapshotComment({
+        output,
+        screenshotBaseUrl: "",
+        snapshotDir,
+        status: "failure",
+      });
+
+      expect(readFileSync(output, "utf8")).toContain(
+        "snapshot capture failed before failed manifest entries were recorded.",
       );
     } finally {
       rmSync(root, { recursive: true, force: true });
