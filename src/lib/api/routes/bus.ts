@@ -1,4 +1,5 @@
 import {
+  badRequest,
   handleRouteError,
   jsonResponse,
   notFound,
@@ -199,8 +200,11 @@ export async function postBusPreferencesRoute(request: Request) {
     const { saveBusPreference } = await import(
       "@/features/bus/server/bus-service"
     );
-    const preference = await saveBusPreference(userId, parsedBody);
-    return jsonResponse({ preference });
+    const result = await saveBusPreference(userId, parsedBody);
+    if (!result.ok) {
+      return badRequest(result.error);
+    }
+    return jsonResponse({ preference: result.preference });
   } catch (error) {
     return handleRouteError("Failed to save bus preferences", error);
   }
