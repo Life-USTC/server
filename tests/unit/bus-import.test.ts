@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { checksumBusPayload } from "@/features/bus/lib/bus-import-metadata";
 import type { BusStaticPayload } from "@/features/bus/lib/bus-types";
 import { importBusStaticPayload } from "@/features/bus/server/bus-import";
 import type {
@@ -70,19 +71,18 @@ function createImportPrismaMock(
         target.versions.push(version);
         return { id: version.id, key: version.key };
       },
-      async findFirst(args) {
-        const filters = (
-          args as { where: { OR: Array<{ checksum?: string; key?: string }> } }
-        ).where.OR;
+      async findUnique(args) {
+        const filter = (args as { where: { checksum?: string; key?: string } })
+          .where;
         const version =
           target.versions.find((candidate) =>
-            filters.some(
-              (filter) =>
-                filter.key === candidate.key ||
-                filter.checksum === candidate.checksum,
-            ),
+            filter.key != null
+              ? candidate.key === filter.key
+              : candidate.checksum === filter.checksum,
           ) ?? null;
-        return version ? { id: version.id } : null;
+        return version
+          ? { id: version.id, key: version.key, checksum: version.checksum }
+          : null;
       },
       async update(args) {
         const input = args as {
@@ -198,6 +198,44 @@ describe("bus schedule imports", () => {
         versionKey: "current-bus",
       }),
     ).rejects.toThrow("injected trip write failure");
+
+    expect(prisma.getState()).toEqual(initialState);
+  });
+
+  it("rejects imports when key and checksum match different versions", async () => {
+    const payload = createPayload();
+    const checksum = await checksumBusPayload(payload);
+    const initialState: ImportState = {
+      nextVersionId: 3,
+      versions: [
+        {
+          id: 1,
+          key: "current-bus",
+          title: "Current bus schedule",
+          checksum: "old-checksum",
+          rawJson: { old: true },
+          isEnabled: true,
+        },
+        {
+          id: 2,
+          key: "same-payload-different-key",
+          title: "Same payload under another key",
+          checksum,
+          rawJson: payload,
+          isEnabled: true,
+        },
+      ],
+      trips: [],
+    };
+    const prisma = createImportPrismaMock(initialState);
+
+    await expect(
+      importBusStaticPayload(prisma, payload, {
+        versionKey: "current-bus",
+      }),
+    ).rejects.toThrow(
+      /Bus schedule version conflict: key "current-bus" belongs to version 1, but checksum ".+" belongs to version 2/,
+    );
 
     expect(prisma.getState()).toEqual(initialState);
   });

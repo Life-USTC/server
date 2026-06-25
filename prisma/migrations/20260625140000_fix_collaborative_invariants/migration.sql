@@ -1,16 +1,26 @@
-WITH ranked_attachments AS (
+DO $$
+DECLARE
+  duplicate_uploads integer;
+  duplicate_links integer;
+BEGIN
   SELECT
-    "id",
-    ROW_NUMBER() OVER (
-      PARTITION BY "uploadId"
-      ORDER BY "createdAt" ASC, "id" ASC
-    ) AS "attachmentRank"
-  FROM "CommentAttachment"
-)
-DELETE FROM "CommentAttachment"
-USING ranked_attachments
-WHERE "CommentAttachment"."id" = ranked_attachments."id"
-  AND ranked_attachments."attachmentRank" > 1;
+    COUNT(*)::integer,
+    COALESCE(SUM("attachmentCount" - 1), 0)::integer
+  INTO duplicate_uploads, duplicate_links
+  FROM (
+    SELECT "uploadId", COUNT(*) AS "attachmentCount"
+    FROM "CommentAttachment"
+    GROUP BY "uploadId"
+    HAVING COUNT(*) > 1
+  ) duplicates;
+
+  IF duplicate_uploads > 0 THEN
+    RAISE EXCEPTION
+      'Cannot add CommentAttachment_uploadId_key: found % uploads linked to multiple comments (% duplicate links). Resolve duplicate CommentAttachment rows explicitly before applying this migration.',
+      duplicate_uploads,
+      duplicate_links;
+  END IF;
+END $$;
 
 ALTER TABLE "AuditLog" DROP CONSTRAINT "AuditLog_userId_fkey";
 ALTER TABLE "AuditLog" ALTER COLUMN "userId" DROP NOT NULL;

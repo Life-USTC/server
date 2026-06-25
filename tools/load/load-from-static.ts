@@ -15,10 +15,12 @@ import type {
 } from "../../src/generated/prisma-node/client";
 import { createToolPrisma } from "../shared/tool-prisma";
 import {
+  buildStaticCourseIdentityKeyBySourceId,
   buildStaticCourseImportRows,
   type StaticCourseImportRow,
   type StaticTeacherReference,
   splitStaticTeacherNames,
+  staticDepartmentCode,
   staticTeacherIdentityKey,
   uniqueStaticTeacherReferences,
 } from "./static-course-import-helpers";
@@ -264,10 +266,6 @@ function stableNumericId(namespace: string, value: string) {
     SYNTHETIC_JWID_BASE +
     (Number.parseInt(digest.slice(0, 8), 16) % SYNTHETIC_JWID_SPAN)
   );
-}
-
-function stableDepartmentCode(name: string) {
-  return `static-${createHash("sha256").update(name).digest("hex").slice(0, 12)}`;
 }
 
 function createImportLookupState(): ImportLookupState {
@@ -682,12 +680,21 @@ async function ensureDepartments(
   }
 
   await forEachChunk(unresolved, SQLITE_READ_BATCH_SIZE, async (batch) => {
+    const nameByCode = new Map(
+      batch.map((name) => [staticDepartmentCode(name), name]),
+    );
     const existing = await db.department.findMany({
-      where: { nameCn: { in: batch } },
-      select: { id: true, nameCn: true },
+      where: { code: { in: [...nameByCode.keys()] } },
+      select: { id: true, code: true, nameCn: true },
     });
     for (const row of existing) {
-      state.departmentIdByName.set(row.nameCn, row.id);
+      const expectedName = nameByCode.get(row.code);
+      if (!expectedName || row.nameCn !== expectedName) {
+        throw new Error(
+          `Static department code conflict for ${row.code}: expected ${expectedName ?? "unknown"}, found ${row.nameCn}`,
+        );
+      }
+      state.departmentIdByName.set(expectedName, row.id);
     }
   });
 
@@ -697,7 +704,7 @@ async function ensureDepartments(
   if (missing.length > 0) {
     await db.department.createMany({
       data: missing.map((nameCn) => ({
-        code: stableDepartmentCode(nameCn),
+        code: staticDepartmentCode(nameCn),
         nameCn,
         isCollege: false,
       })),
@@ -706,12 +713,21 @@ async function ensureDepartments(
   }
 
   await forEachChunk(unresolved, SQLITE_READ_BATCH_SIZE, async (batch) => {
+    const nameByCode = new Map(
+      batch.map((name) => [staticDepartmentCode(name), name]),
+    );
     const resolved = await db.department.findMany({
-      where: { nameCn: { in: batch } },
-      select: { id: true, nameCn: true },
+      where: { code: { in: [...nameByCode.keys()] } },
+      select: { id: true, code: true, nameCn: true },
     });
     for (const row of resolved) {
-      state.departmentIdByName.set(row.nameCn, row.id);
+      const expectedName = nameByCode.get(row.code);
+      if (!expectedName || row.nameCn !== expectedName) {
+        throw new Error(
+          `Static department code conflict for ${row.code}: expected ${expectedName ?? "unknown"}, found ${row.nameCn}`,
+        );
+      }
+      state.departmentIdByName.set(expectedName, row.id);
     }
   });
 }
@@ -1031,6 +1047,84 @@ const INSERT_SECTION_TEACHERS_SQL = `
       ON CONFLICT DO NOTHING
       `;
 
+const RETIRE_STALE_SECTION_TEACHER_TARGETS_SQL = `
+      UPDATE "SectionTeacher" AS st
+      SET
+        "retiredAt" = CURRENT_TIMESTAMP,
+        "updatedAt" = CURRENT_TIMESTAMP
+      WHERE st."sectionId" IN (
+        SELECT x."id"
+        FROM jsonb_to_recordset($1::jsonb) AS x("id" int)
+      )
+        AND st."retiredAt" IS NULL
+        AND NOT EXISTS (
+          SELECT 1
+          FROM jsonb_to_recordset($2::jsonb) AS links(
+            "sectionId" int,
+            "teacherId" int
+          )
+          WHERE links."sectionId" = st."sectionId"
+            AND links."teacherId" = st."teacherId"
+        )
+      `;
+
+const UPSERT_SECTION_TEACHER_TARGETS_SQL = `
+      INSERT INTO "SectionTeacher" (
+        "sectionId",
+        "teacherId",
+        "retiredAt",
+        "updatedAt"
+      )
+      SELECT
+        x."sectionId",
+        x."teacherId",
+        NULL,
+        CURRENT_TIMESTAMP
+      FROM jsonb_to_recordset($1::jsonb) AS x(
+        "sectionId" int,
+        "teacherId" int
+      )
+      ON CONFLICT ("sectionId", "teacherId") DO UPDATE SET
+        "retiredAt" = NULL,
+        "updatedAt" = CURRENT_TIMESTAMP
+      `;
+
+async function syncSectionTeacherTargets(
+  db: ImportDbClient,
+  sectionIds: number[],
+  links: Array<{ sectionId: number; teacherId: number }>,
+) {
+  const linksBySectionId = new Map<
+    number,
+    Array<{ sectionId: number; teacherId: number }>
+  >();
+  for (const link of links) {
+    const sectionLinks = linksBySectionId.get(link.sectionId);
+    if (sectionLinks) {
+      sectionLinks.push(link);
+    } else {
+      linksBySectionId.set(link.sectionId, [link]);
+    }
+  }
+
+  await forEachChunk(sectionIds, SQLITE_READ_BATCH_SIZE, async (batch) => {
+    const batchLinks = batch.flatMap(
+      (sectionId) => linksBySectionId.get(sectionId) ?? [],
+    );
+    await db.$executeRawUnsafe(
+      RETIRE_STALE_SECTION_TEACHER_TARGETS_SQL,
+      JSON.stringify(batch.map((id) => ({ id }))),
+      JSON.stringify(batchLinks),
+    );
+    await executeJsonbBatch(
+      db,
+      batchLinks,
+      UPSERT_SECTION_TEACHER_TARGETS_SQL,
+      JOIN_WRITE_BATCH_SIZE,
+    );
+  });
+}
+
 async function replaceSectionTeachers(
   db: ImportDbClient,
   sectionIds: number[],
@@ -1048,6 +1142,7 @@ async function replaceSectionTeachers(
     INSERT_SECTION_TEACHERS_SQL,
     JOIN_WRITE_BATCH_SIZE,
   );
+  await syncSectionTeacherTargets(db, sectionIds, links);
 }
 
 async function createScheduleGroups(
@@ -1252,6 +1347,7 @@ async function importSemesterCourses(
   lecturesByCourse: Map<number, SnapshotLecture[]>,
   examsByCourse: Map<number, SnapshotExam[]>,
   state: ImportLookupState,
+  courseJwId: (course: SnapshotCourse) => number,
   scheduleGroupJwIdByCourse: Map<number, number>,
 ) {
   const semesterRecord = await measure(
@@ -1264,9 +1360,7 @@ async function importSemesterCourses(
   );
 
   const courseRows = dedupeByJwId(
-    buildStaticCourseImportRows(courses, state, (courseCode) =>
-      stableNumericId("course", courseCode),
-    ),
+    buildStaticCourseImportRows(courses, state, courseJwId),
   );
 
   await measure(`Upsert courses for semester ${semester.id}`, async () => {
@@ -1286,9 +1380,7 @@ async function importSemesterCourses(
     const totalPeriods =
       Math.round(lectures.reduce((sum, lecture) => sum + lecture.periods, 0)) ||
       null;
-    const courseId = courseIdByJwId.get(
-      stableNumericId("course", course.course_code),
-    );
+    const courseId = courseIdByJwId.get(courseJwId(course));
     if (!courseId) {
       throw new Error(`Missing course id for ${course.course_code}`);
     }
@@ -1464,9 +1556,17 @@ async function importCourses(
       snapshot.listCoursesForSemester(semester.id),
     ]),
   );
-  const scheduleGroupJwIdByCourse = buildScheduleGroupJwIdByCourse(
-    [...coursesBySemesterId.values()].flat(),
-  );
+  const allCourses = [...coursesBySemesterId.values()].flat();
+  const courseIdentityKeyBySourceId =
+    buildStaticCourseIdentityKeyBySourceId(allCourses);
+  const courseJwId = (course: SnapshotCourse) => {
+    const identityKey = courseIdentityKeyBySourceId.get(course.id);
+    if (!identityKey) {
+      throw new Error(`Missing static course identity key for ${course.id}`);
+    }
+    return stableNumericId("course", identityKey);
+  };
+  const scheduleGroupJwIdByCourse = buildScheduleGroupJwIdByCourse(allCourses);
   const state = createImportLookupState();
 
   logger.info(
@@ -1495,6 +1595,7 @@ async function importCourses(
         lecturesByCourse,
         examsByCourse,
         state,
+        courseJwId,
         scheduleGroupJwIdByCourse,
       );
     });

@@ -12,12 +12,24 @@ export async function findExistingBusScheduleVersion(
     versionKey: string;
   },
 ) {
-  return prisma.busScheduleVersion.findFirst({
-    where: {
-      OR: [{ key: versionKey }, { checksum }],
-    },
-    select: { id: true },
-  });
+  const [byKey, byChecksum] = await Promise.all([
+    prisma.busScheduleVersion.findUnique({
+      where: { key: versionKey },
+      select: { id: true, key: true, checksum: true },
+    }),
+    prisma.busScheduleVersion.findUnique({
+      where: { checksum },
+      select: { id: true, key: true, checksum: true },
+    }),
+  ]);
+
+  if (byKey && byChecksum && byKey.id !== byChecksum.id) {
+    throw new Error(
+      `Bus schedule version conflict: key "${versionKey}" belongs to version ${byKey.id}, but checksum "${checksum}" belongs to version ${byChecksum.id}`,
+    );
+  }
+
+  return byKey ?? byChecksum;
 }
 
 export async function refreshExistingBusScheduleVersion(

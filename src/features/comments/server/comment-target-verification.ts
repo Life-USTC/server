@@ -41,8 +41,8 @@ export async function verifyCommentTargetEntity(
     targetType === "section-teacher" &&
     typeof whereTarget.sectionTeacherId === "number"
   ) {
-    const st = await prisma.sectionTeacher.findUnique({
-      where: { id: whereTarget.sectionTeacherId },
+    const st = await prisma.sectionTeacher.findFirst({
+      where: { id: whereTarget.sectionTeacherId, retiredAt: null },
       select: { id: true },
     });
     return st !== null;
