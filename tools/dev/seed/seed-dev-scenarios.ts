@@ -22,6 +22,7 @@ import {
   DEV_SEED,
   getDevScenarioRuntimeConfig,
 } from "./dev-seed";
+import { makeShanghaiSeedDateAt, toShanghaiWeekday } from "./dev-seed-time";
 
 const prisma = createToolPrisma();
 const scenario = scenarioData;
@@ -230,23 +231,12 @@ type DevBusSeed = {
   effectiveUntil: Date | null;
 };
 
-const SEED_ANCHOR_DATE = new Date(2026, 3, 29, 0, 0, 0, 0);
-
 function makeDateAt(hour: number, minute: number, offsetDays = 0) {
-  return new Date(
-    SEED_ANCHOR_DATE.getFullYear(),
-    SEED_ANCHOR_DATE.getMonth(),
-    SEED_ANCHOR_DATE.getDate() + offsetDays,
-    hour,
-    minute,
-    0,
-    0,
-  );
+  return makeShanghaiSeedDateAt(hour, minute, offsetDays);
 }
 
 function toWeekday(date: Date) {
-  const day = date.getDay();
-  return day === 0 ? 7 : day;
+  return toShanghaiWeekday(date);
 }
 
 async function resolveDevBusSeed(): Promise<DevBusSeed> {
