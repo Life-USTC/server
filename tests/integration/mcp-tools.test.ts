@@ -1625,8 +1625,12 @@ describe("dashboard link tools — list/search and pin state", () => {
       total?: number;
       returned?: number;
       dashboardLinks?: Array<{
+        clickCount?: number;
+        descriptionPinyin?: string;
+        icon?: string;
         slug?: string;
         title?: string;
+        titlePinyin?: string;
         url?: string;
         group?: string;
         isPinned?: boolean;
@@ -1651,6 +1655,9 @@ describe("dashboard link tools — list/search and pin state", () => {
       group: "mostClicked",
       isPinned: false,
     });
+    expect(mail).not.toHaveProperty("clickCount");
+    expect(mail).not.toHaveProperty("titlePinyin");
+    expect(mail).not.toHaveProperty("descriptionPinyin");
   });
 
   it("set_dashboard_link_pin_state pins and unpins for the MCP user", async () => {
