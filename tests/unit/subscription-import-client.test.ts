@@ -140,9 +140,9 @@ describe("subscription import client", () => {
   it("extracts and deduplicates schema-valid section code tokens", () => {
     expect(
       extractSubscriptionSectionCodes(
-        "MATH.01 math.01 CS_A-2.03 cs-a_2 MATH.01",
+        "MATH101 MATH.01 math.01 CS_A-2.03 cs-a_2 MATH.01",
       ),
-    ).toEqual(["MATH.01", "math.01", "CS_A-2.03", "cs-a_2"]);
+    ).toEqual(["MATH101", "MATH.01", "math.01", "CS_A-2.03", "cs-a_2"]);
   });
 
   it("ignores tokens rejected by the shared section code schema", () => {
@@ -161,9 +161,9 @@ describe("subscription import client", () => {
 
     expect(
       extractSubscriptionSectionCodes(
-        `Paste ${prose} 2026-06-01 09.30 001013.01 math_01 cs-a_2 DEV-CS201.01 math_01`,
+        `Paste ${prose} 2026-06-01 09.30 MATH101 001013.01 math_01 cs-a_2 DEV-CS201.01 math_01`,
       ),
-    ).toEqual(["001013.01", "math_01", "cs-a_2", "DEV-CS201.01"]);
+    ).toEqual(["MATH101", "001013.01", "math_01", "cs-a_2", "DEV-CS201.01"]);
   });
 
   it("strips sentence delimiters from pasted section code tokens", () => {
