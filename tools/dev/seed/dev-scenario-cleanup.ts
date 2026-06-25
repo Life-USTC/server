@@ -44,6 +44,7 @@ export async function cleanupDevScenarioData(
   // or constant; userSuspension also fits because it doesn't FK into the
   // tables above).
   await Promise.all([
+    prisma.jwks.deleteMany(),
     prisma.session.deleteMany({
       where: {
         sessionToken: { startsWith: `${DEV_SCENARIO_KEY_PREFIX}session-` },
