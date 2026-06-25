@@ -501,13 +501,11 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
         throw new Error("create_comment returned no comment id");
       }
 
-      const createAudit = commentId
-        ? await findCommentAuditLog({
-            action: "comment_create",
-            commentId,
-            metadata: { source: "mcp" },
-          })
-        : null;
+      const createAudit = await findCommentAuditLog({
+        action: "comment_create",
+        commentId,
+        metadata: { source: "mcp" },
+      });
       expect(createAudit?.metadata).toMatchObject({
         body: `${marker} created`,
         source: "mcp",
@@ -539,13 +537,11 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
         canEdit: true,
       });
 
-      const editAudit = commentId
-        ? await findCommentAuditLog({
-            action: "comment_edit",
-            commentId,
-            metadata: { source: "mcp" },
-          })
-        : null;
+      const editAudit = await findCommentAuditLog({
+        action: "comment_edit",
+        commentId,
+        metadata: { source: "mcp" },
+      });
       expect(editAudit?.metadata).toMatchObject({
         body: `${marker} updated`,
         source: "mcp",
@@ -561,13 +557,11 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
 
       expect(addedReaction).toEqual({ success: true, changed: true });
 
-      const addReactionAudit = commentId
-        ? await findCommentAuditLog({
-            action: "comment_react",
-            commentId,
-            metadata: { operation: "add", source: "mcp", type: "heart" },
-          })
-        : null;
+      const addReactionAudit = await findCommentAuditLog({
+        action: "comment_react",
+        commentId,
+        metadata: { operation: "add", source: "mcp", type: "heart" },
+      });
       expect(addReactionAudit?.metadata).toMatchObject({
         operation: "add",
         source: "mcp",
@@ -584,13 +578,11 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
 
       expect(removedReaction).toEqual({ success: true, changed: true });
 
-      const removeReactionAudit = commentId
-        ? await findCommentAuditLog({
-            action: "comment_react",
-            commentId,
-            metadata: { operation: "remove", source: "mcp", type: "heart" },
-          })
-        : null;
+      const removeReactionAudit = await findCommentAuditLog({
+        action: "comment_react",
+        commentId,
+        metadata: { operation: "remove", source: "mcp", type: "heart" },
+      });
       expect(removeReactionAudit?.metadata).toMatchObject({
         operation: "remove",
         source: "mcp",
@@ -604,13 +596,11 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
 
       expect(deleted).toEqual({ success: true });
 
-      const deleteAudit = commentId
-        ? await findCommentAuditLog({
-            action: "comment_delete",
-            commentId,
-            metadata: { source: "mcp" },
-          })
-        : null;
+      const deleteAudit = await findCommentAuditLog({
+        action: "comment_delete",
+        commentId,
+        metadata: { source: "mcp" },
+      });
       expect(deleteAudit?.metadata).toMatchObject({ source: "mcp" });
     } finally {
       if (commentId) {
