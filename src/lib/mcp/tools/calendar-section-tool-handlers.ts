@@ -1,5 +1,5 @@
 import { findSectionCompactByJwId } from "@/features/catalog/server/course-section-queries";
-import { importUserSectionSubscriptionsByCodes } from "@/features/home/server/subscriptions";
+import { importUserSectionSubscriptionsByCodes } from "@/features/subscriptions/server/subscriptions";
 import type { AppLocale } from "@/i18n/config";
 import {
   getUserId,

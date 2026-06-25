@@ -12,7 +12,7 @@ export async function getSubscribedHomeworksRoute(request: Request) {
     const [{ getViewerContext }, subscriptionReadModel, homeworkItemState] =
       await Promise.all([
         import("@/lib/auth/viewer-context"),
-        import("@/features/home/server/subscription-read-model"),
+        import("@/features/subscriptions/server/subscription-read-model"),
         import("@/features/homeworks/server/homework-item-state"),
       ]);
     const {

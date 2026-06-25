@@ -1,4 +1,5 @@
 import { getCurrentSemester } from "@/features/catalog/server/academic-metadata-read-model";
+import { getSubscribedSectionIds } from "@/features/subscriptions/server/subscription-read-model";
 import {
   countIncompleteTodos,
   listTodoSnapshots,
@@ -11,7 +12,6 @@ import {
   resolveAssistantBusSnapshot,
 } from "./assistant-dashboard-snapshot-helpers";
 import { listUserCalendarEvents } from "./calendar-events";
-import { getSubscribedSectionIds } from "./subscription-read-model";
 
 export async function loadAssistantDashboardSnapshotData(input: {
   dateTo: Date;

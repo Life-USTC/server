@@ -4,7 +4,7 @@ import {
   extractSubscriptionSectionCodes,
   matchSubscriptionSectionCodes,
   removeSubscribedSectionIds,
-} from "@/features/home/lib/subscription-import-client";
+} from "@/features/subscriptions/lib/subscription-import-client";
 
 const jsonResponse = (body: unknown, init?: ResponseInit) =>
   new Response(JSON.stringify(body), {

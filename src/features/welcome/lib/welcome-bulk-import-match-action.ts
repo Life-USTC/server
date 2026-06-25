@@ -1,7 +1,7 @@
 import {
   extractSubscriptionSectionCodes,
   matchSubscriptionSectionCodes,
-} from "@/features/home/lib/subscription-import-client";
+} from "@/features/subscriptions/lib/subscription-import-client";
 import type { WelcomeBulkImportActionInput } from "./welcome-bulk-import-action-types";
 
 export async function matchWelcomeBulkImportSections(

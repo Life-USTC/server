@@ -20,7 +20,9 @@ async function updateSectionSubscription({
   if (!userId) return fail(401, { error: copy.loginRequired });
   const jwId = parseSectionJwId(params.jwId);
   if (jwId === null) return fail(400, { error: copy.operationFailed });
-  const subscriptions = await import("@/features/home/server/subscriptions");
+  const subscriptions = await import(
+    "@/features/subscriptions/server/subscriptions"
+  );
   const result =
     action === "subscribe"
       ? await subscriptions.subscribeUserToSectionByJwId(userId, jwId)

@@ -20,7 +20,7 @@ export async function getCurrentCalendarSubscriptionRoute(request: Request) {
     const { userId } = auth;
 
     const { getUserCalendarSubscription } = await import(
-      "@/features/home/server/subscription-read-model"
+      "@/features/subscriptions/server/subscription-read-model"
     );
     const subscription = await getUserCalendarSubscription(
       userId,
@@ -54,7 +54,7 @@ export async function postCalendarSubscriptionsRoute(request: Request) {
 
     const sectionIds = parsedBody.sectionIds ?? [];
     const { replaceUserSectionSubscriptions } = await import(
-      "@/features/home/server/subscriptions"
+      "@/features/subscriptions/server/subscriptions"
     );
     const subscription = await replaceUserSectionSubscriptions(
       userId,
@@ -83,7 +83,7 @@ export async function postCalendarSubscriptionImportCodesRoute(
 
     const locale = getRequestLocale(request);
     const { importUserSectionSubscriptionsByCodes } = await import(
-      "@/features/home/server/subscriptions"
+      "@/features/subscriptions/server/subscriptions"
     );
     const result = await importUserSectionSubscriptionsByCodes({
       codes: parsedBody.codes,
@@ -131,7 +131,7 @@ export async function patchCalendarSubscriptionsRoute(request: Request) {
     }
 
     const { appendUserSectionSubscriptions } = await import(
-      "@/features/home/server/subscriptions"
+      "@/features/subscriptions/server/subscriptions"
     );
     const result = await appendUserSectionSubscriptions({
       locale: getRequestLocale(request),
@@ -164,7 +164,7 @@ export async function deleteCalendarSubscriptionsRoute(request: Request) {
     }
 
     const { getUserCalendarSubscription, removeUserSectionSubscriptions } =
-      await import("@/features/home/server/subscriptions");
+      await import("@/features/subscriptions/server/subscriptions");
     const result = await removeUserSectionSubscriptions(
       userId,
       parsedBody.sectionIds,

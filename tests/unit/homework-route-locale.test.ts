@@ -31,7 +31,7 @@ vi.mock("@/lib/auth/viewer-context", () => ({
   getViewerContext: getViewerContextMock,
 }));
 
-vi.mock("@/features/home/server/subscription-read-model", () => ({
+vi.mock("@/features/subscriptions/server/subscription-read-model", () => ({
   getSubscribedSectionIds: getSubscribedSectionIdsMock,
   listSubscribedHomeworkAuditLogs: listSubscribedHomeworkAuditLogsMock,
   listSubscribedHomeworks: listSubscribedHomeworksMock,

@@ -1,3 +1,4 @@
+import { listSubscribedHomeworks } from "@/features/subscriptions/server/subscription-read-model";
 import { buildSemesterCalendarPayload } from "./dashboard-overview-calendar";
 import { resolveDashboardOverviewContext } from "./dashboard-overview-context";
 import { getDashboardOverviewLinksData } from "./dashboard-overview-links";
@@ -7,7 +8,6 @@ import type {
   OverviewData,
   OverviewDataOptions,
 } from "./dashboard-overview-types";
-import { listSubscribedHomeworks } from "./subscription-read-model";
 
 export {
   type DashboardNavStats,

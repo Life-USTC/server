@@ -1,11 +1,11 @@
 import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
-import { listDueTodoSnapshots } from "@/features/todos/server/todo-service";
 import {
   getSubscribedSectionIds,
   listSubscribedExams,
   listSubscribedHomeworks,
   listSubscribedSchedules,
-} from "./subscription-read-model";
+} from "@/features/subscriptions/server/subscription-read-model";
+import { listDueTodoSnapshots } from "@/features/todos/server/todo-service";
 
 export async function loadCalendarEventSources({
   calendarDateEnd,

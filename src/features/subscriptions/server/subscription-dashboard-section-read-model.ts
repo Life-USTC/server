@@ -1,11 +1,11 @@
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma } from "@/lib/db/prisma";
-import type { SectionWithRelations } from "./dashboard-types";
 import {
   mapDashboardExamRow,
   mapDashboardScheduleRow,
   subscriptionScheduleDateFilter,
 } from "./subscription-dashboard-section-mapping";
+import type { SectionWithRelations } from "./subscription-dashboard-types";
 import {
   groupByField,
   withSubscribedSections,

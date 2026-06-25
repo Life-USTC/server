@@ -1,6 +1,6 @@
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma } from "@/lib/db/prisma";
-import type { HomeworkWithSection } from "./dashboard-types";
+import type { HomeworkWithSection } from "./subscription-dashboard-types";
 import {
   buildDashboardHomeworkSelect,
   buildSubscribedHomeworkInclude,

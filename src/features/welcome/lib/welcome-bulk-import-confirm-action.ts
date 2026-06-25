@@ -1,4 +1,4 @@
-import { appendSubscribedSectionIds } from "@/features/home/lib/subscription-import-client";
+import { appendSubscribedSectionIds } from "@/features/subscriptions/lib/subscription-import-client";
 import type { WelcomeBulkImportActionInput } from "./welcome-bulk-import-action-types";
 import { resetWelcomeBulkImport } from "./welcome-bulk-import-reset-actions";
 

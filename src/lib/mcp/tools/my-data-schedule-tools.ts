@@ -3,7 +3,7 @@ import * as z from "zod";
 import {
   listSubscribedExams,
   listSubscribedSchedules,
-} from "@/features/home/server/subscription-read-model";
+} from "@/features/subscriptions/server/subscription-read-model";
 import {
   flexDateInputSchema,
   getUserId,

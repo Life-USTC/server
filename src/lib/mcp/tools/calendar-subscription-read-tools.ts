@@ -1,7 +1,7 @@
 import {
   getUserCalendarSubscription,
   SECTION_SUBSCRIPTION_NOTE,
-} from "@/features/home/server/subscription-read-model";
+} from "@/features/subscriptions/server/subscription-read-model";
 import {
   getUserId,
   jsonToolResult,

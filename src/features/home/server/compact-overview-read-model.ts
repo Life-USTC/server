@@ -1,5 +1,12 @@
 import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
 import {
+  countUpcomingSubscribedExams,
+  getSubscribedSectionIds,
+  listSubscribedHomeworks,
+  listSubscribedSchedules,
+  listUpcomingSubscribedExams,
+} from "@/features/subscriptions/server/subscription-read-model";
+import {
   countDueTodos,
   listDueTodoSamples,
   listTodoSummary,
@@ -10,13 +17,6 @@ import { serializeScheduleTimeFields } from "@/lib/schedule-serialization";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { formatShanghaiDate } from "@/lib/time/shanghai-format";
-import {
-  countUpcomingSubscribedExams,
-  getSubscribedSectionIds,
-  listSubscribedHomeworks,
-  listSubscribedSchedules,
-  listUpcomingSubscribedExams,
-} from "./subscription-read-model";
 
 const DEFAULT_OVERVIEW_LIMIT = 3;
 const DEFAULT_HOMEWORK_WINDOW_DAYS = 7;
