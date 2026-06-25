@@ -1,3 +1,10 @@
+## [1.37.15](https://github.com/Life-USTC/server/compare/v1.37.14...v1.37.15) (2026-06-25)
+
+
+### Bug Fixes
+
+* **ui:** stabilize comment uploads and dashboard pins ([df3fccf](https://github.com/Life-USTC/server/commit/df3fccfab0a6626a1d3d9457fcc56a9a30fac308))
+
 ## [1.37.14](https://github.com/Life-USTC/server/compare/v1.37.13...v1.37.14) (2026-06-25)
 
 
