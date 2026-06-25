@@ -9,7 +9,7 @@ import type {
   BusRouteTimetable,
 } from "../lib/bus-types";
 import { getBusCampuses } from "./bus-campus-records";
-import { getRouteRecords, getVersionRouteIds } from "./bus-route-records";
+import { getBusVersionTopology, getVersionRouteIds } from "./bus-route-records";
 import { findEffectiveBusVersion } from "./bus-version";
 
 export async function listBusRoutes(
@@ -17,21 +17,22 @@ export async function listBusRoutes(
 ): Promise<{ routes: BusRouteListing[]; campuses: BusCampusSummary[] }> {
   const dateKey = shanghaiDayjs().format("YYYY-MM-DD");
   const version = await findEffectiveBusVersion(dateKey);
+  if (!version) {
+    return { routes: [], campuses: await getBusCampuses(locale) };
+  }
 
-  const [records, campuses, versionRouteIds] = await Promise.all([
-    getRouteRecords(locale),
-    getBusCampuses(locale),
-    version
-      ? getVersionRouteIds(version.id)
-      : Promise.resolve(new Set<number>()),
+  const [topology, versionRouteIds] = await Promise.all([
+    getBusVersionTopology(locale, version.id),
+    getVersionRouteIds(version.id),
   ]);
+  if (!topology) return { routes: [], campuses: [] };
 
-  const routes = records
+  const routes = topology.routes
     .filter((record) => versionRouteIds.has(record.id))
     .map((r) => toRouteListing(locale, r))
     .filter((r): r is BusRouteListing => r != null);
 
-  return { routes, campuses };
+  return { routes, campuses: topology.campuses };
 }
 
 export async function getBusRouteTimetable(input: {
@@ -46,7 +47,10 @@ export async function getBusRouteTimetable(input: {
   const version = await findEffectiveBusVersion(dateKey, input.versionKey);
   if (!version) return null;
 
-  const records = await getRouteRecords(locale);
+  const topology = await getBusVersionTopology(locale, version.id);
+  if (!topology) return null;
+
+  const records = topology.routes;
   const record = records.find((r) => r.id === input.routeId);
   if (!record) return null;
   const listing = toRouteListing(locale, record);

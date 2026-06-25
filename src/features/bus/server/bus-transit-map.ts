@@ -8,8 +8,7 @@ import {
   buildBusRouteTripCounts,
 } from "../lib/bus-map-route-edges";
 import type { BusMapCampusNode, BusMapData } from "../lib/bus-types";
-import { getBusCampuses } from "./bus-campus-records";
-import { getRouteRecords } from "./bus-route-records";
+import { getBusVersionTopology } from "./bus-route-records";
 import { findEffectiveBusVersion } from "./bus-version";
 
 export async function getBusMapData(input: {
@@ -24,18 +23,18 @@ export async function getBusMapData(input: {
   const version = await findEffectiveBusVersion(dateKey, input.versionKey);
   if (!version) return null;
 
-  const [records, campuses, allTrips] = await Promise.all([
-    getRouteRecords(locale),
-    getBusCampuses(locale),
+  const [topology, allTrips] = await Promise.all([
+    getBusVersionTopology(locale, version.id),
     prisma.busTrip.findMany({
       where: { versionId: version.id },
       orderBy: [{ dayType: "asc" }, { routeId: "asc" }, { position: "asc" }],
     }),
   ]);
+  if (!topology) return null;
 
   const tripCounts = buildBusRouteTripCounts(allTrips);
 
-  const campusNodes: BusMapCampusNode[] = campuses.map((c) => ({
+  const campusNodes: BusMapCampusNode[] = topology.campuses.map((c) => ({
     id: c.id,
     namePrimary: c.namePrimary,
     nameSecondary: c.nameSecondary,
@@ -45,7 +44,7 @@ export async function getBusMapData(input: {
 
   const routeEdges = buildBusRouteEdges({
     locale,
-    records,
+    records: topology.routes,
     tripCounts,
   });
 
