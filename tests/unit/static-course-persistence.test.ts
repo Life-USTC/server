@@ -95,6 +95,34 @@ describe("static course persistence", () => {
     });
   });
 
+  it("does not clear section fields the static source does not own on conflict", async () => {
+    const { db, rawCalls } = createFakeDb();
+
+    await upsertSections(db, [
+      {
+        jwId: 11,
+        code: "001",
+        credits: 3,
+        period: 48,
+        dateTimePlaceText: "text",
+        dateTimePlacePersonText: null,
+        actualPeriods: 48,
+        scheduleState: null,
+        remark: null,
+        courseId: 21,
+        semesterId: 31,
+        openDepartmentId: null,
+      },
+    ]);
+
+    expect(rawCalls).toHaveLength(1);
+    expect(rawCalls[0].sql).not.toMatch(/"periodsPerWeek"\s*=\s*NULL/);
+    expect(rawCalls[0].sql).not.toMatch(/"timesPerWeek"\s*=\s*NULL/);
+    expect(rawCalls[0].sql).not.toMatch(/"stdCount"\s*=\s*NULL/);
+    expect(rawCalls[0].sql).not.toMatch(/"limitCount"\s*=\s*NULL/);
+    expect(rawCalls[0].sql).not.toMatch(/"graduateAndPostgraduate"\s*=\s*NULL/);
+  });
+
   it("replaces section teachers and retires stale teacher targets", async () => {
     const { db, rawCalls } = createFakeDb();
 
