@@ -7084,8 +7084,9 @@
           "sectionJwId": {
             "anyOf": [
               {
-                "type": "string",
-                "minLength": 1
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
               },
               {
                 "type": "integer",
@@ -7097,8 +7098,9 @@
           "courseJwId": {
             "anyOf": [
               {
-                "type": "string",
-                "minLength": 1
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
               },
               {
                 "type": "integer",
