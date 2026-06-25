@@ -81,7 +81,7 @@ jobs:
 
       - name: Publish screenshot previews
         id: previews
-        if: ${{ always() }}
+        if: ${{ steps.snapshots.outcome == 'success' }}
         shell: bash
         run: >
           bun run snapshot:publish-previews --

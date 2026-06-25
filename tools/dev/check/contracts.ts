@@ -1,10 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import Ajv2020 from "ajv/dist/2020";
-import {
-  getExportedRouteMethods,
-  type HttpMethod,
-} from "../../shared/route-exports";
+import { getExportedRouteMethods } from "../../shared/route-exports";
 import { fail, reportUnexpectedError, walkFiles } from "./common";
 
 function checkContractsDoc() {
@@ -129,13 +126,6 @@ function checkContractsDoc() {
   }
 
   function collectImplementedRestRoutes(): Set<string> {
-    const contractMethods = [
-      "GET",
-      "POST",
-      "PUT",
-      "PATCH",
-      "DELETE",
-    ] as const satisfies readonly HttpMethod[];
     const routes = new Set<string>();
 
     for (const routeRoot of restRouteRoots) {
@@ -144,8 +134,15 @@ function checkContractsDoc() {
       )) {
         const source = readFileSync(file, "utf8");
         const routePath = parseImplementedRoutePath(file);
-        for (const method of getExportedRouteMethods(source, contractMethods)) {
+        const exportedMethods = getExportedRouteMethods(source);
+        for (const method of exportedMethods) {
           routes.add(`${method} ${routePath}`);
+        }
+        if (
+          exportedMethods.includes("GET") &&
+          !exportedMethods.includes("HEAD")
+        ) {
+          routes.add(`HEAD ${routePath}`);
         }
       }
     }
@@ -437,6 +434,7 @@ function checkContractsDoc() {
   function isImplementedRestRouteIgnored(route: string): boolean {
     return (
       route === "GET /api/auth/{auth}" ||
+      route === "HEAD /api/auth/{auth}" ||
       route === "PATCH /api/auth/{auth}" ||
       route === "PUT /api/auth/{auth}" ||
       route === "DELETE /api/auth/{auth}"
@@ -547,7 +545,10 @@ function checkContractsDoc() {
   checkOpenApiSecurityParity(documentedRestRoutes);
 
   const documentedRestRouteKeys = new Set(
-    documentedRestRoutes.map((route) => route.key),
+    documentedRestRoutes.flatMap((route) => {
+      if (route.method !== "GET") return [route.key];
+      return [route.key, `HEAD ${route.path}`];
+    }),
   );
   const implementedRestRoutes = collectImplementedRestRoutes();
 

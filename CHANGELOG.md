@@ -1,3 +1,29 @@
+## [1.39.3](https://github.com/Life-USTC/server/compare/v1.39.2...v1.39.3) (2026-06-25)
+
+
+### Bug Fixes
+
+* **logs:** redact calendar feed path tokens ([42d34af](https://github.com/Life-USTC/server/commit/42d34afc8472f42a28dda5abc98e3a0a4b7f3f34))
+
+## [1.39.2](https://github.com/Life-USTC/server/compare/v1.39.1...v1.39.2) (2026-06-25)
+
+
+### Bug Fixes
+
+* **ci:** avoid duplicate pull request ci runs ([9545e8a](https://github.com/Life-USTC/server/commit/9545e8aaac777bd0690e78bbb0df42620733d130))
+* **ci:** gate release and snapshot previews ([a9e093a](https://github.com/Life-USTC/server/commit/a9e093af4bc8c0536b2c1b68a0b984d78ef71dcd))
+* **ci:** keep snapshot failure comments ([73762bf](https://github.com/Life-USTC/server/commit/73762bf0ec8435c019be7a60983b66f9f1cd5ce0))
+* **loader:** preserve static section fields ([11feeee](https://github.com/Life-USTC/server/commit/11feeeed270adc0d2baf00a6b747a9a07ad39c0a))
+
+## [1.39.1](https://github.com/Life-USTC/server/compare/v1.39.0...v1.39.1) (2026-06-25)
+
+
+### Bug Fixes
+
+* **auth:** bind device grants to API resources ([26cf57b](https://github.com/Life-USTC/server/commit/26cf57bddc7788d975c552e5bbd314aaad2f75f9))
+* **oauth:** avoid refresh tokens for resource-bound device grants ([7bd7ef8](https://github.com/Life-USTC/server/commit/7bd7ef8ed4641f66dc063dcfebfe18334e3b07e2))
+* **oauth:** show device grant resources before approval ([3ce3a5d](https://github.com/Life-USTC/server/commit/3ce3a5d5d7dde1a06d5d43c4364d71d2ebfba842))
+
 # [1.39.0](https://github.com/Life-USTC/server/compare/v1.38.1...v1.39.0) (2026-06-25)
 
 
