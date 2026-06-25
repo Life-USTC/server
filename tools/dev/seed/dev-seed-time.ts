@@ -24,6 +24,16 @@ export function makeShanghaiSeedDateAt(
   );
 }
 
+export function makeSeedDateOnly(offsetDays = 0) {
+  return new Date(
+    Date.UTC(
+      SEED_ANCHOR_YEAR,
+      SEED_ANCHOR_MONTH - 1,
+      SEED_ANCHOR_DAY + offsetDays,
+    ),
+  );
+}
+
 export function toShanghaiWeekday(date: Date) {
   const day = new Date(
     date.getTime() + SHANGHAI_UTC_OFFSET_HOURS * MS_PER_HOUR,
