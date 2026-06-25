@@ -10,11 +10,13 @@ import {
   flattenDiagnosticMessageText,
   parseConfigFileTextToJson,
 } from "typescript";
-import { getDevDebugCredentialConfig } from "./seed/dev-seed";
+import { DEV_SEED } from "./seed/dev-seed";
 
 const PLAYWRIGHT_HOST = "127.0.0.1";
 const DEFAULT_PLAYWRIGHT_PORT = "3000";
 const DEFAULT_WEB_SERVER_TIMEOUT_MS = 300 * 1000;
+const DEFAULT_E2E_DEBUG_PASSWORD = "e2e-debug-local-only";
+const DEFAULT_E2E_ADMIN_PASSWORD = "e2e-admin-local-only";
 const LOCAL_NO_PROXY = "127.0.0.1,localhost,::1";
 const WRANGLER_E2E_CONFIG_PATH = path.join(".wrangler", "e2e", "wrangler.json");
 const WRANGLER_E2E_PERSIST_PATH = path.join(".wrangler", "e2e", "state");
@@ -59,19 +61,15 @@ function parseLocalPlaywrightBaseUrl(value: string) {
   return url;
 }
 
-function buildPlaywrightDebugAuthEnv(env: NodeJS.ProcessEnv) {
-  const credentials = getDevDebugCredentialConfig(env);
-
+function buildPlaywrightDebugAuthEnv() {
   return {
     E2E_DEBUG_AUTH: "1",
-    DEV_DEBUG_USERNAME: credentials.debug.username,
-    DEV_DEBUG_NAME: credentials.debug.name,
-    DEV_DEBUG_EMAIL: credentials.debug.email,
-    DEV_DEBUG_PASSWORD: credentials.debug.password,
-    DEV_ADMIN_USERNAME: credentials.admin.username,
-    DEV_ADMIN_NAME: credentials.admin.name,
-    DEV_ADMIN_EMAIL: credentials.admin.email,
-    DEV_ADMIN_PASSWORD: credentials.admin.password,
+    DEV_DEBUG_USERNAME: DEV_SEED.debugUsername,
+    DEV_DEBUG_NAME: DEV_SEED.debugName,
+    DEV_DEBUG_PASSWORD: DEFAULT_E2E_DEBUG_PASSWORD,
+    DEV_ADMIN_USERNAME: DEV_SEED.adminUsername,
+    DEV_ADMIN_NAME: DEV_SEED.adminName,
+    DEV_ADMIN_PASSWORD: DEFAULT_E2E_ADMIN_PASSWORD,
   };
 }
 
@@ -143,7 +141,7 @@ export function buildPlaywrightServerEnv(options: {
         hyperdriveLocalConnection,
       NO_PROXY: appendLocalNoProxy(env.NO_PROXY),
       no_proxy: appendLocalNoProxy(env.no_proxy),
-      ...buildPlaywrightDebugAuthEnv(env),
+      ...buildPlaywrightDebugAuthEnv(),
     }).filter(([, value]) => value !== undefined),
   ) as Record<string, string>;
 

@@ -137,51 +137,47 @@ export const DEV_SCENARIO_IDS = {
 const DEFAULT_DEV_DEBUG_PASSWORD = "dev-debug-password";
 const DEFAULT_DEV_ADMIN_PASSWORD = "dev-admin-password";
 
-function getTrimmedEnv(env: NodeJS.ProcessEnv, name: string) {
-  const value = env[name]?.trim();
+function getTrimmedEnv(name: string) {
+  const value = process.env[name]?.trim();
   return value || undefined;
 }
 
-function getLowercaseEnv(env: NodeJS.ProcessEnv, name: string) {
-  return getTrimmedEnv(env, name)?.toLowerCase();
+function getLowercaseEnv(name: string) {
+  return getTrimmedEnv(name)?.toLowerCase();
 }
 
-export function getDevScenarioRuntimeConfig(
-  env: NodeJS.ProcessEnv = process.env,
-) {
+export function getDevScenarioRuntimeConfig() {
   return {
     debugUsername:
-      getLowercaseEnv(env, "DEV_DEBUG_USERNAME") ?? DEV_SEED.debugUsername,
-    debugName: getTrimmedEnv(env, "DEV_DEBUG_NAME") ?? DEV_SEED.debugName,
+      getLowercaseEnv("DEV_DEBUG_USERNAME") ?? DEV_SEED.debugUsername,
+    debugName: getTrimmedEnv("DEV_DEBUG_NAME") ?? DEV_SEED.debugName,
     adminUsername:
-      getLowercaseEnv(env, "DEV_ADMIN_USERNAME") ?? DEV_SEED.adminUsername,
-    adminName: getTrimmedEnv(env, "DEV_ADMIN_NAME") ?? DEV_SEED.adminName,
+      getLowercaseEnv("DEV_ADMIN_USERNAME") ?? DEV_SEED.adminUsername,
+    adminName: getTrimmedEnv("DEV_ADMIN_NAME") ?? DEV_SEED.adminName,
   };
 }
 
-export function getDevDebugCredentialConfig(
-  env: NodeJS.ProcessEnv = process.env,
-) {
-  const runtimeConfig = getDevScenarioRuntimeConfig(env);
+export function getDevDebugCredentialConfig() {
+  const runtimeConfig = getDevScenarioRuntimeConfig();
 
   return {
     debug: {
       username: runtimeConfig.debugUsername,
       name: runtimeConfig.debugName,
       email:
-        getLowercaseEnv(env, "DEV_DEBUG_EMAIL") ??
+        getLowercaseEnv("DEV_DEBUG_EMAIL") ??
         `${runtimeConfig.debugUsername}@debug.local`,
       password:
-        getTrimmedEnv(env, "DEV_DEBUG_PASSWORD") ?? DEFAULT_DEV_DEBUG_PASSWORD,
+        getTrimmedEnv("DEV_DEBUG_PASSWORD") ?? DEFAULT_DEV_DEBUG_PASSWORD,
     },
     admin: {
       username: runtimeConfig.adminUsername,
       name: runtimeConfig.adminName,
       email:
-        getLowercaseEnv(env, "DEV_ADMIN_EMAIL") ??
+        getLowercaseEnv("DEV_ADMIN_EMAIL") ??
         `${runtimeConfig.adminUsername}@debug.local`,
       password:
-        getTrimmedEnv(env, "DEV_ADMIN_PASSWORD") ?? DEFAULT_DEV_ADMIN_PASSWORD,
+        getTrimmedEnv("DEV_ADMIN_PASSWORD") ?? DEFAULT_DEV_ADMIN_PASSWORD,
     },
   };
 }

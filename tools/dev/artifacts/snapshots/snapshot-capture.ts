@@ -35,7 +35,6 @@ import {
   launchSnapshotBrowser,
   signInForSnapshot,
 } from "./snapshot-runtime";
-import { httpSnapshotError } from "./snapshot-status";
 
 async function requestForAuth(
   requests: Map<SnapshotAuth, APIRequestContext>,
@@ -163,7 +162,7 @@ async function captureApiSnapshots() {
           await writeTextFile(path.join(dir, "response.txt"), text);
         }
 
-        const error = httpSnapshotError({
+        const error = apiSnapshotError({
           expectedStatus: snapshotCase.expectedStatus,
           ok: response.ok(),
           status: response.status(),
@@ -242,6 +241,24 @@ function textContentFromResult(result: unknown) {
       typeof entry.text === "string",
   );
   return text?.text;
+}
+
+function apiSnapshotError({
+  expectedStatus,
+  ok,
+  status,
+}: {
+  expectedStatus: number | undefined;
+  ok: boolean;
+  status: number;
+}) {
+  if (expectedStatus !== undefined && status !== expectedStatus) {
+    return `Expected HTTP ${expectedStatus}, received ${status}`;
+  }
+  if (expectedStatus === undefined && !ok) {
+    return `Unexpected HTTP ${status}`;
+  }
+  return undefined;
 }
 
 function mcpSnapshotError(result: unknown) {
@@ -769,13 +786,6 @@ async function capturePageSnapshots() {
           fullPage: snapshotCase.fullPage ?? true,
         });
 
-        const status = response?.status() ?? null;
-        const ok = response?.ok() ?? null;
-        const error = httpSnapshotError({
-          expectedStatus: snapshotCase.expectedStatus,
-          ok,
-          status,
-        });
         const metadata = {
           id: snapshotCase.id,
           kind: "page",
@@ -783,12 +793,10 @@ async function capturePageSnapshots() {
           requestedPath,
           pathTemplate: snapshotCase.path,
           finalUrl: page.url(),
-          status,
-          expectedStatus: snapshotCase.expectedStatus,
-          ok,
+          status: response?.status() ?? null,
+          ok: response?.ok() ?? null,
           title: await page.title(),
           note: snapshotCase.note,
-          error,
           durationMs: Math.round(performance.now() - startedAt),
           screenshot: relativeFromRoot(screenshotPath),
           screenshotSha256: await sha256File(screenshotPath),
