@@ -1,3 +1,16 @@
+## [1.39.4](https://github.com/Life-USTC/server/compare/v1.39.3...v1.39.4) (2026-06-25)
+
+
+### Bug Fixes
+
+* **api:** align comment create target identifiers ([7adedc7](https://github.com/Life-USTC/server/commit/7adedc7c79808f3cefdc09735451be256dbab661))
+* **api:** document comment jw id constraints ([2465e6f](https://github.com/Life-USTC/server/commit/2465e6feeaa3ec52565556c9cc1268735a97713f))
+* **api:** reject malformed comment jw ids ([94ec8d4](https://github.com/Life-USTC/server/commit/94ec8d4ef772f6d534020c76b5dfa21468c70777))
+* **api:** validate section teacher comment ids ([24e21eb](https://github.com/Life-USTC/server/commit/24e21ebfaaf80d1e92a923f1d2eafe97bee2ddaa))
+* **contracts:** account for implicit head routes ([549e9c5](https://github.com/Life-USTC/server/commit/549e9c5bc1dd09bbb9fd7330ddded0334f78804d))
+* **contracts:** document oauth preflight routes ([ebca2e8](https://github.com/Life-USTC/server/commit/ebca2e88108f0620b6c0c2f6042649ab725a2ea8))
+* **contracts:** include preflight route parity ([4cacfea](https://github.com/Life-USTC/server/commit/4cacfeafa6a6bc5831857af1fdbca1a4a48a0f01))
+
 ## [1.39.3](https://github.com/Life-USTC/server/compare/v1.39.2...v1.39.3) (2026-06-25)
 
 
