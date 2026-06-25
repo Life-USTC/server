@@ -1,3 +1,11 @@
+## [1.37.11](https://github.com/Life-USTC/server/compare/v1.37.10...v1.37.11) (2026-06-25)
+
+
+### Reverts
+
+* Revert "chore(release): 1.37.10 [skip ci]" ([8c28640](https://github.com/Life-USTC/server/commit/8c28640974dab9975878873569f0ae30dc2f3898))
+* Revert "fix: harden bus imports and preferences" ([7727aed](https://github.com/Life-USTC/server/commit/7727aedb010e8cc896141d72522c720a9b651b18))
+
 ## [1.37.8](https://github.com/Life-USTC/server/compare/v1.37.7...v1.37.8) (2026-06-25)
 
 
