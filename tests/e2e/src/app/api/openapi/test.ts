@@ -212,7 +212,6 @@ test.describe("GET /api/openapi", () => {
       { sessionCookie: [] },
     ]);
     expect(body.paths?.["/api/admin/users"]?.get?.security).toEqual([
-      { bearerAuth: [] },
       { sessionCookie: [] },
     ]);
     expect(body.paths?.["/api/admin/users"]?.get?.["x-auth-role"]).toBe(
