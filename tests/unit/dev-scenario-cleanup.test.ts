@@ -1,6 +1,7 @@
 import { cleanupDevScenarioData } from "@tools/dev/seed/dev-scenario-cleanup";
-import type { ToolPrismaClient } from "@tools/shared/tool-prisma";
 import { describe, expect, it, vi } from "vitest";
+
+type PrismaMock = Record<string, Record<string, ReturnType<typeof vi.fn>>>;
 
 function createPrismaMock() {
   const methods = new Map<string, ReturnType<typeof vi.fn>>();
@@ -37,7 +38,7 @@ function createPrismaMock() {
         return delegates.get(modelKey);
       },
     },
-  ) as ToolPrismaClient;
+  ) as PrismaMock;
 
   return { prisma, methods };
 }
@@ -46,7 +47,7 @@ describe("cleanupDevScenarioData", () => {
   it("clears Better Auth JWKS rows with the dev auth fixture state", async () => {
     const { prisma, methods } = createPrismaMock();
 
-    await cleanupDevScenarioData(prisma, ["debug-user-id"], {
+    await cleanupDevScenarioData(prisma as never, ["debug-user-id"], {
       removeBusVersion: false,
       removePersonalState: false,
     });
