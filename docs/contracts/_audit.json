@@ -21,8 +21,8 @@
       "description": "User updates an object description (content changed)."
     },
     "upload_delete": {
-      "trigger": "DELETE /api/uploads/[id]",
-      "description": "User deletes an upload they own."
+      "trigger": "DELETE /api/uploads/[id] or MCP delete_my_upload",
+      "description": "User deletes an upload they own. MCP-originated writes include metadata.source=mcp."
     },
     "admin_user_suspend": {
       "trigger": "POST /api/admin/suspensions",

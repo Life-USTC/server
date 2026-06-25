@@ -4,7 +4,7 @@
     "anon": "Can read homework information under public sections, but cannot create, update, or delete.",
     "user": "When signed in and not suspended, can create and update homework; delete permission is limited to the creator and admins; each user can only manage their own homework completion state.",
     "admin": "Can delete homework and participate in governance.",
-    "agent": "After authorization, can read, create, and update homework and set the current user's completion state; both REST and MCP currently provide this capability."
+    "agent": "After authorization, can read, create, update, and delete permitted homework and set the current user's completion state; both REST and MCP currently provide this capability."
   },
   "rules": {
     "attached-to-section": "Homework is attached to a section, not a personal user todo.",
@@ -135,6 +135,16 @@
             "notes": [
               "Accepts locale for the returned homework snapshot, matching create/list localization.",
               "Returns the updated homework snapshot after metadata and/or description changes are applied."
+            ]
+          },
+          {
+            "name": "delete_homework_on_section",
+            "auth": "user",
+            "returns": "{ success: Boolean, deletedId: String, alreadyDeleted: Boolean }",
+            "rest_equivalent": "DELETE /api/homeworks/[id]",
+            "notes": [
+              "Requires an unsuspended signed-in creator or admin, matching REST delete permission.",
+              "Deletes through the shared homework mutation so soft-delete and homework audit behavior stay shared."
             ]
           }
         ]
