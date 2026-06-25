@@ -1,10 +1,11 @@
-import { createHash } from "node:crypto";
 import type { PrismaClient } from "../../src/generated/prisma-node/client";
 import {
+  buildCollisionCheckedStaticNumericIds,
   buildStaticCourseIdentityKeyBySourceId,
   buildStaticCourseImportRows,
   type StaticTeacherReference,
   splitStaticTeacherNames,
+  stableStaticNumericId,
   staticCourseMetadataSignature,
   staticDepartmentCode,
   staticTeacherIdentityKey,
@@ -36,8 +37,6 @@ import type {
 } from "./static-snapshot";
 
 const CHINA_OFFSET_SECONDS = 8 * 60 * 60;
-const SYNTHETIC_JWID_BASE = 1_500_000_000;
-const SYNTHETIC_JWID_SPAN = 400_000_000;
 
 type LookupCache = Map<string, number>;
 type NamedLookupFindManyArgs = {
@@ -69,16 +68,6 @@ type StaticCourseImportLogger = {
   info: (message: string) => void;
 };
 
-function stableNumericId(namespace: string, value: string) {
-  const digest = createHash("sha256")
-    .update(`${namespace}:${value}`)
-    .digest("hex");
-  return (
-    SYNTHETIC_JWID_BASE +
-    (Number.parseInt(digest.slice(0, 8), 16) % SYNTHETIC_JWID_SPAN)
-  );
-}
-
 function createImportLookupState(): ImportLookupState {
   return {
     courseTypeIdByName: new Map(),
@@ -95,7 +84,10 @@ function buildScheduleGroupJwIdByCourse(courses: SnapshotCourse[]) {
   const courseIdsByLegacyJwId = new Map<number, number[]>();
 
   for (const course of courses) {
-    const legacyJwId = stableNumericId("schedule-group", String(course.id));
+    const legacyJwId = stableStaticNumericId(
+      "schedule-group",
+      String(course.id),
+    );
     const courseIds = courseIdsByLegacyJwId.get(legacyJwId);
     if (courseIds) {
       courseIds.push(course.id);
@@ -117,10 +109,6 @@ function buildScheduleGroupJwIdByCourse(courses: SnapshotCourse[]) {
   }
 
   return jwIdByCourseId;
-}
-
-function examJwIdForCourse(courseId: number, position: number) {
-  return stableNumericId("exam", `${courseId}:${position}`);
 }
 
 const splitNames = splitStaticTeacherNames;
@@ -183,6 +171,17 @@ function groupByCourseId<T extends { course_id: number }>(rows: T[]) {
   return grouped;
 }
 
+function buildExamSourceKeys(
+  courses: SnapshotCourse[],
+  examsByCourse: ReadonlyMap<number, SnapshotExam[]>,
+) {
+  return courses.flatMap((course) =>
+    (examsByCourse.get(course.id) ?? []).map(
+      (_exam, position) => `${course.id}:${position}`,
+    ),
+  );
+}
+
 function dedupeByJwId<T extends { jwId: number }>(rows: T[]) {
   return [...new Map(rows.map((row) => [row.jwId, row])).values()];
 }
@@ -206,11 +205,13 @@ async function loadExistingCanonicalCourseSignatures(
   courses: SnapshotCourse[],
 ) {
   const currentSignaturesByCode = collectStaticCourseSignatures(courses);
+  const stableJwIdByCode = buildCollisionCheckedStaticNumericIds(
+    "course",
+    currentSignaturesByCode.keys(),
+    "course code",
+  );
   const stableCodeByJwId = new Map(
-    [...currentSignaturesByCode.keys()].map((code) => [
-      stableNumericId("course", code),
-      code,
-    ]),
+    [...stableJwIdByCode].map(([code, jwId]) => [jwId, code]),
   );
   const canonicalSignatureByCode = new Map<string, string>();
 
@@ -726,6 +727,7 @@ async function importSemesterCourses(
   state: ImportLookupState,
   courseJwId: (course: SnapshotCourse) => number,
   scheduleGroupJwIdByCourse: Map<number, number>,
+  examJwIdBySourceKey: ReadonlyMap<string, number>,
   logger: StaticCourseImportLogger,
 ) {
   const semesterRecord = await measure(
@@ -894,8 +896,13 @@ async function importSemesterCourses(
     }
 
     for (const [position, exam] of exams.entries()) {
+      const examSourceKey = `${course.id}:${position}`;
+      const examJwId = examJwIdBySourceKey.get(examSourceKey);
+      if (!examJwId) {
+        throw new Error(`Missing exam jwId for ${examSourceKey}`);
+      }
       examRows.push({
-        jwId: examJwIdForCourse(course.id, position),
+        jwId: examJwId,
         sectionId,
         examType: examTypeToCode(exam.exam_type),
         startTime: exam.start_hhmm,
@@ -960,6 +967,17 @@ export async function importStaticCourses(
       snapshot.listCoursesForSemester(semester.id),
     ]),
   );
+  const examsBySemesterId = await measure(
+    logger,
+    "Load exams for filtered semesters",
+    async () =>
+      new Map(
+        semesters.map((semester) => [
+          semester.id,
+          groupByCourseId(snapshot.listExamsForSemester(semester.id)),
+        ]),
+      ),
+  );
   const allCourses = [...coursesBySemesterId.values()].flat();
   const canonicalSignatureByCode = await loadExistingCanonicalCourseSignatures(
     db,
@@ -971,14 +989,33 @@ export async function importStaticCourses(
       canonicalSignatureByCode,
     },
   );
+  const courseJwIdByIdentityKey = buildCollisionCheckedStaticNumericIds(
+    "course",
+    courseIdentityKeyBySourceId.values(),
+    "course",
+  );
   const courseJwId = (course: SnapshotCourse) => {
     const identityKey = courseIdentityKeyBySourceId.get(course.id);
     if (!identityKey) {
       throw new Error(`Missing static course identity key for ${course.id}`);
     }
-    return stableNumericId("course", identityKey);
+    const jwId = courseJwIdByIdentityKey.get(identityKey);
+    if (!jwId) {
+      throw new Error(`Missing static course jwId for ${course.id}`);
+    }
+    return jwId;
   };
   const scheduleGroupJwIdByCourse = buildScheduleGroupJwIdByCourse(allCourses);
+  const examJwIdBySourceKey = buildCollisionCheckedStaticNumericIds(
+    "exam",
+    semesters.flatMap((semester) =>
+      buildExamSourceKeys(
+        coursesBySemesterId.get(semester.id) ?? [],
+        examsBySemesterId.get(semester.id) ?? new Map(),
+      ),
+    ),
+    "exam",
+  );
   const state = createImportLookupState();
 
   logger.info(
@@ -995,11 +1032,7 @@ export async function importStaticCourses(
       async () =>
         groupByCourseId(snapshot.listLecturesForSemester(semester.id)),
     );
-    const examsByCourse = await measure(
-      logger,
-      `Load exams for semester ${semester.id}`,
-      async () => groupByCourseId(snapshot.listExamsForSemester(semester.id)),
-    );
+    const examsByCourse = examsBySemesterId.get(semester.id) ?? new Map();
 
     await db.$transaction(async (tx) => {
       await importSemesterCourses(
@@ -1011,6 +1044,7 @@ export async function importStaticCourses(
         state,
         courseJwId,
         scheduleGroupJwIdByCourse,
+        examJwIdBySourceKey,
         logger,
       );
     });

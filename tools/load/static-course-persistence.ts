@@ -242,6 +242,9 @@ const DELETE_SECTION_TEACHERS_SQL = `
       )
       `;
 
+// The loader owns both section-teacher read surfaces: Prisma's implicit
+// Section.teachers relation and explicit SectionTeacher comment targets.
+// Keep these writes together so catalog reads and comment targets stay aligned.
 const INSERT_SECTION_TEACHERS_SQL = `
       INSERT INTO "_SectionTeachers" ("A", "B")
       SELECT x."sectionId", x."teacherId"
