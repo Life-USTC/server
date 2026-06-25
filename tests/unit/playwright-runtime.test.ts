@@ -198,6 +198,9 @@ describe("playwright runtime", () => {
       mkdirSync(path.join(root, ".svelte-kit", "output", "server"), {
         recursive: true,
       });
+      mkdirSync(path.join(root, ".svelte-kit", "output", "server", "nodes"), {
+        recursive: true,
+      });
       writeFileSync(
         path.join(root, ".svelte-kit", "cloudflare", "_worker.js"),
         "",
@@ -208,6 +211,10 @@ describe("playwright runtime", () => {
       );
       writeFileSync(
         path.join(root, ".svelte-kit", "output", "server", "index.js"),
+        "",
+      );
+      writeFileSync(
+        path.join(root, ".svelte-kit", "output", "server", "nodes", "0.js"),
         "",
       );
 
