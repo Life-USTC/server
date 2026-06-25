@@ -1,3 +1,10 @@
+## [1.37.25](https://github.com/Life-USTC/server/compare/v1.37.24...v1.37.25) (2026-06-25)
+
+
+### Bug Fixes
+
+* **calendar:** make feed token creation atomic ([757eb00](https://github.com/Life-USTC/server/commit/757eb00d934359c2d48bab2add96d853f62f6201))
+
 ## [1.37.24](https://github.com/Life-USTC/server/compare/v1.37.23...v1.37.24) (2026-06-25)
 
 
