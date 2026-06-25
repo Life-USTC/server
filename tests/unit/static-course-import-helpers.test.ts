@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   assertStaticTeacherReferencesResolvable,
+  buildCollisionCheckedStaticNumericIds,
   buildStaticCourseIdentityKeyBySourceId,
   buildStaticCourseImportRows,
+  stableStaticNumericId,
   staticCourseMetadataSignature,
   staticDepartmentCode,
   staticTeacherIdentityKey,
@@ -223,6 +225,32 @@ describe("static course import helpers", () => {
     );
     expect(staticDepartmentCode(" 网络空间安全学院 ")).toBe(
       staticDepartmentCode("网络空间安全学院"),
+    );
+  });
+
+  it("rejects synthetic jwId collisions for distinct source identities", () => {
+    expect(stableStaticNumericId("course", "collision-30837")).toBe(
+      stableStaticNumericId("course", "collision-51738"),
+    );
+
+    expect(() =>
+      buildCollisionCheckedStaticNumericIds(
+        "course",
+        ["collision-30837", "collision-51738"],
+        "course",
+      ),
+    ).toThrow(/Static course synthetic jwId collision: 1699579574/);
+  });
+
+  it("allows duplicate synthetic jwId inputs for the same source identity", () => {
+    const jwIds = buildCollisionCheckedStaticNumericIds(
+      "course",
+      ["MATH1001", "MATH1001"],
+      "course",
+    );
+
+    expect(jwIds).toEqual(
+      new Map([["MATH1001", stableStaticNumericId("course", "MATH1001")]]),
     );
   });
 });

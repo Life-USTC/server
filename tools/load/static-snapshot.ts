@@ -1,3 +1,5 @@
+import { validateStaticSnapshotRows } from "./static-snapshot-validation";
+
 export const STATIC_SCHEMA_VERSION = 2;
 
 export type SqliteStatement = {
@@ -158,14 +160,19 @@ export class StaticSnapshot {
   }
 
   listSemesters() {
-    return this.getAll<SnapshotSemester>(
-      "SELECT id, name, start_date, end_date FROM semesters ORDER BY CAST(id AS INTEGER) DESC",
+    return validateStaticSnapshotRows(
+      "semesters",
+      this.getAll(
+        "SELECT id, name, start_date, end_date FROM semesters ORDER BY CAST(id AS INTEGER) DESC",
+      ),
     );
   }
 
   listCoursesForSemester(semesterId: string) {
-    return this.getAll<SnapshotCourse>(
-      `
+    return validateStaticSnapshotRows(
+      "courses",
+      this.getAll(
+        `
       SELECT
         id,
         semester_id,
@@ -186,13 +193,16 @@ export class StaticSnapshot {
       WHERE semester_id = ?
       ORDER BY lesson_code ASC, id ASC
       `,
-      semesterId,
+        semesterId,
+      ),
     );
   }
 
   listLecturesForSemester(semesterId: string) {
-    return this.getAll<SnapshotLecture>(
-      `
+    return validateStaticSnapshotRows(
+      "lectures",
+      this.getAll(
+        `
       SELECT
         lectures.course_id,
         lectures.position,
@@ -211,13 +221,16 @@ export class StaticSnapshot {
       WHERE courses.semester_id = ?
       ORDER BY lectures.course_id ASC, lectures.position ASC
       `,
-      semesterId,
+        semesterId,
+      ),
     );
   }
 
   listExamsForSemester(semesterId: string) {
-    return this.getAll<SnapshotExam>(
-      `
+    return validateStaticSnapshotRows(
+      "exams",
+      this.getAll(
+        `
       SELECT
         exams.course_id,
         exams.position,
@@ -234,55 +247,68 @@ export class StaticSnapshot {
       WHERE courses.semester_id = ?
       ORDER BY exams.course_id ASC, exams.position ASC
       `,
-      semesterId,
+        semesterId,
+      ),
     );
   }
 
   getBusNotice() {
-    return this.getOne<SnapshotBusNotice>(
-      "SELECT message, url FROM bus_notice WHERE id = 1",
-    );
+    const row = this.getOne("SELECT message, url FROM bus_notice WHERE id = 1");
+    return row ? validateStaticSnapshotRows("busNotice", [row])[0] : null;
   }
 
   listBusCampuses() {
-    return this.getAll<SnapshotBusCampus>(
-      "SELECT id, name, latitude, longitude FROM bus_campuses ORDER BY id ASC",
+    return validateStaticSnapshotRows(
+      "busCampuses",
+      this.getAll(
+        "SELECT id, name, latitude, longitude FROM bus_campuses ORDER BY id ASC",
+      ),
     );
   }
 
   listBusRoutes() {
-    return this.getAll<SnapshotBusRoute>(
-      "SELECT id FROM bus_routes ORDER BY id ASC",
+    return validateStaticSnapshotRows(
+      "busRoutes",
+      this.getAll("SELECT id FROM bus_routes ORDER BY id ASC"),
     );
   }
 
   listBusRouteStops() {
-    return this.getAll<SnapshotBusRouteStop>(
-      "SELECT route_id, stop_order, campus_id FROM bus_route_stops ORDER BY route_id ASC, stop_order ASC",
+    return validateStaticSnapshotRows(
+      "busRouteStops",
+      this.getAll(
+        "SELECT route_id, stop_order, campus_id FROM bus_route_stops ORDER BY route_id ASC, stop_order ASC",
+      ),
     );
   }
 
   listBusTrips(dayType: "weekday" | "weekend") {
-    return this.getAll<SnapshotBusTrip>(
-      `
+    return validateStaticSnapshotRows(
+      "busTrips",
+      this.getAll(
+        `
       SELECT day_type, schedule_id, route_id, position
       FROM bus_trips
       WHERE day_type = ?
       ORDER BY schedule_id ASC, position ASC
       `,
-      dayType,
+        dayType,
+      ),
     );
   }
 
   listBusTripStopTimes(dayType: "weekday" | "weekend") {
-    return this.getAll<SnapshotBusTripStopTime>(
-      `
+    return validateStaticSnapshotRows(
+      "busTripStopTimes",
+      this.getAll(
+        `
       SELECT day_type, schedule_id, position, stop_order, campus_id, departure_time
       FROM bus_trip_stop_times
       WHERE day_type = ?
       ORDER BY schedule_id ASC, position ASC, stop_order ASC
       `,
-      dayType,
+        dayType,
+      ),
     );
   }
 }
