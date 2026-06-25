@@ -1,3 +1,12 @@
+## [1.37.23](https://github.com/Life-USTC/server/compare/v1.37.22...v1.37.23) (2026-06-25)
+
+
+### Bug Fixes
+
+* **dashboard:** address accessibility defects ([85a9338](https://github.com/Life-USTC/server/commit/85a933888878e7454d5a667b12fb20c44a6b966f))
+* **ui:** avoid duplicate datetime picker labels ([c1a8154](https://github.com/Life-USTC/server/commit/c1a81546ac2ff5a2635811b535ddc4a31ef9dc99))
+* **ui:** label datetime picker group ([d98f050](https://github.com/Life-USTC/server/commit/d98f0508b60ab79366c650e79a940ce18bad30fb))
+
 ## [1.37.22](https://github.com/Life-USTC/server/compare/v1.37.21...v1.37.22) (2026-06-25)
 
 
