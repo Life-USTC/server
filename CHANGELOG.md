@@ -1,3 +1,12 @@
+## [1.39.1](https://github.com/Life-USTC/server/compare/v1.39.0...v1.39.1) (2026-06-25)
+
+
+### Bug Fixes
+
+* **auth:** bind device grants to API resources ([26cf57b](https://github.com/Life-USTC/server/commit/26cf57bddc7788d975c552e5bbd314aaad2f75f9))
+* **oauth:** avoid refresh tokens for resource-bound device grants ([7bd7ef8](https://github.com/Life-USTC/server/commit/7bd7ef8ed4641f66dc063dcfebfe18334e3b07e2))
+* **oauth:** show device grant resources before approval ([3ce3a5d](https://github.com/Life-USTC/server/commit/3ce3a5d5d7dde1a06d5d43c4364d71d2ebfba842))
+
 # [1.39.0](https://github.com/Life-USTC/server/compare/v1.38.1...v1.39.0) (2026-06-25)
 
 
