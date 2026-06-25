@@ -1,3 +1,11 @@
+## [1.37.17](https://github.com/Life-USTC/server/compare/v1.37.16...v1.37.17) (2026-06-25)
+
+
+### Bug Fixes
+
+* **static-loader:** align metadata identity ([31c677c](https://github.com/Life-USTC/server/commit/31c677c93cd19bddf4964f719d295218c25496d8))
+* **time:** centralize campus date helpers ([9ea4b32](https://github.com/Life-USTC/server/commit/9ea4b32fde69140280c9cb536bd91805a2444431))
+
 ## [1.37.16](https://github.com/Life-USTC/server/compare/v1.37.15...v1.37.16) (2026-06-25)
 
 
