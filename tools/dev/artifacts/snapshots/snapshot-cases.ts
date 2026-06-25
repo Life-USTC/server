@@ -14,6 +14,7 @@ export type PageSnapshotCase = {
   resolvePath?: "teacher-detail" | "user-id" | "comment-detail";
   fullPage?: boolean;
   waitUntil?: "load" | "domcontentloaded";
+  expectedStatus?: number;
   note?: string;
   actions?: PageSnapshotAction[];
 };
