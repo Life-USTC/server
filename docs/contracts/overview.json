@@ -25,7 +25,7 @@
         "pages": [
           "/dashboard/overview",
           "/dashboard/calendar",
-          "/dashboard/subscriptions/sections",
+          "/dashboard/subscriptions",
           "/dashboard/exams",
           "/dashboard/homeworks",
           "/dashboard/todos",

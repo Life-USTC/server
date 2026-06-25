@@ -58,11 +58,7 @@
         "models": ["Section", "User"]
       },
       "web": {
-        "pages": [
-          "/dashboard/subscriptions/sections",
-          "/?tab=subscriptions",
-          "/welcome"
-        ]
+        "pages": ["/dashboard/subscriptions", "/?tab=subscriptions", "/welcome"]
       },
       "rest": {
         "routes": [
