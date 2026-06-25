@@ -2847,7 +2847,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       },
       "post": {
         "operationId": "recordDashboardLinkVisit",
@@ -2877,7 +2885,15 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       }
     },
     "/api/descriptions": {
@@ -3052,6 +3068,27 @@
             "sessionCookie": []
           }
         ]
+      }
+    },
+    "/api/health": {
+      "get": {
+        "operationId": "listHealth",
+        "summary": "Check process liveness",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Text response",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/homeworks": {
@@ -4128,6 +4165,35 @@
         }
       }
     },
+    "/api/metrics": {
+      "get": {
+        "operationId": "listMetrics",
+        "summary": "Export internal runtime metrics",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Text response",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Response 404"
+          }
+        },
+        "security": [
+          {
+            "internalBearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/openapi": {
       "get": {
         "operationId": "getOpenApiSpec",
@@ -4180,7 +4246,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "internalBearerAuth": []
+          }
+        ]
       }
     },
     "/api/schedules": {
@@ -6125,8 +6196,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ]
       },
       "post": {
         "operationId": "createUpload",
@@ -29321,6 +29410,11 @@
         "scheme": "bearer",
         "bearerFormat": "JWT",
         "description": "OAuth bearer token for /api/mcp. MCP requires a bearer token with the MCP resource audience and does not accept session cookies."
+      },
+      "internalBearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Configured internal bearer token for operational endpoints. Localhost requests may also be accepted by the server-side access policy."
       },
       "calendarFeedToken": {
         "type": "apiKey",
