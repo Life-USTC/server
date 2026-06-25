@@ -1,3 +1,10 @@
+## [1.37.27](https://github.com/Life-USTC/server/compare/v1.37.26...v1.37.27) (2026-06-25)
+
+
+### Bug Fixes
+
+* **mcp:** add bus preference tools ([2525993](https://github.com/Life-USTC/server/commit/2525993db6ba6baa4b93bf95fe2071b51bd4f0da))
+
 ## [1.37.26](https://github.com/Life-USTC/server/compare/v1.37.25...v1.37.26) (2026-06-25)
 
 
