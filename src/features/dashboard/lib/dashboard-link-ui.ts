@@ -1,14 +1,14 @@
 export {
-  applyDashboardLinkPinnedSlugs,
-  currentDashboardLinkReturnTo,
-  submitDashboardLinkPinRequest,
-} from "./dashboard-link-pin-client";
-export {
   type DashboardLinkSearchable,
   groupDashboardLinks,
   linkMatchesTokens,
   searchQueryToTokens,
-} from "./dashboard-link-search";
+} from "@/features/dashboard-links/lib/dashboard-link-search";
+export {
+  applyDashboardLinkPinnedSlugs,
+  currentDashboardLinkReturnTo,
+  submitDashboardLinkPinRequest,
+} from "./dashboard-link-pin-client";
 
 type DashboardLinkLike = {
   icon:

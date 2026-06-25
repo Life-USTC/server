@@ -6,6 +6,10 @@ import {
   mcpModeInputSchema,
 } from "@/lib/mcp/tools/_helpers";
 import {
+  listDashboardLinksTool,
+  setDashboardLinkPinStateTool,
+} from "./dashboard-link-tool-actions";
+import {
   getMyDashboardTool,
   getNextClassTool,
   getUpcomingDeadlinesTool,
@@ -67,5 +71,43 @@ export function registerDashboardTools(server: McpServer) {
       },
     },
     getUpcomingDeadlinesTool,
+  );
+
+  server.registerTool(
+    "list_dashboard_links",
+    {
+      description:
+        "List or search USTC dashboard links with the authenticated user's current pin state.",
+      inputSchema: {
+        query: z
+          .string()
+          .trim()
+          .max(80)
+          .optional()
+          .describe(
+            "Optional search query matched against title, description, and pinyin fields.",
+          ),
+        mode: mcpModeInputSchema,
+      },
+    },
+    listDashboardLinksTool,
+  );
+
+  server.registerTool(
+    "set_dashboard_link_pin_state",
+    {
+      description:
+        "Pin or unpin one USTC dashboard link for the authenticated user.",
+      inputSchema: {
+        slug: z
+          .string()
+          .trim()
+          .min(1)
+          .describe("Dashboard link slug from list_dashboard_links."),
+        action: z.enum(["pin", "unpin"]).describe("Pin or unpin the link."),
+        mode: mcpModeInputSchema,
+      },
+    },
+    setDashboardLinkPinStateTool,
   );
 }

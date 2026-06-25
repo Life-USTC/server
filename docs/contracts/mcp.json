@@ -78,7 +78,9 @@
               "get_my_dashboard",
               "get_my_overview",
               "get_next_class",
-              "get_upcoming_deadlines"
+              "get_upcoming_deadlines",
+              "list_dashboard_links",
+              "set_dashboard_link_pin_state"
             ]
           },
           {
