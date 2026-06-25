@@ -1,5 +1,4 @@
 import { ICalCalendar } from "ical-generator";
-import type { AppLocale } from "@/i18n/config";
 import {
   appendSectionEvents,
   type CalendarHomework,
@@ -9,7 +8,8 @@ import {
   createTodoEvent,
   ICAL_SITE_URL,
   loadLocationAssets,
-} from "@/lib/ical-event-builders";
+} from "@/features/calendar/server/ical-event-builders";
+import type { AppLocale } from "@/i18n/config";
 import { APP_TIME_ZONE } from "@/lib/time/parse-date-input";
 
 function generateShanghaiVTimezone(timezone: string): string | null {

@@ -1,9 +1,15 @@
 import { type ICalCalendar, ICalEventBusyStatus } from "ical-generator";
+import { ICAL_SITE_URL } from "@/features/calendar/server/ical-event-constants";
+import type {
+  CalendarHomework,
+  CalendarTodo,
+} from "@/features/calendar/server/ical-event-types";
+import { toCategories } from "@/features/calendar/server/ical-event-utils";
+import {
+  getIcalLabels,
+  priorityLabel,
+} from "@/features/calendar/server/ical-labels";
 import type { AppLocale } from "@/i18n/config";
-import { ICAL_SITE_URL } from "@/lib/ical-event-constants";
-import type { CalendarHomework, CalendarTodo } from "@/lib/ical-event-types";
-import { toCategories } from "@/lib/ical-event-utils";
-import { getIcalLabels, priorityLabel } from "@/lib/ical-labels";
 import { APP_TIME_ZONE } from "@/lib/time/parse-date-input";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 

@@ -1,4 +1,4 @@
-import { adminUserResponseMessage } from "@/features/admin/lib/admin-users-display";
+import { apiClient, apiErrorMessage } from "@/lib/api/client";
 import type { AdminUsersActionConfig } from "./admin-users-page-action-types";
 
 export async function liftSelectedSuspension(config: AdminUsersActionConfig) {
@@ -8,14 +8,11 @@ export async function liftSelectedSuspension(config: AdminUsersActionConfig) {
   config.setLiftingSuspension(true);
   config.setMessage(null);
   try {
-    const response = await fetch(
+    const result = await apiClient.PATCH(
       `/api/admin/suspensions/${selectedUser.activeSuspension.id}`,
-      { method: "PATCH" },
     );
-    if (!response.ok) {
-      config.setMessage(
-        await adminUserResponseMessage(response, copy.liftFailed),
-      );
+    if (!result.response.ok) {
+      config.setMessage(apiErrorMessage(result.error, copy.liftFailed));
       return;
     }
     config.replaceUser({ ...selectedUser, activeSuspension: null });

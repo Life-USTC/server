@@ -7,6 +7,12 @@ const jsonResponse = (body: unknown, init?: ResponseInit) =>
     ...init,
   });
 
+function firstFetchCall(fetchMock: ReturnType<typeof vi.fn>) {
+  const call = fetchMock.mock.calls[0];
+  expect(call).toBeDefined();
+  return call as unknown as [string, RequestInit & { body: string }];
+}
+
 describe("homework completion client", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -32,14 +38,10 @@ describe("homework completion client", () => {
       completedAt: "2026-06-22T10:00:00.000Z",
     });
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/homeworks/homework-1/completion",
-      {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ completed: true }),
-      },
-    );
+    const [path, init] = firstFetchCall(fetchMock);
+    expect(path).toBe("/api/homeworks/homework-1/completion");
+    expect(init.method).toBe("PUT");
+    expect(JSON.parse(init.body)).toEqual({ completed: true });
   });
 
   it("uses API error payloads before fallback messages", async () => {

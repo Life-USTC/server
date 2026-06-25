@@ -27,7 +27,9 @@ import {
   type SectionDetailPageData,
   type SectionHomework,
 } from "@/features/section-detail/lib/section-detail-controller-helpers";
-import SectionDetailPageContent from "@/features/section-detail/components/SectionDetailPageContent.svelte";
+import SectionDetailDialogs from "@/features/section-detail/components/SectionDetailDialogs.svelte";
+import SectionDetailHeader from "@/features/section-detail/components/SectionDetailHeader.svelte";
+import SectionDetailMainContent from "@/features/section-detail/components/SectionDetailMainContent.svelte";
 import SectionDetailPageHead from "@/features/section-detail/components/SectionDetailPageHead.svelte";
 type PageData = SectionDetailPageData;
 type ActionData = SectionDetailActionData;
@@ -348,8 +350,71 @@ onMount(() => {
   titleTemplate={_copy.metadata.pages.sectionDetail}
 />
 
-<SectionDetailPageContent
-  activeTab={_activeTab}
+<section class="grid gap-5">
+  <SectionDetailHeader
+    commonCopy={_commonCopy}
+    courseName={_courseName}
+    courseSecondaryName={_courseSecondaryName}
+    formError={form?.error}
+    notAvailable={_notAvailable}
+    onOpenCalendar={_openCalendarDialog}
+    onOpenSubscribe={_openSubscribeDialog}
+    primaryName={_primaryName}
+    section={data.section}
+    sectionCopy={_sectionCopy}
+    subscriptionAction={_subscriptionAction}
+    subscriptionPendingAction={_subscriptionPendingAction}
+    viewer={{ isSubscribed: data.viewer.isSubscribed === true }}
+  />
+
+  <SectionDetailMainContent
+    activeTab={_activeTab}
+    {calendarExamDateKeys}
+    {calendarMonthDays}
+    {calendarMonthLabel}
+    bind:calendarMonthOffset={_calendarMonthOffset}
+    {calendarScheduleDateKeys}
+    canWriteHomework={_canWriteHomework}
+    commentTargets={_commentTargets}
+    commonCopy={_commonCopy}
+    {data}
+    dateKey={_dateKey}
+    fmtDate={_fmtDate}
+    fmtDateTime={_fmtDateTime}
+    formatMessage={_formatMessage}
+    homeworkCopy={_homeworkCopy}
+    homeworkStatus={_homeworkStatus}
+    homeworkView={_homeworkView}
+    homeworks={_homeworks}
+    isSameMonth={_isSameMonth}
+    notAvailable={_notAvailable}
+    openCalendarDialog={_openCalendarDialog}
+    openCreateHomeworkDialog={_openCreateHomeworkDialog}
+    {periodDetailRows}
+    primaryName={_primaryName}
+    {sectionCalendarEvents}
+    sectionCalendarGridWeeks={_sectionCalendarGridWeeks}
+    sectionCopy={_sectionCopy}
+    sectionTeachersLabel={_sectionTeachersLabel}
+    setActiveTab={_setActiveTab}
+    setHomeworkAuditDialogOpen={(open) => {
+      _isHomeworkAuditDialogOpen = open;
+    }}
+    setHomeworkView={_setHomeworkView}
+    setSelectedHomework={(homework) => {
+      _selectedHomework = homework;
+    }}
+    tabs={_tabs}
+    teacherName={_teacherName}
+    {todayCalendarKey}
+    {unscheduledCalendarEvents}
+    viewer={data.viewer}
+    {visibleCalendarMonth}
+    yesNo={_yesNo}
+  />
+</section>
+
+<SectionDetailDialogs
   applyCreateDueAtSemesterEnd={_applyCreateDueAtSemesterEnd}
   applyCreateDueInMonth={_applyCreateDueInMonth}
   applyCreateDueInWeek={_applyCreateDueInWeek}
@@ -363,11 +428,6 @@ onMount(() => {
   applyEditStartAtSemesterStart={_applyEditStartAtSemesterStart}
   applyEditStartNow={_applyEditStartNow}
   auditLogsForHomework={_auditLogsForHomework}
-  bind:calendarMonthOffset={_calendarMonthOffset}
-  {calendarExamDateKeys}
-  {calendarMonthDays}
-  {calendarMonthLabel}
-  {calendarScheduleDateKeys}
   canManageSelectedHomework={_canManageSelectedHomework}
   canWriteHomework={_canWriteHomework}
   cancelEditHomework={_cancelEditHomework}
@@ -376,29 +436,23 @@ onMount(() => {
   closeCalendarDialog={_closeCalendarDialog}
   closeCreateHomeworkDialog={_closeCreateHomeworkDialog}
   closeSubscribeDialog={_closeSubscribeDialog}
-  commentTargets={_commentTargets}
   commentsCopy={_commentsCopy}
   commonCopy={_commonCopy}
   copiedCalendarTarget={_copiedCalendarTarget}
   copyText={_copyText}
-  courseName={_courseName}
-  courseSecondaryName={_courseSecondaryName}
   createHomework={_createHomework}
   bind:createHomeworkPublishedAt={_createHomeworkPublishedAt}
   bind:createHomeworkSubmissionDueAt={_createHomeworkSubmissionDueAt}
   bind:createHomeworkSubmissionStartAt={_createHomeworkSubmissionStartAt}
-  dateKey={_dateKey}
   {data}
   deleteHomework={_deleteHomework}
   deleteHomeworkTarget={_deleteHomeworkTarget}
+  editHomeworkMessage={_editHomeworkMessage}
   bind:editHomeworkPublishedAt={_editHomeworkPublishedAt}
   bind:editHomeworkSubmissionDueAt={_editHomeworkSubmissionDueAt}
   bind:editHomeworkSubmissionStartAt={_editHomeworkSubmissionStartAt}
-  editHomeworkMessage={_editHomeworkMessage}
   editingHomework={_editingHomework}
-  fmtDate={_fmtDate}
   fmtDateTime={_fmtDateTime}
-  {form}
   formatMessage={_formatMessage}
   hasSemesterEnd={Boolean(_semesterDate("end"))}
   hasSemesterStart={Boolean(_semesterDate("start"))}
@@ -408,24 +462,11 @@ onMount(() => {
   homeworkCopy={_homeworkCopy}
   homeworkMessage={_homeworkMessage}
   homeworkStatus={_homeworkStatus}
-  homeworkView={_homeworkView}
-  homeworks={_homeworks}
   isCalendarDialogOpen={_isCalendarDialogOpen}
   isHomeworkAuditDialogOpen={_isHomeworkAuditDialogOpen}
-  isSameMonth={_isSameMonth}
-  notAvailable={_notAvailable}
-  openCalendarDialog={_openCalendarDialog}
-  openCreateHomeworkDialog={_openCreateHomeworkDialog}
-  openSubscribeDialog={_openSubscribeDialog}
-  {periodDetailRows}
-  primaryName={_primaryName}
-  {sectionCalendarEvents}
-  sectionCalendarGridWeeks={_sectionCalendarGridWeeks}
   sectionCopy={_sectionCopy}
-  sectionTeachersLabel={_sectionTeachersLabel}
   selectedHomework={_selectedHomework}
   semesterDate={_semesterDate}
-  setActiveTab={_setActiveTab}
   setCalendarDialogOpen={(open) => {
     _isCalendarDialogOpen = open;
   }}
@@ -435,7 +476,6 @@ onMount(() => {
   setHomeworkAuditDialogOpen={(open) => {
     _isHomeworkAuditDialogOpen = open;
   }}
-  setHomeworkView={_setHomeworkView}
   setSelectedHomework={(homework) => {
     _selectedHomework = homework;
   }}
@@ -446,13 +486,6 @@ onMount(() => {
   subscriptionAction={_subscriptionAction}
   {subscriptionCalendarUrl}
   subscriptionPendingAction={_subscriptionPendingAction}
-  tabs={_tabs}
-  teacherName={_teacherName}
-  {todayCalendarKey}
   toggleHomeworkCompletion={_toggleHomeworkCompletion}
-  {unscheduledCalendarEvents}
   updateHomework={_updateHomework}
-  viewer={data.viewer}
-  {visibleCalendarMonth}
-  yesNo={_yesNo}
 />

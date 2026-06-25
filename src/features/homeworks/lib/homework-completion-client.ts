@@ -1,5 +1,5 @@
 import type * as z from "zod";
-import { readApiErrorMessage } from "@/lib/api/client";
+import { apiClient, apiErrorMessage } from "@/lib/api/client";
 import { homeworkCompletionResponseSchema } from "@/lib/api/schemas/homeworks-response-schemas";
 
 export type HomeworkCompletionResult = z.infer<
@@ -21,21 +21,7 @@ export function applyHomeworkCompletionResult<
   } as Homework;
 }
 
-async function readCompletionPayload(
-  response: Response,
-  fallbackMessage: string,
-) {
-  if (!response.ok) {
-    throw new Error(await readApiErrorMessage(response, fallbackMessage));
-  }
-
-  let payload: unknown;
-  try {
-    payload = await response.json();
-  } catch {
-    throw new Error(fallbackMessage);
-  }
-
+function parseCompletionPayload(payload: unknown, fallbackMessage: string) {
   const parsed = homeworkCompletionResponseSchema.safeParse(payload);
   if (!parsed.success) {
     throw new Error(fallbackMessage);
@@ -49,14 +35,14 @@ export async function updateHomeworkCompletion(input: {
   fallbackMessage: string;
   homeworkId: number | string;
 }): Promise<HomeworkCompletionResult> {
-  const response = await fetch(
+  const result = await apiClient.PUT(
     `/api/homeworks/${input.homeworkId}/completion`,
-    {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ completed: input.completed }),
-    },
+    { body: { completed: input.completed } },
   );
 
-  return readCompletionPayload(response, input.fallbackMessage);
+  if (!result.response.ok) {
+    throw new Error(apiErrorMessage(result.error, input.fallbackMessage));
+  }
+
+  return parseCompletionPayload(result.data, input.fallbackMessage);
 }

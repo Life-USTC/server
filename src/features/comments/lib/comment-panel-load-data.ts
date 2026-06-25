@@ -4,6 +4,7 @@ import {
   withCommentContext,
 } from "@/features/comments/lib/comment-ui";
 import type { CommentNode } from "@/features/comments/server/comment-types";
+import { apiClient } from "@/lib/api/client";
 import { commentsListResponseSchema } from "@/lib/api/schemas/comments-response-schemas";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
 import {
@@ -58,11 +59,9 @@ export async function loadCommentsForTargets({
   const loadedEntries = await Promise.all(
     targets.filter(commentTargetCanLoad).map(async (target) => {
       const params = commentTargetSearchParams(target);
-      const response = await fetch(`/api/comments?${params.toString()}`);
-      if (!response.ok) throw new Error(loadFailed);
-      const parsed = commentsListResponseSchema.safeParse(
-        await response.json(),
-      );
+      const result = await apiClient.GET(`/api/comments?${params.toString()}`);
+      if (!result.response.ok) throw new Error(loadFailed);
+      const parsed = commentsListResponseSchema.safeParse(result.data);
       if (!parsed.success) throw new Error(loadFailed);
       return { target, data: parsed.data };
     }),

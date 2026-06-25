@@ -1,44 +1,20 @@
+import type {
+  DescriptionData,
+  DescriptionHistoryItem,
+  DescriptionPayload,
+  DescriptionViewer,
+  EditorSummary,
+} from "@/features/descriptions/lib/description-payload-types";
+
+export type {
+  DescriptionData,
+  DescriptionHistoryItem,
+  DescriptionPayload,
+  DescriptionViewer,
+  EditorSummary,
+} from "@/features/descriptions/lib/description-payload-types";
+
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
-
-export type EditorSummary = {
-  id: string;
-  name: string | null;
-  username: string | null;
-  image: string | null;
-};
-
-export type DescriptionData = {
-  id: string | null;
-  content: string;
-  updatedAt: string | null;
-  lastEditedAt: string | null;
-  lastEditedBy: EditorSummary | null;
-};
-
-export type HistoryItem = {
-  id: string;
-  createdAt: string;
-  previousContent: string | null;
-  nextContent: string;
-  editor: EditorSummary | null;
-};
-
-export type ViewerSummary = {
-  userId: string | null;
-  name: string | null;
-  image: string | null;
-  isAdmin: boolean;
-  isAuthenticated: boolean;
-  isSuspended: boolean;
-  suspensionReason: string | null;
-  suspensionExpiresAt: string | null;
-};
-
-export type DescriptionPayload = {
-  description: DescriptionData;
-  history: HistoryItem[];
-  viewer: ViewerSummary;
-};
 
 type DateLike = Date | string;
 
@@ -69,7 +45,7 @@ export function emptyDescriptionData(): DescriptionData {
 }
 
 export function emptyDescriptionPayload(
-  viewer: ViewerSummary,
+  viewer: DescriptionViewer,
 ): DescriptionPayload {
   return {
     description: emptyDescriptionData(),
@@ -98,7 +74,7 @@ export function serializeDescriptionRecord(
 
 export function serializeDescriptionHistory(
   history: DescriptionHistoryRecord[],
-): HistoryItem[] {
+): DescriptionHistoryItem[] {
   return history.map((entry) => ({
     id: entry.id,
     createdAt: toShanghaiIsoString(entry.createdAt),

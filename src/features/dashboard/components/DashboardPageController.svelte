@@ -65,7 +65,13 @@ import { page } from "$app/stores";
 import { Alert } from "$lib/components/ui/alert/index.js";
 import AnonymousDashboardView from "./AnonymousDashboardView.svelte";
 import DashboardStatusAlerts from "./DashboardStatusAlerts.svelte";
-import SignedDashboardContent from "./SignedDashboardContent.svelte";
+import type { DashboardCalendarTabProps } from "./dashboard-calendar-component-types";
+import SignedDashboardOverviewBranch from "./SignedDashboardOverviewBranch.svelte";
+import SignedDashboardPublicTabs from "./SignedDashboardPublicTabs.svelte";
+import SignedDashboardSubscriptionsBranch from "./SignedDashboardSubscriptionsBranch.svelte";
+import SignedDashboardTabsNav from "./SignedDashboardTabsNav.svelte";
+import SignedDashboardTaskTabs from "./SignedDashboardTaskTabs.svelte";
+import type { DashboardSubscriptionsTabProps } from "./subscription-tab-types";
 
 type PageData = DashboardPageData;
 type ActionData = DashboardActionData;
@@ -512,135 +518,181 @@ onMount(() => {
   />
 
   {#if signedData}
-    <SignedDashboardContent
-      {addDays}
-      {addMonths}
-      {busCopy}
-      {calendarData}
-      {calendarEventParts}
-      {calendarEventsForDay}
-      {calendarExamDetail}
-      {calendarHomeworkDetail}
-      {calendarHomeworkHref}
-      {calendarMonth}
-      {calendarSemesterId}
-      {calendarSemesterIndex}
-      {calendarSessionDetail}
-      {calendarTodoDetail}
-      {calendarTimelineItemsForDay}
-      {calendarView}
-      {calendarWeekLabel}
-      {calendarWeekStart}
-      {calendarWeekdayLabels}
-      {canMatchImportSections}
-      {commentsCopy}
-      {commonCopy}
-      {confirmImportSections}
-      {copy}
-      {copyCalendarLink}
-      {createHomeworkAction}
-      bind:createHomeworkAdvancedOpen
-      bind:createHomeworkError
-      bind:createHomeworkPublishedAt
-      bind:createHomeworkSectionId
-      bind:createHomeworkSubmissionDueAt
-      bind:createHomeworkSubmissionStartAt
-      {createTodoAction}
-      bind:createTodoError
+    <SignedDashboardTabsNav
       {dashboardCopy}
       {dashboardTabHref}
-      {data}
-      {deleteTodo}
-      bind:editingTodo
-      bind:editTodoError
-      bind:examFilter
-      {examMetadataLabels}
-      {examRows}
-      {examTimeLabel}
-      {examView}
-      {filteredExamRows}
-      {filteredTodos}
-      {formatMessage}
-      {homeworkCopy}
-      bind:homeworkFilter
-      bind:homeworkItems
-      {homeworkReferenceDate}
-      bind:homeworkSavingById
-      bind:homeworkView
-      {homeworksCopy}
-      bind:isBulkImportOpen
-      bind:isConfirmImportOpen
-      bind:isCreatingHomework
-      {isCreatingTodo}
-      {isImportingSections}
-      {isMatchingSections}
-      {isUpdatingTodo}
-      {linkActionError}
-      {linkIconLabel}
-      {linkReturnTo}
-      bind:linkSearchInput
-      bind:linkSearchQuery
-      {linkView}
-      {matchedSections}
-      {matchImportSections}
-      {monthWeeks}
-      {namePrimary}
-      {nameSecondary}
-      {openBulkImportDialog}
-      {openCreateHomeworkDialog}
-      {openTodoEditor}
-      {overviewLinkItems}
-      {pendingRemoveSectionId}
-      {removeSubscribedSection}
-      {removingSectionId}
-      {resetBulkImport}
-      {sectionCopy}
-      bind:selectedHomework
-      {selectedImportCount}
-      {selectedImportSectionIdSet}
-      bind:selectedTodo
-      {selectedCreateHomeworkSection}
-      {sessionHref}
-      {setCalendarMonth}
-      {setCalendarSemester}
-      {setCalendarView}
-      {setCalendarWeek}
-      {setExamView}
-      {setHomeworkView}
-      {setLinkView}
-      {setTodoView}
-      bind:showCreateHomework
-      bind:showCreateTodo
       {signedData}
-      {signedLinkGroups}
       {signedTabBadge}
       {signedTabs}
-      {submitDashboardLinkPin}
-      {subscriptionActionError}
-      {subscriptionActionMessage}
-      {subscriptionsCopy}
-      {todoActionError}
-      bind:todoFilter
-      {todoPriorityClass}
-      {todoPriorityOptions}
-      {todoSavingById}
-      {todoView}
-      {todosCopy}
-      {toggleHomeworkCompletion}
-      {toggleImportSectionSelection}
-      {toggleTodoCompletion}
-      {unmatchedSectionCodes}
-      {updateTodoAction}
-      {updatingDashboardLinkSlug}
-      {applyHomeworkDueAtSemesterEnd}
-      {applyHomeworkDueInMonth}
-      {applyHomeworkDueInWeek}
-      {applyHomeworkStartNow}
-      {bulkImportError}
-      {bulkImportMessage}
-      bind:bulkImportSemesterId
-      bind:bulkImportText
     />
+
+    {#if signedData.tab === "overview"}
+      <SignedDashboardOverviewBranch
+        {calendarTimelineItemsForDay}
+        {commonCopy}
+        {copy}
+        {dashboardCopy}
+        {dashboardTabHref}
+        {data}
+        {linkIconLabel}
+        {overviewLinkItems}
+        {sectionCopy}
+        {subscriptionsCopy}
+        {signedData}
+        {submitDashboardLinkPin}
+        {todoPriorityClass}
+        {todosCopy}
+        {updatingDashboardLinkSlug}
+      />
+    {:else if signedData.tab === "todos" || signedData.tab === "homeworks" || signedData.tab === "exams"}
+      <SignedDashboardTaskTabs
+        activeTab={signedData.tab}
+        {applyHomeworkDueAtSemesterEnd}
+        {applyHomeworkDueInMonth}
+        {applyHomeworkDueInWeek}
+        {applyHomeworkStartNow}
+        {commentsCopy}
+        {commonCopy}
+        {createHomeworkAction}
+        {createTodoAction}
+        {dashboardCopy}
+        {dashboardTabHref}
+        {data}
+        {deleteTodo}
+        {examMetadataLabels}
+        {examRows}
+        {examTimeLabel}
+        {examView}
+        {filteredExamRows}
+        {filteredTodos}
+        {homeworkCopy}
+        {homeworkReferenceDate}
+        {homeworksCopy}
+        {isCreatingTodo}
+        {isUpdatingTodo}
+        {namePrimary}
+        {openCreateHomeworkDialog}
+        {openTodoEditor}
+        {sectionCopy}
+        {selectedCreateHomeworkSection}
+        {setExamView}
+        {setHomeworkView}
+        {setTodoView}
+        {signedData}
+        {subscriptionsCopy}
+        {todoActionError}
+        {todoPriorityClass}
+        {todoPriorityOptions}
+        {todoSavingById}
+        {todoView}
+        {todosCopy}
+        {toggleHomeworkCompletion}
+        {toggleTodoCompletion}
+        {updateTodoAction}
+        bind:createHomeworkAdvancedOpen
+        bind:createHomeworkError
+        bind:createHomeworkPublishedAt
+        bind:createHomeworkSectionId
+        bind:createHomeworkSubmissionDueAt
+        bind:createHomeworkSubmissionStartAt
+        bind:createTodoError
+        bind:editTodoError
+        bind:editingTodo
+        bind:examFilter
+        bind:homeworkFilter
+        bind:homeworkItems
+        bind:homeworkSavingById
+        bind:homeworkView
+        bind:isCreatingHomework
+        bind:selectedHomework
+        bind:selectedTodo
+        bind:showCreateHomework
+        bind:showCreateTodo
+        bind:todoFilter
+      />
+    {:else if signedData.tab === "subscriptions" && signedData.subscriptions}
+      {@const subscriptionsSignedData = signedData as DashboardSubscriptionsTabProps["signedData"]}
+      <SignedDashboardSubscriptionsBranch
+        {dashboardCopy}
+        {sectionCopy}
+        {subscriptionsCopy}
+        signedData={subscriptionsSignedData}
+        {selectedImportSectionIdSet}
+        {selectedImportCount}
+        {canMatchImportSections}
+        {formatMessage}
+        {copyCalendarLink}
+        {namePrimary}
+        {nameSecondary}
+        {resetBulkImport}
+        {openBulkImportDialog}
+        {toggleImportSectionSelection}
+        {matchImportSections}
+        {confirmImportSections}
+        {removeSubscribedSection}
+        {bulkImportMessage}
+        {bulkImportError}
+        {isMatchingSections}
+        {isImportingSections}
+        {pendingRemoveSectionId}
+        {removingSectionId}
+        {subscriptionActionMessage}
+        {subscriptionActionError}
+        {matchedSections}
+        {unmatchedSectionCodes}
+        bind:isBulkImportOpen
+        bind:isConfirmImportOpen
+        bind:bulkImportSemesterId
+        bind:bulkImportText
+      />
+    {:else}
+      {@const calendarSignedData = signedData as DashboardCalendarTabProps["signedData"]}
+      <SignedDashboardPublicTabs
+        {copy}
+        {commonCopy}
+        {busCopy}
+        {dashboardCopy}
+        {sectionCopy}
+        {subscriptionsCopy}
+        {calendarWeekdayLabels}
+        signedData={calendarSignedData}
+        {dashboardTabHref}
+        {formatMessage}
+        {copyCalendarLink}
+        {sessionHref}
+        {setCalendarView}
+        {setCalendarMonth}
+        {setCalendarWeek}
+        {setCalendarSemester}
+        {addDays}
+        {addMonths}
+        {monthWeeks}
+        {calendarEventsForDay}
+        {calendarWeekLabel}
+        {calendarEventParts}
+        {calendarHomeworkHref}
+        {calendarSessionDetail}
+        {calendarExamDetail}
+        {calendarHomeworkDetail}
+        {calendarTodoDetail}
+        {calendarSemesterIndex}
+        {calendarView}
+        {calendarMonth}
+        {calendarWeekStart}
+        {calendarSemesterId}
+        {calendarData}
+        {linkActionError}
+        {linkIconLabel}
+        {linkReturnTo}
+        bind:linkSearchInput
+        bind:linkSearchQuery
+        {linkView}
+        {setLinkView}
+        {signedLinkGroups}
+        {submitDashboardLinkPin}
+        {updatingDashboardLinkSlug}
+      />
+    {/if}
   {:else if data.signedIn && data.userMissing}
     <Alert variant="warning">{commonCopy.userNotFound}</Alert>
   {:else if anonymousData?.tab === "bus" && !mounted}

@@ -268,38 +268,32 @@ test("/admin/moderation 封禁列表可解除封禁", async ({ page }, testInfo)
 });
 
 test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
+  browser,
   page,
 }, testInfo) => {
   test.setTimeout(60000);
-  await signInAsDevAdmin(page, `/sections/${DEV_SEED.section.jwId}`);
+  const userContext = await browser.newContext();
+  const userPage = await userContext.newPage();
   let suspensionId: string | undefined;
+  let commentId: string | undefined;
 
   try {
-    await expect(async () => {
-      const commentsTab = page
-        .getByRole("button", { name: /评论|Comments/i })
-        .first();
-      await expect(commentsTab).toBeVisible();
-      await commentsTab.click();
-      await expect(commentsTab).toHaveAttribute("aria-pressed", "true");
-    }).toPass({
-      timeout: 10_000,
-      intervals: [250, 500, 1_000],
-    });
-
+    await signInAsDebugUser(userPage, "/");
+    const sectionId = await resolveSeedSectionId(userPage);
     const body = `e2e-admin-suspend-${Date.now()}`;
-    await page.locator("textarea").first().fill(body);
-    const createComment = page.waitForResponse(
-      (response) =>
-        response.url().includes("/api/comments") &&
-        response.request().method() === "POST" &&
-        response.status() === 200,
-    );
-    await page.getByRole("button", { name: /发布评论|Post comment/i }).click();
-    await createComment;
-    await page.waitForLoadState("networkidle");
+    const createCommentResponse = await userPage.request.post("/api/comments", {
+      data: {
+        body,
+        targetId: String(sectionId),
+        targetType: "section",
+        visibility: "public",
+      },
+    });
+    expect(createCommentResponse.status()).toBe(200);
+    commentId = ((await createCommentResponse.json()) as { id?: string }).id;
+    expect(commentId).toBeTruthy();
 
-    await gotoAndWaitForReady(page, "/admin/moderation");
+    await signInAsDevAdmin(page, "/admin/moderation");
     await page
       .getByPlaceholder(/搜索评论内容或用户名|Search comments/i)
       .fill(body);
@@ -321,11 +315,11 @@ test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
     const suspendResponse = page.waitForResponse(
       (response) =>
         response.url().includes("/api/admin/suspensions") &&
-        response.request().method() === "POST" &&
-        response.status() === 200,
+        response.request().method() === "POST",
     );
     await dialog.getByRole("button", { name: /封禁|Suspend/i }).click();
     const created = await suspendResponse;
+    expect(created.status()).toBe(200);
     const createdBody = (await created.json()) as {
       suspension?: { id?: string };
     };
@@ -343,6 +337,13 @@ test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
       );
       expect(lift.status()).toBe(200);
     }
+    if (commentId) {
+      const deleted = await userPage.request.delete(
+        `/api/comments/${commentId}`,
+      );
+      expect(deleted.status()).toBe(200);
+    }
+    await userContext.close();
   }
 });
 

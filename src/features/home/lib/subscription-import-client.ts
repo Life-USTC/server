@@ -1,5 +1,5 @@
 import type * as z from "zod";
-import { extractApiErrorMessage } from "@/lib/api/client";
+import { apiClient, apiErrorMessage } from "@/lib/api/client";
 import {
   calendarSubscriptionAppendResponseSchema,
   calendarSubscriptionRemoveResponseSchema,
@@ -10,24 +10,6 @@ const SECTION_CODE_PATTERN = /[A-Z0-9_.-]+\.[A-Z0-9]{2}/g;
 
 export function extractSubscriptionSectionCodes(value: string) {
   return Array.from(new Set(value.match(SECTION_CODE_PATTERN) ?? []));
-}
-
-async function readJsonPayload(response: Response) {
-  try {
-    return await response.json();
-  } catch {
-    return undefined;
-  }
-}
-
-function assertOkResponse(
-  response: Response,
-  payload: unknown,
-  errorMessage: string,
-) {
-  if (!response.ok) {
-    throw new Error(extractApiErrorMessage(payload) ?? errorMessage);
-  }
 }
 
 function validatedPayload<T>(
@@ -52,19 +34,18 @@ export async function matchSubscriptionSectionCodes({
   fetchFailedMessage: string;
   semesterId?: number;
 }) {
-  const response = await fetch("/api/sections/match-codes", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+  const result = await apiClient.POST("/api/sections/match-codes", {
+    body: {
       codes,
       semesterId,
-    }),
+    },
   });
-  const payload = await readJsonPayload(response);
-  assertOkResponse(response, payload, fetchFailedMessage);
+  if (!result.response.ok) {
+    throw new Error(apiErrorMessage(result.error, fetchFailedMessage));
+  }
   return validatedPayload(
     matchSectionCodesResponseSchema,
-    payload,
+    result.data,
     fetchFailedMessage,
   );
 }
@@ -80,16 +61,15 @@ export async function appendSubscribedSectionIds({
     return 0;
   }
 
-  const response = await fetch("/api/calendar-subscriptions", {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ sectionIds: selectedSectionIds }),
+  const result = await apiClient.PATCH("/api/calendar-subscriptions", {
+    body: { sectionIds: selectedSectionIds },
   });
-  const payload = await readJsonPayload(response);
-  assertOkResponse(response, payload, importFailedMessage);
+  if (!result.response.ok) {
+    throw new Error(apiErrorMessage(result.error, importFailedMessage));
+  }
   const data = validatedPayload(
     calendarSubscriptionAppendResponseSchema,
-    payload,
+    result.data,
     importFailedMessage,
   );
 
@@ -107,16 +87,15 @@ export async function removeSubscribedSectionIds({
     return;
   }
 
-  const response = await fetch("/api/calendar-subscriptions", {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ sectionIds }),
+  const result = await apiClient.DELETE("/api/calendar-subscriptions", {
+    body: { sectionIds },
   });
-  const payload = await readJsonPayload(response);
-  assertOkResponse(response, payload, errorMessage);
+  if (!result.response.ok) {
+    throw new Error(apiErrorMessage(result.error, errorMessage));
+  }
   validatedPayload(
     calendarSubscriptionRemoveResponseSchema,
-    payload,
+    result.data,
     errorMessage,
   );
 }

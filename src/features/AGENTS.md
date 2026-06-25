@@ -13,6 +13,7 @@ uploads/       Comment attachments
 descriptions/  Platform markdown content
 dashboard-links/ Link catalog
 bus/           Public timetable
+calendar/      Calendar export and iCal generation
 ```
 
 ## Layout
@@ -51,5 +52,9 @@ feature/
 - Public timetable
 - Signed-in preference save
 - Import idempotent by version
+
+### calendar/
+- Owns feature-specific iCal event construction for sections, homework, and todos
+- Keep generic time helpers in `src/lib/time`; keep calendar event semantics here
 
 See root `AGENTS.md` for auth, dates, Prisma patterns.

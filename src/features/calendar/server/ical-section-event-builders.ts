@@ -1,9 +1,12 @@
 import type { ICalCalendar } from "ical-generator";
+import type { CalendarSection } from "@/features/calendar/server/ical-event-types";
+import type {
+  GeoData,
+  ImgRules,
+} from "@/features/calendar/server/ical-event-utils";
+import { createExamEvent } from "@/features/calendar/server/ical-section-exam-event";
+import { createScheduleEvent } from "@/features/calendar/server/ical-section-schedule-event";
 import type { AppLocale } from "@/i18n/config";
-import type { CalendarSection } from "@/lib/ical-event-types";
-import type { GeoData, ImgRules } from "@/lib/ical-event-utils";
-import { createExamEvent } from "@/lib/ical-section-exam-event";
-import { createScheduleEvent } from "@/lib/ical-section-schedule-event";
 
 export function appendSectionEvents(
   calendar: ICalCalendar,

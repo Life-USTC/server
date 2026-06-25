@@ -1,5 +1,10 @@
-import { adminUserResponseMessage } from "@/features/admin/lib/admin-users-display";
+import { apiClient, apiErrorMessage } from "@/lib/api/client";
+import type { AdminUserRow } from "../components/admin-user-types";
 import type { AdminUsersActionConfig } from "./admin-users-page-action-types";
+
+type AdminUserUpdateResponse = {
+  user: AdminUserRow;
+};
 
 export async function saveSelectedUser(config: AdminUsersActionConfig) {
   const selectedUser = config.getSelectedUser();
@@ -9,23 +14,21 @@ export async function saveSelectedUser(config: AdminUsersActionConfig) {
   config.setSaving(true);
   config.setMessage(null);
   try {
-    const response = await fetch(`/api/admin/users/${selectedUser.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: editState.name.trim() || null,
-        username: editState.username.trim() || null,
-        isAdmin: editState.isAdmin,
-      }),
-    });
-    if (!response.ok) {
-      config.setMessage(
-        await adminUserResponseMessage(response, copy.updateFailed),
-      );
+    const result = await apiClient.PATCH<AdminUserUpdateResponse>(
+      `/api/admin/users/${selectedUser.id}`,
+      {
+        body: {
+          name: editState.name.trim() || null,
+          username: editState.username.trim() || null,
+          isAdmin: editState.isAdmin,
+        },
+      },
+    );
+    if (!result.response.ok || !result.data) {
+      config.setMessage(apiErrorMessage(result.error, copy.updateFailed));
       return;
     }
-    const body = await response.json();
-    config.replaceUser(body.user);
+    config.replaceUser(result.data.user);
     config.setMessage(copy.updateSuccess);
     config.closeDialog();
   } finally {

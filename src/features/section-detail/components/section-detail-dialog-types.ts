@@ -216,14 +216,3 @@ export type SectionDetailMainContentProps = {
   visibleCalendarMonth: Date;
   yesNo: (value: boolean | null | undefined) => string;
 };
-
-export type SectionDetailPageContentProps = SectionDetailDialogsProps &
-  SectionDetailMainContentProps & {
-    courseName: string;
-    courseSecondaryName: string;
-    form: { error?: string } | null | undefined;
-    openSubscribeDialog: () => void;
-    viewer: SectionDetailMainContentProps["viewer"] & {
-      isSubscribed?: boolean;
-    };
-  };

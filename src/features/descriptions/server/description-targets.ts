@@ -1,13 +1,11 @@
+import type { DescriptionTargetType } from "@/features/descriptions/lib/description-target-types";
+
+export {
+  DESCRIPTION_TARGET_TYPES,
+  type DescriptionTargetType,
+} from "@/features/descriptions/lib/description-target-types";
+
 import { parseInteger } from "@/lib/integers";
-
-export const DESCRIPTION_TARGET_TYPES = [
-  "section",
-  "course",
-  "teacher",
-  "homework",
-] as const;
-
-export type DescriptionTargetType = (typeof DESCRIPTION_TARGET_TYPES)[number];
 
 type DescriptionTargetIdMap = {
   section: number;

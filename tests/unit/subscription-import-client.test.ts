@@ -12,6 +12,12 @@ const jsonResponse = (body: unknown, init?: ResponseInit) =>
     ...init,
   });
 
+function firstFetchCall(fetchMock: ReturnType<typeof vi.fn>) {
+  const call = fetchMock.mock.calls[0];
+  expect(call).toBeDefined();
+  return call as unknown as [string, RequestInit & { body: string }];
+}
+
 function compactSection(id: number) {
   return {
     id,
@@ -147,10 +153,12 @@ describe("subscription import client", () => {
       semesterId: 1,
     });
 
-    expect(fetchMock).toHaveBeenCalledWith("/api/sections/match-codes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ codes: ["MATH.01"], semesterId: 1 }),
+    const [path, init] = firstFetchCall(fetchMock);
+    expect(path).toBe("/api/sections/match-codes");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toEqual({
+      codes: ["MATH.01"],
+      semesterId: 1,
     });
     expect(result.sections).toHaveLength(1);
     expect(result.sections[0].course).toMatchObject({
@@ -211,11 +219,10 @@ describe("subscription import client", () => {
       sectionIds: [3],
     });
 
-    expect(fetchMock).toHaveBeenCalledWith("/api/calendar-subscriptions", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sectionIds: [3] }),
-    });
+    const [path, init] = firstFetchCall(fetchMock);
+    expect(path).toBe("/api/calendar-subscriptions");
+    expect(init.method).toBe("DELETE");
+    expect(JSON.parse(init.body)).toEqual({ sectionIds: [3] });
   });
 
   it("does not call the remove route when no section ids are selected", async () => {
@@ -244,11 +251,10 @@ describe("subscription import client", () => {
     ).resolves.toBe(2);
 
     expect(fetchMock).toHaveBeenCalledOnce();
-    expect(fetchMock).toHaveBeenCalledWith("/api/calendar-subscriptions", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sectionIds: [2, 3] }),
-    });
+    const [path, init] = firstFetchCall(fetchMock);
+    expect(path).toBe("/api/calendar-subscriptions");
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body)).toEqual({ sectionIds: [2, 3] });
   });
 
   it("does not call the append route when no section ids are selected", async () => {

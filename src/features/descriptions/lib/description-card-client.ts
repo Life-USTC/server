@@ -1,3 +1,4 @@
+import { apiClient } from "@/lib/api/client";
 import type {
   DescriptionPayload,
   DescriptionTargetType,
@@ -7,16 +8,17 @@ export async function fetchDescriptionPayload(input: {
   targetId: number | string;
   targetType: DescriptionTargetType;
 }) {
-  const params = new URLSearchParams({
-    targetType: input.targetType,
-    targetId: String(input.targetId),
+  const result = await apiClient.GET<DescriptionPayload>("/api/descriptions", {
+    params: {
+      query: {
+        targetId: String(input.targetId),
+        targetType: input.targetType,
+      },
+    },
   });
-  const response = await fetch(`/api/descriptions?${params.toString()}`);
   return {
-    ok: response.ok,
-    payload: response.ok
-      ? ((await response.json()) as DescriptionPayload)
-      : null,
+    ok: result.response.ok,
+    payload: result.data ?? null,
   };
 }
 
@@ -25,9 +27,8 @@ export async function saveDescriptionPayload(input: {
   targetId: number | string;
   targetType: DescriptionTargetType;
 }) {
-  return fetch("/api/descriptions", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(input),
+  const result = await apiClient.POST("/api/descriptions", {
+    body: input,
   });
+  return result.response;
 }

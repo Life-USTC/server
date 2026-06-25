@@ -73,6 +73,10 @@ export function extractApiErrorMessage(errorBody: unknown): string | null {
   return null;
 }
 
+export function apiErrorMessage(errorBody: unknown, fallback: string) {
+  return extractApiErrorMessage(errorBody) ?? fallback;
+}
+
 export async function readApiErrorMessage(
   response: Response,
   fallback: string,

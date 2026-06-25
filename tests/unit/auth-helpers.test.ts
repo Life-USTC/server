@@ -74,6 +74,40 @@ describe("auth helpers", () => {
     );
   });
 
+  it("does not fall back to session cookies when a bearer token is invalid", async () => {
+    verifyAccessTokenMock.mockRejectedValue(new Error("invalid token"));
+    getSessionFromHeadersMock.mockResolvedValue({
+      user: { id: "user-from-cookie" },
+    });
+    const { resolveApiUserId } = await import("@/lib/auth/api-auth");
+    const request = new Request("https://life.example/api/me", {
+      headers: {
+        authorization: "Bearer invalid-token",
+        cookie: "better-auth.session_token=session-token",
+      },
+    });
+
+    await expect(resolveApiUserId(request)).resolves.toBeNull();
+    expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
+  });
+
+  it("does not fall back to session cookies when a bearer token is empty", async () => {
+    getSessionFromHeadersMock.mockResolvedValue({
+      user: { id: "user-from-cookie" },
+    });
+    const { resolveApiUserId } = await import("@/lib/auth/api-auth");
+    const request = new Request("https://life.example/api/me", {
+      headers: {
+        authorization: "Bearer ",
+        cookie: "better-auth.session_token=session-token",
+      },
+    });
+
+    await expect(resolveApiUserId(request)).resolves.toBeNull();
+    expect(verifyAccessTokenMock).not.toHaveBeenCalled();
+    expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
+  });
+
   it("rejects write auth when the resolved user no longer exists", async () => {
     verifyAccessTokenMock.mockResolvedValue({ sub: "deleted-user" });
     getViewerAuthDataForUserIdMock.mockResolvedValue(null);

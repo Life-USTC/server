@@ -1,4 +1,4 @@
-import { readApiErrorMessage } from "@/lib/api/client";
+import { apiFetch, readApiErrorMessage } from "@/lib/api/client";
 
 type PinnableDashboardLink = {
   isPinned: boolean;
@@ -31,7 +31,7 @@ export async function submitDashboardLinkPinRequest(input: {
   formData.set("action", input.action);
   formData.set("returnTo", input.returnTo);
 
-  const response = await fetch("/api/dashboard-links/pin", {
+  const response = await apiFetch("/api/dashboard-links/pin", {
     method: "POST",
     body: formData,
     headers: { accept: "application/json" },

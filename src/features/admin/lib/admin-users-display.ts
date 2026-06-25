@@ -1,4 +1,3 @@
-import { readApiErrorMessage } from "@/lib/api/client";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import {
   addShanghaiTime,
@@ -62,11 +61,4 @@ export function adminUserSuspensionExpiresAt(
   const days =
     duration === "1d" ? 1 : duration === "7d" ? 7 : duration === "30d" ? 30 : 3;
   return toShanghaiIsoString(addShanghaiTime(new Date(), days, "day"));
-}
-
-export async function adminUserResponseMessage(
-  response: Response,
-  fallback: string,
-) {
-  return readApiErrorMessage(response, fallback);
 }

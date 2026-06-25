@@ -51,7 +51,7 @@ export function createDescriptionCardActions(input: {
       return;
     }
     input.setDescription(result.payload.description);
-    input.setHistory(result.payload.history ?? []);
+    input.setHistory(result.payload.history);
     input.setViewer(result.payload.viewer);
   }
 

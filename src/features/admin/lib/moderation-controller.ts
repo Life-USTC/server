@@ -1,8 +1,8 @@
+import { apiClient, apiErrorMessage } from "@/lib/api/client";
 import {
   expiresAtFromModerationDuration,
   moderationFormatMessage,
   moderationTargetHref,
-  responseMessage,
 } from "./moderation-display";
 import type { ModerationCommentLike } from "./moderation-display-types";
 
@@ -38,16 +38,17 @@ export async function saveModerationCommentRequest(input: {
   moderationNote: string;
   status: "active" | "softbanned" | "deleted";
 }) {
-  const response = await fetch(`/api/admin/comments/${input.commentId}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      status: input.status,
-      moderationNote: input.moderationNote.trim() || null,
-    }),
-  });
-  if (!response.ok) {
-    throw new Error(await responseMessage(response, input.fallbackMessage));
+  const result = await apiClient.PATCH(
+    `/api/admin/comments/${input.commentId}`,
+    {
+      body: {
+        status: input.status,
+        moderationNote: input.moderationNote.trim() || null,
+      },
+    },
+  );
+  if (!result.response.ok) {
+    throw new Error(apiErrorMessage(result.error, input.fallbackMessage));
   }
 }
 
@@ -58,19 +59,17 @@ export async function suspendModerationCommentAuthorRequest(input: {
   reason: string;
   userId: string;
 }) {
-  const response = await fetch("/api/admin/suspensions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+  const result = await apiClient.POST("/api/admin/suspensions", {
+    body: {
       userId: input.userId,
       reason: input.reason.trim() || undefined,
       expiresAt: expiresAtFromModerationDuration(
         input.duration,
         input.customExpiresAt,
       ),
-    }),
+    },
   });
-  if (!response.ok) {
-    throw new Error(await responseMessage(response, input.fallbackMessage));
+  if (!result.response.ok) {
+    throw new Error(apiErrorMessage(result.error, input.fallbackMessage));
   }
 }
