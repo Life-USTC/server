@@ -34,7 +34,7 @@ export async function loadSectionDetailPage({
     await Promise.all([
       userId
         ? (
-            await import("@/features/home/server/subscriptions")
+            await import("@/features/subscriptions/server/subscriptions")
           ).getUserSectionSubscriptionState(userId)
         : null,
       getSectionDetailDescriptionAndComments(section, userId),

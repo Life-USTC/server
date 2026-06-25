@@ -1,4 +1,4 @@
-export { extractSubscriptionSectionCodes as extractSectionCodes } from "@/features/home/lib/subscription-import-client";
+export { extractSubscriptionSectionCodes as extractSectionCodes } from "@/features/subscriptions/lib/subscription-import-client";
 export {
   importSubscriptionSections,
   matchSubscriptionSections,

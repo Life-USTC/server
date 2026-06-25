@@ -1,8 +1,8 @@
+import { listSubscribedDashboardSections } from "@/features/subscriptions/server/subscription-read-model";
 import { resolveDashboardSections } from "./dashboard-helpers";
 import type { resolveDashboardOverviewContext } from "./dashboard-overview-context";
 import { buildOverviewSemesterLists } from "./dashboard-overview-semesters";
 import type { OverviewDataOptions } from "./dashboard-overview-types";
-import { listSubscribedDashboardSections } from "./subscription-read-model";
 
 type DashboardOverviewContext = Awaited<
   ReturnType<typeof resolveDashboardOverviewContext>

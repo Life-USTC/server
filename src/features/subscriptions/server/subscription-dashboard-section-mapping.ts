@@ -1,4 +1,4 @@
-import type { SectionWithRelations } from "./dashboard-types";
+import type { SectionWithRelations } from "./subscription-dashboard-types";
 
 export function subscriptionScheduleDateFilter(input: {
   dateFrom?: Date;

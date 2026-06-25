@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   countDistinctSemesterIds,
   groupSectionsBySemester,
-} from "@/features/home/lib/subscription-section-groups";
+} from "@/features/subscriptions/lib/subscription-section-groups";
 
 describe("sections page helpers", () => {
   it("groups sections by semester and sorts latest first", () => {

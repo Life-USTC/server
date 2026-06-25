@@ -10,12 +10,12 @@ export type {
   HomeworkSummaryItem,
   SectionOption,
   SubscriptionsTabData,
-} from "./subscription-read-model";
+} from "@/features/subscriptions/server/subscription-read-model";
 export {
   getCalendarSubscriptionUrl,
   getHomeworksTabData,
   getSubscriptionsTabData,
-} from "./subscription-read-model";
+} from "@/features/subscriptions/server/subscription-read-model";
 
 export type BusDashboardData = {
   data: BusTimetableData | null;

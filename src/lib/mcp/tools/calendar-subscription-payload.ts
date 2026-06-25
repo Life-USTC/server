@@ -1,4 +1,4 @@
-import type { getUserCalendarSubscription } from "@/features/home/server/subscription-read-model";
+import type { getUserCalendarSubscription } from "@/features/subscriptions/server/subscription-read-model";
 import {
   summarizeCalendarSubscription,
   summarizeCalendarSubscriptionBrief,

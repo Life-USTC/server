@@ -54,7 +54,7 @@ export async function getMySubscribedSchedulesRoute(request: Request) {
 
   try {
     const { listSubscribedSchedules } = await import(
-      "@/features/home/server/subscription-read-model"
+      "@/features/subscriptions/server/subscription-read-model"
     );
     const schedules = await listSubscribedSchedules(userId, {
       dateFrom,

@@ -8,7 +8,7 @@ vi.mock("@/lib/auth/core", () => ({
   getSessionFromHeaders: getSessionFromHeadersMock,
 }));
 
-vi.mock("@/features/home/server/subscriptions", () => ({
+vi.mock("@/features/subscriptions/server/subscriptions", () => ({
   subscribeUserToSectionByJwId: subscribeUserToSectionByJwIdMock,
   unsubscribeUserFromSectionByJwId: unsubscribeUserFromSectionByJwIdMock,
 }));

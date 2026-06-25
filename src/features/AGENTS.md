@@ -14,6 +14,7 @@ descriptions/  Platform markdown content
 dashboard-links/ Link catalog
 bus/           Public timetable
 calendar/      Calendar export and iCal generation
+subscriptions/ Section subscription read/write services and import helpers
 ```
 
 ## Layout
@@ -56,5 +57,10 @@ feature/
 ### calendar/
 - Owns feature-specific iCal event construction for sections, homework, and todos
 - Keep generic time helpers in `src/lib/time`; keep calendar event semantics here
+
+### subscriptions/
+- Owns section subscription reads/writes used by pages, REST routes, dashboard data, and MCP tools
+- Keep dashboard overview assembly in `home/` or `dashboard/`; consume subscription services from here
+- Subscription import matching helpers belong here, while public section matching facts stay in `catalog/`
 
 See root `AGENTS.md` for auth, dates, Prisma patterns.

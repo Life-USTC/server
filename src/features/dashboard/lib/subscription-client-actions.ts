@@ -3,7 +3,7 @@ import {
   extractSubscriptionSectionCodes,
   matchSubscriptionSectionCodes,
   removeSubscribedSectionIds,
-} from "@/features/home/lib/subscription-import-client";
+} from "@/features/subscriptions/lib/subscription-import-client";
 import type {
   BulkImportCopy,
   MatchedSubscriptionSection,

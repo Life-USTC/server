@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
-import { listSubscribedHomeworks } from "@/features/home/server/subscription-read-model";
 import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
+import { listSubscribedHomeworks } from "@/features/subscriptions/server/subscription-read-model";
 import {
   getUserId,
   jsonToolResult,

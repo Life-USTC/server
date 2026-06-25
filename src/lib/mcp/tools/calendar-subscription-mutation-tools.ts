@@ -2,7 +2,7 @@ import {
   hasUserSubscribedSectionByJwId,
   subscribeUserToSectionByJwId,
   unsubscribeUserFromSectionByJwId,
-} from "@/features/home/server/subscriptions";
+} from "@/features/subscriptions/server/subscriptions";
 import {
   getUserId,
   jsonToolResult,
