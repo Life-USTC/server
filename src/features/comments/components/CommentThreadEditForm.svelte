@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { CommentNode } from "@/features/comments/server/comment-types";
+import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
@@ -41,12 +42,13 @@ export let visibilityOptions: CommentSelectOption[];
   </div>
   <MarkdownEditor
     bind:value={editDraft}
-    campusReferences
+    aria-label={commentCopy.markdownModeLabel}
     compact
     guideLabel={commentCopy.markdownGuide}
     modeLabel={commentCopy.markdownModeLabel}
     placeholder={commentCopy.editorPlaceholder}
     previewEmptyLabel={commentCopy.previewEmpty}
+    remarkPlugins={campusReferenceMarkdownPlugins}
     rows={4}
     tabPreviewLabel={commentCopy.tabPreview}
     tabWriteLabel={commentCopy.tabWrite}

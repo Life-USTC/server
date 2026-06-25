@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { buildDashboardControllerDerivedState } from "@/features/dashboard/lib/dashboard-controller-derived-state";
+import {
+  applyLocalHomeworkItemsToSignedData,
+  buildDashboardControllerDerivedState,
+} from "@/features/dashboard/lib/dashboard-controller-derived-state";
 import type {
   DashboardLinkItem,
   DashboardPageData,
+  HomeworkItem,
+  SignedDashboardData,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import {
   DASHBOARD_LINK_GROUP_ORDER,
@@ -57,6 +62,15 @@ function signedDashboardData(
   };
 }
 
+function homework(id: string, completed: boolean): HomeworkItem {
+  return {
+    completion: completed ? { completedAt: "2026-06-22T10:00:00.000Z" } : null,
+    id,
+    submissionDueAt: null,
+    title: id,
+  };
+}
+
 describe("dashboard controller derived state", () => {
   it.each([
     { currentPinned: true, loadedPinned: false, name: "pin" },
@@ -89,5 +103,32 @@ describe("dashboard controller derived state", () => {
         slug: "jw",
       }),
     ]);
+  });
+
+  it("derives the signed dashboard homework badge count from local homework items", () => {
+    const data = {
+      ...signedDashboardData([]),
+      homeworks: {
+        homeworkSummaries: [homework("homework-1", false)],
+        sections: [],
+      },
+      navStats: {
+        calendarItemsCount: 0,
+        examsCount: 0,
+        pendingHomeworksCount: 2,
+        pendingTodosCount: 0,
+      },
+      subscribedSectionCount: 0,
+    } as SignedDashboardData;
+
+    const nextHomeworks = [
+      homework("homework-1", true),
+      homework("homework-2", false),
+    ];
+
+    const result = applyLocalHomeworkItemsToSignedData(data, nextHomeworks);
+
+    expect(result?.navStats.pendingHomeworksCount).toBe(1);
+    expect(result?.homeworks?.homeworkSummaries).toBe(nextHomeworks);
   });
 });

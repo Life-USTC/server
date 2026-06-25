@@ -21,9 +21,10 @@ export let semesterDate: SectionHomeworkSemesterDate;
 </script>
 
 <div class="grid gap-3 sm:grid-cols-3">
-  <label class="grid gap-2">
+  <div class="grid gap-2">
     <span class="font-medium text-sm">{homeworkCopy.publishedAt}</span>
     <DateTimePicker
+      aria-label={homeworkCopy.publishedAt}
       bind:value={editHomeworkPublishedAt}
       calendarButtonLabel={homeworkCopy.calendarButtonLabel}
       defaultTime="00:00"
@@ -45,10 +46,11 @@ export let semesterDate: SectionHomeworkSemesterDate;
         {homeworkCopy.helperClear}
       </Button>
     </div>
-  </label>
-  <label class="grid gap-2">
+  </div>
+  <div class="grid gap-2">
     <span class="font-medium text-sm">{homeworkCopy.submissionStart}</span>
     <DateTimePicker
+      aria-label={homeworkCopy.submissionStart}
       bind:value={editHomeworkSubmissionStartAt}
       calendarButtonLabel={homeworkCopy.calendarButtonLabel}
       defaultTime="00:00"
@@ -79,10 +81,11 @@ export let semesterDate: SectionHomeworkSemesterDate;
         {homeworkCopy.helperClear}
       </Button>
     </div>
-  </label>
-  <label class="grid gap-2">
+  </div>
+  <div class="grid gap-2">
     <span class="font-medium text-sm">{homeworkCopy.submissionDue}</span>
     <DateTimePicker
+      aria-label={homeworkCopy.submissionDue}
       bind:value={editHomeworkSubmissionDueAt}
       calendarButtonLabel={homeworkCopy.calendarButtonLabel}
       name="submissionDueAt"
@@ -105,5 +108,5 @@ export let semesterDate: SectionHomeworkSemesterDate;
         {homeworkCopy.helperSemesterEnd}
       </Button>
     </div>
-  </label>
+  </div>
 </div>

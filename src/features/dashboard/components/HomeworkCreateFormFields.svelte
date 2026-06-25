@@ -3,6 +3,7 @@ import {
   HOMEWORK_DESCRIPTION_MAX_LENGTH,
   HOMEWORK_TITLE_MAX_LENGTH,
 } from "@/features/homeworks/lib/homework-limits";
+import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 import { Alert } from "$lib/components/ui/alert/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
@@ -67,10 +68,10 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
       required
     />
   </label>
-  <label class="grid gap-2">
+  <div class="grid gap-2">
     <span class="font-medium text-sm">{homeworksCopy.descriptionLabel}</span>
     <MarkdownEditor
-      campusReferences
+      aria-label={homeworksCopy.descriptionLabel}
       disabled={isCreatingHomework}
       guideLabel={commentsCopy.markdownGuide}
       maxlength={HOMEWORK_DESCRIPTION_MAX_LENGTH}
@@ -78,10 +79,11 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
       name="description"
       placeholder={homeworksCopy.descriptionPlaceholder}
       previewEmptyLabel={commentsCopy.previewEmpty}
+      remarkPlugins={campusReferenceMarkdownPlugins}
       tabPreviewLabel={commentsCopy.tabPreview}
       tabWriteLabel={commentsCopy.tabWrite}
     />
-  </label>
+  </div>
   <HomeworkCreateScheduleFields
     {applyHomeworkDueAtSemesterEnd}
     {applyHomeworkDueInMonth}

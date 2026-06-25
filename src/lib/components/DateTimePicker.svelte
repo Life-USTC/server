@@ -26,6 +26,11 @@ let selectedDate: CalendarDate | undefined;
 let timeValue = defaultTime;
 let lastSyncedValue = "";
 
+function stringRestProp(name: string) {
+  const value = ($$restProps as Record<string, unknown>)[name];
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
 function syncFromValue(nextValue: string) {
   const parsed = parseDateTimeLocal(nextValue);
   selectedDate = parsed?.date;
@@ -52,11 +57,20 @@ function handleInput(event: Event) {
 $: if ((value ?? "") !== lastSyncedValue) {
   syncFromValue(value ?? "");
 }
+$: labelledBy = stringRestProp("aria-labelledby");
+$: label = stringRestProp("aria-label") ?? placeholder;
 </script>
 
-<div class={cn("relative min-w-0", className)}>
+<div
+  {...$$restProps}
+  aria-label={labelledBy ? undefined : label}
+  aria-labelledby={labelledBy}
+  class={cn("relative min-w-0", className)}
+  role="group"
+>
   <Input
-    aria-label={placeholder}
+    aria-label={labelledBy ? undefined : label}
+    aria-labelledby={labelledBy}
     class="pe-10 font-mono"
     disabled={disabled}
     {name}

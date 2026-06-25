@@ -15,9 +15,10 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
 </script>
 
 <div class="grid gap-3 sm:grid-cols-2">
-  <label class="grid gap-2">
+  <div class="grid gap-2">
     <span class="font-medium text-sm">{homeworksCopy.publishedAt}</span>
     <DateTimePicker
+      aria-label={homeworksCopy.publishedAt}
       bind:value={createHomeworkPublishedAt}
       calendarButtonLabel={homeworksCopy.calendarButtonLabel}
       disabled={isCreatingHomework}
@@ -49,10 +50,11 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
         {homeworksCopy.helperClear}
       </Button>
     </div>
-  </label>
-  <label class="grid gap-2">
+  </div>
+  <div class="grid gap-2">
     <span class="font-medium text-sm">{homeworksCopy.submissionStart}</span>
     <DateTimePicker
+      aria-label={homeworksCopy.submissionStart}
       bind:value={createHomeworkSubmissionStartAt}
       calendarButtonLabel={homeworksCopy.calendarButtonLabel}
       disabled={isCreatingHomework}
@@ -76,5 +78,5 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
         {homeworksCopy.helperClear}
       </Button>
     </div>
-  </label>
+  </div>
 </div>

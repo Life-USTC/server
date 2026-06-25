@@ -16,9 +16,10 @@ export let isCreatingHomework: boolean;
 export let selectedCreateHomeworkSection: DashboardHomeworkCreateSectionGetter;
 </script>
 
-<label class="grid gap-2">
+<div class="grid gap-2">
   <span class="font-medium text-sm">{homeworksCopy.submissionDue}</span>
   <DateTimePicker
+    aria-label={homeworksCopy.submissionDue}
     bind:value={createHomeworkSubmissionDueAt}
     calendarButtonLabel={homeworksCopy.calendarButtonLabel}
     disabled={isCreatingHomework}
@@ -42,4 +43,4 @@ export let selectedCreateHomeworkSection: DashboardHomeworkCreateSectionGetter;
       {homeworksCopy.helperSemesterEnd}
     </Button>
   </div>
-</label>
+</div>

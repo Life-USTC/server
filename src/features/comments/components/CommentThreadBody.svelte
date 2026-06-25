@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { CommentNode } from "@/features/comments/server/comment-types";
+import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
 import MarkdownPreview from "$lib/components/MarkdownPreview.svelte";
 import CommentAttachmentCards from "./CommentAttachmentCards.svelte";
 import CommentLinkCards from "./CommentLinkCards.svelte";
@@ -49,7 +50,11 @@ export let visibilityOptions: CommentSelectOption[];
 {:else if comment.status === "deleted"}
   <p class="text-base-content/60 text-sm">{commentCopy.deletedMessage}</p>
 {:else}
-  <MarkdownPreview campusReferences class="break-words" content={comment.body} />
+  <MarkdownPreview
+    class="break-words"
+    content={comment.body}
+    remarkPlugins={campusReferenceMarkdownPlugins}
+  />
   <CommentLinkCards content={comment.body} copy={commentCopy} />
 {/if}
 

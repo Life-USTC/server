@@ -1,4 +1,5 @@
 <script lang="ts">
+import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
 import MarkdownPreview from "$lib/components/MarkdownPreview.svelte";
 import type {
   DashboardHomeworkDetailCopy,
@@ -11,7 +12,10 @@ export let homeworksCopy: DashboardHomeworkDetailCopy;
 
 <section class="rounded-md border border-base-300 border-l-4 border-l-primary bg-base-100 p-4">
   {#if homework.description}
-    <MarkdownPreview campusReferences content={homework.description} />
+    <MarkdownPreview
+      content={homework.description}
+      remarkPlugins={campusReferenceMarkdownPlugins}
+    />
   {:else}
     <p class="text-base-content/60 text-sm">{homeworksCopy.descriptionEmpty}</p>
   {/if}

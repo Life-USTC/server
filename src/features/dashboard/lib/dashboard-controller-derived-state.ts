@@ -5,8 +5,10 @@ import {
   type DashboardLinkItem,
   type DashboardPageData,
   type ExamRow,
+  type HomeworkItem,
   isAnonymousDashboardData,
   isSignedDashboardData,
+  type SignedDashboardData,
   type TodoFilter,
   type TodoItem,
 } from "./dashboard-controller-helpers";
@@ -14,6 +16,26 @@ import { groupDashboardLinks } from "./dashboard-link-ui";
 import type { ExamFilter } from "./exams";
 import { filterExamRows } from "./exams";
 import { filterTodos } from "./todos";
+
+export function applyLocalHomeworkItemsToSignedData(
+  signedData: SignedDashboardData | null,
+  homeworkItems: HomeworkItem[],
+) {
+  if (!signedData?.homeworks) return signedData;
+
+  return {
+    ...signedData,
+    homeworks: {
+      ...signedData.homeworks,
+      homeworkSummaries: homeworkItems,
+    },
+    navStats: {
+      ...signedData.navStats,
+      pendingHomeworksCount: homeworkItems.filter((item) => !item.completion)
+        .length,
+    },
+  };
+}
 
 export function buildDashboardControllerDerivedState(input: {
   dashboardLinkGroupLabels: Record<DashboardLinkGroup, string>;

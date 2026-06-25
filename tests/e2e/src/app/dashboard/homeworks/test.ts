@@ -219,7 +219,14 @@ test.describe("dashboard homeworks", () => {
       .first();
     await expect(completionButton).toHaveCSS("opacity", "1");
 
+    const homeworksTab = page
+      .getByRole("link", { name: /作业|Homework/i })
+      .first();
+    const homeworksBadge = homeworksTab.locator('[data-slot="badge"]');
+    const beforeBadge = Number((await homeworksBadge.textContent())?.trim());
+    expect(Number.isFinite(beforeBadge)).toBe(true);
     const before = (await completionButton.textContent())?.trim() ?? "";
+    const marksComplete = /标记为完成|Mark as complete/i.test(before);
 
     const completionResponse = page.waitForResponse(
       (r) =>
@@ -233,6 +240,9 @@ test.describe("dashboard homeworks", () => {
 
     const after = (await completionButton.textContent())?.trim() ?? "";
     expect(after).not.toBe(before);
+    await expect(homeworksBadge).toHaveText(
+      String(marksComplete ? beforeBadge - 1 : beforeBadge + 1),
+    );
     await captureStepScreenshot(page, testInfo, "homeworks/completion-toggled");
 
     // Restore
@@ -244,6 +254,7 @@ test.describe("dashboard homeworks", () => {
     );
     await completionButton.click();
     await restoreResponse;
+    await expect(homeworksBadge).toHaveText(String(beforeBadge));
   });
 
   test("view details links to section page with homework anchor", async ({
@@ -301,6 +312,15 @@ test.describe("dashboard homeworks", () => {
       timeout: 10_000,
       intervals: [250, 500, 1_000],
     });
+    const createDialog = page.locator('[data-slot="dialog-popup"]').first();
+    await expect(
+      createDialog.getByRole("group", { name: /说明|Details/i }),
+    ).toBeVisible();
+    await expect(
+      createDialog.getByRole("group", {
+        name: /提交截止|Submission due/i,
+      }),
+    ).toBeVisible();
     await titleInput.fill(title);
     await page.getByTestId("dashboard-homework-create").click();
 

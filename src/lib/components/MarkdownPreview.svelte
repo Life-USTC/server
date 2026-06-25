@@ -1,17 +1,18 @@
 <script lang="ts">
+import type { PluggableList } from "unified";
 import { renderMarkdown } from "$lib/components/markdown-preview-renderer";
 import "$lib/components/markdown-preview.css";
 import "katex/dist/katex.min.css";
 
 export let content = "";
-export let campusReferences = false;
 export let emptyLabel = "";
+export let remarkPlugins: PluggableList = [];
 let className = "";
 
 export { className as class };
 
 $: renderedHtml = content.trim()
-  ? renderMarkdown(content, { campusReferences })
+  ? renderMarkdown(content, { remarkPlugins })
   : "";
 </script>
 

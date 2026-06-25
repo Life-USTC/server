@@ -97,6 +97,9 @@ test.describe("/sections/[jwId]", () => {
     ).toContainText(expectedSubtitle);
     // section.code (monospace)
     await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
+    await expect(
+      page.getByRole("group", { name: /授课班级|Teaching section/i }),
+    ).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "section/heading");
   });
@@ -850,6 +853,21 @@ test.describe("/sections/[jwId]", () => {
       })
       .first();
     await expect(composerCard).toBeVisible();
+    const uploadInput = composerCard.locator('input[type="file"]').first();
+    await expect(uploadInput).toBeAttached();
+    const uploadControl = uploadInput.locator(
+      "xpath=ancestor::label[@data-slot='button'][1]",
+    );
+    await uploadInput.evaluate((input: HTMLInputElement) => {
+      input.focus();
+    });
+    await expect
+      .poll(() =>
+        uploadControl.evaluate(
+          (element) => getComputedStyle(element).boxShadow,
+        ),
+      )
+      .not.toBe("none");
 
     // Upload attachment (upload.yml three-step flow)
     const filename = `e2e-attachment-${Date.now()}.txt`;

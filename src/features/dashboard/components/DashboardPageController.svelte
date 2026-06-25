@@ -20,7 +20,10 @@ import { createDashboardCalendarDisplayActions } from "@/features/dashboard/lib/
 import { createDashboardCardViewActions } from "@/features/dashboard/lib/dashboard-controller-card-view-actions";
 import { createDashboardCreateHomeworkActions } from "@/features/dashboard/lib/dashboard-controller-create-homework-actions";
 import { createDashboardControllerDefaultState } from "@/features/dashboard/lib/dashboard-controller-default-state";
-import { buildDashboardControllerDerivedState } from "@/features/dashboard/lib/dashboard-controller-derived-state";
+import {
+  applyLocalHomeworkItemsToSignedData,
+  buildDashboardControllerDerivedState,
+} from "@/features/dashboard/lib/dashboard-controller-derived-state";
 import { createDashboardDisplayActions } from "@/features/dashboard/lib/dashboard-controller-display-actions";
 import { createDashboardFormSubmitActions } from "@/features/dashboard/lib/dashboard-controller-form-actions";
 import {
@@ -466,9 +469,12 @@ $: derivedState = buildDashboardControllerDerivedState({
   currentOverviewLinkItems: overviewLinkSourceItems,
   todoFilter,
 });
-$: signedData = derivedState.signedData;
 $: anonymousData = derivedState.anonymousData;
 $: homeworkItems = derivedState.homeworkItems;
+$: signedData = applyLocalHomeworkItemsToSignedData(
+  derivedState.signedData,
+  homeworkItems,
+);
 $: homeworkReferenceDate = referenceDate(signedData?.referenceNow);
 $: todoItems = derivedState.todoItems;
 $: filteredTodos = derivedState.filteredTodos;
