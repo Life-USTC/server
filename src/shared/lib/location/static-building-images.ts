@@ -1,6 +1,6 @@
 import { getLifeUstcStaticUrl } from "@/lib/static-assets";
 import { createStaticJsonLoader } from "@/lib/static-json-loader";
-import type { BuildingImgRule } from "@/lib/static-location-types";
+import type { BuildingImgRule } from "./static-location-types";
 
 const BUILDING_IMG_RULES_FILE = "building_img_rules.json";
 

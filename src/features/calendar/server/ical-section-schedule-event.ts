@@ -10,8 +10,8 @@ import {
 import { getIcalLabels } from "@/features/calendar/server/ical-labels";
 import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
-import { lookupBuildingImagePath } from "@/lib/location-utils";
 import { APP_TIME_ZONE } from "@/lib/time/parse-date-input";
+import { lookupBuildingImagePath } from "@/shared/lib/location/location-utils";
 
 export function createScheduleEvent(
   schedule: Prisma.ScheduleGetPayload<{
