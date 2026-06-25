@@ -9,7 +9,7 @@
  * - Returns 404 for missing target entity
  *
  * ## POST /api/comments
- * - Body: { targetType, targetId, body, visibility?, isAnonymous?, parentId?, attachmentIds?, sectionId?, teacherId? }
+ * - Body: { targetType, targetId, body, visibility?, isAnonymous?, parentId?, attachmentIds?, sectionId?, sectionJwId?, courseJwId?, teacherId?, homeworkId?, sectionTeacherId? }
  * - Response: { id: string }
  * - Auth required (401 if unauthenticated)
  * - Returns 403 if user is suspended
@@ -301,6 +301,70 @@ test("/api/comments POST 登录后可发布新评论并清理", async ({ page })
       await page.request.delete(`/api/comments/${createdId}`);
     }
   }
+});
+
+test("/api/comments POST accepts public section JW id", async ({ page }) => {
+  await signInAsDebugUser(page, "/");
+
+  const content = `e2e-create-comment-section-jwid-${Date.now()}`;
+  const createResponse = await page.request.post("/api/comments", {
+    data: {
+      targetType: "section",
+      sectionJwId: DEV_SEED.section.jwId,
+      body: content,
+      visibility: "public",
+    },
+  });
+  expect(createResponse.status()).toBe(200);
+  const createdId = ((await createResponse.json()) as { id?: string }).id;
+  expect(createdId).toBeTruthy();
+
+  try {
+    const listResponse = await page.request.get(
+      `/api/comments?targetType=section&sectionJwId=${DEV_SEED.section.jwId}`,
+    );
+    expect(listResponse.status()).toBe(200);
+    const listBody = (await listResponse.json()) as {
+      comments?: Array<{ id?: string; body?: string }>;
+    };
+    expect(
+      listBody.comments?.some((c) => c.id === createdId && c.body === content),
+    ).toBe(true);
+  } finally {
+    if (createdId) {
+      await page.request.delete(`/api/comments/${createdId}`);
+    }
+  }
+});
+
+test("/api/comments POST rejects malformed public section JW id with fallback targetId", async ({
+  page,
+}) => {
+  await signInAsDebugUser(page, "/");
+  const sectionId = await resolveSeedSectionId(page.request);
+  const content = `e2e-invalid-section-jwid-${Date.now()}`;
+
+  const createResponse = await page.request.post("/api/comments", {
+    data: {
+      targetType: "section",
+      targetId: String(sectionId),
+      sectionJwId: "abc",
+      body: content,
+      visibility: "public",
+    },
+  });
+  expect(createResponse.status()).toBe(400);
+  await expect(createResponse.json()).resolves.toEqual({
+    error: "Invalid comment request",
+  });
+
+  const created = await withE2ePrisma((prisma) =>
+    prisma.comment.findFirst({
+      where: { body: content },
+      select: { id: true },
+    }),
+  );
+  expect(created).toBeNull();
 });
 
 test("/api/comments POST rejects reusing an uploaded attachment", async ({

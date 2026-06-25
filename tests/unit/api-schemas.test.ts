@@ -4,6 +4,7 @@ import { TODO_CONTENT_MAX_LENGTH } from "@/features/todos/lib/todo-limits";
 import {
   calendarSubscriptionAppendRequestSchema,
   calendarSubscriptionCreateRequestSchema,
+  commentCreateRequestSchema,
   commentReactionRequestSchema,
   commentsQuerySchema,
   coursesQuerySchema,
@@ -212,6 +213,69 @@ describe("other request schemas", () => {
       commentsQuerySchema.safeParse({
         targetType: "section",
         sectionJwId: "abc",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("validates comment create public target identifiers", () => {
+    expect(
+      commentCreateRequestSchema.safeParse({
+        targetType: "section",
+        sectionJwId: "9902001",
+        body: "hello",
+      }).success,
+    ).toBe(true);
+    expect(
+      commentCreateRequestSchema.safeParse({
+        targetType: "course",
+        courseJwId: "9901001",
+        body: "hello",
+      }).success,
+    ).toBe(true);
+    expect(
+      commentCreateRequestSchema.safeParse({
+        targetType: "homework",
+        homeworkId: "homework-1",
+        body: "hello",
+      }).success,
+    ).toBe(true);
+    expect(
+      commentCreateRequestSchema.safeParse({
+        targetType: "section-teacher",
+        sectionTeacherId: "123",
+        body: "hello",
+      }).success,
+    ).toBe(true);
+    expect(
+      commentCreateRequestSchema.safeParse({
+        targetType: "section",
+        targetId: "123",
+        sectionJwId: "abc",
+        body: "hello",
+      }).success,
+    ).toBe(false);
+    expect(
+      commentCreateRequestSchema.safeParse({
+        targetType: "course",
+        targetId: "123",
+        courseJwId: "0",
+        body: "hello",
+      }).success,
+    ).toBe(false);
+    expect(
+      commentCreateRequestSchema.safeParse({
+        targetType: "section-teacher",
+        targetId: "123",
+        sectionTeacherId: "",
+        body: "hello",
+      }).success,
+    ).toBe(false);
+    expect(
+      commentCreateRequestSchema.safeParse({
+        targetType: "section-teacher",
+        targetId: "123",
+        sectionTeacherId: 0,
+        body: "hello",
       }).success,
     ).toBe(false);
   });

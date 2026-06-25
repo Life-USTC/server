@@ -7081,6 +7081,34 @@
               }
             ]
           },
+          "sectionJwId": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "courseJwId": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
           "teacherId": {
             "anyOf": [
               {
@@ -7088,6 +7116,24 @@
               },
               {
                 "type": "number"
+              }
+            ]
+          },
+          "homeworkId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sectionTeacherId": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
               }
             ]
           },
