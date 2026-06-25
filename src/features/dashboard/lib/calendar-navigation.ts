@@ -6,6 +6,7 @@ import {
   toDateKey,
   weekStartFor,
 } from "@/features/dashboard/lib/calendar";
+import { toCampusDateKey } from "@/lib/time/campus-date";
 
 export type DashboardCalendarNavData = {
   activeCalendarSemesterId?: number | null;
@@ -33,7 +34,8 @@ export function dashboardCalendarStateFromUrl(
   const requestedView = url.searchParams.get("calendarView");
   const view = isCalendarView(requestedView) ? requestedView : "semester";
 
-  const referenceDate = calendar?.referenceDate ?? toDateKey(new Date());
+  const referenceDate =
+    toCampusDateKey(calendar?.referenceDate) ?? toDateKey(new Date());
   const requestedMonth = url.searchParams.get("calendarMonth");
   const month = isMonthKey(requestedMonth)
     ? requestedMonth
@@ -78,7 +80,8 @@ export function dashboardCalendarViewPatch(
   nextView: CalendarView,
   calendar: DashboardCalendarNavData | null,
 ): DashboardCalendarStatePatch {
-  const referenceKey = calendar?.referenceDate ?? toDateKey(new Date());
+  const referenceKey =
+    toCampusDateKey(calendar?.referenceDate) ?? toDateKey(new Date());
   if (nextView === "month") {
     return {
       month: referenceKey.slice(0, 7),

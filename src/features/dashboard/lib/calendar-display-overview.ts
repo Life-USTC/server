@@ -1,10 +1,7 @@
-import {
-  parseDateKey,
-  toDateKey,
-  weekStartFor,
-} from "@/features/dashboard/lib/calendar";
+import { toDateKey, weekStartFor } from "@/features/dashboard/lib/calendar";
 import type { CalendarExamEvent } from "@/features/dashboard/lib/calendar-display-types";
 import { dayStart } from "@/features/dashboard/lib/overview";
+import { formatCampusDate, toCampusDateKey } from "@/lib/time/campus-date";
 
 export function dashboardOverviewWeekStart(
   overviewWeek: string | null | undefined,
@@ -12,15 +9,13 @@ export function dashboardOverviewWeekStart(
 ) {
   return weekStartFor(
     overviewWeek ??
-      (calendarReferenceDate
-        ? toDateKey(new Date(calendarReferenceDate))
-        : null) ??
+      (calendarReferenceDate ? toCampusDateKey(calendarReferenceDate) : null) ??
       toDateKey(new Date()),
   );
 }
 
 export function overviewDayLabel(dayKey: string) {
-  return parseDateKey(dayKey).toLocaleDateString(undefined, {
+  return formatCampusDate(dayKey, dayKey, undefined, {
     month: "short",
     day: "numeric",
   });

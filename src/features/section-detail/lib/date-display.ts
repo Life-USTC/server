@@ -1,17 +1,35 @@
+import {
+  addCampusMonths,
+  campusDateKeyToLocalDate,
+  campusMonthGridKeys,
+  formatCampusDate,
+  formatCampusDateTime,
+  requireCampusDateKeyForValue,
+  toCampusDateKey,
+} from "@/lib/time/campus-date";
+
 export function formatDate(
   value: string | Date | null | undefined,
   fallback: string,
 ) {
-  if (!value) return fallback;
-  return new Date(value).toLocaleDateString();
+  return formatCampusDate(value, fallback);
 }
 
 export function formatDateTime(
   value: string | Date | null | undefined,
   fallback: string,
 ) {
-  if (!value) return fallback;
-  return new Date(value).toLocaleString();
+  return formatCampusDateTime(value, fallback);
+}
+
+export function formatMonth(
+  value: string | Date | null | undefined,
+  fallback: string,
+) {
+  return formatCampusDate(value, fallback, undefined, {
+    month: "long",
+    year: "numeric",
+  });
 }
 
 export function formatTime(value: number | null | undefined, fallback: string) {
@@ -25,30 +43,31 @@ export function timeSort(value: number | null | undefined) {
 }
 
 export function dateKey(value: string | Date | null | undefined) {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${date.getFullYear()}-${month}-${day}`;
+  return toCampusDateKey(value);
 }
 
 export function addMonths(value: Date, offset: number) {
-  return new Date(value.getFullYear(), value.getMonth() + offset, 1);
+  const key = dateKey(value);
+  const fallbackKey = requireCampusDateKeyForValue(new Date());
+  const month = addCampusMonths((key ?? fallbackKey).slice(0, 7), offset);
+  return campusDateKeyToLocalDate(`${month}-01`) ?? value;
 }
 
 export function calendarMonthDays(monthStart: Date) {
-  const gridStart = new Date(monthStart);
-  gridStart.setDate(gridStart.getDate() - gridStart.getDay());
-  return Array.from({ length: 42 }, (_, index) => {
-    const date = new Date(gridStart);
-    date.setDate(gridStart.getDate() + index);
-    return date;
-  });
+  const fallbackKey = requireCampusDateKeyForValue(new Date());
+  const monthKey = (dateKey(monthStart) ?? fallbackKey).slice(0, 7);
+  return campusMonthGridKeys(monthKey)
+    .flat()
+    .map((key) => campusDateKeyToLocalDate(key))
+    .filter((date): date is Date => Boolean(date));
 }
 
 export function calendarWeeks(days: Date[]) {
   return Array.from({ length: Math.ceil(days.length / 7) }, (_, index) =>
     days.slice(index * 7, index * 7 + 7),
   );
+}
+
+export function isSameMonth(day: Date, monthStart: Date) {
+  return dateKey(day)?.slice(0, 7) === dateKey(monthStart)?.slice(0, 7);
 }

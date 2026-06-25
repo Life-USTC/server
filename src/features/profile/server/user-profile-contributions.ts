@@ -1,4 +1,11 @@
-import dayjs from "dayjs";
+import {
+  addCampusDays,
+  campusDateKeyRange,
+  campusWeekStartKey,
+  requireCampusDateKeyForValue,
+  toCampusDateKey,
+} from "@/lib/time/campus-date";
+import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
 export type ContributionCell = {
   date: string;
@@ -31,8 +38,9 @@ type ContributionPrisma = {
 export async function buildUserProfileContributions(
   prisma: ContributionPrisma,
   userId: string,
+  referenceNow: Date = new Date(),
 ) {
-  const today = dayjs().startOf("day");
+  const today = shanghaiDayjs(referenceNow).startOf("day");
   const startDate = today.subtract(364, "day").startOf("day");
   const [commentEvents, uploadEvents, completionEvents, homeworkEvents] =
     await Promise.all([
@@ -64,7 +72,8 @@ export async function buildUserProfileContributions(
 
   const contributionMap = new Map<string, number>();
   const addContribution = (date: Date) => {
-    const key = dayjs(date).format("YYYY-MM-DD");
+    const key = toCampusDateKey(date);
+    if (!key) return;
     contributionMap.set(key, (contributionMap.get(key) ?? 0) + 1);
   };
 
@@ -73,16 +82,14 @@ export async function buildUserProfileContributions(
   for (const item of completionEvents) addContribution(item.completedAt);
   for (const item of homeworkEvents) addContribution(item.createdAt);
 
-  const gridStart = startDate.startOf("week");
-  const gridEnd = today.endOf("week");
-  const days: ContributionCell[] = Array.from(
-    { length: gridEnd.diff(gridStart, "day") + 1 },
-    (_, index) => {
-      const date = gridStart.add(index, "day");
-      const key = date.format("YYYY-MM-DD");
-      return { date: key, count: contributionMap.get(key) ?? 0 };
-    },
-  );
+  const startDateKey = requireCampusDateKeyForValue(startDate.toDate());
+  const todayKey = requireCampusDateKeyForValue(today.toDate());
+  const gridStartKey = campusWeekStartKey(startDateKey);
+  const gridEndKey = addCampusDays(campusWeekStartKey(todayKey), 6);
+  const days: ContributionCell[] = campusDateKeyRange(
+    gridStartKey,
+    gridEndKey,
+  ).map((key) => ({ date: key, count: contributionMap.get(key) ?? 0 }));
   const weeks: ContributionCell[][] = [];
   for (let index = 0; index < days.length; index += 7) {
     weeks.push(days.slice(index, index + 7));
