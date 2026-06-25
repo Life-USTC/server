@@ -173,6 +173,8 @@
         "fields": [
           "User code entry form",
           "Approval/result screens",
+          "Requested scopes[] on approval screen",
+          "Requested resources[] on approval screen",
           "device_auth status (pending/approved/denied)"
         ]
       }

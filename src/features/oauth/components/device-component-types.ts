@@ -19,6 +19,7 @@ export type DeviceCopy = {
   deviceInvalidOrExpired: string;
   deviceMissingCode: string;
   deviceRequestedPermissions: string;
+  deviceRequestedResources: string;
   deviceTitle: string;
   deviceTryAgain: string;
   deviceUnknownError: string;
@@ -27,6 +28,7 @@ export type DeviceCopy = {
 
 export type DeviceApprovalRequest = {
   clientName: string;
+  resources: string[];
   scopes: string[];
   userCode: string;
 };

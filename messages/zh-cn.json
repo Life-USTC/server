@@ -1797,6 +1797,7 @@
     "deviceCodeHint": "输入设备上显示的验证码。",
     "deviceClientRequest": "{app} 正在请求访问您的账户。",
     "deviceRequestedPermissions": "请求的权限",
+    "deviceRequestedResources": "请求的资源",
     "deviceApprovedBadge": "已批准",
     "deviceDeniedBadge": "已拒绝",
     "deviceApprovedTitle": "设备已批准",

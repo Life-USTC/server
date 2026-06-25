@@ -7,6 +7,7 @@ const deviceCopyKeys = [
   "deviceCodeHint",
   "deviceClientRequest",
   "deviceRequestedPermissions",
+  "deviceRequestedResources",
   "deviceApprovedBadge",
   "deviceDeniedBadge",
   "deviceApprovedTitle",
