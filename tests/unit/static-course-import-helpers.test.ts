@@ -183,6 +183,40 @@ describe("static course import helpers", () => {
     expect(identityKeys.get(newVariant.id)).not.toBe("HS2002");
   });
 
+  it("does not let filtered imports overwrite a stored canonical course", () => {
+    const storedCanonicalVariant = {
+      id: 1,
+      course_code: "HS2002",
+      name: "科学技术史",
+      course_type: "通识课",
+      course_gradation: "本科",
+      course_category: "通识教育",
+      education_type: "本科生",
+      class_type: "理论",
+    };
+    const filteredImportVariant = {
+      id: 2,
+      course_code: "HS2002",
+      name: "科学技术史",
+      course_type: "通识课",
+      course_gradation: "本科",
+      course_category: "人文素质",
+      education_type: "本科生",
+      class_type: "理论",
+    };
+
+    const identityKeys = buildStaticCourseIdentityKeyBySourceId(
+      [filteredImportVariant],
+      {
+        canonicalSignatureByCode: new Map([
+          ["HS2002", staticCourseMetadataSignature(storedCanonicalVariant)],
+        ]),
+      },
+    );
+
+    expect(identityKeys.get(filteredImportVariant.id)).not.toBe("HS2002");
+  });
+
   it("derives static department identity from the name instead of looking up by name", () => {
     expect(staticDepartmentCode("网络空间安全学院")).toMatch(
       /^static-[0-9a-f]{12}$/,
