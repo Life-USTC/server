@@ -24,6 +24,9 @@
  * - Comment CRUD: post → edit → delete
  */
 import { expect, test } from "@playwright/test";
+import scenarioData from "../../../../fixtures/scenario.json" with {
+  type: "json",
+};
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { visibleText } from "../../../../utils/locators";
@@ -32,6 +35,8 @@ import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
 const COURSE_URL = `/courses/${DEV_SEED.course.jwId}`;
+const COURSE_WITH_DESCRIPTION_URL = `/courses/${scenarioData.courses[2].jwId}`;
+const COURSE_WITH_DESCRIPTION_TEXT = "实验课建议准备护目镜并提前完成预习问答。";
 
 test.describe("/courses/[jwId]", () => {
   test("contract", async ({ page }, testInfo) => {
@@ -202,6 +207,27 @@ test.describe("/courses/[jwId]", () => {
   });
 
   // ── Description ─────────────────────────────────────────────────────────────
+
+  test("same-route navigation resets target-scoped description state", async ({
+    page,
+  }, testInfo) => {
+    await gotoAndWaitForReady(page, COURSE_WITH_DESCRIPTION_URL);
+    await expect(page.getByText(COURSE_WITH_DESCRIPTION_TEXT)).toBeVisible();
+
+    await page.evaluate((href) => {
+      const link = document.createElement("a");
+      link.href = href;
+      link.dataset.e2eSameRouteLink = "true";
+      link.textContent = "same-route target";
+      document.body.append(link);
+    }, COURSE_URL);
+
+    await page.locator("[data-e2e-same-route-link]").click();
+    await expect(page).toHaveURL(new RegExp(`${COURSE_URL}$`));
+    await expect(visibleText(page, DEV_SEED.course.code)).toBeVisible();
+    await expect(page.getByText(COURSE_WITH_DESCRIPTION_TEXT)).toHaveCount(0);
+    await captureStepScreenshot(page, testInfo, "course/same-route-reset");
+  });
 
   test("signed-in user can edit description (description.content)", async ({
     page,
