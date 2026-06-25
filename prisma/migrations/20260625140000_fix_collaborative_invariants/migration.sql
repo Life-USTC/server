@@ -23,4 +23,5 @@ ALTER TABLE "UserSuspension"
   FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 DROP INDEX "CommentAttachment_uploadId_idx";
+DROP INDEX "CommentAttachment_commentId_uploadId_key";
 CREATE UNIQUE INDEX "CommentAttachment_uploadId_key" ON "CommentAttachment"("uploadId");
