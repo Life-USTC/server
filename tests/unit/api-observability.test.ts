@@ -32,6 +32,20 @@ describe("api observability", () => {
     );
   });
 
+  it("redacts calendar feed path tokens", () => {
+    const normalized = normalizeApiRoutePath(
+      "/api/users/user-1:feed-token-0123456789/calendar.ics",
+    );
+    const encodedSeparator = normalizeApiRoutePath(
+      "/api/users/user-1%3Afeed-token-0123456789/calendar.ics",
+    );
+
+    expect(normalized).toBe("/api/users/:id/calendar.ics");
+    expect(encodedSeparator).toBe("/api/users/:id/calendar.ics");
+    expect(normalized).not.toContain("feed-token-0123456789");
+    expect(encodedSeparator).not.toContain("feed-token-0123456789");
+  });
+
   it("records safe request-start logs and metrics", () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
 
