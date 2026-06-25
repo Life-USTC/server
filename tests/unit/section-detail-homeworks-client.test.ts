@@ -28,18 +28,22 @@ describe("section detail homeworks client", () => {
     ).resolves.toBe("ok");
 
     expect(fetchMock).toHaveBeenCalledOnce();
-    expect(fetchMock).toHaveBeenCalledWith("/api/homeworks/homework-1", {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        title: "Updated homework",
-        description: "Updated description",
-        publishedAt: "2026-06-22T08:00:00.000Z",
-        submissionStartAt: null,
-        submissionDueAt: "2026-06-29T08:00:00.000Z",
-        isMajor: true,
-        requiresTeam: false,
-      }),
+    const call = fetchMock.mock.calls[0];
+    expect(call).toBeDefined();
+    const [path, init] = call as unknown as [
+      string,
+      RequestInit & { body: string },
+    ];
+    expect(path).toBe("/api/homeworks/homework-1");
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body)).toEqual({
+      title: "Updated homework",
+      description: "Updated description",
+      publishedAt: "2026-06-22T08:00:00.000Z",
+      submissionStartAt: null,
+      submissionDueAt: "2026-06-29T08:00:00.000Z",
+      isMajor: true,
+      requiresTeam: false,
     });
   });
 

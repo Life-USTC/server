@@ -1,3 +1,5 @@
+import { apiClient } from "@/lib/api/client";
+
 export async function submitCommentRequest(input: {
   attachmentIds: string[];
   body: string;
@@ -7,19 +9,17 @@ export async function submitCommentRequest(input: {
   targetPayload: Record<string, unknown>;
   visibility: string;
 }) {
-  const response = await fetch("/api/comments", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+  const result = await apiClient.POST("/api/comments", {
+    body: {
       ...input.targetPayload,
       body: input.body,
       visibility: input.visibility,
       isAnonymous: input.isAnonymous,
       parentId: input.parentId ?? null,
       attachmentIds: input.attachmentIds,
-    }),
+    },
   });
-  if (!response.ok) throw new Error(input.submitFailed);
+  if (!result.response.ok) throw new Error(input.submitFailed);
 }
 
 export async function saveCommentEditRequest(input: {
@@ -30,17 +30,15 @@ export async function saveCommentEditRequest(input: {
   submitFailed: string;
   visibility: string;
 }) {
-  const response = await fetch(`/api/comments/${input.commentId}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+  const result = await apiClient.PATCH(`/api/comments/${input.commentId}`, {
+    body: {
       body: input.body,
       visibility: input.visibility,
       isAnonymous: input.isAnonymous,
       attachmentIds: input.attachmentIds,
-    }),
+    },
   });
-  if (!response.ok) throw new Error(input.submitFailed);
+  if (!result.response.ok) throw new Error(input.submitFailed);
 }
 
 export async function submitCommentReactionRequest(input: {
@@ -49,25 +47,17 @@ export async function submitCommentReactionRequest(input: {
   shouldRemove: boolean;
   type: string;
 }) {
-  const url = input.shouldRemove
-    ? `/api/comments/${input.commentId}/reactions?type=${encodeURIComponent(input.type)}`
-    : `/api/comments/${input.commentId}/reactions`;
-  const response = await fetch(url, {
-    method: input.shouldRemove ? "DELETE" : "POST",
-    headers: input.shouldRemove
-      ? undefined
-      : { "Content-Type": "application/json" },
-    body: input.shouldRemove ? undefined : JSON.stringify({ type: input.type }),
-  });
-  if (!response.ok) throw new Error(input.reactionFailed);
+  const path = `/api/comments/${input.commentId}/reactions`;
+  const result = input.shouldRemove
+    ? await apiClient.DELETE(path, { params: { query: { type: input.type } } })
+    : await apiClient.POST(path, { body: { type: input.type } });
+  if (!result.response.ok) throw new Error(input.reactionFailed);
 }
 
 export async function deleteCommentRequest(input: {
   commentId: string;
   submitFailed: string;
 }) {
-  const response = await fetch(`/api/comments/${input.commentId}`, {
-    method: "DELETE",
-  });
-  if (!response.ok) throw new Error(input.submitFailed);
+  const result = await apiClient.DELETE(`/api/comments/${input.commentId}`);
+  if (!result.response.ok) throw new Error(input.submitFailed);
 }

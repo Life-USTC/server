@@ -87,6 +87,7 @@ function parseSuspensionDate(value: string | null | undefined) {
 }
 
 export async function updateAdminUser(
+  adminUserId: string,
   id: string,
   parsedBody: AdminUpdateUserBody,
 ) {
@@ -95,10 +96,24 @@ export async function updateAdminUser(
 
   const existingUser = await prisma.user.findUnique({
     where: { id },
-    select: { id: true },
+    select: { id: true, isAdmin: true },
   });
   if (!existingUser) {
     return { ok: false as const, reason: "not_found" as const };
+  }
+
+  if (parsed.data.isAdmin === false && existingUser.isAdmin) {
+    if (id === adminUserId) {
+      return { ok: false as const, reason: "cannot_demote_self" as const };
+    }
+
+    const adminCount = await prisma.user.count({ where: { isAdmin: true } });
+    if (adminCount <= 1) {
+      return {
+        ok: false as const,
+        reason: "cannot_remove_last_admin" as const,
+      };
+    }
   }
 
   const updated = await prisma.user.update({
@@ -135,6 +150,10 @@ export async function createAdminSuspension(
   if (!expiresAt.ok) return expiresAt;
 
   const userId = input.userId.trim();
+  if (userId === adminUserId) {
+    return { ok: false as const, reason: "cannot_suspend_self" as const };
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { id: true },

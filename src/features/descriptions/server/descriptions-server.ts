@@ -6,10 +6,10 @@ import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
 import {
   type DescriptionPayload,
+  type DescriptionViewer,
   emptyDescriptionPayload,
   serializeDescriptionHistory,
   serializeDescriptionRecord,
-  type ViewerSummary,
 } from "./description-payload";
 
 type ResolvedDescriptionTarget = NonNullable<
@@ -19,7 +19,7 @@ type ResolvedDescriptionTarget = NonNullable<
 export async function getDescriptionPayload(
   targetType: DescriptionTargetType,
   targetId: number | string,
-  viewerOverride?: ViewerSummary,
+  viewerOverride?: DescriptionViewer,
 ): Promise<DescriptionPayload> {
   const target = resolveDescriptionTarget(targetType, targetId);
   const viewer =
@@ -34,7 +34,7 @@ export async function getDescriptionPayload(
 
 export async function getResolvedDescriptionPayload(
   target: ResolvedDescriptionTarget,
-  viewerOverride?: ViewerSummary,
+  viewerOverride?: DescriptionViewer,
 ): Promise<DescriptionPayload> {
   const viewer =
     viewerOverride ?? (await getViewerContext({ includeAdmin: false }));

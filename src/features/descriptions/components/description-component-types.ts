@@ -1,3 +1,10 @@
+import type {
+  DescriptionData,
+  DescriptionHistoryItem,
+  DescriptionViewer,
+  EditorSummary,
+} from "@/features/descriptions/lib/description-payload-types";
+
 export type DescriptionCopy = {
   edit: string;
   editorUnknown: string;
@@ -18,30 +25,6 @@ export type DescriptionCopy = {
   updatedLabel: string;
 };
 
-export type DescriptionViewer = {
-  isAuthenticated?: boolean;
-  isSuspended?: boolean;
-  suspensionExpiresAt?: string | null;
-  suspensionReason?: string | null;
-};
-
-export type DescriptionContent = {
-  content?: string | null;
-  lastEditedAt?: string | null;
-  lastEditedBy?: DescriptionHistoryEditor | null;
-};
-
-export type DescriptionHistoryEditor = {
-  id: string;
-  image: string | null;
-  name: string | null;
-  username: string | null;
-};
-
-export type DescriptionHistoryItem = {
-  createdAt: string;
-  editor: DescriptionHistoryEditor | null;
-  id: string;
-  nextContent: string;
-  previousContent: string | null;
-};
+export type DescriptionContent = DescriptionData;
+export type DescriptionHistoryEditor = EditorSummary;
+export type { DescriptionHistoryItem, DescriptionViewer };

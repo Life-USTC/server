@@ -36,7 +36,12 @@ import type { AppLocale } from "@/i18n/config";
 import { getCommentsCopy } from "@/lib/comments-copy";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import { page } from "$app/stores";
-import CommentsPanelView from "./CommentsPanelView.svelte";
+import { Alert } from "$lib/components/ui/alert/index.js";
+import CommentDeleteDialog from "./CommentDeleteDialog.svelte";
+import CommentsComposerSection from "./CommentsComposerSection.svelte";
+import CommentsHiddenNotice from "./CommentsHiddenNotice.svelte";
+import CommentsPanelSuspensionAlert from "./CommentsPanelSuspensionAlert.svelte";
+import CommentsThreadSection from "./CommentsThreadSection.svelte";
 
 export let targetType: TargetType;
 export let targetId: number | string | null = null;
@@ -391,69 +396,102 @@ const {
 });
 </script>
 
-<CommentsPanelView
-  bind:actionMenuId={_actionMenuId}
-  appliedInitialData={_appliedInitialData}
-  authorInitials={_authorInitials}
-  authorName={_authorName}
-  bind:body={_body}
-  cancelEdit={_cancelEdit}
-  cancelReply={_cancelReply}
-  closeDeleteDialog={_closeDeleteDialog}
+<section class="grid gap-4">
+  {#if _message}<Alert variant="info">{_message}</Alert>{/if}
+  {#if _viewer.isSuspended}
+    <CommentsPanelSuspensionAlert
+      commentCopy={_commentCopy}
+      formatTime={_formatTime}
+      viewer={_viewer}
+    />
+  {/if}
+
+  <CommentsComposerSection
+    appliedInitialData={_appliedInitialData}
+    bind:body={_body}
+    commentCopy={_commentCopy}
+    handleEditorDrop={_handleEditorDrop}
+    handleSubmitShortcut={_handleSubmitShortcut}
+    bind:isAnonymous={_isAnonymous}
+    bind:isDragActive={_isDragActive}
+    loading={_loading}
+    bind:postTargetKey={_postTargetKey}
+    postTargetOptions={_postTargetOptions}
+    removeAttachment={_removeAttachment}
+    signInHref={_signInHref}
+    submitComment={_submitComment}
+    submitting={_submitting}
+    uploadCopy={_uploadCopy}
+    uploadedFiles={_uploadedFiles}
+    uploadFile={_uploadFile}
+    uploading={_uploading}
+    viewer={_viewer}
+    bind:visibility={_visibility}
+    visibilityOptions={_visibilityOptions}
+  />
+
+  <CommentsThreadSection
+    bind:actionMenuId={_actionMenuId}
+    authorInitials={_authorInitials}
+    authorName={_authorName}
+    cancelEdit={_cancelEdit}
+    cancelReply={_cancelReply}
+    commentCopy={_commentCopy}
+    commentTarget={_commentTarget}
+    comments={_comments}
+    copyCommentLink={_copyCommentLink}
+    bind:editAttachmentIds={_editAttachmentIds}
+    editAttachmentOptions={_editAttachmentOptions}
+    bind:editDraft={_editDraft}
+    bind:editingId={_editingId}
+    bind:editIsAnonymous={_editIsAnonymous}
+    bind:editVisibility={_editVisibility}
+    formatSize={_formatSize}
+    formatTime={_formatTime}
+    highlightedId={_highlightedId}
+    loading={_loading}
+    openDeleteDialog={_openDeleteDialog}
+    pendingReactionKey={_pendingReactionKey}
+    react={_react}
+    reactionEntry={_reactionEntry}
+    reactionKey={_reactionKey}
+    reactionLabel={_reactionLabel}
+    bind:reactionMenuId={_reactionMenuId}
+    reactionName={_reactionName}
+    {reactionOptions}
+    removeReplyAttachment={_removeReplyAttachment}
+    bind:replyDraft={_replyDraft}
+    replyingId={_replyingId}
+    bind:replyIsAnonymous={_replyIsAnonymous}
+    replyUploadedFiles={_replyUploadedFiles}
+    bind:replyVisibility={_replyVisibility}
+    saveEdit={_saveEdit}
+    startEdit={_startEdit}
+    statusLabel={_statusLabel}
+    submitting={_submitting}
+    submitComment={_submitComment}
+    toggleReply={_toggleReply}
+    uploadCopy={_uploadCopy}
+    uploadFile={_uploadFile}
+    uploading={_uploading}
+    viewer={_viewer}
+    visibilityOptions={_visibilityOptions}
+  />
+
+  {#if _hiddenCount > 0 && !_viewer.isAuthenticated}
+    <CommentsHiddenNotice
+      commentCopy={_commentCopy}
+      hiddenCount={_hiddenCount}
+      signInHref={_signInHref}
+    />
+  {/if}
+</section>
+
+<CommentDeleteDialog
+  close={_closeDeleteDialog}
   commentCopy={_commentCopy}
-  commentTarget={_commentTarget}
-  comments={_comments}
-  copyCommentLink={_copyCommentLink}
   deleteComment={() => {
     void _deleteComment();
   }}
-  deleteTarget={_deleteTarget}
-  bind:editAttachmentIds={_editAttachmentIds}
-  editAttachmentOptions={_editAttachmentOptions}
-  bind:editDraft={_editDraft}
-  bind:editingId={_editingId}
-  bind:editIsAnonymous={_editIsAnonymous}
-  bind:editVisibility={_editVisibility}
-  formatSize={_formatSize}
-  formatTime={_formatTime}
-  handleEditorDrop={_handleEditorDrop}
-  handleSubmitShortcut={_handleSubmitShortcut}
-  hiddenCount={_hiddenCount}
-  highlightedId={_highlightedId}
-  bind:isAnonymous={_isAnonymous}
-  bind:isDragActive={_isDragActive}
-  loading={_loading}
-  message={_message}
-  openDeleteDialog={_openDeleteDialog}
-  pendingReactionKey={_pendingReactionKey}
-  bind:postTargetKey={_postTargetKey}
-  postTargetOptions={_postTargetOptions}
-  react={_react}
-  reactionEntry={_reactionEntry}
-  reactionKey={_reactionKey}
-  reactionLabel={_reactionLabel}
-  bind:reactionMenuId={_reactionMenuId}
-  reactionName={_reactionName}
-  {reactionOptions}
-  removeAttachment={_removeAttachment}
-  removeReplyAttachment={_removeReplyAttachment}
-  bind:replyDraft={_replyDraft}
-  replyingId={_replyingId}
-  bind:replyIsAnonymous={_replyIsAnonymous}
-  replyUploadedFiles={_replyUploadedFiles}
-  bind:replyVisibility={_replyVisibility}
-  saveEdit={_saveEdit}
-  signInHref={_signInHref}
-  startEdit={_startEdit}
-  statusLabel={_statusLabel}
-  submitComment={_submitComment}
-  submitting={_submitting}
-  toggleReply={_toggleReply}
-  uploadCopy={_uploadCopy}
-  uploadedFiles={_uploadedFiles}
-  uploadFile={_uploadFile}
-  uploading={_uploading}
-  viewer={_viewer}
-  bind:visibility={_visibility}
-  visibilityOptions={_visibilityOptions}
+  open={Boolean(_deleteTarget)}
 />

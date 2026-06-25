@@ -1,5 +1,5 @@
-import { createUserCalendar } from "@/lib/ical";
-import type { CalendarTodo } from "@/lib/ical-event-builders";
+import { createUserCalendar } from "@/features/calendar/server/ical";
+import type { CalendarTodo } from "@/features/calendar/server/ical-event-builders";
 import {
   getIncompleteHomeworkCalendarItems,
   type getUserCalendarRecord,

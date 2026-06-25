@@ -1,7 +1,6 @@
 export {
   expiresAtFromModerationDuration,
   formAlertVariant,
-  responseMessage,
 } from "@/features/admin/lib/moderation-action-display";
 export type {
   ModerationCommentLike,

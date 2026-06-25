@@ -4,6 +4,7 @@ import {
   type DescriptionData,
   type DescriptionHistoryItem,
   type DescriptionPayload,
+  type DescriptionTargetType,
   type DescriptionViewer,
 } from "@/features/descriptions/lib/description-card-actions";
 import type { AppLocale } from "@/i18n/config";
@@ -14,8 +15,6 @@ import DescriptionCardHeader from "./DescriptionCardHeader.svelte";
 import DescriptionEditPanel from "./DescriptionEditPanel.svelte";
 import DescriptionReadPanel from "./DescriptionReadPanel.svelte";
 import DescriptionSuspensionAlert from "./DescriptionSuspensionAlert.svelte";
-
-type DescriptionTargetType = "section" | "course" | "teacher" | "homework";
 
 type PanelTab = "description" | "history";
 
@@ -54,7 +53,7 @@ export let copy: {
 };
 
 let description = initialData.description;
-let history = initialData.history ?? [];
+let history = initialData.history;
 let _viewer = initialData.viewer;
 let _editing = false;
 let draft = "";

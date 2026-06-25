@@ -1,3 +1,5 @@
+import { apiClient } from "@/lib/api/client";
+
 export type SectionHomeworkRequest = {
   description: string;
   isMajor: boolean;
@@ -14,23 +16,21 @@ export async function loadSectionHomeworks<Viewer, Homework, AuditLog>(
   sectionId: number | string,
   errorMessage: string,
 ) {
-  const response = await fetch(`/api/homeworks?sectionId=${sectionId}`);
-  if (!response.ok) throw new Error(errorMessage);
-  return (await response.json()) as {
+  const result = await apiClient.GET<{
     auditLogs: AuditLog[];
     homeworks: Homework[];
     viewer: Viewer;
-  };
+  }>("/api/homeworks", { params: { query: { sectionId } } });
+  if (!result.response.ok || !result.data) throw new Error(errorMessage);
+  return result.data;
 }
 
 export async function createSectionHomework(
   sectionId: number | string,
   input: SectionHomeworkRequest,
 ) {
-  const response = await fetch("/api/homeworks", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
+  const result = await apiClient.POST("/api/homeworks", {
+    body: {
       sectionId,
       title: input.title,
       description: input.description,
@@ -39,19 +39,17 @@ export async function createSectionHomework(
       submissionDueAt: input.submissionDueAt || null,
       isMajor: input.isMajor,
       requiresTeam: input.requiresTeam,
-    }),
+    },
   });
-  return response.ok;
+  return result.response.ok;
 }
 
 export async function updateSectionHomework(
   homeworkId: number | string,
   input: SectionHomeworkRequest,
 ): Promise<SectionHomeworkUpdateResult> {
-  const response = await fetch(`/api/homeworks/${homeworkId}`, {
-    method: "PATCH",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
+  const result = await apiClient.PATCH(`/api/homeworks/${homeworkId}`, {
+    body: {
       title: input.title,
       description: input.description,
       publishedAt: input.publishedAt || null,
@@ -59,14 +57,12 @@ export async function updateSectionHomework(
       submissionDueAt: input.submissionDueAt || null,
       isMajor: input.isMajor,
       requiresTeam: input.requiresTeam,
-    }),
+    },
   });
-  return response.ok ? "ok" : "homework-error";
+  return result.response.ok ? "ok" : "homework-error";
 }
 
 export async function deleteSectionHomework(homeworkId: number | string) {
-  const response = await fetch(`/api/homeworks/${homeworkId}`, {
-    method: "DELETE",
-  });
-  return response.ok;
+  const result = await apiClient.DELETE(`/api/homeworks/${homeworkId}`);
+  return result.response.ok;
 }

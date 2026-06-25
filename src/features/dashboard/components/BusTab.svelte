@@ -9,6 +9,7 @@ import type {
   DashboardBusCopy,
   DashboardBusData,
 } from "@/features/dashboard/lib/bus-tab-types";
+import { apiClient } from "@/lib/api/client";
 import { browser } from "$app/environment";
 import { Alert } from "$lib/components/ui/alert/index.js";
 import BusTabSettings from "./BusTabSettings.svelte";
@@ -37,9 +38,9 @@ let busApplicableRoutes: ReturnType<typeof state.applicableRoutes> = [];
 
 async function loadPublicBusData() {
   if (loadedBus) return;
-  const response = await fetch("/api/bus");
-  if (!response.ok) return;
-  loadedBus = (await response.json()) as DashboardBusData;
+  const result = await apiClient.GET<DashboardBusData>("/api/bus");
+  if (!result.response.ok || !result.data) return;
+  loadedBus = result.data;
   state.initializeWhenNeeded();
 }
 

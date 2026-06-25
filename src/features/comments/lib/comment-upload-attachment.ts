@@ -1,3 +1,4 @@
+import { apiClient } from "@/lib/api/client";
 import {
   uploadCompleteResponseSchema,
   uploadCreateResponseSchema,
@@ -30,20 +31,16 @@ export async function uploadCommentAttachment({
   validateCommentUploadFile({ file, formatSize, summary, uploadCopy });
   const contentType = commentUploadContentType(file);
 
-  const createResponse = await fetch("/api/uploads", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+  const createResult = await apiClient.POST("/api/uploads", {
+    body: {
       filename: file.name,
       contentType,
       size: file.size,
-    }),
+    },
   });
-  if (!createResponse.ok)
+  if (!createResult.response.ok)
     throw new Error(uploadCopy.toastUploadErrorDescription);
-  const uploadStart = uploadCreateResponseSchema.safeParse(
-    await createResponse.json(),
-  );
+  const uploadStart = uploadCreateResponseSchema.safeParse(createResult.data);
   if (!uploadStart.success)
     throw new Error(uploadCopy.toastUploadErrorDescription);
 
@@ -56,20 +53,16 @@ export async function uploadCommentAttachment({
   });
   if (!putResponse.ok) throw new Error(uploadCopy.toastUploadErrorDescription);
 
-  const completeResponse = await fetch("/api/uploads/complete", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+  const completeResult = await apiClient.POST("/api/uploads/complete", {
+    body: {
       key: uploadStart.data.key,
       filename: file.name,
       contentType,
-    }),
+    },
   });
-  if (!completeResponse.ok)
+  if (!completeResult.response.ok)
     throw new Error(uploadCopy.toastUploadErrorDescription);
-  const completed = uploadCompleteResponseSchema.safeParse(
-    await completeResponse.json(),
-  );
+  const completed = uploadCompleteResponseSchema.safeParse(completeResult.data);
   if (!completed.success)
     throw new Error(uploadCopy.toastUploadErrorDescription);
 

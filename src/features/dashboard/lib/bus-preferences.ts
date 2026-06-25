@@ -1,3 +1,5 @@
+import { apiClient } from "@/lib/api/client";
+
 export type BusPreferenceSaveState = "idle" | "saving" | "saved" | "error";
 
 export function busPreferenceStatusText({
@@ -27,16 +29,14 @@ export async function saveBusPlannerPreference(input: {
   saveFailedMessage: string;
   showDepartedTrips: boolean;
 }) {
-  const response = await fetch("/api/bus/preferences", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
+  const result = await apiClient.POST("/api/bus/preferences", {
+    body: {
       preferredDestinationCampusId: input.preferredDestinationCampusId,
       preferredOriginCampusId: input.preferredOriginCampusId,
       showDepartedTrips: input.showDepartedTrips,
-    }),
+    },
   });
-  if (!response.ok) {
+  if (!result.response.ok) {
     throw new Error(input.saveFailedMessage);
   }
 }

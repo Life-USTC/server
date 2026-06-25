@@ -31,9 +31,13 @@ export async function postAdminSuspensionRoute(request: Request) {
 
     const result = await createAdminSuspension(admin.userId, parsedBody);
     if (!result.ok) {
-      return result.reason === "invalid_expires_at"
-        ? badRequest("Invalid expiresAt")
-        : notFound("User not found");
+      if (result.reason === "invalid_expires_at") {
+        return badRequest("Invalid expiresAt");
+      }
+      if (result.reason === "cannot_suspend_self") {
+        return badRequest("Admins cannot suspend themselves");
+      }
+      return notFound("User not found");
     }
 
     return jsonResponse({ suspension: result.suspension });

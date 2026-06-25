@@ -1,19 +1,15 @@
-import { readApiErrorMessage } from "@/lib/api/client";
-
-export const todoResponseMessage = readApiErrorMessage;
+import { apiClient, apiErrorMessage } from "@/lib/api/client";
 
 export async function updateTodoCompletion(input: {
   completed: boolean;
   fallbackMessage: string;
   todoId: number | string;
 }) {
-  const response = await fetch(`/api/todos/${input.todoId}`, {
-    method: "PATCH",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ completed: input.completed }),
+  const result = await apiClient.PATCH(`/api/todos/${input.todoId}`, {
+    body: { completed: input.completed },
   });
-  if (!response.ok) {
-    throw new Error(await todoResponseMessage(response, input.fallbackMessage));
+  if (!result.response.ok) {
+    throw new Error(apiErrorMessage(result.error, input.fallbackMessage));
   }
 }
 
@@ -21,10 +17,8 @@ export async function deleteTodoById(input: {
   fallbackMessage: string;
   todoId: number | string;
 }) {
-  const response = await fetch(`/api/todos/${input.todoId}`, {
-    method: "DELETE",
-  });
-  if (!response.ok) {
-    throw new Error(await todoResponseMessage(response, input.fallbackMessage));
+  const result = await apiClient.DELETE(`/api/todos/${input.todoId}`);
+  if (!result.response.ok) {
+    throw new Error(apiErrorMessage(result.error, input.fallbackMessage));
   }
 }

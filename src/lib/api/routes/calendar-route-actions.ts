@@ -1,10 +1,13 @@
 import {
+  createMultiSectionCalendar,
+  createSectionCalendar,
+} from "@/features/calendar/server/ical";
+import {
   getSectionForCalendar,
   getSectionsForCalendar,
 } from "@/features/home/server/calendar-export-data";
 import { buildUserCalendarExport } from "@/features/home/server/calendar-export-service";
 import { handleRouteError, notFound } from "@/lib/api/helpers";
-import { createMultiSectionCalendar, createSectionCalendar } from "@/lib/ical";
 import { calendarResponse } from "./calendar-route-utils";
 
 export async function generateSectionsCalendarAction(sectionIds: number[]) {

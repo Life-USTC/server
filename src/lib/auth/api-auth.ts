@@ -17,26 +17,28 @@ export async function resolveApiUserId(
   request: Request,
 ): Promise<string | null> {
   const authHeader = request.headers.get("authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    const token = authHeader.slice(7);
-    if (token) {
-      try {
-        const jwt = await verifyAccessToken(token, {
-          jwksUrl: getJwksUrlForOAuthVerification(),
-          verifyOptions: {
-            issuer: getOAuthTokenVerificationIssuers(),
-            audience: getOAuthRestAudienceUrls(),
-          },
-        });
+  const bearer = authHeader?.match(/^Bearer(?:\s+(.+))?$/);
+  if (bearer) {
+    const token = bearer[1]?.trim() ?? "";
+    if (!token) return null;
+    try {
+      const jwt = await verifyAccessToken(token, {
+        jwksUrl: getJwksUrlForOAuthVerification(),
+        verifyOptions: {
+          issuer: getOAuthTokenVerificationIssuers(),
+          audience: getOAuthRestAudienceUrls(),
+        },
+      });
 
-        const sub = (jwt as { sub?: unknown }).sub;
-        if (typeof sub === "string" && sub.length > 0) {
-          return sub;
-        }
-      } catch {
-        // Ignore invalid or opaque bearer tokens here and continue to cookie auth.
+      const sub = (jwt as { sub?: unknown }).sub;
+      if (typeof sub === "string" && sub.length > 0) {
+        return sub;
       }
+    } catch {
+      return null;
     }
+
+    return null;
   }
 
   const { getSessionFromHeaders } = await import("@/lib/auth/core");

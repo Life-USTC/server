@@ -1,21 +1,10 @@
 <script lang="ts">
 import { diffWords } from "diff";
+import type {
+  DescriptionHistoryItem,
+  EditorSummary,
+} from "@/features/descriptions/lib/description-payload-types";
 import { Alert } from "$lib/components/ui/alert/index.js";
-
-type EditorSummary = {
-  id: string;
-  name: string | null;
-  username: string | null;
-  image: string | null;
-};
-
-type HistoryItem = {
-  id: string;
-  createdAt: string;
-  previousContent: string | null;
-  nextContent: string;
-  editor: EditorSummary | null;
-};
 
 type DiffMode = "previous" | "next";
 type DiffSegment = {
@@ -32,7 +21,7 @@ export let copy: {
   updatedLabel: string;
 };
 export let formatDate: (value: string | null | undefined) => string;
-export let history: HistoryItem[];
+export let history: DescriptionHistoryItem[];
 
 function editorName(editor: EditorSummary | null) {
   return editor?.name ?? editor?.username ?? copy.editorUnknown;

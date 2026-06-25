@@ -1,15 +1,18 @@
 import { type ICalCalendar, ICalEventBusyStatus } from "ical-generator";
-import type { Prisma } from "@/generated/prisma/client";
-import type { AppLocale } from "@/i18n/config";
-import { ICAL_SITE_URL } from "@/lib/ical-event-constants";
+import { ICAL_SITE_URL } from "@/features/calendar/server/ical-event-constants";
 import {
   buildLocationField,
   type GeoData,
   type ImgRules,
   parseTimeHHMM,
   toCategories,
-} from "@/lib/ical-event-utils";
-import { examTypeLabel, getIcalLabels } from "@/lib/ical-labels";
+} from "@/features/calendar/server/ical-event-utils";
+import {
+  examTypeLabel,
+  getIcalLabels,
+} from "@/features/calendar/server/ical-labels";
+import type { Prisma } from "@/generated/prisma/client";
+import type { AppLocale } from "@/i18n/config";
 import { lookupBuildingImagePath } from "@/lib/location-utils";
 import { APP_TIME_ZONE } from "@/lib/time/parse-date-input";
 
