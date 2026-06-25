@@ -93,13 +93,15 @@ export function buildStaticCourseIdentityKeyBySourceId<
     const code = requiredStaticValue(course.course_code, "course code");
     const signature = staticCourseMetadataSignature(course);
     const signatures = signaturesByCode.get(code);
-    const hasConflictingMetadata = (signatures?.size ?? 0) > 1;
     const storedCanonicalSignature =
       options.canonicalSignatureByCode?.get(code);
     const canonicalSignature =
-      storedCanonicalSignature && signatures?.has(storedCanonicalSignature)
-        ? storedCanonicalSignature
-        : canonicalSignatureByCode.get(code);
+      storedCanonicalSignature ?? canonicalSignatureByCode.get(code);
+    const hasConflictingMetadata =
+      (signatures?.size ?? 0) > 1 ||
+      Boolean(
+        storedCanonicalSignature && signature !== storedCanonicalSignature,
+      );
     identityKeyBySourceId.set(
       course.id,
       hasConflictingMetadata && signature !== canonicalSignature

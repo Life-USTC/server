@@ -591,7 +591,7 @@ function dedupeByJwId<T extends { jwId: number }>(rows: T[]) {
   return [...new Map(rows.map((row) => [row.jwId, row])).values()];
 }
 
-function collectConflictingStaticCourseSignatures(courses: SnapshotCourse[]) {
+function collectStaticCourseSignatures(courses: SnapshotCourse[]) {
   const signaturesByCode = new Map<string, Set<string>>();
   for (const course of courses) {
     const code = course.course_code.trim();
@@ -602,17 +602,14 @@ function collectConflictingStaticCourseSignatures(courses: SnapshotCourse[]) {
     signatures.add(staticCourseMetadataSignature(course));
     signaturesByCode.set(code, signatures);
   }
-  return new Map(
-    [...signaturesByCode].filter(([, signatures]) => signatures.size > 1),
-  );
+  return signaturesByCode;
 }
 
 async function loadExistingCanonicalCourseSignatures(
   db: ImportDbClient,
   courses: SnapshotCourse[],
 ) {
-  const currentSignaturesByCode =
-    collectConflictingStaticCourseSignatures(courses);
+  const currentSignaturesByCode = collectStaticCourseSignatures(courses);
   const stableCodeByJwId = new Map(
     [...currentSignaturesByCode.keys()].map((code) => [
       stableNumericId("course", code),
