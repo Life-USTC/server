@@ -6,7 +6,7 @@ import type {
   BusStaticPayload,
   BusStaticRouteSchedule,
 } from "../lib/bus-types";
-import type { BusImportWritePrisma } from "./bus-import-prisma";
+import type { BusImportPrisma } from "./bus-import-prisma";
 
 export function assertBusRouteConsistency(payload: BusStaticPayload) {
   const routeIds = new Set(payload.routes.map((route) => route.id));
@@ -23,7 +23,7 @@ export function assertBusRouteConsistency(payload: BusStaticPayload) {
 }
 
 export async function upsertBusCampuses(
-  prisma: BusImportWritePrisma,
+  prisma: BusImportPrisma,
   payload: BusStaticPayload,
 ) {
   for (const campus of payload.campuses) {
@@ -45,7 +45,7 @@ export async function upsertBusCampuses(
 }
 
 export async function upsertBusRoutes(
-  prisma: BusImportWritePrisma,
+  prisma: BusImportPrisma,
   payload: BusStaticPayload,
 ) {
   for (const route of payload.routes) {
@@ -74,7 +74,7 @@ export async function upsertBusRoutes(
 }
 
 export async function createBusTripsForDayType(
-  prisma: BusImportWritePrisma,
+  prisma: BusImportPrisma,
   versionId: number,
   dayType: "weekday" | "weekend",
   schedules: BusStaticRouteSchedule[],
