@@ -317,7 +317,9 @@ test.describe("dashboard homeworks", () => {
       createDialog.getByRole("group", { name: /说明|Details/i }),
     ).toBeVisible();
     await expect(
-      createDialog.getByLabel(/提交截止|Submission due/i),
+      createDialog.getByRole("group", {
+        name: /提交截止|Submission due/i,
+      }),
     ).toBeVisible();
     await titleInput.fill(title);
     await page.getByTestId("dashboard-homework-create").click();

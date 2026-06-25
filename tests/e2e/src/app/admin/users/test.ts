@@ -202,7 +202,9 @@ test("/admin/users 自定义封禁时长会展示到期时间输入框", async (
     await durationSelect.click();
     await page.getByRole("option", { name: /自定义|Custom/i }).click();
 
-    const expiresAtInput = dialog.getByLabel(/到期时间|Expires At/i);
+    const expiresAtInput = dialog.getByRole("textbox", {
+      name: /到期时间|Expires At/i,
+    });
     await expect(expiresAtInput).toBeVisible();
     await expiresAtInput.fill("2030-01-01T00:00");
     await expect(expiresAtInput).toHaveValue("2030-01-01T00:00");

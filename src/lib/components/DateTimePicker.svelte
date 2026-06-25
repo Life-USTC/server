@@ -72,6 +72,8 @@ $: {
 
 <div
   {...rootProps}
+  aria-label={labelledBy ? undefined : label}
+  aria-labelledby={labelledBy}
   class={cn("relative min-w-0", className)}
   role="group"
 >
