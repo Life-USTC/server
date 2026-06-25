@@ -938,8 +938,6 @@ model CommentAttachment {
 
   comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   upload  Upload  @relation(fields: [uploadId], references: [id], onDelete: Cascade)
-
-  @@unique([commentId, uploadId])
 }
 
 model CommentReaction {
