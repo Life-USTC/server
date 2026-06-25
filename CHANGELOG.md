@@ -1,3 +1,10 @@
+## [1.37.20](https://github.com/Life-USTC/server/compare/v1.37.19...v1.37.20) (2026-06-25)
+
+
+### Bug Fixes
+
+* **tooling:** align worker runtime validation ([7a4ff0e](https://github.com/Life-USTC/server/commit/7a4ff0e6093cc0ef28eb19ef01fe750a30ce1c2c))
+
 ## [1.37.19](https://github.com/Life-USTC/server/compare/v1.37.18...v1.37.19) (2026-06-25)
 
 
