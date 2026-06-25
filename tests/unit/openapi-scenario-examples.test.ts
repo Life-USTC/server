@@ -118,6 +118,16 @@ describe("buildScenarioOpenApiExamples", () => {
     expect(() =>
       metadataResponseSchema.parse(examples["GET /api/metadata"]?.response),
     ).not.toThrow();
+
+    const courseListExample = paginatedCourseResponseSchema.parse(
+      examples["GET /api/courses"]?.response,
+    );
+    const metadataExample = metadataResponseSchema.parse(
+      examples["GET /api/metadata"]?.response,
+    );
+    expect(courseListExample.data[0]?.classifyId).toBeNull();
+    expect(courseListExample.data[0]?.classify).toBeNull();
+    expect(metadataExample.courseClassifies).toEqual([]);
   });
 
   it("uses scenario fixture values for section match request and response examples", () => {

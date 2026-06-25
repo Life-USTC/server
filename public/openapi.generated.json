@@ -2498,7 +2498,7 @@
                       "nameEn": "Cryptographic Engineering: Principles and Practice",
                       "categoryId": 402,
                       "classTypeId": 403,
-                      "classifyId": 404,
+                      "classifyId": null,
                       "educationLevelId": 401,
                       "gradationId": 405,
                       "typeId": 406,
@@ -2512,11 +2512,7 @@
                         "nameCn": "理论课",
                         "nameEn": "Lecture"
                       },
-                      "classify": {
-                        "id": 404,
-                        "nameCn": "必修",
-                        "nameEn": "Required"
-                      },
+                      "classify": null,
                       "educationLevel": {
                         "id": 401,
                         "nameCn": "本科生",
@@ -2541,7 +2537,7 @@
                       "nameEn": "Introduction to Astrophysics",
                       "categoryId": 402,
                       "classTypeId": 403,
-                      "classifyId": 404,
+                      "classifyId": null,
                       "educationLevelId": 401,
                       "gradationId": 405,
                       "typeId": 406,
@@ -2555,11 +2551,7 @@
                         "nameCn": "理论课",
                         "nameEn": "Lecture"
                       },
-                      "classify": {
-                        "id": 404,
-                        "nameCn": "必修",
-                        "nameEn": "Required"
-                      },
+                      "classify": null,
                       "educationLevel": {
                         "id": 401,
                         "nameCn": "本科生",
@@ -2635,7 +2627,7 @@
                   "nameEn": "Cryptographic Engineering: Principles and Practice",
                   "categoryId": 402,
                   "classTypeId": 403,
-                  "classifyId": 404,
+                  "classifyId": null,
                   "educationLevelId": 401,
                   "gradationId": 405,
                   "typeId": 406,
@@ -2649,11 +2641,7 @@
                     "nameCn": "理论课",
                     "nameEn": "Lecture"
                   },
-                  "classify": {
-                    "id": 404,
-                    "nameCn": "必修",
-                    "nameEn": "Required"
-                  },
+                  "classify": null,
                   "educationLevel": {
                     "id": 401,
                     "nameCn": "本科生",
@@ -4097,13 +4085,7 @@
                       "nameEn": "Disciplinary Foundation"
                     }
                   ],
-                  "courseClassifies": [
-                    {
-                      "id": 404,
-                      "nameCn": "必修",
-                      "nameEn": "Required"
-                    }
-                  ],
+                  "courseClassifies": [],
                   "classTypes": [
                     {
                       "id": 403,
@@ -4702,7 +4684,7 @@
                     "nameEn": "Cryptographic Engineering: Principles and Practice",
                     "categoryId": 402,
                     "classTypeId": 403,
-                    "classifyId": 404,
+                    "classifyId": null,
                     "educationLevelId": 401,
                     "gradationId": 405,
                     "typeId": 406,
@@ -4716,11 +4698,7 @@
                       "nameCn": "理论课",
                       "nameEn": "Lecture"
                     },
-                    "classify": {
-                      "id": 404,
-                      "nameCn": "必修",
-                      "nameEn": "Required"
-                    },
+                    "classify": null,
                     "educationLevel": {
                       "id": 401,
                       "nameCn": "本科生",
@@ -5177,7 +5155,7 @@
                         "nameEn": "Cryptographic Engineering: Principles and Practice",
                         "categoryId": 402,
                         "classTypeId": 403,
-                        "classifyId": 404,
+                        "classifyId": null,
                         "educationLevelId": 401,
                         "gradationId": 405,
                         "typeId": 406,
@@ -5191,11 +5169,7 @@
                           "nameCn": "理论课",
                           "nameEn": "Lecture"
                         },
-                        "classify": {
-                          "id": 404,
-                          "nameCn": "必修",
-                          "nameEn": "Required"
-                        },
+                        "classify": null,
                         "educationLevel": {
                           "id": 401,
                           "nameCn": "本科生",
@@ -5326,7 +5300,7 @@
                         "nameEn": "Introduction to Astrophysics",
                         "categoryId": 402,
                         "classTypeId": 403,
-                        "classifyId": 404,
+                        "classifyId": null,
                         "educationLevelId": 401,
                         "gradationId": 405,
                         "typeId": 406,
@@ -5340,11 +5314,7 @@
                           "nameCn": "理论课",
                           "nameEn": "Lecture"
                         },
-                        "classify": {
-                          "id": 404,
-                          "nameCn": "必修",
-                          "nameEn": "Required"
-                        },
+                        "classify": null,
                         "educationLevel": {
                           "id": 401,
                           "nameCn": "本科生",
@@ -5809,7 +5779,7 @@
                         "nameEn": "Cryptographic Engineering: Principles and Practice",
                         "categoryId": 402,
                         "classTypeId": 403,
-                        "classifyId": 404,
+                        "classifyId": null,
                         "educationLevelId": 401,
                         "gradationId": 405,
                         "typeId": 406,
@@ -5823,11 +5793,7 @@
                           "nameCn": "理论课",
                           "nameEn": "Lecture"
                         },
-                        "classify": {
-                          "id": 404,
-                          "nameCn": "必修",
-                          "nameEn": "Required"
-                        },
+                        "classify": null,
                         "educationLevel": {
                           "id": 401,
                           "nameCn": "本科生",
