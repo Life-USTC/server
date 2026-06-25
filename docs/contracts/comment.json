@@ -35,6 +35,7 @@
             "returns": "{ id: String }",
             "auth": "user",
             "notes": [
+              "Accepts REST-compatible internal targetId plus public identifiers such as sectionJwId, courseJwId, teacherId, homeworkId, and sectionTeacherId.",
               "Returns 400 Invalid attachments when any requested upload is missing, owned by another user, or already attached to a comment."
             ]
           },
