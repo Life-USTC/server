@@ -25,6 +25,7 @@ let open = false;
 let selectedDate: CalendarDate | undefined;
 let timeValue = defaultTime;
 let lastSyncedValue = "";
+let rootProps: Record<string, unknown> = {};
 
 function stringRestProp(name: string) {
   const value = ($$restProps as Record<string, unknown>)[name];
@@ -59,12 +60,18 @@ $: if ((value ?? "") !== lastSyncedValue) {
 }
 $: labelledBy = stringRestProp("aria-labelledby");
 $: label = stringRestProp("aria-label") ?? placeholder;
+$: {
+  const {
+    "aria-label": _label,
+    "aria-labelledby": _labelledBy,
+    ...rest
+  } = $$restProps as Record<string, unknown>;
+  rootProps = rest;
+}
 </script>
 
 <div
-  {...$$restProps}
-  aria-label={labelledBy ? undefined : label}
-  aria-labelledby={labelledBy}
+  {...rootProps}
   class={cn("relative min-w-0", className)}
   role="group"
 >
