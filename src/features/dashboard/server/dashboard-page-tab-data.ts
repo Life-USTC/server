@@ -56,7 +56,7 @@ export async function loadSignedDashboardTabData(input: {
   const [dashboard, dashboardTabs, dashboardLinks] = await Promise.all([
     import("@/features/home/server/dashboard-overview-data"),
     import("@/features/home/server/dashboard-tab-data"),
-    import("@/features/home/server/dashboard-link-data"),
+    import("@/features/dashboard-links/server/dashboard-link-data"),
   ]);
   const stageContext = {
     requestId: input.requestId,

@@ -1,4 +1,5 @@
 import type dayjs from "dayjs";
+import type { DashboardLinkSummary } from "@/features/dashboard-links/server/dashboard-link-data";
 import type { TodoPriority } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import type { createWeekDayFormatter } from "@/shared/lib/date-utils";
@@ -8,7 +9,6 @@ import type {
   filterSessionsByDay,
   selectWeeklySessions,
 } from "./dashboard-helpers";
-import type { DashboardLinkSummary } from "./dashboard-link-data";
 import type { DashboardUserSummary } from "./dashboard-nav-stats";
 import type {
   ExamItem,

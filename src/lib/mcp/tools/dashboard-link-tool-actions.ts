@@ -4,14 +4,14 @@ import {
   searchQueryToTokens,
 } from "@/features/dashboard-links/lib/dashboard-link-search";
 import {
+  type DashboardLinksData,
+  getSignedInDashboardLinksData,
+} from "@/features/dashboard-links/server/dashboard-link-data";
+import {
   MAX_PINNED_LINKS,
   resolveDashboardLinkBySlug,
   updateDashboardLinkPinState,
 } from "@/features/dashboard-links/server/dashboard-link-service";
-import {
-  type DashboardLinksData,
-  getSignedInDashboardLinksData,
-} from "@/features/home/server/dashboard-link-data";
 import {
   getUserId,
   jsonToolResult,
