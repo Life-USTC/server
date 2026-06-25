@@ -337,6 +337,36 @@ test("/api/comments POST accepts public section JW id", async ({ page }) => {
   }
 });
 
+test("/api/comments POST rejects malformed public section JW id with fallback targetId", async ({
+  page,
+}) => {
+  await signInAsDebugUser(page, "/");
+  const sectionId = await resolveSeedSectionId(page.request);
+  const content = `e2e-invalid-section-jwid-${Date.now()}`;
+
+  const createResponse = await page.request.post("/api/comments", {
+    data: {
+      targetType: "section",
+      targetId: String(sectionId),
+      sectionJwId: "abc",
+      body: content,
+      visibility: "public",
+    },
+  });
+  expect(createResponse.status()).toBe(400);
+  await expect(createResponse.json()).resolves.toEqual({
+    error: "Invalid comment request",
+  });
+
+  const created = await withE2ePrisma((prisma) =>
+    prisma.comment.findFirst({
+      where: { body: content },
+      select: { id: true },
+    }),
+  );
+  expect(created).toBeNull();
+});
+
 test("/api/comments POST rejects reusing an uploaded attachment", async ({
   page,
 }) => {

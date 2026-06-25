@@ -36,6 +36,7 @@
             "auth": "user",
             "notes": [
               "Accepts REST-compatible internal targetId plus public identifiers such as sectionJwId, courseJwId, teacherId, homeworkId, and sectionTeacherId.",
+              "Provided sectionJwId and courseJwId values must be valid positive integers; malformed values return 400 even when targetId is also supplied.",
               "Returns 400 Invalid attachments when any requested upload is missing, owned by another user, or already attached to a comment."
             ]
           },
