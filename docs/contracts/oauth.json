@@ -10,6 +10,7 @@
     "auth-page-clarity": "The authorization page must clearly display the application name, requested permissions, approve action, and reject action.",
     "user-consent-framing": "Users see 'what this app wants and whether I allow it', not technical protocol details.",
     "dcr-via-provider": "Dynamic client registration is handled by the standard /oauth2/register path of the Better Auth OAuth provider; the project no longer maintains a parallel hand-written DCR persistence logic.",
+    "dcr-device-only-no-redirect": "Dynamic client registration for a device-only client may omit redirect_uris; any provider-adapter placeholder redirect URI must not be persisted or returned as registered client metadata.",
     "dcr-rules-from-provider": "Default scopes, allowed scopes, public/confidential restrictions, and PKCE rules for DCR should be uniformly decided by the Better Auth provider configuration, not re-implemented as an approximate set of rules at the application layer.",
     "trusted-clients-admin-backend": "First-party / internal applications prefer using trusted OAuth clients created in the admin backend; such clients can skip consent and can further be incorporated into the Better Auth provider's trusted / cached client scheme when needed, rather than relying on public DCR.",
     "public-clients-pkce": "Public MCP / CLI / native clients use public + PKCE mode; admin copy and grouping should explicitly separate trusted first-party from external/public to reduce admin misconfiguration probability.",

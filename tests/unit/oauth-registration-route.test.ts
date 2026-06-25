@@ -54,15 +54,22 @@ describe("OAuth registration route", () => {
 
   it("registers the custom device grant through the Better Auth adapter", async () => {
     betterAuthHandlerMock.mockImplementationOnce(async (request: Request) => {
-      expect(await request.json()).toMatchObject({
+      const delegatedBody = await request.json();
+      expect(delegatedBody).toMatchObject({
         client_name: "device-client",
         grant_types: [OAUTH_REFRESH_TOKEN_GRANT_TYPE],
       });
+      expect(delegatedBody.redirect_uris).toEqual([
+        "http://127.0.0.1/oauth/device-registration-callback",
+      ]);
       return Response.json(
         {
           client_id: "device-client-id",
           client_name: "device-client",
           grant_types: [OAUTH_REFRESH_TOKEN_GRANT_TYPE],
+          redirect_uris: [
+            "http://127.0.0.1/oauth/device-registration-callback",
+          ],
         },
         {
           status: 201,
@@ -89,10 +96,14 @@ describe("OAuth registration route", () => {
     expect(await response.json()).toMatchObject({
       client_id: "device-client-id",
       grant_types: [OAUTH_DEVICE_CODE_GRANT_TYPE],
+      redirect_uris: [],
     });
     expect(oauthClientUpdateMock).toHaveBeenCalledWith({
       where: { clientId: "device-client-id" },
-      data: { grantTypes: [OAUTH_DEVICE_CODE_GRANT_TYPE] },
+      data: {
+        grantTypes: [OAUTH_DEVICE_CODE_GRANT_TYPE],
+        redirectUris: [],
+      },
     });
   });
 

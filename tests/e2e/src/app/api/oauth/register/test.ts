@@ -23,6 +23,7 @@ import {
   MCP_TOOLS_SCOPE,
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
   OAUTH_CODE_RESPONSE_TYPE,
+  OAUTH_DEVICE_CODE_GRANT_TYPE,
   OAUTH_EMAIL_SCOPE,
   OAUTH_OPENID_SCOPE,
   OAUTH_PROFILE_SCOPE,
@@ -250,6 +251,34 @@ test.describe("OAuth provider", () => {
     expect(userinfoResponse.status()).toBe(200);
     const userinfoBody = (await userinfoResponse.json()) as { sub?: string };
     expect(typeof userinfoBody.sub).toBe("string");
+  });
+
+  test("dynamic registration accepts device-only clients without redirect URIs", async ({
+    request,
+  }) => {
+    const registrationResponse = await request.post(
+      "/api/auth/oauth2/register",
+      {
+        data: {
+          client_name: `e2e-device-${Date.now()}`,
+          token_endpoint_auth_method: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+          grant_types: [OAUTH_DEVICE_CODE_GRANT_TYPE],
+          scope: `${OAUTH_OPENID_SCOPE} ${OAUTH_PROFILE_SCOPE}`,
+        },
+      },
+    );
+
+    expect(registrationResponse.status()).toBe(200);
+    const registrationBody = (await registrationResponse.json()) as {
+      client_id?: string;
+      grant_types?: string[];
+      redirect_uris?: string[];
+    };
+    expect(typeof registrationBody.client_id).toBe("string");
+    expect(registrationBody.grant_types).toEqual([
+      OAUTH_DEVICE_CODE_GRANT_TYPE,
+    ]);
+    expect(registrationBody.redirect_uris).toEqual([]);
   });
 
   test("loopback authorize accepts localhost alias for a 127.0.0.1 DCR client", async ({
