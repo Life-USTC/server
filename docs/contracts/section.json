@@ -150,10 +150,7 @@
         "routes": [
           {
             "path": "/api/sections/[jwId]/calendar.ics",
-            "returns": "text/calendar",
-            "notes": [
-              "Returns text/calendar; content is derived from the section's schedule and exams."
-            ]
+            "reference_only": true
           }
         ]
       },
