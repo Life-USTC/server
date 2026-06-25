@@ -1,10 +1,3 @@
-## [1.37.9](https://github.com/Life-USTC/server/compare/v1.37.8...v1.37.9) (2026-06-25)
-
-
-### Bug Fixes
-
-* harden snapshot and e2e tooling ([093ebc6](https://github.com/Life-USTC/server/commit/093ebc64a600dd2c1c986c96684b180d9ac51197))
-
 ## [1.37.8](https://github.com/Life-USTC/server/compare/v1.37.7...v1.37.8) (2026-06-25)
 
 
