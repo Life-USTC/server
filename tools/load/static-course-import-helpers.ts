@@ -39,6 +39,10 @@ export type StaticTeacherReference = {
   source: string;
 };
 
+type StaticCourseIdentityOptions = {
+  canonicalSignatureByCode?: ReadonlyMap<string, string>;
+};
+
 function normalizeName(value: string | null | undefined) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
@@ -70,7 +74,7 @@ export function staticCourseMetadataSignature(course: StaticCourseForImport) {
 
 export function buildStaticCourseIdentityKeyBySourceId<
   T extends StaticCourseForImport,
->(courses: T[]) {
+>(courses: T[], options: StaticCourseIdentityOptions = {}) {
   const signaturesByCode = new Map<string, Set<string>>();
   const canonicalSignatureByCode = new Map<string, string>();
   for (const course of courses) {
@@ -88,8 +92,14 @@ export function buildStaticCourseIdentityKeyBySourceId<
   for (const course of courses) {
     const code = requiredStaticValue(course.course_code, "course code");
     const signature = staticCourseMetadataSignature(course);
-    const hasConflictingMetadata = (signaturesByCode.get(code)?.size ?? 0) > 1;
-    const canonicalSignature = canonicalSignatureByCode.get(code);
+    const signatures = signaturesByCode.get(code);
+    const hasConflictingMetadata = (signatures?.size ?? 0) > 1;
+    const storedCanonicalSignature =
+      options.canonicalSignatureByCode?.get(code);
+    const canonicalSignature =
+      storedCanonicalSignature && signatures?.has(storedCanonicalSignature)
+        ? storedCanonicalSignature
+        : canonicalSignatureByCode.get(code);
     identityKeyBySourceId.set(
       course.id,
       hasConflictingMetadata && signature !== canonicalSignature

@@ -20,6 +20,7 @@ import {
   type StaticCourseImportRow,
   type StaticTeacherReference,
   splitStaticTeacherNames,
+  staticCourseMetadataSignature,
   staticDepartmentCode,
   staticTeacherIdentityKey,
   uniqueStaticTeacherReferences,
@@ -588,6 +589,94 @@ function groupByCourseId<T extends { course_id: number }>(rows: T[]) {
 
 function dedupeByJwId<T extends { jwId: number }>(rows: T[]) {
   return [...new Map(rows.map((row) => [row.jwId, row])).values()];
+}
+
+function collectConflictingStaticCourseSignatures(courses: SnapshotCourse[]) {
+  const signaturesByCode = new Map<string, Set<string>>();
+  for (const course of courses) {
+    const code = course.course_code.trim();
+    if (!code) {
+      throw new Error("Static course code is missing");
+    }
+    const signatures = signaturesByCode.get(code) ?? new Set<string>();
+    signatures.add(staticCourseMetadataSignature(course));
+    signaturesByCode.set(code, signatures);
+  }
+  return new Map(
+    [...signaturesByCode].filter(([, signatures]) => signatures.size > 1),
+  );
+}
+
+async function loadExistingCanonicalCourseSignatures(
+  db: ImportDbClient,
+  courses: SnapshotCourse[],
+) {
+  const currentSignaturesByCode =
+    collectConflictingStaticCourseSignatures(courses);
+  const stableCodeByJwId = new Map(
+    [...currentSignaturesByCode.keys()].map((code) => [
+      stableNumericId("course", code),
+      code,
+    ]),
+  );
+  const canonicalSignatureByCode = new Map<string, string>();
+
+  await forEachChunk(
+    [...stableCodeByJwId.keys()],
+    SQLITE_READ_BATCH_SIZE,
+    async (batch) => {
+      const existing = await db.course.findMany({
+        where: { jwId: { in: batch } },
+        select: {
+          jwId: true,
+          code: true,
+          nameCn: true,
+          type: { select: { nameCn: true } },
+          gradation: { select: { nameCn: true } },
+          category: { select: { nameCn: true } },
+          educationLevel: { select: { nameCn: true } },
+          classType: { select: { nameCn: true } },
+        },
+      });
+
+      for (const row of existing) {
+        const expectedCode = stableCodeByJwId.get(row.jwId);
+        if (!expectedCode || row.code !== expectedCode) {
+          continue;
+        }
+
+        const courseGradation = row.gradation?.nameCn?.trim();
+        const courseCategory = row.category?.nameCn?.trim();
+        const educationType = row.educationLevel?.nameCn?.trim();
+        const classType = row.classType?.nameCn?.trim();
+        if (
+          !row.nameCn.trim() ||
+          !courseGradation ||
+          !courseCategory ||
+          !educationType ||
+          !classType
+        ) {
+          continue;
+        }
+
+        const signature = staticCourseMetadataSignature({
+          id: row.jwId,
+          course_code: row.code,
+          name: row.nameCn,
+          course_type: row.type?.nameCn ?? null,
+          course_gradation: courseGradation,
+          course_category: courseCategory,
+          education_type: educationType,
+          class_type: classType,
+        });
+        if (currentSignaturesByCode.get(row.code)?.has(signature)) {
+          canonicalSignatureByCode.set(row.code, signature);
+        }
+      }
+    },
+  );
+
+  return canonicalSignatureByCode;
 }
 
 function buildScheduleKey(row: {
@@ -1557,8 +1646,16 @@ async function importCourses(
     ]),
   );
   const allCourses = [...coursesBySemesterId.values()].flat();
-  const courseIdentityKeyBySourceId =
-    buildStaticCourseIdentityKeyBySourceId(allCourses);
+  const canonicalSignatureByCode = await loadExistingCanonicalCourseSignatures(
+    prisma,
+    allCourses,
+  );
+  const courseIdentityKeyBySourceId = buildStaticCourseIdentityKeyBySourceId(
+    allCourses,
+    {
+      canonicalSignatureByCode,
+    },
+  );
   const courseJwId = (course: SnapshotCourse) => {
     const identityKey = courseIdentityKeyBySourceId.get(course.id);
     if (!identityKey) {
