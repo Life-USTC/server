@@ -137,6 +137,8 @@
               "query_bus_timetable",
               "list_bus_routes",
               "get_bus_route_timetable",
+              "get_my_bus_preferences",
+              "save_my_bus_preferences",
               "search_bus_routes",
               "get_next_buses"
             ]

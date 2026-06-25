@@ -1,5 +1,9 @@
 export { getNextBusesTool } from "./bus-next-tool-handler";
 export {
+  getMyBusPreferencesTool,
+  saveMyBusPreferencesTool,
+} from "./bus-preference-tool-handlers";
+export {
   getBusRouteTimetableTool,
   listBusRoutesTool,
   searchBusRoutesTool,
