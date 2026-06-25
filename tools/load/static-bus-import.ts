@@ -16,7 +16,7 @@ type StaticBusImportLogger = {
   info: (message: string) => void;
 };
 
-function buildBusPayload(snapshot: StaticSnapshot): BusStaticPayload {
+export function buildBusPayload(snapshot: StaticSnapshot): BusStaticPayload {
   const campuses = snapshot.listBusCampuses();
   const campusMap = new Map<number, BusStaticCampus>(
     campuses.map((campus) => [
