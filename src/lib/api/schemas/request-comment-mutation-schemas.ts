@@ -12,15 +12,19 @@ const positiveIntegerTargetIdReferenceSchema = z.union([
   z
     .string()
     .trim()
-    .min(1)
     .refine(
       (value) => {
         const parsed = parseOptionalInt(value);
         return parsed !== null && parsed > 0;
       },
       { message: "Invalid integer" },
-    ),
-  z.number().int().min(1),
+    )
+    .meta({ override: { type: "integer", format: "int64", minimum: 1 } }),
+  z
+    .number()
+    .int()
+    .min(1)
+    .meta({ override: { type: "integer", minimum: 1 } }),
 ]);
 
 export const commentCreateRequestSchema = z.object({
