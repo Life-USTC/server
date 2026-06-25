@@ -24,15 +24,103 @@
  * - Non-existent target on POST → 404
  * - Same content twice → updated: false on second call
  */
-import { expect, test } from "@playwright/test";
+import { expect, type TestInfo, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import {
-  restoreDescriptionSnapshot,
   snapshotDescriptionForE2e,
   waitForDescriptionAuditRows,
 } from "../../../../utils/description-state";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
 import { assertApiContract } from "../../_shared/api-contract";
+
+type DisposableDescriptionFixture = {
+  courseId: number;
+  descriptionId: string;
+  originalContent: string;
+  sectionId: number;
+  sectionJwId: number;
+};
+
+let disposableFixtureCounter = 0;
+
+function nextDisposableJwId(testInfo: TestInfo) {
+  const counter = disposableFixtureCounter;
+  disposableFixtureCounter += 1;
+  return (
+    1_000_000_000 +
+    (Date.now() % 10_000_000) * 100 +
+    ((testInfo.workerIndex + counter) % 100)
+  );
+}
+
+async function createDisposableDescriptionFixture(
+  testInfo: TestInfo,
+): Promise<DisposableDescriptionFixture> {
+  const courseJwId = nextDisposableJwId(testInfo);
+  const sectionJwId = nextDisposableJwId(testInfo);
+  const marker = `e2e-description-fixture-${sectionJwId}`;
+  const originalContent = `${marker}-original`;
+
+  return withE2ePrisma((prisma) =>
+    prisma.$transaction(async (tx) => {
+      const course = await tx.course.create({
+        data: {
+          code: marker,
+          jwId: courseJwId,
+          nameCn: marker,
+        },
+        select: { id: true },
+      });
+      const section = await tx.section.create({
+        data: {
+          code: marker,
+          courseId: course.id,
+          jwId: sectionJwId,
+        },
+        select: { id: true },
+      });
+      const description = await tx.description.create({
+        data: {
+          content: originalContent,
+          sectionId: section.id,
+        },
+        select: { id: true },
+      });
+
+      return {
+        courseId: course.id,
+        descriptionId: description.id,
+        originalContent,
+        sectionId: section.id,
+        sectionJwId,
+      };
+    }),
+  );
+}
+
+async function deleteDisposableDescriptionFixture(
+  fixture: DisposableDescriptionFixture,
+) {
+  await withE2ePrisma(async (prisma) => {
+    await prisma.$transaction([
+      prisma.auditLog.deleteMany({
+        where: {
+          targetId: fixture.descriptionId,
+          targetType: "description",
+        },
+      }),
+      prisma.descriptionEdit.deleteMany({
+        where: { descriptionId: fixture.descriptionId },
+      }),
+      prisma.description.deleteMany({
+        where: { id: fixture.descriptionId },
+      }),
+      prisma.section.deleteMany({ where: { id: fixture.sectionId } }),
+      prisma.course.deleteMany({ where: { id: fixture.courseId } }),
+    ]);
+  });
+}
 
 /** Resolve the seed section's internal DB id via match-codes. */
 async function resolveSeedSectionId(
@@ -119,33 +207,36 @@ test("/api/descriptions POST 未登录返回 401", async ({ request }) => {
   expect(response.status()).toBe(401);
 });
 
-test("/api/descriptions POST 登录后可更新描述并还原", async ({ page }) => {
+test("/api/descriptions POST 登录后可更新描述并清理", async ({
+  page,
+}, testInfo) => {
   await signInAsDebugUser(page, "/");
-  const sectionId = await resolveSeedSectionId(page.request);
+  const fixture = await createDisposableDescriptionFixture(testInfo);
+  let snapshot: Awaited<ReturnType<typeof snapshotDescriptionForE2e>> | null =
+    null;
 
-  // Read original content first
-  const originalResponse = await page.request.get(
-    `/api/descriptions?targetType=section&targetId=${sectionId}`,
-  );
-  expect(originalResponse.status()).toBe(200);
-  const originalBody = (await originalResponse.json()) as {
-    description?: { content?: string; id?: string | null } | null;
-  };
-  const descriptionId = originalBody.description?.id;
-  if (!descriptionId) {
-    throw new Error("Expected seed description id");
-  }
-  const snapshot = await snapshotDescriptionForE2e(descriptionId, [
-    "description_edit",
-  ]);
-
-  const newContent = `e2e-description-${Date.now()}`;
   try {
+    // Read original content first
+    const originalResponse = await page.request.get(
+      `/api/descriptions?targetType=section&targetId=${fixture.sectionId}`,
+    );
+    expect(originalResponse.status()).toBe(200);
+    const originalBody = (await originalResponse.json()) as {
+      description?: { content?: string; id?: string | null } | null;
+    };
+    expect(originalBody.description?.id).toBe(fixture.descriptionId);
+    expect(originalBody.description?.content).toBe(fixture.originalContent);
+    snapshot = await snapshotDescriptionForE2e(fixture.descriptionId, [
+      "description_edit",
+    ]);
+
+    const newContent = `e2e-description-${Date.now()}`;
+
     // POST: update description
     const postResponse = await page.request.post("/api/descriptions", {
       data: {
         targetType: "section",
-        targetId: String(sectionId),
+        targetId: String(fixture.sectionId),
         content: newContent,
       },
     });
@@ -159,7 +250,7 @@ test("/api/descriptions POST 登录后可更新描述并还原", async ({ page }
 
     // Verify the update via GET
     const getResponse = await page.request.get(
-      `/api/descriptions?targetType=section&targetId=${sectionId}`,
+      `/api/descriptions?targetType=section&targetId=${fixture.sectionId}`,
     );
     expect(getResponse.status()).toBe(200);
     const getBody = (await getResponse.json()) as {
@@ -171,7 +262,7 @@ test("/api/descriptions POST 登录后可更新描述并还原", async ({ page }
     const idempotentResponse = await page.request.post("/api/descriptions", {
       data: {
         targetType: "section",
-        targetId: String(sectionId),
+        targetId: String(fixture.sectionId),
         content: newContent,
       },
     });
@@ -183,37 +274,41 @@ test("/api/descriptions POST 登录后可更新描述并还原", async ({ page }
     expect(idempotentBody.id).toBeTruthy();
     expect(idempotentBody.updated).toBe(false);
   } finally {
-    await waitForDescriptionAuditRows(snapshot, 1);
-    await restoreDescriptionSnapshot(snapshot);
+    if (snapshot) {
+      await waitForDescriptionAuditRows(snapshot, 1);
+    }
+    await deleteDisposableDescriptionFixture(fixture);
   }
 });
 
 test("/api/descriptions POST accepts public section JW id", async ({
   page,
-}) => {
+}, testInfo) => {
   await signInAsDebugUser(page, "/");
+  const fixture = await createDisposableDescriptionFixture(testInfo);
+  let snapshot: Awaited<ReturnType<typeof snapshotDescriptionForE2e>> | null =
+    null;
 
-  const originalResponse = await page.request.get(
-    `/api/descriptions?targetType=section&sectionJwId=${DEV_SEED.section.jwId}`,
-  );
-  expect(originalResponse.status()).toBe(200);
-  const originalBody = (await originalResponse.json()) as {
-    description?: { content?: string; id?: string | null } | null;
-  };
-  const descriptionId = originalBody.description?.id;
-  if (!descriptionId) {
-    throw new Error("Expected seed description id");
-  }
-  const snapshot = await snapshotDescriptionForE2e(descriptionId, [
-    "description_edit",
-  ]);
-
-  const newContent = `e2e-description-public-id-${Date.now()}`;
   try {
+    const originalResponse = await page.request.get(
+      `/api/descriptions?targetType=section&sectionJwId=${fixture.sectionJwId}`,
+    );
+    expect(originalResponse.status()).toBe(200);
+    const originalBody = (await originalResponse.json()) as {
+      description?: { content?: string; id?: string | null } | null;
+    };
+    expect(originalBody.description?.id).toBe(fixture.descriptionId);
+    expect(originalBody.description?.content).toBe(fixture.originalContent);
+    snapshot = await snapshotDescriptionForE2e(fixture.descriptionId, [
+      "description_edit",
+    ]);
+
+    const newContent = `e2e-description-public-id-${Date.now()}`;
+
     const postResponse = await page.request.post("/api/descriptions", {
       data: {
         targetType: "section",
-        sectionJwId: DEV_SEED.section.jwId,
+        sectionJwId: fixture.sectionJwId,
         content: newContent,
       },
     });
@@ -226,7 +321,7 @@ test("/api/descriptions POST accepts public section JW id", async ({
     expect(postBody.updated).toBe(true);
 
     const getResponse = await page.request.get(
-      `/api/descriptions?targetType=section&sectionJwId=${DEV_SEED.section.jwId}`,
+      `/api/descriptions?targetType=section&sectionJwId=${fixture.sectionJwId}`,
     );
     expect(getResponse.status()).toBe(200);
     const getBody = (await getResponse.json()) as {
@@ -234,8 +329,10 @@ test("/api/descriptions POST accepts public section JW id", async ({
     };
     expect(getBody.description?.content).toContain(newContent);
   } finally {
-    await waitForDescriptionAuditRows(snapshot, 1);
-    await restoreDescriptionSnapshot(snapshot);
+    if (snapshot) {
+      await waitForDescriptionAuditRows(snapshot, 1);
+    }
+    await deleteDisposableDescriptionFixture(fixture);
   }
 });
 

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   deleteStorageObjectMock,
@@ -32,6 +32,8 @@ vi.mock("@/lib/storage/r2-object", () => ({
   putStorageObject: putStorageObjectMock,
 }));
 
+const FIXED_NOW = new Date("2026-01-15T00:00:00.000Z");
+
 function uploadRequest(input: {
   body?: string;
   contentLength?: string;
@@ -51,7 +53,13 @@ function uploadRequest(input: {
 }
 
 describe("putUploadObjectRoute", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(FIXED_NOW);
+  });
+
   afterEach(() => {
+    vi.useRealTimers();
     deleteStorageObjectMock.mockReset();
     findUniqueMock.mockReset();
     headStorageObjectMock.mockReset();
@@ -98,7 +106,7 @@ describe("putUploadObjectRoute", () => {
     requireWriteAuthMock.mockResolvedValue({ userId: "user-1" });
     findUniqueMock.mockResolvedValue({
       contentType: "text/plain",
-      expiresAt: new Date(Date.now() - 1_000),
+      expiresAt: new Date(FIXED_NOW.getTime() - 1_000),
       size: 2,
       userId: "user-1",
     });
@@ -121,7 +129,7 @@ describe("putUploadObjectRoute", () => {
     requireWriteAuthMock.mockResolvedValue({ userId: "user-1" });
     findUniqueMock.mockResolvedValue({
       contentType: "text/plain",
-      expiresAt: new Date(Date.now() + 60_000),
+      expiresAt: new Date(FIXED_NOW.getTime() + 60_000),
       size: 1,
       userId: "user-1",
     });
@@ -141,7 +149,7 @@ describe("putUploadObjectRoute", () => {
     requireWriteAuthMock.mockResolvedValue({ userId: "user-1" });
     findUniqueMock.mockResolvedValue({
       contentType: "text/plain",
-      expiresAt: new Date(Date.now() + 60_000),
+      expiresAt: new Date(FIXED_NOW.getTime() + 60_000),
       size: 2,
       userId: "user-1",
     });

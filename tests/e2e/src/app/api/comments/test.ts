@@ -21,12 +21,96 @@
  * - parentId with non-existent parent → 404
  * - parentId with target mismatch → 400
  */
-import { expect, test } from "@playwright/test";
+import { expect, type TestInfo, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
 import { createUploadedFileViaApi } from "../../../../utils/uploads";
 import { assertApiContract } from "../../_shared/api-contract";
+
+type DisposableSectionTeacherFixture = {
+  courseId: number;
+  sectionId: number;
+  teacherId: number;
+};
+
+let disposableFixtureCounter = 0;
+
+function nextDisposableJwId(testInfo: TestInfo) {
+  const counter = disposableFixtureCounter;
+  disposableFixtureCounter += 1;
+  return (
+    1_000_000_000 +
+    (Date.now() % 10_000_000) * 100 +
+    ((testInfo.workerIndex + counter) % 100)
+  );
+}
+
+async function createDisposableSectionTeacherFixture(
+  testInfo: TestInfo,
+  options: { connectTeacher: boolean },
+): Promise<DisposableSectionTeacherFixture> {
+  const courseJwId = nextDisposableJwId(testInfo);
+  const sectionJwId = nextDisposableJwId(testInfo);
+  const marker = `e2e-section-teacher-${sectionJwId}`;
+
+  return withE2ePrisma((prisma) =>
+    prisma.$transaction(async (tx) => {
+      const course = await tx.course.create({
+        data: {
+          code: marker,
+          jwId: courseJwId,
+          nameCn: marker,
+        },
+        select: { id: true },
+      });
+      const teacher = await tx.teacher.create({
+        data: {
+          code: marker,
+          nameCn: marker,
+        },
+        select: { id: true },
+      });
+      const section = await tx.section.create({
+        data: {
+          code: marker,
+          courseId: course.id,
+          jwId: sectionJwId,
+          ...(options.connectTeacher
+            ? { teachers: { connect: { id: teacher.id } } }
+            : {}),
+        },
+        select: { id: true },
+      });
+
+      return {
+        courseId: course.id,
+        sectionId: section.id,
+        teacherId: teacher.id,
+      };
+    }),
+  );
+}
+
+async function deleteDisposableSectionTeacherFixture(
+  fixture: DisposableSectionTeacherFixture,
+) {
+  await withE2ePrisma(async (prisma) => {
+    await prisma.section.update({
+      where: { id: fixture.sectionId },
+      data: { teachers: { set: [] } },
+    });
+    await prisma.sectionTeacher.deleteMany({
+      where: {
+        sectionId: fixture.sectionId,
+        teacherId: fixture.teacherId,
+      },
+    });
+    await prisma.section.deleteMany({ where: { id: fixture.sectionId } });
+    await prisma.teacher.deleteMany({ where: { id: fixture.teacherId } });
+    await prisma.course.deleteMany({ where: { id: fixture.courseId } });
+  });
+}
 
 /** Resolve the seed section's internal DB id via match-codes. */
 async function resolveSeedSectionId(
@@ -116,30 +200,14 @@ test("/api/comments GET 不存在的目标返回 404", async ({ request }) => {
 
 test("/api/comments GET section-teacher 空目标不会创建关系行", async ({
   request,
-}) => {
-  const marker = `[e2e] section-teacher-read-${Date.now()}`;
-  const { sectionId, teacherId } = await withE2ePrisma(async (prisma) => {
-    const section = await prisma.section.findUniqueOrThrow({
-      where: { jwId: DEV_SEED.section.jwId },
-      select: { id: true },
-    });
-    const teacher = await prisma.teacher.create({
-      data: {
-        code: marker,
-        nameCn: marker,
-      },
-      select: { id: true },
-    });
-    await prisma.section.update({
-      where: { id: section.id },
-      data: { teachers: { connect: { id: teacher.id } } },
-    });
-    return { sectionId: section.id, teacherId: teacher.id };
+}, testInfo) => {
+  const fixture = await createDisposableSectionTeacherFixture(testInfo, {
+    connectTeacher: true,
   });
 
   try {
     const response = await request.get(
-      `/api/comments?targetType=section-teacher&sectionId=${sectionId}&teacherId=${teacherId}`,
+      `/api/comments?targetType=section-teacher&sectionId=${fixture.sectionId}&teacherId=${fixture.teacherId}`,
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -151,16 +219,16 @@ test("/api/comments GET section-teacher 空目标不会创建关系行", async (
       };
     };
     expect(body.comments).toEqual([]);
-    expect(body.target?.sectionId).toBe(sectionId);
-    expect(body.target?.teacherId).toBe(teacherId);
+    expect(body.target?.sectionId).toBe(fixture.sectionId);
+    expect(body.target?.teacherId).toBe(fixture.teacherId);
     expect(body.target?.sectionTeacherId).toBeNull();
 
     const created = await withE2ePrisma((prisma) =>
       prisma.sectionTeacher.findUnique({
         where: {
           sectionId_teacherId: {
-            sectionId,
-            teacherId,
+            sectionId: fixture.sectionId,
+            teacherId: fixture.teacherId,
           },
         },
         select: { id: true },
@@ -168,47 +236,24 @@ test("/api/comments GET section-teacher 空目标不会创建关系行", async (
     );
     expect(created).toBeNull();
   } finally {
-    await withE2ePrisma(async (prisma) => {
-      await prisma.sectionTeacher.deleteMany({
-        where: { sectionId, teacherId },
-      });
-      await prisma.section.update({
-        where: { id: sectionId },
-        data: { teachers: { disconnect: { id: teacherId } } },
-      });
-      await prisma.teacher.deleteMany({ where: { id: teacherId } });
-    });
+    await deleteDisposableSectionTeacherFixture(fixture);
   }
 });
 
 test("/api/comments GET 未关联的 section-teacher 目标返回 404", async ({
   request,
-}) => {
-  const marker = `[e2e] section-teacher-missing-${Date.now()}`;
-  const { sectionId, teacherId } = await withE2ePrisma(async (prisma) => {
-    const section = await prisma.section.findUniqueOrThrow({
-      where: { jwId: DEV_SEED.section.jwId },
-      select: { id: true },
-    });
-    const teacher = await prisma.teacher.create({
-      data: {
-        code: marker,
-        nameCn: marker,
-      },
-      select: { id: true },
-    });
-    return { sectionId: section.id, teacherId: teacher.id };
+}, testInfo) => {
+  const fixture = await createDisposableSectionTeacherFixture(testInfo, {
+    connectTeacher: false,
   });
 
   try {
     const response = await request.get(
-      `/api/comments?targetType=section-teacher&sectionId=${sectionId}&teacherId=${teacherId}`,
+      `/api/comments?targetType=section-teacher&sectionId=${fixture.sectionId}&teacherId=${fixture.teacherId}`,
     );
     expect(response.status()).toBe(404);
   } finally {
-    await withE2ePrisma((prisma) =>
-      prisma.teacher.deleteMany({ where: { id: teacherId } }),
-    );
+    await deleteDisposableSectionTeacherFixture(fixture);
   }
 });
 
