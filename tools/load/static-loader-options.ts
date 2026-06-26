@@ -22,11 +22,46 @@ Options:
   -h, --help              Show this help message`;
 }
 
+function parseMinSemesterJwId(value: string) {
+  const minSemesterJwId = Number(value);
+
+  if (
+    !/^\+?\d+$/.test(value) ||
+    !Number.isSafeInteger(minSemesterJwId) ||
+    minSemesterJwId <= 0
+  ) {
+    throw new Error(
+      `Invalid --min-semester "${value}": expected a positive safe integer jwId.`,
+    );
+  }
+
+  return minSemesterJwId;
+}
+
+function normalizeMinSemesterArgs(argv: string[]) {
+  const args: string[] = [];
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    const nextArg = argv[index + 1];
+
+    if (arg === "--min-semester" && /^-\d/.test(nextArg ?? "")) {
+      args.push(`--min-semester=${nextArg}`);
+      index += 1;
+      continue;
+    }
+
+    args.push(arg);
+  }
+
+  return args;
+}
+
 export function parseStaticLoaderOptions(
   argv = process.argv.slice(2),
 ): StaticLoaderOptions {
   const { values } = parseArgs({
-    args: argv,
+    args: normalizeMinSemesterArgs(argv),
     options: {
       "cache-dir": {
         type: "string",
@@ -43,12 +78,12 @@ export function parseStaticLoaderOptions(
     strict: true,
   });
 
+  const minSemesterValue =
+    values["min-semester"] ?? DEFAULT_STATIC_LOADER_MIN_SEMESTER;
+
   return {
     cacheDir: values["cache-dir"] ?? DEFAULT_STATIC_LOADER_CACHE_DIR,
-    minSemesterJwId: Number.parseInt(
-      values["min-semester"] ?? DEFAULT_STATIC_LOADER_MIN_SEMESTER,
-      10,
-    ),
+    minSemesterJwId: parseMinSemesterJwId(minSemesterValue),
     skipCourses: values["skip-courses"] ?? false,
     skipBus: values["skip-bus"] ?? false,
     help: values.help ?? false,
