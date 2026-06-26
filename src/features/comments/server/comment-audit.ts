@@ -7,7 +7,7 @@ type CommentAuditRequestMetadata = {
 
 type CommentAuditMetadata = Record<string, unknown>;
 
-export function writeCommentCreateAuditLog({
+export async function writeCommentCreateAuditLog({
   auditMetadata,
   body,
   commentId,
@@ -20,7 +20,7 @@ export function writeCommentCreateAuditLog({
   requestMetadata?: CommentAuditRequestMetadata;
   userId: string;
 }) {
-  fireAuditLog({
+  await fireAuditLog({
     action: "comment_create",
     userId,
     targetId: commentId,
@@ -30,7 +30,7 @@ export function writeCommentCreateAuditLog({
   });
 }
 
-export function writeCommentEditAuditLog({
+export async function writeCommentEditAuditLog({
   auditMetadata,
   body,
   commentId,
@@ -43,7 +43,7 @@ export function writeCommentEditAuditLog({
   requestMetadata?: CommentAuditRequestMetadata;
   userId: string;
 }) {
-  fireAuditLog({
+  await fireAuditLog({
     action: "comment_edit",
     userId,
     targetId: commentId,
@@ -56,7 +56,7 @@ export function writeCommentEditAuditLog({
   });
 }
 
-export function writeCommentDeleteAuditLog({
+export async function writeCommentDeleteAuditLog({
   auditMetadata,
   commentId,
   requestMetadata,
@@ -67,7 +67,7 @@ export function writeCommentDeleteAuditLog({
   requestMetadata?: CommentAuditRequestMetadata;
   userId: string;
 }) {
-  fireAuditLog({
+  await fireAuditLog({
     action: "comment_delete",
     userId,
     targetId: commentId,
@@ -77,7 +77,7 @@ export function writeCommentDeleteAuditLog({
   });
 }
 
-export function writeCommentReactionAuditLog({
+export async function writeCommentReactionAuditLog({
   auditMetadata,
   commentId,
   operation,
@@ -92,7 +92,7 @@ export function writeCommentReactionAuditLog({
   type: string;
   userId: string;
 }) {
-  fireAuditLog({
+  await fireAuditLog({
     action: "comment_react",
     userId,
     targetId: commentId,

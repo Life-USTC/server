@@ -77,7 +77,7 @@ export async function createCommentTool(
     return jsonToolResult(commentMutationErrorPayload(result), { mode });
   }
 
-  writeCommentCreateAuditLog({
+  await writeCommentCreateAuditLog({
     auditMetadata: { source: "mcp" },
     body: args.body,
     commentId: result.comment.id,
@@ -108,7 +108,7 @@ export async function updateOwnCommentTool(
     return jsonToolResult(commentMutationErrorPayload(result), { mode });
   }
 
-  writeCommentEditAuditLog({
+  await writeCommentEditAuditLog({
     auditMetadata: { source: "mcp" },
     body: args.body,
     commentId: args.commentId,
@@ -132,7 +132,7 @@ export async function deleteOwnCommentTool(
     });
   }
 
-  writeCommentDeleteAuditLog({
+  await writeCommentDeleteAuditLog({
     auditMetadata: { source: "mcp" },
     commentId,
     userId,
@@ -156,7 +156,7 @@ export async function addCommentReactionTool(
   }
 
   if (result.changed) {
-    writeCommentReactionAuditLog({
+    await writeCommentReactionAuditLog({
       auditMetadata: { source: "mcp" },
       commentId,
       operation: "add",
@@ -186,7 +186,7 @@ export async function removeCommentReactionTool(
   }
 
   if (result.changed) {
-    writeCommentReactionAuditLog({
+    await writeCommentReactionAuditLog({
       auditMetadata: { source: "mcp" },
       commentId,
       operation: "remove",

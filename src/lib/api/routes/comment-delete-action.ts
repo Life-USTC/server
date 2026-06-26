@@ -22,7 +22,7 @@ export async function deleteOwnCommentAction(input: {
     return result.error === "not_found" ? notFound() : forbidden();
   }
 
-  writeCommentDeleteAuditLog({
+  await writeCommentDeleteAuditLog({
     commentId: input.commentId,
     requestMetadata: getAuditRequestMetadata(input.request),
     userId: input.userId,

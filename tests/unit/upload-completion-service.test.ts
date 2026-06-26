@@ -1,9 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { uploadConfig } from "@/features/uploads/lib/upload-config";
-import { completeUploadSession } from "@/features/uploads/server/upload-service";
+import {
+  completeUploadSession,
+  deleteOwnedUpload,
+} from "@/features/uploads/server/upload-service";
 
 const {
   deleteStorageObjectMock,
+  fireAuditLogMock,
+  getViewerContextMock,
   headStorageObjectMock,
   pendingAggregateMock,
   pendingDeleteManyMock,
@@ -16,9 +21,13 @@ const {
   txUploadCreateMock,
   txUploadFindUniqueMock,
   uploadAggregateMock,
+  uploadDeleteMock,
+  uploadFindFirstMock,
   uploadFindUniqueMock,
 } = vi.hoisted(() => ({
   deleteStorageObjectMock: vi.fn(),
+  fireAuditLogMock: vi.fn(),
+  getViewerContextMock: vi.fn(),
   headStorageObjectMock: vi.fn(),
   pendingAggregateMock: vi.fn(),
   pendingDeleteManyMock: vi.fn(),
@@ -31,6 +40,8 @@ const {
   txUploadCreateMock: vi.fn(),
   txUploadFindUniqueMock: vi.fn(),
   uploadAggregateMock: vi.fn(),
+  uploadDeleteMock: vi.fn(),
+  uploadFindFirstMock: vi.fn(),
   uploadFindUniqueMock: vi.fn(),
 }));
 
@@ -38,6 +49,8 @@ vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     upload: {
       aggregate: uploadAggregateMock,
+      delete: uploadDeleteMock,
+      findFirst: uploadFindFirstMock,
       findUnique: uploadFindUniqueMock,
     },
     uploadPending: {
@@ -58,11 +71,11 @@ vi.mock("@/lib/storage/r2-object", () => ({
 }));
 
 vi.mock("@/lib/audit/write-audit-log", () => ({
-  fireAuditLog: vi.fn(),
+  fireAuditLog: fireAuditLogMock,
 }));
 
 vi.mock("@/lib/auth/viewer-context", () => ({
-  getViewerContext: vi.fn(),
+  getViewerContext: getViewerContextMock,
 }));
 
 vi.mock("@/lib/log/app-logger", () => ({
@@ -99,6 +112,16 @@ const txPrisma = {
     findUnique: txPendingFindUniqueMock,
   },
 };
+
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, reject, resolve };
+}
 
 describe("completeUploadSession", () => {
   beforeEach(() => {
@@ -253,5 +276,53 @@ describe("completeUploadSession", () => {
       where: { key: KEY, userId: USER_ID },
     });
     expect(txUploadCreateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("deleteOwnedUpload", () => {
+  beforeEach(() => {
+    getViewerContextMock.mockResolvedValue({
+      isAuthenticated: true,
+      isSuspended: false,
+    });
+    uploadFindFirstMock.mockResolvedValue({
+      id: "upload-1",
+      key: KEY,
+      size: 10,
+    });
+    uploadDeleteMock.mockResolvedValue({});
+    deleteStorageObjectMock.mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("waits for upload delete audit scheduling before returning", async () => {
+    const auditWrite = deferred<void>();
+    fireAuditLogMock.mockReturnValue(auditWrite.promise);
+    const settled = vi.fn();
+
+    const result = deleteOwnedUpload({
+      id: "upload-1",
+      userId: USER_ID,
+    });
+    result.then(settled);
+
+    await vi.waitFor(() => expect(fireAuditLogMock).toHaveBeenCalled());
+    expect(settled).not.toHaveBeenCalled();
+
+    auditWrite.resolve();
+
+    await expect(result).resolves.toEqual({
+      ok: true,
+      deletedId: "upload-1",
+      deletedSize: 10,
+    });
+    expect(settled).toHaveBeenCalledWith({
+      ok: true,
+      deletedId: "upload-1",
+      deletedSize: 10,
+    });
   });
 });

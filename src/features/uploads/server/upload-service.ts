@@ -368,7 +368,7 @@ export async function deleteOwnedUpload(input: {
   }
 
   await prisma.upload.delete({ where: { id: upload.id } });
-  writeUploadDeleteAuditLog({
+  await writeUploadDeleteAuditLog({
     audit: input.audit,
     upload,
     userId: input.userId,
@@ -477,7 +477,7 @@ async function deleteUploadStorageObject(upload: { key: string }) {
   }
 }
 
-function writeUploadDeleteAuditLog({
+async function writeUploadDeleteAuditLog({
   audit,
   upload,
   userId,
@@ -490,7 +490,7 @@ function writeUploadDeleteAuditLog({
   upload: { id: string; key: string; size: number };
   userId: string;
 }) {
-  fireAuditLog({
+  await fireAuditLog({
     action: "upload_delete",
     userId,
     targetId: upload.id,
