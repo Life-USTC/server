@@ -13,6 +13,7 @@
     "admin-self-protection": "Admin user management must reject self-suspension, self-demotion, and removing the final remaining admin.",
     "admin-rest-session-only": "Admin REST endpoints require the in-site Better Auth session cookie and do not accept OAuth bearer tokens.",
     "suspension-expiration-validation": "Suspension expiration accepts omitted, null, or empty input as permanent and rejects invalid non-empty date strings.",
+    "single-active-suspension": "Each user may have at most one active suspension. Creating a new suspension replaces any existing active suspension, and lifting an active suspension clears any legacy duplicate active rows for that user.",
     "suspension-retention": "Suspension history is retained when an admin account is deleted; creator and lifter actor references may be null after account deletion."
   },
   "capabilities": {

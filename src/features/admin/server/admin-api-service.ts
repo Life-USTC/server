@@ -4,6 +4,7 @@ import { isValidProfileUsername } from "@/features/profile/lib/profile-username"
 import type { CommentStatus } from "@/generated/prisma/client";
 import { fireAuditLog } from "@/lib/audit/write-audit-log";
 import { prisma } from "@/lib/db/prisma";
+import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
 import { runSerializableTransaction } from "@/lib/db/serializable-transaction";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import { adminDescriptionInclude } from "./admin-description-filters";
@@ -159,21 +160,43 @@ export async function createAdminSuspension(
     return { ok: false as const, reason: "cannot_suspend_self" as const };
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true },
-  });
-  if (!user) return { ok: false as const, reason: "user_not_found" as const };
+  const createSuspension = () =>
+    runSerializableTransaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      });
+      if (!user) {
+        return { ok: false as const, reason: "user_not_found" as const };
+      }
 
-  const suspension = await prisma.userSuspension.create({
-    data: {
-      userId,
-      createdById: adminUserId,
-      reason: input.reason?.trim() || null,
-      note: input.note?.trim() || null,
-      expiresAt: expiresAt.expiresAt,
-    },
-  });
+      const liftedAt = new Date();
+      await tx.userSuspension.updateMany({
+        where: { userId, liftedAt: null },
+        data: { liftedAt, liftedById: adminUserId },
+      });
+
+      const suspension = await tx.userSuspension.create({
+        data: {
+          userId,
+          createdById: adminUserId,
+          reason: input.reason?.trim() || null,
+          note: input.note?.trim() || null,
+          expiresAt: expiresAt.expiresAt,
+        },
+      });
+
+      return { ok: true as const, suspension };
+    }, "Failed to create admin suspension");
+
+  let result: Awaited<ReturnType<typeof createSuspension>>;
+  try {
+    result = await createSuspension();
+  } catch (error) {
+    if (!isPrismaUniqueConstraintError(error)) throw error;
+    result = await createSuspension();
+  }
+  if (!result.ok) return result;
 
   fireAuditLog({
     action: "admin_user_suspend",
@@ -183,33 +206,44 @@ export async function createAdminSuspension(
     metadata: { reason: input.reason ?? null },
   });
 
-  return { ok: true as const, suspension };
+  return result;
 }
 
 export async function liftAdminSuspension(adminUserId: string, id: string) {
-  const existing = await prisma.userSuspension.findUnique({
-    where: { id },
-    select: { id: true },
-  });
-  if (!existing) return { ok: false as const, reason: "not_found" as const };
+  const result = await runSerializableTransaction(async (tx) => {
+    const existing = await tx.userSuspension.findUnique({
+      where: { id },
+      select: { id: true, liftedAt: true, userId: true },
+    });
+    if (!existing) return { ok: false as const, reason: "not_found" as const };
 
-  const suspension = await prisma.userSuspension.update({
-    where: { id },
-    data: {
-      liftedAt: new Date(),
-      liftedById: adminUserId,
-    },
-  });
+    const liftedAt = new Date();
+    let suspension = await tx.userSuspension.update({
+      where: { id },
+      data: { liftedAt, liftedById: adminUserId },
+    });
+
+    if (existing.liftedAt === null) {
+      await tx.userSuspension.updateMany({
+        where: { userId: existing.userId, liftedAt: null },
+        data: { liftedAt, liftedById: adminUserId },
+      });
+      suspension = await tx.userSuspension.findUniqueOrThrow({ where: { id } });
+    }
+
+    return { ok: true as const, suspension };
+  }, "Failed to lift admin suspension");
+  if (!result.ok) return result;
 
   fireAuditLog({
     action: "admin_user_unsuspend",
     userId: adminUserId,
-    targetId: suspension.userId,
+    targetId: result.suspension.userId,
     targetType: "user",
     metadata: { suspensionId: id },
   });
 
-  return { ok: true as const, suspension };
+  return result;
 }
 
 export async function moderateComment(

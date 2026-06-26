@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { fireAuditLogMock, getAdminUserListItemMock, prismaMock } = vi.hoisted(
   () => ({
@@ -13,6 +13,10 @@ const { fireAuditLogMock, getAdminUserListItemMock, prismaMock } = vi.hoisted(
       },
       userSuspension: {
         create: vi.fn(),
+        findUnique: vi.fn(),
+        findUniqueOrThrow: vi.fn(),
+        update: vi.fn(),
+        updateMany: vi.fn(),
       },
     },
   }),
@@ -36,13 +40,24 @@ describe("admin API service", () => {
     getAdminUserListItemMock.mockReset();
     prismaMock.$transaction.mockReset();
     prismaMock.$transaction.mockImplementation(async (action) =>
-      action({ user: prismaMock.user }),
+      action({
+        user: prismaMock.user,
+        userSuspension: prismaMock.userSuspension,
+      }),
     );
     prismaMock.user.count.mockReset();
     prismaMock.user.findUnique.mockReset();
     prismaMock.user.update.mockReset();
     prismaMock.userSuspension.create.mockReset();
+    prismaMock.userSuspension.findUnique.mockReset();
+    prismaMock.userSuspension.findUniqueOrThrow.mockReset();
+    prismaMock.userSuspension.update.mockReset();
+    prismaMock.userSuspension.updateMany.mockReset();
     vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("rejects self-demotion before updating the user", async () => {
@@ -155,5 +170,100 @@ describe("admin API service", () => {
     expect(prismaMock.user.findUnique).not.toHaveBeenCalled();
     expect(prismaMock.userSuspension.create).not.toHaveBeenCalled();
     expect(fireAuditLogMock).not.toHaveBeenCalled();
+  });
+
+  it("lifts an existing active suspension before creating the replacement", async () => {
+    vi.useFakeTimers();
+    const now = new Date("2026-06-26T01:02:03.000Z");
+    vi.setSystemTime(now);
+    const suspension = { id: "suspension-2", userId: "user-1" };
+    prismaMock.user.findUnique.mockResolvedValue({ id: "user-1" });
+    prismaMock.userSuspension.create.mockResolvedValue(suspension);
+    const { createAdminSuspension } = await import(
+      "@/features/admin/server/admin-api-service"
+    );
+
+    const result = await createAdminSuspension("admin-1", {
+      note: "  note  ",
+      reason: "  reason  ",
+      userId: " user-1 ",
+    });
+
+    expect(result).toEqual({ ok: true, suspension });
+    expect(prismaMock.userSuspension.updateMany).toHaveBeenCalledWith({
+      where: { userId: "user-1", liftedAt: null },
+      data: { liftedAt: now, liftedById: "admin-1" },
+    });
+    expect(prismaMock.userSuspension.create).toHaveBeenCalledWith({
+      data: {
+        userId: "user-1",
+        createdById: "admin-1",
+        reason: "reason",
+        note: "note",
+        expiresAt: null,
+      },
+    });
+    expect(fireAuditLogMock).toHaveBeenCalledWith({
+      action: "admin_user_suspend",
+      userId: "admin-1",
+      targetId: "user-1",
+      targetType: "user",
+      metadata: { reason: "  reason  " },
+    });
+  });
+
+  it("clears duplicate active suspensions when lifting the selected active row", async () => {
+    vi.useFakeTimers();
+    const now = new Date("2026-06-26T04:05:06.000Z");
+    vi.setSystemTime(now);
+    const suspension = { id: "suspension-1", userId: "user-1" };
+    prismaMock.userSuspension.findUnique.mockResolvedValue({
+      id: "suspension-1",
+      liftedAt: null,
+      userId: "user-1",
+    });
+    prismaMock.userSuspension.update.mockResolvedValue(suspension);
+    prismaMock.userSuspension.findUniqueOrThrow.mockResolvedValue(suspension);
+    const { liftAdminSuspension } = await import(
+      "@/features/admin/server/admin-api-service"
+    );
+
+    const result = await liftAdminSuspension("admin-1", "suspension-1");
+
+    expect(result).toEqual({ ok: true, suspension });
+    expect(prismaMock.userSuspension.update).toHaveBeenCalledWith({
+      where: { id: "suspension-1" },
+      data: { liftedAt: now, liftedById: "admin-1" },
+    });
+    expect(prismaMock.userSuspension.updateMany).toHaveBeenCalledWith({
+      where: { userId: "user-1", liftedAt: null },
+      data: { liftedAt: now, liftedById: "admin-1" },
+    });
+    expect(fireAuditLogMock).toHaveBeenCalledWith({
+      action: "admin_user_unsuspend",
+      userId: "admin-1",
+      targetId: "user-1",
+      targetType: "user",
+      metadata: { suspensionId: "suspension-1" },
+    });
+  });
+
+  it("does not clear a newer active suspension when re-lifting a history row", async () => {
+    const liftedAt = new Date("2026-06-25T04:05:06.000Z");
+    const suspension = { id: "suspension-1", userId: "user-1" };
+    prismaMock.userSuspension.findUnique.mockResolvedValue({
+      id: "suspension-1",
+      liftedAt,
+      userId: "user-1",
+    });
+    prismaMock.userSuspension.update.mockResolvedValue(suspension);
+    const { liftAdminSuspension } = await import(
+      "@/features/admin/server/admin-api-service"
+    );
+
+    const result = await liftAdminSuspension("admin-1", "suspension-1");
+
+    expect(result).toEqual({ ok: true, suspension });
+    expect(prismaMock.userSuspension.updateMany).not.toHaveBeenCalled();
   });
 });
