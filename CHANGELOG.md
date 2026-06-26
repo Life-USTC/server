@@ -1,3 +1,11 @@
+## [1.39.29](https://github.com/Life-USTC/server/compare/v1.39.28...v1.39.29) (2026-06-26)
+
+
+### Bug Fixes
+
+* **audit:** move writes into shared mutations ([f3e0ea6](https://github.com/Life-USTC/server/commit/f3e0ea65a9a906307af78fb7568a7a7efa698994))
+* **openapi:** document admin 403 and calendar media ([37b8da0](https://github.com/Life-USTC/server/commit/37b8da0e0e871db0ece81c63da62ed2a3c4f6e5b))
+
 ## [1.39.28](https://github.com/Life-USTC/server/compare/v1.39.27...v1.39.28) (2026-06-26)
 
 
