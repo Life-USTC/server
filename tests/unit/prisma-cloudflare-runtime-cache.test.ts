@@ -114,6 +114,10 @@ describe("Cloudflare Prisma runtime cache", () => {
         expect(prisma.user).toBe(prisma.user);
         expect(createBasePrismaMock).toHaveBeenCalledTimes(1);
 
+        await Promise.resolve();
+        expect(prisma.user).toBe(prisma.user);
+        expect(createBasePrismaMock).toHaveBeenCalledTimes(1);
+
         const zhFirst = getPrisma("zh-cn");
         const zhSecond = getPrisma("zh-cn");
         const en = getPrisma("en-us");
