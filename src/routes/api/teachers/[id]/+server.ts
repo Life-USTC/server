@@ -4,8 +4,9 @@ import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
  * Get teacher.
- * @pathParams resourceIdPathParamsSchema
+ * @pathParams teacherIdPathParamsSchema
  * @response teacherDetailSchema
+ * @response 400:openApiErrorSchema
  * @response 404:openApiErrorSchema
  */
 export const GET: RequestHandler = ({ request, params }) =>

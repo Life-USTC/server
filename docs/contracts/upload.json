@@ -9,6 +9,7 @@
   "rules": {
     "comment-attachments-only": "Uploads serve only comment attachments; they are not an independent file space.",
     "permission-and-quota": "Permission and quota checks are required before upload.",
+    "write-auth-unsuspended": "Upload write routes require an unsuspended signed-in user; suspended users receive 403 before upload metadata or object state changes.",
     "three-step-upload": "Web comment attachment uploads follow a three-step flow — create upload session on-site → browser PUT to an on-site Cloudflare Workers upload object route backed by R2 → confirm completion on-site.",
     "r2-backend": "Upload object create/read/head/delete operations use the Cloudflare R2 binding. The app runtime does not use S3-compatible signed URL fallbacks.",
     "storage-observability": "Shared storage helpers record production-safe bounded metrics for storage operation status and duration; metrics identify operation type but do not include bucket names, object keys, signed URLs, filenames, or user IDs.",
@@ -69,7 +70,8 @@
             "method": "POST",
             "returns": "{ key: String, url: String, maxFileSizeBytes: Int, quotaBytes: Int, usedBytes: Int }",
             "notes": [
-              "The returned upload URL points to the on-site Workers upload object route and writes through the R2 binding."
+              "The returned upload URL points to the on-site Workers upload object route and writes through the R2 binding.",
+              "Requires an unsuspended signed-in user; suspended users receive 403 before upload session creation."
             ]
           },
           {
@@ -127,14 +129,18 @@
             "path": "/api/uploads/[id]",
             "method": "PATCH",
             "returns": "{ upload: Upload }",
-            "notes": ["Renames one upload owned by the current user."]
+            "notes": [
+              "Renames one upload owned by the current user.",
+              "Requires an unsuspended signed-in user; suspended users receive 403 before upload metadata changes."
+            ]
           },
           {
             "path": "/api/uploads/[id]",
             "method": "DELETE",
             "returns": "{ deletedId: String, deletedSize: Int }",
             "notes": [
-              "Deletes one upload owned by the current user. The backing storage object is deleted before metadata is removed; storage cleanup failure returns an error and leaves the upload metadata available for retry."
+              "Deletes one upload owned by the current user. The backing storage object is deleted before metadata is removed; storage cleanup failure returns an error and leaves the upload metadata available for retry.",
+              "Requires an unsuspended signed-in user; suspended users receive 403 before upload metadata or object state changes."
             ]
           }
         ]

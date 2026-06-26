@@ -9,6 +9,7 @@ import {
   OAUTH_REST_READ_SCOPE,
   OAUTH_REST_WRITE_SCOPE,
 } from "@/lib/oauth/constants";
+import { parseBearerAuthorizationHeader } from "./authorization-header";
 import { hasRequestAuthSignal } from "./request-auth-signal";
 
 type RestBearerScopeRequirement = "read" | "write";
@@ -57,10 +58,9 @@ export async function resolveApiUserId(
   request: Request,
   options: { bearerScope?: RestBearerScopeRequirement } = {},
 ): Promise<string | null> {
-  const authHeader = request.headers.get("authorization");
-  const bearer = authHeader?.match(/^Bearer(?:\s+(.+))?$/);
+  const bearer = parseBearerAuthorizationHeader(request.headers);
   if (bearer) {
-    const token = bearer[1]?.trim() ?? "";
+    const token = bearer.token ?? "";
     if (!token) return null;
     try {
       const jwt = await verifyAccessToken(token, {
@@ -100,8 +100,7 @@ export async function resolveApiUserId(
 export async function resolveSessionUserId(
   request: Request,
 ): Promise<string | null> {
-  const authHeader = request.headers.get("authorization");
-  if (/^Bearer(?:\s|$)/i.test(authHeader?.trimStart() ?? "")) {
+  if (parseBearerAuthorizationHeader(request.headers)) {
     return null;
   }
   if (!hasRequestAuthSignal(request.headers)) return null;

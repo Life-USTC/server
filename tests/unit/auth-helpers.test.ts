@@ -83,6 +83,45 @@ describe("auth helpers", () => {
     );
   });
 
+  it.each([
+    "bearer",
+    "bEaReR",
+  ])("accepts a %s bearer access token", async (scheme) => {
+    verifyAccessTokenMock.mockResolvedValue({
+      scope: OAUTH_REST_READ_SCOPE,
+      sub: "user-from-token",
+    });
+    const { resolveApiUserId } = await import("@/lib/auth/api-auth");
+    const request = new Request("https://life.example/api/me", {
+      headers: {
+        authorization: `${scheme} access-token`,
+        cookie: "better-auth.session_token=session-token",
+      },
+    });
+
+    await expect(resolveApiUserId(request)).resolves.toBe("user-from-token");
+    expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
+    expect(verifyAccessTokenMock).toHaveBeenCalledWith(
+      "access-token",
+      expect.any(Object),
+    );
+  });
+
+  it.each([
+    "bearer",
+    "bEaReR",
+  ])("treats a %s authorization header as an auth signal", async (scheme) => {
+    const { hasRequestAuthSignal } = await import(
+      "@/lib/auth/request-auth-signal"
+    );
+
+    expect(
+      hasRequestAuthSignal(
+        new Headers({ authorization: `${scheme} access-token` }),
+      ),
+    ).toBe(true);
+  });
+
   it("rejects profile-only bearer access for protected REST reads", async () => {
     verifyAccessTokenMock.mockResolvedValue({
       scope: OAUTH_PROFILE_SCOPE,
@@ -210,6 +249,29 @@ describe("auth helpers", () => {
     });
 
     await expect(resolveApiUserId(request)).resolves.toBeNull();
+    expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 401 instead of falling back to session cookies when a lowercase bearer token is invalid", async () => {
+    verifyAccessTokenMock.mockRejectedValue(new Error("invalid token"));
+    getSessionFromHeadersMock.mockResolvedValue({
+      user: { id: "user-from-cookie" },
+    });
+    const { requireAuth } = await import("@/lib/auth/api-auth");
+    const request = new Request("https://life.example/api/me", {
+      headers: {
+        authorization: "bearer invalid-token",
+        cookie: "better-auth.session_token=session-token",
+      },
+    });
+
+    const result = await requireAuth(request);
+
+    expect(result).toBeInstanceOf(Response);
+    expect((result as Response).status).toBe(401);
+    await expect((result as Response).json()).resolves.toEqual({
+      error: "Unauthorized",
+    });
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
   });
 
