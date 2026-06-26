@@ -4,14 +4,38 @@ on:
   workflow_dispatch:
   push:
     paths:
+      - .bun-version
       - .github/actions/setup-bun-env/action.yml
       - .github/workflows/copilot-setup-steps.yml
       - .github/workflows/db-backed-bun-job.yml
+      - bun.lock
+      - package.json
+      - prisma.config.ts
+      - prisma/migrations/**
+      - prisma/schema.prisma
+      - svelte.config.js
+      - svelte.openapi.json
+      - tests/e2e/fixtures/scenario.json
+      - tools/build/openapi/**
+      - tools/dev/seed/**
+      - tools/shared/**
   pull_request:
     paths:
+      - .bun-version
       - .github/actions/setup-bun-env/action.yml
       - .github/workflows/copilot-setup-steps.yml
       - .github/workflows/db-backed-bun-job.yml
+      - bun.lock
+      - package.json
+      - prisma.config.ts
+      - prisma/migrations/**
+      - prisma/schema.prisma
+      - svelte.config.js
+      - svelte.openapi.json
+      - tests/e2e/fixtures/scenario.json
+      - tools/build/openapi/**
+      - tools/dev/seed/**
+      - tools/shared/**
 
 jobs:
   # The job name must be exactly `copilot-setup-steps`
