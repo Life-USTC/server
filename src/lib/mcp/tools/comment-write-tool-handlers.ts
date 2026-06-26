@@ -1,5 +1,6 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import * as z from "zod";
+import { commentMcpTargetMutationInputSchema } from "@/features/comments/lib/comment-target-input-schemas";
 import {
   writeCommentCreateAuditLog,
   writeCommentDeleteAuditLog,
@@ -26,42 +27,8 @@ import {
 } from "@/lib/mcp/tools/_helpers";
 import { commentMutationErrorPayload } from "./comment-tool-errors";
 
-const commentTargetIdSchema = z.union([
-  z.number().int().positive(),
-  z.string().trim().min(1),
-]);
-
 export const commentCreateInputSchema = commentCreateRequestSchema.extend({
-  targetId: commentTargetIdSchema
-    .optional()
-    .describe(
-      "Internal target id matching REST /api/comments. Prefer public identifiers such as sectionJwId or courseJwId when available.",
-    ),
-  sectionId: commentTargetIdSchema
-    .optional()
-    .describe("Internal section id for section-teacher comments."),
-  teacherId: commentTargetIdSchema
-    .optional()
-    .describe("Teacher id for teacher or section-teacher comments."),
-  sectionJwId: z
-    .number()
-    .int()
-    .positive()
-    .optional()
-    .describe("Public JW section id for section or section-teacher comments."),
-  courseJwId: z
-    .number()
-    .int()
-    .positive()
-    .optional()
-    .describe("Public JW course id for course comments."),
-  homeworkId: z.string().trim().min(1).optional(),
-  sectionTeacherId: z
-    .number()
-    .int()
-    .positive()
-    .optional()
-    .describe("Direct section-teacher relationship id."),
+  ...commentMcpTargetMutationInputSchema.shape,
   mode: mcpModeInputSchema,
 });
 

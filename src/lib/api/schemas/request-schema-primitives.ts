@@ -1,6 +1,6 @@
 import * as z from "zod";
 import { sectionCodeSchema } from "@/features/catalog/lib/section-code-schema";
-import { COMMENT_TARGET_TYPES } from "@/features/comments/lib/comment-target-types";
+import { commentTargetTypeSchema } from "@/features/comments/lib/comment-target-input-schemas";
 import { todoPrioritySchema } from "@/features/todos/lib/todo-schema";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import { parseInteger } from "../request-integers";
@@ -60,9 +60,7 @@ export const commentReactionTypeSchema = z.enum([
   "eyes",
 ]);
 
-export { commentVisibilitySchema, sectionCodeSchema };
-
-export const commentTargetTypeSchema = z.enum(COMMENT_TARGET_TYPES);
+export { commentTargetTypeSchema, commentVisibilitySchema, sectionCodeSchema };
 
 export const descriptionTargetTypeSchema = z.enum([
   "section",

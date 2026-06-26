@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+import {
+  commentMcpTargetMutationInputSchema,
+  commentMcpTargetReadInputSchema,
+} from "@/features/comments/lib/comment-target-input-schemas";
 import { HOMEWORK_DESCRIPTION_MAX_LENGTH } from "@/features/homeworks/lib/homework-limits";
 import { TODO_CONTENT_MAX_LENGTH } from "@/features/todos/lib/todo-limits";
 import {
@@ -276,6 +280,46 @@ describe("other request schemas", () => {
         targetId: "123",
         sectionTeacherId: 0,
         body: "hello",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("validates centralized MCP comment target identifiers", () => {
+    expect(
+      commentMcpTargetReadInputSchema.safeParse({
+        targetType: "section",
+        sectionJwId: 9902001,
+      }).success,
+    ).toBe(true);
+    expect(
+      commentMcpTargetReadInputSchema.safeParse({
+        targetType: "course",
+        courseJwId: 9901001,
+      }).success,
+    ).toBe(true);
+    expect(
+      commentMcpTargetReadInputSchema.safeParse({
+        targetType: "homework",
+        homeworkId: "homework-1",
+      }).success,
+    ).toBe(true);
+    expect(
+      commentMcpTargetReadInputSchema.safeParse({
+        targetType: "section-teacher",
+        sectionTeacherId: 123,
+      }).success,
+    ).toBe(true);
+    expect(
+      commentMcpTargetMutationInputSchema.safeParse({
+        targetType: "section-teacher",
+        sectionId: "123",
+        teacherId: "456",
+      }).success,
+    ).toBe(true);
+    expect(
+      commentMcpTargetReadInputSchema.safeParse({
+        targetType: "section",
+        sectionJwId: "9902001",
       }).success,
     ).toBe(false);
   });

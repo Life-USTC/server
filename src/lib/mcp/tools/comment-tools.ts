@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
-import { COMMENT_TARGET_TYPES } from "@/features/comments/lib/comment-target-types";
+import { commentMcpTargetReadInputSchema } from "@/features/comments/lib/comment-target-input-schemas";
 import {
   loadCommentThread,
   loadFocusedCommentThread,
@@ -29,43 +29,7 @@ import {
   updateOwnCommentTool,
 } from "./comment-write-tool-handlers";
 
-const commentTargetIdSchema = z.union([
-  z.number().int().positive(),
-  z.string().trim().min(1),
-]);
-
-const commentsTargetInputSchema = z.object({
-  targetType: z.enum(COMMENT_TARGET_TYPES),
-  targetId: commentTargetIdSchema
-    .optional()
-    .describe(
-      "Internal target id matching REST /api/comments. Prefer public identifiers such as sectionJwId or courseJwId when available.",
-    ),
-  sectionJwId: z
-    .number()
-    .int()
-    .positive()
-    .optional()
-    .describe("Public JW section id for section or section-teacher comments."),
-  courseJwId: z
-    .number()
-    .int()
-    .positive()
-    .optional()
-    .describe("Public JW course id for course comments."),
-  teacherId: z
-    .number()
-    .int()
-    .positive()
-    .optional()
-    .describe("Teacher id for teacher or section-teacher comments."),
-  homeworkId: z.string().trim().min(1).optional(),
-  sectionTeacherId: z
-    .number()
-    .int()
-    .positive()
-    .optional()
-    .describe("Direct section-teacher relationship id."),
+const commentsTargetInputSchema = commentMcpTargetReadInputSchema.extend({
   mode: mcpModeInputSchema,
 });
 

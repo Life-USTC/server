@@ -1,20 +1,11 @@
 import * as z from "zod";
+import { commentTargetQueryInputSchema } from "@/features/comments/lib/comment-target-input-schemas";
 import {
-  commentTargetTypeSchema,
   descriptionTargetTypeSchema,
   integerStringSchema,
 } from "./request-schema-primitives";
 
-export const commentsQuerySchema = z.object({
-  targetType: commentTargetTypeSchema,
-  targetId: z.string().optional(),
-  sectionId: integerStringSchema.optional(),
-  sectionJwId: integerStringSchema.optional(),
-  courseJwId: integerStringSchema.optional(),
-  teacherId: integerStringSchema.optional(),
-  homeworkId: z.string().trim().min(1).optional(),
-  sectionTeacherId: integerStringSchema.optional(),
-});
+export const commentsQuerySchema = commentTargetQueryInputSchema;
 
 export const descriptionsQuerySchema = z.object({
   targetType: descriptionTargetTypeSchema,
