@@ -180,15 +180,30 @@ test.describe("/teachers/[id]", () => {
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
+  test("tab switching works", async ({ page }, testInfo) => {
+    await navigateToSeedTeacher(page);
+
+    const tabList = page.getByRole("tablist").first();
+    await expect(tabList).toBeVisible();
+    const targetTab = tabList.getByRole("tab").nth(1);
+    const panelId = await targetTab.getAttribute("aria-controls");
+    expect(panelId).toBeTruthy();
+
+    await targetTab.click();
+    await expect(targetTab).toHaveAttribute("aria-selected", "true");
+    await expect(page.locator(`#${panelId}`)).toHaveAttribute(
+      "role",
+      "tabpanel",
+    );
+    await captureStepScreenshot(page, testInfo, "teacher/tab-switch");
+  });
+
   test("breadcrumb navigates back to teacher list", async ({
     page,
   }, testInfo) => {
     await navigateToSeedTeacher(page);
 
-    const breadcrumb = page
-      .getByRole("navigation", { name: "breadcrumb" })
-      .getByRole("link", { name: /^(教师|Teachers)$/i })
-      .first();
+    const breadcrumb = page.locator('a[href="/teachers"]').first();
     await expect(breadcrumb).toBeVisible();
     await breadcrumb.click();
     await expect(page).toHaveURL(/\/teachers(?:\?.*)?$/);
@@ -236,7 +251,11 @@ test.describe("/teachers/[id]", () => {
       await waitForUiSettled(page);
 
       // description.content rendered
-      await expect(page.getByText(content).first()).toBeVisible();
+      await expect(
+        descCard
+          .getByRole("tabpanel", { name: /简介|Description/i })
+          .getByText(content),
+      ).toBeVisible();
       // description.lastEditedBy.name
       await expect(
         page.getByText(DEV_SEED.debugName, { exact: false }).first(),
@@ -273,11 +292,11 @@ test.describe("/teachers/[id]", () => {
           await navigateToSeedTeacher(page);
         }
         const commentsTab = page
-          .getByRole("button", { name: /评论|Comments/i })
+          .getByRole("tab", { name: /评论|Comments/i })
           .first();
         await expect(commentsTab).toBeVisible();
         await commentsTab.click();
-        await expect(commentsTab).toHaveAttribute("aria-pressed", "true");
+        await expect(commentsTab).toHaveAttribute("aria-selected", "true");
       }).toPass({
         timeout: 10_000,
         intervals: [250, 500, 1_000],

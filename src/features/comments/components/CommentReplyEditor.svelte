@@ -70,6 +70,7 @@ $: replyDisabled = !viewer.isAuthenticated || viewer.isSuspended;
       <span>{commentCopy.visibilityAnonymous}</span>
     </label>
     <Select
+      aria-label={commentCopy.visibilityLabel}
       bind:value={replyVisibility}
       disabled={replyDisabled}
       items={visibilityOptions}

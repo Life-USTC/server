@@ -57,7 +57,7 @@ export let updateSectionFilter: SectionListFilterUpdater;
         <div class="flex shrink-0 flex-wrap gap-2">
           <Button class="min-w-28" size="lg" type="submit">{commonLabels.search}</Button>
           <Button
-            aria-label="Help"
+            aria-label={sectionLabels.searchHelpTitle}
             class="mt-auto"
             onclick={() => {
               isSearchHelpOpen = true;

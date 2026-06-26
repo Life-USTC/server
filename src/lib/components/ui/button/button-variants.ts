@@ -6,7 +6,7 @@ import { tv, type VariantProps } from "tailwind-variants";
 import type { WithElementRef } from "$lib/utils.js";
 
 export const buttonVariants = tv({
-  base: "rounded-lg border border-transparent bg-clip-padding text-sm font-medium focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/30 active:not-aria-[haspopup]:translate-y-px aria-invalid:border-error aria-invalid:ring-3 aria-invalid:ring-error/20 [&_svg:not([class*='size-'])]:size-4 group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap transition-all outline-none select-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+  base: "rounded-lg border border-transparent bg-clip-padding text-sm font-medium focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/30 active:not-aria-[haspopup]:translate-y-px aria-disabled:pointer-events-none aria-disabled:opacity-50 aria-invalid:border-error aria-invalid:ring-3 aria-invalid:ring-error/20 [&_svg:not([class*='size-'])]:size-4 group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap transition-all outline-none select-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0",
   variants: {
     variant: {
       default: "bg-primary text-primary-content hover:bg-primary/85",

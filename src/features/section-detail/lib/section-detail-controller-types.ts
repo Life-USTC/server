@@ -111,6 +111,7 @@ export type SectionDetailCopy = {
     tabWrite: string;
   };
   common: Record<string, string> & {
+    breadcrumb: string;
     home: string;
     sections: string;
     signIn?: string;

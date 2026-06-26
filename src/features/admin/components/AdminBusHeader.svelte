@@ -18,7 +18,7 @@ export let onImport: () => void;
 
 <PageHeader title={copy.title} description={copy.subtitle} eyebrow={adminCopy.title}>
   {#snippet breadcrumb()}
-    <Breadcrumb.Root>
+    <Breadcrumb.Root label={commonCopy.breadcrumb}>
       <Breadcrumb.List>
         <Breadcrumb.Item><Breadcrumb.Link href="/">{commonCopy.home}</Breadcrumb.Link></Breadcrumb.Item>
         <Breadcrumb.Separator />

@@ -89,6 +89,7 @@ function courseEmptyDescription() {
 
 <section class="grid gap-5">
   <CatalogPageHeader
+    breadcrumbLabel={commonLabels.breadcrumb}
     currentLabel={commonLabels.courses}
     description={courseLabels.subtitle}
     homeLabel={commonLabels.home}

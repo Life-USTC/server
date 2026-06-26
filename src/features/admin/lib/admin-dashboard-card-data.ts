@@ -67,6 +67,7 @@ export type AdminDashboardCardData = {
 export type AdminDashboardCopy = AdminDashboardCardData["copy"];
 
 export type AdminDashboardCommonCopy = {
+  breadcrumb: string;
   home: string;
 };
 

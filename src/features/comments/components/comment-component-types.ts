@@ -62,6 +62,7 @@ export type CommentsCopy = {
   tabWrite: string;
   ustcVerified: string;
   visibilityAnonymous: string;
+  visibilityLabel: string;
   visibilityLoggedIn: string;
   visibilityPublic: string;
 };

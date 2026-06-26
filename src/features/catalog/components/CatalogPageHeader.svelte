@@ -4,6 +4,7 @@ import PageHeaderMeta from "$lib/components/PageHeaderMeta.svelte";
 import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.js";
 
 export let currentLabel: string;
+export let breadcrumbLabel: string;
 export let description: string;
 export let homeLabel: string;
 export let metaLabel: string;
@@ -13,7 +14,7 @@ export let title: string;
 
 <PageHeader {title} {description}>
   {#snippet breadcrumb()}
-    <Breadcrumb.Root>
+    <Breadcrumb.Root label={breadcrumbLabel}>
       <Breadcrumb.List>
         <Breadcrumb.Item><Breadcrumb.Link href="/">{homeLabel}</Breadcrumb.Link></Breadcrumb.Item>
         <Breadcrumb.Separator />

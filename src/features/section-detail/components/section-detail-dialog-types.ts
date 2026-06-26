@@ -42,6 +42,7 @@ import type {
 } from "./section-homework-tab-types";
 
 export type SectionDetailCommonCopy = SectionHomeworkCommonCopy & {
+  breadcrumb: string;
   home: string;
   sections: string;
   signIn?: string;

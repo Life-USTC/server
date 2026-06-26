@@ -26,7 +26,11 @@ export let suspensionReason: string;
     <p class="text-base-content/60 text-sm">{copy.suspendAuthorDescription}</p>
   </div>
   <div class="grid gap-2 md:grid-cols-[160px_1fr]">
-    <Select bind:value={suspensionDuration} items={suspensionDurationOptions} />
+    <Select
+      aria-label={copy.suspendExpires}
+      bind:value={suspensionDuration}
+      items={suspensionDurationOptions}
+    />
     {#if suspensionDuration === "custom"}
       <DateTimePicker
         bind:value={customExpiresAt}

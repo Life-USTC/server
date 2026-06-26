@@ -44,7 +44,7 @@ type PageData = {
   commentsData: CatalogDetailCommentsData;
   copy: {
     comments: { title: string };
-    common: { home: string; teachers: string };
+    common: { breadcrumb: string; home: string; teachers: string };
     descriptions: CatalogDetailDescriptionCopy;
     metadata: { pages: { teacherDetail: string } };
     teacherDetail: TeacherDetailCopy["teacherDetail"] & {
@@ -92,7 +92,7 @@ onMount(() => {
 <section class="grid gap-5">
   <PageHeader title={displayName} description={data.teacher.department ? primaryName(data.teacher.department) : ""}>
     {#snippet breadcrumb()}
-      <Breadcrumb.Root>
+      <Breadcrumb.Root label={copy.common.breadcrumb}>
         <Breadcrumb.List>
           <Breadcrumb.Item><Breadcrumb.Link href="/">{copy.common.home}</Breadcrumb.Link></Breadcrumb.Item>
           <Breadcrumb.Separator />
@@ -124,26 +124,41 @@ onMount(() => {
       <CatalogDetailTabs
         {activeTab}
         commentsLabel={copy.comments.title}
+        idPrefix="teacher-detail"
         sectionsLabel={copy.teacherDetail.teachingSectionsTitle}
         {setActiveTab}
       />
 
       {#if activeTab === "comments"}
-        {#key `comments:teacher:${data.teacher.id}`}
-          <CommentsPanel
-            initialData={data.commentsData}
-            targetType="teacher"
-            targetId={data.teacher.id}
-          />
-        {/key}
+        <div
+          aria-labelledby="teacher-detail-comments-tab"
+          id="teacher-detail-comments-panel"
+          role="tabpanel"
+          tabindex="0"
+        >
+          {#key `comments:teacher:${data.teacher.id}`}
+            <CommentsPanel
+              initialData={data.commentsData}
+              targetType="teacher"
+              targetId={data.teacher.id}
+            />
+          {/key}
+        </div>
       {:else}
-        <TeacherDetailSections
-          copy={detailCopy}
-          {notAvailable}
-          {primaryName}
-          {secondaryName}
-          teacher={data.teacher}
-        />
+        <div
+          aria-labelledby="teacher-detail-sections-tab"
+          id="teacher-detail-sections-panel"
+          role="tabpanel"
+          tabindex="0"
+        >
+          <TeacherDetailSections
+            copy={detailCopy}
+            {notAvailable}
+            {primaryName}
+            {secondaryName}
+            teacher={data.teacher}
+          />
+        </div>
       {/if}
     </div>
 

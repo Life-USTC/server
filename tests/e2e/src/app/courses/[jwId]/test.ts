@@ -171,24 +171,19 @@ test.describe("/courses/[jwId]", () => {
   test("tab switching works", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, COURSE_URL);
 
-    const nextTab = page
-      .locator('[role="button"][aria-pressed="false"]')
-      .first();
-    if ((await nextTab.count()) > 0) {
-      const nextTabLabel = ((await nextTab.textContent()) ?? "").trim();
-      expect(nextTabLabel).toBeTruthy();
-      await expect(async () => {
-        const targetTab = page
-          .getByRole("button", { name: nextTabLabel })
-          .first();
-        await targetTab.click();
-        await expect(targetTab).toHaveAttribute("aria-pressed", "true");
-      }).toPass({
-        timeout: 10_000,
-        intervals: [250, 500, 1_000],
-      });
-      await captureStepScreenshot(page, testInfo, "course/tab-switch");
-    }
+    const tabList = page.getByRole("tablist").first();
+    await expect(tabList).toBeVisible();
+    const targetTab = tabList.getByRole("tab").nth(1);
+    const panelId = await targetTab.getAttribute("aria-controls");
+    expect(panelId).toBeTruthy();
+
+    await targetTab.click();
+    await expect(targetTab).toHaveAttribute("aria-selected", "true");
+    await expect(page.locator(`#${panelId}`)).toHaveAttribute(
+      "role",
+      "tabpanel",
+    );
+    await captureStepScreenshot(page, testInfo, "course/tab-switch");
   });
 
   test("breadcrumb navigates back to course list", async ({
@@ -274,7 +269,11 @@ test.describe("/courses/[jwId]", () => {
       );
       await descCard.getByRole("button", { name: /保存|Save/i }).click();
       await saveResponse;
-      await expect(page.getByText(content).first()).toBeVisible();
+      await expect(
+        descCard
+          .getByRole("tabpanel", { name: /简介|Description/i })
+          .getByText(content),
+      ).toBeVisible();
       await captureStepScreenshot(page, testInfo, "course/description-updated");
     } finally {
       if (snapshot.original) {
@@ -295,11 +294,11 @@ test.describe("/courses/[jwId]", () => {
 
     try {
       const commentsTab = page
-        .getByRole("button", { name: /评论|Comments/i })
+        .getByRole("tab", { name: /评论|Comments/i })
         .first();
       await expect(commentsTab).toBeVisible();
       await commentsTab.click();
-      await expect(commentsTab).toHaveAttribute("aria-pressed", "true");
+      await expect(commentsTab).toHaveAttribute("aria-selected", "true");
 
       const body = `e2e-course-comment-${Date.now()}`;
       const composer = page.locator("textarea").first();

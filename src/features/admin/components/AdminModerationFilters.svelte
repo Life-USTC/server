@@ -16,11 +16,14 @@ type ModerationFilters = {
 };
 
 type ModerationFilterCopy = {
+  descriptionContent: string;
+  descriptionTarget: string;
   filterAction: string;
   filterQueue: string;
   filterQueueDescription: string;
   searchAllPlaceholder: string;
   searchPlaceholder: string;
+  status: string;
 };
 
 export let copy: ModerationFilterCopy;
@@ -44,11 +47,13 @@ export let tab: string;
       <input type="hidden" name="tab" value={tab} />
       {#if tab === "descriptions"}
         <Select
+          aria-label={copy.descriptionTarget}
           items={descriptionTargetOptions}
           name="descriptionTarget"
           value={filters.descriptionTarget ?? "all"}
         />
         <Select
+          aria-label={copy.descriptionContent}
           items={descriptionContentOptions}
           name="descriptionContent"
           value={filters.descriptionContent ?? "all"}
@@ -56,6 +61,7 @@ export let tab: string;
         <input type="hidden" name="status" value={filters.status ?? "all"} />
       {:else}
         <Select
+          aria-label={copy.status}
           items={statusFilterOptions}
           name="status"
           value={filters.status ?? "all"}

@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { HTMLLabelAttributes } from "svelte/elements";
 import { cn } from "$lib/utils.js";
 import { type ButtonProps, buttonVariants } from "./button-variants.js";
 
@@ -14,6 +15,8 @@ let {
   children,
   ...restProps
 }: ButtonProps = $props();
+
+let labelProps = $derived(restProps as HTMLLabelAttributes);
 </script>
 
 {#if href}
@@ -36,19 +39,20 @@ let {
 			data-slot="button"
 			class={cn(buttonVariants({ variant, size }), className)}
 			aria-disabled={disabled}
+			{...labelProps}
 		>
 			{@render children?.()}
 		</label>
 	{:else}
-	<button
-		bind:this={ref}
-		data-slot="button"
-		class={cn(buttonVariants({ variant, size }), className)}
-		{type}
-		{disabled}
-		{...restProps}
-	>
-		{@render children?.()}
-	</button>
+		<button
+			bind:this={ref}
+			data-slot="button"
+			class={cn(buttonVariants({ variant, size }), className)}
+			{type}
+			{disabled}
+			{...restProps}
+		>
+			{@render children?.()}
+		</button>
 	{/if}
 {/if}

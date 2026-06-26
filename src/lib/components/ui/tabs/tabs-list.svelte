@@ -6,6 +6,7 @@ import {
 } from "./tabs-context";
 
 export let role = "group";
+export let semantic = false;
 let className = "";
 
 export { className as class };
@@ -20,6 +21,43 @@ function explicitListLabel() {
 }
 
 $: listLabel = explicitListLabel() ?? rootLabelContext?.getLabel();
+$: listRole = semantic ? "tablist" : role;
+
+function handleKeydown(event: KeyboardEvent) {
+  if (
+    !semantic ||
+    !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)
+  ) {
+    return;
+  }
+
+  const list = event.currentTarget as HTMLDivElement;
+  const tabs = Array.from(
+    list.querySelectorAll<HTMLButtonElement>(
+      '[role="tab"]:not([aria-disabled="true"])',
+    ),
+  );
+  if (tabs.length === 0) return;
+
+  const currentIndex = tabs.indexOf(
+    document.activeElement as HTMLButtonElement,
+  );
+  const fallbackIndex = tabs.findIndex(
+    (tab) => tab.getAttribute("aria-selected") === "true",
+  );
+  const startIndex =
+    currentIndex >= 0 ? currentIndex : Math.max(fallbackIndex, 0);
+  const nextIndex =
+    event.key === "Home"
+      ? 0
+      : event.key === "End"
+        ? tabs.length - 1
+        : (startIndex + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) %
+          tabs.length;
+
+  event.preventDefault();
+  tabs[nextIndex]?.focus();
+}
 </script>
 
 <div
@@ -27,7 +65,8 @@ $: listLabel = explicitListLabel() ?? rootLabelContext?.getLabel();
   data-slot="tabs-list"
   {...$$restProps}
   aria-label={listLabel}
-  {role}
+  role={listRole}
+  onkeydown={handleKeydown}
 >
   <slot />
 </div>

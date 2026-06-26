@@ -72,6 +72,7 @@ export type AdminModerationAdminCopy = {
 };
 
 export type AdminModerationCommonCopy = {
+  breadcrumb: string;
   home: string;
 };
 
