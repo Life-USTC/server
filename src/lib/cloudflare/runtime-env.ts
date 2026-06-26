@@ -59,14 +59,14 @@ function getCurrentCloudflareRuntimeEnv() {
 
 export function runWithCloudflareRuntimeEnv<T>(
   env: unknown,
-  callback: () => T,
-): T {
+  callback: () => T | Promise<T>,
+): Promise<T> {
   return cloudflareRuntimeStorage.run(
     {
       cache: new Map(),
       env: normalizeCloudflareRuntimeEnv(env),
     },
-    callback,
+    async () => callback(),
   );
 }
 

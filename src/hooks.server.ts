@@ -229,8 +229,8 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
   return mutableResponse;
 };
 
-export const handle: Handle = (input) =>
-  runWithCloudflareRuntimeEnv(
+export const handle: Handle = async (input) =>
+  await runWithCloudflareRuntimeEnv(
     (input.event.platform as { env?: unknown } | undefined)?.env,
     () => handleWithRuntimeEnv(input),
   );
