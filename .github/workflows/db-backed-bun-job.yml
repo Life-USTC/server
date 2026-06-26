@@ -21,10 +21,6 @@ on:
         required: false
         type: boolean
         default: false
-      jwt-secret:
-        required: false
-        type: string
-        default: ""
       webhook-secret:
         required: false
         type: string
@@ -101,9 +97,6 @@ jobs:
         run: |
           {
             echo "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/${{ inputs.database-name }}"
-            if [ -n "${{ inputs.jwt-secret }}" ]; then
-              echo "JWT_SECRET=${{ inputs.jwt-secret }}"
-            fi
             if [ -n "${{ inputs.webhook-secret }}" ]; then
               echo "WEBHOOK_SECRET=${{ inputs.webhook-secret }}"
             fi

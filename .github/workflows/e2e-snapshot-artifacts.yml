@@ -16,7 +16,6 @@ jobs:
       database-name: life_ustc_e2e_snapshots
       install-playwright: true
       timeout-minutes: 45
-      jwt-secret: e2e-snapshot-ci-secret
       webhook-secret: e2e-snapshot-ci-secret
       auth-secret: e2e-snapshot-ci-secret
       extra-env: |
