@@ -65,7 +65,7 @@ import {
   todoPriorityOptions as buildTodoPriorityOptions,
   todoPriorityClass,
 } from "@/features/dashboard/lib/todos";
-import { invalidateAll, replaceState } from "$app/navigation";
+import { goto, invalidateAll, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
 import { Alert } from "$lib/components/ui/alert/index.js";
 import AnonymousDashboardView from "./AnonymousDashboardView.svelte";
@@ -113,6 +113,7 @@ let {
   examView,
   filteredExamRows,
   filteredTodos,
+  homeworkActionError,
   homeworkFilter,
   homeworkItems,
   homeworkReferenceDate,
@@ -369,6 +370,9 @@ const { toggleHomeworkCompletion } = createDashboardHomeworkStateActions({
   getHomeworkSavingById: () => homeworkSavingById,
   getHomeworksCopy: () => homeworksCopy,
   getSelectedHomework: () => selectedHomework,
+  setHomeworkActionError: (value) => {
+    homeworkActionError = value;
+  },
   setHomeworkItems: (value) => {
     homeworkItems = value;
   },
@@ -440,6 +444,9 @@ const {
   getCalendarSemesterId: () => calendarSemesterId,
   getCalendarView: () => calendarView,
   getCalendarWeekStart: () => calendarWeekStart,
+  navigateUrl: (href) => {
+    void goto(href, { noScroll: true, replaceState: true });
+  },
   replaceUrl: (href) => {
     window.history.replaceState({}, "", href);
   },
@@ -581,6 +588,7 @@ onMount(() => {
         {examView}
         {filteredExamRows}
         {filteredTodos}
+        {homeworkActionError}
         {homeworkCopy}
         {homeworkReferenceDate}
         {homeworksCopy}

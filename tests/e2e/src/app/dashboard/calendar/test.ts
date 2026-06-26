@@ -112,7 +112,7 @@ test.describe("dashboard calendar", () => {
     await captureStepScreenshot(page, testInfo, "calendar/exam-link");
   });
 
-  test("semester navigation controls are present", async ({
+  test("semester navigation controls navigate to another semester", async ({
     page,
   }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/calendar");
@@ -123,10 +123,27 @@ test.describe("dashboard calendar", () => {
     });
 
     // calendar.yml: Previous/next semester controls
-    await expect(page.getByText(/上一学期|Previous semester/i)).toBeVisible();
-    await expect(page.getByText(/下一学期|Next semester/i)).toBeVisible();
+    const previousSemester = page.getByRole("button", {
+      name: /上一学期|Previous semester/i,
+    });
+    const nextSemester = page.getByRole("button", {
+      name: /下一学期|Next semester/i,
+    });
+    await expect(previousSemester).toBeVisible();
+    await expect(nextSemester).toBeVisible();
 
-    await captureStepScreenshot(page, testInfo, "calendar/navigation-controls");
+    const navigationButton = (await previousSemester.isEnabled())
+      ? previousSemester
+      : nextSemester;
+    await expect(navigationButton).toBeEnabled();
+
+    const beforeUrl = page.url();
+    await navigationButton.click();
+    await expect(page).toHaveURL(/calendarSemester=\d+/);
+    expect(page.url()).not.toBe(beforeUrl);
+    await expect(page.locator("#main-content")).toBeVisible();
+
+    await captureStepScreenshot(page, testInfo, "calendar/semester-navigation");
   });
 
   test("view toggle switches between semester/month/week", async ({

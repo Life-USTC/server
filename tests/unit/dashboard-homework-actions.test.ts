@@ -50,4 +50,52 @@ describe("dashboard homework actions", () => {
       homeworkId: "homework-1",
     });
   });
+
+  it("surfaces localized dashboard completion failures", async () => {
+    const homework = {
+      id: "homework-1",
+      completion: null,
+      submissionDueAt: null,
+      title: "Homework",
+    } as HomeworkItem;
+    let homeworkSavingById: Record<string, boolean> = {};
+    const setHomeworkActionError = vi.fn();
+    const setHomeworkItems = vi.fn();
+    const setSelectedHomework = vi.fn();
+    updateHomeworkCompletionMock.mockRejectedValue(
+      new Error("homework not found"),
+    );
+
+    const { createDashboardHomeworkStateActions } = await import(
+      "@/features/dashboard/lib/dashboard-controller-homework-state-actions"
+    );
+
+    const { toggleHomeworkCompletion } = createDashboardHomeworkStateActions({
+      getHomeworkItems: () => [homework],
+      getHomeworkSavingById: () => homeworkSavingById,
+      getHomeworksCopy: () => ({ completionFailed: "completion failed" }),
+      getSelectedHomework: () => homework,
+      setHomeworkActionError,
+      setHomeworkItems,
+      setHomeworkSavingById: (value) => {
+        homeworkSavingById = value;
+      },
+      setSelectedHomework,
+    });
+
+    await toggleHomeworkCompletion(homework);
+
+    expect(updateHomeworkCompletionMock).toHaveBeenCalledWith({
+      completed: true,
+      fallbackMessage: "completion failed",
+      homeworkId: "homework-1",
+    });
+    expect(setHomeworkActionError).toHaveBeenNthCalledWith(1, "");
+    expect(setHomeworkActionError).toHaveBeenLastCalledWith(
+      "completion failed",
+    );
+    expect(homeworkSavingById).toEqual({ "homework-1": false });
+    expect(setHomeworkItems).not.toHaveBeenCalled();
+    expect(setSelectedHomework).not.toHaveBeenCalled();
+  });
 });

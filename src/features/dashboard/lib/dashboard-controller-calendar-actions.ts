@@ -19,6 +19,7 @@ export function createDashboardCalendarActions(input: {
   getCalendarSemesterId: () => number | null;
   getCalendarView: () => CalendarView;
   getCalendarWeekStart: () => string;
+  navigateUrl: (href: string) => void | Promise<void>;
   replaceUrl: (href: string) => void;
   setCalendarMonth: (value: string) => void;
   setCalendarSemesterId: (value: number | null) => void;
@@ -84,7 +85,7 @@ export function createDashboardCalendarActions(input: {
       tabHref: input.tabHref,
     });
     applyCalendarState(next.state);
-    input.replaceUrl(next.href);
+    void input.navigateUrl(next.href);
   }
 
   function calendarSemesterHref(calendar: CalendarData, offset: number) {

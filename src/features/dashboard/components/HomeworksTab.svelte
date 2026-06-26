@@ -16,6 +16,7 @@ import type {
 import { filterDashboardHomeworks } from "@/features/dashboard/lib/dashboard-homework-filter";
 import { hasDashboardSubscriptions } from "@/features/dashboard/lib/dashboard-subscription-state";
 import { createHomeworkTabDisplayActions } from "@/features/dashboard/lib/homeworks-tab-display";
+import { Alert } from "$lib/components/ui/alert/index.js";
 import DashboardNoSubscriptionsState from "./DashboardNoSubscriptionsState.svelte";
 import type {
   DashboardHomeworkCreateSection,
@@ -42,6 +43,7 @@ export let homeworksCopy: HomeworksCopy;
 export let homeworkCopy: HomeworkCopy;
 export let commentsCopy: CommentsCopy;
 export let signedData: SignedDashboardData;
+export let homeworkActionError: string;
 
 export let locale: string;
 export let referenceDate: Date | string;
@@ -121,6 +123,10 @@ $: ({
       {openCreateHomeworkDialog}
       {setHomeworkView}
     />
+
+    {#if homeworkActionError}
+      <Alert variant="destructive">{homeworkActionError}</Alert>
+    {/if}
 
     {#if homeworkView === "list"}
       <HomeworksListView

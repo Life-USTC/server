@@ -80,6 +80,7 @@ export type DashboardHomeworksTaskProps = DashboardTaskBaseProps & {
   createHomeworkSectionId: DashboardTaskStringDraft;
   createHomeworkSubmissionDueAt: DashboardTaskStringDraft;
   createHomeworkSubmissionStartAt: DashboardTaskStringDraft;
+  homeworkActionError: string;
   homeworkCopy: DashboardTaskHomeworkCopy;
   homeworkFilter: HomeworkFilter;
   homeworkItems: DashboardHomeworkItem[];

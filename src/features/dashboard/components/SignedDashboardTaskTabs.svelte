@@ -38,6 +38,7 @@ export let examTimeLabel: DashboardTaskTabsProps["examTimeLabel"];
 export let examView: DashboardTaskTabsProps["examView"];
 export let filteredExamRows: DashboardTaskTabsProps["filteredExamRows"];
 export let filteredTodos: DashboardTaskTabsProps["filteredTodos"];
+export let homeworkActionError: string;
 export let homeworkCopy: DashboardTaskTabsProps["homeworkCopy"];
 export let homeworkFilter: DashboardTaskTabsProps["homeworkFilter"];
 export let homeworkItems: DashboardTaskTabsProps["homeworkItems"];
@@ -110,6 +111,7 @@ export let updateTodoAction: DashboardTaskTabsProps["updateTodoAction"];
     {sectionCopy}
     {homeworksCopy}
     {homeworkCopy}
+    {homeworkActionError}
     {commentsCopy}
     {data}
     {signedData}
