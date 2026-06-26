@@ -5,12 +5,16 @@ import {
   toShanghaiDateTimeLocalValue,
 } from "@/lib/time/shanghai-format";
 
-export function initialCreateHomeworkDraft(now: Date = new Date()) {
+export function initialHomeworkTimestampDraft(now: Date = new Date()) {
   return {
     publishedAt: toShanghaiDateTimeLocalValue(startOfShanghaiDay()),
     submissionStartAt: toShanghaiDateTimeLocalValue(now),
     submissionDueAt: "",
   };
+}
+
+export function homeworkTimestampNow(now: Date = new Date()) {
+  return toShanghaiDateTimeLocalValue(now);
 }
 
 export function homeworkDueInDays(days: number, now: Date = new Date()) {
@@ -29,6 +33,10 @@ export function homeworkDueAtSemesterEnd(semesterEnd: string | Date) {
   return toShanghaiDateTimeLocalValue(endOfShanghaiDay(semesterEnd));
 }
 
-export function homeworkStartsNow(now: Date = new Date()) {
-  return toShanghaiDateTimeLocalValue(now);
+export function homeworkStartAtSemesterStart(semesterStart: string | Date) {
+  return toShanghaiDateTimeLocalValue(startOfShanghaiDay(semesterStart));
+}
+
+export function dateTimeInputValue(value: string | Date | null | undefined) {
+  return toShanghaiDateTimeLocalValue(value);
 }

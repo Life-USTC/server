@@ -4,6 +4,13 @@ export {
 } from "./dashboard-controller-labels";
 export const todoPriorityOrder = ["medium", "high", "low"] as const;
 export {
+  homeworkDueAtSemesterEnd,
+  homeworkDueInDays,
+  homeworkDueInMonths,
+  homeworkTimestampNow as homeworkStartsNow,
+  initialHomeworkTimestampDraft as initialCreateHomeworkDraft,
+} from "@/features/homeworks/lib/homework-timestamp-defaults";
+export {
   isAnonymousDashboardData,
   isSignedDashboardData,
 } from "./dashboard-controller-type-guards";
@@ -51,10 +58,3 @@ export type {
   TodoItem,
   TodoView,
 } from "./dashboard-controller-types";
-export {
-  homeworkDueAtSemesterEnd,
-  homeworkDueInDays,
-  homeworkDueInMonths,
-  homeworkStartsNow,
-  initialCreateHomeworkDraft,
-} from "./dashboard-homework-date-defaults";
