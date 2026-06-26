@@ -51,7 +51,6 @@ export type CommentsCopy = {
   removeAttachment: string;
   replyAction: string;
   replyPlaceholder: string;
-  reportAction: string;
   saveAction: string;
   softbannedBadge: string;
   subtitle: string;

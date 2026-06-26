@@ -383,6 +383,9 @@ test.describe("/teachers/[id]", () => {
         .getByRole("button", { name: /更多操作|More actions/i })
         .first()
         .click();
+      await expect(
+        page.getByRole("menuitem", { name: /举报|Report/i }),
+      ).toHaveCount(0);
       const deleteResponse = page.waitForResponse(
         (r) =>
           r.url().includes("/api/comments/") &&

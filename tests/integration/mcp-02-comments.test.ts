@@ -364,6 +364,17 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
     }
   });
 
+  it("comment write tools reject unsupported anonymous visibility", async () => {
+    await expect(
+      context.client.call("create_comment", {
+        targetType: "section",
+        sectionJwId: fixtures.DEV_SEED.section.jwId,
+        body: `[integration-test] rejected anonymous visibility ${Date.now()}`,
+        visibility: "anonymous",
+      }),
+    ).rejects.toThrow();
+  });
+
   it("comment write create_comment returns a serialized invalid-target failure", async () => {
     const result = await context.client.call<{
       success?: boolean;

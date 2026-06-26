@@ -82,9 +82,5 @@ export function shouldHideAuthor(
   viewer: ViewerInfo,
   isAuthor: boolean,
 ) {
-  return (
-    (comment.visibility === "anonymous" || Boolean(comment.isAnonymous)) &&
-    !viewer.isAdmin &&
-    !isAuthor
-  );
+  return Boolean(comment.isAnonymous) && !viewer.isAdmin && !isAuthor;
 }

@@ -268,6 +268,34 @@ test("/api/comments POST 未登录返回 401", async ({ request }) => {
   expect(response.status()).toBe(401);
 });
 
+test("/api/comments POST rejects anonymous visibility", async ({ page }) => {
+  await signInAsDebugUser(page, "/");
+  const sectionId = await resolveSeedSectionId(page.request);
+  const content = `e2e-reject-anonymous-visibility-${Date.now()}`;
+
+  const response = await page.request.post("/api/comments", {
+    data: {
+      targetType: "section",
+      targetId: String(sectionId),
+      body: content,
+      visibility: "anonymous",
+    },
+  });
+
+  expect(response.status()).toBe(400);
+  await expect(response.json()).resolves.toEqual({
+    error: "Invalid comment request",
+  });
+
+  const created = await withE2ePrisma((prisma) =>
+    prisma.comment.findFirst({
+      where: { body: content },
+      select: { id: true },
+    }),
+  );
+  expect(created).toBeNull();
+});
+
 test("/api/comments POST 登录后可发布新评论并清理", async ({ page }) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);

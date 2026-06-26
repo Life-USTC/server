@@ -55,9 +55,6 @@ export let toggleReply: (comment: CommentNode) => void;
             {commentCopy.deleteAction}
           </Menu.Item>
         {/if}
-        <Menu.Item class="cursor-not-allowed opacity-60" disabled>
-          {commentCopy.reportAction}
-        </Menu.Item>
       </Menu.Content>
     </Menu.Root>
   </div>

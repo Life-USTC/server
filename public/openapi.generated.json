@@ -7214,8 +7214,7 @@
             "type": "string",
             "enum": [
               "public",
-              "logged_in_only",
-              "anonymous"
+              "logged_in_only"
             ]
           },
           "isAnonymous": {
@@ -7249,8 +7248,7 @@
             "type": "string",
             "enum": [
               "public",
-              "logged_in_only",
-              "anonymous"
+              "logged_in_only"
             ]
           },
           "isAnonymous": {
@@ -7904,8 +7902,7 @@
                   "type": "string",
                   "enum": [
                     "public",
-                    "logged_in_only",
-                    "anonymous"
+                    "logged_in_only"
                   ]
                 },
                 "status": {
@@ -8251,8 +8248,7 @@
                 "type": "string",
                 "enum": [
                   "public",
-                  "logged_in_only",
-                  "anonymous"
+                  "logged_in_only"
                 ]
               },
               "status": {
