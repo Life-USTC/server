@@ -50,6 +50,7 @@ export function createDashboardControllerDefaultState() {
     examView: "cards" as ExamView,
     filteredExamRows: [] as ExamRow[],
     filteredTodos: [] as TodoItem[],
+    homeworkActionError: "",
     homeworkFilter: "incomplete" as HomeworkFilter,
     homeworkItems: [] as HomeworkItem[],
     homeworkReferenceDate: new Date(),

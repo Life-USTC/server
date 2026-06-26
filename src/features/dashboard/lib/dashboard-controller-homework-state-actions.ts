@@ -10,6 +10,7 @@ export function createDashboardHomeworkStateActions(input: {
   getHomeworkSavingById: () => Record<string, boolean>;
   getHomeworksCopy: () => HomeworkActionsCopy;
   getSelectedHomework: () => HomeworkItem | null;
+  setHomeworkActionError: (value: string) => void;
   setHomeworkItems: (value: HomeworkItem[]) => void;
   setHomeworkSavingById: (value: Record<string, boolean>) => void;
   setSelectedHomework: (value: HomeworkItem | null) => void;
@@ -23,6 +24,7 @@ export function createDashboardHomeworkStateActions(input: {
 
   async function toggleHomeworkCompletion(homework: HomeworkItem) {
     if (input.getHomeworkSavingById()[homework.id]) return;
+    input.setHomeworkActionError("");
     setHomeworkSaving(homework.id, true);
     try {
       const nextHomework = await toggleDashboardHomeworkCompletion({
@@ -37,12 +39,8 @@ export function createDashboardHomeworkStateActions(input: {
       if (input.getSelectedHomework()?.id === homework.id) {
         input.setSelectedHomework(nextHomework);
       }
-    } catch (error) {
-      console.error(
-        error instanceof Error
-          ? error.message
-          : input.getHomeworksCopy().completionFailed,
-      );
+    } catch {
+      input.setHomeworkActionError(input.getHomeworksCopy().completionFailed);
     } finally {
       setHomeworkSaving(homework.id, false);
     }

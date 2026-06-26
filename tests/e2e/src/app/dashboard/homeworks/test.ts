@@ -257,6 +257,57 @@ test.describe("dashboard homeworks", () => {
     await expect(homeworksBadge).toHaveText(String(beforeBadge));
   });
 
+  test("completion failure shows localized dashboard error", async ({
+    page,
+  }, testInfo) => {
+    await signInAsDebugUser(page, "/dashboard/homeworks");
+    await ensureSeedSectionSubscription(page);
+    await page.route(/\/api\/homeworks\/[^/]+\/completion$/, async (route) => {
+      await route.fulfill({
+        body: JSON.stringify({ error: { message: "forced failure" } }),
+        contentType: "application/json",
+        status: 500,
+      });
+    });
+    await gotoAndWaitForReady(page, "/dashboard/homeworks", {
+      testInfo,
+      screenshotLabel: "homeworks",
+    });
+
+    await page
+      .getByRole("button", { name: /全部|All/i })
+      .first()
+      .click();
+
+    const card = page
+      .locator('[data-slot="card"]')
+      .filter({ hasText: DEV_SEED.homeworks.title })
+      .first();
+    await expect(card).toBeVisible();
+    await card.hover();
+
+    const completionButton = card
+      .getByRole("button", {
+        name: /标记为完成|取消完成|Mark as complete|Mark as incomplete/i,
+      })
+      .first();
+    await expect(completionButton).toHaveCSS("opacity", "1");
+
+    const completionResponse = page.waitForResponse(
+      (r) =>
+        r.url().includes("/api/homeworks/") &&
+        r.url().includes("/completion") &&
+        r.status() === 500,
+    );
+    await completionButton.click();
+    await completionResponse;
+
+    await expect(
+      page.getByText(/更新完成状态失败|Couldn't update completion/i),
+    ).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "homeworks/completion-error");
+  });
+
   test("view details links to section page with homework anchor", async ({
     page,
   }, testInfo) => {

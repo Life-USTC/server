@@ -18,6 +18,7 @@ export let createHomeworkSubmissionDueAt: DashboardHomeworksTaskProps["createHom
 export let createHomeworkSubmissionStartAt: DashboardHomeworksTaskProps["createHomeworkSubmissionStartAt"];
 export let dashboardCopy: DashboardHomeworksTaskProps["dashboardCopy"];
 export let data: DashboardHomeworksTaskProps["data"];
+export let homeworkActionError: DashboardHomeworksTaskProps["homeworkActionError"];
 export let homeworkCopy: DashboardHomeworksTaskProps["homeworkCopy"];
 export let homeworkFilter: DashboardHomeworksTaskProps["homeworkFilter"];
 export let homeworkItems: DashboardHomeworksTaskProps["homeworkItems"];
@@ -42,6 +43,7 @@ export let toggleHomeworkCompletion: DashboardHomeworksTaskProps["toggleHomework
   {dashboardCopy}
   {sectionCopy}
   {homeworksCopy}
+  {homeworkActionError}
   {homeworkCopy}
   {commentsCopy}
   {signedData}
