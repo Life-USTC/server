@@ -2,6 +2,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -14,6 +15,7 @@ import {
   preparePlaywrightWorkerRuntime,
   resolvePlaywrightHarnessRuntime,
   validatePlaywrightWorkerRuntime,
+  writePlaywrightWranglerConfig,
 } from "@tools/dev/e2e";
 import { DEV_SEED } from "@tools/dev/seed/dev-seed";
 import { describe, expect, it } from "vitest";
@@ -188,6 +190,110 @@ describe("playwright runtime", () => {
     );
   });
 
+  it("fails before starting the E2E Worker when required runtime env is missing", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "life-ustc-playwright-"));
+    try {
+      writeFileSync(
+        path.join(root, "wrangler.jsonc"),
+        JSON.stringify({
+          name: "life-ustc-test",
+          main: ".svelte-kit/cloudflare/_worker.js",
+          hyperdrive: [
+            {
+              binding: "HYPERDRIVE",
+              localConnectionString:
+                "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev",
+            },
+          ],
+        }),
+      );
+
+      expect(() =>
+        writePlaywrightWranglerConfig(
+          root,
+          "http://127.0.0.1:3010",
+          buildPlaywrightServerEnv({
+            host: "127.0.0.1",
+            port: "3010",
+            env: {
+              DATABASE_URL:
+                "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_pr179_mcp",
+            },
+          }),
+        ),
+      ).toThrow(/AUTH_SECRET/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("writes the active local Hyperdrive connection into the E2E Wrangler config", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "life-ustc-playwright-"));
+    try {
+      writeFileSync(
+        path.join(root, "wrangler.jsonc"),
+        JSON.stringify({
+          name: "life-ustc-test",
+          main: ".svelte-kit/cloudflare/_worker.js",
+          vars: {
+            NODE_ENV: "production",
+            APP_PUBLIC_ORIGIN: "https://example.test",
+          },
+          alias: {
+            kysely: "./src/lib/cloudflare/kysely-worker-shim.ts",
+          },
+          assets: {
+            directory: ".svelte-kit/cloudflare",
+          },
+          routes: [{ pattern: "example.test" }],
+          hyperdrive: [
+            {
+              binding: "HYPERDRIVE",
+              id: "test-hyperdrive",
+              localConnectionString:
+                "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev",
+            },
+          ],
+        }),
+      );
+
+      const configPath = writePlaywrightWranglerConfig(
+        root,
+        "http://127.0.0.1:3010",
+        buildPlaywrightServerEnv({
+          host: "127.0.0.1",
+          port: "3010",
+          env: {
+            AUTH_SECRET: "test-secret",
+            DATABASE_URL:
+              "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_pr179_mcp",
+          },
+        }),
+      );
+
+      const config = JSON.parse(readFileSync(configPath, "utf8")) as {
+        assets?: { directory?: string };
+        hyperdrive?: Array<{ localConnectionString?: string }>;
+        main?: string;
+        routes?: unknown;
+        vars?: { APP_PUBLIC_ORIGIN?: string };
+      };
+      expect(config.routes).toBeUndefined();
+      expect(config.main).toBe(
+        path.join(root, E2E_WORKER_ARTIFACT_DIR, "_worker.js"),
+      );
+      expect(config.assets?.directory).toBe(
+        path.join(root, E2E_WORKER_ARTIFACT_DIR, "cloudflare"),
+      );
+      expect(config.vars?.APP_PUBLIC_ORIGIN).toBe("http://127.0.0.1:3010");
+      expect(config.hyperdrive?.[0]?.localConnectionString).toBe(
+        "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_pr179_mcp",
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("prepares the named E2E Worker artifact contract", () => {
     const root = mkdtempSync(path.join(tmpdir(), "life-ustc-playwright-"));
     try {
@@ -208,7 +314,12 @@ describe("playwright runtime", () => {
       });
       writeFileSync(
         path.join(root, ".svelte-kit", "cloudflare", "_worker.js"),
-        "",
+        [
+          'import { Server } from "./../output/server/index.js";',
+          'import { manifest } from "./../cloudflare-tmp/manifest.js";',
+          "export default { Server, manifest };",
+          "",
+        ].join("\n"),
       );
       writeFileSync(
         path.join(root, ".svelte-kit", "cloudflare-tmp", "manifest.js"),
@@ -230,10 +341,25 @@ describe("playwright runtime", () => {
       expect(() => preparePlaywrightWorkerRuntime(root)).not.toThrow();
       expect(() => validatePlaywrightWorkerRuntime(root)).not.toThrow();
       expect(
+        existsSync(path.join(root, E2E_WORKER_ARTIFACT_DIR, "_worker.js")),
+      ).toBe(true);
+      expect(
         existsSync(
           path.join(root, E2E_WORKER_ARTIFACT_DIR, "cloudflare", "_worker.js"),
         ),
       ).toBe(true);
+      expect(
+        readFileSync(
+          path.join(root, E2E_WORKER_ARTIFACT_DIR, "_worker.js"),
+          "utf8",
+        ),
+      ).toContain('from "./output/server/index.js"');
+      expect(
+        readFileSync(
+          path.join(root, E2E_WORKER_ARTIFACT_DIR, "_worker.js"),
+          "utf8",
+        ),
+      ).toContain('from "./cloudflare-tmp/manifest.js"');
       expect(
         existsSync(
           path.join(
@@ -260,7 +386,7 @@ describe("playwright runtime", () => {
     const root = mkdtempSync(path.join(tmpdir(), "life-ustc-playwright-"));
     try {
       expect(() => validatePlaywrightWorkerRuntime(root)).toThrow(
-        /Missing E2E Worker artifact file: build\/e2e-worker\/cloudflare\/_worker\.js/,
+        /Missing E2E Worker artifact file: build\/e2e-worker\/_worker\.js/,
       );
     } finally {
       rmSync(root, { recursive: true, force: true });
