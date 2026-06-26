@@ -53,6 +53,14 @@ export let unscheduledCalendarEvents: SectionDetailMainContentProps["unscheduled
 export let viewer: SectionDetailMainContentProps["viewer"];
 export let visibleCalendarMonth: Date;
 export let yesNo: SectionDetailMainContentProps["yesNo"];
+
+function sectionTabId(id: SectionDetailMainContentProps["activeTab"]) {
+  return `section-detail-${id}-tab`;
+}
+
+function sectionPanelId(id: SectionDetailMainContentProps["activeTab"]) {
+  return `section-detail-${id}-panel`;
+}
 </script>
 
 <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
@@ -68,9 +76,15 @@ export let yesNo: SectionDetailMainContentProps["yesNo"];
     {/key}
 
     <Tabs.Root aria-label={sectionCopy.teachingSection}>
-      <Tabs.List>
+      <Tabs.List semantic>
         {#each tabs as [id, label]}
-          <Tabs.Button selected={activeTab === id} onclick={() => setActiveTab(id)}>
+          <Tabs.Button
+            id={sectionTabId(id)}
+            panelId={sectionPanelId(id)}
+            semantic
+            selected={activeTab === id}
+            onclick={() => setActiveTab(id)}
+          >
             {label}
           </Tabs.Button>
         {/each}
@@ -78,37 +92,54 @@ export let yesNo: SectionDetailMainContentProps["yesNo"];
     </Tabs.Root>
 
     {#if activeTab === "calendar"}
-      <SectionCalendarTab
-        bind:calendarMonthOffset
-        calendarGridWeeks={sectionCalendarGridWeeks}
-        {calendarMonthLabel}
-        dateTimePlaceText={data.section.dateTimePlaceText}
-        {fmtDate}
-        {formatMessage}
-        {openCalendarDialog}
-        {sectionCalendarEvents}
-        {sectionCopy}
-        {todayCalendarMonthOffset}
-        {unscheduledCalendarEvents}
-      />
+      <Tabs.Panel
+        active
+        id={sectionPanelId("calendar")}
+        labelledBy={sectionTabId("calendar")}
+      >
+        <SectionCalendarTab
+          bind:calendarMonthOffset
+          calendarGridWeeks={sectionCalendarGridWeeks}
+          {calendarMonthLabel}
+          dateTimePlaceText={data.section.dateTimePlaceText}
+          {fmtDate}
+          {formatMessage}
+          {openCalendarDialog}
+          {sectionCalendarEvents}
+          {sectionCopy}
+          {todayCalendarMonthOffset}
+          {unscheduledCalendarEvents}
+        />
+      </Tabs.Panel>
     {:else if activeTab === "homework"}
-      <SectionHomeworkTab
-        {canWriteHomework}
-        {fmtDateTime}
-        {homeworkCopy}
-        {homeworkStatus}
-        {homeworkView}
-        {homeworks}
-        isAuthenticated={viewer.isAuthenticated ?? viewer.signedIn === true}
-        openAuditDialog={() => setHomeworkAuditDialogOpen(true)}
-        {openCreateHomeworkDialog}
-        {sectionCopy}
-        sectionJwId={data.section.jwId}
-        selectHomework={setSelectedHomework}
-        {setHomeworkView}
-      />
+      <Tabs.Panel
+        active
+        id={sectionPanelId("homework")}
+        labelledBy={sectionTabId("homework")}
+      >
+        <SectionHomeworkTab
+          {canWriteHomework}
+          {fmtDateTime}
+          {homeworkCopy}
+          {homeworkStatus}
+          {homeworkView}
+          {homeworks}
+          isAuthenticated={viewer.isAuthenticated ?? viewer.signedIn === true}
+          openAuditDialog={() => setHomeworkAuditDialogOpen(true)}
+          {openCreateHomeworkDialog}
+          {sectionCopy}
+          sectionJwId={data.section.jwId}
+          selectHomework={setSelectedHomework}
+          {setHomeworkView}
+        />
+      </Tabs.Panel>
     {:else if activeTab === "comments"}
-      <section class="grid gap-3">
+      <Tabs.Panel
+        active
+        class="grid gap-3"
+        id={sectionPanelId("comments")}
+        labelledBy={sectionTabId("comments")}
+      >
         {#key `comments:section:${data.section.id}`}
           <CommentsPanel
             initialData={data.commentsData}
@@ -118,7 +149,7 @@ export let yesNo: SectionDetailMainContentProps["yesNo"];
             showAllTargets
           />
         {/key}
-      </section>
+      </Tabs.Panel>
     {/if}
   </div>
 

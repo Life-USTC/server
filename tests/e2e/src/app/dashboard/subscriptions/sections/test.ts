@@ -34,6 +34,10 @@ import {
 import { captureStepScreenshot } from "../../../../../utils/screenshot";
 import { ensureSeedSectionSubscription } from "../../../../../utils/subscriptions";
 
+function escapeForRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 test.describe("dashboard subscriptions", () => {
   test.describe.configure({ mode: "serial" });
 
@@ -288,6 +292,20 @@ test.describe("dashboard subscriptions", () => {
       .getByRole("dialog", { name: /确认关注|Confirm following/i })
       .first();
     await expect(dialog).toBeVisible({ timeout: 15_000 });
+
+    const matchedSectionCheckbox = dialog
+      .getByRole("checkbox", {
+        name: new RegExp(
+          `选择 ${escapeForRegExp(DEV_SEED.section.code)}|Select ${escapeForRegExp(DEV_SEED.section.code)}`,
+          "i",
+        ),
+      })
+      .first();
+    await expect(matchedSectionCheckbox).toBeChecked();
+    await matchedSectionCheckbox.click();
+    await expect(matchedSectionCheckbox).not.toBeChecked();
+    await matchedSectionCheckbox.click();
+    await expect(matchedSectionCheckbox).toBeChecked();
 
     await captureStepScreenshot(
       page,

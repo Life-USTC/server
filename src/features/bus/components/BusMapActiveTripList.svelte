@@ -42,22 +42,16 @@ function activeTripBadge(trip: BusMapActiveTrip) {
   <ul class="grid max-h-72 gap-2 overflow-y-auto">
     {#each mapData.activeTrips as trip}
       {@const route = routeById(trip.routeId)}
-      <li>
-        <button
-          class={`flex w-full items-center gap-2 rounded-md border border-base-300 bg-base-100 px-3 py-2 text-left transition hover:bg-base-200/50 focus:outline-none focus:ring-2 focus:ring-primary/30 ${hoveredRoute === trip.routeId ? "bg-base-200/70" : ""}`}
-          type="button"
-          onmouseenter={() => {
-            hoveredRoute = trip.routeId;
-          }}
-          onmouseleave={() => {
-            hoveredRoute = null;
-          }}
-          onfocus={() => {
-            hoveredRoute = trip.routeId;
-          }}
-          onblur={() => {
-            hoveredRoute = null;
-          }}
+      <li
+        onpointerenter={() => {
+          hoveredRoute = trip.routeId;
+        }}
+        onpointerleave={() => {
+          hoveredRoute = null;
+        }}
+      >
+        <div
+          class={`flex w-full items-center gap-2 rounded-md border border-base-300 bg-base-100 px-3 py-2 text-left transition hover:bg-base-200/50 ${hoveredRoute === trip.routeId ? "bg-base-200/70" : ""}`}
         >
           <span class="h-2.5 w-2.5 shrink-0 rounded-full" style={`background:${routeColor(trip.routeId, allRouteIds)}`}></span>
           <span class="min-w-0 flex-1">
@@ -71,7 +65,7 @@ function activeTripBadge(trip: BusMapActiveTrip) {
           <Badge variant={trip.status === "en-route" ? "secondary" : "outline"}>
             {activeTripBadge(trip)}
           </Badge>
-        </button>
+        </div>
       </li>
     {/each}
   </ul>

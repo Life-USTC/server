@@ -69,6 +69,11 @@ test.describe("bus transit map", () => {
     await expect(
       page.getByText(DEV_SEED.bus.recommendedRoute, { exact: false }).first(),
     ).toBeVisible();
+    await expect(
+      page.getByRole("button").filter({
+        hasText: DEV_SEED.bus.recommendedRoute,
+      }),
+    ).toHaveCount(0);
 
     // Status indicators in legend
     await expect(page.getByText(/En route|行驶中/).first()).toBeVisible();

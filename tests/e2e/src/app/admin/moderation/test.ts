@@ -199,9 +199,7 @@ test("/admin/moderation 目标链接可跳转到原页面锚点", async ({
   await signInAsDevAdmin(page, sectionPath);
   await gotoAndWaitForReady(page, sectionPath);
 
-  const commentsTab = page
-    .getByRole("button", { name: /评论|Comments/i })
-    .first();
+  const commentsTab = page.getByRole("tab", { name: /评论|Comments/i }).first();
   await expect(commentsTab).toBeVisible();
   await commentsTab.click();
 
