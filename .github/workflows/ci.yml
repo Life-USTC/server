@@ -80,6 +80,7 @@ jobs:
       download-artifact-name: e2e-worker
       download-artifact-path: build/e2e-worker
       job-command: |
+        bun run app:prepare
         bun run e2e:db:prepare
         bun run seed
         bun run e2e:test -- ${{ matrix.paths }}
