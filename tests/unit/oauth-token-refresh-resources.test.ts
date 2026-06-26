@@ -47,6 +47,53 @@ describe("OAuth refresh token resource persistence", () => {
     updateRefreshTokenMock.mockResolvedValue({ count: 1 });
   });
 
+  it("rejects refresh requests for resources outside the stored approval", async () => {
+    findRefreshTokenMock.mockResolvedValue({
+      resources: ["https://life.example/api/auth"],
+    });
+    const { validateOAuthRefreshTokenResources } = await import(
+      "@/lib/api/routes/auth-token-refresh-resources"
+    );
+    const params = new URLSearchParams({
+      grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+      refresh_token: "old-refresh-token",
+      resource: "https://life.example/api/mcp",
+    });
+
+    const response = await validateOAuthRefreshTokenResources(
+      new Request("https://life.example/api/auth/oauth2/token"),
+      params,
+    );
+
+    expect(response?.status).toBe(400);
+    await expect(response?.json()).resolves.toEqual({
+      error: "invalid_target",
+      error_description:
+        "Requested resource is not approved for this refresh token",
+    });
+  });
+
+  it("allows refresh requests for stored approved resources", async () => {
+    findRefreshTokenMock.mockResolvedValue({
+      resources: ["https://life.example/api/mcp"],
+    });
+    const { validateOAuthRefreshTokenResources } = await import(
+      "@/lib/api/routes/auth-token-refresh-resources"
+    );
+    const params = new URLSearchParams({
+      grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+      refresh_token: "old-refresh-token",
+      resource: "https://life.example:443/api/mcp",
+    });
+
+    await expect(
+      validateOAuthRefreshTokenResources(
+        new Request("https://life.example/api/auth/oauth2/token"),
+        params,
+      ),
+    ).resolves.toBeUndefined();
+  });
+
   it("stores issued audience resources on authorization-code refresh tokens", async () => {
     const { persistOAuthRefreshTokenResources } = await import(
       "@/lib/api/routes/auth-token-refresh-resources"

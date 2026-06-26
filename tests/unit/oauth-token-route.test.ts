@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { tokenGetRoute, tokenPostRoute } from "@/lib/api/routes/auth-token";
 
-const { betterAuthHandlerMock } = vi.hoisted(() => ({
-  betterAuthHandlerMock: vi.fn(),
-}));
+const { betterAuthHandlerMock, findRefreshTokenMock, updateRefreshTokenMock } =
+  vi.hoisted(() => ({
+    betterAuthHandlerMock: vi.fn(),
+    findRefreshTokenMock: vi.fn(),
+    updateRefreshTokenMock: vi.fn(),
+  }));
 
 vi.mock("@/lib/auth/core", () => ({
   betterAuthInstance: {
@@ -11,9 +14,28 @@ vi.mock("@/lib/auth/core", () => ({
   },
 }));
 
+vi.mock("@/lib/db/prisma", () => ({
+  prisma: {
+    oAuthRefreshToken: {
+      findUnique: findRefreshTokenMock,
+      updateMany: updateRefreshTokenMock,
+    },
+  },
+}));
+
+vi.mock("@/lib/mcp/urls", () => ({
+  getOAuthMcpResourceUrl: () => "https://life.example/api/mcp",
+  getOAuthProviderValidAudiences: () => [
+    "https://life.example/api/auth",
+    "https://life.example/api/mcp",
+  ],
+}));
+
 describe("OAuth token route", () => {
   beforeEach(() => {
     betterAuthHandlerMock.mockReset();
+    findRefreshTokenMock.mockReset();
+    updateRefreshTokenMock.mockReset();
   });
 
   it("returns JSON method guidance for GET", async () => {
@@ -94,5 +116,31 @@ describe("OAuth token route", () => {
       error: "invalid_client",
       error_description: "Invalid client credentials",
     });
+  });
+
+  it("rejects unapproved refresh-token resources before delegation", async () => {
+    findRefreshTokenMock.mockResolvedValueOnce({
+      resources: ["https://life.example/api/auth"],
+    });
+
+    const response = await tokenPostRoute(
+      new Request("http://localhost/api/auth/oauth2/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "refresh_token",
+          refresh_token: "old-refresh-token",
+          resource: "https://life.example/api/mcp",
+        }).toString(),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "invalid_target",
+      error_description:
+        "Requested resource is not approved for this refresh token",
+    });
+    expect(betterAuthHandlerMock).not.toHaveBeenCalled();
   });
 });
