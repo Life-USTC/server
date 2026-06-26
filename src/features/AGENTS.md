@@ -40,7 +40,7 @@ feature/
 
 ### comments/
 - Scoped to section/course/teacher/homework
-- Visibility: public, logged-in, anonymous
+- Audience visibility: public or logged-in-only; anonymous posting uses `isAnonymous`
 - Suspended can't create
 - Admin can moderate
 
