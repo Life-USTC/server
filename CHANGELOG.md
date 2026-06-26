@@ -1,3 +1,11 @@
+## [1.39.26](https://github.com/Life-USTC/server/compare/v1.39.25...v1.39.26) (2026-06-26)
+
+
+### Bug Fixes
+
+* **homeworks:** share timestamp defaults ([74a0f8f](https://github.com/Life-USTC/server/commit/74a0f8f590294e59776a4a42b4437c276ee10472))
+* **section:** navigate calendar today to current month ([81cb2c2](https://github.com/Life-USTC/server/commit/81cb2c2987029791bfd6562f207e8e6270ffac7c))
+
 ## [1.39.25](https://github.com/Life-USTC/server/compare/v1.39.24...v1.39.25) (2026-06-26)
 
 
