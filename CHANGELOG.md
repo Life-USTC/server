@@ -1,3 +1,11 @@
+## [1.39.6](https://github.com/Life-USTC/server/compare/v1.39.5...v1.39.6) (2026-06-26)
+
+
+### Bug Fixes
+
+* **bus:** keep version topology self-contained ([e681d2e](https://github.com/Life-USTC/server/commit/e681d2e4b8cb976a8e4fd3d136cea9697832bef3))
+* **ui:** reset target scoped panels on navigation ([790622f](https://github.com/Life-USTC/server/commit/790622f1866317601b91c68b2e04d35524b4e9d1))
+
 ## [1.39.5](https://github.com/Life-USTC/server/compare/v1.39.4...v1.39.5) (2026-06-25)
 
 
