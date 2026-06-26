@@ -1,3 +1,10 @@
+## [1.39.25](https://github.com/Life-USTC/server/compare/v1.39.24...v1.39.25) (2026-06-26)
+
+
+### Bug Fixes
+
+* **api:** align REST auth parsing and OpenAPI docs ([a73d8f8](https://github.com/Life-USTC/server/commit/a73d8f827a2ca18e78800fa63d8455ed2dbfb33e))
+
 ## [1.39.24](https://github.com/Life-USTC/server/compare/v1.39.23...v1.39.24) (2026-06-26)
 
 
