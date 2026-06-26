@@ -79,7 +79,7 @@ test.describe("/sections", () => {
     });
 
     await page
-      .getByRole("button", { name: /\?|帮助|Help/i })
+      .getByRole("button", { name: /高级搜索语法|Advanced Search Syntax/i })
       .first()
       .click();
     const sheet = page.getByRole("dialog");
@@ -92,7 +92,7 @@ test.describe("/sections", () => {
 
     const searchInput = page.getByPlaceholder(/搜索或使用高级语法|search/i);
     await searchInput.fill(DEV_SEED.section.code);
-    await page.getByRole("button", { name: /搜索|Search/i }).click();
+    await page.getByRole("button", { name: /^(搜索|Search)$/i }).click();
     await expect(page).toHaveURL(
       new RegExp(`search=${encodeURIComponent(DEV_SEED.section.code)}`),
     );
