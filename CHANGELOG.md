@@ -1,3 +1,11 @@
+## [1.39.20](https://github.com/Life-USTC/server/compare/v1.39.19...v1.39.20) (2026-06-26)
+
+
+### Bug Fixes
+
+* **dashboard:** sync calendar navigation and homework errors ([4c6560a](https://github.com/Life-USTC/server/commit/4c6560a7de06c8bd41332860869d9c4c78d21ad3))
+* **ui:** align accessible control semantics ([a54ecd0](https://github.com/Life-USTC/server/commit/a54ecd05509c0b35c200ea14ccc8f9a9ceb90da8))
+
 ## [1.39.19](https://github.com/Life-USTC/server/compare/v1.39.18...v1.39.19) (2026-06-26)
 
 
