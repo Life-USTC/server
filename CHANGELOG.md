@@ -1,3 +1,13 @@
+## [1.39.19](https://github.com/Life-USTC/server/compare/v1.39.18...v1.39.19) (2026-06-26)
+
+
+### Bug Fixes
+
+* **audit/admin:** harden writes and username races ([8c1b89b](https://github.com/Life-USTC/server/commit/8c1b89b8bdec3650b072cc59d2254d8131ae86d4))
+* **audit:** lazy-load request event access ([4caa1bc](https://github.com/Life-USTC/server/commit/4caa1bc55f1afe531794235df15dc22381c25623))
+* **upload:** harden completion and filenames ([440b903](https://github.com/Life-USTC/server/commit/440b903cf7c4afc034d5273bd7fcfc19494f7e82))
+* **upload:** share filename control character helper ([e0e05de](https://github.com/Life-USTC/server/commit/e0e05def61036acaf8cf396be9673632f4f24eff))
+
 ## [1.39.18](https://github.com/Life-USTC/server/compare/v1.39.17...v1.39.18) (2026-06-26)
 
 
