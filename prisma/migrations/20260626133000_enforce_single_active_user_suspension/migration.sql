@@ -3,7 +3,13 @@ WITH active_suspensions AS (
     id,
     ROW_NUMBER() OVER (
       PARTITION BY "userId"
-      ORDER BY "createdAt" DESC, id DESC
+      ORDER BY
+        CASE
+          WHEN "expiresAt" IS NULL OR "expiresAt" > NOW() THEN 0
+          ELSE 1
+        END,
+        "createdAt" DESC,
+        id DESC
     ) AS active_rank
   FROM "UserSuspension"
   WHERE "liftedAt" IS NULL
