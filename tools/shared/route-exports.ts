@@ -12,6 +12,22 @@ export const HTTP_METHODS = [
 
 export type HttpMethod = (typeof HTTP_METHODS)[number];
 export type RouteExportKind = "function" | "const" | "destructured";
+export type RouteExport = {
+  kind: RouteExportKind;
+  node: ts.FunctionDeclaration | ts.VariableStatement;
+  initializer: ts.Expression | null;
+  sourceFile: ts.SourceFile;
+};
+
+function createRouteSourceFile(source: string) {
+  return ts.createSourceFile(
+    "route.ts",
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+}
 
 function hasExportModifier(node: ts.Node) {
   return Boolean(
@@ -49,18 +65,22 @@ export function getRouteExportKind(
   source: string,
   httpMethod: HttpMethod,
 ): RouteExportKind | null {
-  const sourceFile = ts.createSourceFile(
-    "route.ts",
-    source,
-    ts.ScriptTarget.Latest,
-    false,
-    ts.ScriptKind.TS,
-  );
+  return getRouteExport(source, httpMethod)?.kind ?? null;
+}
 
+function getRouteExportFromSourceFile(
+  sourceFile: ts.SourceFile,
+  httpMethod: HttpMethod,
+): RouteExport | null {
   for (const statement of sourceFile.statements) {
     if (ts.isFunctionDeclaration(statement)) {
       if (hasExportModifier(statement) && statement.name?.text === httpMethod) {
-        return "function";
+        return {
+          kind: "function",
+          node: statement,
+          initializer: null,
+          sourceFile,
+        };
       }
       continue;
     }
@@ -75,13 +95,23 @@ export function getRouteExportKind(
 
     for (const declaration of statement.declarationList.declarations) {
       if (bindingNameExportsMethod(declaration.name, httpMethod)) {
-        return "const";
+        return {
+          kind: "const",
+          node: statement,
+          initializer: declaration.initializer ?? null,
+          sourceFile,
+        };
       }
       if (
         ts.isObjectBindingPattern(declaration.name) &&
         objectBindingExportsMethod(declaration.name, httpMethod)
       ) {
-        return "destructured";
+        return {
+          kind: "destructured",
+          node: statement,
+          initializer: declaration.initializer ?? null,
+          sourceFile,
+        };
       }
     }
   }
@@ -89,9 +119,22 @@ export function getRouteExportKind(
   return null;
 }
 
+export function getRouteExport(
+  source: string,
+  httpMethod: HttpMethod,
+): RouteExport | null {
+  return getRouteExportFromSourceFile(
+    createRouteSourceFile(source),
+    httpMethod,
+  );
+}
+
 export function getExportedRouteMethods(
   source: string,
   methods: readonly HttpMethod[] = HTTP_METHODS,
 ) {
-  return methods.filter((method) => getRouteExportKind(source, method));
+  const sourceFile = createRouteSourceFile(source);
+  return methods.filter((method) =>
+    getRouteExportFromSourceFile(sourceFile, method),
+  );
 }
