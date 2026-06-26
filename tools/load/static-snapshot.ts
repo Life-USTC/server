@@ -32,7 +32,7 @@ export type SnapshotCourse = {
   name: string;
   course_code: string;
   lesson_code: string;
-  teacher_name: string;
+  teacher_name: string | null;
   date_time_place_person_text: string | null;
   course_type: string | null;
   course_gradation: string;
@@ -51,7 +51,7 @@ export type SnapshotLecture = {
   end_date: number;
   name: string;
   location: string;
-  teacher_name: string;
+  teacher_name: string | null;
   periods: number;
   start_index: number;
   end_index: number;
