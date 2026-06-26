@@ -1,3 +1,4 @@
+import { writeDescriptionContentInTransaction } from "@/features/descriptions/server/description-upsert";
 import type { Prisma } from "@/generated/prisma/client";
 
 type UpdateHomeworkDescriptionOptions = {
@@ -15,44 +16,25 @@ export async function updateHomeworkDescription(
   }
 
   const trimmedDescription = (description ?? "").trim();
-  const existingDescription = await tx.description.findFirst({
+  if (!trimmedDescription && !(await hasHomeworkDescription(tx, homeworkId))) {
+    return;
+  }
+
+  await writeDescriptionContentInTransaction(tx, {
+    content: trimmedDescription,
+    targetType: "homework",
+    userId,
     where: { homeworkId },
   });
-  const previousContent = existingDescription?.content ?? null;
-  if (!existingDescription && !trimmedDescription) {
-    return;
-  }
-  if (
-    existingDescription &&
-    existingDescription.content === trimmedDescription
-  ) {
-    return;
-  }
+}
 
-  const next = existingDescription
-    ? await tx.description.update({
-        where: { id: existingDescription.id },
-        data: {
-          content: trimmedDescription,
-          lastEditedAt: new Date(),
-          lastEditedById: userId,
-        },
-      })
-    : await tx.description.create({
-        data: {
-          content: trimmedDescription,
-          lastEditedAt: new Date(),
-          lastEditedById: userId,
-          homeworkId,
-        },
-      });
-
-  await tx.descriptionEdit.create({
-    data: {
-      descriptionId: next.id,
-      editorId: userId,
-      previousContent,
-      nextContent: trimmedDescription,
-    },
+async function hasHomeworkDescription(
+  tx: Prisma.TransactionClient,
+  homeworkId: string,
+) {
+  const existingDescription = await tx.description.findFirst({
+    where: { homeworkId },
+    select: { id: true },
   });
+  return Boolean(existingDescription);
 }
