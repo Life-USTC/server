@@ -24,6 +24,23 @@ export type OAuthClientPublicResult = {
   client_name?: string | null;
 };
 
+export type OAuthConsentInput = {
+  asResponse?: false;
+  headers: Headers;
+  request: Request;
+  body: {
+    accept: boolean;
+    scope?: string;
+    oauth_query?: string;
+  };
+};
+
+export type OAuthConsentResult = {
+  redirect_uri?: string;
+  redirectURI?: string;
+  url?: string;
+};
+
 export type OAuthProviderApi = {
   adminCreateOAuthClient(
     input: AdminCreateOAuthClientInput,
@@ -32,6 +49,7 @@ export type OAuthProviderApi = {
     headers: Headers;
     query: { client_id: string };
   }): Promise<OAuthClientPublicResult>;
+  oauth2Consent(input: OAuthConsentInput): Promise<OAuthConsentResult>;
 };
 
 export type OAuthProviderMetadataAuth = {
