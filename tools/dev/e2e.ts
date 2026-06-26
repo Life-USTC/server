@@ -41,26 +41,29 @@ const E2E_WORKER_SOURCE_ENTRIES = [
   },
 ] as const;
 const E2E_WORKER_CONTRACT_FILES = [
-  path.join("cloudflare", "_worker.js"),
+  "_worker.js",
   path.join("cloudflare-tmp", "manifest.js"),
   path.join("output", "server", "index.js"),
 ] as const;
-export const E2E_WORKER_VAR_KEYS = [
+export const E2E_WORKER_SECRET_KEYS = [
   "AUTH_SECRET",
   "WEBHOOK_SECRET",
   "OAUTH_PROXY_SECRET",
+  "DEV_DEBUG_PASSWORD",
+  "DEV_ADMIN_PASSWORD",
+  "METRICS_BEARER_TOKEN",
+] as const;
+export const E2E_WORKER_VAR_KEYS = [
   "E2E_DEBUG_AUTH",
   "DEV_DEBUG_USERNAME",
   "DEV_DEBUG_NAME",
   "DEV_DEBUG_EMAIL",
-  "DEV_DEBUG_PASSWORD",
   "DEV_ADMIN_USERNAME",
   "DEV_ADMIN_NAME",
   "DEV_ADMIN_EMAIL",
-  "DEV_ADMIN_PASSWORD",
-  "METRICS_BEARER_TOKEN",
   "UPLOAD_TOTAL_QUOTA_MB",
 ] as const;
+const E2E_REQUIRED_WORKER_ENV_KEYS = ["AUTH_SECRET"] as const;
 
 function parseLocalPlaywrightBaseUrl(value: string) {
   const url = new URL(value);
@@ -243,6 +246,22 @@ function copyE2EWorkerArtifact(root: string) {
       fs.copyFileSync(sourcePath, targetPath);
     }
   }
+
+  writeE2EWorkerEntrypoint(root);
+}
+
+function writeE2EWorkerEntrypoint(root: string) {
+  const sourcePath = e2eWorkerArtifactPath(
+    root,
+    path.join("cloudflare", "_worker.js"),
+  );
+  const targetPath = e2eWorkerArtifactPath(root, "_worker.js");
+  const source = fs.readFileSync(sourcePath, "utf8");
+  const rewritten = source
+    .replaceAll("./../output/", "./output/")
+    .replaceAll("./../cloudflare-tmp/", "./cloudflare-tmp/");
+
+  fs.writeFileSync(targetPath, rewritten);
 }
 
 export function validatePlaywrightWorkerRuntime(
@@ -271,16 +290,55 @@ export function preparePlaywrightWorkerRuntime(root = process.cwd()) {
   validatePlaywrightWorkerRuntime(root);
 }
 
-function pickE2EWorkerVars(env: Record<string, string>) {
+function pickEnvKeys(
+  keys: readonly string[],
+  env: Record<string, string>,
+): Record<string, string> {
   return Object.fromEntries(
-    E2E_WORKER_VAR_KEYS.flatMap((key) => {
+    keys.flatMap((key) => {
       const value = env[key];
       return value ? [[key, value]] : [];
     }),
   );
 }
 
-function writePlaywrightWranglerConfig(
+function pickE2EWorkerVars(env: Record<string, string>) {
+  return pickEnvKeys(E2E_WORKER_VAR_KEYS, env);
+}
+
+function pickE2EWorkerSecrets(env: Record<string, string>) {
+  return pickEnvKeys(E2E_WORKER_SECRET_KEYS, env);
+}
+
+function assertE2EWorkerRuntimeEnv(
+  env: Record<string, string>,
+  config: {
+    hyperdrive?: Array<{
+      binding?: string;
+    }>;
+  },
+) {
+  const missing: string[] = E2E_REQUIRED_WORKER_ENV_KEYS.filter(
+    (key) => !env[key],
+  );
+  const needsHyperdrive = config.hyperdrive?.some(
+    (binding) => binding.binding === "HYPERDRIVE",
+  );
+  if (
+    needsHyperdrive &&
+    !env.CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE
+  ) {
+    missing.push("CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE");
+  }
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing E2E Worker environment variables: ${missing.join(", ")}. Load .env or pass DATABASE_URL and AUTH_SECRET before starting Playwright E2E.`,
+    );
+  }
+}
+
+export function writePlaywrightWranglerConfig(
   root: string,
   baseUrl: string,
   env: Record<string, string>,
@@ -293,11 +351,21 @@ function writePlaywrightWranglerConfig(
     main?: string;
     routes?: unknown;
     vars?: Record<string, string>;
+    hyperdrive?: Array<{
+      binding?: string;
+      id?: string;
+      localConnectionString?: string;
+    }>;
+    secrets?: {
+      required?: string[];
+    };
   }>(sourceConfigPath);
+
+  assertE2EWorkerRuntimeEnv(env, config);
 
   delete config.routes;
   const artifactRoot = e2eWorkerArtifactPath(root);
-  config.main = path.resolve(artifactRoot, "cloudflare", "_worker.js");
+  config.main = path.resolve(artifactRoot, "_worker.js");
   config.assets = {
     ...config.assets,
     directory: path.resolve(artifactRoot, "cloudflare"),
@@ -308,12 +376,30 @@ function writePlaywrightWranglerConfig(
     NODE_ENV: "test",
     APP_PUBLIC_ORIGIN: baseUrl,
   };
+  const requiredSecrets = Object.keys(pickE2EWorkerSecrets(env));
+  if (requiredSecrets.length > 0) {
+    config.secrets = {
+      ...config.secrets,
+      required: [
+        ...new Set([...(config.secrets?.required ?? []), ...requiredSecrets]),
+      ],
+    };
+  }
   if (config.alias) {
     config.alias = Object.fromEntries(
       Object.entries(config.alias).map(([key, value]) => [
         key,
         path.resolve(root, value),
       ]),
+    );
+  }
+  const hyperdriveLocalConnection =
+    env.CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE;
+  if (hyperdriveLocalConnection && config.hyperdrive) {
+    config.hyperdrive = config.hyperdrive.map((binding) =>
+      binding.binding === "HYPERDRIVE"
+        ? { ...binding, localConnectionString: hyperdriveLocalConnection }
+        : binding,
     );
   }
 

@@ -2,12 +2,14 @@ generator client {
   provider = "prisma-client"
   runtime  = "cloudflare"
   output   = "../src/generated/prisma"
+  previewFeatures = ["partialIndexes"]
 }
 
 generator toolClient {
   provider = "prisma-client"
   runtime  = "nodejs"
   output   = "../src/generated/prisma-node"
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -976,6 +978,7 @@ model UserSuspension {
   createdBy User? @relation("SuspensionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   liftedBy  User? @relation("SuspensionLiftedBy", fields: [liftedById], references: [id], onDelete: SetNull)
 
+  @@unique([userId], map: "UserSuspension_one_open_per_user_key", where: raw("\"liftedAt\" IS NULL"))
   @@index([userId])
   @@index([createdById])
   @@index([liftedAt])

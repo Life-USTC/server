@@ -1,4 +1,5 @@
 import { afterAll, describe, expect, it } from "vitest";
+import { createAdminSuspension } from "@/features/admin/server/admin-api-service";
 import { upsertDescriptionContent } from "@/features/descriptions/server/description-upsert";
 import { deleteOwnAccount } from "@/features/settings/server/account-deletion-service";
 import { prisma } from "@/lib/db/prisma";
@@ -22,6 +23,104 @@ afterAll(async () => {
 });
 
 describe("collaborative data invariants", () => {
+  it("prevents direct duplicate open suspensions for one user", async () => {
+    const prefix = marker("suspension-unique");
+    const user = await prisma.user.create({
+      data: {
+        email: `${prefix}-user@example.test`,
+        name: "Suspension Unique User",
+      },
+      select: { id: true },
+    });
+    const suspension = await prisma.userSuspension.create({
+      data: {
+        userId: user.id,
+        reason: prefix,
+      },
+      select: { id: true },
+    });
+
+    try {
+      await expect(
+        prisma.userSuspension.create({
+          data: {
+            userId: user.id,
+            reason: `${prefix} duplicate`,
+          },
+        }),
+      ).rejects.toThrow();
+    } finally {
+      await prisma.userSuspension.deleteMany({
+        where: { id: suspension.id },
+      });
+      await prisma.user.deleteMany({ where: { id: user.id } });
+    }
+  });
+
+  it("creates a replacement suspension while closing the previous open row", async () => {
+    const prefix = marker("suspension-replace");
+    const [admin, user] = await Promise.all([
+      prisma.user.create({
+        data: {
+          email: `${prefix}-admin@example.test`,
+          name: "Suspension Admin",
+          isAdmin: true,
+        },
+        select: { id: true },
+      }),
+      prisma.user.create({
+        data: {
+          email: `${prefix}-user@example.test`,
+          name: "Suspension Replacement User",
+        },
+        select: { id: true },
+      }),
+    ]);
+    const previousSuspension = await prisma.userSuspension.create({
+      data: {
+        userId: user.id,
+        createdById: admin.id,
+        reason: `${prefix} previous`,
+      },
+      select: { id: true },
+    });
+
+    try {
+      const result = await createAdminSuspension(admin.id, {
+        userId: user.id,
+        reason: `${prefix} current`,
+      });
+
+      expect(result.ok).toBe(true);
+      await waitForAuditLogCount(user.id, 1);
+      const suspensions = await prisma.userSuspension.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: "asc" },
+        select: { id: true, liftedAt: true, reason: true },
+      });
+      expect(suspensions).toHaveLength(2);
+      expect(
+        suspensions.filter((suspension) => suspension.liftedAt === null),
+      ).toHaveLength(1);
+      expect(
+        suspensions.find(
+          (suspension) => suspension.id === previousSuspension.id,
+        )?.liftedAt,
+      ).toBeInstanceOf(Date);
+      expect(suspensions.at(-1)?.reason).toBe(`${prefix} current`);
+    } finally {
+      await prisma.userSuspension.deleteMany({
+        where: { userId: user.id },
+      });
+      await prisma.auditLog.deleteMany({
+        where: { targetId: user.id, targetType: "user" },
+      });
+      await prisma.user.deleteMany({
+        where: { id: { in: [admin.id, user.id] } },
+      });
+    }
+  });
+
   it("deletes accounts while anonymizing audit rows and issued suspensions", async () => {
     const prefix = marker("account-delete");
     const [remainingAdmin, deletingAdmin, suspendedUser] = await Promise.all([

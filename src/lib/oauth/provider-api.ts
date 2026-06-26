@@ -21,6 +21,11 @@ export function asOAuthProviderApi(api: unknown): OAuthProviderApi {
       "Better Auth OAuth provider API",
       "getOAuthClientPublic",
     ),
+    oauth2Consent: requireMethod(
+      record,
+      "Better Auth OAuth provider API",
+      "oauth2Consent",
+    ),
   };
 }
 

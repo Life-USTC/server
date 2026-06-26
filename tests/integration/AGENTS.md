@@ -14,6 +14,11 @@ Use `tests/integration/utils/mcp-harness.ts` for the in-process authenticated
 MCP client/server pair. Keep setup examples there; this guide only records
 integration-specific caveats.
 
+MCP tool coverage is split by feature into `tests/integration/mcp-*.test.ts`
+and shares helpers from `tests/integration/utils/mcp-tool-test-utils.ts`.
+Keep integration file parallelism disabled unless those shared seeded-user
+mutations are made fully isolated.
+
 ## Conventions
 
 - Use `DEV_SEED_ANCHOR.date` / `.recommendedAtTime` from `@tools/dev/seed/dev-seed` instead of hardcoding shared seed dates.

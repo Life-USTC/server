@@ -9,6 +9,7 @@ import {
   OAUTH_REST_READ_SCOPE,
   OAUTH_REST_WRITE_SCOPE,
 } from "@/lib/oauth/constants";
+import { hasRequestAuthSignal } from "./request-auth-signal";
 
 type RestBearerScopeRequirement = "read" | "write";
 
@@ -89,6 +90,8 @@ export async function resolveApiUserId(
     return null;
   }
 
+  if (!hasRequestAuthSignal(request.headers)) return null;
+
   const { getSessionFromHeaders } = await import("@/lib/auth/core");
   const session = await getSessionFromHeaders(request.headers);
   return session?.user?.id ?? null;
@@ -101,6 +104,7 @@ export async function resolveSessionUserId(
   if (/^Bearer(?:\s|$)/i.test(authHeader?.trimStart() ?? "")) {
     return null;
   }
+  if (!hasRequestAuthSignal(request.headers)) return null;
 
   const { getSessionFromHeaders } = await import("@/lib/auth/core");
   const session = await getSessionFromHeaders(request.headers);

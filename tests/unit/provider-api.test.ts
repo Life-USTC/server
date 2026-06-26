@@ -17,6 +17,7 @@ describe("provider-api guards", () => {
     const api = asOAuthProviderApi({
       adminCreateOAuthClient: async () => ({ client_id: "client-1" }),
       getOAuthClientPublic: async () => ({ client_id: "client-1" }),
+      oauth2Consent: async () => ({ redirect_uri: "https://client/callback" }),
     });
 
     await expect(
@@ -36,6 +37,19 @@ describe("provider-api guards", () => {
         },
       }),
     ).resolves.toMatchObject({ client_id: "client-1" });
+    await expect(
+      api.oauth2Consent({
+        headers: new Headers(),
+        request: new Request("https://life.example/api/auth/oauth2/consent", {
+          method: "POST",
+        }),
+        body: {
+          accept: true,
+          scope: `${OAUTH_OPENID_SCOPE} ${OAUTH_PROFILE_SCOPE}`,
+          oauth_query: "client_id=client-1",
+        },
+      }),
+    ).resolves.toMatchObject({ redirect_uri: "https://client/callback" });
   });
 
   it("throws a clear error when the provider API is missing required methods", () => {

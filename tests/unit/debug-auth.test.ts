@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DEV_ADMIN_PROVIDER_ID,
   DEV_DEBUG_PROVIDER_ID,
@@ -6,12 +6,10 @@ import {
 
 const hashPasswordMock = vi.hoisted(() => vi.fn());
 const prismaMock = vi.hoisted(() => ({
-  account: {
-    upsert: vi.fn(),
-  },
+  account: { upsert: vi.fn() },
   user: {
     create: vi.fn(),
-    findUnique: vi.fn(),
+    findMany: vi.fn(),
     update: vi.fn(),
   },
 }));
@@ -25,6 +23,14 @@ vi.mock("@/lib/db/prisma", () => ({
 }));
 
 describe("debug auth config", () => {
+  beforeEach(() => {
+    hashPasswordMock.mockResolvedValue("hashed-debug-password");
+    prismaMock.account.upsert.mockResolvedValue({});
+    prismaMock.user.create.mockResolvedValue({ id: "created-user" });
+    prismaMock.user.findMany.mockResolvedValue([]);
+    prismaMock.user.update.mockResolvedValue({ id: "updated-user" });
+  });
+
   afterEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
@@ -77,100 +83,102 @@ describe("debug auth config", () => {
       "DEV_DEBUG_PASSWORD is required when E2E_DEBUG_AUTH=1 (non-development NODE_ENV)",
     );
   });
-});
 
-describe("ensureDebugCredentialUser", () => {
-  const debugImage =
-    "https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev-user";
-  const debugUserUpdateData = {
-    username: "dev-user",
-    email: "dev-user@debug.local",
-    emailVerified: true,
-    name: "Dev User",
-    image: debugImage,
-    isAdmin: false,
-    profilePictures: { set: [debugImage] },
-  };
-
-  afterEach(() => {
-    vi.clearAllMocks();
-    vi.resetModules();
-    vi.unstubAllEnvs();
-  });
-
-  it("repairs a stale debug user matched by email", async () => {
-    hashPasswordMock.mockResolvedValue("hashed-debug-password");
-    prismaMock.user.findUnique.mockImplementation(({ where }) =>
-      Promise.resolve("email" in where ? { id: "stale-user-id" } : null),
+  it("completes matched stale debug users", async () => {
+    const { ensureDebugCredentialUser, getDebugProviderConfig } = await import(
+      "@/lib/auth/debug-auth"
     );
-    prismaMock.user.update.mockResolvedValue({ id: "stale-user-id" });
-
-    const { ensureDebugCredentialUser } = await import("@/lib/auth/debug-auth");
+    const config = getDebugProviderConfig(DEV_DEBUG_PROVIDER_ID);
+    prismaMock.user.findMany.mockResolvedValue([
+      {
+        id: "stale-debug-user",
+        username: null,
+        email: config.email,
+        image: null,
+        profilePictures: [],
+      },
+    ]);
 
     await ensureDebugCredentialUser(DEV_DEBUG_PROVIDER_ID);
 
     expect(prismaMock.user.update).toHaveBeenCalledWith({
-      where: { id: "stale-user-id" },
-      data: debugUserUpdateData,
+      where: { id: "stale-debug-user" },
+      data: {
+        username: config.username,
+        email: config.email,
+        emailVerified: true,
+        name: config.name,
+        isAdmin: config.isAdmin,
+        image: config.image,
+        profilePictures: { set: [config.image] },
+      },
       select: { id: true },
     });
     expect(prismaMock.account.upsert).toHaveBeenCalledWith({
       where: {
         provider_providerAccountId: {
           provider: "credential",
-          providerAccountId: "stale-user-id",
+          providerAccountId: "updated-user",
         },
       },
       update: {
-        userId: "stale-user-id",
+        userId: "updated-user",
         type: "credential",
         provider: "credential",
         password: "hashed-debug-password",
       },
       create: {
-        userId: "stale-user-id",
+        userId: "updated-user",
         type: "credential",
         provider: "credential",
-        providerAccountId: "stale-user-id",
+        providerAccountId: "updated-user",
         password: "hashed-debug-password",
       },
     });
   });
 
-  it("uses the username match when a separate stale row holds the debug email", async () => {
-    hashPasswordMock.mockResolvedValue("hashed-debug-password");
-    prismaMock.user.findUnique.mockImplementation(({ where }) =>
-      Promise.resolve(
-        "username" in where ? { id: "seed-user-id" } : { id: "stale-user-id" },
-      ),
+  it("prefers username identity and neutralizes duplicate debug-email users", async () => {
+    const { ensureDebugCredentialUser, getDebugProviderConfig } = await import(
+      "@/lib/auth/debug-auth"
     );
-    prismaMock.user.update.mockResolvedValue({ id: "seed-user-id" });
-
-    const { ensureDebugCredentialUser } = await import("@/lib/auth/debug-auth");
+    const config = getDebugProviderConfig(DEV_DEBUG_PROVIDER_ID);
+    prismaMock.user.findMany.mockResolvedValue([
+      {
+        id: "canonical-debug-user",
+        username: config.username,
+        email: `${config.username}@users.local`,
+        image: "https://example.test/existing-avatar.svg",
+        profilePictures: ["https://example.test/existing-avatar.svg"],
+      },
+      {
+        id: "stale-email-user",
+        username: null,
+        email: config.email,
+        image: null,
+        profilePictures: [],
+      },
+    ]);
 
     await ensureDebugCredentialUser(DEV_DEBUG_PROVIDER_ID);
 
     expect(prismaMock.user.update).toHaveBeenNthCalledWith(1, {
-      where: { id: "stale-user-id" },
+      where: { id: "stale-email-user" },
       data: {
-        email: "debug-auth-superseded-dev-debug-stale-user-id@debug.local",
+        username: null,
+        email: "debug-auth-stale-stale-email-user@debug.local",
+      },
+    });
+    expect(prismaMock.user.update).toHaveBeenNthCalledWith(2, {
+      where: { id: "canonical-debug-user" },
+      data: {
+        username: config.username,
+        email: config.email,
+        emailVerified: true,
+        name: config.name,
+        isAdmin: config.isAdmin,
+        image: "https://example.test/existing-avatar.svg",
       },
       select: { id: true },
     });
-    expect(prismaMock.user.update).toHaveBeenNthCalledWith(2, {
-      where: { id: "seed-user-id" },
-      data: debugUserUpdateData,
-      select: { id: true },
-    });
-    expect(prismaMock.account.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          provider_providerAccountId: {
-            provider: "credential",
-            providerAccountId: "seed-user-id",
-          },
-        },
-      }),
-    );
   });
 });

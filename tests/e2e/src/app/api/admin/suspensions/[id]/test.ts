@@ -3,7 +3,7 @@
  *
  * Admin-only endpoint to lift (un-suspend) a single suspension.
  *
- * - PATCH sets liftedAt and liftedById on the suspension record
+ * - PATCH sets liftedAt and liftedById on the suspension record and clears the user's open suspension state
  * - No request body is needed
  * - Returns the updated suspension in `{ suspension: {...} }`
  * - Returns 401 for unauthenticated or non-admin requests

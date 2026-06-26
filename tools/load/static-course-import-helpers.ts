@@ -1,5 +1,8 @@
 import { createHash } from "node:crypto";
 
+const SYNTHETIC_JWID_BASE = 1_500_000_000;
+const SYNTHETIC_JWID_SPAN = 400_000_000;
+
 type LookupCache = ReadonlyMap<string, number>;
 
 export type StaticCourseLookupState = {
@@ -54,6 +57,41 @@ function requiredStaticValue(value: string, label: string) {
     throw new Error(`Static ${label} is missing`);
   }
   return normalized;
+}
+
+export function stableStaticNumericId(namespace: string, value: string) {
+  const digest = createHash("sha256")
+    .update(`${namespace}:${value}`)
+    .digest("hex");
+  return (
+    SYNTHETIC_JWID_BASE +
+    (Number.parseInt(digest.slice(0, 8), 16) % SYNTHETIC_JWID_SPAN)
+  );
+}
+
+export function buildCollisionCheckedStaticNumericIds(
+  namespace: string,
+  values: Iterable<string>,
+  label: string,
+) {
+  const jwIdByValue = new Map<string, number>();
+  const valueByJwId = new Map<number, string>();
+
+  for (const value of new Set(values)) {
+    const jwId = stableStaticNumericId(namespace, value);
+    const existingValue = valueByJwId.get(jwId);
+    if (existingValue && existingValue !== value) {
+      throw new Error(
+        `Static ${label} synthetic jwId collision: ${jwId} generated for ${JSON.stringify(
+          existingValue,
+        )} and ${JSON.stringify(value)}`,
+      );
+    }
+    valueByJwId.set(jwId, value);
+    jwIdByValue.set(value, jwId);
+  }
+
+  return jwIdByValue;
 }
 
 export function staticDepartmentCode(name: string) {

@@ -4,17 +4,24 @@ import { prisma } from "@/lib/db/prisma";
 import { getDebugProviderConfig } from "./debug-auth-config";
 import type { DebugProviderId } from "./provider-ids";
 
-function buildSupersededDebugEmail(
-  providerId: DebugProviderId,
-  userId: string,
-) {
-  return `debug-auth-superseded-${providerId}-${userId}@debug.local`;
+type DebugCredentialUserData = {
+  username: string;
+  email: string;
+  emailVerified: boolean;
+  name: string;
+  image: string;
+  isAdmin: boolean;
+  profilePictures: string[];
+};
+
+function staleDebugIdentityEmail(userId: string) {
+  return `debug-auth-stale-${userId}@debug.local`;
 }
 
 export async function ensureDebugCredentialUser(providerId: DebugProviderId) {
   const config = getDebugProviderConfig(providerId);
   const hashedPassword = await hashPassword(config.password);
-  const userData = {
+  const userData: DebugCredentialUserData = {
     username: config.username,
     email: config.email,
     emailVerified: true,
@@ -23,47 +30,56 @@ export async function ensureDebugCredentialUser(providerId: DebugProviderId) {
     isAdmin: config.isAdmin,
     profilePictures: [config.image],
   };
-  const userUpdateData = {
-    username: userData.username,
-    email: userData.email,
-    emailVerified: userData.emailVerified,
-    name: userData.name,
-    isAdmin: userData.isAdmin,
-    image: userData.image,
-    profilePictures: { set: userData.profilePictures },
-  };
 
   const upsertDebugUserByIdentity = async () => {
-    const [usernameMatch, emailMatch] = await Promise.all([
-      prisma.user.findUnique({
-        where: { username: config.username },
-        select: { id: true },
-      }),
-      prisma.user.findUnique({
-        where: { email: config.email },
-        select: { id: true },
-      }),
-    ]);
-    const existing = usernameMatch ?? emailMatch;
+    const matches = await prisma.user.findMany({
+      where: {
+        OR: [{ username: config.username }, { email: config.email }],
+      },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        image: true,
+        profilePictures: true,
+      },
+      orderBy: { createdAt: "asc" },
+    });
+    const existing =
+      matches.find((user) => user.username === config.username) ?? matches[0];
 
-    if (!existing) {
-      return prisma.user.create({
-        data: userData,
+    if (existing) {
+      for (const conflict of matches.filter(
+        (user) => user.id !== existing.id,
+      )) {
+        await prisma.user.update({
+          where: { id: conflict.id },
+          data: {
+            username: null,
+            email: staleDebugIdentityEmail(conflict.id),
+          },
+        });
+      }
+
+      return prisma.user.update({
+        where: { id: existing.id },
+        data: {
+          username: userData.username,
+          email: userData.email,
+          emailVerified: userData.emailVerified,
+          name: userData.name,
+          isAdmin: userData.isAdmin,
+          image: existing.image || userData.image,
+          ...(existing.profilePictures.length > 0
+            ? {}
+            : { profilePictures: { set: userData.profilePictures } }),
+        },
         select: { id: true },
       });
     }
 
-    if (usernameMatch && emailMatch && usernameMatch.id !== emailMatch.id) {
-      await prisma.user.update({
-        where: { id: emailMatch.id },
-        data: { email: buildSupersededDebugEmail(providerId, emailMatch.id) },
-        select: { id: true },
-      });
-    }
-
-    return prisma.user.update({
-      where: { id: existing.id },
-      data: userUpdateData,
+    return prisma.user.create({
+      data: userData,
       select: { id: true },
     });
   };

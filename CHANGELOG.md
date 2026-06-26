@@ -1,3 +1,57 @@
+## [1.39.14](https://github.com/Life-USTC/server/compare/v1.39.13...v1.39.14) (2026-06-26)
+
+
+### Bug Fixes
+
+* **test:** centralize e2e audit cleanup ([8c00d68](https://github.com/Life-USTC/server/commit/8c00d68162582ef84d30de23295678956b29e2df))
+
+## [1.39.13](https://github.com/Life-USTC/server/compare/v1.39.12...v1.39.13) (2026-06-26)
+
+
+### Bug Fixes
+
+* **admin:** enforce single open suspension ([9aa2391](https://github.com/Life-USTC/server/commit/9aa23913745d734eaf69ce706b3534ade026f9d7))
+
+## [1.39.12](https://github.com/Life-USTC/server/compare/v1.39.11...v1.39.12) (2026-06-26)
+
+
+### Bug Fixes
+
+* **auth:** reconcile debug credential users ([7d9f5aa](https://github.com/Life-USTC/server/commit/7d9f5aa65e513bb00059b9486f32b7daab361c44))
+
+## [1.39.11](https://github.com/Life-USTC/server/compare/v1.39.10...v1.39.11) (2026-06-26)
+
+
+### Bug Fixes
+
+* **comments:** lock softbanned owner deletes ([8b733f8](https://github.com/Life-USTC/server/commit/8b733f8f6c52b3c321ba015f076a9b0c76478ba4))
+
+## [1.39.10](https://github.com/Life-USTC/server/compare/v1.39.9...v1.39.10) (2026-06-26)
+
+
+### Bug Fixes
+
+* **auth:** call oauth consent provider directly ([9078848](https://github.com/Life-USTC/server/commit/9078848bf7cfb106720bd5178c17b27f2847c02f))
+* **auth:** validate oauth consent origin ([e5ecdcc](https://github.com/Life-USTC/server/commit/e5ecdccb6ce983b1adb70e14c3c30acdf10b1596))
+
+## [1.39.9](https://github.com/Life-USTC/server/compare/v1.39.8...v1.39.9) (2026-06-26)
+
+
+### Bug Fixes
+
+* **ci:** isolate e2e worker artifact contract ([c8b5357](https://github.com/Life-USTC/server/commit/c8b53574c57882afe6ddf854fc42e255fc94e92b))
+* **ci:** prepare e2e shard metadata ([ad3684b](https://github.com/Life-USTC/server/commit/ad3684b9d2d1ceea2c09c22ffda4bc33d041dc15))
+* **loader:** allow teacherless snapshot rows ([6c2a831](https://github.com/Life-USTC/server/commit/6c2a831f0c0f692d0d8ba9ec1530bb885b9a571e))
+* **loader:** guard static import invariants ([d705cff](https://github.com/Life-USTC/server/commit/d705cff15cfe4437e9c87cc9048ca9aeee8077c7))
+
+## [1.39.8](https://github.com/Life-USTC/server/compare/v1.39.7...v1.39.8) (2026-06-26)
+
+
+### Bug Fixes
+
+* **auth:** enforce scoped oauth rest access ([b39a02f](https://github.com/Life-USTC/server/commit/b39a02fbc8f92dca76fba1115437b29c00b46dcb))
+* **auth:** reject unapproved refresh resources ([044cabd](https://github.com/Life-USTC/server/commit/044cabd84409da5c34c04ef97ceb74e6e7796f6a))
+
 ## [1.39.7](https://github.com/Life-USTC/server/compare/v1.39.6...v1.39.7) (2026-06-26)
 
 
