@@ -1,3 +1,10 @@
+## [1.39.14](https://github.com/Life-USTC/server/compare/v1.39.13...v1.39.14) (2026-06-26)
+
+
+### Bug Fixes
+
+* **test:** centralize e2e audit cleanup ([8c00d68](https://github.com/Life-USTC/server/commit/8c00d68162582ef84d30de23295678956b29e2df))
+
 ## [1.39.13](https://github.com/Life-USTC/server/compare/v1.39.12...v1.39.13) (2026-06-26)
 
 
