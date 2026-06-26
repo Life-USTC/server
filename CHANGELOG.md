@@ -1,3 +1,11 @@
+## [1.39.10](https://github.com/Life-USTC/server/compare/v1.39.9...v1.39.10) (2026-06-26)
+
+
+### Bug Fixes
+
+* **auth:** call oauth consent provider directly ([9078848](https://github.com/Life-USTC/server/commit/9078848bf7cfb106720bd5178c17b27f2847c02f))
+* **auth:** validate oauth consent origin ([e5ecdcc](https://github.com/Life-USTC/server/commit/e5ecdccb6ce983b1adb70e14c3c30acdf10b1596))
+
 ## [1.39.9](https://github.com/Life-USTC/server/compare/v1.39.8...v1.39.9) (2026-06-26)
 
 
