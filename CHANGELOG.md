@@ -1,3 +1,11 @@
+## [1.39.8](https://github.com/Life-USTC/server/compare/v1.39.7...v1.39.8) (2026-06-26)
+
+
+### Bug Fixes
+
+* **auth:** enforce scoped oauth rest access ([b39a02f](https://github.com/Life-USTC/server/commit/b39a02fbc8f92dca76fba1115437b29c00b46dcb))
+* **auth:** reject unapproved refresh resources ([044cabd](https://github.com/Life-USTC/server/commit/044cabd84409da5c34c04ef97ceb74e6e7796f6a))
+
 ## [1.39.7](https://github.com/Life-USTC/server/compare/v1.39.6...v1.39.7) (2026-06-26)
 
 
