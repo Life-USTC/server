@@ -25,14 +25,32 @@ type CalendarGridEvent = {
   tooltip: string;
 };
 
-export function findCalendarBaseMonth(events: SectionCalendarEvent[]) {
+function monthIndex(monthKey: string) {
+  const [year, month] = monthKey.split("-").map(Number);
+  return year * 12 + month - 1;
+}
+
+export function findCalendarBaseMonth(
+  events: SectionCalendarEvent[],
+  fallbackDateKey?: string | null,
+) {
   const firstDated = events.find((event) => event.date);
-  const baseKey = toCampusDateKey(firstDated?.date ?? new Date());
-  const monthKey = (baseKey ?? requireCampusDateKeyForValue(new Date())).slice(
-    0,
-    7,
-  );
+  const fallbackKey =
+    toCampusDateKey(fallbackDateKey) ??
+    requireCampusDateKeyForValue(new Date());
+  const baseKey = toCampusDateKey(firstDated?.date) ?? fallbackKey;
+  const monthKey = baseKey.slice(0, 7);
   return campusDateKeyToLocalDate(`${monthKey}-01`) ?? new Date();
+}
+
+export function calendarMonthOffsetForDateKey(
+  baseMonth: Date,
+  targetDateKey: string | null | undefined,
+) {
+  const baseMonthKey = toCampusDateKey(baseMonth)?.slice(0, 7);
+  const targetMonthKey = toCampusDateKey(targetDateKey)?.slice(0, 7);
+  if (!baseMonthKey || !targetMonthKey) return 0;
+  return monthIndex(targetMonthKey) - monthIndex(baseMonthKey);
 }
 
 export function calendarEventsForDay(

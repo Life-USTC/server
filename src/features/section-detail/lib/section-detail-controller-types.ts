@@ -329,6 +329,7 @@ export type SectionDetailPageData = {
   section: SectionDetailSection;
   showSubscribeDialog: boolean;
   tab?: string | null;
+  todayCalendarKey: string;
   viewer: {
     isSubscribed?: boolean;
     signedIn?: boolean;

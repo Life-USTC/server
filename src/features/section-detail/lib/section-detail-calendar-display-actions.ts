@@ -1,8 +1,4 @@
-import {
-  buildSectionCalendarGridWeeks,
-  calendarEventsForDay,
-  type SectionCalendarEvent,
-} from "./calendar";
+import { calendarEventsForDay, type SectionCalendarEvent } from "./calendar";
 import {
   addMonths,
   calendarMonthDays,
@@ -15,12 +11,8 @@ import {
 } from "./date-display";
 
 export function createSectionDetailCalendarDisplayActions(input: {
-  getCalendarMonthWeeks: () => Date[][];
   getNotAvailable: () => string;
   getSectionCalendarEvents: () => SectionCalendarEvent[];
-  getSemesterWeekLabel: (weekStart: Date) => string;
-  getTodayCalendarKey: () => string | null;
-  getVisibleCalendarMonth: () => Date;
 }) {
   function fmtDate(value: string | Date | null | undefined) {
     return formatDate(value, input.getNotAvailable());
@@ -53,16 +45,5 @@ export function createSectionDetailCalendarDisplayActions(input: {
     fmtDateTime,
     fmtMonth,
     isSameMonth,
-    sectionCalendarGridWeeks() {
-      return buildSectionCalendarGridWeeks({
-        dateKey: dateKeyValue,
-        events: input.getSectionCalendarEvents(),
-        formatDate: fmtDate,
-        monthWeeks: input.getCalendarMonthWeeks(),
-        semesterWeekLabel: input.getSemesterWeekLabel,
-        todayKey: input.getTodayCalendarKey(),
-        visibleMonth: input.getVisibleCalendarMonth(),
-      });
-    },
   };
 }

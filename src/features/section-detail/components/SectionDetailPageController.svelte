@@ -2,7 +2,11 @@
 // biome-ignore assist/source/organizeImports: keep Svelte template/action imports grouped with local suppressions.
 import { onMount } from "svelte";
 import { createSectionDetailDisplayActions } from "@/features/section-detail/lib/section-detail-display-actions";
-import { findCalendarBaseMonth } from "@/features/section-detail/lib/calendar";
+import {
+  buildSectionCalendarGridWeeks,
+  calendarMonthOffsetForDateKey,
+  findCalendarBaseMonth,
+} from "@/features/section-detail/lib/calendar";
 import { buildSectionDetailCalendarEvents } from "@/features/section-detail/lib/section-detail-calendar-events";
 import { createSectionDetailCalendarDisplayActions } from "@/features/section-detail/lib/section-detail-calendar-display-actions";
 import { createSectionCalendarClipboardActions } from "@/features/section-detail/lib/section-detail-calendar-clipboard-actions";
@@ -95,14 +99,9 @@ const {
   fmtDateTime: _fmtDateTime,
   fmtMonth: _fmtMonth,
   isSameMonth: _isSameMonth,
-  sectionCalendarGridWeeks: _sectionCalendarGridWeeks,
 } = createSectionDetailCalendarDisplayActions({
-  getCalendarMonthWeeks: () => calendarMonthWeeks,
   getNotAvailable: () => _notAvailable,
   getSectionCalendarEvents: () => sectionCalendarEvents,
-  getSemesterWeekLabel: _semesterWeekLabel,
-  getTodayCalendarKey: () => todayCalendarKey,
-  getVisibleCalendarMonth: () => visibleCalendarMonth,
 });
 
 $: _copy = data.copy;
@@ -133,11 +132,28 @@ $: sectionCalendarEvents = buildSectionDetailCalendarEvents({
   section: data.section,
   sectionCopy: _sectionCopy,
 });
-$: calendarBaseMonth = findCalendarBaseMonth(sectionCalendarEvents);
+$: todayCalendarKey = data.todayCalendarKey;
+$: calendarBaseMonth = findCalendarBaseMonth(
+  sectionCalendarEvents,
+  todayCalendarKey,
+);
 $: visibleCalendarMonth = _addMonths(calendarBaseMonth, _calendarMonthOffset);
+$: todayCalendarMonthOffset = calendarMonthOffsetForDateKey(
+  calendarBaseMonth,
+  todayCalendarKey,
+);
 $: calendarMonthDays = _calendarMonthDays(visibleCalendarMonth);
 $: calendarMonthWeeks = _calendarWeeks(calendarMonthDays);
 $: calendarMonthLabel = _fmtMonth(visibleCalendarMonth);
+$: sectionCalendarGridWeeks = buildSectionCalendarGridWeeks({
+  dateKey: _dateKey,
+  events: sectionCalendarEvents,
+  formatDate: _fmtDate,
+  monthWeeks: calendarMonthWeeks,
+  semesterWeekLabel: _semesterWeekLabel,
+  todayKey: todayCalendarKey,
+  visibleMonth: visibleCalendarMonth,
+});
 $: unscheduledCalendarEvents = sectionCalendarEvents.filter(
   (event) => !event.dateKey,
 );
@@ -151,7 +167,6 @@ $: calendarExamDateKeys = buildCalendarDateKeySet(
   (exam) => exam.examDate,
   _dateKey,
 );
-$: todayCalendarKey = _dateKey(new Date());
 
 const {
   cancelEditHomework: _cancelEditHomework,
@@ -391,7 +406,7 @@ onMount(() => {
     {periodDetailRows}
     primaryName={_primaryName}
     {sectionCalendarEvents}
-    sectionCalendarGridWeeks={_sectionCalendarGridWeeks}
+    {sectionCalendarGridWeeks}
     sectionCopy={_sectionCopy}
     sectionTeachersLabel={_sectionTeachersLabel}
     setActiveTab={_setActiveTab}
@@ -405,6 +420,7 @@ onMount(() => {
     tabs={_tabs}
     teacherName={_teacherName}
     {todayCalendarKey}
+    {todayCalendarMonthOffset}
     {unscheduledCalendarEvents}
     viewer={data.viewer}
     {visibleCalendarMonth}

@@ -13,6 +13,7 @@ export let variant: "week" | "month" = "week";
 </script>
 
 <div
+  aria-current={day.isToday ? "date" : undefined}
   class={`border-base-300 p-2 ${variant === "week" ? "min-h-56 border-r" : "min-h-32 border-r border-b"} ${isLastDay ? "border-r-0" : ""} ${day.isToday ? "ring-1 ring-primary ring-inset" : ""} ${day.isMuted ? "bg-base-200/40 text-base-content/45" : "bg-base-100"}`}
 >
   <div class="flex items-start justify-between gap-2">

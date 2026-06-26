@@ -1,5 +1,6 @@
 import { error } from "@sveltejs/kit";
 import { getSectionPage } from "@/features/section-detail/server/section-page-data";
+import { requireCampusDateKeyForValue } from "@/lib/time/campus-date";
 import { getSectionDetailDescriptionAndComments } from "./section-detail-comments-data";
 import { getSectionHomeworkData } from "./section-detail-homework-data";
 import {
@@ -43,6 +44,7 @@ export async function loadSectionDetailPage({
   return {
     section,
     locale: locals.locale,
+    todayCalendarKey: requireCampusDateKeyForValue(new Date()),
     copy: getSectionDetailPageCopy(locals.locale),
     descriptionData: descriptionAndComments.descriptionData,
     commentsData: descriptionAndComments.commentsData,

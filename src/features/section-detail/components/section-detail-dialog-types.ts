@@ -203,7 +203,7 @@ export type SectionDetailMainContentProps = {
     teachers?: Parameters<SectionTeacherName>[0][];
   };
   sectionCalendarEvents: SectionCalendarEvent[];
-  sectionCalendarGridWeeks: () => CalendarGridWeek[];
+  sectionCalendarGridWeeks: CalendarGridWeek[];
   sectionCopy: SectionDetailMainSectionCopy;
   sectionTeachersLabel: SectionTeachersLabel;
   setActiveTab: (tab: SectionDetailActiveTab) => void;
@@ -212,6 +212,7 @@ export type SectionDetailMainContentProps = {
   tabs: readonly SectionDetailTab[];
   teacherName: SectionTeacherName;
   todayCalendarKey: string | null;
+  todayCalendarMonthOffset: number;
   unscheduledCalendarEvents: SectionCalendarEvent[];
   viewer: { isAuthenticated?: boolean; signedIn?: boolean };
   visibleCalendarMonth: Date;

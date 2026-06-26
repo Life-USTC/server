@@ -9,6 +9,7 @@ import type { SectionCalendarCopy } from "./section-calendar-tab-types";
 export let calendarGridWeeks: CalendarGridWeek[];
 export let calendarMonthLabel: string;
 export let calendarMonthOffset: number;
+export let todayCalendarMonthOffset: number;
 export let formatMessage: (
   template: string,
   values: Record<string, string>,
@@ -36,7 +37,7 @@ export let sectionCopy: SectionCalendarCopy;
         size="sm"
         type="button"
         variant="outline"
-        onclick={() => (calendarMonthOffset = 0)}
+        onclick={() => (calendarMonthOffset = todayCalendarMonthOffset)}
       >
         {sectionCopy.today}
       </Button>
