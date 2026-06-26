@@ -2,6 +2,10 @@ name: DB-backed Bun job
 
 on:
   workflow_call:
+    outputs:
+      artifact-url:
+        description: URL for the uploaded artifact, when artifact upload is enabled.
+        value: ${{ jobs.run.outputs.artifact-url }}
     inputs:
       database-name:
         required: true
@@ -72,6 +76,8 @@ jobs:
     timeout-minutes: ${{ inputs.timeout-minutes }}
     permissions:
       contents: read
+    outputs:
+      artifact-url: ${{ steps.upload-artifact.outputs.artifact-url }}
     services:
       postgres:
         image: postgres:16
@@ -126,6 +132,7 @@ jobs:
         run: ${{ inputs.job-command }}
 
       - name: Upload artifact
+        id: upload-artifact
         if: ${{ always() && inputs.upload-artifact-path != '' && (inputs.upload-artifact-always || success()) }}
         uses: actions/upload-artifact@v7
         with:

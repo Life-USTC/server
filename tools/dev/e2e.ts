@@ -22,6 +22,29 @@ const WRANGLER_E2E_CONFIG_PATH = path.join(
   "e2e-wrangler.json",
 );
 const WRANGLER_E2E_PERSIST_PATH = path.join(".wrangler", "e2e", "state");
+export const E2E_WORKER_ARTIFACT_DIR = path.join("build", "e2e-worker");
+const E2E_WORKER_SOURCE_ENTRIES = [
+  {
+    source: path.join(".svelte-kit", "cloudflare"),
+    target: "cloudflare",
+    kind: "directory",
+  },
+  {
+    source: path.join(".svelte-kit", "cloudflare-tmp", "manifest.js"),
+    target: path.join("cloudflare-tmp", "manifest.js"),
+    kind: "file",
+  },
+  {
+    source: path.join(".svelte-kit", "output", "server"),
+    target: path.join("output", "server"),
+    kind: "directory",
+  },
+] as const;
+const E2E_WORKER_CONTRACT_FILES = [
+  path.join("cloudflare", "_worker.js"),
+  path.join("cloudflare-tmp", "manifest.js"),
+  path.join("output", "server", "index.js"),
+] as const;
 const E2E_WORKER_VAR_KEYS = [
   "AUTH_SECRET",
   "JWT_SECRET",
@@ -169,24 +192,23 @@ export function buildPlaywrightServerEnv(options: {
   return serverEnv;
 }
 
-function resolveWorkerEntrypoint(
-  root = process.cwd(),
-  commandHint = "bun run build",
-) {
-  const workerPath = path.join(root, ".svelte-kit", "cloudflare", "_worker.js");
-  if (fs.existsSync(workerPath)) {
-    return workerPath;
-  }
-
-  throw new Error(
-    `Missing Cloudflare Worker bundle. Run \`${commandHint}\` before starting the E2E app.`,
-  );
+function e2eWorkerArtifactPath(root: string, relativePath = "") {
+  return path.join(root, E2E_WORKER_ARTIFACT_DIR, relativePath);
 }
 
-function requireBuiltFile(root: string, relativePath: string) {
+function requirePathKind(
+  root: string,
+  relativePath: string,
+  kind: "directory" | "file",
+) {
   const filePath = path.join(root, relativePath);
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Missing Cloudflare E2E build file: ${relativePath}`);
+  const stat = fs.existsSync(filePath) ? fs.statSync(filePath) : undefined;
+  if (
+    !stat ||
+    (kind === "directory" && !stat.isDirectory()) ||
+    (kind === "file" && !stat.isFile())
+  ) {
+    throw new Error(`Missing Cloudflare E2E build ${kind}: ${relativePath}`);
   }
 }
 
@@ -206,11 +228,48 @@ function readJsoncFile<T>(filePath: string): T {
   return parsed.config as T;
 }
 
+function copyE2EWorkerArtifact(root: string) {
+  const artifactRoot = e2eWorkerArtifactPath(root);
+  fs.rmSync(artifactRoot, { recursive: true, force: true });
+
+  for (const entry of E2E_WORKER_SOURCE_ENTRIES) {
+    requirePathKind(root, entry.source, entry.kind);
+    const sourcePath = path.join(root, entry.source);
+    const targetPath = e2eWorkerArtifactPath(root, entry.target);
+    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+
+    if (entry.kind === "directory") {
+      fs.cpSync(sourcePath, targetPath, { recursive: true });
+    } else {
+      fs.copyFileSync(sourcePath, targetPath);
+    }
+  }
+}
+
+export function validatePlaywrightWorkerRuntime(
+  root = process.cwd(),
+  commandHint = "bun run e2e:build-artifacts",
+) {
+  for (const relativePath of E2E_WORKER_CONTRACT_FILES) {
+    const artifactRelativePath = path.join(
+      E2E_WORKER_ARTIFACT_DIR,
+      relativePath,
+    );
+    const artifactPath = path.join(root, artifactRelativePath);
+    const stat = fs.existsSync(artifactPath)
+      ? fs.statSync(artifactPath)
+      : undefined;
+    if (!stat?.isFile()) {
+      throw new Error(
+        `Missing E2E Worker artifact file: ${artifactRelativePath}. Run \`${commandHint}\` before starting the E2E app.`,
+      );
+    }
+  }
+}
+
 export function preparePlaywrightWorkerRuntime(root = process.cwd()) {
-  resolveWorkerEntrypoint(root, "bun run build");
-  requireBuiltFile(root, ".svelte-kit/cloudflare-tmp/manifest.js");
-  requireBuiltFile(root, ".svelte-kit/output/server/index.js");
-  requireBuiltFile(root, ".svelte-kit/output/server/nodes/0.js");
+  copyE2EWorkerArtifact(root);
+  validatePlaywrightWorkerRuntime(root);
 }
 
 function pickE2EWorkerVars(env: Record<string, string>) {
@@ -238,10 +297,11 @@ function writePlaywrightWranglerConfig(
   }>(sourceConfigPath);
 
   delete config.routes;
-  config.main = path.resolve(root, ".svelte-kit/cloudflare/_worker.js");
+  const artifactRoot = e2eWorkerArtifactPath(root);
+  config.main = path.resolve(artifactRoot, "cloudflare", "_worker.js");
   config.assets = {
     ...config.assets,
-    directory: path.resolve(root, ".svelte-kit/cloudflare"),
+    directory: path.resolve(artifactRoot, "cloudflare"),
   };
   config.vars = {
     ...config.vars,
@@ -264,7 +324,7 @@ function writePlaywrightWranglerConfig(
 }
 
 export async function startPlaywrightWorkerRuntime(root = process.cwd()) {
-  preparePlaywrightWorkerRuntime(root);
+  validatePlaywrightWorkerRuntime(root);
   const runtime = resolvePlaywrightServerRuntime();
   const env = buildPlaywrightServerEnv({
     host: runtime.host,

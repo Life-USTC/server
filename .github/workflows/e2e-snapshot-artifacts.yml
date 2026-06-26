@@ -7,35 +7,43 @@ on:
   workflow_dispatch:
 
 jobs:
+  capture-artifacts:
+    name: Capture E2E artifacts (${{ github.sha }})
+    permissions:
+      contents: read
+    uses: ./.github/workflows/db-backed-bun-job.yml
+    with:
+      database-name: life_ustc_e2e_snapshots
+      install-playwright: true
+      timeout-minutes: 45
+      jwt-secret: e2e-snapshot-ci-secret
+      webhook-secret: e2e-snapshot-ci-secret
+      auth-secret: e2e-snapshot-ci-secret
+      extra-env: |
+        NO_PROXY=127.0.0.1,localhost,::1
+      job-command: |
+        bun run e2e:build-artifacts
+        bun run e2e:db:prepare
+        bun run seed
+        bun run snapshot:capture
+      upload-artifact-name: e2e-snapshot-artifacts-${{ github.sha }}
+      upload-artifact-path: |
+        test-results/snapshots
+        test-results/e2e-snapshot-server.log
+      upload-artifact-no-files-found: ignore
+      upload-artifact-always: true
+
   comment-artifacts:
     name: Comment E2E artifacts (${{ github.sha }})
+    needs: capture-artifacts
+    if: ${{ always() }}
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 20
     concurrency:
       group: e2e-snapshot-artifacts-publisher
       cancel-in-progress: false
     permissions:
       contents: write
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: life_ustc_e2e_snapshots
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    env:
-      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_e2e_snapshots
-      JWT_SECRET: e2e-snapshot-ci-secret
-      WEBHOOK_SECRET: e2e-snapshot-ci-secret
-      AUTH_SECRET: e2e-snapshot-ci-secret
-      NO_PROXY: 127.0.0.1,localhost,::1
 
     steps:
       - name: Checkout code
@@ -46,42 +54,22 @@ jobs:
 
       - name: Setup workspace
         uses: ./.github/actions/setup-bun-env
-        with:
-          install-playwright: "true"
 
-      - name: Build Worker app
-        shell: bash
-        run: bun run e2e:build-artifacts
-
-      - name: Bootstrap E2E services
-        shell: bash
-        run: bun run e2e:db:prepare
-
-      - name: Seed E2E scenarios
-        shell: bash
-        run: bun run seed
-
-      - name: Capture E2E snapshots
-        id: snapshots
+      - name: Download E2E snapshot artifact
+        id: download
         continue-on-error: true
-        shell: bash
-        run: bun run snapshot:capture
-
-      - name: Upload E2E snapshot artifact
-        id: upload
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: e2e-snapshot-artifacts-${{ github.sha }}
-          path: |
-            test-results/snapshots
-            test-results/e2e-snapshot-server.log
-          if-no-files-found: ignore
-          retention-days: 14
+          path: test-results
+
+      - name: Ensure snapshot directory exists
+        shell: bash
+        run: mkdir -p test-results/snapshots
 
       - name: Publish screenshot previews
         id: previews
-        if: ${{ steps.snapshots.outcome == 'success' }}
+        if: ${{ needs.capture-artifacts.result == 'success' }}
         shell: bash
         run: >
           bun run snapshot:publish-previews --
@@ -92,7 +80,7 @@ jobs:
         if: ${{ always() }}
         shell: bash
         run: |
-          artifact_url="${{ steps.upload.outputs.artifact-url }}"
+          artifact_url="${{ needs.capture-artifacts.outputs.artifact-url }}"
           workflow_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           if [ -z "$artifact_url" ]; then
             artifact_url="$workflow_url"
@@ -102,7 +90,7 @@ jobs:
             --snapshot-dir test-results/snapshots \
             --artifact-url "$artifact_url" \
             --commit "${{ github.sha }}" \
-            --status "${{ steps.snapshots.outcome }}" \
+            --status "${{ needs.capture-artifacts.result }}" \
             --screenshot-base-url "${{ steps.previews.outputs.base-url }}" \
             --workflow-url "$workflow_url" \
             --output test-results/e2e-snapshot-comment.md
@@ -124,8 +112,3 @@ jobs:
             --method POST \
             "repos/${{ github.repository }}/commits/${{ github.sha }}/comments" \
             --input test-results/e2e-snapshot-comment.json
-
-      - name: Fail when snapshot capture failed
-        if: ${{ steps.snapshots.outcome != 'success' }}
-        shell: bash
-        run: exit 1
