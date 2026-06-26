@@ -2,7 +2,6 @@ import type { AuditAction, Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { recordAuditWriteMetric } from "@/lib/metrics/observability-metrics";
-import { getRequestEvent } from "$app/server";
 
 export { getAuditRequestMetadata } from "@/lib/audit/request-metadata";
 
@@ -25,6 +24,14 @@ type AuditPlatform = {
   ctx?: unknown;
 };
 
+type AuditRequestEvent = {
+  platform?: AuditPlatform;
+};
+
+type AuditServerModule = {
+  getRequestEvent?: () => AuditRequestEvent;
+};
+
 function isWorkerWaitUntilContext(
   value: unknown,
 ): value is WorkerWaitUntilContext {
@@ -36,9 +43,20 @@ function isWorkerWaitUntilContext(
   );
 }
 
-function getAuditWaitUntil() {
+async function loadAuditServerModule() {
   try {
-    const platform = getRequestEvent().platform as AuditPlatform | undefined;
+    return (await import("$app/server")) as AuditServerModule;
+  } catch {
+    return undefined;
+  }
+}
+
+async function getAuditWaitUntil() {
+  try {
+    const getRequestEvent = (await loadAuditServerModule())?.getRequestEvent;
+    if (typeof getRequestEvent !== "function") return undefined;
+
+    const platform = getRequestEvent().platform;
     const context = platform?.ctx ?? platform?.context;
     if (!isWorkerWaitUntilContext(context)) return undefined;
 
@@ -94,17 +112,20 @@ export async function writeAuditLog(params: AuditLogParams) {
 /**
  * Fire-and-forget audit log that logs failures instead of swallowing them silently.
  * Use for non-critical audit trails where the route should not fail if logging errors.
- * In Worker requests, the write is scheduled with waitUntil; outside that
- * context, the logged write promise is returned so callers can await it.
+ * In Worker requests, the write is also scheduled with waitUntil when the
+ * SvelteKit request context is available. The logged write promise is returned
+ * so non-request callers and tests can await it.
  */
 export function fireAuditLog(params: AuditLogParams) {
-  const waitUntil = getAuditWaitUntil();
   const auditWrite = writeAuditLog(params).catch((error: unknown) => {
     logAuditWriteFailure(params, error);
   });
 
-  if (!waitUntil) return auditWrite;
+  void getAuditWaitUntil()
+    .then((waitUntil) => {
+      waitUntil?.(auditWrite);
+    })
+    .catch(() => undefined);
 
-  waitUntil(auditWrite);
-  return undefined;
+  return auditWrite;
 }
