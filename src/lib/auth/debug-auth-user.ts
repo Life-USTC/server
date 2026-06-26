@@ -4,10 +4,24 @@ import { prisma } from "@/lib/db/prisma";
 import { getDebugProviderConfig } from "./debug-auth-config";
 import type { DebugProviderId } from "./provider-ids";
 
+type DebugCredentialUserData = {
+  username: string;
+  email: string;
+  emailVerified: boolean;
+  name: string;
+  image: string;
+  isAdmin: boolean;
+  profilePictures: string[];
+};
+
+function staleDebugIdentityEmail(userId: string) {
+  return `debug-auth-stale-${userId}@debug.local`;
+}
+
 export async function ensureDebugCredentialUser(providerId: DebugProviderId) {
   const config = getDebugProviderConfig(providerId);
   const hashedPassword = await hashPassword(config.password);
-  const userData = {
+  const userData: DebugCredentialUserData = {
     username: config.username,
     email: config.email,
     emailVerified: true,
@@ -18,19 +32,42 @@ export async function ensureDebugCredentialUser(providerId: DebugProviderId) {
   };
 
   const upsertDebugUserByIdentity = async () => {
-    const existing = await prisma.user.findFirst({
+    const matches = await prisma.user.findMany({
       where: {
         OR: [{ username: config.username }, { email: config.email }],
       },
-      select: { id: true, image: true, profilePictures: true },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        image: true,
+        profilePictures: true,
+      },
+      orderBy: { createdAt: "asc" },
     });
+    const existing =
+      matches.find((user) => user.username === config.username) ?? matches[0];
 
     if (existing) {
+      for (const conflict of matches.filter(
+        (user) => user.id !== existing.id,
+      )) {
+        await prisma.user.update({
+          where: { id: conflict.id },
+          data: {
+            username: null,
+            email: staleDebugIdentityEmail(conflict.id),
+          },
+        });
+      }
+
       return prisma.user.update({
         where: { id: existing.id },
         data: {
+          username: userData.username,
           email: userData.email,
           emailVerified: userData.emailVerified,
+          name: userData.name,
           isAdmin: userData.isAdmin,
           image: existing.image || userData.image,
           ...(existing.profilePictures.length > 0
