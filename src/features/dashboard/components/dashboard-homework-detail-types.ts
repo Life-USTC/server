@@ -37,6 +37,7 @@ export type DashboardHomeworkCompletionToggle = (
 ) => void | Promise<void>;
 
 export type DashboardHomeworkCommentsPanel = Component<{
+  permalinkBaseHref?: string | null;
   targetId: string;
   targetType: "homework";
 }>;

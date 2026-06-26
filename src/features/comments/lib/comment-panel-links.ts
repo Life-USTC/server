@@ -15,14 +15,82 @@ export function commentPanelStatusLabel(
 }
 
 export function commentPermalinkHref(currentHref: string, commentId: string) {
-  const url = new URL(currentHref);
-  if (
-    url.pathname.startsWith("/courses/") ||
-    url.pathname.startsWith("/sections/") ||
-    url.pathname.startsWith("/teachers/")
-  ) {
-    url.searchParams.set("tab", "comments");
-  }
+  const isAbsolute = /^[a-z][a-z\d+\-.]*:/i.test(currentHref);
+  const url = new URL(currentHref, "https://life-ustc.local");
   url.hash = `comment-${commentId}`;
-  return url.toString();
+  if (isAbsolute) return url.toString();
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
+export function absoluteCommentPermalinkHref({
+  commentId,
+  currentHref,
+  permalinkBaseHref,
+}: {
+  commentId: string;
+  currentHref: string;
+  permalinkBaseHref: string;
+}) {
+  return commentPermalinkHref(
+    new URL(permalinkBaseHref, currentHref).toString(),
+    commentId,
+  );
+}
+
+type PermalinkPathValue = number | string;
+
+export type CommentPermalinkTarget =
+  | {
+      sectionJwId: PermalinkPathValue;
+      type: "section" | "section-teacher";
+    }
+  | {
+      courseJwId: PermalinkPathValue;
+      type: "course";
+    }
+  | {
+      teacherId: PermalinkPathValue;
+      type: "teacher";
+    }
+  | {
+      homeworkId: PermalinkPathValue;
+      sectionJwId: PermalinkPathValue;
+      type: "homework";
+    };
+
+function pathSegment(value: PermalinkPathValue) {
+  return encodeURIComponent(String(value));
+}
+
+function pathWithSearch(
+  pathname: string,
+  search: Record<string, PermalinkPathValue>,
+) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(search)) {
+    params.set(key, String(value));
+  }
+  return `${pathname}?${params.toString()}`;
+}
+
+export function commentTargetPermalinkBaseHref(target: CommentPermalinkTarget) {
+  if (target.type === "course") {
+    return pathWithSearch(`/courses/${pathSegment(target.courseJwId)}`, {
+      tab: "comments",
+    });
+  }
+  if (target.type === "teacher") {
+    return pathWithSearch(`/teachers/${pathSegment(target.teacherId)}`, {
+      tab: "comments",
+    });
+  }
+  if (target.type === "homework") {
+    return pathWithSearch(`/sections/${pathSegment(target.sectionJwId)}`, {
+      tab: "homework",
+      homeworkId: target.homeworkId,
+    });
+  }
+  return pathWithSearch(`/sections/${pathSegment(target.sectionJwId)}`, {
+    tab: "comments",
+  });
 }

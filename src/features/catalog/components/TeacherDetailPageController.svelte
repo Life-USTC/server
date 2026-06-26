@@ -1,6 +1,7 @@
 <script lang="ts">
 import { onMount } from "svelte";
 import CommentsPanel from "@/features/comments/components/CommentsPanel.svelte";
+import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.js";
@@ -139,6 +140,10 @@ onMount(() => {
           {#key `comments:teacher:${data.teacher.id}`}
             <CommentsPanel
               initialData={data.commentsData}
+              permalinkBaseHref={commentTargetPermalinkBaseHref({
+                teacherId: data.teacher.id,
+                type: "teacher",
+              })}
               targetType="teacher"
               targetId={data.teacher.id}
             />

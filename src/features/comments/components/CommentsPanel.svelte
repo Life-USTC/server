@@ -52,6 +52,7 @@ export let targetId: number | string | null = null;
 export let sectionId: number | null = null;
 export let showAllTargets = false;
 export let initialData: CommentsInitialData | null = null;
+export let permalinkBaseHref: string | null = null;
 export let targets: CommentTargetOption[] = [];
 export let teacherId: number | null = null;
 
@@ -111,6 +112,7 @@ $: _dateTimeFormatter = createShanghaiDateTimeFormatter(
 $: _signInHref = commentPanelSignInHref($page.url.pathname, $page.url.search);
 $: _resolvedTargets = resolveCommentTargets({
   copy: _commentCopy,
+  permalinkBaseHref,
   sectionId,
   targetId,
   targets,

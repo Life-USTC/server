@@ -36,7 +36,7 @@ export async function listAdminModerationComments({
         select: {
           id: true,
           title: true,
-          section: { select: { code: true } },
+          section: { select: { code: true, jwId: true } },
         },
       },
       sectionTeacher: {

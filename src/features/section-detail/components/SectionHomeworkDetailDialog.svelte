@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { Component } from "svelte";
+import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import SectionHomeworkActionBar from "./SectionHomeworkActionBar.svelte";
@@ -22,6 +23,7 @@ import type {
 } from "./section-homework-display-types";
 
 export let CommentsPanel: Component<{
+  permalinkBaseHref?: string | null;
   targetId: string;
   targetType: "homework";
 }>;
@@ -55,6 +57,7 @@ export let _startEditHomework: () => void;
 export let _toggleHomeworkCompletion: SectionHomeworkAction;
 export let _updateHomework: SectionHomeworkSubmitHandler;
 export let close: () => void;
+export let sectionJwId: number | string;
 </script>
 
 {#if _selectedHomework}
@@ -134,7 +137,15 @@ export let close: () => void;
 
         <section class="min-w-0 border-base-300 border-t pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-5">
           {#key `comments:homework:${_selectedHomework.id}`}
-            <CommentsPanel targetType="homework" targetId={_selectedHomework.id} />
+            <CommentsPanel
+              permalinkBaseHref={commentTargetPermalinkBaseHref({
+                homeworkId: _selectedHomework.id,
+                sectionJwId,
+                type: "homework",
+              })}
+              targetType="homework"
+              targetId={_selectedHomework.id}
+            />
           {/key}
         </section>
       </div>

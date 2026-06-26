@@ -1,3 +1,4 @@
+import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import type { CommentTargetOption } from "@/features/comments/lib/comment-ui";
 import type {
   HomeworkAuditLog,
@@ -28,12 +29,20 @@ export function buildSectionDetailCommentTargets(
     {
       key: "section",
       label: copy.sectionDetail.sectionComments,
+      permalinkBaseHref: commentTargetPermalinkBaseHref({
+        sectionJwId: section.jwId,
+        type: "section",
+      }),
       targetId: section.id,
       type: "section" as const,
     },
     {
       key: "course",
       label: copy.sectionDetail.courseComments,
+      permalinkBaseHref: commentTargetPermalinkBaseHref({
+        courseJwId: section.course.jwId,
+        type: "course",
+      }),
       targetId: section.course.id,
       type: "course" as const,
     },
@@ -42,6 +51,10 @@ export function buildSectionDetailCommentTargets(
           {
             key: "section-teacher",
             label: copy.comments.tabSectionTeacher,
+            permalinkBaseHref: commentTargetPermalinkBaseHref({
+              sectionJwId: section.jwId,
+              type: "section-teacher",
+            }),
             sectionId: section.id,
             teacherId:
               typeof firstCommentTeacher.id === "number"

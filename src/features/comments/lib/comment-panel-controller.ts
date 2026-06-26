@@ -6,7 +6,9 @@ export {
   commentEditAttachmentOptions,
 } from "./comment-panel-draft-state";
 export {
+  absoluteCommentPermalinkHref,
   commentPanelSignInHref,
   commentPanelStatusLabel,
   commentPermalinkHref,
+  commentTargetPermalinkBaseHref,
 } from "./comment-panel-links";
