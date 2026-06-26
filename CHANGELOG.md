@@ -1,3 +1,11 @@
+## [1.39.23](https://github.com/Life-USTC/server/compare/v1.39.22...v1.39.23) (2026-06-26)
+
+
+### Bug Fixes
+
+* **api:** align mcp query contract validation ([331e441](https://github.com/Life-USTC/server/commit/331e4415263ba653d82b9c9514b400253dad2809))
+* **e2e:** use copied worker entrypoint ([8661335](https://github.com/Life-USTC/server/commit/86613356a3eb43c39466c97010d6b3d1afc69a05))
+
 ## [1.39.22](https://github.com/Life-USTC/server/compare/v1.39.21...v1.39.22) (2026-06-26)
 
 
