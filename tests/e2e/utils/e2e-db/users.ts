@@ -1,3 +1,4 @@
+import { deleteAuditLogsForUsersAndTargetsUntilStable } from "@tools/shared/audit-cleanup";
 import { generateToken } from "./core";
 import { withE2ePrisma } from "./prisma";
 
@@ -107,10 +108,10 @@ export async function createTempUsersFixture(options: {
 }) {
   const usernames: string[] = [];
 
-  for (let index = 0; index < options.count; index += 1) {
-    const username = `${options.prefix}-${String(index).padStart(2, "0")}`;
-    usernames.push(username);
-    await withE2ePrisma(async (prisma) => {
+  await withE2ePrisma(async (prisma) => {
+    for (let index = 0; index < options.count; index += 1) {
+      const username = `${options.prefix}-${String(index).padStart(2, "0")}`;
+      usernames.push(username);
       const user = await prisma.user.upsert({
         where: { username },
         update: {
@@ -141,20 +142,53 @@ export async function createTempUsersFixture(options: {
           email: `${username}@example.test`,
         },
       });
-    });
-  }
+    }
+  });
 
   return { usernames };
 }
 
 export async function deleteUsersByPrefix(prefix: string) {
-  await withE2ePrisma((prisma) =>
-    prisma.user.deleteMany({
+  await withE2ePrisma(async (prisma) => {
+    const users = await prisma.user.findMany({
       where: {
         username: {
           startsWith: prefix,
         },
       },
-    }),
-  );
+      select: {
+        id: true,
+        comments: { select: { id: true } },
+        uploads: { select: { id: true } },
+      },
+    });
+    if (users.length === 0) return;
+
+    const userIds = users.map((user) => user.id);
+    const targets = [
+      { targetType: "user", targetIds: userIds },
+      {
+        targetType: "comment",
+        targetIds: users.flatMap((user) =>
+          user.comments.map((comment) => comment.id),
+        ),
+      },
+      {
+        targetType: "upload",
+        targetIds: users.flatMap((user) =>
+          user.uploads.map((upload) => upload.id),
+        ),
+      },
+    ];
+
+    await deleteAuditLogsForUsersAndTargetsUntilStable(prisma, {
+      userIds,
+      targets,
+    });
+    await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+    await deleteAuditLogsForUsersAndTargetsUntilStable(prisma, {
+      userIds,
+      targets,
+    });
+  });
 }

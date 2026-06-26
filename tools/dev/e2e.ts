@@ -45,23 +45,25 @@ const E2E_WORKER_CONTRACT_FILES = [
   path.join("cloudflare-tmp", "manifest.js"),
   path.join("output", "server", "index.js"),
 ] as const;
-export const E2E_WORKER_VAR_KEYS = [
+export const E2E_WORKER_SECRET_KEYS = [
   "AUTH_SECRET",
   "WEBHOOK_SECRET",
   "OAUTH_PROXY_SECRET",
+  "DEV_DEBUG_PASSWORD",
+  "DEV_ADMIN_PASSWORD",
+  "METRICS_BEARER_TOKEN",
+] as const;
+export const E2E_WORKER_VAR_KEYS = [
   "E2E_DEBUG_AUTH",
   "DEV_DEBUG_USERNAME",
   "DEV_DEBUG_NAME",
   "DEV_DEBUG_EMAIL",
-  "DEV_DEBUG_PASSWORD",
   "DEV_ADMIN_USERNAME",
   "DEV_ADMIN_NAME",
   "DEV_ADMIN_EMAIL",
-  "DEV_ADMIN_PASSWORD",
-  "METRICS_BEARER_TOKEN",
   "UPLOAD_TOTAL_QUOTA_MB",
 ] as const;
-const E2E_REQUIRED_WORKER_VAR_KEYS = ["AUTH_SECRET"] as const;
+const E2E_REQUIRED_WORKER_ENV_KEYS = ["AUTH_SECRET"] as const;
 
 function parseLocalPlaywrightBaseUrl(value: string) {
   const url = new URL(value);
@@ -288,13 +290,24 @@ export function preparePlaywrightWorkerRuntime(root = process.cwd()) {
   validatePlaywrightWorkerRuntime(root);
 }
 
-function pickE2EWorkerVars(env: Record<string, string>) {
+function pickEnvKeys(
+  keys: readonly string[],
+  env: Record<string, string>,
+): Record<string, string> {
   return Object.fromEntries(
-    E2E_WORKER_VAR_KEYS.flatMap((key) => {
+    keys.flatMap((key) => {
       const value = env[key];
       return value ? [[key, value]] : [];
     }),
   );
+}
+
+function pickE2EWorkerVars(env: Record<string, string>) {
+  return pickEnvKeys(E2E_WORKER_VAR_KEYS, env);
+}
+
+function pickE2EWorkerSecrets(env: Record<string, string>) {
+  return pickEnvKeys(E2E_WORKER_SECRET_KEYS, env);
 }
 
 function assertE2EWorkerRuntimeEnv(
@@ -305,7 +318,7 @@ function assertE2EWorkerRuntimeEnv(
     }>;
   },
 ) {
-  const missing: string[] = E2E_REQUIRED_WORKER_VAR_KEYS.filter(
+  const missing: string[] = E2E_REQUIRED_WORKER_ENV_KEYS.filter(
     (key) => !env[key],
   );
   const needsHyperdrive = config.hyperdrive?.some(
@@ -343,6 +356,9 @@ export function writePlaywrightWranglerConfig(
       id?: string;
       localConnectionString?: string;
     }>;
+    secrets?: {
+      required?: string[];
+    };
   }>(sourceConfigPath);
 
   assertE2EWorkerRuntimeEnv(env, config);
@@ -360,6 +376,15 @@ export function writePlaywrightWranglerConfig(
     NODE_ENV: "test",
     APP_PUBLIC_ORIGIN: baseUrl,
   };
+  const requiredSecrets = Object.keys(pickE2EWorkerSecrets(env));
+  if (requiredSecrets.length > 0) {
+    config.secrets = {
+      ...config.secrets,
+      required: [
+        ...new Set([...(config.secrets?.required ?? []), ...requiredSecrets]),
+      ],
+    };
+  }
   if (config.alias) {
     config.alias = Object.fromEntries(
       Object.entries(config.alias).map(([key, value]) => [

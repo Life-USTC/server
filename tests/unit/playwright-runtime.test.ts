@@ -12,6 +12,7 @@ import {
   appendLocalNoProxy,
   buildPlaywrightServerEnv,
   E2E_WORKER_ARTIFACT_DIR,
+  E2E_WORKER_SECRET_KEYS,
   E2E_WORKER_VAR_KEYS,
   preparePlaywrightWorkerRuntime,
   resolvePlaywrightHarnessRuntime,
@@ -162,9 +163,14 @@ describe("playwright runtime", () => {
     });
   });
 
-  it("passes current auth worker vars without stale JWT_SECRET", () => {
-    expect(E2E_WORKER_VAR_KEYS).toContain("AUTH_SECRET");
-    expect(E2E_WORKER_VAR_KEYS).toContain("WEBHOOK_SECRET");
+  it("keeps auth worker secrets out of plain Wrangler vars", () => {
+    expect(E2E_WORKER_SECRET_KEYS).toContain("AUTH_SECRET");
+    expect(E2E_WORKER_SECRET_KEYS).toContain("WEBHOOK_SECRET");
+    expect(E2E_WORKER_SECRET_KEYS).toContain("DEV_DEBUG_PASSWORD");
+    expect(E2E_WORKER_SECRET_KEYS).toContain("DEV_ADMIN_PASSWORD");
+    expect(E2E_WORKER_VAR_KEYS).not.toContain("AUTH_SECRET");
+    expect(E2E_WORKER_VAR_KEYS).not.toContain("DEV_DEBUG_PASSWORD");
+    expect(E2E_WORKER_SECRET_KEYS).not.toContain("JWT_SECRET");
     expect(E2E_WORKER_VAR_KEYS).not.toContain("JWT_SECRET");
   });
 
@@ -283,7 +289,13 @@ describe("playwright runtime", () => {
         hyperdrive?: Array<{ localConnectionString?: string }>;
         main?: string;
         routes?: unknown;
-        vars?: { APP_PUBLIC_ORIGIN?: string };
+        secrets?: { required?: string[] };
+        vars?: {
+          APP_PUBLIC_ORIGIN?: string;
+          AUTH_SECRET?: string;
+          DEV_ADMIN_PASSWORD?: string;
+          DEV_DEBUG_PASSWORD?: string;
+        };
       };
       expect(config.routes).toBeUndefined();
       expect(config.main).toBe(
@@ -293,6 +305,16 @@ describe("playwright runtime", () => {
         path.join(root, E2E_WORKER_ARTIFACT_DIR, "cloudflare"),
       );
       expect(config.vars?.APP_PUBLIC_ORIGIN).toBe("http://127.0.0.1:3010");
+      expect(config.vars?.AUTH_SECRET).toBeUndefined();
+      expect(config.vars?.DEV_ADMIN_PASSWORD).toBeUndefined();
+      expect(config.vars?.DEV_DEBUG_PASSWORD).toBeUndefined();
+      expect(config.secrets?.required).toEqual(
+        expect.arrayContaining([
+          "AUTH_SECRET",
+          "DEV_ADMIN_PASSWORD",
+          "DEV_DEBUG_PASSWORD",
+        ]),
+      );
       expect(config.hyperdrive?.[0]?.localConnectionString).toBe(
         "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_pr179_mcp",
       );
