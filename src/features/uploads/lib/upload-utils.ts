@@ -2,6 +2,8 @@
  * Shared upload helper functions extracted from route files to avoid duplication.
  */
 
+import { isAsciiControlCharacter } from "@/lib/text/ascii-control-characters";
+
 export function normalizeContentType(value: unknown) {
   if (typeof value !== "string") return "application/octet-stream";
   const trimmed = value.trim();
@@ -10,17 +12,12 @@ export function normalizeContentType(value: unknown) {
 
 const HEADER_UNSAFE_FILENAME_CHARACTERS = /[^\x20-\x7e]|["\\]/gu;
 
-function isControlCharacter(character: string) {
-  const code = character.charCodeAt(0);
-  return code < 32 || code === 127;
-}
-
 export function sanitizeFilename(filename: string) {
   let sanitized = "";
   let previousWasReplacement = false;
 
   for (const character of filename) {
-    if (isControlCharacter(character)) {
+    if (isAsciiControlCharacter(character)) {
       if (!previousWasReplacement) {
         sanitized += " ";
         previousWasReplacement = true;
@@ -33,10 +30,6 @@ export function sanitizeFilename(filename: string) {
   }
 
   return sanitized.trim();
-}
-
-export function hasFilenameControlCharacters(filename: string) {
-  return Array.from(filename).some(isControlCharacter);
 }
 
 export function buildContentDisposition(filename: string) {

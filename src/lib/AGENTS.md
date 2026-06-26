@@ -15,6 +15,7 @@ oauth/     OAuth provider, tokens
 storage/   Cloudflare R2 object helpers
 security/  CSP, content security
 time/      Date parsing, serialization
+text/      Pure string/text helpers
 log/       Structured logging
 ```
 

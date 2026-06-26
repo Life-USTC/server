@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { hasFilenameControlCharacters } from "@/features/uploads/lib/upload-utils";
+import { hasAsciiControlCharacters } from "@/lib/text/ascii-control-characters";
 
 const filenameControlCharacterMessage =
   "Filename contains unsupported control characters";
@@ -8,7 +8,7 @@ const uploadFilenameSchema = z
   .string()
   .trim()
   .min(1)
-  .refine((filename) => !hasFilenameControlCharacters(filename), {
+  .refine((filename) => !hasAsciiControlCharacters(filename), {
     message: filenameControlCharacterMessage,
   });
 
@@ -17,7 +17,7 @@ const uploadRenameFilenameSchema = z
   .trim()
   .min(1)
   .max(255)
-  .refine((filename) => !hasFilenameControlCharacters(filename), {
+  .refine((filename) => !hasAsciiControlCharacters(filename), {
     message: filenameControlCharacterMessage,
   });
 
