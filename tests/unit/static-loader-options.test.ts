@@ -54,7 +54,17 @@ describe("static loader options", () => {
     "1.5",
   ])("rejects invalid --min-semester value %s", (value) => {
     expect(() => parseStaticLoaderOptions(["--min-semester", value])).toThrow(
-      `Invalid --min-semester "${value}": expected a positive integer jwId.`,
+      `Invalid --min-semester "${value}": expected a positive safe integer jwId.`,
+    );
+  });
+
+  it("rejects --min-semester values beyond Number.MAX_SAFE_INTEGER", () => {
+    const unsafeValue = "9007199254740992";
+
+    expect(() =>
+      parseStaticLoaderOptions(["--min-semester", unsafeValue]),
+    ).toThrow(
+      `Invalid --min-semester "${unsafeValue}": expected a positive safe integer jwId.`,
     );
   });
 
