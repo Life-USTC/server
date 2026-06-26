@@ -299,7 +299,7 @@ describe("playwright runtime", () => {
       };
       expect(config.routes).toBeUndefined();
       expect(config.main).toBe(
-        path.join(root, E2E_WORKER_ARTIFACT_DIR, "_worker.js"),
+        path.join(root, E2E_WORKER_ARTIFACT_DIR, "cloudflare", "_worker.js"),
       );
       expect(config.assets?.directory).toBe(
         path.join(root, E2E_WORKER_ARTIFACT_DIR, "cloudflare"),
@@ -371,7 +371,7 @@ describe("playwright runtime", () => {
       expect(() => validatePlaywrightWorkerRuntime(root)).not.toThrow();
       expect(
         existsSync(path.join(root, E2E_WORKER_ARTIFACT_DIR, "_worker.js")),
-      ).toBe(true);
+      ).toBe(false);
       expect(
         existsSync(
           path.join(root, E2E_WORKER_ARTIFACT_DIR, "cloudflare", "_worker.js"),
@@ -379,16 +379,16 @@ describe("playwright runtime", () => {
       ).toBe(true);
       expect(
         readFileSync(
-          path.join(root, E2E_WORKER_ARTIFACT_DIR, "_worker.js"),
+          path.join(root, E2E_WORKER_ARTIFACT_DIR, "cloudflare", "_worker.js"),
           "utf8",
         ),
-      ).toContain('from "./output/server/index.js"');
+      ).toContain('from "./../output/server/index.js"');
       expect(
         readFileSync(
-          path.join(root, E2E_WORKER_ARTIFACT_DIR, "_worker.js"),
+          path.join(root, E2E_WORKER_ARTIFACT_DIR, "cloudflare", "_worker.js"),
           "utf8",
         ),
-      ).toContain('from "./cloudflare-tmp/manifest.js"');
+      ).toContain('from "./../cloudflare-tmp/manifest.js"');
       expect(
         existsSync(
           path.join(
@@ -415,7 +415,7 @@ describe("playwright runtime", () => {
     const root = mkdtempSync(path.join(tmpdir(), "life-ustc-playwright-"));
     try {
       expect(() => validatePlaywrightWorkerRuntime(root)).toThrow(
-        /Missing E2E Worker artifact file: build\/e2e-worker\/_worker\.js/,
+        /Missing E2E Worker artifact file: build\/e2e-worker\/cloudflare\/_worker\.js/,
       );
     } finally {
       rmSync(root, { recursive: true, force: true });

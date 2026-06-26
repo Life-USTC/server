@@ -23,6 +23,7 @@ const WRANGLER_E2E_CONFIG_PATH = path.join(
 );
 const WRANGLER_E2E_PERSIST_PATH = path.join(".wrangler", "e2e", "state");
 export const E2E_WORKER_ARTIFACT_DIR = path.join("build", "e2e-worker");
+const E2E_WORKER_ENTRYPOINT = path.join("cloudflare", "_worker.js");
 const E2E_WORKER_SOURCE_ENTRIES = [
   {
     source: path.join(".svelte-kit", "cloudflare"),
@@ -41,7 +42,7 @@ const E2E_WORKER_SOURCE_ENTRIES = [
   },
 ] as const;
 const E2E_WORKER_CONTRACT_FILES = [
-  "_worker.js",
+  E2E_WORKER_ENTRYPOINT,
   path.join("cloudflare-tmp", "manifest.js"),
   path.join("output", "server", "index.js"),
 ] as const;
@@ -246,22 +247,6 @@ function copyE2EWorkerArtifact(root: string) {
       fs.copyFileSync(sourcePath, targetPath);
     }
   }
-
-  writeE2EWorkerEntrypoint(root);
-}
-
-function writeE2EWorkerEntrypoint(root: string) {
-  const sourcePath = e2eWorkerArtifactPath(
-    root,
-    path.join("cloudflare", "_worker.js"),
-  );
-  const targetPath = e2eWorkerArtifactPath(root, "_worker.js");
-  const source = fs.readFileSync(sourcePath, "utf8");
-  const rewritten = source
-    .replaceAll("./../output/", "./output/")
-    .replaceAll("./../cloudflare-tmp/", "./cloudflare-tmp/");
-
-  fs.writeFileSync(targetPath, rewritten);
 }
 
 export function validatePlaywrightWorkerRuntime(
@@ -365,7 +350,7 @@ export function writePlaywrightWranglerConfig(
 
   delete config.routes;
   const artifactRoot = e2eWorkerArtifactPath(root);
-  config.main = path.resolve(artifactRoot, "_worker.js");
+  config.main = path.resolve(artifactRoot, E2E_WORKER_ENTRYPOINT);
   config.assets = {
     ...config.assets,
     directory: path.resolve(artifactRoot, "cloudflare"),
