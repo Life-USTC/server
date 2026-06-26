@@ -1,3 +1,11 @@
+## [1.39.7](https://github.com/Life-USTC/server/compare/v1.39.6...v1.39.7) (2026-06-26)
+
+
+### Bug Fixes
+
+* **seed:** keep date-only fixtures at UTC midnight ([1f6953f](https://github.com/Life-USTC/server/commit/1f6953f7bec4db7da86fa1935a04698d4cb6b5dc))
+* **seed:** make dev timestamps timezone stable ([06ac901](https://github.com/Life-USTC/server/commit/06ac901a4f184e3ab7eb457311d903d818f118ed))
+
 ## [1.39.6](https://github.com/Life-USTC/server/compare/v1.39.5...v1.39.6) (2026-06-26)
 
 
