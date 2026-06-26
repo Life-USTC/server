@@ -1,3 +1,10 @@
+## [1.39.13](https://github.com/Life-USTC/server/compare/v1.39.12...v1.39.13) (2026-06-26)
+
+
+### Bug Fixes
+
+* **admin:** enforce single open suspension ([9aa2391](https://github.com/Life-USTC/server/commit/9aa23913745d734eaf69ce706b3534ade026f9d7))
+
 ## [1.39.12](https://github.com/Life-USTC/server/compare/v1.39.11...v1.39.12) (2026-06-26)
 
 
