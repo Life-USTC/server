@@ -23,6 +23,7 @@ export let formatMessage: (
 export let openCalendarDialog: () => void;
 export let sectionCalendarEvents: SectionCalendarEvent[];
 export let sectionCopy: SectionCalendarCopy;
+export let todayCalendarMonthOffset: number;
 export let unscheduledCalendarEvents: SectionCalendarEvent[];
 </script>
 
@@ -45,6 +46,7 @@ export let unscheduledCalendarEvents: SectionCalendarEvent[];
       {calendarMonthLabel}
       {formatMessage}
       {sectionCopy}
+      {todayCalendarMonthOffset}
     />
 
     <section class="grid gap-3">

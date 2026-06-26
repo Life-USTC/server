@@ -59,6 +59,13 @@ function getSectionTab(page: Page, name: RegExp) {
     .first();
 }
 
+function getSectionCalendarMonthView(page: Page) {
+  return page
+    .locator("section")
+    .filter({ has: page.getByRole("button", { name: /今天|Today/i }) })
+    .first();
+}
+
 test.describe("/sections/[jwId]", () => {
   test("contract", async ({ page }, testInfo) => {
     await assertPageContract(page, {
@@ -284,6 +291,29 @@ test.describe("/sections/[jwId]", () => {
     ).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "section/schedule-calendar");
+  });
+
+  test("Today button navigates calendar to current day instead of section start", async ({
+    page,
+  }, testInfo) => {
+    await gotoAndWaitForReady(page, SECTION_URL);
+
+    const calendarTab = getSectionTab(page, /日历|Calendar/i);
+    await calendarTab.click();
+    await expect(calendarTab).toHaveAttribute("aria-pressed", "true");
+
+    const monthView = getSectionCalendarMonthView(page);
+    const monthHeading = monthView.locator("h3").first();
+    const initialMonthLabel = (await monthHeading.innerText()).trim();
+
+    await monthView.getByRole("button", { name: /下个月|Next month/i }).click();
+    await expect(monthHeading).not.toHaveText(initialMonthLabel);
+
+    await monthView.getByRole("button", { name: /今天|Today/i }).click();
+    await expect(monthView.locator('[aria-current="date"]')).toHaveCount(1);
+    await expect(monthHeading).not.toHaveText(initialMonthLabel);
+
+    await captureStepScreenshot(page, testInfo, "section/calendar-today");
   });
 
   test("displays exam info (examBatch, examRooms) in calendar tab", async ({

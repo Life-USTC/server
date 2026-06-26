@@ -48,6 +48,7 @@ export let setSelectedHomework: SectionDetailMainContentProps["setSelectedHomewo
 export let tabs: SectionDetailMainContentProps["tabs"];
 export let teacherName: SectionDetailMainContentProps["teacherName"];
 export let todayCalendarKey: SectionDetailMainContentProps["todayCalendarKey"];
+export let todayCalendarMonthOffset: number;
 export let unscheduledCalendarEvents: SectionDetailMainContentProps["unscheduledCalendarEvents"];
 export let viewer: SectionDetailMainContentProps["viewer"];
 export let visibleCalendarMonth: Date;
@@ -79,7 +80,7 @@ export let yesNo: SectionDetailMainContentProps["yesNo"];
     {#if activeTab === "calendar"}
       <SectionCalendarTab
         bind:calendarMonthOffset
-        calendarGridWeeks={sectionCalendarGridWeeks()}
+        calendarGridWeeks={sectionCalendarGridWeeks}
         {calendarMonthLabel}
         dateTimePlaceText={data.section.dateTimePlaceText}
         {fmtDate}
@@ -87,6 +88,7 @@ export let yesNo: SectionDetailMainContentProps["yesNo"];
         {openCalendarDialog}
         {sectionCalendarEvents}
         {sectionCopy}
+        {todayCalendarMonthOffset}
         {unscheduledCalendarEvents}
       />
     {:else if activeTab === "homework"}

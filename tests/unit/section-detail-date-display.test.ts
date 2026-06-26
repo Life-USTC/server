@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { findCalendarBaseMonth } from "@/features/section-detail/lib/calendar";
 import {
+  calendarMonthOffsetForDateKey,
+  findCalendarBaseMonth,
+} from "@/features/section-detail/lib/calendar";
+import {
+  addMonths,
   calendarMonthDays,
   dateKey,
   formatDate,
@@ -48,5 +52,33 @@ describe("section detail date display", () => {
     expect(dateKey(lastDay)).toBe("2026-04-11");
     expect(isSameMonth(firstDay, monthStart)).toBe(true);
     expect(isSameMonth(lastDay, monthStart)).toBe(false);
+  });
+
+  it("computes the Today month offset from the section base month", () => {
+    const baseMonth = findCalendarBaseMonth([
+      {
+        badges: [],
+        date: "2026-04-29T00:00:00+08:00",
+        dateKey: "2026-04-29",
+        details: [],
+        id: "event-1",
+        kind: "class",
+        meta: "",
+        sortValue: 0,
+        title: "Class",
+      },
+    ]);
+
+    const offset = calendarMonthOffsetForDateKey(baseMonth, "2026-06-27");
+
+    expect(dateKey(baseMonth)).toBe("2026-04-01");
+    expect(offset).toBe(2);
+    expect(dateKey(addMonths(baseMonth, offset))).toBe("2026-06-01");
+  });
+
+  it("uses the provided today key as the empty-calendar base month", () => {
+    const monthStart = findCalendarBaseMonth([], "2026-06-27");
+
+    expect(dateKey(monthStart)).toBe("2026-06-01");
   });
 });
