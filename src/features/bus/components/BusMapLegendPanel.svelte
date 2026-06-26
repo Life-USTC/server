@@ -25,27 +25,20 @@ function formatMessage(template: string, values: Record<string, string>) {
     </div>
     <ul class="grid max-h-[32rem] gap-1.5 overflow-y-auto">
       {#each mapData.routes as route}
-        <li class={`rounded-md border px-2 py-1.5 text-sm transition ${hoveredRoute === route.routeId ? "border-base-300 bg-base-200/60" : "border-transparent hover:border-base-300 hover:bg-base-200/50"}`}>
+        <li
+          class={`rounded-md border px-2 py-1.5 text-sm transition ${hoveredRoute === route.routeId ? "border-base-300 bg-base-200/60" : "border-transparent hover:border-base-300 hover:bg-base-200/50"}`}
+          onpointerenter={() => {
+            hoveredRoute = route.routeId;
+          }}
+          onpointerleave={() => {
+            hoveredRoute = null;
+          }}
+        >
           <div class="flex items-center gap-2">
             <span class="h-2 w-8 rounded-full" style={`background:${routeColor(route.routeId, allRouteIds)}`}></span>
-            <button
-              class="min-w-0 flex-1 truncate text-left font-medium focus:outline-none"
-              type="button"
-              onmouseenter={() => {
-                hoveredRoute = route.routeId;
-              }}
-              onmouseleave={() => {
-                hoveredRoute = null;
-              }}
-              onfocus={() => {
-                hoveredRoute = route.routeId;
-              }}
-              onblur={() => {
-                hoveredRoute = null;
-              }}
-            >
+            <span class="min-w-0 flex-1 truncate text-left font-medium">
               {route.descriptionPrimary}
-            </button>
+            </span>
             <Badge variant="ghost">
               {formatMessage(copy.tripCount[mapData.todayType], {
                 count: String(mapData.todayType === "weekday" ? route.weekdayTrips : route.weekendTrips),

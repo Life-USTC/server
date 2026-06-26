@@ -22,6 +22,8 @@ export let toggleImportSectionSelection: (sectionId: number) => void;
       <button
         class="flex w-full cursor-pointer items-start gap-3 rounded-md border border-base-300 bg-base-100 p-3 text-left transition hover:bg-base-200"
         type="button"
+        role="checkbox"
+        aria-checked={selectedImportSectionIdSet.has(section.id)}
         aria-label={formatMessage(subscriptionsCopy.bulkImport.selectSection, {
           code: section.code,
         })}

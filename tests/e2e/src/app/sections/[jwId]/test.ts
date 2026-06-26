@@ -54,8 +54,8 @@ function escapeForRegExp(value: string) {
 
 function getSectionTab(page: Page, name: RegExp) {
   return page
-    .locator('[data-slot="tabs-list"]')
-    .getByRole("button", { name })
+    .getByRole("tablist", { name: /授课班级|Teaching section/i })
+    .getByRole("tab", { name })
     .first();
 }
 
@@ -108,7 +108,7 @@ test.describe("/sections/[jwId]", () => {
     // section.code (monospace)
     await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
     await expect(
-      page.getByRole("group", { name: /授课班级|Teaching section/i }),
+      page.getByRole("tablist", { name: /授课班级|Teaching section/i }),
     ).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "section/heading");
@@ -249,7 +249,7 @@ test.describe("/sections/[jwId]", () => {
     await expect(async () => {
       const calendarTab = getSectionTab(page, /日历|Calendar/i);
       await calendarTab.click();
-      await expect(calendarTab).toHaveAttribute("aria-pressed", "true");
+      await expect(calendarTab).toHaveAttribute("aria-selected", "true");
     }).toPass({
       timeout: 10_000,
       intervals: [250, 500, 1_000],
@@ -300,7 +300,7 @@ test.describe("/sections/[jwId]", () => {
 
     const calendarTab = getSectionTab(page, /日历|Calendar/i);
     await calendarTab.click();
-    await expect(calendarTab).toHaveAttribute("aria-pressed", "true");
+    await expect(calendarTab).toHaveAttribute("aria-selected", "true");
 
     const monthView = getSectionCalendarMonthView(page);
     const monthHeading = monthView.locator("h3").first();
@@ -324,7 +324,7 @@ test.describe("/sections/[jwId]", () => {
     await expect(async () => {
       const calendarTab = getSectionTab(page, /日历|Calendar/i);
       await calendarTab.click();
-      await expect(calendarTab).toHaveAttribute("aria-pressed", "true");
+      await expect(calendarTab).toHaveAttribute("aria-selected", "true");
     }).toPass({
       timeout: 10_000,
       intervals: [250, 500, 1_000],
@@ -387,24 +387,25 @@ test.describe("/sections/[jwId]", () => {
   test("tab switching works", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
-    const nextTab = page
-      .locator('[role="button"][aria-pressed="false"]')
+    const tabList = page
+      .getByRole("tablist", { name: /授课班级|Teaching section/i })
       .first();
-    if ((await nextTab.count()) > 0) {
-      const nextTabLabel = ((await nextTab.textContent()) ?? "").trim();
-      expect(nextTabLabel).toBeTruthy();
-      await expect(async () => {
-        const targetTab = page
-          .getByRole("button", { name: nextTabLabel })
-          .first();
-        await targetTab.click();
-        await expect(targetTab).toHaveAttribute("aria-pressed", "true");
-      }).toPass({
-        timeout: 10_000,
-        intervals: [250, 500, 1_000],
-      });
-      await captureStepScreenshot(page, testInfo, "section/tab-switch");
+    await expect(tabList).toBeVisible();
+    const targetTab = tabList.getByRole("tab").nth(1);
+    const targetTabId = await targetTab.getAttribute("id");
+    const panelId = await targetTab.getAttribute("aria-controls");
+    expect(targetTabId).toBeTruthy();
+    expect(panelId).toBeTruthy();
+    if (!targetTabId || !panelId) {
+      throw new Error("Expected section tab id and aria-controls");
     }
+
+    await targetTab.click();
+    await expect(targetTab).toHaveAttribute("aria-selected", "true");
+    const targetPanel = page.locator(`#${panelId}`);
+    await expect(targetPanel).toHaveAttribute("role", "tabpanel");
+    await expect(targetPanel).toHaveAttribute("aria-labelledby", targetTabId);
+    await captureStepScreenshot(page, testInfo, "section/tab-switch");
   });
 
   test("breadcrumb navigates back to sections list", async ({
@@ -591,7 +592,7 @@ test.describe("/sections/[jwId]", () => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     const homeworksTab = page
-      .getByRole("button", { name: /作业|Homework/i })
+      .getByRole("tab", { name: /作业|Homework/i })
       .first();
     if ((await homeworksTab.count()) === 0) {
       await expect(page.locator("#main-content")).toBeVisible();
@@ -632,7 +633,7 @@ test.describe("/sections/[jwId]", () => {
 
     try {
       const homeworksTab = page
-        .getByRole("button", { name: /作业|Homework/i })
+        .getByRole("tab", { name: /作业|Homework/i })
         .first();
       if ((await homeworksTab.count()) === 0) {
         await expect(page.locator("#main-content")).toBeVisible();
@@ -746,10 +747,10 @@ test.describe("/sections/[jwId]", () => {
 
     try {
       const commentsTab = page
-        .getByRole("button", { name: /评论|Comments/i })
+        .getByRole("tab", { name: /评论|Comments/i })
         .first();
       await commentsTab.click();
-      await expect(commentsTab).toHaveAttribute("aria-pressed", "true");
+      await expect(commentsTab).toHaveAttribute("aria-selected", "true");
 
       // Post comment
       const body = `e2e-section-comment-${Date.now()}`;
@@ -918,10 +919,10 @@ test.describe("/sections/[jwId]", () => {
           await gotoAndWaitForReady(page, SECTION_URL);
         }
         const commentsTab = page
-          .getByRole("button", { name: /评论|Comments/i })
+          .getByRole("tab", { name: /评论|Comments/i })
           .first();
         await commentsTab.click();
-        await expect(commentsTab).toHaveAttribute("aria-pressed", "true");
+        await expect(commentsTab).toHaveAttribute("aria-selected", "true");
       }).toPass({
         timeout: 10_000,
         intervals: [250, 500, 1_000],
