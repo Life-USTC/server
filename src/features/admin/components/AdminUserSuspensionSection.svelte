@@ -44,6 +44,7 @@ export let suspensionLabel: AdminUserFormatter;
     <label class="grid gap-2">
       <span class="font-medium text-sm">{moderationCopy.durationLabel}</span>
       <Select
+        aria-label={moderationCopy.durationLabel}
         items={suspendDurationOptions}
         value={suspendDuration}
         onchange={(event) => (suspendDuration = event.currentTarget.value)}

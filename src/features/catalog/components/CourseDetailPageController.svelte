@@ -44,7 +44,7 @@ type CourseDetailData = CatalogNamed & {
 type PageData = {
   commentsData: CatalogDetailCommentsData;
   copy: {
-    common: { courses: string; home: string };
+    common: { breadcrumb: string; courses: string; home: string };
     course: CourseDetailCopy["course"];
     courseDetail: CourseDetailCopy["courseDetail"] & {
       basicInfoDescription: string;
@@ -101,7 +101,7 @@ onMount(() => {
 <section class="grid gap-5">
   <PageHeader title={displayName} description={secondaryDisplayName}>
     {#snippet breadcrumb()}
-      <Breadcrumb.Root>
+      <Breadcrumb.Root label={copy.common.breadcrumb}>
         <Breadcrumb.List>
           <Breadcrumb.Item><Breadcrumb.Link href="/">{copy.common.home}</Breadcrumb.Link></Breadcrumb.Item>
           <Breadcrumb.Separator />
@@ -147,26 +147,41 @@ onMount(() => {
       <CatalogDetailTabs
         {activeTab}
         commentsLabel={copy.courseDetail.tabs.comments}
+        idPrefix="course-detail"
         sectionsLabel={copy.courseDetail.tabs.sections}
         {setActiveTab}
       />
 
       {#if activeTab === "comments"}
-        {#key `comments:course:${data.course.id}`}
-          <CommentsPanel
-            initialData={data.commentsData}
-            targetType="course"
-            targetId={data.course.id}
-          />
-        {/key}
+        <div
+          aria-labelledby="course-detail-comments-tab"
+          id="course-detail-comments-panel"
+          role="tabpanel"
+          tabindex="0"
+        >
+          {#key `comments:course:${data.course.id}`}
+            <CommentsPanel
+              initialData={data.commentsData}
+              targetType="course"
+              targetId={data.course.id}
+            />
+          {/key}
+        </div>
       {:else}
-        <CourseDetailSections
-          copy={detailCopy}
-          course={data.course}
-          {notAvailable}
-          {primaryName}
-          {teacherNames}
-        />
+        <div
+          aria-labelledby="course-detail-sections-tab"
+          id="course-detail-sections-panel"
+          role="tabpanel"
+          tabindex="0"
+        >
+          <CourseDetailSections
+            copy={detailCopy}
+            course={data.course}
+            {notAvailable}
+            {primaryName}
+            {teacherNames}
+          />
+        </div>
       {/if}
     </div>
 

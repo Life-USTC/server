@@ -18,6 +18,7 @@ export let viewer: ViewerContext;
       {commentCopy.commentTargetPlaceholder}
     </span>
     <Select
+      aria-label={commentCopy.commentTargetPlaceholder}
       bind:value={postTargetKey}
       disabled={!viewer.isAuthenticated || viewer.isSuspended}
       items={postTargetOptions}

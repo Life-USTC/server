@@ -12,7 +12,7 @@ export let copy: SettingsCopy;
   eyebrow={copy.settings.workspaceBadge}
 >
   {#snippet breadcrumb()}
-    <Breadcrumb.Root>
+    <Breadcrumb.Root label={copy.common.breadcrumb}>
       <Breadcrumb.List>
         <Breadcrumb.Item><Breadcrumb.Link href="/">{copy.common.home}</Breadcrumb.Link></Breadcrumb.Item>
         <Breadcrumb.Separator />

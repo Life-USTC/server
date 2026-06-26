@@ -17,7 +17,7 @@ $: sections = buildMarkdownGuideSections(guide);
 <section class="grid gap-6 pb-12">
   <PageHeader title={guide.title} description={guide.subtitle}>
     {#snippet breadcrumb()}
-      <Breadcrumb.Root>
+      <Breadcrumb.Root label={data.copy.common.breadcrumb}>
         <Breadcrumb.List>
           <Breadcrumb.Item><Breadcrumb.Link href="/">{data.copy.common.home}</Breadcrumb.Link></Breadcrumb.Item>
           <Breadcrumb.Separator />

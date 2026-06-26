@@ -18,10 +18,12 @@ type PageData = {
   copy: {
     apiDocs: {
       description: string;
+      navigationLabel: string;
       rawSpecLink: string;
       title: string;
     };
     common: {
+      breadcrumb: string;
       home: string;
       loading: string;
     };
@@ -147,7 +149,7 @@ function scheduleReferenceRouteRestore() {
 <section class="grid gap-5">
   <PageHeader title={data.copy.apiDocs.title} description={data.copy.apiDocs.description}>
     {#snippet breadcrumb()}
-      <Breadcrumb.Root>
+      <Breadcrumb.Root label={data.copy.common.breadcrumb}>
         <Breadcrumb.List>
           <Breadcrumb.Item><Breadcrumb.Link href="/">{data.copy.common.home}</Breadcrumb.Link></Breadcrumb.Item>
           <Breadcrumb.Separator />
@@ -161,7 +163,7 @@ function scheduleReferenceRouteRestore() {
   </PageHeader>
 
   <div class="api-docs-shell">
-    <aside class="api-docs-sidebar" aria-label="API navigation">
+    <aside class="api-docs-sidebar" aria-label={data.copy.apiDocs.navigationLabel}>
       {#if selectedDocs}
         {#each selectedDocs.groups as group}
           <section class="api-docs-nav-group">

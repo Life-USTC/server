@@ -27,7 +27,7 @@ $: currentTabLabel = tabs.find(([id]) => id === currentTab)?.[1] ?? currentTab;
 
 <PageHeader title={copy.title} description={copy.pageDescription} eyebrow={adminCopy.title}>
   {#snippet breadcrumb()}
-    <Breadcrumb.Root>
+    <Breadcrumb.Root label={commonCopy.breadcrumb}>
       <Breadcrumb.List>
         <Breadcrumb.Item><Breadcrumb.Link href="/">{commonCopy.home}</Breadcrumb.Link></Breadcrumb.Item>
         <Breadcrumb.Separator />

@@ -14,6 +14,7 @@ export type AdminOAuthAdminCopy = {
 };
 
 export type AdminOAuthCommonCopy = {
+  breadcrumb: string;
   home: string;
 };
 

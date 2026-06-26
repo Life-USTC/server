@@ -27,6 +27,7 @@ export let visibilityOptions: CommentSelectOption[];
         <span>{commentCopy.visibilityAnonymous}</span>
       </label>
       <Select
+        aria-label={commentCopy.visibilityLabel}
         bind:value={visibility}
         disabled={!viewer.isAuthenticated || viewer.isSuspended}
         items={visibilityOptions}

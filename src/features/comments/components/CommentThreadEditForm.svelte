@@ -38,7 +38,11 @@ export let visibilityOptions: CommentSelectOption[];
       <Checkbox bind:checked={editIsAnonymous} />
       <span>{commentCopy.visibilityAnonymous}</span>
     </label>
-    <Select bind:value={editVisibility} items={visibilityOptions} />
+    <Select
+      aria-label={commentCopy.visibilityLabel}
+      bind:value={editVisibility}
+      items={visibilityOptions}
+    />
   </div>
   <MarkdownEditor
     bind:value={editDraft}
