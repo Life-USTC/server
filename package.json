@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "bun run app:prepare && bun run openapi:generate && bun run vite build",
-    "dev": "bun run app:prepare && bun run openapi:generate && bun run db:migrate:deploy && bun run vite dev --host 127.0.0.1 --port 3000 --strictPort",
+    "dev": "bun run app:prepare && bun run openapi:generate && bun run db:migrate:deploy && bun run vite dev --host 127.0.0.1 --port ${APP_DEV_PORT:-3000} --strictPort",
     "format": "biome format",
     "health": "bun run tools/dev/health.ts",
     "hooks:install": "git config core.hooksPath .githooks",
@@ -30,7 +30,7 @@
     "ci:verify": "bun run verify",
     "ci:e2e:build-artifacts": "bun run e2e:build-artifacts",
     "ci:e2e:test": "bun run app:prepare && bun run e2e:db:prepare && bun run seed && bun run e2e:test",
-    "ci:snapshot:capture": "bun run snapshot:verify",
+    "ci:snapshot:verify": "bun run snapshot:verify",
     "e2e:build-worker": "bun run app:prepare && bun run openapi:generate && bun run vite build",
     "e2e:build-artifacts": "bun run e2e:build-worker && bun run e2e:prepare",
     "e2e:db:prepare": "bun run db:migrate:deploy && bun run check:e2e",

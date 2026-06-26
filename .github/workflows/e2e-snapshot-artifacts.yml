@@ -20,7 +20,7 @@ jobs:
       auth-secret: e2e-snapshot-ci-secret
       extra-env: |
         NO_PROXY=127.0.0.1,localhost,::1
-      job-phase: ci:snapshot:capture
+      job-phase: ci:snapshot:verify
       upload-artifact-name: e2e-snapshot-artifacts-${{ github.sha }}
       upload-artifact-path: |
         test-results/snapshots
