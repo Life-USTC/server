@@ -5,6 +5,10 @@ export const resourceIdPathParamsSchema = z.object({
   id: z.string().trim().min(1),
 });
 
+export const teacherIdPathParamsSchema = z.object({
+  id: integerStringSchema,
+});
+
 export const jwIdPathParamsSchema = z.object({
   jwId: integerStringSchema,
 });

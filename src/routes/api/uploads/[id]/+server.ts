@@ -9,6 +9,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response uploadRenameResponseSchema
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
+ * @response 403:openApiErrorSchema
  * @response 404:openApiErrorSchema
  */
 export const PATCH: RequestHandler = ({ request, params }) =>
@@ -19,6 +20,7 @@ export const PATCH: RequestHandler = ({ request, params }) =>
  * @pathParams resourceIdPathParamsSchema
  * @response 200:uploadDeleteResponseSchema
  * @response 401:openApiErrorSchema
+ * @response 403:openApiErrorSchema
  * @response 404:openApiErrorSchema
  * @response 502:openApiErrorSchema
  */

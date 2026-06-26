@@ -14,6 +14,7 @@ export const GET = svelteRequestHandler(observedApiRoute(getUploadsRoute));
  * @response uploadCreateResponseSchema
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
+ * @response 403:openApiErrorSchema
  * @response 413:openApiErrorSchema
  */
 export const POST = svelteRequestHandler(observedApiRoute(postUploadRoute));

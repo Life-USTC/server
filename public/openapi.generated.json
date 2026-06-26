@@ -2764,6 +2764,16 @@
               }
             }
           },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Error response",
             "content": {
@@ -4889,6 +4899,16 @@
               }
             }
           },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Error response",
             "content": {
@@ -5736,8 +5756,8 @@
             "in": "path",
             "name": "id",
             "schema": {
-              "type": "string",
-              "minLength": 1
+              "type": "integer",
+              "format": "int64"
             },
             "required": true,
             "example": 8001
@@ -5871,6 +5891,16 @@
                   "_count": {
                     "sections": 1
                   }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
                 }
               }
             }
@@ -6290,6 +6320,16 @@
               }
             }
           },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
           "413": {
             "description": "Error response",
             "content": {
@@ -6370,6 +6410,16 @@
               }
             }
           },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Error response",
             "content": {
@@ -6419,6 +6469,16 @@
             }
           },
           "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
             "description": "Error response",
             "content": {
               "application/json": {

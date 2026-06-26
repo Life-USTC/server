@@ -29,8 +29,10 @@ const OPENAPI_HTTP_METHODS = [
 type GeneratedOperation = {
   description?: string;
   parameters?: Array<{
+    in?: string;
     name?: string;
     example?: unknown;
+    required?: boolean;
     schema?: GeneratedSchema;
   }>;
   requestBody?: {
@@ -89,6 +91,15 @@ function queryParameter(
   name: string,
 ) {
   return operation?.parameters?.find((parameter) => parameter.name === name);
+}
+
+function pathParameter(
+  operation: GeneratedOperation | undefined,
+  name: string,
+) {
+  return operation?.parameters?.find(
+    (parameter) => parameter.in === "path" && parameter.name === name,
+  );
 }
 
 describe("buildScenarioOpenApiExamples", () => {
@@ -287,6 +298,23 @@ describe("buildScenarioOpenApiExamples", () => {
     ).toEqual(expect.objectContaining({ minimum: 1, maximum: 300 }));
 
     expect(spec.paths["/api/todos"]?.get?.responses?.["400"]).toBeTruthy();
+    for (const [path, parameterName] of [
+      ["/api/teachers/{id}", "id"],
+      ["/api/courses/{jwId}", "jwId"],
+      ["/api/sections/{jwId}", "jwId"],
+    ] as const) {
+      const operation = spec.paths[path]?.get;
+      expect(operation?.responses?.["400"]).toBeTruthy();
+      expect(pathParameter(operation, parameterName)).toEqual(
+        expect.objectContaining({
+          required: true,
+          schema: expect.objectContaining({
+            format: "int64",
+            type: "integer",
+          }),
+        }),
+      );
+    }
     expect(
       spec.paths["/api/admin/users/{id}"]?.patch?.responses?.["404"],
     ).toBeTruthy();
@@ -341,6 +369,13 @@ describe("buildScenarioOpenApiExamples", () => {
     ).toBeTruthy();
     expect(
       spec.paths["/api/dashboard-links/pin"]?.post?.responses?.["303"],
+    ).toBeTruthy();
+    expect(spec.paths["/api/uploads"]?.post?.responses?.["403"]).toBeTruthy();
+    expect(
+      spec.paths["/api/uploads/{id}"]?.patch?.responses?.["403"],
+    ).toBeTruthy();
+    expect(
+      spec.paths["/api/uploads/{id}"]?.delete?.responses?.["403"],
     ).toBeTruthy();
     expect(
       spec.paths["/api/users/{userId}/calendar.ics"]?.get?.security,
