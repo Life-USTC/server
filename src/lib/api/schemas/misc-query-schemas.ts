@@ -2,9 +2,40 @@ import * as z from "zod";
 import { APP_LOCALES } from "@/i18n/config";
 import {
   dateInputStringSchema,
+  integerStringRangeSchema,
   integerStringSchema,
   todoPrioritySchema,
 } from "./request-schema-primitives";
+
+const busNextDeparturesLimitSchema = integerStringRangeSchema({
+  minimum: 1,
+  maximum: 50,
+  message: "limit must be between 1 and 50",
+});
+
+const publicPaginationLimitSchema = integerStringRangeSchema({
+  minimum: 1,
+  maximum: 100,
+  message: "limit must be between 1 and 100",
+});
+
+const subscribedSchedulesWeekdaySchema = integerStringRangeSchema({
+  minimum: 1,
+  maximum: 7,
+  message: "weekday must be between 1 and 7",
+});
+
+const subscribedSchedulesLimitSchema = integerStringRangeSchema({
+  minimum: 1,
+  maximum: 300,
+  message: "limit must be between 1 and 300",
+});
+
+const todoLimitSchema = integerStringRangeSchema({
+  minimum: 1,
+  maximum: 200,
+  message: "limit must be between 1 and 200",
+});
 
 const overviewHomeworkWindowDaysSchema = integerStringSchema
   .refine(
@@ -47,7 +78,7 @@ export const busNextDeparturesQuerySchema = z.object({
   atTime: z.string().trim().min(1).optional(),
   dayType: z.enum(["auto", "weekday", "weekend"]).optional(),
   includeDeparted: z.enum(["true", "false"]).optional(),
-  limit: integerStringSchema.optional(),
+  limit: busNextDeparturesLimitSchema.optional(),
   versionKey: z.string().trim().min(1).optional(),
   locale: z.enum(APP_LOCALES).optional(),
 });
@@ -69,14 +100,14 @@ export const dashboardLinkVisitQuerySchema = z.object({
 
 export const semestersQuerySchema = z.object({
   page: integerStringSchema.optional(),
-  limit: integerStringSchema.optional(),
+  limit: publicPaginationLimitSchema.optional(),
 });
 
 export const subscribedSchedulesQuerySchema = z.object({
   dateFrom: dateInputStringSchema.optional(),
   dateTo: dateInputStringSchema.optional(),
-  weekday: integerStringSchema.optional(),
-  limit: integerStringSchema.optional(),
+  weekday: subscribedSchedulesWeekdaySchema.optional(),
+  limit: subscribedSchedulesLimitSchema.optional(),
   locale: z.enum(APP_LOCALES).optional(),
 });
 
@@ -116,7 +147,7 @@ export const todosQuerySchema = z.object({
   priority: todoPrioritySchema.optional(),
   dueBefore: dateInputStringSchema.optional(),
   dueAfter: dateInputStringSchema.optional(),
-  limit: integerStringSchema.optional(),
+  limit: todoLimitSchema.optional(),
 });
 
 export const uploadObjectQuerySchema = z.object({

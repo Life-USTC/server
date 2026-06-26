@@ -15,6 +15,7 @@
     "suspended-admin-write-gate": "Admins with an active suspension may load read-only admin pages and list endpoints, but admin REST mutations and page actions are blocked with the standard suspended 403 response until the suspension is lifted.",
     "suspension-expiration-validation": "Suspension expiration accepts omitted, null, or empty input as permanent and rejects invalid non-empty date strings.",
     "single-open-suspension": "Each user can have at most one open suspension. Creating a new suspension closes any previous open suspension for that user while retaining history; lifting an open suspension clears the user's open suspension state.",
+    "admin-mutation-not-found": "PATCH /api/admin/comments/[id], POST /api/admin/suspensions, and PATCH /api/admin/users/[id] return 404 when the target record is not found.",
     "suspension-retention": "Suspension history is retained when an admin account is deleted; creator and lifter actor references may be null after account deletion."
   },
   "capabilities": {
@@ -113,7 +114,8 @@
           {
             "path": "/api/admin/users/[id]",
             "method": "PATCH",
-            "returns": "{ user: User }"
+            "returns": "{ user: User }",
+            "notes": ["Returns 404 when the target user is not found."]
           }
         ]
       },

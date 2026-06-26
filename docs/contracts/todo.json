@@ -28,7 +28,8 @@
             "returns": "{ counts: { incomplete: Int, completed: Int, overdue: Int }, todos: TodoItem[] }",
             "notes": [
               "Returns the same count summary as list_my_todos plus todos[]; each item contains id, title, content, completed, priority, dueAt, createdAt, and updatedAt.",
-              "Supports completed, priority, dueBefore, dueAfter, and limit query parameters."
+              "Supports completed, priority, dueBefore, dueAfter, and limit query parameters.",
+              "REST and MCP share the same limit bounds: 1-200."
             ]
           }
         ]
@@ -41,6 +42,7 @@
             "rest_equivalent": "GET /api/todos?completed=false&limit=50",
             "notes": [
               "Default parameters: includeCompleted=false, limit=50.",
+              "REST and MCP share the same limit bounds: 1-200.",
               "Incomplete items are returned first; completed items are excluded unless includeCompleted=true."
             ]
           }
