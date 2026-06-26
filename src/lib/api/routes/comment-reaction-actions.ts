@@ -23,7 +23,7 @@ export async function createCommentReactionAction(input: {
   }
 
   if (result.changed) {
-    writeCommentReactionAuditLog({
+    await writeCommentReactionAuditLog({
       commentId: input.commentId,
       operation: "add",
       requestMetadata: getAuditRequestMetadata(input.request),

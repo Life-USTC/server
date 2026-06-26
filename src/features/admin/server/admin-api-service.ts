@@ -215,7 +215,7 @@ export async function createAdminSuspension(
   }
   if (!result.ok) return result;
 
-  fireAuditLog({
+  await fireAuditLog({
     action: "admin_user_suspend",
     userId: adminUserId,
     targetId: userId,
@@ -257,7 +257,7 @@ export async function liftAdminSuspension(adminUserId: string, id: string) {
   }, "Failed to lift admin suspension");
   if (!result.ok) return result;
 
-  fireAuditLog({
+  await fireAuditLog({
     action: "admin_user_unsuspend",
     userId: adminUserId,
     targetId: result.suspension.userId,
@@ -291,7 +291,7 @@ export async function moderateComment(
     },
   });
 
-  fireAuditLog({
+  await fireAuditLog({
     action: "admin_comment_moderate",
     userId: adminUserId,
     targetId: id,
@@ -339,7 +339,7 @@ export async function moderateDescription(
     return updated;
   });
 
-  fireAuditLog({
+  await fireAuditLog({
     action: "admin_description_moderate",
     userId: adminUserId,
     targetId: id,

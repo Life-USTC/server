@@ -113,19 +113,20 @@ export async function writeAuditLog(params: AuditLogParams) {
  * Fire-and-forget audit log that logs failures instead of swallowing them silently.
  * Use for non-critical audit trails where the route should not fail if logging errors.
  * In Worker requests, the write is also scheduled with waitUntil when the
- * SvelteKit request context is available. The logged write promise is returned
- * so non-request callers and tests can await it.
+ * SvelteKit request context is available. Awaiting this function guarantees
+ * Worker waitUntil registration without waiting for the DB write. Outside a
+ * Worker request, awaiting it waits for the logged write.
  */
-export function fireAuditLog(params: AuditLogParams) {
+export async function fireAuditLog(params: AuditLogParams) {
   const auditWrite = writeAuditLog(params).catch((error: unknown) => {
     logAuditWriteFailure(params, error);
   });
 
-  void getAuditWaitUntil()
-    .then((waitUntil) => {
-      waitUntil?.(auditWrite);
-    })
-    .catch(() => undefined);
+  const waitUntil = await getAuditWaitUntil();
+  if (waitUntil) {
+    waitUntil(auditWrite);
+    return;
+  }
 
-  return auditWrite;
+  await auditWrite;
 }

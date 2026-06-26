@@ -40,6 +40,16 @@ const auditParams = {
   userId: "user-1",
 };
 
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, reject, resolve };
+}
+
 describe("fireAuditLog", () => {
   beforeEach(() => {
     getRequestEventMock.mockReset();
@@ -49,7 +59,7 @@ describe("fireAuditLog", () => {
     vi.resetModules();
   });
 
-  it("schedules audit writes on the active Worker request context", async () => {
+  it("resolves after scheduling Worker waitUntil without waiting for the audit write", async () => {
     const waitUntilMock = vi.fn();
     getRequestEventMock.mockReturnValue({
       platform: {
@@ -58,18 +68,25 @@ describe("fireAuditLog", () => {
         },
       },
     });
-    prismaMock.auditLog.create.mockResolvedValue({});
+    const auditWrite = deferred<unknown>();
+    prismaMock.auditLog.create.mockReturnValue(auditWrite.promise);
     const { fireAuditLog } = await import("@/lib/audit/write-audit-log");
 
     const result = fireAuditLog(auditParams);
+    let schedulingResolved = false;
+    void result.then(() => {
+      schedulingResolved = true;
+    });
 
     expect(result).toHaveProperty("then");
-    await vi.dynamicImportSettled();
     await vi.waitFor(() => expect(waitUntilMock).toHaveBeenCalledTimes(1));
+    await Promise.resolve();
+    expect(schedulingResolved).toBe(true);
     expect(prismaMock.auditLog.create).toHaveBeenCalledWith({
       data: auditParams,
     });
 
+    auditWrite.resolve({});
     await waitUntilMock.mock.calls[0]?.[0];
 
     expect(recordAuditWriteMetricMock).toHaveBeenCalledWith({
@@ -116,16 +133,26 @@ describe("fireAuditLog", () => {
     );
   });
 
-  it("returns the audit write promise when waitUntil is unavailable", async () => {
+  it("awaits the audit write when waitUntil is unavailable", async () => {
     getRequestEventMock.mockImplementation(() => {
       throw new Error("outside request");
     });
-    prismaMock.auditLog.create.mockResolvedValue({});
+    const auditWrite = deferred<unknown>();
+    prismaMock.auditLog.create.mockReturnValue(auditWrite.promise);
     const { fireAuditLog } = await import("@/lib/audit/write-audit-log");
 
     const result = fireAuditLog(auditParams);
+    let writeResolved = false;
+    void result.then(() => {
+      writeResolved = true;
+    });
 
     expect(result).toHaveProperty("then");
+    await vi.dynamicImportSettled();
+    await Promise.resolve();
+    expect(writeResolved).toBe(false);
+
+    auditWrite.resolve({});
     await expect(result).resolves.toBeUndefined();
     expect(logAppEventMock).not.toHaveBeenCalled();
   });

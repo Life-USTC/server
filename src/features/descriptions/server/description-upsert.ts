@@ -104,7 +104,7 @@ export async function upsertDescriptionContent({
   }
 
   if (result.updated) {
-    writeDescriptionEditAuditLog({
+    await writeDescriptionEditAuditLog({
       content,
       descriptionId: result.id,
       metadata: auditMetadata,
@@ -116,7 +116,7 @@ export async function upsertDescriptionContent({
   return { ok: true as const, ...result };
 }
 
-function writeDescriptionEditAuditLog({
+async function writeDescriptionEditAuditLog({
   content,
   descriptionId,
   metadata,
@@ -130,7 +130,7 @@ function writeDescriptionEditAuditLog({
   userId: string;
 }) {
   const { source, ...requestMetadata } = metadata ?? {};
-  fireAuditLog({
+  await fireAuditLog({
     action: "description_edit",
     userId,
     targetId: descriptionId,
