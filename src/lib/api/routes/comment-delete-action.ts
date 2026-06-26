@@ -1,4 +1,3 @@
-import { writeCommentDeleteAuditLog } from "@/features/comments/server/comment-audit";
 import { deleteOwnComment } from "@/features/comments/server/comment-mutations";
 import {
   forbidden,
@@ -13,7 +12,11 @@ export async function deleteOwnCommentAction(input: {
   request: Request;
   userId: string;
 }) {
-  const result = await deleteOwnComment(input);
+  const result = await deleteOwnComment({
+    auditMetadata: getAuditRequestMetadata(input.request),
+    commentId: input.commentId,
+    userId: input.userId,
+  });
   if (!result.ok) {
     if (result.error === "suspended") {
       return suspensionForbidden("reason" in result ? result.reason : null);
@@ -21,12 +24,6 @@ export async function deleteOwnCommentAction(input: {
     if (result.error === "locked") return forbidden("Comment locked");
     return result.error === "not_found" ? notFound() : forbidden();
   }
-
-  await writeCommentDeleteAuditLog({
-    commentId: input.commentId,
-    requestMetadata: getAuditRequestMetadata(input.request),
-    userId: input.userId,
-  });
 
   return jsonResponse({ success: true });
 }

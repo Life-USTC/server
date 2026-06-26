@@ -1,9 +1,11 @@
+import type { Prisma } from "@/generated/prisma/client";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
 import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
 import {
   type DescriptionTargetType,
+  type DescriptionTargetWhere,
   resolveDescriptionTarget,
 } from "./description-targets";
 
@@ -57,52 +59,15 @@ export async function upsertDescriptionContent({
   }
 
   const writeDescription = () =>
-    prisma.$transaction(async (tx) => {
-      const existing = await tx.description.findFirst({
-        where: target.where,
-      });
-      if (existing && existing.content === content) {
-        return { id: existing.id, updated: false };
-      }
-
-      const description = existing
-        ? await tx.description.update({
-            where: { id: existing.id },
-            data: {
-              content,
-              lastEditedAt: new Date(),
-              lastEditedById: userId,
-            },
-          })
-        : await tx.description.create({
-            data: {
-              content,
-              lastEditedAt: new Date(),
-              lastEditedById: userId,
-              ...target.where,
-            },
-          });
-
-      await tx.descriptionEdit.create({
-        data: {
-          descriptionId: description.id,
-          editorId: userId,
-          previousContent: existing?.content ?? null,
-          nextContent: content,
-        },
-      });
-
-      await writeDescriptionEditAuditLog({
-        client: tx,
+    prisma.$transaction((tx) =>
+      writeDescriptionContentInTransaction(tx, {
+        auditMetadata,
         content,
-        descriptionId: description.id,
-        metadata: auditMetadata,
         targetType,
         userId,
-      });
-
-      return { id: description.id, updated: true };
-    });
+        where: target.where,
+      }),
+    );
 
   let result: Awaited<ReturnType<typeof writeDescription>>;
   try {
@@ -115,6 +80,68 @@ export async function upsertDescriptionContent({
   return { ok: true as const, ...result };
 }
 
+export async function writeDescriptionContentInTransaction(
+  client: Prisma.TransactionClient,
+  {
+    auditMetadata,
+    content,
+    targetType,
+    userId,
+    where,
+  }: {
+    auditMetadata?: DescriptionEditAuditMetadata;
+    content: string;
+    targetType: DescriptionTargetType;
+    userId: string;
+    where: DescriptionTargetWhere;
+  },
+) {
+  const existing = await client.description.findFirst({
+    where,
+  });
+  if (existing && existing.content === content) {
+    return { id: existing.id, updated: false };
+  }
+
+  const description = existing
+    ? await client.description.update({
+        where: { id: existing.id },
+        data: {
+          content,
+          lastEditedAt: new Date(),
+          lastEditedById: userId,
+        },
+      })
+    : await client.description.create({
+        data: {
+          content,
+          lastEditedAt: new Date(),
+          lastEditedById: userId,
+          ...where,
+        },
+      });
+
+  await client.descriptionEdit.create({
+    data: {
+      descriptionId: description.id,
+      editorId: userId,
+      previousContent: existing?.content ?? null,
+      nextContent: content,
+    },
+  });
+
+  await writeDescriptionEditAuditLog({
+    client,
+    content,
+    descriptionId: description.id,
+    metadata: auditMetadata,
+    targetType,
+    userId,
+  });
+
+  return { id: description.id, updated: true };
+}
+
 async function writeDescriptionEditAuditLog({
   client,
   content,
@@ -123,7 +150,7 @@ async function writeDescriptionEditAuditLog({
   targetType,
   userId,
 }: {
-  client: NonNullable<Parameters<typeof writeAuditLog>[1]>;
+  client: Prisma.TransactionClient;
   content: string;
   descriptionId: string;
   metadata?: DescriptionEditAuditMetadata;

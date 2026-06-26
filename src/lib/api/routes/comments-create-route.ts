@@ -1,4 +1,3 @@
-import { writeCommentCreateAuditLog } from "@/features/comments/server/comment-audit";
 import { createComment } from "@/features/comments/server/comment-mutations";
 import {
   badRequest,
@@ -37,6 +36,7 @@ export async function postCommentRoute(request: Request) {
   try {
     const result = await createComment({
       attachmentIds: parsedBody.attachmentIds,
+      auditMetadata: getAuditRequestMetadata(request),
       content,
       courseJwId: parsedBody.courseJwId,
       homeworkId: parsedBody.homeworkId,
@@ -72,13 +72,6 @@ export async function postCommentRoute(request: Request) {
       }
       return forbidden();
     }
-
-    await writeCommentCreateAuditLog({
-      body: content,
-      commentId: result.comment.id,
-      requestMetadata: getAuditRequestMetadata(request),
-      userId,
-    });
 
     return jsonResponse({ id: result.comment.id });
   } catch (error) {
