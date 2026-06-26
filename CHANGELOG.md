@@ -1,3 +1,10 @@
+## [1.39.31](https://github.com/Life-USTC/server/compare/v1.39.30...v1.39.31) (2026-06-26)
+
+
+### Bug Fixes
+
+* **comments:** make homework permalinks target-aware ([680d43f](https://github.com/Life-USTC/server/commit/680d43f68549e855393d66ee58b705bb7902020f))
+
 ## [1.39.30](https://github.com/Life-USTC/server/compare/v1.39.29...v1.39.30) (2026-06-26)
 
 
