@@ -1,4 +1,5 @@
 import { type APIRequestContext, expect, type Page } from "@playwright/test";
+import { cleanupAuditTargetsForE2e } from "./e2e-db/audit";
 
 function escapeForRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -68,8 +69,16 @@ export async function expectUploadRow(page: Page, filename: string) {
 }
 
 export async function deleteUploadById(page: Page, uploadId: string) {
+  await cleanupUploadAuditLogsForE2e(uploadId);
   const response = await page.request.delete(`/api/uploads/${uploadId}`);
   expect(response.status()).toBe(200);
+  await cleanupUploadAuditLogsForE2e(uploadId);
+}
+
+export async function cleanupUploadAuditLogsForE2e(uploadId: string) {
+  await cleanupAuditTargetsForE2e([
+    { targetId: uploadId, targetType: "upload" },
+  ]);
 }
 
 export async function createUploadedFileViaApi(

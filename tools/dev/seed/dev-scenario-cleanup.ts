@@ -1,6 +1,7 @@
 import scenarioData from "../../../tests/e2e/fixtures/scenario.json" with {
   type: "json",
 };
+import { deleteAuditLogsForUsersAndTargetsUntilStable } from "../../shared/audit-cleanup";
 import type { ToolPrismaClient } from "../../shared/tool-prisma";
 import {
   DEV_SCENARIO_IDS,
@@ -35,6 +36,13 @@ export async function cleanupDevScenarioData(
     removeBusVersion = true,
     userSuspensions = "byMarker",
   } = options;
+
+  const auditCleanupTargets = await collectAuditCleanupTargets(prisma, userIds);
+
+  await deleteAuditLogsForUsersAndTargetsUntilStable(prisma, {
+    userIds,
+    targets: auditCleanupTargets,
+  });
 
   await prisma.user.deleteMany({
     where: { username: { startsWith: "e2e-" } },
@@ -284,4 +292,76 @@ export async function cleanupDevScenarioData(
       });
     }
   }
+
+  await deleteAuditLogsForUsersAndTargetsUntilStable(prisma, {
+    userIds,
+    targets: auditCleanupTargets,
+  });
+}
+
+async function collectAuditCleanupTargets(
+  prisma: ToolPrismaClient,
+  userIds: string[],
+) {
+  const [tempUsers, comments, uploads, descriptions] = await Promise.all([
+    prisma.user.findMany({
+      where: { username: { startsWith: "e2e-" } },
+      select: {
+        id: true,
+        comments: { select: { id: true } },
+        uploads: { select: { id: true } },
+      },
+    }),
+    prisma.comment.findMany({
+      where: {
+        OR: [
+          { body: { contains: DEV_SCENARIO_MARKER } },
+          { section: { jwId: { in: sectionJwIds } } },
+        ],
+      },
+      select: { id: true },
+    }),
+    prisma.upload.findMany({
+      where: { key: { startsWith: DEV_SCENARIO_KEY_PREFIX } },
+      select: { id: true },
+    }),
+    prisma.description.findMany({
+      where: {
+        OR: [
+          { content: { contains: DEV_SCENARIO_MARKER } },
+          { section: { jwId: { in: sectionJwIds } } },
+          { course: { jwId: { in: courseJwIds } } },
+          { teacher: { code: { in: teacherCodes } } },
+          { homework: { section: { jwId: { in: sectionJwIds } } } },
+        ],
+      },
+      select: { id: true },
+    }),
+  ]);
+
+  const tempUserIds = tempUsers.map((user) => user.id);
+
+  return [
+    { targetType: "user", targetIds: [...userIds, ...tempUserIds] },
+    {
+      targetType: "comment",
+      targetIds: [
+        ...comments.map((comment) => comment.id),
+        ...tempUsers.flatMap((user) =>
+          user.comments.map((comment) => comment.id),
+        ),
+      ],
+    },
+    {
+      targetType: "upload",
+      targetIds: [
+        ...uploads.map((upload) => upload.id),
+        ...tempUsers.flatMap((user) => user.uploads.map((upload) => upload.id)),
+      ],
+    },
+    {
+      targetType: "description",
+      targetIds: descriptions.map((description) => description.id),
+    },
+  ];
 }

@@ -1,6 +1,9 @@
-import { randomUUID } from "node:crypto";
-import { Pool } from "pg";
+import type {
+  AuditLogCleanupInput,
+  AuditLogCleanupTarget,
+} from "@tools/shared/audit-cleanup";
 import type { SupportedOAuthClientAuthMethod } from "@/lib/oauth/constants";
+import * as auditFixtures from "./e2e-db/audit";
 import * as oauthFixtures from "./e2e-db/oauth";
 import * as seedFixtures from "./e2e-db/seed";
 import * as userFixtures from "./e2e-db/users";
@@ -11,6 +14,8 @@ const DB_FIXTURE_ATTEMPTS = 3;
 
 const operations = {
   createOAuthClientFixture: oauthFixtures.createOAuthClientFixture,
+  cleanupAuditLogsForE2e: auditFixtures.cleanupAuditLogsForE2e,
+  cleanupAuditTargetsForE2e: auditFixtures.cleanupAuditTargetsForE2e,
   deleteLinkedAccountFixture: oauthFixtures.deleteLinkedAccountFixture,
   deleteOAuthClientsByName: oauthFixtures.deleteOAuthClientsByName,
   disableOAuthClientByName: oauthFixtures.disableOAuthClientByName,
@@ -20,6 +25,8 @@ const operations = {
   getSeedTeacherDepartmentFixture: seedFixtures.getSeedTeacherDepartmentFixture,
   ensureUserCalendarFeedFixture: userFixtures.ensureUserCalendarFeedFixture,
   getUserProfileById: userFixtures.getUserProfileById,
+  createTempUsersFixture: userFixtures.createTempUsersFixture,
+  deleteUsersByPrefix: userFixtures.deleteUsersByPrefix,
   getUserSubscribedSectionIds: userFixtures.getUserSubscribedSectionIds,
   replaceUserSubscribedSectionIds: userFixtures.replaceUserSubscribedSectionIds,
   updateUserProfileById: userFixtures.updateUserProfileById,
@@ -43,79 +50,6 @@ async function runDbFixture<T>(operation: string, args: unknown[] = []) {
   }
 
   throw lastError;
-}
-
-function createFixturePool() {
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
-    throw new Error("DATABASE_URL is required for E2E DB fixtures");
-  }
-
-  return new Pool({ connectionString, max: 1 });
-}
-
-async function withFixturePool<T>(callback: (pool: Pool) => Promise<T>) {
-  const pool = createFixturePool();
-  try {
-    return await callback(pool);
-  } finally {
-    await pool.end();
-  }
-}
-
-async function createTempUsersFixtureDirect(options: {
-  prefix: string;
-  count: number;
-}) {
-  const usernames: string[] = [];
-
-  await withFixturePool(async (pool) => {
-    for (let index = 0; index < options.count; index += 1) {
-      const username = `${options.prefix}-${String(index).padStart(2, "0")}`;
-      const email = `${username}@users.local`;
-      usernames.push(username);
-
-      const userResult = await pool.query<{ id: string }>(
-        `
-          INSERT INTO "User" ("id", "username", "email", "emailVerified", "name", "updatedAt")
-          VALUES ($1, $2, $3, TRUE, $4, NOW())
-          ON CONFLICT ("username") DO UPDATE
-          SET "email" = EXCLUDED."email",
-              "emailVerified" = TRUE,
-              "name" = EXCLUDED."name",
-              "updatedAt" = NOW()
-          RETURNING "id"
-        `,
-        [randomUUID(), username, email, `E2E ${username}`],
-      );
-
-      const userId = userResult.rows[0]?.id;
-      if (!userId) {
-        throw new Error(`Failed to create E2E user fixture: ${username}`);
-      }
-
-      await pool.query(
-        `
-          INSERT INTO "VerifiedEmail" ("email", "provider", "userId", "updatedAt")
-          VALUES ($1, 'oidc', $2, NOW())
-          ON CONFLICT ("provider", "email") DO UPDATE
-          SET "userId" = EXCLUDED."userId",
-              "updatedAt" = NOW()
-        `,
-        [`${username}@example.test`, userId],
-      );
-    }
-  });
-
-  return { usernames };
-}
-
-async function deleteUsersByPrefixDirect(prefix: string) {
-  await withFixturePool(async (pool) => {
-    await pool.query('DELETE FROM "User" WHERE "username" LIKE $1', [
-      `${prefix}%`,
-    ]);
-  });
 }
 
 type OAuthClientFixtureOptions = {
@@ -157,6 +91,13 @@ export const createOAuthClientFixture = (options?: OAuthClientFixtureOptions) =>
     redirectUris: string[];
     scopes: string[];
   }>("createOAuthClientFixture", [options]);
+
+export const cleanupAuditLogsForE2e = (input: AuditLogCleanupInput) =>
+  runDbFixture<void>("cleanupAuditLogsForE2e", [input]);
+
+export const cleanupAuditTargetsForE2e = (
+  targets: readonly AuditLogCleanupTarget[],
+) => runDbFixture<void>("cleanupAuditTargetsForE2e", [targets]);
 
 export const deleteOAuthClientsByName = (name: string) =>
   runDbFixture<null>("deleteOAuthClientsByName", [name]);
@@ -226,7 +167,8 @@ export const replaceUserSubscribedSectionIds = (
 export const createTempUsersFixture = (options: {
   prefix: string;
   count: number;
-}) => createTempUsersFixtureDirect(options);
+}) =>
+  runDbFixture<{ usernames: string[] }>("createTempUsersFixture", [options]);
 
 export const deleteUsersByPrefix = (prefix: string) =>
-  deleteUsersByPrefixDirect(prefix);
+  runDbFixture<null>("deleteUsersByPrefix", [prefix]);
