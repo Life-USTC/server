@@ -1,4 +1,5 @@
 import { getApplicableBusRoutes } from "@/features/bus/lib/bus-client";
+import type { BusPreferenceSaveState } from "@/features/dashboard/lib/bus";
 import {
   type BusDayType,
   createBusTabPlannerController,
@@ -24,7 +25,9 @@ export function createBusTabState({
     busEndCampusId: null as number | null,
     busNow: new Date(),
     busPlannerReady: false,
+    busPreferenceSaveError: "",
     busPreferenceSaveRun: 0,
+    busPreferenceSaveState: "idle" as BusPreferenceSaveState,
     busPreferenceSaveTimer: null as ReturnType<typeof setTimeout> | null,
     busShowDepartedTrips: false,
     busStartCampusId: null as number | null,
@@ -56,8 +59,16 @@ export function createBusTabState({
       values.busPlannerReady = value;
       invalidate();
     },
+    setBusPreferenceSaveError: (value) => {
+      values.busPreferenceSaveError = value;
+      invalidate();
+    },
     setBusPreferenceSaveRun: (value) => {
       values.busPreferenceSaveRun = value;
+      invalidate();
+    },
+    setBusPreferenceSaveState: (value) => {
+      values.busPreferenceSaveState = value;
       invalidate();
     },
     setBusPreferenceSaveTimer: (value) => {

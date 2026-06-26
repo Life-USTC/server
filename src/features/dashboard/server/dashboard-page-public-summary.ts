@@ -1,13 +1,15 @@
 import { selectCurrentSemesterFromList } from "@/features/catalog/lib/current-semester";
+import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import type { getPrisma } from "@/lib/db/prisma";
 
 export async function loadDashboardPublicSummary(
   prisma: ReturnType<typeof getPrisma> | null,
   referenceNow: Date | null,
+  locale: AppLocale = DEFAULT_LOCALE,
 ) {
   const links = await import(
     "@/features/dashboard-links/server/dashboard-link-data"
-  ).then((mod) => mod.getPublicDashboardLinksData());
+  ).then((mod) => mod.getPublicDashboardLinksData(locale));
 
   if (!prisma) {
     return {

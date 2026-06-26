@@ -59,11 +59,13 @@ export async function loadDashboardPage({
       publicSummary = await loadDashboardPublicSummary(
         getPrisma(locale),
         referenceNow ?? null,
+        locale,
       );
     } catch {
       publicSummary = await loadDashboardPublicSummary(
         null,
         referenceNow ?? null,
+        locale,
       );
     }
     return publicSummary;

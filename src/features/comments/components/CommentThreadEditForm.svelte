@@ -46,7 +46,7 @@ export let visibilityOptions: CommentSelectOption[];
   </div>
   <MarkdownEditor
     bind:value={editDraft}
-    aria-label={commentCopy.markdownModeLabel}
+    aria-label={commentCopy.markdownEditLabel}
     compact
     guideLabel={commentCopy.markdownGuide}
     modeLabel={commentCopy.markdownModeLabel}

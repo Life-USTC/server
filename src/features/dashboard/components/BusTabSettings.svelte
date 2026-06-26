@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { BusPreferenceSaveState } from "@/features/dashboard/lib/bus";
 import type {
   DashboardBusCopy,
   DashboardBusData,
@@ -15,6 +16,8 @@ export let busCopy: DashboardBusCopy;
 export let busDayType: "weekday" | "weekend";
 export let busEndCampusId: number | null;
 export let busPlannerReady: boolean;
+export let busPreferenceSaveState: BusPreferenceSaveState;
+export let busPreferenceStatus: string;
 export let busShowDepartedTrips: boolean;
 export let busStartCampusId: number | null;
 export let reverseBusStops: () => void;
@@ -87,5 +90,14 @@ export let toggleBusDepartedTrips: () => void;
         <span>{busCopy.query.showDepartedTrips}</span>
       </label>
     </div>
+    {#if busPreferenceStatus}
+      <p
+        aria-live="polite"
+        class={`text-sm ${busPreferenceSaveState === "error" ? "text-error" : "text-base-content/60"}`}
+        role={busPreferenceSaveState === "error" ? "alert" : "status"}
+      >
+        {busPreferenceStatus}
+      </p>
+    {/if}
   </Card.Content>
 </Card.Root>

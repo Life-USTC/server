@@ -2,6 +2,7 @@ import {
   getDefaultBusSelection,
   resolveClientBusDayType,
 } from "@/features/bus/lib/bus-client";
+import type { BusPreferenceSaveState } from "./bus-preferences";
 import { createBusPlannerPreferenceSave } from "./bus-tab-preference-save";
 import type { DashboardBusCopy, DashboardBusData } from "./bus-tab-types";
 
@@ -21,7 +22,9 @@ type BusTabPlannerControllerInput = {
   setBusEndCampusId: (value: number | null) => void;
   setBusNow: (value: Date) => void;
   setBusPlannerReady: (value: boolean) => void;
+  setBusPreferenceSaveError: (value: string) => void;
   setBusPreferenceSaveRun: (value: number) => void;
+  setBusPreferenceSaveState: (value: BusPreferenceSaveState) => void;
   setBusPreferenceSaveTimer: (
     value: ReturnType<typeof setTimeout> | null,
   ) => void;

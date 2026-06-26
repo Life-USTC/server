@@ -5,7 +5,7 @@ import type {
 } from "@/features/dashboard-links/lib/dashboard-links";
 import {
   getDashboardLinkGroup,
-  type USTC_DASHBOARD_LINKS,
+  type LocalizedDashboardLinkItem,
 } from "@/features/dashboard-links/lib/dashboard-links";
 
 /** Lowercase pinyin (no tones, no spaces) for client-side search and IME. */
@@ -37,7 +37,7 @@ export type DashboardLinksData = {
 };
 
 export function toDashboardLinkSummary(
-  link: (typeof USTC_DASHBOARD_LINKS)[number],
+  link: LocalizedDashboardLinkItem,
   clickStats: Record<string, number>,
   pinnedSlugSet: Set<string>,
 ): DashboardLinkSummary {

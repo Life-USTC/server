@@ -20,7 +20,7 @@
  * - Pin/unpin is a stateful action — tests restore original state after toggle
  * - Search filters across all groups; empty search restores full list
  */
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
@@ -32,10 +32,18 @@ const PIN_LABEL = /^(?:置顶|Pin)$/i;
 const UNPIN_LABEL = /^(?:取消置顶|Unpin)$/i;
 const JSON_HEADERS = { accept: "application/json" };
 
+async function setLocale(page: Page, locale: "en-us" | "zh-cn") {
+  const response = await page.request.post("/api/locale", {
+    data: { locale },
+  });
+  expect(response.status()).toBe(200);
+}
+
 test.describe("dashboard links", () => {
   test("public ?tab=links shows search and links without pin controls", async ({
     page,
   }, testInfo) => {
+    await setLocale(page, "zh-cn");
     await gotoAndWaitForReady(page, "/?tab=links");
 
     const searchInput = page.getByRole("searchbox", {
@@ -52,6 +60,36 @@ test.describe("dashboard links", () => {
     ).toHaveCount(0);
 
     await captureStepScreenshot(page, testInfo, "public-dashboard-links-tab");
+  });
+
+  test("public English links tab uses localized titles in search", async ({
+    page,
+  }, testInfo) => {
+    await setLocale(page, "en-us");
+
+    await gotoAndWaitForReady(page, "/?tab=links");
+
+    const searchInput = page.getByRole("searchbox", {
+      name: /Search by name or description/i,
+    });
+    await expect(searchInput).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /Academic Affairs System/i }).first(),
+    ).toBeVisible();
+
+    await searchInput.fill("email");
+    await expect(
+      page.getByRole("button", { name: /USTC Email/i }).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /Academic Affairs System/i }).first(),
+    ).toHaveCount(0);
+
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "public-dashboard-links-en-search",
+    );
   });
 
   test("authenticated can navigate to links tab", async ({
@@ -77,6 +115,7 @@ test.describe("dashboard links", () => {
   });
 
   test("search filters links", async ({ page }, testInfo) => {
+    await setLocale(page, "zh-cn");
     await signInAsDebugUser(page, "/dashboard/links");
 
     const searchInput = page.getByRole("searchbox", {
@@ -108,6 +147,7 @@ test.describe("dashboard links", () => {
   test("can pin and unpin a link with state restoration", async ({
     page,
   }, testInfo) => {
+    await setLocale(page, "zh-cn");
     await signInAsDebugUser(page, "/dashboard/links");
     await page.request.post("/api/dashboard-links/pin", {
       form: { slug: "jw", action: "unpin", returnTo: "/dashboard/links" },
@@ -208,6 +248,7 @@ test.describe("dashboard links", () => {
   test("keeps pin state when search recomputes links", async ({
     page,
   }, testInfo) => {
+    await setLocale(page, "zh-cn");
     await signInAsDebugUser(page, "/dashboard/links");
     await page.request.post("/api/dashboard-links/pin", {
       form: { slug: "jw", action: "unpin", returnTo: "/dashboard/links" },

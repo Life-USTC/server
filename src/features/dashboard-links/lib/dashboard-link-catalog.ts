@@ -1,3 +1,5 @@
+import type { AppLocale } from "@/i18n/config";
+
 export type DashboardLinkCategory =
   | "academic"
   | "community"
@@ -15,13 +17,28 @@ export type DashboardLinkIcon =
   | "school"
   | "users";
 
+export type DashboardLinkLocalizedFields = {
+  title: string;
+  description: string;
+};
+
 export type DashboardLinkItem = {
   slug: string;
   title: string;
   url: string;
   description: string;
+  localizations: {
+    "en-us": DashboardLinkLocalizedFields;
+  };
   category: DashboardLinkCategory;
   icon: DashboardLinkIcon;
+};
+
+export type LocalizedDashboardLinkItem = Omit<
+  DashboardLinkItem,
+  "localizations"
+> & {
+  locale: AppLocale;
 };
 
 export type DashboardLinkGroup =
@@ -35,6 +52,28 @@ export type DashboardLinkGroup =
   | "leastClicked";
 
 export { USTC_DASHBOARD_LINKS } from "@/features/dashboard-links/lib/dashboard-link-catalog-data";
+
+export function localizeDashboardLink(
+  link: DashboardLinkItem,
+  locale: AppLocale,
+): LocalizedDashboardLinkItem {
+  const { localizations, ...base } = link;
+  const localized = locale === "en-us" ? localizations["en-us"] : null;
+
+  return {
+    ...base,
+    locale,
+    title: localized?.title ?? link.title,
+    description: localized?.description ?? link.description,
+  };
+}
+
+export function localizeDashboardLinks(
+  links: DashboardLinkItem[],
+  locale: AppLocale,
+): LocalizedDashboardLinkItem[] {
+  return links.map((link) => localizeDashboardLink(link, locale));
+}
 
 export const DASHBOARD_LINK_GROUP_ORDER: DashboardLinkGroup[] = [
   "mostClicked",
