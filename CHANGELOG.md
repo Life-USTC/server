@@ -1,3 +1,12 @@
+## [1.39.30](https://github.com/Life-USTC/server/compare/v1.39.29...v1.39.30) (2026-06-26)
+
+
+### Bug Fixes
+
+* **db:** await cloudflare runtime context ([18ef613](https://github.com/Life-USTC/server/commit/18ef613d9f67ce49064939d57e271121ece7be59))
+* **db:** clear cloudflare prisma request cache ([c94383a](https://github.com/Life-USTC/server/commit/c94383ae945f93d804f63fd0a3473f5dedbab4be))
+* **db:** reuse prisma within cloudflare requests ([ffa1cad](https://github.com/Life-USTC/server/commit/ffa1cadb33c0713ec4b0bc3fc2547727a8783e4a))
+
 ## [1.39.29](https://github.com/Life-USTC/server/compare/v1.39.28...v1.39.29) (2026-06-26)
 
 
