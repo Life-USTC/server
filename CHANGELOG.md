@@ -1,3 +1,13 @@
+## [1.39.24](https://github.com/Life-USTC/server/compare/v1.39.23...v1.39.24) (2026-06-26)
+
+
+### Bug Fixes
+
+* **admin:** make audit trails durable ([9dd6c01](https://github.com/Life-USTC/server/commit/9dd6c01bf28e4cf5f5ea2f715394d1a41e6024c9))
+* **comments:** align privacy and guard writes ([b6f04bd](https://github.com/Life-USTC/server/commit/b6f04bd6a191e0fe582baa603678b16a24e6a660))
+* **dashboard:** stabilize bus SSR time ([4422cb3](https://github.com/Life-USTC/server/commit/4422cb3245bdad4964d69d1cf66f25e5fb8e4764))
+* **snapshot:** harden workflow tooling ([542068a](https://github.com/Life-USTC/server/commit/542068a3e4b988694d33309566dd2b84a0b207d1))
+
 ## [1.39.23](https://github.com/Life-USTC/server/compare/v1.39.22...v1.39.23) (2026-06-26)
 
 
