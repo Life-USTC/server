@@ -12,6 +12,7 @@ import {
   commentCreateRequestSchema,
   commentReactionRequestSchema,
   commentsQuerySchema,
+  commentUpdateRequestSchema,
   coursesQuerySchema,
   descriptionUpsertRequestSchema,
   homeworkCompletionBatchRequestSchema,
@@ -306,6 +307,23 @@ describe("other request schemas", () => {
         targetId: "123",
         sectionTeacherId: 0,
         body: "hello",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects unsupported anonymous comment visibility", () => {
+    expect(
+      commentCreateRequestSchema.safeParse({
+        targetType: "section",
+        sectionJwId: "9902001",
+        body: "hello",
+        visibility: "anonymous",
+      }).success,
+    ).toBe(false);
+    expect(
+      commentUpdateRequestSchema.safeParse({
+        body: "hello",
+        visibility: "anonymous",
       }).success,
     ).toBe(false);
   });

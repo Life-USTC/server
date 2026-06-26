@@ -25,8 +25,6 @@ export function canViewerAccessCommentAttachment(
     return viewer.isAdmin || comment.userId === viewer.userId;
   }
   return (
-    comment.visibility === "public" ||
-    comment.visibility === "logged_in_only" ||
-    comment.visibility === "anonymous"
+    comment.visibility === "public" || comment.visibility === "logged_in_only"
   );
 }

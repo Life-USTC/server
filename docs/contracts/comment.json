@@ -10,7 +10,7 @@
     "attached-to-object": "Comments must be attached to a specific object; no decontextualized public feed entry is provided.",
     "attached-object-types": "Attached objects include courses, sections, teachers, homework, and section-teacher relationships.",
     "rich-content": "Supports Markdown, math formulas, emoji, tables, replies, and reactions.",
-    "visibility-modes": "Supports public, signed-in-only, and anonymous posting; anonymous comments hide identity from regular users but are traceable by admins in governance scenarios.",
+    "visibility-modes": "Supports public and signed-in-only audience visibility; anonymous posting is represented by comment.isAnonymous and hides identity from regular users while remaining traceable by admins in governance scenarios.",
     "shared-read-policy": "Web, REST, and MCP comment reads share the same target resolution, thread serialization, visibility filtering, author masking, reaction, attachment, and viewer action-flag logic; read-only paths must not create durable comment targets and valid empty section-teacher targets load as empty threads.",
     "interaction-gate": "Edits, deletes, replies, and reaction changes require an authenticated, unsuspended viewer and an active visible comment target; deleted or softbanned comments must not expose canEdit/canDelete/canReply/canReact or accept those write actions."
   },
@@ -36,6 +36,7 @@
             "auth": "user",
             "notes": [
               "Accepts REST-compatible internal targetId plus public identifiers such as sectionJwId, courseJwId, teacherId, homeworkId, and sectionTeacherId.",
+              "visibility accepts only public or logged_in_only; use isAnonymous for identity hiding.",
               "Provided sectionJwId and courseJwId values must be valid positive integers; malformed values return 400 even when targetId is also supplied.",
               "Returns 400 Invalid attachments when any requested upload is missing, owned by another user, or already attached to a comment."
             ]
@@ -47,6 +48,7 @@
             "auth": "user",
             "notes": [
               "Only the comment owner may use the public edit endpoint; admins moderate through /api/admin/comments/[id].",
+              "visibility accepts only public or logged_in_only; use isAnonymous for identity hiding.",
               "Returns 400 Invalid attachments when any requested upload is missing, owned by another user, or already attached to a different comment."
             ]
           },
@@ -97,7 +99,7 @@
             "auth": "user",
             "rest_equivalent": "POST /api/comments",
             "notes": [
-              "Uses the same target resolution and attachment validation as REST; MCP audit metadata records source=mcp."
+              "Uses the same target resolution, visibility validation, isAnonymous identity-hiding flag, and attachment validation as REST; MCP audit metadata records source=mcp."
             ]
           },
           {
@@ -106,7 +108,7 @@
             "auth": "user",
             "rest_equivalent": "PATCH /api/comments/[id]",
             "notes": [
-              "Only the comment owner may edit through this ordinary-user MCP tool; moderation remains unavailable through MCP."
+              "Only the comment owner may edit through this ordinary-user MCP tool; visibility validation and isAnonymous match REST, and moderation remains unavailable through MCP."
             ]
           },
           {

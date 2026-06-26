@@ -1214,7 +1214,7 @@ async function main() {
         userId: debugUser.id,
         courseId: courses[1].id,
         body: "课程难度中上，适合作为线代进阶。",
-        visibility: CommentVisibility.anonymous,
+        visibility: CommentVisibility.public,
         isAnonymous: true,
         authorName: "匿名同学",
       },

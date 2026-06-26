@@ -155,6 +155,43 @@ test("/api/comments/[id] DELETE 未登录返回 401", async ({ request }) => {
   expect(response.status()).toBe(401);
 });
 
+test("/api/comments/[id] PATCH rejects anonymous visibility", async ({
+  page,
+}) => {
+  await signInAsDebugUser(page, "/");
+  const sectionId = await resolveSeedSectionId(page.request);
+  const content = `e2e-reject-edit-anonymous-visibility-${Date.now()}`;
+  const createResponse = await page.request.post("/api/comments", {
+    data: {
+      targetType: "section",
+      targetId: String(sectionId),
+      body: content,
+      visibility: "public",
+    },
+  });
+  expect(createResponse.status()).toBe(200);
+  const commentId = ((await createResponse.json()) as { id?: string }).id;
+  expect(commentId).toBeTruthy();
+
+  try {
+    const response = await page.request.patch(`/api/comments/${commentId}`, {
+      data: {
+        body: `${content}-edited`,
+        visibility: "anonymous",
+      },
+    });
+
+    expect(response.status()).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Invalid comment update",
+    });
+  } finally {
+    if (commentId) {
+      await page.request.delete(`/api/comments/${commentId}`);
+    }
+  }
+});
+
 test("/api/comments/[id] PATCH 可修改评论并 DELETE 清理", async ({ page }) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
