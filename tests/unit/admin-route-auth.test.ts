@@ -49,6 +49,7 @@ describe("admin route auth", () => {
 
     expect(response).toBeInstanceOf(Response);
     expect((response as Response).status).toBe(401);
+    expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
     expect(resolveAdminByUserIdMock).not.toHaveBeenCalled();
   });
 
@@ -86,7 +87,11 @@ describe("admin route auth", () => {
     );
 
     const response = await requireAdminRequest(
-      new Request("https://example.test/api/admin/homeworks/homework-1"),
+      new Request("https://example.test/api/admin/homeworks/homework-1", {
+        headers: {
+          cookie: "better-auth.session_token=session-token",
+        },
+      }),
     );
 
     expect(response).toBeInstanceOf(Response);
