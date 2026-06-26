@@ -1,3 +1,10 @@
+## [1.39.28](https://github.com/Life-USTC/server/compare/v1.39.27...v1.39.28) (2026-06-26)
+
+
+### Bug Fixes
+
+* **tools:** clean up local tooling defaults ([62adbf7](https://github.com/Life-USTC/server/commit/62adbf73f5acb04ca4c70b28bc687e9b822a44e2))
+
 ## [1.39.27](https://github.com/Life-USTC/server/compare/v1.39.26...v1.39.27) (2026-06-26)
 
 
