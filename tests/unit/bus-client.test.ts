@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import {
   getApplicableBusRoutes,
   getShanghaiMinutesSinceMidnight,
+  resolveClientBusDayType,
 } from "@/features/bus/lib/bus-client";
 import { parseBusTimeMinutes } from "@/features/bus/lib/bus-time";
 import type {
@@ -138,6 +139,18 @@ describe("bus client timetable math", () => {
     expect(
       getShanghaiMinutesSinceMidnight(new Date("2026-04-22T13:10:00.000Z")),
     ).toBe(21 * 60 + 10);
+  });
+
+  test("resolves day type from the Shanghai calendar day", () => {
+    expect(resolveClientBusDayType(new Date("2026-04-24T15:59:00.000Z"))).toBe(
+      "weekday",
+    );
+    expect(resolveClientBusDayType(new Date("2026-04-24T16:00:00.000Z"))).toBe(
+      "weekend",
+    );
+    expect(resolveClientBusDayType(new Date("2026-04-26T16:00:00.000Z"))).toBe(
+      "weekday",
+    );
   });
 
   test("sorts routes by the next Shanghai departure time", () => {

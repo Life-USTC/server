@@ -73,7 +73,7 @@ export async function loadDashboardPage({
 
   if (!userId) {
     const publicSummary = await publicSummaryPromise;
-    const data = loadAnonymousDashboardPageData({
+    const data = await loadAnonymousDashboardPageData({
       counts: publicSummary.counts,
       locale,
       overviewLinks: publicSummary.links.overviewLinks,

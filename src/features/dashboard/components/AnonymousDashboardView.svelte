@@ -1,5 +1,4 @@
 <script lang="ts">
-import { onMount } from "svelte";
 import type { DashboardBusCopy } from "@/features/dashboard/lib/bus-tab-types";
 import type {
   AnonymousDashboardData,
@@ -7,7 +6,6 @@ import type {
   DashboardDashboardCopy,
   LinkView,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
-import { Alert } from "$lib/components/ui/alert/index.js";
 import * as Tabs from "$lib/components/ui/tabs/index.js";
 import AnonymousLinksTab from "./AnonymousLinksTab.svelte";
 import BusTab from "./BusTab.svelte";
@@ -21,12 +19,6 @@ export let linkSearchInput: HTMLInputElement | null;
 export let linkSearchQuery: string;
 export let linkView: LinkView;
 export let setLinkView: (view: LinkView) => void;
-
-let mounted = false;
-
-onMount(() => {
-  mounted = true;
-});
 </script>
 
 <div class="flex flex-wrap justify-end gap-1">
@@ -52,11 +44,9 @@ onMount(() => {
     bind:linkSearchQuery
     bind:linkSearchInput
   />
-{:else if mounted}
+{:else}
   <BusTab
     {busCopy}
     bus={anonymousData.bus ?? null}
   />
-{:else}
-  <Alert>{busCopy.empty}</Alert>
 {/if}

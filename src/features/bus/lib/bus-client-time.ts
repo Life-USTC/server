@@ -3,7 +3,7 @@ import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 export function resolveClientBusDayType(
   now = new Date(),
 ): "weekday" | "weekend" {
-  const day = now.getDay();
+  const day = shanghaiDayjs(now).day();
   return day === 0 || day === 6 ? "weekend" : "weekday";
 }
 

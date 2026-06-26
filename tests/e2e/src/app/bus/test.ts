@@ -104,6 +104,42 @@ test.describe("bus dashboard tab", () => {
     );
   });
 
+  test("anonymous bus dashboard SSR renders public timetable data", async ({
+    page,
+  }) => {
+    const response = await page.request.get("/?tab=bus");
+    expect(response.status()).toBe(200);
+    const html = await response.text();
+
+    expect(html).toContain('href="/bus-map"');
+    expect(html).not.toMatch(
+      /data-slot="alert"[\s\S]{0,240}当前暂无可用的校车数据。/,
+    );
+    expect(html).not.toMatch(
+      /data-slot="alert"[\s\S]{0,240}No shuttle data is available right now\./,
+    );
+  });
+
+  test("public bus tab keeps planner controls usable on mobile", async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await gotoAndWaitForReady(page, "/?tab=bus", {
+      testInfo,
+      screenshotLabel: "bus-mobile",
+    });
+
+    await expect(
+      page.getByRole("button", { name: /Weekday|工作日/ }).first(),
+    ).toBeVisible();
+    await expect(
+      page.locator("[data-testid='bus-start-stop-group']"),
+    ).toBeVisible();
+    await expect(page.locator("table").first()).toBeVisible();
+
+    await captureStepScreenshot(page, testInfo, "bus-planner-public-mobile");
+  });
+
   test("default stop pair shows every applicable route ordered by next available bus", async ({
     page,
   }, testInfo) => {

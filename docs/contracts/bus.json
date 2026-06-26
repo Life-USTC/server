@@ -8,7 +8,7 @@
   },
   "rules": {
     "public-no-signin": "Bus is public campus life information; sign-in should not be a prerequisite.",
-    "weekday-by-client-time": "The dashboard bus page determines weekday/weekend by the user's local time on the client side by default and allows manual switching.",
+    "weekday-by-shanghai-time": "The dashboard bus page determines weekday/weekend by Shanghai time by default and allows manual switching.",
     "shanghai-time-interpretation": "When calculating 'how long until departure', whether a trip has departed, and route ordering, the dashboard client interprets HH:mm times in the timetable uniformly as Shanghai Time, not changing with the browser's timezone.",
     "core-filters-only": "The dashboard bus page provides only core filters for departure stop, arrival stop, direction reversal, and 'show already-departed trips'; departure and arrival stops use a directly clickable vertical stop column to avoid secondary dropdowns, maintaining clear departure/arrival hierarchy.",
     "visual-priority": "The dashboard visual structure should prioritize 'quick scanning of the next trip and route differences'; selected stop, direction, next departure time, and route grouping must be more prominent than decorative cards.",

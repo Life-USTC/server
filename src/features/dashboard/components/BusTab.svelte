@@ -12,7 +12,6 @@ import type {
   DashboardBusData,
 } from "@/features/dashboard/lib/bus-tab-types";
 import { apiClient } from "@/lib/api/client";
-import { browser } from "$app/environment";
 import { Alert } from "$lib/components/ui/alert/index.js";
 import BusTabSettings from "./BusTabSettings.svelte";
 import BusTabTimetable from "./BusTabTimetable.svelte";
@@ -49,13 +48,11 @@ async function loadPublicBusData() {
   state.initializeWhenNeeded();
 }
 
-if (browser) {
-  onMount(() => {
-    const cleanup = state.actions.mount();
-    void loadPublicBusData();
-    return cleanup;
-  });
-}
+onMount(() => {
+  const cleanup = state.actions.mount();
+  void loadPublicBusData();
+  return cleanup;
+});
 
 $: {
   void busStateVersion;
