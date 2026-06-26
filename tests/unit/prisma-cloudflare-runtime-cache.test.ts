@@ -101,8 +101,13 @@ describe("Cloudflare Prisma runtime cache", () => {
   });
 
   it("reuses the base client and localized extensions within one runtime context", async () => {
-    const { getPrisma, prisma, runWithCloudflareRuntimeEnv } =
-      await loadRuntimePrisma();
+    const {
+      getCloudflareRuntimeContext,
+      getPrisma,
+      prisma,
+      runWithCloudflareRuntimeEnv,
+    } = await loadRuntimePrisma();
+    let runtimeContext: ReturnType<typeof getCloudflareRuntimeContext>;
 
     await runWithCloudflareRuntimeEnv(
       {
@@ -113,6 +118,8 @@ describe("Cloudflare Prisma runtime cache", () => {
       async () => {
         expect(prisma.user).toBe(prisma.user);
         expect(createBasePrismaMock).toHaveBeenCalledTimes(1);
+        runtimeContext = getCloudflareRuntimeContext();
+        expect(runtimeContext?.cache.size).toBe(1);
 
         await Promise.resolve();
         expect(prisma.user).toBe(prisma.user);
@@ -133,6 +140,7 @@ describe("Cloudflare Prisma runtime cache", () => {
     expect(createdClients).toHaveLength(1);
     expect(createdClients[0].$extends).toHaveBeenCalledTimes(2);
     expect(localizedNamesExtensionMock).toHaveBeenCalledTimes(2);
+    expect(runtimeContext?.cache.size).toBe(0);
   });
 
   it("does not share Cloudflare clients across distinct runtime contexts", async () => {

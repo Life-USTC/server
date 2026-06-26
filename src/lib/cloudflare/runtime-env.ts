@@ -61,13 +61,18 @@ export function runWithCloudflareRuntimeEnv<T>(
   env: unknown,
   callback: () => T | Promise<T>,
 ): Promise<T> {
-  return cloudflareRuntimeStorage.run(
-    {
-      cache: new Map(),
-      env: normalizeCloudflareRuntimeEnv(env),
-    },
-    async () => callback(),
-  );
+  const context: CloudflareRuntimeContext = {
+    cache: new Map(),
+    env: normalizeCloudflareRuntimeEnv(env),
+  };
+
+  return cloudflareRuntimeStorage.run(context, async () => {
+    try {
+      return await callback();
+    } finally {
+      context.cache.clear();
+    }
+  });
 }
 
 export function getCloudflareRuntimeContext() {
