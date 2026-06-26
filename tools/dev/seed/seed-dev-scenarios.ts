@@ -20,6 +20,7 @@ import {
   DEV_SCENARIO_KEY_PREFIX,
   DEV_SCENARIO_MARKER,
   DEV_SEED,
+  getDevDebugCredentialConfig,
   getDevScenarioRuntimeConfig,
 } from "./dev-seed";
 import {
@@ -33,6 +34,8 @@ const scenario = scenarioData;
 
 const { debugUsername, debugName, adminUsername, adminName } =
   getDevScenarioRuntimeConfig();
+const { debug: debugCredential, admin: adminCredential } =
+  getDevDebugCredentialConfig();
 
 const SEMESTER_JW_ID = DEV_SCENARIO_IDS.semesterJwId;
 const COURSE_JW_IDS = DEV_SCENARIO_IDS.courseJwIds;
@@ -228,6 +231,14 @@ const DEV_BUS_PAYLOAD: BusStaticPayload = {
   },
 };
 
+type DevScenarioUserData = {
+  email: string;
+  emailVerified: boolean;
+  name: string;
+  image: string;
+  isAdmin?: boolean;
+};
+
 type DevBusSeed = {
   payload: BusStaticPayload;
   versionTitle: string;
@@ -256,33 +267,59 @@ async function resolveDevBusSeed(): Promise<DevBusSeed> {
   };
 }
 
+async function upsertDevScenarioUser(
+  username: string,
+  data: DevScenarioUserData,
+) {
+  const matches = await prisma.user.findMany({
+    where: { OR: [{ username }, { email: data.email }] },
+    select: { id: true, username: true, email: true },
+    orderBy: { createdAt: "asc" },
+  });
+  const primary =
+    matches.find((user) => user.username === username) ?? matches[0];
+
+  if (!primary) {
+    return prisma.user.create({
+      data: { username, ...data },
+      select: { id: true, username: true },
+    });
+  }
+
+  for (const conflict of matches.filter((user) => user.id !== primary.id)) {
+    await prisma.user.update({
+      where: { id: conflict.id },
+      data: {
+        username: null,
+        email: `${DEV_SCENARIO_KEY_PREFIX}stale-debug-${conflict.id}@debug.local`,
+      },
+    });
+  }
+
+  return prisma.user.update({
+    where: { id: primary.id },
+    data: { username, ...data },
+    select: { id: true, username: true },
+  });
+}
+
 async function main() {
   const debugUserData = {
-    email: `${debugUsername}@users.local`,
+    email: debugCredential.email,
     emailVerified: true,
     name: debugName,
     image: `https://api.dicebear.com/9.x/shapes/svg?seed=${DEV_SEED.debugAvatarSeed}`,
   };
   const adminUserData = {
-    email: `${adminUsername}@users.local`,
+    email: adminCredential.email,
     emailVerified: true,
     name: adminName,
     isAdmin: true,
     image: `https://api.dicebear.com/9.x/shapes/svg?seed=${DEV_SEED.adminAvatarSeed}`,
   };
   const [debugUser, adminUser] = await Promise.all([
-    prisma.user.upsert({
-      where: { username: debugUsername },
-      update: debugUserData,
-      create: { username: debugUsername, ...debugUserData },
-      select: { id: true, username: true },
-    }),
-    prisma.user.upsert({
-      where: { username: adminUsername },
-      update: adminUserData,
-      create: { username: adminUsername, ...adminUserData },
-      select: { id: true, username: true },
-    }),
+    upsertDevScenarioUser(debugUsername, debugUserData),
+    upsertDevScenarioUser(adminUsername, adminUserData),
   ]);
   const busSeed = await resolveDevBusSeed();
 

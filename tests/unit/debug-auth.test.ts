@@ -1,19 +1,38 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DEV_ADMIN_PROVIDER_ID,
   DEV_DEBUG_PROVIDER_ID,
 } from "@/lib/auth/provider-ids";
 
+const hashPasswordMock = vi.hoisted(() => vi.fn());
+const prismaMock = vi.hoisted(() => ({
+  account: { upsert: vi.fn() },
+  user: {
+    create: vi.fn(),
+    findMany: vi.fn(),
+    update: vi.fn(),
+  },
+}));
+
 vi.mock("better-auth/crypto", () => ({
-  hashPassword: vi.fn(),
+  hashPassword: hashPasswordMock,
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
-  prisma: {},
+  prisma: prismaMock,
 }));
 
 describe("debug auth config", () => {
+  beforeEach(() => {
+    hashPasswordMock.mockResolvedValue("hashed-debug-password");
+    prismaMock.account.upsert.mockResolvedValue({});
+    prismaMock.user.create.mockResolvedValue({ id: "created-user" });
+    prismaMock.user.findMany.mockResolvedValue([]);
+    prismaMock.user.update.mockResolvedValue({ id: "updated-user" });
+  });
+
   afterEach(() => {
+    vi.clearAllMocks();
     vi.resetModules();
     vi.unstubAllEnvs();
   });
@@ -63,5 +82,103 @@ describe("debug auth config", () => {
     expect(() => getDebugProviderConfig(DEV_DEBUG_PROVIDER_ID)).toThrow(
       "DEV_DEBUG_PASSWORD is required when E2E_DEBUG_AUTH=1 (non-development NODE_ENV)",
     );
+  });
+
+  it("completes matched stale debug users", async () => {
+    const { ensureDebugCredentialUser, getDebugProviderConfig } = await import(
+      "@/lib/auth/debug-auth"
+    );
+    const config = getDebugProviderConfig(DEV_DEBUG_PROVIDER_ID);
+    prismaMock.user.findMany.mockResolvedValue([
+      {
+        id: "stale-debug-user",
+        username: null,
+        email: config.email,
+        image: null,
+        profilePictures: [],
+      },
+    ]);
+
+    await ensureDebugCredentialUser(DEV_DEBUG_PROVIDER_ID);
+
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where: { id: "stale-debug-user" },
+      data: {
+        username: config.username,
+        email: config.email,
+        emailVerified: true,
+        name: config.name,
+        isAdmin: config.isAdmin,
+        image: config.image,
+        profilePictures: { set: [config.image] },
+      },
+      select: { id: true },
+    });
+    expect(prismaMock.account.upsert).toHaveBeenCalledWith({
+      where: {
+        provider_providerAccountId: {
+          provider: "credential",
+          providerAccountId: "updated-user",
+        },
+      },
+      update: {
+        userId: "updated-user",
+        type: "credential",
+        provider: "credential",
+        password: "hashed-debug-password",
+      },
+      create: {
+        userId: "updated-user",
+        type: "credential",
+        provider: "credential",
+        providerAccountId: "updated-user",
+        password: "hashed-debug-password",
+      },
+    });
+  });
+
+  it("prefers username identity and neutralizes duplicate debug-email users", async () => {
+    const { ensureDebugCredentialUser, getDebugProviderConfig } = await import(
+      "@/lib/auth/debug-auth"
+    );
+    const config = getDebugProviderConfig(DEV_DEBUG_PROVIDER_ID);
+    prismaMock.user.findMany.mockResolvedValue([
+      {
+        id: "canonical-debug-user",
+        username: config.username,
+        email: `${config.username}@users.local`,
+        image: "https://example.test/existing-avatar.svg",
+        profilePictures: ["https://example.test/existing-avatar.svg"],
+      },
+      {
+        id: "stale-email-user",
+        username: null,
+        email: config.email,
+        image: null,
+        profilePictures: [],
+      },
+    ]);
+
+    await ensureDebugCredentialUser(DEV_DEBUG_PROVIDER_ID);
+
+    expect(prismaMock.user.update).toHaveBeenNthCalledWith(1, {
+      where: { id: "stale-email-user" },
+      data: {
+        username: null,
+        email: "debug-auth-stale-stale-email-user@debug.local",
+      },
+    });
+    expect(prismaMock.user.update).toHaveBeenNthCalledWith(2, {
+      where: { id: "canonical-debug-user" },
+      data: {
+        username: config.username,
+        email: config.email,
+        emailVerified: true,
+        name: config.name,
+        isAdmin: config.isAdmin,
+        image: "https://example.test/existing-avatar.svg",
+      },
+      select: { id: true },
+    });
   });
 });
