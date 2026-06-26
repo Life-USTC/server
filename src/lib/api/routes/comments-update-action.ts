@@ -1,5 +1,4 @@
 import type * as z from "zod";
-import { writeCommentEditAuditLog } from "@/features/comments/server/comment-audit";
 import { updateOwnComment } from "@/features/comments/server/comment-mutations";
 import {
   badRequest,
@@ -29,6 +28,7 @@ export async function updateCommentAction(
 
   const result = await updateOwnComment({
     attachmentIds,
+    auditMetadata: getAuditRequestMetadata(request),
     body: content,
     hasAttachmentUpdate,
     id,
@@ -48,13 +48,6 @@ export async function updateCommentAction(
     }
     return forbidden();
   }
-
-  await writeCommentEditAuditLog({
-    body: content,
-    requestMetadata: getAuditRequestMetadata(request),
-    userId,
-    commentId: id,
-  });
 
   return jsonResponse({ success: true, comment: result.comment });
 }

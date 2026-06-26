@@ -2,12 +2,6 @@ import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import * as z from "zod";
 import { commentMcpTargetMutationInputSchema } from "@/features/comments/lib/comment-target-input-schemas";
 import {
-  writeCommentCreateAuditLog,
-  writeCommentDeleteAuditLog,
-  writeCommentEditAuditLog,
-  writeCommentReactionAuditLog,
-} from "@/features/comments/server/comment-audit";
-import {
   createComment,
   createCommentReaction,
   deleteCommentReaction,
@@ -58,6 +52,7 @@ export async function createCommentTool(
   const userId = getUserId(extra.authInfo);
   const result = await createComment({
     attachmentIds: args.attachmentIds,
+    auditMetadata: { source: "mcp" },
     content: args.body,
     courseJwId: args.courseJwId,
     homeworkId: args.homeworkId,
@@ -77,13 +72,6 @@ export async function createCommentTool(
     return jsonToolResult(commentMutationErrorPayload(result), { mode });
   }
 
-  await writeCommentCreateAuditLog({
-    auditMetadata: { source: "mcp" },
-    body: args.body,
-    commentId: result.comment.id,
-    userId,
-  });
-
   return jsonToolResult({ success: true, id: result.comment.id }, { mode });
 }
 
@@ -96,6 +84,7 @@ export async function updateOwnCommentTool(
   const hasAttachmentUpdate = Array.isArray(args.attachmentIds);
   const result = await updateOwnComment({
     attachmentIds: hasAttachmentUpdate ? (args.attachmentIds ?? []) : [],
+    auditMetadata: { source: "mcp" },
     body: args.body,
     hasAttachmentUpdate,
     id: args.commentId,
@@ -108,13 +97,6 @@ export async function updateOwnCommentTool(
     return jsonToolResult(commentMutationErrorPayload(result), { mode });
   }
 
-  await writeCommentEditAuditLog({
-    auditMetadata: { source: "mcp" },
-    body: args.body,
-    commentId: args.commentId,
-    userId,
-  });
-
   return jsonToolResult({ success: true, comment: result.comment }, { mode });
 }
 
@@ -124,19 +106,17 @@ export async function deleteOwnCommentTool(
 ) {
   const resolvedMode = resolveMcpMode(mode);
   const userId = getUserId(extra.authInfo);
-  const result = await deleteOwnComment({ commentId, userId });
+  const result = await deleteOwnComment({
+    auditMetadata: { source: "mcp" },
+    commentId,
+    userId,
+  });
 
   if (!result.ok) {
     return jsonToolResult(commentMutationErrorPayload(result), {
       mode: resolvedMode,
     });
   }
-
-  await writeCommentDeleteAuditLog({
-    auditMetadata: { source: "mcp" },
-    commentId,
-    userId,
-  });
 
   return jsonToolResult({ success: true }, { mode: resolvedMode });
 }
@@ -147,21 +127,16 @@ export async function addCommentReactionTool(
 ) {
   const resolvedMode = resolveMcpMode(mode);
   const userId = getUserId(extra.authInfo);
-  const result = await createCommentReaction({ commentId, type, userId });
+  const result = await createCommentReaction({
+    auditMetadata: { source: "mcp" },
+    commentId,
+    type,
+    userId,
+  });
 
   if (!result.ok) {
     return jsonToolResult(commentMutationErrorPayload(result), {
       mode: resolvedMode,
-    });
-  }
-
-  if (result.changed) {
-    await writeCommentReactionAuditLog({
-      auditMetadata: { source: "mcp" },
-      commentId,
-      operation: "add",
-      type,
-      userId,
     });
   }
 
@@ -177,21 +152,16 @@ export async function removeCommentReactionTool(
 ) {
   const resolvedMode = resolveMcpMode(mode);
   const userId = getUserId(extra.authInfo);
-  const result = await deleteCommentReaction({ commentId, type, userId });
+  const result = await deleteCommentReaction({
+    auditMetadata: { source: "mcp" },
+    commentId,
+    type,
+    userId,
+  });
 
   if (!result.ok) {
     return jsonToolResult(commentMutationErrorPayload(result), {
       mode: resolvedMode,
-    });
-  }
-
-  if (result.changed) {
-    await writeCommentReactionAuditLog({
-      auditMetadata: { source: "mcp" },
-      commentId,
-      operation: "remove",
-      type,
-      userId,
     });
   }
 

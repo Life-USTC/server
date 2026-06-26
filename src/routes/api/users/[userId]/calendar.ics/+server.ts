@@ -6,7 +6,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * Generate user calendar.
  * @pathParams userCalendarPathParamsSchema
  * @params userCalendarQuerySchema
- * @response 200:binary
+ * @response 200:calendar
  * @response 401:openApiErrorSchema
  * @response 403:openApiErrorSchema
  * @response 404:openApiErrorSchema

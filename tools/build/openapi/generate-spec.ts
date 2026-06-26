@@ -359,6 +359,16 @@ function buildResponses(
       continue;
     }
 
+    if (schemaName === "calendar") {
+      responses[String(code)] = {
+        description: "Calendar response",
+        content: {
+          "text/calendar": { schema: { type: "string" } },
+        },
+      };
+      continue;
+    }
+
     if (schemaName === "array") {
       responses[String(code)] = {
         description: "Array response",
