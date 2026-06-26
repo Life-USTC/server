@@ -1,3 +1,11 @@
+## [1.39.17](https://github.com/Life-USTC/server/compare/v1.39.16...v1.39.17) (2026-06-26)
+
+
+### Bug Fixes
+
+* **ci:** trigger copilot setup for setup inputs ([907962b](https://github.com/Life-USTC/server/commit/907962b491235d71cb3276f6604a1556258aabf8))
+* **test:** run snapshot prerequisites locally ([4eb60d2](https://github.com/Life-USTC/server/commit/4eb60d21d53c5ef8c4730805312e5c8936373981))
+
 ## [1.39.16](https://github.com/Life-USTC/server/compare/v1.39.15...v1.39.16) (2026-06-26)
 
 
