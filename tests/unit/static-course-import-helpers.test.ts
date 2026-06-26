@@ -253,4 +253,18 @@ describe("static course import helpers", () => {
       new Map([["MATH1001", stableStaticNumericId("course", "MATH1001")]]),
     );
   });
+
+  it("rejects synthetic jwId collisions for exam source identities", () => {
+    expect(stableStaticNumericId("exam", "exam-collision-17956")).toBe(
+      stableStaticNumericId("exam", "exam-collision-29473"),
+    );
+
+    expect(() =>
+      buildCollisionCheckedStaticNumericIds(
+        "exam",
+        ["exam-collision-17956", "exam-collision-29473"],
+        "exam",
+      ),
+    ).toThrow(/Static exam synthetic jwId collision: 1687685484/);
+  });
 });
