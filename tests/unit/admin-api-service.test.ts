@@ -158,6 +158,34 @@ describe("admin API service", () => {
     });
   });
 
+  it("maps username uniqueness races to username_taken", async () => {
+    const uniqueConflict = new Error("unique conflict");
+    isPrismaUniqueConstraintErrorMock.mockReturnValueOnce(true);
+    prismaMock.user.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        id: "user-1",
+        isAdmin: false,
+      });
+    prismaMock.user.update.mockRejectedValueOnce(uniqueConflict);
+    const { updateAdminUser } = await import(
+      "@/features/admin/server/admin-api-service"
+    );
+
+    const result = await updateAdminUser("admin-1", "user-1", {
+      username: "taken-name",
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      reason: "username_taken",
+    });
+    expect(isPrismaUniqueConstraintErrorMock).toHaveBeenCalledWith(
+      uniqueConflict,
+    );
+    expect(getAdminUserListItemMock).not.toHaveBeenCalled();
+  });
+
   it("rejects self-suspension before writing a suspension", async () => {
     const { createAdminSuspension } = await import(
       "@/features/admin/server/admin-api-service"

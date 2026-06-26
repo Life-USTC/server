@@ -96,36 +96,50 @@ export async function updateAdminUser(
   const parsed = await buildAdminUserUpdateData(id, parsedBody);
   if (!parsed.ok) return parsed;
 
-  const updated = await runSerializableTransaction(async (tx) => {
-    const existingUser = await tx.user.findUnique({
-      where: { id },
-      select: { id: true, isAdmin: true },
-    });
-    if (!existingUser) {
-      return { ok: false as const, reason: "not_found" as const };
-    }
-
-    if (parsed.data.isAdmin === false && existingUser.isAdmin) {
-      if (id === adminUserId) {
-        return { ok: false as const, reason: "cannot_demote_self" as const };
+  const updateUser = () =>
+    runSerializableTransaction(async (tx) => {
+      const existingUser = await tx.user.findUnique({
+        where: { id },
+        select: { id: true, isAdmin: true },
+      });
+      if (!existingUser) {
+        return { ok: false as const, reason: "not_found" as const };
       }
 
-      const adminCount = await tx.user.count({ where: { isAdmin: true } });
-      if (adminCount <= 1) {
-        return {
-          ok: false as const,
-          reason: "cannot_remove_last_admin" as const,
-        };
-      }
-    }
+      if (parsed.data.isAdmin === false && existingUser.isAdmin) {
+        if (id === adminUserId) {
+          return { ok: false as const, reason: "cannot_demote_self" as const };
+        }
 
-    const updatedUser = await tx.user.update({
-      where: { id },
-      data: parsed.data,
-      select: { id: true },
-    });
-    return { id: updatedUser.id, ok: true as const };
-  }, "Failed to update admin user");
+        const adminCount = await tx.user.count({ where: { isAdmin: true } });
+        if (adminCount <= 1) {
+          return {
+            ok: false as const,
+            reason: "cannot_remove_last_admin" as const,
+          };
+        }
+      }
+
+      const updatedUser = await tx.user.update({
+        where: { id },
+        data: parsed.data,
+        select: { id: true },
+      });
+      return { id: updatedUser.id, ok: true as const };
+    }, "Failed to update admin user");
+
+  let updated: Awaited<ReturnType<typeof updateUser>>;
+  try {
+    updated = await updateUser();
+  } catch (error) {
+    if (
+      parsed.data.username === undefined ||
+      !isPrismaUniqueConstraintError(error)
+    ) {
+      throw error;
+    }
+    return { ok: false as const, reason: "username_taken" as const };
+  }
   if (!updated.ok) return updated;
 
   const user = await getAdminUserListItem(updated.id);
