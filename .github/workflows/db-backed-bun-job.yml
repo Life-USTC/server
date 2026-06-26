@@ -10,9 +10,13 @@ on:
       database-name:
         required: true
         type: string
-      job-command:
+      job-phase:
         required: true
         type: string
+      e2e-test-paths:
+        required: false
+        type: string
+        default: ""
       timeout-minutes:
         required: false
         type: number
@@ -120,9 +124,48 @@ jobs:
           name: ${{ inputs.download-artifact-name }}
           path: ${{ inputs.download-artifact-path }}
 
-      - name: Run job command
+      - name: Run job phase
         shell: bash
-        run: ${{ inputs.job-command }}
+        env:
+          E2E_TEST_PATHS: ${{ inputs.e2e-test-paths }}
+          JOB_PHASE: ${{ inputs.job-phase }}
+        run: |
+          run_e2e_test_phase() {
+            local -a paths=()
+            local path
+
+            while IFS= read -r path; do
+              if [ -n "$path" ]; then
+                paths+=("$path")
+              fi
+            done <<< "$E2E_TEST_PATHS"
+
+            if [ "${#paths[@]}" -eq 0 ]; then
+              echo "::error::ci:e2e:test requires e2e-test-paths."
+              exit 1
+            fi
+
+            bun run ci:e2e:test -- "${paths[@]}"
+          }
+
+          case "$JOB_PHASE" in
+            ci:verify)
+              bun run ci:verify
+              ;;
+            ci:e2e:build-artifacts)
+              bun run ci:e2e:build-artifacts
+              ;;
+            ci:e2e:test)
+              run_e2e_test_phase
+              ;;
+            ci:snapshot:capture)
+              bun run ci:snapshot:capture
+              ;;
+            *)
+              echo "::error::Unknown DB-backed Bun job phase: $JOB_PHASE"
+              exit 1
+              ;;
+          esac
 
       - name: Upload artifact
         id: upload-artifact

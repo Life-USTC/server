@@ -15,7 +15,7 @@ jobs:
     with:
       database-name: life_ustc_ci
       auth-secret: ci-check-secret-0123456789abcdef0123456789abcdef
-      job-command: bun run verify
+      job-phase: ci:verify
 
   build-e2e-artifacts:
     name: Build E2E artifacts
@@ -28,7 +28,7 @@ jobs:
       webhook-secret: e2e-ci-secret
       auth-secret: e2e-ci-secret
       extra-env: NO_PROXY=127.0.0.1,localhost,::1
-      job-command: bun run e2e:build-artifacts
+      job-phase: ci:e2e:build-artifacts
       upload-artifact-name: e2e-worker
       upload-artifact-path: build/e2e-worker
       upload-artifact-no-files-found: error
@@ -59,11 +59,31 @@ jobs:
           - scope: api-mcp
             paths: tests/e2e/src/app/api
           - scope: public-web
-            paths: tests/e2e/src/app/test.ts tests/e2e/src/app/bus tests/e2e/src/app/bus-map tests/e2e/src/app/courses tests/e2e/src/app/guides tests/e2e/src/app/mobile-app tests/e2e/src/app/privacy tests/e2e/src/app/sections tests/e2e/src/app/signin tests/e2e/src/app/teachers tests/e2e/src/app/terms tests/e2e/src/app/u tests/e2e/src/app/welcome
+            paths: |
+              tests/e2e/src/app/test.ts
+              tests/e2e/src/app/bus
+              tests/e2e/src/app/bus-map
+              tests/e2e/src/app/courses
+              tests/e2e/src/app/guides
+              tests/e2e/src/app/mobile-app
+              tests/e2e/src/app/privacy
+              tests/e2e/src/app/sections
+              tests/e2e/src/app/signin
+              tests/e2e/src/app/teachers
+              tests/e2e/src/app/terms
+              tests/e2e/src/app/u
+              tests/e2e/src/app/welcome
           - scope: signed-in
-            paths: tests/e2e/src/app/dashboard tests/e2e/src/app/e2e tests/e2e/src/app/oauth tests/e2e/src/app/settings
+            paths: |
+              tests/e2e/src/app/dashboard
+              tests/e2e/src/app/e2e
+              tests/e2e/src/app/oauth
+              tests/e2e/src/app/settings
           - scope: admin-comments
-            paths: tests/e2e/src/app/admin tests/e2e/src/app/comments tests/e2e/src/app/error
+            paths: |
+              tests/e2e/src/app/admin
+              tests/e2e/src/app/comments
+              tests/e2e/src/app/error
     permissions:
       contents: read
     uses: ./.github/workflows/db-backed-bun-job.yml
@@ -76,11 +96,8 @@ jobs:
         NO_PROXY=127.0.0.1,localhost,::1
       download-artifact-name: e2e-worker
       download-artifact-path: build/e2e-worker
-      job-command: |
-        bun run app:prepare
-        bun run e2e:db:prepare
-        bun run seed
-        bun run e2e:test -- ${{ matrix.paths }}
+      job-phase: ci:e2e:test
+      e2e-test-paths: ${{ matrix.paths }}
       upload-artifact-name: playwright-report-${{ matrix.scope }}
       upload-artifact-path: playwright-report/
       upload-artifact-no-files-found: ignore
