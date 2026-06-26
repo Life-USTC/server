@@ -25,5 +25,6 @@ export async function deleteAdminHomeworkRoute(
 
       return jsonResponse({ success: true });
     },
+    { requireActive: true },
   );
 }

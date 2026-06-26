@@ -21,27 +21,32 @@ export async function getAdminSuspensionsRoute(request: Request) {
 }
 
 export async function postAdminSuspensionRoute(request: Request) {
-  return withAdminApiRoute(request, "Failed to suspend user", async (admin) => {
-    const parsedBody = await parseRouteJsonBody(
-      request,
-      adminCreateSuspensionRequestSchema,
-      "Invalid suspension request",
-    );
-    if (parsedBody instanceof Response) return parsedBody;
+  return withAdminApiRoute(
+    request,
+    "Failed to suspend user",
+    async (admin) => {
+      const parsedBody = await parseRouteJsonBody(
+        request,
+        adminCreateSuspensionRequestSchema,
+        "Invalid suspension request",
+      );
+      if (parsedBody instanceof Response) return parsedBody;
 
-    const result = await createAdminSuspension(admin.userId, parsedBody);
-    if (!result.ok) {
-      if (result.reason === "invalid_expires_at") {
-        return badRequest("Invalid expiresAt");
+      const result = await createAdminSuspension(admin.userId, parsedBody);
+      if (!result.ok) {
+        if (result.reason === "invalid_expires_at") {
+          return badRequest("Invalid expiresAt");
+        }
+        if (result.reason === "cannot_suspend_self") {
+          return badRequest("Admins cannot suspend themselves");
+        }
+        return notFound("User not found");
       }
-      if (result.reason === "cannot_suspend_self") {
-        return badRequest("Admins cannot suspend themselves");
-      }
-      return notFound("User not found");
-    }
 
-    return jsonResponse({ suspension: result.suspension });
-  });
+      return jsonResponse({ suspension: result.suspension });
+    },
+    { requireActive: true },
+  );
 }
 
 export async function patchAdminSuspensionRoute(
@@ -61,5 +66,6 @@ export async function patchAdminSuspensionRoute(
 
       return jsonResponse({ suspension: result.suspension });
     },
+    { requireActive: true },
   );
 }

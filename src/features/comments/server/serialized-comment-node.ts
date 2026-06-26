@@ -72,6 +72,6 @@ export function buildVisibleCommentNode({
     canReply: canInteract,
     canEdit: canInteract && isAuthor,
     canDelete: canInteract && isAuthor,
-    canModerate: viewer.isAdmin,
+    canModerate: viewer.isAdmin && !viewer.isSuspended,
   };
 }

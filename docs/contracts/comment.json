@@ -3,7 +3,7 @@
   "access": {
     "anon": "Can read public comments but cannot create sign-in-required comments.",
     "user": "Can post, reply, react, edit, and delete their own comments; suspended users can read permitted comments but cannot use comment write actions or upload comment attachments.",
-    "admin": "Can hide, delete, and moderate comments through moderation surfaces, and handle suspensions.",
+    "admin": "Unsuspended admins can hide, delete, and moderate comments through moderation surfaces, and handle suspensions.",
     "agent": "Can read visible comment lists, focused threads, and ordinary signed-in user comment write actions through MCP with authenticated viewer context; no admin moderation capability is provided."
   },
   "rules": {
@@ -12,7 +12,7 @@
     "rich-content": "Supports Markdown, math formulas, emoji, tables, replies, and reactions.",
     "visibility-modes": "Supports public and signed-in-only audience visibility; anonymous posting is represented by comment.isAnonymous and hides identity from regular users while remaining traceable by admins in governance scenarios.",
     "shared-read-policy": "Web, REST, and MCP comment reads share the same target resolution, thread serialization, visibility filtering, author masking, reaction, attachment, and viewer action-flag logic; read-only paths must not create durable comment targets and valid empty section-teacher targets load as empty threads.",
-    "interaction-gate": "Edits, deletes, replies, and reaction changes require an authenticated, unsuspended viewer and an active visible comment target; deleted or softbanned comments must not expose canEdit/canDelete/canReply/canReact or accept those write actions."
+    "interaction-gate": "Edits, deletes, replies, and reaction changes require an authenticated, unsuspended viewer and an active visible comment target; deleted or softbanned comments must not expose canEdit/canDelete/canReply/canReact or accept those write actions. Admin moderation affordances require an unsuspended admin."
   },
   "capabilities": {
     "object-comment-section": {

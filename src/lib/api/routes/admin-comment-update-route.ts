@@ -30,5 +30,6 @@ export async function patchAdminCommentRoute(
 
       return jsonResponse({ comment: result.comment });
     },
+    { requireActive: true },
   );
 }

@@ -17,7 +17,7 @@ export async function createAdminOAuthClientAction(
   locale: AppLocale,
 ) {
   const copy = getAdminOAuthCopy(locale).oauth;
-  await requireAdminPage(request);
+  await requireAdminPage(request, { requireActive: true });
   const parsed = await parseAdminOAuthCreateRequest(request, copy);
   if ("error" in parsed) return parsed.error;
   const { name, redirectUris, scopes, tokenEndpointAuthMethod } = parsed.value;
