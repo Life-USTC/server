@@ -8,15 +8,16 @@
 import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
+import * as ts from "typescript";
 import { z } from "zod";
 import { createDocument } from "zod-openapi";
 import * as requestSchemas from "../../../src/lib/api/schemas/request-schemas";
 import * as responseSchemas from "../../../src/lib/api/schemas/response-schemas";
 import { OPENAPI_SPEC_RELATIVE_PATH } from "../../../src/lib/openapi/spec";
 import {
-  getRouteExportKind,
+  getRouteExport,
   HTTP_METHODS,
-  type RouteExportKind,
+  type RouteExport,
 } from "../../shared/route-exports";
 import { buildScenarioOpenApiExamples } from "./scenario-examples";
 
@@ -147,97 +148,158 @@ type ContractDoc = {
   >;
 };
 
-function extractJsDocAnnotations(
-  source: string,
-  httpMethod: string,
-  exportKind: RouteExportKind,
-): HandlerAnnotations | null {
-  const exportPattern =
-    exportKind === "destructured"
-      ? new RegExp(
-          `export\\s+const\\s*\\{(?=[^}]*\\b${httpMethod}\\b)[^}]*\\}\\s*=`,
-          "s",
-        )
-      : new RegExp(
-          exportKind === "const"
-            ? `export\\s+const\\s+${httpMethod}\\b(?:\\s*:[^=]+)?\\s*=`
-            : `export\\s+(?:async\\s+)?function\\s+${httpMethod}\\b`,
-        );
+function jsDocCommentText(
+  comment: string | ts.NodeArray<ts.JSDocComment> | undefined,
+) {
+  if (!comment) {
+    return "";
+  }
+  if (typeof comment === "string") {
+    return comment;
+  }
+  return comment.map((part) => part.getText()).join("");
+}
 
-  const match = exportPattern.exec(source);
-  const annotations = match ? parseJsDocBefore(source, match.index) : null;
-  if (annotations) return annotations;
+function getNodeJsDoc(node: ts.Node): ts.JSDoc | null {
+  const jsDocs = ts.getJSDocCommentsAndTags(node).filter(ts.isJSDoc);
+  return jsDocs.at(-1) ?? null;
+}
 
-  const wrappedMatch = new RegExp(
-    `export\\s+const\\s+${httpMethod}\\s*=\\s*observedApiRoute\\s*\\(\\s*(\\w+)\\s*\\)`,
-  ).exec(source);
-  if (!wrappedMatch) return null;
+function firstTagValue(tag: ts.JSDocTag) {
+  const value = jsDocCommentText(tag.comment).trim();
+  return value.split(/\s+/, 1)[0] ?? "";
+}
 
-  const handlerName = wrappedMatch[1];
-  const handlerPattern = new RegExp(
-    `(?:async\\s+)?function\\s+${handlerName}\\b`,
+function isDigits(value: string) {
+  return (
+    value.length > 0 && [...value].every((char) => char >= "0" && char <= "9")
   );
-  const handlerMatch = handlerPattern.exec(source);
-  if (!handlerMatch) return null;
-
-  return parseJsDocBefore(source, handlerMatch.index);
 }
 
-function parseJsDocBefore(
-  source: string,
-  declarationIndex: number,
-): HandlerAnnotations | null {
-  const prefix = source.slice(0, declarationIndex);
-  const commentStart = prefix.lastIndexOf("/**");
-  if (commentStart === -1) return null;
+function parseResponseTagValue(value: string) {
+  if (!value) {
+    return null;
+  }
 
-  const candidate = prefix.slice(commentStart);
-  if (!/^\/\*\*[\s\S]*?\*\/\s*$/.test(candidate)) return null;
-  return parseJsDocAnnotations(candidate);
+  const separator = value.indexOf(":");
+  const statusOrSchema = separator === -1 ? value : value.slice(0, separator);
+  const schemaName = separator === -1 ? null : value.slice(separator + 1);
+
+  if (isDigits(statusOrSchema)) {
+    return {
+      status: Number(statusOrSchema),
+      schemaName: schemaName || null,
+    };
+  }
+
+  return {
+    status: null,
+    schemaName: statusOrSchema,
+  };
 }
 
-function parseJsDocAnnotations(jsdoc: string): HandlerAnnotations {
-  // Extract summary (first non-tag line)
-  const summaryMatch = /\/\*\*\s*\n\s*\*\s*([^@\n][^\n]*)/.exec(jsdoc);
-  const summary = summaryMatch ? summaryMatch[1].trim().replace(/\.$/, "") : "";
-
+function parseJsDocAnnotations(jsdoc: ts.JSDoc): HandlerAnnotations {
+  const firstSummaryLine =
+    jsDocCommentText(jsdoc.comment)
+      .split("\n")
+      .map((line) => line.trim())
+      .find(Boolean) ?? "";
+  const summary = firstSummaryLine.endsWith(".")
+    ? firstSummaryLine.slice(0, -1)
+    : firstSummaryLine;
   const annotations: HandlerAnnotations = { summary, responses: [] };
 
-  // @params schemaName (query params)
-  const paramsMatch = /@params\s+(\w+)/.exec(jsdoc);
-  if (paramsMatch) annotations.params = paramsMatch[1];
-
-  // @pathParams schemaName
-  const pathParamsMatch = /@pathParams\s+(\w+)/.exec(jsdoc);
-  if (pathParamsMatch) annotations.pathParams = pathParamsMatch[1];
-
-  // @body schemaName
-  const bodyMatch = /@body\s+(\w+)/.exec(jsdoc);
-  if (bodyMatch) annotations.body = bodyMatch[1];
-
-  // @response schemaName, @response statusCode:schemaName, or @response statusCode (redirect/empty)
-  // Pattern: optional digits+colon prefix (status), then either word chars (schema) or end-of-context
-  const responsePattern = /@response\s+(?:(\d+)(?::(\w+))?|(\w+))/g;
-  let responseMatch = responsePattern.exec(jsdoc);
-  while (responseMatch !== null) {
-    if (responseMatch[1] !== undefined) {
-      // Matched @response STATUS or @response STATUS:SCHEMA
-      const status = Number(responseMatch[1]);
-      annotations.responses.push({
-        status,
-        schemaName: responseMatch[2] ?? null,
-      });
-    } else {
-      // Matched @response SCHEMA (no explicit status code)
-      annotations.responses.push({
-        status: null,
-        schemaName: responseMatch[3],
-      });
+  for (const tag of jsdoc.tags ?? []) {
+    const value = firstTagValue(tag);
+    switch (tag.tagName.text) {
+      case "params":
+        annotations.params = value;
+        break;
+      case "pathParams":
+        annotations.pathParams = value;
+        break;
+      case "body":
+        annotations.body = value;
+        break;
+      case "response": {
+        const response = parseResponseTagValue(value);
+        if (response) {
+          annotations.responses.push(response);
+        }
+        break;
+      }
     }
-    responseMatch = responsePattern.exec(jsdoc);
   }
 
   return annotations;
+}
+
+function parseNodeJsDocAnnotations(node: ts.Node): HandlerAnnotations | null {
+  const jsDoc = getNodeJsDoc(node);
+  return jsDoc ? parseJsDocAnnotations(jsDoc) : null;
+}
+
+function isNamedCallExpression(expression: ts.Expression, name: string) {
+  if (ts.isIdentifier(expression)) {
+    return expression.text === name;
+  }
+  return (
+    ts.isPropertyAccessExpression(expression) && expression.name.text === name
+  );
+}
+
+function getObservedApiRouteHandlerName(expression: ts.Expression | null) {
+  if (!expression) {
+    return null;
+  }
+
+  let handlerName: string | null = null;
+  function visit(node: ts.Node) {
+    if (handlerName) {
+      return;
+    }
+    if (
+      ts.isCallExpression(node) &&
+      isNamedCallExpression(node.expression, "observedApiRoute")
+    ) {
+      const firstArgument = node.arguments[0];
+      if (firstArgument && ts.isIdentifier(firstArgument)) {
+        handlerName = firstArgument.text;
+      }
+      return;
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(expression);
+  return handlerName;
+}
+
+function findTopLevelFunction(
+  sourceFile: ts.SourceFile,
+  name: string,
+): ts.FunctionDeclaration | null {
+  for (const statement of sourceFile.statements) {
+    if (ts.isFunctionDeclaration(statement) && statement.name?.text === name) {
+      return statement;
+    }
+  }
+  return null;
+}
+
+function extractJsDocAnnotations(routeExport: RouteExport) {
+  const exportAnnotations = parseNodeJsDocAnnotations(routeExport.node);
+  if (exportAnnotations) {
+    return exportAnnotations;
+  }
+
+  const handlerName = getObservedApiRouteHandlerName(routeExport.initializer);
+  if (!handlerName) {
+    return null;
+  }
+
+  const handler = findTopLevelFunction(routeExport.sourceFile, handlerName);
+  return handler ? parseNodeJsDocAnnotations(handler) : null;
 }
 
 // ── Request params building ────────────────────────────────────────────────────
@@ -391,12 +453,12 @@ async function processRouteFile(
   const pathItem: OpenApiPathItem = {};
 
   for (const method of HTTP_METHODS) {
-    const exportKind = getRouteExportKind(source, method);
-    if (!exportKind) {
+    const routeExport = getRouteExport(source, method);
+    if (!routeExport) {
       continue;
     }
 
-    const annotations = extractJsDocAnnotations(source, method, exportKind);
+    const annotations = extractJsDocAnnotations(routeExport);
     if (!annotations) {
       if (method === "OPTIONS") {
         continue;

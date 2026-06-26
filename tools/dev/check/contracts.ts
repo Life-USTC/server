@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import Ajv2020 from "ajv/dist/2020";
+import { getRegisteredMcpToolNames } from "../../shared/mcp-tool-registrations";
 import { getExportedRouteMethods } from "../../shared/route-exports";
 import { fail, reportUnexpectedError, walkFiles } from "./common";
 
@@ -339,15 +340,14 @@ function checkContractsDoc() {
   }
 
   function collectImplementedMcpTools(): Set<string> {
-    const toolPattern = /registerTool\(\s*["']([^"']+)["']/g;
     const tools = new Set<string>();
 
     for (const file of walkFiles(mcpDir).filter((item) =>
       item.endsWith(".ts"),
     )) {
       const source = readFileSync(file, "utf8");
-      for (const match of source.matchAll(toolPattern)) {
-        tools.add(match[1]);
+      for (const toolName of getRegisteredMcpToolNames(source)) {
+        tools.add(toolName);
       }
     }
 
