@@ -95,7 +95,7 @@ export async function loadSignedDashboardTabData(input: {
       : inactiveStage(null),
     input.tab === "links"
       ? timeDashboardTabStage("links", stageContext, () =>
-          dashboardLinks.getLinksTabData(input.userId),
+          dashboardLinks.getLinksTabData(input.userId, input.locale),
         )
       : inactiveStage(null),
     input.tab === "homeworks"

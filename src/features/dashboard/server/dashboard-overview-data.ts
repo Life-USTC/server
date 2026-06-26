@@ -40,6 +40,7 @@ export async function getDashboardOverviewData(
   } = semesterContext;
 
   const linksPromise = getDashboardOverviewLinksData(userId, {
+    locale,
     skipLinks: options.skipLinks,
   });
 

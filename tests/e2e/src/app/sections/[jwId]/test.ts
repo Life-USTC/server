@@ -723,7 +723,10 @@ test.describe("/sections/[jwId]", () => {
 
       // Post comment
       const body = `e2e-section-comment-${Date.now()}`;
-      const composer = page.locator("textarea").first();
+      const composer = page
+        .getByRole("textbox", { name: /评论内容|Comment body/i })
+        .first();
+      await expect(composer).toBeVisible();
       await composer.fill(body);
       const createResponse = page.waitForResponse(
         (r) =>
@@ -785,8 +788,13 @@ test.describe("/sections/[jwId]", () => {
       await commentCard.getByRole("button", { name: /编辑|Edit/i }).click();
       const editedBody = `${body}-edited`;
       const editCard = page.locator(`[id="${commentCardId}"]`);
-      await expect(editCard.locator("textarea").first()).toBeVisible();
-      await editCard.locator("textarea").first().fill(editedBody);
+      const editTextarea = editCard
+        .getByRole("textbox", {
+          name: /编辑评论内容|Edit comment body/i,
+        })
+        .first();
+      await expect(editTextarea).toBeVisible();
+      await editTextarea.fill(editedBody);
       const editResponse = page.waitForResponse(
         (r) =>
           r.url().includes("/api/comments/") &&
@@ -814,7 +822,9 @@ test.describe("/sections/[jwId]", () => {
         .locator(".rounded-2xl.border.border-dashed")
         .first();
       await expect(replyEditor).toBeVisible();
-      await replyEditor.locator("textarea").fill(replyBody);
+      await replyEditor
+        .getByRole("textbox", { name: /回复内容|Reply body/i })
+        .fill(replyBody);
       const replyResponse = page.waitForResponse(
         (r) =>
           r.url().includes("/api/comments") &&
@@ -945,7 +955,10 @@ test.describe("/sections/[jwId]", () => {
       expect(typeof uploadCompleteBody.upload?.id).toBe("string");
       uploadId = uploadCompleteBody.upload?.id;
 
-      await composerCard.locator("textarea").first().fill(body);
+      await composerCard
+        .getByRole("textbox", { name: /评论内容|Comment body/i })
+        .first()
+        .fill(body);
       const createComment = page.waitForResponse(
         (r) =>
           r.url().includes("/api/comments") &&

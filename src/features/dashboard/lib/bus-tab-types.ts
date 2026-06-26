@@ -22,7 +22,10 @@ export type DashboardBusCopy = Record<string, unknown> & {
     start: string;
   };
   preferences: {
+    autosaveHint: string;
     saveFailed: string;
+    saved: string;
+    saving: string;
   };
   query: {
     dayType: string;

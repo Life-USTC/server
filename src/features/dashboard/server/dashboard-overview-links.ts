@@ -1,4 +1,5 @@
 import { getSignedInDashboardLinksData } from "@/features/dashboard-links/server/dashboard-link-data";
+import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 
 const EMPTY_DASHBOARD_OVERVIEW_LINKS = {
   dashboardLinks: [],
@@ -9,10 +10,13 @@ const EMPTY_DASHBOARD_OVERVIEW_LINKS = {
 
 export function getDashboardOverviewLinksData(
   userId: string,
-  { skipLinks }: { skipLinks?: boolean },
+  {
+    locale = DEFAULT_LOCALE,
+    skipLinks,
+  }: { locale?: AppLocale; skipLinks?: boolean },
 ) {
   if (skipLinks) {
     return Promise.resolve(EMPTY_DASHBOARD_OVERVIEW_LINKS);
   }
-  return getSignedInDashboardLinksData(userId);
+  return getSignedInDashboardLinksData(userId, locale);
 }

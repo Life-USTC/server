@@ -1,4 +1,5 @@
 import { DASHBOARD_LINK_GROUPS } from "@/features/dashboard-links/lib/dashboard-links";
+import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { prisma } from "@/lib/db/prisma";
 import {
   buildDashboardLinkSummaries,
@@ -14,7 +15,9 @@ const MAX_OVERVIEW_LINKS = 4;
 
 export type { DashboardLinkSummary, DashboardLinksData };
 
-export function getPublicDashboardLinksData(): {
+export function getPublicDashboardLinksData(
+  locale: AppLocale = DEFAULT_LOCALE,
+): {
   dashboardLinks: DashboardLinkSummary[];
   overviewLinks: DashboardLinkSummary[];
 } {
@@ -23,6 +26,7 @@ export function getPublicDashboardLinksData(): {
   const { dashboardLinks, dashboardLinkBySlug } = buildDashboardLinkSummaries(
     emptyClickStats,
     emptyPinnedSet,
+    locale,
   );
   const overviewLinks = dashboardLinksForSlugs(
     DASHBOARD_LINK_GROUPS.mostClicked.slice(0, MAX_OVERVIEW_LINKS),
@@ -37,6 +41,7 @@ export function getPublicDashboardLinksData(): {
 
 export async function getSignedInDashboardLinksData(
   userId: string,
+  locale: AppLocale = DEFAULT_LOCALE,
 ): Promise<DashboardLinksData> {
   const [clickRows, pinRows] = await Promise.all([
     prisma.dashboardLinkClick.findMany({
@@ -57,6 +62,7 @@ export async function getSignedInDashboardLinksData(
   const { dashboardLinks, dashboardLinkBySlug } = buildDashboardLinkSummaries(
     clickStats,
     pinnedSlugSet,
+    locale,
   );
   const pinnedLinks = dashboardLinksForSlugs(
     pinRows.map((row) => row.slug),
@@ -65,6 +71,7 @@ export async function getSignedInDashboardLinksData(
   const recommendedLinks = recommendedDashboardLinkSummaries(
     clickStats,
     pinnedSlugSet,
+    locale,
   );
   const overviewLinks = [...pinnedLinks, ...recommendedLinks].slice(
     0,
@@ -79,6 +86,9 @@ export async function getSignedInDashboardLinksData(
   };
 }
 
-export async function getLinksTabData(userId: string) {
-  return getSignedInDashboardLinksData(userId);
+export async function getLinksTabData(
+  userId: string,
+  locale: AppLocale = DEFAULT_LOCALE,
+) {
+  return getSignedInDashboardLinksData(userId, locale);
 }

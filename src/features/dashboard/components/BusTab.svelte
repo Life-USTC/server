@@ -1,6 +1,8 @@
 <script lang="ts">
 import { onMount } from "svelte";
 import {
+  type BusPreferenceSaveState,
+  busPreferenceStatusText,
   hasEstimatedBusTimes,
   nextBusTripHighlightKey,
 } from "@/features/dashboard/lib/bus";
@@ -24,6 +26,9 @@ let busStateVersion = 0;
 let busDayType: "weekday" | "weekend" = "weekday";
 let busEndCampusId: number | null = null;
 let busPlannerReady = false;
+let busPreferenceSaveError = "";
+let busPreferenceSaveState: BusPreferenceSaveState = "idle";
+let busPreferenceStatus = "";
 let busShowDepartedTrips = false;
 let busStartCampusId: number | null = null;
 const state = createBusTabState({
@@ -55,13 +60,26 @@ if (browser) {
 $: {
   void busStateVersion;
   if (bus) loadedBus = bus;
-  busApplicableRoutes = browser && loadedBus ? state.applicableRoutes() : [];
+  state.initializeWhenNeeded();
+  busApplicableRoutes = loadedBus ? state.applicableRoutes() : [];
   busDayType = state.values.busDayType;
   busEndCampusId = state.values.busEndCampusId;
   busPlannerReady = state.values.busPlannerReady;
+  busPreferenceSaveError = state.values.busPreferenceSaveError;
+  busPreferenceSaveState = state.values.busPreferenceSaveState;
   busShowDepartedTrips = state.values.busShowDepartedTrips;
   busStartCampusId = state.values.busStartCampusId;
 }
+$: busPreferenceStatus = savePreferences
+  ? busPreferenceStatusText({
+      autosaveHint: busCopy.preferences.autosaveHint,
+      error: busPreferenceSaveError,
+      saveFailed: busCopy.preferences.saveFailed,
+      saved: busCopy.preferences.saved,
+      saving: busCopy.preferences.saving,
+      state: busPreferenceSaveState,
+    })
+  : "";
 $: busNextTripHighlightKey = nextBusTripHighlightKey(busApplicableRoutes);
 $: busShowsEstimatedHint = hasEstimatedBusTimes(
   loadedBus,
@@ -71,7 +89,7 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
 </script>
 
       <div class="grid gap-4 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start">
-        {#if loadedBus && browser}
+        {#if loadedBus}
           <BusTabTimetable
             bus={loadedBus}
             {busApplicableRoutes}
@@ -94,6 +112,8 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
             selectBusEnd={state.actions.selectBusEnd}
             selectBusStart={state.actions.selectBusStart}
             setBusDayType={state.actions.setBusDayType}
+            {busPreferenceSaveState}
+            {busPreferenceStatus}
             toggleBusDepartedTrips={state.actions.toggleBusDepartedTrips}
           />
         {:else}

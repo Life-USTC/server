@@ -1,8 +1,10 @@
+import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import {
   DASHBOARD_LINK_GROUP_ORDER,
   DASHBOARD_LINK_GROUPS,
   type DashboardLinkGroup,
-  type DashboardLinkItem,
+  type LocalizedDashboardLinkItem,
+  localizeDashboardLinks,
   USTC_DASHBOARD_LINKS,
 } from "./dashboard-link-catalog";
 
@@ -13,6 +15,9 @@ export {
   type DashboardLinkGroup,
   type DashboardLinkIcon,
   type DashboardLinkItem,
+  type LocalizedDashboardLinkItem,
+  localizeDashboardLink,
+  localizeDashboardLinks,
   USTC_DASHBOARD_LINKS,
 } from "./dashboard-link-catalog";
 
@@ -32,15 +37,18 @@ export type LinkClickStats = Record<string, number>;
 export function recommendDashboardLinks(
   clickStats: LinkClickStats,
   options: {
+    locale?: AppLocale;
     limit?: number;
     excludeSlugs?: string[];
   } = {},
-): DashboardLinkItem[] {
+): LocalizedDashboardLinkItem[] {
+  const locale = options.locale ?? DEFAULT_LOCALE;
   const limit = options.limit ?? 3;
   const excluded = new Set(options.excludeSlugs ?? []);
-  const candidateLinks = USTC_DASHBOARD_LINKS.filter(
-    (link) => !excluded.has(link.slug),
-  );
+  const candidateLinks = localizeDashboardLinks(
+    USTC_DASHBOARD_LINKS,
+    locale,
+  ).filter((link) => !excluded.has(link.slug));
 
   return [...candidateLinks]
     .sort((left, right) => {

@@ -46,7 +46,7 @@ $: replyDisabled = !viewer.isAuthenticated || viewer.isSuspended;
 <div class="rounded-2xl border border-dashed border-base-300 bg-base-200/40 p-4">
   <MarkdownEditor
     bind:value={replyDraft}
-    aria-label={commentCopy.markdownModeLabel}
+    aria-label={commentCopy.markdownReplyLabel}
     compact
     disabled={replyDisabled}
     guideLabel={commentCopy.markdownGuide}

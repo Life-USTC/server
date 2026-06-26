@@ -1,16 +1,20 @@
 import {
+  localizeDashboardLinks,
   recommendDashboardLinks,
   USTC_DASHBOARD_LINKS,
 } from "@/features/dashboard-links/lib/dashboard-links";
+import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { toDashboardLinkSummary } from "./dashboard-link-summary";
 
 export function buildDashboardLinkSummaries(
   clickStats: Record<string, number>,
   pinnedSlugSet: Set<string>,
+  locale: AppLocale = DEFAULT_LOCALE,
 ) {
-  const dashboardLinks = USTC_DASHBOARD_LINKS.map((link) =>
-    toDashboardLinkSummary(link, clickStats, pinnedSlugSet),
-  );
+  const dashboardLinks = localizeDashboardLinks(
+    USTC_DASHBOARD_LINKS,
+    locale,
+  ).map((link) => toDashboardLinkSummary(link, clickStats, pinnedSlugSet));
 
   return {
     dashboardLinks,
@@ -33,8 +37,10 @@ export function dashboardLinksForSlugs<Link>(
 export function recommendedDashboardLinkSummaries(
   clickStats: Record<string, number>,
   pinnedSlugSet: Set<string>,
+  locale: AppLocale = DEFAULT_LOCALE,
 ) {
   return recommendDashboardLinks(clickStats, {
+    locale,
     limit: USTC_DASHBOARD_LINKS.length,
     excludeSlugs: Array.from(pinnedSlugSet),
   }).map((link) => toDashboardLinkSummary(link, clickStats, pinnedSlugSet));

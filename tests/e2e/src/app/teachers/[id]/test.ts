@@ -311,7 +311,9 @@ test.describe("/teachers/[id]", () => {
       await expect(anonymousCheckbox).not.toBeChecked();
 
       const body = `e2e-teacher-comment-${Date.now()}`;
-      const composer = page.locator("textarea").first();
+      const composer = page
+        .getByRole("textbox", { name: /评论内容|Comment body/i })
+        .first();
       await expect(composer).toBeVisible({ timeout: 15_000 });
       await composer.fill(body);
       const createResponse = page.waitForResponse(
@@ -352,8 +354,13 @@ test.describe("/teachers/[id]", () => {
         .locator('[id^="comment-"]')
         .filter({ has: page.locator(".sr-only", { hasText: body }) })
         .first();
-      await expect(editCard.locator("textarea").first()).toBeVisible();
-      await editCard.locator("textarea").first().fill(editedBody);
+      const editTextarea = editCard
+        .getByRole("textbox", {
+          name: /编辑评论内容|Edit comment body/i,
+        })
+        .first();
+      await expect(editTextarea).toBeVisible();
+      await editTextarea.fill(editedBody);
       const editResponse = page.waitForResponse(
         (r) =>
           r.url().includes("/api/comments/") &&

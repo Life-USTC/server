@@ -52,7 +52,7 @@ export let visibilityOptions: CommentSelectOption[];
     />
     <MarkdownEditor
       bind:value={body}
-      aria-label={commentCopy.markdownModeLabel}
+      aria-label={commentCopy.markdownCommentLabel}
       disabled={!viewer.isAuthenticated || viewer.isSuspended}
       guideLabel={commentCopy.markdownGuide}
       {isDragActive}
