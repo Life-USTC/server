@@ -1,3 +1,11 @@
+## [1.39.27](https://github.com/Life-USTC/server/compare/v1.39.26...v1.39.27) (2026-06-26)
+
+
+### Bug Fixes
+
+* **snapshot:** align section tab selector ([0e4ebfc](https://github.com/Life-USTC/server/commit/0e4ebfc2f0dc2a27176034a1818b680575179302))
+* **ui:** improve accessibility semantics ([a09fa00](https://github.com/Life-USTC/server/commit/a09fa00e7cabdf6ef02ebad4edb2cbc010febb5c))
+
 ## [1.39.26](https://github.com/Life-USTC/server/compare/v1.39.25...v1.39.26) (2026-06-26)
 
 
