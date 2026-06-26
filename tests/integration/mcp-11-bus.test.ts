@@ -21,10 +21,22 @@ describe("get_next_buses — default mode drops repeated campus objects", () => 
         originCampusId: fixtures.DEV_SEED.bus.originCampusId,
         destinationCampusId: fixtures.DEV_SEED.bus.destinationCampusId,
         atTime: fixtures.SEED_DATE,
+        limit: 50,
       },
     );
 
     expect(result.totalRoutes).toBeGreaterThan(0);
+  });
+
+  it("rejects limits above the shared REST/MCP cap", async () => {
+    await expect(
+      context.client.call("get_next_buses", {
+        locale: "zh-cn",
+        originCampusId: fixtures.DEV_SEED.bus.originCampusId,
+        destinationCampusId: fixtures.DEV_SEED.bus.destinationCampusId,
+        limit: 51,
+      }),
+    ).rejects.toThrow();
   });
 
   it("rejects invalid atTime with the shared MCP date message", async () => {

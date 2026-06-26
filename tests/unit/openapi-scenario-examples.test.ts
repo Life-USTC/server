@@ -56,6 +56,8 @@ type GeneratedMediaType = {
 type GeneratedSchema = {
   $ref?: string;
   format?: string;
+  maximum?: number;
+  minimum?: number;
   properties?: Record<string, unknown>;
   required?: string[];
   type?: string;
@@ -80,6 +82,13 @@ function resolveGeneratedSchema(
   if (!ref) return schema;
   const schemaName = ref.match(/^#\/components\/schemas\/(.+)$/)?.[1];
   return schemaName ? spec.components?.schemas?.[schemaName] : undefined;
+}
+
+function queryParameter(
+  operation: GeneratedOperation | undefined,
+  name: string,
+) {
+  return operation?.parameters?.find((parameter) => parameter.name === name);
 }
 
 describe("buildScenarioOpenApiExamples", () => {
@@ -241,6 +250,52 @@ describe("buildScenarioOpenApiExamples", () => {
       "Return OAuth device authorization CORS preflight headers",
     );
     expect(deviceAuthorizationOptions?.responses?.["204"]).toBeTruthy();
+  });
+
+  it("documents query bounds and implemented validation responses", () => {
+    const spec = generatedOpenApiDocument as GeneratedOpenApiDocument;
+
+    for (const path of [
+      "/api/courses",
+      "/api/sections",
+      "/api/schedules",
+      "/api/teachers",
+      "/api/semesters",
+    ]) {
+      expect(queryParameter(spec.paths[path]?.get, "limit")?.schema).toEqual(
+        expect.objectContaining({ minimum: 1, maximum: 100 }),
+      );
+    }
+
+    expect(
+      queryParameter(spec.paths["/api/bus/next"]?.get, "limit")?.schema,
+    ).toEqual(expect.objectContaining({ minimum: 1, maximum: 50 }));
+    expect(
+      queryParameter(spec.paths["/api/todos"]?.get, "limit")?.schema,
+    ).toEqual(expect.objectContaining({ minimum: 1, maximum: 200 }));
+    expect(
+      queryParameter(
+        spec.paths["/api/me/subscriptions/schedules"]?.get,
+        "weekday",
+      )?.schema,
+    ).toEqual(expect.objectContaining({ minimum: 1, maximum: 7 }));
+    expect(
+      queryParameter(
+        spec.paths["/api/me/subscriptions/schedules"]?.get,
+        "limit",
+      )?.schema,
+    ).toEqual(expect.objectContaining({ minimum: 1, maximum: 300 }));
+
+    expect(spec.paths["/api/todos"]?.get?.responses?.["400"]).toBeTruthy();
+    expect(
+      spec.paths["/api/admin/users/{id}"]?.patch?.responses?.["404"],
+    ).toBeTruthy();
+    expect(
+      spec.paths["/api/admin/comments/{id}"]?.patch?.responses?.["404"],
+    ).toBeTruthy();
+    expect(
+      spec.paths["/api/admin/suspensions"]?.post?.responses?.["404"],
+    ).toBeTruthy();
   });
 
   it("documents auth security for protected REST and MCP operations", () => {

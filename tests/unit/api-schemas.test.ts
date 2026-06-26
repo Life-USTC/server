@@ -6,6 +6,7 @@ import {
 import { HOMEWORK_DESCRIPTION_MAX_LENGTH } from "@/features/homeworks/lib/homework-limits";
 import { TODO_CONTENT_MAX_LENGTH } from "@/features/todos/lib/todo-limits";
 import {
+  busNextDeparturesQuerySchema,
   calendarSubscriptionAppendRequestSchema,
   calendarSubscriptionCreateRequestSchema,
   commentCreateRequestSchema,
@@ -19,6 +20,9 @@ import {
   matchSectionCodesRequestSchema,
   schedulesQuerySchema,
   sectionsQuerySchema,
+  semestersQuerySchema,
+  subscribedSchedulesQuerySchema,
+  teachersQuerySchema,
   todoCreateRequestSchema,
   todosQuerySchema,
   uploadCompleteRequestSchema,
@@ -429,6 +433,47 @@ describe("other request schemas", () => {
     expect(todosQuerySchema.safeParse({ dueBefore: "" }).success).toBe(false);
     expect(
       todosQuerySchema.safeParse({ dueBefore: "not-a-date" }).success,
+    ).toBe(false);
+  });
+
+  it("validates documented query limit bounds", () => {
+    for (const schema of [
+      coursesQuerySchema,
+      sectionsQuerySchema,
+      schedulesQuerySchema,
+      teachersQuerySchema,
+      semestersQuerySchema,
+    ]) {
+      expect(schema.safeParse({ limit: "100" }).success).toBe(true);
+      expect(schema.safeParse({ limit: "101" }).success).toBe(false);
+      expect(schema.safeParse({ limit: "0" }).success).toBe(false);
+    }
+
+    const validBusNextQuery = {
+      destinationCampusId: "2",
+      limit: "50",
+      originCampusId: "1",
+    };
+    expect(
+      busNextDeparturesQuerySchema.safeParse(validBusNextQuery).success,
+    ).toBe(true);
+    expect(
+      busNextDeparturesQuerySchema.safeParse({
+        ...validBusNextQuery,
+        limit: "51",
+      }).success,
+    ).toBe(false);
+    expect(todosQuerySchema.safeParse({ limit: "200" }).success).toBe(true);
+    expect(todosQuerySchema.safeParse({ limit: "201" }).success).toBe(false);
+    expect(
+      subscribedSchedulesQuerySchema.safeParse({ weekday: "7", limit: "300" })
+        .success,
+    ).toBe(true);
+    expect(
+      subscribedSchedulesQuerySchema.safeParse({ weekday: "8" }).success,
+    ).toBe(false);
+    expect(
+      subscribedSchedulesQuerySchema.safeParse({ limit: "301" }).success,
     ).toBe(false);
   });
 
