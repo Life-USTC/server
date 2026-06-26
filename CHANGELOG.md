@@ -1,3 +1,10 @@
+## [1.39.11](https://github.com/Life-USTC/server/compare/v1.39.10...v1.39.11) (2026-06-26)
+
+
+### Bug Fixes
+
+* **comments:** lock softbanned owner deletes ([8b733f8](https://github.com/Life-USTC/server/commit/8b733f8f6c52b3c321ba015f076a9b0c76478ba4))
+
 ## [1.39.10](https://github.com/Life-USTC/server/compare/v1.39.9...v1.39.10) (2026-06-26)
 
 
