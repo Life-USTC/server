@@ -6,6 +6,7 @@ import {
 } from "@/features/uploads/server/upload-service";
 import {
   badRequest,
+  errorResponse,
   handleRouteError,
   jsonResponse,
   notFound,
@@ -74,7 +75,12 @@ export async function deleteUploadRoute(request: Request, params: IdParams) {
         id: parsed.id,
         userId,
       });
-      if (!result.ok) return notFound();
+      if (!result.ok) {
+        if (result.error === "storage_delete_failed") {
+          return errorResponse("Failed to delete upload object", 502);
+        }
+        return notFound();
+      }
 
       return jsonResponse({
         deletedId: result.deletedId,

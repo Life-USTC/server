@@ -328,7 +328,7 @@ export async function renameOwnedUpload(input: {
   return { ok: true as const, upload };
 }
 
-export async function deleteUploadRecord(input: {
+async function findUploadRecordForDeletion(input: {
   id: string;
   userId: string;
 }) {
@@ -338,8 +338,6 @@ export async function deleteUploadRecord(input: {
   });
 
   if (!upload) return null;
-
-  await prisma.upload.delete({ where: { id: upload.id } });
   return upload;
 }
 
@@ -355,13 +353,21 @@ export async function deleteOwnedUpload(input: {
   const writer = await requireActiveUploadWriter(input.userId);
   if (!writer.ok) return writer;
 
-  const upload = await deleteUploadRecord({
+  const upload = await findUploadRecordForDeletion({
     id: input.id,
     userId: input.userId,
   });
   if (!upload) return { ok: false as const, error: "not_found" as const };
 
-  await cleanupDeletedUploadObject(upload);
+  const storageDeleted = await deleteUploadStorageObject(upload);
+  if (!storageDeleted) {
+    return {
+      ok: false as const,
+      error: "storage_delete_failed" as const,
+    };
+  }
+
+  await prisma.upload.delete({ where: { id: upload.id } });
   await writeUploadDeleteAuditLog({
     audit: input.audit,
     upload,
@@ -456,16 +462,18 @@ async function requireActiveUploadWriter(userId: string) {
   return { ok: true as const };
 }
 
-async function cleanupDeletedUploadObject(upload: { key: string }) {
+async function deleteUploadStorageObject(upload: { key: string }) {
   try {
     await deleteStorageObject(upload.key);
+    return true;
   } catch (error) {
     logAppEvent(
       "error",
-      "R2 object cleanup failed after upload deletion",
+      "R2 object deletion failed; upload record preserved",
       { source: "upload" },
       error,
     );
+    return false;
   }
 }
 
