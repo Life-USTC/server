@@ -1,12 +1,25 @@
-import { redirect } from "@sveltejs/kit";
+import { error, redirect } from "@sveltejs/kit";
+import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
 import { asOAuthProviderApi } from "@/lib/oauth/provider-api";
 import { parseOAuthConsentForm } from "./oauth-authorize-form";
+
+function assertTrustedCookieRequestOrigin(request: Request) {
+  const headers = request.headers;
+  if (!headers.has("cookie")) return;
+
+  const origin = headers.get("origin") || headers.get("referer");
+  if (!origin || origin === "null" || !isTrustedAuthOrigin(origin)) {
+    throw error(403, "Invalid origin");
+  }
+}
 
 export async function submitOAuthConsentAction({
   request,
 }: {
   request: Request;
 }) {
+  assertTrustedCookieRequestOrigin(request);
+
   const form = await request.formData();
   const { accept, oauthQuery, scope } = parseOAuthConsentForm(form);
   const headers = new Headers(request.headers);
