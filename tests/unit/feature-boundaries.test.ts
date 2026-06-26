@@ -49,8 +49,8 @@ function featureImports(filePath: string, source: string) {
 
 const routeAdapterPrefix = "src/lib/api/routes/";
 const routeAdapterRoot = routeAdapterPrefix.slice(0, -1);
-const maxRouteAdapterFeatureImportFiles = 58;
-const maxRouteAdapterFeatureImports = 95;
+const maxRouteAdapterFeatureImportFiles = 61;
+const maxRouteAdapterFeatureImports = 101;
 const apiSchemaPrefix = "src/lib/api/schemas/";
 const maxApiSchemaFeatureImportFiles = 10;
 const maxApiSchemaFeatureImports = 12;

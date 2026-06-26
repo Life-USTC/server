@@ -1,13 +1,26 @@
+import { prisma as defaultPrisma } from "@/lib/db/prisma";
 import {
   DEVICE_CODE_ERRORS,
+  DEVICE_CODE_EXPIRES_IN,
   DEVICE_CODE_POLL_INTERVAL,
   DEVICE_CODE_STATUS,
+  generateDeviceCode,
+  generateUserCode,
 } from "@/lib/oauth/device-code";
-import { getDeviceAuthorizationClientPolicyFailure } from "./auth-device-client-policy";
-import { deviceCodeError } from "./auth-token-device-errors";
+import { getDeviceAuthorizationClientPolicyFailure } from "./device-authorization-policy.server";
 
 type DeviceGrantPrisma = {
   deviceCode: {
+    create: (input: {
+      data: {
+        clientId: string;
+        deviceCode: string;
+        expiresAt: Date;
+        resources: string[];
+        scopes: string[];
+        userCode: string;
+      };
+    }) => Promise<unknown>;
     findUnique: (input: {
       where: { deviceCode: string };
       select: {
@@ -59,16 +72,51 @@ type DeviceGrantRecord = NonNullable<
 
 type DeviceGrantRecordResult =
   | { record: DeviceGrantRecord }
-  | { response: Response };
+  | { error: { code: string; status?: number } };
+
+export async function createDeviceAuthorizationGrant({
+  clientId,
+  prisma = defaultPrisma,
+  requestedResources,
+  requestedScopes,
+}: {
+  clientId: string;
+  prisma?: Pick<DeviceGrantPrisma, "deviceCode">;
+  requestedResources: string[];
+  requestedScopes: string[];
+}) {
+  const deviceCode = generateDeviceCode();
+  const userCode = generateUserCode();
+  const expiresAt = new Date(Date.now() + DEVICE_CODE_EXPIRES_IN * 1000);
+
+  await prisma.deviceCode.create({
+    data: {
+      deviceCode,
+      userCode,
+      clientId,
+      scopes: requestedScopes,
+      resources: requestedResources,
+      expiresAt,
+    },
+  });
+
+  return { deviceCode, userCode };
+}
+
+export function deviceGrantResourceSetsMatch(left: string[], right: string[]) {
+  if (left.length !== right.length) return false;
+  const rightSet = new Set(right);
+  return left.every((resource) => rightSet.has(resource));
+}
 
 export async function resolveDeviceGrantRecord({
   clientId,
   deviceCode,
-  prisma,
+  prisma = defaultPrisma,
 }: {
   clientId: string;
   deviceCode: string;
-  prisma: DeviceGrantPrisma;
+  prisma?: DeviceGrantPrisma;
 }): Promise<DeviceGrantRecordResult> {
   const record = await prisma.deviceCode.findUnique({
     where: { deviceCode },
@@ -94,19 +142,19 @@ export async function resolveDeviceGrantRecord({
   });
 
   if (!record || record.client.clientId !== clientId) {
-    return { response: deviceCodeError("invalid_grant") };
+    return { error: { code: "invalid_grant" } };
   }
 
   if (record.client.disabled) {
-    return { response: deviceCodeError("invalid_client") };
+    return { error: { code: "invalid_client" } };
   }
 
   if (getDeviceAuthorizationClientPolicyFailure(record.client)) {
-    return { response: deviceCodeError("invalid_client") };
+    return { error: { code: "invalid_client" } };
   }
 
   if (record.expiresAt < new Date()) {
-    return { response: deviceCodeError(DEVICE_CODE_ERRORS.EXPIRED_TOKEN) };
+    return { error: { code: DEVICE_CODE_ERRORS.EXPIRED_TOKEN } };
   }
 
   if (record.lastPolledAt) {
@@ -116,7 +164,7 @@ export async function resolveDeviceGrantRecord({
         where: { id: record.id },
         data: { lastPolledAt: new Date() },
       });
-      return { response: deviceCodeError(DEVICE_CODE_ERRORS.SLOW_DOWN) };
+      return { error: { code: DEVICE_CODE_ERRORS.SLOW_DOWN } };
     }
   }
 
@@ -126,17 +174,17 @@ export async function resolveDeviceGrantRecord({
   });
 
   if (record.status === DEVICE_CODE_STATUS.DENIED) {
-    return { response: deviceCodeError(DEVICE_CODE_ERRORS.ACCESS_DENIED) };
+    return { error: { code: DEVICE_CODE_ERRORS.ACCESS_DENIED } };
   }
 
   if (record.status === DEVICE_CODE_STATUS.PENDING) {
     return {
-      response: deviceCodeError(DEVICE_CODE_ERRORS.AUTHORIZATION_PENDING),
+      error: { code: DEVICE_CODE_ERRORS.AUTHORIZATION_PENDING },
     };
   }
 
   if (!record.userId) {
-    return { response: deviceCodeError("server_error", 500) };
+    return { error: { code: "server_error", status: 500 } };
   }
 
   return { record };

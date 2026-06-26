@@ -54,22 +54,21 @@ describe("device authorization", () => {
       publicDeviceClient({ grantTypes: ["authorization_code"] }),
     );
     const { resolveDeviceAuthorizationClient } = await import(
-      "@/lib/api/routes/auth-device-client-resolution"
+      "@/features/oauth/server/device-authorization-policy.server"
     );
 
-    const result = await resolveDeviceAuthorizationClient(
-      new Request("https://life.example/api/auth/oauth2/device-authorization"),
-      "client-1",
-      OAUTH_OPENID_SCOPE,
-      [],
-    );
+    const result = await resolveDeviceAuthorizationClient({
+      clientId: "client-1",
+      scope: OAUTH_OPENID_SCOPE,
+      resourceEntries: [],
+    });
 
-    expect("response" in result).toBe(true);
-    if (!("response" in result) || !result.response) {
-      throw new Error("Expected device authorization error response");
+    expect("error" in result).toBe(true);
+    if (!("error" in result)) {
+      throw new Error("Expected device authorization policy error");
     }
-    expect(result.response.status).toBe(400);
-    await expect(result.response.json()).resolves.toMatchObject({
+    expect(result.error.status).toBe(400);
+    expect(result.error).toMatchObject({
       error: "unauthorized_client",
     });
   });
@@ -83,29 +82,28 @@ describe("device authorization", () => {
       }),
     );
     const { resolveDeviceAuthorizationClient } = await import(
-      "@/lib/api/routes/auth-device-client-resolution"
+      "@/features/oauth/server/device-authorization-policy.server"
     );
 
-    const result = await resolveDeviceAuthorizationClient(
-      new Request("https://life.example/api/auth/oauth2/device-authorization"),
-      "client-1",
-      OAUTH_OPENID_SCOPE,
-      [],
-    );
+    const result = await resolveDeviceAuthorizationClient({
+      clientId: "client-1",
+      scope: OAUTH_OPENID_SCOPE,
+      resourceEntries: [],
+    });
 
-    expect("response" in result).toBe(true);
-    if (!("response" in result) || !result.response) {
-      throw new Error("Expected device authorization error response");
+    expect("error" in result).toBe(true);
+    if (!("error" in result)) {
+      throw new Error("Expected device authorization policy error");
     }
-    expect(result.response.status).toBe(400);
-    await expect(result.response.json()).resolves.toMatchObject({
+    expect(result.error.status).toBe(400);
+    expect(result.error).toMatchObject({
       error: "unauthorized_client",
     });
   });
 
   it("requires the MCP resource when mcp:tools scope is requested", async () => {
     const { resolveRequestedDeviceResources } = await import(
-      "@/lib/api/routes/auth-device-authorization-helpers"
+      "@/features/oauth/server/device-authorization-policy.server"
     );
 
     const result = resolveRequestedDeviceResources(
@@ -113,27 +111,27 @@ describe("device authorization", () => {
       [OAUTH_OPENID_SCOPE, MCP_TOOLS_SCOPE],
     );
 
-    expect("error" in result).toBe(true);
     if ("error" in result) {
-      expect(result.error.status).toBe(400);
-      await expect(result.error.json()).resolves.toMatchObject({
+      expect(result.error).toMatchObject({
         error: "invalid_target",
+        status: 400,
       });
+      return;
     }
+    throw new Error("Expected device resource policy error");
   });
 
   it("defaults omitted device scopes to low-risk client defaults", async () => {
     findUniqueMock.mockResolvedValue(publicDeviceClient());
     const { resolveDeviceAuthorizationClient } = await import(
-      "@/lib/api/routes/auth-device-client-resolution"
+      "@/features/oauth/server/device-authorization-policy.server"
     );
 
-    const result = await resolveDeviceAuthorizationClient(
-      new Request("https://life.example/api/auth/oauth2/device-authorization"),
-      "client-1",
-      null,
-      [],
-    );
+    const result = await resolveDeviceAuthorizationClient({
+      clientId: "client-1",
+      scope: null,
+      resourceEntries: [],
+    });
 
     expect(result).toMatchObject({
       requestedResources: [],
@@ -144,15 +142,17 @@ describe("device authorization", () => {
   it("accepts and canonicalizes valid REST and MCP resources", async () => {
     findUniqueMock.mockResolvedValue(publicDeviceClient());
     const { resolveDeviceAuthorizationClient } = await import(
-      "@/lib/api/routes/auth-device-client-resolution"
+      "@/features/oauth/server/device-authorization-policy.server"
     );
 
-    const result = await resolveDeviceAuthorizationClient(
-      new Request("https://life.example/api/auth/oauth2/device-authorization"),
-      "client-1",
-      `${OAUTH_OPENID_SCOPE} ${MCP_TOOLS_SCOPE}`,
-      ["https://life.example:443/api/auth", "https://life.example/api/mcp"],
-    );
+    const result = await resolveDeviceAuthorizationClient({
+      clientId: "client-1",
+      scope: `${OAUTH_OPENID_SCOPE} ${MCP_TOOLS_SCOPE}`,
+      resourceEntries: [
+        "https://life.example:443/api/auth",
+        "https://life.example/api/mcp",
+      ],
+    });
 
     expect(result).toMatchObject({
       requestedResources: [

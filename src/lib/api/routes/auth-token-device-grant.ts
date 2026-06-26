@@ -1,9 +1,13 @@
-import { resolveRequestedDeviceResources } from "@/lib/api/routes/auth-device-authorization-helpers";
-import { issueDeviceGrantTokens } from "@/lib/api/routes/auth-token-device-token-issuer";
+import { resolveRequestedDeviceResources } from "@/features/oauth/server/device-authorization-policy.server";
+import {
+  deviceGrantResourceSetsMatch,
+  resolveDeviceGrantRecord,
+} from "@/features/oauth/server/device-grant-policy.server";
+import { issueDeviceGrantTokens } from "@/features/oauth/server/device-token-issuer.server";
 import { prisma } from "@/lib/db/prisma";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
+import { deviceAuthJsonError } from "./auth-device-authorization-helpers";
 import { deviceCodeError } from "./auth-token-device-errors";
-import { resolveDeviceGrantRecord } from "./auth-token-device-record";
 import { deviceGrantTokenResponse } from "./auth-token-device-response";
 
 type TokenRequestResourcesResult =
@@ -15,15 +19,15 @@ function parseTokenRequestResources(
 ): TokenRequestResourcesResult {
   const result = resolveRequestedDeviceResources(params.getAll("resource"), []);
   if ("error" in result) {
-    return { response: result.error };
+    return {
+      response: deviceAuthJsonError(
+        result.error.status,
+        result.error.error,
+        result.error.errorDescription,
+      ),
+    };
   }
   return { resources: result.resources };
-}
-
-function resourceSetsMatch(left: string[], right: string[]) {
-  if (left.length !== right.length) return false;
-  const rightSet = new Set(right);
-  return left.every((resource) => rightSet.has(resource));
 }
 
 export async function handleDeviceCodeGrant(
@@ -47,8 +51,11 @@ export async function handleDeviceCodeGrant(
     deviceCode,
     prisma,
   });
-  if ("response" in recordResult) {
-    return recordResult.response;
+  if ("error" in recordResult) {
+    return deviceCodeError(
+      recordResult.error.code,
+      recordResult.error.status ?? 400,
+    );
   }
   const { record } = recordResult;
   const userId = record.userId;
@@ -57,7 +64,10 @@ export async function handleDeviceCodeGrant(
   }
   if (
     requestedResources.resources.length > 0 &&
-    !resourceSetsMatch(requestedResources.resources, record.resources)
+    !deviceGrantResourceSetsMatch(
+      requestedResources.resources,
+      record.resources,
+    )
   ) {
     return deviceCodeError("invalid_target");
   }
