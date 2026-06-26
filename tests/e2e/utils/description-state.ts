@@ -1,8 +1,11 @@
+import type { APIRequestContext } from "@playwright/test";
 import { withE2ePrisma } from "./e2e-db/prisma";
 
-type DescriptionAuditAction = "admin_description_moderate" | "description_edit";
+export type DescriptionAuditAction =
+  | "admin_description_moderate"
+  | "description_edit";
 
-type DescriptionSnapshot = {
+export type DescriptionSnapshot = {
   auditActions: DescriptionAuditAction[];
   auditIds: string[];
   content: string;
@@ -11,6 +14,21 @@ type DescriptionSnapshot = {
   lastEditedAt: Date | null;
   lastEditedById: string | null;
   updatedAt: Date;
+};
+
+type DescriptionTargetReference = {
+  courseJwId?: number | string;
+  homeworkId?: number | string;
+  sectionJwId?: number | string;
+  targetId?: number | string;
+  targetType: "course" | "homework" | "section" | "teacher";
+  teacherId?: number | string;
+};
+
+type DescriptionTargetSnapshot = {
+  auditActions: DescriptionAuditAction[];
+  original: DescriptionSnapshot | null;
+  target: DescriptionTargetReference;
 };
 
 function sleep(ms: number) {
@@ -80,6 +98,48 @@ export async function snapshotDescriptionForE2e(
   });
 }
 
+function descriptionTargetSearchParams(target: DescriptionTargetReference) {
+  const params = new URLSearchParams({ targetType: target.targetType });
+  for (const [key, value] of Object.entries(target)) {
+    if (key === "targetType" || value === undefined) continue;
+    params.set(key, String(value));
+  }
+  return params;
+}
+
+async function findDescriptionIdForTarget(
+  request: APIRequestContext,
+  target: DescriptionTargetReference,
+) {
+  const response = await request.get(
+    `/api/descriptions?${descriptionTargetSearchParams(target).toString()}`,
+  );
+  if (response.status() !== 200) {
+    throw new Error(
+      `Expected description lookup to return 200, got ${response.status()}`,
+    );
+  }
+  const body = (await response.json()) as {
+    description?: { id?: string | null } | null;
+  };
+  return body.description?.id ?? null;
+}
+
+export async function snapshotDescriptionTargetForE2e(
+  request: APIRequestContext,
+  target: DescriptionTargetReference,
+  auditActions: DescriptionAuditAction[],
+): Promise<DescriptionTargetSnapshot> {
+  const descriptionId = await findDescriptionIdForTarget(request, target);
+  return {
+    auditActions,
+    original: descriptionId
+      ? await snapshotDescriptionForE2e(descriptionId, auditActions)
+      : null,
+    target,
+  };
+}
+
 export async function waitForDescriptionAuditRows(
   snapshot: DescriptionSnapshot,
   expectedNewRows: number,
@@ -117,4 +177,43 @@ export async function restoreDescriptionSnapshot(
   await restoreOnce();
   await sleep(50);
   await restoreOnce();
+}
+
+export async function restoreDescriptionTargetSnapshot(
+  request: APIRequestContext,
+  snapshot: DescriptionTargetSnapshot,
+) {
+  if (snapshot.original) {
+    await restoreDescriptionSnapshot(snapshot.original);
+    return;
+  }
+
+  const descriptionId = await findDescriptionIdForTarget(
+    request,
+    snapshot.target,
+  );
+  if (!descriptionId) return;
+  const createdDescriptionId = descriptionId;
+
+  async function deleteCreatedDescriptionOnce() {
+    await withE2ePrisma(async (prisma) => {
+      await prisma.$transaction([
+        prisma.auditLog.deleteMany({
+          where: {
+            action: { in: snapshot.auditActions },
+            targetId: createdDescriptionId,
+            targetType: "description",
+          },
+        }),
+        prisma.descriptionEdit.deleteMany({
+          where: { descriptionId: createdDescriptionId },
+        }),
+        prisma.description.deleteMany({ where: { id: createdDescriptionId } }),
+      ]);
+    });
+  }
+
+  await deleteCreatedDescriptionOnce();
+  await sleep(50);
+  await deleteCreatedDescriptionOnce();
 }

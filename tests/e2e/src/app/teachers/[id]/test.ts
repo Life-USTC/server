@@ -25,6 +25,12 @@
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
+import { cleanupCommentsForE2e } from "../../../../utils/comments";
+import {
+  restoreDescriptionTargetSnapshot,
+  snapshotDescriptionTargetForE2e,
+  waitForDescriptionAuditRows,
+} from "../../../../utils/description-state";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { visibleText } from "../../../../utils/locators";
 import {
@@ -197,37 +203,58 @@ test.describe("/teachers/[id]", () => {
     test.setTimeout(60_000);
     await signInAsDebugUser(page, "/teachers");
     await navigateToSeedTeacher(page);
-
-    const descCard = page
-      .locator('[data-slot="card"]')
-      .filter({ has: page.getByText(/简介|Description/i) })
-      .first();
-    await expect(descCard).toBeVisible();
-
-    await descCard.getByRole("button", { name: /^编辑$|^Edit$/i }).click();
-    const content = `e2e-teacher-desc-${Date.now()}`;
-    await descCard.locator("textarea").first().fill(content);
-
-    const saveResponse = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/descriptions") &&
-        r.request().method() === "POST" &&
-        r.status() === 200,
+    const teacherId = page.url().match(/\/teachers\/(\d+)/)?.[1];
+    expect(teacherId).toBeTruthy();
+    if (!teacherId) {
+      throw new Error("Expected teacher id in URL");
+    }
+    const snapshot = await snapshotDescriptionTargetForE2e(
+      page.request,
+      { targetType: "teacher", teacherId },
+      ["description_edit"],
     );
-    await descCard.getByRole("button", { name: /保存|Save/i }).click();
-    await saveResponse;
-    await waitForUiSettled(page);
 
-    // description.content rendered
-    await expect(page.getByText(content).first()).toBeVisible();
-    // description.lastEditedBy.name
-    await expect(
-      page.getByText(DEV_SEED.debugName, { exact: false }).first(),
-    ).toBeVisible();
-    // description.lastEditedAt — some date/time text present near description
-    await expect(descCard.getByText(/\d{4}/).first()).toBeVisible();
+    try {
+      const descCard = page
+        .locator('[data-slot="card"]')
+        .filter({ has: page.getByText(/简介|Description/i) })
+        .first();
+      await expect(descCard).toBeVisible();
 
-    await captureStepScreenshot(page, testInfo, "teacher/description-updated");
+      await descCard.getByRole("button", { name: /^编辑$|^Edit$/i }).click();
+      const content = `e2e-teacher-desc-${Date.now()}`;
+      await descCard.locator("textarea").first().fill(content);
+
+      const saveResponse = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/descriptions") &&
+          r.request().method() === "POST" &&
+          r.status() === 200,
+      );
+      await descCard.getByRole("button", { name: /保存|Save/i }).click();
+      await saveResponse;
+      await waitForUiSettled(page);
+
+      // description.content rendered
+      await expect(page.getByText(content).first()).toBeVisible();
+      // description.lastEditedBy.name
+      await expect(
+        page.getByText(DEV_SEED.debugName, { exact: false }).first(),
+      ).toBeVisible();
+      // description.lastEditedAt — some date/time text present near description
+      await expect(descCard.getByText(/\d{4}/).first()).toBeVisible();
+
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "teacher/description-updated",
+      );
+    } finally {
+      if (snapshot.original) {
+        await waitForDescriptionAuditRows(snapshot.original, 1);
+      }
+      await restoreDescriptionTargetSnapshot(page.request, snapshot);
+    }
   });
 
   // ── Comment CRUD ─────────────────────────────────────────────────────────────
@@ -238,102 +265,114 @@ test.describe("/teachers/[id]", () => {
     test.setTimeout(60_000);
     await signInAsDebugUser(page, "/teachers");
     await navigateToSeedTeacher(page);
+    let commentId: string | undefined;
 
-    await expect(async () => {
-      if (!page.url().includes("/teachers/")) {
-        await navigateToSeedTeacher(page);
+    try {
+      await expect(async () => {
+        if (!page.url().includes("/teachers/")) {
+          await navigateToSeedTeacher(page);
+        }
+        const commentsTab = page
+          .getByRole("button", { name: /评论|Comments/i })
+          .first();
+        await expect(commentsTab).toBeVisible();
+        await commentsTab.click();
+        await expect(commentsTab).toHaveAttribute("aria-pressed", "true");
+      }).toPass({
+        timeout: 10_000,
+        intervals: [250, 500, 1_000],
+      });
+
+      const anonymousCheckbox = page.getByRole("checkbox", {
+        name: /匿名|Anonymous/i,
+      });
+      if (await anonymousCheckbox.isChecked()) {
+        await anonymousCheckbox.click();
       }
-      const commentsTab = page
-        .getByRole("button", { name: /评论|Comments/i })
+      await expect(anonymousCheckbox).not.toBeChecked();
+
+      const body = `e2e-teacher-comment-${Date.now()}`;
+      const composer = page.locator("textarea").first();
+      await expect(composer).toBeVisible({ timeout: 15_000 });
+      await composer.fill(body);
+      const createResponse = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/comments") &&
+          r.request().method() === "POST" &&
+          r.status() === 200,
+      );
+      await page
+        .getByRole("button", { name: /发布评论|Post comment/i })
+        .click();
+      const createdCommentResponse = await createResponse;
+      const createResponseBody = (await createdCommentResponse.json()) as {
+        id?: string;
+      };
+      expect(createResponseBody.id).toBeTruthy();
+      commentId = createResponseBody.id;
+      await waitForUiSettled(page);
+
+      const commentCard = page
+        .locator('[id^="comment-"]')
+        .filter({ hasText: body })
         .first();
-      await expect(commentsTab).toBeVisible();
-      await commentsTab.click();
-      await expect(commentsTab).toHaveAttribute("aria-pressed", "true");
-    }).toPass({
-      timeout: 10_000,
-      intervals: [250, 500, 1_000],
-    });
+      await expect(commentCard).toBeVisible();
+      // comment.body
+      await expect(commentCard.getByText(body).first()).toBeVisible();
+      // comment.createdAt (timestamp text)
+      await expect(
+        commentCard.getByText(/ago|\d{4}|\d+\s*(分钟|小时|天)/i).first(),
+      ).toBeVisible();
+      await captureStepScreenshot(page, testInfo, "teacher/comment-posted");
 
-    const anonymousCheckbox = page.getByRole("checkbox", {
-      name: /匿名|Anonymous/i,
-    });
-    if (await anonymousCheckbox.isChecked()) {
-      await anonymousCheckbox.click();
+      // Edit
+      await commentCard.hover();
+      await commentCard.getByRole("button", { name: /编辑|Edit/i }).click();
+      const editedBody = `${body}-edited`;
+      const editCard = page
+        .locator('[id^="comment-"]')
+        .filter({ has: page.locator(".sr-only", { hasText: body }) })
+        .first();
+      await expect(editCard.locator("textarea").first()).toBeVisible();
+      await editCard.locator("textarea").first().fill(editedBody);
+      const editResponse = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/comments/") &&
+          r.request().method() === "PATCH" &&
+          r.status() === 200,
+      );
+      await editCard.getByRole("button", { name: /保存|Save/i }).click();
+      await editResponse;
+      await waitForUiSettled(page);
+      await expect(page.getByText(editedBody).first()).toBeVisible();
+      const editedCommentCard = page
+        .locator('[id^="comment-"]')
+        .filter({ hasText: editedBody })
+        .first();
+      await expect(editedCommentCard).toBeVisible();
+
+      // Delete
+      await editedCommentCard.hover();
+      await editedCommentCard
+        .getByRole("button", { name: /更多操作|More actions/i })
+        .first()
+        .click();
+      const deleteResponse = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/comments/") &&
+          r.request().method() === "DELETE" &&
+          r.status() === 200,
+      );
+      await page.getByRole("menuitem", { name: /删除|Delete/i }).click();
+      const dialog = page.getByRole("dialog", {
+        name: /删除评论|Delete Comment/i,
+      });
+      await expect(dialog).toBeVisible();
+      await dialog.getByRole("button", { name: /删除|Delete/i }).click();
+      await deleteResponse;
+      await captureStepScreenshot(page, testInfo, "teacher/comment-deleted");
+    } finally {
+      await cleanupCommentsForE2e([commentId]);
     }
-    await expect(anonymousCheckbox).not.toBeChecked();
-
-    const body = `e2e-teacher-comment-${Date.now()}`;
-    const composer = page.locator("textarea").first();
-    await expect(composer).toBeVisible({ timeout: 15_000 });
-    await composer.fill(body);
-    const createResponse = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/comments") &&
-        r.request().method() === "POST" &&
-        r.status() === 200,
-    );
-    await page.getByRole("button", { name: /发布评论|Post comment/i }).click();
-    await createResponse;
-    await waitForUiSettled(page);
-
-    const commentCard = page
-      .locator('[id^="comment-"]')
-      .filter({ hasText: body })
-      .first();
-    await expect(commentCard).toBeVisible();
-    // comment.body
-    await expect(commentCard.getByText(body).first()).toBeVisible();
-    // comment.createdAt (timestamp text)
-    await expect(
-      commentCard.getByText(/ago|\d{4}|\d+\s*(分钟|小时|天)/i).first(),
-    ).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "teacher/comment-posted");
-
-    // Edit
-    await commentCard.hover();
-    await commentCard.getByRole("button", { name: /编辑|Edit/i }).click();
-    const editedBody = `${body}-edited`;
-    const editCard = page
-      .locator('[id^="comment-"]')
-      .filter({ has: page.locator(".sr-only", { hasText: body }) })
-      .first();
-    await expect(editCard.locator("textarea").first()).toBeVisible();
-    await editCard.locator("textarea").first().fill(editedBody);
-    const editResponse = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/comments/") &&
-        r.request().method() === "PATCH" &&
-        r.status() === 200,
-    );
-    await editCard.getByRole("button", { name: /保存|Save/i }).click();
-    await editResponse;
-    await waitForUiSettled(page);
-    await expect(page.getByText(editedBody).first()).toBeVisible();
-    const editedCommentCard = page
-      .locator('[id^="comment-"]')
-      .filter({ hasText: editedBody })
-      .first();
-    await expect(editedCommentCard).toBeVisible();
-
-    // Delete
-    await editedCommentCard.hover();
-    await editedCommentCard
-      .getByRole("button", { name: /更多操作|More actions/i })
-      .first()
-      .click();
-    const deleteResponse = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/comments/") &&
-        r.request().method() === "DELETE" &&
-        r.status() === 200,
-    );
-    await page.getByRole("menuitem", { name: /删除|Delete/i }).click();
-    const dialog = page.getByRole("dialog", {
-      name: /删除评论|Delete Comment/i,
-    });
-    await expect(dialog).toBeVisible();
-    await dialog.getByRole("button", { name: /删除|Delete/i }).click();
-    await deleteResponse;
-    await captureStepScreenshot(page, testInfo, "teacher/comment-deleted");
   });
 });

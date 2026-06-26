@@ -28,6 +28,12 @@ import scenarioData from "../../../../fixtures/scenario.json" with {
   type: "json",
 };
 import { signInAsDebugUser } from "../../../../utils/auth";
+import { cleanupCommentsForE2e } from "../../../../utils/comments";
+import {
+  restoreDescriptionTargetSnapshot,
+  snapshotDescriptionTargetForE2e,
+  waitForDescriptionAuditRows,
+} from "../../../../utils/description-state";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
@@ -39,6 +45,8 @@ const COURSE_WITH_DESCRIPTION_URL = `/courses/${scenarioData.courses[2].jwId}`;
 const COURSE_WITH_DESCRIPTION_TEXT = "实验课建议准备护目镜并提前完成预习问答。";
 
 test.describe("/courses/[jwId]", () => {
+  test.describe.configure({ mode: "serial" });
+
   test("contract", async ({ page }, testInfo) => {
     await assertPageContract(page, { routePath: "/courses/[jwId]", testInfo });
   });
@@ -234,34 +242,46 @@ test.describe("/courses/[jwId]", () => {
   }, testInfo) => {
     test.setTimeout(60_000);
     await signInAsDebugUser(page, COURSE_URL);
-
-    const descCard = page
-      .locator('[data-slot="card"]')
-      .filter({ has: page.getByText(/简介|Description/i) })
-      .first();
-    await expect(descCard).toBeVisible();
-
-    const content = `e2e-course-desc-${Date.now()}`;
-    const editor = descCard.locator("textarea").first();
-    await expect(async () => {
-      await descCard.getByRole("button", { name: /^编辑$|^Edit$/i }).click();
-      await expect(editor).toBeVisible({ timeout: 3_000 });
-    }).toPass({
-      timeout: 10_000,
-      intervals: [250, 500, 1_000],
-    });
-    await editor.fill(content);
-
-    const saveResponse = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/descriptions") &&
-        r.request().method() === "POST" &&
-        r.status() === 200,
+    const snapshot = await snapshotDescriptionTargetForE2e(
+      page.request,
+      { courseJwId: DEV_SEED.course.jwId, targetType: "course" },
+      ["description_edit"],
     );
-    await descCard.getByRole("button", { name: /保存|Save/i }).click();
-    await saveResponse;
-    await expect(page.getByText(content).first()).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "course/description-updated");
+
+    try {
+      const descCard = page
+        .locator('[data-slot="card"]')
+        .filter({ has: page.getByText(/简介|Description/i) })
+        .first();
+      await expect(descCard).toBeVisible();
+
+      const content = `e2e-course-desc-${Date.now()}`;
+      const editor = descCard.locator("textarea").first();
+      await expect(async () => {
+        await descCard.getByRole("button", { name: /^编辑$|^Edit$/i }).click();
+        await expect(editor).toBeVisible({ timeout: 3_000 });
+      }).toPass({
+        timeout: 10_000,
+        intervals: [250, 500, 1_000],
+      });
+      await editor.fill(content);
+
+      const saveResponse = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/descriptions") &&
+          r.request().method() === "POST" &&
+          r.status() === 200,
+      );
+      await descCard.getByRole("button", { name: /保存|Save/i }).click();
+      await saveResponse;
+      await expect(page.getByText(content).first()).toBeVisible();
+      await captureStepScreenshot(page, testInfo, "course/description-updated");
+    } finally {
+      if (snapshot.original) {
+        await waitForDescriptionAuditRows(snapshot.original, 1);
+      }
+      await restoreDescriptionTargetSnapshot(page.request, snapshot);
+    }
   });
 
   // ── Comment CRUD ─────────────────────────────────────────────────────────────
@@ -271,82 +291,94 @@ test.describe("/courses/[jwId]", () => {
   }, testInfo) => {
     test.setTimeout(60_000);
     await signInAsDebugUser(page, COURSE_URL);
+    let commentId: string | undefined;
 
-    const commentsTab = page
-      .getByRole("button", { name: /评论|Comments/i })
-      .first();
-    await expect(commentsTab).toBeVisible();
-    await commentsTab.click();
-    await expect(commentsTab).toHaveAttribute("aria-pressed", "true");
+    try {
+      const commentsTab = page
+        .getByRole("button", { name: /评论|Comments/i })
+        .first();
+      await expect(commentsTab).toBeVisible();
+      await commentsTab.click();
+      await expect(commentsTab).toHaveAttribute("aria-pressed", "true");
 
-    const body = `e2e-course-comment-${Date.now()}`;
-    const composer = page.locator("textarea").first();
-    await expect(composer).toBeVisible({ timeout: 15_000 });
-    await composer.fill(body);
-    const createResponse = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/comments") &&
-        r.request().method() === "POST" &&
-        r.status() === 200,
-    );
-    await page.getByRole("button", { name: /发布评论|Post comment/i }).click();
-    await createResponse;
+      const body = `e2e-course-comment-${Date.now()}`;
+      const composer = page.locator("textarea").first();
+      await expect(composer).toBeVisible({ timeout: 15_000 });
+      await composer.fill(body);
+      const createResponse = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/comments") &&
+          r.request().method() === "POST" &&
+          r.status() === 200,
+      );
+      await page
+        .getByRole("button", { name: /发布评论|Post comment/i })
+        .click();
+      const createdCommentResponse = await createResponse;
+      const createResponseBody = (await createdCommentResponse.json()) as {
+        id?: string;
+      };
+      expect(createResponseBody.id).toBeTruthy();
+      commentId = createResponseBody.id;
 
-    const commentCard = page
-      .locator('[id^="comment-"]')
-      .filter({ hasText: body })
-      .first();
-    await expect(commentCard).toBeVisible();
-    // comment.author.name visible
-    await expect(
-      commentCard.getByText(DEV_SEED.debugName).first(),
-    ).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "course/comment-posted");
+      const commentCard = page
+        .locator('[id^="comment-"]')
+        .filter({ hasText: body })
+        .first();
+      await expect(commentCard).toBeVisible();
+      // comment.author.name visible
+      await expect(
+        commentCard.getByText(DEV_SEED.debugName).first(),
+      ).toBeVisible();
+      await captureStepScreenshot(page, testInfo, "course/comment-posted");
 
-    // Edit
-    await commentCard.hover();
-    await commentCard.getByRole("button", { name: /编辑|Edit/i }).click();
-    const editedBody = `${body}-edited`;
-    const editCard = page
-      .locator('[id^="comment-"]')
-      .filter({ has: page.locator(".sr-only", { hasText: body }) })
-      .first();
-    await expect(editCard.locator("textarea").first()).toBeVisible();
-    await editCard.locator("textarea").first().fill(editedBody);
-    const editResponse = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/comments/") &&
-        r.request().method() === "PATCH" &&
-        r.status() === 200,
-    );
-    await editCard.getByRole("button", { name: /保存|Save/i }).click();
-    await editResponse;
-    await expect(page.getByText(editedBody).first()).toBeVisible();
-    const editedCommentCard = page
-      .locator('[id^="comment-"]')
-      .filter({ hasText: editedBody })
-      .first();
-    await expect(editedCommentCard).toBeVisible();
+      // Edit
+      await commentCard.hover();
+      await commentCard.getByRole("button", { name: /编辑|Edit/i }).click();
+      const editedBody = `${body}-edited`;
+      const editCard = page
+        .locator('[id^="comment-"]')
+        .filter({ has: page.locator(".sr-only", { hasText: body }) })
+        .first();
+      await expect(editCard.locator("textarea").first()).toBeVisible();
+      await editCard.locator("textarea").first().fill(editedBody);
+      const editResponse = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/comments/") &&
+          r.request().method() === "PATCH" &&
+          r.status() === 200,
+      );
+      await editCard.getByRole("button", { name: /保存|Save/i }).click();
+      await editResponse;
+      await expect(page.getByText(editedBody).first()).toBeVisible();
+      const editedCommentCard = page
+        .locator('[id^="comment-"]')
+        .filter({ hasText: editedBody })
+        .first();
+      await expect(editedCommentCard).toBeVisible();
 
-    // Delete
-    await editedCommentCard.hover();
-    await editedCommentCard
-      .getByRole("button", { name: /更多操作|More actions/i })
-      .first()
-      .click();
-    const deleteResponse = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/comments/") &&
-        r.request().method() === "DELETE" &&
-        r.status() === 200,
-    );
-    await page.getByRole("menuitem", { name: /删除|Delete/i }).click();
-    const dialog = page.getByRole("dialog", {
-      name: /删除评论|Delete Comment/i,
-    });
-    await expect(dialog).toBeVisible();
-    await dialog.getByRole("button", { name: /删除|Delete/i }).click();
-    await deleteResponse;
-    await captureStepScreenshot(page, testInfo, "course/comment-deleted");
+      // Delete
+      await editedCommentCard.hover();
+      await editedCommentCard
+        .getByRole("button", { name: /更多操作|More actions/i })
+        .first()
+        .click();
+      const deleteResponse = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/comments/") &&
+          r.request().method() === "DELETE" &&
+          r.status() === 200,
+      );
+      await page.getByRole("menuitem", { name: /删除|Delete/i }).click();
+      const dialog = page.getByRole("dialog", {
+        name: /删除评论|Delete Comment/i,
+      });
+      await expect(dialog).toBeVisible();
+      await dialog.getByRole("button", { name: /删除|Delete/i }).click();
+      await deleteResponse;
+      await captureStepScreenshot(page, testInfo, "course/comment-deleted");
+    } finally {
+      await cleanupCommentsForE2e([commentId]);
+    }
   });
 });

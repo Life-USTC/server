@@ -35,12 +35,15 @@
  */
 import { expect, type Page, test } from "@playwright/test";
 import { signInAsDebugUser, signInAsDevAdmin } from "../../../../utils/auth";
+import { cleanupCommentsForE2e } from "../../../../utils/comments";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import { cleanupHomeworksForE2e } from "../../../../utils/homeworks";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+import { deleteUploadById } from "../../../../utils/uploads";
 import { assertPageContract } from "../../_shared/page-contract";
 
 const SECTION_URL = `/sections/${DEV_SEED.section.jwId}`;
@@ -595,100 +598,110 @@ test.describe("/sections/[jwId]", () => {
   }, testInfo) => {
     test.setTimeout(60_000);
     await signInAsDebugUser(page, SECTION_URL);
+    let homeworkId: string | undefined;
 
-    const homeworksTab = page
-      .getByRole("button", { name: /作业|Homework/i })
-      .first();
-    if ((await homeworksTab.count()) === 0) {
-      await expect(page.locator("#main-content")).toBeVisible();
-      return;
+    try {
+      const homeworksTab = page
+        .getByRole("button", { name: /作业|Homework/i })
+        .first();
+      if ((await homeworksTab.count()) === 0) {
+        await expect(page.locator("#main-content")).toBeVisible();
+        return;
+      }
+      await homeworksTab.click();
+
+      // Create
+      const showCreate = page
+        .getByRole("button", { name: /^新建$|^Create$/i })
+        .first();
+      if ((await showCreate.count()) > 0) {
+        await showCreate.click();
+      }
+      const createDialog = page.locator('[data-slot="dialog-popup"]').first();
+      await expect(createDialog).toBeVisible({ timeout: 5_000 });
+
+      const title = `e2e-section-hw-${Date.now()}`;
+      await createDialog.getByTestId("section-homework-title").fill(title);
+      const createResponse = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/homeworks") &&
+          r.request().method() === "POST" &&
+          r.status() === 200,
+      );
+      await createDialog
+        .getByRole("button", { name: /创建作业|Create homework/i })
+        .click();
+      const createdHomeworkResponse = await createResponse;
+      const createResponseBody = (await createdHomeworkResponse.json()) as {
+        id?: string;
+      };
+      expect(createResponseBody.id).toBeTruthy();
+      homeworkId = createResponseBody.id;
+      await waitForUiSettled(page);
+
+      const hwCard = page
+        .getByRole("button", { name: new RegExp(escapeForRegExp(title)) })
+        .first();
+      await expect(hwCard).toBeVisible();
+
+      // homework.title is displayed
+      await expect(hwCard.getByText(title)).toBeVisible();
+      await captureStepScreenshot(page, testInfo, "section/homework-created");
+      await hwCard.click();
+      const homeworkPopout = page.locator('[data-slot="dialog-popup"]').first();
+      await expect(homeworkPopout).toBeVisible();
+
+      // Homework discussion is embedded in the detail dialog.
+      await expect(
+        homeworkPopout.getByText(/评论|Comments/i).first(),
+      ).toBeVisible();
+      await captureStepScreenshot(page, testInfo, "section/homework-discuss");
+
+      // Toggle completion (section-homework-tab.display.fields: user completion status)
+      const completionButton = homeworkPopout
+        .getByRole("button", {
+          name: /标记为完成|取消完成|Mark as complete|Mark as incomplete/i,
+        })
+        .first();
+      await expect(completionButton).toBeVisible();
+      const toggleResponse = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/homeworks/") &&
+          r.url().includes("/completion") &&
+          r.request().method() === "PUT" &&
+          r.status() === 200,
+      );
+      await completionButton.click();
+      await toggleResponse;
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "section/homework-completion-toggled",
+      );
+
+      // Delete
+      const deleteButton = homeworkPopout
+        .getByRole("button", { name: /删除|Delete/i })
+        .first();
+      await expect(deleteButton).toBeVisible();
+      await deleteButton.click();
+      const deleteDialog = page.locator('[data-slot="dialog-popup"]').last();
+      await expect(deleteDialog).toBeVisible();
+      const deleteResponse = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/homeworks/") &&
+          r.request().method() === "DELETE" &&
+          r.status() === 200,
+      );
+      await deleteDialog
+        .getByRole("button", { name: /确认删除|Delete/i })
+        .click();
+      await deleteResponse;
+      await page.waitForLoadState("networkidle");
+      await expect(hwCard).toHaveCount(0);
+    } finally {
+      await cleanupHomeworksForE2e([homeworkId]);
     }
-    await homeworksTab.click();
-
-    // Create
-    const showCreate = page
-      .getByRole("button", { name: /^新建$|^Create$/i })
-      .first();
-    if ((await showCreate.count()) > 0) {
-      await showCreate.click();
-    }
-    const createDialog = page.locator('[data-slot="dialog-popup"]').first();
-    await expect(createDialog).toBeVisible({ timeout: 5_000 });
-
-    const title = `e2e-section-hw-${Date.now()}`;
-    await createDialog.getByTestId("section-homework-title").fill(title);
-    const createResponse = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/homeworks") &&
-        r.request().method() === "POST" &&
-        r.status() === 200,
-    );
-    await createDialog
-      .getByRole("button", { name: /创建作业|Create homework/i })
-      .click();
-    await createResponse;
-    await waitForUiSettled(page);
-
-    const hwCard = page
-      .getByRole("button", { name: new RegExp(escapeForRegExp(title)) })
-      .first();
-    await expect(hwCard).toBeVisible();
-
-    // homework.title is displayed
-    await expect(hwCard.getByText(title)).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "section/homework-created");
-    await hwCard.click();
-    const homeworkPopout = page.locator('[data-slot="dialog-popup"]').first();
-    await expect(homeworkPopout).toBeVisible();
-
-    // Homework discussion is embedded in the detail dialog.
-    await expect(
-      homeworkPopout.getByText(/评论|Comments/i).first(),
-    ).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "section/homework-discuss");
-
-    // Toggle completion (section-homework-tab.display.fields: user completion status)
-    const completionButton = homeworkPopout
-      .getByRole("button", {
-        name: /标记为完成|取消完成|Mark as complete|Mark as incomplete/i,
-      })
-      .first();
-    await expect(completionButton).toBeVisible();
-    const toggleResponse = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/homeworks/") &&
-        r.url().includes("/completion") &&
-        r.request().method() === "PUT" &&
-        r.status() === 200,
-    );
-    await completionButton.click();
-    await toggleResponse;
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "section/homework-completion-toggled",
-    );
-
-    // Delete
-    const deleteButton = homeworkPopout
-      .getByRole("button", { name: /删除|Delete/i })
-      .first();
-    await expect(deleteButton).toBeVisible();
-    await deleteButton.click();
-    const deleteDialog = page.locator('[data-slot="dialog-popup"]').last();
-    await expect(deleteDialog).toBeVisible();
-    const deleteResponse = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/homeworks/") &&
-        r.request().method() === "DELETE" &&
-        r.status() === 200,
-    );
-    await deleteDialog
-      .getByRole("button", { name: /确认删除|Delete/i })
-      .click();
-    await deleteResponse;
-    await page.waitForLoadState("networkidle");
-    await expect(hwCard).toHaveCount(0);
   });
 
   // ── Comment CRUD ────────────────────────────────────────────────────────────
@@ -698,129 +711,151 @@ test.describe("/sections/[jwId]", () => {
   }, testInfo) => {
     test.setTimeout(60_000);
     await signInAsDevAdmin(page, SECTION_URL);
+    let commentId: string | undefined;
+    let replyId: string | undefined;
 
-    const commentsTab = page
-      .getByRole("button", { name: /评论|Comments/i })
-      .first();
-    await commentsTab.click();
-    await expect(commentsTab).toHaveAttribute("aria-pressed", "true");
+    try {
+      const commentsTab = page
+        .getByRole("button", { name: /评论|Comments/i })
+        .first();
+      await commentsTab.click();
+      await expect(commentsTab).toHaveAttribute("aria-pressed", "true");
 
-    // Post comment
-    const body = `e2e-section-comment-${Date.now()}`;
-    const composer = page.locator("textarea").first();
-    await composer.fill(body);
-    const createResponse = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/comments") &&
-        r.request().method() === "POST" &&
-        r.status() === 200,
-    );
-    await page.getByRole("button", { name: /发布评论|Post comment/i }).click();
-    await createResponse;
-    await page.waitForLoadState("networkidle");
-    await expect(page.getByText(body).first()).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "section/comment-posted");
+      // Post comment
+      const body = `e2e-section-comment-${Date.now()}`;
+      const composer = page.locator("textarea").first();
+      await composer.fill(body);
+      const createResponse = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/comments") &&
+          r.request().method() === "POST" &&
+          r.status() === 200,
+      );
+      await page
+        .getByRole("button", { name: /发布评论|Post comment/i })
+        .click();
+      const createdCommentResponse = await createResponse;
+      const createResponseBody = (await createdCommentResponse.json()) as {
+        id?: string;
+      };
+      expect(createResponseBody.id).toBeTruthy();
+      commentId = createResponseBody.id;
+      await page.waitForLoadState("networkidle");
+      await expect(page.getByText(body).first()).toBeVisible();
+      await captureStepScreenshot(page, testInfo, "section/comment-posted");
 
-    const commentCard = page
-      .locator('[id^="comment-"]')
-      .filter({ hasText: body })
-      .first();
-    await expect(commentCard).toBeVisible();
-    const commentCardId = await commentCard.getAttribute("id");
-    expect(commentCardId).toBeTruthy();
+      const commentCard = page
+        .locator('[id^="comment-"]')
+        .filter({ hasText: body })
+        .first();
+      await expect(commentCard).toBeVisible();
+      const commentCardId = await commentCard.getAttribute("id");
+      expect(commentCardId).toBeTruthy();
 
-    // comment.author.name (display.fields)
-    await expect(
-      commentCard.getByText(DEV_SEED.adminName).first(),
-    ).toBeVisible();
-    // comment.body (markdown rendered)
-    await expect(commentCard.getByText(body).first()).toBeVisible();
+      // comment.author.name (display.fields)
+      await expect(
+        commentCard.getByText(DEV_SEED.adminName).first(),
+      ).toBeVisible();
+      // comment.body (markdown rendered)
+      await expect(commentCard.getByText(body).first()).toBeVisible();
 
-    // React with upvote (comment.reactions[])
-    const reactionResponse = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/comments/") &&
-        r.url().includes("/reactions") &&
-        r.request().method() === "POST" &&
-        r.status() === 200,
-    );
-    await commentCard
-      .getByRole("button", { name: /表情|Reactions/i })
-      .click({ force: true });
-    await page.getByRole("menuitemcheckbox", { name: /点赞|Upvote/i }).click();
-    await reactionResponse;
-    await waitForUiSettled(page);
-    await expect(commentCard.getByRole("button", { name: /👍/ })).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "section/comment-upvoted");
+      // React with upvote (comment.reactions[])
+      const reactionResponse = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/comments/") &&
+          r.url().includes("/reactions") &&
+          r.request().method() === "POST" &&
+          r.status() === 200,
+      );
+      await commentCard
+        .getByRole("button", { name: /表情|Reactions/i })
+        .click({ force: true });
+      await page
+        .getByRole("menuitemcheckbox", { name: /点赞|Upvote/i })
+        .click();
+      await reactionResponse;
+      await waitForUiSettled(page);
+      await expect(
+        commentCard.getByRole("button", { name: /👍/ }),
+      ).toBeVisible();
+      await captureStepScreenshot(page, testInfo, "section/comment-upvoted");
 
-    // Edit comment (canEdit action)
-    await commentCard.hover();
-    await commentCard.getByRole("button", { name: /编辑|Edit/i }).click();
-    const editedBody = `${body}-edited`;
-    const editCard = page.locator(`[id="${commentCardId}"]`);
-    await expect(editCard.locator("textarea").first()).toBeVisible();
-    await editCard.locator("textarea").first().fill(editedBody);
-    const editResponse = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/comments/") &&
-        r.request().method() === "PATCH" &&
-        r.status() === 200,
-    );
-    await editCard.getByRole("button", { name: /保存|Save/i }).click();
-    await editResponse;
-    await page.waitForLoadState("networkidle");
-    // comment.updatedAt / edited timestamp visible
-    await expect(page.getByText(editedBody).first()).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "section/comment-edited");
-    const editedCommentCard = page
-      .locator('[id^="comment-"]')
-      .filter({ hasText: editedBody })
-      .first();
-    await expect(editedCommentCard).toBeVisible();
+      // Edit comment (canEdit action)
+      await commentCard.hover();
+      await commentCard.getByRole("button", { name: /编辑|Edit/i }).click();
+      const editedBody = `${body}-edited`;
+      const editCard = page.locator(`[id="${commentCardId}"]`);
+      await expect(editCard.locator("textarea").first()).toBeVisible();
+      await editCard.locator("textarea").first().fill(editedBody);
+      const editResponse = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/comments/") &&
+          r.request().method() === "PATCH" &&
+          r.status() === 200,
+      );
+      await editCard.getByRole("button", { name: /保存|Save/i }).click();
+      await editResponse;
+      await page.waitForLoadState("networkidle");
+      // comment.updatedAt / edited timestamp visible
+      await expect(page.getByText(editedBody).first()).toBeVisible();
+      await captureStepScreenshot(page, testInfo, "section/comment-edited");
+      const editedCommentCard = page
+        .locator('[id^="comment-"]')
+        .filter({ hasText: editedBody })
+        .first();
+      await expect(editedCommentCard).toBeVisible();
 
-    // Reply (canReply action, comment.replies[])
-    await editedCommentCard
-      .getByRole("button", { name: /回复|Reply/i })
-      .click({ force: true });
-    const replyBody = `e2e-reply-${Date.now()}`;
-    const replyEditor = page
-      .locator(".rounded-2xl.border.border-dashed")
-      .first();
-    await expect(replyEditor).toBeVisible();
-    await replyEditor.locator("textarea").fill(replyBody);
-    const replyResponse = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/comments") &&
-        r.request().method() === "POST" &&
-        r.status() === 200,
-    );
-    await replyEditor.getByRole("button", { name: /回复|Reply/i }).click();
-    await replyResponse;
-    await page.waitForLoadState("networkidle");
-    await expect(page.getByText(replyBody).first()).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "section/comment-replied");
+      // Reply (canReply action, comment.replies[])
+      await editedCommentCard
+        .getByRole("button", { name: /回复|Reply/i })
+        .click({ force: true });
+      const replyBody = `e2e-reply-${Date.now()}`;
+      const replyEditor = page
+        .locator(".rounded-2xl.border.border-dashed")
+        .first();
+      await expect(replyEditor).toBeVisible();
+      await replyEditor.locator("textarea").fill(replyBody);
+      const replyResponse = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/comments") &&
+          r.request().method() === "POST" &&
+          r.status() === 200,
+      );
+      await replyEditor.getByRole("button", { name: /回复|Reply/i }).click();
+      const createdReplyResponse = await replyResponse;
+      const replyResponseBody = (await createdReplyResponse.json()) as {
+        id?: string;
+      };
+      expect(replyResponseBody.id).toBeTruthy();
+      replyId = replyResponseBody.id;
+      await page.waitForLoadState("networkidle");
+      await expect(page.getByText(replyBody).first()).toBeVisible();
+      await captureStepScreenshot(page, testInfo, "section/comment-replied");
 
-    // Delete comment
-    await editedCommentCard
-      .getByRole("button", { name: /更多操作|More actions/i })
-      .first()
-      .click({ force: true });
-    const deleteResponse = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/comments/") &&
-        r.request().method() === "DELETE" &&
-        r.status() === 200,
-    );
-    await page.getByRole("menuitem", { name: /删除|Delete/i }).click();
-    const deleteDialog = page.getByRole("dialog", {
-      name: /删除评论|Delete Comment/i,
-    });
-    await expect(deleteDialog).toBeVisible();
-    await deleteDialog.getByRole("button", { name: /删除|Delete/i }).click();
-    await deleteResponse;
-    await page.waitForLoadState("networkidle");
-    await expect(editedCommentCard).toHaveCount(0);
-    await captureStepScreenshot(page, testInfo, "section/comment-deleted");
+      // Delete comment
+      await editedCommentCard
+        .getByRole("button", { name: /更多操作|More actions/i })
+        .first()
+        .click({ force: true });
+      const deleteResponse = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/comments/") &&
+          r.request().method() === "DELETE" &&
+          r.status() === 200,
+      );
+      await page.getByRole("menuitem", { name: /删除|Delete/i }).click();
+      const deleteDialog = page.getByRole("dialog", {
+        name: /删除评论|Delete Comment/i,
+      });
+      await expect(deleteDialog).toBeVisible();
+      await deleteDialog.getByRole("button", { name: /删除|Delete/i }).click();
+      await deleteResponse;
+      await page.waitForLoadState("networkidle");
+      await expect(editedCommentCard).toHaveCount(0);
+      await captureStepScreenshot(page, testInfo, "section/comment-deleted");
+    } finally {
+      await cleanupCommentsForE2e([replyId, commentId]);
+    }
   });
 
   // ── Attachment upload ────────────────────────────────────────────────────────
@@ -829,133 +864,153 @@ test.describe("/sections/[jwId]", () => {
     page,
   }, testInfo) => {
     test.setTimeout(60_000);
-    await signInAsDebugUser(page, "/");
-    await gotoAndWaitForReady(page, SECTION_URL);
-
-    await expect(async () => {
-      if (!page.url().includes(`/sections/${DEV_SEED.section.jwId}`)) {
-        await gotoAndWaitForReady(page, SECTION_URL);
-      }
-      const commentsTab = page
-        .getByRole("button", { name: /评论|Comments/i })
-        .first();
-      await commentsTab.click();
-      await expect(commentsTab).toHaveAttribute("aria-pressed", "true");
-    }).toPass({
-      timeout: 10_000,
-      intervals: [250, 500, 1_000],
-    });
-
-    const composerCard = page
-      .locator('[data-slot="card"]')
-      .filter({
-        has: page.getByRole("button", { name: /发布评论|Post comment/i }),
-      })
-      .first();
-    await expect(composerCard).toBeVisible();
-    const uploadInput = composerCard.locator('input[type="file"]').first();
-    await expect(uploadInput).toBeAttached();
-    const uploadControl = uploadInput.locator(
-      "xpath=ancestor::label[@data-slot='button'][1]",
-    );
-    await uploadInput.evaluate((input: HTMLInputElement) => {
-      input.focus();
-    });
-    await expect
-      .poll(() =>
-        uploadControl.evaluate(
-          (element) => getComputedStyle(element).boxShadow,
-        ),
-      )
-      .not.toBe("none");
-
-    // Upload attachment (upload.yml three-step flow)
     const filename = `e2e-attachment-${Date.now()}.txt`;
-    const uploadCreate = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/uploads") &&
-        r.request().method() === "POST" &&
-        r.status() === 200,
-    );
-    const uploadPut = page.waitForResponse(
-      (r) =>
-        r.request().method() === "PUT" &&
-        r.status() >= 200 &&
-        r.status() < 300 &&
-        r.url().startsWith("http"),
-    );
-    const uploadComplete = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/uploads/complete") &&
-        r.request().method() === "POST" &&
-        r.status() === 200,
-    );
-
-    await composerCard.locator('input[type="file"]').setInputFiles({
-      name: filename,
-      mimeType: "text/plain",
-      buffer: Buffer.from("section-attachment"),
-    });
-    await uploadCreate;
-    await uploadPut;
-    await uploadComplete;
-
     const body = `e2e-attachment-comment-${Date.now()}`;
-    await composerCard.locator("textarea").first().fill(body);
-    const createComment = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/comments") &&
-        r.request().method() === "POST" &&
-        r.status() === 200,
-    );
-    await composerCard
-      .getByRole("button", { name: /发布评论|Post comment/i })
-      .click();
-    await createComment;
-    await waitForUiSettled(page);
+    let uploadId: string | undefined;
+    let commentId: string | undefined;
 
-    const commentCard = page
-      .locator('[id^="comment-"]')
-      .filter({ hasText: body })
-      .first();
-    await expect(commentCard).toBeVisible();
-    // comment.attachments[] filename/open action (comment.yml display.fields)
-    await expect(
-      commentCard
+    try {
+      await signInAsDebugUser(page, "/");
+      await gotoAndWaitForReady(page, SECTION_URL);
+
+      await expect(async () => {
+        if (!page.url().includes(`/sections/${DEV_SEED.section.jwId}`)) {
+          await gotoAndWaitForReady(page, SECTION_URL);
+        }
+        const commentsTab = page
+          .getByRole("button", { name: /评论|Comments/i })
+          .first();
+        await commentsTab.click();
+        await expect(commentsTab).toHaveAttribute("aria-pressed", "true");
+      }).toPass({
+        timeout: 10_000,
+        intervals: [250, 500, 1_000],
+      });
+
+      const composerCard = page
+        .locator('[data-slot="card"]')
+        .filter({
+          has: page.getByRole("button", { name: /发布评论|Post comment/i }),
+        })
+        .first();
+      await expect(composerCard).toBeVisible();
+      const uploadInput = composerCard.locator('input[type="file"]').first();
+      await expect(uploadInput).toBeAttached();
+      const uploadControl = uploadInput.locator(
+        "xpath=ancestor::label[@data-slot='button'][1]",
+      );
+      await uploadInput.evaluate((input: HTMLInputElement) => {
+        input.focus();
+      });
+      await expect
+        .poll(() =>
+          uploadControl.evaluate(
+            (element) => getComputedStyle(element).boxShadow,
+          ),
+        )
+        .not.toBe("none");
+
+      // Upload attachment (upload.yml three-step flow)
+      const uploadCreate = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/uploads") &&
+          r.request().method() === "POST" &&
+          r.status() === 200,
+      );
+      const uploadPut = page.waitForResponse(
+        (r) =>
+          r.request().method() === "PUT" &&
+          r.status() >= 200 &&
+          r.status() < 300 &&
+          r.url().startsWith("http"),
+      );
+      const uploadComplete = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/uploads/complete") &&
+          r.request().method() === "POST" &&
+          r.status() === 200,
+      );
+
+      await composerCard.locator('input[type="file"]').setInputFiles({
+        name: filename,
+        mimeType: "text/plain",
+        buffer: Buffer.from("section-attachment"),
+      });
+      await uploadCreate;
+      await uploadPut;
+      const uploadCompleteResponse = await uploadComplete;
+      const uploadCompleteBody = (await uploadCompleteResponse.json()) as {
+        upload?: { id?: string };
+      };
+      expect(typeof uploadCompleteBody.upload?.id).toBe("string");
+      uploadId = uploadCompleteBody.upload?.id;
+
+      await composerCard.locator("textarea").first().fill(body);
+      const createComment = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/comments") &&
+          r.request().method() === "POST" &&
+          r.status() === 200,
+      );
+      await composerCard
+        .getByRole("button", { name: /发布评论|Post comment/i })
+        .click();
+      const createCommentResponse = await createComment;
+      const createCommentBody = (await createCommentResponse.json()) as {
+        id?: string;
+      };
+      expect(typeof createCommentBody.id).toBe("string");
+      commentId = createCommentBody.id;
+      await waitForUiSettled(page);
+
+      const commentCard = page
+        .locator('[id^="comment-"]')
+        .filter({ hasText: body })
+        .first();
+      await expect(commentCard).toBeVisible();
+      // comment.attachments[] filename/open action (comment.yml display.fields)
+      await expect(
+        commentCard
+          .getByRole("link", { name: /打开附件|Open attachment/i })
+          .first(),
+      ).toBeVisible();
+      await captureStepScreenshot(page, testInfo, "section/comment-attachment");
+
+      // Download is served by the authorized on-site R2 streaming route.
+      const popupPromise = page.waitForEvent("popup");
+      await commentCard
         .getByRole("link", { name: /打开附件|Open attachment/i })
-        .first(),
-    ).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "section/comment-attachment");
+        .first()
+        .click();
+      const popup = await popupPromise;
+      await popup.waitForLoadState("domcontentloaded");
+      await expect(popup).toHaveURL(/\/api\/uploads\/.*\/download/);
+      await popup.close();
 
-    // Download is served by the authorized on-site R2 streaming route.
-    const popupPromise = page.waitForEvent("popup");
-    await commentCard
-      .getByRole("link", { name: /打开附件|Open attachment/i })
-      .first()
-      .click();
-    const popup = await popupPromise;
-    await popup.waitForLoadState("domcontentloaded");
-    await expect(popup).toHaveURL(/\/api\/uploads\/.*\/download/);
-    await popup.close();
-
-    // Cleanup
-    await commentCard.hover();
-    await commentCard
-      .getByRole("button", { name: /更多操作|More actions/i })
-      .first()
-      .click();
-    const deleteResponse = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/comments/") &&
-        r.request().method() === "DELETE" &&
-        r.status() === 200,
-    );
-    await page.getByRole("menuitem", { name: /删除|Delete/i }).click();
-    const dlg = page.getByRole("dialog", {
-      name: /删除评论|Delete Comment/i,
-    });
-    await expect(dlg).toBeVisible();
-    await dlg.getByRole("button", { name: /删除|Delete/i }).click();
-    await deleteResponse;
+      // Cleanup
+      await commentCard.hover();
+      await commentCard
+        .getByRole("button", { name: /更多操作|More actions/i })
+        .first()
+        .click();
+      const deleteResponse = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/comments/") &&
+          r.request().method() === "DELETE" &&
+          r.status() === 200,
+      );
+      await page.getByRole("menuitem", { name: /删除|Delete/i }).click();
+      const dlg = page.getByRole("dialog", {
+        name: /删除评论|Delete Comment/i,
+      });
+      await expect(dlg).toBeVisible();
+      await dlg.getByRole("button", { name: /删除|Delete/i }).click();
+      await deleteResponse;
+    } finally {
+      await cleanupCommentsForE2e([commentId]);
+      if (uploadId) {
+        await deleteUploadById(page, uploadId);
+      }
+    }
   });
 });
