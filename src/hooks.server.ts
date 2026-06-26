@@ -3,7 +3,7 @@ import { getOptionalTrimmedEnv, loadEnv } from "@/app-env";
 import { LOCALE_COOKIE, negotiateLocale } from "@/i18n/config";
 import { shouldRedirectIncompleteProfileToWelcome } from "@/lib/auth/auth-routing";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
-import { setCloudflareRuntimeEnv } from "@/lib/cloudflare/runtime-env";
+import { runWithCloudflareRuntimeEnv } from "@/lib/cloudflare/runtime-env";
 import {
   recordApiRequestStart,
   setApiRequestObservabilityContext,
@@ -151,10 +151,7 @@ function recordPageRequestFinish(input: {
   });
 }
 
-export const handle: Handle = async ({ event, resolve }) => {
-  setCloudflareRuntimeEnv(
-    (event.platform as { env?: unknown } | undefined)?.env,
-  );
+const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
   loadEnv();
 
   const csrfResponse = crossSiteFormResponse(event);
@@ -231,6 +228,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 
   return mutableResponse;
 };
+
+export const handle: Handle = (input) =>
+  runWithCloudflareRuntimeEnv(
+    (input.event.platform as { env?: unknown } | undefined)?.env,
+    () => handleWithRuntimeEnv(input),
+  );
 
 function sanitizeErrorText(value: string) {
   return value
