@@ -56,6 +56,14 @@ jobs:
 
       - name: Download E2E snapshot artifact
         id: download
+        if: ${{ needs.capture-artifacts.result == 'success' }}
+        uses: actions/download-artifact@v8
+        with:
+          name: e2e-snapshot-artifacts-${{ github.sha }}
+          path: test-results
+
+      - name: Download failed E2E snapshot artifact
+        if: ${{ needs.capture-artifacts.result != 'success' }}
         continue-on-error: true
         uses: actions/download-artifact@v8
         with:
@@ -68,7 +76,7 @@ jobs:
 
       - name: Publish screenshot previews
         id: previews
-        if: ${{ needs.capture-artifacts.result == 'success' }}
+        if: ${{ needs.capture-artifacts.result == 'success' && steps.download.outcome == 'success' }}
         shell: bash
         run: >
           bun run snapshot:publish-previews --
