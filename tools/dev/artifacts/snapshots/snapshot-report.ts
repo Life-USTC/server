@@ -225,7 +225,7 @@ async function diffSnapshots(argv: string[]) {
   console.log(report);
 }
 
-type RenderOptions = {
+export type RenderOptions = {
   snapshotDir: string;
   artifactUrl: string;
   commit: string;
@@ -858,6 +858,10 @@ async function renderResponseEntry(
 
 async function renderSnapshotComment(argv: string[]) {
   const options = parseRenderArgs(argv);
+  await writeSnapshotComment(options);
+}
+
+export async function writeSnapshotComment(options: RenderOptions) {
   const [pages, api, mcp] = await Promise.all([
     readManifest(path.join(options.snapshotDir, "pages", "manifest.json")),
     readManifest(path.join(options.snapshotDir, "api", "manifest.json")),
@@ -953,7 +957,9 @@ async function main() {
   throw new Error(reportUsage());
 }
 
-await main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
-  process.exitCode = 1;
-});
+if (process.argv[1]?.endsWith("snapshot-report.ts")) {
+  await main().catch((error) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  });
+}

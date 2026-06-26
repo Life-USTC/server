@@ -66,10 +66,6 @@ jobs:
           name: e2e-snapshot-artifacts-${{ github.sha }}
           path: test-results
 
-      - name: Ensure snapshot directory exists
-        shell: bash
-        run: mkdir -p test-results/snapshots
-
       - name: Publish screenshot previews
         id: previews
         if: ${{ needs.capture-artifacts.result == 'success' && steps.download.outcome == 'success' }}
@@ -79,39 +75,19 @@ jobs:
           --commit "${{ github.sha }}"
           --repository "${{ github.repository }}"
 
-      - name: Render commit comment
-        if: ${{ always() }}
-        shell: bash
-        run: |
-          artifact_url="${{ needs.capture-artifacts.outputs.artifact-url }}"
-          workflow_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          if [ -z "$artifact_url" ]; then
-            artifact_url="$workflow_url"
-          fi
-
-          bun run snapshot:report -- render-comment \
-            --snapshot-dir test-results/snapshots \
-            --artifact-url "$artifact_url" \
-            --commit "${{ github.sha }}" \
-            --status "${{ needs.capture-artifacts.result }}" \
-            --screenshot-base-url "${{ steps.previews.outputs.base-url }}" \
-            --workflow-url "$workflow_url" \
-            --output test-results/e2e-snapshot-comment.md
-
-      - name: Comment on commit
+      - name: Render and post commit comment
         if: ${{ always() }}
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
-        run: |
-          if [ ! -s test-results/e2e-snapshot-comment.md ]; then
-            echo "No E2E snapshot comment was generated."
-            exit 0
-          fi
-
-          jq -n --rawfile body test-results/e2e-snapshot-comment.md \
-            '{body: $body}' > test-results/e2e-snapshot-comment.json
-          gh api \
-            --method POST \
-            "repos/${{ github.repository }}/commits/${{ github.sha }}/comments" \
-            --input test-results/e2e-snapshot-comment.json
+        run: >
+          bun run snapshot:comment --
+          --snapshot-dir test-results/snapshots
+          --artifact-url "${{ needs.capture-artifacts.outputs.artifact-url }}"
+          --commit "${{ github.sha }}"
+          --status "${{ needs.capture-artifacts.result }}"
+          --screenshot-base-url "${{ steps.previews.outputs.base-url }}"
+          --workflow-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          --repository "${{ github.repository }}"
+          --output test-results/e2e-snapshot-comment.md
+          --post
