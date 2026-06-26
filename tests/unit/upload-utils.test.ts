@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   buildContentDisposition,
-  hasFilenameControlCharacters,
   sanitizeFilename,
 } from "@/features/uploads/lib/upload-utils";
+import { hasAsciiControlCharacters } from "@/lib/text/ascii-control-characters";
 
 function hasHeaderControlCharacters(value: string) {
   return Array.from(value).some((character) => {
@@ -14,8 +14,8 @@ function hasHeaderControlCharacters(value: string) {
 
 describe("upload filename utilities", () => {
   it("detects and normalizes filename control characters", () => {
-    expect(hasFilenameControlCharacters("report\nfinal.txt")).toBe(true);
-    expect(hasFilenameControlCharacters("report-final.txt")).toBe(false);
+    expect(hasAsciiControlCharacters("report\nfinal.txt")).toBe(true);
+    expect(hasAsciiControlCharacters("report-final.txt")).toBe(false);
     expect(sanitizeFilename(" report\r\nfinal\u0000.txt ")).toBe(
       "report final .txt",
     );
