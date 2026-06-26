@@ -557,7 +557,7 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
     }
   });
 
-  it("upload metadata tools list, rename, delete, and audit MCP source", async () => {
+  it("upload metadata tools list, rename, and preserve retry state on delete storage failure", async () => {
     const filename = `mcp-upload-${Date.now()}.txt`;
     const upload = await fixtures.prisma.upload.create({
       data: {
@@ -603,34 +603,59 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
       });
 
       const deleted = await context.client.call<{
-        deletedId?: string;
-        deletedSize?: number;
+        error?: string;
+        hint?: string;
+        message?: string;
         success?: boolean;
       }>("delete_my_upload", { id: upload.id });
-      expect(deleted).toEqual({
-        success: true,
-        deletedId: upload.id,
-        deletedSize: upload.size,
+      expect(deleted).toMatchObject({
+        success: false,
+        error: "storage_delete_failed",
+        message: "Failed to delete upload object",
       });
 
-      const deletedUpload = await fixtures.prisma.upload.findUnique({
+      const retainedUpload = await fixtures.prisma.upload.findUnique({
         where: { id: upload.id },
+        select: { filename: true },
       });
-      expect(deletedUpload).toBeNull();
-
-      const audit = await fixtures.findUploadDeleteAuditLog({
-        uploadId: upload.id,
-        metadata: { source: "mcp", size: upload.size, key: upload.key },
-      });
-      expect(audit?.metadata).toMatchObject({
-        source: "mcp",
-        size: upload.size,
-        key: upload.key,
-      });
+      expect(retainedUpload?.filename).toBe(renamedFilename);
     } finally {
       await fixtures.prisma.auditLog.deleteMany({
         where: { targetId: upload.id, targetType: "upload" },
       });
+      await fixtures.prisma.upload.deleteMany({ where: { id: upload.id } });
+    }
+  });
+
+  it("upload rename rejects control-character filenames without sanitizing", async () => {
+    const filename = `mcp-upload-invalid-rename-${Date.now()}.txt`;
+    const upload = await fixtures.prisma.upload.create({
+      data: {
+        userId: context.devUserId,
+        key: `integration-test/${filename}`,
+        filename,
+        contentType: "text/plain",
+        size: 321,
+      },
+      select: { id: true },
+    });
+
+    try {
+      for (const invalidFilename of ["bad\u0000name.txt", "\u0000"]) {
+        await expect(
+          context.client.call("rename_my_upload", {
+            id: upload.id,
+            filename: invalidFilename,
+          }),
+        ).rejects.toThrow();
+      }
+
+      const unchanged = await fixtures.prisma.upload.findUnique({
+        where: { id: upload.id },
+        select: { filename: true },
+      });
+      expect(unchanged?.filename).toBe(filename);
+    } finally {
       await fixtures.prisma.upload.deleteMany({ where: { id: upload.id } });
     }
   });

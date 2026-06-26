@@ -134,7 +134,7 @@
             "method": "DELETE",
             "returns": "{ deletedId: String, deletedSize: Int }",
             "notes": [
-              "Deletes one upload owned by the current user and removes the object from storage."
+              "Deletes one upload owned by the current user. The backing storage object is deleted before metadata is removed; storage cleanup failure returns an error and leaves the upload metadata available for retry."
             ]
           }
         ]
@@ -154,7 +154,7 @@
             "returns": "{ success: Boolean, deletedId: String, deletedSize: Int }",
             "rest_equivalent": "DELETE /api/uploads/[id]",
             "notes": [
-              "Requires an unsuspended signed-in user, deletes only uploads owned by the current user, performs best-effort object cleanup, and writes metadata.source=mcp in the upload_delete audit log."
+              "Requires an unsuspended signed-in user, deletes only uploads owned by the current user, removes the backing storage object before metadata deletion, returns storage_delete_failed without deleting metadata when storage cleanup fails, and writes metadata.source=mcp in the upload_delete audit log only after successful deletion."
             ]
           }
         ]
