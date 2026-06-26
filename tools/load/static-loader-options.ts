@@ -23,11 +23,15 @@ Options:
 }
 
 function parseMinSemesterJwId(value: string) {
-  const minSemesterJwId = Number.parseInt(value, 10);
+  const minSemesterJwId = Number(value);
 
-  if (!/^\+?\d+$/.test(value) || minSemesterJwId <= 0) {
+  if (
+    !/^\+?\d+$/.test(value) ||
+    !Number.isSafeInteger(minSemesterJwId) ||
+    minSemesterJwId <= 0
+  ) {
     throw new Error(
-      `Invalid --min-semester "${value}": expected a positive integer jwId.`,
+      `Invalid --min-semester "${value}": expected a positive safe integer jwId.`,
     );
   }
 
