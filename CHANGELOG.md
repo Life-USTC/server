@@ -1,3 +1,10 @@
+## [1.39.15](https://github.com/Life-USTC/server/compare/v1.39.14...v1.39.15) (2026-06-26)
+
+
+### Bug Fixes
+
+* **ci:** harden e2e snapshot artifact flow ([d85deb3](https://github.com/Life-USTC/server/commit/d85deb3c89da2ff014d2c1aa8d1dc61dc606935e))
+
 ## [1.39.14](https://github.com/Life-USTC/server/compare/v1.39.13...v1.39.14) (2026-06-26)
 
 
