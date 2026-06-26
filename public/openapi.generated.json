@@ -430,6 +430,16 @@
               }
             }
           },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Error response",
             "content": {
@@ -589,6 +599,16 @@
             }
           },
           "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
             "description": "Error response",
             "content": {
               "application/json": {
@@ -844,6 +864,16 @@
               }
             }
           },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Error response",
             "content": {
@@ -893,6 +923,16 @@
             }
           },
           "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
             "description": "Error response",
             "content": {
               "application/json": {
@@ -1043,6 +1083,16 @@
             }
           },
           "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
             "description": "Error response",
             "content": {
               "application/json": {
@@ -4942,12 +4992,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Binary response",
+            "description": "Calendar response",
             "content": {
-              "application/octet-stream": {
+              "text/calendar": {
                 "schema": {
-                  "type": "string",
-                  "format": "binary"
+                  "type": "string"
                 }
               }
             }
@@ -5109,12 +5158,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Binary response",
+            "description": "Calendar response",
             "content": {
-              "application/octet-stream": {
+              "text/calendar": {
                 "schema": {
-                  "type": "string",
-                  "format": "binary"
+                  "type": "string"
                 }
               }
             }
@@ -6772,12 +6820,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Binary response",
+            "description": "Calendar response",
             "content": {
-              "application/octet-stream": {
+              "text/calendar": {
                 "schema": {
-                  "type": "string",
-                  "format": "binary"
+                  "type": "string"
                 }
               }
             }

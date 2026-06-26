@@ -263,6 +263,28 @@ describe("buildScenarioOpenApiExamples", () => {
     expect(deviceAuthorizationOptions?.responses?.["204"]).toBeTruthy();
   });
 
+  it("documents calendar exports without changing true binary media", () => {
+    const spec = generatedOpenApiDocument as GeneratedOpenApiDocument;
+
+    for (const path of [
+      "/api/sections/calendar.ics",
+      "/api/sections/{jwId}/calendar.ics",
+      "/api/users/{userId}/calendar.ics",
+    ]) {
+      const content = spec.paths[path]?.get?.responses?.["200"]?.content;
+      expect(content?.["text/calendar"]?.schema).toEqual({ type: "string" });
+      expect(content?.["application/octet-stream"]).toBeUndefined();
+    }
+
+    expect(
+      spec.paths["/api/uploads/{id}/download"]?.get?.responses?.["200"]
+        ?.content?.["application/octet-stream"]?.schema,
+    ).toEqual({
+      type: "string",
+      format: "binary",
+    });
+  });
+
   it("documents query bounds and implemented validation responses", () => {
     const spec = generatedOpenApiDocument as GeneratedOpenApiDocument;
 
@@ -406,6 +428,23 @@ describe("buildScenarioOpenApiExamples", () => {
         expect.objectContaining({ in: "query", name: "token" }),
       ]),
     );
+  });
+
+  it("documents active-admin write gate failures on admin mutations", () => {
+    const spec = generatedOpenApiDocument as GeneratedOpenApiDocument;
+    const missing403: string[] = [];
+
+    for (const [path, pathItem] of Object.entries(spec.paths)) {
+      if (!path.startsWith("/api/admin/")) continue;
+      for (const method of ["post", "put", "patch", "delete"] as const) {
+        const operation = pathItem[method];
+        if (operation && !operation.responses?.["403"]) {
+          missing403.push(`${method.toUpperCase()} ${path}`);
+        }
+      }
+    }
+
+    expect(missing403).toEqual([]);
   });
 
   it("documents operational endpoint response shapes", () => {
