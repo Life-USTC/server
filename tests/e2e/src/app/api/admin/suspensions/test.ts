@@ -4,7 +4,8 @@
  * Admin-only endpoint for listing and creating user suspensions.
  *
  * - GET returns `{ suspensions: [...] }` with user info, ordered by createdAt desc
- * - POST creates a new suspension; body: userId (required), reason, note, expiresAt
+ * - POST creates a new suspension and closes any previous open suspension for the user
+ * - POST body: userId (required), reason, note, expiresAt
  * - POST returns 404 if the target user does not exist
  * - POST returns 400 for invalid request body
  * - Both methods return 401 for unauthenticated or non-admin requests
@@ -158,9 +159,50 @@ test.describe("GET/POST /api/admin/suspensions", () => {
       expect(postBody.suspension?.reason).toBe("e2e suspension test");
       expect(postBody.suspension?.expiresAt).toBeNull();
 
+      const replacementResponse = await page.request.post(BASE, {
+        data: {
+          userId,
+          reason: "e2e suspension replacement",
+        },
+      });
+      expect(replacementResponse.status()).toBe(200);
+      const replacementBody = (await replacementResponse.json()) as {
+        suspension?: {
+          id?: string;
+          userId?: string;
+          reason?: string | null;
+        };
+      };
+      expect(replacementBody.suspension?.userId).toBe(userId);
+      expect(replacementBody.suspension?.reason).toBe(
+        "e2e suspension replacement",
+      );
+
+      const listResponse = await page.request.get(BASE);
+      expect(listResponse.status()).toBe(200);
+      const listBody = (await listResponse.json()) as {
+        suspensions?: Array<{
+          id?: string;
+          liftedAt?: string | null;
+          userId?: string;
+        }>;
+      };
+      const userSuspensions = (listBody.suspensions ?? []).filter(
+        (item) => item.userId === userId,
+      );
+      expect(
+        userSuspensions.filter((item) => item.liftedAt === null),
+      ).toHaveLength(1);
+      expect(
+        userSuspensions.some(
+          (item) =>
+            item.id === postBody.suspension?.id && item.liftedAt !== null,
+        ),
+      ).toBe(true);
+
       // Lift the suspension so user can be cleanly deleted.
-      if (postBody.suspension?.id) {
-        await page.request.patch(`${BASE}/${postBody.suspension.id}`);
+      if (replacementBody.suspension?.id) {
+        await page.request.patch(`${BASE}/${replacementBody.suspension.id}`);
       }
     } finally {
       await deleteUsersByPrefix(prefix);

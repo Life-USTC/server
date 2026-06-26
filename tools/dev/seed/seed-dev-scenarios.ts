@@ -1577,6 +1577,10 @@ async function main() {
     },
   });
 
+  // JWKS rows are runtime-generated and encrypted with AUTH_SECRET; dev seed
+  // must not leave tool-process keys behind for the E2E Worker.
+  await prisma.jwks.deleteMany();
+
   console.log("测试场景数据初始化完成");
   console.log(`用户: ${debugUser.username}`);
   console.log(`管理员: ${adminUser.username}`);
