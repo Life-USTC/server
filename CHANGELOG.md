@@ -1,3 +1,10 @@
+## [1.39.12](https://github.com/Life-USTC/server/compare/v1.39.11...v1.39.12) (2026-06-26)
+
+
+### Bug Fixes
+
+* **auth:** reconcile debug credential users ([7d9f5aa](https://github.com/Life-USTC/server/commit/7d9f5aa65e513bb00059b9486f32b7daab361c44))
+
 ## [1.39.11](https://github.com/Life-USTC/server/compare/v1.39.10...v1.39.11) (2026-06-26)
 
 
