@@ -1,3 +1,10 @@
+## [1.39.16](https://github.com/Life-USTC/server/compare/v1.39.15...v1.39.16) (2026-06-26)
+
+
+### Bug Fixes
+
+* **test:** restore page e2e mutations ([47ae3d6](https://github.com/Life-USTC/server/commit/47ae3d62763b932576bec30bd7b47e136625b064))
+
 ## [1.39.15](https://github.com/Life-USTC/server/compare/v1.39.14...v1.39.15) (2026-06-26)
 
 
