@@ -1,3 +1,4 @@
+import { jsonResponse } from "@/lib/api/helpers";
 import { prisma } from "@/lib/db/prisma";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
 import { getOAuthProviderValidAudiences } from "@/lib/mcp/urls";
@@ -40,6 +41,66 @@ function normalizeRequestedResources(params: URLSearchParams) {
   }
 
   return resources;
+}
+
+function invalidRefreshResourceResponse(error_description: string) {
+  return jsonResponse(
+    {
+      error: "invalid_target",
+      error_description,
+    },
+    { status: 400 },
+  );
+}
+
+function parseRequestedRefreshResources(
+  params: URLSearchParams,
+): { resources: string[] } | { response: Response } {
+  const validAudiences = getOAuthProviderValidAudiences();
+  const resources: string[] = [];
+
+  for (const entry of params.getAll("resource")) {
+    const value = entry.trim();
+    if (!value) {
+      return {
+        response: invalidRefreshResourceResponse(
+          "Requested resource is invalid",
+        ),
+      };
+    }
+
+    let normalized: string;
+    try {
+      normalized = normalizeResourceIndicator(value);
+    } catch {
+      return {
+        response: invalidRefreshResourceResponse(
+          "Requested resource is invalid",
+        ),
+      };
+    }
+
+    const matchedAudience = validAudiences.find((audience) =>
+      resourceIndicatorsMatch(normalized, audience),
+    );
+    if (!matchedAudience) {
+      return {
+        response: invalidRefreshResourceResponse(
+          "Requested resource is not allowed for this server",
+        ),
+      };
+    }
+
+    if (
+      !resources.some((resource) =>
+        resourceIndicatorsMatch(resource, matchedAudience),
+      )
+    ) {
+      resources.push(matchedAudience);
+    }
+  }
+
+  return { resources };
 }
 
 async function getExistingRefreshResources(params: URLSearchParams) {
@@ -140,6 +201,43 @@ async function resolveIssuedRefreshResources(
   }
 
   return resolveApprovedRefreshResources(params);
+}
+
+export async function validateOAuthRefreshTokenResources(
+  request: Request,
+  params: URLSearchParams,
+) {
+  if (
+    params.get("grant_type") !== OAUTH_REFRESH_TOKEN_GRANT_TYPE ||
+    !params.has("resource")
+  ) {
+    return undefined;
+  }
+
+  const refreshToken = params.get("refresh_token");
+  if (!refreshToken) return undefined;
+
+  const requestedResources = parseRequestedRefreshResources(params);
+  if ("response" in requestedResources) {
+    return requestedResources.response;
+  }
+
+  const approvedResources = await getExistingRefreshResources(params);
+  const allRequestedResourcesApproved = requestedResources.resources.every(
+    (requested) =>
+      approvedResources.some((approved) =>
+        resourceIndicatorsMatch(approved, requested),
+      ),
+  );
+  if (allRequestedResourcesApproved) return undefined;
+
+  logOAuthDebug("oauth.refresh-resources.rejected", request, {
+    approvedResourceCount: approvedResources.length,
+    requestedResourceCount: requestedResources.resources.length,
+  });
+  return invalidRefreshResourceResponse(
+    "Requested resource is not approved for this refresh token",
+  );
 }
 
 export async function persistOAuthRefreshTokenResources(
