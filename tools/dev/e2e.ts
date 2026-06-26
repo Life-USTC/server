@@ -45,9 +45,8 @@ const E2E_WORKER_CONTRACT_FILES = [
   path.join("cloudflare-tmp", "manifest.js"),
   path.join("output", "server", "index.js"),
 ] as const;
-const E2E_WORKER_VAR_KEYS = [
+export const E2E_WORKER_VAR_KEYS = [
   "AUTH_SECRET",
-  "JWT_SECRET",
   "WEBHOOK_SECRET",
   "OAUTH_PROXY_SECRET",
   "E2E_DEBUG_AUTH",

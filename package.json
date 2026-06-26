@@ -27,7 +27,7 @@
     "check:e2e": "bun run tools/dev/check/e2e.ts",
     "check:i18n": "bun run tools/dev/check/i18n.ts",
     "check:routes": "bun run tools/dev/check/routes.ts",
-    "e2e:build-worker": "bun run app:prepare && bun run vite build",
+    "e2e:build-worker": "bun run app:prepare && bun run openapi:generate && bun run vite build",
     "e2e:build-artifacts": "bun run e2e:build-worker && bun run e2e:prepare",
     "e2e:db:prepare": "bun run db:migrate:deploy && bun run check:e2e",
     "e2e:prepare": "bun run tools/dev/e2e.ts prepare",

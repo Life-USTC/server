@@ -43,7 +43,6 @@ jobs:
         run: |
           {
             echo "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_copilot"
-            echo "JWT_SECRET=copilot-local-secret"
             echo "WEBHOOK_SECRET=copilot-local-secret"
             echo "AUTH_SECRET=copilot-local-secret"
           } >> "$GITHUB_ENV"

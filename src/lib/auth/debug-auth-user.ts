@@ -4,6 +4,13 @@ import { prisma } from "@/lib/db/prisma";
 import { getDebugProviderConfig } from "./debug-auth-config";
 import type { DebugProviderId } from "./provider-ids";
 
+function buildSupersededDebugEmail(
+  providerId: DebugProviderId,
+  userId: string,
+) {
+  return `debug-auth-superseded-${providerId}-${userId}@debug.local`;
+}
+
 export async function ensureDebugCredentialUser(providerId: DebugProviderId) {
   const config = getDebugProviderConfig(providerId);
   const hashedPassword = await hashPassword(config.password);
@@ -16,33 +23,47 @@ export async function ensureDebugCredentialUser(providerId: DebugProviderId) {
     isAdmin: config.isAdmin,
     profilePictures: [config.image],
   };
+  const userUpdateData = {
+    username: userData.username,
+    email: userData.email,
+    emailVerified: userData.emailVerified,
+    name: userData.name,
+    isAdmin: userData.isAdmin,
+    image: userData.image,
+    profilePictures: { set: userData.profilePictures },
+  };
 
   const upsertDebugUserByIdentity = async () => {
-    const existing = await prisma.user.findFirst({
-      where: {
-        OR: [{ username: config.username }, { email: config.email }],
-      },
-      select: { id: true, image: true, profilePictures: true },
-    });
+    const [usernameMatch, emailMatch] = await Promise.all([
+      prisma.user.findUnique({
+        where: { username: config.username },
+        select: { id: true },
+      }),
+      prisma.user.findUnique({
+        where: { email: config.email },
+        select: { id: true },
+      }),
+    ]);
+    const existing = usernameMatch ?? emailMatch;
 
-    if (existing) {
-      return prisma.user.update({
-        where: { id: existing.id },
-        data: {
-          email: userData.email,
-          emailVerified: userData.emailVerified,
-          isAdmin: userData.isAdmin,
-          image: existing.image || userData.image,
-          ...(existing.profilePictures.length > 0
-            ? {}
-            : { profilePictures: { set: userData.profilePictures } }),
-        },
+    if (!existing) {
+      return prisma.user.create({
+        data: userData,
         select: { id: true },
       });
     }
 
-    return prisma.user.create({
-      data: userData,
+    if (usernameMatch && emailMatch && usernameMatch.id !== emailMatch.id) {
+      await prisma.user.update({
+        where: { id: emailMatch.id },
+        data: { email: buildSupersededDebugEmail(providerId, emailMatch.id) },
+        select: { id: true },
+      });
+    }
+
+    return prisma.user.update({
+      where: { id: existing.id },
+      data: userUpdateData,
       select: { id: true },
     });
   };

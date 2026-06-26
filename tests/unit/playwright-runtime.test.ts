@@ -11,6 +11,7 @@ import {
   appendLocalNoProxy,
   buildPlaywrightServerEnv,
   E2E_WORKER_ARTIFACT_DIR,
+  E2E_WORKER_VAR_KEYS,
   preparePlaywrightWorkerRuntime,
   resolvePlaywrightHarnessRuntime,
   validatePlaywrightWorkerRuntime,
@@ -157,6 +158,12 @@ describe("playwright runtime", () => {
       DEV_ADMIN_EMAIL: "admin@example.test",
       DEV_ADMIN_PASSWORD: "admin-secret",
     });
+  });
+
+  it("passes current auth worker vars without stale JWT_SECRET", () => {
+    expect(E2E_WORKER_VAR_KEYS).toContain("AUTH_SECRET");
+    expect(E2E_WORKER_VAR_KEYS).toContain("WEBHOOK_SECRET");
+    expect(E2E_WORKER_VAR_KEYS).not.toContain("JWT_SECRET");
   });
 
   it("sets the pinned port without rewriting unrelated env", () => {
