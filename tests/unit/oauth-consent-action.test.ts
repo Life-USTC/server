@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { submitOAuthConsentAction } from "@/features/oauth/server/oauth-consent-action";
 
 const { oauth2ConsentMock } = vi.hoisted(() => ({
@@ -13,13 +13,21 @@ vi.mock("@/lib/auth/core", () => ({
   },
 }));
 
-function consentRequest(body: Record<string, string>) {
+function consentRequest(
+  body: Record<string, string>,
+  options: { origin?: string | null } = {},
+) {
+  const headers = new Headers({
+    cookie: "better-auth.session_token=session-token",
+    "content-length": "999",
+  });
+  if (options.origin !== null) {
+    headers.set("origin", options.origin ?? "https://life.example");
+  }
+
   return new Request("https://life.example/oauth/authorize", {
     method: "POST",
-    headers: {
-      cookie: "better-auth.session_token=session-token",
-      "content-length": "999",
-    },
+    headers,
     body: new URLSearchParams(body),
   });
 }
@@ -27,6 +35,11 @@ function consentRequest(body: Record<string, string>) {
 describe("OAuth consent action", () => {
   beforeEach(() => {
     oauth2ConsentMock.mockReset();
+    vi.stubEnv("APP_PUBLIC_ORIGIN", "https://life.example");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it("uses the provider consent API and redirects to its target", async () => {
@@ -88,5 +101,39 @@ describe("OAuth consent action", () => {
       status: 303,
       location: "/error?error=consent_failed",
     });
+  });
+
+  it("rejects a cookie-bearing consent request without origin or referer", async () => {
+    await expect(
+      submitOAuthConsentAction({
+        request: consentRequest(
+          {
+            accept: "true",
+            scope: "openid profile",
+            oauthQuery: "client_id=client-1&state=state-1",
+          },
+          { origin: null },
+        ),
+      }),
+    ).rejects.toMatchObject({ status: 403 });
+
+    expect(oauth2ConsentMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a cookie-bearing consent request from an untrusted origin", async () => {
+    await expect(
+      submitOAuthConsentAction({
+        request: consentRequest(
+          {
+            accept: "true",
+            scope: "openid profile",
+            oauthQuery: "client_id=client-1&state=state-1",
+          },
+          { origin: "https://evil.example" },
+        ),
+      }),
+    ).rejects.toMatchObject({ status: 403 });
+
+    expect(oauth2ConsentMock).not.toHaveBeenCalled();
   });
 });
