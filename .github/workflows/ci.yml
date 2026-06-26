@@ -31,8 +31,8 @@ jobs:
       auth-secret: e2e-ci-secret
       extra-env: NO_PROXY=127.0.0.1,localhost,::1
       job-command: bun run e2e:build-artifacts
-      upload-artifact-name: playwright-worker
-      upload-artifact-path: .svelte-kit
+      upload-artifact-name: e2e-worker
+      upload-artifact-path: build/e2e-worker
       upload-artifact-no-files-found: error
       upload-artifact-include-hidden-files: true
 
@@ -77,8 +77,8 @@ jobs:
       auth-secret: e2e-ci-secret
       extra-env: |
         NO_PROXY=127.0.0.1,localhost,::1
-      download-artifact-name: playwright-worker
-      download-artifact-path: .svelte-kit
+      download-artifact-name: e2e-worker
+      download-artifact-path: build/e2e-worker
       job-command: |
         bun run e2e:db:prepare
         bun run seed

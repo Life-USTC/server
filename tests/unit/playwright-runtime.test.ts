@@ -10,8 +10,10 @@ import path from "node:path";
 import {
   appendLocalNoProxy,
   buildPlaywrightServerEnv,
+  E2E_WORKER_ARTIFACT_DIR,
   preparePlaywrightWorkerRuntime,
   resolvePlaywrightHarnessRuntime,
+  validatePlaywrightWorkerRuntime,
 } from "@tools/dev/e2e";
 import { DEV_SEED } from "@tools/dev/seed/dev-seed";
 import { describe, expect, it } from "vitest";
@@ -186,7 +188,7 @@ describe("playwright runtime", () => {
     );
   });
 
-  it("requires the Cloudflare Worker build output", () => {
+  it("prepares the named E2E Worker artifact contract", () => {
     const root = mkdtempSync(path.join(tmpdir(), "life-ustc-playwright-"));
     try {
       mkdirSync(path.join(root, ".svelte-kit", "cloudflare"), {
@@ -198,7 +200,10 @@ describe("playwright runtime", () => {
       mkdirSync(path.join(root, ".svelte-kit", "output", "server"), {
         recursive: true,
       });
-      mkdirSync(path.join(root, ".svelte-kit", "output", "server", "nodes"), {
+      mkdirSync(path.join(root, ".svelte-kit", "output", "server", "chunks"), {
+        recursive: true,
+      });
+      mkdirSync(path.join(root, ".svelte-kit", "generated", "client"), {
         recursive: true,
       });
       writeFileSync(
@@ -214,14 +219,49 @@ describe("playwright runtime", () => {
         "",
       );
       writeFileSync(
-        path.join(root, ".svelte-kit", "output", "server", "nodes", "0.js"),
+        path.join(root, ".svelte-kit", "output", "server", "chunks", "app.js"),
+        "",
+      );
+      writeFileSync(
+        path.join(root, ".svelte-kit", "generated", "client", "app.js"),
         "",
       );
 
       expect(() => preparePlaywrightWorkerRuntime(root)).not.toThrow();
+      expect(() => validatePlaywrightWorkerRuntime(root)).not.toThrow();
       expect(
-        existsSync(path.join(root, ".svelte-kit", "cloudflare", "_worker.js")),
+        existsSync(
+          path.join(root, E2E_WORKER_ARTIFACT_DIR, "cloudflare", "_worker.js"),
+        ),
       ).toBe(true);
+      expect(
+        existsSync(
+          path.join(
+            root,
+            E2E_WORKER_ARTIFACT_DIR,
+            "output",
+            "server",
+            "chunks",
+            "app.js",
+          ),
+        ),
+      ).toBe(true);
+      expect(
+        existsSync(
+          path.join(root, E2E_WORKER_ARTIFACT_DIR, "generated", "client"),
+        ),
+      ).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("validates the named E2E Worker artifact before startup", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "life-ustc-playwright-"));
+    try {
+      expect(() => validatePlaywrightWorkerRuntime(root)).toThrow(
+        /Missing E2E Worker artifact file: build\/e2e-worker\/cloudflare\/_worker\.js/,
+      );
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
