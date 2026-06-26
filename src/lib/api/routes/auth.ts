@@ -1,3 +1,8 @@
+import {
+  type DeviceRegistrationMetadata,
+  prepareOAuthClientRegistrationDelegation,
+  restoreRegisteredDeviceClientMetadata,
+} from "@/features/oauth/server/client-registration-policy.server";
 import { prisma } from "@/lib/db/prisma";
 import {
   logOAuthDebug,
@@ -5,28 +10,7 @@ import {
   summarizeOAuthRedirectUri,
   withBetterAuthOAuthDebug,
 } from "@/lib/log/oauth-debug";
-import {
-  OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
-  OAUTH_DEVICE_CODE_GRANT_TYPE,
-  OAUTH_PROVIDER_GRANT_TYPES,
-  OAUTH_REFRESH_TOKEN_GRANT_TYPE,
-} from "@/lib/oauth/constants";
 import { resolveEquivalentLoopbackRedirectUri } from "@/lib/oauth/loopback-redirect";
-
-const DEVICE_REGISTRATION_DELEGATED_REDIRECT_URI =
-  "http://127.0.0.1/oauth/device-registration-callback";
-const OAUTH_PROVIDER_GRANT_TYPE_SET = new Set<string>(
-  OAUTH_PROVIDER_GRANT_TYPES,
-);
-const DYNAMIC_CLIENT_REGISTRATION_GRANT_TYPE_SET = new Set<string>([
-  ...OAUTH_PROVIDER_GRANT_TYPES,
-  OAUTH_DEVICE_CODE_GRANT_TYPE,
-]);
-
-type DeviceRegistrationMetadata = {
-  grantTypes: string[];
-  redirectUris?: string[];
-};
 
 function isOAuthClientRegistrationRequest(request: Request) {
   return new URL(request.url).pathname.endsWith("/oauth2/register");
@@ -56,68 +40,32 @@ async function prepareOAuthClientRegistrationRequest(
     return { request, deviceRegistration: null };
   }
 
-  const grantTypes = Array.isArray(bodyObject.grant_types)
-    ? bodyObject.grant_types
-    : null;
-  if (!grantTypes) {
-    return { request, deviceRegistration: null };
-  }
-
-  const unsupportedGrantType = grantTypes.find(
-    (grantType) =>
-      typeof grantType !== "string" ||
-      !DYNAMIC_CLIENT_REGISTRATION_GRANT_TYPE_SET.has(grantType),
-  );
-  if (unsupportedGrantType === undefined) {
-    if (!grantTypes.includes(OAUTH_DEVICE_CODE_GRANT_TYPE)) {
-      return { request, deviceRegistration: null };
-    }
-
-    const providerGrantTypes = grantTypes.filter((grantType) =>
-      OAUTH_PROVIDER_GRANT_TYPE_SET.has(grantType),
-    );
-    const delegatedGrantTypes =
-      providerGrantTypes.length > 0
-        ? providerGrantTypes
-        : [OAUTH_REFRESH_TOKEN_GRANT_TYPE];
-    const redirectUris = Array.isArray(bodyObject.redirect_uris)
-      ? bodyObject.redirect_uris
-      : null;
-    const shouldInjectRedirectUri =
-      !grantTypes.includes(OAUTH_AUTHORIZATION_CODE_GRANT_TYPE) &&
-      (!redirectUris || redirectUris.length === 0);
-    const delegatedRedirectUris = shouldInjectRedirectUri
-      ? [DEVICE_REGISTRATION_DELEGATED_REDIRECT_URI]
-      : redirectUris;
-    const headers = new Headers(request.headers);
-    headers.set("content-type", "application/json");
-
+  const prepared = prepareOAuthClientRegistrationDelegation(bodyObject);
+  if ("error" in prepared) {
     return {
-      request: new Request(request, {
-        body: JSON.stringify({
-          ...bodyObject,
-          grant_types: delegatedGrantTypes,
-          ...(delegatedRedirectUris
-            ? { redirect_uris: delegatedRedirectUris }
-            : {}),
-        }),
-        headers,
-      }),
-      deviceRegistration: {
-        grantTypes,
-        ...(shouldInjectRedirectUri ? { redirectUris: [] } : {}),
-      },
+      response: Response.json(
+        {
+          error: prepared.error.error,
+          error_description: prepared.error.errorDescription,
+        },
+        { status: 400 },
+      ),
     };
   }
 
+  if (!prepared.delegatedBody) {
+    return { request, deviceRegistration: null };
+  }
+
+  const headers = new Headers(request.headers);
+  headers.set("content-type", "application/json");
+
   return {
-    response: Response.json(
-      {
-        error: "invalid_client_metadata",
-        error_description: `Unsupported grant type: ${String(unsupportedGrantType)}`,
-      },
-      { status: 400 },
-    ),
+    request: new Request(request, {
+      body: JSON.stringify(prepared.delegatedBody),
+      headers,
+    }),
+    deviceRegistration: prepared.deviceRegistration,
   };
 }
 
@@ -140,25 +88,18 @@ async function restoreDeviceRegistrationGrantTypes(
     return response;
   }
 
-  await prisma.oAuthClient.update({
-    where: { clientId: body.client_id },
-    data: {
-      grantTypes: registration.grantTypes,
-      ...(registration.redirectUris !== undefined
-        ? { redirectUris: registration.redirectUris }
-        : {}),
-    },
+  const restored = await restoreRegisteredDeviceClientMetadata({
+    body,
+    registration,
   });
+  if (!restored) return response;
 
   const headers = new Headers(response.headers);
   headers.delete("content-length");
   return Response.json(
     {
       ...body,
-      grant_types: registration.grantTypes,
-      ...(registration.redirectUris !== undefined
-        ? { redirect_uris: registration.redirectUris }
-        : {}),
+      ...restored,
     },
     {
       status: response.status,

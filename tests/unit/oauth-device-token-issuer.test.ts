@@ -50,7 +50,7 @@ describe("device token issuer", () => {
     const { prisma, accessTokenCreate, refreshTokenCreate } =
       createPrismaMock();
     const { issueDeviceGrantTokens } = await import(
-      "@/lib/api/routes/auth-token-device-token-issuer"
+      "@/features/oauth/server/device-token-issuer.server"
     );
 
     const issued = await issueDeviceGrantTokens(prisma, {
@@ -96,7 +96,7 @@ describe("device token issuer", () => {
     const { prisma, accessTokenCreate, refreshTokenCreate } =
       createPrismaMock();
     const { issueDeviceGrantTokens } = await import(
-      "@/lib/api/routes/auth-token-device-token-issuer"
+      "@/features/oauth/server/device-token-issuer.server"
     );
 
     const issued = await issueDeviceGrantTokens(prisma, {
@@ -124,7 +124,7 @@ describe("device token issuer", () => {
     const { prisma, accessTokenCreate, refreshTokenCreate } =
       createPrismaMock();
     const { issueDeviceGrantTokens } = await import(
-      "@/lib/api/routes/auth-token-device-token-issuer"
+      "@/features/oauth/server/device-token-issuer.server"
     );
 
     const issued = await issueDeviceGrantTokens(prisma, {

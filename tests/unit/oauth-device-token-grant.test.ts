@@ -20,7 +20,7 @@ vi.mock("@/lib/db/prisma", () => ({
   },
 }));
 
-vi.mock("@/lib/api/routes/auth-token-device-token-issuer", () => ({
+vi.mock("@/features/oauth/server/device-token-issuer.server", () => ({
   issueDeviceGrantTokens: issueDeviceGrantTokensMock,
 }));
 
