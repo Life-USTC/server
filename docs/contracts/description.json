@@ -87,7 +87,7 @@
             "method": "PATCH",
             "returns": "{ description: Description }",
             "notes": [
-              "Shares the same admin moderation service as /admin/moderation description edits and records DescriptionEdit plus admin_description_moderate audit entries."
+              "Shares the same admin moderation service as /admin/moderation description edits and commits DescriptionEdit plus admin_description_moderate audit entries with the content update."
             ]
           }
         ]

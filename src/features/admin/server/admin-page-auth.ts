@@ -1,12 +1,20 @@
 import { error, redirect } from "@sveltejs/kit";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
+import { findActiveSuspension } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
 
 export async function getPrismaClient() {
   return prisma;
 }
 
-export async function requireAdminPage(request: Request) {
+type AdminPageGuardOptions = {
+  requireActive?: boolean;
+};
+
+export async function requireAdminPage(
+  request: Request,
+  options: AdminPageGuardOptions = {},
+) {
   const { getSessionFromHeaders } = await import("@/lib/auth/core");
   const session = await getSessionFromHeaders(request.headers);
   if (!session?.user?.id) {
@@ -21,5 +29,9 @@ export async function requireAdminPage(request: Request) {
   });
 
   if (!user?.isAdmin) error(404, "Not found");
+  if (options.requireActive) {
+    const suspension = await findActiveSuspension(user.id);
+    if (suspension) error(403, "Suspended");
+  }
   return user;
 }

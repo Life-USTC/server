@@ -2,7 +2,7 @@ import { getAdminUserListItem } from "@/features/admin/server/admin-user-read-mo
 import { DESCRIPTION_CONTENT_MAX_LENGTH } from "@/features/descriptions/lib/description-limits";
 import { isValidProfileUsername } from "@/features/profile/lib/profile-username";
 import type { CommentStatus } from "@/generated/prisma/client";
-import { fireAuditLog } from "@/lib/audit/write-audit-log";
+import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { prisma } from "@/lib/db/prisma";
 import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
 import { runSerializableTransaction } from "@/lib/db/serializable-transaction";
@@ -203,6 +203,17 @@ export async function createAdminSuspension(
         },
       });
 
+      await writeAuditLog(
+        {
+          action: "admin_user_suspend",
+          userId: adminUserId,
+          targetId: userId,
+          targetType: "user",
+          metadata: { reason: input.reason ?? null },
+        },
+        tx,
+      );
+
       return { ok: true as const, suspension };
     }, "Failed to create admin suspension");
 
@@ -214,14 +225,6 @@ export async function createAdminSuspension(
     result = await createSuspension();
   }
   if (!result.ok) return result;
-
-  await fireAuditLog({
-    action: "admin_user_suspend",
-    userId: adminUserId,
-    targetId: userId,
-    targetType: "user",
-    metadata: { reason: input.reason ?? null },
-  });
 
   return result;
 }
@@ -253,17 +256,20 @@ export async function liftAdminSuspension(adminUserId: string, id: string) {
       },
     });
 
+    await writeAuditLog(
+      {
+        action: "admin_user_unsuspend",
+        userId: adminUserId,
+        targetId: suspension.userId,
+        targetType: "user",
+        metadata: { suspensionId: id },
+      },
+      tx,
+    );
+
     return { ok: true as const, suspension };
   }, "Failed to lift admin suspension");
   if (!result.ok) return result;
-
-  await fireAuditLog({
-    action: "admin_user_unsuspend",
-    userId: adminUserId,
-    targetId: result.suspension.userId,
-    targetType: "user",
-    metadata: { suspensionId: id },
-  });
 
   return result;
 }
@@ -273,33 +279,41 @@ export async function moderateComment(
   id: string,
   input: AdminModerateCommentInput,
 ) {
-  const existing = await prisma.comment.findUnique({
-    where: { id },
-    select: { id: true },
-  });
-  if (!existing) return { ok: false as const, reason: "not_found" as const };
-
   const { status, moderationNote } = input;
-  const comment = await prisma.comment.update({
-    where: { id },
-    data: {
-      status,
-      moderationNote: moderationNote ?? null,
-      moderatedAt: new Date(),
-      moderatedById: adminUserId,
-      deletedAt: status === "deleted" ? new Date() : null,
-    },
+  const result = await prisma.$transaction(async (tx) => {
+    const existing = await tx.comment.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!existing) return { ok: false as const, reason: "not_found" as const };
+
+    const now = new Date();
+    const comment = await tx.comment.update({
+      where: { id },
+      data: {
+        status,
+        moderationNote: moderationNote ?? null,
+        moderatedAt: now,
+        moderatedById: adminUserId,
+        deletedAt: status === "deleted" ? now : null,
+      },
+    });
+
+    await writeAuditLog(
+      {
+        action: "admin_comment_moderate",
+        userId: adminUserId,
+        targetId: id,
+        targetType: "comment",
+        metadata: { status, moderationNote: moderationNote ?? null },
+      },
+      tx,
+    );
+
+    return { comment, ok: true as const };
   });
 
-  await fireAuditLog({
-    action: "admin_comment_moderate",
-    userId: adminUserId,
-    targetId: id,
-    targetType: "comment",
-    metadata: { status, moderationNote: moderationNote ?? null },
-  });
-
-  return { comment, ok: true as const };
+  return result;
 }
 
 export async function moderateDescription(
@@ -307,16 +321,17 @@ export async function moderateDescription(
   id: string,
   input: AdminModerateDescriptionInput,
 ) {
-  const existing = await prisma.description.findUnique({
-    where: { id },
-    select: { id: true, content: true },
-  });
-  if (!existing) return { ok: false as const, reason: "not_found" as const };
   if (input.content.length > DESCRIPTION_CONTENT_MAX_LENGTH) {
     return { ok: false as const, reason: "invalid_content" as const };
   }
 
-  const description = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
+    const existing = await tx.description.findUnique({
+      where: { id },
+      select: { id: true, content: true },
+    });
+    if (!existing) return { ok: false as const, reason: "not_found" as const };
+
     const updated = await tx.description.update({
       where: { id },
       data: {
@@ -336,19 +351,22 @@ export async function moderateDescription(
       },
     });
 
-    return updated;
+    await writeAuditLog(
+      {
+        action: "admin_description_moderate",
+        userId: adminUserId,
+        targetId: id,
+        targetType: "description",
+        metadata: {
+          previousContent: existing.content,
+          nextContent: input.content,
+        },
+      },
+      tx,
+    );
+
+    return { description: updated, ok: true as const };
   });
 
-  await fireAuditLog({
-    action: "admin_description_moderate",
-    userId: adminUserId,
-    targetId: id,
-    targetType: "description",
-    metadata: {
-      previousContent: existing.content,
-      nextContent: input.content,
-    },
-  });
-
-  return { description, ok: true as const };
+  return result;
 }

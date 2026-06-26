@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const {
+  findActiveSuspensionMock,
   getSessionFromHeadersMock,
   resolveAdminByUserIdMock,
   verifyAccessTokenMock,
 } = vi.hoisted(() => ({
+  findActiveSuspensionMock: vi.fn(),
   getSessionFromHeadersMock: vi.fn(),
   resolveAdminByUserIdMock: vi.fn(),
   verifyAccessTokenMock: vi.fn(),
@@ -16,6 +18,10 @@ vi.mock("@/features/admin/server/admin-api", () => ({
 
 vi.mock("@/lib/auth/core", () => ({
   getSessionFromHeaders: getSessionFromHeadersMock,
+}));
+
+vi.mock("@/lib/auth/viewer-context", () => ({
+  findActiveSuspension: findActiveSuspensionMock,
 }));
 
 vi.mock("better-auth/oauth2", () => ({
@@ -30,6 +36,7 @@ vi.mock("@/lib/mcp/urls", () => ({
 
 describe("admin route auth", () => {
   afterEach(() => {
+    findActiveSuspensionMock.mockReset();
     getSessionFromHeadersMock.mockReset();
     resolveAdminByUserIdMock.mockReset();
     verifyAccessTokenMock.mockReset();
@@ -121,5 +128,38 @@ describe("admin route auth", () => {
     expect(admin).toEqual({ userId: "admin-1" });
     expect(getSessionFromHeadersMock).toHaveBeenCalledWith(request.headers);
     expect(resolveAdminByUserIdMock).toHaveBeenCalledWith("admin-1");
+  });
+
+  it("returns 403 when an admin mutation requires an active admin but the admin is suspended", async () => {
+    getSessionFromHeadersMock.mockResolvedValue({
+      user: { id: "admin-1" },
+    });
+    resolveAdminByUserIdMock.mockResolvedValue({ userId: "admin-1" });
+    findActiveSuspensionMock.mockResolvedValue({
+      reason: "policy hold",
+    });
+    const { requireAdminRequest } = await import(
+      "@/lib/api/routes/admin-route-auth"
+    );
+    const request = new Request(
+      "https://example.test/api/admin/comments/comment-1",
+      {
+        headers: {
+          cookie: "better-auth.session_token=session-token",
+        },
+      },
+    );
+
+    const response = await requireAdminRequest(request, {
+      requireActive: true,
+    });
+
+    expect(response).toBeInstanceOf(Response);
+    expect((response as Response).status).toBe(403);
+    await expect((response as Response).json()).resolves.toEqual({
+      error: "Suspended",
+      reason: "policy hold",
+    });
+    expect(findActiveSuspensionMock).toHaveBeenCalledWith("admin-1");
   });
 });

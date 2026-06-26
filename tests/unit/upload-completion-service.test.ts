@@ -6,8 +6,8 @@ import {
 } from "@/features/uploads/server/upload-service";
 
 const {
+  auditLogCreateMock,
   deleteStorageObjectMock,
-  fireAuditLogMock,
   getViewerContextMock,
   headStorageObjectMock,
   pendingAggregateMock,
@@ -24,9 +24,10 @@ const {
   uploadDeleteMock,
   uploadFindFirstMock,
   uploadFindUniqueMock,
+  uploadTransactionMock,
 } = vi.hoisted(() => ({
+  auditLogCreateMock: vi.fn(),
   deleteStorageObjectMock: vi.fn(),
-  fireAuditLogMock: vi.fn(),
   getViewerContextMock: vi.fn(),
   headStorageObjectMock: vi.fn(),
   pendingAggregateMock: vi.fn(),
@@ -43,10 +44,15 @@ const {
   uploadDeleteMock: vi.fn(),
   uploadFindFirstMock: vi.fn(),
   uploadFindUniqueMock: vi.fn(),
+  uploadTransactionMock: vi.fn(),
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
+    $transaction: uploadTransactionMock,
+    auditLog: {
+      create: auditLogCreateMock,
+    },
     upload: {
       aggregate: uploadAggregateMock,
       delete: uploadDeleteMock,
@@ -70,16 +76,16 @@ vi.mock("@/lib/storage/r2-object", () => ({
   headStorageObject: headStorageObjectMock,
 }));
 
-vi.mock("@/lib/audit/write-audit-log", () => ({
-  fireAuditLog: fireAuditLogMock,
-}));
-
 vi.mock("@/lib/auth/viewer-context", () => ({
   getViewerContext: getViewerContextMock,
 }));
 
 vi.mock("@/lib/log/app-logger", () => ({
   logAppEvent: vi.fn(),
+}));
+
+vi.mock("@/lib/metrics/observability-metrics", () => ({
+  recordAuditWriteMetric: vi.fn(),
 }));
 
 const FIXED_NOW = new Date("2026-01-15T00:00:00.000Z");
@@ -292,15 +298,27 @@ describe("deleteOwnedUpload", () => {
     });
     uploadDeleteMock.mockResolvedValue({});
     deleteStorageObjectMock.mockResolvedValue(undefined);
+    auditLogCreateMock.mockResolvedValue({});
+    uploadTransactionMock.mockImplementation(async (action) =>
+      action({
+        auditLog: {
+          create: auditLogCreateMock,
+        },
+        upload: {
+          delete: uploadDeleteMock,
+          findFirst: uploadFindFirstMock,
+        },
+      }),
+    );
   });
 
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  it("waits for upload delete audit scheduling before returning", async () => {
+  it("waits for upload delete audit write before returning", async () => {
     const auditWrite = deferred<void>();
-    fireAuditLogMock.mockReturnValue(auditWrite.promise);
+    auditLogCreateMock.mockReturnValue(auditWrite.promise);
     const settled = vi.fn();
 
     const result = deleteOwnedUpload({
@@ -309,7 +327,7 @@ describe("deleteOwnedUpload", () => {
     });
     result.then(settled);
 
-    await vi.waitFor(() => expect(fireAuditLogMock).toHaveBeenCalled());
+    await vi.waitFor(() => expect(auditLogCreateMock).toHaveBeenCalled());
     expect(settled).not.toHaveBeenCalled();
 
     auditWrite.resolve();
