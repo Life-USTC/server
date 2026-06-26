@@ -38,6 +38,7 @@ Use the repo root `AGENTS.md` for the canonical shared seed/setup flow and
 ```
 tests/e2e/fixtures/             Canonical test data (scenario.json)
 tests/e2e/src/app/**/test.ts    Route tests
+tests/e2e/src/app/**/*.test.ts  Focused API/feature route tests
 tests/e2e/src/app/_shared/      Helpers
 tests/e2e/utils/                Auth, DB, subscriptions, uploads
 ```
@@ -99,7 +100,7 @@ Current examples:
 - `tests/e2e/src/app/api/calendar-subscriptions/test.ts`
 - `tests/e2e/src/app/api/calendar-subscriptions/current/test.ts`
 - `tests/e2e/src/app/api/users/[userId]/calendar.ics/test.ts`
-- `tests/e2e/src/app/api/mcp/test.ts`
+- `tests/e2e/src/app/api/mcp/*.test.ts`
 
 If you add a shared-state mutating test to a new file, add serial mode and
 restore the original seeded state in `finally`.
