@@ -1,3 +1,11 @@
+## [1.39.22](https://github.com/Life-USTC/server/compare/v1.39.21...v1.39.22) (2026-06-26)
+
+
+### Bug Fixes
+
+* **audit:** harden scheduling and profile username races ([139eddc](https://github.com/Life-USTC/server/commit/139eddc044c691ff83e409f3c81f2776255ae5c5))
+* **dashboard:** improve dashboard and comment UI i18n ([8096b6b](https://github.com/Life-USTC/server/commit/8096b6b55f999f71c034b73800e6bda7db0cc136))
+
 ## [1.39.21](https://github.com/Life-USTC/server/compare/v1.39.20...v1.39.21) (2026-06-26)
 
 
