@@ -1,5 +1,6 @@
 import { authApi } from "@/lib/auth/core";
 import { prisma } from "@/lib/db/prisma";
+import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
 import { isValidProfileUsername } from "../lib/profile-username";
 
 type ProfileUpdateInput = {
@@ -59,11 +60,15 @@ export async function updateOwnProfile(
     updateBody.image = input.image;
   }
 
-  const response = await authApi.updateUser({
-    body: updateBody,
-    headers: input.headers,
-    returnHeaders: true,
-  });
-
-  return { headers: response.headers, ok: true };
+  try {
+    const response = await authApi.updateUser({
+      body: updateBody,
+      headers: input.headers,
+      returnHeaders: true,
+    });
+    return { headers: response.headers, ok: true };
+  } catch (error) {
+    if (!isPrismaUniqueConstraintError(error)) throw error;
+    return { ok: false, reason: "username_taken" };
+  }
 }

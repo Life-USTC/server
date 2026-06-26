@@ -362,7 +362,7 @@ export async function deleteOwnedUpload(input: {
   if (!upload) return { ok: false as const, error: "not_found" as const };
 
   await cleanupDeletedUploadObject(upload);
-  writeUploadDeleteAuditLog({
+  await writeUploadDeleteAuditLog({
     audit: input.audit,
     upload,
     userId: input.userId,
@@ -469,7 +469,7 @@ async function cleanupDeletedUploadObject(upload: { key: string }) {
   }
 }
 
-function writeUploadDeleteAuditLog({
+async function writeUploadDeleteAuditLog({
   audit,
   upload,
   userId,
@@ -482,7 +482,7 @@ function writeUploadDeleteAuditLog({
   upload: { id: string; key: string; size: number };
   userId: string;
 }) {
-  fireAuditLog({
+  await fireAuditLog({
     action: "upload_delete",
     userId,
     targetId: upload.id,

@@ -49,7 +49,7 @@ export async function updateCommentAction(
     return forbidden();
   }
 
-  writeCommentEditAuditLog({
+  await writeCommentEditAuditLog({
     body: content,
     requestMetadata: getAuditRequestMetadata(request),
     userId,

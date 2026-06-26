@@ -56,7 +56,7 @@ export async function deleteCommentReactionRoute(
     }
 
     if (result.changed) {
-      writeCommentReactionAuditLog({
+      await writeCommentReactionAuditLog({
         commentId: id,
         operation: "remove",
         requestMetadata: getAuditRequestMetadata(request),

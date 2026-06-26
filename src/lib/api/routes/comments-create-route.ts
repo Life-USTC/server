@@ -73,7 +73,7 @@ export async function postCommentRoute(request: Request) {
       return forbidden();
     }
 
-    writeCommentCreateAuditLog({
+    await writeCommentCreateAuditLog({
       body: content,
       commentId: result.comment.id,
       requestMetadata: getAuditRequestMetadata(request),
