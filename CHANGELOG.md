@@ -1,3 +1,11 @@
+## [1.39.18](https://github.com/Life-USTC/server/compare/v1.39.17...v1.39.18) (2026-06-26)
+
+
+### Bug Fixes
+
+* **api:** align schema ownership boundary ([4af6b01](https://github.com/Life-USTC/server/commit/4af6b010961114da0a76dde7ef68c5e1733bcfe1))
+* **tools:** use AST readers for source checks ([5abd662](https://github.com/Life-USTC/server/commit/5abd6629ffcf7900fe33c71e2e247c049fe47c8b))
+
 ## [1.39.17](https://github.com/Life-USTC/server/compare/v1.39.16...v1.39.17) (2026-06-26)
 
 
