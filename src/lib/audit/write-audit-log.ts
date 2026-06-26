@@ -15,6 +15,12 @@ type AuditLogParams = {
   userAgent?: string;
 };
 
+type AuditLogClient = {
+  auditLog: {
+    create(args: Prisma.AuditLogCreateArgs): Promise<unknown>;
+  };
+};
+
 type WorkerWaitUntilContext = {
   waitUntil(promise: Promise<unknown>): void;
 };
@@ -82,11 +88,14 @@ function logAuditWriteFailure(params: AuditLogParams, error: unknown) {
   );
 }
 
-export async function writeAuditLog(params: AuditLogParams) {
+export async function writeAuditLog(
+  params: AuditLogParams,
+  client: AuditLogClient = prisma,
+) {
   const { metadata, ...rest } = params;
   const start = Date.now();
   try {
-    await prisma.auditLog.create({
+    await client.auditLog.create({
       data: {
         ...rest,
         ...(metadata !== undefined && {

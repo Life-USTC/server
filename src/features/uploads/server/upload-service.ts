@@ -5,7 +5,7 @@ import {
   runUploadSerializableTransaction,
   UploadError,
 } from "@/features/uploads/server/upload-quota";
-import { fireAuditLog } from "@/lib/audit/write-audit-log";
+import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
@@ -367,11 +367,14 @@ export async function deleteOwnedUpload(input: {
     };
   }
 
-  await prisma.upload.delete({ where: { id: upload.id } });
-  await writeUploadDeleteAuditLog({
-    audit: input.audit,
-    upload,
-    userId: input.userId,
+  await prisma.$transaction(async (tx) => {
+    await tx.upload.delete({ where: { id: upload.id } });
+    await writeUploadDeleteAuditLog({
+      audit: input.audit,
+      client: tx,
+      upload,
+      userId: input.userId,
+    });
   });
 
   return {
@@ -479,6 +482,7 @@ async function deleteUploadStorageObject(upload: { key: string }) {
 
 async function writeUploadDeleteAuditLog({
   audit,
+  client,
   upload,
   userId,
 }: {
@@ -487,22 +491,26 @@ async function writeUploadDeleteAuditLog({
     source?: "mcp";
     userAgent?: string;
   };
+  client: NonNullable<Parameters<typeof writeAuditLog>[1]>;
   upload: { id: string; key: string; size: number };
   userId: string;
 }) {
-  await fireAuditLog({
-    action: "upload_delete",
-    userId,
-    targetId: upload.id,
-    targetType: "upload",
-    metadata: {
-      key: upload.key,
-      size: upload.size,
-      ...(audit?.source ? { source: audit.source } : {}),
+  await writeAuditLog(
+    {
+      action: "upload_delete",
+      userId,
+      targetId: upload.id,
+      targetType: "upload",
+      metadata: {
+        key: upload.key,
+        size: upload.size,
+        ...(audit?.source ? { source: audit.source } : {}),
+      },
+      ipAddress: audit?.ipAddress,
+      userAgent: audit?.userAgent,
     },
-    ipAddress: audit?.ipAddress,
-    userAgent: audit?.userAgent,
-  });
+    client,
+  );
 }
 
 async function deleteExpiredPendingUploads(

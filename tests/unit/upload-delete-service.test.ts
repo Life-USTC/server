@@ -2,23 +2,29 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { deleteOwnedUpload } from "@/features/uploads/server/upload-service";
 
 const {
+  auditLogCreateMock,
   deleteStorageObjectMock,
-  fireAuditLogMock,
   getViewerContextMock,
   logAppEventMock,
   uploadDeleteMock,
   uploadFindFirstMock,
+  uploadTransactionMock,
 } = vi.hoisted(() => ({
+  auditLogCreateMock: vi.fn(),
   deleteStorageObjectMock: vi.fn(),
-  fireAuditLogMock: vi.fn(),
   getViewerContextMock: vi.fn(),
   logAppEventMock: vi.fn(),
   uploadDeleteMock: vi.fn(),
   uploadFindFirstMock: vi.fn(),
+  uploadTransactionMock: vi.fn(),
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
+    $transaction: uploadTransactionMock,
+    auditLog: {
+      create: auditLogCreateMock,
+    },
     upload: {
       delete: uploadDeleteMock,
       findFirst: uploadFindFirstMock,
@@ -31,16 +37,16 @@ vi.mock("@/lib/storage/r2-object", () => ({
   headStorageObject: vi.fn(),
 }));
 
-vi.mock("@/lib/audit/write-audit-log", () => ({
-  fireAuditLog: fireAuditLogMock,
-}));
-
 vi.mock("@/lib/auth/viewer-context", () => ({
   getViewerContext: getViewerContextMock,
 }));
 
 vi.mock("@/lib/log/app-logger", () => ({
   logAppEvent: logAppEventMock,
+}));
+
+vi.mock("@/lib/metrics/observability-metrics", () => ({
+  recordAuditWriteMetric: vi.fn(),
 }));
 
 const upload = {
@@ -58,6 +64,18 @@ describe("deleteOwnedUpload", () => {
     uploadFindFirstMock.mockResolvedValue(upload);
     deleteStorageObjectMock.mockResolvedValue(undefined);
     uploadDeleteMock.mockResolvedValue(upload);
+    auditLogCreateMock.mockResolvedValue({});
+    uploadTransactionMock.mockImplementation(async (action) =>
+      action({
+        auditLog: {
+          create: auditLogCreateMock,
+        },
+        upload: {
+          delete: uploadDeleteMock,
+          findFirst: uploadFindFirstMock,
+        },
+      }),
+    );
   });
 
   afterEach(() => {
@@ -81,15 +99,38 @@ describe("deleteOwnedUpload", () => {
     expect(deleteStorageObjectMock.mock.invocationCallOrder[0]).toBeLessThan(
       uploadDeleteMock.mock.invocationCallOrder[0],
     );
-    expect(fireAuditLogMock).toHaveBeenCalledWith(
-      expect.objectContaining({
+    expect(auditLogCreateMock).toHaveBeenCalledWith({
+      data: expect.objectContaining({
         action: "upload_delete",
         metadata: { key: upload.key, size: upload.size, source: "mcp" },
         targetId: upload.id,
         targetType: "upload",
         userId: "user-1",
       }),
-    );
+    });
+  });
+
+  it("surfaces audit failures after storage deletion instead of dropping audit rows", async () => {
+    const auditError = new Error("audit unavailable");
+    auditLogCreateMock.mockRejectedValueOnce(auditError);
+
+    await expect(
+      deleteOwnedUpload({
+        id: upload.id,
+        userId: "user-1",
+      }),
+    ).rejects.toThrow(auditError);
+
+    expect(deleteStorageObjectMock).toHaveBeenCalledWith(upload.key);
+    expect(uploadDeleteMock).toHaveBeenCalledWith({ where: { id: upload.id } });
+    expect(auditLogCreateMock).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: "upload_delete",
+        targetId: upload.id,
+        targetType: "upload",
+        userId: "user-1",
+      }),
+    });
   });
 
   it("preserves upload metadata when storage deletion fails", async () => {
@@ -106,7 +147,7 @@ describe("deleteOwnedUpload", () => {
       error: "storage_delete_failed",
     });
     expect(uploadDeleteMock).not.toHaveBeenCalled();
-    expect(fireAuditLogMock).not.toHaveBeenCalled();
+    expect(auditLogCreateMock).not.toHaveBeenCalled();
     expect(logAppEventMock).toHaveBeenCalledWith(
       "error",
       "R2 object deletion failed; upload record preserved",

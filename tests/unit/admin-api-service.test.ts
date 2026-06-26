@@ -1,16 +1,40 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
-  fireAuditLogMock,
+  auditLogCreateMock,
+  commentFindUniqueMock,
+  commentUpdateMock,
+  descriptionEditCreateMock,
+  descriptionFindUniqueMock,
+  descriptionUpdateMock,
   getAdminUserListItemMock,
   isPrismaUniqueConstraintErrorMock,
   prismaMock,
 } = vi.hoisted(() => ({
-  fireAuditLogMock: vi.fn(),
+  auditLogCreateMock: vi.fn(),
+  commentFindUniqueMock: vi.fn(),
+  commentUpdateMock: vi.fn(),
+  descriptionEditCreateMock: vi.fn(),
+  descriptionFindUniqueMock: vi.fn(),
+  descriptionUpdateMock: vi.fn(),
   getAdminUserListItemMock: vi.fn(),
   isPrismaUniqueConstraintErrorMock: vi.fn(),
   prismaMock: {
     $transaction: vi.fn(),
+    auditLog: {
+      create: vi.fn(),
+    },
+    comment: {
+      findUnique: vi.fn(),
+      update: vi.fn(),
+    },
+    description: {
+      findUnique: vi.fn(),
+      update: vi.fn(),
+    },
+    descriptionEdit: {
+      create: vi.fn(),
+    },
     user: {
       count: vi.fn(),
       findUnique: vi.fn(),
@@ -29,10 +53,6 @@ vi.mock("@/features/admin/server/admin-user-read-model", () => ({
   getAdminUserListItem: getAdminUserListItemMock,
 }));
 
-vi.mock("@/lib/audit/write-audit-log", () => ({
-  fireAuditLog: fireAuditLogMock,
-}));
-
 vi.mock("@/lib/db/prisma-errors", () => ({
   isPrismaUniqueConstraintError: isPrismaUniqueConstraintErrorMock,
 }));
@@ -41,19 +61,39 @@ vi.mock("@/lib/db/prisma", () => ({
   prisma: prismaMock,
 }));
 
+vi.mock("@/lib/metrics/observability-metrics", () => ({
+  recordAuditWriteMetric: vi.fn(),
+}));
+
 describe("admin API service", () => {
   beforeEach(() => {
-    fireAuditLogMock.mockReset();
+    auditLogCreateMock.mockReset();
+    commentFindUniqueMock.mockReset();
+    commentUpdateMock.mockReset();
+    descriptionEditCreateMock.mockReset();
+    descriptionFindUniqueMock.mockReset();
+    descriptionUpdateMock.mockReset();
     getAdminUserListItemMock.mockReset();
     isPrismaUniqueConstraintErrorMock.mockReset();
     isPrismaUniqueConstraintErrorMock.mockReturnValue(false);
+    prismaMock.auditLog.create = auditLogCreateMock;
+    prismaMock.comment.findUnique = commentFindUniqueMock;
+    prismaMock.comment.update = commentUpdateMock;
+    prismaMock.description.findUnique = descriptionFindUniqueMock;
+    prismaMock.description.update = descriptionUpdateMock;
+    prismaMock.descriptionEdit.create = descriptionEditCreateMock;
     prismaMock.$transaction.mockReset();
     prismaMock.$transaction.mockImplementation(async (action) =>
       action({
+        auditLog: prismaMock.auditLog,
+        comment: prismaMock.comment,
+        description: prismaMock.description,
+        descriptionEdit: prismaMock.descriptionEdit,
         user: prismaMock.user,
         userSuspension: prismaMock.userSuspension,
       }),
     );
+    auditLogCreateMock.mockResolvedValue({});
     prismaMock.user.count.mockReset();
     prismaMock.user.findUnique.mockReset();
     prismaMock.user.update.mockReset();
@@ -202,7 +242,7 @@ describe("admin API service", () => {
     expect(prismaMock.user.findUnique).not.toHaveBeenCalled();
     expect(prismaMock.userSuspension.create).not.toHaveBeenCalled();
     expect(prismaMock.userSuspension.updateMany).not.toHaveBeenCalled();
-    expect(fireAuditLogMock).not.toHaveBeenCalled();
+    expect(auditLogCreateMock).not.toHaveBeenCalled();
   });
 
   it("closes existing open suspensions before creating the current suspension", async () => {
@@ -242,12 +282,40 @@ describe("admin API service", () => {
         expiresAt: null,
       },
     });
-    expect(fireAuditLogMock).toHaveBeenCalledWith({
-      action: "admin_user_suspend",
-      userId: "admin-1",
-      targetId: "user-1",
-      targetType: "user",
-      metadata: { reason: " fresh reason " },
+    expect(auditLogCreateMock).toHaveBeenCalledWith({
+      data: {
+        action: "admin_user_suspend",
+        userId: "admin-1",
+        targetId: "user-1",
+        targetType: "user",
+        metadata: { reason: " fresh reason " },
+      },
+    });
+  });
+
+  it("rejects suspension creation when the required audit write fails", async () => {
+    const auditError = new Error("audit unavailable");
+    prismaMock.user.findUnique.mockResolvedValue({ id: "user-1" });
+    prismaMock.userSuspension.create.mockResolvedValue({
+      id: "suspension-1",
+      userId: "user-1",
+    });
+    auditLogCreateMock.mockRejectedValueOnce(auditError);
+    const { createAdminSuspension } = await import(
+      "@/features/admin/server/admin-api-service"
+    );
+
+    await expect(
+      createAdminSuspension("admin-1", { userId: "user-1" }),
+    ).rejects.toThrow(auditError);
+
+    expect(auditLogCreateMock).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: "admin_user_suspend",
+        targetId: "user-1",
+        targetType: "user",
+        userId: "admin-1",
+      }),
     });
   });
 
@@ -262,6 +330,7 @@ describe("admin API service", () => {
       .mockRejectedValueOnce(uniqueConflict)
       .mockImplementationOnce(async (action) =>
         action({
+          auditLog: prismaMock.auditLog,
           user: prismaMock.user,
           userSuspension: prismaMock.userSuspension,
         }),
@@ -317,12 +386,88 @@ describe("admin API service", () => {
         liftedById: "admin-1",
       },
     });
-    expect(fireAuditLogMock).toHaveBeenCalledWith({
-      action: "admin_user_unsuspend",
-      userId: "admin-1",
-      targetId: "user-1",
-      targetType: "user",
-      metadata: { suspensionId: "suspension-1" },
+    expect(auditLogCreateMock).toHaveBeenCalledWith({
+      data: {
+        action: "admin_user_unsuspend",
+        userId: "admin-1",
+        targetId: "user-1",
+        targetType: "user",
+        metadata: { suspensionId: "suspension-1" },
+      },
+    });
+  });
+
+  it("rejects comment moderation when the required audit write fails", async () => {
+    const auditError = new Error("audit unavailable");
+    commentFindUniqueMock.mockResolvedValue({ id: "comment-1" });
+    commentUpdateMock.mockResolvedValue({ id: "comment-1", status: "deleted" });
+    auditLogCreateMock.mockRejectedValueOnce(auditError);
+    const { moderateComment } = await import(
+      "@/features/admin/server/admin-api-service"
+    );
+
+    await expect(
+      moderateComment("admin-1", "comment-1", {
+        moderationNote: "spam",
+        status: "deleted",
+      }),
+    ).rejects.toThrow(auditError);
+
+    expect(commentUpdateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "comment-1" } }),
+    );
+    expect(auditLogCreateMock).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: "admin_comment_moderate",
+        metadata: { moderationNote: "spam", status: "deleted" },
+        targetId: "comment-1",
+        targetType: "comment",
+        userId: "admin-1",
+      }),
+    });
+  });
+
+  it("rejects description moderation when the required audit write fails", async () => {
+    const auditError = new Error("audit unavailable");
+    descriptionFindUniqueMock.mockResolvedValue({
+      id: "description-1",
+      content: "old content",
+    });
+    descriptionUpdateMock.mockResolvedValue({
+      id: "description-1",
+      content: "new content",
+    });
+    descriptionEditCreateMock.mockResolvedValue({});
+    auditLogCreateMock.mockRejectedValueOnce(auditError);
+    const { moderateDescription } = await import(
+      "@/features/admin/server/admin-api-service"
+    );
+
+    await expect(
+      moderateDescription("admin-1", "description-1", {
+        content: "new content",
+      }),
+    ).rejects.toThrow(auditError);
+
+    expect(descriptionEditCreateMock).toHaveBeenCalledWith({
+      data: {
+        descriptionId: "description-1",
+        editorId: "admin-1",
+        previousContent: "old content",
+        nextContent: "new content",
+      },
+    });
+    expect(auditLogCreateMock).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: "admin_description_moderate",
+        metadata: {
+          previousContent: "old content",
+          nextContent: "new content",
+        },
+        targetId: "description-1",
+        targetType: "description",
+        userId: "admin-1",
+      }),
     });
   });
 });

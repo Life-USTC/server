@@ -87,7 +87,7 @@ describe("comment serialization permissions", () => {
     });
   });
 
-  it("preserves suspended admin moderation affordances", () => {
+  it("removes suspended admin moderation affordances", () => {
     const { roots } = buildCommentNodes(
       [comment({ userId: "user-1" })],
       viewer({
@@ -101,7 +101,7 @@ describe("comment serialization permissions", () => {
     expect(roots[0]).toMatchObject({
       canDelete: false,
       canEdit: false,
-      canModerate: true,
+      canModerate: false,
       canReact: false,
       canReply: false,
       isAuthor: false,

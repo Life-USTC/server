@@ -18,28 +18,28 @@
     },
     "description_edit": {
       "trigger": "POST /api/descriptions or MCP upsert_description",
-      "description": "User updates an object description (content changed)."
+      "description": "User updates an object description (content changed). The description row, edit history, and audit row are committed together."
     },
     "upload_delete": {
       "trigger": "DELETE /api/uploads/[id] or MCP delete_my_upload",
-      "description": "User deletes an upload they own. MCP-originated writes include metadata.source=mcp."
+      "description": "User deletes an upload they own. MCP-originated writes include metadata.source=mcp. After storage deletion succeeds, metadata deletion and the audit row are committed together."
     },
     "admin_user_suspend": {
       "trigger": "POST /api/admin/suspensions",
-      "description": "Admin suspends a user account."
+      "description": "Admin suspends a user account. The suspension change and audit row are committed together."
     },
     "admin_user_unsuspend": {
       "trigger": "PATCH /api/admin/suspensions/[id]",
-      "description": "Admin lifts a user suspension."
+      "description": "Admin lifts a user suspension. The suspension change and audit row are committed together."
     },
     "admin_comment_moderate": {
       "trigger": "PATCH /api/admin/comments/[id]",
-      "description": "Admin hides or moderates a comment."
+      "description": "Admin hides or moderates a comment. The moderation change and audit row are committed together."
     },
     "admin_description_moderate": {
       "trigger": "PATCH /api/admin/descriptions/[id] or /admin/moderation description action",
-      "description": "Admin updates description content from the moderation workflow."
+      "description": "Admin updates description content from the moderation workflow. The description row, edit history, and audit row are committed together."
     }
   },
-  "writer": "writeAuditLog in src/lib/audit/write-audit-log.ts writes a record and records bounded production-safe audit write metrics by action, status, and duration. fireAuditLog wraps writeAuditLog for non-critical audit trails, logs write failures, and keeps those failures from blocking the main request."
+  "writer": "writeAuditLog records audit rows and bounded write metrics. Required domain/security trails await writeAuditLog and use the same Prisma transaction as DB-only mutations where practical. fireAuditLog is reserved for non-critical telemetry and logs failures without blocking the request."
 }

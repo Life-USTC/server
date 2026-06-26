@@ -1,4 +1,4 @@
-import { fireAuditLog } from "@/lib/audit/write-audit-log";
+import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
 import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
@@ -92,6 +92,15 @@ export async function upsertDescriptionContent({
         },
       });
 
+      await writeDescriptionEditAuditLog({
+        client: tx,
+        content,
+        descriptionId: description.id,
+        metadata: auditMetadata,
+        targetType,
+        userId,
+      });
+
       return { id: description.id, updated: true };
     });
 
@@ -103,26 +112,18 @@ export async function upsertDescriptionContent({
     result = await writeDescription();
   }
 
-  if (result.updated) {
-    await writeDescriptionEditAuditLog({
-      content,
-      descriptionId: result.id,
-      metadata: auditMetadata,
-      targetType,
-      userId,
-    });
-  }
-
   return { ok: true as const, ...result };
 }
 
 async function writeDescriptionEditAuditLog({
+  client,
   content,
   descriptionId,
   metadata,
   targetType,
   userId,
 }: {
+  client: NonNullable<Parameters<typeof writeAuditLog>[1]>;
   content: string;
   descriptionId: string;
   metadata?: DescriptionEditAuditMetadata;
@@ -130,16 +131,19 @@ async function writeDescriptionEditAuditLog({
   userId: string;
 }) {
   const { source, ...requestMetadata } = metadata ?? {};
-  await fireAuditLog({
-    action: "description_edit",
-    userId,
-    targetId: descriptionId,
-    targetType: "description",
-    metadata: {
-      targetType,
-      content: content.slice(0, 200),
-      ...(source ? { source } : {}),
+  await writeAuditLog(
+    {
+      action: "description_edit",
+      userId,
+      targetId: descriptionId,
+      targetType: "description",
+      metadata: {
+        targetType,
+        content: content.slice(0, 200),
+        ...(source ? { source } : {}),
+      },
+      ...requestMetadata,
     },
-    ...requestMetadata,
-  });
+    client,
+  );
 }

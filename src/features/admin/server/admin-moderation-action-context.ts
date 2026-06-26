@@ -17,7 +17,7 @@ export async function getAdminModerationActionContext({
   const copy = getAdminModerationPageCopy(
     locals.locale as AppLocale,
   ).moderation;
-  const admin = await requireAdminPage(request);
+  const admin = await requireAdminPage(request, { requireActive: true });
   const form = await request.formData();
 
   return { admin, copy, form };
