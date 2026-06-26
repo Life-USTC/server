@@ -1,4 +1,3 @@
-import { writeCommentReactionAuditLog } from "@/features/comments/server/comment-audit";
 import { deleteCommentReaction } from "@/features/comments/server/comment-mutations";
 import {
   forbidden,
@@ -47,22 +46,17 @@ export async function deleteCommentReactionRoute(
   const type = parsedBody.type;
 
   try {
-    const result = await deleteCommentReaction({ commentId: id, type, userId });
+    const result = await deleteCommentReaction({
+      auditMetadata: getAuditRequestMetadata(request),
+      commentId: id,
+      type,
+      userId,
+    });
     if (!result.ok) {
       if (result.error === "suspended") {
         return suspensionForbidden("reason" in result ? result.reason : null);
       }
       return forbidden();
-    }
-
-    if (result.changed) {
-      await writeCommentReactionAuditLog({
-        commentId: id,
-        operation: "remove",
-        requestMetadata: getAuditRequestMetadata(request),
-        type,
-        userId,
-      });
     }
 
     return jsonResponse({ success: true });

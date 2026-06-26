@@ -3,6 +3,7 @@ import type {
   CommentVisibility,
   Prisma,
 } from "@/generated/prisma/client";
+import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
 import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
@@ -24,6 +25,12 @@ type CreateCommentTarget = {
   whereTarget: Record<string, unknown>;
 };
 
+type CommentMutationAuditMetadata = {
+  ipAddress?: string;
+  source?: string;
+  userAgent?: string;
+};
+
 type CreateCommentError =
   | "forbidden"
   | "invalid_attachments"
@@ -36,6 +43,7 @@ type CreateCommentError =
 
 export async function createComment(input: {
   attachmentIds?: string[];
+  auditMetadata?: CommentMutationAuditMetadata;
   content: string;
   courseJwId?: unknown;
   homeworkId?: string;
@@ -117,6 +125,7 @@ export async function createComment(input: {
       attachmentIds,
       content: input.content,
       isAnonymous: input.isAnonymous,
+      auditMetadata: input.auditMetadata,
       parentId: input.parentId,
       target,
       userId: input.userId,
@@ -137,6 +146,7 @@ export async function createComment(input: {
 
 async function createCommentRecord({
   attachmentIds,
+  auditMetadata,
   content,
   isAnonymous,
   parentId,
@@ -146,6 +156,7 @@ async function createCommentRecord({
   visibility,
 }: {
   attachmentIds: string[];
+  auditMetadata?: CommentMutationAuditMetadata;
   content: string;
   isAnonymous: boolean;
   parentId?: string | null;
@@ -193,12 +204,21 @@ async function createCommentRecord({
       });
     }
 
+    await writeCommentAuditLog(tx, {
+      action: "comment_create",
+      body: content,
+      commentId: comment.id,
+      metadata: auditMetadata,
+      userId,
+    });
+
     return { ok: true as const, comment };
   });
 }
 
 export async function updateOwnComment({
   attachmentIds,
+  auditMetadata,
   body,
   hasAttachmentUpdate,
   id,
@@ -207,6 +227,7 @@ export async function updateOwnComment({
   visibility,
 }: {
   attachmentIds: string[];
+  auditMetadata?: CommentMutationAuditMetadata;
   body?: string;
   hasAttachmentUpdate: boolean;
   id: string;
@@ -245,6 +266,14 @@ export async function updateOwnComment({
       if (hasAttachmentUpdate) {
         await syncCommentAttachments(tx, id, attachmentIds);
       }
+
+      await writeCommentAuditLog(tx, {
+        action: "comment_edit",
+        body,
+        commentId: id,
+        metadata: auditMetadata,
+        userId,
+      });
     });
   } catch (error) {
     if (!isPrismaUniqueConstraintError(error)) throw error;
@@ -263,6 +292,7 @@ export async function updateOwnComment({
 }
 
 export async function deleteOwnComment(input: {
+  auditMetadata?: CommentMutationAuditMetadata;
   commentId: string;
   userId: string;
 }) {
@@ -286,14 +316,26 @@ export async function deleteOwnComment(input: {
     return { ok: false as const, error: "locked" as const };
   }
 
-  const result = await prisma.comment.updateMany({
-    where: { id: input.commentId, status: "active", userId: input.userId },
-    data: {
-      status: "deleted",
-      deletedAt: new Date(),
-    },
+  const deleted = await prisma.$transaction(async (tx) => {
+    const result = await tx.comment.updateMany({
+      where: { id: input.commentId, status: "active", userId: input.userId },
+      data: {
+        status: "deleted",
+        deletedAt: new Date(),
+      },
+    });
+    if (result.count !== 1) return false;
+
+    await writeCommentAuditLog(tx, {
+      action: "comment_delete",
+      commentId: input.commentId,
+      metadata: input.auditMetadata,
+      userId: input.userId,
+    });
+
+    return true;
   });
-  if (result.count !== 1) {
+  if (!deleted) {
     return loadOwnActiveCommentFailure({
       id: input.commentId,
       userId: input.userId,
@@ -305,6 +347,7 @@ export async function deleteOwnComment(input: {
 }
 
 export async function createCommentReaction(input: {
+  auditMetadata?: CommentMutationAuditMetadata;
   commentId: string;
   type: string;
   userId: string;
@@ -324,21 +367,36 @@ export async function createCommentReaction(input: {
     return { ok: false as const, error: "locked" as const };
   }
 
-  const result = await prisma.commentReaction.createMany({
-    data: [
-      {
-        commentId: input.commentId,
-        userId: input.userId,
-        type: input.type as CommentReactionType,
-      },
-    ],
-    skipDuplicates: true,
+  const changed = await prisma.$transaction(async (tx) => {
+    const result = await tx.commentReaction.createMany({
+      data: [
+        {
+          commentId: input.commentId,
+          userId: input.userId,
+          type: input.type as CommentReactionType,
+        },
+      ],
+      skipDuplicates: true,
+    });
+    if (result.count === 0) return false;
+
+    await writeCommentAuditLog(tx, {
+      action: "comment_react",
+      commentId: input.commentId,
+      metadata: input.auditMetadata,
+      operation: "add",
+      reactionType: input.type,
+      userId: input.userId,
+    });
+
+    return true;
   });
 
-  return { ok: true as const, changed: result.count > 0 };
+  return { ok: true as const, changed };
 }
 
 export async function deleteCommentReaction(input: {
+  auditMetadata?: CommentMutationAuditMetadata;
   commentId: string;
   type: CommentReactionType;
   userId: string;
@@ -359,15 +417,66 @@ export async function deleteCommentReaction(input: {
     return { ok: false as const, error: "locked" as const };
   }
 
-  const result = await prisma.commentReaction.deleteMany({
-    where: {
+  const changed = await prisma.$transaction(async (tx) => {
+    const result = await tx.commentReaction.deleteMany({
+      where: {
+        commentId: input.commentId,
+        userId: input.userId,
+        type: input.type,
+      },
+    });
+    if (result.count === 0) return false;
+
+    await writeCommentAuditLog(tx, {
+      action: "comment_react",
       commentId: input.commentId,
+      metadata: input.auditMetadata,
+      operation: "remove",
+      reactionType: input.type,
       userId: input.userId,
-      type: input.type,
-    },
+    });
+
+    return true;
   });
 
-  return { ok: true as const, changed: result.count > 0 };
+  return { ok: true as const, changed };
+}
+
+async function writeCommentAuditLog(
+  tx: Prisma.TransactionClient,
+  input: {
+    action:
+      | "comment_create"
+      | "comment_delete"
+      | "comment_edit"
+      | "comment_react";
+    body?: string;
+    commentId: string;
+    metadata?: CommentMutationAuditMetadata;
+    operation?: "add" | "remove";
+    reactionType?: string;
+    userId: string;
+  },
+) {
+  const { ipAddress, source, userAgent } = input.metadata ?? {};
+  const metadata = {
+    ...(input.body ? { body: input.body.slice(0, 200) } : {}),
+    ...(input.operation ? { operation: input.operation } : {}),
+    ...(input.reactionType ? { type: input.reactionType } : {}),
+    ...(source ? { source } : {}),
+  };
+  await writeAuditLog(
+    {
+      action: input.action,
+      userId: input.userId,
+      targetId: input.commentId,
+      targetType: "comment",
+      ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
+      ...(ipAddress ? { ipAddress } : {}),
+      ...(userAgent ? { userAgent } : {}),
+    },
+    tx,
+  );
 }
 
 export async function validateCommentAttachmentIds(
