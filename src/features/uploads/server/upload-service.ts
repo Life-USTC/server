@@ -67,6 +67,12 @@ type PublicUpload = {
   size: number;
 };
 
+type UploadCompletionFailureCode = "Quota exceeded" | "Upload session expired";
+
+type UploadCompletionResult =
+  | { ok: true; upload: PublicUpload; usedBytes: number }
+  | { ok: false; code: UploadCompletionFailureCode };
+
 export function publicUploadPayload(upload: PublicUpload) {
   return {
     id: upload.id,
@@ -138,60 +144,122 @@ export async function completeUploadSession(
     throw new UploadError("Upload session expired");
   }
 
-  const existing = await prisma.upload.findUnique({
-    where: { key: input.key },
-  });
-  if (existing) {
-    if (existing.userId !== userId) {
-      throw new UploadError("Upload session expired");
-    }
-    await prisma.uploadPending.deleteMany({
-      where: { key: input.key, userId },
+  const existing = await findExistingUploadUsagePayload(input.key, userId, now);
+  if (existing) return existing;
+
+  try {
+    await assertActivePendingUpload({
+      key: input.key,
+      now,
+      userId,
     });
-    const usedBytes = await getUploadUsedBytes({ prisma, userId, now });
-    return uploadUsagePayload(existing, usedBytes || existing.size);
+  } catch (error) {
+    if (error instanceof UploadError) {
+      const completed = await findExistingUploadUsagePayload(
+        input.key,
+        userId,
+        new Date(),
+      );
+      if (completed) return completed;
+    }
+    throw error;
+  }
+
+  let uploadedObject: Awaited<ReturnType<typeof validateUploadedObject>>;
+  try {
+    uploadedObject = await validateUploadedObject(input);
+  } catch (error) {
+    if (error instanceof UploadError) {
+      await deletePendingUpload(input.key, userId);
+    }
+    throw error;
   }
 
   const reservation = await runUploadSerializableTransaction(async (tx) => {
+    const completed = await tx.upload.findUnique({
+      where: { key: input.key },
+    });
+    if (completed) {
+      if (completed.userId !== userId) {
+        return {
+          ok: false,
+          code: "Upload session expired",
+        } satisfies UploadCompletionResult;
+      }
+      await tx.uploadPending.deleteMany({
+        where: { key: input.key, userId },
+      });
+      const usedBytes = await getUploadUsedBytes({
+        prisma: tx,
+        userId,
+        now: new Date(),
+      });
+      return {
+        ok: true,
+        upload: completed,
+        usedBytes: usedBytes || completed.size,
+      } satisfies UploadCompletionResult;
+    }
+
     const pending = await tx.uploadPending.findUnique({
       where: { key: input.key },
     });
     if (!pending || pending.userId !== userId) {
-      throw new UploadError("Upload session expired");
+      return {
+        ok: false,
+        code: "Upload session expired",
+      } satisfies UploadCompletionResult;
     }
 
-    if (pending.expiresAt < now) {
-      await tx.uploadPending.delete({ where: { key: input.key } });
-      throw new UploadError("Upload session expired");
+    const transactionNow = new Date();
+    if (pending.expiresAt < transactionNow) {
+      await tx.uploadPending.deleteMany({
+        where: { key: input.key, userId },
+      });
+      return {
+        ok: false,
+        code: "Upload session expired",
+      } satisfies UploadCompletionResult;
     }
-
-    const { contentType, size } = await validateUploadedObject(input);
 
     const usedBytes = await getUploadUsedBytes({
       excludePendingKey: input.key,
       prisma: tx,
       userId,
-      now,
+      now: transactionNow,
     });
-    if (usedBytes + size > uploadConfig.totalQuotaBytes) {
-      await tx.uploadPending.delete({ where: { key: input.key } });
-      throw new UploadError("Quota exceeded");
+    if (usedBytes + uploadedObject.size > uploadConfig.totalQuotaBytes) {
+      await tx.uploadPending.deleteMany({
+        where: { key: input.key, userId },
+      });
+      return {
+        ok: false,
+        code: "Quota exceeded",
+      } satisfies UploadCompletionResult;
     }
 
     const upload = await tx.upload.create({
       data: {
-        contentType,
+        contentType: uploadedObject.contentType,
         filename: input.filename,
         key: input.key,
-        size,
+        size: uploadedObject.size,
         userId,
       },
     });
 
-    await tx.uploadPending.delete({ where: { key: input.key } });
+    await tx.uploadPending.deleteMany({ where: { key: input.key, userId } });
 
-    return { upload, usedBytes: usedBytes + size };
+    return {
+      ok: true,
+      upload,
+      usedBytes: usedBytes + uploadedObject.size,
+    } satisfies UploadCompletionResult;
   }, "Failed to finalize upload quota");
+
+  if (!reservation.ok) {
+    throw new UploadError(reservation.code);
+  }
 
   return uploadUsagePayload(reservation.upload, reservation.usedBytes);
 }
@@ -437,6 +505,53 @@ async function deleteExpiredPendingUploads(
   await uploadPrisma.uploadPending.deleteMany({
     where: { userId, expiresAt: { lt: now } },
   });
+}
+
+async function deletePendingUpload(key: string, userId: string) {
+  await prisma.uploadPending.deleteMany({
+    where: { key, userId },
+  });
+}
+
+async function findExistingUploadUsagePayload(
+  key: string,
+  userId: string,
+  now: Date,
+) {
+  const existing = await prisma.upload.findUnique({
+    where: { key },
+  });
+  if (!existing) return null;
+  if (existing.userId !== userId) {
+    throw new UploadError("Upload session expired");
+  }
+
+  await deletePendingUpload(key, userId);
+  const usedBytes = await getUploadUsedBytes({ prisma, userId, now });
+  return uploadUsagePayload(existing, usedBytes || existing.size);
+}
+
+async function assertActivePendingUpload(input: {
+  key: string;
+  now: Date;
+  userId: string;
+}) {
+  const pending = await prisma.uploadPending.findUnique({
+    where: { key: input.key },
+    select: {
+      expiresAt: true,
+      userId: true,
+    },
+  });
+
+  if (!pending || pending.userId !== input.userId) {
+    throw new UploadError("Upload session expired");
+  }
+
+  if (pending.expiresAt < input.now) {
+    await deletePendingUpload(input.key, input.userId);
+    throw new UploadError("Upload session expired");
+  }
 }
 
 async function getUploadUsedBytes(input: {

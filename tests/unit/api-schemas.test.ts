@@ -21,7 +21,9 @@ import {
   sectionsQuerySchema,
   todoCreateRequestSchema,
   todosQuerySchema,
+  uploadCompleteRequestSchema,
   uploadCreateRequestSchema,
+  uploadRenameRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
 import {
   meResponseSchema,
@@ -192,6 +194,26 @@ describe("other request schemas", () => {
       size: "123",
     });
     expect(valid.success).toBe(true);
+  });
+
+  it("rejects upload filenames with control characters", () => {
+    expect(
+      uploadCreateRequestSchema.safeParse({
+        filename: "a\nb.txt",
+        size: "123",
+      }).success,
+    ).toBe(false);
+    expect(
+      uploadCompleteRequestSchema.safeParse({
+        key: "uploads/user-1/a.txt",
+        filename: "a\rb.txt",
+      }).success,
+    ).toBe(false);
+    expect(
+      uploadRenameRequestSchema.safeParse({
+        filename: "a\u0000b.txt",
+      }).success,
+    ).toBe(false);
   });
 
   it("validates comment list public target identifiers", () => {
