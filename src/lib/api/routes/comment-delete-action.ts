@@ -18,6 +18,7 @@ export async function deleteOwnCommentAction(input: {
     if (result.error === "suspended") {
       return suspensionForbidden("reason" in result ? result.reason : null);
     }
+    if (result.error === "locked") return forbidden("Comment locked");
     return result.error === "not_found" ? notFound() : forbidden();
   }
 

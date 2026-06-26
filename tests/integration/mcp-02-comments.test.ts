@@ -794,6 +794,15 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
         }),
       ).resolves.toEqual({ success: true });
 
+      const repeatedDelete = await context.client.call<{
+        success?: boolean;
+        error?: string;
+      }>("delete_own_comment", { commentId });
+      expect(repeatedDelete).toMatchObject({
+        success: false,
+        error: "locked",
+      });
+
       const reply = await context.client.call<{
         success?: boolean;
         error?: string;
@@ -813,6 +822,44 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
         type: "heart",
       });
       expect(reaction).toMatchObject({ success: false, error: "locked" });
+    } finally {
+      await fixtures.deleteCommentRecords(commentId ? [commentId] : []);
+    }
+  });
+
+  it("comment write tools reject owner delete on softbanned comments", async () => {
+    const marker = `[integration-test] mcp-comment-softbanned-delete-${Date.now()}`;
+    let commentId: string | undefined;
+
+    try {
+      const created = await context.client.call<{
+        success?: boolean;
+        id?: string;
+      }>("create_comment", {
+        targetType: "section",
+        sectionJwId: fixtures.DEV_SEED.section.jwId,
+        body: `${marker} locked`,
+      });
+      expect(created.success).toBe(true);
+      commentId = created.id;
+      expect(typeof commentId).toBe("string");
+
+      await fixtures.prisma.comment.update({
+        where: { id: commentId },
+        data: { status: "softbanned" },
+      });
+
+      const deletion = await context.client.call<{
+        success?: boolean;
+        error?: string;
+        message?: string;
+      }>("delete_own_comment", { commentId });
+
+      expect(deletion).toMatchObject({
+        success: false,
+        error: "locked",
+        message: "Comment locked",
+      });
     } finally {
       await fixtures.deleteCommentRecords(commentId ? [commentId] : []);
     }

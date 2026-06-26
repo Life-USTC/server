@@ -130,6 +130,7 @@ describe("comment serialization permissions", () => {
     expect(roots[0]).toMatchObject({
       status: "deleted",
       attachments: [],
+      canDelete: false,
       canReact: false,
       canReply: false,
     });
@@ -147,12 +148,14 @@ describe("comment serialization permissions", () => {
     );
 
     expect(authorView.roots[0]).toMatchObject({
+      canDelete: false,
       canEdit: false,
       canReact: false,
       canReply: false,
       status: "active",
     });
     expect(adminView.roots[0]).toMatchObject({
+      canDelete: false,
       canEdit: false,
       canReact: false,
       canReply: false,

@@ -35,7 +35,6 @@ export function buildVisibleCommentNode({
   const author = authorHidden ? null : buildAuthorSummary(comment);
   const status =
     rawStatus === "softbanned" && !viewer.isAdmin ? "active" : rawStatus;
-  const canWrite = viewer.isAuthenticated && !viewer.isSuspended;
   const canInteract = canViewerWriteCommentInteraction(
     {
       status: rawStatus,
@@ -72,7 +71,7 @@ export function buildVisibleCommentNode({
     canReact: canInteract,
     canReply: canInteract,
     canEdit: canInteract && isAuthor,
-    canDelete: rawStatus !== "deleted" && canWrite && isAuthor,
+    canDelete: canInteract && isAuthor,
     canModerate: viewer.isAdmin,
   };
 }

@@ -15,7 +15,7 @@
  * - Auth required (401 if unauthenticated)
  * - Only the owner can update through the public endpoint (403 otherwise)
  * - Admin moderation uses PATCH /api/admin/comments/{id}
- * - Cannot update deleted or softbanned comments (403 "Comment locked")
+ * - Cannot update or delete deleted/softbanned comments (403 "Comment locked")
  *
  * ## DELETE /api/comments/{id}
  * - Response: { success: true }
@@ -353,6 +353,17 @@ test("/api/comments/[id] PATCH refuses inactive comments", async ({ page }) => {
       },
     );
     expect(softbannedResponse.status()).toBe(403);
+    await expect(softbannedResponse.json()).resolves.toEqual({
+      error: "Comment locked",
+    });
+
+    const softbannedDeleteResponse = await page.request.delete(
+      `/api/comments/${commentId}`,
+    );
+    expect(softbannedDeleteResponse.status()).toBe(403);
+    await expect(softbannedDeleteResponse.json()).resolves.toEqual({
+      error: "Comment locked",
+    });
 
     await withE2ePrisma((prisma) =>
       prisma.comment.update({
@@ -368,6 +379,17 @@ test("/api/comments/[id] PATCH refuses inactive comments", async ({ page }) => {
       },
     );
     expect(deletedResponse.status()).toBe(403);
+    await expect(deletedResponse.json()).resolves.toEqual({
+      error: "Comment locked",
+    });
+
+    const deletedDeleteResponse = await page.request.delete(
+      `/api/comments/${commentId}`,
+    );
+    expect(deletedDeleteResponse.status()).toBe(403);
+    await expect(deletedDeleteResponse.json()).resolves.toEqual({
+      error: "Comment locked",
+    });
   } finally {
     await withE2ePrisma((prisma) =>
       prisma.comment.deleteMany({ where: { id: commentId } }),
