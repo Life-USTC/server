@@ -38,6 +38,7 @@
     "snapshot:capture": "bun run tools/dev/artifacts/snapshots/snapshot-ci.ts capture",
     "snapshot:publish-previews": "bun run tools/dev/artifacts/snapshots/snapshot-ci.ts publish-previews",
     "snapshot:report": "bun run tools/dev/artifacts/snapshots/snapshot-report.ts",
+    "snapshot:verify": "bun run e2e:db:prepare && bun run e2e:build-artifacts && bun run seed && bun run snapshot:capture",
     "test": "vitest run",
     "verify": "bun run verify:default",
     "verify:default": "bun run verify:types && bun run verify:conventions && bun run test",

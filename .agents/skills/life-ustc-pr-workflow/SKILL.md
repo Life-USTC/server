@@ -47,7 +47,9 @@ Use the highest relevant gate:
   - `bun run seed`
   - `bun run e2e:test -- <paths>`
 - Snapshot workflow changes:
-  - `bun run snapshot:capture`
+  - Local verification: `bun run snapshot:verify`
+  - CI capture phase only, after workflow-managed prerequisites:
+    `bun run snapshot:capture`
 
 Stop local Docker services you started with:
 
