@@ -1,3 +1,13 @@
+## [1.39.9](https://github.com/Life-USTC/server/compare/v1.39.8...v1.39.9) (2026-06-26)
+
+
+### Bug Fixes
+
+* **ci:** isolate e2e worker artifact contract ([c8b5357](https://github.com/Life-USTC/server/commit/c8b53574c57882afe6ddf854fc42e255fc94e92b))
+* **ci:** prepare e2e shard metadata ([ad3684b](https://github.com/Life-USTC/server/commit/ad3684b9d2d1ceea2c09c22ffda4bc33d041dc15))
+* **loader:** allow teacherless snapshot rows ([6c2a831](https://github.com/Life-USTC/server/commit/6c2a831f0c0f692d0d8ba9ec1530bb885b9a571e))
+* **loader:** guard static import invariants ([d705cff](https://github.com/Life-USTC/server/commit/d705cff15cfe4437e9c87cc9048ca9aeee8077c7))
+
 ## [1.39.8](https://github.com/Life-USTC/server/compare/v1.39.7...v1.39.8) (2026-06-26)
 
 
