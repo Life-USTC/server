@@ -12,12 +12,25 @@ import {
   mcpModeInputSchema,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
+import { hasAsciiControlCharacters } from "@/lib/text/ascii-control-characters";
 
 const uploadIdInputSchema = z.string().trim().min(1);
-const uploadFilenameInputSchema = z.string().trim().min(1).max(255);
+const filenameControlCharacterMessage =
+  "Filename contains unsupported control characters";
+const uploadFilenameInputSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(255)
+  .refine((filename) => !hasAsciiControlCharacters(filename), {
+    message: filenameControlCharacterMessage,
+  })
+  .refine((filename) => sanitizeFilename(filename).length > 0, {
+    message: "Filename required",
+  });
 
 type UploadMutationError = {
-  error: "forbidden" | "not_found" | "suspended";
+  error: "forbidden" | "not_found" | "storage_delete_failed" | "suspended";
   reason?: string | null;
 };
 
@@ -44,6 +57,18 @@ function uploadMutationErrorResult(
         error: "not_found",
         message: "Upload not found",
         hint: "Use list_my_uploads to confirm the upload id before changing it.",
+      },
+      { mode },
+    );
+  }
+
+  if (result.error === "storage_delete_failed") {
+    return jsonToolResult(
+      {
+        success: false,
+        error: "storage_delete_failed",
+        message: "Failed to delete upload object",
+        hint: "The upload metadata was kept so the deletion can be retried.",
       },
       { mode },
     );
@@ -113,7 +138,7 @@ export function registerUploadTools(server: McpServer) {
     "delete_my_upload",
     {
       description:
-        "Delete one upload owned by the current user and remove its backing object best-effort. Requires an unsuspended signed-in user.",
+        "Delete one upload owned by the current user after removing its backing object. Requires an unsuspended signed-in user.",
       inputSchema: {
         id: uploadIdInputSchema,
         mode: mcpModeInputSchema,
