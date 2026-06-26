@@ -11,9 +11,20 @@ import type { SectionHomeworkView } from "@/features/section-detail/lib/section-
 export function createSectionDetailControllerDefaultState(
   data: SectionDetailPageData,
 ) {
+  const focusedHomework =
+    data.focusedHomeworkId == null
+      ? null
+      : (data.homeworkData.homeworks.find(
+          (homework) => homework.id === data.focusedHomeworkId,
+        ) ?? null);
+  const activeTab = (
+    focusedHomework
+      ? "homework"
+      : (normalizeSectionTab(data.tab ?? null) ?? "homework")
+  ) as SectionTab;
+
   return {
-    _activeTab: (normalizeSectionTab(data.tab ?? null) ??
-      "homework") as SectionTab,
+    _activeTab: activeTab,
     _calendarMonthOffset: 0,
     _clipboardError: "",
     _clipboardMessage: "",
@@ -37,7 +48,7 @@ export function createSectionDetailControllerDefaultState(
     _isCalendarDialogOpen: false,
     _isHomeworkAuditDialogOpen: false,
     _origin: "",
-    _selectedHomework: null as SectionHomework | null,
+    _selectedHomework: focusedHomework as SectionHomework | null,
     _showCreateHomework: false,
     _showSubscribeDialog: data.showSubscribeDialog,
     _subscriptionPendingAction: null as "subscribe" | "unsubscribe" | null,

@@ -6,6 +6,7 @@ import {
 
 export function resolveCommentTargets({
   copy,
+  permalinkBaseHref,
   sectionId,
   targetId,
   targets,
@@ -18,6 +19,7 @@ export function resolveCommentTargets({
     tabSectionTeacher: string;
     tabTeacher: string;
   };
+  permalinkBaseHref?: string | null;
   sectionId: number | null;
   targetId: number | string | null;
   targets: CommentTargetOption[];
@@ -29,6 +31,7 @@ export function resolveCommentTargets({
     {
       key: targetType,
       label: commentTargetLabel(targetType, copy),
+      permalinkBaseHref: permalinkBaseHref ?? undefined,
       sectionId: sectionId ?? undefined,
       targetId,
       teacherId,

@@ -52,6 +52,7 @@ export let homeworkMessage: string;
 export let homeworkStatus: SectionDetailHomeworkDialogsProps["homeworkStatus"];
 export let isHomeworkAuditDialogOpen: boolean;
 export let sectionCopy: SectionDetailHomeworkDialogsProps["sectionCopy"];
+export let sectionJwId: number | string;
 export let selectedHomework: SectionDetailHomeworkDialogsProps["selectedHomework"];
 export let semesterDate: SectionDetailHomeworkDialogsProps["semesterDate"];
 export let setDeleteHomeworkTarget: SectionDetailHomeworkDialogsProps["setDeleteHomeworkTarget"];
@@ -115,6 +116,7 @@ export let updateHomework: SectionDetailHomeworkDialogsProps["updateHomework"];
   _startEditHomework={startEditHomework}
   _toggleHomeworkCompletion={toggleHomeworkCompletion}
   _updateHomework={updateHomework}
+  {sectionJwId}
   close={() => {
     setSelectedHomework(null);
     cancelEditHomework();

@@ -25,7 +25,11 @@ export type ModerationCommentLike = {
     course?: { nameCn: string } | null;
   } | null;
   teacher?: { id?: number | null; nameCn: string } | null;
-  homework?: { id?: string | null; title: string } | null;
+  homework?: {
+    id?: string | null;
+    section?: { jwId?: number | null } | null;
+    title: string;
+  } | null;
   sectionTeacher?: {
     section?: {
       jwId?: number | null;

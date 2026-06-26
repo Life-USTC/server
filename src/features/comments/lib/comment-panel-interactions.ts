@@ -5,8 +5,12 @@ import {
   deleteCommentRequest,
   submitCommentReactionRequest,
 } from "./comment-panel-actions";
-import { commentPermalinkHref } from "./comment-panel-controller";
+import { absoluteCommentPermalinkHref } from "./comment-panel-controller";
 import { commentReactionKey } from "./comment-ui";
+
+type CommentPermalinkContext = CommentNode & {
+  permalinkBaseHref?: string;
+};
 
 type CommentInteractionCopy = {
   linkCopied: string;
@@ -74,9 +78,16 @@ export function createCommentPanelInteractions(input: {
   async function copyCommentLink(comment: CommentNode) {
     input.setActionMenuId(null);
     const copy = input.getCommentCopy();
+    const currentHref = input.getCurrentHref();
+    const permalinkBaseHref =
+      (comment as CommentPermalinkContext).permalinkBaseHref ?? currentHref;
     try {
       await writeClipboardText(
-        commentPermalinkHref(input.getCurrentHref(), comment.id),
+        absoluteCommentPermalinkHref({
+          commentId: comment.id,
+          currentHref,
+          permalinkBaseHref,
+        }),
       );
       input.setMessage(copy.linkCopied);
     } catch {

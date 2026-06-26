@@ -1,3 +1,7 @@
+import {
+  commentPermalinkHref,
+  commentTargetPermalinkBaseHref,
+} from "@/features/comments/lib/comment-panel-links";
 import { getPrisma } from "@/lib/db/prisma";
 
 type CommentCanonicalUrlResult =
@@ -23,32 +27,65 @@ export async function resolveCommentCanonicalUrl(
 
   if (!comment) return { ok: false, reason: "not_found" };
 
-  const suffix = `#comment-${comment.id}`;
   if (comment.homework?.section?.jwId) {
     return {
       ok: true,
-      url: `/sections/${comment.homework.section.jwId}#homework-${comment.homework.id}`,
+      url: commentPermalinkHref(
+        commentTargetPermalinkBaseHref({
+          homeworkId: comment.homework.id,
+          sectionJwId: comment.homework.section.jwId,
+          type: "homework",
+        }),
+        comment.id,
+      ),
     };
   }
   if (comment.sectionTeacher?.section?.jwId) {
     return {
       ok: true,
-      url: `/sections/${comment.sectionTeacher.section.jwId}${suffix}`,
+      url: commentPermalinkHref(
+        commentTargetPermalinkBaseHref({
+          sectionJwId: comment.sectionTeacher.section.jwId,
+          type: "section-teacher",
+        }),
+        comment.id,
+      ),
     };
   }
   if (comment.section?.jwId) {
-    return { ok: true, url: `/sections/${comment.section.jwId}${suffix}` };
+    return {
+      ok: true,
+      url: commentPermalinkHref(
+        commentTargetPermalinkBaseHref({
+          sectionJwId: comment.section.jwId,
+          type: "section",
+        }),
+        comment.id,
+      ),
+    };
   }
   if (comment.course?.jwId) {
     return {
       ok: true,
-      url: `/courses/${comment.course.jwId}?tab=comments${suffix}`,
+      url: commentPermalinkHref(
+        commentTargetPermalinkBaseHref({
+          courseJwId: comment.course.jwId,
+          type: "course",
+        }),
+        comment.id,
+      ),
     };
   }
   if (comment.teacher?.id) {
     return {
       ok: true,
-      url: `/teachers/${comment.teacher.id}?tab=comments${suffix}`,
+      url: commentPermalinkHref(
+        commentTargetPermalinkBaseHref({
+          teacherId: comment.teacher.id,
+          type: "teacher",
+        }),
+        comment.id,
+      ),
     };
   }
 

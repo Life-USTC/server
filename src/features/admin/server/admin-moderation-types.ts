@@ -9,7 +9,11 @@ export type AdminModerationCommentRecord = {
   body: string;
   course?: { code: string; jwId?: number | null; nameCn: string } | null;
   createdAt: AdminModerationDateValue;
-  homework?: { id?: string | null; title: string } | null;
+  homework?: {
+    id?: string | null;
+    section?: { jwId?: number | null } | null;
+    title: string;
+  } | null;
   id: string | number;
   isAnonymous?: boolean | null;
   moderationNote?: string | null;

@@ -31,7 +31,13 @@ export function listModerationComments({
         },
       },
       teacher: { select: { id: true, nameCn: true } },
-      homework: { select: { id: true, title: true } },
+      homework: {
+        select: {
+          id: true,
+          section: { select: { jwId: true } },
+          title: true,
+        },
+      },
       sectionTeacher: {
         select: {
           section: {

@@ -319,6 +319,7 @@ export type SectionDetailPageData = {
   commentsData: CommentsInitialData | null;
   copy: SectionDetailCopy;
   descriptionData: DescriptionPayload;
+  focusedHomeworkId?: string | null;
   homeworkData: {
     auditLogs: HomeworkAuditLog[];
     homeworks: SectionHomework[];

@@ -45,6 +45,14 @@ export function mountSectionDetailNavigation(input: {
   setActiveTabFromHash: (tab: SectionTab) => void;
 }) {
   const handleHash = () => {
+    const url = new URL(window.location.href);
+    if (
+      url.hash.startsWith("#comment-") &&
+      url.searchParams.has("homeworkId")
+    ) {
+      input.setActiveTabFromHash("homework");
+      return;
+    }
     const nextTab = sectionTabFromHash(window.location.hash);
     if (nextTab) input.setActiveTabFromHash(nextTab);
   };

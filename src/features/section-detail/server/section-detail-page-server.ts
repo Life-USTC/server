@@ -49,6 +49,7 @@ export async function loadSectionDetailPage({
     descriptionData: descriptionAndComments.descriptionData,
     commentsData: descriptionAndComments.commentsData,
     homeworkData,
+    focusedHomeworkId: url.searchParams.get("homeworkId"),
     tab: normalizeSectionDetailTab(url.searchParams.get("tab")),
     homeworkView:
       url.searchParams.get("homeworkView") === "list" ? "list" : "cards",

@@ -735,6 +735,71 @@ test.describe("/sections/[jwId]", () => {
     }
   });
 
+  test("homework comment permalink opens the target comment", async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(60_000);
+    await signInAsDebugUser(page, SECTION_URL);
+    let homeworkId: string | undefined;
+    let commentId: string | undefined;
+
+    try {
+      const title = `e2e-homework-permalink-${Date.now()}`;
+      const homeworkResponse = await page.request.post("/api/homeworks", {
+        data: {
+          sectionJwId: DEV_SEED.section.jwId,
+          title,
+        },
+      });
+      expect(homeworkResponse.status()).toBe(200);
+      const homeworkBody = (await homeworkResponse.json()) as {
+        homework?: { id?: string };
+        id?: string;
+      };
+      homeworkId = homeworkBody.homework?.id ?? homeworkBody.id;
+      expect(homeworkId).toBeTruthy();
+
+      const body = `e2e-homework-comment-permalink-${Date.now()}`;
+      const commentResponse = await page.request.post("/api/comments", {
+        data: {
+          body,
+          homeworkId,
+          targetType: "homework",
+        },
+      });
+      expect(commentResponse.status()).toBe(200);
+      const commentBody = (await commentResponse.json()) as { id?: string };
+      commentId = commentBody.id;
+      expect(commentId).toBeTruthy();
+
+      await gotoAndWaitForReady(page, `/comments/${commentId}`);
+      await expect(page).toHaveURL(
+        new RegExp(
+          `/sections/${DEV_SEED.section.jwId}\\?tab=homework&homeworkId=${escapeForRegExp(homeworkId ?? "")}#comment-${escapeForRegExp(commentId ?? "")}$`,
+        ),
+      );
+
+      const homeworkDialog = page
+        .locator('[data-slot="dialog-popup"]')
+        .filter({ hasText: title })
+        .first();
+      await expect(homeworkDialog).toBeVisible();
+      const targetComment = homeworkDialog.locator(
+        `[id="comment-${commentId}"]`,
+      );
+      await expect(targetComment).toBeVisible();
+      await expect(targetComment.getByText(body)).toBeVisible();
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "section/homework-comment-permalink",
+      );
+    } finally {
+      await cleanupCommentsForE2e([commentId]);
+      await cleanupHomeworksForE2e([homeworkId]);
+    }
+  });
+
   // ── Comment CRUD ────────────────────────────────────────────────────────────
 
   test("signed-in user can post, react, edit, reply, and delete comment", async ({

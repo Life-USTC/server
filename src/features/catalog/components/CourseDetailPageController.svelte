@@ -1,6 +1,7 @@
 <script lang="ts">
 import { onMount } from "svelte";
 import CommentsPanel from "@/features/comments/components/CommentsPanel.svelte";
+import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
@@ -37,6 +38,7 @@ type CourseDetailData = CatalogNamed & {
   code: string;
   educationLevel?: CatalogNamed | null;
   id: number | string;
+  jwId: number | string;
   sections: CourseDetailSection[];
   type?: CatalogNamed | null;
 };
@@ -162,6 +164,10 @@ onMount(() => {
           {#key `comments:course:${data.course.id}`}
             <CommentsPanel
               initialData={data.commentsData}
+              permalinkBaseHref={commentTargetPermalinkBaseHref({
+                courseJwId: data.course.jwId,
+                type: "course",
+              })}
               targetType="course"
               targetId={data.course.id}
             />

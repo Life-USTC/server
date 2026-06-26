@@ -119,6 +119,7 @@ export let applyEditStartNow: SectionDetailDialogsProps["applyEditStartNow"];
   {homeworkStatus}
   {isHomeworkAuditDialogOpen}
   {sectionCopy}
+  sectionJwId={data.section.jwId}
   {selectedHomework}
   {semesterDate}
   {setDeleteHomeworkTarget}

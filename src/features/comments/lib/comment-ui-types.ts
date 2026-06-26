@@ -10,6 +10,7 @@ export type CommentTargetType =
 export type CommentTargetOption = {
   key: string;
   label: string;
+  permalinkBaseHref?: string;
   sectionId?: number;
   targetId?: number | string | null;
   teacherId?: number | null;
@@ -19,6 +20,7 @@ export type CommentTargetOption = {
 export type CommentNodeWithContext = CommentNode & {
   contextKey?: string;
   contextLabel?: string;
+  permalinkBaseHref?: string;
   replies: CommentNodeWithContext[];
 };
 
@@ -47,6 +49,7 @@ export function withCommentContext(
     ...comment,
     contextKey: context.key,
     contextLabel: showAllTargets ? context.label : undefined,
+    permalinkBaseHref: context.permalinkBaseHref,
     replies: comment.replies.map((reply) =>
       withCommentContext(reply, context, showAllTargets),
     ),

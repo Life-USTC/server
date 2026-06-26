@@ -3,6 +3,10 @@ import type {
   ModerationCopy,
   ModerationDescriptionLike,
 } from "@/features/admin/lib/moderation-display-types";
+import {
+  commentPermalinkHref,
+  commentTargetPermalinkBaseHref,
+} from "@/features/comments/lib/comment-panel-links";
 
 export function visibleModerationComments<T extends ModerationCommentLike>(
   comments: T[],
@@ -53,14 +57,48 @@ export function moderationTargetLabel(
 }
 
 export function moderationTargetHref(comment: ModerationCommentLike) {
-  const anchor = `#comment-${comment.id}`;
   if (comment.sectionTeacher?.section?.jwId)
-    return `/sections/${comment.sectionTeacher.section.jwId}${anchor}`;
+    return commentPermalinkHref(
+      commentTargetPermalinkBaseHref({
+        sectionJwId: comment.sectionTeacher.section.jwId,
+        type: "section-teacher",
+      }),
+      String(comment.id),
+    );
   if (comment.section?.jwId)
-    return `/sections/${comment.section.jwId}${anchor}`;
-  if (comment.course?.jwId) return `/courses/${comment.course.jwId}${anchor}`;
-  if (comment.teacher?.id) return `/teachers/${comment.teacher.id}${anchor}`;
-  if (comment.homework?.id) return `/comments/${comment.id}`;
+    return commentPermalinkHref(
+      commentTargetPermalinkBaseHref({
+        sectionJwId: comment.section.jwId,
+        type: "section",
+      }),
+      String(comment.id),
+    );
+  if (comment.course?.jwId)
+    return commentPermalinkHref(
+      commentTargetPermalinkBaseHref({
+        courseJwId: comment.course.jwId,
+        type: "course",
+      }),
+      String(comment.id),
+    );
+  if (comment.teacher?.id)
+    return commentPermalinkHref(
+      commentTargetPermalinkBaseHref({
+        teacherId: comment.teacher.id,
+        type: "teacher",
+      }),
+      String(comment.id),
+    );
+  if (comment.homework?.id && comment.homework.section?.jwId) {
+    return commentPermalinkHref(
+      commentTargetPermalinkBaseHref({
+        homeworkId: comment.homework.id,
+        sectionJwId: comment.homework.section.jwId,
+        type: "homework",
+      }),
+      String(comment.id),
+    );
+  }
   return `/comments/${comment.id}`;
 }
 
