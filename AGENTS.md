@@ -154,6 +154,7 @@ buildPaginatedResponse(items, page, pageSize, total)
 
 **Generated - DO NOT EDIT**:
 - `src/generated/prisma/`
+- `src/generated/prisma-node/`
 - `public/openapi.generated.json`
 
 **Feature Changes**:

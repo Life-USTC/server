@@ -158,8 +158,8 @@ jobs:
             ci:e2e:test)
               run_e2e_test_phase
               ;;
-            ci:snapshot:capture)
-              bun run ci:snapshot:capture
+            ci:snapshot:verify)
+              bun run ci:snapshot:verify
               ;;
             *)
               echo "::error::Unknown DB-backed Bun job phase: $JOB_PHASE"
