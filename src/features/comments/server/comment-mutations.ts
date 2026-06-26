@@ -267,7 +267,7 @@ export async function deleteOwnComment(input: {
 
   const comment = await prisma.comment.findUnique({
     where: { id: input.commentId },
-    select: { id: true, userId: true },
+    select: { id: true, status: true, userId: true, visibility: true },
   });
 
   if (!comment) {
@@ -276,6 +276,10 @@ export async function deleteOwnComment(input: {
 
   if (comment.userId !== input.userId) {
     return { ok: false as const, error: "forbidden" as const };
+  }
+
+  if (!canViewerWriteCommentInteraction(comment, actor.viewer)) {
+    return { ok: false as const, error: "locked" as const };
   }
 
   await prisma.comment.update({

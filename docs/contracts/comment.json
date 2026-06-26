@@ -12,7 +12,7 @@
     "rich-content": "Supports Markdown, math formulas, emoji, tables, replies, and reactions.",
     "visibility-modes": "Supports public, signed-in-only, and anonymous posting; anonymous comments hide identity from regular users but are traceable by admins in governance scenarios.",
     "shared-read-policy": "Web, REST, and MCP comment reads share the same target resolution, thread serialization, visibility filtering, author masking, reaction, attachment, and viewer action-flag logic; read-only paths must not create durable comment targets and valid empty section-teacher targets load as empty threads.",
-    "interaction-gate": "Edits, replies, and reaction changes require an authenticated, unsuspended viewer and an active visible comment target; deleted or softbanned comments must not expose canEdit/canReply/canReact or accept those write actions."
+    "interaction-gate": "Edits, deletes, replies, and reaction changes require an authenticated, unsuspended viewer and an active visible comment target; deleted or softbanned comments must not expose canEdit/canDelete/canReply/canReact or accept those write actions."
   },
   "capabilities": {
     "object-comment-section": {
