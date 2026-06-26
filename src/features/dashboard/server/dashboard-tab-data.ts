@@ -22,7 +22,7 @@ export type BusDashboardData = {
 };
 
 export async function getBusTabData(
-  userId: string,
+  userId: string | null,
   locale: AppLocale = DEFAULT_LOCALE,
 ): Promise<BusDashboardData> {
   const referenceNow = shanghaiDayjs();

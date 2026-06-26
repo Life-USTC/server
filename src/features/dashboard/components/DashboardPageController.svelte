@@ -498,10 +498,7 @@ $: selectedImportCount = selectedImportSectionIds.length;
 $: canMatchImportSections =
   bulkImportText.trim().length > 0 && !isMatchingSections;
 
-let mounted = false;
-
 onMount(() => {
-  mounted = true;
   return mountDashboardController({
     applyViewState: applyDashboardViewState,
     clearPendingRemoveSection,
@@ -719,10 +716,6 @@ onMount(() => {
     {/if}
   {:else if data.signedIn && data.userMissing}
     <Alert variant="warning">{commonCopy.userNotFound}</Alert>
-  {:else if anonymousData?.tab === "bus" && !mounted}
-    <div class="rounded-xl border border-base-300 bg-base-100 p-4 text-base-content/70 text-sm">
-      {busCopy.empty}
-    </div>
   {:else if anonymousData}
     <AnonymousDashboardView
       {busCopy}

@@ -8,6 +8,11 @@ import type { DashboardBusCopy, DashboardBusData } from "./bus-tab-types";
 
 export type BusDayType = "weekday" | "weekend";
 
+function busReferenceNow(bus: DashboardBusData) {
+  const fetchedAt = new Date(bus.fetchedAt);
+  return Number.isNaN(fetchedAt.getTime()) ? new Date(0) : fetchedAt;
+}
+
 type BusTabPlannerControllerInput = {
   getBus: () => DashboardBusData | null;
   getBusCopy: () => DashboardBusCopy;
@@ -41,12 +46,13 @@ export function createBusTabPlannerController(
   function initializeBusPlanner() {
     const bus = input.getBus();
     if (!bus) return;
+    const referenceNow = busReferenceNow(bus);
     const selection = getDefaultBusSelection(bus, bus.preferences);
-    input.setBusDayType(resolveClientBusDayType(new Date()));
+    input.setBusDayType(resolveClientBusDayType(referenceNow));
     input.setBusStartCampusId(selection.startCampusId);
     input.setBusEndCampusId(selection.endCampusId);
     input.setBusShowDepartedTrips(bus.preferences?.showDepartedTrips ?? false);
-    input.setBusNow(new Date());
+    input.setBusNow(referenceNow);
   }
 
   function selectBusStart(campusId: number) {
@@ -83,6 +89,9 @@ export function createBusTabPlannerController(
 
   function mount() {
     initializeBusPlanner();
+    const liveNow = new Date();
+    input.setBusDayType(resolveClientBusDayType(liveNow));
+    input.setBusNow(liveNow);
     input.setBusPlannerReady(true);
     const interval = window.setInterval(() => {
       input.setBusNow(new Date());

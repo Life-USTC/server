@@ -2,7 +2,13 @@ import type { BusTimetableData } from "@/features/bus/lib/bus-timetable-types";
 
 export type DashboardBusData = Pick<
   BusTimetableData,
-  "campuses" | "notice" | "preferences" | "routes" | "trips" | "version"
+  | "campuses"
+  | "fetchedAt"
+  | "notice"
+  | "preferences"
+  | "routes"
+  | "trips"
+  | "version"
 >;
 
 export type DashboardBusCopy = Record<string, unknown> & {

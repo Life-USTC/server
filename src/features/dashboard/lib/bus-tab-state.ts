@@ -23,7 +23,7 @@ export function createBusTabState({
   const values = {
     busDayType: "weekday" as BusDayType,
     busEndCampusId: null as number | null,
-    busNow: new Date(),
+    busNow: new Date(0),
     busPlannerReady: false,
     busPreferenceSaveError: "",
     busPreferenceSaveRun: 0,
