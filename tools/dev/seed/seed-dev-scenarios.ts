@@ -22,6 +22,11 @@ import {
   DEV_SEED,
   getDevScenarioRuntimeConfig,
 } from "./dev-seed";
+import {
+  makeSeedDateOnly,
+  makeShanghaiSeedDateAt,
+  toShanghaiWeekday,
+} from "./dev-seed-time";
 
 const prisma = createToolPrisma();
 const scenario = scenarioData;
@@ -230,30 +235,23 @@ type DevBusSeed = {
   effectiveUntil: Date | null;
 };
 
-const SEED_ANCHOR_DATE = new Date(2026, 3, 29, 0, 0, 0, 0);
-
 function makeDateAt(hour: number, minute: number, offsetDays = 0) {
-  return new Date(
-    SEED_ANCHOR_DATE.getFullYear(),
-    SEED_ANCHOR_DATE.getMonth(),
-    SEED_ANCHOR_DATE.getDate() + offsetDays,
-    hour,
-    minute,
-    0,
-    0,
-  );
+  return makeShanghaiSeedDateAt(hour, minute, offsetDays);
+}
+
+function makeDateOnly(offsetDays = 0) {
+  return makeSeedDateOnly(offsetDays);
 }
 
 function toWeekday(date: Date) {
-  const day = date.getDay();
-  return day === 0 ? 7 : day;
+  return toShanghaiWeekday(date);
 }
 
 async function resolveDevBusSeed(): Promise<DevBusSeed> {
   return {
     payload: DEV_BUS_PAYLOAD,
     versionTitle: DEV_SEED.bus.versionTitle,
-    effectiveFrom: makeDateAt(0, 0, -7),
+    effectiveFrom: makeDateOnly(-7),
     effectiveUntil: null,
   };
 }
@@ -536,10 +534,10 @@ async function main() {
     },
   });
 
-  const semesterStart = makeDateAt(0, 0, -21);
-  const semesterEnd = makeDateAt(0, 0, 130);
-  const previousSemesterStart = makeDateAt(0, 0, -190);
-  const previousSemesterEnd = makeDateAt(0, 0, -30);
+  const semesterStart = makeDateOnly(-21);
+  const semesterEnd = makeDateOnly(130);
+  const previousSemesterStart = makeDateOnly(-190);
+  const previousSemesterEnd = makeDateOnly(-30);
 
   const [rooms, semester, previousSemester] = await Promise.all([
     prisma.room.findMany({
@@ -875,8 +873,8 @@ async function main() {
         }),
       ]);
 
-      const morningDate = makeDateAt(8, 30, index);
-      const afternoonDate = makeDateAt(14, 0, index + 1);
+      const morningDate = makeDateOnly(index);
+      const afternoonDate = makeDateOnly(index + 1);
       const morningRoom = rooms[index % rooms.length];
       const afternoonRoom = rooms[(index + 1) % rooms.length];
 
@@ -924,7 +922,7 @@ async function main() {
     }),
   );
 
-  const customPlaceDate = makeDateAt(15, 30, 2);
+  const customPlaceDate = makeDateOnly(2);
   await Promise.all([
     ...sectionScheduleData.flatMap(({ schedules }) =>
       schedules.map((data) => prisma.schedule.create({ data })),
@@ -963,7 +961,7 @@ async function main() {
           examType: 1,
           startTime: 900,
           endTime: 1100,
-          examDate: makeDateAt(0, 0, index === 3 ? -40 : 10 + index),
+          examDate: makeDateOnly(index === 3 ? -40 : 10 + index),
           examTakeCount: 1,
           examMode: "闭卷",
         },
@@ -974,7 +972,7 @@ async function main() {
           examType: 1,
           startTime: 900,
           endTime: 1100,
-          examDate: makeDateAt(0, 0, index === 3 ? -40 : 10 + index),
+          examDate: makeDateOnly(index === 3 ? -40 : 10 + index),
           examTakeCount: 1,
           examMode: "闭卷",
         },

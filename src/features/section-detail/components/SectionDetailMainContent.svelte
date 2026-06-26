@@ -56,13 +56,15 @@ export let yesNo: SectionDetailMainContentProps["yesNo"];
 
 <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
   <div class="grid min-w-0 gap-5">
-    <DescriptionCard
-      targetType="section"
-      targetId={data.section.id}
-      initialData={data.descriptionData}
-      locale={data.locale}
-      copy={data.copy.descriptions}
-    />
+    {#key `description:section:${data.section.id}`}
+      <DescriptionCard
+        targetType="section"
+        targetId={data.section.id}
+        initialData={data.descriptionData}
+        locale={data.locale}
+        copy={data.copy.descriptions}
+      />
+    {/key}
 
     <Tabs.Root aria-label={sectionCopy.teachingSection}>
       <Tabs.List>
@@ -105,13 +107,15 @@ export let yesNo: SectionDetailMainContentProps["yesNo"];
       />
     {:else if activeTab === "comments"}
       <section class="grid gap-3">
-        <CommentsPanel
-          initialData={data.commentsData}
-          targetType="section"
-          targetId={data.section.id}
-          targets={commentTargets}
-          showAllTargets
-        />
+        {#key `comments:section:${data.section.id}`}
+          <CommentsPanel
+            initialData={data.commentsData}
+            targetType="section"
+            targetId={data.section.id}
+            targets={commentTargets}
+            showAllTargets
+          />
+        {/key}
       </section>
     {/if}
   </div>

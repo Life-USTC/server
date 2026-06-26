@@ -41,7 +41,7 @@ describe("buildOAuthProviderPlugin", () => {
     );
   });
 
-  it("defaults DCR clients to profile scopes while keeping MCP scopes requestable", async () => {
+  it("defaults DCR clients to profile scopes while keeping REST and MCP scopes requestable", async () => {
     const { buildOAuthProviderPlugin } = await import(
       "@/lib/auth/better-auth-oauth-provider-plugin"
     );

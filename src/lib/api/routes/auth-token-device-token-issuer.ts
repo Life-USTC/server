@@ -38,6 +38,7 @@ type DeviceGrantTokenTransaction = {
         authTime: Date;
         clientId: string;
         expiresAt: Date;
+        resources: string[];
         scopes: string[];
         token: string;
         userId: string;
@@ -155,6 +156,7 @@ export async function issueDeviceGrantTokens(
           token: refreshTokenHash,
           clientId: input.clientId,
           userId: input.userId,
+          resources: input.resources,
           scopes: input.scopes,
           expiresAt: refreshExpiresAt,
           authTime: new Date(issuedAt * 1000),

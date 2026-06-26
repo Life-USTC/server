@@ -5,8 +5,18 @@ import {
   MCP_TOOLS_SCOPE,
   OAUTH_REFRESH_TOKEN_GRANT_TYPE,
 } from "@/lib/oauth/constants";
-import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
+import {
+  hashOAuthClientSecretForDbStorage,
+  resourceIndicatorsMatch,
+} from "@/lib/oauth/utils";
 import { rewriteTokenFormRequest } from "./auth-token-request-rewrite";
+
+function includesMcpResource(resources: string[]) {
+  const mcpResource = getOAuthMcpResourceUrl();
+  return resources.some((resource) =>
+    resourceIndicatorsMatch(resource, mcpResource),
+  );
+}
 
 export async function maybeBindMcpRefreshRequest(
   request: Request,
@@ -28,9 +38,12 @@ export async function maybeBindMcpRefreshRequest(
     await hashOAuthClientSecretForDbStorage(refreshToken);
   const refreshRecord = await prisma.oAuthRefreshToken.findUnique({
     where: { token: refreshTokenHash },
-    select: { scopes: true },
+    select: { resources: true, scopes: true },
   });
-  if (!refreshRecord?.scopes.includes(MCP_TOOLS_SCOPE)) {
+  if (
+    !refreshRecord?.scopes.includes(MCP_TOOLS_SCOPE) ||
+    !includesMcpResource(refreshRecord.resources)
+  ) {
     return request;
   }
 

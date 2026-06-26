@@ -9,6 +9,10 @@ import {
   maybeBindMcpRefreshRequest,
   maybeNormalizeTokenLoopbackRedirectRequest,
 } from "./auth-token-normalization";
+import {
+  persistOAuthRefreshTokenResources,
+  validateOAuthRefreshTokenResources,
+} from "./auth-token-refresh-resources";
 
 async function authHandler(request: Request) {
   const { betterAuthInstance } = await import("@/lib/auth/core");
@@ -123,6 +127,12 @@ async function postRoute(request: Request) {
   logObservedTokenRedirectRequest(request, params);
 
   return withTokenMetrics(params, async () => {
+    const resourceError = await validateOAuthRefreshTokenResources(
+      request,
+      params,
+    );
+    if (resourceError) return resourceError;
+
     const delegatedRequest = await maybeBindMcpRefreshRequest(
       await maybeNormalizeTokenLoopbackRedirectRequest(request, params),
       params,
@@ -132,7 +142,9 @@ async function postRoute(request: Request) {
       delegatedRequest,
       authHandler,
     );
-    return normalizeOAuthTokenErrorResponse(delegatedResponse);
+    const response = await normalizeOAuthTokenErrorResponse(delegatedResponse);
+    await persistOAuthRefreshTokenResources(delegatedRequest, params, response);
+    return response;
   });
 }
 export const tokenPostRoute = observedApiRoute(postRoute);
