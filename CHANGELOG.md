@@ -1,3 +1,12 @@
+## [1.39.21](https://github.com/Life-USTC/server/compare/v1.39.20...v1.39.21) (2026-06-26)
+
+
+### Bug Fixes
+
+* harden upload delete and mcp rename ([764c819](https://github.com/Life-USTC/server/commit/764c81938cdab12ed58d4acdb189c26c3a92a330))
+* reject unsafe loader semesters ([058c552](https://github.com/Life-USTC/server/commit/058c55293f4389d8f2e259a597feabd9466a9806))
+* validate static loader options ([4ba45b1](https://github.com/Life-USTC/server/commit/4ba45b16e4e7dfc0e5cbb100d236afb446a6b5d7))
+
 ## [1.39.20](https://github.com/Life-USTC/server/compare/v1.39.19...v1.39.20) (2026-06-26)
 
 
