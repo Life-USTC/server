@@ -51,10 +51,13 @@ const routeAdapterPrefix = "src/lib/api/routes/";
 const routeAdapterRoot = routeAdapterPrefix.slice(0, -1);
 const maxRouteAdapterFeatureImportFiles = 58;
 const maxRouteAdapterFeatureImports = 95;
+const apiSchemaPrefix = "src/lib/api/schemas/";
+const maxApiSchemaFeatureImportFiles = 10;
+const maxApiSchemaFeatureImports = 12;
 
 const libFeatureImportAllowedPrefixes = [
   routeAdapterPrefix,
-  "src/lib/api/schemas/",
+  apiSchemaPrefix,
   "src/lib/mcp/",
 ];
 
@@ -191,6 +194,27 @@ describe("source import boundaries", () => {
       maxRouteAdapterFeatureImportFiles,
     );
     expect(imports.length).toBeLessThanOrEqual(maxRouteAdapterFeatureImports);
+  });
+
+  it("keeps the API schema feature-import ratchet from growing", async () => {
+    const schemaFiles = await collectSourceFiles(
+      path.join(process.cwd(), apiSchemaPrefix),
+    );
+    const featureImportingFiles = new Set<string>();
+    const imports: string[] = [];
+
+    for (const filePath of schemaFiles) {
+      const source = await fs.readFile(filePath, "utf8");
+      for (const specifier of featureImports(filePath, source)) {
+        featureImportingFiles.add(relativeSourcePath(filePath));
+        imports.push(`${relativeSourcePath(filePath)} -> ${specifier}`);
+      }
+    }
+
+    expect(featureImportingFiles.size).toBeLessThanOrEqual(
+      maxApiSchemaFeatureImportFiles,
+    );
+    expect(imports.length).toBeLessThanOrEqual(maxApiSchemaFeatureImports);
   });
 
   it("keeps feature code off deprecated src/lib domain barrels", async () => {
