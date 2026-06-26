@@ -6,6 +6,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * List todos.
  * @params todosQuerySchema
  * @response todosListResponseSchema
+ * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
  */
 export const GET = svelteRequestHandler(observedApiRoute(getTodosRoute));

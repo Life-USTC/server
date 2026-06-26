@@ -123,7 +123,7 @@ export function registerBusTools(server: McpServer) {
           ),
         dayType: busDayTypeSchema,
         includeDeparted: z.boolean().default(false),
-        limit: z.number().int().min(1).max(20).default(5),
+        limit: z.number().int().min(1).max(50).default(5),
         versionKey: z.string().trim().min(1).optional(),
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,

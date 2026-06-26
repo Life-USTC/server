@@ -161,6 +161,7 @@
             "notes": [
               "Requires originCampusId and destinationCampusId.",
               "Supports atTime, dayType, includeDeparted, limit, versionKey, and locale query parameters.",
+              "REST and MCP share the same limit bounds: 1-50.",
               "Departures include status and minutesUntilDeparture so clients can mark departed rows and the next upcoming trip."
             ]
           }
@@ -174,7 +175,7 @@
             "rest_equivalent": "GET /api/bus/next",
             "notes": [
               "Task-oriented convenience tool for 'when is the next bus?' prompts.",
-              "Default parameters: dayType=auto, includeDeparted=false, limit=5.",
+              "Default parameters: dayType=auto, includeDeparted=false, limit=5; REST and MCP share limit bounds 1-50.",
               "When a route exists but no remaining departures are available for the requested window, return guidance describing the situation and, when possible, the next available service time.",
               "Default/summary responses should avoid repeating the same originCampus/destinationCampus object inside every departure item when they already appear at the top level."
             ]

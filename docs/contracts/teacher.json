@@ -26,7 +26,10 @@
         "routes": [
           {
             "path": "/api/teachers",
-            "returns": "PaginatedResponse<TeacherSummary>"
+            "returns": "PaginatedResponse<TeacherSummary>",
+            "notes": [
+              "Pagination limit accepts 1-100; REST and MCP reject out-of-range values instead of clamping."
+            ]
           }
         ]
       },
@@ -35,7 +38,10 @@
           {
             "name": "search_teachers",
             "returns": "PaginatedResponse<TeacherSummary>",
-            "rest_equivalent": "GET /api/teachers"
+            "rest_equivalent": "GET /api/teachers",
+            "notes": [
+              "Pagination limit accepts 1-100; REST and MCP reject out-of-range values instead of clamping."
+            ]
           }
         ]
       },

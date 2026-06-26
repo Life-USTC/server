@@ -34,6 +34,33 @@ export const integerStringSchema = z
   })
   .meta({ override: { type: "integer", format: "int64" } });
 
+export function integerStringRangeSchema({
+  maximum,
+  message,
+  minimum,
+}: {
+  maximum: number;
+  message: string;
+  minimum: number;
+}) {
+  return integerStringSchema
+    .refine(
+      (value) => {
+        const parsed = parseInteger(value);
+        return parsed !== null && parsed >= minimum && parsed <= maximum;
+      },
+      { message },
+    )
+    .meta({
+      override: {
+        type: "integer",
+        format: "int64",
+        minimum,
+        maximum,
+      },
+    });
+}
+
 export const dateInputStringSchema = z
   .string()
   .trim()

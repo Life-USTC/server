@@ -27,7 +27,10 @@
         "routes": [
           {
             "path": "/api/courses",
-            "returns": "PaginatedResponse<Course>"
+            "returns": "PaginatedResponse<Course>",
+            "notes": [
+              "Pagination limit accepts 1-100; REST and MCP reject out-of-range values instead of clamping."
+            ]
           }
         ]
       },
@@ -36,7 +39,10 @@
           {
             "name": "search_courses",
             "returns": "PaginatedResponse<Course>",
-            "rest_equivalent": "GET /api/courses"
+            "rest_equivalent": "GET /api/courses",
+            "notes": [
+              "Pagination limit accepts 1-100; REST and MCP reject out-of-range values instead of clamping."
+            ]
           }
         ]
       },
