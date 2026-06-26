@@ -63,8 +63,9 @@ describe("fireAuditLog", () => {
 
     const result = fireAuditLog(auditParams);
 
-    expect(result).toBeUndefined();
-    expect(waitUntilMock).toHaveBeenCalledTimes(1);
+    expect(result).toHaveProperty("then");
+    await vi.dynamicImportSettled();
+    await vi.waitFor(() => expect(waitUntilMock).toHaveBeenCalledTimes(1));
     expect(prismaMock.auditLog.create).toHaveBeenCalledWith({
       data: auditParams,
     });
@@ -93,6 +94,8 @@ describe("fireAuditLog", () => {
     const { fireAuditLog } = await import("@/lib/audit/write-audit-log");
 
     fireAuditLog(auditParams);
+    await vi.dynamicImportSettled();
+    await vi.waitFor(() => expect(waitUntilMock).toHaveBeenCalledTimes(1));
     await waitUntilMock.mock.calls[0]?.[0];
 
     expect(recordAuditWriteMetricMock).toHaveBeenCalledWith({
