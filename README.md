@@ -15,7 +15,7 @@ bun run dev
 首次本地启动前先从 `.env.example` 创建 `.env`，因为 `bun run dev` 会在启动 Vite 前运行 Prisma 迁移并读取 `DATABASE_URL`。本地数据库由 Docker Compose 管理；需要数据库时先启动本地 infra，再运行应用。上传存储使用 Cloudflare `R2_UPLOADS` 绑定，需通过 Wrangler 相关流程本地验证。生产应用由 Cloudflare Git integration 发布，Docker 只保留静态数据加载环境。
 
 生产 Workers Builds 配置：
-- Build command: `bun install --frozen-lockfile && bun run build`
+- Build command: `bun install --frozen-lockfile && bun run app:prepare && bun run build`
 - Deploy command: `npx wrangler deploy`
 - Non-production deploy command: `npx wrangler versions upload`
 - Build variables:
