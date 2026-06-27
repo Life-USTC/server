@@ -77,13 +77,20 @@ test.describe("dashboard links", () => {
       page.getByRole("button", { name: /Academic Affairs System/i }).first(),
     ).toBeVisible();
 
-    await searchInput.fill("email");
-    await expect(
-      page.getByRole("button", { name: /USTC Email/i }).first(),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: /Academic Affairs System/i }).first(),
-    ).toHaveCount(0);
+    await expect(async () => {
+      await searchInput.click();
+      await searchInput.clear();
+      await searchInput.pressSequentially("email");
+      await expect(
+        page.getByRole("button", { name: /USTC Email/i }).first(),
+      ).toBeVisible({ timeout: 3_000 });
+      await expect(
+        page.getByRole("button", { name: /Academic Affairs System/i }),
+      ).toHaveCount(0, { timeout: 3_000 });
+    }).toPass({
+      timeout: 10_000,
+      intervals: [250, 500, 1_000],
+    });
 
     await captureStepScreenshot(
       page,
