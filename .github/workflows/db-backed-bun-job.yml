@@ -167,6 +167,7 @@ jobs:
               exit 1
             fi
 
+            bun run app:prepare
             bun run db:migrate:deploy
             bunx prisma db seed
             bunx playwright test "${paths[@]}"
