@@ -4,15 +4,15 @@ Playwright browser tests.
 
 ## Commands
 
-Use the root `AGENTS.md` command list for the canonical E2E workflow. For a
-focused local Playwright run, prepare the Worker runtime and seed data first:
+Use `$life-ustc-dev-loop` for the canonical E2E sequence. Playwright starts the
+E2E server automatically via `bun run e2e:server` (using `wrangler.e2e.jsonc`).
+
+For a focused local Playwright run after setup:
 
 ```bash
-bun run e2e:db:prepare
-bun run e2e:build-artifacts
-bun run seed
-bun run e2e:test -- --headed path/to/test
-bun run e2e:test -- --ui
+bunx playwright test path/to/test
+bunx playwright test --headed path/to/test
+bunx playwright test --ui
 ```
 
 ## Local Setup
@@ -20,7 +20,7 @@ bun run e2e:test -- --ui
 Use the root `AGENTS.md` for the shared setup flow. E2E-only caveats:
 
 - Package scripts build the Cloudflare Worker bundle before Playwright starts.
-- Playwright starts the local Worker with `bun run tools/dev/e2e.ts start`, which runs `wrangler dev` with proxy variables cleared for localhost.
+- Playwright starts the local Worker with `bun run e2e:server`, which runs `wrangler dev` with `wrangler.e2e.jsonc` and proxy variables cleared for localhost.
 - Playwright defaults to `127.0.0.1:3000`; set `PLAYWRIGHT_PORT` only when a local non-project process already owns that port.
 - Playwright global setup validates the database environment only; R2 is provided by Wrangler's local `R2_UPLOADS` binding.
 
@@ -30,8 +30,8 @@ Use the repo root `AGENTS.md` for the canonical shared seed/setup flow and
 `DEV_SEED_ANCHOR` guidance. E2E-specific fixture edits still follow this path:
 
 - Update `tests/e2e/fixtures/scenario.json`
-- Update `tools/dev/seed/seed-dev-scenarios.ts` if new entities must be created
-- Update `tools/dev/seed/dev-seed.ts` when tests need a named export
+- Update `prisma/seed.sql` if new entities must be created
+- Update `tests/fixtures/dev-seed.ts` when tests need a named export
 
 ## Structure
 
@@ -81,7 +81,7 @@ await expect(page).toHaveURL(/expected/);
 await expect(element).toBeVisible();
 
 // DON'T
-await page.waitForTimeout(1000); // rejected by tools/dev/check/e2e.ts
+await page.waitForTimeout(1000); // rejected by $life-ustc-dev-loop checks
 ```
 
 ## Concurrency

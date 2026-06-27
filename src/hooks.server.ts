@@ -1,9 +1,9 @@
 import { type Handle, type HandleServerError, redirect } from "@sveltejs/kit";
 import { getOptionalTrimmedEnv, loadEnv } from "@/app-env";
 import { LOCALE_COOKIE, negotiateLocale } from "@/i18n/config";
+import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import { shouldRedirectIncompleteProfileToWelcome } from "@/lib/auth/auth-routing";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
-import { runWithCloudflareRuntimeEnv } from "@/lib/cloudflare/runtime-env";
 import {
   recordApiRequestStart,
   setApiRequestObservabilityContext,

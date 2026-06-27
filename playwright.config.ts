@@ -1,46 +1,30 @@
-import "dotenv/config";
 import { defineConfig, devices } from "@playwright/test";
-import {
-  appendLocalNoProxy,
-  buildPlaywrightServerEnv,
-  resolvePlaywrightHarnessRuntime,
-} from "./tools/dev/e2e";
 
-process.env.NO_PROXY = appendLocalNoProxy(process.env.NO_PROXY);
-process.env.no_proxy = appendLocalNoProxy(process.env.no_proxy);
-
-const playwrightRuntime = resolvePlaywrightHarnessRuntime();
+const baseURL = "http://127.0.0.1:3000";
 
 export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: ["**/*.spec.ts", "**/*.test.ts", "**/test.ts"],
-  globalSetup: "./tests/e2e/global-setup.ts",
   outputDir: "test-results/e2e",
-  fullyParallel: playwrightRuntime.fullyParallel,
-  forbidOnly: playwrightRuntime.forbidOnly,
-  retries: playwrightRuntime.retries,
+  fullyParallel: false,
+  forbidOnly: false,
+  retries: 0,
   // Shared seeded users are mutated by several E2E files. Keep the suite
   // single-worker so those stateful cases run sequentially.
   workers: 1,
-  reporter: playwrightRuntime.reporter,
+  reporter: "list",
   use: {
-    baseURL: playwrightRuntime.baseUrl,
-    trace: playwrightRuntime.trace,
-    screenshot: playwrightRuntime.screenshot,
+    baseURL,
+    trace: "on-first-retry",
+    screenshot: "only-on-failure",
   },
   webServer: {
-    command: "bun run tools/dev/e2e.ts start",
-    env: buildPlaywrightServerEnv({
-      host: playwrightRuntime.host,
-      port: playwrightRuntime.port,
-      baseUrl: playwrightRuntime.baseUrl,
-    }),
-    url: playwrightRuntime.baseUrl,
-    reuseExistingServer: playwrightRuntime.reuseExistingServer,
+    command: "bun run e2e:server",
+    url: baseURL,
+    reuseExistingServer: true,
     stdout: "ignore",
     stderr: "pipe",
-    // Package scripts own build-time staging; Playwright starts the staged Worker locally.
-    timeout: playwrightRuntime.webServerTimeoutMs,
+    timeout: 300_000,
   },
   projects: [
     {

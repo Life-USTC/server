@@ -12,7 +12,6 @@ const config = {
     alias: {
       "@/generated/prisma/client": "./src/generated/prisma/client",
       "@/*": "./src/*",
-      "@tools/*": "./tools/*",
     },
     files: {
       assets: "public",

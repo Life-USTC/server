@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 async function importSeedTimeWithTimezone(timezone: string) {
   vi.stubEnv("TZ", timezone);
   vi.resetModules();
-  return import("@tools/dev/seed/dev-seed-time");
+  return import("../fixtures/dev-seed-time");
 }
 
 describe("dev seed time helpers", () => {

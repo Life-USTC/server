@@ -7,5 +7,4 @@ export const sharedAlias = {
     "src/generated/prisma-node/client",
   ),
   "@": path.resolve(__dirname, "src"),
-  "@tools": path.resolve(__dirname, "tools"),
 };

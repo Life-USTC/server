@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { expect, type Page } from "@playwright/test";
@@ -9,6 +8,7 @@ import {
   OAUTH_CODE_RESPONSE_TYPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/constants";
+import { sha256Base64Url } from "../../../../../shared/crypto";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import {
@@ -16,8 +16,8 @@ import {
   PLAYWRIGHT_BASE_URL,
 } from "../../../../utils/e2e-db";
 
-function generateCodeChallenge(codeVerifier: string) {
-  return createHash("sha256").update(codeVerifier).digest("base64url");
+async function generateCodeChallenge(codeVerifier: string) {
+  return sha256Base64Url(codeVerifier);
 }
 
 const REDIRECT_URI = `${PLAYWRIGHT_BASE_URL}/e2e/oauth/callback`;
@@ -145,7 +145,7 @@ export async function issueAccessToken(
 
   const codeVerifier =
     "mcp-public-client-verifier-012345678901234567890123456789";
-  const codeChallenge = generateCodeChallenge(codeVerifier);
+  const codeChallenge = await generateCodeChallenge(codeVerifier);
 
   const code = await authorizeAndGetCode(page, clientId, {
     scope: options.scope,

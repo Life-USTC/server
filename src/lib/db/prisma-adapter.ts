@@ -3,7 +3,7 @@ import { getOptionalTrimmedEnv } from "@/app-env";
 import {
   getCloudflareHyperdriveConnectionString,
   hasCloudflareRuntimeEnv,
-} from "@/lib/cloudflare/runtime-env";
+} from "@/lib/adapters/cloudflare-runtime";
 import { logAppEvent } from "@/lib/log/app-logger";
 
 function getRuntimeDatabaseUrl() {

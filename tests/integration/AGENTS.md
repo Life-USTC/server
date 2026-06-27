@@ -8,6 +8,14 @@ Use the repo root `AGENTS.md` for the canonical command list, shared dev-seed fl
 and `DEV_SEED_ANCHOR` guidance. This scoped guide only adds integration-specific
 notes.
 
+Run the integration test sequence from `$life-ustc-dev-loop`:
+
+```bash
+bun run db:migrate:deploy
+bunx prisma db seed
+bunx vitest run --config vitest.integration.config.ts
+```
+
 ## Harness
 
 Use `tests/integration/utils/mcp-harness.ts` for the in-process authenticated
@@ -21,7 +29,7 @@ mutations are made fully isolated.
 
 ## Conventions
 
-- Use `DEV_SEED_ANCHOR.date` / `.recommendedAtTime` from `@tools/dev/seed/dev-seed` instead of hardcoding shared seed dates.
+- Use `DEV_SEED_ANCHOR.date` / `.recommendedAtTime` from `tests/fixtures/dev-seed.ts` instead of hardcoding shared seed dates.
 - Write mutations use unique markers `[integration-test] ...`
 - Clean up created data within test group
 - Read-only assertions against seed need no cleanup

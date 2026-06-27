@@ -2,7 +2,7 @@ import {
   type AuditLogCleanupInput,
   type AuditLogCleanupTarget,
   cleanupAuditLogsUntilStable,
-} from "@tools/shared/audit-cleanup";
+} from "../../../shared/audit-cleanup";
 import { withE2ePrisma } from "./prisma";
 
 export type { AuditLogCleanupTarget };

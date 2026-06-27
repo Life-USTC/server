@@ -3,7 +3,7 @@ import type { PrismaClient } from "@/generated/prisma/client";
 import {
   getCloudflareRuntimeContext,
   hasCloudflareRuntimeEnv,
-} from "@/lib/cloudflare/runtime-env";
+} from "@/lib/adapters/cloudflare-runtime";
 import { localizedNamesExtension } from "@/lib/db/prisma-localized-names";
 import { createBasePrisma, logPrismaQuery } from "@/lib/db/prisma-query-events";
 import { shouldEnablePrismaQueryLogging } from "@/lib/db/prisma-query-logging";

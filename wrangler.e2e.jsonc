@@ -1,0 +1,45 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "life-ustc-server-e2e",
+  "main": ".svelte-kit/cloudflare/_worker.js",
+  "compatibility_date": "2026-06-08",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "NODE_ENV": "test",
+    "APP_PUBLIC_ORIGIN": "http://127.0.0.1:3000",
+    "E2E_DEBUG_AUTH": "1",
+    "DEV_DEBUG_USERNAME": "debug",
+    "DEV_DEBUG_NAME": "Debug User",
+    "DEV_DEBUG_EMAIL": "debug@debug.local",
+    "DEV_ADMIN_USERNAME": "admin",
+    "DEV_ADMIN_NAME": "Admin User",
+    "DEV_ADMIN_EMAIL": "admin@debug.local",
+    "UPLOAD_TOTAL_QUOTA_MB": "100"
+  },
+  "assets": {
+    "directory": ".svelte-kit/cloudflare",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": false
+  },
+  "alias": {
+    "kysely": "./src/lib/cloudflare/kysely-worker-shim.ts",
+    "@better-auth/kysely-adapter/dist/bun-sqlite-dialect-DzNwOpKv.mjs": "./src/lib/cloudflare/empty-optional-module.ts",
+    "@better-auth/kysely-adapter/dist/d1-sqlite-dialect-C2B7YsIT.mjs": "./src/lib/cloudflare/empty-optional-module.ts",
+    "@better-auth/kysely-adapter/dist/node-sqlite-dialect.mjs": "./src/lib/cloudflare/empty-optional-module.ts"
+  },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "local",
+      "localConnectionString": "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "R2_UPLOADS",
+      "bucket_name": "life-ustc"
+    }
+  ]
+}

@@ -1,11 +1,14 @@
-import { randomBytes } from "node:crypto";
 import { expect, type Page } from "@playwright/test";
-import { resolvePlaywrightServerRuntime } from "../../../../tools/dev/e2e";
 
-export const PLAYWRIGHT_BASE_URL = resolvePlaywrightServerRuntime().baseUrl;
+export const PLAYWRIGHT_BASE_URL = "http://127.0.0.1:3000";
 
 export function generateToken(bytes = 24) {
-  return randomBytes(bytes).toString("base64url");
+  const array = new Uint8Array(bytes);
+  crypto.getRandomValues(array);
+  return btoa(String.fromCharCode(...array))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }
 
 export async function getCurrentSessionUser(page: Page) {

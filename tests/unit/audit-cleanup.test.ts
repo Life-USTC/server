@@ -1,9 +1,9 @@
+import { describe, expect, it, vi } from "vitest";
 import {
   buildAuditLogCleanupWhere,
   cleanupAuditLogsUntilStable,
   deleteAuditLogsForUsersAndTargets,
-} from "@tools/shared/audit-cleanup";
-import { describe, expect, it, vi } from "vitest";
+} from "../shared/audit-cleanup";
 
 describe("audit cleanup helpers", () => {
   it("builds deduplicated user and target predicates", () => {

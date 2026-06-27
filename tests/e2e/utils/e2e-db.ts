@@ -1,8 +1,8 @@
+import type { SupportedOAuthClientAuthMethod } from "@/lib/oauth/constants";
 import type {
   AuditLogCleanupInput,
   AuditLogCleanupTarget,
-} from "@tools/shared/audit-cleanup";
-import type { SupportedOAuthClientAuthMethod } from "@/lib/oauth/constants";
+} from "../../shared/audit-cleanup";
 import * as auditFixtures from "./e2e-db/audit";
 import * as oauthFixtures from "./e2e-db/oauth";
 import * as seedFixtures from "./e2e-db/seed";

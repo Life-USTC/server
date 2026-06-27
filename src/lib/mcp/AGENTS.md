@@ -87,4 +87,9 @@ return jsonToolResult(data, { mode }); // handles dates + compaction
 - Check suspension for collaborative writes
 - Normal users don't mutate JW/import facts
 
+## Verification
+
+For REST/MCP behavior changes, follow the API/MCP verification sequence in
+`$life-ustc-dev-loop`.
+
 See root `AGENTS.md` for auth, dates, Prisma, errors.
