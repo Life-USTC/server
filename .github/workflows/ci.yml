@@ -29,8 +29,8 @@ jobs:
       auth-secret: e2e-ci-secret
       extra-env: NO_PROXY=127.0.0.1,localhost,::1
       job-phase: ci:e2e:build-artifacts
-      upload-artifact-name: e2e-cloudflare-bundle
-      upload-artifact-path: .svelte-kit/cloudflare
+      upload-artifact-name: e2e-svelte-kit
+      upload-artifact-path: .svelte-kit
       upload-artifact-no-files-found: error
       upload-artifact-include-hidden-files: true
 
@@ -94,8 +94,8 @@ jobs:
       auth-secret: e2e-ci-secret
       extra-env: |
         NO_PROXY=127.0.0.1,localhost,::1
-      download-artifact-name: e2e-cloudflare-bundle
-      download-artifact-path: .svelte-kit/cloudflare
+      download-artifact-name: e2e-svelte-kit
+      download-artifact-path: .svelte-kit
       job-phase: ci:e2e:test
       e2e-test-paths: ${{ matrix.paths }}
       upload-artifact-name: playwright-report-${{ matrix.scope }}
