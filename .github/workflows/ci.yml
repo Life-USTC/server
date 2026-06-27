@@ -71,6 +71,7 @@ jobs:
               tests/e2e/src/app/terms
               tests/e2e/src/app/u
               tests/e2e/src/app/welcome
+              tests/e2e/mobile-screenshots
           - scope: signed-in
             paths: |
               tests/e2e/src/app/dashboard
