@@ -16,9 +16,6 @@ on:
       - svelte.config.js
       - svelte.openapi.json
       - tests/e2e/fixtures/scenario.json
-      - tools/build/openapi/**
-      - tools/dev/seed/**
-      - tools/shared/**
   pull_request:
     paths:
       - .bun-version
@@ -33,9 +30,6 @@ on:
       - svelte.config.js
       - svelte.openapi.json
       - tests/e2e/fixtures/scenario.json
-      - tools/build/openapi/**
-      - tools/dev/seed/**
-      - tools/shared/**
 
 jobs:
   # The job name must be exactly `copilot-setup-steps`
@@ -79,5 +73,3 @@ jobs:
         run: |
           bun run db:migrate:deploy
           bun run app:prepare
-          bun run openapi:generate
-          bun run seed
