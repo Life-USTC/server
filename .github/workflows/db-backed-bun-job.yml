@@ -131,6 +131,12 @@ jobs:
           name: ${{ inputs.download-artifact-name }}
           path: ${{ inputs.download-artifact-path }}
 
+      - name: Write Wrangler dev vars for E2E
+        if: ${{ inputs.job-phase == 'ci:e2e:test' && inputs.auth-secret != '' }}
+        shell: bash
+        run: |
+          printf 'AUTH_SECRET=%s\n' "${{ inputs.auth-secret }}" > .dev.vars
+
       - name: Run job phase
         shell: bash
         env:
