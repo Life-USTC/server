@@ -5,7 +5,7 @@ const baseURL = "http://127.0.0.1:3000";
 export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: ["**/*.spec.ts", "**/*.test.ts", "**/test.ts"],
-  outputDir: "test-results/e2e",
+  outputDir: "playwright-report/e2e-results",
   fullyParallel: false,
   forbidOnly: false,
   retries: 0,
@@ -16,7 +16,7 @@ export default defineConfig({
   use: {
     baseURL,
     trace: "on-first-retry",
-    screenshot: "only-on-failure",
+    screenshot: { mode: "on", fullPage: true },
   },
   webServer: {
     command: "bun run e2e:server",
