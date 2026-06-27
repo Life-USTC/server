@@ -14,7 +14,6 @@ jobs:
     uses: ./.github/workflows/db-backed-bun-job.yml
     with:
       database-name: life_ustc_ci
-      auth-secret: ci-check-secret-0123456789abcdef0123456789abcdef
       job-phase: ci:verify
 
   build-e2e-artifacts:
@@ -26,7 +25,6 @@ jobs:
     with:
       database-name: life_ustc_e2e
       webhook-secret: e2e-ci-secret
-      auth-secret: e2e-ci-secret
       extra-env: NO_PROXY=127.0.0.1,localhost,::1
       job-phase: ci:e2e:build-artifacts
       upload-artifact-name: e2e-svelte-kit
@@ -88,10 +86,9 @@ jobs:
       contents: read
     uses: ./.github/workflows/db-backed-bun-job.yml
     with:
-      database-name: life_ustc_e2e
+      database-name: life_ustc_dev
       install-playwright: true
       webhook-secret: e2e-ci-secret
-      auth-secret: e2e-ci-secret
       extra-env: |
         NO_PROXY=127.0.0.1,localhost,::1
       download-artifact-name: e2e-svelte-kit

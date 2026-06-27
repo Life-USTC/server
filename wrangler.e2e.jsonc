@@ -7,13 +7,16 @@
   "vars": {
     "NODE_ENV": "test",
     "APP_PUBLIC_ORIGIN": "http://127.0.0.1:3000",
+    "AUTH_SECRET": "e2e-dev-secret-not-for-production",
     "E2E_DEBUG_AUTH": "1",
-    "DEV_DEBUG_USERNAME": "debug",
-    "DEV_DEBUG_NAME": "Debug User",
-    "DEV_DEBUG_EMAIL": "debug@debug.local",
-    "DEV_ADMIN_USERNAME": "admin",
-    "DEV_ADMIN_NAME": "Admin User",
-    "DEV_ADMIN_EMAIL": "admin@debug.local",
+    "DEV_DEBUG_USERNAME": "dev-user",
+    "DEV_DEBUG_NAME": "Dev User",
+    "DEV_DEBUG_EMAIL": "dev-user@debug.local",
+    "DEV_DEBUG_PASSWORD": "dev-debug-password",
+    "DEV_ADMIN_USERNAME": "dev-admin",
+    "DEV_ADMIN_NAME": "校园管理员",
+    "DEV_ADMIN_EMAIL": "dev-admin@debug.local",
+    "DEV_ADMIN_PASSWORD": "dev-admin-password",
     "UPLOAD_TOTAL_QUOTA_MB": "100"
   },
   "assets": {
@@ -33,7 +36,7 @@
     {
       "binding": "HYPERDRIVE",
       "id": "local",
-      "localConnectionString": "${DATABASE_URL}"
+      "localConnectionString": "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev"
     }
   ],
   "r2_buckets": [

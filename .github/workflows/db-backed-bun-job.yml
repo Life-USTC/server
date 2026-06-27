@@ -29,10 +29,6 @@ on:
         required: false
         type: string
         default: ""
-      auth-secret:
-        required: false
-        type: string
-        default: ""
       extra-env:
         required: false
         type: string
@@ -104,9 +100,6 @@ jobs:
             if [ -n "${{ inputs.webhook-secret }}" ]; then
               echo "WEBHOOK_SECRET=${{ inputs.webhook-secret }}"
             fi
-            if [ -n "${{ inputs.auth-secret }}" ]; then
-              echo "AUTH_SECRET=${{ inputs.auth-secret }}"
-            fi
             if [ -n "${{ inputs.extra-env }}" ]; then
               printf '%s\n' "${{ inputs.extra-env }}"
             fi
@@ -130,21 +123,6 @@ jobs:
         with:
           name: ${{ inputs.download-artifact-name }}
           path: ${{ inputs.download-artifact-path }}
-
-      - name: Write Wrangler dev vars for E2E
-        if: ${{ inputs.job-phase == 'ci:e2e:test' && inputs.auth-secret != '' }}
-        shell: bash
-        run: |
-          printf 'AUTH_SECRET=%s\n' "${{ inputs.auth-secret }}" > .dev.vars
-
-      - name: Patch Hyperdrive connection string for E2E
-        if: ${{ inputs.job-phase == 'ci:e2e:test' }}
-        shell: bash
-        run: |
-          jq --arg url "$DATABASE_URL" \
-            '.hyperdrive[0].localConnectionString = $url' \
-            wrangler.e2e.jsonc > wrangler.e2e.jsonc.tmp && \
-            mv wrangler.e2e.jsonc.tmp wrangler.e2e.jsonc
 
       - name: Run job phase
         shell: bash
