@@ -28,7 +28,7 @@
   },
   "routes": [
     {
-      "pattern": "cf.life-ustc.tiankaima.dev",
+      "pattern": "life-ustc.tiankaima.dev",
       "zone_name": "tiankaima.dev",
       "custom_domain": true
     }
