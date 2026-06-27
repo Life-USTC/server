@@ -1,3 +1,12 @@
+## [1.39.32](https://github.com/Life-USTC/server/compare/v1.39.31...v1.39.32) (2026-06-27)
+
+
+### Bug Fixes
+
+* **ci:** upload full .svelte-kit artifact and move prisma seed to config ([7c48bef](https://github.com/Life-USTC/server/commit/7c48bef9aab2f4904a079ce4b7e70b018aab08f2))
+* **prisma:** use shell script wrapper for seed command ([01487d7](https://github.com/Life-USTC/server/commit/01487d7cb6579681faf1235c6f8191d1cd58df30))
+* **wrangler:** use DATABASE_URL env var for E2E hyperdrive local connection ([0c66d9b](https://github.com/Life-USTC/server/commit/0c66d9b0fb822721b5b685768c0063a92d08232f))
+
 ## [1.39.31](https://github.com/Life-USTC/server/compare/v1.39.30...v1.39.31) (2026-06-26)
 
 
