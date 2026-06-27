@@ -16,7 +16,8 @@ bun run dev
 
 生产 Workers Builds 配置：
 - Build command: `bun install --frozen-lockfile && bun run build`
-- Deploy command: 留空（Cloudflare 自动部署 Worker）
+- Deploy command: `npx wrangler deploy`
+- Non-production deploy command: `npx wrangler versions upload`
 - Build variables:
   - `SKIP_DEPENDENCY_INSTALL=true`（使用项目自身的 Bun lockfile）
   - `BUN_VERSION=1.3.13`（与 `.bun-version` 保持一致）
