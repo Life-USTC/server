@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "life-ustc-server-cf",
+  "name": "life-ustc",
   "preview_urls": true,
   "main": ".svelte-kit/cloudflare/_worker.js",
   "compatibility_date": "2026-06-08",
