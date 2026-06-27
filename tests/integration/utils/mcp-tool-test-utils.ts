@@ -1,6 +1,6 @@
-import { DEV_SEED, DEV_SEED_ANCHOR } from "@tools/dev/seed/dev-seed";
 import { afterAll, beforeAll } from "vitest";
 import { prisma } from "@/lib/db/prisma";
+import { DEV_SEED, DEV_SEED_ANCHOR } from "../../fixtures/dev-seed";
 import { createMcpHarness, type McpHarness } from "./mcp-harness";
 
 export { DEV_SEED, DEV_SEED_ANCHOR, prisma };

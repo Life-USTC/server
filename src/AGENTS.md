@@ -8,12 +8,17 @@ Source code organization.
 routes/       SvelteKit pages and endpoint handlers
 features/     Business domain logic
 lib/          Infrastructure
+  ports/      Abstract runtime contracts imported by domain code
+  adapters/   Concrete runtime implementations (node:*, bun:*, fs, process, etc.)
   components/ Shared UI primitives
   mcp/        MCP server
 i18n/         Locale config
 shared/       Pure utilities
 generated/    DO NOT EDIT (Prisma, OpenAPI)
 ```
+
+Domain code in `src/features/` and `src/routes/` imports only from `src/lib/ports/`;
+concrete runtime details stay behind `src/lib/adapters/`.
 
 ## Imports
 

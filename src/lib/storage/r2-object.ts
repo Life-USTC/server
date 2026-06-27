@@ -1,4 +1,4 @@
-import { getCloudflareR2UploadsBucket } from "@/lib/cloudflare/runtime-env";
+import { getCloudflareR2UploadsBucket } from "@/lib/adapters/cloudflare-runtime";
 import { recordStorageOperationMetric } from "@/lib/metrics/observability-metrics";
 
 export type StorageObjectHead = {

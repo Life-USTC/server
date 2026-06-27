@@ -1,0 +1,4 @@
+interface:
+  display_name: "Life@USTC Dev Loop"
+  short_description: "Canonical development, check, test, and PR handoff workflow for Life@USTC"
+  default_prompt: "Use $life-ustc-dev-loop for any Life@USTC development task. Run the ordered commands directly from the skill, dispatch subagents for check/test steps, and hand off to $life-ustc-pr-workflow for PR lifecycle work."

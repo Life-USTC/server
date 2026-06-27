@@ -22,7 +22,7 @@ When behavior, API, MCP, parameters, or outputs change:
 
 1. Update the affected `docs/contracts/<module>.json` first.
 2. Implement code changes.
-3. Run `bun run verify` to validate the merged contract against schema, Prisma, REST, and MCP checks.
+3. Run the check sequence from `$life-ustc-dev-loop` to validate the merged contract against schema, Prisma, REST, and MCP checks.
 4. Update relevant tests.
 
 If the user did not explicitly ask for documentation changes, ask before broad restructures or rewrites and keep any required doc edits tightly scoped.

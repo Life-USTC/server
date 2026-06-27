@@ -23,7 +23,7 @@ Keep Bun versions aligned with:
 - Workflows that exercise app code should provision their own Postgres service and set `DATABASE_URL` explicitly. Upload storage uses Cloudflare R2 bindings in Worker flows; do not add MinIO/S3 emulation to CI unless a test explicitly covers object storage behavior.
 - Production deploy is owned by Cloudflare's Git integration; do not add repo-managed deploy jobs.
 - Docker is only for local infra, CI service containers, and the static loader image; do not add app-serving Docker jobs.
-- Keep workflow YAML as orchestration. Put reusable or long shell-like snapshot logic in `tools/dev/artifacts/snapshots/snapshot-ci.ts`.
+- Keep workflow YAML as orchestration. Reusable check, test, and seed sequences live in `$life-ustc-dev-loop`.
 - Never commit secrets
 - `copilot-setup-steps.yml` must keep a direct job named exactly `copilot-setup-steps`; inline `runs-on`, `permissions`, `services`, `timeout-minutes`, and `steps` instead of delegating the job through a reusable workflow.
 - When changing Copilot setup, run it through `workflow_dispatch` or a PR check. If setup fails, Copilot can still start from the partially prepared environment, so setup logs are part of the verification evidence.
@@ -32,8 +32,9 @@ Keep Bun versions aligned with:
 
 ```bash
 bun install --frozen-lockfile
-bun run test
-bun run verify       # default gate
-bun run verify:full  # expensive gate; needs DATABASE_URL and Playwright
-Cloudflare Git integration handles production deploys from the connected branch.
+bunx biome check
+bunx vitest run
 ```
+
+For full check, integration, E2E, and handoff sequences, use `$life-ustc-dev-loop`.
+Cloudflare Git integration handles production deploys from the connected branch.

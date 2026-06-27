@@ -1,4 +1,4 @@
-import { deleteAuditLogsForUsersAndTargetsUntilStable } from "@tools/shared/audit-cleanup";
+import { deleteAuditLogsForUsersAndTargetsUntilStable } from "../../../shared/audit-cleanup";
 import { generateToken } from "./core";
 import { withE2ePrisma } from "./prisma";
 

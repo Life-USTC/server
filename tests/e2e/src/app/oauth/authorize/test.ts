@@ -1,23 +1,23 @@
-import { createHash } from "node:crypto";
 import {
   type APIRequestContext,
   expect,
   type Page,
   test,
 } from "@playwright/test";
+import { sha256Base64Url } from "../../../../../shared/crypto";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-function generateCodeChallenge(codeVerifier: string) {
-  return createHash("sha256").update(codeVerifier).digest("base64url");
+async function generateCodeChallenge(codeVerifier: string) {
+  return sha256Base64Url(codeVerifier);
 }
 
 const OAUTH_E2E_CODE_VERIFIER =
   "oauth-e2e-browser-verifier-0123456789012345678901234567890123456789";
 const OAUTH_E2E_PKCE = {
-  code_challenge: generateCodeChallenge(OAUTH_E2E_CODE_VERIFIER),
+  code_challenge: await generateCodeChallenge(OAUTH_E2E_CODE_VERIFIER),
   code_challenge_method: "S256",
 } as const;
 

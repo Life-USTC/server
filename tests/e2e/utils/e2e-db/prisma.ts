@@ -1,16 +1,16 @@
 import {
-  createToolPrisma,
-  disconnectToolPrisma,
-  type ToolPrismaClient,
-} from "@tools/shared/tool-prisma";
+  createTestPrisma,
+  disconnectTestPrisma,
+  type TestPrismaClient,
+} from "../../../shared/prisma";
 
 export async function withE2ePrisma<T>(
-  callback: (prisma: ToolPrismaClient) => Promise<T>,
+  callback: (prisma: TestPrismaClient) => Promise<T>,
 ) {
-  const prisma = createToolPrisma();
+  const prisma = createTestPrisma();
   try {
     return await callback(prisma);
   } finally {
-    await disconnectToolPrisma(prisma);
+    await disconnectTestPrisma(prisma);
   }
 }

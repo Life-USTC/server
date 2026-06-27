@@ -1,4 +1,0 @@
-interface:
-  display_name: "Life USTC UI Verification"
-  short_description: "Browser-evidence UI verification loop"
-  default_prompt: "Use $life-ustc-ui-verification to verify a UI change with Playwright browser evidence, screenshots or traces when useful, and focused refinement."

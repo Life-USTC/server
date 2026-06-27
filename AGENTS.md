@@ -7,26 +7,27 @@ SvelteKit campus workspace with REST + MCP APIs. This is the canonical coding-ag
 ```text
 src/routes/           SvelteKit pages, layouts, REST handlers, OAuth/MCP routes
 src/features/         Domain logic and feature-owned components
-src/lib/              Infrastructure helpers plus shared UI in `src/lib/components`
+src/lib/              Infrastructure: ports/adapters, helpers, and shared UI in `src/lib/components`
+src/lib/ports/        Abstract runtime contracts imported by domain code
+src/lib/adapters/     Concrete runtime implementations (node:*, bun:*, fs, process, etc.)
 messages/             i18n strings (`zh-cn`, `en-us`)
 prisma/               Prisma schema and migrations
 docs/contracts/        Product/API/MCP contracts checked against schema/API/MCP parity
 tests/                Unit, integration MCP harness, and Playwright E2E tests
-tools/                Build, check, seed, import, E2E, and snapshot scripts
 .agents/skills/       Repo-scoped reusable agent workflows
 .github/workflows/    CI/CD workflows
 ```
 
 ## Tool Stages
 
-Call the highest stage that fits; use lower stages only to diagnose failures.
+Use `$life-ustc-dev-loop` for the canonical setup/check/test/handoff sequence. The only package-level shortcuts are:
 
 ```bash
 bun install --frozen-lockfile
 bun run dev             # app dev; start local Docker infra first when DB/storage is needed
-bun run verify          # default gate
-bun run verify:full     # auth/data/browser/shared-tooling changes
-bun run build           # regenerate artifacts and run production build
+bun run build           # production build
+bun run app:prepare     # generate Prisma client and sync SvelteKit
+bun run db:migrate:deploy # run migrations
 ```
 
 Local Postgres runs through Docker Compose directly:
@@ -42,7 +43,7 @@ Docker runtime is the static loader.
 - Keep durable rules here short and actionable. Move repeated, specialized workflows into `.agents/skills` or the closest scoped `AGENTS.md` instead of bloating root guidance.
 - Keep `AGENTS.md` as the canonical agent instruction surface. Do not add parallel files such as `copilot-instructions.md`, `CLAUDE.md`, or `GEMINI.md` unless the user explicitly asks for a compatibility shim.
 - Keep reusable repo skills in `.agents/skills` so they follow the open Agent Skills discovery path. Do not add `.codex/skills` unless the user explicitly asks for a Codex-private experiment.
-- Use checked-in skills for repeatable workflows: `$life-ustc-pr-workflow` for PR/check loops, `$life-ustc-ui-verification` for UI/browser evidence, and `$life-ustc-api-mcp-verification` for REST/MCP output checks.
+- Use checked-in skills for repeatable workflows: `$life-ustc-dev-loop` for the development loop and `$life-ustc-pr-workflow` for PR/check loops.
 - For non-trivial feature or fix work, split the job into at least two fresh passes when tooling allows: one checks/updates contracts and docs, the other implements against current source. Integrate, verify, and repeat until behavior and contracts match.
 - Work in this loop: inspect code/docs first, plan the smallest safe edit, implement, run the relevant gate, inspect the diff, and verify the final behavior against the user request.
 - Done means evidence-backed: cite the files changed, commands run, and any skipped checks with the reason. Passing tests alone is not enough if they do not cover the requested behavior.
@@ -70,9 +71,9 @@ Docker runtime is the static loader.
 
 ## Shared Test Seed
 
-- Canonical seeded fixture data lives in `tests/e2e/fixtures/scenario.json`; `tools/dev/seed/seed-dev-scenarios.ts` materializes it and `tools/dev/seed/dev-seed.ts` exports the named constants used by tests.
-- The shared anchor comes from `DEV_SEED_ANCHOR` in `tools/dev/seed/dev-seed.ts`. Use `.date` for bare date filters, `.recommendedAtTime` for time-sensitive tool calls, and `.startOfDayAtTime` when a test needs the seed day boundary.
-- `bun run verify:full` already seeds the shared scenario data; if you invoke integration specs directly, run `bun run seed` first.
+- Canonical seeded fixture data lives in `tests/e2e/fixtures/scenario.json`; `prisma/seed.sql` materializes it and `tests/fixtures/dev-seed.ts` exports the named constants used by tests.
+- The shared anchor comes from `DEV_SEED_ANCHOR` in `tests/fixtures/dev-seed.ts`. Use `.date` for bare date filters, `.recommendedAtTime` for time-sensitive tool calls, and `.startOfDayAtTime` when a test needs the seed day boundary.
+- `$life-ustc-dev-loop` already seeds the shared scenario data; if you invoke integration specs directly, run `bunx prisma db seed` first.
 - Scoped `tests/**/AGENTS.md` files should only add layer-specific caveats and link shared commands/setup back here or to helper files such as `tests/integration/utils/mcp-harness.ts`.
 
 ## Local Dev Environment
@@ -80,7 +81,7 @@ Docker runtime is the static loader.
 - `.env` is configured for host-native dev (`bun run dev`) against local Postgres on `127.0.0.1`.
 - Upload storage is provided by the Cloudflare `R2_UPLOADS` binding; use `wrangler dev` based flows when exercising upload storage locally.
 - Install local browser runtime once before browser/E2E checks: `bunx playwright install chromium`. Use `bunx playwright install --with-deps chromium` on Linux if system libraries are missing.
-- Host-native `bun run dev` auto-runs Prisma generation, OpenAPI generation, and `prisma migrate deploy` before starting the SvelteKit dev process.
+- `bun run dev` starts Vite directly; run `bun run app:prepare` and `bun run db:migrate:deploy` (or follow `$life-ustc-dev-loop`) before the first start. It no longer auto-runs OpenAPI generation or migrations.
 - Host-native `bun run dev` is pinned to `127.0.0.1:3000`.
 - Prefer these flows for pain-free setup:
   1. `docker compose -f docker-compose.dev.yml up -d && bun run dev` for host-native app dev
@@ -88,7 +89,7 @@ Docker runtime is the static loader.
 ## Production Deployment
 
 - The production app runs on Cloudflare Workers via Cloudflare Git integration and `wrangler.jsonc`; do not reintroduce GitHub Actions deploy jobs, manual deploy scripts, Docker app, or compose runtime paths for frontend/backend serving.
-- The only durable Docker image in this repo is the static data loader. It requires `DATABASE_URL`, runs migrations, then executes `tools/load/load-from-static.ts`.
+- The only durable Docker image in this repo is the static data loader. It requires `DATABASE_URL`, runs migrations, then executes `docker-entrypoint.load.sh`.
 
 ## Documentation Structure
 
@@ -126,7 +127,6 @@ src/*/AGENTS.md         Scoped implementation guides
 - **Import**: `import { prisma, getPrisma } from "@/lib/db/prisma"`
 - **Writes**: `prisma.model.create()`
 - **Localized reads**: `getPrisma(locale).model.findMany()`
-- **Scripts**: Use `createToolPrisma()` / `disconnectToolPrisma()` from `@tools/shared/tool-prisma`
 
 ### Errors
 - **API**: `handleRouteError(err)`
@@ -161,7 +161,7 @@ buildPaginatedResponse(items, page, pageSize, total)
 1. Check the affected contract module before implementation.
 2. Update `docs/contracts/<module>.json` only when behavior, API/MCP shape, permissions, or user-visible workflow changes.
 3. Implement code and update tests where behavior is observed.
-4. Run `bun run verify`, then escalate to `bun run verify:full` for integration or browser flows.
+4. Run the check sequence in `$life-ustc-dev-loop`, escalating to the integration and E2E sequences when data flows, auth, browser flows, docs/contracts, or shared tooling change.
 
 **Documentation Alignment**:
 - Public REST API change → update route OpenAPI annotations, `docs/contracts/openapi.json` when relevant, then run `bun run build`.
@@ -182,8 +182,8 @@ buildPaginatedResponse(items, page, pageSize, total)
 - When docs must change as part of code work, keep the edits narrow and run the same default gate.
 
 **Default Verification**:
-- Use `bun run verify` for most commits and PR updates.
-- Use `bun run verify:full` before pushing changes that affect data flows, auth, browser flows, docs contracts, or shared tooling.
+- Use `$life-ustc-dev-loop` for the canonical check sequence.
+- Run the integration and E2E sequences from `$life-ustc-dev-loop` before pushing changes that affect data flows, auth, browser flows, docs contracts, or shared tooling.
 - Repo-owned checks should keep success output concise and print actionable failures.
 
 **No Stray Reports**:
@@ -206,7 +206,6 @@ buildPaginatedResponse(items, page, pageSize, total)
 - **Components**: `src/lib/components/AGENTS.md` - UI
 - **Prisma**: `prisma/AGENTS.md` - Schema
 - **Tests**: `tests/{e2e,integration,unit}/AGENTS.md` (layer-specific notes only)
-- **Tools**: `tools/AGENTS.md` - Scripts
 - **CI/CD**: `.github/workflows/AGENTS.md`
 
 ## Known Issues
@@ -223,4 +222,4 @@ History shows agent-assisted changes in this repo most often went wrong when the
 - **OAuth/Auth**: Prefer Better Auth provider APIs and shared URL helpers over hand-built OAuth/DCR/JWKS/cookie logic. Watch for doubled `/api/auth` paths, audience/resource mismatches, and public PKCE vs trusted-client boundaries.
 - **REST/MCP parity**: When changing one surface, check the matching contract JSON, REST route, MCP tool, OpenAPI annotation, and seeded E2E/integration coverage.
 - **Shared seed tests**: Do not mutate canonical seed records in parallel tests. Use unique temporary records, cleanup, `DEV_SEED_ANCHOR`, and serial E2E execution for shared user state.
-- **Tooling/runtime**: Scripts that run in Docker/CI/Copilot must use the same Bun-based setup, generated Prisma client, and bundled production tool paths as the workflows.
+- **Tooling/runtime**: Scripts that run in Docker/CI/Copilot must use the same Bun-based setup and generated Prisma client as the workflows.

@@ -17,7 +17,6 @@
  *   4. POST /api/auth/oauth2/token → exchange code for access token
  *   5. GET /api/auth/oauth2/userinfo → retrieve user claims
  */
-import { createHash } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import {
   MCP_TOOLS_SCOPE,
@@ -29,11 +28,12 @@ import {
   OAUTH_PROFILE_SCOPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/constants";
+import { sha256Base64Url } from "../../../../../../shared/crypto";
 import { signInAsDebugUser } from "../../../../../utils/auth";
 import { PLAYWRIGHT_BASE_URL } from "../../../../../utils/e2e-db";
 
-function generateCodeChallenge(codeVerifier: string) {
-  return createHash("sha256").update(codeVerifier).digest("base64url");
+async function generateCodeChallenge(codeVerifier: string) {
+  return sha256Base64Url(codeVerifier);
 }
 
 const REDIRECT_URI = `${PLAYWRIGHT_BASE_URL}/e2e/oauth/callback`;
@@ -192,7 +192,7 @@ test.describe("OAuth provider", () => {
           scope: DCR_CLIENT_SCOPE,
           state: "e2e-state",
           prompt: "consent",
-          code_challenge: generateCodeChallenge(CODE_VERIFIER),
+          code_challenge: await generateCodeChallenge(CODE_VERIFIER),
           code_challenge_method: "S256",
           resource: RESOURCE,
         },
@@ -321,7 +321,7 @@ test.describe("OAuth provider", () => {
           scope: DCR_CLIENT_SCOPE,
           state: "e2e-loopback-state",
           prompt: "consent",
-          code_challenge: generateCodeChallenge(CODE_VERIFIER),
+          code_challenge: await generateCodeChallenge(CODE_VERIFIER),
           code_challenge_method: "S256",
         },
         maxRedirects: 0,

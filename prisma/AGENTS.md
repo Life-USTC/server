@@ -7,6 +7,7 @@ Database schema and migrations.
 ```
 schema.prisma    Source of truth
 migrations/      Migration history
+seed.sql         Canonical dev seed data
 ```
 
 ## Generated Output
@@ -19,22 +20,14 @@ src/generated/prisma-node/  → Node/Bun tool client, DO NOT EDIT
 ## Imports
 
 ```typescript
-// App code
+// App code and scripts use the generated app client
 import { prisma, getPrisma } from "@/lib/db/prisma";
 import type { User } from "@/generated/prisma/client";
-
-// Scripts
-import {
-  createToolPrisma,
-  disconnectToolPrisma,
-} from "@tools/shared/tool-prisma";
-
-const prisma = createToolPrisma();
-// ... use ...
-await disconnectToolPrisma(prisma);
 ```
 
-Canonical seed data lives in `tests/e2e/fixtures/scenario.json`, `tools/dev/seed/seed-dev-scenarios.ts`, and `tools/dev/seed/dev-seed.ts`.
+Canonical seed data lives in `tests/e2e/fixtures/scenario.json`, `prisma/seed.sql`, and `tests/fixtures/dev-seed.ts`.
+
+The static data loader entrypoint is `docker-entrypoint.load.sh`.
 
 ## Model Boundaries
 
