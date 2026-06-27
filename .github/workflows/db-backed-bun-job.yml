@@ -137,6 +137,15 @@ jobs:
         run: |
           printf 'AUTH_SECRET=%s\n' "${{ inputs.auth-secret }}" > .dev.vars
 
+      - name: Patch Hyperdrive connection string for E2E
+        if: ${{ inputs.job-phase == 'ci:e2e:test' }}
+        shell: bash
+        run: |
+          jq --arg url "$DATABASE_URL" \
+            '.hyperdrive[0].localConnectionString = $url' \
+            wrangler.e2e.jsonc > wrangler.e2e.jsonc.tmp && \
+            mv wrangler.e2e.jsonc.tmp wrangler.e2e.jsonc
+
       - name: Run job phase
         shell: bash
         env:
