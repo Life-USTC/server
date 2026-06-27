@@ -43,7 +43,16 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: .bun-version
-      - run: docker build --target loader -t life-ustc-static-loader:check .
+      - name: Build static loader image
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            if docker build --target loader -t life-ustc-static-loader:check .; then
+              break
+            fi
+            echo "::warning::docker build failed (attempt ${attempt}/3), retrying..."
+            sleep 15
+          done
 
   test-e2e:
     name: E2E Test (${{ matrix.scope }})
@@ -100,3 +109,122 @@ jobs:
       upload-artifact-path: playwright-report/
       upload-artifact-no-files-found: ignore
       upload-artifact-always: true
+
+  publish-e2e-html-report:
+    name: Publish E2E HTML report
+    needs: test-e2e
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Checkout e2e-snapshot-artifacts branch
+        uses: actions/checkout@v6
+        with:
+          ref: e2e-snapshot-artifacts
+          path: e2e-snapshot-artifacts
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Download all Playwright report artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: downloaded-reports
+          pattern: playwright-report-*
+
+      - name: Merge blob reports into HTML
+        run: |
+          mkdir -p all-blobs
+          for dir in downloaded-reports/playwright-report-*; do
+            scope=$(basename "$dir")
+            for blob in "$dir"/blob/*.zip; do
+              [ -e "$blob" ] || continue
+              cp "$blob" "all-blobs/${scope}-$(basename "$blob")"
+            done
+          done
+          bunx playwright merge-reports all-blobs --config playwright.report.config.ts
+
+      - name: Publish report to e2e-snapshot-artifacts branch
+        env:
+          RUN_ID: ${{ github.run_id }}
+          SHA: ${{ github.sha }}
+        run: |
+          report_dir="e2e-snapshot-artifacts/reports/${RUN_ID}"
+          mkdir -p "$report_dir"
+          cp -R playwright-report/html/. "$report_dir/"
+
+          cd e2e-snapshot-artifacts
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Disable Jekyll so GitHub Pages serves the static HTML and assets as-is.
+          touch .nojekyll
+
+          cat > index.html <<'INDEX_EOF'
+          <!doctype html>
+          <html lang="en">
+            <head>
+              <meta charset="utf-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1" />
+              <title>Life@USTC E2E Reports</title>
+            </head>
+            <body>
+              <h1>Life@USTC E2E HTML Reports</h1>
+              <ul>
+          INDEX_EOF
+
+          for dir in $(ls -1 reports | sort -rn); do
+            echo "                <li><a href=\"reports/${dir}/index.html\">Run ${dir}</a></li>" >> index.html
+          done
+
+          cat >> index.html <<'INDEX_EOF'
+              </ul>
+            </body>
+          </html>
+          INDEX_EOF
+
+          git add "reports/${RUN_ID}" index.html .nojekyll
+          git commit -m "chore: publish e2e html report for run ${RUN_ID} (${SHA}) [skip ci]" || exit 0
+          git push
+
+      - name: Comment report link on commit and PR
+        env:
+          RUN_ID: ${{ github.run_id }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          marker="<!-- e2e-report -->"
+          report_url="https://life-ustc.github.io/server/reports/${RUN_ID}/index.html"
+          index_url="https://life-ustc.github.io/server/"
+          body=$(printf '%s\nE2E HTML report is ready: %s\nAll reports: %s' "$marker" "$report_url" "$index_url")
+
+          # Commit comment (create or update existing report comment)
+          commit_comment_id=$(gh api "repos/${REPO}/commits/${COMMIT_SHA}/comments" --jq ".[] | select(.body | contains(\"${marker}\")) | .id" | head -n1)
+          if [ -n "$commit_comment_id" ]; then
+            gh api --method PATCH "repos/${REPO}/issues/comments/${commit_comment_id}" -f body="$body" >/dev/null
+          else
+            gh api --method POST "repos/${REPO}/commits/${COMMIT_SHA}/comments" -f body="$body" >/dev/null
+          fi
+
+          # PR comment (create or update existing report comment)
+          if [ -n "$PR_NUMBER" ]; then
+            pr_comment_id=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --jq ".[] | select(.body | contains(\"${marker}\")) | .id" | head -n1)
+            if [ -n "$pr_comment_id" ]; then
+              gh api --method PATCH "repos/${REPO}/issues/comments/${pr_comment_id}" -f body="$body" >/dev/null
+            else
+              gh pr comment "$PR_NUMBER" --body "$body"
+            fi
+          fi
