@@ -6,7 +6,7 @@ is the project map: start here, then follow the closest source of truth.
 ## Start Here
 
 - [Root agent guide](../AGENTS.md) - setup, commands, architecture boundaries, testing, and definition of done.
-- [Repo skills](../.agents/skills/) - reusable task workflows for PRs, UI verification, and REST/MCP verification.
+- [Repo skills](../.agents/skills/) - reusable task workflows; `$life-ustc-dev-loop` is the single source of truth for checks, tests, and verification.
 - [README](../README.md) - short project entry point and local quick start.
 - [Contracts](contracts/) - modular JSON product/API/MCP contracts.
 
@@ -17,9 +17,9 @@ is the project map: start here, then follow the closest source of truth.
 | Understand the system | [Root agent guide](../AGENTS.md), then the closest scoped `AGENTS.md` |
 | Run a PR/check workflow | `$life-ustc-pr-workflow` in [repo skills](../.agents/skills/) |
 | Change a feature | `docs/contracts/<module>.json`, then `src/features/` and related routes/tools |
-| Refine UI or layout | `$life-ustc-ui-verification`, affected component/page, and related Playwright spec |
-| Change REST behavior | `$life-ustc-api-mcp-verification`, route handler, route OpenAPI JSDoc, `docs/contracts/openapi.json` |
-| Change MCP behavior | `$life-ustc-api-mcp-verification`, `src/lib/mcp/AGENTS.md`, tool handler, `docs/contracts/mcp.json` |
+| Refine UI or layout | `$life-ustc-dev-loop` → UI verification, affected component/page, and related Playwright spec |
+| Change REST behavior | `$life-ustc-dev-loop` → API/MCP verification, route handler, route OpenAPI JSDoc, `docs/contracts/openapi.json` |
+| Change MCP behavior | `$life-ustc-dev-loop` → API/MCP verification, `src/lib/mcp/AGENTS.md`, tool handler, `docs/contracts/mcp.json` |
 | Change data shape | `prisma/schema.prisma` and migrations |
 | Change setup or operations | [README](../README.md), [Observability](observability.md), closest scoped `AGENTS.md` |
 
@@ -48,6 +48,6 @@ is the project map: start here, then follow the closest source of truth.
 
 ## Verification
 
-- Default gate: `bun run verify`.
-- Escalate to `bun run verify:full` for auth, data, browser, or shared tooling.
+- Use `$life-ustc-dev-loop` for the canonical check, test, integration, E2E, and handoff sequences.
+- Core aliases remain in `package.json`: `bun run app:prepare`, `bun run build`, `bun run dev`, `bun run e2e:server`.
 - Regenerate Prisma/OpenAPI artifacts with `bun run build`.
