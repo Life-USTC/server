@@ -15,7 +15,6 @@ export function createDashboardTodoActions(input: {
   getTodoItems: () => TodoItem[];
   getTodoSavingById: () => Record<string, boolean>;
   getTodosCopy: () => TodoActionsCopy;
-  invalidateAll: () => Promise<void>;
   setEditingTodo: (value: TodoItem | null) => void;
   setSelectedTodo: (value: TodoItem | null) => void;
   setTodoActionError: (value: string) => void;
@@ -53,7 +52,6 @@ export function createDashboardTodoActions(input: {
         fallbackMessage: input.getTodosCopy().saveFailed,
         todoId: todo.id,
       });
-      await input.invalidateAll();
     } catch (error) {
       updateLocalTodo(todo);
       input.setTodoActionError(
@@ -82,7 +80,6 @@ export function createDashboardTodoActions(input: {
         fallbackMessage: input.getTodosCopy().saveFailed,
         todoId: todo.id,
       });
-      await input.invalidateAll();
     } catch (error) {
       input.setTodoItems(previousItems);
       input.setSelectedTodo(todo);

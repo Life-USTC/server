@@ -74,6 +74,56 @@ test.describe("dashboard todos", () => {
     await captureStepScreenshot(page, testInfo, "dashboard-todos-seed");
   });
 
+  test("can toggle todo completion and filter updates", async ({
+    page,
+  }, testInfo) => {
+    await signInAsDebugUser(page, "/dashboard/todos");
+
+    const card = page
+      .locator('[data-slot="card"]')
+      .filter({ hasText: DEV_SEED.todos.dueTodayTitle })
+      .first();
+    await expect(card).toBeVisible();
+
+    const completeButton = card
+      .getByRole("button", { name: /标记为完成|Mark as complete/i })
+      .first();
+    await card.hover();
+    await expect(completeButton).toBeVisible();
+    await completeButton.click();
+
+    // Optimistic update removes it from the default incomplete filter
+    await expect(
+      page.getByText(DEV_SEED.todos.dueTodayTitle).first(),
+    ).toHaveCount(0, { timeout: 5_000 });
+
+    // It now appears under the completed filter
+    const completedFilter = page
+      .getByRole("button", { name: /已完成|Completed/i })
+      .first();
+    await completedFilter.click();
+    await expect(
+      page.getByText(DEV_SEED.todos.dueTodayTitle).first(),
+    ).toBeVisible({ timeout: 5_000 });
+
+    // Toggle back to restore seed state
+    const completedCard = page
+      .locator('[data-slot="card"]')
+      .filter({ hasText: DEV_SEED.todos.dueTodayTitle })
+      .first();
+    const incompleteButton = completedCard
+      .getByRole("button", { name: /取消完成|Mark as incomplete/i })
+      .first();
+    await completedCard.hover();
+    await incompleteButton.click();
+
+    await expect(
+      page.getByText(DEV_SEED.todos.dueTodayTitle).first(),
+    ).toHaveCount(0, { timeout: 5_000 });
+
+    await captureStepScreenshot(page, testInfo, "dashboard-todos-toggle");
+  });
+
   test("completed filter shows completed todo", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/todos");
 

@@ -37,6 +37,22 @@ export function applyLocalHomeworkItemsToSignedData(
   };
 }
 
+export function applyLocalTodoItemsToSignedData(
+  signedData: SignedDashboardData | null,
+  todoItems: TodoItem[],
+) {
+  if (!signedData?.todos) return signedData;
+
+  return {
+    ...signedData,
+    todos: todoItems,
+    navStats: {
+      ...signedData.navStats,
+      pendingTodosCount: todoItems.filter((todo) => !todo.completed).length,
+    },
+  };
+}
+
 export function buildDashboardControllerDerivedState(input: {
   dashboardLinkGroupLabels: Record<DashboardLinkGroup, string>;
   data: DashboardPageData;
@@ -46,6 +62,7 @@ export function buildDashboardControllerDerivedState(input: {
   notAvailable: string;
   currentDashboardLinkItems: DashboardLinkItem[];
   currentOverviewLinkItems: DashboardLinkItem[];
+  currentTodoItems: TodoItem[];
   todoFilter: TodoFilter;
 }) {
   const signedData = isSignedDashboardData(input.data) ? input.data : null;
@@ -55,7 +72,7 @@ export function buildDashboardControllerDerivedState(input: {
   const homeworkItems = signedData?.homeworks
     ? signedData.homeworks.homeworkSummaries
     : [];
-  const todoItems: TodoItem[] = signedData?.todos ? signedData.todos : [];
+  const todoItems: TodoItem[] = signedData?.todos ? input.currentTodoItems : [];
   const examRows: ExamRow[] = signedData?.subscriptions
     ? dashboardExamRows(signedData.subscriptions, signedData.referenceNow, {
         dateFallback: input.dateFallback,

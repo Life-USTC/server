@@ -22,6 +22,7 @@ import { createDashboardCreateHomeworkActions } from "@/features/dashboard/lib/d
 import { createDashboardControllerDefaultState } from "@/features/dashboard/lib/dashboard-controller-default-state";
 import {
   applyLocalHomeworkItemsToSignedData,
+  applyLocalTodoItemsToSignedData,
   buildDashboardControllerDerivedState,
 } from "@/features/dashboard/lib/dashboard-controller-derived-state";
 import { createDashboardDisplayActions } from "@/features/dashboard/lib/dashboard-controller-display-actions";
@@ -154,6 +155,7 @@ let {
 } = createDashboardControllerDefaultState();
 let dashboardLinkSourceItems: DashboardLinkItem[] = [];
 let overviewLinkSourceItems: DashboardLinkItem[] = [];
+let todoSourceItems: TodoItem[] = [];
 let linkSourceData: PageData | null = null;
 $: copy = data.copy;
 $: actionError = form?.error ?? "";
@@ -176,6 +178,7 @@ $: if (data !== linkSourceData) {
   dashboardLinkSourceItems = signedPageData?.links?.dashboardLinks ?? [];
   overviewLinkSourceItems =
     signedPageData?.overview?.overviewLinks.slice(0, 4) ?? [];
+  todoSourceItems = signedPageData?.todos ?? [];
   linkSourceData = data;
 }
 
@@ -231,10 +234,9 @@ const {
 const { deleteTodo, toggleTodoCompletion } = createDashboardTodoActions({
   getEditingTodo: () => editingTodo,
   getSelectedTodo: () => selectedTodo,
-  getTodoItems: () => todoItems,
+  getTodoItems: () => todoSourceItems,
   getTodoSavingById: () => todoSavingById,
   getTodosCopy: () => todosCopy,
-  invalidateAll,
   setEditingTodo: (value) => {
     editingTodo = value;
   },
@@ -245,7 +247,7 @@ const { deleteTodo, toggleTodoCompletion } = createDashboardTodoActions({
     todoActionError = value;
   },
   setTodoItems: (value) => {
-    todoItems = value;
+    todoSourceItems = value;
   },
   setTodoSavingById: (value) => {
     todoSavingById = value;
@@ -474,13 +476,14 @@ $: derivedState = buildDashboardControllerDerivedState({
   notAvailable: dashboardCopy.notAvailable,
   currentDashboardLinkItems: dashboardLinkSourceItems,
   currentOverviewLinkItems: overviewLinkSourceItems,
+  currentTodoItems: todoSourceItems,
   todoFilter,
 });
 $: anonymousData = derivedState.anonymousData;
 $: homeworkItems = derivedState.homeworkItems;
-$: signedData = applyLocalHomeworkItemsToSignedData(
-  derivedState.signedData,
-  homeworkItems,
+$: signedData = applyLocalTodoItemsToSignedData(
+  applyLocalHomeworkItemsToSignedData(derivedState.signedData, homeworkItems),
+  todoSourceItems,
 );
 $: homeworkReferenceDate = referenceDate(signedData?.referenceNow);
 $: todoItems = derivedState.todoItems;

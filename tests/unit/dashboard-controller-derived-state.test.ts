@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   applyLocalHomeworkItemsToSignedData,
+  applyLocalTodoItemsToSignedData,
   buildDashboardControllerDerivedState,
 } from "@/features/dashboard/lib/dashboard-controller-derived-state";
 import type {
@@ -8,6 +9,7 @@ import type {
   DashboardPageData,
   HomeworkItem,
   SignedDashboardData,
+  TodoItem,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import {
   DASHBOARD_LINK_GROUP_ORDER,
@@ -85,6 +87,7 @@ describe("dashboard controller derived state", () => {
     const result = buildDashboardControllerDerivedState({
       currentDashboardLinkItems: currentLinks,
       currentOverviewLinkItems: currentLinks.slice(0, 1),
+      currentTodoItems: [],
       dashboardLinkGroupLabels,
       data: signedDashboardData(loadedLinks),
       dateFallback: "TBD",
@@ -130,5 +133,35 @@ describe("dashboard controller derived state", () => {
 
     expect(result?.navStats.pendingHomeworksCount).toBe(1);
     expect(result?.homeworks?.homeworkSummaries).toBe(nextHomeworks);
+  });
+
+  it("derives the signed dashboard todo badge count from local todo items", () => {
+    const data = {
+      ...signedDashboardData([]),
+      todos: [
+        { id: "todo-1", completed: false },
+        { id: "todo-2", completed: true },
+      ],
+      navStats: {
+        calendarItemsCount: 0,
+        examsCount: 0,
+        pendingHomeworksCount: 0,
+        pendingTodosCount: 2,
+      },
+    } as SignedDashboardData;
+
+    const nextTodos = [
+      { id: "todo-1", completed: true },
+      { id: "todo-2", completed: true },
+      { id: "todo-3", completed: false },
+    ];
+
+    const result = applyLocalTodoItemsToSignedData(
+      data,
+      nextTodos as TodoItem[],
+    );
+
+    expect(result?.navStats.pendingTodosCount).toBe(1);
+    expect(result?.todos).toBe(nextTodos);
   });
 });
