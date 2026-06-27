@@ -117,6 +117,13 @@ jobs:
         with:
           install-playwright: ${{ inputs.install-playwright && 'true' || 'false' }}
 
+      - name: Install PostgreSQL client
+        if: ${{ inputs.job-phase == 'ci:e2e:test' }}
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
       - name: Download artifact
         if: ${{ inputs.download-artifact-name != '' }}
         uses: actions/download-artifact@v8
@@ -145,21 +152,27 @@ jobs:
               exit 1
             fi
 
-            bun run ci:e2e:test -- "${paths[@]}"
+            bun run db:migrate:deploy
+            bunx prisma db seed
+            bunx playwright test "${paths[@]}"
           }
 
           case "$JOB_PHASE" in
             ci:verify)
-              bun run ci:verify
+              bun run app:prepare
+              bunx biome check
+              bunx svelte-check --tsconfig ./tsconfig.json
+              bunx tsc --noEmit -p tsconfig.typecheck.json
+              bunx tsc --noEmit -p tsconfig.typecheck.tests.json
+              bunx tsc --noEmit -p tsconfig.typecheck.operational.json
+              bunx vitest run
               ;;
             ci:e2e:build-artifacts)
-              bun run ci:e2e:build-artifacts
+              bun run app:prepare
+              bun run build
               ;;
             ci:e2e:test)
               run_e2e_test_phase
-              ;;
-            ci:snapshot:verify)
-              bun run ci:snapshot:verify
               ;;
             *)
               echo "::error::Unknown DB-backed Bun job phase: $JOB_PHASE"
