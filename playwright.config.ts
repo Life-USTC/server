@@ -12,11 +12,16 @@ export default defineConfig({
   outputDir: "playwright-report/e2e-results",
   fullyParallel: false,
   forbidOnly: false,
-  retries: 0,
+  retries: process.env.CI ? 2 : 0,
   // Shared seeded users are mutated by several E2E files. Keep the suite
   // single-worker so those stateful cases run sequentially.
   workers: 1,
-  reporter: "list",
+  reporter: process.env.CI
+    ? [["list"], ["blob", { outputDir: "playwright-report/blob" }]]
+    : [
+        ["list"],
+        ["html", { open: "never", outputFolder: "playwright-report/html" }],
+      ],
   use: {
     baseURL,
     trace: "on-first-retry",
