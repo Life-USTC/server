@@ -4,7 +4,11 @@ const baseURL = "http://127.0.0.1:3000";
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: ["**/*.spec.ts", "**/*.test.ts", "**/test.ts"],
+  testMatch: [
+    "src/app/**/*.spec.ts",
+    "src/app/**/*.test.ts",
+    "src/app/**/test.ts",
+  ],
   outputDir: "playwright-report/e2e-results",
   fullyParallel: false,
   forbidOnly: false,
@@ -30,6 +34,11 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "mobile-chrome",
+      use: { ...devices["Pixel 7"] },
+      testMatch: ["mobile-screenshots/**/*.spec.ts"],
     },
   ],
 });
