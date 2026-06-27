@@ -10,7 +10,7 @@
     "personal-workspace-focus": "MCP focuses by default on personal learning workspace, public query, and low-risk personal state write capabilities; admin capabilities are not exposed by default.",
     "text-formatted-json": "Current tool output is uniformly text-formatted JSON.",
     "output-modes": "Output mode has three levels: summary for counts/returned-item totals plus top samples, default for compact structured data, and full for exact raw records. Default is recommended for most agent calls.",
-    "coverage": "The checked tool list below is the MCP contract surface; implementation parity is enforced by bun run verify.",
+    "coverage": "The checked tool list below is the MCP contract surface; implementation parity is enforced through the checks in $life-ustc-dev-loop.",
     "aggregate-before-fanout": "Prefer assistant-oriented aggregate or filtered tools first; raw dataset tools remain available for power clients that need local post-processing.",
     "privacy-safe-summary": "Summary/default outputs may omit repeated low-value nested objects and redact token-bearing URLs or other sensitive strings; full mode is the escape hatch when exact raw values are required.",
     "actionable-errors": "Validation and common not-found payloads prefer plain-language messages and may include a hint that points to the next useful tool or query to recover.",

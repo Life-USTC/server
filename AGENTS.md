@@ -71,9 +71,10 @@ Docker runtime is the static loader.
 
 ## Shared Test Seed
 
-- Canonical seeded fixture data lives in `tests/e2e/fixtures/scenario.json`; `prisma/seed.sql` materializes it and `tests/fixtures/dev-seed.ts` exports the named constants used by tests.
+- Canonical seeded fixture data lives in `tests/e2e/fixtures/scenario.json`; `tests/fixtures/dev-seed.ts` exports the named constants used by tests.
+- `prisma/seed.sql` is currently a minimal placeholder (two dev users). E2E/integration tests that depend on the full legacy scenario will fail until the seed SQL is expanded.
 - The shared anchor comes from `DEV_SEED_ANCHOR` in `tests/fixtures/dev-seed.ts`. Use `.date` for bare date filters, `.recommendedAtTime` for time-sensitive tool calls, and `.startOfDayAtTime` when a test needs the seed day boundary.
-- `$life-ustc-dev-loop` already seeds the shared scenario data; if you invoke integration specs directly, run `bunx prisma db seed` first.
+- `$life-ustc-dev-loop` seeds the minimal placeholder; if you invoke integration specs directly, run `bunx prisma db seed` first.
 - Scoped `tests/**/AGENTS.md` files should only add layer-specific caveats and link shared commands/setup back here or to helper files such as `tests/integration/utils/mcp-harness.ts`.
 
 ## Local Dev Environment
