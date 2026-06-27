@@ -1,3 +1,10 @@
+## [1.39.33](https://github.com/Life-USTC/server/compare/v1.39.32...v1.39.33) (2026-06-27)
+
+
+### Bug Fixes
+
+* **dashboard:** reflect todo toggle/delete state immediately without stale invalidation ([f4a9b0b](https://github.com/Life-USTC/server/commit/f4a9b0becde3873eda7a1ae0fbe3007a47fee25d))
+
 ## [1.39.32](https://github.com/Life-USTC/server/compare/v1.39.31...v1.39.32) (2026-06-27)
 
 
