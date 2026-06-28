@@ -709,6 +709,105 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     }
   });
 
+  test("可编辑班级作业的截止日期、说明、重要和组队标记", async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(60_000);
+    await signInAsDebugUser(page, SECTION_URL);
+    let homeworkId: string | undefined;
+
+    try {
+      const title = `e2e-section-hw-edit-${Date.now()}`;
+      const createResponse = await page.request.post("/api/homeworks", {
+        data: {
+          sectionJwId: DEV_SEED.section.jwId,
+          submissionDueAt: null,
+          title,
+        },
+      });
+      expect(createResponse.status()).toBe(200);
+      const createBody = (await createResponse.json()) as {
+        homework?: { id?: string };
+        id?: string;
+      };
+      homeworkId = createBody.homework?.id ?? createBody.id;
+      expect(homeworkId).toBeTruthy();
+
+      await gotoAndWaitForReady(page, SECTION_URL);
+      const homeworksTab = page
+        .getByRole("tab", { name: /作业|Homework/i })
+        .first();
+      if ((await homeworksTab.count()) === 0) {
+        await expect(page.locator("#main-content")).toBeVisible();
+        return;
+      }
+      await homeworksTab.click();
+
+      const hwCard = page
+        .getByRole("button", { name: new RegExp(escapeForRegExp(title)) })
+        .first();
+      await expect(hwCard).toBeVisible();
+      await hwCard.click();
+
+      const detailDialog = page.locator('[data-slot="dialog-popup"]').first();
+      await expect(detailDialog).toBeVisible();
+      await detailDialog
+        .getByRole("button", { name: /Edit details|编辑信息/i })
+        .click();
+
+      const description = `e2e-section-hw-edited-description-${Date.now()}`;
+      const dueAt = "2026-12-31T23:59";
+      const editForm = detailDialog.locator("form").first();
+      await editForm
+        .getByRole("textbox", { name: /Details|说明/i })
+        .fill(description);
+      await editForm
+        .getByRole("textbox", { name: /Submission due|提交截止/i })
+        .fill(dueAt);
+      await editForm
+        .locator("label")
+        .filter({ hasText: /Major assignment|大作业/i })
+        .locator('[data-slot="checkbox"]')
+        .click();
+      await editForm
+        .locator("label")
+        .filter({ hasText: /Team required|需要组队/i })
+        .locator('[data-slot="checkbox"]')
+        .click();
+
+      await editForm
+        .getByRole("button", { name: /Save changes|保存修改/i })
+        .click();
+      await expect(
+        editForm.getByRole("button", { name: /Save changes|保存修改/i }),
+      ).toHaveCount(0, { timeout: 15_000 });
+
+      await expect(detailDialog.getByText(description)).toBeVisible();
+      await expect(
+        detailDialog.getByText(/Major assignment|大作业/i),
+      ).toBeVisible();
+      await expect(
+        detailDialog.getByText(/Team required|需要组队/i),
+      ).toBeVisible();
+
+      const dueValue = detailDialog
+        .locator("dl")
+        .filter({ hasText: /Submission due|提交截止/ })
+        .first();
+      await expect(dueValue).toContainText(
+        /2026-12-31|2026\/12\/31|12\/31\/26|12月31日|Dec 31/,
+      );
+      await expect(dueValue).toContainText(/23:59|11:59 PM/);
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "section/homework-edited-full-fields",
+      );
+    } finally {
+      await cleanupHomeworksForE2e([homeworkId]);
+    }
+  });
+
   test("作业评论永久链接打开目标评论", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     await signInAsDebugUser(page, SECTION_URL);
@@ -933,6 +1032,112 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       await captureStepScreenshot(page, testInfo, "section/comment-deleted");
     } finally {
       await cleanupCommentsForE2e([replyId, commentId]);
+    }
+  });
+
+  test("匿名评论复选框会隐藏评论者身份", async ({ page }, testInfo) => {
+    test.setTimeout(60_000);
+    let commentId: string | undefined;
+    const body = `e2e-anonymous-comment-${Date.now()}`;
+
+    try {
+      await signInAsDebugUser(page, SECTION_URL);
+
+      const commentsTab = page
+        .getByRole("tab", { name: /评论|Comments/i })
+        .first();
+      await commentsTab.click();
+      await expect(commentsTab).toHaveAttribute("aria-selected", "true");
+
+      const composerCard = page
+        .locator('[data-slot="card"]')
+        .filter({
+          has: page.getByRole("button", { name: /发布评论|Post comment/i }),
+        })
+        .first();
+      await expect(composerCard).toBeVisible();
+
+      const anonymousCheckbox = composerCard
+        .locator("label")
+        .filter({ hasText: /匿名|Anonymous/i })
+        .locator('[data-slot="checkbox"]')
+        .first();
+      await expect(anonymousCheckbox).toBeVisible();
+      await anonymousCheckbox.click();
+      await expect(anonymousCheckbox).toHaveAttribute("aria-checked", "true");
+
+      await composerCard
+        .getByRole("textbox", { name: /评论内容|Comment body/i })
+        .first()
+        .fill(body);
+
+      const createResponse = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/comments") &&
+          r.request().method() === "POST" &&
+          r.status() === 200,
+      );
+      await composerCard
+        .getByRole("button", { name: /发布评论|Post comment/i })
+        .click();
+      const createdCommentResponse = await createResponse;
+      const createResponseBody = (await createdCommentResponse.json()) as {
+        id?: string;
+      };
+      expect(createResponseBody.id).toBeTruthy();
+      commentId = createResponseBody.id;
+      await page.waitForLoadState("networkidle");
+
+      const commentCard = page
+        .locator('[id^="comment-"]')
+        .filter({ hasText: body })
+        .first();
+      await expect(commentCard).toBeVisible();
+      await expect(commentCard.getByText(body)).toBeVisible();
+      // Author sees their own name and an anonymous badge
+      await expect(
+        commentCard.getByText(DEV_SEED.debugName).first(),
+      ).toBeVisible();
+      await expect(
+        commentCard.getByText(/匿名|Anonymous/i).first(),
+      ).toBeVisible();
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "section/comment-anonymous-author",
+      );
+
+      // View the same comment without signing in: identity is masked
+      await page.context().clearCookies();
+      await gotoAndWaitForReady(page, SECTION_URL);
+      const anonymousCommentsTab = page
+        .getByRole("tab", { name: /评论|Comments/i })
+        .first();
+      await anonymousCommentsTab.click();
+      await expect(anonymousCommentsTab).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+
+      const anonymousCommentCard = page
+        .locator('[id^="comment-"]')
+        .filter({ hasText: body })
+        .first();
+      await expect(anonymousCommentCard).toBeVisible();
+      await expect(anonymousCommentCard.getByText(body).first()).toBeVisible();
+      await expect(
+        anonymousCommentCard.getByText(DEV_SEED.debugName),
+      ).toHaveCount(0);
+      await expect(
+        anonymousCommentCard.getByText(/匿名|Anonymous/i).first(),
+      ).toBeVisible();
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "section/comment-anonymous-masked",
+      );
+    } finally {
+      await cleanupCommentsForE2e([commentId]);
     }
   });
 

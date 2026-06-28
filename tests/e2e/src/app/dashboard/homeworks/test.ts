@@ -24,6 +24,7 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import { cleanupHomeworksForE2e } from "../../../../utils/homeworks";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
@@ -367,5 +368,92 @@ test.describe("仪表盘作业", () => {
       timeout: 15_000,
     });
     await captureStepScreenshot(page, testInfo, "homeworks/created");
+  });
+
+  test("创建作业时可设置重要、组队、截止日期和说明", async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(60_000);
+    await signInAsDebugUser(page, "/dashboard/homeworks");
+    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, "/dashboard/homeworks", {
+      testInfo,
+      screenshotLabel: "homeworks",
+    });
+
+    const addButton = page.getByTestId("dashboard-homeworks-add").first();
+    const title = `e2e-dashboard-hw-full-${Date.now()}`;
+    const description = `e2e-dashboard-hw-description-${Date.now()}`;
+    const dueAt = "2026-12-31T23:59";
+    const titleInput = page.getByTestId("dashboard-homework-title");
+    await expect(async () => {
+      await expect(addButton).toBeVisible({ timeout: 3_000 });
+      await addButton.click();
+      await expect(titleInput).toBeVisible({ timeout: 3_000 });
+    }).toPass({
+      timeout: 10_000,
+      intervals: [250, 500, 1_000],
+    });
+
+    let homeworkId: string | undefined;
+    const createDialog = page.locator('[data-slot="dialog-popup"]').first();
+    await titleInput.fill(title);
+    await createDialog
+      .getByRole("textbox", { name: /Details|说明/i })
+      .fill(description);
+    await createDialog
+      .getByRole("textbox", { name: /Submission due|提交截止/i })
+      .fill(dueAt);
+    await createDialog
+      .locator("label")
+      .filter({ hasText: /Major assignment|大作业/i })
+      .locator('[data-slot="checkbox"]')
+      .click();
+    await createDialog
+      .locator("label")
+      .filter({ hasText: /Team required|需要组队/i })
+      .locator('[data-slot="checkbox"]')
+      .click();
+
+    try {
+      await page.getByTestId("dashboard-homework-create").click();
+      const card = page
+        .locator('[data-slot="card"]')
+        .filter({ hasText: title })
+        .first();
+      await expect(card).toBeVisible({ timeout: 15_000 });
+
+      await page.keyboard.press("Escape");
+      await expect(
+        page.locator('[data-slot="dialog-popup"]').first(),
+      ).toHaveCount(0, { timeout: 5_000 });
+
+      await expect(card.getByText(/Major assignment|大作业/i)).toBeVisible();
+      await expect(card.getByText(/Team required|需要组队/i)).toBeVisible();
+
+      const dueText = card
+        .locator("p")
+        .filter({ hasText: /Due:|截止/ })
+        .first();
+      await expect(dueText).toContainText(
+        /2026-12-31|2026\/12\/31|12月31日|Dec 31/,
+      );
+      await expect(dueText).toContainText(/23:59|11:59 PM/);
+
+      await card.getByRole("button", { name: new RegExp(title) }).click();
+      const detailDialog = page.locator('[data-slot="dialog-popup"]').first();
+      await expect(detailDialog).toBeVisible();
+      await expect(detailDialog.getByText(description)).toBeVisible();
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "homeworks/created-full-fields",
+      );
+
+      const cardId = await card.getAttribute("id");
+      homeworkId = cardId?.replace("homework-", "");
+    } finally {
+      await cleanupHomeworksForE2e([homeworkId]);
+    }
   });
 });
