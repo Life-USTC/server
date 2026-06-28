@@ -125,12 +125,13 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v6
 
-      - name: Checkout e2e-snapshot-artifacts branch
+      - name: Checkout e2e-snapshot-artifacts repo
         uses: actions/checkout@v6
         with:
-          ref: e2e-snapshot-artifacts
+          repository: Life-USTC/e2e-snapshot-artifacts
+          ref: main
           path: e2e-snapshot-artifacts
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.E2E_ARTIFACTS_TOKEN }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -174,6 +175,10 @@ jobs:
           # Disable Jekyll so GitHub Pages serves the static HTML and assets as-is.
           touch .nojekyll
 
+          # Keep only the latest 30 reports to avoid unbounded growth in the
+          # artifacts repo. The new report has already been copied in above.
+          ls -1 reports 2>/dev/null | sort -rn | tail -n +31 | xargs -r rm -rf
+
           cat > index.html <<'INDEX_EOF'
           <!doctype html>
           <html lang="en">
@@ -210,8 +215,8 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           marker="<!-- e2e-report -->"
-          report_url="https://life-ustc.github.io/server/reports/${RUN_ID}/index.html"
-          index_url="https://life-ustc.github.io/server/"
+          report_url="https://life-ustc.github.io/e2e-snapshot-artifacts/reports/${RUN_ID}/index.html"
+          index_url="https://life-ustc.github.io/e2e-snapshot-artifacts/"
           body=$(printf '%s\nE2E HTML report is ready: %s\nAll reports: %s' "$marker" "$report_url" "$index_url")
 
           # Commit comment (create or update existing report comment)
