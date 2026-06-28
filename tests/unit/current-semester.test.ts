@@ -10,8 +10,8 @@ type SemesterLike = {
   endDate: Date | null;
 };
 
-describe("current-semester helpers", () => {
-  it("builds date range where clause", () => {
+describe("当前学期辅助函数", () => {
+  it("构建日期范围 where 子句", () => {
     const now = new Date("2026-09-01T00:00:00.000Z");
     expect(buildCurrentSemesterWhere(now)).toEqual({
       startDate: { lte: now },
@@ -19,7 +19,7 @@ describe("current-semester helpers", () => {
     });
   });
 
-  it("prefers first unfinished semester", () => {
+  it("优先选择第一个未结束学期", () => {
     const referenceDate = new Date("2026-03-15T00:00:00.000Z");
     const semesters: SemesterLike[] = [
       {
@@ -42,7 +42,7 @@ describe("current-semester helpers", () => {
     expect(selectCurrentSemesterFromList(semesters, referenceDate)?.id).toBe(2);
   });
 
-  it("prefers the latest-starting semester when ranges overlap", () => {
+  it("当日期范围重叠时优先选择开始时间最晚的学期", () => {
     const referenceDate = new Date("2026-04-15T00:00:00.000Z");
     const semesters: SemesterLike[] = [
       {
@@ -60,7 +60,7 @@ describe("current-semester helpers", () => {
     expect(selectCurrentSemesterFromList(semesters, referenceDate)?.id).toBe(2);
   });
 
-  it("falls back to earliest unfinished future semester", () => {
+  it("回退到最早的未开始未来学期", () => {
     const referenceDate = new Date("2026-01-01T00:00:00.000Z");
     const semesters: SemesterLike[] = [
       {
@@ -80,7 +80,7 @@ describe("current-semester helpers", () => {
     );
   });
 
-  it("falls back to latest semester when all semesters are finished", () => {
+  it("当所有学期都已结束时回退到最晚学期", () => {
     const referenceDate = new Date("2026-02-01T12:00:00.000Z");
     const semesters: SemesterLike[] = [
       {

@@ -118,8 +118,8 @@ vi.mock("@/lib/db/prisma", () => ({
   },
 }));
 
-describe("getBusTimetableData", () => {
-  it("uses topology from the requested historical version", async () => {
+describe("getBusTimetableData 班车时刻表数据", () => {
+  it("使用请求历史版本的拓扑结构", async () => {
     const data = await getBusTimetableData({
       locale: "zh-cn",
       now: "2026-02-01T00:00:00.000Z",

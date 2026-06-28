@@ -13,12 +13,12 @@ vi.mock("@/lib/db/prisma", () => ({
   },
 }));
 
-describe("homework create section resolution", () => {
+describe("作业创建 section 解析", () => {
   afterEach(() => {
     findUniqueMock.mockReset();
   });
 
-  it("verifies sectionId when no sectionJwId is provided", async () => {
+  it("未提供 sectionJwId 时验证 sectionId", async () => {
     findUniqueMock.mockResolvedValueOnce({ id: 12 });
 
     await expect(
@@ -30,7 +30,7 @@ describe("homework create section resolution", () => {
     });
   });
 
-  it("reports missing internal section ids", async () => {
+  it("报告缺失的内部 section id", async () => {
     findUniqueMock.mockResolvedValueOnce(null);
 
     await expect(
@@ -38,14 +38,14 @@ describe("homework create section resolution", () => {
     ).resolves.toEqual({ ok: false, error: "not_found" });
   });
 
-  it("reports missing section references when no id is provided", async () => {
+  it("未提供 id 时报告缺失的 section 引用", async () => {
     await expect(
       resolveSectionIdForHomeworkCreate({ sectionId: null, sectionJwId: null }),
     ).resolves.toEqual({ ok: false, error: "not_found" });
     expect(findUniqueMock).not.toHaveBeenCalled();
   });
 
-  it("resolves sectionJwId to the internal section id", async () => {
+  it("将 sectionJwId 解析为内部 section id", async () => {
     findUniqueMock.mockResolvedValueOnce({ id: 34 });
 
     await expect(
@@ -53,7 +53,7 @@ describe("homework create section resolution", () => {
     ).resolves.toEqual({ ok: true, sectionId: 34 });
   });
 
-  it("rejects conflicting sectionId and sectionJwId references", async () => {
+  it("拒绝冲突的 sectionId 与 sectionJwId 引用", async () => {
     findUniqueMock.mockResolvedValueOnce({ id: 34 });
 
     await expect(
@@ -61,7 +61,7 @@ describe("homework create section resolution", () => {
     ).resolves.toEqual({ ok: false, error: "mismatch" });
   });
 
-  it("reports missing sectionJwId targets separately from conflicts", async () => {
+  it("将缺失的 sectionJwId 目标与冲突分开报告", async () => {
     findUniqueMock.mockResolvedValueOnce(null);
 
     await expect(

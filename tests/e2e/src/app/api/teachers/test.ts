@@ -26,15 +26,15 @@ import { DEV_SEED } from "../../../../utils/dev-seed";
 import { assertApiContract } from "../../_shared/api-contract";
 
 test.describe("GET /api/teachers", () => {
-  test("contract", async ({ request }) => {
+  test("契约", async ({ request }) => {
     await assertApiContract(request, { routePath: "/api/teachers" });
   });
 
-  test("detail contract", async ({ request }) => {
+  test("详情契约", async ({ request }) => {
     await assertApiContract(request, { routePath: "/api/teachers/[id]" });
   });
 
-  test("returns paginated response shape", async ({ request }) => {
+  test("返回分页响应结构", async ({ request }) => {
     const response = await request.get("/api/teachers");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -55,7 +55,7 @@ test.describe("GET /api/teachers", () => {
     expect(body.pagination?.totalPages).toBeGreaterThanOrEqual(1);
   });
 
-  test("search by teacher code returns seed teacher", async ({ request }) => {
+  test("按教师工号搜索返回 seed 教师", async ({ request }) => {
     const response = await request.get(
       `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}`,
     );
@@ -70,7 +70,7 @@ test.describe("GET /api/teachers", () => {
     expect(teacher?.nameCn).toBe(DEV_SEED.teacher.nameCn);
   });
 
-  test("search by Chinese name returns seed teacher", async ({ request }) => {
+  test("按中文名搜索返回 seed 教师", async ({ request }) => {
     const response = await request.get(
       `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
     );
@@ -83,7 +83,7 @@ test.describe("GET /api/teachers", () => {
     ).toBe(true);
   });
 
-  test("non-matching search returns empty data", async ({ request }) => {
+  test("无匹配搜索返回空数据", async ({ request }) => {
     const response = await request.get(
       "/api/teachers?search=ZZZZZ_NONEXISTENT_TEACHER_99999",
     );
@@ -97,7 +97,7 @@ test.describe("GET /api/teachers", () => {
     expect(body.pagination?.totalPages).toBe(1);
   });
 
-  test("page param navigates results", async ({ request }) => {
+  test("page 参数可翻页", async ({ request }) => {
     const response = await request.get("/api/teachers?page=1");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -106,7 +106,7 @@ test.describe("GET /api/teachers", () => {
     expect(body.pagination?.page).toBe(1);
   });
 
-  test("limit param controls page size", async ({ request }) => {
+  test("limit 参数控制页大小", async ({ request }) => {
     const response = await request.get("/api/teachers?limit=1");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -117,9 +117,7 @@ test.describe("GET /api/teachers", () => {
     expect(body.pagination?.pageSize).toBe(1);
   });
 
-  test("detail route returns seed teacher with sections", async ({
-    request,
-  }) => {
+  test("详情路由返回带班级的 seed 教师", async ({ request }) => {
     const cacheBust = `teacher-detail-${Date.now()}`;
     const teacherListResponse = await request.get(
       `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}&limit=5&cacheBust=${cacheBust}`,
@@ -171,9 +169,7 @@ test.describe("GET /api/teachers", () => {
     expect(Object.hasOwn(seedSection as object, "credits")).toBe(true);
   });
 
-  test("teacher list items have all required TeacherSummary fields", async ({
-    request,
-  }) => {
+  test("教师列表项包含所有必需的 TeacherSummary 字段", async ({ request }) => {
     const response = await request.get(
       `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}&limit=5`,
     );

@@ -165,8 +165,8 @@ function createPayload(): BusStaticPayload {
   };
 }
 
-describe("bus schedule imports", () => {
-  it("keeps the active timetable intact when replacement trip writes fail", async () => {
+describe("班车时刻表导入", () => {
+  it("当替换行程写入失败时保持当前时刻表不变", async () => {
     const initialState: ImportState = {
       nextVersionId: 2,
       versions: [
@@ -202,7 +202,7 @@ describe("bus schedule imports", () => {
     expect(prisma.getState()).toEqual(initialState);
   });
 
-  it("rejects imports when key and checksum match different versions", async () => {
+  it("当 key 与 checksum 匹配到不同版本时拒绝导入", async () => {
     const payload = createPayload();
     const checksum = await checksumBusPayload(payload);
     const initialState: ImportState = {

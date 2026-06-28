@@ -25,10 +25,8 @@ import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-test.describe("dashboard todos", () => {
-  test("unauthenticated ?tab=todos falls back to public view", async ({
-    page,
-  }, testInfo) => {
+test.describe("仪表盘待办", () => {
+  test("未登录 ?tab=todos 回退到公共视图", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/?tab=todos", {
       testInfo,
       screenshotLabel: "todos",
@@ -47,7 +45,7 @@ test.describe("dashboard todos", () => {
     await captureStepScreenshot(page, testInfo, "dashboard-todos-unauthorized");
   });
 
-  test("authenticated shows seed todos", async ({ page }, testInfo) => {
+  test("登录后显示种子待办", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/todos");
 
     await expect(page.locator("#main-content")).toBeVisible();
@@ -74,9 +72,7 @@ test.describe("dashboard todos", () => {
     await captureStepScreenshot(page, testInfo, "dashboard-todos-seed");
   });
 
-  test("can toggle todo completion and filter updates", async ({
-    page,
-  }, testInfo) => {
+  test("可切换待办完成状态并更新筛选", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/todos");
 
     const card = page
@@ -124,7 +120,7 @@ test.describe("dashboard todos", () => {
     await captureStepScreenshot(page, testInfo, "dashboard-todos-toggle");
   });
 
-  test("completed filter shows completed todo", async ({ page }, testInfo) => {
+  test("已完成筛选显示已完成的待办", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/todos");
 
     const completedFilter = page
@@ -142,9 +138,7 @@ test.describe("dashboard todos", () => {
     await captureStepScreenshot(page, testInfo, "dashboard-todos-completed");
   });
 
-  test("server action errors render on nested todos route", async ({
-    page,
-  }, testInfo) => {
+  test("嵌套待办路由渲染服务端操作错误", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/todos");
 
     const postResponse = page.waitForResponse(
@@ -168,7 +162,7 @@ test.describe("dashboard todos", () => {
     await captureStepScreenshot(page, testInfo, "dashboard-todos-action-error");
   });
 
-  test("can create and delete a todo", async ({ page }, testInfo) => {
+  test("可以创建和删除待办", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     await signInAsDebugUser(page, "/dashboard/todos");
 

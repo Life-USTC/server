@@ -36,7 +36,7 @@ describe("/api/readiness", () => {
     vi.unstubAllEnvs();
   });
 
-  it("returns readiness checks for local requests", async () => {
+  it("为本地请求返回就绪检查", async () => {
     queryRawMock.mockResolvedValue([{ "?column?": 1 }]);
     vi.spyOn(console, "info").mockImplementation(() => {});
     const { GET } = await import("@/routes/api/readiness/+server");
@@ -65,7 +65,7 @@ describe("/api/readiness", () => {
     );
   });
 
-  it("records degraded readiness responses as api errors", async () => {
+  it("将降级就绪响应记录为 API 错误", async () => {
     queryRawMock.mockRejectedValue(new Error("database unavailable"));
     vi.spyOn(console, "info").mockImplementation(() => {});
     const { GET } = await import("@/routes/api/readiness/+server");
@@ -96,7 +96,7 @@ describe("/api/readiness", () => {
     );
   });
 
-  it("hides readiness from remote requests without a token", async () => {
+  it("对无令牌的远程请求隐藏就绪状态", async () => {
     vi.spyOn(console, "info").mockImplementation(() => {});
     const { GET } = await import("@/routes/api/readiness/+server");
 

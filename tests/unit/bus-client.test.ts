@@ -134,14 +134,14 @@ function createBusData(): BusTimetableData {
   };
 }
 
-describe("bus client timetable math", () => {
-  test("converts an absolute instant to Shanghai minutes since midnight", () => {
+describe("班车客户端时刻表计算", () => {
+  test("将绝对时刻转换为上海本地午夜以来的分钟数", () => {
     expect(
       getShanghaiMinutesSinceMidnight(new Date("2026-04-22T13:10:00.000Z")),
     ).toBe(21 * 60 + 10);
   });
 
-  test("resolves day type from the Shanghai calendar day", () => {
+  test("根据上海日历日期解析日期类型", () => {
     expect(resolveClientBusDayType(new Date("2026-04-24T15:59:00.000Z"))).toBe(
       "weekday",
     );
@@ -153,7 +153,7 @@ describe("bus client timetable math", () => {
     );
   });
 
-  test("sorts routes by the next Shanghai departure time", () => {
+  test("按下一班上海发车时间排序路线", () => {
     const routes = getApplicableBusRoutes({
       data: createBusData(),
       dayType: "weekday",
@@ -168,7 +168,7 @@ describe("bus client timetable math", () => {
     expect(routes[0]?.nextTrip?.status).toBe("upcoming");
   });
 
-  test("marks trips as departed once Shanghai local time passes the stop time", () => {
+  test("当上海本地时间超过站点时间后将行程标记为已发车", () => {
     const routes = getApplicableBusRoutes({
       data: createBusData(),
       dayType: "weekday",

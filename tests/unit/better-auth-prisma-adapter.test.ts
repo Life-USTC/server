@@ -7,7 +7,7 @@ vi.mock("better-auth/adapters/prisma", () => ({
 }));
 
 describe("createBetterAuthPrismaAdapter", () => {
-  it("centralizes Better Auth Prisma adapter configuration", async () => {
+  it("集中 Better Auth Prisma 适配器配置", async () => {
     const { createBetterAuthPrismaAdapter } = await import(
       "@/lib/auth/better-auth-prisma-adapter"
     );

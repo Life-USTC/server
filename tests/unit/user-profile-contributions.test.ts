@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { buildUserProfileContributions } from "@/features/profile/server/user-profile-contributions";
 
-describe("user profile contributions", () => {
-  it("groups contribution events by campus date across Shanghai midnight", async () => {
+describe("用户主页贡献", () => {
+  it("以上海午夜为界按校区日期聚合贡献事件", async () => {
     const commentFindMany = vi.fn(async (_input: unknown) => [
       { createdAt: new Date("2026-03-01T15:59:00.000Z") },
     ]);

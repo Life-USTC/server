@@ -26,13 +26,11 @@ import { captureStepScreenshot } from "../../../../../utils/screenshot";
 import { assertPageContract } from "../../../_shared/page-contract";
 
 test.describe("/u/id/[uid]", () => {
-  test("contract", async ({ page }, testInfo) => {
+  test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, { routePath: "/u/id/[uid]", testInfo });
   });
 
-  test("displays all required profile fields including user ID", async ({
-    page,
-  }, testInfo) => {
+  test("显示所有必需的资料字段，包括用户 ID", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/");
     const user = await getCurrentSessionUser(page);
 
@@ -54,9 +52,7 @@ test.describe("/u/id/[uid]", () => {
     await captureStepScreenshot(page, testInfo, "u-id/profile-fields");
   });
 
-  test("displays contribution heatmap and stat counters", async ({
-    page,
-  }, testInfo) => {
+  test("显示贡献热力图和统计计数器", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/");
     const user = await getCurrentSessionUser(page);
     const profileUrl = `/u/id/${user.id}`;
@@ -87,7 +83,7 @@ test.describe("/u/id/[uid]", () => {
     await captureStepScreenshot(page, testInfo, "u-id/stats-and-heatmap");
   });
 
-  test("returns 404 for non-existent user ID", async ({ page }, testInfo) => {
+  test("不存在的用户 ID 返回 404", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/u/id/non-existing-user-id", {
       expectMainContent: false,
     });

@@ -3,8 +3,8 @@ import * as fixtures from "./utils/mcp-tool-test-utils";
 
 const context = fixtures.createMcpToolTestContext();
 
-describe("course and section lookups", () => {
-  it("search_courses returns the REST-equivalent paginated course hierarchy", async () => {
+describe("课程与班级查找", () => {
+  it("search_courses 返回 REST 等价分页课程层级", async () => {
     const seedCourseFilters = await fixtures.prisma.course.findUnique({
       where: { jwId: fixtures.DEV_SEED.course.jwId },
       select: {
@@ -63,7 +63,7 @@ describe("course and section lookups", () => {
     );
   });
 
-  it("get_section_by_jw_id returns the same detail hierarchy as REST section detail", async () => {
+  it("get_section_by_jw_id 返回与 REST 班级详情相同的层级", async () => {
     const result = await context.client.call<{
       found?: boolean;
       section?: {
@@ -93,7 +93,7 @@ describe("course and section lookups", () => {
     expect(Object.hasOwn(result.section ?? {}, "roomType")).toBe(true);
   });
 
-  it("get_section_by_jw_id returns a recovery hint when the jwId is missing", async () => {
+  it("get_section_by_jw_id 在 jwId 缺失时返回恢复提示", async () => {
     const result = await context.client.call<{
       found?: boolean;
       message?: string;

@@ -10,14 +10,14 @@ import {
   resetRuntimeMetricsForTest,
 } from "@/lib/metrics/runtime-metrics";
 
-describe("api observability", () => {
+describe("API 可观测性", () => {
   afterEach(() => {
     resetRuntimeMetricsForTest();
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
-  it("normalizes high-cardinality route segments", () => {
+  it("规范化高基数路由段", () => {
     expect(normalizeApiRoutePath("/api/todos/123")).toBe("/api/todos/:id");
     expect(normalizeApiRoutePath("/api/calendar-subscriptions/current")).toBe(
       "/api/calendar-subscriptions/current",
@@ -32,7 +32,7 @@ describe("api observability", () => {
     );
   });
 
-  it("redacts calendar feed path tokens", () => {
+  it("隐去日历订阅路径令牌", () => {
     const normalized = normalizeApiRoutePath(
       "/api/users/user-1:feed-token-0123456789/calendar.ics",
     );
@@ -46,7 +46,7 @@ describe("api observability", () => {
     expect(encodedSeparator).not.toContain("feed-token-0123456789");
   });
 
-  it("records safe request-start logs and metrics", () => {
+  it("记录安全的请求开始日志和指标", () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
 
     recordApiRequestStart({
@@ -70,7 +70,7 @@ describe("api observability", () => {
     );
   });
 
-  it("skips the metrics endpoint", () => {
+  it("跳过指标端点", () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
 
     expect(shouldObserveApiPath("/api/metrics")).toBe(false);
@@ -86,7 +86,7 @@ describe("api observability", () => {
     );
   });
 
-  it("records response status, duration, and auth mode", async () => {
+  it("记录响应状态、耗时和认证模式", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:01.000Z"));
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
@@ -125,7 +125,7 @@ describe("api observability", () => {
     );
   });
 
-  it("records thrown route errors before rethrowing", async () => {
+  it("在重新抛出前记录抛出的路由错误", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:01.000Z"));
     vi.spyOn(console, "info").mockImplementation(() => {});

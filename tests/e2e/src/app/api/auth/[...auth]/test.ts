@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { signInAsDebugUser, signInAsDevAdmin } from "../../../../../utils/auth";
 import { assertApiContract } from "../../../_shared/api-contract";
 
-test("/api/auth/[...auth]", async ({ request }) => {
+test("/api/auth/[...auth] 契约检查", async ({ request }) => {
   await assertApiContract(request, { routePath: "/api/auth/[...auth]" });
 });
 

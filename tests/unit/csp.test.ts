@@ -4,17 +4,17 @@ import {
   createScriptNonce,
 } from "@/lib/security/csp";
 
-describe("csp helpers", () => {
+describe("CSP 辅助函数", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
 
-  it("creates a non-empty nonce", () => {
+  it("创建非空 nonce", () => {
     const nonce = createScriptNonce();
     expect(nonce.length).toBeGreaterThan(10);
   });
 
-  it("builds a CSP that requires a matching script nonce", () => {
+  it("构建要求匹配脚本 nonce 的 CSP", () => {
     const policy = buildContentSecurityPolicy("abc123");
     const scriptDirective = policy
       .split("; ")
@@ -28,7 +28,7 @@ describe("csp helpers", () => {
     expect(policy).toContain("object-src 'none'");
   });
 
-  it("allows configured external avatar image sources", () => {
+  it("允许配置的外部头像图片来源", () => {
     const policy = buildContentSecurityPolicy("abc123");
     const imageDirective = policy
       .split("; ")
@@ -40,7 +40,7 @@ describe("csp helpers", () => {
     expect(imageDirective).toContain("https://api.dicebear.com");
   });
 
-  it("keeps uploads on the same origin", () => {
+  it("保持上传资源同源", () => {
     const policy = buildContentSecurityPolicy("abc123");
     const connectDirective = policy
       .split("; ")

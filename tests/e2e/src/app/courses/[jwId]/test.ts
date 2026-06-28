@@ -44,14 +44,14 @@ const COURSE_URL = `/courses/${DEV_SEED.course.jwId}`;
 const COURSE_WITH_DESCRIPTION_URL = `/courses/${scenarioData.courses[2].jwId}`;
 const COURSE_WITH_DESCRIPTION_TEXT = "实验课建议准备护目镜并提前完成预习问答。";
 
-test.describe("/courses/[jwId]", () => {
+test.describe("/courses/[jwId] 课程详情", () => {
   test.describe.configure({ mode: "serial" });
 
-  test("contract", async ({ page }, testInfo) => {
+  test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, { routePath: "/courses/[jwId]", testInfo });
   });
 
-  test("404 for invalid param", async ({ page }, testInfo) => {
+  test("无效参数返回 404", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/courses/999999999", {
       expectMainContent: false,
     });
@@ -64,9 +64,7 @@ test.describe("/courses/[jwId]", () => {
 
   // ── Display fields ──────────────────────────────────────────────────────────
 
-  test("displays course name (primary and secondary), code, and basic info", async ({
-    page,
-  }, testInfo) => {
+  test("显示课程名称、代码和基本信息", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, COURSE_URL);
 
     const heading = page.getByRole("heading", { level: 1 }).first();
@@ -88,9 +86,7 @@ test.describe("/courses/[jwId]", () => {
     await captureStepScreenshot(page, testInfo, "course/heading-and-code");
   });
 
-  test("displays education level, category, and class type in basic info", async ({
-    page,
-  }, testInfo) => {
+  test("显示培养层次、课程类别和教学班类型", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, COURSE_URL);
 
     // course.educationLevel.namePrimary (locale-dependent)
@@ -121,7 +117,7 @@ test.describe("/courses/[jwId]", () => {
     await captureStepScreenshot(page, testInfo, "course/basic-info");
   });
 
-  test("sections table shows semester, section code, teacher, campus, capacity", async ({
+  test("班级表格显示学期、班级代码、教师、校区和容量", async ({
     page,
   }, testInfo) => {
     await gotoAndWaitForReady(page, COURSE_URL);
@@ -157,9 +153,7 @@ test.describe("/courses/[jwId]", () => {
     await captureStepScreenshot(page, testInfo, "course/sections-table");
   });
 
-  test("jwId is NOT displayed in visible course UI (jwid-url-only rule)", async ({
-    page,
-  }) => {
+  test("jwId 不在课程可见界面中显示", async ({ page }) => {
     await gotoAndWaitForReady(page, COURSE_URL);
     const content = await page.locator("#main-content").innerText();
     // Raw jwId should not appear as visible text
@@ -168,7 +162,7 @@ test.describe("/courses/[jwId]", () => {
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
-  test("tab switching works", async ({ page }, testInfo) => {
+  test("标签切换正常工作", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, COURSE_URL);
 
     const tabList = page.getByRole("tablist").first();
@@ -186,9 +180,7 @@ test.describe("/courses/[jwId]", () => {
     await captureStepScreenshot(page, testInfo, "course/tab-switch");
   });
 
-  test("breadcrumb navigates back to course list", async ({
-    page,
-  }, testInfo) => {
+  test("面包屑可返回课程列表", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, COURSE_URL);
     const breadcrumb = page.locator('a[href="/courses"]').first();
     await expect(breadcrumb).toBeVisible();
@@ -197,7 +189,7 @@ test.describe("/courses/[jwId]", () => {
     await captureStepScreenshot(page, testInfo, "course/breadcrumb-back");
   });
 
-  test("section row links to section detail", async ({ page }, testInfo) => {
+  test("班级行链接到班级详情", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, COURSE_URL);
     const sectionLink = page
       .locator(`a[href="/sections/${DEV_SEED.section.jwId}"]:visible`)
@@ -211,9 +203,7 @@ test.describe("/courses/[jwId]", () => {
 
   // ── Description ─────────────────────────────────────────────────────────────
 
-  test("same-route navigation resets target-scoped description state", async ({
-    page,
-  }, testInfo) => {
+  test("同路由导航重置目标范围内的简介状态", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, COURSE_WITH_DESCRIPTION_URL);
     await expect(page.getByText(COURSE_WITH_DESCRIPTION_TEXT)).toBeVisible();
 
@@ -232,9 +222,7 @@ test.describe("/courses/[jwId]", () => {
     await captureStepScreenshot(page, testInfo, "course/same-route-reset");
   });
 
-  test("signed-in user can edit description (description.content)", async ({
-    page,
-  }, testInfo) => {
+  test("登录用户可以编辑课程简介", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     await signInAsDebugUser(page, COURSE_URL);
     const snapshot = await snapshotDescriptionTargetForE2e(
@@ -285,9 +273,7 @@ test.describe("/courses/[jwId]", () => {
 
   // ── Comment CRUD ─────────────────────────────────────────────────────────────
 
-  test("signed-in user can post, edit, and delete comment", async ({
-    page,
-  }, testInfo) => {
+  test("登录用户可以发布、编辑和删除评论", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     await signInAsDebugUser(page, COURSE_URL);
     let commentId: string | undefined;

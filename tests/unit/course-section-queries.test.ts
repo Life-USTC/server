@@ -20,8 +20,8 @@ beforeAll(async () => {
   buildSectionListQuery = queries.buildSectionListQuery;
 });
 
-describe("course and section query helpers", () => {
-  it("builds course filters from search and numeric ids", () => {
+describe("课程与开课查询辅助函数", () => {
+  it("根据搜索和数字 ID 构建课程筛选条件", () => {
     expect(
       buildCourseListWhere({
         search: "math",
@@ -41,7 +41,7 @@ describe("course and section query helpers", () => {
     });
   });
 
-  it("drops invalid course numeric filters", () => {
+  it("丢弃无效的课程数字筛选条件", () => {
     expect(
       buildCourseListWhere({
         educationLevelId: "foo",
@@ -51,7 +51,7 @@ describe("course and section query helpers", () => {
     ).toBeUndefined();
   });
 
-  it("builds section filters, ids, and parsed search order", () => {
+  it("构建开课筛选条件、ID 和解析后的搜索排序", () => {
     const result = buildSectionListQuery({
       courseId: "11",
       semesterId: 22,
@@ -125,7 +125,7 @@ describe("course and section query helpers", () => {
     expect(result.orderBy).toEqual({ semester: { jwId: "desc" } });
   });
 
-  it("builds advanced section search aliases", () => {
+  it("构建高级开课搜索别名", () => {
     const result = buildSectionListQuery({
       search:
         "coursecode:MATH sectioncode:SEC campus:west credit:3.5 dept:CS semester:fall category:core edulevel:ug type:lab sortby:campus order:DESC leftover",
@@ -201,7 +201,7 @@ describe("course and section query helpers", () => {
     expect(result.orderBy).toEqual({ campus: { nameCn: "desc" } });
   });
 
-  it("ignores inexact section credit search values", () => {
+  it("忽略不精确的开课学分搜索值", () => {
     const result = buildSectionListQuery({
       search: "credits:3abc",
     });
@@ -209,7 +209,7 @@ describe("course and section query helpers", () => {
     expect(result.where).toEqual({});
   });
 
-  it("accepts numeric id arrays for section filters", () => {
+  it("接受数字 ID 数组作为开课筛选条件", () => {
     expect(
       buildSectionListQuery({
         ids: [7, 8, 9],
@@ -221,7 +221,7 @@ describe("course and section query helpers", () => {
     });
   });
 
-  it("builds JW-id-based course and semester filters", () => {
+  it("根据 JW ID 构建课程和学期筛选条件", () => {
     const result = buildSectionListQuery({
       courseJwId: 101,
       semesterJwId: 202,
@@ -232,14 +232,14 @@ describe("course and section query helpers", () => {
     });
   });
 
-  it("builds teacherCode filter inside teachers.some", () => {
+  it("在 teachers.some 内构建 teacherCode 筛选条件", () => {
     const result = buildSectionListQuery({ teacherCode: "DEV-T-001" });
     expect(result.where).toMatchObject({
       teachers: { some: { code: "DEV-T-001" } },
     });
   });
 
-  it("combines teacherId and teacherCode into a single teachers.some filter", () => {
+  it("将 teacherId 和 teacherCode 合并为单个 teachers.some 筛选条件", () => {
     const result = buildSectionListQuery({
       teacherId: 55,
       teacherCode: "T-001",
@@ -249,21 +249,21 @@ describe("course and section query helpers", () => {
     });
   });
 
-  it("builds jwIds filter on section.jwId", () => {
+  it("在 section.jwId 上构建 jwIds 筛选条件", () => {
     const result = buildSectionListQuery({ jwIds: [9902001, 9902002] });
     expect(result.where).toMatchObject({
       jwId: { in: [9902001, 9902002] },
     });
   });
 
-  it("parses comma-separated jwIds string", () => {
+  it("解析逗号分隔的 jwIds 字符串", () => {
     const result = buildSectionListQuery({ jwIds: "9902001, 9902002, x" });
     expect(result.where).toMatchObject({
       jwId: { in: [9902001, 9902002] },
     });
   });
 
-  it("trims whitespace from teacherCode and ignores empty string", () => {
+  it("去除 teacherCode 首尾空白并忽略空字符串", () => {
     expect(
       buildSectionListQuery({ teacherCode: "  " }).where,
     ).not.toHaveProperty("teachers");

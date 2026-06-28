@@ -22,25 +22,25 @@ import { assertApiContract } from "../../../../_shared/api-contract";
 
 const BASE = "/api/admin/suspensions";
 
-test.describe("PATCH /api/admin/suspensions/[id]", () => {
-  test("api contract", async ({ request }) => {
+test.describe("PATCH /api/admin/suspensions/[id] 解除封禁", () => {
+  test("API 契约", async ({ request }) => {
     await assertApiContract(request, {
       routePath: `${BASE}/[id]`,
     });
   });
 
-  test("unauthenticated PATCH returns 401", async ({ request }) => {
+  test("未认证 PATCH 返回 401", async ({ request }) => {
     const response = await request.patch(`${BASE}/nonexistent-id`);
     expect(response.status()).toBe(401);
   });
 
-  test("non-admin PATCH returns 401", async ({ page }) => {
+  test("非管理员 PATCH 返回 401", async ({ page }) => {
     await signInAsDebugUser(page, "/");
     const response = await page.request.patch(`${BASE}/nonexistent-id`);
     expect(response.status()).toBe(401);
   });
 
-  test("admin can lift a temporary suspension", async ({ page }) => {
+  test("管理员可解除临时封禁", async ({ page }) => {
     const prefix = `e2e-lift-sus-${Date.now()}`;
     const { usernames } = await createTempUsersFixture({ prefix, count: 1 });
     await signInAsDevAdmin(page, "/admin");

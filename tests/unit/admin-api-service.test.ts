@@ -65,7 +65,7 @@ vi.mock("@/lib/metrics/observability-metrics", () => ({
   recordAuditWriteMetric: vi.fn(),
 }));
 
-describe("admin API service", () => {
+describe("admin API 服务", () => {
   beforeEach(() => {
     auditLogCreateMock.mockReset();
     commentFindUniqueMock.mockReset();
@@ -104,7 +104,7 @@ describe("admin API service", () => {
     vi.resetModules();
   });
 
-  it("rejects self-demotion before updating the user", async () => {
+  it("更新用户前拒绝自我降权", async () => {
     prismaMock.user.findUnique.mockResolvedValue({
       id: "admin-1",
       isAdmin: true,
@@ -125,7 +125,7 @@ describe("admin API service", () => {
     expect(prismaMock.user.update).not.toHaveBeenCalled();
   });
 
-  it("rejects removing the final remaining admin", async () => {
+  it("拒绝移除最后一名管理员", async () => {
     prismaMock.user.findUnique.mockResolvedValue({
       id: "admin-2",
       isAdmin: true,
@@ -146,7 +146,7 @@ describe("admin API service", () => {
     expect(prismaMock.user.update).not.toHaveBeenCalled();
   });
 
-  it("retries final-admin demotion checks after serialization conflicts", async () => {
+  it("序列化冲突后重试末位管理员降权检查", async () => {
     prismaMock.$transaction
       .mockRejectedValueOnce({ code: "P2034" })
       .mockImplementationOnce(async (action) =>
@@ -173,7 +173,7 @@ describe("admin API service", () => {
     expect(prismaMock.user.update).not.toHaveBeenCalled();
   });
 
-  it("allows demoting another admin when at least one admin remains", async () => {
+  it("当至少保留一名管理员时允许降级其他管理员", async () => {
     const user = { id: "admin-2", isAdmin: false };
     prismaMock.user.findUnique.mockResolvedValue({
       id: "admin-2",
@@ -198,7 +198,7 @@ describe("admin API service", () => {
     });
   });
 
-  it("maps username uniqueness races to username_taken", async () => {
+  it("将用户名唯一性竞争映射为 username_taken", async () => {
     const uniqueConflict = new Error("unique conflict");
     isPrismaUniqueConstraintErrorMock.mockReturnValueOnce(true);
     prismaMock.user.findUnique
@@ -226,7 +226,7 @@ describe("admin API service", () => {
     expect(getAdminUserListItemMock).not.toHaveBeenCalled();
   });
 
-  it("rejects self-suspension before writing a suspension", async () => {
+  it("写入封禁前拒绝自我封禁", async () => {
     const { createAdminSuspension } = await import(
       "@/features/admin/server/admin-api-service"
     );
@@ -245,7 +245,7 @@ describe("admin API service", () => {
     expect(auditLogCreateMock).not.toHaveBeenCalled();
   });
 
-  it("closes existing open suspensions before creating the current suspension", async () => {
+  it("创建当前封禁前关闭现有未解除封禁", async () => {
     const createdSuspension = {
       id: "suspension-new",
       userId: "user-1",
@@ -293,7 +293,7 @@ describe("admin API service", () => {
     });
   });
 
-  it("rejects suspension creation when the required audit write fails", async () => {
+  it("所需审计写入失败时拒绝创建封禁", async () => {
     const auditError = new Error("audit unavailable");
     prismaMock.user.findUnique.mockResolvedValue({ id: "user-1" });
     prismaMock.userSuspension.create.mockResolvedValue({
@@ -319,7 +319,7 @@ describe("admin API service", () => {
     });
   });
 
-  it("retries suspension creation after an open-suspension uniqueness race", async () => {
+  it("未解除封禁唯一性竞争后重试封禁创建", async () => {
     const uniqueConflict = new Error("unique conflict");
     const createdSuspension = {
       id: "suspension-after-retry",
@@ -352,7 +352,7 @@ describe("admin API service", () => {
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(2);
   });
 
-  it("lifts every open suspension for the requested suspension user", async () => {
+  it("解除请求封禁用户的所有未解除封禁", async () => {
     const liftedSuspension = {
       id: "suspension-1",
       userId: "user-1",
@@ -397,7 +397,7 @@ describe("admin API service", () => {
     });
   });
 
-  it("rejects comment moderation when the required audit write fails", async () => {
+  it("所需审计写入失败时拒绝评论审核", async () => {
     const auditError = new Error("audit unavailable");
     commentFindUniqueMock.mockResolvedValue({ id: "comment-1" });
     commentUpdateMock.mockResolvedValue({ id: "comment-1", status: "deleted" });
@@ -427,7 +427,7 @@ describe("admin API service", () => {
     });
   });
 
-  it("rejects description moderation when the required audit write fails", async () => {
+  it("所需审计写入失败时拒绝描述审核", async () => {
     const auditError = new Error("audit unavailable");
     descriptionFindUniqueMock.mockResolvedValue({
       id: "description-1",

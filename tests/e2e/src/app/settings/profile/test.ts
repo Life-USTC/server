@@ -28,11 +28,11 @@ import {
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-test.describe("/settings?tab=profile", () => {
+test.describe("/settings?tab=profile 个人资料设置", () => {
   // Serial mode avoids intra-file contention on the shared debug user profile.
   test.describe.configure({ mode: "serial" });
 
-  test("requires authentication", async ({ page }, testInfo) => {
+  test("需要登录", async ({ page }, testInfo) => {
     await expectRequiresSignIn(page, "/settings?tab=profile");
     await captureStepScreenshot(
       page,
@@ -41,7 +41,7 @@ test.describe("/settings?tab=profile", () => {
     );
   });
 
-  test("displays all required profile fields", async ({ page }, testInfo) => {
+  test("显示所有必填个人资料字段", async ({ page }, testInfo) => {
     test.setTimeout(300_000);
     await signInAsDebugUser(page, "/settings?tab=profile");
 
@@ -64,7 +64,7 @@ test.describe("/settings?tab=profile", () => {
     await captureStepScreenshot(page, testInfo, "settings/profile-fields");
   });
 
-  test("can save name and rollback", async ({ page }, testInfo) => {
+  test("可保存姓名并回滚", async ({ page }, testInfo) => {
     test.setTimeout(300_000);
     await signInAsDebugUser(page, "/settings?tab=profile");
 
@@ -104,7 +104,7 @@ test.describe("/settings?tab=profile", () => {
     });
   });
 
-  test("requires username before saving", async ({ page }, testInfo) => {
+  test("保存前要求填写用户名", async ({ page }, testInfo) => {
     test.setTimeout(300_000);
     await signInAsDebugUser(page, "/settings?tab=profile");
 

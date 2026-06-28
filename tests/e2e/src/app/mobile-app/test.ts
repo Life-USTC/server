@@ -3,7 +3,7 @@ import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
 
-test("/mobile-app", async ({ page }, testInfo) => {
+test("/mobile-app 页面契约", async ({ page }, testInfo) => {
   await assertPageContract(page, { routePath: "/mobile-app", testInfo });
 });
 

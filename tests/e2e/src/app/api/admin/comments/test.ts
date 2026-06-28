@@ -16,23 +16,23 @@ import { assertApiContract } from "../../../_shared/api-contract";
 
 const BASE = "/api/admin/comments";
 
-test.describe("GET /api/admin/comments", () => {
-  test("api contract", async ({ request }) => {
+test.describe("GET /api/admin/comments 评论列表", () => {
+  test("API 契约", async ({ request }) => {
     await assertApiContract(request, { routePath: BASE });
   });
 
-  test("unauthenticated request returns 401", async ({ request }) => {
+  test("未认证请求返回 401", async ({ request }) => {
     const response = await request.get(BASE);
     expect(response.status()).toBe(401);
   });
 
-  test("non-admin authenticated user returns 401", async ({ page }) => {
+  test("非管理员认证用户返回 401", async ({ page }) => {
     await signInAsDebugUser(page, "/");
     const response = await page.request.get(BASE);
     expect(response.status()).toBe(401);
   });
 
-  test("admin can filter comments by status=softbanned", async ({ page }) => {
+  test("管理员可按 status=softbanned 筛选评论", async ({ page }) => {
     await signInAsDevAdmin(page, "/admin");
     const response = await page.request.get(`${BASE}?status=softbanned`);
     expect(response.status()).toBe(200);
@@ -45,9 +45,7 @@ test.describe("GET /api/admin/comments", () => {
     );
   });
 
-  test("admin can list active comments without status filter", async ({
-    page,
-  }) => {
+  test("管理员可无状态筛选列出活跃评论", async ({ page }) => {
     await signInAsDevAdmin(page, "/admin");
     const response = await page.request.get(`${BASE}?limit=5`);
     expect(response.status()).toBe(200);

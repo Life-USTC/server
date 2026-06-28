@@ -24,15 +24,13 @@ import { DEV_SEED } from "../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 
-test.describe("/settings", () => {
-  test("requires authentication", async ({ page }, testInfo) => {
+test.describe("/settings 设置中心", () => {
+  test("需要登录", async ({ page }, testInfo) => {
     await expectRequiresSignIn(page, "/settings");
     await captureStepScreenshot(page, testInfo, "settings-unauthorized");
   });
 
-  test("defaults to profile tab with seed user data", async ({
-    page,
-  }, testInfo) => {
+  test("默认进入个人资料标签并显示种子用户数据", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/settings");
 
     await expect(page).toHaveURL(/\/settings(?:\?.*)?$/);
@@ -43,7 +41,7 @@ test.describe("/settings", () => {
     await captureStepScreenshot(page, testInfo, "settings-default-profile");
   });
 
-  test("tab navigation switches sections", async ({ page }, testInfo) => {
+  test("标签导航切换分区", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/settings");
 
     // Navigate to accounts tab
@@ -79,9 +77,7 @@ test.describe("/settings", () => {
     await captureStepScreenshot(page, testInfo, "settings-profile-tab");
   });
 
-  test("settings path aliases render the matching sections", async ({
-    page,
-  }, testInfo) => {
+  test("设置路径别名渲染对应分区", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/settings/accounts");
     await expect(page).toHaveURL(/\/settings\/accounts(?:\?.*)?$/);
     await expect(page.getByText("GitHub").first()).toBeVisible();

@@ -3,8 +3,8 @@ import * as fixtures from "./utils/mcp-tool-test-utils";
 
 const context = fixtures.createMcpToolTestContext();
 
-describe("list_schedules_by_section — date range filter", () => {
-  it("returns all schedules for the section when no date filter is given", async () => {
+describe("list_schedules_by_section — 日期范围筛选", () => {
+  it("无日期筛选时返回该班级所有课程安排", async () => {
     const all = await context.client.call<{
       found?: boolean;
       schedules?: Array<{ id?: number; date?: string }>;
@@ -17,7 +17,7 @@ describe("list_schedules_by_section — date range filter", () => {
     expect((all.schedules?.length ?? 0) > 0).toBe(true);
   });
 
-  it("narrows results to a specific week with dateFrom+dateTo bare dates", async () => {
+  it("使用 dateFrom+dateTo 裸日期将结果缩小到特定周", async () => {
     const week = await context.client.call<{
       found?: boolean;
       schedules?: Array<{ id?: number; date?: string }>;
@@ -39,7 +39,7 @@ describe("list_schedules_by_section — date range filter", () => {
     }
   });
 
-  it("returns empty schedules array for a window with no matching schedules", async () => {
+  it("对无匹配课程安排的窗口返回空数组", async () => {
     const result = await context.client.call<{
       found?: boolean;
       schedules?: unknown[];
@@ -54,7 +54,7 @@ describe("list_schedules_by_section — date range filter", () => {
     expect(result.schedules).toHaveLength(0);
   });
 
-  it("returns error message for invalid dateFrom", async () => {
+  it("无效 dateFrom 返回错误消息", async () => {
     const result = await context.client.call<{
       success?: boolean;
       message?: string;
@@ -69,8 +69,8 @@ describe("list_schedules_by_section — date range filter", () => {
   });
 });
 
-describe("query_schedules — flexible date filters", () => {
-  it("accepts bare dates and returns paginated public schedules", async () => {
+describe("query_schedules — 灵活日期筛选", () => {
+  it("接受裸日期并返回分页公开课程安排", async () => {
     const result = await context.client.call<{
       data?: Array<{ date?: string; endTime?: unknown; startTime?: unknown }>;
       pagination?: { total?: number };
@@ -93,7 +93,7 @@ describe("query_schedules — flexible date filters", () => {
     }
   });
 
-  it("returns a descriptive payload for invalid date filters", async () => {
+  it("对无效日期筛选返回描述性载荷", async () => {
     const result = await context.client.call<{
       success?: boolean;
       message?: string;

@@ -38,8 +38,8 @@ type PinResponse = {
   error?: string | null;
 };
 
-test.describe("POST /api/dashboard-links/pin", () => {
-  test("returns 401 JSON when not authenticated", async ({ request }) => {
+test.describe("POST /api/dashboard-links/pin 接口", () => {
+  test("未登录时返回 401 JSON", async ({ request }) => {
     const response = await request.post(BASE, {
       form: { slug: "jw", action: "pin", returnTo: "/" },
       headers: JSON_HEADERS,
@@ -50,9 +50,7 @@ test.describe("POST /api/dashboard-links/pin", () => {
     expect(body.maxPinnedLinks).toBe(MAX_PINNED_LINKS);
   });
 
-  test("redirects when not authenticated in non-JSON mode", async ({
-    request,
-  }) => {
+  test("非 JSON 模式未登录时重定向", async ({ request }) => {
     const response = await request.post(BASE, {
       form: { slug: "jw", action: "pin", returnTo: "/?tab=links" },
       maxRedirects: 0,
@@ -60,7 +58,7 @@ test.describe("POST /api/dashboard-links/pin", () => {
     expect(response.status()).toBe(303);
   });
 
-  test("returns 400 JSON for missing slug", async ({ page }) => {
+  test("缺少 slug 时返回 400 JSON", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     const response = await page.request.post(BASE, {
@@ -70,7 +68,7 @@ test.describe("POST /api/dashboard-links/pin", () => {
     expect(response.status()).toBe(400);
   });
 
-  test("pin and unpin a link", async ({ page }) => {
+  test("置顶并取消置顶链接", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     // Use a less common slug to minimize interference with seeded state
@@ -110,7 +108,7 @@ test.describe("POST /api/dashboard-links/pin", () => {
     }
   });
 
-  test("unknown slug returns 200 with empty pinnedSlugs in JSON mode", async ({
+  test("未知 slug 在 JSON 模式下返回 200 且 pinnedSlugs 为空", async ({
     page,
   }) => {
     await signInAsDebugUser(page, "/");
@@ -124,7 +122,7 @@ test.describe("POST /api/dashboard-links/pin", () => {
     expect(body.maxPinnedLinks).toBe(MAX_PINNED_LINKS);
   });
 
-  test("redirect mode returns 303 for authenticated user", async ({ page }) => {
+  test("重定向模式下登录用户返回 303", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     const response = await page.request.post(BASE, {

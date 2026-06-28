@@ -14,10 +14,10 @@ import {
   MCP_CLIENT_SCOPES,
 } from "./helpers";
 
-test.describe("/api/mcp - OAuth token resource binding", () => {
+test.describe("/api/mcp - OAuth token 资源绑定", () => {
   test.describe.configure({ mode: "serial" });
 
-  test("opaque access token (no resource on token exchange) is rejected by /api/mcp", async ({
+  test("不透明 access token（token exchange 未带 resource）被 /api/mcp 拒绝", async ({
     page,
     request,
   }) => {
@@ -64,7 +64,7 @@ test.describe("/api/mcp - OAuth token resource binding", () => {
     await expect(response.json()).resolves.toEqual({ error: "invalid_token" });
   });
 
-  test("opaque MCP access token is rejected by protected REST routes", async ({
+  test("不透明 MCP access token 被受保护 REST 路由拒绝", async ({
     page,
     request,
   }) => {
@@ -89,7 +89,7 @@ test.describe("/api/mcp - OAuth token resource binding", () => {
     expect(response.status()).toBe(401);
   });
 
-  test("MCP refresh token without resource refreshes to a usable MCP access token", async ({
+  test("无 resource 的 MCP refresh token 可刷新为可用的 MCP access token", async ({
     page,
     request,
   }) => {
@@ -144,7 +144,7 @@ test.describe("/api/mcp - OAuth token resource binding", () => {
     expect(response.status()).toBe(200);
   });
 
-  test("resource-less MCP refresh token cannot omit resource to mint an MCP access token", async ({
+  test("无 resource 的 MCP refresh token 不能省略 resource 来签发 MCP access token", async ({
     page,
     request,
   }) => {
@@ -179,7 +179,7 @@ test.describe("/api/mcp - OAuth token resource binding", () => {
     );
   });
 
-  test("REST-only refresh token cannot omit resource to mint an MCP access token", async ({
+  test("仅 REST 的 refresh token 不能省略 resource 来签发 MCP access token", async ({
     page,
     request,
   }) => {

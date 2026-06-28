@@ -23,11 +23,11 @@ import { DEV_SEED } from "../../../../../utils/dev-seed";
 import { assertApiContract } from "../../../_shared/api-contract";
 
 test.describe("GET /api/semesters/current", () => {
-  test("contract", async ({ request }) => {
+  test("契约", async ({ request }) => {
     await assertApiContract(request, { routePath: "/api/semesters/current" });
   });
 
-  test("returns seed semester", async ({ request }) => {
+  test("返回 seed 学期", async ({ request }) => {
     const response = await request.get("/api/semesters/current");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -39,7 +39,7 @@ test.describe("GET /api/semesters/current", () => {
     expect(typeof body.nameCn).toBe("string");
   });
 
-  test("response has expected fields", async ({ request }) => {
+  test("响应包含预期字段", async ({ request }) => {
     const response = await request.get("/api/semesters/current");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as Record<string, unknown>;

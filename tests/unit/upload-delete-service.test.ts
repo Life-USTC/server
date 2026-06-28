@@ -82,7 +82,7 @@ describe("deleteOwnedUpload", () => {
     vi.clearAllMocks();
   });
 
-  it("deletes the storage object before deleting upload metadata", async () => {
+  it("先删除存储对象再删除上传元数据", async () => {
     const result = await deleteOwnedUpload({
       audit: { source: "mcp" },
       id: upload.id,
@@ -110,7 +110,7 @@ describe("deleteOwnedUpload", () => {
     });
   });
 
-  it("surfaces audit failures after storage deletion instead of dropping audit rows", async () => {
+  it("在存储删除后暴露审计失败而不是丢弃审计记录", async () => {
     const auditError = new Error("audit unavailable");
     auditLogCreateMock.mockRejectedValueOnce(auditError);
 
@@ -133,7 +133,7 @@ describe("deleteOwnedUpload", () => {
     });
   });
 
-  it("preserves upload metadata when storage deletion fails", async () => {
+  it("存储删除失败时保留上传元数据", async () => {
     const storageError = new Error("R2 unavailable");
     deleteStorageObjectMock.mockRejectedValue(storageError);
 

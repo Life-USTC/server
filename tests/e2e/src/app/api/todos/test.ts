@@ -53,7 +53,7 @@ test("/api/todos GET 登录后返回 seed 待办", async ({ page }) => {
   ).toBe(true);
 });
 
-test("/api/todos GET supports completed filter and limit", async ({ page }) => {
+test("/api/todos GET 支持 completed 筛选与 limit", async ({ page }) => {
   await signInAsDebugUser(page, "/");
 
   const response = await page.request.get("/api/todos?completed=false&limit=1");
@@ -66,9 +66,7 @@ test("/api/todos GET supports completed filter and limit", async ({ page }) => {
   expect(body.todos?.every((todo) => todo.completed === false)).toBe(true);
 });
 
-test("/api/todos GET accepts bare date filters and rejects invalid dates", async ({
-  page,
-}) => {
+test("/api/todos GET 接受裸日期筛选并拒绝无效日期", async ({ page }) => {
   await signInAsDebugUser(page, "/");
 
   const response = await page.request.get(
@@ -94,14 +92,14 @@ test("/api/todos GET accepts bare date filters and rejects invalid dates", async
   expect(invalidResponse.status()).toBe(400);
 });
 
-test("/api/todos GET rejects invalid limit", async ({ page }) => {
+test("/api/todos GET 拒绝无效 limit", async ({ page }) => {
   await signInAsDebugUser(page, "/");
 
   const response = await page.request.get("/api/todos?limit=0");
   expect(response.status()).toBe(400);
 });
 
-test("todos have all required TodoItem fields", async ({ page }) => {
+test("待办包含所有必需的 TodoItem 字段", async ({ page }) => {
   await signInAsDebugUser(page, "/");
 
   const response = await page.request.get("/api/todos");

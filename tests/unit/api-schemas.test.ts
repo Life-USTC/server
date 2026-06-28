@@ -52,7 +52,7 @@ function openApiSchema(name: string) {
 }
 
 describe("matchSectionCodesRequestSchema", () => {
-  it("accepts valid payload", () => {
+  it("接受有效 payload", () => {
     const result = matchSectionCodesRequestSchema.safeParse({
       codes: ["COMP101.01", "MATH204.02"],
       semesterId: "12",
@@ -61,7 +61,7 @@ describe("matchSectionCodesRequestSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rejects empty codes and invalid code format", () => {
+  it("拒绝空 code 和无效 code 格式", () => {
     const empty = matchSectionCodesRequestSchema.safeParse({
       codes: [],
     });
@@ -75,7 +75,7 @@ describe("matchSectionCodesRequestSchema", () => {
 });
 
 describe("homeworkCreateRequestSchema", () => {
-  it("accepts valid payload", () => {
+  it("接受有效 payload", () => {
     const result = homeworkCreateRequestSchema.safeParse({
       sectionId: "12",
       title: "  作业 1  ",
@@ -85,7 +85,7 @@ describe("homeworkCreateRequestSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("accepts nullable description like the MCP create tool", () => {
+  it("接受可空 description，与 MCP 创建工具一致", () => {
     const result = homeworkCreateRequestSchema.safeParse({
       sectionJwId: "12345",
       title: "作业 1",
@@ -94,7 +94,7 @@ describe("homeworkCreateRequestSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rejects missing title", () => {
+  it("拒绝缺失 title", () => {
     const result = homeworkCreateRequestSchema.safeParse({
       sectionId: 3,
       title: "",
@@ -102,7 +102,7 @@ describe("homeworkCreateRequestSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("validates homework description after trimming surrounding whitespace", () => {
+  it("在去除 homework description 首尾空白后校验长度", () => {
     const description = "x".repeat(HOMEWORK_DESCRIPTION_MAX_LENGTH);
     const result = homeworkCreateRequestSchema.safeParse({
       sectionId: "12",
@@ -118,7 +118,7 @@ describe("homeworkCreateRequestSchema", () => {
 });
 
 describe("todoCreateRequestSchema", () => {
-  it("validates todo content after trimming surrounding whitespace", () => {
+  it("在去除 todo content 首尾空白后校验长度", () => {
     const content = "x".repeat(TODO_CONTENT_MAX_LENGTH);
     const result = todoCreateRequestSchema.safeParse({
       title: "Read Chapter 1",
@@ -133,7 +133,7 @@ describe("todoCreateRequestSchema", () => {
 });
 
 describe("homeworkCompletionBatchRequestSchema", () => {
-  it("accepts completion updates", () => {
+  it("接受完成状态更新", () => {
     const result = homeworkCompletionBatchRequestSchema.safeParse({
       items: [
         { homeworkId: "homework-1", completed: true },
@@ -144,7 +144,7 @@ describe("homeworkCompletionBatchRequestSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rejects empty item lists and blank homework IDs", () => {
+  it("拒绝空 item 列表和空 homework ID", () => {
     expect(
       homeworkCompletionBatchRequestSchema.safeParse({ items: [] }).success,
     ).toBe(false);
@@ -157,7 +157,7 @@ describe("homeworkCompletionBatchRequestSchema", () => {
 });
 
 describe("descriptionUpsertRequestSchema", () => {
-  it("accepts homework string targetId", () => {
+  it("接受 homework 字符串 targetId", () => {
     const result = descriptionUpsertRequestSchema.safeParse({
       targetType: "homework",
       targetId: "hw_123",
@@ -166,7 +166,7 @@ describe("descriptionUpsertRequestSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rejects numeric targets with invalid id", () => {
+  it("拒绝带有无效 id 的数字目标", () => {
     const result = descriptionUpsertRequestSchema.safeParse({
       targetType: "section",
       targetId: "abc",
@@ -175,7 +175,7 @@ describe("descriptionUpsertRequestSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("documents required target-reference alternatives in OpenAPI", () => {
+  it("在 OpenAPI 中记录必填的目标引用可选方案", () => {
     const schema = openApiSchema("descriptionUpsertRequestSchema");
     expect(schema.required).toEqual(
       expect.arrayContaining(["targetType", "content"]),
@@ -192,8 +192,8 @@ describe("descriptionUpsertRequestSchema", () => {
   });
 });
 
-describe("other request schemas", () => {
-  it("validates upload create payload", () => {
+describe("其他请求 schema", () => {
+  it("校验 upload 创建 payload", () => {
     const valid = uploadCreateRequestSchema.safeParse({
       filename: "a.txt",
       size: "123",
@@ -201,7 +201,7 @@ describe("other request schemas", () => {
     expect(valid.success).toBe(true);
   });
 
-  it("rejects upload filenames with control characters", () => {
+  it("拒绝包含控制字符的 upload 文件名", () => {
     expect(
       uploadCreateRequestSchema.safeParse({
         filename: "a\nb.txt",
@@ -221,7 +221,7 @@ describe("other request schemas", () => {
     ).toBe(false);
   });
 
-  it("validates comment list public target identifiers", () => {
+  it("校验评论列表公开目标标识符", () => {
     expect(
       commentsQuerySchema.safeParse({
         targetType: "section",
@@ -248,7 +248,7 @@ describe("other request schemas", () => {
     ).toBe(false);
   });
 
-  it("validates comment create public target identifiers", () => {
+  it("校验评论创建公开目标标识符", () => {
     expect(
       commentCreateRequestSchema.safeParse({
         targetType: "section",
@@ -311,7 +311,7 @@ describe("other request schemas", () => {
     ).toBe(false);
   });
 
-  it("rejects unsupported anonymous comment visibility", () => {
+  it("拒绝不支持的匿名评论可见性", () => {
     expect(
       commentCreateRequestSchema.safeParse({
         targetType: "section",
@@ -328,7 +328,7 @@ describe("other request schemas", () => {
     ).toBe(false);
   });
 
-  it("validates centralized MCP comment target identifiers", () => {
+  it("校验集中式 MCP 评论目标标识符", () => {
     expect(
       commentMcpTargetReadInputSchema.safeParse({
         targetType: "section",
@@ -368,14 +368,14 @@ describe("other request schemas", () => {
     ).toBe(false);
   });
 
-  it("validates calendar subscription payload", () => {
+  it("校验日历订阅 payload", () => {
     const valid = calendarSubscriptionCreateRequestSchema.safeParse({
       sectionIds: [1, 2, 3],
     });
     expect(valid.success).toBe(true);
   });
 
-  it("validates calendar subscription append payload", () => {
+  it("校验日历订阅追加 payload", () => {
     const valid = calendarSubscriptionAppendRequestSchema.safeParse({
       sectionIds: [1, 2, 3],
     });
@@ -385,7 +385,7 @@ describe("other request schemas", () => {
     expect(missingIds.success).toBe(false);
   });
 
-  it("documents positive calendar subscription section IDs in OpenAPI", () => {
+  it("在 OpenAPI 中记录正数日历订阅 section ID", () => {
     for (const name of [
       "calendarSubscriptionAppendRequestSchema",
       "calendarSubscriptionRemoveRequestSchema",
@@ -401,21 +401,21 @@ describe("other request schemas", () => {
     }
   });
 
-  it("rejects invalid reaction type", () => {
+  it("拒绝无效 reaction 类型", () => {
     const invalid = commentReactionRequestSchema.safeParse({
       type: "boom",
     });
     expect(invalid.success).toBe(false);
   });
 
-  it("rejects unsupported locale", () => {
+  it("拒绝不支持的 locale", () => {
     const invalid = localeUpdateRequestSchema.safeParse({
       locale: "fr-fr",
     });
     expect(invalid.success).toBe(false);
   });
 
-  it("validates query schemas", () => {
+  it("校验查询 schema", () => {
     expect(
       sectionsQuerySchema.safeParse({ courseId: "1", ids: "1,2" }).success,
     ).toBe(true);
@@ -454,7 +454,7 @@ describe("other request schemas", () => {
     ).toBe(false);
   });
 
-  it("validates documented query limit bounds", () => {
+  it("校验文档中记录的查询 limit 边界", () => {
     for (const schema of [
       coursesQuerySchema,
       sectionsQuerySchema,
@@ -495,7 +495,7 @@ describe("other request schemas", () => {
     ).toBe(false);
   });
 
-  it("validates new section query fields added in filter expansion", () => {
+  it("校验筛选扩展中新增的 section 查询字段", () => {
     // JW-id aliases and string-based filters
     expect(
       sectionsQuerySchema.safeParse({
@@ -513,7 +513,7 @@ describe("other request schemas", () => {
     expect(sectionsQuerySchema.safeParse({ jwIds: "1" }).success).toBe(true);
   });
 
-  it("validates new schedule query fields added in filter expansion", () => {
+  it("校验筛选扩展中新增的 schedule 查询字段", () => {
     expect(
       schedulesQuerySchema.safeParse({
         sectionJwId: "9902001",
@@ -532,7 +532,7 @@ describe("other request schemas", () => {
     );
   });
 
-  it("validates shared response schemas", () => {
+  it("校验共享响应 schema", () => {
     expect(
       meResponseSchema.safeParse({
         id: "user_1",

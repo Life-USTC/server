@@ -54,13 +54,13 @@ function request(path: string) {
   });
 }
 
-describe("homework REST locale adapters", () => {
+describe("homework REST locale 适配", () => {
   afterEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
   });
 
-  it("passes request locale to public homework list reads", async () => {
+  it("将请求 locale 传递给公开作业列表读取", async () => {
     resolveApiUserIdMock.mockResolvedValue("viewer-1");
     resolveHomeworkSectionIdsMock.mockResolvedValue({
       ok: true,
@@ -93,7 +93,7 @@ describe("homework REST locale adapters", () => {
     });
   });
 
-  it("passes request locale to subscribed homework list reads", async () => {
+  it("将请求 locale 传递给已订阅作业列表读取", async () => {
     requireAuthMock.mockResolvedValue({ userId: "user-1" });
     getViewerContextMock.mockResolvedValue({ userId: "user-1" });
     getSubscribedSectionIdsMock.mockResolvedValue([12]);

@@ -22,7 +22,7 @@ vi.mock("@/lib/db/prisma", () => ({
   prisma: prismaMock,
 }));
 
-describe("debug auth config", () => {
+describe("debug 认证配置", () => {
   beforeEach(() => {
     hashPasswordMock.mockResolvedValue("hashed-debug-password");
     prismaMock.account.upsert.mockResolvedValue({});
@@ -37,7 +37,7 @@ describe("debug auth config", () => {
     vi.unstubAllEnvs();
   });
 
-  it("builds default debug provider configs", async () => {
+  it("构建默认 debug 提供者配置", async () => {
     const { getDebugProviderConfig } = await import("@/lib/auth/debug-auth");
 
     expect(getDebugProviderConfig(DEV_DEBUG_PROVIDER_ID)).toEqual({
@@ -57,7 +57,7 @@ describe("debug auth config", () => {
     });
   });
 
-  it("trims and lowercases environment overrides", async () => {
+  it("对环境变量覆盖值进行修剪并小写化", async () => {
     vi.stubEnv("DEV_DEBUG_USERNAME", "  Custom-User ");
     vi.stubEnv("DEV_DEBUG_NAME", " Custom User ");
     vi.stubEnv("DEV_DEBUG_EMAIL", " USER@Example.TEST ");
@@ -73,7 +73,7 @@ describe("debug auth config", () => {
     });
   });
 
-  it("requires explicit debug passwords for non-development E2E auth", async () => {
+  it("非开发环境 E2E 认证需要显式 debug 密码", async () => {
     vi.stubEnv("NODE_ENV", "test");
     vi.stubEnv("E2E_DEBUG_AUTH", "1");
 
@@ -84,7 +84,7 @@ describe("debug auth config", () => {
     );
   });
 
-  it("completes matched stale debug users", async () => {
+  it("补全匹配的过期 debug 用户", async () => {
     const { ensureDebugCredentialUser, getDebugProviderConfig } = await import(
       "@/lib/auth/debug-auth"
     );
@@ -137,7 +137,7 @@ describe("debug auth config", () => {
     });
   });
 
-  it("prefers username identity and neutralizes duplicate debug-email users", async () => {
+  it("优先使用用户名身份并中和重复的 debug 邮箱用户", async () => {
     const { ensureDebugCredentialUser, getDebugProviderConfig } = await import(
       "@/lib/auth/debug-auth"
     );

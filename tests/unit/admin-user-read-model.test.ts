@@ -4,8 +4,8 @@ import {
   toAdminUserListItem,
 } from "@/features/admin/server/admin-user-read-model";
 
-describe("admin user read model", () => {
-  it("builds one shared search filter for id, name, username, and email", () => {
+describe("admin 用户读取模型", () => {
+  it("为 id、name、username 和 email 构建一个共享搜索筛选器", () => {
     expect(buildAdminUsersWhere("  alice  ")).toEqual({
       OR: [
         { id: { contains: "alice", mode: "insensitive" } },
@@ -20,7 +20,7 @@ describe("admin user read model", () => {
     });
   });
 
-  it("keeps suspension data out of API rows unless selected", () => {
+  it("除非选中否则将封禁数据排除在 API 行之外", () => {
     const baseUser = {
       id: "user-1",
       name: "Alice",

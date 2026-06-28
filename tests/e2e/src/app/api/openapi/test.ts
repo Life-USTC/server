@@ -20,12 +20,12 @@
 import { expect, test } from "@playwright/test";
 import { assertApiContract } from "../../_shared/api-contract";
 
-test.describe("GET /api/openapi", () => {
-  test("contract", async ({ request }) => {
+test.describe("GET /api/openapi - OpenAPI 规范", () => {
+  test("契约", async ({ request }) => {
     await assertApiContract(request, { routePath: "/api/openapi" });
   });
 
-  test("returns valid OpenAPI 3.0.0 spec", async ({ request }) => {
+  test("返回有效的 OpenAPI 3.0.0 规范", async ({ request }) => {
     const response = await request.get("/api/openapi");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -37,7 +37,7 @@ test.describe("GET /api/openapi", () => {
     expect(typeof body.info?.title).toBe("string");
   });
 
-  test("spec contains known API paths", async ({ request }) => {
+  test("规范包含已知 API 路径", async ({ request }) => {
     const response = await request.get("/api/openapi");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -53,9 +53,7 @@ test.describe("GET /api/openapi", () => {
     expect(body.paths?.["/.well-known/openid-configuration"]?.get).toBeTruthy();
   });
 
-  test("spec exposes concrete schemas for generated clients", async ({
-    request,
-  }) => {
+  test("规范暴露生成客户端所需的具体 schema", async ({ request }) => {
     const response = await request.get("/api/openapi");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -91,9 +89,7 @@ test.describe("GET /api/openapi", () => {
     });
   });
 
-  test("request bodies and redirect endpoints stay accurate in the spec", async ({
-    request,
-  }) => {
+  test("请求体与重定向端点在规范中保持准确", async ({ request }) => {
     const response = await request.get("/api/openapi");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -174,7 +170,7 @@ test.describe("GET /api/openapi", () => {
     ).toBeTruthy();
   });
 
-  test("spec exposes auth security metadata", async ({ request }) => {
+  test("规范暴露认证安全元数据", async ({ request }) => {
     const response = await request.get("/api/openapi");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -257,7 +253,7 @@ test.describe("GET /api/openapi", () => {
     );
   });
 
-  test("static openapi.generated.json is accessible", async ({ request }) => {
+  test("静态 openapi.generated.json 可访问", async ({ request }) => {
     const response = await request.get("/openapi.generated.json");
     expect(response.status()).toBe(200);
     expect(response.headers()["content-type"]).toContain("application/json");

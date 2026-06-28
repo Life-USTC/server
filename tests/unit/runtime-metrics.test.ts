@@ -10,12 +10,12 @@ import {
   resetRuntimeMetricsForTest,
 } from "@/lib/metrics/runtime-metrics";
 
-describe("runtime metrics", () => {
+describe("运行时指标", () => {
   afterEach(() => {
     resetRuntimeMetricsForTest();
   });
 
-  it("renders counters with stable Prometheus labels", () => {
+  it("使用稳定的 Prometheus 标签渲染计数器", () => {
     incrementCounter("life_ustc_mcp_tool_calls_total", {
       tool: "get_my_profile",
     });
@@ -28,7 +28,7 @@ describe("runtime metrics", () => {
     );
   });
 
-  it("renders duration count and sum", () => {
+  it("渲染持续时间计数和总和", () => {
     observeDurationMs("life_ustc_mcp_http_request_duration_ms", 12, {
       method: "POST",
     });
@@ -43,7 +43,7 @@ describe("runtime metrics", () => {
     );
   });
 
-  it("bounds new metric series", () => {
+  it("限制新增指标序列", () => {
     for (let i = 0; i < 505; i += 1) {
       incrementCounter("life_ustc_mcp_tool_calls_total", {
         tool: `tool_${i}`,
@@ -58,7 +58,7 @@ describe("runtime metrics", () => {
     expect(metrics).not.toContain('tool="tool_504"');
   });
 
-  it("records storage operation status and duration", () => {
+  it("记录存储操作状态和持续时间", () => {
     recordStorageOperationMetric({
       operation: "PutObjectSignedUrl",
       status: "success",
@@ -74,7 +74,7 @@ describe("runtime metrics", () => {
     );
   });
 
-  it("records audit write status and duration", () => {
+  it("记录审计写入状态和持续时间", () => {
     recordAuditWriteMetric({
       action: "comment_create",
       status: "success",

@@ -10,8 +10,8 @@ import {
 } from "@/features/dashboard-links/lib/dashboard-links";
 import { buildDashboardLinkSummaries } from "@/features/dashboard-links/server/dashboard-link-selection";
 
-describe("dashboard link recommendations", () => {
-  it("returns most-clicked links first", () => {
+describe("仪表盘链接推荐", () => {
+  it("按点击次数降序返回链接", () => {
     const result = recommendDashboardLinks({
       mail: 2,
       jw: 8,
@@ -22,7 +22,7 @@ describe("dashboard link recommendations", () => {
     expect(result.map((item) => item.slug)).toEqual(["jw", "library", "mail"]);
   });
 
-  it("falls back to deterministic order when no history exists", () => {
+  it("无历史记录时回退到确定性顺序", () => {
     const result = recommendDashboardLinks({});
 
     expect(result).toHaveLength(3);
@@ -33,7 +33,7 @@ describe("dashboard link recommendations", () => {
     ).toBe(true);
   });
 
-  it("supports exclude slugs and custom limit", () => {
+  it("支持排除 slug 和自定义数量限制", () => {
     const result = recommendDashboardLinks(
       {
         jw: 10,
@@ -47,14 +47,14 @@ describe("dashboard link recommendations", () => {
     expect(result.map((item) => item.slug)).toEqual(["mail", "official"]);
   });
 
-  it("requires English catalog labels for every link", () => {
+  it("要求每个链接都有英文目录标签", () => {
     for (const link of USTC_DASHBOARD_LINKS) {
       expect(link.localizations["en-us"]?.title, link.slug).toBeTruthy();
       expect(link.localizations["en-us"]?.description, link.slug).toBeTruthy();
     }
   });
 
-  it("projects dashboard link labels by locale", () => {
+  it("按地区设置投影仪表盘链接标签", () => {
     const mail = USTC_DASHBOARD_LINKS.find((link) => link.slug === "mail");
     expect(mail).toBeDefined();
     if (!mail) throw new Error("mail link missing");
@@ -69,7 +69,7 @@ describe("dashboard link recommendations", () => {
     });
   });
 
-  it("builds search summaries from localized link labels", () => {
+  it("根据本地化链接标签构建搜索摘要", () => {
     const zhLinks = buildDashboardLinkSummaries({}, new Set(), "zh-cn");
     const enLinks = buildDashboardLinkSummaries({}, new Set(), "en-us");
     const zhMail = zhLinks.dashboardLinks.find((link) => link.slug === "mail");

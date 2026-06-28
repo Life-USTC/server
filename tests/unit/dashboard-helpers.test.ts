@@ -40,8 +40,8 @@ function homework(
   };
 }
 
-describe("dashboard helpers", () => {
-  it("deduplicates and sorts time slots without reparsing numeric times", () => {
+describe("仪表盘辅助函数", () => {
+  it("去重并排序时间段，不重新解析数字时间", () => {
     expect(
       buildTimeSlots([
         session(1000, 1120),
@@ -54,7 +54,7 @@ describe("dashboard helpers", () => {
     ]);
   });
 
-  it("groups incomplete homework by Shanghai due date windows", () => {
+  it("按上海截止日期窗口对未完成作业分组", () => {
     const todayStart = shanghaiDayjs("2026-05-22T00:00:00+08:00");
     const today = homework("today", "2026-05-22T10:00:00+08:00");
     const soon = homework("soon", "2026-05-25T23:59:00+08:00");

@@ -48,7 +48,7 @@ describe("location-utils", () => {
   }
 
   describe("getLocationGeo", () => {
-    it("returns null for empty string", async () => {
+    it("空字符串返回 null", async () => {
       const { getLocationGeo } = await import(
         "@/shared/lib/location/location-utils"
       );
@@ -56,7 +56,7 @@ describe("location-utils", () => {
       expect(result).toBeNull();
     });
 
-    it("finds exact match (case-insensitive)", async () => {
+    it("精确匹配（不区分大小写）", async () => {
       mockStaticFiles();
       const { getLocationGeo } = await import(
         "@/shared/lib/location/location-utils"
@@ -69,7 +69,7 @@ describe("location-utils", () => {
       });
     });
 
-    it("finds exact match with different casing", async () => {
+    it("不同大小写时精确匹配", async () => {
       mockStaticFiles();
       const { getLocationGeo } = await import(
         "@/shared/lib/location/location-utils"
@@ -82,7 +82,7 @@ describe("location-utils", () => {
       });
     });
 
-    it("falls back to starts-with match", async () => {
+    it("回退到前缀匹配", async () => {
       mockStaticFiles();
       const { getLocationGeo } = await import(
         "@/shared/lib/location/location-utils"
@@ -95,7 +95,7 @@ describe("location-utils", () => {
       });
     });
 
-    it("returns null when no match is found", async () => {
+    it("无匹配时返回 null", async () => {
       mockStaticFiles();
       const { getLocationGeo } = await import(
         "@/shared/lib/location/location-utils"
@@ -104,7 +104,7 @@ describe("location-utils", () => {
       expect(result).toBeNull();
     });
 
-    it("returns null when published geo data is unavailable", async () => {
+    it("发布的地理数据不可用时返回 null", async () => {
       vi.stubGlobal(
         "fetch",
         vi.fn(async () => new Response("not found", { status: 404 })),
@@ -116,7 +116,7 @@ describe("location-utils", () => {
       expect(result).toBeNull();
     });
 
-    it("logs and omits enrichment when published geo JSON is invalid", async () => {
+    it("发布的 geo JSON 无效时记录日志并跳过增强", async () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       vi.stubGlobal(
         "fetch",
@@ -134,7 +134,7 @@ describe("location-utils", () => {
   });
 
   describe("getBuildingImagePath", () => {
-    it("returns null for empty string", async () => {
+    it("空字符串返回 null", async () => {
       const { getBuildingImagePath } = await import(
         "@/shared/lib/location/location-utils"
       );
@@ -142,7 +142,7 @@ describe("location-utils", () => {
       expect(result).toBeNull();
     });
 
-    it("matches regex rules and builds a URL from the published static host", async () => {
+    it("按正则规则匹配并从发布的静态主机构建 URL", async () => {
       mockStaticFiles();
       const { getBuildingImagePath } = await import(
         "@/shared/lib/location/location-utils"
@@ -153,7 +153,7 @@ describe("location-utils", () => {
       );
     });
 
-    it("uses the published static host for relative building image rules", async () => {
+    it("相对建筑图片规则使用发布的静态主机", async () => {
       mockStaticFiles();
       const { getBuildingImagePath } = await import(
         "@/shared/lib/location/location-utils"
@@ -164,7 +164,7 @@ describe("location-utils", () => {
       );
     });
 
-    it("preserves absolute image URLs", async () => {
+    it("保留绝对图片 URL", async () => {
       mockStaticFiles({
         buildingRules: [
           { regex: "5101", path: "https://cdn.example.com/5101.jpg" },
@@ -177,7 +177,7 @@ describe("location-utils", () => {
       expect(result).toBe("https://cdn.example.com/5101.jpg");
     });
 
-    it("returns null when no regex matches", async () => {
+    it("无正则匹配时返回 null", async () => {
       mockStaticFiles();
       const { getBuildingImagePath } = await import(
         "@/shared/lib/location/location-utils"

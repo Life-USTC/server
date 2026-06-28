@@ -4,7 +4,7 @@ import * as fixtures from "./utils/mcp-tool-test-utils";
 const context = fixtures.createMcpToolTestContext();
 
 describe("get_my_profile", () => {
-  it("returns the authenticated user's REST-equivalent profile fields", async () => {
+  it("返回认证用户的 REST 等价资料字段", async () => {
     const profile = await context.client.call<{
       id?: string;
       email?: string | null;
@@ -27,7 +27,7 @@ describe("get_my_profile", () => {
 });
 
 describe("get_public_user_profile", () => {
-  it("returns public profile hierarchy by username", async () => {
+  it("按用户名返回公开资料层级", async () => {
     const profile = await context.client.call<{
       found?: boolean;
       user?: {
@@ -63,7 +63,7 @@ describe("get_public_user_profile", () => {
     expect(typeof profile.user?._count?.subscribedSections).toBe("number");
   });
 
-  it("returns not_found for missing users", async () => {
+  it("缺失用户返回 not_found", async () => {
     const result = await context.client.call<{
       success?: boolean;
       found?: boolean;

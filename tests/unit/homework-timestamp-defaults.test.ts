@@ -17,8 +17,8 @@ import {
   homeworkDueInDays as sectionHomeworkDueInDays,
 } from "@/features/section-detail/lib/section-detail-controller-helpers";
 
-describe("homework timestamp defaults", () => {
-  it("builds the shared initial homework timestamp draft", () => {
+describe("homework 时间戳默认值", () => {
+  it("构建共享的初始作业时间戳草稿", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-03-17T02:30:00.000Z"));
 
@@ -33,7 +33,7 @@ describe("homework timestamp defaults", () => {
     }
   });
 
-  it("builds shared homework timestamp shortcuts", () => {
+  it("构建共享的作业时间戳快捷方法", () => {
     const now = new Date("2026-03-17T10:30:00+08:00");
 
     expect(homeworkTimestampNow(now)).toBe("2026-03-17T10:30");
@@ -50,7 +50,7 @@ describe("homework timestamp defaults", () => {
     );
   });
 
-  it("exposes the same timestamp defaults to dashboard and section detail", () => {
+  it("向 dashboard 和 section detail 暴露相同的时间戳默认值", () => {
     expect(initialCreateHomeworkDraft).toBe(initialHomeworkTimestampDraft);
     expect(initialHomeworkDraft).toBe(initialHomeworkTimestampDraft);
     expect(dashboardHomeworkDueInDays).toBe(homeworkDueInDays);

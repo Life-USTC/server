@@ -26,8 +26,8 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
 
-test.describe("dashboard exams", () => {
-  test("unauthenticated ?tab=exams shows public view (no exams tab)", async ({
+test.describe("仪表盘考试", () => {
+  test("未登录 ?tab=exams 显示公共视图（无考试标签）", async ({
     page,
   }, testInfo) => {
     await gotoAndWaitForReady(page, "/?tab=exams", {
@@ -53,9 +53,7 @@ test.describe("dashboard exams", () => {
     await captureStepScreenshot(page, testInfo, "exams/unauthenticated");
   });
 
-  test("authenticated shows exam filter toolbar and cards", async ({
-    page,
-  }, testInfo) => {
+  test("登录后显示考试筛选工具栏和卡片", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/exams");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/dashboard/exams", {
@@ -84,9 +82,7 @@ test.describe("dashboard exams", () => {
     await captureStepScreenshot(page, testInfo, "exams/filter-toolbar");
   });
 
-  test("exam cards display required fields (course name, date, times, mode, rooms)", async ({
-    page,
-  }, testInfo) => {
+  test("考试卡片显示必填字段", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/exams");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/dashboard/exams", {
@@ -160,7 +156,7 @@ test.describe("dashboard exams", () => {
     await captureStepScreenshot(page, testInfo, "exams/card-fields");
   });
 
-  test("exam card links to section detail page", async ({ page }, testInfo) => {
+  test("考试卡片链接到班级详情页", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/exams");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/dashboard/exams", {
@@ -181,7 +177,7 @@ test.describe("dashboard exams", () => {
     await captureStepScreenshot(page, testInfo, "exams/section-link");
   });
 
-  test("completed filter shows past exams, incomplete shows upcoming", async ({
+  test("已完成筛选显示过往考试，未完成显示即将到来", async ({
     page,
   }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/exams");

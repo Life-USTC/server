@@ -3,7 +3,7 @@ import * as fixtures from "./utils/mcp-tool-test-utils";
 
 const context = fixtures.createMcpToolTestContext();
 
-describe("atTime override — time-sensitive tools are anchored to SEED_DATE", () => {
+describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
   let originalSubscriptionSectionIds: number[] = [];
   let seedSectionId = 0;
 
@@ -23,7 +23,7 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
     );
   });
 
-  it("get_my_7days_timeline with atTime returns the seed window and correct range", async () => {
+  it("get_my_7days_timeline 使用 atTime 返回种子窗口和正确范围", async () => {
     const result = await context.client.call<{
       range?: { from?: string; to?: string };
       total?: number;
@@ -46,7 +46,7 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
     expect((result.events ?? []).some((e) => e.type === "schedule")).toBe(true);
   });
 
-  it("get_my_7days_timeline summary mode with atTime returns grouped collection", async () => {
+  it("get_my_7days_timeline 摘要模式使用 atTime 返回分组集合", async () => {
     const result = await context.client.call<{
       total?: number;
       events?: {
@@ -71,7 +71,7 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
     }
   });
 
-  it("get_upcoming_deadlines with atTime only returns events after the anchor", async () => {
+  it("get_upcoming_deadlines 使用 atTime 仅返回锚点之后的事件", async () => {
     const result = await context.client.call<{
       total?: number;
       deadlines?: Array<{ type?: string; at?: string }>;
@@ -95,7 +95,7 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
     }
   });
 
-  it("get_upcoming_deadlines excludes already-started exams", async () => {
+  it("get_upcoming_deadlines 排除已开始考试", async () => {
     const section = await fixtures.prisma.section.findUnique({
       where: { jwId: fixtures.DEV_SEED.section.jwId },
       select: { id: true },
@@ -142,7 +142,7 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
     }
   });
 
-  it("get_upcoming_deadlines treats date-only atTime as Shanghai day start", async () => {
+  it("get_upcoming_deadlines 将仅日期 atTime 视为上海天开始", async () => {
     const dueAt = `${fixtures.SEED_DATE}T06:30:00+08:00`;
     const todo = await fixtures.prisma.todo.create({
       data: {
@@ -179,7 +179,7 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
     }
   });
 
-  it("get_my_overview with atTime reflects the seed day's schedule count and sample limit", async () => {
+  it("get_my_overview 使用 atTime 反映种子日课程数及样本限制", async () => {
     const result = await context.client.call<{
       overview?: {
         pendingTodosCount?: number;
@@ -219,7 +219,7 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
     expect((summary.samples?.dueTodos?.items?.length ?? 0) <= 3).toBe(true);
   });
 
-  it("get_my_overview treats date-only atTime as Shanghai day start", async () => {
+  it("get_my_overview 将仅日期 atTime 视为上海天开始", async () => {
     const dueAt = `${fixtures.SEED_DATE}T06:30:00+08:00`;
     const todo = await fixtures.prisma.todo.create({
       data: {
@@ -250,7 +250,7 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
     }
   });
 
-  it("get_my_overview honors the compact overview homework window", async () => {
+  it("get_my_overview 遵守紧凑总览作业窗口", async () => {
     const title = `[integration-test] outside overview window ${Date.now()}`;
     const homework = await fixtures.prisma.homework.create({
       data: {
@@ -302,7 +302,7 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
     }
   });
 
-  it("get_my_overview summary mode stays smaller after all due samples pass", async () => {
+  it("get_my_overview 摘要模式在所有到期样本结束后保持更小", async () => {
     const atTime = `${fixtures.SEED_PLUS_TWELVE_DAYS}T12:00:00+08:00`;
     const defaultPayload = await context.client.callTool("get_my_overview", {
       locale: "zh-cn",
@@ -329,7 +329,7 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
     expect(summaryPayload.samples?.upcomingExams?.items).toBeUndefined();
   });
 
-  it("get_my_overview excludes same-day exams that already ended", async () => {
+  it("get_my_overview 排除当天已结束的考试", async () => {
     const atTime = `${fixtures.SEED_DATE}T12:00:00+08:00`;
     const before = await context.client.call<{
       overview?: { upcomingExamsCount?: number };
@@ -389,7 +389,7 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
     }
   });
 
-  it("get_my_overview excludes date-unknown exams from upcoming counts", async () => {
+  it("get_my_overview 从未知日期考试中排除待考计数", async () => {
     const before = await context.client.call<{
       overview?: { upcomingExamsCount?: number };
     }>("get_my_overview", {

@@ -31,14 +31,14 @@ vi.mock("@/lib/mcp/urls", () => ({
   ],
 }));
 
-describe("OAuth token route", () => {
+describe("OAuth 令牌路由", () => {
   beforeEach(() => {
     betterAuthHandlerMock.mockReset();
     findRefreshTokenMock.mockReset();
     updateRefreshTokenMock.mockReset();
   });
 
-  it("returns JSON method guidance for GET", async () => {
+  it("为 GET 返回 JSON 方法指引", async () => {
     const response = await tokenGetRoute(
       new Request("http://localhost/api/auth/oauth2/token"),
     );
@@ -52,7 +52,7 @@ describe("OAuth token route", () => {
     expect(betterAuthHandlerMock).not.toHaveBeenCalled();
   });
 
-  it("normalizes delegated Better Auth validation errors", async () => {
+  it("规范化委托的 Better Auth 验证错误", async () => {
     betterAuthHandlerMock.mockResolvedValueOnce(
       Response.json(
         {
@@ -78,7 +78,7 @@ describe("OAuth token route", () => {
     });
   });
 
-  it("preserves delegated OAuth error headers", async () => {
+  it("保留委托的 OAuth 错误头", async () => {
     betterAuthHandlerMock.mockResolvedValueOnce(
       Response.json(
         {
@@ -118,7 +118,7 @@ describe("OAuth token route", () => {
     });
   });
 
-  it("rejects unapproved refresh-token resources before delegation", async () => {
+  it("在委托前拒绝未批准的刷新令牌资源", async () => {
     findRefreshTokenMock.mockResolvedValueOnce({
       resources: ["https://life.example/api/auth"],
     });

@@ -49,10 +49,8 @@ const DCR_CLIENT_SCOPE = [
   MCP_TOOLS_SCOPE,
 ].join(" ");
 
-test.describe("OAuth provider", () => {
-  test("canonical well-known endpoints are exposed and legacy aliases redirect", async ({
-    request,
-  }) => {
+test.describe("OAuth 提供者", () => {
+  test("暴露标准 well-known 端点且旧别名重定向", async ({ request }) => {
     const [
       authServer,
       openid,
@@ -148,7 +146,7 @@ test.describe("OAuth provider", () => {
     );
   });
 
-  test("dynamic registration + consent + code exchange + userinfo", async ({
+  test("动态注册 + 授权同意 + 授权码交换 + userinfo", async ({
     page,
     request,
   }) => {
@@ -253,7 +251,7 @@ test.describe("OAuth provider", () => {
     expect(typeof userinfoBody.sub).toBe("string");
   });
 
-  test("dynamic registration accepts device-only clients without redirect URIs", async ({
+  test("动态注册接受无 redirect URI 的纯 device 客户端", async ({
     request,
   }) => {
     const registrationResponse = await request.post(
@@ -281,7 +279,7 @@ test.describe("OAuth provider", () => {
     expect(registrationBody.redirect_uris).toEqual([]);
   });
 
-  test("loopback authorize accepts localhost alias for a 127.0.0.1 DCR client", async ({
+  test("loopback 授权接受 127.0.0.1 DCR 客户端的 localhost 别名", async ({
     page,
     request,
   }) => {

@@ -6,8 +6,8 @@ import {
 } from "@/features/markdown/lib/campus-reference-markdown";
 import { renderMarkdown } from "@/lib/components/markdown-preview-renderer";
 
-describe("markdown renderer", () => {
-  it("keeps campus references inert without injected feature plugins", () => {
+describe("markdown 渲染器", () => {
+  it("未注入特性插件时 campus 引用保持原样", () => {
     const html = renderMarkdown("See section#123 and teacher#456.");
 
     expect(html).toContain("section#123");
@@ -15,7 +15,7 @@ describe("markdown renderer", () => {
     expect(html).not.toContain('href="/teachers/456"');
   });
 
-  it("links campus references when the feature plugin is injected", () => {
+  it("注入特性插件时将 campus 引用转为链接", () => {
     const html = renderMarkdown("See section#123 and teacher#456.", {
       remarkPlugins: campusReferenceMarkdownPlugins,
     });
@@ -24,7 +24,7 @@ describe("markdown renderer", () => {
     expect(html).toContain('href="/teachers/456"');
   });
 
-  it("allows feature callers to inject a custom campus reference resolver", () => {
+  it("允许特性调用者注入自定义 campus 引用解析器", () => {
     const html = renderMarkdown("See teacher#456.", {
       remarkPlugins: [
         [

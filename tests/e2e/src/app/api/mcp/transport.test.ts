@@ -14,7 +14,7 @@ import {
   TRUSTED_BROWSER_ORIGIN,
 } from "./helpers";
 
-test.describe("/api/mcp - transport and authorization", () => {
+test.describe("/api/mcp - 传输与授权", () => {
   test.describe.configure({ mode: "serial" });
 
   test("/api/mcp 未认证时返回 OAuth bearer challenge", async ({ request }) => {

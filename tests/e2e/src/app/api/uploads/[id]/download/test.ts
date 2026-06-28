@@ -92,7 +92,7 @@ test("/api/uploads/[id]/download GET 非本人返回 404", async ({ browser }) =
   }
 });
 
-test("/api/uploads/[id]/download GET allows visible comment attachments", async ({
+test("/api/uploads/[id]/download GET 允许下载可见评论附件", async ({
   browser,
 }) => {
   const userContext = await browser.newContext();
@@ -147,7 +147,7 @@ test("/api/uploads/[id]/download GET allows visible comment attachments", async 
   }
 });
 
-test("/api/uploads/[id]/download GET denies deleted comment attachments", async ({
+test("/api/uploads/[id]/download GET 拒绝下载已删除评论附件", async ({
   browser,
 }) => {
   const userContext = await browser.newContext();

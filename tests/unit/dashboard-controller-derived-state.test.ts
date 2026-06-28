@@ -73,7 +73,7 @@ function homework(id: string, completed: boolean): HomeworkItem {
   };
 }
 
-describe("dashboard controller derived state", () => {
+describe("仪表盘控制器派生状态", () => {
   it.each([
     { currentPinned: true, loadedPinned: false, name: "pin" },
     { currentPinned: false, loadedPinned: true, name: "unpin" },
@@ -108,7 +108,7 @@ describe("dashboard controller derived state", () => {
     ]);
   });
 
-  it("derives the signed dashboard homework badge count from local homework items", () => {
+  it("根据本地作业项推导已登录仪表盘作业徽章数量", () => {
     const data = {
       ...signedDashboardData([]),
       homeworks: {
@@ -135,7 +135,7 @@ describe("dashboard controller derived state", () => {
     expect(result?.homeworks?.homeworkSummaries).toBe(nextHomeworks);
   });
 
-  it("derives the signed dashboard todo badge count from local todo items", () => {
+  it("根据本地待办项推导已登录仪表盘待办徽章数量", () => {
     const data = {
       ...signedDashboardData([]),
       todos: [

@@ -200,9 +200,7 @@ async function exchangeDeviceToken(
   };
 }
 
-test("/oauth/device page renders user code entry form", async ({
-  page,
-}, testInfo) => {
+test("/oauth/device 页面渲染用户代码输入表单", async ({ page }, testInfo) => {
   await gotoAndWaitForReady(page, "/oauth/device");
 
   await expect(
@@ -217,9 +215,7 @@ test("/oauth/device page renders user code entry form", async ({
   await captureStepScreenshot(page, testInfo, "oauth/device/form");
 });
 
-test("/oauth/device invalid user code shows public error", async ({
-  page,
-}, testInfo) => {
+test("/oauth/device 无效用户代码显示公开错误", async ({ page }, testInfo) => {
   await gotoAndWaitForReady(page, "/oauth/device?code=NOPE-NOPE&step=approve");
 
   await expect(
@@ -229,9 +225,7 @@ test("/oauth/device invalid user code shows public error", async ({
   await captureStepScreenshot(page, testInfo, "oauth/device/invalid-code");
 });
 
-test("/oauth/device device-authorization endpoint returns required fields", async ({
-  request,
-}) => {
+test("/oauth/device 设备授权端点返回必要字段", async ({ request }) => {
   const clientName = `device-e2e-${Date.now()}`;
   try {
     const result = await requestDeviceCode(request, clientName);
@@ -249,9 +243,7 @@ test("/oauth/device device-authorization endpoint returns required fields", asyn
   }
 });
 
-test("/oauth/device rejects scopes outside the registered client allowance", async ({
-  request,
-}) => {
+test("/oauth/device 拒绝超出客户端允许范围的 scope", async ({ request }) => {
   const clientName = `device-e2e-invalid-scope-${Date.now()}`;
   try {
     const clientId = await registerDeviceClient(clientName);
@@ -279,9 +271,7 @@ test("/oauth/device rejects scopes outside the registered client allowance", asy
   }
 });
 
-test("/oauth/device rejects clients not registered for the device grant", async ({
-  request,
-}) => {
+test("/oauth/device 拒绝未注册设备授权类型的客户端", async ({ request }) => {
   const clientName = `device-e2e-unsupported-grant-${Date.now()}`;
   try {
     const clientId = await registerDeviceClient(clientName, {
@@ -311,7 +301,7 @@ test("/oauth/device rejects clients not registered for the device grant", async 
   }
 });
 
-test("/oauth/device unauthenticated pending approval redirects to sign-in", async ({
+test("/oauth/device 未登录的待批准请求重定向到登录页", async ({
   page,
   request,
 }, testInfo) => {
@@ -340,7 +330,7 @@ test("/oauth/device unauthenticated pending approval redirects to sign-in", asyn
   }
 });
 
-test("/oauth/device authenticated user sees approval screen", async ({
+test("/oauth/device 已登录用户看到批准界面", async ({
   page,
   request,
 }, testInfo) => {
@@ -366,7 +356,7 @@ test("/oauth/device authenticated user sees approval screen", async ({
   }
 });
 
-test("/oauth/device resource-bound token authenticates REST and MCP", async ({
+test("/oauth/device 资源绑定令牌可访问 REST 与 MCP", async ({
   page,
   request,
 }, testInfo) => {
@@ -426,7 +416,7 @@ test("/oauth/device resource-bound token authenticates REST and MCP", async ({
   }
 });
 
-test("/oauth/device profile-only REST token is rejected by protected REST", async ({
+test("/oauth/device 仅 profile 的 REST 令牌被受保护 REST 拒绝", async ({
   page,
   request,
 }) => {
@@ -462,7 +452,7 @@ test("/oauth/device profile-only REST token is rejected by protected REST", asyn
   }
 });
 
-test("/oauth/device MCP-scoped token without REST scope is rejected by protected REST", async ({
+test("/oauth/device 含 MCP scope 但无 REST scope 的令牌被受保护 REST 拒绝", async ({
   page,
   request,
 }) => {
@@ -502,7 +492,7 @@ test("/oauth/device MCP-scoped token without REST scope is rejected by protected
   }
 });
 
-test("/oauth/device disabled client code shows error instead of approval", async ({
+test("/oauth/device 已禁用客户端代码显示错误而非批准界面", async ({
   page,
   request,
 }, testInfo) => {
@@ -531,9 +521,7 @@ test("/oauth/device disabled client code shows error instead of approval", async
   }
 });
 
-test("/oauth/device well-known discovery includes device endpoint", async ({
-  request,
-}) => {
+test("/oauth/device 发现文档包含设备授权端点", async ({ request }) => {
   const discoveryResponse = await request.get(
     "/api/auth/.well-known/openid-configuration",
   );

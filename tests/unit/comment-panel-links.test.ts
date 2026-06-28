@@ -5,8 +5,8 @@ import {
   commentTargetPermalinkBaseHref,
 } from "@/features/comments/lib/comment-panel-links";
 
-describe("comment panel links", () => {
-  it("builds homework comment permalinks with enough target context", () => {
+describe("评论面板链接", () => {
+  it("使用足够的作业目标上下文构建评论永久链接", () => {
     const baseHref = commentTargetPermalinkBaseHref({
       homeworkId: "homework-1",
       sectionJwId: 12345,
@@ -43,11 +43,11 @@ describe("comment panel links", () => {
       commentTargetPermalinkBaseHref({ teacherId: 42, type: "teacher" }),
       "/teachers/42?tab=comments#comment-comment-1",
     ],
-  ])("keeps %s comment permalinks target-aware", (_, baseHref, expected) => {
+  ])("根据目标类型保留 %s 评论永久链接", (_, baseHref, expected) => {
     expect(commentPermalinkHref(baseHref, "comment-1")).toBe(expected);
   });
 
-  it("copies absolute permalinks from a relative target base", () => {
+  it("从相对目标基础生成绝对永久链接", () => {
     expect(
       absoluteCommentPermalinkHref({
         commentId: "comment-1",

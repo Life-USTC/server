@@ -47,7 +47,7 @@ function jsonRequest(method: string, body: string) {
   });
 }
 
-describe("homework mutation route auth order", () => {
+describe("homework 变更路由的认证顺序", () => {
   afterEach(() => {
     requireAuthMock.mockReset();
     createHomeworkForSectionMock.mockReset();
@@ -57,7 +57,7 @@ describe("homework mutation route auth order", () => {
     vi.resetModules();
   });
 
-  it("authenticates homework creation before parsing the JSON body", async () => {
+  it("在解析 JSON 请求体前先认证作业创建", async () => {
     requireAuthMock.mockResolvedValue(unauthorizedResponse());
     const { postHomeworkRoute } = await import(
       "@/lib/api/routes/homework-mutation-routes"
@@ -69,7 +69,7 @@ describe("homework mutation route auth order", () => {
     expect(requireAuthMock).toHaveBeenCalledOnce();
   });
 
-  it("returns 400 when homework creation has conflicting section identifiers", async () => {
+  it("作业创建传入冲突的 section 标识符时返回 400", async () => {
     requireAuthMock.mockResolvedValue({ userId: "user-1" });
     createHomeworkForSectionMock.mockResolvedValue({
       ok: false,
@@ -104,7 +104,7 @@ describe("homework mutation route auth order", () => {
     });
   });
 
-  it("passes the request locale to updated homework response reads", async () => {
+  it("将请求 locale 传递给更新作业的响应读取", async () => {
     requireAuthMock.mockResolvedValue({ userId: "user-1" });
     updateHomeworkMock.mockResolvedValue({ ok: true });
     requireHomeworkItemByIdMock.mockResolvedValue({ id: "homework-1" });
@@ -132,7 +132,7 @@ describe("homework mutation route auth order", () => {
     });
   });
 
-  it("authenticates homework updates before parsing the JSON body", async () => {
+  it("在解析 JSON 请求体前先认证作业更新", async () => {
     requireAuthMock.mockResolvedValue(unauthorizedResponse());
     const { patchHomeworkRoute } = await import(
       "@/lib/api/routes/homework-mutation-routes"
@@ -146,7 +146,7 @@ describe("homework mutation route auth order", () => {
     expect(requireAuthMock).toHaveBeenCalledOnce();
   });
 
-  it("authenticates completion updates before parsing the JSON body", async () => {
+  it("在解析 JSON 请求体前先认证完成状态更新", async () => {
     requireAuthMock.mockResolvedValue(unauthorizedResponse());
     const { putHomeworkCompletionRoute } = await import(
       "@/lib/api/routes/homework-completion"
@@ -161,7 +161,7 @@ describe("homework mutation route auth order", () => {
     expect(setHomeworkCompletionsMock).not.toHaveBeenCalled();
   });
 
-  it("authenticates completion batches before parsing the JSON body", async () => {
+  it("在解析 JSON 请求体前先认证批量完成状态更新", async () => {
     requireAuthMock.mockResolvedValue(unauthorizedResponse());
     const { putHomeworkCompletionsRoute } = await import(
       "@/lib/api/routes/homework-completion"

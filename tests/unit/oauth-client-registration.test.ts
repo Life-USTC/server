@@ -15,13 +15,13 @@ import {
 } from "@/lib/oauth/constants";
 
 describe("resolveOAuthClientScopes", () => {
-  it("uses the default OAuth profile scopes when none are requested", () => {
+  it("未请求 scope 时使用默认 OAuth profile scope", () => {
     expect(resolveOAuthClientScopes()).toEqual({
       scopes: [OAUTH_OPENID_SCOPE, OAUTH_PROFILE_SCOPE],
     });
   });
 
-  it("deduplicates requested scopes while preserving request order", () => {
+  it("去重请求的 scope 并保留请求顺序", () => {
     expect(
       resolveOAuthClientScopes([
         OAUTH_PROFILE_SCOPE,
@@ -33,7 +33,7 @@ describe("resolveOAuthClientScopes", () => {
     });
   });
 
-  it("accepts space-delimited requested scopes", () => {
+  it("接受空格分隔的请求 scope", () => {
     expect(
       resolveOAuthClientScopes(
         `${OAUTH_OPENID_SCOPE} ${MCP_TOOLS_SCOPE} ${OAUTH_OFFLINE_ACCESS_SCOPE} ${OAUTH_REST_READ_SCOPE} ${OAUTH_REST_WRITE_SCOPE}`,
@@ -49,13 +49,13 @@ describe("resolveOAuthClientScopes", () => {
     });
   });
 
-  it("rejects unsupported requested scopes", () => {
+  it("拒绝不支持的请求 scope", () => {
     expect(resolveOAuthClientScopes([OAUTH_OPENID_SCOPE, "email"])).toEqual({
       error: "Unsupported scopes requested: email",
     });
   });
 
-  it("uses authorization-code grants unless offline access is requested", () => {
+  it("除非请求 offline access，否则使用 authorization-code 授权类型", () => {
     expect(
       resolveOAuthClientGrantTypes([OAUTH_OPENID_SCOPE, OAUTH_PROFILE_SCOPE]),
     ).toEqual([OAUTH_AUTHORIZATION_CODE_GRANT_TYPE]);

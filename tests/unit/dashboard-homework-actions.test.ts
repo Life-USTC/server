@@ -13,12 +13,12 @@ vi.mock("@/features/homeworks/lib/homework-completion-client", async () => {
   };
 });
 
-describe("dashboard homework actions", () => {
+describe("仪表盘作业操作", () => {
   beforeEach(() => {
     updateHomeworkCompletionMock.mockReset();
   });
 
-  it("updates homework completion through the shared client", async () => {
+  it("通过共享客户端更新作业完成状态", async () => {
     const homework = {
       id: "homework-1",
       completion: null,
@@ -51,7 +51,7 @@ describe("dashboard homework actions", () => {
     });
   });
 
-  it("surfaces localized dashboard completion failures", async () => {
+  it("展示本地化的仪表盘完成失败信息", async () => {
     const homework = {
       id: "homework-1",
       completion: null,

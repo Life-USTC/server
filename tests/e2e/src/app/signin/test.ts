@@ -53,11 +53,11 @@ async function expectSignedOutAfterMenuClick(page: Page) {
   ).toBeVisible();
 }
 
-test("/signin contract", async ({ page }, testInfo) => {
+test("/signin 页面契约", async ({ page }, testInfo) => {
   await assertPageContract(page, { routePath: "/signin", testInfo });
 });
 
-test("/signin displays all required fields", async ({ page }, testInfo) => {
+test("/signin 显示所有必填字段", async ({ page }, testInfo) => {
   await gotoAndWaitForReady(page, "/signin", {
     testInfo,
     screenshotLabel: "signin",
@@ -117,9 +117,7 @@ test("/signin 调试管理员可登出", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "signin/admin-after-sign-out");
 });
 
-test("/signin post-login redirects to callbackUrl", async ({
-  page,
-}, testInfo) => {
+test("/signin 登录后重定向到 callbackUrl", async ({ page }, testInfo) => {
   // callbackUrl preserved through the sign-in flow (user.yml post-login-redirect)
   await gotoAndWaitForReady(page, "/signin?callbackUrl=%2Fsections", {
     testInfo,

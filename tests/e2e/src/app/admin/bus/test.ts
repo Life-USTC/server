@@ -44,9 +44,7 @@ test("/admin/bus 普通用户访问返回 404", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "admin-bus/404");
 });
 
-test("/admin/bus displays all required version fields", async ({
-  page,
-}, testInfo) => {
+test("/admin/bus 显示所有必需的版本字段", async ({ page }, testInfo) => {
   await signInAsDevAdmin(page, "/admin/bus");
 
   // Heading
@@ -67,7 +65,7 @@ test("/admin/bus displays all required version fields", async ({
   await captureStepScreenshot(page, testInfo, "admin-bus/version-fields");
 });
 
-test("/admin/bus version table has trip count", async ({ page }, testInfo) => {
+test("/admin/bus 版本表格包含班次数量", async ({ page }, testInfo) => {
   await signInAsDevAdmin(page, "/admin/bus");
 
   // tripCount — the page shows a plain number (e.g. "22") in the Trips column
@@ -77,9 +75,7 @@ test("/admin/bus version table has trip count", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "admin-bus/trip-count");
 });
 
-test("/admin/bus card visible on admin home and navigates", async ({
-  page,
-}, testInfo) => {
+test("/admin/bus 管理首页入口可见且可跳转", async ({ page }, testInfo) => {
   await signInAsDevAdmin(page, "/admin");
 
   const busCard = page.getByRole("link", {
@@ -94,7 +90,7 @@ test("/admin/bus card visible on admin home and navigates", async ({
   await captureStepScreenshot(page, testInfo, "admin-bus/navigate-from-home");
 });
 
-test("/admin/bus active version is protected and import dialog opens", async ({
+test("/admin/bus 激活版本受保护且导入弹窗可打开", async ({
   page,
 }, testInfo) => {
   test.setTimeout(60_000);

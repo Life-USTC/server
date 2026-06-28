@@ -5,8 +5,8 @@ import {
   deleteAuditLogsForUsersAndTargets,
 } from "../shared/audit-cleanup";
 
-describe("audit cleanup helpers", () => {
-  it("builds deduplicated user and target predicates", () => {
+describe("审计清理辅助函数", () => {
+  it("构建去重的用户和目标谓词", () => {
     expect(
       buildAuditLogCleanupWhere({
         targets: [
@@ -26,7 +26,7 @@ describe("audit cleanup helpers", () => {
     });
   });
 
-  it("supports grouped target cleanup", async () => {
+  it("支持分组目标清理", async () => {
     const prisma = {
       auditLog: {
         deleteMany: vi.fn(async () => ({ count: 0 })),
@@ -53,7 +53,7 @@ describe("audit cleanup helpers", () => {
     });
   });
 
-  it("retries cleanup until matching audit rows stay absent", async () => {
+  it("重试清理直到匹配审计行不存在", async () => {
     const remainingCounts = [1, 0, 0];
     const prisma = {
       auditLog: {

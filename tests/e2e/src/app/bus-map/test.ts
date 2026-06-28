@@ -21,10 +21,8 @@ import { DEV_SEED } from "../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 
-test.describe("bus transit map", () => {
-  test("renders campus nodes and route lines in SVG", async ({
-    page,
-  }, testInfo) => {
+test.describe("校车线路图", () => {
+  test("SVG 中渲染校区节点与线路", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/bus-map", {
       testInfo,
       screenshotLabel: "bus-map",
@@ -54,9 +52,7 @@ test.describe("bus transit map", () => {
     await captureStepScreenshot(page, testInfo, "bus-map-overview");
   });
 
-  test("legend shows route descriptions and status indicators", async ({
-    page,
-  }, testInfo) => {
+  test("图例显示线路说明与状态指示器", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/bus-map", {
       testInfo,
       screenshotLabel: "bus-map",
@@ -80,7 +76,7 @@ test.describe("bus transit map", () => {
     await expect(page.getByText(/Departing|即将发车/).first()).toBeVisible();
   });
 
-  test("back link navigates to bus tab", async ({ page }, testInfo) => {
+  test("返回链接导航到校车标签页", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/bus-map", {
       testInfo,
       screenshotLabel: "bus-map",
@@ -93,9 +89,7 @@ test.describe("bus transit map", () => {
     await expect(backLink).toHaveAttribute("href", "/dashboard/bus");
   });
 
-  test("day type and time info shown in sidebar", async ({
-    page,
-  }, testInfo) => {
+  test("侧边栏显示日期类型与时间信息", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/bus-map", {
       testInfo,
       screenshotLabel: "bus-map",
@@ -107,7 +101,7 @@ test.describe("bus transit map", () => {
     ).toBeVisible();
   });
 
-  test("refresh button is present", async ({ page }, testInfo) => {
+  test("刷新按钮存在", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/bus-map", {
       testInfo,
       screenshotLabel: "bus-map",

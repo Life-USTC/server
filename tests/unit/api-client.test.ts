@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { extractApiErrorMessage, readApiErrorMessage } from "@/lib/api/client";
 
-describe("api client helpers", () => {
-  it("extracts plain and Error messages", () => {
+describe("api 客户端辅助函数", () => {
+  it("提取普通字符串与 Error 消息", () => {
     expect(extractApiErrorMessage("  failed  ")).toBe("failed");
     expect(extractApiErrorMessage(new Error("  failed  "))).toBe("failed");
   });
 
-  it("uses the first non-empty direct error string", () => {
+  it("使用第一个非空的直接错误字符串", () => {
     expect(
       extractApiErrorMessage({
         error: "",
@@ -17,7 +17,7 @@ describe("api client helpers", () => {
     ).toBe("validation failed");
   });
 
-  it("preserves whitespace-only field fallback behavior", () => {
+  it("保留仅空白字段的回退行为", () => {
     expect(
       extractApiErrorMessage({
         error: "   ",
@@ -36,7 +36,7 @@ describe("api client helpers", () => {
     ).toBeNull();
   });
 
-  it("falls back to nested and array error messages", () => {
+  it("回退到嵌套与数组错误消息", () => {
     expect(
       extractApiErrorMessage({ error: { detail: "  nested failure  " } }),
     ).toBe("nested failure");
@@ -47,12 +47,12 @@ describe("api client helpers", () => {
     ).toBe("first item failure");
   });
 
-  it("returns null when no usable message is present", () => {
+  it("没有可用消息时返回 null", () => {
     expect(extractApiErrorMessage(undefined)).toBeNull();
     expect(extractApiErrorMessage({ error: "   ", errors: [] })).toBeNull();
   });
 
-  it("reads API error messages from response bodies", async () => {
+  it("从响应体读取 API 错误消息", async () => {
     await expect(
       readApiErrorMessage(
         new Response(JSON.stringify({ error: "  server failed  " }), {
@@ -64,7 +64,7 @@ describe("api client helpers", () => {
     ).resolves.toBe("server failed");
   });
 
-  it("falls back when response bodies are not JSON error payloads", async () => {
+  it("响应体不是 JSON 错误载荷时回退", async () => {
     await expect(
       readApiErrorMessage(
         new Response("plain text failure", { status: 500 }),

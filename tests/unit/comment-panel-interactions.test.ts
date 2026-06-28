@@ -43,12 +43,12 @@ function viewer(overrides: Partial<ViewerContext> = {}): ViewerContext {
   };
 }
 
-describe("comment panel interactions", () => {
+describe("评论面板交互", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("blocks suspended reactions before submitting a request", async () => {
+  it("在提交请求前阻止被暂停用户的反应", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     let message = "";

@@ -6,13 +6,13 @@ import {
   LIFE_USTC_STATIC_ORIGIN,
 } from "@/lib/static-assets";
 
-describe("static asset helpers", () => {
+describe("静态资源辅助函数", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
-  it("builds URLs from the published static origin", () => {
+  it("从已发布静态源构建 URL", () => {
     expect(LIFE_USTC_STATIC_ORIGIN).toBe(
       "https://static.life-ustc.tiankaima.dev",
     );
@@ -21,7 +21,7 @@ describe("static asset helpers", () => {
     );
   });
 
-  it("returns fallback data for optional static JSON failures", async () => {
+  it("可选静态 JSON 失败时返回兜底数据", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.stubGlobal(
       "fetch",
@@ -34,7 +34,7 @@ describe("static asset helpers", () => {
     expect(warnSpy).toHaveBeenCalled();
   });
 
-  it("throws for required static JSON failures", async () => {
+  it("必需静态 JSON 失败时抛出异常", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => new Response("missing", { status: 404 })),

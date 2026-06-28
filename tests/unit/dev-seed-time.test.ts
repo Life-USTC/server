@@ -6,7 +6,7 @@ async function importSeedTimeWithTimezone(timezone: string) {
   return import("../fixtures/dev-seed-time");
 }
 
-describe("dev seed time helpers", () => {
+describe("开发种子时间辅助函数", () => {
   afterEach(() => {
     vi.resetModules();
     vi.unstubAllEnvs();
@@ -15,7 +15,7 @@ describe("dev seed time helpers", () => {
   it.each([
     "UTC",
     "America/New_York",
-  ])("constructs Shanghai seed instants under %s host timezone", async (timezone) => {
+  ])("在 %s 主机时区下构建上海种子时刻", async (timezone) => {
     const { makeShanghaiSeedDateAt } =
       await importSeedTimeWithTimezone(timezone);
 
@@ -33,7 +33,7 @@ describe("dev seed time helpers", () => {
   it.each([
     "UTC",
     "America/New_York",
-  ])("constructs date-only seed values under %s host timezone", async (timezone) => {
+  ])("在 %s 主机时区下构建仅日期的种子值", async (timezone) => {
     const { makeSeedDateOnly } = await importSeedTimeWithTimezone(timezone);
 
     expect(makeSeedDateOnly().toISOString()).toBe("2026-04-29T00:00:00.000Z");
@@ -41,7 +41,7 @@ describe("dev seed time helpers", () => {
     expect(makeSeedDateOnly(-1).toISOString()).toBe("2026-04-28T00:00:00.000Z");
   });
 
-  it("derives weekdays from Shanghai calendar days under a UTC host timezone", async () => {
+  it("在 UTC 主机时区下从上海日历日期推导星期", async () => {
     const { makeSeedDateOnly, makeShanghaiSeedDateAt, toShanghaiWeekday } =
       await importSeedTimeWithTimezone("UTC");
 

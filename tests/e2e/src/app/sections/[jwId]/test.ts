@@ -66,15 +66,15 @@ function getSectionCalendarMonthView(page: Page) {
     .first();
 }
 
-test.describe("/sections/[jwId]", () => {
-  test("contract", async ({ page }, testInfo) => {
+test.describe("/sections/[jwId] 班级详情页", () => {
+  test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, {
       routePath: "/sections/[jwId]",
       testInfo,
     });
   });
 
-  test("404 for invalid param", async ({ page }, testInfo) => {
+  test("无效参数返回 404", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/sections/999999999", {
       expectMainContent: false,
     });
@@ -87,9 +87,7 @@ test.describe("/sections/[jwId]", () => {
 
   // ── Display fields (section.yml → section-detail) ──────────────────────────
 
-  test("displays course name as h1 and section code", async ({
-    page,
-  }, testInfo) => {
+  test("显示课程名称为 h1 与班级代码", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     const heading = page.getByRole("heading", { level: 1 }).first();
@@ -114,9 +112,7 @@ test.describe("/sections/[jwId]", () => {
     await captureStepScreenshot(page, testInfo, "section/heading");
   });
 
-  test("displays semester, campus, and teacher info", async ({
-    page,
-  }, testInfo) => {
+  test("显示学期、校区与教师信息", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     // section.semester.nameCn
@@ -143,9 +139,7 @@ test.describe("/sections/[jwId]", () => {
     );
   });
 
-  test("displays credits, exam mode, and remark", async ({
-    page,
-  }, testInfo) => {
+  test("显示学分、考试方式与备注", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     const creditsValue = page
@@ -180,9 +174,7 @@ test.describe("/sections/[jwId]", () => {
     );
   });
 
-  test("displays teach language and room type in basic info", async ({
-    page,
-  }, testInfo) => {
+  test("基本信息中显示授课语言与教室类型", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     // Expand "More Details" inner collapsible to reveal teachLanguage and roomType
@@ -219,7 +211,7 @@ test.describe("/sections/[jwId]", () => {
     await captureStepScreenshot(page, testInfo, "section/teach-lang-roomtype");
   });
 
-  test("displays admin classes (collapsible)", async ({ page }, testInfo) => {
+  test("显示行政班级（可折叠）", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     // section.adminClasses[] — expand collapsible if needed
@@ -241,9 +233,7 @@ test.describe("/sections/[jwId]", () => {
     await captureStepScreenshot(page, testInfo, "section/admin-classes");
   });
 
-  test("displays schedule with room, building, teachers in calendar tab", async ({
-    page,
-  }, testInfo) => {
+  test("日历标签页显示课表、教室、教学楼与教师", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     await expect(async () => {
@@ -293,7 +283,7 @@ test.describe("/sections/[jwId]", () => {
     await captureStepScreenshot(page, testInfo, "section/schedule-calendar");
   });
 
-  test("Today button navigates calendar to current day instead of section start", async ({
+  test("今天按钮将日历导航到当前日期而非班级开始日期", async ({
     page,
   }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
@@ -316,7 +306,7 @@ test.describe("/sections/[jwId]", () => {
     await captureStepScreenshot(page, testInfo, "section/calendar-today");
   });
 
-  test("displays exam info (examBatch, examRooms) in calendar tab", async ({
+  test("日历标签页显示考试信息（examBatch、examRooms）", async ({
     page,
   }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
@@ -345,9 +335,7 @@ test.describe("/sections/[jwId]", () => {
     await captureStepScreenshot(page, testInfo, "section/exam-calendar");
   });
 
-  test("jwId is NOT displayed in visible text (jwid-url-only rule)", async ({
-    page,
-  }) => {
+  test("可见文本中不显示 jwId（仅 URL 规则）", async ({ page }) => {
     await gotoAndWaitForReady(page, SECTION_URL);
     // The page content should not contain the raw jwId as visible text
     const content = await page.locator("#main-content").innerText();
@@ -355,9 +343,7 @@ test.describe("/sections/[jwId]", () => {
     expect(content).not.toMatch(new RegExp(`\\b${DEV_SEED.section.jwId}\\b`));
   });
 
-  test("subscribe button uses subscription language, not enrollment language", async ({
-    page,
-  }) => {
+  test("关注按钮使用订阅用语而非选课用语", async ({ page }) => {
     // section.yml subscription-not-enrollment rule:
     // Subscribe button must say "subscribe/follow", not "enroll".
     // Disclaimer text MAY reference enrollment to contrast subscription vs enrollment.
@@ -384,7 +370,7 @@ test.describe("/sections/[jwId]", () => {
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
-  test("tab switching works", async ({ page }, testInfo) => {
+  test("标签切换可用", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     const tabList = page
@@ -408,9 +394,7 @@ test.describe("/sections/[jwId]", () => {
     await captureStepScreenshot(page, testInfo, "section/tab-switch");
   });
 
-  test("breadcrumb navigates back to sections list", async ({
-    page,
-  }, testInfo) => {
+  test("面包屑可返回班级列表", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
     const breadcrumb = page
       .getByRole("navigation", { name: "breadcrumb" })
@@ -422,9 +406,7 @@ test.describe("/sections/[jwId]", () => {
     await captureStepScreenshot(page, testInfo, "section/breadcrumb-back");
   });
 
-  test("non-enrollment disclaimer is visible in subscribe dialog", async ({
-    page,
-  }, testInfo) => {
+  test("关注弹窗显示非选课声明", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     const subscribeButton = page
@@ -448,9 +430,7 @@ test.describe("/sections/[jwId]", () => {
 
   // ── Subscription ────────────────────────────────────────────────────────────
 
-  test("unauthenticated subscribe prompts login dialog", async ({
-    page,
-  }, testInfo) => {
+  test("未登录时关注弹出登录对话框", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     const subscribeButton = page
@@ -474,9 +454,7 @@ test.describe("/sections/[jwId]", () => {
     );
   });
 
-  test("authenticated user can subscribe and unsubscribe", async ({
-    page,
-  }, testInfo) => {
+  test("已登录用户可关注与取消关注", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     await signInAsDebugUser(page, SECTION_URL);
 
@@ -517,9 +495,7 @@ test.describe("/sections/[jwId]", () => {
 
   // ── Calendar export ─────────────────────────────────────────────────────────
 
-  test("calendar export dialog shows iCal URL and subscription URL", async ({
-    page,
-  }, testInfo) => {
+  test("日历导出弹窗显示 iCal URL 与订阅 URL", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     await page
       .context()
@@ -586,9 +562,7 @@ test.describe("/sections/[jwId]", () => {
 
   // ── Homework CRUD ───────────────────────────────────────────────────────────
 
-  test("can switch section homework tab to list view and persist preference", async ({
-    page,
-  }, testInfo) => {
+  test("可切换班级作业标签为列表视图并记住偏好", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     const homeworksTab = page
@@ -624,7 +598,7 @@ test.describe("/sections/[jwId]", () => {
     await captureStepScreenshot(page, testInfo, "section/homework-list-view");
   });
 
-  test("signed-in user can create homework, inspect discussion, toggle completion, and delete", async ({
+  test("已登录用户可创建作业、查看讨论、切换完成状态并删除", async ({
     page,
   }, testInfo) => {
     test.setTimeout(60_000);
@@ -735,9 +709,7 @@ test.describe("/sections/[jwId]", () => {
     }
   });
 
-  test("homework comment permalink opens the target comment", async ({
-    page,
-  }, testInfo) => {
+  test("作业评论永久链接打开目标评论", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     await signInAsDebugUser(page, SECTION_URL);
     let homeworkId: string | undefined;
@@ -802,7 +774,7 @@ test.describe("/sections/[jwId]", () => {
 
   // ── Comment CRUD ────────────────────────────────────────────────────────────
 
-  test("signed-in user can post, react, edit, reply, and delete comment", async ({
+  test("已登录用户可发布、回应、编辑、回复与删除评论", async ({
     page,
   }, testInfo) => {
     test.setTimeout(60_000);
@@ -966,9 +938,7 @@ test.describe("/sections/[jwId]", () => {
 
   // ── Attachment upload ────────────────────────────────────────────────────────
 
-  test("comment can upload attachment and open via signed download URL", async ({
-    page,
-  }, testInfo) => {
+  test("评论可上传附件并通过签名下载链接打开", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     const filename = `e2e-attachment-${Date.now()}.txt`;
     const body = `e2e-attachment-comment-${Date.now()}`;

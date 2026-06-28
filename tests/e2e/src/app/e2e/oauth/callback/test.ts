@@ -5,15 +5,15 @@ import { expect, test } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../../../utils/page-ready";
 import { assertPageContract } from "../../../_shared/page-contract";
 
-test.describe("/e2e/oauth/callback", () => {
-  test("contract", async ({ page }, testInfo) => {
+test.describe("/e2e/oauth/callback 回调页", () => {
+  test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, {
       routePath: "/e2e/oauth/callback",
       testInfo,
     });
   });
 
-  test("captures callback query payload", async ({ page }, testInfo) => {
+  test("捕获回调查询参数", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(
       page,
       "/e2e/oauth/callback?code=abc123&state=state-xyz&error=some-error",

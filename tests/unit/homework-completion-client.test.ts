@@ -13,12 +13,12 @@ function firstFetchCall(fetchMock: ReturnType<typeof vi.fn>) {
   return call as unknown as [string, RequestInit & { body: string }];
 }
 
-describe("homework completion client", () => {
+describe("作业完成状态客户端", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("updates completion through the shared route client", async () => {
+  it("通过共享路由客户端更新完成状态", async () => {
     const fetchMock = vi.fn(async () =>
       jsonResponse({
         completed: true,
@@ -44,7 +44,7 @@ describe("homework completion client", () => {
     expect(JSON.parse(init.body)).toEqual({ completed: true });
   });
 
-  it("uses API error payloads before fallback messages", async () => {
+  it("优先使用 API 错误负载而非回退消息", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () =>
@@ -61,7 +61,7 @@ describe("homework completion client", () => {
     ).rejects.toThrow("homework not found");
   });
 
-  it("falls back when error payloads are not JSON", async () => {
+  it("当错误负载不是 JSON 时使用回退消息", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => new Response("plain failure", { status: 500 })),
@@ -76,7 +76,7 @@ describe("homework completion client", () => {
     ).rejects.toThrow("completion failed");
   });
 
-  it("rejects malformed successful payloads", async () => {
+  it("拒绝格式错误的成功响应负载", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => jsonResponse({ completed: true })),

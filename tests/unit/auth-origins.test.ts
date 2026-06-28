@@ -5,12 +5,12 @@ import {
   isTrustedAuthOrigin,
 } from "@/lib/auth/auth-origins";
 
-describe("auth origin helpers", () => {
+describe("认证来源辅助函数", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
 
-  it("includes public and pinned local origins", () => {
+  it("包含公开和固定的本地来源", () => {
     vi.stubEnv("APP_PUBLIC_ORIGIN", "https://preview-123.example.com");
 
     expect(getAuthTrustedOrigins()).toEqual([
@@ -20,7 +20,7 @@ describe("auth origin helpers", () => {
     ]);
   });
 
-  it("returns Better Auth allowed hosts for dynamic base URL resolution", () => {
+  it("返回 Better Auth 允许的 host 以支持动态 base URL 解析", () => {
     vi.stubEnv("APP_PUBLIC_ORIGIN", "https://preview-123.example.com");
 
     expect(getAuthAllowedHosts()).toEqual([
@@ -30,7 +30,7 @@ describe("auth origin helpers", () => {
     ]);
   });
 
-  it("deduplicates matching public and local origins", () => {
+  it("对匹配的公开和本地来源去重", () => {
     vi.stubEnv("APP_PUBLIC_ORIGIN", "https://life-ustc.tiankaima.dev");
 
     expect(getAuthTrustedOrigins()).toEqual([
@@ -40,7 +40,7 @@ describe("auth origin helpers", () => {
     ]);
   });
 
-  it("includes loopback sibling origin for custom localhost ports", () => {
+  it("为自定义 localhost 端口包含回环 sibling 来源", () => {
     vi.stubEnv("APP_PUBLIC_ORIGIN", "http://localhost:3010");
 
     expect(getAuthTrustedOrigins()).toEqual([
@@ -61,48 +61,48 @@ describe("isTrustedAuthOrigin", () => {
     vi.stubEnv("APP_PUBLIC_ORIGIN", current);
   }
 
-  it("accepts an exact match against the current public origin", () => {
+  it("接受与当前公开来源的精确匹配", () => {
     withOrigin("https://preview.example.com");
     expect(isTrustedAuthOrigin("https://preview.example.com")).toBe(true);
   });
 
-  it("accepts http://localhost:3000 which is always trusted", () => {
+  it("接受始终受信任的 http://localhost:3000", () => {
     withOrigin("https://preview.example.com");
     expect(isTrustedAuthOrigin("http://localhost:3000")).toBe(true);
   });
 
-  it("accepts http://127.0.0.1:3000 which is always trusted", () => {
+  it("接受始终受信任的 http://127.0.0.1:3000", () => {
     withOrigin("https://preview.example.com");
     expect(isTrustedAuthOrigin("http://127.0.0.1:3000")).toBe(true);
   });
 
-  it("accepts the loopback sibling for a custom local public origin", () => {
+  it("接受自定义本地公开来源的回环 sibling", () => {
     withOrigin("http://127.0.0.1:3010");
     expect(isTrustedAuthOrigin("http://localhost:3010")).toBe(true);
   });
 
-  it("rejects unconfigured example origins", () => {
+  it("拒绝未配置的示例来源", () => {
     withOrigin("https://preview.example.com");
     expect(isTrustedAuthOrigin("https://example.com")).toBe(false);
     expect(isTrustedAuthOrigin("https://myapp-abc123.example.com")).toBe(false);
   });
 
-  it("rejects a different port on an exact-match trusted origin", () => {
+  it("拒绝精确匹配受信来源上的不同端口", () => {
     withOrigin("https://preview.example.com");
     expect(isTrustedAuthOrigin("https://preview.example.com:8443")).toBe(false);
   });
 
-  it("rejects an unknown origin", () => {
+  it("拒绝未知来源", () => {
     withOrigin("https://preview.example.com");
     expect(isTrustedAuthOrigin("https://evil.example.com")).toBe(false);
   });
 
-  it("returns false for a non-URL string without throwing", () => {
+  it("对非 URL 字符串返回 false 且不抛出", () => {
     withOrigin("https://preview.example.com");
     expect(isTrustedAuthOrigin("not-a-url")).toBe(false);
   });
 
-  it("normalises origin before matching (strips path/query)", () => {
+  it("在匹配前规范化来源（去除路径和查询）", () => {
     withOrigin("https://preview.example.com");
     // new URL(origin).origin strips path — should still match
     expect(

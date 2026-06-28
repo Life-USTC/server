@@ -95,9 +95,7 @@ test("/admin/moderation 管理员访问成功", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "admin-moderation-home");
 });
 
-test("/admin/moderation invalid tab falls back to comments", async ({
-  page,
-}) => {
+test("/admin/moderation 无效标签回退到评论", async ({ page }) => {
   await signInAsDevAdmin(page, "/admin/moderation?tab=bad");
   await expect(page.locator('input[type="hidden"][name="tab"]')).toHaveValue(
     "comments",
@@ -400,9 +398,7 @@ test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
 
 // ── Description governance ──────────────────────────────────────────────────
 
-test("/admin/moderation description governance table visible", async ({
-  page,
-}, testInfo) => {
+test("/admin/moderation 课程简介治理表格可见", async ({ page }, testInfo) => {
   await signInAsDevAdmin(page, "/admin/moderation");
 
   // admin.yml moderation.display.fields: Description moderation table
@@ -452,9 +448,7 @@ test("/admin/moderation 简介桌面行操作可用键盘打开管理弹窗", as
 
 // ── Homework governance ─────────────────────────────────────────────────────
 
-test("/admin/moderation homework governance accessible", async ({
-  page,
-}, testInfo) => {
+test("/admin/moderation 作业治理可访问", async ({ page }, testInfo) => {
   await signInAsDevAdmin(page, "/admin/moderation");
 
   // admin.yml moderation.display.fields (via homework.yml → homework-governance)

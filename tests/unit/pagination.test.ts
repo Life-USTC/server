@@ -2,15 +2,15 @@ import { describe, expect, it } from "vitest";
 import { getPaginationTokens } from "@/lib/navigation/pagination";
 
 describe("getPaginationTokens", () => {
-  it("returns [1] for a single page", () => {
+  it("单页时返回 [1]", () => {
     expect(getPaginationTokens({ currentPage: 1, totalPages: 1 })).toEqual([1]);
   });
 
-  it("returns [1] when totalPages is 0", () => {
+  it("totalPages 为 0 时返回 [1]", () => {
     expect(getPaginationTokens({ currentPage: 1, totalPages: 0 })).toEqual([1]);
   });
 
-  it("returns all pages when totalPages <= maxVisible (default 5)", () => {
+  it("totalPages 不超过 maxVisible（默认 5）时返回所有页", () => {
     expect(getPaginationTokens({ currentPage: 1, totalPages: 3 })).toEqual([
       1, 2, 3,
     ]);
@@ -19,27 +19,27 @@ describe("getPaginationTokens", () => {
     ]);
   });
 
-  it("returns all pages when totalPages <= custom maxVisible", () => {
+  it("totalPages 不超过自定义 maxVisible 时返回所有页", () => {
     expect(
       getPaginationTokens({ currentPage: 1, totalPages: 7, maxVisible: 7 }),
     ).toEqual([1, 2, 3, 4, 5, 6, 7]);
   });
 
-  it("includes ellipsis before end when current is near start", () => {
+  it("当前页接近开头时在末尾前包含省略号", () => {
     const tokens = getPaginationTokens({ currentPage: 1, totalPages: 10 });
     expect(tokens[0]).toBe(1);
     expect(tokens).toContain("ellipsis");
     expect(tokens[tokens.length - 1]).toBe(10);
   });
 
-  it("includes ellipsis after start when current is near end", () => {
+  it("当前页接近末尾时在开头后包含省略号", () => {
     const tokens = getPaginationTokens({ currentPage: 10, totalPages: 10 });
     expect(tokens[0]).toBe(1);
     expect(tokens).toContain("ellipsis");
     expect(tokens[tokens.length - 1]).toBe(10);
   });
 
-  it("includes ellipsis on both sides when current is in middle", () => {
+  it("当前页在中间时两侧均包含省略号", () => {
     const tokens = getPaginationTokens({ currentPage: 5, totalPages: 10 });
     expect(tokens[0]).toBe(1);
     expect(tokens[tokens.length - 1]).toBe(10);
@@ -48,7 +48,7 @@ describe("getPaginationTokens", () => {
     expect(ellipses.length).toBe(2);
   });
 
-  it("always starts with 1 and ends with totalPages for large sets", () => {
+  it("大集合始终从 1 开始并以 totalPages 结束", () => {
     for (const current of [1, 5, 10, 15, 20]) {
       const tokens = getPaginationTokens({
         currentPage: current,
@@ -59,7 +59,7 @@ describe("getPaginationTokens", () => {
     }
   });
 
-  it("defaults maxVisible to 5", () => {
+  it("maxVisible 默认为 5", () => {
     // With 10 pages and page 5, default maxVisible=5 → window of 5 numeric pages
     const tokens = getPaginationTokens({ currentPage: 5, totalPages: 10 });
     const numericTokens = tokens.filter((t) => typeof t === "number");
@@ -69,7 +69,7 @@ describe("getPaginationTokens", () => {
     expect(numericTokens.length).toBeGreaterThanOrEqual(5);
   });
 
-  it("clamps maxVisible minimum to 3", () => {
+  it("maxVisible 最小值限制为 3", () => {
     const tokens = getPaginationTokens({
       currentPage: 5,
       totalPages: 10,
@@ -80,7 +80,7 @@ describe("getPaginationTokens", () => {
     expect(numericTokens.length).toBeGreaterThanOrEqual(3);
   });
 
-  it("does not produce duplicate page numbers", () => {
+  it("不产生重复页码", () => {
     for (const current of [1, 2, 3, 8, 9, 10]) {
       const tokens = getPaginationTokens({
         currentPage: current,
@@ -91,7 +91,7 @@ describe("getPaginationTokens", () => {
     }
   });
 
-  it("page numbers are in ascending order", () => {
+  it("页码按升序排列", () => {
     const tokens = getPaginationTokens({ currentPage: 6, totalPages: 20 });
     const numbers = tokens.filter((t): t is number => typeof t === "number");
     for (let i = 1; i < numbers.length; i++) {

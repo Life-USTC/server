@@ -6,9 +6,7 @@ test("/api/sections", async ({ request }) => {
   await assertApiContract(request, { routePath: "/api/sections" });
 });
 
-test("section list items have all required SectionSummary fields", async ({
-  request,
-}) => {
+test("班级列表项包含所有必需的 SectionSummary 字段", async ({ request }) => {
   const response = await request.get(
     `/api/sections?search=${encodeURIComponent(DEV_SEED.section.code)}&limit=20`,
   );
@@ -40,7 +38,7 @@ test("section list items have all required SectionSummary fields", async ({
   expect(typeof section?.limitCount).toBe("number");
 });
 
-test("section list item has teachers array", async ({ request }) => {
+test("班级列表项包含教师数组", async ({ request }) => {
   const response = await request.get(
     `/api/sections?search=${encodeURIComponent(DEV_SEED.section.code)}&limit=20`,
   );
@@ -55,7 +53,7 @@ test("section list item has teachers array", async ({ request }) => {
   expect(Array.isArray(section?.teachers)).toBe(true);
 });
 
-test("section limit param controls page size", async ({ request }) => {
+test("limit 参数控制班级列表页大小", async ({ request }) => {
   const response = await request.get("/api/sections?limit=1");
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {

@@ -6,7 +6,7 @@ import {
   shouldEnablePrismaQueryLogging,
 } from "@/lib/db/prisma-query-logging";
 
-describe("prisma query logging env", () => {
+describe("Prisma 查询日志环境", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
@@ -19,11 +19,11 @@ describe("prisma query logging env", () => {
     [{ PRISMA_QUERY_DEBUG: "true" }, "standard"],
     [{ PRISMA_QUERY_DEBUG: " yes " }, "standard"],
     [{ PRISMA_QUERY_DEBUG: " verbose " }, "verbose"],
-  ] as const)("resolves debug mode from %o", (input, expected) => {
+  ] as const)("从 %o 解析调试模式", (input, expected) => {
     expect(getPrismaQueryDebugMode(input)).toBe(expected);
   });
 
-  it("parses slow query threshold as an exact non-negative integer", () => {
+  it("将慢查询阈值解析为精确的非负整数", () => {
     expect(getPrismaSlowQueryThresholdMs({ PRISMA_SLOW_QUERY_MS: "0" })).toBe(
       0,
     );
@@ -41,7 +41,7 @@ describe("prisma query logging env", () => {
     ).toBeNull();
   });
 
-  it("enables query logging for debug mode or slow query threshold", () => {
+  it("为调试模式或慢查询阈值启用查询日志", () => {
     expect(shouldEnablePrismaQueryLogging({})).toBe(false);
     expect(shouldEnablePrismaQueryLogging({ PRISMA_QUERY_DEBUG: "true" })).toBe(
       true,
@@ -51,7 +51,7 @@ describe("prisma query logging env", () => {
     );
   });
 
-  it("omits verbose query params from production logs", () => {
+  it("生产日志中省略详细查询参数", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("PRISMA_QUERY_DEBUG", "verbose");
     const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});

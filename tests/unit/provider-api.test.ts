@@ -12,8 +12,8 @@ import {
   asOAuthProviderMetadataAuth,
 } from "@/lib/oauth/provider-api";
 
-describe("provider-api guards", () => {
-  it("accepts the expected OAuth provider API surface", async () => {
+describe("provider-api 守卫", () => {
+  it("接受预期的 OAuth 提供方 API 接口", async () => {
     const api = asOAuthProviderApi({
       adminCreateOAuthClient: async () => ({ client_id: "client-1" }),
       getOAuthClientPublic: async () => ({ client_id: "client-1" }),
@@ -52,19 +52,19 @@ describe("provider-api guards", () => {
     ).resolves.toMatchObject({ redirect_uri: "https://client/callback" });
   });
 
-  it("throws a clear error when the provider API is missing required methods", () => {
+  it("当提供方 API 缺少必要方法时抛出明确错误", () => {
     expect(() => asOAuthProviderApi({})).toThrow(
       /missing adminCreateOAuthClient\(\)/,
     );
   });
 
-  it("throws a clear error when metadata auth is missing required methods", () => {
+  it("当元数据认证缺少必要方法时抛出明确错误", () => {
     expect(() => asOAuthProviderMetadataAuth({ api: {} })).toThrow(
       /missing getOAuthServerConfig\(\)/,
     );
   });
 
-  it("accepts the generic OAuth API methods used by Svelte auth actions", () => {
+  it("接受 Svelte 认证动作使用的通用 OAuth API 方法", () => {
     const api = asGenericOAuthApi({
       signInWithOAuth2: async () => ({
         headers: new Headers(),
@@ -80,11 +80,11 @@ describe("provider-api guards", () => {
     expect(api.oAuth2LinkAccount).toBeTypeOf("function");
   });
 
-  it("throws a clear error when generic OAuth API is missing signInWithOAuth2", () => {
+  it("当通用 OAuth API 缺少 signInWithOAuth2 时抛出明确错误", () => {
     expect(() => asGenericOAuthApi({})).toThrow(/missing signInWithOAuth2\(\)/);
   });
 
-  it("throws a clear error when generic OAuth API is missing oAuth2LinkAccount", () => {
+  it("当通用 OAuth API 缺少 oAuth2LinkAccount 时抛出明确错误", () => {
     expect(() =>
       asGenericOAuthApi({ signInWithOAuth2: async () => ({}) }),
     ).toThrow(/missing oAuth2LinkAccount\(\)/);

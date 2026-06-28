@@ -5,8 +5,8 @@ import {
   mapOidcProfileToUser,
 } from "@/lib/auth/oauth-profile";
 
-describe("OAuth profile mapping", () => {
-  it("accepts sparse USTC OIDC profiles with only an id", () => {
+describe("OAuth 档案映射", () => {
+  it("接受仅含 id 的稀疏 USTC OIDC 档案", () => {
     expect(
       mapOidcProfileToUser({
         id: "435",
@@ -23,7 +23,7 @@ describe("OAuth profile mapping", () => {
     });
   });
 
-  it("preserves provider supplied OIDC profile fields when present", () => {
+  it("保留提供者提供的 OIDC 档案字段", () => {
     expect(
       mapOidcProfileToUser({
         sub: "abc",
@@ -41,7 +41,7 @@ describe("OAuth profile mapping", () => {
     });
   });
 
-  it("accepts camelCase email verification from OIDC profiles", () => {
+  it("接受 OIDC 档案中的驼峰式邮箱验证字段", () => {
     expect(
       mapOidcProfileToUser({
         sub: "abc",
@@ -51,7 +51,7 @@ describe("OAuth profile mapping", () => {
     ).toBe(true);
   });
 
-  it("uses the first non-empty profile display name", () => {
+  it("使用第一个非空的档案显示名称", () => {
     expect(
       mapOidcProfileToUser({
         sub: "abc",
@@ -62,7 +62,7 @@ describe("OAuth profile mapping", () => {
     ).toBe("student");
   });
 
-  it("maps GitHub profiles without trusting the email verification state", () => {
+  it("映射 GitHub 档案时不信任邮箱验证状态", () => {
     expect(
       mapGithubProfileToUser({
         id: "octocat",
@@ -79,7 +79,7 @@ describe("OAuth profile mapping", () => {
     });
   });
 
-  it("uses a local fallback email for hidden GitHub emails", () => {
+  it("为隐藏的 GitHub 邮箱使用本地兜底邮箱", () => {
     expect(
       mapGithubProfileToUser({
         id: "octocat",
@@ -94,7 +94,7 @@ describe("OAuth profile mapping", () => {
     });
   });
 
-  it("maps Google email verification only when an email is present", () => {
+  it("仅在存在邮箱时映射 Google 邮箱验证状态", () => {
     expect(
       mapGoogleProfileToUser({
         sub: "google-user",

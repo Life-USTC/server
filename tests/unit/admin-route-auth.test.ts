@@ -34,7 +34,7 @@ vi.mock("@/lib/mcp/urls", () => ({
   getOAuthTokenVerificationIssuers: () => ["https://life.example/api/auth"],
 }));
 
-describe("admin route auth", () => {
+describe("admin 路由认证", () => {
   afterEach(() => {
     findActiveSuspensionMock.mockReset();
     getSessionFromHeadersMock.mockReset();
@@ -43,7 +43,7 @@ describe("admin route auth", () => {
     vi.resetModules();
   });
 
-  it("returns 401 when no session user is authenticated", async () => {
+  it("未认证会话用户时返回 401", async () => {
     getSessionFromHeadersMock.mockResolvedValue(null);
     resolveAdminByUserIdMock.mockResolvedValue(null);
     const { requireAdminRequest } = await import(
@@ -60,7 +60,7 @@ describe("admin route auth", () => {
     expect(resolveAdminByUserIdMock).not.toHaveBeenCalled();
   });
 
-  it("rejects bearer-only admin REST requests", async () => {
+  it("拒绝仅 Bearer 的管理员 REST 请求", async () => {
     getSessionFromHeadersMock.mockResolvedValue({
       user: { id: "admin-from-cookie" },
     });
@@ -84,7 +84,7 @@ describe("admin route auth", () => {
     expect(resolveAdminByUserIdMock).not.toHaveBeenCalled();
   });
 
-  it("returns 401 when the session user is not an admin", async () => {
+  it("会话用户不是管理员时返回 401", async () => {
     getSessionFromHeadersMock.mockResolvedValue({
       user: { id: "user-1" },
     });
@@ -106,7 +106,7 @@ describe("admin route auth", () => {
     expect(resolveAdminByUserIdMock).toHaveBeenCalledWith("user-1");
   });
 
-  it("returns the admin session for a valid admin session cookie", async () => {
+  it("为有效的管理员会话 cookie 返回管理员会话", async () => {
     getSessionFromHeadersMock.mockResolvedValue({
       user: { id: "admin-1" },
     });
@@ -130,7 +130,7 @@ describe("admin route auth", () => {
     expect(resolveAdminByUserIdMock).toHaveBeenCalledWith("admin-1");
   });
 
-  it("returns 403 when an admin mutation requires an active admin but the admin is suspended", async () => {
+  it("管理员变更需要活跃管理员但该管理员被暂停时返回 403", async () => {
     getSessionFromHeadersMock.mockResolvedValue({
       user: { id: "admin-1" },
     });

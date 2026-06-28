@@ -29,12 +29,12 @@ import { absoluteTestUrl } from "../../../utils/request-url";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
 
-test.describe("/courses", () => {
-  test("contract", async ({ page }, testInfo) => {
+test.describe("/courses 课程目录", () => {
+  test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, { routePath: "/courses", testInfo });
   });
 
-  test("SSR output contains search query", async ({ baseURL }) => {
+  test("SSR 输出包含搜索查询", async ({ baseURL }) => {
     const response = await fetch(
       absoluteTestUrl(
         `/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
@@ -47,7 +47,7 @@ test.describe("/courses", () => {
     expect(html).toContain(DEV_SEED.course.code);
   });
 
-  test("language switching works", async ({ page, baseURL }, testInfo) => {
+  test("语言切换正常工作", async ({ page, baseURL }, testInfo) => {
     await gotoAndWaitForReady(page, "/courses", {
       testInfo,
       screenshotLabel: "courses",
@@ -93,9 +93,7 @@ test.describe("/courses", () => {
     await captureStepScreenshot(page, testInfo, "courses-zh-cn");
   });
 
-  test("mobile cards stay tappable and navigate to detail", async ({
-    page,
-  }, testInfo) => {
+  test("移动端卡片可点击并导航到详情", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoAndWaitForReady(
       page,
@@ -118,7 +116,7 @@ test.describe("/courses", () => {
     await captureStepScreenshot(page, testInfo, "courses-navigate-detail");
   });
 
-  test("search and clear button", async ({ page }, testInfo) => {
+  test("搜索和清除按钮", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/courses", {
       testInfo,
       screenshotLabel: "courses",
@@ -145,9 +143,7 @@ test.describe("/courses", () => {
     await captureStepScreenshot(page, testInfo, "courses-search-clear");
   });
 
-  test("filter by seed dimensions preserves results", async ({
-    page,
-  }, testInfo) => {
+  test("按种子维度筛选保留结果", async ({ page }, testInfo) => {
     const filters = await getSeedCourseFilterFixture(DEV_SEED.course.jwId);
     const params = new URLSearchParams();
     if (filters.educationLevelId) {

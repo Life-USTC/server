@@ -29,8 +29,8 @@ import { signInAsDebugUser } from "../../../../../utils/auth";
 
 const BASE = "/api/dashboard-links/visit";
 
-test.describe("GET & POST /api/dashboard-links/visit", () => {
-  test("GET redirects to target link URL", async ({ request }) => {
+test.describe("GET & POST /api/dashboard-links/visit 接口", () => {
+  test("GET 重定向到目标链接 URL", async ({ request }) => {
     const response = await request.get(`${BASE}?slug=jw`, {
       maxRedirects: 0,
     });
@@ -38,7 +38,7 @@ test.describe("GET & POST /api/dashboard-links/visit", () => {
     expect(response.headers().location).toBe("https://jw.ustc.edu.cn/");
   });
 
-  test("GET with invalid slug redirects to /", async ({ request }) => {
+  test("GET 无效 slug 重定向到 /", async ({ request }) => {
     const response = await request.get(`${BASE}?slug=nonexistent-e2e`, {
       maxRedirects: 0,
     });
@@ -46,7 +46,7 @@ test.describe("GET & POST /api/dashboard-links/visit", () => {
     expect(response.headers().location).toMatch(/\/$/);
   });
 
-  test("GET without slug redirects to /", async ({ request }) => {
+  test("GET 缺少 slug 重定向到 /", async ({ request }) => {
     const response = await request.get(BASE, {
       maxRedirects: 0,
     });
@@ -54,7 +54,7 @@ test.describe("GET & POST /api/dashboard-links/visit", () => {
     expect(response.headers().location).toMatch(/\/$/);
   });
 
-  test("POST with valid slug redirects to target URL", async ({ page }) => {
+  test("POST 有效 slug 重定向到目标 URL", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     const response = await page.request.post(BASE, {
@@ -65,7 +65,7 @@ test.describe("GET & POST /api/dashboard-links/visit", () => {
     expect(response.headers().location).toBe("https://jw.ustc.edu.cn/");
   });
 
-  test("POST with invalid slug redirects to /", async ({ page }) => {
+  test("POST 无效 slug 重定向到 /", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     const response = await page.request.post(BASE, {
@@ -76,7 +76,7 @@ test.describe("GET & POST /api/dashboard-links/visit", () => {
     expect(response.headers().location).toMatch(/\/$/);
   });
 
-  test("POST without auth still redirects", async ({ request }) => {
+  test("POST 未登录仍重定向", async ({ request }) => {
     const response = await request.post(BASE, {
       form: { slug: "jw" },
       maxRedirects: 0,

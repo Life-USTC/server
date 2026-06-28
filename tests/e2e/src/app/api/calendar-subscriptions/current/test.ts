@@ -23,21 +23,19 @@ import { assertApiContract } from "../../../_shared/api-contract";
 
 const BASE = "/api/calendar-subscriptions/current";
 
-test.describe("GET /api/calendar-subscriptions/current", () => {
+test.describe("GET /api/calendar-subscriptions/current 接口", () => {
   test.describe.configure({ mode: "serial" });
 
-  test("contract", async ({ request }) => {
+  test("接口契约", async ({ request }) => {
     await assertApiContract(request, { routePath: BASE });
   });
 
-  test("returns 401 when not authenticated", async ({ request }) => {
+  test("未登录时返回 401", async ({ request }) => {
     const response = await request.get(BASE);
     expect(response.status()).toBe(401);
   });
 
-  test("returns subscription with seed section for authenticated user", async ({
-    page,
-  }) => {
+  test("登录用户返回包含 seed 课程的订阅", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     // Resolve seed section ID
@@ -83,7 +81,7 @@ test.describe("GET /api/calendar-subscriptions/current", () => {
     expect(sub.calendarUrl as string).not.toContain("/api/auth/api/users/");
   });
 
-  test("reflects changes made via POST", async ({ page }) => {
+  test("反映 POST 修改后的状态", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     // Save original state

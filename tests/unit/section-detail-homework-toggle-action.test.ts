@@ -61,12 +61,12 @@ function actionInput(
   };
 }
 
-describe("section detail homework toggle action", () => {
+describe("课程详情作业切换动作", () => {
   beforeEach(() => {
     updateHomeworkCompletionMock.mockReset();
   });
 
-  it("updates homework completion through the shared client", async () => {
+  it("通过共享客户端更新作业完成状态", async () => {
     const homework = {
       id: "homework-1",
       completion: null,
@@ -115,7 +115,7 @@ describe("section detail homework toggle action", () => {
     );
   });
 
-  it("surfaces localized completion failures instead of raw API messages", async () => {
+  it("显示本地化的完成失败信息，而非原始 API 消息", async () => {
     const homework = {
       id: "homework-1",
       completion: { completedAt: "2026-06-22T10:00:00.000Z" },

@@ -30,13 +30,13 @@ import {
 } from "../../../../utils/auth";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-test.describe("/settings?tab=danger", () => {
-  test("requires authentication", async ({ page }, testInfo) => {
+test.describe("/settings?tab=danger 危险区设置", () => {
+  test("需要登录", async ({ page }, testInfo) => {
     await expectRequiresSignIn(page, "/settings?tab=danger");
     await captureStepScreenshot(page, testInfo, "settings-danger-unauthorized");
   });
 
-  test("delete account confirmation flow", async ({ page }, testInfo) => {
+  test("删除账号确认流程", async ({ page }, testInfo) => {
     await signInAsDebugUser(
       page,
       "/settings?tab=danger",

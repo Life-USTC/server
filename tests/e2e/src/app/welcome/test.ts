@@ -39,7 +39,7 @@ test("/welcome 未登录重定向到登录页", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "welcome/unauthorized");
 });
 
-test("/welcome displays required fields", async ({ page }, testInfo) => {
+test("/welcome 显示必填字段", async ({ page }, testInfo) => {
   test.setTimeout(300_000);
   await signInAsDebugUser(page, "/");
   const sessionUser = await getCurrentSessionUser(page);
@@ -98,9 +98,7 @@ test("/welcome displays required fields", async ({ page }, testInfo) => {
   }
 });
 
-test("incomplete signed-in users are redirected to /welcome from normal pages", async ({
-  page,
-}) => {
+test("资料不完整的登录用户从普通页面重定向到 /welcome", async ({ page }) => {
   test.setTimeout(300_000);
   await signInAsDebugUser(page, "/");
   const sessionUser = await getCurrentSessionUser(page);
@@ -129,9 +127,7 @@ test("incomplete signed-in users are redirected to /welcome from normal pages", 
   }
 });
 
-test("/welcome completion returns to the original callback page", async ({
-  page,
-}, testInfo) => {
+test("/welcome 完成后返回原回调页面", async ({ page }, testInfo) => {
   test.setTimeout(300_000);
   await signInAsDebugUser(page, "/");
   const sessionUser = await getCurrentSessionUser(page);

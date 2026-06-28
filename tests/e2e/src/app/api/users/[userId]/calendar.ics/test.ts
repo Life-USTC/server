@@ -44,27 +44,23 @@ function unfoldICalendar(text: string) {
 test.describe("GET /api/users/[userId]/calendar.ics", () => {
   test.describe.configure({ mode: "serial" });
 
-  test("contract", async ({ request }) => {
+  test("契约", async ({ request }) => {
     await assertApiContract(request, { routePath: ROUTE_PATH });
   });
 
-  test("returns 401 when not authenticated and no token", async ({
-    request,
-  }) => {
+  test("未认证且无 token 时返回 401", async ({ request }) => {
     const response = await request.get("/api/users/invalid-e2e/calendar.ics");
     expect(response.status()).toBe(401);
   });
 
-  test("returns 403 with invalid token", async ({ request }) => {
+  test("无效 token 返回 403", async ({ request }) => {
     const response = await request.get(
       "/api/users/invalid-e2e/calendar.ics?token=invalid-token",
     );
     expect(response.status()).toBe(403);
   });
 
-  test("returns 403 when accessing another user's calendar", async ({
-    page,
-  }) => {
+  test("访问其他用户日历时返回 403", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     const response = await page.request.get(
@@ -73,9 +69,7 @@ test.describe("GET /api/users/[userId]/calendar.ics", () => {
     expect(response.status()).toBe(403);
   });
 
-  test("returns valid iCalendar for own calendar via session auth", async ({
-    page,
-  }) => {
+  test("通过 session 认证返回有效的个人 iCalendar", async ({ page }) => {
     await signInAsDebugUser(page, "/");
     const { id: userId } = await getCurrentSessionUser(page);
 
@@ -134,7 +128,7 @@ test.describe("GET /api/users/[userId]/calendar.ics", () => {
     }
   });
 
-  test("returns valid iCalendar via path token (anonymous)", async ({
+  test("通过 path token 返回有效的 iCalendar（匿名）", async ({
     page,
     request,
   }) => {
@@ -152,7 +146,7 @@ test.describe("GET /api/users/[userId]/calendar.ics", () => {
     expect(body).toContain("BEGIN:VCALENDAR");
   });
 
-  test("returns valid iCalendar via query token (anonymous)", async ({
+  test("通过 query token 返回有效的 iCalendar（匿名）", async ({
     page,
     request,
   }) => {
@@ -171,10 +165,7 @@ test.describe("GET /api/users/[userId]/calendar.ics", () => {
     expect(body).toContain("BEGIN:VCALENDAR");
   });
 
-  test("returns 403 with invalid token for existing user", async ({
-    page,
-    request,
-  }) => {
+  test("现有用户无效 token 返回 403", async ({ page, request }) => {
     await signInAsDebugUser(page, "/");
     const { id: userId } = await getCurrentSessionUser(page);
 

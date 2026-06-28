@@ -33,7 +33,7 @@ function preferenceRequest(body: unknown) {
   });
 }
 
-describe("POST /api/bus/preferences", () => {
+describe("POST /api/bus/preferences 班车偏好接口", () => {
   beforeEach(() => {
     vi.resetModules();
     requireAuthMock.mockReset();
@@ -44,7 +44,7 @@ describe("POST /api/bus/preferences", () => {
     requireAuthMock.mockResolvedValue({ userId: "user-1" });
   });
 
-  it("returns 400 for an unknown preferred origin campus", async () => {
+  it("未知的首选出发校区返回 400", async () => {
     prismaMock.busCampus.findMany.mockResolvedValue([]);
     const { postBusPreferencesRoute } = await import("@/lib/api/routes/bus");
 
@@ -63,7 +63,7 @@ describe("POST /api/bus/preferences", () => {
     expect(prismaMock.busUserPreference.upsert).not.toHaveBeenCalled();
   });
 
-  it("returns 400 for an unknown preferred destination campus", async () => {
+  it("未知的首选目的校区返回 400", async () => {
     prismaMock.busCampus.findMany.mockResolvedValue([{ id: 1 }]);
     const { postBusPreferencesRoute } = await import("@/lib/api/routes/bus");
 
@@ -82,7 +82,7 @@ describe("POST /api/bus/preferences", () => {
     expect(prismaMock.busUserPreference.upsert).not.toHaveBeenCalled();
   });
 
-  it("keeps null campus reset behavior", async () => {
+  it("保留 null 校区重置行为", async () => {
     prismaMock.busUserPreference.upsert.mockResolvedValue({});
     const { postBusPreferencesRoute } = await import("@/lib/api/routes/bus");
 

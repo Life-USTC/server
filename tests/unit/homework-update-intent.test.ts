@@ -14,7 +14,7 @@ const emptyDates = {
 };
 
 describe("buildHomeworkUpdateIntent", () => {
-  test("keeps empty updates explicit", () => {
+  test("保持空更新显式", () => {
     const intent = buildHomeworkUpdateIntent({
       dates: emptyDates,
       hasDescription: false,
@@ -26,7 +26,7 @@ describe("buildHomeworkUpdateIntent", () => {
     expect(intent.homeworkUpdates).toBeUndefined();
   });
 
-  test("represents description-only updates without homework row data", () => {
+  test("仅描述更新时不生成 homework 行数据", () => {
     const intent = buildHomeworkUpdateIntent({
       dates: emptyDates,
       description: "updated description",
@@ -39,7 +39,7 @@ describe("buildHomeworkUpdateIntent", () => {
     expect(intent.homeworkUpdates).toBeUndefined();
   });
 
-  test("adds editor metadata only when homework row data changes", () => {
+  test("仅在 homework 行数据变化时添加编辑者元数据", () => {
     const dueAt = new Date("2026-05-15T15:00:00.000Z");
     const intent = buildHomeworkUpdateIntent({
       dates: {

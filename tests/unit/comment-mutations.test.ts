@@ -100,7 +100,7 @@ function activeComment() {
   };
 }
 
-describe("comment mutation write guards", () => {
+describe("评论变更写入保护", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
@@ -113,7 +113,7 @@ describe("comment mutation write guards", () => {
     auditLogCreateMock.mockResolvedValue({});
   });
 
-  it("locks the parent row inside the reply creation transaction", async () => {
+  it("在回复创建事务中锁定父行", async () => {
     resolveCommentMutationTargetReferenceMock.mockResolvedValue({
       ok: true,
       rawTargetId: 1,
@@ -182,7 +182,7 @@ describe("comment mutation write guards", () => {
     ).toBeLessThan(auditLogCreateMock.mock.invocationCallOrder[0]);
   });
 
-  it("writes edit audit through the shared update mutation transaction", async () => {
+  it("通过共享更新变更事务写入编辑审计", async () => {
     prismaMock.comment.findUnique
       .mockResolvedValueOnce(activeComment())
       .mockResolvedValueOnce({ id: "comment-1", body: "edited" });
@@ -221,7 +221,7 @@ describe("comment mutation write guards", () => {
     ).toBeLessThan(auditLogCreateMock.mock.invocationCallOrder[0]);
   });
 
-  it("does not sync edit attachments when the owner/status guard loses a race", async () => {
+  it("所有者/状态保护竞争失败时不同步编辑附件", async () => {
     prismaMock.comment.findUnique
       .mockResolvedValueOnce(activeComment())
       .mockResolvedValueOnce({ ...activeComment(), status: "deleted" });
@@ -260,7 +260,7 @@ describe("comment mutation write guards", () => {
     expect(auditLogCreateMock).not.toHaveBeenCalled();
   });
 
-  it("guards delete by owner and active status in the final write", async () => {
+  it("在最终写入时按所有者和活跃状态保护删除", async () => {
     prismaMock.comment.findUnique
       .mockResolvedValueOnce(activeComment())
       .mockResolvedValueOnce({ ...activeComment(), status: "deleted" });
@@ -285,7 +285,7 @@ describe("comment mutation write guards", () => {
     expect(auditLogCreateMock).not.toHaveBeenCalled();
   });
 
-  it("writes delete audit through the shared delete mutation transaction", async () => {
+  it("通过共享删除变更事务写入删除审计", async () => {
     prismaMock.comment.findUnique.mockResolvedValueOnce(activeComment());
     transactionMock.comment.updateMany.mockResolvedValue({ count: 1 });
 
@@ -313,7 +313,7 @@ describe("comment mutation write guards", () => {
     ).toBeLessThan(auditLogCreateMock.mock.invocationCallOrder[0]);
   });
 
-  it("writes reaction audit through the shared reaction mutation transaction", async () => {
+  it("通过共享反应变更事务写入反应审计", async () => {
     prismaMock.comment.findUnique.mockResolvedValue(activeComment());
     transactionMock.commentReaction.createMany.mockResolvedValue({ count: 1 });
 
@@ -342,7 +342,7 @@ describe("comment mutation write guards", () => {
     ).toBeLessThan(auditLogCreateMock.mock.invocationCallOrder[0]);
   });
 
-  it("writes reaction removal audit through the shared reaction mutation transaction", async () => {
+  it("通过共享反应变更事务写入反应移除审计", async () => {
     prismaMock.comment.findUnique.mockResolvedValue(activeComment());
     transactionMock.commentReaction.deleteMany.mockResolvedValue({ count: 1 });
 

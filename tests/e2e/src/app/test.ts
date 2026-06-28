@@ -75,7 +75,7 @@ test("/ 主题切换可写入 localStorage", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "theme-dark");
 });
 
-test("/ shell menus can switch in one click", async ({ page }) => {
+test("/ shell 菜单可一键切换", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 });
   await signInAsDebugUser(page, "/");
 
@@ -99,7 +99,7 @@ test("/ shell menus can switch in one click", async ({ page }) => {
   ).toHaveCount(0);
 });
 
-test("/ shell menus expose keyboard menu semantics", async ({ page }) => {
+test("/ shell 菜单支持键盘菜单语义", async ({ page }) => {
   await signInAsDebugUser(page, "/");
 
   const profileMenuButton = page.getByRole("button", {

@@ -21,12 +21,12 @@ vi.mock("@/lib/db/prisma", () => ({
   prisma: prismaMock,
 }));
 
-describe("comment section-teacher targets", () => {
+describe("评论 section-teacher 目标", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("does not resolve retired section-teacher rows as active targets", async () => {
+  it("不将已退役的 section-teacher 行解析为活跃目标", async () => {
     prismaMock.sectionTeacher.findUnique.mockResolvedValue({
       id: 9,
       retiredAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -35,7 +35,7 @@ describe("comment section-teacher targets", () => {
     await expect(findSectionTeacherId(1, 2)).resolves.toBeNull();
   });
 
-  it("reports stale section-teacher rows as missing when the active assignment is gone", async () => {
+  it("当活跃分配不存在时将陈旧的 section-teacher 行报告为缺失", async () => {
     prismaMock.sectionTeacher.findUnique.mockResolvedValue({
       id: 9,
       retiredAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -48,7 +48,7 @@ describe("comment section-teacher targets", () => {
     });
   });
 
-  it("reactivates an explicit target only after the active assignment exists", async () => {
+  it("仅在存在活跃分配后才重新激活显式目标", async () => {
     prismaMock.section.findFirst.mockResolvedValue({ id: 1 });
     prismaMock.sectionTeacher.upsert.mockResolvedValue({ id: 9 });
 
@@ -65,7 +65,7 @@ describe("comment section-teacher targets", () => {
     });
   });
 
-  it("rejects direct section-teacher ids when they are retired", async () => {
+  it("已退役的直接 section-teacher ID 被拒绝", async () => {
     prismaMock.sectionTeacher.findFirst.mockResolvedValue(null);
 
     await expect(

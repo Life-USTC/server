@@ -23,11 +23,11 @@ import { DEV_SEED } from "../../../../utils/dev-seed";
 import { assertApiContract } from "../../_shared/api-contract";
 
 test.describe("GET /api/semesters", () => {
-  test("contract", async ({ request }) => {
+  test("契约", async ({ request }) => {
     await assertApiContract(request, { routePath: "/api/semesters" });
   });
 
-  test("returns paginated response shape", async ({ request }) => {
+  test("返回分页响应结构", async ({ request }) => {
     const response = await request.get("/api/semesters");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -48,7 +48,7 @@ test.describe("GET /api/semesters", () => {
     expect(body.pagination?.totalPages).toBeGreaterThanOrEqual(1);
   });
 
-  test("list contains seed semester", async ({ request }) => {
+  test("列表包含 seed 学期", async ({ request }) => {
     const response = await request.get("/api/semesters?limit=20");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -61,7 +61,7 @@ test.describe("GET /api/semesters", () => {
     expect(typeof semester?.nameCn).toBe("string");
   });
 
-  test("limit param controls page size", async ({ request }) => {
+  test("limit 参数控制页大小", async ({ request }) => {
     const response = await request.get("/api/semesters?limit=1");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -72,7 +72,7 @@ test.describe("GET /api/semesters", () => {
     expect(body.pagination?.pageSize).toBe(1);
   });
 
-  test("semester items have all required fields", async ({ request }) => {
+  test("学期项包含所有必需字段", async ({ request }) => {
     const response = await request.get("/api/semesters?limit=20");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -97,7 +97,7 @@ test.describe("GET /api/semesters", () => {
     expect(typeof semester?.endDate).toBe("string");
   });
 
-  test("page param navigates results", async ({ request }) => {
+  test("page 参数可翻页", async ({ request }) => {
     const response = await request.get("/api/semesters?page=1");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { resolveEquivalentLoopbackRedirectUri } from "@/lib/oauth/loopback-redirect";
 
-describe("oauth loopback redirect normalization", () => {
-  it("returns the registered URI when localhost and 127.0.0.1 differ only by host", () => {
+describe("OAuth 环回重定向规范化", () => {
+  it("localhost 与 127.0.0.1 仅主机不同时返回已注册 URI", () => {
     expect(
       resolveEquivalentLoopbackRedirectUri(
         ["http://127.0.0.1:52877/callback"],
@@ -11,7 +11,7 @@ describe("oauth loopback redirect normalization", () => {
     ).toBe("http://127.0.0.1:52877/callback");
   });
 
-  it("keeps strict matching for path, port, query, and fragment", () => {
+  it("对路径、端口、查询和片段保持严格匹配", () => {
     expect(
       resolveEquivalentLoopbackRedirectUri(
         ["http://127.0.0.1:52877/callback"],
@@ -38,7 +38,7 @@ describe("oauth loopback redirect normalization", () => {
     ).toBeNull();
   });
 
-  it("does not rewrite non-loopback URIs", () => {
+  it("不重写非环回 URI", () => {
     expect(
       resolveEquivalentLoopbackRedirectUri(
         ["https://client.example/callback"],

@@ -129,7 +129,7 @@ async function resolveSeedSectionId(
   return section!.id!;
 }
 
-test("/api/comments", async ({ request }) => {
+test("/api/comments 接口契约", async ({ request }) => {
   await assertApiContract(request, { routePath: "/api/comments" });
 });
 
@@ -158,7 +158,7 @@ test("/api/comments GET 返回 section 目标与 seed 评论", async ({ request 
   ).toBe(true);
 });
 
-test("/api/comments GET accepts public section JW id", async ({ request }) => {
+test("/api/comments GET 接受公开 section JW id", async ({ request }) => {
   const response = await request.get(
     `/api/comments?targetType=section&sectionJwId=${DEV_SEED.section.jwId}`,
   );
@@ -268,7 +268,7 @@ test("/api/comments POST 未登录返回 401", async ({ request }) => {
   expect(response.status()).toBe(401);
 });
 
-test("/api/comments POST rejects anonymous visibility", async ({ page }) => {
+test("/api/comments POST 拒绝匿名可见性", async ({ page }) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
   const content = `e2e-reject-anonymous-visibility-${Date.now()}`;
@@ -331,7 +331,7 @@ test("/api/comments POST 登录后可发布新评论并清理", async ({ page })
   }
 });
 
-test("/api/comments POST accepts public section JW id", async ({ page }) => {
+test("/api/comments POST 接受公开 section JW id", async ({ page }) => {
   await signInAsDebugUser(page, "/");
 
   const content = `e2e-create-comment-section-jwid-${Date.now()}`;
@@ -365,7 +365,7 @@ test("/api/comments POST accepts public section JW id", async ({ page }) => {
   }
 });
 
-test("/api/comments POST rejects malformed public section JW id with fallback targetId", async ({
+test("/api/comments POST 拒绝格式错误的公开 section JW id 并回退 targetId", async ({
   page,
 }) => {
   await signInAsDebugUser(page, "/");
@@ -395,9 +395,7 @@ test("/api/comments POST rejects malformed public section JW id with fallback ta
   expect(created).toBeNull();
 });
 
-test("/api/comments POST rejects reusing an uploaded attachment", async ({
-  page,
-}) => {
+test("/api/comments POST 拒绝复用已上传附件", async ({ page }) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
   const marker = `e2e-upload-reuse-${Date.now()}`;
@@ -499,9 +497,7 @@ test("/api/comments POST 可创建回复评论", async ({ page }) => {
   }
 });
 
-test("/api/comments POST refuses replies to inactive parent comments", async ({
-  page,
-}) => {
+test("/api/comments POST 拒绝对失效父评论回复", async ({ page }) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
 

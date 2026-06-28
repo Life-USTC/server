@@ -22,7 +22,7 @@ vi.mock("@/lib/mcp/urls", () => ({
 }));
 
 describe("buildOAuthProviderPlugin", () => {
-  it("restricts the provider to user-delegated OAuth grants", async () => {
+  it("将提供者限制为用户委托的 OAuth 授权", async () => {
     const { buildOAuthProviderPlugin } = await import(
       "@/lib/auth/better-auth-oauth-provider-plugin"
     );
@@ -41,7 +41,7 @@ describe("buildOAuthProviderPlugin", () => {
     );
   });
 
-  it("defaults DCR clients to profile scopes while keeping REST and MCP scopes requestable", async () => {
+  it("DCR 客户端默认使用 profile 作用域并保留 REST 与 MCP 作用域可请求", async () => {
     const { buildOAuthProviderPlugin } = await import(
       "@/lib/auth/better-auth-oauth-provider-plugin"
     );

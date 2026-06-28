@@ -68,7 +68,7 @@ async function findSeedCommentId(
   return seed!.id!;
 }
 
-test("/api/comments/[id]", async ({ request }) => {
+test("/api/comments/[id] 接口契约", async ({ request }) => {
   await assertApiContract(request, { routePath: "/api/comments/[id]" });
 });
 
@@ -109,7 +109,7 @@ test("/api/comments/[id] GET 不存在的 ID 返回 404", async ({ request }) =>
   expect(response.status()).toBe(404);
 });
 
-test("/api/comments/[id] GET hidden focused thread returns 403", async ({
+test("/api/comments/[id] GET 隐藏聚焦线程返回 403", async ({
   page,
   request,
 }) => {
@@ -155,9 +155,7 @@ test("/api/comments/[id] DELETE 未登录返回 401", async ({ request }) => {
   expect(response.status()).toBe(401);
 });
 
-test("/api/comments/[id] PATCH rejects anonymous visibility", async ({
-  page,
-}) => {
+test("/api/comments/[id] PATCH 拒绝匿名可见性", async ({ page }) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
   const content = `e2e-reject-edit-anonymous-visibility-${Date.now()}`;
@@ -249,9 +247,7 @@ test("/api/comments/[id] PATCH 可修改评论并 DELETE 清理", async ({ page 
   }
 });
 
-test("/api/comments/[id] PATCH rejects admin when admin is not owner", async ({
-  browser,
-}) => {
+test("/api/comments/[id] PATCH 非所有者管理员被拒绝", async ({ browser }) => {
   const debugContext = await browser.newContext();
   const debugPage = await debugContext.newPage();
   const adminContext = await browser.newContext();
@@ -294,7 +290,7 @@ test("/api/comments/[id] PATCH rejects admin when admin is not owner", async ({
   }
 });
 
-test("/api/comments/[id] PATCH rejects an upload attached to another comment", async ({
+test("/api/comments/[id] PATCH 拒绝绑定到其他评论的上传文件", async ({
   page,
 }) => {
   await signInAsDebugUser(page, "/");
@@ -355,7 +351,7 @@ test("/api/comments/[id] PATCH rejects an upload attached to another comment", a
   }
 });
 
-test("/api/comments/[id] PATCH refuses inactive comments", async ({ page }) => {
+test("/api/comments/[id] PATCH 对失效评论返回 403", async ({ page }) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
 

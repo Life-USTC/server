@@ -26,7 +26,7 @@ vi.mock("@/lib/db/prisma", () => ({
   },
 }));
 
-describe("admin page auth", () => {
+describe("admin 页面认证", () => {
   afterEach(() => {
     findActiveSuspensionMock.mockReset();
     getSessionFromHeadersMock.mockReset();
@@ -34,7 +34,7 @@ describe("admin page auth", () => {
     vi.resetModules();
   });
 
-  it("allows suspended admins to load read-only admin pages", async () => {
+  it("允许被暂停的管理员加载只读管理页面", async () => {
     getSessionFromHeadersMock.mockResolvedValue({
       user: { id: "admin-1" },
     });
@@ -60,7 +60,7 @@ describe("admin page auth", () => {
     expect(findActiveSuspensionMock).not.toHaveBeenCalled();
   });
 
-  it("blocks suspended admins from admin page actions", async () => {
+  it("阻止被暂停的管理员执行管理页面操作", async () => {
     getSessionFromHeadersMock.mockResolvedValue({
       user: { id: "admin-1" },
     });

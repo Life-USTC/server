@@ -21,8 +21,8 @@ const homeworkCopy = {
   errorTitleTooLong: "title too long",
 };
 
-describe("dashboard form validation", () => {
-  it("uses strict todo due date parsing", () => {
+describe("仪表盘表单验证", () => {
+  it("对 todo 截止日期使用严格解析", () => {
     const formData = new FormData();
     formData.set("title", "Read Chapter 1");
     formData.set("dueAt", "2026-02-30T10:00");
@@ -30,7 +30,7 @@ describe("dashboard form validation", () => {
     expect(validateTodoForm(formData, todoCopy)).toBe("invalid due date");
   });
 
-  it("uses strict homework date parsing", () => {
+  it("对作业日期使用严格解析", () => {
     const formData = new FormData();
     formData.set("sectionId", "1");
     formData.set("title", "Project 1");

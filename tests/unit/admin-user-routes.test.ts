@@ -41,7 +41,7 @@ function jsonRequest(path: string, body: unknown) {
   });
 }
 
-describe("admin user routes", () => {
+describe("admin 用户路由", () => {
   afterEach(() => {
     createAdminSuspensionMock.mockReset();
     listAdminSuspensionsMock.mockReset();
@@ -50,7 +50,7 @@ describe("admin user routes", () => {
     vi.resetModules();
   });
 
-  it("passes the acting admin id into user updates", async () => {
+  it("将当前管理员 id 传入用户更新", async () => {
     updateAdminUserMock.mockResolvedValue({
       ok: true,
       user: { id: "user-1" },
@@ -70,7 +70,7 @@ describe("admin user routes", () => {
     });
   });
 
-  it("maps self-demotion to a public 400 response", async () => {
+  it("将自我降权映射为公开 400 响应", async () => {
     updateAdminUserMock.mockResolvedValue({
       ok: false,
       reason: "cannot_demote_self",
@@ -90,7 +90,7 @@ describe("admin user routes", () => {
     expect(response.status).toBe(400);
   });
 
-  it("maps final-admin removal to a public 400 response", async () => {
+  it("将移除最后管理员映射为公开 400 响应", async () => {
     updateAdminUserMock.mockResolvedValue({
       ok: false,
       reason: "cannot_remove_last_admin",
@@ -110,7 +110,7 @@ describe("admin user routes", () => {
     expect(response.status).toBe(400);
   });
 
-  it("maps self-suspension to a public 400 response", async () => {
+  it("将自我封禁映射为公开 400 响应", async () => {
     createAdminSuspensionMock.mockResolvedValue({
       ok: false,
       reason: "cannot_suspend_self",

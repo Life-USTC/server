@@ -39,12 +39,12 @@ function userWithToken(calendarFeedToken: string | null) {
   };
 }
 
-describe("ensureUserCalendarFeedToken", () => {
+describe("ensureUserCalendarFeedToken 日历订阅令牌", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("returns the generated token when it wins first-time creation", async () => {
+  it("首次创建成功时返回生成的令牌", async () => {
     findUniqueMock.mockResolvedValueOnce(userWithToken(null));
     randomBytesBase64UrlMock.mockReturnValue("generated-token");
     updateManyMock.mockResolvedValueOnce({ count: 1 });
@@ -61,7 +61,7 @@ describe("ensureUserCalendarFeedToken", () => {
     expect(updateMock).not.toHaveBeenCalled();
   });
 
-  it("rereads and returns the persisted token when a competing write wins", async () => {
+  it("并发写入由另一方完成时重读并返回持久化的令牌", async () => {
     findUniqueMock
       .mockResolvedValueOnce(userWithToken(null))
       .mockResolvedValueOnce(userWithToken("persisted-token"));

@@ -17,12 +17,12 @@ function record(
   };
 }
 
-describe("device approval validation", () => {
-  it("allows pending codes for enabled clients before expiry", () => {
+describe("设备授权验证", () => {
+  it("允许已启用客户端在过期前使用待处理代码", () => {
     expect(getDeviceApprovalFailureReason(record(), now)).toBeNull();
   });
 
-  it("rejects disabled clients before checking expiry or status", () => {
+  it("在检查过期时间或状态前拒绝已禁用客户端", () => {
     expect(
       getDeviceApprovalFailureReason(
         record({
@@ -35,13 +35,13 @@ describe("device approval validation", () => {
     ).toBe("disabled");
   });
 
-  it("rejects expired pending codes", () => {
+  it("拒绝已过期的待处理代码", () => {
     expect(
       getDeviceApprovalFailureReason(record({ expiresAt: past }), now),
     ).toBe("expired");
   });
 
-  it("rejects already-used codes", () => {
+  it("拒绝已使用过的代码", () => {
     expect(
       getDeviceApprovalFailureReason(
         record({ status: DEVICE_CODE_STATUS.DENIED }),

@@ -28,12 +28,10 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
 
-test.describe("dashboard homeworks", () => {
+test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "serial" });
 
-  test("unauthenticated ?tab=homeworks falls back to public view", async ({
-    page,
-  }, testInfo) => {
+  test("未登录 ?tab=homeworks 回退到公共视图", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/?tab=homeworks", {
       testInfo,
       screenshotLabel: "homeworks",
@@ -57,9 +55,7 @@ test.describe("dashboard homeworks", () => {
     await captureStepScreenshot(page, testInfo, "homeworks/unauthenticated");
   });
 
-  test("authenticated shows seed homework with all required fields", async ({
-    page,
-  }, testInfo) => {
+  test("登录后显示种子作业及所有必填字段", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/homeworks");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/dashboard/homeworks", {
@@ -94,9 +90,7 @@ test.describe("dashboard homeworks", () => {
     await captureStepScreenshot(page, testInfo, "homeworks/seed-card-fields");
   });
 
-  test("seeded collaborative homework shows major and team badges", async ({
-    page,
-  }, testInfo) => {
+  test("种子协作作业显示重要和团队徽章", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/homeworks");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/dashboard/homeworks", {
@@ -120,7 +114,7 @@ test.describe("dashboard homeworks", () => {
     await captureStepScreenshot(page, testInfo, "homeworks/major-team-badges");
   });
 
-  test("can switch between filter tabs", async ({ page }, testInfo) => {
+  test("可在筛选标签之间切换", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/homeworks");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/dashboard/homeworks", {
@@ -151,9 +145,7 @@ test.describe("dashboard homeworks", () => {
     await captureStepScreenshot(page, testInfo, "homeworks/filter-all");
   });
 
-  test("can switch to list view and persist preference", async ({
-    page,
-  }, testInfo) => {
+  test("可切换到列表视图并持久化偏好", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/homeworks");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/dashboard/homeworks", {
@@ -188,7 +180,7 @@ test.describe("dashboard homeworks", () => {
     await captureStepScreenshot(page, testInfo, "homeworks/list-view");
   });
 
-  test("can toggle homework completion status", async ({ page }, testInfo) => {
+  test("可切换作业完成状态", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     await signInAsDebugUser(page, "/dashboard/homeworks");
     await ensureSeedSectionSubscription(page);
@@ -257,9 +249,7 @@ test.describe("dashboard homeworks", () => {
     await expect(homeworksBadge).toHaveText(String(beforeBadge));
   });
 
-  test("completion failure shows localized dashboard error", async ({
-    page,
-  }, testInfo) => {
+  test("完成状态更新失败显示本地化仪表盘错误", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/homeworks");
     await ensureSeedSectionSubscription(page);
     await page.route(/\/api\/homeworks\/[^/]+\/completion$/, async (route) => {
@@ -308,9 +298,7 @@ test.describe("dashboard homeworks", () => {
     await captureStepScreenshot(page, testInfo, "homeworks/completion-error");
   });
 
-  test("view details links to section page with homework anchor", async ({
-    page,
-  }, testInfo) => {
+  test("查看详情链接到带作业锚点的班级页面", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/homeworks");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/dashboard/homeworks", {
@@ -343,7 +331,7 @@ test.describe("dashboard homeworks", () => {
     await captureStepScreenshot(page, testInfo, "homeworks/view-details");
   });
 
-  test("can create a new homework", async ({ page }, testInfo) => {
+  test("可以创建新作业", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     await signInAsDebugUser(page, "/dashboard/homeworks");
     await ensureSeedSectionSubscription(page);

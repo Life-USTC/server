@@ -8,12 +8,12 @@ import {
   resetRuntimeMetricsForTest,
 } from "@/lib/metrics/runtime-metrics";
 
-describe("MCP observability", () => {
+describe("MCP 可观测性", () => {
   afterEach(() => {
     resetRuntimeMetricsForTest();
   });
 
-  it("summarizes initialize requests without sensitive values", async () => {
+  it("汇总 initialize 请求且不包含敏感值", async () => {
     const request = new Request("https://example.test/api/mcp", {
       method: "POST",
       body: JSON.stringify({
@@ -39,7 +39,7 @@ describe("MCP observability", () => {
     });
   });
 
-  it("records tool call names and argument keys, not argument values", async () => {
+  it("记录工具调用名称和参数键，不记录参数值", async () => {
     const request = new Request("https://example.test/api/mcp", {
       method: "POST",
       body: JSON.stringify({
@@ -71,7 +71,7 @@ describe("MCP observability", () => {
     expect(JSON.stringify(summary)).not.toContain("private title");
   });
 
-  it("summarizes JSON-RPC batches", async () => {
+  it("汇总 JSON-RPC 批处理", async () => {
     const request = new Request("https://example.test/api/mcp", {
       method: "POST",
       body: JSON.stringify([
@@ -94,7 +94,7 @@ describe("MCP observability", () => {
     });
   });
 
-  it("does not parse oversized bodies for observability", async () => {
+  it("可观测性不解析过大的请求体", async () => {
     const request = new Request("https://example.test/api/mcp", {
       method: "POST",
       headers: { "content-length": String(65 * 1024) },
@@ -107,7 +107,7 @@ describe("MCP observability", () => {
     });
   });
 
-  it("records tool result status and duration metrics", async () => {
+  it("记录工具结果状态和耗时指标", async () => {
     const summary = await summarizeMcpJsonRpcRequest(
       new Request("https://example.test/api/mcp", {
         method: "POST",

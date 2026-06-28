@@ -11,8 +11,8 @@ import {
   isSameMonth,
 } from "@/features/section-detail/lib/date-display";
 
-describe("section detail date display", () => {
-  it("derives calendar keys with campus date boundaries", () => {
+describe("课程详情日期展示", () => {
+  it("根据校区日期边界派生日历键", () => {
     const boundary = new Date("2026-03-01T16:00:00.000Z");
     const campusFormatted = new Intl.DateTimeFormat(undefined, {
       timeZone: "Asia/Shanghai",
@@ -23,7 +23,7 @@ describe("section detail date display", () => {
     expect(formatDate(boundary, "n/a")).toBe(campusFormatted);
   });
 
-  it("builds section month grid keys from the shared Sunday week policy", () => {
+  it("基于共享的周日周策略构建课程月份网格键", () => {
     const monthStart = findCalendarBaseMonth([
       {
         badges: [],
@@ -54,7 +54,7 @@ describe("section detail date display", () => {
     expect(isSameMonth(lastDay, monthStart)).toBe(false);
   });
 
-  it("computes the Today month offset from the section base month", () => {
+  it("从课程基准月计算“今天”的月份偏移", () => {
     const baseMonth = findCalendarBaseMonth([
       {
         badges: [],
@@ -76,7 +76,7 @@ describe("section detail date display", () => {
     expect(dateKey(addMonths(baseMonth, offset))).toBe("2026-06-01");
   });
 
-  it("uses the provided today key as the empty-calendar base month", () => {
+  it("使用提供的 today 键作为空日历基准月", () => {
     const monthStart = findCalendarBaseMonth([], "2026-06-27");
 
     expect(dateKey(monthStart)).toBe("2026-06-01");

@@ -8,8 +8,8 @@ import generatedOpenApiDocument from "../../public/openapi.generated.json";
 
 const document = generatedOpenApiDocument as OpenApiDocument;
 
-describe("getApiDocsSelection", () => {
-  it("builds route links from the generated OpenAPI document", () => {
+describe("API 文档导航选择", () => {
+  it("从生成的 OpenAPI 文档构建路由链接", () => {
     const selection = getApiDocsSelection(document, "/api/docs");
     const tag = selection.groups.flatMap((group) => group.tags)[0];
     const operation = tag?.operations[0];
@@ -21,7 +21,7 @@ describe("getApiDocsSelection", () => {
     expect(operation?.href).not.toContain("#");
   });
 
-  it("uses compact operation summaries for sidebar navigation", () => {
+  it("使用紧凑的操作摘要作为侧边栏导航", () => {
     const selection = getApiDocsSelection(document, "/api/docs");
     const operations = selection.groups
       .flatMap((group) => group.tags)
@@ -44,7 +44,7 @@ describe("getApiDocsSelection", () => {
     });
   });
 
-  it("surfaces generated OPTIONS operations", () => {
+  it("展示生成的 OPTIONS 操作", () => {
     const selection = getApiDocsSelection(document, "/api/docs");
     const operation = selection.groups
       .flatMap((group) => group.tags)
@@ -66,7 +66,7 @@ describe("getApiDocsSelection", () => {
     ).toBeDefined();
   });
 
-  it("filters tag pages to the selected tag only", () => {
+  it("tag 页面仅过滤到选中的 tag", () => {
     const rootSelection = getApiDocsSelection(document, "/api/docs");
     const tag = rootSelection.groups
       .flatMap((group) => group.tags)
@@ -89,7 +89,7 @@ describe("getApiDocsSelection", () => {
     ).toBe(true);
   });
 
-  it("filters operation pages to the selected operation only", () => {
+  it("operation 页面仅过滤到选中的 operation", () => {
     const rootSelection = getApiDocsSelection(document, "/api/docs");
     const operation = rootSelection.groups
       .flatMap((group) => group.tags)

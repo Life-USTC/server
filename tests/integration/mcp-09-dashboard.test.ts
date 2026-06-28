@@ -3,7 +3,7 @@ import * as fixtures from "./utils/mcp-tool-test-utils";
 
 const context = fixtures.createMcpToolTestContext();
 
-describe("get_my_dashboard — default mode compactness", () => {
+describe("get_my_dashboard — 默认模式紧凑性", () => {
   let originalSubscriptionSectionIds: number[] = [];
 
   beforeAll(async () => {
@@ -20,7 +20,7 @@ describe("get_my_dashboard — default mode compactness", () => {
     );
   });
 
-  it("atTime anchors nextClass, deadlines, and events", async () => {
+  it("atTime 锚定下一节课、截止日期和事件", async () => {
     const dashboard = await context.client.call<{
       nextClass?: { type?: string; at?: string | null };
       upcomingDeadlines?: {
@@ -40,7 +40,7 @@ describe("get_my_dashboard — default mode compactness", () => {
     expect(dashboard.upcomingEvents?.total).toBeGreaterThan(0);
   });
 
-  it("scheduleGroup and roomType are stripped from nextClass payload", async () => {
+  it("nextClass payload 中移除 scheduleGroup 和 roomType", async () => {
     const dashboard = await context.client.call<{
       nextClass?: {
         payload?: {
@@ -64,7 +64,7 @@ describe("get_my_dashboard — default mode compactness", () => {
     expect(typeof dashboard.todos?.incompleteCount).toBe("number");
   });
 
-  it("summary mode is materially smaller than default mode", async () => {
+  it("summary 模式比 default 模式显著更小", async () => {
     const def = JSON.stringify(
       await context.client.callTool("get_my_dashboard", {
         locale: "zh-cn",

@@ -19,10 +19,8 @@ import { signInAsDebugUser } from "../../../../utils/auth";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-test.describe("dashboard invalid tab (comments)", () => {
-  test("/dashboard/comments is not a routed dashboard page", async ({
-    page,
-  }, testInfo) => {
+test.describe("仪表盘无效标签（comments）", () => {
+  test("/dashboard/comments 不是仪表盘路由页面", async ({ page }, testInfo) => {
     const response = await gotoAndWaitForReady(page, "/dashboard/comments", {
       testInfo,
       screenshotLabel: "dashboard-invalid-comments-route",
@@ -32,7 +30,7 @@ test.describe("dashboard invalid tab (comments)", () => {
     await expect(page.getByText(/not found|找不到/i)).toBeVisible();
   });
 
-  test("unauthenticated ?tab=comments falls back to public bus view", async ({
+  test("未登录 ?tab=comments 回退到公共校车视图", async ({
     page,
   }, testInfo) => {
     await gotoAndWaitForReady(page, "/?tab=comments", {
@@ -59,9 +57,7 @@ test.describe("dashboard invalid tab (comments)", () => {
     await captureStepScreenshot(page, testInfo, "home-comments-public");
   });
 
-  test("authenticated ?tab=comments falls back to overview", async ({
-    page,
-  }, testInfo) => {
+  test("登录后 ?tab=comments 回退到总览", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/?tab=comments");
 
     await expect(page.locator("#main-content")).toBeVisible();

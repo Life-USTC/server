@@ -6,21 +6,21 @@ import {
   isSameDefaultWeek,
 } from "@/shared/lib/date-utils";
 
-describe("default week helpers", () => {
-  it("uses Monday as the shared week boundary", () => {
+describe("默认周辅助函数", () => {
+  it("以周一作为共享周边界", () => {
     const date = shanghaiDayjs("2026-03-18T10:00:00+08:00");
 
     expect(getDefaultWeekStart(date).format("YYYY-MM-DD")).toBe("2026-03-16");
   });
 
-  it("keeps the next Sunday in the same shared week", () => {
+  it("将下一个周日保留在同一共享周内", () => {
     const ref = shanghaiDayjs("2026-03-16T10:00:00+08:00");
     const due = shanghaiDayjs("2026-03-22T09:00:00+08:00");
 
     expect(isSameDefaultWeek(ref, due)).toBe(true);
   });
 
-  it("excludes the previous Sunday from the shared week", () => {
+  it("将上一个周日排除在共享周之外", () => {
     const ref = shanghaiDayjs("2026-03-18T10:00:00+08:00");
     const due = shanghaiDayjs("2026-03-15T09:00:00+08:00");
     const { start, endExclusive } = getDefaultWeekRange(ref);

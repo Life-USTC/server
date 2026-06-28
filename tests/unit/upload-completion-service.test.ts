@@ -160,7 +160,7 @@ describe("completeUploadSession", () => {
     vi.clearAllMocks();
   });
 
-  it("validates the uploaded object before opening the serializable transaction", async () => {
+  it("在开启可串行事务前校验已上传对象", async () => {
     const calls: string[] = [];
     headStorageObjectMock.mockImplementation(async () => {
       calls.push("head");
@@ -193,7 +193,7 @@ describe("completeUploadSession", () => {
     });
   });
 
-  it("deletes pending quota outside the transaction when object validation fails", async () => {
+  it("对象校验失败时在事务外删除待处理配额", async () => {
     headStorageObjectMock.mockResolvedValue({ size: 0 });
 
     await expect(
@@ -209,7 +209,7 @@ describe("completeUploadSession", () => {
     });
   });
 
-  it("returns a concurrently completed upload instead of validating storage again", async () => {
+  it("返回并发完成的上传而非再次校验存储", async () => {
     pendingFindUniqueMock.mockResolvedValue(null);
     uploadFindUniqueMock
       .mockResolvedValueOnce(null)
@@ -234,7 +234,7 @@ describe("completeUploadSession", () => {
     });
   });
 
-  it("commits pending cleanup when the reservation expires before the transaction recheck", async () => {
+  it("预留会话在事务重新检查前过期时提交待清理项", async () => {
     const expiringPending = {
       expiresAt: new Date(FIXED_NOW.getTime() + 1_000),
       userId: USER_ID,
@@ -266,7 +266,7 @@ describe("completeUploadSession", () => {
     expect(txUploadCreateMock).not.toHaveBeenCalled();
   });
 
-  it("commits pending cleanup when quota validation fails in the transaction", async () => {
+  it("事务内配额校验失败时提交待清理项", async () => {
     txUploadAggregateMock.mockResolvedValue({
       _sum: { size: uploadConfig.totalQuotaBytes },
     });
@@ -316,7 +316,7 @@ describe("deleteOwnedUpload", () => {
     vi.clearAllMocks();
   });
 
-  it("waits for upload delete audit write before returning", async () => {
+  it("在返回前等待上传删除审计写入", async () => {
     const auditWrite = deferred<void>();
     auditLogCreateMock.mockReturnValue(auditWrite.promise);
     const settled = vi.fn();

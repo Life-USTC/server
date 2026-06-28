@@ -4,18 +4,18 @@ import {
   loadBusStaticPayload,
 } from "@/features/bus/lib/bus-static-source";
 
-describe("bus static source", () => {
+describe("班车静态数据源", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("uses the published static bus data URL", () => {
+  it("使用已发布的静态班车数据 URL", () => {
     expect(getBusDataUrl()).toBe(
       "https://static.life-ustc.tiankaima.dev/bus_data_v3.json",
     );
   });
 
-  it("loads the payload from the published static host", async () => {
+  it("从已发布的静态主机加载数据载荷", async () => {
     const fetchMock = vi.fn(async () => {
       return new Response(JSON.stringify({ versionKey: "2026.04" }), {
         status: 200,
@@ -31,7 +31,7 @@ describe("bus static source", () => {
     );
   });
 
-  it("throws when the published payload cannot be loaded", async () => {
+  it("已发布数据载荷无法加载时抛出异常", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => new Response("missing", { status: 404 })),

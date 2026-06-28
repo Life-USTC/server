@@ -25,8 +25,8 @@ function capabilityPages(contract: ContractModule, capability: string) {
   return web.pages;
 }
 
-describe("legacy subscription sections route", () => {
-  it("redirects GET requests to the canonical subscriptions page", async () => {
+describe("旧版订阅班级路由", () => {
+  it("将 GET 请求重定向到标准订阅页面", async () => {
     await expect(
       legacySubscriptionsRoute.load({
         url: new URL(
@@ -39,11 +39,11 @@ describe("legacy subscription sections route", () => {
     });
   });
 
-  it("does not expose page actions on the legacy redirect route", () => {
+  it("旧版重定向路由不暴露页面 actions", () => {
     expect("actions" in legacySubscriptionsRoute).toBe(false);
   });
 
-  it("documents the canonical page and keeps the legacy URL redirect-only", () => {
+  it("记录标准页面并保持旧版 URL 仅用于重定向", () => {
     const canonicalCapabilities = [
       [subscriptionContract, "batch-subscribe-by-codes"],
       [subscribedSectionsContract, "subscribed-sections-tab"],

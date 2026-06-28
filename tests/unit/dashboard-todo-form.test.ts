@@ -22,8 +22,8 @@ function todoRequest(input: { priority?: string; title?: string }) {
   });
 }
 
-describe("dashboard todo form", () => {
-  it("defaults missing priority to the todo feature default", async () => {
+describe("dashboard 待办表单", () => {
+  it("缺失优先级时默认使用待办功能默认值", async () => {
     const parsed = await readTodoForm(todoRequest({}), copy);
 
     expect("error" in parsed).toBe(false);
@@ -31,7 +31,7 @@ describe("dashboard todo form", () => {
     expect(parsed.todo.priority).toBe("medium");
   });
 
-  it("rejects invalid priority instead of silently coercing it", async () => {
+  it("拒绝无效优先级而非静默转换", async () => {
     const parsed = await readTodoForm(
       todoRequest({ priority: "urgent" }),
       copy,
@@ -45,7 +45,7 @@ describe("dashboard todo form", () => {
     expect(error.data).toEqual({ error: "invalid priority" });
   });
 
-  it("rejects impossible due dates with the todo feature parser", async () => {
+  it("使用待办功能解析器拒绝不存在的截止日期", async () => {
     const body = new FormData();
     body.set("title", "Read Chapter 1");
     body.set("dueAt", "2026-02-30T10:00");

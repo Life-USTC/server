@@ -64,7 +64,7 @@ async function findSeedCommentId(
   return seed!.id!;
 }
 
-test("/api/comments/[id]/reactions", async ({ request }) => {
+test("/api/comments/[id]/reactions 接口契约", async ({ request }) => {
   await assertApiContract(request, {
     routePath: "/api/comments/[id]/reactions",
   });
@@ -148,7 +148,7 @@ test("/api/comments/[id]/reactions POST 不存在的评论返回 404", async ({
   expect(response.status()).toBe(404);
 });
 
-test("/api/comments/[id]/reactions POST refuses inactive comments", async ({
+test("/api/comments/[id]/reactions POST 对失效评论返回 403", async ({
   page,
 }) => {
   await signInAsDebugUser(page, "/");
@@ -203,7 +203,7 @@ test("/api/comments/[id]/reactions POST refuses inactive comments", async ({
   }
 });
 
-test("/api/comments/[id]/reactions DELETE refuses inactive comments", async ({
+test("/api/comments/[id]/reactions DELETE 对失效评论返回 403", async ({
   page,
 }) => {
   await signInAsDebugUser(page, "/");

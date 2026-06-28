@@ -31,7 +31,7 @@ function clearPublicRuntimeCache() {
   ).__lifeUstcPublicRuntimeCache;
 }
 
-describe("academic list route caching", () => {
+describe("academic 列表路由缓存", () => {
   afterEach(() => {
     listCourseSummariesMock.mockClear();
     listTeacherSummariesMock.mockClear();
@@ -39,7 +39,7 @@ describe("academic list route caching", () => {
     vi.resetModules();
   });
 
-  it("caches course list responses for equivalent query strings", async () => {
+  it("对等价查询字符串缓存课程列表响应", async () => {
     const { getCoursesRoute } = await import(
       "@/lib/api/routes/academic-course-routes"
     );
@@ -59,7 +59,7 @@ describe("academic list route caching", () => {
     expect(listCourseSummariesMock).toHaveBeenCalledTimes(1);
   });
 
-  it("caches teacher list responses for equivalent query strings", async () => {
+  it("对等价查询字符串缓存教师列表响应", async () => {
     const { getTeachersRoute } = await import(
       "@/lib/api/routes/academic-teacher-routes"
     );
