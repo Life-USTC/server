@@ -115,6 +115,9 @@ jobs:
     needs: test-e2e
     if: always()
     runs-on: ubuntu-latest
+    concurrency:
+      group: publish-e2e-html-report
+      cancel-in-progress: false
     permissions:
       contents: write
       pull-requests: write
