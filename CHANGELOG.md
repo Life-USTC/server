@@ -1,3 +1,11 @@
+# [1.40.0](https://github.com/Life-USTC/server/compare/v1.39.33...v1.40.0) (2026-06-28)
+
+
+### Features
+
+* **ci:** publish merged Playwright HTML report to e2e-snapshot-artifacts ([6d73196](https://github.com/Life-USTC/server/commit/6d73196431d5ef201700ad728efcc1b8ad665b24))
+* **tests:** add mobile-size screenshots to E2E suite ([758bb05](https://github.com/Life-USTC/server/commit/758bb052a3e95babe8912413afd389137fcdd04b))
+
 ## [1.39.33](https://github.com/Life-USTC/server/compare/v1.39.32...v1.39.33) (2026-06-27)
 
 
