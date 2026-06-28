@@ -10,11 +10,11 @@ import { assertApiContract } from "../../../_shared/api-contract";
 const BASE = "/api/users/profile";
 
 test.describe("GET /api/users/profile", () => {
-  test("contract", async ({ request }) => {
+  test("契约", async ({ request }) => {
     await assertApiContract(request, { routePath: BASE });
   });
 
-  test("returns public profile by username", async ({ request }) => {
+  test("按用户名返回公开资料", async ({ request }) => {
     const response = await request.get(
       `${BASE}?username=${DEV_SEED.debugUsername}`,
     );
@@ -41,7 +41,7 @@ test.describe("GET /api/users/profile", () => {
     expect(typeof body.totalContributions).toBe("number");
   });
 
-  test("returns the same user by userId", async ({ request }) => {
+  test("按 userId 返回同一用户", async ({ request }) => {
     const byUsername = await request.get(
       `${BASE}?username=${DEV_SEED.debugUsername}`,
     );
@@ -61,7 +61,7 @@ test.describe("GET /api/users/profile", () => {
     expect(idBody.user?.username).toBe(DEV_SEED.debugUsername);
   });
 
-  test("requires exactly one lookup key", async ({ request }) => {
+  test("需要且仅需一个查询键", async ({ request }) => {
     const missing = await request.get(BASE);
     expect(missing.status()).toBe(400);
 
@@ -71,7 +71,7 @@ test.describe("GET /api/users/profile", () => {
     expect(duplicate.status()).toBe(400);
   });
 
-  test("returns 404 for missing users", async ({ request }) => {
+  test("缺失用户返回 404", async ({ request }) => {
     const response = await request.get(`${BASE}?username=missing-e2e-user`);
     expect(response.status()).toBe(404);
   });

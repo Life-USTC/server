@@ -35,13 +35,13 @@ vi.mock("@/lib/mcp/urls", () => ({
   getOAuthTokenVerificationIssuers: () => ["https://life.example/api/auth"],
 }));
 
-describe("MCP auth", () => {
+describe("MCP 认证", () => {
   beforeEach(() => {
     vi.resetModules();
     verifyOAuthAccessTokenMock.mockReset();
   });
 
-  it("verifies JWT access tokens against the canonical OAuth issuer", async () => {
+  it("使用规范 OAuth issuer 校验 JWT access token", async () => {
     verifyOAuthAccessTokenMock.mockResolvedValue({
       azp: "client-id",
       aud: "https://life.example/api/mcp",

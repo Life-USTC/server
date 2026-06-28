@@ -3,7 +3,7 @@ import type { CalendarView } from "@/features/dashboard/lib/calendar";
 import { createDashboardCalendarActions } from "@/features/dashboard/lib/dashboard-controller-calendar-actions";
 import { dashboardTabHref } from "@/features/dashboard/lib/dashboard-nav";
 
-describe("dashboard calendar actions", () => {
+describe("仪表盘日历操作", () => {
   function calendarActions() {
     const navigateUrl = vi.fn();
     const replaceUrl = vi.fn();
@@ -48,7 +48,7 @@ describe("dashboard calendar actions", () => {
     };
   }
 
-  it("uses navigation for semester changes so dashboard load reruns", () => {
+  it("学期变更使用导航以便仪表盘重新加载", () => {
     const { actions, navigateUrl, replaceUrl, state } = calendarActions();
 
     actions.setCalendarSemester(2);
@@ -63,7 +63,7 @@ describe("dashboard calendar actions", () => {
     expect(replaceUrl).not.toHaveBeenCalled();
   });
 
-  it("keeps month changes as local URL replacements", () => {
+  it("月份变更保持为本地 URL 替换", () => {
     const { actions, navigateUrl, replaceUrl, state } = calendarActions();
 
     actions.setCalendarMonth("2026-03");

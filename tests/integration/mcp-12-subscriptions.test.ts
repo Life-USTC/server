@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createMcpHarness, type McpHarness } from "./utils/mcp-harness";
 import * as fixtures from "./utils/mcp-tool-test-utils";
 
-describe("subscribe_section_by_jw_id — returns action + compact subscription", () => {
+describe("subscribe_section_by_jw_id — 返回 action 与精简订阅", () => {
   let subscriptionMcp: McpHarness | undefined;
   let subscriptionUserId: string | undefined;
 
@@ -35,7 +35,7 @@ describe("subscribe_section_by_jw_id — returns action + compact subscription",
     return subscriptionMcp;
   }
 
-  it("subscribing returns action=subscribed or action=already_subscribed", async () => {
+  it("订阅返回 action=subscribed 或 action=already_subscribed", async () => {
     const result = await harness().call<{
       success?: boolean;
       action?: string;
@@ -59,7 +59,7 @@ describe("subscribe_section_by_jw_id — returns action + compact subscription",
     expect(typeof result.subscription?.sectionCount).toBe("number");
   });
 
-  it("returns not_found for missing subscribe and unsubscribe targets", async () => {
+  it("对缺失的订阅与取消订阅目标返回 not_found", async () => {
     const missingJwId = 2_147_483_647;
     const subscribeResult = await harness().call<{
       success?: boolean;

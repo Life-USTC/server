@@ -40,12 +40,12 @@ function createPrismaMock() {
   };
 }
 
-describe("device token issuer", () => {
+describe("设备令牌签发器", () => {
   beforeEach(() => {
     signJwtMock.mockReset();
   });
 
-  it("uses a resource-bound JWT access token without issuing refresh tokens", async () => {
+  it("使用绑定资源的 JWT 访问令牌且不签发刷新令牌", async () => {
     signJwtMock.mockResolvedValue({ token: "header.payload.signature" });
     const { prisma, accessTokenCreate, refreshTokenCreate } =
       createPrismaMock();
@@ -92,7 +92,7 @@ describe("device token issuer", () => {
     });
   });
 
-  it("keeps resource-less access tokens opaque and skips refresh without offline_access", async () => {
+  it("无资源访问令牌保持不透明且无 offline_access 时跳过刷新", async () => {
     const { prisma, accessTokenCreate, refreshTokenCreate } =
       createPrismaMock();
     const { issueDeviceGrantTokens } = await import(
@@ -120,7 +120,7 @@ describe("device token issuer", () => {
     expect(signJwtMock).not.toHaveBeenCalled();
   });
 
-  it("issues refresh tokens for resource-less device grants with offline_access", async () => {
+  it("为带 offline_access 的无资源设备授权签发刷新令牌", async () => {
     const { prisma, accessTokenCreate, refreshTokenCreate } =
       createPrismaMock();
     const { issueDeviceGrantTokens } = await import(

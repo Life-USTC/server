@@ -32,13 +32,13 @@ function refreshRequest(params: URLSearchParams) {
   });
 }
 
-describe("MCP refresh resource binding", () => {
+describe("MCP 刷新资源绑定", () => {
   beforeEach(() => {
     vi.resetModules();
     findRefreshTokenMock.mockReset();
   });
 
-  it("does not bind a resource-less mcp:tools refresh grant to the MCP resource", async () => {
+  it("不将无资源的 mcp:tools 刷新授权绑定到 MCP 资源", async () => {
     findRefreshTokenMock.mockResolvedValue({
       resources: [],
       scopes: [MCP_TOOLS_SCOPE],
@@ -58,7 +58,7 @@ describe("MCP refresh resource binding", () => {
     expect(params.has("resource")).toBe(false);
   });
 
-  it("does not bind a non-MCP-approved refresh grant to the MCP resource", async () => {
+  it("不将非 MCP 批准的刷新授权绑定到 MCP 资源", async () => {
     findRefreshTokenMock.mockResolvedValue({
       resources: ["https://life.example/api/auth"],
       scopes: [MCP_TOOLS_SCOPE],
@@ -78,7 +78,7 @@ describe("MCP refresh resource binding", () => {
     expect(params.has("resource")).toBe(false);
   });
 
-  it("binds omitted-resource refresh only when the stored grant includes the MCP resource", async () => {
+  it("仅在存储授权包含 MCP 资源时绑定省略资源的刷新", async () => {
     findRefreshTokenMock.mockResolvedValue({
       resources: ["https://life.example/api/mcp"],
       scopes: [MCP_TOOLS_SCOPE],

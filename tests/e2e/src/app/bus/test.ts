@@ -36,15 +36,15 @@ function routeSectionRows(page: Page) {
   });
 }
 
-test.describe("bus dashboard tab", () => {
+test.describe("校车面板标签页", () => {
   test.describe.configure({ mode: "serial" });
 
-  test("/bus returns 404 (redirect removed)", async ({ page }) => {
+  test("/bus 返回 404（重定向已移除）", async ({ page }) => {
     const response = await page.goto("/bus");
     expect(response?.status()).toBe(404);
   });
 
-  test("legacy query tab still renders the bus planner", async ({ page }) => {
+  test("旧版查询标签页仍渲染校车规划器", async ({ page }) => {
     await gotoAndWaitForReady(page, "/?tab=bus", {
       screenshotLabel: "bus-legacy",
     });
@@ -54,9 +54,7 @@ test.describe("bus dashboard tab", () => {
     ).toHaveAttribute("href", "/bus-map");
   });
 
-  test("public bus tab shows the planner controls", async ({
-    page,
-  }, testInfo) => {
+  test("公共校车标签页显示规划器控件", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/?tab=bus", {
       testInfo,
       screenshotLabel: "bus",
@@ -86,9 +84,7 @@ test.describe("bus dashboard tab", () => {
     await captureStepScreenshot(page, testInfo, "bus-planner-public");
   });
 
-  test("signed bus dashboard SSR renders server timetable data", async ({
-    page,
-  }) => {
+  test("登录校车面板 SSR 渲染服务端时刻表数据", async ({ page }) => {
     await signInAsDebugUser(page, "/dashboard/bus");
 
     const response = await page.request.get("/dashboard/bus");
@@ -104,9 +100,7 @@ test.describe("bus dashboard tab", () => {
     );
   });
 
-  test("anonymous bus dashboard SSR renders public timetable data", async ({
-    page,
-  }) => {
+  test("匿名校车面板 SSR 渲染公共时刻表数据", async ({ page }) => {
     const response = await page.request.get("/?tab=bus");
     expect(response.status()).toBe(200);
     const html = await response.text();
@@ -120,7 +114,7 @@ test.describe("bus dashboard tab", () => {
     );
   });
 
-  test("public bus tab keeps planner controls usable on mobile", async ({
+  test("公共校车标签页在移动端保持规划器控件可用", async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -140,7 +134,7 @@ test.describe("bus dashboard tab", () => {
     await captureStepScreenshot(page, testInfo, "bus-planner-public-mobile");
   });
 
-  test("default stop pair shows every applicable route ordered by next available bus", async ({
+  test("默认站点对按下一班可用校车排序显示所有适用线路", async ({
     page,
   }, testInfo) => {
     await gotoAndWaitForReady(page, "/?tab=bus", {
@@ -160,9 +154,7 @@ test.describe("bus dashboard tab", () => {
     ).toBe(true);
   });
 
-  test("reverse swaps direction and recomputes applicable routes", async ({
-    page,
-  }, testInfo) => {
+  test("反向交换方向并重新计算适用线路", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/?tab=bus", {
       testInfo,
       screenshotLabel: "bus",
@@ -196,9 +188,7 @@ test.describe("bus dashboard tab", () => {
     await captureStepScreenshot(page, testInfo, "bus-planner-reverse");
   });
 
-  test("selecting 东区 to 南区 narrows the list to the direct route", async ({
-    page,
-  }, testInfo) => {
+  test("选择东区到南区缩小为直达线路", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/?tab=bus", {
       testInfo,
       screenshotLabel: "bus",
@@ -211,9 +201,7 @@ test.describe("bus dashboard tab", () => {
     await expect(page.locator("table")).toContainText("南区");
   });
 
-  test("departed toggle keeps the timetable visible and switchable", async ({
-    page,
-  }, testInfo) => {
+  test("已发车切换保持时刻表可见且可切换", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/?tab=bus", {
       testInfo,
       screenshotLabel: "bus",
@@ -232,9 +220,7 @@ test.describe("bus dashboard tab", () => {
     await expect(page.locator("table").first()).toBeVisible();
   });
 
-  test("weekday/weekend toggle updates the selected route timetable", async ({
-    page,
-  }, testInfo) => {
+  test("工作日/周末切换更新所选线路时刻表", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/?tab=bus", {
       testInfo,
       screenshotLabel: "bus",
@@ -263,9 +249,7 @@ test.describe("bus dashboard tab", () => {
     await captureStepScreenshot(page, testInfo, "bus-planner-daytype");
   });
 
-  test("signed-in planner changes auto-save to bus preferences", async ({
-    page,
-  }, testInfo) => {
+  test("登录规划器自动保存到校车偏好设置", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/bus");
     const originalResponse = await page.request.get("/api/bus/preferences");
     expect(originalResponse.status()).toBe(200);
@@ -343,9 +327,7 @@ test.describe("bus dashboard tab", () => {
     }
   });
 
-  test("signed-in planner shows preference save failures", async ({
-    page,
-  }, testInfo) => {
+  test("登录规划器显示偏好保存失败", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/bus");
     await page.route("**/api/bus/preferences", async (route) => {
       if (route.request().method() !== "POST") {

@@ -18,15 +18,15 @@ vi.mock("@/lib/db/prisma", () => ({
   },
 }));
 
-describe("homework list section resolution", () => {
-  it("uses internal section references without a database lookup", async () => {
+describe("作业列表 section 解析", () => {
+  it("直接使用内部 section 引用而不查询数据库", async () => {
     await expect(
       resolveHomeworkSectionIds({ sectionId: 12, sectionIds: [34] }),
     ).resolves.toEqual({ ok: true, sectionIds: [34, 12] });
     expect(findUniqueMock).not.toHaveBeenCalled();
   });
 
-  it("resolves sectionJwId to the internal section id", async () => {
+  it("将 sectionJwId 解析为内部 section id", async () => {
     findUniqueMock.mockResolvedValueOnce({ id: 56 });
 
     await expect(
@@ -34,7 +34,7 @@ describe("homework list section resolution", () => {
     ).resolves.toEqual({ ok: true, sectionIds: [56] });
   });
 
-  it("reports missing sectionJwId targets", async () => {
+  it("报告缺失的 sectionJwId 目标", async () => {
     findUniqueMock.mockResolvedValueOnce(null);
 
     await expect(
@@ -42,7 +42,7 @@ describe("homework list section resolution", () => {
     ).resolves.toEqual({ ok: false, error: "not_found" });
   });
 
-  it("reports missing section references", async () => {
+  it("报告缺失的 section 引用", async () => {
     await expect(resolveHomeworkSectionIds({})).resolves.toEqual({
       ok: false,
       error: "invalid",

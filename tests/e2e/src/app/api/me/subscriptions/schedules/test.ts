@@ -11,19 +11,17 @@ import { assertApiContract } from "../../../../_shared/api-contract";
 
 const BASE = "/api/me/subscriptions/schedules";
 
-test.describe("GET /api/me/subscriptions/schedules", () => {
-  test("contract", async ({ request }) => {
+test.describe("GET /api/me/subscriptions/schedules - 订阅课表", () => {
+  test("契约", async ({ request }) => {
     await assertApiContract(request, { routePath: BASE });
   });
 
-  test("returns 401 when not authenticated", async ({ request }) => {
+  test("未认证时返回 401", async ({ request }) => {
     const response = await request.get(BASE);
     expect(response.status()).toBe(401);
   });
 
-  test("returns subscribed schedules in one authenticated response", async ({
-    page,
-  }) => {
+  test("一次认证响应返回已订阅课表", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     const response = await page.request.get(
@@ -52,7 +50,7 @@ test.describe("GET /api/me/subscriptions/schedules", () => {
     expect(seedSchedule?.endTime).toMatch(/^\d{2}:\d{2}$/);
   });
 
-  test("invalid date query returns 400", async ({ page }) => {
+  test("无效日期查询返回 400", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     const response = await page.request.get(`${BASE}?dateFrom=not-a-date`);

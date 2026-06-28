@@ -9,16 +9,12 @@ import {
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-test("/dashboard aliases require authentication", async ({
-  page,
-}, testInfo) => {
+test("/dashboard 别名需要登录", async ({ page }, testInfo) => {
   await expectRequiresSignIn(page, "/dashboard/homeworks");
   await captureStepScreenshot(page, testInfo, "dashboard-homeworks-unauth");
 });
 
-test("/dashboard/homeworks loads authenticated tab", async ({
-  page,
-}, testInfo) => {
+test("/dashboard/homeworks 加载登录标签", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/dashboard/homeworks");
   await gotoAndWaitForReady(page, "/dashboard/homeworks", {
     testInfo,

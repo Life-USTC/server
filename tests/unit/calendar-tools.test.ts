@@ -4,8 +4,8 @@ import {
   summarizeCalendarSubscriptionBrief,
 } from "@/lib/mcp/tools/calendar-summary";
 
-describe("summarizeCalendarSubscription", () => {
-  it("counts semesters with missing bounds as open-ended", () => {
+describe("summarizeCalendarSubscription 日历订阅摘要", () => {
+  it("将缺少边界的学期视为开放式", () => {
     const input = {
       userId: "user-1",
       sections: [

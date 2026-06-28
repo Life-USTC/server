@@ -17,8 +17,8 @@ function parseToolText(result: ReturnType<typeof jsonToolResult>) {
   return JSON.parse(text ?? "{}") as Record<string, unknown>;
 }
 
-describe("jsonToolResult summary mode", () => {
-  it("keeps paginated totals while reporting returned and sampled items", () => {
+describe("jsonToolResult summary 模式", () => {
+  it("保留分页总数，同时报告返回和采样项", () => {
     const result = parseToolText(
       jsonToolResult(
         {
@@ -55,7 +55,7 @@ describe("jsonToolResult summary mode", () => {
     });
   });
 
-  it("reports non-paginated list truncation metadata", () => {
+  it("报告非分页列表截断元数据", () => {
     const result = parseToolText(
       jsonToolResult(
         {

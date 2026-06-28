@@ -26,13 +26,13 @@ function actionRequest() {
   );
 }
 
-describe("dashboard homework page actions", () => {
+describe("仪表盘作业页面操作", () => {
   beforeEach(() => {
     createHomeworkForSectionMock.mockReset();
     getSessionFromHeadersMock.mockReset();
   });
 
-  it("maps suspended dashboard homework creation failures", async () => {
+  it("映射被停用账户的仪表盘作业创建失败", async () => {
     getSessionFromHeadersMock.mockResolvedValue({
       user: { id: "suspended-user" },
     });

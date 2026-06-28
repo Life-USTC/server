@@ -63,7 +63,7 @@ async function findSeedHomeworkId(
   return hw!.id!;
 }
 
-test("/api/homeworks/[id]/completion", async ({ request }) => {
+test("/api/homeworks/[id]/completion 接口契约", async ({ request }) => {
   await assertApiContract(request, {
     routePath: "/api/homeworks/[id]/completion",
   });

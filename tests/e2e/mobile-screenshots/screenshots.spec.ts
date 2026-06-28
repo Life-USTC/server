@@ -9,8 +9,8 @@ function screenshotRoute(name: string, path: string) {
   });
 }
 
-test.describe("mobile screenshots", () => {
-  test.describe("public pages", () => {
+test.describe("移动端截图", () => {
+  test.describe("公开页面", () => {
     for (const path of [
       "/",
       "/courses",
@@ -32,7 +32,7 @@ test.describe("mobile screenshots", () => {
     }
   });
 
-  test.describe("signed-in pages", () => {
+  test.describe("登录后页面", () => {
     test.beforeEach(async ({ page }) => {
       await signInAsDebugUser(page, "/");
     });
@@ -54,7 +54,7 @@ test.describe("mobile screenshots", () => {
       screenshotRoute(path, path);
     }
 
-    test(`/u/id/[uid]`, async ({ page }) => {
+    test(`/u/id/[uid] 页面截图`, async ({ page }) => {
       const sessionResponse = await page.request.get("/api/auth/get-session");
       const session = (await sessionResponse.json()) as {
         user?: { id?: string };
@@ -64,7 +64,7 @@ test.describe("mobile screenshots", () => {
     });
   });
 
-  test.describe("admin pages", () => {
+  test.describe("管理员页面", () => {
     test.beforeEach(async ({ page }) => {
       await signInAsDevAdmin(page, "/admin");
     });

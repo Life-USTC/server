@@ -22,7 +22,7 @@ vi.mock("@/features/catalog/server/course-section-query-filters", () => ({
   buildSectionListQuery: buildSectionListQueryMock,
 }));
 
-describe("catalog summary read models", () => {
+describe("课程目录摘要读取模型", () => {
   beforeEach(() => {
     buildCourseListWhereMock.mockReset();
     buildSectionListQueryMock.mockReset();
@@ -30,7 +30,7 @@ describe("catalog summary read models", () => {
     paginatedSectionSummaryQueryMock.mockReset();
   });
 
-  it("applies the shared course summary default order", async () => {
+  it("应用共享的课程摘要默认排序", async () => {
     buildCourseListWhereMock.mockReturnValueOnce({ search: "math" });
     const { COURSE_SUMMARY_DEFAULT_ORDER_BY, listCourseSummaries } =
       await import("@/features/catalog/server/course-summary-read-model");
@@ -50,7 +50,7 @@ describe("catalog summary read models", () => {
     );
   });
 
-  it("applies the shared section summary default order when filters do not provide one", async () => {
+  it("筛选条件未提供排序时使用共享的课段摘要默认排序", async () => {
     buildSectionListQueryMock.mockReturnValueOnce({
       where: { semesterId: 1 },
       orderBy: undefined,
@@ -73,7 +73,7 @@ describe("catalog summary read models", () => {
     );
   });
 
-  it("keeps explicit section ordering from filters", async () => {
+  it("保留筛选条件中的显式课段排序", async () => {
     const explicitOrder = { jwId: "asc" };
     buildSectionListQueryMock.mockReturnValueOnce({
       where: { search: "001" },

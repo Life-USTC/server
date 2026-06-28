@@ -10,17 +10,15 @@ import {
 } from "../../../../utils/page-ready";
 import { assertPageContract } from "../../_shared/page-contract";
 
-test.describe("/guides/markdown-support", () => {
-  test("contract", async ({ page }, testInfo) => {
+test.describe("/guides/markdown-support Markdown 支持页", () => {
+  test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, {
       routePath: "/guides/markdown-support",
       testInfo,
     });
   });
 
-  test("renders markdown guide with code blocks and tables", async ({
-    page,
-  }) => {
+  test("渲染 Markdown 指南，包含代码块与表格", async ({ page }) => {
     await gotoAndWaitForReady(page, "/guides/markdown-support", {
       waitUntil: "load",
     });

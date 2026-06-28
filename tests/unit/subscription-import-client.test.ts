@@ -132,12 +132,12 @@ function appendPayload(sectionIds: number[], addedCount = sectionIds.length) {
   };
 }
 
-describe("subscription import client", () => {
+describe("订阅导入客户端", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("extracts and deduplicates schema-valid section code tokens", () => {
+  it("提取并去重符合 schema 的班级代码片段", () => {
     expect(
       extractSubscriptionSectionCodes(
         "MATH101 MATH.01 math.01 CS_A-2.03 cs-a_2 MATH.01",
@@ -145,7 +145,7 @@ describe("subscription import client", () => {
     ).toEqual(["MATH101", "MATH.01", "math.01", "CS_A-2.03", "cs-a_2"]);
   });
 
-  it("ignores tokens rejected by the shared section code schema", () => {
+  it("忽略被共享班级代码 schema 拒绝的片段", () => {
     const tooLong = "A".repeat(65);
 
     expect(
@@ -153,7 +153,7 @@ describe("subscription import client", () => {
     ).toEqual(["MATH.01", "CS_A-2.03"]);
   });
 
-  it("ignores long mixed prose while preserving code-shaped tokens", () => {
+  it("忽略长段混合文本但保留形似代码的片段", () => {
     const prose = Array.from(
       { length: 520 },
       (_, index) => `word${index}`,
@@ -166,7 +166,7 @@ describe("subscription import client", () => {
     ).toEqual(["MATH101", "001013.01", "math_01", "cs-a_2", "DEV-CS201.01"]);
   });
 
-  it("strips sentence delimiters from pasted section code tokens", () => {
+  it("去除粘贴班级代码片段中的句尾分隔符", () => {
     expect(
       extractSubscriptionSectionCodes(
         "Use COMP3001.01. Numeric example: 001013.01.",
@@ -174,7 +174,7 @@ describe("subscription import client", () => {
     ).toEqual(["COMP3001.01", "001013.01"]);
   });
 
-  it("posts match-code requests and validates successful payloads", async () => {
+  it("发送匹配代码请求并校验成功响应体", async () => {
     const fetchMock = vi.fn(async () => jsonResponse(matchPayload()));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -197,7 +197,7 @@ describe("subscription import client", () => {
     });
   });
 
-  it("uses API error payloads before fallback messages", async () => {
+  it("优先使用 API 错误响应体而非兜底消息", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () =>
@@ -213,7 +213,7 @@ describe("subscription import client", () => {
     ).rejects.toThrow("invalid semester");
   });
 
-  it("falls back when error payloads are not JSON", async () => {
+  it("错误响应体不是 JSON 时回退到兜底消息", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => new Response("plain failure", { status: 500 })),
@@ -227,7 +227,7 @@ describe("subscription import client", () => {
     ).rejects.toThrow("remove failed");
   });
 
-  it("rejects malformed successful payloads", async () => {
+  it("拒绝格式错误的成功响应体", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => jsonResponse({ sections: [] })),
@@ -241,7 +241,7 @@ describe("subscription import client", () => {
     ).rejects.toThrow("fetch failed");
   });
 
-  it("removes subscription section ids with a validated request", async () => {
+  it("以已校验请求移除订阅班级 ID", async () => {
     const fetchMock = vi.fn(async () => jsonResponse(subscriptionPayload([3])));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -256,7 +256,7 @@ describe("subscription import client", () => {
     expect(JSON.parse(init.body)).toEqual({ sectionIds: [3] });
   });
 
-  it("does not call the remove route when no section ids are selected", async () => {
+  it("未选择班级 ID 时不调用移除路由", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
@@ -268,7 +268,7 @@ describe("subscription import client", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("appends selected section ids through the server-owned append route", async () => {
+  it("通过服务端追加路由添加所选班级 ID", async () => {
     const fetchMock = vi.fn(async () =>
       jsonResponse(appendPayload([1, 2, 3], 2)),
     );
@@ -288,7 +288,7 @@ describe("subscription import client", () => {
     expect(JSON.parse(init.body)).toEqual({ sectionIds: [2, 3] });
   });
 
-  it("does not call the append route when no section ids are selected", async () => {
+  it("未选择班级 ID 时不调用追加路由", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 

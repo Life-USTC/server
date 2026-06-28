@@ -14,12 +14,12 @@ const homeworkInput: SectionHomeworkRequest = {
   title: "Updated homework",
 };
 
-describe("section detail homeworks client", () => {
+describe("课程详情作业客户端", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("updates homework and description through one homework PATCH", async () => {
+  it("通过一次作业 PATCH 更新作业和描述", async () => {
     const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -47,7 +47,7 @@ describe("section detail homeworks client", () => {
     });
   });
 
-  it("maps failed homework PATCH requests to one update failure", async () => {
+  it("将失败的作业 PATCH 请求映射为一次更新失败", async () => {
     const fetchMock = vi.fn(async () => new Response("{}", { status: 500 }));
     vi.stubGlobal("fetch", fetchMock);
 

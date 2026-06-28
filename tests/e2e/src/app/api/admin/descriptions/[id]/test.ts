@@ -20,19 +20,19 @@ import { assertApiContract } from "../../../../_shared/api-contract";
 
 const BASE = "/api/admin/descriptions";
 
-test.describe("PATCH /api/admin/descriptions/[id]", () => {
-  test("api contract", async ({ request }) => {
+test.describe("PATCH /api/admin/descriptions/[id] 课程简介管理", () => {
+  test("API 契约", async ({ request }) => {
     await assertApiContract(request, { routePath: `${BASE}/[id]` });
   });
 
-  test("unauthenticated PATCH returns 401", async ({ request }) => {
+  test("未认证 PATCH 返回 401", async ({ request }) => {
     const response = await request.patch(`${BASE}/missing-id`, {
       data: { content: "should fail" },
     });
     expect(response.status()).toBe(401);
   });
 
-  test("non-admin PATCH returns 401", async ({ page }) => {
+  test("非管理员 PATCH 返回 401", async ({ page }) => {
     await signInAsDebugUser(page, "/");
     const response = await page.request.patch(`${BASE}/missing-id`, {
       data: { content: "should fail" },
@@ -40,7 +40,7 @@ test.describe("PATCH /api/admin/descriptions/[id]", () => {
     expect(response.status()).toBe(401);
   });
 
-  test("admin can update and restore a description", async ({ page }) => {
+  test("管理员可更新并恢复课程简介", async ({ page }) => {
     await signInAsDevAdmin(page, "/admin");
 
     const listResponse = await page.request.get(`${BASE}?limit=1`);
@@ -81,7 +81,7 @@ test.describe("PATCH /api/admin/descriptions/[id]", () => {
     }
   });
 
-  test("admin PATCH rejects overlong description content", async ({ page }) => {
+  test("管理员 PATCH 拒绝过长的课程简介内容", async ({ page }) => {
     await signInAsDevAdmin(page, "/admin");
 
     const listResponse = await page.request.get(`${BASE}?limit=1`);

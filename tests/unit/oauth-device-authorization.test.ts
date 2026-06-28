@@ -44,12 +44,12 @@ function publicDeviceClient(overrides: Record<string, unknown> = {}) {
   };
 }
 
-describe("device authorization", () => {
+describe("设备授权", () => {
   beforeEach(() => {
     findUniqueMock.mockReset();
   });
 
-  it("rejects clients that are not registered for the device grant", async () => {
+  it("拒绝未注册设备授权许可的客户端", async () => {
     findUniqueMock.mockResolvedValue(
       publicDeviceClient({ grantTypes: ["authorization_code"] }),
     );
@@ -73,7 +73,7 @@ describe("device authorization", () => {
     });
   });
 
-  it("rejects confidential clients for device authorization", async () => {
+  it("拒绝机密客户端使用设备授权", async () => {
     findUniqueMock.mockResolvedValue(
       publicDeviceClient({
         public: false,
@@ -101,7 +101,7 @@ describe("device authorization", () => {
     });
   });
 
-  it("requires the MCP resource when mcp:tools scope is requested", async () => {
+  it("请求 mcp:tools 作用域时要求 MCP 资源", async () => {
     const { resolveRequestedDeviceResources } = await import(
       "@/features/oauth/server/device-authorization-policy.server"
     );
@@ -121,7 +121,7 @@ describe("device authorization", () => {
     throw new Error("Expected device resource policy error");
   });
 
-  it("defaults omitted device scopes to low-risk client defaults", async () => {
+  it("将省略的设备作用域默认为低风险客户端默认值", async () => {
     findUniqueMock.mockResolvedValue(publicDeviceClient());
     const { resolveDeviceAuthorizationClient } = await import(
       "@/features/oauth/server/device-authorization-policy.server"
@@ -139,7 +139,7 @@ describe("device authorization", () => {
     });
   });
 
-  it("accepts and canonicalizes valid REST and MCP resources", async () => {
+  it("接受并规范化有效的 REST 与 MCP 资源", async () => {
     findUniqueMock.mockResolvedValue(publicDeviceClient());
     const { resolveDeviceAuthorizationClient } = await import(
       "@/features/oauth/server/device-authorization-policy.server"

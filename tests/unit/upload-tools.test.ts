@@ -43,12 +43,12 @@ function parseToolResult(result: { content: Array<{ text: string }> }) {
   return JSON.parse(result.content[0]?.text ?? "{}");
 }
 
-describe("upload MCP tools", () => {
+describe("上传 MCP 工具", () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  it("serializes storage cleanup failures without reporting delete success", async () => {
+  it("序列化存储清理失败且不报告删除成功", async () => {
     deleteOwnedUploadMock.mockResolvedValue({
       ok: false,
       error: "storage_delete_failed",

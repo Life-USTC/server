@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-describe("auth config", () => {
+describe("认证配置", () => {
   afterEach(() => {
     vi.resetModules();
     vi.unstubAllEnvs();
   });
 
-  it("allows debug auth in development without enabling E2E mode", async () => {
+  it("允许开发环境调试认证但不启用 E2E 模式", async () => {
     vi.stubEnv("NODE_ENV", "development");
     vi.stubEnv("E2E_DEBUG_AUTH", "");
 
@@ -19,7 +19,7 @@ describe("auth config", () => {
     expect(allowDebugAuth()).toBe(true);
   });
 
-  it("allows E2E debug auth outside development when explicitly enabled", async () => {
+  it("在开发环境外显式启用时允许 E2E 调试认证", async () => {
     vi.stubEnv("NODE_ENV", "test");
     vi.stubEnv("E2E_DEBUG_AUTH", "1");
 
@@ -32,7 +32,7 @@ describe("auth config", () => {
     expect(allowDebugAuth()).toBe(true);
   });
 
-  it("rejects E2E debug auth in production", async () => {
+  it("在生产环境中拒绝 E2E 调试认证", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("E2E_DEBUG_AUTH", "1");
 

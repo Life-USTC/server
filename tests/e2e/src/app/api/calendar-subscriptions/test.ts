@@ -33,54 +33,46 @@ import { assertApiContract } from "../../_shared/api-contract";
 const BASE = "/api/calendar-subscriptions";
 const IMPORT_BASE = "/api/calendar-subscriptions/import-codes";
 
-test.describe("calendar subscription API", () => {
+test.describe("日历订阅 API", () => {
   test.describe.configure({ mode: "serial" });
 
-  test("contract", async ({ request }) => {
+  test("接口契约", async ({ request }) => {
     await assertApiContract(request, { routePath: BASE });
   });
 
-  test("import-codes contract", async ({ request }) => {
+  test("import-codes 接口契约", async ({ request }) => {
     await assertApiContract(request, { routePath: IMPORT_BASE });
   });
 
-  test("returns 401 when not authenticated", async ({ request }) => {
+  test("未登录时返回 401", async ({ request }) => {
     const response = await request.post(BASE, {
       data: { sectionIds: [1] },
     });
     expect(response.status()).toBe(401);
   });
 
-  test("import-codes returns 401 when not authenticated", async ({
-    request,
-  }) => {
+  test("import-codes 未登录时返回 401", async ({ request }) => {
     const response = await request.post(IMPORT_BASE, {
       data: { codes: [DEV_SEED.section.code] },
     });
     expect(response.status()).toBe(401);
   });
 
-  test("append sections returns 401 when not authenticated", async ({
-    request,
-  }) => {
+  test("append sections 未登录时返回 401", async ({ request }) => {
     const response = await request.patch(BASE, {
       data: { sectionIds: [1] },
     });
     expect(response.status()).toBe(401);
   });
 
-  test("remove sections returns 401 when not authenticated", async ({
-    request,
-  }) => {
+  test("remove sections 未登录时返回 401", async ({ request }) => {
     const response = await request.delete(BASE, {
       data: { sectionIds: [1] },
     });
     expect(response.status()).toBe(401);
   });
 
-  test("append sections returns 400 for malformed section ids", async ({
-    page,
-  }) => {
+  test("append sections 格式错误的 section id 返回 400", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     const response = await page.request.patch(BASE, {
@@ -90,9 +82,7 @@ test.describe("calendar subscription API", () => {
     expect(response.status()).toBe(400);
   });
 
-  test("remove sections returns 400 for malformed section ids", async ({
-    page,
-  }) => {
+  test("remove sections 格式错误的 section id 返回 400", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     const response = await page.request.delete(BASE, {
@@ -102,9 +92,7 @@ test.describe("calendar subscription API", () => {
     expect(response.status()).toBe(400);
   });
 
-  test("import-codes appends matched section codes and reports repeats", async ({
-    page,
-  }) => {
+  test("import-codes 追加匹配的课程代码并报告重复", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     const currentRes = await page.request.get(
@@ -166,9 +154,7 @@ test.describe("calendar subscription API", () => {
     }
   });
 
-  test("append sections adds selected ids without replacing existing subscriptions", async ({
-    page,
-  }) => {
+  test("append sections 添加指定 id 且不替换已有订阅", async ({ page }) => {
     await signInAsDebugUser(page, "/");
     const [firstSection, secondSection] = await resolveSeedSectionMatches(page);
     expect(firstSection?.id).toBeDefined();
@@ -223,9 +209,7 @@ test.describe("calendar subscription API", () => {
     }
   });
 
-  test("remove sections deletes selected ids without replacing concurrent additions", async ({
-    page,
-  }) => {
+  test("remove sections 删除指定 id 且不替换并发添加", async ({ page }) => {
     await signInAsDebugUser(page, "/");
     const [firstSection, secondSection] = await resolveSeedSectionMatches(page);
     expect(firstSection?.id).toBeDefined();
@@ -265,9 +249,7 @@ test.describe("calendar subscription API", () => {
     }
   });
 
-  test("subscribes to seed section and returns correct shape", async ({
-    page,
-  }) => {
+  test("订阅 seed 课程并返回正确结构", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     const matchRes = await page.request.post("/api/sections/match-codes", {
@@ -320,7 +302,7 @@ test.describe("calendar subscription API", () => {
     }
   });
 
-  test("omitting sectionIds clears subscriptions", async ({ page }) => {
+  test("省略 sectionIds 清空订阅", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     // Save current subscriptions for restoration
@@ -348,7 +330,7 @@ test.describe("calendar subscription API", () => {
     }
   });
 
-  test("non-existent section IDs are silently dropped", async ({ page }) => {
+  test("不存在的 section ID 被静默忽略", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     const matchRes = await page.request.post("/api/sections/match-codes", {
@@ -398,7 +380,7 @@ test.describe("calendar subscription API", () => {
     }
   });
 
-  test("returns 400 for malformed body", async ({ page }) => {
+  test("格式错误的请求体返回 400", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     const response = await page.request.post(BASE, {

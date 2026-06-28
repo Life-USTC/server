@@ -95,8 +95,8 @@ function createBusData(): DashboardBusData {
   };
 }
 
-describe("bus tab state", () => {
-  test("initializes planner time and day type from fetchedAt", () => {
+describe("班车标签页状态", () => {
+  test("根据 fetchedAt 初始化规划器时间和日期类型", () => {
     const bus = createBusData();
     const state = createBusTabState({
       getBus: () => bus,

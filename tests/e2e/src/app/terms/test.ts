@@ -11,11 +11,11 @@ import {
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/terms", () => {
-  test("contract", async ({ page }, testInfo) => {
+  test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, { routePath: "/terms", testInfo });
   });
 
-  test("renders terms of service with sections", async ({ page }, testInfo) => {
+  test("渲染服务条款及分节", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/terms", {
       testInfo,
       screenshotLabel: "terms",

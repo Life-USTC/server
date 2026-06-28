@@ -1,37 +1,37 @@
 import { describe, expect, it } from "vitest";
 import { compactMcpPayload } from "@/lib/mcp/compact-payload";
 
-describe("compactMcpPayload", () => {
-  describe("primitives and arrays", () => {
-    it("passes through null", () => {
+describe("compactMcpPayload MCP 载荷压缩", () => {
+  describe("原始类型和数组", () => {
+    it("原样透传 null", () => {
       expect(compactMcpPayload(null)).toBeNull();
     });
 
-    it("passes through undefined", () => {
+    it("原样透传 undefined", () => {
       expect(compactMcpPayload(undefined)).toBeUndefined();
     });
 
-    it("passes through strings", () => {
+    it("原样透传字符串", () => {
       expect(compactMcpPayload("hello")).toBe("hello");
     });
 
-    it("passes through numbers", () => {
+    it("原样透传数字", () => {
       expect(compactMcpPayload(42)).toBe(42);
     });
 
-    it("passes through booleans", () => {
+    it("原样透传布尔值", () => {
       expect(compactMcpPayload(true)).toBe(true);
     });
 
-    it("returns empty array for empty array", () => {
+    it("空数组返回空数组", () => {
       expect(compactMcpPayload([])).toEqual([]);
     });
 
-    it("returns array of primitives unchanged", () => {
+    it("原始类型数组保持不变", () => {
       expect(compactMcpPayload([1, "a", null])).toEqual([1, "a", null]);
     });
 
-    it("recursively compacts arrays of objects", () => {
+    it("递归压缩对象数组", () => {
       const input = [{ todos: [{ id: "1", title: "T", extra: "x" }] }];
       const result = compactMcpPayload(input) as Record<string, unknown>[];
       expect(result).toHaveLength(1);
@@ -40,7 +40,7 @@ describe("compactMcpPayload", () => {
       ).not.toHaveProperty("extra");
     });
 
-    it("compacts top-level arrays of known records", () => {
+    it("压缩顶层已知记录数组", () => {
       const input = [
         {
           id: "c1",
@@ -66,8 +66,8 @@ describe("compactMcpPayload", () => {
     });
   });
 
-  describe("todos", () => {
-    it("compacts todo items, keeping only expected fields", () => {
+  describe("待办事项", () => {
+    it("压缩待办项，仅保留预期字段", () => {
       const input = {
         todos: [
           {
@@ -98,15 +98,15 @@ describe("compactMcpPayload", () => {
       });
     });
 
-    it("preserves sibling fields on the wrapper object", () => {
+    it("保留包装对象的同级字段", () => {
       const input = { todos: [], totalCount: 5 };
       const result = compactMcpPayload(input) as Record<string, unknown>;
       expect(result.totalCount).toBe(5);
     });
   });
 
-  describe("courses", () => {
-    it("compacts course items", () => {
+  describe("课程", () => {
+    it("压缩课程项", () => {
       const input = {
         courses: [
           {
@@ -135,8 +135,8 @@ describe("compactMcpPayload", () => {
     });
   });
 
-  describe("sections", () => {
-    it("compacts sections with nested course and semester", () => {
+  describe("课段", () => {
+    it("压缩嵌套课程和学期的课段", () => {
       const input = {
         sections: [
           {
@@ -182,8 +182,8 @@ describe("compactMcpPayload", () => {
     });
   });
 
-  describe("homeworks", () => {
-    it("compacts homeworks with nested description and users", () => {
+  describe("作业", () => {
+    it("压缩嵌套描述和用户信息的作业", () => {
       const input = {
         homeworks: [
           {
@@ -230,7 +230,7 @@ describe("compactMcpPayload", () => {
       expect(hw.updatedBy).toBeNull();
     });
 
-    it("does not add missing optional nested fields", () => {
+    it("不添加缺失的可选嵌套字段", () => {
       const input = {
         homeworks: [
           {
@@ -256,8 +256,8 @@ describe("compactMcpPayload", () => {
     });
   });
 
-  describe("schedules", () => {
-    it("compacts schedules with nested section, room with building, and teachers", () => {
+  describe("日程", () => {
+    it("压缩嵌套课段、带楼宇的教室和教师的日程", () => {
       const input = {
         schedules: [
           {
@@ -318,8 +318,8 @@ describe("compactMcpPayload", () => {
     });
   });
 
-  describe("exams", () => {
-    it("compacts exams with examBatch and examRooms", () => {
+  describe("考试", () => {
+    it("压缩嵌套 examBatch 和 examRooms 的考试", () => {
       const input = {
         exams: [
           {
@@ -362,8 +362,8 @@ describe("compactMcpPayload", () => {
     });
   });
 
-  describe("events", () => {
-    it("routes schedule events through compactSchedule", () => {
+  describe("事件", () => {
+    it("通过 compactSchedule 路由日程事件", () => {
       const input = {
         events: [
           {
@@ -393,7 +393,7 @@ describe("compactMcpPayload", () => {
       );
     });
 
-    it("routes homework_due events through compactHomework", () => {
+    it("通过 compactHomework 路由作业到期事件", () => {
       const input = {
         events: [
           {
@@ -423,7 +423,7 @@ describe("compactMcpPayload", () => {
       );
     });
 
-    it("routes exam events through compactExam", () => {
+    it("通过 compactExam 路由考试事件", () => {
       const input = {
         events: [
           {
@@ -449,7 +449,7 @@ describe("compactMcpPayload", () => {
       );
     });
 
-    it("routes todo_due events through compactTodo", () => {
+    it("通过 compactTodo 路由待办到期事件", () => {
       const input = {
         events: [
           {
@@ -476,7 +476,7 @@ describe("compactMcpPayload", () => {
       );
     });
 
-    it("handles events without payload", () => {
+    it("处理无载荷事件", () => {
       const input = {
         events: [{ type: "schedule", at: "2024-01-01" }],
       };
@@ -485,7 +485,7 @@ describe("compactMcpPayload", () => {
       expect(events[0]).toEqual({ type: "schedule", at: "2024-01-01" });
     });
 
-    it("does not compact generic payloads by structural inference", () => {
+    it("不通过结构推断压缩通用载荷", () => {
       const input = {
         nextClass: {
           type: "schedule",
@@ -522,7 +522,7 @@ describe("compactMcpPayload", () => {
       });
     });
 
-    it("does not misidentify exam objects as schedules (exam has startTime/endTime/sectionId but no date+weekday)", () => {
+    it("不会将考试对象误判为日程（考试有 startTime/endTime/sectionId 但没有 date+weekday）", () => {
       const input = {
         exams: [
           {
@@ -568,8 +568,8 @@ describe("compactMcpPayload", () => {
     });
   });
 
-  describe("fallback singular keys", () => {
-    it("compacts singular 'course' key", () => {
+  describe("回退单数键", () => {
+    it("压缩单数 'course' 键", () => {
       const input = {
         course: { id: "c1", code: "CS101", namePrimary: "CS", extra: "x" },
         otherField: "preserved",
@@ -581,7 +581,7 @@ describe("compactMcpPayload", () => {
       expect(result.otherField).toBe("preserved");
     });
 
-    it("compacts singular 'todo' key", () => {
+    it("压缩单数 'todo' 键", () => {
       const input = {
         todo: { id: "t1", title: "T", userId: "removed" },
       };
@@ -591,15 +591,15 @@ describe("compactMcpPayload", () => {
       );
     });
 
-    it("preserves unknown fields in output", () => {
+    it("保留输出中的未知字段", () => {
       const input = { unknownField: "value", anotherField: 42 };
       const result = compactMcpPayload(input) as Record<string, unknown>;
       expect(result).toEqual({ unknownField: "value", anotherField: 42 });
     });
   });
 
-  describe("bus timetables", () => {
-    it("preserves stopTimes for raw trip arrays", () => {
+  describe("班车时刻表", () => {
+    it("为原始班次数组保留 stopTimes", () => {
       const input = {
         trips: [
           {
@@ -652,7 +652,7 @@ describe("compactMcpPayload", () => {
       );
     });
 
-    it("preserves per-stop timetable slots for single-route schedules", () => {
+    it("为单线路日程保留每站时刻槽", () => {
       const input = {
         weekday: [
           {
@@ -696,8 +696,8 @@ describe("compactMcpPayload", () => {
     });
   });
 
-  describe("calendar subscriptions", () => {
-    it("preserves summary subscription fields instead of coercing them into raw shape", () => {
+  describe("日历订阅", () => {
+    it("保留订阅摘要字段而不是强制转换为原始形状", () => {
       const input = {
         success: true,
         subscription: {

@@ -19,19 +19,19 @@ import { assertApiContract } from "../../../../_shared/api-contract";
 
 const BASE = "/api/admin/users";
 
-test.describe("PATCH /api/admin/users/[id]", () => {
-  test("api contract", async ({ request }) => {
+test.describe("PATCH /api/admin/users/[id] 用户更新", () => {
+  test("API 契约", async ({ request }) => {
     await assertApiContract(request, { routePath: `${BASE}/[id]` });
   });
 
-  test("unauthenticated PATCH returns 401", async ({ request }) => {
+  test("未认证 PATCH 返回 401", async ({ request }) => {
     const response = await request.patch(`${BASE}/nonexistent-id`, {
       data: { name: "test" },
     });
     expect(response.status()).toBe(401);
   });
 
-  test("non-admin PATCH returns 401", async ({ page }) => {
+  test("非管理员 PATCH 返回 401", async ({ page }) => {
     await signInAsDebugUser(page, "/");
     const response = await page.request.patch(`${BASE}/nonexistent-id`, {
       data: { name: "test" },
@@ -39,7 +39,7 @@ test.describe("PATCH /api/admin/users/[id]", () => {
     expect(response.status()).toBe(401);
   });
 
-  test("invalid username format returns 400", async ({ page }) => {
+  test("无效用户名格式返回 400", async ({ page }) => {
     await signInAsDevAdmin(page, "/admin");
     const listResponse = await page.request.get(`${BASE}?limit=1`);
     expect(listResponse.status()).toBe(200);

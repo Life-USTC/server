@@ -24,16 +24,16 @@ import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { assertApiContract } from "../../_shared/api-contract";
 
-test.describe("GET /api/courses", () => {
-  test("contract", async ({ request }) => {
+test.describe("GET /api/courses 接口", () => {
+  test("接口契约", async ({ request }) => {
     await assertApiContract(request, { routePath: "/api/courses" });
   });
 
-  test("detail contract", async ({ request }) => {
+  test("详情接口契约", async ({ request }) => {
     await assertApiContract(request, { routePath: "/api/courses/[jwId]" });
   });
 
-  test("returns paginated response shape", async ({ request }) => {
+  test("返回分页响应结构", async ({ request }) => {
     const response = await request.get("/api/courses");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -54,7 +54,7 @@ test.describe("GET /api/courses", () => {
     expect(body.pagination?.totalPages).toBeGreaterThanOrEqual(1);
   });
 
-  test("search by course code returns seed course", async ({ request }) => {
+  test("按课程代码搜索返回 seed 课程", async ({ request }) => {
     const response = await request.get(
       `/api/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
     );
@@ -70,7 +70,7 @@ test.describe("GET /api/courses", () => {
     expect(course?.nameCn).toBe(DEV_SEED.course.nameCn);
   });
 
-  test("search by Chinese name returns seed course", async ({ request }) => {
+  test("按中文名搜索返回 seed 课程", async ({ request }) => {
     const response = await request.get(
       `/api/courses?search=${encodeURIComponent(DEV_SEED.course.nameCn)}`,
     );
@@ -83,7 +83,7 @@ test.describe("GET /api/courses", () => {
     );
   });
 
-  test("non-matching search returns empty data", async ({ request }) => {
+  test("无匹配搜索返回空数据", async ({ request }) => {
     const response = await request.get(
       "/api/courses?search=ZZZZZ_NONEXISTENT_COURSE_99999",
     );
@@ -97,7 +97,7 @@ test.describe("GET /api/courses", () => {
     expect(body.pagination?.totalPages).toBe(1);
   });
 
-  test("course list items have all required fields", async ({ request }) => {
+  test("课程列表项包含所有必填字段", async ({ request }) => {
     const response = await request.get(
       `/api/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
     );
@@ -128,7 +128,7 @@ test.describe("GET /api/courses", () => {
     expect(Object.hasOwn(course as object, "classType")).toBe(true);
   });
 
-  test("page param navigates results", async ({ request }) => {
+  test("page 参数切换结果页", async ({ request }) => {
     const response = await request.get("/api/courses?page=1");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -137,7 +137,7 @@ test.describe("GET /api/courses", () => {
     expect(body.pagination?.page).toBe(1);
   });
 
-  test("limit param controls page size", async ({ request }) => {
+  test("limit 参数控制分页大小", async ({ request }) => {
     const response = await request.get("/api/courses?limit=1");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -148,9 +148,7 @@ test.describe("GET /api/courses", () => {
     expect(body.pagination?.pageSize).toBe(1);
   });
 
-  test("detail route returns seed course with sections", async ({
-    request,
-  }) => {
+  test("详情路由返回 seed 课程及其开课班", async ({ request }) => {
     const response = await request.get(`/api/courses/${DEV_SEED.course.jwId}`);
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {

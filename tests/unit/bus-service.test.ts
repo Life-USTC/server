@@ -98,14 +98,14 @@ function createNextDepartureData(): BusTimetableData {
   };
 }
 
-describe("bus service", () => {
-  it("parses exact HH:mm timetable values", () => {
+describe("班车服务", () => {
+  it("精确解析 HH:mm 时刻表值", () => {
     expect(parseBusTimeMinutes("08:05")).toBe(8 * 60 + 5);
     expect(parseBusTimeMinutes("8:05")).toBe(8 * 60 + 5);
     expect(parseBusTimeMinutes("23:59")).toBe(23 * 60 + 59);
   });
 
-  it("rejects malformed or out-of-range timetable values", () => {
+  it("拒绝格式错误或越界的时刻表值", () => {
     expect(parseBusTimeMinutes(null)).toBeNull();
     expect(parseBusTimeMinutes("08:05x")).toBeNull();
     expect(parseBusTimeMinutes("08:5")).toBeNull();
@@ -113,7 +113,7 @@ describe("bus service", () => {
     expect(parseBusTimeMinutes("08:60")).toBeNull();
   });
 
-  it("keeps upcoming next departures ahead of departed rows", () => {
+  it("将即将出发的班次排在已出发班次之前", () => {
     const result = buildNextBusDeparturesFromData(createNextDepartureData(), {
       originCampusId: east.id,
       destinationCampusId: west.id,

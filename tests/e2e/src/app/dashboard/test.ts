@@ -26,10 +26,8 @@ import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 import { ensureSeedSectionSubscription } from "../../../utils/subscriptions";
 
-test.describe("dashboard", () => {
-  test("unauthenticated with ?tab=homeworks shows public bus view", async ({
-    page,
-  }, testInfo) => {
+test.describe("仪表盘", () => {
+  test("未登录 ?tab=homeworks 显示公共校车视图", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/?tab=homeworks", {
       testInfo,
       screenshotLabel: "dashboard",
@@ -54,9 +52,7 @@ test.describe("dashboard", () => {
     await captureStepScreenshot(page, testInfo, "home-public-with-tab");
   });
 
-  test("authenticated home shows overview with all tabs and seed data", async ({
-    page,
-  }, testInfo) => {
+  test("登录后首页显示总览、所有标签和种子数据", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/", {
@@ -97,9 +93,7 @@ test.describe("dashboard", () => {
     await captureStepScreenshot(page, testInfo, "dashboard-home");
   });
 
-  test("can navigate to homeworks tab via tab bar", async ({
-    page,
-  }, testInfo) => {
+  test("可通过标签栏导航到作业标签", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/");
 
     const homeworksTab = page
@@ -112,9 +106,7 @@ test.describe("dashboard", () => {
     await captureStepScreenshot(page, testInfo, "dashboard-navigate-homeworks");
   });
 
-  test("dashboard path aliases render the matching tabs", async ({
-    page,
-  }, testInfo) => {
+  test("仪表盘路径别名渲染匹配的标签", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/links");
     await gotoAndWaitForReady(page, "/dashboard/links", {
       testInfo,

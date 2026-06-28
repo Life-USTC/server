@@ -11,10 +11,10 @@ import {
   saveBusPreference,
 } from "./helpers";
 
-test.describe("/api/mcp - seeded tool coverage", () => {
+test.describe("/api/mcp - 种子工具覆盖", () => {
   test.describe.configure({ mode: "serial" });
 
-  test("OAuth PKCE token can connect to /api/mcp and call all seeded tools", async ({
+  test("OAuth PKCE token 可连接 /api/mcp 并调用全部种子工具", async ({
     page,
     request,
   }) => {

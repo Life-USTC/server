@@ -10,12 +10,12 @@ import {
 } from "../../../utils/page-ready";
 import { assertPageContract } from "../_shared/page-contract";
 
-test.describe("/privacy", () => {
-  test("contract", async ({ page }, testInfo) => {
+test.describe("/privacy 隐私政策页", () => {
+  test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, { routePath: "/privacy", testInfo });
   });
 
-  test("renders privacy policy with sections", async ({ page }, testInfo) => {
+  test("渲染带章节的隐私政策", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/privacy", {
       testInfo,
       screenshotLabel: "privacy",

@@ -21,30 +21,30 @@ import { assertApiContract } from "../../../_shared/api-contract";
 
 const BASE = "/api/admin/suspensions";
 
-test.describe("GET/POST /api/admin/suspensions", () => {
-  test("api contract", async ({ request }) => {
+test.describe("GET/POST /api/admin/suspensions 封禁管理", () => {
+  test("API 契约", async ({ request }) => {
     await assertApiContract(request, { routePath: BASE });
   });
 
-  test("unauthenticated GET returns 401", async ({ request }) => {
+  test("未认证 GET 返回 401", async ({ request }) => {
     const response = await request.get(BASE);
     expect(response.status()).toBe(401);
   });
 
-  test("unauthenticated POST returns 401", async ({ request }) => {
+  test("未认证 POST 返回 401", async ({ request }) => {
     const response = await request.post(BASE, {
       data: { userId: "fake-id", reason: "test" },
     });
     expect(response.status()).toBe(401);
   });
 
-  test("non-admin GET returns 401", async ({ page }) => {
+  test("非管理员 GET 返回 401", async ({ page }) => {
     await signInAsDebugUser(page, "/");
     const response = await page.request.get(BASE);
     expect(response.status()).toBe(401);
   });
 
-  test("admin can list suspensions and find seed record", async ({ page }) => {
+  test("管理员可列出封禁并找到 seed 记录", async ({ page }) => {
     await signInAsDevAdmin(page, "/admin");
 
     const response = await page.request.get(BASE);
@@ -59,7 +59,7 @@ test.describe("GET/POST /api/admin/suspensions", () => {
     ).toBe(true);
   });
 
-  test("POST with nonexistent userId returns 404", async ({ page }) => {
+  test("POST 不存在的 userId 返回 404", async ({ page }) => {
     await signInAsDevAdmin(page, "/admin");
 
     const response = await page.request.post(BASE, {
@@ -68,9 +68,7 @@ test.describe("GET/POST /api/admin/suspensions", () => {
     expect(response.status()).toBe(404);
   });
 
-  test("POST with invalid expiresAt returns 400 and creates no suspension", async ({
-    page,
-  }) => {
+  test("POST 无效 expiresAt 返回 400 且不创建封禁", async ({ page }) => {
     const prefix = `e2e-sus-invalid-${Date.now()}`;
     const { usernames } = await createTempUsersFixture({ prefix, count: 1 });
 
@@ -119,7 +117,7 @@ test.describe("GET/POST /api/admin/suspensions", () => {
     }
   });
 
-  test("admin can create a suspension for a temp user", async ({ page }) => {
+  test("管理员可为临时用户创建封禁", async ({ page }) => {
     const prefix = `e2e-sus-${Date.now()}`;
     const { usernames } = await createTempUsersFixture({ prefix, count: 1 });
 

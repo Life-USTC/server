@@ -139,13 +139,13 @@ function clearPublicRuntimeCache() {
   ).__lifeUstcPublicRuntimeCache;
 }
 
-describe("academic REST locale adapters", () => {
+describe("academic REST 语言适配器", () => {
   afterEach(() => {
     vi.clearAllMocks();
     clearPublicRuntimeCache();
   });
 
-  it("passes request locale to course detail reads", async () => {
+  it("将请求语言传递给课程详情读取", async () => {
     const { getCourseDetailRoute } = await import(
       "@/lib/api/routes/academic-course-routes"
     );
@@ -158,7 +158,7 @@ describe("academic REST locale adapters", () => {
     expect(response.headers.get("Vary")).toBe("Accept-Language, Cookie");
   });
 
-  it("passes request locale to section detail reads", async () => {
+  it("将请求语言传递给班级详情读取", async () => {
     const { getSectionDetailRoute } = await import(
       "@/lib/api/routes/academic-section-routes"
     );
@@ -171,7 +171,7 @@ describe("academic REST locale adapters", () => {
     expect(response.headers.get("Vary")).toBe("Accept-Language, Cookie");
   });
 
-  it("passes request locale to teacher detail reads", async () => {
+  it("将请求语言传递给教师详情读取", async () => {
     const { getTeacherDetailRoute } = await import(
       "@/lib/api/routes/academic-teacher-routes"
     );
@@ -184,7 +184,7 @@ describe("academic REST locale adapters", () => {
     expect(response.headers.get("Vary")).toBe("Accept-Language, Cookie");
   });
 
-  it("passes request locale to section-code matching", async () => {
+  it("将请求语言传递给班级代码匹配", async () => {
     const { postSectionMatchCodesRoute } = await import(
       "@/lib/api/routes/academic-section-routes"
     );
@@ -203,7 +203,7 @@ describe("academic REST locale adapters", () => {
     );
   });
 
-  it("uses locale-aware shared section summaries for section lists", async () => {
+  it("班级列表使用支持语言的共享班级摘要", async () => {
     const { getSectionsRoute } = await import(
       "@/lib/api/routes/academic-section-routes"
     );
@@ -218,7 +218,7 @@ describe("academic REST locale adapters", () => {
     expect(response.headers.get("Vary")).toBe("Accept-Language, Cookie");
   });
 
-  it("passes request locale to course and teacher list reads", async () => {
+  it("将请求语言传递给课程与教师列表读取", async () => {
     const [{ getCoursesRoute }, { getTeachersRoute }] = await Promise.all([
       import("@/lib/api/routes/academic-course-routes"),
       import("@/lib/api/routes/academic-teacher-routes"),
@@ -243,7 +243,7 @@ describe("academic REST locale adapters", () => {
     );
   });
 
-  it("passes request locale to public schedule reads", async () => {
+  it("将请求语言传递给公共课表读取", async () => {
     const { getSchedulesRoute } = await import(
       "@/lib/api/routes/academic-schedule-routes"
     );
@@ -271,7 +271,7 @@ describe("academic REST locale adapters", () => {
     );
   });
 
-  it("passes request locale to section schedule reads", async () => {
+  it("将请求语言传递给班级课表读取", async () => {
     const { getSectionSchedulesRoute, getSectionScheduleGroupsRoute } =
       await import("@/lib/api/routes/academic-section-routes");
 

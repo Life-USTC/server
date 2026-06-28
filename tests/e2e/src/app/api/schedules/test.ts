@@ -47,12 +47,12 @@ async function resolveSeedSectionId(
   return section!.id!;
 }
 
-test.describe("GET /api/schedules", () => {
-  test("contract", async ({ request }) => {
+test.describe("GET /api/schedules - 排课列表", () => {
+  test("契约", async ({ request }) => {
     await assertApiContract(request, { routePath: "/api/schedules" });
   });
 
-  test("returns paginated response shape", async ({ request }) => {
+  test("返回分页响应结构", async ({ request }) => {
     const response = await request.get("/api/schedules");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -72,7 +72,7 @@ test.describe("GET /api/schedules", () => {
     expect(typeof body.pagination?.totalPages).toBe("number");
   });
 
-  test("filter by sectionId returns seed schedules", async ({ request }) => {
+  test("按 sectionId 过滤返回 seed 排课", async ({ request }) => {
     const sectionId = await resolveSeedSectionId(request);
     const response = await request.get(
       `/api/schedules?sectionId=${sectionId}&limit=20`,
@@ -90,7 +90,7 @@ test.describe("GET /api/schedules", () => {
     ).toBe(true);
   });
 
-  test("schedules include nested relations", async ({ request }) => {
+  test("排课包含嵌套关联", async ({ request }) => {
     const sectionId = await resolveSeedSectionId(request);
     const response = await request.get(
       `/api/schedules?sectionId=${sectionId}&limit=5`,
@@ -150,7 +150,7 @@ test.describe("GET /api/schedules", () => {
     }
   });
 
-  test("non-matching sectionId returns empty data", async ({ request }) => {
+  test("不匹配的 sectionId 返回空数据", async ({ request }) => {
     const response = await request.get("/api/schedules?sectionId=999999999");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -161,12 +161,12 @@ test.describe("GET /api/schedules", () => {
     expect(body.pagination?.total).toBe(0);
   });
 
-  test("invalid dateFrom returns 400", async ({ request }) => {
+  test("无效 dateFrom 返回 400", async ({ request }) => {
     const response = await request.get("/api/schedules?dateFrom=not-a-date");
     expect(response.status()).toBe(400);
   });
 
-  test("limit param controls page size", async ({ request }) => {
+  test("limit 参数控制页大小", async ({ request }) => {
     const response = await request.get("/api/schedules?limit=1");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {

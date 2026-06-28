@@ -28,7 +28,7 @@ describe("POST /api/dashboard-links/pin", () => {
     vi.clearAllMocks();
   });
 
-  it("returns a 500 JSON error when persisting a pin fails", async () => {
+  it("当固定链接持久化失败时返回 500 JSON 错误", async () => {
     transactionMock.mockRejectedValue(new Error("db write failed"));
     const { postDashboardLinkPinRoute } = await import(
       "@/lib/api/routes/dashboard-links"

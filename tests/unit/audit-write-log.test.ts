@@ -59,7 +59,7 @@ describe("fireAuditLog", () => {
     vi.resetModules();
   });
 
-  it("resolves after scheduling Worker waitUntil without waiting for the audit write", async () => {
+  it("在调度 Worker waitUntil 后完成，无需等待审计写入", async () => {
     const waitUntilMock = vi.fn();
     getRequestEventMock.mockReturnValue({
       platform: {
@@ -97,7 +97,7 @@ describe("fireAuditLog", () => {
     expect(logAppEventMock).not.toHaveBeenCalled();
   });
 
-  it("logs scheduled audit write failures", async () => {
+  it("记录已调度审计写入失败", async () => {
     const writeError = new Error("database unavailable");
     const waitUntilMock = vi.fn();
     getRequestEventMock.mockReturnValue({
@@ -133,7 +133,7 @@ describe("fireAuditLog", () => {
     );
   });
 
-  it("awaits the audit write when waitUntil is unavailable", async () => {
+  it("当 waitUntil 不可用时等待审计写入", async () => {
     getRequestEventMock.mockImplementation(() => {
       throw new Error("outside request");
     });

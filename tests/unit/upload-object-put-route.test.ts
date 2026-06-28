@@ -68,7 +68,7 @@ describe("putUploadObjectRoute", () => {
     vi.resetModules();
   });
 
-  it("requires content length before writing to R2", async () => {
+  it("写入 R2 前要求 Content-Length", async () => {
     requireWriteAuthMock.mockResolvedValue({ userId: "user-1" });
     const { putUploadObjectRoute } = await import(
       "@/lib/api/routes/upload-object-put-route"
@@ -84,7 +84,7 @@ describe("putUploadObjectRoute", () => {
     expect(putStorageObjectMock).not.toHaveBeenCalled();
   });
 
-  it("rejects keys outside the authenticated user's upload prefix", async () => {
+  it("拒绝超出认证用户上传前缀的 key", async () => {
     requireWriteAuthMock.mockResolvedValue({ userId: "user-1" });
     const { putUploadObjectRoute } = await import(
       "@/lib/api/routes/upload-object-put-route"
@@ -102,7 +102,7 @@ describe("putUploadObjectRoute", () => {
     expect(putStorageObjectMock).not.toHaveBeenCalled();
   });
 
-  it("rejects expired upload sessions", async () => {
+  it("拒绝过期的上传会话", async () => {
     requireWriteAuthMock.mockResolvedValue({ userId: "user-1" });
     findUniqueMock.mockResolvedValue({
       contentType: "text/plain",
@@ -125,7 +125,7 @@ describe("putUploadObjectRoute", () => {
     expect(putStorageObjectMock).not.toHaveBeenCalled();
   });
 
-  it("rejects bodies larger than the pending reservation", async () => {
+  it("拒绝超过待处理预留大小的请求体", async () => {
     requireWriteAuthMock.mockResolvedValue({ userId: "user-1" });
     findUniqueMock.mockResolvedValue({
       contentType: "text/plain",
@@ -145,7 +145,7 @@ describe("putUploadObjectRoute", () => {
     expect(putStorageObjectMock).not.toHaveBeenCalled();
   });
 
-  it("writes a valid pending upload to R2", async () => {
+  it("将有效的待处理上传写入 R2", async () => {
     requireWriteAuthMock.mockResolvedValue({ userId: "user-1" });
     findUniqueMock.mockResolvedValue({
       contentType: "text/plain",

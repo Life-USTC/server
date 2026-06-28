@@ -10,19 +10,19 @@ function shouldRedirect(path: string, url = `http://localhost:3000${path}`) {
   });
 }
 
-describe("welcome redirect policy", () => {
-  it("redirects incomplete signed-in users away from normal pages", () => {
+describe("欢迎页重定向策略", () => {
+  it("将资料不完整的已登录用户从普通页面重定向", () => {
     expect(shouldRedirect("/")).toBe(true);
     expect(shouldRedirect("/settings")).toBe(true);
   });
 
-  it("allows profile completion and OAuth consent pages", () => {
+  it("允许资料补全页和 OAuth 授权页", () => {
     expect(shouldRedirect("/welcome")).toBe(false);
     expect(shouldRedirect("/signin")).toBe(false);
     expect(shouldRedirect("/oauth/authorize")).toBe(false);
   });
 
-  it("does not redirect API, discovery, or static asset requests", () => {
+  it("不重定向 API、发现服务或静态资源请求", () => {
     expect(shouldRedirect("/api/me")).toBe(false);
     expect(shouldRedirect("/.well-known/openid-configuration")).toBe(false);
     expect(shouldRedirect("/_app/immutable/start.js")).toBe(false);
@@ -30,7 +30,7 @@ describe("welcome redirect policy", () => {
     expect(shouldRedirect("/sitemap.xml")).toBe(false);
   });
 
-  it("allows OAuth callback continuations by protocol shape, not test path", () => {
+  it("按协议形态允许 OAuth 回调继续，而非测试路径", () => {
     expect(
       shouldRedirect(
         "/e2e/oauth/callback",
@@ -45,7 +45,7 @@ describe("welcome redirect policy", () => {
     ).toBe(false);
   });
 
-  it("does not treat arbitrary state-only URLs as OAuth callbacks", () => {
+  it("不将仅含 state 的任意 URL 视为 OAuth 回调", () => {
     expect(shouldRedirect("/", "http://localhost:3000/?state=xyz")).toBe(true);
   });
 });

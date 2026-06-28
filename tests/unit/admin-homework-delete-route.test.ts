@@ -19,14 +19,14 @@ vi.mock("@/lib/api/routes/admin-route-auth", () => ({
   withAdminApiRoute: withAdminApiRouteMock,
 }));
 
-describe("admin homework delete route", () => {
+describe("admin homework 删除路由", () => {
   afterEach(() => {
     deleteHomeworkMock.mockReset();
     withAdminApiRouteMock.mockClear();
     vi.resetModules();
   });
 
-  it("maps missing homework to 404", async () => {
+  it("将缺失的作业映射为 404", async () => {
     deleteHomeworkMock.mockResolvedValue({ ok: false, error: "not_found" });
     const { deleteAdminHomeworkRoute } = await import(
       "@/lib/api/routes/admin-homework-delete-route"
@@ -42,7 +42,7 @@ describe("admin homework delete route", () => {
     expect(response.status).toBe(404);
   });
 
-  it("maps permission failures to 403", async () => {
+  it("将权限失败映射为 403", async () => {
     deleteHomeworkMock.mockResolvedValue({ ok: false, error: "forbidden" });
     const { deleteAdminHomeworkRoute } = await import(
       "@/lib/api/routes/admin-homework-delete-route"
@@ -58,7 +58,7 @@ describe("admin homework delete route", () => {
     expect(response.status).toBe(403);
   });
 
-  it("passes through admin authentication failures before deleting", async () => {
+  it("删除前透传管理员认证失败", async () => {
     withAdminApiRouteMock.mockResolvedValueOnce(
       Response.json({ error: "Unauthorized" }, { status: 401 }),
     );

@@ -32,7 +32,7 @@ function consentRequest(
   });
 }
 
-describe("OAuth consent action", () => {
+describe("OAuth consent 操作", () => {
   beforeEach(() => {
     oauth2ConsentMock.mockReset();
     vi.stubEnv("APP_PUBLIC_ORIGIN", "https://life.example");
@@ -42,7 +42,7 @@ describe("OAuth consent action", () => {
     vi.unstubAllEnvs();
   });
 
-  it("uses the provider consent API and redirects to its target", async () => {
+  it("使用 provider consent API 并重定向到目标", async () => {
     oauth2ConsentMock.mockResolvedValue({
       redirect_uri: "https://client.example/callback?code=code-1",
     });
@@ -86,7 +86,7 @@ describe("OAuth consent action", () => {
     expect(headers.get("accept")).toBe("application/json");
   });
 
-  it("redirects to the consent failure page when provider consent fails", async () => {
+  it("provider consent 失败时重定向到 consent 失败页面", async () => {
     oauth2ConsentMock.mockRejectedValue(new Error("provider failed"));
 
     await expect(
@@ -103,7 +103,7 @@ describe("OAuth consent action", () => {
     });
   });
 
-  it("rejects a cookie-bearing consent request without origin or referer", async () => {
+  it("拒绝缺少 origin 或 referer 的携带 cookie 的 consent 请求", async () => {
     await expect(
       submitOAuthConsentAction({
         request: consentRequest(
@@ -120,7 +120,7 @@ describe("OAuth consent action", () => {
     expect(oauth2ConsentMock).not.toHaveBeenCalled();
   });
 
-  it("rejects a cookie-bearing consent request from an untrusted origin", async () => {
+  it("拒绝来自不受信任 origin 的携带 cookie 的 consent 请求", async () => {
     await expect(
       submitOAuthConsentAction({
         request: consentRequest(

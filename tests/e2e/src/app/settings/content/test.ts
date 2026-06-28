@@ -23,8 +23,8 @@ import {
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-test.describe("/settings?tab=content", () => {
-  test("requires authentication", async ({ page }, testInfo) => {
+test.describe("/settings?tab=content 内容设置", () => {
+  test("需要登录", async ({ page }, testInfo) => {
     await expectRequiresSignIn(page, "/settings?tab=content");
     await captureStepScreenshot(
       page,
@@ -33,7 +33,7 @@ test.describe("/settings?tab=content", () => {
     );
   });
 
-  test("displays canonical content guidance", async ({ page }, testInfo) => {
+  test("显示标准内容引导", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/settings?tab=content");
 
     await expectPagePath(page, "/settings?tab=content");
@@ -51,7 +51,7 @@ test.describe("/settings?tab=content", () => {
     await captureStepScreenshot(page, testInfo, "settings-content-links");
   });
 
-  test("content links navigate correctly", async ({ page }, testInfo) => {
+  test("内容链接导航正确", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/settings?tab=content");
 
     const sectionsLink = page.getByRole("link", {

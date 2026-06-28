@@ -3,7 +3,7 @@ import * as fixtures from "./utils/mcp-tool-test-utils";
 
 const context = fixtures.createMcpToolTestContext();
 
-describe("flexDateInputSchema — bare YYYY-MM-DD accepted by date-filter tools", () => {
+describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () => {
   let originalSubscriptionSectionIds: number[] = [];
 
   beforeAll(async () => {
@@ -20,7 +20,7 @@ describe("flexDateInputSchema — bare YYYY-MM-DD accepted by date-filter tools"
     );
   });
 
-  it("list_my_schedules accepts bare date strings (no timezone offset)", async () => {
+  it("list_my_schedules 接受裸日期字符串（无时区偏移）", async () => {
     const result = await context.client.call<{
       schedules?: Array<{
         id?: number;
@@ -49,7 +49,7 @@ describe("flexDateInputSchema — bare YYYY-MM-DD accepted by date-filter tools"
     }
   });
 
-  it("list_my_exams accepts bare date strings", async () => {
+  it("list_my_exams 接受裸日期字符串", async () => {
     const result = await context.client.call<{
       exams?: Array<{ id?: number }>;
     }>("list_my_exams", {
@@ -62,7 +62,7 @@ describe("flexDateInputSchema — bare YYYY-MM-DD accepted by date-filter tools"
     expect(Array.isArray(result.exams)).toBe(true);
   });
 
-  it("list_my_calendar_events accepts bare date strings", async () => {
+  it("list_my_calendar_events 接受裸日期字符串", async () => {
     const result = await context.client.call<{
       events?: Array<{ type?: string; at?: string }>;
     }>("list_my_calendar_events", {
@@ -80,7 +80,7 @@ describe("flexDateInputSchema — bare YYYY-MM-DD accepted by date-filter tools"
     ).toBe(true);
   });
 
-  it("list_my_calendar_events treats same-day bare date ranges as full Shanghai days", async () => {
+  it("list_my_calendar_events 将同日裸日期范围视为完整上海天时区日", async () => {
     const result = await context.client.call<{
       events?: Array<{ type?: string; at?: string }>;
     }>("list_my_calendar_events", {
@@ -98,7 +98,7 @@ describe("flexDateInputSchema — bare YYYY-MM-DD accepted by date-filter tools"
     ).toBe(true);
   });
 
-  it("list_my_calendar_events honors an exact inclusive dateTo bound", async () => {
+  it("list_my_calendar_events 遵守精确包含的 dateTo 边界", async () => {
     const dueAt = `${fixtures.SEED_PLUS_THREE_DAYS}T21:00:00+08:00`;
     const result = await context.client.call<{
       events?: Array<{ type?: string; at?: string }>;
@@ -115,7 +115,7 @@ describe("flexDateInputSchema — bare YYYY-MM-DD accepted by date-filter tools"
     ).toBe(true);
   });
 
-  it("list_my_calendar_events includes todos at an exact inclusive dateTo bound", async () => {
+  it("list_my_calendar_events 在精确包含的 dateTo 边界包含 todo", async () => {
     const dueAt = `${fixtures.SEED_DATE}T06:45:00+08:00`;
     const todo = await fixtures.prisma.todo.create({
       data: {
@@ -152,7 +152,7 @@ describe("flexDateInputSchema — bare YYYY-MM-DD accepted by date-filter tools"
     }
   });
 
-  it("list_my_calendar_events includes timed events overlapping an exact window", async () => {
+  it("list_my_calendar_events 包含与精确窗口重叠的定时事件", async () => {
     const schedule = await fixtures.prisma.schedule.findFirst({
       where: {
         section: { jwId: fixtures.DEV_SEED.section.jwId },
@@ -186,7 +186,7 @@ describe("flexDateInputSchema — bare YYYY-MM-DD accepted by date-filter tools"
     ).toBe(true);
   });
 
-  it("list_my_calendar_events widens date-backed queries for exact windows", async () => {
+  it("list_my_calendar_events 为精确窗口放宽基于日期的查询", async () => {
     const section = await fixtures.prisma.section.findUnique({
       where: { jwId: fixtures.DEV_SEED.section.jwId },
       select: { id: true },
@@ -229,7 +229,7 @@ describe("flexDateInputSchema — bare YYYY-MM-DD accepted by date-filter tools"
     }
   });
 
-  it("list_my_calendar_events keeps no-time exams visible through their day", async () => {
+  it("list_my_calendar_events 使无时间考试在当天保持可见", async () => {
     const section = await fixtures.prisma.section.findUnique({
       where: { jwId: fixtures.DEV_SEED.section.jwId },
       select: { id: true },
@@ -274,7 +274,7 @@ describe("flexDateInputSchema — bare YYYY-MM-DD accepted by date-filter tools"
     }
   });
 
-  it("list_my_calendar_events respects endTime for exams without startTime", async () => {
+  it("list_my_calendar_events 对无 startTime 的考试尊重 endTime", async () => {
     const section = await fixtures.prisma.section.findUnique({
       where: { jwId: fixtures.DEV_SEED.section.jwId },
       select: { id: true },
@@ -317,7 +317,7 @@ describe("flexDateInputSchema — bare YYYY-MM-DD accepted by date-filter tools"
     }
   });
 
-  it("returns a descriptive error for a nonsense date string", async () => {
+  it("对无效日期字符串返回描述性错误", async () => {
     const result = await context.client.call<{
       success?: boolean;
       message?: string;

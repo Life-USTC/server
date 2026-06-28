@@ -20,19 +20,19 @@ import { assertApiContract } from "../../../../_shared/api-contract";
 
 const BASE = "/api/admin/comments";
 
-test.describe("PATCH /api/admin/comments/[id]", () => {
-  test("api contract", async ({ request }) => {
+test.describe("PATCH /api/admin/comments/[id] 评论管理", () => {
+  test("API 契约", async ({ request }) => {
     await assertApiContract(request, { routePath: `${BASE}/[id]` });
   });
 
-  test("unauthenticated PATCH returns 401", async ({ request }) => {
+  test("未认证 PATCH 返回 401", async ({ request }) => {
     const response = await request.patch(`${BASE}/nonexistent-id`, {
       data: { status: "softbanned" },
     });
     expect(response.status()).toBe(401);
   });
 
-  test("non-admin PATCH returns 401", async ({ page }) => {
+  test("非管理员 PATCH 返回 401", async ({ page }) => {
     await signInAsDebugUser(page, "/");
     const response = await page.request.patch(`${BASE}/nonexistent-id`, {
       data: { status: "softbanned" },
@@ -40,7 +40,7 @@ test.describe("PATCH /api/admin/comments/[id]", () => {
     expect(response.status()).toBe(401);
   });
 
-  test("empty request body returns 400", async ({ page }) => {
+  test("空请求体返回 400", async ({ page }) => {
     await signInAsDevAdmin(page, "/admin");
     const listResponse = await page.request.get(`${BASE}?limit=1`);
     expect(listResponse.status()).toBe(200);
@@ -57,7 +57,7 @@ test.describe("PATCH /api/admin/comments/[id]", () => {
     expect(response.status()).toBe(400);
   });
 
-  test("admin can moderate a comment and restore it", async ({ page }) => {
+  test("管理员可管理评论并恢复状态", async ({ page }) => {
     await signInAsDevAdmin(page, "/admin");
 
     // Find an active comment to moderate.

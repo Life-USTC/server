@@ -11,8 +11,8 @@ function parseToolPayload(result: {
   };
 }
 
-describe("MCP homework date parsing", () => {
-  test("uses the shared homework date rule for create submission windows", () => {
+describe("MCP 作业日期解析", () => {
+  test("创建提交窗口使用共享的作业日期规则", () => {
     const result = parseCreateHomeworkTimestamps(
       {
         submissionDueAt: "2026-04-01T00:00:00Z",
@@ -30,7 +30,7 @@ describe("MCP homework date parsing", () => {
     });
   });
 
-  test("uses the shared homework date rule for update submission windows", () => {
+  test("更新提交窗口使用共享的作业日期规则", () => {
     const result = parseHomeworkUpdateDates(
       {
         submissionDueAt: "2026-04-01T00:00:00Z",

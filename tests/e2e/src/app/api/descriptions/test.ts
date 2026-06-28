@@ -139,7 +139,7 @@ async function resolveSeedSectionId(
   return section!.id!;
 }
 
-test("/api/descriptions", async ({ request }) => {
+test("/api/descriptions 接口契约", async ({ request }) => {
   await assertApiContract(request, { routePath: "/api/descriptions" });
 });
 
@@ -161,9 +161,7 @@ test("/api/descriptions GET 返回 seed 描述内容", async ({ request }) => {
   expect(body.viewer).toBeDefined();
 });
 
-test("/api/descriptions GET accepts public section JW id", async ({
-  request,
-}) => {
+test("/api/descriptions GET 接受公开 section JW id", async ({ request }) => {
   const response = await request.get(
     `/api/descriptions?targetType=section&sectionJwId=${DEV_SEED.section.jwId}`,
   );
@@ -281,7 +279,7 @@ test("/api/descriptions POST 登录后可更新描述并清理", async ({
   }
 });
 
-test("/api/descriptions POST accepts public section JW id", async ({
+test("/api/descriptions POST 接受公开 section JW id", async ({
   page,
 }, testInfo) => {
   await signInAsDebugUser(page, "/");

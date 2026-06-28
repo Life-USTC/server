@@ -6,7 +6,7 @@ import {
 } from "@/lib/oauth/utils";
 
 describe("oauth/utils", () => {
-  it("hashes client secrets deterministically with SHA-256 base64url", async () => {
+  it("使用 SHA-256 base64url 确定性哈希客户端密钥", async () => {
     const secret = "super-secret-value";
     const hash = await hashOAuthClientSecretForDbStorage(secret);
 
@@ -20,7 +20,7 @@ describe("oauth/utils", () => {
     ).resolves.not.toBe(hash);
   });
 
-  it("normalizes resource indicators", () => {
+  it("规范化资源标识符", () => {
     expect(normalizeResourceIndicator("https://Example.COM/api/")).toBe(
       "https://example.com/api/",
     );
@@ -32,13 +32,13 @@ describe("oauth/utils", () => {
     );
   });
 
-  it("strips fragments from resource indicators", () => {
+  it("去除资源标识符中的片段", () => {
     expect(normalizeResourceIndicator("https://example.com/api#frag")).toBe(
       "https://example.com/api",
     );
   });
 
-  it("matches equivalent resource indicators", () => {
+  it("匹配等效资源标识符", () => {
     expect(
       resourceIndicatorsMatch(
         "https://Example.COM/api",
@@ -59,7 +59,7 @@ describe("oauth/utils", () => {
     ).toBe(false);
   });
 
-  it("matches localhost and 127.0.0.1 resource indicators on the same port", () => {
+  it("匹配相同端口下 localhost 与 127.0.0.1 资源标识符", () => {
     expect(
       resourceIndicatorsMatch(
         "http://localhost:3010/api/mcp",
@@ -68,7 +68,7 @@ describe("oauth/utils", () => {
     ).toBe(true);
   });
 
-  it("rejects loopback resource indicators with different ports or paths", () => {
+  it("拒绝不同端口或路径的环回资源标识符", () => {
     expect(
       resourceIndicatorsMatch(
         "http://localhost:3010/api/mcp",

@@ -6,7 +6,7 @@ import {
 } from "@/lib/mcp/tools/event-summary";
 
 describe("summarizeCalendarEventCollection", () => {
-  it("groups events by day and type while trimming nested payloads", () => {
+  it("按天和类型分组事件并裁剪嵌套载荷", () => {
     const events = [
       {
         type: "schedule" as const,
@@ -101,7 +101,7 @@ describe("summarizeCalendarEventCollection", () => {
 });
 
 describe("summarizeBusDeparture", () => {
-  it("drops repeated campus payloads from departure summaries", () => {
+  it("从发车摘要中移除重复的校区载荷", () => {
     const summary = summarizeBusDeparture({
       tripId: 1,
       routeId: 8,

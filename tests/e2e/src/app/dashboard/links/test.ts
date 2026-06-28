@@ -39,8 +39,8 @@ async function setLocale(page: Page, locale: "en-us" | "zh-cn") {
   expect(response.status()).toBe(200);
 }
 
-test.describe("dashboard links", () => {
-  test("public ?tab=links shows search and links without pin controls", async ({
+test.describe("仪表盘网站链接", () => {
+  test("公共 ?tab=links 显示搜索和链接，无置顶控件", async ({
     page,
   }, testInfo) => {
     await setLocale(page, "zh-cn");
@@ -62,9 +62,7 @@ test.describe("dashboard links", () => {
     await captureStepScreenshot(page, testInfo, "public-dashboard-links-tab");
   });
 
-  test("public English links tab uses localized titles in search", async ({
-    page,
-  }, testInfo) => {
+  test("公共英文链接标签在搜索中使用本地化标题", async ({ page }, testInfo) => {
     await setLocale(page, "en-us");
 
     await gotoAndWaitForReady(page, "/?tab=links");
@@ -99,9 +97,7 @@ test.describe("dashboard links", () => {
     );
   });
 
-  test("authenticated can navigate to links tab", async ({
-    page,
-  }, testInfo) => {
+  test("登录后可以导航到链接标签", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/");
 
     const linksTab = page.getByRole("link", { name: /网站|Websites/i }).first();
@@ -121,7 +117,7 @@ test.describe("dashboard links", () => {
     await captureStepScreenshot(page, testInfo, "dashboard-links-tab");
   });
 
-  test("search filters links", async ({ page }, testInfo) => {
+  test("搜索可筛选链接", async ({ page }, testInfo) => {
     await setLocale(page, "zh-cn");
     await signInAsDebugUser(page, "/dashboard/links");
 
@@ -151,9 +147,7 @@ test.describe("dashboard links", () => {
     await captureStepScreenshot(page, testInfo, "dashboard-links-search");
   });
 
-  test("can pin and unpin a link with state restoration", async ({
-    page,
-  }, testInfo) => {
+  test("可以置顶和取消置顶链接并恢复状态", async ({ page }, testInfo) => {
     await setLocale(page, "zh-cn");
     await signInAsDebugUser(page, "/dashboard/links");
     await page.request.post("/api/dashboard-links/pin", {
@@ -252,9 +246,7 @@ test.describe("dashboard links", () => {
     }
   });
 
-  test("keeps pin state when search recomputes links", async ({
-    page,
-  }, testInfo) => {
+  test("搜索重新计算链接时保持置顶状态", async ({ page }, testInfo) => {
     await setLocale(page, "zh-cn");
     await signInAsDebugUser(page, "/dashboard/links");
     await page.request.post("/api/dashboard-links/pin", {

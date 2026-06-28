@@ -31,7 +31,7 @@ vi.mock("@/lib/audit/write-audit-log", () => ({
   getAuditRequestMetadata: getAuditRequestMetadataMock,
 }));
 
-describe("upload management routes", () => {
+describe("上传管理路由", () => {
   beforeEach(() => {
     requireWriteAuthMock.mockResolvedValue({ userId: "user-1" });
     getAuditRequestMetadataMock.mockReturnValue({
@@ -44,7 +44,7 @@ describe("upload management routes", () => {
     vi.clearAllMocks();
   });
 
-  it("serializes storage cleanup failures without reporting delete success", async () => {
+  it("序列化存储清理失败且不报告删除成功", async () => {
     deleteOwnedUploadMock.mockResolvedValue({
       ok: false,
       error: "storage_delete_failed",

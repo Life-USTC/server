@@ -31,11 +31,11 @@ import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
 test.describe("/u/[username]", () => {
-  test("contract", async ({ page }, testInfo) => {
+  test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, { routePath: "/u/[username]", testInfo });
   });
 
-  test("displays all required profile fields", async ({ page }, testInfo) => {
+  test("显示所有必需的资料字段", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, `/u/${DEV_SEED.adminUsername}`);
 
     // user.name (display name)
@@ -56,7 +56,7 @@ test.describe("/u/[username]", () => {
     await captureStepScreenshot(page, testInfo, "u-username/profile-fields");
   });
 
-  test("displays stat counters grid", async ({ page }, testInfo) => {
+  test("显示统计计数器网格", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, `/u/${DEV_SEED.adminUsername}`);
 
     // sectionCount, _count.comments, _count.uploads, _count.homeworksCreated
@@ -75,9 +75,7 @@ test.describe("/u/[username]", () => {
     await captureStepScreenshot(page, testInfo, "u-username/stats-grid");
   });
 
-  test("displays contribution heatmap with totalContributions", async ({
-    page,
-  }, testInfo) => {
+  test("显示贡献热力图及 totalContributions", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, `/u/${DEV_SEED.debugUsername}`);
 
     // totalContributions label or heading
@@ -96,9 +94,7 @@ test.describe("/u/[username]", () => {
     );
   });
 
-  test("user internal ID is NOT visible on username page", async ({
-    baseURL,
-  }) => {
+  test("用户名页面不显示内部用户 ID", async ({ baseURL }) => {
     // user.yml: public-identity-display rule — internal ids hidden (permission.yml)
     const res = await fetch(
       absoluteTestUrl(`/u/${DEV_SEED.adminUsername}`, baseURL),
@@ -110,7 +106,7 @@ test.describe("/u/[username]", () => {
     expect(html).not.toMatch(/\/u\/id\/[a-z0-9]{15,}/);
   });
 
-  test("returns 404 for non-existent username", async ({ page }, testInfo) => {
+  test("不存在的用户名返回 404", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/u/non-existing-username", {
       expectMainContent: false,
     });
@@ -126,11 +122,11 @@ test.describe("/u/[username]", () => {
 });
 
 test.describe("/u/id/[uid]", () => {
-  test("contract", async ({ page }, testInfo) => {
+  test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, { routePath: "/u/id/[uid]", testInfo });
   });
 
-  test("shows profile by internal user ID", async ({ page }, testInfo) => {
+  test("通过内部用户 ID 显示资料", async ({ page }, testInfo) => {
     await signInAsDevAdmin(page, "/");
     const sessionResponse = await page.request.get("/api/auth/get-session");
     expect(sessionResponse.status()).toBe(200);
@@ -148,7 +144,7 @@ test.describe("/u/id/[uid]", () => {
     await captureStepScreenshot(page, testInfo, "u-id/profile");
   });
 
-  test("404 for non-existent uid", async ({ page }, testInfo) => {
+  test("不存在的 uid 返回 404", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/u/id/non-existent-uid-000000000", {
       expectMainContent: false,
     });

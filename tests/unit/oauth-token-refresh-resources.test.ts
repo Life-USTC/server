@@ -39,7 +39,7 @@ function unsignedJwt(payload: Record<string, unknown>) {
   ].join(".");
 }
 
-describe("OAuth refresh token resource persistence", () => {
+describe("OAuth 刷新令牌资源持久化", () => {
   beforeEach(() => {
     vi.resetModules();
     findRefreshTokenMock.mockReset();
@@ -47,7 +47,7 @@ describe("OAuth refresh token resource persistence", () => {
     updateRefreshTokenMock.mockResolvedValue({ count: 1 });
   });
 
-  it("rejects refresh requests for resources outside the stored approval", async () => {
+  it("拒绝存储批准范围外的资源的刷新请求", async () => {
     findRefreshTokenMock.mockResolvedValue({
       resources: ["https://life.example/api/auth"],
     });
@@ -73,7 +73,7 @@ describe("OAuth refresh token resource persistence", () => {
     });
   });
 
-  it("allows refresh requests for stored approved resources", async () => {
+  it("允许已存储批准资源的刷新请求", async () => {
     findRefreshTokenMock.mockResolvedValue({
       resources: ["https://life.example/api/mcp"],
     });
@@ -94,7 +94,7 @@ describe("OAuth refresh token resource persistence", () => {
     ).resolves.toBeUndefined();
   });
 
-  it("stores issued audience resources on authorization-code refresh tokens", async () => {
+  it("在授权码刷新令牌上存储已签发的受众资源", async () => {
     const { persistOAuthRefreshTokenResources } = await import(
       "@/lib/api/routes/auth-token-refresh-resources"
     );
@@ -119,7 +119,7 @@ describe("OAuth refresh token resource persistence", () => {
     });
   });
 
-  it("does not store requested resources absent from the issued access-token audience", async () => {
+  it("不存储已签发访问令牌受众中缺失的请求资源", async () => {
     const { persistOAuthRefreshTokenResources } = await import(
       "@/lib/api/routes/auth-token-refresh-resources"
     );
@@ -141,7 +141,7 @@ describe("OAuth refresh token resource persistence", () => {
     expect(updateRefreshTokenMock).not.toHaveBeenCalled();
   });
 
-  it("copies existing approved resources when a refresh grant rotates the refresh token", async () => {
+  it("刷新授权轮转刷新令牌时复制现有批准资源", async () => {
     findRefreshTokenMock.mockResolvedValue({
       resources: ["https://life.example/api/mcp"],
     });

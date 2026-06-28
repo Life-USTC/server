@@ -42,7 +42,7 @@ describe("updateOwnProfile", () => {
     vi.resetModules();
   });
 
-  it("maps username uniqueness races to username_taken", async () => {
+  it("将用户名唯一性竞争映射为 username_taken", async () => {
     const uniqueConflict = new Error("unique conflict");
     isPrismaUniqueConstraintErrorMock.mockReturnValueOnce(true);
     prismaMock.user.findUnique

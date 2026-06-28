@@ -25,13 +25,13 @@ vi.mock("@/lib/db/prisma", () => ({
   },
 }));
 
-describe("OAuth registration route", () => {
+describe("OAuth 注册路由", () => {
   beforeEach(() => {
     betterAuthHandlerMock.mockReset();
     oauthClientUpdateMock.mockReset();
   });
 
-  it("rejects client_credentials during dynamic client registration", async () => {
+  it("动态客户端注册时拒绝 client_credentials", async () => {
     const response = await authPostRoute(
       new Request("https://life.example/api/auth/oauth2/register", {
         method: "POST",
@@ -52,7 +52,7 @@ describe("OAuth registration route", () => {
     expect(oauthClientUpdateMock).not.toHaveBeenCalled();
   });
 
-  it("rejects falsy unsupported grant values during dynamic client registration", async () => {
+  it("动态客户端注册时拒绝 falsy 的不支持授权值", async () => {
     const response = await authPostRoute(
       new Request("https://life.example/api/auth/oauth2/register", {
         method: "POST",
@@ -73,7 +73,7 @@ describe("OAuth registration route", () => {
     expect(oauthClientUpdateMock).not.toHaveBeenCalled();
   });
 
-  it("registers the custom device grant through the Better Auth adapter", async () => {
+  it("通过 Better Auth 适配器注册自定义设备授权", async () => {
     betterAuthHandlerMock.mockImplementationOnce(async (request: Request) => {
       const delegatedBody = await request.json();
       expect(delegatedBody).toMatchObject({
@@ -128,7 +128,7 @@ describe("OAuth registration route", () => {
     });
   });
 
-  it("delegates supported provider grants to Better Auth", async () => {
+  it("将受支持的提供者授权委托给 Better Auth", async () => {
     betterAuthHandlerMock.mockResolvedValueOnce(
       Response.json({ client_id: "client-1" }),
     );

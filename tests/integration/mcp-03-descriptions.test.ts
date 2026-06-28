@@ -3,8 +3,8 @@ import * as fixtures from "./utils/mcp-tool-test-utils";
 
 const context = fixtures.createMcpToolTestContext();
 
-describe("description tools — MCP exposes the REST description payload", () => {
-  it("get_description returns seeded section description by public JW id", async () => {
+describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
+  it("get_description 通过公开 JW id 返回种子班级描述", async () => {
     const section = await fixtures.prisma.section.findUnique({
       where: { jwId: fixtures.DEV_SEED.section.jwId },
       select: { id: true },
@@ -37,7 +37,7 @@ describe("description tools — MCP exposes the REST description payload", () =>
     });
   });
 
-  it("get_description reports missing public section targets", async () => {
+  it("get_description 报告缺失的公开班级目标", async () => {
     const result = await context.client.call<{
       success?: boolean;
       found?: boolean;
@@ -54,7 +54,7 @@ describe("description tools — MCP exposes the REST description payload", () =>
     expect(result.hint).toContain("search_sections");
   });
 
-  it("upsert_description creates, idempotently rereads, audits, and cleans up", async () => {
+  it("upsert_description 创建、幂等重读、审计并清理", async () => {
     const marker = `[integration-test] mcp-description-${Date.now()}`;
     const teacher = await fixtures.prisma.teacher.create({
       data: {

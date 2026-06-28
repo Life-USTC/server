@@ -56,14 +56,14 @@ async function navigateToSeedTeacher(
   await waitForUiSettled(page);
 }
 
-test.describe("/teachers/[id]", () => {
+test.describe("/teachers/[id] 教师详情页", () => {
   test.describe.configure({ mode: "serial" });
 
-  test("contract", async ({ page }, testInfo) => {
+  test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, { routePath: "/teachers/[id]", testInfo });
   });
 
-  test("404 for invalid param", async ({ page }, testInfo) => {
+  test("无效参数返回 404", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/teachers/999999999", {
       expectMainContent: false,
     });
@@ -76,9 +76,7 @@ test.describe("/teachers/[id]", () => {
 
   // ── Display fields ──────────────────────────────────────────────────────────
 
-  test("displays teacher primary name in the heading", async ({
-    page,
-  }, testInfo) => {
+  test("标题中显示教师主名称", async ({ page }, testInfo) => {
     await navigateToSeedTeacher(page);
 
     // teacher.namePrimary (h1) (locale-dependent)
@@ -101,9 +99,7 @@ test.describe("/teachers/[id]", () => {
     await captureStepScreenshot(page, testInfo, "teacher/heading");
   });
 
-  test("does not display internal teacher id in ordinary UI", async ({
-    page,
-  }) => {
+  test("常规界面不显示内部教师 ID", async ({ page }) => {
     await navigateToSeedTeacher(page);
     const teacherId = new URL(page.url()).pathname.split("/").pop();
     expect(teacherId).toBeTruthy();
@@ -113,9 +109,7 @@ test.describe("/teachers/[id]", () => {
     );
   });
 
-  test("displays department, title, and email in basic info", async ({
-    page,
-  }, testInfo) => {
+  test("基本信息中显示院系、职称与邮箱", async ({ page }, testInfo) => {
     await navigateToSeedTeacher(page);
 
     // teacher.department.namePrimary (locale-dependent)
@@ -139,9 +133,7 @@ test.describe("/teachers/[id]", () => {
     await captureStepScreenshot(page, testInfo, "teacher/basic-info");
   });
 
-  test("sections table shows semester, course name, code, credits", async ({
-    page,
-  }, testInfo) => {
+  test("班级表格显示学期、课程名、代码与学分", async ({ page }, testInfo) => {
     await navigateToSeedTeacher(page);
 
     // section.semester.nameCn badge
@@ -164,9 +156,7 @@ test.describe("/teachers/[id]", () => {
     await captureStepScreenshot(page, testInfo, "teacher/sections-table");
   });
 
-  test("section links navigate to section detail", async ({
-    page,
-  }, testInfo) => {
+  test("班级链接导航到班级详情", async ({ page }, testInfo) => {
     await navigateToSeedTeacher(page);
 
     const sectionLink = page
@@ -180,7 +170,7 @@ test.describe("/teachers/[id]", () => {
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
-  test("tab switching works", async ({ page }, testInfo) => {
+  test("标签切换可用", async ({ page }, testInfo) => {
     await navigateToSeedTeacher(page);
 
     const tabList = page.getByRole("tablist").first();
@@ -198,9 +188,7 @@ test.describe("/teachers/[id]", () => {
     await captureStepScreenshot(page, testInfo, "teacher/tab-switch");
   });
 
-  test("breadcrumb navigates back to teacher list", async ({
-    page,
-  }, testInfo) => {
+  test("面包屑可返回教师列表", async ({ page }, testInfo) => {
     await navigateToSeedTeacher(page);
 
     const breadcrumb = page.locator('a[href="/teachers"]').first();
@@ -212,7 +200,7 @@ test.describe("/teachers/[id]", () => {
 
   // ── Description ─────────────────────────────────────────────────────────────
 
-  test("signed-in user can edit description (description.content, lastEditedBy, lastEditedAt)", async ({
+  test("已登录用户可编辑简介（content、lastEditedBy、lastEditedAt）", async ({
     page,
   }, testInfo) => {
     test.setTimeout(60_000);
@@ -278,9 +266,7 @@ test.describe("/teachers/[id]", () => {
 
   // ── Comment CRUD ─────────────────────────────────────────────────────────────
 
-  test("signed-in user can post, edit, and delete comment", async ({
-    page,
-  }, testInfo) => {
+  test("已登录用户可发布、编辑与删除评论", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     await signInAsDebugUser(page, "/teachers");
     await navigateToSeedTeacher(page);

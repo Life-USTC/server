@@ -21,13 +21,13 @@ function actionInput(jwId = "99999999") {
   };
 }
 
-describe("section detail subscription actions", () => {
+describe("课程详情订阅动作", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getSessionFromHeadersMock.mockResolvedValue({ user: { id: "user-1" } });
   });
 
-  it("returns 404 when subscribe target is missing", async () => {
+  it("订阅目标不存在时返回 404", async () => {
     subscribeUserToSectionByJwIdMock.mockResolvedValue(null);
     const { subscribeSectionAction } = await import(
       "@/features/section-detail/server/section-detail-subscription-actions"
@@ -42,7 +42,7 @@ describe("section detail subscription actions", () => {
     );
   });
 
-  it("returns 404 when unsubscribe target is missing", async () => {
+  it("取消订阅目标不存在时返回 404", async () => {
     unsubscribeUserFromSectionByJwIdMock.mockResolvedValue(null);
     const { unsubscribeSectionAction } = await import(
       "@/features/section-detail/server/section-detail-subscription-actions"

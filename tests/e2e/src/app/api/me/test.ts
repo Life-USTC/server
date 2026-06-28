@@ -10,13 +10,13 @@ import { DEV_SEED } from "../../../../utils/dev-seed";
 
 const BASE = "/api/me";
 
-test.describe("GET /api/me", () => {
-  test("returns 401 when not authenticated", async ({ request }) => {
+test.describe("GET /api/me - 当前用户", () => {
+  test("未认证时返回 401", async ({ request }) => {
     const response = await request.get(BASE);
     expect(response.status()).toBe(401);
   });
 
-  test("returns authenticated profile fields", async ({ page }) => {
+  test("返回已认证用户资料字段", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     const sessionResponse = await page.request.get("/api/auth/get-session");

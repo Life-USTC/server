@@ -4,7 +4,7 @@ import * as fixtures from "./utils/mcp-tool-test-utils";
 
 const context = fixtures.createMcpToolTestContext();
 
-describe("todo CRUD — update_my_todo returns updated entity", () => {
+describe("todo CRUD — update_my_todo 返回更新后的实体", () => {
   async function createIntegrationTodo(testName: string) {
     const result = await context.client.call<{
       success?: boolean;
@@ -25,7 +25,7 @@ describe("todo CRUD — update_my_todo returns updated entity", () => {
     await fixtures.prisma.todo.deleteMany({ where: { id: todoId } });
   }
 
-  it("update_my_todo returns the updated todo entity (not just success: true)", async () => {
+  it("update_my_todo 返回更新后的 todo 实体（不仅 success: true）", async () => {
     const todoId = await createIntegrationTodo("update returns todo");
     try {
       const result = await context.client.call<{
@@ -58,7 +58,7 @@ describe("todo CRUD — update_my_todo returns updated entity", () => {
     }
   });
 
-  it("update_my_todo validates normalized content length", async () => {
+  it("update_my_todo 校验规范化内容长度", async () => {
     const todoId = await createIntegrationTodo("normalized content");
     const content = "x".repeat(TODO_CONTENT_MAX_LENGTH);
     try {
@@ -82,7 +82,7 @@ describe("todo CRUD — update_my_todo returns updated entity", () => {
     }
   });
 
-  it("update_my_todo clears content when content is explicitly null", async () => {
+  it("update_my_todo 在内容显式为 null 时清空内容", async () => {
     const todoId = await createIntegrationTodo("clear content");
     try {
       const result = await context.client.call<{
@@ -105,7 +105,7 @@ describe("todo CRUD — update_my_todo returns updated entity", () => {
     }
   });
 
-  it("delete_my_todo deletes a todo", async () => {
+  it("delete_my_todo 删除 todo", async () => {
     const todoId = await createIntegrationTodo("delete");
     try {
       const result = await context.client.call<{ success?: boolean }>(
@@ -126,7 +126,7 @@ describe("todo CRUD — update_my_todo returns updated entity", () => {
     }
   });
 
-  it("create_my_todo returns the new todo id", async () => {
+  it("create_my_todo 返回新 todo id", async () => {
     const todoId = await createIntegrationTodo("create");
     try {
       const created = await fixtures.prisma.todo.findUnique({
@@ -146,8 +146,8 @@ describe("todo CRUD — update_my_todo returns updated entity", () => {
 // Homeworks
 // ---------------------------------------------------------------------------
 
-describe("homework write tools — MCP mirrors ordinary-user REST writes", () => {
-  it("delete_homework_on_section deletes creator-owned homework and records audit", async () => {
+describe("作业写入工具 — MCP 镜像普通用户 REST 写入", () => {
+  it("delete_homework_on_section 删除创建者拥有的作业并记录审计", async () => {
     const section = await fixtures.prisma.section.findUnique({
       where: { jwId: fixtures.DEV_SEED.section.jwId },
       select: { id: true },
@@ -202,7 +202,7 @@ describe("homework write tools — MCP mirrors ordinary-user REST writes", () =>
     }
   });
 
-  it("delete_homework_on_section serializes not-found and non-owner failures", async () => {
+  it("delete_homework_on_section 序列化未找到及非所有者失败", async () => {
     const section = await fixtures.prisma.section.findUnique({
       where: { jwId: fixtures.DEV_SEED.section.jwId },
       select: { id: true },

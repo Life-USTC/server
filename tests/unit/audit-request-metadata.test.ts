@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getAuditRequestMetadata } from "@/lib/audit/request-metadata";
 
 describe("getAuditRequestMetadata", () => {
-  it("prefers x-forwarded-for when present", () => {
+  it("优先使用 x-forwarded-for", () => {
     const request = new Request("https://example.test", {
       headers: {
         "user-agent": "vitest-agent",
@@ -17,7 +17,7 @@ describe("getAuditRequestMetadata", () => {
     });
   });
 
-  it("falls back to x-real-ip and omits missing headers", () => {
+  it("回退到 x-real-ip 并省略缺失标头", () => {
     const request = new Request("https://example.test", {
       headers: {
         "x-real-ip": "198.51.100.20",

@@ -12,8 +12,8 @@ function hasHeaderControlCharacters(value: string) {
   });
 }
 
-describe("upload filename utilities", () => {
-  it("detects and normalizes filename control characters", () => {
+describe("上传文件名工具函数", () => {
+  it("检测并规范化文件名控制字符", () => {
     expect(hasAsciiControlCharacters("report\nfinal.txt")).toBe(true);
     expect(hasAsciiControlCharacters("report-final.txt")).toBe(false);
     expect(sanitizeFilename(" report\r\nfinal\u0000.txt ")).toBe(
@@ -21,7 +21,7 @@ describe("upload filename utilities", () => {
     );
   });
 
-  it("builds Content-Disposition without invalid header characters", () => {
+  it("构建不含无效头部字符的 Content-Disposition", () => {
     const header = buildContentDisposition('课程\r\n"final".txt');
 
     expect(header).toContain('filename="__ _final_.txt"');

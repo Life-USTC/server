@@ -3,8 +3,8 @@ import { adminUserSuspensionExpiresAt } from "@/features/admin/lib/admin-users-d
 import { expiresAtFromModerationDuration } from "@/features/admin/lib/moderation-action-display";
 import { adminCreateSuspensionRequestSchema } from "@/lib/api/schemas/request-schemas";
 
-describe("admin suspension expiration input", () => {
-  it("accepts omitted, null, and empty expiration values as permanent", () => {
+describe("admin 封禁过期时间输入", () => {
+  it("将省略、null 和空过期值视为永久", () => {
     const base = { userId: "user-1" };
 
     expect(adminCreateSuspensionRequestSchema.safeParse(base).success).toBe(
@@ -24,7 +24,7 @@ describe("admin suspension expiration input", () => {
     ).toBe(true);
   });
 
-  it("rejects invalid non-empty expiration values", () => {
+  it("拒绝无效的非空过期值", () => {
     const result = adminCreateSuspensionRequestSchema.safeParse({
       userId: "user-1",
       expiresAt: "not-a-date",
@@ -33,7 +33,7 @@ describe("admin suspension expiration input", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects overflowing expiration calendar dates", () => {
+  it("拒绝溢出的日历日期", () => {
     for (const expiresAt of [
       "2026-02-31",
       "2026-13-01",
@@ -54,7 +54,7 @@ describe("admin suspension expiration input", () => {
     }
   });
 
-  it("preserves invalid custom UI expiration values for API rejection", () => {
+  it("保留无效的自定义 UI 过期值以供 API 拒绝", () => {
     expect(adminUserSuspensionExpiresAt("custom", "not-a-date")).toBe(
       "not-a-date",
     );

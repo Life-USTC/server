@@ -17,23 +17,23 @@ import { assertApiContract } from "../../../_shared/api-contract";
 
 const BASE = "/api/admin/users";
 
-test.describe("GET /api/admin/users", () => {
-  test("api contract", async ({ request }) => {
+test.describe("GET /api/admin/users 用户列表", () => {
+  test("API 契约", async ({ request }) => {
     await assertApiContract(request, { routePath: BASE });
   });
 
-  test("unauthenticated request returns 401", async ({ request }) => {
+  test("未认证请求返回 401", async ({ request }) => {
     const response = await request.get(BASE);
     expect(response.status()).toBe(401);
   });
 
-  test("non-admin authenticated user returns 401", async ({ page }) => {
+  test("非管理员认证用户返回 401", async ({ page }) => {
     await signInAsDebugUser(page, "/");
     const response = await page.request.get(BASE);
     expect(response.status()).toBe(401);
   });
 
-  test("admin can search seed users by username", async ({ page }) => {
+  test("管理员可按用户名搜索 seed 用户", async ({ page }) => {
     await signInAsDevAdmin(page, "/admin");
     const response = await page.request.get(
       `${BASE}?search=${DEV_SEED.debugUsername}`,
@@ -59,7 +59,7 @@ test.describe("GET /api/admin/users", () => {
     expect(typeof body.pagination?.total).toBe("number");
   });
 
-  test("admin can paginate users with limit=1", async ({ page }) => {
+  test("管理员可使用 limit=1 分页用户", async ({ page }) => {
     await signInAsDevAdmin(page, "/admin");
     const response = await page.request.get(`${BASE}?page=1&limit=1`);
     expect(response.status()).toBe(200);

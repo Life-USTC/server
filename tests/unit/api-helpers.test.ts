@@ -10,20 +10,20 @@ import {
   parseRouteSearchParams,
 } from "@/lib/api/helpers";
 
-describe("api helpers", () => {
-  it("does not overwrite proxy-owned request id headers", () => {
+describe("API 辅助函数", () => {
+  it("不覆盖代理提供的请求 ID 标头", () => {
     const response = jsonResponse({ ok: true });
 
     expect(response.headers.has("x-request-id")).toBe(false);
   });
 
-  it("accepts safe integers from string and number", () => {
+  it("接受来自字符串和数字的安全整数", () => {
     expect(parseInteger("42")).toBe(42);
     expect(parseInteger("  -7 ")).toBe(-7);
     expect(parseInteger(9)).toBe(9);
   });
 
-  it("rejects partial and invalid numeric formats", () => {
+  it("拒绝部分和无效的数字格式", () => {
     expect(parseInteger("12abc")).toBeNull();
     expect(parseInteger("3.14")).toBeNull();
     expect(parseInteger(3.14)).toBeNull();
@@ -32,19 +32,19 @@ describe("api helpers", () => {
     expect(parseInteger(undefined)).toBeNull();
   });
 
-  it("parses integer list and drops invalid entries", () => {
+  it("解析整数列表并丢弃无效项", () => {
     expect(parseIntegerList("1,2,foo, 3")).toEqual([1, 2, 3]);
     expect(parseIntegerList(" ")).toEqual([]);
     expect(parseIntegerList(null)).toEqual([]);
   });
 
-  it("reads search params from Request", () => {
+  it("从 Request 读取搜索参数", () => {
     const request = new Request("https://example.test/path?page=2");
 
     expect(getRequestSearchParams(request).get("page")).toBe("2");
   });
 
-  it("parses route input with zod schemas", () => {
+  it("使用 Zod 模式解析路由输入", () => {
     const result = parseRouteInput(
       { page: "2" },
       z.object({ page: z.string() }),
@@ -54,7 +54,7 @@ describe("api helpers", () => {
     expect(result).toEqual({ page: "2" });
   });
 
-  it("returns a response for invalid route input", async () => {
+  it("为无效路由输入返回响应", async () => {
     const result = parseRouteInput(
       { page: 2 },
       z.object({ page: z.string() }),
@@ -67,7 +67,7 @@ describe("api helpers", () => {
     });
   });
 
-  it("parses route query params and normalizes pagination", () => {
+  it("解析路由查询参数并规范化分页", () => {
     const result = parseRouteQuery(
       new URLSearchParams("search=math&page=3&limit=250"),
       z.object({
@@ -86,7 +86,7 @@ describe("api helpers", () => {
     });
   });
 
-  it("parses route search params without pagination", () => {
+  it("解析不带分页的路由搜索参数", () => {
     const result = parseRouteSearchParams(
       new URLSearchParams("versionKey=current&unused=value"),
       z.object({ versionKey: z.string().optional() }),

@@ -38,10 +38,10 @@ function escapeForRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-test.describe("dashboard subscriptions", () => {
+test.describe("仪表盘关注班级", () => {
   test.describe.configure({ mode: "serial" });
 
-  test("legacy /dashboard/subscriptions/sections redirects to subscriptions page", async ({
+  test("旧版 /dashboard/subscriptions/sections 重定向到关注班级页面", async ({
     page,
   }) => {
     await signInAsDebugUser(page, "/dashboard/subscriptions");
@@ -50,7 +50,7 @@ test.describe("dashboard subscriptions", () => {
     await expect(page).toHaveURL(/\/dashboard\/subscriptions(?:\?.*)?$/);
   });
 
-  test("unauthenticated ?tab=subscriptions falls back to public view", async ({
+  test("未登录 ?tab=subscriptions 回退到公共视图", async ({
     page,
   }, testInfo) => {
     await gotoAndWaitForReady(page, "/?tab=subscriptions");
@@ -72,9 +72,7 @@ test.describe("dashboard subscriptions", () => {
     );
   });
 
-  test("authenticated shows seed section subscription with all required fields", async ({
-    page,
-  }, testInfo) => {
+  test("登录后显示种子班级关注及所有必填字段", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/subscriptions");
     await expect(async () => {
       await ensureSeedSectionSubscription(page);
@@ -128,7 +126,7 @@ test.describe("dashboard subscriptions", () => {
     await captureStepScreenshot(page, testInfo, "subscriptions/seed-fields");
   });
 
-  test("empty state offers discovery actions", async ({ page }, testInfo) => {
+  test("空状态提供发现操作", async ({ page }, testInfo) => {
     test.setTimeout(60000);
     await signInAsDebugUser(page, "/dashboard/subscriptions");
     await gotoAndWaitForReady(page, "/dashboard/subscriptions");
@@ -177,9 +175,7 @@ test.describe("dashboard subscriptions", () => {
     );
   });
 
-  test("can navigate to section detail from subscription row", async ({
-    page,
-  }, testInfo) => {
+  test("可从关注行导航到班级详情", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/subscriptions");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/dashboard/subscriptions");
@@ -196,7 +192,7 @@ test.describe("dashboard subscriptions", () => {
     );
   });
 
-  test("opt-out button enters confirm state", async ({ page }, testInfo) => {
+  test("退选按钮进入确认状态", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/subscriptions");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/dashboard/subscriptions");
@@ -220,9 +216,7 @@ test.describe("dashboard subscriptions", () => {
     );
   });
 
-  test("copy calendar link produces valid iCal URL", async ({
-    page,
-  }, testInfo) => {
+  test("复制日历链接生成有效的 iCal URL", async ({ page }, testInfo) => {
     await page
       .context()
       .grantPermissions(["clipboard-read", "clipboard-write"]);
@@ -258,9 +252,7 @@ test.describe("dashboard subscriptions", () => {
     );
   });
 
-  test("bulk import opens confirm dialog and can cancel", async ({
-    page,
-  }, testInfo) => {
+  test("批量导入打开确认对话框并可取消", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     await signInAsDebugUser(page, "/dashboard/subscriptions");
 
@@ -317,9 +309,7 @@ test.describe("dashboard subscriptions", () => {
     await expect(dialog).not.toBeVisible();
   });
 
-  test("bulk import can confirm and shows success", async ({
-    page,
-  }, testInfo) => {
+  test("批量导入可确认并显示成功", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     await signInAsDebugUser(page, "/dashboard/subscriptions");
 

@@ -30,12 +30,12 @@ import { absoluteTestUrl } from "../../../utils/request-url";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
 
-test.describe("/sections", () => {
-  test("contract", async ({ page }, testInfo) => {
+test.describe("/sections 班级搜索页", () => {
+  test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, { routePath: "/sections", testInfo });
   });
 
-  test("SSR output contains search query", async ({ baseURL }) => {
+  test("SSR 输出包含搜索查询", async ({ baseURL }) => {
     const response = await fetch(
       absoluteTestUrl(
         `/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
@@ -48,9 +48,7 @@ test.describe("/sections", () => {
     expect(html).toContain(DEV_SEED.section.code);
   });
 
-  test("mobile cards stay tappable and navigate to detail", async ({
-    page,
-  }, testInfo) => {
+  test("移动端卡片可点击并导航到详情", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoAndWaitForReady(
       page,
@@ -72,7 +70,7 @@ test.describe("/sections", () => {
     await captureStepScreenshot(page, testInfo, "sections-navigate-detail");
   });
 
-  test("search help and clear", async ({ page }, testInfo) => {
+  test("搜索帮助与清除", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/sections", {
       testInfo,
       screenshotLabel: "sections",
@@ -108,7 +106,7 @@ test.describe("/sections", () => {
     }
   });
 
-  test("semester filter preserves seed results", async ({ page }, testInfo) => {
+  test("学期筛选保留种子数据结果", async ({ page }, testInfo) => {
     const filter = await getSeedSectionSemesterFixture(DEV_SEED.section.jwId);
     if (!filter.semesterName) {
       await gotoAndWaitForReady(page, "/sections", {

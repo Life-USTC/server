@@ -22,8 +22,8 @@ afterAll(async () => {
   await prisma.$disconnect();
 });
 
-describe("collaborative data invariants", () => {
-  it("prevents direct duplicate open suspensions for one user", async () => {
+describe("协作数据不变量", () => {
+  it("阻止同一用户的直接重复开放封禁", async () => {
     const prefix = marker("suspension-unique");
     const user = await prisma.user.create({
       data: {
@@ -57,7 +57,7 @@ describe("collaborative data invariants", () => {
     }
   });
 
-  it("creates a replacement suspension while closing the previous open row", async () => {
+  it("创建替代封禁并关闭之前的开放记录", async () => {
     const prefix = marker("suspension-replace");
     const [admin, user] = await Promise.all([
       prisma.user.create({
@@ -121,7 +121,7 @@ describe("collaborative data invariants", () => {
     }
   });
 
-  it("deletes accounts while anonymizing audit rows and issued suspensions", async () => {
+  it("删除账户并匿名化审计行与已发出的封禁", async () => {
     const prefix = marker("account-delete");
     const [remainingAdmin, deletingAdmin, suspendedUser] = await Promise.all([
       prisma.user.create({
@@ -201,7 +201,7 @@ describe("collaborative data invariants", () => {
     }
   });
 
-  it("keeps concurrent first description writes stable and records edit history", async () => {
+  it("并发首次描述写入保持稳定并记录编辑历史", async () => {
     const prefix = marker("description-race");
     const user = await prisma.user.create({
       data: {

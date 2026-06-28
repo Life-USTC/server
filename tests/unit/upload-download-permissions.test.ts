@@ -58,13 +58,13 @@ function attachmentComment(overrides: Record<string, unknown> = {}) {
   };
 }
 
-describe("upload download permissions", () => {
+describe("上传下载权限", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getViewerContextMock.mockResolvedValue(viewer());
   });
 
-  it("allows owners to download unattached uploads", async () => {
+  it("允许所有者下载未附加的上传文件", async () => {
     findUniqueMock.mockResolvedValue(upload({ userId: "viewer" }));
 
     await expect(findDownloadableUpload("upload-1", "viewer")).resolves.toEqual(
@@ -72,7 +72,7 @@ describe("upload download permissions", () => {
     );
   });
 
-  it("allows signed-in non-owners through visible comment attachments", async () => {
+  it("允许登录的非所有者通过可见评论附件下载", async () => {
     findUniqueMock.mockResolvedValue(
       upload({ commentAttachments: [attachmentComment()] }),
     );
@@ -82,7 +82,7 @@ describe("upload download permissions", () => {
     );
   });
 
-  it("does not expose unattached non-owner uploads", async () => {
+  it("不暴露未附加的非所有者上传文件", async () => {
     findUniqueMock.mockResolvedValue(upload());
 
     await expect(
@@ -90,7 +90,7 @@ describe("upload download permissions", () => {
     ).resolves.toBeNull();
   });
 
-  it("does not expose uploads through hidden comments", async () => {
+  it("不通过隐藏评论暴露上传文件", async () => {
     findUniqueMock.mockResolvedValue(
       upload({
         commentAttachments: [
@@ -105,7 +105,7 @@ describe("upload download permissions", () => {
     ).resolves.toBeNull();
   });
 
-  it("allows admins to download softbanned comment attachments", async () => {
+  it("允许管理员下载被软禁评论的附件", async () => {
     getViewerContextMock.mockResolvedValue(viewer({ isAdmin: true }));
     findUniqueMock.mockResolvedValue(
       upload({

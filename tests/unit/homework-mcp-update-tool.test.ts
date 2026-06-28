@@ -21,7 +21,7 @@ describe("updateHomeworkOnSectionTool", () => {
     vi.resetModules();
   });
 
-  it("passes the requested locale to the homework read model", async () => {
+  it("将请求的语言区域传递给作业读取模型", async () => {
     updateHomeworkMock.mockResolvedValue({ ok: true });
     requireHomeworkItemByIdMock.mockResolvedValue({
       id: "homework-1",

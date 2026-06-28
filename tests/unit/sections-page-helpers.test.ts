@@ -4,8 +4,8 @@ import {
   groupSectionsBySemester,
 } from "@/features/subscriptions/lib/subscription-section-groups";
 
-describe("sections page helpers", () => {
-  it("groups sections by semester and sorts latest first", () => {
+describe("课程页面辅助函数", () => {
+  it("按学期分组课程并优先排序最新学期", () => {
     const sections = [
       {
         id: 1,
@@ -39,7 +39,7 @@ describe("sections page helpers", () => {
     expect(grouped[0]?.sections).toHaveLength(2);
   });
 
-  it("counts distinct semester ids across subscriptions", () => {
+  it("统计订阅中不同的学期 ID 数量", () => {
     const count = countDistinctSemesterIds([
       {
         sections: [{ semester: { id: 1 } }, { semester: { id: 2 } }],

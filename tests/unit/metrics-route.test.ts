@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GET } from "@/routes/api/metrics/+server";
 
-describe("metrics route", () => {
+describe("metrics 路由", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
 
-  it("allows direct localhost reads without a token", async () => {
+  it("允许 localhost 直接读取而无需 token", async () => {
     const response = GET({
       request: new Request("http://127.0.0.1:3000/api/metrics"),
     });
@@ -17,7 +17,7 @@ describe("metrics route", () => {
     );
   });
 
-  it("hides metrics from public hosts unless a token is configured", () => {
+  it("未配置 token 时对 public host 隐藏指标", () => {
     const response = GET({
       request: new Request("https://life.example.com/api/metrics"),
     });
@@ -25,7 +25,7 @@ describe("metrics route", () => {
     expect(response.status).toBe(404);
   });
 
-  it("requires the configured bearer token", () => {
+  it("要求配置的 bearer token", () => {
     vi.stubEnv("METRICS_BEARER_TOKEN", "secret-token");
 
     expect(
@@ -42,7 +42,7 @@ describe("metrics route", () => {
     ).toBe(200);
   });
 
-  it("allows IPv6 loopback host headers", () => {
+  it("允许 IPv6 loopback host 请求头", () => {
     const response = GET({
       request: new Request("http://[::1]:3000/api/metrics", {
         headers: { Host: "[::1]:3000" },

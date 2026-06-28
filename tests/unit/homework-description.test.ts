@@ -55,7 +55,7 @@ describe("updateHomeworkDescription", () => {
     descriptionEditCreateMock.mockResolvedValue({});
   });
 
-  it("writes description history and audit rows for homework description updates", async () => {
+  it("为作业描述更新写入描述历史与审计记录", async () => {
     descriptionFindFirstMock.mockResolvedValue({
       id: "description-1",
       content: "old content",

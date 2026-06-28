@@ -90,7 +90,7 @@ describe("upsertDescriptionContent", () => {
     sectionFindUniqueMock.mockResolvedValue({ id: 1 });
   });
 
-  it("rejects changed content when the required audit write fails", async () => {
+  it("当必需的审计写入失败时拒绝变更内容", async () => {
     const auditError = new Error("audit unavailable");
     descriptionFindFirstMock.mockResolvedValue({
       id: "description-1",
@@ -136,7 +136,7 @@ describe("upsertDescriptionContent", () => {
     });
   });
 
-  it("does not write edit history or audit rows for idempotent content", async () => {
+  it("幂等内容不写入编辑历史或审计记录", async () => {
     descriptionFindFirstMock.mockResolvedValue({
       id: "description-1",
       content: "same content",

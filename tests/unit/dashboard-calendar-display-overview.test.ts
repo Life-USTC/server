@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { overviewUpcomingExams } from "@/features/dashboard/lib/calendar-display-overview";
 
-describe("dashboard overview exam display", () => {
-  it("shows only exams that can still appear in the upcoming timeline", () => {
+describe("仪表盘概览考试展示", () => {
+  it("仅显示仍可出现在近期时间线中的考试", () => {
     const referenceDate = new Date("2026-05-22T10:30:00+08:00");
     const upcoming = overviewUpcomingExams(
       {

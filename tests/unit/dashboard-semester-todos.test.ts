@@ -15,12 +15,12 @@ function day(value: string) {
   };
 }
 
-describe("dashboard semester todos", () => {
+describe("仪表盘学期待办", () => {
   beforeEach(() => {
     listDueTodoSnapshotsMock.mockReset();
   });
 
-  it("loads only incomplete due todos for the semester calendar", async () => {
+  it("仅加载学期日历中未完成的到期待办", async () => {
     listDueTodoSnapshotsMock.mockResolvedValue([
       {
         completed: false,

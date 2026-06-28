@@ -129,7 +129,7 @@ test("/admin/oauth 管理员可创建并删除客户端", async ({ page }, testI
   }
 });
 
-test("/admin/oauth created client shows all required fields", async ({
+test("/admin/oauth 创建的客户端显示所有必需字段", async ({
   page,
 }, testInfo) => {
   test.setTimeout(60_000);

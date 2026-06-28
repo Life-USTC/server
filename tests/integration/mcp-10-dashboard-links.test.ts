@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createMcpHarness, type McpHarness } from "./utils/mcp-harness";
 import * as fixtures from "./utils/mcp-tool-test-utils";
 
-describe("dashboard link tools — list/search and pin state", () => {
+describe("dashboard link 工具 — 列表/搜索与置顶状态", () => {
   let dashboardLinkMcp: McpHarness | undefined;
   let dashboardLinkUserId: string | undefined;
 
@@ -35,7 +35,7 @@ describe("dashboard link tools — list/search and pin state", () => {
     await fixtures.prisma.$disconnect();
   });
 
-  it("list_dashboard_links searches pinyin and includes pin state", async () => {
+  it("list_dashboard_links 搜索拼音并包含置顶状态", async () => {
     const result = await dashboardLinkMcp?.call<{
       success?: boolean;
       query?: string | null;
@@ -77,7 +77,7 @@ describe("dashboard link tools — list/search and pin state", () => {
     expect(mail).not.toHaveProperty("descriptionPinyin");
   });
 
-  it("set_dashboard_link_pin_state pins and unpins for the MCP user", async () => {
+  it("set_dashboard_link_pin_state 为 MCP 用户置顶与取消置顶", async () => {
     if (!dashboardLinkUserId)
       throw new Error("Dashboard link test user missing");
     await fixtures.prisma.dashboardLinkPin.deleteMany({
@@ -134,7 +134,7 @@ describe("dashboard link tools — list/search and pin state", () => {
     expect(unpinned?.pinnedSlugs ?? []).not.toContain("mail");
   });
 
-  it("set_dashboard_link_pin_state returns validation payloads for invalid slugs", async () => {
+  it("set_dashboard_link_pin_state 对无效 slug 返回校验载荷", async () => {
     if (!dashboardLinkUserId)
       throw new Error("Dashboard link test user missing");
     await fixtures.prisma.dashboardLinkPin.deleteMany({

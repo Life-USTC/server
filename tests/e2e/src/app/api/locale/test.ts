@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { assertApiContract } from "../../_shared/api-contract";
 
-test("/api/locale", async ({ request, baseURL }) => {
+test("/api/locale 接口契约", async ({ request, baseURL }) => {
   await assertApiContract(request, { routePath: "/api/locale", baseURL });
 });
 

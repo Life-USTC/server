@@ -4,8 +4,8 @@ import * as fixtures from "./utils/mcp-tool-test-utils";
 
 const context = fixtures.createMcpToolTestContext();
 
-describe("comment read tools — MCP exposes the REST comment hierarchy", () => {
-  it("list_comments returns threaded section comments with viewer/action fields", async () => {
+describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
+  it("list_comments 返回带查看者/操作字段的班级串帖评论", async () => {
     const result = await context.client.call<{
       found?: boolean;
       comments?: Array<{
@@ -63,7 +63,7 @@ describe("comment read tools — MCP exposes the REST comment hierarchy", () => 
     ).toBe(true);
   });
 
-  it("get_comment_thread returns the focused thread and target metadata", async () => {
+  it("get_comment_thread 返回聚焦线程及目标元数据", async () => {
     const seedComment = await fixtures.prisma.comment.findFirst({
       where: { body: fixtures.DEV_SEED.comments.sectionRootBody },
       select: { id: true },
@@ -102,7 +102,7 @@ describe("comment read tools — MCP exposes the REST comment hierarchy", () => 
     expect(result.target?.courseName).toBe(fixtures.DEV_SEED.course.nameCn);
   });
 
-  it("list_comments reports missing targets instead of returning an empty success", async () => {
+  it("list_comments 报告缺失目标而非返回空成功", async () => {
     const result = await context.client.call<{
       success?: boolean;
       found?: boolean;
@@ -117,7 +117,7 @@ describe("comment read tools — MCP exposes the REST comment hierarchy", () => 
     expect(result.error).toBe("target_not_found");
   });
 
-  it("list_comments reports unattached section-teacher pairs as missing targets", async () => {
+  it("list_comments 将未关联的班级-教师对报告为缺失目标", async () => {
     const marker = `[integration-test] mcp-section-teacher-missing-${Date.now()}`;
     const teacher = await fixtures.prisma.teacher.create({
       data: {
@@ -146,7 +146,7 @@ describe("comment read tools — MCP exposes the REST comment hierarchy", () => 
     }
   });
 
-  it("list_comments does not create section-teacher targets while reading", async () => {
+  it("list_comments 读取时不创建班级-教师目标", async () => {
     const section = await fixtures.prisma.section.findUnique({
       where: { jwId: fixtures.DEV_SEED.section.jwId },
       select: { id: true },
@@ -231,8 +231,8 @@ describe("comment read tools — MCP exposes the REST comment hierarchy", () => 
   });
 });
 
-describe("comment write tools — MCP mirrors ordinary-user REST writes", () => {
-  it("comment write create/update/delete and reaction calls serialize success and audit source", async () => {
+describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
+  it("评论写入的创建/更新/删除及反应调用序列化成功与审计来源", async () => {
     const marker = `[integration-test] mcp-comment-write-${Date.now()}`;
     let commentId: string | undefined;
 
@@ -364,7 +364,7 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
     }
   });
 
-  it("comment write tools reject unsupported anonymous visibility", async () => {
+  it("评论写入工具拒绝不支持的匿名可见性", async () => {
     await expect(
       context.client.call("create_comment", {
         targetType: "section",
@@ -375,7 +375,7 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
     ).rejects.toThrow();
   });
 
-  it("comment write create_comment returns a serialized invalid-target failure", async () => {
+  it("评论写入 create_comment 返回序列化的无效目标失败", async () => {
     const result = await context.client.call<{
       success?: boolean;
       found?: boolean;
@@ -393,7 +393,7 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
     expect(result.message).toContain("section");
   });
 
-  it("comment write create_comment supports replies through the public MCP surface", async () => {
+  it("评论写入 create_comment 支持通过公共 MCP 接口回复", async () => {
     const marker = `[integration-test] mcp-comment-reply-${Date.now()}`;
     const commentIds: string[] = [];
 
@@ -439,7 +439,7 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
     }
   });
 
-  it("comment write tools deny non-owner edit and delete attempts", async () => {
+  it("评论写入工具拒绝非所有者编辑和删除尝试", async () => {
     const marker = `[integration-test] mcp-comment-non-owner-${Date.now()}`;
     const otherUser = await fixtures.prisma.user.create({
       data: {
@@ -491,7 +491,7 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
     }
   });
 
-  it("comment write tools validate existing upload attachments", async () => {
+  it("评论写入工具校验现有上传附件", async () => {
     const marker = `[integration-test] mcp-comment-attachments-${Date.now()}`;
     const filename = `mcp-comment-attachment-${Date.now()}.txt`;
     const upload = await fixtures.prisma.upload.create({
@@ -568,7 +568,7 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
     }
   });
 
-  it("upload metadata tools list, rename, and preserve retry state on delete storage failure", async () => {
+  it("上传元数据工具列出、重命名并在存储删除失败时保留重试状态", async () => {
     const filename = `mcp-upload-${Date.now()}.txt`;
     const upload = await fixtures.prisma.upload.create({
       data: {
@@ -638,7 +638,7 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
     }
   });
 
-  it("upload rename rejects control-character filenames without sanitizing", async () => {
+  it("上传重命名拒绝控制字符文件名且不做清洗", async () => {
     const filename = `mcp-upload-invalid-rename-${Date.now()}.txt`;
     const upload = await fixtures.prisma.upload.create({
       data: {
@@ -671,7 +671,7 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
     }
   });
 
-  it("upload metadata tools deny non-owner and suspended writes", async () => {
+  it("上传元数据工具拒绝非所有者及被禁用户写入", async () => {
     const otherUser = await fixtures.prisma.user.create({
       data: {
         email: fixtures.integrationUserEmail("mcp-upload-owner"),
@@ -762,7 +762,7 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
     }
   });
 
-  it("comment write create_comment checks suspension before target lookup", async () => {
+  it("评论写入 create_comment 在目标查找前检查封禁状态", async () => {
     const suspendedUser = await fixtures.prisma.user.create({
       data: {
         email: fixtures.integrationUserEmail("mcp-comment-suspended"),
@@ -807,7 +807,7 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
     }
   });
 
-  it("comment write tools reject replies and reactions on deleted comments", async () => {
+  it("评论写入工具拒绝已删除评论的回复和反应", async () => {
     const marker = `[integration-test] mcp-comment-locked-${Date.now()}`;
     let commentId: string | undefined;
 
@@ -863,7 +863,7 @@ describe("comment write tools — MCP mirrors ordinary-user REST writes", () => 
     }
   });
 
-  it("comment write tools reject owner delete on softbanned comments", async () => {
+  it("评论写入工具拒绝软封禁评论的所有者删除", async () => {
     const marker = `[integration-test] mcp-comment-softbanned-delete-${Date.now()}`;
     let commentId: string | undefined;
 

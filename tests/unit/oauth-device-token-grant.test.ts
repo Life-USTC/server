@@ -56,7 +56,7 @@ function approvedDeviceRecord(resources = ["https://life.example/api/mcp"]) {
   };
 }
 
-describe("device token grant", () => {
+describe("设备令牌授予", () => {
   beforeEach(() => {
     findUniqueMock.mockReset();
     updateMock.mockReset();
@@ -68,7 +68,7 @@ describe("device token grant", () => {
     });
   });
 
-  it("inherits approved resources when token polling omits resource", async () => {
+  it("令牌轮询省略资源时继承已批准资源", async () => {
     findUniqueMock.mockResolvedValue(approvedDeviceRecord());
     const { handleDeviceCodeGrant } = await import(
       "@/lib/api/routes/auth-token-device-grant"
@@ -93,7 +93,7 @@ describe("device token grant", () => {
     );
   });
 
-  it("rejects token polling that changes the approved resource set", async () => {
+  it("拒绝更改已批准资源集的令牌轮询", async () => {
     findUniqueMock.mockResolvedValue(
       approvedDeviceRecord(["https://life.example/api/mcp"]),
     );

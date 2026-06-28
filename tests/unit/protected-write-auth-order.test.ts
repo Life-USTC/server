@@ -55,7 +55,7 @@ function jsonRequest(url: string, method: string) {
   });
 }
 
-describe("protected write route auth order", () => {
+describe("受保护写入路由认证顺序", () => {
   afterEach(() => {
     requireAuthMock.mockReset();
     requireWriteAuthMock.mockReset();
@@ -65,7 +65,7 @@ describe("protected write route auth order", () => {
     vi.resetModules();
   });
 
-  it("authenticates comment creation before parsing the JSON body", async () => {
+  it("在解析 JSON 请求体之前认证评论创建", async () => {
     requireAuthMock.mockResolvedValue(unauthorizedResponse());
     const { postCommentRoute } = await import(
       "@/lib/api/routes/comments-create-route"
@@ -79,7 +79,7 @@ describe("protected write route auth order", () => {
     expect(requireAuthMock).toHaveBeenCalledOnce();
   });
 
-  it("authenticates comment updates before parsing the JSON body", async () => {
+  it("在解析 JSON 请求体之前认证评论更新", async () => {
     requireAuthMock.mockResolvedValue(unauthorizedResponse());
     const { patchCommentRoute } = await import(
       "@/lib/api/routes/comments-update-route"
@@ -94,7 +94,7 @@ describe("protected write route auth order", () => {
     expect(requireAuthMock).toHaveBeenCalledOnce();
   });
 
-  it("authenticates description writes before parsing the JSON body", async () => {
+  it("在解析 JSON 请求体之前认证描述写入", async () => {
     requireAuthMock.mockResolvedValue(unauthorizedResponse());
     const { postDescriptionRoute } = await import(
       "@/lib/api/routes/description-upsert-route"
@@ -108,7 +108,7 @@ describe("protected write route auth order", () => {
     expect(requireAuthMock).toHaveBeenCalledOnce();
   });
 
-  it("authenticates upload renames before parsing the JSON body", async () => {
+  it("在解析 JSON 请求体之前认证上传重命名", async () => {
     requireWriteAuthMock.mockResolvedValue(unauthorizedResponse());
     const { patchUploadRoute } = await import(
       "@/lib/api/routes/upload-management-routes"
@@ -124,7 +124,7 @@ describe("protected write route auth order", () => {
     expect(renameOwnedUploadMock).not.toHaveBeenCalled();
   });
 
-  it("authenticates dashboard link pinning before parsing form data", async () => {
+  it("在解析表单数据之前认证仪表盘链接置顶", async () => {
     resolveApiUserIdMock.mockResolvedValue(null);
     const { postDashboardLinkPinRoute } = await import(
       "@/lib/api/routes/dashboard-link-pin-route"

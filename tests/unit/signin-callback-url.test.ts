@@ -11,7 +11,7 @@ import {
 } from "@/lib/oauth/constants";
 
 describe("resolveSignInCallbackUrl", () => {
-  it("prefers explicit callbackUrl", () => {
+  it("优先使用显式 callbackUrl", () => {
     expect(
       resolveSignInCallbackUrl({
         callbackUrl: "/settings?tab=accounts",
@@ -20,7 +20,7 @@ describe("resolveSignInCallbackUrl", () => {
     ).toBe("/settings?tab=accounts");
   });
 
-  it("rejects external callbackUrl values", () => {
+  it("拒绝外部 callbackUrl 值", () => {
     expect(
       resolveSignInCallbackUrl({ callbackUrl: "https://attacker.example" }),
     ).toBe("/");
@@ -32,7 +32,7 @@ describe("resolveSignInCallbackUrl", () => {
     ).toBe("/");
   });
 
-  it("sanitizes app-relative callback URLs", () => {
+  it("清理应用内相对回调 URL", () => {
     expect(sanitizeAuthCallbackUrl("/settings?tab=profile#accounts")).toBe(
       "/settings?tab=profile#accounts",
     );
@@ -41,7 +41,7 @@ describe("resolveSignInCallbackUrl", () => {
     expect(sanitizeAuthCallbackUrl("/%5cattacker.example")).toBe("/");
   });
 
-  it("reconstructs oauth authorize continuation from raw sign-in params", () => {
+  it("根据原始登录参数重建 OAuth 授权继续请求", () => {
     expect(
       resolveSignInCallbackUrl({
         response_type: OAUTH_CODE_RESPONSE_TYPE,
@@ -60,7 +60,7 @@ describe("resolveSignInCallbackUrl", () => {
     );
   });
 
-  it("falls back to home when no continuation can be inferred", () => {
+  it("无法推断继续请求时回退到首页", () => {
     expect(resolveSignInCallbackUrl({ error: "OAuthAccountNotLinked" })).toBe(
       "/",
     );

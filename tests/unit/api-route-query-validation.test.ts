@@ -13,8 +13,8 @@ async function expectInvalidQueryResponse(
   expect(await response.json()).toEqual({ error: message });
 }
 
-describe("API route query validation", () => {
-  it("rejects oversized public pagination limits before clamping", async () => {
+describe("API 路由查询校验", () => {
+  it("在限制前拒绝过大的公开分页限制", async () => {
     await expectInvalidQueryResponse(
       getCoursesRoute(
         new Request("https://example.test/api/courses?limit=101"),
@@ -30,7 +30,7 @@ describe("API route query validation", () => {
     );
   });
 
-  it("serializes next-bus and todo limit validation failures", async () => {
+  it("序列化下一班车与待办事项限制校验失败", async () => {
     await expectInvalidQueryResponse(
       getBusNextDeparturesRoute(
         new Request(

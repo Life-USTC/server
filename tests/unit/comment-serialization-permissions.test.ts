@@ -55,8 +55,8 @@ function viewer(overrides: Partial<ViewerInfo> = {}): ViewerInfo {
   };
 }
 
-describe("comment serialization permissions", () => {
-  it("keeps normal author reply and edit affordances", () => {
+describe("评论序列化权限", () => {
+  it("保留普通作者的回复和编辑权限", () => {
     const { roots } = buildCommentNodes([comment()], viewer());
 
     expect(roots).toHaveLength(1);
@@ -70,7 +70,7 @@ describe("comment serialization permissions", () => {
     });
   });
 
-  it("removes write affordances for suspended authors", () => {
+  it("移除被暂停作者的写入权限", () => {
     const { roots } = buildCommentNodes(
       [comment()],
       viewer({ isSuspended: true }),
@@ -87,7 +87,7 @@ describe("comment serialization permissions", () => {
     });
   });
 
-  it("removes suspended admin moderation affordances", () => {
+  it("移除被暂停管理员的管理权限", () => {
     const { roots } = buildCommentNodes(
       [comment({ userId: "user-1" })],
       viewer({
@@ -108,7 +108,7 @@ describe("comment serialization permissions", () => {
     });
   });
 
-  it("keeps deleted tombstones for visible replies but omits attachments", () => {
+  it("为可见回复保留已删除占位但省略附件", () => {
     const { roots } = buildCommentNodes(
       [
         comment({
@@ -137,7 +137,7 @@ describe("comment serialization permissions", () => {
     expect(roots[0].replies).toHaveLength(1);
   });
 
-  it("removes write affordances from softbanned comments", () => {
+  it("从软封禁评论中移除写入权限", () => {
     const authorView = buildCommentNodes(
       [comment({ status: "softbanned" })],
       viewer(),
@@ -163,7 +163,7 @@ describe("comment serialization permissions", () => {
     });
   });
 
-  it("exposes attachment actions only to authenticated viewers", () => {
+  it("仅向已认证查看者暴露附件操作", () => {
     const rawComment = comment({ attachments: [attachment()] });
 
     const anonymous = buildCommentNodes(

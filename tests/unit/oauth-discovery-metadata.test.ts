@@ -21,7 +21,7 @@ vi.mock("@/lib/auth/core", () => ({
   },
 }));
 
-describe("OAuth discovery metadata routes", () => {
+describe("OAuth 发现元数据路由", () => {
   afterEach(() => {
     authServerMetadataHandlerMock.mockReset();
     openIdMetadataHandlerMock.mockReset();
@@ -29,7 +29,7 @@ describe("OAuth discovery metadata routes", () => {
     vi.unstubAllEnvs();
   });
 
-  it("adds discovery CORS headers to redirects without dropping Location", async () => {
+  it("为重定向添加发现 CORS 头且保留 Location", async () => {
     vi.stubEnv("DATABASE_URL", "postgresql://unit:unit@127.0.0.1:5432/unit");
     vi.stubEnv("AUTH_SECRET", "unit-test-secret");
 
@@ -59,7 +59,7 @@ describe("OAuth discovery metadata routes", () => {
     );
   });
 
-  it("does not advertise client credentials in authorization server metadata", async () => {
+  it("不在授权服务器元数据中宣告 client_credentials", async () => {
     authServerMetadataHandlerMock.mockResolvedValue(
       Response.json({
         issuer: "https://life.example/api/auth",
@@ -92,7 +92,7 @@ describe("OAuth discovery metadata routes", () => {
     );
   });
 
-  it("does not advertise client credentials in OpenID metadata", async () => {
+  it("不在 OpenID 元数据中宣告 client_credentials", async () => {
     openIdMetadataHandlerMock.mockResolvedValue(
       Response.json({
         issuer: "https://life.example/api/auth",

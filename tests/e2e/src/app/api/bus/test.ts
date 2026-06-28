@@ -92,10 +92,8 @@ async function saveBusPreference(
   expect(response.status()).toBe(200);
 }
 
-test.describe("GET /api/bus", () => {
-  test("returns raw timetable data with both weekday and weekend trips", async ({
-    request,
-  }) => {
+test.describe("GET /api/bus 校车时刻表", () => {
+  test("返回原始时刻表数据，包含工作日和周末班次", async ({ request }) => {
     const response = await request.get(`${BASE}?${SEED_VERSION}`);
     expect(response.status()).toBe(200);
     const body = (await response.json()) as BusResponse;
@@ -119,9 +117,7 @@ test.describe("GET /api/bus", () => {
     expect(body.preferences).toBeNull();
   });
 
-  test("authenticated callers receive their saved bus preferences", async ({
-    page,
-  }) => {
+  test("已认证调用者收到保存的校车偏好", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     try {
@@ -152,9 +148,7 @@ test.describe("GET /api/bus", () => {
     }
   });
 
-  test("route 8 raw trip times match the seed timetable", async ({
-    request,
-  }) => {
+  test("路线 8 原始班次时间与 seed 时刻表一致", async ({ request }) => {
     const response = await request.get(`${BASE}?${SEED_VERSION}`);
     expect(response.status()).toBe(200);
     const body = (await response.json()) as BusResponse;
@@ -168,7 +162,7 @@ test.describe("GET /api/bus", () => {
     expect(route8WeekdayDepartures).toEqual(["06:50", "12:50", "21:20"]);
   });
 
-  test("route topology matches the seed data", async ({ request }) => {
+  test("路线拓扑与 seed 数据一致", async ({ request }) => {
     const response = await request.get(`${BASE}?${SEED_VERSION}`);
     expect(response.status()).toBe(200);
     const body = (await response.json()) as BusResponse;
@@ -184,7 +178,7 @@ test.describe("GET /api/bus", () => {
     expect(route7StopIds).toEqual([6, 5, 2, 1]);
   });
 
-  test("unknown versionKey returns 404", async ({ request }) => {
+  test("未知 versionKey 返回 404", async ({ request }) => {
     const response = await request.get(
       `${BASE}?versionKey=missing-bus-version`,
     );
@@ -192,14 +186,12 @@ test.describe("GET /api/bus", () => {
   });
 });
 
-test.describe("GET /api/bus/routes", () => {
-  test("contract", async ({ request }) => {
+test.describe("GET /api/bus/routes 路线发现", () => {
+  test("契约", async ({ request }) => {
     await assertApiContract(request, { routePath: ROUTES_BASE });
   });
 
-  test("returns concrete route variants for an origin/destination", async ({
-    request,
-  }) => {
+  test("返回起点到终点的具体路线变体", async ({ request }) => {
     const response = await request.get(
       `${ROUTES_BASE}?originCampusId=${DEV_SEED.bus.originCampusId}&destinationCampusId=${DEV_SEED.bus.destinationCampusId}&${SEED_VERSION}`,
     );
@@ -220,14 +212,12 @@ test.describe("GET /api/bus/routes", () => {
   });
 });
 
-test.describe("GET /api/bus/next", () => {
-  test("contract", async ({ request }) => {
+test.describe("GET /api/bus/next 下一班车", () => {
+  test("契约", async ({ request }) => {
     await assertApiContract(request, { routePath: NEXT_BASE });
   });
 
-  test("returns ranked next departures with status metadata", async ({
-    request,
-  }) => {
+  test("返回带状态元数据的排序下一班车", async ({ request }) => {
     const response = await request.get(
       `${NEXT_BASE}?originCampusId=${DEV_SEED.bus.originCampusId}&destinationCampusId=${DEV_SEED.bus.destinationCampusId}&atTime=${encodeURIComponent(DEV_SEED_ANCHOR.recommendedAtTime)}&dayType=weekday&includeDeparted=true&limit=1&${SEED_VERSION}`,
     );
@@ -248,21 +238,21 @@ test.describe("GET /api/bus/next", () => {
     );
   });
 
-  test("missing required campus IDs returns 400", async ({ request }) => {
+  test("缺少必需的校区 ID 返回 400", async ({ request }) => {
     const response = await request.get(NEXT_BASE);
     expect(response.status()).toBe(400);
   });
 });
 
-test.describe("/api/bus/preferences", () => {
+test.describe("/api/bus/preferences 校车偏好", () => {
   test.describe.configure({ mode: "serial" });
 
-  test("GET without auth returns 401", async ({ request }) => {
+  test("未认证 GET 返回 401", async ({ request }) => {
     const response = await request.get(PREF_BASE);
     expect(response.status()).toBe(401);
   });
 
-  test("POST without auth returns 401", async ({ request }) => {
+  test("未认证 POST 返回 401", async ({ request }) => {
     const response = await request.post(PREF_BASE, {
       data: {
         preferredOriginCampusId: 1,
@@ -273,9 +263,7 @@ test.describe("/api/bus/preferences", () => {
     expect(response.status()).toBe(401);
   });
 
-  test("authenticated GET returns the saved planner defaults", async ({
-    page,
-  }) => {
+  test("已认证 GET 返回保存的规划默认值", async ({ page }) => {
     await signInAsDebugUser(page, "/");
     const originalResponse = await page.request.get(PREF_BASE);
     expect(originalResponse.status()).toBe(200);
@@ -306,9 +294,7 @@ test.describe("/api/bus/preferences", () => {
     }
   });
 
-  test("POST saves planner defaults and GET reads them back", async ({
-    page,
-  }) => {
+  test("POST 保存规划默认值且 GET 可读取", async ({ page }) => {
     await signInAsDebugUser(page, "/");
     const originalResponse = await page.request.get(PREF_BASE);
     expect(originalResponse.status()).toBe(200);
@@ -345,7 +331,7 @@ test.describe("/api/bus/preferences", () => {
     }
   });
 
-  test("POST with invalid body returns 400", async ({ page }) => {
+  test("POST 无效请求体返回 400", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     const response = await page.request.post(PREF_BASE, {

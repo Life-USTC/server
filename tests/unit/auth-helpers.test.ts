@@ -32,7 +32,7 @@ vi.mock("@/lib/mcp/urls", () => ({
   getOAuthTokenVerificationIssuers: () => ["https://life.example/api/auth"],
 }));
 
-describe("auth helpers", () => {
+describe("认证辅助函数", () => {
   beforeEach(() => {
     vi.resetModules();
     getSessionFromHeadersMock.mockReset();
@@ -40,7 +40,7 @@ describe("auth helpers", () => {
     getViewerAuthDataForUserIdMock.mockReset();
   });
 
-  it("uses the route request headers for session-cookie fallback", async () => {
+  it("使用路由请求头进行 session cookie 回退", async () => {
     getSessionFromHeadersMock.mockResolvedValue({
       user: { id: "user-from-cookie" },
     });
@@ -56,7 +56,7 @@ describe("auth helpers", () => {
     expect(verifyAccessTokenMock).not.toHaveBeenCalled();
   });
 
-  it("prefers a valid bearer access token over session cookies", async () => {
+  it("优先使用有效的 bearer 访问令牌而非 session cookie", async () => {
     verifyAccessTokenMock.mockResolvedValue({
       scope: OAUTH_REST_READ_SCOPE,
       sub: "user-from-token",
@@ -83,10 +83,7 @@ describe("auth helpers", () => {
     );
   });
 
-  it.each([
-    "bearer",
-    "bEaReR",
-  ])("accepts a %s bearer access token", async (scheme) => {
+  it.each(["bearer", "bEaReR"])("接受 %s bearer 访问令牌", async (scheme) => {
     verifyAccessTokenMock.mockResolvedValue({
       scope: OAUTH_REST_READ_SCOPE,
       sub: "user-from-token",
@@ -110,7 +107,7 @@ describe("auth helpers", () => {
   it.each([
     "bearer",
     "bEaReR",
-  ])("treats a %s authorization header as an auth signal", async (scheme) => {
+  ])("将 %s authorization 标头视为认证信号", async (scheme) => {
     const { hasRequestAuthSignal } = await import(
       "@/lib/auth/request-auth-signal"
     );
@@ -122,7 +119,7 @@ describe("auth helpers", () => {
     ).toBe(true);
   });
 
-  it("rejects profile-only bearer access for protected REST reads", async () => {
+  it("拒绝仅 profile 的 bearer 访问受保护 REST 读取", async () => {
     verifyAccessTokenMock.mockResolvedValue({
       scope: OAUTH_PROFILE_SCOPE,
       sub: "user-from-token",
@@ -144,7 +141,7 @@ describe("auth helpers", () => {
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
   });
 
-  it("rejects MCP-only bearer access for protected REST reads", async () => {
+  it("拒绝仅 MCP 的 bearer 访问受保护 REST 读取", async () => {
     verifyAccessTokenMock.mockResolvedValue({
       scope: `${OAUTH_PROFILE_SCOPE} ${MCP_TOOLS_SCOPE}`,
       sub: "user-from-token",
@@ -166,7 +163,7 @@ describe("auth helpers", () => {
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
   });
 
-  it("rejects REST read-only bearer access for protected REST writes", async () => {
+  it("拒绝 REST 只读 bearer 访问受保护 REST 写入", async () => {
     verifyAccessTokenMock.mockResolvedValue({
       scope: OAUTH_REST_READ_SCOPE,
       sub: "user-from-token",
@@ -189,7 +186,7 @@ describe("auth helpers", () => {
     expect(getViewerAuthDataForUserIdMock).not.toHaveBeenCalled();
   });
 
-  it("rejects REST read-only bearer access for POST routes using requireAuth", async () => {
+  it("拒绝 REST 只读 bearer 访问使用 requireAuth 的 POST 路由", async () => {
     verifyAccessTokenMock.mockResolvedValue({
       scope: OAUTH_REST_READ_SCOPE,
       sub: "user-from-token",
@@ -212,7 +209,7 @@ describe("auth helpers", () => {
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
   });
 
-  it("rejects MCP-only bearer access for protected REST writes", async () => {
+  it("拒绝仅 MCP 的 bearer 访问受保护 REST 写入", async () => {
     verifyAccessTokenMock.mockResolvedValue({
       scope: `${OAUTH_PROFILE_SCOPE} ${MCP_TOOLS_SCOPE}`,
       sub: "user-from-token",
@@ -235,7 +232,7 @@ describe("auth helpers", () => {
     expect(getViewerAuthDataForUserIdMock).not.toHaveBeenCalled();
   });
 
-  it("does not fall back to session cookies when a bearer token is invalid", async () => {
+  it("当 bearer 令牌无效时不回退到 session cookie", async () => {
     verifyAccessTokenMock.mockRejectedValue(new Error("invalid token"));
     getSessionFromHeadersMock.mockResolvedValue({
       user: { id: "user-from-cookie" },
@@ -252,7 +249,7 @@ describe("auth helpers", () => {
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
   });
 
-  it("returns 401 instead of falling back to session cookies when a lowercase bearer token is invalid", async () => {
+  it("小写 bearer 令牌无效时返回 401 而不回退到 session cookie", async () => {
     verifyAccessTokenMock.mockRejectedValue(new Error("invalid token"));
     getSessionFromHeadersMock.mockResolvedValue({
       user: { id: "user-from-cookie" },
@@ -275,7 +272,7 @@ describe("auth helpers", () => {
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
   });
 
-  it("does not fall back to session cookies when a bearer token is empty", async () => {
+  it("当 bearer 令牌为空时不回退到 session cookie", async () => {
     getSessionFromHeadersMock.mockResolvedValue({
       user: { id: "user-from-cookie" },
     });
@@ -292,7 +289,7 @@ describe("auth helpers", () => {
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
   });
 
-  it("resolves session-only auth from cookies", async () => {
+  it("从 cookie 解析仅 session 认证", async () => {
     getSessionFromHeadersMock.mockResolvedValue({
       user: { id: "user-from-cookie" },
     });
@@ -310,7 +307,7 @@ describe("auth helpers", () => {
     expect(verifyAccessTokenMock).not.toHaveBeenCalled();
   });
 
-  it("rejects bearer authorization for session-only auth", async () => {
+  it("对仅 session 认证拒绝 bearer 授权", async () => {
     getSessionFromHeadersMock.mockResolvedValue({
       user: { id: "user-from-cookie" },
     });
@@ -327,7 +324,7 @@ describe("auth helpers", () => {
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
   });
 
-  it("rejects write auth when the resolved user no longer exists", async () => {
+  it("当解析到的用户不存在时拒绝写入认证", async () => {
     verifyAccessTokenMock.mockResolvedValue({
       scope: OAUTH_REST_WRITE_SCOPE,
       sub: "deleted-user",

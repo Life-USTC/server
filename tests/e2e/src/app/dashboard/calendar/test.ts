@@ -26,10 +26,8 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
 
-test.describe("dashboard calendar", () => {
-  test("unauthenticated ?tab=calendar shows public view", async ({
-    page,
-  }, testInfo) => {
+test.describe("仪表盘日历", () => {
+  test("未登录 ?tab=calendar 显示公共视图", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/?tab=calendar", {
       testInfo,
       screenshotLabel: "calendar",
@@ -53,7 +51,7 @@ test.describe("dashboard calendar", () => {
     await captureStepScreenshot(page, testInfo, "calendar/unauthenticated");
   });
 
-  test("authenticated shows calendar with section event links and weekday labels", async ({
+  test("登录后显示日历，包含班级事件链接和星期标签", async ({
     page,
   }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/calendar");
@@ -79,9 +77,7 @@ test.describe("dashboard calendar", () => {
     await captureStepScreenshot(page, testInfo, "calendar/semester-view");
   });
 
-  test("section event link navigates to section detail", async ({
-    page,
-  }, testInfo) => {
+  test("班级事件链接导航到班级详情", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/calendar");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/dashboard/calendar", {
@@ -97,7 +93,7 @@ test.describe("dashboard calendar", () => {
     await captureStepScreenshot(page, testInfo, "calendar/section-link");
   });
 
-  test("exam card links to exams tab", async ({ page }, testInfo) => {
+  test("考试卡片链接到考试标签", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/calendar");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/dashboard/calendar", {
@@ -112,9 +108,7 @@ test.describe("dashboard calendar", () => {
     await captureStepScreenshot(page, testInfo, "calendar/exam-link");
   });
 
-  test("semester navigation controls navigate to another semester", async ({
-    page,
-  }, testInfo) => {
+  test("学期导航控件可切换到其他学期", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/calendar");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/dashboard/calendar", {
@@ -146,9 +140,7 @@ test.describe("dashboard calendar", () => {
     await captureStepScreenshot(page, testInfo, "calendar/semester-navigation");
   });
 
-  test("view toggle switches between semester/month/week", async ({
-    page,
-  }, testInfo) => {
+  test("视图切换可在学期/月/周之间切换", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/calendar");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/dashboard/calendar", {
@@ -177,7 +169,7 @@ test.describe("dashboard calendar", () => {
     await captureStepScreenshot(page, testInfo, "calendar/week-view");
   });
 
-  test("copy calendar link produces valid iCal URL", async ({ page }) => {
+  test("复制日历链接生成有效的 iCal URL", async ({ page }) => {
     await page
       .context()
       .grantPermissions(["clipboard-read", "clipboard-write"]);

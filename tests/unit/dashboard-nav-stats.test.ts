@@ -35,7 +35,7 @@ vi.mock("@/lib/db/prisma", () => ({
   },
 }));
 
-describe("dashboard nav stats", () => {
+describe("仪表盘导航统计", () => {
   afterEach(() => {
     countIncompleteTodosMock.mockReset();
     countUpcomingSubscribedExamsMock.mockReset();
@@ -45,7 +45,7 @@ describe("dashboard nav stats", () => {
     vi.resetModules();
   });
 
-  it("uses the shared upcoming exam count semantics for the exams badge", async () => {
+  it("对考试徽章使用共享的即将到来考试计数语义", async () => {
     const referenceNow = new Date("2026-05-22T10:30:00.000Z");
     countIncompleteTodosMock.mockResolvedValue(4);
     homeworkCountMock.mockResolvedValue(2);

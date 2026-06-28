@@ -147,7 +147,7 @@ function createSubmitActions({
   });
 }
 
-describe("comment panel upload pending state", () => {
+describe("评论面板上传挂起状态", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     apiClientMock.GET.mockResolvedValue({
@@ -162,7 +162,7 @@ describe("comment panel upload pending state", () => {
     });
   });
 
-  it("keeps pending state true until all uploads in that editor finish", () => {
+  it("在该编辑器的所有上传完成前保持挂起状态为 true", () => {
     let state = createCommentUploadPendingState();
 
     state = commentUploadPendingStateWithDelta({
@@ -197,7 +197,7 @@ describe("comment panel upload pending state", () => {
     expect(commentUploadPendingForMode(state, "new")).toBe(false);
   });
 
-  it("blocks new comment submission while the new-comment editor uploads", async () => {
+  it("新评论编辑器上传期间阻止新评论提交", async () => {
     const actions = createSubmitActions({ pendingModes: ["new"] });
 
     await actions.submitComment();
@@ -205,7 +205,7 @@ describe("comment panel upload pending state", () => {
     expect(apiClientMock.POST).not.toHaveBeenCalled();
   });
 
-  it("blocks reply submission while the reply editor uploads", async () => {
+  it("回复编辑器上传期间阻止回复提交", async () => {
     const actions = createSubmitActions({ pendingModes: ["reply"] });
 
     await actions.submitComment("comment-1", "reply body", target);
@@ -213,7 +213,7 @@ describe("comment panel upload pending state", () => {
     expect(apiClientMock.POST).not.toHaveBeenCalled();
   });
 
-  it("blocks edit save while the edit editor uploads", async () => {
+  it("编辑编辑器上传期间阻止编辑保存", async () => {
     const loadComments = vi.fn();
     const actions = createCommentPanelEditActions({
       applyEditDraftState: vi.fn(),
@@ -234,7 +234,7 @@ describe("comment panel upload pending state", () => {
     expect(loadComments).not.toHaveBeenCalled();
   });
 
-  it("does not let a reply upload block a new comment submission", async () => {
+  it("回复上传不会阻塞新评论提交", async () => {
     const actions = createSubmitActions({ pendingModes: ["reply"] });
 
     await actions.submitComment();

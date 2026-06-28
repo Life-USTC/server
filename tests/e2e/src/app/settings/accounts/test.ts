@@ -36,8 +36,8 @@ import {
 import { waitForUiSettled } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-test.describe("/settings?tab=accounts", () => {
-  test("requires authentication", async ({ page }, testInfo) => {
+test.describe("/settings?tab=accounts 关联账号设置", () => {
+  test("需要登录", async ({ page }, testInfo) => {
     await expectRequiresSignIn(page, "/settings?tab=accounts");
     await captureStepScreenshot(
       page,
@@ -46,7 +46,7 @@ test.describe("/settings?tab=accounts", () => {
     );
   });
 
-  test("displays all provider cards", async ({ page }, testInfo) => {
+  test("显示所有提供商卡片", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/settings?tab=accounts");
 
     await expectPagePath(page, "/settings?tab=accounts");
@@ -56,9 +56,7 @@ test.describe("/settings?tab=accounts", () => {
     await captureStepScreenshot(page, testInfo, "settings-accounts-platforms");
   });
 
-  test("connect button initiates account-linking OAuth flow", async ({
-    page,
-  }, testInfo) => {
+  test("连接按钮启动账号关联 OAuth 流程", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/settings?tab=accounts");
 
     const providerCard = page
@@ -101,9 +99,7 @@ test.describe("/settings?tab=accounts", () => {
     }
   });
 
-  test("disconnect disabled when only one account linked", async ({
-    page,
-  }, testInfo) => {
+  test("仅关联一个账号时断开连接被禁用", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/settings?tab=accounts");
 
     const disconnectButton = page
@@ -125,9 +121,7 @@ test.describe("/settings?tab=accounts", () => {
     );
   });
 
-  test("multi-account: cancel and confirm unlink flow", async ({
-    page,
-  }, testInfo) => {
+  test("多账号：取消与确认解绑流程", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     const provider = "github";
     await signInAsDebugUser(page, "/settings?tab=accounts");

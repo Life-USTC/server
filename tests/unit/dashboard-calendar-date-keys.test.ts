@@ -11,8 +11,8 @@ import {
   dashboardCalendarViewPatch,
 } from "@/features/dashboard/lib/calendar-navigation";
 
-describe("dashboard calendar date keys", () => {
-  it("uses campus date keys for dashboard date navigation", () => {
+describe("仪表盘日历日期键", () => {
+  it("为仪表盘日期导航使用校区日期键", () => {
     expect(toDateKey(new Date("2026-03-01T15:59:59.000Z"))).toBe("2026-03-01");
     expect(toDateKey(new Date("2026-03-01T16:00:00.000Z"))).toBe("2026-03-02");
     expect(weekStartFor("2026-03-02")).toBe("2026-03-01");
@@ -29,7 +29,7 @@ describe("dashboard calendar date keys", () => {
     ]);
   });
 
-  it("normalizes dashboard reference dates before deriving URL state", () => {
+  it("在推导 URL 状态前规范化仪表盘参考日期", () => {
     const calendar = {
       activeCalendarSemesterId: 42,
       referenceDate: "2026-03-01T16:00:00.000Z",

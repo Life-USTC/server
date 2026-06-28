@@ -12,8 +12,8 @@ type BusPreferenceToolResponse = {
   };
 };
 
-describe("get_next_buses — default mode drops repeated campus objects", () => {
-  it("accepts date-only atTime for deterministic departure queries", async () => {
+describe("get_next_buses — 默认模式去除重复的校区对象", () => {
+  it("接受仅日期的 atTime 以确定发车查询", async () => {
     const result = await context.client.call<{ totalRoutes?: number }>(
       "get_next_buses",
       {
@@ -28,7 +28,7 @@ describe("get_next_buses — default mode drops repeated campus objects", () => 
     expect(result.totalRoutes).toBeGreaterThan(0);
   });
 
-  it("rejects limits above the shared REST/MCP cap", async () => {
+  it("拒绝超过共享 REST/MCP 上限的 limit", async () => {
     await expect(
       context.client.call("get_next_buses", {
         locale: "zh-cn",
@@ -39,7 +39,7 @@ describe("get_next_buses — default mode drops repeated campus objects", () => 
     ).rejects.toThrow();
   });
 
-  it("rejects invalid atTime with the shared MCP date message", async () => {
+  it("以共享 MCP 日期提示拒绝无效的 atTime", async () => {
     const result = await context.client.call<{
       success?: boolean;
       message?: string;
@@ -57,7 +57,7 @@ describe("get_next_buses — default mode drops repeated campus objects", () => 
     });
   });
 
-  it("departure items omit originCampus and destinationCampus", async () => {
+  it("发车项省略 originCampus 和 destinationCampus", async () => {
     const result = await context.client.call<{
       originCampus?: { id?: number };
       destinationCampus?: { id?: number };
@@ -89,7 +89,7 @@ describe("get_next_buses — default mode drops repeated campus objects", () => 
   });
 });
 
-describe("bus preference tools", () => {
+describe("bus preference 工具", () => {
   let preferenceUserId: string | null = null;
   let preferenceMcp: McpHarness | undefined;
 
@@ -127,7 +127,7 @@ describe("bus preference tools", () => {
     );
   }
 
-  it("reads, saves, and resets the authenticated user's bus preferences", async () => {
+  it("读取、保存并重置已认证用户的 bus 偏好", async () => {
     const initial = await readPreference();
 
     expect(initial.preference).toEqual({
@@ -171,7 +171,7 @@ describe("bus preference tools", () => {
     });
   });
 
-  it("serializes unknown campus validation failures without writing", async () => {
+  it("序列化未知校区校验失败且不写入", async () => {
     const before = await readPreference();
 
     const result = await preferenceHarness().call<{

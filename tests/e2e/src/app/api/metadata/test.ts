@@ -35,12 +35,12 @@ const EXPECTED_KEYS = [
   "campuses",
 ] as const;
 
-test.describe("GET /api/metadata", () => {
-  test("contract", async ({ request }) => {
+test.describe("GET /api/metadata - 元数据字典", () => {
+  test("契约", async ({ request }) => {
     await assertApiContract(request, { routePath: "/api/metadata" });
   });
 
-  test("all dictionary keys exist and are arrays", async ({ request }) => {
+  test("所有字典键存在且为数组", async ({ request }) => {
     const response = await request.get("/api/metadata");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as Record<string, unknown>;
@@ -49,7 +49,7 @@ test.describe("GET /api/metadata", () => {
     }
   });
 
-  test("seed teachLanguage present", async ({ request }) => {
+  test("seed 授课语言存在", async ({ request }) => {
     const response = await request.get("/api/metadata");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -62,7 +62,7 @@ test.describe("GET /api/metadata", () => {
     ).toBe(true);
   });
 
-  test("seed courseClassify present", async ({ request }) => {
+  test("seed 课程分类存在", async ({ request }) => {
     const response = await request.get("/api/metadata");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -75,7 +75,7 @@ test.describe("GET /api/metadata", () => {
     ).toBe(true);
   });
 
-  test("seed campus with buildings present", async ({ request }) => {
+  test("seed 校区及楼栋存在", async ({ request }) => {
     const response = await request.get("/api/metadata");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {

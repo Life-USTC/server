@@ -4,7 +4,7 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
-test("/comments/[id]", async ({ page }, testInfo) => {
+test("/comments/[id] 页面契约", async ({ page }, testInfo) => {
   await assertPageContract(page, { routePath: "/comments/[id]", testInfo });
 });
 

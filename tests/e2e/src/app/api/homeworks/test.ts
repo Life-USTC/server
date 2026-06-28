@@ -42,7 +42,7 @@ async function resolveSeedSectionId(
   return section!.id!;
 }
 
-test("/api/homeworks", async ({ request }) => {
+test("/api/homeworks 接口契约", async ({ request }) => {
   await assertApiContract(request, { routePath: "/api/homeworks" });
 });
 

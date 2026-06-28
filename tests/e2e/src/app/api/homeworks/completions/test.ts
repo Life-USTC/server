@@ -58,7 +58,7 @@ async function createTempHomework(
   return homework!.id!;
 }
 
-test("/api/homeworks/completions", async ({ request }) => {
+test("/api/homeworks/completions 接口契约", async ({ request }) => {
   await assertApiContract(request, {
     routePath: "/api/homeworks/completions",
   });

@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { logAppEvent, logRouteFailure, shouldLog } from "@/lib/log/app-logger";
 
-describe("app logger", () => {
+describe("应用日志记录器", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
-  it("honors configured log levels", () => {
+  it("遵循配置的日志级别", () => {
     vi.stubEnv("LOG_LEVEL", "warn");
 
     expect(shouldLog("debug")).toBe(false);
@@ -16,21 +16,21 @@ describe("app logger", () => {
     expect(shouldLog("error")).toBe(true);
   });
 
-  it("normalizes logger-only environment values", () => {
+  it("规范化仅用于日志的环境变量值", () => {
     vi.stubEnv("LOG_LEVEL", " WARN ");
 
     expect(shouldLog("info")).toBe(false);
     expect(shouldLog("warn")).toBe(true);
   });
 
-  it("falls back to info for invalid log levels", () => {
+  it("对无效日志级别回退到 info", () => {
     vi.stubEnv("LOG_LEVEL", "verbose");
 
     expect(shouldLog("debug")).toBe(false);
     expect(shouldLog("info")).toBe(true);
   });
 
-  it("suppresses non-server route failures in production", () => {
+  it("在生产环境中抑制非服务端路由失败", () => {
     vi.stubEnv("NODE_ENV", "production");
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
@@ -39,7 +39,7 @@ describe("app logger", () => {
     expect(warnSpy).not.toHaveBeenCalled();
   });
 
-  it("logs server route failures as structured production JSON", () => {
+  it("将服务端路由失败记录为结构化生产 JSON", () => {
     vi.stubEnv("NODE_ENV", "production");
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -63,7 +63,7 @@ describe("app logger", () => {
     expect(String(payload)).not.toContain("stack");
   });
 
-  it("emits app events as structured production JSON", () => {
+  it("以结构化生产 JSON 发送应用事件", () => {
     vi.stubEnv("NODE_ENV", "production");
     const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
 

@@ -14,17 +14,17 @@ const BASE = "/api/me/overview";
 const PAST_SAME_DAY_EXAM_JW_ID = 88_051_001;
 const UNKNOWN_DATE_EXAM_JW_ID = 88_051_002;
 
-test.describe("GET /api/me/overview", () => {
-  test("contract", async ({ request }) => {
+test.describe("GET /api/me/overview - 个人概览", () => {
+  test("契约", async ({ request }) => {
     await assertApiContract(request, { routePath: BASE });
   });
 
-  test("returns 401 when not authenticated", async ({ request }) => {
+  test("未认证时返回 401", async ({ request }) => {
     const response = await request.get(BASE);
     expect(response.status()).toBe(401);
   });
 
-  test("returns compact counts and top items", async ({ page }) => {
+  test("返回精简计数与置顶项", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     const response = await page.request.get(
@@ -79,7 +79,7 @@ test.describe("GET /api/me/overview", () => {
     expect((body.exams?.items?.length ?? 0) > 0).toBe(true);
   });
 
-  test("excludes same-day exams that already ended", async ({ page }) => {
+  test("排除已结束的当日考试", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     const atTime = "2026-04-29T12:00:00+08:00";
@@ -142,7 +142,7 @@ test.describe("GET /api/me/overview", () => {
     }
   });
 
-  test("excludes date-unknown exams from upcoming counts", async ({ page }) => {
+  test("upcoming 计数排除日期未知的考试", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     const url = `${BASE}?atTime=${encodeURIComponent(DEV_SEED.seedAnchorAtTime)}&limit=30`;
@@ -204,7 +204,7 @@ test.describe("GET /api/me/overview", () => {
     }
   });
 
-  test("treats date-only atTime as Shanghai day start", async ({ page }) => {
+  test("仅日期的 atTime 视为上海当天起始", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     const response = await page.request.get(
@@ -218,7 +218,7 @@ test.describe("GET /api/me/overview", () => {
     expect(body.anchor?.atTime).toBe(DEV_SEED.seedAnchorAtTime);
   });
 
-  test("invalid atTime returns 400", async ({ page }) => {
+  test("无效 atTime 返回 400", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
     const response = await page.request.get(`${BASE}?atTime=not-a-date`);

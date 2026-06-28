@@ -28,11 +28,11 @@ import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/teachers", () => {
-  test("contract", async ({ page }, testInfo) => {
+  test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, { routePath: "/teachers", testInfo });
   });
 
-  test("SSR output includes search params", async ({ baseURL }) => {
+  test("SSR 输出包含搜索参数", async ({ baseURL }) => {
     const response = await fetch(
       absoluteTestUrl(
         `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
@@ -45,9 +45,7 @@ test.describe("/teachers", () => {
     expect(html).toContain(DEV_SEED.teacher.nameCn);
   });
 
-  test("mobile cards stay tappable and navigate to detail", async ({
-    page,
-  }, testInfo) => {
+  test("移动端卡片可点击并导航到详情", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoAndWaitForReady(
       page,
@@ -69,7 +67,7 @@ test.describe("/teachers", () => {
     await captureStepScreenshot(page, testInfo, "teachers-navigate-detail");
   });
 
-  test("search and clear buttons work", async ({ page }, testInfo) => {
+  test("搜索和清除按钮可用", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/teachers", {
       testInfo,
       screenshotLabel: "teachers",
@@ -95,9 +93,7 @@ test.describe("/teachers", () => {
     await captureStepScreenshot(page, testInfo, "teachers-search-clear");
   });
 
-  test("department filter preserves teacher results", async ({
-    page,
-  }, testInfo) => {
+  test("院系筛选保留教师结果", async ({ page }, testInfo) => {
     const filter = await getSeedTeacherDepartmentFixture(DEV_SEED.teacher.code);
     await gotoAndWaitForReady(
       page,
