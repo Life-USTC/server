@@ -11,20 +11,20 @@ describe("auth origin helpers", () => {
   });
 
   it("includes public and pinned local origins", () => {
-    vi.stubEnv("APP_PUBLIC_ORIGIN", "https://preview-123.vercel.app");
+    vi.stubEnv("APP_PUBLIC_ORIGIN", "https://preview-123.example.com");
 
     expect(getAuthTrustedOrigins()).toEqual([
-      "https://preview-123.vercel.app",
+      "https://preview-123.example.com",
       "http://localhost:3000",
       "http://127.0.0.1:3000",
     ]);
   });
 
   it("returns Better Auth allowed hosts for dynamic base URL resolution", () => {
-    vi.stubEnv("APP_PUBLIC_ORIGIN", "https://preview-123.vercel.app");
+    vi.stubEnv("APP_PUBLIC_ORIGIN", "https://preview-123.example.com");
 
     expect(getAuthAllowedHosts()).toEqual([
-      "preview-123.vercel.app",
+      "preview-123.example.com",
       "localhost:3000",
       "127.0.0.1:3000",
     ]);
@@ -81,10 +81,10 @@ describe("isTrustedAuthOrigin", () => {
     expect(isTrustedAuthOrigin("http://localhost:3010")).toBe(true);
   });
 
-  it("rejects unconfigured Vercel origins", () => {
+  it("rejects unconfigured example origins", () => {
     withOrigin("https://preview.example.com");
-    expect(isTrustedAuthOrigin("https://vercel.app")).toBe(false);
-    expect(isTrustedAuthOrigin("https://myapp-abc123.vercel.app")).toBe(false);
+    expect(isTrustedAuthOrigin("https://example.com")).toBe(false);
+    expect(isTrustedAuthOrigin("https://myapp-abc123.example.com")).toBe(false);
   });
 
   it("rejects a different port on an exact-match trusted origin", () => {

@@ -89,7 +89,6 @@ export function getAuthEnv(input: NodeJS.ProcessEnv = getDefaultEnvInput()) {
       OAUTH_PROXY_SECRET: true,
       E2E_DEBUG_AUTH: true,
       NODE_ENV: true,
-      VERCEL: true,
     }),
     input,
     "Invalid auth environment variables",
