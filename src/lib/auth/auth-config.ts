@@ -4,10 +4,7 @@ export function getAuthRuntimeConfig() {
   const authEnv = getAuthEnv();
   const isDevelopment = authEnv.NODE_ENV === "development";
   const allowE2EDebugAuth = authEnv.E2E_DEBUG_AUTH === "1";
-  if (
-    allowE2EDebugAuth &&
-    (authEnv.VERCEL === "1" || authEnv.NODE_ENV === "production")
-  ) {
+  if (allowE2EDebugAuth && authEnv.NODE_ENV === "production") {
     throw new Error("E2E_DEBUG_AUTH must not be set in production hosting");
   }
 
