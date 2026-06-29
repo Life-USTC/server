@@ -245,30 +245,35 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       intervals: [250, 500, 1_000],
     });
 
-    const classEvent = page
-      .locator("article")
+    // Class schedule information is now rendered as chips inside the calendar
+    // month grid, not as a separate list of cards.
+    const monthView = getSectionCalendarMonthView(page);
+    const classEventChip = monthView
+      .locator("a")
       .filter({ hasText: /上课事件|Class event/i })
       .first();
-    await expect(classEvent).toBeVisible();
+    await expect(classEventChip).toBeVisible();
 
     // schedule.room.namePrimary and schedule.room.building.namePrimary
-    // are rendered in the event detail cards.
+    // are rendered in the chip meta text.
     await expect(
-      classEvent
+      classEventChip
         .getByText(DEV_SEED.room.nameCn, { exact: false })
-        .or(classEvent.getByText(DEV_SEED.room.nameEn, { exact: false }))
+        .or(classEventChip.getByText(DEV_SEED.room.nameEn, { exact: false }))
         .first(),
     ).toBeVisible();
     await expect(
-      classEvent
+      classEventChip
         .getByText(DEV_SEED.building.nameCn, { exact: false })
-        .or(classEvent.getByText(DEV_SEED.building.nameEn, { exact: false }))
+        .or(
+          classEventChip.getByText(DEV_SEED.building.nameEn, { exact: false }),
+        )
         .first(),
     ).toBeVisible();
     await expect(
-      classEvent
+      classEventChip
         .getByText(DEV_SEED.campus.nameCn, { exact: false })
-        .or(classEvent.getByText(DEV_SEED.campus.nameEn, { exact: false }))
+        .or(classEventChip.getByText(DEV_SEED.campus.nameEn, { exact: false }))
         .first(),
     ).toBeVisible();
 
