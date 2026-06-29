@@ -1,3 +1,10 @@
+# [1.41.0](https://github.com/Life-USTC/server/compare/v1.40.0...v1.41.0) (2026-06-29)
+
+
+### Features
+
+* **seo,ui:** dynamic sitemap and simplify section calendar tab ([8dff74c](https://github.com/Life-USTC/server/commit/8dff74cfc4f6f79b8f3802076714c6f95313ef0d))
+
 # [1.40.0](https://github.com/Life-USTC/server/compare/v1.39.33...v1.40.0) (2026-06-28)
 
 
