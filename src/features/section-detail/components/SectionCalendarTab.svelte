@@ -3,7 +3,6 @@ import type { CalendarGridWeek } from "$lib/components/calendar/types";
 import CalendarIcon from "$lib/components/icons/calendar.svelte";
 import { Alert } from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
-import SectionCalendarEventCard from "./SectionCalendarEventCard.svelte";
 import SectionCalendarMonthView from "./SectionCalendarMonthView.svelte";
 import SectionCalendarUnscheduledEvents from "./SectionCalendarUnscheduledEvents.svelte";
 import type {
@@ -15,7 +14,6 @@ export let calendarGridWeeks: CalendarGridWeek[];
 export let calendarMonthLabel: string;
 export let calendarMonthOffset: number;
 export let dateTimePlaceText: string | null | undefined;
-export let fmtDate: (value: string | Date | null | undefined) => string;
 export let formatMessage: (
   template: string,
   values: Record<string, string>,
@@ -48,12 +46,6 @@ export let unscheduledCalendarEvents: SectionCalendarEvent[];
       {sectionCopy}
       {todayCalendarMonthOffset}
     />
-
-    <section class="grid gap-3">
-      {#each sectionCalendarEvents.filter((event) => event.dateKey) as event}
-        <SectionCalendarEventCard {event} {fmtDate} {sectionCopy} />
-      {/each}
-    </section>
 
     {#if unscheduledCalendarEvents.length > 0}
       <SectionCalendarUnscheduledEvents

@@ -102,7 +102,6 @@ function sectionPanelId(id: SectionDetailMainContentProps["activeTab"]) {
           calendarGridWeeks={sectionCalendarGridWeeks}
           {calendarMonthLabel}
           dateTimePlaceText={data.section.dateTimePlaceText}
-          {fmtDate}
           {formatMessage}
           {openCalendarDialog}
           {sectionCalendarEvents}
