@@ -32,6 +32,8 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          # Generate the Prisma client so migrate deploy can use the correct schema.
+          # Prepare SvelteKit generated files and generate the Prisma client
+          # before running migrate deploy.
+          bunx svelte-kit sync
           bun run db:generate
           bun run db:migrate:deploy
