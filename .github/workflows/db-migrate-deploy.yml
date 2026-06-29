@@ -1,0 +1,37 @@
+name: DB Migrate Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - prisma/schema.prisma
+      - prisma/migrations/**
+      - prisma.config.ts
+      - .github/workflows/db-migrate-deploy.yml
+
+concurrency:
+  group: db-migrate-deploy
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Deploy Prisma migrations
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+
+      - name: Deploy migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          # Generate the Prisma client so migrate deploy can use the correct schema.
+          bun run db:generate
+          bun run db:migrate:deploy
