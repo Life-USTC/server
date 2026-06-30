@@ -171,7 +171,9 @@ export async function getBusNextDeparturesRoute(request: Request) {
 }
 
 export async function getBusPreferencesRoute(request: Request) {
-  const auth = await requireAuth(request);
+  const auth = await requireAuth(request, {
+    bearerScope: { feature: "bus", action: "read" },
+  });
   if (auth instanceof Response) return auth;
   const { userId } = auth;
 
@@ -187,7 +189,9 @@ export async function getBusPreferencesRoute(request: Request) {
 }
 
 export async function postBusPreferencesRoute(request: Request) {
-  const auth = await requireAuth(request);
+  const auth = await requireAuth(request, {
+    bearerScope: { feature: "bus", action: "write" },
+  });
   if (auth instanceof Response) return auth;
   const { userId } = auth;
 

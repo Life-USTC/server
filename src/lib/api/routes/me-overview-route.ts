@@ -12,7 +12,9 @@ import { compactOverviewQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { requireAuth } from "@/lib/auth/api-auth";
 
 export async function getMyCompactOverviewRoute(request: Request) {
-  const auth = await requireAuth(request);
+  const auth = await requireAuth(request, {
+    bearerScope: { feature: "dashboard", action: "read" },
+  });
   if (auth instanceof Response) return auth;
   const { userId } = auth;
 

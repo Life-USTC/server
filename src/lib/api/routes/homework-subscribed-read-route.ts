@@ -3,7 +3,9 @@ import { getRequestLocale } from "@/lib/api/routes/request-locale";
 import { requireAuth } from "@/lib/auth/api-auth";
 
 export async function getSubscribedHomeworksRoute(request: Request) {
-  const auth = await requireAuth(request);
+  const auth = await requireAuth(request, {
+    bearerScope: { feature: "homework", action: "read" },
+  });
   if (auth instanceof Response) return auth;
   const { userId } = auth;
   const locale = getRequestLocale(request);

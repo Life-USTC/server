@@ -1,4 +1,3 @@
-import { verifyAccessToken } from "better-auth/oauth2";
 import { suspensionForbidden, unauthorized } from "@/lib/api/helpers";
 import {
   getJwksUrlForOAuthVerification,
@@ -6,45 +5,34 @@ import {
   getOAuthTokenVerificationIssuers,
 } from "@/lib/mcp/urls";
 import {
-  OAUTH_REST_READ_SCOPE,
-  OAUTH_REST_WRITE_SCOPE,
+  type RestFeature,
+  restReadScope,
+  restWriteScope,
 } from "@/lib/oauth/constants";
 import { parseBearerAuthorizationHeader } from "./authorization-header";
+import { verifyAccessTokenJwt } from "./jwt-verification";
 import { hasRequestAuthSignal } from "./request-auth-signal";
 
-type RestBearerScopeRequirement = "read" | "write";
-
-function parseScopeClaim(scope: unknown): Set<string> {
-  if (typeof scope === "string") {
-    return new Set(scope.split(/\s+/).filter(Boolean));
-  }
-  if (Array.isArray(scope)) {
-    return new Set(scope.filter((value) => typeof value === "string"));
-  }
-  return new Set();
-}
+export type RestBearerScopeRequirement = {
+  feature: RestFeature;
+  action: "read" | "write";
+};
 
 function hasRequiredRestScope(
-  scope: unknown,
+  scopes: Set<string>,
   requirement: RestBearerScopeRequirement,
-) {
-  const scopes = parseScopeClaim(scope);
-  if (requirement === "write") {
-    return scopes.has(OAUTH_REST_WRITE_SCOPE);
+): boolean {
+  const { feature, action } = requirement;
+  if (action === "write") {
+    return scopes.has(restWriteScope(feature));
   }
   return (
-    scopes.has(OAUTH_REST_READ_SCOPE) || scopes.has(OAUTH_REST_WRITE_SCOPE)
+    scopes.has(restReadScope(feature)) || scopes.has(restWriteScope(feature))
   );
 }
 
-function resolveBearerScopeRequirement(
-  request: Request,
-  explicitRequirement?: RestBearerScopeRequirement,
-): RestBearerScopeRequirement {
-  if (explicitRequirement) return explicitRequirement;
-  return ["GET", "HEAD", "OPTIONS"].includes(request.method.toUpperCase())
-    ? "read"
-    : "write";
+function hasAnyRestScope(scopes: Set<string>): boolean {
+  return [...scopes].some((s) => s.startsWith("rest:"));
 }
 
 /**
@@ -63,31 +51,22 @@ export async function resolveApiUserId(
     const token = bearer.token ?? "";
     if (!token) return null;
     try {
-      const jwt = await verifyAccessToken(token, {
+      const verified = await verifyAccessTokenJwt(token, {
         jwksUrl: getJwksUrlForOAuthVerification(),
-        verifyOptions: {
-          issuer: getOAuthTokenVerificationIssuers(),
-          audience: getOAuthRestAudienceUrls(),
-        },
+        issuer: getOAuthTokenVerificationIssuers(),
+        audience: getOAuthRestAudienceUrls(),
       });
 
-      const sub = (jwt as { sub?: unknown }).sub;
-      const scope = (jwt as { scope?: unknown }).scope;
-      if (
-        typeof sub === "string" &&
-        sub.length > 0 &&
-        hasRequiredRestScope(
-          scope,
-          resolveBearerScopeRequirement(request, options.bearerScope),
-        )
-      ) {
-        return sub;
+      const requirement = options.bearerScope;
+      if (requirement) {
+        if (!hasRequiredRestScope(verified.scope, requirement)) return null;
+      } else {
+        if (!hasAnyRestScope(verified.scope)) return null;
       }
+      return verified.sub;
     } catch {
       return null;
     }
-
-    return null;
   }
 
   if (!hasRequestAuthSignal(request.headers)) return null;
@@ -112,15 +91,25 @@ export async function resolveSessionUserId(
 
 export async function requireAuth(
   request: Request,
+  options: { bearerScope?: RestBearerScopeRequirement } = {},
 ): Promise<{ userId: string } | Response> {
-  const userId = await resolveApiUserId(request);
+  const userId = await resolveApiUserId(request, options);
   return userId ? { userId } : unauthorized();
 }
 
+/**
+ * Require write access for a REST feature.
+ *
+ * Currently all callers are upload routes, so it defaults to the upload
+ * feature. Callers may override the feature when needed.
+ */
 export async function requireWriteAuth(
   request: Request,
+  feature: RestFeature = "upload",
 ): Promise<{ userId: string } | Response> {
-  const userId = await resolveApiUserId(request, { bearerScope: "write" });
+  const userId = await resolveApiUserId(request, {
+    bearerScope: { feature, action: "write" },
+  });
   if (!userId) return unauthorized();
   const { getViewerAuthDataForUserId } = await import("./viewer-context");
   const data = await getViewerAuthDataForUserId(userId);

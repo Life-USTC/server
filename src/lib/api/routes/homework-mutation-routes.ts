@@ -25,7 +25,9 @@ import { requireAuth } from "@/lib/auth/api-auth";
 type IdParams = { id: string };
 
 export async function postHomeworkRoute(request: Request) {
-  const auth = await requireAuth(request);
+  const auth = await requireAuth(request, {
+    bearerScope: { feature: "homework", action: "write" },
+  });
   if (auth instanceof Response) {
     return auth;
   }
@@ -70,7 +72,9 @@ export async function patchHomeworkRoute(request: Request, params: IdParams) {
   const id = parseHomeworkId(params);
   if (id instanceof Response) return id;
 
-  const auth = await requireAuth(request);
+  const auth = await requireAuth(request, {
+    bearerScope: { feature: "homework", action: "write" },
+  });
   if (auth instanceof Response) {
     return auth;
   }
@@ -100,7 +104,9 @@ export async function patchHomeworkRoute(request: Request, params: IdParams) {
 export async function deleteHomeworkRoute(request: Request, params: IdParams) {
   const id = parseHomeworkId(params);
   if (id instanceof Response) return id;
-  const auth = await requireAuth(request);
+  const auth = await requireAuth(request, {
+    bearerScope: { feature: "homework", action: "write" },
+  });
   if (auth instanceof Response) {
     return auth;
   }

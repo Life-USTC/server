@@ -20,7 +20,9 @@ import {
 import { requireAuth } from "@/lib/auth/api-auth";
 
 export async function getTodosRoute(request: Request) {
-  const auth = await requireAuth(request);
+  const auth = await requireAuth(request, {
+    bearerScope: { feature: "todo", action: "read" },
+  });
   if (auth instanceof Response) return auth;
   const { userId } = auth;
 
@@ -41,7 +43,9 @@ export async function getTodosRoute(request: Request) {
 }
 
 export async function postTodoRoute(request: Request) {
-  const auth = await requireAuth(request);
+  const auth = await requireAuth(request, {
+    bearerScope: { feature: "todo", action: "write" },
+  });
   if (auth instanceof Response) return auth;
   const { userId } = auth;
 
@@ -64,7 +68,9 @@ export async function patchTodoRoute(request: Request, params: IdParams) {
   const id = parseTodoIdParams(params);
   if (id instanceof Response) return id;
 
-  const auth = await requireAuth(request);
+  const auth = await requireAuth(request, {
+    bearerScope: { feature: "todo", action: "write" },
+  });
   if (auth instanceof Response) return auth;
   const { userId } = auth;
 
@@ -94,7 +100,9 @@ export async function deleteTodoRoute(request: Request, params: IdParams) {
   const id = parseTodoIdParams(params);
   if (id instanceof Response) return id;
 
-  const auth = await requireAuth(request);
+  const auth = await requireAuth(request, {
+    bearerScope: { feature: "todo", action: "write" },
+  });
   if (auth instanceof Response) return auth;
   const { userId } = auth;
 

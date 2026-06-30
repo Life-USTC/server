@@ -5,9 +5,10 @@ import {
   OAUTH_REST_READ_SCOPE,
   OAUTH_REST_WRITE_SCOPE,
 } from "@/lib/oauth/constants";
+import { expandScopeClaim } from "@/lib/oauth/scope-registry";
 
 const getSessionFromHeadersMock = vi.fn();
-const verifyAccessTokenMock = vi.fn();
+const verifyAccessTokenJwtMock = vi.fn();
 const getViewerAuthDataForUserIdMock = vi.fn();
 
 vi.mock("@/lib/auth/core", () => ({
@@ -18,8 +19,8 @@ vi.mock("@/lib/db/prisma", () => ({
   prisma: {},
 }));
 
-vi.mock("better-auth/oauth2", () => ({
-  verifyAccessToken: verifyAccessTokenMock,
+vi.mock("@/lib/auth/jwt-verification", () => ({
+  verifyAccessTokenJwt: verifyAccessTokenJwtMock,
 }));
 
 vi.mock("@/lib/auth/viewer-context", () => ({
@@ -36,7 +37,7 @@ describe("认证辅助函数", () => {
   beforeEach(() => {
     vi.resetModules();
     getSessionFromHeadersMock.mockReset();
-    verifyAccessTokenMock.mockReset();
+    verifyAccessTokenJwtMock.mockReset();
     getViewerAuthDataForUserIdMock.mockReset();
   });
 
@@ -53,12 +54,12 @@ describe("认证辅助函数", () => {
 
     await expect(resolveApiUserId(request)).resolves.toBe("user-from-cookie");
     expect(getSessionFromHeadersMock).toHaveBeenCalledWith(request.headers);
-    expect(verifyAccessTokenMock).not.toHaveBeenCalled();
+    expect(verifyAccessTokenJwtMock).not.toHaveBeenCalled();
   });
 
   it("优先使用有效的 bearer 访问令牌而非 session cookie", async () => {
-    verifyAccessTokenMock.mockResolvedValue({
-      scope: OAUTH_REST_READ_SCOPE,
+    verifyAccessTokenJwtMock.mockResolvedValue({
+      scope: expandScopeClaim(OAUTH_REST_READ_SCOPE),
       sub: "user-from-token",
     });
     const { resolveApiUserId } = await import("@/lib/auth/api-auth");
@@ -71,21 +72,19 @@ describe("认证辅助函数", () => {
 
     await expect(resolveApiUserId(request)).resolves.toBe("user-from-token");
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
-    expect(verifyAccessTokenMock).toHaveBeenCalledWith(
+    expect(verifyAccessTokenJwtMock).toHaveBeenCalledWith(
       "access-token",
       expect.objectContaining({
         jwksUrl: "https://life.example/api/auth/jwks",
-        verifyOptions: {
-          issuer: ["https://life.example/api/auth"],
-          audience: ["https://life.example/api/auth"],
-        },
+        issuer: ["https://life.example/api/auth"],
+        audience: ["https://life.example/api/auth"],
       }),
     );
   });
 
   it.each(["bearer", "bEaReR"])("接受 %s bearer 访问令牌", async (scheme) => {
-    verifyAccessTokenMock.mockResolvedValue({
-      scope: OAUTH_REST_READ_SCOPE,
+    verifyAccessTokenJwtMock.mockResolvedValue({
+      scope: new Set(["rest:me:read"]),
       sub: "user-from-token",
     });
     const { resolveApiUserId } = await import("@/lib/auth/api-auth");
@@ -98,7 +97,7 @@ describe("认证辅助函数", () => {
 
     await expect(resolveApiUserId(request)).resolves.toBe("user-from-token");
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
-    expect(verifyAccessTokenMock).toHaveBeenCalledWith(
+    expect(verifyAccessTokenJwtMock).toHaveBeenCalledWith(
       "access-token",
       expect.any(Object),
     );
@@ -120,8 +119,8 @@ describe("认证辅助函数", () => {
   });
 
   it("拒绝仅 profile 的 bearer 访问受保护 REST 读取", async () => {
-    verifyAccessTokenMock.mockResolvedValue({
-      scope: OAUTH_PROFILE_SCOPE,
+    verifyAccessTokenJwtMock.mockResolvedValue({
+      scope: new Set([OAUTH_PROFILE_SCOPE]),
       sub: "user-from-token",
     });
     const { requireAuth } = await import("@/lib/auth/api-auth");
@@ -131,7 +130,9 @@ describe("认证辅助函数", () => {
       },
     });
 
-    const result = await requireAuth(request);
+    const result = await requireAuth(request, {
+      bearerScope: { feature: "me", action: "read" },
+    });
 
     expect(result).toBeInstanceOf(Response);
     expect((result as Response).status).toBe(401);
@@ -142,8 +143,8 @@ describe("认证辅助函数", () => {
   });
 
   it("拒绝仅 MCP 的 bearer 访问受保护 REST 读取", async () => {
-    verifyAccessTokenMock.mockResolvedValue({
-      scope: `${OAUTH_PROFILE_SCOPE} ${MCP_TOOLS_SCOPE}`,
+    verifyAccessTokenJwtMock.mockResolvedValue({
+      scope: new Set([OAUTH_PROFILE_SCOPE, MCP_TOOLS_SCOPE]),
       sub: "user-from-token",
     });
     const { requireAuth } = await import("@/lib/auth/api-auth");
@@ -153,7 +154,9 @@ describe("认证辅助函数", () => {
       },
     });
 
-    const result = await requireAuth(request);
+    const result = await requireAuth(request, {
+      bearerScope: { feature: "todo", action: "read" },
+    });
 
     expect(result).toBeInstanceOf(Response);
     expect((result as Response).status).toBe(401);
@@ -164,8 +167,8 @@ describe("认证辅助函数", () => {
   });
 
   it("拒绝 REST 只读 bearer 访问受保护 REST 写入", async () => {
-    verifyAccessTokenMock.mockResolvedValue({
-      scope: OAUTH_REST_READ_SCOPE,
+    verifyAccessTokenJwtMock.mockResolvedValue({
+      scope: expandScopeClaim(OAUTH_REST_READ_SCOPE),
       sub: "user-from-token",
     });
     const { requireWriteAuth } = await import("@/lib/auth/api-auth");
@@ -187,8 +190,8 @@ describe("认证辅助函数", () => {
   });
 
   it("拒绝 REST 只读 bearer 访问使用 requireAuth 的 POST 路由", async () => {
-    verifyAccessTokenMock.mockResolvedValue({
-      scope: OAUTH_REST_READ_SCOPE,
+    verifyAccessTokenJwtMock.mockResolvedValue({
+      scope: expandScopeClaim(OAUTH_REST_READ_SCOPE),
       sub: "user-from-token",
     });
     const { requireAuth } = await import("@/lib/auth/api-auth");
@@ -199,7 +202,9 @@ describe("认证辅助函数", () => {
       },
     });
 
-    const result = await requireAuth(request);
+    const result = await requireAuth(request, {
+      bearerScope: { feature: "todo", action: "write" },
+    });
 
     expect(result).toBeInstanceOf(Response);
     expect((result as Response).status).toBe(401);
@@ -210,8 +215,8 @@ describe("认证辅助函数", () => {
   });
 
   it("拒绝仅 MCP 的 bearer 访问受保护 REST 写入", async () => {
-    verifyAccessTokenMock.mockResolvedValue({
-      scope: `${OAUTH_PROFILE_SCOPE} ${MCP_TOOLS_SCOPE}`,
+    verifyAccessTokenJwtMock.mockResolvedValue({
+      scope: new Set([OAUTH_PROFILE_SCOPE, MCP_TOOLS_SCOPE]),
       sub: "user-from-token",
     });
     const { requireWriteAuth } = await import("@/lib/auth/api-auth");
@@ -233,7 +238,7 @@ describe("认证辅助函数", () => {
   });
 
   it("当 bearer 令牌无效时不回退到 session cookie", async () => {
-    verifyAccessTokenMock.mockRejectedValue(new Error("invalid token"));
+    verifyAccessTokenJwtMock.mockRejectedValue(new Error("invalid token"));
     getSessionFromHeadersMock.mockResolvedValue({
       user: { id: "user-from-cookie" },
     });
@@ -250,7 +255,7 @@ describe("认证辅助函数", () => {
   });
 
   it("小写 bearer 令牌无效时返回 401 而不回退到 session cookie", async () => {
-    verifyAccessTokenMock.mockRejectedValue(new Error("invalid token"));
+    verifyAccessTokenJwtMock.mockRejectedValue(new Error("invalid token"));
     getSessionFromHeadersMock.mockResolvedValue({
       user: { id: "user-from-cookie" },
     });
@@ -262,7 +267,9 @@ describe("认证辅助函数", () => {
       },
     });
 
-    const result = await requireAuth(request);
+    const result = await requireAuth(request, {
+      bearerScope: { feature: "me", action: "read" },
+    });
 
     expect(result).toBeInstanceOf(Response);
     expect((result as Response).status).toBe(401);
@@ -285,7 +292,7 @@ describe("认证辅助函数", () => {
     });
 
     await expect(resolveApiUserId(request)).resolves.toBeNull();
-    expect(verifyAccessTokenMock).not.toHaveBeenCalled();
+    expect(verifyAccessTokenJwtMock).not.toHaveBeenCalled();
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
   });
 
@@ -304,7 +311,7 @@ describe("认证辅助函数", () => {
       "user-from-cookie",
     );
     expect(getSessionFromHeadersMock).toHaveBeenCalledWith(request.headers);
-    expect(verifyAccessTokenMock).not.toHaveBeenCalled();
+    expect(verifyAccessTokenJwtMock).not.toHaveBeenCalled();
   });
 
   it("对仅 session 认证拒绝 bearer 授权", async () => {
@@ -320,13 +327,13 @@ describe("认证辅助函数", () => {
     });
 
     await expect(resolveSessionUserId(request)).resolves.toBeNull();
-    expect(verifyAccessTokenMock).not.toHaveBeenCalled();
+    expect(verifyAccessTokenJwtMock).not.toHaveBeenCalled();
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
   });
 
   it("当解析到的用户不存在时拒绝写入认证", async () => {
-    verifyAccessTokenMock.mockResolvedValue({
-      scope: OAUTH_REST_WRITE_SCOPE,
+    verifyAccessTokenJwtMock.mockResolvedValue({
+      scope: expandScopeClaim(OAUTH_REST_WRITE_SCOPE),
       sub: "deleted-user",
     });
     getViewerAuthDataForUserIdMock.mockResolvedValue(null);

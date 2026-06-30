@@ -11,7 +11,9 @@ import { jsonOrRedirectForPinnedLinks } from "./dashboard-link-pin-response";
 export async function postDashboardLinkPinRoute(request: Request) {
   const wantsJson =
     request.headers.get("accept")?.includes("application/json") ?? false;
-  const userId = await resolveApiUserId(request);
+  const userId = await resolveApiUserId(request, {
+    bearerScope: { feature: "dashboard", action: "write" },
+  });
 
   if (!userId) {
     return jsonOrRedirectForPinnedLinks({
