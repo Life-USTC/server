@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  CLIENT_REGISTRATION_ALLOWED_SCOPES,
   LEGACY_MCP_TOOLS_SCOPE,
   LEGACY_REST_READ_SCOPE,
   LEGACY_REST_WRITE_SCOPE,
@@ -78,5 +79,16 @@ describe("oauth scope registry", () => {
   it("deduplicates expanded scopes", () => {
     const result = expandScopeClaim("rest:read rest:todo:read");
     expect(result.size).toBe(REST_FEATURES.length);
+  });
+
+  it("exposes a DCR/authorization allowed-scope list that tolerates legacy scopes", () => {
+    for (const scope of OAUTH_SCOPES) {
+      expect(CLIENT_REGISTRATION_ALLOWED_SCOPES).toContain(scope);
+    }
+    expect(CLIENT_REGISTRATION_ALLOWED_SCOPES).toContain(LEGACY_REST_READ_SCOPE);
+    expect(CLIENT_REGISTRATION_ALLOWED_SCOPES).toContain(
+      LEGACY_REST_WRITE_SCOPE,
+    );
+    expect(CLIENT_REGISTRATION_ALLOWED_SCOPES).toContain(LEGACY_MCP_TOOLS_SCOPE);
   });
 });

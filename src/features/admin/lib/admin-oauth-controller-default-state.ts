@@ -14,7 +14,13 @@ export function createAdminOAuthControllerDefaultState<Client>(input: {
     pendingDeleteClient: null as Client | null,
     redirectDraft: "",
     selectedAuthMethod: input.authMethods[0] ?? "client_secret_basic",
-    selectedScopes: ["openid", "profile", "mcp:tools"],
+    selectedScopes: [
+      "openid",
+      "profile",
+      "mcp:todo",
+      "mcp:homework",
+      "rest:me:read",
+    ],
     trustedClientPage: 1,
   };
 }

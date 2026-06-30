@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
-import { MCP_TOOLS_SCOPE } from "@/lib/oauth/constants";
+import { hasMcpScope } from "@/lib/oauth/scope-registry";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
 import { type AuthFailure, INVALID_TOKEN_ERROR } from "./auth-errors";
 
@@ -29,7 +29,7 @@ export async function verifyOpaqueAccessTokenForMcp(
     where: { token: tokenHash },
   });
   if (!row || row.expiresAt.getTime() <= Date.now()) return null;
-  if (!row.scopes.includes(MCP_TOOLS_SCOPE)) return null;
+  if (!hasMcpScope(row.scopes)) return null;
   return {
     error: INVALID_TOKEN_ERROR,
     status: 401,

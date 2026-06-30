@@ -19,7 +19,6 @@
  */
 import { expect, test } from "@playwright/test";
 import {
-  MCP_TOOLS_SCOPE,
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
   OAUTH_CODE_RESPONSE_TYPE,
   OAUTH_DEVICE_CODE_GRANT_TYPE,
@@ -46,7 +45,8 @@ const DCR_CLIENT_SCOPE = [
   OAUTH_OPENID_SCOPE,
   OAUTH_PROFILE_SCOPE,
   OAUTH_EMAIL_SCOPE,
-  MCP_TOOLS_SCOPE,
+  "mcp:todo",
+  "rest:me:read",
 ].join(" ");
 
 test.describe("OAuth 提供者", () => {

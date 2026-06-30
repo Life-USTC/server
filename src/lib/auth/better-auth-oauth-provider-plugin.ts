@@ -6,7 +6,10 @@ import {
   OAUTH_PROFILE_SCOPE,
   OAUTH_PROVIDER_GRANT_TYPES,
 } from "@/lib/oauth/constants";
-import { OAUTH_SCOPES } from "@/lib/oauth/scope-registry";
+import {
+  CLIENT_REGISTRATION_ALLOWED_SCOPES,
+  OAUTH_SCOPES,
+} from "@/lib/oauth/scope-registry";
 
 export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
   return oauthProvider({
@@ -20,10 +23,10 @@ export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
           register: false,
         }
       : undefined,
-    scopes: [...OAUTH_SCOPES],
+    scopes: [...CLIENT_REGISTRATION_ALLOWED_SCOPES],
     grantTypes: [...OAUTH_PROVIDER_GRANT_TYPES],
     clientRegistrationDefaultScopes: [...DEFAULT_OAUTH_CLIENT_SCOPES],
-    clientRegistrationAllowedScopes: [...OAUTH_SCOPES],
+    clientRegistrationAllowedScopes: [...CLIENT_REGISTRATION_ALLOWED_SCOPES],
     validAudiences: getOAuthProviderValidAudiences(),
     silenceWarnings: {
       oauthAuthServerConfig: true,

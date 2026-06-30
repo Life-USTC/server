@@ -1,10 +1,8 @@
 import { prisma } from "@/lib/db/prisma";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
 import { getOAuthMcpResourceUrl } from "@/lib/mcp/urls";
-import {
-  MCP_TOOLS_SCOPE,
-  OAUTH_REFRESH_TOKEN_GRANT_TYPE,
-} from "@/lib/oauth/constants";
+import { OAUTH_REFRESH_TOKEN_GRANT_TYPE } from "@/lib/oauth/constants";
+import { hasMcpScope } from "@/lib/oauth/scope-registry";
 import {
   hashOAuthClientSecretForDbStorage,
   resourceIndicatorsMatch,
@@ -41,7 +39,8 @@ export async function maybeBindMcpRefreshRequest(
     select: { resources: true, scopes: true },
   });
   if (
-    !refreshRecord?.scopes.includes(MCP_TOOLS_SCOPE) ||
+    !refreshRecord ||
+    !hasMcpScope(refreshRecord.scopes) ||
     !includesMcpResource(refreshRecord.resources)
   ) {
     return request;
