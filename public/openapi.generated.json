@@ -5492,6 +5492,75 @@
         }
       }
     },
+    "/api/dashboard-links/pin/batch": {
+      "post": {
+        "operationId": "post-api-dashboard-links-pin-batch",
+        "summary": "Pin or unpin multiple dashboard links in one request",
+        "tags": [
+          "DashboardLinks"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/dashboardLinkPinBatchRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dashboardLinkPinResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dashboardLinkPinResponseSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dashboardLinkPinResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/homeworks/{id}/completion": {
       "put": {
         "operationId": "setHomeworkCompletion",
@@ -26987,6 +27056,41 @@
         },
         "required": [
           "type"
+        ],
+        "additionalProperties": false
+      },
+      "dashboardLinkPinBatchRequestSchema": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "minItems": 1,
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "slug": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "pin",
+                    "unpin"
+                  ]
+                }
+              },
+              "required": [
+                "slug",
+                "action"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "items"
         ],
         "additionalProperties": false
       },
