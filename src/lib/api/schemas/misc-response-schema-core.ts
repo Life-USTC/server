@@ -196,6 +196,19 @@ export const todoCompletionBatchResponseSchema = z.object({
   ),
 });
 
+export const todoBatchDeleteResponseSchema = z.object({
+  results: z.array(
+    z.discriminatedUnion("success", [
+      z.object({ success: z.literal(true), id: z.string() }),
+      z.object({
+        success: z.literal(false),
+        id: z.string(),
+        error: z.object({ code: z.enum(["not_found", "forbidden"]), message: z.string() }),
+      }),
+    ]),
+  ),
+});
+
 export const openApiErrorSchema = z.object({
   error: z.string(),
 });
