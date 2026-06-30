@@ -29,7 +29,9 @@ export async function putHomeworkCompletionRoute(
   }
   const id = parsedParams.id;
 
-  const auth = await requireAuth(request);
+  const auth = await requireAuth(request, {
+    bearerScope: { feature: "homework", action: "write" },
+  });
   if (auth instanceof Response) return auth;
   const { userId } = auth;
 
@@ -54,7 +56,9 @@ export async function putHomeworkCompletionRoute(
 }
 
 export async function putHomeworkCompletionsRoute(request: Request) {
-  const auth = await requireAuth(request);
+  const auth = await requireAuth(request, {
+    bearerScope: { feature: "homework", action: "write" },
+  });
   if (auth instanceof Response) return auth;
 
   const parsedBody = await parseRouteJsonBody(

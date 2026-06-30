@@ -13,7 +13,9 @@ import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 import { requireAuth } from "@/lib/auth/api-auth";
 
 export async function postCommentRoute(request: Request) {
-  const auth = await requireAuth(request);
+  const auth = await requireAuth(request, {
+    bearerScope: { feature: "comment", action: "write" },
+  });
   if (auth instanceof Response) {
     return auth;
   }

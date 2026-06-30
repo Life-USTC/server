@@ -4,7 +4,9 @@ import { requireAuth } from "@/lib/auth/api-auth";
 
 export async function getMeRoute(request: Request) {
   try {
-    const auth = await requireAuth(request);
+    const auth = await requireAuth(request, {
+      bearerScope: { feature: "me", action: "read" },
+    });
     if (auth instanceof Response) return auth;
     const { userId } = auth;
 

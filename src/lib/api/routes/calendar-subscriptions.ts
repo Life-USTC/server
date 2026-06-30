@@ -15,7 +15,9 @@ import { requireAuth } from "@/lib/auth/api-auth";
 
 export async function getCurrentCalendarSubscriptionRoute(request: Request) {
   try {
-    const auth = await requireAuth(request);
+    const auth = await requireAuth(request, {
+      bearerScope: { feature: "subscription", action: "read" },
+    });
     if (auth instanceof Response) return auth;
     const { userId } = auth;
 
@@ -39,7 +41,9 @@ export async function getCurrentCalendarSubscriptionRoute(request: Request) {
 
 export async function postCalendarSubscriptionsRoute(request: Request) {
   try {
-    const auth = await requireAuth(request);
+    const auth = await requireAuth(request, {
+      bearerScope: { feature: "subscription", action: "write" },
+    });
     if (auth instanceof Response) return auth;
     const { userId } = auth;
 
@@ -72,7 +76,9 @@ export async function postCalendarSubscriptionImportCodesRoute(
   request: Request,
 ) {
   try {
-    const auth = await requireAuth(request);
+    const auth = await requireAuth(request, {
+      bearerScope: { feature: "subscription", action: "write" },
+    });
     if (auth instanceof Response) return auth;
     const { userId } = auth;
 
@@ -117,7 +123,9 @@ export async function postCalendarSubscriptionImportCodesRoute(
 
 export async function patchCalendarSubscriptionsRoute(request: Request) {
   try {
-    const auth = await requireAuth(request);
+    const auth = await requireAuth(request, {
+      bearerScope: { feature: "subscription", action: "write" },
+    });
     if (auth instanceof Response) return auth;
     const { userId } = auth;
 
@@ -150,7 +158,9 @@ export async function patchCalendarSubscriptionsRoute(request: Request) {
 
 export async function deleteCalendarSubscriptionsRoute(request: Request) {
   try {
-    const auth = await requireAuth(request);
+    const auth = await requireAuth(request, {
+      bearerScope: { feature: "subscription", action: "write" },
+    });
     if (auth instanceof Response) return auth;
     const { userId } = auth;
 
