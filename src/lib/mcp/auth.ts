@@ -1,6 +1,9 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { MCP_FEATURES, mcpScope } from "@/lib/oauth/constants";
-import { hasMcpScope } from "@/lib/oauth/scope-registry";
+import {
+  hasMcpScope,
+  LEGACY_MCP_TOOLS_SCOPE,
+} from "@/lib/oauth/scope-registry";
 import { resourceIndicatorsMatch } from "@/lib/oauth/utils";
 import {
   buildAuthErrorResponse,
@@ -8,6 +11,7 @@ import {
   INVALID_TOKEN_ERROR,
 } from "./auth-errors";
 import { verifyAccessToken } from "./auth-token-verification";
+import { getRequiredMcpScopes } from "./tool-scopes";
 import { getOAuthMcpResourceUrl } from "./urls";
 
 export { verifyAccessToken };
@@ -26,6 +30,7 @@ function parseBearerToken(request: Request): string | null {
 
 export async function authenticateMcpRequest(
   request: Request,
+  toolName?: string | string[],
 ): Promise<{ authInfo: AuthInfo } | { response: Response }> {
   const token = parseBearerToken(request);
   if (!token) {
@@ -65,6 +70,27 @@ export async function authenticateMcpRequest(
           description: "Access token does not include an MCP scope",
         },
         MCP_FEATURES.map(mcpScope),
+      ),
+    };
+  }
+
+  const requiredScopes = getRequiredMcpScopes(toolName);
+  const hasRequiredScope =
+    requiredScopes.length === 0 ||
+    requiredScopes.some(
+      (scope) =>
+        authInfo.scopes.includes(scope) ||
+        authInfo.scopes.includes(LEGACY_MCP_TOOLS_SCOPE),
+    );
+  if (!hasRequiredScope) {
+    return {
+      response: buildAuthErrorResponse(
+        {
+          error: INSUFFICIENT_SCOPE_ERROR,
+          status: 403,
+          description: `Access token does not include a required scope for tool(s): ${Array.isArray(toolName) ? toolName.join(", ") : toolName}`,
+        },
+        requiredScopes,
       ),
     };
   }
