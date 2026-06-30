@@ -1945,6 +1945,8 @@
     "permissionsHint": "Select exactly which scopes this client should be allowed to request.",
     "scopeOpenIdDescription": "Required when the client needs an authenticated user identity.",
     "scopeProfileDescription": "Allows the client to read the user's basic profile information.",
+    "scopeEmailDescription": "Allows the client to read the user's verified email address.",
+    "scopeOfflineAccessDescription": "Allows the client to receive a refresh token for long-lived access.",
     "scopeRestReadDescription": "Allows the client to read protected REST API resources for the current user.",
     "scopeRestWriteDescription": "Allows the client to create, update, and delete protected REST API resources for the current user.",
     "scopeMcpToolsDescription": "Lets the client call MCP tools exposed by this server.",

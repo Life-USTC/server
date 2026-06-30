@@ -5,8 +5,8 @@ import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
   OAUTH_PROFILE_SCOPE,
   OAUTH_PROVIDER_GRANT_TYPES,
-  OAUTH_PROVIDER_SCOPES,
 } from "@/lib/oauth/constants";
+import { OAUTH_SCOPES } from "@/lib/oauth/scope-registry";
 
 export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
   return oauthProvider({
@@ -20,10 +20,10 @@ export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
           register: false,
         }
       : undefined,
-    scopes: [...OAUTH_PROVIDER_SCOPES],
+    scopes: [...OAUTH_SCOPES],
     grantTypes: [...OAUTH_PROVIDER_GRANT_TYPES],
     clientRegistrationDefaultScopes: [...DEFAULT_OAUTH_CLIENT_SCOPES],
-    clientRegistrationAllowedScopes: [...OAUTH_PROVIDER_SCOPES],
+    clientRegistrationAllowedScopes: [...OAUTH_SCOPES],
     validAudiences: getOAuthProviderValidAudiences(),
     silenceWarnings: {
       oauthAuthServerConfig: true,
@@ -44,7 +44,7 @@ export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
       },
     },
     advertisedMetadata: {
-      scopes_supported: [...OAUTH_PROVIDER_SCOPES],
+      scopes_supported: [...OAUTH_SCOPES],
       claims_supported: [
         "sub",
         "name",

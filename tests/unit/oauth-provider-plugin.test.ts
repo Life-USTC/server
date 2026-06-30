@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
   OAUTH_PROVIDER_GRANT_TYPES,
-  OAUTH_PROVIDER_SCOPES,
 } from "@/lib/oauth/constants";
+import { OAUTH_SCOPES } from "@/lib/oauth/scope-registry";
 
 const { oauthProviderMock } = vi.hoisted(() => ({
   oauthProviderMock: vi.fn((options) => ({ id: "oauth-provider", options })),
@@ -53,7 +53,11 @@ describe("buildOAuthProviderPlugin", () => {
     expect(oauthProviderMock).toHaveBeenCalledWith(
       expect.objectContaining({
         clientRegistrationDefaultScopes: [...DEFAULT_OAUTH_CLIENT_SCOPES],
-        clientRegistrationAllowedScopes: [...OAUTH_PROVIDER_SCOPES],
+        clientRegistrationAllowedScopes: [...OAUTH_SCOPES],
+        scopes: [...OAUTH_SCOPES],
+        advertisedMetadata: expect.objectContaining({
+          scopes_supported: [...OAUTH_SCOPES],
+        }),
       }),
     );
   });

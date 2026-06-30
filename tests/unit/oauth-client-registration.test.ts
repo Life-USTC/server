@@ -50,8 +50,16 @@ describe("resolveOAuthClientScopes", () => {
   });
 
   it("拒绝不支持的请求 scope", () => {
-    expect(resolveOAuthClientScopes([OAUTH_OPENID_SCOPE, "email"])).toEqual({
-      error: "Unsupported scopes requested: email",
+    expect(
+      resolveOAuthClientScopes([OAUTH_OPENID_SCOPE, "unknown_scope"]),
+    ).toEqual({
+      error: "Unsupported scopes requested: unknown_scope",
+    });
+  });
+
+  it("接受 feature-level REST scope", () => {
+    expect(resolveOAuthClientScopes(["rest:me:read"])).toEqual({
+      scopes: ["rest:me:read"],
     });
   });
 
