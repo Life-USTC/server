@@ -54,3 +54,55 @@ export function isSupportedOAuthClientAuthMethod(
 ): value is SupportedOAuthClientAuthMethod {
   return SUPPORTED_OAUTH_CLIENT_AUTH_METHOD_SET.has(value);
 }
+
+export const REST_FEATURES = [
+  "me",
+  "todo",
+  "homework",
+  "subscription",
+  "comment",
+  "description",
+  "upload",
+  "dashboard",
+  "bus",
+  "course",
+  "section",
+  "teacher",
+  "schedule",
+  "exam",
+  "admin",
+] as const;
+
+export type RestFeature = (typeof REST_FEATURES)[number];
+
+export function restReadScope(feature: RestFeature) {
+  return `rest:${feature}:read` as const;
+}
+
+export function restWriteScope(feature: RestFeature) {
+  return `rest:${feature}:write` as const;
+}
+
+export const MCP_FEATURES = [
+  "profile",
+  "todo",
+  "homework",
+  "subscription",
+  "calendar",
+  "comment",
+  "description",
+  "upload",
+  "dashboard",
+  "bus",
+  "course",
+  "section",
+  "teacher",
+  "schedule",
+  "exam",
+] as const;
+
+export type McpFeature = (typeof MCP_FEATURES)[number];
+
+export function mcpScope(feature: McpFeature) {
+  return `mcp:${feature}` as const;
+}
