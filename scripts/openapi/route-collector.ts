@@ -1,13 +1,19 @@
-import { type Node, type Project, type SourceFile, SyntaxKind } from "ts-morph";
+import { type FunctionDeclaration, type Node, type Project, type SourceFile, SyntaxKind } from "ts-morph";
 import type { ZodType } from "zod";
 import type { SchemaCollector } from "./schema-collector";
 
 const METHODS = ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"] as const;
 
+const ROUTE_PATTERNS = [
+  "src/routes/.well-known/**/+server.ts",
+  "src/routes/api/**/.well-known/**/+server.ts",
+  "src/routes/api/**/+server.ts",
+] as const;
+
 const RESPONSE_SHORTCUTS: Record<string, { content: Record<string, unknown> }> = {
   calendar: { content: { "text/calendar": { schema: { type: "string" } } } },
   text: { content: { "text/plain": { schema: { type: "string" } } } },
-  array: { content: { "application/json": { schema: { type: "array", items: {} } } } },
+  array: { content: { "application/json": { schema: { type: "array", items: { type: "object" } } } } },
   binary: { content: { "application/octet-stream": { schema: { type: "string", format: "binary" } } } },
 };
 
@@ -157,14 +163,18 @@ export function collectPaths(project: Project, schemas: SchemaCollector, options
   const overrides = { ...OPERATION_ID_OVERRIDES, ...options.operationIdOverrides };
 
   // TypeScript project globs skip dot-directories such as .well-known; add them explicitly.
-  for (const pattern of ["src/routes/.well-known/**/+server.ts", "src/routes/api/**/+server.ts"]) {
-    for (const sourceFile of project.getSourceFiles(pattern)) {
-      const routePath = routeFileToOpenApiPath(sourceFile.getFilePath());
-      const methods = extractMethods(sourceFile, routePath, schemas, overrides);
-      for (const [method, operation] of Object.entries(methods)) {
-        paths[routePath] ??= {};
-        paths[routePath][method] = operation;
-      }
+  project.addSourceFilesAtPaths(ROUTE_PATTERNS);
+
+  const routeFileRegex = /src\/routes\/(?:api|\.well-known)\/.*\/\+server\.ts$/;
+  for (const sourceFile of project.getSourceFiles()) {
+    const filePath = sourceFile.getFilePath();
+    if (!routeFileRegex.test(filePath)) continue;
+
+    const routePath = routeFileToOpenApiPath(filePath);
+    const methods = extractMethods(sourceFile, routePath, schemas, overrides);
+    for (const [method, operation] of Object.entries(methods)) {
+      paths[routePath] ??= {};
+      paths[routePath][method] = operation;
     }
   }
 
@@ -200,8 +210,15 @@ function extractMethods(
 }
 
 function getJsDocsForDeclaration(decl: Node): import("ts-morph").JSDoc[] {
+  if (decl.getKind() === SyntaxKind.FunctionDeclaration) {
+    return (decl as FunctionDeclaration).getJsDocs();
+  }
+
   const variableStatement = decl.getFirstAncestorByKind(SyntaxKind.VariableStatement);
-  return variableStatement?.getJsDocs() ?? [];
+  if (variableStatement) return variableStatement.getJsDocs();
+
+  const functionDeclaration = decl.getFirstAncestorByKind(SyntaxKind.FunctionDeclaration);
+  return functionDeclaration?.getJsDocs() ?? [];
 }
 
 function buildOperation(

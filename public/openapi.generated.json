@@ -143,6 +143,84 @@
     }
   ],
   "paths": {
+    "/.well-known/oauth-authorization-server": {
+      "get": {
+        "operationId": "listOauthAuthorizationServer",
+        "summary": "Compatibility alias for legacy clients that probe the root well-known path",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect"
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-.well-known-oauth-authorization-server",
+        "summary": "Compatibility alias for legacy clients that probe the root well-known path",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect"
+          }
+        }
+      }
+    },
+    "/.well-known/oauth-protected-resource": {
+      "get": {
+        "operationId": "listOauthProtectedResource",
+        "summary": "Compatibility alias for clients that probe the resource-origin root path",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect"
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-.well-known-oauth-protected-resource",
+        "summary": "Compatibility alias for clients that probe the resource-origin root path",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect"
+          }
+        }
+      }
+    },
+    "/.well-known/openid-configuration": {
+      "get": {
+        "operationId": "listOpenidConfiguration",
+        "summary": "Compatibility alias for clients that look up root OpenID discovery directly",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect"
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-.well-known-openid-configuration",
+        "summary": "Compatibility alias for clients that look up root OpenID discovery directly",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect"
+          }
+        }
+      }
+    },
     "/api/bus": {
       "get": {
         "operationId": "queryBus",
@@ -823,6 +901,27 @@
         }
       }
     },
+    "/api/health": {
+      "get": {
+        "operationId": "listHealth",
+        "summary": "Check process liveness",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Text response",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/homeworks": {
       "get": {
         "operationId": "listHomeworks",
@@ -1210,6 +1309,30 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/metrics": {
+      "get": {
+        "operationId": "listMetrics",
+        "summary": "Export internal runtime metrics",
+        "tags": [
+          "Me"
+        ],
+        "responses": {
+          "200": {
+            "description": "Text response",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Response 404"
           }
         }
       }
@@ -4244,6 +4367,136 @@
         }
       }
     },
+    "/.well-known/oauth-authorization-server/api/auth": {
+      "get": {
+        "operationId": "get-.well-known-oauth-authorization-server-api-auth",
+        "summary": "Canonical RFC 8414 authorization server metadata for issuer `/api/auth`",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-.well-known-oauth-authorization-server-api-auth",
+        "summary": "Canonical RFC 8414 authorization server metadata for issuer `/api/auth`",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          }
+        }
+      }
+    },
+    "/.well-known/oauth-authorization-server/api/mcp": {
+      "get": {
+        "operationId": "get-.well-known-oauth-authorization-server-api-mcp",
+        "summary": "Compatibility alias for clients that probe resource-path authorization-server metadata",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect"
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-.well-known-oauth-authorization-server-api-mcp",
+        "summary": "Compatibility alias for clients that probe resource-path authorization-server metadata",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect"
+          }
+        }
+      }
+    },
+    "/.well-known/oauth-protected-resource/api/mcp": {
+      "get": {
+        "operationId": "get-.well-known-oauth-protected-resource-api-mcp",
+        "summary": "Canonical RFC 9728 protected resource metadata for MCP",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-.well-known-oauth-protected-resource-api-mcp",
+        "summary": "Canonical RFC 9728 protected resource metadata for MCP",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          }
+        }
+      }
+    },
+    "/.well-known/openid-configuration/api/auth": {
+      "get": {
+        "operationId": "get-.well-known-openid-configuration-api-auth",
+        "summary": "RFC 8414-compatible path form for OpenID provider metadata",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-.well-known-openid-configuration-api-auth",
+        "summary": "RFC 8414-compatible path form for OpenID provider metadata",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          }
+        }
+      }
+    },
+    "/.well-known/openid-configuration/api/mcp": {
+      "get": {
+        "operationId": "get-.well-known-openid-configuration-api-mcp",
+        "summary": "Compatibility alias for clients that probe resource-path OIDC metadata",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect"
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-.well-known-openid-configuration-api-mcp",
+        "summary": "Compatibility alias for clients that probe resource-path OIDC metadata",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect"
+          }
+        }
+      }
+    },
     "/api/admin/comments/{id}": {
       "patch": {
         "operationId": "moderateAdminComment",
@@ -4644,6 +4897,32 @@
         }
       }
     },
+    "/api/auth/.well-known/openid-configuration": {
+      "get": {
+        "operationId": "get-api-auth-.well-known-openid-configuration",
+        "summary": "OpenID Connect discovery metadata for issuer `/api/auth`",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-api-auth-.well-known-openid-configuration",
+        "summary": "OpenID Connect discovery metadata for issuer `/api/auth`",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          }
+        }
+      }
+    },
     "/api/auth/oauth2/device-authorization": {
       "post": {
         "operationId": "post-api-auth-oauth2-device-authorization",
@@ -5023,6 +5302,58 @@
         }
       }
     },
+    "/api/mcp/.well-known/oauth-authorization-server": {
+      "get": {
+        "operationId": "get-api-mcp-.well-known-oauth-authorization-server",
+        "summary": "MCP resource-relative authorization server metadata compatibility alias",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect"
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-api-mcp-.well-known-oauth-authorization-server",
+        "summary": "MCP resource-relative authorization server metadata compatibility alias",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect"
+          }
+        }
+      }
+    },
+    "/api/mcp/.well-known/openid-configuration": {
+      "get": {
+        "operationId": "get-api-mcp-.well-known-openid-configuration",
+        "summary": "MCP resource-relative OpenID discovery compatibility alias",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect"
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-api-mcp-.well-known-openid-configuration",
+        "summary": "MCP resource-relative OpenID discovery compatibility alias",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "307": {
+            "description": "Redirect"
+          }
+        }
+      }
+    },
     "/api/me/subscriptions/homeworks": {
       "get": {
         "operationId": "getSubscribedHomeworks",
@@ -5229,7 +5560,9 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {}
+                  "items": {
+                    "type": "object"
+                  }
                 }
               }
             }
@@ -5300,7 +5633,9 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {}
+                  "items": {
+                    "type": "object"
+                  }
                 }
               }
             }
