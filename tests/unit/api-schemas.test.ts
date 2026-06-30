@@ -20,6 +20,7 @@ import {
   localeUpdateRequestSchema,
   matchSectionCodesRequestSchema,
   schedulesQuerySchema,
+  todoCompletionBatchRequestSchema,
   sectionsQuerySchema,
   semestersQuerySchema,
   subscribedSchedulesQuerySchema,
@@ -152,6 +153,40 @@ describe("homeworkCompletionBatchRequestSchema", () => {
       homeworkCompletionBatchRequestSchema.safeParse({
         items: [{ homeworkId: "", completed: true }],
       }).success,
+    ).toBe(false);
+  });
+});
+
+describe("todoCompletionBatchRequestSchema", () => {
+  it("接受有效批量完成状态更新", () => {
+    const result = todoCompletionBatchRequestSchema.safeParse({
+      items: [
+        { todoId: "todo-1", completed: true },
+        { todoId: "todo-2", completed: false },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("拒绝空 item 列表和空 todo ID", () => {
+    expect(
+      todoCompletionBatchRequestSchema.safeParse({ items: [] }).success,
+    ).toBe(false);
+    expect(
+      todoCompletionBatchRequestSchema.safeParse({
+        items: [{ todoId: "", completed: true }],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("拒绝超过最大批量大小", () => {
+    const items = Array.from({ length: 101 }, (_, i) => ({
+      todoId: `todo-${i}`,
+      completed: true,
+    }));
+    expect(
+      todoCompletionBatchRequestSchema.safeParse({ items }).success,
     ).toBe(false);
   });
 });

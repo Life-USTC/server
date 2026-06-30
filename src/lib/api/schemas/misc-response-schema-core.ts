@@ -177,6 +177,25 @@ export const todoUpdateResponseSchema = z.object({
   todo: todoItemSchema,
 });
 
+export const todoCompletionBatchResponseSchema = z.object({
+  results: z.array(
+    z.discriminatedUnion("success", [
+      z.object({
+        success: z.literal(true),
+        todoId: z.string(),
+        completed: z.boolean(),
+        todo: todoItemSchema,
+      }),
+      z.object({
+        success: z.literal(false),
+        todoId: z.string(),
+        completed: z.boolean(),
+        error: z.object({ code: z.enum(["not_found", "forbidden"]), message: z.string() }),
+      }),
+    ]),
+  ),
+});
+
 export const openApiErrorSchema = z.object({
   error: z.string(),
 });
