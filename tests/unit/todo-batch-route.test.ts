@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const requireAuthMock = vi.fn();
 const updateOwnedTodoMock = vi.fn();
+const deleteOwnedTodoMock = vi.fn();
 
 vi.mock("@/lib/auth/api-auth", () => ({
   requireAuth: requireAuthMock,
@@ -9,13 +10,22 @@ vi.mock("@/lib/auth/api-auth", () => ({
 
 vi.mock("@/features/todos/server/todo-service", () => ({
   updateOwnedTodo: updateOwnedTodoMock,
+  deleteOwnedTodo: deleteOwnedTodoMock,
 }));
 
-function jsonRequest(body: unknown) {
+function patchRequest(body: unknown) {
   return new Request("https://example.test/api/todos/batch", {
     body: JSON.stringify(body),
     headers: { "Content-Type": "application/json" },
     method: "PATCH",
+  });
+}
+
+function deleteRequest(body: unknown) {
+  return new Request("https://example.test/api/todos/batch", {
+    body: JSON.stringify(body),
+    headers: { "Content-Type": "application/json" },
+    method: "DELETE",
   });
 }
 
@@ -38,6 +48,7 @@ describe("patchTodoBatchRoute", () => {
   afterEach(() => {
     requireAuthMock.mockReset();
     updateOwnedTodoMock.mockReset();
+    deleteOwnedTodoMock.mockReset();
     vi.resetModules();
   });
 
@@ -48,7 +59,7 @@ describe("patchTodoBatchRoute", () => {
     );
 
     const response = await patchTodoBatchRoute(
-      jsonRequest({ items: [{ todoId: "todo-1", completed: true }] }),
+      patchRequest({ items: [{ todoId: "todo-1", completed: true }] }),
     );
 
     expect(response.status).toBe(401);
@@ -70,7 +81,7 @@ describe("patchTodoBatchRoute", () => {
     );
 
     const response = await patchTodoBatchRoute(
-      jsonRequest({
+      patchRequest({
         items: [
           { todoId: "todo-1", completed: true },
           { todoId: "todo-2", completed: false },
@@ -127,7 +138,7 @@ describe("patchTodoBatchRoute", () => {
     );
 
     const response = await patchTodoBatchRoute(
-      jsonRequest({
+      patchRequest({
         items: [
           { todoId: "todo-1", completed: true },
           { todoId: "todo-missing", completed: true },
@@ -168,7 +179,7 @@ describe("patchTodoBatchRoute", () => {
     );
 
     const response = await patchTodoBatchRoute(
-      jsonRequest({ items: [{ todoId: "", completed: true }] }),
+      patchRequest({ items: [{ todoId: "", completed: true }] }),
     );
 
     expect(response.status).toBe(400);
@@ -184,10 +195,121 @@ describe("patchTodoBatchRoute", () => {
       "@/lib/api/routes/todo-batch-route"
     );
 
-    const response = await patchTodoBatchRoute(jsonRequest({ items: [] }));
+    const response = await patchTodoBatchRoute(patchRequest({ items: [] }));
 
     expect(response.status).toBe(400);
     const body = await response.json();
     expect(body.error).toBe("Invalid batch payload");
+  });
+});
+
+describe("deleteTodoBatchRoute", () => {
+  afterEach(() => {
+    requireAuthMock.mockReset();
+    deleteOwnedTodoMock.mockReset();
+    vi.resetModules();
+  });
+
+  it("在解析 JSON 请求体之前先认证", async () => {
+    requireAuthMock.mockResolvedValue(unauthorizedResponse());
+    const { deleteTodoBatchRoute } = await import(
+      "@/lib/api/routes/todo-batch-route"
+    );
+
+    const response = await deleteTodoBatchRoute(
+      deleteRequest({ ids: ["todo-1"] }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(requireAuthMock).toHaveBeenCalledOnce();
+    expect(deleteOwnedTodoMock).not.toHaveBeenCalled();
+  });
+
+  it("成功批量删除 todo 并返回成功项", async () => {
+    requireAuthMock.mockResolvedValue({ userId: "user-1" });
+    deleteOwnedTodoMock
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: true });
+
+    const { deleteTodoBatchRoute } = await import(
+      "@/lib/api/routes/todo-batch-route"
+    );
+
+    const response = await deleteTodoBatchRoute(
+      deleteRequest({ ids: ["todo-1", "todo-2"] }),
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.results).toEqual([
+      { success: true, id: "todo-1" },
+      { success: true, id: "todo-2" },
+    ]);
+    expect(deleteOwnedTodoMock).toHaveBeenCalledWith("todo-1", "user-1");
+    expect(deleteOwnedTodoMock).toHaveBeenCalledWith("todo-2", "user-1");
+  });
+
+  it("对找不到或非所有者 todo 返回失败项而不中断批量处理", async () => {
+    requireAuthMock.mockResolvedValue({ userId: "user-1" });
+    deleteOwnedTodoMock
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: false, error: "not_found" })
+      .mockResolvedValueOnce({ ok: false, error: "forbidden" });
+
+    const { deleteTodoBatchRoute } = await import(
+      "@/lib/api/routes/todo-batch-route"
+    );
+
+    const response = await deleteTodoBatchRoute(
+      deleteRequest({ ids: ["todo-1", "todo-missing", "todo-owned-by-other"] }),
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.results).toEqual([
+      { success: true, id: "todo-1" },
+      {
+        success: false,
+        id: "todo-missing",
+        error: { code: "not_found", message: "not_found" },
+      },
+      {
+        success: false,
+        id: "todo-owned-by-other",
+        error: { code: "forbidden", message: "forbidden" },
+      },
+    ]);
+  });
+
+  it("拒绝空 ids 数组", async () => {
+    requireAuthMock.mockResolvedValue({ userId: "user-1" });
+
+    const { deleteTodoBatchRoute } = await import(
+      "@/lib/api/routes/todo-batch-route"
+    );
+
+    const response = await deleteTodoBatchRoute(deleteRequest({ ids: [] }));
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toBe("Invalid batch payload");
+    expect(deleteOwnedTodoMock).not.toHaveBeenCalled();
+  });
+
+  it("拒绝包含空字符串 id 的 payload", async () => {
+    requireAuthMock.mockResolvedValue({ userId: "user-1" });
+
+    const { deleteTodoBatchRoute } = await import(
+      "@/lib/api/routes/todo-batch-route"
+    );
+
+    const response = await deleteTodoBatchRoute(
+      deleteRequest({ ids: ["todo-1", ""] }),
+    );
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toBe("Invalid batch payload");
+    expect(deleteOwnedTodoMock).not.toHaveBeenCalled();
   });
 });

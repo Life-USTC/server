@@ -38,6 +38,7 @@ export {
   dashboardLinkPinRequestSchema,
   dashboardLinkVisitRequestSchema,
   localeUpdateRequestSchema,
+  todoBatchDeleteRequestSchema,
   todoCompletionBatchRequestSchema,
   todoCreateRequestSchema,
   todoUpdateRequestSchema,

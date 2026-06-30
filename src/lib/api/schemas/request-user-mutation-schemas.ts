@@ -54,3 +54,7 @@ export const todoCompletionBatchRequestSchema = z.object({
     }),
   ).min(1).max(100),
 });
+
+export const todoBatchDeleteRequestSchema = z.object({
+  ids: z.array(z.string().trim().min(1)).min(1).max(100),
+});
