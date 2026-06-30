@@ -12,7 +12,9 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
  */
-export const PATCH = svelteRequestHandler(observedApiRoute(patchTodoBatchRoute));
+export const PATCH = svelteRequestHandler(
+  observedApiRoute(patchTodoBatchRoute),
+);
 
 /**
  * Delete multiple todos by id.
@@ -21,4 +23,6 @@ export const PATCH = svelteRequestHandler(observedApiRoute(patchTodoBatchRoute))
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
  */
-export const DELETE = svelteRequestHandler(observedApiRoute(deleteTodoBatchRoute));
+export const DELETE = svelteRequestHandler(
+  observedApiRoute(deleteTodoBatchRoute),
+);

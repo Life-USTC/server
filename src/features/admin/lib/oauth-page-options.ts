@@ -22,14 +22,14 @@ export type OAuthScopeOption = {
 function resolveScopeDescriptionKey(scope: string): string {
   if (scope === OAUTH_PROFILE_SCOPE) return "scopeProfileDescription";
   if (scope === OAUTH_EMAIL_SCOPE) return "scopeEmailDescription";
-  if (scope === OAUTH_OFFLINE_ACCESS_SCOPE) return "scopeOfflineAccessDescription";
-  if (scope.startsWith("rest:") && scope.endsWith(":read")) {
+  if (scope === OAUTH_OFFLINE_ACCESS_SCOPE)
+    return "scopeOfflineAccessDescription";
+  if (scope.endsWith(":read")) {
     return "scopeRestReadDescription";
   }
-  if (scope.startsWith("rest:") && scope.endsWith(":write")) {
+  if (scope.endsWith(":write")) {
     return "scopeRestWriteDescription";
   }
-  if (scope.startsWith("mcp:")) return "scopeMcpToolsDescription";
   return `scopeDescription_${scope.replace(/:/g, "_")}`;
 }
 

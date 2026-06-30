@@ -57,7 +57,13 @@ describe("resolveOAuthClientScopes", () => {
     });
   });
 
-  it("接受 feature-level REST scope", () => {
+  it("接受 canonical feature-action scope", () => {
+    expect(resolveOAuthClientScopes(["me:read"])).toEqual({
+      scopes: ["me:read"],
+    });
+  });
+
+  it("保留但校验旧版 feature-level REST scope", () => {
     expect(resolveOAuthClientScopes(["rest:me:read"])).toEqual({
       scopes: ["rest:me:read"],
     });

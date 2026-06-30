@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
-  MCP_TOOLS_SCOPE,
+  restReadScope,
 } from "@/lib/oauth/constants";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db";
@@ -163,7 +163,7 @@ test.describe("/api/mcp - 传输与授权", () => {
     await expect(response.json()).resolves.toEqual({ error: "invalid_origin" });
   });
 
-  test("/api/mcp 缺少 mcp:tools scope 时返回 insufficient_scope", async ({
+  test("/api/mcp 缺少 feature scope 时返回 insufficient_scope", async ({
     page,
     request,
   }) => {
@@ -201,7 +201,7 @@ test.describe("/api/mcp - 传输与授权", () => {
       'error="insufficient_scope"',
     );
     expect(response.headers()["www-authenticate"]).toContain(
-      `scope="${MCP_TOOLS_SCOPE}"`,
+      restReadScope("todo"),
     );
     await expect(response.json()).resolves.toEqual({
       error: "insufficient_scope",

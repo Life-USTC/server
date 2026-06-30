@@ -3,10 +3,12 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { expect, type Page } from "@playwright/test";
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
-  MCP_TOOLS_SCOPE,
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
   OAUTH_CODE_RESPONSE_TYPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+  REST_FEATURES,
+  restReadScope,
+  restWriteScope,
 } from "@/lib/oauth/constants";
 import { sha256Base64Url } from "../../../../../shared/crypto";
 import { signInAsDebugUser } from "../../../../utils/auth";
@@ -21,9 +23,13 @@ async function generateCodeChallenge(codeVerifier: string) {
 }
 
 const REDIRECT_URI = `${PLAYWRIGHT_BASE_URL}/e2e/oauth/callback`;
+const MCP_E2E_FEATURES = REST_FEATURES.filter((feature) => feature !== "admin");
 export const MCP_CLIENT_SCOPES = [
   ...DEFAULT_OAUTH_CLIENT_SCOPES,
-  MCP_TOOLS_SCOPE,
+  ...MCP_E2E_FEATURES.flatMap((feature) => [
+    restReadScope(feature),
+    restWriteScope(feature),
+  ]),
 ];
 export const MCP_CLIENT_SCOPE = MCP_CLIENT_SCOPES.join(" ");
 export const DEFAULT_CLIENT_SCOPE = DEFAULT_OAUTH_CLIENT_SCOPES.join(" ");

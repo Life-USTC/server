@@ -1,4 +1,5 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import { expandScopeClaim } from "@/lib/oauth/scope-registry";
 import { resourceIndicatorsMatch } from "@/lib/oauth/utils";
 
 export function jwtClaimsToAuthInfo({
@@ -16,8 +17,7 @@ export function jwtClaimsToAuthInfo({
   mcpAudience: string;
   token: string;
 }): AuthInfo {
-  const scopeValue = typeof jwtClaims.scope === "string" ? jwtClaims.scope : "";
-  const scopes = scopeValue.split(" ").filter(Boolean);
+  const scopes = Array.from(expandScopeClaim(jwtClaims.scope));
   const aud = jwtClaims.aud;
   let audValue = "";
   if (typeof aud === "string") {

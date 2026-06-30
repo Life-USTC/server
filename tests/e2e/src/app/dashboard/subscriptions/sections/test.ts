@@ -14,7 +14,7 @@
  * - Table with columns: section code, course name, teachers, credits, opt-out
  * - All table cells (except opt-out) are links to `/sections/{jwId}`
  * - Semester header with sections grouped by term
- * - Bulk import dialog (textarea → match codes → confirm dialog)
+ * - Bulk import dialog (textarea → query section/course codes → confirm dialog)
  * - iCal calendar link copy button
  * - Opt-out button: initial → confirm → success states
  * - Empty state with bulk import + browse courses buttons
@@ -36,6 +36,22 @@ import { ensureSeedSectionSubscription } from "../../../../../utils/subscription
 
 function escapeForRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+async function openBulkImportDialog(page: import("@playwright/test").Page) {
+  const textarea = page.getByRole("textbox", {
+    name: /班级或课程代码|Section or course codes|粘贴|Paste/i,
+  });
+  if ((await textarea.count()) === 0) {
+    await page
+      .getByRole("button", {
+        name: /批量导入班级|Bulk Import Sections/i,
+      })
+      .first()
+      .click();
+  }
+  await expect(textarea.first()).toBeVisible({ timeout: 5_000 });
+  return textarea.first();
 }
 
 test.describe("仪表盘关注班级", () => {
@@ -256,24 +272,12 @@ test.describe("仪表盘关注班级", () => {
     test.setTimeout(60_000);
     await signInAsDebugUser(page, "/dashboard/subscriptions");
 
-    const textarea = page.getByRole("textbox", {
-      name: /班级代码|Section codes|粘贴|Paste/i,
-    });
-    if ((await textarea.count()) === 0) {
-      await page
-        .getByRole("button", {
-          name: /批量导入班级|Bulk Import Sections/i,
-        })
-        .first()
-        .click();
-    }
-    await expect(textarea.first()).toBeVisible({ timeout: 5_000 });
-
-    await textarea.first().fill(DEV_SEED.section.code);
+    const textarea = await openBulkImportDialog(page);
+    await textarea.fill(DEV_SEED.section.code);
 
     const matchResponse = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/sections/match-codes") &&
+        response.url().includes("/api/calendar-subscriptions/query") &&
         response.request().method() === "POST" &&
         response.status() === 200,
     );
@@ -313,25 +317,13 @@ test.describe("仪表盘关注班级", () => {
     test.setTimeout(60_000);
     await signInAsDebugUser(page, "/dashboard/subscriptions");
 
-    const textarea = page.getByRole("textbox", {
-      name: /班级代码|Section codes|粘贴|Paste/i,
-    });
-    if ((await textarea.count()) === 0) {
-      await page
-        .getByRole("button", {
-          name: /批量导入班级|Bulk Import Sections/i,
-        })
-        .first()
-        .click();
-    }
-    await expect(textarea.first()).toBeVisible({ timeout: 5_000 });
-
+    const textarea = await openBulkImportDialog(page);
     // Include a valid code and an invalid one
-    await textarea.first().fill(`\n${DEV_SEED.section.code}\nDEVXX000.99\n`);
+    await textarea.fill(`\n${DEV_SEED.section.code}\nDEVXX000.99\n`);
 
     const matchResponse = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/sections/match-codes") &&
+        response.url().includes("/api/calendar-subscriptions/query") &&
         response.request().method() === "POST" &&
         response.status() === 200,
     );

@@ -5,7 +5,5 @@
     "version": "0.1.0",
     "description": "USTC Life REST API"
   },
-  "servers": [
-    { "url": "/", "description": "Current host" }
-  ]
+  "servers": [{ "url": "/", "description": "Current host" }]
 }

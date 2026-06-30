@@ -9,6 +9,7 @@ import {
   restReadScope,
   restWriteScope,
 } from "@/lib/oauth/constants";
+import { isFeatureScope } from "@/lib/oauth/scope-registry";
 import { parseBearerAuthorizationHeader } from "./authorization-header";
 import { verifyAccessTokenJwt } from "./jwt-verification";
 import { hasRequestAuthSignal } from "./request-auth-signal";
@@ -32,7 +33,7 @@ function hasRequiredRestScope(
 }
 
 function hasAnyRestScope(scopes: Set<string>): boolean {
-  return [...scopes].some((s) => s.startsWith("rest:"));
+  return [...scopes].some(isFeatureScope);
 }
 
 /**

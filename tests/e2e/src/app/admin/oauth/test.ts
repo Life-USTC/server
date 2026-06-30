@@ -96,9 +96,10 @@ test("/admin/oauth 管理员可创建并删除客户端", async ({ page }, testI
       page.getByText(/Verify your identity|验证您的身份/i).first(),
     ).toBeVisible();
     await expect(
-      page
-        .getByText(/Call MCP tools on your behalf|代表您调用 MCP 工具/i)
-        .first(),
+      page.getByText(/Read your todos|读取你的待办事项/i).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/Manage your todos|管理你的待办事项/i).first(),
     ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "admin-oauth-created");
 

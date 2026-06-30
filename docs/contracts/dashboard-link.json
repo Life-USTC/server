@@ -66,6 +66,15 @@
             ]
           },
           {
+            "path": "/api/dashboard-links/pin/batch",
+            "method": "POST",
+            "returns": "{ pinnedSlugs: String[], maxPinnedLinks: Int, error: String? }",
+            "notes": [
+              "Applies up to 10 pin/unpin actions for the authenticated user in request order.",
+              "Uses the same pin limit and displacement behavior as the single pin endpoint."
+            ]
+          },
+          {
             "path": "/api/dashboard-links/visit",
             "returns": "307 redirect",
             "auth": "anon",

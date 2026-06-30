@@ -56,7 +56,9 @@ describe("buildOAuthProviderPlugin", () => {
     expect(oauthProviderMock).toHaveBeenCalledWith(
       expect.objectContaining({
         clientRegistrationDefaultScopes: [...DEFAULT_OAUTH_CLIENT_SCOPES],
-        clientRegistrationAllowedScopes: [...CLIENT_REGISTRATION_ALLOWED_SCOPES],
+        clientRegistrationAllowedScopes: [
+          ...CLIENT_REGISTRATION_ALLOWED_SCOPES,
+        ],
         scopes: [...CLIENT_REGISTRATION_ALLOWED_SCOPES],
         advertisedMetadata: expect.objectContaining({
           scopes_supported: [...OAUTH_SCOPES],
@@ -83,6 +85,11 @@ describe("buildOAuthProviderPlugin", () => {
     expect(options.advertisedMetadata.scopes_supported).not.toContain(
       "rest:read",
     );
+    expect(options.advertisedMetadata.scopes_supported).not.toContain(
+      "mcp:tools",
+    );
+    expect(options.advertisedMetadata.scopes_supported).toContain("todo:read");
+    expect(options.advertisedMetadata.scopes_supported).toContain("todo:write");
     expect(options.advertisedMetadata.scopes_supported).toEqual([
       ...OAUTH_SCOPES,
     ]);

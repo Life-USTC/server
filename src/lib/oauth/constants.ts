@@ -67,11 +67,11 @@ export const REST_FEATURES = [
 export type RestFeature = (typeof REST_FEATURES)[number];
 
 export function restReadScope(feature: RestFeature) {
-  return `rest:${feature}:read` as const;
+  return `${feature}:read` as const;
 }
 
 export function restWriteScope(feature: RestFeature) {
-  return `rest:${feature}:write` as const;
+  return `${feature}:write` as const;
 }
 
 export const MCP_FEATURES = [

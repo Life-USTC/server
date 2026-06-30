@@ -34,7 +34,9 @@ export {
 } from "@/lib/api/schemas/request-upload-mutation-schemas";
 export {
   calendarSubscriptionAppendRequestSchema,
+  calendarSubscriptionBatchRequestSchema,
   calendarSubscriptionCreateRequestSchema,
+  calendarSubscriptionQueryRequestSchema,
   calendarSubscriptionRemoveRequestSchema,
   dashboardLinkPinBatchRequestSchema,
   dashboardLinkPinRequestSchema,

@@ -5,15 +5,12 @@ import {
   sanitizeDashboardReturnTo,
   updateDashboardLinkPinState,
 } from "@/features/dashboard-links/server/dashboard-link-service";
+import { jsonResponse, parseRouteJsonBody } from "@/lib/api/helpers";
 import {
   dashboardLinkPinBatchRequestSchema,
   dashboardLinkPinRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
 import { dashboardLinkPinResponseSchema } from "@/lib/api/schemas/response-schemas";
-import {
-  jsonResponse,
-  parseRouteJsonBody,
-} from "@/lib/api/helpers";
 import { requireAuth, resolveApiUserId } from "@/lib/auth/api-auth";
 import { jsonOrRedirectForPinnedLinks } from "./dashboard-link-pin-response";
 

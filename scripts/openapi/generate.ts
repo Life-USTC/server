@@ -1,10 +1,12 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Project } from "ts-morph";
-import { createDocument, type OpenAPIObject } from "zod-openapi";
+import { createDocument, type ZodOpenApiObject } from "zod-openapi";
 import baseDoc from "../../svelte.openapi.json";
-import { SchemaCollector } from "./schema-collector";
 import { collectPaths } from "./route-collector";
+import { SchemaCollector } from "./schema-collector";
+
+const baseOpenApiDoc = baseDoc as ZodOpenApiObject;
 
 const SECURITY_SCHEMES = {
   bearerAuth: {
@@ -12,7 +14,7 @@ const SECURITY_SCHEMES = {
     scheme: "bearer",
     bearerFormat: "JWT",
     description:
-      "OAuth access token accepted by protected REST endpoints when it carries rest:read for reads or rest:write for mutations. These endpoints also accept an in-site Better Auth session cookie.",
+      "OAuth access token accepted by protected REST endpoints when it carries a matching feature:read scope for reads or feature:write scope for mutations. These endpoints also accept an in-site Better Auth session cookie.",
   },
   sessionCookie: {
     type: "apiKey" as const,
@@ -45,11 +47,27 @@ const SECURITY_SCHEMES = {
 
 const ROOT_TAGS = [
   { name: "Admin", description: "Admin and moderation endpoints" },
-  { name: "Comments", description: "Comment threads, reactions, and moderation" },
-  { name: "Homeworks", description: "Homework management and completion status" },
-  { name: "Uploads", description: "Upload session, R2 object write, finalize, and file management" },
-  { name: "Descriptions", description: "User-generated description content and history" },
-  { name: "Sections", description: "Course sections, calendars, and schedules" },
+  {
+    name: "Comments",
+    description: "Comment threads, reactions, and moderation",
+  },
+  {
+    name: "Homeworks",
+    description: "Homework management and completion status",
+  },
+  {
+    name: "Uploads",
+    description:
+      "Upload session, R2 object write, finalize, and file management",
+  },
+  {
+    name: "Descriptions",
+    description: "User-generated description content and history",
+  },
+  {
+    name: "Sections",
+    description: "Course sections, calendars, and schedules",
+  },
   { name: "Courses", description: "Course catalog and search" },
   { name: "Teachers", description: "Teacher directory and search" },
   { name: "Schedules", description: "Schedules search and filtering" },
@@ -57,32 +75,49 @@ const ROOT_TAGS = [
   { name: "Calendar", description: "Calendar selections and exports" },
   { name: "Bus", description: "Shuttle bus schedules and preferences" },
   { name: "Todos", description: "Personal todo management" },
-  { name: "Me", description: "Current user profile, subscriptions, and personal data" },
-  { name: "DashboardLinks", description: "Dashboard link pinning and click tracking", "x-displayName": "Dashboard Links" },
+  {
+    name: "Me",
+    description: "Current user profile, subscriptions, and personal data",
+  },
+  {
+    name: "DashboardLinks",
+    description: "Dashboard link pinning and click tracking",
+    "x-displayName": "Dashboard Links",
+  },
   { name: "Locale", description: "Locale switching and locale cookies" },
   { name: "Metadata", description: "Metadata dictionaries for filters" },
-  { name: "OpenAPI", description: "OpenAPI document endpoint", "x-displayName": "OpenAPI" },
+  {
+    name: "OpenAPI",
+    description: "OpenAPI document endpoint",
+    "x-displayName": "OpenAPI",
+  },
   { name: "Api", description: "General API endpoints" },
 ];
 
 const TAG_GROUPS = [
-  { name: "Catalog", tags: ["Sections", "Courses", "Teachers", "Schedules", "Semesters"] },
-  { name: "Workspace", tags: ["Homeworks", "Todos", "Calendar", "Me", "DashboardLinks"] },
+  {
+    name: "Catalog",
+    tags: ["Sections", "Courses", "Teachers", "Schedules", "Semesters"],
+  },
+  {
+    name: "Workspace",
+    tags: ["Homeworks", "Todos", "Calendar", "Me", "DashboardLinks"],
+  },
   { name: "Community", tags: ["Comments", "Descriptions", "Uploads"] },
   { name: "Campus Services", tags: ["Bus"] },
   { name: "Platform", tags: ["Metadata", "Locale", "OpenAPI", "Api"] },
   { name: "Admin", tags: ["Admin"] },
 ];
 
-export function generateOpenApiDocument(): OpenAPIObject {
+export function generateOpenApiDocument(): ReturnType<typeof createDocument> {
   const project = new Project({ tsConfigFilePath: "tsconfig.json" });
   const schemas = new SchemaCollector();
   const paths = collectPaths(project, schemas);
 
-  return createDocument({
-    ...baseDoc,
+  const document = {
+    ...baseOpenApiDoc,
     info: {
-      ...baseDoc.info,
+      ...baseOpenApiDoc.info,
       version: "1.0.0",
       description: "OpenAPI document generated from SvelteKit route handlers",
     },
@@ -94,7 +129,9 @@ export function generateOpenApiDocument(): OpenAPIObject {
       schemas: schemas.getRegisteredSchemas(),
       securitySchemes: SECURITY_SCHEMES,
     },
-  });
+  } satisfies ZodOpenApiObject;
+
+  return createDocument(document);
 }
 
 if (import.meta.main) {

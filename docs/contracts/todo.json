@@ -84,9 +84,27 @@
             ]
           },
           {
+            "path": "/api/todos/batch",
+            "method": "PATCH",
+            "returns": "{ results: Array<{ success: Boolean, todoId: String, completed: Boolean, todo?: TodoItem, error?: { code, message } }> }",
+            "notes": [
+              "Batch completion endpoint for setting completed=true/false across up to 100 todos.",
+              "Each item reports success or a per-item not_found/forbidden error without aborting the whole batch."
+            ]
+          },
+          {
             "path": "/api/todos/[id]",
             "method": "DELETE",
             "returns": "{ success: Boolean }"
+          },
+          {
+            "path": "/api/todos/batch",
+            "method": "DELETE",
+            "returns": "{ results: Array<{ success: Boolean, id: String, error?: { code, message } }> }",
+            "notes": [
+              "Batch delete endpoint for up to 100 todos.",
+              "Each id reports success or a per-item not_found/forbidden error without aborting the whole batch."
+            ]
           }
         ]
       },

@@ -1,14 +1,18 @@
 import {
+  badRequest,
   handleRouteError,
   jsonResponse,
   notFound,
+  parseInteger,
   parseRouteJsonBody,
 } from "@/lib/api/helpers";
 import { parseSectionMatchCodesRequest } from "@/lib/api/routes/academic-section-route-request";
 import { getRequestLocale } from "@/lib/api/routes/request-locale";
 import {
   calendarSubscriptionAppendRequestSchema,
+  calendarSubscriptionBatchRequestSchema,
   calendarSubscriptionCreateRequestSchema,
+  calendarSubscriptionQueryRequestSchema,
   calendarSubscriptionRemoveRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
 import { requireAuth } from "@/lib/auth/api-auth";
@@ -37,6 +41,18 @@ export async function getCurrentCalendarSubscriptionRoute(request: Request) {
   } catch (error) {
     return handleRouteError("Failed to fetch calendar subscription", error);
   }
+}
+
+function parsedSubscriptionSemesterId(semesterId: string | number | undefined) {
+  if (semesterId === undefined) {
+    return { ok: true as const, value: undefined };
+  }
+
+  const parsed = parseInteger(String(semesterId));
+  if (parsed === null) {
+    return { ok: false as const };
+  }
+  return { ok: true as const, value: parsed };
 }
 
 export async function postCalendarSubscriptionsRoute(request: Request) {
@@ -69,6 +85,93 @@ export async function postCalendarSubscriptionsRoute(request: Request) {
     return jsonResponse({ subscription });
   } catch (error) {
     return handleRouteError("Failed to update calendar subscription", error);
+  }
+}
+
+export async function postCalendarSubscriptionQueryRoute(request: Request) {
+  try {
+    const auth = await requireAuth(request, {
+      bearerScope: { feature: "subscription", action: "read" },
+    });
+    if (auth instanceof Response) return auth;
+
+    const parsedBody = await parseRouteJsonBody(
+      request,
+      calendarSubscriptionQueryRequestSchema,
+      "Invalid subscription query request",
+    );
+    if (parsedBody instanceof Response) {
+      return parsedBody;
+    }
+
+    const parsedSemesterId = parsedSubscriptionSemesterId(
+      parsedBody.semesterId,
+    );
+    if (!parsedSemesterId.ok) {
+      return badRequest("semesterId must be a valid number");
+    }
+
+    const { resolveCalendarSubscriptionSections } = await import(
+      "@/features/subscriptions/server/subscriptions"
+    );
+    const result = await resolveCalendarSubscriptionSections({
+      codes: parsedBody.codes,
+      locale: getRequestLocale(request),
+      sectionIds: parsedBody.sectionIds,
+      semesterId: parsedSemesterId.value,
+    });
+    if (!result) {
+      return notFound("No semester found");
+    }
+
+    return jsonResponse(result);
+  } catch (error) {
+    return handleRouteError("Failed to query section subscriptions", error);
+  }
+}
+
+export async function postCalendarSubscriptionBatchRoute(request: Request) {
+  try {
+    const auth = await requireAuth(request, {
+      bearerScope: { feature: "subscription", action: "write" },
+    });
+    if (auth instanceof Response) return auth;
+    const { userId } = auth;
+
+    const parsedBody = await parseRouteJsonBody(
+      request,
+      calendarSubscriptionBatchRequestSchema,
+      "Invalid subscription batch request",
+    );
+    if (parsedBody instanceof Response) {
+      return parsedBody;
+    }
+
+    const parsedSemesterId = parsedSubscriptionSemesterId(
+      parsedBody.semesterId,
+    );
+    if (!parsedSemesterId.ok) {
+      return badRequest("semesterId must be a valid number");
+    }
+
+    const { batchUpdateUserSectionSubscriptions } = await import(
+      "@/features/subscriptions/server/subscriptions"
+    );
+    const result = await batchUpdateUserSectionSubscriptions({
+      action: parsedBody.action,
+      codes: parsedBody.codes,
+      locale: getRequestLocale(request),
+      sectionIds: parsedBody.sectionIds,
+      semesterId: parsedSemesterId.value,
+      userId,
+    });
+    if (!result) {
+      return notFound("No semester found");
+    }
+
+    return jsonResponse(result);
+  } catch (error) {
+    return handleRouteError("Failed to update section subscriptions", error);
   }
 }
 

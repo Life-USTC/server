@@ -1,8 +1,8 @@
-import { describe, expect, it } from "vitest";
 import { Project } from "ts-morph";
-import * as z from "zod";
-import { SchemaCollector } from "../../scripts/openapi/schema-collector";
+import { describe, expect, it } from "vitest";
+import type * as z from "zod";
 import { collectPaths } from "../../scripts/openapi/route-collector";
+import { SchemaCollector } from "../../scripts/openapi/schema-collector";
 
 describe("SchemaCollector", () => {
   it("registers a schema when referenced by name", () => {
@@ -48,12 +48,18 @@ export const GET = () => new Response();
     expect(operation.operationId).toBe("listTodos");
     expect(operation.summary).toBe("List todos");
     expect(operation.tags).toEqual(["Todos"]);
-    expect(operation.security).toEqual([{ bearerAuth: [] }, { sessionCookie: [] }]);
+    expect(operation.security).toEqual([
+      { bearerAuth: [] },
+      { sessionCookie: [] },
+    ]);
 
     const requestParams = operation.requestParams as { query: z.ZodType };
     expect(requestParams.query).toBeDefined();
 
-    const responses = operation.responses as Record<string, Record<string, unknown>>;
+    const responses = operation.responses as Record<
+      string,
+      Record<string, unknown>
+    >;
     expect(responses["200"].description).toBe("Successful response");
     expect(responses["401"].description).toBe("Error response");
   });
@@ -78,7 +84,9 @@ export const GET = () => new Response();
       .responses as Record<string, Record<string, unknown>>;
 
     expect(responses["200"].description).toBe("Text response");
-    expect((responses["200"].content as Record<string, unknown>)["text/plain"]).toBeDefined();
+    expect(
+      (responses["200"].content as Record<string, unknown>)["text/plain"],
+    ).toBeDefined();
   });
 
   it("tags /api/metrics as Api and requires internal bearer auth", () => {
@@ -135,7 +143,10 @@ export const PATCH = () => new Response();
 
     const requestBody = operation.requestBody as Record<string, unknown>;
     expect(requestBody.required).toBe(true);
-    const content = requestBody.content as Record<string, Record<string, unknown>>;
+    const content = requestBody.content as Record<
+      string,
+      Record<string, unknown>
+    >;
     expect(content["application/json"].schema).toEqual({
       $ref: "#/components/schemas/todoUpdateRequestSchema",
     });
@@ -178,7 +189,9 @@ export function GET() {
     expect(paths["/.well-known/openid-configuration"].options).toBeDefined();
 
     expect(paths["/api/auth/.well-known/openid-configuration"]).toBeDefined();
-    expect(paths["/api/auth/.well-known/openid-configuration"].get).toBeDefined();
+    expect(
+      paths["/api/auth/.well-known/openid-configuration"].get,
+    ).toBeDefined();
   });
 
   it("includes Location header for .well-known 307 redirects", () => {
@@ -197,11 +210,18 @@ export const { GET, OPTIONS } = { GET: () => new Response(), OPTIONS: () => new 
 
     const schemas = new SchemaCollector();
     const paths = collectPaths(project, schemas);
-    const operation = paths["/.well-known/oauth-authorization-server"].get as Record<string, unknown>;
-    const responses = operation.responses as Record<string, Record<string, unknown>>;
+    const operation = paths["/.well-known/oauth-authorization-server"]
+      .get as Record<string, unknown>;
+    const responses = operation.responses as Record<
+      string,
+      Record<string, unknown>
+    >;
 
     expect(responses["307"].description).toBe("Redirect");
-    const headers = responses["307"].headers as Record<string, Record<string, unknown>>;
+    const headers = responses["307"].headers as Record<
+      string,
+      Record<string, unknown>
+    >;
     expect(headers.Location).toBeDefined();
     expect(headers.Location.schema).toEqual({ type: "string", format: "uri" });
   });
@@ -229,9 +249,14 @@ export function GET() {
     const operation = paths["/api/health"].get as Record<string, unknown>;
     expect(operation.summary).toBe("Check process liveness");
 
-    const responses = operation.responses as Record<string, Record<string, unknown>>;
+    const responses = operation.responses as Record<
+      string,
+      Record<string, unknown>
+    >;
     expect(responses["200"].description).toBe("Text response");
-    expect((responses["200"].content as Record<string, unknown>)["text/plain"]).toBeDefined();
+    expect(
+      (responses["200"].content as Record<string, unknown>)["text/plain"],
+    ).toBeDefined();
   });
 
   it("uses object items for the array response shortcut", () => {
@@ -251,11 +276,12 @@ export const GET = () => new Response();
     const schemas = new SchemaCollector();
     const paths = collectPaths(project, schemas);
 
-    const responses = (paths["/api/sections/{jwId}/schedules"].get as Record<string, unknown>)
-      .responses as Record<string, Record<string, unknown>>;
-    const schema = (responses["200"].content as Record<string, Record<string, unknown>>)[
-      "application/json"
-    ].schema as Record<string, unknown>;
+    const responses = (
+      paths["/api/sections/{jwId}/schedules"].get as Record<string, unknown>
+    ).responses as Record<string, Record<string, unknown>>;
+    const schema = (
+      responses["200"].content as Record<string, Record<string, unknown>>
+    )["application/json"].schema as Record<string, unknown>;
     expect(schema.type).toBe("array");
     expect(schema.items).toEqual({ type: "object" });
   });

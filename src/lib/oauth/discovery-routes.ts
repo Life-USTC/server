@@ -6,7 +6,12 @@ import {
   getOAuthOpenIdConfigurationUrl,
   getOAuthProtectedResourceMetadataUrl,
 } from "@/lib/mcp/urls";
-import { MCP_FEATURES, MCP_TOOLS_SCOPE, mcpScope } from "@/lib/oauth/constants";
+import {
+  MCP_TOOLS_SCOPE,
+  REST_FEATURES,
+  restReadScope,
+  restWriteScope,
+} from "@/lib/oauth/constants";
 import {
   createDiscoveryJsonResponse,
   createDiscoveryMetadataRoute,
@@ -22,7 +27,10 @@ async function getProtectedResourceMetadataResponse() {
     resource: getMcpServerUrl().toString(),
     authorization_servers: [issuerUrl.toString()],
     scopes_supported: [
-      ...MCP_FEATURES.map(mcpScope),
+      ...REST_FEATURES.flatMap((feature) => [
+        restReadScope(feature),
+        restWriteScope(feature),
+      ]),
       MCP_TOOLS_SCOPE,
     ],
     bearer_methods_supported: ["header"],
