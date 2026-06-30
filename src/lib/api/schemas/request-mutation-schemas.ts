@@ -14,6 +14,7 @@ export {
   adminUpdateUserRequestSchema,
 } from "@/lib/api/schemas/request-admin-mutation-schemas";
 export {
+  commentBatchDeleteRequestSchema,
   commentCreateRequestSchema,
   commentReactionRequestSchema,
   commentUpdateRequestSchema,

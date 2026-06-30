@@ -59,6 +59,17 @@
             "auth": "user"
           },
           {
+            "path": "/api/comments/batch",
+            "method": "DELETE",
+            "returns": "{ results: Array<{ success: true, id: String } | { success: false, id: String, error: { code: 'not_found' | 'forbidden' | 'locked', message: String } }> }",
+            "auth": "user",
+            "notes": [
+              "Accepts up to 50 comment ids.",
+              "Deletes each comment using the same owner/locked checks as DELETE /api/comments/[id].",
+              "Returns per-item results; failures do not stop processing of other ids."
+            ]
+          },
+          {
             "path": "/api/comments/[id]/reactions",
             "method": "POST",
             "returns": "{ success: Boolean }",
