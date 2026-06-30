@@ -2,13 +2,10 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Life@USTC API",
-    "version": "1.0.0",
-    "description": "OpenAPI document generated from SvelteKit route handlers"
+    "version": "0.1.0",
+    "description": "USTC Life REST API"
   },
   "servers": [
-    {
-      "url": "/",
-      "description": "Current origin"
-    }
+    { "url": "/", "description": "Current host" }
   ]
 }
