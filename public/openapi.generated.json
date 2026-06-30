@@ -152,7 +152,15 @@
         ],
         "responses": {
           "307": {
-            "description": "Redirect"
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
           }
         }
       },
@@ -164,7 +172,15 @@
         ],
         "responses": {
           "307": {
-            "description": "Redirect"
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
           }
         }
       }
@@ -178,7 +194,15 @@
         ],
         "responses": {
           "307": {
-            "description": "Redirect"
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
           }
         }
       },
@@ -190,7 +214,15 @@
         ],
         "responses": {
           "307": {
-            "description": "Redirect"
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
           }
         }
       }
@@ -204,7 +236,15 @@
         ],
         "responses": {
           "307": {
-            "description": "Redirect"
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
           }
         }
       },
@@ -216,7 +256,15 @@
         ],
         "responses": {
           "307": {
-            "description": "Redirect"
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
           }
         }
       }
@@ -1318,7 +1366,12 @@
         "operationId": "listMetrics",
         "summary": "Export internal runtime metrics",
         "tags": [
-          "Me"
+          "Api"
+        ],
+        "security": [
+          {
+            "internalBearerAuth": []
+          }
         ],
         "responses": {
           "200": {
@@ -4402,7 +4455,15 @@
         ],
         "responses": {
           "307": {
-            "description": "Redirect"
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
           }
         }
       },
@@ -4414,7 +4475,15 @@
         ],
         "responses": {
           "307": {
-            "description": "Redirect"
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
           }
         }
       }
@@ -4480,7 +4549,15 @@
         ],
         "responses": {
           "307": {
-            "description": "Redirect"
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
           }
         }
       },
@@ -4492,7 +4569,15 @@
         ],
         "responses": {
           "307": {
-            "description": "Redirect"
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
           }
         }
       }
@@ -5311,7 +5396,15 @@
         ],
         "responses": {
           "307": {
-            "description": "Redirect"
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
           }
         }
       },
@@ -5323,7 +5416,15 @@
         ],
         "responses": {
           "307": {
-            "description": "Redirect"
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
           }
         }
       }
@@ -5337,7 +5438,15 @@
         ],
         "responses": {
           "307": {
-            "description": "Redirect"
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
           }
         }
       },
@@ -5349,7 +5458,15 @@
         ],
         "responses": {
           "307": {
-            "description": "Redirect"
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
           }
         }
       }

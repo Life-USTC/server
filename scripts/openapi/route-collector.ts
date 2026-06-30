@@ -344,6 +344,15 @@ function buildResponse(
     return redirect;
   }
 
+  if (isRedirectStatus(status) && routePath.includes(".well-known")) {
+    return {
+      description: describeStatusOnly(status),
+      headers: {
+        Location: { schema: { type: "string", format: "uri" } },
+      },
+    };
+  }
+
   if (target === "") {
     return { description: describeStatusOnly(status) };
   }
@@ -369,8 +378,12 @@ function buildResponse(
   };
 }
 
+function isRedirectStatus(status: string): boolean {
+  return status === "307" || status === "303";
+}
+
 function describeStatusOnly(status: string): string {
-  if (status === "307" || status === "303") return "Redirect";
+  if (isRedirectStatus(status)) return "Redirect";
   return `Response ${status}`;
 }
 
@@ -414,10 +427,10 @@ function buildTag(routePath: string): string {
   if (routePath.startsWith("/api/homeworks")) return "Homeworks";
   if (routePath === "/api/locale") return "Locale";
   if (routePath === "/api/metadata") return "Metadata";
-  if (routePath.startsWith("/api/me")) return "Me";
   if (routePath === "/api/metrics") return "Api";
   if (routePath === "/api/openapi") return "OpenAPI";
   if (routePath === "/api/readiness") return "Api";
+  if (routePath.startsWith("/api/me")) return "Me";
   if (routePath === "/api/schedules") return "Schedules";
   if (routePath.startsWith("/api/sections")) return "Sections";
   if (routePath.startsWith("/api/semesters")) return "Semesters";
@@ -439,7 +452,7 @@ function buildSecurity(
   has401: boolean,
 ): Array<Record<string, string[]>> | undefined {
   if (!has401) {
-    if (routePath === "/api/readiness") {
+    if (routePath === "/api/readiness" || routePath === "/api/metrics") {
       return [{ internalBearerAuth: [] }];
     }
     return undefined;
