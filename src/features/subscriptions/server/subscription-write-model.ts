@@ -1,4 +1,3 @@
-import { findSectionCodeMatches } from "@/features/catalog/server/course-section-queries";
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { prisma } from "@/lib/db/prisma";
@@ -8,6 +7,7 @@ import {
 } from "./subscription-calendar-read-model";
 import { getSubscribedSectionIds } from "./subscription-read-model-shared";
 import { uniqueSectionIds } from "./subscription-section-id-helpers";
+import { resolveCalendarSubscriptionSections } from "./subscription-section-resolver";
 
 async function replaceUserSectionIds(
   userId: string,
@@ -181,7 +181,11 @@ export async function importUserSectionSubscriptionsByCodes({
   semesterId?: number;
   userId: string;
 }) {
-  const matches = await findSectionCodeMatches(codes, locale, semesterId);
+  const matches = await resolveCalendarSubscriptionSections({
+    codes,
+    locale,
+    semesterId,
+  });
   if (!matches) {
     return null;
   }
@@ -203,6 +207,74 @@ export async function importUserSectionSubscriptionsByCodes({
     matches,
     addedSections,
     alreadySubscribedSections,
+    subscription: await getUserCalendarSubscription(userId, locale),
+  };
+}
+
+export async function batchUpdateUserSectionSubscriptions({
+  action,
+  codes,
+  locale = DEFAULT_LOCALE,
+  sectionIds,
+  semesterId,
+  userId,
+}: {
+  action: "add" | "remove" | "set";
+  codes?: readonly string[];
+  locale?: AppLocale;
+  sectionIds?: readonly number[];
+  semesterId?: number;
+  userId: string;
+}) {
+  const resolved = await resolveCalendarSubscriptionSections({
+    codes,
+    locale,
+    sectionIds,
+    semesterId,
+  });
+  if (!resolved) {
+    return null;
+  }
+
+  const user = await getMutableUserSubscriptions(userId);
+  if (!user) {
+    return null;
+  }
+
+  const currentIds = user.subscribedSections.map((section) => section.id);
+  const currentIdSet = new Set(currentIds);
+  const targetIds = uniqueSectionIds(
+    resolved.sections.map((section) => section.id),
+  );
+  const targetIdSet = new Set(targetIds);
+
+  let addedCount = 0;
+  let removedCount = 0;
+  let unchangedCount = 0;
+
+  if (action === "add") {
+    const addedIds = targetIds.filter((id) => !currentIdSet.has(id));
+    addedCount = addedIds.length;
+    unchangedCount = targetIds.length - addedCount;
+    await connectUserSectionIds(userId, addedIds);
+  } else if (action === "remove") {
+    const removedIds = targetIds.filter((id) => currentIdSet.has(id));
+    removedCount = removedIds.length;
+    unchangedCount = targetIds.length - removedCount;
+    await disconnectUserSectionIds(userId, removedIds);
+  } else {
+    addedCount = targetIds.filter((id) => !currentIdSet.has(id)).length;
+    removedCount = currentIds.filter((id) => !targetIdSet.has(id)).length;
+    unchangedCount = targetIds.length - addedCount;
+    await replaceUserSectionIds(userId, targetIds);
+  }
+
+  return {
+    ...resolved,
+    action,
+    addedCount,
+    removedCount,
+    unchangedCount,
     subscription: await getUserCalendarSubscription(userId, locale),
   };
 }

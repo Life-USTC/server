@@ -1,102 +1,121 @@
-import { type McpFeature, mcpScope } from "@/lib/oauth/constants";
+import {
+  type RestFeature,
+  restReadScope,
+  restWriteScope,
+} from "@/lib/oauth/constants";
+
+type ToolScopeRequirement = {
+  action: "read" | "write";
+  feature: RestFeature;
+};
 
 /**
- * Maps every registered MCP tool name to the feature scope(s) it belongs to.
+ * Maps every registered MCP tool name to the feature action scope(s) it needs.
  *
- * Tools that are not present in this map fall back to requiring only the generic
- * MCP scope check performed by `authenticateMcpRequest` (i.e. any valid MCP
- * scope, including the legacy `mcp:tools`). This keeps the registry additive:
- * adding a new tool does not break callers until an explicit scope is assigned.
+ * Tools that are not present in this map fall back to the generic MCP scope
+ * check performed by `authenticateMcpRequest`. Legacy MCP scopes are expanded
+ * before this registry is evaluated, so the map stays additive: adding a new
+ * tool does not break callers until an explicit scope is assigned.
  */
-const TOOL_SCOPE_MAP: Record<string, McpFeature[]> = {
+const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
   // Profile
-  get_my_profile: ["profile"],
-  get_public_user_profile: ["profile"],
+  get_my_profile: [{ feature: "me", action: "read" }],
+  get_public_user_profile: [{ feature: "me", action: "read" }],
 
   // Todos
-  list_my_todos: ["todo"],
-  create_my_todo: ["todo"],
-  update_my_todo: ["todo"],
-  delete_my_todo: ["todo"],
+  list_my_todos: [{ feature: "todo", action: "read" }],
+  create_my_todo: [{ feature: "todo", action: "write" }],
+  update_my_todo: [{ feature: "todo", action: "write" }],
+  delete_my_todo: [{ feature: "todo", action: "write" }],
 
   // Homeworks
-  list_my_homeworks: ["homework"],
-  set_my_homework_completion: ["homework"],
-  list_homeworks_by_section: ["homework"],
-  create_homework_on_section: ["homework"],
-  update_homework_on_section: ["homework"],
-  delete_homework_on_section: ["homework"],
+  list_my_homeworks: [{ feature: "homework", action: "read" }],
+  set_my_homework_completion: [{ feature: "homework", action: "write" }],
+  list_homeworks_by_section: [{ feature: "homework", action: "read" }],
+  create_homework_on_section: [{ feature: "homework", action: "write" }],
+  update_homework_on_section: [{ feature: "homework", action: "write" }],
+  delete_homework_on_section: [{ feature: "homework", action: "write" }],
 
   // Section subscriptions
-  get_my_calendar_subscription: ["subscription"],
-  list_my_subscribed_sections: ["subscription"],
-  subscribe_section_by_jw_id: ["subscription"],
-  unsubscribe_section_by_jw_id: ["subscription"],
-  subscribe_my_sections_by_codes: ["subscription"],
-  get_section_calendar_subscription: ["subscription"],
+  get_my_calendar_subscription: [{ feature: "subscription", action: "read" }],
+  list_my_subscribed_sections: [{ feature: "subscription", action: "read" }],
+  subscribe_section_by_jw_id: [{ feature: "subscription", action: "write" }],
+  unsubscribe_section_by_jw_id: [{ feature: "subscription", action: "write" }],
+  subscribe_my_sections_by_codes: [
+    { feature: "subscription", action: "write" },
+  ],
+  get_section_calendar_subscription: [
+    { feature: "subscription", action: "read" },
+  ],
 
   // Calendar
-  list_my_calendar_events: ["calendar"],
-  get_my_7days_timeline: ["calendar", "dashboard"],
+  list_my_calendar_events: [{ feature: "schedule", action: "read" }],
+  get_my_7days_timeline: [
+    { feature: "schedule", action: "read" },
+    { feature: "dashboard", action: "read" },
+  ],
 
   // Comments
-  list_comments: ["comment"],
-  get_comment_thread: ["comment"],
-  create_comment: ["comment"],
-  update_own_comment: ["comment"],
-  delete_own_comment: ["comment"],
-  add_comment_reaction: ["comment"],
-  remove_comment_reaction: ["comment"],
+  list_comments: [{ feature: "comment", action: "read" }],
+  get_comment_thread: [{ feature: "comment", action: "read" }],
+  create_comment: [{ feature: "comment", action: "write" }],
+  update_own_comment: [{ feature: "comment", action: "write" }],
+  delete_own_comment: [{ feature: "comment", action: "write" }],
+  add_comment_reaction: [{ feature: "comment", action: "write" }],
+  remove_comment_reaction: [{ feature: "comment", action: "write" }],
 
   // Descriptions
-  get_description: ["description"],
-  upsert_description: ["description"],
+  get_description: [{ feature: "description", action: "read" }],
+  upsert_description: [{ feature: "description", action: "write" }],
 
   // Uploads
-  list_my_uploads: ["upload"],
-  rename_my_upload: ["upload"],
-  delete_my_upload: ["upload"],
+  list_my_uploads: [{ feature: "upload", action: "read" }],
+  rename_my_upload: [{ feature: "upload", action: "write" }],
+  delete_my_upload: [{ feature: "upload", action: "write" }],
 
   // Dashboard / overview
-  get_my_dashboard: ["dashboard"],
-  list_dashboard_links: ["dashboard"],
-  set_dashboard_link_pin_state: ["dashboard"],
-  get_upcoming_deadlines: ["dashboard"],
-  get_my_overview: ["dashboard"],
-  get_next_class: ["dashboard", "schedule"],
+  get_my_dashboard: [{ feature: "dashboard", action: "read" }],
+  list_dashboard_links: [{ feature: "dashboard", action: "read" }],
+  set_dashboard_link_pin_state: [{ feature: "dashboard", action: "write" }],
+  get_upcoming_deadlines: [{ feature: "dashboard", action: "read" }],
+  get_my_overview: [{ feature: "dashboard", action: "read" }],
+  get_next_class: [
+    { feature: "dashboard", action: "read" },
+    { feature: "schedule", action: "read" },
+  ],
 
   // Bus
-  query_bus_timetable: ["bus"],
-  list_bus_routes: ["bus"],
-  get_bus_route_timetable: ["bus"],
-  get_my_bus_preferences: ["bus"],
-  save_my_bus_preferences: ["bus"],
-  search_bus_routes: ["bus"],
-  get_next_buses: ["bus"],
+  query_bus_timetable: [{ feature: "bus", action: "read" }],
+  list_bus_routes: [{ feature: "bus", action: "read" }],
+  get_bus_route_timetable: [{ feature: "bus", action: "read" }],
+  get_my_bus_preferences: [{ feature: "bus", action: "read" }],
+  save_my_bus_preferences: [{ feature: "bus", action: "write" }],
+  search_bus_routes: [{ feature: "bus", action: "read" }],
+  get_next_buses: [{ feature: "bus", action: "read" }],
 
   // Course catalog
-  search_courses: ["course"],
-  get_course_by_jw_id: ["course"],
-  list_semesters: ["course"],
-  get_current_semester: ["course"],
+  search_courses: [{ feature: "course", action: "read" }],
+  get_course_by_jw_id: [{ feature: "course", action: "read" }],
+  list_semesters: [{ feature: "course", action: "read" }],
+  get_current_semester: [{ feature: "course", action: "read" }],
 
   // Sections
-  get_section_by_jw_id: ["section"],
-  search_sections: ["section"],
-  match_section_codes: ["section"],
+  get_section_by_jw_id: [{ feature: "section", action: "read" }],
+  search_sections: [{ feature: "section", action: "read" }],
+  match_section_codes: [{ feature: "section", action: "read" }],
 
   // Teachers
-  search_teachers: ["teacher"],
-  get_teacher_by_id: ["teacher"],
+  search_teachers: [{ feature: "teacher", action: "read" }],
+  get_teacher_by_id: [{ feature: "teacher", action: "read" }],
 
   // Schedules
-  query_schedules: ["schedule"],
-  list_schedules_by_section: ["schedule"],
-  list_my_schedules: ["schedule"],
+  query_schedules: [{ feature: "schedule", action: "read" }],
+  list_schedules_by_section: [{ feature: "schedule", action: "read" }],
+  list_my_schedules: [{ feature: "schedule", action: "read" }],
 
   // Exams
-  list_exams_by_section: ["exam"],
-  list_my_exams: ["exam"],
+  list_exams_by_section: [{ feature: "exam", action: "read" }],
+  list_my_exams: [{ feature: "exam", action: "read" }],
 };
 
 /**
@@ -117,17 +136,21 @@ export function getRequiredMcpScopes(
         ? toolName
         : [];
 
-  const features = new Set<McpFeature>();
+  const scopes = new Set<string>();
   for (const name of names) {
     const mapped = TOOL_SCOPE_MAP[name];
     if (mapped) {
-      for (const feature of mapped) {
-        features.add(feature);
+      for (const requirement of mapped) {
+        scopes.add(
+          requirement.action === "write"
+            ? restWriteScope(requirement.feature)
+            : restReadScope(requirement.feature),
+        );
       }
     }
   }
 
-  return Array.from(features).map(mcpScope);
+  return Array.from(scopes);
 }
 
 type McpJsonRpcMessage = {

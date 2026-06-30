@@ -1,5 +1,9 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
-import { MCP_FEATURES, mcpScope } from "@/lib/oauth/constants";
+import {
+  REST_FEATURES,
+  restReadScope,
+  restWriteScope,
+} from "@/lib/oauth/constants";
 import {
   hasMcpScope,
   LEGACY_MCP_TOOLS_SCOPE,
@@ -67,9 +71,12 @@ export async function authenticateMcpRequest(
         {
           error: INSUFFICIENT_SCOPE_ERROR,
           status: 403,
-          description: "Access token does not include an MCP scope",
+          description: "Access token does not include a feature scope",
         },
-        MCP_FEATURES.map(mcpScope),
+        REST_FEATURES.flatMap((feature) => [
+          restReadScope(feature),
+          restWriteScope(feature),
+        ]),
       ),
     };
   }

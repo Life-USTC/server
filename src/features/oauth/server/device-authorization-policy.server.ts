@@ -8,7 +8,7 @@ import {
   OAUTH_DEVICE_CODE_GRANT_TYPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/constants";
-import { hasMcpScope } from "@/lib/oauth/scope-registry";
+import { hasLegacyMcpScope } from "@/lib/oauth/scope-registry";
 import {
   normalizeResourceIndicator,
   resourceIndicatorsMatch,
@@ -187,7 +187,7 @@ export function resolveRequestedDeviceResources(
   }
 
   if (
-    hasMcpScope(requestedScopes) &&
+    hasLegacyMcpScope(requestedScopes) &&
     !resources.some((resource) =>
       resourceIndicatorsMatch(resource, getOAuthMcpResourceUrl()),
     )
@@ -196,7 +196,7 @@ export function resolveRequestedDeviceResources(
       error: {
         error: "invalid_target",
         errorDescription:
-          "An MCP scope requires the MCP resource indicator",
+          "A legacy MCP scope requires the MCP resource indicator",
         status: 400,
       },
     };

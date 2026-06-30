@@ -14,7 +14,7 @@ vi.mock("@/lib/auth/core", () => ({
 }));
 
 function consentRequest(
-  body: Record<string, string>,
+  body: Record<string, string> | URLSearchParams,
   options: { origin?: string | null } = {},
 ) {
   const headers = new Headers({
@@ -28,7 +28,7 @@ function consentRequest(
   return new Request("https://life.example/oauth/authorize", {
     method: "POST",
     headers,
-    body: new URLSearchParams(body),
+    body: body instanceof URLSearchParams ? body : new URLSearchParams(body),
   });
 }
 
@@ -84,6 +84,38 @@ describe("OAuth consent 操作", () => {
     );
     expect(headers.get("content-length")).toBeNull();
     expect(headers.get("accept")).toBe("application/json");
+  });
+
+  it("narrows allowed scopes to checked scopes from the original authorize request", async () => {
+    oauth2ConsentMock.mockResolvedValue({
+      redirect_uri: "https://client.example/callback?code=code-1",
+    });
+    const body = new URLSearchParams({
+      accept: "true",
+      scope: "openid profile todo:read todo:write",
+      scopeSelectionEnabled: "true",
+      oauthQuery:
+        "client_id=client-1&state=state-1&scope=openid+profile+todo%3Aread+todo%3Awrite",
+    });
+    body.append("scopes", "openid");
+    body.append("scopes", "todo:read");
+    body.append("scopes", "admin:write");
+
+    await expect(
+      submitOAuthConsentAction({
+        request: consentRequest(body),
+      }),
+    ).rejects.toMatchObject({
+      status: 303,
+      location: "https://client.example/callback?code=code-1",
+    });
+
+    expect(oauth2ConsentMock.mock.calls[0][0].body).toMatchObject({
+      accept: true,
+      scope: "openid todo:read",
+      oauth_query:
+        "client_id=client-1&state=state-1&scope=openid+profile+todo%3Aread+todo%3Awrite",
+    });
   });
 
   it("provider consent 失败时重定向到 consent 失败页面", async () => {

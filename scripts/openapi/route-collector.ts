@@ -1,4 +1,10 @@
-import { type FunctionDeclaration, type Node, type Project, type SourceFile, SyntaxKind } from "ts-morph";
+import {
+  type FunctionDeclaration,
+  type Node,
+  type Project,
+  type SourceFile,
+  SyntaxKind,
+} from "ts-morph";
 import type { ZodType } from "zod";
 import type { SchemaCollector } from "./schema-collector";
 
@@ -10,17 +16,32 @@ const ROUTE_PATTERNS = [
   "src/routes/api/**/+server.ts",
 ] as const;
 
-const RESPONSE_SHORTCUTS: Record<string, { content: Record<string, unknown> }> = {
-  calendar: { content: { "text/calendar": { schema: { type: "string" } } } },
-  text: { content: { "text/plain": { schema: { type: "string" } } } },
-  array: { content: { "application/json": { schema: { type: "array", items: { type: "object" } } } } },
-  binary: { content: { "application/octet-stream": { schema: { type: "string", format: "binary" } } } },
-};
+const RESPONSE_SHORTCUTS: Record<string, { content: Record<string, unknown> }> =
+  {
+    calendar: { content: { "text/calendar": { schema: { type: "string" } } } },
+    text: { content: { "text/plain": { schema: { type: "string" } } } },
+    array: {
+      content: {
+        "application/json": {
+          schema: { type: "array", items: { type: "object" } },
+        },
+      },
+    },
+    binary: {
+      content: {
+        "application/octet-stream": {
+          schema: { type: "string", format: "binary" },
+        },
+      },
+    },
+  };
 
 const BINARY_REQUEST_BODY = {
   required: true,
   content: {
-    "application/octet-stream": { schema: { type: "string", format: "binary" } },
+    "application/octet-stream": {
+      schema: { type: "string", format: "binary" },
+    },
   },
 };
 
@@ -31,12 +52,18 @@ const FORM_URLENCODED_PATHS = new Set([
   "POST /api/dashboard-links/visit",
 ]);
 
-const REDIRECT_DESCRIPTIONS: Record<string, Record<string, { description: string; headers?: Record<string, unknown> }>> = {
+const REDIRECT_DESCRIPTIONS: Record<
+  string,
+  Record<string, { description: string; headers?: Record<string, unknown> }>
+> = {
   "POST /api/dashboard-links/pin": {
     "303": {
       description: "Redirect after pin/unpin",
       headers: {
-        Location: { description: "Redirect target URL", schema: { type: "string" } },
+        Location: {
+          description: "Redirect target URL",
+          schema: { type: "string" },
+        },
       },
     },
   },
@@ -44,7 +71,10 @@ const REDIRECT_DESCRIPTIONS: Record<string, Record<string, { description: string
     "307": {
       description: "Temporary redirect to target link",
       headers: {
-        Location: { description: "Redirect target URL", schema: { type: "string" } },
+        Location: {
+          description: "Redirect target URL",
+          schema: { type: "string" },
+        },
       },
     },
   },
@@ -52,7 +82,10 @@ const REDIRECT_DESCRIPTIONS: Record<string, Record<string, { description: string
     "303": {
       description: "Redirect after recording link click",
       headers: {
-        Location: { description: "Redirect target URL", schema: { type: "string" } },
+        Location: {
+          description: "Redirect target URL",
+          schema: { type: "string" },
+        },
       },
     },
   },
@@ -62,21 +95,34 @@ const REDIRECT_DESCRIPTIONS: Record<string, Record<string, { description: string
 // New routes fall back to a deterministic path-derived id.
 const OPERATION_ID_OVERRIDES: Record<string, string> = {
   "GET /.well-known/oauth-authorization-server": "listOauthAuthorizationServer",
-  "OPTIONS /.well-known/oauth-authorization-server": "options-.well-known-oauth-authorization-server",
-  "GET /.well-known/oauth-authorization-server/api/auth": "get-.well-known-oauth-authorization-server-api-auth",
-  "OPTIONS /.well-known/oauth-authorization-server/api/auth": "options-.well-known-oauth-authorization-server-api-auth",
-  "GET /.well-known/oauth-authorization-server/api/mcp": "get-.well-known-oauth-authorization-server-api-mcp",
-  "OPTIONS /.well-known/oauth-authorization-server/api/mcp": "options-.well-known-oauth-authorization-server-api-mcp",
+  "OPTIONS /.well-known/oauth-authorization-server":
+    "options-.well-known-oauth-authorization-server",
+  "GET /.well-known/oauth-authorization-server/api/auth":
+    "get-.well-known-oauth-authorization-server-api-auth",
+  "OPTIONS /.well-known/oauth-authorization-server/api/auth":
+    "options-.well-known-oauth-authorization-server-api-auth",
+  "GET /.well-known/oauth-authorization-server/api/mcp":
+    "get-.well-known-oauth-authorization-server-api-mcp",
+  "OPTIONS /.well-known/oauth-authorization-server/api/mcp":
+    "options-.well-known-oauth-authorization-server-api-mcp",
   "GET /.well-known/oauth-protected-resource": "listOauthProtectedResource",
-  "OPTIONS /.well-known/oauth-protected-resource": "options-.well-known-oauth-protected-resource",
-  "GET /.well-known/oauth-protected-resource/api/mcp": "get-.well-known-oauth-protected-resource-api-mcp",
-  "OPTIONS /.well-known/oauth-protected-resource/api/mcp": "options-.well-known-oauth-protected-resource-api-mcp",
+  "OPTIONS /.well-known/oauth-protected-resource":
+    "options-.well-known-oauth-protected-resource",
+  "GET /.well-known/oauth-protected-resource/api/mcp":
+    "get-.well-known-oauth-protected-resource-api-mcp",
+  "OPTIONS /.well-known/oauth-protected-resource/api/mcp":
+    "options-.well-known-oauth-protected-resource-api-mcp",
   "GET /.well-known/openid-configuration": "listOpenidConfiguration",
-  "OPTIONS /.well-known/openid-configuration": "options-.well-known-openid-configuration",
-  "GET /.well-known/openid-configuration/api/auth": "get-.well-known-openid-configuration-api-auth",
-  "OPTIONS /.well-known/openid-configuration/api/auth": "options-.well-known-openid-configuration-api-auth",
-  "GET /.well-known/openid-configuration/api/mcp": "get-.well-known-openid-configuration-api-mcp",
-  "OPTIONS /.well-known/openid-configuration/api/mcp": "options-.well-known-openid-configuration-api-mcp",
+  "OPTIONS /.well-known/openid-configuration":
+    "options-.well-known-openid-configuration",
+  "GET /.well-known/openid-configuration/api/auth":
+    "get-.well-known-openid-configuration-api-auth",
+  "OPTIONS /.well-known/openid-configuration/api/auth":
+    "options-.well-known-openid-configuration-api-auth",
+  "GET /.well-known/openid-configuration/api/mcp":
+    "get-.well-known-openid-configuration-api-mcp",
+  "OPTIONS /.well-known/openid-configuration/api/mcp":
+    "options-.well-known-openid-configuration-api-mcp",
   "GET /api/admin/comments": "listAdminComments",
   "PATCH /api/admin/comments/{id}": "moderateAdminComment",
   "GET /api/admin/descriptions": "listAdminDescriptions",
@@ -88,14 +134,18 @@ const OPERATION_ID_OVERRIDES: Record<string, string> = {
   "PATCH /api/admin/suspensions/{id}": "updateAdminSuspension",
   "GET /api/admin/users": "listAdminUsers",
   "PATCH /api/admin/users/{id}": "updateAdminUser",
-  "GET /api/auth/.well-known/openid-configuration": "get-api-auth-.well-known-openid-configuration",
-  "OPTIONS /api/auth/.well-known/openid-configuration": "options-api-auth-.well-known-openid-configuration",
+  "GET /api/auth/.well-known/openid-configuration":
+    "get-api-auth-.well-known-openid-configuration",
+  "OPTIONS /api/auth/.well-known/openid-configuration":
+    "options-api-auth-.well-known-openid-configuration",
   "GET /api/bus": "queryBus",
   "GET /api/bus/preferences": "getBusPreferences",
   "POST /api/bus/preferences": "setBusPreferences",
   "POST /api/calendar-subscriptions": "setCalendarSubscription",
+  "POST /api/calendar-subscriptions/batch": "batchUpdateCalendarSubscription",
   "PATCH /api/calendar-subscriptions": "appendCalendarSubscriptionSections",
   "GET /api/calendar-subscriptions/current": "getCurrentCalendarSubscription",
+  "POST /api/calendar-subscriptions/query": "queryCalendarSubscriptionSections",
   "GET /api/comments": "listComments",
   "POST /api/comments": "createComment",
   "GET /api/comments/{id}": "getComment",
@@ -119,10 +169,14 @@ const OPERATION_ID_OVERRIDES: Record<string, string> = {
   "POST /api/locale": "setLocale",
   "GET /api/mcp": "listMcp",
   "POST /api/mcp": "createMcp",
-  "GET /api/mcp/.well-known/oauth-authorization-server": "get-api-mcp-.well-known-oauth-authorization-server",
-  "OPTIONS /api/mcp/.well-known/oauth-authorization-server": "options-api-mcp-.well-known-oauth-authorization-server",
-  "GET /api/mcp/.well-known/openid-configuration": "get-api-mcp-.well-known-openid-configuration",
-  "OPTIONS /api/mcp/.well-known/openid-configuration": "options-api-mcp-.well-known-openid-configuration",
+  "GET /api/mcp/.well-known/oauth-authorization-server":
+    "get-api-mcp-.well-known-oauth-authorization-server",
+  "OPTIONS /api/mcp/.well-known/oauth-authorization-server":
+    "options-api-mcp-.well-known-oauth-authorization-server",
+  "GET /api/mcp/.well-known/openid-configuration":
+    "get-api-mcp-.well-known-openid-configuration",
+  "OPTIONS /api/mcp/.well-known/openid-configuration":
+    "options-api-mcp-.well-known-openid-configuration",
   "GET /api/me": "getMe",
   "GET /api/me/subscriptions/homeworks": "getSubscribedHomeworks",
   "GET /api/metadata": "getMetadata",
@@ -158,9 +212,16 @@ export interface RouteCollectorOptions {
   operationIdOverrides?: Record<string, string>;
 }
 
-export function collectPaths(project: Project, schemas: SchemaCollector, options: RouteCollectorOptions = {}) {
+export function collectPaths(
+  project: Project,
+  schemas: SchemaCollector,
+  options: RouteCollectorOptions = {},
+) {
   const paths: Record<string, Record<string, unknown>> = {};
-  const overrides = { ...OPERATION_ID_OVERRIDES, ...options.operationIdOverrides };
+  const overrides = {
+    ...OPERATION_ID_OVERRIDES,
+    ...options.operationIdOverrides,
+  };
 
   // TypeScript project globs skip dot-directories such as .well-known; add them explicitly.
   project.addSourceFilesAtPaths(ROUTE_PATTERNS);
@@ -202,7 +263,13 @@ function extractMethods(
     if (!decls || decls.length === 0) continue;
     const jsDocs = getJsDocsForDeclaration(decls[0]);
     if (jsDocs.length === 0) continue;
-    const operation = buildOperation(jsDocs, routePath, method.toLowerCase(), schemas, operationIdOverrides);
+    const operation = buildOperation(
+      jsDocs,
+      routePath,
+      method.toLowerCase(),
+      schemas,
+      operationIdOverrides,
+    );
     operations[method.toLowerCase()] = operation;
   }
 
@@ -214,10 +281,14 @@ function getJsDocsForDeclaration(decl: Node): import("ts-morph").JSDoc[] {
     return (decl as FunctionDeclaration).getJsDocs();
   }
 
-  const variableStatement = decl.getFirstAncestorByKind(SyntaxKind.VariableStatement);
+  const variableStatement = decl.getFirstAncestorByKind(
+    SyntaxKind.VariableStatement,
+  );
   if (variableStatement) return variableStatement.getJsDocs();
 
-  const functionDeclaration = decl.getFirstAncestorByKind(SyntaxKind.FunctionDeclaration);
+  const functionDeclaration = decl.getFirstAncestorByKind(
+    SyntaxKind.FunctionDeclaration,
+  );
   return functionDeclaration?.getJsDocs() ?? [];
 }
 
@@ -268,7 +339,13 @@ function buildOperation(
       case "response": {
         const { status, target } = parseResponseTag(docTag.text);
         if (status === "401") has401 = true;
-        responses[status] = buildResponse(routePath, method, status, target, schemas);
+        responses[status] = buildResponse(
+          routePath,
+          method,
+          status,
+          target,
+          schemas,
+        );
         break;
       }
     }
@@ -299,7 +376,10 @@ function buildOperation(
 function parseResponseTag(text: string): { status: string; target: string } {
   const colon = text.indexOf(":");
   if (colon >= 0) {
-    return { status: text.slice(0, colon).trim(), target: text.slice(colon + 1).trim() };
+    return {
+      status: text.slice(0, colon).trim(),
+      target: text.slice(colon + 1).trim(),
+    };
   }
   if (/^\d{3}$/.test(text)) {
     return { status: text, target: "" };
@@ -322,7 +402,9 @@ function buildRequestBody(
   const registered = schemas.register(target);
   if (!registered) return undefined;
 
-  const mediaType = FORM_URLENCODED_PATHS.has(`${method.toUpperCase()} ${routePath}`)
+  const mediaType = FORM_URLENCODED_PATHS.has(
+    `${method.toUpperCase()} ${routePath}`,
+  )
     ? "application/x-www-form-urlencoded"
     : "application/json";
 
@@ -339,7 +421,8 @@ function buildResponse(
   target: string,
   schemas: SchemaCollector,
 ): Record<string, unknown> {
-  const redirect = REDIRECT_DESCRIPTIONS[`${method.toUpperCase()} ${routePath}`]?.[status];
+  const redirect =
+    REDIRECT_DESCRIPTIONS[`${method.toUpperCase()} ${routePath}`]?.[status];
   if (redirect) {
     return redirect;
   }
@@ -402,7 +485,11 @@ function describeShortcut(shortcut: string): string {
   }
 }
 
-function buildOperationId(routePath: string, method: string, overrides: Record<string, string>): string {
+function buildOperationId(
+  routePath: string,
+  method: string,
+  overrides: Record<string, string>,
+): string {
   const key = `${method.toUpperCase()} ${routePath}`;
   if (overrides[key]) return overrides[key];
 
@@ -439,7 +526,11 @@ function buildTag(routePath: string): string {
   if (routePath.startsWith("/api/uploads")) return "Uploads";
   if (routePath === "/api/users/{userId}/calendar.ics") return "Calendar";
   if (routePath.startsWith("/api/users")) return "Api";
-  if (routePath.startsWith("/api/auth") || routePath.startsWith("/api/mcp") || routePath.startsWith("/.well-known")) {
+  if (
+    routePath.startsWith("/api/auth") ||
+    routePath.startsWith("/api/mcp") ||
+    routePath.startsWith("/.well-known")
+  ) {
     return "Api";
   }
   return "Api";
@@ -475,7 +566,11 @@ function buildSecurity(
   }
 
   if (routePath === "/api/users/{userId}/calendar.ics") {
-    return [{ bearerAuth: [] }, { sessionCookie: [] }, { calendarFeedToken: [] }];
+    return [
+      { bearerAuth: [] },
+      { sessionCookie: [] },
+      { calendarFeedToken: [] },
+    ];
   }
 
   return [{ bearerAuth: [] }, { sessionCookie: [] }];

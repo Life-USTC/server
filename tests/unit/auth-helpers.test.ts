@@ -84,7 +84,7 @@ describe("认证辅助函数", () => {
 
   it.each(["bearer", "bEaReR"])("接受 %s bearer 访问令牌", async (scheme) => {
     verifyAccessTokenJwtMock.mockResolvedValue({
-      scope: new Set(["rest:me:read"]),
+      scope: new Set(["me:read"]),
       sub: "user-from-token",
     });
     const { resolveApiUserId } = await import("@/lib/auth/api-auth");

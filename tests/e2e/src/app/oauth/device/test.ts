@@ -30,7 +30,7 @@ import {
   OAUTH_OFFLINE_ACCESS_SCOPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/constants";
-import { mcpScope, restReadScope } from "@/lib/oauth/scope-registry";
+import { restReadScope, restWriteScope } from "@/lib/oauth/scope-registry";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import {
   createOAuthClientFixture,
@@ -58,7 +58,8 @@ const DEVICE_MCP_CLIENT_SCOPES = [
   "openid",
   "profile",
   restReadScope("me"),
-  mcpScope("todo"),
+  restReadScope("todo"),
+  restWriteScope("todo"),
   OAUTH_OFFLINE_ACCESS_SCOPE,
 ];
 
@@ -451,15 +452,14 @@ test("/oauth/device 仅 profile 的 REST 令牌被受保护 REST 拒绝", async 
   }
 });
 
-test("/oauth/device 含 MCP scope 但无 REST scope 的令牌被受保护 REST 拒绝", async ({
+test("/oauth/device 含其他 feature scope 但无 todo scope 的令牌被 todo REST 拒绝", async ({
   page,
   request,
 }) => {
-  const clientName = `device-e2e-mcp-rest-token-${Date.now()}`;
+  const clientName = `device-e2e-feature-rest-token-${Date.now()}`;
   const restResource = `${PLAYWRIGHT_BASE_URL}/api/auth`;
-  const mcpResource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
-  const scopes = ["openid", "profile", mcpScope("todo")];
-  const resources = [restResource, mcpResource];
+  const scopes = ["openid", "profile", restReadScope("schedule")];
+  const resources = [restResource];
   try {
     const result = await requestDeviceCode(request, clientName, {
       clientScopes: scopes,

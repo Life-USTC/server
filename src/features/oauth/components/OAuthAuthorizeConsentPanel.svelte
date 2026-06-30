@@ -6,6 +6,7 @@ import RefreshCw from "$lib/components/icons/refresh-cw.svelte";
 import ShieldAlert from "$lib/components/icons/shield-alert.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+import { Checkbox } from "$lib/components/ui/checkbox/index.js";
 
 export let consentAction: (decision: "allow" | "deny") => SubmitFunction;
 export let copy: Record<string, string>;
@@ -13,6 +14,26 @@ export let oauthQuery: string;
 export let pendingConsent: "allow" | "deny" | null;
 export let scope: string;
 export let scopes: Array<{ label: string; value: string }>;
+
+let scopeKey = "";
+let selectedScopes: string[] = [];
+
+$: {
+  const nextScopeKey = scopes.map((scopeItem) => scopeItem.value).join(" ");
+  if (nextScopeKey !== scopeKey) {
+    scopeKey = nextScopeKey;
+    selectedScopes = scopes.map((scopeItem) => scopeItem.value);
+  }
+}
+
+function toggleScope(value: string, checked: boolean) {
+  selectedScopes = checked
+    ? Array.from(new Set([...selectedScopes, value]))
+    : selectedScopes.filter((selectedScope) => selectedScope !== value);
+}
+
+$: selectedScopeValue = selectedScopes.join(" ");
+$: canAllow = scopes.length === 0 || selectedScopes.length > 0;
 </script>
 
 <div class="min-w-0 text-center">
@@ -31,9 +52,17 @@ export let scopes: Array<{ label: string; value: string }>;
   {#if scopes.length > 0}
     <ul class="mt-3 grid gap-2 text-sm">
       {#each scopes as scopeItem}
-        <li class="grid min-w-0 gap-1 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start sm:gap-2">
-          <Badge class="mt-0.5 max-w-full whitespace-normal break-all font-mono text-left" variant="outline">{scopeItem.value}</Badge>
-          <span class="min-w-0 break-words text-base-content/70">{scopeItem.label}</span>
+        <li>
+          <label
+            class={`grid min-w-0 cursor-pointer gap-2 rounded-md border p-3 text-left transition-colors sm:grid-cols-[auto_auto_minmax(0,1fr)] sm:items-start ${selectedScopes.includes(scopeItem.value) ? "border-primary bg-primary/5" : "border-base-300 bg-base-100 hover:bg-base-200/70"}`}
+          >
+            <Checkbox
+              checked={selectedScopes.includes(scopeItem.value)}
+              onchange={(event) => toggleScope(scopeItem.value, event.currentTarget.checked)}
+            />
+            <Badge class="mt-0.5 max-w-full whitespace-normal break-all font-mono text-left" variant="outline">{scopeItem.value}</Badge>
+            <span class="min-w-0 break-words text-base-content/70">{scopeItem.label}</span>
+          </label>
         </li>
       {/each}
     </ul>
@@ -52,9 +81,13 @@ export let scopes: Array<{ label: string; value: string }>;
   </form>
   <form method="POST" action="?/consent" use:enhance={consentAction("allow")}>
     <input type="hidden" name="accept" value="true" />
-    <input type="hidden" name="scope" value={scope} />
+    <input type="hidden" name="scope" value={selectedScopeValue || scope} />
+    <input type="hidden" name="scopeSelectionEnabled" value="true" />
+    {#each selectedScopes as selectedScope}
+      <input type="hidden" name="scopes" value={selectedScope} />
+    {/each}
     <input type="hidden" name="oauthQuery" value={oauthQuery} />
-    <Button class="w-full" disabled={Boolean(pendingConsent)} type="submit">
+    <Button class="w-full" disabled={Boolean(pendingConsent) || !canAllow} type="submit">
       {#if pendingConsent === "allow"}
         <RefreshCw class="animate-spin" />
         {copy.authorizing}

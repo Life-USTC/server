@@ -26,6 +26,8 @@ import {
   OAUTH_OPENID_SCOPE,
   OAUTH_PROFILE_SCOPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+  restReadScope,
+  restWriteScope,
 } from "@/lib/oauth/constants";
 import { sha256Base64Url } from "../../../../../../shared/crypto";
 import { signInAsDebugUser } from "../../../../../utils/auth";
@@ -45,8 +47,9 @@ const DCR_CLIENT_SCOPE = [
   OAUTH_OPENID_SCOPE,
   OAUTH_PROFILE_SCOPE,
   OAUTH_EMAIL_SCOPE,
-  "mcp:todo",
-  "rest:me:read",
+  restReadScope("me"),
+  restReadScope("todo"),
+  restWriteScope("todo"),
 ].join(" ");
 
 test.describe("OAuth 提供者", () => {

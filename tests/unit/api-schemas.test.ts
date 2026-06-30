@@ -8,7 +8,9 @@ import { TODO_CONTENT_MAX_LENGTH } from "@/features/todos/lib/todo-limits";
 import {
   busNextDeparturesQuerySchema,
   calendarSubscriptionAppendRequestSchema,
+  calendarSubscriptionBatchRequestSchema,
   calendarSubscriptionCreateRequestSchema,
+  calendarSubscriptionQueryRequestSchema,
   commentCreateRequestSchema,
   commentReactionRequestSchema,
   commentsQuerySchema,
@@ -20,11 +22,11 @@ import {
   localeUpdateRequestSchema,
   matchSectionCodesRequestSchema,
   schedulesQuerySchema,
-  todoCompletionBatchRequestSchema,
   sectionsQuerySchema,
   semestersQuerySchema,
   subscribedSchedulesQuerySchema,
   teachersQuerySchema,
+  todoCompletionBatchRequestSchema,
   todoCreateRequestSchema,
   todosQuerySchema,
   uploadCompleteRequestSchema,
@@ -185,9 +187,9 @@ describe("todoCompletionBatchRequestSchema", () => {
       todoId: `todo-${i}`,
       completed: true,
     }));
-    expect(
-      todoCompletionBatchRequestSchema.safeParse({ items }).success,
-    ).toBe(false);
+    expect(todoCompletionBatchRequestSchema.safeParse({ items }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -420,9 +422,40 @@ describe("其他请求 schema", () => {
     expect(missingIds.success).toBe(false);
   });
 
+  it("校验日历订阅查询 payload", () => {
+    expect(
+      calendarSubscriptionQueryRequestSchema.safeParse({
+        codes: ["COMP3001", "COMP3001.01"],
+        sectionIds: [1],
+        semesterId: "12",
+      }).success,
+    ).toBe(true);
+    expect(calendarSubscriptionQueryRequestSchema.safeParse({}).success).toBe(
+      false,
+    );
+  });
+
+  it("校验日历订阅批量变更 payload", () => {
+    expect(
+      calendarSubscriptionBatchRequestSchema.safeParse({
+        action: "add",
+        codes: ["COMP3001"],
+      }).success,
+    ).toBe(true);
+    expect(
+      calendarSubscriptionBatchRequestSchema.safeParse({ action: "set" })
+        .success,
+    ).toBe(true);
+    expect(
+      calendarSubscriptionBatchRequestSchema.safeParse({ action: "remove" })
+        .success,
+    ).toBe(false);
+  });
+
   it("在 OpenAPI 中记录正数日历订阅 section ID", () => {
     for (const name of [
       "calendarSubscriptionAppendRequestSchema",
+      "calendarSubscriptionBatchRequestSchema",
       "calendarSubscriptionRemoveRequestSchema",
     ]) {
       const schema = openApiSchema(name);

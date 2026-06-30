@@ -60,6 +60,35 @@ export const calendarSubscriptionImportResponseSchema = z.object({
   subscription: calendarSubscriptionSchema.nullable(),
 });
 
+const calendarSubscriptionResolvedSectionsSchema = z.object({
+  semester: z
+    .object({
+      id: z.number().int(),
+      nameCn: z.string().nullable(),
+      code: z.string().nullable(),
+    })
+    .nullable(),
+  matchedCodes: z.array(z.string()),
+  unmatchedCodes: z.array(z.string()),
+  matchedSectionIds: z.array(z.number().int().positive()),
+  unmatchedSectionIds: z.array(z.number().int().positive()),
+  suggestions: z.record(z.string(), z.array(z.string())),
+  sections: z.array(sectionCompactSchema),
+  total: z.number().int().nonnegative(),
+});
+
+export const calendarSubscriptionQueryResponseSchema =
+  calendarSubscriptionResolvedSectionsSchema;
+
+export const calendarSubscriptionBatchResponseSchema =
+  calendarSubscriptionResolvedSectionsSchema.extend({
+    action: z.enum(["add", "remove", "set"]),
+    addedCount: z.number().int().nonnegative(),
+    removedCount: z.number().int().nonnegative(),
+    unchangedCount: z.number().int().nonnegative(),
+    subscription: calendarSubscriptionSchema.nullable(),
+  });
+
 export const matchSectionCodesResponseSchema = z.object({
   semester: z.object({
     id: z.number().int(),
@@ -190,7 +219,10 @@ export const todoCompletionBatchResponseSchema = z.object({
         success: z.literal(false),
         todoId: z.string(),
         completed: z.boolean(),
-        error: z.object({ code: z.enum(["not_found", "forbidden"]), message: z.string() }),
+        error: z.object({
+          code: z.enum(["not_found", "forbidden"]),
+          message: z.string(),
+        }),
       }),
     ]),
   ),
@@ -203,7 +235,10 @@ export const todoBatchDeleteResponseSchema = z.object({
       z.object({
         success: z.literal(false),
         id: z.string(),
-        error: z.object({ code: z.enum(["not_found", "forbidden"]), message: z.string() }),
+        error: z.object({
+          code: z.enum(["not_found", "forbidden"]),
+          message: z.string(),
+        }),
       }),
     ]),
   ),

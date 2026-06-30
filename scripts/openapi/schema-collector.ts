@@ -5,7 +5,9 @@ import * as responseSchemas from "../../src/lib/api/schemas/response-schemas";
 export function isZodSchema(value: unknown): value is ZodType {
   if (value === null || typeof value !== "object") return false;
   const ctor = value.constructor;
-  return ctor !== null && typeof ctor === "function" && ctor.name.startsWith("Zod");
+  return (
+    ctor !== null && typeof ctor === "function" && ctor.name.startsWith("Zod")
+  );
 }
 
 export class SchemaCollector {
@@ -13,7 +15,10 @@ export class SchemaCollector {
   private readonly registered = new Map<string, ZodType>();
 
   constructor() {
-    for (const [name, value] of Object.entries({ ...requestSchemas, ...responseSchemas })) {
+    for (const [name, value] of Object.entries({
+      ...requestSchemas,
+      ...responseSchemas,
+    })) {
       if (isZodSchema(value)) {
         this.byName.set(name, value);
       }

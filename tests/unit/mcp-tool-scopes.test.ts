@@ -3,23 +3,28 @@ import {
   extractMcpToolNamesFromRequest,
   getRequiredMcpScopes,
 } from "@/lib/mcp/tool-scopes";
-import { mcpScope } from "@/lib/oauth/constants";
+import { restReadScope, restWriteScope } from "@/lib/oauth/constants";
 
 describe("getRequiredMcpScopes", () => {
   it("maps a single tool to its feature scope", () => {
-    expect(getRequiredMcpScopes("list_my_todos")).toEqual([mcpScope("todo")]);
+    expect(getRequiredMcpScopes("list_my_todos")).toEqual([
+      restReadScope("todo"),
+    ]);
+    expect(getRequiredMcpScopes("create_my_todo")).toEqual([
+      restWriteScope("todo"),
+    ]);
   });
 
   it("returns multiple scopes for cross-cutting tools", () => {
     expect(getRequiredMcpScopes("get_next_class").sort()).toEqual(
-      [mcpScope("dashboard"), mcpScope("schedule")].sort(),
+      [restReadScope("dashboard"), restReadScope("schedule")].sort(),
     );
   });
 
   it("unions required scopes for multiple tool names", () => {
     expect(
       getRequiredMcpScopes(["list_my_todos", "create_comment"]).sort(),
-    ).toEqual([mcpScope("comment"), mcpScope("todo")].sort());
+    ).toEqual([restWriteScope("comment"), restReadScope("todo")].sort());
   });
 
   it("returns an empty array for unmapped tools", () => {
@@ -33,42 +38,46 @@ describe("getRequiredMcpScopes", () => {
 
   it("covers every major feature area", () => {
     expect(getRequiredMcpScopes("get_my_profile")).toEqual([
-      mcpScope("profile"),
+      restReadScope("me"),
     ]);
     expect(getRequiredMcpScopes("get_my_dashboard")).toEqual([
-      mcpScope("dashboard"),
+      restReadScope("dashboard"),
     ]);
-    expect(getRequiredMcpScopes("get_next_buses")).toEqual([mcpScope("bus")]);
+    expect(getRequiredMcpScopes("get_next_buses")).toEqual([
+      restReadScope("bus"),
+    ]);
     expect(getRequiredMcpScopes("search_courses")).toEqual([
-      mcpScope("course"),
+      restReadScope("course"),
     ]);
     expect(getRequiredMcpScopes("get_section_by_jw_id")).toEqual([
-      mcpScope("section"),
+      restReadScope("section"),
     ]);
     expect(getRequiredMcpScopes("search_teachers")).toEqual([
-      mcpScope("teacher"),
+      restReadScope("teacher"),
     ]);
     expect(getRequiredMcpScopes("query_schedules")).toEqual([
-      mcpScope("schedule"),
+      restReadScope("schedule"),
     ]);
-    expect(getRequiredMcpScopes("list_my_exams")).toEqual([mcpScope("exam")]);
+    expect(getRequiredMcpScopes("list_my_exams")).toEqual([
+      restReadScope("exam"),
+    ]);
     expect(getRequiredMcpScopes("create_homework_on_section")).toEqual([
-      mcpScope("homework"),
+      restWriteScope("homework"),
     ]);
     expect(getRequiredMcpScopes("subscribe_section_by_jw_id")).toEqual([
-      mcpScope("subscription"),
+      restWriteScope("subscription"),
     ]);
     expect(getRequiredMcpScopes("list_my_calendar_events")).toEqual([
-      mcpScope("calendar"),
+      restReadScope("schedule"),
     ]);
     expect(getRequiredMcpScopes("create_comment")).toEqual([
-      mcpScope("comment"),
+      restWriteScope("comment"),
     ]);
     expect(getRequiredMcpScopes("get_description")).toEqual([
-      mcpScope("description"),
+      restReadScope("description"),
     ]);
     expect(getRequiredMcpScopes("list_my_uploads")).toEqual([
-      mcpScope("upload"),
+      restReadScope("upload"),
     ]);
   });
 });

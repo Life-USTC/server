@@ -1,24 +1,24 @@
 import { describe, expect, it } from "vitest";
 import {
-  CLIENT_REGISTRATION_ALLOWED_SCOPES,
-  LEGACY_MCP_TOOLS_SCOPE,
-  LEGACY_REST_READ_SCOPE,
-  LEGACY_REST_WRITE_SCOPE,
-  OAUTH_SCOPES,
-  expandLegacyScope,
-  expandScopeClaim,
-} from "@/lib/oauth/scope-registry";
-import {
   MCP_FEATURES,
+  mcpScope,
   OAUTH_EMAIL_SCOPE,
   OAUTH_OFFLINE_ACCESS_SCOPE,
   OAUTH_OPENID_SCOPE,
   OAUTH_PROFILE_SCOPE,
   REST_FEATURES,
-  mcpScope,
   restReadScope,
   restWriteScope,
 } from "@/lib/oauth/constants";
+import {
+  CLIENT_REGISTRATION_ALLOWED_SCOPES,
+  expandLegacyScope,
+  expandScopeClaim,
+  LEGACY_MCP_TOOLS_SCOPE,
+  LEGACY_REST_READ_SCOPE,
+  LEGACY_REST_WRITE_SCOPE,
+  OAUTH_SCOPES,
+} from "@/lib/oauth/scope-registry";
 
 describe("oauth scope registry", () => {
   it("exports the canonical scope list", () => {
@@ -28,7 +28,6 @@ describe("oauth scope registry", () => {
       OAUTH_EMAIL_SCOPE,
       OAUTH_OFFLINE_ACCESS_SCOPE,
       ...REST_FEATURES.flatMap((f) => [restReadScope(f), restWriteScope(f)]),
-      ...MCP_FEATURES.map(mcpScope),
     ]);
   });
 
@@ -44,22 +43,28 @@ describe("oauth scope registry", () => {
     );
   });
 
-  it("expands legacy mcp:tools into all feature mcp scopes", () => {
+  it("expands legacy mcp:tools into all feature read/write scopes", () => {
     expect(expandLegacyScope(LEGACY_MCP_TOOLS_SCOPE)).toEqual(
-      MCP_FEATURES.map(mcpScope),
+      REST_FEATURES.flatMap((f) => [restReadScope(f), restWriteScope(f)]),
     );
   });
 
   it("returns non-legacy scopes unchanged", () => {
-    expect(expandLegacyScope("rest:todo:read")).toEqual(["rest:todo:read"]);
+    expect(expandLegacyScope("todo:read")).toEqual(["todo:read"]);
     expect(expandLegacyScope("openid")).toEqual(["openid"]);
+  });
+
+  it("maps legacy feature-scoped REST and MCP scopes to canonical scopes", () => {
+    expect(expandLegacyScope("rest:todo:read")).toEqual(["todo:read"]);
+    expect(expandLegacyScope("rest:todo:write")).toEqual(["todo:write"]);
+    expect(expandLegacyScope("mcp:todo")).toEqual(["todo:read", "todo:write"]);
   });
 
   it("expands a space-separated scope claim", () => {
     const result = expandScopeClaim("openid rest:read mcp:tools");
     expect(result.has("openid")).toBe(true);
-    expect(result.has("rest:todo:read")).toBe(true);
-    expect(result.has("mcp:todo")).toBe(true);
+    expect(result.has("todo:read")).toBe(true);
+    expect(result.has("todo:write")).toBe(true);
     expect(result.has(LEGACY_REST_READ_SCOPE)).toBe(false);
     expect(result.has(LEGACY_MCP_TOOLS_SCOPE)).toBe(false);
   });
@@ -67,7 +72,7 @@ describe("oauth scope registry", () => {
   it("expands an array scope claim", () => {
     const result = expandScopeClaim(["openid", "rest:write"]);
     expect(result.has("openid")).toBe(true);
-    expect(result.has("rest:todo:write")).toBe(true);
+    expect(result.has("todo:write")).toBe(true);
   });
 
   it("ignores invalid scope claim inputs", () => {
@@ -77,7 +82,7 @@ describe("oauth scope registry", () => {
   });
 
   it("deduplicates expanded scopes", () => {
-    const result = expandScopeClaim("rest:read rest:todo:read");
+    const result = expandScopeClaim("rest:read todo:read");
     expect(result.size).toBe(REST_FEATURES.length);
   });
 
@@ -85,10 +90,17 @@ describe("oauth scope registry", () => {
     for (const scope of OAUTH_SCOPES) {
       expect(CLIENT_REGISTRATION_ALLOWED_SCOPES).toContain(scope);
     }
-    expect(CLIENT_REGISTRATION_ALLOWED_SCOPES).toContain(LEGACY_REST_READ_SCOPE);
+    expect(CLIENT_REGISTRATION_ALLOWED_SCOPES).toContain(
+      LEGACY_REST_READ_SCOPE,
+    );
     expect(CLIENT_REGISTRATION_ALLOWED_SCOPES).toContain(
       LEGACY_REST_WRITE_SCOPE,
     );
-    expect(CLIENT_REGISTRATION_ALLOWED_SCOPES).toContain(LEGACY_MCP_TOOLS_SCOPE);
+    expect(CLIENT_REGISTRATION_ALLOWED_SCOPES).toContain(
+      LEGACY_MCP_TOOLS_SCOPE,
+    );
+    expect(CLIENT_REGISTRATION_ALLOWED_SCOPES).toContain("rest:todo:read");
+    expect(CLIENT_REGISTRATION_ALLOWED_SCOPES).toContain(mcpScope("todo"));
+    expect(MCP_FEATURES).toContain("todo");
   });
 });

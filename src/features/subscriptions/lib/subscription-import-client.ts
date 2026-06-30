@@ -2,9 +2,8 @@ import type * as z from "zod";
 import { extractSectionCodeTokens } from "@/features/catalog/lib/section-code-schema";
 import { apiClient, apiErrorMessage } from "@/lib/api/client";
 import {
-  calendarSubscriptionAppendResponseSchema,
-  calendarSubscriptionRemoveResponseSchema,
-  matchSectionCodesResponseSchema,
+  calendarSubscriptionBatchResponseSchema,
+  calendarSubscriptionQueryResponseSchema,
 } from "@/lib/api/schemas/misc-response-schema-core";
 
 export function extractSubscriptionSectionCodes(value: string) {
@@ -33,7 +32,7 @@ export async function matchSubscriptionSectionCodes({
   fetchFailedMessage: string;
   semesterId?: number;
 }) {
-  const result = await apiClient.POST("/api/sections/match-codes", {
+  const result = await apiClient.POST("/api/calendar-subscriptions/query", {
     body: {
       codes,
       semesterId,
@@ -43,7 +42,7 @@ export async function matchSubscriptionSectionCodes({
     throw new Error(apiErrorMessage(result.error, fetchFailedMessage));
   }
   return validatedPayload(
-    matchSectionCodesResponseSchema,
+    calendarSubscriptionQueryResponseSchema,
     result.data,
     fetchFailedMessage,
   );
@@ -60,14 +59,14 @@ export async function appendSubscribedSectionIds({
     return 0;
   }
 
-  const result = await apiClient.PATCH("/api/calendar-subscriptions", {
-    body: { sectionIds: selectedSectionIds },
+  const result = await apiClient.POST("/api/calendar-subscriptions/batch", {
+    body: { action: "add", sectionIds: selectedSectionIds },
   });
   if (!result.response.ok) {
     throw new Error(apiErrorMessage(result.error, importFailedMessage));
   }
   const data = validatedPayload(
-    calendarSubscriptionAppendResponseSchema,
+    calendarSubscriptionBatchResponseSchema,
     result.data,
     importFailedMessage,
   );
@@ -86,14 +85,14 @@ export async function removeSubscribedSectionIds({
     return;
   }
 
-  const result = await apiClient.DELETE("/api/calendar-subscriptions", {
-    body: { sectionIds },
+  const result = await apiClient.POST("/api/calendar-subscriptions/batch", {
+    body: { action: "remove", sectionIds },
   });
   if (!result.response.ok) {
     throw new Error(apiErrorMessage(result.error, errorMessage));
   }
   validatedPayload(
-    calendarSubscriptionRemoveResponseSchema,
+    calendarSubscriptionBatchResponseSchema,
     result.data,
     errorMessage,
   );

@@ -20,7 +20,7 @@ describe("verifyAccessTokenJwt", () => {
     jwtVerifyMock.mockResolvedValue({
       payload: {
         sub: "user-1",
-        scope: "rest:todo:read rest:todo:write",
+        scope: "todo:read todo:write",
         aud: "https://life.example/api/auth",
       },
     });
@@ -35,9 +35,7 @@ describe("verifyAccessTokenJwt", () => {
     });
 
     expect(result.sub).toBe("user-1");
-    expect(result.scope).toEqual(
-      new Set(["rest:todo:read", "rest:todo:write"]),
-    );
+    expect(result.scope).toEqual(new Set(["todo:read", "todo:write"]));
     expect(result.aud).toBe("https://life.example/api/auth");
     expect(createRemoteJWKSetMock).toHaveBeenCalledWith(
       new URL("https://life.example/api/auth/jwks"),
@@ -65,9 +63,9 @@ describe("verifyAccessTokenJwt", () => {
       audience: "https://life.example/api/auth",
     });
 
-    expect(result.scope.has("rest:todo:read")).toBe(true);
-    expect(result.scope.has("rest:me:read")).toBe(true);
-    expect(result.scope.has("rest:todo:write")).toBe(false);
+    expect(result.scope.has("todo:read")).toBe(true);
+    expect(result.scope.has("me:read")).toBe(true);
+    expect(result.scope.has("todo:write")).toBe(false);
   });
 
   it("expands legacy rest:write scope into per-feature write scopes", async () => {
@@ -87,14 +85,14 @@ describe("verifyAccessTokenJwt", () => {
       audience: "https://life.example/api/auth",
     });
 
-    expect(result.scope.has("rest:todo:write")).toBe(true);
-    expect(result.scope.has("rest:upload:write")).toBe(true);
-    expect(result.scope.has("rest:todo:read")).toBe(false);
+    expect(result.scope.has("todo:write")).toBe(true);
+    expect(result.scope.has("upload:write")).toBe(true);
+    expect(result.scope.has("todo:read")).toBe(false);
   });
 
   it("throws when the sub claim is missing", async () => {
     jwtVerifyMock.mockResolvedValue({
-      payload: { scope: "rest:todo:read" },
+      payload: { scope: "todo:read" },
     });
 
     const { verifyAccessTokenJwt } = await import(
@@ -114,7 +112,7 @@ describe("verifyAccessTokenJwt", () => {
     jwtVerifyMock.mockResolvedValue({
       payload: {
         sub: "user-1",
-        scope: ["rest:todo:read"],
+        scope: ["todo:read"],
         aud: ["aud1", "aud2"],
       },
     });
@@ -129,7 +127,7 @@ describe("verifyAccessTokenJwt", () => {
     });
 
     expect(result.sub).toBe("user-1");
-    expect(result.scope).toEqual(new Set(["rest:todo:read"]));
+    expect(result.scope).toEqual(new Set(["todo:read"]));
     expect(result.aud).toEqual(["aud1", "aud2"]);
     expect(jwtVerifyMock).toHaveBeenCalledWith("token", "mock-jwks", {
       issuer: ["iss1", "iss2"],
@@ -141,7 +139,7 @@ describe("verifyAccessTokenJwt", () => {
     jwtVerifyMock.mockResolvedValue({
       payload: {
         sub: "user-1",
-        scope: "rest:todo:read",
+        scope: "todo:read",
       },
     });
 

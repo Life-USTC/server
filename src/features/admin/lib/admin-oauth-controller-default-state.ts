@@ -17,9 +17,11 @@ export function createAdminOAuthControllerDefaultState<Client>(input: {
     selectedScopes: [
       "openid",
       "profile",
-      "mcp:todo",
-      "mcp:homework",
-      "rest:me:read",
+      "me:read",
+      "todo:read",
+      "todo:write",
+      "homework:read",
+      "homework:write",
     ],
     trustedClientPage: 1,
   };

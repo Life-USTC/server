@@ -106,6 +106,8 @@ function matchPayload() {
     },
     matchedCodes: ["MATH.01"],
     unmatchedCodes: ["MATH.02"],
+    matchedSectionIds: [],
+    unmatchedSectionIds: [],
     suggestions: {},
     sections: [compactSection(1)],
     total: 1,
@@ -126,9 +128,23 @@ function subscriptionPayload(sectionIds: number[]) {
 
 function appendPayload(sectionIds: number[], addedCount = sectionIds.length) {
   return {
+    ...matchPayload(),
     ...subscriptionPayload(sectionIds),
+    action: "add",
     addedCount,
-    alreadySubscribedCount: sectionIds.length - addedCount,
+    removedCount: 0,
+    unchangedCount: sectionIds.length - addedCount,
+  };
+}
+
+function removePayload(sectionIds: number[], removedCount = sectionIds.length) {
+  return {
+    ...matchPayload(),
+    ...subscriptionPayload(sectionIds),
+    action: "remove",
+    addedCount: 0,
+    removedCount,
+    unchangedCount: sectionIds.length - removedCount,
   };
 }
 
@@ -185,7 +201,7 @@ describe("订阅导入客户端", () => {
     });
 
     const [path, init] = firstFetchCall(fetchMock);
-    expect(path).toBe("/api/sections/match-codes");
+    expect(path).toBe("/api/calendar-subscriptions/query");
     expect(init.method).toBe("POST");
     expect(JSON.parse(init.body)).toEqual({
       codes: ["MATH.01"],
@@ -242,7 +258,7 @@ describe("订阅导入客户端", () => {
   });
 
   it("以已校验请求移除订阅班级 ID", async () => {
-    const fetchMock = vi.fn(async () => jsonResponse(subscriptionPayload([3])));
+    const fetchMock = vi.fn(async () => jsonResponse(removePayload([3])));
     vi.stubGlobal("fetch", fetchMock);
 
     await removeSubscribedSectionIds({
@@ -251,9 +267,12 @@ describe("订阅导入客户端", () => {
     });
 
     const [path, init] = firstFetchCall(fetchMock);
-    expect(path).toBe("/api/calendar-subscriptions");
-    expect(init.method).toBe("DELETE");
-    expect(JSON.parse(init.body)).toEqual({ sectionIds: [3] });
+    expect(path).toBe("/api/calendar-subscriptions/batch");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toEqual({
+      action: "remove",
+      sectionIds: [3],
+    });
   });
 
   it("未选择班级 ID 时不调用移除路由", async () => {
@@ -283,9 +302,12 @@ describe("订阅导入客户端", () => {
 
     expect(fetchMock).toHaveBeenCalledOnce();
     const [path, init] = firstFetchCall(fetchMock);
-    expect(path).toBe("/api/calendar-subscriptions");
-    expect(init.method).toBe("PATCH");
-    expect(JSON.parse(init.body)).toEqual({ sectionIds: [2, 3] });
+    expect(path).toBe("/api/calendar-subscriptions/batch");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toEqual({
+      action: "add",
+      sectionIds: [2, 3],
+    });
   });
 
   it("未选择班级 ID 时不调用追加路由", async () => {

@@ -30,8 +30,18 @@ import type { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
 import { createMcpServer } from "@/lib/mcp/server";
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
-  MCP_TOOLS_SCOPE,
+  REST_FEATURES,
+  restReadScope,
+  restWriteScope,
 } from "@/lib/oauth/constants";
+
+const MCP_TEST_FEATURES = REST_FEATURES.filter(
+  (feature) => feature !== "admin",
+);
+const MCP_TEST_SCOPES = MCP_TEST_FEATURES.flatMap((feature) => [
+  restReadScope(feature),
+  restWriteScope(feature),
+]);
 
 /**
  * Build a minimal AuthInfo that makes tool handlers believe
@@ -41,7 +51,7 @@ export function makeTestAuthInfo(userId: string): AuthInfo {
   return {
     token: "integration-test-token",
     clientId: "integration-test-client",
-    scopes: [...DEFAULT_OAUTH_CLIENT_SCOPES, MCP_TOOLS_SCOPE],
+    scopes: [...DEFAULT_OAUTH_CLIENT_SCOPES, ...MCP_TEST_SCOPES],
     extra: { userId },
   };
 }

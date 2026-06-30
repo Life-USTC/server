@@ -3,7 +3,7 @@ import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
   OAUTH_OFFLINE_ACCESS_SCOPE,
   OAUTH_REFRESH_TOKEN_GRANT_TYPE,
-  OAUTH_REST_READ_SCOPE,
+  restReadScope,
 } from "@/lib/oauth/constants";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db";
@@ -187,7 +187,7 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
     const restClientScopes = [
       ...DEFAULT_OAUTH_CLIENT_SCOPES,
       OAUTH_OFFLINE_ACCESS_SCOPE,
-      OAUTH_REST_READ_SCOPE,
+      restReadScope("todo"),
     ];
     await signInAsDebugUser(page, "/");
 

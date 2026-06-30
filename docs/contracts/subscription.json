@@ -63,6 +63,26 @@
       "rest": {
         "routes": [
           {
+            "path": "/api/calendar-subscriptions/query",
+            "method": "POST",
+            "returns": "{ semester: Semester | null, matchedCodes: String[], unmatchedCodes: String[], matchedSectionIds: Int[], unmatchedSectionIds: Int[], suggestions: Record<String, String[]>, sections: Section[], total: Int }",
+            "notes": [
+              "Preferred batch query endpoint for calendar subscription picker flows.",
+              "Accepts sectionIds plus mixed section/course codes through codes[].",
+              "Code matching is semester-scoped; omitted semesterId uses the current semester."
+            ]
+          },
+          {
+            "path": "/api/calendar-subscriptions/batch",
+            "method": "POST",
+            "returns": "{ action: \"add\" | \"remove\" | \"set\", semester: Semester | null, matchedCodes, unmatchedCodes, matchedSectionIds, unmatchedSectionIds, sections, addedCount, removedCount, unchangedCount, subscription }",
+            "notes": [
+              "Preferred mutation endpoint for batch subscribe, unsubscribe, and replace/update flows.",
+              "Accepts action plus sectionIds and/or mixed section/course codes.",
+              "action=set may omit sectionIds/codes to clear the caller's section subscriptions."
+            ]
+          },
+          {
             "path": "/api/sections/match-codes",
             "method": "POST",
             "auth": "anon",
@@ -73,6 +93,7 @@
             "method": "POST",
             "returns": "{ subscription: CalendarSubscription }",
             "notes": [
+              "Compatibility replace endpoint for ID-only callers.",
               "subscription.sections[] is the user's new set of subscribed sections."
             ]
           },
@@ -81,6 +102,7 @@
             "method": "PATCH",
             "returns": "{ subscription: CalendarSubscription, addedCount: Int, alreadySubscribedCount: Int }",
             "notes": [
+              "Compatibility append endpoint for ID-only callers.",
               "Append selected section IDs after a preview flow without replacing the caller's whole subscription set.",
               "Used by dashboard and welcome bulk-import confirmation after users deselect unwanted matched sections.",
               "Unknown positive section IDs are ignored; malformed or non-positive IDs return 400.",
@@ -92,6 +114,7 @@
             "method": "DELETE",
             "returns": "{ subscription: CalendarSubscription }",
             "notes": [
+              "Compatibility remove endpoint for ID-only callers.",
               "Remove selected section IDs without replacing the caller's whole subscription set.",
               "Used by dashboard opt-out controls so concurrent additions are not overwritten by stale client-side read-merge-replace flows.",
               "Unknown positive section IDs are ignored; malformed or non-positive IDs return 400."
@@ -102,7 +125,8 @@
             "method": "POST",
             "returns": "{ success: Boolean, semester, matchedCodes, unmatchedCodes, ambiguousCodes, sections, addedCount, addedSections, alreadySubscribedCount, alreadySubscribedSections, subscription }",
             "notes": [
-              "Combines section-code matching with an append-only subscription mutation.",
+              "Compatibility convenience endpoint that combines code matching with an append-only subscription mutation.",
+              "Codes may be section codes or course codes in the selected/current semester.",
               "Does not replace the caller's whole subscription set, so concurrent additions are not overwritten by stale client-side read-merge-replace flows."
             ]
           }
@@ -135,8 +159,8 @@
       },
       "display": {
         "fields": [
-          "Course/section code input",
-          "Bulk subscribe button",
+          "Search/add input accepting course codes, section codes, and section IDs",
+          "Batch subscribe, unsubscribe, and replace/update actions",
           "Matched section cards with course, code, semester, campus, teachers",
           "Unmatched codes"
         ]

@@ -37,7 +37,11 @@ export async function patchTodoBatchRoute(request: Request) {
         const result = await updateOwnedTodo({
           id: item.todoId,
           userId: auth.userId,
-          data: { completed: item.completed, dueAt: undefined, hasDueAt: false },
+          data: {
+            completed: item.completed,
+            dueAt: undefined,
+            hasDueAt: false,
+          },
         });
         if (!result.ok) {
           return {
