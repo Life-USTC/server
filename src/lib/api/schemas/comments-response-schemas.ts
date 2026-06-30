@@ -25,3 +25,19 @@ export const commentUpdateResponseSchema = z.object({
   success: z.boolean(),
   comment: commentNodeSchema,
 });
+
+export const commentBatchDeleteResponseSchema = z.object({
+  results: z.array(
+    z.discriminatedUnion("success", [
+      z.object({ success: z.literal(true), id: z.string() }),
+      z.object({
+        success: z.literal(false),
+        id: z.string(),
+        error: z.object({
+          code: z.enum(["not_found", "forbidden", "locked"]),
+          message: z.string(),
+        }),
+      }),
+    ]),
+  ),
+});
