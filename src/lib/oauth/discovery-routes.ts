@@ -7,7 +7,6 @@ import {
   getOAuthProtectedResourceMetadataUrl,
 } from "@/lib/mcp/urls";
 import {
-  MCP_TOOLS_SCOPE,
   REST_FEATURES,
   restReadScope,
   restWriteScope,
@@ -31,7 +30,6 @@ async function getProtectedResourceMetadataResponse() {
         restReadScope(feature),
         restWriteScope(feature),
       ]),
-      MCP_TOOLS_SCOPE,
     ],
     bearer_methods_supported: ["header"],
     resource_documentation: new URL(

@@ -135,6 +135,13 @@ test.describe("OAuth 提供者", () => {
       protectedResourceAlias.headers()["access-control-allow-origin"],
     ).toBe("*");
 
+    const protectedResourceBody = (await protectedResource.json()) as {
+      scopes_supported?: string[];
+    };
+    expect(protectedResourceBody.scopes_supported).toContain("todo:read");
+    expect(protectedResourceBody.scopes_supported).toContain("todo:write");
+    expect(protectedResourceBody.scopes_supported).not.toContain("mcp:tools");
+
     expect(
       new URL(authServerMcpCompatibility.headers().location ?? "").pathname,
     ).toBe("/.well-known/oauth-authorization-server/api/auth");
