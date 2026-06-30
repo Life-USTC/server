@@ -1,3 +1,11 @@
+## [1.42.1](https://github.com/Life-USTC/server/compare/v1.42.0...v1.42.1) (2026-06-30)
+
+
+### Bug Fixes
+
+* **ci:** update e2e report commit comments ([e6294cf](https://github.com/Life-USTC/server/commit/e6294cf791da90b7b8db47dcf60b11344b07ad9d))
+* **oauth:** advertise canonical protected resource scopes ([d68b774](https://github.com/Life-USTC/server/commit/d68b7743d240257115d46e93b8021e5025dfa85f))
+
 # [1.42.0](https://github.com/Life-USTC/server/compare/v1.41.0...v1.42.0) (2026-06-30)
 
 
