@@ -1,3 +1,27 @@
+# [1.42.0](https://github.com/Life-USTC/server/compare/v1.41.0...v1.42.0) (2026-06-30)
+
+
+### Bug Fixes
+
+* **oauth:** re-export scope helpers and update protected-resource discovery ([9991cec](https://github.com/Life-USTC/server/commit/9991cec3ea0051855f311f56820669bc7b440ae9))
+* **oauth:** restore legacy scope tolerance and accept feature MCP scopes end-to-end ([09bbef3](https://github.com/Life-USTC/server/commit/09bbef38fa20b77ba47f3fd49786e738e7587c12))
+* **openapi:** correct /api/metrics tag/security and add .well-known Location headers ([27df0ea](https://github.com/Life-USTC/server/commit/27df0eac1d98a020a6cfe7c1aaf9890f7f10d023))
+* **openapi:** discover .well-known routes and function-declaration handlers ([201ca88](https://github.com/Life-USTC/server/commit/201ca882b58943a23889a8c56e8d059d1e69ef73))
+
+
+### Features
+
+* **api:** align scopes and subscription contracts ([cd4b8ca](https://github.com/Life-USTC/server/commit/cd4b8cac35a53965b1089c97658eab53788dd1d4))
+* **auth:** verify access tokens with jose and feature scopes ([743a286](https://github.com/Life-USTC/server/commit/743a28617212eaf55c323cfbf106093c70b7dc9e))
+* **comments:** add DELETE /api/comments/batch ([6ad583e](https://github.com/Life-USTC/server/commit/6ad583eb816907688bacd3730dad861d94f54236))
+* **dashboard-links:** add batch pin endpoint ([445a60b](https://github.com/Life-USTC/server/commit/445a60b2248736400805c19593257f47734f20af))
+* **mcp:** enforce per-tool feature scopes ([d3c5854](https://github.com/Life-USTC/server/commit/d3c585415848727d58bfcb867b3e8716a6279472))
+* **oauth:** advertise and allow feature-level scopes in provider ([9fb4431](https://github.com/Life-USTC/server/commit/9fb4431211b8ecf8998bb1517b2353f882a75064))
+* **oauth:** define feature-level scope registry ([e15907b](https://github.com/Life-USTC/server/commit/e15907b3c641c87233e6144354708e067a3408ad))
+* **openapi:** implement JSDoc/Zod to OpenAPI generator ([8172aca](https://github.com/Life-USTC/server/commit/8172aca70873c6fdf557845073563b3e2dbb3b52))
+* **todos:** add DELETE /api/todos/batch ([d92e7f5](https://github.com/Life-USTC/server/commit/d92e7f58c0ea1c177a33fa37676de368618d60ab))
+* **todos:** add PATCH /api/todos/batch ([0362161](https://github.com/Life-USTC/server/commit/036216167fa9b25661aa9bfdd3488a588c1d13be))
+
 # [1.41.0](https://github.com/Life-USTC/server/compare/v1.40.0...v1.41.0) (2026-06-29)
 
 
