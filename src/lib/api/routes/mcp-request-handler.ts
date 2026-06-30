@@ -1,6 +1,7 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { logOAuthDebug, oauthDebugCorrelationId } from "@/lib/log/oauth-debug";
+import { extractMcpToolNamesFromRequest } from "@/lib/mcp/tool-scopes";
 import { validateMcpOrigin, withMcpCors } from "./mcp-cors";
 import {
   logMcpTransportRequest,
@@ -33,8 +34,9 @@ export async function handleMcpRequest(request: Request) {
     return originError;
   }
 
+  const toolNames = await extractMcpToolNamesFromRequest(request);
   const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
-  const authResult = await authenticateMcpRequest(request);
+  const authResult = await authenticateMcpRequest(request, toolNames);
   if ("response" in authResult) {
     const res = authResult.response;
     const www = res.headers.get("www-authenticate");

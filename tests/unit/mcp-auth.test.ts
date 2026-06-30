@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { MCP_TOOLS_SCOPE } from "@/lib/oauth/constants";
+import { MCP_TOOLS_SCOPE, mcpScope } from "@/lib/oauth/constants";
+import { LEGACY_MCP_TOOLS_SCOPE } from "@/lib/oauth/scope-registry";
 
 const verifyOAuthAccessTokenMock = vi.fn();
 
@@ -75,5 +76,97 @@ describe("MCP 认证", () => {
       scopes: [MCP_TOOLS_SCOPE],
       extra: { userId: "user-id" },
     });
+  });
+});
+
+describe("authenticateMcpRequest per-tool scope enforcement", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    verifyOAuthAccessTokenMock.mockReset();
+  });
+
+  function makeAuthenticatedRequest(_scopes: string[]) {
+    return new Request("https://life.example/api/mcp", {
+      headers: { authorization: "Bearer header.payload.signature" },
+    });
+  }
+
+  function mockToken(scopes: string[]) {
+    verifyOAuthAccessTokenMock.mockResolvedValue({
+      azp: "client-id",
+      aud: "https://life.example/api/mcp",
+      exp: 1_900_000_000,
+      scope: scopes.join(" "),
+      sub: "user-id",
+    });
+  }
+
+  it("allows a tool when the token has the matching feature scope", async () => {
+    mockToken([mcpScope("todo")]);
+    const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
+    const result = await authenticateMcpRequest(
+      makeAuthenticatedRequest([mcpScope("todo")]),
+      "list_my_todos",
+    );
+
+    expect("authInfo" in result).toBe(true);
+    if ("authInfo" in result) {
+      expect(result.authInfo.scopes).toContain(mcpScope("todo"));
+    }
+  });
+
+  it("allows any tool when the token has the legacy mcp:tools scope", async () => {
+    mockToken([LEGACY_MCP_TOOLS_SCOPE]);
+    const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
+    const result = await authenticateMcpRequest(
+      makeAuthenticatedRequest([LEGACY_MCP_TOOLS_SCOPE]),
+      "create_comment",
+    );
+
+    expect("authInfo" in result).toBe(true);
+  });
+
+  it("rejects a tool when the token lacks the required feature scope", async () => {
+    mockToken([mcpScope("todo")]);
+    const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
+    const result = await authenticateMcpRequest(
+      makeAuthenticatedRequest([mcpScope("todo")]),
+      "create_comment",
+    );
+
+    expect("response" in result).toBe(true);
+    if ("response" in result) {
+      expect(result.response.status).toBe(403);
+      const www = result.response.headers.get("www-authenticate");
+      expect(www).toContain("insufficient_scope");
+      expect(www).toContain(mcpScope("comment"));
+    }
+  });
+
+  it("still requires any MCP scope before the per-tool check", async () => {
+    mockToken(["openid"]);
+    const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
+    const result = await authenticateMcpRequest(
+      makeAuthenticatedRequest(["openid"]),
+      "list_my_todos",
+    );
+
+    expect("response" in result).toBe(true);
+    if ("response" in result) {
+      expect(result.response.status).toBe(403);
+      const www = result.response.headers.get("www-authenticate");
+      expect(www).toContain("insufficient_scope");
+    }
+  });
+
+  it("allows unmapped tools when the token has any MCP scope", async () => {
+    mockToken([mcpScope("profile")]);
+    const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
+    const result = await authenticateMcpRequest(
+      makeAuthenticatedRequest([mcpScope("profile")]),
+      "not_a_real_tool",
+    );
+
+    expect("authInfo" in result).toBe(true);
   });
 });
