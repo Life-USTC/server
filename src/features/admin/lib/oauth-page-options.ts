@@ -1,10 +1,10 @@
 import {
-  MCP_TOOLS_SCOPE,
+  OAUTH_EMAIL_SCOPE,
+  OAUTH_OFFLINE_ACCESS_SCOPE,
   OAUTH_OPENID_SCOPE,
   OAUTH_PROFILE_SCOPE,
-  OAUTH_REST_READ_SCOPE,
-  OAUTH_REST_WRITE_SCOPE,
 } from "@/lib/oauth/constants";
+import { OAUTH_SCOPES } from "@/lib/oauth/scope-registry";
 
 export type OAuthAuthPatternOption = {
   descriptionKey: string;
@@ -19,16 +19,26 @@ export type OAuthScopeOption = {
   value: string;
 };
 
-export const oauthScopeOptions: OAuthScopeOption[] = [
-  { value: OAUTH_OPENID_SCOPE, descriptionKey: "scopeOpenIdDescription" },
-  { value: OAUTH_PROFILE_SCOPE, descriptionKey: "scopeProfileDescription" },
-  { value: OAUTH_REST_READ_SCOPE, descriptionKey: "scopeRestReadDescription" },
-  {
-    value: OAUTH_REST_WRITE_SCOPE,
-    descriptionKey: "scopeRestWriteDescription",
-  },
-  { value: MCP_TOOLS_SCOPE, descriptionKey: "scopeMcpToolsDescription" },
-];
+function resolveScopeDescriptionKey(scope: string): string {
+  if (scope === OAUTH_PROFILE_SCOPE) return "scopeProfileDescription";
+  if (scope === OAUTH_EMAIL_SCOPE) return "scopeEmailDescription";
+  if (scope === OAUTH_OFFLINE_ACCESS_SCOPE) return "scopeOfflineAccessDescription";
+  if (scope.startsWith("rest:") && scope.endsWith(":read")) {
+    return "scopeRestReadDescription";
+  }
+  if (scope.startsWith("rest:") && scope.endsWith(":write")) {
+    return "scopeRestWriteDescription";
+  }
+  if (scope.startsWith("mcp:")) return "scopeMcpToolsDescription";
+  return `scopeDescription_${scope.replace(/:/g, "_")}`;
+}
+
+export const oauthScopeOptions: OAuthScopeOption[] = OAUTH_SCOPES.filter(
+  (scope) => scope !== OAUTH_OPENID_SCOPE,
+).map((scope) => ({
+  value: scope,
+  descriptionKey: resolveScopeDescriptionKey(scope),
+}));
 
 const defaultOAuthAuthPatternOption: OAuthAuthPatternOption = {
   value: "client_secret_basic",

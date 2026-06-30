@@ -1,23 +1,15 @@
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
-  MCP_TOOLS_SCOPE,
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
   OAUTH_OFFLINE_ACCESS_SCOPE,
   OAUTH_REFRESH_TOKEN_GRANT_TYPE,
-  OAUTH_REST_READ_SCOPE,
-  OAUTH_REST_WRITE_SCOPE,
 } from "@/lib/oauth/constants";
+import { expandLegacyScope, OAUTH_SCOPES } from "@/lib/oauth/scope-registry";
 
 type ValidationErrorResult = { error: string };
 type ScopesResult = ValidationErrorResult | { scopes: string[] };
 
-const SUPPORTED_DYNAMIC_CLIENT_SCOPES = new Set([
-  ...DEFAULT_OAUTH_CLIENT_SCOPES,
-  MCP_TOOLS_SCOPE,
-  OAUTH_OFFLINE_ACCESS_SCOPE,
-  OAUTH_REST_READ_SCOPE,
-  OAUTH_REST_WRITE_SCOPE,
-]);
+const SUPPORTED_DYNAMIC_CLIENT_SCOPES = new Set(OAUTH_SCOPES);
 
 function parseRequestedScopes(input?: string[] | string | null) {
   if (typeof input === "string") {
@@ -36,7 +28,8 @@ export function resolveOAuthClientScopes(
     return { scopes: [...DEFAULT_OAUTH_CLIENT_SCOPES] };
   }
 
-  const invalidScopes = requestedScopes.filter(
+  const expandedScopes = requestedScopes.flatMap(expandLegacyScope);
+  const invalidScopes = expandedScopes.filter(
     (scope) => !SUPPORTED_DYNAMIC_CLIENT_SCOPES.has(scope),
   );
 

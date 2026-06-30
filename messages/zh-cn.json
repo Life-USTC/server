@@ -1911,6 +1911,8 @@
     "permissionsHint": "按需选择该客户端可申请的 scopes。",
     "scopeOpenIdDescription": "当客户端需要识别当前登录用户身份时必须启用。",
     "scopeProfileDescription": "允许客户端读取用户的基础资料信息。",
+    "scopeEmailDescription": "允许客户端读取用户的已验证邮箱地址。",
+    "scopeOfflineAccessDescription": "允许客户端获取刷新令牌以长期保持登录状态。",
     "scopeRestReadDescription": "允许客户端读取当前用户受保护的 REST API 资源。",
     "scopeRestWriteDescription": "允许客户端创建、更新和删除当前用户受保护的 REST API 资源。",
     "scopeMcpToolsDescription": "允许客户端调用本服务暴露的 MCP 工具。",
