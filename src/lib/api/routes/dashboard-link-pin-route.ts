@@ -1,11 +1,20 @@
 import {
   logDashboardLinkPinFailure,
+  MAX_PINNED_LINKS,
   resolveDashboardLinkBySlug,
   sanitizeDashboardReturnTo,
   updateDashboardLinkPinState,
 } from "@/features/dashboard-links/server/dashboard-link-service";
-import { dashboardLinkPinRequestSchema } from "@/lib/api/schemas/request-schemas";
-import { resolveApiUserId } from "@/lib/auth/api-auth";
+import {
+  dashboardLinkPinBatchRequestSchema,
+  dashboardLinkPinRequestSchema,
+} from "@/lib/api/schemas/request-schemas";
+import { dashboardLinkPinResponseSchema } from "@/lib/api/schemas/response-schemas";
+import {
+  jsonResponse,
+  parseRouteJsonBody,
+} from "@/lib/api/helpers";
+import { requireAuth, resolveApiUserId } from "@/lib/auth/api-auth";
 import { jsonOrRedirectForPinnedLinks } from "./dashboard-link-pin-response";
 
 export async function postDashboardLinkPinRoute(request: Request) {
@@ -78,5 +87,68 @@ export async function postDashboardLinkPinRoute(request: Request) {
       status: 500,
       error: "Failed to update dashboard link pin state",
     });
+  }
+}
+
+export async function postDashboardLinkPinBatchRoute(request: Request) {
+  const auth = await requireAuth(request, {
+    bearerScope: { feature: "dashboard", action: "write" },
+  });
+  if (auth instanceof Response) return auth;
+
+  const body = await parseRouteJsonBody(
+    request,
+    dashboardLinkPinBatchRequestSchema,
+    "Invalid batch payload",
+  );
+  if (body instanceof Response) return body;
+
+  for (const item of body.items) {
+    const link = resolveDashboardLinkBySlug(item.slug);
+    if (!link) {
+      return jsonResponse(
+        dashboardLinkPinResponseSchema.parse({
+          pinnedSlugs: [],
+          maxPinnedLinks: MAX_PINNED_LINKS,
+          error: `Invalid dashboard link slug: ${item.slug}`,
+        }),
+        { status: 400 },
+      );
+    }
+  }
+
+  try {
+    let pinnedSlugs: string[] = [];
+    for (const item of body.items) {
+      pinnedSlugs = await updateDashboardLinkPinState({
+        action: item.action,
+        slug: item.slug,
+        userId: auth.userId,
+      });
+    }
+
+    return jsonResponse(
+      dashboardLinkPinResponseSchema.parse({
+        pinnedSlugs,
+        maxPinnedLinks: MAX_PINNED_LINKS,
+        error: null,
+      }),
+    );
+  } catch (error) {
+    const lastItem = body.items.at(-1);
+    logDashboardLinkPinFailure({
+      action: lastItem?.action ?? "pin",
+      error,
+      slug: body.items.map((item) => item.slug).join(","),
+      userId: auth.userId,
+    });
+    return jsonResponse(
+      dashboardLinkPinResponseSchema.parse({
+        pinnedSlugs: [],
+        maxPinnedLinks: MAX_PINNED_LINKS,
+        error: "Failed to update dashboard link pin state",
+      }),
+      { status: 500 },
+    );
   }
 }

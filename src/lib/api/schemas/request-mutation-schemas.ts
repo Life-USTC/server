@@ -36,6 +36,7 @@ export {
   calendarSubscriptionAppendRequestSchema,
   calendarSubscriptionCreateRequestSchema,
   calendarSubscriptionRemoveRequestSchema,
+  dashboardLinkPinBatchRequestSchema,
   dashboardLinkPinRequestSchema,
   dashboardLinkVisitRequestSchema,
   localeUpdateRequestSchema,

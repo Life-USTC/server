@@ -42,6 +42,15 @@ export const dashboardLinkPinRequestSchema = z.object({
   action: z.enum(["pin", "unpin"]).optional(),
 });
 
+export const dashboardLinkPinBatchRequestSchema = z.object({
+  items: z.array(
+    z.object({
+      slug: z.string().trim().min(1),
+      action: z.enum(["pin", "unpin"]),
+    }),
+  ).min(1).max(10),
+});
+
 export const todoCreateRequestSchema = todoCreateInputSchema;
 
 export const todoUpdateRequestSchema = todoUpdateInputSchema;
