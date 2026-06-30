@@ -25,13 +25,12 @@ import {
   test,
 } from "@playwright/test";
 import {
-  MCP_TOOLS_SCOPE,
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
   OAUTH_DEVICE_CODE_GRANT_TYPE,
   OAUTH_OFFLINE_ACCESS_SCOPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
-  OAUTH_REST_READ_SCOPE,
 } from "@/lib/oauth/constants";
+import { mcpScope, restReadScope } from "@/lib/oauth/scope-registry";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import {
   createOAuthClientFixture,
@@ -58,8 +57,8 @@ type DeviceAuthorizationResult = {
 const DEVICE_MCP_CLIENT_SCOPES = [
   "openid",
   "profile",
-  OAUTH_REST_READ_SCOPE,
-  MCP_TOOLS_SCOPE,
+  restReadScope("me"),
+  mcpScope("todo"),
   OAUTH_OFFLINE_ACCESS_SCOPE,
 ];
 
@@ -459,7 +458,7 @@ test("/oauth/device 含 MCP scope 但无 REST scope 的令牌被受保护 REST �
   const clientName = `device-e2e-mcp-rest-token-${Date.now()}`;
   const restResource = `${PLAYWRIGHT_BASE_URL}/api/auth`;
   const mcpResource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
-  const scopes = ["openid", "profile", MCP_TOOLS_SCOPE];
+  const scopes = ["openid", "profile", mcpScope("todo")];
   const resources = [restResource, mcpResource];
   try {
     const result = await requestDeviceCode(request, clientName, {

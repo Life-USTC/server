@@ -3,7 +3,10 @@ import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
   OAUTH_PROVIDER_GRANT_TYPES,
 } from "@/lib/oauth/constants";
-import { OAUTH_SCOPES } from "@/lib/oauth/scope-registry";
+import {
+  CLIENT_REGISTRATION_ALLOWED_SCOPES,
+  OAUTH_SCOPES,
+} from "@/lib/oauth/scope-registry";
 
 const { oauthProviderMock } = vi.hoisted(() => ({
   oauthProviderMock: vi.fn((options) => ({ id: "oauth-provider", options })),
@@ -53,12 +56,35 @@ describe("buildOAuthProviderPlugin", () => {
     expect(oauthProviderMock).toHaveBeenCalledWith(
       expect.objectContaining({
         clientRegistrationDefaultScopes: [...DEFAULT_OAUTH_CLIENT_SCOPES],
-        clientRegistrationAllowedScopes: [...OAUTH_SCOPES],
-        scopes: [...OAUTH_SCOPES],
+        clientRegistrationAllowedScopes: [...CLIENT_REGISTRATION_ALLOWED_SCOPES],
+        scopes: [...CLIENT_REGISTRATION_ALLOWED_SCOPES],
         advertisedMetadata: expect.objectContaining({
           scopes_supported: [...OAUTH_SCOPES],
         }),
       }),
     );
+  });
+
+  it("授权与动态注册容忍旧版 coarse scope，但发现文档只公布 feature scope", async () => {
+    const { buildOAuthProviderPlugin } = await import(
+      "@/lib/auth/better-auth-oauth-provider-plugin"
+    );
+
+    buildOAuthProviderPlugin({
+      authPublicOrigin: "https://life.example",
+    });
+
+    const options = oauthProviderMock.mock.calls[0]?.[0];
+    expect(options.scopes).toContain("rest:read");
+    expect(options.scopes).toContain("rest:write");
+    expect(options.scopes).toContain("mcp:tools");
+    expect(options.clientRegistrationAllowedScopes).toContain("rest:read");
+    expect(options.clientRegistrationAllowedScopes).toContain("mcp:tools");
+    expect(options.advertisedMetadata.scopes_supported).not.toContain(
+      "rest:read",
+    );
+    expect(options.advertisedMetadata.scopes_supported).toEqual([
+      ...OAUTH_SCOPES,
+    ]);
   });
 });

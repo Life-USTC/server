@@ -9,7 +9,8 @@ import { expandLegacyScope, OAUTH_SCOPES } from "@/lib/oauth/scope-registry";
 type ValidationErrorResult = { error: string };
 type ScopesResult = ValidationErrorResult | { scopes: string[] };
 
-const SUPPORTED_DYNAMIC_CLIENT_SCOPES = new Set(OAUTH_SCOPES);
+// Allowed scopes after expanding legacy coarse scopes into feature scopes.
+const ALLOWED_DYNAMIC_CLIENT_SCOPES = new Set(OAUTH_SCOPES);
 
 function parseRequestedScopes(input?: string[] | string | null) {
   if (typeof input === "string") {
@@ -30,7 +31,7 @@ export function resolveOAuthClientScopes(
 
   const expandedScopes = requestedScopes.flatMap(expandLegacyScope);
   const invalidScopes = expandedScopes.filter(
-    (scope) => !SUPPORTED_DYNAMIC_CLIENT_SCOPES.has(scope),
+    (scope) => !ALLOWED_DYNAMIC_CLIENT_SCOPES.has(scope),
   );
 
   if (invalidScopes.length > 0) {

@@ -1,5 +1,6 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
-import { MCP_TOOLS_SCOPE } from "@/lib/oauth/constants";
+import { MCP_FEATURES, mcpScope } from "@/lib/oauth/constants";
+import { hasMcpScope } from "@/lib/oauth/scope-registry";
 import { resourceIndicatorsMatch } from "@/lib/oauth/utils";
 import {
   buildAuthErrorResponse,
@@ -55,15 +56,15 @@ export async function authenticateMcpRequest(
     };
   }
 
-  if (!authInfo.scopes.includes(MCP_TOOLS_SCOPE)) {
+  if (!hasMcpScope(authInfo.scopes)) {
     return {
       response: buildAuthErrorResponse(
         {
           error: INSUFFICIENT_SCOPE_ERROR,
           status: 403,
-          description: "Access token does not include the MCP scope",
+          description: "Access token does not include an MCP scope",
         },
-        [MCP_TOOLS_SCOPE],
+        MCP_FEATURES.map(mcpScope),
       ),
     };
   }
