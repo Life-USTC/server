@@ -10,6 +10,8 @@ import {
   restWriteScope,
 } from "./constants";
 
+export { mcpScope, restReadScope, restWriteScope };
+
 export const LEGACY_REST_READ_SCOPE = "rest:read";
 export const LEGACY_REST_WRITE_SCOPE = "rest:write";
 export const LEGACY_MCP_TOOLS_SCOPE = "mcp:tools";

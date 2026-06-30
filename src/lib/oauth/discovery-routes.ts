@@ -6,7 +6,7 @@ import {
   getOAuthOpenIdConfigurationUrl,
   getOAuthProtectedResourceMetadataUrl,
 } from "@/lib/mcp/urls";
-import { MCP_TOOLS_SCOPE } from "@/lib/oauth/constants";
+import { MCP_FEATURES, MCP_TOOLS_SCOPE, mcpScope } from "@/lib/oauth/constants";
 import {
   createDiscoveryJsonResponse,
   createDiscoveryMetadataRoute,
@@ -21,7 +21,10 @@ async function getProtectedResourceMetadataResponse() {
   return createDiscoveryJsonResponse({
     resource: getMcpServerUrl().toString(),
     authorization_servers: [issuerUrl.toString()],
-    scopes_supported: [MCP_TOOLS_SCOPE],
+    scopes_supported: [
+      ...MCP_FEATURES.map(mcpScope),
+      MCP_TOOLS_SCOPE,
+    ],
     bearer_methods_supported: ["header"],
     resource_documentation: new URL(
       "/api/docs/tag/sections",
