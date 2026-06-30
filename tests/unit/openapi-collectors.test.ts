@@ -81,6 +81,31 @@ export const GET = () => new Response();
     expect((responses["200"].content as Record<string, unknown>)["text/plain"]).toBeDefined();
   });
 
+  it("tags /api/metrics as Api and requires internal bearer auth", () => {
+    const project = new Project({ useInMemoryFileSystem: true });
+    project.createSourceFile(
+      "src/routes/api/metrics/+server.ts",
+      `
+/**
+ * Export internal runtime metrics.
+ * @response 200:text
+ * @response 404
+ */
+export function GET() {
+  return new Response("ok");
+}
+`,
+      { overwrite: true },
+    );
+
+    const schemas = new SchemaCollector();
+    const paths = collectPaths(project, schemas);
+    const operation = paths["/api/metrics"].get as Record<string, unknown>;
+
+    expect(operation.tags).toEqual(["Api"]);
+    expect(operation.security).toEqual([{ internalBearerAuth: [] }]);
+  });
+
   it("parses path parameters and request body", () => {
     const project = new Project({ useInMemoryFileSystem: true });
     project.createSourceFile(
@@ -154,6 +179,31 @@ export function GET() {
 
     expect(paths["/api/auth/.well-known/openid-configuration"]).toBeDefined();
     expect(paths["/api/auth/.well-known/openid-configuration"].get).toBeDefined();
+  });
+
+  it("includes Location header for .well-known 307 redirects", () => {
+    const project = new Project({ useInMemoryFileSystem: true });
+    project.createSourceFile(
+      "src/routes/.well-known/oauth-authorization-server/+server.ts",
+      `
+/**
+ * Compatibility alias.
+ * @response 307
+ */
+export const { GET, OPTIONS } = { GET: () => new Response(), OPTIONS: () => new Response() };
+`,
+      { overwrite: true },
+    );
+
+    const schemas = new SchemaCollector();
+    const paths = collectPaths(project, schemas);
+    const operation = paths["/.well-known/oauth-authorization-server"].get as Record<string, unknown>;
+    const responses = operation.responses as Record<string, Record<string, unknown>>;
+
+    expect(responses["307"].description).toBe("Redirect");
+    const headers = responses["307"].headers as Record<string, Record<string, unknown>>;
+    expect(headers.Location).toBeDefined();
+    expect(headers.Location.schema).toEqual({ type: "string", format: "uri" });
   });
 
   it("collects function-declaration handlers", () => {
