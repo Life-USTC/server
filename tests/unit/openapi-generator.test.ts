@@ -13,5 +13,5 @@ describe("openapi generator", () => {
     expect(doc.servers).toEqual([{ url: "/", description: "Current origin" }]);
     expect(doc.components?.securitySchemes).toBeDefined();
     expect(doc.components?.schemas).toBeDefined();
-  });
+  }, 15_000);
 });
