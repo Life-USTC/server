@@ -18,6 +18,8 @@
     "e2e:server": "wrangler dev --config wrangler.e2e.jsonc --ip 127.0.0.1 --port 3000 --local",
     "format": "biome format",
     "hooks:install": "git config core.hooksPath .githooks",
+    "openapi:generate": "bun run scripts/openapi/generate.ts",
+    "openapi:check": "bun run openapi:generate && git diff --exit-code public/openapi.generated.json",
     "release": "semantic-release"
   },
   "dependencies": {
