@@ -1,41 +1,100 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Project } from "ts-morph";
-import {
-  createDocument,
-  type OpenAPIObject,
-  type ZodOpenApiPathsObject,
-} from "zod-openapi";
+import { createDocument, type OpenAPIObject } from "zod-openapi";
 import baseDoc from "../../svelte.openapi.json";
+import { SchemaCollector } from "./schema-collector";
+import { collectPaths } from "./route-collector";
 
-const ROUTES_GLOB = "src/routes/api/**/+server.ts";
-const SCHEMA_MODULES = [
-  "src/lib/api/schemas/request-schemas.ts",
-  "src/lib/api/schemas/response-schemas.ts",
+const SECURITY_SCHEMES = {
+  bearerAuth: {
+    type: "http" as const,
+    scheme: "bearer",
+    bearerFormat: "JWT",
+    description:
+      "OAuth access token accepted by protected REST endpoints when it carries rest:read for reads or rest:write for mutations. These endpoints also accept an in-site Better Auth session cookie.",
+  },
+  sessionCookie: {
+    type: "apiKey" as const,
+    in: "cookie" as const,
+    name: "better-auth.session_token",
+    description:
+      "Better Auth session cookie used by the web UI. Production cookies may use the __Secure- prefix.",
+  },
+  mcpBearerAuth: {
+    type: "http" as const,
+    scheme: "bearer",
+    bearerFormat: "JWT",
+    description:
+      "OAuth bearer token for /api/mcp. MCP requires a bearer token with the MCP resource audience and does not accept session cookies.",
+  },
+  internalBearerAuth: {
+    type: "http" as const,
+    scheme: "bearer",
+    description:
+      "Configured internal bearer token for operational endpoints. Localhost requests may also be accepted by the server-side access policy.",
+  },
+  calendarFeedToken: {
+    type: "apiKey" as const,
+    in: "query" as const,
+    name: "token",
+    description:
+      "Calendar feed token accepted by the personal iCal endpoint. Token-bearing feed URLs may also embed the token in the userId:token path segment.",
+  },
+};
+
+const ROOT_TAGS = [
+  { name: "Admin", description: "Admin and moderation endpoints" },
+  { name: "Comments", description: "Comment threads, reactions, and moderation" },
+  { name: "Homeworks", description: "Homework management and completion status" },
+  { name: "Uploads", description: "Upload session, R2 object write, finalize, and file management" },
+  { name: "Descriptions", description: "User-generated description content and history" },
+  { name: "Sections", description: "Course sections, calendars, and schedules" },
+  { name: "Courses", description: "Course catalog and search" },
+  { name: "Teachers", description: "Teacher directory and search" },
+  { name: "Schedules", description: "Schedules search and filtering" },
+  { name: "Semesters", description: "Semester listing and current semester" },
+  { name: "Calendar", description: "Calendar selections and exports" },
+  { name: "Bus", description: "Shuttle bus schedules and preferences" },
+  { name: "Todos", description: "Personal todo management" },
+  { name: "Me", description: "Current user profile, subscriptions, and personal data" },
+  { name: "DashboardLinks", description: "Dashboard link pinning and click tracking", "x-displayName": "Dashboard Links" },
+  { name: "Locale", description: "Locale switching and locale cookies" },
+  { name: "Metadata", description: "Metadata dictionaries for filters" },
+  { name: "OpenAPI", description: "OpenAPI document endpoint", "x-displayName": "OpenAPI" },
+  { name: "Api", description: "General API endpoints" },
+];
+
+const TAG_GROUPS = [
+  { name: "Catalog", tags: ["Sections", "Courses", "Teachers", "Schedules", "Semesters"] },
+  { name: "Workspace", tags: ["Homeworks", "Todos", "Calendar", "Me", "DashboardLinks"] },
+  { name: "Community", tags: ["Comments", "Descriptions", "Uploads"] },
+  { name: "Campus Services", tags: ["Bus"] },
+  { name: "Platform", tags: ["Metadata", "Locale", "OpenAPI", "Api"] },
+  { name: "Admin", tags: ["Admin"] },
 ];
 
 export function generateOpenApiDocument(): OpenAPIObject {
   const project = new Project({ tsConfigFilePath: "tsconfig.json" });
-  registerSchemas();
-  const paths = collectPaths(project);
+  const schemas = new SchemaCollector();
+  const paths = collectPaths(project, schemas);
+
   return createDocument({
     ...baseDoc,
+    info: {
+      ...baseDoc.info,
+      version: "1.0.0",
+      description: "OpenAPI document generated from SvelteKit route handlers",
+    },
+    servers: [{ url: "/", description: "Current origin" }],
+    tags: ROOT_TAGS,
+    "x-tagGroups": TAG_GROUPS,
     paths,
+    components: {
+      schemas: schemas.getRegisteredSchemas(),
+      securitySchemes: SECURITY_SCHEMES,
+    },
   });
-}
-
-function registerSchemas() {
-  // Task 2: import SCHEMA_MODULES so zod-openapi can collect component schemas.
-  void SCHEMA_MODULES;
-}
-
-function collectPaths(project: Project): ZodOpenApiPathsObject {
-  const paths: ZodOpenApiPathsObject = {};
-  for (const sourceFile of project.getSourceFiles(ROUTES_GLOB)) {
-    // Task 2: parse JSDoc tags and build path items.
-    void sourceFile;
-  }
-  return paths;
 }
 
 if (import.meta.main) {

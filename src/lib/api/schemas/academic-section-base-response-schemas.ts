@@ -1,14 +1,16 @@
 import * as z from "zod";
 import { dateTimeSchema } from "./response-schema-primitives";
 
-export const semesterSchema = z.object({
-  id: z.number().int(),
-  jwId: z.number().int(),
-  nameCn: z.string(),
-  code: z.string(),
-  startDate: dateTimeSchema.nullable(),
-  endDate: dateTimeSchema.nullable(),
-});
+export const semesterSchema = z
+  .object({
+    id: z.number().int(),
+    jwId: z.number().int(),
+    nameCn: z.string(),
+    code: z.string(),
+    startDate: dateTimeSchema.nullable(),
+    endDate: dateTimeSchema.nullable(),
+  })
+  .meta({ id: "semesterSchema", outputId: "semesterSchema" });
 
 export const adminClassSchema = z.object({
   id: z.number().int(),
