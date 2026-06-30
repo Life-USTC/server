@@ -5,10 +5,7 @@ import * as responseSchemas from "../../src/lib/api/schemas/response-schemas";
 export function isZodSchema(value: unknown): value is ZodType {
   if (value === null || typeof value !== "object") return false;
   const ctor = value.constructor;
-  if (ctor && typeof ctor === "function" && ctor.name.startsWith("Zod")) {
-    return true;
-  }
-  return "_zod" in value && (value as { _zod?: { def?: { type?: string } } })._zod?.def?.type !== undefined;
+  return ctor !== null && typeof ctor === "function" && ctor.name.startsWith("Zod");
 }
 
 export class SchemaCollector {

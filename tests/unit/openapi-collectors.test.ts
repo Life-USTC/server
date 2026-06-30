@@ -115,4 +115,98 @@ export const PATCH = () => new Response();
       $ref: "#/components/schemas/todoUpdateRequestSchema",
     });
   });
+
+  it("collects .well-known routes including nested paths", () => {
+    const project = new Project({ useInMemoryFileSystem: true });
+
+    project.createSourceFile(
+      "src/routes/.well-known/openid-configuration/+server.ts",
+      `
+/**
+ * OpenID provider metadata.
+ * @response 200
+ */
+export const { GET, OPTIONS } = { GET: () => new Response(), OPTIONS: () => new Response() };
+`,
+      { overwrite: true },
+    );
+
+    project.createSourceFile(
+      "src/routes/api/auth/.well-known/openid-configuration/+server.ts",
+      `
+/**
+ * Auth issuer metadata.
+ * @response 200
+ */
+export function GET() {
+  return new Response();
+}
+`,
+      { overwrite: true },
+    );
+
+    const schemas = new SchemaCollector();
+    const paths = collectPaths(project, schemas);
+
+    expect(paths["/.well-known/openid-configuration"]).toBeDefined();
+    expect(paths["/.well-known/openid-configuration"].get).toBeDefined();
+    expect(paths["/.well-known/openid-configuration"].options).toBeDefined();
+
+    expect(paths["/api/auth/.well-known/openid-configuration"]).toBeDefined();
+    expect(paths["/api/auth/.well-known/openid-configuration"].get).toBeDefined();
+  });
+
+  it("collects function-declaration handlers", () => {
+    const project = new Project({ useInMemoryFileSystem: true });
+    project.createSourceFile(
+      "src/routes/api/health/+server.ts",
+      `
+/**
+ * Check process liveness.
+ * @response 200:text
+ */
+export function GET() {
+  return new Response("ok");
+}
+`,
+      { overwrite: true },
+    );
+
+    const schemas = new SchemaCollector();
+    const paths = collectPaths(project, schemas);
+
+    expect(paths["/api/health"]).toBeDefined();
+    const operation = paths["/api/health"].get as Record<string, unknown>;
+    expect(operation.summary).toBe("Check process liveness");
+
+    const responses = operation.responses as Record<string, Record<string, unknown>>;
+    expect(responses["200"].description).toBe("Text response");
+    expect((responses["200"].content as Record<string, unknown>)["text/plain"]).toBeDefined();
+  });
+
+  it("uses object items for the array response shortcut", () => {
+    const project = new Project({ useInMemoryFileSystem: true });
+    project.createSourceFile(
+      "src/routes/api/sections/[jwId]/schedules/+server.ts",
+      `
+/**
+ * List section schedules.
+ * @response 200:array
+ */
+export const GET = () => new Response();
+`,
+      { overwrite: true },
+    );
+
+    const schemas = new SchemaCollector();
+    const paths = collectPaths(project, schemas);
+
+    const responses = (paths["/api/sections/{jwId}/schedules"].get as Record<string, unknown>)
+      .responses as Record<string, Record<string, unknown>>;
+    const schema = (responses["200"].content as Record<string, Record<string, unknown>>)[
+      "application/json"
+    ].schema as Record<string, unknown>;
+    expect(schema.type).toBe("array");
+    expect(schema.items).toEqual({ type: "object" });
+  });
 });
