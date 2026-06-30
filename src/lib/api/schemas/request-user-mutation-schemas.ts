@@ -45,3 +45,12 @@ export const dashboardLinkPinRequestSchema = z.object({
 export const todoCreateRequestSchema = todoCreateInputSchema;
 
 export const todoUpdateRequestSchema = todoUpdateInputSchema;
+
+export const todoCompletionBatchRequestSchema = z.object({
+  items: z.array(
+    z.object({
+      todoId: z.string().trim().min(1),
+      completed: z.boolean(),
+    }),
+  ).min(1).max(100),
+});

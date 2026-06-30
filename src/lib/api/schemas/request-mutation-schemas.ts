@@ -38,6 +38,7 @@ export {
   dashboardLinkPinRequestSchema,
   dashboardLinkVisitRequestSchema,
   localeUpdateRequestSchema,
+  todoCompletionBatchRequestSchema,
   todoCreateRequestSchema,
   todoUpdateRequestSchema,
 } from "@/lib/api/schemas/request-user-mutation-schemas";
