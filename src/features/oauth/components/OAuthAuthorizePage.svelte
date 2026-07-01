@@ -2,7 +2,6 @@
 import type { SubmitFunction } from "@sveltejs/kit";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import * as Card from "$lib/components/ui/card/index.js";
-import { redirectWithExternalFallback } from "$lib/navigation/redirect";
 import OAuthAuthorizeConsentPanel from "./OAuthAuthorizeConsentPanel.svelte";
 import OAuthAuthorizeErrorPanel from "./OAuthAuthorizeErrorPanel.svelte";
 import OAuthAuthorizeSidePanel from "./OAuthAuthorizeSidePanel.svelte";
@@ -28,12 +27,17 @@ export let data: PageData;
 
 let pendingConsent: "allow" | "deny" | null = null;
 
+function followOAuthRedirect(location: string) {
+  const target = new URL(location, window.location.href);
+  window.location.assign(target.href);
+}
+
 function consentAction(decision: "allow" | "deny"): SubmitFunction {
   return () => {
     pendingConsent = decision;
     return async ({ result, update }) => {
       if (result.type === "redirect") {
-        await redirectWithExternalFallback(result.location);
+        followOAuthRedirect(result.location);
         return;
       }
       await update({ reset: false });
