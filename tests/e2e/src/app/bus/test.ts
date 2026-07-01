@@ -274,7 +274,7 @@ test.describe("校车面板标签页", () => {
         screenshotLabel: "bus",
       });
 
-      const departedToggle = page.getByRole("checkbox", {
+      const departedToggle = page.getByRole("switch", {
         name: /Show departed trips|显示已发车班次/,
       });
       const [toggleSaveResponse] = await Promise.all([
@@ -347,7 +347,7 @@ test.describe("校车面板标签页", () => {
       screenshotLabel: "bus-save-error",
     });
 
-    const departedToggle = page.getByRole("checkbox", {
+    const departedToggle = page.getByRole("switch", {
       name: /Show departed trips|显示已发车班次/,
     });
     const [saveResponse] = await Promise.all([
