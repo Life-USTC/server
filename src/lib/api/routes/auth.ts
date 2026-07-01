@@ -11,6 +11,7 @@ import {
   withBetterAuthOAuthDebug,
 } from "@/lib/log/oauth-debug";
 import { resolveEquivalentLoopbackRedirectUri } from "@/lib/oauth/loopback-redirect";
+import { rewriteOAuthResourceAliases } from "@/lib/oauth/resource-aliases";
 
 function isOAuthClientRegistrationRequest(request: Request) {
   return new URL(request.url).pathname.endsWith("/oauth2/register");
@@ -160,10 +161,30 @@ async function maybeNormalizeAuthorizeLoopbackRedirectRequest(
   return new Request(url, request);
 }
 
+function maybeNormalizeAuthorizeResourceRequest(request: Request): Request {
+  const url = new URL(request.url);
+  if (!url.pathname.endsWith("/oauth2/authorize")) {
+    return request;
+  }
+
+  const params = new URLSearchParams(url.searchParams);
+  if (!rewriteOAuthResourceAliases(params)) {
+    return request;
+  }
+
+  url.search = params.toString();
+  logOAuthDebug("oauth.resource-alias-normalized", request, {
+    path: url.pathname,
+  });
+  return new Request(url, request);
+}
+
 export const authGetRoute = async (request: Request) =>
   withBetterAuthOAuthDebug(
     "GET",
-    await maybeNormalizeAuthorizeLoopbackRedirectRequest(request),
+    await maybeNormalizeAuthorizeLoopbackRedirectRequest(
+      maybeNormalizeAuthorizeResourceRequest(request),
+    ),
     authHandler,
   );
 

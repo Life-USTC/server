@@ -3,6 +3,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
 import { withBetterAuthOAuthDebug } from "@/lib/log/oauth-debug";
 import { recordOAuthTokenRequestMetric } from "@/lib/metrics/observability-metrics";
 import { OAUTH_DEVICE_CODE_GRANT_TYPE } from "@/lib/oauth/constants";
+import { rewriteOAuthResourceAliases } from "@/lib/oauth/resource-aliases";
 import { handleDeviceCodeGrant } from "./auth-token-device-grant";
 import {
   logObservedTokenRedirectRequest,
@@ -13,6 +14,7 @@ import {
   persistOAuthRefreshTokenResources,
   validateOAuthRefreshTokenResources,
 } from "./auth-token-refresh-resources";
+import { rewriteTokenFormRequest } from "./auth-token-request-rewrite";
 
 async function authHandler(request: Request) {
   const { betterAuthInstance } = await import("@/lib/auth/core");
@@ -118,23 +120,30 @@ async function postRoute(request: Request) {
     );
   }
 
+  const normalizedRequest = rewriteOAuthResourceAliases(params)
+    ? rewriteTokenFormRequest(request, params)
+    : request;
+
   if (params.get("grant_type") === OAUTH_DEVICE_CODE_GRANT_TYPE) {
     return withTokenMetrics(params, () =>
-      handleDeviceCodeGrant(request, params),
+      handleDeviceCodeGrant(normalizedRequest, params),
     );
   }
 
-  logObservedTokenRedirectRequest(request, params);
+  logObservedTokenRedirectRequest(normalizedRequest, params);
 
   return withTokenMetrics(params, async () => {
     const resourceError = await validateOAuthRefreshTokenResources(
-      request,
+      normalizedRequest,
       params,
     );
     if (resourceError) return resourceError;
 
     const delegatedRequest = await maybeBindMcpRefreshRequest(
-      await maybeNormalizeTokenLoopbackRedirectRequest(request, params),
+      await maybeNormalizeTokenLoopbackRedirectRequest(
+        normalizedRequest,
+        params,
+      ),
       params,
     );
     const delegatedResponse = await withBetterAuthOAuthDebug(

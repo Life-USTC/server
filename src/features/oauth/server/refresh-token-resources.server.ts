@@ -4,6 +4,7 @@ import {
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
   OAUTH_REFRESH_TOKEN_GRANT_TYPE,
 } from "@/lib/oauth/constants";
+import { resolveOAuthResourceAlias } from "@/lib/oauth/resource-aliases";
 import {
   hashOAuthClientSecretForDbStorage,
   normalizeResourceIndicator,
@@ -39,7 +40,7 @@ function normalizeRequestedResources(resourceValues: string[]) {
 
     let normalized: string;
     try {
-      normalized = normalizeResourceIndicator(value);
+      normalized = normalizeResourceIndicator(resolveOAuthResourceAlias(value));
     } catch {
       continue;
     }
@@ -76,7 +77,7 @@ function parseRequestedRefreshResources(
 
     let normalized: string;
     try {
-      normalized = normalizeResourceIndicator(value);
+      normalized = normalizeResourceIndicator(resolveOAuthResourceAlias(value));
     } catch {
       return {
         error: { errorDescription: "Requested resource is invalid" },

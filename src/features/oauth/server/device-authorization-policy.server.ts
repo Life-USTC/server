@@ -8,6 +8,7 @@ import {
   OAUTH_DEVICE_CODE_GRANT_TYPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/constants";
+import { resolveOAuthResourceAlias } from "@/lib/oauth/resource-aliases";
 import { hasLegacyMcpScope } from "@/lib/oauth/scope-registry";
 import {
   normalizeResourceIndicator,
@@ -153,7 +154,7 @@ export function resolveRequestedDeviceResources(
 
     let normalized: string;
     try {
-      normalized = normalizeResourceIndicator(value);
+      normalized = normalizeResourceIndicator(resolveOAuthResourceAlias(value));
     } catch {
       return {
         error: {
