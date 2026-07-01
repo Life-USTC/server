@@ -21,7 +21,7 @@ const {
   txUploadCreateMock,
   txUploadFindUniqueMock,
   uploadAggregateMock,
-  uploadDeleteMock,
+  uploadDeleteManyMock,
   uploadFindFirstMock,
   uploadFindUniqueMock,
   uploadTransactionMock,
@@ -41,7 +41,7 @@ const {
   txUploadCreateMock: vi.fn(),
   txUploadFindUniqueMock: vi.fn(),
   uploadAggregateMock: vi.fn(),
-  uploadDeleteMock: vi.fn(),
+  uploadDeleteManyMock: vi.fn(),
   uploadFindFirstMock: vi.fn(),
   uploadFindUniqueMock: vi.fn(),
   uploadTransactionMock: vi.fn(),
@@ -55,7 +55,7 @@ vi.mock("@/lib/db/prisma", () => ({
     },
     upload: {
       aggregate: uploadAggregateMock,
-      delete: uploadDeleteMock,
+      deleteMany: uploadDeleteManyMock,
       findFirst: uploadFindFirstMock,
       findUnique: uploadFindUniqueMock,
     },
@@ -296,7 +296,7 @@ describe("deleteOwnedUpload", () => {
       key: KEY,
       size: 10,
     });
-    uploadDeleteMock.mockResolvedValue({});
+    uploadDeleteManyMock.mockResolvedValue({ count: 1 });
     deleteStorageObjectMock.mockResolvedValue(undefined);
     auditLogCreateMock.mockResolvedValue({});
     uploadTransactionMock.mockImplementation(async (action) =>
@@ -305,7 +305,7 @@ describe("deleteOwnedUpload", () => {
           create: auditLogCreateMock,
         },
         upload: {
-          delete: uploadDeleteMock,
+          deleteMany: uploadDeleteManyMock,
           findFirst: uploadFindFirstMock,
         },
       }),
