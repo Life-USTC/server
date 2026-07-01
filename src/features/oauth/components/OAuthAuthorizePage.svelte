@@ -1,5 +1,4 @@
 <script lang="ts">
-import type { SubmitFunction } from "@sveltejs/kit";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import * as Card from "$lib/components/ui/card/index.js";
 import OAuthAuthorizeConsentPanel from "./OAuthAuthorizeConsentPanel.svelte";
@@ -24,27 +23,6 @@ type PageData = {
 };
 
 export let data: PageData;
-
-let pendingConsent: "allow" | "deny" | null = null;
-
-function followOAuthRedirect(location: string) {
-  const target = new URL(location, window.location.href);
-  window.location.assign(target.href);
-}
-
-function consentAction(decision: "allow" | "deny"): SubmitFunction {
-  return () => {
-    pendingConsent = decision;
-    return async ({ result, update }) => {
-      if (result.type === "redirect") {
-        followOAuthRedirect(result.location);
-        return;
-      }
-      await update({ reset: false });
-      pendingConsent = null;
-    };
-  };
-}
 
 $: appName = data.state === "consent" ? (data.clientName ?? "OAuth") : "OAuth";
 $: pageTitle =
@@ -78,10 +56,8 @@ $: sideNoteLabel =
           />
         {:else if data.copy}
           <OAuthAuthorizeConsentPanel
-            {consentAction}
             copy={data.copy}
             oauthQuery={data.oauthQuery ?? ""}
-            {pendingConsent}
             scope={data.scope ?? ""}
             scopes={data.scopes ?? []}
           />
