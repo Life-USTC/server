@@ -31,6 +31,24 @@ describe("OAuth 注册路由", () => {
     oauthClientUpdateMock.mockReset();
   });
 
+  it("动态客户端注册时拒绝无效 JSON 请求体", async () => {
+    const response = await authPostRoute(
+      new Request("https://life.example/api/auth/oauth2/register", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{",
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "invalid_client_metadata",
+      error_description: "Invalid JSON request body",
+    });
+    expect(betterAuthHandlerMock).not.toHaveBeenCalled();
+    expect(oauthClientUpdateMock).not.toHaveBeenCalled();
+  });
+
   it("动态客户端注册时拒绝 client_credentials", async () => {
     const response = await authPostRoute(
       new Request("https://life.example/api/auth/oauth2/register", {

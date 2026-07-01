@@ -465,11 +465,23 @@ async function requireActiveUploadWriter(userId: string) {
   return { ok: true as const };
 }
 
-async function deleteUploadStorageObject(upload: { key: string }) {
+async function deleteUploadStorageObject(upload: {
+  key: string;
+  size: number;
+}) {
   try {
     await deleteStorageObject(upload.key);
     return true;
   } catch (error) {
+    try {
+      const head = await headStorageObject(upload.key);
+      if (upload.size > 0 && head.size <= 0) {
+        return true;
+      }
+    } catch {
+      // Preserve the upload record if storage state cannot be confirmed.
+    }
+
     logAppEvent(
       "error",
       "R2 object deletion failed; upload record preserved",

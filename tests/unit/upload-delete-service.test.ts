@@ -5,6 +5,7 @@ const {
   auditLogCreateMock,
   deleteStorageObjectMock,
   getViewerContextMock,
+  headStorageObjectMock,
   logAppEventMock,
   uploadDeleteMock,
   uploadFindFirstMock,
@@ -13,6 +14,7 @@ const {
   auditLogCreateMock: vi.fn(),
   deleteStorageObjectMock: vi.fn(),
   getViewerContextMock: vi.fn(),
+  headStorageObjectMock: vi.fn(),
   logAppEventMock: vi.fn(),
   uploadDeleteMock: vi.fn(),
   uploadFindFirstMock: vi.fn(),
@@ -34,7 +36,7 @@ vi.mock("@/lib/db/prisma", () => ({
 
 vi.mock("@/lib/storage/r2-object", () => ({
   deleteStorageObject: deleteStorageObjectMock,
-  headStorageObject: vi.fn(),
+  headStorageObject: headStorageObjectMock,
 }));
 
 vi.mock("@/lib/auth/viewer-context", () => ({
@@ -63,6 +65,7 @@ describe("deleteOwnedUpload", () => {
     });
     uploadFindFirstMock.mockResolvedValue(upload);
     deleteStorageObjectMock.mockResolvedValue(undefined);
+    headStorageObjectMock.mockResolvedValue({ size: upload.size });
     uploadDeleteMock.mockResolvedValue(upload);
     auditLogCreateMock.mockResolvedValue({});
     uploadTransactionMock.mockImplementation(async (action) =>
@@ -136,6 +139,7 @@ describe("deleteOwnedUpload", () => {
   it("存储删除失败时保留上传元数据", async () => {
     const storageError = new Error("R2 unavailable");
     deleteStorageObjectMock.mockRejectedValue(storageError);
+    headStorageObjectMock.mockResolvedValue({ size: upload.size });
 
     const result = await deleteOwnedUpload({
       id: upload.id,
@@ -154,5 +158,25 @@ describe("deleteOwnedUpload", () => {
       { source: "upload" },
       storageError,
     );
+  });
+
+  it("存储对象已不存在时允许删除过期上传元数据", async () => {
+    deleteStorageObjectMock.mockRejectedValue(new Error("R2 missing"));
+    headStorageObjectMock.mockResolvedValue({ size: 0 });
+
+    const result = await deleteOwnedUpload({
+      id: upload.id,
+      userId: "user-1",
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      deletedId: upload.id,
+      deletedSize: upload.size,
+    });
+    expect(headStorageObjectMock).toHaveBeenCalledWith(upload.key);
+    expect(uploadDeleteMock).toHaveBeenCalledWith({ where: { id: upload.id } });
+    expect(auditLogCreateMock).toHaveBeenCalled();
+    expect(logAppEventMock).not.toHaveBeenCalled();
   });
 });
