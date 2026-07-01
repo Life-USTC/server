@@ -268,9 +268,16 @@ export async function updateOwnedTodo(input: {
 }
 
 export async function deleteOwnedTodo(id: string, userId: string) {
-  const ownership = await requireOwnedTodo(id, userId);
-  if (!ownership.ok) return ownership;
+  const deleted = await prisma.todo.deleteMany({ where: { id, userId } });
+  if (deleted.count > 0) return { ok: true as const };
 
-  await prisma.todo.delete({ where: { id } });
-  return { ok: true as const };
+  const todo = await prisma.todo.findUnique({
+    where: { id },
+    select: { id: true, userId: true },
+  });
+  if (!todo) return { ok: false as const, error: "not_found" as const };
+  if (todo.userId !== userId) {
+    return { ok: false as const, error: "forbidden" as const };
+  }
+  return { ok: false as const, error: "not_found" as const };
 }
