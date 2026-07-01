@@ -1,6 +1,6 @@
 <script lang="ts">
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Tabs from "$lib/components/ui/tabs/index.js";
+import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 import CalendarTabNavigationControls from "./CalendarTabNavigationControls.svelte";
 import type { DashboardCalendarTabProps } from "./dashboard-calendar-component-types";
 import type { FormatMessage } from "./dashboard-component-types";
@@ -27,17 +27,27 @@ export let subscriptionsCopy: DashboardCalendarTabProps["subscriptionsCopy"];
 
 <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
   <div class="flex flex-wrap items-center gap-2 md:justify-start">
-    <Tabs.List aria-label={dashboardCopy.nav.calendar.title}>
-      <Tabs.Button selected={calendarView === "semester"} onclick={() => setCalendarView("semester")}>
+    <ToggleGroup.Root
+      aria-label={dashboardCopy.nav.calendar.title}
+      type="single"
+      value={calendarView}
+      variant="outline"
+      onValueChange={(value) => {
+        if (value === "semester" || value === "month" || value === "week") {
+          setCalendarView(value);
+        }
+      }}
+    >
+      <ToggleGroup.Item value="semester">
         {dashboardCopy.calendarViewSemester}
-      </Tabs.Button>
-      <Tabs.Button selected={calendarView === "month"} onclick={() => setCalendarView("month")}>
+      </ToggleGroup.Item>
+      <ToggleGroup.Item value="month">
         {dashboardCopy.calendarViewMonth}
-      </Tabs.Button>
-      <Tabs.Button selected={calendarView === "week"} onclick={() => setCalendarView("week")}>
+      </ToggleGroup.Item>
+      <ToggleGroup.Item value="week">
         {dashboardCopy.calendarViewWeek}
-      </Tabs.Button>
-    </Tabs.List>
+      </ToggleGroup.Item>
+    </ToggleGroup.Root>
     <CalendarTabNavigationControls
       {addDays}
       {addMonths}

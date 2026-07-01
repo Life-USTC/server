@@ -1,7 +1,8 @@
 <script lang="ts">
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
-import { Input } from "$lib/components/ui/input/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
+import * as InputGroup from "$lib/components/ui/input-group/index.js";
 import { Select } from "$lib/components/ui/select/index.js";
 import type {
   CourseListCommonLabels,
@@ -29,22 +30,26 @@ export let updateCourseFilter: CourseListFilterUpdater;
   </Card.Header>
   <Card.Content>
     <form method="GET" class="grid gap-4">
-      <div class="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-end">
-        <label class="grid min-w-0 gap-2 lg:flex-[1.4]">
-          <span class="font-medium text-sm">{commonLabels.search}</span>
-          <Input
-            name="search"
-            placeholder={courseLabels.searchPlaceholder}
-            type="search"
-            value={courseSearch}
-            oninput={(event: Event) => {
-              courseSearch = (event.currentTarget as HTMLInputElement).value;
-            }}
-          />
-        </label>
-        <label class="grid min-w-0 gap-2 lg:flex-1">
-          <span class="font-medium text-sm">{courseLabels.educationLevel}</span>
+      <Field.Group class="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-end">
+        <Field.Field class="min-w-0 lg:flex-[1.4]">
+          <Field.Label for="course-search">{commonLabels.search}</Field.Label>
+          <InputGroup.Root>
+            <InputGroup.Input
+              id="course-search"
+              name="search"
+              placeholder={courseLabels.searchPlaceholder}
+              type="search"
+              value={courseSearch}
+              oninput={(event: Event) => {
+                courseSearch = (event.currentTarget as HTMLInputElement).value;
+              }}
+            />
+          </InputGroup.Root>
+        </Field.Field>
+        <Field.Field class="min-w-0 lg:flex-1">
+          <Field.Label for="course-education-level">{courseLabels.educationLevel}</Field.Label>
           <Select
+            id="course-education-level"
             items={educationLevelOptions}
             name="educationLevelId"
             value={filters.educationLevelId ?? ""}
@@ -53,10 +58,11 @@ export let updateCourseFilter: CourseListFilterUpdater;
                 educationLevelId: event.currentTarget.value,
               })}
           />
-        </label>
-        <label class="grid min-w-0 gap-2 lg:flex-1">
-          <span class="font-medium text-sm">{courseLabels.category}</span>
+        </Field.Field>
+        <Field.Field class="min-w-0 lg:flex-1">
+          <Field.Label for="course-category">{courseLabels.category}</Field.Label>
           <Select
+            id="course-category"
             items={categoryOptions}
             name="categoryId"
             value={filters.categoryId ?? ""}
@@ -65,10 +71,11 @@ export let updateCourseFilter: CourseListFilterUpdater;
                 categoryId: event.currentTarget.value,
               })}
           />
-        </label>
-        <label class="grid min-w-0 gap-2 lg:flex-1">
-          <span class="font-medium text-sm">{courseLabels.classType}</span>
+        </Field.Field>
+        <Field.Field class="min-w-0 lg:flex-1">
+          <Field.Label for="course-class-type">{courseLabels.classType}</Field.Label>
           <Select
+            id="course-class-type"
             items={classTypeOptions}
             name="classTypeId"
             value={filters.classTypeId ?? ""}
@@ -77,7 +84,7 @@ export let updateCourseFilter: CourseListFilterUpdater;
                 classTypeId: event.currentTarget.value,
               })}
           />
-        </label>
+        </Field.Field>
         <div class="flex shrink-0 flex-wrap gap-2">
           <Button class="min-w-28" size="lg" type="submit">
             {commonLabels.search}
@@ -86,7 +93,7 @@ export let updateCourseFilter: CourseListFilterUpdater;
             <Button class="min-w-28" href="/courses" size="lg" variant="outline">{commonLabels.clear}</Button>
           {/if}
         </div>
-      </div>
+      </Field.Group>
     </form>
   </Card.Content>
 </Card.Root>

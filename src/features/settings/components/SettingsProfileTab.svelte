@@ -5,6 +5,7 @@ import {
 } from "@/features/profile/lib/profile-username";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import SettingsAvatarPicker from "./SettingsAvatarPicker.svelte";
 import type { SettingsCopy, SettingsUser } from "./settings-component-types";
@@ -38,11 +39,11 @@ export let user: SettingsUser;
         {user}
       />
 
-      <div class="grid gap-4 md:grid-cols-2">
-        <label class="grid gap-2">
-          <span class="font-medium text-sm">
+      <Field.Group class="grid gap-4 md:grid-cols-2">
+        <Field.Field data-disabled={!isMounted ? "true" : undefined}>
+          <Field.Label for="name">
             {copy.profile.name} <span class="text-error">*</span>
-          </span>
+          </Field.Label>
           <Input
             id="name"
             name="name"
@@ -52,12 +53,12 @@ export let user: SettingsUser;
             required
             disabled={!isMounted}
           />
-        </label>
+        </Field.Field>
 
-        <label class="grid gap-2">
-          <span class="font-medium text-sm">
+        <Field.Field data-disabled={!isMounted ? "true" : undefined}>
+          <Field.Label for="username">
             {copy.profile.username}
-          </span>
+          </Field.Label>
           <Input
             id="username"
             name="username"
@@ -70,11 +71,11 @@ export let user: SettingsUser;
             required
             disabled={!isMounted}
           />
-          <span class="text-base-content/60 text-xs">
+          <Field.Description>
             {copy.profile.usernameValidation}
-          </span>
-        </label>
-      </div>
+          </Field.Description>
+        </Field.Field>
+      </Field.Group>
     </Card.Content>
 
     <Card.Footer>
