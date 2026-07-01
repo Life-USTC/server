@@ -55,7 +55,7 @@ export let overdueTodos: DashboardTodoItem[];
       <div class="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
         {#each overdueHomeworks as homework}
           <a
-            class="flex items-start justify-between gap-3 rounded-xl border border-base-300 px-3 py-3 text-sm no-underline transition hover:border-primary hover:bg-base-200/50"
+            class="grid gap-2 rounded-xl border border-base-300 px-3 py-3 text-sm no-underline transition hover:border-primary hover:bg-base-200/50"
             href={homework.section?.jwId
               ? `/sections/${homework.section.jwId}#homework-${homework.id}`
               : dashboardTabHref("homeworks")}
@@ -65,12 +65,12 @@ export let overdueTodos: DashboardTodoItem[];
               <span class="block truncate font-medium">{homework.title}</span>
               <span class="block truncate text-base-content/60 text-sm">{homework.section?.course?.namePrimary ?? commonCopy.sections}</span>
             </span>
-            <span class="shrink-0 text-base-content/60 text-sm">{homeworkEtaLabel(homework.submissionDueAt)}</span>
+            <span class="text-base-content/60 text-sm">{homeworkEtaLabel(homework.submissionDueAt)}</span>
           </a>
         {/each}
         {#each overdueTodos as todo}
           <a
-            class="flex items-start justify-between gap-3 rounded-xl border border-base-300 px-3 py-3 text-sm no-underline transition hover:border-primary hover:bg-base-200/50"
+            class="grid gap-2 rounded-xl border border-base-300 px-3 py-3 text-sm no-underline transition hover:border-primary hover:bg-base-200/50"
             href={dashboardTabHref("todos")}
           >
             <span class="min-w-0">
@@ -81,7 +81,7 @@ export let overdueTodos: DashboardTodoItem[];
                 <Badge variant="ghost">{todoStatus(todo)}</Badge>
               </span>
             </span>
-            <span class="shrink-0 text-base-content/60 text-sm">{fmtDate(todo.dueAt)}</span>
+            <span class="text-base-content/60 text-sm">{fmtDate(todo.dueAt)}</span>
           </a>
         {/each}
         {#if overdueHomeworks.length === 0 && overdueTodos.length === 0}

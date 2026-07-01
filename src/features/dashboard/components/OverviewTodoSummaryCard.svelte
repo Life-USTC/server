@@ -48,7 +48,7 @@ export let todoStatus: (todo: DashboardTodoItem) => string;
     <div class="grid gap-2">
       {#each pendingTodos.slice(0, 5) as todo}
         <a
-          class="flex items-start justify-between gap-3 rounded-xl border border-base-300 px-3 py-3 text-sm no-underline transition hover:border-primary hover:bg-base-200/50"
+          class="grid gap-2 rounded-xl border border-base-300 px-3 py-3 text-sm no-underline transition hover:border-primary hover:bg-base-200/50 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start"
           href={dashboardTabHref("todos")}
         >
           <span class="min-w-0">
@@ -59,7 +59,7 @@ export let todoStatus: (todo: DashboardTodoItem) => string;
             </span>
           </span>
           {#if todo.dueAt}
-            <span class="shrink-0 text-right text-base-content/60 text-xs">{fmtDate(todo.dueAt)}</span>
+            <span class="text-base-content/60 text-xs sm:text-right">{fmtDate(todo.dueAt)}</span>
           {/if}
         </a>
       {:else}
