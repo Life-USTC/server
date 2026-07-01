@@ -66,7 +66,7 @@ test.describe("仪表盘作业", () => {
 
     // Switch to All to see all homeworks
     await page
-      .getByRole("button", { name: /全部|All/i })
+      .getByRole("radio", { name: /全部|All/i })
       .first()
       .click();
 
@@ -100,7 +100,7 @@ test.describe("仪表盘作业", () => {
     });
 
     await page
-      .getByRole("button", { name: /全部|All/i })
+      .getByRole("radio", { name: /全部|All/i })
       .first()
       .click();
 
@@ -126,7 +126,7 @@ test.describe("仪表盘作业", () => {
 
     // Completed filter
     const completedTab = page
-      .getByRole("button", { name: /已完成|Completed/i })
+      .getByRole("radio", { name: /已完成|Completed/i })
       .first();
     await expect(completedTab).toBeVisible();
     await completedTab.click();
@@ -139,7 +139,7 @@ test.describe("仪表盘作业", () => {
     await captureStepScreenshot(page, testInfo, "homeworks/filter-completed");
 
     // All filter
-    const allTab = page.getByRole("button", { name: /全部|All/i }).first();
+    const allTab = page.getByRole("radio", { name: /全部|All/i }).first();
     await expect(allTab).toBeVisible();
     await allTab.click();
     await expect(page.getByText(DEV_SEED.homeworks.overdueTitle)).toBeVisible();
@@ -155,12 +155,12 @@ test.describe("仪表盘作业", () => {
     });
 
     await page
-      .getByRole("button", { name: /全部|All/i })
+      .getByRole("radio", { name: /全部|All/i })
       .first()
       .click();
 
     await expect(page.getByTestId("dashboard-homeworks-cards")).toBeVisible();
-    await page.getByRole("button", { name: /列表|List/i }).click();
+    await page.getByRole("radio", { name: /列表|List/i }).click();
     await expect(page).toHaveURL(/homeworkView=list/);
     await expect(page.getByTestId("dashboard-homeworks-list")).toBeVisible();
     await expect
@@ -173,7 +173,7 @@ test.describe("仪表盘作业", () => {
 
     await gotoAndWaitForReady(page, "/dashboard/homeworks");
     await page
-      .getByRole("button", { name: /全部|All/i })
+      .getByRole("radio", { name: /全部|All/i })
       .first()
       .click();
     await expect(page).toHaveURL(/\/dashboard\/homeworks$/);
@@ -192,7 +192,7 @@ test.describe("仪表盘作业", () => {
 
     // Switch to "all" filter
     await page
-      .getByRole("button", { name: /全部|All/i })
+      .getByRole("radio", { name: /全部|All/i })
       .first()
       .click();
 
@@ -266,7 +266,7 @@ test.describe("仪表盘作业", () => {
     });
 
     await page
-      .getByRole("button", { name: /全部|All/i })
+      .getByRole("radio", { name: /全部|All/i })
       .first()
       .click();
 
@@ -308,7 +308,7 @@ test.describe("仪表盘作业", () => {
     });
 
     await page
-      .getByRole("button", { name: /全部|All/i })
+      .getByRole("radio", { name: /全部|All/i })
       .first()
       .click();
 

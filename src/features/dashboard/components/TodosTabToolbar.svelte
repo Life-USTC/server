@@ -7,7 +7,7 @@ import type {
 import LayoutGrid from "$lib/components/icons/layout-grid.svelte";
 import List from "$lib/components/icons/list.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Tabs from "$lib/components/ui/tabs/index.js";
+import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 
 export let createTodoError: string;
 export let setTodoView: (view: TodoView) => void;
@@ -19,52 +19,49 @@ export let todoView: TodoView;
 
 <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
   <div class="flex flex-wrap items-center gap-2 md:justify-start">
-    <Tabs.List aria-label={todosCopy.viewMode}>
-      <Tabs.Button
-        selected={todoView === "cards"}
-        onclick={() => {
-          setTodoView("cards");
-        }}
-      >
-        <LayoutGrid />
+    <ToggleGroup.Root
+      aria-label={String(todosCopy.viewMode)}
+      type="single"
+      value={todoView}
+      variant="outline"
+      onValueChange={(value) => {
+        if (value === "cards" || value === "list") setTodoView(value);
+      }}
+    >
+      <ToggleGroup.Item value="cards">
+        <LayoutGrid data-icon="inline-start" />
         {todosCopy.cardView}
-      </Tabs.Button>
-      <Tabs.Button
-        selected={todoView === "list"}
-        onclick={() => {
-          setTodoView("list");
-        }}
-      >
-        <List />
+      </ToggleGroup.Item>
+      <ToggleGroup.Item value="list">
+        <List data-icon="inline-start" />
         {todosCopy.listView}
-      </Tabs.Button>
-    </Tabs.List>
-    <Tabs.List aria-label={todosCopy.title}>
-      <Tabs.Button
-        selected={todoFilter === "incomplete"}
-        onclick={() => {
-          todoFilter = "incomplete";
-        }}
-      >
+      </ToggleGroup.Item>
+    </ToggleGroup.Root>
+    <ToggleGroup.Root
+      aria-label={String(todosCopy.title)}
+      type="single"
+      value={todoFilter}
+      variant="outline"
+      onValueChange={(value) => {
+        if (
+          value === "incomplete" ||
+          value === "completed" ||
+          value === "all"
+        ) {
+          todoFilter = value;
+        }
+      }}
+    >
+      <ToggleGroup.Item value="incomplete">
         {todosCopy.filterIncomplete}
-      </Tabs.Button>
-      <Tabs.Button
-        selected={todoFilter === "completed"}
-        onclick={() => {
-          todoFilter = "completed";
-        }}
-      >
+      </ToggleGroup.Item>
+      <ToggleGroup.Item value="completed">
         {todosCopy.filterCompleted}
-      </Tabs.Button>
-      <Tabs.Button
-        selected={todoFilter === "all"}
-        onclick={() => {
-          todoFilter = "all";
-        }}
-      >
+      </ToggleGroup.Item>
+      <ToggleGroup.Item value="all">
         {todosCopy.filterAll}
-      </Tabs.Button>
-    </Tabs.List>
+      </ToggleGroup.Item>
+    </ToggleGroup.Root>
   </div>
   <div class="flex flex-wrap items-center gap-2 md:justify-end">
     <Button

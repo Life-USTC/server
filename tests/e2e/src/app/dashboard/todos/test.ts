@@ -95,7 +95,7 @@ test.describe("仪表盘待办", () => {
 
     // It now appears under the completed filter
     const completedFilter = page
-      .getByRole("button", { name: /已完成|Completed/i })
+      .getByRole("radio", { name: /已完成|Completed/i })
       .first();
     await completedFilter.click();
     await expect(
@@ -124,7 +124,7 @@ test.describe("仪表盘待办", () => {
     await signInAsDebugUser(page, "/dashboard/todos");
 
     const completedFilter = page
-      .getByRole("button", { name: /已完成|Completed/i })
+      .getByRole("radio", { name: /已完成|Completed/i })
       .first();
     const completedTodo = page.getByText(DEV_SEED.todos.completedTitle).first();
     await expect(async () => {

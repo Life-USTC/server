@@ -67,17 +67,17 @@ test.describe("仪表盘考试", () => {
     // In English locale: "Upcoming" / "Ended" / "All"
     const filterTabs = page.getByRole("group", { name: /考试|Exams/i });
     await expect(
-      filterTabs.getByRole("button", { name: /全部|All/i }),
+      filterTabs.getByRole("radio", { name: /全部|All/i }),
     ).toBeVisible();
     // "Ended" in English, "已结束" or "已完成" in Chinese
     await expect(
-      filterTabs.getByRole("button", { name: /Ended|已结束|已完成/i }),
+      filterTabs.getByRole("radio", { name: /Ended|已结束|已完成/i }),
     ).toBeVisible();
     await expect(
-      filterTabs.getByRole("button", {
+      filterTabs.getByRole("radio", {
         name: /Upcoming|即将|即将考试|待完成/i,
       }),
-    ).toHaveAttribute("aria-pressed", "true");
+    ).toHaveAttribute("aria-checked", "true");
 
     await captureStepScreenshot(page, testInfo, "exams/filter-toolbar");
   });
@@ -92,10 +92,10 @@ test.describe("仪表盘考试", () => {
 
     // Switch to "all" to see all exams regardless of completion
     const filterTabs = page.getByRole("group", { name: /考试|Exams/i });
-    await filterTabs.getByRole("button", { name: /全部|All/i }).click();
+    await filterTabs.getByRole("radio", { name: /全部|All/i }).click();
     await expect(
-      filterTabs.getByRole("button", { name: /全部|All/i }),
-    ).toHaveAttribute("aria-pressed", "true");
+      filterTabs.getByRole("radio", { name: /全部|All/i }),
+    ).toHaveAttribute("aria-checked", "true");
 
     // exam cards should be visible
     const examCards = page.locator('[data-slot="card"]').filter({
@@ -166,7 +166,7 @@ test.describe("仪表盘考试", () => {
 
     await page
       .getByRole("group", { name: /考试|Exams/i })
-      .getByRole("button", { name: /全部|All/i })
+      .getByRole("radio", { name: /全部|All/i })
       .click();
 
     const sectionLink = page.locator('a[href^="/sections/"]').first();
@@ -190,11 +190,11 @@ test.describe("仪表盘考试", () => {
     const filterTabs = page.getByRole("group", { name: /考试|Exams/i });
 
     // Switch to completed/ended filter
-    const completedTab = filterTabs.getByRole("button", {
+    const completedTab = filterTabs.getByRole("radio", {
       name: /Ended|已结束|已完成/i,
     });
     await completedTab.click();
-    await expect(completedTab).toHaveAttribute("aria-pressed", "true");
+    await expect(completedTab).toHaveAttribute("aria-checked", "true");
     const endedExamCards = page.locator('[data-slot="card"]').filter({
       has: page.locator('a[href^="/sections/"]'),
     });
@@ -218,11 +218,11 @@ test.describe("仪表盘考试", () => {
     await captureStepScreenshot(page, testInfo, "exams/filter-completed");
 
     // Switch back to incomplete/upcoming
-    const incompleteTab = filterTabs.getByRole("button", {
+    const incompleteTab = filterTabs.getByRole("radio", {
       name: /Upcoming|即将|即将考试|待完成/i,
     });
     await incompleteTab.click();
-    await expect(incompleteTab).toHaveAttribute("aria-pressed", "true");
+    await expect(incompleteTab).toHaveAttribute("aria-checked", "true");
     await captureStepScreenshot(page, testInfo, "exams/filter-incomplete");
   });
 });

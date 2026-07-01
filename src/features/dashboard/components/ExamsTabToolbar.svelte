@@ -5,7 +5,7 @@ import type {
 } from "@/features/dashboard/lib/dashboard-controller-types";
 import LayoutGrid from "$lib/components/icons/layout-grid.svelte";
 import List from "$lib/components/icons/list.svelte";
-import * as Tabs from "$lib/components/ui/tabs/index.js";
+import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 import type { DashboardExamFilter } from "./dashboard-exam-component-types";
 
 export let dashboardCopy: DashboardDashboardCopy;
@@ -15,25 +15,47 @@ export let setExamView: (view: ExamView) => void;
 </script>
 
 <div class="flex flex-wrap items-center gap-2">
-  <Tabs.List aria-label={dashboardCopy.nav.exams.viewMode}>
-    <Tabs.Button selected={examView === "cards"} onclick={() => { setExamView("cards"); }}>
-      <LayoutGrid />
+  <ToggleGroup.Root
+    aria-label={dashboardCopy.nav.exams.viewMode}
+    type="single"
+    value={examView}
+    variant="outline"
+    onValueChange={(value) => {
+      if (value === "cards" || value === "list") setExamView(value);
+    }}
+  >
+    <ToggleGroup.Item value="cards">
+      <LayoutGrid data-icon="inline-start" />
       {dashboardCopy.nav.exams.cardView}
-    </Tabs.Button>
-    <Tabs.Button selected={examView === "list"} onclick={() => { setExamView("list"); }}>
-      <List />
+    </ToggleGroup.Item>
+    <ToggleGroup.Item value="list">
+      <List data-icon="inline-start" />
       {dashboardCopy.nav.exams.listView}
-    </Tabs.Button>
-  </Tabs.List>
-  <Tabs.List aria-label={dashboardCopy.nav.exams.title}>
-    <Tabs.Button selected={examFilter === "incomplete"} onclick={() => { examFilter = "incomplete"; }}>
+    </ToggleGroup.Item>
+  </ToggleGroup.Root>
+  <ToggleGroup.Root
+    aria-label={dashboardCopy.nav.exams.title}
+    type="single"
+    value={examFilter}
+    variant="outline"
+    onValueChange={(value) => {
+      if (
+        value === "incomplete" ||
+        value === "completed" ||
+        value === "all"
+      ) {
+        examFilter = value;
+      }
+    }}
+  >
+    <ToggleGroup.Item value="incomplete">
       {dashboardCopy.nav.exams.filterIncomplete}
-    </Tabs.Button>
-    <Tabs.Button selected={examFilter === "completed"} onclick={() => { examFilter = "completed"; }}>
+    </ToggleGroup.Item>
+    <ToggleGroup.Item value="completed">
       {dashboardCopy.nav.exams.filterCompleted}
-    </Tabs.Button>
-    <Tabs.Button selected={examFilter === "all"} onclick={() => { examFilter = "all"; }}>
+    </ToggleGroup.Item>
+    <ToggleGroup.Item value="all">
       {dashboardCopy.nav.exams.filterAll}
-    </Tabs.Button>
-  </Tabs.List>
+    </ToggleGroup.Item>
+  </ToggleGroup.Root>
 </div>
