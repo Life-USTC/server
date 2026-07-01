@@ -17,6 +17,11 @@ const EXTERNAL_IMAGE_SOURCES = [
   "https://api.dicebear.com",
 ];
 
+const LOOPBACK_FORM_ACTION_SOURCES = [
+  "http://localhost:*",
+  "http://127.0.0.1:*",
+];
+
 export function createScriptNonce() {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
   const value = String.fromCharCode(...bytes);
@@ -47,7 +52,7 @@ export function buildContentSecurityPolicy(
     "font-src 'self' https://fonts.gstatic.com",
     `connect-src 'self' ${connectSources.join(" ")}`,
     "frame-ancestors 'none'",
-    "form-action 'self'",
+    `form-action 'self' ${LOOPBACK_FORM_ACTION_SOURCES.join(" ")}`,
     "base-uri 'self'",
     "object-src 'none'",
   ];
