@@ -130,9 +130,9 @@ export async function issueDeviceGrantTokens(
   const accessTokenHash = jwtAccessToken
     ? undefined
     : await hashOAuthClientSecretForDbStorage(accessToken);
-  const shouldIssueRefreshToken =
-    input.resources.length === 0 &&
-    input.scopes.includes(OAUTH_OFFLINE_ACCESS_SCOPE);
+  const shouldIssueRefreshToken = input.scopes.includes(
+    OAUTH_OFFLINE_ACCESS_SCOPE,
+  );
   const refreshToken = shouldIssueRefreshToken
     ? randomBytesBase64Url(32)
     : undefined;

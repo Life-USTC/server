@@ -45,7 +45,7 @@ describe("设备令牌签发器", () => {
     signJwtMock.mockReset();
   });
 
-  it("使用绑定资源的 JWT 访问令牌且不签发刷新令牌", async () => {
+  it("使用绑定资源的 JWT 访问令牌且为 offline_access 签发刷新令牌", async () => {
     signJwtMock.mockResolvedValue({ token: "header.payload.signature" });
     const { prisma, accessTokenCreate, refreshTokenCreate } =
       createPrismaMock();
@@ -71,10 +71,25 @@ describe("设备令牌签发器", () => {
 
     expect(issued).toMatchObject({
       accessToken: "header.payload.signature",
+      refreshToken: expect.any(String),
     });
-    expect(issued).not.toHaveProperty("refreshToken");
     expect(accessTokenCreate).not.toHaveBeenCalled();
-    expect(refreshTokenCreate).not.toHaveBeenCalled();
+    expect(refreshTokenCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        clientId: "client-1",
+        resources: [
+          "https://life.example/api/auth",
+          "https://life.example/api/mcp",
+        ],
+        scopes: [
+          OAUTH_OPENID_SCOPE,
+          OAUTH_PROFILE_SCOPE,
+          MCP_TOOLS_SCOPE,
+          OAUTH_OFFLINE_ACCESS_SCOPE,
+        ],
+        userId: "user-1",
+      }),
+    });
     expect(signJwtMock).toHaveBeenCalledWith({
       body: {
         payload: expect.objectContaining({

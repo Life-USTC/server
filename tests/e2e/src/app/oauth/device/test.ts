@@ -381,7 +381,7 @@ test("/oauth/device 资源绑定令牌可访问 REST 与 MCP", async ({
       resources,
     );
     expect(accessToken.split(".")).toHaveLength(3);
-    expect(refreshToken).toBeUndefined();
+    expect(refreshToken).toEqual(expect.any(String));
 
     const todosResponse = await request.get("/api/todos", {
       headers: {
