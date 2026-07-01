@@ -32,7 +32,15 @@ async function prepareOAuthClientRegistrationRequest(
   try {
     body = await request.clone().json();
   } catch {
-    return { request, deviceRegistration: null };
+    return {
+      response: Response.json(
+        {
+          error: "invalid_client_metadata",
+          error_description: "Invalid JSON request body",
+        },
+        { status: 400 },
+      ),
+    };
   }
 
   const bodyObject =

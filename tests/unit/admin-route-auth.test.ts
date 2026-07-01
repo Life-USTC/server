@@ -4,12 +4,12 @@ const {
   findActiveSuspensionMock,
   getSessionFromHeadersMock,
   resolveAdminByUserIdMock,
-  verifyAccessTokenMock,
+  verifyAccessTokenJwtMock,
 } = vi.hoisted(() => ({
   findActiveSuspensionMock: vi.fn(),
   getSessionFromHeadersMock: vi.fn(),
   resolveAdminByUserIdMock: vi.fn(),
-  verifyAccessTokenMock: vi.fn(),
+  verifyAccessTokenJwtMock: vi.fn(),
 }));
 
 vi.mock("@/features/admin/server/admin-api", () => ({
@@ -24,8 +24,8 @@ vi.mock("@/lib/auth/viewer-context", () => ({
   findActiveSuspension: findActiveSuspensionMock,
 }));
 
-vi.mock("better-auth/oauth2", () => ({
-  verifyAccessToken: verifyAccessTokenMock,
+vi.mock("@/lib/auth/jwt-verification", () => ({
+  verifyAccessTokenJwt: verifyAccessTokenJwtMock,
 }));
 
 vi.mock("@/lib/mcp/urls", () => ({
@@ -39,7 +39,7 @@ describe("admin 路由认证", () => {
     findActiveSuspensionMock.mockReset();
     getSessionFromHeadersMock.mockReset();
     resolveAdminByUserIdMock.mockReset();
-    verifyAccessTokenMock.mockReset();
+    verifyAccessTokenJwtMock.mockReset();
     vi.resetModules();
   });
 
@@ -60,9 +60,11 @@ describe("admin 路由认证", () => {
     expect(resolveAdminByUserIdMock).not.toHaveBeenCalled();
   });
 
-  it("拒绝仅 Bearer 的管理员 REST 请求", async () => {
-    getSessionFromHeadersMock.mockResolvedValue({
-      user: { id: "admin-from-cookie" },
+  it("为有效的管理员 Bearer REST 请求返回管理员会话", async () => {
+    verifyAccessTokenJwtMock.mockResolvedValue({
+      sub: "admin-from-token",
+      scope: new Set(["me:read"]),
+      aud: "https://life.example/api/auth",
     });
     resolveAdminByUserIdMock.mockResolvedValue({ userId: "admin-from-token" });
     const { requireAdminRequest } = await import(
@@ -77,11 +79,17 @@ describe("admin 路由认证", () => {
       }),
     );
 
-    expect(response).toBeInstanceOf(Response);
-    expect((response as Response).status).toBe(401);
-    expect(verifyAccessTokenMock).not.toHaveBeenCalled();
+    expect(response).toEqual({ userId: "admin-from-token" });
+    expect(verifyAccessTokenJwtMock).toHaveBeenCalledWith(
+      "access-token",
+      expect.objectContaining({
+        audience: ["https://life.example/api/auth"],
+        issuer: ["https://life.example/api/auth"],
+        jwksUrl: "https://life.example/api/auth/jwks",
+      }),
+    );
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
-    expect(resolveAdminByUserIdMock).not.toHaveBeenCalled();
+    expect(resolveAdminByUserIdMock).toHaveBeenCalledWith("admin-from-token");
   });
 
   it("会话用户不是管理员时返回 401", async () => {
