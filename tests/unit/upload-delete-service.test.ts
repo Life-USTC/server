@@ -7,7 +7,7 @@ const {
   getViewerContextMock,
   headStorageObjectMock,
   logAppEventMock,
-  uploadDeleteMock,
+  uploadDeleteManyMock,
   uploadFindFirstMock,
   uploadTransactionMock,
 } = vi.hoisted(() => ({
@@ -16,7 +16,7 @@ const {
   getViewerContextMock: vi.fn(),
   headStorageObjectMock: vi.fn(),
   logAppEventMock: vi.fn(),
-  uploadDeleteMock: vi.fn(),
+  uploadDeleteManyMock: vi.fn(),
   uploadFindFirstMock: vi.fn(),
   uploadTransactionMock: vi.fn(),
 }));
@@ -28,7 +28,7 @@ vi.mock("@/lib/db/prisma", () => ({
       create: auditLogCreateMock,
     },
     upload: {
-      delete: uploadDeleteMock,
+      deleteMany: uploadDeleteManyMock,
       findFirst: uploadFindFirstMock,
     },
   },
@@ -66,7 +66,7 @@ describe("deleteOwnedUpload", () => {
     uploadFindFirstMock.mockResolvedValue(upload);
     deleteStorageObjectMock.mockResolvedValue(undefined);
     headStorageObjectMock.mockResolvedValue({ size: upload.size });
-    uploadDeleteMock.mockResolvedValue(upload);
+    uploadDeleteManyMock.mockResolvedValue({ count: 1 });
     auditLogCreateMock.mockResolvedValue({});
     uploadTransactionMock.mockImplementation(async (action) =>
       action({
@@ -74,7 +74,7 @@ describe("deleteOwnedUpload", () => {
           create: auditLogCreateMock,
         },
         upload: {
-          delete: uploadDeleteMock,
+          deleteMany: uploadDeleteManyMock,
           findFirst: uploadFindFirstMock,
         },
       }),
@@ -98,9 +98,11 @@ describe("deleteOwnedUpload", () => {
       deletedSize: upload.size,
     });
     expect(deleteStorageObjectMock).toHaveBeenCalledWith(upload.key);
-    expect(uploadDeleteMock).toHaveBeenCalledWith({ where: { id: upload.id } });
+    expect(uploadDeleteManyMock).toHaveBeenCalledWith({
+      where: { id: upload.id, userId: "user-1" },
+    });
     expect(deleteStorageObjectMock.mock.invocationCallOrder[0]).toBeLessThan(
-      uploadDeleteMock.mock.invocationCallOrder[0],
+      uploadDeleteManyMock.mock.invocationCallOrder[0],
     );
     expect(auditLogCreateMock).toHaveBeenCalledWith({
       data: expect.objectContaining({
@@ -125,7 +127,9 @@ describe("deleteOwnedUpload", () => {
     ).rejects.toThrow(auditError);
 
     expect(deleteStorageObjectMock).toHaveBeenCalledWith(upload.key);
-    expect(uploadDeleteMock).toHaveBeenCalledWith({ where: { id: upload.id } });
+    expect(uploadDeleteManyMock).toHaveBeenCalledWith({
+      where: { id: upload.id, userId: "user-1" },
+    });
     expect(auditLogCreateMock).toHaveBeenCalledWith({
       data: expect.objectContaining({
         action: "upload_delete",
@@ -150,7 +154,7 @@ describe("deleteOwnedUpload", () => {
       ok: false,
       error: "storage_delete_failed",
     });
-    expect(uploadDeleteMock).not.toHaveBeenCalled();
+    expect(uploadDeleteManyMock).not.toHaveBeenCalled();
     expect(auditLogCreateMock).not.toHaveBeenCalled();
     expect(logAppEventMock).toHaveBeenCalledWith(
       "error",
@@ -175,8 +179,26 @@ describe("deleteOwnedUpload", () => {
       deletedSize: upload.size,
     });
     expect(headStorageObjectMock).toHaveBeenCalledWith(upload.key);
-    expect(uploadDeleteMock).toHaveBeenCalledWith({ where: { id: upload.id } });
+    expect(uploadDeleteManyMock).toHaveBeenCalledWith({
+      where: { id: upload.id, userId: "user-1" },
+    });
     expect(auditLogCreateMock).toHaveBeenCalled();
     expect(logAppEventMock).not.toHaveBeenCalled();
+  });
+
+  it("上传元数据已不存在时返回 not_found 而不是抛出", async () => {
+    uploadDeleteManyMock.mockResolvedValue({ count: 0 });
+
+    const result = await deleteOwnedUpload({
+      id: upload.id,
+      userId: "user-1",
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      error: "not_found",
+    });
+    expect(deleteStorageObjectMock).toHaveBeenCalledWith(upload.key);
+    expect(auditLogCreateMock).not.toHaveBeenCalled();
   });
 });

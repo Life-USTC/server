@@ -367,15 +367,22 @@ export async function deleteOwnedUpload(input: {
     };
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.upload.delete({ where: { id: upload.id } });
+  const metadataDeleted = await prisma.$transaction(async (tx) => {
+    const deleted = await tx.upload.deleteMany({
+      where: { id: upload.id, userId: input.userId },
+    });
+    if (deleted.count === 0) return false;
+
     await writeUploadDeleteAuditLog({
       audit: input.audit,
       client: tx,
       upload,
       userId: input.userId,
     });
+    return true;
   });
+  if (!metadataDeleted)
+    return { ok: false as const, error: "not_found" as const };
 
   return {
     ok: true as const,
