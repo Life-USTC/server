@@ -25,26 +25,60 @@ export async function submitOAuthConsentAction({
   const headers = new Headers(request.headers);
   headers.delete("content-length");
   headers.set("accept", "application/json");
+  headers.set("content-type", "application/json");
 
   let redirectTarget: string | undefined;
   try {
-    const { authApi } = await import("@/lib/auth/core");
+    const authCore = await import("@/lib/auth/core");
+    const authApi = authCore.authApi;
+    const betterAuthInstance = Object.hasOwn(authCore, "betterAuthInstance")
+      ? authCore.betterAuthInstance
+      : undefined;
     const consentUrl = new URL("/api/auth/oauth2/consent", request.url);
-    const payload = await asOAuthProviderApi(authApi).oauth2Consent({
-      asResponse: false,
-      headers,
-      request: new Request(consentUrl, {
-        method: "POST",
+    const body = {
+      accept,
+      scope,
+      oauth_query: oauthQuery,
+    };
+    try {
+      if (typeof betterAuthInstance?.handler === "function") {
+        const response = await betterAuthInstance.handler(
+          new Request(consentUrl, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(body),
+          }),
+        );
+        const payload = (await response
+          .clone()
+          .json()
+          .catch(() => null)) as {
+          redirect_uri?: string;
+          redirectURI?: string;
+          url?: string;
+        } | null;
+        redirectTarget =
+          response.headers.get("location") ??
+          payload?.redirect_uri ??
+          payload?.redirectURI ??
+          payload?.url;
+      }
+    } catch {
+      redirectTarget = undefined;
+    }
+    if (!redirectTarget) {
+      const payload = await asOAuthProviderApi(authApi).oauth2Consent({
+        asResponse: false,
         headers,
-      }),
-      body: {
-        accept,
-        scope,
-        oauth_query: oauthQuery,
-      },
-    });
-    redirectTarget =
-      payload?.redirect_uri ?? payload?.redirectURI ?? payload?.url;
+        request: new Request(consentUrl, {
+          method: "POST",
+          headers,
+        }),
+        body,
+      });
+      redirectTarget =
+        payload?.redirect_uri ?? payload?.redirectURI ?? payload?.url;
+    }
   } catch {
     redirectTarget = undefined;
   }
