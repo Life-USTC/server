@@ -1,17 +1,12 @@
 <script lang="ts">
-import type { SubmitFunction } from "@sveltejs/kit";
-import { enhance } from "$app/forms";
 import CheckCircle from "$lib/components/icons/check-circle.svelte";
-import RefreshCw from "$lib/components/icons/refresh-cw.svelte";
 import ShieldAlert from "$lib/components/icons/shield-alert.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
 
-export let consentAction: (decision: "allow" | "deny") => SubmitFunction;
 export let copy: Record<string, string>;
 export let oauthQuery: string;
-export let pendingConsent: "allow" | "deny" | null;
 export let scope: string;
 export let scopes: Array<{ label: string; value: string }>;
 
@@ -70,16 +65,15 @@ $: canAllow = scopes.length === 0 || selectedScopes.length > 0;
 </div>
 
 <div class="grid grid-cols-2 gap-3">
-  <form method="POST" action="?/consent" use:enhance={consentAction("deny")}>
+  <form method="POST" action="?/consent">
     <input type="hidden" name="accept" value="false" />
     <input type="hidden" name="scope" value={scope} />
     <input type="hidden" name="oauthQuery" value={oauthQuery} />
-    <Button class="w-full" disabled={Boolean(pendingConsent)} type="submit" variant="outline">
-      {#if pendingConsent === "deny"}<RefreshCw class="animate-spin" />{/if}
+    <Button class="w-full" type="submit" variant="outline">
       {copy.deny}
     </Button>
   </form>
-  <form method="POST" action="?/consent" use:enhance={consentAction("allow")}>
+  <form method="POST" action="?/consent">
     <input type="hidden" name="accept" value="true" />
     <input type="hidden" name="scope" value={selectedScopeValue || scope} />
     <input type="hidden" name="scopeSelectionEnabled" value="true" />
@@ -87,14 +81,9 @@ $: canAllow = scopes.length === 0 || selectedScopes.length > 0;
       <input type="hidden" name="scopes" value={selectedScope} />
     {/each}
     <input type="hidden" name="oauthQuery" value={oauthQuery} />
-    <Button class="w-full" disabled={Boolean(pendingConsent) || !canAllow} type="submit">
-      {#if pendingConsent === "allow"}
-        <RefreshCw class="animate-spin" />
-        {copy.authorizing}
-      {:else}
-        <CheckCircle />
-        {copy.allow}
-      {/if}
+    <Button class="w-full" disabled={!canAllow} type="submit">
+      <CheckCircle />
+      {copy.allow}
     </Button>
   </form>
 </div>
