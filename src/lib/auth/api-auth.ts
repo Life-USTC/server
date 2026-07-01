@@ -36,6 +36,11 @@ function hasAnyRestScope(scopes: Set<string>): boolean {
   return [...scopes].some(isFeatureScope);
 }
 
+async function getLocalJwks() {
+  const { authApi } = await import("@/lib/auth/core");
+  return authApi.getJwks({});
+}
+
 /**
  * Resolve the authenticated user ID from a request.
  *
@@ -53,6 +58,7 @@ export async function resolveApiUserId(
     if (!token) return null;
     try {
       const verified = await verifyAccessTokenJwt(token, {
+        jwksFetch: getLocalJwks,
         jwksUrl: getJwksUrlForOAuthVerification(),
         issuer: getOAuthTokenVerificationIssuers(),
         audience: getOAuthRestAudienceUrls(),
