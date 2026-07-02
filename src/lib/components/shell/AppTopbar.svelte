@@ -13,7 +13,6 @@ import AppMobileMenu from "./AppMobileMenu.svelte";
 import AppUserMenu from "./AppUserMenu.svelte";
 import type { ShellLink, ShellNavGroup } from "./types";
 
-export let activeTitle: string;
 export let avatarFallback: string;
 export let closeMenus: () => void;
 export let copy: LayoutCopy;
@@ -58,10 +57,6 @@ export let userMenuOpen: boolean;
       />
       <span class="truncate">Life@USTC</span>
     </a>
-
-    <div class="hidden min-w-0 flex-1 lg:block">
-      <p class="truncate font-medium text-sm">{activeTitle}</p>
-    </div>
 
     <div class="ml-auto flex items-center gap-1.5">
       <Menu.Root open={localeMenuOpen} onOpenChange={setLocaleMenuOpen}>

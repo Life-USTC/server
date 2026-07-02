@@ -143,7 +143,6 @@ $: pinnedSummaryItems = [
 
 <div class="grid">
   <DetailPinnedSummary
-    eyebrow={sectionCopy.teachingSection}
     items={pinnedSummaryItems}
     statusVisible={Boolean(formError)}
     title={courseName}
