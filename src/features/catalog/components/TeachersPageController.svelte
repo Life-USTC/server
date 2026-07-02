@@ -1,13 +1,16 @@
 <script lang="ts">
+import SlidersHorizontalIcon from "@lucide/svelte/icons/sliders-horizontal";
 import {
   type CatalogNamed,
   catalogHref,
   catalogPrimaryName as primaryName,
   catalogSecondaryName as secondaryName,
 } from "@/features/catalog/lib/catalog-list-display";
+import { catalogPageDataHref } from "@/features/catalog/lib/catalog-page-data-href";
 import { goto } from "$app/navigation";
+import CatalogFilterSidebar from "./CatalogFilterSidebar.svelte";
+import CatalogInfinitePager from "./CatalogInfinitePager.svelte";
 import CatalogPageHeader from "./CatalogPageHeader.svelte";
-import CatalogPagination from "./CatalogPagination.svelte";
 import type {
   TeacherListCommonLabels,
   TeacherListFilters,
@@ -27,6 +30,7 @@ type PageData = {
   labels: {
     common: TeacherListCommonLabels & {
       home: string;
+      loading: string;
       teachers: string;
     };
     teachers: TeacherListLabels & {
@@ -46,8 +50,11 @@ type PageData = {
 export let data: PageData;
 
 let teacherSearch = data.filters.search ?? "";
+let isLoadingMore = false;
+let loadedPage = data.pagination.page;
+let teacherPageKey = "";
+let visibleTeachers: TeacherListRow[] = data.data;
 
-$: page = data.pagination.page;
 $: totalPages = data.pagination.totalPages;
 $: teacherSearch = data.filters.search ?? "";
 $: commonLabels = data.labels.common;
@@ -67,6 +74,18 @@ $: departmentOptions = [
     label: primaryName(department),
   })),
 ];
+$: nextTeacherPageKey = JSON.stringify({
+  filters: data.filters,
+  page: data.pagination.page,
+});
+$: if (nextTeacherPageKey !== teacherPageKey) {
+  teacherPageKey = nextTeacherPageKey;
+  visibleTeachers = data.data;
+  loadedPage = data.pagination.page;
+  isLoadingMore = false;
+}
+$: hasMoreTeachers = loadedPage < totalPages;
+$: nextTeacherHref = hasMoreTeachers ? pageHref(loadedPage + 1) : "";
 
 function pageHref(targetPage: number) {
   const { search, departmentId } = data.filters;
@@ -83,44 +102,77 @@ function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
 function updateTeacherFilter(overrides: Partial<TeacherListFilters>) {
   void goto(teacherFilterHref(overrides));
 }
+
+async function loadMoreTeachers() {
+  if (!hasMoreTeachers || isLoadingMore) return;
+
+  isLoadingMore = true;
+  try {
+    const response = await fetch(
+      catalogPageDataHref("teachers", pageHref(loadedPage + 1)),
+    );
+    if (!response.ok) return;
+
+    const nextData = (await response.json()) as PageData;
+    visibleTeachers = [...visibleTeachers, ...nextData.data];
+    loadedPage = nextData.pagination.page;
+  } finally {
+    isLoadingMore = false;
+  }
+}
 </script>
 
 <svelte:head><title>{commonLabels.teachers} - Life@USTC</title></svelte:head>
 
 <section class="grid gap-5">
   <CatalogPageHeader
-    breadcrumbLabel={commonLabels.breadcrumb}
-    currentLabel={commonLabels.teachers}
     description={teacherLabels.subtitle}
-    homeLabel={commonLabels.home}
     metaLabel={teacherLabels.currentDepartment}
     metaValue={selectedDepartment ? primaryName(selectedDepartment) : teacherLabels.allDepartments}
     title={teacherLabels.title}
   />
 
-  <TeachersFilters
-    {activeFilterCount}
-    {commonLabels}
-    {departmentOptions}
-    filters={data.filters}
-    {teacherLabels}
-    bind:teacherSearch
-    {updateTeacherFilter}
-  />
+  <div class="-mx-4 grid min-h-[calc(100vh-8rem)] bg-base-100 sm:-mx-5 lg:-mx-6 lg:grid-cols-[17rem_minmax(0,1fr)] lg:items-start">
+    <CatalogFilterSidebar
+      activeCount={activeFilterCount}
+      description={teacherLabels.filterDescription}
+      icon={SlidersHorizontalIcon}
+      title={teacherLabels.filterTitle}
+    >
+      <TeachersFilters
+        {activeFilterCount}
+        {commonLabels}
+        {departmentOptions}
+        filters={data.filters}
+        {teacherLabels}
+        bind:teacherSearch
+        {updateTeacherFilter}
+      />
+    </CatalogFilterSidebar>
 
-  <TeachersResults
-    {commonLabels}
-    filters={data.filters}
-    {page}
-    {primaryName}
-    {secondaryName}
-    {selectedDepartment}
-    {showSecondaryNames}
-    {teacherLabels}
-    teachers={data.data}
-    total={data.pagination.total}
-    {totalPages}
-  />
+    <div class="min-w-0 px-4 py-5 sm:px-5 lg:px-6">
+      <TeachersResults
+        {commonLabels}
+        filters={data.filters}
+        page={loadedPage}
+        {primaryName}
+        {secondaryName}
+        {selectedDepartment}
+        {showSecondaryNames}
+        {teacherLabels}
+        teachers={visibleTeachers}
+        total={data.pagination.total}
+        {totalPages}
+      />
 
-  <CatalogPagination commonLabels={commonLabels} getPageHref={pageHref} {page} {totalPages} />
+      <CatalogInfinitePager
+        hasMore={hasMoreTeachers}
+        loading={isLoadingMore}
+        loadingLabel={commonLabels.loading}
+        loadMore={loadMoreTeachers}
+        nextHref={nextTeacherHref}
+        nextLabel={commonLabels.next}
+      />
+    </div>
+  </div>
 </section>

@@ -11,7 +11,6 @@ import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import type {
   AdminBusCopy,
   AdminBusHeaderAdminCopy,
-  AdminBusHeaderCommonCopy,
   AdminBusVersion,
 } from "./admin-bus-types";
 
@@ -19,7 +18,6 @@ type PageData = {
   copy: {
     admin: AdminBusHeaderAdminCopy;
     adminBus: AdminBusCopy;
-    common: AdminBusHeaderCommonCopy;
   };
   locale: string;
   summary: {
@@ -40,7 +38,6 @@ let { isImportDialogOpen, pendingAction, pendingDeleteVersion } =
 
 $: copy = data.copy.adminBus;
 $: adminCopy = data.copy.admin;
-$: commonCopy = data.copy.common;
 $: dateTimeFormatter = createShanghaiDateTimeFormatter(data.locale, {
   dateStyle: "medium",
   timeStyle: "short",
@@ -85,7 +82,6 @@ const enhancedAction = createPendingEnhancedAction({
 <section class="grid gap-5">
   <AdminBusHeader
     {adminCopy}
-    {commonCopy}
     {copy}
     disabled={Boolean(pendingAction)}
     onImport={openImportDialog}

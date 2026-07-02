@@ -4,8 +4,8 @@ export type CourseListCommonLabels = {
   allCategories: string;
   allClassTypes: string;
   allEducationLevels: string;
-  breadcrumb: string;
   clear: string;
+  loading: string;
   next: string;
   nextPage: string;
   pagination: string;

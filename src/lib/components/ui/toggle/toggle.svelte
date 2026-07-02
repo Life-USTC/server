@@ -1,16 +1,28 @@
 <script lang="ts">
-export let pressed = false;
-let className = "";
+import { cn } from "$lib/utils.js";
+import { type ToggleProps, toggleVariants } from "./toggle-variants.js";
+
+let {
+  ref = $bindable(null),
+  class: className,
+  pressed = false,
+  variant = "default",
+  size = "default",
+  children,
+  ...restProps
+}: ToggleProps = $props();
 
 export { className as class };
 </script>
 
 <button
+  bind:this={ref}
   aria-pressed={pressed}
-  class={`inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-lg border border-base-300 bg-base-100 px-3 font-medium text-sm shadow-sm transition hover:bg-base-200 disabled:cursor-not-allowed disabled:opacity-50 ${pressed ? "bg-base-200 text-base-content shadow-sm" : ""} ${className}`}
+  class={cn(toggleVariants({ variant, size }), className)}
   data-slot="toggle"
+  data-state={pressed ? "on" : "off"}
   type="button"
-  {...$$restProps}
+  {...restProps}
 >
-  <slot />
+  {@render children?.()}
 </button>

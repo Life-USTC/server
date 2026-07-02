@@ -1,4 +1,6 @@
 <script lang="ts">
+import { cn } from "$lib/utils.js";
+
 export let open = false;
 export let title: string;
 let className = "";
@@ -7,7 +9,7 @@ export { className as class };
 </script>
 
 <details
-  class={`rounded-xl border border-base-300 bg-base-100 p-3 ${className}`}
+  class={cn("rounded-xl border border-base-300 bg-base-100 p-3", className)}
   data-slot="accordion-item"
   {open}
   {...$$restProps}

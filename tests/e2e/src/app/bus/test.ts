@@ -61,7 +61,7 @@ test.describe("校车面板标签页", () => {
     });
 
     await expect(
-      page.getByRole("button", { name: /Weekday|工作日/ }).first(),
+      page.getByRole("radio", { name: /Weekday|工作日/ }).first(),
     ).toBeVisible();
     await expect(
       page.locator("[data-testid='bus-start-stop-group']"),
@@ -73,7 +73,7 @@ test.describe("校车面板标签页", () => {
       page.getByRole("button", { name: /Reverse|反向/ }),
     ).toBeVisible();
     await expect(
-      page.getByRole("checkbox", {
+      page.getByRole("switch", {
         name: /Show departed trips|显示已发车班次/,
       }),
     ).toBeVisible();
@@ -124,7 +124,7 @@ test.describe("校车面板标签页", () => {
     });
 
     await expect(
-      page.getByRole("button", { name: /Weekday|工作日/ }).first(),
+      page.getByRole("radio", { name: /Weekday|工作日/ }).first(),
     ).toBeVisible();
     await expect(
       page.locator("[data-testid='bus-start-stop-group']"),
@@ -208,7 +208,7 @@ test.describe("校车面板标签页", () => {
     });
 
     const initialRows = await page.locator("tbody tr").count();
-    const departedToggle = page.getByRole("checkbox", {
+    const departedToggle = page.getByRole("switch", {
       name: /Show departed trips|显示已发车班次/,
     });
     await departedToggle.click();
@@ -227,18 +227,18 @@ test.describe("校车面板标签页", () => {
     });
 
     await page
-      .getByRole("checkbox", { name: /Show departed trips|显示已发车班次/ })
+      .getByRole("switch", { name: /Show departed trips|显示已发车班次/ })
       .click();
 
     await page
-      .getByRole("button", { name: /Weekday|工作日/ })
+      .getByRole("radio", { name: /Weekday|工作日/ })
       .first()
       .click();
     const weekdayRows = await page.locator("tbody tr:visible").count();
     expect(weekdayRows).toBeGreaterThan(0);
 
     await page
-      .getByRole("button", { name: /Weekend|周末/ })
+      .getByRole("radio", { name: /Weekend|周末/ })
       .first()
       .click();
     await expect(page.locator("tbody tr:visible").first()).toBeVisible();
@@ -274,7 +274,7 @@ test.describe("校车面板标签页", () => {
         screenshotLabel: "bus",
       });
 
-      const departedToggle = page.getByRole("checkbox", {
+      const departedToggle = page.getByRole("switch", {
         name: /Show departed trips|显示已发车班次/,
       });
       const [toggleSaveResponse] = await Promise.all([
@@ -347,7 +347,7 @@ test.describe("校车面板标签页", () => {
       screenshotLabel: "bus-save-error",
     });
 
-    const departedToggle = page.getByRole("checkbox", {
+    const departedToggle = page.getByRole("switch", {
       name: /Show departed trips|显示已发车班次/,
     });
     const [saveResponse] = await Promise.all([

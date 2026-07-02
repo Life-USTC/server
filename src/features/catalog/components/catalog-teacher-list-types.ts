@@ -1,8 +1,8 @@
 import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
 
 export type TeacherListCommonLabels = {
-  breadcrumb: string;
   clear: string;
+  loading: string;
   next: string;
   nextPage: string;
   pagination: string;

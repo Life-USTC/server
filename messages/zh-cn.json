@@ -46,7 +46,6 @@
     "next": "下一页",
     "nextPage": "下一页",
     "pagination": "分页",
-    "breadcrumb": "面包屑",
     "primaryNavigation": "主导航",
     "profileMenu": "个人菜单",
     "backToHome": "返回首页",
@@ -286,6 +285,52 @@
         "title": "保持更新",
         "description": "不错过任何重要的通知和校园活动"
       }
+    }
+  },
+  "mobileAppPage": {
+    "eyebrow": "iPhone 校园工具",
+    "title": "Life@USTC 移动应用",
+    "subtitle": "面向学生高频校园查询的移动入口：课表、校车、课程发现与个人工作台都放在更顺手的位置。",
+    "availability": "已上架 App Store",
+    "featureTitle": "面向日常校园查询",
+    "quickLinksTitle": "网页版工具",
+    "previewTitle": "校园工具栈",
+    "previewSubtitle": "为日常流程压缩操作路径",
+    "previewStatusTitle": "适合今天的校园安排",
+    "previewStatusDescription": "从移动端快速打开课表、校车与课程资源。",
+    "stats": {
+      "companionLabel": "校园助手",
+      "companionValue": "Life@USTC",
+      "platformLabel": "平台",
+      "platformValue": "iPhone",
+      "accessLabel": "访问方式",
+      "accessValue": "公开工具"
+    },
+    "features": {
+      "schedule": {
+        "title": "课表感知",
+        "description": "把课程时间、地点和日历导向的学业事项放在手边。"
+      },
+      "bus": {
+        "title": "校车查询",
+        "description": "规划站点和校区之间的移动时，快速进入校车线路。"
+      },
+      "catalog": {
+        "title": "课程发现",
+        "description": "在课程、班级和教师之间切换时保持上下文。"
+      },
+      "profile": {
+        "title": "个人工作台",
+        "description": "登录后管理关注班级、个人资料和仪表盘工具。"
+      }
+    },
+    "preview": {
+      "scheduleLabel": "课表",
+      "calendarStatus": "课程与任务",
+      "busLabel": "校车",
+      "busStatus": "路线规划",
+      "linksLabel": "校园链接",
+      "linksStatus": "快速访问"
     }
   },
   "admin": {
@@ -1032,6 +1077,7 @@
     "courseComments": "课程",
     "tabs": {
       "description": "简介",
+      "exams": "考试",
       "homeworks": "作业",
       "comments": "评论",
       "calendar": "日历"
@@ -1101,6 +1147,10 @@
     "selector": "语言选择"
   },
   "theme": {
+    "selector": "主题选择",
+    "system": "跟随系统",
+    "light": "浅色",
+    "dark": "深色",
     "switchToLight": "切换到浅色模式",
     "switchToDark": "切换到深色模式",
     "useSystem": "使用系统偏好"

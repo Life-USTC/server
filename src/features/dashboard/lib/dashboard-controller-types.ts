@@ -26,6 +26,13 @@ export type DashboardCommonCopy = DashboardRecord & {
   userNotFound: string;
 };
 
+export type DashboardHomepageCopy = DashboardRecord & {
+  publicDashboard: {
+    description: string;
+    title: string;
+  };
+};
+
 export type DashboardRootCopy = DashboardRecord & {
   CalendarEventCard: {
     exam: string;
@@ -36,7 +43,7 @@ export type DashboardRootCopy = DashboardRecord & {
   comments: CommentsCopy;
   common: DashboardCommonCopy;
   dashboard: DashboardDashboardCopy;
-  homepage: DashboardRecord;
+  homepage: DashboardHomepageCopy;
   homeworks: DashboardHomeworksCopy;
   myHomeworks: DashboardMyHomeworksCopy;
   sectionDetail: DashboardSectionCopy;
@@ -67,7 +74,7 @@ export type DashboardDashboardCopy = DashboardRecord & {
   nav: {
     ariaLabel: string;
     calendar: { title: string };
-    bus: { title: string };
+    bus: { description: string; title: string };
     exams: {
       cardView: string;
       empty: string;
@@ -82,7 +89,7 @@ export type DashboardDashboardCopy = DashboardRecord & {
       viewMode: string;
     };
     homeworks: { title: string };
-    links: { title: string };
+    links: { description: string; title: string };
     overview: { title: string };
     subscriptions: { title: string };
     todos: { title: string };

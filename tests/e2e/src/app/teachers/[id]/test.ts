@@ -56,6 +56,20 @@ async function navigateToSeedTeacher(
   await waitForUiSettled(page);
 }
 
+async function jumpToTeacherSection(
+  page: Parameters<typeof gotoAndWaitForReady>[0],
+  name: RegExp,
+  selector: string,
+) {
+  const link = page
+    .getByTestId("detail-section-nav")
+    .getByRole("link", { name })
+    .first();
+  await expect(link).toBeVisible();
+  await link.click();
+  await expect(page.locator(selector)).toBeVisible();
+}
+
 test.describe("/teachers/[id] 教师详情页", () => {
   test.describe.configure({ mode: "serial" });
 
@@ -135,6 +149,11 @@ test.describe("/teachers/[id] 教师详情页", () => {
 
   test("班级表格显示学期、课程名、代码与学分", async ({ page }, testInfo) => {
     await navigateToSeedTeacher(page);
+    await jumpToTeacherSection(
+      page,
+      /授课班级|Teaching Sections/i,
+      "#teacher-sections",
+    );
 
     // section.semester.nameCn badge
     await expect(visibleText(page, DEV_SEED.semesterNameCn)).toBeVisible();
@@ -158,6 +177,11 @@ test.describe("/teachers/[id] 教师详情页", () => {
 
   test("班级链接导航到班级详情", async ({ page }, testInfo) => {
     await navigateToSeedTeacher(page);
+    await jumpToTeacherSection(
+      page,
+      /授课班级|Teaching Sections/i,
+      "#teacher-sections",
+    );
 
     const sectionLink = page
       .locator("tbody a[href^='/sections/']:visible")
@@ -170,32 +194,24 @@ test.describe("/teachers/[id] 教师详情页", () => {
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
-  test("标签切换可用", async ({ page }, testInfo) => {
+  test("详情导航可跳转到主要区块", async ({ page }, testInfo) => {
     await navigateToSeedTeacher(page);
 
-    const tabList = page.getByRole("tablist").first();
-    await expect(tabList).toBeVisible();
-    const targetTab = tabList.getByRole("tab").nth(1);
-    const panelId = await targetTab.getAttribute("aria-controls");
-    expect(panelId).toBeTruthy();
+    const nav = page.getByTestId("detail-section-nav");
+    await expect(nav).toBeVisible();
+    await expect(
+      nav.getByRole("link", { name: /简介|Description/i }),
+    ).toBeVisible();
+    await expect(
+      nav.getByRole("link", { name: /授课班级|Teaching Sections/i }),
+    ).toBeVisible();
+    await expect(
+      nav.getByRole("link", { name: /评论|Comments/i }),
+    ).toBeVisible();
 
-    await targetTab.click();
-    await expect(targetTab).toHaveAttribute("aria-selected", "true");
-    await expect(page.locator(`#${panelId}`)).toHaveAttribute(
-      "role",
-      "tabpanel",
-    );
-    await captureStepScreenshot(page, testInfo, "teacher/tab-switch");
-  });
-
-  test("面包屑可返回教师列表", async ({ page }, testInfo) => {
-    await navigateToSeedTeacher(page);
-
-    const breadcrumb = page.locator('a[href="/teachers"]').first();
-    await expect(breadcrumb).toBeVisible();
-    await breadcrumb.click();
-    await expect(page).toHaveURL(/\/teachers(?:\?.*)?$/);
-    await captureStepScreenshot(page, testInfo, "teacher/breadcrumb-back");
+    await jumpToTeacherSection(page, /评论|Comments/i, "#teacher-comments");
+    await expect(page).toHaveURL(/\/teachers\/\d+\/comments$/);
+    await captureStepScreenshot(page, testInfo, "teacher/detail-nav");
   });
 
   // ── Description ─────────────────────────────────────────────────────────────
@@ -218,6 +234,11 @@ test.describe("/teachers/[id] 教师详情页", () => {
     );
 
     try {
+      await jumpToTeacherSection(
+        page,
+        /简介|Description/i,
+        "#teacher-description",
+      );
       const descCard = page
         .locator('[data-slot="card"]')
         .filter({ has: page.getByText(/简介|Description/i) })
@@ -277,12 +298,8 @@ test.describe("/teachers/[id] 教师详情页", () => {
         if (!page.url().includes("/teachers/")) {
           await navigateToSeedTeacher(page);
         }
-        const commentsTab = page
-          .getByRole("tab", { name: /评论|Comments/i })
-          .first();
-        await expect(commentsTab).toBeVisible();
-        await commentsTab.click();
-        await expect(commentsTab).toHaveAttribute("aria-selected", "true");
+        await jumpToTeacherSection(page, /评论|Comments/i, "#teacher-comments");
+        await expect(page).toHaveURL(/\/teachers\/\d+\/comments$/);
       }).toPass({
         timeout: 10_000,
         intervals: [250, 500, 1_000],
@@ -298,6 +315,7 @@ test.describe("/teachers/[id] 教师详情页", () => {
 
       const body = `e2e-teacher-comment-${Date.now()}`;
       const composer = page
+        .locator("#teacher-comments")
         .getByRole("textbox", { name: /评论内容|Comment body/i })
         .first();
       await expect(composer).toBeVisible({ timeout: 15_000 });

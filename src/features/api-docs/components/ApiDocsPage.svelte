@@ -6,7 +6,6 @@ import { OPENAPI_SPEC_API_PATH } from "$lib/openapi/spec";
 import "@scalar/api-reference/style.css";
 import "./api-docs-scalar.css";
 import PageHeader from "$lib/components/PageHeader.svelte";
-import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import {
   type ApiDocsSelection,
@@ -22,11 +21,7 @@ type PageData = {
       rawSpecLink: string;
       title: string;
     };
-    common: {
-      breadcrumb: string;
-      home: string;
-      loading: string;
-    };
+    common: { loading: string };
     metadata: { apiDocs: string };
   };
 };
@@ -148,15 +143,6 @@ function scheduleReferenceRouteRestore() {
 
 <section class="grid gap-5">
   <PageHeader title={data.copy.apiDocs.title} description={data.copy.apiDocs.description}>
-    {#snippet breadcrumb()}
-      <Breadcrumb.Root label={data.copy.common.breadcrumb}>
-        <Breadcrumb.List>
-          <Breadcrumb.Item><Breadcrumb.Link href="/">{data.copy.common.home}</Breadcrumb.Link></Breadcrumb.Item>
-          <Breadcrumb.Separator />
-          <Breadcrumb.Item><Breadcrumb.Page>{data.copy.apiDocs.title}</Breadcrumb.Page></Breadcrumb.Item>
-        </Breadcrumb.List>
-      </Breadcrumb.Root>
-    {/snippet}
     {#snippet actions()}
       <Button class="w-full sm:w-auto" href={specPath} size="sm" variant="outline">{data.copy.apiDocs.rawSpecLink}</Button>
     {/snippet}

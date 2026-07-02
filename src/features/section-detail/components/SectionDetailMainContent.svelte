@@ -1,29 +1,51 @@
 <script lang="ts">
+import BookOpenTextIcon from "@lucide/svelte/icons/book-open-text";
+import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
+import ClipboardListIcon from "@lucide/svelte/icons/clipboard-list";
+import GraduationCapIcon from "@lucide/svelte/icons/graduation-cap";
+import InfoIcon from "@lucide/svelte/icons/info";
+import MessageSquareIcon from "@lucide/svelte/icons/message-square";
+import UsersIcon from "@lucide/svelte/icons/users";
+import type { SubmitFunction } from "@sveltejs/kit";
 import CommentsPanel from "@/features/comments/components/CommentsPanel.svelte";
 import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-helpers";
-import * as Tabs from "$lib/components/ui/tabs/index.js";
+import { enhance } from "$app/forms";
+import DetailPinnedSummary from "$lib/components/DetailPinnedSummary.svelte";
+import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
+import CalendarIcon from "$lib/components/icons/calendar.svelte";
+import CheckCircleIcon from "$lib/components/icons/check-circle.svelte";
+import LinkIcon from "$lib/components/icons/link-2.svelte";
+import { Alert } from "$lib/components/ui/alert/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import SectionBasicInfoCard from "./SectionBasicInfoCard.svelte";
 import SectionCalendarTab from "./SectionCalendarTab.svelte";
-import SectionDetailSidebar from "./SectionDetailSidebar.svelte";
+import SectionExamSection from "./SectionExamSection.svelte";
 import SectionHomeworkTab from "./SectionHomeworkTab.svelte";
+import SectionTeachersCard from "./SectionTeachersCard.svelte";
 import type {
   BooleanSetter,
   FormatMessage,
-  IsSameMonth,
 } from "./section-detail-component-types";
 import type { SectionDetailMainContentProps } from "./section-detail-dialog-types";
 
-export let activeTab: SectionDetailMainContentProps["activeTab"];
-export let calendarExamDateKeys: SectionDetailMainContentProps["calendarExamDateKeys"];
-export let calendarMonthDays: SectionDetailMainContentProps["calendarMonthDays"];
+type PinnedSummaryItem = {
+  label: string;
+  mono?: boolean;
+  variant?: "ghost" | "outline" | "secondary";
+};
+
+type SubscriptionActionKey = "subscribe" | "unsubscribe";
+
 export let calendarMonthLabel: string;
 export let calendarMonthOffset: number;
-export let calendarScheduleDateKeys: SectionDetailMainContentProps["calendarScheduleDateKeys"];
+export let canWriteHomework: boolean;
 export let commentTargets: SectionDetailMainContentProps["commentTargets"];
 export let commonCopy: SectionDetailMainContentProps["commonCopy"];
-export let canWriteHomework: boolean;
+export let courseName: string;
+export let courseSecondaryName: string;
 export let data: SectionDetailPageData;
-export let dateKey: SectionDetailMainContentProps["dateKey"];
+export let formError: string | null | undefined;
 export let fmtDate: SectionDetailMainContentProps["fmtDate"];
 export let fmtDateTime: SectionDetailMainContentProps["fmtDateTime"];
 export let formatMessage: FormatMessage;
@@ -31,72 +53,191 @@ export let homeworkCopy: SectionDetailMainContentProps["homeworkCopy"];
 export let homeworkStatus: SectionDetailMainContentProps["homeworkStatus"];
 export let homeworkView: SectionDetailMainContentProps["homeworkView"];
 export let homeworks: SectionDetailMainContentProps["homeworks"];
-export let isSameMonth: IsSameMonth;
 export let notAvailable: string;
 export let openCalendarDialog: SectionDetailMainContentProps["openCalendarDialog"];
 export let openCreateHomeworkDialog: SectionDetailMainContentProps["openCreateHomeworkDialog"];
+export let openSubscribeDialog: () => void;
 export let periodDetailRows: SectionDetailMainContentProps["periodDetailRows"];
 export let primaryName: SectionDetailMainContentProps["primaryName"];
 export let sectionCalendarEvents: SectionDetailMainContentProps["sectionCalendarEvents"];
 export let sectionCalendarGridWeeks: SectionDetailMainContentProps["sectionCalendarGridWeeks"];
 export let sectionCopy: SectionDetailMainContentProps["sectionCopy"];
 export let sectionTeachersLabel: SectionDetailMainContentProps["sectionTeachersLabel"];
-export let setActiveTab: SectionDetailMainContentProps["setActiveTab"];
 export let setHomeworkAuditDialogOpen: BooleanSetter;
 export let setHomeworkView: SectionDetailMainContentProps["setHomeworkView"];
 export let setSelectedHomework: SectionDetailMainContentProps["setSelectedHomework"];
-export let tabs: SectionDetailMainContentProps["tabs"];
+export let subscriptionAction: (
+  action: SubscriptionActionKey,
+) => SubmitFunction;
+export let subscriptionPendingAction: SubscriptionActionKey | null;
 export let teacherName: SectionDetailMainContentProps["teacherName"];
-export let todayCalendarKey: SectionDetailMainContentProps["todayCalendarKey"];
 export let todayCalendarMonthOffset: number;
 export let unscheduledCalendarEvents: SectionDetailMainContentProps["unscheduledCalendarEvents"];
 export let viewer: SectionDetailMainContentProps["viewer"];
-export let visibleCalendarMonth: Date;
 export let yesNo: SectionDetailMainContentProps["yesNo"];
 
-function sectionTabId(id: SectionDetailMainContentProps["activeTab"]) {
-  return `section-detail-${id}-tab`;
-}
-
-function sectionPanelId(id: SectionDetailMainContentProps["activeTab"]) {
-  return `section-detail-${id}-panel`;
-}
+$: sectionExamEvents = sectionCalendarEvents.filter(
+  (event) => event.kind === "exam",
+);
+$: examSectionLabel = formatMessage(sectionCopy.exams, {
+  count: String(sectionExamEvents.length),
+});
+$: commentsCount = data.commentsData
+  ? Object.values(data.commentsData.commentMap).reduce(
+      (sum, comments) => sum + comments.length,
+      0,
+    )
+  : 0;
+$: sectionBaseHref = `/sections/${data.section.jwId}`;
+$: sectionNavItems = [
+  {
+    href: sectionBaseHref,
+    icon: InfoIcon,
+    key: "overview" as const,
+    label: sectionCopy.basicInfo,
+  },
+  {
+    href: `${sectionBaseHref}/introduction`,
+    icon: BookOpenTextIcon,
+    key: "introduction" as const,
+    label: data.copy.descriptions.title,
+  },
+  {
+    href: `${sectionBaseHref}/calendar`,
+    icon: CalendarDaysIcon,
+    key: "calendar" as const,
+    label: sectionCopy.tabs.calendar,
+    meta: sectionCalendarEvents.length,
+  },
+  {
+    href: `${sectionBaseHref}/exams`,
+    icon: GraduationCapIcon,
+    key: "exams" as const,
+    label: sectionCopy.tabs.exams,
+    meta: sectionExamEvents.length,
+  },
+  {
+    href: `${sectionBaseHref}/homework`,
+    icon: ClipboardListIcon,
+    key: "homework" as const,
+    label: sectionCopy.tabs.homeworks,
+    meta: homeworks.length,
+  },
+  {
+    href: `${sectionBaseHref}/teachers`,
+    icon: UsersIcon,
+    key: "teachers" as const,
+    label: sectionCopy.teachers,
+    meta: data.section.teachers.length,
+  },
+  {
+    href: `${sectionBaseHref}/comments`,
+    icon: MessageSquareIcon,
+    key: "comments" as const,
+    label: sectionCopy.tabs.comments,
+    meta: commentsCount,
+  },
+];
+$: activeNavItem =
+  sectionNavItems.find((item) => item.key === data.detailSection) ??
+  sectionNavItems[0];
+$: sectionCapacity =
+  data.section.stdCount != null || data.section.limitCount != null
+    ? `${data.section.stdCount ?? 0} / ${data.section.limitCount ?? notAvailable}`
+    : "";
+$: pinnedSummaryItems = [
+  { label: data.section.code, mono: true, variant: "outline" as const },
+  ...(data.section.semester
+    ? [{ label: data.section.semester.nameCn ?? notAvailable }]
+    : []),
+  ...(data.section.campus ? [{ label: primaryName(data.section.campus) }] : []),
+  ...(sectionCapacity ? [{ label: sectionCapacity }] : []),
+] satisfies PinnedSummaryItem[];
 </script>
 
-<div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
-  <div class="grid min-w-0 gap-5">
-    {#key `description:section:${data.section.id}`}
-      <DescriptionCard
-        targetType="section"
-        targetId={data.section.id}
-        initialData={data.descriptionData}
-        locale={data.locale}
-        copy={data.copy.descriptions}
-      />
-    {/key}
-
-    <Tabs.Root aria-label={sectionCopy.teachingSection}>
-      <Tabs.List semantic>
-        {#each tabs as [id, label]}
-          <Tabs.Button
-            id={sectionTabId(id)}
-            panelId={sectionPanelId(id)}
-            semantic
-            selected={activeTab === id}
-            onclick={() => setActiveTab(id)}
+<div class="-mx-4 -mt-4 grid bg-base-100 sm:-mx-5 lg:-mx-6 lg:-my-4 lg:h-[calc(100%+2rem)] lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)]">
+  <DetailPinnedSummary
+    items={pinnedSummaryItems}
+    statusVisible={Boolean(formError)}
+    title={courseName}
+    description={courseSecondaryName}
+  >
+    {#snippet actions()}
+      <Button variant="outline" type="button" onclick={openCalendarDialog}>
+        <CalendarIcon />
+        {sectionCopy.addToCalendar}
+      </Button>
+      {#if data.viewer.isSubscribed}
+        <form
+          method="POST"
+          action="?/unsubscribe"
+          use:enhance={subscriptionAction("unsubscribe")}
+        >
+          <Button
+            variant="outline"
+            type="submit"
+            disabled={subscriptionPendingAction === "unsubscribe"}
           >
-            {label}
-          </Tabs.Button>
-        {/each}
-      </Tabs.List>
-    </Tabs.Root>
+            <CheckCircleIcon />
+            {subscriptionPendingAction === "unsubscribe"
+              ? sectionCopy.unsubscribing
+              : sectionCopy.unsubscribeLabel}
+          </Button>
+        </form>
+      {:else}
+        <form method="GET">
+          <input name="subscribe" type="hidden" value="1" />
+          <Button type="submit" onclick={openSubscribeDialog}>
+            <LinkIcon />
+            {sectionCopy.subscribeLabel}
+          </Button>
+        </form>
+      {/if}
+    {/snippet}
 
-    {#if activeTab === "calendar"}
-      <Tabs.Panel
-        active
-        id={sectionPanelId("calendar")}
-        labelledBy={sectionTabId("calendar")}
-      >
+    {#snippet status()}
+      {#if formError}
+        <Alert variant="destructive">{formError}</Alert>
+      {/if}
+    {/snippet}
+  </DetailPinnedSummary>
+
+  <div class="grid min-h-0 bg-base-100 lg:grid-cols-[13rem_minmax(0,1fr)]">
+    <DetailSectionNav
+      activeHref={activeNavItem?.href ?? sectionBaseHref}
+      ariaLabel={sectionCopy.teachingSection}
+      items={sectionNavItems}
+      label={sectionCopy.teachingSection}
+    />
+
+    <div class="min-w-0 px-4 py-5 sm:px-5 lg:min-h-0 lg:overflow-y-auto lg:px-6" data-detail-scroll-container>
+      {#if data.detailSection === "overview"}
+      <section id="section-overview">
+        <SectionBasicInfoCard
+          {commonCopy}
+          {notAvailable}
+          {periodDetailRows}
+          {primaryName}
+          section={data.section}
+          {sectionCopy}
+          {sectionTeachersLabel}
+          {yesNo}
+        />
+      </section>
+      {:else if data.detailSection === "introduction"}
+      <section id="section-description">
+        {#key `description:section:${data.section.id}`}
+          <DescriptionCard
+            targetType="section"
+            targetId={data.section.id}
+            initialData={data.descriptionData}
+            locale={data.locale}
+            copy={data.copy.descriptions}
+          />
+        {/key}
+      </section>
+      {:else if data.detailSection === "calendar"}
+      <section id="tab-calendar">
         <SectionCalendarTab
           bind:calendarMonthOffset
           calendarGridWeeks={sectionCalendarGridWeeks}
@@ -109,13 +250,17 @@ function sectionPanelId(id: SectionDetailMainContentProps["activeTab"]) {
           {todayCalendarMonthOffset}
           {unscheduledCalendarEvents}
         />
-      </Tabs.Panel>
-    {:else if activeTab === "homework"}
-      <Tabs.Panel
-        active
-        id={sectionPanelId("homework")}
-        labelledBy={sectionTabId("homework")}
-      >
+      </section>
+      {:else if data.detailSection === "exams"}
+      <section id="tab-exams">
+        <SectionExamSection
+          events={sectionExamEvents}
+          {fmtDate}
+          {sectionCopy}
+        />
+      </section>
+      {:else if data.detailSection === "homework"}
+      <section id="tab-homework">
         <SectionHomeworkTab
           {canWriteHomework}
           {fmtDateTime}
@@ -131,14 +276,18 @@ function sectionPanelId(id: SectionDetailMainContentProps["activeTab"]) {
           selectHomework={setSelectedHomework}
           {setHomeworkView}
         />
-      </Tabs.Panel>
-    {:else if activeTab === "comments"}
-      <Tabs.Panel
-        active
-        class="grid gap-3"
-        id={sectionPanelId("comments")}
-        labelledBy={sectionTabId("comments")}
-      >
+      </section>
+      {:else if data.detailSection === "teachers"}
+      <section id="section-teachers">
+        <SectionTeachersCard
+          {primaryName}
+          {sectionCopy}
+          {teacherName}
+          teachers={data.section.teachers}
+        />
+      </section>
+      {:else if data.detailSection === "comments"}
+      <section id="tab-comments">
         {#key `comments:section:${data.section.id}`}
           <CommentsPanel
             initialData={data.commentsData}
@@ -148,27 +297,8 @@ function sectionPanelId(id: SectionDetailMainContentProps["activeTab"]) {
             showAllTargets
           />
         {/key}
-      </Tabs.Panel>
-    {/if}
+      </section>
+      {/if}
+    </div>
   </div>
-
-  <SectionDetailSidebar
-    {calendarExamDateKeys}
-    {calendarMonthDays}
-    {calendarMonthLabel}
-    {calendarScheduleDateKeys}
-    {commonCopy}
-    {dateKey}
-    {isSameMonth}
-    {notAvailable}
-    {periodDetailRows}
-    {primaryName}
-    section={data.section}
-    {sectionCopy}
-    {sectionTeachersLabel}
-    {teacherName}
-    {todayCalendarKey}
-    {visibleCalendarMonth}
-    {yesNo}
-  />
 </div>

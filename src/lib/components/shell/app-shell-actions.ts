@@ -19,3 +19,9 @@ export function cycleStoredThemeMode(themeMode: ThemeMode) {
   applyShellTheme(nextThemeMode);
   return nextThemeMode;
 }
+
+export function setStoredThemeMode(themeMode: ThemeMode) {
+  localStorage.setItem("life-ustc-theme", themeMode);
+  applyShellTheme(themeMode);
+  return themeMode;
+}

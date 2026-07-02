@@ -40,12 +40,13 @@ test("/ 主题切换可写入 localStorage", async ({ page }, testInfo) => {
   await gotoAndWaitForReady(page, "/", { testInfo, screenshotLabel: "home" });
 
   const themeButton = page.getByRole("button", {
-    name: /切换到浅色模式|切换到深色模式|使用系统偏好|Switch to light mode|Switch to dark mode|Use system preference/i,
+    name: /^(主题选择|Theme selector)$/i,
   });
   await expect(themeButton).toBeVisible();
 
   await expect(async () => {
     await themeButton.click();
+    await page.getByRole("menuitemradio", { name: /^(浅色|Light)$/i }).click();
     await expect
       .poll(
         async () =>
@@ -61,6 +62,7 @@ test("/ 主题切换可写入 localStorage", async ({ page }, testInfo) => {
 
   await expect(async () => {
     await themeButton.click();
+    await page.getByRole("menuitemradio", { name: /^(深色|Dark)$/i }).click();
     await expect
       .poll(
         async () =>
@@ -138,6 +140,45 @@ test("/ shell 菜单支持键盘菜单语义", async ({ page }) => {
     items.map((item) => item.getAttribute("aria-checked")),
   );
   expect(checkedStates.filter((state) => state === "true")).toHaveLength(1);
+});
+
+test("/ shell 桌面导航后内容滚动回到顶部", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await gotoAndWaitForReady(page, "/terms");
+
+  await page.evaluate(() => {
+    window.scrollTo(0, 720);
+    document
+      .querySelector("#main-content")
+      ?.parentElement?.scrollTo({ top: 720 });
+  });
+
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const contentPane =
+          document.querySelector("#main-content")?.parentElement;
+        return Math.max(window.scrollY, contentPane?.scrollTop ?? 0);
+      }),
+    )
+    .toBeGreaterThan(100);
+
+  await page
+    .locator("aside")
+    .getByRole("link", { name: /^(课程|Courses)$/i })
+    .click();
+  await page.waitForURL("**/courses");
+  await waitForUiSettled(page);
+
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const contentPane =
+          document.querySelector("#main-content")?.parentElement;
+        return Math.max(window.scrollY, contentPane?.scrollTop ?? 0);
+      }),
+    )
+    .toBeLessThan(8);
 });
 
 test("/ 登录用户在空状态总览页可看到班级发现入口", async ({

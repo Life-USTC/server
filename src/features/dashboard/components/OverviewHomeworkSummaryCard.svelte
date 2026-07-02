@@ -28,16 +28,16 @@ export let pendingHomeworks: DashboardHomeworkItem[];
     <div class="grid gap-2">
       {#each pendingHomeworks.slice(0, 5) as homework}
         <a
-          class="flex items-start justify-between gap-3 rounded-xl border border-base-300 px-3 py-3 text-sm no-underline transition hover:border-primary hover:bg-base-200/50"
+          class="grid gap-2 rounded-xl border border-base-300 px-3 py-3 text-sm no-underline transition hover:border-primary hover:bg-base-200/50 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start"
           href={homework.section?.jwId
-            ? `/sections/${homework.section.jwId}#homework-${homework.id}`
+            ? `/sections/${homework.section.jwId}/homework#homework-${homework.id}`
             : dashboardTabHref("homeworks")}
         >
           <span class="min-w-0">
             <span class="block truncate font-medium">{homework.title}</span>
             <span class="block truncate text-base-content/60 text-sm">{homework.section?.course?.namePrimary ?? commonCopy.sections}</span>
           </span>
-          <span class="shrink-0 text-right">
+          <span class="sm:text-right">
             <span class="block font-medium text-warning">{homeworkEtaLabel(homework.submissionDueAt)}</span>
             <span class="block text-base-content/60 text-xs">{fmtDate(homework.submissionDueAt)}</span>
           </span>

@@ -6,7 +6,7 @@ import type {
 import LayoutGrid from "$lib/components/icons/layout-grid.svelte";
 import List from "$lib/components/icons/list.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Tabs from "$lib/components/ui/tabs/index.js";
+import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 
 export let homeworksCopy: Record<string, string>;
 export let homeworkFilter: HomeworkFilter;
@@ -17,52 +17,51 @@ export let setHomeworkView: (view: HomeworkView) => void;
 
 <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
   <div class="flex flex-wrap items-center gap-2 md:justify-start">
-    <Tabs.List aria-label={homeworksCopy.viewMode}>
-      <Tabs.Button
-        selected={homeworkView === "cards"}
-        onclick={() => {
-          setHomeworkView("cards");
-        }}
-      >
-        <LayoutGrid />
+    <ToggleGroup.Root
+      aria-label={homeworksCopy.viewMode}
+      type="single"
+      value={homeworkView}
+      variant="outline"
+      onValueChange={(value) => {
+        if (value === "cards" || value === "list") {
+          setHomeworkView(value);
+        }
+      }}
+    >
+      <ToggleGroup.Item value="cards">
+        <LayoutGrid data-icon="inline-start" />
         {homeworksCopy.cardView}
-      </Tabs.Button>
-      <Tabs.Button
-        selected={homeworkView === "list"}
-        onclick={() => {
-          setHomeworkView("list");
-        }}
-      >
-        <List />
+      </ToggleGroup.Item>
+      <ToggleGroup.Item value="list">
+        <List data-icon="inline-start" />
         {homeworksCopy.listView}
-      </Tabs.Button>
-    </Tabs.List>
-    <Tabs.List aria-label={homeworksCopy.title}>
-      <Tabs.Button
-        selected={homeworkFilter === "incomplete"}
-        onclick={() => {
-          homeworkFilter = "incomplete";
-        }}
-      >
+      </ToggleGroup.Item>
+    </ToggleGroup.Root>
+    <ToggleGroup.Root
+      aria-label={homeworksCopy.title}
+      type="single"
+      value={homeworkFilter}
+      variant="outline"
+      onValueChange={(value) => {
+        if (
+          value === "incomplete" ||
+          value === "completed" ||
+          value === "all"
+        ) {
+          homeworkFilter = value;
+        }
+      }}
+    >
+      <ToggleGroup.Item value="incomplete">
         {homeworksCopy.filterIncomplete}
-      </Tabs.Button>
-      <Tabs.Button
-        selected={homeworkFilter === "completed"}
-        onclick={() => {
-          homeworkFilter = "completed";
-        }}
-      >
+      </ToggleGroup.Item>
+      <ToggleGroup.Item value="completed">
         {homeworksCopy.filterCompleted}
-      </Tabs.Button>
-      <Tabs.Button
-        selected={homeworkFilter === "all"}
-        onclick={() => {
-          homeworkFilter = "all";
-        }}
-      >
+      </ToggleGroup.Item>
+      <ToggleGroup.Item value="all">
         {homeworksCopy.filterAll}
-      </Tabs.Button>
-    </Tabs.List>
+      </ToggleGroup.Item>
+    </ToggleGroup.Root>
   </div>
   <div class="flex flex-wrap items-center gap-2 md:justify-end">
     <Button

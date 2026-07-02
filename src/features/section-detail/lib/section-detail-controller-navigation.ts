@@ -1,17 +1,6 @@
-import {
-  homeworkViewStorageKey,
-  type SectionTab,
-  sectionTabFromHash,
-} from "./section-detail-controller-helpers";
-
 export type SectionHomeworkView = "cards" | "list";
 
-export function setSectionDetailTabHash(nextTab: SectionTab) {
-  const nextHash = `#tab-${nextTab}`;
-  if (window.location.hash !== nextHash) {
-    window.location.hash = nextHash;
-  }
-}
+const homeworkViewStorageKey = "life-ustc-dashboard-homework-view-mode";
 
 export function persistSectionHomeworkView(nextView: SectionHomeworkView) {
   localStorage.setItem(homeworkViewStorageKey, nextView);
@@ -39,25 +28,4 @@ export function initialSectionHomeworkViewFromBrowser(
     return "list";
   }
   return fallback;
-}
-
-export function mountSectionDetailNavigation(input: {
-  setActiveTabFromHash: (tab: SectionTab) => void;
-}) {
-  const handleHash = () => {
-    const url = new URL(window.location.href);
-    if (
-      url.hash.startsWith("#comment-") &&
-      url.searchParams.has("homeworkId")
-    ) {
-      input.setActiveTabFromHash("homework");
-      return;
-    }
-    const nextTab = sectionTabFromHash(window.location.hash);
-    if (nextTab) input.setActiveTabFromHash(nextTab);
-  };
-
-  handleHash();
-  window.addEventListener("hashchange", handleHash);
-  return () => window.removeEventListener("hashchange", handleHash);
 }

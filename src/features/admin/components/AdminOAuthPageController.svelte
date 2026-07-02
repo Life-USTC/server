@@ -26,7 +26,6 @@ import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import type {
   AdminOAuthAdminCopy,
   AdminOAuthClient,
-  AdminOAuthCommonCopy,
   AdminOAuthCopy,
 } from "./admin-oauth-client-types";
 
@@ -37,7 +36,6 @@ type PageData = {
   clients: AdminOAuthClient[];
   copy: {
     admin: AdminOAuthAdminCopy;
-    common: AdminOAuthCommonCopy;
     oauth: AdminOAuthCopy;
   };
   locale: string;
@@ -76,7 +74,6 @@ let {
 
 $: _copy = data.copy.oauth;
 $: _adminCopy = data.copy.admin;
-$: _commonCopy = data.copy.common;
 $: _dateTimeFormatter = createShanghaiDateTimeFormatter(data.locale, {
   dateStyle: "medium",
   timeStyle: "short",
@@ -176,7 +173,6 @@ onMount(() => {
 <section class="grid gap-5">
   <AdminOAuthHeader
     adminCopy={_adminCopy}
-    commonCopy={_commonCopy}
     copy={_copy}
     disabled={!_isMounted}
     onCreate={_openCreateDialog}

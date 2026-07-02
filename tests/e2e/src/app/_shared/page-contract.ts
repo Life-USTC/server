@@ -215,7 +215,11 @@ export async function assertPageContract(
       await expectMainContent(page);
       await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
       await expect(visibleText(page, DEV_SEED.course.code)).toBeVisible();
-      await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
+      await expect(
+        page
+          .getByTestId("detail-section-nav")
+          .getByRole("link", { name: /班级|Sections/i }),
+      ).toBeVisible();
       await maybeCapture(page, testInfo, "courses-jwId");
       return;
     }
@@ -228,7 +232,11 @@ export async function assertPageContract(
       );
       await expectMainContent(page);
       await expect(visibleText(page, DEV_SEED.teacher.nameCn)).toBeVisible();
-      await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
+      await expect(
+        page
+          .getByTestId("detail-section-nav")
+          .getByRole("link", { name: /授课班级|Teaching Sections/i }),
+      ).toBeVisible();
       await maybeCapture(page, testInfo, "teachers-id");
       return;
     }
@@ -273,7 +281,7 @@ export async function assertPageContract(
       await gotoContractPage(page, `/comments/${createBody.id}`, testInfo);
       await expect(page).toHaveURL(
         new RegExp(
-          `/sections/${DEV_SEED.section.jwId}(?:\\?.*)?#comment-${createBody.id}$`,
+          `/sections/${DEV_SEED.section.jwId}/comments(?:\\?.*)?#comment-${createBody.id}$`,
         ),
       );
       await expectMainContent(page);
@@ -391,7 +399,7 @@ export async function assertPageContract(
         page.getByRole("link", { name: /App Store|下载/i }),
       ).toBeVisible();
       await expect(
-        page.getByRole("link", { name: /打开首页|Open Dashboard/i }).first(),
+        page.getByRole("link", { name: /打开仪表盘|Open Dashboard/i }).first(),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "mobile-app");
       return;

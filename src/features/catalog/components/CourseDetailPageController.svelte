@@ -1,17 +1,13 @@
 <script lang="ts">
-import { onMount } from "svelte";
+import BookOpenTextIcon from "@lucide/svelte/icons/book-open-text";
+import InfoIcon from "@lucide/svelte/icons/info";
+import ListIcon from "@lucide/svelte/icons/list";
+import MessageSquareIcon from "@lucide/svelte/icons/message-square";
 import CommentsPanel from "@/features/comments/components/CommentsPanel.svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.js";
-import {
-  type CatalogDetailTab,
-  mountCatalogDetailHashNavigation,
-  normalizeCatalogDetailTab,
-  replaceCatalogDetailTabUrl,
-} from "../lib/catalog-detail-navigation";
+import DetailPinnedSummary from "$lib/components/DetailPinnedSummary.svelte";
+import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
 import type { CatalogNamed } from "../lib/catalog-list-display";
 import {
   formatCatalogDetailMessage as formatMessage,
@@ -19,7 +15,6 @@ import {
   courseDetailSecondaryName as secondaryName,
   teacherNames,
 } from "../lib/course-detail-display";
-import CatalogDetailTabs from "./CatalogDetailTabs.svelte";
 import CourseDetailBasicInfo from "./CourseDetailBasicInfo.svelte";
 import CourseDetailSections from "./CourseDetailSections.svelte";
 import type {
@@ -46,7 +41,7 @@ type CourseDetailData = CatalogNamed & {
 type PageData = {
   commentsData: CatalogDetailCommentsData;
   copy: {
-    common: { breadcrumb: string; courses: string; home: string };
+    common: { courses: string; home: string };
     course: CourseDetailCopy["course"];
     courseDetail: CourseDetailCopy["courseDetail"] & {
       basicInfoDescription: string;
@@ -58,40 +53,84 @@ type PageData = {
       notAvailable: string;
       sectionCode: string;
       semester: string;
-      tabs: { comments: string; sections: string };
+      tabs: { comments: string; description: string; sections: string };
       teachers: string;
+      teachingSections: string;
+      teachingSectionsDescription: string;
     };
     descriptions: CatalogDetailDescriptionCopy;
     metadata: { pages: { courseDetail: string } };
   } & Record<string, unknown>;
   course: CourseDetailData;
   descriptionData: CatalogDetailDescriptionData;
+  detailSection: "overview" | "introduction" | "sections" | "comments";
   locale: string;
-  tab: string | null | undefined;
+};
+
+type PinnedSummaryItem = {
+  label: string;
+  mono?: boolean;
+  variant?: "ghost" | "outline" | "secondary";
 };
 
 export let data: PageData;
-
-let activeTab: CatalogDetailTab = normalizeCatalogDetailTab(data.tab);
 
 $: copy = data.copy;
 $: detailCopy = copy satisfies CourseDetailCopy;
 $: notAvailable = copy.courseDetail.notAvailable;
 $: displayName = primaryName(data.course) || data.course.code;
 $: secondaryDisplayName = secondaryName(data.course);
-
-function setActiveTab(nextTab: CatalogDetailTab) {
-  activeTab = nextTab;
-  replaceCatalogDetailTabUrl(nextTab);
-}
-
-onMount(() => {
-  return mountCatalogDetailHashNavigation({
-    setActiveTab: (tab) => {
-      activeTab = tab;
-    },
-  });
-});
+$: courseBaseHref = `/courses/${data.course.jwId}`;
+$: commentsCount = data.commentsData
+  ? Object.values(data.commentsData.commentMap).reduce(
+      (sum, comments) => sum + comments.length,
+      0,
+    )
+  : 0;
+$: sectionNavItems = [
+  {
+    href: courseBaseHref,
+    icon: InfoIcon,
+    key: "overview" as const,
+    label: copy.course.basicInfo,
+  },
+  {
+    href: `${courseBaseHref}/introduction`,
+    icon: BookOpenTextIcon,
+    key: "introduction" as const,
+    label: copy.courseDetail.tabs.description,
+  },
+  {
+    href: `${courseBaseHref}/sections`,
+    icon: ListIcon,
+    key: "sections" as const,
+    label: copy.courseDetail.teachingSections,
+    meta: data.course.sections.length,
+  },
+  {
+    href: `${courseBaseHref}/comments`,
+    icon: MessageSquareIcon,
+    key: "comments" as const,
+    label: copy.courseDetail.tabs.comments,
+    meta: commentsCount,
+  },
+];
+$: activeNavItem =
+  sectionNavItems.find((item) => item.key === data.detailSection) ??
+  sectionNavItems[0];
+$: pinnedSummaryItems = [
+  { label: data.course.code, mono: true, variant: "outline" as const },
+  ...(data.course.educationLevel
+    ? [{ label: primaryName(data.course.educationLevel) }]
+    : []),
+  ...(data.course.category
+    ? [{ label: primaryName(data.course.category) }]
+    : []),
+  ...(data.course.classType
+    ? [{ label: primaryName(data.course.classType) }]
+    : []),
+  ...(data.course.type ? [{ label: primaryName(data.course.type) }] : []),
+] satisfies PinnedSummaryItem[];
 </script>
 
 <svelte:head>
@@ -100,101 +139,67 @@ onMount(() => {
   <meta property="og:title" content={displayName} />
 </svelte:head>
 
-<section class="grid gap-5">
-  <PageHeader title={displayName} description={secondaryDisplayName}>
-    {#snippet breadcrumb()}
-      <Breadcrumb.Root label={copy.common.breadcrumb}>
-        <Breadcrumb.List>
-          <Breadcrumb.Item><Breadcrumb.Link href="/">{copy.common.home}</Breadcrumb.Link></Breadcrumb.Item>
-          <Breadcrumb.Separator />
-          <Breadcrumb.Item><Breadcrumb.Link href="/courses">{copy.common.courses}</Breadcrumb.Link></Breadcrumb.Item>
-          <Breadcrumb.Separator />
-          <Breadcrumb.Item><Breadcrumb.Page>{data.course.code}</Breadcrumb.Page></Breadcrumb.Item>
-        </Breadcrumb.List>
-      </Breadcrumb.Root>
-    {/snippet}
-    {#snippet meta()}
-      <Badge class="shrink-0 font-mono" variant="outline">{data.course.code}</Badge>
-    {/snippet}
-    {#snippet after()}
-      <div class="flex flex-wrap gap-2">
-        {#if data.course.educationLevel}
-          <Badge variant="ghost">{primaryName(data.course.educationLevel)}</Badge>
-        {/if}
-        {#if data.course.category}
-          <Badge variant="ghost">{primaryName(data.course.category)}</Badge>
-        {/if}
-        {#if data.course.classType}
-          <Badge variant="ghost">{primaryName(data.course.classType)}</Badge>
-        {/if}
-        {#if data.course.type}
-          <Badge variant="ghost">{primaryName(data.course.type)}</Badge>
-        {/if}
-      </div>
-    {/snippet}
-  </PageHeader>
+<section class="-mx-4 -mt-4 grid bg-base-100 sm:-mx-5 lg:-mx-6 lg:-my-4 lg:h-[calc(100%+2rem)] lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)]">
+  <DetailPinnedSummary
+    items={pinnedSummaryItems}
+    title={displayName}
+    description={secondaryDisplayName}
+  />
 
-  <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-    <div class="grid min-w-0 gap-5">
-      {#key `description:course:${data.course.id}`}
-        <DescriptionCard
-          targetType="course"
-          targetId={data.course.id}
-          initialData={data.descriptionData}
-          locale={data.locale as "en-us" | "zh-cn"}
-          copy={copy.descriptions}
+  <div class="grid min-h-0 bg-base-100 lg:grid-cols-[13rem_minmax(0,1fr)]">
+    <DetailSectionNav
+      activeHref={activeNavItem?.href ?? courseBaseHref}
+      ariaLabel={formatMessage(copy.metadata.pages.courseDetail, { name: displayName })}
+      items={sectionNavItems}
+      label={copy.common.courses}
+    />
+
+    <div class="min-w-0 px-4 py-5 sm:px-5 lg:min-h-0 lg:overflow-y-auto lg:px-6" data-detail-scroll-container>
+      {#if data.detailSection === "overview"}
+      <section id="course-overview">
+        <CourseDetailBasicInfo
+          copy={detailCopy}
+          course={data.course}
+          {primaryName}
         />
-      {/key}
-
-      <CatalogDetailTabs
-        {activeTab}
-        commentsLabel={copy.courseDetail.tabs.comments}
-        idPrefix="course-detail"
-        sectionsLabel={copy.courseDetail.tabs.sections}
-        {setActiveTab}
-      />
-
-      {#if activeTab === "comments"}
-        <div
-          aria-labelledby="course-detail-comments-tab"
-          id="course-detail-comments-panel"
-          role="tabpanel"
-          tabindex="0"
-        >
-          {#key `comments:course:${data.course.id}`}
-            <CommentsPanel
-              initialData={data.commentsData}
-              permalinkBaseHref={commentTargetPermalinkBaseHref({
-                courseJwId: data.course.jwId,
-                type: "course",
-              })}
-              targetType="course"
-              targetId={data.course.id}
-            />
-          {/key}
-        </div>
-      {:else}
-        <div
-          aria-labelledby="course-detail-sections-tab"
-          id="course-detail-sections-panel"
-          role="tabpanel"
-          tabindex="0"
-        >
-          <CourseDetailSections
-            copy={detailCopy}
-            course={data.course}
-            {notAvailable}
-            {primaryName}
-            {teacherNames}
+      </section>
+      {:else if data.detailSection === "introduction"}
+      <section id="course-description">
+        {#key `description:course:${data.course.id}`}
+          <DescriptionCard
+            targetType="course"
+            targetId={data.course.id}
+            initialData={data.descriptionData}
+            locale={data.locale as "en-us" | "zh-cn"}
+            copy={copy.descriptions}
           />
-        </div>
+        {/key}
+      </section>
+      {:else if data.detailSection === "sections"}
+      <section id="course-sections">
+        <CourseDetailSections
+          copy={detailCopy}
+          course={data.course}
+          {notAvailable}
+          {primaryName}
+          {teacherNames}
+        />
+      </section>
+      {:else if data.detailSection === "comments"}
+      <section id="course-comments">
+        {#key `comments:course:${data.course.id}`}
+          <CommentsPanel
+            initialData={data.commentsData}
+            permalinkBaseHref={commentTargetPermalinkBaseHref({
+              courseJwId: data.course.jwId,
+              type: "course",
+            })}
+            targetType="course"
+            targetId={data.course.id}
+          />
+        {/key}
+      </section>
       {/if}
     </div>
-
-    <CourseDetailBasicInfo
-      copy={detailCopy}
-      course={data.course}
-      {primaryName}
-    />
   </div>
 </section>

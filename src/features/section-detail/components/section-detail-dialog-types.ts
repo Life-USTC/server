@@ -1,7 +1,6 @@
 import type { CommentTargetOption } from "@/features/comments/lib/comment-ui";
 import type { CalendarGridWeek } from "$lib/components/calendar/types";
 import type {
-  SectionBasicInfo,
   SectionBasicInfoCopy,
   SectionCommonInfoCopy,
   SectionPrimaryName,
@@ -42,7 +41,6 @@ import type {
 } from "./section-homework-tab-types";
 
 export type SectionDetailCommonCopy = SectionHomeworkCommonCopy & {
-  breadcrumb: string;
   home: string;
   sections: string;
   signIn?: string;
@@ -163,31 +161,35 @@ export type SectionDetailDateFormatter = (
   value: SectionHomeworkDateValue,
 ) => string;
 
-export type SectionDetailActiveTab = "calendar" | "comments" | "homework";
-
-export type SectionDetailTab = readonly [SectionDetailActiveTab, string];
-
 export type SectionDetailMainSectionCopy = SectionCalendarCopy &
   SectionHomeworkTabSectionCopy &
   SectionTeacherCopy &
   SectionBasicInfoCopy & {
+    addToCalendar: string;
+    calendarDescription: string;
     calendarMiniDescription: string;
     classLegend: string;
     examLegend: string;
+    exams: string;
+    homeworkDescription: string;
+    tabs: {
+      calendar: string;
+      comments: string;
+      exams: string;
+      homeworks: string;
+    };
+    subscribeLabel: string;
     teachingSection: string;
+    unsubscribeLabel: string;
+    unsubscribing: string;
   };
 
 export type SectionDetailMainContentProps = {
-  activeTab: SectionDetailActiveTab;
-  calendarExamDateKeys: Set<string>;
-  calendarMonthDays: Date[];
   calendarMonthLabel: string;
   calendarMonthOffset: number;
-  calendarScheduleDateKeys: Set<string>;
   canWriteHomework: boolean;
   commentTargets: CommentTargetOption[];
-  commonCopy: SectionCommonInfoCopy;
-  dateKey: (value: string | Date | null | undefined) => string | null;
+  commonCopy: SectionDetailCommonCopy;
   fmtDate: SectionDetailDateFormatter;
   fmtDateTime: SectionDetailDateFormatter;
   homeworkCopy: SectionHomeworkTabCopy;
@@ -199,22 +201,15 @@ export type SectionDetailMainContentProps = {
   openCreateHomeworkDialog: () => void;
   periodDetailRows: Array<[string, number]>;
   primaryName: SectionPrimaryName;
-  section: SectionBasicInfo & {
-    teachers?: Parameters<SectionTeacherName>[0][];
-  };
   sectionCalendarEvents: SectionCalendarEvent[];
   sectionCalendarGridWeeks: CalendarGridWeek[];
   sectionCopy: SectionDetailMainSectionCopy;
   sectionTeachersLabel: SectionTeachersLabel;
-  setActiveTab: (tab: SectionDetailActiveTab) => void;
   setHomeworkView: (view: HomeworkView) => void;
   setSelectedHomework: (homework: SectionHomework) => void;
-  tabs: readonly SectionDetailTab[];
   teacherName: SectionTeacherName;
-  todayCalendarKey: string | null;
   todayCalendarMonthOffset: number;
   unscheduledCalendarEvents: SectionCalendarEvent[];
   viewer: { isAuthenticated?: boolean; signedIn?: boolean };
-  visibleCalendarMonth: Date;
   yesNo: (value: boolean | null | undefined) => string;
 };

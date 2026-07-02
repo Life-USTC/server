@@ -20,12 +20,6 @@ type FooterCopy = {
   terms: string;
 };
 
-type ThemeCopy = {
-  switchToDark: string;
-  switchToLight: string;
-  useSystem: string;
-};
-
 export function resolveProfileHref(user: ShellUser) {
   if (user?.username) return `/u/${user.username}`;
   if (user?.id) return `/u/id/${user.id}`;
@@ -34,12 +28,6 @@ export function resolveProfileHref(user: ShellUser) {
 
 export function resolveAvatarFallback(user: ShellUser) {
   return user?.name?.charAt(0) ?? "U";
-}
-
-export function resolveThemeButtonLabel(mode: ThemeMode, copy: ThemeCopy) {
-  if (mode === "light") return copy.switchToDark;
-  if (mode === "dark") return copy.useSystem;
-  return copy.switchToLight;
 }
 
 export function buildPrimaryLinks(copy: NavCopy): ShellLink[] {

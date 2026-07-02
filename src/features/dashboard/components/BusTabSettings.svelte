@@ -7,8 +7,10 @@ import type {
 import ArrowLeftRight from "$lib/components/icons/arrow-left-right.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
-import { Checkbox } from "$lib/components/ui/checkbox/index.js";
-import * as Tabs from "$lib/components/ui/tabs/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
+import { Switch } from "$lib/components/ui/switch/index.js";
+import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
+import { cn } from "$lib/utils.js";
 import BusCampusPickerGroup from "./BusCampusPickerGroup.svelte";
 
 export let bus: DashboardBusData;
@@ -27,7 +29,7 @@ export let setBusDayType: (dayType: "weekday" | "weekend") => void;
 export let toggleBusDepartedTrips: () => void;
 </script>
 
-<Card.Root class="order-1 lg:order-1">
+<Card.Root>
   <Card.Content class="grid gap-4 pt-5">
     <div class="grid gap-4">
       <BusCampusPickerGroup
@@ -65,35 +67,53 @@ export let toggleBusDepartedTrips: () => void;
     </div>
 
     <div class="flex flex-wrap items-center gap-2 border-t border-base-300 pt-4">
-      <Tabs.List aria-label={busCopy.query.dayType} class="scale-90 origin-left">
-        <Tabs.Button
+      <ToggleGroup.Root
+        aria-label={busCopy.query.dayType}
+        class="origin-left scale-90"
+        type="single"
+        value={busDayType}
+        variant="outline"
+        onValueChange={(value) => {
+          if (value === "weekday" || value === "weekend") setBusDayType(value);
+        }}
+      >
+        <ToggleGroup.Item
           disabled={!busPlannerReady}
-          selected={busDayType === "weekday"}
-          onclick={() => setBusDayType("weekday")}
+          value="weekday"
         >
           {busCopy.dayType.weekday}
-        </Tabs.Button>
-        <Tabs.Button
+        </ToggleGroup.Item>
+        <ToggleGroup.Item
           disabled={!busPlannerReady}
-          selected={busDayType === "weekend"}
-          onclick={() => setBusDayType("weekend")}
+          value="weekend"
         >
           {busCopy.dayType.weekend}
-        </Tabs.Button>
-      </Tabs.List>
-      <label class="ml-auto flex items-center gap-2 text-sm">
-        <Checkbox
+        </ToggleGroup.Item>
+      </ToggleGroup.Root>
+      <Field.Field class="ml-auto w-auto" orientation="horizontal">
+        <Field.Content>
+          <Field.Label class="font-normal" for="bus-show-departed-trips">
+            {busCopy.query.showDepartedTrips}
+          </Field.Label>
+        </Field.Content>
+        <Switch
+          class="border-base-300 data-unchecked:bg-base-300"
+          id="bus-show-departed-trips"
           checked={busShowDepartedTrips}
           disabled={!busPlannerReady}
-          onchange={toggleBusDepartedTrips}
+          onCheckedChange={toggleBusDepartedTrips}
         />
-        <span>{busCopy.query.showDepartedTrips}</span>
-      </label>
+      </Field.Field>
     </div>
     {#if busPreferenceStatus}
       <p
         aria-live="polite"
-        class={`text-sm ${busPreferenceSaveState === "error" ? "text-error" : "text-base-content/60"}`}
+        class={cn(
+          "text-sm",
+          busPreferenceSaveState === "error"
+            ? "text-error"
+            : "text-base-content/60",
+        )}
         role={busPreferenceSaveState === "error" ? "alert" : "status"}
       >
         {busPreferenceStatus}

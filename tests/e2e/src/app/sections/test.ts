@@ -11,10 +11,9 @@
  * - Semester filter dropdown (combobox)
  * - Table: Semester, Course Name, Section Code, Teachers, Credits, Capacity, Campus
  * - Clickable rows navigating to /sections/{jwId}
- * - Pagination controls when totalPages > 1
+ * - Endless loading when totalPages > 1
  * - DataState empty state when no results
  * - Clear filter link
- * - Breadcrumbs: Home > Sections
  *
  * ## Edge Cases
  * - SSR output contains search query for SEO

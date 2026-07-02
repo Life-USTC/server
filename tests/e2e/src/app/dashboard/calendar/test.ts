@@ -152,20 +152,20 @@ test.describe("仪表盘日历", () => {
     const calendarTabs = page.getByRole("group", {
       name: /日历|Calendar/i,
     });
-    const monthTab = calendarTabs.getByRole("button", {
+    const monthTab = calendarTabs.getByRole("radio", {
       name: /本月|This month/i,
     });
     await monthTab.click();
     await expect(page).toHaveURL(/calendarView=month/);
-    await expect(monthTab).toHaveAttribute("aria-pressed", "true");
+    await expect(monthTab).toHaveAttribute("aria-checked", "true");
     await captureStepScreenshot(page, testInfo, "calendar/month-view");
 
-    const weekTab = calendarTabs.getByRole("button", {
+    const weekTab = calendarTabs.getByRole("radio", {
       name: /本周|This week/i,
     });
     await weekTab.click();
     await expect(page).toHaveURL(/calendarView=week/);
-    await expect(weekTab).toHaveAttribute("aria-pressed", "true");
+    await expect(weekTab).toHaveAttribute("aria-checked", "true");
     await captureStepScreenshot(page, testInfo, "calendar/week-view");
   });
 

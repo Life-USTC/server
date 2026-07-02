@@ -1,15 +1,13 @@
 <script lang="ts">
 import type { DashboardTodosCopy } from "@/features/dashboard/lib/dashboard-controller-types";
-import * as Card from "$lib/components/ui/card/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 
 export let todosCopy: DashboardTodosCopy;
 </script>
 
-<Card.Root class="md:col-span-2">
-  <Card.Content class="grid gap-1 pt-5 text-center">
-    <p class="font-medium">{todosCopy.filterEmptyTitle}</p>
-    <p class="text-base-content/60 text-sm">
-      {todosCopy.filterEmptyDescription}
-    </p>
-  </Card.Content>
-</Card.Root>
+<Empty.Root class="border border-base-300 bg-base-100 md:col-span-2">
+  <Empty.Header>
+    <Empty.Title>{todosCopy.filterEmptyTitle}</Empty.Title>
+    <Empty.Description>{todosCopy.filterEmptyDescription}</Empty.Description>
+  </Empty.Header>
+</Empty.Root>

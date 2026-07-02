@@ -10,9 +10,8 @@
  * - Filter dropdowns: education level, category, class type
  * - Table with columns: Course Name, Code, Education Level, Category, Class Type
  * - Clickable rows navigating to /courses/{jwId}
- * - Pagination controls (Previous, page numbers, Next) when totalPages > 1
+ * - Endless loading when totalPages > 1
  * - DataState empty state when no results
- * - Breadcrumbs: Home > Courses
  *
  * ## Edge Cases
  * - SSR output should contain search query for SEO

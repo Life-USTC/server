@@ -41,8 +41,22 @@ import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
 const COURSE_URL = `/courses/${DEV_SEED.course.jwId}`;
-const COURSE_WITH_DESCRIPTION_URL = `/courses/${scenarioData.courses[2].jwId}`;
+const COURSE_WITH_DESCRIPTION_URL = `/courses/${scenarioData.courses[2].jwId}/introduction`;
 const COURSE_WITH_DESCRIPTION_TEXT = "实验课建议准备护目镜并提前完成预习问答。";
+
+async function jumpToCourseSection(
+  page: Parameters<typeof gotoAndWaitForReady>[0],
+  name: RegExp,
+  selector: string,
+) {
+  const link = page
+    .getByTestId("detail-section-nav")
+    .getByRole("link", { name })
+    .first();
+  await expect(link).toBeVisible();
+  await link.click();
+  await expect(page.locator(selector)).toBeVisible();
+}
 
 test.describe("/courses/[jwId] 课程详情", () => {
   test.describe.configure({ mode: "serial" });
@@ -121,6 +135,7 @@ test.describe("/courses/[jwId] 课程详情", () => {
     page,
   }, testInfo) => {
     await gotoAndWaitForReady(page, COURSE_URL);
+    await jumpToCourseSection(page, /班级|Sections/i, "#course-sections");
 
     // section.semester.nameCn
     await expect(visibleText(page, DEV_SEED.semesterNameCn)).toBeVisible();
@@ -162,35 +177,29 @@ test.describe("/courses/[jwId] 课程详情", () => {
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
-  test("标签切换正常工作", async ({ page }, testInfo) => {
+  test("详情导航可跳转到主要区块", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, COURSE_URL);
 
-    const tabList = page.getByRole("tablist").first();
-    await expect(tabList).toBeVisible();
-    const targetTab = tabList.getByRole("tab").nth(1);
-    const panelId = await targetTab.getAttribute("aria-controls");
-    expect(panelId).toBeTruthy();
+    const nav = page.getByTestId("detail-section-nav");
+    await expect(nav).toBeVisible();
+    await expect(
+      nav.getByRole("link", { name: /简介|Description/i }),
+    ).toBeVisible();
+    await expect(
+      nav.getByRole("link", { name: /班级|Sections/i }),
+    ).toBeVisible();
+    await expect(
+      nav.getByRole("link", { name: /评论|Comments/i }),
+    ).toBeVisible();
 
-    await targetTab.click();
-    await expect(targetTab).toHaveAttribute("aria-selected", "true");
-    await expect(page.locator(`#${panelId}`)).toHaveAttribute(
-      "role",
-      "tabpanel",
-    );
-    await captureStepScreenshot(page, testInfo, "course/tab-switch");
-  });
-
-  test("面包屑可返回课程列表", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, COURSE_URL);
-    const breadcrumb = page.locator('a[href="/courses"]').first();
-    await expect(breadcrumb).toBeVisible();
-    await breadcrumb.click();
-    await expect(page).toHaveURL(/\/courses(?:\?.*)?$/);
-    await captureStepScreenshot(page, testInfo, "course/breadcrumb-back");
+    await jumpToCourseSection(page, /评论|Comments/i, "#course-comments");
+    await expect(page).toHaveURL(/\/courses\/\d+\/comments$/);
+    await captureStepScreenshot(page, testInfo, "course/detail-nav");
   });
 
   test("班级行链接到班级详情", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, COURSE_URL);
+    await jumpToCourseSection(page, /班级|Sections/i, "#course-sections");
     const sectionLink = page
       .locator(`a[href="/sections/${DEV_SEED.section.jwId}"]:visible`)
       .or(page.locator("tbody a[href^='/sections/']:visible"))
@@ -224,7 +233,7 @@ test.describe("/courses/[jwId] 课程详情", () => {
 
   test("登录用户可以编辑课程简介", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
-    await signInAsDebugUser(page, COURSE_URL);
+    await signInAsDebugUser(page, `${COURSE_URL}/introduction`);
     const snapshot = await snapshotDescriptionTargetForE2e(
       page.request,
       { courseJwId: DEV_SEED.course.jwId, targetType: "course" },
@@ -279,15 +288,11 @@ test.describe("/courses/[jwId] 课程详情", () => {
     let commentId: string | undefined;
 
     try {
-      const commentsTab = page
-        .getByRole("tab", { name: /评论|Comments/i })
-        .first();
-      await expect(commentsTab).toBeVisible();
-      await commentsTab.click();
-      await expect(commentsTab).toHaveAttribute("aria-selected", "true");
+      await jumpToCourseSection(page, /评论|Comments/i, "#course-comments");
+      await expect(page).toHaveURL(/\/courses\/\d+\/comments$/);
 
       const body = `e2e-course-comment-${Date.now()}`;
-      const composer = page.locator("textarea").first();
+      const composer = page.locator("#course-comments textarea").first();
       await expect(composer).toBeVisible({ timeout: 15_000 });
       await composer.fill(body);
       const createResponse = page.waitForResponse(

@@ -46,7 +46,6 @@
     "next": "Next",
     "nextPage": "Next page",
     "pagination": "Pagination",
-    "breadcrumb": "Breadcrumb",
     "primaryNavigation": "Primary navigation",
     "profileMenu": "Profile menu",
     "backToHome": "Back to Home",
@@ -286,6 +285,52 @@
         "title": "Stay Updated",
         "description": "Never miss important announcements and campus events"
       }
+    }
+  },
+  "mobileAppPage": {
+    "eyebrow": "iPhone companion",
+    "title": "Life@USTC Mobile App",
+    "subtitle": "A focused mobile surface for the campus checks students repeat most: schedules, shuttle routes, course discovery, and personal workspace access.",
+    "availability": "Available on App Store",
+    "featureTitle": "Built for daily campus checks",
+    "quickLinksTitle": "Web tools",
+    "previewTitle": "Campus stack",
+    "previewSubtitle": "Compact checks for daily routines",
+    "previewStatusTitle": "Ready for today's planning",
+    "previewStatusDescription": "Open schedule, transit, and catalog resources from a focused mobile workflow.",
+    "stats": {
+      "companionLabel": "Companion app",
+      "companionValue": "Life@USTC",
+      "platformLabel": "Platform",
+      "platformValue": "iPhone",
+      "accessLabel": "Access model",
+      "accessValue": "Public tools"
+    },
+    "features": {
+      "schedule": {
+        "title": "Schedule awareness",
+        "description": "Keep class timing, locations, and calendar-oriented schoolwork close at hand."
+      },
+      "bus": {
+        "title": "Shuttle checks",
+        "description": "Jump into campus transit routes when planning movement between stops and campuses."
+      },
+      "catalog": {
+        "title": "Course discovery",
+        "description": "Move from courses to sections and teachers without losing context."
+      },
+      "profile": {
+        "title": "Personal workspace",
+        "description": "Sign in when you need subscriptions, profile settings, and personal dashboard tools."
+      }
+    },
+    "preview": {
+      "scheduleLabel": "Schedule",
+      "calendarStatus": "Classes and tasks",
+      "busLabel": "Shuttle",
+      "busStatus": "Route planning",
+      "linksLabel": "Campus links",
+      "linksStatus": "Quick access"
     }
   },
   "admin": {
@@ -1066,6 +1111,7 @@
     "courseComments": "Course",
     "tabs": {
       "description": "Description",
+      "exams": "Exams",
       "homeworks": "Homework",
       "comments": "Comments",
       "calendar": "Calendar"
@@ -1135,6 +1181,10 @@
     "selector": "Language selector"
   },
   "theme": {
+    "selector": "Theme selector",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark",
     "switchToLight": "Switch to light mode",
     "switchToDark": "Switch to dark mode",
     "useSystem": "Use system preference"

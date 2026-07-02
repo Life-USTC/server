@@ -31,7 +31,6 @@ import {
   type AnonymousDashboardData,
   type AnonymousLinkGroup,
   buildCalendarWeekdayLabels,
-  buildSignedTabs,
   type DashboardActionData,
   type DashboardLinkItem,
   type DashboardPageData,
@@ -41,6 +40,7 @@ import {
   todoPriorityOrder,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import { createDashboardHomeworkStateActions } from "@/features/dashboard/lib/dashboard-controller-homework-state-actions";
+import { buildSignedTabs } from "@/features/dashboard/lib/dashboard-controller-labels";
 import { createDashboardLinkStateActions } from "@/features/dashboard/lib/dashboard-controller-link-state-actions";
 import { mountDashboardController } from "@/features/dashboard/lib/dashboard-controller-mount";
 import { createDashboardSubscriptionActions } from "@/features/dashboard/lib/dashboard-controller-subscription-actions";
@@ -171,7 +171,6 @@ $: todosCopy = copy.todos;
 $: commentsCopy = copy.comments;
 $: todoPriorityOptions = buildTodoPriorityOptions(todoPriorityOrder, todosCopy);
 $: calendarWeekdayLabels = buildCalendarWeekdayLabels(sectionCopy);
-$: signedTabs = buildSignedTabs(signedTabIds, dashboardCopy);
 $: dashboardLinkGroupLabels = dashboardCopy.linkHub.groups;
 $: if (data !== linkSourceData) {
   const signedPageData = isSignedDashboardData(data) ? data : null;
@@ -495,6 +494,7 @@ $: overviewLinkItems = derivedState.overviewLinkItems;
 $: signedLinkGroups = derivedState.signedLinkGroups;
 $: anonymousLinkGroups = derivedState.anonymousLinkGroups;
 $: calendarData = derivedState.calendarData;
+$: signedTabs = buildSignedTabs(signedTabIds, dashboardCopy);
 $: syncCalendarStateFromUrl($page.url, calendarData);
 $: selectedImportSectionIdSet = new Set(selectedImportSectionIds);
 $: selectedImportCount = selectedImportSectionIds.length;
@@ -533,7 +533,7 @@ onMount(() => {
   <title>{copy.metadata.home} - Life@USTC</title>
 </svelte:head>
 
-<div class="mx-auto grid w-full max-w-6xl gap-6">
+<div class="mx-auto grid w-full max-w-7xl gap-6">
   <DashboardStatusAlerts
     {actionError}
     {calendarCopyError}
@@ -723,6 +723,7 @@ onMount(() => {
     <AnonymousDashboardView
       {busCopy}
       {dashboardCopy}
+      {homepageCopy}
       anonymousData={anonymousData}
       anonymousLinkGroups={anonymousLinkGroups}
       {linkIconLabel}

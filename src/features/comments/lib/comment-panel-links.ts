@@ -75,22 +75,18 @@ function pathWithSearch(
 
 export function commentTargetPermalinkBaseHref(target: CommentPermalinkTarget) {
   if (target.type === "course") {
-    return pathWithSearch(`/courses/${pathSegment(target.courseJwId)}`, {
-      tab: "comments",
-    });
+    return `/courses/${pathSegment(target.courseJwId)}/comments`;
   }
   if (target.type === "teacher") {
-    return pathWithSearch(`/teachers/${pathSegment(target.teacherId)}`, {
-      tab: "comments",
-    });
+    return `/teachers/${pathSegment(target.teacherId)}/comments`;
   }
   if (target.type === "homework") {
-    return pathWithSearch(`/sections/${pathSegment(target.sectionJwId)}`, {
-      tab: "homework",
-      homeworkId: target.homeworkId,
-    });
+    return pathWithSearch(
+      `/sections/${pathSegment(target.sectionJwId)}/homework`,
+      {
+        homeworkId: target.homeworkId,
+      },
+    );
   }
-  return pathWithSearch(`/sections/${pathSegment(target.sectionJwId)}`, {
-    tab: "comments",
-  });
+  return `/sections/${pathSegment(target.sectionJwId)}/comments`;
 }

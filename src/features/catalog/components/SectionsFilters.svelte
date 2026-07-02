@@ -1,7 +1,7 @@
 <script lang="ts">
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
-import { Input } from "$lib/components/ui/input/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
+import * as InputGroup from "$lib/components/ui/input-group/index.js";
 import { Select } from "$lib/components/ui/select/index.js";
 import type {
   SectionListCommonLabels,
@@ -22,59 +22,54 @@ export let semesterOptions: SectionListOption[];
 export let updateSectionFilter: SectionListFilterUpdater;
 </script>
 
-<Card.Root class="border-base-300 bg-base-100">
-  <Card.Header>
-    <Card.Title>{sectionLabels.summary.filters}</Card.Title>
-    <Card.Description>{sectionLabels.subtitle}</Card.Description>
-  </Card.Header>
-  <Card.Content>
-    <form method="GET" class="grid gap-4">
-      <div class="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-end">
-        <label class="grid min-w-0 gap-2 lg:flex-[1.6]">
-          <span class="font-medium text-sm">{commonLabels.search}</span>
-          <Input
-            name="search"
-            placeholder={sectionLabels.searchPlaceholder}
-            type="search"
-            value={sectionSearch}
-            oninput={(event: Event) => {
-              sectionSearch = (event.currentTarget as HTMLInputElement).value;
-            }}
-          />
-        </label>
-        <label class="grid min-w-0 gap-2 lg:flex-1">
-          <span class="font-medium text-sm">{sectionLabels.semester}</span>
-          <Select
-            items={semesterOptions}
-            name="semesterId"
-            value={filters.semesterId ?? ""}
-            onchange={(event) =>
-              updateSectionFilter({
-                semesterId: event.currentTarget.value,
-              })}
-          />
-        </label>
-        <div class="flex shrink-0 flex-wrap gap-2">
-          <Button class="min-w-28" size="lg" type="submit">{commonLabels.search}</Button>
-          <Button
-            aria-label={sectionLabels.searchHelpTitle}
-            class="mt-auto"
-            onclick={() => {
-              isSearchHelpOpen = true;
-            }}
-            size="icon-lg"
-            type="button"
-            variant="outline"
-          >
-            {sectionLabels.searchHelp}
-          </Button>
-          {#if activeFilterCount > 0}
-            <Button class="min-w-28" href="/sections" size="lg" variant="outline">{commonLabels.clear}</Button>
-          {/if}
-        </div>
-      </div>
-    </form>
-  </Card.Content>
-</Card.Root>
+<form method="GET">
+  <Field.Group class="gap-3">
+    <Field.Field>
+      <Field.Label for="section-search">{commonLabels.search}</Field.Label>
+      <InputGroup.Root>
+        <InputGroup.Input
+          id="section-search"
+          name="search"
+          placeholder={sectionLabels.searchPlaceholder}
+          type="search"
+          value={sectionSearch}
+          oninput={(event: Event) => {
+            sectionSearch = (event.currentTarget as HTMLInputElement).value;
+          }}
+        />
+      </InputGroup.Root>
+    </Field.Field>
+    <Field.Field>
+      <Field.Label for="section-semester">{sectionLabels.semester}</Field.Label>
+      <Select
+        id="section-semester"
+        items={semesterOptions}
+        name="semesterId"
+        value={filters.semesterId ?? ""}
+        onchange={(event) =>
+          updateSectionFilter({
+            semesterId: event.currentTarget.value,
+          })}
+      />
+    </Field.Field>
+    <div class="grid gap-2 pt-1">
+      <Button class="w-full" size="lg" type="submit">{commonLabels.search}</Button>
+      <Button
+        class="w-full"
+        onclick={() => {
+          isSearchHelpOpen = true;
+        }}
+        size="lg"
+        type="button"
+        variant="outline"
+      >
+        {sectionLabels.searchHelpTitle}
+      </Button>
+      {#if activeFilterCount > 0}
+        <Button class="w-full" href="/sections" size="lg" variant="outline">{commonLabels.clear}</Button>
+      {/if}
+    </div>
+  </Field.Group>
+</form>
 
 <SectionSearchHelpDialog bind:isSearchHelpOpen {sectionLabels} />

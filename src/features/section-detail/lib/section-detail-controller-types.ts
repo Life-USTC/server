@@ -111,7 +111,6 @@ export type SectionDetailCopy = {
     tabWrite: string;
   };
   common: Record<string, string> & {
-    breadcrumb: string;
     home: string;
     sections: string;
     signIn?: string;
@@ -196,6 +195,7 @@ export type SectionDetailCopy = {
     basicInfoDescription: string;
     campus: string;
     calendarMiniDescription: string;
+    calendarDescription: string;
     calendarEmpty: string;
     calendarSheetDescription: string;
     calendarSheetTitle: string;
@@ -217,6 +217,7 @@ export type SectionDetailCopy = {
     examEvent: string;
     examLegend: string;
     examMode: string;
+    exams: string;
     experimentPeriods: string;
     location: string;
     loginRequired: string;
@@ -249,6 +250,7 @@ export type SectionDetailCopy = {
     tabs: {
       calendar: string;
       comments: string;
+      exams: string;
       homeworks: string;
     };
     teachLanguage: string;
@@ -319,6 +321,14 @@ export type SectionDetailPageData = {
   commentsData: CommentsInitialData | null;
   copy: SectionDetailCopy;
   descriptionData: DescriptionPayload;
+  detailSection:
+    | "overview"
+    | "introduction"
+    | "calendar"
+    | "exams"
+    | "homework"
+    | "teachers"
+    | "comments";
   focusedHomeworkId?: string | null;
   homeworkData: {
     auditLogs: HomeworkAuditLog[];
@@ -329,7 +339,6 @@ export type SectionDetailPageData = {
   locale: AppLocale;
   section: SectionDetailSection;
   showSubscribeDialog: boolean;
-  tab?: string | null;
   todayCalendarKey: string;
   viewer: {
     isSubscribed?: boolean;

@@ -1,6 +1,5 @@
 <script lang="ts">
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
 import SectionBasicInfoAdminClasses from "./SectionBasicInfoAdminClasses.svelte";
 import SectionBasicInfoDetails from "./SectionBasicInfoDetails.svelte";
 import SectionBasicInfoFacts from "./SectionBasicInfoFacts.svelte";
@@ -23,44 +22,38 @@ export let sectionTeachersLabel: SectionTeachersLabel;
 export let yesNo: (value: boolean | null | undefined) => string;
 </script>
 
-<Card.Root>
-  <Card.Header>
-    <Card.Title>{sectionCopy.basicInfo}</Card.Title>
-    <Card.Description>{sectionCopy.basicInfoDescription}</Card.Description>
-  </Card.Header>
-  <Card.Content class="grid gap-4">
-    <SectionBasicInfoFacts
-      {notAvailable}
-      {primaryName}
-      {section}
-      {sectionCopy}
-    />
+<div class="grid gap-4">
+  <SectionBasicInfoFacts
+    {notAvailable}
+    {primaryName}
+    {section}
+    {sectionCopy}
+  />
 
-    <SectionBasicInfoDetails
-      {commonCopy}
-      {notAvailable}
-      {periodDetailRows}
-      {primaryName}
-      {section}
-      {sectionCopy}
-      {yesNo}
-    />
+  <SectionBasicInfoDetails
+    {commonCopy}
+    {notAvailable}
+    {periodDetailRows}
+    {primaryName}
+    {section}
+    {sectionCopy}
+    {yesNo}
+  />
 
-    <SectionBasicInfoAdminClasses
-      {primaryName}
-      {section}
-      {sectionCopy}
-    />
+  <SectionBasicInfoAdminClasses
+    {primaryName}
+    {section}
+    {sectionCopy}
+  />
 
-    <SectionBasicInfoRelatedSections
-      {notAvailable}
-      {section}
-      {sectionCopy}
-      {sectionTeachersLabel}
-    />
+  <SectionBasicInfoRelatedSections
+    {notAvailable}
+    {section}
+    {sectionCopy}
+    {sectionTeachersLabel}
+  />
 
-    <Button class="h-auto w-fit text-sm" href={`/courses/${section.course.jwId}`} variant="link">
-      {sectionCopy.viewAllCourseSections}
-    </Button>
-  </Card.Content>
-</Card.Root>
+  <Button class="h-auto w-fit text-sm" href={`/courses/${section.course.jwId}`} variant="link">
+    {sectionCopy.viewAllCourseSections}
+  </Button>
+</div>
