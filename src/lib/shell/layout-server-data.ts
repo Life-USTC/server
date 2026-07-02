@@ -43,15 +43,27 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       sections: messages.common.sections,
       teachers: messages.common.teachers,
       overview: messages.meDashboard.nav.overview.title,
+      workspaceOverview: locale === "zh-cn" ? "工作台首页" : "Workspace start",
       calendar: messages.meDashboard.nav.calendar.title,
+      workspaceCalendar:
+        locale === "zh-cn" ? "工作台日程" : "Workspace schedule",
       bus: messages.meDashboard.nav.bus.title,
       dashboardBus: locale === "zh-cn" ? "工作台校车" : "Dashboard transit",
+      workspaceTransit: locale === "zh-cn" ? "工作台交通" : "Workspace transit",
       subscriptions: messages.meDashboard.nav.subscriptions.title,
+      workspaceSubscriptions:
+        locale === "zh-cn" ? "工作台课程规划" : "Workspace course planning",
       homeworks: messages.meDashboard.nav.homeworks.title,
+      workspaceHomeworks:
+        locale === "zh-cn" ? "工作台任务" : "Workspace assignments",
       exams: messages.meDashboard.nav.exams.title,
+      workspaceExams:
+        locale === "zh-cn" ? "工作台评估" : "Workspace assessments",
       links: messages.meDashboard.nav.links.title,
-      dashboardLinks: locale === "zh-cn" ? "工作台网站" : "Dashboard links",
+      workspaceWebsites:
+        locale === "zh-cn" ? "工作台网站目录" : "Workspace web directory",
       todos: messages.meDashboard.nav.todos.title,
+      workspaceTodos: locale === "zh-cn" ? "工作台事项" : "Workspace tasks",
       transitMap: messages.metadata.pages.busMap,
       mobileApp: messages.metadata.pages.mobileApp,
       groups: {

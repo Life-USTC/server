@@ -19,9 +19,9 @@ export let viewer: DescriptionViewer;
 
 <Card.Header>
   <div class="flex flex-wrap items-start justify-between gap-3">
-    <div class="grid gap-1">
-      <div class="flex flex-wrap items-center gap-2">
-        <Card.Title>{copy.title}</Card.Title>
+    <div class="grid min-w-0 flex-1 gap-1">
+      <div class="flex min-w-0 flex-wrap items-center gap-2">
+        <Card.Title class="min-w-0 break-words">{copy.title}</Card.Title>
       </div>
       {#if description.lastEditedAt}
         <Card.Description>

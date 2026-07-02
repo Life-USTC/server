@@ -111,7 +111,7 @@ onMount(() => {
   </PageHeader>
 
   <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-    <div class="grid min-w-0 gap-5">
+    <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
       {#key `description:teacher:${data.teacher.id}`}
         <DescriptionCard
           targetType="teacher"
