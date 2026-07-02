@@ -10,7 +10,9 @@ type ValidationErrorResult = { error: string };
 type ScopesResult = ValidationErrorResult | { scopes: string[] };
 
 // Allowed scopes after expanding legacy coarse scopes into feature scopes.
-const ALLOWED_DYNAMIC_CLIENT_SCOPES = new Set(OAUTH_SCOPES);
+const ALLOWED_DYNAMIC_CLIENT_SCOPES: ReadonlySet<string> = new Set(
+  OAUTH_SCOPES,
+);
 
 function parseRequestedScopes(input?: string[] | string | null) {
   if (typeof input === "string") {
