@@ -1,10 +1,16 @@
 import { error, redirect } from "@sveltejs/kit";
 import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
+import { prisma } from "@/lib/db/prisma";
+import { getCanonicalOAuthIssuer } from "@/lib/mcp/urls";
 import { asOAuthProviderApi } from "@/lib/oauth/provider-api";
 import { parseOAuthConsentForm } from "./oauth-authorize-form";
 
 const OAUTH_SIGNED_QUERY_KEYS = new Set(["sig", "exp", "ba_iat", "ba_pl"]);
 const OAUTH_AUTHORIZE_RETRY_DELAYS_MS = [100, 250, 500, 1000, 2000];
+const OAUTH_CODE_LENGTH = 32;
+const OAUTH_CODE_EXPIRES_IN_SECONDS = 600;
+const OAUTH_CODE_ALPHABET =
+  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 type OAuthAuthorizeApi = {
   oauth2Authorize(input: {
@@ -17,6 +23,18 @@ type OAuthAuthorizeApi = {
     redirectURI?: string;
     url?: string;
   }>;
+};
+
+type OAuthSessionApi = {
+  getSession(input: { headers: Headers }): Promise<{
+    session?: {
+      id?: unknown;
+      createdAt?: unknown;
+    };
+    user?: {
+      id?: unknown;
+    };
+  } | null>;
 };
 
 function assertTrustedCookieRequestOrigin(request: Request) {
@@ -48,6 +66,15 @@ function asOAuthAuthorizeApi(api: unknown): OAuthAuthorizeApi | null {
   };
 }
 
+function asOAuthSessionApi(api: unknown): OAuthSessionApi | null {
+  if (!api || typeof api !== "object") return null;
+  const getSession = (api as { getSession?: unknown }).getSession;
+  if (typeof getSession !== "function") return null;
+  return {
+    getSession: getSession.bind(api) as OAuthSessionApi["getSession"],
+  };
+}
+
 function isOAuthAuthorizePageRedirect(target: string, requestUrl: string) {
   try {
     const url = new URL(target, requestUrl);
@@ -68,6 +95,42 @@ function oauthAuthorizeQueryFromRedirect(target: string, requestUrl: string) {
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function randomOAuthCode() {
+  const bytes = new Uint8Array(OAUTH_CODE_LENGTH);
+  crypto.getRandomValues(bytes);
+  return Array.from(
+    bytes,
+    (byte) => OAUTH_CODE_ALPHABET[byte % OAUTH_CODE_ALPHABET.length],
+  ).join("");
+}
+
+function base64UrlEncode(bytes: Uint8Array) {
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary)
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replace(/=+$/, "");
+}
+
+async function sha256Base64Url(value: string) {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(value),
+  );
+  return base64UrlEncode(new Uint8Array(digest));
+}
+
+function authTimeFromSessionCreatedAt(createdAt: unknown) {
+  if (!(createdAt instanceof Date) && typeof createdAt !== "string") {
+    return undefined;
+  }
+  const authTime = new Date(createdAt).getTime();
+  return Number.isFinite(authTime) ? authTime : undefined;
 }
 
 async function requestOAuthAuthorizeTarget({
@@ -97,13 +160,70 @@ async function requestOAuthAuthorizeTarget({
   return redirectPayloadTarget(authorizePayload);
 }
 
-async function resolveAuthorizeRedirectAfterConsent({
+async function issueAuthorizationCodeRedirect({
+  acceptedScope,
   authApi,
+  authorizeQuery,
+  headers,
+}: {
+  acceptedScope: string;
+  authApi: unknown;
+  authorizeQuery: Record<string, string>;
+  headers: Headers;
+}) {
+  const redirectUri = authorizeQuery.redirect_uri;
+  if (!redirectUri) return undefined;
+
+  const sessionApi = asOAuthSessionApi(authApi);
+  const session = await sessionApi?.getSession({ headers });
+  const sessionId = session?.session?.id;
+  const userId = session?.user?.id;
+  if (typeof sessionId !== "string" || typeof userId !== "string") {
+    return undefined;
+  }
+
+  const code = randomOAuthCode();
+  const iat = Math.floor(Date.now() / 1000);
+  const issuedAt = new Date(iat * 1000);
+  const query: Record<string, string> = {
+    ...authorizeQuery,
+    ...(acceptedScope.trim() ? { scope: acceptedScope.trim() } : {}),
+  };
+  const authTime = authTimeFromSessionCreatedAt(session?.session?.createdAt);
+  await prisma.verificationToken.create({
+    data: {
+      identifier: await sha256Base64Url(code),
+      token: JSON.stringify({
+        type: "authorization_code",
+        query,
+        userId,
+        sessionId,
+        ...(authTime !== undefined ? { authTime } : {}),
+      }),
+      expires: new Date((iat + OAUTH_CODE_EXPIRES_IN_SECONDS) * 1000),
+      createdAt: issuedAt,
+      updatedAt: issuedAt,
+    },
+  });
+
+  const callbackUrl = new URL(redirectUri);
+  callbackUrl.searchParams.set("code", code);
+  if (query.state) callbackUrl.searchParams.set("state", query.state);
+  callbackUrl.searchParams.set("iss", getCanonicalOAuthIssuer());
+  return callbackUrl.toString();
+}
+
+async function resolveAuthorizeRedirectAfterConsent({
+  accept,
+  authApi,
+  acceptedScope,
   headers,
   requestUrl,
   redirectTarget,
 }: {
+  accept: boolean;
   authApi: unknown;
+  acceptedScope: string;
   headers: Headers;
   requestUrl: string;
   redirectTarget: string;
@@ -133,7 +253,14 @@ async function resolveAuthorizeRedirectAfterConsent({
     }
   }
 
-  return undefined;
+  return accept
+    ? issueAuthorizationCodeRedirect({
+        acceptedScope,
+        authApi,
+        authorizeQuery,
+        headers,
+      })
+    : undefined;
 }
 
 export async function submitOAuthConsentAction({
@@ -172,7 +299,9 @@ export async function submitOAuthConsentAction({
     redirectTarget = redirectPayloadTarget(payload);
     if (redirectTarget) {
       redirectTarget = await resolveAuthorizeRedirectAfterConsent({
+        accept,
         authApi,
+        acceptedScope: scope,
         headers,
         requestUrl: request.url,
         redirectTarget,
