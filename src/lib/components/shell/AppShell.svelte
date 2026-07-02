@@ -126,8 +126,18 @@ function buildShellNavGroups(
     {
       label: copy.nav.groups.publicTools,
       links: [
-        { href: "/dashboard/bus", icon: BusFrontIcon, label: copy.nav.bus },
-        { href: "/dashboard/links", icon: LinkIcon, label: copy.nav.links },
+        {
+          ariaLabel: copy.nav.dashboardBus,
+          href: "/dashboard/bus",
+          icon: BusFrontIcon,
+          label: copy.nav.bus,
+        },
+        {
+          ariaLabel: copy.nav.dashboardLinks,
+          href: "/dashboard/links",
+          icon: LinkIcon,
+          label: copy.nav.links,
+        },
       ],
     },
     { label: copy.nav.groups.catalog, links: catalogLinks },

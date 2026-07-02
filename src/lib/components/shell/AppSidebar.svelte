@@ -41,6 +41,7 @@ export let navGroups: ShellNavGroup[];
                   : "text-base-content/70 hover:bg-base-200/70 hover:text-base-content",
               )}
               href={link.href}
+              aria-label={link.ariaLabel}
               aria-current={active ? "page" : undefined}
             >
               {#if link.icon}

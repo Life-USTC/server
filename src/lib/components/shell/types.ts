@@ -1,6 +1,7 @@
 import type { Component } from "svelte";
 
 export type ShellLink = {
+  ariaLabel?: string;
   href: string;
   icon?: Component;
   label: string;
