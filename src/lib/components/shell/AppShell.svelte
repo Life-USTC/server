@@ -12,6 +12,7 @@ import RouteIcon from "@lucide/svelte/icons/route";
 import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
 import UsersIcon from "@lucide/svelte/icons/users";
 import { onMount } from "svelte";
+import { afterNavigate } from "$app/navigation";
 import { navigating, page } from "$app/stores";
 import AppFooter from "$lib/components/shell/AppFooter.svelte";
 import AppSidebar from "$lib/components/shell/AppSidebar.svelte";
@@ -33,6 +34,7 @@ import type {
   LayoutCopy,
   LayoutUserSummary,
 } from "$lib/shell/layout-server-data";
+import { cn } from "$lib/utils.js";
 import type { ShellLink, ShellNavGroup } from "./types";
 
 type AppShellData = {
@@ -48,6 +50,7 @@ let mobileMenuOpen = false;
 let userMenuOpen = false;
 let localeMenuOpen = false;
 let themeMenuOpen = false;
+let contentScrollContainer: HTMLDivElement | undefined;
 
 $: profileHref = resolveProfileHref(data.user);
 $: avatarFallback = resolveAvatarFallback(data.user);
@@ -56,7 +59,12 @@ $: navGroups = buildShellNavGroups(
   Boolean(data.user),
   $page.url.pathname,
 );
+$: detailWorkspace = isDetailWorkspacePath($page.url.pathname);
 const footerLinks = buildFooterLinks(data.copy.footer);
+
+function isDetailWorkspacePath(pathname: string) {
+  return /^\/(courses|sections|teachers)\/[^/]+/.test(pathname);
+}
 
 function buildShellNavGroups(
   copy: LayoutCopy,
@@ -227,6 +235,13 @@ function closeMenus() {
   themeMenuOpen = false;
 }
 
+function resetContentScroll() {
+  contentScrollContainer?.scrollTo({ left: 0, top: 0 });
+  document
+    .querySelector<HTMLElement>("[data-detail-scroll-container]")
+    ?.scrollTo({ left: 0, top: 0 });
+}
+
 async function setLocale(locale: "en-us" | "zh-cn") {
   await setClientLocale({
     currentLocale: data.locale,
@@ -238,6 +253,17 @@ async function setLocale(locale: "en-us" | "zh-cn") {
 onMount(() => {
   themeMode = loadStoredThemeMode(themeMode);
   applyShellTheme(themeMode);
+});
+
+afterNavigate(({ from, to }) => {
+  if (!from || !to) return;
+  if (
+    from.url.pathname === to.url.pathname &&
+    from.url.search === to.url.search
+  ) {
+    return;
+  }
+  resetContentScroll();
 });
 </script>
 
@@ -255,7 +281,7 @@ onMount(() => {
   }
 </style>
 
-<div class="min-h-screen bg-base-200 text-base-content lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
+<div class="min-h-screen bg-base-200 text-base-content lg:grid lg:h-screen lg:min-h-0 lg:grid-cols-[15rem_minmax(0,1fr)] lg:overflow-hidden">
   {#if $navigating}
     <RouteLoadingBar loadingLabel={data.copy.shell.loading} />
   {/if}
@@ -266,7 +292,7 @@ onMount(() => {
     {navGroups}
   />
 
-  <div class="flex min-w-0 flex-col">
+  <div class="flex min-w-0 flex-col lg:h-screen lg:min-h-0 lg:overflow-hidden">
     <AppTopbar
       {avatarFallback}
       {closeMenus}
@@ -289,15 +315,31 @@ onMount(() => {
       {userMenuOpen}
     />
 
-    <div class="flex min-w-0 flex-1 flex-col">
-      <main id="main-content" class="w-full flex-1 px-4 py-4 sm:px-5 lg:px-6">
+    <div
+      bind:this={contentScrollContainer}
+      class={cn(
+        "flex min-w-0 flex-1 flex-col",
+        detailWorkspace
+          ? "lg:min-h-0 lg:overflow-hidden"
+          : "lg:min-h-0 lg:overflow-y-auto",
+      )}
+    >
+      <main
+        id="main-content"
+        class={cn(
+          "w-full flex-1 px-4 py-4 sm:px-5 lg:px-6",
+          detailWorkspace && "lg:min-h-0 lg:overflow-hidden",
+        )}
+      >
         <slot />
       </main>
 
-      <AppFooter
-        copy={data.copy}
-        {footerLinks}
-      />
+      {#if !detailWorkspace}
+        <AppFooter
+          copy={data.copy}
+          {footerLinks}
+        />
+      {/if}
     </div>
   </div>
 </div>

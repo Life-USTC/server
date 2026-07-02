@@ -31,7 +31,7 @@ let {
 
 <div
   class={cn(
-    "sticky top-12 z-20 -mx-4 -mt-4 border-base-300 border-b bg-base-100 px-4 py-3 sm:-mx-5 sm:px-5 lg:-mx-6 lg:px-6",
+    "border-base-300 border-b bg-base-100 px-4 py-3 sm:px-5 lg:px-6",
     className,
   )}
   data-testid="detail-pinned-summary"

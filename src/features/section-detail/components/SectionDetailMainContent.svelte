@@ -1,4 +1,11 @@
 <script lang="ts">
+import BookOpenTextIcon from "@lucide/svelte/icons/book-open-text";
+import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
+import ClipboardListIcon from "@lucide/svelte/icons/clipboard-list";
+import GraduationCapIcon from "@lucide/svelte/icons/graduation-cap";
+import InfoIcon from "@lucide/svelte/icons/info";
+import MessageSquareIcon from "@lucide/svelte/icons/message-square";
+import UsersIcon from "@lucide/svelte/icons/users";
 import type { SubmitFunction } from "@sveltejs/kit";
 import CommentsPanel from "@/features/comments/components/CommentsPanel.svelte";
 import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
@@ -85,40 +92,47 @@ $: sectionBaseHref = `/sections/${data.section.jwId}`;
 $: sectionNavItems = [
   {
     href: sectionBaseHref,
+    icon: InfoIcon,
     key: "overview" as const,
     label: sectionCopy.basicInfo,
   },
   {
     href: `${sectionBaseHref}/introduction`,
+    icon: BookOpenTextIcon,
     key: "introduction" as const,
     label: data.copy.descriptions.title,
   },
   {
     href: `${sectionBaseHref}/calendar`,
+    icon: CalendarDaysIcon,
     key: "calendar" as const,
     label: sectionCopy.tabs.calendar,
     meta: sectionCalendarEvents.length,
   },
   {
     href: `${sectionBaseHref}/exams`,
+    icon: GraduationCapIcon,
     key: "exams" as const,
     label: sectionCopy.tabs.exams,
     meta: sectionExamEvents.length,
   },
   {
     href: `${sectionBaseHref}/homework`,
+    icon: ClipboardListIcon,
     key: "homework" as const,
     label: sectionCopy.tabs.homeworks,
     meta: homeworks.length,
   },
   {
     href: `${sectionBaseHref}/teachers`,
+    icon: UsersIcon,
     key: "teachers" as const,
     label: sectionCopy.teachers,
     meta: data.section.teachers.length,
   },
   {
     href: `${sectionBaseHref}/comments`,
+    icon: MessageSquareIcon,
     key: "comments" as const,
     label: sectionCopy.tabs.comments,
     meta: commentsCount,
@@ -141,7 +155,7 @@ $: pinnedSummaryItems = [
 ] satisfies PinnedSummaryItem[];
 </script>
 
-<div class="grid">
+<div class="-mx-4 -mt-4 grid bg-base-100 sm:-mx-5 lg:-mx-6 lg:-my-4 lg:h-[calc(100%+2rem)] lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)]">
   <DetailPinnedSummary
     items={pinnedSummaryItems}
     statusVisible={Boolean(formError)}
@@ -188,7 +202,7 @@ $: pinnedSummaryItems = [
     {/snippet}
   </DetailPinnedSummary>
 
-  <div class="-mx-4 grid min-h-[calc(100vh-8rem)] bg-base-100 sm:-mx-5 lg:-mx-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start">
+  <div class="grid min-h-0 bg-base-100 lg:grid-cols-[13rem_minmax(0,1fr)]">
     <DetailSectionNav
       activeHref={activeNavItem?.href ?? sectionBaseHref}
       ariaLabel={sectionCopy.teachingSection}
@@ -196,7 +210,7 @@ $: pinnedSummaryItems = [
       label={sectionCopy.teachingSection}
     />
 
-    <div class="min-w-0 px-4 py-5 sm:px-5 lg:px-6">
+    <div class="min-w-0 px-4 py-5 sm:px-5 lg:min-h-0 lg:overflow-y-auto lg:px-6" data-detail-scroll-container>
       {#if data.detailSection === "overview"}
       <section id="section-overview">
         <SectionBasicInfoCard
@@ -223,11 +237,7 @@ $: pinnedSummaryItems = [
         {/key}
       </section>
       {:else if data.detailSection === "calendar"}
-      <section class="grid gap-3" id="tab-calendar">
-        <div>
-          <h2 class="font-semibold text-lg">{sectionCopy.tabs.calendar}</h2>
-          <p class="text-base-content/60 text-sm">{sectionCopy.calendarDescription}</p>
-        </div>
+      <section id="tab-calendar">
         <SectionCalendarTab
           bind:calendarMonthOffset
           calendarGridWeeks={sectionCalendarGridWeeks}
@@ -242,10 +252,7 @@ $: pinnedSummaryItems = [
         />
       </section>
       {:else if data.detailSection === "exams"}
-      <section class="grid gap-3" id="tab-exams">
-        <div>
-          <h2 class="font-semibold text-lg">{examSectionLabel}</h2>
-        </div>
+      <section id="tab-exams">
         <SectionExamSection
           events={sectionExamEvents}
           {fmtDate}
@@ -253,11 +260,7 @@ $: pinnedSummaryItems = [
         />
       </section>
       {:else if data.detailSection === "homework"}
-      <section class="grid gap-3" id="tab-homework">
-        <div>
-          <h2 class="font-semibold text-lg">{sectionCopy.tabs.homeworks}</h2>
-          <p class="text-base-content/60 text-sm">{sectionCopy.homeworkDescription}</p>
-        </div>
+      <section id="tab-homework">
         <SectionHomeworkTab
           {canWriteHomework}
           {fmtDateTime}
@@ -284,10 +287,7 @@ $: pinnedSummaryItems = [
         />
       </section>
       {:else if data.detailSection === "comments"}
-      <section class="grid gap-3" id="tab-comments">
-        <div>
-          <h2 class="font-semibold text-lg">{sectionCopy.tabs.comments}</h2>
-        </div>
+      <section id="tab-comments">
         {#key `comments:section:${data.section.id}`}
           <CommentsPanel
             initialData={data.commentsData}
