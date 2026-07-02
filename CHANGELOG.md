@@ -1,3 +1,10 @@
+## [1.44.2](https://github.com/Life-USTC/server/compare/v1.44.1...v1.44.2) (2026-07-02)
+
+
+### Bug Fixes
+
+* **oauth:** avoid slow consent redirect retries ([ef20b37](https://github.com/Life-USTC/server/commit/ef20b374ff956d370545488c76c94e57c9609854))
+
 ## [1.44.1](https://github.com/Life-USTC/server/compare/v1.44.0...v1.44.1) (2026-07-02)
 
 
