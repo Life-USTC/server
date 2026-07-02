@@ -22,6 +22,11 @@ const LOOPBACK_FORM_ACTION_SOURCES = [
   "http://127.0.0.1:*",
 ];
 
+const OAUTH_CALLBACK_FORM_ACTION_SOURCES = [
+  "https://chatgpt.com",
+  "https://www.perplexity.ai",
+];
+
 export function createScriptNonce() {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
   const value = String.fromCharCode(...bytes);
@@ -52,7 +57,7 @@ export function buildContentSecurityPolicy(
     "font-src 'self' https://fonts.gstatic.com",
     `connect-src 'self' ${connectSources.join(" ")}`,
     "frame-ancestors 'none'",
-    `form-action 'self' ${LOOPBACK_FORM_ACTION_SOURCES.join(" ")}`,
+    `form-action 'self' ${LOOPBACK_FORM_ACTION_SOURCES.join(" ")} ${OAUTH_CALLBACK_FORM_ACTION_SOURCES.join(" ")}`,
     "base-uri 'self'",
     "object-src 'none'",
   ];

@@ -51,4 +51,19 @@ describe("CSP 辅助函数", () => {
     expect(connectDirective).not.toContain("amazonaws.com");
     expect(connectDirective).not.toContain("r2.cloudflarestorage.com");
   });
+
+  it("允许 OAuth consent 表单跳转到已知 MCP 客户端回调", () => {
+    const policy = buildContentSecurityPolicy("abc123");
+    const formDirective = policy
+      .split("; ")
+      .find((directive) => directive.startsWith("form-action"));
+
+    expect(formDirective).toBeDefined();
+    expect(formDirective).toContain("'self'");
+    expect(formDirective).toContain("https://chatgpt.com");
+    expect(formDirective).toContain("https://www.perplexity.ai");
+    expect(formDirective).toContain("http://localhost:*");
+    expect(formDirective?.split(/\s+/)).not.toContain("https:");
+    expect(formDirective).not.toContain("https://*");
+  });
 });
