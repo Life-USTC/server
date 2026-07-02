@@ -7,6 +7,7 @@ import {
   incrementCounter,
   observeDurationMs,
 } from "@/lib/metrics/runtime-metrics";
+import { writeApiRequestAnalytics } from "@/lib/metrics/analytics-engine";
 
 export function recordApiRequestStart(input: {
   method: string;
@@ -52,6 +53,14 @@ export function recordApiRequestFinish(input: {
     method: input.method,
     route: input.route,
   });
+  writeApiRequestAnalytics({
+    authMode: input.authMode,
+    durationMs: input.durationMs,
+    event: "finish",
+    method: input.method,
+    route: input.route,
+    status: input.status,
+  });
   if (input.status >= 400) {
     incrementCounter("life_ustc_api_errors_total", {
       method: input.method,
@@ -92,5 +101,13 @@ export function recordApiRequestError(input: {
   observeDurationMs("life_ustc_api_request_duration_ms", input.durationMs, {
     method: input.method,
     route: input.route,
+  });
+  writeApiRequestAnalytics({
+    authMode: input.authMode,
+    durationMs: input.durationMs,
+    event: "error",
+    method: input.method,
+    route: input.route,
+    status,
   });
 }

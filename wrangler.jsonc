@@ -49,6 +49,12 @@
       "localConnectionString": "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev"
     }
   ],
+  "analytics_engine_datasets": [
+    {
+      "binding": "ANALYTICS",
+      "dataset": "life_ustc_runtime"
+    }
+  ],
   "r2_buckets": [
     {
       "binding": "R2_UPLOADS",
