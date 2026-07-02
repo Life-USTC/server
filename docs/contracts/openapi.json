@@ -95,16 +95,6 @@
             "returns": "text/plain ok",
             "content_type": "text/plain; charset=utf-8",
             "notes": ["Plain liveness endpoint with no dependency checks."]
-          },
-          {
-            "path": "/api/readiness",
-            "method": "GET",
-            "auth": "internal",
-            "returns": "{ status, checks, uptimeSeconds }",
-            "content_type": "application/json",
-            "notes": [
-              "Internal readiness endpoint for dependency checks; readable only from localhost or with the configured readiness bearer token."
-            ]
           }
         ]
       },
@@ -113,7 +103,6 @@
           "Metadata endpoint",
           "Locale endpoint",
           "Health endpoint",
-          "Readiness endpoint",
           "OAuth/provider catch-all endpoints",
           "Webhook endpoint via Better Auth catch-all"
         ]

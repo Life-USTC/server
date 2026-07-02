@@ -30,12 +30,6 @@ const SECURITY_SCHEMES = {
     description:
       "OAuth bearer token for /api/mcp. MCP requires a bearer token with the MCP resource audience and does not accept session cookies.",
   },
-  internalBearerAuth: {
-    type: "http" as const,
-    scheme: "bearer",
-    description:
-      "Configured internal bearer token for operational endpoints. Localhost requests may also be accepted by the server-side access policy.",
-  },
   calendarFeedToken: {
     type: "apiKey" as const,
     in: "query" as const,

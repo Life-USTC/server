@@ -1,18 +1,7 @@
-import { afterEach, describe, expect, it } from "vitest";
-import {
-  recordMcpToolResultMetrics,
-  summarizeMcpJsonRpcRequest,
-} from "@/lib/mcp/observability";
-import {
-  renderPrometheusMetrics,
-  resetRuntimeMetricsForTest,
-} from "@/lib/metrics/runtime-metrics";
+import { describe, expect, it } from "vitest";
+import { summarizeMcpJsonRpcRequest } from "@/lib/mcp/observability";
 
 describe("MCP 可观测性", () => {
-  afterEach(() => {
-    resetRuntimeMetricsForTest();
-  });
-
   it("汇总 initialize 请求且不包含敏感值", async () => {
     const request = new Request("https://example.test/api/mcp", {
       method: "POST",
@@ -105,32 +94,5 @@ describe("MCP 可观测性", () => {
       bodyKind: "body-too-large",
       rpcCount: 0,
     });
-  });
-
-  it("记录工具结果状态和耗时指标", async () => {
-    const summary = await summarizeMcpJsonRpcRequest(
-      new Request("https://example.test/api/mcp", {
-        method: "POST",
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: 2,
-          method: "tools/call",
-          params: { name: "get_my_profile", arguments: {} },
-        }),
-      }),
-    );
-
-    recordMcpToolResultMetrics(summary, new Set(["get_my_profile"]), {
-      durationMs: 25,
-      status: 200,
-    });
-
-    const metrics = renderPrometheusMetrics();
-    expect(metrics).toContain(
-      'life_ustc_mcp_tool_call_results_total{status="success",tool="get_my_profile"} 1',
-    );
-    expect(metrics).toContain(
-      'life_ustc_mcp_tool_call_duration_ms_sum{tool="get_my_profile"} 25',
-    );
   });
 });

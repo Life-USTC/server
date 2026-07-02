@@ -89,31 +89,6 @@ export const GET = () => new Response();
     ).toBeDefined();
   });
 
-  it("tags /api/readiness as Api and requires internal bearer auth", () => {
-    const project = new Project({ useInMemoryFileSystem: true });
-    project.createSourceFile(
-      "src/routes/api/readiness/+server.ts",
-      `
-/**
- * Check internal dependency readiness.
- * @response readinessResponseSchema
- * @response 404
- */
-export function GET() {
-  return new Response("ok");
-}
-`,
-      { overwrite: true },
-    );
-
-    const schemas = new SchemaCollector();
-    const paths = collectPaths(project, schemas);
-    const operation = paths["/api/readiness"].get as Record<string, unknown>;
-
-    expect(operation.tags).toEqual(["Api"]);
-    expect(operation.security).toEqual([{ internalBearerAuth: [] }]);
-  });
-
   it("parses path parameters and request body", () => {
     const project = new Project({ useInMemoryFileSystem: true });
     project.createSourceFile(

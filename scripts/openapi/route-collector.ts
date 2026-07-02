@@ -181,7 +181,6 @@ const OPERATION_ID_OVERRIDES: Record<string, string> = {
   "GET /api/me/subscriptions/homeworks": "getSubscribedHomeworks",
   "GET /api/metadata": "getMetadata",
   "GET /api/openapi": "getOpenApiSpec",
-  "GET /api/readiness": "listReadiness",
   "GET /api/schedules": "listSchedules",
   "GET /api/sections": "listSections",
   "GET /api/sections/{jwId}": "getSection",
@@ -514,7 +513,6 @@ function buildTag(routePath: string): string {
   if (routePath === "/api/locale") return "Locale";
   if (routePath === "/api/metadata") return "Metadata";
   if (routePath === "/api/openapi") return "OpenAPI";
-  if (routePath === "/api/readiness") return "Api";
   if (routePath.startsWith("/api/me")) return "Me";
   if (routePath === "/api/schedules") return "Schedules";
   if (routePath.startsWith("/api/sections")) return "Sections";
@@ -540,12 +538,7 @@ function buildSecurity(
   tag: string,
   has401: boolean,
 ): Array<Record<string, string[]>> | undefined {
-  if (!has401) {
-    if (routePath === "/api/readiness") {
-      return [{ internalBearerAuth: [] }];
-    }
-    return undefined;
-  }
+  if (!has401) return undefined;
 
   if (routePath.startsWith("/api/auth")) {
     return undefined;
@@ -553,10 +546,6 @@ function buildSecurity(
 
   if (tag === "Admin") {
     return [{ sessionCookie: [] }];
-  }
-
-  if (routePath === "/api/readiness") {
-    return [{ internalBearerAuth: [] }];
   }
 
   if (routePath === "/api/mcp" && method !== "options") {

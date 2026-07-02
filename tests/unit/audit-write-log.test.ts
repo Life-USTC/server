@@ -1,11 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const {
-  getRequestEventMock,
-  logAppEventMock,
-  prismaMock,
-  recordAuditWriteMetricMock,
-} = vi.hoisted(() => ({
+const { getRequestEventMock, logAppEventMock, prismaMock } = vi.hoisted(() => ({
   getRequestEventMock: vi.fn(),
   logAppEventMock: vi.fn(),
   prismaMock: {
@@ -13,7 +8,6 @@ const {
       create: vi.fn(),
     },
   },
-  recordAuditWriteMetricMock: vi.fn(),
 }));
 
 vi.mock("$app/server", () => ({
@@ -26,10 +20,6 @@ vi.mock("@/lib/db/prisma", () => ({
 
 vi.mock("@/lib/log/app-logger", () => ({
   logAppEvent: logAppEventMock,
-}));
-
-vi.mock("@/lib/metrics/observability-metrics", () => ({
-  recordAuditWriteMetric: recordAuditWriteMetricMock,
 }));
 
 const auditParams = {
@@ -55,7 +45,6 @@ describe("fireAuditLog", () => {
     getRequestEventMock.mockReset();
     logAppEventMock.mockReset();
     prismaMock.auditLog.create.mockReset();
-    recordAuditWriteMetricMock.mockReset();
     vi.resetModules();
   });
 
@@ -89,11 +78,6 @@ describe("fireAuditLog", () => {
     auditWrite.resolve({});
     await waitUntilMock.mock.calls[0]?.[0];
 
-    expect(recordAuditWriteMetricMock).toHaveBeenCalledWith({
-      action: "comment_create",
-      durationMs: expect.any(Number),
-      status: "success",
-    });
     expect(logAppEventMock).not.toHaveBeenCalled();
   });
 
@@ -115,11 +99,6 @@ describe("fireAuditLog", () => {
     await vi.waitFor(() => expect(waitUntilMock).toHaveBeenCalledTimes(1));
     await waitUntilMock.mock.calls[0]?.[0];
 
-    expect(recordAuditWriteMetricMock).toHaveBeenCalledWith({
-      action: "comment_create",
-      durationMs: expect.any(Number),
-      status: "error",
-    });
     expect(logAppEventMock).toHaveBeenCalledWith(
       "error",
       "Audit log write failed",

@@ -44,7 +44,7 @@ is the project map: start here, then follow the closest source of truth.
 - [docs/contracts/openapi.json](contracts/openapi.json) - OpenAPI contract surface.
 - [docs/contracts/mcp.json](contracts/mcp.json) - MCP contract surface.
 - [docs/contracts/security.json](contracts/security.json) - security and permission expectations.
-- [docs/observability.md](observability.md) - production logs, metrics, readiness, alerts, and dashboard guidance.
+- [docs/observability.md](observability.md) - production logs, metrics, alerts, and dashboard guidance.
 
 ## Verification
 

@@ -5,14 +5,9 @@ import {
   observedApiRoute,
   recordApiRequestStart,
 } from "@/lib/log/api-observability";
-import {
-  renderPrometheusMetrics,
-  resetRuntimeMetricsForTest,
-} from "@/lib/metrics/runtime-metrics";
 
 describe("API 可观测性", () => {
   afterEach(() => {
-    resetRuntimeMetricsForTest();
     setCloudflareRuntimeEnv(undefined);
     vi.useRealTimers();
     vi.restoreAllMocks();
@@ -47,7 +42,7 @@ describe("API 可观测性", () => {
     expect(encodedSeparator).not.toContain("feed-token-0123456789");
   });
 
-  it("记录安全的请求开始日志和指标", () => {
+  it("记录安全的请求开始日志", () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
 
     recordApiRequestStart({
@@ -65,9 +60,6 @@ describe("API 可观测性", () => {
         requestId: "request-1",
         status: 0,
       }),
-    );
-    expect(renderPrometheusMetrics()).toContain(
-      'life_ustc_api_requests_started_total{method="GET",route="/api/todos/:id"} 1',
     );
   });
 
@@ -99,14 +91,6 @@ describe("API 可观测性", () => {
         requestId: "request-1",
         status: 200,
       }),
-    );
-
-    const metrics = renderPrometheusMetrics();
-    expect(metrics).toContain(
-      'life_ustc_api_requests_total{auth_mode="bearer",method="GET",route="/api/todos/:id",status="200"} 1',
-    );
-    expect(metrics).toContain(
-      'life_ustc_api_request_duration_ms_sum{method="GET",route="/api/todos/:id"} 1000',
     );
   });
 
@@ -172,7 +156,7 @@ describe("API 可观测性", () => {
   it("在重新抛出前记录抛出的路由错误", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:01.000Z"));
-    vi.spyOn(console, "info").mockImplementation(() => {});
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
     const route = observedApiRoute(() => {
       throw new Error("boom");
     });
@@ -189,8 +173,18 @@ describe("API 可观测性", () => {
       ),
     ).rejects.toThrow("boom");
 
-    expect(renderPrometheusMetrics()).toContain(
-      'life_ustc_api_errors_total{method="GET",route="/api/todos/:id",status="500"} 1',
+    expect(info).toHaveBeenCalledWith(
+      "[api]",
+      expect.objectContaining({
+        authMode: "cookie",
+        durationMs: 1000,
+        errorName: "Error",
+        event: "request.error",
+        method: "GET",
+        path: "/api/todos/:id",
+        requestId: "request-1",
+        status: 500,
+      }),
     );
   });
 });

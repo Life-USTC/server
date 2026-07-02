@@ -1,7 +1,6 @@
 import { jsonResponse } from "@/lib/api/helpers";
 import { observedApiRoute } from "@/lib/log/api-observability";
 import { withBetterAuthOAuthDebug } from "@/lib/log/oauth-debug";
-import { recordOAuthTokenRequestMetric } from "@/lib/metrics/observability-metrics";
 import { OAUTH_DEVICE_CODE_GRANT_TYPE } from "@/lib/oauth/constants";
 import { rewriteOAuthResourceAliases } from "@/lib/oauth/resource-aliases";
 import { handleDeviceCodeGrant } from "./auth-token-device-grant";
@@ -78,32 +77,12 @@ async function normalizeOAuthTokenErrorResponse(response: Response) {
   );
 }
 
-async function withTokenMetrics(
-  params: URLSearchParams,
-  run: () => Promise<Response | undefined>,
-) {
-  const start = Date.now();
-  try {
-    const response = await run();
-    if (!response) {
-      throw new Error("Token handler did not return a response");
-    }
-    recordOAuthTokenRequestMetric({
-      grantType: params.get("grant_type"),
-      hasResource: params.has("resource"),
-      status: response.status,
-      durationMs: Date.now() - start,
-    });
-    return response;
-  } catch (error) {
-    recordOAuthTokenRequestMetric({
-      grantType: params.get("grant_type"),
-      hasResource: params.has("resource"),
-      status: 500,
-      durationMs: Date.now() - start,
-    });
-    throw error;
+async function runTokenHandler(run: () => Promise<Response | undefined>) {
+  const response = await run();
+  if (!response) {
+    throw new Error("Token handler did not return a response");
   }
+  return response;
 }
 
 async function postRoute(request: Request) {
@@ -125,14 +104,14 @@ async function postRoute(request: Request) {
     : request;
 
   if (params.get("grant_type") === OAUTH_DEVICE_CODE_GRANT_TYPE) {
-    return withTokenMetrics(params, () =>
+    return runTokenHandler(() =>
       handleDeviceCodeGrant(normalizedRequest, params),
     );
   }
 
   logObservedTokenRedirectRequest(normalizedRequest, params);
 
-  return withTokenMetrics(params, async () => {
+  return runTokenHandler(async () => {
     const resourceError = await validateOAuthRefreshTokenResources(
       normalizedRequest,
       params,
