@@ -14,19 +14,32 @@ import {
   getOAuthTokenVerificationIssuers,
 } from "./urls";
 
+function boundedErrorMessage(err: unknown) {
+  const message = err instanceof Error ? err.message : String(err);
+  return message.slice(0, 180);
+}
+
+function errorCode(err: unknown) {
+  if (!err || typeof err !== "object" || !("code" in err)) return undefined;
+  const code = (err as { code?: unknown }).code;
+  return typeof code === "string" ? code.slice(0, 80) : undefined;
+}
+
 export async function verifyAccessToken(
   request: Request,
   token: string,
 ): Promise<AuthInfo | AuthFailure> {
   const mcpAudience = getOAuthMcpResourceUrl();
+  const issuers = getOAuthTokenVerificationIssuers();
+  const audiences = getOAuthMcpAudienceUrls();
 
   if (accessTokenLooksLikeJwt(token)) {
     try {
       const jwt = await verifyOAuthAccessToken(token, {
         jwksUrl: getJwksUrlForOAuthVerification(),
         verifyOptions: {
-          issuer: getOAuthTokenVerificationIssuers(),
-          audience: getOAuthMcpAudienceUrls(),
+          issuer: issuers,
+          audience: audiences,
         },
       });
       const jwtClaims = jwt as {
@@ -50,6 +63,16 @@ export async function verifyAccessToken(
         });
       }
       return {
+        diagnostics: {
+          acceptedAudienceCount: audiences.length,
+          acceptedIssuerCount: issuers.length,
+          authFailureKind: "jwt_verify_failed",
+          authHeaderKind: "bearer",
+          authTokenFormat: "jwt",
+          jwtErrorCode: errorCode(err),
+          jwtErrorMessage: boundedErrorMessage(err),
+          jwtErrorName: err instanceof Error ? err.name : "unknown",
+        },
         error: INVALID_TOKEN_ERROR,
         status: 401,
         description: "Access token is invalid",
@@ -69,6 +92,11 @@ export async function verifyAccessToken(
   }
 
   return {
+    diagnostics: {
+      authFailureKind: "opaque_token_miss",
+      authHeaderKind: "bearer",
+      authTokenFormat: "opaque",
+    },
     error: INVALID_TOKEN_ERROR,
     status: 401,
     description: "Access token is invalid",

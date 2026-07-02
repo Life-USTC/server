@@ -44,6 +44,7 @@ export async function handleMcpRequest(request: Request) {
     const www = res.headers.get("www-authenticate");
     const wwwAuthenticatePrefix = www ? www.slice(0, 120) : null;
     recordAndLogMcpResponse({
+      authFailureDiagnostics: authResult.authFailureDiagnostics,
       context: logContext,
       request,
       phase: "auth-rejected",

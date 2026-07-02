@@ -28,9 +28,42 @@ export async function verifyOpaqueAccessTokenForMcp(
   const row = await prisma.oAuthAccessToken.findUnique({
     where: { token: tokenHash },
   });
-  if (!row || row.expiresAt.getTime() <= Date.now()) return null;
-  if (!hasMcpScope(row.scopes)) return null;
+  if (!row) return null;
+  if (row.expiresAt.getTime() <= Date.now()) {
+    return {
+      diagnostics: {
+        authFailureKind: "opaque_token_expired",
+        authHeaderKind: "bearer",
+        authTokenFormat: "opaque",
+        scopeCount: row.scopes.length,
+      },
+      error: INVALID_TOKEN_ERROR,
+      status: 401,
+      description: "Access token is invalid",
+    };
+  }
+  if (!hasMcpScope(row.scopes)) {
+    return {
+      diagnostics: {
+        authFailureKind: "opaque_token_missing_mcp_scope",
+        authHeaderKind: "bearer",
+        authTokenFormat: "opaque",
+        scopeCount: row.scopes.length,
+      },
+      error: INVALID_TOKEN_ERROR,
+      status: 401,
+      description: "Access token is invalid",
+    };
+  }
   return {
+    diagnostics: {
+      authFailureKind: "token_resource_unbound",
+      authHeaderKind: "bearer",
+      authTokenFormat: "opaque",
+      scopeCount: row.scopes.length,
+      tokenResourceMatchesMcp: false,
+      tokenResourcePresent: false,
+    },
     error: INVALID_TOKEN_ERROR,
     status: 401,
     description: "Access token is not bound to this MCP resource",

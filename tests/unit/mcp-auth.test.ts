@@ -107,6 +107,67 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
     });
   }
 
+  it("returns diagnostics when the bearer token is missing", async () => {
+    const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
+    const result = await authenticateMcpRequest(
+      new Request("https://life.example/api/mcp"),
+      "list_my_todos",
+    );
+
+    expect("response" in result).toBe(true);
+    if ("response" in result) {
+      expect(result.response.status).toBe(401);
+      expect(result.authFailureDiagnostics).toMatchObject({
+        authFailureKind: "missing_bearer",
+        authHeaderKind: "missing",
+        authTokenFormat: "missing",
+      });
+    }
+  });
+
+  it("returns diagnostics when JWT verification fails", async () => {
+    verifyOAuthAccessTokenMock.mockRejectedValue(new Error("bad jwt"));
+    const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
+    const result = await authenticateMcpRequest(
+      makeAuthenticatedRequest([restReadScope("todo")]),
+      "list_my_todos",
+    );
+
+    expect("response" in result).toBe(true);
+    if ("response" in result) {
+      expect(result.response.status).toBe(401);
+      expect(result.authFailureDiagnostics).toMatchObject({
+        acceptedAudienceCount: 3,
+        acceptedIssuerCount: 1,
+        authFailureKind: "jwt_verify_failed",
+        authHeaderKind: "bearer",
+        authTokenFormat: "jwt",
+        jwtErrorMessage: "bad jwt",
+        jwtErrorName: "Error",
+      });
+    }
+  });
+
+  it("returns diagnostics when an opaque token cannot be matched", async () => {
+    const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
+    const result = await authenticateMcpRequest(
+      new Request("https://life.example/api/mcp", {
+        headers: { authorization: "Bearer opaque-token" },
+      }),
+      "list_my_todos",
+    );
+
+    expect("response" in result).toBe(true);
+    if ("response" in result) {
+      expect(result.response.status).toBe(401);
+      expect(result.authFailureDiagnostics).toMatchObject({
+        authFailureKind: "opaque_token_miss",
+        authHeaderKind: "bearer",
+        authTokenFormat: "opaque",
+      });
+    }
+  });
+
   it("allows a tool when the token has the matching feature scope", async () => {
     mockToken([restReadScope("todo")]);
     const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
@@ -143,6 +204,16 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
     expect("response" in result).toBe(true);
     if ("response" in result) {
       expect(result.response.status).toBe(403);
+      expect(result.authFailureDiagnostics).toMatchObject({
+        authFailureKind: "missing_required_tool_scope",
+        authHeaderKind: "bearer",
+        authTokenFormat: "jwt",
+        requiredScopeCount: 1,
+        scopeCount: 1,
+        tokenResourceMatchesMcp: true,
+        tokenResourcePresent: true,
+        toolNameCount: 1,
+      });
       const www = result.response.headers.get("www-authenticate");
       expect(www).toContain("insufficient_scope");
       expect(www).toContain(restWriteScope("comment"));
@@ -160,6 +231,14 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
     expect("response" in result).toBe(true);
     if ("response" in result) {
       expect(result.response.status).toBe(403);
+      expect(result.authFailureDiagnostics).toMatchObject({
+        authFailureKind: "missing_feature_scope",
+        authHeaderKind: "bearer",
+        authTokenFormat: "jwt",
+        scopeCount: 1,
+        tokenResourceMatchesMcp: true,
+        tokenResourcePresent: true,
+      });
       const www = result.response.headers.get("www-authenticate");
       expect(www).toContain("insufficient_scope");
       expect(www).toContain(restReadScope("todo"));

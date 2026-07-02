@@ -1,5 +1,6 @@
 import { logAppEvent } from "@/lib/log/app-logger";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
+import type { McpAuthFailureDiagnostics } from "@/lib/mcp/auth-errors";
 
 export type McpRequestSummary = Awaited<
   ReturnType<
@@ -43,9 +44,11 @@ export function logMcpTransportResponse({
   phase,
   rpcSummary,
   status,
+  authFailureDiagnostics,
   toolCount,
   wwwAuthenticatePrefix,
 }: {
+  authFailureDiagnostics?: McpAuthFailureDiagnostics | null;
   context: McpLogContext;
   durationMs: number;
   phase: "auth-rejected" | "handled" | "origin-rejected";
@@ -63,6 +66,7 @@ export function logMcpTransportResponse({
     durationMs,
     phase,
     rpcSummary,
+    ...(authFailureDiagnostics ?? {}),
     ...(toolCount === undefined ? {} : { toolCount }),
     ...(wwwAuthenticatePrefix === undefined ? {} : { wwwAuthenticatePrefix }),
   });
@@ -70,6 +74,7 @@ export function logMcpTransportResponse({
     status,
     ms: durationMs,
     phase,
+    ...(authFailureDiagnostics ?? {}),
     ...(toolCount === undefined ? {} : { toolCount }),
     ...(wwwAuthenticatePrefix === undefined ? {} : { wwwAuthenticatePrefix }),
   });

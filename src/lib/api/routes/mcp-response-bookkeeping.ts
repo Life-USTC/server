@@ -1,3 +1,4 @@
+import type { McpAuthFailureDiagnostics } from "@/lib/mcp/auth-errors";
 import { writeMcpTransportAnalytics } from "@/lib/metrics/analytics-engine";
 import {
   logMcpTransportResponse,
@@ -5,6 +6,7 @@ import {
 } from "./mcp-request-logging";
 
 export function recordAndLogMcpResponse(input: {
+  authFailureDiagnostics?: McpAuthFailureDiagnostics | null;
   context: {
     correlationId: string;
     request: Request;
@@ -20,6 +22,7 @@ export function recordAndLogMcpResponse(input: {
 }) {
   const durationMs = Date.now() - input.start;
   logMcpTransportResponse({
+    authFailureDiagnostics: input.authFailureDiagnostics,
     context: input.context,
     durationMs,
     phase: input.phase,
