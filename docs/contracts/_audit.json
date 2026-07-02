@@ -41,5 +41,5 @@
       "description": "Admin updates description content from the moderation workflow. The description row, edit history, and audit row are committed together."
     }
   },
-  "writer": "writeAuditLog records audit rows and bounded write metrics. Required domain/security trails await writeAuditLog and use the same Prisma transaction as DB-only mutations where practical. fireAuditLog is reserved for non-critical telemetry and logs failures without blocking the request."
+  "writer": "writeAuditLog records audit rows and production-safe Cloudflare Analytics Engine write datapoints. Required domain/security trails await writeAuditLog and use the same Prisma transaction as DB-only mutations where practical. fireAuditLog is reserved for non-critical telemetry and logs failures without blocking the request."
 }

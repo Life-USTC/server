@@ -1,4 +1,5 @@
 import { getCloudflareR2UploadsBucket } from "@/lib/adapters/cloudflare-runtime";
+import { writeStorageOperationAnalytics } from "@/lib/metrics/analytics-engine";
 
 export type StorageObjectHead = {
   contentType?: string;
@@ -17,17 +18,48 @@ export async function headStorageObject(
   key: string,
 ): Promise<StorageObjectHead> {
   const r2Bucket = requireR2UploadsBucket();
-  const object = await r2Bucket.head(key);
-  if (!object) return { size: 0 };
-  return {
-    contentType: object.httpMetadata?.contentType,
-    size: object.size,
-  };
+  const start = Date.now();
+  try {
+    const object = await r2Bucket.head(key);
+    writeStorageOperationAnalytics({
+      durationMs: Date.now() - start,
+      event: object ? "success" : "miss",
+      operation: "head",
+      size: object?.size,
+    });
+    if (!object) return { size: 0 };
+    return {
+      contentType: object.httpMetadata?.contentType,
+      size: object.size,
+    };
+  } catch (error) {
+    writeStorageOperationAnalytics({
+      durationMs: Date.now() - start,
+      event: "error",
+      operation: "head",
+    });
+    throw error;
+  }
 }
 
 export async function deleteStorageObject(key: string) {
   const r2Bucket = requireR2UploadsBucket();
-  await r2Bucket.delete(key);
+  const start = Date.now();
+  try {
+    await r2Bucket.delete(key);
+    writeStorageOperationAnalytics({
+      durationMs: Date.now() - start,
+      event: "success",
+      operation: "delete",
+    });
+  } catch (error) {
+    writeStorageOperationAnalytics({
+      durationMs: Date.now() - start,
+      event: "error",
+      operation: "delete",
+    });
+    throw error;
+  }
 }
 
 export async function getStorageObjectResponse(input: {
@@ -36,7 +68,24 @@ export async function getStorageObjectResponse(input: {
   key: string;
 }) {
   const r2Bucket = requireR2UploadsBucket();
-  const object = await r2Bucket.get(input.key);
+  const start = Date.now();
+  let object: Awaited<ReturnType<typeof r2Bucket.get>>;
+  try {
+    object = await r2Bucket.get(input.key);
+    writeStorageOperationAnalytics({
+      durationMs: Date.now() - start,
+      event: object ? "success" : "miss",
+      operation: "get",
+      size: object?.size,
+    });
+  } catch (error) {
+    writeStorageOperationAnalytics({
+      durationMs: Date.now() - start,
+      event: "error",
+      operation: "get",
+    });
+    throw error;
+  }
   if (!object) return null;
 
   const headers = new Headers();
@@ -57,9 +106,24 @@ export async function putStorageObject(input: {
   key: string;
 }) {
   const r2Bucket = requireR2UploadsBucket();
-  await r2Bucket.put(input.key, input.body, {
-    httpMetadata: {
-      contentType: input.contentType ?? "application/octet-stream",
-    },
-  });
+  const start = Date.now();
+  try {
+    await r2Bucket.put(input.key, input.body, {
+      httpMetadata: {
+        contentType: input.contentType ?? "application/octet-stream",
+      },
+    });
+    writeStorageOperationAnalytics({
+      durationMs: Date.now() - start,
+      event: "success",
+      operation: "put",
+    });
+  } catch (error) {
+    writeStorageOperationAnalytics({
+      durationMs: Date.now() - start,
+      event: "error",
+      operation: "put",
+    });
+    throw error;
+  }
 }

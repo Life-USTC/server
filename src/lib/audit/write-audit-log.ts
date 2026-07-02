@@ -1,6 +1,7 @@
 import type { AuditAction, Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
+import { writeAuditWriteAnalytics } from "@/lib/metrics/analytics-engine";
 
 export { getAuditRequestMetadata } from "@/lib/audit/request-metadata";
 
@@ -91,15 +92,32 @@ export async function writeAuditLog(
   params: AuditLogParams,
   client: AuditLogClient = prisma,
 ) {
+  const start = Date.now();
   const { metadata, ...rest } = params;
-  await client.auditLog.create({
-    data: {
-      ...rest,
-      ...(metadata !== undefined && {
-        metadata: metadata as Prisma.InputJsonValue,
-      }),
-    },
-  });
+  try {
+    await client.auditLog.create({
+      data: {
+        ...rest,
+        ...(metadata !== undefined && {
+          metadata: metadata as Prisma.InputJsonValue,
+        }),
+      },
+    });
+    writeAuditWriteAnalytics({
+      action: params.action,
+      durationMs: Date.now() - start,
+      event: "success",
+      targetType: params.targetType,
+    });
+  } catch (error) {
+    writeAuditWriteAnalytics({
+      action: params.action,
+      durationMs: Date.now() - start,
+      event: "error",
+      targetType: params.targetType,
+    });
+    throw error;
+  }
 }
 
 /**

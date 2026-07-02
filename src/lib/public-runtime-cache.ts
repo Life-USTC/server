@@ -1,3 +1,5 @@
+import { writeCacheEventAnalytics } from "@/lib/metrics/analytics-engine";
+
 type CacheEntry<T> = {
   expiresAt: number;
   value: Promise<T>;
@@ -45,18 +47,51 @@ export function cachedPublicRuntimeData<T>(
   load: () => Promise<T>,
 ): Promise<T> {
   const now = Date.now();
+  const start = Date.now();
   const store = cacheStore();
   pruneExpired(store, now);
 
   const existing = store.get(key) as CacheEntry<T> | undefined;
   if (existing && existing.expiresAt > now) {
+    writeCacheEventAnalytics({
+      durationMs: Date.now() - start,
+      event: "hit",
+      key,
+      storeSize: store.size,
+      ttlMs,
+    });
     return existing.value;
   }
 
-  const value = load().catch((error) => {
-    store.delete(key);
-    throw error;
+  writeCacheEventAnalytics({
+    durationMs: Date.now() - start,
+    event: "miss",
+    key,
+    storeSize: store.size,
+    ttlMs,
   });
+  const value = load()
+    .then((result) => {
+      writeCacheEventAnalytics({
+        durationMs: Date.now() - start,
+        event: "load_success",
+        key,
+        storeSize: store.size,
+        ttlMs,
+      });
+      return result;
+    })
+    .catch((error) => {
+      store.delete(key);
+      writeCacheEventAnalytics({
+        durationMs: Date.now() - start,
+        event: "load_error",
+        key,
+        storeSize: store.size,
+        ttlMs,
+      });
+      throw error;
+    });
   store.set(key, { expiresAt: now + ttlMs, value });
   pruneOldest(store);
   return value;
