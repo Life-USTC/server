@@ -4,6 +4,7 @@ import { asOAuthProviderApi } from "@/lib/oauth/provider-api";
 import { parseOAuthConsentForm } from "./oauth-authorize-form";
 
 const OAUTH_SIGNED_QUERY_KEYS = new Set(["sig", "exp", "ba_iat", "ba_pl"]);
+const OAUTH_AUTHORIZE_RETRY_DELAYS_MS = [100, 250, 500, 1000, 2000];
 
 type OAuthAuthorizeApi = {
   oauth2Authorize(input: {
@@ -65,6 +66,76 @@ function oauthAuthorizeQueryFromRedirect(target: string, requestUrl: string) {
   return Object.fromEntries(url.searchParams.entries());
 }
 
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function requestOAuthAuthorizeTarget({
+  authorizeApi,
+  authorizeQuery,
+  headers,
+  requestUrl,
+}: {
+  authorizeApi: OAuthAuthorizeApi;
+  authorizeQuery: Record<string, string>;
+  headers: Headers;
+  requestUrl: string;
+}) {
+  const authorizeHeaders = new Headers(headers);
+  authorizeHeaders.delete("content-type");
+  const authorizeUrl = new URL("/api/auth/oauth2/authorize", requestUrl);
+  authorizeUrl.search = new URLSearchParams(authorizeQuery).toString();
+  const authorizePayload = await authorizeApi.oauth2Authorize({
+    asResponse: false,
+    headers: authorizeHeaders,
+    request: new Request(authorizeUrl, {
+      method: "GET",
+      headers: authorizeHeaders,
+    }),
+    query: authorizeQuery,
+  });
+  return redirectPayloadTarget(authorizePayload);
+}
+
+async function resolveAuthorizeRedirectAfterConsent({
+  authApi,
+  headers,
+  requestUrl,
+  redirectTarget,
+}: {
+  authApi: unknown;
+  headers: Headers;
+  requestUrl: string;
+  redirectTarget: string;
+}) {
+  if (!isOAuthAuthorizePageRedirect(redirectTarget, requestUrl)) {
+    return redirectTarget;
+  }
+
+  const authorizeApi = asOAuthAuthorizeApi(authApi);
+  if (!authorizeApi) return undefined;
+
+  const authorizeQuery = oauthAuthorizeQueryFromRedirect(
+    redirectTarget,
+    requestUrl,
+  );
+  for (const delayMs of OAUTH_AUTHORIZE_RETRY_DELAYS_MS) {
+    await delay(delayMs);
+    const nextTarget = await requestOAuthAuthorizeTarget({
+      authorizeApi,
+      authorizeQuery,
+      headers,
+      requestUrl,
+    });
+    if (!nextTarget) continue;
+    if (!isOAuthAuthorizePageRedirect(nextTarget, requestUrl)) {
+      return nextTarget;
+    }
+  }
+
+  return undefined;
+}
+
 export async function submitOAuthConsentAction({
   request,
 }: {
@@ -99,29 +170,13 @@ export async function submitOAuthConsentAction({
       body,
     });
     redirectTarget = redirectPayloadTarget(payload);
-    if (
-      redirectTarget &&
-      isOAuthAuthorizePageRedirect(redirectTarget, request.url)
-    ) {
-      const authorizeApi = asOAuthAuthorizeApi(authApi);
-      const authorizeQuery = oauthAuthorizeQueryFromRedirect(
-        redirectTarget,
-        request.url,
-      );
-      const authorizeUrl = new URL("/api/auth/oauth2/authorize", request.url);
-      authorizeUrl.search = new URLSearchParams(authorizeQuery).toString();
-      const authorizePayload = await authorizeApi?.oauth2Authorize({
-        asResponse: false,
+    if (redirectTarget) {
+      redirectTarget = await resolveAuthorizeRedirectAfterConsent({
+        authApi,
         headers,
-        request: new Request(authorizeUrl, {
-          method: "GET",
-          headers,
-        }),
-        query: authorizeQuery,
+        requestUrl: request.url,
+        redirectTarget,
       });
-      redirectTarget = authorizePayload
-        ? redirectPayloadTarget(authorizePayload)
-        : undefined;
     }
   } catch {
     redirectTarget = undefined;
