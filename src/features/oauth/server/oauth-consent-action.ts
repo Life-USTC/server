@@ -6,7 +6,6 @@ import { asOAuthProviderApi } from "@/lib/oauth/provider-api";
 import { parseOAuthConsentForm } from "./oauth-authorize-form";
 
 const OAUTH_SIGNED_QUERY_KEYS = new Set(["sig", "exp", "ba_iat", "ba_pl"]);
-const OAUTH_AUTHORIZE_RETRY_DELAYS_MS = [100, 250, 500, 1000, 2000];
 const OAUTH_CODE_LENGTH = 32;
 const OAUTH_CODE_EXPIRES_IN_SECONDS = 600;
 const OAUTH_CODE_ALPHABET =
@@ -91,10 +90,6 @@ function oauthAuthorizeQueryFromRedirect(target: string, requestUrl: string) {
     url.searchParams.delete(key);
   }
   return Object.fromEntries(url.searchParams.entries());
-}
-
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function randomOAuthCode() {
@@ -239,18 +234,14 @@ async function resolveAuthorizeRedirectAfterConsent({
     redirectTarget,
     requestUrl,
   );
-  for (const delayMs of OAUTH_AUTHORIZE_RETRY_DELAYS_MS) {
-    await delay(delayMs);
-    const nextTarget = await requestOAuthAuthorizeTarget({
-      authorizeApi,
-      authorizeQuery,
-      headers,
-      requestUrl,
-    });
-    if (!nextTarget) continue;
-    if (!isOAuthAuthorizePageRedirect(nextTarget, requestUrl)) {
-      return nextTarget;
-    }
+  const nextTarget = await requestOAuthAuthorizeTarget({
+    authorizeApi,
+    authorizeQuery,
+    headers,
+    requestUrl,
+  });
+  if (nextTarget && !isOAuthAuthorizePageRedirect(nextTarget, requestUrl)) {
+    return nextTarget;
   }
 
   return accept
