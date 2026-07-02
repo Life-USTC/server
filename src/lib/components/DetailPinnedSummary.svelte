@@ -10,7 +10,6 @@ type DetailPinnedSummaryItem = {
 
 type Props = {
   actions?: Snippet;
-  activeSectionLabel?: string;
   className?: string;
   description?: string;
   eyebrow?: string;
@@ -22,7 +21,6 @@ type Props = {
 
 let {
   actions,
-  activeSectionLabel = "",
   className = "",
   description = "",
   eyebrow = "",
@@ -42,9 +40,9 @@ let {
 >
   <div class="flex min-h-12 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
     <div class="min-w-0 flex-1">
-      {#if activeSectionLabel || eyebrow}
+      {#if eyebrow}
         <p class="truncate font-medium text-[0.68rem] text-base-content/50 uppercase tracking-normal">
-          {activeSectionLabel || eyebrow}
+          {eyebrow}
         </p>
       {/if}
       <h1 class="truncate font-semibold text-base leading-6">{title}</h1>
