@@ -1,3 +1,11 @@
+# [1.43.0](https://github.com/Life-USTC/server/compare/v1.42.1...v1.43.0) (2026-07-02)
+
+
+### Features
+
+* add cloudflare analytics engine metrics ([38a464b](https://github.com/Life-USTC/server/commit/38a464b4092fe30695aeecf2f4a30992c77e2611))
+* extend analytics engine observability ([8eff75b](https://github.com/Life-USTC/server/commit/8eff75b419fbf7548a62d0025cf5fbfaa822f757))
+
 ## [1.42.1](https://github.com/Life-USTC/server/compare/v1.42.0...v1.42.1) (2026-06-30)
 
 
