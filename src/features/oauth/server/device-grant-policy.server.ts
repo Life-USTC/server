@@ -94,6 +94,14 @@ type DeviceGrantRecordRow = {
   userId: string | null;
 };
 
+type DeviceGrantPrismaWithRaw = DeviceGrantPrisma & {
+  $queryRaw: NonNullable<DeviceGrantPrisma["$queryRaw"]>;
+};
+
+function hasQueryRaw(prisma: DeviceGrantPrisma): prisma is DeviceGrantPrismaWithRaw {
+  return typeof prisma.$queryRaw === "function";
+}
+
 export async function createDeviceAuthorizationGrant({
   clientId,
   prisma = defaultPrisma,
@@ -139,7 +147,7 @@ export async function resolveDeviceGrantRecord({
   prisma?: DeviceGrantPrisma;
 }): Promise<DeviceGrantRecordResult> {
   const record =
-    typeof prisma.$queryRaw === "function"
+    hasQueryRaw(prisma)
       ? await resolveFreshDeviceGrantRecord(prisma, deviceCode)
       : await prisma.deviceCode.findUnique({
           where: { deviceCode },
@@ -214,7 +222,7 @@ export async function resolveDeviceGrantRecord({
 }
 
 async function resolveFreshDeviceGrantRecord(
-  prisma: DeviceGrantPrisma & Required<Pick<DeviceGrantPrisma, "$queryRaw">>,
+  prisma: DeviceGrantPrismaWithRaw,
   deviceCode: string,
 ): Promise<DeviceGrantRecord | null> {
   const rows = await prisma.$queryRaw<DeviceGrantRecordRow[]>`
