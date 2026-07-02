@@ -7,6 +7,7 @@ import {
 import { LEGACY_MCP_TOOLS_SCOPE } from "@/lib/oauth/scope-registry";
 
 const verifyOAuthAccessTokenMock = vi.fn();
+const getJwksMock = vi.fn();
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
@@ -21,8 +22,14 @@ vi.mock("@/lib/log/oauth-debug", () => ({
   logOAuthDebug: vi.fn(),
 }));
 
+vi.mock("@/lib/auth/core", () => ({
+  authApi: {
+    getJwks: getJwksMock,
+  },
+}));
+
 vi.mock("better-auth/oauth2", () => ({
-  verifyAccessToken: verifyOAuthAccessTokenMock,
+  verifyJwsAccessToken: verifyOAuthAccessTokenMock,
 }));
 
 vi.mock("@/lib/mcp/urls", () => ({
@@ -43,10 +50,12 @@ vi.mock("@/lib/mcp/urls", () => ({
 describe("MCP 认证", () => {
   beforeEach(() => {
     vi.resetModules();
+    getJwksMock.mockReset();
     verifyOAuthAccessTokenMock.mockReset();
   });
 
-  it("使用规范 OAuth issuer 校验 JWT access token", async () => {
+  it("使用本地 JWKS 和规范 OAuth issuer 校验 JWT access token", async () => {
+    getJwksMock.mockResolvedValue({ keys: [] });
     verifyOAuthAccessTokenMock.mockResolvedValue({
       azp: "client-id",
       aud: "https://life.example/api/mcp",
@@ -64,7 +73,7 @@ describe("MCP 认证", () => {
     expect(verifyOAuthAccessTokenMock).toHaveBeenCalledWith(
       "header.payload.signature",
       expect.objectContaining({
-        jwksUrl: "https://life.example/api/auth/jwks",
+        jwksFetch: expect.any(Function),
         verifyOptions: {
           issuer: ["https://life.example/api/auth"],
           audience: [
@@ -75,6 +84,11 @@ describe("MCP 认证", () => {
         },
       }),
     );
+    const verifyOptions = verifyOAuthAccessTokenMock.mock.calls[0]?.[1] as {
+      jwksFetch?: () => Promise<unknown>;
+    };
+    await expect(verifyOptions.jwksFetch?.()).resolves.toEqual({ keys: [] });
+    expect(getJwksMock).toHaveBeenCalledWith({});
     expect(authInfo).toMatchObject({
       clientId: "client-id",
       extra: { userId: "user-id" },
@@ -88,6 +102,7 @@ describe("MCP 认证", () => {
 describe("authenticateMcpRequest per-tool scope enforcement", () => {
   beforeEach(() => {
     vi.resetModules();
+    getJwksMock.mockReset();
     verifyOAuthAccessTokenMock.mockReset();
   });
 

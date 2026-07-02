@@ -1,5 +1,5 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
-import { verifyAccessToken as verifyOAuthAccessToken } from "better-auth/oauth2";
+import { verifyJwsAccessToken as verifyOAuthAccessToken } from "better-auth/oauth2";
 import { isOAuthDebugLogging, logOAuthDebug } from "@/lib/log/oauth-debug";
 import { jwtClaimsToAuthInfo } from "@/lib/mcp/jwt-auth-info";
 import {
@@ -8,7 +8,6 @@ import {
 } from "@/lib/mcp/opaque-token-verification";
 import { type AuthFailure, INVALID_TOKEN_ERROR } from "./auth-errors";
 import {
-  getJwksUrlForOAuthVerification,
   getOAuthMcpAudienceUrls,
   getOAuthMcpResourceUrl,
   getOAuthTokenVerificationIssuers,
@@ -25,6 +24,11 @@ function errorCode(err: unknown) {
   return typeof code === "string" ? code.slice(0, 80) : undefined;
 }
 
+async function getLocalJwks() {
+  const { authApi } = await import("@/lib/auth/core");
+  return authApi.getJwks({});
+}
+
 export async function verifyAccessToken(
   request: Request,
   token: string,
@@ -36,7 +40,7 @@ export async function verifyAccessToken(
   if (accessTokenLooksLikeJwt(token)) {
     try {
       const jwt = await verifyOAuthAccessToken(token, {
-        jwksUrl: getJwksUrlForOAuthVerification(),
+        jwksFetch: getLocalJwks,
         verifyOptions: {
           issuer: issuers,
           audience: audiences,
