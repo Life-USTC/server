@@ -214,16 +214,6 @@ test.describe("/teachers/[id] 教师详情页", () => {
     await captureStepScreenshot(page, testInfo, "teacher/detail-nav");
   });
 
-  test("面包屑可返回教师列表", async ({ page }, testInfo) => {
-    await navigateToSeedTeacher(page);
-
-    const breadcrumb = page.locator('a[href="/teachers"]').first();
-    await expect(breadcrumb).toBeVisible();
-    await breadcrumb.click();
-    await expect(page).toHaveURL(/\/teachers(?:\?.*)?$/);
-    await captureStepScreenshot(page, testInfo, "teacher/breadcrumb-back");
-  });
-
   // ── Description ─────────────────────────────────────────────────────────────
 
   test("已登录用户可编辑简介（content、lastEditedBy、lastEditedAt）", async ({

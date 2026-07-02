@@ -36,7 +36,6 @@ export let users: AdminUserRow[];
 <section class="grid gap-5">
   <AdminUsersHeader
     {adminCopy}
-    {commonCopy}
     {copy}
     search={filters.search ?? ""}
   />

@@ -37,7 +37,7 @@ type CourseDetailData = CatalogNamed & {
 type PageData = {
   commentsData: CatalogDetailCommentsData;
   copy: {
-    common: { breadcrumb: string; courses: string; home: string };
+    common: { courses: string; home: string };
     course: CourseDetailCopy["course"];
     courseDetail: CourseDetailCopy["courseDetail"] & {
       basicInfoDescription: string;

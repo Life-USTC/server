@@ -89,10 +89,7 @@ function updateTeacherFilter(overrides: Partial<TeacherListFilters>) {
 
 <section class="grid gap-5">
   <CatalogPageHeader
-    breadcrumbLabel={commonLabels.breadcrumb}
-    currentLabel={commonLabels.teachers}
     description={teacherLabels.subtitle}
-    homeLabel={commonLabels.home}
     metaLabel={teacherLabels.currentDepartment}
     metaValue={selectedDepartment ? primaryName(selectedDepartment) : teacherLabels.allDepartments}
     title={teacherLabels.title}

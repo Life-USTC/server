@@ -401,15 +401,6 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     await captureStepScreenshot(page, testInfo, "section/detail-nav");
   });
 
-  test("面包屑可返回班级列表", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, SECTION_URL);
-    const breadcrumb = page.locator('a[href="/sections"]').first();
-    await expect(breadcrumb).toBeVisible();
-    await breadcrumb.click();
-    await expect(page).toHaveURL(/\/sections(?:\?.*)?$/);
-    await captureStepScreenshot(page, testInfo, "section/breadcrumb-back");
-  });
-
   test("关注弹窗显示非选课声明", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 

@@ -13,11 +13,6 @@ export type AdminOAuthAdminCopy = {
   title: string;
 };
 
-export type AdminOAuthCommonCopy = {
-  breadcrumb: string;
-  home: string;
-};
-
 export type AdminOAuthClient = {
   clientId: string;
   createdAt: string | Date;

@@ -8,7 +8,6 @@ import type { AdminModerationComment } from "@/features/admin/components/admin-m
 import type { AdminModerationDescription } from "@/features/admin/components/admin-moderation-description-types";
 import type {
   AdminModerationAdminCopy,
-  AdminModerationCommonCopy,
   AdminModerationCopy,
   AdminModerationHomework,
   AdminModerationSuspension,
@@ -39,7 +38,6 @@ type PageData = {
   comments: ModerationComment[];
   copy: {
     admin: AdminModerationAdminCopy;
-    common: AdminModerationCommonCopy;
     moderation: AdminModerationCopy;
   };
   descriptions: ModerationDescription[];
@@ -87,7 +85,6 @@ let {
 
 $: _copy = data.copy.moderation;
 $: _adminCopy = data.copy.admin;
-$: _commonCopy = data.copy.common;
 $: _dateTimeFormatter = createShanghaiDateTimeFormatter(data.locale, {
   dateStyle: "medium",
   timeStyle: "short",
@@ -188,7 +185,6 @@ const {
 <section class="grid gap-5">
   <AdminModerationHeader
     adminCopy={_adminCopy}
-    commonCopy={_commonCopy}
     copy={_copy}
     currentTab={data.tab}
     isRefreshing={_isRefreshingQueue}
