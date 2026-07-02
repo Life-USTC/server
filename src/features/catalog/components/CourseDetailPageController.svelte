@@ -137,13 +137,11 @@ $: pinnedSummaryItems = [
     activeSectionLabel={activeSectionLabel}
     eyebrow={copy.common.courses}
     items={pinnedSummaryItems}
-    parentHref="/courses"
-    parentLabel={copy.common.courses}
     title={displayName}
     description={secondaryDisplayName}
   />
 
-  <div class="-mx-4 grid sm:-mx-5 lg:-mx-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start">
+  <div class="-mx-4 grid min-h-[calc(100vh-8rem)] bg-base-100 sm:-mx-5 lg:-mx-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start">
     <DetailSectionNav
       activeHref={activeNavItem?.href ?? courseBaseHref}
       ariaLabel={formatMessage(copy.metadata.pages.courseDetail, { name: displayName })}
