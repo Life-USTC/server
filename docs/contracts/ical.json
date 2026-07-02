@@ -9,6 +9,7 @@
   "rules": {
     "copyable-links": "iCal links should be presented as copyable links rather than requiring users to manually construct them.",
     "no-second-model": "iCal is an export / subscription capability and should not carry a second business model.",
+    "personal-feed-cache": "Personal feed responses may be served from a short-lived private server-side cache, include ETag, return 304 Not Modified for matching If-None-Match, and write cache hit/miss Cloudflare Analytics Engine datapoints without user IDs or feed tokens.",
     "static-json-resilient": "Calendar location and building image enhancements only read static JSON published at https://static.life-ustc.tiankaima.dev; when loading fails or data is corrupted, diagnostic information should be logged and a valid iCal should still be returned."
   },
   "capabilities": {

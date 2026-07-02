@@ -55,6 +55,13 @@ type CacheEventAnalyticsInput = {
   ttlMs: number;
 };
 
+type CalendarFeedCacheAnalyticsInput = {
+  feed: "user";
+  status: "hit" | "miss";
+  storeSize: number;
+  ttlMs: number;
+};
+
 function statusClass(status: number) {
   if (!Number.isFinite(status)) return "unknown";
   return `${Math.floor(status / 100)}xx`;
@@ -196,5 +203,15 @@ export function writeCacheEventAnalytics(input: CacheEventAnalyticsInput) {
     indexes: [`cache:${boundedValue(cacheNamespace(input.key))}`],
     blobs: ["public_runtime_cache", input.event, cacheNamespace(input.key)],
     doubles: [input.durationMs, input.ttlMs, input.storeSize],
+  });
+}
+
+export function writeCalendarFeedCacheAnalytics(
+  input: CalendarFeedCacheAnalyticsInput,
+) {
+  writeAnalyticsDataPoint({
+    indexes: [`cache:calendar:${boundedValue(input.feed)}`],
+    blobs: ["calendar_feed_cache", input.feed, input.status],
+    doubles: [input.ttlMs, input.storeSize],
   });
 }
