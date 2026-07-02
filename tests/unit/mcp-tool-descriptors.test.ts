@@ -27,6 +27,18 @@ async function listTools() {
   }
 }
 
+type ToolListResult = Awaited<ReturnType<typeof listTools>>;
+
+function outputSchemaKeys(result: ToolListResult, name: string) {
+  const tool = result.tools.find((item) => item.name === name);
+  expect(tool).toBeDefined();
+  const outputSchema = tool?.outputSchema as
+    | { properties?: Record<string, unknown> }
+    | undefined;
+
+  return Object.keys(outputSchema?.properties ?? {});
+}
+
 describe("MCP tool descriptors", () => {
   it("exposes OpenAI-compatible auth metadata and read annotations", async () => {
     const result = await listTools();
@@ -88,7 +100,33 @@ describe("MCP tool descriptors", () => {
     expect(result.tools.length).toBeGreaterThan(0);
     for (const tool of result.tools) {
       expect(tool.outputSchema).toMatchObject({ type: "object" });
+      expect(
+        Object.keys(
+          (
+            tool.outputSchema as
+              | { properties?: Record<string, unknown> }
+              | undefined
+          )?.properties ?? {},
+        ),
+      ).not.toHaveLength(0);
     }
+  });
+
+  it("advertises useful top-level structured content keys", async () => {
+    const result = await listTools();
+
+    expect(outputSchemaKeys(result, "list_my_todos")).toEqual(
+      expect.arrayContaining(["counts", "todos", "success", "message"]),
+    );
+    expect(outputSchemaKeys(result, "get_my_dashboard")).toEqual(
+      expect.arrayContaining(["user", "nextClass", "todos", "bus"]),
+    );
+    expect(outputSchemaKeys(result, "create_comment")).toEqual(
+      expect.arrayContaining(["id", "success", "error", "message"]),
+    );
+    expect(outputSchemaKeys(result, "get_next_buses")).toEqual(
+      expect.arrayContaining(["departures", "nextAvailableDeparture"]),
+    );
   });
 
   it("validates helper results against the default output schema", async () => {
