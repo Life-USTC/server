@@ -1,3 +1,12 @@
+## [1.44.1](https://github.com/Life-USTC/server/compare/v1.44.0...v1.44.1) (2026-07-02)
+
+
+### Bug Fixes
+
+* **oauth:** narrow device grant raw prisma client ([ee04fec](https://github.com/Life-USTC/server/commit/ee04fec56417f5159c7e4cea50313e5e1f0b17f8))
+* **oauth:** require device approval update to commit ([f683d2e](https://github.com/Life-USTC/server/commit/f683d2ea00e3551b58d8b0ba79b0ea1f7b8c18d0))
+* **oauth:** support device grant prisma mocks ([04c1207](https://github.com/Life-USTC/server/commit/04c12073308fc3cbf9332a8b49af68efce8acdf2))
+
 # [1.44.0](https://github.com/Life-USTC/server/compare/v1.43.0...v1.44.0) (2026-07-02)
 
 
