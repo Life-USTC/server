@@ -4,6 +4,7 @@ import ShieldAlert from "$lib/components/icons/shield-alert.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
 
 export let copy: Record<string, string>;
 export let oauthQuery: string;
@@ -27,49 +28,55 @@ function toggleScope(value: string, checked: boolean) {
     : selectedScopes.filter((selectedScope) => selectedScope !== value);
 }
 
+function scopeCheckboxId(value: string) {
+  return `oauth-scope-${value.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+}
+
 $: selectedScopeValue = selectedScopes.join(" ");
 $: canAllow = scopes.length === 0 || selectedScopes.length > 0;
 </script>
 
-<div class="min-w-0 text-center">
-  <Badge class="mb-3" variant="ghost">OAuth</Badge>
-  <h2 class="font-semibold text-2xl tracking-normal">{copy.title}</h2>
-  <p class="mt-2 break-words text-base-content/70 text-sm">
-    {copy.description}
-  </p>
-</div>
-
-<div class="min-w-0 rounded-md border border-base-300 bg-base-200/50 p-4">
-  <p class="flex min-w-0 items-center gap-2 font-medium text-sm">
-    <ShieldAlert />
-    <span class="min-w-0 break-words">{copy.scopesLabel}</span>
-  </p>
-  {#if scopes.length > 0}
-    <ul class="mt-3 grid gap-2 text-sm">
-      {#each scopes as scopeItem}
-        <li>
-          <label
-            class={`grid min-w-0 cursor-pointer gap-2 rounded-md border p-3 text-left transition-colors sm:grid-cols-[auto_auto_minmax(0,1fr)] sm:items-start ${selectedScopes.includes(scopeItem.value) ? "border-primary bg-primary/5" : "border-base-300 bg-base-100 hover:bg-base-200/70"}`}
+<div class="rounded-md border border-base-300 bg-base-200/40 p-4">
+  <Field.FieldSet>
+    <Field.FieldLegend class="flex min-w-0 items-center gap-2" variant="label">
+      <ShieldAlert />
+      <span class="min-w-0 break-words">{copy.scopesLabel}</span>
+    </Field.FieldLegend>
+    {#if scopes.length > 0}
+      <Field.FieldGroup class="gap-2">
+        {#each scopes as scopeItem}
+          {@const checkboxId = scopeCheckboxId(scopeItem.value)}
+          <Field.Field
+            class="rounded-md border border-base-300 bg-base-100 p-3 transition-colors hover:bg-base-200/60"
+            orientation="horizontal"
           >
             <Checkbox
+              id={checkboxId}
               checked={selectedScopes.includes(scopeItem.value)}
               onchange={(event) => toggleScope(scopeItem.value, event.currentTarget.checked)}
             />
-            <Badge class="mt-0.5 max-w-full whitespace-normal break-all font-mono text-left" variant="outline">{scopeItem.value}</Badge>
-            <span class="min-w-0 break-words text-base-content/70">{scopeItem.label}</span>
-          </label>
-        </li>
-      {/each}
-    </ul>
-  {/if}
+            <Field.Content>
+              <Field.Label
+                class="w-full cursor-pointer flex-wrap items-start gap-2 font-normal"
+                for={checkboxId}
+              >
+                <Badge class="max-w-full whitespace-normal break-all font-mono text-left" variant="outline">{scopeItem.value}</Badge>
+                <span class="min-w-0 break-words text-base-content/70">{scopeItem.label}</span>
+              </Field.Label>
+            </Field.Content>
+          </Field.Field>
+        {/each}
+      </Field.FieldGroup>
+    {/if}
+  </Field.FieldSet>
 </div>
 
-<div class="grid grid-cols-2 gap-3">
+<div class="grid gap-3 sm:grid-cols-2">
   <form method="POST" action="?/consent">
     <input type="hidden" name="accept" value="false" />
     <input type="hidden" name="scope" value={scope} />
     <input type="hidden" name="oauthQuery" value={oauthQuery} />
-    <Button class="w-full" type="submit" variant="outline">
+    <Button class="h-10 w-full" type="submit" variant="outline">
       {copy.deny}
     </Button>
   </form>
@@ -81,8 +88,8 @@ $: canAllow = scopes.length === 0 || selectedScopes.length > 0;
       <input type="hidden" name="scopes" value={selectedScope} />
     {/each}
     <input type="hidden" name="oauthQuery" value={oauthQuery} />
-    <Button class="w-full" disabled={!canAllow} type="submit">
-      <CheckCircle />
+    <Button class="h-10 w-full" disabled={!canAllow} type="submit">
+      <CheckCircle data-icon="inline-start" />
       {copy.allow}
     </Button>
   </form>
