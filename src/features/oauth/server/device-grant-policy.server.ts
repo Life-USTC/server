@@ -10,7 +10,7 @@ import {
 import { getDeviceAuthorizationClientPolicyFailure } from "./device-authorization-policy.server";
 
 type DeviceGrantPrisma = {
-  $queryRaw: <T = unknown>(
+  $queryRaw?: <T = unknown>(
     query: TemplateStringsArray,
     ...values: unknown[]
   ) => Promise<T>;
@@ -138,47 +138,31 @@ export async function resolveDeviceGrantRecord({
   deviceCode: string;
   prisma?: DeviceGrantPrisma;
 }): Promise<DeviceGrantRecordResult> {
-  const rows = await prisma.$queryRaw<DeviceGrantRecordRow[]>`
-    SELECT
-      dc."id",
-      dc."expiresAt",
-      dc."lastPolledAt",
-      dc."resources",
-      dc."status",
-      dc."userId",
-      dc."scopes",
-      c."clientId" AS "clientClientId",
-      c."disabled" AS "clientDisabled",
-      c."grantTypes" AS "clientGrantTypes",
-      c."public" AS "clientPublic",
-      c."tokenEndpointAuthMethod" AS "clientTokenEndpointAuthMethod",
-      c."type" AS "clientType"
-    FROM "DeviceCode" dc
-    JOIN "OAuthClient" c ON c."clientId" = dc."clientId"
-    WHERE dc."deviceCode" = ${deviceCode}
-      AND NOW() IS NOT NULL
-    LIMIT 1
-  `;
-  const row = rows[0];
-  const record = row
-    ? {
-        id: row.id,
-        expiresAt: row.expiresAt,
-        lastPolledAt: row.lastPolledAt,
-        resources: row.resources,
-        status: row.status,
-        userId: row.userId,
-        scopes: row.scopes,
-        client: {
-          clientId: row.clientClientId,
-          disabled: row.clientDisabled,
-          grantTypes: row.clientGrantTypes,
-          public: row.clientPublic,
-          tokenEndpointAuthMethod: row.clientTokenEndpointAuthMethod,
-          type: row.clientType,
-        },
-      }
-    : null;
+  const record =
+    typeof prisma.$queryRaw === "function"
+      ? await resolveFreshDeviceGrantRecord(prisma, deviceCode)
+      : await prisma.deviceCode.findUnique({
+          where: { deviceCode },
+          select: {
+            id: true,
+            expiresAt: true,
+            lastPolledAt: true,
+            resources: true,
+            status: true,
+            userId: true,
+            scopes: true,
+            client: {
+              select: {
+                clientId: true,
+                disabled: true,
+                grantTypes: true,
+                public: true,
+                tokenEndpointAuthMethod: true,
+                type: true,
+              },
+            },
+          },
+        });
 
   if (!record || record.client.clientId !== clientId) {
     return { error: { code: "invalid_grant" } };
@@ -227,4 +211,51 @@ export async function resolveDeviceGrantRecord({
   }
 
   return { record };
+}
+
+async function resolveFreshDeviceGrantRecord(
+  prisma: DeviceGrantPrisma & Required<Pick<DeviceGrantPrisma, "$queryRaw">>,
+  deviceCode: string,
+): Promise<DeviceGrantRecord | null> {
+  const rows = await prisma.$queryRaw<DeviceGrantRecordRow[]>`
+    SELECT
+      dc."id",
+      dc."expiresAt",
+      dc."lastPolledAt",
+      dc."resources",
+      dc."status",
+      dc."userId",
+      dc."scopes",
+      c."clientId" AS "clientClientId",
+      c."disabled" AS "clientDisabled",
+      c."grantTypes" AS "clientGrantTypes",
+      c."public" AS "clientPublic",
+      c."tokenEndpointAuthMethod" AS "clientTokenEndpointAuthMethod",
+      c."type" AS "clientType"
+    FROM "DeviceCode" dc
+    JOIN "OAuthClient" c ON c."clientId" = dc."clientId"
+    WHERE dc."deviceCode" = ${deviceCode}
+      AND NOW() IS NOT NULL
+    LIMIT 1
+  `;
+  const row = rows[0];
+  return row
+    ? {
+        id: row.id,
+        expiresAt: row.expiresAt,
+        lastPolledAt: row.lastPolledAt,
+        resources: row.resources,
+        status: row.status,
+        userId: row.userId,
+        scopes: row.scopes,
+        client: {
+          clientId: row.clientClientId,
+          disabled: row.clientDisabled,
+          grantTypes: row.clientGrantTypes,
+          public: row.clientPublic,
+          tokenEndpointAuthMethod: row.clientTokenEndpointAuthMethod,
+          type: row.clientType,
+        },
+      }
+    : null;
 }
