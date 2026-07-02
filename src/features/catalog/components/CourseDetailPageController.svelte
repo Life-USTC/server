@@ -1,17 +1,11 @@
 <script lang="ts">
-import { onMount } from "svelte";
 import CommentsPanel from "@/features/comments/components/CommentsPanel.svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
+import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.js";
-import {
-  type CatalogDetailTab,
-  mountCatalogDetailHashNavigation,
-  normalizeCatalogDetailTab,
-  replaceCatalogDetailTabUrl,
-} from "../lib/catalog-detail-navigation";
 import type { CatalogNamed } from "../lib/catalog-list-display";
 import {
   formatCatalogDetailMessage as formatMessage,
@@ -19,7 +13,6 @@ import {
   courseDetailSecondaryName as secondaryName,
   teacherNames,
 } from "../lib/course-detail-display";
-import CatalogDetailTabs from "./CatalogDetailTabs.svelte";
 import CourseDetailBasicInfo from "./CourseDetailBasicInfo.svelte";
 import CourseDetailSections from "./CourseDetailSections.svelte";
 import type {
@@ -58,8 +51,10 @@ type PageData = {
       notAvailable: string;
       sectionCode: string;
       semester: string;
-      tabs: { comments: string; sections: string };
+      tabs: { comments: string; description: string; sections: string };
       teachers: string;
+      teachingSections: string;
+      teachingSectionsDescription: string;
     };
     descriptions: CatalogDetailDescriptionCopy;
     metadata: { pages: { courseDetail: string } };
@@ -67,31 +62,35 @@ type PageData = {
   course: CourseDetailData;
   descriptionData: CatalogDetailDescriptionData;
   locale: string;
-  tab: string | null | undefined;
 };
 
 export let data: PageData;
-
-let activeTab: CatalogDetailTab = normalizeCatalogDetailTab(data.tab);
 
 $: copy = data.copy;
 $: detailCopy = copy satisfies CourseDetailCopy;
 $: notAvailable = copy.courseDetail.notAvailable;
 $: displayName = primaryName(data.course) || data.course.code;
 $: secondaryDisplayName = secondaryName(data.course);
-
-function setActiveTab(nextTab: CatalogDetailTab) {
-  activeTab = nextTab;
-  replaceCatalogDetailTabUrl(nextTab);
-}
-
-onMount(() => {
-  return mountCatalogDetailHashNavigation({
-    setActiveTab: (tab) => {
-      activeTab = tab;
-    },
-  });
-});
+$: commentsCount = data.commentsData
+  ? Object.values(data.commentsData.commentMap).reduce(
+      (sum, comments) => sum + comments.length,
+      0,
+    )
+  : 0;
+$: sectionNavItems = [
+  { href: "#course-overview", label: copy.course.basicInfo },
+  { href: "#course-description", label: copy.courseDetail.tabs.description },
+  {
+    href: "#course-sections",
+    label: copy.courseDetail.teachingSections,
+    meta: data.course.sections.length,
+  },
+  {
+    href: "#course-comments",
+    label: copy.courseDetail.tabs.comments,
+    meta: commentsCount,
+  },
+];
 </script>
 
 <svelte:head>
@@ -134,67 +133,63 @@ onMount(() => {
     {/snippet}
   </PageHeader>
 
-  <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-    <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
-      {#key `description:course:${data.course.id}`}
-        <DescriptionCard
-          targetType="course"
-          targetId={data.course.id}
-          initialData={data.descriptionData}
-          locale={data.locale as "en-us" | "zh-cn"}
-          copy={copy.descriptions}
-        />
-      {/key}
-
-      <CatalogDetailTabs
-        {activeTab}
-        commentsLabel={copy.courseDetail.tabs.comments}
-        idPrefix="course-detail"
-        sectionsLabel={copy.courseDetail.tabs.sections}
-        {setActiveTab}
-      />
-
-      {#if activeTab === "comments"}
-        <div
-          aria-labelledby="course-detail-comments-tab"
-          id="course-detail-comments-panel"
-          role="tabpanel"
-          tabindex="0"
-        >
-          {#key `comments:course:${data.course.id}`}
-            <CommentsPanel
-              initialData={data.commentsData}
-              permalinkBaseHref={commentTargetPermalinkBaseHref({
-                courseJwId: data.course.jwId,
-                type: "course",
-              })}
-              targetType="course"
-              targetId={data.course.id}
-            />
-          {/key}
-        </div>
-      {:else}
-        <div
-          aria-labelledby="course-detail-sections-tab"
-          id="course-detail-sections-panel"
-          role="tabpanel"
-          tabindex="0"
-        >
-          <CourseDetailSections
-            copy={detailCopy}
-            course={data.course}
-            {notAvailable}
-            {primaryName}
-            {teacherNames}
-          />
-        </div>
-      {/if}
-    </div>
-
-    <CourseDetailBasicInfo
-      copy={detailCopy}
-      course={data.course}
-      {primaryName}
+  <div class="grid gap-5 lg:grid-cols-[12rem_minmax(0,1fr)] lg:items-start">
+    <DetailSectionNav
+      ariaLabel={formatMessage(copy.metadata.pages.courseDetail, { name: displayName })}
+      items={sectionNavItems}
     />
+
+    <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
+      <section class="scroll-mt-20" id="course-overview">
+        <CourseDetailBasicInfo
+          copy={detailCopy}
+          course={data.course}
+          {primaryName}
+        />
+      </section>
+
+      <section class="scroll-mt-20" id="course-description">
+        {#key `description:course:${data.course.id}`}
+          <DescriptionCard
+            targetType="course"
+            targetId={data.course.id}
+            initialData={data.descriptionData}
+            locale={data.locale as "en-us" | "zh-cn"}
+            copy={copy.descriptions}
+          />
+        {/key}
+      </section>
+
+      <section class="grid scroll-mt-20 gap-3" id="course-sections">
+        <div>
+          <h2 class="font-semibold text-lg">{copy.courseDetail.teachingSections}</h2>
+          <p class="text-base-content/60 text-sm">{copy.courseDetail.teachingSectionsDescription}</p>
+        </div>
+        <CourseDetailSections
+          copy={detailCopy}
+          course={data.course}
+          {notAvailable}
+          {primaryName}
+          {teacherNames}
+        />
+      </section>
+
+      <section class="grid scroll-mt-20 gap-3" id="course-comments">
+        <div>
+          <h2 class="font-semibold text-lg">{copy.courseDetail.tabs.comments}</h2>
+        </div>
+        {#key `comments:course:${data.course.id}`}
+          <CommentsPanel
+            initialData={data.commentsData}
+            permalinkBaseHref={commentTargetPermalinkBaseHref({
+              courseJwId: data.course.jwId,
+              type: "course",
+            })}
+            targetType="course"
+            targetId={data.course.id}
+          />
+        {/key}
+      </section>
+    </div>
   </div>
 </section>

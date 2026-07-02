@@ -18,11 +18,3 @@ export function getSectionDetailPageCopy(locale: AppLocale) {
     sectionDetail: copy.sectionDetail,
   };
 }
-
-export function normalizeSectionDetailTab(tab: string | null) {
-  if (tab === "schedule" || tab === "exams") return "calendar";
-  if (tab === "homeworks") return "homework";
-  return tab && ["calendar", "homework", "comments"].includes(tab)
-    ? tab
-    : "homework";
-}

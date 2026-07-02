@@ -6,19 +6,16 @@ import {
   getCourseDetailCopy,
   getTeacherDetailCopy,
 } from "./catalog-detail-copy";
-import { normalizeCatalogTab } from "./catalog-detail-tabs";
 import { currentCatalogViewer } from "./catalog-detail-viewer";
 
 export async function loadCourseDetailPage({
   locals,
   params,
   request,
-  url,
 }: {
   locals: App.Locals;
   params: { jwId: string };
   request: Request;
-  url: URL;
 }) {
   const copy = getCourseDetailCopy(locals.locale);
   const jwId = Number(params.jwId);
@@ -39,7 +36,6 @@ export async function loadCourseDetailPage({
     copy,
     descriptionData,
     commentsData,
-    tab: normalizeCatalogTab(url.searchParams.get("tab")),
   };
 }
 
@@ -47,12 +43,10 @@ export async function loadTeacherDetailPage({
   locals,
   params,
   request,
-  url,
 }: {
   locals: App.Locals;
   params: { id: string };
   request: Request;
-  url: URL;
 }) {
   const copy = getTeacherDetailCopy(locals.locale);
   const id = Number(params.id);
@@ -73,6 +67,5 @@ export async function loadTeacherDetailPage({
     copy,
     descriptionData,
     commentsData,
-    tab: normalizeCatalogTab(url.searchParams.get("tab")),
   };
 }

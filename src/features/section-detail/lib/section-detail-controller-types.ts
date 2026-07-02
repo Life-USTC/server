@@ -196,6 +196,7 @@ export type SectionDetailCopy = {
     basicInfoDescription: string;
     campus: string;
     calendarMiniDescription: string;
+    calendarDescription: string;
     calendarEmpty: string;
     calendarSheetDescription: string;
     calendarSheetTitle: string;
@@ -217,6 +218,7 @@ export type SectionDetailCopy = {
     examEvent: string;
     examLegend: string;
     examMode: string;
+    exams: string;
     experimentPeriods: string;
     location: string;
     loginRequired: string;
@@ -329,7 +331,6 @@ export type SectionDetailPageData = {
   locale: AppLocale;
   section: SectionDetailSection;
   showSubscribeDialog: boolean;
-  tab?: string | null;
   todayCalendarKey: string;
   viewer: {
     isSubscribed?: boolean;

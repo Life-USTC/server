@@ -3,10 +3,7 @@ import { getSectionPage } from "@/features/section-detail/server/section-page-da
 import { requireCampusDateKeyForValue } from "@/lib/time/campus-date";
 import { getSectionDetailDescriptionAndComments } from "./section-detail-comments-data";
 import { getSectionHomeworkData } from "./section-detail-homework-data";
-import {
-  getSectionDetailPageCopy,
-  normalizeSectionDetailTab,
-} from "./section-detail-page-copy";
+import { getSectionDetailPageCopy } from "./section-detail-page-copy";
 import { parseSectionJwId } from "./section-detail-params";
 import { getSectionDetailUserId } from "./section-detail-session";
 
@@ -50,7 +47,6 @@ export async function loadSectionDetailPage({
     commentsData: descriptionAndComments.commentsData,
     homeworkData,
     focusedHomeworkId: url.searchParams.get("homeworkId"),
-    tab: normalizeSectionDetailTab(url.searchParams.get("tab")),
     homeworkView:
       url.searchParams.get("homeworkView") === "list" ? "list" : "cards",
     showSubscribeDialog: url.searchParams.get("subscribe") === "1",

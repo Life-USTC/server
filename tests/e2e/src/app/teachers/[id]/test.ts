@@ -56,6 +56,20 @@ async function navigateToSeedTeacher(
   await waitForUiSettled(page);
 }
 
+async function jumpToTeacherSection(
+  page: Parameters<typeof gotoAndWaitForReady>[0],
+  name: RegExp,
+  selector: string,
+) {
+  const link = page
+    .getByTestId("detail-section-nav")
+    .getByRole("link", { name })
+    .first();
+  await expect(link).toBeVisible();
+  await link.click();
+  await expect(page.locator(selector)).toBeVisible();
+}
+
 test.describe("/teachers/[id] 教师详情页", () => {
   test.describe.configure({ mode: "serial" });
 
@@ -170,22 +184,24 @@ test.describe("/teachers/[id] 教师详情页", () => {
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
-  test("标签切换可用", async ({ page }, testInfo) => {
+  test("详情导航可跳转到主要区块", async ({ page }, testInfo) => {
     await navigateToSeedTeacher(page);
 
-    const tabList = page.getByRole("tablist").first();
-    await expect(tabList).toBeVisible();
-    const targetTab = tabList.getByRole("tab").nth(1);
-    const panelId = await targetTab.getAttribute("aria-controls");
-    expect(panelId).toBeTruthy();
+    const nav = page.getByTestId("detail-section-nav");
+    await expect(nav).toBeVisible();
+    await expect(
+      nav.getByRole("link", { name: /简介|Description/i }),
+    ).toBeVisible();
+    await expect(
+      nav.getByRole("link", { name: /授课班级|Teaching Sections/i }),
+    ).toBeVisible();
+    await expect(
+      nav.getByRole("link", { name: /评论|Comments/i }),
+    ).toBeVisible();
 
-    await targetTab.click();
-    await expect(targetTab).toHaveAttribute("aria-selected", "true");
-    await expect(page.locator(`#${panelId}`)).toHaveAttribute(
-      "role",
-      "tabpanel",
-    );
-    await captureStepScreenshot(page, testInfo, "teacher/tab-switch");
+    await jumpToTeacherSection(page, /评论|Comments/i, "#teacher-comments");
+    await expect(page).toHaveURL(/#teacher-comments$/);
+    await captureStepScreenshot(page, testInfo, "teacher/detail-nav");
   });
 
   test("面包屑可返回教师列表", async ({ page }, testInfo) => {
@@ -277,12 +293,7 @@ test.describe("/teachers/[id] 教师详情页", () => {
         if (!page.url().includes("/teachers/")) {
           await navigateToSeedTeacher(page);
         }
-        const commentsTab = page
-          .getByRole("tab", { name: /评论|Comments/i })
-          .first();
-        await expect(commentsTab).toBeVisible();
-        await commentsTab.click();
-        await expect(commentsTab).toHaveAttribute("aria-selected", "true");
+        await jumpToTeacherSection(page, /评论|Comments/i, "#teacher-comments");
       }).toPass({
         timeout: 10_000,
         intervals: [250, 500, 1_000],
@@ -298,6 +309,7 @@ test.describe("/teachers/[id] 教师详情页", () => {
 
       const body = `e2e-teacher-comment-${Date.now()}`;
       const composer = page
+        .locator("#teacher-comments")
         .getByRole("textbox", { name: /评论内容|Comment body/i })
         .first();
       await expect(composer).toBeVisible({ timeout: 15_000 });
