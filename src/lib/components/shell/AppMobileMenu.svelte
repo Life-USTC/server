@@ -25,6 +25,7 @@ export let setMobileMenuOpen: (open: boolean) => void;
         {#each group.links as link}
           {@const active = isActiveLink(link)}
           <Menu.Item
+            aria-label={link.ariaLabel}
             class={cn(active && "bg-base-200 font-medium text-base-content")}
             href={link.href}
             onclick={closeMenus}
