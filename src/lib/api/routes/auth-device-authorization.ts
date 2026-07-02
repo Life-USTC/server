@@ -8,6 +8,7 @@ import {
 import { parseDeviceAuthorizationForm } from "@/lib/api/routes/auth-device-form-parsing";
 import { observedApiRoute } from "@/lib/log/api-observability";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
+import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";
 import {
   DEVICE_CODE_EXPIRES_IN,
   DEVICE_CODE_POLL_INTERVAL,
@@ -21,7 +22,9 @@ function optionsRoute() {
 }
 export const deviceAuthorizationOptionsRoute = observedApiRoute(optionsRoute);
 
-async function postRoute(request: Request): Promise<Response> {
+async function runDeviceAuthorizationPostRoute(
+  request: Request,
+): Promise<Response> {
   logOAuthDebug("device-auth.request", request, {
     path: new URL(request.url).pathname,
   });
@@ -88,5 +91,31 @@ async function postRoute(request: Request): Promise<Response> {
     },
     { headers: DEVICE_AUTH_CORS_HEADERS },
   );
+}
+
+async function postRoute(request: Request): Promise<Response> {
+  const start = Date.now();
+  const path = new URL(request.url).pathname;
+  try {
+    const response = await runDeviceAuthorizationPostRoute(request);
+    writeOAuthEventAnalytics({
+      durationMs: Date.now() - start,
+      event: "device-authorization.response",
+      method: request.method,
+      path,
+      status: response.status,
+    });
+    return response;
+  } catch (err) {
+    writeOAuthEventAnalytics({
+      durationMs: Date.now() - start,
+      event: "device-authorization.error",
+      method: request.method,
+      path,
+      status: 500,
+      statusReason: err instanceof Error ? err.name : "unknown",
+    });
+    throw err;
+  }
 }
 export const deviceAuthorizationPostRoute = observedApiRoute(postRoute);

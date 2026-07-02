@@ -1,3 +1,4 @@
+import { writeMcpTransportAnalytics } from "@/lib/metrics/analytics-engine";
 import {
   logMcpTransportResponse,
   type McpRequestSummary,
@@ -26,6 +27,15 @@ export function recordAndLogMcpResponse(input: {
     status: input.status,
     toolCount: input.toolCount,
     wwwAuthenticatePrefix: input.wwwAuthenticatePrefix,
+  });
+  writeMcpTransportAnalytics({
+    durationMs,
+    method: input.context.request.method,
+    path: input.context.requestUrl.pathname,
+    phase: input.phase,
+    rpcSummary: input.rpcSummary,
+    status: input.status,
+    toolCount: input.toolCount,
   });
   return durationMs;
 }

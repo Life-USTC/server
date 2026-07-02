@@ -1,6 +1,7 @@
 import { jsonResponse } from "@/lib/api/helpers";
 import { observedApiRoute } from "@/lib/log/api-observability";
 import { withBetterAuthOAuthDebug } from "@/lib/log/oauth-debug";
+import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";
 import { OAUTH_DEVICE_CODE_GRANT_TYPE } from "@/lib/oauth/constants";
 import { rewriteOAuthResourceAliases } from "@/lib/oauth/resource-aliases";
 import { handleDeviceCodeGrant } from "./auth-token-device-grant";
@@ -85,6 +86,43 @@ async function runTokenHandler(run: () => Promise<Response | undefined>) {
   return response;
 }
 
+async function runObservedTokenHandler(
+  request: Request,
+  params: URLSearchParams,
+  run: () => Promise<Response | undefined>,
+) {
+  const start = Date.now();
+  const url = new URL(request.url);
+  const grantType = params.get("grant_type");
+  try {
+    const response = await runTokenHandler(run);
+    writeOAuthEventAnalytics({
+      durationMs: Date.now() - start,
+      event: "token.response",
+      grantType,
+      hasResource: params.has("resource"),
+      method: request.method,
+      path: url.pathname,
+      resourceCount: params.getAll("resource").length,
+      status: response.status,
+    });
+    return response;
+  } catch (err) {
+    writeOAuthEventAnalytics({
+      durationMs: Date.now() - start,
+      event: "token.error",
+      grantType,
+      hasResource: params.has("resource"),
+      method: request.method,
+      path: url.pathname,
+      resourceCount: params.getAll("resource").length,
+      status: 500,
+      statusReason: err instanceof Error ? err.name : "unknown",
+    });
+    throw err;
+  }
+}
+
 async function postRoute(request: Request) {
   const cloned = request.clone();
 
@@ -104,14 +142,14 @@ async function postRoute(request: Request) {
     : request;
 
   if (params.get("grant_type") === OAUTH_DEVICE_CODE_GRANT_TYPE) {
-    return runTokenHandler(() =>
+    return runObservedTokenHandler(request, params, () =>
       handleDeviceCodeGrant(normalizedRequest, params),
     );
   }
 
   logObservedTokenRedirectRequest(normalizedRequest, params);
 
-  return runTokenHandler(async () => {
+  return runObservedTokenHandler(request, params, async () => {
     const resourceError = await validateOAuthRefreshTokenResources(
       normalizedRequest,
       params,

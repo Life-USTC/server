@@ -1,3 +1,4 @@
+import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";
 import { OAUTH_TOKEN_ENDPOINT_PATH } from "@/lib/oauth/constants";
 import {
   getOAuthDebugMode,
@@ -21,6 +22,37 @@ function shouldLogBetterAuthPath(
   return pathname.includes("/oauth2");
 }
 
+function recordBetterAuthResponseAnalytics(input: {
+  method: string;
+  path: string;
+  start: number;
+  status: number;
+}) {
+  writeOAuthEventAnalytics({
+    durationMs: Date.now() - input.start,
+    event: "better-auth.response",
+    method: input.method,
+    path: input.path,
+    status: input.status,
+  });
+}
+
+function recordBetterAuthErrorAnalytics(input: {
+  error: unknown;
+  method: string;
+  path: string;
+  start: number;
+}) {
+  writeOAuthEventAnalytics({
+    durationMs: Date.now() - input.start,
+    event: "better-auth.error",
+    method: input.method,
+    path: input.path,
+    status: 500,
+    statusReason: input.error instanceof Error ? input.error.name : "unknown",
+  });
+}
+
 /**
  * Wrap Better Auth App Router handlers to log oauth2 (or all /api/auth in verbose mode).
  */
@@ -30,19 +62,43 @@ export async function withBetterAuthOAuthDebug(
   run: (req: Request) => Promise<Response>,
 ): Promise<Response> {
   const debugMode = getOAuthDebugMode();
-  if (debugMode === "off") {
-    return run(request);
-  }
-
+  const start = Date.now();
   const url = new URL(request.url);
   const path = url.pathname;
 
+  if (debugMode === "off") {
+    try {
+      const res = await run(request);
+      recordBetterAuthResponseAnalytics({
+        method,
+        path,
+        start,
+        status: res.status,
+      });
+      return res;
+    } catch (err) {
+      recordBetterAuthErrorAnalytics({ error: err, method, path, start });
+      throw err;
+    }
+  }
+
   if (!shouldLogBetterAuthPath(path, debugMode)) {
-    return run(request);
+    try {
+      const res = await run(request);
+      recordBetterAuthResponseAnalytics({
+        method,
+        path,
+        start,
+        status: res.status,
+      });
+      return res;
+    } catch (err) {
+      recordBetterAuthErrorAnalytics({ error: err, method, path, start });
+      throw err;
+    }
   }
 
   const correlationId = oauthDebugCorrelationId(request);
-  const start = Date.now();
   const authorizeSummary =
     method === "GET" ? summarizeOAuthAuthorizeUrl(url) : null;
   const tokenFingerprint =
@@ -81,6 +137,12 @@ export async function withBetterAuthOAuthDebug(
       ...(location && !redirectTo ? { locationPresent: true } : {}),
       ...(errorBody ? { errorBody } : {}),
     });
+    recordBetterAuthResponseAnalytics({
+      method,
+      path,
+      start,
+      status: res.status,
+    });
     return res;
   } catch (err) {
     logOAuthDebug("better-auth.error", undefined, {
@@ -90,6 +152,7 @@ export async function withBetterAuthOAuthDebug(
       ms: Date.now() - start,
       error: err instanceof Error ? err.message : String(err),
     });
+    recordBetterAuthErrorAnalytics({ error: err, method, path, start });
     throw err;
   }
 }
