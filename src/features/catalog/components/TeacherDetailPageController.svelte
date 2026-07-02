@@ -4,8 +4,6 @@ import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-
 import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
 import DetailPinnedSummary from "$lib/components/DetailPinnedSummary.svelte";
 import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.js";
 import {
   type CatalogNamed,
   catalogPrimaryName as primaryName,
@@ -49,6 +47,7 @@ type PageData = {
     };
   } & Record<string, unknown>;
   descriptionData: CatalogDetailDescriptionData;
+  detailSection: "overview" | "introduction" | "sections" | "comments";
   locale: string;
   teacher: TeacherDetailData;
 };
@@ -61,14 +60,15 @@ type PinnedSummaryItem = {
 
 export let data: PageData;
 
-let activeSectionHref = "";
-
 $: copy = data.copy;
 $: detailCopy = copy satisfies TeacherDetailCopy;
 $: notAvailable = copy.teacherDetail.notAvailable;
 $: displayName = primaryName(data.teacher);
 $: secondaryDisplayName = secondaryName(data.teacher);
-$: showSecondaryName = data.locale === "en-us" && Boolean(secondaryDisplayName);
+$: teacherDescription = data.teacher.department
+  ? primaryName(data.teacher.department)
+  : secondaryDisplayName;
+$: teacherBaseHref = `/teachers/${data.teacher.id}`;
 $: commentsCount = data.commentsData
   ? Object.values(data.commentsData.commentMap).reduce(
       (sum, comments) => sum + comments.length,
@@ -76,23 +76,33 @@ $: commentsCount = data.commentsData
     )
   : 0;
 $: sectionNavItems = [
-  { href: "#teacher-overview", label: copy.teacherDetail.basicInfo },
-  { href: "#teacher-description", label: copy.descriptions.title },
   {
-    href: "#teacher-sections",
+    href: teacherBaseHref,
+    key: "overview" as const,
+    label: copy.teacherDetail.basicInfo,
+  },
+  {
+    href: `${teacherBaseHref}/introduction`,
+    key: "introduction" as const,
+    label: copy.descriptions.title,
+  },
+  {
+    href: `${teacherBaseHref}/sections`,
+    key: "sections" as const,
     label: copy.teacherDetail.teachingSectionsTitle,
     meta: data.teacher.sections.length,
   },
   {
-    href: "#teacher-comments",
+    href: `${teacherBaseHref}/comments`,
+    key: "comments" as const,
     label: copy.comments.title,
     meta: commentsCount,
   },
 ];
-$: activeSectionLabel =
-  sectionNavItems.find((item) => item.href === activeSectionHref)?.label ??
-  sectionNavItems[0]?.label ??
-  "";
+$: activeNavItem =
+  sectionNavItems.find((item) => item.key === data.detailSection) ??
+  sectionNavItems[0];
+$: activeSectionLabel = activeNavItem?.label ?? "";
 $: pinnedSummaryItems = [
   ...(data.teacher.department
     ? [
@@ -117,44 +127,28 @@ $: pinnedSummaryItems = [
   <meta property="og:title" content={displayName} />
 </svelte:head>
 
-<section class="grid gap-5">
-  <PageHeader title={displayName} description={data.teacher.department ? primaryName(data.teacher.department) : ""}>
-    {#snippet breadcrumb()}
-      <Breadcrumb.Root label={copy.common.breadcrumb}>
-        <Breadcrumb.List>
-          <Breadcrumb.Item><Breadcrumb.Link href="/">{copy.common.home}</Breadcrumb.Link></Breadcrumb.Item>
-          <Breadcrumb.Separator />
-          <Breadcrumb.Item><Breadcrumb.Link href="/teachers">{copy.common.teachers}</Breadcrumb.Link></Breadcrumb.Item>
-          <Breadcrumb.Separator />
-          <Breadcrumb.Item><Breadcrumb.Page>{displayName}</Breadcrumb.Page></Breadcrumb.Item>
-        </Breadcrumb.List>
-      </Breadcrumb.Root>
-    {/snippet}
-    {#snippet titleExtra()}
-      {#if showSecondaryName}
-        <span class="ml-2 text-base-content/60">({secondaryDisplayName})</span>
-      {/if}
-    {/snippet}
-  </PageHeader>
-
+<section class="grid">
   <DetailPinnedSummary
     activeSectionLabel={activeSectionLabel}
     eyebrow={copy.common.teachers}
     items={pinnedSummaryItems}
+    parentHref="/teachers"
+    parentLabel={copy.common.teachers}
     title={displayName}
-    description={data.teacher.department ? primaryName(data.teacher.department) : ""}
+    description={teacherDescription}
   />
 
-  <div class="grid gap-5 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start">
+  <div class="-mx-4 grid sm:-mx-5 lg:-mx-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start">
     <DetailSectionNav
-      bind:activeHref={activeSectionHref}
+      activeHref={activeNavItem?.href ?? teacherBaseHref}
       ariaLabel={formatMessage(copy.metadata.pages.teacherDetail, { name: displayName })}
       items={sectionNavItems}
       label={copy.common.teachers}
     />
 
-    <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
-      <section class="scroll-mt-32" id="teacher-overview">
+    <div class="min-w-0 px-4 py-5 sm:px-5 lg:px-6">
+      {#if data.detailSection === "overview"}
+      <section id="teacher-overview">
         <TeacherDetailBasicInfo
           copy={detailCopy}
           {displayName}
@@ -164,8 +158,8 @@ $: pinnedSummaryItems = [
           teacher={data.teacher}
         />
       </section>
-
-      <section class="scroll-mt-32" id="teacher-description">
+      {:else if data.detailSection === "introduction"}
+      <section id="teacher-description">
         {#key `description:teacher:${data.teacher.id}`}
           <DescriptionCard
             targetType="teacher"
@@ -176,8 +170,8 @@ $: pinnedSummaryItems = [
           />
         {/key}
       </section>
-
-      <section class="grid scroll-mt-32 gap-3" id="teacher-sections">
+      {:else if data.detailSection === "sections"}
+      <section class="grid gap-3" id="teacher-sections">
         <div>
           <h2 class="font-semibold text-lg">{copy.teacherDetail.teachingSectionsTitle}</h2>
           <p class="text-base-content/60 text-sm">{copy.teacherDetail.teachingSectionsDescription}</p>
@@ -190,8 +184,8 @@ $: pinnedSummaryItems = [
           teacher={data.teacher}
         />
       </section>
-
-      <section class="grid scroll-mt-32 gap-3" id="teacher-comments">
+      {:else if data.detailSection === "comments"}
+      <section class="grid gap-3" id="teacher-comments">
         <div>
           <h2 class="font-semibold text-lg">{copy.comments.title}</h2>
         </div>
@@ -207,6 +201,7 @@ $: pinnedSummaryItems = [
           />
         {/key}
       </section>
+      {/if}
     </div>
   </div>
 </section>

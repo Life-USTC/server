@@ -13,7 +13,7 @@
  *
  * ## Features
  * - Hover card to reveal completion button
- * - "View details" link → /sections/{jwId}#homework-{id}
+ * - "View details" link → /sections/{jwId}/homework#homework-{id}
  * - Create homework button → modal form
  *
  * ## Edge Cases
@@ -323,12 +323,14 @@ test.describe("仪表盘作业", () => {
     const popout = page.locator('[data-slot="dialog-popup"]').first();
     await expect(popout).toBeVisible();
     const sectionLink = popout
-      .locator(`a[href*="/sections/${DEV_SEED.section.jwId}#homework-"]`)
+      .locator(
+        `a[href*="/sections/${DEV_SEED.section.jwId}/homework#homework-"]`,
+      )
       .first();
     await expect(sectionLink).toBeVisible();
     await sectionLink.click();
 
-    await expect(page).toHaveURL(/\/sections\/\d+#homework-/);
+    await expect(page).toHaveURL(/\/sections\/\d+\/homework#homework-/);
     await captureStepScreenshot(page, testInfo, "homeworks/view-details");
   });
 

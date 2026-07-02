@@ -166,6 +166,7 @@ export type SectionDetailMainSectionCopy = SectionCalendarCopy &
   SectionHomeworkTabSectionCopy &
   SectionTeacherCopy &
   SectionBasicInfoCopy & {
+    addToCalendar: string;
     calendarDescription: string;
     calendarMiniDescription: string;
     classLegend: string;
@@ -177,7 +178,10 @@ export type SectionDetailMainSectionCopy = SectionCalendarCopy &
       comments: string;
       homeworks: string;
     };
+    subscribeLabel: string;
     teachingSection: string;
+    unsubscribeLabel: string;
+    unsubscribing: string;
   };
 
 export type SectionDetailMainContentProps = {
@@ -185,7 +189,7 @@ export type SectionDetailMainContentProps = {
   calendarMonthOffset: number;
   canWriteHomework: boolean;
   commentTargets: CommentTargetOption[];
-  commonCopy: SectionCommonInfoCopy;
+  commonCopy: SectionDetailCommonCopy;
   fmtDate: SectionDetailDateFormatter;
   fmtDateTime: SectionDetailDateFormatter;
   homeworkCopy: SectionHomeworkTabCopy;

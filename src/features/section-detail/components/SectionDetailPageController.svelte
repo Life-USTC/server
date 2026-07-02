@@ -30,7 +30,6 @@ import {
   type SectionHomework,
 } from "@/features/section-detail/lib/section-detail-controller-helpers";
 import SectionDetailDialogs from "@/features/section-detail/components/SectionDetailDialogs.svelte";
-import SectionDetailHeader from "@/features/section-detail/components/SectionDetailHeader.svelte";
 import SectionDetailMainContent from "@/features/section-detail/components/SectionDetailMainContent.svelte";
 import SectionDetailPageHead from "@/features/section-detail/components/SectionDetailPageHead.svelte";
 type PageData = SectionDetailPageData;
@@ -342,22 +341,6 @@ onMount(() => {
 />
 
 <section class="grid gap-5">
-  <SectionDetailHeader
-    commonCopy={_commonCopy}
-    courseName={_courseName}
-    courseSecondaryName={_courseSecondaryName}
-    formError={form?.error}
-    notAvailable={_notAvailable}
-    onOpenCalendar={_openCalendarDialog}
-    onOpenSubscribe={_openSubscribeDialog}
-    primaryName={_primaryName}
-    section={data.section}
-    sectionCopy={_sectionCopy}
-    subscriptionAction={_subscriptionAction}
-    subscriptionPendingAction={_subscriptionPendingAction}
-    viewer={{ isSubscribed: data.viewer.isSubscribed === true }}
-  />
-
   <SectionDetailMainContent
     {calendarMonthLabel}
     bind:calendarMonthOffset={_calendarMonthOffset}
@@ -367,6 +350,7 @@ onMount(() => {
     courseName={_courseName}
     courseSecondaryName={_courseSecondaryName}
     {data}
+    formError={form?.error}
     fmtDate={_fmtDate}
     fmtDateTime={_fmtDateTime}
     formatMessage={_formatMessage}
@@ -377,6 +361,7 @@ onMount(() => {
     notAvailable={_notAvailable}
     openCalendarDialog={_openCalendarDialog}
     openCreateHomeworkDialog={_openCreateHomeworkDialog}
+    openSubscribeDialog={_openSubscribeDialog}
     {periodDetailRows}
     primaryName={_primaryName}
     {sectionCalendarEvents}
@@ -390,6 +375,8 @@ onMount(() => {
     setSelectedHomework={(homework) => {
       _selectedHomework = homework;
     }}
+    subscriptionAction={_subscriptionAction}
+    subscriptionPendingAction={_subscriptionPendingAction}
     teacherName={_teacherName}
     {todayCalendarMonthOffset}
     {unscheduledCalendarEvents}

@@ -57,7 +57,7 @@ export let overdueTodos: DashboardTodoItem[];
           <a
             class="grid gap-2 rounded-xl border border-base-300 px-3 py-3 text-sm no-underline transition hover:border-primary hover:bg-base-200/50"
             href={homework.section?.jwId
-              ? `/sections/${homework.section.jwId}#homework-${homework.id}`
+              ? `/sections/${homework.section.jwId}/homework#homework-${homework.id}`
               : dashboardTabHref("homeworks")}
           >
             <span class="min-w-0">

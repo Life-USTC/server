@@ -8,16 +8,45 @@ import {
 } from "./catalog-detail-copy";
 import { currentCatalogViewer } from "./catalog-detail-viewer";
 
+export type CourseDetailRouteSection =
+  | "overview"
+  | "introduction"
+  | "sections"
+  | "comments";
+
+export type TeacherDetailRouteSection =
+  | "overview"
+  | "introduction"
+  | "sections"
+  | "comments";
+
+const catalogDetailRouteSections = new Set([
+  "introduction",
+  "sections",
+  "comments",
+]);
+
+function resolveCatalogDetailRouteSection(
+  section: string | undefined,
+): CourseDetailRouteSection | null {
+  if (!section) return "overview";
+  return catalogDetailRouteSections.has(section)
+    ? (section as CourseDetailRouteSection)
+    : null;
+}
+
 export async function loadCourseDetailPage({
   locals,
   params,
   request,
 }: {
   locals: App.Locals;
-  params: { jwId: string };
+  params: { jwId: string; section?: string };
   request: Request;
 }) {
   const copy = getCourseDetailCopy(locals.locale);
+  const detailSection = resolveCatalogDetailRouteSection(params.section);
+  if (!detailSection) error(404, copy.notFound.description);
   const jwId = Number(params.jwId);
   if (!Number.isInteger(jwId)) error(404, copy.notFound.description);
   const course = await getCoursePage(jwId, locals.locale);
@@ -36,6 +65,7 @@ export async function loadCourseDetailPage({
     copy,
     descriptionData,
     commentsData,
+    detailSection,
   };
 }
 
@@ -45,10 +75,12 @@ export async function loadTeacherDetailPage({
   request,
 }: {
   locals: App.Locals;
-  params: { id: string };
+  params: { id: string; section?: string };
   request: Request;
 }) {
   const copy = getTeacherDetailCopy(locals.locale);
+  const detailSection = resolveCatalogDetailRouteSection(params.section);
+  if (!detailSection) error(404, copy.notFound.description);
   const id = Number(params.id);
   if (!Number.isInteger(id)) error(404, copy.notFound.description);
   const teacher = await getTeacherPage(id, locals.locale);
@@ -67,5 +99,6 @@ export async function loadTeacherDetailPage({
     copy,
     descriptionData,
     commentsData,
+    detailSection,
   };
 }

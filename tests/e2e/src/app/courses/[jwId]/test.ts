@@ -41,7 +41,7 @@ import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
 const COURSE_URL = `/courses/${DEV_SEED.course.jwId}`;
-const COURSE_WITH_DESCRIPTION_URL = `/courses/${scenarioData.courses[2].jwId}`;
+const COURSE_WITH_DESCRIPTION_URL = `/courses/${scenarioData.courses[2].jwId}/introduction`;
 const COURSE_WITH_DESCRIPTION_TEXT = "实验课建议准备护目镜并提前完成预习问答。";
 
 async function jumpToCourseSection(
@@ -135,6 +135,7 @@ test.describe("/courses/[jwId] 课程详情", () => {
     page,
   }, testInfo) => {
     await gotoAndWaitForReady(page, COURSE_URL);
+    await jumpToCourseSection(page, /班级|Sections/i, "#course-sections");
 
     // section.semester.nameCn
     await expect(visibleText(page, DEV_SEED.semesterNameCn)).toBeVisible();
@@ -192,7 +193,7 @@ test.describe("/courses/[jwId] 课程详情", () => {
     ).toBeVisible();
 
     await jumpToCourseSection(page, /评论|Comments/i, "#course-comments");
-    await expect(page).toHaveURL(/#course-comments$/);
+    await expect(page).toHaveURL(/\/courses\/\d+\/comments$/);
     await captureStepScreenshot(page, testInfo, "course/detail-nav");
   });
 
@@ -207,6 +208,7 @@ test.describe("/courses/[jwId] 课程详情", () => {
 
   test("班级行链接到班级详情", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, COURSE_URL);
+    await jumpToCourseSection(page, /班级|Sections/i, "#course-sections");
     const sectionLink = page
       .locator(`a[href="/sections/${DEV_SEED.section.jwId}"]:visible`)
       .or(page.locator("tbody a[href^='/sections/']:visible"))
@@ -240,7 +242,7 @@ test.describe("/courses/[jwId] 课程详情", () => {
 
   test("登录用户可以编辑课程简介", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
-    await signInAsDebugUser(page, COURSE_URL);
+    await signInAsDebugUser(page, `${COURSE_URL}/introduction`);
     const snapshot = await snapshotDescriptionTargetForE2e(
       page.request,
       { courseJwId: DEV_SEED.course.jwId, targetType: "course" },
@@ -296,6 +298,7 @@ test.describe("/courses/[jwId] 课程详情", () => {
 
     try {
       await jumpToCourseSection(page, /评论|Comments/i, "#course-comments");
+      await expect(page).toHaveURL(/\/courses\/\d+\/comments$/);
 
       const body = `e2e-course-comment-${Date.now()}`;
       const composer = page.locator("#course-comments textarea").first();

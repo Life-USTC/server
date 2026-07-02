@@ -129,6 +129,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
         .or(page.getByText(DEV_SEED.campus.nameEn))
         .first(),
     ).toBeVisible();
+    await jumpToSection(page, /教师|Teachers/i, "#section-teachers");
     // section.teachers[] — teacher badge/link (locale-dependent)
     await expect(
       page
@@ -275,14 +276,6 @@ test.describe("/sections/[jwId] 班级详情页", () => {
         .first(),
     ).toBeVisible();
 
-    // schedule.teachers[].namePrimary appears in the sidebar (always visible)
-    await expect(
-      page
-        .getByText(DEV_SEED.teacher.nameCn)
-        .or(page.getByText(DEV_SEED.teacher.nameEn))
-        .first(),
-    ).toBeVisible();
-
     await captureStepScreenshot(page, testInfo, "section/schedule-calendar");
   });
 
@@ -381,16 +374,13 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     ).toBeVisible();
 
     await jumpToSection(page, /作业|Homework/i, "#tab-homework");
-    await expect(page).toHaveURL(/#tab-homework$/);
+    await expect(page).toHaveURL(/\/sections\/\d+\/homework$/);
     await captureStepScreenshot(page, testInfo, "section/detail-nav");
   });
 
   test("面包屑可返回班级列表", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
-    const breadcrumb = page
-      .getByRole("navigation", { name: "breadcrumb" })
-      .getByRole("link", { name: /^(班级|Sections)$/i })
-      .first();
+    const breadcrumb = page.locator('a[href="/sections"]').first();
     await expect(breadcrumb).toBeVisible();
     await breadcrumb.click();
     await expect(page).toHaveURL(/\/sections(?:\?.*)?$/);
@@ -583,7 +573,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     await gotoAndWaitForReady(page, SECTION_URL);
     await getSectionNavLink(page, /作业|Homework/i).click();
     await expect(page).toHaveURL(
-      new RegExp(`/sections/${DEV_SEED.section.jwId}(#tab-homework)?$`),
+      new RegExp(`/sections/${DEV_SEED.section.jwId}/homework$`),
     );
     await expect(page.getByTestId("section-homeworks-list")).toBeVisible();
     await captureStepScreenshot(page, testInfo, "section/homework-list-view");
@@ -606,7 +596,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
 
       // Create
       const showCreate = page
-        .getByRole("button", { name: /^新建$|^Create$/i })
+        .getByRole("button", { name: /新建|创建作业|Create/i })
         .first();
       if ((await showCreate.count()) > 0) {
         await showCreate.click();
@@ -833,7 +823,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       await gotoAndWaitForReady(page, `/comments/${commentId}`);
       await expect(page).toHaveURL(
         new RegExp(
-          `/sections/${DEV_SEED.section.jwId}\\?homeworkId=${escapeForRegExp(homeworkId ?? "")}#comment-${escapeForRegExp(commentId ?? "")}$`,
+          `/sections/${DEV_SEED.section.jwId}/homework\\?homeworkId=${escapeForRegExp(homeworkId ?? "")}#comment-${escapeForRegExp(commentId ?? "")}$`,
         ),
       );
 

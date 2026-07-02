@@ -1,9 +1,16 @@
 <script lang="ts">
+import type { SubmitFunction } from "@sveltejs/kit";
 import CommentsPanel from "@/features/comments/components/CommentsPanel.svelte";
 import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-helpers";
+import { enhance } from "$app/forms";
 import DetailPinnedSummary from "$lib/components/DetailPinnedSummary.svelte";
 import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
+import CalendarIcon from "$lib/components/icons/calendar.svelte";
+import CheckCircleIcon from "$lib/components/icons/check-circle.svelte";
+import LinkIcon from "$lib/components/icons/link-2.svelte";
+import { Alert } from "$lib/components/ui/alert/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
 import SectionBasicInfoCard from "./SectionBasicInfoCard.svelte";
 import SectionCalendarTab from "./SectionCalendarTab.svelte";
 import SectionExamSection from "./SectionExamSection.svelte";
@@ -21,6 +28,8 @@ type PinnedSummaryItem = {
   variant?: "ghost" | "outline" | "secondary";
 };
 
+type SubscriptionActionKey = "subscribe" | "unsubscribe";
+
 export let calendarMonthLabel: string;
 export let calendarMonthOffset: number;
 export let canWriteHomework: boolean;
@@ -29,6 +38,7 @@ export let commonCopy: SectionDetailMainContentProps["commonCopy"];
 export let courseName: string;
 export let courseSecondaryName: string;
 export let data: SectionDetailPageData;
+export let formError: string | null | undefined;
 export let fmtDate: SectionDetailMainContentProps["fmtDate"];
 export let fmtDateTime: SectionDetailMainContentProps["fmtDateTime"];
 export let formatMessage: FormatMessage;
@@ -39,6 +49,7 @@ export let homeworks: SectionDetailMainContentProps["homeworks"];
 export let notAvailable: string;
 export let openCalendarDialog: SectionDetailMainContentProps["openCalendarDialog"];
 export let openCreateHomeworkDialog: SectionDetailMainContentProps["openCreateHomeworkDialog"];
+export let openSubscribeDialog: () => void;
 export let periodDetailRows: SectionDetailMainContentProps["periodDetailRows"];
 export let primaryName: SectionDetailMainContentProps["primaryName"];
 export let sectionCalendarEvents: SectionDetailMainContentProps["sectionCalendarEvents"];
@@ -48,13 +59,15 @@ export let sectionTeachersLabel: SectionDetailMainContentProps["sectionTeachersL
 export let setHomeworkAuditDialogOpen: BooleanSetter;
 export let setHomeworkView: SectionDetailMainContentProps["setHomeworkView"];
 export let setSelectedHomework: SectionDetailMainContentProps["setSelectedHomework"];
+export let subscriptionAction: (
+  action: SubscriptionActionKey,
+) => SubmitFunction;
+export let subscriptionPendingAction: SubscriptionActionKey | null;
 export let teacherName: SectionDetailMainContentProps["teacherName"];
 export let todayCalendarMonthOffset: number;
 export let unscheduledCalendarEvents: SectionDetailMainContentProps["unscheduledCalendarEvents"];
 export let viewer: SectionDetailMainContentProps["viewer"];
 export let yesNo: SectionDetailMainContentProps["yesNo"];
-
-let activeSectionHref = "";
 
 $: sectionExamEvents = sectionCalendarEvents.filter(
   (event) => event.kind === "exam",
@@ -68,35 +81,52 @@ $: commentsCount = data.commentsData
       0,
     )
   : 0;
+$: sectionBaseHref = `/sections/${data.section.jwId}`;
 $: sectionNavItems = [
-  { href: "#section-overview", label: sectionCopy.basicInfo },
-  { href: "#section-description", label: data.copy.descriptions.title },
   {
-    href: "#tab-calendar",
+    href: sectionBaseHref,
+    key: "overview" as const,
+    label: sectionCopy.basicInfo,
+  },
+  {
+    href: `${sectionBaseHref}/introduction`,
+    key: "introduction" as const,
+    label: data.copy.descriptions.title,
+  },
+  {
+    href: `${sectionBaseHref}/calendar`,
+    key: "calendar" as const,
     label: sectionCopy.tabs.calendar,
     meta: sectionCalendarEvents.length,
   },
-  { href: "#tab-exams", label: examSectionLabel },
   {
-    href: "#tab-homework",
+    href: `${sectionBaseHref}/exams`,
+    key: "exams" as const,
+    label: examSectionLabel,
+  },
+  {
+    href: `${sectionBaseHref}/homework`,
+    key: "homework" as const,
     label: sectionCopy.tabs.homeworks,
     meta: homeworks.length,
   },
   {
-    href: "#section-teachers",
+    href: `${sectionBaseHref}/teachers`,
+    key: "teachers" as const,
     label: sectionCopy.teachers,
     meta: data.section.teachers.length,
   },
   {
-    href: "#tab-comments",
+    href: `${sectionBaseHref}/comments`,
+    key: "comments" as const,
     label: sectionCopy.tabs.comments,
     meta: commentsCount,
   },
 ];
-$: activeSectionLabel =
-  sectionNavItems.find((item) => item.href === activeSectionHref)?.label ??
-  sectionNavItems[0]?.label ??
-  "";
+$: activeNavItem =
+  sectionNavItems.find((item) => item.key === data.detailSection) ??
+  sectionNavItems[0];
+$: activeSectionLabel = activeNavItem?.label ?? "";
 $: sectionCapacity =
   data.section.stdCount != null || data.section.limitCount != null
     ? `${data.section.stdCount ?? 0} / ${data.section.limitCount ?? notAvailable}`
@@ -111,25 +141,68 @@ $: pinnedSummaryItems = [
 ] satisfies PinnedSummaryItem[];
 </script>
 
-<div class="grid gap-5">
+<div class="grid">
   <DetailPinnedSummary
     activeSectionLabel={activeSectionLabel}
     eyebrow={sectionCopy.teachingSection}
     items={pinnedSummaryItems}
+    parentHref="/sections"
+    parentLabel={commonCopy.sections}
+    statusVisible={Boolean(formError)}
     title={courseName}
     description={courseSecondaryName}
-  />
+  >
+    {#snippet actions()}
+      <Button variant="outline" type="button" onclick={openCalendarDialog}>
+        <CalendarIcon />
+        {sectionCopy.addToCalendar}
+      </Button>
+      {#if data.viewer.isSubscribed}
+        <form
+          method="POST"
+          action="?/unsubscribe"
+          use:enhance={subscriptionAction("unsubscribe")}
+        >
+          <Button
+            variant="outline"
+            type="submit"
+            disabled={subscriptionPendingAction === "unsubscribe"}
+          >
+            <CheckCircleIcon />
+            {subscriptionPendingAction === "unsubscribe"
+              ? sectionCopy.unsubscribing
+              : sectionCopy.unsubscribeLabel}
+          </Button>
+        </form>
+      {:else}
+        <form method="GET">
+          <input name="subscribe" type="hidden" value="1" />
+          <Button type="submit" onclick={openSubscribeDialog}>
+            <LinkIcon />
+            {sectionCopy.subscribeLabel}
+          </Button>
+        </form>
+      {/if}
+    {/snippet}
 
-  <div class="grid gap-5 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start">
+    {#snippet status()}
+      {#if formError}
+        <Alert variant="destructive">{formError}</Alert>
+      {/if}
+    {/snippet}
+  </DetailPinnedSummary>
+
+  <div class="-mx-4 grid sm:-mx-5 lg:-mx-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start">
     <DetailSectionNav
-      bind:activeHref={activeSectionHref}
+      activeHref={activeNavItem?.href ?? sectionBaseHref}
       ariaLabel={sectionCopy.teachingSection}
       items={sectionNavItems}
       label={sectionCopy.teachingSection}
     />
 
-    <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
-      <section class="scroll-mt-32" id="section-overview">
+    <div class="min-w-0 px-4 py-5 sm:px-5 lg:px-6">
+      {#if data.detailSection === "overview"}
+      <section id="section-overview">
         <SectionBasicInfoCard
           {commonCopy}
           {notAvailable}
@@ -141,8 +214,8 @@ $: pinnedSummaryItems = [
           {yesNo}
         />
       </section>
-
-      <section class="scroll-mt-32" id="section-description">
+      {:else if data.detailSection === "introduction"}
+      <section id="section-description">
         {#key `description:section:${data.section.id}`}
           <DescriptionCard
             targetType="section"
@@ -153,8 +226,8 @@ $: pinnedSummaryItems = [
           />
         {/key}
       </section>
-
-      <section class="grid scroll-mt-32 gap-3" id="tab-calendar">
+      {:else if data.detailSection === "calendar"}
+      <section class="grid gap-3" id="tab-calendar">
         <div>
           <h2 class="font-semibold text-lg">{sectionCopy.tabs.calendar}</h2>
           <p class="text-base-content/60 text-sm">{sectionCopy.calendarDescription}</p>
@@ -172,8 +245,8 @@ $: pinnedSummaryItems = [
           {unscheduledCalendarEvents}
         />
       </section>
-
-      <section class="grid scroll-mt-32 gap-3" id="tab-exams">
+      {:else if data.detailSection === "exams"}
+      <section class="grid gap-3" id="tab-exams">
         <div>
           <h2 class="font-semibold text-lg">{examSectionLabel}</h2>
         </div>
@@ -183,8 +256,8 @@ $: pinnedSummaryItems = [
           {sectionCopy}
         />
       </section>
-
-      <section class="grid scroll-mt-32 gap-3" id="tab-homework">
+      {:else if data.detailSection === "homework"}
+      <section class="grid gap-3" id="tab-homework">
         <div>
           <h2 class="font-semibold text-lg">{sectionCopy.tabs.homeworks}</h2>
           <p class="text-base-content/60 text-sm">{sectionCopy.homeworkDescription}</p>
@@ -205,8 +278,8 @@ $: pinnedSummaryItems = [
           {setHomeworkView}
         />
       </section>
-
-      <section class="scroll-mt-32" id="section-teachers">
+      {:else if data.detailSection === "teachers"}
+      <section id="section-teachers">
         <SectionTeachersCard
           {primaryName}
           {sectionCopy}
@@ -214,8 +287,8 @@ $: pinnedSummaryItems = [
           teachers={data.section.teachers}
         />
       </section>
-
-      <section class="grid scroll-mt-32 gap-3" id="tab-comments">
+      {:else if data.detailSection === "comments"}
+      <section class="grid gap-3" id="tab-comments">
         <div>
           <h2 class="font-semibold text-lg">{sectionCopy.tabs.comments}</h2>
         </div>
@@ -229,6 +302,7 @@ $: pinnedSummaryItems = [
           />
         {/key}
       </section>
+      {/if}
     </div>
   </div>
 </div>
