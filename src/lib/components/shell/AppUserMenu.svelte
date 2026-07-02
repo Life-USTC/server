@@ -1,4 +1,5 @@
 <script lang="ts">
+import * as Avatar from "$lib/components/ui/avatar/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Menu from "$lib/components/ui/menu/index.js";
 import type { ShellCopy, ShellUser } from "./types";
@@ -21,15 +22,15 @@ export let userMenuOpen: boolean;
         size="icon"
         variant="outline"
       >
-        {#if user.image}
-          <img
-            class="h-6 w-6 rounded-full"
-            src={user.image}
-            alt={user.name ?? copy.shell.profileMenu}
-          />
-        {:else}
-          <span>{avatarFallback}</span>
-        {/if}
+        <Avatar.Root class="size-7 border-0">
+          {#if user.image}
+            <Avatar.Image
+              src={user.image}
+              alt={user.name ?? copy.shell.profileMenu}
+            />
+          {/if}
+          <Avatar.Fallback>{avatarFallback}</Avatar.Fallback>
+        </Avatar.Root>
       </Menu.Trigger>
       <Menu.Content align="end" class="w-44">
         <Menu.Item href="/" onclick={closeMenus}>

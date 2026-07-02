@@ -1,8 +1,16 @@
+import type { Component } from "svelte";
+
 export type ShellLink = {
   href: string;
+  icon?: Component;
   label: string;
   rel?: string;
   target?: "_blank";
+};
+
+export type ShellNavGroup = {
+  label: string;
+  links: ShellLink[];
 };
 
 export type ShellCopy = {

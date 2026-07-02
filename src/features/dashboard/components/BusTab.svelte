@@ -13,6 +13,7 @@ import type {
 } from "@/features/dashboard/lib/bus-tab-types";
 import { apiClient } from "@/lib/api/client";
 import { Alert } from "$lib/components/ui/alert/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
 import BusTabSettings from "./BusTabSettings.svelte";
 import BusTabTimetable from "./BusTabTimetable.svelte";
 
@@ -85,35 +86,48 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
 );
 </script>
 
-      <div class="grid gap-4 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start">
-        {#if loadedBus}
-          <BusTabTimetable
-            bus={loadedBus}
-            {busApplicableRoutes}
-            {busCopy}
-            {busNextTripHighlightKey}
-            {busPlannerReady}
-            {busShowsEstimatedHint}
-            reverseBusStops={state.actions.reverseBusStops}
-          />
+<section class="grid gap-5">
+  <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+    <div class="grid gap-1">
+      <h2 class="font-semibold text-xl tracking-normal">{busCopy.dashboardTitle}</h2>
+      <p class="text-base-content/60 text-sm">
+        {loadedBus?.version?.title ?? busCopy.activeVersion}
+      </p>
+    </div>
+    <Button href="/bus-map" size="lg" variant="outline">{busCopy.transitMap}</Button>
+  </div>
 
-          <BusTabSettings
-            bus={loadedBus}
-            {busCopy}
-            {busDayType}
-            {busEndCampusId}
-            {busPlannerReady}
-            {busShowDepartedTrips}
-            {busStartCampusId}
-            reverseBusStops={state.actions.reverseBusStops}
-            selectBusEnd={state.actions.selectBusEnd}
-            selectBusStart={state.actions.selectBusStart}
-            setBusDayType={state.actions.setBusDayType}
-            {busPreferenceSaveState}
-            {busPreferenceStatus}
-            toggleBusDepartedTrips={state.actions.toggleBusDepartedTrips}
-          />
-        {:else}
-          <Alert>{busCopy.empty}</Alert>
-        {/if}
-      </div>
+  <div class="grid gap-4 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start">
+    {#if loadedBus}
+      <BusTabSettings
+        bus={loadedBus}
+        {busCopy}
+        {busDayType}
+        {busEndCampusId}
+        {busPlannerReady}
+        {busShowDepartedTrips}
+        {busStartCampusId}
+        reverseBusStops={state.actions.reverseBusStops}
+        selectBusEnd={state.actions.selectBusEnd}
+        selectBusStart={state.actions.selectBusStart}
+        setBusDayType={state.actions.setBusDayType}
+        {busPreferenceSaveState}
+        {busPreferenceStatus}
+        toggleBusDepartedTrips={state.actions.toggleBusDepartedTrips}
+      />
+
+      <BusTabTimetable
+        bus={loadedBus}
+        {busApplicableRoutes}
+        {busCopy}
+        {busNextTripHighlightKey}
+        {busPlannerReady}
+        {busShowsEstimatedHint}
+        reverseBusStops={state.actions.reverseBusStops}
+        showHeader={false}
+      />
+    {:else}
+      <Alert>{busCopy.empty}</Alert>
+    {/if}
+  </div>
+</section>

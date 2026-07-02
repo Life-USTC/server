@@ -23,6 +23,7 @@ export type {
   DashboardCalendarData,
   DashboardCommonCopy,
   DashboardDashboardCopy,
+  DashboardHomepageCopy,
   DashboardHomeworkItem,
   DashboardHomeworksCopy,
   DashboardHomeworksData,

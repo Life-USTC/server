@@ -31,7 +31,6 @@ import {
   type AnonymousDashboardData,
   type AnonymousLinkGroup,
   buildCalendarWeekdayLabels,
-  buildSignedTabs,
   type DashboardActionData,
   type DashboardLinkItem,
   type DashboardPageData,
@@ -46,11 +45,7 @@ import { mountDashboardController } from "@/features/dashboard/lib/dashboard-con
 import { createDashboardSubscriptionActions } from "@/features/dashboard/lib/dashboard-controller-subscription-actions";
 import { createDashboardTodoActions } from "@/features/dashboard/lib/dashboard-controller-todo-actions";
 import { linkIconLabel } from "@/features/dashboard/lib/dashboard-link-ui";
-import {
-  dashboardTabHref,
-  signedTabBadge,
-  signedTabIds,
-} from "@/features/dashboard/lib/dashboard-nav";
+import { dashboardTabHref } from "@/features/dashboard/lib/dashboard-nav";
 import {
   examReferenceNow,
   examTimeLabel,
@@ -75,7 +70,6 @@ import type { DashboardCalendarTabProps } from "./dashboard-calendar-component-t
 import SignedDashboardOverviewBranch from "./SignedDashboardOverviewBranch.svelte";
 import SignedDashboardPublicTabs from "./SignedDashboardPublicTabs.svelte";
 import SignedDashboardSubscriptionsBranch from "./SignedDashboardSubscriptionsBranch.svelte";
-import SignedDashboardTabsNav from "./SignedDashboardTabsNav.svelte";
 import SignedDashboardTaskTabs from "./SignedDashboardTaskTabs.svelte";
 import type { DashboardSubscriptionsTabProps } from "./subscription-tab-types";
 
@@ -171,7 +165,6 @@ $: todosCopy = copy.todos;
 $: commentsCopy = copy.comments;
 $: todoPriorityOptions = buildTodoPriorityOptions(todoPriorityOrder, todosCopy);
 $: calendarWeekdayLabels = buildCalendarWeekdayLabels(sectionCopy);
-$: signedTabs = buildSignedTabs(signedTabIds, dashboardCopy);
 $: dashboardLinkGroupLabels = dashboardCopy.linkHub.groups;
 $: if (data !== linkSourceData) {
   const signedPageData = isSignedDashboardData(data) ? data : null;
@@ -533,7 +526,7 @@ onMount(() => {
   <title>{copy.metadata.home} - Life@USTC</title>
 </svelte:head>
 
-<div class="mx-auto grid w-full max-w-6xl gap-6">
+<div class="mx-auto grid w-full max-w-7xl gap-6">
   <DashboardStatusAlerts
     {actionError}
     {calendarCopyError}
@@ -541,14 +534,6 @@ onMount(() => {
   />
 
   {#if signedData}
-    <SignedDashboardTabsNav
-      {dashboardCopy}
-      {dashboardTabHref}
-      {signedData}
-      {signedTabBadge}
-      {signedTabs}
-    />
-
     {#if signedData.tab === "overview"}
       <SignedDashboardOverviewBranch
         {calendarTimelineItemsForDay}
@@ -723,6 +708,7 @@ onMount(() => {
     <AnonymousDashboardView
       {busCopy}
       {dashboardCopy}
+      {homepageCopy}
       anonymousData={anonymousData}
       anonymousLinkGroups={anonymousLinkGroups}
       {linkIconLabel}

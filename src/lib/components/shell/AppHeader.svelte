@@ -2,7 +2,7 @@
 import { Button } from "$lib/components/ui/button/index.js";
 import AppMobileMenu from "./AppMobileMenu.svelte";
 import AppUserMenu from "./AppUserMenu.svelte";
-import type { ShellCopy, ShellLink, ShellUser } from "./types";
+import type { ShellCopy, ShellLink, ShellNavGroup, ShellUser } from "./types";
 
 export let avatarFallback: string;
 export let closeMenus: () => void;
@@ -14,6 +14,17 @@ export let setMobileMenuOpen: (open: boolean) => void;
 export let setUserMenuOpen: (open: boolean) => void;
 export let user: ShellUser;
 export let userMenuOpen: boolean;
+
+$: headerNavGroups = [
+  {
+    label: copy.shell.primaryNavigation,
+    links: primaryLinks,
+  },
+] satisfies ShellNavGroup[];
+
+function isActiveLink() {
+  return false;
+}
 </script>
 
 <header class="relative z-30 border-base-300 border-b bg-base-100/95 backdrop-blur">
@@ -41,8 +52,9 @@ export let userMenuOpen: boolean;
     <AppMobileMenu
       {closeMenus}
       {copy}
+      {isActiveLink}
       {mobileMenuOpen}
-      {primaryLinks}
+      navGroups={headerNavGroups}
       {setMobileMenuOpen}
     />
     <AppUserMenu
