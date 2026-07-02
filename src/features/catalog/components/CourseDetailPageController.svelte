@@ -110,7 +110,6 @@ $: sectionNavItems = [
 $: activeNavItem =
   sectionNavItems.find((item) => item.key === data.detailSection) ??
   sectionNavItems[0];
-$: activeSectionLabel = activeNavItem?.label ?? "";
 $: pinnedSummaryItems = [
   { label: data.course.code, mono: true, variant: "outline" as const },
   ...(data.course.educationLevel
@@ -134,7 +133,6 @@ $: pinnedSummaryItems = [
 
 <section class="grid">
   <DetailPinnedSummary
-    activeSectionLabel={activeSectionLabel}
     eyebrow={copy.common.courses}
     items={pinnedSummaryItems}
     title={displayName}

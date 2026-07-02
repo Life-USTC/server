@@ -2,6 +2,7 @@ import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
 
 export type SectionListCommonLabels = {
   clear: string;
+  loading: string;
   next: string;
   nextPage: string;
   pagination: string;

@@ -127,7 +127,6 @@ $: sectionNavItems = [
 $: activeNavItem =
   sectionNavItems.find((item) => item.key === data.detailSection) ??
   sectionNavItems[0];
-$: activeSectionLabel = activeNavItem?.label ?? "";
 $: sectionCapacity =
   data.section.stdCount != null || data.section.limitCount != null
     ? `${data.section.stdCount ?? 0} / ${data.section.limitCount ?? notAvailable}`
@@ -144,7 +143,6 @@ $: pinnedSummaryItems = [
 
 <div class="grid">
   <DetailPinnedSummary
-    activeSectionLabel={activeSectionLabel}
     eyebrow={sectionCopy.teachingSection}
     items={pinnedSummaryItems}
     statusVisible={Boolean(formError)}
