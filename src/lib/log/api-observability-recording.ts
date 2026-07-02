@@ -1,7 +1,4 @@
-import {
-  normalizeApiRoutePath,
-  shouldObserveApiPath,
-} from "@/lib/log/api-observability-path";
+import { normalizeApiRoutePath } from "@/lib/log/api-observability-path";
 import { logApiRequest } from "@/lib/log/app-logger";
 import { writeApiRequestAnalytics } from "@/lib/metrics/analytics-engine";
 import {
@@ -14,8 +11,6 @@ export function recordApiRequestStart(input: {
   pathname: string;
   requestId: string;
 }) {
-  if (!shouldObserveApiPath(input.pathname)) return;
-
   const route = normalizeApiRoutePath(input.pathname);
 
   logApiRequest(input.method, route, 0, 0, {
@@ -36,8 +31,6 @@ export function recordApiRequestFinish(input: {
   route: string;
   status: number;
 }) {
-  if (!shouldObserveApiPath(input.route)) return;
-
   logApiRequest(input.method, input.route, input.status, input.durationMs, {
     authMode: input.authMode,
     event: "request.finish",
@@ -78,8 +71,6 @@ export function recordApiRequestError(input: {
   requestId: string;
   route: string;
 }) {
-  if (!shouldObserveApiPath(input.route)) return;
-
   const status = 500;
   logApiRequest(input.method, input.route, status, input.durationMs, {
     authMode: input.authMode,

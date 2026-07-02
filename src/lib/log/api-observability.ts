@@ -1,8 +1,5 @@
 export { setApiRequestObservabilityContext } from "@/lib/log/api-observability-context";
-export {
-  normalizeApiRoutePath,
-  shouldObserveApiPath,
-} from "@/lib/log/api-observability-path";
+export { normalizeApiRoutePath } from "@/lib/log/api-observability-path";
 export {
   recordApiRequestError,
   recordApiRequestFinish,

@@ -180,7 +180,6 @@ const OPERATION_ID_OVERRIDES: Record<string, string> = {
   "GET /api/me": "getMe",
   "GET /api/me/subscriptions/homeworks": "getSubscribedHomeworks",
   "GET /api/metadata": "getMetadata",
-  "GET /api/metrics": "listMetrics",
   "GET /api/openapi": "getOpenApiSpec",
   "GET /api/readiness": "listReadiness",
   "GET /api/schedules": "listSchedules",
@@ -514,7 +513,6 @@ function buildTag(routePath: string): string {
   if (routePath.startsWith("/api/homeworks")) return "Homeworks";
   if (routePath === "/api/locale") return "Locale";
   if (routePath === "/api/metadata") return "Metadata";
-  if (routePath === "/api/metrics") return "Api";
   if (routePath === "/api/openapi") return "OpenAPI";
   if (routePath === "/api/readiness") return "Api";
   if (routePath.startsWith("/api/me")) return "Me";
@@ -543,7 +541,7 @@ function buildSecurity(
   has401: boolean,
 ): Array<Record<string, string[]>> | undefined {
   if (!has401) {
-    if (routePath === "/api/readiness" || routePath === "/api/metrics") {
+    if (routePath === "/api/readiness") {
       return [{ internalBearerAuth: [] }];
     }
     return undefined;

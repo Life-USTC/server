@@ -41,7 +41,6 @@ const probeOnlyRoutes = new Set([
   "/api/me/overview",
   "/api/me/subscriptions/homeworks",
   "/api/me/subscriptions/schedules",
-  "/api/metrics",
   "/api/readiness",
   "/api/todos/[id]",
   "/api/uploads",

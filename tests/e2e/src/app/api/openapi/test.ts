@@ -228,9 +228,7 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
     expect(body.paths?.["/api/readiness"]?.get?.security).toEqual([
       { internalBearerAuth: [] },
     ]);
-    expect(body.paths?.["/api/metrics"]?.get?.security).toEqual([
-      { internalBearerAuth: [] },
-    ]);
+    expect(body.paths?.["/api/metrics"]).toBeUndefined();
     expect(body.paths?.["/api/health"]?.get?.security).toBeUndefined();
     expect(
       body.paths?.["/api/users/{userId}/calendar.ics"]?.get?.security,

@@ -67,10 +67,10 @@ export const GET = () => new Response();
   it("handles response shortcuts", () => {
     const project = new Project({ useInMemoryFileSystem: true });
     project.createSourceFile(
-      "src/routes/api/metrics/+server.ts",
+      "src/routes/api/health/+server.ts",
       `
 /**
- * Export metrics.
+ * Check health.
  * @response 200:text
  */
 export const GET = () => new Response();
@@ -80,7 +80,7 @@ export const GET = () => new Response();
 
     const schemas = new SchemaCollector();
     const paths = collectPaths(project, schemas);
-    const responses = (paths["/api/metrics"].get as Record<string, unknown>)
+    const responses = (paths["/api/health"].get as Record<string, unknown>)
       .responses as Record<string, Record<string, unknown>>;
 
     expect(responses["200"].description).toBe("Text response");
@@ -89,14 +89,14 @@ export const GET = () => new Response();
     ).toBeDefined();
   });
 
-  it("tags /api/metrics as Api and requires internal bearer auth", () => {
+  it("tags /api/readiness as Api and requires internal bearer auth", () => {
     const project = new Project({ useInMemoryFileSystem: true });
     project.createSourceFile(
-      "src/routes/api/metrics/+server.ts",
+      "src/routes/api/readiness/+server.ts",
       `
 /**
- * Export internal runtime metrics.
- * @response 200:text
+ * Check internal dependency readiness.
+ * @response readinessResponseSchema
  * @response 404
  */
 export function GET() {
@@ -108,7 +108,7 @@ export function GET() {
 
     const schemas = new SchemaCollector();
     const paths = collectPaths(project, schemas);
-    const operation = paths["/api/metrics"].get as Record<string, unknown>;
+    const operation = paths["/api/readiness"].get as Record<string, unknown>;
 
     expect(operation.tags).toEqual(["Api"]);
     expect(operation.security).toEqual([{ internalBearerAuth: [] }]);
