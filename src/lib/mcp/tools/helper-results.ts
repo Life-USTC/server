@@ -62,11 +62,15 @@ export function jsonToolResult(
       : mode === "summary"
         ? summarizeMcpPayload(value)
         : compactMcpPayload(value);
+  const serializedPayload = serializeDatesDeep(payload);
   return {
+    ...(isRecord(serializedPayload)
+      ? { structuredContent: serializedPayload }
+      : {}),
     content: [
       {
         type: "text" as const,
-        text: JSON.stringify(serializeDatesDeep(payload), null, 2),
+        text: JSON.stringify(serializedPayload, null, 2),
       },
     ],
   };

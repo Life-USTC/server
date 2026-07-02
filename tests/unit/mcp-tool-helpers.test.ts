@@ -19,24 +19,24 @@ function parseToolText(result: ReturnType<typeof jsonToolResult>) {
 
 describe("jsonToolResult summary 模式", () => {
   it("保留分页总数，同时报告返回和采样项", () => {
-    const result = parseToolText(
-      jsonToolResult(
-        {
-          data: Array.from({ length: 12 }, (_, index) => ({
-            id: index + 1,
-            title: `Item ${index + 1}`,
-          })),
-          pagination: {
-            page: 2,
-            pageSize: 12,
-            total: 53,
-            totalPages: 5,
-          },
+    const rawResult = jsonToolResult(
+      {
+        data: Array.from({ length: 12 }, (_, index) => ({
+          id: index + 1,
+          title: `Item ${index + 1}`,
+        })),
+        pagination: {
+          page: 2,
+          pageSize: 12,
+          total: 53,
+          totalPages: 5,
         },
-        { mode: "summary" },
-      ),
+      },
+      { mode: "summary" },
     );
+    const result = parseToolText(rawResult);
 
+    expect(rawResult.structuredContent).toEqual(result);
     expect(result.pagination).toEqual({
       page: 2,
       pageSize: 12,
