@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import {
   normalizeApiRoutePath,
   observedApiRoute,
@@ -13,6 +14,7 @@ import {
 describe("API 可观测性", () => {
   afterEach(() => {
     resetRuntimeMetricsForTest();
+    setCloudflareRuntimeEnv(undefined);
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
@@ -123,6 +125,65 @@ describe("API 可观测性", () => {
     expect(metrics).toContain(
       'life_ustc_api_request_duration_ms_sum{method="GET",route="/api/todos/:id"} 1000',
     );
+  });
+
+  it("向 Cloudflare Analytics Engine 写入安全的请求结束数据点", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T00:00:01.000Z"));
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    const writeDataPoint = vi.fn();
+    setCloudflareRuntimeEnv({
+      ANALYTICS: { writeDataPoint },
+    });
+    const route = observedApiRoute(() => new Response(null, { status: 204 }));
+
+    await route(
+      new Request(
+        "https://example.test/api/users/user-1:feed-token-0123456789/calendar.ics",
+        {
+          headers: {
+            authorization: "Bearer token-value",
+            "x-request-id": "request-1",
+            "x-request-start-ms": "1780790400000",
+          },
+        },
+      ),
+    );
+
+    expect(writeDataPoint).toHaveBeenCalledWith({
+      indexes: ["/api/users/:id/calendar.ics"],
+      blobs: [
+        "api_request",
+        "finish",
+        "GET",
+        "/api/users/:id/calendar.ics",
+        "204",
+        "2xx",
+        "bearer",
+      ],
+      doubles: [1000, 204],
+    });
+    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
+      "feed-token-0123456789",
+    );
+  });
+
+  it("Analytics Engine 写入失败不影响请求响应", async () => {
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    setCloudflareRuntimeEnv({
+      ANALYTICS: {
+        writeDataPoint: vi.fn(() => {
+          throw new Error("analytics unavailable");
+        }),
+      },
+    });
+    const route = observedApiRoute(() => Response.json({ ok: true }));
+
+    const response = await route(
+      new Request("https://example.test/api/todos/123"),
+    );
+
+    expect(response.status).toBe(200);
   });
 
   it("在重新抛出前记录抛出的路由错误", async () => {

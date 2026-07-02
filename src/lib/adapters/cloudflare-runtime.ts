@@ -26,7 +26,18 @@ export type CloudflareR2Bucket = {
   ): Promise<unknown>;
 };
 
+export type CloudflareAnalyticsEngineDataPoint = {
+  blobs?: ((ArrayBuffer | string) | null)[];
+  doubles?: number[];
+  indexes?: ((ArrayBuffer | string) | null)[];
+};
+
+export type CloudflareAnalyticsEngineDataset = {
+  writeDataPoint(event?: CloudflareAnalyticsEngineDataPoint): void;
+};
+
 type CloudflareRuntimeEnv = Record<string, unknown> & {
+  ANALYTICS?: CloudflareAnalyticsEngineDataset;
   HYPERDRIVE?: {
     connectionString?: unknown;
   };
@@ -111,4 +122,8 @@ export function getCloudflareHyperdriveConnectionString() {
 
 export function getCloudflareR2UploadsBucket() {
   return getCurrentCloudflareRuntimeEnv()?.R2_UPLOADS;
+}
+
+export function getCloudflareAnalyticsEngineDataset() {
+  return getCurrentCloudflareRuntimeEnv()?.ANALYTICS;
 }
