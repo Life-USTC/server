@@ -1,7 +1,7 @@
 import * as z from "zod";
 import { dateTimeSchema } from "./response-schema-primitives";
 
-const uploadSummarySchema = z.object({
+export const uploadSummarySchema = z.object({
   id: z.string(),
   key: z.string(),
   filename: z.string(),
