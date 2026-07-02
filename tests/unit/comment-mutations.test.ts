@@ -6,7 +6,6 @@ const {
   getViewerContextMock,
   isPrismaUniqueConstraintErrorMock,
   prismaMock,
-  recordAuditWriteMetricMock,
   resolveCommentMutationTargetReferenceMock,
   resolveCommentTargetMock,
   transactionMock,
@@ -25,7 +24,6 @@ const {
       findMany: vi.fn(),
     },
   },
-  recordAuditWriteMetricMock: vi.fn(),
   resolveCommentMutationTargetReferenceMock: vi.fn(),
   resolveCommentTargetMock: vi.fn(),
   transactionMock: {
@@ -61,10 +59,6 @@ vi.mock("@/lib/db/prisma", () => ({
 
 vi.mock("@/lib/db/prisma-errors", () => ({
   isPrismaUniqueConstraintError: isPrismaUniqueConstraintErrorMock,
-}));
-
-vi.mock("@/lib/metrics/observability-metrics", () => ({
-  recordAuditWriteMetric: recordAuditWriteMetricMock,
 }));
 
 vi.mock("@/features/comments/server/comment-target-resolution", () => ({

@@ -8,10 +8,12 @@ import {
   type McpRequestSummary,
 } from "./mcp-request-logging";
 import { recordAndLogMcpResponse } from "./mcp-response-bookkeeping";
-import {
-  getRegisteredToolCount,
-  getRegisteredToolNames,
-} from "./mcp-route-metrics";
+
+function getRegisteredToolCount(server: unknown) {
+  const tools = (server as unknown as { _registeredTools?: object })
+    ._registeredTools;
+  return tools ? Object.keys(tools).length : null;
+}
 
 export async function handleMcpRequest(request: Request) {
   const start = Date.now();
@@ -57,16 +59,12 @@ export async function handleMcpRequest(request: Request) {
     sessionIdGenerator: undefined,
   });
   const { createMcpServer } = await import("@/lib/mcp/server");
-  const {
-    recordMcpJsonRpcSummaryMetrics,
-    recordMcpToolResultMetrics,
-    summarizeMcpJsonRpcRequest,
-  } = await import("@/lib/mcp/observability");
+  const { summarizeMcpJsonRpcRequest } = await import(
+    "@/lib/mcp/observability"
+  );
   const server = createMcpServer();
   const toolCount = getRegisteredToolCount(server);
-  const knownToolNames = getRegisteredToolNames(server);
   rpcSummary = await summarizeMcpJsonRpcRequest(request);
-  recordMcpJsonRpcSummaryMetrics(rpcSummary, knownToolNames);
   logAppEvent("info", "mcp.transport.rpc", {
     correlationId,
     method: request.method,
@@ -83,7 +81,7 @@ export async function handleMcpRequest(request: Request) {
   const res = await transport.handleRequest(request, {
     authInfo: authResult.authInfo,
   });
-  const durationMs = recordAndLogMcpResponse({
+  recordAndLogMcpResponse({
     context: logContext,
     request,
     phase: "handled",
@@ -91,10 +89,6 @@ export async function handleMcpRequest(request: Request) {
     status: res.status,
     start,
     toolCount: toolCount ?? undefined,
-  });
-  recordMcpToolResultMetrics(rpcSummary, knownToolNames, {
-    durationMs,
-    status: res.status,
   });
   return withMcpCors(request, res);
 }

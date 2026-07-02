@@ -47,10 +47,6 @@ vi.mock("@/lib/log/app-logger", () => ({
   logAppEvent: logAppEventMock,
 }));
 
-vi.mock("@/lib/metrics/observability-metrics", () => ({
-  recordAuditWriteMetric: vi.fn(),
-}));
-
 const upload = {
   id: "upload-1",
   key: "uploads/user-1/object.txt",

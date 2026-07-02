@@ -61,10 +61,6 @@ vi.mock("@/lib/db/prisma", () => ({
   prisma: prismaMock,
 }));
 
-vi.mock("@/lib/metrics/observability-metrics", () => ({
-  recordAuditWriteMetric: vi.fn(),
-}));
-
 describe("admin API 服务", () => {
   beforeEach(() => {
     auditLogCreateMock.mockReset();

@@ -1382,45 +1382,6 @@
         }
       }
     },
-    "/api/readiness": {
-      "get": {
-        "operationId": "listReadiness",
-        "summary": "Check internal dependency readiness",
-        "tags": [
-          "Api"
-        ],
-        "security": [
-          {
-            "internalBearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/readinessResponseSchema"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Response 404"
-          },
-          "503": {
-            "description": "Error response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/readinessResponseSchema"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/schedules": {
       "get": {
         "operationId": "listSchedules",
@@ -12115,78 +12076,6 @@
           "openapi",
           "info",
           "paths"
-        ],
-        "additionalProperties": false
-      },
-      "readinessResponseSchema": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string",
-            "enum": [
-              "ok",
-              "degraded"
-            ]
-          },
-          "uptimeSeconds": {
-            "type": "number",
-            "minimum": 0
-          },
-          "checks": {
-            "type": "object",
-            "properties": {
-              "database": {
-                "type": "object",
-                "properties": {
-                  "status": {
-                    "type": "string",
-                    "enum": [
-                      "ok",
-                      "error"
-                    ]
-                  },
-                  "durationMs": {
-                    "type": "number",
-                    "minimum": 0
-                  }
-                },
-                "required": [
-                  "status",
-                  "durationMs"
-                ],
-                "additionalProperties": false
-              },
-              "storage": {
-                "type": "object",
-                "properties": {
-                  "status": {
-                    "type": "string"
-                  },
-                  "binding": {
-                    "type": "string"
-                  },
-                  "reason": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "status",
-                  "binding"
-                ],
-                "additionalProperties": false
-              }
-            },
-            "required": [
-              "database",
-              "storage"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "required": [
-          "status",
-          "uptimeSeconds",
-          "checks"
         ],
         "additionalProperties": false
       },
@@ -31064,11 +30953,6 @@
         "scheme": "bearer",
         "bearerFormat": "JWT",
         "description": "OAuth bearer token for /api/mcp. MCP requires a bearer token with the MCP resource audience and does not accept session cookies."
-      },
-      "internalBearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "description": "Configured internal bearer token for operational endpoints. Localhost requests may also be accepted by the server-side access policy."
       },
       "calendarFeedToken": {
         "type": "apiKey",

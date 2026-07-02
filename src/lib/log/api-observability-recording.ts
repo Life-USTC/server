@@ -1,10 +1,6 @@
 import { normalizeApiRoutePath } from "@/lib/log/api-observability-path";
 import { logApiRequest } from "@/lib/log/app-logger";
 import { writeApiRequestAnalytics } from "@/lib/metrics/analytics-engine";
-import {
-  incrementCounter,
-  observeDurationMs,
-} from "@/lib/metrics/runtime-metrics";
 
 export function recordApiRequestStart(input: {
   method: string;
@@ -16,10 +12,6 @@ export function recordApiRequestStart(input: {
   logApiRequest(input.method, route, 0, 0, {
     event: "request.start",
     requestId: input.requestId,
-  });
-  incrementCounter("life_ustc_api_requests_started_total", {
-    method: input.method,
-    route,
   });
 }
 
@@ -36,16 +28,6 @@ export function recordApiRequestFinish(input: {
     event: "request.finish",
     requestId: input.requestId,
   });
-  incrementCounter("life_ustc_api_requests_total", {
-    auth_mode: input.authMode,
-    method: input.method,
-    route: input.route,
-    status: input.status,
-  });
-  observeDurationMs("life_ustc_api_request_duration_ms", input.durationMs, {
-    method: input.method,
-    route: input.route,
-  });
   writeApiRequestAnalytics({
     authMode: input.authMode,
     durationMs: input.durationMs,
@@ -54,13 +36,6 @@ export function recordApiRequestFinish(input: {
     route: input.route,
     status: input.status,
   });
-  if (input.status >= 400) {
-    incrementCounter("life_ustc_api_errors_total", {
-      method: input.method,
-      route: input.route,
-      status: input.status,
-    });
-  }
 }
 
 export function recordApiRequestError(input: {
@@ -77,21 +52,6 @@ export function recordApiRequestError(input: {
     errorName: input.error instanceof Error ? input.error.name : "unknown",
     event: "request.error",
     requestId: input.requestId,
-  });
-  incrementCounter("life_ustc_api_requests_total", {
-    auth_mode: input.authMode,
-    method: input.method,
-    route: input.route,
-    status,
-  });
-  incrementCounter("life_ustc_api_errors_total", {
-    method: input.method,
-    route: input.route,
-    status,
-  });
-  observeDurationMs("life_ustc_api_request_duration_ms", input.durationMs, {
-    method: input.method,
-    route: input.route,
   });
   writeApiRequestAnalytics({
     authMode: input.authMode,

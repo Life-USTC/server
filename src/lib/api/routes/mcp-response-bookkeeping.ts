@@ -2,7 +2,6 @@ import {
   logMcpTransportResponse,
   type McpRequestSummary,
 } from "./mcp-request-logging";
-import { recordMcpResponseMetric } from "./mcp-route-metrics";
 
 export function recordAndLogMcpResponse(input: {
   context: {
@@ -18,12 +17,7 @@ export function recordAndLogMcpResponse(input: {
   toolCount?: number;
   wwwAuthenticatePrefix?: string | null;
 }) {
-  const durationMs = recordMcpResponseMetric({
-    request: input.request,
-    phase: input.phase,
-    status: input.status,
-    start: input.start,
-  });
+  const durationMs = Date.now() - input.start;
   logMcpTransportResponse({
     context: input.context,
     durationMs,

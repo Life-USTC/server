@@ -50,10 +50,6 @@ vi.mock("@/lib/db/prisma-errors", () => ({
   isPrismaUniqueConstraintError: isPrismaUniqueConstraintErrorMock,
 }));
 
-vi.mock("@/lib/metrics/observability-metrics", () => ({
-  recordAuditWriteMetric: vi.fn(),
-}));
-
 describe("upsertDescriptionContent", () => {
   beforeEach(() => {
     auditLogCreateMock.mockReset();

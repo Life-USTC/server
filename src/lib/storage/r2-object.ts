@@ -1,5 +1,4 @@
 import { getCloudflareR2UploadsBucket } from "@/lib/adapters/cloudflare-runtime";
-import { recordStorageOperationMetric } from "@/lib/metrics/observability-metrics";
 
 export type StorageObjectHead = {
   contentType?: string;
@@ -18,9 +17,7 @@ export async function headStorageObject(
   key: string,
 ): Promise<StorageObjectHead> {
   const r2Bucket = requireR2UploadsBucket();
-  const object = await recordR2Operation("HeadObject", () =>
-    r2Bucket.head(key),
-  );
+  const object = await r2Bucket.head(key);
   if (!object) return { size: 0 };
   return {
     contentType: object.httpMetadata?.contentType,
@@ -30,7 +27,7 @@ export async function headStorageObject(
 
 export async function deleteStorageObject(key: string) {
   const r2Bucket = requireR2UploadsBucket();
-  await recordR2Operation("DeleteObject", () => r2Bucket.delete(key));
+  await r2Bucket.delete(key);
 }
 
 export async function getStorageObjectResponse(input: {
@@ -39,9 +36,7 @@ export async function getStorageObjectResponse(input: {
   key: string;
 }) {
   const r2Bucket = requireR2UploadsBucket();
-  const object = await recordR2Operation("GetObject", () =>
-    r2Bucket.get(input.key),
-  );
+  const object = await r2Bucket.get(input.key);
   if (!object) return null;
 
   const headers = new Headers();
@@ -62,42 +57,9 @@ export async function putStorageObject(input: {
   key: string;
 }) {
   const r2Bucket = requireR2UploadsBucket();
-  await recordR2Operation("PutObject", () =>
-    r2Bucket.put(input.key, input.body, {
-      httpMetadata: {
-        contentType: input.contentType ?? "application/octet-stream",
-      },
-    }),
-  );
-}
-
-export function hasStorageBinding() {
-  return Boolean(getCloudflareR2UploadsBucket());
-}
-
-export function storageReadiness() {
-  return {
-    status: hasStorageBinding() ? "ok" : "missing_r2_binding",
-    binding: "R2_UPLOADS",
-  };
-}
-
-async function recordR2Operation<T>(operation: string, run: () => Promise<T>) {
-  const start = Date.now();
-  try {
-    const result = await run();
-    recordStorageOperationMetric({
-      operation,
-      status: "success",
-      durationMs: Date.now() - start,
-    });
-    return result;
-  } catch (error) {
-    recordStorageOperationMetric({
-      operation,
-      status: "error",
-      durationMs: Date.now() - start,
-    });
-    throw error;
-  }
+  await r2Bucket.put(input.key, input.body, {
+    httpMetadata: {
+      contentType: input.contentType ?? "application/octet-stream",
+    },
+  });
 }

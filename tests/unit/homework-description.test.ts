@@ -13,10 +13,6 @@ const {
   descriptionUpdateMock: vi.fn(),
 }));
 
-vi.mock("@/lib/metrics/observability-metrics", () => ({
-  recordAuditWriteMetric: vi.fn(),
-}));
-
 vi.mock("@/lib/auth/viewer-context", () => ({
   getViewerContext: vi.fn(),
 }));

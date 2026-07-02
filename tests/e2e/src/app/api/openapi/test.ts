@@ -195,7 +195,6 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
         "bearerAuth",
         "sessionCookie",
         "mcpBearerAuth",
-        "internalBearerAuth",
         "calendarFeedToken",
       ]),
     );
@@ -225,9 +224,7 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
     expect(body.paths?.["/api/mcp"]?.get?.security).toEqual([
       { mcpBearerAuth: [] },
     ]);
-    expect(body.paths?.["/api/readiness"]?.get?.security).toEqual([
-      { internalBearerAuth: [] },
-    ]);
+    expect(body.paths?.["/api/readiness"]).toBeUndefined();
     expect(body.paths?.["/api/metrics"]).toBeUndefined();
     expect(body.paths?.["/api/health"]?.get?.security).toBeUndefined();
     expect(

@@ -84,10 +84,6 @@ vi.mock("@/lib/log/app-logger", () => ({
   logAppEvent: vi.fn(),
 }));
 
-vi.mock("@/lib/metrics/observability-metrics", () => ({
-  recordAuditWriteMetric: vi.fn(),
-}));
-
 const FIXED_NOW = new Date("2026-01-15T00:00:00.000Z");
 const KEY = "uploads/user-1/test.txt";
 const USER_ID = "user-1";
