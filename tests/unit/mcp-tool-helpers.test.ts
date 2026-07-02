@@ -80,4 +80,16 @@ describe("jsonToolResult summary 模式", () => {
       ],
     });
   });
+
+  it("wraps non-object payloads in object-shaped structuredContent", () => {
+    const rawResult = jsonToolResult([{ id: 1 }, { id: 2 }], {
+      mode: "full",
+    });
+    const result = JSON.parse(rawResult.content[0]?.text ?? "null");
+
+    expect(result).toEqual([{ id: 1 }, { id: 2 }]);
+    expect(rawResult.structuredContent).toEqual({
+      result: [{ id: 1 }, { id: 2 }],
+    });
+  });
 });

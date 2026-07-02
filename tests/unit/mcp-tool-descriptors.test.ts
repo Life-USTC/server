@@ -1,7 +1,10 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { describe, expect, it } from "vitest";
 import { createMcpServer } from "@/lib/mcp/server";
+import { installMcpToolDescriptorDefaults } from "@/lib/mcp/tool-descriptors";
+import { jsonToolResult } from "@/lib/mcp/tools/_helpers";
 import { restReadScope, restWriteScope } from "@/lib/oauth/constants";
 
 async function listTools() {
@@ -77,5 +80,53 @@ describe("MCP tool descriptors", () => {
         ],
       },
     });
+  });
+
+  it("advertises an object output schema on every registered tool", async () => {
+    const result = await listTools();
+
+    expect(result.tools.length).toBeGreaterThan(0);
+    for (const tool of result.tools) {
+      expect(tool.outputSchema).toMatchObject({ type: "object" });
+    }
+  });
+
+  it("validates helper results against the default output schema", async () => {
+    const [clientTransport, serverTransport] =
+      InMemoryTransport.createLinkedPair();
+    const mcpServer = new McpServer({
+      name: "unit-test-output-schema",
+      version: "1.0.0",
+    });
+    installMcpToolDescriptorDefaults(mcpServer);
+    mcpServer.registerTool(
+      "return_array",
+      {
+        description: "Return an array payload through the shared JSON helper.",
+      },
+      async () => jsonToolResult([{ id: 1 }], { mode: "full" }),
+    );
+    const client = new Client({
+      name: "unit-test-client",
+      version: "1.0.0",
+    });
+
+    await mcpServer.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    try {
+      const tools = await client.listTools();
+      const tool = tools.tools.find((item) => item.name === "return_array");
+      const result = await client.callTool({
+        name: "return_array",
+        arguments: {},
+      });
+
+      expect(tool?.outputSchema).toMatchObject({ type: "object" });
+      expect(result.structuredContent).toEqual({ result: [{ id: 1 }] });
+    } finally {
+      await client.close();
+      await mcpServer.close();
+    }
   });
 });

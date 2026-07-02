@@ -51,6 +51,10 @@ function summarizeMcpPayload(value: unknown): unknown {
   return out;
 }
 
+function toStructuredContent(value: unknown): Record<string, unknown> {
+  return isRecord(value) ? value : { result: value };
+}
+
 export function jsonToolResult(
   value: unknown,
   options?: { mode?: "summary" | "default" | "full" },
@@ -64,9 +68,7 @@ export function jsonToolResult(
         : compactMcpPayload(value);
   const serializedPayload = serializeDatesDeep(payload);
   return {
-    ...(isRecord(serializedPayload)
-      ? { structuredContent: serializedPayload }
-      : {}),
+    structuredContent: toStructuredContent(serializedPayload),
     content: [
       {
         type: "text" as const,
