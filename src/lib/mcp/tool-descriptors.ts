@@ -1,5 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+import {
+  ListToolsRequestSchema,
+  type ToolAnnotations,
+} from "@modelcontextprotocol/sdk/types.js";
 import { PUBLIC_REST_SCOPES } from "@/lib/oauth/scope-registry";
 import {
   getMcpToolOutputSchema,
@@ -16,9 +19,28 @@ type ToolDescriptorDefaults = {
   title: string;
   outputSchema: McpToolOutputSchema;
   annotations: ToolAnnotations;
+  securitySchemes: ToolSecurityScheme[];
   _meta: {
     securitySchemes: ToolSecurityScheme[];
   };
+};
+
+type ProtocolRequestHandler = (
+  request: unknown,
+  extra: unknown,
+) => unknown | Promise<unknown>;
+
+type ProtocolServerWithHandlers = {
+  _requestHandlers?: Map<string, ProtocolRequestHandler>;
+  setRequestHandler: (
+    requestSchema: typeof ListToolsRequestSchema,
+    handler: ProtocolRequestHandler,
+  ) => void;
+};
+
+type ToolDescriptorWithAuthMetadata = Record<string, unknown> & {
+  _meta?: Record<string, unknown>;
+  securitySchemes?: unknown;
 };
 
 const OPEN_WORLD_WRITE_TOOLS = new Set([
@@ -59,6 +81,42 @@ function isDestructiveWriteTool(name: string) {
   return DESTRUCTIVE_WRITE_PREFIXES.some((prefix) => name.startsWith(prefix));
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function addTopLevelSecuritySchemes(tool: ToolDescriptorWithAuthMetadata) {
+  const schemes = isRecord(tool._meta) ? tool._meta.securitySchemes : undefined;
+  if (tool.securitySchemes !== undefined || !Array.isArray(schemes)) {
+    return tool;
+  }
+
+  return {
+    ...tool,
+    securitySchemes: schemes,
+  };
+}
+
+function installSecuritySchemeListCompatibility(server: McpServer) {
+  const protocol = server.server as unknown as ProtocolServerWithHandlers;
+  const listToolsHandler = protocol._requestHandlers?.get("tools/list");
+  if (!listToolsHandler) return;
+
+  protocol.setRequestHandler(ListToolsRequestSchema, async (request, extra) => {
+    const result = await listToolsHandler(request, extra);
+    if (!isRecord(result) || !Array.isArray(result.tools)) {
+      return result;
+    }
+
+    return {
+      ...result,
+      tools: result.tools.map((tool) =>
+        isRecord(tool) ? addTopLevelSecuritySchemes(tool) : tool,
+      ),
+    };
+  });
+}
+
 export function getMcpToolDescriptorDefaults(
   name: string,
 ): ToolDescriptorDefaults {
@@ -67,6 +125,7 @@ export function getMcpToolDescriptorDefaults(
     requiredScopes.length > 0 ? requiredScopes : [...PUBLIC_REST_SCOPES];
   const isWrite = scopes.some(isWriteScope);
   const title = humanizeToolName(name);
+  const securitySchemes: ToolSecurityScheme[] = [{ type: "oauth2", scopes }];
 
   return {
     title,
@@ -77,8 +136,9 @@ export function getMcpToolDescriptorDefaults(
       destructiveHint: isWrite && isDestructiveWriteTool(name),
       openWorldHint: isWrite && OPEN_WORLD_WRITE_TOOLS.has(name),
     },
+    securitySchemes,
     _meta: {
-      securitySchemes: [{ type: "oauth2", scopes }],
+      securitySchemes,
     },
   };
 }
@@ -100,10 +160,12 @@ export function installMcpToolDescriptorDefaults(server: McpServer) {
         ...defaults._meta,
         ...config._meta,
         securitySchemes:
-          config._meta?.securitySchemes ?? defaults._meta.securitySchemes,
+          config._meta?.securitySchemes ?? defaults.securitySchemes,
       },
     } as typeof config;
 
-    return registerTool(name, mergedConfig, callback);
+    const registeredTool = registerTool(name, mergedConfig, callback);
+    installSecuritySchemeListCompatibility(server);
+    return registeredTool;
   }) as typeof server.registerTool;
 }

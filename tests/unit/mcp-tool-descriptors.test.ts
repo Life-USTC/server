@@ -28,6 +28,34 @@ async function listTools() {
   }
 }
 
+async function listToolsWireResult() {
+  const mcpServer = createMcpServer();
+  const handler = (
+    mcpServer.server as unknown as {
+      _requestHandlers?: Map<
+        string,
+        (request: unknown, extra: unknown) => Promise<unknown> | unknown
+      >;
+    }
+  )._requestHandlers?.get("tools/list");
+
+  try {
+    if (!handler) {
+      throw new Error("tools/list handler is not registered");
+    }
+
+    return (await handler({ method: "tools/list" }, {})) as {
+      tools: Array<{
+        _meta?: Record<string, unknown>;
+        name: string;
+        securitySchemes?: unknown;
+      }>;
+    };
+  } finally {
+    await mcpServer.close();
+  }
+}
+
 type ToolListResult = Awaited<ReturnType<typeof listTools>>;
 type JsonSchemaObject = {
   anyOf?: JsonSchemaObject[];
@@ -51,6 +79,10 @@ describe("MCP tool descriptors", () => {
   it("exposes OpenAI-compatible auth metadata and read annotations", async () => {
     const result = await listTools();
     const tool = result.tools.find((item) => item.name === "list_my_todos");
+    const wireResult = await listToolsWireResult();
+    const wireTool = wireResult.tools.find(
+      (item) => item.name === "list_my_todos",
+    );
 
     expect(tool).toMatchObject({
       title: "List My Todos",
@@ -60,6 +92,12 @@ describe("MCP tool descriptors", () => {
         destructiveHint: false,
         openWorldHint: false,
       },
+      _meta: {
+        securitySchemes: [{ type: "oauth2", scopes: [restReadScope("todo")] }],
+      },
+    });
+    expect(wireTool).toMatchObject({
+      securitySchemes: [{ type: "oauth2", scopes: [restReadScope("todo")] }],
       _meta: {
         securitySchemes: [{ type: "oauth2", scopes: [restReadScope("todo")] }],
       },
