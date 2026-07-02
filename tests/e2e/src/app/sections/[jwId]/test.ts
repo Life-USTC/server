@@ -33,7 +33,7 @@
  * - Homework CRUD with completion toggle
  * - Comment CRUD with reactions, replies, attachments
  */
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 import { signInAsDebugUser, signInAsDevAdmin } from "../../../../utils/auth";
 import { cleanupCommentsForE2e } from "../../../../utils/comments";
 import { DEV_SEED } from "../../../../utils/dev-seed";
@@ -64,6 +64,29 @@ async function jumpToSection(page: Page, name: RegExp, selector: string) {
   await expect(link).toBeVisible();
   await link.click();
   await expect(page.locator(selector)).toBeVisible();
+}
+
+async function openCommentDeleteDialog(page: Page, commentCard: Locator) {
+  await commentCard.scrollIntoViewIfNeeded();
+  await commentCard.hover();
+  const moreActions = commentCard
+    .getByRole("button", { name: /更多操作|More actions/i })
+    .first();
+  await expect(moreActions).toBeVisible();
+  await moreActions.click();
+
+  const actionMenu = page.locator('[data-slot="menu"]').last();
+  const deleteItem = actionMenu.getByRole("menuitem", {
+    name: /删除|Delete/i,
+  });
+  await expect(deleteItem).toBeVisible();
+  await deleteItem.click();
+
+  const deleteDialog = page.getByRole("dialog", {
+    name: /删除评论|Delete Comment/i,
+  });
+  await expect(deleteDialog).toBeVisible();
+  return deleteDialog;
 }
 
 function getSectionCalendarMonthView(page: Page) {
@@ -486,6 +509,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     await signInAsDebugUser(page, SECTION_URL);
 
     const calendarButton = page
+      .getByTestId("detail-pinned-summary")
       .getByRole("button", { name: /添加到日历|Add to calendar/i })
       .first();
     if ((await calendarButton.count()) === 0) {
@@ -983,21 +1007,16 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       await captureStepScreenshot(page, testInfo, "section/comment-replied");
 
       // Delete comment
-      await editedCommentCard
-        .getByRole("button", { name: /更多操作|More actions/i })
-        .first()
-        .click({ force: true });
+      const deleteDialog = await openCommentDeleteDialog(
+        page,
+        editedCommentCard,
+      );
       const deleteResponse = page.waitForResponse(
         (r) =>
           r.url().includes("/api/comments/") &&
           r.request().method() === "DELETE" &&
           r.status() === 200,
       );
-      await page.getByRole("menuitem", { name: /删除|Delete/i }).click();
-      const deleteDialog = page.getByRole("dialog", {
-        name: /删除评论|Delete Comment/i,
-      });
-      await expect(deleteDialog).toBeVisible();
       await deleteDialog.getByRole("button", { name: /删除|Delete/i }).click();
       await deleteResponse;
       await page.waitForLoadState("networkidle");
@@ -1230,22 +1249,13 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       await popup.close();
 
       // Cleanup
-      await commentCard.hover();
-      await commentCard
-        .getByRole("button", { name: /更多操作|More actions/i })
-        .first()
-        .click();
+      const dlg = await openCommentDeleteDialog(page, commentCard);
       const deleteResponse = page.waitForResponse(
         (r) =>
           r.url().includes("/api/comments/") &&
           r.request().method() === "DELETE" &&
           r.status() === 200,
       );
-      await page.getByRole("menuitem", { name: /删除|Delete/i }).click();
-      const dlg = page.getByRole("dialog", {
-        name: /删除评论|Delete Comment/i,
-      });
-      await expect(dlg).toBeVisible();
       await dlg.getByRole("button", { name: /删除|Delete/i }).click();
       await deleteResponse;
     } finally {
