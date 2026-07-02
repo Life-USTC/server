@@ -214,6 +214,22 @@ describe("MCP tool descriptors", () => {
         },
       ],
     };
+    const examPayload = {
+      exams: [
+        {
+          id: 1,
+          jwId: 1001,
+          examDate: "2026-07-02T00:00:00.000Z",
+          startTime: 900,
+          endTime: 1100,
+          examType: 2,
+          examMode: null,
+          examTakeCount: null,
+          examRooms: [],
+        },
+      ],
+      found: true,
+    };
     installMcpToolDescriptorDefaults(mcpServer);
     mcpServer.registerTool(
       "return_todos_default",
@@ -230,6 +246,15 @@ describe("MCP tool descriptors", () => {
         outputSchema: getMcpToolOutputSchema("list_my_todos"),
       },
       async () => jsonToolResult(todoPayload, { mode: "summary" }),
+    );
+    mcpServer.registerTool(
+      "return_exams_default",
+      {
+        description:
+          "Return default exam payload through the shared numeric schema.",
+        outputSchema: getMcpToolOutputSchema("list_exams_by_section"),
+      },
+      async () => jsonToolResult(examPayload, { mode: "default" }),
     );
     const client = new Client({
       name: "unit-test-client",
@@ -248,6 +273,10 @@ describe("MCP tool descriptors", () => {
         name: "return_todos_summary",
         arguments: {},
       });
+      const examResult = await client.callTool({
+        name: "return_exams_default",
+        arguments: {},
+      });
 
       expect(defaultResult.structuredContent).toMatchObject({
         counts: todoPayload.counts,
@@ -259,6 +288,15 @@ describe("MCP tool descriptors", () => {
           total: 1,
           items: [expect.objectContaining({ id: "todo-1" })],
         },
+      });
+      expect(examResult.structuredContent).toMatchObject({
+        exams: [
+          expect.objectContaining({
+            endTime: 1100,
+            examType: 2,
+            startTime: 900,
+          }),
+        ],
       });
     } finally {
       await client.close();
