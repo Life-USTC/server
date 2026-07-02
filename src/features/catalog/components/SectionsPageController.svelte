@@ -102,10 +102,7 @@ function sectionEmptyDescription() {
 
 <section class="grid gap-5">
   <CatalogPageHeader
-    breadcrumbLabel={commonLabels.breadcrumb}
-    currentLabel={commonLabels.sections}
     description={sectionLabels.subtitle}
-    homeLabel={commonLabels.home}
     metaLabel={sectionLabels.semester}
     metaValue={selectedSemester?.nameCn ?? commonLabels.allSemesters}
     title={sectionLabels.title}

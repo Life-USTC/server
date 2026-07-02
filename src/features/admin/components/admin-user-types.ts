@@ -59,7 +59,6 @@ export type AdminUsersAdminCopy = {
 };
 
 export type AdminUsersCommonCopy = {
-  breadcrumb: string;
   clear: string;
   home: string;
   next: string;

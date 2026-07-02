@@ -6,7 +6,6 @@ import {
   adminDashboardQueueCards,
 } from "@/features/admin/lib/admin-dashboard-card-data";
 import PageHeader from "$lib/components/PageHeader.svelte";
-import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.js";
 
 export let data: AdminDashboardCardData & {
   copy: AdminDashboardCardData["copy"] & {
@@ -22,21 +21,7 @@ $: queueCards = adminDashboardQueueCards(data);
 <svelte:head><title>{data.copy.title} - Life@USTC</title></svelte:head>
 
 <section class="grid gap-8">
-  <PageHeader title={data.copy.title} description={data.copy.subtitle}>
-    {#snippet breadcrumb()}
-      <Breadcrumb.Root label={data.copy.common.breadcrumb}>
-        <Breadcrumb.List>
-          <Breadcrumb.Item>
-            <Breadcrumb.Link href="/">{data.copy.common.home}</Breadcrumb.Link>
-          </Breadcrumb.Item>
-          <Breadcrumb.Separator />
-          <Breadcrumb.Item>
-            <Breadcrumb.Page>{data.copy.title}</Breadcrumb.Page>
-          </Breadcrumb.Item>
-        </Breadcrumb.List>
-      </Breadcrumb.Root>
-    {/snippet}
-  </PageHeader>
+  <PageHeader title={data.copy.title} description={data.copy.subtitle} />
 
   <div class="grid gap-3">
     <h2 class="text-sm font-medium text-base-content/60">

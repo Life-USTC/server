@@ -40,7 +40,6 @@ export type SettingsCopy = {
     avatarOption: string;
   };
   common: {
-    breadcrumb: string;
     home: string;
   };
   profile: SettingsProfileCopy;

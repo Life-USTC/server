@@ -71,11 +71,6 @@ export type AdminModerationAdminCopy = {
   title: string;
 };
 
-export type AdminModerationCommonCopy = {
-  breadcrumb: string;
-  home: string;
-};
-
 export type AdminModerationHeaderTab = readonly [
   AdminModerationTab,
   string,

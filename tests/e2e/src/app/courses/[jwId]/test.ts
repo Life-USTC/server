@@ -197,15 +197,6 @@ test.describe("/courses/[jwId] 课程详情", () => {
     await captureStepScreenshot(page, testInfo, "course/detail-nav");
   });
 
-  test("面包屑可返回课程列表", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, COURSE_URL);
-    const breadcrumb = page.locator('a[href="/courses"]').first();
-    await expect(breadcrumb).toBeVisible();
-    await breadcrumb.click();
-    await expect(page).toHaveURL(/\/courses(?:\?.*)?$/);
-    await captureStepScreenshot(page, testInfo, "course/breadcrumb-back");
-  });
-
   test("班级行链接到班级详情", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, COURSE_URL);
     await jumpToCourseSection(page, /班级|Sections/i, "#course-sections");

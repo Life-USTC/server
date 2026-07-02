@@ -55,8 +55,3 @@ export type AdminBusCopy = {
 export type AdminBusHeaderAdminCopy = {
   title: string;
 };
-
-export type AdminBusHeaderCommonCopy = {
-  breadcrumb: string;
-  home: string;
-};

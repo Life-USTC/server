@@ -37,7 +37,7 @@ type PageData = {
   commentsData: CatalogDetailCommentsData;
   copy: {
     comments: { title: string };
-    common: { breadcrumb: string; home: string; teachers: string };
+    common: { home: string; teachers: string };
     descriptions: CatalogDetailDescriptionCopy;
     metadata: { pages: { teacherDetail: string } };
     teacherDetail: TeacherDetailCopy["teacherDetail"] & {

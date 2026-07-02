@@ -2,19 +2,16 @@
 import PageHeader from "$lib/components/PageHeader.svelte";
 import PageHeaderMeta from "$lib/components/PageHeaderMeta.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Tabs from "$lib/components/ui/tabs/index.js";
 import type {
   AdminModerationAdminCopy,
-  AdminModerationCommonCopy,
   AdminModerationCopy,
   AdminModerationHeaderTab,
   AdminModerationTab,
 } from "./admin-moderation-page-types";
 
 export let adminCopy: AdminModerationAdminCopy;
-export let commonCopy: AdminModerationCommonCopy;
 export let copy: AdminModerationCopy;
 export let currentTab: AdminModerationTab;
 export let isRefreshing: boolean;
@@ -26,17 +23,6 @@ $: currentTabLabel = tabs.find(([id]) => id === currentTab)?.[1] ?? currentTab;
 </script>
 
 <PageHeader title={copy.title} description={copy.pageDescription} eyebrow={adminCopy.title}>
-  {#snippet breadcrumb()}
-    <Breadcrumb.Root label={commonCopy.breadcrumb}>
-      <Breadcrumb.List>
-        <Breadcrumb.Item><Breadcrumb.Link href="/">{commonCopy.home}</Breadcrumb.Link></Breadcrumb.Item>
-        <Breadcrumb.Separator />
-        <Breadcrumb.Item><Breadcrumb.Link href="/admin">{adminCopy.title}</Breadcrumb.Link></Breadcrumb.Item>
-        <Breadcrumb.Separator />
-        <Breadcrumb.Item><Breadcrumb.Page>{copy.title}</Breadcrumb.Page></Breadcrumb.Item>
-      </Breadcrumb.List>
-    </Breadcrumb.Root>
-  {/snippet}
   {#snippet actions()}
     <Button
       class="w-full sm:w-auto"

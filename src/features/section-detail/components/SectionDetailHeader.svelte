@@ -7,18 +7,11 @@ import LinkIcon from "$lib/components/icons/link-2.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import { Alert } from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import type {
   SectionLocalizedName,
   SectionPrimaryName,
 } from "./section-basic-info-types";
-
-type SectionHeaderCommonCopy = {
-  breadcrumb: string;
-  home: string;
-  sections: string;
-};
 
 type SectionHeaderCopy = {
   addToCalendar: string;
@@ -44,7 +37,6 @@ type SectionHeaderViewer = {
 
 type SubscriptionActionKey = "subscribe" | "unsubscribe";
 
-export let commonCopy: SectionHeaderCommonCopy;
 export let courseName: string;
 export let courseSecondaryName: string;
 export let formError: string | null | undefined;
@@ -66,17 +58,6 @@ export let viewer: SectionHeaderViewer;
   description={courseSecondaryName}
   eyebrow={sectionCopy.teachingSection}
 >
-  {#snippet breadcrumb()}
-    <Breadcrumb.Root label={commonCopy.breadcrumb}>
-      <Breadcrumb.List>
-        <Breadcrumb.Item><Breadcrumb.Link href="/">{commonCopy.home}</Breadcrumb.Link></Breadcrumb.Item>
-        <Breadcrumb.Separator />
-        <Breadcrumb.Item><Breadcrumb.Link href="/sections">{commonCopy.sections}</Breadcrumb.Link></Breadcrumb.Item>
-        <Breadcrumb.Separator />
-        <Breadcrumb.Item><Breadcrumb.Page>{section.code}</Breadcrumb.Page></Breadcrumb.Item>
-      </Breadcrumb.List>
-    </Breadcrumb.Root>
-  {/snippet}
   {#snippet actions()}
     <Button variant="outline" type="button" onclick={onOpenCalendar}>
       <CalendarIcon />

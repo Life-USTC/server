@@ -9,7 +9,6 @@
  *
  * ## UI/UX Elements
  * - Settings nav bar with 4 tab links (profile, accounts, content, danger)
- * - Breadcrumbs: Home → Settings
  * - Page title and description
  * - Default tab is "profile" which shows the profile edit form
  *

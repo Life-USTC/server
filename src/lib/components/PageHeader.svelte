@@ -7,7 +7,6 @@ type Props = {
   actions?: Snippet;
   after?: Snippet;
   belowTitle?: Snippet;
-  breadcrumb?: Snippet;
   class?: string;
   description?: string;
   eyebrow?: string;
@@ -22,7 +21,6 @@ let {
   actions,
   after,
   belowTitle,
-  breadcrumb,
   class: className = "",
   description = "",
   eyebrow = "",
@@ -35,12 +33,6 @@ let {
 </script>
 
 <header class={cn("grid gap-4 py-2 md:py-3", className)}>
-  {#if breadcrumb}
-    <div>
-      {@render breadcrumb()}
-    </div>
-  {/if}
-
   <div class="flex flex-wrap items-start justify-between gap-4">
     <div class="min-w-0">
       {#if eyebrowContent}
