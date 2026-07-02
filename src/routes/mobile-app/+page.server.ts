@@ -14,6 +14,7 @@ export const load: PageServerLoad = ({ locals }) => {
     copy: {
       homepage: copy.homepage,
       metadata: copy.metadata.pages,
+      mobileAppPage: copy.mobileAppPage,
     },
   };
 };
