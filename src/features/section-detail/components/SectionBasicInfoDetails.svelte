@@ -16,7 +16,7 @@ export let sectionCopy: SectionBasicInfoCopy;
 export let yesNo: (value: boolean | null | undefined) => string;
 </script>
 
-<Accordion.Item title={sectionCopy.moreDetails}>
+<Accordion.Item class="rounded-none border-x-0 border-t-0 bg-transparent px-0 py-3" title={sectionCopy.moreDetails}>
   <dl class="grid gap-3 text-sm">
     <div class="flex items-baseline justify-between gap-4">
       <dt class="text-base-content/60">{sectionCopy.teachLanguage}</dt>

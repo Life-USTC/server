@@ -1,4 +1,8 @@
 <script lang="ts">
+import BookOpenTextIcon from "@lucide/svelte/icons/book-open-text";
+import InfoIcon from "@lucide/svelte/icons/info";
+import ListIcon from "@lucide/svelte/icons/list";
+import MessageSquareIcon from "@lucide/svelte/icons/message-square";
 import CommentsPanel from "@/features/comments/components/CommentsPanel.svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
@@ -86,22 +90,26 @@ $: commentsCount = data.commentsData
 $: sectionNavItems = [
   {
     href: courseBaseHref,
+    icon: InfoIcon,
     key: "overview" as const,
     label: copy.course.basicInfo,
   },
   {
     href: `${courseBaseHref}/introduction`,
+    icon: BookOpenTextIcon,
     key: "introduction" as const,
     label: copy.courseDetail.tabs.description,
   },
   {
     href: `${courseBaseHref}/sections`,
+    icon: ListIcon,
     key: "sections" as const,
     label: copy.courseDetail.teachingSections,
     meta: data.course.sections.length,
   },
   {
     href: `${courseBaseHref}/comments`,
+    icon: MessageSquareIcon,
     key: "comments" as const,
     label: copy.courseDetail.tabs.comments,
     meta: commentsCount,
@@ -131,14 +139,14 @@ $: pinnedSummaryItems = [
   <meta property="og:title" content={displayName} />
 </svelte:head>
 
-<section class="grid">
+<section class="-mx-4 -mt-4 grid bg-base-100 sm:-mx-5 lg:-mx-6 lg:-my-4 lg:h-[calc(100%+2rem)] lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)]">
   <DetailPinnedSummary
     items={pinnedSummaryItems}
     title={displayName}
     description={secondaryDisplayName}
   />
 
-  <div class="-mx-4 grid min-h-[calc(100vh-8rem)] bg-base-100 sm:-mx-5 lg:-mx-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start">
+  <div class="grid min-h-0 bg-base-100 lg:grid-cols-[13rem_minmax(0,1fr)]">
     <DetailSectionNav
       activeHref={activeNavItem?.href ?? courseBaseHref}
       ariaLabel={formatMessage(copy.metadata.pages.courseDetail, { name: displayName })}
@@ -146,7 +154,7 @@ $: pinnedSummaryItems = [
       label={copy.common.courses}
     />
 
-    <div class="min-w-0 px-4 py-5 sm:px-5 lg:px-6">
+    <div class="min-w-0 px-4 py-5 sm:px-5 lg:min-h-0 lg:overflow-y-auto lg:px-6" data-detail-scroll-container>
       {#if data.detailSection === "overview"}
       <section id="course-overview">
         <CourseDetailBasicInfo
@@ -168,11 +176,7 @@ $: pinnedSummaryItems = [
         {/key}
       </section>
       {:else if data.detailSection === "sections"}
-      <section class="grid gap-3" id="course-sections">
-        <div>
-          <h2 class="font-semibold text-lg">{copy.courseDetail.teachingSections}</h2>
-          <p class="text-base-content/60 text-sm">{copy.courseDetail.teachingSectionsDescription}</p>
-        </div>
+      <section id="course-sections">
         <CourseDetailSections
           copy={detailCopy}
           course={data.course}
@@ -182,10 +186,7 @@ $: pinnedSummaryItems = [
         />
       </section>
       {:else if data.detailSection === "comments"}
-      <section class="grid gap-3" id="course-comments">
-        <div>
-          <h2 class="font-semibold text-lg">{copy.courseDetail.tabs.comments}</h2>
-        </div>
+      <section id="course-comments">
         {#key `comments:course:${data.course.id}`}
           <CommentsPanel
             initialData={data.commentsData}

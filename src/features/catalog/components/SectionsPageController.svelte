@@ -1,4 +1,5 @@
 <script lang="ts">
+import SlidersHorizontalIcon from "@lucide/svelte/icons/sliders-horizontal";
 import {
   type CatalogNamed,
   catalogHref,
@@ -153,6 +154,7 @@ function sectionEmptyDescription() {
     <CatalogFilterSidebar
       activeCount={activeFilterCount}
       description={sectionLabels.subtitle}
+      icon={SlidersHorizontalIcon}
       title={sectionLabels.summary.filters}
     >
       <SectionsFilters

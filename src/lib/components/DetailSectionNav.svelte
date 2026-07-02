@@ -1,8 +1,10 @@
 <script lang="ts">
+import type { Component } from "svelte";
 import { cn } from "$lib/utils.js";
 
 type DetailSectionNavItem = {
   href: string;
+  icon?: Component;
   label: string;
   meta?: string | number;
 };
@@ -14,7 +16,7 @@ export let label = "";
 </script>
 
 <aside
-  class="w-full border-base-300 border-b bg-base-100 lg:sticky lg:top-28 lg:h-[calc(100vh-7rem)] lg:border-r lg:border-b-0"
+  class="w-full shrink-0 border-base-300 border-b bg-base-100 lg:h-full lg:min-h-0 lg:border-r lg:border-b-0"
   data-testid="detail-section-nav"
 >
   <nav aria-label={ariaLabel || label} class="h-full overflow-y-auto p-2">
@@ -37,7 +39,14 @@ export let label = "";
             href={item.href}
             aria-current={active ? "page" : undefined}
           >
-            <span class="truncate">{item.label}</span>
+            <span class="flex min-w-0 items-center gap-2">
+              {#if item.icon}
+                <span class="detail-section-nav-icon" aria-hidden="true">
+                  <svelte:component this={item.icon} />
+                </span>
+              {/if}
+              <span class="truncate">{item.label}</span>
+            </span>
             {#if item.meta !== undefined && item.meta !== ""}
               <span
                 class={cn(
@@ -56,3 +65,11 @@ export let label = "";
     </ol>
   </nav>
 </aside>
+
+<style>
+  .detail-section-nav-icon :global(svg) {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+  }
+</style>

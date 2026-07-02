@@ -13,7 +13,7 @@ export let sectionCopy: SectionBasicInfoCopy;
 </script>
 
 {#if section.adminClasses.length > 0}
-  <Accordion.Item title={sectionCopy.adminClasses}>
+  <Accordion.Item class="rounded-none border-x-0 border-t-0 bg-transparent px-0 py-3" title={sectionCopy.adminClasses}>
     <div class="flex flex-wrap gap-2">
       {#each section.adminClasses as adminClass}
         <Badge variant="outline">{primaryName(adminClass)}</Badge>
