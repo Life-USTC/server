@@ -7,7 +7,7 @@ export let isActiveLink: (link: ShellLink) => boolean;
 export let navGroups: ShellNavGroup[];
 </script>
 
-<aside class="hidden h-screen min-h-0 overflow-hidden border-base-300 border-r bg-base-100 lg:flex lg:flex-col">
+<aside class="hidden h-screen min-h-0 overflow-hidden border-base-300 border-r bg-base-100 lg:sticky lg:top-0 lg:flex lg:flex-col">
   <div class="flex h-12 shrink-0 items-center border-base-300 border-b px-3">
     <a
       id="app-logo"

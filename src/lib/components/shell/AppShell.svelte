@@ -259,7 +259,7 @@ onMount(() => {
   }
 </style>
 
-<div class="min-h-screen bg-base-200 text-base-content lg:grid lg:h-screen lg:grid-cols-[15rem_minmax(0,1fr)] lg:overflow-hidden">
+<div class="min-h-screen bg-base-200 text-base-content lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
   {#if $navigating}
     <RouteLoadingBar loadingLabel={data.copy.shell.loading} />
   {/if}
@@ -270,7 +270,7 @@ onMount(() => {
     {navGroups}
   />
 
-  <div class="flex min-w-0 flex-col lg:h-screen lg:min-h-0">
+  <div class="flex min-w-0 flex-col">
     <AppTopbar
       {activeTitle}
       {avatarFallback}
@@ -294,7 +294,7 @@ onMount(() => {
       {userMenuOpen}
     />
 
-    <div class="flex min-w-0 flex-1 flex-col lg:min-h-0 lg:overflow-y-auto">
+    <div class="flex min-w-0 flex-1 flex-col">
       <main id="main-content" class="w-full flex-1 px-4 py-4 sm:px-5 lg:px-6">
         <slot />
       </main>

@@ -142,6 +142,45 @@ test("/ shell 菜单支持键盘菜单语义", async ({ page }) => {
   expect(checkedStates.filter((state) => state === "true")).toHaveLength(1);
 });
 
+test("/ shell 桌面导航后内容滚动回到顶部", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await gotoAndWaitForReady(page, "/terms");
+
+  await page.evaluate(() => {
+    window.scrollTo(0, 720);
+    document
+      .querySelector("#main-content")
+      ?.parentElement?.scrollTo({ top: 720 });
+  });
+
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const contentPane =
+          document.querySelector("#main-content")?.parentElement;
+        return Math.max(window.scrollY, contentPane?.scrollTop ?? 0);
+      }),
+    )
+    .toBeGreaterThan(100);
+
+  await page
+    .locator("aside")
+    .getByRole("link", { name: /^(课程|Courses)$/i })
+    .click();
+  await page.waitForURL("**/courses");
+  await waitForUiSettled(page);
+
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const contentPane =
+          document.querySelector("#main-content")?.parentElement;
+        return Math.max(window.scrollY, contentPane?.scrollTop ?? 0);
+      }),
+    )
+    .toBeLessThan(8);
+});
+
 test("/ 登录用户在空状态总览页可看到班级发现入口", async ({
   page,
 }, testInfo) => {
