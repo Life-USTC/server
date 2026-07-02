@@ -102,7 +102,8 @@ $: sectionNavItems = [
   {
     href: `${sectionBaseHref}/exams`,
     key: "exams" as const,
-    label: examSectionLabel,
+    label: sectionCopy.tabs.exams,
+    meta: sectionExamEvents.length,
   },
   {
     href: `${sectionBaseHref}/homework`,
