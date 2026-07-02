@@ -25,7 +25,6 @@ import {
   buildFooterLinks,
   resolveAvatarFallback,
   resolveProfileHref,
-  resolveThemeButtonLabel,
   type ThemeMode,
 } from "$lib/components/shell/layout-shell";
 import RouteLoadingBar from "$lib/components/shell/RouteLoadingBar.svelte";
@@ -52,7 +51,6 @@ let themeMenuOpen = false;
 
 $: profileHref = resolveProfileHref(data.user);
 $: avatarFallback = resolveAvatarFallback(data.user);
-$: themeButtonLabel = resolveThemeButtonLabel(themeMode, data.copy.theme);
 $: navGroups = buildShellNavGroups(
   data.copy,
   Boolean(data.user),
@@ -290,7 +288,6 @@ onMount(() => {
       {setThemeMenuOpen}
       {setThemeMode}
       {setUserMenuOpen}
-      {themeButtonLabel}
       {themeMenuOpen}
       {themeMode}
       user={data.user}

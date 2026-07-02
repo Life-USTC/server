@@ -43,9 +43,6 @@ test("/ 主题切换可写入 localStorage", async ({ page }, testInfo) => {
     name: /^(主题选择|Theme selector)$/i,
   });
   await expect(themeButton).toBeVisible();
-  await expect(themeButton).toContainText(
-    /跟随系统|浅色|深色|System|Light|Dark/i,
-  );
 
   await expect(async () => {
     await themeButton.click();

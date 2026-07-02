@@ -29,15 +29,14 @@ export let setMobileMenuOpen: (open: boolean) => void;
 export let setThemeMenuOpen: (open: boolean) => void;
 export let setThemeMode: (mode: ThemeMode) => void;
 export let setUserMenuOpen: (open: boolean) => void;
-export let themeButtonLabel: string;
 export let themeMenuOpen: boolean;
 export let themeMode: ThemeMode;
 export let user: LayoutUserSummary;
 export let userMenuOpen: boolean;
 </script>
 
-<header class="sticky top-0 border-base-300 border-b bg-base-100/95 backdrop-blur">
-  <div class="flex h-12 items-center gap-2 px-3 sm:px-5 lg:px-6">
+<header class="sticky top-0 h-12 shrink-0 border-base-300 border-b bg-base-100/95 backdrop-blur">
+  <div class="flex h-full items-center gap-2 px-3 sm:px-5 lg:px-6">
     <AppMobileMenu
       {closeMenus}
       {copy}
@@ -94,8 +93,7 @@ export let userMenuOpen: boolean;
       <Menu.Root open={themeMenuOpen} onOpenChange={setThemeMenuOpen}>
         <Menu.Trigger
           aria-label={copy.theme.selector}
-          class="gap-1.5 px-2.5"
-          size="sm"
+          size="icon-sm"
           variant="outline"
         >
           {#if themeMode === "light"}
@@ -105,7 +103,6 @@ export let userMenuOpen: boolean;
           {:else}
             <MonitorIcon data-icon="inline-start" />
           {/if}
-          <span>{themeButtonLabel}</span>
         </Menu.Trigger>
         <Menu.Content align="end" class="w-44">
           <Menu.RadioGroup value={themeMode}>
