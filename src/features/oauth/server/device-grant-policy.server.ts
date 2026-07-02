@@ -98,7 +98,9 @@ type DeviceGrantPrismaWithRaw = DeviceGrantPrisma & {
   $queryRaw: NonNullable<DeviceGrantPrisma["$queryRaw"]>;
 };
 
-function hasQueryRaw(prisma: DeviceGrantPrisma): prisma is DeviceGrantPrismaWithRaw {
+function hasQueryRaw(
+  prisma: DeviceGrantPrisma,
+): prisma is DeviceGrantPrismaWithRaw {
   return typeof prisma.$queryRaw === "function";
 }
 
@@ -146,31 +148,30 @@ export async function resolveDeviceGrantRecord({
   deviceCode: string;
   prisma?: DeviceGrantPrisma;
 }): Promise<DeviceGrantRecordResult> {
-  const record =
-    hasQueryRaw(prisma)
-      ? await resolveFreshDeviceGrantRecord(prisma, deviceCode)
-      : await prisma.deviceCode.findUnique({
-          where: { deviceCode },
-          select: {
-            id: true,
-            expiresAt: true,
-            lastPolledAt: true,
-            resources: true,
-            status: true,
-            userId: true,
-            scopes: true,
-            client: {
-              select: {
-                clientId: true,
-                disabled: true,
-                grantTypes: true,
-                public: true,
-                tokenEndpointAuthMethod: true,
-                type: true,
-              },
+  const record = hasQueryRaw(prisma)
+    ? await resolveFreshDeviceGrantRecord(prisma, deviceCode)
+    : await prisma.deviceCode.findUnique({
+        where: { deviceCode },
+        select: {
+          id: true,
+          expiresAt: true,
+          lastPolledAt: true,
+          resources: true,
+          status: true,
+          userId: true,
+          scopes: true,
+          client: {
+            select: {
+              clientId: true,
+              disabled: true,
+              grantTypes: true,
+              public: true,
+              tokenEndpointAuthMethod: true,
+              type: true,
             },
           },
-        });
+        },
+      });
 
   if (!record || record.client.clientId !== clientId) {
     return { error: { code: "invalid_grant" } };
