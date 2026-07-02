@@ -4,9 +4,9 @@ import type {
   AnonymousDashboardData,
   AnonymousLinkGroup,
   DashboardDashboardCopy,
+  DashboardHomepageCopy,
   LinkView,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
-import * as Tabs from "$lib/components/ui/tabs/index.js";
 import AnonymousLinksTab from "./AnonymousLinksTab.svelte";
 import BusTab from "./BusTab.svelte";
 
@@ -14,39 +14,50 @@ export let anonymousData: AnonymousDashboardData;
 export let anonymousLinkGroups: AnonymousLinkGroup[];
 export let busCopy: DashboardBusCopy;
 export let dashboardCopy: DashboardDashboardCopy;
+export let homepageCopy: DashboardHomepageCopy;
 export let linkIconLabel: (icon: string) => string;
 export let linkSearchInput: HTMLInputElement | null;
 export let linkSearchQuery: string;
 export let linkView: LinkView;
 export let setLinkView: (view: LinkView) => void;
+
+$: currentTool =
+  anonymousData.tab === "links"
+    ? dashboardCopy.nav.links
+    : dashboardCopy.nav.bus;
 </script>
 
-<div class="flex flex-wrap justify-end gap-1">
-  <Tabs.Root class="gap-0">
-    <Tabs.List aria-label={dashboardCopy.nav.ariaLabel} class="!w-full !flex-wrap !justify-end !overflow-visible">
-      <Tabs.Link href="/?tab=bus" selected={anonymousData.tab === "bus"}>
-        {dashboardCopy.nav.bus.title}
-      </Tabs.Link>
-      <Tabs.Link href="/?tab=links" selected={anonymousData.tab === "links"}>
-        {dashboardCopy.nav.links.title}
-      </Tabs.Link>
-    </Tabs.List>
-  </Tabs.Root>
-</div>
+<section class="mx-auto grid w-full max-w-7xl gap-5">
+  <div class="grid gap-1">
+    <p class="font-medium text-base-content/60 text-sm">
+      {homepageCopy.publicDashboard.title}
+    </p>
+    <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+      <div class="grid gap-1">
+        <h1 class="font-semibold text-2xl tracking-normal sm:text-3xl">
+          {currentTool.title}
+        </h1>
+        <p class="max-w-3xl text-base-content/60 text-sm">
+          {currentTool.description}
+        </p>
+      </div>
+    </div>
+  </div>
 
-{#if anonymousData.tab === "links"}
-  <AnonymousLinksTab
-    {dashboardCopy}
-    {linkIconLabel}
-    {setLinkView}
-    {linkView}
-    {anonymousLinkGroups}
-    bind:linkSearchQuery
-    bind:linkSearchInput
-  />
-{:else}
-  <BusTab
-    {busCopy}
-    bus={anonymousData.bus ?? null}
-  />
-{/if}
+  {#if anonymousData.tab === "links"}
+    <AnonymousLinksTab
+      {dashboardCopy}
+      {linkIconLabel}
+      {setLinkView}
+      {linkView}
+      {anonymousLinkGroups}
+      bind:linkSearchQuery
+      bind:linkSearchInput
+    />
+  {:else}
+    <BusTab
+      {busCopy}
+      bus={anonymousData.bus ?? null}
+    />
+  {/if}
+</section>

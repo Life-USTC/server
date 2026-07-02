@@ -17,19 +17,22 @@ export let busNextTripHighlightKey: string | null;
 export let busPlannerReady: boolean;
 export let busShowsEstimatedHint: boolean;
 export let reverseBusStops: () => void;
+export let showHeader = true;
 </script>
 
-<div class="order-2 lg:order-2">
+<div>
   <div class="grid gap-5">
-    <div class="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <Card.Title>{busCopy.dashboardTitle}</Card.Title>
-        <Card.Description>
-          {bus?.version?.title ?? busCopy.activeVersion}
-        </Card.Description>
+    {#if showHeader}
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <Card.Title>{busCopy.dashboardTitle}</Card.Title>
+          <Card.Description>
+            {bus?.version?.title ?? busCopy.activeVersion}
+          </Card.Description>
+        </div>
+        <Button href="/bus-map" size="lg" variant="outline">{busCopy.transitMap}</Button>
       </div>
-      <Button href="/bus-map" size="lg" variant="outline">{busCopy.transitMap}</Button>
-    </div>
+    {/if}
 
     {#if busApplicableRoutes.length > 0}
       <div class="grid gap-4">

@@ -29,7 +29,7 @@ export let setBusDayType: (dayType: "weekday" | "weekend") => void;
 export let toggleBusDepartedTrips: () => void;
 </script>
 
-<Card.Root class="order-1 lg:order-1">
+<Card.Root>
   <Card.Content class="grid gap-4 pt-5">
     <div class="grid gap-4">
       <BusCampusPickerGroup
@@ -97,6 +97,7 @@ export let toggleBusDepartedTrips: () => void;
           </Field.Label>
         </Field.Content>
         <Switch
+          class="border-base-300 data-unchecked:bg-base-300"
           id="bus-show-departed-trips"
           checked={busShowDepartedTrips}
           disabled={!busPlannerReady}
