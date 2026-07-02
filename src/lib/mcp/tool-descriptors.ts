@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
 import { PUBLIC_REST_SCOPES } from "@/lib/oauth/scope-registry";
 import { getRequiredMcpScopes } from "./tool-scopes";
 
@@ -10,11 +11,17 @@ type ToolSecurityScheme = {
 
 type ToolDescriptorDefaults = {
   title: string;
+  outputSchema: typeof STRUCTURED_CONTENT_OUTPUT_SCHEMA;
   annotations: ToolAnnotations;
   _meta: {
     securitySchemes: ToolSecurityScheme[];
   };
 };
+
+const STRUCTURED_CONTENT_OUTPUT_SCHEMA = z
+  .object({})
+  .catchall(z.unknown())
+  .describe("Open object returned in structuredContent.");
 
 const OPEN_WORLD_WRITE_TOOLS = new Set([
   "add_comment_reaction",
@@ -65,6 +72,7 @@ export function getMcpToolDescriptorDefaults(
 
   return {
     title,
+    outputSchema: STRUCTURED_CONTENT_OUTPUT_SCHEMA,
     annotations: {
       title,
       readOnlyHint: !isWrite,
@@ -82,23 +90,22 @@ export function installMcpToolDescriptorDefaults(server: McpServer) {
 
   server.registerTool = ((name, config, callback) => {
     const defaults = getMcpToolDescriptorDefaults(name);
-    return registerTool(
-      name,
-      {
-        ...config,
-        title: config.title ?? defaults.title,
-        annotations: {
-          ...defaults.annotations,
-          ...config.annotations,
-        },
-        _meta: {
-          ...defaults._meta,
-          ...config._meta,
-          securitySchemes:
-            config._meta?.securitySchemes ?? defaults._meta.securitySchemes,
-        },
+    const mergedConfig = {
+      ...config,
+      title: config.title ?? defaults.title,
+      outputSchema: config.outputSchema ?? defaults.outputSchema,
+      annotations: {
+        ...defaults.annotations,
+        ...config.annotations,
       },
-      callback,
-    );
+      _meta: {
+        ...defaults._meta,
+        ...config._meta,
+        securitySchemes:
+          config._meta?.securitySchemes ?? defaults._meta.securitySchemes,
+      },
+    } as typeof config;
+
+    return registerTool(name, mergedConfig, callback);
   }) as typeof server.registerTool;
 }
