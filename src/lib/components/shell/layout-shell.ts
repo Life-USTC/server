@@ -21,6 +21,9 @@ type FooterCopy = {
 };
 
 type ThemeCopy = {
+  dark: string;
+  light: string;
+  system: string;
   switchToDark: string;
   switchToLight: string;
   useSystem: string;
@@ -37,9 +40,9 @@ export function resolveAvatarFallback(user: ShellUser) {
 }
 
 export function resolveThemeButtonLabel(mode: ThemeMode, copy: ThemeCopy) {
-  if (mode === "light") return copy.switchToDark;
-  if (mode === "dark") return copy.useSystem;
-  return copy.switchToLight;
+  if (mode === "light") return copy.light;
+  if (mode === "dark") return copy.dark;
+  return copy.system;
 }
 
 export function buildPrimaryLinks(copy: NavCopy): ShellLink[] {

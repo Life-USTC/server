@@ -40,12 +40,16 @@ test("/ 主题切换可写入 localStorage", async ({ page }, testInfo) => {
   await gotoAndWaitForReady(page, "/", { testInfo, screenshotLabel: "home" });
 
   const themeButton = page.getByRole("button", {
-    name: /切换到浅色模式|切换到深色模式|使用系统偏好|Switch to light mode|Switch to dark mode|Use system preference/i,
+    name: /^(主题选择|Theme selector)$/i,
   });
   await expect(themeButton).toBeVisible();
+  await expect(themeButton).toContainText(
+    /跟随系统|浅色|深色|System|Light|Dark/i,
+  );
 
   await expect(async () => {
     await themeButton.click();
+    await page.getByRole("menuitemradio", { name: /^(浅色|Light)$/i }).click();
     await expect
       .poll(
         async () =>
@@ -61,6 +65,7 @@ test("/ 主题切换可写入 localStorage", async ({ page }, testInfo) => {
 
   await expect(async () => {
     await themeButton.click();
+    await page.getByRole("menuitemradio", { name: /^(深色|Dark)$/i }).click();
     await expect
       .poll(
         async () =>

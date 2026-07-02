@@ -17,8 +17,8 @@ import AppFooter from "$lib/components/shell/AppFooter.svelte";
 import AppSidebar from "$lib/components/shell/AppSidebar.svelte";
 import AppTopbar from "$lib/components/shell/AppTopbar.svelte";
 import {
-  cycleStoredThemeMode,
   loadStoredThemeMode,
+  setStoredThemeMode,
 } from "$lib/components/shell/app-shell-actions";
 import {
   applyShellTheme,
@@ -48,6 +48,7 @@ let themeMode: ThemeMode = "system";
 let mobileMenuOpen = false;
 let userMenuOpen = false;
 let localeMenuOpen = false;
+let themeMenuOpen = false;
 
 $: profileHref = resolveProfileHref(data.user);
 $: avatarFallback = resolveAvatarFallback(data.user);
@@ -184,8 +185,9 @@ function isActiveLink(link: ShellLink) {
   return pathname === target.pathname;
 }
 
-function cycleTheme() {
-  themeMode = cycleStoredThemeMode(themeMode);
+function setThemeMode(nextThemeMode: ThemeMode) {
+  themeMode = setStoredThemeMode(nextThemeMode);
+  themeMenuOpen = false;
 }
 
 function setMobileMenuOpen(open: boolean) {
@@ -193,6 +195,7 @@ function setMobileMenuOpen(open: boolean) {
   if (open) {
     userMenuOpen = false;
     localeMenuOpen = false;
+    themeMenuOpen = false;
   }
 }
 
@@ -201,6 +204,7 @@ function setUserMenuOpen(open: boolean) {
   if (open) {
     mobileMenuOpen = false;
     localeMenuOpen = false;
+    themeMenuOpen = false;
   }
 }
 
@@ -209,6 +213,16 @@ function setLocaleMenuOpen(open: boolean) {
   if (open) {
     mobileMenuOpen = false;
     userMenuOpen = false;
+    themeMenuOpen = false;
+  }
+}
+
+function setThemeMenuOpen(open: boolean) {
+  themeMenuOpen = open;
+  if (open) {
+    mobileMenuOpen = false;
+    userMenuOpen = false;
+    localeMenuOpen = false;
   }
 }
 
@@ -216,6 +230,7 @@ function closeMenus() {
   mobileMenuOpen = false;
   userMenuOpen = false;
   localeMenuOpen = false;
+  themeMenuOpen = false;
 }
 
 async function setLocale(locale: "en-us" | "zh-cn") {
@@ -246,7 +261,7 @@ onMount(() => {
   }
 </style>
 
-<div class="min-h-screen bg-base-200 text-base-content lg:grid lg:grid-cols-[16rem_minmax(0,1fr)]">
+<div class="min-h-screen bg-base-200 text-base-content lg:grid lg:h-screen lg:grid-cols-[15rem_minmax(0,1fr)] lg:overflow-hidden">
   {#if $navigating}
     <RouteLoadingBar loadingLabel={data.copy.shell.loading} />
   {/if}
@@ -257,13 +272,12 @@ onMount(() => {
     {navGroups}
   />
 
-  <div class="flex min-w-0 flex-col">
+  <div class="flex min-w-0 flex-col lg:h-screen lg:min-h-0">
     <AppTopbar
       {activeTitle}
       {avatarFallback}
       {closeMenus}
       copy={data.copy}
-      {cycleTheme}
       {isActiveLink}
       locale={data.locale}
       {localeMenuOpen}
@@ -273,19 +287,25 @@ onMount(() => {
       {setLocale}
       {setLocaleMenuOpen}
       {setMobileMenuOpen}
+      {setThemeMenuOpen}
+      {setThemeMode}
       {setUserMenuOpen}
       {themeButtonLabel}
+      {themeMenuOpen}
+      {themeMode}
       user={data.user}
       {userMenuOpen}
     />
 
-    <main id="main-content" class="w-full flex-1 px-4 py-6 sm:px-6 lg:px-8">
-      <slot />
-    </main>
+    <div class="flex min-w-0 flex-1 flex-col lg:min-h-0 lg:overflow-y-auto">
+      <main id="main-content" class="w-full flex-1 px-4 py-4 sm:px-5 lg:px-6">
+        <slot />
+      </main>
 
-    <AppFooter
-      copy={data.copy}
-      {footerLinks}
-    />
+      <AppFooter
+        copy={data.copy}
+        {footerLinks}
+      />
+    </div>
   </div>
 </div>

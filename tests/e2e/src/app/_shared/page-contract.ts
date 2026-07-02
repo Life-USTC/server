@@ -391,7 +391,7 @@ export async function assertPageContract(
         page.getByRole("link", { name: /App Store|下载/i }),
       ).toBeVisible();
       await expect(
-        page.getByRole("link", { name: /打开首页|Open Dashboard/i }).first(),
+        page.getByRole("link", { name: /打开仪表盘|Open Dashboard/i }).first(),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "mobile-app");
       return;
