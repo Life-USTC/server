@@ -3,8 +3,8 @@
  *
  * 内部依赖就绪状态检查端点。
  *
- * - 本地请求（127.0.0.1/localhost）可直接访问；非本地请求需要 Bearer Token
- *   （READINESS_BEARER_TOKEN 或 METRICS_BEARER_TOKEN），否则返回 404。
+ * - 本地请求（127.0.0.1/localhost）可直接访问；非本地请求需要 READINESS_BEARER_TOKEN
+ *   Bearer Token，否则返回 404。
  * - 返回 { status, uptimeSeconds, checks: { database, storage } }
  * - 当数据库与存储均正常时返回 200 / status: "ok"
  * - 当任一检查异常时返回 503 / status: "degraded"

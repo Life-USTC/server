@@ -3,11 +3,6 @@ const UUID_SEGMENT =
 const NUMERIC_SEGMENT = /^\d+$/;
 const OPAQUE_ID_SEGMENT = /^(?=.*\d)[A-Za-z0-9_-]{16,}$/;
 const CALENDAR_FEED_TOKEN_SEPARATOR = /:|%3a/i;
-const OBSERVABILITY_PATHS = new Set(["/api/metrics"]);
-
-export function shouldObserveApiPath(pathname: string) {
-  return !OBSERVABILITY_PATHS.has(pathname);
-}
 
 export function normalizeApiRoutePath(pathname: string) {
   return pathname

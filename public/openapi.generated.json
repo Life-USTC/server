@@ -1361,35 +1361,6 @@
         }
       }
     },
-    "/api/metrics": {
-      "get": {
-        "operationId": "listMetrics",
-        "summary": "Export internal runtime metrics",
-        "tags": [
-          "Api"
-        ],
-        "security": [
-          {
-            "internalBearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Text response",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Response 404"
-          }
-        }
-      }
-    },
     "/api/openapi": {
       "get": {
         "operationId": "getOpenApiSpec",

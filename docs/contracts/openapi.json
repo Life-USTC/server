@@ -103,17 +103,7 @@
             "returns": "{ status, checks, uptimeSeconds }",
             "content_type": "application/json",
             "notes": [
-              "Internal readiness endpoint for dependency checks; readable only from localhost or with the configured readiness/metrics bearer token."
-            ]
-          },
-          {
-            "path": "/api/metrics",
-            "method": "GET",
-            "auth": "internal",
-            "returns": "Prometheus text exposition",
-            "content_type": "text/plain; version=0.0.4; charset=utf-8",
-            "notes": [
-              "Internal runtime metrics endpoint; readable only from localhost or with the configured metrics bearer token."
+              "Internal readiness endpoint for dependency checks; readable only from localhost or with the configured readiness bearer token."
             ]
           }
         ]
@@ -124,7 +114,6 @@
           "Locale endpoint",
           "Health endpoint",
           "Readiness endpoint",
-          "Metrics endpoint",
           "OAuth/provider catch-all endpoints",
           "Webhook endpoint via Better Auth catch-all"
         ]

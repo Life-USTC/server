@@ -22,12 +22,7 @@ function checkStorageConfig() {
 }
 
 async function getReadinessRoute(request: Request) {
-  if (
-    !canReadInternalEndpoint(request, [
-      "READINESS_BEARER_TOKEN",
-      "METRICS_BEARER_TOKEN",
-    ])
-  ) {
+  if (!canReadInternalEndpoint(request, ["READINESS_BEARER_TOKEN"])) {
     return notFoundText();
   }
 

@@ -4,7 +4,6 @@ import {
   normalizeApiRoutePath,
   observedApiRoute,
   recordApiRequestStart,
-  shouldObserveApiPath,
 } from "@/lib/log/api-observability";
 import {
   renderPrometheusMetrics,
@@ -69,22 +68,6 @@ describe("API 可观测性", () => {
     );
     expect(renderPrometheusMetrics()).toContain(
       'life_ustc_api_requests_started_total{method="GET",route="/api/todos/:id"} 1',
-    );
-  });
-
-  it("跳过指标端点", () => {
-    const info = vi.spyOn(console, "info").mockImplementation(() => {});
-
-    expect(shouldObserveApiPath("/api/metrics")).toBe(false);
-    recordApiRequestStart({
-      method: "GET",
-      pathname: "/api/metrics",
-      requestId: "request-1",
-    });
-
-    expect(info).not.toHaveBeenCalled();
-    expect(renderPrometheusMetrics()).not.toContain(
-      "life_ustc_api_requests_started_total",
     );
   });
 
