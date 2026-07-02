@@ -364,6 +364,8 @@ onMount(() => {
     canWriteHomework={_canWriteHomework}
     commentTargets={_commentTargets}
     commonCopy={_commonCopy}
+    courseName={_courseName}
+    courseSecondaryName={_courseSecondaryName}
     {data}
     fmtDate={_fmtDate}
     fmtDateTime={_fmtDateTime}

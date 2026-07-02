@@ -2,6 +2,7 @@
 import CommentsPanel from "@/features/comments/components/CommentsPanel.svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
+import DetailPinnedSummary from "$lib/components/DetailPinnedSummary.svelte";
 import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.js";
@@ -52,7 +53,15 @@ type PageData = {
   teacher: TeacherDetailData;
 };
 
+type PinnedSummaryItem = {
+  label: string;
+  mono?: boolean;
+  variant?: "ghost" | "outline" | "secondary";
+};
+
 export let data: PageData;
+
+let activeSectionHref = "";
 
 $: copy = data.copy;
 $: detailCopy = copy satisfies TeacherDetailCopy;
@@ -80,6 +89,26 @@ $: sectionNavItems = [
     meta: commentsCount,
   },
 ];
+$: activeSectionLabel =
+  sectionNavItems.find((item) => item.href === activeSectionHref)?.label ??
+  sectionNavItems[0]?.label ??
+  "";
+$: pinnedSummaryItems = [
+  ...(data.teacher.department
+    ? [
+        {
+          label: primaryName(data.teacher.department),
+          variant: "outline" as const,
+        },
+      ]
+    : []),
+  ...(data.teacher.teacherTitle
+    ? [{ label: primaryName(data.teacher.teacherTitle) }]
+    : []),
+  ...(data.teacher.email
+    ? [{ label: data.teacher.email, variant: "secondary" as const }]
+    : []),
+] satisfies PinnedSummaryItem[];
 </script>
 
 <svelte:head>
@@ -108,14 +137,24 @@ $: sectionNavItems = [
     {/snippet}
   </PageHeader>
 
-  <div class="grid gap-5 lg:grid-cols-[12rem_minmax(0,1fr)] lg:items-start">
+  <DetailPinnedSummary
+    activeSectionLabel={activeSectionLabel}
+    eyebrow={copy.common.teachers}
+    items={pinnedSummaryItems}
+    title={displayName}
+    description={data.teacher.department ? primaryName(data.teacher.department) : ""}
+  />
+
+  <div class="grid gap-5 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start">
     <DetailSectionNav
+      bind:activeHref={activeSectionHref}
       ariaLabel={formatMessage(copy.metadata.pages.teacherDetail, { name: displayName })}
       items={sectionNavItems}
+      label={copy.common.teachers}
     />
 
     <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
-      <section class="scroll-mt-20" id="teacher-overview">
+      <section class="scroll-mt-32" id="teacher-overview">
         <TeacherDetailBasicInfo
           copy={detailCopy}
           {displayName}
@@ -126,7 +165,7 @@ $: sectionNavItems = [
         />
       </section>
 
-      <section class="scroll-mt-20" id="teacher-description">
+      <section class="scroll-mt-32" id="teacher-description">
         {#key `description:teacher:${data.teacher.id}`}
           <DescriptionCard
             targetType="teacher"
@@ -138,7 +177,7 @@ $: sectionNavItems = [
         {/key}
       </section>
 
-      <section class="grid scroll-mt-20 gap-3" id="teacher-sections">
+      <section class="grid scroll-mt-32 gap-3" id="teacher-sections">
         <div>
           <h2 class="font-semibold text-lg">{copy.teacherDetail.teachingSectionsTitle}</h2>
           <p class="text-base-content/60 text-sm">{copy.teacherDetail.teachingSectionsDescription}</p>
@@ -152,7 +191,7 @@ $: sectionNavItems = [
         />
       </section>
 
-      <section class="grid scroll-mt-20 gap-3" id="teacher-comments">
+      <section class="grid scroll-mt-32 gap-3" id="teacher-comments">
         <div>
           <h2 class="font-semibold text-lg">{copy.comments.title}</h2>
         </div>
