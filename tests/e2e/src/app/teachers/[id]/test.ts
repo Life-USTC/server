@@ -149,6 +149,11 @@ test.describe("/teachers/[id] 教师详情页", () => {
 
   test("班级表格显示学期、课程名、代码与学分", async ({ page }, testInfo) => {
     await navigateToSeedTeacher(page);
+    await jumpToTeacherSection(
+      page,
+      /授课班级|Teaching Sections/i,
+      "#teacher-sections",
+    );
 
     // section.semester.nameCn badge
     await expect(visibleText(page, DEV_SEED.semesterNameCn)).toBeVisible();
@@ -172,6 +177,11 @@ test.describe("/teachers/[id] 教师详情页", () => {
 
   test("班级链接导航到班级详情", async ({ page }, testInfo) => {
     await navigateToSeedTeacher(page);
+    await jumpToTeacherSection(
+      page,
+      /授课班级|Teaching Sections/i,
+      "#teacher-sections",
+    );
 
     const sectionLink = page
       .locator("tbody a[href^='/sections/']:visible")
@@ -200,7 +210,7 @@ test.describe("/teachers/[id] 教师详情页", () => {
     ).toBeVisible();
 
     await jumpToTeacherSection(page, /评论|Comments/i, "#teacher-comments");
-    await expect(page).toHaveURL(/#teacher-comments$/);
+    await expect(page).toHaveURL(/\/teachers\/\d+\/comments$/);
     await captureStepScreenshot(page, testInfo, "teacher/detail-nav");
   });
 
@@ -234,6 +244,11 @@ test.describe("/teachers/[id] 教师详情页", () => {
     );
 
     try {
+      await jumpToTeacherSection(
+        page,
+        /简介|Description/i,
+        "#teacher-description",
+      );
       const descCard = page
         .locator('[data-slot="card"]')
         .filter({ has: page.getByText(/简介|Description/i) })
@@ -294,6 +309,7 @@ test.describe("/teachers/[id] 教师详情页", () => {
           await navigateToSeedTeacher(page);
         }
         await jumpToTeacherSection(page, /评论|Comments/i, "#teacher-comments");
+        await expect(page).toHaveURL(/\/teachers\/\d+\/comments$/);
       }).toPass({
         timeout: 10_000,
         intervals: [250, 500, 1_000],

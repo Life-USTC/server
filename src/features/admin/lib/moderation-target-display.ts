@@ -106,11 +106,14 @@ export function moderationDescriptionTargetHref(
   description: ModerationDescriptionLike,
 ) {
   if (description.homework?.section?.jwId) {
-    return `/sections/${description.homework.section.jwId}#homework-${description.homework.id}`;
+    return `/sections/${description.homework.section.jwId}/homework#homework-${description.homework.id}`;
   }
-  if (description.section?.jwId) return `/sections/${description.section.jwId}`;
-  if (description.course?.jwId) return `/courses/${description.course.jwId}`;
-  if (description.teacher?.id) return `/teachers/${description.teacher.id}`;
+  if (description.section?.jwId)
+    return `/sections/${description.section.jwId}/introduction`;
+  if (description.course?.jwId)
+    return `/courses/${description.course.jwId}/introduction`;
+  if (description.teacher?.id)
+    return `/teachers/${description.teacher.id}/introduction`;
   if (description.homework?.id) return "/admin/moderation?tab=homeworks";
   return "/admin/moderation?tab=descriptions";
 }

@@ -44,7 +44,7 @@ export function homeworkDetailHref(
   fallbackHref: string,
 ) {
   return homework.section?.jwId
-    ? `/sections/${homework.section.jwId}#homework-${homework.id}`
+    ? `/sections/${homework.section.jwId}/homework#homework-${homework.id}`
     : fallbackHref;
 }
 

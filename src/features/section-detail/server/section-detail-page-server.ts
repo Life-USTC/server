@@ -12,6 +12,33 @@ export {
   unsubscribeSectionAction,
 } from "./section-detail-subscription-actions";
 
+export type SectionDetailRouteSection =
+  | "overview"
+  | "introduction"
+  | "calendar"
+  | "exams"
+  | "homework"
+  | "teachers"
+  | "comments";
+
+const sectionDetailRouteSections = new Set([
+  "introduction",
+  "calendar",
+  "exams",
+  "homework",
+  "teachers",
+  "comments",
+]);
+
+function resolveSectionDetailRouteSection(
+  section: string | undefined,
+): SectionDetailRouteSection | null {
+  if (!section) return "overview";
+  return sectionDetailRouteSections.has(section)
+    ? (section as SectionDetailRouteSection)
+    : null;
+}
+
 export async function loadSectionDetailPage({
   locals,
   params,
@@ -19,10 +46,12 @@ export async function loadSectionDetailPage({
   url,
 }: {
   locals: App.Locals;
-  params: { jwId: string };
+  params: { jwId: string; section?: string };
   request: Request;
   url: URL;
 }) {
+  const detailSection = resolveSectionDetailRouteSection(params.section);
+  if (!detailSection) error(404, "Section not found");
   const jwId = parseSectionJwId(params.jwId);
   if (jwId === null) error(404, "Section not found");
   const section = await getSectionPage(jwId, locals.locale);
@@ -45,6 +74,7 @@ export async function loadSectionDetailPage({
     copy: getSectionDetailPageCopy(locals.locale),
     descriptionData: descriptionAndComments.descriptionData,
     commentsData: descriptionAndComments.commentsData,
+    detailSection,
     homeworkData,
     focusedHomeworkId: url.searchParams.get("homeworkId"),
     homeworkView:

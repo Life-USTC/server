@@ -4,9 +4,6 @@ import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-
 import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
 import DetailPinnedSummary from "$lib/components/DetailPinnedSummary.svelte";
 import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
-import PageHeader from "$lib/components/PageHeader.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.js";
 import type { CatalogNamed } from "../lib/catalog-list-display";
 import {
   formatCatalogDetailMessage as formatMessage,
@@ -62,6 +59,7 @@ type PageData = {
   } & Record<string, unknown>;
   course: CourseDetailData;
   descriptionData: CatalogDetailDescriptionData;
+  detailSection: "overview" | "introduction" | "sections" | "comments";
   locale: string;
 };
 
@@ -73,13 +71,12 @@ type PinnedSummaryItem = {
 
 export let data: PageData;
 
-let activeSectionHref = "";
-
 $: copy = data.copy;
 $: detailCopy = copy satisfies CourseDetailCopy;
 $: notAvailable = copy.courseDetail.notAvailable;
 $: displayName = primaryName(data.course) || data.course.code;
 $: secondaryDisplayName = secondaryName(data.course);
+$: courseBaseHref = `/courses/${data.course.jwId}`;
 $: commentsCount = data.commentsData
   ? Object.values(data.commentsData.commentMap).reduce(
       (sum, comments) => sum + comments.length,
@@ -87,23 +84,33 @@ $: commentsCount = data.commentsData
     )
   : 0;
 $: sectionNavItems = [
-  { href: "#course-overview", label: copy.course.basicInfo },
-  { href: "#course-description", label: copy.courseDetail.tabs.description },
   {
-    href: "#course-sections",
+    href: courseBaseHref,
+    key: "overview" as const,
+    label: copy.course.basicInfo,
+  },
+  {
+    href: `${courseBaseHref}/introduction`,
+    key: "introduction" as const,
+    label: copy.courseDetail.tabs.description,
+  },
+  {
+    href: `${courseBaseHref}/sections`,
+    key: "sections" as const,
     label: copy.courseDetail.teachingSections,
     meta: data.course.sections.length,
   },
   {
-    href: "#course-comments",
+    href: `${courseBaseHref}/comments`,
+    key: "comments" as const,
     label: copy.courseDetail.tabs.comments,
     meta: commentsCount,
   },
 ];
-$: activeSectionLabel =
-  sectionNavItems.find((item) => item.href === activeSectionHref)?.label ??
-  sectionNavItems[0]?.label ??
-  "";
+$: activeNavItem =
+  sectionNavItems.find((item) => item.key === data.detailSection) ??
+  sectionNavItems[0];
+$: activeSectionLabel = activeNavItem?.label ?? "";
 $: pinnedSummaryItems = [
   { label: data.course.code, mono: true, variant: "outline" as const },
   ...(data.course.educationLevel
@@ -125,66 +132,36 @@ $: pinnedSummaryItems = [
   <meta property="og:title" content={displayName} />
 </svelte:head>
 
-<section class="grid gap-5">
-  <PageHeader title={displayName} description={secondaryDisplayName}>
-    {#snippet breadcrumb()}
-      <Breadcrumb.Root label={copy.common.breadcrumb}>
-        <Breadcrumb.List>
-          <Breadcrumb.Item><Breadcrumb.Link href="/">{copy.common.home}</Breadcrumb.Link></Breadcrumb.Item>
-          <Breadcrumb.Separator />
-          <Breadcrumb.Item><Breadcrumb.Link href="/courses">{copy.common.courses}</Breadcrumb.Link></Breadcrumb.Item>
-          <Breadcrumb.Separator />
-          <Breadcrumb.Item><Breadcrumb.Page>{data.course.code}</Breadcrumb.Page></Breadcrumb.Item>
-        </Breadcrumb.List>
-      </Breadcrumb.Root>
-    {/snippet}
-    {#snippet meta()}
-      <Badge class="shrink-0 font-mono" variant="outline">{data.course.code}</Badge>
-    {/snippet}
-    {#snippet after()}
-      <div class="flex flex-wrap gap-2">
-        {#if data.course.educationLevel}
-          <Badge variant="ghost">{primaryName(data.course.educationLevel)}</Badge>
-        {/if}
-        {#if data.course.category}
-          <Badge variant="ghost">{primaryName(data.course.category)}</Badge>
-        {/if}
-        {#if data.course.classType}
-          <Badge variant="ghost">{primaryName(data.course.classType)}</Badge>
-        {/if}
-        {#if data.course.type}
-          <Badge variant="ghost">{primaryName(data.course.type)}</Badge>
-        {/if}
-      </div>
-    {/snippet}
-  </PageHeader>
-
+<section class="grid">
   <DetailPinnedSummary
     activeSectionLabel={activeSectionLabel}
     eyebrow={copy.common.courses}
     items={pinnedSummaryItems}
+    parentHref="/courses"
+    parentLabel={copy.common.courses}
     title={displayName}
     description={secondaryDisplayName}
   />
 
-  <div class="grid gap-5 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start">
+  <div class="-mx-4 grid sm:-mx-5 lg:-mx-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start">
     <DetailSectionNav
-      bind:activeHref={activeSectionHref}
+      activeHref={activeNavItem?.href ?? courseBaseHref}
       ariaLabel={formatMessage(copy.metadata.pages.courseDetail, { name: displayName })}
       items={sectionNavItems}
       label={copy.common.courses}
     />
 
-    <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
-      <section class="scroll-mt-32" id="course-overview">
+    <div class="min-w-0 px-4 py-5 sm:px-5 lg:px-6">
+      {#if data.detailSection === "overview"}
+      <section id="course-overview">
         <CourseDetailBasicInfo
           copy={detailCopy}
           course={data.course}
           {primaryName}
         />
       </section>
-
-      <section class="scroll-mt-32" id="course-description">
+      {:else if data.detailSection === "introduction"}
+      <section id="course-description">
         {#key `description:course:${data.course.id}`}
           <DescriptionCard
             targetType="course"
@@ -195,8 +172,8 @@ $: pinnedSummaryItems = [
           />
         {/key}
       </section>
-
-      <section class="grid scroll-mt-32 gap-3" id="course-sections">
+      {:else if data.detailSection === "sections"}
+      <section class="grid gap-3" id="course-sections">
         <div>
           <h2 class="font-semibold text-lg">{copy.courseDetail.teachingSections}</h2>
           <p class="text-base-content/60 text-sm">{copy.courseDetail.teachingSectionsDescription}</p>
@@ -209,8 +186,8 @@ $: pinnedSummaryItems = [
           {teacherNames}
         />
       </section>
-
-      <section class="grid scroll-mt-32 gap-3" id="course-comments">
+      {:else if data.detailSection === "comments"}
+      <section class="grid gap-3" id="course-comments">
         <div>
           <h2 class="font-semibold text-lg">{copy.courseDetail.tabs.comments}</h2>
         </div>
@@ -226,6 +203,7 @@ $: pinnedSummaryItems = [
           />
         {/key}
       </section>
+      {/if}
     </div>
   </div>
 </section>

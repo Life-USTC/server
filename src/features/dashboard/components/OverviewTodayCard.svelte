@@ -44,7 +44,7 @@ export let todaySessions: DashboardSessionItem[];
         <a
           class="rounded-xl border border-warning/30 bg-warning/10 px-3 py-3 text-sm no-underline transition hover:border-warning"
           href={homework.section?.jwId
-            ? `/sections/${homework.section.jwId}#homework-${homework.id}`
+            ? `/sections/${homework.section.jwId}/homework#homework-${homework.id}`
             : dashboardTabHref("homeworks")}
         >
           <div class="font-medium">{homework.title}</div>

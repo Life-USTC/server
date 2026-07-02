@@ -321,6 +321,14 @@ export type SectionDetailPageData = {
   commentsData: CommentsInitialData | null;
   copy: SectionDetailCopy;
   descriptionData: DescriptionPayload;
+  detailSection:
+    | "overview"
+    | "introduction"
+    | "calendar"
+    | "exams"
+    | "homework"
+    | "teachers"
+    | "comments";
   focusedHomeworkId?: string | null;
   homeworkData: {
     auditLogs: HomeworkAuditLog[];
