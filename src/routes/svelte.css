@@ -78,8 +78,8 @@ html {
   --accent-foreground: oklch(0.92 0.012 185);
   --destructive: oklch(0.68 0.16 28);
   --destructive-foreground: oklch(0.98 0.01 28);
-  --border: oklch(0.18 0.012 210);
-  --input: oklch(0.18 0.012 210);
+  --border: oklch(0.27 0.014 210);
+  --input: oklch(0.3 0.014 210);
   --ring: rgb(0 210 224);
   --info: oklch(0.7 0.1 225);
   --info-foreground: oklch(0.08 0.012 225);

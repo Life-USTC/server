@@ -14,7 +14,7 @@ export let label = "";
 </script>
 
 <aside
-  class="w-full border-base-300 border-b bg-base-100 lg:sticky lg:top-32 lg:h-[calc(100vh-8rem)] lg:border-r lg:border-b-0"
+  class="w-full border-base-300 border-b bg-base-100 lg:sticky lg:top-28 lg:h-[calc(100vh-7rem)] lg:border-r lg:border-b-0"
   data-testid="detail-section-nav"
 >
   <nav aria-label={ariaLabel || label} class="h-full overflow-y-auto p-2">

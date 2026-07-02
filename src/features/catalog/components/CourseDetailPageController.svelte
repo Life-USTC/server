@@ -133,7 +133,6 @@ $: pinnedSummaryItems = [
 
 <section class="grid">
   <DetailPinnedSummary
-    eyebrow={copy.common.courses}
     items={pinnedSummaryItems}
     title={displayName}
     description={secondaryDisplayName}

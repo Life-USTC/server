@@ -56,10 +56,6 @@ $: navGroups = buildShellNavGroups(
   Boolean(data.user),
   $page.url.pathname,
 );
-$: activeTitle =
-  navGroups.flatMap((group) => group.links).find((link) => isActiveLink(link))
-    ?.label ?? "Life@USTC";
-
 const footerLinks = buildFooterLinks(data.copy.footer);
 
 function buildShellNavGroups(
@@ -272,7 +268,6 @@ onMount(() => {
 
   <div class="flex min-w-0 flex-col">
     <AppTopbar
-      {activeTitle}
       {avatarFallback}
       {closeMenus}
       copy={data.copy}
