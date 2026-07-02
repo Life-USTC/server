@@ -16,6 +16,7 @@ import {
 import {
   buildContentSecurityPolicy,
   createScriptNonce,
+  formActionSourceFromOAuthRedirectUri,
 } from "@/lib/security/csp";
 
 const SECURITY_HEADERS = {
@@ -130,6 +131,14 @@ function routeId(event: Parameters<Handle>[0]["event"]) {
   return event.route.id ?? event.url.pathname;
 }
 
+function oauthAuthorizeFormActionSources(url: URL) {
+  if (url.pathname !== "/oauth/authorize") return [];
+  const source = formActionSourceFromOAuthRedirectUri(
+    url.searchParams.get("redirect_uri"),
+  );
+  return source ? [source] : [];
+}
+
 function recordPageRequestFinish(input: {
   durationMs: number;
   event: Parameters<Handle>[0]["event"];
@@ -221,6 +230,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     mutableResponse.headers.set(
       "Content-Security-Policy",
       buildContentSecurityPolicy(nonce, {
+        formActionSources: oauthAuthorizeFormActionSources(event.url),
         isDevelopment: getOptionalTrimmedEnv("NODE_ENV") === "development",
       }),
     );
