@@ -146,8 +146,6 @@ $: pinnedSummaryItems = [
     activeSectionLabel={activeSectionLabel}
     eyebrow={sectionCopy.teachingSection}
     items={pinnedSummaryItems}
-    parentHref="/sections"
-    parentLabel={commonCopy.sections}
     statusVisible={Boolean(formError)}
     title={courseName}
     description={courseSecondaryName}
@@ -192,7 +190,7 @@ $: pinnedSummaryItems = [
     {/snippet}
   </DetailPinnedSummary>
 
-  <div class="-mx-4 grid sm:-mx-5 lg:-mx-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start">
+  <div class="-mx-4 grid min-h-[calc(100vh-8rem)] bg-base-100 sm:-mx-5 lg:-mx-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start">
     <DetailSectionNav
       activeHref={activeNavItem?.href ?? sectionBaseHref}
       ariaLabel={sectionCopy.teachingSection}
