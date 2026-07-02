@@ -3,11 +3,11 @@ import {
   shouldObserveApiPath,
 } from "@/lib/log/api-observability-path";
 import { logApiRequest } from "@/lib/log/app-logger";
+import { writeApiRequestAnalytics } from "@/lib/metrics/analytics-engine";
 import {
   incrementCounter,
   observeDurationMs,
 } from "@/lib/metrics/runtime-metrics";
-import { writeApiRequestAnalytics } from "@/lib/metrics/analytics-engine";
 
 export function recordApiRequestStart(input: {
   method: string;
