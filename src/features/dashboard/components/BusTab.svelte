@@ -86,7 +86,7 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
 );
 </script>
 
-<section class="grid gap-5">
+<div class="grid gap-5">
   <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
     <div class="grid gap-1">
       <h2 class="font-semibold text-xl tracking-normal">{busCopy.dashboardTitle}</h2>
@@ -130,4 +130,4 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
       <Alert>{busCopy.empty}</Alert>
     {/if}
   </div>
-</section>
+</div>

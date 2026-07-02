@@ -106,7 +106,7 @@ const {
 });
 </script>
 
-<Card.Root>
+<Card.Root class="w-full">
   <DescriptionCardHeader
     {copy}
     {description}

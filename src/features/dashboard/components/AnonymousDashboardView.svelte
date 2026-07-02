@@ -27,7 +27,7 @@ $: currentTool =
     : dashboardCopy.nav.bus;
 </script>
 
-<section class="mx-auto grid w-full max-w-7xl gap-5">
+<div class="mx-auto grid w-full max-w-7xl gap-5">
   <div class="grid gap-1">
     <p class="font-medium text-base-content/60 text-sm">
       {homepageCopy.publicDashboard.title}
@@ -60,4 +60,4 @@ $: currentTool =
       bus={anonymousData.bus ?? null}
     />
   {/if}
-</section>
+</div>

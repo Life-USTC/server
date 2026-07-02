@@ -52,7 +52,11 @@ let localeMenuOpen = false;
 $: profileHref = resolveProfileHref(data.user);
 $: avatarFallback = resolveAvatarFallback(data.user);
 $: themeButtonLabel = resolveThemeButtonLabel(themeMode, data.copy.theme);
-$: navGroups = buildShellNavGroups(data.copy, Boolean(data.user));
+$: navGroups = buildShellNavGroups(
+  data.copy,
+  Boolean(data.user),
+  $page.url.pathname,
+);
 $: activeTitle =
   navGroups.flatMap((group) => group.links).find((link) => isActiveLink(link))
     ?.label ?? "Life@USTC";
@@ -62,6 +66,7 @@ const footerLinks = buildFooterLinks(data.copy.footer);
 function buildShellNavGroups(
   copy: LayoutCopy,
   signedIn: boolean,
+  pathname: string,
 ): ShellNavGroup[] {
   const catalogLinks: ShellLink[] = [
     { href: "/courses", icon: BookOpenIcon, label: copy.nav.courses },
@@ -72,6 +77,7 @@ function buildShellNavGroups(
     { href: "/bus-map", icon: MapIcon, label: copy.nav.transitMap },
     { href: "/mobile-app", icon: SmartphoneIcon, label: copy.nav.mobileApp },
   ];
+  const disambiguateDashboardBus = pathname.startsWith("/admin");
 
   if (!signedIn) {
     return [
@@ -92,31 +98,37 @@ function buildShellNavGroups(
       label: copy.nav.groups.workspace,
       links: [
         {
+          ariaLabel: copy.nav.workspaceOverview,
           href: "/dashboard/overview",
           icon: LayoutDashboardIcon,
           label: copy.nav.overview,
         },
         {
+          ariaLabel: copy.nav.workspaceCalendar,
           href: "/dashboard/calendar",
           icon: CalendarDaysIcon,
           label: copy.nav.calendar,
         },
         {
+          ariaLabel: copy.nav.workspaceHomeworks,
           href: "/dashboard/homeworks",
           icon: ClipboardListIcon,
           label: copy.nav.homeworks,
         },
         {
+          ariaLabel: copy.nav.workspaceTodos,
           href: "/dashboard/todos",
           icon: ListTodoIcon,
           label: copy.nav.todos,
         },
         {
+          ariaLabel: copy.nav.workspaceExams,
           href: "/dashboard/exams",
           icon: GraduationCapIcon,
           label: copy.nav.exams,
         },
         {
+          ariaLabel: copy.nav.workspaceSubscriptions,
           href: "/dashboard/subscriptions",
           icon: RouteIcon,
           label: copy.nav.subscriptions,
@@ -127,13 +139,15 @@ function buildShellNavGroups(
       label: copy.nav.groups.publicTools,
       links: [
         {
-          ariaLabel: copy.nav.dashboardBus,
+          ariaLabel: disambiguateDashboardBus
+            ? copy.nav.dashboardBus
+            : copy.nav.workspaceTransit,
           href: "/dashboard/bus",
           icon: BusFrontIcon,
           label: copy.nav.bus,
         },
         {
-          ariaLabel: copy.nav.dashboardLinks,
+          ariaLabel: copy.nav.workspaceWebsites,
           href: "/dashboard/links",
           icon: LinkIcon,
           label: copy.nav.links,
