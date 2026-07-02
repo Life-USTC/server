@@ -1,3 +1,10 @@
+# [1.44.0](https://github.com/Life-USTC/server/compare/v1.43.0...v1.44.0) (2026-07-02)
+
+
+### Features
+
+* cache personal iCal feeds ([ed8ca87](https://github.com/Life-USTC/server/commit/ed8ca876c540d287432dbdeb50eb9399d54fb47f))
+
 # [1.43.0](https://github.com/Life-USTC/server/compare/v1.42.1...v1.43.0) (2026-07-02)
 
 
