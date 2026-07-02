@@ -10,6 +10,10 @@ import {
 import { getDeviceAuthorizationClientPolicyFailure } from "./device-authorization-policy.server";
 
 type DeviceGrantPrisma = {
+  $queryRaw: <T = unknown>(
+    query: TemplateStringsArray,
+    ...values: unknown[]
+  ) => Promise<T>;
   deviceCode: {
     create: (input: {
       data: {
@@ -74,6 +78,22 @@ type DeviceGrantRecordResult =
   | { record: DeviceGrantRecord }
   | { error: { code: string; status?: number } };
 
+type DeviceGrantRecordRow = {
+  clientClientId: string;
+  clientDisabled: boolean;
+  clientGrantTypes: string[];
+  clientPublic: boolean | null;
+  clientTokenEndpointAuthMethod: string | null;
+  clientType: string | null;
+  expiresAt: Date;
+  id: string;
+  lastPolledAt: Date | null;
+  resources: string[];
+  scopes: string[];
+  status: string;
+  userId: string | null;
+};
+
 export async function createDeviceAuthorizationGrant({
   clientId,
   prisma = defaultPrisma,
@@ -118,28 +138,47 @@ export async function resolveDeviceGrantRecord({
   deviceCode: string;
   prisma?: DeviceGrantPrisma;
 }): Promise<DeviceGrantRecordResult> {
-  const record = await prisma.deviceCode.findUnique({
-    where: { deviceCode },
-    select: {
-      id: true,
-      expiresAt: true,
-      lastPolledAt: true,
-      resources: true,
-      status: true,
-      userId: true,
-      scopes: true,
-      client: {
-        select: {
-          clientId: true,
-          disabled: true,
-          grantTypes: true,
-          public: true,
-          tokenEndpointAuthMethod: true,
-          type: true,
+  const rows = await prisma.$queryRaw<DeviceGrantRecordRow[]>`
+    SELECT
+      dc."id",
+      dc."expiresAt",
+      dc."lastPolledAt",
+      dc."resources",
+      dc."status",
+      dc."userId",
+      dc."scopes",
+      c."clientId" AS "clientClientId",
+      c."disabled" AS "clientDisabled",
+      c."grantTypes" AS "clientGrantTypes",
+      c."public" AS "clientPublic",
+      c."tokenEndpointAuthMethod" AS "clientTokenEndpointAuthMethod",
+      c."type" AS "clientType"
+    FROM "DeviceCode" dc
+    JOIN "OAuthClient" c ON c."clientId" = dc."clientId"
+    WHERE dc."deviceCode" = ${deviceCode}
+      AND NOW() IS NOT NULL
+    LIMIT 1
+  `;
+  const row = rows[0];
+  const record = row
+    ? {
+        id: row.id,
+        expiresAt: row.expiresAt,
+        lastPolledAt: row.lastPolledAt,
+        resources: row.resources,
+        status: row.status,
+        userId: row.userId,
+        scopes: row.scopes,
+        client: {
+          clientId: row.clientClientId,
+          disabled: row.clientDisabled,
+          grantTypes: row.clientGrantTypes,
+          public: row.clientPublic,
+          tokenEndpointAuthMethod: row.clientTokenEndpointAuthMethod,
+          type: row.clientType,
         },
-      },
-    },
-  });
+      }
+    : null;
 
   if (!record || record.client.clientId !== clientId) {
     return { error: { code: "invalid_grant" } };

@@ -8,6 +8,13 @@ import {
   buildDevicePageUrl,
 } from "./device-url.server";
 
+type DeviceDecisionRow = {
+  clientDisabled: boolean;
+  expiresAt: Date;
+  id: string;
+  status: string;
+};
+
 export async function completeDeviceCodeDecision(
   request: Request,
   formData: FormData,
@@ -26,21 +33,30 @@ export async function completeDeviceCodeDecision(
   }
 
   const userCode = normalizeUserCode(rawCode);
-  const record = await prisma.deviceCode.findUnique({
-    where: { userCode },
-    select: {
-      id: true,
-      status: true,
-      expiresAt: true,
-      client: {
-        select: {
-          disabled: true,
-        },
-      },
-    },
-  });
+  const now = new Date();
+  const rows = await prisma.$queryRaw<DeviceDecisionRow[]>`
+    SELECT
+      dc."id",
+      dc."status",
+      dc."expiresAt",
+      c."disabled" AS "clientDisabled"
+    FROM "DeviceCode" dc
+    JOIN "OAuthClient" c ON c."clientId" = dc."clientId"
+    WHERE dc."userCode" = ${userCode}
+      AND NOW() IS NOT NULL
+    LIMIT 1
+  `;
+  const row = rows[0];
+  const record = row
+    ? {
+        id: row.id,
+        status: row.status,
+        expiresAt: row.expiresAt,
+        client: { disabled: row.clientDisabled },
+      }
+    : null;
 
-  if (!record || getDeviceApprovalFailureReason(record)) {
+  if (!record || getDeviceApprovalFailureReason(record, now)) {
     throw redirect(
       303,
       buildDevicePageUrl({ result: "error", reason: "invalid_or_expired" }),
@@ -48,12 +64,41 @@ export async function completeDeviceCodeDecision(
   }
 
   const approved = decision === "approve";
-  await prisma.deviceCode.update({
-    where: { id: record.id },
-    data: approved
-      ? { status: DEVICE_CODE_STATUS.APPROVED, userId }
-      : { status: DEVICE_CODE_STATUS.DENIED },
-  });
+  const updated = approved
+    ? await prisma.$queryRaw<{ id: string }[]>`
+        UPDATE "DeviceCode"
+        SET "status" = ${DEVICE_CODE_STATUS.APPROVED}, "userId" = ${userId}
+        WHERE "id" = ${record.id}
+          AND "status" = ${DEVICE_CODE_STATUS.PENDING}
+          AND "expiresAt" > ${now}
+          AND EXISTS (
+            SELECT 1
+            FROM "OAuthClient"
+            WHERE "OAuthClient"."clientId" = "DeviceCode"."clientId"
+              AND "OAuthClient"."disabled" = false
+          )
+        RETURNING "id"
+      `
+    : await prisma.$queryRaw<{ id: string }[]>`
+        UPDATE "DeviceCode"
+        SET "status" = ${DEVICE_CODE_STATUS.DENIED}
+        WHERE "id" = ${record.id}
+          AND "status" = ${DEVICE_CODE_STATUS.PENDING}
+          AND "expiresAt" > ${now}
+          AND EXISTS (
+            SELECT 1
+            FROM "OAuthClient"
+            WHERE "OAuthClient"."clientId" = "DeviceCode"."clientId"
+              AND "OAuthClient"."disabled" = false
+          )
+        RETURNING "id"
+      `;
+  if (updated.length !== 1) {
+    throw redirect(
+      303,
+      buildDevicePageUrl({ result: "error", reason: "invalid_or_expired" }),
+    );
+  }
 
   throw redirect(
     303,

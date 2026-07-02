@@ -5,6 +5,17 @@ import { requireDeviceUserId } from "./device-auth.server";
 import type { DeviceCopy } from "./device-copy.server";
 import { callbackPath } from "./device-url.server";
 
+type DeviceApprovalRow = {
+  clientClientId: string;
+  clientDisabled: boolean;
+  clientName: string | null;
+  expiresAt: Date;
+  resources: string[];
+  scopes: string[];
+  status: string;
+  userCode: string;
+};
+
 export async function loadDeviceApprovalState({
   code,
   copy,
@@ -17,23 +28,37 @@ export async function loadDeviceApprovalState({
   url: URL;
 }) {
   const userCode = normalizeUserCode(code);
-  const record = await prisma.deviceCode.findUnique({
-    where: { userCode },
-    select: {
-      userCode: true,
-      resources: true,
-      scopes: true,
-      status: true,
-      expiresAt: true,
-      client: {
-        select: {
-          clientId: true,
-          disabled: true,
-          name: true,
+  const rows = await prisma.$queryRaw<DeviceApprovalRow[]>`
+    SELECT
+      dc."userCode",
+      dc."resources",
+      dc."scopes",
+      dc."status",
+      dc."expiresAt",
+      c."clientId" AS "clientClientId",
+      c."disabled" AS "clientDisabled",
+      c."name" AS "clientName"
+    FROM "DeviceCode" dc
+    JOIN "OAuthClient" c ON c."clientId" = dc."clientId"
+    WHERE dc."userCode" = ${userCode}
+      AND NOW() IS NOT NULL
+    LIMIT 1
+  `;
+  const row = rows[0];
+  const record = row
+    ? {
+        userCode: row.userCode,
+        resources: row.resources,
+        scopes: row.scopes,
+        status: row.status,
+        expiresAt: row.expiresAt,
+        client: {
+          clientId: row.clientClientId,
+          disabled: row.clientDisabled,
+          name: row.clientName,
         },
-      },
-    },
-  });
+      }
+    : null;
 
   if (!record) {
     return {
