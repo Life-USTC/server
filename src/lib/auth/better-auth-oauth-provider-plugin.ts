@@ -2,13 +2,13 @@ import { oauthProvider } from "@better-auth/oauth-provider";
 import { allowDebugAuth } from "@/lib/auth/auth-config";
 import { getOAuthProviderValidAudiences } from "@/lib/mcp/urls";
 import {
-  DEFAULT_OAUTH_CLIENT_SCOPES,
   OAUTH_PROFILE_SCOPE,
   OAUTH_PROVIDER_GRANT_TYPES,
 } from "@/lib/oauth/constants";
 import {
   CLIENT_REGISTRATION_ALLOWED_SCOPES,
-  OAUTH_SCOPES,
+  OAUTH_PROVIDER_SCOPES,
+  PUBLIC_OAUTH_SCOPES,
 } from "@/lib/oauth/scope-registry";
 
 export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
@@ -23,9 +23,9 @@ export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
           register: false,
         }
       : undefined,
-    scopes: [...CLIENT_REGISTRATION_ALLOWED_SCOPES],
+    scopes: [...OAUTH_PROVIDER_SCOPES],
     grantTypes: [...OAUTH_PROVIDER_GRANT_TYPES],
-    clientRegistrationDefaultScopes: [...DEFAULT_OAUTH_CLIENT_SCOPES],
+    clientRegistrationDefaultScopes: [...PUBLIC_OAUTH_SCOPES],
     clientRegistrationAllowedScopes: [...CLIENT_REGISTRATION_ALLOWED_SCOPES],
     validAudiences: getOAuthProviderValidAudiences(),
     silenceWarnings: {
@@ -47,7 +47,7 @@ export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
       },
     },
     advertisedMetadata: {
-      scopes_supported: [...OAUTH_SCOPES],
+      scopes_supported: [...PUBLIC_OAUTH_SCOPES],
       claims_supported: [
         "sub",
         "name",

@@ -140,6 +140,8 @@ test.describe("OAuth 提供者", () => {
     };
     expect(protectedResourceBody.scopes_supported).toContain("todo:read");
     expect(protectedResourceBody.scopes_supported).toContain("todo:write");
+    expect(protectedResourceBody.scopes_supported).not.toContain("admin:read");
+    expect(protectedResourceBody.scopes_supported).not.toContain("admin:write");
     expect(protectedResourceBody.scopes_supported).not.toContain("mcp:tools");
 
     expect(

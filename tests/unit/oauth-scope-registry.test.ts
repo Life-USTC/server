@@ -6,6 +6,7 @@ import {
   OAUTH_OFFLINE_ACCESS_SCOPE,
   OAUTH_OPENID_SCOPE,
   OAUTH_PROFILE_SCOPE,
+  PUBLIC_REST_FEATURES,
   REST_FEATURES,
   restReadScope,
   restWriteScope,
@@ -14,10 +15,15 @@ import {
   CLIENT_REGISTRATION_ALLOWED_SCOPES,
   expandLegacyScope,
   expandScopeClaim,
+  isFeatureScope,
+  isMcpScope,
   LEGACY_MCP_TOOLS_SCOPE,
   LEGACY_REST_READ_SCOPE,
   LEGACY_REST_WRITE_SCOPE,
+  OAUTH_PROVIDER_SCOPES,
   OAUTH_SCOPES,
+  PUBLIC_OAUTH_SCOPES,
+  PUBLIC_REST_SCOPES,
 } from "@/lib/oauth/scope-registry";
 
 describe("oauth scope registry", () => {
@@ -29,23 +35,55 @@ describe("oauth scope registry", () => {
       OAUTH_OFFLINE_ACCESS_SCOPE,
       ...REST_FEATURES.flatMap((f) => [restReadScope(f), restWriteScope(f)]),
     ]);
+    expect(OAUTH_SCOPES).toContain("admin:read");
+    expect(OAUTH_SCOPES).toContain("admin:write");
   });
 
-  it("expands legacy rest:read into all feature read scopes", () => {
+  it("exports public OAuth scopes without admin scopes", () => {
+    expect(PUBLIC_OAUTH_SCOPES).toEqual([
+      OAUTH_OPENID_SCOPE,
+      OAUTH_PROFILE_SCOPE,
+      OAUTH_EMAIL_SCOPE,
+      OAUTH_OFFLINE_ACCESS_SCOPE,
+      ...PUBLIC_REST_SCOPES,
+    ]);
+    expect(PUBLIC_REST_SCOPES).toEqual(
+      PUBLIC_REST_FEATURES.flatMap((f) => [
+        restReadScope(f),
+        restWriteScope(f),
+      ]),
+    );
+    expect(PUBLIC_OAUTH_SCOPES).not.toContain("admin:read");
+    expect(PUBLIC_OAUTH_SCOPES).not.toContain("admin:write");
+  });
+
+  it("expands legacy rest:read into public feature read scopes", () => {
     expect(expandLegacyScope(LEGACY_REST_READ_SCOPE)).toEqual(
-      REST_FEATURES.map(restReadScope),
+      PUBLIC_REST_FEATURES.map(restReadScope),
+    );
+    expect(expandLegacyScope(LEGACY_REST_READ_SCOPE)).not.toContain(
+      "admin:read",
     );
   });
 
-  it("expands legacy rest:write into all feature write scopes", () => {
+  it("expands legacy rest:write into public feature write scopes", () => {
     expect(expandLegacyScope(LEGACY_REST_WRITE_SCOPE)).toEqual(
-      REST_FEATURES.map(restWriteScope),
+      PUBLIC_REST_FEATURES.map(restWriteScope),
+    );
+    expect(expandLegacyScope(LEGACY_REST_WRITE_SCOPE)).not.toContain(
+      "admin:write",
     );
   });
 
-  it("expands legacy mcp:tools into all feature read/write scopes", () => {
+  it("expands legacy mcp:tools into public feature read/write scopes", () => {
     expect(expandLegacyScope(LEGACY_MCP_TOOLS_SCOPE)).toEqual(
-      REST_FEATURES.flatMap((f) => [restReadScope(f), restWriteScope(f)]),
+      PUBLIC_REST_FEATURES.flatMap((f) => [
+        restReadScope(f),
+        restWriteScope(f),
+      ]),
+    );
+    expect(expandLegacyScope(LEGACY_MCP_TOOLS_SCOPE)).not.toContain(
+      "admin:read",
     );
   });
 
@@ -58,6 +96,13 @@ describe("oauth scope registry", () => {
     expect(expandLegacyScope("rest:todo:read")).toEqual(["todo:read"]);
     expect(expandLegacyScope("rest:todo:write")).toEqual(["todo:write"]);
     expect(expandLegacyScope("mcp:todo")).toEqual(["todo:read", "todo:write"]);
+  });
+
+  it("keeps admin scopes as REST scopes but not MCP-compatible scopes", () => {
+    expect(isFeatureScope("admin:read")).toBe(true);
+    expect(isFeatureScope("admin:write")).toBe(true);
+    expect(isMcpScope("admin:read")).toBe(false);
+    expect(isMcpScope("admin:write")).toBe(false);
   });
 
   it("expands a space-separated scope claim", () => {
@@ -83,11 +128,11 @@ describe("oauth scope registry", () => {
 
   it("deduplicates expanded scopes", () => {
     const result = expandScopeClaim("rest:read todo:read");
-    expect(result.size).toBe(REST_FEATURES.length);
+    expect(result.size).toBe(PUBLIC_REST_FEATURES.length);
   });
 
-  it("exposes a DCR/authorization allowed-scope list that tolerates legacy scopes", () => {
-    for (const scope of OAUTH_SCOPES) {
+  it("exposes a public DCR allowed-scope list that tolerates legacy scopes", () => {
+    for (const scope of PUBLIC_OAUTH_SCOPES) {
       expect(CLIENT_REGISTRATION_ALLOWED_SCOPES).toContain(scope);
     }
     expect(CLIENT_REGISTRATION_ALLOWED_SCOPES).toContain(
@@ -101,6 +146,11 @@ describe("oauth scope registry", () => {
     );
     expect(CLIENT_REGISTRATION_ALLOWED_SCOPES).toContain("rest:todo:read");
     expect(CLIENT_REGISTRATION_ALLOWED_SCOPES).toContain(mcpScope("todo"));
+    expect(CLIENT_REGISTRATION_ALLOWED_SCOPES).not.toContain("admin:read");
+    expect(CLIENT_REGISTRATION_ALLOWED_SCOPES).not.toContain("admin:write");
+    expect(CLIENT_REGISTRATION_ALLOWED_SCOPES).not.toContain("rest:admin:read");
+    expect(OAUTH_PROVIDER_SCOPES).toContain("admin:read");
+    expect(OAUTH_PROVIDER_SCOPES).toContain("admin:write");
     expect(MCP_FEATURES).toContain("todo");
   });
 });

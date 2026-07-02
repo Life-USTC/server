@@ -65,6 +65,7 @@ describe("verifyAccessTokenJwt", () => {
 
     expect(result.scope.has("todo:read")).toBe(true);
     expect(result.scope.has("me:read")).toBe(true);
+    expect(result.scope.has("admin:read")).toBe(false);
     expect(result.scope.has("todo:write")).toBe(false);
   });
 
@@ -87,6 +88,7 @@ describe("verifyAccessTokenJwt", () => {
 
     expect(result.scope.has("todo:write")).toBe(true);
     expect(result.scope.has("upload:write")).toBe(true);
+    expect(result.scope.has("admin:write")).toBe(false);
     expect(result.scope.has("todo:read")).toBe(false);
   });
 

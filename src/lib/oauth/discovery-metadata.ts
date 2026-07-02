@@ -12,7 +12,7 @@ import {
   getDiscoveryRedirectResponse,
 } from "@/lib/oauth/discovery-responses";
 import { asOAuthProviderMetadataAuth } from "@/lib/oauth/provider-api";
-import { OAUTH_SCOPES } from "@/lib/oauth/scope-registry";
+import { PUBLIC_OAUTH_SCOPES } from "@/lib/oauth/scope-registry";
 
 export { createDiscoveryJsonResponse } from "@/lib/oauth/discovery-responses";
 
@@ -34,7 +34,7 @@ function augmentDiscoveryMetadata(
     ...body,
     device_authorization_endpoint: `${siteOrigin}${OAUTH_DEVICE_AUTHORIZATION_ENDPOINT_PATH}`,
     grant_types_supported: [...OAUTH_USER_DELEGATED_GRANT_TYPES],
-    scopes_supported: [...OAUTH_SCOPES],
+    scopes_supported: [...PUBLIC_OAUTH_SCOPES],
   };
 }
 

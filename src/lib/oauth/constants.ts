@@ -66,6 +66,25 @@ export const REST_FEATURES = [
 
 export type RestFeature = (typeof REST_FEATURES)[number];
 
+export const PUBLIC_REST_FEATURES = [
+  "me",
+  "todo",
+  "homework",
+  "subscription",
+  "comment",
+  "description",
+  "upload",
+  "dashboard",
+  "bus",
+  "course",
+  "section",
+  "teacher",
+  "schedule",
+  "exam",
+] as const satisfies readonly RestFeature[];
+
+export type PublicRestFeature = (typeof PUBLIC_REST_FEATURES)[number];
+
 export function restReadScope(feature: RestFeature) {
   return `${feature}:read` as const;
 }

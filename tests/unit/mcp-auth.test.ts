@@ -162,6 +162,9 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
       expect(result.response.status).toBe(403);
       const www = result.response.headers.get("www-authenticate");
       expect(www).toContain("insufficient_scope");
+      expect(www).toContain(restReadScope("todo"));
+      expect(www).not.toContain(restReadScope("admin"));
+      expect(www).not.toContain(restWriteScope("admin"));
     }
   });
 

@@ -5,6 +5,7 @@ import {
   OAUTH_OFFLINE_ACCESS_SCOPE,
   OAUTH_OPENID_SCOPE,
   OAUTH_PROFILE_SCOPE,
+  PUBLIC_REST_FEATURES,
   REST_FEATURES,
   restReadScope,
   restWriteScope,
@@ -16,21 +17,51 @@ export const LEGACY_REST_READ_SCOPE = "rest:read";
 export const LEGACY_REST_WRITE_SCOPE = "rest:write";
 export const LEGACY_MCP_TOOLS_SCOPE = "mcp:tools";
 
-export const OAUTH_SCOPES = [
+const BASE_OAUTH_SCOPES = [
   OAUTH_OPENID_SCOPE,
   OAUTH_PROFILE_SCOPE,
   OAUTH_EMAIL_SCOPE,
   OAUTH_OFFLINE_ACCESS_SCOPE,
+] as const;
+
+export const PUBLIC_REST_SCOPES = PUBLIC_REST_FEATURES.flatMap((feature) => [
+  restReadScope(feature),
+  restWriteScope(feature),
+]);
+
+export const PUBLIC_OAUTH_SCOPES = [
+  ...BASE_OAUTH_SCOPES,
+  ...PUBLIC_REST_SCOPES,
+];
+
+export const OAUTH_SCOPES = [
+  ...BASE_OAUTH_SCOPES,
   ...REST_FEATURES.flatMap((f) => [restReadScope(f), restWriteScope(f)]),
 ];
 
 /**
- * Scopes the OAuth provider will accept during dynamic client registration and
- * authorization. Includes canonical feature:action scopes plus legacy REST/MCP
- * spellings so existing clients keep working. Discovery metadata still
- * advertises `OAUTH_SCOPES` only.
+ * Public scopes the OAuth provider will accept during dynamic client
+ * registration. Includes canonical feature:action scopes plus legacy REST/MCP
+ * spellings so existing public clients keep working. Discovery metadata still
+ * advertises canonical public scopes only.
  */
 export const CLIENT_REGISTRATION_ALLOWED_SCOPES = [
+  ...PUBLIC_OAUTH_SCOPES,
+  LEGACY_REST_READ_SCOPE,
+  LEGACY_REST_WRITE_SCOPE,
+  LEGACY_MCP_TOOLS_SCOPE,
+  ...PUBLIC_REST_FEATURES.flatMap((feature) => [
+    `rest:${feature}:read`,
+    `rest:${feature}:write`,
+  ]),
+  ...MCP_FEATURES.map(mcpScope),
+];
+
+/**
+ * Full provider scope vocabulary, including admin-only scopes for clients
+ * created explicitly through the admin backend.
+ */
+export const OAUTH_PROVIDER_SCOPES = [
   ...OAUTH_SCOPES,
   LEGACY_REST_READ_SCOPE,
   LEGACY_REST_WRITE_SCOPE,
@@ -67,13 +98,13 @@ function legacyMcpScope(scope: string): string[] | null {
 
 export function expandLegacyScope(scope: string): string[] {
   if (scope === LEGACY_REST_READ_SCOPE) {
-    return REST_FEATURES.map(restReadScope);
+    return PUBLIC_REST_FEATURES.map(restReadScope);
   }
   if (scope === LEGACY_REST_WRITE_SCOPE) {
-    return REST_FEATURES.map(restWriteScope);
+    return PUBLIC_REST_FEATURES.map(restWriteScope);
   }
   if (scope === LEGACY_MCP_TOOLS_SCOPE) {
-    return REST_FEATURES.flatMap((feature) => [
+    return PUBLIC_REST_FEATURES.flatMap((feature) => [
       restReadScope(feature),
       restWriteScope(feature),
     ]);
@@ -92,11 +123,18 @@ export function isFeatureScope(scope: string): boolean {
   );
 }
 
+function isPublicFeatureScope(scope: string): boolean {
+  return PUBLIC_REST_FEATURES.some(
+    (feature) =>
+      scope === restReadScope(feature) || scope === restWriteScope(feature),
+  );
+}
+
 export function isMcpScope(scope: string): boolean {
   return (
     scope === LEGACY_MCP_TOOLS_SCOPE ||
     MCP_FEATURES.some((feature) => mcpScope(feature) === scope) ||
-    isFeatureScope(scope)
+    isPublicFeatureScope(scope)
   );
 }
 

@@ -1,11 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  DEFAULT_OAUTH_CLIENT_SCOPES,
-  OAUTH_PROVIDER_GRANT_TYPES,
-} from "@/lib/oauth/constants";
+import { OAUTH_PROVIDER_GRANT_TYPES } from "@/lib/oauth/constants";
 import {
   CLIENT_REGISTRATION_ALLOWED_SCOPES,
-  OAUTH_SCOPES,
+  OAUTH_PROVIDER_SCOPES,
+  PUBLIC_OAUTH_SCOPES,
 } from "@/lib/oauth/scope-registry";
 
 const { oauthProviderMock } = vi.hoisted(() => ({
@@ -44,7 +42,7 @@ describe("buildOAuthProviderPlugin", () => {
     );
   });
 
-  it("DCR 客户端默认使用 profile 作用域并保留 REST 与 MCP 作用域可请求", async () => {
+  it("DCR 客户端默认使用公开作用域且不允许公开注册 admin scope", async () => {
     const { buildOAuthProviderPlugin } = await import(
       "@/lib/auth/better-auth-oauth-provider-plugin"
     );
@@ -55,19 +53,26 @@ describe("buildOAuthProviderPlugin", () => {
 
     expect(oauthProviderMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        clientRegistrationDefaultScopes: [...DEFAULT_OAUTH_CLIENT_SCOPES],
+        clientRegistrationDefaultScopes: [...PUBLIC_OAUTH_SCOPES],
         clientRegistrationAllowedScopes: [
           ...CLIENT_REGISTRATION_ALLOWED_SCOPES,
         ],
-        scopes: [...CLIENT_REGISTRATION_ALLOWED_SCOPES],
+        scopes: [...OAUTH_PROVIDER_SCOPES],
         advertisedMetadata: expect.objectContaining({
-          scopes_supported: [...OAUTH_SCOPES],
+          scopes_supported: [...PUBLIC_OAUTH_SCOPES],
         }),
       }),
     );
+    const options = oauthProviderMock.mock.calls[0]?.[0];
+    expect(options.clientRegistrationAllowedScopes).not.toContain("admin:read");
+    expect(options.clientRegistrationAllowedScopes).not.toContain(
+      "admin:write",
+    );
+    expect(options.scopes).toContain("admin:read");
+    expect(options.scopes).toContain("admin:write");
   });
 
-  it("授权与动态注册容忍旧版 coarse scope，但发现文档只公布 feature scope", async () => {
+  it("授权与动态注册容忍旧版 coarse scope，但发现文档只公布公开 feature scope", async () => {
     const { buildOAuthProviderPlugin } = await import(
       "@/lib/auth/better-auth-oauth-provider-plugin"
     );
@@ -90,8 +95,14 @@ describe("buildOAuthProviderPlugin", () => {
     );
     expect(options.advertisedMetadata.scopes_supported).toContain("todo:read");
     expect(options.advertisedMetadata.scopes_supported).toContain("todo:write");
+    expect(options.advertisedMetadata.scopes_supported).not.toContain(
+      "admin:read",
+    );
+    expect(options.advertisedMetadata.scopes_supported).not.toContain(
+      "admin:write",
+    );
     expect(options.advertisedMetadata.scopes_supported).toEqual([
-      ...OAUTH_SCOPES,
+      ...PUBLIC_OAUTH_SCOPES,
     ]);
   });
 });

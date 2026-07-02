@@ -6,7 +6,7 @@ import {
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
   OAUTH_CODE_RESPONSE_TYPE,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
-  REST_FEATURES,
+  PUBLIC_REST_FEATURES,
   restReadScope,
   restWriteScope,
 } from "@/lib/oauth/constants";
@@ -23,10 +23,9 @@ async function generateCodeChallenge(codeVerifier: string) {
 }
 
 const REDIRECT_URI = `${PLAYWRIGHT_BASE_URL}/e2e/oauth/callback`;
-const MCP_E2E_FEATURES = REST_FEATURES.filter((feature) => feature !== "admin");
 export const MCP_CLIENT_SCOPES = [
   ...DEFAULT_OAUTH_CLIENT_SCOPES,
-  ...MCP_E2E_FEATURES.flatMap((feature) => [
+  ...PUBLIC_REST_FEATURES.flatMap((feature) => [
     restReadScope(feature),
     restWriteScope(feature),
   ]),

@@ -30,15 +30,12 @@ import type { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
 import { createMcpServer } from "@/lib/mcp/server";
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
-  REST_FEATURES,
+  PUBLIC_REST_FEATURES,
   restReadScope,
   restWriteScope,
 } from "@/lib/oauth/constants";
 
-const MCP_TEST_FEATURES = REST_FEATURES.filter(
-  (feature) => feature !== "admin",
-);
-const MCP_TEST_SCOPES = MCP_TEST_FEATURES.flatMap((feature) => [
+const MCP_TEST_SCOPES = PUBLIC_REST_FEATURES.flatMap((feature) => [
   restReadScope(feature),
   restWriteScope(feature),
 ]);

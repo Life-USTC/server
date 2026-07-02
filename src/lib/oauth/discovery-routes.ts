@@ -7,17 +7,13 @@ import {
   getOAuthProtectedResourceMetadataUrl,
 } from "@/lib/mcp/urls";
 import {
-  REST_FEATURES,
-  restReadScope,
-  restWriteScope,
-} from "@/lib/oauth/constants";
-import {
   createDiscoveryJsonResponse,
   createDiscoveryMetadataRoute,
   createDiscoveryRedirectRoute,
   getAuthServerMetadataResponse,
   getOpenIdMetadataResponse,
 } from "@/lib/oauth/discovery-metadata";
+import { PUBLIC_REST_SCOPES } from "@/lib/oauth/scope-registry";
 
 async function getProtectedResourceMetadataResponse() {
   const issuerUrl = getOAuthIssuerUrl();
@@ -25,12 +21,7 @@ async function getProtectedResourceMetadataResponse() {
   return createDiscoveryJsonResponse({
     resource: getMcpServerUrl().toString(),
     authorization_servers: [issuerUrl.toString()],
-    scopes_supported: [
-      ...REST_FEATURES.flatMap((feature) => [
-        restReadScope(feature),
-        restWriteScope(feature),
-      ]),
-    ],
+    scopes_supported: [...PUBLIC_REST_SCOPES],
     bearer_methods_supported: ["header"],
     resource_documentation: new URL(
       "/api/docs/tag/sections",
