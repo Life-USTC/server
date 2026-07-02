@@ -553,7 +553,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       await expect(page.locator("#main-content")).toBeVisible();
       return;
     }
-    await homeworksLink.click();
+    await jumpToSection(page, /作业|Homework/i, "#tab-homework");
 
     await expect(page.getByTestId("section-homeworks-cards")).toBeVisible();
     await page
@@ -571,7 +571,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       .toBe("list");
 
     await gotoAndWaitForReady(page, SECTION_URL);
-    await getSectionNavLink(page, /作业|Homework/i).click();
+    await jumpToSection(page, /作业|Homework/i, "#tab-homework");
     await expect(page).toHaveURL(
       new RegExp(`/sections/${DEV_SEED.section.jwId}/homework$`),
     );
@@ -592,7 +592,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
         await expect(page.locator("#main-content")).toBeVisible();
         return;
       }
-      await homeworksLink.click();
+      await jumpToSection(page, /作业|Homework/i, "#tab-homework");
 
       // Create
       const showCreate = page
@@ -718,7 +718,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
         await expect(page.locator("#main-content")).toBeVisible();
         return;
       }
-      await homeworksLink.click();
+      await jumpToSection(page, /作业|Homework/i, "#tab-homework");
 
       const hwCard = page
         .getByRole("button", { name: new RegExp(escapeForRegExp(title)) })
