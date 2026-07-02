@@ -4,6 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { describe, expect, it } from "vitest";
 import { createMcpServer } from "@/lib/mcp/server";
 import { installMcpToolDescriptorDefaults } from "@/lib/mcp/tool-descriptors";
+import { getMcpToolOutputSchema } from "@/lib/mcp/tool-output-schemas";
 import { jsonToolResult } from "@/lib/mcp/tools/_helpers";
 import { restReadScope, restWriteScope } from "@/lib/oauth/constants";
 
@@ -28,15 +29,22 @@ async function listTools() {
 }
 
 type ToolListResult = Awaited<ReturnType<typeof listTools>>;
+type JsonSchemaObject = {
+  anyOf?: JsonSchemaObject[];
+  items?: JsonSchemaObject;
+  properties?: Record<string, JsonSchemaObject>;
+  type?: string;
+};
 
-function outputSchemaKeys(result: ToolListResult, name: string) {
+function outputSchema(result: ToolListResult, name: string) {
   const tool = result.tools.find((item) => item.name === name);
   expect(tool).toBeDefined();
-  const outputSchema = tool?.outputSchema as
-    | { properties?: Record<string, unknown> }
-    | undefined;
 
-  return Object.keys(outputSchema?.properties ?? {});
+  return tool?.outputSchema as JsonSchemaObject | undefined;
+}
+
+function outputSchemaKeys(result: ToolListResult, name: string) {
+  return Object.keys(outputSchema(result, name)?.properties ?? {});
 }
 
 describe("MCP tool descriptors", () => {
@@ -127,6 +135,135 @@ describe("MCP tool descriptors", () => {
     expect(outputSchemaKeys(result, "get_next_buses")).toEqual(
       expect.arrayContaining(["departures", "nextAvailableDeparture"]),
     );
+  });
+
+  it("advertises shared nested schemas for stable structured outputs", async () => {
+    const result = await listTools();
+    const todoSchema = outputSchema(result, "list_my_todos");
+    const uploadSchema = outputSchema(result, "list_my_uploads");
+    const courseSearchSchema = outputSchema(result, "search_courses");
+
+    expect(todoSchema?.properties?.counts).toMatchObject({
+      type: "object",
+      properties: {
+        incomplete: { type: "integer" },
+        completed: { type: "integer" },
+        overdue: { type: "integer" },
+      },
+    });
+    expect(todoSchema?.properties?.todos?.anyOf).toHaveLength(2);
+    expect(
+      todoSchema?.properties?.todos?.anyOf?.[0]?.items?.properties,
+    ).toMatchObject({
+      id: { type: "string" },
+      title: { type: "string" },
+      priority: { enum: ["low", "medium", "high"] },
+    });
+
+    expect(uploadSchema?.properties?.uploads?.anyOf?.[0]?.items).toMatchObject({
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        key: { type: "string" },
+        filename: { type: "string" },
+        size: { type: "integer" },
+      },
+    });
+
+    expect(courseSearchSchema?.properties?.pagination).toMatchObject({
+      type: "object",
+      properties: {
+        page: { type: "integer" },
+        pageSize: { type: "integer" },
+        total: { type: "integer" },
+        totalPages: { type: "integer" },
+      },
+    });
+    expect(
+      courseSearchSchema?.properties?.data?.anyOf?.[0]?.items?.properties,
+    ).toMatchObject({
+      id: { type: "integer" },
+      jwId: { type: "integer" },
+      code: { type: "string" },
+    });
+  });
+
+  it("validates mode-aware collection output schemas", async () => {
+    const [clientTransport, serverTransport] =
+      InMemoryTransport.createLinkedPair();
+    const mcpServer = new McpServer({
+      name: "unit-test-collection-output-schema",
+      version: "1.0.0",
+    });
+    const todoPayload = {
+      counts: {
+        completed: 0,
+        incomplete: 1,
+        overdue: 0,
+      },
+      todos: [
+        {
+          id: "todo-1",
+          title: "Read schema contract",
+          priority: "medium",
+          completed: false,
+          content: "Keep fields compatible with compact MCP payloads.",
+          dueAt: null,
+          createdAt: "2026-07-02T00:00:00.000Z",
+          updatedAt: "2026-07-02T00:00:00.000Z",
+        },
+      ],
+    };
+    installMcpToolDescriptorDefaults(mcpServer);
+    mcpServer.registerTool(
+      "return_todos_default",
+      {
+        description: "Return default todo payload through the shared helper.",
+        outputSchema: getMcpToolOutputSchema("list_my_todos"),
+      },
+      async () => jsonToolResult(todoPayload, { mode: "default" }),
+    );
+    mcpServer.registerTool(
+      "return_todos_summary",
+      {
+        description: "Return summary todo payload through the shared helper.",
+        outputSchema: getMcpToolOutputSchema("list_my_todos"),
+      },
+      async () => jsonToolResult(todoPayload, { mode: "summary" }),
+    );
+    const client = new Client({
+      name: "unit-test-client",
+      version: "1.0.0",
+    });
+
+    await mcpServer.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    try {
+      const defaultResult = await client.callTool({
+        name: "return_todos_default",
+        arguments: {},
+      });
+      const summaryResult = await client.callTool({
+        name: "return_todos_summary",
+        arguments: {},
+      });
+
+      expect(defaultResult.structuredContent).toMatchObject({
+        counts: todoPayload.counts,
+        todos: [expect.objectContaining({ id: "todo-1" })],
+      });
+      expect(summaryResult.structuredContent).toMatchObject({
+        counts: todoPayload.counts,
+        todos: {
+          total: 1,
+          items: [expect.objectContaining({ id: "todo-1" })],
+        },
+      });
+    } finally {
+      await client.close();
+      await mcpServer.close();
+    }
   });
 
   it("validates helper results against the default output schema", async () => {
