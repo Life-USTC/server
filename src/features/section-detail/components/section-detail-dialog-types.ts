@@ -176,6 +176,7 @@ export type SectionDetailMainSectionCopy = SectionCalendarCopy &
     tabs: {
       calendar: string;
       comments: string;
+      exams: string;
       homeworks: string;
     };
     subscribeLabel: string;

@@ -251,6 +251,7 @@ export type SectionDetailCopy = {
     tabs: {
       calendar: string;
       comments: string;
+      exams: string;
       homeworks: string;
     };
     teachLanguage: string;

@@ -1078,6 +1078,7 @@
     "courseComments": "课程",
     "tabs": {
       "description": "简介",
+      "exams": "考试",
       "homeworks": "作业",
       "comments": "评论",
       "calendar": "日历"
