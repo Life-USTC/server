@@ -1,23 +1,16 @@
 <script lang="ts">
-import { onMount } from "svelte";
 import CommentsPanel from "@/features/comments/components/CommentsPanel.svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
+import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.js";
-import {
-  type CatalogDetailTab,
-  mountCatalogDetailHashNavigation,
-  normalizeCatalogDetailTab,
-  replaceCatalogDetailTabUrl,
-} from "../lib/catalog-detail-navigation";
 import {
   type CatalogNamed,
   catalogPrimaryName as primaryName,
   catalogSecondaryName as secondaryName,
 } from "../lib/catalog-list-display";
 import { formatCatalogDetailMessage as formatMessage } from "../lib/course-detail-display";
-import CatalogDetailTabs from "./CatalogDetailTabs.svelte";
 import type {
   TeacherDetailCopy,
   TeacherDetailSection,
@@ -50,18 +43,16 @@ type PageData = {
     metadata: { pages: { teacherDetail: string } };
     teacherDetail: TeacherDetailCopy["teacherDetail"] & {
       notAvailable: string;
+      teachingSectionsDescription: string;
       teachingSectionsTitle: string;
     };
   } & Record<string, unknown>;
   descriptionData: CatalogDetailDescriptionData;
   locale: string;
-  tab: string | null | undefined;
   teacher: TeacherDetailData;
 };
 
 export let data: PageData;
-
-let activeTab: CatalogDetailTab = normalizeCatalogDetailTab(data.tab);
 
 $: copy = data.copy;
 $: detailCopy = copy satisfies TeacherDetailCopy;
@@ -69,19 +60,26 @@ $: notAvailable = copy.teacherDetail.notAvailable;
 $: displayName = primaryName(data.teacher);
 $: secondaryDisplayName = secondaryName(data.teacher);
 $: showSecondaryName = data.locale === "en-us" && Boolean(secondaryDisplayName);
-
-function setActiveTab(nextTab: CatalogDetailTab) {
-  activeTab = nextTab;
-  replaceCatalogDetailTabUrl(nextTab);
-}
-
-onMount(() => {
-  return mountCatalogDetailHashNavigation({
-    setActiveTab: (tab) => {
-      activeTab = tab;
-    },
-  });
-});
+$: commentsCount = data.commentsData
+  ? Object.values(data.commentsData.commentMap).reduce(
+      (sum, comments) => sum + comments.length,
+      0,
+    )
+  : 0;
+$: sectionNavItems = [
+  { href: "#teacher-overview", label: copy.teacherDetail.basicInfo },
+  { href: "#teacher-description", label: copy.descriptions.title },
+  {
+    href: "#teacher-sections",
+    label: copy.teacherDetail.teachingSectionsTitle,
+    meta: data.teacher.sections.length,
+  },
+  {
+    href: "#teacher-comments",
+    label: copy.comments.title,
+    meta: commentsCount,
+  },
+];
 </script>
 
 <svelte:head>
@@ -110,70 +108,66 @@ onMount(() => {
     {/snippet}
   </PageHeader>
 
-  <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-    <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
-      {#key `description:teacher:${data.teacher.id}`}
-        <DescriptionCard
-          targetType="teacher"
-          targetId={data.teacher.id}
-          initialData={data.descriptionData}
-          locale={data.locale as "en-us" | "zh-cn"}
-          copy={copy.descriptions}
-        />
-      {/key}
-
-      <CatalogDetailTabs
-        {activeTab}
-        commentsLabel={copy.comments.title}
-        idPrefix="teacher-detail"
-        sectionsLabel={copy.teacherDetail.teachingSectionsTitle}
-        {setActiveTab}
-      />
-
-      {#if activeTab === "comments"}
-        <div
-          aria-labelledby="teacher-detail-comments-tab"
-          id="teacher-detail-comments-panel"
-          role="tabpanel"
-          tabindex="0"
-        >
-          {#key `comments:teacher:${data.teacher.id}`}
-            <CommentsPanel
-              initialData={data.commentsData}
-              permalinkBaseHref={commentTargetPermalinkBaseHref({
-                teacherId: data.teacher.id,
-                type: "teacher",
-              })}
-              targetType="teacher"
-              targetId={data.teacher.id}
-            />
-          {/key}
-        </div>
-      {:else}
-        <div
-          aria-labelledby="teacher-detail-sections-tab"
-          id="teacher-detail-sections-panel"
-          role="tabpanel"
-          tabindex="0"
-        >
-          <TeacherDetailSections
-            copy={detailCopy}
-            {notAvailable}
-            {primaryName}
-            {secondaryName}
-            teacher={data.teacher}
-          />
-        </div>
-      {/if}
-    </div>
-
-    <TeacherDetailBasicInfo
-      copy={detailCopy}
-      {displayName}
-      {notAvailable}
-      {primaryName}
-      {secondaryDisplayName}
-      teacher={data.teacher}
+  <div class="grid gap-5 lg:grid-cols-[12rem_minmax(0,1fr)] lg:items-start">
+    <DetailSectionNav
+      ariaLabel={formatMessage(copy.metadata.pages.teacherDetail, { name: displayName })}
+      items={sectionNavItems}
     />
+
+    <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
+      <section class="scroll-mt-20" id="teacher-overview">
+        <TeacherDetailBasicInfo
+          copy={detailCopy}
+          {displayName}
+          {notAvailable}
+          {primaryName}
+          {secondaryDisplayName}
+          teacher={data.teacher}
+        />
+      </section>
+
+      <section class="scroll-mt-20" id="teacher-description">
+        {#key `description:teacher:${data.teacher.id}`}
+          <DescriptionCard
+            targetType="teacher"
+            targetId={data.teacher.id}
+            initialData={data.descriptionData}
+            locale={data.locale as "en-us" | "zh-cn"}
+            copy={copy.descriptions}
+          />
+        {/key}
+      </section>
+
+      <section class="grid scroll-mt-20 gap-3" id="teacher-sections">
+        <div>
+          <h2 class="font-semibold text-lg">{copy.teacherDetail.teachingSectionsTitle}</h2>
+          <p class="text-base-content/60 text-sm">{copy.teacherDetail.teachingSectionsDescription}</p>
+        </div>
+        <TeacherDetailSections
+          copy={detailCopy}
+          {notAvailable}
+          {primaryName}
+          {secondaryName}
+          teacher={data.teacher}
+        />
+      </section>
+
+      <section class="grid scroll-mt-20 gap-3" id="teacher-comments">
+        <div>
+          <h2 class="font-semibold text-lg">{copy.comments.title}</h2>
+        </div>
+        {#key `comments:teacher:${data.teacher.id}`}
+          <CommentsPanel
+            initialData={data.commentsData}
+            permalinkBaseHref={commentTargetPermalinkBaseHref({
+              teacherId: data.teacher.id,
+              type: "teacher",
+            })}
+            targetType="teacher"
+            targetId={data.teacher.id}
+          />
+        {/key}
+      </section>
+    </div>
   </div>
 </section>

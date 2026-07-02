@@ -52,11 +52,18 @@ function escapeForRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function getSectionTab(page: Page, name: RegExp) {
+function getSectionNavLink(page: Page, name: RegExp) {
   return page
-    .getByRole("tablist", { name: /授课班级|Teaching section/i })
-    .getByRole("tab", { name })
+    .getByTestId("detail-section-nav")
+    .getByRole("link", { name })
     .first();
+}
+
+async function jumpToSection(page: Page, name: RegExp, selector: string) {
+  const link = getSectionNavLink(page, name);
+  await expect(link).toBeVisible();
+  await link.click();
+  await expect(page.locator(selector)).toBeVisible();
 }
 
 function getSectionCalendarMonthView(page: Page) {
@@ -105,9 +112,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     ).toContainText(expectedSubtitle);
     // section.code (monospace)
     await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
-    await expect(
-      page.getByRole("tablist", { name: /授课班级|Teaching section/i }),
-    ).toBeVisible();
+    await expect(page.getByTestId("detail-section-nav")).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "section/heading");
   });
@@ -233,17 +238,10 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     await captureStepScreenshot(page, testInfo, "section/admin-classes");
   });
 
-  test("日历标签页显示课表、教室、教学楼与教师", async ({ page }, testInfo) => {
+  test("日历区块显示课表、教室、教学楼与教师", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
-    await expect(async () => {
-      const calendarTab = getSectionTab(page, /日历|Calendar/i);
-      await calendarTab.click();
-      await expect(calendarTab).toHaveAttribute("aria-selected", "true");
-    }).toPass({
-      timeout: 10_000,
-      intervals: [250, 500, 1_000],
-    });
+    await jumpToSection(page, /日历|Calendar/i, "#tab-calendar");
 
     // Class schedule information is now rendered as chips inside the calendar
     // month grid, not as a separate list of cards.
@@ -293,9 +291,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
   }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
-    const calendarTab = getSectionTab(page, /日历|Calendar/i);
-    await calendarTab.click();
-    await expect(calendarTab).toHaveAttribute("aria-selected", "true");
+    await jumpToSection(page, /日历|Calendar/i, "#tab-calendar");
 
     const monthView = getSectionCalendarMonthView(page);
     const monthHeading = monthView.locator("h3").first();
@@ -311,19 +307,12 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     await captureStepScreenshot(page, testInfo, "section/calendar-today");
   });
 
-  test("日历标签页显示考试信息（examBatch、examRooms）", async ({
+  test("日历区块显示考试信息（examBatch、examRooms）", async ({
     page,
   }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
-    await expect(async () => {
-      const calendarTab = getSectionTab(page, /日历|Calendar/i);
-      await calendarTab.click();
-      await expect(calendarTab).toHaveAttribute("aria-selected", "true");
-    }).toPass({
-      timeout: 10_000,
-      intervals: [250, 500, 1_000],
-    });
+    await jumpToSection(page, /日历|Calendar/i, "#tab-calendar");
 
     // Navigate forward to find exam event — exam batch name or room should appear
     await expect(
@@ -375,28 +364,25 @@ test.describe("/sections/[jwId] 班级详情页", () => {
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
-  test("标签切换可用", async ({ page }, testInfo) => {
+  test("详情导航可跳转到主要区块", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
-    const tabList = page
-      .getByRole("tablist", { name: /授课班级|Teaching section/i })
-      .first();
-    await expect(tabList).toBeVisible();
-    const targetTab = tabList.getByRole("tab").nth(1);
-    const targetTabId = await targetTab.getAttribute("id");
-    const panelId = await targetTab.getAttribute("aria-controls");
-    expect(targetTabId).toBeTruthy();
-    expect(panelId).toBeTruthy();
-    if (!targetTabId || !panelId) {
-      throw new Error("Expected section tab id and aria-controls");
-    }
+    const nav = page.getByTestId("detail-section-nav");
+    await expect(nav).toBeVisible();
+    await expect(
+      nav.getByRole("link", { name: /日历|Calendar/i }),
+    ).toBeVisible();
+    await expect(
+      nav.getByRole("link", { name: /作业|Homework/i }),
+    ).toBeVisible();
+    await expect(nav.getByRole("link", { name: /考试|Exams/i })).toBeVisible();
+    await expect(
+      nav.getByRole("link", { name: /评论|Comments/i }),
+    ).toBeVisible();
 
-    await targetTab.click();
-    await expect(targetTab).toHaveAttribute("aria-selected", "true");
-    const targetPanel = page.locator(`#${panelId}`);
-    await expect(targetPanel).toHaveAttribute("role", "tabpanel");
-    await expect(targetPanel).toHaveAttribute("aria-labelledby", targetTabId);
-    await captureStepScreenshot(page, testInfo, "section/tab-switch");
+    await jumpToSection(page, /作业|Homework/i, "#tab-homework");
+    await expect(page).toHaveURL(/#tab-homework$/);
+    await captureStepScreenshot(page, testInfo, "section/detail-nav");
   });
 
   test("面包屑可返回班级列表", async ({ page }, testInfo) => {
@@ -488,6 +474,8 @@ test.describe("/sections/[jwId] 班级详情页", () => {
         .getByRole("button", { name: /关注班级|Subscribe to section/i })
         .click();
       await expect(unsubscribe.first()).toBeVisible({ timeout: 15_000 });
+      await page.keyboard.press("Escape");
+      await expect(subscribeDialog).toBeHidden({ timeout: 5_000 });
       await captureStepScreenshot(page, testInfo, "section/subscribed");
     }
 
@@ -567,17 +555,15 @@ test.describe("/sections/[jwId] 班级详情页", () => {
 
   // ── Homework CRUD ───────────────────────────────────────────────────────────
 
-  test("可切换班级作业标签为列表视图并记住偏好", async ({ page }, testInfo) => {
+  test("可切换班级作业区块为列表视图并记住偏好", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
-    const homeworksTab = page
-      .getByRole("tab", { name: /作业|Homework/i })
-      .first();
-    if ((await homeworksTab.count()) === 0) {
+    const homeworksLink = getSectionNavLink(page, /作业|Homework/i);
+    if ((await homeworksLink.count()) === 0) {
       await expect(page.locator("#main-content")).toBeVisible();
       return;
     }
-    await homeworksTab.click();
+    await homeworksLink.click();
 
     await expect(page.getByTestId("section-homeworks-cards")).toBeVisible();
     await page
@@ -595,7 +581,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       .toBe("list");
 
     await gotoAndWaitForReady(page, SECTION_URL);
-    await homeworksTab.click();
+    await getSectionNavLink(page, /作业|Homework/i).click();
     await expect(page).toHaveURL(
       new RegExp(`/sections/${DEV_SEED.section.jwId}(#tab-homework)?$`),
     );
@@ -611,14 +597,12 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     let homeworkId: string | undefined;
 
     try {
-      const homeworksTab = page
-        .getByRole("tab", { name: /作业|Homework/i })
-        .first();
-      if ((await homeworksTab.count()) === 0) {
+      const homeworksLink = getSectionNavLink(page, /作业|Homework/i);
+      if ((await homeworksLink.count()) === 0) {
         await expect(page.locator("#main-content")).toBeVisible();
         return;
       }
-      await homeworksTab.click();
+      await homeworksLink.click();
 
       // Create
       const showCreate = page
@@ -739,14 +723,12 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       expect(homeworkId).toBeTruthy();
 
       await gotoAndWaitForReady(page, SECTION_URL);
-      const homeworksTab = page
-        .getByRole("tab", { name: /作业|Homework/i })
-        .first();
-      if ((await homeworksTab.count()) === 0) {
+      const homeworksLink = getSectionNavLink(page, /作业|Homework/i);
+      if ((await homeworksLink.count()) === 0) {
         await expect(page.locator("#main-content")).toBeVisible();
         return;
       }
-      await homeworksTab.click();
+      await homeworksLink.click();
 
       const hwCard = page
         .getByRole("button", { name: new RegExp(escapeForRegExp(title)) })
@@ -851,7 +833,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       await gotoAndWaitForReady(page, `/comments/${commentId}`);
       await expect(page).toHaveURL(
         new RegExp(
-          `/sections/${DEV_SEED.section.jwId}\\?tab=homework&homeworkId=${escapeForRegExp(homeworkId ?? "")}#comment-${escapeForRegExp(commentId ?? "")}$`,
+          `/sections/${DEV_SEED.section.jwId}\\?homeworkId=${escapeForRegExp(homeworkId ?? "")}#comment-${escapeForRegExp(commentId ?? "")}$`,
         ),
       );
 
@@ -887,11 +869,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     let replyId: string | undefined;
 
     try {
-      const commentsTab = page
-        .getByRole("tab", { name: /评论|Comments/i })
-        .first();
-      await commentsTab.click();
-      await expect(commentsTab).toHaveAttribute("aria-selected", "true");
+      await jumpToSection(page, /评论|Comments/i, "#tab-comments");
 
       // Post comment
       const body = `e2e-section-comment-${Date.now()}`;
@@ -1048,11 +1026,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     try {
       await signInAsDebugUser(page, SECTION_URL);
 
-      const commentsTab = page
-        .getByRole("tab", { name: /评论|Comments/i })
-        .first();
-      await commentsTab.click();
-      await expect(commentsTab).toHaveAttribute("aria-selected", "true");
+      await jumpToSection(page, /评论|Comments/i, "#tab-comments");
 
       const composerCard = page
         .locator('[data-slot="card"]')
@@ -1115,14 +1089,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       // View the same comment without signing in: identity is masked
       await page.context().clearCookies();
       await gotoAndWaitForReady(page, SECTION_URL);
-      const anonymousCommentsTab = page
-        .getByRole("tab", { name: /评论|Comments/i })
-        .first();
-      await anonymousCommentsTab.click();
-      await expect(anonymousCommentsTab).toHaveAttribute(
-        "aria-selected",
-        "true",
-      );
+      await jumpToSection(page, /评论|Comments/i, "#tab-comments");
 
       const anonymousCommentCard = page
         .locator('[id^="comment-"]')
@@ -1163,11 +1130,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
         if (!page.url().includes(`/sections/${DEV_SEED.section.jwId}`)) {
           await gotoAndWaitForReady(page, SECTION_URL);
         }
-        const commentsTab = page
-          .getByRole("tab", { name: /评论|Comments/i })
-          .first();
-        await commentsTab.click();
-        await expect(commentsTab).toHaveAttribute("aria-selected", "true");
+        await jumpToSection(page, /评论|Comments/i, "#tab-comments");
       }).toPass({
         timeout: 10_000,
         intervals: [250, 500, 1_000],

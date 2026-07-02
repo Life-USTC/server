@@ -1,10 +1,8 @@
-import {
-  type HomeworkAuditLog,
-  type HomeworkViewer,
-  normalizeSectionTab,
-  type SectionDetailPageData,
-  type SectionHomework,
-  type SectionTab,
+import type {
+  HomeworkAuditLog,
+  HomeworkViewer,
+  SectionDetailPageData,
+  SectionHomework,
 } from "@/features/section-detail/lib/section-detail-controller-helpers";
 import type { SectionHomeworkView } from "@/features/section-detail/lib/section-detail-controller-navigation";
 
@@ -17,14 +15,7 @@ export function createSectionDetailControllerDefaultState(
       : (data.homeworkData.homeworks.find(
           (homework) => homework.id === data.focusedHomeworkId,
         ) ?? null);
-  const activeTab = (
-    focusedHomework
-      ? "homework"
-      : (normalizeSectionTab(data.tab ?? null) ?? "homework")
-  ) as SectionTab;
-
   return {
-    _activeTab: activeTab,
     _calendarMonthOffset: 0,
     _clipboardError: "",
     _clipboardMessage: "",

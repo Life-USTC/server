@@ -4,19 +4,16 @@ import {
   initialHomeworkDraft,
   type SectionDetailPageData,
   type SectionHomework,
-  type SectionTab,
   sectionSemesterDate,
 } from "./section-detail-controller-helpers";
 import {
   persistSectionHomeworkView,
   type SectionHomeworkView,
-  setSectionDetailTabHash,
 } from "./section-detail-controller-navigation";
 
 export function createSectionDetailUiActions(input: {
   getSection: () => SectionDetailPageData["section"];
   getSelectedHomework: () => SectionHomework | null;
-  setActiveTab: (value: SectionTab) => void;
   setCreateHomeworkPublishedAt: (value: string) => void;
   setCreateHomeworkSubmissionDueAt: (value: string) => void;
   setCreateHomeworkSubmissionStartAt: (value: string) => void;
@@ -33,15 +30,6 @@ export function createSectionDetailUiActions(input: {
     value: "subscribe" | "unsubscribe" | null,
   ) => void;
 }) {
-  function setActiveTab(
-    nextTab: SectionTab,
-    options: { syncHash?: boolean } = {},
-  ) {
-    input.setActiveTab(nextTab);
-    if (options.syncHash === false) return;
-    setSectionDetailTabHash(nextTab);
-  }
-
   function setHomeworkView(nextView: SectionHomeworkView) {
     input.setHomeworkView(nextView);
     persistSectionHomeworkView(nextView);
@@ -111,7 +99,6 @@ export function createSectionDetailUiActions(input: {
     openCreateHomeworkDialog,
     openSubscribeDialog: () => input.setShowSubscribeDialog(true),
     semesterDate,
-    setActiveTab,
     setHomeworkView,
     startEditHomework,
     subscriptionAction,

@@ -13,9 +13,7 @@ import { createSectionCalendarClipboardActions } from "@/features/section-detail
 import { sectionDetailCalendarUrls } from "@/features/section-detail/lib/section-detail-calendar-urls";
 import { mountSectionDetailController } from "@/features/section-detail/lib/section-detail-controller-mount";
 import {
-  buildCalendarDateKeySet,
   buildSectionDetailCommentTargets,
-  buildSectionDetailTabs,
   buildSectionPeriodDetailRows,
   canManageSectionHomework,
   canWriteSectionHomework,
@@ -42,7 +40,6 @@ export let data: PageData;
 export let form: ActionData;
 
 let {
-  _activeTab,
   _calendarMonthOffset,
   _clipboardError,
   _clipboardMessage,
@@ -98,7 +95,6 @@ const {
   fmtDate: _fmtDate,
   fmtDateTime: _fmtDateTime,
   fmtMonth: _fmtMonth,
-  isSameMonth: _isSameMonth,
 } = createSectionDetailCalendarDisplayActions({
   getNotAvailable: () => _notAvailable,
   getSectionCalendarEvents: () => sectionCalendarEvents,
@@ -112,7 +108,6 @@ $: _commonCopy = _copy.common;
 $: _notAvailable = _sectionCopy.notAvailable;
 $: _courseName = _primaryName(data.section.course) || data.section.code;
 $: _courseSecondaryName = _secondaryName(data.section.course);
-$: _tabs = buildSectionDetailTabs(_sectionCopy);
 $: _commentTargets = buildSectionDetailCommentTargets(_copy, data.section);
 $: calendarUrls = sectionDetailCalendarUrls({
   jwId: data.section.jwId,
@@ -157,16 +152,6 @@ $: sectionCalendarGridWeeks = buildSectionCalendarGridWeeks({
 $: unscheduledCalendarEvents = sectionCalendarEvents.filter(
   (event) => !event.dateKey,
 );
-$: calendarScheduleDateKeys = buildCalendarDateKeySet(
-  data.section.schedules,
-  (schedule) => schedule.date,
-  _dateKey,
-);
-$: calendarExamDateKeys = buildCalendarDateKeySet(
-  data.section.exams,
-  (exam) => exam.examDate,
-  _dateKey,
-);
 
 const {
   cancelEditHomework: _cancelEditHomework,
@@ -175,16 +160,12 @@ const {
   openCreateHomeworkDialog: _openCreateHomeworkDialog,
   openSubscribeDialog: _openSubscribeDialog,
   semesterDate: _semesterDate,
-  setActiveTab: _setActiveTab,
   setHomeworkView: _setHomeworkView,
   startEditHomework: _startEditHomework,
   subscriptionAction: _subscriptionAction,
 } = createSectionDetailUiActions({
   getSection: () => data.section,
   getSelectedHomework: () => _selectedHomework,
-  setActiveTab: (value) => {
-    _activeTab = value;
-  },
   setCreateHomeworkPublishedAt: (value) => {
     _createHomeworkPublishedAt = value;
   },
@@ -343,9 +324,6 @@ onMount(() => {
     clearClipboardTimer: _clearClipboardTimer,
     getHomeworkView: () => _homeworkView,
     loadHomeworks: _loadHomeworks,
-    setActiveTab: (tab) => {
-      _setActiveTab(tab, { syncHash: false });
-    },
     setHomeworkView: (view) => {
       _homeworkView = view;
     },
@@ -381,17 +359,12 @@ onMount(() => {
   />
 
   <SectionDetailMainContent
-    activeTab={_activeTab}
-    {calendarExamDateKeys}
-    {calendarMonthDays}
     {calendarMonthLabel}
     bind:calendarMonthOffset={_calendarMonthOffset}
-    {calendarScheduleDateKeys}
     canWriteHomework={_canWriteHomework}
     commentTargets={_commentTargets}
     commonCopy={_commonCopy}
     {data}
-    dateKey={_dateKey}
     fmtDate={_fmtDate}
     fmtDateTime={_fmtDateTime}
     formatMessage={_formatMessage}
@@ -399,7 +372,6 @@ onMount(() => {
     homeworkStatus={_homeworkStatus}
     homeworkView={_homeworkView}
     homeworks={_homeworks}
-    isSameMonth={_isSameMonth}
     notAvailable={_notAvailable}
     openCalendarDialog={_openCalendarDialog}
     openCreateHomeworkDialog={_openCreateHomeworkDialog}
@@ -409,7 +381,6 @@ onMount(() => {
     {sectionCalendarGridWeeks}
     sectionCopy={_sectionCopy}
     sectionTeachersLabel={_sectionTeachersLabel}
-    setActiveTab={_setActiveTab}
     setHomeworkAuditDialogOpen={(open) => {
       _isHomeworkAuditDialogOpen = open;
     }}
@@ -417,13 +388,10 @@ onMount(() => {
     setSelectedHomework={(homework) => {
       _selectedHomework = homework;
     }}
-    tabs={_tabs}
     teacherName={_teacherName}
-    {todayCalendarKey}
     {todayCalendarMonthOffset}
     {unscheduledCalendarEvents}
     viewer={data.viewer}
-    {visibleCalendarMonth}
     yesNo={_yesNo}
   />
 </section>

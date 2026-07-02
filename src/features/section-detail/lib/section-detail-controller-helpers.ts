@@ -20,10 +20,3 @@ export {
   sectionSemesterDate,
   sectionSemesterWeekLabel,
 } from "./section-detail-semester-week";
-export {
-  homeworkViewStorageKey,
-  normalizeSectionTab,
-  type SectionTab,
-  sectionTabFromHash,
-  sectionTabIds,
-} from "./section-detail-tabs";

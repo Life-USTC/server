@@ -13,9 +13,9 @@ describe("评论面板链接", () => {
       type: "homework",
     });
 
-    expect(baseHref).toBe("/sections/12345?tab=homework&homeworkId=homework-1");
+    expect(baseHref).toBe("/sections/12345?homeworkId=homework-1");
     expect(commentPermalinkHref(baseHref, "comment-1")).toBe(
-      "/sections/12345?tab=homework&homeworkId=homework-1#comment-comment-1",
+      "/sections/12345?homeworkId=homework-1#comment-comment-1",
     );
   });
 
@@ -23,7 +23,7 @@ describe("评论面板链接", () => {
     [
       "section",
       commentTargetPermalinkBaseHref({ sectionJwId: 12345, type: "section" }),
-      "/sections/12345?tab=comments#comment-comment-1",
+      "/sections/12345#comment-comment-1",
     ],
     [
       "section-teacher",
@@ -31,17 +31,17 @@ describe("评论面板链接", () => {
         sectionJwId: 12345,
         type: "section-teacher",
       }),
-      "/sections/12345?tab=comments#comment-comment-1",
+      "/sections/12345#comment-comment-1",
     ],
     [
       "course",
       commentTargetPermalinkBaseHref({ courseJwId: 67890, type: "course" }),
-      "/courses/67890?tab=comments#comment-comment-1",
+      "/courses/67890#comment-comment-1",
     ],
     [
       "teacher",
       commentTargetPermalinkBaseHref({ teacherId: 42, type: "teacher" }),
-      "/teachers/42?tab=comments#comment-comment-1",
+      "/teachers/42#comment-comment-1",
     ],
   ])("根据目标类型保留 %s 评论永久链接", (_, baseHref, expected) => {
     expect(commentPermalinkHref(baseHref, "comment-1")).toBe(expected);
@@ -52,10 +52,10 @@ describe("评论面板链接", () => {
       absoluteCommentPermalinkHref({
         commentId: "comment-1",
         currentHref: "https://life.example/dashboard/homeworks",
-        permalinkBaseHref: "/sections/12345?tab=homework&homeworkId=homework-1",
+        permalinkBaseHref: "/sections/12345?homeworkId=homework-1",
       }),
     ).toBe(
-      "https://life.example/sections/12345?tab=homework&homeworkId=homework-1#comment-comment-1",
+      "https://life.example/sections/12345?homeworkId=homework-1#comment-comment-1",
     );
   });
 });

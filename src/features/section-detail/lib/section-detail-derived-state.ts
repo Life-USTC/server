@@ -10,16 +10,6 @@ import type {
 type SectionDetailCopy = SectionDetailPageData["copy"];
 type SectionDetailSection = SectionDetailPageData["section"];
 
-export function buildSectionDetailTabs(
-  sectionCopy: SectionDetailCopy["sectionDetail"],
-) {
-  return [
-    ["calendar", sectionCopy.tabs.calendar],
-    ["homework", sectionCopy.tabs.homeworks],
-    ["comments", sectionCopy.tabs.comments],
-  ] as const;
-}
-
 export function buildSectionDetailCommentTargets(
   copy: SectionDetailCopy,
   section: SectionDetailSection,
@@ -80,18 +70,6 @@ export function buildSectionPeriodDetailRows(
     [sectionCopy.testPeriods, section.testPeriods],
   ].filter(
     (row): row is [string, number] => typeof row[1] === "number" && row[1] > 0,
-  );
-}
-
-export function buildCalendarDateKeySet<T>(
-  items: T[],
-  getDate: (item: T) => string | Date | null | undefined,
-  dateKey: (value: string | Date | null | undefined) => string | null,
-) {
-  return new Set(
-    items
-      .map((item) => dateKey(getDate(item)))
-      .filter((key): key is string => Boolean(key)),
   );
 }
 
