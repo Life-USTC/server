@@ -1,5 +1,4 @@
 export { recordAuditWriteMetric } from "./audit-observability-metrics";
-export { recordCalendarFeedCacheMetric } from "./calendar-observability-metrics";
 export {
   recordMcpHttpRequestMetric,
   recordMcpJsonRpcMetric,

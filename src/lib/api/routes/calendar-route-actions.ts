@@ -2,20 +2,13 @@ import {
   getSectionForCalendar,
   getSectionsForCalendar,
 } from "@/features/calendar/server/calendar-export-data";
-import {
-  getCachedUserCalendarExport,
-  requestMatchesEtag,
-} from "@/features/calendar/server/calendar-export-cache";
 import { buildUserCalendarExport } from "@/features/calendar/server/calendar-export-service";
 import {
   createMultiSectionCalendar,
   createSectionCalendar,
 } from "@/features/calendar/server/ical";
 import { handleRouteError, notFound } from "@/lib/api/helpers";
-import {
-  calendarNotModifiedResponse,
-  calendarResponse,
-} from "./calendar-route-utils";
+import { calendarResponse } from "./calendar-route-utils";
 
 export async function generateSectionsCalendarAction(sectionIds: number[]) {
   const sections = await getSectionsForCalendar(sectionIds);
@@ -52,24 +45,15 @@ export async function generateSectionCalendarAction(sectionJwId: number) {
 export async function generateUserCalendarAction(
   user: Parameters<typeof buildUserCalendarExport>[0],
   userId: string,
-  request: Request,
 ) {
-  const { calendar } = await getCachedUserCalendarExport(userId, () =>
-    buildUserCalendarExport(user, userId),
-  );
+  const calendar = await buildUserCalendarExport(user, userId);
   if (!calendar) {
     return notFound("No calendar items found");
-  }
-
-  const etagHeaders = { ETag: calendar.etag };
-  if (requestMatchesEtag(request, calendar.etag)) {
-    return calendarNotModifiedResponse(calendar.cacheControl, etagHeaders);
   }
 
   return calendarResponse(
     calendar.text,
     calendar.filename,
     calendar.cacheControl,
-    etagHeaders,
   );
 }

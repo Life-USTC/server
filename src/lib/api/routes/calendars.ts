@@ -51,11 +51,7 @@ export async function getUserCalendarRoute(
       return access.response;
     }
 
-    return await generateUserCalendarAction(
-      access.user,
-      access.userId,
-      request,
-    );
+    return await generateUserCalendarAction(access.user, access.userId);
   } catch (error) {
     return handleRouteError("Failed to generate user calendar", error);
   }
