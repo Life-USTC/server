@@ -1,3 +1,10 @@
+# [1.45.0](https://github.com/Life-USTC/server/compare/v1.44.3...v1.45.0) (2026-07-03)
+
+
+### Features
+
+* import static sqlite snapshot in loader ([882fd90](https://github.com/Life-USTC/server/commit/882fd904c40cc62c494d0cb5ccbea32d1c020e73))
+
 ## [1.44.3](https://github.com/Life-USTC/server/compare/v1.44.2...v1.44.3) (2026-07-03)
 
 
