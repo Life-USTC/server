@@ -4,3 +4,6 @@ services:
       context: .
     environment:
       DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL to the target PostgreSQL connection string}
+      STATIC_SNAPSHOT_URL: ${STATIC_SNAPSHOT_URL:-https://static.life-ustc.tiankaima.dev/life-ustc-static.sqlite}
+      STATIC_LOADER_MIN_SEMESTER: ${STATIC_LOADER_MIN_SEMESTER:-401}
+      STATIC_LOADER_DRY_RUN: ${STATIC_LOADER_DRY_RUN:-false}
