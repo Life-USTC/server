@@ -116,7 +116,7 @@ onDestroy(clearHoverPreviewTimeout);
 		this={as}
 		bind:this={ref}
 		class={cn(
-			"text-sidebar-foreground group flex h-full min-h-0 w-full shrink-0 transition-[width] duration-200 ease-linear",
+			"text-sidebar-foreground group relative flex h-full min-h-0 w-full shrink-0 transition-[width] duration-200 ease-linear",
 			desktopBreakpoint === "lg" ? "lg:w-(--sidebar-width)" : "md:w-(--sidebar-width)",
 			variant === "floating" || variant === "inset"
 				? desktopBreakpoint === "lg"

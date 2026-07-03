@@ -90,5 +90,8 @@ onMount(() => {
         title="Toggle sidebar"
       />
     </Sidebar.Footer>
+    <div class="hidden lg:contents">
+      <Sidebar.Rail />
+    </div>
   </Sidebar.Root>
 </Sidebar.Provider>
