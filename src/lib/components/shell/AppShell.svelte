@@ -29,6 +29,10 @@ import {
   type ThemeMode,
 } from "$lib/components/shell/layout-shell";
 import RouteLoadingBar from "$lib/components/shell/RouteLoadingBar.svelte";
+import {
+  loadPrimarySidebarCollapsed,
+  setPrimarySidebarCollapsed,
+} from "$lib/components/sidebar-collapse";
 import { setClientLocale } from "$lib/locale/client-locale";
 import type {
   LayoutCopy,
@@ -50,6 +54,7 @@ let mobileMenuOpen = false;
 let userMenuOpen = false;
 let localeMenuOpen = false;
 let themeMenuOpen = false;
+let primarySidebarCollapsed = false;
 let contentScrollContainer: HTMLDivElement | undefined;
 
 $: profileHref = resolveProfileHref(data.user);
@@ -192,6 +197,10 @@ function setThemeMode(nextThemeMode: ThemeMode) {
   themeMenuOpen = false;
 }
 
+function setPrimarySidebarOpen(collapsed: boolean) {
+  primarySidebarCollapsed = setPrimarySidebarCollapsed(collapsed);
+}
+
 function setMobileMenuOpen(open: boolean) {
   mobileMenuOpen = open;
   if (open) {
@@ -252,6 +261,9 @@ async function setLocale(locale: "en-us" | "zh-cn") {
 
 onMount(() => {
   themeMode = loadStoredThemeMode(themeMode);
+  primarySidebarCollapsed = loadPrimarySidebarCollapsed(
+    primarySidebarCollapsed,
+  );
   applyShellTheme(themeMode);
 });
 
@@ -281,15 +293,24 @@ afterNavigate(({ from, to }) => {
   }
 </style>
 
-<div class="min-h-screen bg-base-200 text-base-content lg:grid lg:h-screen lg:min-h-0 lg:grid-cols-[15rem_minmax(0,1fr)] lg:overflow-hidden">
+<div
+  class={cn(
+    "min-h-screen bg-base-200 text-base-content lg:grid lg:h-screen lg:min-h-0 lg:overflow-hidden",
+    primarySidebarCollapsed
+      ? "lg:grid-cols-[4rem_minmax(0,1fr)]"
+      : "lg:grid-cols-[15rem_minmax(0,1fr)]",
+  )}
+>
   {#if $navigating}
     <RouteLoadingBar loadingLabel={data.copy.shell.loading} />
   {/if}
 
   <AppSidebar
+    collapsed={primarySidebarCollapsed}
     copy={data.copy}
     {isActiveLink}
     {navGroups}
+    setCollapsed={setPrimarySidebarOpen}
   />
 
   <div class="flex min-w-0 flex-col lg:h-screen lg:min-h-0 lg:overflow-hidden">

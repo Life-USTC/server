@@ -146,7 +146,7 @@ $: pinnedSummaryItems = [
     description={secondaryDisplayName}
   />
 
-  <div class="grid min-h-0 bg-base-100 lg:grid-cols-[14rem_minmax(0,1fr)]">
+  <div class="grid min-h-0 bg-base-100 lg:grid-cols-[auto_minmax(0,1fr)]">
     <DetailSectionNav
       activeHref={activeNavItem?.href ?? courseBaseHref}
       ariaLabel={formatMessage(copy.metadata.pages.courseDetail, { name: displayName })}
