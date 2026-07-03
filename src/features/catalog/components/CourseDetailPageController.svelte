@@ -139,7 +139,7 @@ $: pinnedSummaryItems = [
   <meta property="og:title" content={displayName} />
 </svelte:head>
 
-<section class="-mx-4 -mt-4 grid bg-base-100 sm:-mx-5 lg:-mx-6 lg:-my-4 lg:h-[calc(100%+2rem)] lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)]">
+<section class="grid min-h-full bg-base-100 lg:h-full lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)]">
   <DetailPinnedSummary
     items={pinnedSummaryItems}
     title={displayName}

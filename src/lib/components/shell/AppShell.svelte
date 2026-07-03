@@ -327,8 +327,10 @@ afterNavigate(({ from, to }) => {
       <main
         id="main-content"
         class={cn(
-          "w-full flex-1 px-4 py-4 sm:px-5 lg:px-6",
-          detailWorkspace && "bg-base-100 lg:min-h-0 lg:overflow-hidden",
+          "w-full flex-1",
+          detailWorkspace
+            ? "bg-base-100 p-0 lg:min-h-0 lg:overflow-hidden"
+            : "px-4 py-4 sm:px-5 lg:px-6",
         )}
       >
         <slot />

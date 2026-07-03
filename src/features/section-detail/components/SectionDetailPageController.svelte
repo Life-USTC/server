@@ -340,7 +340,7 @@ onMount(() => {
   titleTemplate={_copy.metadata.pages.sectionDetail}
 />
 
-<section class="grid gap-5 lg:h-full lg:min-h-0 lg:overflow-hidden">
+<section class="min-h-full lg:h-full lg:min-h-0">
   <SectionDetailMainContent
     {calendarMonthLabel}
     bind:calendarMonthOffset={_calendarMonthOffset}
