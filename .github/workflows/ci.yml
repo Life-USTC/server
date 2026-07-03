@@ -53,6 +53,54 @@ jobs:
             echo "::warning::docker build failed (attempt ${attempt}/3), retrying..."
             sleep 15
           done
+      - name: Smoke test static loader image
+        run: |
+          docker run --rm --entrypoint sh life-ustc-static-loader:check -c '
+            command -v curl
+            command -v sqlite3
+            command -v psql
+            test -x scripts/load-static-sqlite.sh
+            test -x /usr/local/bin/docker-entrypoint.load.sh
+          '
+      - name: Dry-run static loader image
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          network="static-loader-check-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          postgres="static-loader-postgres-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+
+          cleanup() {
+            docker rm -f "${postgres}" >/dev/null 2>&1 || true
+            docker network rm "${network}" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker network create "${network}"
+          docker run -d --rm \
+            --name "${postgres}" \
+            --network "${network}" \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_DB=life_ustc_static_loader \
+            postgres:16
+
+          for attempt in $(seq 1 60); do
+            if docker exec "${postgres}" pg_isready -U postgres -d life_ustc_static_loader >/dev/null 2>&1; then
+              break
+            fi
+            if [ "${attempt}" -eq 60 ]; then
+              echo "Postgres did not become ready" >&2
+              exit 1
+            fi
+            sleep 1
+          done
+
+          docker run --rm \
+            --network "${network}" \
+            -e DATABASE_URL="postgresql://postgres:postgres@${postgres}:5432/life_ustc_static_loader" \
+            -e STATIC_LOADER_DRY_RUN=true \
+            -e STATIC_LOADER_MIN_SEMESTER=401 \
+            life-ustc-static-loader:check
 
   test-e2e:
     name: E2E Test (${{ matrix.scope }})
