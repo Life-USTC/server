@@ -30,45 +30,48 @@ export let isDeleting: boolean;
 {#if homework}
   <Dialog.Root
     open={true}
-    class="max-w-md"
     onOpenChange={(open) => {
       if (!open) close();
     }}
   >
-    <form
-      method="POST"
-      action="?/deleteHomework"
-      use:enhance={enhanceDeleteHomework}
+    <Dialog.Content
+      class="max-w-md"
     >
-      <Dialog.Header>
-        <Dialog.Title>{copy.deleteHomeworkTitle}</Dialog.Title>
-        <Dialog.Description>
-          {formatMessage(copy.deleteHomeworkDescription, { title: homework.title })}
-        </Dialog.Description>
-      </Dialog.Header>
-      <div class="px-5 py-4">
-        <input type="hidden" name="id" value={homework.id} />
-        <p class="text-base-content/60 text-sm">
-          {copy.deleteHomeworkAuditDescription}
-        </p>
-      </div>
-      <Dialog.Footer>
-        <Button
-          disabled={isDeleting}
-          type="button"
-          variant="ghost"
-          onclick={close}
-        >
-          {copy.cancelButton}
-        </Button>
-        <Button
-          class="border-error bg-error text-error-content hover:bg-error/90"
-          disabled={isDeleting}
-          type="submit"
-        >
-          {isDeleting ? copy.saving : copy.deleteHomeworkAction}
-        </Button>
-      </Dialog.Footer>
-    </form>
+      <form
+        method="POST"
+        action="?/deleteHomework"
+        use:enhance={enhanceDeleteHomework}
+      >
+        <Dialog.Header>
+          <Dialog.Title>{copy.deleteHomeworkTitle}</Dialog.Title>
+          <Dialog.Description>
+            {formatMessage(copy.deleteHomeworkDescription, { title: homework.title })}
+          </Dialog.Description>
+        </Dialog.Header>
+        <div class="px-5 py-4">
+          <input type="hidden" name="id" value={homework.id} />
+          <p class="text-base-content/60 text-sm">
+            {copy.deleteHomeworkAuditDescription}
+          </p>
+        </div>
+        <Dialog.Footer>
+          <Button
+            disabled={isDeleting}
+            type="button"
+            variant="ghost"
+            onclick={close}
+          >
+            {copy.cancelButton}
+          </Button>
+          <Button
+            class="border-error bg-error text-error-content hover:bg-error/90"
+            disabled={isDeleting}
+            type="submit"
+          >
+            {isDeleting ? copy.saving : copy.deleteHomeworkAction}
+          </Button>
+        </Dialog.Footer>
+      </form>
+    </Dialog.Content>
   </Dialog.Root>
 {/if}

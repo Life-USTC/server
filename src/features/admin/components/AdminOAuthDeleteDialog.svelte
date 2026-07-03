@@ -19,45 +19,48 @@ export let deletingClientId: string | null;
 {#if client}
   <Dialog.Root
     open={true}
-    class="max-w-md"
-    aria-labelledby="oauth-delete-title"
     onOpenChange={(open) => {
       if (!open) close();
     }}
   >
-    <Dialog.Header>
-      <Dialog.Title id="oauth-delete-title">{copy.deleteClient}</Dialog.Title>
-      <Dialog.Description>
-        {copy.deleteClientDescription.replace("{name}", client.name ?? copy.unnamedClient)}
-      </Dialog.Description>
-    </Dialog.Header>
-    <form
-      method="POST"
-      action="?/deleteClient"
-      use:enhance={deleteClientAction}
+    <Dialog.Content
+      class="max-w-md"
+      aria-labelledby="oauth-delete-title"
     >
-      <input type="hidden" name="clientId" value={client.clientId} />
-      <div class="px-5 py-4">
-        <p class="break-all font-mono text-base-content/60 text-xs">{client.clientId}</p>
-      </div>
-      <Dialog.Footer>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={Boolean(deletingClientId)}
-          onclick={close}
-        >
-          {copy.cancel}
-        </Button>
-        <Button
-          class="border-transparent bg-error text-error-content hover:bg-error/90"
-          disabled={Boolean(deletingClientId)}
-          type="submit"
-        >
-          <TrashIcon />
-          <span>{copy.deleteClient}</span>
-        </Button>
-      </Dialog.Footer>
-    </form>
+      <Dialog.Header>
+        <Dialog.Title id="oauth-delete-title">{copy.deleteClient}</Dialog.Title>
+        <Dialog.Description>
+          {copy.deleteClientDescription.replace("{name}", client.name ?? copy.unnamedClient)}
+        </Dialog.Description>
+      </Dialog.Header>
+      <form
+        method="POST"
+        action="?/deleteClient"
+        use:enhance={deleteClientAction}
+      >
+        <input type="hidden" name="clientId" value={client.clientId} />
+        <div class="px-5 py-4">
+          <p class="break-all font-mono text-base-content/60 text-xs">{client.clientId}</p>
+        </div>
+        <Dialog.Footer>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={Boolean(deletingClientId)}
+            onclick={close}
+          >
+            {copy.cancel}
+          </Button>
+          <Button
+            class="border-transparent bg-error text-error-content hover:bg-error/90"
+            disabled={Boolean(deletingClientId)}
+            type="submit"
+          >
+            <TrashIcon data-icon="inline-start" />
+            <span>{copy.deleteClient}</span>
+          </Button>
+        </Dialog.Footer>
+      </form>
+    </Dialog.Content>
   </Dialog.Root>
 {/if}

@@ -27,57 +27,60 @@ export let isConfirmImportOpen: boolean;
 
 {#if isConfirmImportOpen}
   <Dialog.Root
-    class="max-w-2xl"
     open={true}
     onOpenChange={(open) => {
       isConfirmImportOpen = open;
     }}
   >
-    <Dialog.Header>
-      <Dialog.Title>
-        {formatMessage(subscriptionsCopy.bulkImport.confirmTitle, {
-          count: selectedImportCount,
-        })}
-      </Dialog.Title>
-      <Dialog.Description>
-        {formatMessage(subscriptionsCopy.bulkImport.matchedSummary, {
-          matched: matchedSections.length,
-          unmatched: unmatchedSectionCodes.length,
-        })}
-      </Dialog.Description>
-    </Dialog.Header>
-    <div class="grid max-h-[60vh] gap-4 overflow-y-auto px-5 py-4">
-      <SubscriptionsBulkImportMatchedList
-        {formatMessage}
-        {matchedSections}
-        {namePrimary}
-        {nameSecondary}
-        {selectedImportSectionIdSet}
-        {subscriptionsCopy}
-        {toggleImportSectionSelection}
-      />
+    <Dialog.Content
+      class="max-w-2xl"
+    >
+      <Dialog.Header>
+        <Dialog.Title>
+          {formatMessage(subscriptionsCopy.bulkImport.confirmTitle, {
+            count: selectedImportCount,
+          })}
+        </Dialog.Title>
+        <Dialog.Description>
+          {formatMessage(subscriptionsCopy.bulkImport.matchedSummary, {
+            matched: matchedSections.length,
+            unmatched: unmatchedSectionCodes.length,
+          })}
+        </Dialog.Description>
+      </Dialog.Header>
+      <div class="grid max-h-[60vh] gap-4 overflow-y-auto px-5 py-4">
+        <SubscriptionsBulkImportMatchedList
+          {formatMessage}
+          {matchedSections}
+          {namePrimary}
+          {nameSecondary}
+          {selectedImportSectionIdSet}
+          {subscriptionsCopy}
+          {toggleImportSectionSelection}
+        />
 
-      <SubscriptionsBulkImportUnmatchedCodes
-        {formatMessage}
-        {subscriptionsCopy}
-        {unmatchedSectionCodes}
-      />
-    </div>
-    <Dialog.Footer>
-      <Button type="button" variant="outline" onclick={() => (isConfirmImportOpen = false)}>
-        {subscriptionsCopy.bulkImport.cancel}
-      </Button>
-      <Button
-        disabled={selectedImportCount === 0 || isImportingSections}
-        type="button"
-        onclick={confirmImportSections}
-      >
-        {isImportingSections
-          ? subscriptionsCopy.bulkImport.importing
-          : formatMessage(subscriptionsCopy.bulkImport.subscribeSelected, {
-              count: selectedImportCount,
-            })}
-      </Button>
-    </Dialog.Footer>
+        <SubscriptionsBulkImportUnmatchedCodes
+          {formatMessage}
+          {subscriptionsCopy}
+          {unmatchedSectionCodes}
+        />
+      </div>
+      <Dialog.Footer>
+        <Button type="button" variant="outline" onclick={() => (isConfirmImportOpen = false)}>
+          {subscriptionsCopy.bulkImport.cancel}
+        </Button>
+        <Button
+          disabled={selectedImportCount === 0 || isImportingSections}
+          type="button"
+          onclick={confirmImportSections}
+        >
+          {isImportingSections
+            ? subscriptionsCopy.bulkImport.importing
+            : formatMessage(subscriptionsCopy.bulkImport.subscribeSelected, {
+                count: selectedImportCount,
+              })}
+        </Button>
+      </Dialog.Footer>
+    </Dialog.Content>
   </Dialog.Root>
 {/if}

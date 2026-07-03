@@ -7,7 +7,7 @@ import { SIDEBAR_WIDTH_MOBILE } from "./constants.js";
 import { useSidebar as getSidebar } from "./context.svelte.js";
 
 type SidebarElement = "div" | "aside";
-const HOVER_PREVIEW_DELAY_MS = 350;
+const HOVER_PREVIEW_DELAY_MS = 600;
 
 let {
   ref = $bindable(null),

@@ -20,51 +20,54 @@ export let version: AdminBusVersion;
 
 <Dialog.Root
   open={true}
-  class="max-w-lg"
-  aria-labelledby="bus-delete-title"
   onOpenChange={(open) => {
     if (!open) close();
   }}
 >
-  <Dialog.Header>
-    <Dialog.Title id="bus-delete-title">{copy.deleteTitle}</Dialog.Title>
-    <Dialog.Description>
-      {copy.deleteDescription.replace("{title}", version.title)}
-    </Dialog.Description>
-  </Dialog.Header>
-  <form
-    method="POST"
-    action="?/deleteVersion"
-    use:enhance={enhancedAction(`delete-${version.id}`, close)}
+  <Dialog.Content
+    class="max-w-lg"
+    aria-labelledby="bus-delete-title"
   >
-    <input type="hidden" name="id" value={version.id} />
-    <div class="grid gap-2 px-5 py-4 text-sm">
-      <div class="font-medium">{version.title}</div>
-      <div class="break-all font-mono text-base-content/60 text-xs">
-        {version.key}
+    <Dialog.Header>
+      <Dialog.Title id="bus-delete-title">{copy.deleteTitle}</Dialog.Title>
+      <Dialog.Description>
+        {copy.deleteDescription.replace("{title}", version.title)}
+      </Dialog.Description>
+    </Dialog.Header>
+    <form
+      method="POST"
+      action="?/deleteVersion"
+      use:enhance={enhancedAction(`delete-${version.id}`, close)}
+    >
+      <input type="hidden" name="id" value={version.id} />
+      <div class="grid gap-2 px-5 py-4 text-sm">
+        <div class="font-medium">{version.title}</div>
+        <div class="break-all font-mono text-base-content/60 text-xs">
+          {version.key}
+        </div>
       </div>
-    </div>
-    <Dialog.Footer>
-      <Button
-        type="button"
-        disabled={Boolean(pendingAction)}
-        variant="outline"
-        onclick={close}
-      >
-        {copy.cancelAction}
-      </Button>
-      <Button
-        class="border-transparent bg-error text-error-content hover:bg-error/90"
-        disabled={Boolean(pendingAction)}
-        type="submit"
-      >
-        {#if isPending(`delete-${version.id}`)}
-          <RefreshCw class="animate-spin" />
-        {:else}
-          <Trash2 />
-        {/if}
-        {copy.confirmDeleteAction}
-      </Button>
-    </Dialog.Footer>
-  </form>
+      <Dialog.Footer>
+        <Button
+          type="button"
+          disabled={Boolean(pendingAction)}
+          variant="outline"
+          onclick={close}
+        >
+          {copy.cancelAction}
+        </Button>
+        <Button
+          class="border-transparent bg-error text-error-content hover:bg-error/90"
+          disabled={Boolean(pendingAction)}
+          type="submit"
+        >
+          {#if isPending(`delete-${version.id}`)}
+            <RefreshCw class="animate-spin" data-icon="inline-start" />
+          {:else}
+            <Trash2 data-icon="inline-start" />
+          {/if}
+          {copy.confirmDeleteAction}
+        </Button>
+      </Dialog.Footer>
+    </form>
+  </Dialog.Content>
 </Dialog.Root>

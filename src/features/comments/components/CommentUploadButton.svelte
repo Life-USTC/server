@@ -1,5 +1,6 @@
 <script lang="ts">
-import { Button } from "$lib/components/ui/button/index.js";
+import { buttonVariants } from "$lib/components/ui/button/index.js";
+import { cn } from "$lib/utils.js";
 
 export let disabled = false;
 export let onFile: (file: File) => void;
@@ -8,12 +9,13 @@ export let uploading = false;
 export let uploadingLabel: string;
 </script>
 
-<Button
-  as="label"
-  class="cursor-pointer focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/30"
-  {disabled}
-  size="sm"
-  variant="outline"
+<label
+  aria-disabled={disabled}
+  data-slot="button"
+  class={cn(
+    buttonVariants({ size: "sm", variant: "outline" }),
+    "cursor-pointer focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/30 aria-disabled:pointer-events-none aria-disabled:opacity-50",
+  )}
 >
   {uploading ? uploadingLabel : uploadLabel}
   <input
@@ -27,4 +29,4 @@ export let uploadingLabel: string;
       input.value = "";
     }}
   />
-</Button>
+</label>

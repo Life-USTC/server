@@ -23,27 +23,30 @@ export let target: HomeworkTarget;
 
 <Dialog.Root
   open={true}
-  class="max-w-md"
   onOpenChange={(open) => {
     if (!open) onCancel();
   }}
 >
-  <Dialog.Header>
-    <Dialog.Title>{homeworkCopy.deleteTitle}</Dialog.Title>
-    <Dialog.Description>
-      {formatMessage(homeworkCopy.deleteDescription, { title: target.title })}
-    </Dialog.Description>
-  </Dialog.Header>
-  <Dialog.Footer>
-    <Button variant="secondary" type="button" onclick={onCancel}>
-      {homeworkCopy.cancel}
-    </Button>
-    <Button
-      class="border-error bg-error text-error-content hover:bg-error/90"
-      type="button"
-      onclick={onConfirm}
-    >
-      {homeworkCopy.deleteAction}
-    </Button>
-  </Dialog.Footer>
+  <Dialog.Content
+    class="max-w-md"
+  >
+    <Dialog.Header>
+      <Dialog.Title>{homeworkCopy.deleteTitle}</Dialog.Title>
+      <Dialog.Description>
+        {formatMessage(homeworkCopy.deleteDescription, { title: target.title })}
+      </Dialog.Description>
+    </Dialog.Header>
+    <Dialog.Footer>
+      <Button variant="secondary" type="button" onclick={onCancel}>
+        {homeworkCopy.cancel}
+      </Button>
+      <Button
+        class="border-error bg-error text-error-content hover:bg-error/90"
+        type="button"
+        onclick={onConfirm}
+      >
+        {homeworkCopy.deleteAction}
+      </Button>
+    </Dialog.Footer>
+  </Dialog.Content>
 </Dialog.Root>

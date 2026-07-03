@@ -61,7 +61,7 @@ $: clientRequestParts = copy.deviceClientRequest.split("{app}");
   <form method="POST" action="?/deny" use:enhance={deviceDecisionAction("deny")}>
     <input type="hidden" name="userCode" value={approvalRequest.userCode} />
     <Button class="w-full" disabled={Boolean(pendingDecision)} type="submit" variant="outline">
-      {#if pendingDecision === "deny"}<RefreshCw class="animate-spin" />{/if}
+      {#if pendingDecision === "deny"}<RefreshCw class="animate-spin" data-icon="inline-start" />{/if}
       {copy.deviceDeny}
     </Button>
   </form>
@@ -69,9 +69,9 @@ $: clientRequestParts = copy.deviceClientRequest.split("{app}");
     <input type="hidden" name="userCode" value={approvalRequest.userCode} />
     <Button class="w-full" disabled={Boolean(pendingDecision)} type="submit">
       {#if pendingDecision === "approve"}
-        <RefreshCw class="animate-spin" />
+        <RefreshCw class="animate-spin" data-icon="inline-start" />
       {:else}
-        <CheckCircle />
+        <CheckCircle data-icon="inline-start" />
       {/if}
       {copy.deviceApprove}
     </Button>

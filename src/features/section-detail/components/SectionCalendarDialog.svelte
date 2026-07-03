@@ -32,51 +32,54 @@ export let subscriptionCalendarUrl: string;
 
 <Dialog.Root
   open={isOpen}
-  class="max-w-3xl"
-  aria-labelledby="section-calendar-title"
   onOpenChange={setOpen}
 >
-  <Dialog.Header>
-    <Dialog.Title id="section-calendar-title">
-      {sectionCopy.calendarSheetTitle}
-    </Dialog.Title>
-    <Dialog.Description>
-      {sectionCopy.calendarSheetDescription}
-    </Dialog.Description>
-  </Dialog.Header>
-  <section class="grid min-w-0 gap-4 px-5 py-4">
-    {#if clipboardMessage}
-      <Alert class="flex items-center gap-2" variant="info">
-        <CheckCircleIcon class="text-info" />
-        {clipboardMessage}
-      </Alert>
-    {:else if clipboardError}
-      <Alert variant="destructive">{clipboardError}</Alert>
-    {/if}
-    <SectionCalendarUrlRow
-      buttonLabel={sectionCopy.copyToClipboard}
-      copied={copiedCalendarTarget === "single"}
-      copiedLabel={sectionCopy.copied}
-      id="calendar-url"
-      label={sectionCopy.calendarUrlLabel}
-      onCopy={() => copyText(singleCalendarUrl, "single")}
-      value={singleCalendarUrl}
-    />
-    <SectionCalendarUrlRow
-      buttonLabel={sectionCopy.copyToClipboard}
-      copied={copiedCalendarTarget === "subscription"}
-      copiedLabel={sectionCopy.copied}
-      id="subscription-url"
-      label={sectionCopy.subscriptionUrlLabel}
-      missingLabel={sectionCopy.subscriptionMissing}
-      onCopy={() => copyText(subscriptionCalendarUrl, "subscription")}
-      value={subscriptionCalendarUrl}
-    />
-    <Button class="w-fit" href="/dashboard/subscriptions" size="sm" variant="link">
-      {sectionCopy.viewAllSubscriptions}
-    </Button>
-  </section>
-  <Dialog.Footer>
-    <Button type="button" onclick={close}>{sectionCopy.close ?? ""}</Button>
-  </Dialog.Footer>
+  <Dialog.Content
+    class="max-w-3xl"
+    aria-labelledby="section-calendar-title"
+  >
+    <Dialog.Header>
+      <Dialog.Title id="section-calendar-title">
+        {sectionCopy.calendarSheetTitle}
+      </Dialog.Title>
+      <Dialog.Description>
+        {sectionCopy.calendarSheetDescription}
+      </Dialog.Description>
+    </Dialog.Header>
+    <section class="grid min-w-0 gap-4 px-5 py-4">
+      {#if clipboardMessage}
+        <Alert class="flex items-center gap-2" variant="info">
+          <CheckCircleIcon class="text-info" />
+          {clipboardMessage}
+        </Alert>
+      {:else if clipboardError}
+        <Alert variant="destructive">{clipboardError}</Alert>
+      {/if}
+      <SectionCalendarUrlRow
+        buttonLabel={sectionCopy.copyToClipboard}
+        copied={copiedCalendarTarget === "single"}
+        copiedLabel={sectionCopy.copied}
+        id="calendar-url"
+        label={sectionCopy.calendarUrlLabel}
+        onCopy={() => copyText(singleCalendarUrl, "single")}
+        value={singleCalendarUrl}
+      />
+      <SectionCalendarUrlRow
+        buttonLabel={sectionCopy.copyToClipboard}
+        copied={copiedCalendarTarget === "subscription"}
+        copiedLabel={sectionCopy.copied}
+        id="subscription-url"
+        label={sectionCopy.subscriptionUrlLabel}
+        missingLabel={sectionCopy.subscriptionMissing}
+        onCopy={() => copyText(subscriptionCalendarUrl, "subscription")}
+        value={subscriptionCalendarUrl}
+      />
+      <Button class="w-fit" href="/dashboard/subscriptions" size="sm" variant="link">
+        {sectionCopy.viewAllSubscriptions}
+      </Button>
+    </section>
+    <Dialog.Footer>
+      <Button type="button" onclick={close}>{sectionCopy.close ?? ""}</Button>
+    </Dialog.Footer>
+  </Dialog.Content>
 </Dialog.Root>

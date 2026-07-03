@@ -1,9 +1,32 @@
 <script lang="ts">
-let className = "";
+import { Dialog as DialogPrimitive } from "bits-ui";
+import type { HTMLAttributes } from "svelte/elements";
+import { Button } from "$lib/components/ui/button/index.js";
+import { cn, type WithElementRef } from "$lib/utils.js";
 
-export { className as class };
+let {
+  ref = $bindable(null),
+  class: className,
+  children,
+  showCloseButton = false,
+  ...restProps
+}: WithElementRef<HTMLAttributes<HTMLDivElement>> & {
+  showCloseButton?: boolean;
+} = $props();
 </script>
 
-<div class={`sticky bottom-0 flex justify-end gap-2 border-base-300 border-t bg-base-100 px-5 py-4 ${className}`} data-slot="dialog-footer" {...$$restProps}>
-  <slot />
+<div
+	bind:this={ref}
+	data-slot="dialog-footer"
+	class={cn("bg-muted/50 -mx-4 -mb-4 rounded-b-xl border-t p-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", className)}
+	{...restProps}
+>
+	{@render children?.()}
+	{#if showCloseButton}
+		<DialogPrimitive.Close>
+			{#snippet child({ props })}
+				<Button variant="outline" {...props}>Close</Button>
+			{/snippet}
+		</DialogPrimitive.Close>
+	{/if}
 </div>

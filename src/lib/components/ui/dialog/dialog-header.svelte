@@ -1,9 +1,20 @@
 <script lang="ts">
-let className = "";
+import type { HTMLAttributes } from "svelte/elements";
+import { cn, type WithElementRef } from "$lib/utils.js";
 
-export { className as class };
+let {
+  ref = $bindable(null),
+  class: className,
+  children,
+  ...restProps
+}: WithElementRef<HTMLAttributes<HTMLDivElement>> = $props();
 </script>
 
-<div class={`grid gap-2 border-base-300 border-b px-5 py-4 ${className}`} data-slot="dialog-header" {...$$restProps}>
-  <slot />
+<div
+	bind:this={ref}
+	data-slot="dialog-header"
+	class={cn("gap-2 flex flex-col", className)}
+	{...restProps}
+>
+	{@render children?.()}
 </div>

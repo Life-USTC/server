@@ -33,47 +33,54 @@ export let sectionCopy: {
 export let setOpen: (open: boolean) => void;
 </script>
 
-<Dialog.Root open={true} class="!max-w-2xl" onOpenChange={setOpen}>
-  <Dialog.Header>
-    <Dialog.Title>{homeworkCopy.auditTitle}</Dialog.Title>
-    <Dialog.Description>{sectionCopy.homeworkDescription}</Dialog.Description>
-  </Dialog.Header>
-  <section class="max-h-[min(72vh,42rem)] overflow-y-auto px-5 py-4">
-    {#if logs.length === 0}
-      <Alert>{homeworkCopy.auditEmpty}</Alert>
-    {:else}
-      <div class="grid gap-3">
-        {#each logs as log}
-          <article class="rounded-md border border-base-300 bg-base-100 p-3">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <div class="flex min-w-0 flex-wrap items-center gap-2">
-                <Badge
-                  class={log.action === "deleted"
-                    ? "border-error/30 bg-error/10 text-error"
-                    : ""}
-                  variant={log.action === "deleted" ? "outline" : "secondary"}
-                >
-                  {actionLabel(log.action)}
-                </Badge>
-                <span class="min-w-0 break-words font-medium text-sm">
-                  {log.titleSnapshot ?? ""}
+<Dialog.Root
+  open={true}
+  onOpenChange={setOpen}
+>
+  <Dialog.Content
+    class="!max-w-2xl"
+  >
+    <Dialog.Header>
+      <Dialog.Title>{homeworkCopy.auditTitle}</Dialog.Title>
+      <Dialog.Description>{sectionCopy.homeworkDescription}</Dialog.Description>
+    </Dialog.Header>
+    <section class="max-h-[min(72vh,42rem)] overflow-y-auto px-5 py-4">
+      {#if logs.length === 0}
+        <Alert>{homeworkCopy.auditEmpty}</Alert>
+      {:else}
+        <div class="grid gap-3">
+          {#each logs as log}
+            <article class="rounded-md border border-base-300 bg-base-100 p-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex min-w-0 flex-wrap items-center gap-2">
+                  <Badge
+                    class={log.action === "deleted"
+                      ? "border-error/30 bg-error/10 text-error"
+                      : ""}
+                    variant={log.action === "deleted" ? "outline" : "secondary"}
+                  >
+                    {actionLabel(log.action)}
+                  </Badge>
+                  <span class="min-w-0 break-words font-medium text-sm">
+                    {log.titleSnapshot ?? ""}
+                  </span>
+                </div>
+                <span class="text-base-content/60 text-xs">
+                  {formatMessage(homeworkCopy.auditMeta, {
+                    name: actorName(log),
+                    date: fmtDateTime(log.createdAt),
+                  })}
                 </span>
               </div>
-              <span class="text-base-content/60 text-xs">
-                {formatMessage(homeworkCopy.auditMeta, {
-                  name: actorName(log),
-                  date: fmtDateTime(log.createdAt),
-                })}
-              </span>
-            </div>
-          </article>
-        {/each}
-      </div>
-    {/if}
-  </section>
-  <Dialog.Footer>
-    <Button type="button" onclick={() => setOpen(false)}>
-      {sectionCopy.close ?? ""}
-    </Button>
-  </Dialog.Footer>
+            </article>
+          {/each}
+        </div>
+      {/if}
+    </section>
+    <Dialog.Footer>
+      <Button type="button" onclick={() => setOpen(false)}>
+        {sectionCopy.close ?? ""}
+      </Button>
+    </Dialog.Footer>
+  </Dialog.Content>
 </Dialog.Root>

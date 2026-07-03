@@ -51,11 +51,11 @@ $: sectionSemesterSummary = selectedSemester
     {totalPages}
   />
   {#if data.data.length > 0}
-    <div class="grid min-w-0 overflow-hidden rounded-md border border-base-300">
+    <div class="grid min-w-0 w-full overflow-hidden rounded-md border border-base-300">
       {#each data.data as section}
         {@const sectionHref = `/sections/${section.jwId}`}
         <a
-          class="grid min-w-0 gap-3 border-base-300 border-b p-3 text-base-content no-underline transition-colors last:border-b-0 hover:bg-base-200/30 md:grid-cols-[minmax(8rem,0.85fr)_minmax(14rem,1.5fr)_minmax(8rem,0.75fr)_minmax(10rem,1fr)_4rem_5.5rem_5rem] md:items-center md:gap-4"
+          class="grid min-w-0 w-full gap-3 border-base-300 border-b p-3 text-base-content no-underline transition-colors last:border-b-0 hover:bg-base-200/30 md:grid-cols-[minmax(8rem,0.85fr)_minmax(14rem,1.5fr)_minmax(8rem,0.75fr)_minmax(10rem,1fr)_4rem_5.5rem_5rem] md:items-center md:gap-4"
           href={sectionHref}
         >
           <div class="flex flex-wrap items-center gap-2 md:block">

@@ -33,66 +33,69 @@ export let targetLabel: (description: AdminModerationDescription) => string;
 {#if description}
   <Dialog.Root
     open={true}
-    class="max-w-3xl"
-    aria-labelledby="manage-description-title"
     onOpenChange={(open) => {
       if (!open) close();
     }}
   >
-    <form
-      method="POST"
-      action="?/moderateDescription"
-      class="grid max-h-[calc(100vh-2rem)] overflow-y-auto"
-      use:enhance={enhanceAction}
+    <Dialog.Content
+      class="max-w-3xl"
+      aria-labelledby="manage-description-title"
     >
-      <Dialog.Header>
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <Dialog.Title id="manage-description-title">{copy.manageDescription}</Dialog.Title>
-            <Dialog.Description>
-              {targetLabel(description)} · {formatMessage(copy.editedAt, { date: formatDate(descriptionEditedAt(description)) })}
-            </Dialog.Description>
+      <form
+        method="POST"
+        action="?/moderateDescription"
+        class="grid max-h-[calc(100vh-2rem)] overflow-y-auto"
+        use:enhance={enhanceAction}
+      >
+        <Dialog.Header>
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <Dialog.Title id="manage-description-title">{copy.manageDescription}</Dialog.Title>
+              <Dialog.Description>
+                {targetLabel(description)} · {formatMessage(copy.editedAt, { date: formatDate(descriptionEditedAt(description)) })}
+              </Dialog.Description>
+            </div>
+            <Button size="sm" type="button" variant="ghost" onclick={close}>{copy.close}</Button>
           </div>
-          <Button size="sm" type="button" variant="ghost" onclick={close}>{copy.close}</Button>
-        </div>
-      </Dialog.Header>
+        </Dialog.Header>
 
-      <div class="grid gap-4 px-5 py-4">
-        <input type="hidden" name="id" value={description.id} />
-        <AdminModerationDescriptionMeta
-          {copy}
-          {description}
-          {descriptionTargetHref}
-          {formatMessage}
-        />
-
-        <label class="grid gap-2">
-          <span class="font-medium text-sm">{copy.descriptionContent}</span>
-          <Textarea
-            class="min-h-56"
-            maxlength={DESCRIPTION_CONTENT_MAX_LENGTH}
-            name="content"
-            value={descriptionDraft}
-            oninput={(event: Event) => {
-              descriptionDraft = inputValue(event);
-            }}
+        <div class="grid gap-4 px-5 py-4">
+          <input type="hidden" name="id" value={description.id} />
+          <AdminModerationDescriptionMeta
+            {copy}
+            {description}
+            {descriptionTargetHref}
+            {formatMessage}
           />
-        </label>
-      </div>
 
-      <Dialog.Footer>
-        <Button
-          disabled={isSaving}
-          type="button"
-          variant="ghost"
-          onclick={close}
-        >
-          {copy.cancelButton}
-        </Button>
-        <Button disabled={isSaving} type="submit">
-          {isSaving ? copy.saving : copy.confirmButton}
-        </Button>
-      </Dialog.Footer>
-    </form>
+          <label class="grid gap-2">
+            <span class="font-medium text-sm">{copy.descriptionContent}</span>
+            <Textarea
+              class="min-h-56"
+              maxlength={DESCRIPTION_CONTENT_MAX_LENGTH}
+              name="content"
+              value={descriptionDraft}
+              oninput={(event: Event) => {
+                descriptionDraft = inputValue(event);
+              }}
+            />
+          </label>
+        </div>
+
+        <Dialog.Footer>
+          <Button
+            disabled={isSaving}
+            type="button"
+            variant="ghost"
+            onclick={close}
+          >
+            {copy.cancelButton}
+          </Button>
+          <Button disabled={isSaving} type="submit">
+            {isSaving ? copy.saving : copy.confirmButton}
+          </Button>
+        </Dialog.Footer>
+      </form>
+    </Dialog.Content>
   </Dialog.Root>
 {/if}

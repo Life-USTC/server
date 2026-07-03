@@ -36,59 +36,62 @@ export let targetLabel: (comment: AdminModerationComment) => string;
 {#if comment}
   <Dialog.Root
     open={true}
-    class="max-w-2xl"
-    aria-labelledby="manage-comment-title"
     onOpenChange={(open) => {
       if (!open) close();
     }}
   >
-    <Dialog.Header>
-      <div class="flex items-start justify-between gap-3">
-        <div>
-          <Dialog.Title id="manage-comment-title">{copy.manageComment}</Dialog.Title>
-          <Dialog.Description>
-            {commentAuthorLabel(comment)} · {targetLabel(comment)}
-          </Dialog.Description>
+    <Dialog.Content
+      class="max-w-2xl"
+      aria-labelledby="manage-comment-title"
+    >
+      <Dialog.Header>
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <Dialog.Title id="manage-comment-title">{copy.manageComment}</Dialog.Title>
+            <Dialog.Description>
+              {commentAuthorLabel(comment)} · {targetLabel(comment)}
+            </Dialog.Description>
+          </div>
+          <Button size="sm" type="button" variant="ghost" onclick={close}>{copy.close}</Button>
         </div>
-        <Button size="sm" type="button" variant="ghost" onclick={close}>{copy.close}</Button>
+      </Dialog.Header>
+
+      <div class="grid max-h-[calc(100vh-2rem)] gap-5 overflow-y-auto px-5 py-4">
+        {#if dialogMessage}<Alert class="py-2" variant="info">{dialogMessage}</Alert>{/if}
+
+        <AdminModerationCommentPreview
+          {comment}
+          {copy}
+          {targetHref}
+        />
+
+        <AdminModerationCommentStatusSection
+          bind:commentStatus
+          {commentStatusOptions}
+          {copy}
+          {inputValue}
+          bind:moderationNote
+        />
+
+        <AdminModerationCommentSuspensionSection
+          {comment}
+          {copy}
+          bind:customExpiresAt
+          {inputValue}
+          {isSuspendingUser}
+          {suspendCommentAuthor}
+          bind:suspensionDuration
+          {suspensionDurationOptions}
+          bind:suspensionReason
+        />
       </div>
-    </Dialog.Header>
 
-    <div class="grid max-h-[calc(100vh-2rem)] gap-5 overflow-y-auto px-5 py-4">
-      {#if dialogMessage}<Alert class="py-2" variant="info">{dialogMessage}</Alert>{/if}
-
-      <AdminModerationCommentPreview
-        {comment}
-        {copy}
-        {targetHref}
-      />
-
-      <AdminModerationCommentStatusSection
-        bind:commentStatus
-        {commentStatusOptions}
-        {copy}
-        {inputValue}
-        bind:moderationNote
-      />
-
-      <AdminModerationCommentSuspensionSection
-        {comment}
-        {copy}
-        bind:customExpiresAt
-        {inputValue}
-        {isSuspendingUser}
-        {suspendCommentAuthor}
-        bind:suspensionDuration
-        {suspensionDurationOptions}
-        bind:suspensionReason
-      />
-    </div>
-
-    <Dialog.Footer>
-      <Button type="button" variant="ghost" onclick={close}>{copy.cancelButton}</Button>
-      <Button disabled={isSavingComment} type="button" onclick={saveCommentModeration}>
-        {isSavingComment ? copy.saving : copy.confirmButton}
-      </Button>
-    </Dialog.Footer>
+      <Dialog.Footer>
+        <Button type="button" variant="ghost" onclick={close}>{copy.cancelButton}</Button>
+        <Button disabled={isSavingComment} type="button" onclick={saveCommentModeration}>
+          {isSavingComment ? copy.saving : copy.confirmButton}
+        </Button>
+      </Dialog.Footer>
+    </Dialog.Content>
   </Dialog.Root>
 {/if}

@@ -60,7 +60,7 @@ export let viewer: SectionHeaderViewer;
 >
   {#snippet actions()}
     <Button variant="outline" type="button" onclick={onOpenCalendar}>
-      <CalendarIcon />
+      <CalendarIcon data-icon="inline-start" />
       {sectionCopy.addToCalendar}
     </Button>
     {#if viewer.isSubscribed}
@@ -74,7 +74,7 @@ export let viewer: SectionHeaderViewer;
           type="submit"
           disabled={subscriptionPendingAction === "unsubscribe"}
         >
-          <CheckCircleIcon />
+          <CheckCircleIcon data-icon="inline-start" />
           {subscriptionPendingAction === "unsubscribe"
             ? sectionCopy.unsubscribing
             : sectionCopy.unsubscribeLabel}
@@ -84,7 +84,7 @@ export let viewer: SectionHeaderViewer;
       <form method="GET">
         <input name="subscribe" type="hidden" value="1" />
         <Button type="submit" onclick={onOpenSubscribe}>
-          <LinkIcon />
+          <LinkIcon data-icon="inline-start" />
           {sectionCopy.subscribeLabel}
         </Button>
       </form>

@@ -16,45 +16,48 @@ export let pendingAction: string | null;
 
 <Dialog.Root
   open={true}
-  class="max-w-lg"
-  aria-labelledby="bus-import-title"
   onOpenChange={(open) => {
     if (!open) close();
   }}
 >
-  <Dialog.Header>
-    <Dialog.Title id="bus-import-title">{copy.importAction}</Dialog.Title>
-    <Dialog.Description>
-      {copy.importDescription}
-    </Dialog.Description>
-  </Dialog.Header>
-  <form
-    method="POST"
-    action="?/importStatic"
-    use:enhance={enhancedAction("import", close)}
+  <Dialog.Content
+    class="max-w-lg"
+    aria-labelledby="bus-import-title"
   >
-    <div class="px-5 py-4">
-      <Alert variant="warning">
-        {copy.importWarning}
-      </Alert>
-    </div>
-    <Dialog.Footer>
-      <Button
-        type="button"
-        disabled={Boolean(pendingAction)}
-        variant="outline"
-        onclick={close}
-      >
-        {copy.cancelAction}
-      </Button>
-      <Button type="submit" disabled={Boolean(pendingAction)}>
-        {#if isPending("import")}
-          <RefreshCw class="animate-spin" />
-        {:else}
-          <Download />
-        {/if}
-        {copy.importAction}
-      </Button>
-    </Dialog.Footer>
-  </form>
+    <Dialog.Header>
+      <Dialog.Title id="bus-import-title">{copy.importAction}</Dialog.Title>
+      <Dialog.Description>
+        {copy.importDescription}
+      </Dialog.Description>
+    </Dialog.Header>
+    <form
+      method="POST"
+      action="?/importStatic"
+      use:enhance={enhancedAction("import", close)}
+    >
+      <div class="px-5 py-4">
+        <Alert variant="warning">
+          {copy.importWarning}
+        </Alert>
+      </div>
+      <Dialog.Footer>
+        <Button
+          type="button"
+          disabled={Boolean(pendingAction)}
+          variant="outline"
+          onclick={close}
+        >
+          {copy.cancelAction}
+        </Button>
+        <Button type="submit" disabled={Boolean(pendingAction)}>
+          {#if isPending("import")}
+            <RefreshCw class="animate-spin" data-icon="inline-start" />
+          {:else}
+            <Download data-icon="inline-start" />
+          {/if}
+          {copy.importAction}
+        </Button>
+      </Dialog.Footer>
+    </form>
+  </Dialog.Content>
 </Dialog.Root>

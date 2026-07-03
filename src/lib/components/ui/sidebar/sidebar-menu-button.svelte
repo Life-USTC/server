@@ -2,12 +2,12 @@
 import { tv, type VariantProps } from "tailwind-variants";
 
 export const sidebarMenuButtonVariants = tv({
-  base: "ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground gap-2 rounded-md p-2 text-left text-sm transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 data-active:font-medium peer/menu-button group/menu-button flex w-full items-center overflow-hidden outline-hidden disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate",
+  base: "ring-sidebar-ring hover:bg-sidebar-accent/60 hover:text-sidebar-foreground active:bg-sidebar-accent/80 active:text-sidebar-foreground data-active:bg-sidebar-primary/10 data-active:text-sidebar-foreground data-active:shadow-[inset_2px_0_0_var(--sidebar-primary)] data-active:[&_svg]:text-sidebar-primary data-open:hover:bg-sidebar-accent/60 data-open:hover:text-sidebar-foreground gap-2 rounded-md p-2 text-left text-sm transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 data-active:font-medium peer/menu-button group/menu-button flex w-full items-center overflow-hidden outline-hidden disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate",
   variants: {
     variant: {
-      default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+      default: "hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
       outline:
-        "bg-background hover:bg-sidebar-accent hover:text-sidebar-accent-foreground shadow-[0_0_0_1px_var(--sidebar-border)] hover:shadow-[0_0_0_1px_var(--sidebar-accent)]",
+        "bg-background hover:bg-sidebar-accent/60 hover:text-sidebar-foreground shadow-[0_0_0_1px_var(--sidebar-border)] hover:shadow-[0_0_0_1px_var(--sidebar-accent)]",
     },
     size: {
       default: "h-8 text-sm",
@@ -64,7 +64,7 @@ export type SidebarMenuButtonSize = VariantProps<
 		"data-slot": "sidebar-menu-button",
 		"data-sidebar": "menu-button",
 		"data-size": size,
-		"data-active": isActive,
+		"data-active": isActive ? "true" : undefined,
 		...restProps,
 	});
 </script>

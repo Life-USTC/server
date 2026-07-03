@@ -15,7 +15,7 @@ export let value: string;
   <p class="break-all font-mono text-sm">{value}</p>
   {#if showCopy}
     <Button class="mt-2" size="sm" type="button" variant="outline" onclick={() => copyText(value, copiedMessage)}>
-      <CopyIcon />
+      <CopyIcon data-icon="inline-start" />
       <span>{copyLabel}</span>
     </Button>
   {/if}

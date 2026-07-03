@@ -38,53 +38,56 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
 
 {#if open}
   <Dialog.Root
-    class="max-w-lg"
     open={true}
     onOpenChange={(nextOpen) => {
       if (!nextOpen) onClose();
     }}
   >
-    <form method="POST" action="?/createHomework" use:enhance={createHomeworkAction}>
-      <Dialog.Header>
-        <Dialog.Title>{homeworksCopy.createTitle}</Dialog.Title>
-        <Dialog.Description>{homeworksCopy.subtitle}</Dialog.Description>
-      </Dialog.Header>
-      <HomeworkCreateFormFields
-        {applyHomeworkDueAtSemesterEnd}
-        {applyHomeworkDueInMonth}
-        {applyHomeworkDueInWeek}
-        {applyHomeworkStartNow}
-        {commentsCopy}
-        bind:createHomeworkAdvancedOpen
-        {createHomeworkError}
-        bind:createHomeworkPublishedAt
-        bind:createHomeworkSectionId
-        bind:createHomeworkSubmissionDueAt
-        bind:createHomeworkSubmissionStartAt
-        {homeworkSectionLabel}
-        {homeworksCopy}
-        {isCreatingHomework}
-        {sections}
-        {selectedCreateHomeworkSection}
-        {toShanghaiDateTimeLocalValue}
-      />
-      <Dialog.Footer>
-        <Button
-          disabled={isCreatingHomework}
-          type="button"
-          variant="outline"
-          onclick={onClose}
-        >
-          {homeworksCopy.cancel}
-        </Button>
-        <Button
-          data-testid="dashboard-homework-create"
-          disabled={isCreatingHomework}
-          type="submit"
-        >
-          {isCreatingHomework ? homeworksCopy.saving : homeworksCopy.createAction}
-        </Button>
-      </Dialog.Footer>
-    </form>
+    <Dialog.Content
+      class="max-w-lg"
+    >
+      <form method="POST" action="?/createHomework" use:enhance={createHomeworkAction}>
+        <Dialog.Header>
+          <Dialog.Title>{homeworksCopy.createTitle}</Dialog.Title>
+          <Dialog.Description>{homeworksCopy.subtitle}</Dialog.Description>
+        </Dialog.Header>
+        <HomeworkCreateFormFields
+          {applyHomeworkDueAtSemesterEnd}
+          {applyHomeworkDueInMonth}
+          {applyHomeworkDueInWeek}
+          {applyHomeworkStartNow}
+          {commentsCopy}
+          bind:createHomeworkAdvancedOpen
+          {createHomeworkError}
+          bind:createHomeworkPublishedAt
+          bind:createHomeworkSectionId
+          bind:createHomeworkSubmissionDueAt
+          bind:createHomeworkSubmissionStartAt
+          {homeworkSectionLabel}
+          {homeworksCopy}
+          {isCreatingHomework}
+          {sections}
+          {selectedCreateHomeworkSection}
+          {toShanghaiDateTimeLocalValue}
+        />
+        <Dialog.Footer>
+          <Button
+            disabled={isCreatingHomework}
+            type="button"
+            variant="outline"
+            onclick={onClose}
+          >
+            {homeworksCopy.cancel}
+          </Button>
+          <Button
+            data-testid="dashboard-homework-create"
+            disabled={isCreatingHomework}
+            type="submit"
+          >
+            {isCreatingHomework ? homeworksCopy.saving : homeworksCopy.createAction}
+          </Button>
+        </Dialog.Footer>
+      </form>
+    </Dialog.Content>
   </Dialog.Root>
 {/if}

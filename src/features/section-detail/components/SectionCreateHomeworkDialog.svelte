@@ -31,41 +31,44 @@ export let submissionStartAt: string;
 {#if show}
   <Dialog.Root
     open={true}
-    class="max-w-2xl"
     onOpenChange={(open) => {
       if (!open) close();
     }}
   >
-    <form
-      class="grid max-h-[calc(100vh-2rem)] gap-4 overflow-y-auto"
-      onsubmit={createHomework}
+    <Dialog.Content
+      class="max-w-2xl"
     >
-      <Dialog.Header>
-        <Dialog.Title>{homeworkCopy.createTitle}</Dialog.Title>
-        <Dialog.Description>{homeworkCopy.subtitle}</Dialog.Description>
-      </Dialog.Header>
-      <SectionCreateHomeworkFields
-        {applyDueAtSemesterEnd}
-        {applyDueInMonth}
-        {applyDueInWeek}
-        {applyPublishNow}
-        {applyStartAtSemesterStart}
-        {applyStartNow}
-        {commentsCopy}
-        {hasSemesterEnd}
-        {hasSemesterStart}
-        {homeworkCopy}
-        {homeworkMessage}
-        bind:publishedAt
-        bind:submissionDueAt
-        bind:submissionStartAt
-      />
-      <Dialog.Footer>
-        <Button type="button" variant="outline" onclick={close}>
-          {sectionCopy.close ?? ""}
-        </Button>
-        <Button type="submit">{homeworkCopy.createAction}</Button>
-      </Dialog.Footer>
-    </form>
+      <form
+        class="grid max-h-[calc(100vh-2rem)] gap-4 overflow-y-auto"
+        onsubmit={createHomework}
+      >
+        <Dialog.Header>
+          <Dialog.Title>{homeworkCopy.createTitle}</Dialog.Title>
+          <Dialog.Description>{homeworkCopy.subtitle}</Dialog.Description>
+        </Dialog.Header>
+        <SectionCreateHomeworkFields
+          {applyDueAtSemesterEnd}
+          {applyDueInMonth}
+          {applyDueInWeek}
+          {applyPublishNow}
+          {applyStartAtSemesterStart}
+          {applyStartNow}
+          {commentsCopy}
+          {hasSemesterEnd}
+          {hasSemesterStart}
+          {homeworkCopy}
+          {homeworkMessage}
+          bind:publishedAt
+          bind:submissionDueAt
+          bind:submissionStartAt
+        />
+        <Dialog.Footer>
+          <Button type="button" variant="outline" onclick={close}>
+            {sectionCopy.close ?? ""}
+          </Button>
+          <Button type="submit">{homeworkCopy.createAction}</Button>
+        </Dialog.Footer>
+      </form>
+    </Dialog.Content>
   </Dialog.Root>
 {/if}

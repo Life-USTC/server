@@ -28,7 +28,7 @@ export let unscheduledCalendarEvents: SectionCalendarEvent[];
 <section class="grid gap-4">
   <div class="flex flex-wrap items-center justify-end gap-3">
     <Button size="sm" variant="outline" type="button" onclick={openCalendarDialog}>
-      <CalendarIcon />
+      <CalendarIcon data-icon="inline-start" />
       {sectionCopy.addToCalendar}
     </Button>
   </div>

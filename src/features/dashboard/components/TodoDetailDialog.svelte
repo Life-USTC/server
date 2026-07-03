@@ -27,69 +27,72 @@ export let toggleTodoCompletion: (todo: DashboardTodoItem) => void;
 {#if todo}
   <Dialog.Root
     open={true}
-    class="max-w-lg"
     onOpenChange={(open) => {
       if (!open) onClose();
     }}
   >
-    <Dialog.Header>
-      <Dialog.Title>{todo.title}</Dialog.Title>
-      <Dialog.Description>
-        {todo.priority} · {fmtDate(todo.dueAt)}
-      </Dialog.Description>
-    </Dialog.Header>
-    <div class="grid gap-4 px-5 py-4">
-      {#if todo.content}
-        <MarkdownPreview class="text-sm" content={todo.content} />
-      {:else}
-        <p class="text-base-content/60 text-sm">{todosCopy.contentPlaceholder}</p>
-      {/if}
-      <div class="flex flex-wrap gap-2">
-        <Badge class={todoPriorityClass(todo.priority)}>
-          {todosCopy.priority[todo.priority]}
-        </Badge>
-        <Badge>{todoStatus(todo)}</Badge>
-      </div>
-      <div class="flex justify-between gap-2">
-        <Button
-          aria-label={todosCopy.deleteAriaLabel}
-          class="border-error bg-error text-error-content hover:bg-error/90"
-          disabled={todoSavingById[todo.id]}
-          type="button"
-          onclick={() => {
-            deleteTodo(todo);
-          }}
-        >
-          <Trash2 />
-          {todoSavingById[todo.id] ? todosCopy.saving : todosCopy.delete}
-        </Button>
-        <div class="flex flex-wrap justify-end gap-2">
+    <Dialog.Content
+      class="max-w-lg"
+    >
+      <Dialog.Header>
+        <Dialog.Title>{todo.title}</Dialog.Title>
+        <Dialog.Description>
+          {todo.priority} · {fmtDate(todo.dueAt)}
+        </Dialog.Description>
+      </Dialog.Header>
+      <div class="grid gap-4 px-5 py-4">
+        {#if todo.content}
+          <MarkdownPreview class="text-sm" content={todo.content} />
+        {:else}
+          <p class="text-base-content/60 text-sm">{todosCopy.contentPlaceholder}</p>
+        {/if}
+        <div class="flex flex-wrap gap-2">
+          <Badge class={todoPriorityClass(todo.priority)}>
+            {todosCopy.priority[todo.priority]}
+          </Badge>
+          <Badge>{todoStatus(todo)}</Badge>
+        </div>
+        <div class="flex justify-between gap-2">
           <Button
-            type="button"
-            variant="outline"
-            onclick={() => {
-              openTodoEditor(todo);
-            }}
-          >
-            {todosCopy.editTitle}
-          </Button>
-          <Button
+            aria-label={todosCopy.deleteAriaLabel}
+            class="border-error bg-error text-error-content hover:bg-error/90"
             disabled={todoSavingById[todo.id]}
             type="button"
-            variant="outline"
             onclick={() => {
-              toggleTodoCompletion(todo);
+              deleteTodo(todo);
             }}
           >
-            {#if todo.completed}
-              <RefreshCw />
-            {:else}
-              <CheckCircleIcon />
-            {/if}
-            {todoSavingById[todo.id] ? todosCopy.saving : todoActionLabel(todo)}
+            <Trash2 data-icon="inline-start" />
+            {todoSavingById[todo.id] ? todosCopy.saving : todosCopy.delete}
           </Button>
+          <div class="flex flex-wrap justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onclick={() => {
+                openTodoEditor(todo);
+              }}
+            >
+              {todosCopy.editTitle}
+            </Button>
+            <Button
+              disabled={todoSavingById[todo.id]}
+              type="button"
+              variant="outline"
+              onclick={() => {
+                toggleTodoCompletion(todo);
+              }}
+            >
+              {#if todo.completed}
+                <RefreshCw data-icon="inline-start" />
+              {:else}
+                <CheckCircleIcon data-icon="inline-start" />
+              {/if}
+              {todoSavingById[todo.id] ? todosCopy.saving : todoActionLabel(todo)}
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
+    </Dialog.Content>
   </Dialog.Root>
 {/if}

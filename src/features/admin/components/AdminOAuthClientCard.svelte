@@ -52,7 +52,7 @@ export let onDelete: (client: AdminOAuthClient) => void;
                 variant="ghost"
                 onclick={() => copyText(uri, copy.redirectUriCopied)}
               >
-                <CopyIcon />
+                <CopyIcon data-icon="inline-start" />
                 <span>{copy.copyRedirectUri}</span>
               </Button>
             </div>
@@ -76,7 +76,7 @@ export let onDelete: (client: AdminOAuthClient) => void;
     <div class="flex flex-wrap items-center justify-between gap-3 border-base-300 border-t pt-3">
       <div class="flex flex-wrap gap-2">
         <Button size="sm" type="button" variant="outline" onclick={() => copyText(client.clientId, copy.clientIdCopied)}>
-          <CopyIcon />
+          <CopyIcon data-icon="inline-start" />
           <span>{copy.copyClientId}</span>
         </Button>
         <span class="self-center text-base-content/50 text-xs">{copy.createdAtLabel} {formatCreatedAt(client.createdAt)}</span>
@@ -89,7 +89,7 @@ export let onDelete: (client: AdminOAuthClient) => void;
           onDelete(client);
         }}
       >
-        <TrashIcon />
+        <TrashIcon data-icon="inline-start" />
         <span>{copy.deleteClient}</span>
       </Button>
     </div>

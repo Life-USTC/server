@@ -32,7 +32,7 @@ export let toggleHomeworkCompletion: DashboardHomeworkCompletionToggle;
         if (homework) toggleHomeworkCompletion(homework);
       }}
     >
-      <SelectedCompletionIcon />
+      <SelectedCompletionIcon data-icon="inline-start" />
       {homeworkSavingById[homework.id]
         ? homeworksCopy.saving
         : homeworkCompletionActionLabel(homework)}

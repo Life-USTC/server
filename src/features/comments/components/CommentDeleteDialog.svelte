@@ -12,22 +12,25 @@ export let open: boolean;
 {#if open}
   <Dialog.Root
     open={true}
-    class="max-w-md"
-    role="alertdialog"
-    aria-labelledby="delete-comment-title"
     onOpenChange={(nextOpen) => {
       if (!nextOpen) close();
     }}
   >
-    <Dialog.Header>
-      <Dialog.Title id="delete-comment-title">{commentCopy.deleteConfirmTitle}</Dialog.Title>
-      <Dialog.Description>{commentCopy.deleteConfirmDescription}</Dialog.Description>
-    </Dialog.Header>
-    <Dialog.Footer>
-      <Button type="button" variant="ghost" onclick={close}>{commentCopy.cancelAction}</Button>
-      <Button type="button" variant="destructive" onclick={deleteComment}>
-        {commentCopy.deleteAction}
-      </Button>
-    </Dialog.Footer>
+    <Dialog.Content
+      class="max-w-md"
+      role="alertdialog"
+      aria-labelledby="delete-comment-title"
+    >
+      <Dialog.Header>
+        <Dialog.Title id="delete-comment-title">{commentCopy.deleteConfirmTitle}</Dialog.Title>
+        <Dialog.Description>{commentCopy.deleteConfirmDescription}</Dialog.Description>
+      </Dialog.Header>
+      <Dialog.Footer>
+        <Button type="button" variant="ghost" onclick={close}>{commentCopy.cancelAction}</Button>
+        <Button type="button" variant="destructive" onclick={deleteComment}>
+          {commentCopy.deleteAction}
+        </Button>
+      </Dialog.Footer>
+    </Dialog.Content>
   </Dialog.Root>
 {/if}

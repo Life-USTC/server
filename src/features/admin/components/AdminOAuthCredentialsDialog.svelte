@@ -24,57 +24,60 @@ export let open: boolean;
 {#if open}
   <Dialog.Root
     open={true}
-    class="max-w-2xl"
-    aria-labelledby="oauth-credentials-title"
     onOpenChange={(nextOpen) => {
       if (!nextOpen) close();
     }}
   >
-    <Dialog.Header>
-      <Dialog.Title id="oauth-credentials-title">{copy.credentialsTitle}</Dialog.Title>
-      <Dialog.Description>{copy.credentialsWarning}</Dialog.Description>
-    </Dialog.Header>
-    {#if clientId}
-      <div class="grid gap-3 px-5 py-4">
-        <AdminOAuthCredentialField
-          copiedMessage={copy.clientIdCopied}
-          copyLabel={copy.copyClientId}
-          {copyText}
-          label={copy.clientIdLabel}
-          value={clientId}
-        />
-        <AdminOAuthCredentialField
-          copiedMessage={copy.clientSecretCopied}
-          copyLabel={copy.copyClientSecret}
-          {copyText}
-          label={copy.clientSecretLabel}
-          showCopy={Boolean(clientSecret)}
-          value={clientSecret ?? copy.publicClientNoSecret}
-        />
-        <AdminOAuthCredentialMetadata
-          {clientTypeLabel}
-          {copy}
-          {redirectUris}
-          {scopes}
-          {scopeLabel}
-          {tokenEndpointAuthMethod}
-          {trusted}
-        />
-        <div>
-          <Button
-            size="sm"
-            type="button"
-            variant="outline"
-            onclick={() => copyText(credentialsJson, copy.credentialsCopied)}
-          >
-            <CopyIcon />
-            <span>{copy.copyCredentials}</span>
-          </Button>
+    <Dialog.Content
+      class="max-w-2xl"
+      aria-labelledby="oauth-credentials-title"
+    >
+      <Dialog.Header>
+        <Dialog.Title id="oauth-credentials-title">{copy.credentialsTitle}</Dialog.Title>
+        <Dialog.Description>{copy.credentialsWarning}</Dialog.Description>
+      </Dialog.Header>
+      {#if clientId}
+        <div class="grid gap-3 px-5 py-4">
+          <AdminOAuthCredentialField
+            copiedMessage={copy.clientIdCopied}
+            copyLabel={copy.copyClientId}
+            {copyText}
+            label={copy.clientIdLabel}
+            value={clientId}
+          />
+          <AdminOAuthCredentialField
+            copiedMessage={copy.clientSecretCopied}
+            copyLabel={copy.copyClientSecret}
+            {copyText}
+            label={copy.clientSecretLabel}
+            showCopy={Boolean(clientSecret)}
+            value={clientSecret ?? copy.publicClientNoSecret}
+          />
+          <AdminOAuthCredentialMetadata
+            {clientTypeLabel}
+            {copy}
+            {redirectUris}
+            {scopes}
+            {scopeLabel}
+            {tokenEndpointAuthMethod}
+            {trusted}
+          />
+          <div>
+            <Button
+              size="sm"
+              type="button"
+              variant="outline"
+              onclick={() => copyText(credentialsJson, copy.credentialsCopied)}
+            >
+              <CopyIcon data-icon="inline-start" />
+              <span>{copy.copyCredentials}</span>
+            </Button>
+          </div>
         </div>
-      </div>
-    {/if}
-    <Dialog.Footer>
-      <Button type="button" onclick={close}>{copy.dismissCredentials}</Button>
-    </Dialog.Footer>
+      {/if}
+      <Dialog.Footer>
+        <Button type="button" onclick={close}>{copy.dismissCredentials}</Button>
+      </Dialog.Footer>
+    </Dialog.Content>
   </Dialog.Root>
 {/if}

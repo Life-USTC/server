@@ -76,7 +76,7 @@ export let suspensionLabel: AdminUserFormatter;
       type="button"
       onclick={suspendSelectedUser}
     >
-      <ShieldAlertIcon />
+      <ShieldAlertIcon data-icon="inline-start" />
       <span>
         {isSuspending ? copy.suspending : moderationCopy.suspendAction}
       </span>
@@ -88,7 +88,7 @@ export let suspensionLabel: AdminUserFormatter;
         variant="outline"
         onclick={liftSelectedSuspension}
       >
-        <CheckCircleIcon />
+        <CheckCircleIcon data-icon="inline-start" />
         <span>
           {isLiftingSuspension ? copy.lifting : copy.liftSuspensionAction}
         </span>

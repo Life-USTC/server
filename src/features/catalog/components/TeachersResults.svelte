@@ -57,11 +57,11 @@ $: pageLabel = teacherLabels.pageOf
     {totalPages}
   />
   {#if teachers.length > 0}
-    <div class="grid min-w-0 overflow-hidden rounded-md border border-base-300">
+    <div class="grid min-w-0 w-full overflow-hidden rounded-md border border-base-300">
       {#each teachers as teacher}
         {@const teacherHref = `/teachers/${teacher.id}`}
         <a
-          class="grid min-w-0 gap-3 border-base-300 border-b p-3 text-base-content no-underline transition-colors last:border-b-0 hover:bg-base-200/30 md:grid-cols-[minmax(12rem,1.2fr)_minmax(7rem,0.7fr)_minmax(10rem,1fr)_minmax(8rem,0.8fr)_minmax(12rem,1.2fr)_4rem] md:items-center md:gap-4"
+          class="grid min-w-0 w-full gap-3 border-base-300 border-b p-3 text-base-content no-underline transition-colors last:border-b-0 hover:bg-base-200/30 md:grid-cols-[minmax(12rem,1.2fr)_minmax(7rem,0.7fr)_minmax(10rem,1fr)_minmax(8rem,0.8fr)_minmax(12rem,1.2fr)_4rem] md:items-center md:gap-4"
           href={teacherHref}
         >
           <div class="grid min-w-0 gap-1">

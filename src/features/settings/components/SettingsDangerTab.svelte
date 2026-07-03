@@ -40,7 +40,6 @@ export let isMounted: boolean;
     {#if isDeleteAccountOpen}
       <Dialog.Root
         open={true}
-        class="max-w-md border-error/40"
         onOpenChange={(open) => {
           if (!open) {
             isDeleteAccountOpen = false;
@@ -48,52 +47,56 @@ export let isMounted: boolean;
           }
         }}
       >
-        <Dialog.Header>
-          <Dialog.Title class="text-error">{copy.profile.deleteAccountConfirmTitle}</Dialog.Title>
-          <Dialog.Description>
-            {copy.profile.deleteAccountConfirmDescription}
-          </Dialog.Description>
-        </Dialog.Header>
-        <form
-          method="POST"
-          action="?/deleteAccount&tab=danger"
-          class="grid gap-4 px-5 py-4"
-          use:enhance={deleteAccountAction}
+        <Dialog.Content
+          class="max-w-md border-error/40"
         >
-          <label class="grid gap-2">
-            <span class="text-base-content/60 text-sm">
-              {copy.profile.deleteAccountConfirmPrompt.replace("{phrase}", "DELETE")}
-            </span>
-            <Input
-              name="confirm"
-              placeholder="DELETE"
-              pattern="DELETE"
-              required
-              disabled={!isMounted || isDeletingAccount}
-              bind:value={deleteConfirmValue}
-            />
-          </label>
-          <Dialog.Footer class="px-0 pb-0">
-            <Button
-              variant="secondary"
-              type="button"
-              disabled={isDeletingAccount}
-              onclick={() => {
-                isDeleteAccountOpen = false;
-                deleteConfirmValue = "";
-              }}
-            >
-              {copy.profile.cancel}
-            </Button>
-            <Button
-              type="submit"
-              disabled={!isMounted || isDeletingAccount || deleteConfirmValue !== "DELETE"}
-              variant="destructive"
-            >
-              {copy.profile.deleteAccount}
-            </Button>
-          </Dialog.Footer>
-        </form>
+          <Dialog.Header>
+            <Dialog.Title class="text-error">{copy.profile.deleteAccountConfirmTitle}</Dialog.Title>
+            <Dialog.Description>
+              {copy.profile.deleteAccountConfirmDescription}
+            </Dialog.Description>
+          </Dialog.Header>
+          <form
+            method="POST"
+            action="?/deleteAccount&tab=danger"
+            class="grid gap-4 px-5 py-4"
+            use:enhance={deleteAccountAction}
+          >
+            <label class="grid gap-2">
+              <span class="text-base-content/60 text-sm">
+                {copy.profile.deleteAccountConfirmPrompt.replace("{phrase}", "DELETE")}
+              </span>
+              <Input
+                name="confirm"
+                placeholder="DELETE"
+                pattern="DELETE"
+                required
+                disabled={!isMounted || isDeletingAccount}
+                bind:value={deleteConfirmValue}
+              />
+            </label>
+            <Dialog.Footer class="px-0 pb-0">
+              <Button
+                variant="secondary"
+                type="button"
+                disabled={isDeletingAccount}
+                onclick={() => {
+                  isDeleteAccountOpen = false;
+                  deleteConfirmValue = "";
+                }}
+              >
+                {copy.profile.cancel}
+              </Button>
+              <Button
+                type="submit"
+                disabled={!isMounted || isDeletingAccount || deleteConfirmValue !== "DELETE"}
+                variant="destructive"
+              >
+                {copy.profile.deleteAccount}
+              </Button>
+            </Dialog.Footer>
+          </form>
+        </Dialog.Content>
       </Dialog.Root>
     {/if}
   </Card.Content>

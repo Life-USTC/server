@@ -23,9 +23,9 @@ export let version: AdminBusVersion;
     <input type="hidden" name="id" value={version.id} />
     <Button size="sm" type="submit" disabled={Boolean(pendingAction)} variant="outline">
       {#if isPending(`activate-${version.id}`)}
-        <RefreshCw class="animate-spin" />
+        <RefreshCw class="animate-spin" data-icon="inline-start" />
       {:else}
-        <CheckCircle />
+        <CheckCircle data-icon="inline-start" />
       {/if}
       {copy.activateAction}
     </Button>
@@ -37,7 +37,7 @@ export let version: AdminBusVersion;
     disabled={Boolean(pendingAction)}
     onclick={() => onDelete(version)}
   >
-    <Trash2 />
+    <Trash2 data-icon="inline-start" />
     {copy.deleteAction}
   </Button>
 {/if}

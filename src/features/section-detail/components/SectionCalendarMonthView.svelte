@@ -30,7 +30,7 @@ export let sectionCopy: SectionCalendarCopy;
         variant="outline"
         onclick={() => (calendarMonthOffset -= 1)}
       >
-        <ChevronLeftIcon />
+        <ChevronLeftIcon data-icon="inline-start" />
         <span>{sectionCopy.previousMonth}</span>
       </Button>
       <Button
@@ -49,7 +49,7 @@ export let sectionCopy: SectionCalendarCopy;
         onclick={() => (calendarMonthOffset += 1)}
       >
         <span>{sectionCopy.nextMonth}</span>
-        <ChevronRightIcon />
+        <ChevronRightIcon data-icon="inline-end" />
       </Button>
     </div>
   </div>

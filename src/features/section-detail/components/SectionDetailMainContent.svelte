@@ -164,7 +164,7 @@ $: pinnedSummaryItems = [
   >
     {#snippet actions()}
       <Button variant="outline" type="button" onclick={openCalendarDialog}>
-        <CalendarIcon />
+        <CalendarIcon data-icon="inline-start" />
         {sectionCopy.addToCalendar}
       </Button>
       {#if data.viewer.isSubscribed}
@@ -178,7 +178,7 @@ $: pinnedSummaryItems = [
             type="submit"
             disabled={subscriptionPendingAction === "unsubscribe"}
           >
-            <CheckCircleIcon />
+            <CheckCircleIcon data-icon="inline-start" />
             {subscriptionPendingAction === "unsubscribe"
               ? sectionCopy.unsubscribing
               : sectionCopy.unsubscribeLabel}
@@ -188,7 +188,7 @@ $: pinnedSummaryItems = [
         <form method="GET">
           <input name="subscribe" type="hidden" value="1" />
           <Button type="submit" onclick={openSubscribeDialog}>
-            <LinkIcon />
+            <LinkIcon data-icon="inline-start" />
             {sectionCopy.subscribeLabel}
           </Button>
         </form>

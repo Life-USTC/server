@@ -21,43 +21,46 @@ export let unlinkAccountId: string | null;
 {#if unlinkAccount}
   <Dialog.Root
     open={true}
-    class="max-w-md"
     onOpenChange={(open) => {
       if (!open) unlinkAccountId = null;
     }}
   >
-    <Dialog.Header>
-      <Dialog.Title>{copy.profile.disconnectConfirmTitle}</Dialog.Title>
-      <Dialog.Description>{copy.profile.disconnectConfirmDescription.replace("{provider}", unlinkAccount.name)}</Dialog.Description>
-    </Dialog.Header>
-    <Dialog.Footer>
-      <Button
-        variant="secondary"
-        type="button"
-        disabled={hasPendingAccountAction}
-        onclick={() => {
-          unlinkAccountId = null;
-        }}
-      >
-        {copy.profile.cancel}
-      </Button>
-      <form
-        method="POST"
-        action="?/unlinkAccount&tab=accounts"
-        use:enhance={accountAction(unlinkAccount.id, "disconnect")}
-      >
-        <input type="hidden" name="provider" value={unlinkAccount.id} />
+    <Dialog.Content
+      class="max-w-md"
+    >
+      <Dialog.Header>
+        <Dialog.Title>{copy.profile.disconnectConfirmTitle}</Dialog.Title>
+        <Dialog.Description>{copy.profile.disconnectConfirmDescription.replace("{provider}", unlinkAccount.name)}</Dialog.Description>
+      </Dialog.Header>
+      <Dialog.Footer>
         <Button
-          type="submit"
-          disabled={!isMounted || hasPendingAccountAction}
-          variant="destructive"
+          variant="secondary"
+          type="button"
+          disabled={hasPendingAccountAction}
+          onclick={() => {
+            unlinkAccountId = null;
+          }}
         >
-          {pendingAccountAction?.providerId === unlinkAccount.id &&
-          pendingAccountAction.type === "disconnect"
-            ? copy.profile.disconnecting
-            : copy.profile.disconnect}
+          {copy.profile.cancel}
         </Button>
-      </form>
-    </Dialog.Footer>
+        <form
+          method="POST"
+          action="?/unlinkAccount&tab=accounts"
+          use:enhance={accountAction(unlinkAccount.id, "disconnect")}
+        >
+          <input type="hidden" name="provider" value={unlinkAccount.id} />
+          <Button
+            type="submit"
+            disabled={!isMounted || hasPendingAccountAction}
+            variant="destructive"
+          >
+            {pendingAccountAction?.providerId === unlinkAccount.id &&
+            pendingAccountAction.type === "disconnect"
+              ? copy.profile.disconnecting
+              : copy.profile.disconnect}
+          </Button>
+        </form>
+      </Dialog.Footer>
+    </Dialog.Content>
   </Dialog.Root>
 {/if}

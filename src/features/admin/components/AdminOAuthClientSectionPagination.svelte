@@ -29,7 +29,7 @@ function setPage(nextPage: number) {
         variant="outline"
         onclick={() => setPage(page - 1)}
       >
-        <ChevronLeftIcon />
+        <ChevronLeftIcon data-icon="inline-start" />
         <span>{copy.previousPage}</span>
       </Button>
       <Button
@@ -40,7 +40,7 @@ function setPage(nextPage: number) {
         onclick={() => setPage(page + 1)}
       >
         <span>{copy.nextPage}</span>
-        <ChevronRightIcon />
+        <ChevronRightIcon data-icon="inline-end" />
       </Button>
     </div>
   </div>

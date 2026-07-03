@@ -38,50 +38,53 @@ export let suspensionLabel: AdminUserFormatter;
 {#if selectedUser}
   <Dialog.Root
     open={true}
-    class="max-w-2xl"
-    aria-labelledby="admin-user-dialog-title"
     onOpenChange={(open) => {
       if (!open) close();
     }}
   >
-    <AdminUserDialogHeader {copy} user={selectedUser} />
+    <Dialog.Content
+      class="max-w-2xl"
+      aria-labelledby="admin-user-dialog-title"
+    >
+      <AdminUserDialogHeader {copy} user={selectedUser} />
 
-    <div class="grid max-h-[calc(100vh-2rem)] gap-5 overflow-y-auto px-5 py-4">
-      {#if message}<Alert>{message}</Alert>{/if}
+      <div class="grid max-h-[calc(100vh-2rem)] gap-5 overflow-y-auto px-5 py-4">
+        {#if message}<Alert>{message}</Alert>{/if}
 
-      <AdminUserProfileSection
-        {copy}
-        bind:editIsAdmin
-        bind:editName
-        bind:editUsername
-        {inputValue}
-      />
+        <AdminUserProfileSection
+          {copy}
+          bind:editIsAdmin
+          bind:editName
+          bind:editUsername
+          {inputValue}
+        />
 
-      <AdminUserSuspensionSection
-        {copy}
-        {inputValue}
-        {isLiftingSuspension}
-        {isSuspending}
-        {liftSelectedSuspension}
-        {moderationCopy}
-        {selectedUser}
-        bind:suspendDuration
-        {suspendDurationOptions}
-        bind:suspendExpiresAt
-        bind:suspendReason
-        {suspendSelectedUser}
-        {suspensionLabel}
-      />
-    </div>
+        <AdminUserSuspensionSection
+          {copy}
+          {inputValue}
+          {isLiftingSuspension}
+          {isSuspending}
+          {liftSelectedSuspension}
+          {moderationCopy}
+          {selectedUser}
+          bind:suspendDuration
+          {suspendDurationOptions}
+          bind:suspendExpiresAt
+          bind:suspendReason
+          {suspendSelectedUser}
+          {suspensionLabel}
+        />
+      </div>
 
-    <Dialog.Footer>
-      <Button type="button" variant="outline" onclick={close}>
-        {moderationCopy.cancelButton}
-      </Button>
-      <Button type="button" disabled={isSaving} onclick={saveSelectedUser}>
-        <CheckCircleIcon />
-        <span>{isSaving ? copy.saving : copy.saveAction}</span>
-      </Button>
-    </Dialog.Footer>
+      <Dialog.Footer>
+        <Button type="button" variant="outline" onclick={close}>
+          {moderationCopy.cancelButton}
+        </Button>
+        <Button type="button" disabled={isSaving} onclick={saveSelectedUser}>
+          <CheckCircleIcon data-icon="inline-start" />
+          <span>{isSaving ? copy.saving : copy.saveAction}</span>
+        </Button>
+      </Dialog.Footer>
+    </Dialog.Content>
   </Dialog.Root>
 {/if}

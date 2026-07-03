@@ -26,41 +26,44 @@ export let subscriptionPendingAction: "subscribe" | "unsubscribe" | null;
 
 <Dialog.Root
   open={true}
-  class="max-w-lg"
   onOpenChange={(open) => {
     if (!open) close();
   }}
-  aria-labelledby="section-subscribe-title"
 >
-  <Dialog.Header>
-    <Dialog.Title id="section-subscribe-title">
-      {signedIn ? sectionCopy.subscribeLabel : sectionCopy.loginRequired}
-    </Dialog.Title>
-    <Dialog.Description>
-      {sectionCopy.subscriptionDisclaimer}
-    </Dialog.Description>
-  </Dialog.Header>
-  <Dialog.Footer>
-    <Button variant="secondary" type="button" onclick={close}>
-      {homeworkCopy.cancel}
-    </Button>
-    {#if signedIn}
-      <form
-        method="POST"
-        action="?/subscribe"
-        use:enhance={subscriptionAction("subscribe")}
-      >
-        <Button type="submit" disabled={subscriptionPendingAction === "subscribe"}>
-          <LinkIcon />
-          {subscriptionPendingAction === "subscribe"
-            ? sectionCopy.subscribing
-            : sectionCopy.subscribeLabel}
-        </Button>
-      </form>
-    {:else}
-      <Button href={`/signin?callbackUrl=${encodeURIComponent(`/sections/${sectionJwId}`)}`}>
-        {commonCopy.signIn ?? ""}
+  <Dialog.Content
+    class="max-w-lg"
+    aria-labelledby="section-subscribe-title"
+  >
+    <Dialog.Header>
+      <Dialog.Title id="section-subscribe-title">
+        {signedIn ? sectionCopy.subscribeLabel : sectionCopy.loginRequired}
+      </Dialog.Title>
+      <Dialog.Description>
+        {sectionCopy.subscriptionDisclaimer}
+      </Dialog.Description>
+    </Dialog.Header>
+    <Dialog.Footer>
+      <Button variant="secondary" type="button" onclick={close}>
+        {homeworkCopy.cancel}
       </Button>
-    {/if}
-  </Dialog.Footer>
+      {#if signedIn}
+        <form
+          method="POST"
+          action="?/subscribe"
+          use:enhance={subscriptionAction("subscribe")}
+        >
+          <Button type="submit" disabled={subscriptionPendingAction === "subscribe"}>
+            <LinkIcon data-icon="inline-start" />
+            {subscriptionPendingAction === "subscribe"
+              ? sectionCopy.subscribing
+              : sectionCopy.subscribeLabel}
+          </Button>
+        </form>
+      {:else}
+        <Button href={`/signin?callbackUrl=${encodeURIComponent(`/sections/${sectionJwId}`)}`}>
+          {commonCopy.signIn ?? ""}
+        </Button>
+      {/if}
+    </Dialog.Footer>
+  </Dialog.Content>
 </Dialog.Root>

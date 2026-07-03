@@ -27,12 +27,12 @@ export let search: string;
         value={search}
       />
       <Button type="submit">
-        <SearchIcon />
+        <SearchIcon data-icon="inline-start" />
         <span>{commonCopy.search}</span>
       </Button>
       {#if search}
         <Button href="/admin/users" role="button" variant="outline">
-          <XIcon />
+          <XIcon data-icon="inline-start" />
           <span>{commonCopy.clear}</span>
         </Button>
       {/if}

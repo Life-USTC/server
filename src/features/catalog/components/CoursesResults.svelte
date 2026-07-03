@@ -40,11 +40,11 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
     {totalPages}
   />
   {#if data.data.length > 0}
-    <div class="grid min-w-0 overflow-hidden rounded-md border border-base-300">
+    <div class="grid min-w-0 w-full overflow-hidden rounded-md border border-base-300">
       {#each data.data as course}
         {@const courseHref = `/courses/${course.jwId}`}
         <a
-          class="grid min-w-0 gap-3 border-base-300 border-b p-3 text-base-content no-underline transition-colors last:border-b-0 hover:bg-base-200/30 md:grid-cols-[minmax(16rem,1.7fr)_minmax(7rem,0.7fr)_minmax(8rem,0.8fr)_minmax(9rem,0.9fr)_minmax(8rem,0.8fr)] md:items-center md:gap-4"
+          class="grid min-w-0 w-full gap-3 border-base-300 border-b p-3 text-base-content no-underline transition-colors last:border-b-0 hover:bg-base-200/30 md:grid-cols-[minmax(16rem,1.7fr)_minmax(7rem,0.7fr)_minmax(8rem,0.8fr)_minmax(9rem,0.9fr)_minmax(8rem,0.8fr)] md:items-center md:gap-4"
           href={courseHref}
         >
           <div class="grid min-w-0 gap-1">

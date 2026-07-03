@@ -28,42 +28,45 @@ export let updateTodoAction: SubmitFunction;
 {#if todo}
   <Dialog.Root
     open={true}
-    class="max-w-lg"
     onOpenChange={(open) => {
       if (!open) onClose();
     }}
   >
-    <form method="POST" action="?/updateTodo" use:enhance={updateTodoAction}>
-      <input name="id" type="hidden" value={todo.id} />
-      <Dialog.Header>
-        <Dialog.Title>{todosCopy.editTitle}</Dialog.Title>
-        <Dialog.Description>{todosCopy.contentPlaceholder}</Dialog.Description>
-      </Dialog.Header>
-      <div class="grid gap-4 px-5 py-4">
-        {#if editTodoError}
-          <Alert variant="destructive">
-            <span>{editTodoError}</span>
-          </Alert>
-        {/if}
-        <TodoFormFields
-          {commentsCopy}
-          contentValue={todo.content ?? ""}
-          disabled={isUpdatingTodo}
-          dueAtValue={datetimeLocalValue(todo.dueAt)}
-          priorityValue={todo.priority ?? "medium"}
-          titleValue={todo.title}
-          {todoPriorityOptions}
-          {todosCopy}
-        />
-      </div>
-      <Dialog.Footer>
-        <Button type="button" variant="outline" onclick={onClose}>
-          {todosCopy.cancel}
-        </Button>
-        <Button disabled={isUpdatingTodo} type="submit">
-          {isUpdatingTodo ? todosCopy.saving : todosCopy.saveChanges}
-        </Button>
-      </Dialog.Footer>
-    </form>
+    <Dialog.Content
+      class="max-w-lg"
+    >
+      <form method="POST" action="?/updateTodo" use:enhance={updateTodoAction}>
+        <input name="id" type="hidden" value={todo.id} />
+        <Dialog.Header>
+          <Dialog.Title>{todosCopy.editTitle}</Dialog.Title>
+          <Dialog.Description>{todosCopy.contentPlaceholder}</Dialog.Description>
+        </Dialog.Header>
+        <div class="grid gap-4 px-5 py-4">
+          {#if editTodoError}
+            <Alert variant="destructive">
+              <span>{editTodoError}</span>
+            </Alert>
+          {/if}
+          <TodoFormFields
+            {commentsCopy}
+            contentValue={todo.content ?? ""}
+            disabled={isUpdatingTodo}
+            dueAtValue={datetimeLocalValue(todo.dueAt)}
+            priorityValue={todo.priority ?? "medium"}
+            titleValue={todo.title}
+            {todoPriorityOptions}
+            {todosCopy}
+          />
+        </div>
+        <Dialog.Footer>
+          <Button type="button" variant="outline" onclick={onClose}>
+            {todosCopy.cancel}
+          </Button>
+          <Button disabled={isUpdatingTodo} type="submit">
+            {isUpdatingTodo ? todosCopy.saving : todosCopy.saveChanges}
+          </Button>
+        </Dialog.Footer>
+      </form>
+    </Dialog.Content>
   </Dialog.Root>
 {/if}

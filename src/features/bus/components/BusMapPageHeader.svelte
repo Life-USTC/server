@@ -23,7 +23,7 @@ export let updatedTime: string;
   {/snippet}
   {#snippet actions()}
     <Button variant="outline" size="sm" type="button" aria-label={copy.refresh} onclick={refreshMap}>
-      <RefreshCw class={refreshing ? "animate-spin" : ""} />
+      <RefreshCw class={refreshing ? "animate-spin" : ""} data-icon="inline-start" />
       <span>{copy.refresh}</span>
     </Button>
   {/snippet}

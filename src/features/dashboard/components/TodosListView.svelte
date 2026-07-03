@@ -80,9 +80,9 @@ export let toggleTodoCompletion: TodoCompletionToggle;
               onclick={() => void toggleTodoCompletion(todo)}
             >
               {#if todo.completed}
-                <RefreshCw />
+                <RefreshCw data-icon="inline-start" />
               {:else}
-                <CheckCircleIcon />
+                <CheckCircleIcon data-icon="inline-start" />
               {/if}
               {todoSavingById[todo.id] ? todosCopy.saving : todoActionLabel(todo)}
             </Button>
