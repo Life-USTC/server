@@ -11,9 +11,10 @@ RUN apt-get update && apt-get install -y sqlite3 postgresql-client && rm -rf /va
 COPY --from=install-prod /usr/src/app/node_modules node_modules
 COPY package.json prisma.config.ts ./
 COPY prisma ./prisma
+COPY scripts/load-static-sqlite.sh ./scripts/load-static-sqlite.sh
 COPY docker-entrypoint.load.sh /usr/local/bin/docker-entrypoint.load.sh
 
-RUN chmod +x /usr/local/bin/docker-entrypoint.load.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.load.sh ./scripts/load-static-sqlite.sh
 
 ENV NODE_ENV=production
 
