@@ -31,8 +31,7 @@ onMount(() => {
 </script>
 
 <Sidebar.Provider
-  open={!collapsed}
-  onOpenChange={setOpen}
+  bind:open={() => !collapsed, setOpen}
   layout="contained"
   mobileBreakpoint={1024}
   style="--sidebar-width: 14rem; --sidebar-width-icon: 3.5rem;"
@@ -90,8 +89,6 @@ onMount(() => {
         title="Toggle sidebar"
       />
     </Sidebar.Footer>
-    <div class="hidden lg:contents">
-      <Sidebar.Rail />
-    </div>
+    <Sidebar.Rail class="max-lg:hidden" />
   </Sidebar.Root>
 </Sidebar.Provider>

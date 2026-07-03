@@ -1,4 +1,6 @@
 <script lang="ts">
+import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
+import * as Collapsible from "$lib/components/ui/collapsible/index.js";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 import type { ShellCopy, ShellLink, ShellNavGroup } from "./types";
 
@@ -39,36 +41,49 @@ export let navGroups: ShellNavGroup[];
 
   <Sidebar.Content class="p-2" aria-label={copy.shell.primaryNavigation}>
     {#each navGroups as group}
-      <Sidebar.Group class="p-0">
-        <Sidebar.GroupLabel>{group.label}</Sidebar.GroupLabel>
-        <Sidebar.GroupContent>
-          <Sidebar.Menu>
-            {#each group.links as link}
-              {@const active = isActiveLink(link)}
-              <Sidebar.MenuItem>
-                <Sidebar.MenuButton
-                  isActive={active}
-                  tooltipContent={link.label}
-                >
-                  {#snippet child({ props })}
-                    <a
-                      {...props}
-                      href={link.href}
-                      aria-label={link.ariaLabel}
-                      aria-current={active ? "page" : undefined}
+      <Collapsible.Root open class="group/collapsible">
+        <Sidebar.Group class="p-0">
+          <Sidebar.GroupLabel>
+            {#snippet child({ props })}
+              <Collapsible.Trigger {...props}>
+                {group.label}
+                <ChevronDownIcon
+                  class="ms-auto transition-transform group-data-[state=open]/collapsible:rotate-180"
+                />
+              </Collapsible.Trigger>
+            {/snippet}
+          </Sidebar.GroupLabel>
+          <Collapsible.Content>
+            <Sidebar.GroupContent>
+              <Sidebar.Menu>
+                {#each group.links as link}
+                  {@const active = isActiveLink(link)}
+                  <Sidebar.MenuItem>
+                    <Sidebar.MenuButton
+                      isActive={active}
+                      tooltipContent={link.label}
                     >
-                      {#if link.icon}
-                        <svelte:component this={link.icon} />
-                      {/if}
-                      <span>{link.label}</span>
-                    </a>
-                  {/snippet}
-                </Sidebar.MenuButton>
-              </Sidebar.MenuItem>
-            {/each}
-          </Sidebar.Menu>
-        </Sidebar.GroupContent>
-      </Sidebar.Group>
+                      {#snippet child({ props })}
+                        <a
+                          {...props}
+                          href={link.href}
+                          aria-label={link.ariaLabel}
+                          aria-current={active ? "page" : undefined}
+                        >
+                          {#if link.icon}
+                            <svelte:component this={link.icon} />
+                          {/if}
+                          <span>{link.label}</span>
+                        </a>
+                      {/snippet}
+                    </Sidebar.MenuButton>
+                  </Sidebar.MenuItem>
+                {/each}
+              </Sidebar.Menu>
+            </Sidebar.GroupContent>
+          </Collapsible.Content>
+        </Sidebar.Group>
+      </Collapsible.Root>
     {/each}
   </Sidebar.Content>
 
@@ -79,7 +94,5 @@ export let navGroups: ShellNavGroup[];
       title="Toggle sidebar"
     />
   </Sidebar.Footer>
-  <div class="hidden lg:contents">
-    <Sidebar.Rail />
-  </div>
+  <Sidebar.Rail class="max-lg:hidden" />
 </Sidebar.Root>

@@ -295,8 +295,7 @@ afterNavigate(({ from, to }) => {
 </style>
 
 <Sidebar.Provider
-  open={!primarySidebarCollapsed}
-  onOpenChange={setPrimarySidebarOpen}
+  bind:open={() => !primarySidebarCollapsed, setPrimarySidebarOpen}
   mobileBreakpoint={1024}
   style="--sidebar-width: 15rem; --sidebar-width-icon: 4rem;"
   class="min-h-screen bg-base-200 text-base-content lg:h-screen lg:min-h-0 lg:overflow-hidden"
