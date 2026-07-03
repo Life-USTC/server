@@ -23,8 +23,12 @@ export let items: DetailSectionNavItem[];
 export let label = "";
 
 let collapsed = false;
+let hoverPreviewExpanded = false;
+
+$: visuallyCollapsed = collapsed && !hoverPreviewExpanded;
 
 function setCollapsed(nextCollapsed: boolean) {
+  hoverPreviewExpanded = false;
   collapsed = setSecondarySidebarCollapsed(nextCollapsed);
 }
 
@@ -35,15 +39,22 @@ onMount(() => {
 
 <aside
   class={cn(
-    "w-full shrink-0 bg-base-100 transition-[width] duration-200 ease-out motion-reduce:transition-none lg:flex lg:h-full lg:min-h-0 lg:flex-col",
-    collapsed ? "lg:w-14" : "lg:w-56",
+    "w-full shrink-0 bg-base-100 transition-[width] duration-200 ease-out motion-reduce:transition-none lg:relative lg:z-10 lg:flex lg:h-full lg:min-h-0 lg:flex-col",
+    visuallyCollapsed ? "lg:w-14" : "lg:w-56",
+    collapsed && hoverPreviewExpanded && "lg:-mr-[10.5rem]",
   )}
   data-collapsed={collapsed}
   data-testid="detail-section-nav"
+  onmouseenter={() => {
+    hoverPreviewExpanded = true;
+  }}
+  onmouseleave={() => {
+    hoverPreviewExpanded = false;
+  }}
 >
   <nav
     aria-label={ariaLabel || label}
-    class={cn("min-h-0 flex-1 overflow-y-auto", collapsed ? "p-2" : "p-3")}
+    class={cn("min-h-0 flex-1 overflow-y-auto", visuallyCollapsed ? "p-2" : "p-3")}
   >
     <ol class="grid gap-0.5">
       {#each items as item}
@@ -52,15 +63,15 @@ onMount(() => {
           <a
             class={cn(
               "detail-section-nav-link flex min-h-10 items-center justify-between gap-2 rounded-md px-2.5 py-2 text-sm no-underline transition-colors",
-              collapsed && "lg:justify-center lg:px-2",
+              visuallyCollapsed && "lg:justify-center lg:px-2",
               active
                 ? "bg-base-200 font-medium text-base-content"
                 : "text-base-content/70 hover:bg-base-200/70 hover:text-base-content",
             )}
             href={item.href}
-            aria-label={collapsed ? item.label : undefined}
+            aria-label={visuallyCollapsed ? item.label : undefined}
             aria-current={active ? "page" : undefined}
-            title={collapsed ? item.label : undefined}
+            title={visuallyCollapsed ? item.label : undefined}
           >
             <span class="flex min-w-0 items-center gap-2.5">
               {#if item.icon}
@@ -68,13 +79,13 @@ onMount(() => {
                   <svelte:component this={item.icon} />
                 </span>
               {/if}
-              <span class={cn("truncate", collapsed && "lg:sr-only")}>{item.label}</span>
+              <span class={cn("truncate", visuallyCollapsed && "lg:sr-only")}>{item.label}</span>
             </span>
             {#if item.meta !== undefined && item.meta !== ""}
               <span
                 class={cn(
                   "rounded-sm px-1.5 py-0.5 text-xs tabular-nums",
-                  collapsed && "lg:hidden",
+                  visuallyCollapsed && "lg:hidden",
                   active
                     ? "bg-base-100 text-base-content/70"
                     : "bg-base-200 text-base-content/60",
@@ -89,7 +100,7 @@ onMount(() => {
     </ol>
   </nav>
 
-  <div class={cn("hidden shrink-0 border-base-300 border-t p-2 lg:flex", collapsed ? "justify-center" : "justify-end")}>
+  <div class={cn("hidden shrink-0 border-base-300 border-t p-2 lg:flex", visuallyCollapsed ? "justify-center" : "justify-end")}>
     <Button
       size="icon-sm"
       variant="ghost"
