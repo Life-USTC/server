@@ -1,4 +1,5 @@
 <script lang="ts">
+import { onDestroy } from "svelte";
 import type { HTMLAttributes } from "svelte/elements";
 import * as Sheet from "$lib/components/ui/sheet/index.js";
 import { cn, type WithElementRef } from "$lib/utils.js";
@@ -6,6 +7,7 @@ import { SIDEBAR_WIDTH_MOBILE } from "./constants.js";
 import { useSidebar as getSidebar } from "./context.svelte.js";
 
 type SidebarElement = "div" | "aside";
+const HOVER_PREVIEW_DELAY_MS = 350;
 
 let {
   ref = $bindable(null),
@@ -32,10 +34,18 @@ let {
 } = $props();
 
 const sidebar = getSidebar();
+let hoverPreviewTimeout: ReturnType<typeof setTimeout> | undefined;
 let dataState = $derived(
   position === "static" && sidebar.isMobile ? "expanded" : sidebar.state,
 );
 let dataCollapsible = $derived(dataState === "collapsed" ? collapsible : "");
+
+function clearHoverPreviewTimeout() {
+  if (hoverPreviewTimeout) {
+    clearTimeout(hoverPreviewTimeout);
+    hoverPreviewTimeout = undefined;
+  }
+}
 
 function setPreviewOpen(value: boolean) {
   if (hoverPreview && collapsible === "icon") {
@@ -45,13 +55,22 @@ function setPreviewOpen(value: boolean) {
 
 function handleMouseEnter(event: MouseEvent) {
   event.stopPropagation();
-  setPreviewOpen(true);
+  if (!hoverPreview || collapsible !== "icon") return;
+
+  clearHoverPreviewTimeout();
+  hoverPreviewTimeout = setTimeout(() => {
+    setPreviewOpen(true);
+    hoverPreviewTimeout = undefined;
+  }, HOVER_PREVIEW_DELAY_MS);
 }
 
 function handleMouseLeave(event: MouseEvent) {
   event.stopPropagation();
+  clearHoverPreviewTimeout();
   setPreviewOpen(false);
 }
+
+onDestroy(clearHoverPreviewTimeout);
 </script>
 
 {#if collapsible === "none"}
