@@ -1,3 +1,10 @@
+## [1.45.1](https://github.com/Life-USTC/server/compare/v1.45.0...v1.45.1) (2026-07-03)
+
+
+### Bug Fixes
+
+* verify static loader runtime ([e09b2e0](https://github.com/Life-USTC/server/commit/e09b2e008406dc17a6bd1ceac8de3a435c242c2b))
+
 # [1.45.0](https://github.com/Life-USTC/server/compare/v1.44.3...v1.45.0) (2026-07-03)
 
 
