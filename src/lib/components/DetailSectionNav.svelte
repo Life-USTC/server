@@ -1,14 +1,11 @@
 <script lang="ts">
-import PanelLeftCloseIcon from "@lucide/svelte/icons/panel-left-close";
-import PanelLeftOpenIcon from "@lucide/svelte/icons/panel-left-open";
 import type { Component } from "svelte";
 import { onMount } from "svelte";
 import {
   loadSecondarySidebarCollapsed,
   setSecondarySidebarCollapsed,
 } from "$lib/components/sidebar-collapse";
-import { Button } from "$lib/components/ui/button/index.js";
-import { cn } from "$lib/utils.js";
+import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 
 type DetailSectionNavItem = {
   href: string;
@@ -23,13 +20,9 @@ export let items: DetailSectionNavItem[];
 export let label = "";
 
 let collapsed = false;
-let hoverPreviewExpanded = false;
 
-$: visuallyCollapsed = collapsed && !hoverPreviewExpanded;
-
-function setCollapsed(nextCollapsed: boolean) {
-  hoverPreviewExpanded = false;
-  collapsed = setSecondarySidebarCollapsed(nextCollapsed);
+function setOpen(open: boolean) {
+  collapsed = setSecondarySidebarCollapsed(!open);
 }
 
 onMount(() => {
@@ -37,98 +30,65 @@ onMount(() => {
 });
 </script>
 
-<aside
-  class={cn(
-    "w-full shrink-0 bg-base-100 transition-[width] duration-200 ease-out motion-reduce:transition-none lg:relative lg:z-10 lg:flex lg:h-full lg:min-h-0 lg:flex-col",
-    visuallyCollapsed ? "lg:w-14" : "lg:w-56",
-    collapsed && hoverPreviewExpanded && "lg:-mr-[10.5rem]",
-  )}
-  data-collapsed={collapsed}
-  data-testid="detail-section-nav"
-  onmouseenter={() => {
-    hoverPreviewExpanded = true;
-  }}
-  onmouseleave={() => {
-    hoverPreviewExpanded = false;
-  }}
+<Sidebar.Provider
+  open={!collapsed}
+  onOpenChange={setOpen}
+  layout="contained"
+  mobileBreakpoint={1024}
+  style="--sidebar-width: 14rem; --sidebar-width-icon: 3.5rem;"
+  class="h-full w-full lg:w-auto"
 >
-  <nav
-    aria-label={ariaLabel || label}
-    class={cn("min-h-0 flex-1 overflow-y-auto", visuallyCollapsed ? "p-2" : "p-3")}
+  <Sidebar.Root
+    position="static"
+    collapsible="icon"
+    desktopBreakpoint="lg"
+    hoverPreview
+    class="border-sidebar-border bg-sidebar border-b lg:border-e lg:border-b-0"
+    data-testid="detail-section-nav"
   >
-    <ol class="grid gap-0.5">
-      {#each items as item}
-        {@const active = item.href === activeHref}
-        <li>
-          <a
-            class={cn(
-              "detail-section-nav-link flex min-h-10 items-center justify-between gap-2 rounded-md px-2.5 py-2 text-sm no-underline transition-colors",
-              visuallyCollapsed && "lg:justify-center lg:px-2",
-              active
-                ? "bg-base-200 font-medium text-base-content"
-                : "text-base-content/70 hover:bg-base-200/70 hover:text-base-content",
-            )}
-            href={item.href}
-            aria-label={visuallyCollapsed ? item.label : undefined}
-            aria-current={active ? "page" : undefined}
-            title={visuallyCollapsed ? item.label : undefined}
-          >
-            <span class="flex min-w-0 items-center gap-2.5">
-              {#if item.icon}
-                <span class="detail-section-nav-icon" aria-hidden="true">
-                  <svelte:component this={item.icon} />
-                </span>
-              {/if}
-              <span class={cn("truncate", visuallyCollapsed && "lg:sr-only")}>{item.label}</span>
-            </span>
-            {#if item.meta !== undefined && item.meta !== ""}
-              <span
-                class={cn(
-                  "rounded-sm px-1.5 py-0.5 text-xs tabular-nums",
-                  visuallyCollapsed && "lg:hidden",
-                  active
-                    ? "bg-base-100 text-base-content/70"
-                    : "bg-base-200 text-base-content/60",
-                )}
-              >
-                {item.meta}
-              </span>
-            {/if}
-          </a>
-        </li>
-      {/each}
-    </ol>
-  </nav>
+    <Sidebar.Content class="p-2 lg:p-3" aria-label={ariaLabel || label}>
+      <Sidebar.Group class="p-0">
+        <Sidebar.GroupContent>
+          <Sidebar.Menu>
+            {#each items as item}
+              {@const active = item.href === activeHref}
+              <Sidebar.MenuItem>
+                <Sidebar.MenuButton
+                  class="h-10 px-2.5"
+                  isActive={active}
+                  tooltipContent={item.label}
+                >
+                  {#snippet child({ props })}
+                    <a
+                      {...props}
+                      href={item.href}
+                      aria-current={active ? "page" : undefined}
+                    >
+                      {#if item.icon}
+                        <svelte:component this={item.icon} />
+                      {/if}
+                      <span>{item.label}</span>
+                    </a>
+                  {/snippet}
+                </Sidebar.MenuButton>
+                {#if item.meta !== undefined && item.meta !== ""}
+                  <Sidebar.MenuBadge class="bg-sidebar-accent text-sidebar-accent-foreground">
+                    {item.meta}
+                  </Sidebar.MenuBadge>
+                {/if}
+              </Sidebar.MenuItem>
+            {/each}
+          </Sidebar.Menu>
+        </Sidebar.GroupContent>
+      </Sidebar.Group>
+    </Sidebar.Content>
 
-  <div class={cn("hidden shrink-0 border-base-300 border-t p-2 lg:flex", visuallyCollapsed ? "justify-center" : "justify-end")}>
-    <Button
-      size="icon-sm"
-      variant="ghost"
-      aria-expanded={!collapsed}
-      aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      onclick={() => setCollapsed(!collapsed)}
-    >
-      {#if collapsed}
-        <PanelLeftOpenIcon data-icon="inline-start" />
-      {:else}
-        <PanelLeftCloseIcon data-icon="inline-start" />
-      {/if}
-    </Button>
-  </div>
-</aside>
-
-<style>
-  .detail-section-nav-icon {
-    display: flex;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .detail-section-nav-icon :global(svg) {
-    width: 1rem;
-    height: 1rem;
-    flex-shrink: 0;
-  }
-</style>
+    <Sidebar.Footer class="pointer-events-none hidden border-sidebar-border border-t lg:flex group-data-[collapsible=icon]:items-center">
+      <Sidebar.Trigger
+        class="pointer-events-auto self-end group-data-[collapsible=icon]:self-center"
+        aria-label="Toggle sidebar"
+        title="Toggle sidebar"
+      />
+    </Sidebar.Footer>
+  </Sidebar.Root>
+</Sidebar.Provider>

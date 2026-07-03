@@ -33,6 +33,7 @@ import {
   loadPrimarySidebarCollapsed,
   setPrimarySidebarCollapsed,
 } from "$lib/components/sidebar-collapse";
+import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 import { setClientLocale } from "$lib/locale/client-locale";
 import type {
   LayoutCopy,
@@ -197,8 +198,8 @@ function setThemeMode(nextThemeMode: ThemeMode) {
   themeMenuOpen = false;
 }
 
-function setPrimarySidebarOpen(collapsed: boolean) {
-  primarySidebarCollapsed = setPrimarySidebarCollapsed(collapsed);
+function setPrimarySidebarOpen(open: boolean) {
+  primarySidebarCollapsed = setPrimarySidebarCollapsed(!open);
 }
 
 function setMobileMenuOpen(open: boolean) {
@@ -293,27 +294,24 @@ afterNavigate(({ from, to }) => {
   }
 </style>
 
-<div
-  class={cn(
-    "min-h-screen bg-base-200 text-base-content transition-[grid-template-columns] duration-200 ease-out motion-reduce:transition-none lg:grid lg:h-screen lg:min-h-0 lg:overflow-hidden",
-    primarySidebarCollapsed
-      ? "lg:grid-cols-[4rem_minmax(0,1fr)]"
-      : "lg:grid-cols-[15rem_minmax(0,1fr)]",
-  )}
+<Sidebar.Provider
+  open={!primarySidebarCollapsed}
+  onOpenChange={setPrimarySidebarOpen}
+  mobileBreakpoint={1024}
+  style="--sidebar-width: 15rem; --sidebar-width-icon: 4rem;"
+  class="min-h-screen bg-base-200 text-base-content lg:h-screen lg:min-h-0 lg:overflow-hidden"
 >
   {#if $navigating}
     <RouteLoadingBar loadingLabel={data.copy.shell.loading} />
   {/if}
 
   <AppSidebar
-    collapsed={primarySidebarCollapsed}
     copy={data.copy}
     {isActiveLink}
     {navGroups}
-    setCollapsed={setPrimarySidebarOpen}
   />
 
-  <div class="flex min-w-0 flex-col lg:h-screen lg:min-h-0 lg:overflow-hidden">
+  <div class="flex min-w-0 flex-1 flex-col lg:h-screen lg:min-h-0 lg:overflow-hidden">
     <AppTopbar
       {avatarFallback}
       {closeMenus}
@@ -365,4 +363,4 @@ afterNavigate(({ from, to }) => {
       {/if}
     </div>
   </div>
-</div>
+</Sidebar.Provider>

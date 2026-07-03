@@ -1,122 +1,81 @@
 <script lang="ts">
-import PanelLeftCloseIcon from "@lucide/svelte/icons/panel-left-close";
-import PanelLeftOpenIcon from "@lucide/svelte/icons/panel-left-open";
-import { Button } from "$lib/components/ui/button/index.js";
-import { cn } from "$lib/utils.js";
+import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 import type { ShellCopy, ShellLink, ShellNavGroup } from "./types";
 
-export let collapsed = false;
 export let copy: ShellCopy;
 export let isActiveLink: (link: ShellLink) => boolean;
 export let navGroups: ShellNavGroup[];
-export let setCollapsed: (collapsed: boolean) => void;
-
-let hoverPreviewExpanded = false;
-
-$: visuallyCollapsed = collapsed && !hoverPreviewExpanded;
-
-function setPersistentCollapsed(nextCollapsed: boolean) {
-  hoverPreviewExpanded = false;
-  setCollapsed(nextCollapsed);
-}
 </script>
 
-<aside
-  class={cn(
-    "hidden h-screen min-h-0 overflow-hidden border-base-300 border-r bg-base-100 transition-[width] duration-200 ease-out motion-reduce:transition-none lg:sticky lg:top-0 lg:z-20 lg:flex lg:flex-col",
-    visuallyCollapsed ? "lg:w-16" : "lg:w-60",
-  )}
+<Sidebar.Root
+  collapsible="icon"
+  desktopBreakpoint="lg"
+  hoverPreview
+  mobileMode="sheet"
+  position="static"
+  class="border-sidebar-border bg-sidebar"
   data-testid="app-sidebar"
-  onmouseenter={() => {
-    hoverPreviewExpanded = true;
-  }}
-  onmouseleave={() => {
-    hoverPreviewExpanded = false;
-  }}
 >
-  <div
-    class={cn(
-      "flex h-12 shrink-0 items-center border-base-300 border-b",
-      visuallyCollapsed ? "justify-center px-2" : "gap-2 px-3",
-    )}
-  >
-    <a
-      id="app-logo"
-      class={cn(
-        "inline-flex min-w-0 items-center gap-2 rounded-md font-semibold text-base leading-none transition-opacity hover:opacity-75",
-        visuallyCollapsed && "justify-center",
-      )}
-      href="/"
-      aria-label={visuallyCollapsed ? "Life@USTC" : undefined}
-    >
-      <img
-        class="size-6 rounded-md"
-        src="/images/icon.png"
-        alt=""
-        aria-hidden="true"
-      />
-      <span class={cn("truncate", visuallyCollapsed && "lg:sr-only")}>Life@USTC</span>
-    </a>
-  </div>
-
-  <nav
-    aria-label={copy.shell.primaryNavigation}
-    class={cn("min-h-0 flex-1 overflow-y-auto", visuallyCollapsed ? "p-2" : "p-2.5")}
-  >
-    <div class={cn("grid", visuallyCollapsed ? "gap-2.5" : "gap-3.5")}>
-      {#each navGroups as group}
-        <section class="grid gap-0.5" aria-label={group.label}>
-          <p class={cn("px-2 font-medium text-[0.68rem] text-base-content/50 uppercase tracking-normal", visuallyCollapsed && "lg:sr-only")}>
-            {group.label}
-          </p>
-          {#each group.links as link}
-            {@const active = isActiveLink(link)}
-            <a
-              class={cn(
-                "shell-sidebar-link flex min-h-8 items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
-                visuallyCollapsed && "justify-center",
-                active
-                  ? "bg-base-200 font-medium text-base-content shadow-sm"
-                  : "text-base-content/70 hover:bg-base-200/70 hover:text-base-content",
-              )}
-              href={link.href}
-              aria-label={visuallyCollapsed ? (link.ariaLabel ?? link.label) : link.ariaLabel}
-              aria-current={active ? "page" : undefined}
-              title={visuallyCollapsed ? link.label : undefined}
-            >
-              {#if link.icon}
-                <svelte:component this={link.icon} />
-              {/if}
-              <span class={cn("truncate", visuallyCollapsed && "lg:sr-only")}>{link.label}</span>
+  <Sidebar.Header class="h-12 justify-center border-sidebar-border border-b">
+    <Sidebar.Menu>
+      <Sidebar.MenuItem>
+        <Sidebar.MenuButton class="font-semibold" tooltipContent="Life@USTC">
+          {#snippet child({ props })}
+            <a {...props} href="/" aria-label="Life@USTC">
+              <img
+                class="size-6 rounded-md"
+                src="/images/icon.png"
+                alt=""
+                aria-hidden="true"
+              />
+              <span>Life@USTC</span>
             </a>
-          {/each}
-        </section>
-      {/each}
-    </div>
-  </nav>
+          {/snippet}
+        </Sidebar.MenuButton>
+      </Sidebar.MenuItem>
+    </Sidebar.Menu>
+  </Sidebar.Header>
 
-  <div class={cn("flex shrink-0 border-base-300 border-t p-2", visuallyCollapsed ? "justify-center" : "justify-end")}>
-    <Button
-      size="icon-sm"
-      variant="ghost"
-      aria-expanded={!collapsed}
-      aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      onclick={() => setPersistentCollapsed(!collapsed)}
-    >
-      {#if collapsed}
-        <PanelLeftOpenIcon data-icon="inline-start" />
-      {:else}
-        <PanelLeftCloseIcon data-icon="inline-start" />
-      {/if}
-    </Button>
-  </div>
-</aside>
+  <Sidebar.Content class="p-2" aria-label={copy.shell.primaryNavigation}>
+    {#each navGroups as group}
+      <Sidebar.Group class="p-0">
+        <Sidebar.GroupLabel>{group.label}</Sidebar.GroupLabel>
+        <Sidebar.GroupContent>
+          <Sidebar.Menu>
+            {#each group.links as link}
+              {@const active = isActiveLink(link)}
+              <Sidebar.MenuItem>
+                <Sidebar.MenuButton
+                  isActive={active}
+                  tooltipContent={link.label}
+                >
+                  {#snippet child({ props })}
+                    <a
+                      {...props}
+                      href={link.href}
+                      aria-label={link.ariaLabel}
+                      aria-current={active ? "page" : undefined}
+                    >
+                      {#if link.icon}
+                        <svelte:component this={link.icon} />
+                      {/if}
+                      <span>{link.label}</span>
+                    </a>
+                  {/snippet}
+                </Sidebar.MenuButton>
+              </Sidebar.MenuItem>
+            {/each}
+          </Sidebar.Menu>
+        </Sidebar.GroupContent>
+      </Sidebar.Group>
+    {/each}
+  </Sidebar.Content>
 
-<style>
-  .shell-sidebar-link :global(svg) {
-    width: 1rem;
-    height: 1rem;
-    flex-shrink: 0;
-  }
-</style>
+  <Sidebar.Footer class="pointer-events-none border-sidebar-border border-t group-data-[collapsible=icon]:items-center">
+    <Sidebar.Trigger
+      class="pointer-events-auto self-end group-data-[collapsible=icon]:self-center"
+      aria-label="Toggle sidebar"
+      title="Toggle sidebar"
+    />
+  </Sidebar.Footer>
+</Sidebar.Root>

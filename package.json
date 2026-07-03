@@ -25,7 +25,7 @@
   "dependencies": {
     "@better-auth/oauth-provider": "^1.6.11",
     "@internationalized/date": "^3.12.2",
-    "@lucide/svelte": "^1.22.0",
+    "@lucide/svelte": "^1.23.0",
     "@modelcontextprotocol/sdk": "1.29.0",
     "@prisma/adapter-pg": "7.8.0",
     "@prisma/client": "7.8.0",
