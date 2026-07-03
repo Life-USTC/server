@@ -35,16 +35,16 @@ test.describe("校车线路图", () => {
     ).toBeVisible();
 
     // SVG map is rendered with campus nodes and route lines
-    const svg = page.locator("svg").first();
+    const svg = page.locator('main svg[role="img"][aria-label]').first();
     await expect(svg).toBeVisible();
 
     // Campus circles rendered inside SVG (2 circles per campus: outer + inner ring)
-    const circles = page.locator("svg >> circle");
+    const circles = svg.locator("circle");
     const circleCount = await circles.count();
     expect(circleCount).toBeGreaterThanOrEqual(6);
 
     // Route polylines rendered inside SVG (metro-style parallel tracks)
-    const paths = page.locator("svg >> path");
+    const paths = svg.locator("path");
     await expect(paths.first()).toBeVisible();
     const pathCount = await paths.count();
     expect(pathCount).toBeGreaterThan(0);
