@@ -172,6 +172,8 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
 
       - name: Checkout e2e-snapshot-artifacts repo
         uses: actions/checkout@v6
@@ -180,6 +182,7 @@ jobs:
           ref: main
           path: e2e-snapshot-artifacts
           token: ${{ secrets.E2E_ARTIFACTS_TOKEN }}
+          fetch-depth: 1
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -209,6 +212,7 @@ jobs:
 
       - name: Publish report to e2e-snapshot-artifacts branch
         env:
+          REPORTS_TO_KEEP: 20
           RUN_ID: ${{ github.run_id }}
           SHA: ${{ github.sha }}
         run: |
@@ -223,9 +227,14 @@ jobs:
           # Disable Jekyll so GitHub Pages serves the static HTML and assets as-is.
           touch .nojekyll
 
-          # Keep only the latest 30 reports to avoid unbounded growth in the
+          # Keep only the latest reports to avoid unbounded growth in the
           # artifacts repo. The new report has already been copied in above.
-          ls -1 reports 2>/dev/null | sort -rn | tail -n +31 | xargs -r rm -rf
+          find reports -mindepth 1 -maxdepth 1 -type d -printf '%f\n' \
+            | sort -rn \
+            | tail -n +"$((REPORTS_TO_KEEP + 1))" \
+            | while IFS= read -r dir; do
+                rm -rf "reports/${dir}"
+              done
 
           cat > index.html <<'INDEX_EOF'
           <!doctype html>
@@ -240,7 +249,7 @@ jobs:
               <ul>
           INDEX_EOF
 
-          for dir in $(ls -1 reports | sort -rn); do
+          for dir in $(find reports -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -rn); do
             echo "                <li><a href=\"reports/${dir}/index.html\">Run ${dir}</a></li>" >> index.html
           done
 
@@ -250,9 +259,12 @@ jobs:
           </html>
           INDEX_EOF
 
-          git add "reports/${RUN_ID}" index.html .nojekyll
+          # Recreate main as a single-commit branch so deleted report folders
+          # do not remain reachable through the artifacts repo history.
+          git checkout --orphan publish-e2e-report
+          git add -A .
           git commit -m "chore: publish e2e html report for run ${RUN_ID} (${SHA}) [skip ci]" || exit 0
-          git push
+          git push --force origin HEAD:main
 
       - name: Comment report link on commit and PR
         env:
