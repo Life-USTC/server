@@ -6,7 +6,7 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --production
 
 FROM base AS loader
-RUN apt-get update && apt-get install -y sqlite3 postgresql-client && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl sqlite3 postgresql-client && rm -rf /var/lib/apt/lists/*
 
 COPY --from=install-prod /usr/src/app/node_modules node_modules
 COPY package.json prisma.config.ts ./
