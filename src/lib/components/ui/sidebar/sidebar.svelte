@@ -5,8 +5,11 @@ import { cn, type WithElementRef } from "$lib/utils.js";
 import { SIDEBAR_WIDTH_MOBILE } from "./constants.js";
 import { useSidebar as getSidebar } from "./context.svelte.js";
 
+type SidebarElement = "div" | "aside";
+
 let {
   ref = $bindable(null),
+  as = "div",
   side = "left",
   variant = "sidebar",
   collapsible = "offcanvas",
@@ -17,7 +20,8 @@ let {
   class: className,
   children,
   ...restProps
-}: WithElementRef<HTMLAttributes<HTMLDivElement>> & {
+}: WithElementRef<HTMLAttributes<HTMLElement>, HTMLElement> & {
+  as?: SidebarElement;
   side?: "left" | "right";
   variant?: "sidebar" | "floating" | "inset";
   collapsible?: "offcanvas" | "icon" | "none";
@@ -51,7 +55,8 @@ function handleMouseLeave(event: MouseEvent) {
 </script>
 
 {#if collapsible === "none"}
-	<div
+	<svelte:element
+		this={as}
 		class={cn(
 			"bg-sidebar text-sidebar-foreground flex h-full w-(--sidebar-width) flex-col",
 			className
@@ -60,7 +65,7 @@ function handleMouseLeave(event: MouseEvent) {
 		{...restProps}
 	>
 		{@render children?.()}
-	</div>
+	</svelte:element>
 {:else if sidebar.isMobile && mobileMode === "sheet"}
 	<Sheet.Root
 		bind:open={() => sidebar.openMobile, (v) => sidebar.setOpenMobile(v)}
@@ -88,7 +93,8 @@ function handleMouseLeave(event: MouseEvent) {
 		</Sheet.Content>
 	</Sheet.Root>
 {:else if position === "static"}
-	<div
+	<svelte:element
+		this={as}
 		bind:this={ref}
 		class={cn(
 			"text-sidebar-foreground group flex h-full min-h-0 w-full shrink-0 transition-[width] duration-200 ease-linear",
@@ -127,9 +133,10 @@ function handleMouseLeave(event: MouseEvent) {
 				{@render children?.()}
 			</div>
 		</div>
-	</div>
+	</svelte:element>
 {:else}
-	<div
+	<svelte:element
+		this={as}
 		bind:this={ref}
 		class={cn("text-sidebar-foreground group peer", desktopBreakpoint === "lg" ? "hidden lg:block" : "hidden md:block")}
 		data-state={sidebar.state}
@@ -177,5 +184,5 @@ function handleMouseLeave(event: MouseEvent) {
 				{@render children?.()}
 			</div>
 		</div>
-	</div>
+	</svelte:element>
 {/if}

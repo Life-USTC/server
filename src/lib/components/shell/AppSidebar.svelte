@@ -8,6 +8,7 @@ export let navGroups: ShellNavGroup[];
 </script>
 
 <Sidebar.Root
+  as="aside"
   collapsible="icon"
   desktopBreakpoint="lg"
   hoverPreview
@@ -21,7 +22,7 @@ export let navGroups: ShellNavGroup[];
       <Sidebar.MenuItem>
         <Sidebar.MenuButton class="font-semibold" tooltipContent="Life@USTC">
           {#snippet child({ props })}
-            <a {...props} href="/" aria-label="Life@USTC">
+            <a {...props} id="app-logo" href="/" aria-label="Life@USTC">
               <img
                 class="size-6 rounded-md"
                 src="/images/icon.png"
