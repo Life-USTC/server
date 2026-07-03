@@ -35,7 +35,7 @@ onMount(() => {
 
 <aside
   class={cn(
-    "w-full shrink-0 bg-base-100 lg:h-full lg:min-h-0",
+    "w-full shrink-0 bg-base-100 transition-[width] duration-200 ease-out motion-reduce:transition-none lg:flex lg:h-full lg:min-h-0 lg:flex-col",
     collapsed ? "lg:w-14" : "lg:w-56",
   )}
   data-collapsed={collapsed}
@@ -43,24 +43,8 @@ onMount(() => {
 >
   <nav
     aria-label={ariaLabel || label}
-    class={cn("h-full overflow-y-auto", collapsed ? "p-2 lg:overflow-hidden" : "p-3")}
+    class={cn("min-h-0 flex-1 overflow-y-auto", collapsed ? "p-2" : "p-3")}
   >
-    <div class={cn("mb-2 hidden lg:flex", collapsed ? "justify-center" : "justify-end")}>
-      <Button
-        size="icon-sm"
-        variant="ghost"
-        aria-expanded={!collapsed}
-        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        onclick={() => setCollapsed(!collapsed)}
-      >
-        {#if collapsed}
-          <PanelLeftOpenIcon data-icon="inline-start" />
-        {:else}
-          <PanelLeftCloseIcon data-icon="inline-start" />
-        {/if}
-      </Button>
-    </div>
     <ol class="grid gap-0.5">
       {#each items as item}
         {@const active = item.href === activeHref}
@@ -104,6 +88,23 @@ onMount(() => {
       {/each}
     </ol>
   </nav>
+
+  <div class={cn("hidden shrink-0 border-base-300 border-t p-2 lg:flex", collapsed ? "justify-center" : "justify-end")}>
+    <Button
+      size="icon-sm"
+      variant="ghost"
+      aria-expanded={!collapsed}
+      aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      onclick={() => setCollapsed(!collapsed)}
+    >
+      {#if collapsed}
+        <PanelLeftOpenIcon data-icon="inline-start" />
+      {:else}
+        <PanelLeftCloseIcon data-icon="inline-start" />
+      {/if}
+    </Button>
+  </div>
 </aside>
 
 <style>

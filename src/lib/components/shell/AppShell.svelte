@@ -295,7 +295,7 @@ afterNavigate(({ from, to }) => {
 
 <div
   class={cn(
-    "min-h-screen bg-base-200 text-base-content lg:grid lg:h-screen lg:min-h-0 lg:overflow-hidden",
+    "min-h-screen bg-base-200 text-base-content transition-[grid-template-columns] duration-200 ease-out motion-reduce:transition-none lg:grid lg:h-screen lg:min-h-0 lg:overflow-hidden",
     primarySidebarCollapsed
       ? "lg:grid-cols-[4rem_minmax(0,1fr)]"
       : "lg:grid-cols-[15rem_minmax(0,1fr)]",

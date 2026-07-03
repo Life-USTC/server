@@ -13,13 +13,16 @@ export let setCollapsed: (collapsed: boolean) => void;
 </script>
 
 <aside
-  class="hidden h-screen min-h-0 overflow-hidden border-base-300 border-r bg-base-100 lg:sticky lg:top-0 lg:flex lg:flex-col"
+  class={cn(
+    "hidden h-screen min-h-0 overflow-hidden border-base-300 border-r bg-base-100 transition-[width] duration-200 ease-out motion-reduce:transition-none lg:sticky lg:top-0 lg:flex lg:flex-col",
+    collapsed ? "lg:w-16" : "lg:w-60",
+  )}
   data-testid="app-sidebar"
 >
   <div
     class={cn(
       "flex h-12 shrink-0 items-center border-base-300 border-b",
-      collapsed ? "gap-1 px-1" : "gap-2 px-3",
+      collapsed ? "justify-center px-2" : "gap-2 px-3",
     )}
   >
     <a
@@ -39,21 +42,6 @@ export let setCollapsed: (collapsed: boolean) => void;
       />
       <span class={cn("truncate", collapsed && "lg:sr-only")}>Life@USTC</span>
     </a>
-    <Button
-      class="ml-auto"
-      size={collapsed ? "icon-xs" : "icon-sm"}
-      variant="ghost"
-      aria-expanded={!collapsed}
-      aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      onclick={() => setCollapsed(!collapsed)}
-    >
-      {#if collapsed}
-        <PanelLeftOpenIcon data-icon="inline-start" />
-      {:else}
-        <PanelLeftCloseIcon data-icon="inline-start" />
-      {/if}
-    </Button>
   </div>
 
   <nav
@@ -91,6 +79,23 @@ export let setCollapsed: (collapsed: boolean) => void;
       {/each}
     </div>
   </nav>
+
+  <div class={cn("flex shrink-0 border-base-300 border-t p-2", collapsed ? "justify-center" : "justify-end")}>
+    <Button
+      size="icon-sm"
+      variant="ghost"
+      aria-expanded={!collapsed}
+      aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      onclick={() => setCollapsed(!collapsed)}
+    >
+      {#if collapsed}
+        <PanelLeftOpenIcon data-icon="inline-start" />
+      {:else}
+        <PanelLeftCloseIcon data-icon="inline-start" />
+      {/if}
+    </Button>
+  </div>
 </aside>
 
 <style>
