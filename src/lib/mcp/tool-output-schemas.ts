@@ -29,7 +29,7 @@ const COMMON_OUTPUT_SHAPE = {
   success: z.boolean().optional(),
   found: z.boolean().optional(),
   error: z.unknown().optional(),
-  message: z.string().optional(),
+  message: z.string().nullable().optional(),
   hint: z.string().optional(),
   result: z.unknown().optional(),
 } satisfies OutputShape;

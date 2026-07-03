@@ -9,9 +9,8 @@ import type { RequestHandler } from "./$types";
 export const trailingSlash = "ignore";
 
 /**
- * Open an MCP Streamable HTTP transport session.
- * @response 200
- * @response 401:openApiErrorSchema
+ * Standalone GET streams are disabled for the stateless MCP transport.
+ * @response 405:openApiErrorSchema
  * @response 403:openApiErrorSchema
  */
 export const GET: RequestHandler = ({ request }) => mcpGetRoute(request);

@@ -221,9 +221,11 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
     expect(
       body.paths?.["/api/dashboard-links/visit"]?.post?.security,
     ).toBeUndefined();
-    expect(body.paths?.["/api/mcp"]?.get?.security).toEqual([
-      { mcpBearerAuth: [] },
-    ]);
+    const mcpGetOperation = body.paths?.["/api/mcp"]?.get as
+      | { responses?: Record<string, unknown>; security?: unknown[] }
+      | undefined;
+    expect(mcpGetOperation?.security).toBeUndefined();
+    expect(mcpGetOperation?.responses?.["405"]).toBeDefined();
     expect(body.paths?.["/api/readiness"]).toBeUndefined();
     expect(body.paths?.["/api/metrics"]).toBeUndefined();
     expect(body.paths?.["/api/health"]?.get?.security).toBeUndefined();

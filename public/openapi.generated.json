@@ -1169,20 +1169,12 @@
     "/api/mcp": {
       "get": {
         "operationId": "listMcp",
-        "summary": "Open an MCP Streamable HTTP transport session",
+        "summary": "Standalone GET streams are disabled for the stateless MCP transport",
         "tags": [
           "Api"
         ],
-        "security": [
-          {
-            "mcpBearerAuth": []
-          }
-        ],
         "responses": {
-          "200": {
-            "description": "Response 200"
-          },
-          "401": {
+          "403": {
             "description": "Error response",
             "content": {
               "application/json": {
@@ -1192,7 +1184,7 @@
               }
             }
           },
-          "403": {
+          "405": {
             "description": "Error response",
             "content": {
               "application/json": {

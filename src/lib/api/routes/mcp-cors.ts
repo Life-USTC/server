@@ -1,7 +1,7 @@
 import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
 
 const MCP_CORS_HEADERS = {
-  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+  "Access-Control-Allow-Methods": "POST, DELETE, OPTIONS",
   "Access-Control-Allow-Headers":
     "Authorization, Content-Type, MCP-Protocol-Version, MCP-Session-Id, Last-Event-ID",
   "Access-Control-Expose-Headers": "MCP-Session-Id, WWW-Authenticate",

@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BusStaticPayload } from "@/features/bus/lib/bus-types";
+import { getNextBusDepartures } from "@/features/bus/server/bus-query-service";
 import { getBusTimetableData } from "@/features/bus/server/bus-timetable-data";
 
 const db = vi.hoisted(() => {
@@ -118,6 +119,10 @@ vi.mock("@/lib/db/prisma", () => ({
   },
 }));
 
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
 describe("getBusTimetableData 班车时刻表数据", () => {
   it("使用请求历史版本的拓扑结构", async () => {
     const data = await getBusTimetableData({
@@ -137,5 +142,30 @@ describe("getBusTimetableData 班车时刻表数据", () => {
     expect(trip?.routeId).toBe(8);
     expect(trip?.stopTimes.map((stop) => stop.campusId)).toEqual([1, 2]);
     expect(trip?.arrivalTime).toBe("08:20");
+  });
+
+  it("get_next_buses 复用静态时刻表缓存", async () => {
+    await getBusTimetableData({
+      locale: "zh-cn",
+      now: "2026-02-01T00:00:00.000Z",
+      versionKey: "old-bus",
+    });
+    vi.clearAllMocks();
+
+    const data = await getNextBusDepartures({
+      locale: "zh-cn",
+      originCampusId: 1,
+      destinationCampusId: 2,
+      atTime: "2026-01-31T23:30:00.000Z",
+      dayType: "weekday",
+      versionKey: "old-bus",
+    });
+
+    expect(data?.departures[0]?.departureTime).toBe("08:00");
+    expect(db.busTripFindMany).not.toHaveBeenCalled();
+    expect(db.busScheduleVersionFindMany).not.toHaveBeenCalled();
+    expect(db.busScheduleVersionFindUnique).not.toHaveBeenCalled();
+    expect(db.busCampusFindMany).not.toHaveBeenCalled();
+    expect(db.busRouteFindMany).not.toHaveBeenCalled();
   });
 });

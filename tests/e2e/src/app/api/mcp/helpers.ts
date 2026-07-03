@@ -291,7 +291,14 @@ export function getTextContent(result: unknown) {
 }
 
 export function parseTextContent(result: unknown) {
-  return JSON.parse(getTextContent(result)) as Record<string, unknown>;
+  const text = getTextContent(result);
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch (cause) {
+    throw new Error(`MCP text content is not JSON: ${text.slice(0, 500)}`, {
+      cause,
+    });
+  }
 }
 
 export function expectMcpCorsHeaders(
@@ -306,7 +313,6 @@ export function expectMcpCorsHeaders(
     headers["access-control-expose-headers"]?.toLowerCase() ?? "";
 
   expect(headers["access-control-allow-origin"]).toBe(expectedOrigin);
-  expect(allowMethods).toContain("get");
   expect(allowMethods).toContain("post");
   expect(allowMethods).toContain("delete");
   expect(allowMethods).toContain("options");
