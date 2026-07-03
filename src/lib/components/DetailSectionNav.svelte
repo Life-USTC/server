@@ -71,7 +71,7 @@ onMount(() => {
                   {/snippet}
                 </Sidebar.MenuButton>
                 {#if item.meta !== undefined && item.meta !== ""}
-                  <Sidebar.MenuBadge class="bg-sidebar-accent text-sidebar-accent-foreground">
+                  <Sidebar.MenuBadge>
                     {item.meta}
                   </Sidebar.MenuBadge>
                 {/if}

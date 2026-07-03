@@ -63,7 +63,7 @@ test("/admin/oauth 管理员可创建并删除客户端", async ({ page }, testI
     await expect(createBtn).toBeVisible();
     await expect(createBtn).toBeEnabled();
     const createDialog = page
-      .locator('[role="dialog"], [data-slot="dialog-popup"]')
+      .locator('[role="dialog"], [data-slot="dialog-content"]')
       .last();
     await expect(async () => {
       await createBtn.click();
@@ -146,7 +146,7 @@ test("/admin/oauth 创建的客户端显示所有必需字段", async ({
     await expect(createBtn).toBeVisible();
     await expect(createBtn).toBeEnabled();
     const createDialog = page
-      .locator('[role="dialog"], [data-slot="dialog-popup"]')
+      .locator('[role="dialog"], [data-slot="dialog-content"]')
       .last();
     await expect(async () => {
       await createBtn.click();

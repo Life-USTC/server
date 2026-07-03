@@ -31,6 +31,6 @@ const sidebar = getSidebar();
 	}}
 	{...restProps}
 >
-	<PanelLeftIcon  />
+	<PanelLeftIcon />
 	<span class="sr-only">Toggle Sidebar</span>
 </Button>

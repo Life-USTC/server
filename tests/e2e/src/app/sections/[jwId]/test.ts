@@ -509,7 +509,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     }
 
     await calendarButton.click();
-    const calDialog = page.locator('[data-slot="dialog-popup"]').first();
+    const calDialog = page.locator('[data-slot="dialog-content"]').first();
     await expect(calDialog).toBeVisible();
 
     // iCalendar URL (ical.yml → section-calendar-dialog.display.fields)
@@ -616,7 +616,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       if ((await showCreate.count()) > 0) {
         await showCreate.click();
       }
-      const createDialog = page.locator('[data-slot="dialog-popup"]').first();
+      const createDialog = page.locator('[data-slot="dialog-content"]').first();
       await expect(createDialog).toBeVisible({ timeout: 5_000 });
 
       const title = `e2e-section-hw-${Date.now()}`;
@@ -647,7 +647,9 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       await expect(hwCard.getByText(title)).toBeVisible();
       await captureStepScreenshot(page, testInfo, "section/homework-created");
       await hwCard.click();
-      const homeworkPopout = page.locator('[data-slot="dialog-popup"]').first();
+      const homeworkPopout = page
+        .locator('[data-slot="dialog-content"]')
+        .first();
       await expect(homeworkPopout).toBeVisible();
 
       // Homework discussion is embedded in the detail dialog.
@@ -684,7 +686,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
         .first();
       await expect(deleteButton).toBeVisible();
       await deleteButton.click();
-      const deleteDialog = page.locator('[data-slot="dialog-popup"]').last();
+      const deleteDialog = page.locator('[data-slot="dialog-content"]').last();
       await expect(deleteDialog).toBeVisible();
       const deleteResponse = page.waitForResponse(
         (r) =>
@@ -741,7 +743,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       await expect(hwCard).toBeVisible();
       await hwCard.click();
 
-      const detailDialog = page.locator('[data-slot="dialog-popup"]').first();
+      const detailDialog = page.locator('[data-slot="dialog-content"]').first();
       await expect(detailDialog).toBeVisible();
       await detailDialog
         .getByRole("button", { name: /Edit details|编辑信息/i })
@@ -843,7 +845,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       );
 
       const homeworkDialog = page
-        .locator('[data-slot="dialog-popup"]')
+        .locator('[data-slot="dialog-content"]')
         .filter({ hasText: title })
         .first();
       await expect(homeworkDialog).toBeVisible();

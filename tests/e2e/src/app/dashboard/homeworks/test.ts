@@ -320,7 +320,7 @@ test.describe("仪表盘作业", () => {
       .getByRole("button", { name: new RegExp(DEV_SEED.homeworks.title) })
       .first()
       .click();
-    const popout = page.locator('[data-slot="dialog-popup"]').first();
+    const popout = page.locator('[data-slot="dialog-content"]').first();
     await expect(popout).toBeVisible();
     const sectionLink = popout
       .locator(
@@ -354,7 +354,7 @@ test.describe("仪表盘作业", () => {
       timeout: 10_000,
       intervals: [250, 500, 1_000],
     });
-    const createDialog = page.locator('[data-slot="dialog-popup"]').first();
+    const createDialog = page.locator('[data-slot="dialog-content"]').first();
     await expect(
       createDialog.getByRole("group", { name: /说明|Details/i }),
     ).toBeVisible();
@@ -398,7 +398,7 @@ test.describe("仪表盘作业", () => {
     });
 
     let homeworkId: string | undefined;
-    const createDialog = page.locator('[data-slot="dialog-popup"]').first();
+    const createDialog = page.locator('[data-slot="dialog-content"]').first();
     await titleInput.fill(title);
     await createDialog
       .getByRole("textbox", { name: /Details|说明/i })
@@ -427,7 +427,7 @@ test.describe("仪表盘作业", () => {
 
       await page.keyboard.press("Escape");
       await expect(
-        page.locator('[data-slot="dialog-popup"]').first(),
+        page.locator('[data-slot="dialog-content"]').first(),
       ).toHaveCount(0, { timeout: 5_000 });
 
       await expect(card.getByText(/Major assignment|大作业/i)).toBeVisible();
@@ -443,7 +443,7 @@ test.describe("仪表盘作业", () => {
       await expect(dueText).toContainText(/23:59|11:59 PM/);
 
       await card.getByRole("button", { name: new RegExp(title) }).click();
-      const detailDialog = page.locator('[data-slot="dialog-popup"]').first();
+      const detailDialog = page.locator('[data-slot="dialog-content"]').first();
       await expect(detailDialog).toBeVisible();
       await expect(detailDialog.getByText(description)).toBeVisible();
       await captureStepScreenshot(

@@ -8,7 +8,7 @@ export type Side = "top" | "right" | "bottom" | "left";
 	import SheetPortal from "./sheet-portal.svelte";
 	import SheetOverlay from "./sheet-overlay.svelte";
 	import { Button } from "$lib/components/ui/button/index.js";
-	import XIcon from '@lucide/svelte/icons/x';
+	import XIcon from "@lucide/svelte/icons/x";
 	import { cn, type WithoutChildrenOrChild } from "$lib/utils.js";
 	import type { ComponentProps } from "svelte";
 
@@ -45,7 +45,7 @@ export type Side = "top" | "right" | "bottom" | "left";
 			<SheetPrimitive.Close data-slot="sheet-close">
 				{#snippet child({ props })}
 					<Button variant="ghost" class="absolute top-3 right-3" size="icon-sm" {...props}>
-						<XIcon  />
+						<XIcon />
 						<span class="sr-only">Close</span>
 					</Button>
 				{/snippet}
