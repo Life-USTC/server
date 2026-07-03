@@ -141,7 +141,7 @@ $: pinnedSummaryItems = [
     description={teacherDescription}
   />
 
-  <div class="grid min-h-0 bg-base-100 lg:grid-cols-[13rem_minmax(0,1fr)]">
+  <div class="grid min-h-0 bg-base-100 lg:grid-cols-[14rem_minmax(0,1fr)]">
     <DetailSectionNav
       activeHref={activeNavItem?.href ?? teacherBaseHref}
       ariaLabel={formatMessage(copy.metadata.pages.teacherDetail, { name: displayName })}
@@ -149,7 +149,7 @@ $: pinnedSummaryItems = [
       label={copy.common.teachers}
     />
 
-    <div class="min-w-0 px-4 py-5 sm:px-5 lg:min-h-0 lg:overflow-y-auto lg:px-6" data-detail-scroll-container>
+    <div class="min-w-0 px-4 py-4 sm:px-5 lg:min-h-0 lg:overflow-y-auto lg:px-6" data-detail-scroll-container>
       {#if data.detailSection === "overview"}
       <section id="teacher-overview">
         <TeacherDetailBasicInfo

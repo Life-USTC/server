@@ -19,12 +19,7 @@ export let label = "";
   class="w-full shrink-0 border-base-300 border-b bg-base-100 lg:h-full lg:min-h-0 lg:border-r lg:border-b-0"
   data-testid="detail-section-nav"
 >
-  <nav aria-label={ariaLabel || label} class="h-full overflow-y-auto p-2">
-    {#if label}
-      <p class="px-2.5 pt-2 pb-1 font-medium text-[0.68rem] text-base-content/50 uppercase tracking-normal">
-        {label}
-      </p>
-    {/if}
+  <nav aria-label={ariaLabel || label} class="h-full overflow-y-auto p-3">
     <ol class="grid gap-0.5">
       {#each items as item}
         {@const active = item.href === activeHref}
@@ -39,7 +34,7 @@ export let label = "";
             href={item.href}
             aria-current={active ? "page" : undefined}
           >
-            <span class="flex min-w-0 items-center gap-2">
+            <span class="flex min-w-0 items-center gap-2.5">
               {#if item.icon}
                 <span class="detail-section-nav-icon" aria-hidden="true">
                   <svelte:component this={item.icon} />
@@ -67,6 +62,13 @@ export let label = "";
 </aside>
 
 <style>
+  .detail-section-nav-icon {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+  }
+
   .detail-section-nav-icon :global(svg) {
     width: 1rem;
     height: 1rem;

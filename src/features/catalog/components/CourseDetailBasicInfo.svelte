@@ -10,33 +10,33 @@ export let course: CourseDetailCourse;
 export let primaryName: (item: CatalogNamed | null | undefined) => string;
 </script>
 
-<dl class="divide-y divide-base-300 border-base-300 border-y text-sm">
-  <div class="grid gap-1 py-3 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-baseline">
+<dl class="grid border-base-300 border-y text-sm sm:grid-cols-2 xl:grid-cols-3">
+  <div class="border-base-300 border-b px-4 py-3 sm:min-h-20 sm:border-r">
     <dt class="text-base-content/60 text-xs">{copy.course.code}</dt>
-    <dd class="font-mono font-medium">{course.code}</dd>
+    <dd class="mt-1 font-mono font-medium">{course.code}</dd>
   </div>
   {#if course.educationLevel}
-    <div class="grid gap-1 py-3 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-baseline">
+    <div class="border-base-300 border-b px-4 py-3 sm:min-h-20 sm:border-r">
       <dt class="text-base-content/60 text-xs">{copy.course.level}</dt>
-      <dd class="font-medium">{primaryName(course.educationLevel)}</dd>
+      <dd class="mt-1 font-medium">{primaryName(course.educationLevel)}</dd>
     </div>
   {/if}
   {#if course.category}
-    <div class="grid gap-1 py-3 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-baseline">
+    <div class="border-base-300 border-b px-4 py-3 sm:min-h-20 sm:border-r">
       <dt class="text-base-content/60 text-xs">{copy.course.category}</dt>
-      <dd class="font-medium">{primaryName(course.category)}</dd>
+      <dd class="mt-1 font-medium">{primaryName(course.category)}</dd>
     </div>
   {/if}
   {#if course.classType}
-    <div class="grid gap-1 py-3 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-baseline">
+    <div class="border-base-300 border-b px-4 py-3 sm:min-h-20 sm:border-r">
       <dt class="text-base-content/60 text-xs">{copy.courseDetail.classType}</dt>
-      <dd class="font-medium">{primaryName(course.classType)}</dd>
+      <dd class="mt-1 font-medium">{primaryName(course.classType)}</dd>
     </div>
   {/if}
   {#if course.type}
-    <div class="grid gap-1 py-3 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-baseline">
+    <div class="border-base-300 border-b px-4 py-3 sm:min-h-20 sm:border-r">
       <dt class="text-base-content/60 text-xs">{copy.courseDetail.courseType}</dt>
-      <dd class="font-medium">{primaryName(course.type)}</dd>
+      <dd class="mt-1 font-medium">{primaryName(course.type)}</dd>
     </div>
   {/if}
 </dl>

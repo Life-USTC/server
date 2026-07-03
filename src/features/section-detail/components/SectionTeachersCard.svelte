@@ -14,15 +14,19 @@ export let teacherName: SectionTeacherName;
 export let teachers: SectionTeacherSummary[];
 </script>
 
-<div class="grid gap-2">
+<div class="border-base-300 border-y text-sm">
   {#each teachers as teacher}
-    <Button class="justify-start" href={`/teachers/${teacher.id}`} variant="outline">
+    <Button
+      class="h-auto min-h-11 w-full justify-start rounded-none border-base-300 border-b px-3 py-2 text-left last:border-b-0"
+      href={`/teachers/${teacher.id}`}
+      variant="ghost"
+    >
       {teacherName(teacher)}
       {#if teacher.department}
-        <Badge class="ml-auto" variant="ghost">{primaryName(teacher.department)}</Badge>
+        <Badge class="ml-auto shrink-0" variant="secondary">{primaryName(teacher.department)}</Badge>
       {/if}
     </Button>
   {:else}
-    <p class="text-base-content/60">{sectionCopy.noTeachersListed}</p>
+    <p class="px-3 py-4 text-base-content/60">{sectionCopy.noTeachersListed}</p>
   {/each}
 </div>
