@@ -1,3 +1,10 @@
+## [1.44.3](https://github.com/Life-USTC/server/compare/v1.44.2...v1.44.3) (2026-07-03)
+
+
+### Bug Fixes
+
+* keep mcp transport stateless ([d8eef92](https://github.com/Life-USTC/server/commit/d8eef9287c0ebb497c56967175592b717095b45a))
+
 ## [1.44.2](https://github.com/Life-USTC/server/compare/v1.44.1...v1.44.2) (2026-07-02)
 
 
