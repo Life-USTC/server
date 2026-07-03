@@ -14,10 +14,6 @@ let {
   ref = $bindable(null),
   open = $bindable(true),
   onOpenChange = () => {},
-  layout = "root",
-  persistCookie,
-  enableKeyboardShortcut,
-  mobileBreakpoint,
   class: className,
   style,
   children,
@@ -25,16 +21,7 @@ let {
 }: WithElementRef<HTMLAttributes<HTMLDivElement>> & {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  layout?: "root" | "contained";
-  persistCookie?: boolean;
-  enableKeyboardShortcut?: boolean;
-  mobileBreakpoint?: number;
 } = $props();
-
-let shouldPersistCookie = $derived(persistCookie ?? layout === "root");
-let shouldEnableKeyboardShortcut = $derived(
-  enableKeyboardShortcut ?? layout === "root",
-);
 
 const sidebar = setSidebar({
   open: () => open,
@@ -42,31 +29,21 @@ const sidebar = setSidebar({
     open = value;
     onOpenChange(value);
 
-    if (shouldPersistCookie) {
-      // This sets the cookie to keep the sidebar state.
-      // biome-ignore lint/suspicious/noDocumentCookie: Matches shadcn sidebar persistence.
-      document.cookie = `${SIDEBAR_COOKIE_NAME}=${open}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
-    }
+    // This sets the cookie to keep the sidebar state.
+    // biome-ignore lint/suspicious/noDocumentCookie: Matches shadcn sidebar persistence.
+    document.cookie = `${SIDEBAR_COOKIE_NAME}=${open}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
   },
-  mobileBreakpoint: () => mobileBreakpoint,
 });
-
-function handleShortcutKeydown(event: KeyboardEvent) {
-  if (shouldEnableKeyboardShortcut) {
-    sidebar.handleShortcutKeydown(event);
-  }
-}
 </script>
 
-<svelte:window onkeydown={handleShortcutKeydown} />
+<svelte:window onkeydown={sidebar.handleShortcutKeydown} />
 
 <Tooltip.Provider delayDuration={0}>
 	<div
 		data-slot="sidebar-wrapper"
 		style="--sidebar-width: {SIDEBAR_WIDTH}; --sidebar-width-icon: {SIDEBAR_WIDTH_ICON}; {style}"
 		class={cn(
-			"group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar w-full",
-			layout === "root" ? "flex min-h-svh" : "block min-h-0",
+			"group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full",
 			className
 		)}
 		bind:this={ref}

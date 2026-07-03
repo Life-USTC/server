@@ -29,10 +29,6 @@ import {
   type ThemeMode,
 } from "$lib/components/shell/layout-shell";
 import RouteLoadingBar from "$lib/components/shell/RouteLoadingBar.svelte";
-import {
-  loadPrimarySidebarCollapsed,
-  setPrimarySidebarCollapsed,
-} from "$lib/components/sidebar-collapse";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 import { setClientLocale } from "$lib/locale/client-locale";
 import type {
@@ -55,7 +51,6 @@ let mobileMenuOpen = false;
 let userMenuOpen = false;
 let localeMenuOpen = false;
 let themeMenuOpen = false;
-let primarySidebarCollapsed = false;
 let contentScrollContainer: HTMLDivElement | undefined;
 
 $: profileHref = resolveProfileHref(data.user);
@@ -198,10 +193,6 @@ function setThemeMode(nextThemeMode: ThemeMode) {
   themeMenuOpen = false;
 }
 
-function setPrimarySidebarOpen(open: boolean) {
-  primarySidebarCollapsed = setPrimarySidebarCollapsed(!open);
-}
-
 function setMobileMenuOpen(open: boolean) {
   mobileMenuOpen = open;
   if (open) {
@@ -262,9 +253,6 @@ async function setLocale(locale: "en-us" | "zh-cn") {
 
 onMount(() => {
   themeMode = loadStoredThemeMode(themeMode);
-  primarySidebarCollapsed = loadPrimarySidebarCollapsed(
-    primarySidebarCollapsed,
-  );
   applyShellTheme(themeMode);
 });
 
@@ -295,8 +283,6 @@ afterNavigate(({ from, to }) => {
 </style>
 
 <Sidebar.Provider
-  bind:open={() => !primarySidebarCollapsed, setPrimarySidebarOpen}
-  mobileBreakpoint={1024}
   style="--sidebar-width: 15rem; --sidebar-width-icon: 4rem;"
   class="min-h-screen bg-base-200 text-base-content lg:h-screen lg:min-h-0 lg:overflow-hidden"
 >

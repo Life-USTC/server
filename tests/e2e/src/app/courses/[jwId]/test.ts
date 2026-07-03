@@ -221,7 +221,7 @@ test.describe("/courses/[jwId] 课程详情", () => {
       link.href = href;
       link.dataset.e2eSameRouteLink = "true";
       link.textContent = "same-route target";
-      document.body.append(link);
+      document.querySelector("#main-content")?.prepend(link);
     }, COURSE_URL);
 
     await page.locator("[data-e2e-same-route-link]").click();

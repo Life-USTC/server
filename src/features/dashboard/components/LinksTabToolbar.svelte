@@ -39,7 +39,7 @@ export let setLinkView: (view: LinkView) => void;
   <label class="grid min-w-60 flex-1 max-w-xl">
     <Input
       aria-label={dashboardCopy.linkHub.searchPlaceholder}
-      bind:element={linkSearchInput}
+      bind:ref={linkSearchInput}
       placeholder={dashboardCopy.linkHub.searchPlaceholder}
       type="search"
       value={linkSearchQuery}

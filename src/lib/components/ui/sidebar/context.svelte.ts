@@ -18,27 +18,19 @@ export type SidebarStateProps = {
    * the sub-components and any `bind:` references.
    */
   setOpen: (open: boolean) => void;
-
-  /**
-   * The viewport width below which the sidebar is treated as mobile.
-   */
-  mobileBreakpoint?: Getter<number | undefined>;
 };
 
 class SidebarState {
   readonly props: SidebarStateProps;
   open = $derived.by(() => this.props.open());
   openMobile = $state(false);
-  previewOpen = $state(false);
   setOpen: SidebarStateProps["setOpen"];
   #isMobile: IsMobile;
-  state = $derived.by(() =>
-    this.open || this.previewOpen ? "expanded" : "collapsed",
-  );
+  state = $derived.by(() => (this.open ? "expanded" : "collapsed"));
 
   constructor(props: SidebarStateProps) {
     this.setOpen = props.setOpen;
-    this.#isMobile = new IsMobile(props.mobileBreakpoint?.());
+    this.#isMobile = new IsMobile();
     this.props = props;
   }
 
@@ -60,16 +52,12 @@ class SidebarState {
     this.openMobile = value;
   };
 
-  setPreviewOpen = (value: boolean) => {
-    this.previewOpen = !this.#isMobile.current && !this.open ? value : false;
-  };
-
   toggle = () => {
-    this.previewOpen = false;
     if (this.#isMobile.current) {
       this.openMobile = !this.openMobile;
       return;
     }
+
     this.setOpen(!this.open);
   };
 }

@@ -5,7 +5,7 @@ import {
   type ButtonSize,
   type ButtonVariant,
   buttonVariants,
-} from "../button/button-variants";
+} from "../button/index.js";
 
 let {
   ref = $bindable(null),

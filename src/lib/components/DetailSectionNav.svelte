@@ -1,10 +1,5 @@
 <script lang="ts">
 import type { Component } from "svelte";
-import { onMount } from "svelte";
-import {
-  loadSecondarySidebarCollapsed,
-  setSecondarySidebarCollapsed,
-} from "$lib/components/sidebar-collapse";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 
 type DetailSectionNavItem = {
@@ -18,31 +13,15 @@ export let ariaLabel: string;
 export let activeHref = "";
 export let items: DetailSectionNavItem[];
 export let label = "";
-
-let collapsed = false;
-
-function setOpen(open: boolean) {
-  collapsed = setSecondarySidebarCollapsed(!open);
-}
-
-onMount(() => {
-  collapsed = loadSecondarySidebarCollapsed(collapsed);
-});
 </script>
 
 <Sidebar.Provider
-  bind:open={() => !collapsed, setOpen}
-  layout="contained"
-  mobileBreakpoint={1024}
-  style="--sidebar-width: 14rem; --sidebar-width-icon: 3.5rem;"
-  class="h-full w-full lg:w-auto"
+  style="--sidebar-width: 14rem;"
+  class="h-full min-h-0 w-full lg:w-auto"
 >
   <Sidebar.Root
-    position="static"
-    collapsible="icon"
-    desktopBreakpoint="lg"
-    hoverPreview
-    class="border-sidebar-border bg-sidebar border-b lg:border-e lg:border-b-0"
+    collapsible="none"
+    class="w-full border-sidebar-border border-b bg-sidebar lg:w-(--sidebar-width) lg:border-e lg:border-b-0"
     data-testid="detail-section-nav"
   >
     <Sidebar.Content class="p-2 lg:p-3" aria-label={ariaLabel || label}>
@@ -55,7 +34,6 @@ onMount(() => {
                 <Sidebar.MenuButton
                   class="h-10 px-2.5"
                   isActive={active}
-                  tooltipContent={item.label}
                 >
                   {#snippet child({ props })}
                     <a
@@ -82,13 +60,5 @@ onMount(() => {
       </Sidebar.Group>
     </Sidebar.Content>
 
-    <Sidebar.Footer class="pointer-events-none hidden border-sidebar-border border-t lg:flex group-data-[collapsible=icon]:items-center">
-      <Sidebar.Trigger
-        class="pointer-events-auto self-end group-data-[collapsible=icon]:self-center"
-        aria-label="Toggle sidebar"
-        title="Toggle sidebar"
-      />
-    </Sidebar.Footer>
-    <Sidebar.Rail class="max-lg:hidden" />
   </Sidebar.Root>
 </Sidebar.Provider>

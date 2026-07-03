@@ -1,6 +1,5 @@
 <script lang="ts">
-import type { ButtonVariant } from "$lib/components/ui/button/button-variants";
-import { Button } from "$lib/components/ui/button/index.js";
+import { Button, type ButtonVariant } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import { cn } from "$lib/utils.js";
 

@@ -9,13 +9,9 @@ export let isActiveLink: (link: ShellLink) => boolean;
 export let navGroups: ShellNavGroup[];
 </script>
 
+<aside class="contents" aria-label={copy.shell.primaryNavigation}>
 <Sidebar.Root
-  as="aside"
   collapsible="icon"
-  desktopBreakpoint="lg"
-  hoverPreview
-  mobileMode="sheet"
-  position="static"
   class="border-sidebar-border bg-sidebar"
   data-testid="app-sidebar"
 >
@@ -94,5 +90,6 @@ export let navGroups: ShellNavGroup[];
       title="Toggle sidebar"
     />
   </Sidebar.Footer>
-  <Sidebar.Rail class="max-lg:hidden" />
+  <Sidebar.Rail />
 </Sidebar.Root>
+</aside>
