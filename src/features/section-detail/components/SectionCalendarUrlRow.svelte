@@ -2,6 +2,7 @@
 import CheckCircleIcon from "$lib/components/icons/check-circle.svelte";
 import LinkIcon from "$lib/components/icons/link-2.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
+import { Input } from "$lib/components/ui/input/index.js";
 
 export let buttonLabel: string;
 export let copied: boolean;
@@ -21,9 +22,9 @@ export let value: string;
   </label>
   <span class="hidden sm:block"></span>
   <div class="min-w-0">
-    <input
+    <Input
       {id}
-      class="h-9 min-w-0 w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-md border border-base-300 bg-base-100 px-3 py-2 text-sm shadow-sm disabled:text-base-content/60"
+      class="font-mono truncate"
       disabled={!value}
       readonly
       title={value || missingLabel}
@@ -38,10 +39,10 @@ export let value: string;
     onclick={onCopy}
   >
     {#if copied}
-      <CheckCircleIcon />
+      <CheckCircleIcon data-icon="inline-start" />
       {copiedLabel}
     {:else}
-      <LinkIcon />
+      <LinkIcon data-icon="inline-start" />
       {buttonLabel}
     {/if}
   </Button>

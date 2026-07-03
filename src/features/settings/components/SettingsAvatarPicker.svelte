@@ -18,7 +18,7 @@ export let user: SettingsUser;
   {/if}
   <legend class="font-medium text-sm">{copy.profile.profilePicture}</legend>
   <div class="flex items-center gap-4">
-    <Avatar.Root class="h-20 w-20">
+    <Avatar.Root class="size-20">
       <Avatar.Image
         alt={copy.profile.profilePicture}
         data-testid="current-avatar"
@@ -37,8 +37,9 @@ export let user: SettingsUser;
             value={avatar}
             disabled={!isMounted}
           >
-            <Avatar.Root class="h-12 w-12 border-0">
+            <Avatar.Root class="size-12 border-0">
               <Avatar.Image alt={copy.accessibility.avatarOption} src={avatar} />
+              <Avatar.Fallback>{index + 1}</Avatar.Fallback>
             </Avatar.Root>
           </Radio.Item>
         {/each}

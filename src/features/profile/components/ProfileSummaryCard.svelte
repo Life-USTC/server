@@ -18,12 +18,11 @@ export let user: ProfileSummaryUser;
 <Card.Root class="border-base-300 bg-base-100">
   <Card.Content class="grid gap-5 pt-5">
     <div class="flex items-start gap-4">
-      <Avatar.Root class="h-20 w-20 shrink-0">
+      <Avatar.Root class="size-20 shrink-0">
         {#if user.image}
           <Avatar.Image alt={displayName} src={user.image} />
-        {:else}
-          <Avatar.Fallback class="text-3xl">{initials}</Avatar.Fallback>
         {/if}
+        <Avatar.Fallback class="text-3xl">{initials}</Avatar.Fallback>
       </Avatar.Root>
       <div class="min-w-0">
         <h1 class="truncate font-semibold text-2xl">{displayName}</h1>

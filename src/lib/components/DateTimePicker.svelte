@@ -100,7 +100,7 @@ $: {
           type="button"
           variant="ghost"
         >
-          <CalendarIcon class="size-4" />
+          <CalendarIcon />
         </Button>
       {/snippet}
     </Popover.Trigger>

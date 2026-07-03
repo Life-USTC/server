@@ -9,6 +9,7 @@ import * as Avatar from "$lib/components/ui/avatar/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import * as Radio from "$lib/components/ui/radio-group/index.js";
 import type {
@@ -31,6 +32,10 @@ export let profileCopy: WelcomeProfileCopy;
 export let selectedImage: string | undefined;
 export let user: WelcomeProfileUser;
 export let welcomeCopy: WelcomeCopy;
+
+$: avatarFallback = (user.name ?? user.username ?? "U")
+  .slice(0, 1)
+  .toUpperCase();
 </script>
 
 <form method="POST" action="?/complete" use:enhance={completeProfileAction}>
@@ -59,8 +64,9 @@ export let welcomeCopy: WelcomeCopy;
         {/if}
         <legend class="font-medium text-sm">{profileCopy.profilePicture}</legend>
         <div class="flex items-center gap-4">
-          <Avatar.Root class="h-20 w-20">
+          <Avatar.Root class="size-20">
             <Avatar.Image alt={profileCopy.profilePicture} src={previewImage} />
+            <Avatar.Fallback>{avatarFallback}</Avatar.Fallback>
           </Avatar.Root>
           {#if avatarOptions.length > 0}
             <div class="grid grid-cols-4 gap-2">
@@ -70,8 +76,9 @@ export let welcomeCopy: WelcomeCopy;
                   value={avatar}
                   aria-label={`${copy.accessibility.avatarOption} ${index + 1}`}
                 >
-                  <Avatar.Root class="h-12 w-12 border-0">
+                  <Avatar.Root class="size-12 border-0">
                     <Avatar.Image alt={copy.accessibility.avatarOption} src={avatar} />
+                    <Avatar.Fallback>{index + 1}</Avatar.Fallback>
                   </Avatar.Root>
                 </Radio.Item>
               {/each}
@@ -84,16 +91,18 @@ export let welcomeCopy: WelcomeCopy;
         </div>
       </Radio.Root>
 
-      <label class="grid gap-2">
-        <span class="font-medium text-sm">{profileCopy.name} <span class="text-error">*</span></span>
-        <Input id="name" name="name" value={user.name ?? ""} placeholder={profileCopy.namePlaceholder} required autocomplete="name" />
-      </label>
+      <Field.Group class="gap-4">
+        <Field.Field>
+          <Field.Label for="name">{profileCopy.name} <span class="text-error">*</span></Field.Label>
+          <Input id="name" name="name" value={user.name ?? ""} placeholder={profileCopy.namePlaceholder} required autocomplete="name" />
+        </Field.Field>
 
-      <label class="grid gap-2">
-        <span class="font-medium text-sm">{profileCopy.username} <span class="text-error">*</span></span>
-        <Input id="username" name="username" value={user.username ?? ""} placeholder={profileCopy.usernamePlaceholder} pattern={PROFILE_USERNAME_PATTERN} maxlength={PROFILE_USERNAME_MAX_LENGTH} required autocomplete="username" title={profileCopy.usernameValidation} />
-        <span class="text-base-content/60 text-xs">{profileCopy.usernameValidation}</span>
-      </label>
+        <Field.Field>
+          <Field.Label for="username">{profileCopy.username} <span class="text-error">*</span></Field.Label>
+          <Input id="username" name="username" value={user.username ?? ""} placeholder={profileCopy.usernamePlaceholder} pattern={PROFILE_USERNAME_PATTERN} maxlength={PROFILE_USERNAME_MAX_LENGTH} required autocomplete="username" title={profileCopy.usernameValidation} />
+          <Field.Description>{profileCopy.usernameValidation}</Field.Description>
+        </Field.Field>
+      </Field.Group>
 
       <Button class="w-full" type="submit" disabled={isCompletingProfile}>
         {isCompletingProfile ? profileCopy.saving : welcomeCopy.continue}

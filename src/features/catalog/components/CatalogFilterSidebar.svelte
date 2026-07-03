@@ -25,8 +25,7 @@ onMount(() => {
 </script>
 
 <Sidebar.Provider
-  open={!collapsed}
-  onOpenChange={setOpen}
+  bind:open={() => !collapsed, setOpen}
   layout="contained"
   mobileBreakpoint={1024}
   style="--sidebar-width: 17rem; --sidebar-width-icon: 3.5rem;"

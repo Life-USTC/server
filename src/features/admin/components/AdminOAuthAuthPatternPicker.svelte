@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as RadioGroup from "$lib/components/ui/radio-group/index.js";
+import { cn } from "$lib/utils.js";
 import type { AuthPatternOption } from "./admin-oauth-create-types";
 
 export let authPatterns: AuthPatternOption[];
@@ -17,7 +18,12 @@ export let selectedAuthMethod: string;
   <RadioGroup.Root bind:value={selectedAuthMethod} class="grid gap-3 xl:grid-cols-3">
     {#each authPatterns as option}
       <RadioGroup.Item
-        class={`p-4 text-left ${selectedAuthMethod === option.value ? "border-primary bg-primary/5 ring-primary/25" : "bg-base-100 hover:bg-base-200/70"}`}
+        class={cn(
+          "p-4 text-left",
+          selectedAuthMethod === option.value
+            ? "border-primary bg-primary/5 ring-primary/25"
+            : "bg-base-100 hover:bg-base-200/70",
+        )}
         value={option.value}
       >
         <div class="flex flex-wrap items-center gap-2">

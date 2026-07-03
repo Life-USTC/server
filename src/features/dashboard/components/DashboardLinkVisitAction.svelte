@@ -13,7 +13,7 @@ $: buttonClass =
 $: contentClass =
   variant === "row"
     ? "min-w-0 sm:grid sm:grid-cols-[minmax(10rem,16rem)_1fr] sm:items-center sm:gap-4"
-    : "min-w-0 space-y-1";
+    : "flex min-w-0 flex-col gap-1";
 $: titleClass =
   variant === "row"
     ? "line-clamp-1 font-semibold"
