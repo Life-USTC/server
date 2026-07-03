@@ -44,6 +44,22 @@ test.describe("/api/mcp - 传输与授权", () => {
     await expect(response.json()).resolves.toEqual({ error: "invalid_token" });
   });
 
+  test("/api/mcp stateless transport does not hold a GET SSE stream", async ({
+    request,
+  }) => {
+    const response = await request.get("/api/mcp", {
+      headers: {
+        Accept: "text/event-stream",
+      },
+    });
+
+    expect(response.status()).toBe(405);
+    expect(response.headers().allow).toBe("POST, DELETE, OPTIONS");
+    await expect(response.json()).resolves.toEqual({
+      error: "method_not_allowed",
+    });
+  });
+
   test("/api/mcp 支持受信任浏览器来源的预检和 transport CORS headers", async ({
     page,
     request,

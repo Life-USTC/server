@@ -27,7 +27,11 @@ const west: BusCampusSummary = {
   longitude: 0,
 };
 
-function createTrip(id: number, departureTime: string): BusTripSummary {
+function createTrip(
+  id: number,
+  departureTime: string,
+  dayType: BusTripSummary["dayType"] = "weekday",
+): BusTripSummary {
   const departureMinutes = parseBusTimeMinutes(departureTime);
   const arrivalMinutes =
     departureMinutes == null ? null : departureMinutes + 20;
@@ -41,7 +45,7 @@ function createTrip(id: number, departureTime: string): BusTripSummary {
   return {
     id,
     routeId: 8,
-    dayType: "weekday",
+    dayType,
     position: id,
     stopTimes: [
       {
@@ -127,5 +131,19 @@ describe("班车服务", () => {
     expect(result.departures[0]?.departureTime).toBe("10:00");
     expect(result.departures[0]?.status).toBe("upcoming");
     expect(result.departures[0]?.minutesUntilDeparture).toBe(30);
+  });
+
+  it("当天没有剩余班次时返回下一天可用班次", () => {
+    const result = buildNextBusDeparturesFromData(createNextDepartureData(), {
+      originCampusId: east.id,
+      destinationCampusId: west.id,
+      atTime: "2026-04-22T03:30:00.000Z",
+      dayType: "weekday",
+    });
+
+    expect(result.departures).toHaveLength(0);
+    expect(result.nextAvailableDeparture?.departureTime).toBe("08:00");
+    expect(result.nextAvailableDeparture?.routeId).toBe(8);
+    expect(result.message).toContain("08:00");
   });
 });

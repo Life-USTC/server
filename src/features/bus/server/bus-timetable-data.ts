@@ -18,6 +18,14 @@ import {
   summarizeBusVersions,
 } from "./bus-version";
 
+type StaticBusTimetableData = Omit<BusTimetableData, "preferences">;
+
+const STATIC_BUS_TIMETABLE_CACHE_TTL_MS = 60_000;
+const staticBusTimetableCache = new Map<
+  string,
+  { data: StaticBusTimetableData | null; expiresAt: number }
+>();
+
 function busVersionNotice(version: {
   sourceMessage?: string | null;
   sourceUrl?: string | null;
@@ -30,28 +38,58 @@ function busVersionNotice(version: {
     : null;
 }
 
-export async function getBusTimetableData(
+function getStaticBusTimetableCacheKey(input: {
+  dateKey: string;
+  locale: string;
+  versionKey?: string | null;
+}) {
+  return [input.locale, input.dateKey, input.versionKey ?? "auto"].join(":");
+}
+
+export async function getStaticBusTimetableData(
   input: BusTimetableInput,
-): Promise<BusTimetableData | null> {
+): Promise<StaticBusTimetableData | null> {
   const locale = input.locale ?? "zh-cn";
   const now = input.now ? shanghaiDayjs(input.now) : shanghaiDayjs();
   const dateKey = now.format("YYYY-MM-DD");
+  const cacheKey = getStaticBusTimetableCacheKey({
+    dateKey,
+    locale,
+    versionKey: input.versionKey,
+  });
+  const cached = staticBusTimetableCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.data
+      ? { ...cached.data, fetchedAt: now.toISOString() }
+      : null;
+  }
 
   const versionRecords = await listEnabledBusVersionRecords();
   const version = input.versionKey
     ? await findEffectiveBusVersion(dateKey, input.versionKey)
     : findEffectiveBusVersionFromRecords(versionRecords, dateKey);
-  if (!version) return null;
+  if (!version) {
+    staticBusTimetableCache.set(cacheKey, {
+      data: null,
+      expiresAt: Date.now() + STATIC_BUS_TIMETABLE_CACHE_TTL_MS,
+    });
+    return null;
+  }
 
-  const [topology, preference, tripRows] = await Promise.all([
+  const [topology, tripRows] = await Promise.all([
     getBusVersionTopology(locale, version.id),
-    getBusPreference(input.userId ?? null),
     prisma.busTrip.findMany({
       where: { versionId: version.id },
       orderBy: [{ dayType: "asc" }, { routeId: "asc" }, { position: "asc" }],
     }),
   ]);
-  if (!topology) return null;
+  if (!topology) {
+    staticBusTimetableCache.set(cacheKey, {
+      data: null,
+      expiresAt: Date.now() + STATIC_BUS_TIMETABLE_CACHE_TTL_MS,
+    });
+    return null;
+  }
 
   const versionRouteIds = new Set(tripRows.map((trip) => trip.routeId));
   const routes = topology.routes
@@ -68,7 +106,7 @@ export async function getBusTimetableData(
     })
     .filter((trip): trip is BusTripSummary => trip != null);
 
-  return {
+  const data = {
     locale,
     fetchedAt: now.toISOString(),
     version: {
@@ -84,9 +122,25 @@ export async function getBusTimetableData(
     routes,
     trips,
     availableVersions: summarizeBusVersions(versionRecords),
-    preferences: preference,
     notice: busVersionNotice(version),
   };
+  staticBusTimetableCache.set(cacheKey, {
+    data,
+    expiresAt: Date.now() + STATIC_BUS_TIMETABLE_CACHE_TTL_MS,
+  });
+  return data;
+}
+
+export async function getBusTimetableData(
+  input: BusTimetableInput,
+): Promise<BusTimetableData | null> {
+  const [data, preference] = await Promise.all([
+    getStaticBusTimetableData(input),
+    getBusPreference(input.userId ?? null),
+  ]);
+  if (!data) return null;
+
+  return { ...data, preferences: preference };
 }
 
 export async function getBusDashboardSnapshot(

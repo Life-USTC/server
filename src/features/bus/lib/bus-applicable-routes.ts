@@ -12,6 +12,7 @@ import type {
   BusRouteStopSummary,
   BusRouteSummary,
   BusTimetableData,
+  BusTripSummary,
 } from "./bus-types";
 
 export type { BusApplicableTrip } from "./bus-applicable-trip";
@@ -23,6 +24,23 @@ export type BusApplicableRoute = {
   visibleTrips: BusApplicableTrip[];
   upcomingTrips: BusApplicableTrip[];
 };
+
+function indexTripsByRoute(
+  trips: BusTripSummary[],
+  dayType: "weekday" | "weekend",
+) {
+  const tripsByRoute = new Map<number, BusTripSummary[]>();
+  for (const trip of trips) {
+    if (trip.dayType !== dayType) continue;
+    const routeTrips = tripsByRoute.get(trip.routeId);
+    if (routeTrips) {
+      routeTrips.push(trip);
+    } else {
+      tripsByRoute.set(trip.routeId, [trip]);
+    }
+  }
+  return tripsByRoute;
+}
 
 export function buildApplicableBusRoutes(input: {
   data: BusTimetableData;
@@ -41,6 +59,7 @@ export function buildApplicableBusRoutes(input: {
     now,
   } = input;
   const nowMinutes = getShanghaiMinutesSinceMidnight(now);
+  const tripsByRoute = indexTripsByRoute(data.trips, dayType);
 
   return sortApplicableRoutes(
     data.routes.flatMap<BusApplicableRoute>((route) => {
@@ -53,21 +72,17 @@ export function buildApplicableBusRoutes(input: {
       const { endIndex, endStop, startIndex, startStop } = stopSelection;
 
       const allTrips = sortApplicableTrips(
-        data.trips
-          .filter(
-            (trip) => trip.routeId === route.id && trip.dayType === dayType,
-          )
-          .map<BusApplicableTrip>((trip) => {
-            return buildApplicableBusTrip({
-              endIndex,
-              endStop,
-              nowMinutes,
-              route,
-              startIndex,
-              startStop,
-              trip,
-            });
-          }),
+        (tripsByRoute.get(route.id) ?? []).map<BusApplicableTrip>((trip) => {
+          return buildApplicableBusTrip({
+            endIndex,
+            endStop,
+            nowMinutes,
+            route,
+            startIndex,
+            startStop,
+            trip,
+          });
+        }),
       );
 
       const upcomingTrips = allTrips.filter(

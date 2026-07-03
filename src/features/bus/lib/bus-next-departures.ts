@@ -55,10 +55,11 @@ export function buildNextBusDeparturesFromData(
     applicableRoutes.length > 0
   ) {
     nextAvailableDeparture = findNextAvailableBusDeparture({
-      buildSnapshot: buildNextBusDeparturesFromData,
       data,
+      destinationCampus,
       destinationCampusId: input.destinationCampusId,
       now,
+      originCampus,
       originCampusId: input.originCampusId,
     });
   }
