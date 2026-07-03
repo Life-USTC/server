@@ -20,7 +20,7 @@ export let navGroups: ShellNavGroup[];
       <Sidebar.MenuItem>
         <Sidebar.MenuButton class="font-semibold" tooltipContent="Life@USTC">
           {#snippet child({ props })}
-            <a {...props} id="app-logo" href="/" aria-label="Life@USTC">
+            <a {...props} id="app-logo" data-active={undefined} href="/" aria-label="Life@USTC">
               <img
                 class="size-6 rounded-md"
                 src="/images/icon.png"
@@ -62,6 +62,7 @@ export let navGroups: ShellNavGroup[];
                       {#snippet child({ props })}
                         <a
                           {...props}
+                          data-active={active ? "true" : undefined}
                           href={link.href}
                           aria-label={link.ariaLabel}
                           aria-current={active ? "page" : undefined}
@@ -83,13 +84,6 @@ export let navGroups: ShellNavGroup[];
     {/each}
   </Sidebar.Content>
 
-  <Sidebar.Footer class="pointer-events-none border-sidebar-border border-t group-data-[collapsible=icon]:items-center">
-    <Sidebar.Trigger
-      class="pointer-events-auto self-end group-data-[collapsible=icon]:self-center"
-      aria-label="Toggle sidebar"
-      title="Toggle sidebar"
-    />
-  </Sidebar.Footer>
   <Sidebar.Rail />
 </Sidebar.Root>
 </aside>

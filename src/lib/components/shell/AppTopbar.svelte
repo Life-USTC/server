@@ -5,6 +5,7 @@ import MoonIcon from "@lucide/svelte/icons/moon";
 import SunIcon from "@lucide/svelte/icons/sun";
 import type { ThemeMode } from "$lib/components/shell/layout-shell";
 import * as Menu from "$lib/components/ui/menu/index.js";
+import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 import type {
   LayoutCopy,
   LayoutUserSummary,
@@ -44,6 +45,7 @@ export let userMenuOpen: boolean;
       {navGroups}
       {setMobileMenuOpen}
     />
+    <Sidebar.Trigger class="hidden lg:inline-flex" />
 
     <a
       class="inline-flex min-w-0 items-center gap-2 rounded-md font-semibold leading-none transition-opacity hover:opacity-75 lg:hidden"

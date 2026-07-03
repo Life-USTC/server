@@ -1,10 +1,9 @@
-import Root from "./button.svelte";
-import {
+import Root, {
   type ButtonProps,
   type ButtonSize,
   type ButtonVariant,
   buttonVariants,
-} from "./button-variants.js";
+} from "./button.svelte";
 
 export {
   type ButtonProps as Props,
