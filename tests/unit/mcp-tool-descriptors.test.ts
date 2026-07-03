@@ -268,6 +268,17 @@ describe("MCP tool descriptors", () => {
       ],
       found: true,
     };
+    const busPayload = {
+      atTime: "2026-07-02T08:00:00.000Z",
+      dayType: "weekday",
+      departures: [],
+      destinationCampus: null,
+      hasData: true,
+      message: null,
+      nextAvailableDeparture: null,
+      originCampus: null,
+      totalRoutes: 1,
+    };
     installMcpToolDescriptorDefaults(mcpServer);
     mcpServer.registerTool(
       "return_todos_default",
@@ -294,6 +305,14 @@ describe("MCP tool descriptors", () => {
       },
       async () => jsonToolResult(examPayload, { mode: "default" }),
     );
+    mcpServer.registerTool(
+      "return_next_buses_default",
+      {
+        description: "Return default next-bus payload with a nullable message.",
+        outputSchema: getMcpToolOutputSchema("get_next_buses"),
+      },
+      async () => jsonToolResult(busPayload, { mode: "default" }),
+    );
     const client = new Client({
       name: "unit-test-client",
       version: "1.0.0",
@@ -313,6 +332,10 @@ describe("MCP tool descriptors", () => {
       });
       const examResult = await client.callTool({
         name: "return_exams_default",
+        arguments: {},
+      });
+      const busResult = await client.callTool({
+        name: "return_next_buses_default",
         arguments: {},
       });
 
@@ -335,6 +358,10 @@ describe("MCP tool descriptors", () => {
             startTime: 900,
           }),
         ],
+      });
+      expect(busResult.structuredContent).toMatchObject({
+        message: null,
+        totalRoutes: 1,
       });
     } finally {
       await client.close();
