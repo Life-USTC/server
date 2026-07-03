@@ -15,7 +15,7 @@ export let sectionTeachersLabel: SectionTeachersLabel;
 </script>
 
 {#if section.sameSemesterOtherTeachers.length > 0 || section.sameTeacherOtherSemesters.length > 0}
-  <Accordion.Item class="rounded-none border-x-0 border-t-0 bg-transparent px-0 py-3" title={sectionCopy.otherSections}>
+  <Accordion.Item class="rounded-none border-0 bg-transparent px-0 py-2" title={sectionCopy.otherSections}>
     <div class="grid gap-4">
       {#if section.sameSemesterOtherTeachers.length > 0}
         <div class="grid gap-2">

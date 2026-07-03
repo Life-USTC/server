@@ -31,7 +31,7 @@ let {
 
 <div
   class={cn(
-    "border-base-300 border-b bg-base-100 px-4 py-3 sm:px-5 lg:px-6",
+    "bg-base-100 px-4 py-3 sm:px-5 lg:px-6",
     className,
   )}
   data-testid="detail-pinned-summary"

@@ -14,10 +14,10 @@ export let teacherName: SectionTeacherName;
 export let teachers: SectionTeacherSummary[];
 </script>
 
-<div class="border-base-300 border-y text-sm">
+<div class="grid gap-1 text-sm">
   {#each teachers as teacher}
     <Button
-      class="h-auto min-h-11 w-full justify-start rounded-none border-base-300 border-b px-3 py-2 text-left last:border-b-0"
+      class="h-auto min-h-11 w-full justify-start px-3 py-2 text-left"
       href={`/teachers/${teacher.id}`}
       variant="ghost"
     >
