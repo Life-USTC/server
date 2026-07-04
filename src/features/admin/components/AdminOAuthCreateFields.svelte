@@ -1,4 +1,5 @@
 <script lang="ts">
+import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import { Textarea } from "$lib/components/ui/textarea/index.js";
 
@@ -8,30 +9,34 @@ export let redirectCountLabel: (count: number) => string;
 export let redirectDraft: string;
 </script>
 
-<div class="grid content-start gap-4">
-  <label class="grid gap-2">
-    <span class="font-medium text-sm">{copy.clientName}</span>
+<Field.Group class="content-start gap-4">
+  <Field.Field>
+    <Field.Label for="admin-oauth-client-name">{copy.clientName}</Field.Label>
     <Input
+      id="admin-oauth-client-name"
       name="name"
       autocomplete="off"
       placeholder={copy.clientNamePlaceholder}
       required
     />
-  </label>
-  <label class="grid gap-2">
-    <span class="flex flex-wrap items-center justify-between gap-2">
-      <span class="font-medium text-sm">{copy.redirectUris}</span>
-      <span class="text-base-content/60 text-xs" aria-live="polite">
+  </Field.Field>
+  <Field.Field>
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <Field.Label for="admin-oauth-redirect-uris">
+        {copy.redirectUris}
+      </Field.Label>
+      <Field.Description aria-live="polite">
         {redirectCountLabel(parsedRedirectUris.length)}
-      </span>
-    </span>
+      </Field.Description>
+    </div>
     <Textarea
+      id="admin-oauth-redirect-uris"
       bind:value={redirectDraft}
-      class="min-h-32 font-mono text-sm"
+      class="min-h-32 font-mono"
       name="redirectUris"
       placeholder={copy.redirectUrisPlaceholder}
       required
     />
-    <span class="text-base-content/60 text-xs">{copy.redirectUrisHint}</span>
-  </label>
-</div>
+    <Field.Description>{copy.redirectUrisHint}</Field.Description>
+  </Field.Field>
+</Field.Group>

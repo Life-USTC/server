@@ -10,13 +10,13 @@ export let oauthCopy: (key: string) => string;
 export let selectedAuthMethod: string;
 </script>
 
-<section class="grid gap-3">
-  <div>
-    <h3 class="font-semibold text-sm">{copy.createFlowTitle}</h3>
-    <p class="mt-1 text-base-content/60 text-sm">{copy.createFlowIntro}</p>
-  </div>
+<Field.Set>
+  <Field.Legend id="admin-oauth-auth-pattern-label">
+    {copy.createFlowTitle}
+  </Field.Legend>
+  <Field.Description>{copy.createFlowIntro}</Field.Description>
   <RadioGroup.Root
-    aria-label={copy.createFlowTitle}
+    aria-labelledby="admin-oauth-auth-pattern-label"
     bind:value={selectedAuthMethod}
     class="grid gap-3 xl:grid-cols-3"
   >
@@ -39,4 +39,4 @@ export let selectedAuthMethod: string;
     {/each}
   </RadioGroup.Root>
   <input type="hidden" name="tokenEndpointAuthMethod" value={selectedAuthMethod} />
-</section>
+</Field.Set>

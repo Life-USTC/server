@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
 import type {
   AuthPatternOption,
   ScopeOption,
@@ -15,39 +16,46 @@ export let selectedScopes: string[];
 export let toggleScope: (scope: string, checked: boolean) => void;
 </script>
 
-<fieldset class="rounded-md border border-base-300 bg-base-200/40 p-4">
+<Field.Set>
   <div class="flex flex-wrap items-center justify-between gap-2">
-    <legend class="font-medium text-sm">{copy.permissionsTitle}</legend>
-    <span class="text-base-content/60 text-xs" aria-live="polite">
+    <Field.Legend variant="label" class="mb-0">
+      {copy.permissionsTitle}
+    </Field.Legend>
+    <Field.Description aria-live="polite">
       {scopeCountLabel(selectedScopes.length)}
-    </span>
+    </Field.Description>
   </div>
-  <p class="mt-1 text-base-content/60 text-xs">{copy.permissionsHint}</p>
-  <div class="mt-3 grid gap-3">
+  <Field.Description>{copy.permissionsHint}</Field.Description>
+  <Field.Group class="gap-3">
     {#each scopeOptions as scope}
-      <label
-        class={`flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors ${selectedScopes.includes(scope.value) ? "border-primary bg-primary/5" : "border-base-300 bg-base-100 hover:bg-base-200/70"}`}
-      >
-        <Checkbox
-          checked={selectedScopes.includes(scope.value)}
-          onCheckedChange={(checked) => toggleScope(scope.value, checked)}
-        />
-        <span class="min-w-0">
-          <span class="block font-mono font-medium text-sm">{scopeLabel(scope.value)}</span>
-          <span class="mt-1 block text-base-content/60 text-xs leading-5">
+      {@const scopeId = `admin-oauth-scope-${scope.value.replace(/:/g, "-")}`}
+      <Field.Label for={scopeId} class="cursor-pointer">
+        <Field.Field orientation="horizontal">
+          <Checkbox
+            id={scopeId}
+            checked={selectedScopes.includes(scope.value)}
+            onCheckedChange={(checked) => toggleScope(scope.value, checked)}
+          />
+          <Field.Content>
+            <Field.Title class="font-mono">
+              {scopeLabel(scope.value)}
+            </Field.Title>
+            <Field.Description>
             {oauthCopy(scope.descriptionKey)}
-          </span>
-        </span>
-      </label>
+            </Field.Description>
+          </Field.Content>
+        </Field.Field>
+      </Field.Label>
     {/each}
-  </div>
+  </Field.Group>
   {#each selectedScopes as scope}
     <input type="hidden" name="scopes" value={scope} />
   {/each}
-  <div class="mt-4 rounded-md border border-base-300 border-dashed bg-base-100 p-3">
-    <p class="font-medium text-sm">{oauthCopy(selectedAuthPattern.titleKey)}</p>
-    <p class="mt-1 text-base-content/60 text-xs leading-5">
+  <Field.Separator />
+  <Field.Field>
+    <Field.Title>{oauthCopy(selectedAuthPattern.titleKey)}</Field.Title>
+    <Field.Description>
       {oauthCopy(selectedAuthPattern.hintKey)}
-    </p>
-  </div>
-</fieldset>
+    </Field.Description>
+  </Field.Field>
+</Field.Set>
