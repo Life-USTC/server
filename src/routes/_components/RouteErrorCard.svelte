@@ -47,7 +47,9 @@ $: backLabel =
   <Card.Root class="w-full max-w-md">
     <Card.Header class="text-center">
       <h1 class="font-semibold text-5xl">{$page.status}</h1>
-      <Card.Title class="text-2xl">{title}</Card.Title>
+      <Card.Title class="text-2xl">
+        <h2>{title}</h2>
+      </Card.Title>
       <Card.Description>{description}</Card.Description>
     </Card.Header>
     <Card.Content class="flex flex-wrap justify-center gap-2">
