@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import type { DeviceCopy } from "./device-component-types";
 
@@ -16,8 +17,8 @@ export let copy: DeviceCopy;
 
 <form method="GET" action="/oauth/device" class="grid gap-4">
   <input type="hidden" name="step" value="approve" />
-  <label class="grid gap-2">
-    <span class="font-medium text-sm">{copy.deviceCodeLabel}</span>
+  <Field.Field>
+    <Field.Label for="code">{copy.deviceCodeLabel}</Field.Label>
     <Input
       id="code"
       autocomplete="off"
@@ -28,6 +29,6 @@ export let copy: DeviceCopy;
       type="text"
       value={code}
     />
-  </label>
+  </Field.Field>
   <Button type="submit">{copy.deviceVerify}</Button>
 </form>
