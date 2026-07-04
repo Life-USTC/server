@@ -5,6 +5,8 @@ import {
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
 import { Badge } from "$lib/components/ui/badge/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
+import * as Table from "$lib/components/ui/table/index.js";
 import CatalogResultsEmpty from "./CatalogResultsEmpty.svelte";
 import CatalogResultsSummary from "./CatalogResultsSummary.svelte";
 import type {
@@ -57,49 +59,93 @@ $: pageLabel = teacherLabels.pageOf
     {totalPages}
   />
   {#if teachers.length > 0}
-    <div class="grid min-w-0 w-full overflow-hidden rounded-md border border-base-300">
-      {#each teachers as teacher}
-        {@const teacherHref = `/teachers/${teacher.id}`}
-        <a
-          class="grid min-w-0 w-full gap-3 border-base-300 border-b p-3 text-base-content no-underline transition-colors last:border-b-0 hover:bg-base-200/30 md:grid-cols-[minmax(12rem,1.2fr)_minmax(7rem,0.7fr)_minmax(10rem,1fr)_minmax(8rem,0.8fr)_minmax(12rem,1.2fr)_4rem] md:items-center md:gap-4"
-          href={teacherHref}
-        >
-          <div class="grid min-w-0 gap-1">
-            <span class="truncate font-medium">{primaryName(teacher)}</span>
-            {#if showSecondaryNames && secondaryName(teacher)}
-              <span class="truncate text-base-content/60 text-xs">({secondaryName(teacher)})</span>
-            {/if}
-          </div>
-          <div class="flex items-center justify-between gap-3 text-sm md:block">
-            <span class="text-base-content/55 md:sr-only">{teacherLabels.code}</span>
-            {#if teacher.code}
-              <Badge class="w-fit font-mono" variant="outline">{teacher.code}</Badge>
-            {:else}
-              <span>-</span>
-            {/if}
-          </div>
-          <div class="flex items-center justify-between gap-3 text-sm md:block">
-            <span class="text-base-content/55 md:sr-only">{teacherLabels.department}</span>
-            <span class="truncate">
-              {teacher.department ? primaryName(teacher.department) : teacherLabels.noDepartment}
-            </span>
-          </div>
-          <div class="flex items-center justify-between gap-3 text-sm md:block">
-            <span class="text-base-content/55 md:sr-only">{teacherLabels.title_label}</span>
-            <span class="truncate">
-              {teacher.teacherTitle ? primaryName(teacher.teacherTitle) : commonLabels.unknown}
-            </span>
-          </div>
-          <div class="flex items-center justify-between gap-3 text-sm md:block">
-            <span class="text-base-content/55 md:sr-only">{teacherLabels.email}</span>
-            <span class="truncate">{teacher.email ?? "-"}</span>
-          </div>
-          <div class="flex items-center justify-between gap-3 text-sm md:block md:text-right">
-            <span class="text-base-content/55 md:sr-only">{teacherLabels.sections}</span>
-            <Badge class="w-fit md:ml-auto" variant="outline">{teacher._count.sections}</Badge>
-          </div>
-        </a>
-      {/each}
+    <div class="md:hidden">
+      <Item.Group>
+        {#each teachers as teacher}
+          {@const teacherHref = `/teachers/${teacher.id}`}
+          <Item.Root variant="outline" size="sm">
+            {#snippet child({ props })}
+              <a href={teacherHref} {...props}>
+                <Item.Content>
+                  <Item.Title>{primaryName(teacher)}</Item.Title>
+                  {#if showSecondaryNames && secondaryName(teacher)}
+                    <Item.Description>({secondaryName(teacher)})</Item.Description>
+                  {/if}
+                </Item.Content>
+                <Item.Actions>
+                  <Badge variant="outline">{teacher._count.sections}</Badge>
+                </Item.Actions>
+                <Item.Footer class="flex-wrap justify-start text-muted-foreground text-xs">
+                  {#if teacher.code}
+                    <Badge class="font-mono" variant="outline">{teacher.code}</Badge>
+                  {/if}
+                  <span>{teacher.department ? primaryName(teacher.department) : teacherLabels.noDepartment}</span>
+                  <span>{teacher.teacherTitle ? primaryName(teacher.teacherTitle) : commonLabels.unknown}</span>
+                  <span>{teacher.email ?? "-"}</span>
+                </Item.Footer>
+              </a>
+            {/snippet}
+          </Item.Root>
+        {/each}
+      </Item.Group>
+    </div>
+    <div class="hidden md:block">
+      <Table.Root>
+        <Table.Header>
+          <Table.Row>
+            <Table.Head class="min-w-56">{teacherLabels.name}</Table.Head>
+            <Table.Head class="w-28">{teacherLabels.code}</Table.Head>
+            <Table.Head class="min-w-44">{teacherLabels.department}</Table.Head>
+            <Table.Head class="w-36">{teacherLabels.title_label}</Table.Head>
+            <Table.Head class="min-w-56">{teacherLabels.email}</Table.Head>
+            <Table.Head class="w-24 text-right">{teacherLabels.sections}</Table.Head>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {#each teachers as teacher}
+            {@const teacherHref = `/teachers/${teacher.id}`}
+            <Table.Row>
+              <Table.Cell class="min-w-56 p-0 align-top">
+                <Table.CellLink class="px-3 py-2 text-base-content" href={teacherHref}>
+                  <span class="font-medium">{primaryName(teacher)}</span>
+                  {#if showSecondaryNames && secondaryName(teacher)}
+                    <span class="block text-muted-foreground text-xs">({secondaryName(teacher)})</span>
+                  {/if}
+                </Table.CellLink>
+              </Table.Cell>
+              <Table.Cell class="p-0 align-top">
+                <Table.CellLink class="px-3 py-2" href={teacherHref}>
+                  {#if teacher.code}
+                    <Badge class="font-mono" variant="outline">{teacher.code}</Badge>
+                  {:else}
+                    <span class="text-base-content">-</span>
+                  {/if}
+                </Table.CellLink>
+              </Table.Cell>
+              <Table.Cell class="min-w-44 p-0 align-top">
+                <Table.CellLink class="px-3 py-2 text-base-content" href={teacherHref}>
+                  {teacher.department ? primaryName(teacher.department) : teacherLabels.noDepartment}
+                </Table.CellLink>
+              </Table.Cell>
+              <Table.Cell class="p-0 align-top">
+                <Table.CellLink class="px-3 py-2 text-base-content" href={teacherHref}>
+                  {teacher.teacherTitle ? primaryName(teacher.teacherTitle) : commonLabels.unknown}
+                </Table.CellLink>
+              </Table.Cell>
+              <Table.Cell class="min-w-56 p-0 align-top">
+                <Table.CellLink class="px-3 py-2 text-base-content" href={teacherHref}>
+                  {teacher.email ?? "-"}
+                </Table.CellLink>
+              </Table.Cell>
+              <Table.Cell class="p-0 text-right align-top">
+                <Table.CellLink class="px-3 py-2" href={teacherHref}>
+                  <Badge variant="outline">{teacher._count.sections}</Badge>
+                </Table.CellLink>
+              </Table.Cell>
+            </Table.Row>
+          {/each}
+        </Table.Body>
+      </Table.Root>
     </div>
   {:else}
     <div class="py-10">

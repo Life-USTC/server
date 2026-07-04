@@ -5,6 +5,8 @@ import {
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
 import { Badge } from "$lib/components/ui/badge/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
+import * as Table from "$lib/components/ui/table/index.js";
 import CatalogResultsEmpty from "./CatalogResultsEmpty.svelte";
 import CatalogResultsSummary from "./CatalogResultsSummary.svelte";
 import type {
@@ -40,34 +42,80 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
     {totalPages}
   />
   {#if data.data.length > 0}
-    <div class="grid min-w-0 w-full overflow-hidden rounded-md border border-base-300">
-      {#each data.data as course}
-        {@const courseHref = `/courses/${course.jwId}`}
-        <a
-          class="grid min-w-0 w-full gap-3 border-base-300 border-b p-3 text-base-content no-underline transition-colors last:border-b-0 hover:bg-base-200/30 md:grid-cols-[minmax(16rem,1.7fr)_minmax(7rem,0.7fr)_minmax(8rem,0.8fr)_minmax(9rem,0.9fr)_minmax(8rem,0.8fr)] md:items-center md:gap-4"
-          href={courseHref}
-        >
-          <div class="grid min-w-0 gap-1">
-            <span class="truncate font-medium">{primaryName(course)}</span>
-            {#if secondaryName(course)}
-              <span class="truncate text-base-content/60 text-xs">{secondaryName(course)}</span>
-            {/if}
-          </div>
-          <Badge class="w-fit font-mono" variant="outline">{course.code}</Badge>
-          <div class="flex items-center justify-between gap-3 text-sm md:block">
-            <span class="text-base-content/55 md:sr-only">{courseLabels.educationLevel}</span>
-            <span>{course.educationLevel ? primaryName(course.educationLevel) : "-"}</span>
-          </div>
-          <div class="flex items-center justify-between gap-3 text-sm md:block">
-            <span class="text-base-content/55 md:sr-only">{courseLabels.category}</span>
-            <span>{course.category ? primaryName(course.category) : "-"}</span>
-          </div>
-          <div class="flex items-center justify-between gap-3 text-sm md:block">
-            <span class="text-base-content/55 md:sr-only">{courseLabels.classType}</span>
-            <span>{course.classType ? primaryName(course.classType) : "-"}</span>
-          </div>
-        </a>
-      {/each}
+    <div class="md:hidden">
+      <Item.Group>
+        {#each data.data as course}
+          {@const courseHref = `/courses/${course.jwId}`}
+          <Item.Root variant="outline" size="sm">
+            {#snippet child({ props })}
+              <a href={courseHref} {...props}>
+                <Item.Content>
+                  <Item.Title>{primaryName(course)}</Item.Title>
+                  {#if secondaryName(course)}
+                    <Item.Description>{secondaryName(course)}</Item.Description>
+                  {/if}
+                </Item.Content>
+                <Item.Actions>
+                  <Badge class="font-mono" variant="outline">{course.code}</Badge>
+                </Item.Actions>
+                <Item.Footer class="flex-wrap justify-start text-muted-foreground text-xs">
+                  <span>{course.educationLevel ? primaryName(course.educationLevel) : "-"}</span>
+                  <span>{course.category ? primaryName(course.category) : "-"}</span>
+                  <span>{course.classType ? primaryName(course.classType) : "-"}</span>
+                </Item.Footer>
+              </a>
+            {/snippet}
+          </Item.Root>
+        {/each}
+      </Item.Group>
+    </div>
+    <div class="hidden md:block">
+      <Table.Root>
+        <Table.Header>
+          <Table.Row>
+            <Table.Head class="min-w-72">{courseLabels.courseName}</Table.Head>
+            <Table.Head class="w-28">{courseLabels.courseCode}</Table.Head>
+            <Table.Head class="w-36">{courseLabels.educationLevel}</Table.Head>
+            <Table.Head class="w-40">{courseLabels.category}</Table.Head>
+            <Table.Head class="w-36">{courseLabels.classType}</Table.Head>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {#each data.data as course}
+            {@const courseHref = `/courses/${course.jwId}`}
+            <Table.Row>
+              <Table.Cell class="min-w-72 p-0 align-top">
+                <Table.CellLink class="px-3 py-2 text-base-content" href={courseHref}>
+                  <span class="font-medium">{primaryName(course)}</span>
+                  {#if secondaryName(course)}
+                    <span class="block text-muted-foreground text-xs">{secondaryName(course)}</span>
+                  {/if}
+                </Table.CellLink>
+              </Table.Cell>
+              <Table.Cell class="p-0 align-top">
+                <Table.CellLink class="px-3 py-2" href={courseHref}>
+                  <Badge class="font-mono" variant="outline">{course.code}</Badge>
+                </Table.CellLink>
+              </Table.Cell>
+              <Table.Cell class="p-0 align-top">
+                <Table.CellLink class="px-3 py-2 text-base-content" href={courseHref}>
+                  {course.educationLevel ? primaryName(course.educationLevel) : "-"}
+                </Table.CellLink>
+              </Table.Cell>
+              <Table.Cell class="p-0 align-top">
+                <Table.CellLink class="px-3 py-2 text-base-content" href={courseHref}>
+                  {course.category ? primaryName(course.category) : "-"}
+                </Table.CellLink>
+              </Table.Cell>
+              <Table.Cell class="p-0 align-top">
+                <Table.CellLink class="px-3 py-2 text-base-content" href={courseHref}>
+                  {course.classType ? primaryName(course.classType) : "-"}
+                </Table.CellLink>
+              </Table.Cell>
+            </Table.Row>
+          {/each}
+        </Table.Body>
+      </Table.Root>
     </div>
   {:else}
     <div class="py-10">
