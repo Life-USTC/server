@@ -11,12 +11,9 @@ let {
 </script>
 
 <TabsPrimitive.Root
-  bind:ref
-  bind:value
-  data-slot="tabs"
-  class={cn(
-    "gap-2 group/tabs flex data-[orientation=horizontal]:flex-col",
-    className,
-  )}
-  {...restProps}
+	bind:ref
+	bind:value
+	data-slot="tabs"
+	class={cn("gap-2 group/tabs flex data-[orientation=horizontal]:flex-col", className)}
+	{...restProps}
 />
