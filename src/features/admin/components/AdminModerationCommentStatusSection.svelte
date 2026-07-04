@@ -1,6 +1,6 @@
 <script lang="ts">
-import { Button } from "$lib/components/ui/button/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
+import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 import type {
   AdminModerationCopy,
   AdminModerationStatusOptions,
@@ -11,24 +11,34 @@ export let commentStatusOptions: AdminModerationStatusOptions;
 export let copy: AdminModerationCopy;
 export let inputValue: (event: Event) => string;
 export let moderationNote: string;
+
+function selectStatus(value: string) {
+  if (value === "active" || value === "softbanned" || value === "deleted") {
+    commentStatus = value;
+  }
+}
 </script>
 
 <section class="grid gap-3">
   <h3 class="font-medium">{copy.status}</h3>
-  <div class="grid gap-2 md:grid-cols-3">
+  <ToggleGroup.Root
+    aria-label={copy.status}
+    class="grid w-full md:grid-cols-3"
+    spacing={2}
+    type="single"
+    value={commentStatus}
+    variant="outline"
+    onValueChange={selectStatus}
+  >
     {#each commentStatusOptions as [status, label]}
-      <Button
-        aria-pressed={commentStatus === status}
-        type="button"
-        variant={commentStatus === status ? "secondary" : "outline"}
-        onclick={() => {
-          commentStatus = status as "active" | "softbanned" | "deleted";
-        }}
+      <ToggleGroup.Item
+        class="w-full"
+        value={status}
       >
         {label}
-      </Button>
+      </ToggleGroup.Item>
     {/each}
-  </div>
+  </ToggleGroup.Root>
   <label class="grid gap-2">
     <span class="font-medium text-sm">{copy.moderationNote}</span>
     <Input

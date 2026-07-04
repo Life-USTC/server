@@ -35,7 +35,6 @@ export let label = "";
                 {#snippet child({ props })}
                   <a
                     {...props}
-                    data-active={active ? "true" : undefined}
                     href={item.href}
                     aria-current={active ? "page" : undefined}
                   >
