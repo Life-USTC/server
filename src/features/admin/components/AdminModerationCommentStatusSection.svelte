@@ -1,4 +1,5 @@
 <script lang="ts">
+import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 import type {
@@ -19,34 +20,37 @@ function selectStatus(value: string) {
 }
 </script>
 
-<section class="grid gap-3">
-  <h3 class="font-medium">{copy.status}</h3>
-  <ToggleGroup.Root
-    aria-label={copy.status}
-    class="grid w-full md:grid-cols-3"
-    spacing={2}
-    type="single"
-    value={commentStatus}
-    variant="outline"
-    onValueChange={selectStatus}
-  >
-    {#each commentStatusOptions as [status, label]}
-      <ToggleGroup.Item
-        class="w-full"
-        value={status}
-      >
-        {label}
-      </ToggleGroup.Item>
-    {/each}
-  </ToggleGroup.Root>
-  <label class="grid gap-2">
-    <span class="font-medium text-sm">{copy.moderationNote}</span>
+<Field.Group class="gap-3">
+  <Field.Set>
+    <Field.Legend id="admin-comment-status-label" variant="label">{copy.status}</Field.Legend>
+    <ToggleGroup.Root
+      aria-labelledby="admin-comment-status-label"
+      class="grid w-full md:grid-cols-3"
+      spacing={2}
+      type="single"
+      value={commentStatus}
+      variant="outline"
+      onValueChange={selectStatus}
+    >
+      {#each commentStatusOptions as [status, label]}
+        <ToggleGroup.Item
+          class="w-full"
+          value={status}
+        >
+          {label}
+        </ToggleGroup.Item>
+      {/each}
+    </ToggleGroup.Root>
+  </Field.Set>
+  <Field.Field>
+    <Field.Label for="admin-comment-moderation-note">{copy.moderationNote}</Field.Label>
     <Input
+      id="admin-comment-moderation-note"
       placeholder={copy.moderationNote}
       value={moderationNote}
       oninput={(event: Event) => {
         moderationNote = inputValue(event);
       }}
     />
-  </label>
-</section>
+  </Field.Field>
+</Field.Group>

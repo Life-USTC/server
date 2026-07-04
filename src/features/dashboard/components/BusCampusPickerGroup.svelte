@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { BusCampusSummary } from "@/features/bus/lib/bus-timetable-types";
+import * as Field from "$lib/components/ui/field/index.js";
 import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 
 export let campuses: BusCampusSummary[];
@@ -19,8 +20,8 @@ function selectCampus(value: string) {
 }
 </script>
 
-<div data-testid={testId}>
-  <h3 id={`${testId}-label`} class="mb-2 font-medium">{label}</h3>
+<Field.Field data-disabled={disabled ? "true" : undefined} data-testid={testId}>
+  <Field.Title id={`${testId}-label`}>{label}</Field.Title>
   <ToggleGroup.Root
     aria-labelledby={`${testId}-label`}
     class="grid w-full grid-cols-3"
@@ -40,4 +41,4 @@ function selectCampus(value: string) {
       </ToggleGroup.Item>
     {/each}
   </ToggleGroup.Root>
-</div>
+</Field.Field>
