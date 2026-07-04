@@ -1,7 +1,5 @@
 <script lang="ts">
-import ChevronLeftIcon from "@lucide/svelte/icons/chevron-left";
-import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
-import { Button } from "$lib/components/ui/button/index.js";
+import * as Pagination from "$lib/components/ui/pagination/index.js";
 
 export let copy: {
   nextPage: string;
@@ -10,10 +8,6 @@ export let copy: {
 export let page: number;
 export let pageCount: number;
 export let status: string;
-
-function setPage(nextPage: number) {
-  page = Math.min(Math.max(1, nextPage), pageCount);
-}
 </script>
 
 {#if pageCount > 1}
@@ -21,27 +15,17 @@ function setPage(nextPage: number) {
     <p class="text-muted-foreground text-xs">
       {status}
     </p>
-    <div class="flex gap-2">
-      <Button
-        disabled={page <= 1}
-        size="sm"
-        type="button"
-        variant="outline"
-        onclick={() => setPage(page - 1)}
-      >
-        <ChevronLeftIcon data-icon="inline-start" />
-        <span>{copy.previousPage}</span>
-      </Button>
-      <Button
-        disabled={page >= pageCount}
-        size="sm"
-        type="button"
-        variant="outline"
-        onclick={() => setPage(page + 1)}
-      >
-        <span>{copy.nextPage}</span>
-        <ChevronRightIcon data-icon="inline-end" />
-      </Button>
-    </div>
+    <Pagination.Root bind:page count={pageCount} perPage={1} class="mx-0 w-auto">
+      {#snippet children()}
+        <Pagination.Content>
+          <Pagination.Item>
+            <Pagination.PrevButton>{copy.previousPage}</Pagination.PrevButton>
+          </Pagination.Item>
+          <Pagination.Item>
+            <Pagination.NextButton>{copy.nextPage}</Pagination.NextButton>
+          </Pagination.Item>
+        </Pagination.Content>
+      {/snippet}
+    </Pagination.Root>
   </div>
 {/if}

@@ -1,6 +1,6 @@
 <script lang="ts">
-import * as Alert from "$lib/components/ui/alert/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import type { SettingsCopy } from "./settings-component-types";
 
@@ -15,10 +15,12 @@ export let copy: SettingsCopy;
     </Card.Description>
   </Card.Header>
   <Card.Content class="grid gap-5">
-    <Alert.Root>
-      <Alert.Title role="heading" aria-level={2}>{copy.settings.content.emptyTitle}</Alert.Title>
-      <Alert.Description>{copy.settings.content.emptyDescription}</Alert.Description>
-    </Alert.Root>
+    <Empty.Root class="border">
+      <Empty.Header>
+        <Empty.Title>{copy.settings.content.emptyTitle}</Empty.Title>
+        <Empty.Description>{copy.settings.content.emptyDescription}</Empty.Description>
+      </Empty.Header>
+    </Empty.Root>
     <Item.Group class="grid gap-3 sm:grid-cols-2">
       <Item.Root variant="outline">
         {#snippet child({ props })}

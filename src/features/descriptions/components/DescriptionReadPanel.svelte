@@ -2,7 +2,7 @@
 import { formatDescriptionCopy } from "@/features/descriptions/lib/description-card-actions";
 import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
 import MarkdownPreview from "$lib/components/MarkdownPreview.svelte";
-import * as Alert from "$lib/components/ui/alert/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Tabs from "$lib/components/ui/tabs/index.js";
 import DescriptionHistoryList from "./DescriptionHistoryList.svelte";
 import type {
@@ -47,9 +47,11 @@ function handlePanelTabChange(value: string) {
         remarkPlugins={campusReferenceMarkdownPlugins}
       />
     {:else}
-      <Alert.Root>
-        <Alert.Description>{copy.empty}</Alert.Description>
-      </Alert.Root>
+      <Empty.Root class="min-h-24 border">
+        <Empty.Header>
+          <Empty.Title>{copy.empty}</Empty.Title>
+        </Empty.Header>
+      </Empty.Root>
     {/if}
   </Tabs.Content>
 </Tabs.Root>
