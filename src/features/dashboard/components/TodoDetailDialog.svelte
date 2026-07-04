@@ -55,9 +55,9 @@ export let toggleTodoCompletion: (todo: DashboardTodoItem) => void;
         <div class="flex justify-between gap-2">
           <Button
             aria-label={todosCopy.deleteAriaLabel}
-            class="border-error bg-error text-error-content hover:bg-error/90"
             disabled={todoSavingById[todo.id]}
             type="button"
+            variant="destructive"
             onclick={() => {
               deleteTodo(todo);
             }}

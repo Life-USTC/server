@@ -52,9 +52,9 @@ export let deletingClientId: string | null;
             {copy.cancel}
           </Button>
           <Button
-            class="border-transparent bg-error text-error-content hover:bg-error/90"
             disabled={Boolean(deletingClientId)}
             type="submit"
+            variant="destructive"
           >
             <TrashIcon data-icon="inline-start" />
             <span>{copy.deleteClient}</span>

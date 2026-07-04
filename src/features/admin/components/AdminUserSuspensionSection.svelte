@@ -91,9 +91,9 @@ export let suspensionLabel: AdminUserFormatter;
   </Field.Set>
   <div class="flex flex-wrap gap-3">
     <Button
-      class="border-transparent bg-error text-error-content hover:bg-error/90"
       disabled={isSuspending}
       type="button"
+      variant="destructive"
       onclick={suspendSelectedUser}
     >
       <ShieldAlertIcon data-icon="inline-start" />

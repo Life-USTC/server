@@ -62,9 +62,9 @@ export let onDelete: (homework: ModerationHomework) => void;
         </p>
         {#if !homework.deletedAt}
           <Button
-            class="border-error bg-error text-error-content hover:bg-error/90"
             size="sm"
             type="button"
+            variant="destructive"
             onclick={() => onDelete(homework)}
           >
             {copy.deleteHomeworkAction}

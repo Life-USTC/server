@@ -41,8 +41,8 @@ export let target: HomeworkTarget;
         {homeworkCopy.cancel}
       </Button>
       <Button
-        class="border-error bg-error text-error-content hover:bg-error/90"
         type="button"
+        variant="destructive"
         onclick={onConfirm}
       >
         {homeworkCopy.deleteAction}

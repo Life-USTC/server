@@ -62,12 +62,12 @@ export let subscriptionsCopy: DashboardSubscriptionsCopy;
 
       <Button
         class={pendingRemoveSectionId === section.id
-          ? "border-error bg-error text-error-content hover:bg-error/90"
+          ? undefined
           : "opacity-100 transition-opacity md:opacity-0 md:group-hover/section-row:opacity-100 md:group-focus-within/section-row:opacity-100"}
         disabled={removingSectionId === section.id}
         size="icon-sm"
         type="button"
-        variant={pendingRemoveSectionId === section.id ? "default" : "outline"}
+        variant={pendingRemoveSectionId === section.id ? "destructive" : "outline"}
         onclick={() => removeSubscribedSection(section.id)}
       >
         {#if removingSectionId === section.id}

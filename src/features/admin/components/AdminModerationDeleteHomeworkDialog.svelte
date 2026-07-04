@@ -64,9 +64,9 @@ export let isDeleting: boolean;
             {copy.cancelButton}
           </Button>
           <Button
-            class="border-error bg-error text-error-content hover:bg-error/90"
             disabled={isDeleting}
             type="submit"
+            variant="destructive"
           >
             {isDeleting ? copy.saving : copy.deleteHomeworkAction}
           </Button>

@@ -56,9 +56,9 @@ export let version: AdminBusVersion;
           {copy.cancelAction}
         </Button>
         <Button
-          class="border-transparent bg-error text-error-content hover:bg-error/90"
           disabled={Boolean(pendingAction)}
           type="submit"
+          variant="destructive"
         >
           {#if isPending(`delete-${version.id}`)}
             <Spinner data-icon="inline-start" />
