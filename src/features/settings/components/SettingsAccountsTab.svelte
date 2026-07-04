@@ -1,5 +1,6 @@
 <script lang="ts">
 import * as Card from "$lib/components/ui/card/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 import SettingsAccountRow from "./SettingsAccountRow.svelte";
 import SettingsDisconnectAccountDialog from "./SettingsDisconnectAccountDialog.svelte";
 import type {
@@ -29,7 +30,7 @@ export let user: SettingsUser;
     </Card.Description>
   </Card.Header>
   <Card.Content>
-    <div class="grid gap-3">
+    <Item.Group>
       {#each accounts as account}
         <SettingsAccountRow
           {account}
@@ -42,7 +43,7 @@ export let user: SettingsUser;
           {user}
         />
       {/each}
-    </div>
+    </Item.Group>
   </Card.Content>
 </Card.Root>
 

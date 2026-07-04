@@ -3,6 +3,7 @@ import { enhance } from "$app/forms";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import type {
   SettingsCopy,
@@ -17,9 +18,9 @@ export let isDeletingAccount: boolean;
 export let isMounted: boolean;
 </script>
 
-<Card.Root class="border-error/50 bg-base-100">
+<Card.Root>
   <Card.Header>
-    <Card.Title class="text-error">{copy.profile.deleteAccountTitle}</Card.Title>
+    <Card.Title>{copy.profile.deleteAccountTitle}</Card.Title>
     <Card.Description>
       {copy.profile.deleteAccountDescription}
     </Card.Description>
@@ -47,11 +48,9 @@ export let isMounted: boolean;
           }
         }}
       >
-        <Dialog.Content
-          class="max-w-md border-error/40"
-        >
+        <Dialog.Content class="max-w-md">
           <Dialog.Header>
-            <Dialog.Title class="text-error">{copy.profile.deleteAccountConfirmTitle}</Dialog.Title>
+            <Dialog.Title>{copy.profile.deleteAccountConfirmTitle}</Dialog.Title>
             <Dialog.Description>
               {copy.profile.deleteAccountConfirmDescription}
             </Dialog.Description>
@@ -59,22 +58,25 @@ export let isMounted: boolean;
           <form
             method="POST"
             action="?/deleteAccount&tab=danger"
-            class="grid gap-4 px-5 py-4"
+            class="flex flex-col gap-4 px-5 py-4"
             use:enhance={deleteAccountAction}
           >
-            <label class="grid gap-2">
-              <span class="text-base-content/60 text-sm">
-                {copy.profile.deleteAccountConfirmPrompt.replace("{phrase}", "DELETE")}
-              </span>
-              <Input
-                name="confirm"
-                placeholder="DELETE"
-                pattern="DELETE"
-                required
-                disabled={!isMounted || isDeletingAccount}
-                bind:value={deleteConfirmValue}
-              />
-            </label>
+            <Field.Group>
+              <Field.Field>
+                <Field.Label for="delete-confirm">
+                  {copy.profile.deleteAccountConfirmPrompt.replace("{phrase}", "DELETE")}
+                </Field.Label>
+                <Input
+                  id="delete-confirm"
+                  name="confirm"
+                  placeholder="DELETE"
+                  pattern="DELETE"
+                  required
+                  disabled={!isMounted || isDeletingAccount}
+                  bind:value={deleteConfirmValue}
+                />
+              </Field.Field>
+            </Field.Group>
             <Dialog.Footer class="px-0 pb-0">
               <Button
                 variant="secondary"

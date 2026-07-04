@@ -15,6 +15,7 @@ import CircleUserRound from "$lib/components/icons/circle-user-round.svelte";
 import FileText from "$lib/components/icons/file-text.svelte";
 import Link2 from "$lib/components/icons/link-2.svelte";
 import ShieldAlert from "$lib/components/icons/shield-alert.svelte";
+import * as Item from "$lib/components/ui/item/index.js";
 import { cn } from "$lib/utils";
 import type {
   SettingsAccount,
@@ -101,45 +102,35 @@ onMount(() => {
 <section class="grid gap-6">
   <SettingsHeader {copy} />
 
-  <nav
-    aria-label={data.settingsNav.title}
-    class="grid gap-2 rounded-md border border-base-300 bg-base-100 p-2 shadow-sm sm:grid-cols-2 xl:grid-cols-4"
-  >
-    {#each data.settingsNav.tabs as item}
-      {@const Icon = tabIcon(item.icon)}
-      <a
-        aria-current={data.activeTab === item.id ? "page" : undefined}
-        class={cn(
-          "group grid grid-cols-[auto_1fr] gap-3 rounded-md border p-3 text-left transition-colors",
-          data.activeTab === item.id
-            ? "border-primary/40 bg-primary/5 text-base-content shadow-sm"
-            : "border-transparent text-base-content/70 hover:border-base-300 hover:bg-base-200/60 hover:text-base-content",
-          item.id === "danger" && data.activeTab !== item.id
-            ? "hover:border-error/30 hover:bg-error/5"
-            : "",
-        )}
-        href={item.href}
-      >
-        <span
-          class={cn(
-            "mt-0.5 inline-flex size-8 items-center justify-center rounded-md border",
-            item.id === "danger"
-              ? "border-error/30 bg-error/10 text-error"
-              : data.activeTab === item.id
-                ? "border-primary/30 bg-primary/10 text-primary"
-                : "border-base-300 bg-base-100 text-base-content/60 group-hover:text-base-content",
-          )}
+  <nav aria-label={data.settingsNav.title}>
+    <Item.Group class="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      {#each data.settingsNav.tabs as item}
+        {@const Icon = tabIcon(item.icon)}
+        <Item.Root
+          variant={data.activeTab === item.id ? "muted" : "outline"}
+          size="sm"
         >
-          <Icon />
-        </span>
-        <span class="min-w-0">
-          <span class="block font-medium text-sm">{item.title}</span>
-          <span class="mt-1 block text-xs leading-5 text-base-content/60">
-            {item.description}
-          </span>
-        </span>
-      </a>
-    {/each}
+          {#snippet child({ props })}
+            <a
+              {...props}
+              aria-current={data.activeTab === item.id ? "page" : undefined}
+              href={item.href}
+            >
+              <Item.Media
+                variant="icon"
+                class={cn(item.id === "danger" && "text-destructive")}
+              >
+                <Icon />
+              </Item.Media>
+              <Item.Content>
+                <Item.Title>{item.title}</Item.Title>
+                <Item.Description>{item.description}</Item.Description>
+              </Item.Content>
+            </a>
+          {/snippet}
+        </Item.Root>
+      {/each}
+    </Item.Group>
   </nav>
 
   <SettingsStatusAlert {copy} {statusMessage} />

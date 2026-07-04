@@ -2,6 +2,7 @@
 import { enhance } from "$app/forms";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 import type {
   SettingsAccount,
   SettingsAccountAction,
@@ -20,16 +21,16 @@ export let unlinkAccountId: string | null;
 export let user: SettingsUser;
 </script>
 
-<div class="rounded-lg border border-base-300 bg-base-100 p-4 transition hover:border-primary/70">
-  <div class="flex flex-wrap items-center gap-3">
-    <div class="min-w-0 flex-1">
-      <h3 class="font-medium">{account.name}</h3>
-      <p class="truncate text-base-content/60 text-sm">
-        {account.linked ? account.providerAccountId : copy.profile.notConnected}
-      </p>
-    </div>
+<Item.Root variant="outline">
+  <Item.Content class="min-w-0">
+    <Item.Title>{account.name}</Item.Title>
+    <Item.Description class="truncate">
+      {account.linked ? account.providerAccountId : copy.profile.notConnected}
+    </Item.Description>
+  </Item.Content>
+  <Item.Actions class="flex-wrap justify-end">
     {#if account.linked}
-      <Badge class="border-success bg-success text-success-content">{copy.profile.connected}</Badge>
+      <Badge variant="secondary">{copy.profile.connected}</Badge>
       <Button
         size="sm"
         variant="outline"
@@ -60,8 +61,10 @@ export let user: SettingsUser;
         </Button>
       </form>
     {/if}
-  </div>
+  </Item.Actions>
   {#if account.linked && user.accountCount <= 1}
-    <p class="mt-2 text-warning text-sm">{copy.profile.cannotDisconnectLast}</p>
+    <Item.Footer class="text-muted-foreground text-sm">
+      {copy.profile.cannotDisconnectLast}
+    </Item.Footer>
   {/if}
-</div>
+</Item.Root>
