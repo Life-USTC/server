@@ -4,6 +4,7 @@ import { DESCRIPTION_CONTENT_MAX_LENGTH } from "@/features/descriptions/lib/desc
 import { enhance } from "$app/forms";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
 import { Textarea } from "$lib/components/ui/textarea/index.js";
 import AdminModerationDescriptionMeta from "./AdminModerationDescriptionMeta.svelte";
 import type { AdminModerationDescription } from "./admin-moderation-description-types";
@@ -68,9 +69,12 @@ export let targetLabel: (description: AdminModerationDescription) => string;
             {formatMessage}
           />
 
-          <label class="grid gap-2">
-            <span class="font-medium text-sm">{copy.descriptionContent}</span>
+          <Field.Field>
+            <Field.Label for="admin-description-content">
+              {copy.descriptionContent}
+            </Field.Label>
             <Textarea
+              id="admin-description-content"
               class="min-h-56"
               maxlength={DESCRIPTION_CONTENT_MAX_LENGTH}
               name="content"
@@ -79,7 +83,7 @@ export let targetLabel: (description: AdminModerationDescription) => string;
                 descriptionDraft = inputValue(event);
               }}
             />
-          </label>
+          </Field.Field>
         </div>
 
         <Dialog.Footer>

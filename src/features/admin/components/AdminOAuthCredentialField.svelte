@@ -1,6 +1,7 @@
 <script lang="ts">
 import CopyIcon from "$lib/components/icons/copy.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 
 export let copyLabel = "";
 export let copiedMessage = "";
@@ -10,13 +11,17 @@ export let showCopy = true;
 export let value: string;
 </script>
 
-<div class="rounded-md border border-base-300 bg-base-200/40 p-3">
-  <div class="font-medium text-sm">{label}</div>
-  <p class="break-all font-mono text-sm">{value}</p>
+<Item.Root variant="muted">
+  <Item.Content class="min-w-0">
+    <Item.Title>{label}</Item.Title>
+    <p class="break-all font-mono text-sm">{value}</p>
+  </Item.Content>
   {#if showCopy}
-    <Button class="mt-2" size="sm" type="button" variant="outline" onclick={() => copyText(value, copiedMessage)}>
-      <CopyIcon data-icon="inline-start" />
-      <span>{copyLabel}</span>
-    </Button>
+    <Item.Actions>
+      <Button size="sm" type="button" variant="outline" onclick={() => copyText(value, copiedMessage)}>
+        <CopyIcon data-icon="inline-start" />
+        <span>{copyLabel}</span>
+      </Button>
+    </Item.Actions>
   {/if}
-</div>
+</Item.Root>
