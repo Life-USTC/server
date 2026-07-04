@@ -4,6 +4,7 @@ import CheckCircleIcon from "$lib/components/icons/check-circle.svelte";
 import ShieldAlertIcon from "$lib/components/icons/shield-alert.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import * as Select from "$lib/components/ui/select/index.js";
 import type {
@@ -29,59 +30,65 @@ export let suspensionLabel: AdminUserFormatter;
 </script>
 
 <section class="grid gap-4 rounded-md border border-base-300 bg-base-200/40 p-3">
-  <div>
-    <div class="flex flex-wrap items-center gap-2">
-      <h3 class="font-medium text-error">{copy.suspendTitle}</h3>
+  <Field.Set>
+    <Field.Legend class="flex flex-wrap items-center gap-2 text-error">
+      <span>{copy.suspendTitle}</span>
       {#if selectedUser.activeSuspension}
         <Badge class="border-warning bg-warning/10 text-warning" variant="outline">
           {suspensionLabel(selectedUser)}
         </Badge>
       {/if}
-    </div>
-    <p class="text-base-content/60 text-sm">{copy.suspendDescription}</p>
-  </div>
-  <div class="grid gap-4 sm:grid-cols-2">
-    <label class="grid gap-2">
-      <span class="font-medium text-sm">{moderationCopy.durationLabel}</span>
-      <Select.Root bind:value={suspendDuration} type="single">
-        <Select.Trigger
-          aria-label={moderationCopy.durationLabel}
-          class="w-full"
-        >
-          {suspendDurationOptions.find(
-            (option) => option.value === suspendDuration,
-          )?.label ?? suspendDurationOptions[0]?.label ?? ""}
-        </Select.Trigger>
-        <Select.Content>
-          <Select.Group>
-            {#each suspendDurationOptions as option}
-              <Select.Item label={option.label} value={option.value}>
-                {option.label}
-              </Select.Item>
-            {/each}
-          </Select.Group>
-        </Select.Content>
-      </Select.Root>
-    </label>
-    {#if suspendDuration === "custom"}
-      <label class="grid gap-2">
-        <span class="font-medium text-sm">{moderationCopy.suspendExpires}</span>
-        <DateTimePicker
-          bind:value={suspendExpiresAt}
-          calendarButtonLabel={moderationCopy.calendarButtonLabel}
-          placeholder={moderationCopy.suspendExpires}
-        />
-      </label>
-    {/if}
-  </div>
-  <label class="grid gap-2">
-    <span class="font-medium text-sm">{moderationCopy.reason}</span>
-    <Input
-      placeholder={moderationCopy.suspendReason}
-      value={suspendReason}
-      oninput={(event: Event) => (suspendReason = inputValue(event))}
-    />
-  </label>
+    </Field.Legend>
+    <Field.Description>{copy.suspendDescription}</Field.Description>
+    <Field.Group class="grid gap-4 sm:grid-cols-2">
+      <Field.Field>
+        <Field.Label for="admin-user-suspend-duration">
+          {moderationCopy.durationLabel}
+        </Field.Label>
+        <Select.Root bind:value={suspendDuration} type="single">
+          <Select.Trigger
+            aria-label={moderationCopy.durationLabel}
+            class="w-full"
+            id="admin-user-suspend-duration"
+          >
+            {suspendDurationOptions.find(
+              (option) => option.value === suspendDuration,
+            )?.label ?? suspendDurationOptions[0]?.label ?? ""}
+          </Select.Trigger>
+          <Select.Content>
+            <Select.Group>
+              {#each suspendDurationOptions as option}
+                <Select.Item label={option.label} value={option.value}>
+                  {option.label}
+                </Select.Item>
+              {/each}
+            </Select.Group>
+          </Select.Content>
+        </Select.Root>
+      </Field.Field>
+      {#if suspendDuration === "custom"}
+        <Field.Field>
+          <Field.Title>{moderationCopy.suspendExpires}</Field.Title>
+          <DateTimePicker
+            bind:value={suspendExpiresAt}
+            calendarButtonLabel={moderationCopy.calendarButtonLabel}
+            placeholder={moderationCopy.suspendExpires}
+          />
+        </Field.Field>
+      {/if}
+    </Field.Group>
+    <Field.Field>
+      <Field.Label for="admin-user-suspend-reason">
+        {moderationCopy.reason}
+      </Field.Label>
+      <Input
+        id="admin-user-suspend-reason"
+        placeholder={moderationCopy.suspendReason}
+        value={suspendReason}
+        oninput={(event: Event) => (suspendReason = inputValue(event))}
+      />
+    </Field.Field>
+  </Field.Set>
   <div class="flex flex-wrap gap-3">
     <Button
       class="border-transparent bg-error text-error-content hover:bg-error/90"

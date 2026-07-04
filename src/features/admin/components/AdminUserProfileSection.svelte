@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import type { AdminUsersCopy } from "./admin-user-types";
 
@@ -11,30 +12,39 @@ export let inputValue: (event: Event) => string;
 </script>
 
 <section class="grid gap-3 rounded-md border border-base-300 bg-base-200/40 p-3">
-  <div>
-    <h3 class="font-medium">{copy.profileRoleTitle}</h3>
-    <p class="text-base-content/60 text-sm">{copy.profileRoleDescription}</p>
-  </div>
-  <div class="grid gap-3 sm:grid-cols-2">
-    <label class="grid gap-2">
-      <span class="font-medium text-sm">{copy.nameLabel}</span>
-      <Input
-        placeholder={copy.name}
-        value={editName}
-        oninput={(event: Event) => (editName = inputValue(event))}
-      />
-    </label>
-    <label class="grid gap-2">
-      <span class="font-medium text-sm">{copy.usernameLabel}</span>
-      <Input
-        placeholder={copy.username}
-        value={editUsername}
-        oninput={(event: Event) => (editUsername = inputValue(event))}
-      />
-    </label>
-  </div>
-  <label class="flex w-fit cursor-pointer items-center gap-3 rounded-md border border-base-300 bg-base-100 p-3">
-    <Checkbox bind:checked={editIsAdmin} />
-    <span class="font-medium text-sm">{copy.adminToggleLabel}</span>
-  </label>
+  <Field.Set>
+    <Field.Legend>{copy.profileRoleTitle}</Field.Legend>
+    <Field.Description>{copy.profileRoleDescription}</Field.Description>
+    <Field.Group class="grid gap-3 sm:grid-cols-2">
+      <Field.Field>
+        <Field.Label for="admin-user-name">{copy.nameLabel}</Field.Label>
+        <Input
+          id="admin-user-name"
+          placeholder={copy.name}
+          value={editName}
+          oninput={(event: Event) => (editName = inputValue(event))}
+        />
+      </Field.Field>
+      <Field.Field>
+        <Field.Label for="admin-user-username">
+          {copy.usernameLabel}
+        </Field.Label>
+        <Input
+          id="admin-user-username"
+          placeholder={copy.username}
+          value={editUsername}
+          oninput={(event: Event) => (editUsername = inputValue(event))}
+        />
+      </Field.Field>
+    </Field.Group>
+  </Field.Set>
+  <Field.Field
+    class="w-fit rounded-md border border-base-300 bg-base-100 p-3"
+    orientation="horizontal"
+  >
+    <Checkbox id="admin-user-is-admin" bind:checked={editIsAdmin} />
+    <Field.Label for="admin-user-is-admin" class="font-normal">
+      {copy.adminToggleLabel}
+    </Field.Label>
+  </Field.Field>
 </section>
