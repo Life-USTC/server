@@ -324,6 +324,7 @@ afterNavigate(({ from, to }) => {
 
     <div
       bind:this={contentScrollContainer}
+      data-shell-scroll-container
       class={cn(
         "flex min-w-0 flex-1 flex-col",
         detailWorkspace

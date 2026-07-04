@@ -147,15 +147,16 @@ test("/ shell 桌面导航后内容滚动回到顶部", async ({ page }) => {
   await page.evaluate(() => {
     window.scrollTo(0, 720);
     document
-      .querySelector("#main-content")
-      ?.parentElement?.scrollTo({ top: 720 });
+      .querySelector("[data-shell-scroll-container]")
+      ?.scrollTo({ top: 720 });
   });
 
   await expect
     .poll(async () =>
       page.evaluate(() => {
-        const contentPane =
-          document.querySelector("#main-content")?.parentElement;
+        const contentPane = document.querySelector(
+          "[data-shell-scroll-container]",
+        );
         return Math.max(window.scrollY, contentPane?.scrollTop ?? 0);
       }),
     )
@@ -171,8 +172,9 @@ test("/ shell 桌面导航后内容滚动回到顶部", async ({ page }) => {
   await expect
     .poll(async () =>
       page.evaluate(() => {
-        const contentPane =
-          document.querySelector("#main-content")?.parentElement;
+        const contentPane = document.querySelector(
+          "[data-shell-scroll-container]",
+        );
         return Math.max(window.scrollY, contentPane?.scrollTop ?? 0);
       }),
     )
