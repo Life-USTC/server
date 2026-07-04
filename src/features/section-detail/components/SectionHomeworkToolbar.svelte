@@ -16,6 +16,12 @@ export let openCreateHomeworkDialog: () => void;
 export let sectionCopy: SectionCopy;
 export let sectionJwId: number | string;
 export let setHomeworkView: (view: HomeworkView) => void;
+
+function handleHomeworkViewChange(value: string) {
+  if (value === "cards" || value === "list") {
+    setHomeworkView(value);
+  }
+}
 </script>
 
 <div class="flex flex-wrap items-center justify-end gap-2">
@@ -41,19 +47,11 @@ export let setHomeworkView: (view: HomeworkView) => void;
     >
       {homeworkCopy.auditTitle}
     </Button>
-    <Tabs.List aria-label={sectionCopy.homeworkView}>
-      <Tabs.Button
-        onclick={() => setHomeworkView("cards")}
-        selected={homeworkView === "cards"}
-      >
-        {sectionCopy.cardsView}
-      </Tabs.Button>
-      <Tabs.Button
-        onclick={() => setHomeworkView("list")}
-        selected={homeworkView === "list"}
-      >
-        {sectionCopy.listView}
-      </Tabs.Button>
-    </Tabs.List>
+    <Tabs.Root value={homeworkView} onValueChange={handleHomeworkViewChange}>
+      <Tabs.List aria-label={sectionCopy.homeworkView}>
+        <Tabs.Trigger value="cards">{sectionCopy.cardsView}</Tabs.Trigger>
+        <Tabs.Trigger value="list">{sectionCopy.listView}</Tabs.Trigger>
+      </Tabs.List>
+    </Tabs.Root>
   </div>
 </div>

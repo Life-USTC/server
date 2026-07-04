@@ -1,5 +1,21 @@
-export { default as Root } from "./tabs.svelte";
-export { default as Button } from "./tabs-button.svelte";
-export { default as Link } from "./tabs-link.svelte";
-export { default as List } from "./tabs-list.svelte";
-export { default as Panel } from "./tabs-panel.svelte";
+import Root from "./tabs.svelte";
+import Content from "./tabs-content.svelte";
+import List from "./tabs-list.svelte";
+import {
+  type TabsListVariant,
+  tabsListVariants,
+} from "./tabs-list-variants.js";
+import Trigger from "./tabs-trigger.svelte";
+
+export {
+  Content,
+  Content as TabsContent,
+  List,
+  List as TabsList,
+  Root,
+  Root as Tabs,
+  type TabsListVariant,
+  Trigger,
+  Trigger as TabsTrigger,
+  tabsListVariants,
+};

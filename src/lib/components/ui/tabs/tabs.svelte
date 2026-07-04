@@ -1,33 +1,22 @@
 <script lang="ts">
-import { setContext } from "svelte";
-import {
-  type TabsListLabelContext,
-  tabsListLabelContext,
-} from "./tabs-context";
+import { Tabs as TabsPrimitive } from "bits-ui";
+import { cn } from "$lib/utils.js";
 
-let className = "";
-let rootProps: Record<string, unknown> = {};
-
-export { className as class };
-
-const labelContext: TabsListLabelContext = {
-  getLabel: () => {
-    const value = ($$restProps as Record<string, unknown>)["aria-label"];
-    return typeof value === "string" && value.length > 0 ? value : undefined;
-  },
-};
-
-setContext(tabsListLabelContext, labelContext);
-
-$: {
-  const { "aria-label": _label, ...rest } = $$restProps as Record<
-    string,
-    unknown
-  >;
-  rootProps = rest;
-}
+let {
+  ref = $bindable(null),
+  value = $bindable(""),
+  class: className,
+  ...restProps
+}: TabsPrimitive.RootProps = $props();
 </script>
 
-<div class={`grid min-w-0 gap-4 ${className}`} data-slot="tabs" {...rootProps}>
-  <slot />
-</div>
+<TabsPrimitive.Root
+  bind:ref
+  bind:value
+  data-slot="tabs"
+  class={cn(
+    "gap-2 group/tabs flex data-[orientation=horizontal]:flex-col",
+    className,
+  )}
+  {...restProps}
+/>

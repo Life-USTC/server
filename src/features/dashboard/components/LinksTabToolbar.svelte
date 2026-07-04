@@ -13,29 +13,27 @@ export let linkSearchInput: HTMLInputElement | null;
 export let linkSearchQuery: string;
 export let linkView: LinkView;
 export let setLinkView: (view: LinkView) => void;
+
+function handleLinkViewChange(value: string) {
+  if (value === "grid" || value === "list") {
+    setLinkView(value);
+  }
+}
 </script>
 
 <div class="flex min-w-0 flex-wrap items-end gap-2">
-  <Tabs.List aria-label={dashboardCopy.linkHub.viewMode}>
-    <Tabs.Button
-      selected={linkView === "grid"}
-      onclick={() => {
-        setLinkView("grid");
-      }}
-    >
-      <LayoutGrid />
-      {dashboardCopy.linkHub.gridView}
-    </Tabs.Button>
-    <Tabs.Button
-      selected={linkView === "list"}
-      onclick={() => {
-        setLinkView("list");
-      }}
-    >
-      <List />
-      {dashboardCopy.linkHub.listView}
-    </Tabs.Button>
-  </Tabs.List>
+  <Tabs.Root value={linkView} onValueChange={handleLinkViewChange}>
+    <Tabs.List aria-label={dashboardCopy.linkHub.viewMode}>
+      <Tabs.Trigger value="grid">
+        <LayoutGrid />
+        {dashboardCopy.linkHub.gridView}
+      </Tabs.Trigger>
+      <Tabs.Trigger value="list">
+        <List />
+        {dashboardCopy.linkHub.listView}
+      </Tabs.Trigger>
+    </Tabs.List>
+  </Tabs.Root>
   <label class="grid min-w-60 flex-1 max-w-xl">
     <Input
       aria-label={dashboardCopy.linkHub.searchPlaceholder}

@@ -18,43 +18,29 @@ export let copy: DescriptionCopy;
 export let description: DescriptionContent;
 export let formatDate: (value: string | null | undefined) => string;
 export let history: DescriptionHistoryItem[];
+
+function handlePanelTabChange(value: string) {
+  if (value === "description" || value === "history") {
+    activePanelTab = value;
+  }
+}
 </script>
 
-<Tabs.Root aria-label={copy.title}>
-  <Tabs.List semantic>
-    <Tabs.Button
-      id="description-content-tab"
-      panelId="description-content-panel"
-      semantic
-      selected={activePanelTab === "description"}
-      onclick={() => (activePanelTab = "description")}
-    >
+<Tabs.Root value={activePanelTab} onValueChange={handlePanelTabChange}>
+  <Tabs.List aria-label={copy.title}>
+    <Tabs.Trigger value="description">
       {copy.title}
-    </Tabs.Button>
-    <Tabs.Button
-      id="description-history-tab"
-      panelId="description-history-panel"
-      semantic
-      selected={activePanelTab === "history"}
-      onclick={() => (activePanelTab = "history")}
-    >
+    </Tabs.Trigger>
+    <Tabs.Trigger value="history">
       {formatDescriptionCopy(copy.historyTitle, { count: String(history.length) })}
-    </Tabs.Button>
+    </Tabs.Trigger>
   </Tabs.List>
 
-  <Tabs.Panel
-    active={activePanelTab === "history"}
-    id="description-history-panel"
-    labelledBy="description-history-tab"
-  >
+  <Tabs.Content value="history">
     <DescriptionHistoryList {copy} {formatDate} {history} />
-  </Tabs.Panel>
+  </Tabs.Content>
 
-  <Tabs.Panel
-    active={activePanelTab === "description"}
-    id="description-content-panel"
-    labelledBy="description-content-tab"
-  >
+  <Tabs.Content value="description">
     {#if description.content}
       <MarkdownPreview
         content={description.content}
@@ -65,5 +51,5 @@ export let history: DescriptionHistoryItem[];
         <Alert.Description>{copy.empty}</Alert.Description>
       </Alert.Root>
     {/if}
-  </Tabs.Panel>
+  </Tabs.Content>
 </Tabs.Root>

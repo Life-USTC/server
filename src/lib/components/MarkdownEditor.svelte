@@ -30,6 +30,12 @@ function stringRestProp(name: string) {
 
 $: labelledBy = stringRestProp("aria-labelledby");
 $: label = stringRestProp("aria-label");
+
+function setActiveTab(value: string) {
+  if (value === "write" || value === "preview") {
+    activeTab = value;
+  }
+}
 </script>
 
 <div
@@ -43,51 +49,44 @@ $: label = stringRestProp("aria-label");
     <input type="hidden" {name} {value} />
   {/if}
 
-  <Tabs.List aria-label={modeLabel || undefined}>
-    <Tabs.Button
-      selected={activeTab === "write"}
-      onclick={() => {
-        activeTab = "write";
-      }}
-    >
-      {tabWriteLabel}
-    </Tabs.Button>
-    <Tabs.Button
-      selected={activeTab === "preview"}
-      onclick={() => {
-        activeTab = "preview";
-      }}
-    >
-      {tabPreviewLabel}
-    </Tabs.Button>
-  </Tabs.List>
-
-  <div
-    class={`min-h-32 rounded-md border border-base-300 bg-base-100 transition-colors focus-within:ring-2 focus-within:ring-primary/30 ${isDragActive ? "border-primary bg-primary/5" : ""}`}
+  <Tabs.Root
+    value={activeTab}
+    onValueChange={setActiveTab}
+    class="gap-3"
   >
-    {#if activeTab === "write"}
-      <Textarea
-        aria-label={labelledBy ? undefined : label}
-        aria-labelledby={labelledBy}
-        class="min-h-0 resize-y border-0 bg-transparent shadow-none focus-visible:ring-0"
-        bind:value
-        {disabled}
-        {placeholder}
-        {rows}
-        {...$$restProps}
-      ></Textarea>
-    {:else}
-      <div class="min-h-32 p-3">
-        {#if value.trim()}
-          <MarkdownPreview content={value} {remarkPlugins} />
-        {:else}
-          <p class="text-center text-base-content/50 text-sm italic">
-            {previewEmptyLabel}
-          </p>
-        {/if}
-      </div>
-    {/if}
-  </div>
+    <Tabs.List aria-label={modeLabel || undefined}>
+      <Tabs.Trigger value="write">{tabWriteLabel}</Tabs.Trigger>
+      <Tabs.Trigger value="preview">{tabPreviewLabel}</Tabs.Trigger>
+    </Tabs.List>
+
+    <div
+      class={`min-h-32 rounded-md border border-base-300 bg-base-100 transition-colors focus-within:ring-2 focus-within:ring-primary/30 ${isDragActive ? "border-primary bg-primary/5" : ""}`}
+    >
+      <Tabs.Content value="write" class="m-0">
+        <Textarea
+          aria-label={labelledBy ? undefined : label}
+          aria-labelledby={labelledBy}
+          class="min-h-0 resize-y border-0 bg-transparent shadow-none focus-visible:ring-0"
+          bind:value
+          {disabled}
+          {placeholder}
+          {rows}
+          {...$$restProps}
+        ></Textarea>
+      </Tabs.Content>
+      <Tabs.Content value="preview" class="m-0">
+        <div class="min-h-32 p-3">
+          {#if value.trim()}
+            <MarkdownPreview content={value} {remarkPlugins} />
+          {:else}
+            <p class="text-center text-base-content/50 text-sm italic">
+              {previewEmptyLabel}
+            </p>
+          {/if}
+        </div>
+      </Tabs.Content>
+    </div>
+  </Tabs.Root>
 
   {#if guideLabel}
     <div class="flex justify-end">

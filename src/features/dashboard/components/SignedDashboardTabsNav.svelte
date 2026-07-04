@@ -15,18 +15,24 @@ export let signedTabBadge: (
   id: SignedTabId,
 ) => number | null;
 export let signedTabs: ReadonlyArray<readonly [SignedTabId, string]>;
+
+$: selectedTab = signedData.tab ?? "overview";
 </script>
 
-<Tabs.Root class="gap-0">
-  <Tabs.List aria-label={dashboardCopy.nav.ariaLabel} class="!w-full !flex-wrap !overflow-visible">
+<Tabs.Root value={selectedTab} class="gap-0">
+  <Tabs.List aria-label={dashboardCopy.nav.ariaLabel} class="w-full flex-wrap overflow-visible">
     {#each signedTabs as [id, label]}
       {@const badge = signedTabBadge(signedData, id)}
-      <Tabs.Link class={id === "bus" ? "md:ml-auto" : ""} href={dashboardTabHref(id)} selected={signedData.tab === id}>
-        {label}
-        {#if badge !== null && badge > 0}
-          <Badge class="ml-2" variant="ghost">{badge}</Badge>
-        {/if}
-      </Tabs.Link>
+      <Tabs.Trigger value={id} class={id === "bus" ? "md:ml-auto" : ""}>
+        {#snippet child({ props })}
+          <a href={dashboardTabHref(id)} {...props}>
+            {label}
+            {#if badge !== null && badge > 0}
+              <Badge class="ml-2" variant="ghost">{badge}</Badge>
+            {/if}
+          </a>
+        {/snippet}
+      </Tabs.Trigger>
     {/each}
   </Tabs.List>
 </Tabs.Root>

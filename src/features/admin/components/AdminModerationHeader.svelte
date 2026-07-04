@@ -39,13 +39,17 @@ $: currentTabLabel = tabs.find(([id]) => id === currentTab)?.[1] ?? currentTab;
   {/snippet}
 </PageHeader>
 
-<Tabs.Root aria-label={copy.tabsLabel}>
-  <Tabs.List class="max-w-full">
+<Tabs.Root value={currentTab}>
+  <Tabs.List aria-label={copy.tabsLabel} class="max-w-full">
     {#each tabs as [id, label, count]}
-      <Tabs.Link href={moderationHref(id)} selected={currentTab === id}>
-        {label}
-        <Badge class="ml-2" variant="ghost">{count}</Badge>
-      </Tabs.Link>
+      <Tabs.Trigger value={id}>
+        {#snippet child({ props })}
+          <a href={moderationHref(id)} {...props}>
+            {label}
+            <Badge class="ml-2" variant="ghost">{count}</Badge>
+          </a>
+        {/snippet}
+      </Tabs.Trigger>
     {/each}
   </Tabs.List>
 </Tabs.Root>
