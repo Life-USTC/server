@@ -18,9 +18,7 @@ export let linkView: LinkView;
   {#if linkView === "grid"}
     <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
       {#each entry.links as link}
-        <div class="group relative min-w-0 overflow-hidden rounded-md border border-base-300 bg-base-100 transition hover:border-primary hover:bg-base-200/50">
-          <DashboardLinkVisitAction {link} {linkIconLabel} />
-        </div>
+        <DashboardLinkVisitAction {link} {linkIconLabel} />
       {/each}
     </div>
   {:else}
