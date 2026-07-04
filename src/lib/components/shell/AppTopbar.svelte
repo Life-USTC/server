@@ -11,22 +11,16 @@ import type {
   LayoutCopy,
   LayoutUserSummary,
 } from "$lib/shell/layout-server-data";
-import AppMobileMenu from "./AppMobileMenu.svelte";
 import AppUserMenu from "./AppUserMenu.svelte";
-import type { ShellLink, ShellNavGroup } from "./types";
 
 export let avatarFallback: string;
 export let closeMenus: () => void;
 export let copy: LayoutCopy;
-export let isActiveLink: (link: ShellLink) => boolean;
 export let locale: "en-us" | "zh-cn";
 export let localeMenuOpen: boolean;
-export let mobileMenuOpen: boolean;
-export let navGroups: ShellNavGroup[];
 export let profileHref: string;
 export let setLocale: (locale: "en-us" | "zh-cn") => void;
 export let setLocaleMenuOpen: (open: boolean) => void;
-export let setMobileMenuOpen: (open: boolean) => void;
 export let setThemeMenuOpen: (open: boolean) => void;
 export let setThemeMode: (mode: ThemeMode) => void;
 export let setUserMenuOpen: (open: boolean) => void;
@@ -38,15 +32,7 @@ export let userMenuOpen: boolean;
 
 <header class="sticky top-0 h-12 shrink-0 border-b bg-card/95 backdrop-blur">
   <div class="flex h-full items-center gap-2 px-3 sm:px-5 lg:px-6">
-    <AppMobileMenu
-      {closeMenus}
-      {copy}
-      {isActiveLink}
-      {mobileMenuOpen}
-      {navGroups}
-      {setMobileMenuOpen}
-    />
-    <Sidebar.Trigger class="hidden lg:inline-flex" />
+    <Sidebar.Trigger aria-label={copy.shell.menu} onclick={closeMenus} />
 
     <a
       class="inline-flex min-w-0 items-center gap-2 rounded-md font-semibold leading-none transition-opacity hover:opacity-75 lg:hidden"

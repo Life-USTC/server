@@ -47,7 +47,6 @@ type AppShellData = {
 export let data: AppShellData;
 
 let themeMode: ThemeMode = "system";
-let mobileMenuOpen = false;
 let userMenuOpen = false;
 let localeMenuOpen = false;
 let themeMenuOpen = false;
@@ -193,19 +192,9 @@ function setThemeMode(nextThemeMode: ThemeMode) {
   themeMenuOpen = false;
 }
 
-function setMobileMenuOpen(open: boolean) {
-  mobileMenuOpen = open;
-  if (open) {
-    userMenuOpen = false;
-    localeMenuOpen = false;
-    themeMenuOpen = false;
-  }
-}
-
 function setUserMenuOpen(open: boolean) {
   userMenuOpen = open;
   if (open) {
-    mobileMenuOpen = false;
     localeMenuOpen = false;
     themeMenuOpen = false;
   }
@@ -214,7 +203,6 @@ function setUserMenuOpen(open: boolean) {
 function setLocaleMenuOpen(open: boolean) {
   localeMenuOpen = open;
   if (open) {
-    mobileMenuOpen = false;
     userMenuOpen = false;
     themeMenuOpen = false;
   }
@@ -223,14 +211,12 @@ function setLocaleMenuOpen(open: boolean) {
 function setThemeMenuOpen(open: boolean) {
   themeMenuOpen = open;
   if (open) {
-    mobileMenuOpen = false;
     userMenuOpen = false;
     localeMenuOpen = false;
   }
 }
 
 function closeMenus() {
-  mobileMenuOpen = false;
   userMenuOpen = false;
   localeMenuOpen = false;
   themeMenuOpen = false;
@@ -304,15 +290,11 @@ afterNavigate(({ from, to }) => {
       {avatarFallback}
       {closeMenus}
       copy={data.copy}
-      {isActiveLink}
       locale={data.locale}
       {localeMenuOpen}
-      {mobileMenuOpen}
-      {navGroups}
       {profileHref}
       {setLocale}
       {setLocaleMenuOpen}
-      {setMobileMenuOpen}
       {setThemeMenuOpen}
       {setThemeMode}
       {setUserMenuOpen}
