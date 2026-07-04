@@ -111,6 +111,4 @@ export type WelcomeSectionSelectionSetter = (
   checked: boolean,
 ) => void;
 
-export type WelcomeSectionSelectionToggle = (sectionId: number) => void;
-
 export type { WelcomeMatchedSection };

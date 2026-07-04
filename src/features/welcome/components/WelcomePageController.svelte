@@ -60,52 +60,46 @@ function displayName(item?: WelcomeMatchedSection["course"] | null) {
   return displayWelcomeName(item, data.locale);
 }
 
-const {
-  confirmImport,
-  matchSections,
-  resetBulkImport,
-  setSectionSelection,
-  toggleSectionSelection,
-} = createWelcomeBulkImportActions({
-  formatCopy,
-  getBulkCopy: () => bulkCopy,
-  getImportText: () => importText,
-  getLocale: () => data.locale,
-  getSelectedSectionIds: () => selectedSectionIds,
-  getSelectedSectionIdSet: () => selectedSectionIdSet,
-  getSelectedSemesterId: () => selectedSemesterId,
-  getWelcomeCopy: () => welcomeCopy,
-  setBulkImportOpen: (value) => {
-    isBulkImportOpen = value;
-  },
-  setConfirmImportOpen: (value) => {
-    isConfirmImportOpen = value;
-  },
-  setImportError: (value) => {
-    importError = value;
-  },
-  setImporting: (value) => {
-    isImporting = value;
-  },
-  setImportMessage: (value) => {
-    importMessage = value;
-  },
-  setImportText: (value) => {
-    importText = value;
-  },
-  setMatchedSections: (value) => {
-    matchedSections = value;
-  },
-  setMatching: (value) => {
-    isMatching = value;
-  },
-  setSelectedSectionIds: (value) => {
-    selectedSectionIds = value;
-  },
-  setUnmatchedCodes: (value) => {
-    unmatchedCodes = value;
-  },
-});
+const { confirmImport, matchSections, resetBulkImport, setSectionSelection } =
+  createWelcomeBulkImportActions({
+    formatCopy,
+    getBulkCopy: () => bulkCopy,
+    getImportText: () => importText,
+    getLocale: () => data.locale,
+    getSelectedSectionIds: () => selectedSectionIds,
+    getSelectedSemesterId: () => selectedSemesterId,
+    getWelcomeCopy: () => welcomeCopy,
+    setBulkImportOpen: (value) => {
+      isBulkImportOpen = value;
+    },
+    setConfirmImportOpen: (value) => {
+      isConfirmImportOpen = value;
+    },
+    setImportError: (value) => {
+      importError = value;
+    },
+    setImporting: (value) => {
+      isImporting = value;
+    },
+    setImportMessage: (value) => {
+      importMessage = value;
+    },
+    setImportText: (value) => {
+      importText = value;
+    },
+    setMatchedSections: (value) => {
+      matchedSections = value;
+    },
+    setMatching: (value) => {
+      isMatching = value;
+    },
+    setSelectedSectionIds: (value) => {
+      selectedSectionIds = value;
+    },
+    setUnmatchedCodes: (value) => {
+      unmatchedCodes = value;
+    },
+  });
 
 const completeProfileAction = createCompleteProfileAction({
   setCompleting: (value) => {
@@ -161,7 +155,6 @@ const completeProfileAction = createCompleteProfileAction({
     bind:selectedSemesterId
     {semesterOptions}
     {setSectionSelection}
-    {toggleSectionSelection}
     {unmatchedCodes}
     {welcomeCopy}
   />

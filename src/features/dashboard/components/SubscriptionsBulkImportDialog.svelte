@@ -2,6 +2,7 @@
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
 import { Select } from "$lib/components/ui/select/index.js";
 import { Textarea } from "$lib/components/ui/textarea/index.js";
 import type { DashboardSubscriptionsTabProps } from "./subscription-tab-types";
@@ -42,9 +43,12 @@ export let bulkImportText: string;
             <Alert.Description>{bulkImportError}</Alert.Description>
           </Alert.Root>
         {/if}
-        <label class="grid gap-2">
-          <span class="font-medium text-sm">{subscriptionsCopy.bulkImport.semesterLabel}</span>
+        <Field.Field>
+          <Field.Label for="subscriptions-bulk-import-semester">
+            {subscriptionsCopy.bulkImport.semesterLabel}
+          </Field.Label>
           <Select
+            id="subscriptions-bulk-import-semester"
             class="w-full"
             bind:value={bulkImportSemesterId}
             items={signedData.subscriptions.semesters.map((semester) => ({
@@ -52,15 +56,18 @@ export let bulkImportText: string;
               label: semester.nameCn,
             }))}
           />
-        </label>
-        <label class="grid gap-2">
-          <span class="font-medium text-sm">{subscriptionsCopy.bulkImport.sectionCodesLabel}</span>
+        </Field.Field>
+        <Field.Field>
+          <Field.Label for="subscriptions-bulk-import-section-codes">
+            {subscriptionsCopy.bulkImport.sectionCodesLabel}
+          </Field.Label>
           <Textarea
+            id="subscriptions-bulk-import-section-codes"
             bind:value={bulkImportText}
             placeholder={subscriptionsCopy.bulkImport.placeholder}
             rows="5"
           ></Textarea>
-        </label>
+        </Field.Field>
       </div>
       <Dialog.Footer>
         <Button

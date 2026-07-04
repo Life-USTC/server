@@ -1,7 +1,4 @@
-import {
-  setSelectedSectionId,
-  toggleSelectedSectionId,
-} from "@/features/welcome/lib/welcome-bulk-import-selection";
+import { setSelectedSectionId } from "@/features/welcome/lib/welcome-bulk-import-selection";
 import type { WelcomeBulkImportActionInput } from "./welcome-bulk-import-action-types";
 import { confirmWelcomeBulkImport } from "./welcome-bulk-import-confirm-action";
 import { matchWelcomeBulkImportSections } from "./welcome-bulk-import-match-action";
@@ -12,16 +9,6 @@ export function createWelcomeBulkImportActions(
 ) {
   function resetBulkImport() {
     resetWelcomeBulkImport(input);
-  }
-
-  function toggleSectionSelection(sectionId: number) {
-    input.setSelectedSectionIds(
-      toggleSelectedSectionId(
-        input.getSelectedSectionIds(),
-        input.getSelectedSectionIdSet(),
-        sectionId,
-      ),
-    );
   }
 
   function setSectionSelection(sectionId: number, checked: boolean) {
@@ -42,7 +29,6 @@ export function createWelcomeBulkImportActions(
     confirmImport,
     resetBulkImport,
     setSectionSelection,
-    toggleSectionSelection,
     matchSections,
   };
 }

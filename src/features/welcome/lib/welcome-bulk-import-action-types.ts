@@ -12,7 +12,6 @@ export type WelcomeBulkImportActionInput = {
   getImportText: () => string;
   getLocale: () => string;
   getSelectedSectionIds: () => number[];
-  getSelectedSectionIdSet: () => Set<number>;
   getSelectedSemesterId: () => string;
   getWelcomeCopy: () => WelcomeCopy;
   setBulkImportOpen: (value: boolean) => void;

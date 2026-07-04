@@ -2,6 +2,7 @@
 import { Button } from "$lib/components/ui/button/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
 import type {
   WelcomeBulkImportCopy,
   WelcomeCopy,
@@ -10,7 +11,6 @@ import type {
   WelcomeImportAction,
   WelcomeMatchedSection,
   WelcomeSectionSelectionSetter,
-  WelcomeSectionSelectionToggle,
 } from "./welcome-component-types";
 
 export let bulkCopy: WelcomeBulkImportCopy;
@@ -23,7 +23,6 @@ export let matchedSections: WelcomeMatchedSection[];
 export let selectedCount: number;
 export let selectedSectionIdSet: Set<number>;
 export let setSectionSelection: WelcomeSectionSelectionSetter;
-export let toggleSectionSelection: WelcomeSectionSelectionToggle;
 export let unmatchedCodes: string[];
 export let welcomeCopy: WelcomeCopy;
 </script>
@@ -50,12 +49,15 @@ export let welcomeCopy: WelcomeCopy;
       </Dialog.Header>
       <div class="grid max-h-[60vh] gap-4 overflow-y-auto px-5 py-4">
         {#if matchedSections.length > 0}
-          <div class="grid gap-2">
+          <Field.Group data-slot="checkbox-group" class="gap-2">
             {#each matchedSections as section}
-              <div
-                class="flex w-full items-start gap-3 rounded-md border border-base-300 bg-base-100 p-3 text-left transition hover:bg-base-200"
+              {@const checkboxId = `welcome-import-section-${section.id}`}
+              <Field.Field
+                orientation="horizontal"
+                class="rounded-md border border-base-300 bg-base-100 p-3 transition hover:bg-base-200"
               >
                 <Checkbox
+                  id={checkboxId}
                   checked={selectedSectionIdSet.has(section.id)}
                   aria-label={formatCopy(welcomeCopy.selectSection, {
                     code: section.code,
@@ -64,26 +66,22 @@ export let welcomeCopy: WelcomeCopy;
                     setSectionSelection(section.id, event.currentTarget.checked);
                   }}
                 />
-                <button
-                  class="min-w-0 flex-1 text-left"
-                  type="button"
-                  onclick={() => {
-                    toggleSectionSelection(section.id);
-                  }}
-                >
-                  <span class="block font-medium">{displayName(section.course)}</span>
-                  <span class="block text-base-content/60 text-sm">
+                <Field.Content>
+                  <Field.Label class="cursor-pointer font-normal" for={checkboxId}>
+                    {displayName(section.course)}
+                  </Field.Label>
+                  <Field.Description>
                     {section.code}
                     {#if section.semester} · {displayName(section.semester)}{/if}
                     {#if section.campus} · {displayName(section.campus)}{/if}
                     {#if section.teachers.length > 0}
                       · {section.teachers.map(displayName).filter(Boolean).join(", ")}
                     {/if}
-                  </span>
-                </button>
-              </div>
+                  </Field.Description>
+                </Field.Content>
+              </Field.Field>
             {/each}
-          </div>
+          </Field.Group>
         {:else}
           <p class="text-base-content/60 text-sm">{welcomeCopy.noMatchingSections}</p>
         {/if}

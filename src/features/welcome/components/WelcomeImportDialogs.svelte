@@ -9,7 +9,6 @@ import type {
   WelcomeImportAction,
   WelcomeMatchedSection,
   WelcomeSectionSelectionSetter,
-  WelcomeSectionSelectionToggle,
   WelcomeSelectOption,
 } from "./welcome-component-types";
 
@@ -33,7 +32,6 @@ export let selectedSectionIdSet: Set<number>;
 export let selectedSemesterId: string;
 export let semesterOptions: WelcomeSelectOption[];
 export let setSectionSelection: WelcomeSectionSelectionSetter;
-export let toggleSectionSelection: WelcomeSectionSelectionToggle;
 export let unmatchedCodes: string[];
 export let welcomeCopy: WelcomeCopy;
 </script>
@@ -64,7 +62,6 @@ export let welcomeCopy: WelcomeCopy;
   {selectedCount}
   {selectedSectionIdSet}
   {setSectionSelection}
-  {toggleSectionSelection}
   {unmatchedCodes}
   {welcomeCopy}
 />
