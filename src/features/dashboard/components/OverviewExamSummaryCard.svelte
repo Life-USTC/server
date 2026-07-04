@@ -7,6 +7,7 @@ import type {
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
 
 export let calendarExamDetail: (exam: DashboardOverviewExamItem) => string;
@@ -28,18 +29,19 @@ export let upcomingExams: DashboardOverviewExamItem[];
     </div>
   </Card.Header>
   <Card.Content>
-    <div class="grid gap-2">
+    <Item.Group>
       {#each upcomingExams.slice(0, 5) as exam}
-        <a
-          class="flex items-start justify-between gap-3 rounded-xl border border-base-300 px-3 py-3 text-sm no-underline transition hover:border-primary hover:bg-base-200/50"
-          href={dashboardTabHref("exams")}
-        >
-          <span class="min-w-0">
-            <span class="block truncate font-medium">{exam.courseName}</span>
-            <span class="block truncate text-base-content/60 text-sm">{calendarExamDetail(exam) || sectionCopy.dateTBD}</span>
-          </span>
-          <span class="shrink-0 text-base-content/60 text-xs">{fmtDate(exam.date)}</span>
-        </a>
+        <Item.Root variant="outline" size="sm">
+          {#snippet child({ props })}
+            <a href={dashboardTabHref("exams")} {...props}>
+              <Item.Content>
+                <Item.Title>{exam.courseName}</Item.Title>
+                <Item.Description>{calendarExamDetail(exam) || sectionCopy.dateTBD}</Item.Description>
+              </Item.Content>
+              <Item.Actions class="text-muted-foreground text-xs">{fmtDate(exam.date)}</Item.Actions>
+            </a>
+          {/snippet}
+        </Item.Root>
       {:else}
         <Empty.Root class="min-h-24">
           <Empty.Header>
@@ -47,6 +49,6 @@ export let upcomingExams: DashboardOverviewExamItem[];
           </Empty.Header>
         </Empty.Root>
       {/each}
-    </div>
+    </Item.Group>
   </Card.Content>
 </Card.Root>

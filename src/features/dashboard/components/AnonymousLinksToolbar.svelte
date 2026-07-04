@@ -5,6 +5,7 @@ import type {
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import LayoutGrid from "$lib/components/icons/layout-grid.svelte";
 import List from "$lib/components/icons/list.svelte";
+import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 
@@ -38,16 +39,19 @@ function handleLinkViewChange(value: string) {
       {dashboardCopy.linkHub.listView}
     </ToggleGroup.Item>
   </ToggleGroup.Root>
-  <label class="grid min-w-60 flex-1 max-w-xl">
-    <Input
-      aria-label={dashboardCopy.linkHub.searchPlaceholder}
-      bind:ref={linkSearchInput}
-      placeholder={dashboardCopy.linkHub.searchPlaceholder}
-      type="search"
-      value={linkSearchQuery}
-      oninput={(event: Event) => {
-        linkSearchQuery = (event.currentTarget as HTMLInputElement).value;
-      }}
-    />
-  </label>
+  <Field.Group class="min-w-60 flex-1 max-w-xl gap-0">
+    <Field.Field>
+      <Field.Label class="sr-only" for="anonymous-link-search">{dashboardCopy.linkHub.searchPlaceholder}</Field.Label>
+      <Input
+        id="anonymous-link-search"
+        bind:ref={linkSearchInput}
+        placeholder={dashboardCopy.linkHub.searchPlaceholder}
+        type="search"
+        value={linkSearchQuery}
+        oninput={(event: Event) => {
+          linkSearchQuery = (event.currentTarget as HTMLInputElement).value;
+        }}
+      />
+    </Field.Field>
+  </Field.Group>
 </div>

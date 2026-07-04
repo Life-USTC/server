@@ -7,6 +7,7 @@ import type {
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
 
 export let dashboardCopy: DashboardDashboardCopy;
@@ -45,23 +46,24 @@ export let todoStatus: (todo: DashboardTodoItem) => string;
     </div>
   </Card.Header>
   <Card.Content>
-    <div class="grid gap-2">
+    <Item.Group>
       {#each pendingTodos.slice(0, 5) as todo}
-        <a
-          class="grid gap-2 rounded-xl border border-base-300 px-3 py-3 text-sm no-underline transition hover:border-primary hover:bg-base-200/50 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start"
-          href={dashboardTabHref("todos")}
-        >
-          <span class="min-w-0">
-            <span class="block truncate font-medium">{todo.title}</span>
-            <span class="mt-1 flex flex-wrap gap-1.5">
-              <Badge class={todoPriorityClass(todo.priority)}>{todosCopy.priority[todo.priority]}</Badge>
-              <Badge variant="ghost">{todoStatus(todo)}</Badge>
-            </span>
-          </span>
-          {#if todo.dueAt}
-            <span class="text-base-content/60 text-xs sm:text-right">{fmtDate(todo.dueAt)}</span>
-          {/if}
-        </a>
+        <Item.Root variant="outline" size="sm">
+          {#snippet child({ props })}
+            <a href={dashboardTabHref("todos")} {...props}>
+              <Item.Content>
+                <Item.Title>{todo.title}</Item.Title>
+                <Item.Description class="flex flex-wrap gap-1.5">
+                  <Badge class={todoPriorityClass(todo.priority)}>{todosCopy.priority[todo.priority]}</Badge>
+                  <Badge variant="ghost">{todoStatus(todo)}</Badge>
+                </Item.Description>
+              </Item.Content>
+              {#if todo.dueAt}
+                <Item.Actions class="text-muted-foreground text-xs sm:text-right">{fmtDate(todo.dueAt)}</Item.Actions>
+              {/if}
+            </a>
+          {/snippet}
+        </Item.Root>
       {:else}
         <Empty.Root class="min-h-24">
           <Empty.Header>
@@ -69,6 +71,6 @@ export let todoStatus: (todo: DashboardTodoItem) => string;
           </Empty.Header>
         </Empty.Root>
       {/each}
-    </div>
+    </Item.Group>
   </Card.Content>
 </Card.Root>
