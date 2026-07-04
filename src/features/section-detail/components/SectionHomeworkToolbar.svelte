@@ -1,6 +1,6 @@
 <script lang="ts">
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Tabs from "$lib/components/ui/tabs/index.js";
+import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 import type {
   HomeworkView,
   SectionCopy,
@@ -47,11 +47,15 @@ function handleHomeworkViewChange(value: string) {
     >
       {homeworkCopy.auditTitle}
     </Button>
-    <Tabs.Root value={homeworkView} onValueChange={handleHomeworkViewChange}>
-      <Tabs.List aria-label={sectionCopy.homeworkView}>
-        <Tabs.Trigger value="cards">{sectionCopy.cardsView}</Tabs.Trigger>
-        <Tabs.Trigger value="list">{sectionCopy.listView}</Tabs.Trigger>
-      </Tabs.List>
-    </Tabs.Root>
+    <ToggleGroup.Root
+      aria-label={sectionCopy.homeworkView}
+      type="single"
+      value={homeworkView}
+      variant="outline"
+      onValueChange={handleHomeworkViewChange}
+    >
+      <ToggleGroup.Item value="cards">{sectionCopy.cardsView}</ToggleGroup.Item>
+      <ToggleGroup.Item value="list">{sectionCopy.listView}</ToggleGroup.Item>
+    </ToggleGroup.Root>
   </div>
 </div>

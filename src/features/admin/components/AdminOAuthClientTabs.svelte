@@ -1,5 +1,5 @@
 <script lang="ts">
-import * as Tabs from "$lib/components/ui/tabs/index.js";
+import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 
 type ClientTab = "trusted" | "public" | "disabled" | "all";
 
@@ -19,10 +19,14 @@ function handleClientTabChange(value: string) {
 }
 </script>
 
-<Tabs.Root value={activeClientTab} onValueChange={handleClientTabChange}>
-  <Tabs.List aria-label={copy.clientGroupsLabel}>
-    {#each clientTabs as [id, label]}
-      <Tabs.Trigger value={id}>{label}</Tabs.Trigger>
-    {/each}
-  </Tabs.List>
-</Tabs.Root>
+<ToggleGroup.Root
+  aria-label={copy.clientGroupsLabel}
+  type="single"
+  value={activeClientTab}
+  variant="outline"
+  onValueChange={handleClientTabChange}
+>
+  {#each clientTabs as [id, label]}
+    <ToggleGroup.Item value={id}>{label}</ToggleGroup.Item>
+  {/each}
+</ToggleGroup.Root>

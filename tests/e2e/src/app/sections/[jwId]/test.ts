@@ -572,7 +572,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
 
     await expect(page.getByTestId("section-homeworks-cards")).toBeVisible();
     await page
-      .getByRole("button", { name: /列表|List/i })
+      .getByRole("radio", { name: /列表|List/i })
       .first()
       .click();
     await expect(page).toHaveURL(/homeworkView=list/);

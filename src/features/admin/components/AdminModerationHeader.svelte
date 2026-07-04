@@ -3,7 +3,6 @@ import PageHeader from "$lib/components/PageHeader.svelte";
 import PageHeaderMeta from "$lib/components/PageHeaderMeta.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Tabs from "$lib/components/ui/tabs/index.js";
 import type {
   AdminModerationAdminCopy,
   AdminModerationCopy,
@@ -39,17 +38,16 @@ $: currentTabLabel = tabs.find(([id]) => id === currentTab)?.[1] ?? currentTab;
   {/snippet}
 </PageHeader>
 
-<Tabs.Root value={currentTab}>
-  <Tabs.List aria-label={copy.tabsLabel} class="max-w-full">
-    {#each tabs as [id, label, count]}
-      <Tabs.Trigger value={id}>
-        {#snippet child({ props })}
-          <a href={moderationHref(id)} {...props}>
-            {label}
-            <Badge class="ml-2" variant="ghost">{count}</Badge>
-          </a>
-        {/snippet}
-      </Tabs.Trigger>
-    {/each}
-  </Tabs.List>
-</Tabs.Root>
+<nav aria-label={copy.tabsLabel} class="flex max-w-full flex-wrap items-center gap-1">
+  {#each tabs as [id, label, count]}
+    <Button
+      aria-current={id === currentTab ? "page" : undefined}
+      href={moderationHref(id)}
+      size="sm"
+      variant={id === currentTab ? "secondary" : "ghost"}
+    >
+      {label}
+      <Badge class="ml-2" variant="ghost">{count}</Badge>
+    </Button>
+  {/each}
+</nav>
