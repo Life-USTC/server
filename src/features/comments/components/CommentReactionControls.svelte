@@ -56,7 +56,7 @@ $: if (
           </Button>
         {/snippet}
       </DropdownMenu.Trigger>
-      <DropdownMenu.Content class="w-56" preventScroll={false}>
+      <DropdownMenu.Content class="w-56">
         <DropdownMenu.Group>
           {#each reactionOptions as option}
             <DropdownMenu.CheckboxItem

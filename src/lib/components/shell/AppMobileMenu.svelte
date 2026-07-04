@@ -30,7 +30,6 @@ export let setMobileMenuOpen: (open: boolean) => void;
     <DropdownMenu.Content
       align="start"
       class="max-h-[min(34rem,calc(100vh-5rem))] w-64"
-      preventScroll={false}
     >
       {#each navGroups as group}
         <DropdownMenu.Group>

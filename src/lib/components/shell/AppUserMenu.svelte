@@ -37,7 +37,7 @@ export let userMenuOpen: boolean;
           </Button>
         {/snippet}
       </DropdownMenu.Trigger>
-      <DropdownMenu.Content align="end" class="w-44" preventScroll={false}>
+      <DropdownMenu.Content align="end" class="w-44">
         <DropdownMenu.Group>
           <DropdownMenu.Item onSelect={closeMenus}>
             {#snippet child({ props })}

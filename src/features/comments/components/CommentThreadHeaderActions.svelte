@@ -51,7 +51,7 @@ export let toggleReply: (comment: CommentNode) => void;
           </Button>
         {/snippet}
       </DropdownMenu.Trigger>
-      <DropdownMenu.Content align="end" preventScroll={false}>
+      <DropdownMenu.Content align="end">
         <DropdownMenu.Group>
           <DropdownMenu.Item onSelect={() => copyCommentLink(comment)}>
             {commentCopy.copyLinkAction}
