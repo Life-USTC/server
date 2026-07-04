@@ -23,23 +23,23 @@ export let setCalendarWeek: DashboardCalendarControlsProps["setCalendarWeek"];
 {#if calendarData}
   {#if calendarView === "month"}
     <ButtonGroup.Root>
-      <Button aria-label={sectionCopy.previousMonth} size="lg" type="button" variant="ghost" onclick={() => setCalendarMonth(addMonths(calendarMonth, -1))}>
+      <Button aria-label={sectionCopy.previousMonth} size="lg" type="button" variant="outline" onclick={() => setCalendarMonth(addMonths(calendarMonth, -1))}>
         {commonCopy.previous}
       </Button>
-      <span class="inline-flex h-9 items-center px-3 font-medium text-sm">{calendarMonth}</span>
-      <Button aria-label={sectionCopy.nextMonth} size="lg" type="button" variant="ghost" onclick={() => setCalendarMonth(addMonths(calendarMonth, 1))}>
+      <ButtonGroup.Text class="h-9">{calendarMonth}</ButtonGroup.Text>
+      <Button aria-label={sectionCopy.nextMonth} size="lg" type="button" variant="outline" onclick={() => setCalendarMonth(addMonths(calendarMonth, 1))}>
         {commonCopy.next}
       </Button>
     </ButtonGroup.Root>
   {:else if calendarView === "week"}
     <ButtonGroup.Root>
-      <Button aria-label={dashboardCopy.calendarWeek.prev} size="lg" type="button" variant="ghost" onclick={() => setCalendarWeek(addDays(calendarWeekStart, -7))}>
+      <Button aria-label={dashboardCopy.calendarWeek.prev} size="lg" type="button" variant="outline" onclick={() => setCalendarWeek(addDays(calendarWeekStart, -7))}>
         {commonCopy.previous}
       </Button>
-      <span class="inline-flex h-9 items-center px-3 font-medium text-sm">
+      <ButtonGroup.Text class="h-9">
         {formatMessage(dashboardCopy.calendarWeek.current, { date: calendarWeekStart })}
-      </span>
-      <Button aria-label={dashboardCopy.calendarWeek.next} size="lg" type="button" variant="ghost" onclick={() => setCalendarWeek(addDays(calendarWeekStart, 7))}>
+      </ButtonGroup.Text>
+      <Button aria-label={dashboardCopy.calendarWeek.next} size="lg" type="button" variant="outline" onclick={() => setCalendarWeek(addDays(calendarWeekStart, 7))}>
         {commonCopy.next}
       </Button>
     </ButtonGroup.Root>
@@ -50,7 +50,7 @@ export let setCalendarWeek: DashboardCalendarControlsProps["setCalendarWeek"];
         disabled={calendarSemesterIndex(calendarData) <= 0}
         size="lg"
         type="button"
-        variant="ghost"
+        variant="outline"
         onclick={() => {
           const next = calendarData.calendarSemesterNavList[
             calendarSemesterIndex(calendarData) - 1
@@ -60,15 +60,15 @@ export let setCalendarWeek: DashboardCalendarControlsProps["setCalendarWeek"];
       >
         {dashboardCopy.calendarSemesterPrev}
       </Button>
-      <span class="inline-flex h-9 items-center px-3 font-medium text-sm">
+      <ButtonGroup.Text class="h-9">
         {calendarData.activeCalendarSemesterName ?? commonCopy.semesters}
-      </span>
+      </ButtonGroup.Text>
       <Button
         aria-label={dashboardCopy.calendarSemesterNext}
         disabled={calendarSemesterIndex(calendarData) >= calendarData.calendarSemesterNavList.length - 1}
         size="lg"
         type="button"
-        variant="ghost"
+        variant="outline"
         onclick={() => {
           const next = calendarData.calendarSemesterNavList[
             calendarSemesterIndex(calendarData) + 1
