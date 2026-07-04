@@ -5,9 +5,9 @@ import type {
   DashboardSubscriptionsCopy,
   SubscriptionsData,
 } from "@/features/dashboard/lib/dashboard-controller-types";
-import RefreshCw from "$lib/components/icons/refresh-cw.svelte";
 import Trash2 from "$lib/components/icons/trash-2.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 
 type SubscriptionSection =
   SubscriptionsData["subscriptions"][number]["sections"][number];
@@ -71,7 +71,7 @@ export let subscriptionsCopy: DashboardSubscriptionsCopy;
         onclick={() => removeSubscribedSection(section.id)}
       >
         {#if removingSectionId === section.id}
-          <RefreshCw class="animate-spin" />
+          <Spinner />
         {:else}
           <Trash2 />
         {/if}

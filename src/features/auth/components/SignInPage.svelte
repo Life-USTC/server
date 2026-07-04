@@ -3,10 +3,10 @@ import type { SubmitFunction } from "@sveltejs/kit";
 import { enhance } from "$app/forms";
 import ArrowUpRight from "$lib/components/icons/arrow-up-right.svelte";
 import CircleUserRound from "$lib/components/icons/circle-user-round.svelte";
-import RefreshCw from "$lib/components/icons/refresh-cw.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 import { redirectWithExternalFallback } from "$lib/navigation/redirect";
 
 type PageData = {
@@ -97,7 +97,7 @@ function providerInitial(name: string) {
               <span class="flex min-w-0 items-center gap-3">
                 <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200 font-semibold text-primary text-xs">
                   {#if pendingProviderId === provider.id}
-                    <RefreshCw class="animate-spin" />
+                    <Spinner />
                   {:else if provider.debug}
                     <CircleUserRound />
                   {:else}

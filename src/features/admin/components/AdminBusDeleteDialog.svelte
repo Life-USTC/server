@@ -1,9 +1,9 @@
 <script lang="ts">
 import { enhance } from "$app/forms";
-import RefreshCw from "$lib/components/icons/refresh-cw.svelte";
 import Trash2 from "$lib/components/icons/trash-2.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type {
   AdminBusCopy,
   AdminBusEnhancedAction,
@@ -61,7 +61,7 @@ export let version: AdminBusVersion;
           type="submit"
         >
           {#if isPending(`delete-${version.id}`)}
-            <RefreshCw class="animate-spin" data-icon="inline-start" />
+            <Spinner data-icon="inline-start" />
           {:else}
             <Trash2 data-icon="inline-start" />
           {/if}

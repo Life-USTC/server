@@ -1,9 +1,9 @@
 <script lang="ts">
 import { enhance } from "$app/forms";
 import CheckCircle from "$lib/components/icons/check-circle.svelte";
-import RefreshCw from "$lib/components/icons/refresh-cw.svelte";
 import Trash2 from "$lib/components/icons/trash-2.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type {
   AdminBusCopy,
   AdminBusEnhancedAction,
@@ -23,7 +23,7 @@ export let version: AdminBusVersion;
     <input type="hidden" name="id" value={version.id} />
     <Button size="sm" type="submit" disabled={Boolean(pendingAction)} variant="outline">
       {#if isPending(`activate-${version.id}`)}
-        <RefreshCw class="animate-spin" data-icon="inline-start" />
+        <Spinner data-icon="inline-start" />
       {:else}
         <CheckCircle data-icon="inline-start" />
       {/if}

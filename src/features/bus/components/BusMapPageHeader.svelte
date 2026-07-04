@@ -4,6 +4,7 @@ import RefreshCw from "$lib/components/icons/refresh-cw.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 
 export let copy: BusMapCopy;
 export let dayTypeLabel: string;
@@ -23,7 +24,11 @@ export let updatedTime: string;
   {/snippet}
   {#snippet actions()}
     <Button variant="outline" size="sm" type="button" aria-label={copy.refresh} onclick={refreshMap}>
-      <RefreshCw class={refreshing ? "animate-spin" : ""} data-icon="inline-start" />
+      {#if refreshing}
+        <Spinner data-icon="inline-start" />
+      {:else}
+        <RefreshCw data-icon="inline-start" />
+      {/if}
       <span>{copy.refresh}</span>
     </Button>
   {/snippet}

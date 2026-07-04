@@ -1,10 +1,10 @@
 <script lang="ts">
 import { enhance } from "$app/forms";
 import Download from "$lib/components/icons/download.svelte";
-import RefreshCw from "$lib/components/icons/refresh-cw.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type { AdminBusCopy, AdminBusEnhancedAction } from "./admin-bus-types";
 
 export let close: () => void;
@@ -51,7 +51,7 @@ export let pendingAction: string | null;
         </Button>
         <Button type="submit" disabled={Boolean(pendingAction)}>
           {#if isPending("import")}
-            <RefreshCw class="animate-spin" data-icon="inline-start" />
+            <Spinner data-icon="inline-start" />
           {:else}
             <Download data-icon="inline-start" />
           {/if}
