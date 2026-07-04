@@ -36,7 +36,7 @@ export let user: LayoutUserSummary;
 export let userMenuOpen: boolean;
 </script>
 
-<header class="sticky top-0 h-12 shrink-0 border-base-300 border-b bg-base-100/95 backdrop-blur">
+<header class="sticky top-0 h-12 shrink-0 border-b bg-card/95 backdrop-blur">
   <div class="flex h-full items-center gap-2 px-3 sm:px-5 lg:px-6">
     <AppMobileMenu
       {closeMenus}

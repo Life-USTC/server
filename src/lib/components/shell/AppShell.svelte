@@ -284,7 +284,7 @@ afterNavigate(({ from, to }) => {
 
 <Sidebar.Provider
   style="--sidebar-width: 15rem; --sidebar-width-icon: 4rem;"
-  class="min-h-screen bg-base-200 text-base-content lg:h-screen lg:min-h-0 lg:overflow-hidden"
+  class="min-h-screen bg-background text-foreground lg:h-screen lg:min-h-0 lg:overflow-hidden"
 >
   {#if $navigating}
     <RouteLoadingBar loadingLabel={data.copy.shell.loading} />
@@ -296,7 +296,10 @@ afterNavigate(({ from, to }) => {
     {navGroups}
   />
 
-  <div class="flex min-w-0 flex-1 flex-col lg:h-screen lg:min-h-0 lg:overflow-hidden">
+  <Sidebar.Inset
+    id="main-content"
+    class="min-w-0 lg:h-screen lg:min-h-0 lg:overflow-hidden"
+  >
     <AppTopbar
       {avatarFallback}
       {closeMenus}
@@ -328,17 +331,16 @@ afterNavigate(({ from, to }) => {
           : "lg:min-h-0 lg:overflow-y-auto",
       )}
     >
-      <main
-        id="main-content"
+      <div
         class={cn(
           "w-full flex-1",
           detailWorkspace
-            ? "bg-base-100 p-0 lg:min-h-0 lg:overflow-hidden"
+            ? "bg-card p-0 lg:min-h-0 lg:overflow-hidden"
             : "px-4 py-4 sm:px-5 lg:px-6",
         )}
       >
         <slot />
-      </main>
+      </div>
 
       {#if !detailWorkspace}
         <AppFooter
@@ -347,5 +349,5 @@ afterNavigate(({ from, to }) => {
         />
       {/if}
     </div>
-  </div>
+  </Sidebar.Inset>
 </Sidebar.Provider>
