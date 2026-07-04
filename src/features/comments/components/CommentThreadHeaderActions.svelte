@@ -2,7 +2,7 @@
 import type { CommentNodeWithContext } from "@/features/comments/lib/comment-ui";
 import type { CommentNode } from "@/features/comments/server/comment-types";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Menu from "$lib/components/ui/menu/index.js";
+import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
 import type { CommentsCopy } from "./comment-component-types";
 
 export let actionMenuId: string | null;
@@ -33,29 +33,39 @@ export let toggleReply: (comment: CommentNode) => void;
     </Button>
   {/if}
   <div class="relative">
-    <Menu.Root
+    <DropdownMenu.Root
       open={actionMenuId === comment.id}
       onOpenChange={(open) => {
         actionMenuId = open ? comment.id : null;
       }}
     >
-      <Menu.Trigger
-        aria-label={commentCopy.moreActions}
-        size="sm"
-        variant="ghost"
-      >
-        {commentCopy.moreActions}
-      </Menu.Trigger>
-      <Menu.Content align="end">
-        <Menu.Item onclick={() => copyCommentLink(comment)}>
-          {commentCopy.copyLinkAction}
-        </Menu.Item>
-        {#if comment.canDelete}
-          <Menu.Item destructive onclick={() => openDeleteDialog(comment)}>
-            {commentCopy.deleteAction}
-          </Menu.Item>
-        {/if}
-      </Menu.Content>
-    </Menu.Root>
+      <DropdownMenu.Trigger>
+        {#snippet child({ props })}
+          <Button
+            {...props}
+            aria-label={commentCopy.moreActions}
+            size="sm"
+            variant="ghost"
+          >
+            {commentCopy.moreActions}
+          </Button>
+        {/snippet}
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Content align="end" preventScroll={false}>
+        <DropdownMenu.Group>
+          <DropdownMenu.Item onSelect={() => copyCommentLink(comment)}>
+            {commentCopy.copyLinkAction}
+          </DropdownMenu.Item>
+          {#if comment.canDelete}
+            <DropdownMenu.Item
+              onSelect={() => openDeleteDialog(comment)}
+              variant="destructive"
+            >
+              {commentCopy.deleteAction}
+            </DropdownMenu.Item>
+          {/if}
+        </DropdownMenu.Group>
+      </DropdownMenu.Content>
+    </DropdownMenu.Root>
   </div>
 </div>

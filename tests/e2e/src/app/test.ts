@@ -92,9 +92,7 @@ test("/ shell 菜单可一键切换", async ({ page }) => {
   await page.getByRole("button", { name: /^菜单$|^Menu$/i }).click();
 
   await expect(
-    page
-      .locator('[data-slot="menu"]')
-      .getByRole("menuitem", { name: /课程|Courses/i }),
+    page.getByRole("menu").getByRole("menuitem", { name: /课程|Courses/i }),
   ).toBeVisible();
   await expect(
     page.getByRole("menuitem", { name: /设置|Settings/i }),

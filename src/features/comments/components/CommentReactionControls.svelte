@@ -3,7 +3,8 @@ import type { ReactionOption } from "@/features/comments/lib/comment-ui";
 import type { CommentNode } from "@/features/comments/server/comment-types";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Menu from "$lib/components/ui/menu/index.js";
+import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
+import { cn } from "$lib/utils.js";
 import type { CommentsCopy } from "./comment-component-types";
 
 export let comment: CommentNode;
@@ -36,39 +37,50 @@ $: if (
 
 <div class="flex flex-wrap items-center gap-2">
   <div class="relative">
-    <Menu.Root
+    <DropdownMenu.Root
       open={reactionMenuId === comment.id}
       onOpenChange={(open) => {
         reactionMenuId = open ? comment.id : null;
       }}
     >
-      <Menu.Trigger
-        aria-label={commentCopy.reactionMenu}
-        disabled={!comment.canReact}
-        size="sm"
-        variant="outline"
-      >
-        {commentCopy.reactionMenu}
-      </Menu.Trigger>
-      <Menu.Content class="w-56">
-        {#each reactionOptions as option}
-          <Menu.CheckboxItem
-            checked={reactionEntry(comment, option.type)?.viewerHasReacted ?? false}
-            class={`${reactionEntry(comment, option.type)?.viewerHasReacted ? "bg-base-200 font-semibold" : ""} ${pendingReactionKey ? "opacity-70" : ""}`}
-            disabled={!comment.canReact || Boolean(pendingReactionKey)}
-            onclick={() => react(comment, option.type)}
+      <DropdownMenu.Trigger>
+        {#snippet child({ props })}
+          <Button
+            {...props}
+            aria-label={commentCopy.reactionMenu}
+            disabled={!comment.canReact}
+            size="sm"
+            variant="outline"
           >
-            <span>{option.emoji}</span>
-            <span>{reactionName(option.type)}</span>
-            {#if (reactionEntry(comment, option.type)?.count ?? 0) > 0}
-              <span class="ml-auto text-base-content/60 text-xs">
-                {reactionEntry(comment, option.type)?.count}
-              </span>
-            {/if}
-          </Menu.CheckboxItem>
-        {/each}
-      </Menu.Content>
-    </Menu.Root>
+            {commentCopy.reactionMenu}
+          </Button>
+        {/snippet}
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Content class="w-56" preventScroll={false}>
+        <DropdownMenu.Group>
+          {#each reactionOptions as option}
+            <DropdownMenu.CheckboxItem
+              checked={reactionEntry(comment, option.type)?.viewerHasReacted ?? false}
+              class={cn(
+                reactionEntry(comment, option.type)?.viewerHasReacted &&
+                  "bg-accent font-semibold text-accent-foreground",
+                pendingReactionKey && "opacity-70",
+              )}
+              disabled={!comment.canReact || Boolean(pendingReactionKey)}
+              onSelect={() => react(comment, option.type)}
+            >
+              <span>{option.emoji}</span>
+              <span>{reactionName(option.type)}</span>
+              {#if (reactionEntry(comment, option.type)?.count ?? 0) > 0}
+                <span class="ml-auto text-muted-foreground text-xs">
+                  {reactionEntry(comment, option.type)?.count}
+                </span>
+              {/if}
+            </DropdownMenu.CheckboxItem>
+          {/each}
+        </DropdownMenu.Group>
+      </DropdownMenu.Content>
+    </DropdownMenu.Root>
   </div>
   {#each comment.reactions as reaction}
     <Button

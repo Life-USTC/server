@@ -1,7 +1,7 @@
 <script lang="ts">
 import * as Avatar from "$lib/components/ui/avatar/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Menu from "$lib/components/ui/menu/index.js";
+import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
 import type { ShellCopy, ShellUser } from "./types";
 
 export let avatarFallback: string;
@@ -15,40 +15,57 @@ export let userMenuOpen: boolean;
 
 {#if user}
   <div id="app-user-menu" class="relative">
-    <Menu.Root open={userMenuOpen} onOpenChange={setUserMenuOpen}>
-      <Menu.Trigger
-        aria-label={copy.shell.profileMenu}
-        class="overflow-hidden"
-        size="icon"
-        variant="outline"
-      >
-        <Avatar.Root class="size-7 border-0">
-          {#if user.image}
-            <Avatar.Image
-              src={user.image}
-              alt={user.name ?? copy.shell.profileMenu}
-            />
-          {/if}
-          <Avatar.Fallback>{avatarFallback}</Avatar.Fallback>
-        </Avatar.Root>
-      </Menu.Trigger>
-      <Menu.Content align="end" class="w-44">
-        <Menu.Item href="/" onclick={closeMenus}>
-          {copy.menu.home}
-        </Menu.Item>
-        <Menu.Item href={profileHref} onclick={closeMenus}>
-          {copy.menu.me}
-        </Menu.Item>
-        <Menu.Item href="/settings/profile" onclick={closeMenus}>
-          {copy.menu.settings}
-        </Menu.Item>
-        <form method="POST" action="/signout">
-          <Menu.Item type="submit">
-            {copy.menu.signOut}
-          </Menu.Item>
-        </form>
-      </Menu.Content>
-    </Menu.Root>
+    <DropdownMenu.Root open={userMenuOpen} onOpenChange={setUserMenuOpen}>
+      <DropdownMenu.Trigger>
+        {#snippet child({ props })}
+          <Button
+            {...props}
+            aria-label={copy.shell.profileMenu}
+            class="overflow-hidden"
+            size="icon"
+            variant="outline"
+          >
+            <Avatar.Root class="size-7 border-0">
+              {#if user.image}
+                <Avatar.Image
+                  src={user.image}
+                  alt={user.name ?? copy.shell.profileMenu}
+                />
+              {/if}
+              <Avatar.Fallback>{avatarFallback}</Avatar.Fallback>
+            </Avatar.Root>
+          </Button>
+        {/snippet}
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Content align="end" class="w-44" preventScroll={false}>
+        <DropdownMenu.Group>
+          <DropdownMenu.Item onSelect={closeMenus}>
+            {#snippet child({ props })}
+              <a {...props} href="/">{copy.menu.home}</a>
+            {/snippet}
+          </DropdownMenu.Item>
+          <DropdownMenu.Item onSelect={closeMenus}>
+            {#snippet child({ props })}
+              <a {...props} href={profileHref}>{copy.menu.me}</a>
+            {/snippet}
+          </DropdownMenu.Item>
+          <DropdownMenu.Item onSelect={closeMenus}>
+            {#snippet child({ props })}
+              <a {...props} href="/settings/profile">{copy.menu.settings}</a>
+            {/snippet}
+          </DropdownMenu.Item>
+          <form method="POST" action="/signout">
+            <DropdownMenu.Item>
+              {#snippet child({ props })}
+                <button {...props} type="submit">
+                  {copy.menu.signOut}
+                </button>
+              {/snippet}
+            </DropdownMenu.Item>
+          </form>
+        </DropdownMenu.Group>
+      </DropdownMenu.Content>
+    </DropdownMenu.Root>
   </div>
 {:else}
   <Button href="/signin" size="sm">{copy.menu.signIn}</Button>

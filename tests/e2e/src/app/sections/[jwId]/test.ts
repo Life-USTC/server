@@ -75,7 +75,7 @@ async function openCommentDeleteDialog(page: Page, commentCard: Locator) {
   await expect(moreActions).toBeVisible();
   await moreActions.click();
 
-  const actionMenu = page.locator('[data-slot="menu"]').last();
+  const actionMenu = page.getByRole("menu").last();
   const deleteItem = actionMenu.getByRole("menuitem", {
     name: /删除|Delete/i,
   });

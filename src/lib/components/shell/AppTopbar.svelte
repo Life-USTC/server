@@ -4,7 +4,8 @@ import MonitorIcon from "@lucide/svelte/icons/monitor";
 import MoonIcon from "@lucide/svelte/icons/moon";
 import SunIcon from "@lucide/svelte/icons/sun";
 import type { ThemeMode } from "$lib/components/shell/layout-shell";
-import * as Menu from "$lib/components/ui/menu/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 import type {
   LayoutCopy,
@@ -61,69 +62,86 @@ export let userMenuOpen: boolean;
     </a>
 
     <div class="ml-auto flex items-center gap-1.5">
-      <Menu.Root open={localeMenuOpen} onOpenChange={setLocaleMenuOpen}>
-        <Menu.Trigger
-          aria-label={copy.language.selector}
-          size="icon-sm"
-          variant="outline"
-        >
-          <LanguagesIcon data-icon="inline-start" />
-        </Menu.Trigger>
-        <Menu.Content align="end" class="w-40">
-          <Menu.RadioGroup value={locale}>
-            <Menu.RadioItem
-              onclick={() => setLocale("en-us")}
-              value="en-us"
+      <DropdownMenu.Root open={localeMenuOpen} onOpenChange={setLocaleMenuOpen}>
+        <DropdownMenu.Trigger>
+          {#snippet child({ props })}
+            <Button
+              {...props}
+              aria-label={copy.language.selector}
+              size="icon-sm"
+              variant="outline"
             >
-              {copy.language.english}
-            </Menu.RadioItem>
-            <Menu.RadioItem
-              onclick={() => setLocale("zh-cn")}
-              value="zh-cn"
-            >
-              {copy.language.chinese}
-            </Menu.RadioItem>
-          </Menu.RadioGroup>
-        </Menu.Content>
-      </Menu.Root>
+              <LanguagesIcon data-icon="inline-start" />
+            </Button>
+          {/snippet}
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Content align="end" class="w-40" preventScroll={false}>
+          <DropdownMenu.Group>
+            <DropdownMenu.RadioGroup value={locale}>
+              <DropdownMenu.RadioItem
+                onSelect={() => setLocale("en-us")}
+                value="en-us"
+              >
+                {copy.language.english}
+              </DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem
+                onSelect={() => setLocale("zh-cn")}
+                value="zh-cn"
+              >
+                {copy.language.chinese}
+              </DropdownMenu.RadioItem>
+            </DropdownMenu.RadioGroup>
+          </DropdownMenu.Group>
+        </DropdownMenu.Content>
+      </DropdownMenu.Root>
 
-      <Menu.Root open={themeMenuOpen} onOpenChange={setThemeMenuOpen}>
-        <Menu.Trigger
-          aria-label={copy.theme.selector}
-          size="icon-sm"
-          variant="outline"
-        >
-          {#if themeMode === "light"}
-            <SunIcon data-icon="inline-start" />
-          {:else if themeMode === "dark"}
-            <MoonIcon data-icon="inline-start" />
-          {:else}
-            <MonitorIcon data-icon="inline-start" />
-          {/if}
-        </Menu.Trigger>
-        <Menu.Content align="end" class="w-44">
-          <Menu.RadioGroup value={themeMode}>
-            <Menu.RadioItem onclick={() => setThemeMode("system")} value="system">
-              <span class="shell-theme-menu-icon">
+      <DropdownMenu.Root open={themeMenuOpen} onOpenChange={setThemeMenuOpen}>
+        <DropdownMenu.Trigger>
+          {#snippet child({ props })}
+            <Button
+              {...props}
+              aria-label={copy.theme.selector}
+              size="icon-sm"
+              variant="outline"
+            >
+              {#if themeMode === "light"}
+                <SunIcon data-icon="inline-start" />
+              {:else if themeMode === "dark"}
+                <MoonIcon data-icon="inline-start" />
+              {:else}
+                <MonitorIcon data-icon="inline-start" />
+              {/if}
+            </Button>
+          {/snippet}
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Content align="end" class="w-44" preventScroll={false}>
+          <DropdownMenu.Group>
+            <DropdownMenu.RadioGroup value={themeMode}>
+              <DropdownMenu.RadioItem
+                onSelect={() => setThemeMode("system")}
+                value="system"
+              >
                 <MonitorIcon />
-              </span>
-              {copy.theme.system}
-            </Menu.RadioItem>
-            <Menu.RadioItem onclick={() => setThemeMode("light")} value="light">
-              <span class="shell-theme-menu-icon">
+                {copy.theme.system}
+              </DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem
+                onSelect={() => setThemeMode("light")}
+                value="light"
+              >
                 <SunIcon />
-              </span>
-              {copy.theme.light}
-            </Menu.RadioItem>
-            <Menu.RadioItem onclick={() => setThemeMode("dark")} value="dark">
-              <span class="shell-theme-menu-icon">
+                {copy.theme.light}
+              </DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem
+                onSelect={() => setThemeMode("dark")}
+                value="dark"
+              >
                 <MoonIcon />
-              </span>
-              {copy.theme.dark}
-            </Menu.RadioItem>
-          </Menu.RadioGroup>
-        </Menu.Content>
-      </Menu.Root>
+                {copy.theme.dark}
+              </DropdownMenu.RadioItem>
+            </DropdownMenu.RadioGroup>
+          </DropdownMenu.Group>
+        </DropdownMenu.Content>
+      </DropdownMenu.Root>
 
       <AppUserMenu
         {avatarFallback}
@@ -137,11 +155,3 @@ export let userMenuOpen: boolean;
     </div>
   </div>
 </header>
-
-<style>
-  .shell-theme-menu-icon :global(svg) {
-    width: 1rem;
-    height: 1rem;
-    flex-shrink: 0;
-  }
-</style>
