@@ -62,8 +62,8 @@ export let welcomeCopy: WelcomeCopy;
                   aria-label={formatCopy(welcomeCopy.selectSection, {
                     code: section.code,
                   })}
-                  onchange={(event) => {
-                    setSectionSelection(section.id, event.currentTarget.checked);
+                  onCheckedChange={(checked) => {
+                    setSectionSelection(section.id, checked);
                   }}
                 />
                 <Field.Content>

@@ -34,10 +34,7 @@ export let inputValue: (event: Event) => string;
     </label>
   </div>
   <label class="flex w-fit cursor-pointer items-center gap-3 rounded-md border border-base-300 bg-base-100 p-3">
-    <Checkbox
-      checked={editIsAdmin}
-      onchange={(event) => (editIsAdmin = event.currentTarget.checked)}
-    />
+    <Checkbox bind:checked={editIsAdmin} />
     <span class="font-medium text-sm">{copy.adminToggleLabel}</span>
   </label>
 </section>

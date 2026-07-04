@@ -1,7 +1,7 @@
 <script lang="ts">
 import { Badge } from "$lib/components/ui/badge/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
 import * as RadioGroup from "$lib/components/ui/radio-group/index.js";
-import { cn } from "$lib/utils.js";
 import type { AuthPatternOption } from "./admin-oauth-create-types";
 
 export let authPatterns: AuthPatternOption[];
@@ -15,25 +15,27 @@ export let selectedAuthMethod: string;
     <h3 class="font-semibold text-sm">{copy.createFlowTitle}</h3>
     <p class="mt-1 text-base-content/60 text-sm">{copy.createFlowIntro}</p>
   </div>
-  <RadioGroup.Root bind:value={selectedAuthMethod} class="grid gap-3 xl:grid-cols-3">
+  <RadioGroup.Root
+    aria-label={copy.createFlowTitle}
+    bind:value={selectedAuthMethod}
+    class="grid gap-3 xl:grid-cols-3"
+  >
     {#each authPatterns as option}
-      <RadioGroup.Item
-        class={cn(
-          "p-4 text-left",
-          selectedAuthMethod === option.value
-            ? "border-primary bg-primary/5 ring-primary/25"
-            : "bg-base-100 hover:bg-base-200/70",
-        )}
-        value={option.value}
-      >
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="font-semibold text-sm">{oauthCopy(option.titleKey)}</span>
-          <Badge variant="outline">{oauthCopy(option.labelKey)}</Badge>
-        </div>
-        <p class="mt-2 text-base-content/65 text-xs leading-5">
-          {oauthCopy(option.descriptionKey)}
-        </p>
-      </RadioGroup.Item>
+      {@const optionId = `token-endpoint-auth-method-${option.value}`}
+      <Field.Label class="h-full" for={optionId}>
+        <Field.Field class="h-full justify-between" orientation="horizontal">
+          <Field.Content>
+            <div class="flex flex-wrap items-center gap-2">
+              <Field.Title>{oauthCopy(option.titleKey)}</Field.Title>
+              <Badge variant="outline">{oauthCopy(option.labelKey)}</Badge>
+            </div>
+            <Field.Description>
+              {oauthCopy(option.descriptionKey)}
+            </Field.Description>
+          </Field.Content>
+          <RadioGroup.Item id={optionId} value={option.value} />
+        </Field.Field>
+      </Field.Label>
     {/each}
   </RadioGroup.Root>
   <input type="hidden" name="tokenEndpointAuthMethod" value={selectedAuthMethod} />

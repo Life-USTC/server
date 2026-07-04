@@ -32,7 +32,7 @@ export let toggleImportSectionSelection: (sectionId: number) => void;
           aria-label={formatMessage(subscriptionsCopy.bulkImport.selectSection, {
             code: section.code,
           })}
-          onchange={() => {
+          onCheckedChange={() => {
             toggleImportSectionSelection(section.id);
           }}
         />

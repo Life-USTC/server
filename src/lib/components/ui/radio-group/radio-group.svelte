@@ -1,32 +1,19 @@
 <script lang="ts">
 import { RadioGroup as RadioGroupPrimitive } from "bits-ui";
+import { cn } from "$lib/utils.js";
 
-export let disabled = false;
-export let name: string | undefined = undefined;
-export let required = false;
-export let value = "";
-export let onchange:
-  | ((event: { currentTarget: { value: string } }) => void)
-  | undefined = undefined;
-let className = "";
-
-export { className as class };
-
-function handleValueChange(nextValue: string) {
-  value = nextValue;
-  onchange?.({ currentTarget: { value: nextValue } });
-}
+let {
+  ref = $bindable(null),
+  class: className,
+  value = $bindable(""),
+  ...restProps
+}: RadioGroupPrimitive.RootProps = $props();
 </script>
 
-<fieldset class={`grid gap-3 ${className}`} {disabled} {...$$restProps}>
-  <RadioGroupPrimitive.Root
-    class="contents"
-    {disabled}
-    {name}
-    {required}
-    {value}
-    onValueChange={handleValueChange}
-  >
-    <slot />
-  </RadioGroupPrimitive.Root>
-</fieldset>
+<RadioGroupPrimitive.Root
+  bind:ref
+  bind:value
+  data-slot="radio-group"
+  class={cn("grid gap-2 w-full", className)}
+  {...restProps}
+/>

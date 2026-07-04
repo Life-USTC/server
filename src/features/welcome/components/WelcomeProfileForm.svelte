@@ -55,6 +55,7 @@ $: avatarFallback = (user.name ?? user.username ?? "U")
       {/if}
 
       <Radio.Root
+        aria-label={profileCopy.profilePicture}
         class="grid gap-3"
         data-testid="avatar-selector"
         bind:value={selectedImage}
@@ -62,7 +63,7 @@ $: avatarFallback = (user.name ?? user.username ?? "U")
         {#if selectedImage && selectedImage !== currentImage}
           <input type="hidden" name="image" value={selectedImage} />
         {/if}
-        <legend class="font-medium text-sm">{profileCopy.profilePicture}</legend>
+        <p class="font-medium text-sm">{profileCopy.profilePicture}</p>
         <div class="flex items-center gap-4">
           <Avatar.Root class="size-20">
             <Avatar.Image alt={profileCopy.profilePicture} src={previewImage} />
@@ -71,16 +72,20 @@ $: avatarFallback = (user.name ?? user.username ?? "U")
           {#if avatarOptions.length > 0}
             <div class="grid grid-cols-4 gap-2">
               {#each avatarOptions as avatar, index}
-                <Radio.Item
-                  class="rounded-full"
-                  value={avatar}
-                  aria-label={`${copy.accessibility.avatarOption} ${index + 1}`}
-                >
-                  <Avatar.Root class="size-12 border-0">
-                    <Avatar.Image alt={copy.accessibility.avatarOption} src={avatar} />
-                    <Avatar.Fallback>{index + 1}</Avatar.Fallback>
-                  </Avatar.Root>
-                </Radio.Item>
+                {@const avatarId = `welcome-avatar-option-${index}`}
+                <Field.Label for={avatarId}>
+                  <Field.Field orientation="horizontal">
+                    <Avatar.Root class="size-12 border-0">
+                      <Avatar.Image alt={copy.accessibility.avatarOption} src={avatar} />
+                      <Avatar.Fallback>{index + 1}</Avatar.Fallback>
+                    </Avatar.Root>
+                    <Radio.Item
+                      id={avatarId}
+                      value={avatar}
+                      aria-label={`${copy.accessibility.avatarOption} ${index + 1}`}
+                    />
+                  </Field.Field>
+                </Field.Label>
               {/each}
             </div>
           {:else}

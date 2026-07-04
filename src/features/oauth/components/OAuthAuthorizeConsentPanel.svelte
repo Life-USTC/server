@@ -53,7 +53,7 @@ $: canAllow = scopes.length === 0 || selectedScopes.length > 0;
             <Checkbox
               id={checkboxId}
               checked={selectedScopes.includes(scopeItem.value)}
-              onchange={(event) => toggleScope(scopeItem.value, event.currentTarget.checked)}
+              onCheckedChange={(checked) => toggleScope(scopeItem.value, checked)}
             />
             <Field.Content>
               <Field.Label

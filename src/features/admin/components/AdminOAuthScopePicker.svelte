@@ -30,7 +30,7 @@ export let toggleScope: (scope: string, checked: boolean) => void;
       >
         <Checkbox
           checked={selectedScopes.includes(scope.value)}
-          onchange={(event) => toggleScope(scope.value, event.currentTarget.checked)}
+          onCheckedChange={(checked) => toggleScope(scope.value, checked)}
         />
         <span class="min-w-0">
           <span class="block font-mono font-medium text-sm">{scopeLabel(scope.value)}</span>
