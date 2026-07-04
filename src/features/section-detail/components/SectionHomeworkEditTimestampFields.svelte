@@ -1,6 +1,7 @@
 <script lang="ts">
 import DateTimePicker from "$lib/components/DateTimePicker.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
 import type {
   SectionHomeworkCopy,
   SectionHomeworkSemesterDate,
@@ -21,10 +22,12 @@ export let semesterDate: SectionHomeworkSemesterDate;
 </script>
 
 <div class="grid gap-3 sm:grid-cols-3">
-  <div class="grid gap-2">
-    <span class="font-medium text-sm">{homeworkCopy.publishedAt}</span>
+  <Field.Field>
+    <Field.Title id="section-homework-edit-published-at-label">
+      {homeworkCopy.publishedAt}
+    </Field.Title>
     <DateTimePicker
-      aria-label={homeworkCopy.publishedAt}
+      aria-labelledby="section-homework-edit-published-at-label"
       bind:value={editHomeworkPublishedAt}
       calendarButtonLabel={homeworkCopy.calendarButtonLabel}
       defaultTime="00:00"
@@ -46,11 +49,13 @@ export let semesterDate: SectionHomeworkSemesterDate;
         {homeworkCopy.helperClear}
       </Button>
     </div>
-  </div>
-  <div class="grid gap-2">
-    <span class="font-medium text-sm">{homeworkCopy.submissionStart}</span>
+  </Field.Field>
+  <Field.Field>
+    <Field.Title id="section-homework-edit-submission-start-label">
+      {homeworkCopy.submissionStart}
+    </Field.Title>
     <DateTimePicker
-      aria-label={homeworkCopy.submissionStart}
+      aria-labelledby="section-homework-edit-submission-start-label"
       bind:value={editHomeworkSubmissionStartAt}
       calendarButtonLabel={homeworkCopy.calendarButtonLabel}
       defaultTime="00:00"
@@ -81,11 +86,13 @@ export let semesterDate: SectionHomeworkSemesterDate;
         {homeworkCopy.helperClear}
       </Button>
     </div>
-  </div>
-  <div class="grid gap-2">
-    <span class="font-medium text-sm">{homeworkCopy.submissionDue}</span>
+  </Field.Field>
+  <Field.Field>
+    <Field.Title id="section-homework-edit-submission-due-label">
+      {homeworkCopy.submissionDue}
+    </Field.Title>
     <DateTimePicker
-      aria-label={homeworkCopy.submissionDue}
+      aria-labelledby="section-homework-edit-submission-due-label"
       bind:value={editHomeworkSubmissionDueAt}
       calendarButtonLabel={homeworkCopy.calendarButtonLabel}
       name="submissionDueAt"
@@ -108,5 +115,5 @@ export let semesterDate: SectionHomeworkSemesterDate;
         {homeworkCopy.helperSemesterEnd}
       </Button>
     </div>
-  </div>
+  </Field.Field>
 </div>

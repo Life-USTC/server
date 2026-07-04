@@ -6,9 +6,10 @@ import {
 import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
-import { Checkbox } from "$lib/components/ui/checkbox/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import SectionHomeworkEditTimestampFields from "./SectionHomeworkEditTimestampFields.svelte";
+import SectionHomeworkTagFields from "./SectionHomeworkTagFields.svelte";
 import type {
   SectionHomeworkCopy,
   SectionHomeworkDisplay,
@@ -37,59 +38,62 @@ export let updateHomework: SectionHomeworkSubmitHandler;
 </script>
 
 <form
-  class="grid gap-4 rounded-md border border-base-300 bg-base-100 p-4"
+  class="flex flex-col gap-4 rounded-md border bg-background p-4"
   onsubmit={updateHomework}
 >
-  <label class="grid gap-2">
-    <span class="font-medium text-sm">{homeworkCopy.titleLabel}</span>
-    <Input
-      maxlength={HOMEWORK_TITLE_MAX_LENGTH}
-      name="title"
-      required
-      value={homework.title}
+  <Field.Group class="gap-4">
+    <Field.Field>
+      <Field.Label for="section-homework-edit-title">
+        {homeworkCopy.titleLabel}
+      </Field.Label>
+      <Input
+        id="section-homework-edit-title"
+        maxlength={HOMEWORK_TITLE_MAX_LENGTH}
+        name="title"
+        required
+        value={homework.title}
+      />
+    </Field.Field>
+    <Field.Field>
+      <Field.Title id="section-homework-edit-description-label">
+        {homeworkCopy.descriptionLabel}
+      </Field.Title>
+      <MarkdownEditor
+        aria-labelledby="section-homework-edit-description-label"
+        guideLabel={commentsCopy.markdownGuide}
+        maxlength={HOMEWORK_DESCRIPTION_MAX_LENGTH}
+        modeLabel={homeworkCopy.descriptionLabel}
+        name="description"
+        placeholder={homeworkCopy.descriptionPlaceholder}
+        previewEmptyLabel={commentsCopy.previewEmpty}
+        remarkPlugins={campusReferenceMarkdownPlugins}
+        tabPreviewLabel={commentsCopy.tabPreview}
+        tabWriteLabel={commentsCopy.tabWrite}
+        value={homework.description?.content ?? ""}
+      />
+    </Field.Field>
+    <SectionHomeworkEditTimestampFields
+      {applyDueAtSemesterEnd}
+      {applyDueInMonth}
+      {applyDueInWeek}
+      {applyPublishNow}
+      {applyStartAtSemesterStart}
+      {applyStartNow}
+      bind:editHomeworkPublishedAt
+      bind:editHomeworkSubmissionDueAt
+      bind:editHomeworkSubmissionStartAt
+      {homeworkCopy}
+      {semesterDate}
     />
-  </label>
-  <div class="grid gap-2">
-    <span class="font-medium text-sm">{homeworkCopy.descriptionLabel}</span>
-    <MarkdownEditor
-      aria-label={homeworkCopy.descriptionLabel}
-      guideLabel={commentsCopy.markdownGuide}
-      maxlength={HOMEWORK_DESCRIPTION_MAX_LENGTH}
-      modeLabel={homeworkCopy.descriptionLabel}
-      name="description"
-      placeholder={homeworkCopy.descriptionPlaceholder}
-      previewEmptyLabel={commentsCopy.previewEmpty}
-      remarkPlugins={campusReferenceMarkdownPlugins}
-      tabPreviewLabel={commentsCopy.tabPreview}
-      tabWriteLabel={commentsCopy.tabWrite}
-      value={homework.description?.content ?? ""}
+    <SectionHomeworkTagFields
+      {homeworkCopy}
+      idPrefix="section-edit-homework"
+      isMajor={homework.isMajor}
+      requiresTeam={homework.requiresTeam}
     />
-  </div>
-  <SectionHomeworkEditTimestampFields
-    {applyDueAtSemesterEnd}
-    {applyDueInMonth}
-    {applyDueInWeek}
-    {applyPublishNow}
-    {applyStartAtSemesterStart}
-    {applyStartNow}
-    bind:editHomeworkPublishedAt
-    bind:editHomeworkSubmissionDueAt
-    bind:editHomeworkSubmissionStartAt
-    {homeworkCopy}
-    {semesterDate}
-  />
-  <div class="flex flex-wrap gap-4">
-    <label class="inline-flex items-center gap-2 text-sm">
-      <Checkbox checked={homework.isMajor} name="isMajor" />
-      <span>{homeworkCopy.tagMajor}</span>
-    </label>
-    <label class="inline-flex items-center gap-2 text-sm">
-      <Checkbox checked={homework.requiresTeam} name="requiresTeam" />
-      <span>{homeworkCopy.tagTeam}</span>
-    </label>
-  </div>
+  </Field.Group>
   {#if editHomeworkMessage}
-    <p class="text-error text-sm">{editHomeworkMessage}</p>
+    <p class="text-destructive text-sm">{editHomeworkMessage}</p>
   {/if}
   <div class="flex justify-end gap-2">
     <Button type="button" variant="outline" onclick={cancelEdit}>{homeworkCopy.cancel}</Button>

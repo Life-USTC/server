@@ -7,6 +7,7 @@ import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-r
 import SectionHomeworkTagFields from "@/features/section-detail/components/SectionHomeworkTagFields.svelte";
 import SectionHomeworkTimestampFields from "@/features/section-detail/components/SectionHomeworkTimestampFields.svelte";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
+import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import type {
   SectionCreateHomeworkCommentsCopy,
@@ -29,21 +30,26 @@ export let submissionDueAt: string;
 export let submissionStartAt: string;
 </script>
 
-<div class="grid gap-4 px-5 py-4">
-  <label class="grid gap-2">
-    <span class="font-medium text-sm">{homeworkCopy.titleLabel}</span>
+<Field.Group class="gap-4 px-5 py-4">
+  <Field.Field>
+    <Field.Label for="section-homework-title">
+      {homeworkCopy.titleLabel}
+    </Field.Label>
     <Input
       data-testid="section-homework-title"
+      id="section-homework-title"
       maxlength={HOMEWORK_TITLE_MAX_LENGTH}
       name="title"
       placeholder={homeworkCopy.titlePlaceholder}
       required
     />
-  </label>
-  <div class="grid gap-2">
-    <span class="font-medium text-sm">{homeworkCopy.descriptionLabel}</span>
+  </Field.Field>
+  <Field.Field>
+    <Field.Title id="section-homework-description-label">
+      {homeworkCopy.descriptionLabel}
+    </Field.Title>
     <MarkdownEditor
-      aria-label={homeworkCopy.descriptionLabel}
+      aria-labelledby="section-homework-description-label"
       guideLabel={commentsCopy.markdownGuide}
       maxlength={HOMEWORK_DESCRIPTION_MAX_LENGTH}
       modeLabel={homeworkCopy.descriptionLabel}
@@ -54,7 +60,7 @@ export let submissionStartAt: string;
       tabPreviewLabel={commentsCopy.tabPreview}
       tabWriteLabel={commentsCopy.tabWrite}
     />
-  </div>
+  </Field.Field>
   <SectionHomeworkTimestampFields
     {applyDueAtSemesterEnd}
     {applyDueInMonth}
@@ -69,8 +75,8 @@ export let submissionStartAt: string;
     bind:submissionDueAt
     bind:submissionStartAt
   />
-  <SectionHomeworkTagFields {homeworkCopy} />
+  <SectionHomeworkTagFields {homeworkCopy} idPrefix="section-create-homework" />
   {#if homeworkMessage}
-    <p class="text-error text-sm">{homeworkMessage}</p>
+    <p class="text-destructive text-sm">{homeworkMessage}</p>
   {/if}
-</div>
+</Field.Group>
