@@ -21,6 +21,11 @@ fi
 
 SCHEMA_VERSION="$(sqlite3 -readonly "$SNAPSHOT_PATH" "SELECT value FROM metadata WHERE key = 'schema_version'")"
 if [ "$SCHEMA_VERSION" != "4" ]; then
+  if [ "$DRY_RUN" = "true" ] || [ "$DRY_RUN" = "1" ]; then
+    echo "Static snapshot schema version ${SCHEMA_VERSION:-unknown} is not supported for full import; dry-run validation only" >&2
+    sqlite3 -readonly "$SNAPSHOT_PATH" "SELECT COUNT(*) FROM metadata" >/dev/null
+    exit 0
+  fi
   echo "Unsupported static snapshot schema version: ${SCHEMA_VERSION:-unknown}" >&2
   exit 1
 fi
