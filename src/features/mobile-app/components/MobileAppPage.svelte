@@ -12,6 +12,7 @@ import UsersIcon from "@lucide/svelte/icons/users";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 
 type LinkCopy = {
   description: string;
@@ -200,14 +201,16 @@ $: stats = [
           </Button>
         </div>
 
-        <div class="grid gap-2 sm:grid-cols-3">
+        <Item.Group class="grid gap-2 sm:grid-cols-3">
           {#each stats as item}
-            <div class="rounded-md border border-base-300 bg-base-200/45 px-3 py-2.5">
-              <p class="font-semibold text-base leading-6">{item.value}</p>
-              <p class="text-base-content/55 text-xs leading-5">{item.label}</p>
-            </div>
+            <Item.Root class="items-start" size="sm" variant="muted">
+              <Item.Content>
+                <Item.Title>{item.value}</Item.Title>
+                <Item.Description>{item.label}</Item.Description>
+              </Item.Content>
+            </Item.Root>
           {/each}
-        </div>
+        </Item.Group>
       </Card.Content>
     </Card.Root>
 
@@ -224,33 +227,35 @@ $: stats = [
         </div>
       </Card.Header>
       <Card.Content class="grid gap-3 p-4">
-        <div class="rounded-md border border-base-300 bg-base-200/45 p-3">
-          <div class="flex items-start gap-3">
-            <span class="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-base-100 text-primary">
+        <Item.Root variant="muted">
+          <Item.Media variant="icon">
+            <span class="text-primary">
               <BellIcon />
             </span>
-            <div class="min-w-0">
-              <p class="font-medium text-sm leading-5">{pageCopy.previewStatusTitle}</p>
-              <p class="text-base-content/60 text-sm leading-5">
-                {pageCopy.previewStatusDescription}
-              </p>
-            </div>
-          </div>
-        </div>
+          </Item.Media>
+          <Item.Content>
+            <Item.Title>{pageCopy.previewStatusTitle}</Item.Title>
+            <Item.Description>{pageCopy.previewStatusDescription}</Item.Description>
+          </Item.Content>
+        </Item.Root>
 
-        <div class="grid gap-2">
+        <Item.Group class="gap-2">
           {#each previewItems as item}
-            <div class="flex items-center justify-between gap-3 rounded-md border border-base-300 px-3 py-2.5">
-              <div class="flex min-w-0 items-center gap-2.5">
-                <span class="mobile-app-preview-icon text-primary">
+            <Item.Root size="sm" variant="outline">
+              <Item.Media variant="icon">
+                <span class="text-primary">
                   <svelte:component this={item.icon} />
                 </span>
-                <span class="truncate font-medium text-sm">{item.label}</span>
-              </div>
-              <span class="shrink-0 text-base-content/55 text-xs">{item.status}</span>
-            </div>
+              </Item.Media>
+              <Item.Content>
+                <Item.Title>{item.label}</Item.Title>
+              </Item.Content>
+              <Item.Actions class="shrink-0 text-muted-foreground text-xs">
+                {item.status}
+              </Item.Actions>
+            </Item.Root>
           {/each}
-        </div>
+        </Item.Group>
       </Card.Content>
     </Card.Root>
   </div>
@@ -260,20 +265,22 @@ $: stats = [
       <Card.Header class="p-4 pb-0 sm:p-5 sm:pb-0">
         <Card.Title>{pageCopy.featureTitle}</Card.Title>
       </Card.Header>
-      <Card.Content class="grid gap-2 p-4 sm:grid-cols-2 sm:p-5">
-        {#each featureItems as item}
-          <div class="flex min-w-0 gap-3 rounded-md border border-base-300 p-3">
-            <span class="mobile-app-feature-icon rounded-md border-base-300 bg-base-200/55 text-primary">
-              <svelte:component this={item.icon} />
-            </span>
-            <div class="min-w-0">
-              <p class="font-medium text-sm leading-5">{item.copy.title}</p>
-              <p class="mt-1 text-base-content/60 text-sm leading-5">
-                {item.copy.description}
-              </p>
-            </div>
-          </div>
-        {/each}
+      <Card.Content class="p-4 sm:p-5">
+        <Item.Group class="grid gap-2 sm:grid-cols-2">
+          {#each featureItems as item}
+            <Item.Root class="items-start" variant="outline">
+              <Item.Media variant="icon">
+                <span class="text-primary">
+                  <svelte:component this={item.icon} />
+                </span>
+              </Item.Media>
+              <Item.Content>
+                <Item.Title>{item.copy.title}</Item.Title>
+                <Item.Description>{item.copy.description}</Item.Description>
+              </Item.Content>
+            </Item.Root>
+          {/each}
+        </Item.Group>
       </Card.Content>
     </Card.Root>
 
@@ -281,61 +288,30 @@ $: stats = [
       <Card.Header class="p-4 pb-0">
         <Card.Title>{pageCopy.quickLinksTitle}</Card.Title>
       </Card.Header>
-      <Card.Content class="grid gap-1.5 p-4">
-        {#each quickLinks as item}
-          <a
-            class="group flex items-start gap-3 rounded-md px-2.5 py-2 no-underline transition hover:bg-base-200/70"
-            href={item.href}
-          >
-            <span class="mobile-app-link-icon rounded-md border-base-300 bg-base-200/55 text-primary">
-              <svelte:component this={item.icon} />
-            </span>
-            <span class="min-w-0 flex-1">
-              <span class="flex items-start justify-between gap-2">
-                <span class="truncate font-medium text-sm leading-5">{item.copy.title}</span>
-                <ExternalLinkIcon class="mt-0.5 size-3.5 shrink-0 text-base-content/45 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-              </span>
-              <span class="mt-0.5 line-clamp-2 block text-base-content/60 text-xs leading-5">
-                {item.copy.description}
-              </span>
-            </span>
-          </a>
-        {/each}
+      <Card.Content class="p-4">
+        <Item.Group class="gap-1.5">
+          {#each quickLinks as item}
+            <Item.Root size="sm">
+              {#snippet child({ props })}
+                <a {...props} href={item.href}>
+                  <Item.Media variant="icon">
+                    <span class="text-primary">
+                      <svelte:component this={item.icon} />
+                    </span>
+                  </Item.Media>
+                  <Item.Content>
+                    <Item.Title>{item.copy.title}</Item.Title>
+                    <Item.Description>{item.copy.description}</Item.Description>
+                  </Item.Content>
+                  <Item.Actions class="text-muted-foreground">
+                    <ExternalLinkIcon />
+                  </Item.Actions>
+                </a>
+              {/snippet}
+            </Item.Root>
+          {/each}
+        </Item.Group>
       </Card.Content>
     </Card.Root>
   </div>
 </section>
-
-<style>
-  .mobile-app-preview-icon,
-  .mobile-app-feature-icon,
-  .mobile-app-link-icon {
-    display: inline-flex;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .mobile-app-preview-icon {
-    width: 1rem;
-    height: 1rem;
-  }
-
-  .mobile-app-feature-icon,
-  .mobile-app-link-icon {
-    width: 2rem;
-    height: 2rem;
-    border-width: 1px;
-  }
-
-  .mobile-app-preview-icon :global(svg) {
-    width: 1rem;
-    height: 1rem;
-  }
-
-  .mobile-app-feature-icon :global(svg),
-  .mobile-app-link-icon :global(svg) {
-    width: 1rem;
-    height: 1rem;
-  }
-</style>
