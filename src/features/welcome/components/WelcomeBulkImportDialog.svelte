@@ -80,7 +80,7 @@ export let welcomeCopy: WelcomeCopy;
             id="welcome-bulk-import-section-codes"
             bind:value={importText}
             placeholder={bulkCopy.placeholder}
-            rows="5"
+            rows={5}
           />
         </Field.Field>
       </div>

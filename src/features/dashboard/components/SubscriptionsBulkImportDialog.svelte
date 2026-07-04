@@ -76,7 +76,7 @@ $: semesterOptions = signedData.subscriptions.semesters.map((semester) => ({
             id="subscriptions-bulk-import-section-codes"
             bind:value={bulkImportText}
             placeholder={subscriptionsCopy.bulkImport.placeholder}
-            rows="5"
+            rows={5}
           ></Textarea>
         </Field.Field>
       </div>
