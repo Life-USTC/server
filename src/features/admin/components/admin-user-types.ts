@@ -50,6 +50,7 @@ export type AdminUserFormatter = (user: AdminUserRow) => string;
 
 export type AdminUsersPagination = {
   page: number;
+  pageSize: number;
   total: number;
   totalPages: number;
 };

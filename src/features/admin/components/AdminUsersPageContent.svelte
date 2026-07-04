@@ -1,6 +1,7 @@
 <script lang="ts">
+import { goto } from "$app/navigation";
 import * as Alert from "$lib/components/ui/alert/index.js";
-import { Pagination } from "$lib/components/ui/pagination/index.js";
+import * as Pagination from "$lib/components/ui/pagination/index.js";
 import AdminUsersHeader from "./AdminUsersHeader.svelte";
 import AdminUsersSearchCard from "./AdminUsersSearchCard.svelte";
 import AdminUsersTableCard from "./AdminUsersTableCard.svelte";
@@ -31,6 +32,11 @@ export let pageHref: AdminUsersPageHref;
 export let pagination: AdminUsersPagination;
 export let suspensionLabel: AdminUserFormatter;
 export let users: AdminUserRow[];
+
+function handlePageChange(page: number) {
+  if (page === pagination.page) return;
+  void goto(pageHref(page));
+}
 </script>
 
 <section class="grid gap-5">
@@ -59,14 +65,42 @@ export let users: AdminUserRow[];
     {users}
   />
 
-  <Pagination
-    currentPage={pagination.page}
-    getPageHref={pageHref}
-    label={commonCopy.pagination}
-    nextAriaLabel={commonCopy.nextPage}
-    nextLabel={commonCopy.next}
-    previousAriaLabel={commonCopy.previousPage}
-    previousLabel={commonCopy.previous}
-    totalPages={pagination.totalPages}
-  />
+  {#if pagination.totalPages > 1}
+    <Pagination.Root
+      aria-label={commonCopy.pagination}
+      count={pagination.total}
+      onPageChange={handlePageChange}
+      page={pagination.page}
+      perPage={pagination.pageSize}
+    >
+      {#snippet children({ pages, currentPage })}
+        <Pagination.Content>
+          <Pagination.Item>
+            <Pagination.PrevButton aria-label={commonCopy.previousPage}>
+              {commonCopy.previous}
+            </Pagination.PrevButton>
+          </Pagination.Item>
+          {#each pages as page (page.key)}
+            {#if page.type === "ellipsis"}
+              <Pagination.Item>
+                <Pagination.Ellipsis />
+              </Pagination.Item>
+            {:else}
+              <Pagination.Item>
+                <Pagination.Link
+                  {page}
+                  isActive={currentPage === page.value}
+                />
+              </Pagination.Item>
+            {/if}
+          {/each}
+          <Pagination.Item>
+            <Pagination.NextButton aria-label={commonCopy.nextPage}>
+              {commonCopy.next}
+            </Pagination.NextButton>
+          </Pagination.Item>
+        </Pagination.Content>
+      {/snippet}
+    </Pagination.Root>
+  {/if}
 </section>
