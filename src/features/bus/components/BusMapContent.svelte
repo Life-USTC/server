@@ -9,7 +9,7 @@ import type {
   BusMapDayTypeLabels,
 } from "@/features/bus/lib/bus-map-types";
 import { buildBusMapViewState } from "@/features/bus/lib/bus-map-view-state";
-import * as Card from "$lib/components/ui/card/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 
 export let copy: BusMapCopy;
 export let dayTypeLabels: BusMapDayTypeLabels;
@@ -42,12 +42,12 @@ $: busMapView = buildBusMapViewState(mapData, dayTypeLabels, locale);
   />
 
   {#if !mapData}
-    <Card.Root>
-      <Card.Content class="grid justify-items-center gap-2 py-16 text-center">
-        <Card.Title>{copy.noData}</Card.Title>
-        <p class="text-base-content/60">{copy.noDataDescription}</p>
-      </Card.Content>
-    </Card.Root>
+    <Empty.Root class="border border-border bg-background py-16">
+      <Empty.Header>
+        <Empty.Title>{copy.noData}</Empty.Title>
+        <Empty.Description>{copy.noDataDescription}</Empty.Description>
+      </Empty.Header>
+    </Empty.Root>
   {:else}
     <div class="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <section class="overflow-hidden rounded-md border border-base-300 bg-base-100">

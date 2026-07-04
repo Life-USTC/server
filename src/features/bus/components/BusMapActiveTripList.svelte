@@ -9,6 +9,8 @@ import type {
   BusMapData,
 } from "@/features/bus/lib/bus-map-types";
 import { Badge } from "$lib/components/ui/badge/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 
 export let allRouteIds: number[];
 export let copy: BusMapCopy;
@@ -39,10 +41,12 @@ function activeTripBadge(trip: BusMapActiveTrip) {
 </script>
 
 {#if mapData.activeTrips.length > 0}
-  <ul class="grid max-h-72 gap-2 overflow-y-auto">
+  <Item.Group class="max-h-72 overflow-y-auto" role="list">
     {#each mapData.activeTrips as trip}
       {@const route = routeById(trip.routeId)}
-      <li
+      <Item.Root
+        size="xs"
+        variant={hoveredRoute === trip.routeId ? "muted" : "outline"}
         onpointerenter={() => {
           hoveredRoute = trip.routeId;
         }}
@@ -50,25 +54,25 @@ function activeTripBadge(trip: BusMapActiveTrip) {
           hoveredRoute = null;
         }}
       >
-        <div
-          class={`flex w-full items-center gap-2 rounded-md border border-base-300 bg-base-100 px-3 py-2 text-left transition hover:bg-base-200/50 ${hoveredRoute === trip.routeId ? "bg-base-200/70" : ""}`}
-        >
-          <span class="h-2.5 w-2.5 shrink-0 rounded-full" style={`background:${routeColor(trip.routeId, allRouteIds)}`}></span>
-          <span class="min-w-0 flex-1">
-            <span class="block truncate font-medium text-xs">
-              {route?.descriptionPrimary ?? `${copy.legend.route} ${trip.routeId}`}
-            </span>
-            <span class="block font-mono text-[10px] text-base-content/60 tabular-nums">
-              {trip.departureTime ?? "--:--"} -> {trip.arrivalTime ?? "--:--"}
-            </span>
-          </span>
+        <span class="size-2.5 shrink-0 rounded-full" style={`background:${routeColor(trip.routeId, allRouteIds)}`}></span>
+        <Item.Content>
+          <Item.Title>{route?.descriptionPrimary ?? `${copy.legend.route} ${trip.routeId}`}</Item.Title>
+          <Item.Description class="font-mono tabular-nums">
+            {trip.departureTime ?? "--:--"} -> {trip.arrivalTime ?? "--:--"}
+          </Item.Description>
+        </Item.Content>
+        <Item.Actions>
           <Badge variant={trip.status === "en-route" ? "secondary" : "outline"}>
             {activeTripBadge(trip)}
           </Badge>
-        </div>
-      </li>
+        </Item.Actions>
+      </Item.Root>
     {/each}
-  </ul>
+  </Item.Group>
 {:else}
-  <p class="text-base-content/60 text-sm">{copy.status.noActive}</p>
+  <Empty.Root class="min-h-20 border border-border bg-background p-4">
+    <Empty.Header>
+      <Empty.Description>{copy.status.noActive}</Empty.Description>
+    </Empty.Header>
+  </Empty.Root>
 {/if}
