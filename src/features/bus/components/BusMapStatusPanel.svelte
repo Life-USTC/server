@@ -2,6 +2,7 @@
 import type { BusMapCopy, BusMapData } from "@/features/bus/lib/bus-map-types";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 import BusMapActiveTripList from "./BusMapActiveTripList.svelte";
 
 export let allRouteIds: number[];
@@ -16,22 +17,28 @@ export let updatedTime: string;
 </script>
 
 <Card.Root>
-  <Card.Content class="grid gap-4 pt-5">
-    <div class="flex items-center justify-between gap-3">
-      <Card.Title class="text-base">{copy.statusTitle}</Card.Title>
+  <Card.Header>
+    <Card.Title>{copy.statusTitle}</Card.Title>
+    <Card.Action>
       <Badge variant="ghost">{dayTypeLabel}</Badge>
-    </div>
-    <div class="grid grid-cols-2 gap-2">
-      <div class="rounded-lg border border-base-300 p-3">
-        <p class="text-base-content/60 text-xs">{copy.legend.enRoute}</p>
-        <p class="font-semibold text-xl">{enRouteCount}</p>
-      </div>
-      <div class="rounded-lg border border-base-300 p-3">
-        <p class="text-base-content/60 text-xs">{copy.legend.departingSoon}</p>
-        <p class="font-semibold text-xl">{departingSoonCount}</p>
-      </div>
-    </div>
-    <p class="text-base-content/60 text-sm">
+    </Card.Action>
+  </Card.Header>
+  <Card.Content class="grid gap-4">
+    <Item.Group class="grid grid-cols-2 gap-2">
+      <Item.Root class="items-start" variant="outline">
+        <Item.Content>
+          <Item.Description>{copy.legend.enRoute}</Item.Description>
+          <Item.Title class="text-xl">{enRouteCount}</Item.Title>
+        </Item.Content>
+      </Item.Root>
+      <Item.Root class="items-start" variant="outline">
+        <Item.Content>
+          <Item.Description>{copy.legend.departingSoon}</Item.Description>
+          <Item.Title class="text-xl">{departingSoonCount}</Item.Title>
+        </Item.Content>
+      </Item.Root>
+    </Item.Group>
+    <p class="text-muted-foreground text-sm">
       {dayTypeLabel} · {updatedTime}
     </p>
     <BusMapActiveTripList

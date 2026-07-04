@@ -4,6 +4,7 @@ import RefreshCw from "$lib/components/icons/refresh-cw.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 
 export let copy: BusMapCopy;
@@ -35,24 +36,32 @@ export let updatedTime: string;
 
   {#snippet after()}
     {#if mapData}
-      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div class="rounded-md border border-base-300 bg-base-200/40 p-3">
-          <p class="text-base-content/60 text-xs">{copy.serviceDay}</p>
-          <p class="mt-1 font-semibold">{dayTypeLabel}</p>
-        </div>
-        <div class="rounded-md border border-base-300 bg-base-200/40 p-3">
-          <p class="text-base-content/60 text-xs">{copy.routes}</p>
-          <p class="mt-1 font-semibold">{mapData.routes.length}</p>
-        </div>
-        <div class="rounded-md border border-base-300 bg-base-200/40 p-3">
-          <p class="text-base-content/60 text-xs">{copy.tripsToday}</p>
-          <p class="mt-1 font-semibold">{totalTripsForToday}</p>
-        </div>
-        <div class="rounded-md border border-base-300 bg-base-200/40 p-3">
-          <p class="text-base-content/60 text-xs">{copy.updated}</p>
-          <p class="mt-1 font-semibold">{updatedTime}</p>
-        </div>
-      </div>
+      <Item.Group class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Item.Root class="items-start" variant="outline">
+          <Item.Content>
+            <Item.Description>{copy.serviceDay}</Item.Description>
+            <Item.Title>{dayTypeLabel}</Item.Title>
+          </Item.Content>
+        </Item.Root>
+        <Item.Root class="items-start" variant="outline">
+          <Item.Content>
+            <Item.Description>{copy.routes}</Item.Description>
+            <Item.Title>{mapData.routes.length}</Item.Title>
+          </Item.Content>
+        </Item.Root>
+        <Item.Root class="items-start" variant="outline">
+          <Item.Content>
+            <Item.Description>{copy.tripsToday}</Item.Description>
+            <Item.Title>{totalTripsForToday}</Item.Title>
+          </Item.Content>
+        </Item.Root>
+        <Item.Root class="items-start" variant="outline">
+          <Item.Content>
+            <Item.Description>{copy.updated}</Item.Description>
+            <Item.Title>{updatedTime}</Item.Title>
+          </Item.Content>
+        </Item.Root>
+      </Item.Group>
     {/if}
   {/snippet}
 </PageHeader>

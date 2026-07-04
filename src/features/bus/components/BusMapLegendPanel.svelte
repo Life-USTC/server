@@ -18,11 +18,13 @@ function formatMessage(template: string, values: Record<string, string>) {
 </script>
 
 <Card.Root>
-  <Card.Content class="grid gap-4 pt-5">
-    <div class="flex items-center justify-between gap-3">
-      <Card.Title class="text-base">{copy.legend.title}</Card.Title>
-      <span class="text-base-content/60 text-xs">{copy.legendTrips}</span>
-    </div>
+  <Card.Header>
+    <Card.Title>{copy.legend.title}</Card.Title>
+    <Card.Action>
+      <span class="text-muted-foreground text-xs">{copy.legendTrips}</span>
+    </Card.Action>
+  </Card.Header>
+  <Card.Content>
     <ul class="grid max-h-[32rem] gap-1.5 overflow-y-auto">
       {#each mapData.routes as route}
         <li
