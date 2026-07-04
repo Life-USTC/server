@@ -759,14 +759,10 @@ test.describe("/sections/[jwId] 班级详情页", () => {
         .getByRole("textbox", { name: /Submission due|提交截止/i })
         .fill(dueAt);
       await editForm
-        .locator("label")
-        .filter({ hasText: /Major assignment|大作业/i })
-        .locator('[data-slot="checkbox"]')
+        .getByRole("checkbox", { name: /Major assignment|大作业/i })
         .click();
       await editForm
-        .locator("label")
-        .filter({ hasText: /Team required|需要组队/i })
-        .locator('[data-slot="checkbox"]')
+        .getByRole("checkbox", { name: /Team required|需要组队/i })
         .click();
 
       await editForm
@@ -1039,9 +1035,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       await expect(composerCard).toBeVisible();
 
       const anonymousCheckbox = composerCard
-        .locator("label")
-        .filter({ hasText: /匿名|Anonymous/i })
-        .locator('[data-slot="checkbox"]')
+        .getByRole("checkbox", { name: /匿名|Anonymous/i })
         .first();
       await expect(anonymousCheckbox).toBeVisible();
       await anonymousCheckbox.click();

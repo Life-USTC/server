@@ -407,14 +407,10 @@ test.describe("仪表盘作业", () => {
       .getByRole("textbox", { name: /Submission due|提交截止/i })
       .fill(dueAt);
     await createDialog
-      .locator("label")
-      .filter({ hasText: /Major assignment|大作业/i })
-      .locator('[data-slot="checkbox"]')
+      .getByRole("checkbox", { name: /Major assignment|大作业/i })
       .click();
     await createDialog
-      .locator("label")
-      .filter({ hasText: /Team required|需要组队/i })
-      .locator('[data-slot="checkbox"]')
+      .getByRole("checkbox", { name: /Team required|需要组队/i })
       .click();
 
     try {
