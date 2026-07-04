@@ -4,6 +4,7 @@ import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-r
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
 import * as Select from "$lib/components/ui/select/index.js";
 import CommentAttachmentPills from "./CommentAttachmentPills.svelte";
 import CommentUploadButton from "./CommentUploadButton.svelte";
@@ -29,47 +30,64 @@ export let uploadCopy: UploadsCopy;
 export let uploading: boolean;
 export let uploadFile: (file: File, mode?: "edit" | "new" | "reply") => void;
 export let visibilityOptions: CommentSelectOption[];
+
+$: editAnonymousId = `comment-edit-anonymous-${comment.id}`;
+$: editVisibilityId = `comment-edit-visibility-${comment.id}`;
+$: editEditorLabelId = `comment-edit-editor-label-${comment.id}`;
 </script>
 
-<div class="grid gap-2">
+<Field.Group class="gap-2">
   <span class="sr-only">{comment.body}</span>
-  <div class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-base-300 bg-base-100 px-3 py-2 text-sm">
-    <label class="flex items-center gap-2">
-      <Checkbox bind:checked={editIsAnonymous} />
-      <span>{commentCopy.visibilityAnonymous}</span>
-    </label>
-    <Select.Root bind:value={editVisibility} type="single">
-      <Select.Trigger
-        aria-label={commentCopy.visibilityLabel}
-        class="min-w-32"
-      >
-        {visibilityOptions.find((option) => option.value === editVisibility)
-          ?.label ?? visibilityOptions[0]?.label ?? ""}
-      </Select.Trigger>
-      <Select.Content>
-        <Select.Group>
-          {#each visibilityOptions as option}
-            <Select.Item label={option.label} value={option.value}>
-              {option.label}
-            </Select.Item>
-          {/each}
-        </Select.Group>
-      </Select.Content>
-    </Select.Root>
-  </div>
-  <MarkdownEditor
-    bind:value={editDraft}
-    aria-label={commentCopy.markdownEditLabel}
-    compact
-    guideLabel={commentCopy.markdownGuide}
-    modeLabel={commentCopy.markdownModeLabel}
-    placeholder={commentCopy.editorPlaceholder}
-    previewEmptyLabel={commentCopy.previewEmpty}
-    remarkPlugins={campusReferenceMarkdownPlugins}
-    rows={4}
-    tabPreviewLabel={commentCopy.tabPreview}
-    tabWriteLabel={commentCopy.tabWrite}
-  />
+  <Field.Group class="flex-row flex-wrap items-center justify-between gap-3 text-sm">
+    <Field.Field orientation="horizontal" class="w-fit">
+      <Checkbox id={editAnonymousId} bind:checked={editIsAnonymous} />
+      <Field.Label for={editAnonymousId} class="font-normal">
+        {commentCopy.visibilityAnonymous}
+      </Field.Label>
+    </Field.Field>
+    <Field.Field class="w-auto">
+      <Field.Label for={editVisibilityId} class="sr-only">
+        {commentCopy.visibilityLabel}
+      </Field.Label>
+      <Select.Root bind:value={editVisibility} type="single">
+        <Select.Trigger
+          id={editVisibilityId}
+          aria-label={commentCopy.visibilityLabel}
+          class="min-w-32"
+        >
+          {visibilityOptions.find((option) => option.value === editVisibility)
+            ?.label ?? visibilityOptions[0]?.label ?? ""}
+        </Select.Trigger>
+        <Select.Content>
+          <Select.Group>
+            {#each visibilityOptions as option}
+              <Select.Item label={option.label} value={option.value}>
+                {option.label}
+              </Select.Item>
+            {/each}
+          </Select.Group>
+        </Select.Content>
+      </Select.Root>
+    </Field.Field>
+  </Field.Group>
+  <Field.Field>
+    <Field.Title id={editEditorLabelId} class="sr-only">
+      {commentCopy.markdownEditLabel}
+    </Field.Title>
+    <MarkdownEditor
+      bind:value={editDraft}
+      aria-labelledby={editEditorLabelId}
+      compact
+      guideLabel={commentCopy.markdownGuide}
+      modeLabel={commentCopy.markdownModeLabel}
+      placeholder={commentCopy.editorPlaceholder}
+      previewEmptyLabel={commentCopy.previewEmpty}
+      remarkPlugins={campusReferenceMarkdownPlugins}
+      rows={4}
+      tabPreviewLabel={commentCopy.tabPreview}
+      tabWriteLabel={commentCopy.tabWrite}
+    />
+  </Field.Field>
   <CommentAttachmentPills
     files={editAttachmentOptions(comment)}
     removeLabel={commentCopy.removeAttachment}
@@ -101,4 +119,4 @@ export let visibilityOptions: CommentSelectOption[];
       {commentCopy.saveAction}
     </Button>
   </div>
-</div>
+</Field.Group>

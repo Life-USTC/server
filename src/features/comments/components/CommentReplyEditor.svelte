@@ -8,6 +8,7 @@ import type { ViewerContext } from "@/lib/auth/viewer-context";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
 import * as Select from "$lib/components/ui/select/index.js";
 import CommentAttachmentPills from "./CommentAttachmentPills.svelte";
 import CommentUploadButton from "./CommentUploadButton.svelte";
@@ -41,58 +42,83 @@ export let viewer: ViewerContext;
 let replyDisabled = true;
 
 $: replyDisabled = !viewer.isAuthenticated || viewer.isSuspended;
+$: replyDisabledAttr = replyDisabled ? "true" : undefined;
+$: replyAnonymousId = `comment-reply-anonymous-${comment.id}`;
+$: replyVisibilityId = `comment-reply-visibility-${comment.id}`;
+$: replyEditorLabelId = `comment-reply-editor-label-${comment.id}`;
 </script>
 
-<div class="rounded-2xl border border-dashed border-base-300 bg-base-200/40 p-4">
-  <MarkdownEditor
-    bind:value={replyDraft}
-    aria-label={commentCopy.markdownReplyLabel}
-    compact
-    disabled={replyDisabled}
-    guideLabel={commentCopy.markdownGuide}
-    modeLabel={commentCopy.markdownModeLabel}
-    placeholder={commentCopy.replyPlaceholder}
-    previewEmptyLabel={commentCopy.previewEmpty}
-    remarkPlugins={campusReferenceMarkdownPlugins}
-    rows={3}
-    tabPreviewLabel={commentCopy.tabPreview}
-    tabWriteLabel={commentCopy.tabWrite}
-  />
+<Field.Group class="gap-3 rounded-md border border-dashed p-4">
+  <Field.Field data-disabled={replyDisabledAttr}>
+    <Field.Title id={replyEditorLabelId} class="sr-only">
+      {commentCopy.markdownReplyLabel}
+    </Field.Title>
+    <MarkdownEditor
+      bind:value={replyDraft}
+      aria-labelledby={replyEditorLabelId}
+      compact
+      disabled={replyDisabled}
+      guideLabel={commentCopy.markdownGuide}
+      modeLabel={commentCopy.markdownModeLabel}
+      placeholder={commentCopy.replyPlaceholder}
+      previewEmptyLabel={commentCopy.previewEmpty}
+      remarkPlugins={campusReferenceMarkdownPlugins}
+      rows={3}
+      tabPreviewLabel={commentCopy.tabPreview}
+      tabWriteLabel={commentCopy.tabWrite}
+    />
+  </Field.Field>
   <CommentAttachmentPills
-    className="mt-2 flex flex-wrap gap-2"
+    className="flex flex-wrap gap-2"
     files={replyUploadedFiles}
     removeLabel={commentCopy.removeAttachment}
     onRemove={removeReplyAttachment}
   />
-  <div class="mt-3 flex flex-wrap items-center gap-3 text-sm">
-    <label class="flex items-center gap-2">
-      <Checkbox bind:checked={replyIsAnonymous} disabled={replyDisabled} />
-      <span>{commentCopy.visibilityAnonymous}</span>
-    </label>
-    <Select.Root
-      bind:value={replyVisibility}
-      disabled={replyDisabled}
-      type="single"
+  <Field.Group class="flex-row flex-wrap items-center gap-3 text-sm">
+    <Field.Field
+      data-disabled={replyDisabledAttr}
+      orientation="horizontal"
+      class="w-fit"
     >
-      <Select.Trigger
-        aria-label={commentCopy.visibilityLabel}
-        class="min-w-32"
+      <Checkbox
+        id={replyAnonymousId}
+        bind:checked={replyIsAnonymous}
+        disabled={replyDisabled}
+      />
+      <Field.Label for={replyAnonymousId} class="font-normal">
+        {commentCopy.visibilityAnonymous}
+      </Field.Label>
+    </Field.Field>
+    <Field.Field data-disabled={replyDisabledAttr} class="w-auto">
+      <Field.Label for={replyVisibilityId} class="sr-only">
+        {commentCopy.visibilityLabel}
+      </Field.Label>
+      <Select.Root
+        bind:value={replyVisibility}
+        disabled={replyDisabled}
+        type="single"
       >
-        {visibilityOptions.find((option) => option.value === replyVisibility)
-          ?.label ?? visibilityOptions[0]?.label ?? ""}
-      </Select.Trigger>
-      <Select.Content>
-        <Select.Group>
-          {#each visibilityOptions as option}
-            <Select.Item label={option.label} value={option.value}>
-              {option.label}
-            </Select.Item>
-          {/each}
-        </Select.Group>
-      </Select.Content>
-    </Select.Root>
-  </div>
-  <div class="mt-2 flex justify-end gap-2">
+        <Select.Trigger
+          id={replyVisibilityId}
+          aria-label={commentCopy.visibilityLabel}
+          class="min-w-32"
+        >
+          {visibilityOptions.find((option) => option.value === replyVisibility)
+            ?.label ?? visibilityOptions[0]?.label ?? ""}
+        </Select.Trigger>
+        <Select.Content>
+          <Select.Group>
+            {#each visibilityOptions as option}
+              <Select.Item label={option.label} value={option.value}>
+                {option.label}
+              </Select.Item>
+            {/each}
+          </Select.Group>
+        </Select.Content>
+      </Select.Root>
+    </Field.Field>
+  </Field.Group>
+  <div class="flex justify-end gap-2">
     <CommentUploadButton
       disabled={replyDisabled || uploading}
       uploadLabel={uploadCopy.uploadAction}
@@ -120,4 +146,4 @@ $: replyDisabled = !viewer.isAuthenticated || viewer.isSuspended;
       {commentCopy.postReply}
     </Button>
   </div>
-</div>
+</Field.Group>

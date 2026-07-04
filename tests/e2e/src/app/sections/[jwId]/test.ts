@@ -971,13 +971,14 @@ test.describe("/sections/[jwId] 班级详情页", () => {
         .getByRole("button", { name: /回复|Reply/i })
         .click({ force: true });
       const replyBody = `e2e-reply-${Date.now()}`;
-      const replyEditor = page
-        .locator(".rounded-2xl.border.border-dashed")
-        .first();
-      await expect(replyEditor).toBeVisible();
-      await replyEditor
+      const replyTextbox = page
         .getByRole("textbox", { name: /回复内容|Reply body/i })
-        .fill(replyBody);
+        .first();
+      await expect(replyTextbox).toBeVisible();
+      await replyTextbox.fill(replyBody);
+      const replyEditor = replyTextbox.locator(
+        "xpath=ancestor::*[@data-slot='field-group'][1]",
+      );
       const replyResponse = page.waitForResponse(
         (r) =>
           r.url().includes("/api/comments") &&

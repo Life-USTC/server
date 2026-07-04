@@ -2,6 +2,7 @@
 import type { ViewerContext } from "@/lib/auth/viewer-context";
 import * as Card from "$lib/components/ui/card/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
 import * as Select from "$lib/components/ui/select/index.js";
 import type {
   CommentSelectOption,
@@ -13,6 +14,9 @@ export let isAnonymous: boolean;
 export let viewer: ViewerContext;
 export let visibility: string;
 export let visibilityOptions: CommentSelectOption[];
+
+$: controlsDisabled = !viewer.isAuthenticated || viewer.isSuspended;
+$: controlsDisabledAttr = controlsDisabled ? "true" : undefined;
 </script>
 
 <Card.Header>
@@ -21,33 +25,49 @@ export let visibilityOptions: CommentSelectOption[];
       <Card.Title>{commentCopy.postAction}</Card.Title>
       <Card.Description>{commentCopy.subtitle}</Card.Description>
     </div>
-    <div class="flex flex-wrap items-center gap-3 text-sm">
-      <label class="flex items-center gap-2">
-        <Checkbox bind:checked={isAnonymous} disabled={!viewer.isAuthenticated || viewer.isSuspended} />
-        <span>{commentCopy.visibilityAnonymous}</span>
-      </label>
-      <Select.Root
-        bind:value={visibility}
-        disabled={!viewer.isAuthenticated || viewer.isSuspended}
-        type="single"
+    <Field.Group class="flex-row flex-wrap items-center gap-3 text-sm">
+      <Field.Field
+        data-disabled={controlsDisabledAttr}
+        orientation="horizontal"
+        class="w-fit"
       >
-        <Select.Trigger
-          aria-label={commentCopy.visibilityLabel}
-          class="min-w-32"
+        <Checkbox
+          id="comment-composer-anonymous"
+          bind:checked={isAnonymous}
+          disabled={controlsDisabled}
+        />
+        <Field.Label for="comment-composer-anonymous" class="font-normal">
+          {commentCopy.visibilityAnonymous}
+        </Field.Label>
+      </Field.Field>
+      <Field.Field data-disabled={controlsDisabledAttr} class="w-auto">
+        <Field.Label for="comment-composer-visibility" class="sr-only">
+          {commentCopy.visibilityLabel}
+        </Field.Label>
+        <Select.Root
+          bind:value={visibility}
+          disabled={controlsDisabled}
+          type="single"
         >
-          {visibilityOptions.find((option) => option.value === visibility)
-            ?.label ?? visibilityOptions[0]?.label ?? ""}
-        </Select.Trigger>
-        <Select.Content>
-          <Select.Group>
-            {#each visibilityOptions as option}
-              <Select.Item label={option.label} value={option.value}>
-                {option.label}
-              </Select.Item>
-            {/each}
-          </Select.Group>
-        </Select.Content>
-      </Select.Root>
-    </div>
+          <Select.Trigger
+            id="comment-composer-visibility"
+            aria-label={commentCopy.visibilityLabel}
+            class="min-w-32"
+          >
+            {visibilityOptions.find((option) => option.value === visibility)
+              ?.label ?? visibilityOptions[0]?.label ?? ""}
+          </Select.Trigger>
+          <Select.Content>
+            <Select.Group>
+              {#each visibilityOptions as option}
+                <Select.Item label={option.label} value={option.value}>
+                  {option.label}
+                </Select.Item>
+              {/each}
+            </Select.Group>
+          </Select.Content>
+        </Select.Root>
+      </Field.Field>
+    </Field.Group>
   </div>
 </Card.Header>
