@@ -5,9 +5,8 @@ import {
   dateTimeLocalValue,
   parseDateTimeLocal,
 } from "$lib/components/date-time-picker-value";
-import { Button } from "$lib/components/ui/button/index.js";
 import { Calendar } from "$lib/components/ui/calendar/index.js";
-import { Input } from "$lib/components/ui/input/index.js";
+import * as InputGroup from "$lib/components/ui/input-group/index.js";
 import * as Popover from "$lib/components/ui/popover/index.js";
 import { cn } from "$lib/utils.js";
 
@@ -70,17 +69,16 @@ $: {
 }
 </script>
 
-<div
+<InputGroup.Root
   {...rootProps}
   aria-label={labelledBy ? undefined : label}
   aria-labelledby={labelledBy}
-  class={cn("relative min-w-0", className)}
-  role="group"
+  class={cn("min-w-0", className)}
 >
-  <Input
+  <InputGroup.Input
     aria-label={labelledBy ? undefined : label}
     aria-labelledby={labelledBy}
-    class="pe-10 font-mono"
+    class="font-mono"
     disabled={disabled}
     {name}
     {placeholder}
@@ -88,29 +86,30 @@ $: {
     {value}
     oninput={handleInput}
   />
-  <Popover.Root bind:open>
-    <Popover.Trigger>
-      {#snippet child({ props })}
-        <Button
-          {...props}
-          aria-label={calendarButtonLabel}
-          class="absolute end-1 top-1/2 size-7 -translate-y-1/2"
-          disabled={disabled}
-          size="icon-sm"
-          type="button"
-          variant="ghost"
-        >
-          <CalendarIcon />
-        </Button>
-      {/snippet}
-    </Popover.Trigger>
-    <Popover.Content class="w-auto overflow-hidden p-0" align="start">
-      <Calendar
-        bind:value={selectedDate}
-        captionLayout="dropdown"
-        onValueChange={handleDateChange}
-        type="single"
-      />
-    </Popover.Content>
-  </Popover.Root>
-</div>
+  <InputGroup.Addon align="inline-end">
+    <Popover.Root bind:open>
+      <Popover.Trigger>
+        {#snippet child({ props })}
+          <InputGroup.Button
+            {...props}
+            aria-label={calendarButtonLabel}
+            disabled={disabled}
+            size="icon-xs"
+            type="button"
+            variant="ghost"
+          >
+            <CalendarIcon />
+          </InputGroup.Button>
+        {/snippet}
+      </Popover.Trigger>
+      <Popover.Content class="w-auto overflow-hidden p-0" align="start">
+        <Calendar
+          bind:value={selectedDate}
+          captionLayout="dropdown"
+          onValueChange={handleDateChange}
+          type="single"
+        />
+      </Popover.Content>
+    </Popover.Root>
+  </InputGroup.Addon>
+</InputGroup.Root>
