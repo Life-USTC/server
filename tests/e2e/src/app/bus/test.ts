@@ -18,12 +18,12 @@ async function chooseStop(page: Page, label: RegExp, option: RegExp) {
     label.source.includes("Start") || label.source.includes("出发")
       ? page.locator("[data-testid='bus-start-stop-group']")
       : page.locator("[data-testid='bus-end-stop-group']");
-  const button = group.getByRole("button", { name: option });
+  const button = group.getByRole("radio", { name: option });
   await expect(async () => {
-    if ((await button.getAttribute("aria-pressed")) !== "true") {
+    if ((await button.getAttribute("aria-checked")) !== "true") {
       await button.click();
     }
-    await expect(button).toHaveAttribute("aria-pressed", "true");
+    await expect(button).toHaveAttribute("aria-checked", "true");
   }).toPass({
     timeout: 10_000,
     intervals: [250, 500, 1_000],
@@ -163,19 +163,19 @@ test.describe("校车面板标签页", () => {
     const reverseButton = page.getByRole("button", { name: /Reverse|反向/ });
     const startWestButton = page
       .locator("[data-testid='bus-start-stop-group']")
-      .getByRole("button", { name: /西区/ });
+      .getByRole("radio", { name: /西区/ });
     const endEastButton = page
       .locator("[data-testid='bus-end-stop-group']")
-      .getByRole("button", { name: /东区/ });
+      .getByRole("radio", { name: /东区/ });
     await expect(async () => {
       if (
-        (await startWestButton.getAttribute("aria-pressed")) !== "true" ||
-        (await endEastButton.getAttribute("aria-pressed")) !== "true"
+        (await startWestButton.getAttribute("aria-checked")) !== "true" ||
+        (await endEastButton.getAttribute("aria-checked")) !== "true"
       ) {
         await reverseButton.click();
       }
-      await expect(startWestButton).toHaveAttribute("aria-pressed", "true");
-      await expect(endEastButton).toHaveAttribute("aria-pressed", "true");
+      await expect(startWestButton).toHaveAttribute("aria-checked", "true");
+      await expect(endEastButton).toHaveAttribute("aria-checked", "true");
       await expect(routeSectionRows(page)).toHaveCount(1);
     }).toPass({
       timeout: 10_000,
@@ -289,8 +289,8 @@ test.describe("校车面板标签页", () => {
 
       const endSouthButton = page
         .locator("[data-testid='bus-end-stop-group']")
-        .getByRole("button", { name: /南区/ });
-      if ((await endSouthButton.getAttribute("aria-pressed")) !== "true") {
+        .getByRole("radio", { name: /南区/ });
+      if ((await endSouthButton.getAttribute("aria-checked")) !== "true") {
         const [stopSaveResponse] = await Promise.all([
           page.waitForResponse(
             (response) =>
