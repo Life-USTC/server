@@ -61,7 +61,7 @@ export let overdueTodos: DashboardTodoItem[];
               : dashboardTabHref("homeworks")}
           >
             <span class="min-w-0">
-              <span class="mb-1 inline-flex text-base-content/55 text-xs">{copy.CalendarEventCard.homework}</span>
+              <Badge class="mb-1" variant="secondary">{copy.CalendarEventCard.homework}</Badge>
               <span class="block truncate font-medium">{homework.title}</span>
               <span class="block truncate text-base-content/60 text-sm">{homework.section?.course?.namePrimary ?? commonCopy.sections}</span>
             </span>
@@ -74,7 +74,7 @@ export let overdueTodos: DashboardTodoItem[];
             href={dashboardTabHref("todos")}
           >
             <span class="min-w-0">
-              <span class="mb-1 inline-flex text-base-content/55 text-xs">{copy.CalendarEventCard.todo}</span>
+              <Badge class="mb-1" variant="secondary">{copy.CalendarEventCard.todo}</Badge>
               <span class="block truncate font-medium">{todo.title}</span>
               <span class="mt-1 flex flex-wrap gap-1.5">
                 <Badge class={todoPriorityClass(todo.priority)}>{todosCopy.priority[todo.priority]}</Badge>

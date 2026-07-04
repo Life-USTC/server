@@ -1,4 +1,5 @@
 <script lang="ts">
+import { Badge } from "$lib/components/ui/badge/index.js";
 import CalendarEventChip from "./CalendarEventChip.svelte";
 
 type CalendarWeekEvent = {
@@ -41,9 +42,9 @@ export let moreLabel: (count: number) => string = (count) => `+${count}`;
             {/if}
           </div>
           {#if day.events.length > 0}
-            <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-base-200 px-1.5 font-medium text-base-content/60 text-xs">
+            <Badge class="h-5 min-w-5 rounded-full px-1 font-mono tabular-nums" variant="outline">
               {day.events.length}
-            </span>
+            </Badge>
           {/if}
         </div>
         <div class="mt-3 grid gap-1.5">

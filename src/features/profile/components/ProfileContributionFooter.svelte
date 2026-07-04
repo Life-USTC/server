@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { ProfileCopy } from "@/features/profile/lib/profile-copy";
+import { Badge } from "$lib/components/ui/badge/index.js";
 import type { ProfileStat } from "./profile-contribution-types";
 
 type LegendItem = {
@@ -15,11 +16,11 @@ export let stats: ProfileStat[];
 <div class="flex flex-wrap items-center justify-between gap-3">
   <div class="flex flex-wrap gap-2">
     {#each stats.slice(1) as stat}
-      <span class="rounded-md border border-base-300 bg-base-200/40 px-2 py-1 text-base-content/70 text-xs">
-        <span class="font-semibold text-base-content">{stat.value}</span>
+      <Badge variant="outline">
+        <span class="font-semibold">{stat.value}</span>
         {" "}
         {stat.label}
-      </span>
+      </Badge>
     {/each}
   </div>
   <div class="flex flex-wrap items-center justify-end gap-2 text-base-content/60 text-xs">
