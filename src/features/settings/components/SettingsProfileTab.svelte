@@ -20,7 +20,7 @@ export let user: SettingsUser;
 </script>
 
 <form method="POST" action="?/updateProfile&tab=profile">
-  <Card.Root class="border-base-300 bg-base-100">
+  <Card.Root>
     <Card.Header>
       <Card.Title>{copy.profile.editProfile}</Card.Title>
       <Card.Description>

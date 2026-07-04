@@ -40,7 +40,7 @@ export let updatingDashboardLinkSlug: string | null;
     : dashboardCopy.termSelection.noAnySelection}
 />
 
-<Card.Root class="border-base-300 bg-base-100">
+<Card.Root>
   <Card.Header>
     <Card.Title>{dashboardCopy.todos.title}</Card.Title>
     <Card.Description>

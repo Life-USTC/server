@@ -24,7 +24,7 @@ export let todosDueToday: DashboardTodoItem[];
 export let todoStatus: (todo: DashboardTodoItem) => string;
 </script>
 
-<Card.Root class="border-base-300 bg-base-100">
+<Card.Root>
   <Card.Header>
     <div class="flex flex-wrap items-start justify-between gap-3">
       <Card.Title>

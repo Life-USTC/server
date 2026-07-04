@@ -14,7 +14,7 @@ export let formatMessage: (
 ) => string;
 </script>
 
-<Card.Root class="border-base-300 bg-base-100">
+<Card.Root>
   <Card.Header>
     <Card.Title>
       <a class="no-underline hover:underline" href={dashboardTabHref("calendar")}>{dashboardCopy.week.title}</a>

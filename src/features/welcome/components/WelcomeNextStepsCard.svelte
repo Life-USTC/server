@@ -9,7 +9,7 @@ export let onOpenBulkImport: () => void;
 export let welcomeCopy: WelcomeCopy;
 </script>
 
-<Card.Root class="border-base-300 bg-base-100 lg:sticky lg:top-20 lg:h-fit">
+<Card.Root class="lg:sticky lg:top-20 lg:h-fit">
   <Card.Header>
     <Card.Title class="text-lg">{welcomeCopy.nextStepsTitle}</Card.Title>
     <Card.Description>

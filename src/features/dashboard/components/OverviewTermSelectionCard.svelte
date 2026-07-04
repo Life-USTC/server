@@ -9,7 +9,7 @@ export let dashboardTabHref: DashboardCalendarTabHref;
 export let description: string;
 </script>
 
-<Card.Root class="border-base-300 bg-base-100">
+<Card.Root>
   <Card.Header class="items-start gap-4">
     <div>
       <Card.Title>{dashboardCopy.termSelection.title}</Card.Title>

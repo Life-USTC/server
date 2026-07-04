@@ -16,7 +16,7 @@ export let openLabel: string;
 {#if attachments.length > 0}
   <div class="grid gap-2 sm:grid-cols-2">
     {#each attachments as attachment}
-      <Card.Root class="border-base-300 bg-base-100 shadow-none">
+      <Card.Root class="shadow-none">
         <Card.Content class="grid gap-2 p-3">
           <div class="min-w-0">
             <p class="truncate font-medium text-sm">{attachment.filename}</p>

@@ -82,7 +82,7 @@ $: cards = extractLinkCards(content, copy);
 {#if cards.length > 0}
   <div class="mt-3 grid gap-2 sm:grid-cols-2">
     {#each cards as card}
-      <Card.Root class="border-base-300 bg-base-100 shadow-none">
+      <Card.Root class="shadow-none">
         <Card.Content class="grid gap-1 p-3">
           <a class="font-medium text-primary text-sm hover:underline" href={card.href}>
             {card.label}

@@ -46,7 +46,7 @@ function heatmapClass(count: number) {
 }
 </script>
 
-<Card.Root class="min-w-0 border-base-300 bg-base-100">
+<Card.Root class="min-w-0">
   <Card.Header>
     <Card.Title>
       {copy.contribution.title.replace(

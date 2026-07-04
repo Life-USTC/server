@@ -45,7 +45,7 @@ export let overdueTodos: DashboardTodoItem[];
     {todaySessions}
   />
 
-  <Card.Root class="border-base-300 bg-base-100">
+  <Card.Root>
     <Card.Header>
       <Card.Title>
         <a class="no-underline hover:underline" href={dashboardTabHref("homeworks")}>{dashboardCopy.overdue.title}</a>

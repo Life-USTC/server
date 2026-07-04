@@ -16,7 +16,7 @@ export let homeworkEtaLabel: (date: Date | string | null | undefined) => string;
 export let pendingHomeworks: DashboardHomeworkItem[];
 </script>
 
-<Card.Root class="border-base-300 bg-base-100">
+<Card.Root>
   <Card.Header>
     <div class="flex flex-wrap items-start justify-between gap-3">
       <Card.Title>

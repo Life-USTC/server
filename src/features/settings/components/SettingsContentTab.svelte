@@ -6,7 +6,7 @@ import type { SettingsCopy } from "./settings-component-types";
 export let copy: SettingsCopy;
 </script>
 
-<Card.Root class="border-base-300 bg-base-100">
+<Card.Root>
   <Card.Header>
     <Card.Title>{copy.settings.content.title}</Card.Title>
     <Card.Description>

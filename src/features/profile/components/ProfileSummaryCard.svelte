@@ -15,7 +15,7 @@ export let stats: { label: string; value: number }[];
 export let user: ProfileSummaryUser;
 </script>
 
-<Card.Root class="border-base-300 bg-base-100">
+<Card.Root>
   <Card.Content class="grid gap-5 pt-5">
     <div class="flex items-start gap-4">
       <Avatar.Root class="size-20 shrink-0">

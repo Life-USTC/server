@@ -21,7 +21,7 @@ export let unlinkAccountId: string | null;
 export let user: SettingsUser;
 </script>
 
-<Card.Root class="border-base-300 bg-base-100">
+<Card.Root>
   <Card.Header>
     <Card.Title>{copy.profile.linkedAccounts}</Card.Title>
     <Card.Description>

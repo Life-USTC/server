@@ -40,7 +40,7 @@ $: avatarFallback = (user.name ?? user.username ?? "U")
 
 <form method="POST" action="?/complete" use:enhance={completeProfileAction}>
   <input type="hidden" name="callbackUrl" value={callbackUrl} />
-  <Card.Root class="border-base-300 bg-base-100">
+  <Card.Root>
     <Card.Header class="items-center text-center">
       <Badge class="w-fit" variant="secondary">{welcomeCopy.firstSignIn}</Badge>
       <Card.Title class="text-3xl">{welcomeCopy.title}</Card.Title>

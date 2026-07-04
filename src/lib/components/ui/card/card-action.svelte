@@ -12,9 +12,9 @@ let {
 
 <div
   bind:this={ref}
-  data-slot="card-title"
+  data-slot="card-action"
   class={cn(
-    "cn-font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm",
+    "cn-card-action col-start-2 row-span-2 row-start-1 self-start justify-self-end",
     className,
   )}
   {...restProps}
