@@ -4,6 +4,7 @@ import TrashIcon from "@lucide/svelte/icons/trash-2";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 import type { AdminOAuthClient } from "./admin-oauth-client-types";
 
 export let client: AdminOAuthClient;
@@ -32,44 +33,50 @@ export let onDelete: (client: AdminOAuthClient) => void;
     </Card.Header>
 
     <Card.Content class="grid gap-3 text-sm lg:grid-cols-[220px_1fr_1fr]">
-      <div class="rounded-md border border-border bg-muted/40 p-3">
-        <div class="text-muted-foreground text-xs">{copy.clientType}</div>
-        <div class="mt-1 font-medium">{clientTypeLabel(client.tokenEndpointAuthMethod)}</div>
-        <p class="mt-1 text-muted-foreground text-xs">{clientAuthCopy(client.tokenEndpointAuthMethod)}</p>
-      </div>
-      <div class="rounded-md border border-border bg-muted/40 p-3">
-        <div class="font-medium">{copy.redirectUris}</div>
-        <div class="mt-2 grid gap-1">
-          {#each client.redirectUris as uri}
-            <div class="flex items-start gap-2">
-              <p class="min-w-0 flex-1 break-all font-mono text-muted-foreground text-xs">{uri}</p>
-              <Button
-                aria-label={copy.copyRedirectUri}
-                class="shrink-0"
-                size="sm"
-                type="button"
-                variant="ghost"
-                onclick={() => copyText(uri, copy.redirectUriCopied)}
-              >
-                <CopyIcon data-icon="inline-start" />
-                <span>{copy.copyRedirectUri}</span>
-              </Button>
-            </div>
-          {:else}
-            <p class="text-muted-foreground">{copy.notAvailable}</p>
-          {/each}
-        </div>
-      </div>
-      <div class="rounded-md border border-border bg-muted/40 p-3">
-        <div class="font-medium">{copy.tableColumnScopes}</div>
-        <div class="mt-2 flex flex-wrap gap-1.5">
-          {#each client.scopes as scope}
-            <Badge class="font-mono" variant="ghost">{scope}</Badge>
-          {:else}
-            <span class="text-muted-foreground">{copy.notAvailable}</span>
-          {/each}
-        </div>
-      </div>
+      <Item.Root class="items-start" variant="muted">
+        <Item.Content>
+          <Item.Title>{copy.clientType}</Item.Title>
+          <div class="font-medium">{clientTypeLabel(client.tokenEndpointAuthMethod)}</div>
+          <Item.Description>{clientAuthCopy(client.tokenEndpointAuthMethod)}</Item.Description>
+        </Item.Content>
+      </Item.Root>
+      <Item.Root class="items-start" variant="muted">
+        <Item.Content class="min-w-0">
+          <Item.Title>{copy.redirectUris}</Item.Title>
+          <div class="grid gap-1">
+            {#each client.redirectUris as uri}
+              <div class="flex items-start gap-2">
+                <p class="min-w-0 flex-1 break-all font-mono text-muted-foreground text-xs">{uri}</p>
+                <Button
+                  aria-label={copy.copyRedirectUri}
+                  class="shrink-0"
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                  onclick={() => copyText(uri, copy.redirectUriCopied)}
+                >
+                  <CopyIcon data-icon="inline-start" />
+                  <span>{copy.copyRedirectUri}</span>
+                </Button>
+              </div>
+            {:else}
+              <p class="text-muted-foreground">{copy.notAvailable}</p>
+            {/each}
+          </div>
+        </Item.Content>
+      </Item.Root>
+      <Item.Root class="items-start" variant="muted">
+        <Item.Content>
+          <Item.Title>{copy.tableColumnScopes}</Item.Title>
+          <div class="flex flex-wrap gap-1.5">
+            {#each client.scopes as scope}
+              <Badge class="font-mono" variant="ghost">{scope}</Badge>
+            {:else}
+              <span class="text-muted-foreground">{copy.notAvailable}</span>
+            {/each}
+          </div>
+        </Item.Content>
+      </Item.Root>
     </Card.Content>
 
     <Card.Footer class="flex-wrap justify-between gap-3">
