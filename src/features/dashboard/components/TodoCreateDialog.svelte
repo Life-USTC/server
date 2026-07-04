@@ -45,6 +45,7 @@ export let todosCopy: DashboardTodosCopy;
           <TodoFormFields
             {commentsCopy}
             disabled={isCreatingTodo}
+            idPrefix="create-todo"
             {todoPriorityOptions}
             {todosCopy}
           />

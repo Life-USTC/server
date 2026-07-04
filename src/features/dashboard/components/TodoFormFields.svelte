@@ -10,6 +10,7 @@ import {
 } from "@/features/todos/lib/todo-limits";
 import DateTimePicker from "$lib/components/DateTimePicker.svelte";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
+import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import * as Select from "$lib/components/ui/select/index.js";
 
@@ -17,31 +18,38 @@ export let commentsCopy: CommentsCopy;
 export let contentValue = "";
 export let disabled = false;
 export let dueAtValue = "";
+export let idPrefix = "todo-form";
 export let priorityValue = "medium";
 export let titleValue = "";
 export let todoPriorityOptions: DashboardTodoPriorityOption[];
 export let todosCopy: DashboardTodosCopy;
+
+$: titleId = `${idPrefix}-title`;
+$: priorityId = `${idPrefix}-priority`;
+$: dueAtLabelId = `${idPrefix}-due-at-label`;
+$: contentLabelId = `${idPrefix}-content-label`;
 </script>
 
-<label class="grid gap-2">
-  <span class="font-medium text-sm">{todosCopy.titleLabel}</span>
+<Field.Field>
+  <Field.Label for={titleId}>{todosCopy.titleLabel}</Field.Label>
   <Input
+    id={titleId}
     {disabled}
     maxlength={TODO_TITLE_MAX_LENGTH}
     name="title"
     required
     value={titleValue}
   />
-</label>
-<label class="grid gap-2">
-  <span class="font-medium text-sm">{todosCopy.priorityLabel}</span>
+</Field.Field>
+<Field.Field>
+  <Field.Label for={priorityId}>{todosCopy.priorityLabel}</Field.Label>
   <Select.Root
     bind:value={priorityValue}
     {disabled}
     name="priority"
     type="single"
   >
-    <Select.Trigger class="w-full">
+    <Select.Trigger id={priorityId} class="w-full">
       {todoPriorityOptions.find((option) => option.value === priorityValue)
         ?.label ?? todoPriorityOptions[0]?.label ?? ""}
     </Select.Trigger>
@@ -55,22 +63,22 @@ export let todosCopy: DashboardTodosCopy;
       </Select.Group>
     </Select.Content>
   </Select.Root>
-</label>
-<div class="grid gap-2">
-  <span class="font-medium text-sm">{todosCopy.dueAtLabel}</span>
+</Field.Field>
+<Field.Field>
+  <Field.Title id={dueAtLabelId}>{todosCopy.dueAtLabel}</Field.Title>
   <DateTimePicker
-    aria-label={todosCopy.dueAtLabel}
+    aria-labelledby={dueAtLabelId}
     {disabled}
     calendarButtonLabel={todosCopy.calendarButtonLabel}
     name="dueAt"
     placeholder={todosCopy.dueAtLabel}
     value={dueAtValue}
   />
-</div>
-<div class="grid gap-2">
-  <span class="font-medium text-sm">{todosCopy.contentLabel}</span>
+</Field.Field>
+<Field.Field>
+  <Field.Title id={contentLabelId}>{todosCopy.contentLabel}</Field.Title>
   <MarkdownEditor
-    aria-label={todosCopy.contentLabel}
+    aria-labelledby={contentLabelId}
     {disabled}
     guideLabel={commentsCopy.markdownGuide}
     maxlength={TODO_CONTENT_MAX_LENGTH}
@@ -82,4 +90,4 @@ export let todosCopy: DashboardTodosCopy;
     tabWriteLabel={commentsCopy.tabWrite}
     value={contentValue}
   />
-</div>
+</Field.Field>

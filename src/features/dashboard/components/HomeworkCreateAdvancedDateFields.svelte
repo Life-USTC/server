@@ -1,6 +1,7 @@
 <script lang="ts">
 import DateTimePicker from "$lib/components/DateTimePicker.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
 import type {
   DashboardHomeworkCreateCopy,
   DashboardHomeworkDateShortcut,
@@ -15,10 +16,12 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
 </script>
 
 <div class="grid gap-3 sm:grid-cols-2">
-  <div class="grid gap-2">
-    <span class="font-medium text-sm">{homeworksCopy.publishedAt}</span>
+  <Field.Field>
+    <Field.Title id="dashboard-homework-published-at-label">
+      {homeworksCopy.publishedAt}
+    </Field.Title>
     <DateTimePicker
-      aria-label={homeworksCopy.publishedAt}
+      aria-labelledby="dashboard-homework-published-at-label"
       bind:value={createHomeworkPublishedAt}
       calendarButtonLabel={homeworksCopy.calendarButtonLabel}
       disabled={isCreatingHomework}
@@ -50,11 +53,13 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
         {homeworksCopy.helperClear}
       </Button>
     </div>
-  </div>
-  <div class="grid gap-2">
-    <span class="font-medium text-sm">{homeworksCopy.submissionStart}</span>
+  </Field.Field>
+  <Field.Field>
+    <Field.Title id="dashboard-homework-submission-start-label">
+      {homeworksCopy.submissionStart}
+    </Field.Title>
     <DateTimePicker
-      aria-label={homeworksCopy.submissionStart}
+      aria-labelledby="dashboard-homework-submission-start-label"
       bind:value={createHomeworkSubmissionStartAt}
       calendarButtonLabel={homeworksCopy.calendarButtonLabel}
       disabled={isCreatingHomework}
@@ -78,5 +83,5 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
         {homeworksCopy.helperClear}
       </Button>
     </div>
-  </div>
+  </Field.Field>
 </div>

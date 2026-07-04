@@ -52,6 +52,7 @@ export let updateTodoAction: SubmitFunction;
             contentValue={todo.content ?? ""}
             disabled={isUpdatingTodo}
             dueAtValue={datetimeLocalValue(todo.dueAt)}
+            idPrefix="edit-todo"
             priorityValue={todo.priority ?? "medium"}
             titleValue={todo.title}
             {todoPriorityOptions}

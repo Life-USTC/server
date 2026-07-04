@@ -7,6 +7,7 @@ import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-r
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import * as Select from "$lib/components/ui/select/index.js";
 import type {
@@ -50,8 +51,10 @@ $: sectionOptions = sections.map((section) => ({
       <Alert.Description>{createHomeworkError}</Alert.Description>
     </Alert.Root>
   {/if}
-  <label class="grid gap-2">
-    <span class="font-medium text-sm">{homeworksCopy.sectionLabel}</span>
+  <Field.Field>
+    <Field.Label for="dashboard-homework-section">
+      {homeworksCopy.sectionLabel}
+    </Field.Label>
     <Select.Root
       bind:value={createHomeworkSectionId}
       disabled={isCreatingHomework}
@@ -59,7 +62,7 @@ $: sectionOptions = sections.map((section) => ({
       required
       type="single"
     >
-      <Select.Trigger class="w-full">
+      <Select.Trigger id="dashboard-homework-section" class="w-full">
         {sectionOptions.find((option) => option.value === createHomeworkSectionId)
           ?.label ?? sectionOptions[0]?.label ?? ""}
       </Select.Trigger>
@@ -73,21 +76,26 @@ $: sectionOptions = sections.map((section) => ({
         </Select.Group>
       </Select.Content>
     </Select.Root>
-  </label>
-  <label class="grid gap-2">
-    <span class="font-medium text-sm">{homeworksCopy.titleLabel}</span>
+  </Field.Field>
+  <Field.Field>
+    <Field.Label for="dashboard-homework-title">
+      {homeworksCopy.titleLabel}
+    </Field.Label>
     <Input
       data-testid="dashboard-homework-title"
+      id="dashboard-homework-title"
       disabled={isCreatingHomework}
       maxlength={HOMEWORK_TITLE_MAX_LENGTH}
       name="title"
       required
     />
-  </label>
-  <div class="grid gap-2">
-    <span class="font-medium text-sm">{homeworksCopy.descriptionLabel}</span>
+  </Field.Field>
+  <Field.Field>
+    <Field.Title id="dashboard-homework-description-label">
+      {homeworksCopy.descriptionLabel}
+    </Field.Title>
     <MarkdownEditor
-      aria-label={homeworksCopy.descriptionLabel}
+      aria-labelledby="dashboard-homework-description-label"
       disabled={isCreatingHomework}
       guideLabel={commentsCopy.markdownGuide}
       maxlength={HOMEWORK_DESCRIPTION_MAX_LENGTH}
@@ -99,7 +107,7 @@ $: sectionOptions = sections.map((section) => ({
       tabPreviewLabel={commentsCopy.tabPreview}
       tabWriteLabel={commentsCopy.tabWrite}
     />
-  </div>
+  </Field.Field>
   <HomeworkCreateScheduleFields
     {applyHomeworkDueAtSemesterEnd}
     {applyHomeworkDueInMonth}
@@ -114,14 +122,26 @@ $: sectionOptions = sections.map((section) => ({
     {selectedCreateHomeworkSection}
     {toShanghaiDateTimeLocalValue}
   />
-  <div class="flex flex-wrap gap-4">
-    <label class="inline-flex items-center gap-2 text-sm">
-      <Checkbox disabled={isCreatingHomework} name="isMajor" />
-      <span>{homeworksCopy.tagMajor}</span>
-    </label>
-    <label class="inline-flex items-center gap-2 text-sm">
-      <Checkbox disabled={isCreatingHomework} name="requiresTeam" />
-      <span>{homeworksCopy.tagTeam}</span>
-    </label>
-  </div>
+  <Field.Group class="flex-row flex-wrap gap-4" data-slot="checkbox-group">
+    <Field.Field class="w-fit" orientation="horizontal">
+      <Checkbox
+        disabled={isCreatingHomework}
+        id="dashboard-homework-is-major"
+        name="isMajor"
+      />
+      <Field.Label for="dashboard-homework-is-major" class="font-normal">
+        {homeworksCopy.tagMajor}
+      </Field.Label>
+    </Field.Field>
+    <Field.Field class="w-fit" orientation="horizontal">
+      <Checkbox
+        disabled={isCreatingHomework}
+        id="dashboard-homework-requires-team"
+        name="requiresTeam"
+      />
+      <Field.Label for="dashboard-homework-requires-team" class="font-normal">
+        {homeworksCopy.tagTeam}
+      </Field.Label>
+    </Field.Field>
+  </Field.Group>
 </div>

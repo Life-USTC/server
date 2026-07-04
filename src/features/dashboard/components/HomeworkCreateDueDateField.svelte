@@ -1,6 +1,7 @@
 <script lang="ts">
 import DateTimePicker from "$lib/components/DateTimePicker.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
 import type {
   DashboardHomeworkCreateCopy,
   DashboardHomeworkCreateSectionGetter,
@@ -16,10 +17,12 @@ export let isCreatingHomework: boolean;
 export let selectedCreateHomeworkSection: DashboardHomeworkCreateSectionGetter;
 </script>
 
-<div class="grid gap-2">
-  <span class="font-medium text-sm">{homeworksCopy.submissionDue}</span>
+<Field.Field>
+  <Field.Title id="dashboard-homework-submission-due-label">
+    {homeworksCopy.submissionDue}
+  </Field.Title>
   <DateTimePicker
-    aria-label={homeworksCopy.submissionDue}
+    aria-labelledby="dashboard-homework-submission-due-label"
     bind:value={createHomeworkSubmissionDueAt}
     calendarButtonLabel={homeworksCopy.calendarButtonLabel}
     disabled={isCreatingHomework}
@@ -43,4 +46,4 @@ export let selectedCreateHomeworkSection: DashboardHomeworkCreateSectionGetter;
       {homeworksCopy.helperSemesterEnd}
     </Button>
   </div>
-</div>
+</Field.Field>
