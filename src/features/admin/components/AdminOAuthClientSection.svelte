@@ -7,6 +7,7 @@ import {
 } from "@/features/admin/lib/admin-oauth-client-section-pagination";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
+import * as Card from "$lib/components/ui/card/index.js";
 import AdminOAuthClientSectionPagination from "./AdminOAuthClientSectionPagination.svelte";
 import type {
   AdminOAuthClient,
@@ -39,35 +40,41 @@ $: pageStatus = oauthClientSectionStatus({
 });
 </script>
 
-<section class="min-w-0 rounded-md border border-base-300 bg-base-100">
-  <header class="border-base-300 border-b p-4">
-    <div class="flex flex-wrap items-center gap-2">
-      <h2 class="font-semibold text-base">{title}</h2>
-      <Badge variant="outline">{clients.length}</Badge>
-    </div>
-    <p class="mt-1 text-base-content/60 text-sm">{description}</p>
-  </header>
-  <div class="grid gap-3 p-4">
-    {#each pageClients as client}
-      <AdminOAuthClientCard
-        {client}
-        {clientAuthCopy}
-        {clientTypeLabel}
-        {copy}
-        {copyText}
-        {formatCreatedAt}
-        {onDelete}
-      />
-    {:else}
-      <Alert.Root>
-        <Alert.Description>{emptyMessage}</Alert.Description>
-      </Alert.Root>
-    {/each}
-    <AdminOAuthClientSectionPagination
-      {copy}
-      bind:page
-      {pageCount}
-      status={pageStatus}
-    />
-  </div>
+<section class="min-w-0">
+  <Card.Root>
+    <Card.Header class="border-b">
+      <Card.Title>{title}</Card.Title>
+      <Card.Description>{description}</Card.Description>
+      <Card.Action>
+        <Badge variant="outline">{clients.length}</Badge>
+      </Card.Action>
+    </Card.Header>
+    <Card.Content class="grid gap-3">
+      {#each pageClients as client}
+        <AdminOAuthClientCard
+          {client}
+          {clientAuthCopy}
+          {clientTypeLabel}
+          {copy}
+          {copyText}
+          {formatCreatedAt}
+          {onDelete}
+        />
+      {:else}
+        <Alert.Root>
+          <Alert.Description>{emptyMessage}</Alert.Description>
+        </Alert.Root>
+      {/each}
+    </Card.Content>
+    {#if pageCount > 1}
+      <Card.Footer>
+        <AdminOAuthClientSectionPagination
+          {copy}
+          bind:page
+          {pageCount}
+          status={pageStatus}
+        />
+      </Card.Footer>
+    {/if}
+  </Card.Root>
 </section>

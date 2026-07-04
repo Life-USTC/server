@@ -154,7 +154,13 @@ html {
   --color-error-content: var(--destructive-foreground);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+  }
 }

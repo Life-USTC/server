@@ -1,4 +1,5 @@
 <script lang="ts">
+import { Button } from "$lib/components/ui/button/index.js";
 import {
   adminModerationDescriptionEditedAt,
   adminModerationDescriptionLastEditor,
@@ -21,28 +22,28 @@ export let targetLabel: (description: AdminModerationDescription) => string;
 
 <div class="grid gap-3 md:hidden">
   {#each descriptions as description}
-    <button
-      class="rounded-md border border-base-300 bg-base-100 p-0 text-left transition hover:border-primary/40 hover:shadow-sm"
-      data-slot="card"
+    <Button
+      class="h-auto w-full justify-start p-0 text-left whitespace-normal"
+      variant="outline"
       type="button"
       onclick={() => onManage(description)}
     >
-      <div class="grid gap-3 p-5">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <h2 class="font-semibold text-lg">{targetLabel(description)}</h2>
-          <span class="text-base-content/60 text-sm">
+      <span class="grid w-full gap-3 p-4">
+        <span class="flex flex-wrap items-center justify-between gap-2">
+          <span class="font-semibold text-lg">{targetLabel(description)}</span>
+          <span class="text-muted-foreground text-sm">
             {formatDate(adminModerationDescriptionEditedAt(description))}
           </span>
-        </div>
-        <p class="line-clamp-4 whitespace-pre-wrap text-sm">
+        </span>
+        <span class="line-clamp-4 whitespace-pre-wrap text-sm">
           {description.content || copy.emptyDescription}
-        </p>
-        <p class="text-base-content/60 text-xs">
+        </span>
+        <span class="text-muted-foreground text-xs">
           {formatMessage(copy.lastEditor, {
             name: adminModerationDescriptionLastEditor(description, copy),
           })}
-        </p>
-      </div>
-    </button>
+        </span>
+      </span>
+    </Button>
   {/each}
 </div>

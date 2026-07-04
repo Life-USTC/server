@@ -24,7 +24,7 @@ export function moderationStatusBadgeClass(
 export function moderationStatusBorderClass(
   status: ModerationCommentLike["status"],
 ) {
-  if (status === "active") return "border-l-[#1a7f37]";
-  if (status === "deleted") return "border-l-[#cf222e]";
-  return "border-l-[#bf8700]";
+  if (status === "active") return "border-l-success";
+  if (status === "deleted") return "border-l-error";
+  return "border-l-warning";
 }

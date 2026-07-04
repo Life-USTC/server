@@ -1,6 +1,6 @@
 <script lang="ts">
-import ChevronLeftIcon from "$lib/components/icons/chevron-left.svelte";
-import ChevronRightIcon from "$lib/components/icons/chevron-right.svelte";
+import ChevronLeftIcon from "@lucide/svelte/icons/chevron-left";
+import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 import { Button } from "$lib/components/ui/button/index.js";
 
 export let copy: {
@@ -17,8 +17,8 @@ function setPage(nextPage: number) {
 </script>
 
 {#if pageCount > 1}
-  <div class="flex flex-wrap items-center justify-between gap-3 border-base-300 border-t pt-3">
-    <p class="text-base-content/60 text-xs">
+  <div class="flex w-full flex-wrap items-center justify-between gap-3">
+    <p class="text-muted-foreground text-xs">
       {status}
     </p>
     <div class="flex gap-2">

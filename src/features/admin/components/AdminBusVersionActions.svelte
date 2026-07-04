@@ -1,7 +1,7 @@
 <script lang="ts">
+import CheckCircle from "@lucide/svelte/icons/check-circle";
+import Trash2 from "@lucide/svelte/icons/trash-2";
 import { enhance } from "$app/forms";
-import CheckCircle from "$lib/components/icons/check-circle.svelte";
-import Trash2 from "$lib/components/icons/trash-2.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type {
@@ -31,7 +31,7 @@ export let version: AdminBusVersion;
     </Button>
   </form>
   <Button
-    class="border-transparent bg-error text-error-content hover:bg-error/90"
+    variant="destructive"
     size="sm"
     type="button"
     disabled={Boolean(pendingAction)}

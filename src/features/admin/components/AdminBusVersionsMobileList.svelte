@@ -1,5 +1,6 @@
 <script lang="ts">
 import * as Alert from "$lib/components/ui/alert/index.js";
+import * as Card from "$lib/components/ui/card/index.js";
 import AdminBusVersionActions from "./AdminBusVersionActions.svelte";
 import AdminBusVersionStatusBadge from "./AdminBusVersionStatusBadge.svelte";
 import type {
@@ -21,46 +22,48 @@ export let versions: AdminBusVersion[];
 
 <div class="grid gap-3 md:hidden">
   {#each versions as version}
-    <article class="rounded-md border border-base-300 bg-base-100 p-3" data-slot="card">
-      <div class="flex items-start justify-between gap-3">
-        <div class="min-w-0">
-          <h3 class="font-semibold leading-5">{version.title}</h3>
-          <p class="break-all font-mono text-base-content/60 text-xs">
-            {version.key}
-          </p>
-        </div>
-        <AdminBusVersionStatusBadge {copy} {version} />
-      </div>
-      {#if version.sourceMessage}
-        <p class="mt-2 text-base-content/60 text-xs">{version.sourceMessage}</p>
+    <Card.Root size="sm">
+      <Card.Header>
+        <Card.Title>{version.title}</Card.Title>
+        <Card.Description class="break-all font-mono">{version.key}</Card.Description>
+        <Card.Action>
+          <AdminBusVersionStatusBadge {copy} {version} />
+        </Card.Action>
+      </Card.Header>
+      <Card.Content class="grid gap-3">
+        {#if version.sourceMessage}
+          <p class="text-muted-foreground text-xs">{version.sourceMessage}</p>
+        {/if}
+        <dl class="grid grid-cols-2 gap-2 text-sm">
+          <div>
+            <dt class="text-muted-foreground text-xs">{copy.colTrips}</dt>
+            <dd class="font-medium tabular-nums">{version.tripCount}</dd>
+          </div>
+          <div>
+            <dt class="text-muted-foreground text-xs">{copy.colImported}</dt>
+            <dd class="tabular-nums">{formatImportedAt(version.importedAt)}</dd>
+          </div>
+          <div class="col-span-2">
+            <dt class="text-muted-foreground text-xs">{copy.colEffective}</dt>
+            <dd class="tabular-nums">
+              {formatEffectiveRange(version)}
+            </dd>
+          </div>
+        </dl>
+      </Card.Content>
+      {#if !version.isEnabled}
+        <Card.Footer class="justify-end gap-2">
+          <AdminBusVersionActions
+            {copy}
+            {enhancedAction}
+            {isPending}
+            {onDelete}
+            {pendingAction}
+            {version}
+          />
+        </Card.Footer>
       {/if}
-      <dl class="mt-3 grid grid-cols-2 gap-2 text-sm">
-        <div>
-          <dt class="text-base-content/60 text-xs">{copy.colTrips}</dt>
-          <dd class="font-medium tabular-nums">{version.tripCount}</dd>
-        </div>
-        <div>
-          <dt class="text-base-content/60 text-xs">{copy.colImported}</dt>
-          <dd class="tabular-nums">{formatImportedAt(version.importedAt)}</dd>
-        </div>
-        <div class="col-span-2">
-          <dt class="text-base-content/60 text-xs">{copy.colEffective}</dt>
-          <dd class="tabular-nums">
-            {formatEffectiveRange(version)}
-          </dd>
-        </div>
-      </dl>
-      <div class="mt-3 flex justify-end gap-2">
-        <AdminBusVersionActions
-          {copy}
-          {enhancedAction}
-          {isPending}
-          {onDelete}
-          {pendingAction}
-          {version}
-        />
-      </div>
-    </article>
+    </Card.Root>
   {:else}
     <Alert.Root>
       <Alert.Description>{copy.noVersions}</Alert.Description>

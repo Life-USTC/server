@@ -1,4 +1,6 @@
 <script lang="ts">
+import * as Card from "$lib/components/ui/card/index.js";
+
 type AdminBusSummaryCopy = {
   statActive: string;
   statActiveMeta: string;
@@ -49,10 +51,14 @@ const stats = [
 
 <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
   {#each stats as stat}
-    <article class="rounded-xl border border-base-300 bg-base-100 p-4 shadow-sm">
-      <div class="text-base-content/60 text-sm">{stat.label()}</div>
-      <div class={`mt-1 font-semibold ${stat.valueClass}`}>{stat.getValue()}</div>
-      <div class="mt-1 text-base-content/50 text-xs">{stat.getMeta()}</div>
-    </article>
+    <Card.Root size="sm">
+      <Card.Header>
+        <Card.Description>{stat.label()}</Card.Description>
+        <Card.Title class={stat.valueClass}>{stat.getValue()}</Card.Title>
+      </Card.Header>
+      <Card.Content>
+        <p class="text-muted-foreground text-xs">{stat.getMeta()}</p>
+      </Card.Content>
+    </Card.Root>
   {/each}
 </div>
