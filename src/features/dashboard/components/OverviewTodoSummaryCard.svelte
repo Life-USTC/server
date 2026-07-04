@@ -4,9 +4,9 @@ import type {
   DashboardTodoItem,
   DashboardTodosCopy,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
-import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
 
 export let dashboardCopy: DashboardDashboardCopy;
@@ -63,9 +63,11 @@ export let todoStatus: (todo: DashboardTodoItem) => string;
           {/if}
         </a>
       {:else}
-        <Alert.Root>
-          <Alert.Description>{todosCopy.filterEmptyTitle}</Alert.Description>
-        </Alert.Root>
+        <Empty.Root class="min-h-24">
+          <Empty.Header>
+            <Empty.Title>{todosCopy.filterEmptyTitle}</Empty.Title>
+          </Empty.Header>
+        </Empty.Root>
       {/each}
     </div>
   </Card.Content>

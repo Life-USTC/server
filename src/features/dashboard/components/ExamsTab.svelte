@@ -7,7 +7,7 @@ import type {
   SignedDashboardData,
 } from "@/features/dashboard/lib/dashboard-controller-types";
 import { hasDashboardSubscriptions } from "@/features/dashboard/lib/dashboard-subscription-state";
-import * as Alert from "$lib/components/ui/alert/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import DashboardNoSubscriptionsState from "./DashboardNoSubscriptionsState.svelte";
 import type {
   DashboardExamFilter,
@@ -61,13 +61,17 @@ export let filteredExamRows: DashboardExamRow[];
     />
 
     {#if examRows.length === 0}
-      <Alert.Root>
-        <Alert.Description>{dashboardCopy.nav.exams.empty}</Alert.Description>
-      </Alert.Root>
+      <Empty.Root class="items-start border border-border bg-background text-left">
+        <Empty.Header class="items-start text-left">
+          <Empty.Title>{dashboardCopy.nav.exams.empty}</Empty.Title>
+        </Empty.Header>
+      </Empty.Root>
     {:else if filteredExamRows.length === 0}
-      <Alert.Root>
-        <Alert.Description>{dashboardCopy.nav.exams.filterEmpty}</Alert.Description>
-      </Alert.Root>
+      <Empty.Root class="items-start border border-border bg-background text-left">
+        <Empty.Header class="items-start text-left">
+          <Empty.Title>{dashboardCopy.nav.exams.filterEmpty}</Empty.Title>
+        </Empty.Header>
+      </Empty.Root>
     {:else if examView === "list"}
       <ExamsListView
         {dashboardCopy}

@@ -12,8 +12,8 @@ import type {
   DashboardBusData,
 } from "@/features/dashboard/lib/bus-tab-types";
 import { apiClient } from "@/lib/api/client";
-import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import BusTabSettings from "./BusTabSettings.svelte";
 import BusTabTimetable from "./BusTabTimetable.svelte";
 
@@ -127,9 +127,11 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
         showHeader={false}
       />
     {:else}
-      <Alert.Root>
-        <Alert.Description>{busCopy.empty}</Alert.Description>
-      </Alert.Root>
+      <Empty.Root class="border border-border bg-background lg:col-span-2">
+        <Empty.Header>
+          <Empty.Title>{busCopy.empty}</Empty.Title>
+        </Empty.Header>
+      </Empty.Root>
     {/if}
   </div>
 </div>

@@ -1,9 +1,9 @@
 <script lang="ts">
 import type { DashboardHomeworkItem } from "@/features/dashboard/lib/dashboard-controller-types";
-import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 
 type HomeworkDateFormatter = (
   value: Date | string | null | undefined,
@@ -72,8 +72,10 @@ export let toggleHomeworkCompletion: (
       </Card.Content>
     </Card.Root>
   {:else}
-    <Alert.Root class="md:col-span-2">
-      <Alert.Description>{homeworksCopy.filterEmptyTitle}</Alert.Description>
-    </Alert.Root>
+    <Empty.Root class="min-h-24 border border-border bg-background md:col-span-2">
+      <Empty.Header>
+        <Empty.Title>{homeworksCopy.filterEmptyTitle}</Empty.Title>
+      </Empty.Header>
+    </Empty.Root>
   {/each}
 </div>

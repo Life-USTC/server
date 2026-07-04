@@ -4,9 +4,9 @@ import type {
   DashboardBusCopy,
   DashboardBusData,
 } from "@/features/dashboard/lib/bus-tab-types";
-import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import BusTabRouteTable from "./BusTabRouteTable.svelte";
 import BusTabTimetableNotice from "./BusTabTimetableNotice.svelte";
 
@@ -44,9 +44,11 @@ export let showHeader = true;
         {/each}
       </div>
     {:else}
-      <Alert.Root>
-        <Alert.Description>{busCopy.planner.empty}</Alert.Description>
-        <Alert.Action>
+      <Empty.Root class="border border-border bg-background">
+        <Empty.Header>
+          <Empty.Description>{busCopy.planner.empty}</Empty.Description>
+        </Empty.Header>
+        <Empty.Content>
           <Button
             disabled={!busPlannerReady}
             size="sm"
@@ -56,8 +58,8 @@ export let showHeader = true;
           >
             {busCopy.planner.emptyReverseAction}
           </Button>
-        </Alert.Action>
-      </Alert.Root>
+        </Empty.Content>
+      </Empty.Root>
     {/if}
 
     <BusTabTimetableNotice

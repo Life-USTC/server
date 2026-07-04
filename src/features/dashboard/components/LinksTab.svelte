@@ -7,6 +7,7 @@ import type {
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import LinksTabGroup from "./LinksTabGroup.svelte";
 import LinksTabToolbar from "./LinksTabToolbar.svelte";
 
@@ -44,9 +45,11 @@ export let signedLinkGroups: SignedLinkGroup[];
             {updatingDashboardLinkSlug}
           />
         {:else}
-          <Alert.Root>
-            <Alert.Description>{dashboardCopy.linkHub.empty}</Alert.Description>
-          </Alert.Root>
+          <Empty.Root class="items-start border border-border bg-background text-left">
+            <Empty.Header class="items-start text-left">
+              <Empty.Title>{dashboardCopy.linkHub.empty}</Empty.Title>
+            </Empty.Header>
+          </Empty.Root>
         {/each}
 
         {#if linkActionError}

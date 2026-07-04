@@ -4,8 +4,8 @@ import type {
   DashboardDashboardCopy,
   LinkView,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
-import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import AnonymousLinksGroup from "./AnonymousLinksGroup.svelte";
 import AnonymousLinksToolbar from "./AnonymousLinksToolbar.svelte";
 
@@ -35,9 +35,11 @@ export let anonymousLinkGroups: AnonymousLinkGroup[];
       {linkView}
     />
   {:else}
-    <Alert.Root>
-      <Alert.Description>{dashboardCopy.linkHub.empty}</Alert.Description>
-    </Alert.Root>
+    <Empty.Root class="items-start border border-border bg-background text-left">
+      <Empty.Header class="items-start text-left">
+        <Empty.Title>{dashboardCopy.linkHub.empty}</Empty.Title>
+      </Empty.Header>
+    </Empty.Root>
   {/each}
 
   <p class="text-base-content/60 text-xs">

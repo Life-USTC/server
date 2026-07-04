@@ -8,8 +8,8 @@ export let title: string;
 
 <Empty.Root
   class={centered
-    ? "border border-base-300 bg-base-100"
-    : "items-start border border-base-300 bg-base-100 text-left"}
+    ? "border border-border bg-background"
+    : "items-start border border-border bg-background text-left"}
 >
   <Empty.Header class={centered ? "" : "items-start text-left"}>
     <Empty.Title>{title}</Empty.Title>

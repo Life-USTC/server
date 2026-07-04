@@ -6,8 +6,8 @@ import type {
   DashboardSessionItem,
   DashboardTodoItem,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
-import * as Alert from "$lib/components/ui/alert/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
 
 export let copy: DashboardRootCopy;
@@ -61,9 +61,11 @@ export let todaySessions: DashboardSessionItem[];
         </a>
       {/each}
       {#if todaySessions.length === 0 && dueTodayHomeworks.length === 0 && dueTodayTodos.length === 0}
-        <Alert.Root>
-          <Alert.Description>{dashboardCopy.today.empty}</Alert.Description>
-        </Alert.Root>
+        <Empty.Root class="min-h-24 md:col-span-2">
+          <Empty.Header>
+            <Empty.Title>{dashboardCopy.today.empty}</Empty.Title>
+          </Empty.Header>
+        </Empty.Root>
       {/if}
     </div>
   </Card.Content>

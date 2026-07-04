@@ -4,7 +4,7 @@ import type {
   DashboardLinkPinAction,
   DashboardOverviewLinkItem,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
-import * as Alert from "$lib/components/ui/alert/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import DashboardLinkVisitAction from "./DashboardLinkVisitAction.svelte";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
 import LinksTabPinButton from "./LinksTabPinButton.svelte";
@@ -46,8 +46,10 @@ function pinAction(link: DashboardOverviewLinkItem): DashboardLinkPinAction {
       </div>
     </div>
   {:else}
-    <Alert.Root>
-      <Alert.Description>{dashboardCopy.linkHub.empty}</Alert.Description>
-    </Alert.Root>
+    <Empty.Root class="min-h-24 border border-border bg-background md:col-span-2 lg:col-span-4">
+      <Empty.Header>
+        <Empty.Title>{dashboardCopy.linkHub.empty}</Empty.Title>
+      </Empty.Header>
+    </Empty.Root>
   {/each}
 </div>
