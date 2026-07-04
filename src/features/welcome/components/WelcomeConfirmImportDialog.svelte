@@ -1,7 +1,9 @@
 <script lang="ts">
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import type {
   WelcomeBulkImportCopy,
@@ -52,10 +54,7 @@ export let welcomeCopy: WelcomeCopy;
           <Field.Group data-slot="checkbox-group" class="gap-2">
             {#each matchedSections as section}
               {@const checkboxId = `welcome-import-section-${section.id}`}
-              <Field.Field
-                orientation="horizontal"
-                class="rounded-md border border-base-300 bg-base-100 p-3 transition hover:bg-base-200"
-              >
+              <Field.Field orientation="horizontal">
                 <Checkbox
                   id={checkboxId}
                   checked={selectedSectionIdSet.has(section.id)}
@@ -83,14 +82,18 @@ export let welcomeCopy: WelcomeCopy;
             {/each}
           </Field.Group>
         {:else}
-          <p class="text-base-content/60 text-sm">{welcomeCopy.noMatchingSections}</p>
+          <Empty.Root class="min-h-20 border border-border bg-background p-4">
+            <Empty.Header>
+              <Empty.Description>{welcomeCopy.noMatchingSections}</Empty.Description>
+            </Empty.Header>
+          </Empty.Root>
         {/if}
 
         {#if unmatchedCodes.length > 0}
-          <div class="rounded-md border border-base-300 bg-base-200/50 p-3">
-            <p class="font-medium text-sm">{formatCopy(bulkCopy.unmatchedCodes, { count: unmatchedCodes.length })}</p>
-            <p class="mt-1 text-base-content/60 text-sm">{unmatchedCodes.join(", ")}</p>
-          </div>
+          <Alert.Root>
+            <Alert.Title>{formatCopy(bulkCopy.unmatchedCodes, { count: unmatchedCodes.length })}</Alert.Title>
+            <Alert.Description>{unmatchedCodes.join(", ")}</Alert.Description>
+          </Alert.Root>
         {/if}
       </div>
       <Dialog.Footer>

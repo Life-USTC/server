@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import type {
   DashboardSubscriptionsTabProps,
@@ -22,10 +23,7 @@ export let toggleImportSectionSelection: (sectionId: number) => void;
     {#each matchedSections as section}
       {@const courseSecondaryName = nameSecondary(section.course)}
       {@const checkboxId = `subscription-import-section-${section.id}`}
-      <Field.Field
-        orientation="horizontal"
-        class="rounded-md border border-base-300 bg-base-100 p-3 transition hover:bg-base-200"
-      >
+      <Field.Field orientation="horizontal">
         <Checkbox
           id={checkboxId}
           checked={selectedImportSectionIdSet.has(section.id)}
@@ -40,7 +38,7 @@ export let toggleImportSectionSelection: (sectionId: number) => void;
           <Field.Label class="cursor-pointer font-normal" for={checkboxId}>
             {namePrimary(section.course)}
             {#if courseSecondaryName}
-              <span class="text-base-content/60">({courseSecondaryName})</span>
+              <span class="text-muted-foreground">({courseSecondaryName})</span>
             {/if}
           </Field.Label>
           <Field.Description>
@@ -56,5 +54,9 @@ export let toggleImportSectionSelection: (sectionId: number) => void;
     {/each}
   </Field.Group>
 {:else}
-  <p class="text-base-content/60 text-sm">{subscriptionsCopy.bulkImport.noMatches}</p>
+  <Empty.Root class="min-h-20 border border-border bg-background p-4">
+    <Empty.Header>
+      <Empty.Description>{subscriptionsCopy.bulkImport.noMatches}</Empty.Description>
+    </Empty.Header>
+  </Empty.Root>
 {/if}
