@@ -6,6 +6,8 @@ import {
   adminDashboardQueueCards,
 } from "@/features/admin/lib/admin-dashboard-card-data";
 import PageHeader from "$lib/components/PageHeader.svelte";
+import { Badge } from "$lib/components/ui/badge/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 
 export let data: AdminDashboardCardData & {
   copy: AdminDashboardCardData["copy"] & {
@@ -27,49 +29,47 @@ $: queueCards = adminDashboardQueueCards(data);
     <h2 class="text-sm font-medium text-base-content/60">
       {data.copy.dashboard.openItems}
     </h2>
-    <div class="flex flex-wrap gap-3">
+    <Item.Group class="grid gap-2 sm:grid-cols-3">
       {#each queueCards as queue}
-        <a
-          class="inline-flex items-center gap-2 rounded-md border border-base-200 px-3 py-1.5 text-sm text-base-content/80 transition hover:border-base-300 hover:bg-base-200/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-          href={queue.href}
-        >
-          <span>{queue.label}</span>
-          <span class="font-medium">{queue.value}</span>
-        </a>
+        <Item.Root size="sm" variant="outline">
+          {#snippet child({ props })}
+            <a {...props} href={queue.href}>
+              <Item.Content>
+                <Item.Title>{queue.label}</Item.Title>
+                <Item.Description>{queue.meta}</Item.Description>
+              </Item.Content>
+              <Item.Actions>
+                <Badge variant="secondary">{queue.value}</Badge>
+              </Item.Actions>
+            </a>
+          {/snippet}
+        </Item.Root>
       {/each}
-    </div>
+    </Item.Group>
   </div>
 
-  <div class="grid gap-1">
+  <Item.Group>
     {#each cards as card}
       {@const Icon = card.icon}
-      <a
-        class="group flex items-start gap-4 rounded-lg p-3 no-underline transition hover:bg-base-200/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-        href={card.href}
-      >
-        <span
-          class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border {card.iconTone}"
-        >
-          <Icon />
-        </span>
-        <div class="min-w-0 flex-1">
-          <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            <span class="font-medium">{card.label}</span>
-            <span class="text-sm text-base-content/60">
-              {card.value} · {card.meta}
-            </span>
-          </div>
-          <p class="text-sm text-base-content/60">
-            {card.description}
-          </p>
-        </div>
-        <span
-          class="ml-auto shrink-0 text-base-content/40 transition group-hover:text-base-content/70"
-          aria-hidden="true"
-        >
-          →
-        </span>
-      </a>
+      <Item.Root variant="outline">
+        {#snippet child({ props })}
+          <a {...props} href={card.href}>
+            <Item.Media variant="icon">
+              <Icon />
+            </Item.Media>
+            <Item.Content>
+              <Item.Title>{card.label}</Item.Title>
+              <Item.Description>{card.description}</Item.Description>
+            </Item.Content>
+            <Item.Actions>
+              <Badge variant="outline">{card.value}</Badge>
+            </Item.Actions>
+            <Item.Footer class="text-muted-foreground text-xs">
+              {card.meta}
+            </Item.Footer>
+          </a>
+        {/snippet}
+      </Item.Root>
     {/each}
-  </div>
+  </Item.Group>
 </section>

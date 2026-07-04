@@ -8,10 +8,8 @@ export type AdminDashboardCard = {
   description: string;
   href: string;
   icon: Component;
-  iconTone: string;
   label: string;
   meta: string;
-  tone: string;
   value: number | string;
 };
 
@@ -81,8 +79,6 @@ export function adminDashboardCards(
       meta: `${data.summary.activeComments} ${data.copy.dashboard.active}, ${data.summary.deletedComments} ${data.copy.dashboard.deleted}`,
       description: data.copy.moderationDescription,
       icon: ShieldAlert,
-      tone: "border-l-[#0969da]",
-      iconTone: "border-[#0969da]/25 bg-[#0969da]/10 text-[#0969da]",
     },
     {
       href: "/admin/users",
@@ -91,8 +87,6 @@ export function adminDashboardCards(
       meta: `${data.summary.suspensions} ${data.copy.dashboard.activeSuspensions}`,
       description: data.copy.usersDescription,
       icon: Users,
-      tone: "border-l-[#1a7f37]",
-      iconTone: "border-[#1a7f37]/25 bg-[#1a7f37]/10 text-[#1a7f37]",
     },
     {
       href: "/admin/oauth",
@@ -101,8 +95,6 @@ export function adminDashboardCards(
       meta: data.copy.dashboard.clientRegistration,
       description: data.copy.oauthDescription,
       icon: Link2,
-      tone: "border-l-[#8250df]",
-      iconTone: "border-[#8250df]/25 bg-[#8250df]/10 text-[#8250df]",
     },
     {
       href: "/admin/bus",
@@ -111,8 +103,6 @@ export function adminDashboardCards(
       meta: data.copy.dashboard.busImports,
       description: data.copy.busDescription,
       icon: LayoutDashboard,
-      tone: "border-l-[#bc4c00]",
-      iconTone: "border-[#bc4c00]/25 bg-[#bc4c00]/10 text-[#bc4c00]",
     },
   ];
 }
