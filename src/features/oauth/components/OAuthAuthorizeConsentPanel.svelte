@@ -36,40 +36,37 @@ $: selectedScopeValue = selectedScopes.join(" ");
 $: canAllow = scopes.length === 0 || selectedScopes.length > 0;
 </script>
 
-<div class="rounded-md border border-base-300 bg-base-200/40 p-4">
-  <Field.FieldSet>
-    <Field.FieldLegend class="flex min-w-0 items-center gap-2" variant="label">
-      <ShieldAlert />
-      <span class="min-w-0 break-words">{copy.scopesLabel}</span>
-    </Field.FieldLegend>
-    {#if scopes.length > 0}
-      <Field.FieldGroup class="gap-2">
-        {#each scopes as scopeItem}
-          {@const checkboxId = scopeCheckboxId(scopeItem.value)}
-          <Field.Field
-            class="rounded-md border border-base-300 bg-base-100 p-3 transition-colors hover:bg-base-200/60"
-            orientation="horizontal"
-          >
-            <Checkbox
-              id={checkboxId}
-              checked={selectedScopes.includes(scopeItem.value)}
-              onCheckedChange={(checked) => toggleScope(scopeItem.value, checked)}
-            />
-            <Field.Content>
-              <Field.Label
-                class="w-full cursor-pointer flex-wrap items-start gap-2 font-normal"
-                for={checkboxId}
-              >
-                <Badge class="max-w-full whitespace-normal break-all font-mono text-left" variant="outline">{scopeItem.value}</Badge>
-                <span class="min-w-0 break-words text-base-content/70">{scopeItem.label}</span>
-              </Field.Label>
-            </Field.Content>
-          </Field.Field>
-        {/each}
-      </Field.FieldGroup>
-    {/if}
-  </Field.FieldSet>
-</div>
+<Field.Set>
+  <Field.Legend class="flex min-w-0 items-center gap-2" variant="label">
+    <ShieldAlert />
+    <span class="min-w-0 break-words">{copy.scopesLabel}</span>
+  </Field.Legend>
+  {#if scopes.length > 0}
+    <Field.Group data-slot="checkbox-group">
+      {#each scopes as scopeItem}
+        {@const checkboxId = scopeCheckboxId(scopeItem.value)}
+        <Field.Field orientation="horizontal">
+          <Checkbox
+            id={checkboxId}
+            checked={selectedScopes.includes(scopeItem.value)}
+            onCheckedChange={(checked) => toggleScope(scopeItem.value, checked)}
+          />
+          <Field.Content>
+            <Field.Label
+              class="w-full cursor-pointer flex-wrap items-start gap-2 font-normal"
+              for={checkboxId}
+            >
+              <Badge class="max-w-full whitespace-normal break-all font-mono text-left" variant="outline">{scopeItem.value}</Badge>
+            </Field.Label>
+            <Field.Description class="break-words">
+              {scopeItem.label}
+            </Field.Description>
+          </Field.Content>
+        </Field.Field>
+      {/each}
+    </Field.Group>
+  {/if}
+</Field.Set>
 
 <div class="grid gap-3 sm:grid-cols-2">
   <form method="POST" action="?/consent">
