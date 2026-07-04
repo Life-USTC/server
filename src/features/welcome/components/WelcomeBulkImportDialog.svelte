@@ -2,7 +2,8 @@
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
-import { Select } from "$lib/components/ui/select/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
+import * as Select from "$lib/components/ui/select/index.js";
 import { Textarea } from "$lib/components/ui/textarea/index.js";
 import type {
   WelcomeBulkImportCopy,
@@ -51,19 +52,37 @@ export let welcomeCopy: WelcomeCopy;
             <Alert.Description>{importMessage}</Alert.Description>
           </Alert.Root>
         {/if}
-        <label class="grid gap-2">
-          <span class="font-medium text-sm">{bulkCopy.semesterLabel}</span>
-          <Select
-            class="w-full"
-            bind:value={selectedSemesterId}
-            items={semesterOptions}
-            placeholder={bulkCopy.semesterPlaceholder}
+        <Field.Field>
+          <Field.Label for="welcome-bulk-import-semester">
+            {bulkCopy.semesterLabel}
+          </Field.Label>
+          <Select.Root bind:value={selectedSemesterId} type="single">
+            <Select.Trigger id="welcome-bulk-import-semester" class="w-full">
+              {semesterOptions.find((option) => option.value === selectedSemesterId)
+                ?.label ?? bulkCopy.semesterPlaceholder}
+            </Select.Trigger>
+            <Select.Content>
+              <Select.Group>
+                {#each semesterOptions as option}
+                  <Select.Item label={option.label} value={option.value}>
+                    {option.label}
+                  </Select.Item>
+                {/each}
+              </Select.Group>
+            </Select.Content>
+          </Select.Root>
+        </Field.Field>
+        <Field.Field>
+          <Field.Label for="welcome-bulk-import-section-codes">
+            {welcomeCopy.sectionCodesLabel}
+          </Field.Label>
+          <Textarea
+            id="welcome-bulk-import-section-codes"
+            bind:value={importText}
+            placeholder={bulkCopy.placeholder}
+            rows="5"
           />
-        </label>
-        <label class="grid gap-2">
-          <span class="font-medium text-sm">{welcomeCopy.sectionCodesLabel}</span>
-          <Textarea bind:value={importText} placeholder={bulkCopy.placeholder} rows="5" />
-        </label>
+        </Field.Field>
       </div>
       <Dialog.Footer>
         <Button

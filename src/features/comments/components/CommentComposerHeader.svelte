@@ -2,7 +2,7 @@
 import type { ViewerContext } from "@/lib/auth/viewer-context";
 import * as Card from "$lib/components/ui/card/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
-import { Select } from "$lib/components/ui/select/index.js";
+import * as Select from "$lib/components/ui/select/index.js";
 import type {
   CommentSelectOption,
   CommentsCopy,
@@ -26,12 +26,28 @@ export let visibilityOptions: CommentSelectOption[];
         <Checkbox bind:checked={isAnonymous} disabled={!viewer.isAuthenticated || viewer.isSuspended} />
         <span>{commentCopy.visibilityAnonymous}</span>
       </label>
-      <Select
-        aria-label={commentCopy.visibilityLabel}
+      <Select.Root
         bind:value={visibility}
         disabled={!viewer.isAuthenticated || viewer.isSuspended}
-        items={visibilityOptions}
-      />
+        type="single"
+      >
+        <Select.Trigger
+          aria-label={commentCopy.visibilityLabel}
+          class="min-w-32"
+        >
+          {visibilityOptions.find((option) => option.value === visibility)
+            ?.label ?? visibilityOptions[0]?.label ?? ""}
+        </Select.Trigger>
+        <Select.Content>
+          <Select.Group>
+            {#each visibilityOptions as option}
+              <Select.Item label={option.label} value={option.value}>
+                {option.label}
+              </Select.Item>
+            {/each}
+          </Select.Group>
+        </Select.Content>
+      </Select.Root>
     </div>
   </div>
 </Card.Header>

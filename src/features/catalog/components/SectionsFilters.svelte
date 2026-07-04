@@ -2,7 +2,7 @@
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import * as InputGroup from "$lib/components/ui/input-group/index.js";
-import { Select } from "$lib/components/ui/select/index.js";
+import * as Select from "$lib/components/ui/select/index.js";
 import type {
   SectionListCommonLabels,
   SectionListFilters,
@@ -41,16 +41,30 @@ export let updateSectionFilter: SectionListFilterUpdater;
     </Field.Field>
     <Field.Field>
       <Field.Label for="section-semester">{sectionLabels.semester}</Field.Label>
-      <Select
-        id="section-semester"
-        items={semesterOptions}
+      <Select.Root
         name="semesterId"
         value={filters.semesterId ?? ""}
-        onchange={(event) =>
+        type="single"
+        onValueChange={(value) =>
           updateSectionFilter({
-            semesterId: event.currentTarget.value,
+            semesterId: value,
           })}
-      />
+      >
+        <Select.Trigger id="section-semester" class="w-full">
+          {semesterOptions.find(
+            (option) => option.value === (filters.semesterId ?? ""),
+          )?.label ?? semesterOptions[0]?.label ?? ""}
+        </Select.Trigger>
+        <Select.Content>
+          <Select.Group>
+            {#each semesterOptions as option}
+              <Select.Item label={option.label} value={option.value}>
+                {option.label}
+              </Select.Item>
+            {/each}
+          </Select.Group>
+        </Select.Content>
+      </Select.Root>
     </Field.Field>
     <div class="grid gap-2 pt-1">
       <Button class="w-full" size="lg" type="submit">{commonLabels.search}</Button>

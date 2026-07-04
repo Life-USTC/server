@@ -2,7 +2,7 @@
 import DateTimePicker from "$lib/components/DateTimePicker.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
-import { Select } from "$lib/components/ui/select/index.js";
+import * as Select from "$lib/components/ui/select/index.js";
 import type { AdminModerationComment } from "./admin-moderation-comment-types";
 import type {
   AdminModerationCopy,
@@ -26,11 +26,22 @@ export let suspensionReason: string;
     <p class="text-base-content/60 text-sm">{copy.suspendAuthorDescription}</p>
   </div>
   <div class="grid gap-2 md:grid-cols-[160px_1fr]">
-    <Select
-      aria-label={copy.suspendExpires}
-      bind:value={suspensionDuration}
-      items={suspensionDurationOptions}
-    />
+    <Select.Root bind:value={suspensionDuration} type="single">
+      <Select.Trigger aria-label={copy.suspendExpires} class="w-full">
+        {suspensionDurationOptions.find(
+          (option) => option.value === suspensionDuration,
+        )?.label ?? suspensionDurationOptions[0]?.label ?? ""}
+      </Select.Trigger>
+      <Select.Content>
+        <Select.Group>
+          {#each suspensionDurationOptions as option}
+            <Select.Item label={option.label} value={option.value}>
+              {option.label}
+            </Select.Item>
+          {/each}
+        </Select.Group>
+      </Select.Content>
+    </Select.Root>
     {#if suspensionDuration === "custom"}
       <DateTimePicker
         bind:value={customExpiresAt}

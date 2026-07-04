@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { ViewerContext } from "@/lib/auth/viewer-context";
-import { Select } from "$lib/components/ui/select/index.js";
+import * as Select from "$lib/components/ui/select/index.js";
 import type {
   CommentSelectOption,
   CommentsCopy,
@@ -17,12 +17,28 @@ export let viewer: ViewerContext;
     <span class="font-medium text-sm">
       {commentCopy.commentTargetPlaceholder}
     </span>
-    <Select
-      aria-label={commentCopy.commentTargetPlaceholder}
+    <Select.Root
       bind:value={postTargetKey}
       disabled={!viewer.isAuthenticated || viewer.isSuspended}
-      items={postTargetOptions}
-    />
+      type="single"
+    >
+      <Select.Trigger
+        aria-label={commentCopy.commentTargetPlaceholder}
+        class="w-full"
+      >
+        {postTargetOptions.find((option) => option.value === postTargetKey)
+          ?.label ?? postTargetOptions[0]?.label ?? ""}
+      </Select.Trigger>
+      <Select.Content>
+        <Select.Group>
+          {#each postTargetOptions as option}
+            <Select.Item label={option.label} value={option.value}>
+              {option.label}
+            </Select.Item>
+          {/each}
+        </Select.Group>
+      </Select.Content>
+    </Select.Root>
     <span class="text-base-content/60 text-xs">
       {commentCopy.commentTargetCurrent.replace(
         "{label}",

@@ -3,7 +3,7 @@ import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
-import { Select } from "$lib/components/ui/select/index.js";
+import * as Select from "$lib/components/ui/select/index.js";
 import { Textarea } from "$lib/components/ui/textarea/index.js";
 import type { DashboardSubscriptionsTabProps } from "./subscription-tab-types";
 
@@ -18,6 +18,11 @@ export let matchImportSections: DashboardSubscriptionsTabProps["matchImportSecti
 export let isBulkImportOpen: boolean;
 export let bulkImportSemesterId: string;
 export let bulkImportText: string;
+
+$: semesterOptions = signedData.subscriptions.semesters.map((semester) => ({
+  value: String(semester.id),
+  label: semester.nameCn,
+}));
 </script>
 
 {#if isBulkImportOpen}
@@ -47,15 +52,21 @@ export let bulkImportText: string;
           <Field.Label for="subscriptions-bulk-import-semester">
             {subscriptionsCopy.bulkImport.semesterLabel}
           </Field.Label>
-          <Select
-            id="subscriptions-bulk-import-semester"
-            class="w-full"
-            bind:value={bulkImportSemesterId}
-            items={signedData.subscriptions.semesters.map((semester) => ({
-              value: String(semester.id),
-              label: semester.nameCn,
-            }))}
-          />
+          <Select.Root bind:value={bulkImportSemesterId} type="single">
+            <Select.Trigger id="subscriptions-bulk-import-semester" class="w-full">
+              {semesterOptions.find((option) => option.value === bulkImportSemesterId)
+                ?.label ?? semesterOptions[0]?.label ?? ""}
+            </Select.Trigger>
+            <Select.Content>
+              <Select.Group>
+                {#each semesterOptions as option}
+                  <Select.Item label={option.label} value={option.value}>
+                    {option.label}
+                  </Select.Item>
+                {/each}
+              </Select.Group>
+            </Select.Content>
+          </Select.Root>
         </Field.Field>
         <Field.Field>
           <Field.Label for="subscriptions-bulk-import-section-codes">

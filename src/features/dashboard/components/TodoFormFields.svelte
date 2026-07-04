@@ -11,7 +11,7 @@ import {
 import DateTimePicker from "$lib/components/DateTimePicker.svelte";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 import { Input } from "$lib/components/ui/input/index.js";
-import { Select } from "$lib/components/ui/select/index.js";
+import * as Select from "$lib/components/ui/select/index.js";
 
 export let commentsCopy: CommentsCopy;
 export let contentValue = "";
@@ -35,12 +35,26 @@ export let todosCopy: DashboardTodosCopy;
 </label>
 <label class="grid gap-2">
   <span class="font-medium text-sm">{todosCopy.priorityLabel}</span>
-  <Select
+  <Select.Root
+    bind:value={priorityValue}
     {disabled}
-    items={todoPriorityOptions}
     name="priority"
-    value={priorityValue}
-  />
+    type="single"
+  >
+    <Select.Trigger class="w-full">
+      {todoPriorityOptions.find((option) => option.value === priorityValue)
+        ?.label ?? todoPriorityOptions[0]?.label ?? ""}
+    </Select.Trigger>
+    <Select.Content>
+      <Select.Group>
+        {#each todoPriorityOptions as option}
+          <Select.Item label={option.label} value={option.value}>
+            {option.label}
+          </Select.Item>
+        {/each}
+      </Select.Group>
+    </Select.Content>
+  </Select.Root>
 </label>
 <div class="grid gap-2">
   <span class="font-medium text-sm">{todosCopy.dueAtLabel}</span>

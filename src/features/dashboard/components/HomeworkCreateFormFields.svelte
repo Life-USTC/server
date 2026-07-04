@@ -8,7 +8,7 @@ import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
-import { Select } from "$lib/components/ui/select/index.js";
+import * as Select from "$lib/components/ui/select/index.js";
 import type {
   DashboardHomeworkCommentsCopy,
   DashboardHomeworkCreateCopy,
@@ -37,6 +37,11 @@ export let isCreatingHomework: boolean;
 export let sections: DashboardHomeworkCreateSection[];
 export let selectedCreateHomeworkSection: DashboardHomeworkCreateSectionGetter;
 export let toShanghaiDateTimeLocalValue: (value: Date) => string;
+
+$: sectionOptions = sections.map((section) => ({
+  value: String(section.id),
+  label: homeworkSectionLabel(section),
+}));
 </script>
 
 <div class="grid gap-4 px-5 py-4">
@@ -47,16 +52,27 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
   {/if}
   <label class="grid gap-2">
     <span class="font-medium text-sm">{homeworksCopy.sectionLabel}</span>
-    <Select
+    <Select.Root
       bind:value={createHomeworkSectionId}
       disabled={isCreatingHomework}
-      items={sections.map((section) => ({
-        value: String(section.id),
-        label: homeworkSectionLabel(section),
-      }))}
       name="sectionId"
       required
-    />
+      type="single"
+    >
+      <Select.Trigger class="w-full">
+        {sectionOptions.find((option) => option.value === createHomeworkSectionId)
+          ?.label ?? sectionOptions[0]?.label ?? ""}
+      </Select.Trigger>
+      <Select.Content>
+        <Select.Group>
+          {#each sectionOptions as option}
+            <Select.Item label={option.label} value={option.value}>
+              {option.label}
+            </Select.Item>
+          {/each}
+        </Select.Group>
+      </Select.Content>
+    </Select.Root>
   </label>
   <label class="grid gap-2">
     <span class="font-medium text-sm">{homeworksCopy.titleLabel}</span>

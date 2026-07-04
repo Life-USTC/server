@@ -5,7 +5,7 @@ import ShieldAlertIcon from "$lib/components/icons/shield-alert.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
-import { Select } from "$lib/components/ui/select/index.js";
+import * as Select from "$lib/components/ui/select/index.js";
 import type {
   AdminUserFormatter,
   AdminUserRow,
@@ -43,12 +43,25 @@ export let suspensionLabel: AdminUserFormatter;
   <div class="grid gap-4 sm:grid-cols-2">
     <label class="grid gap-2">
       <span class="font-medium text-sm">{moderationCopy.durationLabel}</span>
-      <Select
-        aria-label={moderationCopy.durationLabel}
-        items={suspendDurationOptions}
-        value={suspendDuration}
-        onchange={(event) => (suspendDuration = event.currentTarget.value)}
-      />
+      <Select.Root bind:value={suspendDuration} type="single">
+        <Select.Trigger
+          aria-label={moderationCopy.durationLabel}
+          class="w-full"
+        >
+          {suspendDurationOptions.find(
+            (option) => option.value === suspendDuration,
+          )?.label ?? suspendDurationOptions[0]?.label ?? ""}
+        </Select.Trigger>
+        <Select.Content>
+          <Select.Group>
+            {#each suspendDurationOptions as option}
+              <Select.Item label={option.label} value={option.value}>
+                {option.label}
+              </Select.Item>
+            {/each}
+          </Select.Group>
+        </Select.Content>
+      </Select.Root>
     </label>
     {#if suspendDuration === "custom"}
       <label class="grid gap-2">

@@ -2,7 +2,7 @@
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import * as InputGroup from "$lib/components/ui/input-group/index.js";
-import { Select } from "$lib/components/ui/select/index.js";
+import * as Select from "$lib/components/ui/select/index.js";
 import type {
   TeacherListCommonLabels,
   TeacherListFilters,
@@ -39,16 +39,30 @@ export let updateTeacherFilter: TeacherListFilterUpdater;
     </Field.Field>
     <Field.Field>
       <Field.Label for="teacher-department">{teacherLabels.department}</Field.Label>
-      <Select
-        id="teacher-department"
-        items={departmentOptions}
+      <Select.Root
         name="departmentId"
         value={filters.departmentId ?? ""}
-        onchange={(event) =>
+        type="single"
+        onValueChange={(value) =>
           updateTeacherFilter({
-            departmentId: event.currentTarget.value,
+            departmentId: value,
           })}
-      />
+      >
+        <Select.Trigger id="teacher-department" class="w-full">
+          {departmentOptions.find(
+            (option) => option.value === (filters.departmentId ?? ""),
+          )?.label ?? departmentOptions[0]?.label ?? ""}
+        </Select.Trigger>
+        <Select.Content>
+          <Select.Group>
+            {#each departmentOptions as option}
+              <Select.Item label={option.label} value={option.value}>
+                {option.label}
+              </Select.Item>
+            {/each}
+          </Select.Group>
+        </Select.Content>
+      </Select.Root>
     </Field.Field>
     <div class="grid gap-2 pt-1">
       <Button class="w-full" size="lg" type="submit">{commonLabels.search}</Button>

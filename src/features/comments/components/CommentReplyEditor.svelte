@@ -8,7 +8,7 @@ import type { ViewerContext } from "@/lib/auth/viewer-context";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
-import { Select } from "$lib/components/ui/select/index.js";
+import * as Select from "$lib/components/ui/select/index.js";
 import CommentAttachmentPills from "./CommentAttachmentPills.svelte";
 import CommentUploadButton from "./CommentUploadButton.svelte";
 import type {
@@ -69,12 +69,28 @@ $: replyDisabled = !viewer.isAuthenticated || viewer.isSuspended;
       <Checkbox bind:checked={replyIsAnonymous} disabled={replyDisabled} />
       <span>{commentCopy.visibilityAnonymous}</span>
     </label>
-    <Select
-      aria-label={commentCopy.visibilityLabel}
+    <Select.Root
       bind:value={replyVisibility}
       disabled={replyDisabled}
-      items={visibilityOptions}
-    />
+      type="single"
+    >
+      <Select.Trigger
+        aria-label={commentCopy.visibilityLabel}
+        class="min-w-32"
+      >
+        {visibilityOptions.find((option) => option.value === replyVisibility)
+          ?.label ?? visibilityOptions[0]?.label ?? ""}
+      </Select.Trigger>
+      <Select.Content>
+        <Select.Group>
+          {#each visibilityOptions as option}
+            <Select.Item label={option.label} value={option.value}>
+              {option.label}
+            </Select.Item>
+          {/each}
+        </Select.Group>
+      </Select.Content>
+    </Select.Root>
   </div>
   <div class="mt-2 flex justify-end gap-2">
     <CommentUploadButton

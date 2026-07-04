@@ -1,7 +1,7 @@
 <script lang="ts">
 import { Button } from "$lib/components/ui/button/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
-import { Select } from "$lib/components/ui/select/index.js";
+import * as Select from "$lib/components/ui/select/index.js";
 
 type FilterOption = {
   label: string;
@@ -46,26 +46,76 @@ export let tab: string;
     <div class={`grid gap-3 ${tab === "descriptions" ? "md:grid-cols-[180px_180px_minmax(0,1fr)_auto]" : "md:grid-cols-[180px_minmax(0,1fr)_auto]"}`}>
       <input type="hidden" name="tab" value={tab} />
       {#if tab === "descriptions"}
-        <Select
-          aria-label={copy.descriptionTarget}
-          items={descriptionTargetOptions}
+        <Select.Root
           name="descriptionTarget"
+          type="single"
           value={filters.descriptionTarget ?? "all"}
-        />
-        <Select
-          aria-label={copy.descriptionContent}
-          items={descriptionContentOptions}
+        >
+          <Select.Trigger
+            aria-label={copy.descriptionTarget}
+            class="w-full"
+          >
+            {descriptionTargetOptions.find(
+              (option) =>
+                option.value === (filters.descriptionTarget ?? "all"),
+            )?.label ?? descriptionTargetOptions[0]?.label ?? ""}
+          </Select.Trigger>
+          <Select.Content>
+            <Select.Group>
+              {#each descriptionTargetOptions as option}
+                <Select.Item label={option.label} value={option.value}>
+                  {option.label}
+                </Select.Item>
+              {/each}
+            </Select.Group>
+          </Select.Content>
+        </Select.Root>
+        <Select.Root
           name="descriptionContent"
+          type="single"
           value={filters.descriptionContent ?? "all"}
-        />
+        >
+          <Select.Trigger
+            aria-label={copy.descriptionContent}
+            class="w-full"
+          >
+            {descriptionContentOptions.find(
+              (option) =>
+                option.value === (filters.descriptionContent ?? "all"),
+            )?.label ?? descriptionContentOptions[0]?.label ?? ""}
+          </Select.Trigger>
+          <Select.Content>
+            <Select.Group>
+              {#each descriptionContentOptions as option}
+                <Select.Item label={option.label} value={option.value}>
+                  {option.label}
+                </Select.Item>
+              {/each}
+            </Select.Group>
+          </Select.Content>
+        </Select.Root>
         <input type="hidden" name="status" value={filters.status ?? "all"} />
       {:else}
-        <Select
-          aria-label={copy.status}
-          items={statusFilterOptions}
+        <Select.Root
           name="status"
+          type="single"
           value={filters.status ?? "all"}
-        />
+        >
+          <Select.Trigger aria-label={copy.status} class="w-full">
+            {statusFilterOptions.find(
+              (option) => option.value === (filters.status ?? "all"),
+            )?.label ?? statusFilterOptions[0]?.label ?? ""}
+          </Select.Trigger>
+          <Select.Content>
+            <Select.Group>
+              {#each statusFilterOptions as option}
+                <Select.Item label={option.label} value={option.value}>
+                  {option.label}
+                </Select.Item>
+              {/each}
+            </Select.Group>
+          </Select.Content>
+        </Select.Root>
         <input
           type="hidden"
           name="descriptionTarget"
