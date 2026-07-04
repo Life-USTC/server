@@ -1,6 +1,6 @@
 <script lang="ts">
 import CheckCircleIcon from "$lib/components/icons/check-circle.svelte";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import SectionCalendarUrlRow from "./SectionCalendarUrlRow.svelte";
@@ -48,12 +48,14 @@ export let subscriptionCalendarUrl: string;
     </Dialog.Header>
     <section class="grid min-w-0 gap-4 px-5 py-4">
       {#if clipboardMessage}
-        <Alert class="flex items-center gap-2" variant="info">
-          <CheckCircleIcon class="text-info" />
-          {clipboardMessage}
-        </Alert>
+        <Alert.Root>
+          <CheckCircleIcon />
+          <Alert.Description>{clipboardMessage}</Alert.Description>
+        </Alert.Root>
       {:else if clipboardError}
-        <Alert variant="destructive">{clipboardError}</Alert>
+        <Alert.Root variant="destructive">
+          <Alert.Description>{clipboardError}</Alert.Description>
+        </Alert.Root>
       {/if}
       <SectionCalendarUrlRow
         buttonLabel={sectionCopy.copyToClipboard}

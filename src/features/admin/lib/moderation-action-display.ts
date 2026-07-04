@@ -5,7 +5,7 @@ import {
 } from "@/lib/time/shanghai-format";
 
 export function formAlertVariant(kind: unknown) {
-  return kind === "error" ? "destructive" : "info";
+  return kind === "error" ? "destructive" : "default";
 }
 
 export function expiresAtFromModerationDuration(

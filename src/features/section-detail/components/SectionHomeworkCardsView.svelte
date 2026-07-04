@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import type {
   SectionCopy,
@@ -41,6 +41,8 @@ export let selectHomework: (homework: SectionHomework) => void;
       {/if}
     </button>
   {:else}
-    <Alert>{sectionCopy.noHomework}</Alert>
+    <Alert.Root>
+      <Alert.Description>{sectionCopy.noHomework}</Alert.Description>
+    </Alert.Root>
   {/each}
 </div>

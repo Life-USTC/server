@@ -5,7 +5,7 @@ import {
 } from "@/features/homeworks/lib/homework-limits";
 import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import { Select } from "$lib/components/ui/select/index.js";
@@ -41,9 +41,9 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
 
 <div class="grid gap-4 px-5 py-4">
   {#if createHomeworkError}
-    <Alert variant="destructive">
-      <span>{createHomeworkError}</span>
-    </Alert>
+    <Alert.Root variant="destructive">
+      <Alert.Description>{createHomeworkError}</Alert.Description>
+    </Alert.Root>
   {/if}
   <label class="grid gap-2">
     <span class="font-medium text-sm">{homeworksCopy.sectionLabel}</span>

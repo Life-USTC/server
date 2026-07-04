@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 
 export let bulkImportError: string;
 export let bulkImportMessage: string;
@@ -8,22 +8,22 @@ export let subscriptionActionMessage: string;
 </script>
 
 {#if bulkImportMessage}
-  <Alert>
-    <span>{bulkImportMessage}</span>
-  </Alert>
+  <Alert.Root>
+    <Alert.Description>{bulkImportMessage}</Alert.Description>
+  </Alert.Root>
 {/if}
 {#if bulkImportError}
-  <Alert variant="destructive">
-    <span>{bulkImportError}</span>
-  </Alert>
+  <Alert.Root variant="destructive">
+    <Alert.Description>{bulkImportError}</Alert.Description>
+  </Alert.Root>
 {/if}
 {#if subscriptionActionMessage}
-  <Alert>
-    <span>{subscriptionActionMessage}</span>
-  </Alert>
+  <Alert.Root>
+    <Alert.Description>{subscriptionActionMessage}</Alert.Description>
+  </Alert.Root>
 {/if}
 {#if subscriptionActionError}
-  <Alert variant="destructive">
-    <span>{subscriptionActionError}</span>
-  </Alert>
+  <Alert.Root variant="destructive">
+    <Alert.Description>{subscriptionActionError}</Alert.Description>
+  </Alert.Root>
 {/if}

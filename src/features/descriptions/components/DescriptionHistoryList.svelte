@@ -4,7 +4,7 @@ import type {
   DescriptionHistoryItem,
   EditorSummary,
 } from "@/features/descriptions/lib/description-payload-types";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 
 type DiffMode = "previous" | "next";
 type DiffSegment = {
@@ -49,7 +49,9 @@ function diffSegmentClass(segment: DiffSegment) {
 </script>
 
 {#if history.length === 0}
-  <Alert>{copy.historyEmpty}</Alert>
+  <Alert.Root>
+    <Alert.Description>{copy.historyEmpty}</Alert.Description>
+  </Alert.Root>
 {:else}
   <div class="grid gap-3">
     {#each history as item}

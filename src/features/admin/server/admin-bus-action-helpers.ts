@@ -5,7 +5,7 @@ export const adminBusFailure = (message: string, status = 400) =>
 
 export const adminBusSuccess = (message: string) => ({
   message,
-  variant: "info" as const,
+  variant: "default" as const,
 });
 
 export function parseAdminBusVersionId(form: FormData) {

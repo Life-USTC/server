@@ -5,7 +5,7 @@ import ArrowUpRight from "$lib/components/icons/arrow-up-right.svelte";
 import CircleUserRound from "$lib/components/icons/circle-user-round.svelte";
 import RefreshCw from "$lib/components/icons/refresh-cw.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { redirectWithExternalFallback } from "$lib/navigation/redirect";
 
@@ -78,14 +78,14 @@ function providerInitial(name: string) {
 
     <div class="grid gap-4 rounded-2xl border border-base-100/60 bg-base-100/70 p-4 shadow-xl shadow-primary/5 backdrop-blur-xl supports-[backdrop-filter]:bg-base-100/55">
       {#if data.error}
-        <Alert variant="destructive">
-          <span>{data.error === "OAuthAccountNotLinked" ? data.copy.errorAccountNotLinked : data.copy.errorGeneric}</span>
-        </Alert>
+        <Alert.Root variant="destructive">
+          <Alert.Description>{data.error === "OAuthAccountNotLinked" ? data.copy.errorAccountNotLinked : data.copy.errorGeneric}</Alert.Description>
+        </Alert.Root>
       {/if}
       {#if form?.message}
-        <Alert variant="destructive">
-          <span>{form.message}</span>
-        </Alert>
+        <Alert.Root variant="destructive">
+          <Alert.Description>{form.message}</Alert.Description>
+        </Alert.Root>
       {/if}
 
       <div class="grid gap-2">

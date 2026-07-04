@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import { Select } from "$lib/components/ui/select/index.js";
@@ -38,9 +38,9 @@ export let bulkImportText: string;
       </Dialog.Header>
       <div class="grid gap-4 px-5 py-4">
         {#if bulkImportError}
-          <Alert variant="destructive">
-            <span>{bulkImportError}</span>
-          </Alert>
+          <Alert.Root variant="destructive">
+            <Alert.Description>{bulkImportError}</Alert.Description>
+          </Alert.Root>
         {/if}
         <label class="grid gap-2">
           <span class="font-medium text-sm">{subscriptionsCopy.bulkImport.semesterLabel}</span>

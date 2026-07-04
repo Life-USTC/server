@@ -11,7 +11,7 @@ import type {
   TodoView,
 } from "@/features/dashboard/lib/dashboard-controller-types";
 import { createTodoTabDisplayActions } from "@/features/dashboard/lib/todos-tab-display";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import TodosCardsView from "./TodosCardsView.svelte";
 import TodosListView from "./TodosListView.svelte";
 import TodosTabDialogs from "./TodosTabDialogs.svelte";
@@ -77,7 +77,9 @@ $: ({ datetimeLocalValue, fmtDate, todoActionLabel, todoStatus } =
   />
 
   {#if todoActionError}
-    <Alert variant="destructive">{todoActionError}</Alert>
+    <Alert.Root variant="destructive">
+      <Alert.Description>{todoActionError}</Alert.Description>
+    </Alert.Root>
   {/if}
 
   {#if todoView === "cards"}

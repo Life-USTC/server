@@ -1,24 +1,22 @@
 <script lang="ts">
 import type { HTMLAttributes } from "svelte/elements";
 import { cn, type WithElementRef } from "$lib/utils.js";
-import { type AlertVariant, alertVariants } from "./alert-variants.js";
 
 let {
   ref = $bindable(null),
   class: className,
-  variant = "default",
   children,
   ...restProps
-}: WithElementRef<HTMLAttributes<HTMLDivElement>> & {
-  variant?: AlertVariant;
-} = $props();
+}: WithElementRef<HTMLAttributes<HTMLDivElement>> = $props();
 </script>
 
 <div
 	bind:this={ref}
-	data-slot="alert"
-	role="alert"
-	class={cn(alertVariants({ variant }), className)}
+	data-slot="alert-title"
+	class={cn(
+		"font-medium group-has-[>svg]/alert:col-start-2 [&_a]:hover:text-foreground [&_a]:underline [&_a]:underline-offset-3",
+		className
+	)}
 	{...restProps}
 >
 	{@render children?.()}

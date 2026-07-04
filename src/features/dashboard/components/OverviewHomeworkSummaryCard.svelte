@@ -4,7 +4,7 @@ import type {
   DashboardDashboardCopy,
   DashboardHomeworkItem,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
 
@@ -43,7 +43,9 @@ export let pendingHomeworks: DashboardHomeworkItem[];
           </span>
         </a>
       {:else}
-        <Alert>{dashboardCopy.homeworks.empty}</Alert>
+        <Alert.Root>
+          <Alert.Description>{dashboardCopy.homeworks.empty}</Alert.Description>
+        </Alert.Root>
       {/each}
     </div>
   </Card.Content>

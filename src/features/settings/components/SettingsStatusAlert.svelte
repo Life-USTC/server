@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import type { SettingsCopy } from "./settings-component-types";
 
 export let copy: SettingsCopy;
@@ -20,13 +20,10 @@ $: statusDescription = isSuccessStatus
 </script>
 
 {#if statusMessage}
-  <Alert
-    class={isSuccessStatus ? "border-success/40 bg-success/10" : ""}
+  <Alert.Root
     variant={isSuccessStatus ? "default" : "destructive"}
   >
-    <div>
-      <h2 class="font-semibold">{statusTitle}</h2>
-      <span>{statusDescription}</span>
-    </div>
-  </Alert>
+    <Alert.Title role="heading" aria-level={2}>{statusTitle}</Alert.Title>
+    <Alert.Description>{statusDescription}</Alert.Description>
+  </Alert.Root>
 {/if}

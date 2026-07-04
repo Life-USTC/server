@@ -68,7 +68,7 @@ import {
 } from "@/features/dashboard/lib/todos";
 import { goto, invalidateAll, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import AnonymousDashboardView from "./AnonymousDashboardView.svelte";
 import DashboardStatusAlerts from "./DashboardStatusAlerts.svelte";
 import type { DashboardCalendarTabProps } from "./dashboard-calendar-component-types";
@@ -718,7 +718,9 @@ onMount(() => {
       />
     {/if}
   {:else if data.signedIn && data.userMissing}
-    <Alert variant="warning">{commonCopy.userNotFound}</Alert>
+    <Alert.Root>
+      <Alert.Description>{commonCopy.userNotFound}</Alert.Description>
+    </Alert.Root>
   {:else if anonymousData}
     <AnonymousDashboardView
       {busCopy}

@@ -1,15 +1,19 @@
 <script lang="ts">
 import { formAlertVariant } from "@/features/admin/lib/moderation-display";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 
 export let form: { kind?: string; message?: string } | null | undefined;
 export let refreshError = "";
 </script>
 
 {#if refreshError}
-  <Alert variant="destructive">{refreshError}</Alert>
+  <Alert.Root variant="destructive">
+    <Alert.Description>{refreshError}</Alert.Description>
+  </Alert.Root>
 {/if}
 
 {#if form?.message}
-  <Alert variant={formAlertVariant(form.kind)}>{form.message}</Alert>
+  <Alert.Root variant={formAlertVariant(form.kind)}>
+    <Alert.Description>{form.message}</Alert.Description>
+  </Alert.Root>
 {/if}

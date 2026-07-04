@@ -6,7 +6,7 @@ import type {
   DashboardSessionItem,
   DashboardTodoItem,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
 
@@ -61,7 +61,9 @@ export let todaySessions: DashboardSessionItem[];
         </a>
       {/each}
       {#if todaySessions.length === 0 && dueTodayHomeworks.length === 0 && dueTodayTodos.length === 0}
-        <Alert>{dashboardCopy.today.empty}</Alert>
+        <Alert.Root>
+          <Alert.Description>{dashboardCopy.today.empty}</Alert.Description>
+        </Alert.Root>
       {/if}
     </div>
   </Card.Content>

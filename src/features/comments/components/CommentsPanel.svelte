@@ -40,7 +40,7 @@ import type { CommentNode } from "@/features/comments/server/comment-types";
 import type { AppLocale } from "@/i18n/config";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import { page } from "$app/stores";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import CommentDeleteDialog from "./CommentDeleteDialog.svelte";
 import CommentsComposerSection from "./CommentsComposerSection.svelte";
 import CommentsHiddenNotice from "./CommentsHiddenNotice.svelte";
@@ -415,7 +415,7 @@ $: _editUploading = commentUploadPendingForMode(_uploadPending, "edit");
 </script>
 
 <section class="grid gap-4">
-  {#if _message}<Alert variant="info">{_message}</Alert>{/if}
+  {#if _message}<Alert.Root><Alert.Description>{_message}</Alert.Description></Alert.Root>{/if}
   {#if _viewer.isSuspended}
     <CommentsPanelSuspensionAlert
       commentCopy={_commentCopy}

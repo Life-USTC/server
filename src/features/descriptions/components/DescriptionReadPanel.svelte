@@ -2,7 +2,7 @@
 import { formatDescriptionCopy } from "@/features/descriptions/lib/description-card-actions";
 import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
 import MarkdownPreview from "$lib/components/MarkdownPreview.svelte";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import * as Tabs from "$lib/components/ui/tabs/index.js";
 import DescriptionHistoryList from "./DescriptionHistoryList.svelte";
 import type {
@@ -61,7 +61,9 @@ export let history: DescriptionHistoryItem[];
         remarkPlugins={campusReferenceMarkdownPlugins}
       />
     {:else}
-      <Alert>{copy.empty}</Alert>
+      <Alert.Root>
+        <Alert.Description>{copy.empty}</Alert.Description>
+      </Alert.Root>
     {/if}
   </Tabs.Panel>
 </Tabs.Root>

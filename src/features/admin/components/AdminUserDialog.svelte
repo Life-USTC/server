@@ -3,7 +3,7 @@ import AdminUserDialogHeader from "@/features/admin/components/AdminUserDialogHe
 import AdminUserProfileSection from "@/features/admin/components/AdminUserProfileSection.svelte";
 import AdminUserSuspensionSection from "@/features/admin/components/AdminUserSuspensionSection.svelte";
 import CheckCircleIcon from "$lib/components/icons/check-circle.svelte";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import type {
@@ -49,7 +49,7 @@ export let suspensionLabel: AdminUserFormatter;
       <AdminUserDialogHeader {copy} user={selectedUser} />
 
       <div class="grid max-h-[calc(100vh-2rem)] gap-5 overflow-y-auto px-5 py-4">
-        {#if message}<Alert>{message}</Alert>{/if}
+        {#if message}<Alert.Root><Alert.Description>{message}</Alert.Description></Alert.Root>{/if}
 
         <AdminUserProfileSection
           {copy}

@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
@@ -73,6 +73,8 @@ export let onDelete: (homework: ModerationHomework) => void;
       </Card.Content>
     </Card.Root>
   {:else}
-    <Alert>{copy.noHomeworks}</Alert>
+    <Alert.Root>
+      <Alert.Description>{copy.noHomeworks}</Alert.Description>
+    </Alert.Root>
   {/each}
 </section>

@@ -2,7 +2,7 @@
 import { enhance } from "$app/forms";
 import Download from "$lib/components/icons/download.svelte";
 import RefreshCw from "$lib/components/icons/refresh-cw.svelte";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import type { AdminBusCopy, AdminBusEnhancedAction } from "./admin-bus-types";
@@ -36,9 +36,9 @@ export let pendingAction: string | null;
       use:enhance={enhancedAction("import", close)}
     >
       <div class="px-5 py-4">
-        <Alert variant="warning">
-          {copy.importWarning}
-        </Alert>
+        <Alert.Root>
+          <Alert.Description>{copy.importWarning}</Alert.Description>
+        </Alert.Root>
       </div>
       <Dialog.Footer>
         <Button

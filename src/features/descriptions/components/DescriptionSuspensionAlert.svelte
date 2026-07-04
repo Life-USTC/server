@@ -1,6 +1,6 @@
 <script lang="ts">
 import { formatDescriptionCopy } from "@/features/descriptions/lib/description-card-actions";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import type {
   DescriptionCopy,
   DescriptionViewer,
@@ -11,9 +11,9 @@ export let formatDate: (value: string | null | undefined) => string;
 export let viewer: DescriptionViewer;
 </script>
 
-<Alert variant="warning">
-  <div class="grid gap-1">
-    <p class="font-medium">{copy.suspendedTitle}</p>
+<Alert.Root>
+  <Alert.Title>{copy.suspendedTitle}</Alert.Title>
+  <Alert.Description>
     <p>{copy.suspendedMessage}</p>
     {#if viewer.suspensionReason}
       <p>{formatDescriptionCopy(copy.suspendedReason, { reason: viewer.suspensionReason })}</p>
@@ -23,5 +23,5 @@ export let viewer: DescriptionViewer;
     {:else}
       <p>{copy.suspendedPermanent}</p>
     {/if}
-  </div>
-</Alert>
+  </Alert.Description>
+</Alert.Root>

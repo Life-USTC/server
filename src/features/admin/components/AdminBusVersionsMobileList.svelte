@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import AdminBusVersionActions from "./AdminBusVersionActions.svelte";
 import AdminBusVersionStatusBadge from "./AdminBusVersionStatusBadge.svelte";
 import type {
@@ -62,6 +62,8 @@ export let versions: AdminBusVersion[];
       </div>
     </article>
   {:else}
-    <Alert>{copy.noVersions}</Alert>
+    <Alert.Root>
+      <Alert.Description>{copy.noVersions}</Alert.Description>
+    </Alert.Root>
   {/each}
 </div>

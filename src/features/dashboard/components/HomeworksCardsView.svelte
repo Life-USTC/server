@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { DashboardHomeworkItem } from "@/features/dashboard/lib/dashboard-controller-types";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
@@ -72,6 +72,8 @@ export let toggleHomeworkCompletion: (
       </Card.Content>
     </Card.Root>
   {:else}
-    <Alert class="md:col-span-2">{homeworksCopy.filterEmptyTitle}</Alert>
+    <Alert.Root class="md:col-span-2">
+      <Alert.Description>{homeworksCopy.filterEmptyTitle}</Alert.Description>
+    </Alert.Root>
   {/each}
 </div>

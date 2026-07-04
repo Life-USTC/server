@@ -16,7 +16,7 @@ import type {
 import { filterDashboardHomeworks } from "@/features/dashboard/lib/dashboard-homework-filter";
 import { hasDashboardSubscriptions } from "@/features/dashboard/lib/dashboard-subscription-state";
 import { createHomeworkTabDisplayActions } from "@/features/dashboard/lib/homeworks-tab-display";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import DashboardNoSubscriptionsState from "./DashboardNoSubscriptionsState.svelte";
 import type {
   DashboardHomeworkCreateSection,
@@ -125,7 +125,9 @@ $: ({
     />
 
     {#if homeworkActionError}
-      <Alert variant="destructive">{homeworkActionError}</Alert>
+      <Alert.Root variant="destructive">
+        <Alert.Description>{homeworkActionError}</Alert.Description>
+      </Alert.Root>
     {/if}
 
     {#if homeworkView === "list"}

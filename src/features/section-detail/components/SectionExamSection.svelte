@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import SectionCalendarEventCard from "./SectionCalendarEventCard.svelte";
 import type {
   SectionCalendarCopy,
@@ -18,5 +18,7 @@ export let sectionCopy: SectionCalendarCopy;
     {/each}
   </div>
 {:else}
-  <Alert>{sectionCopy.calendarEmpty}</Alert>
+  <Alert.Root>
+    <Alert.Description>{sectionCopy.calendarEmpty}</Alert.Description>
+  </Alert.Root>
 {/if}

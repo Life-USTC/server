@@ -8,7 +8,7 @@ import type {
   DashboardTodoItem,
   DashboardTodosCopy,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import type { DashboardCalendarTabHref } from "./dashboard-calendar-component-types";
@@ -85,7 +85,9 @@ export let overdueTodos: DashboardTodoItem[];
           </a>
         {/each}
         {#if overdueHomeworks.length === 0 && overdueTodos.length === 0}
-          <Alert>{dashboardCopy.overdue.empty}</Alert>
+          <Alert.Root>
+            <Alert.Description>{dashboardCopy.overdue.empty}</Alert.Description>
+          </Alert.Root>
         {/if}
       </div>
     </Card.Content>

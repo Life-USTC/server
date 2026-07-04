@@ -7,7 +7,7 @@ import type {
   DashboardTodosCopy,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import { enhance } from "$app/forms";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import TodoFormFields from "./TodoFormFields.svelte";
@@ -43,9 +43,9 @@ export let updateTodoAction: SubmitFunction;
         </Dialog.Header>
         <div class="grid gap-4 px-5 py-4">
           {#if editTodoError}
-            <Alert variant="destructive">
-              <span>{editTodoError}</span>
-            </Alert>
+            <Alert.Root variant="destructive">
+              <Alert.Description>{editTodoError}</Alert.Description>
+            </Alert.Root>
           {/if}
           <TodoFormFields
             {commentsCopy}

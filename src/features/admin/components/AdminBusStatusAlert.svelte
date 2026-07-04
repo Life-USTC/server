@@ -1,12 +1,14 @@
 <script lang="ts">
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 
 export let form:
-  | { message?: string; variant?: "destructive" | "info" }
+  | { message?: string; variant?: "destructive" | "default" }
   | null
   | undefined;
 </script>
 
 {#if form?.message}
-  <Alert variant={form.variant ?? "info"}>{form.message}</Alert>
+  <Alert.Root variant={form.variant ?? "default"}>
+    <Alert.Description>{form.message}</Alert.Description>
+  </Alert.Root>
 {/if}

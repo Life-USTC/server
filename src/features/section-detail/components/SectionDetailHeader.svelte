@@ -5,7 +5,7 @@ import CalendarIcon from "$lib/components/icons/calendar.svelte";
 import CheckCircleIcon from "$lib/components/icons/check-circle.svelte";
 import LinkIcon from "$lib/components/icons/link-2.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import type {
@@ -102,7 +102,9 @@ export let viewer: SectionHeaderViewer;
       </div>
 
       {#if formError}
-        <Alert variant="destructive">{formError}</Alert>
+        <Alert.Root variant="destructive">
+          <Alert.Description>{formError}</Alert.Description>
+        </Alert.Root>
       {/if}
     </div>
   {/snippet}

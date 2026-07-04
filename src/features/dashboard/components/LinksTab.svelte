@@ -5,7 +5,7 @@ import type {
   LinkView,
   SignedLinkGroup,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import LinksTabGroup from "./LinksTabGroup.svelte";
 import LinksTabToolbar from "./LinksTabToolbar.svelte";
@@ -44,13 +44,15 @@ export let signedLinkGroups: SignedLinkGroup[];
             {updatingDashboardLinkSlug}
           />
         {:else}
-          <Alert>{dashboardCopy.linkHub.empty}</Alert>
+          <Alert.Root>
+            <Alert.Description>{dashboardCopy.linkHub.empty}</Alert.Description>
+          </Alert.Root>
         {/each}
 
         {#if linkActionError}
-          <Alert variant="destructive">
-            <span>{dashboardCopy.linkHub.pinFailedTitle}: {linkActionError}</span>
-          </Alert>
+          <Alert.Root variant="destructive">
+            <Alert.Description>{dashboardCopy.linkHub.pinFailedTitle}: {linkActionError}</Alert.Description>
+          </Alert.Root>
         {/if}
 
         <p class="text-base-content/60 text-xs">

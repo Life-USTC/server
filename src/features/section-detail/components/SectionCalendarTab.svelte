@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { CalendarGridWeek } from "$lib/components/calendar/types";
 import CalendarIcon from "$lib/components/icons/calendar.svelte";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import SectionCalendarMonthView from "./SectionCalendarMonthView.svelte";
 import SectionCalendarUnscheduledEvents from "./SectionCalendarUnscheduledEvents.svelte";
@@ -34,7 +34,9 @@ export let unscheduledCalendarEvents: SectionCalendarEvent[];
   </div>
 
   {#if dateTimePlaceText}
-    <Alert>{dateTimePlaceText}</Alert>
+    <Alert.Root>
+      <Alert.Description>{dateTimePlaceText}</Alert.Description>
+    </Alert.Root>
   {/if}
 
   {#if sectionCalendarEvents.length > 0}
@@ -54,6 +56,8 @@ export let unscheduledCalendarEvents: SectionCalendarEvent[];
       />
     {/if}
   {:else}
-    <Alert>{sectionCopy.calendarEmpty}</Alert>
+    <Alert.Root>
+      <Alert.Description>{sectionCopy.calendarEmpty}</Alert.Description>
+    </Alert.Root>
   {/if}
 </section>

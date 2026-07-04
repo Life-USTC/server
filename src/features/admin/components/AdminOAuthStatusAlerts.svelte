@@ -1,8 +1,8 @@
 <script lang="ts">
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 
 export let copyMessage = "";
-export let copyMessageVariant: "destructive" | "info" = "info";
+export let copyMessageVariant: "destructive" | "default" = "default";
 export let form:
   | { createdClientId?: string | null; message?: string }
   | null
@@ -10,9 +10,13 @@ export let form:
 </script>
 
 {#if copyMessage}
-  <Alert variant={copyMessageVariant}>{copyMessage}</Alert>
+  <Alert.Root variant={copyMessageVariant}>
+    <Alert.Description>{copyMessage}</Alert.Description>
+  </Alert.Root>
 {/if}
 
 {#if form?.message && !form?.createdClientId}
-  <Alert variant="info">{form.message}</Alert>
+  <Alert.Root>
+    <Alert.Description>{form.message}</Alert.Description>
+  </Alert.Root>
 {/if}

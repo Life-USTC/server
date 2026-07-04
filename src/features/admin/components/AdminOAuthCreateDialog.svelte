@@ -2,7 +2,7 @@
 import type { SubmitFunction } from "@sveltejs/kit";
 import { enhance } from "$app/forms";
 import ShieldCheckIcon from "$lib/components/icons/shield-check.svelte";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import AdminOAuthAuthPatternPicker from "./AdminOAuthAuthPatternPicker.svelte";
@@ -61,13 +61,11 @@ export let toggleScope: (scope: string, checked: boolean) => void;
           bind:selectedAuthMethod
         />
 
-        <Alert class="flex items-start gap-2" variant="info">
-          <ShieldCheckIcon class="mt-0.5 text-info" />
-          <div class="grid gap-1">
-            <h3 class="font-semibold">{copy.panelSecurityTitle}</h3>
-            <p>{copy.panelSecurityDescription}</p>
-          </div>
-        </Alert>
+        <Alert.Root>
+          <ShieldCheckIcon />
+          <Alert.Title>{copy.panelSecurityTitle}</Alert.Title>
+          <Alert.Description>{copy.panelSecurityDescription}</Alert.Description>
+        </Alert.Root>
 
         <div class="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
           <AdminOAuthCreateFields

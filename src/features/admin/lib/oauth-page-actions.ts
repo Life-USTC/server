@@ -13,7 +13,7 @@ export function createOAuthPageActions<
   getSelectedAuthMethod: () => string;
   getSelectedScopes: () => string[];
   setCopyMessage: (value: string) => void;
-  setCopyMessageVariant: (value: "destructive" | "info") => void;
+  setCopyMessageVariant: (value: "destructive" | "default") => void;
   setDeletingClientId: (value: string | null) => void;
   setIsCreateDialogOpen: (value: boolean) => void;
   setIsCreatingClient: (value: boolean) => void;
@@ -39,7 +39,7 @@ export function createOAuthPageActions<
       if (!value) throw new Error(copy.copyError);
       await writeClipboardText(value);
       input.setCopyMessage(successMessage);
-      input.setCopyMessageVariant("info");
+      input.setCopyMessageVariant("default");
     } catch {
       input.setCopyMessage(copy.copyErrorDescription);
       input.setCopyMessageVariant("destructive");

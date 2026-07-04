@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import type { WelcomeCopy } from "./welcome-component-types";
@@ -18,9 +18,9 @@ export let welcomeCopy: WelcomeCopy;
   </Card.Header>
   <Card.Content class="grid gap-2">
     {#if importMessage}
-      <Alert>
-        <span>{importMessage}</span>
-      </Alert>
+      <Alert.Root>
+        <Alert.Description>{importMessage}</Alert.Description>
+      </Alert.Root>
     {/if}
     <Button class="justify-start" href="/sections" variant="outline">{welcomeCopy.browseSections}</Button>
     <Button class="justify-start" href="/courses" variant="outline">{welcomeCopy.browseCourses}</Button>

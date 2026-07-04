@@ -9,7 +9,7 @@ import {
 } from "@/features/descriptions/lib/description-card-actions";
 import type { AppLocale } from "@/i18n/config";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import DescriptionCardHeader from "./DescriptionCardHeader.svelte";
 import DescriptionEditPanel from "./DescriptionEditPanel.svelte";
@@ -123,7 +123,9 @@ const {
     {/if}
 
     {#if _message}
-      <Alert variant="destructive">{_message}</Alert>
+      <Alert.Root variant="destructive">
+        <Alert.Description>{_message}</Alert.Description>
+      </Alert.Root>
     {/if}
 
     {#if _editing}

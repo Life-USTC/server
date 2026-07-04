@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Pagination } from "$lib/components/ui/pagination/index.js";
 import AdminUsersHeader from "./AdminUsersHeader.svelte";
 import AdminUsersSearchCard from "./AdminUsersSearchCard.svelte";
@@ -40,7 +40,7 @@ export let users: AdminUserRow[];
     search={filters.search ?? ""}
   />
 
-  {#if message}<Alert>{message}</Alert>{/if}
+  {#if message}<Alert.Root><Alert.Description>{message}</Alert.Description></Alert.Root>{/if}
 
   <AdminUsersSearchCard
     {commonCopy}

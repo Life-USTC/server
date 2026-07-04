@@ -6,7 +6,7 @@ import type {
   DashboardTodosCopy,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import { enhance } from "$app/forms";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import TodoFormFields from "./TodoFormFields.svelte";
@@ -38,9 +38,9 @@ export let todosCopy: DashboardTodosCopy;
         </Dialog.Header>
         <div class="grid gap-4 px-5 py-4">
           {#if createTodoError}
-            <Alert variant="destructive">
-              <span>{createTodoError}</span>
-            </Alert>
+            <Alert.Root variant="destructive">
+              <Alert.Description>{createTodoError}</Alert.Description>
+            </Alert.Root>
           {/if}
           <TodoFormFields
             {commentsCopy}

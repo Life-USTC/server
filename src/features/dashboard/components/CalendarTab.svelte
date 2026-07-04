@@ -2,7 +2,7 @@
 import { buildDashboardCalendarGridWeeks } from "@/features/dashboard/lib/calendar-grid";
 import { hasDashboardSubscriptions } from "@/features/dashboard/lib/dashboard-subscription-state";
 import CalendarGrid from "$lib/components/calendar/CalendarGrid.svelte";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import CalendarTabToolbar from "./CalendarTabToolbar.svelte";
 import DashboardNoSubscriptionsState from "./DashboardNoSubscriptionsState.svelte";
 import type { DashboardCalendarTabProps } from "./dashboard-calendar-component-types";
@@ -119,7 +119,9 @@ $: calendarGridWeeks = calendarData
         />
       {/key}
     {:else}
-      <Alert>{subscriptionsCopy.calendarEmpty}</Alert>
+      <Alert.Root>
+        <Alert.Description>{subscriptionsCopy.calendarEmpty}</Alert.Description>
+      </Alert.Root>
     {/if}
   {/if}
 </section>

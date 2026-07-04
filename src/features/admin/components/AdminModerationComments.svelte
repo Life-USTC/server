@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import AdminModerationCommentsMobile from "./AdminModerationCommentsMobile.svelte";
 import AdminModerationCommentsTable from "./AdminModerationCommentsTable.svelte";
 import type {
@@ -46,6 +46,8 @@ export let targetLabel: AdminModerationCommentFormatter;
       {targetLabel}
     />
   {:else}
-    <Alert>{copy.noComments}</Alert>
+    <Alert.Root>
+      <Alert.Description>{copy.noComments}</Alert.Description>
+    </Alert.Root>
   {/if}
 </section>

@@ -4,7 +4,7 @@ import {
   PROFILE_USERNAME_PATTERN,
 } from "@/features/profile/lib/profile-username";
 import { enhance } from "$app/forms";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import * as Avatar from "$lib/components/ui/avatar/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -49,9 +49,9 @@ $: avatarFallback = (user.name ?? user.username ?? "U")
 
     <Card.Content class="grid gap-6">
       {#if formMessage}
-        <Alert variant="destructive">
-          <span>{formMessage}</span>
-        </Alert>
+        <Alert.Root variant="destructive">
+          <Alert.Description>{formMessage}</Alert.Description>
+        </Alert.Root>
       {/if}
 
       <Radio.Root

@@ -4,7 +4,7 @@ export function createAdminOAuthControllerDefaultState<Client>(input: {
   return {
     activeClientTab: "all" as "trusted" | "public" | "disabled" | "all",
     copyMessage: "",
-    copyMessageVariant: "info" as "destructive" | "info",
+    copyMessageVariant: "default" as "destructive" | "default",
     deletingClientId: null as string | null,
     externalClientPage: 1,
     isCreateDialogOpen: false,

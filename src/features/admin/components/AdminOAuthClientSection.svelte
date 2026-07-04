@@ -5,7 +5,7 @@ import {
   oauthClientSectionPageCount,
   oauthClientSectionStatus,
 } from "@/features/admin/lib/admin-oauth-client-section-pagination";
-import { Alert } from "$lib/components/ui/alert/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import AdminOAuthClientSectionPagination from "./AdminOAuthClientSectionPagination.svelte";
 import type {
@@ -59,7 +59,9 @@ $: pageStatus = oauthClientSectionStatus({
         {onDelete}
       />
     {:else}
-      <Alert>{emptyMessage}</Alert>
+      <Alert.Root>
+        <Alert.Description>{emptyMessage}</Alert.Description>
+      </Alert.Root>
     {/each}
     <AdminOAuthClientSectionPagination
       {copy}
