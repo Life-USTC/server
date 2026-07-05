@@ -4,6 +4,7 @@ import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import * as Select from "$lib/components/ui/select/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 import { Textarea } from "$lib/components/ui/textarea/index.js";
 import type { DashboardSubscriptionsTabProps } from "./subscription-tab-types";
 
@@ -42,7 +43,7 @@ $: semesterOptions = signedData.subscriptions.semesters.map((semester) => ({
           {subscriptionsCopy.bulkImport.description}
         </Dialog.Description>
       </Dialog.Header>
-      <div class="grid gap-4 px-5 py-4">
+      <Field.Group class="gap-4 px-5 py-4">
         {#if bulkImportError}
           <Alert.Root variant="destructive">
             <Alert.Description>{bulkImportError}</Alert.Description>
@@ -79,7 +80,7 @@ $: semesterOptions = signedData.subscriptions.semesters.map((semester) => ({
             rows={5}
           ></Textarea>
         </Field.Field>
-      </div>
+      </Field.Group>
       <Dialog.Footer>
         <Button
           type="button"
@@ -92,6 +93,9 @@ $: semesterOptions = signedData.subscriptions.semesters.map((semester) => ({
           {subscriptionsCopy.bulkImport.cancel}
         </Button>
         <Button disabled={!canMatchImportSections} type="button" onclick={matchImportSections}>
+          {#if isMatchingSections}
+            <Spinner data-icon="inline-start" />
+          {/if}
           {isMatchingSections
             ? subscriptionsCopy.bulkImport.matching
             : subscriptionsCopy.bulkImport.matchButton}

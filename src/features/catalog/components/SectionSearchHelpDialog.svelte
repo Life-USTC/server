@@ -2,6 +2,7 @@
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
+import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 
 type SectionSearchHelpLabels = {
   close: string;
@@ -29,26 +30,28 @@ export let sectionLabels: SectionSearchHelpLabels;
       <Dialog.Title>{sectionLabels.searchHelpTitle}</Dialog.Title>
       <Dialog.Description>{sectionLabels.searchHelpDescription}</Dialog.Description>
     </Dialog.Header>
-    <Item.Group class="max-h-[60vh] overflow-y-auto px-5 py-4">
-      {#each sectionLabels.searchHelpExamples as example}
-        <Item.Root
-          class="items-start sm:flex-nowrap"
-          variant="muted"
-        >
-          <Item.Content class="min-w-0 sm:max-w-48 sm:flex-none">
-            <Item.Title class="font-mono">{example.syntax}</Item.Title>
-            <Item.Description class="font-mono text-xs">
-              {example.example}
-            </Item.Description>
-          </Item.Content>
-          <Item.Content class="min-w-0">
-            <Item.Description class="line-clamp-none">
-              {example.description}
-            </Item.Description>
-          </Item.Content>
-        </Item.Root>
-      {/each}
-    </Item.Group>
+    <ScrollArea class="h-fit max-h-[60vh]">
+      <Item.Group class="px-5 py-4">
+        {#each sectionLabels.searchHelpExamples as example}
+          <Item.Root
+            class="items-start sm:flex-nowrap"
+            variant="muted"
+          >
+            <Item.Content class="min-w-0 sm:max-w-48 sm:flex-none">
+              <Item.Title class="font-mono">{example.syntax}</Item.Title>
+              <Item.Description class="font-mono text-xs">
+                {example.example}
+              </Item.Description>
+            </Item.Content>
+            <Item.Content class="min-w-0">
+              <Item.Description class="line-clamp-none">
+                {example.description}
+              </Item.Description>
+            </Item.Content>
+          </Item.Root>
+        {/each}
+      </Item.Group>
+    </ScrollArea>
     <Dialog.Footer>
       <Button
         onclick={() => {

@@ -4,6 +4,7 @@ import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
+import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 
 type HomeworkAuditLog = {
   action: string;
@@ -45,43 +46,40 @@ export let setOpen: (open: boolean) => void;
       <Dialog.Title>{homeworkCopy.auditTitle}</Dialog.Title>
       <Dialog.Description>{sectionCopy.homeworkDescription}</Dialog.Description>
     </Dialog.Header>
-    <section class="max-h-[min(72vh,42rem)] overflow-y-auto px-5 py-4">
-      {#if logs.length === 0}
-        <Empty.Root>
-          <Empty.Header>
-            <Empty.Description>{homeworkCopy.auditEmpty}</Empty.Description>
-          </Empty.Header>
-        </Empty.Root>
-      {:else}
-        <Item.Group>
-          {#each logs as log}
-            <Item.Root variant="outline">
-              <Item.Content class="min-w-0">
-                <Item.Title class="line-clamp-none flex-wrap">
-                  <Badge
-                    class={log.action === "deleted"
-                      ? "border-error/30 bg-error/10 text-error"
-                      : ""}
-                    variant={log.action === "deleted" ? "outline" : "secondary"}
-                  >
-                    {actionLabel(log.action)}
-                  </Badge>
-                  <span class="min-w-0 break-words">
-                    {log.titleSnapshot ?? ""}
-                  </span>
-                </Item.Title>
-              </Item.Content>
-              <Item.Actions class="text-muted-foreground text-xs">
-                {formatMessage(homeworkCopy.auditMeta, {
-                  name: actorName(log),
-                  date: fmtDateTime(log.createdAt),
-                })}
-              </Item.Actions>
-            </Item.Root>
-          {/each}
-        </Item.Group>
-      {/if}
-    </section>
+    <ScrollArea class="h-fit max-h-[min(72vh,42rem)]">
+      <section class="px-5 py-4">
+        {#if logs.length === 0}
+          <Empty.Root>
+            <Empty.Header>
+              <Empty.Description>{homeworkCopy.auditEmpty}</Empty.Description>
+            </Empty.Header>
+          </Empty.Root>
+        {:else}
+          <Item.Group>
+            {#each logs as log}
+              <Item.Root variant="outline">
+                <Item.Content class="min-w-0">
+                  <Item.Title class="line-clamp-none flex-wrap">
+                    <Badge variant={log.action === "deleted" ? "destructive" : "secondary"}>
+                      {actionLabel(log.action)}
+                    </Badge>
+                    <span class="min-w-0 break-words">
+                      {log.titleSnapshot ?? ""}
+                    </span>
+                  </Item.Title>
+                </Item.Content>
+                <Item.Actions class="text-muted-foreground text-xs">
+                  {formatMessage(homeworkCopy.auditMeta, {
+                    name: actorName(log),
+                    date: fmtDateTime(log.createdAt),
+                  })}
+                </Item.Actions>
+              </Item.Root>
+            {/each}
+          </Item.Group>
+        {/if}
+      </section>
+    </ScrollArea>
     <Dialog.Footer>
       <Button type="button" onclick={() => setOpen(false)}>
         {sectionCopy.close ?? ""}

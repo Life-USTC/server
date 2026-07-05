@@ -10,6 +10,8 @@ import { enhance } from "$app/forms";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 import TodoFormFields from "./TodoFormFields.svelte";
 
 export let commentsCopy: CommentsCopy;
@@ -41,7 +43,7 @@ export let updateTodoAction: SubmitFunction;
           <Dialog.Title>{todosCopy.editTitle}</Dialog.Title>
           <Dialog.Description>{todosCopy.contentPlaceholder}</Dialog.Description>
         </Dialog.Header>
-        <div class="grid gap-4 px-5 py-4">
+        <Field.Group class="gap-4 px-5 py-4">
           {#if editTodoError}
             <Alert.Root variant="destructive">
               <Alert.Description>{editTodoError}</Alert.Description>
@@ -58,12 +60,15 @@ export let updateTodoAction: SubmitFunction;
             {todoPriorityOptions}
             {todosCopy}
           />
-        </div>
+        </Field.Group>
         <Dialog.Footer>
           <Button type="button" variant="outline" onclick={onClose}>
             {todosCopy.cancel}
           </Button>
           <Button disabled={isUpdatingTodo} type="submit">
+            {#if isUpdatingTodo}
+              <Spinner data-icon="inline-start" />
+            {/if}
             {isUpdatingTodo ? todosCopy.saving : todosCopy.saveChanges}
           </Button>
         </Dialog.Footer>

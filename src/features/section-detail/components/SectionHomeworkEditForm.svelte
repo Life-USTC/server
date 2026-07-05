@@ -5,6 +5,7 @@ import {
 } from "@/features/homeworks/lib/homework-limits";
 import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
@@ -93,7 +94,9 @@ export let updateHomework: SectionHomeworkSubmitHandler;
     />
   </Field.Group>
   {#if editHomeworkMessage}
-    <Field.Error>{editHomeworkMessage}</Field.Error>
+    <Alert.Root variant="destructive">
+      <Alert.Description>{editHomeworkMessage}</Alert.Description>
+    </Alert.Root>
   {/if}
   <div class="flex justify-end gap-2">
     <Button type="button" variant="outline" onclick={cancelEdit}>{homeworkCopy.cancel}</Button>

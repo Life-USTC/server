@@ -1,6 +1,8 @@
 <script lang="ts">
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 import SubscriptionsBulkImportMatchedList from "./SubscriptionsBulkImportMatchedList.svelte";
 import SubscriptionsBulkImportUnmatchedCodes from "./SubscriptionsBulkImportUnmatchedCodes.svelte";
 import type {
@@ -48,23 +50,25 @@ export let isConfirmImportOpen: boolean;
           })}
         </Dialog.Description>
       </Dialog.Header>
-      <div class="grid max-h-[60vh] gap-4 overflow-y-auto px-5 py-4">
-        <SubscriptionsBulkImportMatchedList
-          {formatMessage}
-          {matchedSections}
-          {namePrimary}
-          {nameSecondary}
-          {selectedImportSectionIdSet}
-          {subscriptionsCopy}
-          {toggleImportSectionSelection}
-        />
+      <ScrollArea class="h-fit max-h-[60vh]">
+        <div class="grid gap-4 px-5 py-4">
+          <SubscriptionsBulkImportMatchedList
+            {formatMessage}
+            {matchedSections}
+            {namePrimary}
+            {nameSecondary}
+            {selectedImportSectionIdSet}
+            {subscriptionsCopy}
+            {toggleImportSectionSelection}
+          />
 
-        <SubscriptionsBulkImportUnmatchedCodes
-          {formatMessage}
-          {subscriptionsCopy}
-          {unmatchedSectionCodes}
-        />
-      </div>
+          <SubscriptionsBulkImportUnmatchedCodes
+            {formatMessage}
+            {subscriptionsCopy}
+            {unmatchedSectionCodes}
+          />
+        </div>
+      </ScrollArea>
       <Dialog.Footer>
         <Button type="button" variant="outline" onclick={() => (isConfirmImportOpen = false)}>
           {subscriptionsCopy.bulkImport.cancel}
@@ -74,6 +78,9 @@ export let isConfirmImportOpen: boolean;
           type="button"
           onclick={confirmImportSections}
         >
+          {#if isImportingSections}
+            <Spinner data-icon="inline-start" />
+          {/if}
           {isImportingSections
             ? subscriptionsCopy.bulkImport.importing
             : formatMessage(subscriptionsCopy.bulkImport.subscribeSelected, {

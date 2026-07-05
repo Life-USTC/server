@@ -45,7 +45,7 @@ $: sectionOptions = sections.map((section) => ({
 }));
 </script>
 
-<div class="grid gap-4 px-5 py-4">
+<Field.Group class="gap-4 px-5 py-4">
   {#if createHomeworkError}
     <Alert.Root variant="destructive">
       <Alert.Description>{createHomeworkError}</Alert.Description>
@@ -149,4 +149,4 @@ $: sectionOptions = sections.map((section) => ({
       </Field.Field>
     </Field.Group>
   </Field.Set>
-</div>
+</Field.Group>

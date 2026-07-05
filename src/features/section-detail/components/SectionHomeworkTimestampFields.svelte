@@ -20,7 +20,7 @@ export let submissionDueAt: string;
 export let submissionStartAt: string;
 </script>
 
-<div class="grid gap-3 sm:grid-cols-3">
+<Field.Group class="grid gap-3 sm:grid-cols-3">
   <Field.Field>
     <Field.Title id="section-homework-published-at-label">
       {homeworkCopy.publishedAt}
@@ -115,4 +115,4 @@ export let submissionStartAt: string;
       </Button>
     </ButtonGroup.Root>
   </Field.Field>
-</div>
+</Field.Group>

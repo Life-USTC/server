@@ -6,6 +6,7 @@ import type {
 } from "@/features/descriptions/lib/description-payload-types";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
+import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 
 type DiffMode = "previous" | "next";
 type DiffSegment = {
@@ -71,7 +72,8 @@ function diffSegmentClass(segment: DiffSegment) {
           <Item.Root variant="muted" size="sm" class="items-start">
             <Item.Content class="gap-2">
               <Item.Title class="text-muted-foreground text-xs">{copy.previousLabel}</Item.Title>
-              <div class="max-h-40 overflow-auto whitespace-pre-wrap rounded-md bg-background p-3 text-xs">
+              <ScrollArea class="h-fit max-h-40 rounded-md bg-background">
+                <div class="whitespace-pre-wrap p-3 text-xs">
                 {#if previousSegments.length > 0}
                   {#each previousSegments as segment}
                     <span class={diffSegmentClass(segment)}>{segment.value}</span>
@@ -79,13 +81,15 @@ function diffSegmentClass(segment: DiffSegment) {
                 {:else}
                   <span class="text-muted-foreground">{copy.emptyValue}</span>
                 {/if}
-              </div>
+                </div>
+              </ScrollArea>
             </Item.Content>
           </Item.Root>
           <Item.Root variant="muted" size="sm" class="items-start">
             <Item.Content class="gap-2">
               <Item.Title class="text-muted-foreground text-xs">{copy.updatedLabel}</Item.Title>
-              <div class="max-h-40 overflow-auto whitespace-pre-wrap rounded-md bg-background p-3 text-xs">
+              <ScrollArea class="h-fit max-h-40 rounded-md bg-background">
+                <div class="whitespace-pre-wrap p-3 text-xs">
                 {#if nextSegments.length > 0}
                   {#each nextSegments as segment}
                     <span class={diffSegmentClass(segment)}>{segment.value}</span>
@@ -93,7 +97,8 @@ function diffSegmentClass(segment: DiffSegment) {
                 {:else}
                   <span class="text-muted-foreground">{copy.emptyValue}</span>
                 {/if}
-              </div>
+                </div>
+              </ScrollArea>
             </Item.Content>
           </Item.Root>
         </div>

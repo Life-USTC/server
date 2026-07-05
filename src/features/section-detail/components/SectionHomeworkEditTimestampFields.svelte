@@ -22,7 +22,7 @@ export let homeworkCopy: SectionHomeworkCopy;
 export let semesterDate: SectionHomeworkSemesterDate;
 </script>
 
-<div class="grid gap-3 sm:grid-cols-3">
+<Field.Group class="grid gap-3 sm:grid-cols-3">
   <Field.Field>
     <Field.Title id="section-homework-edit-published-at-label">
       {homeworkCopy.publishedAt}
@@ -117,4 +117,4 @@ export let semesterDate: SectionHomeworkSemesterDate;
       </Button>
     </ButtonGroup.Root>
   </Field.Field>
-</div>
+</Field.Group>

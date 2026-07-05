@@ -4,6 +4,7 @@ import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import * as Select from "$lib/components/ui/select/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 import { Textarea } from "$lib/components/ui/textarea/index.js";
 import type {
   WelcomeBulkImportCopy,
@@ -41,7 +42,7 @@ export let welcomeCopy: WelcomeCopy;
         <Dialog.Title id="welcome-bulk-import-title">{bulkCopy.title}</Dialog.Title>
         <Dialog.Description>{bulkCopy.description}</Dialog.Description>
       </Dialog.Header>
-      <div class="grid gap-4 px-5 py-4">
+      <Field.Group class="gap-4 px-5 py-4">
         {#if importError}
           <Alert.Root variant="destructive">
             <Alert.Description>{importError}</Alert.Description>
@@ -83,7 +84,7 @@ export let welcomeCopy: WelcomeCopy;
             rows={5}
           />
         </Field.Field>
-      </div>
+      </Field.Group>
       <Dialog.Footer>
         <Button
           type="button"
@@ -96,6 +97,9 @@ export let welcomeCopy: WelcomeCopy;
           {bulkCopy.cancel}
         </Button>
         <Button disabled={!canMatch} type="button" onclick={matchSections}>
+          {#if isMatching}
+            <Spinner data-icon="inline-start" />
+          {/if}
           {isMatching ? bulkCopy.matching : bulkCopy.matchButton}
         </Button>
       </Dialog.Footer>

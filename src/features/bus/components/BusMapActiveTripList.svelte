@@ -11,6 +11,7 @@ import type {
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
+import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 
 export let allRouteIds: number[];
 export let copy: BusMapCopy;
@@ -41,34 +42,36 @@ function activeTripBadge(trip: BusMapActiveTrip) {
 </script>
 
 {#if mapData.activeTrips.length > 0}
-  <Item.Group class="max-h-72 overflow-y-auto" role="list">
-    {#each mapData.activeTrips as trip}
-      {@const route = routeById(trip.routeId)}
-      <Item.Root
-        size="xs"
-        variant={hoveredRoute === trip.routeId ? "muted" : "outline"}
-        onpointerenter={() => {
-          hoveredRoute = trip.routeId;
-        }}
-        onpointerleave={() => {
-          hoveredRoute = null;
-        }}
-      >
-        <span class="size-2.5 shrink-0 rounded-full" style={`background:${routeColor(trip.routeId, allRouteIds)}`}></span>
-        <Item.Content>
-          <Item.Title>{route?.descriptionPrimary ?? `${copy.legend.route} ${trip.routeId}`}</Item.Title>
-          <Item.Description class="font-mono tabular-nums">
-            {trip.departureTime ?? "--:--"} -> {trip.arrivalTime ?? "--:--"}
-          </Item.Description>
-        </Item.Content>
-        <Item.Actions>
-          <Badge variant={trip.status === "en-route" ? "secondary" : "outline"}>
-            {activeTripBadge(trip)}
-          </Badge>
-        </Item.Actions>
-      </Item.Root>
-    {/each}
-  </Item.Group>
+  <ScrollArea class="h-fit max-h-72">
+    <Item.Group role="list">
+      {#each mapData.activeTrips as trip}
+        {@const route = routeById(trip.routeId)}
+        <Item.Root
+          size="xs"
+          variant={hoveredRoute === trip.routeId ? "muted" : "outline"}
+          onpointerenter={() => {
+            hoveredRoute = trip.routeId;
+          }}
+          onpointerleave={() => {
+            hoveredRoute = null;
+          }}
+        >
+          <span class="size-2.5 shrink-0 rounded-full" style={`background:${routeColor(trip.routeId, allRouteIds)}`}></span>
+          <Item.Content>
+            <Item.Title>{route?.descriptionPrimary ?? `${copy.legend.route} ${trip.routeId}`}</Item.Title>
+            <Item.Description class="font-mono tabular-nums">
+              {trip.departureTime ?? "--:--"} -> {trip.arrivalTime ?? "--:--"}
+            </Item.Description>
+          </Item.Content>
+          <Item.Actions>
+            <Badge variant={trip.status === "en-route" ? "secondary" : "outline"}>
+              {activeTripBadge(trip)}
+            </Badge>
+          </Item.Actions>
+        </Item.Root>
+      {/each}
+    </Item.Group>
+  </ScrollArea>
 {:else}
   <Empty.Root class="min-h-20 border border-border bg-background p-4">
     <Empty.Header>

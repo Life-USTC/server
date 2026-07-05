@@ -12,6 +12,7 @@ import * as Card from "$lib/components/ui/card/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import * as Radio from "$lib/components/ui/radio-group/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type {
   CompleteProfileAction,
   WelcomeCopy,
@@ -89,7 +90,7 @@ $: avatarFallback = (user.name ?? user.username ?? "U")
               {/each}
             </div>
           {:else}
-            <p class="text-base-content/60 text-sm">
+            <p class="text-muted-foreground text-sm">
               {welcomeCopy.avatarLater}
             </p>
           {/if}
@@ -98,18 +99,21 @@ $: avatarFallback = (user.name ?? user.username ?? "U")
 
       <Field.Group class="gap-4">
         <Field.Field>
-          <Field.Label for="name">{profileCopy.name} <span class="text-error">*</span></Field.Label>
+          <Field.Label for="name">{profileCopy.name} <span class="text-destructive">*</span></Field.Label>
           <Input id="name" name="name" value={user.name ?? ""} placeholder={profileCopy.namePlaceholder} required autocomplete="name" />
         </Field.Field>
 
         <Field.Field>
-          <Field.Label for="username">{profileCopy.username} <span class="text-error">*</span></Field.Label>
+          <Field.Label for="username">{profileCopy.username} <span class="text-destructive">*</span></Field.Label>
           <Input id="username" name="username" value={user.username ?? ""} placeholder={profileCopy.usernamePlaceholder} pattern={PROFILE_USERNAME_PATTERN} maxlength={PROFILE_USERNAME_MAX_LENGTH} required autocomplete="username" title={profileCopy.usernameValidation} />
           <Field.Description>{profileCopy.usernameValidation}</Field.Description>
         </Field.Field>
       </Field.Group>
 
       <Button class="w-full" type="submit" disabled={isCompletingProfile}>
+        {#if isCompletingProfile}
+          <Spinner data-icon="inline-start" />
+        {/if}
         {isCompletingProfile ? profileCopy.saving : welcomeCopy.continue}
       </Button>
     </Card.Content>

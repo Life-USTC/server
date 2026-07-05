@@ -7,6 +7,7 @@ import { Button } from "$lib/components/ui/button/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import * as Select from "$lib/components/ui/select/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type {
   AdminUserFormatter,
   AdminUserRow,
@@ -40,7 +41,7 @@ export let suspensionLabel: AdminUserFormatter;
   </Field.Legend>
   <Field.Description>{copy.suspendDescription}</Field.Description>
   <Field.Group>
-    <div class="grid gap-4 sm:grid-cols-2">
+    <Field.Group class="grid gap-4 sm:grid-cols-2">
       <Field.Field>
         <Field.Label for="admin-user-suspend-duration">
           {moderationCopy.durationLabel}
@@ -76,7 +77,7 @@ export let suspensionLabel: AdminUserFormatter;
           />
         </Field.Field>
       {/if}
-    </div>
+    </Field.Group>
     <Field.Field>
       <Field.Label for="admin-user-suspend-reason">
         {moderationCopy.reason}
@@ -96,7 +97,11 @@ export let suspensionLabel: AdminUserFormatter;
       variant="destructive"
       onclick={suspendSelectedUser}
     >
-      <ShieldAlertIcon data-icon="inline-start" />
+      {#if isSuspending}
+        <Spinner data-icon="inline-start" />
+      {:else}
+        <ShieldAlertIcon data-icon="inline-start" />
+      {/if}
       <span>
         {isSuspending ? copy.suspending : moderationCopy.suspendAction}
       </span>
@@ -108,7 +113,11 @@ export let suspensionLabel: AdminUserFormatter;
         variant="outline"
         onclick={liftSelectedSuspension}
       >
-        <CheckCircleIcon data-icon="inline-start" />
+        {#if isLiftingSuspension}
+          <Spinner data-icon="inline-start" />
+        {:else}
+          <CheckCircleIcon data-icon="inline-start" />
+        {/if}
         <span>
           {isLiftingSuspension ? copy.lifting : copy.liftSuspensionAction}
         </span>

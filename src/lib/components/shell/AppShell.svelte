@@ -30,6 +30,7 @@ import {
 } from "$lib/components/shell/layout-shell";
 import RouteLoadingBar from "$lib/components/shell/RouteLoadingBar.svelte";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
+import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 import { setClientLocale } from "$lib/locale/client-locale";
 import type {
   LayoutCopy,
@@ -268,69 +269,71 @@ afterNavigate(({ from, to }) => {
   }
 </style>
 
-<Sidebar.Provider
-  style="--sidebar-width: 15rem; --sidebar-width-icon: 4rem;"
-  class="min-h-screen bg-background text-foreground lg:h-screen lg:min-h-0 lg:overflow-hidden"
->
-  {#if $navigating}
-    <RouteLoadingBar loadingLabel={data.copy.shell.loading} />
-  {/if}
-
-  <AppSidebar
-    copy={data.copy}
-    {isActiveLink}
-    {navGroups}
-  />
-
-  <Sidebar.Inset
-    id="main-content"
-    class="min-w-0 lg:h-screen lg:min-h-0 lg:overflow-hidden"
+<Tooltip.Provider>
+  <Sidebar.Provider
+    style="--sidebar-width: 15rem; --sidebar-width-icon: 4rem;"
+    class="min-h-screen bg-background text-foreground lg:h-screen lg:min-h-0 lg:overflow-hidden"
   >
-    <AppTopbar
-      {avatarFallback}
-      {closeMenus}
+    {#if $navigating}
+      <RouteLoadingBar loadingLabel={data.copy.shell.loading} />
+    {/if}
+
+    <AppSidebar
       copy={data.copy}
-      locale={data.locale}
-      {localeMenuOpen}
-      {profileHref}
-      {setLocale}
-      {setLocaleMenuOpen}
-      {setThemeMenuOpen}
-      {setThemeMode}
-      {setUserMenuOpen}
-      {themeMenuOpen}
-      {themeMode}
-      user={data.user}
-      {userMenuOpen}
+      {isActiveLink}
+      {navGroups}
     />
 
-    <div
-      bind:this={contentScrollContainer}
-      data-shell-scroll-container
-      class={cn(
-        "flex min-w-0 flex-1 flex-col",
-        detailWorkspace
-          ? "lg:min-h-0 lg:overflow-hidden"
-          : "lg:min-h-0 lg:overflow-y-auto",
-      )}
+    <Sidebar.Inset
+      id="main-content"
+      class="min-w-0 lg:h-screen lg:min-h-0 lg:overflow-hidden"
     >
+      <AppTopbar
+        {avatarFallback}
+        {closeMenus}
+        copy={data.copy}
+        locale={data.locale}
+        {localeMenuOpen}
+        {profileHref}
+        {setLocale}
+        {setLocaleMenuOpen}
+        {setThemeMenuOpen}
+        {setThemeMode}
+        {setUserMenuOpen}
+        {themeMenuOpen}
+        {themeMode}
+        user={data.user}
+        {userMenuOpen}
+      />
+
       <div
+        bind:this={contentScrollContainer}
+        data-shell-scroll-container
         class={cn(
-          "w-full flex-1",
+          "flex min-w-0 flex-1 flex-col",
           detailWorkspace
-            ? "bg-card p-0 lg:min-h-0 lg:overflow-hidden"
-            : "px-4 py-4 sm:px-5 lg:px-6",
+            ? "lg:min-h-0 lg:overflow-hidden"
+            : "lg:min-h-0 lg:overflow-y-auto",
         )}
       >
-        <slot />
-      </div>
+        <div
+          class={cn(
+            "w-full flex-1",
+            detailWorkspace
+              ? "bg-card p-0 lg:min-h-0 lg:overflow-hidden"
+              : "px-4 py-4 sm:px-5 lg:px-6",
+          )}
+        >
+          <slot />
+        </div>
 
-      {#if !detailWorkspace}
-        <AppFooter
-          copy={data.copy}
-          {footerLinks}
-        />
-      {/if}
-    </div>
-  </Sidebar.Inset>
-</Sidebar.Provider>
+        {#if !detailWorkspace}
+          <AppFooter
+            copy={data.copy}
+            {footerLinks}
+          />
+        {/if}
+      </div>
+    </Sidebar.Inset>
+  </Sidebar.Provider>
+</Tooltip.Provider>

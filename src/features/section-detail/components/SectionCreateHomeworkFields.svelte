@@ -7,6 +7,7 @@ import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-r
 import SectionHomeworkTagFields from "@/features/section-detail/components/SectionHomeworkTagFields.svelte";
 import SectionHomeworkTimestampFields from "@/features/section-detail/components/SectionHomeworkTimestampFields.svelte";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import type {
@@ -77,6 +78,8 @@ export let submissionStartAt: string;
   />
   <SectionHomeworkTagFields {homeworkCopy} idPrefix="section-create-homework" />
   {#if homeworkMessage}
-    <Field.Error>{homeworkMessage}</Field.Error>
+    <Alert.Root variant="destructive">
+      <Alert.Description>{homeworkMessage}</Alert.Description>
+    </Alert.Root>
   {/if}
 </Field.Group>

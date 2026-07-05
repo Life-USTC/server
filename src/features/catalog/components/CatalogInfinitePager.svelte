@@ -1,6 +1,7 @@
 <script lang="ts">
 import { onMount } from "svelte";
 import { Button } from "$lib/components/ui/button/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 
 export let auto = true;
 export let hasMore = false;
@@ -52,6 +53,9 @@ onMount(() => {
       }}
       variant="outline"
     >
+      {#if loading}
+        <Spinner data-icon="inline-start" />
+      {/if}
       {loading ? loadingLabel : nextLabel}
     </Button>
   </div>
