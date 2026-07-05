@@ -206,12 +206,10 @@ test.describe("/sections/[jwId] 班级详情页", () => {
   test("基本信息中显示授课语言与教室类型", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
-    // Expand "More Details" inner collapsible to reveal teachLanguage and roomType
-    const moreDetails = page
-      .locator('details[data-slot="accordion-item"]')
-      .filter({ hasText: /更多信息|More Details/i })
+    // Expand "More Details" inner accordion to reveal teachLanguage and roomType.
+    const moreDetailsTrigger = page
+      .getByRole("button", { name: /^(更多信息|More Details)$/i })
       .first();
-    const moreSummary = moreDetails.locator("summary").first();
     const teachLanguage = page
       .getByText(DEV_SEED.section.teachLanguageNameCn)
       .or(page.getByText(DEV_SEED.section.teachLanguageNameEn))
@@ -221,9 +219,9 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       .or(page.getByText(DEV_SEED.section.roomTypeNameEn))
       .first();
     await expect(async () => {
-      await expect(moreSummary).toBeVisible();
-      if ((await moreDetails.getAttribute("open")) === null) {
-        await moreSummary.click();
+      await expect(moreDetailsTrigger).toBeVisible();
+      if ((await moreDetailsTrigger.getAttribute("aria-expanded")) !== "true") {
+        await moreDetailsTrigger.click();
       }
       await expect(teachLanguage).toBeVisible({ timeout: 2_000 });
       await expect(roomType).toBeVisible({ timeout: 2_000 });
@@ -243,17 +241,15 @@ test.describe("/sections/[jwId] 班级详情页", () => {
   test("显示行政班级（可折叠）", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
-    // section.adminClasses[] — expand collapsible if needed
-    const adminClasses = page
-      .locator('details[data-slot="accordion-item"]')
-      .filter({ hasText: /行政班级|Admin Classes/i })
+    // section.adminClasses[] — expand accordion if present.
+    const adminClassTrigger = page
+      .getByRole("button", { name: /^(行政班级|Admin Classes)$/i })
       .first();
-    if ((await adminClasses.count()) > 0) {
-      const adminClassTrigger = adminClasses.locator("summary").first();
+    if ((await adminClassTrigger.count()) > 0) {
       const adminClassText = page
         .getByText(DEV_SEED.section.adminClassNameCn)
         .or(page.getByText(DEV_SEED.section.adminClassNameEn));
-      if ((await adminClasses.getAttribute("open")) === null) {
+      if ((await adminClassTrigger.getAttribute("aria-expanded")) !== "true") {
         await adminClassTrigger.click();
       }
       await expect(adminClassText.first()).toBeVisible();
