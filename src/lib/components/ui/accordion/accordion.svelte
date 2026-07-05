@@ -1,9 +1,19 @@
 <script lang="ts">
-let className = "";
+import { Accordion as AccordionPrimitive } from "bits-ui";
+import { cn } from "$lib/utils.js";
 
-export { className as class };
+let {
+  ref = $bindable(null),
+  value = $bindable(),
+  class: className,
+  ...restProps
+}: AccordionPrimitive.RootProps = $props();
 </script>
 
-<div class={`grid gap-3 ${className}`} data-slot="accordion" {...$$restProps}>
-  <slot />
-</div>
+<AccordionPrimitive.Root
+	bind:ref
+	bind:value={value as never}
+	data-slot="accordion"
+	class={cn("cn-accordion flex w-full flex-col", className)}
+	{...restProps}
+/>

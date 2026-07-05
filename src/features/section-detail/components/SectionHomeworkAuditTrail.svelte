@@ -20,31 +20,36 @@ export let logs: SectionHomeworkAuditLog[];
 </script>
 
 {#if logs.length > 0}
-  <Accordion.Item title={homeworkCopy.contentHistoryAction}>
-    <Item.Group>
-      {#each logs.slice(0, 5) as log}
-        <Item.Root
-          size="sm"
-          variant="muted"
-        >
-          <Item.Content>
-            <Item.Title>{homeworkAuditActionLabel(log.action)}</Item.Title>
-            <Item.Description class="line-clamp-none">
-              {log.titleSnapshot}
-            </Item.Description>
-          </Item.Content>
-          <Item.Actions class="text-muted-foreground text-xs">
-            {fmtDateTime(log.createdAt)}
-          </Item.Actions>
-          {#if log.actor}
-            <Item.Footer class="text-muted-foreground text-xs">
-              {formatMessage(homeworkCopy.contentHistoryActor, {
-                name: log.actor.name ?? log.actor.username ?? commonCopy.unknown,
-              })}
-            </Item.Footer>
-          {/if}
-        </Item.Root>
-      {/each}
-    </Item.Group>
-  </Accordion.Item>
+  <Accordion.Root type="single">
+    <Accordion.Item value="history">
+      <Accordion.Trigger>{homeworkCopy.contentHistoryAction}</Accordion.Trigger>
+      <Accordion.Content>
+        <Item.Group>
+          {#each logs.slice(0, 5) as log}
+            <Item.Root
+              size="sm"
+              variant="muted"
+            >
+              <Item.Content>
+                <Item.Title>{homeworkAuditActionLabel(log.action)}</Item.Title>
+                <Item.Description class="line-clamp-none">
+                  {log.titleSnapshot}
+                </Item.Description>
+              </Item.Content>
+              <Item.Actions class="text-muted-foreground text-xs">
+                {fmtDateTime(log.createdAt)}
+              </Item.Actions>
+              {#if log.actor}
+                <Item.Footer class="text-muted-foreground text-xs">
+                  {formatMessage(homeworkCopy.contentHistoryActor, {
+                    name: log.actor.name ?? log.actor.username ?? commonCopy.unknown,
+                  })}
+                </Item.Footer>
+              {/if}
+            </Item.Root>
+          {/each}
+        </Item.Group>
+      </Accordion.Content>
+    </Accordion.Item>
+  </Accordion.Root>
 {/if}

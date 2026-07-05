@@ -1,23 +1,17 @@
 <script lang="ts">
+import { Accordion as AccordionPrimitive } from "bits-ui";
 import { cn } from "$lib/utils.js";
 
-export let open = false;
-export let title: string;
-let className = "";
-
-export { className as class };
+let {
+  ref = $bindable(null),
+  class: className,
+  ...restProps
+}: AccordionPrimitive.ItemProps = $props();
 </script>
 
-<details
-  class={cn("rounded-xl border border-base-300 bg-base-100 p-3", className)}
-  data-slot="accordion-item"
-  {open}
-  {...$$restProps}
->
-  <summary class="cursor-pointer font-medium text-sm" data-slot="accordion-trigger">
-    {title}
-  </summary>
-  <div class="mt-3" data-slot="accordion-content">
-    <slot />
-  </div>
-</details>
+<AccordionPrimitive.Item
+	bind:ref
+	data-slot="accordion-item"
+	class={cn("not-last:border-b", className)}
+	{...restProps}
+/>

@@ -13,11 +13,16 @@ export let sectionCopy: SectionBasicInfoCopy;
 </script>
 
 {#if section.adminClasses.length > 0}
-  <Accordion.Item class="rounded-none border-0 bg-transparent px-0 py-2" title={sectionCopy.adminClasses}>
-    <div class="flex flex-wrap gap-2">
-      {#each section.adminClasses as adminClass}
-        <Badge variant="outline">{primaryName(adminClass)}</Badge>
-      {/each}
-    </div>
-  </Accordion.Item>
+  <Accordion.Root type="single">
+    <Accordion.Item value="admin-classes">
+      <Accordion.Trigger>{sectionCopy.adminClasses}</Accordion.Trigger>
+      <Accordion.Content>
+        <div class="flex flex-wrap gap-2">
+          {#each section.adminClasses as adminClass}
+            <Badge variant="outline">{primaryName(adminClass)}</Badge>
+          {/each}
+        </div>
+      </Accordion.Content>
+    </Accordion.Item>
+  </Accordion.Root>
 {/if}

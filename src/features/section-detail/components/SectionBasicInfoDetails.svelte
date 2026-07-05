@@ -16,35 +16,40 @@ export let sectionCopy: SectionBasicInfoCopy;
 export let yesNo: (value: boolean | null | undefined) => string;
 </script>
 
-<Accordion.Item class="rounded-none border-0 bg-transparent px-0 py-2" title={sectionCopy.moreDetails}>
-  <dl class="grid gap-3 text-sm">
-    <div class="flex items-baseline justify-between gap-4">
-      <dt class="text-base-content/60">{sectionCopy.teachLanguage}</dt>
-      <dd>{primaryName(section.teachLanguage) || notAvailable}</dd>
-    </div>
-    <div class="flex items-baseline justify-between gap-4">
-      <dt class="text-base-content/60">{sectionCopy.roomType}</dt>
-      <dd>{primaryName(section.roomType) || notAvailable}</dd>
-    </div>
-    <div class="flex items-baseline justify-between gap-4">
-      <dt class="text-base-content/60">{commonCopy.undergraduateGraduate}</dt>
-      <dd>{yesNo(section.graduateAndPostgraduate)}</dd>
-    </div>
-    <div class="flex items-baseline justify-between gap-4">
-      <dt class="text-base-content/60">{sectionCopy.periodsPerWeek}</dt>
-      <dd>
-        {section.timesPerWeek ?? notAvailable} x {section.periodsPerWeek ?? notAvailable}
-      </dd>
-    </div>
-    {#each periodDetailRows as [label, value]}
-      <div class="flex items-baseline justify-between gap-4">
-        <dt class="text-base-content/60">{label}</dt>
-        <dd>{value}</dd>
-      </div>
-    {/each}
-    <div class="flex items-baseline justify-between gap-4">
-      <dt class="text-base-content/60">{sectionCopy.department}</dt>
-      <dd>{primaryName(section.openDepartment) || notAvailable}</dd>
-    </div>
-  </dl>
-</Accordion.Item>
+<Accordion.Root type="single">
+  <Accordion.Item value="more-details">
+    <Accordion.Trigger>{sectionCopy.moreDetails}</Accordion.Trigger>
+    <Accordion.Content>
+      <dl class="grid gap-3 text-sm">
+        <div class="flex items-baseline justify-between gap-4">
+          <dt class="text-base-content/60">{sectionCopy.teachLanguage}</dt>
+          <dd>{primaryName(section.teachLanguage) || notAvailable}</dd>
+        </div>
+        <div class="flex items-baseline justify-between gap-4">
+          <dt class="text-base-content/60">{sectionCopy.roomType}</dt>
+          <dd>{primaryName(section.roomType) || notAvailable}</dd>
+        </div>
+        <div class="flex items-baseline justify-between gap-4">
+          <dt class="text-base-content/60">{commonCopy.undergraduateGraduate}</dt>
+          <dd>{yesNo(section.graduateAndPostgraduate)}</dd>
+        </div>
+        <div class="flex items-baseline justify-between gap-4">
+          <dt class="text-base-content/60">{sectionCopy.periodsPerWeek}</dt>
+          <dd>
+            {section.timesPerWeek ?? notAvailable} x {section.periodsPerWeek ?? notAvailable}
+          </dd>
+        </div>
+        {#each periodDetailRows as [label, value]}
+          <div class="flex items-baseline justify-between gap-4">
+            <dt class="text-base-content/60">{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        {/each}
+        <div class="flex items-baseline justify-between gap-4">
+          <dt class="text-base-content/60">{sectionCopy.department}</dt>
+          <dd>{primaryName(section.openDepartment) || notAvailable}</dd>
+        </div>
+      </dl>
+    </Accordion.Content>
+  </Accordion.Item>
+</Accordion.Root>
