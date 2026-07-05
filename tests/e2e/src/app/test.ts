@@ -165,7 +165,7 @@ test("/ shell 桌面导航后内容滚动回到顶部", async ({ page }) => {
     .toBeGreaterThan(100);
 
   await page
-    .locator("aside")
+    .getByTestId("app-sidebar")
     .getByRole("link", { name: /^(课程|Courses)$/i })
     .click();
   await page.waitForURL("**/courses");
