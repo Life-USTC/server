@@ -5,6 +5,7 @@ import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type {
   SettingsCopy,
   SettingsDeleteAccountAction,
@@ -90,6 +91,9 @@ export let isMounted: boolean;
                 disabled={!isMounted || isDeletingAccount || deleteConfirmValue !== "DELETE"}
                 variant="destructive"
               >
+                {#if isDeletingAccount}
+                  <Spinner data-icon="inline-start" />
+                {/if}
                 {copy.profile.deleteAccount}
               </Button>
             </AlertDialog.Footer>

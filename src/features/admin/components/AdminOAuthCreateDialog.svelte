@@ -6,6 +6,7 @@ import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 import AdminOAuthAuthPatternPicker from "./AdminOAuthAuthPatternPicker.svelte";
 import AdminOAuthCreateFields from "./AdminOAuthCreateFields.svelte";
 import AdminOAuthScopePicker from "./AdminOAuthScopePicker.svelte";
@@ -98,6 +99,9 @@ export let toggleScope: (scope: string, checked: boolean) => void;
           </p>
           <Button type="button" variant="outline" disabled={isCreatingClient} onclick={close}>{copy.cancel}</Button>
           <Button type="submit" disabled={isCreatingClient || selectedScopes.length === 0}>
+            {#if isCreatingClient}
+              <Spinner data-icon="inline-start" />
+            {/if}
             {isCreatingClient ? copy.creating : copy.createClient}
           </Button>
         </Dialog.Footer>

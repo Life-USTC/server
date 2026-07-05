@@ -38,20 +38,20 @@ export let user: SettingsUser;
       >
         {#each avatarOptions as avatar, index}
           {@const avatarId = `settings-avatar-option-${index}`}
-          <Field.Label for={avatarId}>
-            <Field.Field orientation="horizontal">
+          <Field.Field orientation="horizontal">
+            <Field.Label for={avatarId} class="cursor-pointer">
               <Avatar.Root class="size-12 border-0">
                 <Avatar.Image alt={copy.accessibility.avatarOption} src={avatar} />
                 <Avatar.Fallback>{index + 1}</Avatar.Fallback>
               </Avatar.Root>
-              <Radio.Item
-                id={avatarId}
-                aria-label={`${copy.accessibility.avatarOption} ${index + 1}`}
-                value={avatar}
-                disabled={!isMounted}
-              />
-            </Field.Field>
-          </Field.Label>
+            </Field.Label>
+            <Radio.Item
+              id={avatarId}
+              aria-label={`${copy.accessibility.avatarOption} ${index + 1}`}
+              value={avatar}
+              disabled={!isMounted}
+            />
+          </Field.Field>
         {/each}
       </Radio.Root>
     {/if}

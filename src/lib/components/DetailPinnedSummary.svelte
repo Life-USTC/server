@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { Snippet } from "svelte";
+import { Badge } from "$lib/components/ui/badge/index.js";
 import { cn } from "$lib/utils.js";
 
 type DetailPinnedSummaryItem = {
@@ -45,9 +46,12 @@ let {
             <span class="max-w-full truncate">{description}</span>
           {/if}
           {#each items as item}
-            <span class={cn("max-w-52 truncate", item.mono ? "font-mono" : "")}>
+            <Badge
+              class={cn("max-w-52 truncate", item.mono ? "font-mono" : "")}
+              variant={item.variant ?? "ghost"}
+            >
               {item.label}
-            </span>
+            </Badge>
           {/each}
         </div>
       {/if}

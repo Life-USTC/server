@@ -1,4 +1,5 @@
 <script lang="ts">
+import * as Item from "$lib/components/ui/item/index.js";
 import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 import { cn } from "$lib/utils.js";
 import type { CalendarTone } from "./types";
@@ -32,32 +33,56 @@ function toneClass() {
   return "border-primary/25 bg-primary/10 hover:border-primary/45 hover:bg-primary/15";
 }
 
+function eventChipProps(
+  itemProps: Record<string, unknown>,
+  triggerProps: Record<string, unknown>,
+) {
+  const { class: itemClass, ...itemRest } = itemProps;
+  const { class: triggerClass, ...triggerRest } = triggerProps;
+
+  return {
+    ...itemRest,
+    ...triggerRest,
+    class: cn(
+      typeof itemClass === "string" ? itemClass : undefined,
+      typeof triggerClass === "string" ? triggerClass : undefined,
+    ),
+    href,
+  };
+}
+
 $: tooltipText = tooltip || title || label;
 </script>
 
 <Tooltip.Root>
   <Tooltip.Trigger>
     {#snippet child({ props })}
-      <a
+      <Item.Root
         class={cn(
-          "block min-w-0 rounded-md border px-2 py-1.5 text-xs no-underline transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+          "min-w-0 rounded-md text-xs no-underline",
           toneClass(),
           done ? "grayscale opacity-60" : undefined,
         )}
-        {href}
-        {...props}
+        size="xs"
+        variant="outline"
       >
-        <span class="block truncate font-medium">{label}</span>
-        {#if title}
-          <span class="block truncate text-muted-foreground">{title}</span>
-        {/if}
-        {#if meta}
-          <span class="block truncate text-muted-foreground">{meta}</span>
-        {/if}
-        {#if detail}
-          <span class="block truncate text-muted-foreground">{detail}</span>
-        {/if}
-      </a>
+        {#snippet child({ props: itemProps })}
+          <a {...eventChipProps(itemProps, props)}>
+            <Item.Content class="gap-0">
+              <Item.Title class="max-w-full text-xs">{label}</Item.Title>
+              {#if title}
+                <Item.Description class="max-w-full line-clamp-1">{title}</Item.Description>
+              {/if}
+              {#if meta}
+                <Item.Description class="max-w-full line-clamp-1">{meta}</Item.Description>
+              {/if}
+              {#if detail}
+                <Item.Description class="max-w-full line-clamp-1">{detail}</Item.Description>
+              {/if}
+            </Item.Content>
+          </a>
+        {/snippet}
+      </Item.Root>
     {/snippet}
   </Tooltip.Trigger>
   <Tooltip.Content>{tooltipText}</Tooltip.Content>

@@ -3,6 +3,7 @@ import type { SubmitFunction } from "@sveltejs/kit";
 import { enhance } from "$app/forms";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type {
   DashboardHomeworkCommentsCopy,
   DashboardHomeworkCreateCopy,
@@ -84,6 +85,9 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
             disabled={isCreatingHomework}
             type="submit"
           >
+            {#if isCreatingHomework}
+              <Spinner data-icon="inline-start" />
+            {/if}
             {isCreatingHomework ? homeworksCopy.saving : homeworksCopy.createAction}
           </Button>
         </Dialog.Footer>

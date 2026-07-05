@@ -29,23 +29,21 @@ export let toggleScope: (scope: string, checked: boolean) => void;
   <Field.Group class="gap-3">
     {#each scopeOptions as scope}
       {@const scopeId = `admin-oauth-scope-${scope.value.replace(/:/g, "-")}`}
-      <Field.Label for={scopeId} class="cursor-pointer">
-        <Field.Field orientation="horizontal">
-          <Checkbox
-            id={scopeId}
-            checked={selectedScopes.includes(scope.value)}
-            onCheckedChange={(checked) => toggleScope(scope.value, checked)}
-          />
-          <Field.Content>
-            <Field.Title class="font-mono">
-              {scopeLabel(scope.value)}
-            </Field.Title>
-            <Field.Description>
+      <Field.Field orientation="horizontal">
+        <Checkbox
+          id={scopeId}
+          checked={selectedScopes.includes(scope.value)}
+          onCheckedChange={(checked) => toggleScope(scope.value, checked)}
+        />
+        <Field.Content>
+          <Field.Label for={scopeId} class="cursor-pointer font-mono">
+            {scopeLabel(scope.value)}
+          </Field.Label>
+          <Field.Description>
             {oauthCopy(scope.descriptionKey)}
-            </Field.Description>
-          </Field.Content>
-        </Field.Field>
-      </Field.Label>
+          </Field.Description>
+        </Field.Content>
+      </Field.Field>
     {/each}
   </Field.Group>
   {#each selectedScopes as scope}

@@ -3,6 +3,7 @@ import type { SubmitFunction } from "@sveltejs/kit";
 import { enhance } from "$app/forms";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 
 type Homework = {
   id: string;
@@ -67,6 +68,9 @@ export let isDeleting: boolean;
             type="submit"
             variant="destructive"
           >
+            {#if isDeleting}
+              <Spinner data-icon="inline-start" />
+            {/if}
             {isDeleting ? copy.saving : copy.deleteHomeworkAction}
           </Button>
         </AlertDialog.Footer>

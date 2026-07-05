@@ -284,7 +284,7 @@ afterNavigate(({ from, to }) => {
     {navGroups}
   />
 
-  <main
+  <Sidebar.Inset
     id="main-content"
     class="relative flex w-full min-w-0 flex-1 flex-col bg-background lg:h-screen lg:min-h-0 lg:overflow-hidden"
   >
@@ -334,5 +334,5 @@ afterNavigate(({ from, to }) => {
         />
       {/if}
     </div>
-  </main>
+  </Sidebar.Inset>
 </Sidebar.Provider>

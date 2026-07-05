@@ -5,6 +5,7 @@ import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 
 type ModerationSuspension = {
   expiresAt?: string | Date | null;
@@ -63,6 +64,9 @@ export let suspensions: ModerationSuspension[];
           <form method="POST" action="?/liftSuspension" use:enhance={enhanceLiftSuspension}>
             <input type="hidden" name="id" value={suspension.id} />
             <Button disabled={isLiftingSuspension} size="sm" type="submit" variant="outline">
+              {#if isLiftingSuspension}
+                <Spinner data-icon="inline-start" />
+              {/if}
               {isLiftingSuspension ? copy.saving : copy.liftSuspensionAction}
             </Button>
           </form>

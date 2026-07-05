@@ -6,6 +6,7 @@ import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
+import { Spinner } from "$lib/components/ui/spinner/index.js";
 import { Textarea } from "$lib/components/ui/textarea/index.js";
 import AdminModerationDescriptionMeta from "./AdminModerationDescriptionMeta.svelte";
 import type { AdminModerationDescription } from "./admin-moderation-description-types";
@@ -99,6 +100,9 @@ export let targetLabel: (description: AdminModerationDescription) => string;
               {copy.cancelButton}
             </Button>
             <Button disabled={isSaving} type="submit">
+              {#if isSaving}
+                <Spinner data-icon="inline-start" />
+              {/if}
               {isSaving ? copy.saving : copy.confirmButton}
             </Button>
           </Dialog.Footer>
