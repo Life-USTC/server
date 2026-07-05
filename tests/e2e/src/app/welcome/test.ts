@@ -81,7 +81,7 @@ test("/welcome 显示必填字段", async ({ page }, testInfo) => {
       .first();
     await expect(dialog).toBeVisible({ timeout: 8_000 });
     const semesterSelector = dialog
-      .getByRole("button", { name: /^(学期|Semester)\b/i })
+      .getByRole("combobox", { name: /^(学期|Semester)\b/i })
       .first();
     await expect(semesterSelector).toBeVisible();
     await expect(semesterSelector).toContainText(DEV_SEED.semesterNameCn);

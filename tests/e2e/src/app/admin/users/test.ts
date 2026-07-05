@@ -195,12 +195,12 @@ test("/admin/users 自定义封禁时长会展示到期时间输入框", async (
 
     const dialog = await openAdminUserDialog(page, usernames[0] ?? prefix);
 
-    const durationSelect = dialog.getByRole("button", {
+    const durationSelect = dialog.getByRole("combobox", {
       name: /封禁时长|Duration/i,
     });
     await expect(durationSelect).toBeVisible();
-    await durationSelect.click();
-    await page.getByRole("option", { name: /自定义|Custom/i }).click();
+    await durationSelect.selectOption("custom");
+    await expect(durationSelect).toHaveValue("custom");
 
     const expiresAtInput = dialog.getByRole("textbox", {
       name: /到期时间|Expires At/i,

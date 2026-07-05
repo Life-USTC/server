@@ -252,15 +252,12 @@ test("/admin/moderation 可切换状态筛选下拉", async ({ page }, testInfo)
     await expect(page.locator("#main-content")).toBeVisible();
     return;
   }
-  await filter.click();
-
   const option = page.getByRole("option", { name: /已删除|Deleted/i }).first();
   if ((await option.count()) === 0) {
-    await page.keyboard.press("Escape");
     return;
   }
-  await option.click();
-  await expect(filter).toContainText(/已删除|Deleted/i);
+  await filter.selectOption("deleted");
+  await expect(filter).toHaveValue("deleted");
   await captureStepScreenshot(
     page,
     testInfo,
