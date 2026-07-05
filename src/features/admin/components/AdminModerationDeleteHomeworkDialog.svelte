@@ -1,8 +1,8 @@
 <script lang="ts">
 import type { SubmitFunction } from "@sveltejs/kit";
 import { enhance } from "$app/forms";
+import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
 
 type Homework = {
   id: string;
@@ -28,13 +28,13 @@ export let isDeleting: boolean;
 </script>
 
 {#if homework}
-  <Dialog.Root
+  <AlertDialog.Root
     open={true}
     onOpenChange={(open) => {
       if (!open) close();
     }}
   >
-    <Dialog.Content
+    <AlertDialog.Content
       class="max-w-md"
     >
       <form
@@ -42,27 +42,26 @@ export let isDeleting: boolean;
         action="?/deleteHomework"
         use:enhance={enhanceDeleteHomework}
       >
-        <Dialog.Header>
-          <Dialog.Title>{copy.deleteHomeworkTitle}</Dialog.Title>
-          <Dialog.Description>
+        <AlertDialog.Header>
+          <AlertDialog.Title>{copy.deleteHomeworkTitle}</AlertDialog.Title>
+          <AlertDialog.Description>
             {formatMessage(copy.deleteHomeworkDescription, { title: homework.title })}
-          </Dialog.Description>
-        </Dialog.Header>
+          </AlertDialog.Description>
+        </AlertDialog.Header>
         <div class="px-5 py-4">
           <input type="hidden" name="id" value={homework.id} />
           <p class="text-base-content/60 text-sm">
             {copy.deleteHomeworkAuditDescription}
           </p>
         </div>
-        <Dialog.Footer>
-          <Button
+        <AlertDialog.Footer>
+          <AlertDialog.Cancel
             disabled={isDeleting}
             type="button"
             variant="ghost"
-            onclick={close}
           >
             {copy.cancelButton}
-          </Button>
+          </AlertDialog.Cancel>
           <Button
             disabled={isDeleting}
             type="submit"
@@ -70,8 +69,8 @@ export let isDeleting: boolean;
           >
             {isDeleting ? copy.saving : copy.deleteHomeworkAction}
           </Button>
-        </Dialog.Footer>
+        </AlertDialog.Footer>
       </form>
-    </Dialog.Content>
-  </Dialog.Root>
+    </AlertDialog.Content>
+  </AlertDialog.Root>
 {/if}

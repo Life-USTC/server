@@ -113,7 +113,7 @@ test("/admin/oauth 管理员可创建并删除客户端", async ({ page }, testI
       .first();
     await expect(clientCard).toBeVisible();
     await clientCard.getByRole("button", { name: /删除|Delete/i }).click();
-    const deleteDialog = page.getByRole("dialog", {
+    const deleteDialog = page.getByRole("alertdialog", {
       name: /删除客户端|Delete client|删除|Delete/i,
     });
     await expect(deleteDialog).toBeVisible();

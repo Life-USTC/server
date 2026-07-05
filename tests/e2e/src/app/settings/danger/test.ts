@@ -54,7 +54,7 @@ test.describe("/settings?tab=danger 危险区设置", () => {
     await expect(openDialogButton).toBeEnabled();
     await expect(async () => {
       await openDialogButton.click({ force: true });
-      const dialog = page.getByRole("dialog").last();
+      const dialog = page.getByRole("alertdialog").last();
       await expect(dialog).toBeVisible();
       await expect(
         dialog.locator('input[placeholder="DELETE"]').first(),
@@ -65,14 +65,14 @@ test.describe("/settings?tab=danger 危险区设置", () => {
     });
 
     const input = page
-      .getByRole("dialog")
+      .getByRole("alertdialog")
       .last()
       .locator('input[placeholder="DELETE"]')
       .first();
 
     // Confirm button disabled until exact phrase typed
     const confirmButton = page
-      .getByRole("dialog")
+      .getByRole("alertdialog")
       .last()
       .getByRole("button", { name: /删除|Delete/i })
       .last();
@@ -112,7 +112,7 @@ test.describe("/settings?tab=danger 危险区设置", () => {
     await expect(openDialogButton).toBeEnabled();
     await expect(async () => {
       await openDialogButton.click({ force: true });
-      const dialog = page.getByRole("dialog").last();
+      const dialog = page.getByRole("alertdialog").last();
       await expect(dialog).toBeVisible();
       await expect(
         dialog.locator('input[placeholder="DELETE"]').first(),
@@ -122,7 +122,7 @@ test.describe("/settings?tab=danger 危险区设置", () => {
       intervals: [250, 500, 1_000],
     });
 
-    const dialog = page.getByRole("dialog").last();
+    const dialog = page.getByRole("alertdialog").last();
     const input = dialog.locator('input[placeholder="DELETE"]').first();
     const confirmButton = dialog
       .getByRole("button", { name: /删除|Delete/i })

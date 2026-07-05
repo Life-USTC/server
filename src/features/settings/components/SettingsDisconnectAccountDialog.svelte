@@ -1,7 +1,7 @@
 <script lang="ts">
 import { enhance } from "$app/forms";
+import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
 import type {
   SettingsAccount,
   SettingsAccountAction,
@@ -19,30 +19,27 @@ export let unlinkAccountId: string | null;
 </script>
 
 {#if unlinkAccount}
-  <Dialog.Root
+  <AlertDialog.Root
     open={true}
     onOpenChange={(open) => {
       if (!open) unlinkAccountId = null;
     }}
   >
-    <Dialog.Content
+    <AlertDialog.Content
       class="max-w-md"
     >
-      <Dialog.Header>
-        <Dialog.Title>{copy.profile.disconnectConfirmTitle}</Dialog.Title>
-        <Dialog.Description>{copy.profile.disconnectConfirmDescription.replace("{provider}", unlinkAccount.name)}</Dialog.Description>
-      </Dialog.Header>
-      <Dialog.Footer>
-        <Button
+      <AlertDialog.Header>
+        <AlertDialog.Title>{copy.profile.disconnectConfirmTitle}</AlertDialog.Title>
+        <AlertDialog.Description>{copy.profile.disconnectConfirmDescription.replace("{provider}", unlinkAccount.name)}</AlertDialog.Description>
+      </AlertDialog.Header>
+      <AlertDialog.Footer>
+        <AlertDialog.Cancel
           variant="secondary"
           type="button"
           disabled={hasPendingAccountAction}
-          onclick={() => {
-            unlinkAccountId = null;
-          }}
         >
           {copy.profile.cancel}
-        </Button>
+        </AlertDialog.Cancel>
         <form
           method="POST"
           action="?/unlinkAccount&tab=accounts"
@@ -57,10 +54,10 @@ export let unlinkAccountId: string | null;
             {pendingAccountAction?.providerId === unlinkAccount.id &&
             pendingAccountAction.type === "disconnect"
               ? copy.profile.disconnecting
-              : copy.profile.disconnect}
+            : copy.profile.disconnect}
           </Button>
         </form>
-      </Dialog.Footer>
-    </Dialog.Content>
-  </Dialog.Root>
+      </AlertDialog.Footer>
+    </AlertDialog.Content>
+  </AlertDialog.Root>
 {/if}

@@ -1,6 +1,6 @@
 <script lang="ts">
+import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
 
 type HomeworkTarget = {
   title: string;
@@ -21,25 +21,25 @@ export let onConfirm: () => void | Promise<void>;
 export let target: HomeworkTarget;
 </script>
 
-<Dialog.Root
+<AlertDialog.Root
   open={true}
   onOpenChange={(open) => {
     if (!open) onCancel();
   }}
 >
-  <Dialog.Content
+  <AlertDialog.Content
     class="max-w-md"
   >
-    <Dialog.Header>
-      <Dialog.Title>{homeworkCopy.deleteTitle}</Dialog.Title>
-      <Dialog.Description>
+    <AlertDialog.Header>
+      <AlertDialog.Title>{homeworkCopy.deleteTitle}</AlertDialog.Title>
+      <AlertDialog.Description>
         {formatMessage(homeworkCopy.deleteDescription, { title: target.title })}
-      </Dialog.Description>
-    </Dialog.Header>
-    <Dialog.Footer>
-      <Button variant="secondary" type="button" onclick={onCancel}>
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    <AlertDialog.Footer>
+      <AlertDialog.Cancel variant="secondary" type="button">
         {homeworkCopy.cancel}
-      </Button>
+      </AlertDialog.Cancel>
       <Button
         type="button"
         variant="destructive"
@@ -47,6 +47,6 @@ export let target: HomeworkTarget;
       >
         {homeworkCopy.deleteAction}
       </Button>
-    </Dialog.Footer>
-  </Dialog.Content>
-</Dialog.Root>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>

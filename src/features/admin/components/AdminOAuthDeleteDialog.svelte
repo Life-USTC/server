@@ -2,8 +2,8 @@
 import type { SubmitFunction } from "@sveltejs/kit";
 import { enhance } from "$app/forms";
 import TrashIcon from "$lib/components/icons/trash-2.svelte";
+import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
 import type {
   AdminOAuthClient,
   AdminOAuthCopy,
@@ -17,22 +17,22 @@ export let deletingClientId: string | null;
 </script>
 
 {#if client}
-  <Dialog.Root
+  <AlertDialog.Root
     open={true}
     onOpenChange={(open) => {
       if (!open) close();
     }}
   >
-    <Dialog.Content
+    <AlertDialog.Content
       class="max-w-md"
       aria-labelledby="oauth-delete-title"
     >
-      <Dialog.Header>
-        <Dialog.Title id="oauth-delete-title">{copy.deleteClient}</Dialog.Title>
-        <Dialog.Description>
+      <AlertDialog.Header>
+        <AlertDialog.Title id="oauth-delete-title">{copy.deleteClient}</AlertDialog.Title>
+        <AlertDialog.Description>
           {copy.deleteClientDescription.replace("{name}", client.name ?? copy.unnamedClient)}
-        </Dialog.Description>
-      </Dialog.Header>
+        </AlertDialog.Description>
+      </AlertDialog.Header>
       <form
         method="POST"
         action="?/deleteClient"
@@ -42,15 +42,14 @@ export let deletingClientId: string | null;
         <div class="px-5 py-4">
           <p class="break-all font-mono text-base-content/60 text-xs">{client.clientId}</p>
         </div>
-        <Dialog.Footer>
-          <Button
+        <AlertDialog.Footer>
+          <AlertDialog.Cancel
             type="button"
             variant="outline"
             disabled={Boolean(deletingClientId)}
-            onclick={close}
           >
             {copy.cancel}
-          </Button>
+          </AlertDialog.Cancel>
           <Button
             disabled={Boolean(deletingClientId)}
             type="submit"
@@ -59,8 +58,8 @@ export let deletingClientId: string | null;
             <TrashIcon data-icon="inline-start" />
             <span>{copy.deleteClient}</span>
           </Button>
-        </Dialog.Footer>
+        </AlertDialog.Footer>
       </form>
-    </Dialog.Content>
-  </Dialog.Root>
+    </AlertDialog.Content>
+  </AlertDialog.Root>
 {/if}

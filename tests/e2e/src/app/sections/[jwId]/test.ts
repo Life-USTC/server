@@ -82,7 +82,7 @@ async function openCommentDeleteDialog(page: Page, commentCard: Locator) {
   await expect(deleteItem).toBeVisible();
   await deleteItem.click();
 
-  const deleteDialog = page.getByRole("dialog", {
+  const deleteDialog = page.getByRole("alertdialog", {
     name: /删除评论|Delete Comment/i,
   });
   await expect(deleteDialog).toBeVisible();
@@ -686,7 +686,9 @@ test.describe("/sections/[jwId] 班级详情页", () => {
         .first();
       await expect(deleteButton).toBeVisible();
       await deleteButton.click();
-      const deleteDialog = page.locator('[data-slot="dialog-content"]').last();
+      const deleteDialog = page
+        .locator('[data-slot="alert-dialog-content"]')
+        .last();
       await expect(deleteDialog).toBeVisible();
       const deleteResponse = page.waitForResponse(
         (r) =>

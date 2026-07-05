@@ -1,8 +1,8 @@
 <script lang="ts">
 import { enhance } from "$app/forms";
 import Trash2 from "$lib/components/icons/trash-2.svelte";
+import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type {
   AdminBusCopy,
@@ -18,22 +18,22 @@ export let pendingAction: string | null;
 export let version: AdminBusVersion;
 </script>
 
-<Dialog.Root
+<AlertDialog.Root
   open={true}
   onOpenChange={(open) => {
     if (!open) close();
   }}
 >
-  <Dialog.Content
+  <AlertDialog.Content
     class="max-w-lg"
     aria-labelledby="bus-delete-title"
   >
-    <Dialog.Header>
-      <Dialog.Title id="bus-delete-title">{copy.deleteTitle}</Dialog.Title>
-      <Dialog.Description>
+    <AlertDialog.Header>
+      <AlertDialog.Title id="bus-delete-title">{copy.deleteTitle}</AlertDialog.Title>
+      <AlertDialog.Description>
         {copy.deleteDescription.replace("{title}", version.title)}
-      </Dialog.Description>
-    </Dialog.Header>
+      </AlertDialog.Description>
+    </AlertDialog.Header>
     <form
       method="POST"
       action="?/deleteVersion"
@@ -46,15 +46,14 @@ export let version: AdminBusVersion;
           {version.key}
         </div>
       </div>
-      <Dialog.Footer>
-        <Button
+      <AlertDialog.Footer>
+        <AlertDialog.Cancel
           type="button"
           disabled={Boolean(pendingAction)}
           variant="outline"
-          onclick={close}
         >
           {copy.cancelAction}
-        </Button>
+        </AlertDialog.Cancel>
         <Button
           disabled={Boolean(pendingAction)}
           type="submit"
@@ -67,7 +66,7 @@ export let version: AdminBusVersion;
           {/if}
           {copy.confirmDeleteAction}
         </Button>
-      </Dialog.Footer>
+      </AlertDialog.Footer>
     </form>
-  </Dialog.Content>
-</Dialog.Root>
+  </AlertDialog.Content>
+</AlertDialog.Root>

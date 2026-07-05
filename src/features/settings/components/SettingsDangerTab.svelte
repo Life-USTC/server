@@ -1,8 +1,8 @@
 <script lang="ts">
 import { enhance } from "$app/forms";
+import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import type {
@@ -39,7 +39,7 @@ export let isMounted: boolean;
       {copy.profile.deleteAccount}
     </Button>
     {#if isDeleteAccountOpen}
-      <Dialog.Root
+      <AlertDialog.Root
         open={true}
         onOpenChange={(open) => {
           if (!open) {
@@ -48,13 +48,13 @@ export let isMounted: boolean;
           }
         }}
       >
-        <Dialog.Content class="max-w-md">
-          <Dialog.Header>
-            <Dialog.Title>{copy.profile.deleteAccountConfirmTitle}</Dialog.Title>
-            <Dialog.Description>
+        <AlertDialog.Content class="max-w-md">
+          <AlertDialog.Header>
+            <AlertDialog.Title>{copy.profile.deleteAccountConfirmTitle}</AlertDialog.Title>
+            <AlertDialog.Description>
               {copy.profile.deleteAccountConfirmDescription}
-            </Dialog.Description>
-          </Dialog.Header>
+            </AlertDialog.Description>
+          </AlertDialog.Header>
           <form
             method="POST"
             action="?/deleteAccount&tab=danger"
@@ -77,18 +77,14 @@ export let isMounted: boolean;
                 />
               </Field.Field>
             </Field.Group>
-            <Dialog.Footer class="px-0 pb-0">
-              <Button
+            <AlertDialog.Footer class="px-0 pb-0">
+              <AlertDialog.Cancel
                 variant="secondary"
                 type="button"
                 disabled={isDeletingAccount}
-                onclick={() => {
-                  isDeleteAccountOpen = false;
-                  deleteConfirmValue = "";
-                }}
               >
                 {copy.profile.cancel}
-              </Button>
+              </AlertDialog.Cancel>
               <Button
                 type="submit"
                 disabled={!isMounted || isDeletingAccount || deleteConfirmValue !== "DELETE"}
@@ -96,10 +92,10 @@ export let isMounted: boolean;
               >
                 {copy.profile.deleteAccount}
               </Button>
-            </Dialog.Footer>
+            </AlertDialog.Footer>
           </form>
-        </Dialog.Content>
-      </Dialog.Root>
+        </AlertDialog.Content>
+      </AlertDialog.Root>
     {/if}
   </Card.Content>
 </Card.Root>
