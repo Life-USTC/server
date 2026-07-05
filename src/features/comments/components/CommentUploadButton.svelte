@@ -1,5 +1,6 @@
 <script lang="ts">
 import { buttonVariants } from "$lib/components/ui/button/index.js";
+import { Label } from "$lib/components/ui/label/index.js";
 import { cn } from "$lib/utils.js";
 
 export let disabled = false;
@@ -9,7 +10,7 @@ export let uploading = false;
 export let uploadingLabel: string;
 </script>
 
-<label
+<Label
   aria-disabled={disabled}
   data-slot="button"
   class={cn(
@@ -29,4 +30,4 @@ export let uploadingLabel: string;
       input.value = "";
     }}
   />
-</label>
+</Label>
