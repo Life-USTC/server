@@ -2,7 +2,7 @@
 import { Button } from "$lib/components/ui/button/index.js";
 import * as ButtonGroup from "$lib/components/ui/button-group/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
-import * as InputGroup from "$lib/components/ui/input-group/index.js";
+import { Input } from "$lib/components/ui/input/index.js";
 import * as Select from "$lib/components/ui/select/index.js";
 import type {
   TeacherListCommonLabels,
@@ -25,18 +25,16 @@ export let updateTeacherFilter: TeacherListFilterUpdater;
   <Field.Group class="gap-3">
     <Field.Field>
       <Field.Label for="teacher-search">{teacherLabels.searchLabel}</Field.Label>
-      <InputGroup.Root>
-        <InputGroup.Input
-          id="teacher-search"
-          name="search"
-          placeholder={teacherLabels.searchNameOrCode}
-          type="search"
-          value={teacherSearch}
-          oninput={(event: Event) => {
-            teacherSearch = (event.currentTarget as HTMLInputElement).value;
-          }}
-        />
-      </InputGroup.Root>
+      <Input
+        id="teacher-search"
+        name="search"
+        placeholder={teacherLabels.searchNameOrCode}
+        type="search"
+        value={teacherSearch}
+        oninput={(event: Event) => {
+          teacherSearch = (event.currentTarget as HTMLInputElement).value;
+        }}
+      />
     </Field.Field>
     <Field.Field>
       <Field.Label for="teacher-department">{teacherLabels.department}</Field.Label>

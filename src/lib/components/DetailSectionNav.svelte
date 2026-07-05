@@ -18,7 +18,7 @@ export let label = "";
 <Sidebar.Root
   collapsible="none"
   style="--sidebar-width: 14rem;"
-  class="w-full border-sidebar-border border-b bg-sidebar lg:w-(--sidebar-width) lg:border-e lg:border-b-0"
+  class="w-full border-sidebar-border border-b lg:w-(--sidebar-width) lg:border-e lg:border-b-0"
   data-testid="detail-section-nav"
 >
   <Sidebar.Content aria-label={ariaLabel || label}>
@@ -28,10 +28,7 @@ export let label = "";
           {#each items as item}
             {@const active = item.href === activeHref}
             <Sidebar.MenuItem>
-              <Sidebar.MenuButton
-                data-active={active ? "true" : undefined}
-                isActive={active}
-              >
+              <Sidebar.MenuButton isActive={active}>
                 {#snippet child({ props })}
                   <a
                     {...props}

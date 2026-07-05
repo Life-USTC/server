@@ -2,7 +2,7 @@
 import { Button } from "$lib/components/ui/button/index.js";
 import * as ButtonGroup from "$lib/components/ui/button-group/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
-import * as InputGroup from "$lib/components/ui/input-group/index.js";
+import { Input } from "$lib/components/ui/input/index.js";
 import * as Select from "$lib/components/ui/select/index.js";
 import type {
   SectionListCommonLabels,
@@ -27,18 +27,16 @@ export let updateSectionFilter: SectionListFilterUpdater;
   <Field.Group class="gap-3">
     <Field.Field>
       <Field.Label for="section-search">{commonLabels.search}</Field.Label>
-      <InputGroup.Root>
-        <InputGroup.Input
-          id="section-search"
-          name="search"
-          placeholder={sectionLabels.searchPlaceholder}
-          type="search"
-          value={sectionSearch}
-          oninput={(event: Event) => {
-            sectionSearch = (event.currentTarget as HTMLInputElement).value;
-          }}
-        />
-      </InputGroup.Root>
+      <Input
+        id="section-search"
+        name="search"
+        placeholder={sectionLabels.searchPlaceholder}
+        type="search"
+        value={sectionSearch}
+        oninput={(event: Event) => {
+          sectionSearch = (event.currentTarget as HTMLInputElement).value;
+        }}
+      />
     </Field.Field>
     <Field.Field>
       <Field.Label for="section-semester">{sectionLabels.semester}</Field.Label>

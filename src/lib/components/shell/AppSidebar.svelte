@@ -19,7 +19,6 @@ export let navGroups: ShellNavGroup[];
       <Sidebar.MenuItem>
         <Sidebar.MenuButton
           class="font-semibold"
-          data-active={undefined}
           tooltipContent="Life@USTC"
         >
           {#snippet child({ props })}
@@ -59,7 +58,6 @@ export let navGroups: ShellNavGroup[];
                   {@const active = isActiveLink(link)}
                   <Sidebar.MenuItem>
                     <Sidebar.MenuButton
-                      data-active={active ? "true" : undefined}
                       isActive={active}
                       tooltipContent={link.label}
                     >

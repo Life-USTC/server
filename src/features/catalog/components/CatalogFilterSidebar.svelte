@@ -12,10 +12,10 @@ export let title: string;
 <Sidebar.Root
   collapsible="none"
   style="--sidebar-width: 17rem;"
-  class="w-full border-sidebar-border border-b bg-sidebar lg:sticky lg:top-12 lg:h-[calc(100vh-10.75rem)] lg:w-(--sidebar-width) lg:border-e lg:border-b-0"
+  class="w-full border-sidebar-border border-b lg:sticky lg:top-12 lg:h-[calc(100vh-10.75rem)] lg:w-(--sidebar-width) lg:border-e lg:border-b-0"
   data-testid="catalog-filter-sidebar"
 >
-  <Sidebar.Header class="border-sidebar-border border-b p-3">
+  <Sidebar.Header class="p-3">
     <div class="flex min-w-0 items-start justify-between gap-3">
       <div class="flex min-w-0 gap-2">
         {#if icon}
@@ -38,6 +38,7 @@ export let title: string;
       {/if}
     </div>
   </Sidebar.Header>
+  <Sidebar.Separator />
 
   <Sidebar.Content>
     <Sidebar.Group>

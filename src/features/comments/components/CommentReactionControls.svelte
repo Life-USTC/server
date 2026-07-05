@@ -72,9 +72,9 @@ $: if (
               <span>{option.emoji}</span>
               <span>{reactionName(option.type)}</span>
               {#if (reactionEntry(comment, option.type)?.count ?? 0) > 0}
-                <span class="ml-auto text-muted-foreground text-xs">
+                <DropdownMenu.Shortcut>
                   {reactionEntry(comment, option.type)?.count}
-                </span>
+                </DropdownMenu.Shortcut>
               {/if}
             </DropdownMenu.CheckboxItem>
           {/each}

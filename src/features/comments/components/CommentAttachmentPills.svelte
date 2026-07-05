@@ -1,4 +1,5 @@
 <script lang="ts">
+import XIcon from "@lucide/svelte/icons/x";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 
@@ -20,12 +21,12 @@ export let removeLabel: string;
         <span class="max-w-40 truncate">{file.filename}</span>
         <Button
           aria-label={removeLabel}
-          class="h-5 w-5 rounded p-0"
+          size="icon-xs"
           type="button"
           variant="ghost"
           onclick={() => onRemove(file.id)}
         >
-          x
+          <XIcon />
         </Button>
       </Badge>
     {/each}

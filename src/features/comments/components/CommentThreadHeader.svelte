@@ -24,9 +24,8 @@ export let toggleReply: (comment: CommentNode) => void;
     <Avatar.Root>
       {#if !comment.authorHidden && comment.author?.image}
         <Avatar.Image src={comment.author.image} alt={authorName(comment)} />
-      {:else}
-        <Avatar.Fallback>{authorInitials(comment)}</Avatar.Fallback>
       {/if}
+      <Avatar.Fallback>{authorInitials(comment)}</Avatar.Fallback>
     </Avatar.Root>
     <div class="min-w-0">
       <div class="flex flex-wrap items-center gap-2">

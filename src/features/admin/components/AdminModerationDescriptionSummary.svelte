@@ -19,8 +19,8 @@ export let formatMessage: (
 </script>
 
 <Card.Root>
-  <Card.Content class="flex flex-wrap items-center justify-between gap-3 pt-5">
-    <div>
+  <Card.Header>
+    <div class="min-w-0">
       <Card.Title>{copy.descriptionTarget}</Card.Title>
       <Card.Description>
         {descriptionTargetOptions.find((option) => option.value === descriptionTargetFilter)?.label ?? copy.descriptionTargetAll}
@@ -28,10 +28,12 @@ export let formatMessage: (
         {descriptionContentOptions.find((option) => option.value === descriptionContentFilter)?.label ?? copy.descriptionContentWith}
       </Card.Description>
     </div>
-    <Badge variant="ghost">
-      {formatMessage(copy.showingResults, {
-        count: String(count),
-      })}
-    </Badge>
-  </Card.Content>
+    <Card.Action>
+      <Badge variant="ghost">
+        {formatMessage(copy.showingResults, {
+          count: String(count),
+        })}
+      </Badge>
+    </Card.Action>
+  </Card.Header>
 </Card.Root>
