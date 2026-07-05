@@ -29,12 +29,12 @@ export let label = "";
             {@const active = item.href === activeHref}
             <Sidebar.MenuItem>
               <Sidebar.MenuButton
-                class="h-10 px-2.5"
                 isActive={active}
               >
                 {#snippet child({ props })}
                   <a
                     {...props}
+                    data-active={active ? "true" : undefined}
                     href={item.href}
                     aria-current={active ? "page" : undefined}
                   >
