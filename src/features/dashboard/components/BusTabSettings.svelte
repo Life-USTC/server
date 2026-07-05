@@ -8,7 +8,6 @@ import type {
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
-import { Separator } from "$lib/components/ui/separator/index.js";
 import { Switch } from "$lib/components/ui/switch/index.js";
 import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 import { cn } from "$lib/utils.js";
@@ -31,94 +30,111 @@ export let toggleBusDepartedTrips: () => void;
 </script>
 
 <Card.Root>
-  <Card.Content class="grid gap-4 pt-5">
-    <div class="grid gap-4">
-      <BusCampusPickerGroup
-        campuses={bus.campuses}
-        disabled={!busPlannerReady}
-        label={busCopy.planner.start}
-        onSelect={selectBusStart}
-        selectedCampusId={busStartCampusId}
-        testId="bus-start-stop-group"
-      />
+  <Card.Content class="pt-5">
+    <Field.Group class="gap-4">
+      <Field.Set>
+        <Field.Legend class="sr-only">{busCopy.dashboardTitle}</Field.Legend>
+        <Field.Group class="gap-4">
+          <BusCampusPickerGroup
+            campuses={bus.campuses}
+            disabled={!busPlannerReady}
+            label={busCopy.planner.start}
+            onSelect={selectBusStart}
+            selectedCampusId={busStartCampusId}
+            testId="bus-start-stop-group"
+          />
 
-      <div class="flex justify-center">
-        <Button
-          aria-label={busCopy.planner.reverse}
-          class="w-full justify-center"
-          disabled={!busPlannerReady}
-          type="button"
-          onclick={reverseBusStops}
-          variant="outline"
+          <Field.Field>
+            <Button
+              aria-label={busCopy.planner.reverse}
+              class="w-full justify-center"
+              disabled={!busPlannerReady}
+              type="button"
+              onclick={reverseBusStops}
+              variant="outline"
+            >
+              <ArrowLeftRightIcon data-icon="inline-start" />
+              {busCopy.planner.reverse}
+            </Button>
+          </Field.Field>
+
+          <BusCampusPickerGroup
+            campuses={bus.campuses}
+            disabled={!busPlannerReady}
+            label={busCopy.planner.end}
+            onSelect={selectBusEnd}
+            selectedCampusId={busEndCampusId}
+            testId="bus-end-stop-group"
+          />
+        </Field.Group>
+      </Field.Set>
+
+      <Field.Separator />
+
+      <Field.Set>
+        <Field.Group class="gap-3">
+          <Field.Field>
+            <Field.Title id="bus-day-type-label">
+              {busCopy.query.dayType}
+            </Field.Title>
+            <ToggleGroup.Root
+              aria-labelledby="bus-day-type-label"
+              class="grid w-full grid-cols-2"
+              spacing={2}
+              type="single"
+              value={busDayType}
+              variant="outline"
+              onValueChange={(value) => {
+                if (value === "weekday" || value === "weekend") setBusDayType(value);
+              }}
+            >
+              <ToggleGroup.Item
+                disabled={!busPlannerReady}
+                value="weekday"
+              >
+                {busCopy.dayType.weekday}
+              </ToggleGroup.Item>
+              <ToggleGroup.Item
+                disabled={!busPlannerReady}
+                value="weekend"
+              >
+                {busCopy.dayType.weekend}
+              </ToggleGroup.Item>
+            </ToggleGroup.Root>
+          </Field.Field>
+
+          <Field.Field
+            data-disabled={!busPlannerReady ? "true" : undefined}
+            orientation="horizontal"
+          >
+            <Field.Content>
+              <Field.Label class="font-normal" for="bus-show-departed-trips">
+                {busCopy.query.showDepartedTrips}
+              </Field.Label>
+            </Field.Content>
+            <Switch
+              id="bus-show-departed-trips"
+              checked={busShowDepartedTrips}
+              disabled={!busPlannerReady}
+              onCheckedChange={toggleBusDepartedTrips}
+            />
+          </Field.Field>
+        </Field.Group>
+      </Field.Set>
+
+      {#if busPreferenceStatus}
+        <Field.Description
+          aria-live="polite"
+          class={cn(
+            busPreferenceSaveState === "error"
+              ? "text-destructive"
+              : undefined,
+          )}
+          role={busPreferenceSaveState === "error" ? "alert" : "status"}
         >
-          <ArrowLeftRightIcon data-icon="inline-start" />
-          {busCopy.planner.reverse}
-        </Button>
-      </div>
-
-      <BusCampusPickerGroup
-        campuses={bus.campuses}
-        disabled={!busPlannerReady}
-        label={busCopy.planner.end}
-        onSelect={selectBusEnd}
-        selectedCampusId={busEndCampusId}
-        testId="bus-end-stop-group"
-      />
-    </div>
-
-    <Separator />
-
-    <div class="flex flex-wrap items-center gap-2">
-      <ToggleGroup.Root
-        aria-label={busCopy.query.dayType}
-        class="origin-left scale-90"
-        type="single"
-        value={busDayType}
-        variant="outline"
-        onValueChange={(value) => {
-          if (value === "weekday" || value === "weekend") setBusDayType(value);
-        }}
-      >
-        <ToggleGroup.Item
-          disabled={!busPlannerReady}
-          value="weekday"
-        >
-          {busCopy.dayType.weekday}
-        </ToggleGroup.Item>
-        <ToggleGroup.Item
-          disabled={!busPlannerReady}
-          value="weekend"
-        >
-          {busCopy.dayType.weekend}
-        </ToggleGroup.Item>
-      </ToggleGroup.Root>
-      <Field.Field class="ml-auto w-auto" orientation="horizontal">
-        <Field.Content>
-          <Field.Label class="font-normal" for="bus-show-departed-trips">
-            {busCopy.query.showDepartedTrips}
-          </Field.Label>
-        </Field.Content>
-        <Switch
-          id="bus-show-departed-trips"
-          checked={busShowDepartedTrips}
-          disabled={!busPlannerReady}
-          onCheckedChange={toggleBusDepartedTrips}
-        />
-      </Field.Field>
-    </div>
-    {#if busPreferenceStatus}
-      <p
-        aria-live="polite"
-        class={cn(
-          "text-sm",
-          busPreferenceSaveState === "error"
-            ? "text-destructive"
-            : "text-muted-foreground",
-        )}
-        role={busPreferenceSaveState === "error" ? "alert" : "status"}
-      >
-        {busPreferenceStatus}
-      </p>
-    {/if}
+          {busPreferenceStatus}
+        </Field.Description>
+      {/if}
+    </Field.Group>
   </Card.Content>
 </Card.Root>
