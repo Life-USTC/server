@@ -3,6 +3,7 @@ import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 
 type HomeworkAuditLog = {
   action: string;
@@ -50,11 +51,11 @@ export let setOpen: (open: boolean) => void;
           <Alert.Description>{homeworkCopy.auditEmpty}</Alert.Description>
         </Alert.Root>
       {:else}
-        <div class="grid gap-3">
+        <Item.Group>
           {#each logs as log}
-            <article class="rounded-md border border-base-300 bg-base-100 p-3">
-              <div class="flex flex-wrap items-center justify-between gap-2">
-                <div class="flex min-w-0 flex-wrap items-center gap-2">
+            <Item.Root variant="outline">
+              <Item.Content class="min-w-0">
+                <Item.Title class="line-clamp-none flex-wrap">
                   <Badge
                     class={log.action === "deleted"
                       ? "border-error/30 bg-error/10 text-error"
@@ -63,20 +64,20 @@ export let setOpen: (open: boolean) => void;
                   >
                     {actionLabel(log.action)}
                   </Badge>
-                  <span class="min-w-0 break-words font-medium text-sm">
+                  <span class="min-w-0 break-words">
                     {log.titleSnapshot ?? ""}
                   </span>
-                </div>
-                <span class="text-base-content/60 text-xs">
-                  {formatMessage(homeworkCopy.auditMeta, {
-                    name: actorName(log),
-                    date: fmtDateTime(log.createdAt),
-                  })}
-                </span>
-              </div>
-            </article>
+                </Item.Title>
+              </Item.Content>
+              <Item.Actions class="text-muted-foreground text-xs">
+                {formatMessage(homeworkCopy.auditMeta, {
+                  name: actorName(log),
+                  date: fmtDateTime(log.createdAt),
+                })}
+              </Item.Actions>
+            </Item.Root>
           {/each}
-        </div>
+        </Item.Group>
       {/if}
     </section>
     <Dialog.Footer>

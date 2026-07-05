@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 
 type SectionSearchHelpLabels = {
   close: string;
@@ -28,17 +29,26 @@ export let sectionLabels: SectionSearchHelpLabels;
       <Dialog.Title>{sectionLabels.searchHelpTitle}</Dialog.Title>
       <Dialog.Description>{sectionLabels.searchHelpDescription}</Dialog.Description>
     </Dialog.Header>
-    <div class="grid max-h-[60vh] gap-3 overflow-y-auto px-5 py-4">
+    <Item.Group class="max-h-[60vh] overflow-y-auto px-5 py-4">
       {#each sectionLabels.searchHelpExamples as example}
-        <div class="grid gap-1 rounded-md border border-base-300 bg-base-200/40 p-3 sm:grid-cols-[12rem_1fr] sm:items-start">
-          <div>
-            <div class="font-mono text-sm">{example.syntax}</div>
-            <div class="mt-1 font-mono text-base-content/60 text-xs">{example.example}</div>
-          </div>
-          <p class="text-base-content/70 text-sm">{example.description}</p>
-        </div>
+        <Item.Root
+          class="items-start sm:flex-nowrap"
+          variant="muted"
+        >
+          <Item.Content class="min-w-0 sm:max-w-48 sm:flex-none">
+            <Item.Title class="font-mono">{example.syntax}</Item.Title>
+            <Item.Description class="font-mono text-xs">
+              {example.example}
+            </Item.Description>
+          </Item.Content>
+          <Item.Content class="min-w-0">
+            <Item.Description class="line-clamp-none">
+              {example.description}
+            </Item.Description>
+          </Item.Content>
+        </Item.Root>
       {/each}
-    </div>
+    </Item.Group>
     <Dialog.Footer>
       <Button
         onclick={() => {
