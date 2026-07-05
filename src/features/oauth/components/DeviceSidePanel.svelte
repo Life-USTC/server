@@ -1,34 +1,28 @@
 <script lang="ts">
 import ShieldAlert from "@lucide/svelte/icons/shield-alert";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 
 export let deviceTitle: string;
 export let sideNoteLabel: string;
 </script>
 
-<div class="grid content-between gap-8 border-base-300 border-b bg-base-200/35 p-6 lg:border-r lg:border-b-0">
+<div class="grid content-between gap-8 border-border border-b bg-muted/30 p-6 lg:border-r lg:border-b-0">
   <div class="grid gap-5">
-    <div class="flex items-center gap-3">
-      <img
-        class="h-12 w-12 rounded-md border border-base-300 bg-base-100"
-        src="/images/icon.png"
-        alt="Life@USTC"
-      />
-      <div>
+    <Item.Root variant="muted">
+      <Item.Media class="size-12" variant="image">
+        <img class="size-full object-cover" src="/images/icon.png" alt="Life@USTC" />
+      </Item.Media>
+      <Item.Content class="gap-1">
         <Badge class="w-fit" variant="secondary">OAuth</Badge>
-        <p class="mt-1 break-words text-base-content/60 text-sm leading-6">
-          {deviceTitle}
-        </p>
-      </div>
-    </div>
+        <Item.Title>{deviceTitle}</Item.Title>
+      </Item.Content>
+    </Item.Root>
   </div>
 
-  <div class="rounded-md border border-base-300 bg-base-100 p-3 text-sm">
-    <div class="flex items-start gap-3">
-      <ShieldAlert class="mt-0.5 size-4 shrink-0 text-primary" />
-      <p class="min-w-0 break-words text-base-content/60 leading-6">
-        {sideNoteLabel}
-      </p>
-    </div>
-  </div>
+  <Alert.Root>
+    <ShieldAlert />
+    <Alert.Description class="break-words">{sideNoteLabel}</Alert.Description>
+  </Alert.Root>
 </div>

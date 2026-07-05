@@ -29,18 +29,18 @@ export let suspendSelectedUser: () => void | Promise<void>;
 export let suspensionLabel: AdminUserFormatter;
 </script>
 
-<section class="grid gap-4 rounded-md border border-base-300 bg-base-200/40 p-3">
-  <Field.Set>
-    <Field.Legend class="flex flex-wrap items-center gap-2 text-error">
-      <span>{copy.suspendTitle}</span>
-      {#if selectedUser.activeSuspension}
-        <Badge class="border-warning bg-warning/10 text-warning" variant="outline">
-          {suspensionLabel(selectedUser)}
-        </Badge>
-      {/if}
-    </Field.Legend>
-    <Field.Description>{copy.suspendDescription}</Field.Description>
-    <Field.Group class="grid gap-4 sm:grid-cols-2">
+<Field.Set class="rounded-lg border border-border bg-muted/30 p-3">
+  <Field.Legend class="flex flex-wrap items-center gap-2 text-destructive">
+    <span>{copy.suspendTitle}</span>
+    {#if selectedUser.activeSuspension}
+      <Badge variant="destructive">
+        {suspensionLabel(selectedUser)}
+      </Badge>
+    {/if}
+  </Field.Legend>
+  <Field.Description>{copy.suspendDescription}</Field.Description>
+  <Field.Group>
+    <div class="grid gap-4 sm:grid-cols-2">
       <Field.Field>
         <Field.Label for="admin-user-suspend-duration">
           {moderationCopy.durationLabel}
@@ -76,7 +76,7 @@ export let suspensionLabel: AdminUserFormatter;
           />
         </Field.Field>
       {/if}
-    </Field.Group>
+    </div>
     <Field.Field>
       <Field.Label for="admin-user-suspend-reason">
         {moderationCopy.reason}
@@ -88,7 +88,7 @@ export let suspensionLabel: AdminUserFormatter;
         oninput={(event: Event) => (suspendReason = inputValue(event))}
       />
     </Field.Field>
-  </Field.Set>
+  </Field.Group>
   <div class="flex flex-wrap gap-3">
     <Button
       disabled={isSuspending}
@@ -115,4 +115,4 @@ export let suspensionLabel: AdminUserFormatter;
       </Button>
     {/if}
   </div>
-</section>
+</Field.Set>

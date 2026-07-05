@@ -53,11 +53,11 @@ $: sideNoteLabel = approvalRequest
 <section class="mx-auto grid w-full max-w-4xl gap-6 py-8">
   <PageHeader title={data.copy.deviceTitle} description={data.copy.deviceCodeHint} eyebrow="OAuth" />
 
-  <div class="grid overflow-hidden rounded-md border border-base-300 bg-base-100 shadow-sm lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-    <DeviceSidePanel deviceTitle={data.copy.deviceTitle} {sideNoteLabel} />
+  <Card.Root class="p-0">
+    <Card.Content class="grid p-0 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+      <DeviceSidePanel deviceTitle={data.copy.deviceTitle} {sideNoteLabel} />
 
-    <Card.Root class="border-0 shadow-none">
-      <Card.Content class="grid gap-5 p-6">
+      <div class="grid gap-5 p-6">
         {#if data.state === "result"}
           <DeviceResultPanel copy={data.copy} result={deviceResult} />
         {:else if data.state === "error"}
@@ -77,7 +77,7 @@ $: sideNoteLabel = approvalRequest
         {:else}
           <DeviceCodeForm code={data.code ?? ""} copy={data.copy} />
         {/if}
-      </Card.Content>
-    </Card.Root>
-  </div>
+      </div>
+    </Card.Content>
+  </Card.Root>
 </section>

@@ -14,7 +14,7 @@ export let result: "approved" | "denied";
     <h2 class="font-semibold text-2xl tracking-normal">
       {result === "approved" ? copy.deviceApprovedTitle : copy.deviceDeniedTitle}
     </h2>
-    <p class="mt-2 text-base-content/60">
+    <p class="mt-2 text-muted-foreground">
       {result === "approved"
         ? copy.deviceApprovedDescription
         : copy.deviceDeniedDescription}

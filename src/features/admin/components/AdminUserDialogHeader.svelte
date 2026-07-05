@@ -19,15 +19,12 @@ export let user: AdminUserRow;
     </div>
     <div class="flex flex-wrap gap-2">
       <Badge
-        class={user.isAdmin
-          ? "border-success bg-success/10 text-success"
-          : ""}
-        variant={user.isAdmin ? "outline" : "ghost"}
+        variant={user.isAdmin ? "secondary" : "ghost"}
       >
         {user.isAdmin ? copy.adminRole : copy.userRole}
       </Badge>
       {#if user.activeSuspension}
-        <Badge class="border-warning bg-warning/10 text-warning" variant="outline">
+        <Badge variant="destructive">
           {copy.suspendedStatus}
         </Badge>
       {/if}

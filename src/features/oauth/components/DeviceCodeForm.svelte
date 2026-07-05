@@ -12,7 +12,7 @@ export let copy: DeviceCopy;
 <header class="text-center">
   <Badge class="mb-3" variant="ghost">{copy.deviceTitle}</Badge>
   <h2 class="font-semibold text-2xl tracking-normal">{copy.deviceTitle}</h2>
-  <p class="mt-2 text-base-content/60">{copy.deviceCodeHint}</p>
+  <p class="mt-2 text-muted-foreground">{copy.deviceCodeHint}</p>
 </header>
 
 <form method="GET" action="/oauth/device">

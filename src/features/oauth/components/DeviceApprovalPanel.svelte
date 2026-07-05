@@ -2,6 +2,7 @@
 import CheckCircle from "@lucide/svelte/icons/check-circle";
 import ShieldAlert from "@lucide/svelte/icons/shield-alert";
 import { enhance } from "$app/forms";
+import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
@@ -22,39 +23,35 @@ $: clientRequestParts = copy.deviceClientRequest.split("{app}");
 <header class="text-center">
   <Badge class="mb-3" variant="ghost">{copy.deviceTitle}</Badge>
   <h2 class="font-semibold text-2xl tracking-normal">{copy.deviceApproveTitle}</h2>
-  <p class="mt-2 break-words text-base-content/60">
+  <p class="mt-2 break-words text-muted-foreground">
     {clientRequestParts[0] ?? ""}<strong>{approvalRequest.clientName}</strong>{clientRequestParts[1] ?? ""}
   </p>
 </header>
 
 {#if approvalRequest.scopes.length > 0}
-  <section class="min-w-0 rounded-md border border-base-300 bg-base-200/50 p-4">
-    <h2 class="flex min-w-0 items-center gap-2 font-medium text-sm">
-      <ShieldAlert class="size-4 shrink-0" />
-      <span class="min-w-0 break-words">{copy.deviceRequestedPermissions}</span>
-    </h2>
-    <div class="mt-3 flex flex-wrap gap-2">
+  <Alert.Root>
+    <ShieldAlert />
+    <Alert.Title>{copy.deviceRequestedPermissions}</Alert.Title>
+    <Alert.Description class="mt-2 flex flex-wrap gap-2 text-balance">
       {#each approvalRequest.scopes as scope}
         <Badge class="max-w-full whitespace-normal break-all font-mono text-left" variant="outline">{scope}</Badge>
       {/each}
-    </div>
-  </section>
+    </Alert.Description>
+  </Alert.Root>
 {/if}
 
 {#if approvalRequest.resources.length > 0}
-  <section class="min-w-0 rounded-md border border-base-300 bg-base-200/50 p-4">
-    <h2 class="flex min-w-0 items-center gap-2 font-medium text-sm">
-      <ShieldAlert class="size-4 shrink-0" />
-      <span class="min-w-0 break-words">{copy.deviceRequestedResources}</span>
-    </h2>
-    <div class="mt-3 flex flex-wrap gap-2">
+  <Alert.Root>
+    <ShieldAlert />
+    <Alert.Title>{copy.deviceRequestedResources}</Alert.Title>
+    <Alert.Description class="mt-2 flex flex-wrap gap-2 text-balance">
       {#each approvalRequest.resources as resource}
         <Badge class="max-w-full whitespace-normal break-all font-mono text-left" variant="outline">
           {resource}
         </Badge>
       {/each}
-    </div>
-  </section>
+    </Alert.Description>
+  </Alert.Root>
 {/if}
 
 <div class="grid grid-cols-2 gap-3">
