@@ -77,6 +77,6 @@ export let submissionStartAt: string;
   />
   <SectionHomeworkTagFields {homeworkCopy} idPrefix="section-create-homework" />
   {#if homeworkMessage}
-    <p class="text-destructive text-sm">{homeworkMessage}</p>
+    <Field.Error>{homeworkMessage}</Field.Error>
   {/if}
 </Field.Group>

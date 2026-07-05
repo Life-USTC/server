@@ -93,7 +93,7 @@ export let updateHomework: SectionHomeworkSubmitHandler;
     />
   </Field.Group>
   {#if editHomeworkMessage}
-    <p class="text-destructive text-sm">{editHomeworkMessage}</p>
+    <Field.Error>{editHomeworkMessage}</Field.Error>
   {/if}
   <div class="flex justify-end gap-2">
     <Button type="button" variant="outline" onclick={cancelEdit}>{homeworkCopy.cancel}</Button>
