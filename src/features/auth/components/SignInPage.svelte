@@ -5,7 +5,7 @@ import type { SubmitFunction } from "@sveltejs/kit";
 import { enhance } from "$app/forms";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import { redirectWithExternalFallback } from "$lib/navigation/redirect";
 
@@ -88,14 +88,21 @@ function providerInitial(name: string) {
         </Alert.Root>
       {/if}
 
-      <div class="grid gap-2">
+      <Item.Group>
         {#each data.providers as provider}
           <form method="POST" use:enhance={signInAction(provider.id)}>
             <input type="hidden" name="providerId" value={provider.id} />
             <input type="hidden" name="callbackUrl" value={data.callbackUrl} />
-            <Button class="h-auto w-full justify-between rounded-xl border-base-300/80 bg-base-100/80 px-4 py-3 text-left shadow-sm backdrop-blur transition hover:border-primary/60 hover:bg-base-100" disabled={Boolean(pendingProviderId)} size="lg" type="submit" variant="outline">
-              <span class="flex min-w-0 items-center gap-3">
-                <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-base-300 bg-base-200 font-semibold text-primary text-xs">
+            <Item.Root
+              class="text-left disabled:pointer-events-none disabled:opacity-50"
+              variant="outline"
+            >
+              {#snippet child({ props })}
+                <button {...props} disabled={Boolean(pendingProviderId)} type="submit">
+                  <Item.Media
+                    class="size-8 rounded-md bg-muted font-semibold text-primary text-xs"
+                    variant="icon"
+                  >
                   {#if pendingProviderId === provider.id}
                     <Spinner />
                   {:else if provider.debug}
@@ -103,14 +110,19 @@ function providerInitial(name: string) {
                   {:else}
                     {providerInitial(provider.name)}
                   {/if}
-                </span>
-                <span class="min-w-0 truncate font-medium">{provider.label}</span>
-              </span>
-              <ArrowUpRight data-icon="inline-end" class="shrink-0 text-base-content/45" />
-            </Button>
+                  </Item.Media>
+                  <Item.Content class="min-w-0">
+                    <Item.Title>{provider.label}</Item.Title>
+                  </Item.Content>
+                  <Item.Actions>
+                    <ArrowUpRight />
+                  </Item.Actions>
+                </button>
+              {/snippet}
+            </Item.Root>
           </form>
         {/each}
-      </div>
+      </Item.Group>
 
       <p class="text-center text-base-content/55 text-xs leading-5">
         {data.copy.termsNotice.beforeTerms}<a class="text-primary hover:underline" href="/terms">{data.copy.termsNotice.terms}</a>{data.copy.termsNotice.between}<a class="text-primary hover:underline" href="/privacy">{data.copy.termsNotice.privacy}</a>{data.copy.termsNotice.afterPrivacy}

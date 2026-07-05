@@ -18,25 +18,26 @@ export let selectedAuthMethod: string;
   <RadioGroup.Root
     aria-labelledby="admin-oauth-auth-pattern-label"
     bind:value={selectedAuthMethod}
-    class="grid gap-3 xl:grid-cols-3"
   >
-    {#each authPatterns as option}
-      {@const optionId = `token-endpoint-auth-method-${option.value}`}
-      <Field.Label class="h-full" for={optionId}>
-        <Field.Field class="h-full justify-between" orientation="horizontal">
-          <Field.Content>
-            <div class="flex flex-wrap items-center gap-2">
-              <Field.Title>{oauthCopy(option.titleKey)}</Field.Title>
-              <Badge variant="outline">{oauthCopy(option.labelKey)}</Badge>
-            </div>
-            <Field.Description>
-              {oauthCopy(option.descriptionKey)}
-            </Field.Description>
-          </Field.Content>
-          <RadioGroup.Item id={optionId} value={option.value} />
-        </Field.Field>
-      </Field.Label>
-    {/each}
+    <Field.Group class="grid gap-3 xl:grid-cols-3">
+      {#each authPatterns as option}
+        {@const optionId = `token-endpoint-auth-method-${option.value}`}
+        <Field.Label class="h-full" for={optionId}>
+          <Field.Field class="h-full justify-between" orientation="horizontal">
+            <Field.Content>
+              <div class="flex flex-wrap items-center gap-2">
+                <Field.Title>{oauthCopy(option.titleKey)}</Field.Title>
+                <Badge variant="outline">{oauthCopy(option.labelKey)}</Badge>
+              </div>
+              <Field.Description>
+                {oauthCopy(option.descriptionKey)}
+              </Field.Description>
+            </Field.Content>
+            <RadioGroup.Item id={optionId} value={option.value} />
+          </Field.Field>
+        </Field.Label>
+      {/each}
+    </Field.Group>
   </RadioGroup.Root>
   <input type="hidden" name="tokenEndpointAuthMethod" value={selectedAuthMethod} />
 </Field.Set>
