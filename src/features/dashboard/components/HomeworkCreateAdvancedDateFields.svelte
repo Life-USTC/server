@@ -1,6 +1,7 @@
 <script lang="ts">
 import DateTimePicker from "$lib/components/DateTimePicker.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as ButtonGroup from "$lib/components/ui/button-group/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import type {
   DashboardHomeworkCreateCopy,
@@ -29,12 +30,15 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
       name="publishedAt"
       placeholder={homeworksCopy.publishedAt}
     />
-    <div class="flex justify-end gap-2">
+    <ButtonGroup.Root
+      aria-labelledby="dashboard-homework-published-at-label"
+      class="ml-auto max-w-full flex-wrap justify-end"
+    >
       <Button
         disabled={isCreatingHomework}
         size="sm"
         type="button"
-        variant="ghost"
+        variant="outline"
         onclick={() => {
           createHomeworkPublishedAt = toShanghaiDateTimeLocalValue(new Date());
         }}
@@ -45,14 +49,14 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
         disabled={isCreatingHomework}
         size="sm"
         type="button"
-        variant="ghost"
+        variant="outline"
         onclick={() => {
           createHomeworkPublishedAt = "";
         }}
       >
         {homeworksCopy.helperClear}
       </Button>
-    </div>
+    </ButtonGroup.Root>
   </Field.Field>
   <Field.Field>
     <Field.Title id="dashboard-homework-submission-start-label">
@@ -67,21 +71,24 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
       name="submissionStartAt"
       placeholder={homeworksCopy.submissionStart}
     />
-    <div class="flex justify-end gap-2">
-      <Button disabled={isCreatingHomework} size="sm" type="button" variant="ghost" onclick={applyHomeworkStartNow}>
+    <ButtonGroup.Root
+      aria-labelledby="dashboard-homework-submission-start-label"
+      class="ml-auto max-w-full flex-wrap justify-end"
+    >
+      <Button disabled={isCreatingHomework} size="sm" type="button" variant="outline" onclick={applyHomeworkStartNow}>
         {homeworksCopy.helperStartNow}
       </Button>
       <Button
         disabled={isCreatingHomework}
         size="sm"
         type="button"
-        variant="ghost"
+        variant="outline"
         onclick={() => {
           createHomeworkSubmissionStartAt = "";
         }}
       >
         {homeworksCopy.helperClear}
       </Button>
-    </div>
+    </ButtonGroup.Root>
   </Field.Field>
 </div>

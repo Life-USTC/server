@@ -1,6 +1,7 @@
 <script lang="ts">
 import DateTimePicker from "$lib/components/DateTimePicker.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as ButtonGroup from "$lib/components/ui/button-group/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import type {
   DashboardHomeworkCreateCopy,
@@ -29,21 +30,24 @@ export let selectedCreateHomeworkSection: DashboardHomeworkCreateSectionGetter;
     name="submissionDueAt"
     placeholder={homeworksCopy.submissionDue}
   />
-  <div class="flex flex-wrap justify-end gap-2">
-    <Button disabled={isCreatingHomework} size="sm" type="button" variant="ghost" onclick={applyHomeworkDueInWeek}>
+  <ButtonGroup.Root
+    aria-labelledby="dashboard-homework-submission-due-label"
+    class="ml-auto max-w-full flex-wrap justify-end"
+  >
+    <Button disabled={isCreatingHomework} size="sm" type="button" variant="outline" onclick={applyHomeworkDueInWeek}>
       {homeworksCopy.helperWeek}
     </Button>
-    <Button disabled={isCreatingHomework} size="sm" type="button" variant="ghost" onclick={applyHomeworkDueInMonth}>
+    <Button disabled={isCreatingHomework} size="sm" type="button" variant="outline" onclick={applyHomeworkDueInMonth}>
       {homeworksCopy.helperMonth}
     </Button>
     <Button
       disabled={isCreatingHomework || !selectedCreateHomeworkSection()?.semesterEnd}
       size="sm"
       type="button"
-      variant="ghost"
+      variant="outline"
       onclick={applyHomeworkDueAtSemesterEnd}
     >
       {homeworksCopy.helperSemesterEnd}
     </Button>
-  </div>
+  </ButtonGroup.Root>
 </Field.Field>

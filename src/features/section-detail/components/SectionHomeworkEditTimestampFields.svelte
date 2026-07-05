@@ -1,6 +1,7 @@
 <script lang="ts">
 import DateTimePicker from "$lib/components/DateTimePicker.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as ButtonGroup from "$lib/components/ui/button-group/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import type {
   SectionHomeworkCopy,
@@ -34,21 +35,24 @@ export let semesterDate: SectionHomeworkSemesterDate;
       name="publishedAt"
       placeholder={homeworkCopy.publishedAt}
     />
-    <div class="flex flex-wrap justify-end gap-2">
-      <Button size="sm" type="button" variant="ghost" onclick={applyPublishNow}>
+    <ButtonGroup.Root
+      aria-labelledby="section-homework-edit-published-at-label"
+      class="ml-auto max-w-full flex-wrap justify-end"
+    >
+      <Button size="sm" type="button" variant="outline" onclick={applyPublishNow}>
         {homeworkCopy.helperPublishNow}
       </Button>
       <Button
         size="sm"
         type="button"
-        variant="ghost"
+        variant="outline"
         onclick={() => {
           editHomeworkPublishedAt = "";
         }}
       >
         {homeworkCopy.helperClear}
       </Button>
-    </div>
+    </ButtonGroup.Root>
   </Field.Field>
   <Field.Field>
     <Field.Title id="section-homework-edit-submission-start-label">
@@ -62,15 +66,18 @@ export let semesterDate: SectionHomeworkSemesterDate;
       name="submissionStartAt"
       placeholder={homeworkCopy.submissionStart}
     />
-    <div class="flex flex-wrap justify-end gap-2">
-      <Button size="sm" type="button" variant="ghost" onclick={applyStartNow}>
+    <ButtonGroup.Root
+      aria-labelledby="section-homework-edit-submission-start-label"
+      class="ml-auto max-w-full flex-wrap justify-end"
+    >
+      <Button size="sm" type="button" variant="outline" onclick={applyStartNow}>
         {homeworkCopy.helperStartNow}
       </Button>
       <Button
         disabled={!semesterDate("start")}
         size="sm"
         type="button"
-        variant="ghost"
+        variant="outline"
         onclick={applyStartAtSemesterStart}
       >
         {homeworkCopy.helperSemesterStart}
@@ -78,14 +85,14 @@ export let semesterDate: SectionHomeworkSemesterDate;
       <Button
         size="sm"
         type="button"
-        variant="ghost"
+        variant="outline"
         onclick={() => {
           editHomeworkSubmissionStartAt = "";
         }}
       >
         {homeworkCopy.helperClear}
       </Button>
-    </div>
+    </ButtonGroup.Root>
   </Field.Field>
   <Field.Field>
     <Field.Title id="section-homework-edit-submission-due-label">
@@ -98,22 +105,25 @@ export let semesterDate: SectionHomeworkSemesterDate;
       name="submissionDueAt"
       placeholder={homeworkCopy.submissionDue}
     />
-    <div class="flex flex-wrap justify-end gap-2">
-      <Button size="sm" type="button" variant="ghost" onclick={applyDueInWeek}>
+    <ButtonGroup.Root
+      aria-labelledby="section-homework-edit-submission-due-label"
+      class="ml-auto max-w-full flex-wrap justify-end"
+    >
+      <Button size="sm" type="button" variant="outline" onclick={applyDueInWeek}>
         {homeworkCopy.helperWeek}
       </Button>
-      <Button size="sm" type="button" variant="ghost" onclick={applyDueInMonth}>
+      <Button size="sm" type="button" variant="outline" onclick={applyDueInMonth}>
         {homeworkCopy.helperMonth}
       </Button>
       <Button
         disabled={!semesterDate("end")}
         size="sm"
         type="button"
-        variant="ghost"
+        variant="outline"
         onclick={applyDueAtSemesterEnd}
       >
         {homeworkCopy.helperSemesterEnd}
       </Button>
-    </div>
+    </ButtonGroup.Root>
   </Field.Field>
 </div>
