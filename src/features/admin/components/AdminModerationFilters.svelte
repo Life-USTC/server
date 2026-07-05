@@ -1,6 +1,7 @@
 <script lang="ts">
-import { Button } from "$lib/components/ui/button/index.js";
-import { Input } from "$lib/components/ui/input/index.js";
+import * as Card from "$lib/components/ui/card/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
+import * as InputGroup from "$lib/components/ui/input-group/index.js";
 import * as Select from "$lib/components/ui/select/index.js";
 
 type FilterOption = {
@@ -33,110 +34,142 @@ export let filters: ModerationFilters;
 export let searchQuery: string;
 export let statusFilterOptions: FilterOption[];
 export let tab: string;
+
+$: filterGroupClass =
+  tab === "descriptions"
+    ? "gap-3 md:grid md:grid-cols-[180px_180px_minmax(0,1fr)]"
+    : "gap-3 md:grid md:grid-cols-[180px_minmax(0,1fr)]";
+$: searchPlaceholder =
+  tab === "comments" ? copy.searchPlaceholder : copy.searchAllPlaceholder;
+
+function selectedOptionLabel(options: FilterOption[], value: string) {
+  return (
+    options.find((option) => option.value === value)?.label ??
+    options[0]?.label ??
+    ""
+  );
+}
 </script>
 
-<form method="GET" class="rounded-md border border-base-300 bg-base-100 p-5 shadow-sm">
-  <div class="grid gap-3">
-    <div>
-      <h2 class="font-semibold">{copy.filterQueue}</h2>
-      <p class="text-base-content/60 text-sm">
-        {copy.filterQueueDescription}
-      </p>
-    </div>
-    <div class={`grid gap-3 ${tab === "descriptions" ? "md:grid-cols-[180px_180px_minmax(0,1fr)_auto]" : "md:grid-cols-[180px_minmax(0,1fr)_auto]"}`}>
+<form method="GET">
+  <Card.Root size="sm">
+    <Card.Header>
+      <Card.Title>{copy.filterQueue}</Card.Title>
+      <Card.Description>{copy.filterQueueDescription}</Card.Description>
+    </Card.Header>
+    <Card.Content>
       <input type="hidden" name="tab" value={tab} />
-      {#if tab === "descriptions"}
-        <Select.Root
-          name="descriptionTarget"
-          type="single"
-          value={filters.descriptionTarget ?? "all"}
-        >
-          <Select.Trigger
-            aria-label={copy.descriptionTarget}
-            class="w-full"
-          >
-            {descriptionTargetOptions.find(
-              (option) =>
-                option.value === (filters.descriptionTarget ?? "all"),
-            )?.label ?? descriptionTargetOptions[0]?.label ?? ""}
-          </Select.Trigger>
-          <Select.Content>
-            <Select.Group>
-              {#each descriptionTargetOptions as option}
-                <Select.Item label={option.label} value={option.value}>
-                  {option.label}
-                </Select.Item>
-              {/each}
-            </Select.Group>
-          </Select.Content>
-        </Select.Root>
-        <Select.Root
-          name="descriptionContent"
-          type="single"
-          value={filters.descriptionContent ?? "all"}
-        >
-          <Select.Trigger
-            aria-label={copy.descriptionContent}
-            class="w-full"
-          >
-            {descriptionContentOptions.find(
-              (option) =>
-                option.value === (filters.descriptionContent ?? "all"),
-            )?.label ?? descriptionContentOptions[0]?.label ?? ""}
-          </Select.Trigger>
-          <Select.Content>
-            <Select.Group>
-              {#each descriptionContentOptions as option}
-                <Select.Item label={option.label} value={option.value}>
-                  {option.label}
-                </Select.Item>
-              {/each}
-            </Select.Group>
-          </Select.Content>
-        </Select.Root>
-        <input type="hidden" name="status" value={filters.status ?? "all"} />
-      {:else}
-        <Select.Root
-          name="status"
-          type="single"
-          value={filters.status ?? "all"}
-        >
-          <Select.Trigger aria-label={copy.status} class="w-full">
-            {statusFilterOptions.find(
-              (option) => option.value === (filters.status ?? "all"),
-            )?.label ?? statusFilterOptions[0]?.label ?? ""}
-          </Select.Trigger>
-          <Select.Content>
-            <Select.Group>
-              {#each statusFilterOptions as option}
-                <Select.Item label={option.label} value={option.value}>
-                  {option.label}
-                </Select.Item>
-              {/each}
-            </Select.Group>
-          </Select.Content>
-        </Select.Root>
-        <input
-          type="hidden"
-          name="descriptionTarget"
-          value={filters.descriptionTarget ?? "all"}
-        />
-        <input
-          type="hidden"
-          name="descriptionContent"
-          value={filters.descriptionContent ?? "all"}
-        />
-      {/if}
-      <Input
-        name="search"
-        placeholder={tab === "comments" ? copy.searchPlaceholder : copy.searchAllPlaceholder}
-        type="search"
-        value={searchQuery}
-        oninput={(event: Event) => {
-          searchQuery = (event.currentTarget as HTMLInputElement).value;
-        }}
-      />
-      <Button type="submit">{copy.filterAction}</Button>
-    </div>
-  </div>
+      <Field.Group class={filterGroupClass}>
+        {#if tab === "descriptions"}
+          <Field.Field>
+            <Field.Label for="admin-moderation-description-target">
+              {copy.descriptionTarget}
+            </Field.Label>
+            <Select.Root
+              name="descriptionTarget"
+              type="single"
+              value={filters.descriptionTarget ?? "all"}
+            >
+              <Select.Trigger
+                id="admin-moderation-description-target"
+                class="w-full"
+              >
+                {selectedOptionLabel(descriptionTargetOptions, filters.descriptionTarget ?? "all")}
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Group>
+                  {#each descriptionTargetOptions as option}
+                    <Select.Item label={option.label} value={option.value}>
+                      {option.label}
+                    </Select.Item>
+                  {/each}
+                </Select.Group>
+              </Select.Content>
+            </Select.Root>
+          </Field.Field>
+          <Field.Field>
+            <Field.Label for="admin-moderation-description-content">
+              {copy.descriptionContent}
+            </Field.Label>
+            <Select.Root
+              name="descriptionContent"
+              type="single"
+              value={filters.descriptionContent ?? "all"}
+            >
+              <Select.Trigger
+                id="admin-moderation-description-content"
+                class="w-full"
+              >
+                {selectedOptionLabel(descriptionContentOptions, filters.descriptionContent ?? "all")}
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Group>
+                  {#each descriptionContentOptions as option}
+                    <Select.Item label={option.label} value={option.value}>
+                      {option.label}
+                    </Select.Item>
+                  {/each}
+                </Select.Group>
+              </Select.Content>
+            </Select.Root>
+          </Field.Field>
+          <input type="hidden" name="status" value={filters.status ?? "all"} />
+        {:else}
+          <Field.Field>
+            <Field.Label for="admin-moderation-status">{copy.status}</Field.Label>
+            <Select.Root
+              name="status"
+              type="single"
+              value={filters.status ?? "all"}
+            >
+              <Select.Trigger id="admin-moderation-status" class="w-full">
+                {selectedOptionLabel(statusFilterOptions, filters.status ?? "all")}
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Group>
+                  {#each statusFilterOptions as option}
+                    <Select.Item label={option.label} value={option.value}>
+                      {option.label}
+                    </Select.Item>
+                  {/each}
+                </Select.Group>
+              </Select.Content>
+            </Select.Root>
+          </Field.Field>
+          <input
+            type="hidden"
+            name="descriptionTarget"
+            value={filters.descriptionTarget ?? "all"}
+          />
+          <input
+            type="hidden"
+            name="descriptionContent"
+            value={filters.descriptionContent ?? "all"}
+          />
+        {/if}
+        <Field.Field>
+          <Field.Label class="sr-only" for="admin-moderation-search">
+            {searchPlaceholder}
+          </Field.Label>
+          <InputGroup.Root>
+            <InputGroup.Input
+              id="admin-moderation-search"
+              name="search"
+              placeholder={searchPlaceholder}
+              type="search"
+              value={searchQuery}
+              oninput={(event: Event) => {
+                searchQuery = (event.currentTarget as HTMLInputElement).value;
+              }}
+            />
+            <InputGroup.Addon align="inline-end">
+              <InputGroup.Button type="submit" variant="default" size="sm">
+                {copy.filterAction}
+              </InputGroup.Button>
+            </InputGroup.Addon>
+          </InputGroup.Root>
+        </Field.Field>
+      </Field.Group>
+    </Card.Content>
+  </Card.Root>
 </form>
