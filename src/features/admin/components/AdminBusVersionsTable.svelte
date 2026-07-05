@@ -1,4 +1,5 @@
 <script lang="ts">
+import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import AdminBusVersionActions from "./AdminBusVersionActions.svelte";
 import AdminBusVersionStatusBadge from "./AdminBusVersionStatusBadge.svelte";
@@ -60,7 +61,15 @@ export let versions: AdminBusVersion[];
           </Table.Cell>
         </Table.Row>
       {:else}
-        <Table.Row><Table.Cell colspan={7}>{copy.noVersions}</Table.Cell></Table.Row>
+        <Table.Row>
+          <Table.Cell class="p-0" colspan={7}>
+            <Empty.Root class="py-6">
+              <Empty.Header>
+                <Empty.Description>{copy.noVersions}</Empty.Description>
+              </Empty.Header>
+            </Empty.Root>
+          </Table.Cell>
+        </Table.Row>
       {/each}
     </Table.Body>
   </Table.Root>

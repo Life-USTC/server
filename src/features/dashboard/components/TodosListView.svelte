@@ -7,6 +7,7 @@ import CheckCircleIcon from "$lib/components/icons/check-circle.svelte";
 import RefreshCw from "$lib/components/icons/refresh-cw.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 
 type TodoDateFormatter = (value: Date | string | null | undefined) => string;
@@ -91,11 +92,15 @@ export let toggleTodoCompletion: TodoCompletionToggle;
       </Table.Row>
     {:else}
       <Table.Row>
-        <Table.Cell class="py-8 text-center" colspan={4}>
-          <p class="font-medium">{todosCopy.filterEmptyTitle}</p>
-          <p class="mt-1 text-base-content/60 text-sm">
-            {todosCopy.filterEmptyDescription}
-          </p>
+        <Table.Cell class="p-0" colspan={4}>
+          <Empty.Root class="py-8">
+            <Empty.Header>
+              <Empty.Title>{todosCopy.filterEmptyTitle}</Empty.Title>
+              <Empty.Description>
+                {todosCopy.filterEmptyDescription}
+              </Empty.Description>
+            </Empty.Header>
+          </Empty.Root>
         </Table.Cell>
       </Table.Row>
     {/each}

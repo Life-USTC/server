@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import type {
   SectionCopy,
@@ -49,7 +50,13 @@ export let selectHomework: (homework: SectionHomework) => void;
         </Table.Row>
       {:else}
         <Table.Row>
-          <Table.Cell colspan={3}>{sectionCopy.noHomework}</Table.Cell>
+          <Table.Cell class="p-0" colspan={3}>
+            <Empty.Root class="py-6">
+              <Empty.Header>
+                <Empty.Description>{sectionCopy.noHomework}</Empty.Description>
+              </Empty.Header>
+            </Empty.Root>
+          </Table.Cell>
         </Table.Row>
       {/each}
     </Table.Body>

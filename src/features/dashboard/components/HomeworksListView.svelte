@@ -2,6 +2,7 @@
 import type { DashboardHomeworkItem } from "@/features/dashboard/lib/dashboard-controller-types";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 
 type HomeworkDateFormatter = (
@@ -97,8 +98,12 @@ export let toggleHomeworkCompletion: (
       </Table.Row>
     {:else}
       <Table.Row>
-        <Table.Cell class="py-8 text-center text-base-content/60" colspan={5}>
-          {homeworksCopy.filterEmptyTitle}
+        <Table.Cell class="p-0" colspan={5}>
+          <Empty.Root class="py-8">
+            <Empty.Header>
+              <Empty.Title>{homeworksCopy.filterEmptyTitle}</Empty.Title>
+            </Empty.Header>
+          </Empty.Root>
         </Table.Cell>
       </Table.Row>
     {/each}

@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
 import { Badge } from "$lib/components/ui/badge/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import type {
   TeacherDetailCopy,
@@ -51,7 +52,15 @@ export let teacher: TeacherDetailTeacher;
           </Table.Cell>
         </Table.Row>
       {:else}
-        <Table.Row><Table.Cell colspan={4}>{copy.teacherDetail.noSections}</Table.Cell></Table.Row>
+        <Table.Row>
+          <Table.Cell class="p-0" colspan={4}>
+            <Empty.Root class="py-6">
+              <Empty.Header>
+                <Empty.Title>{copy.teacherDetail.noSections}</Empty.Title>
+              </Empty.Header>
+            </Empty.Root>
+          </Table.Cell>
+        </Table.Row>
       {/each}
     </Table.Body>
   </Table.Root>
