@@ -1,7 +1,7 @@
 <script lang="ts">
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
-import * as RadioGroup from "$lib/components/ui/radio-group/index.js";
+import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 import type { AuthPatternOption } from "./admin-oauth-create-types";
 
 export let authPatterns: AuthPatternOption[];
@@ -15,29 +15,33 @@ export let selectedAuthMethod: string;
     {copy.createFlowTitle}
   </Field.Legend>
   <Field.Description>{copy.createFlowIntro}</Field.Description>
-  <RadioGroup.Root
+  <ToggleGroup.Root
     aria-labelledby="admin-oauth-auth-pattern-label"
-    bind:value={selectedAuthMethod}
+    class="grid w-full gap-3 xl:grid-cols-3"
+    spacing={3}
+    type="single"
+    value={selectedAuthMethod}
+    variant="outline"
+    onValueChange={(value) => {
+      if (typeof value === "string" && value) selectedAuthMethod = value;
+    }}
   >
-    <Field.Group class="grid gap-3 xl:grid-cols-3">
-      {#each authPatterns as option}
-        {@const optionId = `token-endpoint-auth-method-${option.value}`}
-        <Field.Label class="h-full" for={optionId}>
-          <Field.Field class="h-full justify-between" orientation="horizontal">
-            <Field.Content>
-              <div class="flex flex-wrap items-center gap-2">
-                <Field.Title>{oauthCopy(option.titleKey)}</Field.Title>
-                <Badge variant="outline">{oauthCopy(option.labelKey)}</Badge>
-              </div>
-              <Field.Description>
-                {oauthCopy(option.descriptionKey)}
-              </Field.Description>
-            </Field.Content>
-            <RadioGroup.Item id={optionId} value={option.value} />
-          </Field.Field>
-        </Field.Label>
-      {/each}
-    </Field.Group>
-  </RadioGroup.Root>
+    {#each authPatterns as option}
+      <ToggleGroup.Item
+        class="h-auto w-full justify-between whitespace-normal p-3 text-left"
+        value={option.value}
+      >
+        <Field.Content>
+          <div class="flex flex-wrap items-center gap-2">
+            <Field.Title>{oauthCopy(option.titleKey)}</Field.Title>
+            <Badge variant="outline">{oauthCopy(option.labelKey)}</Badge>
+          </div>
+          <Field.Description>
+            {oauthCopy(option.descriptionKey)}
+          </Field.Description>
+        </Field.Content>
+      </ToggleGroup.Item>
+    {/each}
+  </ToggleGroup.Root>
   <input type="hidden" name="tokenEndpointAuthMethod" value={selectedAuthMethod} />
 </Field.Set>

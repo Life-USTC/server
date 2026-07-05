@@ -23,6 +23,9 @@ export let label = "";
 >
   <Sidebar.Content aria-label={ariaLabel || label}>
     <Sidebar.Group>
+      {#if label}
+        <Sidebar.GroupLabel>{label}</Sidebar.GroupLabel>
+      {/if}
       <Sidebar.GroupContent>
         <Sidebar.Menu>
           {#each items as item}

@@ -46,62 +46,63 @@ export let targetLabel: (description: AdminModerationDescription) => string;
       <form
         method="POST"
         action="?/moderateDescription"
-        class="grid gap-4"
         use:enhance={enhanceAction}
       >
-        <Dialog.Header>
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <Dialog.Title id="manage-description-title">{copy.manageDescription}</Dialog.Title>
-              <Dialog.Description>
-                {targetLabel(description)} · {formatMessage(copy.editedAt, { date: formatDate(descriptionEditedAt(description)) })}
-              </Dialog.Description>
+        <Field.Group class="gap-4">
+          <Dialog.Header>
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <Dialog.Title id="manage-description-title">{copy.manageDescription}</Dialog.Title>
+                <Dialog.Description>
+                  {targetLabel(description)} · {formatMessage(copy.editedAt, { date: formatDate(descriptionEditedAt(description)) })}
+                </Dialog.Description>
+              </div>
+              <Button size="sm" type="button" variant="ghost" onclick={close}>{copy.close}</Button>
             </div>
-            <Button size="sm" type="button" variant="ghost" onclick={close}>{copy.close}</Button>
-          </div>
-        </Dialog.Header>
+          </Dialog.Header>
 
-        <ScrollArea class="h-[min(62vh,34rem)]">
-          <div class="grid gap-4 px-5 py-4">
-            <input type="hidden" name="id" value={description.id} />
-            <AdminModerationDescriptionMeta
-              {copy}
-              {description}
-              {descriptionTargetHref}
-              {formatMessage}
-            />
-
-            <Field.Field>
-              <Field.Label for="admin-description-content">
-                {copy.descriptionContent}
-              </Field.Label>
-              <Textarea
-                id="admin-description-content"
-                class="min-h-56"
-                maxlength={DESCRIPTION_CONTENT_MAX_LENGTH}
-                name="content"
-                value={descriptionDraft}
-                oninput={(event: Event) => {
-                  descriptionDraft = inputValue(event);
-                }}
+          <ScrollArea class="h-[min(62vh,34rem)]">
+            <Field.Group class="gap-4 px-5 py-4">
+              <input type="hidden" name="id" value={description.id} />
+              <AdminModerationDescriptionMeta
+                {copy}
+                {description}
+                {descriptionTargetHref}
+                {formatMessage}
               />
-            </Field.Field>
-          </div>
-        </ScrollArea>
 
-        <Dialog.Footer>
-          <Button
-            disabled={isSaving}
-            type="button"
-            variant="ghost"
-            onclick={close}
-          >
-            {copy.cancelButton}
-          </Button>
-          <Button disabled={isSaving} type="submit">
-            {isSaving ? copy.saving : copy.confirmButton}
-          </Button>
-        </Dialog.Footer>
+              <Field.Field>
+                <Field.Label for="admin-description-content">
+                  {copy.descriptionContent}
+                </Field.Label>
+                <Textarea
+                  id="admin-description-content"
+                  class="min-h-56"
+                  maxlength={DESCRIPTION_CONTENT_MAX_LENGTH}
+                  name="content"
+                  value={descriptionDraft}
+                  oninput={(event: Event) => {
+                    descriptionDraft = inputValue(event);
+                  }}
+                />
+              </Field.Field>
+            </Field.Group>
+          </ScrollArea>
+
+          <Dialog.Footer>
+            <Button
+              disabled={isSaving}
+              type="button"
+              variant="ghost"
+              onclick={close}
+            >
+              {copy.cancelButton}
+            </Button>
+            <Button disabled={isSaving} type="submit">
+              {isSaving ? copy.saving : copy.confirmButton}
+            </Button>
+          </Dialog.Footer>
+        </Field.Group>
       </form>
     </Dialog.Content>
   </Dialog.Root>

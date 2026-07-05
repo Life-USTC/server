@@ -6,7 +6,6 @@ import {
   oauthClientSectionStatus,
 } from "@/features/admin/lib/admin-oauth-client-section-pagination";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import AdminOAuthClientSectionPagination from "./AdminOAuthClientSectionPagination.svelte";
 import type {
@@ -40,43 +39,41 @@ $: pageStatus = oauthClientSectionStatus({
 });
 </script>
 
-<section class="min-w-0">
-  <Card.Root>
-    <Card.Header class="border-b">
-      <Card.Title>{title}</Card.Title>
-      <Card.Description>{description}</Card.Description>
-      <Card.Action>
-        <Badge variant="outline">{clients.length}</Badge>
-      </Card.Action>
-    </Card.Header>
-    <Card.Content class="grid gap-3">
-      {#each pageClients as client}
-        <AdminOAuthClientCard
-          {client}
-          {clientAuthCopy}
-          {clientTypeLabel}
-          {copy}
-          {copyText}
-          {formatCreatedAt}
-          {onDelete}
-        />
-      {:else}
-        <Empty.Root class="min-h-24">
-          <Empty.Header>
-            <Empty.Description>{emptyMessage}</Empty.Description>
-          </Empty.Header>
-        </Empty.Root>
-      {/each}
-    </Card.Content>
-    {#if pageCount > 1}
-      <Card.Footer>
-        <AdminOAuthClientSectionPagination
-          {copy}
-          bind:page
-          {pageCount}
-          status={pageStatus}
-        />
-      </Card.Footer>
-    {/if}
-  </Card.Root>
+<section class="grid min-w-0 gap-3">
+  <div class="flex min-w-0 items-start justify-between gap-3">
+    <div class="min-w-0">
+      <h3 class="font-medium text-base">{title}</h3>
+      <p class="text-muted-foreground text-sm">{description}</p>
+    </div>
+    <Badge variant="outline">{clients.length}</Badge>
+  </div>
+
+  <div class="grid gap-3">
+    {#each pageClients as client}
+      <AdminOAuthClientCard
+        {client}
+        {clientAuthCopy}
+        {clientTypeLabel}
+        {copy}
+        {copyText}
+        {formatCreatedAt}
+        {onDelete}
+      />
+    {:else}
+      <Empty.Root class="min-h-24">
+        <Empty.Header>
+          <Empty.Description>{emptyMessage}</Empty.Description>
+        </Empty.Header>
+      </Empty.Root>
+    {/each}
+  </div>
+
+  {#if pageCount > 1}
+    <AdminOAuthClientSectionPagination
+      {copy}
+      bind:page
+      {pageCount}
+      status={pageStatus}
+    />
+  {/if}
 </section>

@@ -7,7 +7,6 @@ import {
   visibleOAuthClientsForTab,
 } from "@/features/admin/lib/admin-oauth-client-groups";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import type {
   AdminOAuthClient,
@@ -32,19 +31,19 @@ $: ({ trustedClients, externalClients } = oauthClientGroups(clients));
 $: visibleClients = visibleOAuthClientsForTab(clients, activeClientTab);
 </script>
 
-<Card.Root>
-  <Card.Header>
-    <Card.Title>{copy.existingClients}</Card.Title>
-    <Card.Description>
-      {copy.existingClientsDescription}
-    </Card.Description>
-    <Card.Action>
-      <Badge variant="ghost">{copy.clientCount.replace("{count}", String(clients.length))}</Badge>
-    </Card.Action>
-  </Card.Header>
-</Card.Root>
-
 <section class="grid gap-3">
+  <div class="flex min-w-0 items-start justify-between gap-3">
+    <div class="min-w-0">
+      <h2 class="font-semibold text-lg">{copy.existingClients}</h2>
+      <p class="text-muted-foreground text-sm">
+        {copy.existingClientsDescription}
+      </p>
+    </div>
+    <Badge variant="secondary">
+      {copy.clientCount.replace("{count}", String(clients.length))}
+    </Badge>
+  </div>
+
   <AdminOAuthClientTabs
     bind:activeClientTab
     {clientTabs}

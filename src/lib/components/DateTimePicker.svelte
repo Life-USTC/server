@@ -98,7 +98,7 @@ $: {
             type="button"
             variant="ghost"
           >
-            <CalendarIcon />
+            <CalendarIcon data-icon="inline-start" />
           </InputGroup.Button>
         {/snippet}
       </Popover.Trigger>

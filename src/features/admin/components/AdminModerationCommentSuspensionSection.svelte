@@ -26,9 +26,9 @@ export let suspensionReason: string;
   <Field.Description>{copy.suspendAuthorDescription}</Field.Description>
   <Field.Group class="grid gap-2 md:grid-cols-[160px_1fr]">
     <Field.Field>
-      <Field.Label class="sr-only">{copy.suspendExpires}</Field.Label>
+      <Field.Label class="sr-only" for="moderation-suspension-duration">{copy.suspendExpires}</Field.Label>
       <Select.Root bind:value={suspensionDuration} type="single">
-        <Select.Trigger aria-label={copy.suspendExpires} class="w-full">
+        <Select.Trigger id="moderation-suspension-duration" class="w-full">
           {suspensionDurationOptions.find(
             (option) => option.value === suspensionDuration,
           )?.label ?? suspensionDurationOptions[0]?.label ?? ""}
@@ -46,18 +46,21 @@ export let suspensionReason: string;
     </Field.Field>
     {#if suspensionDuration === "custom"}
       <Field.Field>
-        <Field.Label class="sr-only">{copy.suspendExpires}</Field.Label>
+        <Field.Label id="moderation-suspension-custom-expires-label" class="sr-only">
+          {copy.suspendExpires}
+        </Field.Label>
         <DateTimePicker
           bind:value={customExpiresAt}
+          aria-labelledby="moderation-suspension-custom-expires-label"
           calendarButtonLabel={copy.calendarButtonLabel}
           placeholder={copy.suspendExpires}
         />
       </Field.Field>
     {/if}
     <Field.Field class="md:col-span-2">
-      <Field.Label class="sr-only">{copy.suspendReason}</Field.Label>
+      <Field.Label class="sr-only" for="moderation-suspension-reason">{copy.suspendReason}</Field.Label>
       <Input
-        aria-label={copy.suspendReason}
+        id="moderation-suspension-reason"
         placeholder={copy.suspendReason}
         value={suspensionReason}
         oninput={(event: Event) => {

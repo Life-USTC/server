@@ -1,5 +1,6 @@
 <script lang="ts">
 import MarkdownPreview from "$lib/components/MarkdownPreview.svelte";
+import * as Card from "$lib/components/ui/card/index.js";
 
 export let content: {
   title: string;
@@ -9,12 +10,11 @@ export let content: {
 
 <svelte:head><title>{content.title} - Life@USTC</title></svelte:head>
 
-<article class="mx-auto w-full max-w-3xl">
-  <MarkdownPreview
-    class="legal-document rounded-md border border-base-300 bg-base-100 px-6 py-7 shadow-sm md:px-8 md:py-9"
-    content={content.mdx}
-  />
-</article>
+<Card.Root class="mx-auto w-full max-w-3xl">
+  <Card.Content class="px-6 md:px-8">
+    <MarkdownPreview class="legal-document" content={content.mdx} />
+  </Card.Content>
+</Card.Root>
 
 <style>
   :global(.markdown-preview.legal-document h1) {

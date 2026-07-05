@@ -284,9 +284,9 @@ afterNavigate(({ from, to }) => {
     {navGroups}
   />
 
-  <Sidebar.Inset
+  <main
     id="main-content"
-    class="min-w-0 lg:h-screen lg:min-h-0 lg:overflow-hidden"
+    class="relative flex w-full min-w-0 flex-1 flex-col bg-background lg:h-screen lg:min-h-0 lg:overflow-hidden"
   >
     <AppTopbar
       {avatarFallback}
@@ -334,5 +334,5 @@ afterNavigate(({ from, to }) => {
         />
       {/if}
     </div>
-  </Sidebar.Inset>
+  </main>
 </Sidebar.Provider>

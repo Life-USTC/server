@@ -26,7 +26,7 @@ export let removeLabel: string;
           variant="ghost"
           onclick={() => onRemove(file.id)}
         >
-          <XIcon />
+          <XIcon data-icon="inline-start" />
         </Button>
       </Badge>
     {/each}

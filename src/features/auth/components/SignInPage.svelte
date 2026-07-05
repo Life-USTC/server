@@ -5,7 +5,8 @@ import type { SubmitFunction } from "@sveltejs/kit";
 import { enhance } from "$app/forms";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
-import * as Item from "$lib/components/ui/item/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import * as Card from "$lib/components/ui/card/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import { redirectWithExternalFallback } from "$lib/navigation/redirect";
 
@@ -76,57 +77,52 @@ function providerInitial(name: string) {
   <div class="grid w-full max-w-md gap-6 px-4">
     <PageHeader title={data.copy.title} />
 
-    <div class="grid gap-4 rounded-2xl border border-base-100/60 bg-base-100/70 p-4 shadow-xl shadow-primary/5 backdrop-blur-xl supports-[backdrop-filter]:bg-base-100/55">
-      {#if data.error}
-        <Alert.Root variant="destructive">
-          <Alert.Description>{data.error === "OAuthAccountNotLinked" ? data.copy.errorAccountNotLinked : data.copy.errorGeneric}</Alert.Description>
-        </Alert.Root>
-      {/if}
-      {#if form?.message}
-        <Alert.Root variant="destructive">
-          <Alert.Description>{form.message}</Alert.Description>
-        </Alert.Root>
-      {/if}
+    <Card.Root>
+      <Card.Content class="grid gap-4">
+        {#if data.error}
+          <Alert.Root variant="destructive">
+            <Alert.Description>
+              {data.error === "OAuthAccountNotLinked" ? data.copy.errorAccountNotLinked : data.copy.errorGeneric}
+            </Alert.Description>
+          </Alert.Root>
+        {/if}
+        {#if form?.message}
+          <Alert.Root variant="destructive">
+            <Alert.Description>{form.message}</Alert.Description>
+          </Alert.Root>
+        {/if}
 
-      <Item.Group>
-        {#each data.providers as provider}
-          <form method="POST" use:enhance={signInAction(provider.id)}>
-            <input type="hidden" name="providerId" value={provider.id} />
-            <input type="hidden" name="callbackUrl" value={data.callbackUrl} />
-            <Item.Root
-              class="text-left disabled:pointer-events-none disabled:opacity-50"
-              variant="outline"
-            >
-              {#snippet child({ props })}
-                <button {...props} disabled={Boolean(pendingProviderId)} type="submit">
-                  <Item.Media
-                    class="size-8 rounded-md bg-muted font-semibold text-primary text-xs"
-                    variant="icon"
-                  >
+        <div class="grid gap-2">
+          {#each data.providers as provider}
+            <form method="POST" use:enhance={signInAction(provider.id)}>
+              <input type="hidden" name="providerId" value={provider.id} />
+              <input type="hidden" name="callbackUrl" value={data.callbackUrl} />
+              <Button
+                class="h-auto w-full justify-start p-3 text-left"
+                disabled={Boolean(pendingProviderId)}
+                type="submit"
+                variant="outline"
+              >
+                <span class="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted font-semibold text-primary text-xs">
                   {#if pendingProviderId === provider.id}
-                    <Spinner />
+                    <Spinner data-icon="inline-start" />
                   {:else if provider.debug}
                     <CircleUserRound />
                   {:else}
                     {providerInitial(provider.name)}
                   {/if}
-                  </Item.Media>
-                  <Item.Content class="min-w-0">
-                    <Item.Title>{provider.label}</Item.Title>
-                  </Item.Content>
-                  <Item.Actions>
-                    <ArrowUpRight />
-                  </Item.Actions>
-                </button>
-              {/snippet}
-            </Item.Root>
-          </form>
-        {/each}
-      </Item.Group>
+                </span>
+                <span class="min-w-0 flex-1 truncate">{provider.label}</span>
+                <ArrowUpRight data-icon="inline-end" />
+              </Button>
+            </form>
+          {/each}
+        </div>
 
-      <p class="text-center text-base-content/55 text-xs leading-5">
-        {data.copy.termsNotice.beforeTerms}<a class="text-primary hover:underline" href="/terms">{data.copy.termsNotice.terms}</a>{data.copy.termsNotice.between}<a class="text-primary hover:underline" href="/privacy">{data.copy.termsNotice.privacy}</a>{data.copy.termsNotice.afterPrivacy}
-      </p>
-    </div>
+        <p class="text-muted-foreground text-center text-xs leading-5">
+          {data.copy.termsNotice.beforeTerms}<a class="text-primary hover:underline" href="/terms">{data.copy.termsNotice.terms}</a>{data.copy.termsNotice.between}<a class="text-primary hover:underline" href="/privacy">{data.copy.termsNotice.privacy}</a>{data.copy.termsNotice.afterPrivacy}
+        </p>
+      </Card.Content>
+    </Card.Root>
   </div>
 </section>

@@ -100,13 +100,7 @@ function setActiveTab(value: string) {
       </InputGroup.Root>
     </Tabs.Content>
     <Tabs.Content value="preview" class="m-0 min-h-32 rounded-lg border bg-background p-3">
-      {#if value.trim()}
-        <MarkdownPreview content={value} {remarkPlugins} />
-      {:else}
-        <p class="text-center text-base-content/50 text-sm italic">
-          {previewEmptyLabel}
-        </p>
-      {/if}
+      <MarkdownPreview content={value} emptyLabel={previewEmptyLabel} {remarkPlugins} />
     </Tabs.Content>
   </Tabs.Root>
 
