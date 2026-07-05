@@ -72,7 +72,7 @@ function diffSegmentClass(segment: DiffSegment) {
           <Item.Root variant="muted" size="sm" class="items-start">
             <Item.Content class="gap-2">
               <Item.Title class="text-muted-foreground text-xs">{copy.previousLabel}</Item.Title>
-              <ScrollArea class="h-fit max-h-40 rounded-md bg-background">
+              <ScrollArea class="h-40 rounded-md bg-background">
                 <div class="whitespace-pre-wrap p-3 text-xs">
                 {#if previousSegments.length > 0}
                   {#each previousSegments as segment}
@@ -88,7 +88,7 @@ function diffSegmentClass(segment: DiffSegment) {
           <Item.Root variant="muted" size="sm" class="items-start">
             <Item.Content class="gap-2">
               <Item.Title class="text-muted-foreground text-xs">{copy.updatedLabel}</Item.Title>
-              <ScrollArea class="h-fit max-h-40 rounded-md bg-background">
+              <ScrollArea class="h-40 rounded-md bg-background">
                 <div class="whitespace-pre-wrap p-3 text-xs">
                 {#if nextSegments.length > 0}
                   {#each nextSegments as segment}

@@ -51,7 +51,7 @@ export let welcomeCopy: WelcomeCopy;
           })}
         </Dialog.Description>
       </Dialog.Header>
-      <ScrollArea class="h-fit max-h-[60vh]">
+      <ScrollArea class="h-[min(60vh,24rem)]">
         <div class="grid gap-4 px-5 py-4">
           {#if matchedSections.length > 0}
             <Field.Set>

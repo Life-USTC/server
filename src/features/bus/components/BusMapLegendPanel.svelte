@@ -26,7 +26,7 @@ function formatMessage(template: string, values: Record<string, string>) {
     </Card.Action>
   </Card.Header>
   <Card.Content>
-    <ScrollArea class="h-fit max-h-[32rem]">
+    <ScrollArea class="h-[min(70vh,32rem)]">
       <ul class="grid gap-1.5">
         {#each mapData.routes as route}
           <li

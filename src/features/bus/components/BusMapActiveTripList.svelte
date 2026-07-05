@@ -42,7 +42,7 @@ function activeTripBadge(trip: BusMapActiveTrip) {
 </script>
 
 {#if mapData.activeTrips.length > 0}
-  <ScrollArea class="h-fit max-h-72">
+  <ScrollArea class="h-72">
     <Item.Group role="list">
       {#each mapData.activeTrips as trip}
         {@const route = routeById(trip.routeId)}

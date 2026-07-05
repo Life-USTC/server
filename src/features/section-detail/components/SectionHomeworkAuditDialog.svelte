@@ -46,7 +46,7 @@ export let setOpen: (open: boolean) => void;
       <Dialog.Title>{homeworkCopy.auditTitle}</Dialog.Title>
       <Dialog.Description>{sectionCopy.homeworkDescription}</Dialog.Description>
     </Dialog.Header>
-    <ScrollArea class="h-fit max-h-[min(72vh,42rem)]">
+    <ScrollArea class="h-[min(72vh,42rem)]">
       <section class="px-5 py-4">
         {#if logs.length === 0}
           <Empty.Root>

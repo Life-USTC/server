@@ -50,7 +50,7 @@ export let isConfirmImportOpen: boolean;
           })}
         </Dialog.Description>
       </Dialog.Header>
-      <ScrollArea class="h-fit max-h-[60vh]">
+      <ScrollArea class="h-[min(60vh,24rem)]">
         <div class="grid gap-4 px-5 py-4">
           <SubscriptionsBulkImportMatchedList
             {formatMessage}

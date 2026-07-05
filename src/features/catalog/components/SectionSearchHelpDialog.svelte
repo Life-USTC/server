@@ -30,7 +30,7 @@ export let sectionLabels: SectionSearchHelpLabels;
       <Dialog.Title>{sectionLabels.searchHelpTitle}</Dialog.Title>
       <Dialog.Description>{sectionLabels.searchHelpDescription}</Dialog.Description>
     </Dialog.Header>
-    <ScrollArea class="h-fit max-h-[60vh]">
+    <ScrollArea class="h-[min(60vh,24rem)]">
       <Item.Group class="px-5 py-4">
         {#each sectionLabels.searchHelpExamples as example}
           <Item.Root
