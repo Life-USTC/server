@@ -9,7 +9,7 @@ import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
-import * as Select from "$lib/components/ui/select/index.js";
+import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 import CommentAttachmentPills from "./CommentAttachmentPills.svelte";
 import CommentUploadButton from "./CommentUploadButton.svelte";
 import type {
@@ -93,29 +93,19 @@ $: replyEditorLabelId = `comment-reply-editor-label-${comment.id}`;
       <Field.Label for={replyVisibilityId} class="sr-only">
         {commentCopy.visibilityLabel}
       </Field.Label>
-      <Select.Root
+      <NativeSelect.Root
+        aria-label={commentCopy.visibilityLabel}
         bind:value={replyVisibility}
+        class="min-w-32"
         disabled={replyDisabled}
-        type="single"
+        id={replyVisibilityId}
       >
-        <Select.Trigger
-          id={replyVisibilityId}
-          aria-label={commentCopy.visibilityLabel}
-          class="min-w-32"
-        >
-          {visibilityOptions.find((option) => option.value === replyVisibility)
-            ?.label ?? visibilityOptions[0]?.label ?? ""}
-        </Select.Trigger>
-        <Select.Content>
-          <Select.Group>
-            {#each visibilityOptions as option}
-              <Select.Item label={option.label} value={option.value}>
-                {option.label}
-              </Select.Item>
-            {/each}
-          </Select.Group>
-        </Select.Content>
-      </Select.Root>
+        {#each visibilityOptions as option}
+          <NativeSelect.Option value={option.value}>
+            {option.label}
+          </NativeSelect.Option>
+        {/each}
+      </NativeSelect.Root>
     </Field.Field>
   </Field.Group>
   <div class="flex justify-end gap-2">

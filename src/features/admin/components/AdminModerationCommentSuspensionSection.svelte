@@ -3,7 +3,7 @@ import DateTimePicker from "$lib/components/DateTimePicker.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
-import * as Select from "$lib/components/ui/select/index.js";
+import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 import type { AdminModerationComment } from "./admin-moderation-comment-types";
 import type {
   AdminModerationCopy,
@@ -27,22 +27,17 @@ export let suspensionReason: string;
   <Field.Group class="grid gap-2 md:grid-cols-[160px_1fr]">
     <Field.Field>
       <Field.Label class="sr-only" for="moderation-suspension-duration">{copy.suspendExpires}</Field.Label>
-      <Select.Root bind:value={suspensionDuration} type="single">
-        <Select.Trigger id="moderation-suspension-duration" class="w-full">
-          {suspensionDurationOptions.find(
-            (option) => option.value === suspensionDuration,
-          )?.label ?? suspensionDurationOptions[0]?.label ?? ""}
-        </Select.Trigger>
-        <Select.Content>
-          <Select.Group>
-            {#each suspensionDurationOptions as option}
-              <Select.Item label={option.label} value={option.value}>
-                {option.label}
-              </Select.Item>
-            {/each}
-          </Select.Group>
-        </Select.Content>
-      </Select.Root>
+      <NativeSelect.Root
+        bind:value={suspensionDuration}
+        class="w-full"
+        id="moderation-suspension-duration"
+      >
+        {#each suspensionDurationOptions as option}
+          <NativeSelect.Option value={option.value}>
+            {option.label}
+          </NativeSelect.Option>
+        {/each}
+      </NativeSelect.Root>
     </Field.Field>
     {#if suspensionDuration === "custom"}
       <Field.Field>

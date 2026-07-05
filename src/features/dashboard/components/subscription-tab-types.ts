@@ -37,6 +37,7 @@ export type DashboardSubscriptionsTabCopy = DashboardSubscriptionsCopy & {
     placeholder: string;
     sectionCodesLabel: string;
     semesterLabel: string;
+    semesterPlaceholder: string;
     subscribeSelected: string;
     title: string;
   };

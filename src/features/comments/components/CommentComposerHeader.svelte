@@ -3,7 +3,7 @@ import type { ViewerContext } from "@/lib/auth/viewer-context";
 import * as Card from "$lib/components/ui/card/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
-import * as Select from "$lib/components/ui/select/index.js";
+import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 import type {
   CommentSelectOption,
   CommentsCopy,
@@ -42,29 +42,19 @@ $: controlsDisabledAttr = controlsDisabled ? "true" : undefined;
         <Field.Label for="comment-composer-visibility" class="sr-only">
           {commentCopy.visibilityLabel}
         </Field.Label>
-        <Select.Root
+        <NativeSelect.Root
+          aria-label={commentCopy.visibilityLabel}
           bind:value={visibility}
+          class="min-w-32"
           disabled={controlsDisabled}
-          type="single"
+          id="comment-composer-visibility"
         >
-          <Select.Trigger
-            id="comment-composer-visibility"
-            aria-label={commentCopy.visibilityLabel}
-            class="min-w-32"
-          >
-            {visibilityOptions.find((option) => option.value === visibility)
-              ?.label ?? visibilityOptions[0]?.label ?? ""}
-          </Select.Trigger>
-          <Select.Content>
-            <Select.Group>
-              {#each visibilityOptions as option}
-                <Select.Item label={option.label} value={option.value}>
-                  {option.label}
-                </Select.Item>
-              {/each}
-            </Select.Group>
-          </Select.Content>
-        </Select.Root>
+          {#each visibilityOptions as option}
+            <NativeSelect.Option value={option.value}>
+              {option.label}
+            </NativeSelect.Option>
+          {/each}
+        </NativeSelect.Root>
       </Field.Field>
     </Field.Group>
   </Card.Action>

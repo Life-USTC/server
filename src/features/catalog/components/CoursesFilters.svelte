@@ -3,7 +3,7 @@ import { Button } from "$lib/components/ui/button/index.js";
 import * as ButtonGroup from "$lib/components/ui/button-group/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
-import * as Select from "$lib/components/ui/select/index.js";
+import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 import type {
   CourseListCommonLabels,
   CourseListFilters,
@@ -40,93 +40,60 @@ export let updateCourseFilter: CourseListFilterUpdater;
     </Field.Field>
     <Field.Field>
       <Field.Label for="course-education-level">{courseLabels.educationLevel}</Field.Label>
-      <Select.Root
+      <NativeSelect.Root
+        class="w-full"
+        id="course-education-level"
         name="educationLevelId"
         value={filters.educationLevelId ?? ""}
-        type="single"
-        onValueChange={(value) =>
+        onchange={(event) =>
           updateCourseFilter({
-            educationLevelId: value,
+            educationLevelId: (event.currentTarget as HTMLSelectElement).value,
           })}
       >
-        <Select.Trigger id="course-education-level" class="w-full">
-          {educationLevelOptions.find(
-            (option) => option.value === (filters.educationLevelId ?? ""),
-          )?.label ?? educationLevelOptions[0]?.label ?? ""}
-        </Select.Trigger>
-        <Select.Content>
-          <Select.Group>
-            {#each educationLevelOptions as option}
-              <Select.Item
-                label={option.label}
-                value={option.value}
-              >
-                {option.label}
-              </Select.Item>
-            {/each}
-          </Select.Group>
-        </Select.Content>
-      </Select.Root>
+        {#each educationLevelOptions as option}
+          <NativeSelect.Option value={option.value}>
+            {option.label}
+          </NativeSelect.Option>
+        {/each}
+      </NativeSelect.Root>
     </Field.Field>
     <Field.Field>
       <Field.Label for="course-category">{courseLabels.category}</Field.Label>
-      <Select.Root
+      <NativeSelect.Root
+        class="w-full"
+        id="course-category"
         name="categoryId"
         value={filters.categoryId ?? ""}
-        type="single"
-        onValueChange={(value) =>
+        onchange={(event) =>
           updateCourseFilter({
-            categoryId: value,
+            categoryId: (event.currentTarget as HTMLSelectElement).value,
           })}
       >
-        <Select.Trigger id="course-category" class="w-full">
-          {categoryOptions.find(
-            (option) => option.value === (filters.categoryId ?? ""),
-          )?.label ?? categoryOptions[0]?.label ?? ""}
-        </Select.Trigger>
-        <Select.Content>
-          <Select.Group>
-            {#each categoryOptions as option}
-              <Select.Item
-                label={option.label}
-                value={option.value}
-              >
-                {option.label}
-              </Select.Item>
-            {/each}
-          </Select.Group>
-        </Select.Content>
-      </Select.Root>
+        {#each categoryOptions as option}
+          <NativeSelect.Option value={option.value}>
+            {option.label}
+          </NativeSelect.Option>
+        {/each}
+      </NativeSelect.Root>
     </Field.Field>
     <Field.Field>
       <Field.Label for="course-class-type">{courseLabels.classType}</Field.Label>
-      <Select.Root
+      <NativeSelect.Root
+        class="w-full"
+        id="course-class-type"
         name="classTypeId"
         value={filters.classTypeId ?? ""}
-        type="single"
-        onValueChange={(value) =>
+        onchange={(event) =>
           updateCourseFilter({
-            classTypeId: value,
+            classTypeId: (event.currentTarget as HTMLSelectElement).value,
           })}
       >
-        <Select.Trigger id="course-class-type" class="w-full">
-          {classTypeOptions.find(
-            (option) => option.value === (filters.classTypeId ?? ""),
-          )?.label ?? classTypeOptions[0]?.label ?? ""}
-        </Select.Trigger>
-        <Select.Content>
-          <Select.Group>
-            {#each classTypeOptions as option}
-              <Select.Item
-                label={option.label}
-                value={option.value}
-              >
-                {option.label}
-              </Select.Item>
-            {/each}
-          </Select.Group>
-        </Select.Content>
-      </Select.Root>
+        {#each classTypeOptions as option}
+          <NativeSelect.Option value={option.value}>
+            {option.label}
+          </NativeSelect.Option>
+        {/each}
+      </NativeSelect.Root>
     </Field.Field>
     <ButtonGroup.Root class="w-full pt-1" orientation="vertical">
       <Button class="w-full" size="lg" type="submit">

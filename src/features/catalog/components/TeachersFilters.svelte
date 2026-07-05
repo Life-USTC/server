@@ -3,7 +3,7 @@ import { Button } from "$lib/components/ui/button/index.js";
 import * as ButtonGroup from "$lib/components/ui/button-group/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
-import * as Select from "$lib/components/ui/select/index.js";
+import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 import type {
   TeacherListCommonLabels,
   TeacherListFilters,
@@ -38,30 +38,22 @@ export let updateTeacherFilter: TeacherListFilterUpdater;
     </Field.Field>
     <Field.Field>
       <Field.Label for="teacher-department">{teacherLabels.department}</Field.Label>
-      <Select.Root
+      <NativeSelect.Root
+        class="w-full"
+        id="teacher-department"
         name="departmentId"
         value={filters.departmentId ?? ""}
-        type="single"
-        onValueChange={(value) =>
+        onchange={(event) =>
           updateTeacherFilter({
-            departmentId: value,
+            departmentId: (event.currentTarget as HTMLSelectElement).value,
           })}
       >
-        <Select.Trigger id="teacher-department" class="w-full">
-          {departmentOptions.find(
-            (option) => option.value === (filters.departmentId ?? ""),
-          )?.label ?? departmentOptions[0]?.label ?? ""}
-        </Select.Trigger>
-        <Select.Content>
-          <Select.Group>
-            {#each departmentOptions as option}
-              <Select.Item label={option.label} value={option.value}>
-                {option.label}
-              </Select.Item>
-            {/each}
-          </Select.Group>
-        </Select.Content>
-      </Select.Root>
+        {#each departmentOptions as option}
+          <NativeSelect.Option value={option.value}>
+            {option.label}
+          </NativeSelect.Option>
+        {/each}
+      </NativeSelect.Root>
     </Field.Field>
     <ButtonGroup.Root class="w-full pt-1" orientation="vertical">
       <Button class="w-full" size="lg" type="submit">{commonLabels.search}</Button>

@@ -2,7 +2,7 @@
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import * as InputGroup from "$lib/components/ui/input-group/index.js";
-import * as Select from "$lib/components/ui/select/index.js";
+import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 
 type FilterOption = {
   label: string;
@@ -41,14 +41,6 @@ $: filterGroupClass =
     : "gap-3 md:grid md:grid-cols-[180px_minmax(0,1fr)]";
 $: searchPlaceholder =
   tab === "comments" ? copy.searchPlaceholder : copy.searchAllPlaceholder;
-
-function selectedOptionLabel(options: FilterOption[], value: string) {
-  return (
-    options.find((option) => option.value === value)?.label ??
-    options[0]?.label ??
-    ""
-  );
-}
 </script>
 
 <form method="GET">
@@ -65,76 +57,52 @@ function selectedOptionLabel(options: FilterOption[], value: string) {
             <Field.Label for="admin-moderation-description-target">
               {copy.descriptionTarget}
             </Field.Label>
-            <Select.Root
+            <NativeSelect.Root
+              class="w-full"
+              id="admin-moderation-description-target"
               name="descriptionTarget"
-              type="single"
               value={filters.descriptionTarget ?? "all"}
             >
-              <Select.Trigger
-                id="admin-moderation-description-target"
-                class="w-full"
-              >
-                {selectedOptionLabel(descriptionTargetOptions, filters.descriptionTarget ?? "all")}
-              </Select.Trigger>
-              <Select.Content>
-                <Select.Group>
-                  {#each descriptionTargetOptions as option}
-                    <Select.Item label={option.label} value={option.value}>
-                      {option.label}
-                    </Select.Item>
-                  {/each}
-                </Select.Group>
-              </Select.Content>
-            </Select.Root>
+              {#each descriptionTargetOptions as option}
+                <NativeSelect.Option value={option.value}>
+                  {option.label}
+                </NativeSelect.Option>
+              {/each}
+            </NativeSelect.Root>
           </Field.Field>
           <Field.Field>
             <Field.Label for="admin-moderation-description-content">
               {copy.descriptionContent}
             </Field.Label>
-            <Select.Root
+            <NativeSelect.Root
+              class="w-full"
+              id="admin-moderation-description-content"
               name="descriptionContent"
-              type="single"
               value={filters.descriptionContent ?? "all"}
             >
-              <Select.Trigger
-                id="admin-moderation-description-content"
-                class="w-full"
-              >
-                {selectedOptionLabel(descriptionContentOptions, filters.descriptionContent ?? "all")}
-              </Select.Trigger>
-              <Select.Content>
-                <Select.Group>
-                  {#each descriptionContentOptions as option}
-                    <Select.Item label={option.label} value={option.value}>
-                      {option.label}
-                    </Select.Item>
-                  {/each}
-                </Select.Group>
-              </Select.Content>
-            </Select.Root>
+              {#each descriptionContentOptions as option}
+                <NativeSelect.Option value={option.value}>
+                  {option.label}
+                </NativeSelect.Option>
+              {/each}
+            </NativeSelect.Root>
           </Field.Field>
           <input type="hidden" name="status" value={filters.status ?? "all"} />
         {:else}
           <Field.Field>
             <Field.Label for="admin-moderation-status">{copy.status}</Field.Label>
-            <Select.Root
+            <NativeSelect.Root
+              class="w-full"
+              id="admin-moderation-status"
               name="status"
-              type="single"
               value={filters.status ?? "all"}
             >
-              <Select.Trigger id="admin-moderation-status" class="w-full">
-                {selectedOptionLabel(statusFilterOptions, filters.status ?? "all")}
-              </Select.Trigger>
-              <Select.Content>
-                <Select.Group>
-                  {#each statusFilterOptions as option}
-                    <Select.Item label={option.label} value={option.value}>
-                      {option.label}
-                    </Select.Item>
-                  {/each}
-                </Select.Group>
-              </Select.Content>
-            </Select.Root>
+              {#each statusFilterOptions as option}
+                <NativeSelect.Option value={option.value}>
+                  {option.label}
+                </NativeSelect.Option>
+              {/each}
+            </NativeSelect.Root>
           </Field.Field>
           <input
             type="hidden"

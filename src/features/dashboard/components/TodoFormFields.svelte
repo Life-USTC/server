@@ -12,7 +12,7 @@ import DateTimePicker from "$lib/components/DateTimePicker.svelte";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
-import * as Select from "$lib/components/ui/select/index.js";
+import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 
 export let commentsCopy: CommentsCopy;
 export let contentValue = "";
@@ -43,26 +43,19 @@ $: contentLabelId = `${idPrefix}-content-label`;
 </Field.Field>
 <Field.Field>
   <Field.Label for={priorityId}>{todosCopy.priorityLabel}</Field.Label>
-  <Select.Root
+  <NativeSelect.Root
     bind:value={priorityValue}
     {disabled}
+    class="w-full"
+    id={priorityId}
     name="priority"
-    type="single"
   >
-    <Select.Trigger id={priorityId} class="w-full">
-      {todoPriorityOptions.find((option) => option.value === priorityValue)
-        ?.label ?? todoPriorityOptions[0]?.label ?? ""}
-    </Select.Trigger>
-    <Select.Content>
-      <Select.Group>
-        {#each todoPriorityOptions as option}
-          <Select.Item label={option.label} value={option.value}>
-            {option.label}
-          </Select.Item>
-        {/each}
-      </Select.Group>
-    </Select.Content>
-  </Select.Root>
+    {#each todoPriorityOptions as option}
+      <NativeSelect.Option value={option.value}>
+        {option.label}
+      </NativeSelect.Option>
+    {/each}
+  </NativeSelect.Root>
 </Field.Field>
 <Field.Field>
   <Field.Title id={dueAtLabelId}>{todosCopy.dueAtLabel}</Field.Title>

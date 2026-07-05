@@ -3,7 +3,7 @@ import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
-import * as Select from "$lib/components/ui/select/index.js";
+import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import { Textarea } from "$lib/components/ui/textarea/index.js";
 import type {
@@ -57,21 +57,22 @@ export let welcomeCopy: WelcomeCopy;
           <Field.Label for="welcome-bulk-import-semester">
             {bulkCopy.semesterLabel}
           </Field.Label>
-          <Select.Root bind:value={selectedSemesterId} type="single">
-            <Select.Trigger id="welcome-bulk-import-semester" class="w-full">
-              {semesterOptions.find((option) => option.value === selectedSemesterId)
-                ?.label ?? bulkCopy.semesterPlaceholder}
-            </Select.Trigger>
-            <Select.Content>
-              <Select.Group>
-                {#each semesterOptions as option}
-                  <Select.Item label={option.label} value={option.value}>
-                    {option.label}
-                  </Select.Item>
-                {/each}
-              </Select.Group>
-            </Select.Content>
-          </Select.Root>
+          <NativeSelect.Root
+            bind:value={selectedSemesterId}
+            class="w-full"
+            id="welcome-bulk-import-semester"
+          >
+            {#if !selectedSemesterId}
+              <NativeSelect.Option disabled value="">
+                {bulkCopy.semesterPlaceholder}
+              </NativeSelect.Option>
+            {/if}
+            {#each semesterOptions as option}
+              <NativeSelect.Option value={option.value}>
+                {option.label}
+              </NativeSelect.Option>
+            {/each}
+          </NativeSelect.Root>
         </Field.Field>
         <Field.Field>
           <Field.Label for="welcome-bulk-import-section-codes">

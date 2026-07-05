@@ -3,7 +3,7 @@ import { Button } from "$lib/components/ui/button/index.js";
 import * as ButtonGroup from "$lib/components/ui/button-group/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
-import * as Select from "$lib/components/ui/select/index.js";
+import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 import type {
   SectionListCommonLabels,
   SectionListFilters,
@@ -40,30 +40,22 @@ export let updateSectionFilter: SectionListFilterUpdater;
     </Field.Field>
     <Field.Field>
       <Field.Label for="section-semester">{sectionLabels.semester}</Field.Label>
-      <Select.Root
+      <NativeSelect.Root
+        class="w-full"
+        id="section-semester"
         name="semesterId"
         value={filters.semesterId ?? ""}
-        type="single"
-        onValueChange={(value) =>
+        onchange={(event) =>
           updateSectionFilter({
-            semesterId: value,
+            semesterId: (event.currentTarget as HTMLSelectElement).value,
           })}
       >
-        <Select.Trigger id="section-semester" class="w-full">
-          {semesterOptions.find(
-            (option) => option.value === (filters.semesterId ?? ""),
-          )?.label ?? semesterOptions[0]?.label ?? ""}
-        </Select.Trigger>
-        <Select.Content>
-          <Select.Group>
-            {#each semesterOptions as option}
-              <Select.Item label={option.label} value={option.value}>
-                {option.label}
-              </Select.Item>
-            {/each}
-          </Select.Group>
-        </Select.Content>
-      </Select.Root>
+        {#each semesterOptions as option}
+          <NativeSelect.Option value={option.value}>
+            {option.label}
+          </NativeSelect.Option>
+        {/each}
+      </NativeSelect.Root>
     </Field.Field>
     <ButtonGroup.Root class="w-full pt-1" orientation="vertical">
       <Button class="w-full" size="lg" type="submit">{commonLabels.search}</Button>

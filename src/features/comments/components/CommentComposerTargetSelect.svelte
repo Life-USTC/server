@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { ViewerContext } from "@/lib/auth/viewer-context";
 import * as Field from "$lib/components/ui/field/index.js";
-import * as Select from "$lib/components/ui/select/index.js";
+import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 import type {
   CommentSelectOption,
   CommentsCopy,
@@ -18,29 +18,19 @@ export let viewer: ViewerContext;
     <Field.Label for="comment-composer-target">
       {commentCopy.commentTargetPlaceholder}
     </Field.Label>
-    <Select.Root
+    <NativeSelect.Root
+      aria-label={commentCopy.commentTargetPlaceholder}
       bind:value={postTargetKey}
+      class="w-full"
       disabled={!viewer.isAuthenticated || viewer.isSuspended}
-      type="single"
+      id="comment-composer-target"
     >
-      <Select.Trigger
-        id="comment-composer-target"
-        aria-label={commentCopy.commentTargetPlaceholder}
-        class="w-full"
-      >
-        {postTargetOptions.find((option) => option.value === postTargetKey)
-          ?.label ?? postTargetOptions[0]?.label ?? ""}
-      </Select.Trigger>
-      <Select.Content>
-        <Select.Group>
-          {#each postTargetOptions as option}
-            <Select.Item label={option.label} value={option.value}>
-              {option.label}
-            </Select.Item>
-          {/each}
-        </Select.Group>
-      </Select.Content>
-    </Select.Root>
+      {#each postTargetOptions as option}
+        <NativeSelect.Option value={option.value}>
+          {option.label}
+        </NativeSelect.Option>
+      {/each}
+    </NativeSelect.Root>
     <Field.Description>
       {commentCopy.commentTargetCurrent.replace(
         "{label}",

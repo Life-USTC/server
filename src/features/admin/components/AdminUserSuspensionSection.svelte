@@ -6,7 +6,7 @@ import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
-import * as Select from "$lib/components/ui/select/index.js";
+import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type {
   AdminUserFormatter,
@@ -46,26 +46,18 @@ export let suspensionLabel: AdminUserFormatter;
         <Field.Label for="admin-user-suspend-duration">
           {moderationCopy.durationLabel}
         </Field.Label>
-        <Select.Root bind:value={suspendDuration} type="single">
-          <Select.Trigger
-            aria-label={moderationCopy.durationLabel}
-            class="w-full"
-            id="admin-user-suspend-duration"
-          >
-            {suspendDurationOptions.find(
-              (option) => option.value === suspendDuration,
-            )?.label ?? suspendDurationOptions[0]?.label ?? ""}
-          </Select.Trigger>
-          <Select.Content>
-            <Select.Group>
-              {#each suspendDurationOptions as option}
-                <Select.Item label={option.label} value={option.value}>
-                  {option.label}
-                </Select.Item>
-              {/each}
-            </Select.Group>
-          </Select.Content>
-        </Select.Root>
+        <NativeSelect.Root
+          aria-label={moderationCopy.durationLabel}
+          bind:value={suspendDuration}
+          class="w-full"
+          id="admin-user-suspend-duration"
+        >
+          {#each suspendDurationOptions as option}
+            <NativeSelect.Option value={option.value}>
+              {option.label}
+            </NativeSelect.Option>
+          {/each}
+        </NativeSelect.Root>
       </Field.Field>
       {#if suspendDuration === "custom"}
         <Field.Field>

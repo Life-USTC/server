@@ -8,6 +8,7 @@ import type {
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import * as Field from "$lib/components/ui/field/index.js";
 import * as InputGroup from "$lib/components/ui/input-group/index.js";
+import * as Kbd from "$lib/components/ui/kbd/index.js";
 import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 
 export let dashboardCopy: DashboardDashboardCopy;
@@ -56,6 +57,12 @@ function handleLinkViewChange(value: string) {
         />
         <InputGroup.Addon>
           <SearchIcon />
+        </InputGroup.Addon>
+        <InputGroup.Addon align="inline-end">
+          <Kbd.Group>
+            <Kbd.Root>Ctrl</Kbd.Root>
+            <Kbd.Root>K</Kbd.Root>
+          </Kbd.Group>
         </InputGroup.Addon>
       </InputGroup.Root>
     </Field.Field>

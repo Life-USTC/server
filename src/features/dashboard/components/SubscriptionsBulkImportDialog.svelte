@@ -3,7 +3,7 @@ import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
-import * as Select from "$lib/components/ui/select/index.js";
+import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import { Textarea } from "$lib/components/ui/textarea/index.js";
 import type { DashboardSubscriptionsTabProps } from "./subscription-tab-types";
@@ -53,21 +53,22 @@ $: semesterOptions = signedData.subscriptions.semesters.map((semester) => ({
           <Field.Label for="subscriptions-bulk-import-semester">
             {subscriptionsCopy.bulkImport.semesterLabel}
           </Field.Label>
-          <Select.Root bind:value={bulkImportSemesterId} type="single">
-            <Select.Trigger id="subscriptions-bulk-import-semester" class="w-full">
-              {semesterOptions.find((option) => option.value === bulkImportSemesterId)
-                ?.label ?? semesterOptions[0]?.label ?? ""}
-            </Select.Trigger>
-            <Select.Content>
-              <Select.Group>
-                {#each semesterOptions as option}
-                  <Select.Item label={option.label} value={option.value}>
-                    {option.label}
-                  </Select.Item>
-                {/each}
-              </Select.Group>
-            </Select.Content>
-          </Select.Root>
+          <NativeSelect.Root
+            bind:value={bulkImportSemesterId}
+            class="w-full"
+            id="subscriptions-bulk-import-semester"
+          >
+            {#if !bulkImportSemesterId}
+              <NativeSelect.Option disabled value="">
+                {subscriptionsCopy.bulkImport.semesterPlaceholder}
+              </NativeSelect.Option>
+            {/if}
+            {#each semesterOptions as option}
+              <NativeSelect.Option value={option.value}>
+                {option.label}
+              </NativeSelect.Option>
+            {/each}
+          </NativeSelect.Root>
         </Field.Field>
         <Field.Field>
           <Field.Label for="subscriptions-bulk-import-section-codes">

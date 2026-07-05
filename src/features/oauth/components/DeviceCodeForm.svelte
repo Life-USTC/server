@@ -1,12 +1,24 @@
 <script lang="ts">
+import { REGEXP_ONLY_DIGITS_AND_CHARS } from "bits-ui";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
-import { Input } from "$lib/components/ui/input/index.js";
+import * as InputOTP from "$lib/components/ui/input-otp/index.js";
 import type { DeviceCopy } from "./device-component-types";
 
 export let code: string;
 export let copy: DeviceCopy;
+
+let inputCode = sanitizeDeviceCode(code);
+
+$: inputCode = sanitizeDeviceCode(code);
+
+function sanitizeDeviceCode(value: string) {
+  return value
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 8);
+}
 </script>
 
 <header class="text-center">
@@ -20,16 +32,40 @@ export let copy: DeviceCopy;
   <Field.Group>
     <Field.Field>
       <Field.Label for="code">{copy.deviceCodeLabel}</Field.Label>
-      <Input
-        id="code"
+      <InputOTP.Root
         autocomplete="off"
-        class="h-11 text-center font-mono text-lg tracking-widest"
+        bind:value={inputCode}
+        class="justify-center"
+        id="device-code"
+        inputId="code"
+        inputmode="text"
+        maxlength={8}
         name="code"
-        placeholder="XXXX-XXXX"
+        onValueChange={(value) => {
+          inputCode = sanitizeDeviceCode(value);
+        }}
+        pasteTransformer={sanitizeDeviceCode}
+        pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
         required
-        type="text"
-        value={code}
-      />
+      >
+        {#snippet children({ cells })}
+          <InputOTP.Group
+            class="*:data-[slot=input-otp-slot]:font-mono *:data-[slot=input-otp-slot]:text-base"
+          >
+            {#each cells.slice(0, 4) as cell}
+              <InputOTP.Slot {cell} />
+            {/each}
+          </InputOTP.Group>
+          <InputOTP.Separator />
+          <InputOTP.Group
+            class="*:data-[slot=input-otp-slot]:font-mono *:data-[slot=input-otp-slot]:text-base"
+          >
+            {#each cells.slice(4, 8) as cell}
+              <InputOTP.Slot {cell} />
+            {/each}
+          </InputOTP.Group>
+        {/snippet}
+      </InputOTP.Root>
     </Field.Field>
     <Button type="submit">{copy.deviceVerify}</Button>
   </Field.Group>

@@ -9,7 +9,7 @@ import * as Alert from "$lib/components/ui/alert/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
-import * as Select from "$lib/components/ui/select/index.js";
+import * as NativeSelect from "$lib/components/ui/native-select/index.js";
 import type {
   DashboardHomeworkCommentsCopy,
   DashboardHomeworkCreateCopy,
@@ -55,27 +55,20 @@ $: sectionOptions = sections.map((section) => ({
     <Field.Label for="dashboard-homework-section">
       {homeworksCopy.sectionLabel}
     </Field.Label>
-    <Select.Root
+    <NativeSelect.Root
       bind:value={createHomeworkSectionId}
       disabled={isCreatingHomework}
+      class="w-full"
+      id="dashboard-homework-section"
       name="sectionId"
       required
-      type="single"
     >
-      <Select.Trigger id="dashboard-homework-section" class="w-full">
-        {sectionOptions.find((option) => option.value === createHomeworkSectionId)
-          ?.label ?? sectionOptions[0]?.label ?? ""}
-      </Select.Trigger>
-      <Select.Content>
-        <Select.Group>
-          {#each sectionOptions as option}
-            <Select.Item label={option.label} value={option.value}>
-              {option.label}
-            </Select.Item>
-          {/each}
-        </Select.Group>
-      </Select.Content>
-    </Select.Root>
+      {#each sectionOptions as option}
+        <NativeSelect.Option value={option.value}>
+          {option.label}
+        </NativeSelect.Option>
+      {/each}
+    </NativeSelect.Root>
   </Field.Field>
   <Field.Field>
     <Field.Label for="dashboard-homework-title">

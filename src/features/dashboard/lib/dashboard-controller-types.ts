@@ -180,6 +180,7 @@ export type DashboardSubscriptionsCopy = DashboardRecord & {
     sectionCodesLabel: string;
     selectSection: string;
     semesterLabel: string;
+    semesterPlaceholder: string;
     subscribeSelected: string;
     successDescription: string;
     title: string;
