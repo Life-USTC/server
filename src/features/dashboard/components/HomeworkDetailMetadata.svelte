@@ -1,5 +1,7 @@
 <script lang="ts">
 import { Badge } from "$lib/components/ui/badge/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
+import { Separator } from "$lib/components/ui/separator/index.js";
 import type {
   DashboardHomeworkDetailAction,
   DashboardHomeworkDetailCopy,
@@ -14,47 +16,46 @@ export let homeworksCopy: DashboardHomeworkDetailCopy;
 export let homeworkStatus: DashboardHomeworkDetailAction;
 </script>
 
-<section class="grid gap-3 rounded-md border border-base-300 bg-base-200/40 p-4">
-  <div class="flex flex-wrap items-start justify-between gap-3">
-    <div>
-      <p class="font-medium text-base-content/70 text-xs uppercase tracking-wide">
+<Item.Root variant="muted" class="items-start">
+  <Item.Header>
+    <Item.Content>
+      <Item.Description class="text-xs uppercase tracking-normal">
         {homeworksCopy.submissionDue}
-      </p>
-      <p class="mt-1 font-semibold text-lg">
-        {fmtDate(homework.submissionDueAt)}
-      </p>
-    </div>
-    <Badge
-      class={homework.completion
-        ? "border-success/40 bg-success/10 text-success"
-        : "border-warning/40 bg-warning/10 text-warning"}
-    >
-      {homeworkStatus(homework)}
-    </Badge>
-  </div>
-  <p class="text-base-content/60 text-sm">
-    {homeworkEtaLabel(homework.submissionDueAt)}
-  </p>
-  <div class="grid gap-3 border-base-300 border-t pt-3 sm:grid-cols-2">
-    <div>
-      <p class="text-base-content/60 text-xs">{homeworksCopy.submissionStart}</p>
-      <p class="mt-1 font-medium text-sm">{fmtDate(homework.submissionStartAt)}</p>
-    </div>
-    <div>
-      <p class="text-base-content/60 text-xs">{homeworksCopy.homeworkPublishedAt}</p>
-      <p class="mt-1 font-medium text-sm">{fmtDate(homework.publishedAt)}</p>
-    </div>
-  </div>
-</section>
+      </Item.Description>
+      <Item.Title class="text-lg">{fmtDate(homework.submissionDueAt)}</Item.Title>
+    </Item.Content>
+    <Item.Actions>
+      <Badge variant={homework.completion ? "default" : "secondary"}>
+        {homeworkStatus(homework)}
+      </Badge>
+    </Item.Actions>
+  </Item.Header>
+  <Item.Description>{homeworkEtaLabel(homework.submissionDueAt)}</Item.Description>
+  <Separator />
+  <Item.Group class="grid gap-3 sm:grid-cols-2">
+    <Item.Root variant="outline" size="sm">
+      <Item.Content>
+        <Item.Description class="text-xs">{homeworksCopy.submissionStart}</Item.Description>
+        <Item.Title>{fmtDate(homework.submissionStartAt)}</Item.Title>
+      </Item.Content>
+    </Item.Root>
+    <Item.Root variant="outline" size="sm">
+      <Item.Content>
+        <Item.Description class="text-xs">{homeworksCopy.homeworkPublishedAt}</Item.Description>
+        <Item.Title>{fmtDate(homework.publishedAt)}</Item.Title>
+      </Item.Content>
+    </Item.Root>
+  </Item.Group>
+</Item.Root>
 
 <div class="flex flex-wrap gap-2">
   {#if homework.isMajor}
-    <Badge class="border-warning/40 bg-warning/10 text-warning">
+    <Badge variant="secondary">
       {homeworksCopy.tagMajor}
     </Badge>
   {/if}
   {#if homework.requiresTeam}
-    <Badge class="border-info/40 bg-info/10 text-info">
+    <Badge variant="outline">
       {homeworksCopy.tagTeam}
     </Badge>
   {/if}

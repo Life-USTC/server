@@ -102,23 +102,23 @@ export let userMenuOpen: boolean;
         </DropdownMenu.Trigger>
         <DropdownMenu.Content align="end" class="w-44" preventScroll={false}>
           <DropdownMenu.Group>
-            <DropdownMenu.RadioGroup value={themeMode}>
+            <DropdownMenu.RadioGroup
+              value={themeMode}
+              onValueChange={(value) => setThemeMode(value as ThemeMode)}
+            >
               <DropdownMenu.RadioItem
-                onSelect={() => setThemeMode("system")}
                 value="system"
               >
                 <MonitorIcon />
                 {copy.theme.system}
               </DropdownMenu.RadioItem>
               <DropdownMenu.RadioItem
-                onSelect={() => setThemeMode("light")}
                 value="light"
               >
                 <SunIcon />
                 {copy.theme.light}
               </DropdownMenu.RadioItem>
               <DropdownMenu.RadioItem
-                onSelect={() => setThemeMode("dark")}
                 value="dark"
               >
                 <MoonIcon />
