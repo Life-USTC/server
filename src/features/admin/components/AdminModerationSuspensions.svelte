@@ -1,10 +1,10 @@
 <script lang="ts">
 import type { SubmitFunction } from "@sveltejs/kit";
 import { enhance } from "$app/forms";
-import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 
 type ModerationSuspension = {
   expiresAt?: string | Date | null;
@@ -70,8 +70,10 @@ export let suspensions: ModerationSuspension[];
       </Card.Content>
     </Card.Root>
   {:else}
-    <Alert.Root>
-      <Alert.Description>{copy.noSuspensions}</Alert.Description>
-    </Alert.Root>
+    <Empty.Root class="min-h-24">
+      <Empty.Header>
+        <Empty.Description>{copy.noSuspensions}</Empty.Description>
+      </Empty.Header>
+    </Empty.Root>
   {/each}
 </section>

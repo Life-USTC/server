@@ -1,8 +1,8 @@
 <script lang="ts">
-import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 
 type ModerationHomework = {
   createdAt: string | Date;
@@ -73,8 +73,10 @@ export let onDelete: (homework: ModerationHomework) => void;
       </Card.Content>
     </Card.Root>
   {:else}
-    <Alert.Root>
-      <Alert.Description>{copy.noHomeworks}</Alert.Description>
-    </Alert.Root>
+    <Empty.Root class="min-h-24">
+      <Empty.Header>
+        <Empty.Description>{copy.noHomeworks}</Empty.Description>
+      </Empty.Header>
+    </Empty.Root>
   {/each}
 </section>

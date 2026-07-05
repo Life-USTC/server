@@ -1,7 +1,7 @@
 <script lang="ts">
-import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import AdminUsersDesktopTable from "./AdminUsersDesktopTable.svelte";
 import AdminUsersMobileList from "./AdminUsersMobileList.svelte";
 import type {
@@ -48,9 +48,11 @@ export let users: AdminUserRow[];
   </Card.Header>
   <Card.Content class="grid gap-4">
     {#if users.length === 0}
-      <Alert.Root>
-        <Alert.Description>{copy.noResults}</Alert.Description>
-      </Alert.Root>
+      <Empty.Root class="min-h-24">
+        <Empty.Header>
+          <Empty.Description>{copy.noResults}</Empty.Description>
+        </Empty.Header>
+      </Empty.Root>
     {:else}
       <AdminUsersMobileList
         {copy}

@@ -1,6 +1,6 @@
 <script lang="ts">
 import AdminOAuthClientSection from "@/features/admin/components/AdminOAuthClientSection.svelte";
-import * as Alert from "$lib/components/ui/alert/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import type {
   AdminOAuthClient,
   AdminOAuthCopy,
@@ -20,9 +20,11 @@ export let trustedClients: AdminOAuthClient[];
 </script>
 
 {#if clients.length === 0}
-  <Alert.Root>
-    <Alert.Description>{copy.noClients}</Alert.Description>
-  </Alert.Root>
+  <Empty.Root class="min-h-24">
+    <Empty.Header>
+      <Empty.Description>{copy.noClients}</Empty.Description>
+    </Empty.Header>
+  </Empty.Root>
 {:else}
   <div class="grid min-w-0 items-start gap-4 2xl:grid-cols-2">
     <AdminOAuthClientSection

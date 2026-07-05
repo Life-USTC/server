@@ -5,9 +5,9 @@ import {
   oauthClientSectionPageCount,
   oauthClientSectionStatus,
 } from "@/features/admin/lib/admin-oauth-client-section-pagination";
-import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import AdminOAuthClientSectionPagination from "./AdminOAuthClientSectionPagination.svelte";
 import type {
   AdminOAuthClient,
@@ -61,9 +61,11 @@ $: pageStatus = oauthClientSectionStatus({
           {onDelete}
         />
       {:else}
-        <Alert.Root>
-          <Alert.Description>{emptyMessage}</Alert.Description>
-        </Alert.Root>
+        <Empty.Root class="min-h-24">
+          <Empty.Header>
+            <Empty.Description>{emptyMessage}</Empty.Description>
+          </Empty.Header>
+        </Empty.Root>
       {/each}
     </Card.Content>
     {#if pageCount > 1}

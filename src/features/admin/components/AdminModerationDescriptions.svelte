@@ -1,5 +1,5 @@
 <script lang="ts">
-import * as Alert from "$lib/components/ui/alert/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import AdminModerationDescriptionCards from "./AdminModerationDescriptionCards.svelte";
 import AdminModerationDescriptionSummary from "./AdminModerationDescriptionSummary.svelte";
 import AdminModerationDescriptionTable from "./AdminModerationDescriptionTable.svelte";
@@ -56,8 +56,10 @@ export let targetLabel: (description: AdminModerationDescription) => string;
       {targetLabel}
     />
   {:else}
-    <Alert.Root>
-      <Alert.Description>{copy.noDescriptions}</Alert.Description>
-    </Alert.Root>
+    <Empty.Root class="min-h-24">
+      <Empty.Header>
+        <Empty.Description>{copy.noDescriptions}</Empty.Description>
+      </Empty.Header>
+    </Empty.Root>
   {/if}
 </section>
