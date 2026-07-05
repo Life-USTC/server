@@ -5,7 +5,6 @@ import type {
   DashboardBusData,
 } from "@/features/dashboard/lib/bus-tab-types";
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import BusTabRouteTable from "./BusTabRouteTable.svelte";
 import BusTabTimetableNotice from "./BusTabTimetableNotice.svelte";
@@ -25,10 +24,12 @@ export let showHeader = true;
     {#if showHeader}
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Card.Title>{busCopy.dashboardTitle}</Card.Title>
-          <Card.Description>
+          <h2 class="font-semibold text-lg tracking-normal">
+            {busCopy.dashboardTitle}
+          </h2>
+          <p class="text-muted-foreground text-sm">
             {bus?.version?.title ?? busCopy.activeVersion}
-          </Card.Description>
+          </p>
         </div>
         <Button href="/bus-map" size="lg" variant="outline">{busCopy.transitMap}</Button>
       </div>

@@ -1,5 +1,5 @@
 <script lang="ts">
-import * as Card from "$lib/components/ui/card/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 
 type LinkCard = {
   description: string;
@@ -80,16 +80,18 @@ $: cards = extractLinkCards(content, copy);
 </script>
 
 {#if cards.length > 0}
-  <div class="mt-3 grid gap-2 sm:grid-cols-2">
+  <Item.Group class="mt-3 grid gap-2 sm:grid-cols-2">
     {#each cards as card}
-      <Card.Root class="shadow-none">
-        <Card.Content class="grid gap-1 p-3">
-          <a class="font-medium text-primary text-sm hover:underline" href={card.href}>
-            {card.label}
+      <Item.Root size="sm" variant="outline">
+        {#snippet child({ props })}
+          <a {...props} href={card.href}>
+            <Item.Content>
+              <Item.Title>{card.label}</Item.Title>
+              <Item.Description>{card.description}</Item.Description>
+            </Item.Content>
           </a>
-          <p class="text-base-content/60 text-xs">{card.description}</p>
-        </Card.Content>
-      </Card.Root>
+        {/snippet}
+      </Item.Root>
     {/each}
-  </div>
+  </Item.Group>
 {/if}

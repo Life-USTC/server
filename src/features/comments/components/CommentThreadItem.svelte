@@ -84,7 +84,7 @@ export let viewer: ViewerContext;
   <Card.Root
     class={`transition-colors duration-300 ${highlightedId === comment.id ? "ring-2 ring-primary/40" : ""}`}
   >
-    <Card.Content class="grid gap-4 p-4 md:p-5">
+    <Card.Header class="px-4 md:px-5">
       <CommentThreadHeader
         bind:actionMenuId
         {authorInitials}
@@ -98,7 +98,9 @@ export let viewer: ViewerContext;
         {statusLabel}
         {toggleReply}
       />
+    </Card.Header>
 
+    <Card.Content class="px-4 md:px-5">
       <CommentThreadBody
         {cancelEdit}
         {comment}
@@ -116,7 +118,9 @@ export let viewer: ViewerContext;
         {uploadFile}
         {visibilityOptions}
       />
+    </Card.Content>
 
+    <Card.Footer class="flex-col items-stretch gap-4 px-4 md:px-5">
       <CommentReactionControls
         {comment}
         {commentCopy}
@@ -151,6 +155,6 @@ export let viewer: ViewerContext;
           {viewer}
         />
       {/if}
-    </Card.Content>
+    </Card.Footer>
   </Card.Root>
 </article>

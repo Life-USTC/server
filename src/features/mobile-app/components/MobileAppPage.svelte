@@ -157,30 +157,44 @@ $: stats = [
 <section class="grid gap-5">
   <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
     <Card.Root class="overflow-hidden">
-      <Card.Content class="grid gap-5 p-4 sm:p-5">
-        <div class="flex flex-wrap items-start justify-between gap-4">
-          <div class="flex min-w-0 items-center gap-3">
-            <img
-              class="size-12 rounded-md border border-base-300 bg-base-100"
-              src="/images/icon.png"
-              alt={homeCopy.appIconAlt}
-            />
-            <div class="min-w-0">
-              <p class="font-medium text-base-content/55 text-xs uppercase tracking-normal">
-                {pageCopy.eyebrow}
-              </p>
-              <h1 class="truncate font-semibold text-2xl tracking-normal sm:text-3xl">
-                {pageCopy.title}
-              </h1>
-            </div>
+      <Card.Header class="p-4 sm:p-5">
+        <div class="flex min-w-0 items-center gap-3">
+          <img
+            class="size-12 rounded-md border border-border bg-background"
+            src="/images/icon.png"
+            alt={homeCopy.appIconAlt}
+          />
+          <div class="min-w-0">
+            <p class="font-medium text-muted-foreground text-xs uppercase tracking-normal">
+              {pageCopy.eyebrow}
+            </p>
+            <h1 class="font-semibold text-2xl leading-tight tracking-normal sm:text-3xl">
+              {pageCopy.title}
+            </h1>
           </div>
-          <Badge variant="outline">{pageCopy.availability}</Badge>
         </div>
-
-        <p class="max-w-3xl text-base-content/65 text-sm leading-6 sm:text-base">
+        <Card.Action>
+          <Badge variant="outline">{pageCopy.availability}</Badge>
+        </Card.Action>
+        <Card.Description class="max-w-3xl text-sm leading-6 sm:text-base">
           {pageCopy.subtitle}
-        </p>
+        </Card.Description>
+      </Card.Header>
 
+      <Card.Content class="grid gap-5 px-4 sm:px-5">
+        <Item.Group class="grid gap-2 sm:grid-cols-3">
+          {#each stats as item}
+            <Item.Root class="items-start" size="sm" variant="muted">
+              <Item.Content>
+                <Item.Title>{item.value}</Item.Title>
+                <Item.Description>{item.label}</Item.Description>
+              </Item.Content>
+            </Item.Root>
+          {/each}
+        </Item.Group>
+      </Card.Content>
+
+      <Card.Footer class="flex-wrap gap-2 px-4 sm:px-5">
         <div class="flex flex-wrap items-center gap-2">
           <a
             class="inline-flex rounded-md no-underline transition hover:opacity-90"
@@ -200,24 +214,13 @@ $: stats = [
             {homeCopy.actions.openDashboard}
           </Button>
         </div>
-
-        <Item.Group class="grid gap-2 sm:grid-cols-3">
-          {#each stats as item}
-            <Item.Root class="items-start" size="sm" variant="muted">
-              <Item.Content>
-                <Item.Title>{item.value}</Item.Title>
-                <Item.Description>{item.label}</Item.Description>
-              </Item.Content>
-            </Item.Root>
-          {/each}
-        </Item.Group>
-      </Card.Content>
+      </Card.Footer>
     </Card.Root>
 
     <Card.Root class="overflow-hidden">
-      <Card.Header class="border-base-300 border-b p-4">
+      <Card.Header class="border-border border-b p-4">
         <div class="flex items-center gap-3">
-          <span class="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-base-300 bg-base-200 text-primary">
+          <span class="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-primary">
             <SmartphoneIcon />
           </span>
           <div class="min-w-0">
