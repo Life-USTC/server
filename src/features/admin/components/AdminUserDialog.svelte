@@ -44,7 +44,7 @@ export let suspensionLabel: AdminUserFormatter;
     }}
   >
     <Dialog.Content
-      class="max-w-2xl"
+      class="max-w-2xl sm:max-w-2xl"
       aria-labelledby="admin-user-dialog-title"
     >
       <AdminUserDialogHeader {copy} user={selectedUser} />

@@ -24,7 +24,7 @@ export let deletingClientId: string | null;
     }}
   >
     <AlertDialog.Content
-      class="max-w-md"
+      class="max-w-md sm:max-w-md"
       aria-labelledby="oauth-delete-title"
     >
       <AlertDialog.Header>

@@ -17,7 +17,7 @@ export let open: boolean;
     }}
   >
     <AlertDialog.Content
-      class="max-w-md"
+      class="max-w-md sm:max-w-md"
       aria-labelledby="delete-comment-title"
     >
       <AlertDialog.Header>

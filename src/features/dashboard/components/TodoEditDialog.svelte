@@ -35,7 +35,7 @@ export let updateTodoAction: SubmitFunction;
     }}
   >
     <Dialog.Content
-      class="max-w-lg"
+      class="max-w-lg sm:max-w-lg"
     >
       <form method="POST" action="?/updateTodo" use:enhance={updateTodoAction}>
         <input name="id" type="hidden" value={todo.id} />

@@ -42,7 +42,7 @@ export let toggleHomeworkCompletion: DashboardHomeworkCompletionToggle;
     }}
   >
     <Dialog.Content
-      class="max-w-5xl"
+      class="max-w-5xl sm:max-w-5xl"
     >
       {@const selectedCourseLabel = homeworkCourseLabel(homework)}
       {@const SelectedCompletionIcon = homework.completion ? RefreshCw : CheckCircleIcon}

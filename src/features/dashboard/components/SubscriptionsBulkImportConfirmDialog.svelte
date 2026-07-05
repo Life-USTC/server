@@ -35,7 +35,7 @@ export let isConfirmImportOpen: boolean;
     }}
   >
     <Dialog.Content
-      class="max-w-2xl"
+      class="max-w-2xl sm:max-w-2xl"
     >
       <Dialog.Header>
         <Dialog.Title>

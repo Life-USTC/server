@@ -28,7 +28,7 @@ export let target: HomeworkTarget;
   }}
 >
   <AlertDialog.Content
-    class="max-w-md"
+    class="max-w-md sm:max-w-md"
   >
     <AlertDialog.Header>
       <AlertDialog.Title>{homeworkCopy.deleteTitle}</AlertDialog.Title>

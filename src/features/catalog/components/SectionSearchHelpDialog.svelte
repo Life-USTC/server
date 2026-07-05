@@ -24,7 +24,7 @@ export let sectionLabels: SectionSearchHelpLabels;
 >
   <Dialog.Content
     aria-label="Section search help"
-    class="max-w-2xl"
+    class="max-w-2xl sm:max-w-2xl"
   >
     <Dialog.Header>
       <Dialog.Title>{sectionLabels.searchHelpTitle}</Dialog.Title>

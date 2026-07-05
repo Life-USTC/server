@@ -44,7 +44,7 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
     }}
   >
     <Dialog.Content
-      class="max-w-lg"
+      class="max-w-lg sm:max-w-lg"
     >
       <form method="POST" action="?/createHomework" use:enhance={createHomeworkAction}>
         <Dialog.Header>

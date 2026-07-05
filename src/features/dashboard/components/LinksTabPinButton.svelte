@@ -33,6 +33,7 @@ export let updatingDashboardLinkSlug: string | null;
     <Tooltip.Trigger>
       {#snippet child({ props })}
         <Button
+          {...props}
           aria-label={pinLabel(link)}
           class={link.isPinned
             ? "border-primary bg-primary/10 text-primary hover:bg-primary/15"
@@ -41,7 +42,6 @@ export let updatingDashboardLinkSlug: string | null;
           size="icon-sm"
           type="submit"
           variant="outline"
-          {...props}
         >
           <Pin data-icon="inline-start" class={link.isPinned ? "fill-primary/20" : ""} />
         </Button>

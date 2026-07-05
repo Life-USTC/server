@@ -37,7 +37,7 @@ export let submissionStartAt: string;
     }}
   >
     <Dialog.Content
-      class="max-w-2xl"
+      class="max-w-2xl sm:max-w-2xl"
     >
       <form
         class="grid gap-4"

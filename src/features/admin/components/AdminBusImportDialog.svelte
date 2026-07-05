@@ -21,7 +21,7 @@ export let pendingAction: string | null;
   }}
 >
   <Dialog.Content
-    class="max-w-lg"
+    class="max-w-lg sm:max-w-lg"
     aria-labelledby="bus-import-title"
   >
     <Dialog.Header>

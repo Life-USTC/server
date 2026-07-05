@@ -25,7 +25,7 @@ export let version: AdminBusVersion;
   }}
 >
   <AlertDialog.Content
-    class="max-w-lg"
+    class="max-w-lg sm:max-w-lg"
     aria-labelledby="bus-delete-title"
   >
     <AlertDialog.Header>

@@ -35,7 +35,7 @@ $: semesterOptions = signedData.subscriptions.semesters.map((semester) => ({
     }}
   >
     <Dialog.Content
-      class="max-w-lg"
+      class="max-w-lg sm:max-w-lg"
     >
       <Dialog.Header>
         <Dialog.Title>{subscriptionsCopy.bulkImport.title}</Dialog.Title>

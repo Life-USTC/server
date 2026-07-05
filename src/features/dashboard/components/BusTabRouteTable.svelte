@@ -15,53 +15,55 @@ $: stopColumns = busRouteSegmentStopColumns(route);
 $: tableMinWidth = `${Math.max(16, stopColumns.length * 4.25)}rem`;
 </script>
 
-<Card.Root>
-  <Card.Header>
-    <Card.Title>{route.route.descriptionPrimary}</Card.Title>
-  </Card.Header>
-  <Card.Content>
-    <Table.Root style={`min-width: ${tableMinWidth};`}>
-      <Table.Header>
-        <Table.Row>
-          {#each stopColumns as stop, index}
-            <Table.Head
-              class={index === 0
-                ? "text-left"
-                : index === stopColumns.length - 1
-                  ? "text-right"
-                  : "text-center"}
-            >
-              {stop.label}
-            </Table.Head>
-          {/each}
-        </Table.Row>
-      </Table.Header>
-      <Table.Body>
-        {#each route.visibleTrips as trip}
-          {@const tripKey = `${route.route.id}:${trip.trip.id}`}
-          {@const isNextTrip = tripKey === busNextTripHighlightKey}
-          <Table.Row
-            class={`border-0 ${trip.status === "departed" ? "opacity-60" : ""} ${
-              isNextTrip ? "bg-base-200/70 hover:bg-base-200" : ""
-            }`}
-          >
+<section>
+  <Card.Root>
+    <Card.Header>
+      <Card.Title>{route.route.descriptionPrimary}</Card.Title>
+    </Card.Header>
+    <Card.Content>
+      <Table.Root style={`min-width: ${tableMinWidth};`}>
+        <Table.Header>
+          <Table.Row>
             {#each stopColumns as stop, index}
-              {@const stopTime = busTripStopTimeForOrder(trip, stop.stopOrder)}
-              <Table.Cell
-                class={`font-mono tabular-nums ${
-                  index === 0
-                    ? "text-left"
-                    : index === stopColumns.length - 1
-                      ? "text-right"
-                      : "text-center"
-                }`}
+              <Table.Head
+                class={index === 0
+                  ? "text-left"
+                  : index === stopColumns.length - 1
+                    ? "text-right"
+                    : "text-center"}
               >
-                {busStopTimeLabel(stopTime)}
-              </Table.Cell>
+                {stop.label}
+              </Table.Head>
             {/each}
           </Table.Row>
-        {/each}
-      </Table.Body>
-    </Table.Root>
-  </Card.Content>
-</Card.Root>
+        </Table.Header>
+        <Table.Body>
+          {#each route.visibleTrips as trip}
+            {@const tripKey = `${route.route.id}:${trip.trip.id}`}
+            {@const isNextTrip = tripKey === busNextTripHighlightKey}
+            <Table.Row
+              class={`border-0 ${trip.status === "departed" ? "opacity-60" : ""} ${
+                isNextTrip ? "bg-base-200/70 hover:bg-base-200" : ""
+              }`}
+            >
+              {#each stopColumns as stop, index}
+                {@const stopTime = busTripStopTimeForOrder(trip, stop.stopOrder)}
+                <Table.Cell
+                  class={`font-mono tabular-nums ${
+                    index === 0
+                      ? "text-left"
+                      : index === stopColumns.length - 1
+                        ? "text-right"
+                        : "text-center"
+                  }`}
+                >
+                  {busStopTimeLabel(stopTime)}
+                </Table.Cell>
+              {/each}
+            </Table.Row>
+          {/each}
+        </Table.Body>
+      </Table.Root>
+    </Card.Content>
+  </Card.Root>
+</section>

@@ -26,7 +26,7 @@ export let unlinkAccountId: string | null;
     }}
   >
     <AlertDialog.Content
-      class="max-w-md"
+      class="max-w-md sm:max-w-md"
     >
       <AlertDialog.Header>
         <AlertDialog.Title>{copy.profile.disconnectConfirmTitle}</AlertDialog.Title>

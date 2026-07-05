@@ -32,7 +32,7 @@ export let toggleTodoCompletion: (todo: DashboardTodoItem) => void;
     }}
   >
     <Dialog.Content
-      class="max-w-lg"
+      class="max-w-lg sm:max-w-lg"
     >
       <Dialog.Header>
         <Dialog.Title>{todo.title}</Dialog.Title>

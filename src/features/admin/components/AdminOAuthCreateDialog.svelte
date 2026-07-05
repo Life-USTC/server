@@ -42,7 +42,7 @@ export let toggleScope: (scope: string, checked: boolean) => void;
     }}
   >
     <Dialog.Content
-      class="!max-w-4xl"
+      class="!max-w-4xl sm:!max-w-4xl"
       aria-labelledby="oauth-create-title"
     >
       <Dialog.Header>

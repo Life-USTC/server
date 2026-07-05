@@ -13,7 +13,7 @@ export let sectionCopy: SectionBasicInfoCopy;
 </script>
 
 {#if section.adminClasses.length > 0}
-  <Accordion.Root type="single">
+  <Accordion.Root type="single" value="admin-classes">
     <Accordion.Item value="admin-classes">
       <Accordion.Trigger>{sectionCopy.adminClasses}</Accordion.Trigger>
       <Accordion.Content>

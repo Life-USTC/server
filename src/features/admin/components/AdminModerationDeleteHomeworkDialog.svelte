@@ -35,7 +35,7 @@ export let isDeleting: boolean;
     }}
   >
     <AlertDialog.Content
-      class="max-w-md"
+      class="max-w-md sm:max-w-md"
     >
       <form
         method="POST"

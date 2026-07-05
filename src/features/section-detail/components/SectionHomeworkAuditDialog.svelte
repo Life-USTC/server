@@ -40,7 +40,7 @@ export let setOpen: (open: boolean) => void;
   onOpenChange={setOpen}
 >
   <Dialog.Content
-    class="!max-w-2xl"
+    class="!max-w-2xl sm:!max-w-2xl"
   >
     <Dialog.Header>
       <Dialog.Title>{homeworkCopy.auditTitle}</Dialog.Title>

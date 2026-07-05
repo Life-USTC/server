@@ -35,7 +35,7 @@ export let welcomeCopy: WelcomeCopy;
     }}
   >
     <Dialog.Content
-      class="max-w-lg"
+      class="max-w-lg sm:max-w-lg"
       aria-labelledby="welcome-bulk-import-title"
     >
       <Dialog.Header>

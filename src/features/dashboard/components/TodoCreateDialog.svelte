@@ -31,7 +31,7 @@ export let todosCopy: DashboardTodosCopy;
     }}
   >
     <Dialog.Content
-      class="max-w-lg"
+      class="max-w-lg sm:max-w-lg"
     >
       <form method="POST" action="?/createTodo" use:enhance={createTodoAction}>
         <Dialog.Header>

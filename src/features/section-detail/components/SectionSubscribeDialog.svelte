@@ -31,7 +31,7 @@ export let subscriptionPendingAction: "subscribe" | "unsubscribe" | null;
   }}
 >
   <Dialog.Content
-    class="max-w-lg"
+    class="max-w-lg sm:max-w-lg"
     aria-labelledby="section-subscribe-title"
   >
     <Dialog.Header>

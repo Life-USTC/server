@@ -40,7 +40,7 @@ export let targetLabel: (description: AdminModerationDescription) => string;
     }}
   >
     <Dialog.Content
-      class="max-w-3xl"
+      class="max-w-3xl sm:max-w-3xl"
       aria-labelledby="manage-description-title"
     >
       <form

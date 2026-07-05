@@ -29,7 +29,7 @@ export let open: boolean;
     }}
   >
     <Dialog.Content
-      class="max-w-2xl"
+      class="max-w-2xl sm:max-w-2xl"
       aria-labelledby="oauth-credentials-title"
     >
       <Dialog.Header>

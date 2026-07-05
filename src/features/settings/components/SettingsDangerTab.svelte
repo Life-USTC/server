@@ -48,7 +48,7 @@ export let isMounted: boolean;
           }
         }}
       >
-        <AlertDialog.Content class="max-w-md">
+        <AlertDialog.Content class="max-w-md sm:max-w-md">
           <AlertDialog.Header>
             <AlertDialog.Title>{copy.profile.deleteAccountConfirmTitle}</AlertDialog.Title>
             <AlertDialog.Description>

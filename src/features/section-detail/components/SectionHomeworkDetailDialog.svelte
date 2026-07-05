@@ -69,7 +69,7 @@ export let sectionJwId: number | string;
     }}
   >
     <Dialog.Content
-      class="max-w-5xl"
+      class="max-w-5xl sm:max-w-5xl"
     >
       <Dialog.Header>
         <div class="flex items-start justify-between gap-3">
