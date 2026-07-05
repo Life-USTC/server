@@ -5,6 +5,7 @@ import {
   busStopTimeLabel,
   busTripStopTimeForOrder,
 } from "@/features/dashboard/lib/bus";
+import * as Card from "$lib/components/ui/card/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 
 export let busNextTripHighlightKey: string | null;
@@ -14,9 +15,11 @@ $: stopColumns = busRouteSegmentStopColumns(route);
 $: tableMinWidth = `${Math.max(16, stopColumns.length * 4.25)}rem`;
 </script>
 
-<section class="grid gap-3 rounded-xl border border-base-300 bg-base-100 p-4">
-  <h3 class="font-semibold">{route.route.descriptionPrimary}</h3>
-  <div class="overflow-x-auto">
+<Card.Root>
+  <Card.Header>
+    <Card.Title>{route.route.descriptionPrimary}</Card.Title>
+  </Card.Header>
+  <Card.Content>
     <Table.Root style={`min-width: ${tableMinWidth};`}>
       <Table.Header>
         <Table.Row>
@@ -60,5 +63,5 @@ $: tableMinWidth = `${Math.max(16, stopColumns.length * 4.25)}rem`;
         {/each}
       </Table.Body>
     </Table.Root>
-  </div>
-</section>
+  </Card.Content>
+</Card.Root>

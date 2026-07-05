@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import SectionCreateHomeworkFields from "./SectionCreateHomeworkFields.svelte";
 import type {
   SectionCreateHomeworkCommentsCopy,
@@ -39,29 +40,31 @@ export let submissionStartAt: string;
       class="max-w-2xl"
     >
       <form
-        class="grid max-h-[calc(100vh-2rem)] gap-4 overflow-y-auto"
+        class="grid gap-4"
         onsubmit={createHomework}
       >
         <Dialog.Header>
           <Dialog.Title>{homeworkCopy.createTitle}</Dialog.Title>
           <Dialog.Description>{homeworkCopy.subtitle}</Dialog.Description>
         </Dialog.Header>
-        <SectionCreateHomeworkFields
-          {applyDueAtSemesterEnd}
-          {applyDueInMonth}
-          {applyDueInWeek}
-          {applyPublishNow}
-          {applyStartAtSemesterStart}
-          {applyStartNow}
-          {commentsCopy}
-          {hasSemesterEnd}
-          {hasSemesterStart}
-          {homeworkCopy}
-          {homeworkMessage}
-          bind:publishedAt
-          bind:submissionDueAt
-          bind:submissionStartAt
-        />
+        <ScrollArea class="h-[min(64vh,36rem)]">
+          <SectionCreateHomeworkFields
+            {applyDueAtSemesterEnd}
+            {applyDueInMonth}
+            {applyDueInWeek}
+            {applyPublishNow}
+            {applyStartAtSemesterStart}
+            {applyStartNow}
+            {commentsCopy}
+            {hasSemesterEnd}
+            {hasSemesterStart}
+            {homeworkCopy}
+            {homeworkMessage}
+            bind:publishedAt
+            bind:submissionDueAt
+            bind:submissionStartAt
+          />
+        </ScrollArea>
         <Dialog.Footer>
           <Button type="button" variant="outline" onclick={close}>
             {sectionCopy.close ?? ""}

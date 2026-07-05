@@ -63,17 +63,17 @@ export let toggleHomeworkCompletion: (
               {homeworkEtaLabel(homework.submissionDueAt)}
             </Badge>
             {#if homework.completion}
-              <Badge class="border-success/40 bg-success/10 text-success">
+              <Badge variant="secondary">
                 {homeworksCopy.completedLabel}
               </Badge>
             {/if}
             {#if homework.isMajor}
-              <Badge class="border-warning/40 bg-warning/10 text-warning">
+              <Badge>
                 {homeworksCopy.tagMajor}
               </Badge>
             {/if}
             {#if homework.requiresTeam}
-              <Badge class="border-info/40 bg-info/10 text-info">
+              <Badge variant="outline">
                 {homeworksCopy.tagTeam}
               </Badge>
             {/if}

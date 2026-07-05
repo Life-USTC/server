@@ -5,6 +5,7 @@ import { enhance } from "$app/forms";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
+import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import { Textarea } from "$lib/components/ui/textarea/index.js";
 import AdminModerationDescriptionMeta from "./AdminModerationDescriptionMeta.svelte";
 import type { AdminModerationDescription } from "./admin-moderation-description-types";
@@ -45,7 +46,7 @@ export let targetLabel: (description: AdminModerationDescription) => string;
       <form
         method="POST"
         action="?/moderateDescription"
-        class="grid max-h-[calc(100vh-2rem)] overflow-y-auto"
+        class="grid gap-4"
         use:enhance={enhanceAction}
       >
         <Dialog.Header>
@@ -60,31 +61,33 @@ export let targetLabel: (description: AdminModerationDescription) => string;
           </div>
         </Dialog.Header>
 
-        <div class="grid gap-4 px-5 py-4">
-          <input type="hidden" name="id" value={description.id} />
-          <AdminModerationDescriptionMeta
-            {copy}
-            {description}
-            {descriptionTargetHref}
-            {formatMessage}
-          />
-
-          <Field.Field>
-            <Field.Label for="admin-description-content">
-              {copy.descriptionContent}
-            </Field.Label>
-            <Textarea
-              id="admin-description-content"
-              class="min-h-56"
-              maxlength={DESCRIPTION_CONTENT_MAX_LENGTH}
-              name="content"
-              value={descriptionDraft}
-              oninput={(event: Event) => {
-                descriptionDraft = inputValue(event);
-              }}
+        <ScrollArea class="h-[min(62vh,34rem)]">
+          <div class="grid gap-4 px-5 py-4">
+            <input type="hidden" name="id" value={description.id} />
+            <AdminModerationDescriptionMeta
+              {copy}
+              {description}
+              {descriptionTargetHref}
+              {formatMessage}
             />
-          </Field.Field>
-        </div>
+
+            <Field.Field>
+              <Field.Label for="admin-description-content">
+                {copy.descriptionContent}
+              </Field.Label>
+              <Textarea
+                id="admin-description-content"
+                class="min-h-56"
+                maxlength={DESCRIPTION_CONTENT_MAX_LENGTH}
+                name="content"
+                value={descriptionDraft}
+                oninput={(event: Event) => {
+                  descriptionDraft = inputValue(event);
+                }}
+              />
+            </Field.Field>
+          </div>
+        </ScrollArea>
 
         <Dialog.Footer>
           <Button

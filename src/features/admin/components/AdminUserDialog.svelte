@@ -6,6 +6,7 @@ import AdminUserSuspensionSection from "@/features/admin/components/AdminUserSus
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import type {
   AdminUserFormatter,
   AdminUserRow,
@@ -48,33 +49,35 @@ export let suspensionLabel: AdminUserFormatter;
     >
       <AdminUserDialogHeader {copy} user={selectedUser} />
 
-      <div class="grid max-h-[calc(100vh-2rem)] gap-5 overflow-y-auto px-5 py-4">
-        {#if message}<Alert.Root><Alert.Description>{message}</Alert.Description></Alert.Root>{/if}
+      <ScrollArea class="h-[min(62vh,34rem)]">
+        <div class="grid gap-5 px-5 py-4">
+          {#if message}<Alert.Root><Alert.Description>{message}</Alert.Description></Alert.Root>{/if}
 
-        <AdminUserProfileSection
-          {copy}
-          bind:editIsAdmin
-          bind:editName
-          bind:editUsername
-          {inputValue}
-        />
+          <AdminUserProfileSection
+            {copy}
+            bind:editIsAdmin
+            bind:editName
+            bind:editUsername
+            {inputValue}
+          />
 
-        <AdminUserSuspensionSection
-          {copy}
-          {inputValue}
-          {isLiftingSuspension}
-          {isSuspending}
-          {liftSelectedSuspension}
-          {moderationCopy}
-          {selectedUser}
-          bind:suspendDuration
-          {suspendDurationOptions}
-          bind:suspendExpiresAt
-          bind:suspendReason
-          {suspendSelectedUser}
-          {suspensionLabel}
-        />
-      </div>
+          <AdminUserSuspensionSection
+            {copy}
+            {inputValue}
+            {isLiftingSuspension}
+            {isSuspending}
+            {liftSelectedSuspension}
+            {moderationCopy}
+            {selectedUser}
+            bind:suspendDuration
+            {suspendDurationOptions}
+            bind:suspendExpiresAt
+            bind:suspendReason
+            {suspendSelectedUser}
+            {suspensionLabel}
+          />
+        </div>
+      </ScrollArea>
 
       <Dialog.Footer>
         <Button type="button" variant="outline" onclick={close}>

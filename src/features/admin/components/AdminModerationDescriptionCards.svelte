@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Button } from "$lib/components/ui/button/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 import {
   adminModerationDescriptionEditedAt,
   adminModerationDescriptionLastEditor,
@@ -20,30 +20,27 @@ export let onManage: (description: AdminModerationDescription) => void;
 export let targetLabel: (description: AdminModerationDescription) => string;
 </script>
 
-<div class="grid gap-3 md:hidden">
+<Item.Group class="md:hidden">
   {#each descriptions as description}
-    <Button
-      class="h-auto w-full justify-start p-0 text-left whitespace-normal"
-      variant="outline"
-      type="button"
-      onclick={() => onManage(description)}
-    >
-      <span class="grid w-full gap-3 p-4">
-        <span class="flex flex-wrap items-center justify-between gap-2">
-          <span class="font-semibold text-lg">{targetLabel(description)}</span>
-          <span class="text-muted-foreground text-sm">
-            {formatDate(adminModerationDescriptionEditedAt(description))}
-          </span>
-        </span>
-        <span class="line-clamp-4 whitespace-pre-wrap text-sm">
-          {description.content || copy.emptyDescription}
-        </span>
-        <span class="text-muted-foreground text-xs">
-          {formatMessage(copy.lastEditor, {
-            name: adminModerationDescriptionLastEditor(description, copy),
-          })}
-        </span>
-      </span>
-    </Button>
+    <Item.Root variant="outline" class="items-start">
+      {#snippet child({ props })}
+        <button {...props} type="button" onclick={() => onManage(description)}>
+          <Item.Content class="min-w-0 gap-2">
+            <Item.Title class="line-clamp-none">{targetLabel(description)}</Item.Title>
+            <Item.Description>
+              {formatDate(adminModerationDescriptionEditedAt(description))}
+            </Item.Description>
+            <Item.Description class="line-clamp-4 whitespace-pre-wrap">
+              {description.content || copy.emptyDescription}
+            </Item.Description>
+            <Item.Description class="text-xs">
+              {formatMessage(copy.lastEditor, {
+                name: adminModerationDescriptionLastEditor(description, copy),
+              })}
+            </Item.Description>
+          </Item.Content>
+        </button>
+      {/snippet}
+    </Item.Root>
   {/each}
-</div>
+</Item.Group>

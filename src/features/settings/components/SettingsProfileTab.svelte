@@ -42,7 +42,7 @@ export let user: SettingsUser;
       <Field.Group class="grid gap-4 md:grid-cols-2">
         <Field.Field data-disabled={!isMounted ? "true" : undefined}>
           <Field.Label for="name">
-            {copy.profile.name} <span class="text-error">*</span>
+            {copy.profile.name} <span class="text-destructive">*</span>
           </Field.Label>
           <Input
             id="name"

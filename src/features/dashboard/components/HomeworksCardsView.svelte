@@ -30,10 +30,10 @@ export let toggleHomeworkCompletion: (
       data-slot="card"
       id={`homework-${homework.id}`}
     >
-      <Card.Content class="grid gap-3 pt-5">
-        <div class="flex flex-wrap items-start justify-between gap-2">
+      <Card.Header>
+        <Card.Title>
           <button
-            class="text-left font-semibold text-lg hover:underline"
+            class="text-left underline-offset-4 hover:underline"
             type="button"
             onclick={() => {
               selectedHomework = homework;
@@ -41,35 +41,39 @@ export let toggleHomeworkCompletion: (
           >
             {homework.title}
           </button>
+        </Card.Title>
+        <Card.Description>
+          {homework.section?.courseName ?? homeworkCopy.section} · {homeworkCopy.due}:
+          {fmtDate(homework.submissionDueAt)}
+        </Card.Description>
+        <Card.Action>
           {#if homework.completion}
             <Badge variant="outline">
               {homeworksCopy.completedLabel}
             </Badge>
           {/if}
-        </div>
-        <p class="text-base-content/60 text-sm">
-          {homework.section?.courseName ?? homeworkCopy.section} · {homeworkCopy.due}:
-          {fmtDate(homework.submissionDueAt)}
-        </p>
+        </Card.Action>
+      </Card.Header>
+      <Card.Content>
         <div class="flex flex-wrap gap-2">
           <Badge variant="ghost">{homeworkEtaLabel(homework.submissionDueAt)}</Badge>
           {#if homework.isMajor}<Badge variant="secondary">{homeworksCopy.tagMajor}</Badge>{/if}
           {#if homework.requiresTeam}<Badge variant="secondary">{homeworksCopy.tagTeam}</Badge>{/if}
         </div>
-        <div class="flex justify-end">
-          <Button
-            disabled={homeworkSavingById[homework.id]}
-            size="sm"
-            type="button"
-            variant="outline"
-            onclick={() => toggleHomeworkCompletion(homework)}
-          >
-            {homeworkSavingById[homework.id]
-              ? homeworksCopy.saving
-              : homeworkCompletionActionLabel(homework)}
-          </Button>
-        </div>
       </Card.Content>
+      <Card.Footer class="justify-end">
+        <Button
+          disabled={homeworkSavingById[homework.id]}
+          size="sm"
+          type="button"
+          variant="outline"
+          onclick={() => toggleHomeworkCompletion(homework)}
+        >
+          {homeworkSavingById[homework.id]
+            ? homeworksCopy.saving
+            : homeworkCompletionActionLabel(homework)}
+        </Button>
+      </Card.Footer>
     </Card.Root>
   {:else}
     <Empty.Root class="min-h-24 border border-border bg-background md:col-span-2">

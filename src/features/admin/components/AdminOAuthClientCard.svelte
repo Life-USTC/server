@@ -23,11 +23,11 @@ export let onDelete: (client: AdminOAuthClient) => void;
       <Card.Description class="break-all font-mono text-xs">{client.clientId}</Card.Description>
       <Card.Action class="flex flex-wrap justify-end gap-2">
         <Badge variant="ghost">{clientTypeLabel(client.tokenEndpointAuthMethod)}</Badge>
-        {#if client.skipConsent}<Badge class="border-warning bg-warning/10 text-warning" variant="outline">{copy.clientTrustTrusted}</Badge>{/if}
+        {#if client.skipConsent}<Badge variant="secondary">{copy.clientTrustTrusted}</Badge>{/if}
         {#if client.disabled}
-          <Badge class="border-error bg-error/10 text-error" variant="outline">{copy.disabled}</Badge>
+          <Badge variant="destructive">{copy.disabled}</Badge>
         {:else}
-          <Badge class="border-success bg-success/10 text-success" variant="outline">{copy.enabled}</Badge>
+          <Badge>{copy.enabled}</Badge>
         {/if}
       </Card.Action>
     </Card.Header>

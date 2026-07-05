@@ -38,21 +38,21 @@ export let onDelete: (homework: ModerationHomework) => void;
 <section class="grid gap-3">
   {#each homeworks as homework}
     <Card.Root>
-      <Card.Content class="grid gap-3 pt-5">
-        <div class="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <Card.Title>{homework.title}</Card.Title>
-            <p class="text-base-content/60 text-sm">
-              {homework.section.course.nameCn} · {homework.section.code}
-            </p>
-          </div>
+      <Card.Header>
+        <Card.Title>{homework.title}</Card.Title>
+        <Card.Description>
+          {homework.section.course.nameCn} · {homework.section.code}
+        </Card.Description>
+        <Card.Action>
           {#if homework.deletedAt}
-            <Badge class="border-error/40 bg-error/10 text-error">{copy.homeworkStatusDeleted}</Badge>
+            <Badge variant="destructive">{copy.homeworkStatusDeleted}</Badge>
           {:else}
-            <Badge class="border-success/40 bg-success/10 text-success">{copy.homeworkStatusActive}</Badge>
+            <Badge>{copy.homeworkStatusActive}</Badge>
           {/if}
-        </div>
-        <p class="text-base-content/60 text-sm">
+        </Card.Action>
+      </Card.Header>
+      <Card.Content>
+        <p class="text-muted-foreground text-sm">
           {formatMessage(copy.homeworkTiming, {
             created: formatDate(homework.createdAt),
             due: homework.submissionDueAt
@@ -60,7 +60,9 @@ export let onDelete: (homework: ModerationHomework) => void;
               : copy.notAvailable,
           })}
         </p>
-        {#if !homework.deletedAt}
+      </Card.Content>
+      {#if !homework.deletedAt}
+        <Card.Footer>
           <Button
             size="sm"
             type="button"
@@ -69,8 +71,8 @@ export let onDelete: (homework: ModerationHomework) => void;
           >
             {copy.deleteHomeworkAction}
           </Button>
-        {/if}
-      </Card.Content>
+        </Card.Footer>
+      {/if}
     </Card.Root>
   {:else}
     <Empty.Root class="min-h-24">

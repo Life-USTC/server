@@ -2,6 +2,7 @@
 import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
 import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Field from "$lib/components/ui/field/index.js";
 
 export let cancelEdit: () => void;
 export let copy: {
@@ -21,19 +22,22 @@ export let isSaving: boolean;
 export let saveDescription: () => void;
 </script>
 
-<div class="grid gap-3">
-  <MarkdownEditor
-    bind:value={draft}
-    aria-label={copy.title}
-    disabled={isDisabled}
-    guideLabel={copy.markdownGuide}
-    modeLabel={copy.title}
-    placeholder={copy.editorPlaceholder}
-    previewEmptyLabel={copy.previewEmpty}
-    remarkPlugins={campusReferenceMarkdownPlugins}
-    tabPreviewLabel={copy.tabPreview}
-    tabWriteLabel={copy.tabWrite}
-  />
+<Field.Group class="gap-3">
+  <Field.Field>
+    <Field.Title id="description-edit-title">{copy.title}</Field.Title>
+    <MarkdownEditor
+      bind:value={draft}
+      aria-labelledby="description-edit-title"
+      disabled={isDisabled}
+      guideLabel={copy.markdownGuide}
+      modeLabel={copy.title}
+      placeholder={copy.editorPlaceholder}
+      previewEmptyLabel={copy.previewEmpty}
+      remarkPlugins={campusReferenceMarkdownPlugins}
+      tabPreviewLabel={copy.tabPreview}
+      tabWriteLabel={copy.tabWrite}
+    />
+  </Field.Field>
   <div class="flex flex-wrap justify-end gap-2">
     <Button
       disabled={isSaving}
@@ -47,4 +51,4 @@ export let saveDescription: () => void;
       {copy.cancel}
     </Button>
   </div>
-</div>
+</Field.Group>

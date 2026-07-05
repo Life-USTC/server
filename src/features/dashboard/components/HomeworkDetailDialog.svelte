@@ -3,6 +3,7 @@ import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import type { DashboardMyHomeworksCopy } from "@/features/dashboard/lib/dashboard-controller-types";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import type {
   DashboardHomeworkCommentsPanel,
   DashboardHomeworkCompletionToggle,
@@ -41,7 +42,7 @@ export let toggleHomeworkCompletion: DashboardHomeworkCompletionToggle;
     }}
   >
     <Dialog.Content
-      class="max-h-[calc(100vh-2rem)] max-w-5xl overflow-y-auto"
+      class="max-w-5xl"
     >
       {@const selectedCourseLabel = homeworkCourseLabel(homework)}
       {@const SelectedCompletionIcon = homework.completion ? RefreshCw : CheckCircleIcon}
@@ -52,39 +53,41 @@ export let toggleHomeworkCompletion: DashboardHomeworkCompletionToggle;
           {fmtDate(homework.submissionDueAt)}
         </Dialog.Description>
       </Dialog.Header>
-      <div class="grid gap-5 px-5 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)]">
-        <div class="grid min-w-0 gap-4">
-          <HomeworkDetailDescription
-            {homework}
-            {homeworksCopy}
-          />
+      <ScrollArea class="h-[min(70vh,44rem)]">
+        <div class="grid gap-5 px-5 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)]">
+          <div class="grid min-w-0 gap-4">
+            <HomeworkDetailDescription
+              {homework}
+              {homeworksCopy}
+            />
 
-          <HomeworkDetailMetadata
-            {fmtDate}
-            {homework}
-            {homeworkEtaLabel}
-            {homeworksCopy}
-            {homeworkStatus}
-          />
+            <HomeworkDetailMetadata
+              {fmtDate}
+              {homework}
+              {homeworkEtaLabel}
+              {homeworksCopy}
+              {homeworkStatus}
+            />
 
-          <HomeworkDetailActions
-            {SelectedCompletionIcon}
+            <HomeworkDetailActions
+              {SelectedCompletionIcon}
+              {homework}
+              {homeworkCompletionActionLabel}
+              {homeworkDetailHref}
+              {homeworkSavingById}
+              {homeworkSectionHref}
+              {homeworksCopy}
+              {selectedCourseLabel}
+              {toggleHomeworkCompletion}
+            />
+          </div>
+          <HomeworkDetailCommentsAside
+            {CommentsPanel}
             {homework}
-            {homeworkCompletionActionLabel}
-            {homeworkDetailHref}
-            {homeworkSavingById}
-            {homeworkSectionHref}
             {homeworksCopy}
-            {selectedCourseLabel}
-            {toggleHomeworkCompletion}
           />
         </div>
-        <HomeworkDetailCommentsAside
-          {CommentsPanel}
-          {homework}
-          {homeworksCopy}
-        />
-      </div>
+      </ScrollArea>
     </Dialog.Content>
   </Dialog.Root>
 {/if}

@@ -32,7 +32,7 @@ export let todoStatus: (todo: DashboardTodoItem) => string;
         <a class="no-underline hover:underline" href={dashboardTabHref("todos")}>{dashboardCopy.nav.todos.title}</a>
       </Card.Title>
       <div class="flex flex-wrap justify-end gap-1.5">
-        <Badge class="border-warning/40 bg-warning/10 text-warning">
+        <Badge>
           {formatMessage(dashboardCopy.todos.dueToday, {
             count: todosDueToday.length,
           })}

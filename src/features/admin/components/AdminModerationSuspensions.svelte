@@ -43,31 +43,31 @@ export let suspensions: ModerationSuspension[];
 <section class="grid gap-3">
   {#each suspensions as suspension}
     <Card.Root>
-      <Card.Content class="grid gap-3 pt-5">
-        <div class="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <Card.Title>{suspension.user.name ?? suspension.user.username ?? suspension.user.id}</Card.Title>
-            <p class="text-base-content/60 text-sm">
-              {suspension.reason ?? copy.noReason} · {suspension.expiresAt
-                ? formatMessage(copy.expiresAt, { date: formatDate(suspension.expiresAt) })
-                : copy.permanent}
-            </p>
-          </div>
+      <Card.Header>
+        <Card.Title>{suspension.user.name ?? suspension.user.username ?? suspension.user.id}</Card.Title>
+        <Card.Description>
+          {suspension.reason ?? copy.noReason} · {suspension.expiresAt
+            ? formatMessage(copy.expiresAt, { date: formatDate(suspension.expiresAt) })
+            : copy.permanent}
+        </Card.Description>
+        <Card.Action>
           {#if suspension.liftedAt}
             <Badge variant="ghost">{copy.lifted}</Badge>
           {:else}
-            <Badge class="border-warning/40 bg-warning/10 text-warning">{copy.active}</Badge>
+            <Badge variant="destructive">{copy.active}</Badge>
           {/if}
-        </div>
-        {#if !suspension.liftedAt}
+        </Card.Action>
+      </Card.Header>
+      {#if !suspension.liftedAt}
+        <Card.Footer>
           <form method="POST" action="?/liftSuspension" use:enhance={enhanceLiftSuspension}>
             <input type="hidden" name="id" value={suspension.id} />
             <Button disabled={isLiftingSuspension} size="sm" type="submit" variant="outline">
               {isLiftingSuspension ? copy.saving : copy.liftSuspensionAction}
             </Button>
           </form>
-        {/if}
-      </Card.Content>
+        </Card.Footer>
+      {/if}
     </Card.Root>
   {:else}
     <Empty.Root class="min-h-24">

@@ -4,6 +4,7 @@ import type {
   DashboardDashboardCopy,
   DashboardHomeworkItem,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
+import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
@@ -41,7 +42,7 @@ export let pendingHomeworks: DashboardHomeworkItem[];
                 <Item.Description>{homework.section?.course?.namePrimary ?? commonCopy.sections}</Item.Description>
               </Item.Content>
               <Item.Actions class="flex-col items-end gap-0">
-                <span class="font-medium text-warning">{homeworkEtaLabel(homework.submissionDueAt)}</span>
+                <Badge variant="secondary">{homeworkEtaLabel(homework.submissionDueAt)}</Badge>
                 <span class="text-muted-foreground text-xs">{fmtDate(homework.submissionDueAt)}</span>
               </Item.Actions>
             </a>

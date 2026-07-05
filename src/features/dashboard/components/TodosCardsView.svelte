@@ -35,11 +35,11 @@ export let toggleTodoCompletion: TodoCompletionToggle;
       class="group transition hover:border-primary"
       data-slot="card"
     >
-      <Card.Content class="grid gap-3 pt-5">
-        <div class="flex flex-wrap items-start justify-between gap-2">
+      <Card.Header>
+        <Card.Title>
           <button
             class:line-through={todo.completed}
-            class="text-left font-semibold text-lg hover:underline"
+            class="text-left underline-offset-4 hover:underline"
             type="button"
             onclick={() => {
               selectedTodo = todo;
@@ -47,10 +47,14 @@ export let toggleTodoCompletion: TodoCompletionToggle;
           >
             {todo.title}
           </button>
+        </Card.Title>
+        <Card.Action>
           <Badge variant="outline">
             {todoStatus(todo)}
           </Badge>
-        </div>
+        </Card.Action>
+      </Card.Header>
+      <Card.Content class="grid gap-3">
         <div class="flex flex-wrap gap-2">
           <Badge class={todoPriorityClass(todo.priority)}>
             {todosCopy.priority[todo.priority]}
@@ -60,31 +64,31 @@ export let toggleTodoCompletion: TodoCompletionToggle;
         {#if todo.content}
           <MarkdownPreview class="line-clamp-3 text-sm" content={todo.content} />
         {/if}
-        <div class="flex justify-end gap-2">
-          <Button
-            size="sm"
-            type="button"
-            variant="outline"
-            onclick={() => openTodoEditor(todo)}
-          >
-            {todosCopy.editTitle}
-          </Button>
-          <Button
-            disabled={todoSavingById[todo.id]}
-            size="sm"
-            type="button"
-            variant="outline"
-            onclick={() => void toggleTodoCompletion(todo)}
-          >
-            {#if todo.completed}
-              <RefreshCw data-icon="inline-start" />
-            {:else}
-              <CheckCircleIcon data-icon="inline-start" />
-            {/if}
-            {todoSavingById[todo.id] ? todosCopy.saving : todoActionLabel(todo)}
-          </Button>
-        </div>
       </Card.Content>
+      <Card.Footer class="justify-end gap-2">
+        <Button
+          size="sm"
+          type="button"
+          variant="outline"
+          onclick={() => openTodoEditor(todo)}
+        >
+          {todosCopy.editTitle}
+        </Button>
+        <Button
+          disabled={todoSavingById[todo.id]}
+          size="sm"
+          type="button"
+          variant="outline"
+          onclick={() => void toggleTodoCompletion(todo)}
+        >
+          {#if todo.completed}
+            <RefreshCw data-icon="inline-start" />
+          {:else}
+            <CheckCircleIcon data-icon="inline-start" />
+          {/if}
+          {todoSavingById[todo.id] ? todosCopy.saving : todoActionLabel(todo)}
+        </Button>
+      </Card.Footer>
     </Card.Root>
   {:else}
     <TodoEmptyState {todosCopy} />

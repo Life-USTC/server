@@ -3,6 +3,7 @@ import type { Component } from "svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import SectionHomeworkActionBar from "./SectionHomeworkActionBar.svelte";
 import SectionHomeworkAuditTrail from "./SectionHomeworkAuditTrail.svelte";
 import SectionHomeworkEditForm from "./SectionHomeworkEditForm.svelte";
@@ -70,21 +71,21 @@ export let sectionJwId: number | string;
     <Dialog.Content
       class="max-w-5xl"
     >
-      <section class="grid max-h-[calc(100vh-2rem)] gap-4 overflow-y-auto">
-        <Dialog.Header>
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <Dialog.Title>{_selectedHomework.title}</Dialog.Title>
-              <Dialog.Description>
-                {_sectionCopy.due} {_fmtDateTime(_selectedHomework.submissionDueAt)} · {_homeworkStatus(_selectedHomework)}
-              </Dialog.Description>
-            </div>
-            <Button size="sm" type="button" variant="ghost" onclick={close}>
-              {_sectionCopy.close}
-            </Button>
+      <Dialog.Header>
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <Dialog.Title>{_selectedHomework.title}</Dialog.Title>
+            <Dialog.Description>
+              {_sectionCopy.due} {_fmtDateTime(_selectedHomework.submissionDueAt)} · {_homeworkStatus(_selectedHomework)}
+            </Dialog.Description>
           </div>
-        </Dialog.Header>
+          <Button size="sm" type="button" variant="ghost" onclick={close}>
+            {_sectionCopy.close}
+          </Button>
+        </div>
+      </Dialog.Header>
 
+      <ScrollArea class="h-[min(70vh,44rem)]">
         <div class="grid gap-5 px-5 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,26rem)]">
           <section class="grid gap-4">
             {#if _editingHomework}
@@ -151,7 +152,7 @@ export let sectionJwId: number | string;
             {/key}
           </section>
         </div>
-      </section>
+      </ScrollArea>
     </Dialog.Content>
   </Dialog.Root>
 {/if}

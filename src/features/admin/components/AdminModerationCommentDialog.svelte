@@ -2,6 +2,7 @@
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import AdminModerationCommentPreview from "./AdminModerationCommentPreview.svelte";
 import AdminModerationCommentStatusSection from "./AdminModerationCommentStatusSection.svelte";
 import AdminModerationCommentSuspensionSection from "./AdminModerationCommentSuspensionSection.svelte";
@@ -56,35 +57,37 @@ export let targetLabel: (comment: AdminModerationComment) => string;
         </div>
       </Dialog.Header>
 
-      <div class="grid max-h-[calc(100vh-2rem)] gap-5 overflow-y-auto px-5 py-4">
-        {#if dialogMessage}<Alert.Root class="py-2"><Alert.Description>{dialogMessage}</Alert.Description></Alert.Root>{/if}
+      <ScrollArea class="h-[min(62vh,34rem)]">
+        <div class="grid gap-5 px-5 py-4">
+          {#if dialogMessage}<Alert.Root class="py-2"><Alert.Description>{dialogMessage}</Alert.Description></Alert.Root>{/if}
 
-        <AdminModerationCommentPreview
-          {comment}
-          {copy}
-          {targetHref}
-        />
+          <AdminModerationCommentPreview
+            {comment}
+            {copy}
+            {targetHref}
+          />
 
-        <AdminModerationCommentStatusSection
-          bind:commentStatus
-          {commentStatusOptions}
-          {copy}
-          {inputValue}
-          bind:moderationNote
-        />
+          <AdminModerationCommentStatusSection
+            bind:commentStatus
+            {commentStatusOptions}
+            {copy}
+            {inputValue}
+            bind:moderationNote
+          />
 
-        <AdminModerationCommentSuspensionSection
-          {comment}
-          {copy}
-          bind:customExpiresAt
-          {inputValue}
-          {isSuspendingUser}
-          {suspendCommentAuthor}
-          bind:suspensionDuration
-          {suspensionDurationOptions}
-          bind:suspensionReason
-        />
-      </div>
+          <AdminModerationCommentSuspensionSection
+            {comment}
+            {copy}
+            bind:customExpiresAt
+            {inputValue}
+            {isSuspendingUser}
+            {suspendCommentAuthor}
+            bind:suspensionDuration
+            {suspensionDurationOptions}
+            bind:suspensionReason
+          />
+        </div>
+      </ScrollArea>
 
       <Dialog.Footer>
         <Button type="button" variant="ghost" onclick={close}>{copy.cancelButton}</Button>

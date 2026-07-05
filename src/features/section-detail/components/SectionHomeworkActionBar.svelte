@@ -45,8 +45,7 @@ export let toggleHomeworkCompletion: SectionHomeworkAction;
   {/if}
   {#if canManage}
     <Button
-      class="text-error"
-      variant="outline"
+      variant="destructive"
       type="button"
       onclick={() => {
         setDeleteHomeworkTarget(homework);

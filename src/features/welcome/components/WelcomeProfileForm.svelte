@@ -57,44 +57,45 @@ $: avatarFallback = (user.name ?? user.username ?? "U")
 
       <Radio.Root
         aria-label={profileCopy.profilePicture}
-        class="grid gap-3"
         data-testid="avatar-selector"
         bind:value={selectedImage}
       >
         {#if selectedImage && selectedImage !== currentImage}
           <input type="hidden" name="image" value={selectedImage} />
         {/if}
-        <p class="font-medium text-sm">{profileCopy.profilePicture}</p>
-        <div class="flex items-center gap-4">
-          <Avatar.Root class="size-20">
-            <Avatar.Image alt={profileCopy.profilePicture} src={previewImage} />
-            <Avatar.Fallback>{avatarFallback}</Avatar.Fallback>
-          </Avatar.Root>
-          {#if avatarOptions.length > 0}
-            <div class="grid grid-cols-4 gap-2">
-              {#each avatarOptions as avatar, index}
-                {@const avatarId = `welcome-avatar-option-${index}`}
-                <Field.Label for={avatarId}>
-                  <Field.Field orientation="horizontal">
-                    <Avatar.Root class="size-12 border-0">
-                      <Avatar.Image alt={copy.accessibility.avatarOption} src={avatar} />
-                      <Avatar.Fallback>{index + 1}</Avatar.Fallback>
-                    </Avatar.Root>
-                    <Radio.Item
-                      id={avatarId}
-                      value={avatar}
-                      aria-label={`${copy.accessibility.avatarOption} ${index + 1}`}
-                    />
-                  </Field.Field>
-                </Field.Label>
-              {/each}
-            </div>
-          {:else}
-            <p class="text-muted-foreground text-sm">
-              {welcomeCopy.avatarLater}
-            </p>
-          {/if}
-        </div>
+        <Field.Set>
+          <Field.Legend variant="label">{profileCopy.profilePicture}</Field.Legend>
+          <div class="flex items-center gap-4">
+            <Avatar.Root class="size-20">
+              <Avatar.Image alt={profileCopy.profilePicture} src={previewImage} />
+              <Avatar.Fallback>{avatarFallback}</Avatar.Fallback>
+            </Avatar.Root>
+            {#if avatarOptions.length > 0}
+              <Field.Group class="grid grid-cols-4 gap-2">
+                {#each avatarOptions as avatar, index}
+                  {@const avatarId = `welcome-avatar-option-${index}`}
+                  <Field.Label for={avatarId}>
+                    <Field.Field orientation="horizontal">
+                      <Avatar.Root class="size-12 border-0">
+                        <Avatar.Image alt={copy.accessibility.avatarOption} src={avatar} />
+                        <Avatar.Fallback>{index + 1}</Avatar.Fallback>
+                      </Avatar.Root>
+                      <Radio.Item
+                        id={avatarId}
+                        value={avatar}
+                        aria-label={`${copy.accessibility.avatarOption} ${index + 1}`}
+                      />
+                    </Field.Field>
+                  </Field.Label>
+                {/each}
+              </Field.Group>
+            {:else}
+              <Field.Description>
+                {welcomeCopy.avatarLater}
+              </Field.Description>
+            {/if}
+          </div>
+        </Field.Set>
       </Radio.Root>
 
       <Field.Group class="gap-4">

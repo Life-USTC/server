@@ -5,6 +5,7 @@ import { enhance } from "$app/forms";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import AdminOAuthAuthPatternPicker from "./AdminOAuthAuthPatternPicker.svelte";
 import AdminOAuthCreateFields from "./AdminOAuthCreateFields.svelte";
 import AdminOAuthScopePicker from "./AdminOAuthScopePicker.svelte";
@@ -51,44 +52,48 @@ export let toggleScope: (scope: string, checked: boolean) => void;
       <form
         method="POST"
         action="?/createClient"
-        class="grid max-h-[min(78vh,48rem)] gap-5 overflow-y-auto px-5 py-4"
+        class="grid gap-4"
         use:enhance={createClientAction}
       >
-        <AdminOAuthAuthPatternPicker
-          {authPatterns}
-          {copy}
-          {oauthCopy}
-          bind:selectedAuthMethod
-        />
+        <ScrollArea class="h-[min(64vh,40rem)]">
+          <div class="grid gap-5 px-5 py-4">
+            <AdminOAuthAuthPatternPicker
+              {authPatterns}
+              {copy}
+              {oauthCopy}
+              bind:selectedAuthMethod
+            />
 
-        <Alert.Root>
-          <ShieldCheckIcon />
-          <Alert.Title>{copy.panelSecurityTitle}</Alert.Title>
-          <Alert.Description>{copy.panelSecurityDescription}</Alert.Description>
-        </Alert.Root>
+            <Alert.Root>
+              <ShieldCheckIcon />
+              <Alert.Title>{copy.panelSecurityTitle}</Alert.Title>
+              <Alert.Description>{copy.panelSecurityDescription}</Alert.Description>
+            </Alert.Root>
 
-        <div class="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-          <AdminOAuthCreateFields
-            {copy}
-            {parsedRedirectUris}
-            {redirectCountLabel}
-            bind:redirectDraft
-          />
+            <div class="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+              <AdminOAuthCreateFields
+                {copy}
+                {parsedRedirectUris}
+                {redirectCountLabel}
+                bind:redirectDraft
+              />
 
-          <AdminOAuthScopePicker
-            {copy}
-            {oauthCopy}
-            {scopeCountLabel}
-            {scopeLabel}
-            {scopeOptions}
-            {selectedAuthPattern}
-            {selectedScopes}
-            {toggleScope}
-          />
-        </div>
+              <AdminOAuthScopePicker
+                {copy}
+                {oauthCopy}
+                {scopeCountLabel}
+                {scopeLabel}
+                {scopeOptions}
+                {selectedAuthPattern}
+                {selectedScopes}
+                {toggleScope}
+              />
+            </div>
+          </div>
+        </ScrollArea>
 
-        <Dialog.Footer class="px-0 pb-0">
-          <p class="mr-auto max-w-md text-base-content/60 text-xs leading-5">
+        <Dialog.Footer>
+          <p class="mr-auto max-w-md text-muted-foreground text-xs leading-5">
             {copy.createClientFootnote}
           </p>
           <Button type="button" variant="outline" disabled={isCreatingClient} onclick={close}>{copy.cancel}</Button>

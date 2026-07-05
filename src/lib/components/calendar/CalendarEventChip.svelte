@@ -1,4 +1,5 @@
 <script lang="ts">
+import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 import type { CalendarTone } from "./types";
 
 export let href = "#";
@@ -29,21 +30,30 @@ function toneClass() {
   }
   return "border-primary/25 bg-primary/10 hover:border-primary/45 hover:bg-primary/15";
 }
+
+$: tooltipText = tooltip || title || label;
 </script>
 
-<a
-  class={`block min-w-0 rounded-md border px-2 py-1.5 text-xs no-underline transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 ${toneClass()} ${done ? "grayscale opacity-60" : ""}`}
-  {href}
-  title={tooltip || title || label}
->
-  <span class="block truncate font-medium">{label}</span>
-  {#if title}
-    <span class="block truncate text-base-content/70">{title}</span>
-  {/if}
-  {#if meta}
-    <span class="block truncate text-base-content/55">{meta}</span>
-  {/if}
-  {#if detail}
-    <span class="block truncate text-base-content/50">{detail}</span>
-  {/if}
-</a>
+<Tooltip.Root>
+  <Tooltip.Trigger>
+    {#snippet child({ props })}
+      <a
+        class={`block min-w-0 rounded-md border px-2 py-1.5 text-xs no-underline transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 ${toneClass()} ${done ? "grayscale opacity-60" : ""}`}
+        {href}
+        {...props}
+      >
+        <span class="block truncate font-medium">{label}</span>
+        {#if title}
+          <span class="block truncate text-base-content/70">{title}</span>
+        {/if}
+        {#if meta}
+          <span class="block truncate text-base-content/55">{meta}</span>
+        {/if}
+        {#if detail}
+          <span class="block truncate text-base-content/50">{detail}</span>
+        {/if}
+      </a>
+    {/snippet}
+  </Tooltip.Trigger>
+  <Tooltip.Content>{tooltipText}</Tooltip.Content>
+</Tooltip.Root>

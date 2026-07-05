@@ -42,10 +42,7 @@ function handleUserKeydown(event: KeyboardEvent, user: AdminUserRow) {
         </Item.Description>
       </Item.Content>
       <Item.Actions>
-        <Badge
-          class={user.isAdmin ? "border-success bg-success/10 text-success" : ""}
-          variant={user.isAdmin ? "outline" : "ghost"}
-        >
+        <Badge variant={user.isAdmin ? "secondary" : "ghost"}>
           {user.isAdmin ? copy.adminRole : copy.userRole}
         </Badge>
       </Item.Actions>

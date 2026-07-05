@@ -39,14 +39,14 @@ export let users: AdminUserRow[];
           <Table.Cell>{user.username ?? copy.noUsername}</Table.Cell>
           <Table.Cell class="text-sm">{user.email ?? copy.noVerifiedEmail}</Table.Cell>
           <Table.Cell>
-            <Badge class={user.isAdmin ? "border-success bg-success/10 text-success" : ""} variant={user.isAdmin ? "outline" : "ghost"}>
+            <Badge variant={user.isAdmin ? "secondary" : "ghost"}>
               {user.isAdmin ? copy.adminRole : copy.userRole}
             </Badge>
           </Table.Cell>
           <Table.Cell>
             {#if user.activeSuspension}
               <div class="grid gap-1">
-                <Badge class="w-fit border-warning bg-warning/10 text-warning" variant="outline">{copy.suspendedStatus}</Badge>
+                <Badge class="w-fit" variant="destructive">{copy.suspendedStatus}</Badge>
                 <span class="text-base-content/60 text-xs">{suspensionLabel(user)}</span>
               </div>
             {:else}

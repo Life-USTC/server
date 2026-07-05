@@ -1,6 +1,6 @@
 <script lang="ts">
 import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 import type {
   AdminModerationComment,
   AdminModerationCommentFormatter,
@@ -17,26 +17,25 @@ export let statusLabel: AdminModerationCommentStatusFormatter;
 export let targetLabel: AdminModerationCommentFormatter;
 </script>
 
-<div class="grid gap-3 md:hidden">
+<Item.Group class="md:hidden">
   {#each comments as comment}
-    <Button
-      class={`h-auto w-full justify-start border-l-4 p-4 text-left whitespace-normal ${statusBorderClass(comment.status)}`}
-      variant="outline"
-      type="button"
-      onclick={() => onManage(comment)}
-    >
-      <span class="grid w-full gap-3">
-        <span class="flex flex-wrap items-start justify-between gap-3">
-          <span class="min-w-0">
-            <span class="block truncate font-semibold text-lg">{targetLabel(comment)}</span>
-            <span class="block text-muted-foreground text-sm">
+    <Item.Root variant="outline" class={`items-start border-l-4 ${statusBorderClass(comment.status)}`}>
+      {#snippet child({ props })}
+        <button {...props} type="button" onclick={() => onManage(comment)}>
+          <Item.Content class="min-w-0">
+            <Item.Title>{targetLabel(comment)}</Item.Title>
+            <Item.Description>
               {commentAuthorLabel(comment)} · {formatDate(comment.createdAt)}
-            </span>
-          </span>
+            </Item.Description>
+            <Item.Description class="line-clamp-3 whitespace-pre-wrap">
+              {comment.body}
+            </Item.Description>
+          </Item.Content>
+          <Item.Actions>
           <Badge class={statusBadgeClass(comment.status)}>{statusLabel(comment.status)}</Badge>
-        </span>
-        <span class="line-clamp-3 whitespace-pre-wrap text-sm">{comment.body}</span>
-      </span>
-    </Button>
+          </Item.Actions>
+        </button>
+      {/snippet}
+    </Item.Root>
   {/each}
-</div>
+</Item.Group>
