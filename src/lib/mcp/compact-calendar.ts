@@ -1,4 +1,4 @@
-import { isRecord } from "@/lib/utils";
+import { isRecord } from "@/lib/is-record";
 import { compactSection } from "./compact-entities";
 import { asRecordArray, redactCalendarFeedLocation } from "./compact-helpers";
 

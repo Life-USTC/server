@@ -1,6 +1,6 @@
 import type { getCompactOverview } from "@/features/dashboard/server/compact-overview-read-model";
+import { isRecord } from "@/lib/is-record";
 import { pick } from "@/lib/mcp/compact-payload";
-import { isRecord } from "@/lib/utils";
 
 type CompactOverview = Awaited<ReturnType<typeof getCompactOverview>>;
 

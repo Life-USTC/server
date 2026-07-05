@@ -1,18 +1,18 @@
 <script lang="ts">
-import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
-import ChevronUpIcon from "@lucide/svelte/icons/chevron-up";
-import { Accordion as AccordionPrimitive } from "bits-ui";
-import { cn, type WithoutChild } from "$lib/utils.js";
+	import { Accordion as AccordionPrimitive } from "bits-ui";
+	import { cn, type WithoutChild } from "$lib/utils.js";
+	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
+	import ChevronUpIcon from '@lucide/svelte/icons/chevron-up';
 
-let {
-  ref = $bindable(null),
-  class: className,
-  level = 3,
-  children,
-  ...restProps
-}: WithoutChild<AccordionPrimitive.TriggerProps> & {
-  level?: AccordionPrimitive.HeaderProps["level"];
-} = $props();
+	let {
+		ref = $bindable(null),
+		class: className,
+		level = 3,
+		children,
+		...restProps
+	}: WithoutChild<AccordionPrimitive.TriggerProps> & {
+		level?: AccordionPrimitive.HeaderProps["level"];
+	} = $props();
 </script>
 
 <AccordionPrimitive.Header {level} class="flex">

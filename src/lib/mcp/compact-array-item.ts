@@ -1,4 +1,4 @@
-import { isRecord } from "@/lib/utils";
+import { isRecord } from "@/lib/is-record";
 import { compactBusArrayItem } from "./compact-array-bus-item";
 import { compactEntityArrayItem } from "./compact-array-entity-item";
 import { compactCalendarSubscription } from "./compact-calendar";

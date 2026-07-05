@@ -1,19 +1,19 @@
 <script lang="ts">
-import type { Snippet } from "svelte";
-import type { HTMLAttributes } from "svelte/elements";
-import { Separator } from "$lib/components/ui/separator/index.js";
-import { cn, type WithElementRef } from "$lib/utils.js";
+	import { Separator } from "$lib/components/ui/separator/index.js";
+	import { cn, type WithElementRef } from "$lib/utils.js";
+	import type { HTMLAttributes } from "svelte/elements";
+	import type { Snippet } from "svelte";
 
-let {
-  ref = $bindable(null),
-  class: className,
-  children,
-  ...restProps
-}: WithElementRef<HTMLAttributes<HTMLDivElement>> & {
-  children?: Snippet;
-} = $props();
+	let {
+		ref = $bindable(null),
+		class: className,
+		children,
+		...restProps
+	}: WithElementRef<HTMLAttributes<HTMLDivElement>> & {
+		children?: Snippet;
+	} = $props();
 
-const hasContent = $derived(!!children);
+	const hasContent = $derived(!!children);
 </script>
 
 <div

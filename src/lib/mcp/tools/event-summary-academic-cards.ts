@@ -1,5 +1,5 @@
+import { isRecord } from "@/lib/is-record";
 import { pick } from "@/lib/mcp/compact-payload";
-import { isRecord } from "@/lib/utils";
 
 export function summarizeSectionCard(value: unknown) {
   if (!isRecord(value)) return value;

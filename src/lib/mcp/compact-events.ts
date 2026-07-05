@@ -1,4 +1,4 @@
-import { isRecord } from "@/lib/utils";
+import { isRecord } from "@/lib/is-record";
 import { EVENT_PAYLOAD_COMPACTORS } from "./compact-dispatch";
 import { asRecordArray, pick } from "./compact-helpers";
 

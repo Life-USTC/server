@@ -1,5 +1,5 @@
+import { isRecord } from "@/lib/is-record";
 import { formatShanghaiTimestamp } from "@/lib/time/shanghai-format";
-import { isRecord } from "@/lib/utils";
 
 export function toShanghaiIsoString(
   date: Date | string | null | undefined,

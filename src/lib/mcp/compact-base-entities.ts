@@ -1,4 +1,4 @@
-import { isRecord } from "@/lib/utils";
+import { isRecord } from "@/lib/is-record";
 import { pick, transferScalarKeys } from "./compact-helpers";
 
 export function compactUser(value: unknown) {

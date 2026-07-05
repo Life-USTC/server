@@ -1,4 +1,4 @@
-import { isRecord } from "@/lib/utils";
+import { isRecord } from "@/lib/is-record";
 import { compactSection } from "./compact-academic-entities";
 import { compactUser } from "./compact-base-entities";
 import { compactRelations, pick, transferScalarKeys } from "./compact-helpers";

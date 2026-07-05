@@ -13,7 +13,10 @@
       "!dist",
       "!build",
       "!public/openapi.generated.json",
-      "!src/components/ui"
+      "!src/components/ui",
+      "!src/lib/components/ui",
+      "!src/lib/hooks/is-mobile.svelte.ts",
+      "!src/lib/utils.ts"
     ]
   },
   "formatter": {

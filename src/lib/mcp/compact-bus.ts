@@ -1,4 +1,4 @@
-import { isRecord } from "@/lib/utils";
+import { isRecord } from "@/lib/is-record";
 import { compactCampus } from "./compact-entities";
 import {
   compactArrayRelations,

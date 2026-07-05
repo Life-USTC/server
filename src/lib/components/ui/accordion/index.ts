@@ -4,13 +4,13 @@ import Item from "./accordion-item.svelte";
 import Trigger from "./accordion-trigger.svelte";
 
 export {
-  Content,
-  Content as AccordionContent,
-  Item,
-  Item as AccordionItem,
-  Root,
-  //
-  Root as Accordion,
-  Trigger,
-  Trigger as AccordionTrigger,
+	Root,
+	Content,
+	Item,
+	Trigger,
+	//
+	Root as Accordion,
+	Content as AccordionContent,
+	Item as AccordionItem,
+	Trigger as AccordionTrigger,
 };

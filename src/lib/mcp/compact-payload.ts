@@ -1,4 +1,4 @@
-import { isRecord } from "@/lib/utils";
+import { isRecord } from "@/lib/is-record";
 import { compactBusTripSlot } from "./compact-bus";
 import { compactCalendarSubscription } from "./compact-calendar";
 import {

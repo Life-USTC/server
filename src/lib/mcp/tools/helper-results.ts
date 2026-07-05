@@ -1,6 +1,6 @@
+import { isRecord } from "@/lib/is-record";
 import { compactMcpPayload } from "@/lib/mcp/compact-payload";
 import { serializeDatesDeep } from "@/lib/time/serialize-date-output";
-import { isRecord } from "@/lib/utils";
 import { resolveMcpMode } from "./helper-schemas";
 
 function summarizeArray(items: unknown[], limit: number) {

@@ -1,4 +1,4 @@
-import { isRecord } from "@/lib/utils";
+import { isRecord } from "@/lib/is-record";
 
 export function asRecordArray(value: unknown): Record<string, unknown>[] {
   if (!Array.isArray(value)) return [];
