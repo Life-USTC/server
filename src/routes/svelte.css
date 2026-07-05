@@ -1,10 +1,5 @@
 @import "tailwindcss";
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
-@plugin "daisyui" {
-  themes:
-    light --default,
-    dark;
-}
 @source "../**/*.{svelte,ts}";
 
 :root {
@@ -135,23 +130,9 @@ html {
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --color-base-100: var(--card);
-  --color-base-200: var(--background);
-  --color-base-300: var(--border);
-  --color-base-content: var(--foreground);
-  --color-primary-content: var(--primary-foreground);
-  --color-secondary-content: var(--secondary-foreground);
-  --color-accent-content: var(--accent-foreground);
-  --color-neutral: var(--muted);
-  --color-neutral-content: var(--foreground);
   --color-info: var(--info);
-  --color-info-content: var(--info-foreground);
   --color-success: var(--success);
-  --color-success-content: var(--success-foreground);
   --color-warning: var(--warning);
-  --color-warning-content: var(--warning-foreground);
-  --color-error: var(--destructive);
-  --color-error-content: var(--destructive-foreground);
 }
 
 @layer base {

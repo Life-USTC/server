@@ -38,7 +38,7 @@ export let toggleReply: (comment: CommentNode) => void;
           <Badge variant="outline">{commentCopy.postedIn} {comment.contextLabel}</Badge>
         {/if}
       </div>
-      <div class="mt-1 flex flex-wrap items-center gap-2 text-base-content/60 text-xs">
+      <div class="mt-1 flex flex-wrap items-center gap-2 text-muted-foreground text-xs">
         <a class="hover:underline" href={`#comment-${comment.id}`}>{formatTime(comment.createdAt)}</a>
         {#if comment.updatedAt !== comment.createdAt}
           <span>{commentCopy.editedLabel} {formatTime(comment.updatedAt)}</span>

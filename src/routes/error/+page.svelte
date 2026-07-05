@@ -21,7 +21,7 @@ $: message =
       </Card.Title>
       <Card.Description>{message}</Card.Description>
     </Card.Header>
-    <Card.Content class="grid justify-items-center gap-4 text-center text-base-content/60 text-sm">
+    <Card.Content class="grid justify-items-center gap-4 text-center text-muted-foreground text-sm">
       <p>
         {copy.errorPageHint}
       </p>

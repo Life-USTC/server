@@ -65,7 +65,7 @@ function providerInitial(name: string) {
 
 <section class="relative mx-auto grid min-h-[calc(100vh-14rem)] w-full max-w-5xl place-items-center overflow-hidden py-10">
   <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden rounded-[2rem]">
-    <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,color-mix(in_oklch,var(--color-primary)_20%,transparent),transparent_38%),linear-gradient(135deg,color-mix(in_oklch,var(--color-primary)_10%,var(--color-base-100)),var(--color-base-200))]"></div>
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,color-mix(in_oklch,var(--color-primary)_20%,transparent),transparent_38%),linear-gradient(135deg,color-mix(in_oklch,var(--color-primary)_10%,var(--color-card)),var(--color-background))]"></div>
     <img
       aria-hidden="true"
       alt=""

@@ -193,9 +193,9 @@ function scheduleReferenceRouteRestore() {
       {/if}
     </aside>
 
-    <div id="api-reference" class="api-reference min-h-[42rem] overflow-hidden rounded-lg border border-base-300 bg-base-100">
+    <div id="api-reference" class="api-reference min-h-[42rem] overflow-hidden rounded-lg border border-border bg-background">
       <div class="p-6">
-        <p class="text-base-content/60 text-sm">{data.copy.common.loading}</p>
+        <p class="text-muted-foreground text-sm">{data.copy.common.loading}</p>
       </div>
     </div>
   </div>

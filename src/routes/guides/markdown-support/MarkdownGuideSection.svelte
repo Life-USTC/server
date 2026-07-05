@@ -22,16 +22,16 @@ export let section: {
       <Card.Description>{section.description}</Card.Description>
     </Card.Header>
     <Card.Content>
-      <pre class="overflow-x-auto rounded-md border border-base-300 bg-base-200 p-4 font-mono text-sm"><code>{section.code}</code></pre>
+      <pre class="overflow-x-auto rounded-md border border-border bg-muted p-4 font-mono text-sm"><code>{section.code}</code></pre>
     </Card.Content>
   </Card.Root>
 
   <Card.Root>
     <Card.Header>
-      <Card.Title class="font-medium text-base-content/70 text-sm">{previewTitle}</Card.Title>
+      <Card.Title class="font-medium text-muted-foreground text-sm">{previewTitle}</Card.Title>
     </Card.Header>
     <Card.Content>
-      <div class="rounded-md border border-base-300 bg-base-100 p-5 shadow-sm">
+      <div class="rounded-md border border-border bg-background p-5 shadow-sm">
         <MarkdownPreview content={section.code} />
       </div>
     </Card.Content>
