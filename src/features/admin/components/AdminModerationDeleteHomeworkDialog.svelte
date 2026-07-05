@@ -50,7 +50,7 @@ export let isDeleting: boolean;
         </AlertDialog.Header>
         <div class="px-5 py-4">
           <input type="hidden" name="id" value={homework.id} />
-          <p class="text-base-content/60 text-sm">
+          <p class="text-muted-foreground text-sm">
             {copy.deleteHomeworkAuditDescription}
           </p>
         </div>

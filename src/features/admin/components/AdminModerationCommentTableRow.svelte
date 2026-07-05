@@ -2,6 +2,7 @@
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
+import { cn } from "$lib/utils.js";
 import type {
   AdminModerationComment,
   AdminModerationCommentFormatter,
@@ -21,11 +22,11 @@ export let targetHref: AdminModerationCommentFormatter;
 export let targetLabel: AdminModerationCommentFormatter;
 </script>
 
-<Table.Row class={`border-l-4 ${statusBorderClass(comment.status)}`}>
+<Table.Row class={cn("border-l-4", statusBorderClass(comment.status))}>
   <Table.Cell class="max-w-md">
     <p class="line-clamp-2 whitespace-pre-wrap text-sm">{comment.body}</p>
     {#if comment.moderationNote}
-      <p class="mt-1 line-clamp-1 text-base-content/50 text-xs">
+      <p class="mt-1 line-clamp-1 text-muted-foreground text-xs">
         {copy.moderationNote}: {comment.moderationNote}
       </p>
     {/if}
@@ -41,7 +42,7 @@ export let targetLabel: AdminModerationCommentFormatter;
       {targetLabel(comment)}
     </a>
   </Table.Cell>
-  <Table.Cell class="text-base-content/60 text-xs">
+  <Table.Cell class="text-muted-foreground text-xs">
     {formatDate(comment.createdAt)}
   </Table.Cell>
   <Table.Cell>

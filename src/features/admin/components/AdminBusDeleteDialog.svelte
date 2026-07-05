@@ -42,7 +42,7 @@ export let version: AdminBusVersion;
       <input type="hidden" name="id" value={version.id} />
       <div class="grid gap-2 px-5 py-4 text-sm">
         <div class="font-medium">{version.title}</div>
-        <div class="break-all font-mono text-base-content/60 text-xs">
+        <div class="break-all font-mono text-muted-foreground text-xs">
           {version.key}
         </div>
       </div>

@@ -9,6 +9,7 @@ import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import CatalogResultsEmpty from "./CatalogResultsEmpty.svelte";
 import CatalogResultsSummary from "./CatalogResultsSummary.svelte";
+import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
   SectionListFilters,
   SectionListLabels,
@@ -99,42 +100,42 @@ $: sectionSemesterSummary = selectedSemester
             {@const sectionHref = `/sections/${section.jwId}`}
             <Table.Row>
               <Table.Cell class="p-0 align-top">
-                <a class="block h-full w-full whitespace-nowrap px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={sectionHref}>
+                <CatalogTableLink href={sectionHref} nowrap>
                   {section.semester?.nameCn ?? sectionLabels.noSemester}
-                </a>
+                </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="min-w-72 p-0 align-top">
-                <a class="block h-full w-full px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={sectionHref}>
+                <CatalogTableLink href={sectionHref}>
                   <span class="font-medium">{primaryName(section.course)}</span>
                   {#if secondaryName(section.course)}
                     <span class="block text-muted-foreground text-xs">{secondaryName(section.course)}</span>
                   {/if}
-                </a>
+                </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
-                <a class="block h-full w-full px-3 py-2 no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={sectionHref}>
+                <CatalogTableLink href={sectionHref}>
                   <Badge class="font-mono" variant="outline">{section.code}</Badge>
-                </a>
+                </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="min-w-44 p-0 align-top">
-                <a class="block h-full w-full px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={sectionHref}>
+                <CatalogTableLink href={sectionHref}>
                   {teacherNames(section.teachers) || "-"}
-                </a>
+                </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 text-right align-top">
-                <a class="block h-full w-full px-3 py-2 text-base-content no-underline tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={sectionHref}>
+                <CatalogTableLink href={sectionHref} numeric>
                   {section.credits ?? "-"}
-                </a>
+                </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 text-right align-top">
-                <a class="block h-full w-full px-3 py-2 text-base-content no-underline tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={sectionHref}>
+                <CatalogTableLink href={sectionHref} numeric>
                   {section.stdCount ?? 0} / {section.limitCount ?? "-"}
-                </a>
+                </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 text-right align-top">
-                <a class="block h-full w-full px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={sectionHref}>
+                <CatalogTableLink href={sectionHref}>
                   {section.campus ? primaryName(section.campus) : "-"}
-                </a>
+                </CatalogTableLink>
               </Table.Cell>
             </Table.Row>
           {/each}

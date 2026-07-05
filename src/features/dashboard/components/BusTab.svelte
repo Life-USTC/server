@@ -90,7 +90,7 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
   <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
     <div class="grid gap-1">
       <h2 class="font-semibold text-xl tracking-normal">{busCopy.dashboardTitle}</h2>
-      <p class="text-base-content/60 text-sm">
+      <p class="text-muted-foreground text-sm">
         {loadedBus?.version?.title ?? busCopy.activeVersion}
       </p>
     </div>

@@ -42,7 +42,7 @@ export let anonymousLinkGroups: AnonymousLinkGroup[];
     </Empty.Root>
   {/each}
 
-  <p class="text-base-content/60 text-xs">
+  <p class="text-muted-foreground text-xs">
     {dashboardCopy.linkHub.credit}
     <Button
       class="h-auto p-0 text-xs"

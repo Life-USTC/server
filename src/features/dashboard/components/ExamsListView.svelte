@@ -35,12 +35,12 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
             {exam.courseName}
           </a>
         </Table.Cell>
-        <Table.Cell class="max-w-48 truncate text-base-content/70">{exam.section.code ?? subscriptionsCopy.section}</Table.Cell>
+        <Table.Cell class="max-w-48 truncate text-muted-foreground">{exam.section.code ?? subscriptionsCopy.section}</Table.Cell>
         <Table.Cell class="text-center">
-          {#if exam.dateKey}{exam.dateKey}{:else}<span class="text-base-content/45">{sectionCopy.examDateTBD}</span>{/if}
+          {#if exam.dateKey}{exam.dateKey}{:else}<span class="text-muted-foreground">{sectionCopy.examDateTBD}</span>{/if}
         </Table.Cell>
         <Table.Cell class="text-center">{examTimeLabel(exam.startTime, exam.endTime) || "—"}</Table.Cell>
-        <Table.Cell class="max-w-56 truncate text-base-content/70">{exam.rooms || sectionCopy.roomTbd}</Table.Cell>
+        <Table.Cell class="max-w-56 truncate text-muted-foreground">{exam.rooms || sectionCopy.roomTbd}</Table.Cell>
         <Table.Cell>
           <div class="flex justify-end">
             <Button href={exam.section.jwId ? `/sections/${exam.section.jwId}` : dashboardTabHref("subscriptions")} size="sm" variant="outline">

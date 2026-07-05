@@ -3,6 +3,7 @@ import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
+import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
   CourseDetailCopy,
   CourseDetailCourse,
@@ -31,29 +32,29 @@ export let teacherNames: (teachers: CatalogNamed[]) => string;
         {@const sectionHref = `/sections/${section.jwId}`}
         <Table.Row>
           <Table.Cell class="p-0 align-top">
-            <a class="block h-full w-full whitespace-nowrap px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={sectionHref}>
+            <CatalogTableLink href={sectionHref} nowrap>
               {section.semester?.nameCn ?? notAvailable}
-            </a>
+            </CatalogTableLink>
           </Table.Cell>
           <Table.Cell class="p-0 align-top">
-            <a class="block h-full w-full px-3 py-2 no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={sectionHref}>
+            <CatalogTableLink href={sectionHref}>
               <Badge class="font-mono" variant="outline">{section.code}</Badge>
-            </a>
+            </CatalogTableLink>
           </Table.Cell>
           <Table.Cell class="p-0 align-top">
-            <a class="block h-full w-full px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={sectionHref}>
+            <CatalogTableLink href={sectionHref}>
               {teacherNames(section.teachers) || notAvailable}
-            </a>
+            </CatalogTableLink>
           </Table.Cell>
           <Table.Cell class="p-0 text-right align-top">
-            <a class="block h-full w-full whitespace-nowrap px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={sectionHref}>
+            <CatalogTableLink href={sectionHref} nowrap>
               {primaryName(section.campus) || notAvailable}
-            </a>
+            </CatalogTableLink>
           </Table.Cell>
           <Table.Cell class="p-0 text-right align-top">
-            <a class="block h-full w-full whitespace-nowrap px-3 py-2 text-base-content no-underline tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={sectionHref}>
+            <CatalogTableLink href={sectionHref} nowrap numeric>
               {section.stdCount ?? 0} / {section.limitCount ?? notAvailable}
-            </a>
+            </CatalogTableLink>
           </Table.Cell>
         </Table.Row>
       {:else}

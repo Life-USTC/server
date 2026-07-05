@@ -9,6 +9,7 @@ import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import CatalogResultsEmpty from "./CatalogResultsEmpty.svelte";
 import CatalogResultsSummary from "./CatalogResultsSummary.svelte";
+import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
   CourseListLabels,
   CourseListResultData,
@@ -85,32 +86,32 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
             {@const courseHref = `/courses/${course.jwId}`}
             <Table.Row>
               <Table.Cell class="min-w-72 p-0 align-top">
-                <a class="block h-full w-full px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={courseHref}>
+                <CatalogTableLink href={courseHref}>
                   <span class="font-medium">{primaryName(course)}</span>
                   {#if secondaryName(course)}
                     <span class="block text-muted-foreground text-xs">{secondaryName(course)}</span>
                   {/if}
-                </a>
+                </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
-                <a class="block h-full w-full px-3 py-2 no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={courseHref}>
+                <CatalogTableLink href={courseHref}>
                   <Badge class="font-mono" variant="outline">{course.code}</Badge>
-                </a>
+                </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
-                <a class="block h-full w-full px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={courseHref}>
+                <CatalogTableLink href={courseHref}>
                   {course.educationLevel ? primaryName(course.educationLevel) : "-"}
-                </a>
+                </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
-                <a class="block h-full w-full px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={courseHref}>
+                <CatalogTableLink href={courseHref}>
                   {course.category ? primaryName(course.category) : "-"}
-                </a>
+                </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
-                <a class="block h-full w-full px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={courseHref}>
+                <CatalogTableLink href={courseHref}>
                   {course.classType ? primaryName(course.classType) : "-"}
-                </a>
+                </CatalogTableLink>
               </Table.Cell>
             </Table.Row>
           {/each}

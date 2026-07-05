@@ -44,7 +44,7 @@ export let toggleTodoCompletion: (todo: DashboardTodoItem) => void;
         {#if todo.content}
           <MarkdownPreview class="text-sm" content={todo.content} />
         {:else}
-          <p class="text-base-content/60 text-sm">{todosCopy.contentPlaceholder}</p>
+          <p class="text-muted-foreground text-sm">{todosCopy.contentPlaceholder}</p>
         {/if}
         <div class="flex flex-wrap gap-2">
           <Badge class={todoPriorityClass(todo.priority)}>

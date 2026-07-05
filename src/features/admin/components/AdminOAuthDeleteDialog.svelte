@@ -40,7 +40,7 @@ export let deletingClientId: string | null;
       >
         <input type="hidden" name="clientId" value={client.clientId} />
         <div class="px-5 py-4">
-          <p class="break-all font-mono text-base-content/60 text-xs">{client.clientId}</p>
+          <p class="break-all font-mono text-muted-foreground text-xs">{client.clientId}</p>
         </div>
         <AlertDialog.Footer>
           <AlertDialog.Cancel

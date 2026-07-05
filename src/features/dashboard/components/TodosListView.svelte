@@ -58,7 +58,7 @@ export let toggleTodoCompletion: TodoCompletionToggle;
             {todosCopy.priority[todo.priority]}
           </Badge>
         </Table.Cell>
-        <Table.Cell class="text-center text-base-content/70">
+        <Table.Cell class="text-center text-muted-foreground">
           {fmtDate(todo.dueAt)}
         </Table.Cell>
         <Table.Cell>

@@ -10,7 +10,7 @@ export let busShowsEstimatedHint: boolean;
 </script>
 
 {#if bus.notice?.message || busShowsEstimatedHint}
-  <div class="grid justify-items-end gap-2 text-right text-base-content/60 text-xs">
+  <div class="grid justify-items-end gap-2 text-right text-muted-foreground text-xs">
     {#if bus.notice?.message}
       {#if bus.notice.url}
         <a

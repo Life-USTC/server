@@ -30,7 +30,7 @@ function pinAction(link: DashboardOverviewLinkItem): DashboardLinkPinAction {
 </script>
 
 <section class="grid gap-2">
-  <h3 class="font-medium text-base-content/60 text-sm">
+  <h3 class="font-medium text-muted-foreground text-sm">
     {entry.label}
   </h3>
   {#if linkView === "grid"}

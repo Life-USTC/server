@@ -50,7 +50,7 @@ export let toggleHomeworkCompletion: (
           </button>
         </Table.Cell>
         <Table.Cell class="max-w-64">
-          <span class="block truncate text-base-content/70">
+          <span class="block truncate text-muted-foreground">
             {homework.section?.courseName ?? homeworkCopy.section}
           </span>
         </Table.Cell>

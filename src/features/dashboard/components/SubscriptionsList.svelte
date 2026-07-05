@@ -37,7 +37,7 @@ export let subscriptionsCopy: DashboardSubscriptionsCopy;
                   name: group.label,
                 })}
               </div>
-              <div class="text-base-content/60">
+              <div class="text-muted-foreground">
                 {formatMessage(subscriptionsCopy.sectionsIncluded, {
                   count: group.sections.length,
                 })}

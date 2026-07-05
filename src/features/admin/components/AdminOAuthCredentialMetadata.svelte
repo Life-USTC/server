@@ -32,7 +32,7 @@ export let trusted: boolean | null | undefined;
         {#each scopes as scope}
           <Badge class="font-mono" variant="ghost">{scopeLabel(scope)}</Badge>
         {:else}
-          <span class="text-base-content/60">{copy.notAvailable}</span>
+          <span class="text-muted-foreground">{copy.notAvailable}</span>
         {/each}
       </div>
     </Item.Content>
@@ -42,9 +42,9 @@ export let trusted: boolean | null | undefined;
       <Item.Title>{copy.redirectUris}</Item.Title>
       <div class="grid gap-1">
         {#each redirectUris as uri}
-          <p class="break-all font-mono text-base-content/70 text-xs">{uri}</p>
+          <p class="break-all font-mono text-muted-foreground text-xs">{uri}</p>
         {:else}
-          <p class="text-base-content/60">{copy.notAvailable}</p>
+          <p class="text-muted-foreground">{copy.notAvailable}</p>
         {/each}
       </div>
     </Item.Content>

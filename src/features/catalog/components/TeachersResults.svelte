@@ -9,6 +9,7 @@ import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import CatalogResultsEmpty from "./CatalogResultsEmpty.svelte";
 import CatalogResultsSummary from "./CatalogResultsSummary.svelte";
+import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
   TeacherListCommonLabels,
   TeacherListFilters,
@@ -106,41 +107,41 @@ $: pageLabel = teacherLabels.pageOf
             {@const teacherHref = `/teachers/${teacher.id}`}
             <Table.Row>
               <Table.Cell class="min-w-56 p-0 align-top">
-                <a class="block h-full w-full px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={teacherHref}>
+                <CatalogTableLink href={teacherHref}>
                   <span class="font-medium">{primaryName(teacher)}</span>
                   {#if showSecondaryNames && secondaryName(teacher)}
                     <span class="block text-muted-foreground text-xs">({secondaryName(teacher)})</span>
                   {/if}
-                </a>
+                </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
-                <a class="block h-full w-full px-3 py-2 no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={teacherHref}>
+                <CatalogTableLink href={teacherHref}>
                   {#if teacher.code}
                     <Badge class="font-mono" variant="outline">{teacher.code}</Badge>
                   {:else}
-                    <span class="text-base-content">-</span>
+                    -
                   {/if}
-                </a>
+                </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="min-w-44 p-0 align-top">
-                <a class="block h-full w-full px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={teacherHref}>
+                <CatalogTableLink href={teacherHref}>
                   {teacher.department ? primaryName(teacher.department) : teacherLabels.noDepartment}
-                </a>
+                </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
-                <a class="block h-full w-full px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={teacherHref}>
+                <CatalogTableLink href={teacherHref}>
                   {teacher.teacherTitle ? primaryName(teacher.teacherTitle) : commonLabels.unknown}
-                </a>
+                </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="min-w-56 p-0 align-top">
-                <a class="block h-full w-full px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={teacherHref}>
+                <CatalogTableLink href={teacherHref}>
                   {teacher.email ?? "-"}
-                </a>
+                </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 text-right align-top">
-                <a class="block h-full w-full px-3 py-2 no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={teacherHref}>
+                <CatalogTableLink href={teacherHref}>
                   <Badge variant="outline">{teacher._count.sections}</Badge>
-                </a>
+                </CatalogTableLink>
               </Table.Cell>
             </Table.Row>
           {/each}

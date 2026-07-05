@@ -10,13 +10,13 @@ export let totalPages: number;
 </script>
 
 <div class="flex flex-wrap items-center justify-between gap-3">
-  <p class="text-base-content/60 text-sm">
+  <p class="text-muted-foreground text-sm">
     {base}
     {#if searchText}
-      <span class="font-medium text-base-content">{searchText}</span>
+      <span class="font-medium text-foreground">{searchText}</span>
     {/if}
     {#if semesterText}
-      <span class="font-medium text-base-content">{semesterText}</span>
+      <span class="font-medium text-foreground">{semesterText}</span>
     {/if}
   </p>
   <Badge variant="ghost">{pageLabel || `${page} / ${totalPages}`}</Badge>

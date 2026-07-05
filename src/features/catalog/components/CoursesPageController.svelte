@@ -138,7 +138,7 @@ function courseEmptyDescription() {
     title={courseLabels.title}
   />
 
-  <div class="-mx-4 grid min-h-[calc(100vh-8rem)] bg-base-100 sm:-mx-5 lg:-mx-6 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start">
+  <div class="-mx-4 grid min-h-[calc(100vh-8rem)] bg-background sm:-mx-5 lg:-mx-6 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start">
     <CatalogFilterSidebar
       activeCount={activeFilterCount}
       description={courseLabels.subtitle}

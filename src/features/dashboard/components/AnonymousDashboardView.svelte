@@ -29,7 +29,7 @@ $: currentTool =
 
 <div class="mx-auto grid w-full max-w-7xl gap-5">
   <div class="grid gap-1">
-    <p class="font-medium text-base-content/60 text-sm">
+    <p class="font-medium text-muted-foreground text-sm">
       {homepageCopy.publicDashboard.title}
     </p>
     <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -37,7 +37,7 @@ $: currentTool =
         <h1 class="font-semibold text-2xl tracking-normal sm:text-3xl">
           {currentTool.title}
         </h1>
-        <p class="max-w-3xl text-base-content/60 text-sm">
+        <p class="max-w-3xl text-muted-foreground text-sm">
           {currentTool.description}
         </p>
       </div>

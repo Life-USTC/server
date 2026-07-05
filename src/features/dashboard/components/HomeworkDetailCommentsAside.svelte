@@ -26,7 +26,7 @@ $: permalinkBaseHref = homework.section?.jwId
     <Separator class="hidden lg:block" orientation="vertical" />
     <div class="min-w-0">
       <h3 class="font-semibold text-base">{homeworksCopy.commentsTitle}</h3>
-      <p class="mt-1 mb-3 text-base-content/60 text-sm">{homeworksCopy.commentsLabel}</p>
+      <p class="mt-1 mb-3 text-muted-foreground text-sm">{homeworksCopy.commentsLabel}</p>
       {#key `comments:homework:${homework.id}`}
         <CommentsPanel {permalinkBaseHref} targetId={homework.id} targetType="homework" />
       {/key}

@@ -26,7 +26,7 @@ $: queueCards = adminDashboardQueueCards(data);
   <PageHeader title={data.copy.title} description={data.copy.subtitle} />
 
   <div class="grid gap-3">
-    <h2 class="text-sm font-medium text-base-content/60">
+    <h2 class="text-sm font-medium text-muted-foreground">
       {data.copy.dashboard.openItems}
     </h2>
     <Item.Group class="grid gap-2 sm:grid-cols-3">

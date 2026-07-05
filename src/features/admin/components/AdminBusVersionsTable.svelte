@@ -38,7 +38,7 @@ export let versions: AdminBusVersion[];
         <Table.Row>
           <Table.Cell>
             <div class="font-medium">{version.title}</div>
-            {#if version.sourceMessage}<div class="text-base-content/60 text-xs">{version.sourceMessage}</div>{/if}
+            {#if version.sourceMessage}<div class="text-muted-foreground text-xs">{version.sourceMessage}</div>{/if}
           </Table.Cell>
           <Table.Cell class="font-mono text-xs">{version.key}</Table.Cell>
           <Table.Cell>{version.tripCount}</Table.Cell>

@@ -3,6 +3,7 @@ import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
+import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
   TeacherDetailCopy,
   TeacherDetailTeacher,
@@ -30,25 +31,25 @@ export let teacher: TeacherDetailTeacher;
         {@const sectionHref = `/sections/${section.jwId}`}
         <Table.Row>
           <Table.Cell class="p-0 align-top">
-            <a class="block h-full w-full whitespace-nowrap px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={sectionHref}>
-              {#if section.semester}{section.semester.nameCn}{:else}<span class="text-base-content/40">{notAvailable}</span>{/if}
-            </a>
+            <CatalogTableLink href={sectionHref} nowrap>
+              {#if section.semester}{section.semester.nameCn}{:else}<span class="text-muted-foreground">{notAvailable}</span>{/if}
+            </CatalogTableLink>
           </Table.Cell>
           <Table.Cell class="min-w-72 p-0 align-top">
-            <a class="block h-full w-full px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={sectionHref}>
+            <CatalogTableLink href={sectionHref}>
               <span class="font-medium">{primaryName(section.course)}</span>
-              {#if secondaryName(section.course)}<span class="block text-base-content/60 text-xs">{secondaryName(section.course)}</span>{/if}
-            </a>
+              {#if secondaryName(section.course)}<span class="block text-muted-foreground text-xs">{secondaryName(section.course)}</span>{/if}
+            </CatalogTableLink>
           </Table.Cell>
           <Table.Cell class="p-0 align-top">
-            <a class="block h-full w-full px-3 py-2 no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={sectionHref}>
+            <CatalogTableLink href={sectionHref}>
               <Badge class="font-mono" variant="outline">{section.code}</Badge>
-            </a>
+            </CatalogTableLink>
           </Table.Cell>
           <Table.Cell class="p-0 text-right align-top">
-            <a class="block h-full w-full px-3 py-2 text-base-content no-underline tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={sectionHref}>
+            <CatalogTableLink href={sectionHref} numeric>
               {section.credits ?? notAvailable}
-            </a>
+            </CatalogTableLink>
           </Table.Cell>
         </Table.Row>
       {:else}
