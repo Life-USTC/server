@@ -20,11 +20,9 @@ export let pendingHomeworks: DashboardHomeworkItem[];
 
 <Card.Root>
   <Card.Header>
-    <div class="flex flex-wrap items-start justify-between gap-3">
-      <Card.Title>
-        <a class="no-underline hover:underline" href={dashboardTabHref("homeworks")}>{dashboardCopy.nav.homeworks.title}</a>
-      </Card.Title>
-    </div>
+    <Card.Title>
+      <a class="no-underline hover:underline" href={dashboardTabHref("homeworks")}>{dashboardCopy.nav.homeworks.title}</a>
+    </Card.Title>
   </Card.Header>
   <Card.Content>
     <Item.Group>

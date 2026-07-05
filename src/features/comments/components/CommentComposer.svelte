@@ -15,30 +15,54 @@ import type {
   UploadsCopy,
 } from "./comment-component-types";
 
-export let body: string;
-export let commentCopy: CommentsCopy;
-export let handleEditorDrop: (event: DragEvent) => void;
-export let handleSubmitShortcut: (event: KeyboardEvent) => void;
-export let isAnonymous: boolean;
-export let isDragActive: boolean;
-export let postTargetKey: string;
-export let postTargetOptions: CommentSelectOption[];
-export let removeAttachment: (uploadId: string) => void;
-export let signInHref: string;
-export let submitComment: () => void;
-export let submitting: boolean;
-export let uploadCopy: UploadsCopy;
-export let uploadedFiles: CommentUploadOption[];
-export let uploading: boolean;
-export let uploadFile: (file: File) => void;
-export let viewer: ViewerContext;
-export let visibility: string;
-export let visibilityOptions: CommentSelectOption[];
+type CommentComposerProps = {
+  body: string;
+  commentCopy: CommentsCopy;
+  handleEditorDrop: (event: DragEvent) => void;
+  handleSubmitShortcut: (event: KeyboardEvent) => void;
+  isAnonymous: boolean;
+  isDragActive: boolean;
+  postTargetKey: string;
+  postTargetOptions: CommentSelectOption[];
+  removeAttachment: (uploadId: string) => void;
+  signInHref: string;
+  submitComment: () => void;
+  submitting: boolean;
+  uploadCopy: UploadsCopy;
+  uploadedFiles: CommentUploadOption[];
+  uploading: boolean;
+  uploadFile: (file: File) => void;
+  viewer: ViewerContext;
+  visibility: string;
+  visibilityOptions: CommentSelectOption[];
+};
+
+let {
+  body = $bindable(),
+  commentCopy,
+  handleEditorDrop,
+  handleSubmitShortcut,
+  isAnonymous = $bindable(),
+  isDragActive = $bindable(),
+  postTargetKey = $bindable(),
+  postTargetOptions,
+  removeAttachment,
+  signInHref,
+  submitComment,
+  submitting,
+  uploadCopy,
+  uploadedFiles,
+  uploading,
+  uploadFile,
+  viewer,
+  visibility = $bindable(),
+  visibilityOptions,
+}: CommentComposerProps = $props();
 
 const composerEditorLabelId = "comment-composer-editor-label";
 
-$: composerDisabled = !viewer.isAuthenticated || viewer.isSuspended;
-$: composerDisabledAttr = composerDisabled ? "true" : undefined;
+let composerDisabled = $derived(!viewer.isAuthenticated || viewer.isSuspended);
+let composerDisabledAttr = $derived(composerDisabled ? "true" : undefined);
 </script>
 
 <Card.Root>

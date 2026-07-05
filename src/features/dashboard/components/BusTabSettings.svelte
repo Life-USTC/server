@@ -49,7 +49,6 @@ export let toggleBusDepartedTrips: () => void;
           disabled={!busPlannerReady}
           type="button"
           onclick={reverseBusStops}
-          title={busCopy.planner.reverse}
           variant="outline"
         >
           <ArrowLeftRightIcon data-icon="inline-start" />

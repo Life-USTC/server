@@ -20,11 +20,9 @@ $: controlsDisabledAttr = controlsDisabled ? "true" : undefined;
 </script>
 
 <Card.Header>
-  <div class="flex flex-wrap items-center justify-between gap-3">
-    <div>
-      <Card.Title>{commentCopy.postAction}</Card.Title>
-      <Card.Description>{commentCopy.subtitle}</Card.Description>
-    </div>
+  <Card.Title>{commentCopy.postAction}</Card.Title>
+  <Card.Description>{commentCopy.subtitle}</Card.Description>
+  <Card.Action>
     <Field.Group class="flex-row flex-wrap items-center gap-3 text-sm">
       <Field.Field
         data-disabled={controlsDisabledAttr}
@@ -69,5 +67,5 @@ $: controlsDisabledAttr = controlsDisabled ? "true" : undefined;
         </Select.Root>
       </Field.Field>
     </Field.Group>
-  </div>
+  </Card.Action>
 </Card.Header>

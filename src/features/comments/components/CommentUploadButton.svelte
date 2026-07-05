@@ -1,33 +1,40 @@
 <script lang="ts">
-import { buttonVariants } from "$lib/components/ui/button/index.js";
-import { Label } from "$lib/components/ui/label/index.js";
-import { cn } from "$lib/utils.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import { Input } from "$lib/components/ui/input/index.js";
 
 export let disabled = false;
 export let onFile: (file: File) => void;
 export let uploadLabel: string;
 export let uploading = false;
 export let uploadingLabel: string;
+
+let inputRef: HTMLInputElement | null = null;
+
+function openFilePicker() {
+  inputRef?.click();
+}
 </script>
 
-<Label
-  aria-disabled={disabled}
-  data-slot="button"
-  class={cn(
-    buttonVariants({ size: "sm", variant: "outline" }),
-    "cursor-pointer focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/30 aria-disabled:pointer-events-none aria-disabled:opacity-50",
-  )}
+<Button
+  {disabled}
+  size="sm"
+  type="button"
+  variant="outline"
+  onclick={openFilePicker}
 >
   {uploading ? uploadingLabel : uploadLabel}
-  <input
-    class="sr-only"
-    type="file"
-    {disabled}
-    onchange={(event) => {
-      const input = event.currentTarget;
-      const file = input.files?.[0];
-      if (file) onFile(file);
-      input.value = "";
-    }}
-  />
-</Label>
+</Button>
+<Input
+  bind:ref={inputRef}
+  aria-hidden="true"
+  class="sr-only h-px w-px border-0 p-0"
+  tabindex={-1}
+  type="file"
+  {disabled}
+  onchange={(event) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (file) onFile(file);
+    input.value = "";
+  }}
+/>

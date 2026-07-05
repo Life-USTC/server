@@ -1,35 +1,58 @@
 <script lang="ts">
+import type { ComponentProps } from "svelte";
 import type { PluggableList } from "unified";
 import MarkdownPreview from "$lib/components/MarkdownPreview.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as InputGroup from "$lib/components/ui/input-group/index.js";
 import * as Tabs from "$lib/components/ui/tabs/index.js";
 
-export let disabled = false;
-export let guideHref = "/guides/markdown-support";
-export let guideLabel = "";
-export let isDragActive = false;
-export let modeLabel = "";
-export let name: string | undefined = undefined;
-export let placeholder = "";
-export let previewEmptyLabel = "";
-export let remarkPlugins: PluggableList = [];
-export let rows = 6;
-export let tabPreviewLabel = "";
-export let tabWriteLabel = "";
-export let value = "";
-let activeTab: "write" | "preview" = "write";
-let className = "";
+type MarkdownEditorProps = Omit<
+  ComponentProps<typeof InputGroup.Textarea>,
+  "value"
+> & {
+  compact?: boolean;
+  guideHref?: string;
+  guideLabel?: string;
+  isDragActive?: boolean;
+  modeLabel?: string;
+  name?: string;
+  previewEmptyLabel?: string;
+  remarkPlugins?: PluggableList;
+  tabPreviewLabel?: string;
+  tabWriteLabel?: string;
+  value?: string;
+};
 
-export { className as class };
+let {
+  compact: _compact = false,
+  disabled = false,
+  guideHref = "/guides/markdown-support",
+  guideLabel = "",
+  isDragActive = false,
+  modeLabel = "",
+  name = undefined,
+  placeholder = "",
+  previewEmptyLabel = "",
+  remarkPlugins = [],
+  rows = 6,
+  tabPreviewLabel = "",
+  tabWriteLabel = "",
+  value = $bindable(""),
+  class: className = "",
+  ...restProps
+}: MarkdownEditorProps = $props();
+
+let activeTab = $state<"write" | "preview">("write");
 
 function stringRestProp(name: string) {
-  const value = ($$restProps as Record<string, unknown>)[name];
-  return typeof value === "string" && value.length > 0 ? value : undefined;
+  const propValue = (restProps as Record<string, unknown>)[name];
+  return typeof propValue === "string" && propValue.length > 0
+    ? propValue
+    : undefined;
 }
 
-$: labelledBy = stringRestProp("aria-labelledby");
-$: label = stringRestProp("aria-label");
+let labelledBy = $derived(stringRestProp("aria-labelledby"));
+let label = $derived(stringRestProp("aria-label"));
 
 function setActiveTab(value: string) {
   if (value === "write" || value === "preview") {
@@ -72,7 +95,7 @@ function setActiveTab(value: string) {
           {disabled}
           {placeholder}
           {rows}
-          {...$$restProps}
+          {...restProps}
         ></InputGroup.Textarea>
       </InputGroup.Root>
     </Tabs.Content>

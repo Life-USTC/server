@@ -13,6 +13,13 @@ export let uploadCopy: UploadsCopy;
 export let uploading: boolean;
 export let uploadFile: (file: File) => void;
 export let viewer: ViewerContext;
+
+$: canSubmit =
+  Boolean(body.trim()) &&
+  viewer.isAuthenticated &&
+  !viewer.isSuspended &&
+  !submitting &&
+  !uploading;
 </script>
 
 <div class="flex flex-wrap items-center gap-2">
@@ -32,7 +39,7 @@ export let viewer: ViewerContext;
   />
   <Button
     class="ml-auto"
-    disabled={!body.trim() || !viewer.isAuthenticated || viewer.isSuspended || submitting || uploading}
+    disabled={!canSubmit}
     size="sm"
     type="button"
     onclick={submitComment}

@@ -31,20 +31,18 @@ export let users: AdminUserRow[];
 
 <Card.Root>
   <Card.Header>
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <Card.Title>{copy.accountsTitle}</Card.Title>
-        <Card.Description>
-          {copy.accountsDescription}
-        </Card.Description>
-      </div>
+    <Card.Title>{copy.accountsTitle}</Card.Title>
+    <Card.Description>
+      {copy.accountsDescription}
+    </Card.Description>
+    <Card.Action>
       <Badge variant="ghost">
         {formatMessage(copy.showing, {
           count: String(users.length),
           total: String(pagination.total),
         })}
       </Badge>
-    </div>
+    </Card.Action>
   </Card.Header>
   <Card.Content class="grid gap-4">
     {#if users.length === 0}

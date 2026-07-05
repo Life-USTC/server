@@ -21,12 +21,12 @@ export let upcomingExams: DashboardOverviewExamItem[];
 
 <Card.Root>
   <Card.Header>
-    <div class="flex flex-wrap items-start justify-between gap-3">
-      <Card.Title>
-        <a class="no-underline hover:underline" href={dashboardTabHref("exams")}>{dashboardCopy.nav.exams.title}</a>
-      </Card.Title>
+    <Card.Title>
+      <a class="no-underline hover:underline" href={dashboardTabHref("exams")}>{dashboardCopy.nav.exams.title}</a>
+    </Card.Title>
+    <Card.Action>
       <Badge variant="outline">{examsCount}</Badge>
-    </div>
+    </Card.Action>
   </Card.Header>
   <Card.Content>
     <Item.Group>

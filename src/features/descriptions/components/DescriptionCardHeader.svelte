@@ -18,21 +18,17 @@ export let viewer: DescriptionViewer;
 </script>
 
 <Card.Header>
-  <div class="flex flex-wrap items-start justify-between gap-3">
-    <div class="grid min-w-0 flex-1 gap-1">
-      <div class="flex min-w-0 flex-wrap items-center gap-2">
-        <Card.Title class="min-w-0 break-words">{copy.title}</Card.Title>
-      </div>
-      {#if description.lastEditedAt}
-        <Card.Description>
-          {formatDescriptionCopy(copy.lastEdited, { date: formatDate(description.lastEditedAt) })}
-          ·
-          {formatDescriptionCopy(copy.editedBy, { name: editorName(description.lastEditedBy) })}
-        </Card.Description>
-      {:else}
-        <Card.Description>{copy.empty}</Card.Description>
-      {/if}
-    </div>
+  <Card.Title class="min-w-0 break-words">{copy.title}</Card.Title>
+  {#if description.lastEditedAt}
+    <Card.Description>
+      {formatDescriptionCopy(copy.lastEdited, { date: formatDate(description.lastEditedAt) })}
+      ·
+      {formatDescriptionCopy(copy.editedBy, { name: editorName(description.lastEditedBy) })}
+    </Card.Description>
+  {:else}
+    <Card.Description>{copy.empty}</Card.Description>
+  {/if}
+  <Card.Action>
     {#if viewer.isAuthenticated && !viewer.isSuspended && !editing}
       <Button size="sm" type="button" variant="outline" onclick={onStartEdit}>
         {copy.edit}
@@ -40,5 +36,5 @@ export let viewer: DescriptionViewer;
     {:else if !viewer.isAuthenticated}
       <Button href="/signin" size="sm" variant="outline">{copy.loginToEdit}</Button>
     {/if}
-  </div>
+  </Card.Action>
 </Card.Header>

@@ -27,10 +27,10 @@ export let todoStatus: (todo: DashboardTodoItem) => string;
 
 <Card.Root>
   <Card.Header>
-    <div class="flex flex-wrap items-start justify-between gap-3">
-      <Card.Title>
-        <a class="no-underline hover:underline" href={dashboardTabHref("todos")}>{dashboardCopy.nav.todos.title}</a>
-      </Card.Title>
+    <Card.Title>
+      <a class="no-underline hover:underline" href={dashboardTabHref("todos")}>{dashboardCopy.nav.todos.title}</a>
+    </Card.Title>
+    <Card.Action>
       <div class="flex flex-wrap justify-end gap-1.5">
         <Badge>
           {formatMessage(dashboardCopy.todos.dueToday, {
@@ -43,7 +43,7 @@ export let todoStatus: (todo: DashboardTodoItem) => string;
           })}
         </Badge>
       </div>
-    </div>
+    </Card.Action>
   </Card.Header>
   <Card.Content>
     <Item.Group>

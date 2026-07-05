@@ -34,15 +34,13 @@ $: visibleClients = visibleOAuthClientsForTab(clients, activeClientTab);
 
 <Card.Root>
   <Card.Header>
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <Card.Title>{copy.existingClients}</Card.Title>
-        <Card.Description>
-          {copy.existingClientsDescription}
-        </Card.Description>
-      </div>
+    <Card.Title>{copy.existingClients}</Card.Title>
+    <Card.Description>
+      {copy.existingClientsDescription}
+    </Card.Description>
+    <Card.Action>
       <Badge variant="ghost">{copy.clientCount.replace("{count}", String(clients.length))}</Badge>
-    </div>
+    </Card.Action>
   </Card.Header>
 </Card.Root>
 

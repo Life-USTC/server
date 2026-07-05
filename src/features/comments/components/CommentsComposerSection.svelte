@@ -9,27 +9,53 @@ import type {
   UploadsCopy,
 } from "./comment-component-types";
 
-export let appliedInitialData: boolean;
-export let body: string;
-export let commentCopy: CommentsCopy;
-export let handleEditorDrop: (event: DragEvent) => void;
-export let handleSubmitShortcut: (event: KeyboardEvent) => void;
-export let isAnonymous: boolean;
-export let isDragActive: boolean;
-export let loading: boolean;
-export let postTargetKey: string;
-export let postTargetOptions: CommentSelectOption[];
-export let removeAttachment: (uploadId: string) => void;
-export let signInHref: string;
-export let submitComment: () => void | Promise<void>;
-export let submitting: boolean;
-export let uploadCopy: UploadsCopy;
-export let uploadedFiles: CommentUploadOption[];
-export let uploadFile: (file: File) => void | Promise<void>;
-export let uploading: boolean;
-export let viewer: ViewerContext;
-export let visibility: string;
-export let visibilityOptions: CommentSelectOption[];
+type CommentsComposerSectionProps = {
+  appliedInitialData: boolean;
+  body: string;
+  commentCopy: CommentsCopy;
+  handleEditorDrop: (event: DragEvent) => void;
+  handleSubmitShortcut: (event: KeyboardEvent) => void;
+  isAnonymous: boolean;
+  isDragActive: boolean;
+  loading: boolean;
+  postTargetKey: string;
+  postTargetOptions: CommentSelectOption[];
+  removeAttachment: (uploadId: string) => void;
+  signInHref: string;
+  submitComment: () => void | Promise<void>;
+  submitting: boolean;
+  uploadCopy: UploadsCopy;
+  uploadedFiles: CommentUploadOption[];
+  uploadFile: (file: File) => void | Promise<void>;
+  uploading: boolean;
+  viewer: ViewerContext;
+  visibility: string;
+  visibilityOptions: CommentSelectOption[];
+};
+
+let {
+  appliedInitialData,
+  body = $bindable(),
+  commentCopy,
+  handleEditorDrop,
+  handleSubmitShortcut,
+  isAnonymous = $bindable(),
+  isDragActive = $bindable(),
+  loading,
+  postTargetKey = $bindable(),
+  postTargetOptions,
+  removeAttachment,
+  signInHref,
+  submitComment,
+  submitting,
+  uploadCopy,
+  uploadedFiles,
+  uploadFile,
+  uploading,
+  viewer,
+  visibility = $bindable(),
+  visibilityOptions,
+}: CommentsComposerSectionProps = $props();
 </script>
 
 {#if loading && !appliedInitialData}

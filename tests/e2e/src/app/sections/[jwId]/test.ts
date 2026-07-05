@@ -1173,19 +1173,13 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       await expect(composerCard).toBeVisible();
       const uploadInput = composerCard.locator('input[type="file"]').first();
       await expect(uploadInput).toBeAttached();
-      const uploadControl = uploadInput.locator(
-        "xpath=ancestor::label[@data-slot='button'][1]",
-      );
-      await uploadInput.evaluate((input: HTMLInputElement) => {
-        input.focus();
-      });
-      await expect
-        .poll(() =>
-          uploadControl.evaluate(
-            (element) => getComputedStyle(element).boxShadow,
-          ),
-        )
-        .not.toBe("none");
+      const uploadButton = composerCard
+        .getByRole("button", {
+          name: /上传文件|上传附件|Upload file|Upload attachment/i,
+        })
+        .first();
+      await uploadButton.focus();
+      await expect(uploadButton).toBeFocused();
 
       // Upload attachment (upload.yml three-step flow)
       const uploadCreate = page.waitForResponse(
@@ -1226,15 +1220,17 @@ test.describe("/sections/[jwId] 班级详情页", () => {
         .getByRole("textbox", { name: /评论内容|Comment body/i })
         .first()
         .fill(body);
+      const postButton = composerCard
+        .getByRole("button", { name: /发布评论|Post comment/i })
+        .first();
+      await expect(postButton).toBeEnabled();
       const createComment = page.waitForResponse(
         (r) =>
           r.url().includes("/api/comments") &&
           r.request().method() === "POST" &&
           r.status() === 200,
       );
-      await composerCard
-        .getByRole("button", { name: /发布评论|Post comment/i })
-        .click();
+      await postButton.click();
       const createCommentResponse = await createComment;
       const createCommentBody = (await createCommentResponse.json()) as {
         id?: string;
