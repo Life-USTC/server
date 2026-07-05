@@ -55,48 +55,47 @@ $: avatarFallback = (user.name ?? user.username ?? "U")
         </Alert.Root>
       {/if}
 
-      <Radio.Root
-        aria-label={profileCopy.profilePicture}
-        data-testid="avatar-selector"
-        bind:value={selectedImage}
-      >
-        {#if selectedImage && selectedImage !== currentImage}
-          <input type="hidden" name="image" value={selectedImage} />
-        {/if}
-        <Field.Set>
-          <Field.Legend variant="label">{profileCopy.profilePicture}</Field.Legend>
-          <div class="flex items-center gap-4">
-            <Avatar.Root class="size-20">
-              <Avatar.Image alt={profileCopy.profilePicture} src={previewImage} />
-              <Avatar.Fallback>{avatarFallback}</Avatar.Fallback>
-            </Avatar.Root>
-            {#if avatarOptions.length > 0}
-              <Field.Group class="grid grid-cols-4 gap-2">
-                {#each avatarOptions as avatar, index}
-                  {@const avatarId = `welcome-avatar-option-${index}`}
-                  <Field.Label for={avatarId}>
-                    <Field.Field orientation="horizontal">
-                      <Avatar.Root class="size-12 border-0">
-                        <Avatar.Image alt={copy.accessibility.avatarOption} src={avatar} />
-                        <Avatar.Fallback>{index + 1}</Avatar.Fallback>
-                      </Avatar.Root>
-                      <Radio.Item
-                        id={avatarId}
-                        value={avatar}
-                        aria-label={`${copy.accessibility.avatarOption} ${index + 1}`}
-                      />
-                    </Field.Field>
-                  </Field.Label>
-                {/each}
-              </Field.Group>
-            {:else}
-              <Field.Description>
-                {welcomeCopy.avatarLater}
-              </Field.Description>
-            {/if}
-          </div>
-        </Field.Set>
-      </Radio.Root>
+      {#if selectedImage && selectedImage !== currentImage}
+        <input type="hidden" name="image" value={selectedImage} />
+      {/if}
+      <Field.Set>
+        <Field.Legend variant="label">{profileCopy.profilePicture}</Field.Legend>
+        <div class="flex items-center gap-4">
+          <Avatar.Root class="size-20">
+            <Avatar.Image alt={profileCopy.profilePicture} src={previewImage} />
+            <Avatar.Fallback>{avatarFallback}</Avatar.Fallback>
+          </Avatar.Root>
+          {#if avatarOptions.length > 0}
+            <Radio.Root
+              aria-label={profileCopy.profilePicture}
+              class="grid grid-cols-4 gap-2"
+              data-testid="avatar-selector"
+              bind:value={selectedImage}
+            >
+              {#each avatarOptions as avatar, index}
+                {@const avatarId = `welcome-avatar-option-${index}`}
+                <Field.Label for={avatarId}>
+                  <Field.Field orientation="horizontal">
+                    <Avatar.Root class="size-12 border-0">
+                      <Avatar.Image alt={copy.accessibility.avatarOption} src={avatar} />
+                      <Avatar.Fallback>{index + 1}</Avatar.Fallback>
+                    </Avatar.Root>
+                    <Radio.Item
+                      id={avatarId}
+                      value={avatar}
+                      aria-label={`${copy.accessibility.avatarOption} ${index + 1}`}
+                    />
+                  </Field.Field>
+                </Field.Label>
+              {/each}
+            </Radio.Root>
+          {:else}
+            <Field.Description>
+              {welcomeCopy.avatarLater}
+            </Field.Description>
+          {/if}
+        </div>
+      </Field.Set>
 
       <Field.Group class="gap-4">
         <Field.Field>

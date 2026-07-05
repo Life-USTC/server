@@ -220,9 +220,9 @@ $: stats = [
     <Card.Root class="overflow-hidden">
       <Card.Header class="border-border border-b p-4">
         <div class="flex items-center gap-3">
-          <span class="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-primary">
+          <Item.Media variant="icon">
             <SmartphoneIcon />
-          </span>
+          </Item.Media>
           <div class="min-w-0">
             <Card.Title class="truncate text-base">{pageCopy.previewTitle}</Card.Title>
             <Card.Description>{pageCopy.previewSubtitle}</Card.Description>
@@ -232,9 +232,7 @@ $: stats = [
       <Card.Content class="grid gap-3 p-4">
         <Item.Root variant="muted">
           <Item.Media variant="icon">
-            <span class="text-primary">
-              <BellIcon />
-            </span>
+            <BellIcon />
           </Item.Media>
           <Item.Content>
             <Item.Title>{pageCopy.previewStatusTitle}</Item.Title>
@@ -246,9 +244,7 @@ $: stats = [
           {#each previewItems as item}
             <Item.Root size="sm" variant="outline">
               <Item.Media variant="icon">
-                <span class="text-primary">
-                  <svelte:component this={item.icon} />
-                </span>
+                <svelte:component this={item.icon} />
               </Item.Media>
               <Item.Content>
                 <Item.Title>{item.label}</Item.Title>
@@ -273,9 +269,7 @@ $: stats = [
           {#each featureItems as item}
             <Item.Root class="items-start" variant="outline">
               <Item.Media variant="icon">
-                <span class="text-primary">
-                  <svelte:component this={item.icon} />
-                </span>
+                <svelte:component this={item.icon} />
               </Item.Media>
               <Item.Content>
                 <Item.Title>{item.copy.title}</Item.Title>
@@ -298,9 +292,7 @@ $: stats = [
               {#snippet child({ props })}
                 <a {...props} href={item.href}>
                   <Item.Media variant="icon">
-                    <span class="text-primary">
-                      <svelte:component this={item.icon} />
-                    </span>
+                    <svelte:component this={item.icon} />
                   </Item.Media>
                   <Item.Content>
                     <Item.Title>{item.copy.title}</Item.Title>
