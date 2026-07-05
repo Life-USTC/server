@@ -1,4 +1,5 @@
 <script lang="ts">
+import SearchIcon from "@lucide/svelte/icons/search";
 import type {
   DashboardDashboardCopy,
   LinkView,
@@ -6,7 +7,7 @@ import type {
 import LayoutGrid from "$lib/components/icons/layout-grid.svelte";
 import List from "$lib/components/icons/list.svelte";
 import * as Field from "$lib/components/ui/field/index.js";
-import { Input } from "$lib/components/ui/input/index.js";
+import * as InputGroup from "$lib/components/ui/input-group/index.js";
 import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 
 export let dashboardCopy: DashboardDashboardCopy;
@@ -42,16 +43,21 @@ function handleLinkViewChange(value: string) {
   <Field.Group class="min-w-60 flex-1 max-w-xl gap-0">
     <Field.Field>
       <Field.Label class="sr-only" for="dashboard-link-search">{dashboardCopy.linkHub.searchPlaceholder}</Field.Label>
-      <Input
-        id="dashboard-link-search"
-        bind:ref={linkSearchInput}
-        placeholder={dashboardCopy.linkHub.searchPlaceholder}
-        type="search"
-        value={linkSearchQuery}
-        oninput={(event: Event) => {
-          linkSearchQuery = (event.currentTarget as HTMLInputElement).value;
-        }}
-      />
+      <InputGroup.Root>
+        <InputGroup.Input
+          id="dashboard-link-search"
+          bind:ref={linkSearchInput}
+          placeholder={dashboardCopy.linkHub.searchPlaceholder}
+          type="search"
+          value={linkSearchQuery}
+          oninput={(event: Event) => {
+            linkSearchQuery = (event.currentTarget as HTMLInputElement).value;
+          }}
+        />
+        <InputGroup.Addon>
+          <SearchIcon />
+        </InputGroup.Addon>
+      </InputGroup.Root>
     </Field.Field>
   </Field.Group>
 </div>

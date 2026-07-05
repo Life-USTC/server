@@ -15,20 +15,22 @@ export let copy: DeviceCopy;
   <p class="mt-2 text-base-content/60">{copy.deviceCodeHint}</p>
 </header>
 
-<form method="GET" action="/oauth/device" class="grid gap-4">
+<form method="GET" action="/oauth/device">
   <input type="hidden" name="step" value="approve" />
-  <Field.Field>
-    <Field.Label for="code">{copy.deviceCodeLabel}</Field.Label>
-    <Input
-      id="code"
-      autocomplete="off"
-      class="h-11 text-center font-mono text-lg tracking-widest"
-      name="code"
-      placeholder="XXXX-XXXX"
-      required
-      type="text"
-      value={code}
-    />
-  </Field.Field>
-  <Button type="submit">{copy.deviceVerify}</Button>
+  <Field.Group>
+    <Field.Field>
+      <Field.Label for="code">{copy.deviceCodeLabel}</Field.Label>
+      <Input
+        id="code"
+        autocomplete="off"
+        class="h-11 text-center font-mono text-lg tracking-widest"
+        name="code"
+        placeholder="XXXX-XXXX"
+        required
+        type="text"
+        value={code}
+      />
+    </Field.Field>
+    <Button type="submit">{copy.deviceVerify}</Button>
+  </Field.Group>
 </form>

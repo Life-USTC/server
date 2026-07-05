@@ -2,8 +2,8 @@
 import type { PluggableList } from "unified";
 import MarkdownPreview from "$lib/components/MarkdownPreview.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as InputGroup from "$lib/components/ui/input-group/index.js";
 import * as Tabs from "$lib/components/ui/tabs/index.js";
-import { Textarea } from "$lib/components/ui/textarea/index.js";
 
 export let disabled = false;
 export let guideHref = "/guides/markdown-support";
@@ -59,20 +59,21 @@ function setActiveTab(value: string) {
       <Tabs.Trigger value="preview">{tabPreviewLabel}</Tabs.Trigger>
     </Tabs.List>
 
-    <div
-      class={`min-h-32 rounded-md border border-base-300 bg-base-100 transition-colors focus-within:ring-2 focus-within:ring-primary/30 ${isDragActive ? "border-primary bg-primary/5" : ""}`}
+    <InputGroup.Root
+      class="h-auto min-h-32 data-[drag-active=true]:border-primary data-[drag-active=true]:bg-primary/5"
+      data-drag-active={isDragActive}
     >
       <Tabs.Content value="write" class="m-0">
-        <Textarea
+        <InputGroup.Textarea
           aria-label={labelledBy ? undefined : label}
           aria-labelledby={labelledBy}
-          class="min-h-0 resize-y border-0 bg-transparent shadow-none focus-visible:ring-0"
+          class="min-h-32 resize-y"
           bind:value
           {disabled}
           {placeholder}
           {rows}
           {...$$restProps}
-        ></Textarea>
+        ></InputGroup.Textarea>
       </Tabs.Content>
       <Tabs.Content value="preview" class="m-0">
         <div class="min-h-32 p-3">
@@ -85,7 +86,7 @@ function setActiveTab(value: string) {
           {/if}
         </div>
       </Tabs.Content>
-    </div>
+    </InputGroup.Root>
   </Tabs.Root>
 
   {#if guideLabel}
