@@ -34,7 +34,7 @@ $: selectedTab = signedData.tab ?? "overview";
     >
       {label}
       {#if badge !== null && badge > 0}
-        <Badge class="ml-2" variant="ghost">{badge}</Badge>
+        <Badge variant="ghost">{badge}</Badge>
       {/if}
     </Button>
   {/each}

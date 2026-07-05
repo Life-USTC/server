@@ -47,7 +47,7 @@ $: currentTabLabel = tabs.find(([id]) => id === currentTab)?.[1] ?? currentTab;
       variant={id === currentTab ? "secondary" : "ghost"}
     >
       {label}
-      <Badge class="ml-2" variant="ghost">{count}</Badge>
+      <Badge variant="ghost">{count}</Badge>
     </Button>
   {/each}
 </nav>

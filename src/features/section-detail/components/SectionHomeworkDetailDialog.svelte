@@ -4,6 +4,7 @@ import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
+import { Separator } from "$lib/components/ui/separator/index.js";
 import SectionHomeworkActionBar from "./SectionHomeworkActionBar.svelte";
 import SectionHomeworkAuditTrail from "./SectionHomeworkAuditTrail.svelte";
 import SectionHomeworkEditForm from "./SectionHomeworkEditForm.svelte";
@@ -86,7 +87,7 @@ export let sectionJwId: number | string;
       </Dialog.Header>
 
       <ScrollArea class="h-[min(70vh,44rem)]">
-        <div class="grid gap-5 px-5 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,26rem)]">
+        <div class="grid gap-5 px-5 py-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(22rem,26rem)]">
           <section class="grid gap-4">
             {#if _editingHomework}
               <SectionHomeworkEditForm
@@ -138,7 +139,10 @@ export let sectionJwId: number | string;
             />
           </section>
 
-          <section class="min-w-0 border-base-300 border-t pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-5">
+          <Separator class="hidden lg:block" orientation="vertical" />
+
+          <section class="min-w-0">
+            <Separator class="mb-4 lg:hidden" />
             {#key `comments:homework:${_selectedHomework.id}`}
               <CommentsPanel
                 permalinkBaseHref={commentTargetPermalinkBaseHref({

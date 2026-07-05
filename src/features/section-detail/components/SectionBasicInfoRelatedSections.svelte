@@ -27,7 +27,7 @@ export let sectionTeachersLabel: SectionTeachersLabel;
                 {#each section.sameSemesterOtherTeachers.slice(0, 10) as related}
                   <Button class="h-auto min-h-8 whitespace-normal px-2 py-1 text-left" href={`/sections/${related.jwId}`} variant="outline">
                     <span>{sectionTeachersLabel(related)}</span>
-                    <Badge class="ml-1 font-mono" variant="ghost">{related.code}</Badge>
+                    <Badge class="font-mono" variant="ghost">{related.code}</Badge>
                   </Button>
                 {/each}
               </div>
@@ -40,7 +40,7 @@ export let sectionTeachersLabel: SectionTeachersLabel;
                 {#each section.sameTeacherOtherSemesters.slice(0, 10) as related}
                   <Button class="h-auto min-h-8 whitespace-normal px-2 py-1 text-left" href={`/sections/${related.jwId}`} variant="outline">
                     <span>{related.semester?.nameCn ?? notAvailable}</span>
-                    <Badge class="ml-1 font-mono" variant="ghost">{related.code}</Badge>
+                    <Badge class="font-mono" variant="ghost">{related.code}</Badge>
                   </Button>
                 {/each}
               </div>
