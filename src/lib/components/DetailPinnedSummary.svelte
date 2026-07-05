@@ -31,7 +31,7 @@ let {
 
 <div
   class={cn(
-    "bg-base-100 px-4 py-3 sm:px-5 lg:px-6",
+    "bg-background px-4 py-3 sm:px-5 lg:px-6",
     className,
   )}
   data-testid="detail-pinned-summary"
@@ -40,7 +40,7 @@ let {
     <div class="min-w-0 flex-1">
       <h1 class="truncate font-semibold text-lg leading-6">{title}</h1>
       {#if description || items.length}
-        <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-base-content/60 text-xs">
+        <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground text-xs">
           {#if description}
             <span class="max-w-full truncate">{description}</span>
           {/if}

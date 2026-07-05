@@ -22,31 +22,31 @@ export let yesNo: (value: boolean | null | undefined) => string;
     <Accordion.Content>
       <dl class="grid gap-3 text-sm">
         <div class="flex items-baseline justify-between gap-4">
-          <dt class="text-base-content/60">{sectionCopy.teachLanguage}</dt>
+          <dt class="text-muted-foreground">{sectionCopy.teachLanguage}</dt>
           <dd>{primaryName(section.teachLanguage) || notAvailable}</dd>
         </div>
         <div class="flex items-baseline justify-between gap-4">
-          <dt class="text-base-content/60">{sectionCopy.roomType}</dt>
+          <dt class="text-muted-foreground">{sectionCopy.roomType}</dt>
           <dd>{primaryName(section.roomType) || notAvailable}</dd>
         </div>
         <div class="flex items-baseline justify-between gap-4">
-          <dt class="text-base-content/60">{commonCopy.undergraduateGraduate}</dt>
+          <dt class="text-muted-foreground">{commonCopy.undergraduateGraduate}</dt>
           <dd>{yesNo(section.graduateAndPostgraduate)}</dd>
         </div>
         <div class="flex items-baseline justify-between gap-4">
-          <dt class="text-base-content/60">{sectionCopy.periodsPerWeek}</dt>
+          <dt class="text-muted-foreground">{sectionCopy.periodsPerWeek}</dt>
           <dd>
             {section.timesPerWeek ?? notAvailable} x {section.periodsPerWeek ?? notAvailable}
           </dd>
         </div>
         {#each periodDetailRows as [label, value]}
           <div class="flex items-baseline justify-between gap-4">
-            <dt class="text-base-content/60">{label}</dt>
+            <dt class="text-muted-foreground">{label}</dt>
             <dd>{value}</dd>
           </div>
         {/each}
         <div class="flex items-baseline justify-between gap-4">
-          <dt class="text-base-content/60">{sectionCopy.department}</dt>
+          <dt class="text-muted-foreground">{sectionCopy.department}</dt>
           <dd>{primaryName(section.openDepartment) || notAvailable}</dd>
         </div>
       </dl>

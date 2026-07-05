@@ -22,7 +22,7 @@ export let sectionTeachersLabel: SectionTeachersLabel;
         <div class="grid gap-4">
           {#if section.sameSemesterOtherTeachers.length > 0}
             <div class="grid gap-2">
-              <p class="text-base-content/60 text-sm">{sectionCopy.sameSemesterOtherTeachers}</p>
+              <p class="text-muted-foreground text-sm">{sectionCopy.sameSemesterOtherTeachers}</p>
               <div class="flex flex-wrap gap-2">
                 {#each section.sameSemesterOtherTeachers.slice(0, 10) as related}
                   <Button class="h-auto min-h-8 whitespace-normal px-2 py-1 text-left" href={`/sections/${related.jwId}`} variant="outline">
@@ -35,7 +35,7 @@ export let sectionTeachersLabel: SectionTeachersLabel;
           {/if}
           {#if section.sameTeacherOtherSemesters.length > 0}
             <div class="grid gap-2">
-              <p class="text-base-content/60 text-sm">{sectionCopy.sameTeacherOtherSemesters}</p>
+              <p class="text-muted-foreground text-sm">{sectionCopy.sameTeacherOtherSemesters}</p>
               <div class="flex flex-wrap gap-2">
                 {#each section.sameTeacherOtherSemesters.slice(0, 10) as related}
                   <Button class="h-auto min-h-8 whitespace-normal px-2 py-1 text-left" href={`/sections/${related.jwId}`} variant="outline">

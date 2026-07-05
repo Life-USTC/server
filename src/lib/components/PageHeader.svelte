@@ -46,7 +46,7 @@ let {
         {title}{#if titleExtra}{@render titleExtra()}{/if}
       </h1>
       {#if description}
-        <p class="mt-1 max-w-2xl text-base-content/60">
+        <p class="mt-1 max-w-2xl text-muted-foreground">
           {description}
         </p>
       {/if}

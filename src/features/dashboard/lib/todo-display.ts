@@ -21,9 +21,11 @@ export function todoStatus(todo: TodoState, labels: TodoStatusLabels) {
 }
 
 export function todoPriorityClass(priority: TodoPriority) {
-  if (priority === "high") return "border-error/40 bg-error/10 text-error";
+  if (priority === "high") {
+    return "border-destructive/40 bg-destructive/10 text-destructive";
+  }
   if (priority === "low") return "border-info/40 bg-info/10 text-info";
-  return "border-base-300 bg-base-200 text-base-content";
+  return "border-border bg-muted text-foreground";
 }
 
 export function todoActionLabel(todo: TodoState, labels: TodoActionLabels) {

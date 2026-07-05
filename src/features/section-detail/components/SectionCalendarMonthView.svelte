@@ -18,8 +18,8 @@ export let formatMessage: (
 export let sectionCopy: SectionCalendarCopy;
 </script>
 
-<section class="overflow-hidden rounded-md border border-base-300 bg-base-100">
-  <div class="flex flex-wrap items-center justify-between gap-3 border-base-300 border-b px-4 py-3">
+<section class="overflow-hidden rounded-md border border-border bg-background">
+  <div class="flex flex-wrap items-center justify-between gap-3 border-border border-b px-4 py-3">
     <div>
       <h3 class="font-semibold">{calendarMonthLabel}</h3>
     </div>

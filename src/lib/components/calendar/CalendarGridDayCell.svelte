@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Badge } from "$lib/components/ui/badge/index.js";
+import { cn } from "$lib/utils.js";
 import CalendarEventChip from "./CalendarEventChip.svelte";
 import type { CalendarGridWeek } from "./types";
 
@@ -15,13 +16,19 @@ export let variant: "week" | "month" = "week";
 
 <div
   aria-current={day.isToday ? "date" : undefined}
-  class={`border-base-300 p-2 ${variant === "week" ? "min-h-56 border-r" : "min-h-32 border-r border-b"} ${isLastDay ? "border-r-0" : ""} ${day.isToday ? "ring-1 ring-primary ring-inset" : ""} ${day.isMuted ? "bg-base-200/40 text-base-content/45" : "bg-base-100"}`}
+  class={cn(
+    "border-border p-2",
+    variant === "week" ? "min-h-56 border-r" : "min-h-32 border-r border-b",
+    isLastDay ? "border-r-0" : undefined,
+    day.isToday ? "ring-1 ring-primary ring-inset" : undefined,
+    day.isMuted ? "bg-muted/40 text-muted-foreground" : "bg-background",
+  )}
 >
   <div class="flex items-start justify-between gap-2">
     <div>
       <div class="font-medium text-xs">{day.label}</div>
       {#if day.sublabel}
-        <div class="text-base-content/55 text-xs">{day.sublabel}</div>
+        <div class="text-muted-foreground text-xs">{day.sublabel}</div>
       {/if}
     </div>
     {#if day.events.length > 0}
@@ -44,11 +51,11 @@ export let variant: "week" | "month" = "week";
       />
     {:else}
       {#if emptyLabel}
-        <span class="text-base-content/45 text-xs">{emptyLabel}</span>
+        <span class="text-muted-foreground text-xs">{emptyLabel}</span>
       {/if}
     {/each}
     {#if day.events.length > eventLimit}
-      <span class="text-base-content/55 text-xs">
+      <span class="text-muted-foreground text-xs">
         {moreLabel(day.events.length - eventLimit)}
       </span>
     {/if}

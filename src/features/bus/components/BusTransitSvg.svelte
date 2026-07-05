@@ -27,7 +27,7 @@ export let routePaths: Map<number, BusMapRoutePath>;
 
 <svg
   viewBox={`0 0 ${SVG_W} ${SVG_H}`}
-  class="h-auto w-full rounded-md border border-base-300 bg-white md:min-h-[34rem]"
+  class="h-auto w-full rounded-md border border-border bg-card md:min-h-[34rem]"
   role="img"
   aria-label={copy.mapTitle}
   onmouseleave={() => {

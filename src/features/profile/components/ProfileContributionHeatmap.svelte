@@ -1,4 +1,5 @@
 <script lang="ts">
+import { cn } from "$lib/utils.js";
 import type { ContributionCell } from "./profile-contribution-types";
 
 export let cellLabel: string;
@@ -13,7 +14,7 @@ $: heatmapGridTemplate = `repeat(${weeks.length}, minmax(0, 1fr))`;
 <div class="min-w-0 overflow-hidden pb-2">
   <div class="grid min-w-0 gap-y-1">
     <div
-      class="grid min-w-0 gap-px overflow-visible text-base-content/50 text-[0.65rem]"
+      class="grid min-w-0 gap-px overflow-visible text-muted-foreground text-[0.65rem]"
       style={`grid-template-columns: ${heatmapGridTemplate};`}
     >
       {#each monthLabels as label}
@@ -29,7 +30,10 @@ $: heatmapGridTemplate = `repeat(${weeks.length}, minmax(0, 1fr))`;
         <div class="grid min-w-0 grid-rows-7 gap-px">
           {#each week as day}
             <div
-              class={`aspect-square w-full max-w-3 rounded-[2px] ${heatmapClass(day.count)}`}
+              class={cn(
+                "aspect-square w-full max-w-3 rounded-[2px]",
+                heatmapClass(day.count),
+              )}
               title={cellLabel
                 .replace("{count}", String(day.count))
                 .replace("{date}", dateFormatter.format(new Date(day.date)))}

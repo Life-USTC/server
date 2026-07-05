@@ -7,6 +7,7 @@ import {
 } from "@/features/dashboard/lib/bus";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
+import { cn } from "$lib/utils.js";
 
 export let busNextTripHighlightKey: string | null;
 export let route: BusApplicableRoute;
@@ -42,20 +43,23 @@ $: tableMinWidth = `${Math.max(16, stopColumns.length * 4.25)}rem`;
             {@const tripKey = `${route.route.id}:${trip.trip.id}`}
             {@const isNextTrip = tripKey === busNextTripHighlightKey}
             <Table.Row
-              class={`border-0 ${trip.status === "departed" ? "opacity-60" : ""} ${
-                isNextTrip ? "bg-base-200/70 hover:bg-base-200" : ""
-              }`}
+              class={cn(
+                "border-0",
+                trip.status === "departed" ? "opacity-60" : undefined,
+                isNextTrip ? "bg-muted/70 hover:bg-muted" : undefined,
+              )}
             >
               {#each stopColumns as stop, index}
                 {@const stopTime = busTripStopTimeForOrder(trip, stop.stopOrder)}
                 <Table.Cell
-                  class={`font-mono tabular-nums ${
+                  class={cn(
+                    "font-mono tabular-nums",
                     index === 0
                       ? "text-left"
                       : index === stopColumns.length - 1
                         ? "text-right"
-                        : "text-center"
-                  }`}
+                        : "text-center",
+                  )}
                 >
                   {busStopTimeLabel(stopTime)}
                 </Table.Cell>

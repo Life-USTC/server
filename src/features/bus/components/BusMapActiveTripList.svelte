@@ -1,8 +1,5 @@
 <script lang="ts">
-import {
-  hhmmToMin,
-  routeColor,
-} from "@/features/bus/components/bus-transit-map-layout";
+import { hhmmToMin } from "@/features/bus/components/bus-transit-map-layout";
 import type {
   BusMapActiveTrip,
   BusMapCopy,
@@ -12,6 +9,7 @@ import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
+import BusRouteSwatch from "./BusRouteSwatch.svelte";
 
 export let allRouteIds: number[];
 export let copy: BusMapCopy;
@@ -56,7 +54,13 @@ function activeTripBadge(trip: BusMapActiveTrip) {
             hoveredRoute = null;
           }}
         >
-          <span class="size-2.5 shrink-0 rounded-full" style={`background:${routeColor(trip.routeId, allRouteIds)}`}></span>
+          <Item.Media>
+            <BusRouteSwatch
+              {allRouteIds}
+              routeId={trip.routeId}
+              shape="dot"
+            />
+          </Item.Media>
           <Item.Content>
             <Item.Title>{route?.descriptionPrimary ?? `${copy.legend.route} ${trip.routeId}`}</Item.Title>
             <Item.Description class="font-mono tabular-nums">

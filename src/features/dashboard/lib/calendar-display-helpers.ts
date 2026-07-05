@@ -8,7 +8,7 @@ export function timeSortValue(value: Date | string | null | undefined) {
 }
 
 export function calendarTimelineClass(tone: string) {
-  if (tone === "error") return "border-error/30 bg-error/10";
+  if (tone === "error") return "border-destructive/30 bg-destructive/10";
   if (tone === "warning") return "border-warning/30 bg-warning/10";
   if (tone === "success") return "border-success/30 bg-success/10";
   return "border-info/30 bg-info/10";

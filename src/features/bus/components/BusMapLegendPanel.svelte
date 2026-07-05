@@ -1,10 +1,10 @@
 <script lang="ts">
-import { routeColor } from "@/features/bus/components/bus-transit-map-layout";
 import type { BusMapCopy, BusMapData } from "@/features/bus/lib/bus-map-types";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
+import BusRouteSwatch from "./BusRouteSwatch.svelte";
 
 export let allRouteIds: number[];
 export let copy: BusMapCopy;
@@ -42,7 +42,7 @@ function formatMessage(template: string, values: Record<string, string>) {
             }}
           >
             <Item.Media>
-              <span class="h-2 w-8 rounded-full" style={`background:${routeColor(route.routeId, allRouteIds)}`}></span>
+              <BusRouteSwatch {allRouteIds} routeId={route.routeId} />
             </Item.Media>
             <Item.Content>
               <Item.Title>{route.descriptionPrimary}</Item.Title>

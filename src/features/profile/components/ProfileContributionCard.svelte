@@ -30,19 +30,19 @@ $: monthLabels = weeks.map((week, index) => {
 });
 
 const contributionLegend = [
-  { label: "0", className: "bg-base-300/70" },
-  { label: "1", className: "bg-emerald-200" },
-  { label: "2-3", className: "bg-emerald-400" },
-  { label: "4-6", className: "bg-emerald-600" },
-  { label: "7+", className: "bg-emerald-800" },
+  { label: "0", className: "bg-muted" },
+  { label: "1", className: "bg-success/25" },
+  { label: "2-3", className: "bg-success/45" },
+  { label: "4-6", className: "bg-success/70" },
+  { label: "7+", className: "bg-success" },
 ];
 
 function heatmapClass(count: number) {
-  if (count <= 0) return "bg-base-300/70";
-  if (count === 1) return "bg-emerald-200";
-  if (count <= 3) return "bg-emerald-400";
-  if (count <= 6) return "bg-emerald-600";
-  return "bg-emerald-800";
+  if (count <= 0) return "bg-muted";
+  if (count === 1) return "bg-success/25";
+  if (count <= 3) return "bg-success/45";
+  if (count <= 6) return "bg-success/70";
+  return "bg-success";
 }
 </script>
 
@@ -71,7 +71,7 @@ function heatmapClass(count: number) {
     <ProfileContributionFooter {contributionLegend} {copy} {stats} />
 
     {#if totalContributions === 0}
-      <p class="text-base-content/60 text-sm">
+      <p class="text-muted-foreground text-sm">
         {copy.contribution.empty}
       </p>
     {/if}

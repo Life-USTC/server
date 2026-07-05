@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { ProfileCopy } from "@/features/profile/lib/profile-copy";
 import { Badge } from "$lib/components/ui/badge/index.js";
+import { cn } from "$lib/utils.js";
 import type { ProfileStat } from "./profile-contribution-types";
 
 type LegendItem = {
@@ -23,12 +24,12 @@ export let stats: ProfileStat[];
       </Badge>
     {/each}
   </div>
-  <div class="flex flex-wrap items-center justify-end gap-2 text-base-content/60 text-xs">
+  <div class="flex flex-wrap items-center justify-end gap-2 text-muted-foreground text-xs">
     <span>{copy.contribution.less}</span>
     {#each contributionLegend as item}
       <span
         aria-label={item.label}
-        class={`h-3 w-3 rounded-[2px] ${item.className}`}
+        class={cn("size-3 rounded-[2px]", item.className)}
         title={item.label}
       ></span>
     {/each}
