@@ -39,9 +39,11 @@ export let title: string;
     </div>
   </Sidebar.Header>
 
-  <Sidebar.Content class="p-3">
-    <div>
-      <slot />
-    </div>
+  <Sidebar.Content>
+    <Sidebar.Group>
+      <Sidebar.GroupContent>
+        <slot />
+      </Sidebar.GroupContent>
+    </Sidebar.Group>
   </Sidebar.Content>
 </Sidebar.Root>

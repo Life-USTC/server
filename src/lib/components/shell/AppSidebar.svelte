@@ -9,18 +9,21 @@ export let isActiveLink: (link: ShellLink) => boolean;
 export let navGroups: ShellNavGroup[];
 </script>
 
-<aside class="contents" aria-label={copy.shell.primaryNavigation}>
 <Sidebar.Root
   collapsible="icon"
-  class="border-sidebar-border bg-sidebar"
   data-testid="app-sidebar"
+  aria-label={copy.shell.primaryNavigation}
 >
-  <Sidebar.Header class="h-12 justify-center border-sidebar-border border-b">
+  <Sidebar.Header>
     <Sidebar.Menu>
       <Sidebar.MenuItem>
-        <Sidebar.MenuButton class="font-semibold" tooltipContent="Life@USTC">
+        <Sidebar.MenuButton
+          class="font-semibold"
+          data-active={undefined}
+          tooltipContent="Life@USTC"
+        >
           {#snippet child({ props })}
-            <a {...props} id="app-logo" data-active={undefined} href="/" aria-label="Life@USTC">
+            <a {...props} id="app-logo" href="/" aria-label="Life@USTC">
               <img
                 class="size-6 rounded-md"
                 src="/images/icon.png"
@@ -35,10 +38,10 @@ export let navGroups: ShellNavGroup[];
     </Sidebar.Menu>
   </Sidebar.Header>
 
-  <Sidebar.Content class="p-2" aria-label={copy.shell.primaryNavigation}>
+  <Sidebar.Content>
     {#each navGroups as group}
       <Collapsible.Root open class="group/collapsible">
-        <Sidebar.Group class="p-0">
+        <Sidebar.Group>
           <Sidebar.GroupLabel>
             {#snippet child({ props })}
               <Collapsible.Trigger {...props}>
@@ -56,13 +59,13 @@ export let navGroups: ShellNavGroup[];
                   {@const active = isActiveLink(link)}
                   <Sidebar.MenuItem>
                     <Sidebar.MenuButton
+                      data-active={active ? "true" : undefined}
                       isActive={active}
                       tooltipContent={link.label}
                     >
                       {#snippet child({ props })}
                         <a
                           {...props}
-                          data-active={active ? "true" : undefined}
                           href={link.href}
                           aria-label={link.ariaLabel}
                           aria-current={active ? "page" : undefined}
@@ -86,4 +89,3 @@ export let navGroups: ShellNavGroup[];
 
   <Sidebar.Rail />
 </Sidebar.Root>
-</aside>

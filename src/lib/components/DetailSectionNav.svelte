@@ -21,20 +21,20 @@ export let label = "";
   class="w-full border-sidebar-border border-b bg-sidebar lg:w-(--sidebar-width) lg:border-e lg:border-b-0"
   data-testid="detail-section-nav"
 >
-  <Sidebar.Content class="p-2 lg:p-3" aria-label={ariaLabel || label}>
-    <Sidebar.Group class="p-0">
+  <Sidebar.Content aria-label={ariaLabel || label}>
+    <Sidebar.Group>
       <Sidebar.GroupContent>
         <Sidebar.Menu>
           {#each items as item}
             {@const active = item.href === activeHref}
             <Sidebar.MenuItem>
               <Sidebar.MenuButton
+                data-active={active ? "true" : undefined}
                 isActive={active}
               >
                 {#snippet child({ props })}
                   <a
                     {...props}
-                    data-active={active ? "true" : undefined}
                     href={item.href}
                     aria-current={active ? "page" : undefined}
                   >
