@@ -3,6 +3,7 @@ import type { CalendarGridWeek } from "$lib/components/calendar/types";
 import CalendarIcon from "$lib/components/icons/calendar.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import SectionCalendarMonthView from "./SectionCalendarMonthView.svelte";
 import SectionCalendarUnscheduledEvents from "./SectionCalendarUnscheduledEvents.svelte";
 import type {
@@ -56,8 +57,10 @@ export let unscheduledCalendarEvents: SectionCalendarEvent[];
       />
     {/if}
   {:else}
-    <Alert.Root>
-      <Alert.Description>{sectionCopy.calendarEmpty}</Alert.Description>
-    </Alert.Root>
+    <Empty.Root>
+      <Empty.Header>
+        <Empty.Description>{sectionCopy.calendarEmpty}</Empty.Description>
+      </Empty.Header>
+    </Empty.Root>
   {/if}
 </section>

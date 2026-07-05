@@ -1,6 +1,6 @@
 <script lang="ts">
-import * as Alert from "$lib/components/ui/alert/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import AdminBusVersionActions from "./AdminBusVersionActions.svelte";
 import AdminBusVersionStatusBadge from "./AdminBusVersionStatusBadge.svelte";
 import type {
@@ -65,8 +65,10 @@ export let versions: AdminBusVersion[];
       {/if}
     </Card.Root>
   {:else}
-    <Alert.Root>
-      <Alert.Description>{copy.noVersions}</Alert.Description>
-    </Alert.Root>
+    <Empty.Root>
+      <Empty.Header>
+        <Empty.Description>{copy.noVersions}</Empty.Description>
+      </Empty.Header>
+    </Empty.Root>
   {/each}
 </div>

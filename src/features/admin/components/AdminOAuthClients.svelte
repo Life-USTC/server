@@ -6,9 +6,9 @@ import {
   oauthClientGroups,
   visibleOAuthClientsForTab,
 } from "@/features/admin/lib/admin-oauth-client-groups";
-import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import type {
   AdminOAuthClient,
   AdminOAuthClientCopy,
@@ -79,9 +79,11 @@ $: visibleClients = visibleOAuthClientsForTab(clients, activeClientTab);
           {onDelete}
         />
       {:else}
-        <Alert.Root>
-          <Alert.Description>{copy.noClientsInGroup}</Alert.Description>
-        </Alert.Root>
+        <Empty.Root>
+          <Empty.Header>
+            <Empty.Description>{copy.noClientsInGroup}</Empty.Description>
+          </Empty.Header>
+        </Empty.Root>
       {/each}
     </div>
   {/if}

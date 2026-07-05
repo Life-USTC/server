@@ -1,8 +1,8 @@
 <script lang="ts">
-import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 
 type HomeworkAuditLog = {
@@ -47,9 +47,11 @@ export let setOpen: (open: boolean) => void;
     </Dialog.Header>
     <section class="max-h-[min(72vh,42rem)] overflow-y-auto px-5 py-4">
       {#if logs.length === 0}
-        <Alert.Root>
-          <Alert.Description>{homeworkCopy.auditEmpty}</Alert.Description>
-        </Alert.Root>
+        <Empty.Root>
+          <Empty.Header>
+            <Empty.Description>{homeworkCopy.auditEmpty}</Empty.Description>
+          </Empty.Header>
+        </Empty.Root>
       {:else}
         <Item.Group>
           {#each logs as log}
