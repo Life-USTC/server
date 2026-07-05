@@ -106,41 +106,41 @@ $: pageLabel = teacherLabels.pageOf
             {@const teacherHref = `/teachers/${teacher.id}`}
             <Table.Row>
               <Table.Cell class="min-w-56 p-0 align-top">
-                <Table.CellLink class="px-3 py-2 text-base-content" href={teacherHref}>
+                <a class="block h-full w-full px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={teacherHref}>
                   <span class="font-medium">{primaryName(teacher)}</span>
                   {#if showSecondaryNames && secondaryName(teacher)}
                     <span class="block text-muted-foreground text-xs">({secondaryName(teacher)})</span>
                   {/if}
-                </Table.CellLink>
+                </a>
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
-                <Table.CellLink class="px-3 py-2" href={teacherHref}>
+                <a class="block h-full w-full px-3 py-2 no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={teacherHref}>
                   {#if teacher.code}
                     <Badge class="font-mono" variant="outline">{teacher.code}</Badge>
                   {:else}
                     <span class="text-base-content">-</span>
                   {/if}
-                </Table.CellLink>
+                </a>
               </Table.Cell>
               <Table.Cell class="min-w-44 p-0 align-top">
-                <Table.CellLink class="px-3 py-2 text-base-content" href={teacherHref}>
+                <a class="block h-full w-full px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={teacherHref}>
                   {teacher.department ? primaryName(teacher.department) : teacherLabels.noDepartment}
-                </Table.CellLink>
+                </a>
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
-                <Table.CellLink class="px-3 py-2 text-base-content" href={teacherHref}>
+                <a class="block h-full w-full px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={teacherHref}>
                   {teacher.teacherTitle ? primaryName(teacher.teacherTitle) : commonLabels.unknown}
-                </Table.CellLink>
+                </a>
               </Table.Cell>
               <Table.Cell class="min-w-56 p-0 align-top">
-                <Table.CellLink class="px-3 py-2 text-base-content" href={teacherHref}>
+                <a class="block h-full w-full px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={teacherHref}>
                   {teacher.email ?? "-"}
-                </Table.CellLink>
+                </a>
               </Table.Cell>
               <Table.Cell class="p-0 text-right align-top">
-                <Table.CellLink class="px-3 py-2" href={teacherHref}>
+                <a class="block h-full w-full px-3 py-2 no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={teacherHref}>
                   <Badge variant="outline">{teacher._count.sections}</Badge>
-                </Table.CellLink>
+                </a>
               </Table.Cell>
             </Table.Row>
           {/each}

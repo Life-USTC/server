@@ -85,32 +85,32 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
             {@const courseHref = `/courses/${course.jwId}`}
             <Table.Row>
               <Table.Cell class="min-w-72 p-0 align-top">
-                <Table.CellLink class="px-3 py-2 text-base-content" href={courseHref}>
+                <a class="block h-full w-full px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={courseHref}>
                   <span class="font-medium">{primaryName(course)}</span>
                   {#if secondaryName(course)}
                     <span class="block text-muted-foreground text-xs">{secondaryName(course)}</span>
                   {/if}
-                </Table.CellLink>
+                </a>
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
-                <Table.CellLink class="px-3 py-2" href={courseHref}>
+                <a class="block h-full w-full px-3 py-2 no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={courseHref}>
                   <Badge class="font-mono" variant="outline">{course.code}</Badge>
-                </Table.CellLink>
+                </a>
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
-                <Table.CellLink class="px-3 py-2 text-base-content" href={courseHref}>
+                <a class="block h-full w-full px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={courseHref}>
                   {course.educationLevel ? primaryName(course.educationLevel) : "-"}
-                </Table.CellLink>
+                </a>
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
-                <Table.CellLink class="px-3 py-2 text-base-content" href={courseHref}>
+                <a class="block h-full w-full px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={courseHref}>
                   {course.category ? primaryName(course.category) : "-"}
-                </Table.CellLink>
+                </a>
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
-                <Table.CellLink class="px-3 py-2 text-base-content" href={courseHref}>
+                <a class="block h-full w-full px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={courseHref}>
                   {course.classType ? primaryName(course.classType) : "-"}
-                </Table.CellLink>
+                </a>
               </Table.Cell>
             </Table.Row>
           {/each}

@@ -2,7 +2,6 @@ import Root from "./table.svelte";
 import Body from "./table-body.svelte";
 import Caption from "./table-caption.svelte";
 import Cell from "./table-cell.svelte";
-import CellLink from "./table-cell-link.svelte";
 import Footer from "./table-footer.svelte";
 import Head from "./table-head.svelte";
 import Header from "./table-header.svelte";
@@ -15,7 +14,6 @@ export {
   Caption as TableCaption,
   Cell,
   Cell as TableCell,
-  CellLink,
   Footer,
   Footer as TableFooter,
   Head,

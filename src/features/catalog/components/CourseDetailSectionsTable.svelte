@@ -31,29 +31,29 @@ export let teacherNames: (teachers: CatalogNamed[]) => string;
         {@const sectionHref = `/sections/${section.jwId}`}
         <Table.Row>
           <Table.Cell class="p-0 align-top">
-            <Table.CellLink class="whitespace-nowrap px-3 py-2 text-base-content" href={sectionHref}>
+            <a class="block h-full w-full whitespace-nowrap px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={sectionHref}>
               {section.semester?.nameCn ?? notAvailable}
-            </Table.CellLink>
+            </a>
           </Table.Cell>
           <Table.Cell class="p-0 align-top">
-            <Table.CellLink class="px-3 py-2" href={sectionHref}>
+            <a class="block h-full w-full px-3 py-2 no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={sectionHref}>
               <Badge class="font-mono" variant="outline">{section.code}</Badge>
-            </Table.CellLink>
+            </a>
           </Table.Cell>
           <Table.Cell class="p-0 align-top">
-            <Table.CellLink class="px-3 py-2 text-base-content" href={sectionHref}>
+            <a class="block h-full w-full px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={sectionHref}>
               {teacherNames(section.teachers) || notAvailable}
-            </Table.CellLink>
+            </a>
           </Table.Cell>
           <Table.Cell class="p-0 text-right align-top">
-            <Table.CellLink class="whitespace-nowrap px-3 py-2 text-base-content" href={sectionHref}>
+            <a class="block h-full w-full whitespace-nowrap px-3 py-2 text-base-content no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={sectionHref}>
               {primaryName(section.campus) || notAvailable}
-            </Table.CellLink>
+            </a>
           </Table.Cell>
           <Table.Cell class="p-0 text-right align-top">
-            <Table.CellLink class="whitespace-nowrap px-3 py-2 text-base-content tabular-nums" href={sectionHref}>
+            <a class="block h-full w-full whitespace-nowrap px-3 py-2 text-base-content no-underline tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-inset" href={sectionHref}>
               {section.stdCount ?? 0} / {section.limitCount ?? notAvailable}
-            </Table.CellLink>
+            </a>
           </Table.Cell>
         </Table.Row>
       {:else}
