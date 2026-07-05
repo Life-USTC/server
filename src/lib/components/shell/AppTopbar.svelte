@@ -61,7 +61,7 @@ export let userMenuOpen: boolean;
             </Button>
           {/snippet}
         </DropdownMenu.Trigger>
-        <DropdownMenu.Content align="end" class="w-40">
+        <DropdownMenu.Content align="end" class="w-40" preventScroll={false}>
           <DropdownMenu.Group>
             <DropdownMenu.RadioGroup value={locale}>
               <DropdownMenu.RadioItem
@@ -100,7 +100,7 @@ export let userMenuOpen: boolean;
             </Button>
           {/snippet}
         </DropdownMenu.Trigger>
-        <DropdownMenu.Content align="end" class="w-44">
+        <DropdownMenu.Content align="end" class="w-44" preventScroll={false}>
           <DropdownMenu.Group>
             <DropdownMenu.RadioGroup value={themeMode}>
               <DropdownMenu.RadioItem

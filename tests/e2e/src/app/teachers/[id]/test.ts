@@ -397,7 +397,7 @@ test.describe("/teachers/[id] 教师详情页", () => {
           r.status() === 200,
       );
       await page.getByRole("menuitem", { name: /删除|Delete/i }).click();
-      const dialog = page.getByRole("dialog", {
+      const dialog = page.getByRole("alertdialog", {
         name: /删除评论|Delete Comment/i,
       });
       await expect(dialog).toBeVisible();
