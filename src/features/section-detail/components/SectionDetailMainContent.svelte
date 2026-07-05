@@ -18,6 +18,7 @@ import DetailPinnedSummary from "$lib/components/DetailPinnedSummary.svelte";
 import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import SectionBasicInfoCard from "./SectionBasicInfoCard.svelte";
 import SectionCalendarTab from "./SectionCalendarTab.svelte";
 import SectionExamSection from "./SectionExamSection.svelte";
@@ -212,7 +213,11 @@ $: pinnedSummaryItems = [
       label={sectionCopy.teachingSection}
     />
 
-    <div class="min-w-0 px-4 py-4 sm:px-5 lg:min-h-0 lg:overflow-y-auto lg:px-6" data-detail-scroll-container>
+    <ScrollArea
+      class="min-w-0 lg:h-full lg:min-h-0"
+      data-detail-scroll-container
+    >
+      <div class="px-4 py-4 sm:px-5 lg:px-6">
       {#if data.detailSection === "overview"}
       <section id="section-overview">
         <SectionBasicInfoCard
@@ -301,6 +306,7 @@ $: pinnedSummaryItems = [
         {/key}
       </section>
       {/if}
-    </div>
+      </div>
+    </ScrollArea>
   </div>
 </div>

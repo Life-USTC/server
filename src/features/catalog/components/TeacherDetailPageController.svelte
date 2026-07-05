@@ -8,6 +8,7 @@ import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-
 import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
 import DetailPinnedSummary from "$lib/components/DetailPinnedSummary.svelte";
 import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
+import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import {
   type CatalogNamed,
   catalogPrimaryName as primaryName,
@@ -149,7 +150,11 @@ $: pinnedSummaryItems = [
       label={copy.common.teachers}
     />
 
-    <div class="min-w-0 px-4 py-4 sm:px-5 lg:min-h-0 lg:overflow-y-auto lg:px-6" data-detail-scroll-container>
+    <ScrollArea
+      class="min-w-0 lg:h-full lg:min-h-0"
+      data-detail-scroll-container
+    >
+      <div class="px-4 py-4 sm:px-5 lg:px-6">
       {#if data.detailSection === "overview"}
       <section id="teacher-overview">
         <TeacherDetailBasicInfo
@@ -198,6 +203,7 @@ $: pinnedSummaryItems = [
         {/key}
       </section>
       {/if}
-    </div>
+      </div>
+    </ScrollArea>
   </div>
 </section>

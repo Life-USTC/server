@@ -59,6 +59,14 @@ function getSectionNavLink(page: Page, name: RegExp) {
     .first();
 }
 
+function getDetailViewport(page: Page) {
+  return page
+    .locator(
+      '[data-detail-scroll-container] [data-slot="scroll-area-viewport"]',
+    )
+    .first();
+}
+
 async function jumpToSection(page: Page, name: RegExp, selector: string) {
   const link = getSectionNavLink(page, name);
   await expect(link).toBeVisible();
@@ -395,6 +403,31 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     await jumpToSection(page, /作业|Homework/i, "#tab-homework");
     await expect(page).toHaveURL(/\/sections\/\d+\/homework$/);
     await captureStepScreenshot(page, testInfo, "section/detail-nav");
+  });
+
+  test("详情导航后内容滚动回到顶部", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await gotoAndWaitForReady(page, `${SECTION_URL}/comments`);
+
+    const detailViewport = getDetailViewport(page);
+    await expect(detailViewport).toBeVisible();
+    await detailViewport.evaluate((element) => {
+      element.scrollTo({ top: element.scrollHeight });
+    });
+
+    await expect
+      .poll(() => detailViewport.evaluate((element) => element.scrollTop))
+      .toBeGreaterThan(100);
+
+    await getSectionNavLink(page, /日历|Calendar/i).click();
+    await page.waitForURL(/\/sections\/\d+\/calendar$/);
+    await waitForUiSettled(page);
+
+    await expect
+      .poll(() =>
+        getDetailViewport(page).evaluate((element) => element.scrollTop),
+      )
+      .toBeLessThan(8);
   });
 
   test("关注弹窗显示非选课声明", async ({ page }, testInfo) => {

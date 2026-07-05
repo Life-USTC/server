@@ -225,7 +225,9 @@ function closeMenus() {
 function resetContentScroll() {
   contentScrollContainer?.scrollTo({ left: 0, top: 0 });
   document
-    .querySelector<HTMLElement>("[data-detail-scroll-container]")
+    .querySelector<HTMLElement>(
+      '[data-detail-scroll-container] [data-slot="scroll-area-viewport"]',
+    )
     ?.scrollTo({ left: 0, top: 0 });
 }
 
