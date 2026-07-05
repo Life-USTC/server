@@ -30,10 +30,7 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
       name="publishedAt"
       placeholder={homeworksCopy.publishedAt}
     />
-    <ButtonGroup.Root
-      aria-labelledby="dashboard-homework-published-at-label"
-      class="ml-auto max-w-full flex-wrap justify-end"
-    >
+    <ButtonGroup.Root class="ml-auto max-w-full flex-wrap justify-end">
       <Button
         disabled={isCreatingHomework}
         size="sm"
@@ -71,10 +68,7 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
       name="submissionStartAt"
       placeholder={homeworksCopy.submissionStart}
     />
-    <ButtonGroup.Root
-      aria-labelledby="dashboard-homework-submission-start-label"
-      class="ml-auto max-w-full flex-wrap justify-end"
-    >
+    <ButtonGroup.Root class="ml-auto max-w-full flex-wrap justify-end">
       <Button disabled={isCreatingHomework} size="sm" type="button" variant="outline" onclick={applyHomeworkStartNow}>
         {homeworksCopy.helperStartNow}
       </Button>

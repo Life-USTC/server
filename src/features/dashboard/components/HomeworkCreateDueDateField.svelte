@@ -30,10 +30,7 @@ export let selectedCreateHomeworkSection: DashboardHomeworkCreateSectionGetter;
     name="submissionDueAt"
     placeholder={homeworksCopy.submissionDue}
   />
-  <ButtonGroup.Root
-    aria-labelledby="dashboard-homework-submission-due-label"
-    class="ml-auto max-w-full flex-wrap justify-end"
-  >
+  <ButtonGroup.Root class="ml-auto max-w-full flex-wrap justify-end">
     <Button disabled={isCreatingHomework} size="sm" type="button" variant="outline" onclick={applyHomeworkDueInWeek}>
       {homeworksCopy.helperWeek}
     </Button>

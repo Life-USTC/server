@@ -33,10 +33,7 @@ export let submissionStartAt: string;
       name="publishedAt"
       placeholder={homeworkCopy.publishedAt}
     />
-    <ButtonGroup.Root
-      aria-labelledby="section-homework-published-at-label"
-      class="ml-auto max-w-full flex-wrap justify-end"
-    >
+    <ButtonGroup.Root class="ml-auto max-w-full flex-wrap justify-end">
       <Button size="sm" type="button" variant="outline" onclick={applyPublishNow}>
         {homeworkCopy.helperPublishNow}
       </Button>
@@ -64,10 +61,7 @@ export let submissionStartAt: string;
       name="submissionStartAt"
       placeholder={homeworkCopy.submissionStart}
     />
-    <ButtonGroup.Root
-      aria-labelledby="section-homework-submission-start-label"
-      class="ml-auto max-w-full flex-wrap justify-end"
-    >
+    <ButtonGroup.Root class="ml-auto max-w-full flex-wrap justify-end">
       <Button size="sm" type="button" variant="outline" onclick={applyStartNow}>
         {homeworkCopy.helperStartNow}
       </Button>
@@ -103,10 +97,7 @@ export let submissionStartAt: string;
       name="submissionDueAt"
       placeholder={homeworkCopy.submissionDue}
     />
-    <ButtonGroup.Root
-      aria-labelledby="section-homework-submission-due-label"
-      class="ml-auto max-w-full flex-wrap justify-end"
-    >
+    <ButtonGroup.Root class="ml-auto max-w-full flex-wrap justify-end">
       <Button size="sm" type="button" variant="outline" onclick={applyDueInWeek}>
         {homeworkCopy.helperWeek}
       </Button>
