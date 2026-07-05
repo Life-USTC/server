@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Badge } from "$lib/components/ui/badge/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 import type {
   SectionCalendarCopy,
   SectionCalendarEvent,
@@ -10,31 +11,35 @@ export let fmtDate: (value: string | Date | null | undefined) => string;
 export let sectionCopy: SectionCalendarCopy;
 </script>
 
-<article class="rounded-lg border border-base-300 bg-base-100 p-4" id={event.id}>
-  <div class="flex flex-wrap items-start justify-between gap-3">
-    <div>
-      <h3 class="font-semibold">{event.title}</h3>
-      <p class="mt-1 text-base-content/60 text-sm">
+<Item.Root class="items-start" id={event.id} variant="outline">
+  <Item.Content>
+    <Item.Title>{event.title}</Item.Title>
+    <Item.Description>
         {fmtDate(event.date)} · {event.meta}
-      </p>
-    </div>
+    </Item.Description>
+  </Item.Content>
+  <Item.Actions>
     <Badge variant={event.kind === "exam" ? "secondary" : "outline"}>
       {event.kind === "exam" ? sectionCopy.examEvent : sectionCopy.classEvent}
     </Badge>
-  </div>
-  <div class="mt-3 flex flex-wrap gap-2">
-    {#each event.badges as badge}
-      <Badge variant="ghost">{badge}</Badge>
-    {/each}
-  </div>
-  {#if event.details.length > 0}
-    <dl class="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-      {#each event.details as detail}
-        <div class="rounded-md border border-base-300 bg-base-200/40 p-2">
-          <dt class="text-base-content/60 text-xs">{detail.label}</dt>
-          <dd class="mt-1 font-medium">{detail.value}</dd>
-        </div>
+  </Item.Actions>
+  <Item.Footer class="block">
+    <div class="flex flex-wrap gap-2">
+      {#each event.badges as badge}
+        <Badge variant="ghost">{badge}</Badge>
       {/each}
-    </dl>
-  {/if}
-</article>
+    </div>
+    {#if event.details.length > 0}
+      <Item.Group class="mt-3 grid gap-2 sm:grid-cols-2">
+        {#each event.details as detail}
+          <Item.Root size="xs" variant="muted">
+            <Item.Content>
+              <Item.Description>{detail.label}</Item.Description>
+              <Item.Title>{detail.value}</Item.Title>
+            </Item.Content>
+          </Item.Root>
+        {/each}
+      </Item.Group>
+    {/if}
+  </Item.Footer>
+</Item.Root>

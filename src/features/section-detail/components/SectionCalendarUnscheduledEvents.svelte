@@ -1,4 +1,6 @@
 <script lang="ts">
+import * as Card from "$lib/components/ui/card/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 import type {
   SectionCalendarCopy,
   SectionCalendarEvent,
@@ -8,14 +10,22 @@ export let events: SectionCalendarEvent[];
 export let sectionCopy: SectionCalendarCopy;
 </script>
 
-<section class="rounded-md border border-base-300 bg-base-100 p-4">
-  <h3 class="font-semibold">{sectionCopy.dateTBD}</h3>
-  <div class="mt-3 grid gap-2">
+<Card.Root size="sm">
+  <Card.Header>
+    <Card.Title>{sectionCopy.dateTBD}</Card.Title>
+  </Card.Header>
+  <Card.Content>
+    <Item.Group class="gap-2">
     {#each events as event}
-      <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
-        <span>{event.title}</span>
-        <span class="text-base-content/60">{event.meta}</span>
-      </div>
+      <Item.Root size="sm" variant="muted">
+        <Item.Content>
+          <Item.Title>{event.title}</Item.Title>
+        </Item.Content>
+        <Item.Actions class="text-muted-foreground text-xs">
+          {event.meta}
+        </Item.Actions>
+      </Item.Root>
     {/each}
-  </div>
-</section>
+    </Item.Group>
+  </Card.Content>
+</Card.Root>

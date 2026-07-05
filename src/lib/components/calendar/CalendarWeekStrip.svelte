@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Badge } from "$lib/components/ui/badge/index.js";
+import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import CalendarEventChip from "./CalendarEventChip.svelte";
 
 type CalendarWeekEvent = {
@@ -28,7 +29,7 @@ export let emptyLabel = "";
 export let moreLabel: (count: number) => string = (count) => `+${count}`;
 </script>
 
-<div class="overflow-x-auto">
+<ScrollArea orientation="horizontal">
   <div class="grid grid-cols-7 gap-2" style={`min-width: ${minWidth};`}>
     {#each days as day}
       <section
@@ -73,4 +74,4 @@ export let moreLabel: (count: number) => string = (count) => `+${count}`;
       </section>
     {/each}
   </div>
-</div>
+</ScrollArea>

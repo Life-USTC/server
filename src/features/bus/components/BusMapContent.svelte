@@ -9,7 +9,9 @@ import type {
   BusMapDayTypeLabels,
 } from "@/features/bus/lib/bus-map-types";
 import { buildBusMapViewState } from "@/features/bus/lib/bus-map-view-state";
+import * as Card from "$lib/components/ui/card/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
+import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 
 export let copy: BusMapCopy;
 export let dayTypeLabels: BusMapDayTypeLabels;
@@ -50,12 +52,13 @@ $: busMapView = buildBusMapViewState(mapData, dayTypeLabels, locale);
     </Empty.Root>
   {:else}
     <div class="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
-      <section class="overflow-hidden rounded-md border border-base-300 bg-base-100">
-        <div class="border-base-300 border-b px-4 py-3">
-          <h2 class="font-semibold">{copy.networkOverview}</h2>
-          <p class="text-base-content/60 text-sm">{copy.networkDescription}</p>
-        </div>
-        <div class="overflow-x-auto bg-[#f6f8fa] p-3">
+      <Card.Root class="overflow-hidden">
+        <Card.Header>
+          <Card.Title>{copy.networkOverview}</Card.Title>
+          <Card.Description>{copy.networkDescription}</Card.Description>
+        </Card.Header>
+        <Card.Content class="bg-[#f6f8fa] p-0">
+          <ScrollArea orientation="horizontal" class="p-3">
           <BusTransitSvg
             activeRouteIds={busMapView.activeRouteIds}
             allRouteIds={busMapView.allRouteIds}
@@ -69,8 +72,9 @@ $: busMapView = buildBusMapViewState(mapData, dayTypeLabels, locale);
             positions={busMapView.positions}
             routePaths={busMapView.routePaths}
           />
-        </div>
-      </section>
+          </ScrollArea>
+        </Card.Content>
+      </Card.Root>
 
       <aside class="grid content-start gap-4">
         <BusMapStatusPanel

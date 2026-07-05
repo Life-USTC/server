@@ -14,51 +14,39 @@ export let homeworkStatus: (homework: SectionHomework) => string;
 export let homeworks: SectionHomework[];
 export let sectionCopy: SectionCopy;
 export let selectHomework: (homework: SectionHomework) => void;
-
-function handleHomeworkKeydown(
-  event: KeyboardEvent,
-  homework: SectionHomework,
-) {
-  if (event.key !== "Enter" && event.key !== " ") return;
-
-  event.preventDefault();
-  selectHomework(homework);
-}
 </script>
 
-<div class="grid gap-3" data-testid="section-homeworks-cards">
+<Item.Group data-testid="section-homeworks-cards">
   {#each homeworks as homework}
     <Item.Root
-      class="cursor-pointer items-start text-left hover:bg-muted"
+      class="items-start text-left"
       id={`homework-${homework.id}`}
-      role="button"
-      tabindex={0}
       variant="outline"
-      onclick={() => {
-        selectHomework(homework);
-      }}
-      onkeydown={(event) => handleHomeworkKeydown(event, homework)}
     >
-      <Item.Content>
-        <Item.Title>{homework.title}</Item.Title>
-        <Item.Description>
-          {sectionCopy.due} {fmtDateTime(homework.submissionDueAt)}
-        </Item.Description>
-        {#if homework.description?.content}
-          <Item.Description class="line-clamp-3 whitespace-pre-wrap">
-            {homework.description.content}
-          </Item.Description>
-        {/if}
-      </Item.Content>
-      <Item.Actions class="flex-wrap justify-end">
-        {#if homework.isMajor}
-          <Badge variant="secondary">{homeworkCopy.tagMajor}</Badge>
-        {/if}
-        {#if homework.requiresTeam}
-          <Badge variant="secondary">{homeworkCopy.tagTeam}</Badge>
-        {/if}
-        <Badge>{homeworkStatus(homework)}</Badge>
-      </Item.Actions>
+      {#snippet child({ props })}
+        <button {...props} type="button" onclick={() => selectHomework(homework)}>
+          <Item.Content>
+            <Item.Title>{homework.title}</Item.Title>
+            <Item.Description>
+              {sectionCopy.due} {fmtDateTime(homework.submissionDueAt)}
+            </Item.Description>
+            {#if homework.description?.content}
+              <Item.Description class="line-clamp-3 whitespace-pre-wrap">
+                {homework.description.content}
+              </Item.Description>
+            {/if}
+          </Item.Content>
+          <Item.Actions class="flex-wrap justify-end">
+            {#if homework.isMajor}
+              <Badge variant="secondary">{homeworkCopy.tagMajor}</Badge>
+            {/if}
+            {#if homework.requiresTeam}
+              <Badge variant="secondary">{homeworkCopy.tagTeam}</Badge>
+            {/if}
+            <Badge>{homeworkStatus(homework)}</Badge>
+          </Item.Actions>
+        </button>
+      {/snippet}
     </Item.Root>
   {:else}
     <Empty.Root>
@@ -67,4 +55,4 @@ function handleHomeworkKeydown(
       </Empty.Header>
     </Empty.Root>
   {/each}
-</div>
+</Item.Group>

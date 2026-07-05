@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Button } from "$lib/components/ui/button/index.js";
+import * as ButtonGroup from "$lib/components/ui/button-group/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import * as InputGroup from "$lib/components/ui/input-group/index.js";
 import * as Select from "$lib/components/ui/select/index.js";
@@ -129,13 +130,13 @@ export let updateCourseFilter: CourseListFilterUpdater;
         </Select.Content>
       </Select.Root>
     </Field.Field>
-    <div class="grid gap-2 pt-1">
+    <ButtonGroup.Root class="w-full pt-1" orientation="vertical">
       <Button class="w-full" size="lg" type="submit">
         {commonLabels.search}
       </Button>
       {#if activeFilterCount > 0}
         <Button class="w-full" href="/courses" size="lg" variant="outline">{commonLabels.clear}</Button>
       {/if}
-    </div>
+    </ButtonGroup.Root>
   </Field.Group>
 </form>

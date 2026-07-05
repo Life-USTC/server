@@ -13,51 +13,45 @@ export let formatDate: (value: Date | string | null | undefined) => string;
 export let onSelect: (user: AdminUserRow) => void;
 export let suspensionLabel: AdminUserFormatter;
 export let users: AdminUserRow[];
-
-function handleUserKeydown(event: KeyboardEvent, user: AdminUserRow) {
-  if (event.key !== "Enter" && event.key !== " ") return;
-
-  event.preventDefault();
-  onSelect(user);
-}
 </script>
 
-<div class="grid gap-3 md:hidden">
+<Item.Group class="md:hidden">
   {#each users as user}
     <Item.Root
-      class={`cursor-pointer items-start border-l-4 text-left hover:bg-muted ${user.activeSuspension ? "border-l-warning" : user.isAdmin ? "border-l-success" : "border-l-primary"}`}
-      role="button"
-      tabindex={0}
+      class={`items-start border-l-4 text-left ${user.activeSuspension ? "border-l-warning" : user.isAdmin ? "border-l-success" : "border-l-primary"}`}
+      size="sm"
       variant="outline"
-      onclick={() => onSelect(user)}
-      onkeydown={(event) => handleUserKeydown(event, user)}
     >
-      <Item.Content class="min-w-0">
-        <Item.Title>{displayName(user)}</Item.Title>
-        <Item.Description>
-          @{user.username ?? copy.noUsername}
-        </Item.Description>
-        <Item.Description class="line-clamp-none break-words text-xs">
-          {user.email ?? copy.noVerifiedEmail}
-        </Item.Description>
-      </Item.Content>
-      <Item.Actions>
-        <Badge variant={user.isAdmin ? "secondary" : "ghost"}>
-          {user.isAdmin ? copy.adminRole : copy.userRole}
-        </Badge>
-      </Item.Actions>
-      <Item.Footer class="block">
-        <dl class="grid grid-cols-2 gap-2 text-xs">
-          <div>
-            <dt class="text-muted-foreground">{copy.createdAt}</dt>
-            <dd class="tabular-nums">{formatDate(user.createdAt)}</dd>
-          </div>
-          <div>
-            <dt class="text-muted-foreground">{copy.suspension}</dt>
-            <dd>{suspensionLabel(user)}</dd>
-          </div>
-        </dl>
-      </Item.Footer>
+      {#snippet child({ props })}
+        <button {...props} type="button" onclick={() => onSelect(user)}>
+          <Item.Content class="min-w-0">
+            <Item.Title>{displayName(user)}</Item.Title>
+            <Item.Description>
+              @{user.username ?? copy.noUsername}
+            </Item.Description>
+            <Item.Description class="line-clamp-none break-words text-xs">
+              {user.email ?? copy.noVerifiedEmail}
+            </Item.Description>
+          </Item.Content>
+          <Item.Actions>
+            <Badge variant={user.isAdmin ? "secondary" : "ghost"}>
+              {user.isAdmin ? copy.adminRole : copy.userRole}
+            </Badge>
+          </Item.Actions>
+          <Item.Footer class="block">
+            <dl class="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <dt class="text-muted-foreground">{copy.createdAt}</dt>
+                <dd class="tabular-nums">{formatDate(user.createdAt)}</dd>
+              </div>
+              <div>
+                <dt class="text-muted-foreground">{copy.suspension}</dt>
+                <dd>{suspensionLabel(user)}</dd>
+              </div>
+            </dl>
+          </Item.Footer>
+        </button>
+      {/snippet}
     </Item.Root>
   {/each}
-</div>
+</Item.Group>

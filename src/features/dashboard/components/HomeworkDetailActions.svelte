@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { Component } from "svelte";
 import { Button } from "$lib/components/ui/button/index.js";
+import { Separator } from "$lib/components/ui/separator/index.js";
 import type {
   DashboardHomeworkCompletionToggle,
   DashboardHomeworkDetailAction,
@@ -19,26 +20,29 @@ export let selectedCourseLabel: string;
 export let toggleHomeworkCompletion: DashboardHomeworkCompletionToggle;
 </script>
 
-<div class="flex flex-wrap items-center justify-between gap-2 border-base-300 border-t pt-4">
-  <Button href={homeworkSectionHref(homework)} variant="outline">
-    {selectedCourseLabel}
-  </Button>
-  <div class="flex flex-wrap justify-end gap-2">
-    <Button
-      disabled={homeworkSavingById[homework.id]}
-      type="button"
-      variant="outline"
-      onclick={() => {
-        if (homework) toggleHomeworkCompletion(homework);
-      }}
-    >
-      <SelectedCompletionIcon data-icon="inline-start" />
-      {homeworkSavingById[homework.id]
-        ? homeworksCopy.saving
-        : homeworkCompletionActionLabel(homework)}
+<div class="grid gap-4">
+  <Separator />
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <Button href={homeworkSectionHref(homework)} variant="outline">
+      {selectedCourseLabel}
     </Button>
-    <Button href={homeworkDetailHref(homework)}>
-      {homeworksCopy.viewDetails}
-    </Button>
+    <div class="flex flex-wrap justify-end gap-2">
+      <Button
+        disabled={homeworkSavingById[homework.id]}
+        type="button"
+        variant="outline"
+        onclick={() => {
+          if (homework) toggleHomeworkCompletion(homework);
+        }}
+      >
+        <SelectedCompletionIcon data-icon="inline-start" />
+        {homeworkSavingById[homework.id]
+          ? homeworksCopy.saving
+          : homeworkCompletionActionLabel(homework)}
+      </Button>
+      <Button href={homeworkDetailHref(homework)}>
+        {homeworksCopy.viewDetails}
+      </Button>
+    </div>
   </div>
 </div>

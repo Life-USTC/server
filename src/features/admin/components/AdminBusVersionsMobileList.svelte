@@ -1,6 +1,6 @@
 <script lang="ts">
-import * as Card from "$lib/components/ui/card/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 import AdminBusVersionActions from "./AdminBusVersionActions.svelte";
 import AdminBusVersionStatusBadge from "./AdminBusVersionStatusBadge.svelte";
 import type {
@@ -20,20 +20,20 @@ export let pendingAction: string | null;
 export let versions: AdminBusVersion[];
 </script>
 
-<div class="grid gap-3 md:hidden">
+<Item.Group class="md:hidden">
   {#each versions as version}
-    <Card.Root size="sm">
-      <Card.Header>
-        <Card.Title>{version.title}</Card.Title>
-        <Card.Description class="break-all font-mono">{version.key}</Card.Description>
-        <Card.Action>
-          <AdminBusVersionStatusBadge {copy} {version} />
-        </Card.Action>
-      </Card.Header>
-      <Card.Content class="grid gap-3">
+    <Item.Root class="items-start" size="sm" variant="outline">
+      <Item.Content class="min-w-0">
+        <Item.Title>{version.title}</Item.Title>
+        <Item.Description class="break-all font-mono">{version.key}</Item.Description>
         {#if version.sourceMessage}
-          <p class="text-muted-foreground text-xs">{version.sourceMessage}</p>
+          <Item.Description class="line-clamp-none text-xs">{version.sourceMessage}</Item.Description>
         {/if}
+      </Item.Content>
+      <Item.Actions>
+        <AdminBusVersionStatusBadge {copy} {version} />
+      </Item.Actions>
+      <Item.Footer class="block">
         <dl class="grid grid-cols-2 gap-2 text-sm">
           <div>
             <dt class="text-muted-foreground text-xs">{copy.colTrips}</dt>
@@ -50,20 +50,20 @@ export let versions: AdminBusVersion[];
             </dd>
           </div>
         </dl>
-      </Card.Content>
-      {#if !version.isEnabled}
-        <Card.Footer class="justify-end gap-2">
-          <AdminBusVersionActions
-            {copy}
-            {enhancedAction}
-            {isPending}
-            {onDelete}
-            {pendingAction}
-            {version}
-          />
-        </Card.Footer>
-      {/if}
-    </Card.Root>
+        {#if !version.isEnabled}
+          <div class="mt-3 flex justify-end gap-2">
+            <AdminBusVersionActions
+              {copy}
+              {enhancedAction}
+              {isPending}
+              {onDelete}
+              {pendingAction}
+              {version}
+            />
+          </div>
+        {/if}
+      </Item.Footer>
+    </Item.Root>
   {:else}
     <Empty.Root>
       <Empty.Header>
@@ -71,4 +71,4 @@ export let versions: AdminBusVersion[];
       </Empty.Header>
     </Empty.Root>
   {/each}
-</div>
+</Item.Group>

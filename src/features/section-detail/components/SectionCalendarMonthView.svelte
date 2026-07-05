@@ -4,6 +4,7 @@ import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 import CalendarGrid from "$lib/components/calendar/CalendarGrid.svelte";
 import type { CalendarGridWeek } from "$lib/components/calendar/types";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as ButtonGroup from "$lib/components/ui/button-group/index.js";
 import type { SectionCalendarCopy } from "./section-calendar-tab-types";
 
 export let calendarGridWeeks: CalendarGridWeek[];
@@ -22,7 +23,7 @@ export let sectionCopy: SectionCalendarCopy;
     <div>
       <h3 class="font-semibold">{calendarMonthLabel}</h3>
     </div>
-    <div class="flex gap-2">
+    <ButtonGroup.Root aria-label={calendarMonthLabel}>
       <Button
         aria-label={sectionCopy.previousMonth}
         size="sm"
@@ -51,7 +52,7 @@ export let sectionCopy: SectionCalendarCopy;
         <span>{sectionCopy.nextMonth}</span>
         <ChevronRightIcon data-icon="inline-end" />
       </Button>
-    </div>
+    </ButtonGroup.Root>
   </div>
   <CalendarGrid
     weeks={calendarGridWeeks}

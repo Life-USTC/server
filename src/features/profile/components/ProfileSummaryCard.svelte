@@ -1,5 +1,6 @@
 <script lang="ts">
 import * as Avatar from "$lib/components/ui/avatar/index.js";
+import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import type {
@@ -32,9 +33,9 @@ export let user: ProfileSummaryUser;
         <Card.Description class="truncate">@{user.username}</Card.Description>
       {/if}
       {#if showUserId}
-        <p class="mt-2 break-all rounded-md border border-border bg-muted/50 px-2 py-1 font-mono text-muted-foreground text-xs">
+        <Badge class="mt-2 h-auto max-w-full shrink justify-start whitespace-normal break-all font-mono" variant="outline">
           {user.id}
-        </p>
+        </Badge>
       {/if}
     </div>
   </Card.Header>

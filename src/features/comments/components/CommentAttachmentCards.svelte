@@ -1,6 +1,6 @@
 <script lang="ts">
 import { Button } from "$lib/components/ui/button/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 
 type CommentAttachment = {
   filename: string;
@@ -14,14 +14,14 @@ export let openLabel: string;
 </script>
 
 {#if attachments.length > 0}
-  <div class="grid gap-2 sm:grid-cols-2">
+  <Item.Group class="grid gap-2 sm:grid-cols-2">
     {#each attachments as attachment}
-      <Card.Root class="shadow-none">
-        <Card.Content class="grid gap-2 p-3">
-          <div class="min-w-0">
-            <p class="truncate font-medium text-sm">{attachment.filename}</p>
-            <p class="mt-1 text-base-content/60 text-xs">{formatSize(attachment.size)}</p>
-          </div>
+      <Item.Root class="items-start" size="sm" variant="outline">
+        <Item.Content class="min-w-0">
+          <Item.Title>{attachment.filename}</Item.Title>
+          <Item.Description>{formatSize(attachment.size)}</Item.Description>
+        </Item.Content>
+        <Item.Actions>
           <Button
             class="w-fit"
             href={`/api/uploads/${attachment.uploadId}/download?preview=1`}
@@ -31,8 +31,8 @@ export let openLabel: string;
           >
             {openLabel}
           </Button>
-        </Card.Content>
-      </Card.Root>
+        </Item.Actions>
+      </Item.Root>
     {/each}
-  </div>
+  </Item.Group>
 {/if}

@@ -59,11 +59,11 @@ function setActiveTab(value: string) {
       <Tabs.Trigger value="preview">{tabPreviewLabel}</Tabs.Trigger>
     </Tabs.List>
 
-    <InputGroup.Root
-      class="h-auto min-h-32 data-[drag-active=true]:border-primary data-[drag-active=true]:bg-primary/5"
-      data-drag-active={isDragActive}
-    >
-      <Tabs.Content value="write" class="m-0">
+    <Tabs.Content value="write" class="m-0">
+      <InputGroup.Root
+        class="h-auto min-h-32 data-[drag-active=true]:border-primary data-[drag-active=true]:bg-primary/5"
+        data-drag-active={isDragActive}
+      >
         <InputGroup.Textarea
           aria-label={labelledBy ? undefined : label}
           aria-labelledby={labelledBy}
@@ -74,19 +74,17 @@ function setActiveTab(value: string) {
           {rows}
           {...$$restProps}
         ></InputGroup.Textarea>
-      </Tabs.Content>
-      <Tabs.Content value="preview" class="m-0">
-        <div class="min-h-32 p-3">
-          {#if value.trim()}
-            <MarkdownPreview content={value} {remarkPlugins} />
-          {:else}
-            <p class="text-center text-base-content/50 text-sm italic">
-              {previewEmptyLabel}
-            </p>
-          {/if}
-        </div>
-      </Tabs.Content>
-    </InputGroup.Root>
+      </InputGroup.Root>
+    </Tabs.Content>
+    <Tabs.Content value="preview" class="m-0 min-h-32 rounded-lg border bg-background p-3">
+      {#if value.trim()}
+        <MarkdownPreview content={value} {remarkPlugins} />
+      {:else}
+        <p class="text-center text-base-content/50 text-sm italic">
+          {previewEmptyLabel}
+        </p>
+      {/if}
+    </Tabs.Content>
   </Tabs.Root>
 
   {#if guideLabel}

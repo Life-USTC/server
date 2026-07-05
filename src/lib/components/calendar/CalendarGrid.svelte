@@ -1,4 +1,5 @@
 <script lang="ts">
+import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import CalendarGridDayCell from "./CalendarGridDayCell.svelte";
 import type { CalendarGridWeek } from "./types";
 
@@ -20,7 +21,7 @@ function gridColumns() {
 }
 </script>
 
-<div class="overflow-x-auto">
+<ScrollArea orientation="horizontal">
   <div
     class={framed
       ? "overflow-hidden rounded-xl border border-base-300 bg-base-100"
@@ -60,4 +61,4 @@ function gridColumns() {
       </div>
     {/each}
   </div>
-</div>
+</ScrollArea>

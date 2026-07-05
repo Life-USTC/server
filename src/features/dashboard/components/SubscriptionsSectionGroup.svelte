@@ -7,6 +7,7 @@ import type {
   SubscriptionsData,
 } from "@/features/dashboard/lib/dashboard-controller-types";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 
 type SubscriptionSection =
@@ -29,60 +30,66 @@ export let sectionCopy: DashboardSectionCopy;
 export let subscriptionsCopy: DashboardSubscriptionsCopy;
 </script>
 
-<div class="grid min-w-0 overflow-hidden rounded-md border border-base-300">
+<Item.Group class="min-w-0 gap-2">
   {#each group.sections as section}
-    <div
-      class="group/section-row grid min-w-0 gap-3 border-base-300 border-b p-3 last:border-b-0 md:grid-cols-[minmax(13rem,1.4fr)_minmax(8rem,0.8fr)_4rem_auto] md:items-center md:gap-4"
+    <Item.Root
+      class="group/section-row items-start md:flex-nowrap"
+      size="sm"
+      variant="outline"
     >
-      <a
-        class="grid min-w-0 gap-1 text-base-content no-underline outline-none transition hover:text-primary hover:underline focus-visible:ring-2 focus-visible:ring-primary/30 md:grid-cols-[8.5rem_minmax(0,1fr)] md:items-center md:gap-4"
-        href={`/sections/${section.jwId}`}
-      >
-        <span class="truncate font-mono text-primary text-sm md:text-base-content">
-          {section.code}
-        </span>
-        <span class="truncate font-medium md:font-normal">
-          {section.course.namePrimary ?? dashboardCopy.notAvailable}
-        </span>
-      </a>
+      <Item.Content class="min-w-0 md:min-w-80">
+        <a
+          class="grid min-w-0 gap-1 no-underline outline-none md:grid-cols-[8.5rem_minmax(0,1fr)] md:items-center md:gap-4"
+          href={`/sections/${section.jwId}`}
+        >
+          <Item.Title class="font-mono text-primary md:text-foreground">
+            {section.code}
+          </Item.Title>
+          <Item.Title class="font-medium md:font-normal">
+            {section.course.namePrimary ?? dashboardCopy.notAvailable}
+          </Item.Title>
+        </a>
+      </Item.Content>
 
-      <div class="grid min-w-0 gap-1 text-sm">
-        <span class="text-base-content/55 md:sr-only">{sectionCopy.teachers}</span>
-        <span class="truncate">
+      <Item.Content class="min-w-0 basis-full md:basis-64">
+        <Item.Description class="md:sr-only">{sectionCopy.teachers}</Item.Description>
+        <Item.Title class="font-normal">
           {section.teachers
             .map((teacher) => teacher.namePrimary)
             .join(", ") || sectionCopy.noTeachersListed}
-        </span>
-      </div>
+        </Item.Title>
+      </Item.Content>
 
-      <div class="flex items-center justify-between gap-3 text-sm md:block">
-        <span class="text-base-content/55 md:sr-only">{subscriptionsCopy.credits}</span>
-        <span>{section.credits ?? dashboardCopy.notAvailable}</span>
-      </div>
+      <Item.Content class="basis-auto grow-0">
+        <Item.Description class="md:sr-only">{subscriptionsCopy.credits}</Item.Description>
+        <Item.Title>{section.credits ?? dashboardCopy.notAvailable}</Item.Title>
+      </Item.Content>
 
-      <Button
-        class={pendingRemoveSectionId === section.id
-          ? undefined
-          : "opacity-100 transition-opacity md:opacity-0 md:group-hover/section-row:opacity-100 md:group-focus-within/section-row:opacity-100"}
-        disabled={removingSectionId === section.id}
-        size="icon-sm"
-        type="button"
-        variant={pendingRemoveSectionId === section.id ? "destructive" : "outline"}
-        onclick={() => removeSubscribedSection(section.id)}
-      >
-        {#if removingSectionId === section.id}
-          <Spinner data-icon="inline-start" />
-        {:else}
-          <Trash2 data-icon="inline-start" />
-        {/if}
-        <span class="sr-only">
-          {removingSectionId === section.id
-            ? subscriptionsCopy.removing
-            : pendingRemoveSectionId === section.id
-              ? subscriptionsCopy.optOutConfirm
-              : subscriptionsCopy.optOut}
-        </span>
-      </Button>
-    </div>
+      <Item.Actions class="ms-auto">
+        <Button
+          class={pendingRemoveSectionId === section.id
+            ? undefined
+            : "opacity-100 transition-opacity md:opacity-0 md:group-hover/section-row:opacity-100 md:group-focus-within/section-row:opacity-100"}
+          disabled={removingSectionId === section.id}
+          size="icon-sm"
+          type="button"
+          variant={pendingRemoveSectionId === section.id ? "destructive" : "outline"}
+          onclick={() => removeSubscribedSection(section.id)}
+        >
+          {#if removingSectionId === section.id}
+            <Spinner data-icon="inline-start" />
+          {:else}
+            <Trash2 data-icon="inline-start" />
+          {/if}
+          <span class="sr-only">
+            {removingSectionId === section.id
+              ? subscriptionsCopy.removing
+              : pendingRemoveSectionId === section.id
+                ? subscriptionsCopy.optOutConfirm
+                : subscriptionsCopy.optOut}
+          </span>
+        </Button>
+      </Item.Actions>
+    </Item.Root>
   {/each}
-</div>
+</Item.Group>
