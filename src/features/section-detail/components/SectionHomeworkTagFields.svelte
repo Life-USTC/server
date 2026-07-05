@@ -14,17 +14,22 @@ $: majorId = `${idPrefix}-is-major`;
 $: teamId = `${idPrefix}-requires-team`;
 </script>
 
-<Field.Group class="flex-row flex-wrap gap-4" data-slot="checkbox-group">
-  <Field.Field class="w-fit" orientation="horizontal">
-    <Checkbox id={majorId} checked={isMajor} name="isMajor" />
-    <Field.Label for={majorId} class="font-normal">
-      {homeworkCopy.tagMajor}
-    </Field.Label>
-  </Field.Field>
-  <Field.Field class="w-fit" orientation="horizontal">
-    <Checkbox id={teamId} checked={requiresTeam} name="requiresTeam" />
-    <Field.Label for={teamId} class="font-normal">
-      {homeworkCopy.tagTeam}
-    </Field.Label>
-  </Field.Field>
-</Field.Group>
+<Field.Set>
+  <Field.Legend variant="label" class="sr-only">
+    {homeworkCopy.tagMajor} / {homeworkCopy.tagTeam}
+  </Field.Legend>
+  <Field.Group class="flex-row flex-wrap gap-4" data-slot="checkbox-group">
+    <Field.Field class="w-fit" orientation="horizontal">
+      <Checkbox id={majorId} checked={isMajor} name="isMajor" />
+      <Field.Label for={majorId} class="font-normal">
+        {homeworkCopy.tagMajor}
+      </Field.Label>
+    </Field.Field>
+    <Field.Field class="w-fit" orientation="horizontal">
+      <Checkbox id={teamId} checked={requiresTeam} name="requiresTeam" />
+      <Field.Label for={teamId} class="font-normal">
+        {homeworkCopy.tagTeam}
+      </Field.Label>
+    </Field.Field>
+  </Field.Group>
+</Field.Set>

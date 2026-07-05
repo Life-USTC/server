@@ -51,36 +51,41 @@ export let welcomeCopy: WelcomeCopy;
       </Dialog.Header>
       <div class="grid max-h-[60vh] gap-4 overflow-y-auto px-5 py-4">
         {#if matchedSections.length > 0}
-          <Field.Group data-slot="checkbox-group" class="gap-2">
-            {#each matchedSections as section}
-              {@const checkboxId = `welcome-import-section-${section.id}`}
-              <Field.Field orientation="horizontal">
-                <Checkbox
-                  id={checkboxId}
-                  checked={selectedSectionIdSet.has(section.id)}
-                  aria-label={formatCopy(welcomeCopy.selectSection, {
-                    code: section.code,
-                  })}
-                  onCheckedChange={(checked) => {
-                    setSectionSelection(section.id, checked);
-                  }}
-                />
-                <Field.Content>
-                  <Field.Label class="cursor-pointer font-normal" for={checkboxId}>
-                    {displayName(section.course)}
-                  </Field.Label>
-                  <Field.Description>
-                    {section.code}
-                    {#if section.semester} · {displayName(section.semester)}{/if}
-                    {#if section.campus} · {displayName(section.campus)}{/if}
-                    {#if section.teachers.length > 0}
-                      · {section.teachers.map(displayName).filter(Boolean).join(", ")}
-                    {/if}
-                  </Field.Description>
-                </Field.Content>
-              </Field.Field>
-            {/each}
-          </Field.Group>
+          <Field.Set>
+            <Field.Legend variant="label" class="sr-only">
+              {welcomeCopy.confirmImportTitle}
+            </Field.Legend>
+            <Field.Group data-slot="checkbox-group" class="gap-2">
+              {#each matchedSections as section}
+                {@const checkboxId = `welcome-import-section-${section.id}`}
+                <Field.Field orientation="horizontal">
+                  <Checkbox
+                    id={checkboxId}
+                    checked={selectedSectionIdSet.has(section.id)}
+                    aria-label={formatCopy(welcomeCopy.selectSection, {
+                      code: section.code,
+                    })}
+                    onCheckedChange={(checked) => {
+                      setSectionSelection(section.id, checked);
+                    }}
+                  />
+                  <Field.Content>
+                    <Field.Label class="cursor-pointer font-normal" for={checkboxId}>
+                      {displayName(section.course)}
+                    </Field.Label>
+                    <Field.Description>
+                      {section.code}
+                      {#if section.semester} · {displayName(section.semester)}{/if}
+                      {#if section.campus} · {displayName(section.campus)}{/if}
+                      {#if section.teachers.length > 0}
+                        · {section.teachers.map(displayName).filter(Boolean).join(", ")}
+                      {/if}
+                    </Field.Description>
+                  </Field.Content>
+                </Field.Field>
+              {/each}
+            </Field.Group>
+          </Field.Set>
         {:else}
           <Empty.Root class="min-h-20 border border-border bg-background p-4">
             <Empty.Header>

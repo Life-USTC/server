@@ -122,26 +122,31 @@ $: sectionOptions = sections.map((section) => ({
     {selectedCreateHomeworkSection}
     {toShanghaiDateTimeLocalValue}
   />
-  <Field.Group class="flex-row flex-wrap gap-4" data-slot="checkbox-group">
-    <Field.Field class="w-fit" orientation="horizontal">
-      <Checkbox
-        disabled={isCreatingHomework}
-        id="dashboard-homework-is-major"
-        name="isMajor"
-      />
-      <Field.Label for="dashboard-homework-is-major" class="font-normal">
-        {homeworksCopy.tagMajor}
-      </Field.Label>
-    </Field.Field>
-    <Field.Field class="w-fit" orientation="horizontal">
-      <Checkbox
-        disabled={isCreatingHomework}
-        id="dashboard-homework-requires-team"
-        name="requiresTeam"
-      />
-      <Field.Label for="dashboard-homework-requires-team" class="font-normal">
-        {homeworksCopy.tagTeam}
-      </Field.Label>
-    </Field.Field>
-  </Field.Group>
+  <Field.Set>
+    <Field.Legend variant="label" class="sr-only">
+      {homeworksCopy.tagMajor} / {homeworksCopy.tagTeam}
+    </Field.Legend>
+    <Field.Group class="flex-row flex-wrap gap-4" data-slot="checkbox-group">
+      <Field.Field class="w-fit" orientation="horizontal">
+        <Checkbox
+          disabled={isCreatingHomework}
+          id="dashboard-homework-is-major"
+          name="isMajor"
+        />
+        <Field.Label for="dashboard-homework-is-major" class="font-normal">
+          {homeworksCopy.tagMajor}
+        </Field.Label>
+      </Field.Field>
+      <Field.Field class="w-fit" orientation="horizontal">
+        <Checkbox
+          disabled={isCreatingHomework}
+          id="dashboard-homework-requires-team"
+          name="requiresTeam"
+        />
+        <Field.Label for="dashboard-homework-requires-team" class="font-normal">
+          {homeworksCopy.tagTeam}
+        </Field.Label>
+      </Field.Field>
+    </Field.Group>
+  </Field.Set>
 </div>

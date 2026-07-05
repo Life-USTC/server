@@ -19,40 +19,45 @@ export let toggleImportSectionSelection: (sectionId: number) => void;
 </script>
 
 {#if matchedSections.length > 0}
-  <Field.Group data-slot="checkbox-group" class="gap-2">
-    {#each matchedSections as section}
-      {@const courseSecondaryName = nameSecondary(section.course)}
-      {@const checkboxId = `subscription-import-section-${section.id}`}
-      <Field.Field orientation="horizontal">
-        <Checkbox
-          id={checkboxId}
-          checked={selectedImportSectionIdSet.has(section.id)}
-          aria-label={formatMessage(subscriptionsCopy.bulkImport.selectSection, {
-            code: section.code,
-          })}
-          onCheckedChange={() => {
-            toggleImportSectionSelection(section.id);
-          }}
-        />
-        <Field.Content>
-          <Field.Label class="cursor-pointer font-normal" for={checkboxId}>
-            {namePrimary(section.course)}
-            {#if courseSecondaryName}
-              <span class="text-muted-foreground">({courseSecondaryName})</span>
-            {/if}
-          </Field.Label>
-          <Field.Description>
-            {section.code}
-            {#if section.semester} · {namePrimary(section.semester)}{/if}
-            {#if section.campus} · {namePrimary(section.campus)}{/if}
-            {#if section.teachers.length > 0}
-              · {section.teachers.map(namePrimary).filter(Boolean).join(", ")}
-            {/if}
-          </Field.Description>
-        </Field.Content>
-      </Field.Field>
-    {/each}
-  </Field.Group>
+  <Field.Set>
+    <Field.Legend variant="label" class="sr-only">
+      {subscriptionsCopy.bulkImport.title}
+    </Field.Legend>
+    <Field.Group data-slot="checkbox-group" class="gap-2">
+      {#each matchedSections as section}
+        {@const courseSecondaryName = nameSecondary(section.course)}
+        {@const checkboxId = `subscription-import-section-${section.id}`}
+        <Field.Field orientation="horizontal">
+          <Checkbox
+            id={checkboxId}
+            checked={selectedImportSectionIdSet.has(section.id)}
+            aria-label={formatMessage(subscriptionsCopy.bulkImport.selectSection, {
+              code: section.code,
+            })}
+            onCheckedChange={() => {
+              toggleImportSectionSelection(section.id);
+            }}
+          />
+          <Field.Content>
+            <Field.Label class="cursor-pointer font-normal" for={checkboxId}>
+              {namePrimary(section.course)}
+              {#if courseSecondaryName}
+                <span class="text-muted-foreground">({courseSecondaryName})</span>
+              {/if}
+            </Field.Label>
+            <Field.Description>
+              {section.code}
+              {#if section.semester} · {namePrimary(section.semester)}{/if}
+              {#if section.campus} · {namePrimary(section.campus)}{/if}
+              {#if section.teachers.length > 0}
+                · {section.teachers.map(namePrimary).filter(Boolean).join(", ")}
+              {/if}
+            </Field.Description>
+          </Field.Content>
+        </Field.Field>
+      {/each}
+    </Field.Group>
+  </Field.Set>
 {:else}
   <Empty.Root class="min-h-20 border border-border bg-background p-4">
     <Empty.Header>
