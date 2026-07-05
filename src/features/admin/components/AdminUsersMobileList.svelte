@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Badge } from "$lib/components/ui/badge/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 import type {
   AdminUserFormatter,
   AdminUserRow,
@@ -12,35 +13,54 @@ export let formatDate: (value: Date | string | null | undefined) => string;
 export let onSelect: (user: AdminUserRow) => void;
 export let suspensionLabel: AdminUserFormatter;
 export let users: AdminUserRow[];
+
+function handleUserKeydown(event: KeyboardEvent, user: AdminUserRow) {
+  if (event.key !== "Enter" && event.key !== " ") return;
+
+  event.preventDefault();
+  onSelect(user);
+}
 </script>
 
 <div class="grid gap-3 md:hidden">
   {#each users as user}
-    <button
-      class={`rounded-md border border-base-300 border-l-4 bg-base-100 p-4 text-left transition-colors hover:border-primary/50 hover:bg-base-200/40 focus:outline-none focus:ring-2 focus:ring-primary/30 ${user.activeSuspension ? "border-l-warning" : user.isAdmin ? "border-l-success" : "border-l-primary"}`}
-      type="button"
+    <Item.Root
+      class={`cursor-pointer items-start border-l-4 text-left hover:bg-muted ${user.activeSuspension ? "border-l-warning" : user.isAdmin ? "border-l-success" : "border-l-primary"}`}
+      role="button"
+      tabindex={0}
+      variant="outline"
       onclick={() => onSelect(user)}
+      onkeydown={(event) => handleUserKeydown(event, user)}
     >
-      <div class="flex items-start justify-between gap-3">
-        <div class="min-w-0">
-          <div class="truncate font-semibold">{displayName(user)}</div>
-          <div class="text-base-content/60 text-sm">@{user.username ?? copy.noUsername}</div>
-          <div class="mt-1 break-words text-base-content/60 text-xs">{user.email ?? copy.noVerifiedEmail}</div>
-        </div>
-        <Badge class={user.isAdmin ? "border-success bg-success/10 text-success" : ""} variant={user.isAdmin ? "outline" : "ghost"}>
+      <Item.Content class="min-w-0">
+        <Item.Title>{displayName(user)}</Item.Title>
+        <Item.Description>
+          @{user.username ?? copy.noUsername}
+        </Item.Description>
+        <Item.Description class="line-clamp-none break-words text-xs">
+          {user.email ?? copy.noVerifiedEmail}
+        </Item.Description>
+      </Item.Content>
+      <Item.Actions>
+        <Badge
+          class={user.isAdmin ? "border-success bg-success/10 text-success" : ""}
+          variant={user.isAdmin ? "outline" : "ghost"}
+        >
           {user.isAdmin ? copy.adminRole : copy.userRole}
         </Badge>
-      </div>
-      <dl class="mt-3 grid grid-cols-2 gap-2 text-xs">
-        <div>
-          <dt class="text-base-content/60">{copy.createdAt}</dt>
-          <dd class="tabular-nums">{formatDate(user.createdAt)}</dd>
-        </div>
-        <div>
-          <dt class="text-base-content/60">{copy.suspension}</dt>
-          <dd>{suspensionLabel(user)}</dd>
-        </div>
-      </dl>
-    </button>
+      </Item.Actions>
+      <Item.Footer class="block">
+        <dl class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <dt class="text-muted-foreground">{copy.createdAt}</dt>
+            <dd class="tabular-nums">{formatDate(user.createdAt)}</dd>
+          </div>
+          <div>
+            <dt class="text-muted-foreground">{copy.suspension}</dt>
+            <dd>{suspensionLabel(user)}</dd>
+          </div>
+        </dl>
+      </Item.Footer>
+    </Item.Root>
   {/each}
 </div>

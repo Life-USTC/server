@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
+import * as Item from "$lib/components/ui/item/index.js";
 import type {
   SectionCopy,
   SectionHomework,
@@ -13,33 +14,52 @@ export let homeworkStatus: (homework: SectionHomework) => string;
 export let homeworks: SectionHomework[];
 export let sectionCopy: SectionCopy;
 export let selectHomework: (homework: SectionHomework) => void;
+
+function handleHomeworkKeydown(
+  event: KeyboardEvent,
+  homework: SectionHomework,
+) {
+  if (event.key !== "Enter" && event.key !== " ") return;
+
+  event.preventDefault();
+  selectHomework(homework);
+}
 </script>
 
 <div class="grid gap-3" data-testid="section-homeworks-cards">
   {#each homeworks as homework}
-    <button
-      class="rounded-lg border border-base-300 p-4 text-left transition hover:border-primary"
+    <Item.Root
+      class="cursor-pointer items-start text-left hover:bg-muted"
       id={`homework-${homework.id}`}
-      type="button"
+      role="button"
+      tabindex={0}
+      variant="outline"
       onclick={() => {
         selectHomework(homework);
       }}
+      onkeydown={(event) => handleHomeworkKeydown(event, homework)}
     >
-      <span class="flex flex-wrap items-start justify-between gap-2">
-        <span class="font-semibold">{homework.title}</span>
-        <span class="flex gap-2">
-          {#if homework.isMajor}<Badge variant="secondary">{homeworkCopy.tagMajor}</Badge>{/if}
-          {#if homework.requiresTeam}<Badge variant="secondary">{homeworkCopy.tagTeam}</Badge>{/if}
-          <Badge>{homeworkStatus(homework)}</Badge>
-        </span>
-      </span>
-      <span class="mt-1 block text-base-content/60 text-sm">
-        {sectionCopy.due} {fmtDateTime(homework.submissionDueAt)}
-      </span>
-      {#if homework.description?.content}
-        <span class="mt-3 block whitespace-pre-wrap text-sm">{homework.description.content}</span>
-      {/if}
-    </button>
+      <Item.Content>
+        <Item.Title>{homework.title}</Item.Title>
+        <Item.Description>
+          {sectionCopy.due} {fmtDateTime(homework.submissionDueAt)}
+        </Item.Description>
+        {#if homework.description?.content}
+          <Item.Description class="line-clamp-3 whitespace-pre-wrap">
+            {homework.description.content}
+          </Item.Description>
+        {/if}
+      </Item.Content>
+      <Item.Actions class="flex-wrap justify-end">
+        {#if homework.isMajor}
+          <Badge variant="secondary">{homeworkCopy.tagMajor}</Badge>
+        {/if}
+        {#if homework.requiresTeam}
+          <Badge variant="secondary">{homeworkCopy.tagTeam}</Badge>
+        {/if}
+        <Badge>{homeworkStatus(homework)}</Badge>
+      </Item.Actions>
+    </Item.Root>
   {:else}
     <Empty.Root>
       <Empty.Header>
