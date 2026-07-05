@@ -1,6 +1,6 @@
 <script lang="ts">
+import CalendarIcon from "@lucide/svelte/icons/calendar";
 import type { CalendarGridWeek } from "$lib/components/calendar/types";
-import CalendarIcon from "$lib/components/icons/calendar.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";

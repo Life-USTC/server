@@ -1,7 +1,7 @@
 <script lang="ts">
+import TrashIcon from "@lucide/svelte/icons/trash-2";
 import type { SubmitFunction } from "@sveltejs/kit";
 import { enhance } from "$app/forms";
-import TrashIcon from "$lib/components/icons/trash-2.svelte";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import type {

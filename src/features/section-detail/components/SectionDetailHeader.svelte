@@ -1,9 +1,9 @@
 <script lang="ts">
+import CalendarIcon from "@lucide/svelte/icons/calendar";
+import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
+import LinkIcon from "@lucide/svelte/icons/link-2";
 import type { SubmitFunction } from "@sveltejs/kit";
 import { enhance } from "$app/forms";
-import CalendarIcon from "$lib/components/icons/calendar.svelte";
-import CheckCircleIcon from "$lib/components/icons/check-circle.svelte";
-import LinkIcon from "$lib/components/icons/link-2.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";

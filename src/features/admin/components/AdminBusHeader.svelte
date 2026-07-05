@@ -1,5 +1,5 @@
 <script lang="ts">
-import Download from "$lib/components/icons/download.svelte";
+import Download from "@lucide/svelte/icons/download";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import type { AdminBusCopy, AdminBusHeaderAdminCopy } from "./admin-bus-types";

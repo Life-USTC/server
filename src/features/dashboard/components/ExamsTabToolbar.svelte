@@ -1,10 +1,10 @@
 <script lang="ts">
+import LayoutGrid from "@lucide/svelte/icons/layout-grid";
+import List from "@lucide/svelte/icons/list";
 import type {
   DashboardDashboardCopy,
   ExamView,
 } from "@/features/dashboard/lib/dashboard-controller-types";
-import LayoutGrid from "$lib/components/icons/layout-grid.svelte";
-import List from "$lib/components/icons/list.svelte";
 import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 import type { DashboardExamFilter } from "./dashboard-exam-component-types";
 

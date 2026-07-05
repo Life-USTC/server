@@ -1,5 +1,5 @@
 <script lang="ts">
-import CheckCircleIcon from "$lib/components/icons/check-circle.svelte";
+import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";

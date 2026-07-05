@@ -1,8 +1,8 @@
+import LayoutDashboard from "@lucide/svelte/icons/layout-dashboard";
+import Link2 from "@lucide/svelte/icons/link-2";
+import ShieldAlert from "@lucide/svelte/icons/shield-alert";
+import Users from "@lucide/svelte/icons/users";
 import type { Component } from "svelte";
-import LayoutDashboard from "$lib/components/icons/layout-dashboard.svelte";
-import Link2 from "$lib/components/icons/link-2.svelte";
-import ShieldAlert from "$lib/components/icons/shield-alert.svelte";
-import Users from "$lib/components/icons/users.svelte";
 
 export type AdminDashboardCard = {
   description: string;

@@ -1,7 +1,7 @@
 <script lang="ts">
+import LinkIcon from "@lucide/svelte/icons/link-2";
 import type { SubmitFunction } from "@sveltejs/kit";
 import { enhance } from "$app/forms";
-import LinkIcon from "$lib/components/icons/link-2.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 

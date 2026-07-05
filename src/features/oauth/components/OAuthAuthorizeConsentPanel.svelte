@@ -1,6 +1,6 @@
 <script lang="ts">
-import CheckCircle from "$lib/components/icons/check-circle.svelte";
-import ShieldAlert from "$lib/components/icons/shield-alert.svelte";
+import CheckCircle from "@lucide/svelte/icons/check-circle";
+import ShieldAlert from "@lucide/svelte/icons/shield-alert";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Checkbox } from "$lib/components/ui/checkbox/index.js";
@@ -38,7 +38,7 @@ $: canAllow = scopes.length === 0 || selectedScopes.length > 0;
 
 <Field.Set>
   <Field.Legend class="flex min-w-0 items-center gap-2" variant="label">
-    <ShieldAlert />
+    <ShieldAlert class="size-4 shrink-0" />
     <span class="min-w-0 break-words">{copy.scopesLabel}</span>
   </Field.Legend>
   {#if scopes.length > 0}

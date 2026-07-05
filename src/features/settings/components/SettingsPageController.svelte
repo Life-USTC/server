@@ -1,4 +1,8 @@
 <script lang="ts">
+import CircleUserRound from "@lucide/svelte/icons/circle-user-round";
+import FileText from "@lucide/svelte/icons/file-text";
+import Link2 from "@lucide/svelte/icons/link-2";
+import ShieldAlert from "@lucide/svelte/icons/shield-alert";
 import { onMount } from "svelte";
 import SettingsAccountsTab from "@/features/settings/components/SettingsAccountsTab.svelte";
 import SettingsContentTab from "@/features/settings/components/SettingsContentTab.svelte";
@@ -11,10 +15,6 @@ import {
   createDeleteAccountAction,
   createSettingsAccountAction,
 } from "@/features/settings/lib/settings-page-actions";
-import CircleUserRound from "$lib/components/icons/circle-user-round.svelte";
-import FileText from "$lib/components/icons/file-text.svelte";
-import Link2 from "$lib/components/icons/link-2.svelte";
-import ShieldAlert from "$lib/components/icons/shield-alert.svelte";
 import * as Item from "$lib/components/ui/item/index.js";
 import { cn } from "$lib/utils";
 import type {

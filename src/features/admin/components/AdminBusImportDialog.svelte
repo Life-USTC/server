@@ -1,6 +1,6 @@
 <script lang="ts">
+import Download from "@lucide/svelte/icons/download";
 import { enhance } from "$app/forms";
-import Download from "$lib/components/icons/download.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";

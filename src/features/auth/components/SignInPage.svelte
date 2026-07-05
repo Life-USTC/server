@@ -1,8 +1,8 @@
 <script lang="ts">
+import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
+import CircleUserRound from "@lucide/svelte/icons/circle-user-round";
 import type { SubmitFunction } from "@sveltejs/kit";
 import { enhance } from "$app/forms";
-import ArrowUpRight from "$lib/components/icons/arrow-up-right.svelte";
-import CircleUserRound from "$lib/components/icons/circle-user-round.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -106,7 +106,7 @@ function providerInitial(name: string) {
                 </span>
                 <span class="min-w-0 truncate font-medium">{provider.label}</span>
               </span>
-              <ArrowUpRight class="shrink-0 text-base-content/45" />
+              <ArrowUpRight data-icon="inline-end" class="shrink-0 text-base-content/45" />
             </Button>
           </form>
         {/each}

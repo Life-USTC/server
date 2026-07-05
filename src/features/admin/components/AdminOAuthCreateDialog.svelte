@@ -1,7 +1,7 @@
 <script lang="ts">
+import ShieldCheckIcon from "@lucide/svelte/icons/shield-check";
 import type { SubmitFunction } from "@sveltejs/kit";
 import { enhance } from "$app/forms";
-import ShieldCheckIcon from "$lib/components/icons/shield-check.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";

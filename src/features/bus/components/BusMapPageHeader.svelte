@@ -1,6 +1,6 @@
 <script lang="ts">
+import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import type { BusMapCopy, BusMapData } from "@/features/bus/lib/bus-map-types";
-import RefreshCw from "$lib/components/icons/refresh-cw.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";

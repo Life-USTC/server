@@ -1,7 +1,7 @@
 <script lang="ts">
+import CheckCircle from "@lucide/svelte/icons/check-circle";
+import ShieldAlert from "@lucide/svelte/icons/shield-alert";
 import { enhance } from "$app/forms";
-import CheckCircle from "$lib/components/icons/check-circle.svelte";
-import ShieldAlert from "$lib/components/icons/shield-alert.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
@@ -30,7 +30,7 @@ $: clientRequestParts = copy.deviceClientRequest.split("{app}");
 {#if approvalRequest.scopes.length > 0}
   <section class="min-w-0 rounded-md border border-base-300 bg-base-200/50 p-4">
     <h2 class="flex min-w-0 items-center gap-2 font-medium text-sm">
-      <ShieldAlert />
+      <ShieldAlert class="size-4 shrink-0" />
       <span class="min-w-0 break-words">{copy.deviceRequestedPermissions}</span>
     </h2>
     <div class="mt-3 flex flex-wrap gap-2">
@@ -44,7 +44,7 @@ $: clientRequestParts = copy.deviceClientRequest.split("{app}");
 {#if approvalRequest.resources.length > 0}
   <section class="min-w-0 rounded-md border border-base-300 bg-base-200/50 p-4">
     <h2 class="flex min-w-0 items-center gap-2 font-medium text-sm">
-      <ShieldAlert />
+      <ShieldAlert class="size-4 shrink-0" />
       <span class="min-w-0 break-words">{copy.deviceRequestedResources}</span>
     </h2>
     <div class="mt-3 flex flex-wrap gap-2">

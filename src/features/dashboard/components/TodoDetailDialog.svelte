@@ -1,11 +1,11 @@
 <script lang="ts">
+import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
+import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+import Trash2 from "@lucide/svelte/icons/trash-2";
 import type {
   DashboardTodoItem,
   DashboardTodosCopy,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
-import CheckCircleIcon from "$lib/components/icons/check-circle.svelte";
-import RefreshCw from "$lib/components/icons/refresh-cw.svelte";
-import Trash2 from "$lib/components/icons/trash-2.svelte";
 import MarkdownPreview from "$lib/components/MarkdownPreview.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";

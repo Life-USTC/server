@@ -1,6 +1,6 @@
 <script lang="ts">
-import CheckCircleIcon from "$lib/components/icons/check-circle.svelte";
-import LinkIcon from "$lib/components/icons/link-2.svelte";
+import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
+import LinkIcon from "@lucide/svelte/icons/link-2";
 import * as Field from "$lib/components/ui/field/index.js";
 import * as InputGroup from "$lib/components/ui/input-group/index.js";
 

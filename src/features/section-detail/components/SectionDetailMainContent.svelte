@@ -1,9 +1,12 @@
 <script lang="ts">
 import BookOpenTextIcon from "@lucide/svelte/icons/book-open-text";
+import CalendarIcon from "@lucide/svelte/icons/calendar";
 import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
+import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import ClipboardListIcon from "@lucide/svelte/icons/clipboard-list";
 import GraduationCapIcon from "@lucide/svelte/icons/graduation-cap";
 import InfoIcon from "@lucide/svelte/icons/info";
+import LinkIcon from "@lucide/svelte/icons/link-2";
 import MessageSquareIcon from "@lucide/svelte/icons/message-square";
 import UsersIcon from "@lucide/svelte/icons/users";
 import type { SubmitFunction } from "@sveltejs/kit";
@@ -13,9 +16,6 @@ import type { SectionDetailPageData } from "@/features/section-detail/lib/sectio
 import { enhance } from "$app/forms";
 import DetailPinnedSummary from "$lib/components/DetailPinnedSummary.svelte";
 import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
-import CalendarIcon from "$lib/components/icons/calendar.svelte";
-import CheckCircleIcon from "$lib/components/icons/check-circle.svelte";
-import LinkIcon from "$lib/components/icons/link-2.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import SectionBasicInfoCard from "./SectionBasicInfoCard.svelte";

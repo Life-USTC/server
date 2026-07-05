@@ -1,10 +1,10 @@
 <script lang="ts">
+import Pin from "@lucide/svelte/icons/pin";
 import type {
   DashboardLinkPinAction,
   DashboardLinkPinSubmit,
   DashboardOverviewLinkItem,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
-import Pin from "$lib/components/icons/pin.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 
 export let link: DashboardOverviewLinkItem;
@@ -39,6 +39,6 @@ export let updatingDashboardLinkSlug: string | null;
     type="submit"
     variant="outline"
   >
-    <Pin class={link.isPinned ? "fill-primary/20" : ""} />
+    <Pin data-icon="inline-start" class={link.isPinned ? "fill-primary/20" : ""} />
   </Button>
 </form>

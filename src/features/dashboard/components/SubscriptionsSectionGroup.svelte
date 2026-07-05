@@ -1,11 +1,11 @@
 <script lang="ts">
+import Trash2 from "@lucide/svelte/icons/trash-2";
 import type {
   DashboardDashboardCopy,
   DashboardSectionCopy,
   DashboardSubscriptionsCopy,
   SubscriptionsData,
 } from "@/features/dashboard/lib/dashboard-controller-types";
-import Trash2 from "$lib/components/icons/trash-2.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 
@@ -71,9 +71,9 @@ export let subscriptionsCopy: DashboardSubscriptionsCopy;
         onclick={() => removeSubscribedSection(section.id)}
       >
         {#if removingSectionId === section.id}
-          <Spinner />
+          <Spinner data-icon="inline-start" />
         {:else}
-          <Trash2 />
+          <Trash2 data-icon="inline-start" />
         {/if}
         <span class="sr-only">
           {removingSectionId === section.id

@@ -1,7 +1,7 @@
 <script lang="ts">
+import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
+import ShieldAlertIcon from "@lucide/svelte/icons/shield-alert";
 import DateTimePicker from "$lib/components/DateTimePicker.svelte";
-import CheckCircleIcon from "$lib/components/icons/check-circle.svelte";
-import ShieldAlertIcon from "$lib/components/icons/shield-alert.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Field from "$lib/components/ui/field/index.js";

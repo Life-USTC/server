@@ -1,8 +1,8 @@
 <script lang="ts">
+import ChevronLeftIcon from "@lucide/svelte/icons/chevron-left";
+import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 import CalendarGrid from "$lib/components/calendar/CalendarGrid.svelte";
 import type { CalendarGridWeek } from "$lib/components/calendar/types";
-import ChevronLeftIcon from "$lib/components/icons/chevron-left.svelte";
-import ChevronRightIcon from "$lib/components/icons/chevron-right.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import type { SectionCalendarCopy } from "./section-calendar-tab-types";
 

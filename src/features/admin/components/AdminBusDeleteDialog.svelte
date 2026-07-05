@@ -1,6 +1,6 @@
 <script lang="ts">
+import Trash2 from "@lucide/svelte/icons/trash-2";
 import { enhance } from "$app/forms";
-import Trash2 from "$lib/components/icons/trash-2.svelte";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";

@@ -1,5 +1,5 @@
 <script lang="ts">
-import CopyIcon from "$lib/components/icons/copy.svelte";
+import CopyIcon from "@lucide/svelte/icons/copy";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import AdminOAuthCredentialField from "./AdminOAuthCredentialField.svelte";

@@ -1,11 +1,11 @@
 <script lang="ts">
+import LayoutGrid from "@lucide/svelte/icons/layout-grid";
+import List from "@lucide/svelte/icons/list";
 import SearchIcon from "@lucide/svelte/icons/search";
 import type {
   DashboardDashboardCopy,
   LinkView,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
-import LayoutGrid from "$lib/components/icons/layout-grid.svelte";
-import List from "$lib/components/icons/list.svelte";
 import * as Field from "$lib/components/ui/field/index.js";
 import * as InputGroup from "$lib/components/ui/input-group/index.js";
 import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";

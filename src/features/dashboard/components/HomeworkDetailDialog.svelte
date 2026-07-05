@@ -1,7 +1,7 @@
 <script lang="ts">
+import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
+import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import type { DashboardMyHomeworksCopy } from "@/features/dashboard/lib/dashboard-controller-types";
-import CheckCircleIcon from "$lib/components/icons/check-circle.svelte";
-import RefreshCw from "$lib/components/icons/refresh-cw.svelte";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import type {
   DashboardHomeworkCommentsPanel,
