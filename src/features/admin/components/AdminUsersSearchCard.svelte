@@ -1,6 +1,6 @@
 <script lang="ts">
-import SearchIcon from "$lib/components/icons/search.svelte";
-import XIcon from "$lib/components/icons/x.svelte";
+import SearchIcon from "@lucide/svelte/icons/search";
+import XIcon from "@lucide/svelte/icons/x";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as ButtonGroup from "$lib/components/ui/button-group/index.js";
 import * as Card from "$lib/components/ui/card/index.js";

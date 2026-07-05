@@ -1,13 +1,14 @@
 <script lang="ts">
+import ArrowLeftRightIcon from "@lucide/svelte/icons/arrow-left-right";
 import type { BusPreferenceSaveState } from "@/features/dashboard/lib/bus";
 import type {
   DashboardBusCopy,
   DashboardBusData,
 } from "@/features/dashboard/lib/bus-tab-types";
-import ArrowLeftRight from "$lib/components/icons/arrow-left-right.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
+import { Separator } from "$lib/components/ui/separator/index.js";
 import { Switch } from "$lib/components/ui/switch/index.js";
 import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 import { cn } from "$lib/utils.js";
@@ -51,7 +52,7 @@ export let toggleBusDepartedTrips: () => void;
           title={busCopy.planner.reverse}
           variant="outline"
         >
-          <ArrowLeftRight />
+          <ArrowLeftRightIcon data-icon="inline-start" />
           {busCopy.planner.reverse}
         </Button>
       </div>
@@ -66,7 +67,9 @@ export let toggleBusDepartedTrips: () => void;
       />
     </div>
 
-    <div class="flex flex-wrap items-center gap-2 border-t border-base-300 pt-4">
+    <Separator />
+
+    <div class="flex flex-wrap items-center gap-2">
       <ToggleGroup.Root
         aria-label={busCopy.query.dayType}
         class="origin-left scale-90"
@@ -97,7 +100,6 @@ export let toggleBusDepartedTrips: () => void;
           </Field.Label>
         </Field.Content>
         <Switch
-          class="border-base-300 data-unchecked:bg-base-300"
           id="bus-show-departed-trips"
           checked={busShowDepartedTrips}
           disabled={!busPlannerReady}
@@ -111,8 +113,8 @@ export let toggleBusDepartedTrips: () => void;
         class={cn(
           "text-sm",
           busPreferenceSaveState === "error"
-            ? "text-error"
-            : "text-base-content/60",
+            ? "text-destructive"
+            : "text-muted-foreground",
         )}
         role={busPreferenceSaveState === "error" ? "alert" : "status"}
       >
