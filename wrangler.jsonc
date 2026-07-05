@@ -36,6 +36,9 @@
   "placement": {
     "mode": "smart"
   },
+  "limits": {
+    "cpu_ms": 1000
+  },
   "alias": {
     "kysely": "./src/lib/cloudflare/kysely-worker-shim.ts",
     "@better-auth/kysely-adapter/dist/bun-sqlite-dialect-DzNwOpKv.mjs": "./src/lib/cloudflare/empty-optional-module.ts",
