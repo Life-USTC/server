@@ -128,6 +128,11 @@ async function main() {
       dryRun,
     });
     console.log("Import stats:", stats);
+
+    const statsFile = process.env.STATIC_LOADER_STATS_FILE;
+    if (statsFile) {
+      await writeFile(statsFile, JSON.stringify(stats, null, 2));
+    }
   } catch (error) {
     console.error("Import failed:", error);
     process.exitCode = 1;
