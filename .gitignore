@@ -57,3 +57,6 @@ ENV/
 /screenshots
 /logs
 /src/generated
+
+# worktrees
+.worktrees/
