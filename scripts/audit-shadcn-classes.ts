@@ -1,7 +1,6 @@
-import { parse, type AST } from "svelte/compiler";
-import { readFile, readdir, writeFile, mkdir } from "node:fs/promises";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import fg from "fast-glob";
+import { type AST, parse } from "svelte/compiler";
 
 const UI_DIR = "src/lib/components/ui";
 const OUTPUT = "docs/superpowers/artifacts/shadcn-class-audit.json";
@@ -21,6 +20,7 @@ type AuditEntry = {
   subComponent: string | null;
   classValue: string | null;
   styleValue: string | null;
+  classDirective: string | null;
   isConditional: boolean;
 };
 
@@ -195,8 +195,11 @@ function auditSvelteFile(
     const styleAttr = attributes.find(
       (a) => a.type === "Attribute" && a.name === "style",
     );
+    const classDirectives = attributes.filter(
+      (a): a is AST.ClassDirective => a.type === "ClassDirective",
+    );
 
-    if (!classAttr && !styleAttr) return;
+    if (!classAttr && !styleAttr && classDirectives.length === 0) return;
 
     const classValue = classAttr
       ? extractAttributeValue(classAttr, source)
@@ -204,9 +207,13 @@ function auditSvelteFile(
     const styleValue = styleAttr
       ? extractAttributeValue(styleAttr, source)
       : null;
+    const classDirective = classDirectives.length
+      ? classDirectives.map((d) => source.slice(d.start, d.end)).join(" ")
+      : null;
     const isConditional =
       (classAttr && attributeIsConditional(classAttr)) ||
-      (styleAttr && attributeIsConditional(styleAttr));
+      (styleAttr && attributeIsConditional(styleAttr)) ||
+      classDirectives.length > 0;
 
     const { component, subComponent } = parseComponentName(
       node.name,
@@ -223,6 +230,7 @@ function auditSvelteFile(
       subComponent,
       classValue,
       styleValue,
+      classDirective,
       isConditional,
     });
   });
@@ -283,6 +291,7 @@ function auditTsJsFile(
         subComponent,
         classValue,
         styleValue,
+        classDirective: null,
         isConditional,
       });
     }
@@ -293,10 +302,11 @@ function auditTsJsFile(
 
 async function main() {
   const components = await listUiComponents(UI_DIR);
-  const files = await fg([
-    "src/**/*.{svelte,ts,js}",
-    "!src/lib/components/ui/**",
-  ]);
+  const files: string[] = [];
+  for await (const file of new Bun.Glob("src/**/*.{svelte,ts,js}").scan(".")) {
+    if (file.startsWith("src/lib/components/ui/")) continue;
+    files.push(file);
+  }
   const results: AuditEntry[] = [];
 
   for (const file of files) {
@@ -311,7 +321,7 @@ async function main() {
   }
 
   await mkdir(path.dirname(OUTPUT), { recursive: true });
-  await writeFile(OUTPUT, JSON.stringify(results, null, 2));
+  await writeFile(OUTPUT, `${JSON.stringify(results, null, 2)}\n`);
   console.log(
     `Audited ${results.length} class/style usages across ${files.length} files.`,
   );
