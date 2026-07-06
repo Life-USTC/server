@@ -1,3 +1,60 @@
+# [1.46.0](https://github.com/Life-USTC/server/compare/v1.45.1...v1.46.0) (2026-07-06)
+
+
+### Bug Fixes
+
+* add shadcn module export declarations ([5c41ffb](https://github.com/Life-USTC/server/commit/5c41ffbe91596ab800b16a17c098e2066f864e17))
+* align public web e2e with alert dialogs ([5d27ec3](https://github.com/Life-USTC/server/commit/5d27ec359ef99f0282732e06c1229eede2362844))
+* align scroll area sizing with shadcn docs ([df0d0d4](https://github.com/Life-USTC/server/commit/df0d0d4048c99adcbc5f7c49db48e44385e5b8a9))
+* align shadcn component semantics ([be34a89](https://github.com/Life-USTC/server/commit/be34a896b54a9d0e0432c04835125be1cb5d0c61))
+* align shadcn component usage ([f0fe904](https://github.com/Life-USTC/server/commit/f0fe90487a180f4243227424bbeb90b01adbd3ad))
+* align shadcn component usage ([4f0a241](https://github.com/Life-USTC/server/commit/4f0a241c2daf16f8401de6f6b4e8efb05dfe736f))
+* align shell header and simplify theme trigger ([9354582](https://github.com/Life-USTC/server/commit/93545822102ca1d5caaa7a3032d9b49a8a6a743f))
+* align sidebar composition with shadcn docs ([7f10691](https://github.com/Life-USTC/server/commit/7f10691da1baa5b68f0e17ee29f2f5094d85f047))
+* align stock shadcn dialog behavior ([cf67c26](https://github.com/Life-USTC/server/commit/cf67c2679b91cab9b9cdd103d30e3855c38e9f90))
+* allow nullable mcp output messages ([cd4a20a](https://github.com/Life-USTC/server/commit/cd4a20a4b3c74f39e7ef6ff47ad35723a8f0d188))
+* avoid duplicate homework shortcut labels ([55351e0](https://github.com/Life-USTC/server/commit/55351e00eebfa5a70b6d27a0c38fbe8cfa155f13))
+* disambiguate dashboard utility nav labels ([1c314ae](https://github.com/Life-USTC/server/commit/1c314ae12ec3ff2a1123368f26fe5c29b8fddade))
+* import shadcn tailwind variants ([10d8863](https://github.com/Life-USTC/server/commit/10d88634f66fb29ed77b44598e649ff47f707ba5))
+* inline detail nav counters ([79ee757](https://github.com/Life-USTC/server/commit/79ee7577fc0358073067b6340f6575a2b751d0ce))
+* normalize secondary sidebar active state ([bf6e082](https://github.com/Life-USTC/server/commit/bf6e082dd860ce41cf317ed07be1c37eff69fd7c))
+* pin detail workspace panes ([4cb93f9](https://github.com/Life-USTC/server/commit/4cb93f9d8370fa63f0d7aa27b3799756a14fe57d))
+* preserve dashboard navigation semantics ([ec357d4](https://github.com/Life-USTC/server/commit/ec357d41739d13366980c05877331ea243c353bd))
+* preserve shell sidebar semantics ([077fa8d](https://github.com/Life-USTC/server/commit/077fa8d4f69609529a97e754fd25efd60b79156e))
+* redesign OAuth authorize consent screen ([77a4f69](https://github.com/Life-USTC/server/commit/77a4f69790cff52438716496620e194613080642))
+* refine detail header contrast ([13ec6b6](https://github.com/Life-USTC/server/commit/13ec6b6d95ada5971f33d1885287e3db9a7fe382))
+* refine detail sidebar layout ([0d58e5e](https://github.com/Life-USTC/server/commit/0d58e5e9779ada14a01300c0c73dec43f24e3149))
+* refine detail workspace density ([34a0900](https://github.com/Life-USTC/server/commit/34a0900ecdf4a993b6b5eca59b1b045067f9284c))
+* refine settings and dashboard visual hierarchy ([89d18a8](https://github.com/Life-USTC/server/commit/89d18a8c76e7e0cc64c357d92d78058c43375ac2))
+* remove breadcrumbs ([a54a9bd](https://github.com/Life-USTC/server/commit/a54a9bd0ff643869771ac7e4b65570fe8e35a8cd))
+* remove detail workspace border treatment ([c14bde3](https://github.com/Life-USTC/server/commit/c14bde3a83f48ed2093031f921486001b5703b1f))
+* remove detail workspace clipping ([34a635d](https://github.com/Life-USTC/server/commit/34a635d465523425a7a95544663dd6e9cb2d7d6f))
+* restore content scroll reset on navigation ([b251988](https://github.com/Life-USTC/server/commit/b25198886a0ebf8976f35a1729e0fb71d1fb7079))
+* restore detail nav counter pills ([a0bfdd0](https://github.com/Life-USTC/server/commit/a0bfdd0091829b4761adbbad20d2aabb13243e6d))
+* restore route title heading semantics ([a75d2c9](https://github.com/Life-USTC/server/commit/a75d2c97456f74f111769219d3ee766081c553cd))
+* satisfy item import ordering ([7051f3e](https://github.com/Life-USTC/server/commit/7051f3ec66a64345abd88e851894f5c640c1180c))
+* show exam count as nav pill ([8c8e479](https://github.com/Life-USTC/server/commit/8c8e479d10eb75f46265c14418c18c42a11f7ee5))
+* simplify detail sticky header ([308467f](https://github.com/Life-USTC/server/commit/308467f1a14e240586c6b7b04e813831555d2023))
+* soften sidebar active states ([06cee6d](https://github.com/Life-USTC/server/commit/06cee6dd06cddd35806646f0c69c985b93e315d0))
+* stabilize dashboard and detail layouts ([4af69e4](https://github.com/Life-USTC/server/commit/4af69e47c4e23d9be8f6af161ef98148a82a392b))
+* use native shadcn sidebar controls ([b40b1df](https://github.com/Life-USTC/server/commit/b40b1dfd7991371daa28659a20bcb62ba6c916a2))
+* use stock shadcn sidebar ([649eb08](https://github.com/Life-USTC/server/commit/649eb08c09f5ad083865587f477c1e2556c3cbba))
+
+
+### Features
+
+* add catalog filter sidebars ([b964441](https://github.com/Life-USTC/server/commit/b964441deed5b53f62596509eb72c6ddca9272b1))
+* add collapsible sidebars ([af9c130](https://github.com/Life-USTC/server/commit/af9c13084f824b9e660d7f7bbefc5fd5a39e6cb0))
+* add native sidebar rail affordance ([60561e6](https://github.com/Life-USTC/server/commit/60561e68e9b31880a50b614ebda1ffbb263d24c3))
+* align UI with shadcn design system ([10c0923](https://github.com/Life-USTC/server/commit/10c09237ec26c633fa75025531a293d0bc616437))
+* move sidebar toggles to bottom ([1081bae](https://github.com/Life-USTC/server/commit/1081baed3c0870dd20ae8708bc4e0bb079791d9d))
+* pin detail page summary and section nav ([0800140](https://github.com/Life-USTC/server/commit/0800140f47aae003b3338b6b377c5b0ae7ea0782))
+* preview collapsed sidebars on hover ([b5d472e](https://github.com/Life-USTC/server/commit/b5d472e2489fbe143386e6bd0440202995c37c22))
+* redesign app shell as dashboard ([3586350](https://github.com/Life-USTC/server/commit/35863504666d4ab96e7e6012a6b238ed99ce9a3b))
+* redesign detail pages with section nav ([4fd41a9](https://github.com/Life-USTC/server/commit/4fd41a953ccb1d89d9a1971cfa84cbc2238efbe6))
+* refine dashboard shell and mobile app page ([98c1c43](https://github.com/Life-USTC/server/commit/98c1c43d7ba0e3bc7837a38cb1619215b013360b))
+* route detail sections through secondary nav ([6feddb1](https://github.com/Life-USTC/server/commit/6feddb14c31def5702fd5ad45666900bbf5bee2f))
+
 ## [1.45.1](https://github.com/Life-USTC/server/compare/v1.45.0...v1.45.1) (2026-07-03)
 
 
