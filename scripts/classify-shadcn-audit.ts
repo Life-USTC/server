@@ -53,8 +53,6 @@ const LAYOUT_PREFIXES = [
   "ms-",
   "me-",
   "gap-",
-  "space-x-",
-  "space-y-",
   // Flex / grid
   "flex",
   "grid",
@@ -102,7 +100,6 @@ const LAYOUT_PREFIXES = [
   "break-",
   "truncate",
   "line-clamp-",
-  "tabular-nums",
   "text-balance",
   // Group/container helpers
   "group",
@@ -167,6 +164,7 @@ const STYLING_PREFIXES = [
   "underline",
   "line-through",
   "no-underline",
+  "tabular-nums",
   // Text color (anything text-* that is not an alignment)
   "text-primary",
   "text-secondary",
@@ -247,6 +245,56 @@ function extractStringLiterals(expression: string): string[] {
   return literals;
 }
 
+function extractTemplateSegments(expression: string): string[] {
+  const segments: string[] = [];
+  const templateRegex = /`([\s\S]*?)`/g;
+  for (const match of expression.matchAll(templateRegex)) {
+    const content = match[1];
+    const literalParts: string[] = [];
+    let current = "";
+    let depth = 0;
+    let inInterpolation = false;
+    for (let i = 0; i < content.length; i++) {
+      const char = content[i];
+      const next = content[i + 1];
+      if (!inInterpolation) {
+        if (char === "$" && next === "{") {
+          if (current.trim()) {
+            literalParts.push(current.trim());
+          }
+          current = "";
+          inInterpolation = true;
+          depth = 1;
+          i++; // skip {
+        } else {
+          current += char;
+        }
+      } else {
+        if (char === "{") {
+          depth++;
+        } else if (char === "}") {
+          depth--;
+          if (depth === 0) {
+            inInterpolation = false;
+            current = "";
+          }
+        }
+      }
+    }
+    if (current.trim() && !inInterpolation) {
+      literalParts.push(current.trim());
+    }
+    segments.push(...literalParts);
+  }
+  return segments;
+}
+
+function containsStylingHelperCall(expression: string): boolean {
+  // Functions like statusBadgeClass(...), todoPriorityClass(...), statusBorderClass(...)
+  // return raw styling classes and need human review.
+  return /\b[A-Za-z_$][\w$]*Class(?:es)?\s*\(/.test(expression);
+}
+
 function looksLikeClassString(value: string): boolean {
   // Skip empty literals.
   if (!value.trim()) return false;
@@ -273,17 +321,20 @@ function parseClassTokens(classValue: string | null): string[] {
 
   // Backtick template: `...`
   if (normalized.startsWith("`") && normalized.endsWith("`")) {
-    return normalized.slice(1, -1).split(" ").filter(Boolean);
+    const segments = extractTemplateSegments(normalized);
+    return segments.flatMap((segment) => segment.split(" ")).filter(Boolean);
   }
 
-  // Expression that contains string literals: cn("...", "...") or ternary
+  // Expression that contains string literals or template literals: cn("...", "...") or ternary
   if (
     normalized.startsWith("{") ||
     normalized.includes('"') ||
     normalized.includes("`")
   ) {
-    const literals =
-      extractStringLiterals(normalized).filter(looksLikeClassString);
+    const literals = [
+      ...extractStringLiterals(normalized).filter(looksLikeClassString),
+      ...extractTemplateSegments(normalized).filter(looksLikeClassString),
+    ];
     return literals.flatMap((literal) => literal.split(" ")).filter(Boolean);
   }
 
@@ -300,6 +351,20 @@ function classifyEntry(entry: AuditEntry): ClassifiedEntry {
         "remove inline style; move to layout wrapper or CSS custom property",
       reason:
         "inline styles on shadcn components are disallowed by the styling policy",
+    };
+  }
+
+  const classValue = entry.classValue ?? "";
+
+  // Helper functions that return raw styling classes need human review.
+  if (containsStylingHelperCall(classValue)) {
+    return {
+      ...entry,
+      decision: "review",
+      action:
+        "inspect helper function call; replace with variant or theme token",
+      reason:
+        "class expression uses a helper that may return raw styling classes",
     };
   }
 
@@ -334,8 +399,21 @@ function classifyEntry(entry: AuditEntry): ClassifiedEntry {
     }
   }
 
+  const spaceUtilityTokens = tokens.filter(
+    (token) => token.startsWith("space-x-") || token.startsWith("space-y-"),
+  );
+
+  if (spaceUtilityTokens.length > 0) {
+    return {
+      ...entry,
+      decision: "convert",
+      action: `replace space utilities with gap-*: ${[...new Set(spaceUtilityTokens)].join(", ")}`,
+      reason:
+        "space-x-*/space-y-* conflict with global cleanup rules; use gap-* instead",
+    };
+  }
+
   // Dynamic expressions that are not simple quoted strings need human review.
-  const classValue = entry.classValue ?? "";
   const isDynamicExpression =
     classValue.startsWith("{") &&
     !classValue.startsWith('{"') &&
