@@ -1076,10 +1076,20 @@ async function upsertTeacherTitles(
   tx: Prisma.TransactionClient,
   builds: TeacherTitleBuild[],
 ): Promise<Map<number, number>> {
-  const map = new Map<number, number>();
+  const canonicalByName = new Map<string, TeacherTitleBuild>();
+  const aliasToCanonical = new Map<number, number>();
   for (const build of builds) {
+    const canonical = canonicalByName.get(build.nameCn);
+    if (canonical == null) {
+      canonicalByName.set(build.nameCn, build);
+    }
+    aliasToCanonical.set(build.jwId, canonical?.jwId ?? build.jwId);
+  }
+
+  const canonicalMap = new Map<number, number>();
+  for (const build of canonicalByName.values()) {
     const result = await tx.teacherTitle.upsert({
-      where: { jwId: build.jwId },
+      where: { nameCn: build.nameCn },
       create: {
         jwId: build.jwId,
         nameCn: build.nameCn,
@@ -1088,13 +1098,21 @@ async function upsertTeacherTitles(
         enabled: build.enabled,
       },
       update: {
-        nameCn: build.nameCn,
+        jwId: build.jwId,
         nameEn: build.nameEn,
         code: build.code,
         enabled: build.enabled,
       },
     });
-    map.set(build.jwId, result.id);
+    canonicalMap.set(build.jwId, result.id);
+  }
+
+  const map = new Map<number, number>();
+  for (const [jwId, canonicalJwId] of aliasToCanonical) {
+    const dbId = canonicalMap.get(canonicalJwId);
+    if (dbId != null) {
+      map.set(jwId, dbId);
+    }
   }
   return map;
 }
