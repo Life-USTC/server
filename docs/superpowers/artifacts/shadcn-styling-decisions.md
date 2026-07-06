@@ -25,78 +25,74 @@
 
 ## Remediation Tally
 
-Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
+Total usages: **624** — keep: **609**, convert: **7**, review: **8**.
 
 | Component | Usages | Convert | Keep | Review |
 |---|---|---|---|---|
-| table.Cell | 61 | 13 | 47 | 1 |
-| button | 48 | 4 | 42 | 2 |
-| empty.Root | 41 | 20 | 19 | 2 |
-| badge | 40 | 21 | 11 | 8 |
-| field.Group | 39 | 4 | 35 | 0 |
+| table.Cell | 54 | 0 | 54 | 0 |
+| button | 47 | 0 | 46 | 1 |
+| field.Group | 39 | 0 | 39 | 0 |
 | table.Head | 38 | 0 | 38 | 0 |
-| item.Root | 36 | 1 | 33 | 2 |
+| empty.Root | 37 | 0 | 37 | 0 |
+| item.Root | 36 | 2 | 33 | 1 |
 | item.Group | 27 | 0 | 27 | 0 |
-| card.Content | 26 | 3 | 23 | 0 |
-| item.Description | 26 | 11 | 15 | 0 |
-| field.Label | 24 | 13 | 11 | 0 |
+| card.Content | 26 | 0 | 26 | 0 |
 | item.Content | 22 | 0 | 22 | 0 |
 | dialog.Content | 21 | 0 | 21 | 0 |
-| scroll-area | 19 | 2 | 17 | 0 |
+| item.Description | 19 | 0 | 19 | 0 |
+| scroll-area | 19 | 0 | 19 | 0 |
+| badge | 18 | 0 | 18 | 0 |
 | native-select.Root | 18 | 0 | 18 | 0 |
-| card.Root | 16 | 5 | 11 | 0 |
-| item.Actions | 15 | 9 | 6 | 0 |
-| item.Title | 14 | 11 | 3 | 0 |
+| field.Label | 15 | 0 | 15 | 0 |
+| card.Root | 14 | 0 | 13 | 1 |
 | button-group.Root | 13 | 0 | 13 | 0 |
 | field.Field | 13 | 0 | 13 | 0 |
-| card.Header | 12 | 2 | 10 | 0 |
-| item.Footer | 11 | 8 | 3 | 0 |
-| card.Title | 9 | 7 | 2 | 0 |
-| field.Legend | 8 | 1 | 7 | 0 |
+| card.Header | 12 | 1 | 11 | 0 |
+| field.Legend | 8 | 0 | 8 | 0 |
+| item.Actions | 8 | 0 | 8 | 0 |
+| item.Footer | 8 | 0 | 8 | 0 |
 | skeleton | 8 | 0 | 8 | 0 |
 | alert-dialog.Content | 7 | 0 | 7 | 0 |
 | empty.Header | 7 | 0 | 7 | 0 |
-| avatar.Root | 6 | 3 | 3 | 0 |
+| avatar.Root | 6 | 0 | 6 | 0 |
 | card.Footer | 6 | 0 | 6 | 0 |
-| card.Description | 5 | 2 | 3 | 0 |
+| card.Description | 5 | 0 | 5 | 0 |
+| card.Title | 4 | 0 | 4 | 0 |
 | dropdown-menu.Content | 4 | 0 | 4 | 0 |
-| item.Media | 4 | 1 | 2 | 1 |
+| item.Media | 4 | 0 | 3 | 1 |
+| item.Title | 4 | 0 | 4 | 0 |
 | separator | 4 | 0 | 4 | 0 |
 | toggle-group.Root | 4 | 0 | 4 | 0 |
 | alert.Description | 3 | 0 | 3 | 0 |
 | button-group.Text | 3 | 0 | 3 | 0 |
 | field.Title | 3 | 0 | 3 | 0 |
-| input-group.Root | 3 | 1 | 2 | 0 |
+| input-group.Root | 3 | 0 | 3 | 0 |
 | table.Row | 3 | 0 | 1 | 2 |
 | toggle-group.Item | 3 | 0 | 3 | 0 |
 | field.Description | 2 | 0 | 1 | 1 |
 | field.Set | 2 | 2 | 0 | 0 |
-| input-group.Input | 2 | 2 | 0 | 0 |
-| input-otp.Group | 2 | 2 | 0 | 0 |
 | radio-group.Root | 2 | 0 | 2 | 0 |
 | sidebar.Root | 2 | 2 | 0 | 0 |
-| tabs.Content | 2 | 1 | 1 | 0 |
-| textarea | 2 | 1 | 1 | 0 |
-| accordion.Content | 1 | 1 | 0 | 0 |
+| tabs.Content | 2 | 0 | 2 | 0 |
+| textarea | 2 | 0 | 2 | 0 |
 | alert-dialog.Footer | 1 | 0 | 1 | 0 |
 | alert.Root | 1 | 0 | 1 | 0 |
-| avatar.Fallback | 1 | 1 | 0 | 0 |
 | card.Action | 1 | 0 | 1 | 0 |
 | collapsible.Root | 1 | 0 | 1 | 0 |
-| dialog.Description | 1 | 1 | 0 | 0 |
+| dialog.Description | 1 | 0 | 1 | 0 |
 | dropdown-menu.CheckboxItem | 1 | 0 | 0 | 1 |
 | empty.Content | 1 | 0 | 1 | 0 |
-| input | 1 | 1 | 0 | 0 |
+| input | 1 | 0 | 1 | 0 |
 | input-group.Button | 1 | 0 | 1 | 0 |
+| input-group.Input | 1 | 0 | 1 | 0 |
 | input-group.Textarea | 1 | 0 | 1 | 0 |
 | input-otp.Root | 1 | 0 | 1 | 0 |
 | pagination.Root | 1 | 0 | 1 | 0 |
 | popover.Content | 1 | 0 | 1 | 0 |
 | sidebar.Header | 1 | 0 | 1 | 0 |
-| sidebar.Inset | 1 | 1 | 0 | 0 |
-| sidebar.MenuButton | 1 | 1 | 0 | 0 |
-| sidebar.Provider | 1 | 1 | 0 | 0 |
-| table.Root | 1 | 1 | 0 | 0 |
+| sidebar.Inset | 1 | 0 | 1 | 0 |
+| sidebar.Provider | 1 | 0 | 1 | 0 |
+| table.Root | 1 | 0 | 1 | 0 |
 | tabs.Root | 1 | 0 | 1 | 0 |
 
 ## Annotated Decisions
@@ -219,11 +215,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/admin/components/AdminBusVersionsMobileList.svelte",
     "line": 28,
     "tag": "<Item.Description",
-    "classValue": "\"break-all font-mono\"",
+    "classValue": "\"break-all\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (break-all); convert styling tokens: font-mono",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -233,11 +229,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/admin/components/AdminBusVersionsMobileList.svelte",
     "line": 30,
     "tag": "<Item.Description",
-    "classValue": "\"line-clamp-none text-xs\"",
+    "classValue": "\"line-clamp-none\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (line-clamp-none); convert styling tokens: text-xs",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -266,20 +262,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/admin/components/AdminBusVersionsTable.svelte:43`  
-  ```json
-  {
-    "file": "src/features/admin/components/AdminBusVersionsTable.svelte",
-    "line": 43,
-    "tag": "<Table.Cell",
-    "classValue": "\"font-mono text-xs\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-mono, text-xs",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -322,20 +304,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/admin/components/AdminDashboardPage.svelte:67`  
-  ```json
-  {
-    "file": "src/features/admin/components/AdminDashboardPage.svelte",
-    "line": 67,
-    "tag": "<Item.Footer",
-    "classValue": "\"text-muted-foreground text-xs\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-muted-foreground, text-xs",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -535,25 +503,25 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/admin/components/AdminModerationCommentTableRow.svelte:25`  
+- `src/features/admin/components/AdminModerationCommentTableRow.svelte:23`  
   ```json
   {
     "file": "src/features/admin/components/AdminModerationCommentTableRow.svelte",
-    "line": 25,
+    "line": 23,
     "tag": "<Table.Row",
-    "classValue": "{cn(\"border-l-4\", statusBorderClass(comment.status))}",
+    "classValue": "{cn(\n    \"border-l-4\",\n    comment.status === \"active\"\n      ? \"border-l-success\"\n      : comment.status === \"deleted\"\n        ? \"border-l-destructive\"\n        : \"border-l-warning\",\n  )}",
     "styleValue": null,
     "decision": "review",
-    "action": "inspect helper function call; replace with variant or theme token",
-    "reason": "class expression uses a helper that may return raw styling classes"
+    "action": "inspect dynamic expression; convert styling tokens to variants or theme tokens",
+    "reason": "dynamic class expression may contain styling overrides: border-l-4, border-l-success, border-l-destructive, border-l-warning"
   }
   ```
 
-- `src/features/admin/components/AdminModerationCommentTableRow.svelte:26`  
+- `src/features/admin/components/AdminModerationCommentTableRow.svelte:33`  
   ```json
   {
     "file": "src/features/admin/components/AdminModerationCommentTableRow.svelte",
-    "line": 26,
+    "line": 33,
     "tag": "<Table.Cell",
     "classValue": "\"max-w-md\"",
     "styleValue": null,
@@ -563,67 +531,25 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/admin/components/AdminModerationCommentTableRow.svelte:34`  
+- `src/features/admin/components/AdminModerationCommentTableRow.svelte:44`  
   ```json
   {
     "file": "src/features/admin/components/AdminModerationCommentTableRow.svelte",
-    "line": 34,
+    "line": 44,
     "tag": "<Table.Cell",
-    "classValue": "\"font-medium\"",
+    "classValue": "\"max-w-sm\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-medium",
-    "reason": "contains only styling overrides (color, typography, surface)"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
-- `src/features/admin/components/AdminModerationCommentTableRow.svelte:37`  
+- `src/features/admin/components/AdminModerationCommentTableRow.svelte:60`  
   ```json
   {
     "file": "src/features/admin/components/AdminModerationCommentTableRow.svelte",
-    "line": 37,
-    "tag": "<Table.Cell",
-    "classValue": "\"max-w-sm text-sm\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (max-w-sm); convert styling tokens: text-sm",
-    "reason": "mixes layout and styling tokens"
-  }
-  ```
-
-- `src/features/admin/components/AdminModerationCommentTableRow.svelte:45`  
-  ```json
-  {
-    "file": "src/features/admin/components/AdminModerationCommentTableRow.svelte",
-    "line": 45,
-    "tag": "<Table.Cell",
-    "classValue": "\"text-muted-foreground text-xs\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-muted-foreground, text-xs",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
-- `src/features/admin/components/AdminModerationCommentTableRow.svelte:49`  
-  ```json
-  {
-    "file": "src/features/admin/components/AdminModerationCommentTableRow.svelte",
-    "line": 49,
-    "tag": "<Badge",
-    "classValue": "{statusBadgeClass(comment.status)}",
-    "styleValue": null,
-    "decision": "review",
-    "action": "inspect helper function call; replace with variant or theme token",
-    "reason": "class expression uses a helper that may return raw styling classes"
-  }
-  ```
-
-- `src/features/admin/components/AdminModerationCommentTableRow.svelte:53`  
-  ```json
-  {
-    "file": "src/features/admin/components/AdminModerationCommentTableRow.svelte",
-    "line": 53,
+    "line": 60,
     "tag": "<Table.Cell",
     "classValue": "\"text-right\"",
     "styleValue": null,
@@ -633,13 +559,27 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/admin/components/AdminModerationComments.svelte:49`  
+- `src/features/admin/components/AdminModerationComments.svelte:43`  
   ```json
   {
     "file": "src/features/admin/components/AdminModerationComments.svelte",
-    "line": 49,
+    "line": 43,
     "tag": "<Empty.Root",
     "classValue": "\"min-h-24\"",
+    "styleValue": null,
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
+  }
+  ```
+
+- `src/features/admin/components/AdminModerationCommentsMobile.svelte:18`  
+  ```json
+  {
+    "file": "src/features/admin/components/AdminModerationCommentsMobile.svelte",
+    "line": 18,
+    "tag": "<Item.Group",
+    "classValue": "\"md:hidden\"",
     "styleValue": null,
     "decision": "keep",
     "action": "no styling overrides present",
@@ -652,34 +592,20 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   {
     "file": "src/features/admin/components/AdminModerationCommentsMobile.svelte",
     "line": 20,
-    "tag": "<Item.Group",
-    "classValue": "\"md:hidden\"",
-    "styleValue": null,
-    "decision": "keep",
-    "action": "no styling overrides present",
-    "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/admin/components/AdminModerationCommentsMobile.svelte:22`  
-  ```json
-  {
-    "file": "src/features/admin/components/AdminModerationCommentsMobile.svelte",
-    "line": 22,
     "tag": "<Item.Root",
-    "classValue": "{`items-start border-l-4 ${statusBorderClass(comment.status)}`}",
+    "classValue": "{`items-start border-l-4 ${comment.status === \"active\" ? \"border-l-success\" : comment.status === \"deleted\" ? \"border-l-destructive\" : \"border-l-warning\"}`}",
     "styleValue": null,
-    "decision": "review",
-    "action": "inspect helper function call; replace with variant or theme token",
-    "reason": "class expression uses a helper that may return raw styling classes"
+    "decision": "convert",
+    "action": "keep layout tokens (items-start); convert styling tokens: border-l-success, border-l-destructive, border-l-warning, border-l-4",
+    "reason": "mixes layout and styling tokens"
   }
   ```
 
-- `src/features/admin/components/AdminModerationCommentsMobile.svelte:25`  
+- `src/features/admin/components/AdminModerationCommentsMobile.svelte:26`  
   ```json
   {
     "file": "src/features/admin/components/AdminModerationCommentsMobile.svelte",
-    "line": 25,
+    "line": 26,
     "tag": "<Item.Content",
     "classValue": "\"min-w-0\"",
     "styleValue": null,
@@ -689,11 +615,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/admin/components/AdminModerationCommentsMobile.svelte:30`  
+- `src/features/admin/components/AdminModerationCommentsMobile.svelte:31`  
   ```json
   {
     "file": "src/features/admin/components/AdminModerationCommentsMobile.svelte",
-    "line": 30,
+    "line": 31,
     "tag": "<Item.Description",
     "classValue": "\"line-clamp-3 whitespace-pre-wrap\"",
     "styleValue": null,
@@ -703,25 +629,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/admin/components/AdminModerationCommentsMobile.svelte:35`  
-  ```json
-  {
-    "file": "src/features/admin/components/AdminModerationCommentsMobile.svelte",
-    "line": 35,
-    "tag": "<Badge",
-    "classValue": "{statusBadgeClass(comment.status)}",
-    "styleValue": null,
-    "decision": "review",
-    "action": "inspect helper function call; replace with variant or theme token",
-    "reason": "class expression uses a helper that may return raw styling classes"
-  }
-  ```
-
-- `src/features/admin/components/AdminModerationCommentsTable.svelte:32`  
+- `src/features/admin/components/AdminModerationCommentsTable.svelte:30`  
   ```json
   {
     "file": "src/features/admin/components/AdminModerationCommentsTable.svelte",
-    "line": 32,
+    "line": 30,
     "tag": "<Table.Head",
     "classValue": "\"w-24 text-right\"",
     "styleValue": null,
@@ -812,20 +724,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/admin/components/AdminModerationDescriptionCards.svelte:36`  
-  ```json
-  {
-    "file": "src/features/admin/components/AdminModerationDescriptionCards.svelte",
-    "line": 36,
-    "tag": "<Item.Description",
-    "classValue": "\"text-xs\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-xs",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -933,25 +831,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/admin/components/AdminModerationDescriptionTable.svelte",
     "line": 37,
     "tag": "<Table.Cell",
-    "classValue": "\"max-w-md font-medium\"",
+    "classValue": "\"max-w-md\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (max-w-md); convert styling tokens: font-medium",
-    "reason": "mixes layout and styling tokens"
-  }
-  ```
-
-- `src/features/admin/components/AdminModerationDescriptionTable.svelte:42`  
-  ```json
-  {
-    "file": "src/features/admin/components/AdminModerationDescriptionTable.svelte",
-    "line": 42,
-    "tag": "<Table.Cell",
-    "classValue": "\"font-medium\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-medium",
-    "reason": "contains only styling overrides (color, typography, surface)"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -961,25 +845,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/admin/components/AdminModerationDescriptionTable.svelte",
     "line": 45,
     "tag": "<Table.Cell",
-    "classValue": "\"max-w-sm text-sm\"",
+    "classValue": "\"max-w-sm\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (max-w-sm); convert styling tokens: text-sm",
-    "reason": "mixes layout and styling tokens"
-  }
-  ```
-
-- `src/features/admin/components/AdminModerationDescriptionTable.svelte:53`  
-  ```json
-  {
-    "file": "src/features/admin/components/AdminModerationDescriptionTable.svelte",
-    "line": 53,
-    "tag": "<Table.Cell",
-    "classValue": "\"text-muted-foreground text-xs\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-muted-foreground, text-xs",
-    "reason": "contains only styling overrides (color, typography, surface)"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -1165,31 +1035,17 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/admin/components/AdminOAuthClientCard.svelte:20`  
-  ```json
-  {
-    "file": "src/features/admin/components/AdminOAuthClientCard.svelte",
-    "line": 20,
-    "tag": "<Card.Root",
-    "classValue": "\"border-l-4 border-l-primary\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: border-l-4, border-l-primary",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/admin/components/AdminOAuthClientCard.svelte:23`  
   ```json
   {
     "file": "src/features/admin/components/AdminOAuthClientCard.svelte",
     "line": 23,
     "tag": "<Card.Description",
-    "classValue": "\"break-all font-mono text-xs\"",
+    "classValue": "\"break-all\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (break-all); convert styling tokens: font-mono, text-xs",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -1213,11 +1069,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/admin/components/AdminOAuthClientCard.svelte",
     "line": 35,
     "tag": "<Card.Content",
-    "classValue": "\"grid gap-3 text-sm lg:grid-cols-[220px_1fr_1fr]\"",
+    "classValue": "\"grid gap-3 lg:grid-cols-[220px_1fr_1fr]\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (grid, gap-3, grid-cols-[220px_1fr_1fr]); convert styling tokens: text-sm",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -1288,20 +1144,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/admin/components/AdminOAuthClientCard.svelte:73`  
-  ```json
-  {
-    "file": "src/features/admin/components/AdminOAuthClientCard.svelte",
-    "line": 73,
-    "tag": "<Badge",
-    "classValue": "\"font-mono\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-mono",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -1395,11 +1237,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/admin/components/AdminOAuthCreateFields.svelte",
     "line": 32,
     "tag": "<Textarea",
-    "classValue": "\"min-h-32 font-mono\"",
+    "classValue": "\"min-h-32\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (min-h-32); convert styling tokens: font-mono",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -1423,11 +1265,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/admin/components/AdminOAuthCredentialField.svelte",
     "line": 17,
     "tag": "<Item.Description",
-    "classValue": "\"break-all font-mono\"",
+    "classValue": "\"break-all\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (break-all); convert styling tokens: font-mono",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -1442,20 +1284,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/admin/components/AdminOAuthCredentialMetadata.svelte:33`  
-  ```json
-  {
-    "file": "src/features/admin/components/AdminOAuthCredentialMetadata.svelte",
-    "line": 33,
-    "tag": "<Badge",
-    "classValue": "\"font-mono\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-mono",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -1549,11 +1377,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/admin/components/AdminOAuthScopePicker.svelte",
     "line": 39,
     "tag": "<Field.Label",
-    "classValue": "\"cursor-pointer font-mono\"",
+    "classValue": "\"cursor-pointer\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (cursor-pointer); convert styling tokens: font-mono",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -1591,11 +1419,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/admin/components/AdminUserDialogHeader.svelte",
     "line": 16,
     "tag": "<Dialog.Description",
-    "classValue": "\"break-all font-mono text-xs\"",
+    "classValue": "\"break-all\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (break-all); convert styling tokens: font-mono, text-xs",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -1605,10 +1433,10 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/admin/components/AdminUserProfileSection.svelte",
     "line": 14,
     "tag": "<Field.Set",
-    "classValue": "\"rounded-lg border border-border bg-muted/30 p-3\"",
+    "classValue": "\"bg-subtle p-3\"",
     "styleValue": null,
     "decision": "convert",
-    "action": "keep layout tokens (p-3); convert styling tokens: rounded-lg, border, border-border, bg-muted/30",
+    "action": "keep layout tokens (p-3); convert styling tokens: bg-subtle",
     "reason": "mixes layout and styling tokens"
   }
   ```
@@ -1641,30 +1469,16 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/admin/components/AdminUserProfileSection.svelte:41`  
-  ```json
-  {
-    "file": "src/features/admin/components/AdminUserProfileSection.svelte",
-    "line": 41,
-    "tag": "<Field.Label",
-    "classValue": "\"font-normal\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-normal",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/admin/components/AdminUserSuspensionSection.svelte:33`  
   ```json
   {
     "file": "src/features/admin/components/AdminUserSuspensionSection.svelte",
     "line": 33,
     "tag": "<Field.Set",
-    "classValue": "\"rounded-lg border border-border bg-muted/30 p-3\"",
+    "classValue": "\"bg-subtle p-3\"",
     "styleValue": null,
     "decision": "convert",
-    "action": "keep layout tokens (p-3); convert styling tokens: rounded-lg, border, border-border, bg-muted/30",
+    "action": "keep layout tokens (p-3); convert styling tokens: bg-subtle",
     "reason": "mixes layout and styling tokens"
   }
   ```
@@ -1675,11 +1489,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/admin/components/AdminUserSuspensionSection.svelte",
     "line": 34,
     "tag": "<Field.Legend",
-    "classValue": "\"flex flex-wrap items-center gap-2 text-destructive\"",
+    "classValue": "\"flex flex-wrap items-center gap-2\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (flex, flex-wrap, items-center, gap-2); convert styling tokens: text-destructive",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -1725,20 +1539,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/admin/components/AdminUsersDesktopTable.svelte:40`  
-  ```json
-  {
-    "file": "src/features/admin/components/AdminUsersDesktopTable.svelte",
-    "line": 40,
-    "tag": "<Table.Cell",
-    "classValue": "\"text-sm\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-sm",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/admin/components/AdminUsersDesktopTable.svelte:49`  
   ```json
   {
@@ -1750,20 +1550,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/admin/components/AdminUsersDesktopTable.svelte:56`  
-  ```json
-  {
-    "file": "src/features/admin/components/AdminUsersDesktopTable.svelte",
-    "line": 56,
-    "tag": "<Table.Cell",
-    "classValue": "\"text-muted-foreground text-sm\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-muted-foreground, text-sm",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -1829,11 +1615,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/admin/components/AdminUsersMobileList.svelte",
     "line": 32,
     "tag": "<Item.Description",
-    "classValue": "\"line-clamp-none break-words text-xs\"",
+    "classValue": "\"line-clamp-none break-words\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (line-clamp-none, break-words); convert styling tokens: text-xs",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -1977,31 +1763,17 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/bus/components/BusMapActiveTripList.svelte:66`  
-  ```json
-  {
-    "file": "src/features/bus/components/BusMapActiveTripList.svelte",
-    "line": 66,
-    "tag": "<Item.Description",
-    "classValue": "\"font-mono tabular-nums\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-mono, tabular-nums",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/bus/components/BusMapActiveTripList.svelte:80`  
   ```json
   {
     "file": "src/features/bus/components/BusMapActiveTripList.svelte",
     "line": 80,
     "tag": "<Empty.Root",
-    "classValue": "\"min-h-20 border border-border bg-background p-4\"",
+    "classValue": "\"min-h-20 p-4\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (min-h-20, p-4); convert styling tokens: border, border-border, bg-background",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -2011,11 +1783,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/bus/components/BusMapContent.svelte",
     "line": 47,
     "tag": "<Empty.Root",
-    "classValue": "\"border border-border bg-background py-16\"",
+    "classValue": "\"py-16\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (py-16); convert styling tokens: border, border-border, bg-background",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -2039,11 +1811,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/bus/components/BusMapContent.svelte",
     "line": 60,
     "tag": "<Card.Content",
-    "classValue": "\"bg-[#f6f8fa] p-0\"",
+    "classValue": "\"p-0\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (p-0); convert styling tokens: bg-[#f6f8fa]",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -2257,20 +2029,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/bus/components/BusMapStatusPanel.svelte:31`  
-  ```json
-  {
-    "file": "src/features/bus/components/BusMapStatusPanel.svelte",
-    "line": 31,
-    "tag": "<Item.Title",
-    "classValue": "\"text-xl\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-xl",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/bus/components/BusMapStatusPanel.svelte:34`  
   ```json
   {
@@ -2285,31 +2043,17 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/bus/components/BusMapStatusPanel.svelte:37`  
-  ```json
-  {
-    "file": "src/features/bus/components/BusMapStatusPanel.svelte",
-    "line": 37,
-    "tag": "<Item.Title",
-    "classValue": "\"text-xl\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-xl",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
-- `src/features/catalog/components/CatalogFilterSidebar.svelte:12`  
+- `src/features/catalog/components/CatalogFilterSidebar.svelte:13`  
   ```json
   {
     "file": "src/features/catalog/components/CatalogFilterSidebar.svelte",
-    "line": 12,
+    "line": 13,
     "tag": "<Sidebar.Root",
-    "classValue": "\"w-full border-sidebar-border border-b lg:sticky lg:top-0 lg:h-[calc(100svh-3rem)] lg:w-(--sidebar-width) lg:border-e lg:border-b-0\"",
-    "styleValue": "\"--sidebar-width: 17rem;\"",
+    "classValue": "\"w-full border-b border-sidebar-border lg:sticky lg:top-0 lg:h-[calc(100svh-3rem)] lg:w-(--sidebar-width) lg:border-e lg:border-b-0\"",
+    "styleValue": null,
     "decision": "convert",
-    "action": "remove inline style; move to layout wrapper or CSS custom property",
-    "reason": "inline styles on shadcn components are disallowed by the styling policy"
+    "action": "keep layout tokens (w-full, sticky, top-0, h-[calc(100svh-3rem)], w-(--sidebar-width)); convert styling tokens: border-b, border-sidebar-border, border-e, border-b-0",
+    "reason": "mixes layout and styling tokens"
   }
   ```
 
@@ -2347,19 +2091,19 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/catalog/components/CatalogResultsEmpty.svelte",
     "line": 9,
     "tag": "<Empty.Root",
-    "classValue": "{centered\n    ? \"border border-border bg-background\"\n    : \"items-start border border-border bg-background text-left\"}",
+    "classValue": "{centered ? \"\" : \"items-start text-left\"}",
     "styleValue": null,
-    "decision": "review",
-    "action": "inspect dynamic expression; convert styling tokens to variants or theme tokens",
-    "reason": "dynamic class expression may contain styling overrides: border, border-border, bg-background"
+    "decision": "keep",
+    "action": "no class tokens to remediate",
+    "reason": "empty or expression-only class value with no static styling tokens"
   }
   ```
 
-- `src/features/catalog/components/CatalogResultsEmpty.svelte:14`  
+- `src/features/catalog/components/CatalogResultsEmpty.svelte:10`  
   ```json
   {
     "file": "src/features/catalog/components/CatalogResultsEmpty.svelte",
-    "line": 14,
+    "line": 10,
     "tag": "<Empty.Header",
     "classValue": "{centered ? \"\" : \"items-start text-left\"}",
     "styleValue": null,
@@ -2397,45 +2141,17 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/catalog/components/CourseDetailSectionsMobile.svelte:30`  
-  ```json
-  {
-    "file": "src/features/catalog/components/CourseDetailSectionsMobile.svelte",
-    "line": 30,
-    "tag": "<Badge",
-    "classValue": "\"font-mono\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-mono",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/catalog/components/CourseDetailSectionsMobile.svelte:32`  
   ```json
   {
     "file": "src/features/catalog/components/CourseDetailSectionsMobile.svelte",
     "line": 32,
     "tag": "<Item.Footer",
-    "classValue": "\"flex-wrap justify-start text-muted-foreground text-xs\"",
+    "classValue": "\"flex-wrap justify-start\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (flex-wrap, justify-start); convert styling tokens: text-muted-foreground, text-xs",
-    "reason": "mixes layout and styling tokens"
-  }
-  ```
-
-- `src/features/catalog/components/CourseDetailSectionsMobile.svelte:40`  
-  ```json
-  {
-    "file": "src/features/catalog/components/CourseDetailSectionsMobile.svelte",
-    "line": 40,
-    "tag": "<Empty.Root",
-    "classValue": "\"border\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: border",
-    "reason": "contains only styling overrides (color, typography, surface)"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -2520,20 +2236,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/catalog/components/CourseDetailSectionsTable.svelte:41`  
-  ```json
-  {
-    "file": "src/features/catalog/components/CourseDetailSectionsTable.svelte",
-    "line": 41,
-    "tag": "<Badge",
-    "classValue": "\"font-mono\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-mono",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -2705,31 +2407,17 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/catalog/components/CoursesResults.svelte:60`  
-  ```json
-  {
-    "file": "src/features/catalog/components/CoursesResults.svelte",
-    "line": 60,
-    "tag": "<Badge",
-    "classValue": "\"font-mono\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-mono",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/catalog/components/CoursesResults.svelte:62`  
   ```json
   {
     "file": "src/features/catalog/components/CoursesResults.svelte",
     "line": 62,
     "tag": "<Item.Footer",
-    "classValue": "\"flex-wrap justify-start text-muted-foreground text-xs\"",
+    "classValue": "\"flex-wrap justify-start\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (flex-wrap, justify-start); convert styling tokens: text-muted-foreground, text-xs",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -2828,20 +2516,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/catalog/components/CoursesResults.svelte:98`  
-  ```json
-  {
-    "file": "src/features/catalog/components/CoursesResults.svelte",
-    "line": 98,
-    "tag": "<Badge",
-    "classValue": "\"font-mono\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-mono",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -2957,34 +2631,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/catalog/components/SectionSearchHelpDialog.svelte:41`  
-  ```json
-  {
-    "file": "src/features/catalog/components/SectionSearchHelpDialog.svelte",
-    "line": 41,
-    "tag": "<Item.Title",
-    "classValue": "\"font-mono\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-mono",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
-- `src/features/catalog/components/SectionSearchHelpDialog.svelte:42`  
-  ```json
-  {
-    "file": "src/features/catalog/components/SectionSearchHelpDialog.svelte",
-    "line": 42,
-    "tag": "<Item.Description",
-    "classValue": "\"font-mono text-xs\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-mono, text-xs",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/catalog/components/SectionSearchHelpDialog.svelte:46`  
   ```json
   {
@@ -3097,31 +2743,17 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/catalog/components/SectionsResults.svelte:72`  
-  ```json
-  {
-    "file": "src/features/catalog/components/SectionsResults.svelte",
-    "line": 72,
-    "tag": "<Badge",
-    "classValue": "\"font-mono\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-mono",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/catalog/components/SectionsResults.svelte:74`  
   ```json
   {
     "file": "src/features/catalog/components/SectionsResults.svelte",
     "line": 74,
     "tag": "<Item.Footer",
-    "classValue": "\"flex-wrap justify-start text-muted-foreground text-xs\"",
+    "classValue": "\"flex-wrap justify-start\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (flex-wrap, justify-start); convert styling tokens: text-muted-foreground, text-xs",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -3265,20 +2897,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/catalog/components/SectionsResults.svelte:117`  
-  ```json
-  {
-    "file": "src/features/catalog/components/SectionsResults.svelte",
-    "line": 117,
-    "tag": "<Badge",
-    "classValue": "\"font-mono\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-mono",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/catalog/components/SectionsResults.svelte:120`  
   ```json
   {
@@ -3377,45 +2995,17 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/catalog/components/TeacherDetailSectionsMobile.svelte:30`  
-  ```json
-  {
-    "file": "src/features/catalog/components/TeacherDetailSectionsMobile.svelte",
-    "line": 30,
-    "tag": "<Badge",
-    "classValue": "\"font-mono\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-mono",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/catalog/components/TeacherDetailSectionsMobile.svelte:32`  
   ```json
   {
     "file": "src/features/catalog/components/TeacherDetailSectionsMobile.svelte",
     "line": 32,
     "tag": "<Item.Footer",
-    "classValue": "\"flex-wrap justify-start text-muted-foreground text-xs\"",
+    "classValue": "\"flex-wrap justify-start\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (flex-wrap, justify-start); convert styling tokens: text-muted-foreground, text-xs",
-    "reason": "mixes layout and styling tokens"
-  }
-  ```
-
-- `src/features/catalog/components/TeacherDetailSectionsMobile.svelte:40`  
-  ```json
-  {
-    "file": "src/features/catalog/components/TeacherDetailSectionsMobile.svelte",
-    "line": 40,
-    "tag": "<Empty.Root",
-    "classValue": "\"border\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: border",
-    "reason": "contains only styling overrides (color, typography, surface)"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -3500,20 +3090,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/catalog/components/TeacherDetailSectionsTable.svelte:46`  
-  ```json
-  {
-    "file": "src/features/catalog/components/TeacherDetailSectionsTable.svelte",
-    "line": 46,
-    "tag": "<Badge",
-    "classValue": "\"font-mono\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-mono",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -3635,25 +3211,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/catalog/components/TeachersResults.svelte",
     "line": 79,
     "tag": "<Item.Footer",
-    "classValue": "\"flex-wrap justify-start text-muted-foreground text-xs\"",
+    "classValue": "\"flex-wrap justify-start\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (flex-wrap, justify-start); convert styling tokens: text-muted-foreground, text-xs",
-    "reason": "mixes layout and styling tokens"
-  }
-  ```
-
-- `src/features/catalog/components/TeachersResults.svelte:81`  
-  ```json
-  {
-    "file": "src/features/catalog/components/TeachersResults.svelte",
-    "line": 81,
-    "tag": "<Badge",
-    "classValue": "\"font-mono\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-mono",
-    "reason": "contains only styling overrides (color, typography, surface)"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -3766,20 +3328,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/catalog/components/TeachersResults.svelte:120`  
-  ```json
-  {
-    "file": "src/features/catalog/components/TeachersResults.svelte",
-    "line": 120,
-    "tag": "<Badge",
-    "classValue": "\"font-mono\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-mono",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -3943,11 +3491,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/comments/components/CommentComposerHeader.svelte",
     "line": 26,
     "tag": "<Field.Group",
-    "classValue": "\"flex-row flex-wrap items-center gap-3 text-sm\"",
+    "classValue": "\"flex-row flex-wrap items-center gap-3\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (flex-row, flex-wrap, items-center, gap-3); convert styling tokens: text-sm",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -3962,20 +3510,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/comments/components/CommentComposerHeader.svelte:37`  
-  ```json
-  {
-    "file": "src/features/comments/components/CommentComposerHeader.svelte",
-    "line": 37,
-    "tag": "<Field.Label",
-    "classValue": "\"font-normal\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-normal",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -4097,25 +3631,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/comments/components/CommentReactionControls.svelte",
     "line": 62,
     "tag": "<DropdownMenu.CheckboxItem",
-    "classValue": "{cn(\n                reactionEntry(comment, option.type)?.viewerHasReacted &&\n                  \"bg-accent font-semibold text-accent-foreground\",\n                pendingReactionKey && \"opacity-70\",\n              )}",
+    "classValue": "{cn(\n                pendingReactionKey && \"opacity-70\",\n              )}",
     "styleValue": null,
     "decision": "review",
     "action": "inspect dynamic expression; convert styling tokens to variants or theme tokens",
-    "reason": "dynamic class expression may contain styling overrides: bg-accent, font-semibold, text-accent-foreground, opacity-70"
-  }
-  ```
-
-- `src/features/comments/components/CommentReactionControls.svelte:86`  
-  ```json
-  {
-    "file": "src/features/comments/components/CommentReactionControls.svelte",
-    "line": 86,
-    "tag": "<Button",
-    "classValue": "{reaction.viewerHasReacted ? \"border-primary/40 bg-primary/10 text-primary\" : \"\"}",
-    "styleValue": null,
-    "decision": "review",
-    "action": "inspect dynamic expression; convert styling tokens to variants or theme tokens",
-    "reason": "dynamic class expression may contain styling overrides: border-primary/40, bg-primary/10, text-primary"
+    "reason": "dynamic class expression may contain styling overrides: opacity-70"
   }
   ```
 
@@ -4125,11 +3645,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/comments/components/CommentReplyEditor.svelte",
     "line": 51,
     "tag": "<Field.Group",
-    "classValue": "\"gap-3 rounded-md border border-dashed p-4\"",
+    "classValue": "\"gap-3 p-4\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (gap-3, p-4); convert styling tokens: rounded-md, border, border-dashed",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -4153,11 +3673,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/comments/components/CommentReplyEditor.svelte",
     "line": 77,
     "tag": "<Field.Group",
-    "classValue": "\"flex-row flex-wrap items-center gap-3 text-sm\"",
+    "classValue": "\"flex-row flex-wrap items-center gap-3\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (flex-row, flex-wrap, items-center, gap-3); convert styling tokens: text-sm",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -4172,20 +3692,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/comments/components/CommentReplyEditor.svelte:88`  
-  ```json
-  {
-    "file": "src/features/comments/components/CommentReplyEditor.svelte",
-    "line": 88,
-    "tag": "<Field.Label",
-    "classValue": "\"font-normal\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-normal",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -4251,11 +3757,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/comments/components/CommentThreadEditForm.svelte",
     "line": 41,
     "tag": "<Field.Group",
-    "classValue": "\"flex-row flex-wrap items-center justify-between gap-3 text-sm\"",
+    "classValue": "\"flex-row flex-wrap items-center justify-between gap-3\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (flex-row, flex-wrap, items-center, justify-between, gap-3); convert styling tokens: text-sm",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -4270,20 +3776,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/comments/components/CommentThreadEditForm.svelte:44`  
-  ```json
-  {
-    "file": "src/features/comments/components/CommentThreadEditForm.svelte",
-    "line": 44,
-    "tag": "<Field.Label",
-    "classValue": "\"font-normal\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-normal",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -4349,11 +3841,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/comments/components/CommentThreadItem.svelte",
     "line": 84,
     "tag": "<Card.Root",
-    "classValue": "{`transition-colors duration-300 ${highlightedId === comment.id ? \"ring-2 ring-primary/40\" : \"\"}`}",
+    "classValue": "{highlightedId === comment.id ? \"ring-2 ring-primary/40\" : \"\"}",
     "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: ring-2, ring-primary/40, transition-colors, duration-300",
-    "reason": "contains only styling overrides (color, typography, surface)"
+    "decision": "review",
+    "action": "inspect dynamic expression; convert styling tokens to variants or theme tokens",
+    "reason": "dynamic class expression may contain styling overrides: ring-2, ring-primary/40"
   }
   ```
 
@@ -4405,11 +3897,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/comments/components/CommentUploadButton.svelte",
     "line": 27,
     "tag": "<Input",
-    "classValue": "\"sr-only h-px w-px border-0 p-0\"",
+    "classValue": "\"sr-only h-px w-px p-0\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (sr-only, h-px, w-px, p-0); convert styling tokens: border-0",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -4545,11 +4037,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/comments/components/CommentsThreadSection.svelte",
     "line": 66,
     "tag": "<Empty.Root",
-    "classValue": "\"min-h-24 border\"",
+    "classValue": "\"min-h-24\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (min-h-24); convert styling tokens: border",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -4573,11 +4065,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/dashboard/components/AnonymousLinksTab.svelte",
     "line": 38,
     "tag": "<Empty.Root",
-    "classValue": "\"items-start border border-border bg-background text-left\"",
+    "classValue": "\"items-start text-left\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (items-start, text-left); convert styling tokens: border, border-border, bg-background",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -4601,11 +4093,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/dashboard/components/AnonymousLinksTab.svelte",
     "line": 47,
     "tag": "<Button",
-    "classValue": "\"h-auto p-0 text-xs\"",
+    "classValue": "\"h-auto p-0\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (h-auto, p-0); convert styling tokens: text-xs",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -4671,33 +4163,33 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/dashboard/components/BusTab.svelte",
     "line": 130,
     "tag": "<Empty.Root",
-    "classValue": "\"border border-border bg-background lg:col-span-2\"",
+    "classValue": "\"lg:col-span-2\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (col-span-2); convert styling tokens: border, border-border, bg-background",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
-- `src/features/dashboard/components/BusTabRouteTable.svelte:25`  
+- `src/features/dashboard/components/BusTabRouteTable.svelte:26`  
   ```json
   {
     "file": "src/features/dashboard/components/BusTabRouteTable.svelte",
-    "line": 25,
+    "line": 26,
     "tag": "<Table.Root",
-    "classValue": null,
-    "styleValue": "{`min-width: ${tableMinWidth};`}",
-    "decision": "convert",
-    "action": "remove inline style; move to layout wrapper or CSS custom property",
-    "reason": "inline styles on shadcn components are disallowed by the styling policy"
+    "classValue": "\"min-w-[var(--table-min-width)]\"",
+    "styleValue": null,
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
-- `src/features/dashboard/components/BusTabRouteTable.svelte:29`  
+- `src/features/dashboard/components/BusTabRouteTable.svelte:30`  
   ```json
   {
     "file": "src/features/dashboard/components/BusTabRouteTable.svelte",
-    "line": 29,
+    "line": 30,
     "tag": "<Table.Head",
     "classValue": "{index === 0\n                  ? \"text-left\"\n                  : index === stopColumns.length - 1\n                    ? \"text-right\"\n                    : \"text-center\"}",
     "styleValue": null,
@@ -4707,17 +4199,17 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/BusTabRouteTable.svelte:45`  
+- `src/features/dashboard/components/BusTabRouteTable.svelte:46`  
   ```json
   {
     "file": "src/features/dashboard/components/BusTabRouteTable.svelte",
-    "line": 45,
+    "line": 46,
     "tag": "<Table.Row",
-    "classValue": "{cn(\n                \"border-0\",\n                trip.status === \"departed\" ? \"opacity-60\" : undefined,\n                isNextTrip ? \"bg-muted/70 hover:bg-muted\" : undefined,\n              )}",
+    "classValue": "{cn(\n                trip.status === \"departed\" ? \"opacity-60\" : undefined,\n                isNextTrip ? \"bg-muted/70 hover:bg-muted\" : undefined,\n              )}",
     "styleValue": null,
     "decision": "review",
     "action": "inspect dynamic expression; convert styling tokens to variants or theme tokens",
-    "reason": "dynamic class expression may contain styling overrides: border-0, opacity-60, bg-muted/70, bg-muted"
+    "reason": "dynamic class expression may contain styling overrides: opacity-60, bg-muted/70, bg-muted"
   }
   ```
 
@@ -4727,11 +4219,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/dashboard/components/BusTabRouteTable.svelte",
     "line": 54,
     "tag": "<Table.Cell",
-    "classValue": "{cn(\n                    \"font-mono tabular-nums\",\n                    index === 0\n                      ? \"text-left\"\n                      : index === stopColumns.length - 1\n                        ? \"text-right\"\n                        : \"text-center\",\n                  )}",
+    "classValue": "{cn(\n                    index === 0\n                      ? \"text-left\"\n                      : index === stopColumns.length - 1\n                        ? \"text-right\"\n                        : \"text-center\",\n                  )}",
     "styleValue": null,
-    "decision": "review",
-    "action": "inspect dynamic expression; convert styling tokens to variants or theme tokens",
-    "reason": "dynamic class expression may contain styling overrides: font-mono, tabular-nums"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -4819,45 +4311,17 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/BusTabSettings.svelte:108`  
-  ```json
-  {
-    "file": "src/features/dashboard/components/BusTabSettings.svelte",
-    "line": 108,
-    "tag": "<Field.Label",
-    "classValue": "\"font-normal\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-normal",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/dashboard/components/BusTabSettings.svelte:123`  
   ```json
   {
     "file": "src/features/dashboard/components/BusTabSettings.svelte",
     "line": 123,
     "tag": "<Field.Description",
-    "classValue": "{cn(\n        busPreferenceSaveState === \"error\"\n          ? \"text-destructive\"\n          : undefined,\n      )}",
+    "classValue": "{busPreferenceSaveState === \"error\" ? \"text-destructive\" : undefined}",
     "styleValue": null,
     "decision": "review",
     "action": "inspect dynamic expression; convert styling tokens to variants or theme tokens",
     "reason": "dynamic class expression may contain styling overrides: text-destructive"
-  }
-  ```
-
-- `src/features/dashboard/components/BusTabTimetable.svelte:48`  
-  ```json
-  {
-    "file": "src/features/dashboard/components/BusTabTimetable.svelte",
-    "line": 48,
-    "tag": "<Empty.Root",
-    "classValue": "\"border border-border bg-background\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: border, border-border, bg-background",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -4867,11 +4331,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/dashboard/components/CalendarTab.svelte",
     "line": 122,
     "tag": "<Empty.Root",
-    "classValue": "\"items-start border border-border bg-background text-left\"",
+    "classValue": "\"items-start text-left\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (items-start, text-left); convert styling tokens: border, border-border, bg-background",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -4965,11 +4429,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/dashboard/components/DashboardLinkVisitAction.svelte",
     "line": 42,
     "tag": "<Item.Media",
-    "classValue": "\"size-8 rounded-md border bg-muted font-semibold text-[0.6875rem] text-primary\"",
+    "classValue": "\"size-8\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (size-8); convert styling tokens: rounded-md, border, bg-muted, font-semibold, text-[0.6875rem], text-primary",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -5021,11 +4485,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/dashboard/components/DashboardNoSubscriptionsState.svelte",
     "line": 20,
     "tag": "<Empty.Root",
-    "classValue": "{cn(\n    \"items-start border border-border bg-background text-left shadow-sm\",\n    className,\n  )}",
+    "classValue": "{cn(\n    \"items-start text-left\",\n    className,\n  )}",
     "styleValue": null,
-    "decision": "review",
-    "action": "inspect dynamic expression; convert styling tokens to variants or theme tokens",
-    "reason": "dynamic class expression may contain styling overrides: border, border-border, bg-background, shadow-sm"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -5068,20 +4532,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/dashboard/components/ExamsCardsView.svelte:26`  
-  ```json
-  {
-    "file": "src/features/dashboard/components/ExamsCardsView.svelte",
-    "line": 26,
-    "tag": "<Card.Root",
-    "classValue": "\"transition hover:border-primary/50\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: transition, border-primary/50",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -5161,11 +4611,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/dashboard/components/ExamsListView.svelte",
     "line": 38,
     "tag": "<Table.Cell",
-    "classValue": "\"max-w-48 truncate text-muted-foreground\"",
+    "classValue": "\"max-w-48 truncate\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (max-w-48, truncate); convert styling tokens: text-muted-foreground",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -5203,11 +4653,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/dashboard/components/ExamsListView.svelte",
     "line": 43,
     "tag": "<Table.Cell",
-    "classValue": "\"max-w-56 truncate text-muted-foreground\"",
+    "classValue": "\"max-w-56 truncate\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (max-w-56, truncate); convert styling tokens: text-muted-foreground",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -5217,11 +4667,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/dashboard/components/ExamsTab.svelte",
     "line": 64,
     "tag": "<Empty.Root",
-    "classValue": "\"items-start border border-border bg-background text-left\"",
+    "classValue": "\"items-start text-left\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (items-start, text-left); convert styling tokens: border, border-border, bg-background",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -5245,11 +4695,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/dashboard/components/ExamsTab.svelte",
     "line": 70,
     "tag": "<Empty.Root",
-    "classValue": "\"items-start border border-border bg-background text-left\"",
+    "classValue": "\"items-start text-left\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (items-start, text-left); convert styling tokens: border, border-border, bg-background",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -5407,20 +4857,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/HomeworkCreateFormFields.svelte:129`  
-  ```json
-  {
-    "file": "src/features/dashboard/components/HomeworkCreateFormFields.svelte",
-    "line": 129,
-    "tag": "<Field.Label",
-    "classValue": "\"font-normal\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-normal",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/dashboard/components/HomeworkCreateFormFields.svelte:133`  
   ```json
   {
@@ -5432,20 +4868,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/dashboard/components/HomeworkCreateFormFields.svelte:139`  
-  ```json
-  {
-    "file": "src/features/dashboard/components/HomeworkCreateFormFields.svelte",
-    "line": 139,
-    "tag": "<Field.Label",
-    "classValue": "\"font-normal\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-normal",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -5533,34 +4955,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/HomeworkDetailMetadata.svelte:22`  
-  ```json
-  {
-    "file": "src/features/dashboard/components/HomeworkDetailMetadata.svelte",
-    "line": 22,
-    "tag": "<Item.Description",
-    "classValue": "\"text-xs uppercase tracking-normal\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-xs, uppercase, tracking-normal",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
-- `src/features/dashboard/components/HomeworkDetailMetadata.svelte:25`  
-  ```json
-  {
-    "file": "src/features/dashboard/components/HomeworkDetailMetadata.svelte",
-    "line": 25,
-    "tag": "<Item.Title",
-    "classValue": "\"text-lg\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-lg",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/dashboard/components/HomeworkDetailMetadata.svelte:35`  
   ```json
   {
@@ -5575,45 +4969,17 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/HomeworkDetailMetadata.svelte:38`  
-  ```json
-  {
-    "file": "src/features/dashboard/components/HomeworkDetailMetadata.svelte",
-    "line": 38,
-    "tag": "<Item.Description",
-    "classValue": "\"text-xs\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-xs",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
-- `src/features/dashboard/components/HomeworkDetailMetadata.svelte:44`  
-  ```json
-  {
-    "file": "src/features/dashboard/components/HomeworkDetailMetadata.svelte",
-    "line": 44,
-    "tag": "<Item.Description",
-    "classValue": "\"text-xs\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-xs",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/dashboard/components/HomeworksCardsView.svelte:28`  
   ```json
   {
     "file": "src/features/dashboard/components/HomeworksCardsView.svelte",
     "line": 28,
     "tag": "<Card.Root",
-    "classValue": "\"group transition hover:border-primary\"",
+    "classValue": "\"group\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (group); convert styling tokens: transition, border-primary",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -5637,11 +5003,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/dashboard/components/HomeworksCardsView.svelte",
     "line": 79,
     "tag": "<Empty.Root",
-    "classValue": "\"min-h-24 border border-border bg-background md:col-span-2\"",
+    "classValue": "\"min-h-24 md:col-span-2\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (min-h-24, col-span-2); convert styling tokens: border, border-border, bg-background",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -5777,11 +5143,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/dashboard/components/LinksTab.svelte",
     "line": 48,
     "tag": "<Empty.Root",
-    "classValue": "\"items-start border border-border bg-background text-left\"",
+    "classValue": "\"items-start text-left\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (items-start, text-left); convert styling tokens: border, border-border, bg-background",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -5805,11 +5171,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/dashboard/components/LinksTab.svelte",
     "line": 63,
     "tag": "<Button",
-    "classValue": "\"h-auto p-0 text-xs\"",
+    "classValue": "\"h-auto p-0\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (h-auto, p-0); convert styling tokens: text-xs",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -5869,20 +5235,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/OverviewExamSummaryCard.svelte:41`  
-  ```json
-  {
-    "file": "src/features/dashboard/components/OverviewExamSummaryCard.svelte",
-    "line": 41,
-    "tag": "<Item.Actions",
-    "classValue": "\"text-muted-foreground text-xs\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-muted-foreground, text-xs",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/dashboard/components/OverviewExamSummaryCard.svelte:46`  
   ```json
   {
@@ -5931,11 +5283,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/dashboard/components/OverviewLinksGrid.svelte",
     "line": 49,
     "tag": "<Empty.Root",
-    "classValue": "\"min-h-24 border border-border bg-background md:col-span-2 lg:col-span-4\"",
+    "classValue": "\"min-h-24 md:col-span-2 lg:col-span-4\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (min-h-24, col-span-2, col-span-4); convert styling tokens: border, border-border, bg-background",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -5995,11 +5347,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/OverviewTodayOverdueCards.svelte:56`  
+- `src/features/dashboard/components/OverviewTodayOverdueCards.svelte:55`  
   ```json
   {
     "file": "src/features/dashboard/components/OverviewTodayOverdueCards.svelte",
-    "line": 56,
+    "line": 55,
     "tag": "<Item.Group",
     "classValue": "\"grid gap-2 md:grid-cols-2 xl:grid-cols-3\"",
     "styleValue": null,
@@ -6009,25 +5361,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/OverviewTodayOverdueCards.svelte:73`  
+- `src/features/dashboard/components/OverviewTodayOverdueCards.svelte:88`  
   ```json
   {
     "file": "src/features/dashboard/components/OverviewTodayOverdueCards.svelte",
-    "line": 73,
-    "tag": "<Item.Actions",
-    "classValue": "\"text-muted-foreground text-sm\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-muted-foreground, text-sm",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
-- `src/features/dashboard/components/OverviewTodayOverdueCards.svelte:89`  
-  ```json
-  {
-    "file": "src/features/dashboard/components/OverviewTodayOverdueCards.svelte",
-    "line": 89,
+    "line": 88,
     "tag": "<Item.Description",
     "classValue": "\"flex flex-wrap gap-1.5\"",
     "styleValue": null,
@@ -6037,39 +5375,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/OverviewTodayOverdueCards.svelte:90`  
+- `src/features/dashboard/components/OverviewTodayOverdueCards.svelte:109`  
   ```json
   {
     "file": "src/features/dashboard/components/OverviewTodayOverdueCards.svelte",
-    "line": 90,
-    "tag": "<Badge",
-    "classValue": "{todoPriorityClass(todo.priority)}",
-    "styleValue": null,
-    "decision": "review",
-    "action": "inspect helper function call; replace with variant or theme token",
-    "reason": "class expression uses a helper that may return raw styling classes"
-  }
-  ```
-
-- `src/features/dashboard/components/OverviewTodayOverdueCards.svelte:94`  
-  ```json
-  {
-    "file": "src/features/dashboard/components/OverviewTodayOverdueCards.svelte",
-    "line": 94,
-    "tag": "<Item.Actions",
-    "classValue": "\"text-muted-foreground text-sm\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-muted-foreground, text-sm",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
-- `src/features/dashboard/components/OverviewTodayOverdueCards.svelte:102`  
-  ```json
-  {
-    "file": "src/features/dashboard/components/OverviewTodayOverdueCards.svelte",
-    "line": 102,
+    "line": 109,
     "tag": "<Empty.Root",
     "classValue": "\"min-h-24 md:col-span-2 xl:col-span-3\"",
     "styleValue": null,
@@ -6079,11 +5389,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/OverviewTodoSummaryCard.svelte:56`  
+- `src/features/dashboard/components/OverviewTodoSummaryCard.svelte:55`  
   ```json
   {
     "file": "src/features/dashboard/components/OverviewTodoSummaryCard.svelte",
-    "line": 56,
+    "line": 55,
     "tag": "<Item.Description",
     "classValue": "\"flex flex-wrap gap-1.5\"",
     "styleValue": null,
@@ -6093,39 +5403,25 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/OverviewTodoSummaryCard.svelte:57`  
+- `src/features/dashboard/components/OverviewTodoSummaryCard.svelte:69`  
   ```json
   {
     "file": "src/features/dashboard/components/OverviewTodoSummaryCard.svelte",
-    "line": 57,
-    "tag": "<Badge",
-    "classValue": "{todoPriorityClass(todo.priority)}",
-    "styleValue": null,
-    "decision": "review",
-    "action": "inspect helper function call; replace with variant or theme token",
-    "reason": "class expression uses a helper that may return raw styling classes"
-  }
-  ```
-
-- `src/features/dashboard/components/OverviewTodoSummaryCard.svelte:62`  
-  ```json
-  {
-    "file": "src/features/dashboard/components/OverviewTodoSummaryCard.svelte",
-    "line": 62,
+    "line": 69,
     "tag": "<Item.Actions",
-    "classValue": "\"text-muted-foreground text-xs sm:text-right\"",
+    "classValue": "\"sm:text-right\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (text-right); convert styling tokens: text-muted-foreground, text-xs",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
-- `src/features/dashboard/components/OverviewTodoSummaryCard.svelte:68`  
+- `src/features/dashboard/components/OverviewTodoSummaryCard.svelte:75`  
   ```json
   {
     "file": "src/features/dashboard/components/OverviewTodoSummaryCard.svelte",
-    "line": 68,
+    "line": 75,
     "tag": "<Empty.Root",
     "classValue": "\"min-h-24\"",
     "styleValue": null,
@@ -6253,11 +5549,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/dashboard/components/SubscriptionsBulkImportMatchedList.svelte",
     "line": 42,
     "tag": "<Field.Label",
-    "classValue": "\"cursor-pointer font-normal\"",
+    "classValue": "\"cursor-pointer\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (cursor-pointer); convert styling tokens: font-normal",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -6267,11 +5563,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/dashboard/components/SubscriptionsBulkImportMatchedList.svelte",
     "line": 62,
     "tag": "<Empty.Root",
-    "classValue": "\"min-h-20 border border-border bg-background p-4\"",
+    "classValue": "\"min-h-20 p-4\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (min-h-20, p-4); convert styling tokens: border, border-border, bg-background",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -6317,34 +5613,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/SubscriptionsSectionGroup.svelte:45`  
-  ```json
-  {
-    "file": "src/features/dashboard/components/SubscriptionsSectionGroup.svelte",
-    "line": 45,
-    "tag": "<Item.Title",
-    "classValue": "\"font-mono text-primary md:text-foreground\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-mono, text-primary, text-foreground",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
-- `src/features/dashboard/components/SubscriptionsSectionGroup.svelte:48`  
-  ```json
-  {
-    "file": "src/features/dashboard/components/SubscriptionsSectionGroup.svelte",
-    "line": 48,
-    "tag": "<Item.Title",
-    "classValue": "\"font-medium md:font-normal\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-medium, font-normal",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/dashboard/components/SubscriptionsSectionGroup.svelte:54`  
   ```json
   {
@@ -6370,20 +5638,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/dashboard/components/SubscriptionsSectionGroup.svelte:56`  
-  ```json
-  {
-    "file": "src/features/dashboard/components/SubscriptionsSectionGroup.svelte",
-    "line": 56,
-    "tag": "<Item.Title",
-    "classValue": "\"font-normal\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-normal",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -6435,11 +5689,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/dashboard/components/SubscriptionsSectionGroup.svelte",
     "line": 69,
     "tag": "<Button",
-    "classValue": "{pendingRemoveSectionId === section.id\n            ? undefined\n            : \"opacity-100 transition-opacity md:opacity-0 md:group-hover/section-row:opacity-100 md:group-focus-within/section-row:opacity-100\"}",
+    "classValue": "{pendingRemoveSectionId === section.id\n            ? undefined\n            : \"opacity-100 md:opacity-0 md:group-hover/section-row:opacity-100 md:group-focus-within/section-row:opacity-100\"}",
     "styleValue": null,
     "decision": "review",
     "action": "inspect dynamic expression; convert styling tokens to variants or theme tokens",
-    "reason": "dynamic class expression may contain styling overrides: opacity-100, transition-opacity, opacity-0"
+    "reason": "dynamic class expression may contain styling overrides: opacity-100, opacity-0"
   }
   ```
 
@@ -6499,31 +5753,17 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/TodoDetailDialog.svelte:34`  
+- `src/features/dashboard/components/TodoDetailDialog.svelte:33`  
   ```json
   {
     "file": "src/features/dashboard/components/TodoDetailDialog.svelte",
-    "line": 34,
+    "line": 33,
     "tag": "<Dialog.Content",
     "classValue": "\"max-w-lg sm:max-w-lg\"",
     "styleValue": null,
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/dashboard/components/TodoDetailDialog.svelte:50`  
-  ```json
-  {
-    "file": "src/features/dashboard/components/TodoDetailDialog.svelte",
-    "line": 50,
-    "tag": "<Badge",
-    "classValue": "{todoPriorityClass(todo.priority)}",
-    "styleValue": null,
-    "decision": "review",
-    "action": "inspect helper function call; replace with variant or theme token",
-    "reason": "class expression uses a helper that may return raw styling classes"
   }
   ```
 
@@ -6561,11 +5801,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/dashboard/components/TodoEmptyState.svelte",
     "line": 8,
     "tag": "<Empty.Root",
-    "classValue": "\"border border-border bg-background md:col-span-2\"",
+    "classValue": "\"md:col-span-2\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (col-span-2); convert styling tokens: border, border-border, bg-background",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -6583,25 +5823,25 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/TodosCardsView.svelte:34`  
+- `src/features/dashboard/components/TodosCardsView.svelte:31`  
   ```json
   {
     "file": "src/features/dashboard/components/TodosCardsView.svelte",
-    "line": 34,
+    "line": 31,
     "tag": "<Card.Root",
-    "classValue": "\"group transition hover:border-primary\"",
+    "classValue": "\"group\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (group); convert styling tokens: transition, border-primary",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
-- `src/features/dashboard/components/TodosCardsView.svelte:57`  
+- `src/features/dashboard/components/TodosCardsView.svelte:54`  
   ```json
   {
     "file": "src/features/dashboard/components/TodosCardsView.svelte",
-    "line": 57,
+    "line": 54,
     "tag": "<Card.Content",
     "classValue": "\"grid gap-3\"",
     "styleValue": null,
@@ -6611,25 +5851,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/TodosCardsView.svelte:59`  
+- `src/features/dashboard/components/TodosCardsView.svelte:71`  
   ```json
   {
     "file": "src/features/dashboard/components/TodosCardsView.svelte",
-    "line": 59,
-    "tag": "<Badge",
-    "classValue": "{todoPriorityClass(todo.priority)}",
-    "styleValue": null,
-    "decision": "review",
-    "action": "inspect helper function call; replace with variant or theme token",
-    "reason": "class expression uses a helper that may return raw styling classes"
-  }
-  ```
-
-- `src/features/dashboard/components/TodosCardsView.svelte:68`  
-  ```json
-  {
-    "file": "src/features/dashboard/components/TodosCardsView.svelte",
-    "line": 68,
+    "line": 71,
     "tag": "<Card.Footer",
     "classValue": "\"justify-end gap-2\"",
     "styleValue": null,
@@ -6639,11 +5865,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/TodosListView.svelte:34`  
+- `src/features/dashboard/components/TodosListView.svelte:31`  
   ```json
   {
     "file": "src/features/dashboard/components/TodosListView.svelte",
-    "line": 34,
+    "line": 31,
     "tag": "<Table.Head",
     "classValue": "\"text-center\"",
     "styleValue": null,
@@ -6653,11 +5879,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/TodosListView.svelte:35`  
+- `src/features/dashboard/components/TodosListView.svelte:32`  
   ```json
   {
     "file": "src/features/dashboard/components/TodosListView.svelte",
-    "line": 35,
+    "line": 32,
     "tag": "<Table.Head",
     "classValue": "\"text-center\"",
     "styleValue": null,
@@ -6667,11 +5893,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/TodosListView.svelte:36`  
+- `src/features/dashboard/components/TodosListView.svelte:33`  
   ```json
   {
     "file": "src/features/dashboard/components/TodosListView.svelte",
-    "line": 36,
+    "line": 33,
     "tag": "<Table.Head",
     "classValue": "\"text-right\"",
     "styleValue": null,
@@ -6681,11 +5907,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/TodosListView.svelte:44`  
+- `src/features/dashboard/components/TodosListView.svelte:41`  
   ```json
   {
     "file": "src/features/dashboard/components/TodosListView.svelte",
-    "line": 44,
+    "line": 41,
     "tag": "<Table.Cell",
     "classValue": "\"max-w-0\"",
     "styleValue": null,
@@ -6695,11 +5921,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/TodosListView.svelte:56`  
+- `src/features/dashboard/components/TodosListView.svelte:53`  
   ```json
   {
     "file": "src/features/dashboard/components/TodosListView.svelte",
-    "line": 56,
+    "line": 53,
     "tag": "<Table.Cell",
     "classValue": "\"text-center\"",
     "styleValue": null,
@@ -6709,39 +5935,25 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/TodosListView.svelte:57`  
+- `src/features/dashboard/components/TodosListView.svelte:64`  
   ```json
   {
     "file": "src/features/dashboard/components/TodosListView.svelte",
-    "line": 57,
-    "tag": "<Badge",
-    "classValue": "{todoPriorityClass(todo.priority)}",
-    "styleValue": null,
-    "decision": "review",
-    "action": "inspect helper function call; replace with variant or theme token",
-    "reason": "class expression uses a helper that may return raw styling classes"
-  }
-  ```
-
-- `src/features/dashboard/components/TodosListView.svelte:61`  
-  ```json
-  {
-    "file": "src/features/dashboard/components/TodosListView.svelte",
-    "line": 61,
+    "line": 64,
     "tag": "<Table.Cell",
-    "classValue": "\"text-center text-muted-foreground\"",
+    "classValue": "\"text-center\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (text-center); convert styling tokens: text-muted-foreground",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
-- `src/features/dashboard/components/TodosListView.svelte:66`  
+- `src/features/dashboard/components/TodosListView.svelte:69`  
   ```json
   {
     "file": "src/features/dashboard/components/TodosListView.svelte",
-    "line": 66,
+    "line": 69,
     "tag": "<Button",
     "classValue": "\"h-8\"",
     "styleValue": null,
@@ -6751,11 +5963,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/TodosListView.svelte:75`  
+- `src/features/dashboard/components/TodosListView.svelte:78`  
   ```json
   {
     "file": "src/features/dashboard/components/TodosListView.svelte",
-    "line": 75,
+    "line": 78,
     "tag": "<Button",
     "classValue": "\"h-8\"",
     "styleValue": null,
@@ -6765,11 +5977,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/TodosListView.svelte:95`  
+- `src/features/dashboard/components/TodosListView.svelte:98`  
   ```json
   {
     "file": "src/features/dashboard/components/TodosListView.svelte",
-    "line": 95,
+    "line": 98,
     "tag": "<Table.Cell",
     "classValue": "\"p-0\"",
     "styleValue": null,
@@ -6779,11 +5991,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/dashboard/components/TodosListView.svelte:96`  
+- `src/features/dashboard/components/TodosListView.svelte:99`  
   ```json
   {
     "file": "src/features/dashboard/components/TodosListView.svelte",
-    "line": 96,
+    "line": 99,
     "tag": "<Empty.Root",
     "classValue": "\"py-8\"",
     "styleValue": null,
@@ -6891,20 +6103,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/descriptions/components/DescriptionHistoryList.svelte:68`  
-  ```json
-  {
-    "file": "src/features/descriptions/components/DescriptionHistoryList.svelte",
-    "line": 68,
-    "tag": "<Item.Description",
-    "classValue": "\"text-xs\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-xs",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/descriptions/components/DescriptionHistoryList.svelte:72`  
   ```json
   {
@@ -6933,31 +6131,17 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/descriptions/components/DescriptionHistoryList.svelte:74`  
-  ```json
-  {
-    "file": "src/features/descriptions/components/DescriptionHistoryList.svelte",
-    "line": 74,
-    "tag": "<Item.Title",
-    "classValue": "\"text-muted-foreground text-xs\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-muted-foreground, text-xs",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/descriptions/components/DescriptionHistoryList.svelte:75`  
   ```json
   {
     "file": "src/features/descriptions/components/DescriptionHistoryList.svelte",
     "line": 75,
     "tag": "<ScrollArea",
-    "classValue": "\"h-40 rounded-md bg-background\"",
+    "classValue": "\"h-40\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (h-40); convert styling tokens: rounded-md, bg-background",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -6989,31 +6173,17 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/descriptions/components/DescriptionHistoryList.svelte:90`  
-  ```json
-  {
-    "file": "src/features/descriptions/components/DescriptionHistoryList.svelte",
-    "line": 90,
-    "tag": "<Item.Title",
-    "classValue": "\"text-muted-foreground text-xs\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-muted-foreground, text-xs",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/descriptions/components/DescriptionHistoryList.svelte:91`  
   ```json
   {
     "file": "src/features/descriptions/components/DescriptionHistoryList.svelte",
     "line": 91,
     "tag": "<ScrollArea",
-    "classValue": "\"h-40 rounded-md bg-background\"",
+    "classValue": "\"h-40\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (h-40); convert styling tokens: rounded-md, bg-background",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -7023,11 +6193,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/descriptions/components/DescriptionReadPanel.svelte",
     "line": 50,
     "tag": "<Empty.Root",
-    "classValue": "\"min-h-24 border\"",
+    "classValue": "\"min-h-24\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (min-h-24); convert styling tokens: border",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -7065,11 +6235,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/mobile-app/components/MobileAppPage.svelte",
     "line": 179,
     "tag": "<Card.Description",
-    "classValue": "\"max-w-3xl text-sm leading-6 sm:text-base\"",
+    "classValue": "\"max-w-3xl\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (max-w-3xl); convert styling tokens: text-sm, leading-6, text-base",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -7149,11 +6319,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/mobile-app/components/MobileAppPage.svelte",
     "line": 221,
     "tag": "<Card.Header",
-    "classValue": "\"border-border border-b p-4\"",
+    "classValue": "\"p-4\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (p-4); convert styling tokens: border-border, border-b",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -7163,11 +6333,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/mobile-app/components/MobileAppPage.svelte",
     "line": 227,
     "tag": "<Card.Title",
-    "classValue": "\"truncate text-base\"",
+    "classValue": "\"truncate\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (truncate); convert styling tokens: text-base",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -7205,11 +6375,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/mobile-app/components/MobileAppPage.svelte",
     "line": 252,
     "tag": "<Item.Actions",
-    "classValue": "\"shrink-0 text-muted-foreground text-xs\"",
+    "classValue": "\"shrink-0\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (shrink-0); convert styling tokens: text-muted-foreground, text-xs",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -7311,20 +6481,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/mobile-app/components/MobileAppPage.svelte:301`  
-  ```json
-  {
-    "file": "src/features/mobile-app/components/MobileAppPage.svelte",
-    "line": 301,
-    "tag": "<Item.Actions",
-    "classValue": "\"text-muted-foreground\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-muted-foreground",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/oauth/components/DeviceApprovalPanel.svelte:24`  
   ```json
   {
@@ -7359,11 +6515,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/oauth/components/DeviceApprovalPanel.svelte",
     "line": 37,
     "tag": "<Badge",
-    "classValue": "\"max-w-full whitespace-normal break-all font-mono text-left\"",
+    "classValue": "\"max-w-full whitespace-normal break-all text-left\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (max-w-full, whitespace-normal, break-all, text-left); convert styling tokens: font-mono",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -7387,11 +6543,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/oauth/components/DeviceApprovalPanel.svelte",
     "line": 49,
     "tag": "<Badge",
-    "classValue": "\"max-w-full whitespace-normal break-all font-mono text-left\"",
+    "classValue": "\"max-w-full whitespace-normal break-all text-left\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (max-w-full, whitespace-normal, break-all, text-left); convert styling tokens: font-mono",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -7451,34 +6607,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/oauth/components/DeviceCodeForm.svelte:52`  
-  ```json
-  {
-    "file": "src/features/oauth/components/DeviceCodeForm.svelte",
-    "line": 52,
-    "tag": "<InputOTP.Group",
-    "classValue": "\"*:data-[slot=input-otp-slot]:font-mono *:data-[slot=input-otp-slot]:text-base\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-mono, text-base",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
-- `src/features/oauth/components/DeviceCodeForm.svelte:60`  
-  ```json
-  {
-    "file": "src/features/oauth/components/DeviceCodeForm.svelte",
-    "line": 60,
-    "tag": "<InputOTP.Group",
-    "classValue": "\"*:data-[slot=input-otp-slot]:font-mono *:data-[slot=input-otp-slot]:text-base\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-mono, text-base",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/oauth/components/DeviceResultPanel.svelte:10`  
   ```json
   {
@@ -7499,10 +6627,10 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/oauth/components/DeviceSidePanel.svelte",
     "line": 12,
     "tag": "<Card.Header",
-    "classValue": "\"content-between gap-8 border-border border-b bg-muted/30 p-6 lg:border-r lg:border-b-0\"",
+    "classValue": "\"content-between gap-8 bg-subtle p-6\"",
     "styleValue": null,
     "decision": "convert",
-    "action": "keep layout tokens (content-between, gap-8, p-6); convert styling tokens: border-border, border-b, bg-muted/30, border-r, border-b-0",
+    "action": "keep layout tokens (content-between, gap-8, p-6); convert styling tokens: bg-subtle",
     "reason": "mixes layout and styling tokens"
   }
   ```
@@ -7583,11 +6711,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/oauth/components/OAuthAuthorizeConsentPanel.svelte",
     "line": 55,
     "tag": "<Field.Label",
-    "classValue": "\"w-full cursor-pointer flex-wrap items-start gap-2 font-normal\"",
+    "classValue": "\"w-full cursor-pointer flex-wrap items-start gap-2\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (w-full, cursor-pointer, flex-wrap, items-start, gap-2); convert styling tokens: font-normal",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -7597,11 +6725,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/oauth/components/OAuthAuthorizeConsentPanel.svelte",
     "line": 59,
     "tag": "<Badge",
-    "classValue": "\"max-w-full whitespace-normal break-all font-mono text-left\"",
+    "classValue": "\"max-w-full whitespace-normal break-all text-left\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (max-w-full, whitespace-normal, break-all, text-left); convert styling tokens: font-mono",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -7843,31 +6971,17 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/profile/components/ProfileSummaryCard.svelte:26`  
-  ```json
-  {
-    "file": "src/features/profile/components/ProfileSummaryCard.svelte",
-    "line": 26,
-    "tag": "<Avatar.Fallback",
-    "classValue": "\"text-3xl\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-3xl",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/profile/components/ProfileSummaryCard.svelte:29`  
   ```json
   {
     "file": "src/features/profile/components/ProfileSummaryCard.svelte",
     "line": 29,
     "tag": "<Card.Title",
-    "classValue": "\"truncate text-2xl\"",
+    "classValue": "\"truncate\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (truncate); convert styling tokens: text-2xl",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -7891,11 +7005,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/profile/components/ProfileSummaryCard.svelte",
     "line": 36,
     "tag": "<Badge",
-    "classValue": "\"mt-2 h-auto max-w-full shrink justify-start whitespace-normal break-all font-mono\"",
+    "classValue": "\"mt-2 h-auto max-w-full shrink justify-start whitespace-normal break-all\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (mt-2, h-auto, max-w-full, shrink, justify-start, whitespace-normal, break-all); convert styling tokens: font-mono",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -7941,45 +7055,17 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/profile/components/ProfileSummaryCard.svelte:59`  
-  ```json
-  {
-    "file": "src/features/profile/components/ProfileSummaryCard.svelte",
-    "line": 59,
-    "tag": "<Item.Title",
-    "classValue": "\"text-2xl\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-2xl",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/section-detail/components/SectionBasicInfoCard.svelte:56`  
   ```json
   {
     "file": "src/features/section-detail/components/SectionBasicInfoCard.svelte",
     "line": 56,
     "tag": "<Button",
-    "classValue": "\"h-auto w-fit text-sm\"",
+    "classValue": "\"h-auto w-fit\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (h-auto, w-fit); convert styling tokens: text-sm",
-    "reason": "mixes layout and styling tokens"
-  }
-  ```
-
-- `src/features/section-detail/components/SectionBasicInfoRelatedSections.svelte:21`  
-  ```json
-  {
-    "file": "src/features/section-detail/components/SectionBasicInfoRelatedSections.svelte",
-    "line": 21,
-    "tag": "<Accordion.Content",
-    "classValue": "\"[&_a]:no-underline\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: no-underline",
-    "reason": "contains only styling overrides (color, typography, surface)"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -7997,20 +7083,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/section-detail/components/SectionBasicInfoRelatedSections.svelte:30`  
-  ```json
-  {
-    "file": "src/features/section-detail/components/SectionBasicInfoRelatedSections.svelte",
-    "line": 30,
-    "tag": "<Badge",
-    "classValue": "\"font-mono\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-mono",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/section-detail/components/SectionBasicInfoRelatedSections.svelte:41`  
   ```json
   {
@@ -8022,20 +7094,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/section-detail/components/SectionBasicInfoRelatedSections.svelte:43`  
-  ```json
-  {
-    "file": "src/features/section-detail/components/SectionBasicInfoRelatedSections.svelte",
-    "line": 43,
-    "tag": "<Badge",
-    "classValue": "\"font-mono\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-mono",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -8123,31 +7181,17 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/section-detail/components/SectionCalendarUnscheduledEvents.svelte:24`  
-  ```json
-  {
-    "file": "src/features/section-detail/components/SectionCalendarUnscheduledEvents.svelte",
-    "line": 24,
-    "tag": "<Item.Actions",
-    "classValue": "\"text-muted-foreground text-xs\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-muted-foreground, text-xs",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/section-detail/components/SectionCalendarUrlRow.svelte:20`  
   ```json
   {
     "file": "src/features/section-detail/components/SectionCalendarUrlRow.svelte",
     "line": 20,
     "tag": "<InputGroup.Input",
-    "classValue": "\"font-mono truncate\"",
+    "classValue": "\"truncate\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (truncate); convert styling tokens: font-mono",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -8204,20 +7248,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/section-detail/components/SectionDetailHeader.svelte:96`  
-  ```json
-  {
-    "file": "src/features/section-detail/components/SectionDetailHeader.svelte",
-    "line": 96,
-    "tag": "<Badge",
-    "classValue": "\"font-mono\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-mono",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -8291,20 +7321,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/section-detail/components/SectionHomeworkAuditDialog.svelte:71`  
-  ```json
-  {
-    "file": "src/features/section-detail/components/SectionHomeworkAuditDialog.svelte",
-    "line": 71,
-    "tag": "<Item.Actions",
-    "classValue": "\"text-muted-foreground text-xs\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-muted-foreground, text-xs",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/section-detail/components/SectionHomeworkAuditTrail.svelte:35`  
   ```json
   {
@@ -8316,34 +7332,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/section-detail/components/SectionHomeworkAuditTrail.svelte:39`  
-  ```json
-  {
-    "file": "src/features/section-detail/components/SectionHomeworkAuditTrail.svelte",
-    "line": 39,
-    "tag": "<Item.Actions",
-    "classValue": "\"text-muted-foreground text-xs\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-muted-foreground, text-xs",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
-- `src/features/section-detail/components/SectionHomeworkAuditTrail.svelte:43`  
-  ```json
-  {
-    "file": "src/features/section-detail/components/SectionHomeworkAuditTrail.svelte",
-    "line": 43,
-    "tag": "<Item.Footer",
-    "classValue": "\"text-muted-foreground text-xs\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-muted-foreground, text-xs",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -8535,11 +7523,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/section-detail/components/SectionHomeworkListView.svelte",
     "line": 32,
     "tag": "<Button",
-    "classValue": "\"h-auto whitespace-normal text-left font-medium\"",
+    "classValue": "\"h-auto whitespace-normal text-left\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (h-auto, whitespace-normal, text-left); convert styling tokens: font-medium",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -8669,20 +7657,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/section-detail/components/SectionHomeworkTagFields.svelte:24`  
-  ```json
-  {
-    "file": "src/features/section-detail/components/SectionHomeworkTagFields.svelte",
-    "line": 24,
-    "tag": "<Field.Label",
-    "classValue": "\"font-normal\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-normal",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/section-detail/components/SectionHomeworkTagFields.svelte:28`  
   ```json
   {
@@ -8694,20 +7668,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/section-detail/components/SectionHomeworkTagFields.svelte:30`  
-  ```json
-  {
-    "file": "src/features/section-detail/components/SectionHomeworkTagFields.svelte",
-    "line": 30,
-    "tag": "<Field.Label",
-    "classValue": "\"font-normal\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-normal",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -8787,11 +7747,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/section-detail/components/SectionTeachersCard.svelte",
     "line": 35,
     "tag": "<Empty.Root",
-    "classValue": "\"min-h-20 border border-border bg-background p-4\"",
+    "classValue": "\"min-h-20 p-4\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (min-h-20, p-4); convert styling tokens: border, border-border, bg-background",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -8834,20 +7794,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/settings/components/SettingsAccountRow.svelte:66`  
-  ```json
-  {
-    "file": "src/features/settings/components/SettingsAccountRow.svelte",
-    "line": 66,
-    "tag": "<Item.Footer",
-    "classValue": "\"text-muted-foreground text-sm\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-muted-foreground, text-sm",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -8899,11 +7845,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/settings/components/SettingsAvatarPicker.svelte",
     "line": 43,
     "tag": "<Avatar.Root",
-    "classValue": "\"size-12 border-0\"",
+    "classValue": "\"size-12\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (size-12); convert styling tokens: border-0",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -8918,20 +7864,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/settings/components/SettingsContentTab.svelte:18`  
-  ```json
-  {
-    "file": "src/features/settings/components/SettingsContentTab.svelte",
-    "line": 18,
-    "tag": "<Empty.Root",
-    "classValue": "\"border\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: border",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -9039,7 +7971,7 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/settings/components/SettingsPageController.svelte",
     "line": 119,
     "tag": "<Item.Media",
-    "classValue": "{cn(item.id === \"danger\" && \"text-destructive\")}",
+    "classValue": "{item.id === \"danger\" ? \"text-destructive\" : undefined}",
     "styleValue": null,
     "decision": "review",
     "action": "inspect dynamic expression; convert styling tokens to variants or theme tokens",
@@ -9193,11 +8125,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/welcome/components/WelcomeConfirmImportDialog.svelte",
     "line": 76,
     "tag": "<Field.Label",
-    "classValue": "\"cursor-pointer font-normal\"",
+    "classValue": "\"cursor-pointer\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (cursor-pointer); convert styling tokens: font-normal",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -9207,11 +8139,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/welcome/components/WelcomeConfirmImportDialog.svelte",
     "line": 93,
     "tag": "<Empty.Root",
-    "classValue": "\"min-h-20 border border-border bg-background p-4\"",
+    "classValue": "\"min-h-20 p-4\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (min-h-20, p-4); convert styling tokens: border, border-border, bg-background",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -9226,20 +8158,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
-  }
-  ```
-
-- `src/features/welcome/components/WelcomeNextStepsCard.svelte:14`  
-  ```json
-  {
-    "file": "src/features/welcome/components/WelcomeNextStepsCard.svelte",
-    "line": 14,
-    "tag": "<Card.Title",
-    "classValue": "\"text-lg\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-lg",
-    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -9327,20 +8245,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/features/welcome/components/WelcomeProfileForm.svelte:47`  
-  ```json
-  {
-    "file": "src/features/welcome/components/WelcomeProfileForm.svelte",
-    "line": 47,
-    "tag": "<Card.Title",
-    "classValue": "\"text-3xl\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-3xl",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/features/welcome/components/WelcomeProfileForm.svelte:51`  
   ```json
   {
@@ -9389,11 +8293,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/features/welcome/components/WelcomeProfileForm.svelte",
     "line": 79,
     "tag": "<Avatar.Root",
-    "classValue": "\"size-12 border-0\"",
+    "classValue": "\"size-12\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (size-12); convert styling tokens: border-0",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -9439,25 +8343,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/lib/components/DateTimePicker.svelte:78`  
+- `src/lib/components/DateTimePicker.svelte:104`  
   ```json
   {
     "file": "src/lib/components/DateTimePicker.svelte",
-    "line": 78,
-    "tag": "<InputGroup.Input",
-    "classValue": "\"font-mono\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-mono",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
-- `src/lib/components/DateTimePicker.svelte:105`  
-  ```json
-  {
-    "file": "src/lib/components/DateTimePicker.svelte",
-    "line": 105,
+    "line": 104,
     "tag": "<Popover.Content",
     "classValue": "\"w-auto overflow-hidden p-0\"",
     "styleValue": null,
@@ -9467,31 +8357,31 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/lib/components/DetailPinnedSummary.svelte:49`  
+- `src/lib/components/DetailPinnedSummary.svelte:48`  
   ```json
   {
     "file": "src/lib/components/DetailPinnedSummary.svelte",
-    "line": 49,
+    "line": 48,
     "tag": "<Badge",
-    "classValue": "{cn(\"max-w-52 truncate\", item.mono ? \"font-mono\" : \"\")}",
+    "classValue": "\"max-w-52 truncate\"",
     "styleValue": null,
-    "decision": "review",
-    "action": "inspect dynamic expression; convert styling tokens to variants or theme tokens",
-    "reason": "dynamic class expression may contain styling overrides: font-mono"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
-- `src/lib/components/DetailSectionNav.svelte:18`  
+- `src/lib/components/DetailSectionNav.svelte:19`  
   ```json
   {
     "file": "src/lib/components/DetailSectionNav.svelte",
-    "line": 18,
+    "line": 19,
     "tag": "<Sidebar.Root",
     "classValue": "\"w-full border-sidebar-border border-b lg:w-(--sidebar-width) lg:border-e lg:border-b-0\"",
-    "styleValue": "\"--sidebar-width: 14rem;\"",
+    "styleValue": null,
     "decision": "convert",
-    "action": "remove inline style; move to layout wrapper or CSS custom property",
-    "reason": "inline styles on shadcn components are disallowed by the styling policy"
+    "action": "keep layout tokens (w-full, w-(--sidebar-width)); convert styling tokens: border-sidebar-border, border-b, border-e, border-b-0",
+    "reason": "mixes layout and styling tokens"
   }
   ```
 
@@ -9529,11 +8419,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/lib/components/MarkdownEditor.svelte",
     "line": 86,
     "tag": "<InputGroup.Root",
-    "classValue": "\"h-auto min-h-32 data-[drag-active=true]:border-primary data-[drag-active=true]:bg-primary/5\"",
+    "classValue": "\"h-auto min-h-32\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (h-auto, min-h-32); convert styling tokens: border-primary, bg-primary/5",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -9557,11 +8447,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/lib/components/MarkdownEditor.svelte",
     "line": 102,
     "tag": "<Tabs.Content",
-    "classValue": "\"m-0 min-h-32 rounded-lg border bg-background p-3\"",
+    "classValue": "\"m-0 min-h-32 p-3\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (m-0, min-h-32, p-3); convert styling tokens: rounded-lg, border, bg-background",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -9607,25 +8497,25 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/lib/components/calendar/CalendarEventChip.svelte:60`  
+- `src/lib/components/calendar/CalendarEventChip.svelte:40`  
   ```json
   {
     "file": "src/lib/components/calendar/CalendarEventChip.svelte",
-    "line": 60,
+    "line": 40,
     "tag": "<Item.Root",
-    "classValue": "{cn(\n          \"min-w-0 rounded-md text-xs no-underline\",\n          toneClass(),\n          done ? \"grayscale opacity-60\" : undefined,\n        )}",
+    "classValue": "{cn(\n          \"min-w-0 no-underline\",\n          tone === \"warning\"\n            ? \"border-warning/25 bg-warning/10 hover:border-warning/45 hover:bg-warning/15\"\n            : tone === \"success\"\n              ? \"border-success/25 bg-success/10 hover:border-success/45 hover:bg-success/15\"\n              : tone === \"info\"\n                ? \"border-info/25 bg-info/10 hover:border-info/45 hover:bg-info/15\"\n                : tone === \"error\"\n                  ? \"border-destructive/25 bg-destructive/10 hover:border-destructive/45 hover:bg-destructive/15\"\n                  : tone === \"neutral\"\n                    ? \"border-border bg-background hover:border-primary/45 hover:bg-muted/50\"\n                    : \"border-primary/25 bg-primary/10 hover:border-primary/45 hover:bg-primary/15\",\n          done ? \"grayscale opacity-60\" : undefined,\n        )}",
     "styleValue": null,
     "decision": "review",
-    "action": "inspect helper function call; replace with variant or theme token",
-    "reason": "class expression uses a helper that may return raw styling classes"
+    "action": "inspect dynamic expression; convert styling tokens to variants or theme tokens",
+    "reason": "dynamic class expression may contain styling overrides: no-underline, border-warning/25, bg-warning/10, border-warning/45, bg-warning/15, border-success/25, bg-success/10, border-success/45, bg-success/15, border-info/25, bg-info/10, border-info/45, bg-info/15, border-destructive/25, bg-destructive/10, border-destructive/45, bg-destructive/15, border-border, bg-background, border-primary/45, bg-muted/50, border-primary/25, bg-primary/10, bg-primary/15, grayscale, opacity-60"
   }
   ```
 
-- `src/lib/components/calendar/CalendarEventChip.svelte:71`  
+- `src/lib/components/calendar/CalendarEventChip.svelte:61`  
   ```json
   {
     "file": "src/lib/components/calendar/CalendarEventChip.svelte",
-    "line": 71,
+    "line": 61,
     "tag": "<Item.Content",
     "classValue": "\"gap-0\"",
     "styleValue": null,
@@ -9635,25 +8525,25 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/lib/components/calendar/CalendarEventChip.svelte:72`  
+- `src/lib/components/calendar/CalendarEventChip.svelte:62`  
   ```json
   {
     "file": "src/lib/components/calendar/CalendarEventChip.svelte",
-    "line": 72,
+    "line": 62,
     "tag": "<Item.Title",
-    "classValue": "\"max-w-full text-xs\"",
+    "classValue": "\"max-w-full\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (max-w-full); convert styling tokens: text-xs",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
-- `src/lib/components/calendar/CalendarEventChip.svelte:74`  
+- `src/lib/components/calendar/CalendarEventChip.svelte:64`  
   ```json
   {
     "file": "src/lib/components/calendar/CalendarEventChip.svelte",
-    "line": 74,
+    "line": 64,
     "tag": "<Item.Description",
     "classValue": "\"max-w-full line-clamp-1\"",
     "styleValue": null,
@@ -9663,11 +8553,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/lib/components/calendar/CalendarEventChip.svelte:77`  
+- `src/lib/components/calendar/CalendarEventChip.svelte:67`  
   ```json
   {
     "file": "src/lib/components/calendar/CalendarEventChip.svelte",
-    "line": 77,
+    "line": 67,
     "tag": "<Item.Description",
     "classValue": "\"max-w-full line-clamp-1\"",
     "styleValue": null,
@@ -9677,11 +8567,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/lib/components/calendar/CalendarEventChip.svelte:80`  
+- `src/lib/components/calendar/CalendarEventChip.svelte:70`  
   ```json
   {
     "file": "src/lib/components/calendar/CalendarEventChip.svelte",
-    "line": 80,
+    "line": 70,
     "tag": "<Item.Description",
     "classValue": "\"max-w-full line-clamp-1\"",
     "styleValue": null,
@@ -9697,11 +8587,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/lib/components/calendar/CalendarGridDayCell.svelte",
     "line": 35,
     "tag": "<Badge",
-    "classValue": "\"h-5 min-w-5 rounded-full px-1 font-mono tabular-nums\"",
+    "classValue": "\"h-5 min-w-5 px-1\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (h-5, min-w-5, px-1); convert styling tokens: rounded-full, font-mono, tabular-nums",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -9711,25 +8601,25 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/lib/components/calendar/CalendarWeekStrip.svelte",
     "line": 50,
     "tag": "<Badge",
-    "classValue": "\"h-5 min-w-5 rounded-full px-1 font-mono tabular-nums\"",
+    "classValue": "\"h-5 min-w-5 px-1\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (h-5, min-w-5, px-1); convert styling tokens: rounded-full, font-mono, tabular-nums",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
-- `src/lib/components/shell/AppShell.svelte:273`  
+- `src/lib/components/shell/AppShell.svelte:274`  
   ```json
   {
     "file": "src/lib/components/shell/AppShell.svelte",
-    "line": 273,
+    "line": 274,
     "tag": "<Sidebar.Provider",
-    "classValue": "\"min-h-screen bg-background text-foreground lg:h-screen lg:min-h-0 lg:overflow-hidden\"",
-    "styleValue": "\"--sidebar-width: 15rem; --sidebar-width-icon: 4rem;\"",
-    "decision": "convert",
-    "action": "remove inline style; move to layout wrapper or CSS custom property",
-    "reason": "inline styles on shadcn components are disallowed by the styling policy"
+    "classValue": "\"min-h-screen lg:h-screen lg:min-h-0 lg:overflow-hidden\"",
+    "styleValue": null,
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -9739,33 +8629,19 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/lib/components/shell/AppShell.svelte",
     "line": 287,
     "tag": "<Sidebar.Inset",
-    "classValue": "\"relative flex w-full min-w-0 flex-1 flex-col bg-background lg:h-screen lg:min-h-0 lg:overflow-hidden\"",
+    "classValue": "\"relative flex w-full min-w-0 flex-1 flex-col lg:h-screen lg:min-h-0 lg:overflow-hidden\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (relative, flex, w-full, min-w-0, flex-1, flex-col, h-screen, min-h-0, overflow-hidden); convert styling tokens: bg-background",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
-- `src/lib/components/shell/AppSidebar.svelte:20`  
+- `src/lib/components/shell/AppSidebar.svelte:41`  
   ```json
   {
     "file": "src/lib/components/shell/AppSidebar.svelte",
-    "line": 20,
-    "tag": "<Sidebar.MenuButton",
-    "classValue": "\"font-semibold\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-semibold",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
-- `src/lib/components/shell/AppSidebar.svelte:42`  
-  ```json
-  {
-    "file": "src/lib/components/shell/AppSidebar.svelte",
-    "line": 42,
+    "line": 41,
     "tag": "<Collapsible.Root",
     "classValue": "\"group/collapsible\"",
     "styleValue": null,
@@ -9823,11 +8699,11 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
     "file": "src/lib/components/shell/AppUserMenu.svelte",
     "line": 28,
     "tag": "<Avatar.Root",
-    "classValue": "\"size-7 border-0\"",
+    "classValue": "\"size-7\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (size-7); convert styling tokens: border-0",
-    "reason": "mixes layout and styling tokens"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
 
@@ -9901,20 +8777,6 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/routes/_components/RouteErrorCard.svelte:50`  
-  ```json
-  {
-    "file": "src/routes/_components/RouteErrorCard.svelte",
-    "line": 50,
-    "tag": "<Card.Title",
-    "classValue": "\"text-2xl\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-2xl",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/routes/_components/RouteErrorCard.svelte:55`  
   ```json
   {
@@ -9957,44 +8819,16 @@ Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
   }
   ```
 
-- `src/routes/error/+page.svelte:19`  
-  ```json
-  {
-    "file": "src/routes/error/+page.svelte",
-    "line": 19,
-    "tag": "<Card.Title",
-    "classValue": "\"text-2xl\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: text-2xl",
-    "reason": "contains only styling overrides (color, typography, surface)"
-  }
-  ```
-
 - `src/routes/error/+page.svelte:24`  
   ```json
   {
     "file": "src/routes/error/+page.svelte",
     "line": 24,
     "tag": "<Card.Content",
-    "classValue": "\"grid justify-items-center gap-4 text-center text-muted-foreground text-sm\"",
+    "classValue": "\"grid justify-items-center gap-4 text-center\"",
     "styleValue": null,
-    "decision": "convert",
-    "action": "keep layout tokens (grid, justify-items-center, gap-4, text-center); convert styling tokens: text-muted-foreground, text-sm",
-    "reason": "mixes layout and styling tokens"
-  }
-  ```
-
-- `src/routes/guides/markdown-support/MarkdownGuideSection.svelte:31`  
-  ```json
-  {
-    "file": "src/routes/guides/markdown-support/MarkdownGuideSection.svelte",
-    "line": 31,
-    "tag": "<Card.Title",
-    "classValue": "\"font-medium text-muted-foreground text-sm\"",
-    "styleValue": null,
-    "decision": "convert",
-    "action": "remove or replace styling tokens: font-medium, text-muted-foreground, text-sm",
-    "reason": "contains only styling overrides (color, typography, surface)"
+    "decision": "keep",
+    "action": "no styling overrides present",
+    "reason": "contains only layout tokens"
   }
   ```
