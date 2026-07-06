@@ -12,7 +12,7 @@ export let title: string;
 <Sidebar.Root
   collapsible="none"
   style="--sidebar-width: 17rem;"
-  class="w-full border-sidebar-border border-b lg:sticky lg:top-12 lg:h-[calc(100vh-10.75rem)] lg:w-(--sidebar-width) lg:border-e lg:border-b-0"
+  class="w-full border-sidebar-border border-b lg:sticky lg:top-0 lg:h-[calc(100svh-3rem)] lg:w-(--sidebar-width) lg:border-e lg:border-b-0"
   data-testid="catalog-filter-sidebar"
 >
   <Sidebar.Header class="p-3">

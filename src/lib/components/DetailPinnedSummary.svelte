@@ -32,7 +32,7 @@ let {
 
 <div
   class={cn(
-    "bg-background px-4 py-3 sm:px-5 lg:px-6",
+    "bg-card px-4 py-3 sm:px-5 lg:px-6",
     className,
   )}
   data-testid="detail-pinned-summary"

@@ -156,7 +156,7 @@ $: pinnedSummaryItems = [
 ] satisfies PinnedSummaryItem[];
 </script>
 
-<div class="grid min-h-full bg-background lg:h-full lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)]">
+<div class="grid min-h-full grid-rows-[auto_minmax(0,1fr)] bg-card lg:h-full lg:min-h-0">
   <DetailPinnedSummary
     items={pinnedSummaryItems}
     statusVisible={Boolean(formError)}
@@ -205,7 +205,7 @@ $: pinnedSummaryItems = [
     {/snippet}
   </DetailPinnedSummary>
 
-  <div class="grid min-h-0 bg-background lg:grid-cols-[auto_minmax(0,1fr)]">
+  <div class="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] bg-card lg:grid-cols-[auto_minmax(0,1fr)] lg:grid-rows-none">
     <DetailSectionNav
       activeHref={activeNavItem?.href ?? sectionBaseHref}
       ariaLabel={sectionCopy.teachingSection}
@@ -214,7 +214,7 @@ $: pinnedSummaryItems = [
     />
 
     <ScrollArea
-      class="min-w-0 lg:h-full lg:min-h-0"
+      class="min-w-0 min-h-0"
       data-detail-scroll-container
     >
       <div class="px-4 py-4 sm:px-5 lg:px-6">

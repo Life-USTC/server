@@ -135,14 +135,14 @@ $: pinnedSummaryItems = [
   <meta property="og:title" content={displayName} />
 </svelte:head>
 
-<section class="grid min-h-full bg-background lg:h-full lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)]">
+<section class="grid min-h-full grid-rows-[auto_minmax(0,1fr)] bg-card lg:h-full lg:min-h-0">
   <DetailPinnedSummary
     items={pinnedSummaryItems}
     title={displayName}
     description={teacherDescription}
   />
 
-  <div class="grid min-h-0 bg-background lg:grid-cols-[auto_minmax(0,1fr)]">
+  <div class="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] bg-card lg:grid-cols-[auto_minmax(0,1fr)] lg:grid-rows-none">
     <DetailSectionNav
       activeHref={activeNavItem?.href ?? teacherBaseHref}
       ariaLabel={formatMessage(copy.metadata.pages.teacherDetail, { name: displayName })}
@@ -151,7 +151,7 @@ $: pinnedSummaryItems = [
     />
 
     <ScrollArea
-      class="min-w-0 lg:h-full lg:min-h-0"
+      class="min-w-0 min-h-0"
       data-detail-scroll-container
     >
       <div class="px-4 py-4 sm:px-5 lg:px-6">
