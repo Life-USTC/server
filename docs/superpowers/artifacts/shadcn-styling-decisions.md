@@ -25,7 +25,7 @@
 
 ## Remediation Tally
 
-Total usages: **624** — keep: **609**, convert: **7**, review: **8**.
+Total usages: **625** — keep: **609**, convert: **7**, review: **9**.
 
 | Component | Usages | Convert | Keep | Review |
 |---|---|---|---|---|
@@ -39,9 +39,9 @@ Total usages: **624** — keep: **609**, convert: **7**, review: **8**.
 | card.Content | 26 | 0 | 26 | 0 |
 | item.Content | 22 | 0 | 22 | 0 |
 | dialog.Content | 21 | 0 | 21 | 0 |
+| badge | 19 | 0 | 18 | 1 |
 | item.Description | 19 | 0 | 19 | 0 |
 | scroll-area | 19 | 0 | 19 | 0 |
-| badge | 18 | 0 | 18 | 0 |
 | native-select.Root | 18 | 0 | 18 | 0 |
 | field.Label | 15 | 0 | 15 | 0 |
 | card.Root | 14 | 0 | 13 | 1 |
@@ -545,11 +545,11 @@ Total usages: **624** — keep: **609**, convert: **7**, review: **8**.
   }
   ```
 
-- `src/features/admin/components/AdminModerationCommentTableRow.svelte:60`  
+- `src/features/admin/components/AdminModerationCommentTableRow.svelte:61`  
   ```json
   {
     "file": "src/features/admin/components/AdminModerationCommentTableRow.svelte",
-    "line": 60,
+    "line": 61,
     "tag": "<Table.Cell",
     "classValue": "\"text-right\"",
     "styleValue": null,
@@ -1704,6 +1704,20 @@ Total usages: **624** — keep: **609**, convert: **7**, review: **8**.
     "decision": "keep",
     "action": "no styling overrides present",
     "reason": "contains only layout tokens"
+  }
+  ```
+
+- `src/features/admin/components/ModerationStatusBadge.svelte:9`  
+  ```json
+  {
+    "file": "src/features/admin/components/ModerationStatusBadge.svelte",
+    "line": 9,
+    "tag": "<Badge",
+    "classValue": "{status === \"active\"\n    ? \"border-success/40 bg-success/10 text-success\"\n    : status === \"deleted\"\n      ? \"border-destructive/40 bg-destructive/10 text-destructive\"\n      : \"border-warning/40 bg-warning/10 text-warning\"}",
+    "styleValue": null,
+    "decision": "review",
+    "action": "inspect dynamic expression; convert styling tokens to variants or theme tokens",
+    "reason": "dynamic class expression may contain styling overrides: border-success/40, bg-success/10, border-destructive/40, bg-destructive/10, text-destructive, border-warning/40, bg-warning/10, text-success, text-warning"
   }
   ```
 
@@ -4191,7 +4205,7 @@ Total usages: **624** — keep: **609**, convert: **7**, review: **8**.
     "file": "src/features/dashboard/components/BusTabRouteTable.svelte",
     "line": 30,
     "tag": "<Table.Head",
-    "classValue": "{index === 0\n                  ? \"text-left\"\n                  : index === stopColumns.length - 1\n                    ? \"text-right\"\n                    : \"text-center\"}",
+    "classValue": "{index === 0\n                    ? \"text-left\"\n                    : index === stopColumns.length - 1\n                      ? \"text-right\"\n                      : \"text-center\"}",
     "styleValue": null,
     "decision": "keep",
     "action": "no styling overrides present",
@@ -4205,7 +4219,7 @@ Total usages: **624** — keep: **609**, convert: **7**, review: **8**.
     "file": "src/features/dashboard/components/BusTabRouteTable.svelte",
     "line": 46,
     "tag": "<Table.Row",
-    "classValue": "{cn(\n                trip.status === \"departed\" ? \"opacity-60\" : undefined,\n                isNextTrip ? \"bg-muted/70 hover:bg-muted\" : undefined,\n              )}",
+    "classValue": "{cn(\n                  trip.status === \"departed\" ? \"opacity-60\" : undefined,\n                  isNextTrip ? \"bg-muted/70 hover:bg-muted\" : undefined,\n                )}",
     "styleValue": null,
     "decision": "review",
     "action": "inspect dynamic expression; convert styling tokens to variants or theme tokens",
@@ -4219,7 +4233,7 @@ Total usages: **624** — keep: **609**, convert: **7**, review: **8**.
     "file": "src/features/dashboard/components/BusTabRouteTable.svelte",
     "line": 54,
     "tag": "<Table.Cell",
-    "classValue": "{cn(\n                    index === 0\n                      ? \"text-left\"\n                      : index === stopColumns.length - 1\n                        ? \"text-right\"\n                        : \"text-center\",\n                  )}",
+    "classValue": "{cn(\n                      index === 0\n                        ? \"text-left\"\n                        : index === stopColumns.length - 1\n                          ? \"text-right\"\n                          : \"text-center\",\n                    )}",
     "styleValue": null,
     "decision": "keep",
     "action": "no styling overrides present",
@@ -8413,11 +8427,11 @@ Total usages: **624** — keep: **609**, convert: **7**, review: **8**.
   }
   ```
 
-- `src/lib/components/MarkdownEditor.svelte:86`  
+- `src/lib/components/MarkdownEditor.svelte:90`  
   ```json
   {
     "file": "src/lib/components/MarkdownEditor.svelte",
-    "line": 86,
+    "line": 90,
     "tag": "<InputGroup.Root",
     "classValue": "\"h-auto min-h-32\"",
     "styleValue": null,
@@ -8427,11 +8441,11 @@ Total usages: **624** — keep: **609**, convert: **7**, review: **8**.
   }
   ```
 
-- `src/lib/components/MarkdownEditor.svelte:90`  
+- `src/lib/components/MarkdownEditor.svelte:91`  
   ```json
   {
     "file": "src/lib/components/MarkdownEditor.svelte",
-    "line": 90,
+    "line": 91,
     "tag": "<InputGroup.Textarea",
     "classValue": "\"min-h-32 resize-y\"",
     "styleValue": null,
@@ -8441,11 +8455,11 @@ Total usages: **624** — keep: **609**, convert: **7**, review: **8**.
   }
   ```
 
-- `src/lib/components/MarkdownEditor.svelte:102`  
+- `src/lib/components/MarkdownEditor.svelte:104`  
   ```json
   {
     "file": "src/lib/components/MarkdownEditor.svelte",
-    "line": 102,
+    "line": 104,
     "tag": "<Tabs.Content",
     "classValue": "\"m-0 min-h-32 p-3\"",
     "styleValue": null,

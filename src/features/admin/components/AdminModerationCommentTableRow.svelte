@@ -1,5 +1,4 @@
 <script lang="ts">
-import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import { cn } from "$lib/utils.js";
@@ -9,6 +8,7 @@ import type {
   AdminModerationCommentRowCopy,
   AdminModerationCommentStatusFormatter,
 } from "./admin-moderation-comment-types";
+import ModerationStatusBadge from "./ModerationStatusBadge.svelte";
 
 export let comment: AdminModerationComment;
 export let commentAuthorLabel: AdminModerationCommentFormatter;
@@ -53,9 +53,10 @@ export let targetLabel: AdminModerationCommentFormatter;
     {formatDate(comment.createdAt)}
   </Table.Cell>
   <Table.Cell>
-    <Badge variant={comment.status === "deleted" ? "destructive" : "outline"}>
-      {statusLabel(comment.status)}
-    </Badge>
+    <ModerationStatusBadge
+      label={statusLabel(comment.status)}
+      status={comment.status}
+    />
   </Table.Cell>
   <Table.Cell class="text-right">
     <Button

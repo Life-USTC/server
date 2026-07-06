@@ -1,11 +1,11 @@
 <script lang="ts">
-import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import type {
   AdminModerationComment,
   AdminModerationCommentFormatter,
   AdminModerationCommentStatusFormatter,
 } from "./admin-moderation-comment-types";
+import ModerationStatusBadge from "./ModerationStatusBadge.svelte";
 
 export let comments: AdminModerationComment[];
 export let commentAuthorLabel: AdminModerationCommentFormatter;
@@ -33,9 +33,10 @@ export let targetLabel: AdminModerationCommentFormatter;
             </Item.Description>
           </Item.Content>
           <Item.Actions>
-            <Badge variant={comment.status === "deleted" ? "destructive" : "outline"}>
-              {statusLabel(comment.status)}
-            </Badge>
+            <ModerationStatusBadge
+              label={statusLabel(comment.status)}
+              status={comment.status}
+            />
           </Item.Actions>
         </button>
       {/snippet}
