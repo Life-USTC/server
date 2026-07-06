@@ -1,3 +1,20 @@
+# [1.47.0](https://github.com/Life-USTC/server/compare/v1.46.0...v1.47.0) (2026-07-06)
+
+
+### Bug Fixes
+
+* **audit:** import order, trailing newline, built-in glob, class directives ([33f2558](https://github.com/Life-USTC/server/commit/33f25583666b2964f16eb62f4667a4790cafb09d))
+* **audit:** sort file list for reproducible output ([e3b7bcb](https://github.com/Life-USTC/server/commit/e3b7bcbe24da2551466fad1ce092ce6390d97e68))
+* **classifier:** template literals, helper calls, tabular-nums, space utilities ([7694f2d](https://github.com/Life-USTC/server/commit/7694f2d70d8b4df49bc8e1f8acada89d6c701e63))
+* **dashboard:** restore sessionHref prop removed during cleanup ([13ca235](https://github.com/Life-USTC/server/commit/13ca235e587b79d956351661066662fb145498bc))
+* **lint:** add shadcn class usage baseline allowlist ([744faed](https://github.com/Life-USTC/server/commit/744faedd4dc05114044f29c3890a8852bf347900))
+* **review:** address code review feedback for shadcn styling cleanup ([9231b29](https://github.com/Life-USTC/server/commit/9231b294d649f27a154caff6f74aed4ad9270edd))
+
+
+### Features
+
+* **ci:** add shadcn class usage lint guard ([9a9b6ba](https://github.com/Life-USTC/server/commit/9a9b6ba1d75a9537f30d84b7c3ed76e6bb586344))
+
 # [1.46.0](https://github.com/Life-USTC/server/compare/v1.45.1...v1.46.0) (2026-07-06)
 
 
