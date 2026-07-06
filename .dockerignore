@@ -3,6 +3,9 @@ node_modules
 npm-debug.log
 bun.lockb
 
+# Task / planning files
+.superpowers
+
 # Build artifacts
 out
 dist
