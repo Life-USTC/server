@@ -29,6 +29,7 @@ export let dueTodayHomeworks: DashboardHomeworkItem[];
 export let dueTodayTodos: DashboardTodoItem[];
 export let overdueHomeworks: DashboardHomeworkItem[];
 export let overdueTodos: DashboardTodoItem[];
+export let sessionHref: (session: DashboardSessionItem) => string;
 </script>
 
 <div class="grid gap-4 lg:grid-cols-2">
