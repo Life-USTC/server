@@ -25,17 +25,17 @@
 
 ## Remediation Tally
 
-Total usages: **707** — keep: **535**, convert: **160**, review: **12**.
+Total usages: **707** — keep: **527**, convert: **160**, review: **20**.
 
 | Component | Usages | Convert | Keep | Review |
 |---|---|---|---|---|
 | table.Cell | 61 | 13 | 47 | 1 |
 | button | 48 | 4 | 42 | 2 |
 | empty.Root | 41 | 20 | 19 | 2 |
-| badge | 40 | 21 | 18 | 1 |
+| badge | 40 | 21 | 11 | 8 |
 | field.Group | 39 | 4 | 35 | 0 |
 | table.Head | 38 | 0 | 38 | 0 |
-| item.Root | 36 | 1 | 34 | 1 |
+| item.Root | 36 | 1 | 33 | 2 |
 | item.Group | 27 | 0 | 27 | 0 |
 | card.Content | 26 | 3 | 23 | 0 |
 | item.Description | 26 | 11 | 15 | 0 |
@@ -544,8 +544,8 @@ Total usages: **707** — keep: **535**, convert: **160**, review: **12**.
     "classValue": "{cn(\"border-l-4\", statusBorderClass(comment.status))}",
     "styleValue": null,
     "decision": "review",
-    "action": "inspect dynamic expression; convert styling tokens to variants or theme tokens",
-    "reason": "dynamic class expression may contain styling overrides: border-l-4"
+    "action": "inspect helper function call; replace with variant or theme token",
+    "reason": "class expression uses a helper that may return raw styling classes"
   }
   ```
 
@@ -613,9 +613,9 @@ Total usages: **707** — keep: **535**, convert: **160**, review: **12**.
     "tag": "<Badge",
     "classValue": "{statusBadgeClass(comment.status)}",
     "styleValue": null,
-    "decision": "keep",
-    "action": "no class tokens to remediate",
-    "reason": "empty or expression-only class value with no static styling tokens"
+    "decision": "review",
+    "action": "inspect helper function call; replace with variant or theme token",
+    "reason": "class expression uses a helper that may return raw styling classes"
   }
   ```
 
@@ -669,9 +669,9 @@ Total usages: **707** — keep: **535**, convert: **160**, review: **12**.
     "tag": "<Item.Root",
     "classValue": "{`items-start border-l-4 ${statusBorderClass(comment.status)}`}",
     "styleValue": null,
-    "decision": "keep",
-    "action": "no class tokens to remediate",
-    "reason": "empty or expression-only class value with no static styling tokens"
+    "decision": "review",
+    "action": "inspect helper function call; replace with variant or theme token",
+    "reason": "class expression uses a helper that may return raw styling classes"
   }
   ```
 
@@ -711,9 +711,9 @@ Total usages: **707** — keep: **535**, convert: **160**, review: **12**.
     "tag": "<Badge",
     "classValue": "{statusBadgeClass(comment.status)}",
     "styleValue": null,
-    "decision": "keep",
-    "action": "no class tokens to remediate",
-    "reason": "empty or expression-only class value with no static styling tokens"
+    "decision": "review",
+    "action": "inspect helper function call; replace with variant or theme token",
+    "reason": "class expression uses a helper that may return raw styling classes"
   }
   ```
 
@@ -1804,8 +1804,8 @@ Total usages: **707** — keep: **535**, convert: **160**, review: **12**.
     "classValue": "{`items-start border-l-4 text-left ${user.activeSuspension ? \"border-l-warning\" : user.isAdmin ? \"border-l-success\" : \"border-l-primary\"}`}",
     "styleValue": null,
     "decision": "convert",
-    "action": "remove or replace styling tokens: border-l-warning, border-l-success, border-l-primary",
-    "reason": "contains only styling overrides (color, typography, surface)"
+    "action": "keep layout tokens (items-start, text-left); convert styling tokens: border-l-warning, border-l-success, border-l-primary, border-l-4",
+    "reason": "mixes layout and styling tokens"
   }
   ```
 
@@ -1986,8 +1986,8 @@ Total usages: **707** — keep: **535**, convert: **160**, review: **12**.
     "classValue": "\"font-mono tabular-nums\"",
     "styleValue": null,
     "decision": "convert",
-    "action": "keep layout tokens (tabular-nums); convert styling tokens: font-mono",
-    "reason": "mixes layout and styling tokens"
+    "action": "remove or replace styling tokens: font-mono, tabular-nums",
+    "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
 
@@ -4352,7 +4352,7 @@ Total usages: **707** — keep: **535**, convert: **160**, review: **12**.
     "classValue": "{`transition-colors duration-300 ${highlightedId === comment.id ? \"ring-2 ring-primary/40\" : \"\"}`}",
     "styleValue": null,
     "decision": "convert",
-    "action": "remove or replace styling tokens: ring-2, ring-primary/40",
+    "action": "remove or replace styling tokens: ring-2, ring-primary/40, transition-colors, duration-300",
     "reason": "contains only styling overrides (color, typography, surface)"
   }
   ```
@@ -4731,7 +4731,7 @@ Total usages: **707** — keep: **535**, convert: **160**, review: **12**.
     "styleValue": null,
     "decision": "review",
     "action": "inspect dynamic expression; convert styling tokens to variants or theme tokens",
-    "reason": "dynamic class expression may contain styling overrides: font-mono"
+    "reason": "dynamic class expression may contain styling overrides: font-mono, tabular-nums"
   }
   ```
 
@@ -6045,9 +6045,9 @@ Total usages: **707** — keep: **535**, convert: **160**, review: **12**.
     "tag": "<Badge",
     "classValue": "{todoPriorityClass(todo.priority)}",
     "styleValue": null,
-    "decision": "keep",
-    "action": "no class tokens to remediate",
-    "reason": "empty or expression-only class value with no static styling tokens"
+    "decision": "review",
+    "action": "inspect helper function call; replace with variant or theme token",
+    "reason": "class expression uses a helper that may return raw styling classes"
   }
   ```
 
@@ -6101,9 +6101,9 @@ Total usages: **707** — keep: **535**, convert: **160**, review: **12**.
     "tag": "<Badge",
     "classValue": "{todoPriorityClass(todo.priority)}",
     "styleValue": null,
-    "decision": "keep",
-    "action": "no class tokens to remediate",
-    "reason": "empty or expression-only class value with no static styling tokens"
+    "decision": "review",
+    "action": "inspect helper function call; replace with variant or theme token",
+    "reason": "class expression uses a helper that may return raw styling classes"
   }
   ```
 
@@ -6521,9 +6521,9 @@ Total usages: **707** — keep: **535**, convert: **160**, review: **12**.
     "tag": "<Badge",
     "classValue": "{todoPriorityClass(todo.priority)}",
     "styleValue": null,
-    "decision": "keep",
-    "action": "no class tokens to remediate",
-    "reason": "empty or expression-only class value with no static styling tokens"
+    "decision": "review",
+    "action": "inspect helper function call; replace with variant or theme token",
+    "reason": "class expression uses a helper that may return raw styling classes"
   }
   ```
 
@@ -6619,9 +6619,9 @@ Total usages: **707** — keep: **535**, convert: **160**, review: **12**.
     "tag": "<Badge",
     "classValue": "{todoPriorityClass(todo.priority)}",
     "styleValue": null,
-    "decision": "keep",
-    "action": "no class tokens to remediate",
-    "reason": "empty or expression-only class value with no static styling tokens"
+    "decision": "review",
+    "action": "inspect helper function call; replace with variant or theme token",
+    "reason": "class expression uses a helper that may return raw styling classes"
   }
   ```
 
@@ -6717,9 +6717,9 @@ Total usages: **707** — keep: **535**, convert: **160**, review: **12**.
     "tag": "<Badge",
     "classValue": "{todoPriorityClass(todo.priority)}",
     "styleValue": null,
-    "decision": "keep",
-    "action": "no class tokens to remediate",
-    "reason": "empty or expression-only class value with no static styling tokens"
+    "decision": "review",
+    "action": "inspect helper function call; replace with variant or theme token",
+    "reason": "class expression uses a helper that may return raw styling classes"
   }
   ```
 
@@ -9616,8 +9616,8 @@ Total usages: **707** — keep: **535**, convert: **160**, review: **12**.
     "classValue": "{cn(\n          \"min-w-0 rounded-md text-xs no-underline\",\n          toneClass(),\n          done ? \"grayscale opacity-60\" : undefined,\n        )}",
     "styleValue": null,
     "decision": "review",
-    "action": "inspect dynamic expression; convert styling tokens to variants or theme tokens",
-    "reason": "dynamic class expression may contain styling overrides: rounded-md, text-xs, no-underline, grayscale, opacity-60"
+    "action": "inspect helper function call; replace with variant or theme token",
+    "reason": "class expression uses a helper that may return raw styling classes"
   }
   ```
 
@@ -9700,7 +9700,7 @@ Total usages: **707** — keep: **535**, convert: **160**, review: **12**.
     "classValue": "\"h-5 min-w-5 rounded-full px-1 font-mono tabular-nums\"",
     "styleValue": null,
     "decision": "convert",
-    "action": "keep layout tokens (h-5, min-w-5, px-1, tabular-nums); convert styling tokens: rounded-full, font-mono",
+    "action": "keep layout tokens (h-5, min-w-5, px-1); convert styling tokens: rounded-full, font-mono, tabular-nums",
     "reason": "mixes layout and styling tokens"
   }
   ```
@@ -9714,7 +9714,7 @@ Total usages: **707** — keep: **535**, convert: **160**, review: **12**.
     "classValue": "\"h-5 min-w-5 rounded-full px-1 font-mono tabular-nums\"",
     "styleValue": null,
     "decision": "convert",
-    "action": "keep layout tokens (h-5, min-w-5, px-1, tabular-nums); convert styling tokens: rounded-full, font-mono",
+    "action": "keep layout tokens (h-5, min-w-5, px-1); convert styling tokens: rounded-full, font-mono, tabular-nums",
     "reason": "mixes layout and styling tokens"
   }
   ```
