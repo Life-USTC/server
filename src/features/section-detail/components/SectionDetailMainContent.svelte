@@ -1,26 +1,20 @@
 <script lang="ts">
 import BookOpenTextIcon from "@lucide/svelte/icons/book-open-text";
-import CalendarIcon from "@lucide/svelte/icons/calendar";
 import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
-import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import ClipboardListIcon from "@lucide/svelte/icons/clipboard-list";
 import GraduationCapIcon from "@lucide/svelte/icons/graduation-cap";
 import InfoIcon from "@lucide/svelte/icons/info";
-import LinkIcon from "@lucide/svelte/icons/link-2";
 import MessageSquareIcon from "@lucide/svelte/icons/message-square";
 import UsersIcon from "@lucide/svelte/icons/users";
 import type { SubmitFunction } from "@sveltejs/kit";
 import CommentsPanel from "@/features/comments/components/CommentsPanel.svelte";
 import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-helpers";
-import { enhance } from "$app/forms";
-import DetailPinnedSummary from "$lib/components/DetailPinnedSummary.svelte";
 import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
-import * as Alert from "$lib/components/ui/alert/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import SectionBasicInfoCard from "./SectionBasicInfoCard.svelte";
 import SectionCalendarTab from "./SectionCalendarTab.svelte";
+import SectionDetailHeader from "./SectionDetailHeader.svelte";
 import SectionExamSection from "./SectionExamSection.svelte";
 import SectionHomeworkTab from "./SectionHomeworkTab.svelte";
 import SectionTeachersCard from "./SectionTeachersCard.svelte";
@@ -29,12 +23,6 @@ import type {
   FormatMessage,
 } from "./section-detail-component-types";
 import type { SectionDetailMainContentProps } from "./section-detail-dialog-types";
-
-type PinnedSummaryItem = {
-  label: string;
-  mono?: boolean;
-  variant?: "ghost" | "outline" | "secondary";
-};
 
 type SubscriptionActionKey = "subscribe" | "unsubscribe";
 
@@ -142,68 +130,25 @@ $: sectionNavItems = [
 $: activeNavItem =
   sectionNavItems.find((item) => item.key === data.detailSection) ??
   sectionNavItems[0];
-$: sectionCapacity =
-  data.section.stdCount != null || data.section.limitCount != null
-    ? `${data.section.stdCount ?? 0} / ${data.section.limitCount ?? notAvailable}`
-    : "";
-$: pinnedSummaryItems = [
-  { label: data.section.code, mono: true, variant: "outline" as const },
-  ...(data.section.semester
-    ? [{ label: data.section.semester.nameCn ?? notAvailable }]
-    : []),
-  ...(data.section.campus ? [{ label: primaryName(data.section.campus) }] : []),
-  ...(sectionCapacity ? [{ label: sectionCapacity }] : []),
-] satisfies PinnedSummaryItem[];
 </script>
 
 <div class="grid min-h-full grid-rows-[auto_minmax(0,1fr)] bg-card lg:h-full lg:min-h-0">
-  <DetailPinnedSummary
-    items={pinnedSummaryItems}
-    statusVisible={Boolean(formError)}
-    title={courseName}
-    description={courseSecondaryName}
-  >
-    {#snippet actions()}
-      <Button variant="outline" type="button" onclick={openCalendarDialog}>
-        <CalendarIcon data-icon="inline-start" />
-        {sectionCopy.addToCalendar}
-      </Button>
-      {#if data.viewer.isSubscribed}
-        <form
-          method="POST"
-          action="?/unsubscribe"
-          use:enhance={subscriptionAction("unsubscribe")}
-        >
-          <Button
-            variant="outline"
-            type="submit"
-            disabled={subscriptionPendingAction === "unsubscribe"}
-          >
-            <CheckCircleIcon data-icon="inline-start" />
-            {subscriptionPendingAction === "unsubscribe"
-              ? sectionCopy.unsubscribing
-              : sectionCopy.unsubscribeLabel}
-          </Button>
-        </form>
-      {:else}
-        <form method="GET">
-          <input name="subscribe" type="hidden" value="1" />
-          <Button type="submit" onclick={openSubscribeDialog}>
-            <LinkIcon data-icon="inline-start" />
-            {sectionCopy.subscribeLabel}
-          </Button>
-        </form>
-      {/if}
-    {/snippet}
-
-    {#snippet status()}
-      {#if formError}
-        <Alert.Root variant="destructive">
-          <Alert.Description>{formError}</Alert.Description>
-        </Alert.Root>
-      {/if}
-    {/snippet}
-  </DetailPinnedSummary>
+  <div class="px-4 sm:px-5 lg:px-6" data-testid="detail-pinned-summary">
+    <SectionDetailHeader
+      courseName={courseName}
+      courseSecondaryName={courseSecondaryName}
+      formError={formError}
+      notAvailable={notAvailable}
+      onOpenCalendar={openCalendarDialog}
+      onOpenSubscribe={openSubscribeDialog}
+      primaryName={primaryName}
+      section={data.section}
+      sectionCopy={sectionCopy}
+      subscriptionAction={subscriptionAction}
+      subscriptionPendingAction={subscriptionPendingAction}
+      viewer={data.viewer}
+    />
+  </div>
 
   <div class="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] bg-card lg:grid-cols-[auto_minmax(0,1fr)] lg:grid-rows-none">
     <DetailSectionNav

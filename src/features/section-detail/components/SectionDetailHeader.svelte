@@ -32,7 +32,7 @@ type SectionHeaderSection = {
 };
 
 type SectionHeaderViewer = {
-  isSubscribed: boolean;
+  isSubscribed?: boolean;
 };
 
 type SubscriptionActionKey = "subscribe" | "unsubscribe";

@@ -6,8 +6,9 @@ import MessageSquareIcon from "@lucide/svelte/icons/message-square";
 import CommentsPanel from "@/features/comments/components/CommentsPanel.svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
-import DetailPinnedSummary from "$lib/components/DetailPinnedSummary.svelte";
 import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
+import PageHeader from "$lib/components/PageHeader.svelte";
+import { Badge } from "$lib/components/ui/badge/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import {
   type CatalogNamed,
@@ -55,12 +56,6 @@ type PageData = {
   detailSection: "overview" | "introduction" | "sections" | "comments";
   locale: string;
   teacher: TeacherDetailData;
-};
-
-type PinnedSummaryItem = {
-  label: string;
-  mono?: boolean;
-  variant?: "ghost" | "outline" | "secondary";
 };
 
 export let data: PageData;
@@ -111,22 +106,6 @@ $: sectionNavItems = [
 $: activeNavItem =
   sectionNavItems.find((item) => item.key === data.detailSection) ??
   sectionNavItems[0];
-$: pinnedSummaryItems = [
-  ...(data.teacher.department
-    ? [
-        {
-          label: primaryName(data.teacher.department),
-          variant: "outline" as const,
-        },
-      ]
-    : []),
-  ...(data.teacher.teacherTitle
-    ? [{ label: primaryName(data.teacher.teacherTitle) }]
-    : []),
-  ...(data.teacher.email
-    ? [{ label: data.teacher.email, variant: "secondary" as const }]
-    : []),
-] satisfies PinnedSummaryItem[];
 </script>
 
 <svelte:head>
@@ -136,11 +115,23 @@ $: pinnedSummaryItems = [
 </svelte:head>
 
 <section class="grid min-h-full grid-rows-[auto_minmax(0,1fr)] bg-card lg:h-full lg:min-h-0">
-  <DetailPinnedSummary
-    items={pinnedSummaryItems}
-    title={displayName}
-    description={teacherDescription}
-  />
+  <div class="px-4 sm:px-5 lg:px-6">
+    <PageHeader title={displayName} description={teacherDescription}>
+      {#snippet after()}
+        <div class="flex flex-wrap gap-2">
+          {#if data.teacher.department}
+            <Badge class="font-mono" variant="outline">{primaryName(data.teacher.department)}</Badge>
+          {/if}
+          {#if data.teacher.teacherTitle}
+            <Badge variant="ghost">{primaryName(data.teacher.teacherTitle)}</Badge>
+          {/if}
+          {#if data.teacher.email}
+            <Badge variant="secondary">{data.teacher.email}</Badge>
+          {/if}
+        </div>
+      {/snippet}
+    </PageHeader>
+  </div>
 
   <div class="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] bg-card lg:grid-cols-[auto_minmax(0,1fr)] lg:grid-rows-none">
     <DetailSectionNav

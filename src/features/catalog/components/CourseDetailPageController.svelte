@@ -6,8 +6,9 @@ import MessageSquareIcon from "@lucide/svelte/icons/message-square";
 import CommentsPanel from "@/features/comments/components/CommentsPanel.svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
-import DetailPinnedSummary from "$lib/components/DetailPinnedSummary.svelte";
 import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
+import PageHeader from "$lib/components/PageHeader.svelte";
+import { Badge } from "$lib/components/ui/badge/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import type { CatalogNamed } from "../lib/catalog-list-display";
 import {
@@ -68,12 +69,6 @@ type PageData = {
   locale: string;
 };
 
-type PinnedSummaryItem = {
-  label: string;
-  mono?: boolean;
-  variant?: "ghost" | "outline" | "secondary";
-};
-
 export let data: PageData;
 
 $: copy = data.copy;
@@ -119,19 +114,6 @@ $: sectionNavItems = [
 $: activeNavItem =
   sectionNavItems.find((item) => item.key === data.detailSection) ??
   sectionNavItems[0];
-$: pinnedSummaryItems = [
-  { label: data.course.code, mono: true, variant: "outline" as const },
-  ...(data.course.educationLevel
-    ? [{ label: primaryName(data.course.educationLevel) }]
-    : []),
-  ...(data.course.category
-    ? [{ label: primaryName(data.course.category) }]
-    : []),
-  ...(data.course.classType
-    ? [{ label: primaryName(data.course.classType) }]
-    : []),
-  ...(data.course.type ? [{ label: primaryName(data.course.type) }] : []),
-] satisfies PinnedSummaryItem[];
 </script>
 
 <svelte:head>
@@ -141,11 +123,27 @@ $: pinnedSummaryItems = [
 </svelte:head>
 
 <section class="grid min-h-full grid-rows-[auto_minmax(0,1fr)] bg-card lg:h-full lg:min-h-0">
-  <DetailPinnedSummary
-    items={pinnedSummaryItems}
-    title={displayName}
-    description={secondaryDisplayName}
-  />
+  <div class="px-4 sm:px-5 lg:px-6">
+    <PageHeader title={displayName} description={secondaryDisplayName}>
+      {#snippet after()}
+        <div class="flex flex-wrap gap-2">
+          <Badge class="font-mono" variant="outline">{data.course.code}</Badge>
+          {#if data.course.educationLevel}
+            <Badge variant="ghost">{primaryName(data.course.educationLevel)}</Badge>
+          {/if}
+          {#if data.course.category}
+            <Badge variant="ghost">{primaryName(data.course.category)}</Badge>
+          {/if}
+          {#if data.course.classType}
+            <Badge variant="ghost">{primaryName(data.course.classType)}</Badge>
+          {/if}
+          {#if data.course.type}
+            <Badge variant="ghost">{primaryName(data.course.type)}</Badge>
+          {/if}
+        </div>
+      {/snippet}
+    </PageHeader>
+  </div>
 
   <div class="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] bg-card lg:grid-cols-[auto_minmax(0,1fr)] lg:grid-rows-none">
     <DetailSectionNav
