@@ -13,16 +13,6 @@ export type SignedTabId = (typeof signedTabIds)[number];
 
 const signedTabIdSet = new Set<string>(signedTabIds);
 
-type DashboardNavData = {
-  navStats: {
-    calendarItemsCount: number;
-    examsCount: number;
-    pendingHomeworksCount: number;
-    pendingTodosCount: number;
-  };
-  subscribedSectionCount: number;
-};
-
 export function isSignedDashboardTab(
   value: string | null | undefined,
 ): value is SignedTabId {
@@ -42,13 +32,4 @@ export function dashboardTabHref(
   const search = query.toString();
   const path = `/dashboard/${id}`;
   return `${path}${search ? `?${search}` : ""}`;
-}
-
-export function signedTabBadge(signedData: DashboardNavData, id: string) {
-  if (id === "homeworks") return signedData.navStats.pendingHomeworksCount;
-  if (id === "todos") return signedData.navStats.pendingTodosCount;
-  if (id === "exams") return signedData.navStats.examsCount;
-  if (id === "subscriptions") return signedData.subscribedSectionCount;
-  if (id === "calendar") return signedData.navStats.calendarItemsCount;
-  return null;
 }

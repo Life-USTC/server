@@ -1,7 +1,4 @@
-export {
-  buildCalendarWeekdayLabels,
-  buildSignedTabs,
-} from "./dashboard-controller-labels";
+export { buildCalendarWeekdayLabels } from "./dashboard-controller-labels";
 export const todoPriorityOrder = ["medium", "high", "low"] as const;
 export {
   homeworkDueAtSemesterEnd,

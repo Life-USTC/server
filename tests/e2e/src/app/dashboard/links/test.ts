@@ -23,6 +23,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import { sidebarDashboardLink } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
@@ -100,7 +101,10 @@ test.describe("仪表盘网站链接", () => {
   test("登录后可以导航到链接标签", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/");
 
-    const linksTab = page.getByRole("link", { name: /网站|Websites/i }).first();
+    const linksTab = sidebarDashboardLink(
+      page,
+      /^(工作台网站目录|Workspace web directory)$/i,
+    );
     await expect(linksTab).toBeVisible();
     await linksTab.click();
 

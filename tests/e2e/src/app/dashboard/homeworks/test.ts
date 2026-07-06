@@ -212,14 +212,7 @@ test.describe("仪表盘作业", () => {
       .first();
     await expect(completionButton).toHaveCSS("opacity", "1");
 
-    const homeworksTab = page
-      .getByRole("link", { name: /作业|Homework/i })
-      .first();
-    const homeworksBadge = homeworksTab.locator('[data-slot="badge"]');
-    const beforeBadge = Number((await homeworksBadge.textContent())?.trim());
-    expect(Number.isFinite(beforeBadge)).toBe(true);
     const before = (await completionButton.textContent())?.trim() ?? "";
-    const marksComplete = /标记为完成|Mark as complete/i.test(before);
 
     const completionResponse = page.waitForResponse(
       (r) =>
@@ -233,9 +226,6 @@ test.describe("仪表盘作业", () => {
 
     const after = (await completionButton.textContent())?.trim() ?? "";
     expect(after).not.toBe(before);
-    await expect(homeworksBadge).toHaveText(
-      String(marksComplete ? beforeBadge - 1 : beforeBadge + 1),
-    );
     await captureStepScreenshot(page, testInfo, "homeworks/completion-toggled");
 
     // Restore
@@ -247,7 +237,6 @@ test.describe("仪表盘作业", () => {
     );
     await completionButton.click();
     await restoreResponse;
-    await expect(homeworksBadge).toHaveText(String(beforeBadge));
   });
 
   test("完成状态更新失败显示本地化仪表盘错误", async ({ page }, testInfo) => {

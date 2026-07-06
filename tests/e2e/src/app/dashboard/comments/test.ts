@@ -16,6 +16,10 @@
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
+import {
+  expandDashboardSidebarGroup,
+  sidebarDashboardLink,
+} from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
@@ -63,10 +67,11 @@ test.describe("仪表盘无效标签（comments）", () => {
     await expect(page.locator("#main-content")).toBeVisible();
     await expect(page.locator("#app-user-menu")).toBeVisible();
 
-    // Overview is the fallback — should show the overview tab as active
+    // Overview is the fallback — should show the overview sidebar entry as active
+    await expandDashboardSidebarGroup(page);
     await expect(
-      page.getByRole("link", { name: /^(总览|Overview)$/i }),
-    ).toBeVisible();
+      sidebarDashboardLink(page, /^(工作台首页|Workspace start)$/i),
+    ).toHaveAttribute("aria-current", "page");
 
     await captureStepScreenshot(page, testInfo, "home-comments-seed");
   });

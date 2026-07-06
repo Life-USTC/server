@@ -2,14 +2,10 @@
 import BookOpenIcon from "@lucide/svelte/icons/book-open";
 import BusIcon from "@lucide/svelte/icons/bus";
 import BusFrontIcon from "@lucide/svelte/icons/bus-front";
-import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
-import ClipboardListIcon from "@lucide/svelte/icons/clipboard-list";
 import GavelIcon from "@lucide/svelte/icons/gavel";
-import GraduationCapIcon from "@lucide/svelte/icons/graduation-cap";
 import KeyIcon from "@lucide/svelte/icons/key";
 import LayoutDashboardIcon from "@lucide/svelte/icons/layout-dashboard";
 import LinkIcon from "@lucide/svelte/icons/link";
-import ListTodoIcon from "@lucide/svelte/icons/list-todo";
 import MapIcon from "@lucide/svelte/icons/map";
 import RouteIcon from "@lucide/svelte/icons/route";
 import ShieldIcon from "@lucide/svelte/icons/shield";
@@ -122,40 +118,41 @@ function buildShellNavGroups(
       label: copy.nav.groups.workspace,
       links: [
         {
-          ariaLabel: copy.nav.workspaceOverview,
-          href: "/dashboard/overview",
+          href: "/dashboard",
           icon: LayoutDashboardIcon,
-          label: copy.nav.overview,
-        },
-        {
-          ariaLabel: copy.nav.workspaceCalendar,
-          href: "/dashboard/calendar",
-          icon: CalendarDaysIcon,
-          label: copy.nav.calendar,
-        },
-        {
-          ariaLabel: copy.nav.workspaceHomeworks,
-          href: "/dashboard/homeworks",
-          icon: ClipboardListIcon,
-          label: copy.nav.homeworks,
-        },
-        {
-          ariaLabel: copy.nav.workspaceTodos,
-          href: "/dashboard/todos",
-          icon: ListTodoIcon,
-          label: copy.nav.todos,
-        },
-        {
-          ariaLabel: copy.nav.workspaceExams,
-          href: "/dashboard/exams",
-          icon: GraduationCapIcon,
-          label: copy.nav.exams,
-        },
-        {
-          ariaLabel: copy.nav.workspaceSubscriptions,
-          href: "/dashboard/subscriptions",
-          icon: RouteIcon,
-          label: copy.nav.subscriptions,
+          items: [
+            {
+              ariaLabel: copy.nav.workspaceOverview,
+              href: "/dashboard/overview",
+              label: copy.nav.overview,
+            },
+            {
+              ariaLabel: copy.nav.workspaceCalendar,
+              href: "/dashboard/calendar",
+              label: copy.nav.calendar,
+            },
+            {
+              ariaLabel: copy.nav.workspaceHomeworks,
+              href: "/dashboard/homeworks",
+              label: copy.nav.homeworks,
+            },
+            {
+              ariaLabel: copy.nav.workspaceTodos,
+              href: "/dashboard/todos",
+              label: copy.nav.todos,
+            },
+            {
+              ariaLabel: copy.nav.workspaceExams,
+              href: "/dashboard/exams",
+              label: copy.nav.exams,
+            },
+            {
+              ariaLabel: copy.nav.workspaceSubscriptions,
+              href: "/dashboard/subscriptions",
+              label: copy.nav.subscriptions,
+            },
+          ],
+          label: copy.nav.dashboard,
         },
       ],
     },
@@ -195,7 +192,15 @@ function isActiveLink(link: ShellLink) {
     return pathname === "/" && $page.url.searchParams.get("tab") === "links";
   }
   if (target.pathname === "/dashboard/overview") {
-    return pathname === "/dashboard" || pathname === "/dashboard/overview";
+    if (pathname === "/dashboard" || pathname === "/dashboard/overview") {
+      return true;
+    }
+    // Signed-in fallback to overview on the home route (e.g. /?tab=comments)
+    if (pathname === "/" && data.user) {
+      const tab = $page.url.searchParams.get("tab");
+      return tab !== "bus" && tab !== "links";
+    }
+    return false;
   }
   if (target.pathname.startsWith("/dashboard/")) {
     return pathname === target.pathname;

@@ -40,17 +40,12 @@ import {
   todoPriorityOrder,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
 import { createDashboardHomeworkStateActions } from "@/features/dashboard/lib/dashboard-controller-homework-state-actions";
-import { buildSignedTabs } from "@/features/dashboard/lib/dashboard-controller-labels";
 import { createDashboardLinkStateActions } from "@/features/dashboard/lib/dashboard-controller-link-state-actions";
 import { mountDashboardController } from "@/features/dashboard/lib/dashboard-controller-mount";
 import { createDashboardSubscriptionActions } from "@/features/dashboard/lib/dashboard-controller-subscription-actions";
 import { createDashboardTodoActions } from "@/features/dashboard/lib/dashboard-controller-todo-actions";
 import { linkIconLabel } from "@/features/dashboard/lib/dashboard-link-ui";
-import {
-  dashboardTabHref,
-  signedTabBadge,
-  signedTabIds,
-} from "@/features/dashboard/lib/dashboard-nav";
+import { dashboardTabHref } from "@/features/dashboard/lib/dashboard-nav";
 import {
   examReferenceNow,
   examTimeLabel,
@@ -72,7 +67,6 @@ import type { DashboardCalendarTabProps } from "./dashboard-calendar-component-t
 import SignedDashboardOverviewBranch from "./SignedDashboardOverviewBranch.svelte";
 import SignedDashboardPublicTabs from "./SignedDashboardPublicTabs.svelte";
 import SignedDashboardSubscriptionsBranch from "./SignedDashboardSubscriptionsBranch.svelte";
-import SignedDashboardTabsNav from "./SignedDashboardTabsNav.svelte";
 import SignedDashboardTaskTabs from "./SignedDashboardTaskTabs.svelte";
 import type { DashboardSubscriptionsTabProps } from "./subscription-tab-types";
 
@@ -491,7 +485,6 @@ $: overviewLinkItems = derivedState.overviewLinkItems;
 $: signedLinkGroups = derivedState.signedLinkGroups;
 $: anonymousLinkGroups = derivedState.anonymousLinkGroups;
 $: calendarData = derivedState.calendarData;
-$: signedTabs = buildSignedTabs(signedTabIds, dashboardCopy);
 $: syncCalendarStateFromUrl($page.url, calendarData);
 $: selectedImportSectionIdSet = new Set(selectedImportSectionIds);
 $: selectedImportCount = selectedImportSectionIds.length;
@@ -538,14 +531,6 @@ onMount(() => {
   />
 
   {#if signedData}
-    <SignedDashboardTabsNav
-      {dashboardCopy}
-      {dashboardTabHref}
-      {signedData}
-      {signedTabBadge}
-      {signedTabs}
-    />
-
     {#if signedData.tab === "overview"}
       <SignedDashboardOverviewBranch
         {calendarTimelineItemsForDay}
