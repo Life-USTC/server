@@ -3,7 +3,7 @@ import path from "node:path";
 import { type AST, parse } from "svelte/compiler";
 
 const UI_DIR = "src/lib/components/ui";
-const BASELINE_PATH = "docs/superpowers/artifacts/shadcn-lint-baseline.json";
+const BASELINE_PATH = "scripts/shadcn-lint-baseline.json";
 
 type BaselineEntry = {
   file: string;
