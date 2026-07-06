@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { existsSync } from "node:fs";
-import { writeFile } from "node:fs/promises";
+import { rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { runImport } from "./import";
 import { createPrismaClient } from "./prisma";
@@ -31,16 +31,59 @@ function parseIntDefault(
   return Number.isNaN(parsed) ? defaultValue : parsed;
 }
 
-async function resolveSnapshotPath(): Promise<string> {
-  const localPath = process.env.STATIC_SNAPSHOT_PATH;
-  if (localPath && existsSync(localPath)) {
-    console.log(`Using local snapshot: ${localPath}`);
-    return localPath;
+async function downloadWithRetry(
+  url: string,
+  path: string,
+  retries = 3,
+): Promise<void> {
+  const timeoutMs = 5 * 60 * 1000;
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      console.log(
+        `Downloading snapshot from ${url} (attempt ${attempt}/${retries})`,
+      );
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) {
+        throw new Error(
+          `Failed to download snapshot: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const buffer = await response.arrayBuffer();
+      await writeFile(path, new Uint8Array(buffer));
+      console.log(`Downloaded ${buffer.byteLength} bytes`);
+      return;
+    } catch (error) {
+      lastError = error;
+      console.warn(`Download attempt ${attempt} failed:`, error);
+      if (attempt < retries) {
+        const delay = 1000 * 2 ** (attempt - 1);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
   }
+
+  throw lastError;
+}
+
+async function resolveSnapshotPath(): Promise<{
+  path: string;
+  temporary: boolean;
+}> {
+  const localPath = process.env.STATIC_SNAPSHOT_PATH;
   if (localPath) {
-    console.warn(
-      `STATIC_SNAPSHOT_PATH ${localPath} does not exist, falling back to download`,
-    );
+    if (!existsSync(localPath)) {
+      throw new Error(`STATIC_SNAPSHOT_PATH ${localPath} does not exist`);
+    }
+    console.log(`Using local snapshot: ${localPath}`);
+    return { path: localPath, temporary: false };
   }
 
   const url = getEnv(
@@ -48,28 +91,17 @@ async function resolveSnapshotPath(): Promise<string> {
     "https://static.life-ustc.tiankaima.dev/life-ustc-static.sqlite",
   );
   const tempPath = `${tmpdir()}/life-ustc-static-${Date.now()}.sqlite`;
-  console.log(`Downloading snapshot from ${url} to ${tempPath}`);
-
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(
-      `Failed to download snapshot: ${response.status} ${response.statusText}`,
-    );
-  }
-
-  const buffer = await response.arrayBuffer();
-  await writeFile(tempPath, new Uint8Array(buffer));
-  console.log(`Downloaded ${buffer.byteLength} bytes`);
-  return tempPath;
+  await downloadWithRetry(url, tempPath);
+  return { path: tempPath, temporary: true };
 }
 
 function maskDatabaseUrl(url: string): string {
-  return url.replace(/:\/\/[^:]+:[^@]+@/, "://***@");
+  return url.replace(/:\/\/([^:@]+)(:[^@]+)?@/, "://***@");
 }
 
 async function main() {
   const databaseUrl = getEnv("DATABASE_URL");
-  const snapshotPath = await resolveSnapshotPath();
+  const { path: snapshotPath, temporary } = await resolveSnapshotPath();
   const minSemester = parseIntDefault(
     process.env.STATIC_LOADER_MIN_SEMESTER,
     401,
@@ -80,9 +112,11 @@ async function main() {
   console.log(`minSemester: ${minSemester}`);
   console.log(`dryRun: ${dryRun}`);
 
-  const prisma = createPrismaClient();
+  let prisma: ReturnType<typeof createPrismaClient> | undefined;
 
   try {
+    prisma = createPrismaClient();
+
     const snapshot = new Snapshot(snapshotPath);
     const metadata = snapshot.metadata();
     snapshot.close();
@@ -98,7 +132,17 @@ async function main() {
     console.error("Import failed:", error);
     process.exitCode = 1;
   } finally {
-    await prisma.$disconnect();
+    await prisma?.$disconnect();
+    if (temporary) {
+      try {
+        await rm(snapshotPath);
+      } catch (cleanupError) {
+        console.warn(
+          `Failed to remove temporary snapshot ${snapshotPath}:`,
+          cleanupError,
+        );
+      }
+    }
   }
 }
 
