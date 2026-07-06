@@ -27,9 +27,9 @@ export let teacherNames: (teachers: CatalogNamed[]) => string;
             </Item.Description>
           </Item.Content>
           <Item.Actions>
-            <Badge class="font-mono" variant="outline">{section.code}</Badge>
+            <Badge variant="outline">{section.code}</Badge>
           </Item.Actions>
-          <Item.Footer class="flex-wrap justify-start text-muted-foreground text-xs">
+          <Item.Footer class="flex-wrap justify-start">
             <span>{copy.courseDetail.campus}: {primaryName(section.campus) || notAvailable}</span>
             <span>{copy.courseDetail.capacity}: {section.stdCount ?? 0} / {section.limitCount ?? notAvailable}</span>
           </Item.Footer>
@@ -37,7 +37,7 @@ export let teacherNames: (teachers: CatalogNamed[]) => string;
       {/snippet}
     </Item.Root>
   {:else}
-    <Empty.Root class="border">
+    <Empty.Root>
       <Empty.Header>
         <Empty.Title>{copy.courseDetail.noSections}</Empty.Title>
       </Empty.Header>

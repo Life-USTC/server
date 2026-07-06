@@ -57,7 +57,6 @@ export let signedData: OverviewSignedData;
 export let locale: string;
 
 export let dashboardTabHref: DashboardCalendarTabHref;
-export let todoPriorityClass: (priority: string) => string;
 export let submitDashboardLinkPin: DashboardLinkPinSubmit;
 export let linkIconLabel: (icon: string) => string;
 export let calendarTimelineItemsForDay: OverviewCalendarTimelineItemsForDay;
@@ -159,7 +158,6 @@ function overviewCalendarWeekDays(
         overdueTodos={overviewOverdueTodos}
         {sessionHref}
         todaySessions={signedData.overview.todaySessions}
-        {todoPriorityClass}
         {todosCopy}
         {todoStatus}
       />
@@ -176,7 +174,6 @@ function overviewCalendarWeekDays(
         pendingHomeworks={signedData.overview.pendingHomeworks}
         pendingTodos={overviewPendingTodos}
         {sectionCopy}
-        {todoPriorityClass}
         {todosCopy}
         todosDueSoon={overviewTodosDueSoon}
         todosDueToday={overviewTodosDueToday}

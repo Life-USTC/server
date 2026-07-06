@@ -53,10 +53,10 @@ $: canAllow = scopes.length === 0 || selectedScopes.length > 0;
           />
           <Field.Content>
             <Field.Label
-              class="w-full cursor-pointer flex-wrap items-start gap-2 font-normal"
+              class="w-full cursor-pointer flex-wrap items-start gap-2"
               for={checkboxId}
             >
-              <Badge class="max-w-full whitespace-normal break-all font-mono text-left" variant="outline">{scopeItem.value}</Badge>
+              <Badge class="max-w-full whitespace-normal break-all text-left" variant="outline">{scopeItem.value}</Badge>
             </Field.Label>
             <Field.Description class="break-words">
               {scopeItem.label}

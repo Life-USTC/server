@@ -16,8 +16,6 @@ import {
   moderationCommentAuthorLabel,
   moderationDescriptionTargetHref,
   moderationFormatMessage,
-  moderationStatusBadgeClass,
-  moderationStatusBorderClass,
   moderationStatusLabel,
   moderationTargetHref,
   moderationTargetLabel,
@@ -81,8 +79,6 @@ export let visibleComments: AdminModerationComment[];
     {copy}
     formatDate={formatDate}
     onManage={onManageComment}
-    statusBadgeClass={moderationStatusBadgeClass}
-    statusBorderClass={moderationStatusBorderClass}
     statusLabel={(status) => moderationStatusLabel(status, copy)}
     targetHref={(comment: AdminModerationComment) => moderationTargetHref(comment)}
     targetLabel={(item) => moderationTargetLabel(item, copy)}

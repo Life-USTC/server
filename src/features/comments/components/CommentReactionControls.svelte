@@ -62,8 +62,6 @@ $: if (
             <DropdownMenu.CheckboxItem
               checked={reactionEntry(comment, option.type)?.viewerHasReacted ?? false}
               class={cn(
-                reactionEntry(comment, option.type)?.viewerHasReacted &&
-                  "bg-accent font-semibold text-accent-foreground",
                 pendingReactionKey && "opacity-70",
               )}
               disabled={!comment.canReact || Boolean(pendingReactionKey)}
@@ -85,11 +83,10 @@ $: if (
   {#each comment.reactions as reaction}
     <Button
       aria-label={`${reactionLabel(reaction.type)} ${reaction.count}`}
-      class={reaction.viewerHasReacted ? "border-primary/40 bg-primary/10 text-primary" : ""}
       disabled={!comment.canReact || pendingReactionKey === reactionKey(comment.id, reaction.type)}
       size="sm"
       type="button"
-      variant="outline"
+      variant={reaction.viewerHasReacted ? "default" : "outline"}
       onclick={() => react(comment, reaction.type)}
     >
       {reactionLabel(reaction.type)} {reaction.count}

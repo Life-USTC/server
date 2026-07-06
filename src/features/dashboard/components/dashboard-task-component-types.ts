@@ -55,10 +55,6 @@ export type DashboardTodoAction = (
 
 export type DashboardTodoEditor = (todo: DashboardTodoItem) => void;
 
-export type DashboardTodoPriorityClass = (
-  priority: DashboardTodoItem["priority"],
-) => string;
-
 export type DashboardTaskBaseProps = {
   commentsCopy: CommentsCopy;
   dashboardCopy: DashboardDashboardCopy;
@@ -112,7 +108,6 @@ export type DashboardTodosTaskProps = DashboardTaskBaseProps & {
   showCreateTodo: boolean;
   todoActionError: string;
   todoFilter: TodoFilter;
-  todoPriorityClass: DashboardTodoPriorityClass;
   todoPriorityOptions: DashboardTodoPriorityOption[];
   todoSavingById: DashboardTaskSavingById;
   todoView: TodoView;

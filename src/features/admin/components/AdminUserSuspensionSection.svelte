@@ -30,8 +30,8 @@ export let suspendSelectedUser: () => void | Promise<void>;
 export let suspensionLabel: AdminUserFormatter;
 </script>
 
-<Field.Set class="rounded-lg border border-border bg-muted/30 p-3">
-  <Field.Legend class="flex flex-wrap items-center gap-2 text-destructive">
+<Field.Set class="bg-subtle p-3">
+  <Field.Legend class="flex flex-wrap items-center gap-2">
     <span>{copy.suspendTitle}</span>
     {#if selectedUser.activeSuspension}
       <Badge variant="destructive">

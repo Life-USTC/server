@@ -63,7 +63,7 @@ export let visibilityOptions: CommentThreadProps["visibilityOptions"];
     <Skeleton class="h-24 w-full" />
   </div>
 {:else if comments.length === 0}
-  <Empty.Root class="min-h-24 border">
+  <Empty.Root class="min-h-24">
     <Empty.Header>
       <Empty.Title>{commentCopy.emptyTitle}</Empty.Title>
     </Empty.Header>

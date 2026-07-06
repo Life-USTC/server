@@ -126,7 +126,7 @@ $: sectionOptions = sections.map((section) => ({
           id="dashboard-homework-is-major"
           name="isMajor"
         />
-        <Field.Label for="dashboard-homework-is-major" class="font-normal">
+        <Field.Label for="dashboard-homework-is-major">
           {homeworksCopy.tagMajor}
         </Field.Label>
       </Field.Field>
@@ -136,7 +136,7 @@ $: sectionOptions = sections.map((section) => ({
           id="dashboard-homework-requires-team"
           name="requiresTeam"
         />
-        <Field.Label for="dashboard-homework-requires-team" class="font-normal">
+        <Field.Label for="dashboard-homework-requires-team">
           {homeworksCopy.tagTeam}
         </Field.Label>
       </Field.Field>

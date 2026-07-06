@@ -44,7 +44,7 @@ $: avatarFallback = (user.name ?? user.username ?? "U")
   <Card.Root>
     <Card.Header class="items-center text-center">
       <Badge class="w-fit" variant="secondary">{welcomeCopy.firstSignIn}</Badge>
-      <Card.Title class="text-3xl">{welcomeCopy.title}</Card.Title>
+      <Card.Title>{welcomeCopy.title}</Card.Title>
       <Card.Description>{welcomeCopy.description}</Card.Description>
     </Card.Header>
 
@@ -76,7 +76,7 @@ $: avatarFallback = (user.name ?? user.username ?? "U")
                 {@const avatarId = `welcome-avatar-option-${index}`}
                 <Field.Label for={avatarId}>
                   <Field.Field orientation="horizontal">
-                    <Avatar.Root class="size-12 border-0">
+                    <Avatar.Root class="size-12">
                       <Avatar.Image alt={copy.accessibility.avatarOption} src={avatar} />
                       <Avatar.Fallback>{index + 1}</Avatar.Fallback>
                     </Avatar.Root>

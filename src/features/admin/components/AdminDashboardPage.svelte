@@ -64,7 +64,7 @@ $: queueCards = adminDashboardQueueCards(data);
             <Item.Actions>
               <Badge variant="outline">{card.value}</Badge>
             </Item.Actions>
-            <Item.Footer class="text-muted-foreground text-xs">
+            <Item.Footer>
               {card.meta}
             </Item.Footer>
           </a>

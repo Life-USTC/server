@@ -65,7 +65,6 @@ export let signedData: DashboardTaskTabsProps["signedData"];
 export let subscriptionsCopy: DashboardTaskTabsProps["subscriptionsCopy"];
 export let todoActionError: string;
 export let todoFilter: DashboardTaskTabsProps["todoFilter"];
-export let todoPriorityClass: DashboardTaskTabsProps["todoPriorityClass"];
 export let todoPriorityOptions: DashboardTaskTabsProps["todoPriorityOptions"];
 export let todoSavingById: DashboardTaskTabsProps["todoSavingById"];
 export let todoView: DashboardTaskTabsProps["todoView"];
@@ -85,7 +84,6 @@ export let updateTodoAction: DashboardTaskTabsProps["updateTodoAction"];
     {todoPriorityOptions}
     homeworkReferenceDate={homeworkReferenceDate}
     {openTodoEditor}
-    {todoPriorityClass}
     {toggleTodoCompletion}
     {deleteTodo}
     {setTodoView}

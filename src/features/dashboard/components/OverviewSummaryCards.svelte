@@ -25,7 +25,6 @@ export let formatMessage: (
   template: string,
   values: Record<string, string | number>,
 ) => string;
-export let todoPriorityClass: (priority: string) => string;
 export let todoStatus: (todo: DashboardTodoItem) => string;
 export let pendingHomeworks: DashboardHomeworkItem[];
 export let pendingTodos: DashboardTodoItem[];
@@ -51,7 +50,6 @@ export let examsCount: number;
     {fmtDate}
     {formatMessage}
     {pendingTodos}
-    {todoPriorityClass}
     {todosCopy}
     {todosDueSoon}
     {todosDueToday}

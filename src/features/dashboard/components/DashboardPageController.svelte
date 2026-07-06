@@ -62,10 +62,7 @@ import {
   formatMessage,
   referenceDate,
 } from "@/features/dashboard/lib/overview";
-import {
-  todoPriorityOptions as buildTodoPriorityOptions,
-  todoPriorityClass,
-} from "@/features/dashboard/lib/todos";
+import { todoPriorityOptions as buildTodoPriorityOptions } from "@/features/dashboard/lib/todos";
 import { goto, invalidateAll, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
 import * as Alert from "$lib/components/ui/alert/index.js";
@@ -563,7 +560,6 @@ onMount(() => {
         {subscriptionsCopy}
         {signedData}
         {submitDashboardLinkPin}
-        {todoPriorityClass}
         {todosCopy}
         {updatingDashboardLinkSlug}
       />
@@ -605,7 +601,6 @@ onMount(() => {
         {signedData}
         {subscriptionsCopy}
         {todoActionError}
-        {todoPriorityClass}
         {todoPriorityOptions}
         {todoSavingById}
         {todoView}

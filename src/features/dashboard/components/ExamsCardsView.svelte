@@ -23,7 +23,7 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
 
 <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
   {#each exams as exam}
-    <Card.Root class="transition hover:border-primary/50" data-slot="card">
+    <Card.Root data-slot="card">
       <Card.Header>
         <Card.Title>
           <a class="underline-offset-4 hover:underline" href={exam.section.jwId ? `/sections/${exam.section.jwId}` : dashboardTabHref("subscriptions")}>

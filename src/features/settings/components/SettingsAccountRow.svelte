@@ -63,7 +63,7 @@ export let user: SettingsUser;
     {/if}
   </Item.Actions>
   {#if account.linked && user.accountCount <= 1}
-    <Item.Footer class="text-muted-foreground text-sm">
+    <Item.Footer>
       {copy.profile.cannotDisconnectLast}
     </Item.Footer>
   {/if}

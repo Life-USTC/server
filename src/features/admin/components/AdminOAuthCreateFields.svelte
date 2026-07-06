@@ -32,7 +32,7 @@ export let redirectDraft: string;
     <Textarea
       id="admin-oauth-redirect-uris"
       bind:value={redirectDraft}
-      class="min-h-32 font-mono"
+      class="min-h-32"
       name="redirectUris"
       placeholder={copy.redirectUrisPlaceholder}
       required

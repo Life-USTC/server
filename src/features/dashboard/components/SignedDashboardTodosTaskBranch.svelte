@@ -21,7 +21,6 @@ export let setTodoView: DashboardTodosTaskProps["setTodoView"];
 export let showCreateTodo: boolean;
 export let todoActionError: string;
 export let todoFilter: DashboardTodosTaskProps["todoFilter"];
-export let todoPriorityClass: DashboardTodosTaskProps["todoPriorityClass"];
 export let todoPriorityOptions: DashboardTodosTaskProps["todoPriorityOptions"];
 export let todoSavingById: DashboardTodosTaskProps["todoSavingById"];
 export let todoView: DashboardTodosTaskProps["todoView"];
@@ -39,7 +38,6 @@ export let updateTodoAction: DashboardTodosTaskProps["updateTodoAction"];
   locale={data.locale}
   referenceDate={homeworkReferenceDate}
   {openTodoEditor}
-  {todoPriorityClass}
   {toggleTodoCompletion}
   {deleteTodo}
   {setTodoView}

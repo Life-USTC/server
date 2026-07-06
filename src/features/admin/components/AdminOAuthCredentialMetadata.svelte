@@ -30,7 +30,7 @@ export let trusted: boolean | null | undefined;
       <Item.Title>{copy.permissionsTitle}</Item.Title>
       <div class="flex flex-wrap gap-1.5">
         {#each scopes as scope}
-          <Badge class="font-mono" variant="ghost">{scopeLabel(scope)}</Badge>
+          <Badge variant="ghost">{scopeLabel(scope)}</Badge>
         {:else}
           <span class="text-muted-foreground">{copy.notAvailable}</span>
         {/each}

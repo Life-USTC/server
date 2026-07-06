@@ -38,7 +38,7 @@ export let teacherNames: (teachers: CatalogNamed[]) => string;
           </Table.Cell>
           <Table.Cell class="p-0 align-top">
             <CatalogTableLink href={sectionHref}>
-              <Badge class="font-mono" variant="outline">{section.code}</Badge>
+              <Badge variant="outline">{section.code}</Badge>
             </CatalogTableLink>
           </Table.Cell>
           <Table.Cell class="p-0 align-top">

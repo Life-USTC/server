@@ -13,26 +13,6 @@ export let tooltip = "";
 export let tone: CalendarTone = "primary";
 export let done = false;
 
-function toneClass() {
-  const currentTone = tone ?? "primary";
-  if (currentTone === "warning") {
-    return "border-warning/25 bg-warning/10 hover:border-warning/45 hover:bg-warning/15";
-  }
-  if (currentTone === "success") {
-    return "border-success/25 bg-success/10 hover:border-success/45 hover:bg-success/15";
-  }
-  if (currentTone === "info") {
-    return "border-info/25 bg-info/10 hover:border-info/45 hover:bg-info/15";
-  }
-  if (currentTone === "error") {
-    return "border-destructive/25 bg-destructive/10 hover:border-destructive/45 hover:bg-destructive/15";
-  }
-  if (currentTone === "neutral") {
-    return "border-border bg-background hover:border-primary/45 hover:bg-muted/50";
-  }
-  return "border-primary/25 bg-primary/10 hover:border-primary/45 hover:bg-primary/15";
-}
-
 function eventChipProps(
   itemProps: Record<string, unknown>,
   triggerProps: Record<string, unknown>,
@@ -59,8 +39,18 @@ $: tooltipText = tooltip || title || label;
     {#snippet child({ props })}
       <Item.Root
         class={cn(
-          "min-w-0 rounded-md text-xs no-underline",
-          toneClass(),
+          "min-w-0 no-underline",
+          tone === "warning"
+            ? "border-warning/25 bg-warning/10 hover:border-warning/45 hover:bg-warning/15"
+            : tone === "success"
+              ? "border-success/25 bg-success/10 hover:border-success/45 hover:bg-success/15"
+              : tone === "info"
+                ? "border-info/25 bg-info/10 hover:border-info/45 hover:bg-info/15"
+                : tone === "error"
+                  ? "border-destructive/25 bg-destructive/10 hover:border-destructive/45 hover:bg-destructive/15"
+                  : tone === "neutral"
+                    ? "border-border bg-background hover:border-primary/45 hover:bg-muted/50"
+                    : "border-primary/25 bg-primary/10 hover:border-primary/45 hover:bg-primary/15",
           done ? "grayscale opacity-60" : undefined,
         )}
         size="xs"
@@ -69,7 +59,7 @@ $: tooltipText = tooltip || title || label;
         {#snippet child({ props: itemProps })}
           <a {...eventChipProps(itemProps, props)}>
             <Item.Content class="gap-0">
-              <Item.Title class="max-w-full text-xs">{label}</Item.Title>
+              <Item.Title class="max-w-full">{label}</Item.Title>
               {#if title}
                 <Item.Description class="max-w-full line-clamp-1">{title}</Item.Description>
               {/if}

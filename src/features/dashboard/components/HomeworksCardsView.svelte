@@ -26,7 +26,7 @@ export let toggleHomeworkCompletion: (
 <div class="grid gap-3 md:grid-cols-2" data-testid="dashboard-homeworks-cards">
   {#each filteredHomeworkItems as homework}
     <Card.Root
-      class="group transition hover:border-primary"
+      class="group"
       data-slot="card"
       id={`homework-${homework.id}`}
     >
@@ -76,7 +76,7 @@ export let toggleHomeworkCompletion: (
       </Card.Footer>
     </Card.Root>
   {:else}
-    <Empty.Root class="min-h-24 border border-border bg-background md:col-span-2">
+    <Empty.Root class="min-h-24 md:col-span-2">
       <Empty.Header>
         <Empty.Title>{homeworksCopy.filterEmptyTitle}</Empty.Title>
       </Empty.Header>

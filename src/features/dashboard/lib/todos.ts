@@ -4,7 +4,6 @@ export {
 } from "./todo-api-actions";
 export {
   todoActionLabel,
-  todoPriorityClass,
   todoPriorityOptions,
   todoStatus,
 } from "./todo-display";

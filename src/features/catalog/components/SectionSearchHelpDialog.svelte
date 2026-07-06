@@ -38,8 +38,8 @@ export let sectionLabels: SectionSearchHelpLabels;
             variant="muted"
           >
             <Item.Content class="min-w-0 sm:max-w-48 sm:flex-none">
-              <Item.Title class="font-mono">{example.syntax}</Item.Title>
-              <Item.Description class="font-mono text-xs">
+              <Item.Title>{example.syntax}</Item.Title>
+              <Item.Description>
                 {example.example}
               </Item.Description>
             </Item.Content>

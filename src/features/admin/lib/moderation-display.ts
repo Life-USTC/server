@@ -9,11 +9,7 @@ export type {
   ModerationTab,
 } from "@/features/admin/lib/moderation-display-types";
 export { moderationHref } from "@/features/admin/lib/moderation-routing-display";
-export {
-  moderationStatusBadgeClass,
-  moderationStatusBorderClass,
-  moderationStatusLabel,
-} from "@/features/admin/lib/moderation-status-display";
+export { moderationStatusLabel } from "@/features/admin/lib/moderation-status-display";
 export {
   moderationCommentAuthorLabel,
   moderationDescriptionEditedAt,

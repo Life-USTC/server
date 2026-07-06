@@ -20,9 +20,6 @@ export let fmtDate: TodoDateFormatter;
 export let openTodoEditor: (todo: DashboardTodoItem) => void;
 export let selectedTodo: DashboardTodoItem | null;
 export let todoActionLabel: TodoAction;
-export let todoPriorityClass: (
-  priority: DashboardTodoItem["priority"],
-) => string;
 export let todoSavingById: Record<string, boolean>;
 export let todosCopy: DashboardTodosCopy;
 export let todoStatus: TodoAction;
@@ -32,7 +29,7 @@ export let toggleTodoCompletion: TodoCompletionToggle;
 <div class="grid gap-3 md:grid-cols-2">
   {#each filteredTodos as todo}
     <Card.Root
-      class="group transition hover:border-primary"
+      class="group"
       data-slot="card"
     >
       <Card.Header>
@@ -56,7 +53,13 @@ export let toggleTodoCompletion: TodoCompletionToggle;
       </Card.Header>
       <Card.Content class="grid gap-3">
         <div class="flex flex-wrap gap-2">
-          <Badge class={todoPriorityClass(todo.priority)}>
+          <Badge
+            variant={todo.priority === "high"
+              ? "destructive"
+              : todo.priority === "medium"
+                ? "secondary"
+                : "outline"}
+          >
             {todosCopy.priority[todo.priority]}
           </Badge>
           <Badge variant="ghost">{fmtDate(todo.dueAt)}</Badge>

@@ -25,7 +25,7 @@ export let userMenuOpen: boolean;
             size="icon"
             variant="outline"
           >
-            <Avatar.Root class="size-7 border-0">
+            <Avatar.Root class="size-7">
               {#if user.image}
                 <Avatar.Image
                   src={user.image}

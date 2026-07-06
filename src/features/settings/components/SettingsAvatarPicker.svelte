@@ -40,7 +40,7 @@ export let user: SettingsUser;
           {@const avatarId = `settings-avatar-option-${index}`}
           <Field.Field orientation="horizontal">
             <Field.Label for={avatarId} class="cursor-pointer">
-              <Avatar.Root class="size-12 border-0">
+              <Avatar.Root class="size-12">
                 <Avatar.Image alt={copy.accessibility.avatarOption} src={avatar} />
                 <Avatar.Fallback>{index + 1}</Avatar.Fallback>
               </Avatar.Root>

@@ -36,7 +36,7 @@ export let toggleScope: (scope: string, checked: boolean) => void;
           onCheckedChange={(checked) => toggleScope(scope.value, checked)}
         />
         <Field.Content>
-          <Field.Label for={scopeId} class="cursor-pointer font-mono">
+          <Field.Label for={scopeId} class="cursor-pointer">
             {scopeLabel(scope.value)}
           </Field.Label>
           <Field.Description>

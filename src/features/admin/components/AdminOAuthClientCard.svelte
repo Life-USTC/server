@@ -17,10 +17,10 @@ export let onDelete: (client: AdminOAuthClient) => void;
 </script>
 
 <article>
-  <Card.Root class="border-l-4 border-l-primary">
+  <Card.Root>
     <Card.Header>
       <Card.Title>{client.name ?? copy.unnamedClient}</Card.Title>
-      <Card.Description class="break-all font-mono text-xs">{client.clientId}</Card.Description>
+      <Card.Description class="break-all">{client.clientId}</Card.Description>
       <Card.Action class="flex flex-wrap justify-end gap-2">
         <Badge variant="ghost">{clientTypeLabel(client.tokenEndpointAuthMethod)}</Badge>
         {#if client.skipConsent}<Badge variant="secondary">{copy.clientTrustTrusted}</Badge>{/if}
@@ -32,7 +32,7 @@ export let onDelete: (client: AdminOAuthClient) => void;
       </Card.Action>
     </Card.Header>
 
-    <Card.Content class="grid gap-3 text-sm lg:grid-cols-[220px_1fr_1fr]">
+    <Card.Content class="grid gap-3 lg:grid-cols-[220px_1fr_1fr]">
       <Item.Root class="items-start" variant="muted">
         <Item.Content>
           <Item.Title>{copy.clientType}</Item.Title>
@@ -70,7 +70,7 @@ export let onDelete: (client: AdminOAuthClient) => void;
           <Item.Title>{copy.tableColumnScopes}</Item.Title>
           <div class="flex flex-wrap gap-1.5">
             {#each client.scopes as scope}
-              <Badge class="font-mono" variant="ghost">{scope}</Badge>
+              <Badge variant="ghost">{scope}</Badge>
             {:else}
               <span class="text-muted-foreground">{copy.notAvailable}</span>
             {/each}

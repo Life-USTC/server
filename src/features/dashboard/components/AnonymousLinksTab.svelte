@@ -35,7 +35,7 @@ export let anonymousLinkGroups: AnonymousLinkGroup[];
       {linkView}
     />
   {:else}
-    <Empty.Root class="items-start border border-border bg-background text-left">
+    <Empty.Root class="items-start text-left">
       <Empty.Header class="items-start text-left">
         <Empty.Title>{dashboardCopy.linkHub.empty}</Empty.Title>
       </Empty.Header>
@@ -45,7 +45,7 @@ export let anonymousLinkGroups: AnonymousLinkGroup[];
   <p class="text-muted-foreground text-xs">
     {dashboardCopy.linkHub.credit}
     <Button
-      class="h-auto p-0 text-xs"
+      class="h-auto p-0"
       href="https://github.com/SmartHypercube/ustclife"
       rel="noreferrer"
       target="_blank"

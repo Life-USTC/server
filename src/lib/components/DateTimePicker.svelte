@@ -78,7 +78,6 @@ $: {
   <InputGroup.Input
     aria-label={labelledBy ? undefined : label}
     aria-labelledby={labelledBy}
-    class="font-mono"
     disabled={disabled}
     {name}
     {placeholder}

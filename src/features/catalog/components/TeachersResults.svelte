@@ -76,9 +76,9 @@ $: pageLabel = teacherLabels.pageOf
                 <Item.Actions>
                   <Badge variant="outline">{teacher._count.sections}</Badge>
                 </Item.Actions>
-                <Item.Footer class="flex-wrap justify-start text-muted-foreground text-xs">
+                <Item.Footer class="flex-wrap justify-start">
                   {#if teacher.code}
-                    <Badge class="font-mono" variant="outline">{teacher.code}</Badge>
+                    <Badge variant="outline">{teacher.code}</Badge>
                   {/if}
                   <span>{teacher.department ? primaryName(teacher.department) : teacherLabels.noDepartment}</span>
                   <span>{teacher.teacherTitle ? primaryName(teacher.teacherTitle) : commonLabels.unknown}</span>
@@ -117,7 +117,7 @@ $: pageLabel = teacherLabels.pageOf
               <Table.Cell class="p-0 align-top">
                 <CatalogTableLink href={teacherHref}>
                   {#if teacher.code}
-                    <Badge class="font-mono" variant="outline">{teacher.code}</Badge>
+                    <Badge variant="outline">{teacher.code}</Badge>
                   {:else}
                     -
                   {/if}

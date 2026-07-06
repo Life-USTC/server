@@ -40,7 +40,7 @@ export let versions: AdminBusVersion[];
             <div class="font-medium">{version.title}</div>
             {#if version.sourceMessage}<div class="text-muted-foreground text-xs">{version.sourceMessage}</div>{/if}
           </Table.Cell>
-          <Table.Cell class="font-mono text-xs">{version.key}</Table.Cell>
+          <Table.Cell>{version.key}</Table.Cell>
           <Table.Cell>{version.tripCount}</Table.Cell>
           <Table.Cell>{formatEffectiveRange(version)}</Table.Cell>
           <Table.Cell>{formatImportedAt(version.importedAt)}</Table.Cell>

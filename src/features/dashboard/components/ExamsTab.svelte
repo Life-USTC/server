@@ -61,13 +61,13 @@ export let filteredExamRows: DashboardExamRow[];
     />
 
     {#if examRows.length === 0}
-      <Empty.Root class="items-start border border-border bg-background text-left">
+      <Empty.Root class="items-start text-left">
         <Empty.Header class="items-start text-left">
           <Empty.Title>{dashboardCopy.nav.exams.empty}</Empty.Title>
         </Empty.Header>
       </Empty.Root>
     {:else if filteredExamRows.length === 0}
-      <Empty.Root class="items-start border border-border bg-background text-left">
+      <Empty.Root class="items-start text-left">
         <Empty.Header class="items-start text-left">
           <Empty.Title>{dashboardCopy.nav.exams.filterEmpty}</Empty.Title>
         </Empty.Header>

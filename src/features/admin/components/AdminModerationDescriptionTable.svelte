@@ -34,15 +34,15 @@ export let targetLabel: (description: AdminModerationDescription) => string;
     <Table.Body>
       {#each descriptions as description}
         <Table.Row>
-          <Table.Cell class="max-w-md font-medium">
+          <Table.Cell class="max-w-md">
             <p class="line-clamp-2 whitespace-pre-wrap text-sm">
               {description.content?.trim() ? description.content : copy.emptyDescription}
             </p>
           </Table.Cell>
-          <Table.Cell class="font-medium">
+          <Table.Cell>
             {adminModerationDescriptionLastEditor(description, copy)}
           </Table.Cell>
-          <Table.Cell class="max-w-sm text-sm">
+          <Table.Cell class="max-w-sm">
             <a
               class="hover:underline"
               href={descriptionTargetHref(description)}
@@ -50,7 +50,7 @@ export let targetLabel: (description: AdminModerationDescription) => string;
               {targetLabel(description)}
             </a>
           </Table.Cell>
-          <Table.Cell class="text-muted-foreground text-xs">
+          <Table.Cell>
             {formatDate(adminModerationDescriptionEditedAt(description))}
           </Table.Cell>
           <Table.Cell class="text-right">

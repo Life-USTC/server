@@ -23,17 +23,17 @@ export let user: ProfileSummaryUser;
       {#if user.image}
         <Avatar.Image alt={displayName} src={user.image} />
       {/if}
-      <Avatar.Fallback class="text-3xl">{initials}</Avatar.Fallback>
+      <Avatar.Fallback>{initials}</Avatar.Fallback>
     </Avatar.Root>
     <div class="min-w-0">
-      <Card.Title class="truncate text-2xl" role="heading" aria-level={1}>
+      <Card.Title class="truncate" role="heading" aria-level={1}>
         {displayName}
       </Card.Title>
       {#if user.username}
         <Card.Description class="truncate">@{user.username}</Card.Description>
       {/if}
       {#if showUserId}
-        <Badge class="mt-2 h-auto max-w-full shrink justify-start whitespace-normal break-all font-mono" variant="outline">
+        <Badge class="mt-2 h-auto max-w-full shrink justify-start whitespace-normal break-all" variant="outline">
           {user.id}
         </Badge>
       {/if}
@@ -56,7 +56,7 @@ export let user: ProfileSummaryUser;
         <Item.Root class="items-start" variant="outline">
           <Item.Content>
             <Item.Description>{stat.label}</Item.Description>
-            <Item.Title class="text-2xl">{stat.value}</Item.Title>
+            <Item.Title>{stat.value}</Item.Title>
           </Item.Content>
         </Item.Root>
       {/each}

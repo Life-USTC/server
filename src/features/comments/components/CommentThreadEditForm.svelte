@@ -38,10 +38,10 @@ $: editEditorLabelId = `comment-edit-editor-label-${comment.id}`;
 
 <Field.Group class="gap-2">
   <span class="sr-only">{comment.body}</span>
-  <Field.Group class="flex-row flex-wrap items-center justify-between gap-3 text-sm">
+  <Field.Group class="flex-row flex-wrap items-center justify-between gap-3">
     <Field.Field orientation="horizontal" class="w-fit">
       <Checkbox id={editAnonymousId} bind:checked={editIsAnonymous} />
-      <Field.Label for={editAnonymousId} class="font-normal">
+      <Field.Label for={editAnonymousId}>
         {commentCopy.visibilityAnonymous}
       </Field.Label>
     </Field.Field>

@@ -42,10 +42,10 @@ export let subscriptionsCopy: DashboardSubscriptionsCopy;
           class="grid min-w-0 gap-1 no-underline outline-none md:grid-cols-[8.5rem_minmax(0,1fr)] md:items-center md:gap-4"
           href={`/sections/${section.jwId}`}
         >
-          <Item.Title class="font-mono text-primary md:text-foreground">
+          <Item.Title>
             {section.code}
           </Item.Title>
-          <Item.Title class="font-medium md:font-normal">
+          <Item.Title>
             {section.course.namePrimary ?? dashboardCopy.notAvailable}
           </Item.Title>
         </a>
@@ -53,7 +53,7 @@ export let subscriptionsCopy: DashboardSubscriptionsCopy;
 
       <Item.Content class="min-w-0 basis-full md:basis-64">
         <Item.Description class="md:sr-only">{sectionCopy.teachers}</Item.Description>
-        <Item.Title class="font-normal">
+        <Item.Title>
           {section.teachers
             .map((teacher) => teacher.namePrimary)
             .join(", ") || sectionCopy.noTeachersListed}
@@ -69,7 +69,7 @@ export let subscriptionsCopy: DashboardSubscriptionsCopy;
         <Button
           class={pendingRemoveSectionId === section.id
             ? undefined
-            : "opacity-100 transition-opacity md:opacity-0 md:group-hover/section-row:opacity-100 md:group-focus-within/section-row:opacity-100"}
+            : "opacity-100 md:opacity-0 md:group-hover/section-row:opacity-100 md:group-focus-within/section-row:opacity-100"}
           disabled={removingSectionId === section.id}
           size="icon-sm"
           type="button"

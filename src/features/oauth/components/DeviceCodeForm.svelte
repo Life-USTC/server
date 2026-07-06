@@ -50,7 +50,6 @@ function sanitizeDeviceCode(value: string) {
       >
         {#snippet children({ cells })}
           <InputOTP.Group
-            class="*:data-[slot=input-otp-slot]:font-mono *:data-[slot=input-otp-slot]:text-base"
           >
             {#each cells.slice(0, 4) as cell}
               <InputOTP.Slot {cell} />
@@ -58,7 +57,6 @@ function sanitizeDeviceCode(value: string) {
           </InputOTP.Group>
           <InputOTP.Separator />
           <InputOTP.Group
-            class="*:data-[slot=input-otp-slot]:font-mono *:data-[slot=input-otp-slot]:text-base"
           >
             {#each cells.slice(4, 8) as cell}
               <InputOTP.Slot {cell} />

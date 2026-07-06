@@ -16,12 +16,12 @@ $: message =
 <main class="grid min-h-[calc(100vh-8rem)] place-items-center px-4">
   <Card.Root class="w-full max-w-md">
     <Card.Header class="text-center">
-      <Card.Title class="text-2xl">
+      <Card.Title>
         <h1>{copy.errorPageTitle}</h1>
       </Card.Title>
       <Card.Description>{message}</Card.Description>
     </Card.Header>
-    <Card.Content class="grid justify-items-center gap-4 text-center text-muted-foreground text-sm">
+    <Card.Content class="grid justify-items-center gap-4 text-center">
       <p>
         {copy.errorPageHint}
       </p>
