@@ -4,15 +4,29 @@ import * as Collapsible from "$lib/components/ui/collapsible/index.js";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 import type { ShellCopy, ShellLink, ShellNavGroup } from "./types";
 
-export let copy: ShellCopy;
-export let isActiveLink: (link: ShellLink) => boolean;
-export let navGroups: ShellNavGroup[];
+let {
+  copy,
+  isActiveLink,
+  navGroups,
+}: {
+  copy: ShellCopy;
+  isActiveLink: (link: ShellLink) => boolean;
+  navGroups: ShellNavGroup[];
+} = $props();
+
+// biome-ignore lint/correctness/useHookAtTopLevel: useSidebar is a Svelte context helper, not a React hook
+const sidebar = Sidebar.useSidebar();
+const groupOpen = $state<boolean[]>([]);
 
 function hasActiveChild(link: ShellLink): boolean {
   return (
     link.items?.some((child) => isActiveLink(child) || hasActiveChild(child)) ??
     false
   );
+}
+
+function setGroupOpen(index: number, isOpen: boolean): void {
+  groupOpen[index] = isOpen;
 }
 </script>
 
@@ -54,12 +68,20 @@ function hasActiveChild(link: ShellLink): boolean {
   </Sidebar.Header>
 
   <Sidebar.Content>
-    {#each navGroups as group}
-      <Collapsible.Root open class="group/collapsible">
+    {#each navGroups as group, index}
+      {@const isCollapsed = sidebar.state === "collapsed"}
+      {@const isOpen = isCollapsed || (groupOpen[index] ?? true)}
+      <Collapsible.Root
+        open={isOpen}
+        onOpenChange={(v) => {
+          if (!isCollapsed) setGroupOpen(index, v);
+        }}
+        class="group/collapsible"
+      >
         <Sidebar.Group>
           <Sidebar.GroupLabel>
             {#snippet child({ props })}
-              <Collapsible.Trigger {...props}>
+              <Collapsible.Trigger {...props} disabled={isCollapsed}>
                 {group.label}
                 <ChevronDownIcon
                   class="ms-auto transition-transform group-data-[state=open]/collapsible:rotate-180"
@@ -94,7 +116,8 @@ function hasActiveChild(link: ShellLink): boolean {
                                 aria-current={isActiveLink(link) ? "page" : undefined}
                               >
                                 {#if link.icon}
-                                  <svelte:component this={link.icon} />
+                                  {@const Icon = link.icon}
+                                  <Icon />
                                 {/if}
                                 <span>{link.label}</span>
                                 {#if link.badge != null && link.badge > 0}
@@ -191,7 +214,8 @@ function hasActiveChild(link: ShellLink): boolean {
                             aria-current={active ? "page" : undefined}
                           >
                             {#if link.icon}
-                              <svelte:component this={link.icon} />
+                              {@const Icon = link.icon}
+                              <Icon />
                             {/if}
                             <span>{link.label}</span>
                           </a>

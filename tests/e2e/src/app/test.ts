@@ -183,6 +183,37 @@ test("/ shell 桌面导航后内容滚动回到顶部", async ({ page }) => {
     .toBeLessThan(8);
 });
 
+test("/ shell 折叠桌面侧边栏后图标链接仍可跳转", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await gotoAndWaitForReady(page, "/");
+
+  const sidebar = page.getByTestId("app-sidebar");
+  const coursesLink = sidebar.getByRole("link", {
+    name: /^(课程|Courses)$/i,
+  });
+
+  const catalogGroup = sidebar.getByRole("button", {
+    name: /^(课程目录|Catalog)$/i,
+  });
+  await expect(async () => {
+    await catalogGroup.click();
+    await expect(coursesLink).toHaveCount(0, { timeout: 1_000 });
+  }).toPass({ timeout: 10_000, intervals: [250, 500, 1_000] });
+
+  await page.locator('[data-sidebar="rail"]').click();
+
+  await expect(
+    page.locator('[data-slot="sidebar"][data-state="collapsed"]'),
+  ).toBeVisible();
+
+  await expect(coursesLink).toBeVisible();
+  await coursesLink.click();
+
+  await page.waitForURL("**/courses");
+  await waitForUiSettled(page);
+  await expect(page).toHaveURL(/\/courses(?:\?.*)?$/);
+});
+
 test("/ 登录用户在空状态总览页可看到班级发现入口", async ({
   page,
 }, testInfo) => {
