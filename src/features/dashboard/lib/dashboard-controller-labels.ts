@@ -1,6 +1,3 @@
-import type { DashboardDashboardCopy } from "./dashboard-controller-types";
-import type { SignedTabId } from "./dashboard-nav";
-
 export function buildCalendarWeekdayLabels(sectionCopy: {
   weekdays: {
     shortFriday: string;
@@ -21,11 +18,4 @@ export function buildCalendarWeekdayLabels(sectionCopy: {
     sectionCopy.weekdays.shortFriday,
     sectionCopy.weekdays.shortSaturday,
   ];
-}
-
-export function buildSignedTabs(
-  signedTabIds: readonly SignedTabId[],
-  dashboardCopy: { nav: Pick<DashboardDashboardCopy["nav"], SignedTabId> },
-) {
-  return signedTabIds.map((id) => [id, dashboardCopy.nav[id].title] as const);
 }

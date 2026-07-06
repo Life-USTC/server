@@ -2,17 +2,16 @@
  * E2E tests for the Dashboard Home Page (`/`)
  *
  * ## Data Represented
- * - **Public (unauthenticated):** PublicHomeView with "bus" and "links" tabs
- *   (grouped as public queries). Auth-only tabs (overview, calendar, homeworks,
+ * - **Public (unauthenticated):** PublicHomeView with "bus" and "links" entries
+ *   in the sidebar. Auth-only dashboard sub-pages (overview, calendar, homeworks,
  *   todos, exams, subscriptions) are not accessible. A sign-in CTA is displayed.
  *   Default public tab is "bus".
- * - **Authenticated:** Full HomeView with 8 tabs: overview (default), calendar,
- *   bus, links, homeworks, todos, exams, subscriptions. Bus and links are grouped
- *   together as public queries after calendar.
+ * - **Authenticated:** Dashboard pages are nested under the "Dashboard" group in
+ *   the sidebar: overview (default), calendar, homeworks, todos, exams,
+ *   subscriptions. Bus and links live in the "Public tools" group.
  *
  * ## UI/UX Elements
- * - Tab navigation bar with pill-style tabs
- * - Homeworks/exams/todos tabs show badge counts next to their labels
+ * - Sidebar navigation with collapsible groups
  * - User menu visible when authenticated; sign-in CTA when not
  *
  * ## Edge Cases
@@ -22,6 +21,10 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
+import {
+  expandDashboardSidebarGroup,
+  sidebarDashboardLink,
+} from "../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 import { ensureSeedSectionSubscription } from "../../../utils/subscriptions";
@@ -36,7 +39,7 @@ test.describe("仪表盘", () => {
     await expect(page).toHaveURL(/\/\?tab=homeworks$/);
     await expect(page.locator("#app-logo")).toBeVisible();
 
-    // Public view shows bus + links tabs and sign-in CTA
+    // Public view shows bus + links entries and sign-in CTA
     await expect(
       page.getByRole("link", { name: /^(校车|Shuttle Bus)$/i }),
     ).toBeVisible();
@@ -44,7 +47,7 @@ test.describe("仪表盘", () => {
       page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
     ).toBeVisible();
 
-    // Auth-only tabs should not be present
+    // Auth-only dashboard entries should not be present
     await expect(
       page.getByRole("link", { name: /^(总览|Overview)$/i }),
     ).toHaveCount(0);
@@ -64,14 +67,14 @@ test.describe("仪表盘", () => {
     await expect(page.locator("#main-content")).toBeVisible();
     await expect(page.locator("#app-user-menu")).toBeVisible();
 
-    // All 8 tabs should be present in the nav bar
-    const nav = page.getByLabel(/Dashboard section switcher/i);
+    // Dashboard sidebar group can be expanded to show the auth-only sub-pages
+    await expandDashboardSidebarGroup(page);
     for (const label of [
-      /^(总览|Overview)$/i,
-      /日历|Calendar/i,
-      /网站|Websites/i,
+      /^(工作台首页|Workspace start)$/i,
+      /^(工作台日程|Workspace schedule)$/i,
+      /^(工作台网站目录|Workspace web directory)$/i,
     ]) {
-      await expect(nav.getByRole("link", { name: label })).toBeVisible();
+      await expect(sidebarDashboardLink(page, label)).toBeVisible();
     }
 
     // Seed homework title visible on overview. Retry the subscription+reload
@@ -93,12 +96,14 @@ test.describe("仪表盘", () => {
     await captureStepScreenshot(page, testInfo, "dashboard-home");
   });
 
-  test("可通过标签栏导航到作业标签", async ({ page }, testInfo) => {
+  test("可通过侧边栏导航到作业标签", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/");
+    await expandDashboardSidebarGroup(page);
 
-    const homeworksTab = page
-      .getByRole("link", { name: /作业|Homework/i })
-      .first();
+    const homeworksTab = sidebarDashboardLink(
+      page,
+      /^(工作台任务|Workspace assignments)$/i,
+    );
     await expect(homeworksTab).toBeVisible();
     await homeworksTab.click();
 
@@ -112,9 +117,10 @@ test.describe("仪表盘", () => {
       testInfo,
       screenshotLabel: "dashboard-links-path",
     });
-    const linksDashboardTab = page
-      .getByRole("link", { name: /网站|Websites/i })
-      .first();
+    const linksDashboardTab = sidebarDashboardLink(
+      page,
+      /^(工作台网站目录|Workspace web directory)$/i,
+    );
     await expect(linksDashboardTab).toBeVisible();
     await expect(linksDashboardTab).toHaveAttribute("aria-current", "page");
     await expect(
@@ -124,18 +130,20 @@ test.describe("仪表盘", () => {
     ).toBeVisible();
 
     await signInAsDebugUser(page, "/dashboard/homeworks");
-    const homeworksDashboardTab = page
-      .getByRole("link", { name: /作业|Homework/i })
-      .first();
+    const homeworksDashboardTab = sidebarDashboardLink(
+      page,
+      /^(工作台任务|Workspace assignments)$/i,
+    );
     await expect(homeworksDashboardTab).toBeVisible();
     await expect(homeworksDashboardTab).toHaveAttribute("aria-current", "page");
 
     await gotoAndWaitForReady(page, "/dashboard/subscriptions");
     await expect(page).toHaveURL(/\/dashboard\/subscriptions(?:\?.*)?$/);
     await expect(
-      page.getByRole("link", {
-        name: /Subscriptions|Section Management|订阅/i,
-      }),
+      sidebarDashboardLink(
+        page,
+        /^(工作台课程规划|Workspace course planning)$/i,
+      ),
     ).toBeVisible();
     await expect(page.getByText(DEV_SEED.semesterNameCn).first()).toBeVisible();
     await captureStepScreenshot(page, testInfo, "dashboard-subscriptions-path");

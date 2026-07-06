@@ -6,7 +6,11 @@ import {
 } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { getCurrentSessionUser } from "../../../utils/e2e-db";
-import { visibleText } from "../../../utils/locators";
+import {
+  expandDashboardSidebarGroup,
+  sidebarDashboardLink,
+  visibleText,
+} from "../../../utils/locators";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
@@ -105,8 +109,9 @@ export async function assertPageContract(
     await signInAsDebugUser(page, routePath === "/dashboard" ? "/" : routePath);
     await gotoContractPage(page, routePath, testInfo);
     await expectMainContent(page);
+    await expandDashboardSidebarGroup(page);
     await expect(
-      page.getByRole("link", { name: /总览|Overview|Calendar|日历/i }),
+      sidebarDashboardLink(page, /^(工作台首页|Workspace start)$/i),
     ).toBeVisible({ timeout: 10_000 });
     return;
   }
