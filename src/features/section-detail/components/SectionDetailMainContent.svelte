@@ -11,7 +11,8 @@ import CommentsPanel from "@/features/comments/components/CommentsPanel.svelte";
 import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-helpers";
 import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
 import SectionBasicInfoCard from "./SectionBasicInfoCard.svelte";
 import SectionCalendarTab from "./SectionCalendarTab.svelte";
 import SectionDetailHeader from "./SectionDetailHeader.svelte";
@@ -158,11 +159,10 @@ $: activeNavItem =
       label={sectionCopy.teachingSection}
     />
 
-    <ScrollArea
-      class="min-w-0 min-h-0"
+    <div
+      class="min-w-0 min-h-0 overflow-y-auto px-4 py-4 sm:px-5 lg:px-6"
       data-detail-scroll-container
     >
-      <div class="px-4 py-4 sm:px-5 lg:px-6">
       {#if data.detailSection === "overview"}
       <section id="section-overview">
         <SectionBasicInfoCard
@@ -251,7 +251,6 @@ $: activeNavItem =
         {/key}
       </section>
       {/if}
-      </div>
-    </ScrollArea>
+    </div>
   </div>
 </div>

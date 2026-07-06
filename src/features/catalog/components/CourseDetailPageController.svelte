@@ -9,7 +9,6 @@ import DescriptionCard from "@/features/descriptions/components/DescriptionCard.
 import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import type { CatalogNamed } from "../lib/catalog-list-display";
 import {
   formatCatalogDetailMessage as formatMessage,
@@ -153,11 +152,10 @@ $: activeNavItem =
       label={copy.common.courses}
     />
 
-    <ScrollArea
-      class="min-w-0 min-h-0"
+    <div
+      class="min-w-0 min-h-0 overflow-y-auto px-4 py-4 sm:px-5 lg:px-6"
       data-detail-scroll-container
     >
-      <div class="px-4 py-4 sm:px-5 lg:px-6">
       {#if data.detailSection === "overview"}
       <section id="course-overview">
         <CourseDetailBasicInfo
@@ -203,7 +201,6 @@ $: activeNavItem =
         {/key}
       </section>
       {/if}
-      </div>
-    </ScrollArea>
+    </div>
   </div>
 </section>
