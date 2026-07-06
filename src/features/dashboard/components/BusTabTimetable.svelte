@@ -45,7 +45,7 @@ export let showHeader = true;
         {/each}
       </div>
     {:else}
-      <Empty.Root class="border border-border bg-background">
+      <Empty.Root>
         <Empty.Header>
           <Empty.Description>{busCopy.planner.empty}</Empty.Description>
         </Empty.Header>

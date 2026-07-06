@@ -73,7 +73,7 @@ export let welcomeCopy: WelcomeCopy;
                       }}
                     />
                     <Field.Content>
-                      <Field.Label class="cursor-pointer font-normal" for={checkboxId}>
+                      <Field.Label class="cursor-pointer" for={checkboxId}>
                         {displayName(section.course)}
                       </Field.Label>
                       <Field.Description>
@@ -90,7 +90,7 @@ export let welcomeCopy: WelcomeCopy;
               </Field.Group>
             </Field.Set>
           {:else}
-            <Empty.Root class="min-h-20 border border-border bg-background p-4">
+            <Empty.Root class="min-h-20 p-4">
               <Empty.Header>
                 <Empty.Description>{welcomeCopy.noMatchingSections}</Empty.Description>
               </Empty.Header>

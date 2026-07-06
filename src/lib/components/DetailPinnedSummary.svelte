@@ -5,7 +5,6 @@ import { cn } from "$lib/utils.js";
 
 type DetailPinnedSummaryItem = {
   label: string;
-  mono?: boolean;
   variant?: "ghost" | "outline" | "secondary";
 };
 
@@ -47,7 +46,7 @@ let {
           {/if}
           {#each items as item}
             <Badge
-              class={cn("max-w-52 truncate", item.mono ? "font-mono" : "")}
+              class="max-w-52 truncate"
               variant={item.variant ?? "ghost"}
             >
               {item.label}

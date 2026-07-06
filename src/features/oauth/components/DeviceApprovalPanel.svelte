@@ -34,7 +34,7 @@ $: clientRequestParts = copy.deviceClientRequest.split("{app}");
     <Alert.Title>{copy.deviceRequestedPermissions}</Alert.Title>
     <Alert.Description class="mt-2 flex flex-wrap gap-2 text-balance">
       {#each approvalRequest.scopes as scope}
-        <Badge class="max-w-full whitespace-normal break-all font-mono text-left" variant="outline">{scope}</Badge>
+        <Badge class="max-w-full whitespace-normal break-all text-left" variant="outline">{scope}</Badge>
       {/each}
     </Alert.Description>
   </Alert.Root>
@@ -46,7 +46,7 @@ $: clientRequestParts = copy.deviceClientRequest.split("{app}");
     <Alert.Title>{copy.deviceRequestedResources}</Alert.Title>
     <Alert.Description class="mt-2 flex flex-wrap gap-2 text-balance">
       {#each approvalRequest.resources as resource}
-        <Badge class="max-w-full whitespace-normal break-all font-mono text-left" variant="outline">
+        <Badge class="max-w-full whitespace-normal break-all text-left" variant="outline">
           {resource}
         </Badge>
       {/each}

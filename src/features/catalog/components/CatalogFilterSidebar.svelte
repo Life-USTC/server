@@ -9,12 +9,12 @@ export let icon: Component | undefined = undefined;
 export let title: string;
 </script>
 
-<Sidebar.Root
-  collapsible="none"
-  style="--sidebar-width: 17rem;"
-  class="w-full border-sidebar-border border-b lg:sticky lg:top-0 lg:h-[calc(100svh-3rem)] lg:w-(--sidebar-width) lg:border-e lg:border-b-0"
-  data-testid="catalog-filter-sidebar"
->
+<div style="--sidebar-width: 17rem;">
+  <Sidebar.Root
+    collapsible="none"
+    class="w-full border-b border-sidebar-border lg:sticky lg:top-0 lg:h-[calc(100svh-3rem)] lg:w-(--sidebar-width) lg:border-e lg:border-b-0"
+    data-testid="catalog-filter-sidebar"
+  >
   <Sidebar.Header class="p-3">
     <div class="flex min-w-0 items-start justify-between gap-3">
       <div class="flex min-w-0 gap-2">
@@ -47,4 +47,5 @@ export let title: string;
       </Sidebar.GroupContent>
     </Sidebar.Group>
   </Sidebar.Content>
-</Sidebar.Root>
+  </Sidebar.Root>
+</div>

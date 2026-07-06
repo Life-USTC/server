@@ -17,7 +17,6 @@ export let onClose: () => void;
 export let openTodoEditor: (todo: DashboardTodoItem) => void;
 export let todo: DashboardTodoItem | null;
 export let todoActionLabel: (todo: DashboardTodoItem) => string;
-export let todoPriorityClass: (priority: string) => string;
 export let todoSavingById: Record<string, boolean>;
 export let todosCopy: DashboardTodosCopy;
 export let todoStatus: (todo: DashboardTodoItem) => string;
@@ -47,7 +46,13 @@ export let toggleTodoCompletion: (todo: DashboardTodoItem) => void;
           <p class="text-muted-foreground text-sm">{todosCopy.contentPlaceholder}</p>
         {/if}
         <div class="flex flex-wrap gap-2">
-          <Badge class={todoPriorityClass(todo.priority)}>
+          <Badge
+            variant={todo.priority === "high"
+              ? "destructive"
+              : todo.priority === "medium"
+                ? "secondary"
+                : "outline"}
+          >
             {todosCopy.priority[todo.priority]}
           </Badge>
           <Badge>{todoStatus(todo)}</Badge>

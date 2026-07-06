@@ -9,7 +9,7 @@ export let deviceTitle: string;
 export let sideNoteLabel: string;
 </script>
 
-<Card.Header class="content-between gap-8 border-border border-b bg-muted/30 p-6 lg:border-r lg:border-b-0">
+<Card.Header class="content-between gap-8 bg-subtle p-6">
   <div class="grid gap-5">
     <Item.Root variant="muted">
       <Item.Media class="size-12" variant="image">

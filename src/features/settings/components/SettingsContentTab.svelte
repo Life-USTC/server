@@ -15,7 +15,7 @@ export let copy: SettingsCopy;
     </Card.Description>
   </Card.Header>
   <Card.Content class="grid gap-5">
-    <Empty.Root class="border">
+    <Empty.Root>
       <Empty.Header>
         <Empty.Title>{copy.settings.content.emptyTitle}</Empty.Title>
         <Empty.Description>{copy.settings.content.emptyDescription}</Empty.Description>

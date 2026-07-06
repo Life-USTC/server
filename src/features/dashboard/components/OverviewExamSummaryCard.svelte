@@ -38,7 +38,7 @@ export let upcomingExams: DashboardOverviewExamItem[];
                 <Item.Title>{exam.courseName}</Item.Title>
                 <Item.Description>{calendarExamDetail(exam) || sectionCopy.dateTBD}</Item.Description>
               </Item.Content>
-              <Item.Actions class="text-muted-foreground text-xs">{fmtDate(exam.date)}</Item.Actions>
+              <Item.Actions>{fmtDate(exam.date)}</Item.Actions>
             </a>
           {/snippet}
         </Item.Root>

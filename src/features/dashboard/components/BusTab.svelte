@@ -127,7 +127,7 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
         showHeader={false}
       />
     {:else}
-      <Empty.Root class="border border-border bg-background lg:col-span-2">
+      <Empty.Root class="lg:col-span-2">
         <Empty.Header>
           <Empty.Title>{busCopy.empty}</Empty.Title>
         </Empty.Header>

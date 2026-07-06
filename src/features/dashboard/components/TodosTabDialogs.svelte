@@ -26,7 +26,6 @@ export let openTodoEditor: (todo: DashboardTodoItem) => void;
 export let selectedTodo: DashboardTodoItem | null;
 export let showCreateTodo: boolean;
 export let todoActionLabel: (todo: DashboardTodoItem) => string;
-export let todoPriorityClass: (priority: string) => string;
 export let todoPriorityOptions: DashboardTodoPriorityOption[];
 export let todoSavingById: Record<string, boolean>;
 export let todosCopy: DashboardTodosCopy;
@@ -62,7 +61,6 @@ export let updateTodoAction: SubmitFunction;
   {openTodoEditor}
   todo={selectedTodo}
   {todoActionLabel}
-  {todoPriorityClass}
   {todoSavingById}
   {todosCopy}
   {todoStatus}

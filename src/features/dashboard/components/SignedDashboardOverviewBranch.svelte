@@ -29,7 +29,6 @@ export let sectionCopy: DashboardSectionCopy;
 export let signedData: OverviewSignedData;
 export let subscriptionsCopy: DashboardSubscriptionsCopy;
 export let submitDashboardLinkPin: DashboardLinkPinSubmit;
-export let todoPriorityClass: (priority: string) => string;
 export let todosCopy: DashboardTodosCopy;
 export let updatingDashboardLinkSlug: string | null;
 </script>
@@ -44,7 +43,6 @@ export let updatingDashboardLinkSlug: string | null;
   {signedData}
   locale={data.locale}
   {dashboardTabHref}
-  {todoPriorityClass}
   {submitDashboardLinkPin}
   {linkIconLabel}
   {calendarTimelineItemsForDay}

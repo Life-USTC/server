@@ -27,9 +27,9 @@ export let teacher: TeacherDetailTeacher;
             {/if}
           </Item.Content>
           <Item.Actions>
-            <Badge class="font-mono" variant="outline">{section.code}</Badge>
+            <Badge variant="outline">{section.code}</Badge>
           </Item.Actions>
-          <Item.Footer class="flex-wrap justify-start text-muted-foreground text-xs">
+          <Item.Footer class="flex-wrap justify-start">
             <span>{section.semester?.nameCn ?? notAvailable}</span>
             <span>{section.credits ?? notAvailable} {copy.teacherDetail.credits}</span>
           </Item.Footer>
@@ -37,7 +37,7 @@ export let teacher: TeacherDetailTeacher;
       {/snippet}
     </Item.Root>
   {:else}
-    <Empty.Root class="border">
+    <Empty.Root>
       <Empty.Header>
         <Empty.Title>{copy.teacherDetail.noSections}</Empty.Title>
       </Empty.Header>

@@ -30,9 +30,6 @@ export let locale: string;
 export let referenceDate: Date | string;
 
 export let openTodoEditor: (todo: DashboardTodoItem) => void;
-export let todoPriorityClass: (
-  priority: DashboardTodoItem["priority"],
-) => string;
 export let toggleTodoCompletion: TodoCompletionToggle;
 export let deleteTodo: (todo: DashboardTodoItem) => void | Promise<void>;
 export let setTodoView: (view: TodoView) => void;
@@ -89,7 +86,6 @@ $: ({ datetimeLocalValue, fmtDate, todoActionLabel, todoStatus } =
       {openTodoEditor}
       bind:selectedTodo
       {todoActionLabel}
-      {todoPriorityClass}
       {todoSavingById}
       {todosCopy}
       {todoStatus}
@@ -102,7 +98,6 @@ $: ({ datetimeLocalValue, fmtDate, todoActionLabel, todoStatus } =
       {openTodoEditor}
       bind:selectedTodo
       {todoActionLabel}
-      {todoPriorityClass}
       {todoSavingById}
       {todosCopy}
       {toggleTodoCompletion}
@@ -124,7 +119,6 @@ $: ({ datetimeLocalValue, fmtDate, todoActionLabel, todoStatus } =
     bind:selectedTodo
     bind:showCreateTodo
     {todoActionLabel}
-    {todoPriorityClass}
     {todoPriorityOptions}
     {todoSavingById}
     {todosCopy}

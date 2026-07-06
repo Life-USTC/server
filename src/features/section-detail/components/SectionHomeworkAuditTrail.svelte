@@ -36,11 +36,11 @@ export let logs: SectionHomeworkAuditLog[];
                   {log.titleSnapshot}
                 </Item.Description>
               </Item.Content>
-              <Item.Actions class="text-muted-foreground text-xs">
+              <Item.Actions>
                 {fmtDateTime(log.createdAt)}
               </Item.Actions>
               {#if log.actor}
-                <Item.Footer class="text-muted-foreground text-xs">
+                <Item.Footer>
                   {formatMessage(homeworkCopy.contentHistoryActor, {
                     name: log.actor.name ?? log.actor.username ?? commonCopy.unknown,
                   })}

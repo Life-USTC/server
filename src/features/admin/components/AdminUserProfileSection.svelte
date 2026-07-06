@@ -11,7 +11,7 @@ export let editUsername: string;
 export let inputValue: (event: Event) => string;
 </script>
 
-<Field.Set class="rounded-lg border border-border bg-muted/30 p-3">
+<Field.Set class="bg-subtle p-3">
   <Field.Legend>{copy.profileRoleTitle}</Field.Legend>
   <Field.Description>{copy.profileRoleDescription}</Field.Description>
   <Field.Group class="grid gap-3 sm:grid-cols-2">
@@ -38,7 +38,7 @@ export let inputValue: (event: Event) => string;
   </Field.Group>
   <Field.Field class="w-fit" orientation="horizontal">
     <Checkbox id="admin-user-is-admin" bind:checked={editIsAdmin} />
-    <Field.Label for="admin-user-is-admin" class="font-normal">
+    <Field.Label for="admin-user-is-admin">
       {copy.adminToggleLabel}
     </Field.Label>
   </Field.Field>

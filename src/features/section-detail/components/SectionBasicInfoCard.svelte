@@ -53,7 +53,7 @@ export let yesNo: (value: boolean | null | undefined) => string;
     {sectionTeachersLabel}
   />
 
-  <Button class="h-auto w-fit text-sm" href={`/courses/${section.course.jwId}`} variant="link">
+  <Button class="h-auto w-fit" href={`/courses/${section.course.jwId}`} variant="link">
     {sectionCopy.viewAllCourseSections}
   </Button>
 </div>

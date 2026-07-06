@@ -63,7 +63,7 @@ function activeTripBadge(trip: BusMapActiveTrip) {
           </Item.Media>
           <Item.Content>
             <Item.Title>{route?.descriptionPrimary ?? `${copy.legend.route} ${trip.routeId}`}</Item.Title>
-            <Item.Description class="font-mono tabular-nums">
+            <Item.Description>
               {trip.departureTime ?? "--:--"} -> {trip.arrivalTime ?? "--:--"}
             </Item.Description>
           </Item.Content>
@@ -77,7 +77,7 @@ function activeTripBadge(trip: BusMapActiveTrip) {
     </Item.Group>
   </ScrollArea>
 {:else}
-  <Empty.Root class="min-h-20 border border-border bg-background p-4">
+  <Empty.Root class="min-h-20 p-4">
     <Empty.Header>
       <Empty.Description>{copy.status.noActive}</Empty.Description>
     </Empty.Header>

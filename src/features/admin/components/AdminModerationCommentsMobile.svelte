@@ -11,15 +11,16 @@ export let comments: AdminModerationComment[];
 export let commentAuthorLabel: AdminModerationCommentFormatter;
 export let formatDate: (value: string | Date) => string;
 export let onManage: (comment: AdminModerationComment) => void;
-export let statusBadgeClass: AdminModerationCommentStatusFormatter;
-export let statusBorderClass: AdminModerationCommentStatusFormatter;
 export let statusLabel: AdminModerationCommentStatusFormatter;
 export let targetLabel: AdminModerationCommentFormatter;
 </script>
 
 <Item.Group class="md:hidden">
   {#each comments as comment}
-    <Item.Root variant="outline" class={`items-start border-l-4 ${statusBorderClass(comment.status)}`}>
+    <Item.Root
+      variant="outline"
+      class={`items-start border-l-4 ${comment.status === "active" ? "border-l-success" : comment.status === "deleted" ? "border-l-destructive" : "border-l-warning"}`}
+    >
       {#snippet child({ props })}
         <button {...props} type="button" onclick={() => onManage(comment)}>
           <Item.Content class="min-w-0">
@@ -32,7 +33,9 @@ export let targetLabel: AdminModerationCommentFormatter;
             </Item.Description>
           </Item.Content>
           <Item.Actions>
-          <Badge class={statusBadgeClass(comment.status)}>{statusLabel(comment.status)}</Badge>
+            <Badge variant={comment.status === "deleted" ? "destructive" : "outline"}>
+              {statusLabel(comment.status)}
+            </Badge>
           </Item.Actions>
         </button>
       {/snippet}

@@ -65,14 +65,14 @@ function diffSegmentClass(segment: DiffSegment) {
         <Item.Header>
           <Item.Content class="gap-0">
             <Item.Title>{editorName(item.editor)}</Item.Title>
-            <Item.Description class="text-xs">{formatDate(item.createdAt)}</Item.Description>
+            <Item.Description>{formatDate(item.createdAt)}</Item.Description>
           </Item.Content>
         </Item.Header>
         <div class="grid w-full gap-3 sm:grid-cols-2">
           <Item.Root variant="muted" size="sm" class="items-start">
             <Item.Content class="gap-2">
-              <Item.Title class="text-muted-foreground text-xs">{copy.previousLabel}</Item.Title>
-              <ScrollArea class="h-40 rounded-md bg-background">
+              <Item.Title>{copy.previousLabel}</Item.Title>
+              <ScrollArea class="h-40">
                 <div class="whitespace-pre-wrap p-3 text-xs">
                 {#if previousSegments.length > 0}
                   {#each previousSegments as segment}
@@ -87,8 +87,8 @@ function diffSegmentClass(segment: DiffSegment) {
           </Item.Root>
           <Item.Root variant="muted" size="sm" class="items-start">
             <Item.Content class="gap-2">
-              <Item.Title class="text-muted-foreground text-xs">{copy.updatedLabel}</Item.Title>
-              <ScrollArea class="h-40 rounded-md bg-background">
+              <Item.Title>{copy.updatedLabel}</Item.Title>
+              <ScrollArea class="h-40">
                 <div class="whitespace-pre-wrap p-3 text-xs">
                 {#if nextSegments.length > 0}
                   {#each nextSegments as segment}

@@ -28,13 +28,13 @@ export let updatedTime: string;
       <Item.Root class="items-start" variant="outline">
         <Item.Content>
           <Item.Description>{copy.legend.enRoute}</Item.Description>
-          <Item.Title class="text-xl">{enRouteCount}</Item.Title>
+          <Item.Title>{enRouteCount}</Item.Title>
         </Item.Content>
       </Item.Root>
       <Item.Root class="items-start" variant="outline">
         <Item.Content>
           <Item.Description>{copy.legend.departingSoon}</Item.Description>
-          <Item.Title class="text-xl">{departingSoonCount}</Item.Title>
+          <Item.Title>{departingSoonCount}</Item.Title>
         </Item.Content>
       </Item.Root>
     </Item.Group>

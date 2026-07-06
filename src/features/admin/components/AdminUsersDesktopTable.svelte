@@ -37,7 +37,7 @@ export let users: AdminUserRow[];
             <div class="break-all font-mono text-muted-foreground text-xs">{user.id}</div>
           </Table.Cell>
           <Table.Cell>{user.username ?? copy.noUsername}</Table.Cell>
-          <Table.Cell class="text-sm">{user.email ?? copy.noVerifiedEmail}</Table.Cell>
+          <Table.Cell>{user.email ?? copy.noVerifiedEmail}</Table.Cell>
           <Table.Cell>
             <Badge variant={user.isAdmin ? "secondary" : "ghost"}>
               {user.isAdmin ? copy.adminRole : copy.userRole}
@@ -53,7 +53,7 @@ export let users: AdminUserRow[];
               <Badge variant="ghost">{copy.clearStatus}</Badge>
             {/if}
           </Table.Cell>
-          <Table.Cell class="text-muted-foreground text-sm">{formatDate(user.createdAt)}</Table.Cell>
+          <Table.Cell>{formatDate(user.createdAt)}</Table.Cell>
           <Table.Cell class="text-right">
             <Button
               size="sm"

@@ -19,7 +19,7 @@ export { className as class };
 
 <Empty.Root
   class={cn(
-    "items-start border border-border bg-background text-left shadow-sm",
+    "items-start text-left",
     className,
   )}
 >

@@ -30,7 +30,7 @@ export let selectHomework: (homework: SectionHomework) => void;
         <Table.Row>
           <Table.Cell>
             <Button
-              class="h-auto whitespace-normal text-left font-medium"
+              class="h-auto whitespace-normal text-left"
               type="button"
               variant="link"
               onclick={() => {

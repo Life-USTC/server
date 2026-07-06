@@ -119,7 +119,7 @@ $: calendarGridWeeks = calendarData
         />
       {/key}
     {:else}
-      <Empty.Root class="items-start border border-border bg-background text-left">
+      <Empty.Root class="items-start text-left">
         <Empty.Header class="items-start text-left">
           <Empty.Title>{subscriptionsCopy.calendarEmpty}</Empty.Title>
         </Empty.Header>

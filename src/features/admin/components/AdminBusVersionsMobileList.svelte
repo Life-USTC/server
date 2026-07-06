@@ -25,9 +25,9 @@ export let versions: AdminBusVersion[];
     <Item.Root class="items-start" size="sm" variant="outline">
       <Item.Content class="min-w-0">
         <Item.Title>{version.title}</Item.Title>
-        <Item.Description class="break-all font-mono">{version.key}</Item.Description>
+        <Item.Description class="break-all">{version.key}</Item.Description>
         {#if version.sourceMessage}
-          <Item.Description class="line-clamp-none text-xs">{version.sourceMessage}</Item.Description>
+          <Item.Description class="line-clamp-none">{version.sourceMessage}</Item.Description>
         {/if}
       </Item.Content>
       <Item.Actions>

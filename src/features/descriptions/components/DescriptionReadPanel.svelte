@@ -47,7 +47,7 @@ function handlePanelTabChange(value: string) {
         remarkPlugins={campusReferenceMarkdownPlugins}
       />
     {:else}
-      <Empty.Root class="min-h-24 border">
+      <Empty.Root class="min-h-24">
         <Empty.Header>
           <Empty.Title>{copy.empty}</Empty.Title>
         </Empty.Header>

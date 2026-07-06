@@ -176,7 +176,7 @@ $: stats = [
         <Card.Action>
           <Badge variant="outline">{pageCopy.availability}</Badge>
         </Card.Action>
-        <Card.Description class="max-w-3xl text-sm leading-6 sm:text-base">
+        <Card.Description class="max-w-3xl">
           {pageCopy.subtitle}
         </Card.Description>
       </Card.Header>
@@ -218,13 +218,13 @@ $: stats = [
     </Card.Root>
 
     <Card.Root class="overflow-hidden">
-      <Card.Header class="border-border border-b p-4">
+      <Card.Header class="p-4">
         <div class="flex items-center gap-3">
           <Item.Media variant="icon">
             <SmartphoneIcon />
           </Item.Media>
           <div class="min-w-0">
-            <Card.Title class="truncate text-base">{pageCopy.previewTitle}</Card.Title>
+            <Card.Title class="truncate">{pageCopy.previewTitle}</Card.Title>
             <Card.Description>{pageCopy.previewSubtitle}</Card.Description>
           </div>
         </div>
@@ -249,7 +249,7 @@ $: stats = [
               <Item.Content>
                 <Item.Title>{item.label}</Item.Title>
               </Item.Content>
-              <Item.Actions class="shrink-0 text-muted-foreground text-xs">
+              <Item.Actions class="shrink-0">
                 {item.status}
               </Item.Actions>
             </Item.Root>
@@ -298,7 +298,7 @@ $: stats = [
                     <Item.Title>{item.copy.title}</Item.Title>
                     <Item.Description>{item.copy.description}</Item.Description>
                   </Item.Content>
-                  <Item.Actions class="text-muted-foreground">
+                  <Item.Actions>
                     <ExternalLinkIcon />
                   </Item.Actions>
                 </a>

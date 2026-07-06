@@ -18,7 +18,6 @@ export let formatMessage: (
   values: Record<string, string | number>,
 ) => string;
 export let pendingTodos: DashboardTodoItem[];
-export let todoPriorityClass: (priority: string) => string;
 export let todosCopy: DashboardTodosCopy;
 export let todosDueSoon: DashboardTodoItem[];
 export let todosDueToday: DashboardTodoItem[];
@@ -54,12 +53,20 @@ export let todoStatus: (todo: DashboardTodoItem) => string;
               <Item.Content>
                 <Item.Title>{todo.title}</Item.Title>
                 <Item.Description class="flex flex-wrap gap-1.5">
-                  <Badge class={todoPriorityClass(todo.priority)}>{todosCopy.priority[todo.priority]}</Badge>
+                  <Badge
+                    variant={todo.priority === "high"
+                      ? "destructive"
+                      : todo.priority === "medium"
+                        ? "secondary"
+                        : "outline"}
+                  >
+                    {todosCopy.priority[todo.priority]}
+                  </Badge>
                   <Badge variant="ghost">{todoStatus(todo)}</Badge>
                 </Item.Description>
               </Item.Content>
               {#if todo.dueAt}
-                <Item.Actions class="text-muted-foreground text-xs sm:text-right">{fmtDate(todo.dueAt)}</Item.Actions>
+                <Item.Actions class="sm:text-right">{fmtDate(todo.dueAt)}</Item.Actions>
               {/if}
             </a>
           {/snippet}

@@ -15,12 +15,12 @@ export let items: DetailSectionNavItem[];
 export let label = "";
 </script>
 
-<Sidebar.Root
-  collapsible="none"
-  style="--sidebar-width: 14rem;"
-  class="w-full border-sidebar-border border-b lg:w-(--sidebar-width) lg:border-e lg:border-b-0"
-  data-testid="detail-section-nav"
->
+<div style="--sidebar-width: 14rem;">
+  <Sidebar.Root
+    collapsible="none"
+    class="w-full border-sidebar-border border-b lg:w-(--sidebar-width) lg:border-e lg:border-b-0"
+    data-testid="detail-section-nav"
+  >
   <Sidebar.Content aria-label={ariaLabel || label}>
     <Sidebar.Group>
       {#if label}
@@ -56,4 +56,5 @@ export let label = "";
       </Sidebar.GroupContent>
     </Sidebar.Group>
   </Sidebar.Content>
-</Sidebar.Root>
+  </Sidebar.Root>
+</div>

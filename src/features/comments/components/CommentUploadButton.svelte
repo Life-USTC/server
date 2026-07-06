@@ -27,7 +27,7 @@ function openFilePicker() {
 <Input
   bind:ref={inputRef}
   aria-hidden="true"
-  class="sr-only h-px w-px border-0 p-0"
+  class="sr-only h-px w-px p-0"
   tabindex={-1}
   type="file"
   {disabled}

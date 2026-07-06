@@ -22,7 +22,8 @@ $: tableMinWidth = `${Math.max(16, stopColumns.length * 4.25)}rem`;
       <Card.Title>{route.route.descriptionPrimary}</Card.Title>
     </Card.Header>
     <Card.Content>
-      <Table.Root style={`min-width: ${tableMinWidth};`}>
+      <div style="--table-min-width: {tableMinWidth}">
+        <Table.Root class="min-w-[var(--table-min-width)]">
         <Table.Header>
           <Table.Row>
             {#each stopColumns as stop, index}
@@ -44,7 +45,6 @@ $: tableMinWidth = `${Math.max(16, stopColumns.length * 4.25)}rem`;
             {@const isNextTrip = tripKey === busNextTripHighlightKey}
             <Table.Row
               class={cn(
-                "border-0",
                 trip.status === "departed" ? "opacity-60" : undefined,
                 isNextTrip ? "bg-muted/70 hover:bg-muted" : undefined,
               )}
@@ -53,7 +53,6 @@ $: tableMinWidth = `${Math.max(16, stopColumns.length * 4.25)}rem`;
                 {@const stopTime = busTripStopTimeForOrder(trip, stop.stopOrder)}
                 <Table.Cell
                   class={cn(
-                    "font-mono tabular-nums",
                     index === 0
                       ? "text-left"
                       : index === stopColumns.length - 1
@@ -67,7 +66,8 @@ $: tableMinWidth = `${Math.max(16, stopColumns.length * 4.25)}rem`;
             </Table.Row>
           {/each}
         </Table.Body>
-      </Table.Root>
+        </Table.Root>
+      </div>
     </Card.Content>
   </Card.Root>
 </section>

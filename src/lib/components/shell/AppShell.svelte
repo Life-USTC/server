@@ -270,10 +270,10 @@ afterNavigate(({ from, to }) => {
   }
 </style>
 
-<Sidebar.Provider
-  style="--sidebar-width: 15rem; --sidebar-width-icon: 4rem;"
-  class="min-h-screen bg-background text-foreground lg:h-screen lg:min-h-0 lg:overflow-hidden"
->
+<div style="--sidebar-width: 15rem; --sidebar-width-icon: 4rem;">
+  <Sidebar.Provider
+    class="min-h-screen lg:h-screen lg:min-h-0 lg:overflow-hidden"
+  >
   {#if $navigating}
     <RouteLoadingBar loadingLabel={data.copy.shell.loading} />
   {/if}
@@ -286,7 +286,7 @@ afterNavigate(({ from, to }) => {
 
   <Sidebar.Inset
     id="main-content"
-    class="relative flex w-full min-w-0 flex-1 flex-col bg-background lg:h-screen lg:min-h-0 lg:overflow-hidden"
+    class="relative flex w-full min-w-0 flex-1 flex-col lg:h-screen lg:min-h-0 lg:overflow-hidden"
   >
     <AppTopbar
       {avatarFallback}
@@ -335,4 +335,5 @@ afterNavigate(({ from, to }) => {
       {/if}
     </div>
   </Sidebar.Inset>
-</Sidebar.Provider>
+  </Sidebar.Provider>
+</div>

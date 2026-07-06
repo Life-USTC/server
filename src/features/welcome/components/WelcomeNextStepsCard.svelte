@@ -11,7 +11,7 @@ export let welcomeCopy: WelcomeCopy;
 
 <Card.Root class="lg:sticky lg:top-20 lg:h-fit">
   <Card.Header>
-    <Card.Title class="text-lg">{welcomeCopy.nextStepsTitle}</Card.Title>
+    <Card.Title>{welcomeCopy.nextStepsTitle}</Card.Title>
     <Card.Description>
       {welcomeCopy.nextStepsDescription}
     </Card.Description>

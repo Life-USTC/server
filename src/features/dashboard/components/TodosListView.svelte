@@ -19,9 +19,6 @@ export let fmtDate: TodoDateFormatter;
 export let openTodoEditor: (todo: DashboardTodoItem) => void;
 export let selectedTodo: DashboardTodoItem | null;
 export let todoActionLabel: TodoAction;
-export let todoPriorityClass: (
-  priority: DashboardTodoItem["priority"],
-) => string;
 export let todoSavingById: Record<string, boolean>;
 export let todosCopy: DashboardTodosCopy;
 export let toggleTodoCompletion: TodoCompletionToggle;
@@ -54,11 +51,17 @@ export let toggleTodoCompletion: TodoCompletionToggle;
           </button>
         </Table.Cell>
         <Table.Cell class="text-center">
-          <Badge class={todoPriorityClass(todo.priority)}>
+          <Badge
+            variant={todo.priority === "high"
+              ? "destructive"
+              : todo.priority === "medium"
+                ? "secondary"
+                : "outline"}
+          >
             {todosCopy.priority[todo.priority]}
           </Badge>
         </Table.Cell>
-        <Table.Cell class="text-center text-muted-foreground">
+        <Table.Cell class="text-center">
           {fmtDate(todo.dueAt)}
         </Table.Cell>
         <Table.Cell>

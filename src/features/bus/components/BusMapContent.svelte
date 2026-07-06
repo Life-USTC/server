@@ -44,7 +44,7 @@ $: busMapView = buildBusMapViewState(mapData, dayTypeLabels, locale);
   />
 
   {#if !mapData}
-    <Empty.Root class="border border-border bg-background py-16">
+    <Empty.Root class="py-16">
       <Empty.Header>
         <Empty.Title>{copy.noData}</Empty.Title>
         <Empty.Description>{copy.noDataDescription}</Empty.Description>
@@ -57,7 +57,7 @@ $: busMapView = buildBusMapViewState(mapData, dayTypeLabels, locale);
           <Card.Title>{copy.networkOverview}</Card.Title>
           <Card.Description>{copy.networkDescription}</Card.Description>
         </Card.Header>
-        <Card.Content class="bg-[#f6f8fa] p-0">
+        <Card.Content class="p-0">
           <ScrollArea orientation="horizontal" class="p-3">
           <BusTransitSvg
             activeRouteIds={busMapView.activeRouteIds}

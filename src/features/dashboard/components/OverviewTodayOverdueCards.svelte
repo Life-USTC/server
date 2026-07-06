@@ -23,8 +23,6 @@ export let dashboardTabHref: DashboardCalendarTabHref;
 export let fmtDate: (date: Date | string | null | undefined) => string;
 export let fmtTime: (time: number) => string;
 export let homeworkEtaLabel: (date: Date | string | null | undefined) => string;
-export let sessionHref: (session: DashboardSessionItem) => string;
-export let todoPriorityClass: (priority: string) => string;
 export let todoStatus: (todo: DashboardTodoItem) => string;
 export let todaySessions: DashboardSessionItem[];
 export let dueTodayHomeworks: DashboardHomeworkItem[];
@@ -70,7 +68,7 @@ export let overdueTodos: DashboardTodoItem[];
                   </Item.Title>
                   <Item.Description>{homework.section?.course?.namePrimary ?? commonCopy.sections}</Item.Description>
                 </Item.Content>
-                <Item.Actions class="text-muted-foreground text-sm">
+                <Item.Actions>
                   {homeworkEtaLabel(homework.submissionDueAt)}
                 </Item.Actions>
               </a>
@@ -87,11 +85,19 @@ export let overdueTodos: DashboardTodoItem[];
                     {todo.title}
                   </Item.Title>
                   <Item.Description class="flex flex-wrap gap-1.5">
-                    <Badge class={todoPriorityClass(todo.priority)}>{todosCopy.priority[todo.priority]}</Badge>
+                    <Badge
+                      variant={todo.priority === "high"
+                        ? "destructive"
+                        : todo.priority === "medium"
+                          ? "secondary"
+                          : "outline"}
+                    >
+                      {todosCopy.priority[todo.priority]}
+                    </Badge>
                     <Badge variant="ghost">{todoStatus(todo)}</Badge>
                   </Item.Description>
                 </Item.Content>
-                <Item.Actions class="text-muted-foreground text-sm">
+                <Item.Actions>
                   {fmtDate(todo.dueAt)}
                 </Item.Actions>
               </a>

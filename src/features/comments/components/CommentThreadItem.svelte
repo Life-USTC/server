@@ -82,7 +82,7 @@ export let viewer: ViewerContext;
   style={`margin-left: ${Math.min(depth, 3) * 1.25}rem`}
 >
   <Card.Root
-    class={`transition-colors duration-300 ${highlightedId === comment.id ? "ring-2 ring-primary/40" : ""}`}
+    class={highlightedId === comment.id ? "ring-2 ring-primary/40" : ""}
   >
     <Card.Header class="px-4 md:px-5">
       <CommentThreadHeader

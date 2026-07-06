@@ -28,7 +28,7 @@ export let section: {
 
   <Card.Root>
     <Card.Header>
-      <Card.Title class="font-medium text-muted-foreground text-sm">{previewTitle}</Card.Title>
+      <Card.Title>{previewTitle}</Card.Title>
     </Card.Header>
     <Card.Content>
       <div class="rounded-md border border-border bg-background p-5 shadow-sm">

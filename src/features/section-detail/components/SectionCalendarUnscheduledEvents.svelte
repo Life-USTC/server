@@ -21,7 +21,7 @@ export let sectionCopy: SectionCalendarCopy;
         <Item.Content>
           <Item.Title>{event.title}</Item.Title>
         </Item.Content>
-        <Item.Actions class="text-muted-foreground text-xs">
+        <Item.Actions>
           {event.meta}
         </Item.Actions>
       </Item.Root>

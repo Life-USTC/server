@@ -32,7 +32,7 @@ export let teachers: SectionTeacherSummary[];
       {/snippet}
     </Item.Root>
   {:else}
-    <Empty.Root class="min-h-20 border border-border bg-background p-4">
+    <Empty.Root class="min-h-20 p-4">
       <Empty.Header>
         <Empty.Description>{sectionCopy.noTeachersListed}</Empty.Description>
       </Empty.Header>
