@@ -307,6 +307,7 @@ async function main() {
     if (file.startsWith("src/lib/components/ui/")) continue;
     files.push(file);
   }
+  files.sort();
   const results: AuditEntry[] = [];
 
   for (const file of files) {
