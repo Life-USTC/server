@@ -149,7 +149,9 @@ test("/ shell 桌面导航后内容滚动回到顶部", async ({ page }) => {
   await page.evaluate(() => {
     window.scrollTo(0, 720);
     document
-      .querySelector("[data-shell-scroll-container]")
+      .querySelector(
+        '[data-shell-scroll-container] [data-slot="scroll-area-viewport"]',
+      )
       ?.scrollTo({ top: 720 });
   });
 
@@ -157,7 +159,7 @@ test("/ shell 桌面导航后内容滚动回到顶部", async ({ page }) => {
     .poll(async () =>
       page.evaluate(() => {
         const contentPane = document.querySelector(
-          "[data-shell-scroll-container]",
+          '[data-shell-scroll-container] [data-slot="scroll-area-viewport"]',
         );
         return Math.max(window.scrollY, contentPane?.scrollTop ?? 0);
       }),
@@ -175,7 +177,7 @@ test("/ shell 桌面导航后内容滚动回到顶部", async ({ page }) => {
     .poll(async () =>
       page.evaluate(() => {
         const contentPane = document.querySelector(
-          "[data-shell-scroll-container]",
+          '[data-shell-scroll-container] [data-slot="scroll-area-viewport"]',
         );
         return Math.max(window.scrollY, contentPane?.scrollTop ?? 0);
       }),

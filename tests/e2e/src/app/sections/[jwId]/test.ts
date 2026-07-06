@@ -60,11 +60,7 @@ function getSectionNavLink(page: Page, name: RegExp) {
 }
 
 function getDetailViewport(page: Page) {
-  return page
-    .locator(
-      '[data-detail-scroll-container] [data-slot="scroll-area-viewport"]',
-    )
-    .first();
+  return page.locator("[data-detail-scroll-container]").first();
 }
 
 async function jumpToSection(page: Page, name: RegExp, selector: string) {
