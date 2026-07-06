@@ -3,6 +3,7 @@ import zhCnMessages from "../../../messages/zh-cn.json";
 
 const layoutMessages = {
   "en-us": {
+    admin: enUsMessages.admin,
     common: enUsMessages.common,
     homepage: enUsMessages.homepage,
     language: enUsMessages.language,
@@ -13,6 +14,7 @@ const layoutMessages = {
     theme: enUsMessages.theme,
   },
   "zh-cn": {
+    admin: zhCnMessages.admin,
     common: zhCnMessages.common,
     homepage: zhCnMessages.homepage,
     language: zhCnMessages.language,
@@ -29,6 +31,7 @@ type LayoutLocale = keyof typeof layoutMessages;
 export type LayoutUserInput = {
   id: string;
   image?: string | null;
+  isAdmin?: boolean;
   name?: string | null;
   username?: unknown;
 } | null;
@@ -71,6 +74,14 @@ export function buildLayoutCopy(locale: LayoutLocale) {
         publicTools: locale === "zh-cn" ? "公开工具" : "Public tools",
         catalog: locale === "zh-cn" ? "课程目录" : "Catalog",
         campus: locale === "zh-cn" ? "校园" : "Campus",
+        adminTools: locale === "zh-cn" ? "管理工具" : "Admin tools",
+      },
+      admin: {
+        title: messages.admin.title,
+        moderation: messages.admin.moderationTitle,
+        users: messages.admin.usersTitle,
+        oauth: messages.admin.oauthTitle,
+        bus: messages.admin.busTitle,
       },
     },
     menu: {
@@ -111,6 +122,7 @@ export type LayoutCopy = ReturnType<typeof buildLayoutCopy>;
 export type LayoutUserSummary = {
   id: string;
   image: string | null;
+  isAdmin: boolean;
   name: string | null;
   username: string | null;
 } | null;
@@ -123,6 +135,7 @@ export function layoutUserSummary(
         id: user.id,
         name: user.name ?? null,
         image: user.image ?? null,
+        isAdmin: Boolean(user.isAdmin),
         username: typeof user.username === "string" ? user.username : null,
       }
     : null;

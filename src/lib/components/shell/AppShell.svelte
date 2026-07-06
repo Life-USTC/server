@@ -1,14 +1,18 @@
 <script lang="ts">
 import BookOpenIcon from "@lucide/svelte/icons/book-open";
+import BusIcon from "@lucide/svelte/icons/bus";
 import BusFrontIcon from "@lucide/svelte/icons/bus-front";
 import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
 import ClipboardListIcon from "@lucide/svelte/icons/clipboard-list";
+import GavelIcon from "@lucide/svelte/icons/gavel";
 import GraduationCapIcon from "@lucide/svelte/icons/graduation-cap";
+import KeyIcon from "@lucide/svelte/icons/key";
 import LayoutDashboardIcon from "@lucide/svelte/icons/layout-dashboard";
 import LinkIcon from "@lucide/svelte/icons/link";
 import ListTodoIcon from "@lucide/svelte/icons/list-todo";
 import MapIcon from "@lucide/svelte/icons/map";
 import RouteIcon from "@lucide/svelte/icons/route";
+import ShieldIcon from "@lucide/svelte/icons/shield";
 import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
 import UsersIcon from "@lucide/svelte/icons/users";
 import { onMount } from "svelte";
@@ -57,6 +61,7 @@ $: avatarFallback = resolveAvatarFallback(data.user);
 $: navGroups = buildShellNavGroups(
   data.copy,
   Boolean(data.user),
+  data.user?.isAdmin ?? false,
   $page.url.pathname,
 );
 $: detailWorkspace = isDetailWorkspacePath($page.url.pathname);
@@ -69,6 +74,7 @@ function isDetailWorkspacePath(pathname: string) {
 function buildShellNavGroups(
   copy: LayoutCopy,
   signedIn: boolean,
+  isAdmin: boolean,
   pathname: string,
 ): ShellNavGroup[] {
   const catalogLinks: ShellLink[] = [
@@ -96,7 +102,22 @@ function buildShellNavGroups(
     ];
   }
 
+  const adminLinks: ShellLink[] = [
+    { href: "/admin", icon: ShieldIcon, label: copy.nav.admin.title },
+    { href: "/admin/users", icon: UsersIcon, label: copy.nav.admin.users },
+    {
+      href: "/admin/moderation",
+      icon: GavelIcon,
+      label: copy.nav.admin.moderation,
+    },
+    { href: "/admin/oauth", icon: KeyIcon, label: copy.nav.admin.oauth },
+    { href: "/admin/bus", icon: BusIcon, label: copy.nav.admin.bus },
+  ];
+
   return [
+    ...(isAdmin
+      ? [{ label: copy.nav.groups.adminTools, links: adminLinks }]
+      : []),
     {
       label: copy.nav.groups.workspace,
       links: [
@@ -183,6 +204,9 @@ function isActiveLink(link: ShellLink) {
     return (
       pathname === target.pathname || pathname.startsWith(`${target.pathname}/`)
     );
+  }
+  if (target.pathname === "/admin") {
+    return pathname === "/admin" || pathname.startsWith("/admin/");
   }
   return pathname === target.pathname;
 }
