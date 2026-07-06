@@ -1,4 +1,4 @@
-import { readdir, readFile } from "node:fs/promises";
+import { readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { type AST, parse } from "svelte/compiler";
 
@@ -8,6 +8,7 @@ const BASELINE_PATH = "docs/superpowers/artifacts/shadcn-lint-baseline.json";
 type BaselineEntry = {
   file: string;
   line: number;
+  signature: string;
   reason: string;
 };
 
@@ -552,6 +553,29 @@ function looksLikeClassString(value: string): boolean {
   return isLayoutToken(cleaned) || isStylingToken(cleaned);
 }
 
+function parseClassDirectiveTokens(classDirective: string | null): string[] {
+  if (!classDirective) return [];
+  const tokens: string[] = [];
+  const regex = /class:([A-Za-z0-9_\-[\]]+)\s*=/g;
+  for (const match of classDirective.matchAll(regex)) {
+    tokens.push(match[1]);
+  }
+  return tokens;
+}
+
+function computeSignature(finding: LintFinding): string {
+  const value = (
+    finding.classValue ??
+    finding.styleValue ??
+    finding.classDirective ??
+    ""
+  )
+    .replace(/\\n/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return value;
+}
+
 function parseClassTokens(classValue: string | null): string[] {
   if (!classValue) return [];
 
@@ -590,7 +614,9 @@ type LintFinding = {
   tag: string;
   classValue: string | null;
   styleValue: string | null;
+  classDirective: string | null;
   reason: string;
+  signature: string;
 };
 
 async function loadBaseline(path: string): Promise<BaselineEntry[]> {
@@ -608,37 +634,45 @@ function findingMatchesBaseline(
   baseline: BaselineEntry[],
 ): boolean {
   return baseline.some(
-    (entry) => entry.file === finding.file && entry.line === finding.line,
+    (entry) =>
+      entry.file === finding.file &&
+      entry.line === finding.line &&
+      entry.signature === finding.signature,
   );
 }
 
 function classifyFinding(entry: AuditEntry): LintFinding | null {
-  if (entry.styleValue) {
-    return {
+  const classValue = entry.classValue ?? "";
+  const classDirective = entry.classDirective ?? "";
+
+  function makeFinding(reason: string): LintFinding {
+    const finding: LintFinding = {
       file: entry.file,
       line: entry.line,
       tag: entry.tag,
       classValue: entry.classValue,
       styleValue: entry.styleValue,
-      reason: "inline style on shadcn component is disallowed",
+      classDirective: entry.classDirective,
+      reason,
+      signature: "",
     };
+    finding.signature = computeSignature(finding);
+    return finding;
   }
 
-  const classValue = entry.classValue ?? "";
+  if (entry.styleValue) {
+    return makeFinding("inline style on shadcn component is disallowed");
+  }
 
   if (containsStylingHelperCall(classValue)) {
-    return {
-      file: entry.file,
-      line: entry.line,
-      tag: entry.tag,
-      classValue: entry.classValue,
-      styleValue: null,
-      reason:
-        "class expression uses a helper that may return raw styling classes",
-    };
+    return makeFinding(
+      "class expression uses a helper that may return raw styling classes",
+    );
   }
 
-  const rawTokens = parseClassTokens(entry.classValue);
+  const classTokens = parseClassTokens(entry.classValue);
+  const directiveTokens = parseClassDirectiveTokens(classDirective);
+  const rawTokens = [...classTokens, ...directiveTokens];
 
   if (rawTokens.length === 0) {
     return null;
@@ -667,14 +701,21 @@ function classifyFinding(entry: AuditEntry): LintFinding | null {
   );
 
   if (spaceUtilityTokens.length > 0) {
-    return {
-      file: entry.file,
-      line: entry.line,
-      tag: entry.tag,
-      classValue: entry.classValue,
-      styleValue: null,
-      reason: `legacy space utilities: ${[...new Set(spaceUtilityTokens)].join(", ")}`,
-    };
+    return makeFinding(
+      `legacy space utilities: ${[...new Set(spaceUtilityTokens)].join(", ")}`,
+    );
+  }
+
+  const directiveStylingTokens = directiveTokens
+    .map((token) => stripVariants(cleanToken(token)))
+    .filter(isStylingToken);
+
+  if (directiveStylingTokens.length > 0) {
+    return makeFinding(
+      `class: directive applies styling override: ${[
+        ...new Set(directiveStylingTokens),
+      ].join(", ")}`,
+    );
   }
 
   const isDynamicExpression =
@@ -686,46 +727,31 @@ function classifyFinding(entry: AuditEntry): LintFinding | null {
     isDynamicExpression &&
     (stylingTokens.length > 0 || unknownTokens.length > 0)
   ) {
-    return {
-      file: entry.file,
-      line: entry.line,
-      tag: entry.tag,
-      classValue: entry.classValue,
-      styleValue: null,
-      reason: `dynamic class expression may contain styling overrides: ${[
+    return makeFinding(
+      `dynamic class expression may contain styling overrides: ${[
         ...new Set([...stylingTokens, ...unknownTokens]),
       ].join(", ")}`,
-    };
+    );
   }
 
   if (stylingTokens.length > 0) {
-    return {
-      file: entry.file,
-      line: entry.line,
-      tag: entry.tag,
-      classValue: entry.classValue,
-      styleValue: null,
-      reason: `contains styling overrides: ${[...new Set(stylingTokens)].join(
-        ", ",
-      )}`,
-    };
+    return makeFinding(
+      `contains styling overrides: ${[...new Set(stylingTokens)].join(", ")}`,
+    );
   }
 
   if (unknownTokens.length > 0) {
-    return {
-      file: entry.file,
-      line: entry.line,
-      tag: entry.tag,
-      classValue: entry.classValue,
-      styleValue: null,
-      reason: `unrecognized tokens: ${[...new Set(unknownTokens)].join(", ")}`,
-    };
+    return makeFinding(
+      `unrecognized tokens: ${[...new Set(unknownTokens)].join(", ")}`,
+    );
   }
 
   return null;
 }
 
 async function main() {
+  const updateBaseline = process.argv.includes("--update-baseline");
+
   const components = await listUiComponents(UI_DIR);
   const baseline = await loadBaseline(BASELINE_PATH);
   const files: string[] = [];
@@ -767,18 +793,41 @@ async function main() {
     }
   }
 
+  function findingDetail(finding: LintFinding): string {
+    return (
+      finding.styleValue ??
+      finding.classValue ??
+      finding.classDirective ??
+      ""
+    );
+  }
+
   for (const finding of known) {
-    const detail = finding.styleValue ?? finding.classValue ?? "";
     console.warn(
-      `${finding.file}:${finding.line} ${finding.tag} ${finding.reason} (${detail})`,
+      `${finding.file}:${finding.line} ${finding.tag} ${finding.reason} (${findingDetail(finding)})`,
     );
   }
 
   for (const finding of unknown) {
-    const detail = finding.styleValue ?? finding.classValue ?? "";
     console.log(
-      `${finding.file}:${finding.line} ${finding.tag} ${finding.reason} (${detail})`,
+      `${finding.file}:${finding.line} ${finding.tag} ${finding.reason} (${findingDetail(finding)})`,
     );
+  }
+
+  if (updateBaseline) {
+    const newBaseline: BaselineEntry[] = findings.map((finding) => ({
+      file: finding.file,
+      line: finding.line,
+      signature: finding.signature,
+      reason: finding.reason,
+    }));
+    newBaseline.sort((a, b) => {
+      if (a.file !== b.file) return a.file.localeCompare(b.file);
+      return a.line - b.line;
+    });
+    await writeFile(BASELINE_PATH, `${JSON.stringify(newBaseline, null, 2)}\n`);
+    console.log(`\nUpdated baseline with ${newBaseline.length} entries.`);
+    process.exit(0);
   }
 
   if (unknown.length === 0) {
