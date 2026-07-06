@@ -16,6 +16,21 @@ jobs:
       database-name: life_ustc_ci
       job-phase: ci:verify
 
+  lint-shadcn-classes:
+    name: Lint shadcn class usage
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Lint shadcn class usage
+        run: bun run scripts/lint-shadcn-classes.ts
+
   build-e2e-artifacts:
     name: Build E2E artifacts
     needs: check
