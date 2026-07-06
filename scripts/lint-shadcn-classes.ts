@@ -3,6 +3,13 @@ import path from "node:path";
 import { type AST, parse } from "svelte/compiler";
 
 const UI_DIR = "src/lib/components/ui";
+const BASELINE_PATH = "docs/superpowers/artifacts/shadcn-lint-baseline.json";
+
+type BaselineEntry = {
+  file: string;
+  line: number;
+  reason: string;
+};
 
 type ComponentImport = {
   component: string;
@@ -586,6 +593,25 @@ type LintFinding = {
   reason: string;
 };
 
+async function loadBaseline(path: string): Promise<BaselineEntry[]> {
+  try {
+    const raw = await readFile(path, "utf-8");
+    const parsed = JSON.parse(raw) as BaselineEntry[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function findingMatchesBaseline(
+  finding: LintFinding,
+  baseline: BaselineEntry[],
+): boolean {
+  return baseline.some(
+    (entry) => entry.file === finding.file && entry.line === finding.line,
+  );
+}
+
 function classifyFinding(entry: AuditEntry): LintFinding | null {
   if (entry.styleValue) {
     return {
@@ -701,6 +727,7 @@ function classifyFinding(entry: AuditEntry): LintFinding | null {
 
 async function main() {
   const components = await listUiComponents(UI_DIR);
+  const baseline = await loadBaseline(BASELINE_PATH);
   const files: string[] = [];
   for await (const file of new Bun.Glob("src/**/*.{svelte,ts,js}").scan(".")) {
     if (file.startsWith("src/lib/components/ui/")) continue;
@@ -725,24 +752,52 @@ async function main() {
     }
   }
 
-  if (findings.length === 0) {
-    console.log("No shadcn class/style violations found.");
-    process.exit(0);
-  }
-
   findings.sort((a, b) => {
     if (a.file !== b.file) return a.file.localeCompare(b.file);
     return a.line - b.line;
   });
 
+  const known: LintFinding[] = [];
+  const unknown: LintFinding[] = [];
   for (const finding of findings) {
+    if (findingMatchesBaseline(finding, baseline)) {
+      known.push(finding);
+    } else {
+      unknown.push(finding);
+    }
+  }
+
+  for (const finding of known) {
+    const detail = finding.styleValue ?? finding.classValue ?? "";
+    console.warn(
+      `${finding.file}:${finding.line} ${finding.tag} ${finding.reason} (${detail})`,
+    );
+  }
+
+  for (const finding of unknown) {
     const detail = finding.styleValue ?? finding.classValue ?? "";
     console.log(
       `${finding.file}:${finding.line} ${finding.tag} ${finding.reason} (${detail})`,
     );
   }
 
-  console.error(`\n${findings.length} shadcn class/style violation(s) found.`);
+  if (unknown.length === 0) {
+    if (known.length > 0) {
+      console.warn(
+        `\n${known.length} known shadcn class/style violation(s) ignored (baseline).`,
+      );
+    } else {
+      console.log("No shadcn class/style violations found.");
+    }
+    process.exit(0);
+  }
+
+  if (known.length > 0) {
+    console.warn(
+      `\n${known.length} known shadcn class/style violation(s) ignored (baseline).`,
+    );
+  }
+  console.error(`\n${unknown.length} shadcn class/style violation(s) found.`);
   process.exit(1);
 }
 
