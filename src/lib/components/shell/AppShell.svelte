@@ -36,6 +36,10 @@ import type {
   LayoutUserSummary,
 } from "$lib/shell/layout-server-data";
 import { cn } from "$lib/utils.js";
+import {
+  buildDetailSecondaryLinks,
+  buildSubscriptionSecondaryLinks,
+} from "./shell-nav-helpers";
 import type { ShellLink, ShellNavGroup } from "./types";
 
 type AppShellData = {
@@ -59,6 +63,7 @@ $: navGroups = buildShellNavGroups(
   Boolean(data.user),
   data.user?.isAdmin ?? false,
   $page.url.pathname,
+  $page.data,
 );
 $: detailWorkspace = isDetailWorkspacePath($page.url.pathname);
 const footerLinks = buildFooterLinks(data.copy.footer);
@@ -72,17 +77,41 @@ function buildShellNavGroups(
   signedIn: boolean,
   isAdmin: boolean,
   pathname: string,
+  pageData: Record<string, unknown>,
 ): ShellNavGroup[] {
+  const detailSecondaryLinks = buildDetailSecondaryLinks(pathname, pageData);
   const catalogLinks: ShellLink[] = [
-    { href: "/courses", icon: BookOpenIcon, label: copy.nav.courses },
-    { href: "/sections", icon: RouteIcon, label: copy.nav.sections },
-    { href: "/teachers", icon: UsersIcon, label: copy.nav.teachers },
+    {
+      href: "/courses",
+      icon: BookOpenIcon,
+      label: copy.nav.courses,
+      items: pathname.startsWith("/courses/")
+        ? detailSecondaryLinks
+        : undefined,
+    },
+    {
+      href: "/sections",
+      icon: RouteIcon,
+      label: copy.nav.sections,
+      items: pathname.startsWith("/sections/")
+        ? detailSecondaryLinks
+        : undefined,
+    },
+    {
+      href: "/teachers",
+      icon: UsersIcon,
+      label: copy.nav.teachers,
+      items: pathname.startsWith("/teachers/")
+        ? detailSecondaryLinks
+        : undefined,
+    },
   ];
   const campusLinks: ShellLink[] = [
     { href: "/bus-map", icon: MapIcon, label: copy.nav.transitMap },
     { href: "/mobile-app", icon: SmartphoneIcon, label: copy.nav.mobileApp },
   ];
   const disambiguateDashboardBus = pathname.startsWith("/admin");
+  const subscriptionSecondaryLinks = buildSubscriptionSecondaryLinks(pageData);
 
   if (!signedIn) {
     return [
@@ -150,6 +179,11 @@ function buildShellNavGroups(
               ariaLabel: copy.nav.workspaceSubscriptions,
               href: "/dashboard/subscriptions",
               label: copy.nav.subscriptions,
+              items:
+                pathname === "/dashboard/subscriptions" ||
+                pathname === "/dashboard/exams"
+                  ? subscriptionSecondaryLinks
+                  : undefined,
             },
           ],
           label: copy.nav.dashboard,
