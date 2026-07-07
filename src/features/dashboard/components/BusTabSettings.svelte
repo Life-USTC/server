@@ -105,7 +105,7 @@ export let toggleBusDepartedTrips: () => void;
         orientation="horizontal"
       >
         <Field.Content>
-          <Field.Label class="font-normal" for="bus-show-departed-trips">
+          <Field.Label for="bus-show-departed-trips">
             {busCopy.query.showDepartedTrips}
           </Field.Label>
         </Field.Content>
@@ -122,11 +122,7 @@ export let toggleBusDepartedTrips: () => void;
   {#if busPreferenceStatus}
     <Field.Description
       aria-live="polite"
-      class={cn(
-        busPreferenceSaveState === "error"
-          ? "text-destructive"
-          : undefined,
-      )}
+      class={busPreferenceSaveState === "error" ? "text-destructive" : undefined}
       role={busPreferenceSaveState === "error" ? "alert" : "status"}
     >
       {busPreferenceStatus}

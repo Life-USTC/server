@@ -118,7 +118,7 @@ onMount(() => {
             >
               <Item.Media
                 variant="icon"
-                class={cn(item.id === "danger" && "text-destructive")}
+                class={item.id === "danger" ? "text-destructive" : undefined}
               >
                 <Icon />
               </Item.Media>

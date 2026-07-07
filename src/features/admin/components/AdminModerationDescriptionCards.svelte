@@ -33,7 +33,7 @@ export let targetLabel: (description: AdminModerationDescription) => string;
             <Item.Description class="line-clamp-4 whitespace-pre-wrap">
               {description.content || copy.emptyDescription}
             </Item.Description>
-            <Item.Description class="text-xs">
+            <Item.Description>
               {formatMessage(copy.lastEditor, {
                 name: adminModerationDescriptionLastEditor(description, copy),
               })}

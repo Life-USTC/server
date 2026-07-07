@@ -68,7 +68,7 @@ export let setOpen: (open: boolean) => void;
                     </span>
                   </Item.Title>
                 </Item.Content>
-                <Item.Actions class="text-muted-foreground text-xs">
+                <Item.Actions>
                   {formatMessage(homeworkCopy.auditMeta, {
                     name: actorName(log),
                     date: fmtDateTime(log.createdAt),

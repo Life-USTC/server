@@ -1,3 +1,47 @@
+## [1.48.1](https://github.com/Life-USTC/server/compare/v1.48.0...v1.48.1) (2026-07-07)
+
+
+### Bug Fixes
+
+* **loader:** deploy migrations in docker entrypoint ([48f6b8d](https://github.com/Life-USTC/server/commit/48f6b8dfdc6dd1caed3041bef220d71338984093))
+* **loader:** upsert AdminClass by unique nameCn ([b8a01a7](https://github.com/Life-USTC/server/commit/b8a01a79bfd4c3ad59750c03c363437dd0972ac5))
+
+
+### Performance Improvements
+
+* **loader:** replace row-by-row Prisma upserts with bulk SQL ([737eccd](https://github.com/Life-USTC/server/commit/737eccda154f844a7ab14a09a5e7c383dd2952e0))
+
+# [1.48.0](https://github.com/Life-USTC/server/compare/v1.47.0...v1.48.0) (2026-07-07)
+
+
+### Bug Fixes
+
+* **loader:** correct SectionTeacher retire and schedule-teacher join mapping ([bd959cd](https://github.com/Life-USTC/server/commit/bd959cdfa01e918520a0cbf0c6d422500eee1a5d))
+* **loader:** deduplicate teacher titles by nameCn before upsert ([f0e65d0](https://github.com/Life-USTC/server/commit/f0e65d0c81482989bbb63f2247bf0a50af1d6c58))
+* **loader:** harden snapshot CLI and update CI smoke test ([683a152](https://github.com/Life-USTC/server/commit/683a152caade58cdb7b7251c7238ec81335f853f))
+
+
+### Features
+
+* **static-loader:** add prisma-based static import CLI ([315b149](https://github.com/Life-USTC/server/commit/315b14965e1b80f2293629a0874ff6c0aa1d671f))
+
+# [1.47.0](https://github.com/Life-USTC/server/compare/v1.46.0...v1.47.0) (2026-07-06)
+
+
+### Bug Fixes
+
+* **audit:** import order, trailing newline, built-in glob, class directives ([33f2558](https://github.com/Life-USTC/server/commit/33f25583666b2964f16eb62f4667a4790cafb09d))
+* **audit:** sort file list for reproducible output ([e3b7bcb](https://github.com/Life-USTC/server/commit/e3b7bcbe24da2551466fad1ce092ce6390d97e68))
+* **classifier:** template literals, helper calls, tabular-nums, space utilities ([7694f2d](https://github.com/Life-USTC/server/commit/7694f2d70d8b4df49bc8e1f8acada89d6c701e63))
+* **dashboard:** restore sessionHref prop removed during cleanup ([13ca235](https://github.com/Life-USTC/server/commit/13ca235e587b79d956351661066662fb145498bc))
+* **lint:** add shadcn class usage baseline allowlist ([744faed](https://github.com/Life-USTC/server/commit/744faedd4dc05114044f29c3890a8852bf347900))
+* **review:** address code review feedback for shadcn styling cleanup ([9231b29](https://github.com/Life-USTC/server/commit/9231b294d649f27a154caff6f74aed4ad9270edd))
+
+
+### Features
+
+* **ci:** add shadcn class usage lint guard ([9a9b6ba](https://github.com/Life-USTC/server/commit/9a9b6ba1d75a9537f30d84b7c3ed76e6bb586344))
+
 # [1.46.0](https://github.com/Life-USTC/server/compare/v1.45.1...v1.46.0) (2026-07-06)
 
 

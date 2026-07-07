@@ -19,7 +19,7 @@ export let value: string;
   <InputGroup.Root>
     <InputGroup.Input
       {id}
-      class="font-mono truncate"
+      class="truncate"
       disabled={!value}
       readonly
       title={value || missingLabel}

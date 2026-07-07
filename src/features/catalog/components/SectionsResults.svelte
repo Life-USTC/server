@@ -69,9 +69,9 @@ $: sectionSemesterSummary = selectedSemester
                   </Item.Description>
                 </Item.Content>
                 <Item.Actions>
-                  <Badge class="font-mono" variant="outline">{section.code}</Badge>
+                  <Badge variant="outline">{section.code}</Badge>
                 </Item.Actions>
-                <Item.Footer class="flex-wrap justify-start text-muted-foreground text-xs">
+                <Item.Footer class="flex-wrap justify-start">
                   <span>{sectionLabels.credits}: {section.credits ?? "-"}</span>
                   <span>{sectionLabels.capacity}: {section.stdCount ?? 0} / {section.limitCount ?? "-"}</span>
                   <span>{section.campus ? primaryName(section.campus) : "-"}</span>
@@ -114,7 +114,7 @@ $: sectionSemesterSummary = selectedSemester
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
                 <CatalogTableLink href={sectionHref}>
-                  <Badge class="font-mono" variant="outline">{section.code}</Badge>
+                  <Badge variant="outline">{section.code}</Badge>
                 </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="min-w-44 p-0 align-top">

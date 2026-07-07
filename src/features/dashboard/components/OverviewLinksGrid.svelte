@@ -46,7 +46,7 @@ function pinAction(link: DashboardOverviewLinkItem): DashboardLinkPinAction {
       </div>
     </div>
   {:else}
-    <Empty.Root class="min-h-24 border border-border bg-background md:col-span-2 lg:col-span-4">
+    <Empty.Root class="min-h-24 md:col-span-2 lg:col-span-4">
       <Empty.Header>
         <Empty.Title>{dashboardCopy.linkHub.empty}</Empty.Title>
       </Empty.Header>

@@ -93,7 +93,7 @@ export let viewer: SectionHeaderViewer;
   {#snippet after()}
     <div class="grid gap-4">
       <div class="flex flex-wrap gap-2">
-        <Badge class="font-mono" variant="outline">{section.code}</Badge>
+        <Badge variant="outline">{section.code}</Badge>
         {#if section.semester}<Badge variant="ghost">{section.semester.nameCn}</Badge>{/if}
         {#if section.campus}<Badge variant="ghost">{primaryName(section.campus)}</Badge>{/if}
         {#if section.stdCount !== null || section.limitCount !== null}

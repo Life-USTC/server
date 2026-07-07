@@ -39,7 +39,7 @@ export let toggleImportSectionSelection: (sectionId: number) => void;
             }}
           />
           <Field.Content>
-            <Field.Label class="cursor-pointer font-normal" for={checkboxId}>
+            <Field.Label class="cursor-pointer" for={checkboxId}>
               {namePrimary(section.course)}
               {#if courseSecondaryName}
                 <span class="text-muted-foreground">({courseSecondaryName})</span>
@@ -59,7 +59,7 @@ export let toggleImportSectionSelection: (sectionId: number) => void;
     </Field.Group>
   </Field.Set>
 {:else}
-  <Empty.Root class="min-h-20 border border-border bg-background p-4">
+  <Empty.Root class="min-h-20 p-4">
     <Empty.Header>
       <Empty.Description>{subscriptionsCopy.bulkImport.noMatches}</Empty.Description>
     </Empty.Header>

@@ -83,23 +83,25 @@ function setActiveTab(value: string) {
     </Tabs.List>
 
     <Tabs.Content value="write" class="m-0">
-      <InputGroup.Root
-        class="h-auto min-h-32 data-[drag-active=true]:border-primary data-[drag-active=true]:bg-primary/5"
+      <div
+        class="rounded-md border border-transparent transition-colors data-[drag-active=true]:border-primary data-[drag-active=true]:bg-primary/5"
         data-drag-active={isDragActive}
       >
-        <InputGroup.Textarea
-          aria-label={labelledBy ? undefined : label}
-          aria-labelledby={labelledBy}
-          class="min-h-32 resize-y"
-          bind:value
-          {disabled}
-          {placeholder}
-          {rows}
-          {...restProps}
-        ></InputGroup.Textarea>
-      </InputGroup.Root>
+        <InputGroup.Root class="h-auto min-h-32">
+          <InputGroup.Textarea
+            aria-label={labelledBy ? undefined : label}
+            aria-labelledby={labelledBy}
+            class="min-h-32 resize-y"
+            bind:value
+            {disabled}
+            {placeholder}
+            {rows}
+            {...restProps}
+          ></InputGroup.Textarea>
+        </InputGroup.Root>
+      </div>
     </Tabs.Content>
-    <Tabs.Content value="preview" class="m-0 min-h-32 rounded-lg border bg-background p-3">
+    <Tabs.Content value="preview" class="m-0 min-h-32 p-3">
       <MarkdownPreview content={value} emptyLabel={previewEmptyLabel} {remarkPlugins} />
     </Tabs.Content>
   </Tabs.Root>

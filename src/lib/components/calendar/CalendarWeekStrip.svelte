@@ -47,7 +47,7 @@ export let moreLabel: (count: number) => string = (count) => `+${count}`;
             {/if}
           </div>
           {#if day.events.length > 0}
-            <Badge class="h-5 min-w-5 rounded-full px-1 font-mono tabular-nums" variant="outline">
+            <Badge class="h-5 min-w-5 px-1" variant="outline">
               {day.events.length}
             </Badge>
           {/if}

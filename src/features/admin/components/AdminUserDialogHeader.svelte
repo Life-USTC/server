@@ -13,7 +13,7 @@ export let user: AdminUserRow;
       <Dialog.Title id="admin-user-dialog-title">
         {copy.editTitle}
       </Dialog.Title>
-      <Dialog.Description class="break-all font-mono text-xs">
+      <Dialog.Description class="break-all">
         {user.id}
       </Dialog.Description>
     </div>

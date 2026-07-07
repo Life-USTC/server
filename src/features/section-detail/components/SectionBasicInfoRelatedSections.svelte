@@ -18,7 +18,7 @@ export let sectionTeachersLabel: SectionTeachersLabel;
   <Accordion.Root type="single">
     <Accordion.Item value="related-sections">
       <Accordion.Trigger>{sectionCopy.otherSections}</Accordion.Trigger>
-      <Accordion.Content class="[&_a]:no-underline">
+      <Accordion.Content>
         <div class="grid gap-4">
           {#if section.sameSemesterOtherTeachers.length > 0}
             <div class="grid gap-2">
@@ -27,7 +27,7 @@ export let sectionTeachersLabel: SectionTeachersLabel;
                 {#each section.sameSemesterOtherTeachers.slice(0, 10) as related}
                   <Button class="h-auto min-h-8 whitespace-normal px-2 py-1 text-left" href={`/sections/${related.jwId}`} variant="outline">
                     <span>{sectionTeachersLabel(related)}</span>
-                    <Badge class="font-mono" variant="ghost">{related.code}</Badge>
+                    <Badge variant="ghost">{related.code}</Badge>
                   </Button>
                 {/each}
               </div>
@@ -40,7 +40,7 @@ export let sectionTeachersLabel: SectionTeachersLabel;
                 {#each section.sameTeacherOtherSemesters.slice(0, 10) as related}
                   <Button class="h-auto min-h-8 whitespace-normal px-2 py-1 text-left" href={`/sections/${related.jwId}`} variant="outline">
                     <span>{related.semester?.nameCn ?? notAvailable}</span>
-                    <Badge class="font-mono" variant="ghost">{related.code}</Badge>
+                    <Badge variant="ghost">{related.code}</Badge>
                   </Button>
                 {/each}
               </div>

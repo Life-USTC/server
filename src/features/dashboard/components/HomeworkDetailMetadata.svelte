@@ -19,10 +19,10 @@ export let homeworkStatus: DashboardHomeworkDetailAction;
 <Item.Root variant="muted" class="items-start">
   <Item.Header>
     <Item.Content>
-      <Item.Description class="text-xs uppercase tracking-normal">
+      <Item.Description>
         {homeworksCopy.submissionDue}
       </Item.Description>
-      <Item.Title class="text-lg">{fmtDate(homework.submissionDueAt)}</Item.Title>
+      <Item.Title>{fmtDate(homework.submissionDueAt)}</Item.Title>
     </Item.Content>
     <Item.Actions>
       <Badge variant={homework.completion ? "default" : "secondary"}>
@@ -35,13 +35,13 @@ export let homeworkStatus: DashboardHomeworkDetailAction;
   <Item.Group class="grid gap-3 sm:grid-cols-2">
     <Item.Root variant="outline" size="sm">
       <Item.Content>
-        <Item.Description class="text-xs">{homeworksCopy.submissionStart}</Item.Description>
+        <Item.Description>{homeworksCopy.submissionStart}</Item.Description>
         <Item.Title>{fmtDate(homework.submissionStartAt)}</Item.Title>
       </Item.Content>
     </Item.Root>
     <Item.Root variant="outline" size="sm">
       <Item.Content>
-        <Item.Description class="text-xs">{homeworksCopy.homeworkPublishedAt}</Item.Description>
+        <Item.Description>{homeworksCopy.homeworkPublishedAt}</Item.Description>
         <Item.Title>{fmtDate(homework.publishedAt)}</Item.Title>
       </Item.Content>
     </Item.Root>

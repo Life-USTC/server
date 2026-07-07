@@ -57,9 +57,9 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
                   {/if}
                 </Item.Content>
                 <Item.Actions>
-                  <Badge class="font-mono" variant="outline">{course.code}</Badge>
+                  <Badge variant="outline">{course.code}</Badge>
                 </Item.Actions>
-                <Item.Footer class="flex-wrap justify-start text-muted-foreground text-xs">
+                <Item.Footer class="flex-wrap justify-start">
                   <span>{course.educationLevel ? primaryName(course.educationLevel) : "-"}</span>
                   <span>{course.category ? primaryName(course.category) : "-"}</span>
                   <span>{course.classType ? primaryName(course.classType) : "-"}</span>
@@ -95,7 +95,7 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
                 <CatalogTableLink href={courseHref}>
-                  <Badge class="font-mono" variant="outline">{course.code}</Badge>
+                  <Badge variant="outline">{course.code}</Badge>
                 </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 align-top">

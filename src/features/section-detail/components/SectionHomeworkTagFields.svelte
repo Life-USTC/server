@@ -21,13 +21,13 @@ $: teamId = `${idPrefix}-requires-team`;
   <Field.Group class="flex-row flex-wrap gap-4" data-slot="checkbox-group">
     <Field.Field class="w-fit" orientation="horizontal">
       <Checkbox id={majorId} checked={isMajor} name="isMajor" />
-      <Field.Label for={majorId} class="font-normal">
+      <Field.Label for={majorId}>
         {homeworkCopy.tagMajor}
       </Field.Label>
     </Field.Field>
     <Field.Field class="w-fit" orientation="horizontal">
       <Checkbox id={teamId} checked={requiresTeam} name="requiresTeam" />
-      <Field.Label for={teamId} class="font-normal">
+      <Field.Label for={teamId}>
         {homeworkCopy.tagTeam}
       </Field.Label>
     </Field.Field>

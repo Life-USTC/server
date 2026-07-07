@@ -35,7 +35,6 @@ function hasActiveChild(link: ShellLink): boolean {
     <Sidebar.Menu>
       <Sidebar.MenuItem>
         <Sidebar.MenuButton
-          class="font-semibold"
           tooltipContent="Life@USTC"
         >
           {#snippet child({ props })}

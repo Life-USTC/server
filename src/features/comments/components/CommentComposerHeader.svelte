@@ -23,7 +23,7 @@ $: controlsDisabledAttr = controlsDisabled ? "true" : undefined;
   <Card.Title>{commentCopy.postAction}</Card.Title>
   <Card.Description>{commentCopy.subtitle}</Card.Description>
   <Card.Action>
-    <Field.Group class="flex-row flex-wrap items-center gap-3 text-sm">
+    <Field.Group class="flex-row flex-wrap items-center gap-3">
       <Field.Field
         data-disabled={controlsDisabledAttr}
         orientation="horizontal"
@@ -34,7 +34,7 @@ $: controlsDisabledAttr = controlsDisabled ? "true" : undefined;
           bind:checked={isAnonymous}
           disabled={controlsDisabled}
         />
-        <Field.Label for="comment-composer-anonymous" class="font-normal">
+        <Field.Label for="comment-composer-anonymous">
           {commentCopy.visibilityAnonymous}
         </Field.Label>
       </Field.Field>

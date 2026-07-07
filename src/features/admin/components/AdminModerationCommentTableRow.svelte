@@ -1,5 +1,4 @@
 <script lang="ts">
-import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import { cn } from "$lib/utils.js";
@@ -9,20 +8,28 @@ import type {
   AdminModerationCommentRowCopy,
   AdminModerationCommentStatusFormatter,
 } from "./admin-moderation-comment-types";
+import ModerationStatusBadge from "./ModerationStatusBadge.svelte";
 
 export let comment: AdminModerationComment;
 export let commentAuthorLabel: AdminModerationCommentFormatter;
 export let copy: AdminModerationCommentRowCopy;
 export let formatDate: (value: string | Date) => string;
 export let onManage: (comment: AdminModerationComment) => void;
-export let statusBadgeClass: AdminModerationCommentStatusFormatter;
-export let statusBorderClass: AdminModerationCommentStatusFormatter;
 export let statusLabel: AdminModerationCommentStatusFormatter;
 export let targetHref: AdminModerationCommentFormatter;
 export let targetLabel: AdminModerationCommentFormatter;
 </script>
 
-<Table.Row class={cn("border-l-4", statusBorderClass(comment.status))}>
+<Table.Row
+  class={cn(
+    "border-l-4",
+    comment.status === "active"
+      ? "border-l-success"
+      : comment.status === "deleted"
+        ? "border-l-destructive"
+        : "border-l-warning",
+  )}
+>
   <Table.Cell class="max-w-md">
     <p class="line-clamp-2 whitespace-pre-wrap text-sm">{comment.body}</p>
     {#if comment.moderationNote}
@@ -31,10 +38,10 @@ export let targetLabel: AdminModerationCommentFormatter;
       </p>
     {/if}
   </Table.Cell>
-  <Table.Cell class="font-medium">
+  <Table.Cell>
     {commentAuthorLabel(comment)}
   </Table.Cell>
-  <Table.Cell class="max-w-sm text-sm">
+  <Table.Cell class="max-w-sm">
     <a
       class="hover:underline"
       href={targetHref(comment)}
@@ -42,13 +49,14 @@ export let targetLabel: AdminModerationCommentFormatter;
       {targetLabel(comment)}
     </a>
   </Table.Cell>
-  <Table.Cell class="text-muted-foreground text-xs">
+  <Table.Cell>
     {formatDate(comment.createdAt)}
   </Table.Cell>
   <Table.Cell>
-    <Badge class={statusBadgeClass(comment.status)}>
-      {statusLabel(comment.status)}
-    </Badge>
+    <ModerationStatusBadge
+      label={statusLabel(comment.status)}
+      status={comment.status}
+    />
   </Table.Cell>
   <Table.Cell class="text-right">
     <Button

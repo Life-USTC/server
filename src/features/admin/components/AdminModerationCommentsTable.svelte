@@ -13,8 +13,6 @@ export let copy: AdminModerationCommentsCopy;
 export let commentAuthorLabel: AdminModerationCommentFormatter;
 export let formatDate: (value: string | Date) => string;
 export let onManage: (comment: AdminModerationComment) => void;
-export let statusBadgeClass: AdminModerationCommentStatusFormatter;
-export let statusBorderClass: AdminModerationCommentStatusFormatter;
 export let statusLabel: AdminModerationCommentStatusFormatter;
 export let targetHref: AdminModerationCommentFormatter;
 export let targetLabel: AdminModerationCommentFormatter;
@@ -40,8 +38,6 @@ export let targetLabel: AdminModerationCommentFormatter;
           {copy}
           {formatDate}
           {onManage}
-          {statusBadgeClass}
-          {statusBorderClass}
           {statusLabel}
           {targetHref}
           {targetLabel}

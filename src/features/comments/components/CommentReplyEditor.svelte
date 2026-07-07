@@ -48,7 +48,7 @@ $: replyVisibilityId = `comment-reply-visibility-${comment.id}`;
 $: replyEditorLabelId = `comment-reply-editor-label-${comment.id}`;
 </script>
 
-<Field.Group class="gap-3 rounded-md border border-dashed p-4">
+<Field.Group class="gap-3 p-4">
   <Field.Field data-disabled={replyDisabledAttr}>
     <Field.Title id={replyEditorLabelId} class="sr-only">
       {commentCopy.markdownReplyLabel}
@@ -74,7 +74,7 @@ $: replyEditorLabelId = `comment-reply-editor-label-${comment.id}`;
     removeLabel={commentCopy.removeAttachment}
     onRemove={removeReplyAttachment}
   />
-  <Field.Group class="flex-row flex-wrap items-center gap-3 text-sm">
+  <Field.Group class="flex-row flex-wrap items-center gap-3">
     <Field.Field
       data-disabled={replyDisabledAttr}
       orientation="horizontal"
@@ -85,7 +85,7 @@ $: replyEditorLabelId = `comment-reply-editor-label-${comment.id}`;
         bind:checked={replyIsAnonymous}
         disabled={replyDisabled}
       />
-      <Field.Label for={replyAnonymousId} class="font-normal">
+      <Field.Label for={replyAnonymousId}>
         {commentCopy.visibilityAnonymous}
       </Field.Label>
     </Field.Field>

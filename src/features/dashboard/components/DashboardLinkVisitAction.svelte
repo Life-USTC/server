@@ -41,7 +41,7 @@ function visitButtonClass(props: Record<string, unknown>) {
       <button {...props} class={visitButtonClass(props)} type="submit">
         <Item.Media
           aria-hidden="true"
-          class="size-8 rounded-md border bg-muted font-semibold text-[0.6875rem] text-primary"
+          class="size-8"
           variant="icon"
         >
           {linkIconLabel(link.icon)}

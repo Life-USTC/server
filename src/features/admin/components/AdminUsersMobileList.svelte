@@ -29,7 +29,7 @@ export let users: AdminUserRow[];
             <Item.Description>
               @{user.username ?? copy.noUsername}
             </Item.Description>
-            <Item.Description class="line-clamp-none break-words text-xs">
+            <Item.Description class="line-clamp-none break-words">
               {user.email ?? copy.noVerifiedEmail}
             </Item.Description>
           </Item.Content>

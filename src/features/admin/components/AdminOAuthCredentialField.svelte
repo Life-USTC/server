@@ -14,7 +14,7 @@ export let value: string;
 <Item.Root variant="muted">
   <Item.Content class="min-w-0">
     <Item.Title>{label}</Item.Title>
-    <Item.Description class="break-all font-mono">{value}</Item.Description>
+    <Item.Description class="break-all">{value}</Item.Description>
   </Item.Content>
   {#if showCopy}
     <Item.Actions>
