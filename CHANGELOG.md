@@ -1,3 +1,12 @@
+## [1.48.2](https://github.com/Life-USTC/server/compare/v1.48.1...v1.48.2) (2026-07-07)
+
+
+### Bug Fixes
+
+* **detail:** unify PageHeader/SectionDetailHeader background with bg-card ([547a805](https://github.com/Life-USTC/server/commit/547a80521359145e33354ad131198c1330484a43))
+* remove unused DetailPinnedSummary component ([56c3658](https://github.com/Life-USTC/server/commit/56c3658705e5c24fbd1790dd713d0080f3032629))
+* unify section detail header style with PageHeader ([68ba8c9](https://github.com/Life-USTC/server/commit/68ba8c9b9b2564691c6e2287c736eaf4df27a7a4)), closes [#346](https://github.com/Life-USTC/server/issues/346)
+
 ## [1.48.1](https://github.com/Life-USTC/server/compare/v1.48.0...v1.48.1) (2026-07-07)
 
 
