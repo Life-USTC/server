@@ -22,6 +22,7 @@ import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import {
+  appSidebar,
   expandDashboardSidebarGroup,
   sidebarDashboardLink,
 } from "../../../utils/locators";
@@ -140,10 +141,9 @@ test.describe("仪表盘", () => {
     await gotoAndWaitForReady(page, "/dashboard/subscriptions");
     await expect(page).toHaveURL(/\/dashboard\/subscriptions(?:\?.*)?$/);
     await expect(
-      sidebarDashboardLink(
-        page,
-        /^(工作台课程规划|Workspace course planning)$/i,
-      ),
+      appSidebar(page).getByRole("button", {
+        name: /^(课程规划|Section Management)\b/i,
+      }),
     ).toBeVisible();
     await expect(page.getByText(DEV_SEED.semesterNameCn).first()).toBeVisible();
     await captureStepScreenshot(page, testInfo, "dashboard-subscriptions-path");
