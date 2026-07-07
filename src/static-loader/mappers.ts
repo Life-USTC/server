@@ -107,6 +107,7 @@ export type ScheduleGroupBuild = {
 export type ScheduleBuild = {
   periods: number;
   date?: Date;
+  dateStr?: string;
   weekday: number;
   startTime: number;
   endTime: number;
@@ -510,6 +511,7 @@ export function mapSchedule(
   return {
     periods: Math.round(asFloat(row.periods) ?? 0),
     date: asDate(row.date),
+    dateStr: asString(row.date),
     weekday: asInt(row.weekday) ?? 0,
     startTime: asInt(row.startTime) ?? 0,
     endTime: asInt(row.endTime) ?? 0,
