@@ -112,6 +112,19 @@ function buildShellNavGroups(
   ];
   const disambiguateDashboardBus = pathname.startsWith("/admin");
   const subscriptionSecondaryLinks = buildSubscriptionSecondaryLinks(pageData);
+  const dashboardNavStats = pageData.navStats as
+    | {
+        calendarItemsCount?: number;
+        examsCount?: number;
+        pendingHomeworksCount?: number;
+        pendingTodosCount?: number;
+      }
+    | null
+    | undefined;
+  const dashboardSubscribedSectionCount = pageData.subscribedSectionCount as
+    | number
+    | null
+    | undefined;
 
   if (!signedIn) {
     return [
@@ -157,26 +170,31 @@ function buildShellNavGroups(
             },
             {
               ariaLabel: copy.nav.workspaceCalendar,
+              badge: dashboardNavStats?.calendarItemsCount,
               href: "/dashboard/calendar",
               label: copy.nav.calendar,
             },
             {
               ariaLabel: copy.nav.workspaceHomeworks,
+              badge: dashboardNavStats?.pendingHomeworksCount,
               href: "/dashboard/homeworks",
               label: copy.nav.homeworks,
             },
             {
               ariaLabel: copy.nav.workspaceTodos,
+              badge: dashboardNavStats?.pendingTodosCount,
               href: "/dashboard/todos",
               label: copy.nav.todos,
             },
             {
               ariaLabel: copy.nav.workspaceExams,
+              badge: dashboardNavStats?.examsCount,
               href: "/dashboard/exams",
               label: copy.nav.exams,
             },
             {
               ariaLabel: copy.nav.workspaceSubscriptions,
+              badge: dashboardSubscribedSectionCount,
               href: "/dashboard/subscriptions",
               label: copy.nav.subscriptions,
               items:
