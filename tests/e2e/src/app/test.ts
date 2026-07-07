@@ -44,36 +44,32 @@ test("/ 主题切换可写入 localStorage", async ({ page }, testInfo) => {
   });
   await expect(themeButton).toBeVisible();
 
-  await expect(async () => {
-    await themeButton.click();
-    await page.getByRole("menuitemradio", { name: /^(浅色|Light)$/i }).click();
-    await expect
-      .poll(
-        async () =>
-          page.evaluate(() => localStorage.getItem("life-ustc-theme")),
-        { timeout: 2_000 },
-      )
-      .toBe("light");
-  }).toPass({
-    timeout: 10_000,
-    intervals: [250, 500, 1_000],
-  });
+  async function selectTheme(name: RegExp, value: "light" | "dark") {
+    const menuItem = page.getByRole("menuitemradio", { name });
+
+    await expect(async () => {
+      if (!(await menuItem.isVisible().catch(() => false))) {
+        await themeButton.click();
+      }
+      await expect(menuItem).toBeVisible({ timeout: 1_000 });
+      await menuItem.click();
+      await expect
+        .poll(
+          async () =>
+            page.evaluate(() => localStorage.getItem("life-ustc-theme")),
+          { timeout: 1_000 },
+        )
+        .toBe(value);
+    }).toPass({
+      timeout: 10_000,
+      intervals: [250, 500, 1_000],
+    });
+  }
+
+  await selectTheme(/^(浅色|Light)$/i, "light");
   await captureStepScreenshot(page, testInfo, "theme-light");
 
-  await expect(async () => {
-    await themeButton.click();
-    await page.getByRole("menuitemradio", { name: /^(深色|Dark)$/i }).click();
-    await expect
-      .poll(
-        async () =>
-          page.evaluate(() => localStorage.getItem("life-ustc-theme")),
-        { timeout: 2_000 },
-      )
-      .toBe("dark");
-  }).toPass({
-    timeout: 10_000,
-    intervals: [250, 500, 1_000],
-  });
+  await selectTheme(/^(深色|Dark)$/i, "dark");
   await captureStepScreenshot(page, testInfo, "theme-dark");
 });
 

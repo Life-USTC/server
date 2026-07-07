@@ -28,6 +28,12 @@ export let themeMenuOpen: boolean;
 export let themeMode: ThemeMode;
 export let user: LayoutUserSummary;
 export let userMenuOpen: boolean;
+
+function setThemeValue(value: string) {
+  if (value === "system" || value === "light" || value === "dark") {
+    setThemeMode(value);
+  }
+}
 </script>
 
 <header class="sticky top-0 h-12 shrink-0 border-b bg-card/95 backdrop-blur">
@@ -102,25 +108,19 @@ export let userMenuOpen: boolean;
         </DropdownMenu.Trigger>
         <DropdownMenu.Content align="end" class="w-44" preventScroll={false}>
           <DropdownMenu.Group>
-            <DropdownMenu.RadioGroup bind:value={themeMode}>
-              <DropdownMenu.RadioItem
-                onSelect={() => setThemeMode("system")}
-                value="system"
-              >
+            <DropdownMenu.RadioGroup
+              onValueChange={setThemeValue}
+              value={themeMode}
+            >
+              <DropdownMenu.RadioItem value="system">
                 <MonitorIcon />
                 {copy.theme.system}
               </DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem
-                onSelect={() => setThemeMode("light")}
-                value="light"
-              >
+              <DropdownMenu.RadioItem value="light">
                 <SunIcon />
                 {copy.theme.light}
               </DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem
-                onSelect={() => setThemeMode("dark")}
-                value="dark"
-              >
+              <DropdownMenu.RadioItem value="dark">
                 <MoonIcon />
                 {copy.theme.dark}
               </DropdownMenu.RadioItem>
