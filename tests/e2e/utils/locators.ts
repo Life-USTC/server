@@ -14,7 +14,7 @@ export function appSidebar(page: Page): Locator {
 
 export async function expandDashboardSidebarGroup(page: Page): Promise<void> {
   const trigger = appSidebar(page).getByRole("button", {
-    name: /^(仪表盘|Dashboard)$/i,
+    name: /(仪表盘|Dashboard)/i,
   });
   const state = await trigger.getAttribute("data-state");
   if (state === "closed") {
