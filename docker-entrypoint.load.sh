@@ -3,6 +3,4 @@ set -eu
 
 : "${DATABASE_URL:?DATABASE_URL is required}"
 
-bun run db:migrate:deploy
-
-exec "$@"
+exec scripts/load-static-sqlite.sh

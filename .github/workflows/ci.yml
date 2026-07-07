@@ -57,7 +57,9 @@ jobs:
         run: |
           docker run --rm --entrypoint sh life-ustc-static-loader:check -c '
             command -v bun
+            command -v curl
             test -x /usr/local/bin/docker-entrypoint.load.sh
+            test -x scripts/load-static-sqlite.sh
             test -f src/static-loader/cli.ts
             test -d src/generated/prisma-node
           '
