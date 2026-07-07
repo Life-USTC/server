@@ -35,6 +35,8 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Generate Prisma client
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: bun run db:generate
 
       - name: Deploy Prisma migrations
