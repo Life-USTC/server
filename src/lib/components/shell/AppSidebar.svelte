@@ -7,7 +7,24 @@ import type { ShellCopy, ShellLink, ShellNavGroup } from "./types";
 export let copy: ShellCopy;
 export let isActiveLink: (link: ShellLink) => boolean;
 export let navGroups: ShellNavGroup[];
+
+function hasActiveChild(link: ShellLink): boolean {
+  return (
+    link.items?.some((child) => isActiveLink(child) || hasActiveChild(child)) ??
+    false
+  );
+}
 </script>
+
+{#snippet badge(value: number | null | undefined)}
+  {#if value != null && value > 0}
+    <div
+      class="text-sidebar-foreground ms-auto flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-xs font-medium tabular-nums"
+    >
+      {value}
+    </div>
+  {/if}
+{/snippet}
 
 <Sidebar.Root
   collapsible="icon"
@@ -57,11 +74,11 @@ export let navGroups: ShellNavGroup[];
                 {#each group.links as link}
                   {#if link.items && link.items.length > 0}
                     {@const subActive = link.items.some((subLink) =>
-                      isActiveLink(subLink),
+                      isActiveLink(subLink) || hasActiveChild(subLink),
                     )}
                     <Sidebar.MenuItem>
                       <Collapsible.Root
-                        open={subActive}
+                        open={isActiveLink(link) || subActive}
                         class="group/collapsible"
                       >
                         <Sidebar.MenuButton
@@ -84,20 +101,61 @@ export let navGroups: ShellNavGroup[];
                           <Sidebar.MenuSub>
                             {#each link.items as subLink}
                               {@const active = isActiveLink(subLink)}
-                              <Sidebar.MenuSubItem>
-                                <Sidebar.MenuSubButton isActive={active}>
-                                  {#snippet child({ props })}
-                                    <a
-                                      {...props}
-                                      href={subLink.href}
-                                      aria-label={subLink.ariaLabel}
-                                      aria-current={active ? "page" : undefined}
-                                    >
-                                      <span>{subLink.label}</span>
-                                    </a>
-                                  {/snippet}
-                                </Sidebar.MenuSubButton>
-                              </Sidebar.MenuSubItem>
+                              {#if subLink.items && subLink.items.length > 0}
+                                {@const nestedActive = subLink.items.some((nested) => isActiveLink(nested))}
+                                <Sidebar.MenuSubItem>
+                                  <Collapsible.Root open={active || nestedActive} class="group/collapsible">
+                                    <Sidebar.MenuSubButton isActive={active || nestedActive}>
+                                      {#snippet child({ props })}
+                                        <Collapsible.Trigger {...props}>
+                                          <span>{subLink.label}</span>
+                                          {@render badge(subLink.badge)}
+                                          <ChevronDownIcon
+                                            class="ms-auto transition-transform group-data-[state=open]/collapsible:rotate-180"
+                                          />
+                                        </Collapsible.Trigger>
+                                      {/snippet}
+                                    </Sidebar.MenuSubButton>
+                                    <Collapsible.Content>
+                                      <Sidebar.MenuSub>
+                                        {#each subLink.items as nested}
+                                          {@const nestedItemActive = isActiveLink(nested)}
+                                          <Sidebar.MenuSubItem>
+                                            <Sidebar.MenuSubButton isActive={nestedItemActive}>
+                                              {#snippet child({ props })}
+                                                <a
+                                                  {...props}
+                                                  href={nested.href}
+                                                  aria-label={nested.ariaLabel}
+                                                  aria-current={nestedItemActive ? "page" : undefined}
+                                                >
+                                                  <span>{nested.label}</span>
+                                                </a>
+                                              {/snippet}
+                                            </Sidebar.MenuSubButton>
+                                          </Sidebar.MenuSubItem>
+                                        {/each}
+                                      </Sidebar.MenuSub>
+                                    </Collapsible.Content>
+                                  </Collapsible.Root>
+                                </Sidebar.MenuSubItem>
+                              {:else}
+                                <Sidebar.MenuSubItem>
+                                  <Sidebar.MenuSubButton isActive={active}>
+                                    {#snippet child({ props })}
+                                      <a
+                                        {...props}
+                                        href={subLink.href}
+                                        aria-label={subLink.ariaLabel}
+                                        aria-current={active ? "page" : undefined}
+                                      >
+                                        <span>{subLink.label}</span>
+                                        {@render badge(subLink.badge)}
+                                      </a>
+                                    {/snippet}
+                                  </Sidebar.MenuSubButton>
+                                </Sidebar.MenuSubItem>
+                              {/if}
                             {/each}
                           </Sidebar.MenuSub>
                         </Collapsible.Content>

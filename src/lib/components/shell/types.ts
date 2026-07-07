@@ -2,6 +2,7 @@ import type { Component } from "svelte";
 
 export type ShellLink = {
   ariaLabel?: string;
+  badge?: number | null;
   href: string;
   icon?: Component;
   items?: ShellLink[];
