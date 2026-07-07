@@ -4,6 +4,7 @@ export type ShellLink = {
   ariaLabel?: string;
   href: string;
   icon?: Component;
+  items?: ShellLink[];
   label: string;
   rel?: string;
   target?: "_blank";
