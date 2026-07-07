@@ -4,8 +4,6 @@ set -eu
 : "${DATABASE_URL:?DATABASE_URL is required}"
 : "${STATIC_SNAPSHOT_URL:=https://static.life-ustc.tiankaima.dev/life-ustc-static.sqlite}"
 
-bun run db:migrate:deploy
-
 if [ -n "${STATIC_SNAPSHOT_PATH:-}" ] && [ -f "$STATIC_SNAPSHOT_PATH" ]; then
   echo "Using local snapshot: ${STATIC_SNAPSHOT_PATH}"
   STATIC_SNAPSHOT_PATH="$STATIC_SNAPSHOT_PATH" bun run static:load

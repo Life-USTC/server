@@ -141,91 +141,133 @@ export async function runImport(
 
   const exams = loadExams(snapshot, allSectionJwIds);
 
+  async function logStep<T>(name: string, count: number, fn: () => Promise<T>): Promise<T> {
+    const start = Date.now();
+    console.log(`[${new Date().toISOString()}] ${name}: ${count} items...`);
+    const result = await fn();
+    console.log(`[${new Date().toISOString()}] ${name}: done in ${Date.now() - start}ms`);
+    return result;
+  }
+
   const runInTransaction = async (tx: Prisma.TransactionClient) => {
-    const semesterMap = await upsertSemesters(tx, semesters);
-    const departmentMap = await upsertDepartments(
-      tx,
-      departments,
-      placeholderDepartments,
+    const semesterMap = await logStep("upsertSemesters", semesters.length, () =>
+      upsertSemesters(tx, semesters),
     );
-    const lookupMaps = await loadLookupTables(tx, {
-      courseCategories,
-      courseClassifies,
-      courseGradations,
-      courseTypes,
-      educationLevels,
-      classTypes,
-      examModes,
-      teachLanguages,
-    });
-    const courseMap = await upsertCourses(tx, courses, lookupMaps);
-    const teacherTitleMap = await upsertTeacherTitles(tx, teacherTitles);
-    const teacherLessonTypeMap = await upsertTeacherLessonTypes(
-      tx,
-      teacherLessonTypes,
+    const departmentMap = await logStep(
+      "upsertDepartments",
+      departments.length + placeholderDepartments.length,
+      () => upsertDepartments(tx, departments, placeholderDepartments),
     );
-    const examBatchMap = await upsertExamBatches(tx, examBatches);
-    const teacherMap = await upsertTeachers(
-      tx,
-      teachers,
-      departmentMap,
-      teacherTitleMap,
+    const lookupMaps = await logStep("loadLookupTables", 8, () =>
+      loadLookupTables(tx, {
+        courseCategories,
+        courseClassifies,
+        courseGradations,
+        courseTypes,
+        educationLevels,
+        classTypes,
+        examModes,
+        teachLanguages,
+      }),
     );
-    const campusMap = await upsertCampuses(tx, campuses);
-    const roomTypeMap = await upsertRoomTypes(tx, roomTypes);
-    const buildingMap = await upsertBuildings(tx, buildings, campusMap);
-    const roomMap = await upsertRooms(tx, rooms, buildingMap, roomTypeMap);
-    const adminClassMap = await upsertAdminClasses(tx, adminClasses);
-    const sectionMap = await upsertSections(
-      tx,
-      sections,
-      semesterMap,
-      departmentMap,
-      courseMap,
-      lookupMaps,
-      campusMap,
-      roomTypeMap,
+    const courseMap = await logStep("upsertCourses", courses.length, () =>
+      upsertCourses(tx, courses, lookupMaps),
     );
-    const scheduleGroupMap = await upsertScheduleGroups(
-      tx,
-      scheduleGroups,
-      sectionMap,
+    const teacherTitleMap = await logStep(
+      "upsertTeacherTitles",
+      teacherTitles.length,
+      () => upsertTeacherTitles(tx, teacherTitles),
+    );
+    const teacherLessonTypeMap = await logStep(
+      "upsertTeacherLessonTypes",
+      teacherLessonTypes.length,
+      () => upsertTeacherLessonTypes(tx, teacherLessonTypes),
+    );
+    const examBatchMap = await logStep("upsertExamBatches", examBatches.length, () =>
+      upsertExamBatches(tx, examBatches),
+    );
+    const teacherMap = await logStep("upsertTeachers", teachers.length, () =>
+      upsertTeachers(tx, teachers, departmentMap, teacherTitleMap),
+    );
+    const campusMap = await logStep("upsertCampuses", campuses.length, () =>
+      upsertCampuses(tx, campuses),
+    );
+    const roomTypeMap = await logStep("upsertRoomTypes", roomTypes.length, () =>
+      upsertRoomTypes(tx, roomTypes),
+    );
+    const buildingMap = await logStep("upsertBuildings", buildings.length, () =>
+      upsertBuildings(tx, buildings, campusMap),
+    );
+    const roomMap = await logStep("upsertRooms", rooms.length, () =>
+      upsertRooms(tx, rooms, buildingMap, roomTypeMap),
+    );
+    const adminClassMap = await logStep("upsertAdminClasses", adminClasses.length, () =>
+      upsertAdminClasses(tx, adminClasses),
+    );
+    const sectionMap = await logStep("upsertSections", sections.length, () =>
+      upsertSections(
+        tx,
+        sections,
+        semesterMap,
+        departmentMap,
+        courseMap,
+        lookupMaps,
+        campusMap,
+        roomTypeMap,
+      ),
+    );
+    const scheduleGroupMap = await logStep(
+      "upsertScheduleGroups",
+      scheduleGroups.length,
+      () => upsertScheduleGroups(tx, scheduleGroups, sectionMap),
     );
 
     const sectionDbIds = Array.from(sectionMap.values());
-    await writeSectionTeachers(
-      tx,
-      sectionMap,
-      teacherMap,
-      sectionTeacherPairs,
-      sectionDbIds,
+    await logStep("writeSectionTeachers", sectionTeacherPairs.length, () =>
+      writeSectionTeachers(
+        tx,
+        sectionMap,
+        teacherMap,
+        sectionTeacherPairs,
+        sectionDbIds,
+      ),
     );
-    await writeTeacherAssignments(
-      tx,
-      teacherAssignments,
-      sectionMap,
-      teacherMap,
-      teacherLessonTypeMap,
+    await logStep("writeTeacherAssignments", teacherAssignments.length, () =>
+      writeTeacherAssignments(
+        tx,
+        teacherAssignments,
+        sectionMap,
+        teacherMap,
+        teacherLessonTypeMap,
+      ),
     );
-    await writeAdminClassSections(
-      tx,
-      adminClassSectionPairs,
-      sectionMap,
-      adminClassMap,
-    );
-
-    await writeSchedules(
-      tx,
-      schedules,
-      sectionMap,
-      scheduleGroupMap,
-      roomMap,
-      teacherMap,
-      sectionDbIds,
+    await logStep("writeAdminClassSections", adminClassSectionPairs.length, () =>
+      writeAdminClassSections(
+        tx,
+        adminClassSectionPairs,
+        sectionMap,
+        adminClassMap,
+      ),
     );
 
-    const examMap = await upsertExams(tx, exams, sectionMap, examBatchMap);
-    await writeExamRooms(tx, exams, examMap);
+    await logStep("writeSchedules", schedules.length, () =>
+      writeSchedules(
+        tx,
+        schedules,
+        sectionMap,
+        scheduleGroupMap,
+        roomMap,
+        teacherMap,
+        sectionDbIds,
+      ),
+    );
+
+    const examMap = await logStep("upsertExams", exams.length, () =>
+      upsertExams(tx, exams, sectionMap, examBatchMap),
+    );
+    await logStep("writeExamRooms", exams.length, () =>
+      writeExamRooms(tx, exams, examMap),
+    );
 
     if (config.dryRun) {
       throw new Error("DRY_RUN: rolling back transaction");
