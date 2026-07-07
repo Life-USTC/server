@@ -277,7 +277,7 @@ export async function runImport(
   try {
     await prisma.$transaction(runInTransaction, {
       maxWait: 60_000,
-      timeout: 1_800_000,
+      timeout: 7_200_000,
     });
   } catch (error) {
     if (
