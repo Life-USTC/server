@@ -115,7 +115,7 @@ $: activeNavItem =
 </svelte:head>
 
 <section class="grid min-h-full grid-rows-[auto_minmax(0,1fr)] bg-card lg:h-full lg:min-h-0">
-  <div class="px-4 sm:px-5 lg:px-6">
+  <div class="bg-card px-4 sm:px-5 lg:px-6">
     <PageHeader title={displayName} description={teacherDescription}>
       {#snippet after()}
         <div class="flex flex-wrap gap-2">

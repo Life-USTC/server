@@ -133,7 +133,7 @@ $: activeNavItem =
 </script>
 
 <div class="grid min-h-full grid-rows-[auto_minmax(0,1fr)] bg-card lg:h-full lg:min-h-0">
-  <div class="px-4 sm:px-5 lg:px-6" data-testid="detail-pinned-summary">
+  <div class="bg-card px-4 sm:px-5 lg:px-6" data-testid="detail-pinned-summary">
     <SectionDetailHeader
       courseName={courseName}
       courseSecondaryName={courseSecondaryName}
