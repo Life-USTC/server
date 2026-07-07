@@ -473,7 +473,7 @@ export function mapScheduleGroup(
     no: asInt(row.no) ?? 0,
     limitCount: asInt(row.limitCount) ?? 0,
     stdCount: asInt(row.stdCount) ?? 0,
-    actualPeriods: asFloat(row.actualPeriods) ?? 0,
+    actualPeriods: Math.round(asFloat(row.actualPeriods) ?? 0),
     isDefault: asBoolean(row.default) ?? false,
   };
 }
