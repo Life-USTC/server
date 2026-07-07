@@ -141,11 +141,17 @@ export async function runImport(
 
   const exams = loadExams(snapshot, allSectionJwIds);
 
-  async function logStep<T>(name: string, count: number, fn: () => Promise<T>): Promise<T> {
+  async function logStep<T>(
+    name: string,
+    count: number,
+    fn: () => Promise<T>,
+  ): Promise<T> {
     const start = Date.now();
     console.log(`[${new Date().toISOString()}] ${name}: ${count} items...`);
     const result = await fn();
-    console.log(`[${new Date().toISOString()}] ${name}: done in ${Date.now() - start}ms`);
+    console.log(
+      `[${new Date().toISOString()}] ${name}: done in ${Date.now() - start}ms`,
+    );
     return result;
   }
 
@@ -183,8 +189,10 @@ export async function runImport(
       teacherLessonTypes.length,
       () => upsertTeacherLessonTypes(tx, teacherLessonTypes),
     );
-    const examBatchMap = await logStep("upsertExamBatches", examBatches.length, () =>
-      upsertExamBatches(tx, examBatches),
+    const examBatchMap = await logStep(
+      "upsertExamBatches",
+      examBatches.length,
+      () => upsertExamBatches(tx, examBatches),
     );
     const teacherMap = await logStep("upsertTeachers", teachers.length, () =>
       upsertTeachers(tx, teachers, departmentMap, teacherTitleMap),
@@ -201,8 +209,10 @@ export async function runImport(
     const roomMap = await logStep("upsertRooms", rooms.length, () =>
       upsertRooms(tx, rooms, buildingMap, roomTypeMap),
     );
-    const adminClassMap = await logStep("upsertAdminClasses", adminClasses.length, () =>
-      upsertAdminClasses(tx, adminClasses),
+    const adminClassMap = await logStep(
+      "upsertAdminClasses",
+      adminClasses.length,
+      () => upsertAdminClasses(tx, adminClasses),
     );
     const sectionMap = await logStep("upsertSections", sections.length, () =>
       upsertSections(
@@ -241,13 +251,16 @@ export async function runImport(
         teacherLessonTypeMap,
       ),
     );
-    await logStep("writeAdminClassSections", adminClassSectionPairs.length, () =>
-      writeAdminClassSections(
-        tx,
-        adminClassSectionPairs,
-        sectionMap,
-        adminClassMap,
-      ),
+    await logStep(
+      "writeAdminClassSections",
+      adminClassSectionPairs.length,
+      () =>
+        writeAdminClassSections(
+          tx,
+          adminClassSectionPairs,
+          sectionMap,
+          adminClassMap,
+        ),
     );
 
     await logStep("writeSchedules", schedules.length, () =>
@@ -1251,9 +1264,7 @@ async function upsertTeachers(
         build.qq ?? null,
         build.wechat ?? null,
         departmentId ?? null,
-        build.teacherTitleId
-          ? teacherTitleMap.get(build.teacherTitleId)
-          : null,
+        build.teacherTitleId ? teacherTitleMap.get(build.teacherTitleId) : null,
       ] satisfies ColumnValue[],
     };
   });
@@ -1331,23 +1342,29 @@ async function upsertTeachers(
     await tx.teacher.createMany({ data: insertData, skipDuplicates: true });
   }
 
-  await bulkUpdate(tx, "Teacher", columns, [
-    "int",
-    "int",
-    "text",
-    "text",
-    "text",
-    "int",
-    "text",
-    "text",
-    "text",
-    "text",
-    "text",
-    "text",
-    "text",
-    "int",
-    "int",
-  ], toUpdate);
+  await bulkUpdate(
+    tx,
+    "Teacher",
+    columns,
+    [
+      "int",
+      "int",
+      "text",
+      "text",
+      "text",
+      "int",
+      "text",
+      "text",
+      "text",
+      "text",
+      "text",
+      "text",
+      "text",
+      "int",
+      "int",
+    ],
+    toUpdate,
+  );
 
   const allTeachers = await tx.teacher.findMany({
     select: {
@@ -1559,7 +1576,18 @@ async function upsertRooms(
     "jwId",
     "int",
     columns,
-    ["text", "text", "text", "int", "boolean", "int", "text", "int", "int", "int"],
+    [
+      "text",
+      "text",
+      "text",
+      "int",
+      "boolean",
+      "int",
+      "text",
+      "int",
+      "int",
+      "int",
+    ],
     records,
   );
 }
@@ -2108,9 +2136,7 @@ async function upsertExams(
         build.examDate,
         build.examTakeCount,
         build.examMode,
-        build.examBatchName
-          ? examBatchMap.get(build.examBatchName)
-          : null,
+        build.examBatchName ? examBatchMap.get(build.examBatchName) : null,
         sectionId,
       ],
     });
@@ -2256,11 +2282,9 @@ async function bulkUpsert<K extends string | number>(
       RETURNING "id", "${uniqueColumn}"
     `;
 
-    const rows =
-      await tx.$queryRawUnsafe<Array<{ id: number } & Record<string, unknown>>>(
-        sql,
-        ...params,
-      );
+    const rows = await tx.$queryRawUnsafe<
+      Array<{ id: number } & Record<string, unknown>>
+    >(sql, ...params);
     for (const row of rows) {
       map.set(row[uniqueColumn] as K, row.id);
     }
