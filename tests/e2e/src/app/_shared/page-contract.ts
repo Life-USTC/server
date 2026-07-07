@@ -7,6 +7,7 @@ import {
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { getCurrentSessionUser } from "../../../utils/e2e-db";
 import {
+  appSidebar,
   expandDashboardSidebarGroup,
   sidebarDashboardLink,
   visibleText,
