@@ -77,7 +77,7 @@ function hasActiveChild(link: ShellLink): boolean {
                     )}
                     <Sidebar.MenuItem>
                       <Collapsible.Root
-                        open={isActiveLink(link) || subActive}
+                        open
                         class="group/collapsible"
                       >
                         <div class="flex w-full items-center">
