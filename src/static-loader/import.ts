@@ -1471,7 +1471,7 @@ async function upsertAdminClasses(
   const map = new Map<number, number>();
   for (const build of builds) {
     const result = await tx.adminClass.upsert({
-      where: { jwId: build.jwId },
+      where: { nameCn: build.nameCn },
       create: {
         jwId: build.jwId,
         code: build.code,
@@ -1485,6 +1485,7 @@ async function upsertAdminClasses(
         abbrEn: build.abbrEn,
       },
       update: {
+        jwId: build.jwId,
         code: build.code,
         grade: build.grade,
         nameCn: build.nameCn,
