@@ -1,3 +1,16 @@
+## [1.48.1](https://github.com/Life-USTC/server/compare/v1.48.0...v1.48.1) (2026-07-07)
+
+
+### Bug Fixes
+
+* **loader:** deploy migrations in docker entrypoint ([48f6b8d](https://github.com/Life-USTC/server/commit/48f6b8dfdc6dd1caed3041bef220d71338984093))
+* **loader:** upsert AdminClass by unique nameCn ([b8a01a7](https://github.com/Life-USTC/server/commit/b8a01a79bfd4c3ad59750c03c363437dd0972ac5))
+
+
+### Performance Improvements
+
+* **loader:** replace row-by-row Prisma upserts with bulk SQL ([737eccd](https://github.com/Life-USTC/server/commit/737eccda154f844a7ab14a09a5e7c383dd2952e0))
+
 # [1.48.0](https://github.com/Life-USTC/server/compare/v1.47.0...v1.48.0) (2026-07-07)
 
 
