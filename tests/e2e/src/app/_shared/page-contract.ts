@@ -207,6 +207,11 @@ export async function assertPageContract(
       await expectMainContent(page);
       await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
       await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
+      await expect(
+        appSidebar(page)
+          .getByRole("link", { name: DEV_SEED.course.nameCn })
+          .first(),
+      ).toHaveAttribute("aria-current", "page");
       await maybeCapture(page, testInfo, "sections-jwId");
       return;
     }
@@ -225,6 +230,11 @@ export async function assertPageContract(
           .getByTestId("detail-section-nav")
           .getByRole("link", { name: /班级|Sections/i }),
       ).toBeVisible();
+      await expect(
+        appSidebar(page)
+          .getByRole("link", { name: DEV_SEED.course.nameCn })
+          .first(),
+      ).toHaveAttribute("aria-current", "page");
       await maybeCapture(page, testInfo, "courses-jwId");
       return;
     }
@@ -242,6 +252,11 @@ export async function assertPageContract(
           .getByTestId("detail-section-nav")
           .getByRole("link", { name: /授课班级|Teaching Sections/i }),
       ).toBeVisible();
+      await expect(
+        appSidebar(page)
+          .getByRole("link", { name: DEV_SEED.teacher.nameCn })
+          .first(),
+      ).toHaveAttribute("aria-current", "page");
       await maybeCapture(page, testInfo, "teachers-id");
       return;
     }
