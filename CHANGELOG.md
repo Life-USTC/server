@@ -1,3 +1,25 @@
+# [1.49.0](https://github.com/Life-USTC/server/compare/v1.48.2...v1.49.0) (2026-07-07)
+
+
+### Bug Fixes
+
+* **AppSidebar:** split parent link and collapsible trigger ([26a5c02](https://github.com/Life-USTC/server/commit/26a5c02b90c0c46ac5698f98f857d7d8adc47235))
+* collapse Dashboard pages into a sidebar submenu ([ff16ba1](https://github.com/Life-USTC/server/commit/ff16ba1e1ca9994c09e373497d488e4d642c563e)), closes [#349](https://github.com/Life-USTC/server/issues/349)
+* **shell:** expand dashboard submenu and restore dashboard badge counts in sidebar ([df98251](https://github.com/Life-USTC/server/commit/df98251202391094f0de86085a4886e3ce99637a))
+* **shell:** restore scroll reset and sidebar visibility with ScrollArea ([9ba704a](https://github.com/Life-USTC/server/commit/9ba704a0760eb5009b06d4284eeb90102e4cd51b))
+* **shell:** revert content ScrollArea to avoid layout regression ([274677f](https://github.com/Life-USTC/server/commit/274677fa569b0f7c8fa14ed72c73cf6f888f708b))
+* **shell:** support collapsible items in AppSidebar for admin tools ([4caec7b](https://github.com/Life-USTC/server/commit/4caec7bcac1c41ed225434a78d67ca6abd51c7d3))
+* show admin tools in sidebar for admin users ([42730b7](https://github.com/Life-USTC/server/commit/42730b7d6f9c094e15b5313952696f0d6d86caf4)), closes [#348](https://github.com/Life-USTC/server/issues/348)
+* **sidebar:** keep nested link menus expanded and fix dashboard trigger locator ([50ec6df](https://github.com/Life-USTC/server/commit/50ec6df430874228e88f665a767c19c51e252bff))
+* sync AppSidebar with fix-sidebar-secondary-pages ([#355](https://github.com/Life-USTC/server/issues/355)) ([b231a4b](https://github.com/Life-USTC/server/commit/b231a4ba648da01a787a96252b4fcb94b6f38c78))
+* wrap main content slot in ScrollArea and avoid double scroll in detail pages ([6e8c5f3](https://github.com/Life-USTC/server/commit/6e8c5f390a1fe5e6f4004b4c8476285e4aafebd1)), closes [#347](https://github.com/Life-USTC/server/issues/347)
+
+
+### Features
+
+* **mcp:** filter subscribed data by semester ([1bab725](https://github.com/Life-USTC/server/commit/1bab725f6f15e414a4ec0a35e73ea7ed2e962eb7))
+* **shell:** add dynamic secondary links for detail pages and subscriptions ([b053e83](https://github.com/Life-USTC/server/commit/b053e83f19b9a690ca0930e01463b02135bc1800))
+
 ## [1.48.2](https://github.com/Life-USTC/server/compare/v1.48.1...v1.48.2) (2026-07-07)
 
 
