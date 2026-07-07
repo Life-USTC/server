@@ -1057,61 +1057,50 @@ async function upsertCourses(
   builds: CourseBuild[],
   lookupMaps: LookupMaps,
 ): Promise<Map<number, number>> {
-  const map = new Map<number, number>();
-  for (const build of builds) {
-    const result = await tx.course.upsert({
-      where: { jwId: build.jwId },
-      create: {
-        jwId: build.jwId,
-        code: build.code,
-        nameCn: build.nameCn,
-        nameEn: build.nameEn,
-        categoryId: build.categoryName
-          ? lookupMaps.courseCategory.get(build.categoryName)
-          : undefined,
-        classTypeId: build.classTypeName
-          ? lookupMaps.classType.get(build.classTypeName)
-          : undefined,
-        classifyId: build.classifyName
-          ? lookupMaps.courseClassify.get(build.classifyName)
-          : undefined,
-        educationLevelId: build.educationLevelName
-          ? lookupMaps.educationLevel.get(build.educationLevelName)
-          : undefined,
-        gradationId: build.gradationName
-          ? lookupMaps.courseGradation.get(build.gradationName)
-          : undefined,
-        typeId: build.typeName
-          ? lookupMaps.courseType.get(build.typeName)
-          : undefined,
-      },
-      update: {
-        code: build.code,
-        nameCn: build.nameCn,
-        nameEn: build.nameEn,
-        categoryId: build.categoryName
-          ? lookupMaps.courseCategory.get(build.categoryName)
-          : undefined,
-        classTypeId: build.classTypeName
-          ? lookupMaps.classType.get(build.classTypeName)
-          : undefined,
-        classifyId: build.classifyName
-          ? lookupMaps.courseClassify.get(build.classifyName)
-          : undefined,
-        educationLevelId: build.educationLevelName
-          ? lookupMaps.educationLevel.get(build.educationLevelName)
-          : undefined,
-        gradationId: build.gradationName
-          ? lookupMaps.courseGradation.get(build.gradationName)
-          : undefined,
-        typeId: build.typeName
-          ? lookupMaps.courseType.get(build.typeName)
-          : undefined,
-      },
-    });
-    map.set(build.jwId, result.id);
-  }
-  return map;
+  const columns = [
+    "code",
+    "nameCn",
+    "nameEn",
+    "categoryId",
+    "classTypeId",
+    "classifyId",
+    "educationLevelId",
+    "gradationId",
+    "typeId",
+  ];
+  const records = builds.map((build) => ({
+    key: build.jwId,
+    values: [
+      build.code,
+      build.nameCn,
+      build.nameEn,
+      build.categoryName
+        ? lookupMaps.courseCategory.get(build.categoryName)
+        : null,
+      build.classTypeName
+        ? lookupMaps.classType.get(build.classTypeName)
+        : null,
+      build.classifyName
+        ? lookupMaps.courseClassify.get(build.classifyName)
+        : null,
+      build.educationLevelName
+        ? lookupMaps.educationLevel.get(build.educationLevelName)
+        : null,
+      build.gradationName
+        ? lookupMaps.courseGradation.get(build.gradationName)
+        : null,
+      build.typeName ? lookupMaps.courseType.get(build.typeName) : null,
+    ] satisfies ColumnValue[],
+  }));
+  return bulkUpsert(
+    tx,
+    "Course",
+    "jwId",
+    "int",
+    columns,
+    ["text", "text", "text", "int", "int", "int", "int", "int", "int"],
+    records,
+  );
 }
 
 async function upsertTeacherTitles(
@@ -1219,74 +1208,190 @@ async function upsertTeachers(
 
   const unknownDepartmentId = departmentMap.get(UNKNOWN_DEPARTMENT_CODE);
 
-  for (const build of builds) {
+  const columns = [
+    "personId",
+    "teacherId",
+    "code",
+    "nameCn",
+    "nameEn",
+    "age",
+    "email",
+    "telephone",
+    "mobile",
+    "address",
+    "postcode",
+    "qq",
+    "wechat",
+    "departmentId",
+    "teacherTitleId",
+  ];
+
+  const resolved = builds.map((build) => {
     let departmentId = build.departmentCode
       ? departmentMap.get(build.departmentCode)
       : undefined;
     if (departmentId == null) {
       departmentId = unknownDepartmentId;
     }
-
-    const whereClause =
-      build.personId != null
-        ? { personId: build.personId }
-        : build.teacherId != null
-          ? { teacherId: build.teacherId }
-          : build.code != null && build.code !== ""
-            ? { code: build.code }
-            : {
-                nameCn_departmentId: {
-                  nameCn: build.nameCn,
-                  departmentId,
-                },
-              };
-
-    const result = await tx.teacher.upsert({
-      // @ts-expect-error where clause union is not statically typed
-      where: whereClause,
-      create: {
-        personId: build.personId,
-        teacherId: build.teacherId,
-        code: build.code,
-        nameCn: build.nameCn,
-        nameEn: build.nameEn,
-        age: build.age,
-        email: build.email,
-        telephone: build.telephone,
-        mobile: build.mobile,
-        address: build.address,
-        postcode: build.postcode,
-        qq: build.qq,
-        wechat: build.wechat,
-        departmentId,
-        teacherTitleId: build.teacherTitleId
+    return {
+      build,
+      departmentId,
+      values: [
+        build.personId ?? null,
+        build.teacherId ?? null,
+        build.code ?? null,
+        build.nameCn,
+        build.nameEn ?? null,
+        build.age ?? null,
+        build.email ?? null,
+        build.telephone ?? null,
+        build.mobile ?? null,
+        build.address ?? null,
+        build.postcode ?? null,
+        build.qq ?? null,
+        build.wechat ?? null,
+        departmentId ?? null,
+        build.teacherTitleId
           ? teacherTitleMap.get(build.teacherTitleId)
-          : undefined,
-      },
-      update: {
-        nameEn: build.nameEn,
-        age: build.age ?? undefined,
-        email: build.email ?? undefined,
-        telephone: build.telephone ?? undefined,
-        mobile: build.mobile ?? undefined,
-        address: build.address ?? undefined,
-        postcode: build.postcode ?? undefined,
-        qq: build.qq ?? undefined,
-        wechat: build.wechat ?? undefined,
-        departmentId,
-        teacherTitleId: build.teacherTitleId
-          ? teacherTitleMap.get(build.teacherTitleId)
-          : undefined,
-      },
-    });
+          : null,
+      ] satisfies ColumnValue[],
+    };
+  });
 
-    if (build.personId != null) map.byPersonId.set(build.personId, result.id);
-    if (build.teacherId != null)
-      map.byTeacherId.set(build.teacherId, result.id);
-    if (build.code != null && build.code !== "")
-      map.byCode.set(build.code, result.id);
+  const existing = await tx.teacher.findMany({
+    select: {
+      id: true,
+      personId: true,
+      teacherId: true,
+      code: true,
+      nameCn: true,
+      departmentId: true,
+    },
+  });
+
+  const existingByPersonId = new Map<number, number>();
+  const existingByTeacherId = new Map<number, number>();
+  const existingByCode = new Map<string, number>();
+  const existingByNameDept = new Map<string, number>();
+  for (const t of existing) {
+    if (t.personId != null) existingByPersonId.set(t.personId, t.id);
+    if (t.teacherId != null) existingByTeacherId.set(t.teacherId, t.id);
+    if (t.code != null && t.code !== "") existingByCode.set(t.code, t.id);
+    if (t.departmentId != null) {
+      existingByNameDept.set(`${t.nameCn}:${t.departmentId}`, t.id);
+    }
+  }
+
+  const toInsert: Array<{
+    build: TeacherBuild;
+    values: ColumnValue[];
+  }> = [];
+  const toUpdate: Array<{ id: number; values: ColumnValue[] }> = [];
+
+  for (const { build, values } of resolved) {
+    let existingId: number | undefined;
+    if (build.personId != null) {
+      existingId = existingByPersonId.get(build.personId);
+    } else if (build.teacherId != null) {
+      existingId = existingByTeacherId.get(build.teacherId);
+    } else if (build.code != null && build.code !== "") {
+      existingId = existingByCode.get(build.code);
+    } else {
+      const departmentId = values[13] as number | null;
+      if (departmentId != null) {
+        existingId = existingByNameDept.get(`${build.nameCn}:${departmentId}`);
+      }
+    }
+
+    if (existingId != null) {
+      toUpdate.push({ id: existingId, values });
+    } else {
+      toInsert.push({ build, values });
+    }
+  }
+
+  if (toInsert.length > 0) {
+    const insertData = toInsert.map(({ build, values }) => ({
+      personId: values[0] as number | null,
+      teacherId: values[1] as number | null,
+      code: values[2] as string | null,
+      nameCn: values[3] as string,
+      nameEn: values[4] as string | null,
+      age: values[5] as number | null,
+      email: values[6] as string | null,
+      telephone: values[7] as string | null,
+      mobile: values[8] as string | null,
+      address: values[9] as string | null,
+      postcode: values[10] as string | null,
+      qq: values[11] as string | null,
+      wechat: values[12] as string | null,
+      departmentId: values[13] as number | null,
+      teacherTitleId: values[14] as number | null,
+    }));
+    await tx.teacher.createMany({ data: insertData, skipDuplicates: true });
+  }
+
+  await bulkUpdate(tx, "Teacher", columns, [
+    "int",
+    "int",
+    "text",
+    "text",
+    "text",
+    "int",
+    "text",
+    "text",
+    "text",
+    "text",
+    "text",
+    "text",
+    "text",
+    "int",
+    "int",
+  ], toUpdate);
+
+  const allTeachers = await tx.teacher.findMany({
+    select: {
+      id: true,
+      personId: true,
+      teacherId: true,
+      code: true,
+      nameCn: true,
+      departmentId: true,
+    },
+  });
+
+  const departmentIdToCode = new Map<number, string>();
+  for (const [code, id] of departmentMap) {
+    departmentIdToCode.set(id, code);
+  }
+
+  const allTeachersByNameDept = new Map<string, number>();
+  for (const t of allTeachers) {
+    if (t.personId != null) map.byPersonId.set(t.personId, t.id);
+    if (t.teacherId != null) map.byTeacherId.set(t.teacherId, t.id);
+    if (t.code != null && t.code !== "") map.byCode.set(t.code, t.id);
+    if (t.departmentId != null) {
+      const code =
+        departmentIdToCode.get(t.departmentId) ?? UNKNOWN_DEPARTMENT_CODE;
+      allTeachersByNameDept.set(`${t.nameCn}:${code}`, t.id);
+    }
+  }
+
+  for (const { build } of resolved) {
     const deptKey = build.departmentCode ?? UNKNOWN_DEPARTMENT_CODE;
-    map.byNameDept.set(`${build.nameCn}:${deptKey}`, result.id);
+    let teacherId: number | undefined;
+    if (build.personId != null) {
+      teacherId = map.byPersonId.get(build.personId);
+    } else if (build.teacherId != null) {
+      teacherId = map.byTeacherId.get(build.teacherId);
+    } else if (build.code != null && build.code !== "") {
+      teacherId = map.byCode.get(build.code);
+    } else {
+      teacherId = allTeachersByNameDept.get(`${build.nameCn}:${deptKey}`);
+    }
+    if (teacherId != null) {
+      map.byNameDept.set(`${build.nameCn}:${deptKey}`, teacherId);
+    }
   }
 
   return map;
@@ -1421,83 +1526,86 @@ async function upsertRooms(
   buildingMap: Map<number, number>,
   roomTypeMap: Map<number, number>,
 ): Promise<Map<number, number>> {
-  const map = new Map<number, number>();
-  for (const build of builds) {
-    const result = await tx.room.upsert({
-      where: { jwId: build.jwId },
-      create: {
-        jwId: build.jwId,
-        nameCn: build.nameCn,
-        nameEn: build.nameEn,
-        code: build.code,
-        floor: build.floor,
-        virtual: build.virtual,
-        seatsForSection: build.seatsForSection,
-        remark: build.remark,
-        seats: build.seats,
-        buildingId: build.buildingJwId
-          ? buildingMap.get(build.buildingJwId)
-          : undefined,
-        roomTypeId: build.roomTypeJwId
-          ? roomTypeMap.get(build.roomTypeJwId)
-          : undefined,
-      },
-      update: {
-        nameCn: build.nameCn,
-        nameEn: build.nameEn,
-        code: build.code,
-        floor: build.floor,
-        virtual: build.virtual,
-        seatsForSection: build.seatsForSection,
-        remark: build.remark,
-        seats: build.seats,
-        buildingId: build.buildingJwId
-          ? buildingMap.get(build.buildingJwId)
-          : undefined,
-        roomTypeId: build.roomTypeJwId
-          ? roomTypeMap.get(build.roomTypeJwId)
-          : undefined,
-      },
-    });
-    map.set(build.jwId, result.id);
-  }
-  return map;
+  const columns = [
+    "nameCn",
+    "nameEn",
+    "code",
+    "floor",
+    "virtual",
+    "seatsForSection",
+    "remark",
+    "seats",
+    "buildingId",
+    "roomTypeId",
+  ];
+  const records = builds.map((build) => ({
+    key: build.jwId,
+    values: [
+      build.nameCn,
+      build.nameEn,
+      build.code,
+      build.floor,
+      build.virtual,
+      build.seatsForSection,
+      build.remark,
+      build.seats,
+      build.buildingJwId ? buildingMap.get(build.buildingJwId) : null,
+      build.roomTypeJwId ? roomTypeMap.get(build.roomTypeJwId) : null,
+    ] satisfies ColumnValue[],
+  }));
+  return bulkUpsert(
+    tx,
+    "Room",
+    "jwId",
+    "int",
+    columns,
+    ["text", "text", "text", "int", "boolean", "int", "text", "int", "int", "int"],
+    records,
+  );
 }
 
 async function upsertAdminClasses(
   tx: Prisma.TransactionClient,
   builds: AdminClassBuild[],
 ): Promise<Map<number, number>> {
+  const columns = [
+    "jwId",
+    "code",
+    "grade",
+    "nameEn",
+    "stdCount",
+    "planCount",
+    "enabled",
+    "abbrZh",
+    "abbrEn",
+  ];
+  const records = builds.map((build) => ({
+    key: build.nameCn,
+    values: [
+      build.jwId,
+      build.code,
+      build.grade,
+      build.nameEn,
+      build.stdCount,
+      build.planCount,
+      build.enabled,
+      build.abbrZh,
+      build.abbrEn,
+    ] satisfies ColumnValue[],
+  }));
+  const nameToId = await bulkUpsert(
+    tx,
+    "AdminClass",
+    "nameCn",
+    "text",
+    columns,
+    ["int", "text", "text", "text", "int", "int", "boolean", "text", "text"],
+    records,
+  );
   const map = new Map<number, number>();
   for (const build of builds) {
-    const result = await tx.adminClass.upsert({
-      where: { nameCn: build.nameCn },
-      create: {
-        jwId: build.jwId,
-        code: build.code,
-        grade: build.grade,
-        nameCn: build.nameCn,
-        nameEn: build.nameEn,
-        stdCount: build.stdCount,
-        planCount: build.planCount,
-        enabled: build.enabled,
-        abbrZh: build.abbrZh,
-        abbrEn: build.abbrEn,
-      },
-      update: {
-        jwId: build.jwId,
-        code: build.code,
-        grade: build.grade,
-        nameCn: build.nameCn,
-        nameEn: build.nameEn,
-        stdCount: build.stdCount,
-        planCount: build.planCount,
-        enabled: build.enabled,
-        abbrZh: build.abbrZh,
-        abbrEn: build.abbrEn,
-      },
-    });
-    map.set(build.jwId, result.id);
+    const id = nameToId.get(build.nameCn);
+    if (id != null) map.set(build.jwId, id);
   }
   return map;
 }
@@ -1512,108 +1620,137 @@ async function upsertSections(
   campusMap: Map<number, number>,
   roomTypeMap: Map<number, number>,
 ): Promise<Map<number, number>> {
-  const map = new Map<number, number>();
+  const columns = [
+    "code",
+    "bizTypeId",
+    "credits",
+    "period",
+    "periodsPerWeek",
+    "timesPerWeek",
+    "stdCount",
+    "limitCount",
+    "graduateAndPostgraduate",
+    "dateTimePlaceText",
+    "dateTimePlacePersonText",
+    "actualPeriods",
+    "theoryPeriods",
+    "practicePeriods",
+    "experimentPeriods",
+    "machinePeriods",
+    "designPeriods",
+    "testPeriods",
+    "scheduleState",
+    "suggestScheduleWeeks",
+    "suggestScheduleWeekInfo",
+    "scheduleJsonParams",
+    "selectedStdCount",
+    "remark",
+    "scheduleRemark",
+    "courseId",
+    "semesterId",
+    "campusId",
+    "examModeId",
+    "openDepartmentId",
+    "teachLanguageId",
+    "roomTypeId",
+  ];
+  const records: Array<{ key: number; values: ColumnValue[] }> = [];
   for (const build of builds) {
     const courseId = courseMap.get(build.courseJwId);
     if (courseId == null) continue;
     const semesterId = semesterMap.get(build.semesterCode);
     if (semesterId == null) continue;
-
     const openDepartmentId = build.openDepartmentCode
       ? departmentMap.get(build.openDepartmentCode)
-      : undefined;
-
-    const result = await tx.section.upsert({
-      where: { jwId: build.jwId },
-      create: {
-        jwId: build.jwId,
-        code: build.code,
-        bizTypeId: build.bizTypeId,
-        credits: build.credits,
-        period: build.period,
-        periodsPerWeek: build.periodsPerWeek,
-        timesPerWeek: build.timesPerWeek,
-        stdCount: build.stdCount,
-        limitCount: build.limitCount,
-        graduateAndPostgraduate: build.graduateAndPostgraduate,
-        dateTimePlaceText: build.dateTimePlaceText,
-        dateTimePlacePersonText: build.dateTimePlacePersonText,
-        actualPeriods: build.actualPeriods,
-        theoryPeriods: build.theoryPeriods,
-        practicePeriods: build.practicePeriods,
-        experimentPeriods: build.experimentPeriods,
-        machinePeriods: build.machinePeriods,
-        designPeriods: build.designPeriods,
-        testPeriods: build.testPeriods,
-        scheduleState: build.scheduleState,
-        suggestScheduleWeeks: build.suggestScheduleWeeks,
-        suggestScheduleWeekInfo: build.suggestScheduleWeekInfo,
-        scheduleJsonParams: build.scheduleJsonParams as Prisma.InputJsonValue,
-        selectedStdCount: build.selectedStdCount,
-        remark: build.remark,
-        scheduleRemark: build.scheduleRemark,
+      : null;
+    records.push({
+      key: build.jwId,
+      values: [
+        build.code,
+        build.bizTypeId,
+        build.credits,
+        build.period,
+        build.periodsPerWeek != null ? Math.round(build.periodsPerWeek) : null,
+        build.timesPerWeek,
+        build.stdCount,
+        build.limitCount,
+        build.graduateAndPostgraduate,
+        build.dateTimePlaceText,
+        build.dateTimePlacePersonText != null
+          ? JSON.stringify(build.dateTimePlacePersonText)
+          : null,
+        build.actualPeriods != null ? Math.round(build.actualPeriods) : null,
+        build.theoryPeriods,
+        build.practicePeriods,
+        build.experimentPeriods,
+        build.machinePeriods,
+        build.designPeriods,
+        build.testPeriods,
+        build.scheduleState,
+        build.suggestScheduleWeeks != null
+          ? JSON.stringify(build.suggestScheduleWeeks)
+          : null,
+        build.suggestScheduleWeekInfo,
+        build.scheduleJsonParams != null
+          ? JSON.stringify(build.scheduleJsonParams)
+          : null,
+        build.selectedStdCount,
+        build.remark,
+        build.scheduleRemark,
         courseId,
         semesterId,
-        campusId:
-          build.campusId != null ? campusMap.get(build.campusId) : undefined,
-        examModeId: build.examModeName
-          ? lookupMaps.examMode.get(build.examModeName)
-          : undefined,
+        build.campusId != null ? campusMap.get(build.campusId) : null,
+        build.examModeName ? lookupMaps.examMode.get(build.examModeName) : null,
         openDepartmentId,
-        teachLanguageId: build.teachLanguageName
+        build.teachLanguageName
           ? lookupMaps.teachLanguage.get(build.teachLanguageName)
-          : undefined,
-        roomTypeId:
-          build.roomTypeId != null
-            ? roomTypeMap.get(build.roomTypeId)
-            : undefined,
-      },
-      update: {
-        code: build.code,
-        bizTypeId: build.bizTypeId,
-        credits: build.credits,
-        period: build.period,
-        periodsPerWeek: build.periodsPerWeek,
-        timesPerWeek: build.timesPerWeek,
-        stdCount: build.stdCount,
-        limitCount: build.limitCount,
-        graduateAndPostgraduate: build.graduateAndPostgraduate,
-        dateTimePlaceText: build.dateTimePlaceText,
-        dateTimePlacePersonText: build.dateTimePlacePersonText,
-        actualPeriods: build.actualPeriods,
-        theoryPeriods: build.theoryPeriods,
-        practicePeriods: build.practicePeriods,
-        experimentPeriods: build.experimentPeriods,
-        machinePeriods: build.machinePeriods,
-        designPeriods: build.designPeriods,
-        testPeriods: build.testPeriods,
-        scheduleState: build.scheduleState,
-        suggestScheduleWeeks: build.suggestScheduleWeeks,
-        suggestScheduleWeekInfo: build.suggestScheduleWeekInfo,
-        scheduleJsonParams: build.scheduleJsonParams as Prisma.InputJsonValue,
-        selectedStdCount: build.selectedStdCount,
-        remark: build.remark,
-        scheduleRemark: build.scheduleRemark,
-        courseId,
-        semesterId,
-        campusId:
-          build.campusId != null ? campusMap.get(build.campusId) : undefined,
-        examModeId: build.examModeName
-          ? lookupMaps.examMode.get(build.examModeName)
-          : undefined,
-        openDepartmentId,
-        teachLanguageId: build.teachLanguageName
-          ? lookupMaps.teachLanguage.get(build.teachLanguageName)
-          : undefined,
-        roomTypeId:
-          build.roomTypeId != null
-            ? roomTypeMap.get(build.roomTypeId)
-            : undefined,
-      },
+          : null,
+        build.roomTypeId != null ? roomTypeMap.get(build.roomTypeId) : null,
+      ],
     });
-    map.set(build.jwId, result.id);
   }
-  return map;
+  return bulkUpsert(
+    tx,
+    "Section",
+    "jwId",
+    "int",
+    columns,
+    [
+      "text",
+      "int",
+      "float8",
+      "int",
+      "int",
+      "int",
+      "int",
+      "int",
+      "boolean",
+      "text",
+      "jsonb",
+      "int",
+      "float8",
+      "float8",
+      "float8",
+      "float8",
+      "float8",
+      "float8",
+      "text",
+      "jsonb",
+      "text",
+      "jsonb",
+      "int",
+      "text",
+      "text",
+      "int",
+      "int",
+      "int",
+      "int",
+      "int",
+      "int",
+      "int",
+    ],
+    records,
+  );
 }
 
 async function upsertScheduleGroups(
@@ -1621,33 +1758,39 @@ async function upsertScheduleGroups(
   builds: ScheduleGroupBuild[],
   sectionMap: Map<number, number>,
 ): Promise<Map<number, number>> {
-  const map = new Map<number, number>();
+  const columns = [
+    "no",
+    "limitCount",
+    "stdCount",
+    "actualPeriods",
+    "isDefault",
+    "sectionId",
+  ];
+  const records: Array<{ key: number; values: ColumnValue[] }> = [];
   for (const build of builds) {
     const sectionId = sectionMap.get(build.lessonJwId);
     if (sectionId == null) continue;
-    const result = await tx.scheduleGroup.upsert({
-      where: { jwId: build.jwId },
-      create: {
-        jwId: build.jwId,
-        no: build.no,
-        limitCount: build.limitCount,
-        stdCount: build.stdCount,
-        actualPeriods: build.actualPeriods,
-        isDefault: build.isDefault,
+    records.push({
+      key: build.jwId,
+      values: [
+        build.no,
+        build.limitCount,
+        build.stdCount,
+        build.actualPeriods,
+        build.isDefault,
         sectionId,
-      },
-      update: {
-        no: build.no,
-        limitCount: build.limitCount,
-        stdCount: build.stdCount,
-        actualPeriods: build.actualPeriods,
-        isDefault: build.isDefault,
-        sectionId,
-      },
+      ],
     });
-    map.set(build.jwId, result.id);
   }
-  return map;
+  return bulkUpsert(
+    tx,
+    "ScheduleGroup",
+    "jwId",
+    "int",
+    columns,
+    ["int", "int", "int", "int", "boolean", "int"],
+    records,
+  );
 }
 
 async function writeSectionTeachers(
@@ -1942,40 +2085,45 @@ async function upsertExams(
   sectionMap: Map<number, number>,
   examBatchMap: Map<string, number>,
 ): Promise<Map<number, number>> {
-  const map = new Map<number, number>();
+  const columns = [
+    "examType",
+    "startTime",
+    "endTime",
+    "examDate",
+    "examTakeCount",
+    "examMode",
+    "examBatchId",
+    "sectionId",
+  ];
+  const records: Array<{ key: number; values: ColumnValue[] }> = [];
   for (const build of builds) {
     const sectionId = sectionMap.get(build.sectionJwId);
     if (sectionId == null) continue;
-    const examBatchId = build.examBatchName
-      ? examBatchMap.get(build.examBatchName)
-      : undefined;
-    const result = await tx.exam.upsert({
-      where: { jwId: build.jwId },
-      create: {
-        jwId: build.jwId,
-        examType: build.examType,
-        startTime: build.startTime,
-        endTime: build.endTime,
-        examDate: build.examDate,
-        examTakeCount: build.examTakeCount,
-        examMode: build.examMode,
-        examBatchId,
+    records.push({
+      key: build.jwId,
+      values: [
+        build.examType,
+        build.startTime,
+        build.endTime,
+        build.examDate,
+        build.examTakeCount,
+        build.examMode,
+        build.examBatchName
+          ? examBatchMap.get(build.examBatchName)
+          : null,
         sectionId,
-      },
-      update: {
-        examType: build.examType,
-        startTime: build.startTime,
-        endTime: build.endTime,
-        examDate: build.examDate,
-        examTakeCount: build.examTakeCount,
-        examMode: build.examMode,
-        examBatchId,
-        sectionId,
-      },
+      ],
     });
-    map.set(build.jwId, result.id);
   }
-  return map;
+  return bulkUpsert(
+    tx,
+    "Exam",
+    "jwId",
+    "int",
+    columns,
+    ["int", "int", "int", "date", "int", "text", "int", "int"],
+    records,
+  );
 }
 
 async function writeExamRooms(
@@ -2059,6 +2207,102 @@ function chunks<T>(array: T[], size: number): T[][] {
     result.push(array.slice(i, i + size));
   }
   return result;
+}
+
+type ColumnValue =
+  | string
+  | number
+  | boolean
+  | Date
+  | null
+  | undefined
+  | Prisma.InputJsonValue;
+
+async function bulkUpsert<K extends string | number>(
+  tx: Prisma.TransactionClient,
+  table: string,
+  uniqueColumn: string,
+  uniqueColumnType: string,
+  columns: string[],
+  columnTypes: string[],
+  records: Array<{ key: K; values: ColumnValue[] }>,
+): Promise<Map<K, number>> {
+  const map = new Map<K, number>();
+  if (records.length === 0) return map;
+
+  const allColumns = [uniqueColumn, ...columns];
+  const allTypes = [uniqueColumnType, ...columnTypes];
+
+  const batchSize = 500;
+  for (const batch of chunks(records, batchSize)) {
+    const params: ColumnValue[] = [];
+    const valuePlaceholders: string[] = [];
+
+    for (const record of batch) {
+      const placeholders: string[] = [];
+      const rowValues = [record.key, ...record.values];
+      for (let i = 0; i < rowValues.length; i++) {
+        params.push(rowValues[i] ?? null);
+        placeholders.push(`$${params.length}::${allTypes[i]}`);
+      }
+      valuePlaceholders.push(`(${placeholders.join(",")})`);
+    }
+
+    const sql = `
+      INSERT INTO "${table}" (${allColumns.map((c) => `"${c}"`).join(",")})
+      VALUES ${valuePlaceholders.join(",")}
+      ON CONFLICT ("${uniqueColumn}") DO UPDATE SET
+        ${columns.map((c) => `"${c}" = EXCLUDED."${c}"`).join(",\n        ")}
+      RETURNING "id", "${uniqueColumn}"
+    `;
+
+    const rows =
+      await tx.$queryRawUnsafe<Array<{ id: number } & Record<string, unknown>>>(
+        sql,
+        ...params,
+      );
+    for (const row of rows) {
+      map.set(row[uniqueColumn] as K, row.id);
+    }
+  }
+
+  return map;
+}
+
+async function bulkUpdate(
+  tx: Prisma.TransactionClient,
+  table: string,
+  columns: string[],
+  columnTypes: string[],
+  records: Array<{ id: number; values: ColumnValue[] }>,
+): Promise<void> {
+  if (records.length === 0) return;
+
+  const batchSize = 500;
+  for (const batch of chunks(records, batchSize)) {
+    const params: ColumnValue[] = [];
+    const valuePlaceholders: string[] = [];
+
+    for (const record of batch) {
+      const placeholders: string[] = [];
+      for (let i = 0; i < record.values.length; i++) {
+        params.push(record.values[i] ?? null);
+        placeholders.push(`$${params.length}::${columnTypes[i]}`);
+      }
+      params.push(record.id);
+      placeholders.push(`$${params.length}::int`);
+      valuePlaceholders.push(`(${placeholders.join(",")})`);
+    }
+
+    const sql = `
+      UPDATE "${table}" AS t SET
+        ${columns.map((c) => `"${c}" = v."${c}"`).join(",\n        ")}
+      FROM (VALUES ${valuePlaceholders.join(",")}) AS v(${columns.map((c) => `"${c}"`).join(",")}, "id")
+      WHERE t."id" = v."id"
+    `;
+
+    await tx.$executeRawUnsafe(sql, ...params);
+  }
 }
 
 async function countStats(prisma: PrismaClient): Promise<ImportStats> {
