@@ -44,7 +44,7 @@ jobs:
           STATIC_LOADER_MIN_SEMESTER: ${{ vars.STATIC_LOADER_MIN_SEMESTER || '401' }}
           STATIC_LOADER_DRY_RUN: false
           STATIC_LOADER_STATS_FILE: /tmp/static-load-stats.json
-        run: bun run static:load
+        run: scripts/load-static-sqlite.sh
 
       - name: Report stats
         if: success()
