@@ -58,9 +58,9 @@ test("/admin 卡片入口可点击跳转到用户管理和内容审核", async (
 }, testInfo) => {
   await signInAsDevAdmin(page, "/admin");
 
-  const usersCardLink = page.getByRole("link", {
-    name: /用户管理|User Management/i,
-  });
+  const usersCardLink = page
+    .locator("#main-content")
+    .getByRole("link", { name: /用户管理|User Management/i });
   await expect(usersCardLink).toBeVisible();
   await Promise.all([
     page.waitForURL(/\/admin\/users(?:\?.*)?$/),
@@ -72,9 +72,9 @@ test("/admin 卡片入口可点击跳转到用户管理和内容审核", async (
     testInfo,
     screenshotLabel: "admin",
   });
-  const moderationCardLink = page.getByRole("link", {
-    name: /内容审核|Moderation/i,
-  });
+  const moderationCardLink = page
+    .locator("#main-content")
+    .getByRole("link", { name: /内容审核|Moderation/i });
   await expect(moderationCardLink).toBeVisible();
   await Promise.all([
     page.waitForURL(/\/admin\/moderation(?:\?.*)?$/),
@@ -88,9 +88,9 @@ test("/admin 卡片入口可点击跳转到 OAuth 和校车管理", async ({
 }, testInfo) => {
   await signInAsDevAdmin(page, "/admin");
 
-  const oauthCard = page.getByRole("link", {
-    name: /OAuth|OAuth 客户端/i,
-  });
+  const oauthCard = page
+    .locator("#main-content")
+    .getByRole("link", { name: /OAuth|OAuth 客户端/i });
   await expect(oauthCard).toBeVisible();
   await Promise.all([
     page.waitForURL(/\/admin\/oauth(?:\?.*)?$/),
@@ -102,9 +102,9 @@ test("/admin 卡片入口可点击跳转到 OAuth 和校车管理", async ({
     testInfo,
     screenshotLabel: "admin",
   });
-  const busCard = page.getByRole("link", {
-    name: /校车管理|Shuttle Bus/i,
-  });
+  const busCard = page
+    .locator("#main-content")
+    .getByRole("link", { name: /校车管理|Shuttle Bus/i });
   await expect(busCard).toBeVisible();
   await Promise.all([
     page.waitForURL(/\/admin\/bus(?:\?.*)?$/),
