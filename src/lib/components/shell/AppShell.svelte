@@ -29,7 +29,6 @@ import {
   type ThemeMode,
 } from "$lib/components/shell/layout-shell";
 import RouteLoadingBar from "$lib/components/shell/RouteLoadingBar.svelte";
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 import { setClientLocale } from "$lib/locale/client-locale";
 import type {
@@ -51,7 +50,7 @@ let themeMode: ThemeMode = "system";
 let userMenuOpen = false;
 let localeMenuOpen = false;
 let themeMenuOpen = false;
-let contentScrollViewport: HTMLElement | undefined;
+let contentScrollContainer: HTMLDivElement | undefined;
 
 $: profileHref = resolveProfileHref(data.user);
 $: avatarFallback = resolveAvatarFallback(data.user);
@@ -224,20 +223,10 @@ function closeMenus() {
 }
 
 function resetContentScroll() {
-  const shellViewport =
-    contentScrollViewport ??
-    document.querySelector<HTMLElement>(
-      '[data-shell-scroll-container] [data-slot="scroll-area-viewport"]',
-    );
-  shellViewport?.scrollTo({ left: 0, top: 0 });
-
-  const detailContainer = document.querySelector<HTMLElement>(
-    "[data-detail-scroll-container]",
-  );
-  const detailViewport = detailContainer?.querySelector<HTMLElement>(
-    '[data-slot="scroll-area-viewport"]',
-  );
-  (detailViewport ?? detailContainer)?.scrollTo({ left: 0, top: 0 });
+  contentScrollContainer?.scrollTo({ left: 0, top: 0 });
+  document
+    .querySelector<HTMLElement>("[data-detail-scroll-container]")
+    ?.scrollTo({ left: 0, top: 0 });
 }
 
 async function setLocale(locale: "en-us" | "zh-cn") {
@@ -315,29 +304,34 @@ afterNavigate(({ from, to }) => {
         {userMenuOpen}
       />
 
-      <ScrollArea
-        class="flex min-w-0 flex-1 flex-col"
+      <div
+        bind:this={contentScrollContainer}
         data-shell-scroll-container
-        bind:viewportRef={contentScrollViewport}
+        class={cn(
+          "flex min-w-0 flex-1 flex-col",
+          detailWorkspace
+            ? "lg:min-h-0 lg:overflow-hidden"
+            : "lg:min-h-0 lg:overflow-y-auto",
+        )}
       >
         <div
           class={cn(
-            "w-full",
+            "w-full flex-1",
             detailWorkspace
-              ? "bg-card p-0"
+              ? "bg-card p-0 lg:min-h-0 lg:overflow-hidden"
               : "px-4 py-4 sm:px-5 lg:px-6",
           )}
         >
           <slot />
         </div>
-      </ScrollArea>
 
-      {#if !detailWorkspace}
-        <AppFooter
-          copy={data.copy}
-          {footerLinks}
-        />
-      {/if}
+        {#if !detailWorkspace}
+          <AppFooter
+            copy={data.copy}
+            {footerLinks}
+          />
+        {/if}
+      </div>
     </Sidebar.Inset>
   </Sidebar.Provider>
 </div>
