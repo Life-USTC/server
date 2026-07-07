@@ -81,22 +81,38 @@ function hasActiveChild(link: ShellLink): boolean {
                         open={isActiveLink(link) || subActive}
                         class="group/collapsible"
                       >
-                        <Sidebar.MenuButton
-                          isActive={subActive}
-                          tooltipContent={link.label}
-                        >
-                          {#snippet child({ props })}
-                            <Collapsible.Trigger {...props}>
-                              {#if link.icon}
-                                <svelte:component this={link.icon} />
-                              {/if}
-                              <span>{link.label}</span>
-                              <ChevronDownIcon
-                                class="ms-auto transition-transform group-data-[state=open]/collapsible:rotate-180"
-                              />
-                            </Collapsible.Trigger>
-                          {/snippet}
-                        </Sidebar.MenuButton>
+                        <div class="flex w-full items-center">
+                          <Sidebar.MenuButton
+                            isActive={subActive}
+                            tooltipContent={link.label}
+                            class="flex-1"
+                          >
+                            {#snippet child({ props })}
+                              <a
+                                {...props}
+                                href={link.href}
+                                aria-label={link.ariaLabel}
+                                aria-current={isActiveLink(link) ? "page" : undefined}
+                              >
+                                {#if link.icon}
+                                  <svelte:component this={link.icon} />
+                                {/if}
+                                <span>{link.label}</span>
+                                {#if link.badge != null && link.badge > 0}
+                                  {@render badge(link.badge)}
+                                {/if}
+                              </a>
+                            {/snippet}
+                          </Sidebar.MenuButton>
+                          <Collapsible.Trigger
+                            class="text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-md outline-hidden transition-transform focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0 group-data-[collapsible=icon]:hidden"
+                            aria-label={`Toggle ${link.label}`}
+                          >
+                            <ChevronDownIcon
+                              class="transition-transform group-data-[state=open]/collapsible:rotate-180"
+                            />
+                          </Collapsible.Trigger>
+                        </div>
                         <Collapsible.Content>
                           <Sidebar.MenuSub>
                             {#each link.items as subLink}
