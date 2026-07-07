@@ -80,9 +80,9 @@ test("/admin/bus 版本表格包含班次数量", async ({ page }, testInfo) => 
 test("/admin/bus 管理首页入口可见且可跳转", async ({ page }, testInfo) => {
   await signInAsDevAdmin(page, "/admin");
 
-  const busCard = page.getByRole("link", {
-    name: /校车管理|Shuttle Bus/i,
-  });
+  const busCard = page
+    .locator("#main-content")
+    .getByRole("link", { name: /校车管理|Shuttle Bus/i });
   await expect(busCard).toBeVisible();
 
   await Promise.all([
