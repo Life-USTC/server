@@ -1,3 +1,10 @@
+## [1.49.1](https://github.com/Life-USTC/server/compare/v1.49.0...v1.49.1) (2026-07-07)
+
+
+### Bug Fixes
+
+* keep sidebar groups open and disable collapse trigger in icon mode ([4344303](https://github.com/Life-USTC/server/commit/43443034f9ce66a2c9998ed4e2114df665bc25c9)), closes [#350](https://github.com/Life-USTC/server/issues/350)
+
 # [1.49.0](https://github.com/Life-USTC/server/compare/v1.48.2...v1.49.0) (2026-07-07)
 
 
