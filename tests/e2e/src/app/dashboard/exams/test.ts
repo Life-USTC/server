@@ -169,7 +169,9 @@ test.describe("仪表盘考试", () => {
       .getByRole("radio", { name: /全部|All/i })
       .click();
 
-    const sectionLink = page.locator('a[href^="/sections/"]').first();
+    const sectionLink = page
+      .locator('#main-content a[href^="/sections/"]')
+      .first();
     await expect(sectionLink).toBeVisible();
     await sectionLink.click();
 

@@ -136,21 +136,20 @@ export async function resolveSeedTeacherId(
 ): Promise<number> {
   seedTeacherIdPromise ??= (async () => {
     const response = await getRequestContext(source).get(
-      `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}&limit=10`,
+      `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}&limit=10`,
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
-      data?: Array<{ id?: number; nameCn?: string }>;
+      data?: Array<{ id?: number; code?: string | null }>;
     };
     const teacher = body.data?.find(
       (item) =>
-        typeof item.id === "number" &&
-        item.nameCn?.includes(DEV_SEED.teacher.nameCn),
+        typeof item.id === "number" && item.code === DEV_SEED.teacher.code,
     );
 
     if (!teacher || typeof teacher.id !== "number") {
       throw new Error(
-        `Seed teacher ${DEV_SEED.teacher.nameCn} not found via /api/teachers`,
+        `Seed teacher ${DEV_SEED.teacher.code} not found via /api/teachers`,
       );
     }
 

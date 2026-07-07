@@ -48,6 +48,14 @@ async function maybeCapture(
   await captureStepScreenshot(page, testInfo, name);
 }
 
+function escapeForRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function localizedNamePattern(nameCn: string, nameEn: string) {
+  return new RegExp(`${escapeForRegExp(nameCn)}|${escapeForRegExp(nameEn)}`);
+}
+
 async function gotoContractPage(
   page: Page,
   path: string,
@@ -210,7 +218,12 @@ export async function assertPageContract(
       await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
       await expect(
         appSidebar(page)
-          .getByRole("link", { name: DEV_SEED.course.nameCn })
+          .getByRole("link", {
+            name: localizedNamePattern(
+              DEV_SEED.course.nameCn,
+              DEV_SEED.course.nameEn,
+            ),
+          })
           .first(),
       ).toHaveAttribute("aria-current", "page");
       await maybeCapture(page, testInfo, "sections-jwId");
@@ -233,7 +246,12 @@ export async function assertPageContract(
       ).toBeVisible();
       await expect(
         appSidebar(page)
-          .getByRole("link", { name: DEV_SEED.course.nameCn })
+          .getByRole("link", {
+            name: localizedNamePattern(
+              DEV_SEED.course.nameCn,
+              DEV_SEED.course.nameEn,
+            ),
+          })
           .first(),
       ).toHaveAttribute("aria-current", "page");
       await maybeCapture(page, testInfo, "courses-jwId");
@@ -255,7 +273,12 @@ export async function assertPageContract(
       ).toBeVisible();
       await expect(
         appSidebar(page)
-          .getByRole("link", { name: DEV_SEED.teacher.nameCn })
+          .getByRole("link", {
+            name: localizedNamePattern(
+              DEV_SEED.teacher.nameCn,
+              DEV_SEED.teacher.nameEn,
+            ),
+          })
           .first(),
       ).toHaveAttribute("aria-current", "page");
       await maybeCapture(page, testInfo, "teachers-id");
