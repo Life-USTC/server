@@ -8,5 +8,6 @@ export type ListSubscribedHomeworksOptions = {
   dueAtTo?: Date;
   requireDueDate?: boolean;
   sectionIds?: readonly number[];
+  semesterId?: number;
   shape?: "full" | "dashboard";
 };

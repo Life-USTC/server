@@ -17,21 +17,24 @@ export function registerMyHomeworkTools(server: McpServer) {
     {
       description:
         "List homeworks across your subscribed sections, including your personal completion state and comment count. " +
-        "Use list_homeworks_by_section for a single section's homeworks without completion state.",
+        "Use list_homeworks_by_section for a single section's homeworks without completion state. " +
+        "Pass semesterId to list homeworks from a specific semester (e.g. a previous semester).",
       inputSchema: {
         completed: z.boolean().optional(),
         limit: z.number().int().min(1).max(200).default(100),
+        semesterId: z.number().int().min(1).optional(),
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
-    async ({ completed, limit, locale, mode }, extra) => {
+    async ({ completed, limit, semesterId, locale, mode }, extra) => {
       const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
       const homeworks = await listSubscribedHomeworks(userId, {
         locale,
         completed,
         limit,
+        semesterId,
       });
       const homeworkItems = await withHomeworkItemState(homeworks);
 

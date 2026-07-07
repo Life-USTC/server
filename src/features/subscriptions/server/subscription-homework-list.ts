@@ -8,7 +8,10 @@ import {
   type SubscribedHomeworkRecord,
 } from "./subscription-homework-read-helpers";
 import type { ListSubscribedHomeworksOptions } from "./subscription-homework-read-types";
-import { withSubscribedSections } from "./subscription-read-model-shared";
+import {
+  getSubscribedSectionIdsForSemester,
+  withSubscribedSections,
+} from "./subscription-read-model-shared";
 
 export async function listSubscribedHomeworks(
   userId: string,
@@ -30,9 +33,15 @@ export async function listSubscribedHomeworks(
     dueAtTo,
     requireDueDate = false,
     sectionIds,
+    semesterId,
     shape = "full",
   }: ListSubscribedHomeworksOptions = {},
 ): Promise<HomeworkWithSection[] | SubscribedHomeworkRecord[]> {
+  const resolvedSectionIds =
+    semesterId !== undefined
+      ? await getSubscribedSectionIdsForSemester(userId, semesterId)
+      : sectionIds;
+
   return withSubscribedSections(
     userId,
     async (ids) => {
@@ -60,6 +69,6 @@ export async function listSubscribedHomeworks(
         include: buildSubscribedHomeworkInclude(userId, includeEditors),
       });
     },
-    sectionIds,
+    resolvedSectionIds,
   );
 }

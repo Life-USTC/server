@@ -20,17 +20,22 @@ export function registerMyScheduleTools(server: McpServer) {
     "list_my_schedules",
     {
       description:
-        "List schedules across your subscribed sections. Use query_schedules for public schedules of any section without personal context.",
+        "List schedules across your subscribed sections. Use query_schedules for public schedules of any section without personal context. " +
+        "Pass semesterId to limit results to a specific semester.",
       inputSchema: {
         dateFrom: flexDateInputSchema.optional(),
         dateTo: flexDateInputSchema.optional(),
         weekday: z.number().int().min(1).max(7).optional(),
         limit: z.number().int().min(1).max(300).default(150),
+        semesterId: z.number().int().min(1).optional(),
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
-    async ({ dateFrom, dateTo, weekday, limit, locale, mode }, extra) => {
+    async (
+      { dateFrom, dateTo, weekday, limit, semesterId, locale, mode },
+      extra,
+    ) => {
       const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
       const dateRange = parseMcpDateRange({ dateFrom, dateTo });
@@ -43,6 +48,7 @@ export function registerMyScheduleTools(server: McpServer) {
         dateTo: dateRange.dateTo,
         weekday,
         limit,
+        semesterId,
       });
 
       return jsonToolResult(
@@ -56,18 +62,20 @@ export function registerMyScheduleTools(server: McpServer) {
     "list_my_exams",
     {
       description:
-        "List exams across your subscribed sections. Includes unknown-date exams by default (set includeDateUnknown: false to exclude).",
+        "List exams across your subscribed sections. Includes unknown-date exams by default (set includeDateUnknown: false to exclude). " +
+        "Pass semesterId to limit results to a specific semester.",
       inputSchema: {
         dateFrom: flexDateInputSchema.optional(),
         dateTo: flexDateInputSchema.optional(),
         includeDateUnknown: z.boolean().default(true),
         limit: z.number().int().min(1).max(300).default(150),
+        semesterId: z.number().int().min(1).optional(),
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
     async (
-      { dateFrom, dateTo, includeDateUnknown, limit, locale, mode },
+      { dateFrom, dateTo, includeDateUnknown, limit, semesterId, locale, mode },
       extra,
     ) => {
       const resolvedMode = resolveMcpMode(mode);
@@ -82,6 +90,7 @@ export function registerMyScheduleTools(server: McpServer) {
         dateTo: dateRange.dateTo,
         includeDateUnknown,
         limit,
+        semesterId,
       });
 
       return jsonToolResult({ exams }, { mode: resolvedMode });

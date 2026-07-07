@@ -3,7 +3,10 @@ import { getPrisma, prisma } from "@/lib/db/prisma";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { formatShanghaiDate } from "@/lib/time/shanghai-format";
-import { withSubscribedSections } from "./subscription-read-model-shared";
+import {
+  getSubscribedSectionIdsForSemester,
+  withSubscribedSections,
+} from "./subscription-read-model-shared";
 
 function dateRangeFilter(dateFrom?: Date, dateTo?: Date) {
   return dateFrom || dateTo
@@ -73,6 +76,7 @@ export async function listSubscribedSchedules(
     weekday,
     limit,
     sectionIds,
+    semesterId,
   }: {
     locale?: string;
     dateFrom?: Date;
@@ -80,8 +84,14 @@ export async function listSubscribedSchedules(
     weekday?: number;
     limit?: number;
     sectionIds?: readonly number[];
+    semesterId?: number;
   } = {},
 ) {
+  const resolvedSectionIds =
+    semesterId !== undefined
+      ? await getSubscribedSectionIdsForSemester(userId, semesterId)
+      : sectionIds;
+
   return withSubscribedSections(
     userId,
     async (ids) => {
@@ -109,7 +119,7 @@ export async function listSubscribedSchedules(
         ...(limit ? { take: limit } : {}),
       });
     },
-    sectionIds,
+    resolvedSectionIds,
   );
 }
 
@@ -135,6 +145,7 @@ export async function listSubscribedExams(
     includeDateUnknown = true,
     limit,
     sectionIds,
+    semesterId,
   }: {
     locale?: string;
     dateFrom?: Date;
@@ -142,8 +153,14 @@ export async function listSubscribedExams(
     includeDateUnknown?: boolean;
     limit?: number;
     sectionIds?: readonly number[];
+    semesterId?: number;
   } = {},
 ) {
+  const resolvedSectionIds =
+    semesterId !== undefined
+      ? await getSubscribedSectionIdsForSemester(userId, semesterId)
+      : sectionIds;
+
   return withSubscribedSections(
     userId,
     async (ids) => {
@@ -162,7 +179,7 @@ export async function listSubscribedExams(
         ...(limit ? { take: limit } : {}),
       });
     },
-    sectionIds,
+    resolvedSectionIds,
   );
 }
 
