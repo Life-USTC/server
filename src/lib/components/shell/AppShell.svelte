@@ -224,10 +224,20 @@ function closeMenus() {
 }
 
 function resetContentScroll() {
-  contentScrollViewport?.scrollTo({ left: 0, top: 0 });
-  document
-    .querySelector<HTMLElement>("[data-detail-scroll-container]")
-    ?.scrollTo({ left: 0, top: 0 });
+  const shellViewport =
+    contentScrollViewport ??
+    document.querySelector<HTMLElement>(
+      '[data-shell-scroll-container] [data-slot="scroll-area-viewport"]',
+    );
+  shellViewport?.scrollTo({ left: 0, top: 0 });
+
+  const detailContainer = document.querySelector<HTMLElement>(
+    "[data-detail-scroll-container]",
+  );
+  const detailViewport = detailContainer?.querySelector<HTMLElement>(
+    '[data-slot="scroll-area-viewport"]',
+  );
+  (detailViewport ?? detailContainer)?.scrollTo({ left: 0, top: 0 });
 }
 
 async function setLocale(locale: "en-us" | "zh-cn") {
