@@ -1,3 +1,17 @@
+# [1.48.0](https://github.com/Life-USTC/server/compare/v1.47.0...v1.48.0) (2026-07-07)
+
+
+### Bug Fixes
+
+* **loader:** correct SectionTeacher retire and schedule-teacher join mapping ([bd959cd](https://github.com/Life-USTC/server/commit/bd959cdfa01e918520a0cbf0c6d422500eee1a5d))
+* **loader:** deduplicate teacher titles by nameCn before upsert ([f0e65d0](https://github.com/Life-USTC/server/commit/f0e65d0c81482989bbb63f2247bf0a50af1d6c58))
+* **loader:** harden snapshot CLI and update CI smoke test ([683a152](https://github.com/Life-USTC/server/commit/683a152caade58cdb7b7251c7238ec81335f853f))
+
+
+### Features
+
+* **static-loader:** add prisma-based static import CLI ([315b149](https://github.com/Life-USTC/server/commit/315b14965e1b80f2293629a0874ff6c0aa1d671f))
+
 # [1.47.0](https://github.com/Life-USTC/server/compare/v1.46.0...v1.47.0) (2026-07-06)
 
 
