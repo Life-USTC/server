@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: "0 4 * * *"
   workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "Run in dry-run mode (rolls back the transaction)"
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: static-sync
@@ -42,7 +48,7 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           STATIC_SNAPSHOT_URL: ${{ vars.STATIC_SNAPSHOT_URL || 'https://static.life-ustc.tiankaima.dev/life-ustc-static.sqlite' }}
           STATIC_LOADER_MIN_SEMESTER: ${{ vars.STATIC_LOADER_MIN_SEMESTER || '401' }}
-          STATIC_LOADER_DRY_RUN: false
+          STATIC_LOADER_DRY_RUN: ${{ inputs.dry-run }}
           STATIC_LOADER_STATS_FILE: /tmp/static-load-stats.json
         run: scripts/load-static-sqlite.sh
 

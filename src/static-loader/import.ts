@@ -1667,16 +1667,11 @@ async function writeSectionTeachers(
 
   for (const sectionChunk of chunks(sectionDbIds, 1000)) {
     const sectionIds = sectionChunk.join(",");
-    for (const pairChunk of chunks(resolved, 1000)) {
-      const pairTuples = pairChunk
-        .map((p) => `(${p.sectionId},${p.teacherId})`)
-        .join(",");
-      await tx.$executeRawUnsafe(
-        `UPDATE "SectionTeacher" SET "retiredAt" = $1, "updatedAt" = $2 WHERE "sectionId" IN (${sectionIds}) AND "retiredAt" IS NULL AND ("sectionId","teacherId") NOT IN (${pairTuples})`,
-        now,
-        now,
-      );
-    }
+    await tx.$executeRawUnsafe(
+      `UPDATE "SectionTeacher" SET "retiredAt" = $1, "updatedAt" = $2 WHERE "sectionId" IN (${sectionIds}) AND "retiredAt" IS NULL AND ("sectionId","teacherId") NOT IN (SELECT "A","B" FROM "_SectionTeachers" WHERE "A" IN (${sectionIds}))`,
+      now,
+      now,
+    );
   }
 }
 
@@ -1794,7 +1789,18 @@ async function writeSchedules(
           build.roomJwId != null ? roomMap.get(build.roomJwId) : undefined,
         sectionId,
         scheduleGroupId,
-        key: scheduleBuildKey(build),
+        key: [
+          sectionId,
+          scheduleGroupId,
+          build.dateStr ?? "",
+          build.weekday,
+          build.startTime,
+          build.endTime,
+          build.startUnit,
+          build.endUnit,
+          build.customPlace ?? "",
+          build.weekIndex,
+        ].join("|"),
         teacherPersonIds: build.teacherPersonIds,
       };
     })
@@ -1843,7 +1849,7 @@ async function writeSchedules(
     const key = [
       row.sectionId,
       row.scheduleGroupId,
-      row.date?.toISOString().split("T")[0] ?? "",
+      row.date == null ? "" : formatLocalDate(row.date),
       row.weekday,
       row.startTime,
       row.endTime,
@@ -1880,19 +1886,11 @@ async function writeSchedules(
   }
 }
 
-function scheduleBuildKey(build: ScheduleBuild): string {
-  return [
-    build.lessonJwId,
-    build.scheduleGroupJwId,
-    build.date?.toISOString().split("T")[0] ?? "",
-    build.weekday,
-    build.startTime,
-    build.endTime,
-    build.startUnit,
-    build.endUnit,
-    build.customPlace ?? "",
-    build.weekIndex,
-  ].join("|");
+function formatLocalDate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 async function upsertExams(
