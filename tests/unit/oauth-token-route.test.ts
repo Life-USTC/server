@@ -1,15 +1,29 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { tokenGetRoute, tokenPostRoute } from "@/lib/api/routes/auth-token";
+import {
+  OAUTH_OFFLINE_ACCESS_SCOPE,
+  OAUTH_OPENID_SCOPE,
+  OAUTH_PROFILE_SCOPE,
+  OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+} from "@/lib/oauth/constants";
 
-const { betterAuthHandlerMock, findRefreshTokenMock, updateRefreshTokenMock } =
-  vi.hoisted(() => ({
-    betterAuthHandlerMock: vi.fn(),
-    findRefreshTokenMock: vi.fn(),
-    updateRefreshTokenMock: vi.fn(),
-  }));
+const {
+  betterAuthHandlerMock,
+  findRefreshTokenMock,
+  signJwtMock,
+  updateRefreshTokenMock,
+} = vi.hoisted(() => ({
+  betterAuthHandlerMock: vi.fn(),
+  findRefreshTokenMock: vi.fn(),
+  signJwtMock: vi.fn(),
+  updateRefreshTokenMock: vi.fn(),
+}));
 
 vi.mock("@/lib/auth/core", () => ({
   betterAuthInstance: {
+    api: {
+      signJWT: signJwtMock,
+    },
     handler: betterAuthHandlerMock,
   },
 }));
@@ -24,6 +38,7 @@ vi.mock("@/lib/db/prisma", () => ({
 }));
 
 vi.mock("@/lib/mcp/urls", () => ({
+  getCanonicalOAuthIssuer: () => "https://life.example/api/auth",
   getOAuthMcpResourceUrl: () => "https://life.example/api/mcp",
   getOAuthProviderValidAudiences: () => [
     "https://life.example/api/auth",
@@ -35,7 +50,9 @@ describe("OAuth 令牌路由", () => {
   beforeEach(() => {
     betterAuthHandlerMock.mockReset();
     findRefreshTokenMock.mockReset();
+    signJwtMock.mockReset();
     updateRefreshTokenMock.mockReset();
+    updateRefreshTokenMock.mockResolvedValue({ count: 1 });
   });
 
   it("为 GET 返回 JSON 方法指引", async () => {
@@ -142,5 +159,67 @@ describe("OAuth 令牌路由", () => {
         "Requested resource is not approved for this refresh token",
     });
     expect(betterAuthHandlerMock).not.toHaveBeenCalled();
+  });
+
+  it("刷新已绑定资源的令牌时返回覆盖批准资源的 JWT access token", async () => {
+    findRefreshTokenMock.mockResolvedValue({
+      clientId: "client-1",
+      resources: [
+        "https://life.example/api/auth",
+        "https://life.example/api/mcp",
+      ],
+      scopes: [
+        OAUTH_OPENID_SCOPE,
+        OAUTH_PROFILE_SCOPE,
+        OAUTH_OFFLINE_ACCESS_SCOPE,
+      ],
+      userId: "user-1",
+    });
+    betterAuthHandlerMock.mockResolvedValueOnce(
+      Response.json({
+        access_token: "better-auth-access-token",
+        expires_in: 3600,
+        refresh_token: "new-refresh-token",
+        token_type: "Bearer",
+      }),
+    );
+    signJwtMock.mockResolvedValueOnce({ token: "signed-refresh-access-token" });
+    const body = new URLSearchParams({
+      client_id: "client-1",
+      grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+      refresh_token: "old-refresh-token",
+    });
+    body.append("resource", "https://life.example/api/auth");
+    body.append("resource", "https://life.example/api/mcp");
+
+    const response = await tokenPostRoute(
+      new Request("http://localhost/api/auth/oauth2/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: body.toString(),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      access_token: "signed-refresh-access-token",
+      refresh_token: "new-refresh-token",
+      token_type: "Bearer",
+    });
+    expect(signJwtMock).toHaveBeenCalledWith({
+      body: {
+        payload: expect.objectContaining({
+          aud: [
+            "https://life.example/api/auth",
+            "https://life.example/api/mcp",
+            "https://life.example/api/auth/oauth2/userinfo",
+          ],
+          azp: "client-1",
+          iss: "https://life.example/api/auth",
+          scope: `${OAUTH_OPENID_SCOPE} ${OAUTH_PROFILE_SCOPE} ${OAUTH_OFFLINE_ACCESS_SCOPE}`,
+          sub: "user-1",
+        }),
+      },
+    });
   });
 });
