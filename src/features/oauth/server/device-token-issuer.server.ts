@@ -7,7 +7,9 @@ import {
 import { DEVICE_CODE_STATUS } from "@/lib/oauth/device-code";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
 
-export const DEVICE_ACCESS_TOKEN_EXPIRES_IN = 3600;
+export const RESOURCE_BOUND_ACCESS_TOKEN_EXPIRES_IN = 3600;
+export const DEVICE_ACCESS_TOKEN_EXPIRES_IN =
+  RESOURCE_BOUND_ACCESS_TOKEN_EXPIRES_IN;
 const DEVICE_REFRESH_TOKEN_EXPIRES_IN = 30 * 24 * 3600;
 
 type JwtSigner = (input: {
@@ -62,7 +64,7 @@ function resolveAccessTokenAudiences(resources: string[], scopes: string[]) {
   return [...new Set(audiences)];
 }
 
-async function signDeviceAccessToken(input: {
+export async function signResourceBoundOAuthAccessToken(input: {
   clientId: string;
   expiresAt: number;
   issuedAt: number;
@@ -118,7 +120,7 @@ export async function issueDeviceGrantTokens(
   const refreshExpiresAt = new Date(
     Date.now() + DEVICE_REFRESH_TOKEN_EXPIRES_IN * 1000,
   );
-  const jwtAccessToken = await signDeviceAccessToken({
+  const jwtAccessToken = await signResourceBoundOAuthAccessToken({
     clientId: input.clientId,
     expiresAt,
     issuedAt,

@@ -1,3 +1,7 @@
+import {
+  RESOURCE_BOUND_ACCESS_TOKEN_EXPIRES_IN,
+  signResourceBoundOAuthAccessToken,
+} from "@/features/oauth/server/device-token-issuer.server";
 import { prisma as defaultPrisma } from "@/lib/db/prisma";
 import { getOAuthProviderValidAudiences } from "@/lib/mcp/urls";
 import {
@@ -15,8 +19,18 @@ type RefreshResourcePrisma = {
   oAuthRefreshToken: {
     findUnique: (input: {
       where: { token: string };
-      select: { resources: true };
-    }) => Promise<{ resources: string[] } | null>;
+      select: {
+        clientId?: true;
+        resources: true;
+        scopes?: true;
+        userId?: true;
+      };
+    }) => Promise<{
+      clientId?: string;
+      resources: string[];
+      scopes?: string[];
+      userId?: string;
+    } | null>;
     updateMany: (input: {
       where: { token: string };
       data: { resources: string[] };
@@ -183,6 +197,20 @@ function getIssuedAccessTokenResources(
   );
 }
 
+function getApprovedRequestedResources(
+  resourceValues: string[],
+  approvedResources: string[],
+) {
+  const requestedResources = parseRequestedRefreshResources(resourceValues);
+  if ("error" in requestedResources) return [];
+
+  return requestedResources.resources.filter((requested) =>
+    approvedResources.some((approved) =>
+      resourceIndicatorsMatch(approved, requested),
+    ),
+  );
+}
+
 async function resolveIssuedRefreshResources({
   accessToken,
   grantType,
@@ -247,6 +275,59 @@ export async function validateRefreshTokenResources({
     errorDescription:
       "Requested resource is not approved for this refresh token",
     requestedResourceCount: requestedResources.resources.length,
+  };
+}
+
+export async function issueResourceBoundRefreshAccessToken({
+  prisma = defaultPrisma,
+  refreshToken,
+  resourceValues,
+}: {
+  prisma?: RefreshResourcePrisma;
+  refreshToken: string | null;
+  resourceValues: string[];
+}) {
+  if (!refreshToken || resourceValues.length === 0) return undefined;
+
+  const tokenHash = await hashOAuthClientSecretForDbStorage(refreshToken);
+  const refreshRecord = await prisma.oAuthRefreshToken.findUnique({
+    where: { token: tokenHash },
+    select: {
+      clientId: true,
+      resources: true,
+      scopes: true,
+      userId: true,
+    },
+  });
+  if (
+    !refreshRecord?.clientId ||
+    !refreshRecord.userId ||
+    !refreshRecord.scopes
+  ) {
+    return undefined;
+  }
+
+  const resources = getApprovedRequestedResources(
+    resourceValues,
+    refreshRecord.resources,
+  );
+  if (resources.length === 0) return undefined;
+
+  const issuedAt = Math.floor(Date.now() / 1000);
+  const expiresAt = issuedAt + RESOURCE_BOUND_ACCESS_TOKEN_EXPIRES_IN;
+  const accessToken = await signResourceBoundOAuthAccessToken({
+    clientId: refreshRecord.clientId,
+    expiresAt,
+    issuedAt,
+    resources,
+    scopes: refreshRecord.scopes,
+    userId: refreshRecord.userId,
+  });
+  if (!accessToken) return undefined;
+
+  return {
+    accessToken,
+    expiresIn: RESOURCE_BOUND_ACCESS_TOKEN_EXPIRES_IN,
   };
 }
 

@@ -12,6 +12,7 @@ import {
 } from "./auth-token-normalization";
 import {
   persistOAuthRefreshTokenResources,
+  replaceOAuthRefreshAccessToken,
   validateOAuthRefreshTokenResources,
 } from "./auth-token-refresh-resources";
 import { rewriteTokenFormRequest } from "./auth-token-request-rewrite";
@@ -168,7 +169,11 @@ async function postRoute(request: Request) {
       delegatedRequest,
       authHandler,
     );
-    const response = await normalizeOAuthTokenErrorResponse(delegatedResponse);
+    const response = await replaceOAuthRefreshAccessToken(
+      delegatedRequest,
+      params,
+      await normalizeOAuthTokenErrorResponse(delegatedResponse),
+    );
     await persistOAuthRefreshTokenResources(delegatedRequest, params, response);
     return response;
   });

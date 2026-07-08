@@ -1,9 +1,11 @@
 import {
+  issueResourceBoundRefreshAccessToken,
   persistRefreshTokenResources,
   validateRefreshTokenResources,
 } from "@/features/oauth/server/refresh-token-resources.server";
 import { jsonResponse } from "@/lib/api/helpers";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
+import { OAUTH_REFRESH_TOKEN_GRANT_TYPE } from "@/lib/oauth/constants";
 
 function invalidRefreshResourceResponse(error_description: string) {
   return jsonResponse(
@@ -15,26 +17,30 @@ function invalidRefreshResourceResponse(error_description: string) {
   );
 }
 
-async function getTokenResponseBody(response: Response) {
+async function getTokenJsonBody(response: Response) {
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) return null;
 
   try {
-    const body = (await response.clone().json()) as {
-      access_token?: unknown;
-      refresh_token?: unknown;
-    };
-    return {
-      accessToken:
-        typeof body.access_token === "string" ? body.access_token : undefined,
-      refreshToken:
-        typeof body.refresh_token === "string" && body.refresh_token.length > 0
-          ? body.refresh_token
-          : undefined,
-    };
+    const body = await response.clone().json();
+    return body && typeof body === "object"
+      ? (body as Record<string, unknown>)
+      : null;
   } catch {
     return null;
   }
+}
+
+async function getTokenResponseBody(response: Response) {
+  const body = await getTokenJsonBody(response);
+  return {
+    accessToken:
+      typeof body?.access_token === "string" ? body.access_token : undefined,
+    refreshToken:
+      typeof body?.refresh_token === "string" && body.refresh_token.length > 0
+        ? body.refresh_token
+        : undefined,
+  };
 }
 
 export async function validateOAuthRefreshTokenResources(
@@ -95,4 +101,46 @@ export async function persistOAuthRefreshTokenResources(
       resourceCount: result.resourceCount,
     });
   }
+}
+
+export async function replaceOAuthRefreshAccessToken(
+  request: Request,
+  params: URLSearchParams,
+  response: Response,
+) {
+  if (
+    !response.ok ||
+    params.get("grant_type") !== OAUTH_REFRESH_TOKEN_GRANT_TYPE
+  ) {
+    return response;
+  }
+
+  const body = await getTokenJsonBody(response);
+  if (!body || typeof body.access_token !== "string") return response;
+
+  const issued = await issueResourceBoundRefreshAccessToken({
+    refreshToken: params.get("refresh_token"),
+    resourceValues: params.getAll("resource"),
+  });
+  if (!issued) return response;
+
+  const headers = new Headers(response.headers);
+  headers.delete("Content-Length");
+  headers.set("Content-Type", "application/json; charset=utf-8");
+  logOAuthDebug("oauth.refresh-access-token.replaced", request, {
+    resourceCount: params.getAll("resource").length,
+  });
+
+  return jsonResponse(
+    {
+      ...body,
+      access_token: issued.accessToken,
+      expires_in: issued.expiresIn,
+    },
+    {
+      headers,
+      status: response.status,
+      statusText: response.statusText,
+    },
+  );
 }
