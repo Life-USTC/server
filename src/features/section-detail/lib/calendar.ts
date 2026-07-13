@@ -18,7 +18,7 @@ export type SectionCalendarEvent = {
 
 type CalendarGridEvent = {
   detail: string;
-  href: string;
+  href?: string;
   label: string;
   meta: string;
   tone: "primary" | "warning";
@@ -83,7 +83,6 @@ export function buildCalendarGridEvent(input: {
   formatDate: (value: string | Date | null | undefined) => string;
 }) {
   return {
-    href: `#${input.event.id}`,
     label: input.event.title,
     meta: [input.formatDate(input.event.date), input.event.meta]
       .filter(Boolean)

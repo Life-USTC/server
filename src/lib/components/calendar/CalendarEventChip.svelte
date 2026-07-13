@@ -4,7 +4,7 @@ import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 import { cn } from "$lib/utils.js";
 import type { CalendarTone } from "./types";
 
-export let href = "#";
+export let href: string | undefined = undefined;
 export let label = "";
 export let title = "";
 export let meta = "";
@@ -27,12 +27,26 @@ function eventChipProps(
       typeof itemClass === "string" ? itemClass : undefined,
       typeof triggerClass === "string" ? triggerClass : undefined,
     ),
-    href,
   };
 }
 
 $: tooltipText = tooltip || title || label;
 </script>
+
+{#snippet chipContent()}
+  <Item.Content class="gap-0">
+    <Item.Title class="max-w-full">{label}</Item.Title>
+    {#if title}
+      <Item.Description class="max-w-full line-clamp-1">{title}</Item.Description>
+    {/if}
+    {#if meta}
+      <Item.Description class="max-w-full line-clamp-1">{meta}</Item.Description>
+    {/if}
+    {#if detail}
+      <Item.Description class="max-w-full line-clamp-1">{detail}</Item.Description>
+    {/if}
+  </Item.Content>
+{/snippet}
 
 <Tooltip.Root>
   <Tooltip.Trigger>
@@ -57,20 +71,15 @@ $: tooltipText = tooltip || title || label;
         variant="outline"
       >
         {#snippet child({ props: itemProps })}
-          <a {...eventChipProps(itemProps, props)}>
-            <Item.Content class="gap-0">
-              <Item.Title class="max-w-full">{label}</Item.Title>
-              {#if title}
-                <Item.Description class="max-w-full line-clamp-1">{title}</Item.Description>
-              {/if}
-              {#if meta}
-                <Item.Description class="max-w-full line-clamp-1">{meta}</Item.Description>
-              {/if}
-              {#if detail}
-                <Item.Description class="max-w-full line-clamp-1">{detail}</Item.Description>
-              {/if}
-            </Item.Content>
-          </a>
+          {#if href}
+            <a {...eventChipProps(itemProps, props)} {href}>
+              {@render chipContent()}
+            </a>
+          {:else}
+            <div {...eventChipProps(itemProps, props)}>
+              {@render chipContent()}
+            </div>
+          {/if}
         {/snippet}
       </Item.Root>
     {/snippet}
