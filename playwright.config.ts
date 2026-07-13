@@ -11,7 +11,7 @@ export default defineConfig({
   ],
   outputDir: "playwright-report/e2e-results",
   fullyParallel: false,
-  forbidOnly: false,
+  forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   // Shared seeded users are mutated by several E2E files. Keep the suite
   // single-worker so those stateful cases run sequentially.
@@ -30,7 +30,7 @@ export default defineConfig({
   webServer: {
     command: "bun run e2e:server",
     url: baseURL,
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     stdout: "ignore",
     stderr: "pipe",
     timeout: 300_000,
