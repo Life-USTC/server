@@ -16,6 +16,16 @@ jobs:
       database-name: life_ustc_ci
       job-phase: ci:verify
 
+  test-integration:
+    name: MCP Integration Test
+    needs: check
+    permissions:
+      contents: read
+    uses: ./.github/workflows/db-backed-bun-job.yml
+    with:
+      database-name: life_ustc_integration
+      job-phase: ci:integration
+
   build-e2e-artifacts:
     name: Build E2E artifacts
     needs: check
@@ -108,6 +118,7 @@ jobs:
     needs:
       - check
       - build-e2e-artifacts
+      - test-integration
     strategy:
       fail-fast: false
       matrix:

@@ -6,7 +6,7 @@ CI/CD pipelines.
 
 | Workflow | Trigger | Jobs |
 |----------|---------|------|
-| CI | push to main, PR to any branch | Default verification, Worker E2E artifact build, E2E shards |
+| CI | push to main, PR to any branch | Default verification, MCP integration, Worker E2E artifact build, E2E shards |
 | DB-backed Bun job | workflow_call | Reusable Postgres-backed Bun job |
 | Copilot Setup Steps | manual or setup workflow changes | Copilot bootstrap validation |
 | Release | successful CI completion on main | Semantic release |
