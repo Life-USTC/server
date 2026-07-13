@@ -17,15 +17,15 @@ runs:
     - name: Install dependencies
       shell: bash
       run: |
-        for attempt in 1 2 3; do
-          if bun install --frozen-lockfile; then
-            break
-          fi
-          echo "::warning::bun install failed (attempt ${attempt}/3), retrying..."
+        source .github/scripts/retry.sh
+
+        cleanup_bun_install_retry() {
           rm -rf node_modules
           bun pm cache rm || true
-          sleep 10
-        done
+        }
+
+        retry_command 3 10 "bun install" cleanup_bun_install_retry \
+          bun install --frozen-lockfile
 
     - name: Install Playwright browser
       if: ${{ inputs.install-playwright == 'true' }}
