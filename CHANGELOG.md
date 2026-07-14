@@ -1,3 +1,10 @@
+# [1.51.0](https://github.com/Life-USTC/server/compare/v1.50.1...v1.51.0) (2026-07-14)
+
+
+### Features
+
+* **api:** standardize paginated list responses ([#429](https://github.com/Life-USTC/server/issues/429)) ([fa0c69d](https://github.com/Life-USTC/server/commit/fa0c69d3cfd1ab810b5cd46fa959d261ad7e08db)), closes [#363](https://github.com/Life-USTC/server/issues/363) [#407](https://github.com/Life-USTC/server/issues/407)
+
 ## [1.50.1](https://github.com/Life-USTC/server/compare/v1.50.0...v1.50.1) (2026-07-14)
 
 
