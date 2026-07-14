@@ -1,6 +1,8 @@
 import type { Page, TestInfo } from "@playwright/test";
 
-const CAPTURE_STEP_SCREENSHOTS = false;
+export function isStepScreenshotCaptureEnabled() {
+  return process.env.CAPTURE_STEP_SCREENSHOTS === "1";
+}
 
 /**
  * Captures a screenshot and attaches it to the test report.
@@ -14,13 +16,17 @@ export async function captureStepScreenshot(
   testInfo: TestInfo,
   name: string,
 ) {
-  if (!CAPTURE_STEP_SCREENSHOTS) return;
+  if (!isStepScreenshotCaptureEnabled()) return;
 
-  const screenshot = await page.screenshot({ fullPage: true });
+  const screenshot = await page.screenshot({
+    fullPage: true,
+    type: "jpeg",
+    quality: 65,
+  });
 
   await testInfo.attach(name, {
     body: screenshot,
-    contentType: "image/png",
+    contentType: "image/jpeg",
   });
 }
 

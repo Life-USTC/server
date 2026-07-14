@@ -13,7 +13,11 @@ For a focused local Playwright run after setup:
 bunx playwright test path/to/test
 bunx playwright test --headed path/to/test
 bunx playwright test --ui
+CAPTURE_STEP_SCREENSHOTS=1 bunx playwright test path/to/test
 ```
+
+Named step screenshots are compressed JPEG report attachments. They are enabled
+in CI and opt-in locally through `CAPTURE_STEP_SCREENSHOTS=1`.
 
 ## Local Setup
 
