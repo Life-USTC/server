@@ -1,3 +1,10 @@
+## [1.50.1](https://github.com/Life-USTC/server/compare/v1.50.0...v1.50.1) (2026-07-14)
+
+
+### Bug Fixes
+
+* **api:** align pagination query names ([#427](https://github.com/Life-USTC/server/issues/427)) ([496c8a6](https://github.com/Life-USTC/server/commit/496c8a63eb40e702c25293ab4205f4f9b1329ae1)), closes [#413](https://github.com/Life-USTC/server/issues/413)
+
 # [1.50.0](https://github.com/Life-USTC/server/compare/v1.49.6...v1.50.0) (2026-07-14)
 
 
