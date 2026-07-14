@@ -1,3 +1,13 @@
+## [1.49.3](https://github.com/Life-USTC/server/compare/v1.49.2...v1.49.3) (2026-07-14)
+
+
+### Bug Fixes
+
+* **bus:** keep transit map legible on mobile ([#392](https://github.com/Life-USTC/server/issues/392)) ([f645d48](https://github.com/Life-USTC/server/commit/f645d4818b0578798b7c5569454170d0d29bff43))
+* **calendar:** remove dead links from section events ([#394](https://github.com/Life-USTC/server/issues/394)) ([0dc931c](https://github.com/Life-USTC/server/commit/0dc931c9507d071a8b60c8520252ab994d972db4))
+* **catalog:** contain sections table overflow ([#393](https://github.com/Life-USTC/server/issues/393)) ([4946d10](https://github.com/Life-USTC/server/commit/4946d10ed15798285bc5e014bc81aa2e98049df7))
+* **ci:** gate database migrations on CI ([#391](https://github.com/Life-USTC/server/issues/391)) ([251ef88](https://github.com/Life-USTC/server/commit/251ef888ee0346a7d4a111ef3207626889994615))
+
 ## [1.49.2](https://github.com/Life-USTC/server/compare/v1.49.1...v1.49.2) (2026-07-14)
 
 
