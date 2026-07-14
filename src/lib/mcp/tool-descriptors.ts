@@ -66,6 +66,8 @@ const DESTRUCTIVE_WRITE_PREFIXES = [
   "upsert_",
 ];
 
+const listCompatibilityInstalled = new WeakSet<McpServer>();
+
 function humanizeToolName(name: string) {
   return name
     .split("_")
@@ -97,7 +99,9 @@ function addTopLevelSecuritySchemes(tool: ToolDescriptorWithAuthMetadata) {
   };
 }
 
-function installSecuritySchemeListCompatibility(server: McpServer) {
+export function installMcpToolListCompatibility(server: McpServer) {
+  if (listCompatibilityInstalled.has(server)) return;
+
   const protocol = server.server as unknown as ProtocolServerWithHandlers;
   const listToolsHandler = protocol._requestHandlers?.get("tools/list");
   if (!listToolsHandler) return;
@@ -115,6 +119,7 @@ function installSecuritySchemeListCompatibility(server: McpServer) {
       ),
     };
   });
+  listCompatibilityInstalled.add(server);
 }
 
 export function getMcpToolDescriptorDefaults(
@@ -164,8 +169,6 @@ export function installMcpToolDescriptorDefaults(server: McpServer) {
       },
     } as typeof config;
 
-    const registeredTool = registerTool(name, mergedConfig, callback);
-    installSecuritySchemeListCompatibility(server);
-    return registeredTool;
+    return registerTool(name, mergedConfig, callback);
   }) as typeof server.registerTool;
 }
