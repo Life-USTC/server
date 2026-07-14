@@ -2,11 +2,30 @@ import * as z from "zod";
 import { commentTargetQueryInputSchema } from "@/features/comments/lib/comment-target-input-schemas";
 import {
   booleanQuerySchema,
+  deprecatedPaginationLimitParam,
   descriptionTargetTypeSchema,
+  integerStringRangeSchema,
   integerStringSchema,
+  paginationPageSizeParam,
 } from "./request-schema-primitives";
 
-export const commentsQuerySchema = commentTargetQueryInputSchema;
+const publicPageSizeSchema = integerStringRangeSchema({
+  minimum: 1,
+  maximum: 100,
+  message: "pageSize must be between 1 and 100",
+});
+
+export const commentsQuerySchema = commentTargetQueryInputSchema.extend({
+  page: integerStringSchema.optional(),
+  pageSize: paginationPageSizeParam(publicPageSizeSchema),
+  limit: deprecatedPaginationLimitParam(publicPageSizeSchema),
+});
+
+export const uploadsQuerySchema = z.object({
+  page: integerStringSchema.optional(),
+  pageSize: paginationPageSizeParam(publicPageSizeSchema),
+  limit: deprecatedPaginationLimitParam(publicPageSizeSchema),
+});
 
 export const descriptionsQuerySchema = z.object({
   targetType: descriptionTargetTypeSchema,

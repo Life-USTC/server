@@ -58,9 +58,9 @@ async function findSeedCommentId(
   );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
-    comments?: Array<{ id?: string; body?: string }>;
+    data?: Array<{ id?: string; body?: string }>;
   };
-  const seed = body.comments?.find((c) =>
+  const seed = body.data?.find((c) =>
     c.body?.includes(DEV_SEED.comments.sectionRootBody),
   );
   expect(seed?.id).toBeTruthy();

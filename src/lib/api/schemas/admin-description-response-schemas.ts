@@ -1,7 +1,7 @@
 import * as z from "zod";
 import { homeworkUserSummarySchema } from "./homeworks-response-schemas";
 import {
-  createCollectionSchema,
+  createPaginatedSchema,
   dateTimeSchema,
 } from "./response-schema-primitives";
 
@@ -55,8 +55,7 @@ export const adminDescriptionSchema = z.object({
     .nullable(),
 });
 
-export const adminDescriptionsResponseSchema = createCollectionSchema(
-  "descriptions",
+export const adminDescriptionsResponseSchema = createPaginatedSchema(
   adminDescriptionSchema,
 );
 

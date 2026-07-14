@@ -7,5 +7,5 @@ export async function loadCommentUploadSummary(errorMessage: string) {
   if (!result.response.ok) throw new Error(errorMessage);
   const parsed = uploadsListResponseSchema.safeParse(result.data);
   if (!parsed.success) throw new Error(errorMessage);
-  return uploadSummaryFromResponse(parsed.data);
+  return uploadSummaryFromResponse(parsed.data.meta);
 }

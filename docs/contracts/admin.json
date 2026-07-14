@@ -12,6 +12,7 @@
     "high-risk-feedback": "High-risk admin actions such as delete, suspend, and hide must have clear feedback.",
     "admin-self-protection": "Admin user management must reject self-suspension, self-demotion, and removing the final remaining admin.",
     "admin-rest-session-only": "Admin REST endpoints require the in-site Better Auth session cookie and do not accept OAuth bearer tokens.",
+    "paginated-moderation-lists": "Admin comments, descriptions, homeworks, and users use the shared { data, pagination } list envelope and accept page/pageSize with the deprecated limit alias.",
     "suspended-admin-write-gate": "Admins with an active suspension may load read-only admin pages and list endpoints, but admin REST mutations and page actions are blocked with the standard suspended 403 response until the suspension is lifted.",
     "suspension-expiration-validation": "Suspension expiration accepts omitted, null, or empty input as permanent and rejects invalid non-empty date strings.",
     "single-open-suspension": "Each user can have at most one open suspension. Creating a new suspension closes any previous open suspension for that user while retaining history; lifting an open suspension clears the user's open suspension state.",
@@ -44,7 +45,7 @@
         "routes": [
           {
             "path": "/api/admin/comments",
-            "reference_only": true
+            "returns": "{ data: Comment[], pagination }"
           },
           {
             "path": "/api/admin/comments/[id]",
@@ -53,7 +54,7 @@
           },
           {
             "path": "/api/admin/descriptions",
-            "reference_only": true
+            "returns": "{ data: Description[], pagination }"
           },
           {
             "path": "/api/admin/descriptions/[id]",
@@ -62,7 +63,7 @@
           },
           {
             "path": "/api/admin/suspensions",
-            "returns": "{ suspensions: Suspension[] }"
+            "returns": "{ data: Suspension[] }"
           },
           {
             "path": "/api/admin/suspensions",
@@ -76,7 +77,7 @@
           },
           {
             "path": "/api/admin/homeworks",
-            "reference_only": true
+            "returns": "{ data: HomeworkItem[], pagination }"
           },
           {
             "path": "/api/admin/homeworks/[id]",

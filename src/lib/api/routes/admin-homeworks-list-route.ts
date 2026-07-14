@@ -1,5 +1,6 @@
 import { listAdminModerationHomeworks } from "@/features/admin/server/admin-moderation-api-lists";
 import {
+  buildPaginatedResponse,
   getRequestSearchParams,
   jsonResponse,
   parseRouteQuery,
@@ -25,15 +26,22 @@ export async function getAdminHomeworksRoute(request: Request) {
 
       const { query: parsedQuery, pagination } = parsed;
       const status = parsedQuery.status ?? "all";
-      const { pageSize: limit } = pagination;
       const search = parsedQuery.search?.trim() ?? "";
-      const homeworks = await listAdminModerationHomeworks({
-        limit,
+      const result = await listAdminModerationHomeworks({
+        pageSize: pagination.pageSize,
         search,
+        skip: pagination.skip,
         status,
       });
 
-      return jsonResponse({ homeworks });
+      return jsonResponse(
+        buildPaginatedResponse(
+          result.data,
+          pagination.page,
+          pagination.pageSize,
+          result.total,
+        ),
+      );
     },
   );
 }

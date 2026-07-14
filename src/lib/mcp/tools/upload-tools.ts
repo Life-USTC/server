@@ -6,6 +6,7 @@ import {
   listUploads,
   renameOwnedUpload,
 } from "@/features/uploads/server/upload-service";
+import { buildPaginatedResponse } from "@/lib/api/helpers";
 import {
   getUserId,
   jsonToolResult,
@@ -89,16 +90,31 @@ export function registerUploadTools(server: McpServer) {
     "list_my_uploads",
     {
       description:
-        "List the current user's comment attachment uploads, quota, and upload limits. Does not stream file contents.",
+        "List the current user's comment attachment uploads with page/limit pagination, quota, and upload limits. Does not stream file contents.",
       inputSchema: {
+        page: z.number().int().min(1).default(1),
+        limit: z.number().int().min(1).max(100).default(20),
         mode: mcpModeInputSchema,
       },
     },
-    async ({ mode }, extra) => {
+    async ({ limit, mode, page }, extra) => {
       const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
-      const result = await listUploads(userId);
-      return jsonToolResult(result, { mode: resolvedMode });
+      const result = await listUploads(userId, {
+        pageSize: limit,
+        skip: (page - 1) * limit,
+      });
+      return jsonToolResult(
+        {
+          ...buildPaginatedResponse(result.uploads, page, limit, result.total),
+          meta: {
+            maxFileSizeBytes: result.maxFileSizeBytes,
+            quotaBytes: result.quotaBytes,
+            usedBytes: result.usedBytes,
+          },
+        },
+        { mode: resolvedMode },
+      );
     },
   );
 

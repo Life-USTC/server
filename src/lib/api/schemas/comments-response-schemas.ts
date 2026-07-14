@@ -5,13 +5,16 @@ import {
   commentThreadTargetSchema,
 } from "./comment-target-response-schema";
 import { viewerContextSchema } from "./misc-response-schema-core";
+import { createPaginatedMetaSchema } from "./response-schema-primitives";
 
-export const commentsListResponseSchema = z.object({
-  comments: z.array(commentNodeSchema),
-  hiddenCount: z.number().int().nonnegative(),
-  viewer: viewerContextSchema,
-  target: commentListTargetSchema,
-});
+export const commentsListResponseSchema = createPaginatedMetaSchema(
+  commentNodeSchema,
+  z.object({
+    hiddenCount: z.number().int().nonnegative(),
+    viewer: viewerContextSchema,
+    target: commentListTargetSchema,
+  }),
+);
 
 export const commentThreadResponseSchema = z.object({
   thread: z.array(commentNodeSchema),

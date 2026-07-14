@@ -1,6 +1,7 @@
 import { normalizeAdminCommentStatusFilter } from "@/features/admin/lib/admin-moderation-filters";
 import { listAdminModerationComments } from "@/features/admin/server/admin-moderation-api-lists";
 import {
+  buildPaginatedResponse,
   getRequestSearchParams,
   jsonResponse,
   parseRouteQuery,
@@ -26,11 +27,19 @@ export async function getAdminCommentsRoute(request: Request) {
 
       const { query: parsedQuery, pagination } = parsed;
       const status = normalizeAdminCommentStatusFilter(parsedQuery.status);
-      const { pageSize: limit } = pagination;
-      const comments = await listAdminModerationComments({ limit, status });
+      const result = await listAdminModerationComments({
+        pageSize: pagination.pageSize,
+        skip: pagination.skip,
+        status,
+      });
 
       return jsonResponse(
-        { comments },
+        buildPaginatedResponse(
+          result.data,
+          pagination.page,
+          pagination.pageSize,
+          result.total,
+        ),
         { headers: { "Cache-Control": "no-store" } },
       );
     },

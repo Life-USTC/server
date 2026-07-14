@@ -36,6 +36,8 @@ describe("openapi generator", () => {
       "/api/schedules",
       "/api/teachers",
       "/api/semesters",
+      "/api/comments",
+      "/api/uploads",
       "/api/admin/users",
       "/api/admin/comments",
       "/api/admin/homeworks",

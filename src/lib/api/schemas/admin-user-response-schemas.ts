@@ -1,5 +1,8 @@
 import * as z from "zod";
-import { dateTimeSchema } from "./response-schema-primitives";
+import {
+  createPaginatedSchema,
+  dateTimeSchema,
+} from "./response-schema-primitives";
 
 const adminUserListItemSchema = z.object({
   id: z.string(),
@@ -10,15 +13,9 @@ const adminUserListItemSchema = z.object({
   email: z.string().nullable(),
 });
 
-export const adminUsersResponseSchema = z.object({
-  data: z.array(adminUserListItemSchema),
-  pagination: z.object({
-    page: z.number().int(),
-    pageSize: z.number().int(),
-    total: z.number().int(),
-    totalPages: z.number().int(),
-  }),
-});
+export const adminUsersResponseSchema = createPaginatedSchema(
+  adminUserListItemSchema,
+);
 
 export const adminUserResponseSchema = z.object({
   user: adminUserListItemSchema,

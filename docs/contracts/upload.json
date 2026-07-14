@@ -10,6 +10,7 @@
     "comment-attachments-only": "Uploads serve only comment attachments; they are not an independent file space.",
     "permission-and-quota": "Permission and quota checks are required before upload.",
     "pure-upload-reads": "GET upload-list requests never delete pending reservations. Expired reservations are excluded from quota calculations, while cleanup remains confined to upload create and completion write paths.",
+    "paginated-upload-list": "Completed uploads use the shared { data, pagination, meta } list envelope. REST accepts page/pageSize with deprecated limit compatibility, MCP accepts page/limit, and quota plus file-size metadata lives under meta.",
     "write-auth-unsuspended": "Upload write routes require an unsuspended signed-in user; suspended users receive 403 before upload metadata or object state changes.",
     "three-step-upload": "Web comment attachment uploads follow a three-step flow — create upload session on-site → browser PUT to an on-site Cloudflare Workers upload object route backed by R2 → confirm completion on-site.",
     "r2-backend": "Upload object create/read/head/delete operations use the Cloudflare R2 binding. The app runtime does not use S3-compatible signed URL fallbacks.",
@@ -30,9 +31,10 @@
         "routes": [
           {
             "path": "/api/uploads",
-            "returns": "{ maxFileSizeBytes, quotaBytes, uploads: Upload[], usedBytes }",
+            "returns": "{ data: Upload[], pagination, meta: { maxFileSizeBytes, quotaBytes, usedBytes } }",
             "notes": [
-              "The same path currently handles both 'read upload quota / history' and 'create upload session' capabilities."
+              "The same path currently handles both 'read upload quota / history' and 'create upload session' capabilities.",
+              "Accepts page and pageSize; deprecated limit remains an alias for pageSize."
             ]
           }
         ]
@@ -41,10 +43,11 @@
         "tools": [
           {
             "name": "list_my_uploads",
-            "returns": "{ maxFileSizeBytes, quotaBytes, uploads: Upload[], usedBytes }",
+            "returns": "{ data: Upload[], pagination, meta: { maxFileSizeBytes, quotaBytes, usedBytes } }",
             "rest_equivalent": "GET /api/uploads",
             "notes": [
-              "Lists completed uploads and quota state for the current user; does not create upload sessions or stream object bytes."
+              "Lists completed uploads and quota state for the current user; does not create upload sessions or stream object bytes.",
+              "Accepts page and limit."
             ]
           }
         ]

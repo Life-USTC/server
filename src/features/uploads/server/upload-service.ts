@@ -264,15 +264,21 @@ export async function completeUploadSession(
   return uploadUsagePayload(reservation.upload, reservation.usedBytes);
 }
 
-export async function listUploads(userId: string) {
+export async function listUploads(
+  userId: string,
+  pagination: { pageSize: number; skip: number },
+) {
   const now = new Date();
 
-  const [uploads, usage, pendingUsage] = await Promise.all([
+  const [uploads, total, usage, pendingUsage] = await Promise.all([
     prisma.upload.findMany({
       where: { userId },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: pagination.skip,
+      take: pagination.pageSize,
       select: managedUploadSelect,
     }),
+    prisma.upload.count({ where: { userId } }),
     prisma.upload.aggregate({
       where: { userId },
       _sum: { size: true },
@@ -288,6 +294,7 @@ export async function listUploads(userId: string) {
   return {
     maxFileSizeBytes: uploadConfig.maxFileSizeBytes,
     quotaBytes: uploadConfig.totalQuotaBytes,
+    total,
     uploads: uploads.map(publicUploadPayload),
     usedBytes,
   };

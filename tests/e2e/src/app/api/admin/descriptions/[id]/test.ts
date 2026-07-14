@@ -47,9 +47,9 @@ test.describe("PATCH /api/admin/descriptions/[id] 课程简介管理", () => {
     expect(listResponse.status()).toBe(200);
     const description = (
       (await listResponse.json()) as {
-        descriptions?: Array<{ content?: string; id?: string }>;
+        data?: Array<{ content?: string; id?: string }>;
       }
-    ).descriptions?.[0];
+    ).data?.[0];
     expect(description?.id).toBeTruthy();
     if (!description?.id) {
       throw new Error("Expected description id");
@@ -88,9 +88,9 @@ test.describe("PATCH /api/admin/descriptions/[id] 课程简介管理", () => {
     expect(listResponse.status()).toBe(200);
     const description = (
       (await listResponse.json()) as {
-        descriptions?: Array<{ id?: string }>;
+        data?: Array<{ id?: string }>;
       }
-    ).descriptions?.[0];
+    ).data?.[0];
     expect(description?.id).toBeTruthy();
     if (!description?.id) {
       throw new Error("Expected description id");

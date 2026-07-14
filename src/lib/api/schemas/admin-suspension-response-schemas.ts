@@ -1,8 +1,5 @@
 import * as z from "zod";
-import {
-  createCollectionSchema,
-  dateTimeSchema,
-} from "./response-schema-primitives";
+import { createListSchema, dateTimeSchema } from "./response-schema-primitives";
 
 const adminSuspensionSchema = z.object({
   id: z.string(),
@@ -23,8 +20,7 @@ const adminSuspensionSchema = z.object({
     .optional(),
 });
 
-export const adminSuspensionsResponseSchema = createCollectionSchema(
-  "suspensions",
+export const adminSuspensionsResponseSchema = createListSchema(
   adminSuspensionSchema,
 );
 

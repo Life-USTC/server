@@ -174,7 +174,10 @@
         "routes": [
           {
             "path": "/api/admin/homeworks",
-            "returns": "{ homeworks: HomeworkItem[] }"
+            "returns": "{ data: HomeworkItem[], pagination }",
+            "notes": [
+              "Accepts page and pageSize; deprecated limit remains an alias for pageSize."
+            ]
           },
           {
             "path": "/api/admin/homeworks/[id]",

@@ -1,6 +1,6 @@
 import * as z from "zod";
 import {
-  createCollectionSchema,
+  createPaginatedSchema,
   dateTimeSchema,
 } from "./response-schema-primitives";
 import {
@@ -75,10 +75,8 @@ const adminCommentSchema = adminCommentBaseSchema.extend({
     .nullable(),
 });
 
-export const adminCommentsResponseSchema = createCollectionSchema(
-  "comments",
-  adminCommentSchema,
-);
+export const adminCommentsResponseSchema =
+  createPaginatedSchema(adminCommentSchema);
 
 export const adminModeratedCommentResponseSchema = z.object({
   comment: adminCommentBaseSchema,

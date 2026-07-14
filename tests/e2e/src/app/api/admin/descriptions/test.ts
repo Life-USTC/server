@@ -3,11 +3,11 @@
  *
  * Admin-only endpoint listing descriptions for moderation.
  *
- * - GET returns `{ descriptions: [...] }` with detailed includes
+ * - GET returns `{ data: [...], pagination }` with detailed includes
  * - Supports `targetType` filter: "all", "section", "course", "teacher", "homework"
  * - Supports `hasContent` filter: "all", "withContent", "empty"
  * - Supports `search` parameter (content, course/section/teacher/homework names)
- * - Supports `limit` parameter (default 50, max 200)
+ * - Supports `page` and `pageSize` parameters (deprecated alias: `limit`)
  * - Descriptions are ordered by lastEditedAt desc, then updatedAt desc
  * - Returns 401 for unauthenticated or non-admin requests
  */
@@ -22,7 +22,7 @@ test.describe("GET /api/admin/descriptions 课程简介管理", () => {
     const response = await page.request.get(BASE);
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
-      descriptions?: Array<{
+      data?: Array<{
         id?: string;
         content?: string;
         createdAt?: string;
@@ -53,9 +53,9 @@ test.describe("GET /api/admin/descriptions 课程简介管理", () => {
       }>;
     };
 
-    expect((body.descriptions?.length ?? 0) > 0).toBe(true);
+    expect((body.data?.length ?? 0) > 0).toBe(true);
 
-    const first = body.descriptions?.[0];
+    const first = body.data?.[0];
     expect(typeof first?.id).toBe("string");
     expect(typeof first?.content).toBe("string");
     expect(typeof first?.createdAt).toBe("string");
@@ -80,18 +80,14 @@ test.describe("GET /api/admin/descriptions 课程简介管理", () => {
     const response = await page.request.get(`${BASE}?targetType=section`);
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
-      descriptions?: Array<{
+      data?: Array<{
         sectionId?: number | null;
         homeworkId?: string | null;
       }>;
     };
-    expect((body.descriptions?.length ?? 0) > 0).toBe(true);
-    expect(body.descriptions?.every((item) => item.sectionId !== null)).toBe(
-      true,
-    );
-    expect(body.descriptions?.every((item) => item.homeworkId === null)).toBe(
-      true,
-    );
+    expect((body.data?.length ?? 0) > 0).toBe(true);
+    expect(body.data?.every((item) => item.sectionId !== null)).toBe(true);
+    expect(body.data?.every((item) => item.homeworkId === null)).toBe(true);
   });
 
   test("管理员可按 hasContent=withContent 筛选非空课程简介", async ({
@@ -101,13 +97,11 @@ test.describe("GET /api/admin/descriptions 课程简介管理", () => {
     const response = await page.request.get(`${BASE}?hasContent=withContent`);
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
-      descriptions?: Array<{ content?: string }>;
+      data?: Array<{ content?: string }>;
     };
-    expect((body.descriptions?.length ?? 0) > 0).toBe(true);
+    expect((body.data?.length ?? 0) > 0).toBe(true);
     expect(
-      body.descriptions?.every(
-        (item) => item.content && item.content.length > 0,
-      ),
+      body.data?.every((item) => item.content && item.content.length > 0),
     ).toBe(true);
   });
 
@@ -116,9 +110,9 @@ test.describe("GET /api/admin/descriptions 课程简介管理", () => {
     const response = await page.request.get(`${BASE}?hasContent=empty`);
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
-      descriptions?: Array<{ content?: string }>;
+      data?: Array<{ content?: string }>;
     };
-    expect(body.descriptions?.every((item) => item.content === "")).toBe(true);
+    expect(body.data?.every((item) => item.content === "")).toBe(true);
   });
 
   test("管理员可按 search 搜索课程简介内容", async ({ page }) => {
@@ -128,22 +122,36 @@ test.describe("GET /api/admin/descriptions 课程简介管理", () => {
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
-      descriptions?: Array<{ content?: string; sectionId?: number | null }>;
+      data?: Array<{ content?: string; sectionId?: number | null }>;
     };
-    expect((body.descriptions?.length ?? 0) > 0).toBe(true);
-    expect(
-      body.descriptions?.some((item) => item.content?.includes("课程建议")),
-    ).toBe(true);
+    expect((body.data?.length ?? 0) > 0).toBe(true);
+    expect(body.data?.some((item) => item.content?.includes("课程建议"))).toBe(
+      true,
+    );
   });
 
   test("管理员可使用 pageSize 参数限制返回数量", async ({ page }) => {
     await signInAsDevAdmin(page, "/admin");
-    const response = await page.request.get(`${BASE}?pageSize=1`);
-    expect(response.status()).toBe(200);
-    const body = (await response.json()) as {
-      descriptions?: Array<unknown>;
+    const firstResponse = await page.request.get(`${BASE}?pageSize=1`);
+    const secondResponse = await page.request.get(`${BASE}?page=2&pageSize=1`);
+    expect(firstResponse.status()).toBe(200);
+    expect(secondResponse.status()).toBe(200);
+    const first = (await firstResponse.json()) as {
+      data?: Array<{ id?: string }>;
+      pagination?: { total?: number };
     };
-    expect(body.descriptions?.length).toBeLessThanOrEqual(1);
+    const second = (await secondResponse.json()) as {
+      data?: Array<{ id?: string }>;
+      pagination?: { page?: number; pageSize?: number; total?: number };
+    };
+    expect((first.pagination?.total ?? 0) > 1).toBe(true);
+    expect(first.data).toHaveLength(1);
+    expect(second.pagination).toMatchObject({
+      page: 2,
+      pageSize: 1,
+      total: first.pagination?.total,
+    });
+    expect(second.data?.[0]?.id).not.toBe(first.data?.[0]?.id);
   });
 
   test("无效 limit 参数返回 400", async ({ page }) => {

@@ -1,5 +1,6 @@
 import { listAdminModerationDescriptions } from "@/features/admin/server/admin-moderation-api-lists";
 import {
+  buildPaginatedResponse,
   getRequestSearchParams,
   jsonResponse,
   parseRouteQuery,
@@ -27,15 +28,22 @@ export async function getAdminDescriptionsRoute(request: Request) {
       const targetType = parsedQuery.targetType ?? "all";
       const hasContent = parsedQuery.hasContent ?? "withContent";
       const search = parsedQuery.search?.trim() ?? "";
-      const { pageSize: limit } = pagination;
-      const descriptions = await listAdminModerationDescriptions({
+      const result = await listAdminModerationDescriptions({
         hasContent,
-        limit,
+        pageSize: pagination.pageSize,
         search,
+        skip: pagination.skip,
         targetType,
       });
 
-      return jsonResponse({ descriptions });
+      return jsonResponse(
+        buildPaginatedResponse(
+          result.data,
+          pagination.page,
+          pagination.pageSize,
+          result.total,
+        ),
+      );
     },
   );
 }

@@ -10,6 +10,7 @@ import {
   commentThreadTargetPayload,
 } from "@/features/comments/server/comment-target-payload";
 import { resolveCommentTargetReference } from "@/features/comments/server/comment-target-resolution";
+import { buildPaginatedResponse } from "@/lib/api/helpers";
 import {
   getUserId,
   jsonToolResult,
@@ -30,6 +31,8 @@ import {
 } from "./comment-write-tool-handlers";
 
 const commentsTargetInputSchema = commentMcpTargetReadInputSchema.extend({
+  page: z.number().int().min(1).default(1),
+  limit: z.number().int().min(1).max(100).default(20),
   mode: mcpModeInputSchema,
 });
 
@@ -44,7 +47,8 @@ export function registerCommentTools(server: McpServer) {
     {
       description:
         "List visible comments for one course, section, teacher, homework, or section-teacher target. " +
-        "Returns the same threaded comment nodes, hidden count, viewer state, reactions, attachments, and action flags as the REST comment list.",
+        "Use page/limit to paginate root comments; each selected root includes its complete reply tree. " +
+        "Returns the same data/pagination/meta envelope, threaded nodes, hidden count, viewer state, reactions, attachments, and action flags as the REST comment list.",
       inputSchema: commentsTargetInputSchema.shape,
     },
     async (args, extra) => {
@@ -75,21 +79,33 @@ export function registerCommentTools(server: McpServer) {
       }
 
       const viewerUserId = getUserId(extra.authInfo);
-      const { comments, hiddenCount, viewer } = await loadCommentThread({
+      const { comments, hiddenCount, total, viewer } = await loadCommentThread({
+        pagination: {
+          pageSize: args.limit,
+          skip: (args.page - 1) * args.limit,
+        },
         target: resolved.target,
         viewerUserId,
       });
+      const response = buildPaginatedResponse(
+        comments,
+        args.page,
+        args.limit,
+        total,
+      );
 
       return jsonToolResult(
         {
           found: true,
-          comments,
-          hiddenCount,
-          viewer,
-          target: await commentListTargetPayload(
-            resolved.targetType,
-            resolved.target,
-          ),
+          ...response,
+          meta: {
+            hiddenCount,
+            viewer,
+            target: await commentListTargetPayload(
+              resolved.targetType,
+              resolved.target,
+            ),
+          },
         },
         { mode },
       );

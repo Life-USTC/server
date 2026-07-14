@@ -401,13 +401,15 @@ export async function assertApiContract(
       );
       expect(response.status()).toBe(200);
       const body = (await response.json()) as {
-        comments?: Array<{ body?: string }>;
+        data?: Array<{ body?: string }>;
+        pagination?: { total?: number };
       };
       expect(
-        body.comments?.some((entry) =>
+        body.data?.some((entry) =>
           entry.body?.includes(DEV_SEED.comments.sectionRootBody),
         ),
       ).toBe(true);
+      expect(typeof body.pagination?.total).toBe("number");
       return;
     }
 
