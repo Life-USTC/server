@@ -9,6 +9,7 @@
   "rules": {
     "comment-attachments-only": "Uploads serve only comment attachments; they are not an independent file space.",
     "permission-and-quota": "Permission and quota checks are required before upload.",
+    "pure-upload-reads": "GET upload-list requests never delete pending reservations. Expired reservations are excluded from quota calculations, while cleanup remains confined to upload create and completion write paths.",
     "write-auth-unsuspended": "Upload write routes require an unsuspended signed-in user; suspended users receive 403 before upload metadata or object state changes.",
     "three-step-upload": "Web comment attachment uploads follow a three-step flow — create upload session on-site → browser PUT to an on-site Cloudflare Workers upload object route backed by R2 → confirm completion on-site.",
     "r2-backend": "Upload object create/read/head/delete operations use the Cloudflare R2 binding. The app runtime does not use S3-compatible signed URL fallbacks.",
