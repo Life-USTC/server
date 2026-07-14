@@ -157,6 +157,7 @@ jobs:
       webhook-secret: e2e-ci-secret
       extra-env: |
         NO_PROXY=127.0.0.1,localhost,::1
+        CAPTURE_STEP_SCREENSHOTS=1
       download-artifact-name: e2e-svelte-kit
       download-artifact-path: .svelte-kit
       job-phase: ci:e2e:test
