@@ -266,7 +266,6 @@ export async function completeUploadSession(
 
 export async function listUploads(userId: string) {
   const now = new Date();
-  await deleteExpiredPendingUploads(prisma, userId, now);
 
   const [uploads, usage, pendingUsage] = await Promise.all([
     prisma.upload.findMany({
