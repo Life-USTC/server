@@ -52,6 +52,83 @@ test.describe("校车线路图", () => {
     await captureStepScreenshot(page, testInfo, "bus-map-overview");
   });
 
+  test("移动端地图保持可读尺寸并可水平滚动", async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await gotoAndWaitForReady(page, "/bus-map", {
+      testInfo,
+      screenshotLabel: "bus-map-mobile",
+    });
+
+    const svg = page.locator('main svg[role="img"][aria-label]').first();
+    await expect(svg).toBeVisible();
+    await svg.scrollIntoViewIfNeeded();
+
+    const geometry = await svg.evaluate((node) => {
+      const svgElement = node as SVGSVGElement;
+      const viewport = svgElement.closest(
+        '[data-slot="scroll-area-viewport"]',
+      ) as HTMLElement | null;
+      if (!viewport) throw new Error("Bus map scroll viewport missing");
+
+      const labelHeights = Array.from(
+        svgElement.querySelectorAll("text"),
+        (label) => label.getBoundingClientRect().height,
+      );
+      const viewportBox = viewport.getBoundingClientRect();
+      const campusLabels = Array.from(svgElement.querySelectorAll("g"))
+        .filter(
+          (group) => group.querySelectorAll(":scope > circle").length >= 3,
+        )
+        .map((group) => group.querySelector(":scope > text"))
+        .filter((label): label is SVGTextElement => label !== null);
+      const visibleCampusLabels = campusLabels.filter((label) => {
+        const labelBox = label.getBoundingClientRect();
+        return (
+          labelBox.left >= viewportBox.left &&
+          labelBox.right <= viewportBox.right &&
+          labelBox.top >= viewportBox.top &&
+          labelBox.bottom <= viewportBox.bottom
+        );
+      });
+      return {
+        campusLabelCount: campusLabels.length,
+        labelHeights,
+        svgWidth: svgElement.getBoundingClientRect().width,
+        viewBoxWidth: svgElement.viewBox.baseVal.width,
+        viewportClientWidth: viewport.clientWidth,
+        viewportScrollLeft: viewport.scrollLeft,
+        viewportScrollWidth: viewport.scrollWidth,
+        visibleCampusLabelCount: visibleCampusLabels.length,
+      };
+    });
+
+    expect(geometry.viewBoxWidth).toBe(900);
+    expect(geometry.svgWidth).toBeGreaterThanOrEqual(700);
+    expect(geometry.viewportScrollWidth).toBeGreaterThan(
+      geometry.viewportClientWidth,
+    );
+    expect(geometry.viewportScrollLeft).toBeGreaterThan(0);
+    expect(geometry.campusLabelCount).toBeGreaterThan(0);
+    expect(geometry.visibleCampusLabelCount).toBe(geometry.campusLabelCount);
+    expect(geometry.labelHeights).not.toHaveLength(0);
+    expect(Math.min(...geometry.labelHeights)).toBeGreaterThanOrEqual(10);
+
+    await captureStepScreenshot(page, testInfo, "bus-map-mobile-readable");
+
+    const scrollViewport = svg.locator(
+      'xpath=ancestor::*[@data-slot="scroll-area-viewport"][1]',
+    );
+    await scrollViewport.evaluate((node) => {
+      const viewport = node as HTMLElement;
+      viewport.scrollLeft = viewport.scrollWidth - viewport.clientWidth;
+    });
+    await expect
+      .poll(() =>
+        scrollViewport.evaluate((node) => (node as HTMLElement).scrollLeft),
+      )
+      .toBeGreaterThan(geometry.viewportScrollLeft);
+  });
+
   test("图例显示线路说明与状态指示器", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/bus-map", {
       testInfo,
