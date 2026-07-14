@@ -5,7 +5,7 @@ Unit tests for pure helpers.
 ## Run
 
 Use the canonical command list in the repo root `AGENTS.md`; for this layer that
-is `bun run test`.
+is `bunx vitest run tests/unit`.
 
 ## Scope
 
