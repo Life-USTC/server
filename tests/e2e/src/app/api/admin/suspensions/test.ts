@@ -144,7 +144,7 @@ test.describe("GET/POST /api/admin/suspensions 封禁管理", () => {
           note: "automated test",
         },
       });
-      expect(postResponse.status()).toBe(200);
+      expect(postResponse.status()).toBe(201);
       const postBody = (await postResponse.json()) as {
         suspension?: {
           expiresAt?: string | null;
@@ -154,6 +154,9 @@ test.describe("GET/POST /api/admin/suspensions 封禁管理", () => {
         };
       };
       expect(postBody.suspension?.userId).toBe(userId);
+      expect(postResponse.headers().location).toBe(
+        `/api/admin/suspensions/${postBody.suspension?.id}`,
+      );
       expect(postBody.suspension?.reason).toBe("e2e suspension test");
       expect(postBody.suspension?.expiresAt).toBeNull();
 
@@ -163,7 +166,7 @@ test.describe("GET/POST /api/admin/suspensions 封禁管理", () => {
           reason: "e2e suspension replacement",
         },
       });
-      expect(replacementResponse.status()).toBe(200);
+      expect(replacementResponse.status()).toBe(201);
       const replacementBody = (await replacementResponse.json()) as {
         suspension?: {
           id?: string;

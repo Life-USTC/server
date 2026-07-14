@@ -14,4 +14,29 @@ describe("openapi generator", () => {
     expect(doc.components?.securitySchemes).toBeDefined();
     expect(doc.components?.schemas).toBeDefined();
   }, 15_000);
+
+  it("publishes true creates as 201 responses with Location", () => {
+    const doc = generateOpenApiDocument();
+    const paths = doc.paths as Record<
+      string,
+      {
+        post?: {
+          responses?: Record<string, { headers?: Record<string, unknown> }>;
+        };
+      }
+    >;
+
+    for (const path of [
+      "/api/todos",
+      "/api/comments",
+      "/api/homeworks",
+      "/api/admin/suspensions",
+    ]) {
+      const responses = paths[path]?.post?.responses;
+      expect(responses?.["200"], path).toBeUndefined();
+      expect(responses?.["201"]?.headers, path).toHaveProperty("Location");
+    }
+
+    expect(paths["/api/descriptions"]?.post?.responses?.["200"]).toBeDefined();
+  }, 15_000);
 });

@@ -115,7 +115,7 @@ test("/api/uploads/[id]/download GET 允许下载可见评论附件", async ({
         visibility: "public",
       },
     });
-    expect(createCommentResponse.status()).toBe(200);
+    expect(createCommentResponse.status()).toBe(201);
     const commentId = ((await createCommentResponse.json()) as { id?: string })
       .id;
     expect(commentId).toBeTruthy();
@@ -170,7 +170,7 @@ test("/api/uploads/[id]/download GET 拒绝下载已删除评论附件", async (
         visibility: "public",
       },
     });
-    expect(createCommentResponse.status()).toBe(200);
+    expect(createCommentResponse.status()).toBe(201);
     const commentId = ((await createCommentResponse.json()) as { id?: string })
       .id;
     expect(commentId).toBeTruthy();

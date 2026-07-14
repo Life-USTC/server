@@ -453,6 +453,16 @@ function buildResponse(
   const statusNum = Number.parseInt(status, 10);
   return {
     description: statusNum >= 400 ? "Error response" : "Successful response",
+    ...(status === "201"
+      ? {
+          headers: {
+            Location: {
+              description: "Relative URL of the created resource",
+              schema: { type: "string" },
+            },
+          },
+        }
+      : {}),
     content: {
       "application/json": { schema: schemaRef(target) },
     },

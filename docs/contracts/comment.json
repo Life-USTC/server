@@ -33,6 +33,7 @@
           {
             "path": "/api/comments",
             "method": "POST",
+            "status": 201,
             "returns": "{ id: String }",
             "auth": "user",
             "notes": [
@@ -184,6 +185,7 @@
           {
             "path": "/api/admin/suspensions",
             "method": "POST",
+            "status": 201,
             "returns": "{ suspension: Suspension }"
           },
           {

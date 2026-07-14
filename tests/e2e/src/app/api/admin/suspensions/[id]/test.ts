@@ -63,7 +63,7 @@ test.describe("PATCH /api/admin/suspensions/[id] 解除封禁", () => {
           reason: `e2e-lift-suspension-${Date.now()}`,
         },
       });
-      expect(createResponse.status()).toBe(200);
+      expect(createResponse.status()).toBe(201);
       const createBody = (await createResponse.json()) as {
         suspension?: { id?: string };
       };

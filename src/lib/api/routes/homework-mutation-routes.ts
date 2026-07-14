@@ -2,9 +2,9 @@ import { createHomeworkForSection } from "@/features/homeworks/server/homework-c
 import { requireHomeworkItemById } from "@/features/homeworks/server/homework-read-model";
 import {
   badRequest,
+  createdJsonResponse,
   forbidden,
   handleRouteError,
-  jsonResponse,
   notFound,
   parseRouteJsonBody,
   suspensionForbidden,
@@ -62,7 +62,10 @@ export async function postHomeworkRoute(request: Request) {
       locale: getRequestLocale(request),
       userId,
     });
-    return jsonResponse({ id: homework.id, homework: homeworkItem });
+    return createdJsonResponse(
+      { id: homework.id, homework: homeworkItem },
+      `/api/homeworks/${encodeURIComponent(homework.id)}`,
+    );
   } catch (error) {
     return handleRouteError("Failed to create homework", error);
   }

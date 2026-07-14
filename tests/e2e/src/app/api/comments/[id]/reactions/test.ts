@@ -163,7 +163,7 @@ test("/api/comments/[id]/reactions POST 对失效评论返回 403", async ({
       visibility: "public",
     },
   });
-  expect(createResponse.status()).toBe(200);
+  expect(createResponse.status()).toBe(201);
   const commentId = ((await createResponse.json()) as { id?: string }).id;
   expect(commentId).toBeTruthy();
   if (!commentId) {
@@ -218,7 +218,7 @@ test("/api/comments/[id]/reactions DELETE 对失效评论返回 403", async ({
       visibility: "public",
     },
   });
-  expect(createResponse.status()).toBe(200);
+  expect(createResponse.status()).toBe(201);
   const commentId = ((await createResponse.json()) as { id?: string }).id;
   expect(commentId).toBeTruthy();
   if (!commentId) {

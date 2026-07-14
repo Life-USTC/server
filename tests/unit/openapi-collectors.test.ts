@@ -89,6 +89,34 @@ export const GET = () => new Response();
     ).toBeDefined();
   });
 
+  it("documents a relative Location header for 201 responses", () => {
+    const project = new Project({ useInMemoryFileSystem: true });
+    project.createSourceFile(
+      "src/routes/api/todos/+server.ts",
+      `
+/**
+ * Create a todo.
+ * @response 201:idResponseSchema
+ */
+export const POST = () => new Response();
+`,
+      { overwrite: true },
+    );
+
+    const schemas = new SchemaCollector();
+    const paths = collectPaths(project, schemas);
+    const responses = (paths["/api/todos"].post as Record<string, unknown>)
+      .responses as Record<string, Record<string, unknown>>;
+
+    expect(responses["200"]).toBeUndefined();
+    expect(responses["201"].headers).toEqual({
+      Location: {
+        description: "Relative URL of the created resource",
+        schema: { type: "string" },
+      },
+    });
+  });
+
   it("parses path parameters and request body", () => {
     const project = new Project({ useInMemoryFileSystem: true });
     project.createSourceFile(

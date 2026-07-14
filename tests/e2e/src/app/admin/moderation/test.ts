@@ -156,7 +156,7 @@ test("/admin/moderation 可更新评论状态与备注", async ({ page }, testIn
       visibility: "public",
     },
   });
-  expect(createResponse.status()).toBe(200);
+  expect(createResponse.status()).toBe(201);
   const createdComment = (await createResponse.json()) as { id?: string };
   expect(createdComment.id).toBeTruthy();
 
@@ -211,7 +211,7 @@ test("/admin/moderation 目标链接可跳转到原页面锚点", async ({
     (response) =>
       response.url().includes("/api/comments") &&
       response.request().method() === "POST" &&
-      response.status() === 200,
+      response.status() === 201,
   );
   await page.getByRole("button", { name: /发布评论|Post comment/i }).click();
   const created = await createResponse;
@@ -293,7 +293,7 @@ test("/admin/moderation 封禁列表可解除封禁", async ({ page }, testInfo)
       },
     },
   );
-  expect(createSuspensionResponse.status()).toBe(200);
+  expect(createSuspensionResponse.status()).toBe(201);
   const createdBody = (await createSuspensionResponse.json()) as {
     suspension?: { id?: string };
   };
@@ -334,7 +334,7 @@ test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
         visibility: "public",
       },
     });
-    expect(createCommentResponse.status()).toBe(200);
+    expect(createCommentResponse.status()).toBe(201);
     commentId = ((await createCommentResponse.json()) as { id?: string }).id;
     expect(commentId).toBeTruthy();
 
@@ -364,7 +364,7 @@ test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
     );
     await dialog.getByRole("button", { name: /封禁|Suspend/i }).click();
     const created = await suspendResponse;
-    expect(created.status()).toBe(200);
+    expect(created.status()).toBe(201);
     const createdBody = (await created.json()) as {
       suspension?: { id?: string };
     };

@@ -640,8 +640,16 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "Successful response",
+            "headers": {
+              "Location": {
+                "description": "Relative URL of the created resource",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1072,8 +1080,16 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "Successful response",
+            "headers": {
+              "Location": {
+                "description": "Relative URL of the created resource",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1888,8 +1904,16 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "Successful response",
+            "headers": {
+              "Location": {
+                "description": "Relative URL of the created resource",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2333,8 +2357,16 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "Successful response",
+            "headers": {
+              "Location": {
+                "description": "Relative URL of the created resource",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {

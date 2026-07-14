@@ -13,7 +13,7 @@ export const GET = svelteRequestHandler(observedApiRoute(getTodosRoute));
 /**
  * Create a todo.
  * @body todoCreateRequestSchema
- * @response idResponseSchema
+ * @response 201:idResponseSchema
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
  */

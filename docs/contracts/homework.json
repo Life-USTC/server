@@ -83,6 +83,7 @@
           {
             "path": "/api/homeworks",
             "method": "POST",
+            "status": 201,
             "returns": "{ id: String, homework: HomeworkItem }",
             "auth": "user",
             "notes": [

@@ -73,6 +73,7 @@
           {
             "path": "/api/todos",
             "method": "POST",
+            "status": 201,
             "returns": "{ id: String }"
           },
           {

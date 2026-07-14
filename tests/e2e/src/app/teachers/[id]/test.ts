@@ -324,7 +324,7 @@ test.describe("/teachers/[id] 教师详情页", () => {
         (r) =>
           r.url().includes("/api/comments") &&
           r.request().method() === "POST" &&
-          r.status() === 200,
+          r.status() === 201,
       );
       await page
         .getByRole("button", { name: /发布评论|Post comment/i })

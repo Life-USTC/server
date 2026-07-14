@@ -29,7 +29,7 @@ async function createTodo(page: Page, title: string) {
       priority: "medium",
     },
   });
-  expect(response.status()).toBe(200);
+  expect(response.status()).toBe(201);
   const id = ((await response.json()) as { id?: string }).id;
   expect(id).toBeTruthy();
   return id as string;

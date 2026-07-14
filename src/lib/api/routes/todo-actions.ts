@@ -8,6 +8,7 @@ import {
 } from "@/features/todos/server/todo-service";
 import {
   badRequest,
+  createdJsonResponse,
   forbidden,
   jsonResponse,
   notFound,
@@ -38,7 +39,10 @@ export async function createTodoAction(
     dueAt,
   });
 
-  return jsonResponse({ id: todo.id });
+  return createdJsonResponse(
+    { id: todo.id },
+    `/api/todos/${encodeURIComponent(todo.id)}`,
+  );
 }
 
 export async function updateTodoAction(

@@ -13,7 +13,7 @@ export const GET = svelteRequestHandler(observedApiRoute(getCommentsRoute));
 /**
  * Create one comment.
  * @body commentCreateRequestSchema
- * @response idResponseSchema
+ * @response 201:idResponseSchema
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
  * @response 403:openApiErrorSchema

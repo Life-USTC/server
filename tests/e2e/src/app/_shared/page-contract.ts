@@ -318,7 +318,7 @@ export async function assertPageContract(
           body: "e2e mapped route comment",
         },
       });
-      expect(createResponse.status()).toBe(200);
+      expect(createResponse.status()).toBe(201);
       const createBody = (await createResponse.json()) as { id?: string };
       expect(createBody.id).toBeTruthy();
 

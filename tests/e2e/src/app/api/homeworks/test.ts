@@ -157,12 +157,15 @@ test("/api/homeworks POST 登录后可创建作业并清理", async ({ page }) =
       submissionDueAt: new Date(now.getTime() + 86400000).toISOString(),
     },
   });
-  expect(createResponse.status()).toBe(200);
+  expect(createResponse.status()).toBe(201);
   const createBody = (await createResponse.json()) as {
     homework?: { commentCount?: number; id?: string; title?: string } | null;
     id?: string;
   };
   expect(createBody.id).toBeTruthy();
+  expect(createResponse.headers().location).toBe(
+    `/api/homeworks/${createBody.id}`,
+  );
   expect(createBody.homework?.id).toBe(createBody.id);
   expect(createBody.homework?.title).toBe(title);
   expect(createBody.homework?.commentCount).toBe(0);

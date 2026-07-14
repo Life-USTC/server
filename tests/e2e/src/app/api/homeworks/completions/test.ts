@@ -43,7 +43,7 @@ async function createTempHomework(
       submissionDueAt: new Date(now.getTime() + 86_400_000).toISOString(),
     },
   });
-  expect(createResponse.status()).toBe(200);
+  expect(createResponse.status()).toBe(201);
 
   const listResponse = await request.get(
     `/api/homeworks?sectionId=${sectionId}`,

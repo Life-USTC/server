@@ -309,9 +309,10 @@ test("/api/comments POST 登录后可发布新评论并清理", async ({ page })
       visibility: "public",
     },
   });
-  expect(createResponse.status()).toBe(200);
+  expect(createResponse.status()).toBe(201);
   const createdId = ((await createResponse.json()) as { id?: string }).id;
   expect(createdId).toBeTruthy();
+  expect(createResponse.headers().location).toBe(`/api/comments/${createdId}`);
 
   try {
     const listResponse = await page.request.get(
@@ -343,7 +344,7 @@ test("/api/comments POST 接受公开 section JW id", async ({ page }) => {
       visibility: "public",
     },
   });
-  expect(createResponse.status()).toBe(200);
+  expect(createResponse.status()).toBe(201);
   const createdId = ((await createResponse.json()) as { id?: string }).id;
   expect(createdId).toBeTruthy();
 
@@ -416,7 +417,7 @@ test("/api/comments POST 拒绝复用已上传附件", async ({ page }) => {
         attachmentIds: [uploaded.uploadId],
       },
     });
-    expect(firstResponse.status()).toBe(200);
+    expect(firstResponse.status()).toBe(201);
 
     const secondResponse = await page.request.post("/api/comments", {
       data: {
@@ -469,7 +470,7 @@ test("/api/comments POST 可创建回复评论", async ({ page }) => {
       parentId: seedCommentId,
     },
   });
-  expect(replyResponse.status()).toBe(200);
+  expect(replyResponse.status()).toBe(201);
   const replyId = ((await replyResponse.json()) as { id?: string }).id;
   expect(replyId).toBeTruthy();
 
@@ -510,7 +511,7 @@ test("/api/comments POST 拒绝对失效父评论回复", async ({ page }) => {
       visibility: "public",
     },
   });
-  expect(createResponse.status()).toBe(200);
+  expect(createResponse.status()).toBe(201);
   const commentId = ((await createResponse.json()) as { id?: string }).id;
   expect(commentId).toBeTruthy();
   if (!commentId) {

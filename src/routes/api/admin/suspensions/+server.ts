@@ -16,7 +16,7 @@ export const GET = svelteRequestHandler(
 /**
  * Create suspension for one user.
  * @body adminCreateSuspensionRequestSchema
- * @response adminSuspensionResponseSchema
+ * @response 201:adminSuspensionResponseSchema
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
  * @response 403:openApiErrorSchema
