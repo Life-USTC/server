@@ -33,7 +33,10 @@ import {
   ensureUserCalendarFeedFixture,
   getCurrentSessionUser,
 } from "../../../../../../utils/e2e-db";
-import { assertApiContract } from "../../../../_shared/api-contract";
+import {
+  assertApiContract,
+  expectCalendarDtstampsAreUtc,
+} from "../../../../_shared/api-contract";
 
 const ROUTE_PATH = "/api/users/[userId]/calendar.ics";
 
@@ -112,6 +115,7 @@ test.describe("GET /api/users/[userId]/calendar.ics", () => {
       const unfoldedBody = unfoldICalendar(body);
       expect(body.trim().length).toBeGreaterThan(0);
       expect(unfoldedBody).toContain("BEGIN:VCALENDAR");
+      expectCalendarDtstampsAreUtc(body);
 
       // Seed data should include homework, todos, and exam events
       expect(unfoldedBody).toContain(DEV_SEED.homeworks.title);
