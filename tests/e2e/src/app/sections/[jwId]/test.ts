@@ -262,7 +262,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     await captureStepScreenshot(page, testInfo, "section/admin-classes");
   });
 
-  test("日历区块显示课表、教室、教学楼与教师", async ({ page }, testInfo) => {
+  test("日历区块以非交互芯片显示课表详情", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     await jumpToSection(page, /日历|Calendar/i, "#tab-calendar");
@@ -271,10 +271,13 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     // month grid, not as a separate list of cards.
     const monthView = getSectionCalendarMonthView(page);
     const classEventChip = monthView
-      .locator("a")
+      .locator('[data-slot="tooltip-trigger"]')
       .filter({ hasText: /上课事件|Class event/i })
       .first();
     await expect(classEventChip).toBeVisible();
+    await expect(classEventChip).not.toHaveAttribute("href", /.+/);
+    await expect(classEventChip).toHaveAttribute("tabindex", "0");
+    await expect(monthView.locator('a[href^="#"]')).toHaveCount(0);
 
     // schedule.room.namePrimary and schedule.room.building.namePrimary
     // are rendered in the chip meta text.
@@ -298,6 +301,10 @@ test.describe("/sections/[jwId] 班级详情页", () => {
         .or(classEventChip.getByText(DEV_SEED.campus.nameEn, { exact: false }))
         .first(),
     ).toBeVisible();
+
+    const beforeClickUrl = page.url();
+    await classEventChip.click();
+    expect(page.url()).toBe(beforeClickUrl);
 
     await captureStepScreenshot(page, testInfo, "section/schedule-calendar");
   });

@@ -55,7 +55,7 @@ export let moreLabel: (count: number) => string = (count) => `+${count}`;
         <div class="mt-3 grid gap-1.5">
           {#each day.events.slice(0, eventLimit) as event}
             <CalendarEventChip
-              href={event.href ?? "#"}
+              href={event.href}
               label={event.label}
               title={event.title}
               tooltip={event.tooltip}
