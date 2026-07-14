@@ -4,8 +4,6 @@ import {
   deleteTodoAction,
   listTodosAction,
   parseTodoDueAt,
-  parseTodoLimit,
-  parseTodoListFilters,
   updateTodoAction,
 } from "@/lib/api/routes/todo-route-actions";
 import {
@@ -30,10 +28,7 @@ export async function getTodosRoute(request: Request) {
   if (parsedQuery instanceof Response) {
     return parsedQuery;
   }
-  const limit = parseTodoLimit(parsedQuery.limit);
-  if (limit instanceof Response) return limit;
-  const filters = parseTodoListFilters(parsedQuery);
-  if (filters instanceof Response) return filters;
+  const { limit, ...filters } = parsedQuery;
 
   try {
     return await listTodosAction(userId, filters, limit);

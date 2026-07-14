@@ -2612,7 +2612,8 @@
             "name": "originCampusId",
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int64",
+              "minimum": 1
             },
             "required": true
           },
@@ -2621,7 +2622,8 @@
             "name": "destinationCampusId",
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int64",
+              "minimum": 1
             },
             "required": true
           },
@@ -2630,7 +2632,8 @@
             "name": "atTime",
             "schema": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "YYYY-MM-DD or ISO date/time accepted by parseDateInput"
             }
           },
           {
@@ -2829,7 +2832,8 @@
             "name": "originCampusId",
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int64",
+              "minimum": 1
             }
           },
           {
@@ -2837,7 +2841,8 @@
             "name": "destinationCampusId",
             "schema": {
               "type": "integer",
-              "format": "int64"
+              "format": "int64",
+              "minimum": 1
             }
           },
           {
@@ -3850,7 +3855,8 @@
             "name": "atTime",
             "schema": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "YYYY-MM-DD or ISO date/time accepted by parseDateInput"
             }
           },
           {

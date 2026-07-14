@@ -1,7 +1,9 @@
 import * as z from "zod";
 import {
-  dateInputStringSchema,
+  dateQuerySchema,
   deprecatedPaginationLimitParam,
+  integerQueryRangeSchema,
+  integerQuerySchema,
   integerStringRangeSchema,
   integerStringSchema,
   paginationPageSizeParam,
@@ -13,29 +15,17 @@ const catalogPaginationPageSizeSchema = integerStringRangeSchema({
   message: "pageSize must be between 1 and 100",
 });
 
-const weekdayStringSchema = integerStringSchema
-  .refine(
-    (value) => {
-      const weekday = Number.parseInt(value, 10);
-      return weekday >= 1 && weekday <= 7;
-    },
-    { message: "Weekday must be between 1 and 7" },
-  )
-  .meta({
-    override: { type: "integer", format: "int64", minimum: 1, maximum: 7 },
-  });
+const weekdayQuerySchema = integerQueryRangeSchema({
+  minimum: 1,
+  maximum: 7,
+  message: "Weekday must be between 1 and 7",
+});
 
-const sectionScheduleLimitSchema = integerStringSchema
-  .refine(
-    (value) => {
-      const limit = Number.parseInt(value, 10);
-      return limit >= 1 && limit <= 200;
-    },
-    { message: "Limit must be between 1 and 200" },
-  )
-  .meta({
-    override: { type: "integer", format: "int64", minimum: 1, maximum: 200 },
-  });
+const sectionScheduleLimitSchema = integerQueryRangeSchema({
+  minimum: 1,
+  maximum: 200,
+  message: "Limit must be between 1 and 200",
+});
 
 export const sectionsQuerySchema = z.object({
   courseId: integerStringSchema.optional(),
@@ -55,24 +45,24 @@ export const sectionsQuerySchema = z.object({
 });
 
 export const schedulesQuerySchema = z.object({
-  sectionId: integerStringSchema.optional(),
-  sectionJwId: integerStringSchema.optional(),
+  sectionId: integerQuerySchema.optional(),
+  sectionJwId: integerQuerySchema.optional(),
   sectionCode: z.string().trim().min(1).optional(),
-  teacherId: integerStringSchema.optional(),
+  teacherId: integerQuerySchema.optional(),
   teacherCode: z.string().trim().min(1).optional(),
-  roomId: integerStringSchema.optional(),
-  roomJwId: integerStringSchema.optional(),
-  weekday: weekdayStringSchema.optional(),
-  dateFrom: dateInputStringSchema.optional(),
-  dateTo: dateInputStringSchema.optional(),
+  roomId: integerQuerySchema.optional(),
+  roomJwId: integerQuerySchema.optional(),
+  weekday: weekdayQuerySchema.optional(),
+  dateFrom: dateQuerySchema().optional(),
+  dateTo: dateQuerySchema().optional(),
   page: integerStringSchema.optional(),
   pageSize: paginationPageSizeParam(catalogPaginationPageSizeSchema),
   limit: deprecatedPaginationLimitParam(catalogPaginationPageSizeSchema),
 });
 
 export const sectionSchedulesQuerySchema = z.object({
-  dateFrom: dateInputStringSchema.optional(),
-  dateTo: dateInputStringSchema.optional(),
+  dateFrom: dateQuerySchema().optional(),
+  dateTo: dateQuerySchema().optional(),
   limit: sectionScheduleLimitSchema.optional(),
 });
 

@@ -1,10 +1,10 @@
+import type { ScheduleListFilters } from "@/features/catalog/lib/schedule-filters";
 import { listPublicSchedules } from "@/features/catalog/server/schedule-read-model";
 import {
   handleRouteError,
   jsonResponse,
   parseRouteQuery,
 } from "@/lib/api/helpers";
-import { parseAcademicScheduleFilters } from "@/lib/api/routes/academic-schedule-query";
 import { getRequestLocale } from "@/lib/api/routes/request-locale";
 import { schedulesQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { PUBLIC_LOCALE_CATALOG_HEADERS } from "@/lib/public-cache-control";
@@ -23,8 +23,18 @@ export async function getSchedulesRoute(request: Request) {
     }
 
     const { query: parsedQuery, pagination } = parsed;
-    const filters = parseAcademicScheduleFilters(parsedQuery);
-    if (filters instanceof Response) return filters;
+    const filters = {
+      sectionId: parsedQuery.sectionId,
+      sectionJwId: parsedQuery.sectionJwId,
+      sectionCode: parsedQuery.sectionCode,
+      teacherId: parsedQuery.teacherId,
+      teacherCode: parsedQuery.teacherCode,
+      roomId: parsedQuery.roomId,
+      roomJwId: parsedQuery.roomJwId,
+      dateFrom: parsedQuery.dateFrom,
+      dateTo: parsedQuery.dateTo,
+      weekday: parsedQuery.weekday,
+    } satisfies ScheduleListFilters;
 
     return jsonResponse(
       await listPublicSchedules({

@@ -1,5 +1,4 @@
 import { handleRouteError, parseIntegerList } from "@/lib/api/helpers";
-import { parseScheduleDateParam } from "@/lib/api/routes/academic-route-helpers";
 import {
   getSectionDetailAction,
   getSectionScheduleGroupsAction,
@@ -13,7 +12,6 @@ import {
   parseSectionSchedulesRouteQuery,
   parseSectionsRouteQuery,
 } from "@/lib/api/routes/academic-section-route-request";
-import { parsePositiveIntegerQuery } from "@/lib/api/routes/query-value-parsing";
 import { getRequestLocale } from "@/lib/api/routes/request-locale";
 
 export async function getSectionsRoute(request: Request) {
@@ -59,24 +57,14 @@ export async function getSectionSchedulesRoute(
   const parsedQuery = parseSectionSchedulesRouteQuery(request);
   if (parsedQuery instanceof Response) return parsedQuery;
 
-  const dateFrom = parseScheduleDateParam("dateFrom", parsedQuery.dateFrom);
-  if (dateFrom instanceof Response) return dateFrom;
-  const dateTo = parseScheduleDateParam("dateTo", parsedQuery.dateTo);
-  if (dateTo instanceof Response) return dateTo;
-  const limit = parsePositiveIntegerQuery("limit", parsedQuery.limit, {
-    max: 200,
-    message: "Invalid section schedule query",
-  });
-  if (limit instanceof Response) return limit;
-
   return withParsedSectionJwId(
     params,
     "Failed to fetch section schedules",
     (parsedJwId) =>
       getSectionSchedulesAction(parsedJwId, locale, {
-        dateFrom,
-        dateTo,
-        limit,
+        dateFrom: parsedQuery.dateFrom,
+        dateTo: parsedQuery.dateTo,
+        limit: parsedQuery.limit,
       }),
   );
 }

@@ -18,7 +18,6 @@ const {
   paginatedTeacherQueryMock,
   parseJwIdRouteParamMock,
   parseResourceIdRouteParamMock,
-  parseScheduleDateParamMock,
 } = vi.hoisted(() => {
   const teacherFindUniqueMock = vi.fn(async () => ({ id: 456 }));
   return {
@@ -74,9 +73,6 @@ const {
     })),
     parseJwIdRouteParamMock: vi.fn(() => 123),
     parseResourceIdRouteParamMock: vi.fn(() => 456),
-    parseScheduleDateParamMock: vi.fn(
-      (_name: string, value?: string) => value && new Date(value),
-    ),
     teacherFindUniqueMock,
   };
 });
@@ -84,7 +80,6 @@ const {
 vi.mock("@/lib/api/routes/academic-route-helpers", () => ({
   parseJwIdRouteParam: parseJwIdRouteParamMock,
   parseResourceIdRouteParam: parseResourceIdRouteParamMock,
-  parseScheduleDateParam: parseScheduleDateParamMock,
 }));
 
 vi.mock("@/features/catalog/server/course-section-queries", () => ({
@@ -249,7 +244,9 @@ describe("academic REST 语言适配器", () => {
     );
 
     const response = await getSchedulesRoute(
-      request("/api/schedules?sectionJwId=123&weekday=2&page=1"),
+      request(
+        "/api/schedules?sectionJwId=123&weekday=2&dateFrom=2026-03-01&page=1",
+      ),
     );
 
     expect(response.status).toBe(200);
@@ -263,6 +260,7 @@ describe("academic REST 语言适配器", () => {
         filters: expect.objectContaining({
           sectionJwId: 123,
           weekday: 2,
+          dateFrom: new Date("2026-03-01T00:00:00.000Z"),
         }),
         locale: "en-us",
         page: 1,
@@ -276,7 +274,7 @@ describe("academic REST 语言适配器", () => {
       await import("@/lib/api/routes/academic-section-routes");
 
     const schedulesResponse = await getSectionSchedulesRoute(
-      request("/api/sections/123/schedules"),
+      request("/api/sections/123/schedules?dateFrom=2026-03-01&limit=25"),
       { jwId: "123" },
     );
     const scheduleGroupsResponse = await getSectionScheduleGroupsRoute(
@@ -295,6 +293,9 @@ describe("academic REST 语言适配器", () => {
       "Accept-Language, Cookie",
     );
     expect(getSectionSchedulesByJwIdMock).toHaveBeenCalledWith({
+      dateFrom: new Date("2026-03-01T00:00:00.000Z"),
+      dateTo: undefined,
+      limit: 25,
       locale: "en-us",
       sectionJwId: 123,
     });
