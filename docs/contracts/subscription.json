@@ -65,7 +65,7 @@
           {
             "path": "/api/calendar-subscriptions/query",
             "method": "POST",
-            "returns": "{ semester: Semester | null, matchedCodes: String[], unmatchedCodes: String[], matchedSectionIds: Int[], unmatchedSectionIds: Int[], suggestions: Record<String, String[]>, sections: Section[], total: Int }",
+            "returns": "{ semester, matchedCodes: String[], unmatchedCodes: String[], matchedSectionIds: Int[], unmatchedSectionIds: Int[], suggestions, sections: Section[], total: Int }",
             "notes": [
               "Preferred batch query endpoint for calendar subscription picker flows.",
               "Accepts sectionIds plus mixed section/course codes through codes[].",
@@ -75,7 +75,7 @@
           {
             "path": "/api/calendar-subscriptions/batch",
             "method": "POST",
-            "returns": "{ action: \"add\" | \"remove\" | \"set\", semester: Semester | null, matchedCodes, unmatchedCodes, matchedSectionIds, unmatchedSectionIds, sections, addedCount, removedCount, unchangedCount, subscription }",
+            "returns": "{ action, semester, matchedCodes, unmatchedCodes, matchedSectionIds, unmatchedSectionIds, sections, addedCount, removedCount, unchangedCount, subscription }",
             "notes": [
               "Preferred mutation endpoint for batch subscribe, unsubscribe, and replace/update flows.",
               "Accepts action plus sectionIds and/or mixed section/course codes.",
@@ -102,8 +102,7 @@
             "method": "PATCH",
             "returns": "{ subscription: CalendarSubscription, addedCount: Int, alreadySubscribedCount: Int }",
             "notes": [
-              "Compatibility append endpoint for ID-only callers.",
-              "Append selected section IDs after a preview flow without replacing the caller's whole subscription set.",
+              "Compatibility endpoint for ID-only callers; appends selected section IDs after preview without replacing the caller's whole subscription set.",
               "Used by dashboard and welcome bulk-import confirmation after users deselect unwanted matched sections.",
               "Unknown positive section IDs are ignored; malformed or non-positive IDs return 400.",
               "Already-subscribed selected sections are counted but not duplicated."
