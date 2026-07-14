@@ -1,3 +1,10 @@
+## [1.49.2](https://github.com/Life-USTC/server/compare/v1.49.1...v1.49.2) (2026-07-14)
+
+
+### Bug Fixes
+
+* **ci:** fail exhausted retry loops ([#390](https://github.com/Life-USTC/server/issues/390)) ([a957acb](https://github.com/Life-USTC/server/commit/a957acb4af3748711fd77caeaae9e509c619befa))
+
 ## [1.49.1](https://github.com/Life-USTC/server/compare/v1.49.0...v1.49.1) (2026-07-07)
 
 
