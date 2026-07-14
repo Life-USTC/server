@@ -4,7 +4,7 @@
  * ## GET /api/uploads
  * - Response: { maxFileSizeBytes, quotaBytes, uploads[], usedBytes }
  * - Auth required (401 if unauthenticated)
- * - Cleans up expired pending uploads before listing
+ * - Ignores expired pending uploads for quota without mutating them
  *
  * ## POST /api/uploads
  * - Body: { filename, size, contentType? }
@@ -20,6 +20,7 @@
  */
 import { expect, test } from "@playwright/test";
 import { uploadConfig } from "@/features/uploads/lib/upload-config";
+import { prisma } from "@/lib/db/prisma";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { createUploadedFileViaApi } from "../../../../utils/uploads";
 
@@ -44,6 +45,44 @@ test("/api/uploads GET 返回上传列表与配额元数据", async ({ page }) =
   expect(typeof body.quotaBytes).toBe("number");
   expect(typeof body.usedBytes).toBe("number");
   expect(Array.isArray(body.uploads)).toBe(true);
+});
+
+test("/api/uploads GET 忽略过期预留但不执行清理写入", async ({ page }) => {
+  await signInAsDebugUser(page, "/");
+
+  const sessionResponse = await page.request.get("/api/auth/get-session");
+  const session = (await sessionResponse.json()) as {
+    user?: { id?: string };
+  };
+  const userId = session.user?.id;
+  expect(userId).toBeTruthy();
+  if (!userId) throw new Error("Expected signed-in E2E user id");
+
+  const beforeResponse = await page.request.get("/api/uploads");
+  const before = (await beforeResponse.json()) as { usedBytes?: number };
+  const key = `uploads/${userId}/expired-read-${Date.now()}.txt`;
+  const pending = await prisma.uploadPending.create({
+    data: {
+      contentType: "text/plain",
+      expiresAt: new Date(Date.now() - 60_000),
+      filename: "expired-read.txt",
+      key,
+      size: 12_345,
+      userId,
+    },
+  });
+
+  try {
+    const response = await page.request.get("/api/uploads");
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as { usedBytes?: number };
+    expect(body.usedBytes).toBe(before.usedBytes);
+    await expect(
+      prisma.uploadPending.findUnique({ where: { id: pending.id } }),
+    ).resolves.not.toBeNull();
+  } finally {
+    await prisma.uploadPending.deleteMany({ where: { id: pending.id } });
+  }
 });
 
 test("/api/uploads POST 未登录返回 401", async ({ request }) => {
