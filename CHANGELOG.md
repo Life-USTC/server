@@ -1,3 +1,11 @@
+## [1.49.4](https://github.com/Life-USTC/server/compare/v1.49.3...v1.49.4) (2026-07-14)
+
+
+### Bug Fixes
+
+* **api:** return JSON for unknown routes ([#416](https://github.com/Life-USTC/server/issues/416)) ([16cc9ba](https://github.com/Life-USTC/server/commit/16cc9ba9587d30a5e12c0dd19545e1c191aebbab)), closes [#402](https://github.com/Life-USTC/server/issues/402)
+* **calendar:** serialize DTSTAMP in UTC ([#417](https://github.com/Life-USTC/server/issues/417)) ([c541157](https://github.com/Life-USTC/server/commit/c541157328b14b5f3f9e0988775562905b1fcaa7)), closes [#404](https://github.com/Life-USTC/server/issues/404)
+
 ## [1.49.3](https://github.com/Life-USTC/server/compare/v1.49.2...v1.49.3) (2026-07-14)
 
 
