@@ -153,6 +153,7 @@ jobs:
 
           case "$JOB_PHASE" in
             ci:verify)
+              bash tests/ci/retry.test.sh
               bun run app:prepare
               bunx biome check
               bunx svelte-check --tsconfig ./tsconfig.json
