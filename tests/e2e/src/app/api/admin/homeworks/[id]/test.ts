@@ -57,7 +57,7 @@ test.describe("DELETE /api/admin/homeworks/[id] 作业管理", () => {
         submissionDueAt: new Date(now.getTime() + 86400000).toISOString(),
       },
     });
-    expect(createResponse.status()).toBe(200);
+    expect(createResponse.status()).toBe(201);
     const createBody = (await createResponse.json()) as {
       id?: string;
     };

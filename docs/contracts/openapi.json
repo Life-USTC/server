@@ -15,7 +15,8 @@
     "generated-client-required": "CLI and Bot business calls must use generated OpenAPI clients and generated request/response types whenever the server OpenAPI covers the endpoint. Allowed exceptions are explicit raw request escape hatches, presigned upload object PUTs, OAuth protocol plumbing, external school/QQ/NapCat APIs, and documented non-OpenAPI endpoints such as OAuth userinfo fallback.",
     "openapi-drift-gate": "After server OpenAPI changes, regenerate public/openapi.generated.json and sync api/openapi.json plus generated Go clients in CLI and Bot before publishing. Cross-repo CI should fail if copied OpenAPI files drift from the server-generated contract.",
     "rest-observability": "REST API handling records production-safe structured request-start/request-finish logs with request ID, method, status, auth mode, duration, and normalized route template; when the Cloudflare Analytics Engine binding is present it also writes sanitized request finish/error datapoints with normalized route, method, status class, auth mode, and duration; it does not log request bodies, credentials, raw query strings, or high-cardinality resource IDs.",
-    "unknown-api-json-errors": "Unknown paths under /api return the standard JSON { error } envelope with status 404 instead of falling through to the HTML application error page."
+    "unknown-api-json-errors": "Unknown paths under /api return the standard JSON { error } envelope with status 404 instead of falling through to the HTML application error page.",
+    "created-resource-status": "POST /api/todos, /api/comments, /api/homeworks, and /api/admin/suspensions return 201 Created with a relative Location header for the new resource. Idempotent upserts and state-setting operations continue to return 200."
   },
   "capabilities": {
     "api-docs-page": {

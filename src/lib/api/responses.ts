@@ -26,6 +26,13 @@ export function jsonResponse(body: unknown, init?: ResponseInit) {
   });
 }
 
+export function createdJsonResponse(body: unknown, location: string) {
+  return jsonResponse(body, {
+    status: 201,
+    headers: { Location: location },
+  });
+}
+
 export function getRequestSearchParams(request: Request) {
   return new URL(request.url).searchParams;
 }

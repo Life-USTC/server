@@ -657,7 +657,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
         (r) =>
           r.url().includes("/api/homeworks") &&
           r.request().method() === "POST" &&
-          r.status() === 200,
+          r.status() === 201,
       );
       await createDialog
         .getByRole("button", { name: /创建作业|Create homework/i })
@@ -755,7 +755,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
           title,
         },
       });
-      expect(createResponse.status()).toBe(200);
+      expect(createResponse.status()).toBe(201);
       const createBody = (await createResponse.json()) as {
         homework?: { id?: string };
         id?: string;
@@ -846,7 +846,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
           title,
         },
       });
-      expect(homeworkResponse.status()).toBe(200);
+      expect(homeworkResponse.status()).toBe(201);
       const homeworkBody = (await homeworkResponse.json()) as {
         homework?: { id?: string };
         id?: string;
@@ -862,7 +862,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
           targetType: "homework",
         },
       });
-      expect(commentResponse.status()).toBe(200);
+      expect(commentResponse.status()).toBe(201);
       const commentBody = (await commentResponse.json()) as { id?: string };
       commentId = commentBody.id;
       expect(commentId).toBeTruthy();
@@ -919,7 +919,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
         (r) =>
           r.url().includes("/api/comments") &&
           r.request().method() === "POST" &&
-          r.status() === 200,
+          r.status() === 201,
       );
       await page
         .getByRole("button", { name: /发布评论|Post comment/i })
@@ -1017,7 +1017,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
         (r) =>
           r.url().includes("/api/comments") &&
           r.request().method() === "POST" &&
-          r.status() === 200,
+          r.status() === 201,
       );
       await replyEditor.getByRole("button", { name: /回复|Reply/i }).click();
       const createdReplyResponse = await replyResponse;
@@ -1085,7 +1085,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
         (r) =>
           r.url().includes("/api/comments") &&
           r.request().method() === "POST" &&
-          r.status() === 200,
+          r.status() === 201,
       );
       await composerCard
         .getByRole("button", { name: /发布评论|Post comment/i })
@@ -1231,7 +1231,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
         (r) =>
           r.url().includes("/api/comments") &&
           r.request().method() === "POST" &&
-          r.status() === 200,
+          r.status() === 201,
       );
       await postButton.click();
       const createCommentResponse = await createComment;

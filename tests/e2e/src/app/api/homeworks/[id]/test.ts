@@ -57,7 +57,7 @@ async function createTempHomework(
       submissionDueAt: new Date(now.getTime() + 86400000).toISOString(),
     },
   });
-  expect(createResponse.status()).toBe(200);
+  expect(createResponse.status()).toBe(201);
   const body = (await createResponse.json()) as {
     homework?: { id?: string; title?: string } | null;
     id?: string;

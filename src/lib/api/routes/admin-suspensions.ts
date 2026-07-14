@@ -5,6 +5,7 @@ import {
 } from "@/features/admin/server/admin-api-service";
 import {
   badRequest,
+  createdJsonResponse,
   jsonResponse,
   notFound,
   parseRouteJsonBody,
@@ -43,7 +44,10 @@ export async function postAdminSuspensionRoute(request: Request) {
         return notFound("User not found");
       }
 
-      return jsonResponse({ suspension: result.suspension });
+      return createdJsonResponse(
+        { suspension: result.suspension },
+        `/api/admin/suspensions/${encodeURIComponent(result.suspension.id)}`,
+      );
     },
     { requireActive: true },
   );

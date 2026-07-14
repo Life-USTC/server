@@ -132,4 +132,27 @@ describe("admin 用户路由", () => {
     });
     expect(response.status).toBe(400);
   });
+
+  it("创建封禁时返回 201 与资源位置", async () => {
+    createAdminSuspensionMock.mockResolvedValue({
+      ok: true,
+      suspension: { id: "suspension-1", userId: "user-1" },
+    });
+    const { postAdminSuspensionRoute } = await import(
+      "@/lib/api/routes/admin-suspensions"
+    );
+
+    const response = await postAdminSuspensionRoute(
+      new Request("https://example.test/api/admin/suspensions", {
+        body: JSON.stringify({ userId: "user-1" }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    expect(response.headers.get("Location")).toBe(
+      "/api/admin/suspensions/suspension-1",
+    );
+  });
 });

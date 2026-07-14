@@ -125,7 +125,7 @@ test("/api/comments/[id] GET 隐藏聚焦线程返回 403", async ({
       visibility: "logged_in_only",
     },
   });
-  expect(createResponse.status()).toBe(200);
+  expect(createResponse.status()).toBe(201);
   const commentId = ((await createResponse.json()) as { id?: string }).id;
   expect(commentId).toBeTruthy();
   if (!commentId) {
@@ -167,7 +167,7 @@ test("/api/comments/[id] PATCH 拒绝匿名可见性", async ({ page }) => {
       visibility: "public",
     },
   });
-  expect(createResponse.status()).toBe(200);
+  expect(createResponse.status()).toBe(201);
   const commentId = ((await createResponse.json()) as { id?: string }).id;
   expect(commentId).toBeTruthy();
 
@@ -204,7 +204,7 @@ test("/api/comments/[id] PATCH 可修改评论并 DELETE 清理", async ({ page 
       visibility: "public",
     },
   });
-  expect(createResponse.status()).toBe(200);
+  expect(createResponse.status()).toBe(201);
   const commentId = ((await createResponse.json()) as { id?: string }).id;
   expect(commentId).toBeTruthy();
 
@@ -264,7 +264,7 @@ test("/api/comments/[id] PATCH 非所有者管理员被拒绝", async ({ browser
       visibility: "public",
     },
   });
-  expect(createResponse.status()).toBe(200);
+  expect(createResponse.status()).toBe(201);
   const commentId = ((await createResponse.json()) as { id?: string }).id;
   expect(commentId).toBeTruthy();
   if (!commentId) {
@@ -313,7 +313,7 @@ test("/api/comments/[id] PATCH 拒绝绑定到其他评论的上传文件", asyn
         attachmentIds: [uploaded.uploadId],
       },
     });
-    expect(firstResponse.status()).toBe(200);
+    expect(firstResponse.status()).toBe(201);
 
     const secondResponse = await page.request.post("/api/comments", {
       data: {
@@ -323,7 +323,7 @@ test("/api/comments/[id] PATCH 拒绝绑定到其他评论的上传文件", asyn
         visibility: "public",
       },
     });
-    expect(secondResponse.status()).toBe(200);
+    expect(secondResponse.status()).toBe(201);
     const secondCommentId = ((await secondResponse.json()) as { id?: string })
       .id;
     expect(secondCommentId).toBeTruthy();
@@ -364,7 +364,7 @@ test("/api/comments/[id] PATCH 对失效评论返回 403", async ({ page }) => {
       visibility: "public",
     },
   });
-  expect(createResponse.status()).toBe(200);
+  expect(createResponse.status()).toBe(201);
   const commentId = ((await createResponse.json()) as { id?: string }).id;
   expect(commentId).toBeTruthy();
   if (!commentId) {

@@ -261,7 +261,7 @@ test("/admin/users 可创建默认时长封禁并通过 API 解除", async ({
       (response) =>
         response.url().includes("/api/admin/suspensions") &&
         response.request().method() === "POST" &&
-        response.status() === 200,
+        response.status() === 201,
     );
     await suspendButton.click({ force: true });
     const response = await responsePromise;

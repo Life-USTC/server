@@ -1,9 +1,9 @@
 import { createComment } from "@/features/comments/server/comment-mutations";
 import {
   badRequest,
+  createdJsonResponse,
   forbidden,
   handleRouteError,
-  jsonResponse,
   notFound,
   parseRouteJsonBody,
   suspensionForbidden,
@@ -75,7 +75,10 @@ export async function postCommentRoute(request: Request) {
       return forbidden();
     }
 
-    return jsonResponse({ id: result.comment.id });
+    return createdJsonResponse(
+      { id: result.comment.id },
+      `/api/comments/${encodeURIComponent(result.comment.id)}`,
+    );
   } catch (error) {
     return handleRouteError("Failed to create comment", error);
   }

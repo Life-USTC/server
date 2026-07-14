@@ -144,10 +144,11 @@ test("/api/todos POST 登录后可创建新待办并清理", async ({ page }) =>
       priority: "high",
     },
   });
-  expect(createResponse.status()).toBe(200);
+  expect(createResponse.status()).toBe(201);
 
   const createdId = ((await createResponse.json()) as { id?: string }).id;
   expect(createdId).toBeTruthy();
+  expect(createResponse.headers().location).toBe(`/api/todos/${createdId}`);
 
   try {
     const listResponse = await page.request.get("/api/todos");
