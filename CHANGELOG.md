@@ -1,3 +1,10 @@
+# [1.50.0](https://github.com/Life-USTC/server/compare/v1.49.6...v1.50.0) (2026-07-14)
+
+
+### Features
+
+* **api:** return 201 for created resources ([#426](https://github.com/Life-USTC/server/issues/426)) ([ad91c93](https://github.com/Life-USTC/server/commit/ad91c93128d64df22af8f9f108ed49e1f3035368)), closes [#411](https://github.com/Life-USTC/server/issues/411)
+
 ## [1.49.6](https://github.com/Life-USTC/server/compare/v1.49.5...v1.49.6) (2026-07-14)
 
 
