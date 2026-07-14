@@ -9,7 +9,10 @@ import { registerMyDataTools } from "@/lib/mcp/tools/my-data-tools";
 import { registerProfileTools } from "@/lib/mcp/tools/profile-tools";
 import { registerSectionDataTools } from "@/lib/mcp/tools/section-data-tools";
 import { registerUploadTools } from "@/lib/mcp/tools/upload-tools";
-import { installMcpToolDescriptorDefaults } from "./tool-descriptors";
+import {
+  installMcpToolDescriptorDefaults,
+  installMcpToolListCompatibility,
+} from "./tool-descriptors";
 
 const SERVER_INSTRUCTIONS = [
   "Use get_my_dashboard or get_my_overview before fanning out into narrower personal tools.",
@@ -40,6 +43,7 @@ export function createMcpServer() {
   registerSectionDataTools(server);
   registerMyDataTools(server);
   registerCalendarTools(server);
+  installMcpToolListCompatibility(server);
 
   return server;
 }
