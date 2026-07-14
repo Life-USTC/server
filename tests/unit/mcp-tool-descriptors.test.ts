@@ -3,7 +3,10 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { describe, expect, it } from "vitest";
 import { createMcpServer } from "@/lib/mcp/server";
-import { installMcpToolDescriptorDefaults } from "@/lib/mcp/tool-descriptors";
+import {
+  installMcpToolDescriptorDefaults,
+  installMcpToolListCompatibility,
+} from "@/lib/mcp/tool-descriptors";
 import { getMcpToolOutputSchema } from "@/lib/mcp/tool-output-schemas";
 import { jsonToolResult } from "@/lib/mcp/tools/_helpers";
 import { restReadScope, restWriteScope } from "@/lib/oauth/constants";
@@ -102,6 +105,69 @@ describe("MCP tool descriptors", () => {
         securitySchemes: [{ type: "oauth2", scopes: [restReadScope("todo")] }],
       },
     });
+  });
+
+  it("installs the tools/list compatibility wrapper once after registration", async () => {
+    const mcpServer = new McpServer({
+      name: "unit-test-list-compatibility",
+      version: "1.0.0",
+    });
+    const protocol = mcpServer.server as unknown as {
+      _requestHandlers?: Map<
+        string,
+        (request: unknown, extra: unknown) => Promise<unknown> | unknown
+      >;
+    };
+    const register = (name: string) =>
+      mcpServer.registerTool(
+        name,
+        { description: `Test tool ${name}` },
+        async () => ({ content: [] }),
+      );
+
+    try {
+      installMcpToolDescriptorDefaults(mcpServer);
+      register("first_tool");
+      const sdkListHandler = protocol._requestHandlers?.get("tools/list");
+      expect(sdkListHandler).toBeDefined();
+
+      register("second_tool");
+      expect(protocol._requestHandlers?.get("tools/list")).toBe(sdkListHandler);
+
+      installMcpToolListCompatibility(mcpServer);
+      const compatibilityHandler = protocol._requestHandlers?.get("tools/list");
+      expect(compatibilityHandler).toBeDefined();
+      expect(compatibilityHandler).not.toBe(sdkListHandler);
+
+      installMcpToolListCompatibility(mcpServer);
+      expect(protocol._requestHandlers?.get("tools/list")).toBe(
+        compatibilityHandler,
+      );
+
+      register("third_tool");
+      expect(protocol._requestHandlers?.get("tools/list")).toBe(
+        compatibilityHandler,
+      );
+
+      const result = (await compatibilityHandler?.(
+        { method: "tools/list" },
+        {},
+      )) as {
+        tools: Array<{ name: string; securitySchemes?: unknown }>;
+      };
+      expect(result.tools.map((tool) => tool.name)).toEqual([
+        "first_tool",
+        "second_tool",
+        "third_tool",
+      ]);
+      for (const tool of result.tools) {
+        expect(tool.securitySchemes).toEqual([
+          { type: "oauth2", scopes: expect.any(Array) },
+        ]);
+      }
+    } finally {
+      await mcpServer.close();
+    }
   });
 
   it("marks personal overwrite tools as closed-world writes", async () => {
