@@ -32,7 +32,16 @@ function prismaWasmModulePlugin() {
   };
 }
 
+const FONT_ASSET_PATTERN = /\.(?:eot|otf|ttf|woff2?)(?:\?.*)?$/i;
+
+export function assetInlineDecision(filePath: string) {
+  return FONT_ASSET_PATTERN.test(filePath) ? false : undefined;
+}
+
 export default defineConfig({
+  build: {
+    assetsInlineLimit: assetInlineDecision,
+  },
   plugins: [prismaWasmModulePlugin(), tailwindcss(), sveltekit()],
   ssr: {
     resolve: {
