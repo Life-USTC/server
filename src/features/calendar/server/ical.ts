@@ -1,4 +1,4 @@
-import { ICalCalendar } from "ical-generator";
+import { formatDate, ICalCalendar } from "ical-generator";
 import {
   appendSectionEvents,
   type CalendarHomework,
@@ -33,8 +33,22 @@ const SHANGHAI_TZ_CONFIG = {
   generator: generateShanghaiVTimezone,
 };
 
+export class Rfc5545Calendar extends ICalCalendar {
+  override toString(): string {
+    const events = this.events();
+    let eventIndex = 0;
+
+    // ical-generator applies the calendar timezone to DTSTAMP, but RFC 5545
+    // requires that property to be serialized as UTC for every VEVENT.
+    return super.toString().replace(/^DTSTAMP:[^\r\n]*/gm, (line) => {
+      const event = events[eventIndex++];
+      return event ? `DTSTAMP:${formatDate(null, event.stamp())}` : line;
+    });
+  }
+}
+
 function createCalendar(name: string, description: string, url: string) {
-  return new ICalCalendar({
+  return new Rfc5545Calendar({
     name,
     description,
     timezone: SHANGHAI_TZ_CONFIG,

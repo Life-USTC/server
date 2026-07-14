@@ -8,6 +8,17 @@ type ApiContractCase = {
   baseURL?: string;
 };
 
+export function expectCalendarDtstampsAreUtc(calendar: string) {
+  const dtstamps = calendar
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith("DTSTAMP:"));
+
+  expect(dtstamps.length).toBeGreaterThan(0);
+  for (const dtstamp of dtstamps) {
+    expect(dtstamp).toMatch(/^DTSTAMP:\d{8}T\d{6}Z$/);
+  }
+}
+
 const probeOnlyRoutes = new Set([
   "/api/admin/comments",
   "/api/admin/comments/[id]",
@@ -62,7 +73,9 @@ async function expectCalendarResponse(
 ) {
   expect(response.status()).toBe(200);
   expect(response.headers()["content-type"]).toContain("text/calendar");
-  expect(await response.text()).toContain("BEGIN:VCALENDAR");
+  const calendar = await response.text();
+  expect(calendar).toContain("BEGIN:VCALENDAR");
+  expectCalendarDtstampsAreUtc(calendar);
 }
 
 async function expectProbeRoute(
