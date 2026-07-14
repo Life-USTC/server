@@ -82,7 +82,7 @@ $: sectionSemesterSummary = selectedSemester
         {/each}
       </Item.Group>
     </div>
-    <div class="hidden md:block">
+    <div class="hidden min-w-0 max-w-full md:block">
       <Table.Root>
         <Table.Header>
           <Table.Row>

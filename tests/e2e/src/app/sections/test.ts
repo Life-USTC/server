@@ -69,6 +69,69 @@ test.describe("/sections 班级搜索页", () => {
     await captureStepScreenshot(page, testInfo, "sections-navigate-detail");
   });
 
+  test("桌面表格在结果列内水平滚动", async ({ page }, testInfo) => {
+    for (const width of [1024, 1280, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await gotoAndWaitForReady(page, "/sections");
+
+      const tableContainer = page
+        .locator('[data-slot="table-container"]:visible')
+        .first();
+      await expect(tableContainer).toBeVisible();
+
+      const geometry = await tableContainer.evaluate((node) => {
+        const container = node as HTMLElement;
+        const results = container.closest("section");
+        const table = container.querySelector("table");
+        if (!results || !table)
+          throw new Error("Sections table geometry missing");
+
+        const containerBox = container.getBoundingClientRect();
+        const resultsBox = results.getBoundingClientRect();
+        return {
+          clientWidth: container.clientWidth,
+          containerRight: containerBox.right,
+          resultsRight: resultsBox.right,
+          scrollWidth: container.scrollWidth,
+        };
+      });
+
+      expect(geometry.containerRight).toBeLessThanOrEqual(
+        geometry.resultsRight + 1,
+      );
+      expect(geometry.scrollWidth).toBeGreaterThan(geometry.clientWidth);
+
+      await tableContainer.evaluate((node) => {
+        const container = node as HTMLElement;
+        container.scrollLeft = container.scrollWidth;
+      });
+      await expect
+        .poll(() =>
+          tableContainer.evaluate((node) => (node as HTMLElement).scrollLeft),
+        )
+        .toBeGreaterThan(0);
+
+      const containerBox = await tableContainer.boundingBox();
+      const lastColumnBox = await tableContainer
+        .locator("thead th")
+        .last()
+        .boundingBox();
+      expect(containerBox).not.toBeNull();
+      expect(lastColumnBox).not.toBeNull();
+      expect(lastColumnBox?.x ?? 0).toBeGreaterThanOrEqual(
+        (containerBox?.x ?? 0) - 1,
+      );
+      expect(
+        (lastColumnBox?.x ?? Number.POSITIVE_INFINITY) +
+          (lastColumnBox?.width ?? 0),
+      ).toBeLessThanOrEqual(
+        (containerBox?.x ?? 0) + (containerBox?.width ?? 0) + 1,
+      );
+    }
+
+    await captureStepScreenshot(page, testInfo, "sections-table-contained");
+  });
+
   test("搜索帮助与清除", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/sections", {
       testInfo,
