@@ -1,3 +1,12 @@
+## [1.49.5](https://github.com/Life-USTC/server/compare/v1.49.4...v1.49.5) (2026-07-14)
+
+
+### Bug Fixes
+
+* **build:** emit font assets for CSP ([#419](https://github.com/Life-USTC/server/issues/419)) ([3ecda3b](https://github.com/Life-USTC/server/commit/3ecda3b07f7746a4ee1bbcc2c809c4d09ada42aa)), closes [#397](https://github.com/Life-USTC/server/issues/397)
+* **catalog:** prevent mobile page overflow ([#420](https://github.com/Life-USTC/server/issues/420)) ([f283bf2](https://github.com/Life-USTC/server/commit/f283bf25adf1c328886a2ec685664f109c152724)), closes [#396](https://github.com/Life-USTC/server/issues/396)
+* **mcp:** install tools/list wrapper once ([#418](https://github.com/Life-USTC/server/issues/418)) ([288d20c](https://github.com/Life-USTC/server/commit/288d20ce94298742c6062ff2fc9980dc26c25273)), closes [#409](https://github.com/Life-USTC/server/issues/409)
+
 ## [1.49.4](https://github.com/Life-USTC/server/compare/v1.49.3...v1.49.4) (2026-07-14)
 
 
