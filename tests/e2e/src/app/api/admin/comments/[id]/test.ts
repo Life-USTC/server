@@ -46,9 +46,9 @@ test.describe("PATCH /api/admin/comments/[id] 评论管理", () => {
     expect(listResponse.status()).toBe(200);
     const commentId = (
       (await listResponse.json()) as {
-        comments?: Array<{ id?: string }>;
+        data?: Array<{ id?: string }>;
       }
-    ).comments?.[0]?.id;
+    ).data?.[0]?.id;
     expect(commentId).toBeTruthy();
 
     const response = await page.request.patch(`${BASE}/${commentId}`, {
@@ -67,9 +67,9 @@ test.describe("PATCH /api/admin/comments/[id] 评论管理", () => {
     expect(listResponse.status()).toBe(200);
     const comment = (
       (await listResponse.json()) as {
-        comments?: Array<{ id?: string; status?: string }>;
+        data?: Array<{ id?: string; status?: string }>;
       }
-    ).comments?.[0];
+    ).data?.[0];
     expect(comment?.id).toBeTruthy();
 
     const commentId = comment?.id as string;

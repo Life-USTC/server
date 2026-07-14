@@ -13,6 +13,7 @@
     "markdown-font-csp": "Production builds emit Markdown and KaTeX font files as same-origin assets instead of data URIs so every required math glyph can load under the configured font-src Content Security Policy.",
     "visibility-modes": "Supports public and signed-in-only audience visibility; anonymous posting is represented by comment.isAnonymous and hides identity from regular users while remaining traceable by admins in governance scenarios.",
     "shared-read-policy": "Web, REST, and MCP comment reads share the same target resolution, thread serialization, visibility filtering, author masking, reaction, attachment, and viewer action-flag logic; read-only paths must not create durable comment targets and valid empty section-teacher targets load as empty threads.",
+    "thread-pagination": "Comment list pagination counts viewer-visible root threads and selects roots by createdAt then id in ascending order before returning each selected root with its complete reply tree. The existing verified-author-first display ordering is applied within each returned page. REST uses page/pageSize with deprecated limit compatibility; MCP uses page/limit. Pagination never severs replies from their root thread, and meta.hiddenCount remains a target-wide count for anonymous viewers.",
     "interaction-gate": "Edits, deletes, replies, and reaction changes require an authenticated, unsuspended viewer and an active visible comment target; deleted or softbanned comments must not expose canEdit/canDelete/canReply/canReact or accept those write actions. Admin moderation affordances require an unsuspended admin."
   },
   "capabilities": {
@@ -24,10 +25,11 @@
         "routes": [
           {
             "path": "/api/comments",
-            "returns": "{ comments: Comment[], hiddenCount: Int, viewer, target }",
+            "returns": "{ data: Comment[], pagination, meta: { hiddenCount: Int, viewer, target } }",
             "notes": [
               "Accepts REST-compatible internal targetId plus public identifiers such as sectionJwId, courseJwId, teacherId, homeworkId, and sectionTeacherId.",
-              "Returns 404 when the attached target entity does not exist."
+              "Returns 404 when the attached target entity does not exist.",
+              "Accepts page and pageSize; deprecated limit remains an alias for pageSize."
             ]
           },
           {
@@ -96,9 +98,12 @@
         "tools": [
           {
             "name": "list_comments",
-            "returns": "{ found: Boolean, comments: Comment[], hiddenCount: Int, viewer, target }",
+            "returns": "{ found: Boolean, data: Comment[], pagination, meta: { hiddenCount: Int, viewer, target } }",
             "auth": "user",
-            "rest_equivalent": "GET /api/comments"
+            "rest_equivalent": "GET /api/comments",
+            "notes": [
+              "Accepts page and limit and preserves complete reply trees for each paged root comment."
+            ]
           },
           {
             "name": "get_comment_thread",
@@ -172,9 +177,10 @@
         "routes": [
           {
             "path": "/api/admin/comments",
-            "returns": "{ comments: Comment[] }",
+            "returns": "{ data: Comment[], pagination }",
             "notes": [
-              "Omitted status defaults to the active moderation queue, matching /admin/moderation."
+              "Omitted status defaults to the active moderation queue, matching /admin/moderation.",
+              "Accepts page and pageSize; deprecated limit remains an alias for pageSize."
             ]
           },
           {

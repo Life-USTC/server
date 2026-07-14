@@ -40,6 +40,7 @@ import {
   uploadCompleteRequestSchema,
   uploadCreateRequestSchema,
   uploadRenameRequestSchema,
+  uploadsQuerySchema,
 } from "@/lib/api/schemas/request-schemas";
 import {
   meResponseSchema,
@@ -610,6 +611,22 @@ describe("其他请求 schema", () => {
       expect(schema.safeParse({ limit: "0" }).success).toBe(false);
     }
 
+    for (const input of [
+      { schema: commentsQuerySchema, base: { targetType: "section" } },
+      { schema: uploadsQuerySchema, base: {} },
+    ]) {
+      expect(
+        input.schema.safeParse({ ...input.base, page: "2", pageSize: "100" })
+          .success,
+      ).toBe(true);
+      expect(
+        input.schema.safeParse({ ...input.base, pageSize: "101" }).success,
+      ).toBe(false);
+      expect(
+        input.schema.safeParse({ ...input.base, limit: "100" }).success,
+      ).toBe(true);
+    }
+
     for (const schema of [
       adminCommentsQuerySchema,
       adminDescriptionsQuerySchema,
@@ -618,6 +635,8 @@ describe("其他请求 schema", () => {
     ]) {
       expect(schema.safeParse({ pageSize: "50" }).success).toBe(true);
       expect(schema.safeParse({ limit: "50" }).success).toBe(true);
+      expect(schema.safeParse({ page: "2" }).success).toBe(true);
+      expect(schema.safeParse({ pageSize: "201" }).success).toBe(false);
     }
 
     const validBusNextQuery = {

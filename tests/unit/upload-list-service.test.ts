@@ -4,11 +4,13 @@ const {
   pendingAggregateMock,
   pendingDeleteManyMock,
   uploadAggregateMock,
+  uploadCountMock,
   uploadFindManyMock,
 } = vi.hoisted(() => ({
   pendingAggregateMock: vi.fn(),
   pendingDeleteManyMock: vi.fn(),
   uploadAggregateMock: vi.fn(),
+  uploadCountMock: vi.fn(),
   uploadFindManyMock: vi.fn(),
 }));
 
@@ -16,6 +18,7 @@ vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     upload: {
       aggregate: uploadAggregateMock,
+      count: uploadCountMock,
       findMany: uploadFindManyMock,
     },
     uploadPending: {
@@ -31,13 +34,16 @@ describe("listUploads", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     uploadFindManyMock.mockResolvedValue([]);
+    uploadCountMock.mockResolvedValue(3);
     uploadAggregateMock.mockResolvedValue({ _sum: { size: 80 } });
     pendingAggregateMock.mockResolvedValue({ _sum: { size: 20 } });
   });
 
   it("keeps GET read-only while excluding expired reservations from usage", async () => {
-    await expect(listUploads("user-1")).resolves.toEqual(
-      expect.objectContaining({ uploads: [], usedBytes: 100 }),
+    await expect(
+      listUploads("user-1", { pageSize: 2, skip: 2 }),
+    ).resolves.toEqual(
+      expect.objectContaining({ total: 3, uploads: [], usedBytes: 100 }),
     );
 
     expect(pendingDeleteManyMock).not.toHaveBeenCalled();
@@ -48,5 +54,8 @@ describe("listUploads", () => {
       },
       _sum: { size: true },
     });
+    expect(uploadFindManyMock).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 2, take: 2 }),
+    );
   });
 });

@@ -2,7 +2,8 @@
  * E2E tests for GET /api/uploads and POST /api/uploads.
  *
  * ## GET /api/uploads
- * - Response: { maxFileSizeBytes, quotaBytes, uploads[], usedBytes }
+ * - Query: page, pageSize (deprecated alias: limit)
+ * - Response: { data: Upload[], pagination, meta: { maxFileSizeBytes, quotaBytes, usedBytes } }
  * - Auth required (401 if unauthenticated)
  * - Ignores expired pending uploads for quota without mutating them
  *
@@ -35,16 +36,80 @@ test("/api/uploads GET 返回上传列表与配额元数据", async ({ page }) =
   const response = await page.request.get("/api/uploads");
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
-    maxFileSizeBytes?: number;
-    quotaBytes?: number;
-    uploads?: Array<{ id?: string; filename?: string }>;
-    usedBytes?: number;
+    data?: Array<{ id?: string; filename?: string }>;
+    meta?: {
+      maxFileSizeBytes?: number;
+      quotaBytes?: number;
+      usedBytes?: number;
+    };
+    pagination?: { page?: number; pageSize?: number; total?: number };
   };
 
-  expect(typeof body.maxFileSizeBytes).toBe("number");
-  expect(typeof body.quotaBytes).toBe("number");
-  expect(typeof body.usedBytes).toBe("number");
-  expect(Array.isArray(body.uploads)).toBe(true);
+  expect(typeof body.meta?.maxFileSizeBytes).toBe("number");
+  expect(typeof body.meta?.quotaBytes).toBe("number");
+  expect(typeof body.meta?.usedBytes).toBe("number");
+  expect(Array.isArray(body.data)).toBe(true);
+  expect(body.pagination).toMatchObject({ page: 1, pageSize: 20 });
+});
+
+test("/api/uploads GET 支持稳定的第二页与废弃 limit 别名", async ({ page }) => {
+  await signInAsDebugUser(page, "/");
+  const sessionResponse = await page.request.get("/api/auth/get-session");
+  const userId = ((await sessionResponse.json()) as { user?: { id?: string } })
+    .user?.id;
+  expect(userId).toBeTruthy();
+  if (!userId) throw new Error("Expected signed-in E2E user id");
+
+  const marker = `e2e-upload-pagination-${Date.now()}`;
+  const created = await withE2ePrisma(async (prisma) => {
+    const rows = [];
+    for (let index = 0; index < 3; index += 1) {
+      rows.push(
+        await prisma.upload.create({
+          data: {
+            contentType: "text/plain",
+            createdAt: new Date(Date.now() + 60_000 + index),
+            filename: `${marker}-${index}.txt`,
+            key: `${marker}-${index}`,
+            size: index + 1,
+            userId,
+          },
+          select: { id: true },
+        }),
+      );
+    }
+    return rows;
+  });
+
+  try {
+    const firstResponse = await page.request.get(
+      "/api/uploads?page=1&pageSize=1",
+    );
+    const secondResponse = await page.request.get(
+      "/api/uploads?page=2&limit=1",
+    );
+    expect(firstResponse.status()).toBe(200);
+    expect(secondResponse.status()).toBe(200);
+    const first = (await firstResponse.json()) as {
+      data?: Array<{ id?: string }>;
+      pagination?: { total?: number };
+    };
+    const second = (await secondResponse.json()) as {
+      data?: Array<{ id?: string }>;
+      pagination?: { page?: number; pageSize?: number; total?: number };
+    };
+    expect(first.data?.[0]?.id).toBe(created[2]?.id);
+    expect(second.data?.[0]?.id).toBe(created[1]?.id);
+    expect(second.pagination).toMatchObject({
+      page: 2,
+      pageSize: 1,
+      total: first.pagination?.total,
+    });
+  } finally {
+    await withE2ePrisma((prisma) =>
+      prisma.upload.deleteMany({ where: { key: { startsWith: marker } } }),
+    );
+  }
 });
 
 test("/api/uploads GET 忽略过期预留但不执行清理写入", async ({ page }) => {
@@ -59,7 +124,9 @@ test("/api/uploads GET 忽略过期预留但不执行清理写入", async ({ pag
   if (!userId) throw new Error("Expected signed-in E2E user id");
 
   const beforeResponse = await page.request.get("/api/uploads");
-  const before = (await beforeResponse.json()) as { usedBytes?: number };
+  const before = (await beforeResponse.json()) as {
+    meta?: { usedBytes?: number };
+  };
   const key = `uploads/${userId}/expired-read-${Date.now()}.txt`;
   const pending = await withE2ePrisma((prisma) =>
     prisma.uploadPending.create({
@@ -77,8 +144,10 @@ test("/api/uploads GET 忽略过期预留但不执行清理写入", async ({ pag
   try {
     const response = await page.request.get("/api/uploads");
     expect(response.status()).toBe(200);
-    const body = (await response.json()) as { usedBytes?: number };
-    expect(body.usedBytes).toBe(before.usedBytes);
+    const body = (await response.json()) as {
+      meta?: { usedBytes?: number };
+    };
+    expect(body.meta?.usedBytes).toBe(before.meta?.usedBytes);
     await expect(
       withE2ePrisma((prisma) =>
         prisma.uploadPending.findUnique({ where: { id: pending.id } }),
@@ -131,17 +200,16 @@ test("/api/uploads POST 可申请上传并完成文件入库", async ({ page }) 
     const listResponse = await page.request.get("/api/uploads");
     expect(listResponse.status()).toBe(200);
     const listBody = (await listResponse.json()) as {
-      uploads?: Array<{ id?: string; filename?: string }>;
-      usedBytes?: number;
-      quotaBytes?: number;
+      data?: Array<{ id?: string; filename?: string }>;
+      meta?: { quotaBytes?: number; usedBytes?: number };
     };
     expect(
-      listBody.uploads?.some(
+      listBody.data?.some(
         (u) => u.id === uploaded.uploadId && u.filename === filename,
       ),
     ).toBe(true);
-    expect(typeof listBody.usedBytes).toBe("number");
-    expect(typeof listBody.quotaBytes).toBe("number");
+    expect(typeof listBody.meta?.usedBytes).toBe("number");
+    expect(typeof listBody.meta?.quotaBytes).toBe("number");
   } finally {
     await page.request.delete(`/api/uploads/${uploaded.uploadId}`);
   }

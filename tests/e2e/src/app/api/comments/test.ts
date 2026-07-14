@@ -2,8 +2,8 @@
  * E2E tests for GET /api/comments and POST /api/comments.
  *
  * ## GET /api/comments
- * - Query: targetType (section|course|teacher|homework|section-teacher), targetId, sectionId, sectionJwId, courseJwId, teacherId, homeworkId, sectionTeacherId
- * - Response: { comments: CommentNode[], hiddenCount: number, viewer: ViewerContext, target: {...} }
+ * - Query: targetType (section|course|teacher|homework|section-teacher), targetId, sectionId, sectionJwId, courseJwId, teacherId, homeworkId, sectionTeacherId, page, pageSize (deprecated alias: limit)
+ * - Response: { data: CommentNode[], pagination, meta: { hiddenCount, viewer, target } }
  * - Public endpoint (no auth required)
  * - Returns 400 for missing/invalid target
  * - Returns 404 for missing target entity
@@ -32,6 +32,30 @@ type DisposableSectionTeacherFixture = {
   courseId: number;
   sectionId: number;
   teacherId: number;
+};
+
+type CommentListResponse<TComment = { body?: string; id?: string }> = {
+  data?: TComment[];
+  meta?: {
+    hiddenCount?: number;
+    target?: {
+      courseJwId?: number | null;
+      courseName?: string | null;
+      sectionId?: number | null;
+      sectionJwId?: number | null;
+      sectionTeacherId?: number | null;
+      targetId?: number;
+      teacherId?: number | null;
+      type?: string;
+    };
+    viewer?: { userId?: string | null };
+  };
+  pagination?: {
+    page?: number;
+    pageSize?: number;
+    total?: number;
+    totalPages?: number;
+  };
 };
 
 let disposableFixtureCounter = 0;
@@ -140,21 +164,15 @@ test("/api/comments GET 返回 section 目标与 seed 评论", async ({ request 
     `/api/comments?targetType=section&targetId=${sectionId}`,
   );
   expect(response.status()).toBe(200);
-  const body = (await response.json()) as {
-    target?: { type?: string; targetId?: number };
-    comments?: Array<{ id?: string; body?: string }>;
-    viewer?: { userId?: string | null };
-    hiddenCount?: number;
-  };
+  const body = (await response.json()) as CommentListResponse;
 
-  expect(body.target?.type).toBe("section");
-  expect(body.target?.targetId).toBe(sectionId);
-  expect(typeof body.hiddenCount).toBe("number");
-  expect(body.viewer).toBeDefined();
+  expect(body.meta?.target?.type).toBe("section");
+  expect(body.meta?.target?.targetId).toBe(sectionId);
+  expect(typeof body.meta?.hiddenCount).toBe("number");
+  expect(body.meta?.viewer).toBeDefined();
+  expect(body.pagination).toMatchObject({ page: 1, pageSize: 20 });
   expect(
-    body.comments?.some((c) =>
-      c.body?.includes(DEV_SEED.comments.sectionRootBody),
-    ),
+    body.data?.some((c) => c.body?.includes(DEV_SEED.comments.sectionRootBody)),
   ).toBe(true);
 });
 
@@ -163,22 +181,14 @@ test("/api/comments GET 接受公开 section JW id", async ({ request }) => {
     `/api/comments?targetType=section&sectionJwId=${DEV_SEED.section.jwId}`,
   );
   expect(response.status()).toBe(200);
-  const body = (await response.json()) as {
-    target?: {
-      courseJwId?: number | null;
-      courseName?: string | null;
-      type?: string;
-      sectionJwId?: number | null;
-    };
-    comments?: Array<{ body?: string }>;
-  };
+  const body = (await response.json()) as CommentListResponse;
 
-  expect(body.target?.type).toBe("section");
-  expect(body.target?.sectionJwId).toBe(DEV_SEED.section.jwId);
-  expect(body.target?.courseJwId).toBe(DEV_SEED.course.jwId);
-  expect(body.target?.courseName).toBe(DEV_SEED.course.nameCn);
+  expect(body.meta?.target?.type).toBe("section");
+  expect(body.meta?.target?.sectionJwId).toBe(DEV_SEED.section.jwId);
+  expect(body.meta?.target?.courseJwId).toBe(DEV_SEED.course.jwId);
+  expect(body.meta?.target?.courseName).toBe(DEV_SEED.course.nameCn);
   expect(
-    body.comments?.some((comment) =>
+    body.data?.some((comment) =>
       comment.body?.includes(DEV_SEED.comments.sectionRootBody),
     ),
   ).toBe(true);
@@ -198,6 +208,77 @@ test("/api/comments GET 不存在的目标返回 404", async ({ request }) => {
   expect(response.status()).toBe(404);
 });
 
+test("/api/comments GET 按根评论分页并保留完整回复树", async ({
+  page,
+}, testInfo) => {
+  await signInAsDebugUser(page, "/");
+  const fixture = await createDisposableSectionTeacherFixture(testInfo, {
+    connectTeacher: false,
+  });
+  const marker = `e2e-comment-pagination-${Date.now()}`;
+  const rootIds: string[] = [];
+
+  try {
+    for (let index = 1; index <= 3; index += 1) {
+      const response = await page.request.post("/api/comments", {
+        data: {
+          targetType: "section",
+          targetId: String(fixture.sectionId),
+          body: `${marker}-root-${index}`,
+        },
+      });
+      expect(response.status()).toBe(201);
+      const id = ((await response.json()) as { id?: string }).id;
+      expect(id).toBeTruthy();
+      if (id) rootIds.push(id);
+    }
+
+    const replyResponse = await page.request.post("/api/comments", {
+      data: {
+        targetType: "section",
+        targetId: String(fixture.sectionId),
+        body: `${marker}-reply`,
+        parentId: rootIds[0],
+      },
+    });
+    expect(replyResponse.status()).toBe(201);
+
+    const firstResponse = await page.request.get(
+      `/api/comments?targetType=section&targetId=${fixture.sectionId}&page=1&pageSize=1`,
+    );
+    expect(firstResponse.status()).toBe(200);
+    const first = (await firstResponse.json()) as CommentListResponse<{
+      body?: string;
+      id?: string;
+      replies?: Array<{ body?: string }>;
+    }>;
+    expect(first.pagination).toEqual({
+      page: 1,
+      pageSize: 1,
+      total: 3,
+      totalPages: 3,
+    });
+    expect(first.data).toHaveLength(1);
+    expect(first.data?.[0]).toMatchObject({
+      id: rootIds[0],
+      replies: [expect.objectContaining({ body: `${marker}-reply` })],
+    });
+
+    const secondResponse = await page.request.get(
+      `/api/comments?targetType=section&targetId=${fixture.sectionId}&page=2&limit=1`,
+    );
+    expect(secondResponse.status()).toBe(200);
+    const second = (await secondResponse.json()) as CommentListResponse;
+    expect(second.pagination).toMatchObject({ page: 2, pageSize: 1, total: 3 });
+    expect(second.data?.map((comment) => comment.id)).toEqual([rootIds[1]]);
+  } finally {
+    await withE2ePrisma((prisma) =>
+      prisma.comment.deleteMany({ where: { sectionId: fixture.sectionId } }),
+    );
+    await deleteDisposableSectionTeacherFixture(fixture);
+  }
+});
+
 test("/api/comments GET section-teacher 空目标不会创建关系行", async ({
   request,
 }, testInfo) => {
@@ -210,18 +291,12 @@ test("/api/comments GET section-teacher 空目标不会创建关系行", async (
       `/api/comments?targetType=section-teacher&sectionId=${fixture.sectionId}&teacherId=${fixture.teacherId}`,
     );
     expect(response.status()).toBe(200);
-    const body = (await response.json()) as {
-      comments?: unknown[];
-      target?: {
-        sectionId?: number | null;
-        sectionTeacherId?: number | null;
-        teacherId?: number | null;
-      };
-    };
-    expect(body.comments).toEqual([]);
-    expect(body.target?.sectionId).toBe(fixture.sectionId);
-    expect(body.target?.teacherId).toBe(fixture.teacherId);
-    expect(body.target?.sectionTeacherId).toBeNull();
+    const body = (await response.json()) as CommentListResponse<unknown>;
+    expect(body.data).toEqual([]);
+    expect(body.pagination?.total).toBe(0);
+    expect(body.meta?.target?.sectionId).toBe(fixture.sectionId);
+    expect(body.meta?.target?.teacherId).toBe(fixture.teacherId);
+    expect(body.meta?.target?.sectionTeacherId).toBeNull();
 
     const created = await withE2ePrisma((prisma) =>
       prisma.sectionTeacher.findUnique({
@@ -319,11 +394,9 @@ test("/api/comments POST 登录后可发布新评论并清理", async ({ page })
       `/api/comments?targetType=section&targetId=${sectionId}`,
     );
     expect(listResponse.status()).toBe(200);
-    const listBody = (await listResponse.json()) as {
-      comments?: Array<{ id?: string; body?: string }>;
-    };
+    const listBody = (await listResponse.json()) as CommentListResponse;
     expect(
-      listBody.comments?.some((c) => c.id === createdId && c.body === content),
+      listBody.data?.some((c) => c.id === createdId && c.body === content),
     ).toBe(true);
   } finally {
     if (createdId) {
@@ -353,11 +426,9 @@ test("/api/comments POST 接受公开 section JW id", async ({ page }) => {
       `/api/comments?targetType=section&sectionJwId=${DEV_SEED.section.jwId}`,
     );
     expect(listResponse.status()).toBe(200);
-    const listBody = (await listResponse.json()) as {
-      comments?: Array<{ id?: string; body?: string }>;
-    };
+    const listBody = (await listResponse.json()) as CommentListResponse;
     expect(
-      listBody.comments?.some((c) => c.id === createdId && c.body === content),
+      listBody.data?.some((c) => c.id === createdId && c.body === content),
     ).toBe(true);
   } finally {
     if (createdId) {
@@ -451,10 +522,8 @@ test("/api/comments POST 可创建回复评论", async ({ page }) => {
     `/api/comments?targetType=section&targetId=${sectionId}`,
   );
   expect(listResponse.status()).toBe(200);
-  const listBody = (await listResponse.json()) as {
-    comments?: Array<{ id?: string; body?: string }>;
-  };
-  const seedComment = listBody.comments?.find((c) =>
+  const listBody = (await listResponse.json()) as CommentListResponse;
+  const seedComment = listBody.data?.find((c) =>
     c.body?.includes(DEV_SEED.comments.sectionRootBody),
   );
   expect(seedComment?.id).toBeTruthy();

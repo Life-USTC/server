@@ -3,10 +3,10 @@
  *
  * Admin-only endpoint listing homeworks for moderation.
  *
- * - GET returns `{ homeworks: [...] }` with section/course and user summary includes
+ * - GET returns `{ data: [...], pagination }` with section/course and user summary includes
  * - Supports `status` filter: "all", "active", "deleted"
  * - Supports `search` parameter (title, section code, course code, course name)
- * - Supports `limit` parameter (default 50, max 200)
+ * - Supports `page` and `pageSize` parameters (deprecated alias: `limit`)
  * - Homeworks are ordered by deletedAt desc, then createdAt desc
  * - Returns 401 for unauthenticated or non-admin requests
  */
@@ -38,7 +38,7 @@ test.describe("GET /api/admin/homeworks 作业 moderation 列表", () => {
     const response = await page.request.get(BASE);
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
-      homeworks?: Array<{
+      data?: Array<{
         id?: string;
         title?: string;
         submissionDueAt?: string | null;
@@ -57,12 +57,12 @@ test.describe("GET /api/admin/homeworks 作业 moderation 列表", () => {
       }>;
     };
 
-    expect((body.homeworks?.length ?? 0) > 0).toBe(true);
+    expect((body.data?.length ?? 0) > 0).toBe(true);
     expect(
-      body.homeworks?.some((item) => item.title === DEV_SEED.homeworks.title),
+      body.data?.some((item) => item.title === DEV_SEED.homeworks.title),
     ).toBe(true);
 
-    const seedHomework = body.homeworks?.find(
+    const seedHomework = body.data?.find(
       (item) => item.title === DEV_SEED.homeworks.title,
     );
     expect(seedHomework).toBeDefined();
@@ -89,13 +89,13 @@ test.describe("GET /api/admin/homeworks 作业 moderation 列表", () => {
     const response = await page.request.get(`${BASE}?status=active`);
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
-      homeworks?: Array<{ title?: string; deletedAt?: string | null }>;
+      data?: Array<{ title?: string; deletedAt?: string | null }>;
     };
-    expect((body.homeworks?.length ?? 0) > 0).toBe(true);
+    expect((body.data?.length ?? 0) > 0).toBe(true);
     expect(
-      body.homeworks?.some((item) => item.title === DEV_SEED.homeworks.title),
+      body.data?.some((item) => item.title === DEV_SEED.homeworks.title),
     ).toBe(true);
-    expect(body.homeworks?.every((item) => item.deletedAt === null)).toBe(true);
+    expect(body.data?.every((item) => item.deletedAt === null)).toBe(true);
   });
 
   test("管理员可按 search 搜索作业标题", async ({ page }) => {
@@ -105,11 +105,11 @@ test.describe("GET /api/admin/homeworks 作业 moderation 列表", () => {
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
-      homeworks?: Array<{ title?: string }>;
+      data?: Array<{ title?: string }>;
     };
-    expect((body.homeworks?.length ?? 0) > 0).toBe(true);
+    expect((body.data?.length ?? 0) > 0).toBe(true);
     expect(
-      body.homeworks?.some((item) => item.title === DEV_SEED.homeworks.title),
+      body.data?.some((item) => item.title === DEV_SEED.homeworks.title),
     ).toBe(true);
   });
 
@@ -120,11 +120,11 @@ test.describe("GET /api/admin/homeworks 作业 moderation 列表", () => {
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
-      homeworks?: Array<{ section?: { course?: { nameCn?: string } } | null }>;
+      data?: Array<{ section?: { course?: { nameCn?: string } } | null }>;
     };
-    expect((body.homeworks?.length ?? 0) > 0).toBe(true);
+    expect((body.data?.length ?? 0) > 0).toBe(true);
     expect(
-      body.homeworks?.some(
+      body.data?.some(
         (item) => item.section?.course?.nameCn === DEV_SEED.course.nameCn,
       ),
     ).toBe(true);
@@ -132,12 +132,26 @@ test.describe("GET /api/admin/homeworks 作业 moderation 列表", () => {
 
   test("管理员可使用 pageSize 参数限制返回数量", async ({ page }) => {
     await signInAsDevAdmin(page, "/admin");
-    const response = await page.request.get(`${BASE}?pageSize=1`);
-    expect(response.status()).toBe(200);
-    const body = (await response.json()) as {
-      homeworks?: Array<unknown>;
+    const firstResponse = await page.request.get(`${BASE}?pageSize=1`);
+    const secondResponse = await page.request.get(`${BASE}?page=2&pageSize=1`);
+    expect(firstResponse.status()).toBe(200);
+    expect(secondResponse.status()).toBe(200);
+    const first = (await firstResponse.json()) as {
+      data?: Array<{ id?: string }>;
+      pagination?: { total?: number };
     };
-    expect(body.homeworks?.length).toBeLessThanOrEqual(1);
+    const second = (await secondResponse.json()) as {
+      data?: Array<{ id?: string }>;
+      pagination?: { page?: number; pageSize?: number; total?: number };
+    };
+    expect((first.pagination?.total ?? 0) > 1).toBe(true);
+    expect(first.data).toHaveLength(1);
+    expect(second.pagination).toMatchObject({
+      page: 2,
+      pageSize: 1,
+      total: first.pagination?.total,
+    });
+    expect(second.data?.[0]?.id).not.toBe(first.data?.[0]?.id);
   });
 
   test("无效 limit 参数返回 400", async ({ page }) => {

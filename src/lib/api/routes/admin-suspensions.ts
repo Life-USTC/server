@@ -17,7 +17,7 @@ import { type IdParams, parseIdParam } from "./admin-shared";
 export async function getAdminSuspensionsRoute(request: Request) {
   return withAdminApiRoute(request, "Failed to fetch suspensions", async () => {
     const suspensions = await listAdminSuspensions();
-    return jsonResponse({ suspensions });
+    return jsonResponse({ data: suspensions });
   });
 }
 

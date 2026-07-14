@@ -11,88 +11,112 @@ import {
 import { buildCommentWhere } from "./admin-moderation-page-filters";
 
 export async function listAdminModerationComments({
-  limit,
+  pageSize,
+  skip,
   status,
 }: {
-  limit: number;
+  pageSize: number;
+  skip: number;
   status: AdminCommentStatusFilter;
 }) {
   const where = buildCommentWhere(status);
 
-  return prisma.comment.findMany({
-    where,
-    include: {
-      user: { select: { name: true } },
-      section: {
-        select: {
-          jwId: true,
-          code: true,
-          course: { select: { jwId: true, code: true, nameCn: true } },
-        },
-      },
-      course: { select: { jwId: true, code: true, nameCn: true } },
-      teacher: { select: { id: true, nameCn: true } },
-      homework: {
-        select: {
-          id: true,
-          title: true,
-          section: { select: { code: true, jwId: true } },
-        },
-      },
-      sectionTeacher: {
-        select: {
-          section: {
-            select: {
-              jwId: true,
-              code: true,
-              course: { select: { jwId: true, code: true, nameCn: true } },
-            },
+  const [data, total] = await Promise.all([
+    prisma.comment.findMany({
+      where,
+      include: {
+        user: { select: { name: true } },
+        section: {
+          select: {
+            jwId: true,
+            code: true,
+            course: { select: { jwId: true, code: true, nameCn: true } },
           },
-          teacher: { select: { nameCn: true } },
+        },
+        course: { select: { jwId: true, code: true, nameCn: true } },
+        teacher: { select: { id: true, nameCn: true } },
+        homework: {
+          select: {
+            id: true,
+            title: true,
+            section: { select: { code: true, jwId: true } },
+          },
+        },
+        sectionTeacher: {
+          select: {
+            section: {
+              select: {
+                jwId: true,
+                code: true,
+                course: { select: { jwId: true, code: true, nameCn: true } },
+              },
+            },
+            teacher: { select: { nameCn: true } },
+          },
         },
       },
-    },
-    orderBy: { createdAt: "desc" },
-    take: limit,
-  });
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip,
+      take: pageSize,
+    }),
+    prisma.comment.count({ where }),
+  ]);
+
+  return { data, total };
 }
 
-export function listAdminModerationDescriptions({
+export async function listAdminModerationDescriptions({
   hasContent,
-  limit,
+  pageSize,
   search,
+  skip,
   targetType,
 }: {
   hasContent: string;
-  limit: number;
+  pageSize: number;
   search: string;
+  skip: number;
   targetType: string;
 }) {
-  return prisma.description.findMany({
-    where: buildAdminDescriptionWhere({
-      hasContent,
-      search,
-      targetType,
+  const where = buildAdminDescriptionWhere({ hasContent, search, targetType });
+  const [data, total] = await Promise.all([
+    prisma.description.findMany({
+      where,
+      include: adminDescriptionInclude,
+      orderBy: [
+        { lastEditedAt: "desc" },
+        { updatedAt: "desc" },
+        { id: "desc" },
+      ],
+      skip,
+      take: pageSize,
     }),
-    include: adminDescriptionInclude,
-    orderBy: [{ lastEditedAt: "desc" }, { updatedAt: "desc" }],
-    take: limit,
-  });
+    prisma.description.count({ where }),
+  ]);
+  return { data, total };
 }
 
-export function listAdminModerationHomeworks({
-  limit,
+export async function listAdminModerationHomeworks({
+  pageSize,
   search,
+  skip,
   status,
 }: {
-  limit: number;
+  pageSize: number;
   search: string;
+  skip: number;
   status: string;
 }) {
-  return prisma.homework.findMany({
-    where: buildAdminHomeworkWhere({ search, status }),
-    include: adminHomeworkInclude,
-    orderBy: [{ deletedAt: "desc" }, { createdAt: "desc" }],
-    take: limit,
-  });
+  const where = buildAdminHomeworkWhere({ search, status });
+  const [data, total] = await Promise.all([
+    prisma.homework.findMany({
+      where,
+      include: adminHomeworkInclude,
+      orderBy: [{ deletedAt: "desc" }, { createdAt: "desc" }, { id: "desc" }],
+      skip,
+      take: pageSize,
+    }),
+    prisma.homework.count({ where }),
+  ]);
+  return { data, total };
 }

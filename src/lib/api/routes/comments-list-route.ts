@@ -3,24 +3,27 @@ import { commentListTargetPayload } from "@/features/comments/server/comment-tar
 import { resolveCommentTargetReference } from "@/features/comments/server/comment-target-resolution";
 import {
   badRequest,
+  buildPaginatedResponse,
   handleRouteError,
   jsonResponse,
   notFound,
-  parseRouteSearchParams,
+  parseRouteQuery,
 } from "@/lib/api/helpers";
 import { commentsQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { resolveApiUserId } from "@/lib/auth/api-auth";
 
 export async function getCommentsRoute(request: Request) {
   const { searchParams } = new URL(request.url);
-  const parsedQuery = parseRouteSearchParams(
+  const parsed = parseRouteQuery(
     searchParams,
     commentsQuerySchema,
     "Invalid target",
+    { pagination: { defaultPageSize: 20, maxPageSize: 100 } },
   );
-  if (parsedQuery instanceof Response) {
-    return parsedQuery;
+  if (parsed instanceof Response) {
+    return parsed;
   }
+  const { pagination, query: parsedQuery } = parsed;
 
   const targetType = parsedQuery.targetType;
   const targetIdParam = parsedQuery.targetId ?? null;
@@ -46,16 +49,25 @@ export async function getCommentsRoute(request: Request) {
     }
 
     const viewerUserId = await resolveApiUserId(request);
-    const { comments, hiddenCount, viewer } = await loadCommentThread({
+    const { comments, hiddenCount, total, viewer } = await loadCommentThread({
+      pagination,
       target: resolved.target,
       viewerUserId,
     });
+    const response = buildPaginatedResponse(
+      comments,
+      pagination.page,
+      pagination.pageSize,
+      total,
+    );
 
     return jsonResponse({
-      comments,
-      hiddenCount,
-      viewer,
-      target: await commentListTargetPayload(targetType, resolved.target),
+      ...response,
+      meta: {
+        hiddenCount,
+        viewer,
+        target: await commentListTargetPayload(targetType, resolved.target),
+      },
     });
   } catch (error) {
     return handleRouteError("Failed to fetch comments", error);

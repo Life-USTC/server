@@ -99,9 +99,9 @@ test("/api/uploads/[id] DELETE 可删除上传文件并返回大小", async ({ p
   const listResponse = await page.request.get("/api/uploads");
   expect(listResponse.status()).toBe(200);
   const listBody = (await listResponse.json()) as {
-    uploads?: Array<{ id?: string }>;
+    data?: Array<{ id?: string }>;
   };
-  expect(listBody.uploads?.some((u) => u.id === uploaded.uploadId)).toBe(false);
+  expect(listBody.data?.some((u) => u.id === uploaded.uploadId)).toBe(false);
 });
 
 test("/api/uploads/[id] DELETE 不存在的 id 返回 404", async ({ page }) => {

@@ -3,7 +3,7 @@
  *
  * Admin-only endpoint for listing and creating user suspensions.
  *
- * - GET returns `{ suspensions: [...] }` with user info, ordered by createdAt desc
+ * - GET returns `{ data: [...] }` with user info, ordered by createdAt desc
  * - POST creates a new suspension and closes any previous open suspension for the user
  * - POST body: userId (required), reason, note, expiresAt
  * - POST returns 404 if the target user does not exist
@@ -50,10 +50,10 @@ test.describe("GET/POST /api/admin/suspensions 封禁管理", () => {
     const response = await page.request.get(BASE);
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
-      suspensions?: Array<{ reason?: string | null }>;
+      data?: Array<{ reason?: string | null }>;
     };
     expect(
-      body.suspensions?.some((item) =>
+      body.data?.some((item) =>
         item.reason?.includes(DEV_SEED.suspensions.reasonKeyword),
       ),
     ).toBe(true);
@@ -107,11 +107,11 @@ test.describe("GET/POST /api/admin/suspensions 封禁管理", () => {
       const listResponse = await page.request.get(BASE);
       expect(listResponse.status()).toBe(200);
       const body = (await listResponse.json()) as {
-        suspensions?: Array<{ userId?: string }>;
+        data?: Array<{ userId?: string }>;
       };
-      expect(
-        (body.suspensions ?? []).some((item) => item.userId === userId),
-      ).toBe(false);
+      expect((body.data ?? []).some((item) => item.userId === userId)).toBe(
+        false,
+      );
     } finally {
       await deleteUsersByPrefix(prefix);
     }
@@ -182,13 +182,13 @@ test.describe("GET/POST /api/admin/suspensions 封禁管理", () => {
       const listResponse = await page.request.get(BASE);
       expect(listResponse.status()).toBe(200);
       const listBody = (await listResponse.json()) as {
-        suspensions?: Array<{
+        data?: Array<{
           id?: string;
           liftedAt?: string | null;
           userId?: string;
         }>;
       };
-      const userSuspensions = (listBody.suspensions ?? []).filter(
+      const userSuspensions = (listBody.data ?? []).filter(
         (item) => item.userId === userId,
       );
       expect(

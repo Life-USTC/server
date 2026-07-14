@@ -25,9 +25,9 @@ test("/comments/[id] seed 评论会重定向到目标页面", async ({
   );
   expect(commentsResponse.status()).toBe(200);
   const commentsBody = (await commentsResponse.json()) as {
-    comments?: Array<{ id?: string }>;
+    data?: Array<{ id?: string }>;
   };
-  const seedComment = commentsBody.comments?.find((item) => Boolean(item.id));
+  const seedComment = commentsBody.data?.find((item) => Boolean(item.id));
   expect(seedComment?.id).toBeTruthy();
 
   await gotoAndWaitForReady(page, `/comments/${seedComment?.id}`, {

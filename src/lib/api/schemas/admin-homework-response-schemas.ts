@@ -1,6 +1,9 @@
 import * as z from "zod";
 import { homeworkUserSummarySchema } from "./homeworks-response-schemas";
-import { dateTimeSchema } from "./response-schema-primitives";
+import {
+  createPaginatedSchema,
+  dateTimeSchema,
+} from "./response-schema-primitives";
 
 const adminHomeworkSchema = z.object({
   id: z.string(),
@@ -26,6 +29,5 @@ const adminHomeworkSchema = z.object({
   deletedBy: homeworkUserSummarySchema.nullable(),
 });
 
-export const adminHomeworksResponseSchema = z.object({
-  homeworks: z.array(adminHomeworkSchema),
-});
+export const adminHomeworksResponseSchema =
+  createPaginatedSchema(adminHomeworkSchema);

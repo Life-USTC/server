@@ -80,7 +80,10 @@
         "routes": [
           {
             "path": "/api/admin/descriptions",
-            "returns": "{ descriptions: Description[] }"
+            "returns": "{ data: Description[], pagination }",
+            "notes": [
+              "Accepts page and pageSize; deprecated limit remains an alias for pageSize."
+            ]
           },
           {
             "path": "/api/admin/descriptions/[id]",

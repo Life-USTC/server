@@ -16,6 +16,7 @@ export {
   descriptionsQuerySchema,
   homeworksQuerySchema,
   sectionsCalendarQuerySchema,
+  uploadsQuerySchema,
   userCalendarQuerySchema,
 } from "./content-query-schemas";
 export {

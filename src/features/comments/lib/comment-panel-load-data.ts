@@ -59,11 +59,25 @@ export async function loadCommentsForTargets({
   const loadedEntries = await Promise.all(
     targets.filter(commentTargetCanLoad).map(async (target) => {
       const params = commentTargetSearchParams(target);
-      const result = await apiClient.GET(`/api/comments?${params.toString()}`);
-      if (!result.response.ok) throw new Error(loadFailed);
-      const parsed = commentsListResponseSchema.safeParse(result.data);
-      if (!parsed.success) throw new Error(loadFailed);
-      return { target, data: parsed.data };
+      params.set("pageSize", "100");
+      params.set("page", "1");
+      const firstPage = await loadCommentPage(params, loadFailed);
+      const comments = [...firstPage.data];
+
+      for (let page = 2; page <= firstPage.pagination.totalPages; page += 1) {
+        params.set("page", String(page));
+        const nextPage = await loadCommentPage(params, loadFailed);
+        comments.push(...nextPage.data);
+      }
+
+      return {
+        target,
+        data: {
+          comments,
+          hiddenCount: firstPage.meta.hiddenCount,
+          viewer: firstPage.meta.viewer,
+        },
+      };
     }),
   );
 
@@ -72,4 +86,12 @@ export async function loadCommentsForTargets({
     showAllTargets,
     targets,
   });
+}
+
+async function loadCommentPage(params: URLSearchParams, loadFailed: string) {
+  const result = await apiClient.GET(`/api/comments?${params.toString()}`);
+  if (!result.response.ok) throw new Error(loadFailed);
+  const parsed = commentsListResponseSchema.safeParse(result.data);
+  if (!parsed.success) throw new Error(loadFailed);
+  return parsed.data;
 }

@@ -8,7 +8,7 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
   it("list_comments 返回带查看者/操作字段的班级串帖评论", async () => {
     const result = await context.client.call<{
       found?: boolean;
-      comments?: Array<{
+      data?: Array<{
         id?: string;
         body?: string;
         author?: { name?: string | null } | null;
@@ -19,16 +19,19 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
         canEdit?: boolean;
         canDelete?: boolean;
       }>;
-      hiddenCount?: number;
-      target?: {
-        courseJwId?: number | null;
-        courseName?: string | null;
-        type?: string;
-        targetId?: number | null;
-        sectionJwId?: number | null;
-        sectionCode?: string | null;
+      meta?: {
+        hiddenCount?: number;
+        target?: {
+          courseJwId?: number | null;
+          courseName?: string | null;
+          type?: string;
+          targetId?: number | null;
+          sectionJwId?: number | null;
+          sectionCode?: string | null;
+        };
+        viewer?: { userId?: string | null; isAuthenticated?: boolean };
       };
-      viewer?: { userId?: string | null; isAuthenticated?: boolean };
+      pagination?: { page?: number; pageSize?: number; total?: number };
     }>("list_comments", {
       targetType: "section",
       sectionJwId: fixtures.DEV_SEED.section.jwId,
@@ -36,17 +39,24 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
     });
 
     expect(result.found).toBe(true);
-    expect(result.target?.type).toBe("section");
-    expect(typeof result.target?.targetId).toBe("number");
-    expect(result.target?.sectionJwId).toBe(fixtures.DEV_SEED.section.jwId);
-    expect(result.target?.sectionCode).toBe(fixtures.DEV_SEED.section.code);
-    expect(result.target?.courseJwId).toBe(fixtures.DEV_SEED.course.jwId);
-    expect(result.target?.courseName).toBe(fixtures.DEV_SEED.course.nameCn);
-    expect(result.viewer?.userId).toBe(context.devUserId);
-    expect(result.viewer?.isAuthenticated).toBe(true);
-    expect(typeof result.hiddenCount).toBe("number");
+    expect(result.meta?.target?.type).toBe("section");
+    expect(typeof result.meta?.target?.targetId).toBe("number");
+    expect(result.meta?.target?.sectionJwId).toBe(
+      fixtures.DEV_SEED.section.jwId,
+    );
+    expect(result.meta?.target?.sectionCode).toBe(
+      fixtures.DEV_SEED.section.code,
+    );
+    expect(result.meta?.target?.courseJwId).toBe(fixtures.DEV_SEED.course.jwId);
+    expect(result.meta?.target?.courseName).toBe(
+      fixtures.DEV_SEED.course.nameCn,
+    );
+    expect(result.meta?.viewer?.userId).toBe(context.devUserId);
+    expect(result.meta?.viewer?.isAuthenticated).toBe(true);
+    expect(typeof result.meta?.hiddenCount).toBe("number");
+    expect(result.pagination).toMatchObject({ page: 1, pageSize: 20 });
 
-    const root = result.comments?.find((comment) =>
+    const root = result.data?.find((comment) =>
       comment.body?.includes(fixtures.DEV_SEED.comments.sectionRootBody),
     );
     expect(root).toBeDefined();
@@ -187,12 +197,14 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
       expect(before).toBeNull();
 
       const result = await context.client.call<{
+        data?: unknown[];
         found?: boolean;
-        comments?: unknown[];
-        target?: {
-          sectionId?: number | null;
-          sectionTeacherId?: number | null;
-          teacherId?: number | null;
+        meta?: {
+          target?: {
+            sectionId?: number | null;
+            sectionTeacherId?: number | null;
+            teacherId?: number | null;
+          };
         };
       }>("list_comments", {
         targetType: "section-teacher",
@@ -201,10 +213,10 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
       });
 
       expect(result.found).toBe(true);
-      expect(result.comments).toEqual([]);
-      expect(result.target?.sectionId).toBe(section.id);
-      expect(result.target?.teacherId).toBe(teacherId);
-      expect(result.target?.sectionTeacherId).toBeNull();
+      expect(result.data).toEqual([]);
+      expect(result.meta?.target?.sectionId).toBe(section.id);
+      expect(result.meta?.target?.teacherId).toBe(teacherId);
+      expect(result.meta?.target?.sectionTeacherId).toBeNull();
 
       const after = await fixtures.prisma.sectionTeacher.findUnique({
         where: {
@@ -584,16 +596,20 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
 
     try {
       const listBefore = await context.client.call<{
-        uploads?: Array<{ filename?: string; id?: string; size?: number }>;
-        maxFileSizeBytes?: number;
-        quotaBytes?: number;
-        usedBytes?: number;
+        data?: Array<{ filename?: string; id?: string; size?: number }>;
+        meta?: {
+          maxFileSizeBytes?: number;
+          quotaBytes?: number;
+          usedBytes?: number;
+        };
+        pagination?: { page?: number; pageSize?: number; total?: number };
       }>("list_my_uploads", { mode: "full" });
-      expect(typeof listBefore.maxFileSizeBytes).toBe("number");
-      expect(typeof listBefore.quotaBytes).toBe("number");
-      expect(typeof listBefore.usedBytes).toBe("number");
+      expect(typeof listBefore.meta?.maxFileSizeBytes).toBe("number");
+      expect(typeof listBefore.meta?.quotaBytes).toBe("number");
+      expect(typeof listBefore.meta?.usedBytes).toBe("number");
+      expect(listBefore.pagination).toMatchObject({ page: 1, pageSize: 20 });
       expect(
-        listBefore.uploads?.some(
+        listBefore.data?.some(
           (item) =>
             item.id === upload.id &&
             item.filename === filename &&

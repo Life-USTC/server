@@ -236,6 +236,12 @@ describe("MCP tool descriptors", () => {
     expect(outputSchemaKeys(result, "create_comment")).toEqual(
       expect.arrayContaining(["id", "success", "error", "message"]),
     );
+    expect(outputSchemaKeys(result, "list_comments")).toEqual(
+      expect.arrayContaining(["found", "data", "pagination", "meta"]),
+    );
+    expect(outputSchemaKeys(result, "list_my_uploads")).toEqual(
+      expect.arrayContaining(["data", "pagination", "meta"]),
+    );
     expect(outputSchemaKeys(result, "get_next_buses")).toEqual(
       expect.arrayContaining(["departures", "nextAvailableDeparture"]),
     );
@@ -264,13 +270,30 @@ describe("MCP tool descriptors", () => {
       priority: { enum: ["low", "medium", "high"] },
     });
 
-    expect(uploadSchema?.properties?.uploads?.anyOf?.[0]?.items).toMatchObject({
+    expect(uploadSchema?.properties?.data?.anyOf?.[0]?.items).toMatchObject({
       type: "object",
       properties: {
         id: { type: "string" },
         key: { type: "string" },
         filename: { type: "string" },
         size: { type: "integer" },
+      },
+    });
+    expect(uploadSchema?.properties?.pagination).toMatchObject({
+      type: "object",
+      properties: {
+        page: { type: "integer" },
+        pageSize: { type: "integer" },
+        total: { type: "integer" },
+        totalPages: { type: "integer" },
+      },
+    });
+    expect(uploadSchema?.properties?.meta).toMatchObject({
+      type: "object",
+      properties: {
+        maxFileSizeBytes: { type: "integer" },
+        quotaBytes: { type: "integer" },
+        usedBytes: { type: "integer" },
       },
     });
 

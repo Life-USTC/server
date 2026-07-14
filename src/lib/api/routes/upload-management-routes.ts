@@ -6,23 +6,50 @@ import {
 } from "@/features/uploads/server/upload-service";
 import {
   badRequest,
+  buildPaginatedResponse,
   errorResponse,
+  getRequestSearchParams,
   handleRouteError,
   jsonResponse,
   notFound,
   parseRouteJsonBody,
+  parseRouteQuery,
 } from "@/lib/api/helpers";
 import { parseUploadId } from "@/lib/api/routes/upload-route-helpers";
-import { uploadRenameRequestSchema } from "@/lib/api/schemas/request-schemas";
+import {
+  uploadRenameRequestSchema,
+  uploadsQuerySchema,
+} from "@/lib/api/schemas/request-schemas";
 import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 import { requireAuth, requireWriteAuth } from "@/lib/auth/api-auth";
 
 type IdParams = { id: string };
 
 export async function getUploadsRoute(request: Request) {
-  return withUploadAuth(request, "Failed to list uploads", (userId) =>
-    listUploads(userId).then(jsonResponse),
-  );
+  return withUploadAuth(request, "Failed to list uploads", async (userId) => {
+    const parsed = parseRouteQuery(
+      getRequestSearchParams(request),
+      uploadsQuerySchema,
+      "Invalid uploads query",
+      { pagination: { defaultPageSize: 20, maxPageSize: 100 } },
+    );
+    if (parsed instanceof Response) return parsed;
+
+    const result = await listUploads(userId, parsed.pagination);
+    return jsonResponse({
+      ...buildPaginatedResponse(
+        result.uploads,
+        parsed.pagination.page,
+        parsed.pagination.pageSize,
+        result.total,
+      ),
+      meta: {
+        maxFileSizeBytes: result.maxFileSizeBytes,
+        quotaBytes: result.quotaBytes,
+        usedBytes: result.usedBytes,
+      },
+    });
+  });
 }
 
 export async function patchUploadRoute(request: Request, params: IdParams) {

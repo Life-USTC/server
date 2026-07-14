@@ -95,7 +95,30 @@ export type CommentTargetLookupRecord = Prisma.CommentGetPayload<{
   select: typeof commentTargetLookupSelect;
 }>;
 
+function directlyVisibleCommentWhere(
+  viewer: ViewerContext,
+): Prisma.CommentWhereInput {
+  const visibleStatus: Prisma.CommentWhereInput = viewer.isAdmin
+    ? { status: { in: ["active", "softbanned"] } }
+    : viewer.userId
+      ? {
+          OR: [
+            { status: "active" },
+            { status: "softbanned", userId: viewer.userId },
+          ],
+        }
+      : { status: "active" };
+
+  return {
+    AND: [
+      visibleStatus,
+      ...(viewer.isAuthenticated ? [] : [{ visibility: "public" as const }]),
+    ],
+  };
+}
+
 export async function loadCommentThread(input: {
+  pagination?: { pageSize: number; skip: number };
   target: ResolvedCommentTarget;
   viewer?: ViewerContext;
   viewerUserId: string | null;
@@ -107,7 +130,64 @@ export async function loadCommentThread(input: {
         includeAdmin: false,
         userId: input.viewerUserId,
       }));
-    return { comments: [], hiddenCount: 0, viewer };
+    return { comments: [], hiddenCount: 0, total: 0, viewer };
+  }
+
+  if (input.pagination) {
+    const viewer =
+      input.viewer ??
+      (await getViewerContext({
+        includeAdmin: false,
+        userId: input.viewerUserId,
+      }));
+    const directlyVisible = directlyVisibleCommentWhere(viewer);
+    const rootWhere = {
+      AND: [
+        input.target.whereTarget,
+        { parentId: null },
+        {
+          OR: [directlyVisible, { thread: { some: directlyVisible } }],
+        },
+      ],
+    } satisfies Prisma.CommentWhereInput;
+    const [total, rootComments, hiddenCount] = await Promise.all([
+      prisma.comment.count({ where: rootWhere }),
+      prisma.comment.findMany({
+        where: rootWhere,
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        skip: input.pagination.skip,
+        take: input.pagination.pageSize,
+        select: { id: true },
+      }),
+      viewer.isAuthenticated
+        ? Promise.resolve(0)
+        : prisma.comment.count({
+            where: {
+              AND: [
+                input.target.whereTarget,
+                { visibility: "logged_in_only" },
+                { status: { not: "deleted" } },
+              ],
+            },
+          }),
+    ]);
+    const rootIds = rootComments.map((comment) => comment.id);
+    const comments =
+      rootIds.length === 0
+        ? []
+        : await prisma.comment.findMany({
+            where: {
+              AND: [
+                input.target.whereTarget,
+                { OR: [{ id: { in: rootIds } }, { rootId: { in: rootIds } }] },
+              ],
+            },
+            include: commentThreadInclude,
+            orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+          });
+
+    const { roots } = buildCommentNodes(comments, viewer);
+    return { comments: roots, hiddenCount, total, viewer };
   }
 
   const [viewer, comments] = await Promise.all([
@@ -122,7 +202,7 @@ export async function loadCommentThread(input: {
   ]);
 
   const { roots, hiddenCount } = buildCommentNodes(comments, viewer);
-  return { comments: roots, hiddenCount, viewer };
+  return { comments: roots, hiddenCount, total: roots.length, viewer };
 }
 
 export async function loadFocusedCommentThread(input: {

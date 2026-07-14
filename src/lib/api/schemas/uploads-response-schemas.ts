@@ -1,5 +1,8 @@
 import * as z from "zod";
-import { dateTimeSchema } from "./response-schema-primitives";
+import {
+  createPaginatedMetaSchema,
+  dateTimeSchema,
+} from "./response-schema-primitives";
 
 export const uploadSummarySchema = z.object({
   id: z.string(),
@@ -9,12 +12,14 @@ export const uploadSummarySchema = z.object({
   createdAt: dateTimeSchema,
 });
 
-export const uploadsListResponseSchema = z.object({
-  maxFileSizeBytes: z.number().int(),
-  quotaBytes: z.number().int(),
-  uploads: z.array(uploadSummarySchema),
-  usedBytes: z.number().int(),
-});
+export const uploadsListResponseSchema = createPaginatedMetaSchema(
+  uploadSummarySchema,
+  z.object({
+    maxFileSizeBytes: z.number().int(),
+    quotaBytes: z.number().int(),
+    usedBytes: z.number().int(),
+  }),
+);
 
 export const uploadCreateResponseSchema = z.object({
   key: z.string(),

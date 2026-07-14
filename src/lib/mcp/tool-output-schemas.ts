@@ -5,6 +5,8 @@ import {
   paginatedSemesterResponseSchema,
   paginatedTeacherResponseSchema,
 } from "@/lib/api/schemas/academic-paginated-response-schemas";
+import { commentNodeSchema } from "@/lib/api/schemas/comment-node-response-schema";
+import { commentsListResponseSchema } from "@/lib/api/schemas/comments-response-schemas";
 import {
   matchSectionCodesResponseSchema,
   meResponseSchema,
@@ -305,8 +307,16 @@ const todoListMcpSchema = objectOutputSchema({
 });
 
 const uploadListMcpSchema = objectOutputSchema({
-  ...uploadsListResponseSchema.shape,
-  uploads: collectionOutputSchema(uploadSummarySchema),
+  data: collectionOutputSchema(uploadSummarySchema),
+  pagination: uploadsListResponseSchema.shape.pagination,
+  meta: uploadsListResponseSchema.shape.meta,
+});
+
+const commentListMcpSchema = objectOutputSchema({
+  found: z.boolean(),
+  data: collectionOutputSchema(commentNodeSchema),
+  pagination: commentsListResponseSchema.shape.pagination,
+  meta: commentsListResponseSchema.shape.meta,
 });
 
 const matchSectionCodesMcpSchema = objectOutputSchema({
@@ -399,12 +409,7 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
   list_my_calendar_events: topLevelOutputSchema(["events"]),
   get_my_7days_timeline: topLevelOutputSchema(["range", "total", "events"]),
 
-  list_comments: topLevelOutputSchema([
-    "comments",
-    "hiddenCount",
-    "viewer",
-    "target",
-  ]),
+  list_comments: commentListMcpSchema,
   get_comment_thread: topLevelOutputSchema([
     "thread",
     "focusId",
