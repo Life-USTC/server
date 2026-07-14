@@ -8,7 +8,7 @@
  * - Query: `sectionId` (optional, int), `teacherId` (optional, int),
  *          `roomId` (optional, int), `dateFrom` (optional, date string),
  *          `dateTo` (optional, date string), `weekday` (optional, int 1-7),
- *          `page` (optional), `limit` (optional)
+ *          `page` (optional), `pageSize` (optional), and deprecated `limit` alias
  *
  * ## Response
  * - 200: `{ data: Schedule[], pagination: { page, pageSize, total, totalPages } }`
@@ -166,8 +166,8 @@ test.describe("GET /api/schedules - 排课列表", () => {
     expect(response.status()).toBe(400);
   });
 
-  test("limit 参数控制页大小", async ({ request }) => {
-    const response = await request.get("/api/schedules?limit=1");
+  test("pageSize 参数控制页大小", async ({ request }) => {
+    const response = await request.get("/api/schedules?pageSize=1");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       data?: unknown[];

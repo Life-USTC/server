@@ -6,7 +6,7 @@
  *
  * ## Request
  * - Query: `departmentId` (optional, integer), `search` (optional, matches nameCn/nameEn/code),
- *          `page` (optional), `limit` (optional)
+ *          `page` (optional), `pageSize` (optional), and deprecated `limit` alias
  *
  * ## Response
  * - 200: `{ data: Teacher[], pagination: { page, pageSize, total, totalPages } }`
@@ -106,8 +106,8 @@ test.describe("GET /api/teachers", () => {
     expect(body.pagination?.page).toBe(1);
   });
 
-  test("limit 参数控制页大小", async ({ request }) => {
-    const response = await request.get("/api/teachers?limit=1");
+  test("pageSize 参数控制页大小", async ({ request }) => {
+    const response = await request.get("/api/teachers?pageSize=1");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       data?: unknown[];

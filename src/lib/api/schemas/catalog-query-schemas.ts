@@ -1,14 +1,16 @@
 import * as z from "zod";
 import {
   dateInputStringSchema,
+  deprecatedPaginationLimitParam,
   integerStringRangeSchema,
   integerStringSchema,
+  paginationPageSizeParam,
 } from "./request-schema-primitives";
 
-const catalogPaginationLimitSchema = integerStringRangeSchema({
+const catalogPaginationPageSizeSchema = integerStringRangeSchema({
   minimum: 1,
   maximum: 100,
-  message: "Limit must be between 1 and 100",
+  message: "pageSize must be between 1 and 100",
 });
 
 const weekdayStringSchema = integerStringSchema
@@ -48,7 +50,8 @@ export const sectionsQuerySchema = z.object({
   ids: z.string().trim().optional(),
   jwIds: z.string().trim().optional(),
   page: integerStringSchema.optional(),
-  limit: catalogPaginationLimitSchema.optional(),
+  pageSize: paginationPageSizeParam(catalogPaginationPageSizeSchema),
+  limit: deprecatedPaginationLimitParam(catalogPaginationPageSizeSchema),
 });
 
 export const schedulesQuerySchema = z.object({
@@ -63,7 +66,8 @@ export const schedulesQuerySchema = z.object({
   dateFrom: dateInputStringSchema.optional(),
   dateTo: dateInputStringSchema.optional(),
   page: integerStringSchema.optional(),
-  limit: catalogPaginationLimitSchema.optional(),
+  pageSize: paginationPageSizeParam(catalogPaginationPageSizeSchema),
+  limit: deprecatedPaginationLimitParam(catalogPaginationPageSizeSchema),
 });
 
 export const sectionSchedulesQuerySchema = z.object({
@@ -76,7 +80,8 @@ export const teachersQuerySchema = z.object({
   departmentId: integerStringSchema.optional(),
   search: z.string().trim().optional(),
   page: integerStringSchema.optional(),
-  limit: catalogPaginationLimitSchema.optional(),
+  pageSize: paginationPageSizeParam(catalogPaginationPageSizeSchema),
+  limit: deprecatedPaginationLimitParam(catalogPaginationPageSizeSchema),
 });
 
 export const coursesQuerySchema = z.object({
@@ -85,5 +90,6 @@ export const coursesQuerySchema = z.object({
   categoryId: integerStringSchema.optional(),
   classTypeId: integerStringSchema.optional(),
   page: integerStringSchema.optional(),
-  limit: catalogPaginationLimitSchema.optional(),
+  pageSize: paginationPageSizeParam(catalogPaginationPageSizeSchema),
+  limit: deprecatedPaginationLimitParam(catalogPaginationPageSizeSchema),
 });

@@ -53,8 +53,8 @@ test("班级列表项包含教师数组", async ({ request }) => {
   expect(Array.isArray(section?.teachers)).toBe(true);
 });
 
-test("limit 参数控制班级列表页大小", async ({ request }) => {
-  const response = await request.get("/api/sections?limit=1");
+test("pageSize 参数控制班级列表页大小", async ({ request }) => {
+  const response = await request.get("/api/sections?pageSize=1");
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
     data?: unknown[];

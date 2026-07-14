@@ -14,10 +14,10 @@ async function expectInvalidQueryResponse(
 }
 
 describe("API 路由查询校验", () => {
-  it("在限制前拒绝过大的公开分页限制", async () => {
+  it("在查询前拒绝过大的 pageSize 与 limit 别名", async () => {
     await expectInvalidQueryResponse(
       getCoursesRoute(
-        new Request("https://example.test/api/courses?limit=101"),
+        new Request("https://example.test/api/courses?pageSize=101"),
       ),
       "Invalid course query",
     );
