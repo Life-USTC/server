@@ -22,7 +22,10 @@ import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { getSeedTeacherDepartmentFixture } from "../../../utils/e2e-db";
 import { visibleText } from "../../../utils/locators";
-import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import {
+  expectNoPageHorizontalOverflow,
+  gotoAndWaitForReady,
+} from "../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../utils/request-url";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
@@ -52,6 +55,7 @@ test.describe("/teachers", () => {
       `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
       { testInfo, screenshotLabel: "teachers-list" },
     );
+    await expectNoPageHorizontalOverflow(page);
 
     const detailLink = page
       .locator("#main-content a[href^='/teachers/']:visible")
