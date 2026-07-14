@@ -5,14 +5,24 @@ contracts live in [docs/contracts/](./docs/contracts/).
 
 ## 快速开始
 
+准备 `.bun-version` 指定的 Bun、Docker Compose 和 PostgreSQL 客户端（seed
+脚本会在宿主机调用 `psql`），然后按同一顺序初始化本地环境：
+
 ```bash
 bun install --frozen-lockfile
 cp .env.example .env
 docker compose -f docker-compose.dev.yml up -d
+bun run app:prepare
+bun run db:migrate:deploy
+bunx prisma db seed
 bun run dev
 ```
 
-首次本地启动前先从 `.env.example` 创建 `.env`，因为 `bun run dev` 会在启动 Vite 前运行 Prisma 迁移并读取 `DATABASE_URL`。本地数据库由 Docker Compose 管理；需要数据库时先启动本地 infra，再运行应用。上传存储使用 Cloudflare `R2_UPLOADS` 绑定，需通过 Wrangler 相关流程本地验证。生产应用由 Cloudflare Git integration 发布，Docker 只保留静态数据加载环境。
+`bun run dev` 只启动 Vite，不会生成 Prisma 客户端、运行迁移或写入 seed。
+本地数据库由 Docker Compose 管理；首次启动及 schema/seed 更新后，先完成上述
+prepare、migrate、seed 步骤。上传存储使用 Cloudflare `R2_UPLOADS` 绑定，需通过
+Wrangler 相关流程本地验证。生产应用由 Cloudflare Git integration 发布，Docker
+只保留静态数据加载环境。
 
 生产 Workers Builds 配置：
 - Build command: `bun install --frozen-lockfile && bun run app:prepare && bun run build`
