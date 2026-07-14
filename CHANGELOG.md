@@ -1,3 +1,11 @@
+## [1.49.6](https://github.com/Life-USTC/server/compare/v1.49.5...v1.49.6) (2026-07-14)
+
+
+### Bug Fixes
+
+* **seed:** make scenario loading repeatable ([#424](https://github.com/Life-USTC/server/issues/424)) ([3bb3cf9](https://github.com/Life-USTC/server/commit/3bb3cf97eb02e854ab5096642a73550f86b83db6))
+* **uploads:** keep list reads side-effect free ([#422](https://github.com/Life-USTC/server/issues/422)) ([d87c3aa](https://github.com/Life-USTC/server/commit/d87c3aac13d1512e0b2098185e61f08cd5fe360d))
+
 ## [1.49.5](https://github.com/Life-USTC/server/compare/v1.49.4...v1.49.5) (2026-07-14)
 
 
