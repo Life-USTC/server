@@ -10,6 +10,18 @@ type GotoOptions = {
 
 const GOTO_RETRY_ATTEMPTS = 3;
 
+export async function expectNoPageHorizontalOverflow(page: Page) {
+  const geometry = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+
+  expect(
+    geometry.scrollWidth,
+    `Expected page scrollWidth (${geometry.scrollWidth}) not to exceed clientWidth (${geometry.clientWidth})`,
+  ).toBeLessThanOrEqual(geometry.clientWidth);
+}
+
 export async function waitForUiSettled(
   page: Page,
   options: {
