@@ -16,7 +16,13 @@ This skill records the canonical order of commands for developing, checking, and
 
 ## 1. Start dev environment
 
+Install the Bun version pinned in `.bun-version`, Docker Compose, and the
+PostgreSQL client first. The Prisma seed command delegates to host `psql`
+through `prisma/seed.sh`.
+
 ```bash
+bun install --frozen-lockfile
+cp .env.example .env
 docker compose -f docker-compose.dev.yml up -d
 bun run app:prepare
 bun run db:migrate:deploy
