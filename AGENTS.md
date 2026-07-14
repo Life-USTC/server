@@ -72,9 +72,9 @@ Docker runtime is the static loader.
 ## Shared Test Seed
 
 - Canonical seeded fixture data lives in `tests/e2e/fixtures/scenario.json`; `tests/fixtures/dev-seed.ts` exports the named constants used by tests.
-- `prisma/seed.sql` is currently a minimal placeholder (two dev users). E2E/integration tests that depend on the full legacy scenario will fail until the seed SQL is expanded.
+- `prisma/seed.sql` contains the executable canonical scenario, including the shared users, catalog, schedule, bus, and collaboration records used by E2E/integration tests.
 - The shared anchor comes from `DEV_SEED_ANCHOR` in `tests/fixtures/dev-seed.ts`. Use `.date` for bare date filters, `.recommendedAtTime` for time-sensitive tool calls, and `.startOfDayAtTime` when a test needs the seed day boundary.
-- `$life-ustc-dev-loop` seeds the minimal placeholder; if you invoke integration specs directly, run `bunx prisma db seed` first.
+- `$life-ustc-dev-loop` loads that canonical scenario; if you invoke integration specs directly, run `bunx prisma db seed` first. The seed runner invokes host `psql`, so install the PostgreSQL client locally.
 - Scoped `tests/**/AGENTS.md` files should only add layer-specific caveats and link shared commands/setup back here or to helper files such as `tests/integration/utils/mcp-harness.ts`.
 
 ## Local Dev Environment
@@ -85,7 +85,9 @@ Docker runtime is the static loader.
 - `bun run dev` starts Vite directly; run `bun run app:prepare` and `bun run db:migrate:deploy` (or follow `$life-ustc-dev-loop`) before the first start. It no longer auto-runs OpenAPI generation or migrations.
 - Host-native `bun run dev` is pinned to `127.0.0.1:3000`.
 - Prefer these flows for pain-free setup:
-  1. `docker compose -f docker-compose.dev.yml up -d && bun run dev` for host-native app dev
+  1. Start Postgres with `docker compose -f docker-compose.dev.yml up -d`.
+  2. Run `bun run app:prepare`, `bun run db:migrate:deploy`, and `bunx prisma db seed`.
+  3. Run `bun run dev` for the host-native app.
 
 ## Production Deployment
 
