@@ -111,7 +111,7 @@ jobs:
           install-playwright: ${{ inputs.install-playwright && 'true' || 'false' }}
 
       - name: Install PostgreSQL client
-        if: ${{ inputs.job-phase == 'ci:e2e:test' }}
+        if: ${{ inputs.job-phase == 'ci:integration' || inputs.job-phase == 'ci:e2e:test' }}
         shell: bash
         run: |
           sudo apt-get update
@@ -161,6 +161,12 @@ jobs:
               bunx tsc --noEmit -p tsconfig.typecheck.tests.json
               bunx tsc --noEmit -p tsconfig.typecheck.operational.json
               bunx vitest run
+              ;;
+            ci:integration)
+              bun run app:prepare
+              bun run db:migrate:deploy
+              bunx prisma db seed
+              bunx vitest run --config vitest.integration.config.ts
               ;;
             ci:e2e:build-artifacts)
               bun run app:prepare

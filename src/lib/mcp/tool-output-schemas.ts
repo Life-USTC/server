@@ -525,7 +525,9 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
   }),
 
   search_courses: paginatedCourseMcpSchema,
-  get_course_by_jw_id: objectOutputSchema({ course: compactCourseSchema }),
+  get_course_by_jw_id: objectOutputSchema({
+    course: compactCourseSchema.nullable(),
+  }),
   list_semesters: paginatedSemesterMcpSchema,
   get_current_semester: objectOutputSchema({ semester: compactSemesterSchema }),
 
