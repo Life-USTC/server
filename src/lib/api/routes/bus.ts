@@ -9,10 +9,6 @@ import {
   parseBusPreferenceBody,
   parseBusRouteQuery,
 } from "@/lib/api/routes/bus-route-request";
-import {
-  parseOptionalDateQuery,
-  parsePositiveIntegerQuery,
-} from "@/lib/api/routes/query-value-parsing";
 import { getRequestLocale } from "@/lib/api/routes/request-locale";
 import {
   busNextDeparturesQuerySchema,
@@ -64,28 +60,14 @@ export async function getBusRoutesSearchRoute(request: Request) {
   );
   if (parsedQuery instanceof Response) return parsedQuery;
 
-  const originCampusId = parsePositiveIntegerQuery(
-    "originCampusId",
-    parsedQuery.originCampusId,
-    { message: "Invalid bus route search query" },
-  );
-  if (originCampusId instanceof Response) return originCampusId;
-
-  const destinationCampusId = parsePositiveIntegerQuery(
-    "destinationCampusId",
-    parsedQuery.destinationCampusId,
-    { message: "Invalid bus route search query" },
-  );
-  if (destinationCampusId instanceof Response) return destinationCampusId;
-
   try {
     const { searchBusRoutes } = await import(
       "@/features/bus/server/bus-service"
     );
     const result = await searchBusRoutes({
-      destinationCampusId,
+      destinationCampusId: parsedQuery.destinationCampusId,
       locale: parsedQuery.locale ?? getRequestLocale(request),
-      originCampusId,
+      originCampusId: parsedQuery.originCampusId,
       versionKey: parsedQuery.versionKey ?? null,
     });
 
@@ -108,54 +90,18 @@ export async function getBusNextDeparturesRoute(request: Request) {
   );
   if (parsedQuery instanceof Response) return parsedQuery;
 
-  const originCampusId = parsePositiveIntegerQuery(
-    "originCampusId",
-    parsedQuery.originCampusId,
-    { message: "Invalid bus next-departures query" },
-  );
-  if (originCampusId instanceof Response) return originCampusId;
-
-  const destinationCampusId = parsePositiveIntegerQuery(
-    "destinationCampusId",
-    parsedQuery.destinationCampusId,
-    { message: "Invalid bus next-departures query" },
-  );
-  if (destinationCampusId instanceof Response) return destinationCampusId;
-
-  if (originCampusId === undefined || destinationCampusId === undefined) {
-    return handleRouteError(
-      "Invalid bus next-departures query",
-      "originCampusId and destinationCampusId are required",
-      400,
-    );
-  }
-
-  const atTime = parseOptionalDateQuery(
-    "atTime",
-    parsedQuery.atTime,
-    "Invalid bus next-departures query",
-  );
-  if (atTime instanceof Response) return atTime;
-
-  const limit = parsePositiveIntegerQuery("limit", parsedQuery.limit, {
-    defaultValue: 5,
-    max: 50,
-    message: "Invalid bus next-departures query",
-  });
-  if (limit instanceof Response) return limit;
-
   try {
     const { getNextBusDepartures } = await import(
       "@/features/bus/server/bus-service"
     );
     const result = await getNextBusDepartures({
-      atTime: atTime?.toISOString(),
+      atTime: parsedQuery.atTime?.toISOString(),
       dayType: parsedQuery.dayType ?? "auto",
-      destinationCampusId,
-      includeDeparted: parsedQuery.includeDeparted === "true",
-      limit,
+      destinationCampusId: parsedQuery.destinationCampusId,
+      includeDeparted: parsedQuery.includeDeparted ?? false,
+      limit: parsedQuery.limit ?? 5,
       locale: parsedQuery.locale ?? getRequestLocale(request),
-      originCampusId,
+      originCampusId: parsedQuery.originCampusId,
       userId: await resolveApiUserId(request),
       versionKey: parsedQuery.versionKey ?? null,
     });

@@ -1,15 +1,22 @@
 import * as z from "zod";
 import { APP_LOCALES } from "@/i18n/config";
 import {
-  dateInputStringSchema,
+  booleanQuerySchema,
+  dateQuerySchema,
   deprecatedPaginationLimitParam,
+  integerQueryRangeSchema,
   integerStringRangeSchema,
   integerStringSchema,
   paginationPageSizeParam,
   todoPrioritySchema,
 } from "./request-schema-primitives";
 
-const busNextDeparturesLimitSchema = integerStringRangeSchema({
+const positiveCampusIdQuerySchema = integerQueryRangeSchema({
+  minimum: 1,
+  message: "campus ID must be a positive integer",
+});
+
+const busNextDeparturesLimitSchema = integerQueryRangeSchema({
   minimum: 1,
   maximum: 50,
   message: "limit must be between 1 and 50",
@@ -21,65 +28,53 @@ const publicPaginationPageSizeSchema = integerStringRangeSchema({
   message: "pageSize must be between 1 and 100",
 });
 
-const subscribedSchedulesWeekdaySchema = integerStringRangeSchema({
+const subscribedSchedulesWeekdaySchema = integerQueryRangeSchema({
   minimum: 1,
   maximum: 7,
   message: "weekday must be between 1 and 7",
 });
 
-const subscribedSchedulesLimitSchema = integerStringRangeSchema({
+const subscribedSchedulesLimitSchema = integerQueryRangeSchema({
   minimum: 1,
   maximum: 300,
   message: "limit must be between 1 and 300",
 });
 
-const todoLimitSchema = integerStringRangeSchema({
+const todoLimitSchema = integerQueryRangeSchema({
   minimum: 1,
   maximum: 200,
   message: "limit must be between 1 and 200",
 });
 
-const overviewHomeworkWindowDaysSchema = integerStringSchema
-  .refine(
-    (value) => {
-      const days = Number.parseInt(value, 10);
-      return days >= 1 && days <= 90;
-    },
-    { message: "homeworkWindowDays must be between 1 and 90" },
-  )
-  .meta({
-    override: { type: "integer", format: "int64", minimum: 1, maximum: 90 },
-  });
+const overviewHomeworkWindowDaysSchema = integerQueryRangeSchema({
+  minimum: 1,
+  maximum: 90,
+  message: "homeworkWindowDays must be between 1 and 90",
+});
 
-const compactOverviewLimitSchema = integerStringSchema
-  .refine(
-    (value) => {
-      const limit = Number.parseInt(value, 10);
-      return limit >= 1 && limit <= 50;
-    },
-    { message: "limit must be between 1 and 50" },
-  )
-  .meta({
-    override: { type: "integer", format: "int64", minimum: 1, maximum: 50 },
-  });
+const compactOverviewLimitSchema = integerQueryRangeSchema({
+  minimum: 1,
+  maximum: 50,
+  message: "limit must be between 1 and 50",
+});
 
 export const busQuerySchema = z.object({
   versionKey: z.string().trim().min(1).optional(),
 });
 
 export const busRouteSearchQuerySchema = z.object({
-  originCampusId: integerStringSchema.optional(),
-  destinationCampusId: integerStringSchema.optional(),
+  originCampusId: positiveCampusIdQuerySchema.optional(),
+  destinationCampusId: positiveCampusIdQuerySchema.optional(),
   versionKey: z.string().trim().min(1).optional(),
   locale: z.enum(APP_LOCALES).optional(),
 });
 
 export const busNextDeparturesQuerySchema = z.object({
-  originCampusId: integerStringSchema,
-  destinationCampusId: integerStringSchema,
-  atTime: z.string().trim().min(1).optional(),
+  originCampusId: positiveCampusIdQuerySchema,
+  destinationCampusId: positiveCampusIdQuerySchema,
+  atTime: dateQuerySchema().optional(),
   dayType: z.enum(["auto", "weekday", "weekend"]).optional(),
-  includeDeparted: z.enum(["true", "false"]).optional(),
+  includeDeparted: booleanQuerySchema.optional(),
   limit: busNextDeparturesLimitSchema.optional(),
   versionKey: z.string().trim().min(1).optional(),
   locale: z.enum(APP_LOCALES).optional(),
@@ -107,15 +102,15 @@ export const semestersQuerySchema = z.object({
 });
 
 export const subscribedSchedulesQuerySchema = z.object({
-  dateFrom: dateInputStringSchema.optional(),
-  dateTo: dateInputStringSchema.optional(),
+  dateFrom: dateQuerySchema().optional(),
+  dateTo: dateQuerySchema().optional(),
   weekday: subscribedSchedulesWeekdaySchema.optional(),
   limit: subscribedSchedulesLimitSchema.optional(),
   locale: z.enum(APP_LOCALES).optional(),
 });
 
 export const compactOverviewQuerySchema = z.object({
-  atTime: z.string().trim().min(1).optional(),
+  atTime: dateQuerySchema({ dateOnlyAsShanghaiStart: true }).optional(),
   homeworkWindowDays: overviewHomeworkWindowDaysSchema.optional(),
   limit: compactOverviewLimitSchema.optional(),
   locale: z.enum(APP_LOCALES).optional(),
@@ -146,10 +141,10 @@ export const publicUserProfileQuerySchema = z
   });
 
 export const todosQuerySchema = z.object({
-  completed: z.enum(["true", "false"]).optional(),
+  completed: booleanQuerySchema.optional(),
   priority: todoPrioritySchema.optional(),
-  dueBefore: dateInputStringSchema.optional(),
-  dueAfter: dateInputStringSchema.optional(),
+  dueBefore: dateQuerySchema().optional(),
+  dueAfter: dateQuerySchema().optional(),
   limit: todoLimitSchema.optional(),
 });
 

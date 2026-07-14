@@ -91,6 +91,17 @@ describe("homework REST locale 适配", () => {
       sectionIds: [12],
       userId: "viewer-1",
     });
+
+    const includeDeletedResponse = await getHomeworksRoute(
+      request("/api/homeworks?sectionId=12&includeDeleted=true"),
+    );
+    expect(includeDeletedResponse.status).toBe(200);
+    expect(listSectionHomeworksWithAuditMock).toHaveBeenLastCalledWith({
+      includeDeleted: true,
+      locale: "en-us",
+      sectionIds: [12],
+      userId: "viewer-1",
+    });
   });
 
   it("将请求 locale 传递给已订阅作业列表读取", async () => {

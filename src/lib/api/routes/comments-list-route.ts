@@ -19,7 +19,7 @@ export async function getCommentsRoute(request: Request) {
     "Invalid target",
   );
   if (parsedQuery instanceof Response) {
-    return badRequest("Invalid target");
+    return parsedQuery;
   }
 
   const targetType = parsedQuery.targetType;

@@ -3,10 +3,6 @@ import {
   jsonResponse,
   parseRouteSearchParams,
 } from "@/lib/api/helpers";
-import {
-  parseOptionalDateQuery,
-  parsePositiveIntegerQuery,
-} from "@/lib/api/routes/query-value-parsing";
 import { getRequestLocale } from "@/lib/api/routes/request-locale";
 import { subscribedSchedulesQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { requireAuth } from "@/lib/auth/api-auth";
@@ -27,43 +23,16 @@ export async function getMySubscribedSchedulesRoute(request: Request) {
   );
   if (parsedQuery instanceof Response) return parsedQuery;
 
-  const dateFrom = parseOptionalDateQuery(
-    "dateFrom",
-    parsedQuery.dateFrom,
-    "Invalid subscribed schedules query",
-  );
-  if (dateFrom instanceof Response) return dateFrom;
-
-  const dateTo = parseOptionalDateQuery(
-    "dateTo",
-    parsedQuery.dateTo,
-    "Invalid subscribed schedules query",
-  );
-  if (dateTo instanceof Response) return dateTo;
-
-  const weekday = parsePositiveIntegerQuery("weekday", parsedQuery.weekday, {
-    max: 7,
-    message: "Invalid subscribed schedules query",
-  });
-  if (weekday instanceof Response) return weekday;
-
-  const limit = parsePositiveIntegerQuery("limit", parsedQuery.limit, {
-    defaultValue: 150,
-    max: 300,
-    message: "Invalid subscribed schedules query",
-  });
-  if (limit instanceof Response) return limit;
-
   try {
     const { listSubscribedSchedules } = await import(
       "@/features/subscriptions/server/subscription-read-model"
     );
     const schedules = await listSubscribedSchedules(userId, {
-      dateFrom,
-      dateTo,
-      limit,
+      dateFrom: parsedQuery.dateFrom,
+      dateTo: parsedQuery.dateTo,
+      limit: parsedQuery.limit ?? 150,
       locale: parsedQuery.locale ?? getRequestLocale(request),
-      weekday,
+      weekday: parsedQuery.weekday,
     });
 
     return jsonResponse({

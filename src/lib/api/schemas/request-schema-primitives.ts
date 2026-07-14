@@ -3,8 +3,11 @@ import { sectionCodeSchema } from "@/features/catalog/lib/section-code-schema";
 import { commentTargetTypeSchema } from "@/features/comments/lib/comment-target-input-schemas";
 import { todoPrioritySchema } from "@/features/todos/lib/todo-schema";
 import { parseDateInput } from "@/lib/time/parse-date-input";
+import { startOfShanghaiDay } from "@/lib/time/shanghai-format";
 import { parseInteger } from "../request-integers";
 import { commentVisibilitySchema } from "./shared-enum-schemas";
+
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 const parseOptionalIntLike = (value: unknown) => {
   if (value === null || value === undefined || value === "") {
@@ -61,6 +64,36 @@ export function integerStringRangeSchema({
     });
 }
 
+export const integerQuerySchema = integerStringSchema
+  .transform((value) => Number(value))
+  .meta({ override: { type: "integer", format: "int64" } });
+
+export function integerQueryRangeSchema({
+  maximum,
+  message,
+  minimum,
+}: {
+  maximum?: number;
+  message: string;
+  minimum: number;
+}) {
+  return integerQuerySchema
+    .refine(
+      (value) => {
+        return value >= minimum && (maximum === undefined || value <= maximum);
+      },
+      { message },
+    )
+    .meta({
+      override: {
+        type: "integer",
+        format: "int64",
+        minimum,
+        ...(maximum === undefined ? {} : { maximum }),
+      },
+    });
+}
+
 export function paginationPageSizeParam<TSchema extends z.ZodType>(
   schema: TSchema,
 ) {
@@ -95,6 +128,34 @@ export const dateInputStringSchema = z
       description: "YYYY-MM-DD or ISO date/time accepted by parseDateInput",
     },
   });
+
+export function dateQuerySchema(
+  options: { dateOnlyAsShanghaiStart?: boolean } = {},
+) {
+  return dateInputStringSchema
+    .transform((value) => {
+      const parsed = parseDateInput(value);
+      if (!(parsed instanceof Date)) {
+        throw new TypeError("Validated date query could not be parsed");
+      }
+
+      return options.dateOnlyAsShanghaiStart && DATE_ONLY_PATTERN.test(value)
+        ? startOfShanghaiDay(parsed)
+        : parsed;
+    })
+    .meta({
+      override: {
+        type: "string",
+        minLength: 1,
+        description: "YYYY-MM-DD or ISO date/time accepted by parseDateInput",
+      },
+    });
+}
+
+export const booleanQuerySchema = z
+  .enum(["true", "false"])
+  .transform((value) => value === "true")
+  .meta({ override: { type: "string", enum: ["true", "false"] } });
 
 export const commentReactionTypeSchema = z.enum([
   "upvote",

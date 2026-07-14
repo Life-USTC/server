@@ -11,6 +11,7 @@ import {
   adminHomeworksQuerySchema,
   adminUsersQuerySchema,
   busNextDeparturesQuerySchema,
+  busRouteSearchQuerySchema,
   calendarSubscriptionAppendRequestSchema,
   calendarSubscriptionBatchRequestSchema,
   calendarSubscriptionCreateRequestSchema,
@@ -19,13 +20,16 @@ import {
   commentReactionRequestSchema,
   commentsQuerySchema,
   commentUpdateRequestSchema,
+  compactOverviewQuerySchema,
   coursesQuerySchema,
   descriptionUpsertRequestSchema,
   homeworkCompletionBatchRequestSchema,
   homeworkCreateRequestSchema,
+  homeworksQuerySchema,
   localeUpdateRequestSchema,
   matchSectionCodesRequestSchema,
   schedulesQuerySchema,
+  sectionSchedulesQuerySchema,
   sectionsQuerySchema,
   semestersQuerySchema,
   subscribedSchedulesQuerySchema,
@@ -526,6 +530,69 @@ describe("其他请求 schema", () => {
     ).toBe(false);
   });
 
+  it("在 schema 中一次性将查询值转换为领域类型", () => {
+    const schedule = schedulesQuerySchema.parse({
+      dateFrom: "2026-03-01",
+      sectionJwId: "123",
+      weekday: "2",
+    });
+    expect(schedule).toMatchObject({ sectionJwId: 123, weekday: 2 });
+    expect(schedule.dateFrom).toEqual(new Date("2026-03-01T00:00:00.000Z"));
+
+    expect(sectionSchedulesQuerySchema.parse({ limit: "25" })).toMatchObject({
+      limit: 25,
+    });
+    expect(
+      busRouteSearchQuerySchema.parse({
+        destinationCampusId: "2",
+        originCampusId: "1",
+      }),
+    ).toMatchObject({ destinationCampusId: 2, originCampusId: 1 });
+
+    const busNext = busNextDeparturesQuerySchema.parse({
+      atTime: "2026-03-01T08:30:00+08:00",
+      destinationCampusId: "2",
+      includeDeparted: "false",
+      limit: "5",
+      originCampusId: "1",
+    });
+    expect(busNext).toMatchObject({
+      destinationCampusId: 2,
+      includeDeparted: false,
+      limit: 5,
+      originCampusId: 1,
+    });
+    expect(busNext.atTime).toEqual(new Date("2026-03-01T00:30:00.000Z"));
+
+    const subscribed = subscribedSchedulesQuerySchema.parse({
+      dateFrom: "2026-03-01",
+      limit: "150",
+      weekday: "7",
+    });
+    expect(subscribed).toMatchObject({ limit: 150, weekday: 7 });
+    expect(subscribed.dateFrom).toEqual(new Date("2026-03-01T00:00:00.000Z"));
+
+    const overview = compactOverviewQuerySchema.parse({
+      atTime: "2026-03-01",
+      homeworkWindowDays: "7",
+      limit: "3",
+    });
+    expect(overview).toMatchObject({ homeworkWindowDays: 7, limit: 3 });
+    expect(overview.atTime).toEqual(new Date("2026-02-28T16:00:00.000Z"));
+
+    const todos = todosQuerySchema.parse({
+      completed: "true",
+      dueBefore: "2026-03-01",
+      limit: "20",
+    });
+    expect(todos).toMatchObject({ completed: true, limit: 20 });
+    expect(todos.dueBefore).toEqual(new Date("2026-03-01T00:00:00.000Z"));
+
+    expect(homeworksQuerySchema.parse({ includeDeleted: "true" })).toEqual({
+      includeDeleted: true,
+    });
+  });
+
   it("校验分页 pageSize 与废弃 limit 别名的边界", () => {
     const paginatedSchemas = [
       coursesQuerySchema,
@@ -565,6 +632,12 @@ describe("其他请求 schema", () => {
       busNextDeparturesQuerySchema.safeParse({
         ...validBusNextQuery,
         limit: "51",
+      }).success,
+    ).toBe(false);
+    expect(
+      busNextDeparturesQuerySchema.safeParse({
+        ...validBusNextQuery,
+        originCampusId: "0",
       }).success,
     ).toBe(false);
     expect(todosQuerySchema.safeParse({ limit: "200" }).success).toBe(true);

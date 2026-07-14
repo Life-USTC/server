@@ -21,15 +21,13 @@ export async function getHomeworksRoute(request: Request) {
     return parsedQuery;
   }
 
-  const includeDeleted = parsedQuery.includeDeleted === "true";
-
   try {
     const sectionIdList = await resolveHomeworkRouteSectionIds(parsedQuery);
     if (sectionIdList instanceof Response) return sectionIdList;
 
     const viewerUserId = await resolveApiUserId(request);
     const result = await listSectionHomeworksWithAudit({
-      includeDeleted,
+      includeDeleted: parsedQuery.includeDeleted ?? false,
       locale: getRequestLocale(request),
       sectionIds: sectionIdList,
       userId: viewerUserId,

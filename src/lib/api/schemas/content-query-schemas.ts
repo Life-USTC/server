@@ -1,6 +1,7 @@
 import * as z from "zod";
 import { commentTargetQueryInputSchema } from "@/features/comments/lib/comment-target-input-schemas";
 import {
+  booleanQuerySchema,
   descriptionTargetTypeSchema,
   integerStringSchema,
 } from "./request-schema-primitives";
@@ -20,7 +21,7 @@ export const homeworksQuerySchema = z.object({
   sectionId: integerStringSchema.optional(),
   sectionIds: z.string().trim().min(1).optional(),
   sectionJwId: integerStringSchema.optional(),
-  includeDeleted: z.enum(["true", "false"]).optional(),
+  includeDeleted: booleanQuerySchema.optional(),
 });
 
 export const sectionsCalendarQuerySchema = z.object({
