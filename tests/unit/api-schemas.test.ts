@@ -6,6 +6,10 @@ import {
 import { HOMEWORK_DESCRIPTION_MAX_LENGTH } from "@/features/homeworks/lib/homework-limits";
 import { TODO_CONTENT_MAX_LENGTH } from "@/features/todos/lib/todo-limits";
 import {
+  adminCommentsQuerySchema,
+  adminDescriptionsQuerySchema,
+  adminHomeworksQuerySchema,
+  adminUsersQuerySchema,
   busNextDeparturesQuerySchema,
   calendarSubscriptionAppendRequestSchema,
   calendarSubscriptionBatchRequestSchema,
@@ -522,17 +526,31 @@ describe("其他请求 schema", () => {
     ).toBe(false);
   });
 
-  it("校验文档中记录的查询 limit 边界", () => {
-    for (const schema of [
+  it("校验分页 pageSize 与废弃 limit 别名的边界", () => {
+    const paginatedSchemas = [
       coursesQuerySchema,
       sectionsQuerySchema,
       schedulesQuerySchema,
       teachersQuerySchema,
       semestersQuerySchema,
-    ]) {
+    ];
+    for (const schema of paginatedSchemas) {
+      expect(schema.safeParse({ pageSize: "100" }).success).toBe(true);
+      expect(schema.safeParse({ pageSize: "101" }).success).toBe(false);
+      expect(schema.safeParse({ pageSize: "0" }).success).toBe(false);
       expect(schema.safeParse({ limit: "100" }).success).toBe(true);
       expect(schema.safeParse({ limit: "101" }).success).toBe(false);
       expect(schema.safeParse({ limit: "0" }).success).toBe(false);
+    }
+
+    for (const schema of [
+      adminCommentsQuerySchema,
+      adminDescriptionsQuerySchema,
+      adminHomeworksQuerySchema,
+      adminUsersQuerySchema,
+    ]) {
+      expect(schema.safeParse({ pageSize: "50" }).success).toBe(true);
+      expect(schema.safeParse({ limit: "50" }).success).toBe(true);
     }
 
     const validBusNextQuery = {

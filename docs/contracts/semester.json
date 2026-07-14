@@ -25,7 +25,7 @@
             "path": "/api/semesters",
             "returns": "PaginatedResponse<SemesterSummary>",
             "notes": [
-              "Pagination limit accepts 1-100; REST and MCP reject out-of-range values instead of clamping."
+              "REST pageSize accepts 1-100; the deprecated limit alias remains accepted and pageSize wins when both are supplied. Out-of-range values are rejected instead of clamped."
             ]
           }
         ]
@@ -37,7 +37,7 @@
             "returns": "PaginatedResponse<SemesterSummary>",
             "rest_equivalent": "GET /api/semesters",
             "notes": [
-              "Pagination limit accepts 1-100; REST and MCP reject out-of-range values instead of clamping."
+              "MCP limit accepts 1-100 and rejects out-of-range values instead of clamping."
             ]
           }
         ]

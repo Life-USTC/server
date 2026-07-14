@@ -2,8 +2,10 @@ import * as z from "zod";
 import { APP_LOCALES } from "@/i18n/config";
 import {
   dateInputStringSchema,
+  deprecatedPaginationLimitParam,
   integerStringRangeSchema,
   integerStringSchema,
+  paginationPageSizeParam,
   todoPrioritySchema,
 } from "./request-schema-primitives";
 
@@ -13,10 +15,10 @@ const busNextDeparturesLimitSchema = integerStringRangeSchema({
   message: "limit must be between 1 and 50",
 });
 
-const publicPaginationLimitSchema = integerStringRangeSchema({
+const publicPaginationPageSizeSchema = integerStringRangeSchema({
   minimum: 1,
   maximum: 100,
-  message: "limit must be between 1 and 100",
+  message: "pageSize must be between 1 and 100",
 });
 
 const subscribedSchedulesWeekdaySchema = integerStringRangeSchema({
@@ -100,7 +102,8 @@ export const dashboardLinkVisitQuerySchema = z.object({
 
 export const semestersQuerySchema = z.object({
   page: integerStringSchema.optional(),
-  limit: publicPaginationLimitSchema.optional(),
+  pageSize: paginationPageSizeParam(publicPaginationPageSizeSchema),
+  limit: deprecatedPaginationLimitParam(publicPaginationPageSizeSchema),
 });
 
 export const subscribedSchedulesQuerySchema = z.object({

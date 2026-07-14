@@ -61,6 +61,26 @@ export function integerStringRangeSchema({
     });
 }
 
+export function paginationPageSizeParam<TSchema extends z.ZodType>(
+  schema: TSchema,
+) {
+  return schema.optional().meta({
+    param: { description: "Number of items per page." },
+  });
+}
+
+export function deprecatedPaginationLimitParam<TSchema extends z.ZodType>(
+  schema: TSchema,
+) {
+  return schema.optional().meta({
+    param: {
+      deprecated: true,
+      description:
+        "Deprecated alias for pageSize. pageSize takes precedence when both are supplied.",
+    },
+  });
+}
+
 export const dateInputStringSchema = z
   .string()
   .trim()

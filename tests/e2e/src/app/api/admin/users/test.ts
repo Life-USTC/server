@@ -6,7 +6,7 @@
  * - GET returns `{ data, pagination }` with user objects
  *   containing id, name, username, isAdmin, email, createdAt
  * - Supports `search` query for filtering by id, name, username, or email
- * - Supports `page` and `limit` pagination parameters (max limit 100)
+ * - Supports `page` and `pageSize` pagination parameters (deprecated `limit` alias, max 100)
  * - Returns 401 for unauthenticated or non-admin requests
  * - Returns 400 for invalid query parameters
  */
@@ -59,9 +59,9 @@ test.describe("GET /api/admin/users 用户列表", () => {
     expect(typeof body.pagination?.total).toBe("number");
   });
 
-  test("管理员可使用 limit=1 分页用户", async ({ page }) => {
+  test("管理员可使用 pageSize=1 分页用户", async ({ page }) => {
     await signInAsDevAdmin(page, "/admin");
-    const response = await page.request.get(`${BASE}?page=1&limit=1`);
+    const response = await page.request.get(`${BASE}?page=1&pageSize=1`);
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       data?: unknown[];

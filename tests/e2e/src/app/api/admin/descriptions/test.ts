@@ -136,9 +136,9 @@ test.describe("GET /api/admin/descriptions 课程简介管理", () => {
     ).toBe(true);
   });
 
-  test("管理员可使用 limit 参数限制返回数量", async ({ page }) => {
+  test("管理员可使用 pageSize 参数限制返回数量", async ({ page }) => {
     await signInAsDevAdmin(page, "/admin");
-    const response = await page.request.get(`${BASE}?limit=1`);
+    const response = await page.request.get(`${BASE}?pageSize=1`);
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       descriptions?: Array<unknown>;

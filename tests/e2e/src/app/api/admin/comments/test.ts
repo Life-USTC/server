@@ -47,7 +47,7 @@ test.describe("GET /api/admin/comments 评论列表", () => {
 
   test("管理员可无状态筛选列出活跃评论", async ({ page }) => {
     await signInAsDevAdmin(page, "/admin");
-    const response = await page.request.get(`${BASE}?limit=5`);
+    const response = await page.request.get(`${BASE}?pageSize=5`);
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       comments?: Array<{ id?: string; status?: string }>;

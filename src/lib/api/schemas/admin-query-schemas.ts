@@ -1,22 +1,29 @@
 import * as z from "zod";
 import { ADMIN_COMMENT_STATUS_FILTERS } from "@/features/admin/lib/admin-moderation-filters";
-import { integerStringSchema } from "./request-schema-primitives";
+import {
+  deprecatedPaginationLimitParam,
+  integerStringSchema,
+  paginationPageSizeParam,
+} from "./request-schema-primitives";
 
 export const adminUsersQuerySchema = z.object({
   search: z.string().trim().optional(),
   page: integerStringSchema.optional(),
-  limit: integerStringSchema.optional(),
+  pageSize: paginationPageSizeParam(integerStringSchema),
+  limit: deprecatedPaginationLimitParam(integerStringSchema),
 });
 
 export const adminCommentsQuerySchema = z.object({
   status: z.enum(ADMIN_COMMENT_STATUS_FILTERS).optional(),
-  limit: integerStringSchema.optional(),
+  pageSize: paginationPageSizeParam(integerStringSchema),
+  limit: deprecatedPaginationLimitParam(integerStringSchema),
 });
 
 export const adminHomeworksQuerySchema = z.object({
   status: z.enum(["all", "active", "deleted"]).optional(),
   search: z.string().trim().optional(),
-  limit: integerStringSchema.optional(),
+  pageSize: paginationPageSizeParam(integerStringSchema),
+  limit: deprecatedPaginationLimitParam(integerStringSchema),
 });
 
 export const adminDescriptionsQuerySchema = z.object({
@@ -25,5 +32,6 @@ export const adminDescriptionsQuerySchema = z.object({
     .optional(),
   hasContent: z.enum(["all", "withContent", "empty"]).optional(),
   search: z.string().trim().optional(),
-  limit: integerStringSchema.optional(),
+  pageSize: paginationPageSizeParam(integerStringSchema),
+  limit: deprecatedPaginationLimitParam(integerStringSchema),
 });

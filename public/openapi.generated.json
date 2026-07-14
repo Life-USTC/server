@@ -750,13 +750,26 @@
           },
           {
             "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "Number of items per page."
+          },
+          {
+            "in": "query",
             "name": "limit",
             "schema": {
               "type": "integer",
               "format": "int64",
               "minimum": 1,
               "maximum": 100
-            }
+            },
+            "deprecated": true,
+            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -1492,13 +1505,26 @@
           },
           {
             "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "Number of items per page."
+          },
+          {
+            "in": "query",
             "name": "limit",
             "schema": {
               "type": "integer",
               "format": "int64",
               "minimum": 1,
               "maximum": 100
-            }
+            },
+            "deprecated": true,
+            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -1628,13 +1654,26 @@
           },
           {
             "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "Number of items per page."
+          },
+          {
+            "in": "query",
             "name": "limit",
             "schema": {
               "type": "integer",
               "format": "int64",
               "minimum": 1,
               "maximum": 100
-            }
+            },
+            "deprecated": true,
+            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -1679,13 +1718,26 @@
           },
           {
             "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "Number of items per page."
+          },
+          {
+            "in": "query",
             "name": "limit",
             "schema": {
               "type": "integer",
               "format": "int64",
               "minimum": 1,
               "maximum": 100
-            }
+            },
+            "deprecated": true,
+            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -1745,13 +1797,26 @@
           },
           {
             "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "Number of items per page."
+          },
+          {
+            "in": "query",
             "name": "limit",
             "schema": {
               "type": "integer",
               "format": "int64",
               "minimum": 1,
               "maximum": 100
-            }
+            },
+            "deprecated": true,
+            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -2091,11 +2156,22 @@
           },
           {
             "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "Number of items per page."
+          },
+          {
+            "in": "query",
             "name": "limit",
             "schema": {
               "type": "integer",
               "format": "int64"
-            }
+            },
+            "deprecated": true,
+            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -2181,11 +2257,22 @@
           },
           {
             "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "Number of items per page."
+          },
+          {
+            "in": "query",
             "name": "limit",
             "schema": {
               "type": "integer",
               "format": "int64"
-            }
+            },
+            "deprecated": true,
+            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -2257,11 +2344,22 @@
           },
           {
             "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "Number of items per page."
+          },
+          {
+            "in": "query",
             "name": "limit",
             "schema": {
               "type": "integer",
               "format": "int64"
-            }
+            },
+            "deprecated": true,
+            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {
@@ -2449,11 +2547,22 @@
           },
           {
             "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "Number of items per page."
+          },
+          {
+            "in": "query",
             "name": "limit",
             "schema": {
               "type": "integer",
               "format": "int64"
-            }
+            },
+            "deprecated": true,
+            "description": "Deprecated alias for pageSize. pageSize takes precedence when both are supplied."
           }
         ],
         "responses": {

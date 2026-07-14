@@ -24,6 +24,7 @@ export type PaginationOptions = Pick<
 > & {
   pageParam?: string;
   pageSizeParam?: string;
+  pageSizeAliasParam?: string;
 };
 
 /**

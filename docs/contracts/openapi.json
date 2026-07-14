@@ -16,6 +16,7 @@
     "openapi-drift-gate": "After server OpenAPI changes, regenerate public/openapi.generated.json and sync api/openapi.json plus generated Go clients in CLI and Bot before publishing. Cross-repo CI should fail if copied OpenAPI files drift from the server-generated contract.",
     "rest-observability": "REST API handling records production-safe structured request-start/request-finish logs with request ID, method, status, auth mode, duration, and normalized route template; when the Cloudflare Analytics Engine binding is present it also writes sanitized request finish/error datapoints with normalized route, method, status class, auth mode, and duration; it does not log request bodies, credentials, raw query strings, or high-cardinality resource IDs.",
     "unknown-api-json-errors": "Unknown paths under /api return the standard JSON { error } envelope with status 404 instead of falling through to the HTML application error page.",
+    "pagination-query-parameter": "Paginated REST endpoints use pageSize as the canonical request parameter. The deprecated limit alias remains accepted during migration, and pageSize takes precedence when both are supplied.",
     "created-resource-status": "POST /api/todos, /api/comments, /api/homeworks, and /api/admin/suspensions return 201 Created with a relative Location header for the new resource. Idempotent upserts and state-setting operations continue to return 200."
   },
   "capabilities": {

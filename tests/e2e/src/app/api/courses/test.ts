@@ -6,7 +6,7 @@
  *
  * ## Request
  * - Query: `search` (optional, matches nameCn/nameEn/code, case-insensitive),
- *          `page` (optional, default 1), `limit` (optional, default pageSize)
+ *          `page` (optional, default 1), `pageSize` (optional), and deprecated `limit` alias
  *
  * ## Response
  * - 200: `{ data: Course[], pagination: { page, pageSize, total, totalPages } }`
@@ -137,8 +137,8 @@ test.describe("GET /api/courses 接口", () => {
     expect(body.pagination?.page).toBe(1);
   });
 
-  test("limit 参数控制分页大小", async ({ request }) => {
-    const response = await request.get("/api/courses?limit=1");
+  test("pageSize 控制分页大小并优先于 limit 别名", async ({ request }) => {
+    const response = await request.get("/api/courses?pageSize=1&limit=2");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       data?: unknown[];

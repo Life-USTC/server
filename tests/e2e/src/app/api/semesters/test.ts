@@ -5,7 +5,7 @@
  * - `GET /api/semesters` — List semesters with pagination, ordered by startDate descending.
  *
  * ## Request
- * - Query: `page` (optional), `limit` (optional, max 100)
+ * - Query: `page` (optional), `pageSize` (optional, max 100), deprecated `limit` alias
  *
  * ## Response
  * - 200: `{ data: Semester[], pagination: { page, pageSize, total, totalPages } }`
@@ -16,7 +16,7 @@
  *
  * ## Edge Cases
  * - Results ordered by startDate descending (most recent first)
- * - limit param directly controls page size
+ * - pageSize directly controls page size; limit remains a compatible alias
  */
 import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../../utils/dev-seed";
@@ -61,8 +61,8 @@ test.describe("GET /api/semesters", () => {
     expect(typeof semester?.nameCn).toBe("string");
   });
 
-  test("limit 参数控制页大小", async ({ request }) => {
-    const response = await request.get("/api/semesters?limit=1");
+  test("pageSize 参数控制页大小", async ({ request }) => {
+    const response = await request.get("/api/semesters?pageSize=1");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       data?: unknown[];

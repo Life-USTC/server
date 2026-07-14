@@ -67,12 +67,13 @@ describe("API 辅助函数", () => {
     });
   });
 
-  it("解析路由查询参数并规范化分页", () => {
+  it("优先使用规范的 pageSize 查询参数", () => {
     const result = parseRouteQuery(
-      new URLSearchParams("search=math&page=3&limit=250"),
+      new URLSearchParams("search=math&page=3&pageSize=25&limit=80"),
       z.object({
         search: z.string().optional(),
         page: z.string().optional(),
+        pageSize: z.string().optional(),
         limit: z.string().optional(),
       }),
       "Invalid query",
@@ -81,7 +82,31 @@ describe("API 辅助函数", () => {
 
     expect(result).not.toBeInstanceOf(Response);
     expect(result).toEqual({
-      query: { search: "math", page: "3", limit: "250" },
+      query: {
+        search: "math",
+        page: "3",
+        pageSize: "25",
+        limit: "80",
+      },
+      pagination: { page: 3, pageSize: 25, skip: 50 },
+    });
+  });
+
+  it("在 pageSize 缺失时接受废弃的 limit 别名", () => {
+    const result = parseRouteQuery(
+      new URLSearchParams("page=3&limit=250"),
+      z.object({
+        page: z.string().optional(),
+        pageSize: z.string().optional(),
+        limit: z.string().optional(),
+      }),
+      "Invalid query",
+      { pagination: { maxPageSize: 100 } },
+    );
+
+    expect(result).not.toBeInstanceOf(Response);
+    expect(result).toEqual({
+      query: { page: "3", pageSize: undefined, limit: "250" },
       pagination: { page: 3, pageSize: 100, skip: 200 },
     });
   });

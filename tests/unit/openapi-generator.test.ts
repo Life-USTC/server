@@ -15,6 +15,47 @@ describe("openapi generator", () => {
     expect(doc.components?.schemas).toBeDefined();
   }, 15_000);
 
+  it("publishes pageSize and marks limit as its deprecated alias", () => {
+    const doc = generateOpenApiDocument();
+    const paths = doc.paths as Record<
+      string,
+      {
+        get?: {
+          parameters?: Array<{
+            deprecated?: boolean;
+            description?: string;
+            name?: string;
+          }>;
+        };
+      }
+    >;
+
+    for (const path of [
+      "/api/courses",
+      "/api/sections",
+      "/api/schedules",
+      "/api/teachers",
+      "/api/semesters",
+      "/api/admin/users",
+      "/api/admin/comments",
+      "/api/admin/homeworks",
+      "/api/admin/descriptions",
+    ]) {
+      const parameters = paths[path]?.get?.parameters ?? [];
+      const pageSize = parameters.find((parameter) => {
+        return parameter.name === "pageSize";
+      });
+      const limit = parameters.find((parameter) => {
+        return parameter.name === "limit";
+      });
+
+      expect(pageSize, path).toBeDefined();
+      expect(pageSize?.deprecated, path).not.toBe(true);
+      expect(limit?.deprecated, path).toBe(true);
+      expect(limit?.description, path).toContain("pageSize");
+    }
+  }, 15_000);
+
   it("publishes true creates as 201 responses with Location", () => {
     const doc = generateOpenApiDocument();
     const paths = doc.paths as Record<
