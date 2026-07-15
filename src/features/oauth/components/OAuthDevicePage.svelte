@@ -43,9 +43,6 @@ function deviceDecisionAction(decision: "approve" | "deny"): SubmitFunction {
 
 $: approvalRequest = data.state === "approval" ? data.request : null;
 $: deviceResult = data.result === "approved" ? "approved" : "denied";
-$: sideNoteLabel = approvalRequest
-  ? data.copy.deviceRequestedPermissions
-  : data.copy.deviceCodeLabel;
 </script>
 
 <svelte:head><title>{data.copy.deviceTitle} - Life@USTC</title></svelte:head>
@@ -54,7 +51,7 @@ $: sideNoteLabel = approvalRequest
   <PageHeader title={data.copy.deviceTitle} description={data.copy.deviceCodeHint} eyebrow="OAuth" />
 
   <Card.Root class="grid gap-0 p-0 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-    <DeviceSidePanel deviceTitle={data.copy.deviceTitle} {sideNoteLabel} />
+    <DeviceSidePanel />
 
     <Card.Content class="grid gap-5 p-6">
       {#if data.state === "result"}
