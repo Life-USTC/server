@@ -1,4 +1,5 @@
 <script lang="ts">
+import HomeworkStyleGuide from "@/features/homeworks/components/HomeworkStyleGuide.svelte";
 import {
   HOMEWORK_DESCRIPTION_MAX_LENGTH,
   HOMEWORK_TITLE_MAX_LENGTH,
@@ -51,10 +52,12 @@ export let updateHomework: SectionHomeworkSubmitHandler;
         id="section-homework-edit-title"
         maxlength={HOMEWORK_TITLE_MAX_LENGTH}
         name="title"
+        placeholder={homeworkCopy.titlePlaceholder}
         required
         value={homework.title}
       />
     </Field.Field>
+    <HomeworkStyleGuide copy={homeworkCopy} testIdPrefix="section-edit-homework" />
     <Field.Field>
       <Field.Title id="section-homework-edit-description-label">
         {homeworkCopy.descriptionLabel}

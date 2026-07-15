@@ -1,6 +1,9 @@
+import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-style-guide";
+
 export type SectionHomeworkDateValue = Date | string | null | undefined;
 
-export type SectionHomeworkCopy = Record<string, string> & {
+export interface SectionHomeworkCopy extends HomeworkStyleGuideCopy {
+  [key: string]: string;
   auditEmpty: string;
   auditMeta: string;
   auditTitle: string;
@@ -31,7 +34,8 @@ export type SectionHomeworkCopy = Record<string, string> & {
   tagMajor: string;
   tagTeam: string;
   titleLabel: string;
-};
+  titlePlaceholder: string;
+}
 
 export type SectionHomeworkSectionCopy = {
   close?: string;

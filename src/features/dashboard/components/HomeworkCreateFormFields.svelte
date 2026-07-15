@@ -1,4 +1,5 @@
 <script lang="ts">
+import HomeworkStyleGuide from "@/features/homeworks/components/HomeworkStyleGuide.svelte";
 import {
   HOMEWORK_DESCRIPTION_MAX_LENGTH,
   HOMEWORK_TITLE_MAX_LENGTH,
@@ -80,9 +81,14 @@ $: sectionOptions = sections.map((section) => ({
       disabled={isCreatingHomework}
       maxlength={HOMEWORK_TITLE_MAX_LENGTH}
       name="title"
+      placeholder={homeworksCopy.titlePlaceholder}
       required
     />
   </Field.Field>
+  <HomeworkStyleGuide
+    copy={homeworksCopy}
+    testIdPrefix="dashboard-homework"
+  />
   <Field.Field>
     <Field.Title id="dashboard-homework-description-label">
       {homeworksCopy.descriptionLabel}
