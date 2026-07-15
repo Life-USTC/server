@@ -1,3 +1,11 @@
+## [1.51.4](https://github.com/Life-USTC/server/compare/v1.51.3...v1.51.4) (2026-07-15)
+
+
+### Bug Fixes
+
+* **catalog:** improve mobile discovery and pagination ([#435](https://github.com/Life-USTC/server/issues/435)) ([30dc400](https://github.com/Life-USTC/server/commit/30dc400ad172e51c316a830837dad5bc13bcda8e))
+* **subscriptions:** reject unscoped batch replacement ([c54e918](https://github.com/Life-USTC/server/commit/c54e9180466ade42ff96f073a37b3bddfc553b16))
+
 ## [1.51.3](https://github.com/Life-USTC/server/compare/v1.51.2...v1.51.3) (2026-07-15)
 
 
