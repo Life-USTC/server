@@ -1,3 +1,10 @@
+## [1.53.1](https://github.com/Life-USTC/server/compare/v1.53.0...v1.53.1) (2026-07-15)
+
+
+### Bug Fixes
+
+* **api-docs:** make the reference reachable on mobile ([#442](https://github.com/Life-USTC/server/issues/442)) ([a9b92f7](https://github.com/Life-USTC/server/commit/a9b92f7f4e14486e8d8d171c2f5fdcbebc967ec6)), closes [#374](https://github.com/Life-USTC/server/issues/374)
+
 # [1.53.0](https://github.com/Life-USTC/server/compare/v1.52.0...v1.53.0) (2026-07-15)
 
 
