@@ -1,3 +1,4 @@
+import { courseSourceIdentityKey } from "./course-identity";
 import {
   asBoolean,
   asDate,
@@ -29,6 +30,7 @@ export type LookupBuild = {
 
 export type CourseBuild = {
   jwId: number;
+  sourceKey: string;
   code: string;
   nameCn: string;
   nameEn?: string;
@@ -85,7 +87,7 @@ export type SectionBuild = {
   selectedStdCount?: number;
   remark?: string;
   scheduleRemark?: string;
-  courseJwId: number;
+  courseSourceKey: string;
   semesterCode: number;
   campusId?: number;
   examModeName?: string;
@@ -327,7 +329,7 @@ export function mapCourse(
   const nameCn = asString(courseRow?.cn);
   const code = asString(courseRow?.code) ?? "";
   if (jwId == null || !nameCn) return undefined;
-  return {
+  const course = {
     jwId,
     code,
     nameCn,
@@ -339,6 +341,7 @@ export function mapCourse(
     classTypeName: mapLookup(lookups.classType)?.nameCn,
     educationLevelName: mapLookup(lookups.education)?.nameCn,
   };
+  return { ...course, sourceKey: courseSourceIdentityKey(course) };
 }
 
 export function mapTeacherFromScheduleAssignment(
@@ -387,6 +390,7 @@ export function mapSection(
   dtpptRows: SnapshotRow[] | undefined,
   catalogLookups: {
     course?: SnapshotRow;
+    courseSourceKey?: string;
     examMode?: SnapshotRow;
     openDepartment?: SnapshotRow;
     teachLanguage?: SnapshotRow;
@@ -396,8 +400,15 @@ export function mapSection(
   const jwId = asInt(lessonRow.id);
   const code = asString(lessonRow.code);
   const courseJwId = asInt(catalogLookups.course?.id);
+  const courseSourceKey = catalogLookups.courseSourceKey;
   const semesterCode = asInt(lessonRow.semester_id);
-  if (jwId == null || !code || courseJwId == null || semesterCode == null) {
+  if (
+    jwId == null ||
+    !code ||
+    courseJwId == null ||
+    courseSourceKey == null ||
+    semesterCode == null
+  ) {
     return undefined;
   }
 
@@ -451,7 +462,7 @@ export function mapSection(
     scheduleRemark: scheduleLesson
       ? asString(scheduleLesson.scheduleRemark)
       : undefined,
-    courseJwId,
+    courseSourceKey,
     semesterCode,
     campusId: scheduleLesson ? asInt(scheduleLesson.campusId) : undefined,
     examModeName: asString(catalogLookups.examMode?.cn),

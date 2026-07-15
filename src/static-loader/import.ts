@@ -1,5 +1,10 @@
 import type { Prisma, PrismaClient } from "../generated/prisma-node/client";
 import {
+  courseIdentitySignature,
+  type IncomingCourseIdentityRecord,
+  planCourseIdentityImport,
+} from "./course-identity";
+import {
   type AdminClassBuild,
   type AdminClassSectionPair,
   type BuildingBuild,
@@ -49,6 +54,11 @@ import {
   Snapshot,
   type SnapshotRow,
 } from "./snapshot";
+import {
+  requireCourseDatabaseId,
+  requireCourseSourceKey,
+  sectionConflictUpdateColumns,
+} from "./upsert-policy";
 
 export type ImportConfig = {
   snapshotPath: string;
@@ -103,7 +113,7 @@ export async function runImport(
     teachLanguages,
   } = loadCatalogLookups(snapshot);
 
-  const courses = loadCourses(snapshot);
+  const { courses, courseSourceKeyByParentId } = loadCourses(snapshot);
 
   const { teacherTitles, teacherLessonTypes, examBatches } =
     loadScheduleLookups(snapshot);
@@ -117,6 +127,7 @@ export async function runImport(
     loadSections(
       snapshot,
       config.minSemester,
+      courseSourceKeyByParentId,
       (sectionJwId) => allSectionJwIds.add(sectionJwId),
       sectionTeacherPairs,
     );
@@ -409,7 +420,10 @@ function loadCatalogLookups(snapshot: Snapshot) {
   };
 }
 
-function loadCourses(snapshot: Snapshot): CourseBuild[] {
+function loadCourses(snapshot: Snapshot): {
+  courses: CourseBuild[];
+  courseSourceKeyByParentId: Map<number, string>;
+} {
   const lessons = snapshot.queryAll("catalog_teach_lesson_list_for_teach");
   const courses = snapshot.queryGrouped(
     "catalog_teach_lesson_list_for_teach_course",
@@ -433,8 +447,8 @@ function loadCourses(snapshot: Snapshot): CourseBuild[] {
     "catalog_teach_lesson_list_for_teach_education",
   );
 
-  const result: CourseBuild[] = [];
-  const seen = new Set<number>();
+  const coursesBySourceAlias = new Map<string, CourseBuild>();
+  const courseSourceKeyByParentId = new Map<number, string>();
   for (const lesson of lessons) {
     const parentId = asInt(lesson.store_id);
     if (parentId == null) continue;
@@ -446,11 +460,20 @@ function loadCourses(snapshot: Snapshot): CourseBuild[] {
       classType: firstChild(classTypes, parentId),
       education: firstChild(educations, parentId),
     });
-    if (course == null || seen.has(course.jwId)) continue;
-    seen.add(course.jwId);
-    result.push(course);
+    if (course == null) continue;
+    const existingSourceKey = courseSourceKeyByParentId.get(parentId);
+    if (existingSourceKey != null && existingSourceKey !== course.sourceKey) {
+      throw new Error(
+        `Lesson parent ${parentId} maps to conflicting course identities`,
+      );
+    }
+    courseSourceKeyByParentId.set(parentId, course.sourceKey);
+    coursesBySourceAlias.set(`${course.jwId}:${course.sourceKey}`, course);
   }
-  return result;
+  return {
+    courses: [...coursesBySourceAlias.values()],
+    courseSourceKeyByParentId,
+  };
 }
 
 function loadScheduleLookups(snapshot: Snapshot) {
@@ -671,6 +694,7 @@ function loadScheduleInfrastructure(snapshot: Snapshot) {
 function loadSections(
   snapshot: Snapshot,
   minSemester: number,
+  courseSourceKeyByParentId: Map<number, string>,
   onSection: (jwId: number) => void,
   sectionTeacherPairs: SectionTeacherPair[],
 ): {
@@ -738,6 +762,10 @@ function loadSections(
     if (parentId == null) continue;
 
     const courseRow = firstChild(courses, parentId);
+    const courseSourceKey = requireCourseSourceKey(
+      courseSourceKeyByParentId,
+      parentId,
+    );
     const openDeptRow = firstChild(openDepartments, parentId);
     const scheduleLesson = scheduleLessonMap.get(asInt(lesson.id) ?? -1);
     const scheduleStoreId = asInt(scheduleLesson?.store_id);
@@ -754,6 +782,7 @@ function loadSections(
       dtpptMap.get(parentId),
       {
         course: courseRow,
+        courseSourceKey,
         examMode: firstChild(examModes, parentId),
         openDepartment: openDeptRow,
         teachLanguage: firstChild(teachLanguages, parentId),
@@ -1069,7 +1098,7 @@ async function upsertCourses(
   tx: Prisma.TransactionClient,
   builds: CourseBuild[],
   lookupMaps: LookupMaps,
-): Promise<Map<number, number>> {
+): Promise<Map<string, number>> {
   const columns = [
     "code",
     "nameCn",
@@ -1081,31 +1110,70 @@ async function upsertCourses(
     "gradationId",
     "typeId",
   ];
-  const records = builds.map((build) => ({
-    key: build.jwId,
-    values: [
-      build.code,
-      build.nameCn,
-      build.nameEn,
-      build.categoryName
+  const incomingCourses: IncomingCourseIdentityRecord[] = builds.map(
+    (build) => ({
+      sourceKey: build.sourceKey,
+      jwId: build.jwId,
+      code: build.code,
+      nameCn: build.nameCn,
+      nameEn: build.nameEn,
+      categoryId: build.categoryName
         ? lookupMaps.courseCategory.get(build.categoryName)
         : null,
-      build.classTypeName
+      classTypeId: build.classTypeName
         ? lookupMaps.classType.get(build.classTypeName)
         : null,
-      build.classifyName
+      classifyId: build.classifyName
         ? lookupMaps.courseClassify.get(build.classifyName)
         : null,
-      build.educationLevelName
+      educationLevelId: build.educationLevelName
         ? lookupMaps.educationLevel.get(build.educationLevelName)
         : null,
-      build.gradationName
+      gradationId: build.gradationName
         ? lookupMaps.courseGradation.get(build.gradationName)
         : null,
-      build.typeName ? lookupMaps.courseType.get(build.typeName) : null,
+      typeId: build.typeName ? lookupMaps.courseType.get(build.typeName) : null,
+    }),
+  );
+
+  // Validate required identity fields before querying or writing any courses.
+  for (const course of incomingCourses) courseIdentitySignature(course);
+  if (incomingCourses.length === 0) return new Map();
+
+  const select = {
+    jwId: true,
+    code: true,
+    nameCn: true,
+    nameEn: true,
+    categoryId: true,
+    classTypeId: true,
+    classifyId: true,
+    educationLevelId: true,
+    gradationId: true,
+    typeId: true,
+  } as const;
+  // The catalog is small enough to compare against every persisted Course.
+  // The full set is also required to detect synthetic jwId collisions.
+  const persistedCourses = await tx.course.findMany({ select });
+  const plan = await planCourseIdentityImport(
+    incomingCourses,
+    persistedCourses,
+  );
+  const records = plan.canonicalCourses.map((course) => ({
+    key: course.jwId,
+    values: [
+      course.code,
+      course.nameCn,
+      course.nameEn,
+      course.categoryId,
+      course.classTypeId,
+      course.classifyId,
+      course.educationLevelId,
+      course.gradationId,
+      course.typeId,
     ] satisfies ColumnValue[],
   }));
-  return bulkUpsert(
+  const canonicalMap = await bulkUpsert(
     tx,
     "Course",
     "jwId",
@@ -1114,6 +1182,18 @@ async function upsertCourses(
     ["text", "text", "text", "int", "int", "int", "int", "int", "int"],
     records,
   );
+
+  const map = new Map<string, number>();
+  for (const [sourceKey, canonicalJwId] of plan.canonicalJwIdBySourceKey) {
+    const databaseId = canonicalMap.get(canonicalJwId);
+    if (databaseId == null) {
+      throw new Error(
+        `Course identity plan did not resolve source key ${sourceKey}`,
+      );
+    }
+    map.set(sourceKey, databaseId);
+  }
+  return map;
 }
 
 async function upsertTeacherTitles(
@@ -1643,7 +1723,7 @@ async function upsertSections(
   builds: SectionBuild[],
   semesterMap: Map<number, number>,
   departmentMap: Map<string, number>,
-  courseMap: Map<number, number>,
+  courseMap: Map<string, number>,
   lookupMaps: LookupMaps,
   campusMap: Map<number, number>,
   roomTypeMap: Map<number, number>,
@@ -1684,8 +1764,11 @@ async function upsertSections(
   ];
   const records: Array<{ key: number; values: ColumnValue[] }> = [];
   for (const build of builds) {
-    const courseId = courseMap.get(build.courseJwId);
-    if (courseId == null) continue;
+    const courseId = requireCourseDatabaseId(
+      courseMap,
+      build.courseSourceKey,
+      build.jwId,
+    );
     const semesterId = semesterMap.get(build.semesterCode);
     if (semesterId == null) continue;
     const openDepartmentId = build.openDepartmentCode
@@ -1778,6 +1861,7 @@ async function upsertSections(
       "int",
     ],
     records,
+    { updateColumns: sectionConflictUpdateColumns(columns) },
   );
 }
 
@@ -2244,6 +2328,10 @@ type ColumnValue =
   | undefined
   | Prisma.InputJsonValue;
 
+type BulkUpsertOptions = {
+  updateColumns?: string[];
+};
+
 async function bulkUpsert<K extends string | number>(
   tx: Prisma.TransactionClient,
   table: string,
@@ -2252,12 +2340,20 @@ async function bulkUpsert<K extends string | number>(
   columns: string[],
   columnTypes: string[],
   records: Array<{ key: K; values: ColumnValue[] }>,
+  options: BulkUpsertOptions = {},
 ): Promise<Map<K, number>> {
   const map = new Map<K, number>();
   if (records.length === 0) return map;
 
   const allColumns = [uniqueColumn, ...columns];
   const allTypes = [uniqueColumnType, ...columnTypes];
+  const updateColumns = options.updateColumns ?? columns;
+  if (
+    updateColumns.length === 0 ||
+    updateColumns.some((column) => !columns.includes(column))
+  ) {
+    throw new Error(`Invalid bulk upsert update columns for ${table}`);
+  }
 
   const batchSize = 500;
   for (const batch of chunks(records, batchSize)) {
@@ -2278,7 +2374,7 @@ async function bulkUpsert<K extends string | number>(
       INSERT INTO "${table}" (${allColumns.map((c) => `"${c}"`).join(",")})
       VALUES ${valuePlaceholders.join(",")}
       ON CONFLICT ("${uniqueColumn}") DO UPDATE SET
-        ${columns.map((c) => `"${c}" = EXCLUDED."${c}"`).join(",\n        ")}
+        ${updateColumns.map((c) => `"${c}" = EXCLUDED."${c}"`).join(",\n        ")}
       RETURNING "id", "${uniqueColumn}"
     `;
 
