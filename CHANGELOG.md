@@ -1,3 +1,10 @@
+## [1.51.5](https://github.com/Life-USTC/server/compare/v1.51.4...v1.51.5) (2026-07-15)
+
+
+### Bug Fixes
+
+* **oauth:** clarify device code entry ([#437](https://github.com/Life-USTC/server/issues/437)) ([c61869c](https://github.com/Life-USTC/server/commit/c61869c3b9c9cb1a4459eba91035f20e4de4d323))
+
 ## [1.51.4](https://github.com/Life-USTC/server/compare/v1.51.3...v1.51.4) (2026-07-15)
 
 
