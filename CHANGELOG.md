@@ -1,3 +1,10 @@
+## [1.51.2](https://github.com/Life-USTC/server/compare/v1.51.1...v1.51.2) (2026-07-15)
+
+
+### Bug Fixes
+
+* **mcp:** enforce canonical structured outputs ([#433](https://github.com/Life-USTC/server/issues/433)) ([7f6c2b4](https://github.com/Life-USTC/server/commit/7f6c2b482d537eff6c1ab39899dbb050f161dfce)), closes [#405](https://github.com/Life-USTC/server/issues/405) [#406](https://github.com/Life-USTC/server/issues/406) [#415](https://github.com/Life-USTC/server/issues/415)
+
 ## [1.51.1](https://github.com/Life-USTC/server/compare/v1.51.0...v1.51.1) (2026-07-15)
 
 
