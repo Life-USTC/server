@@ -38,6 +38,8 @@ export let updatingDashboardLinkSlug: string | null;
   description={signedData.overview?.hasAnySelection
     ? dashboardCopy.termSelection.noCurrentTerm
     : dashboardCopy.termSelection.noAnySelection}
+  historyCalendarSemesterId={signedData.overview?.calendar?.calendarSemesterPicker?.at(-1)?.id ?? null}
+  showHistoryActions={signedData.overview?.hasAnySelection === true}
 />
 
 <Card.Root>

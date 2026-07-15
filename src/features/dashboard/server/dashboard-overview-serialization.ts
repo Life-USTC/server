@@ -63,6 +63,7 @@ export function serializeDashboardOverview(overview: OverviewData) {
         ...todo,
         dateKey: calendarDateKey(todo.dueAt),
       })),
+      calendarSemesterPicker: overview.calendarSemesterPicker,
       calendarSemesterNavList: overview.calendarSemesterNavList,
       activeCalendarSemesterId: overview.activeCalendarSemesterId,
       defaultCalendarSemesterId: overview.defaultCalendarSemesterId,

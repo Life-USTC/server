@@ -162,6 +162,7 @@ describe("仪表盘概览序列化", () => {
           completed: false,
         },
       ],
+      calendarSemesterPicker: [{ id: 1, nameCn: "2026春" }],
       calendarSemesterNavList: [{ id: 1, nameCn: "2026春" }],
       activeCalendarSemesterId: 1,
       defaultCalendarSemesterId: 1,
@@ -223,6 +224,9 @@ describe("仪表盘概览序列化", () => {
     expect(serializedTodo.dateKey).toBe("2026-05-01");
 
     expect(result.calendar.calendarSemesterNavList).toEqual([
+      { id: 1, nameCn: "2026春" },
+    ]);
+    expect(result.calendar.calendarSemesterPicker).toEqual([
       { id: 1, nameCn: "2026春" },
     ]);
     expect(result.calendar.activeCalendarSemesterId).toBe(1);

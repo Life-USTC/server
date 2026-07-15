@@ -75,7 +75,8 @@
       ],
       "only-non-current-semester-subscriptions": [
         "The home page must not pretend to have current learning tasks.",
-        "Must clearly indicate that no sections are subscribed for the current semester."
+        "Must clearly indicate that no sections are subscribed for the current semester.",
+        "Must keep past-term homework, schedules, and followed sections reachable from the empty state."
       ],
       "cross-semester-browsing": [
         "Courses must display semester.",
@@ -86,7 +87,8 @@
     },
     "decisions": [
       "When the current semester does not exist, the home page should enter a recoverable empty state rather than rendering a misleading empty list.",
-      "When only non-current-semester sections are subscribed, the user must be clearly told 'no content subscribed for the current semester' rather than pretending everything is normal."
+      "When only non-current-semester sections are subscribed, the user must be clearly told 'no content subscribed for the current semester' rather than pretending everything is normal.",
+      "Current-semester empty states and assistant snapshots must not imply that past-term subscriptions or their homework and schedules were deleted."
     ]
   },
   "disambiguation": {
