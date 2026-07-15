@@ -1,3 +1,10 @@
+## [1.51.7](https://github.com/Life-USTC/server/compare/v1.51.6...v1.51.7) (2026-07-15)
+
+
+### Bug Fixes
+
+* **dashboard:** add semantic page identity ([#439](https://github.com/Life-USTC/server/issues/439)) ([6493d6b](https://github.com/Life-USTC/server/commit/6493d6bc95413c18a337b4214a335d028943aa9b)), closes [#376](https://github.com/Life-USTC/server/issues/376)
+
 ## [1.51.6](https://github.com/Life-USTC/server/compare/v1.51.5...v1.51.6) (2026-07-15)
 
 
