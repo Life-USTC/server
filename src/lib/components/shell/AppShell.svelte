@@ -321,6 +321,7 @@ async function setLocale(locale: "en-us" | "zh-cn") {
 onMount(() => {
   themeMode = loadStoredThemeMode(themeMode);
   applyShellTheme(themeMode);
+  document.documentElement.dataset.lifeUstcHydrated = "true";
 });
 
 afterNavigate(({ from, to }) => {
