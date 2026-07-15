@@ -117,8 +117,6 @@ $: activeNavItem =
 
 <svelte:head>
   <title>{formatMessage(copy.metadata.pages.courseDetail, { name: displayName })} - Life@USTC</title>
-  <meta name="description" content={`${displayName} (${data.course.code})`} />
-  <meta property="og:title" content={displayName} />
 </svelte:head>
 
 <section class="grid min-h-full grid-rows-[auto_minmax(0,1fr)] bg-card lg:h-full lg:min-h-0">

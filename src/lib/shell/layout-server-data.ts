@@ -40,6 +40,10 @@ export function buildLayoutCopy(locale: LayoutLocale) {
   const messages = layoutMessages[locale];
   return {
     description: messages.metadata.description,
+    metadata: {
+      social: messages.metadata.social,
+      title: messages.metadata.title,
+    },
     nav: {
       courses: messages.common.courses,
       dashboard: messages.metadata.pages.meDashboard,

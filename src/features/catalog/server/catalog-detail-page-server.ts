@@ -1,6 +1,11 @@
 import { error } from "@sveltejs/kit";
+import { catalogPrimaryName } from "@/features/catalog/lib/catalog-list-display";
 import { getCoursePage } from "@/features/catalog/server/course-page-data";
 import { getTeacherPage } from "@/features/catalog/server/teacher-page-data";
+import {
+  buildSocialMetadata,
+  formatSocialMetadataMessage,
+} from "@/lib/social-metadata";
 import { loadCatalogDetailCommentsData } from "./catalog-detail-comments";
 import {
   getCourseDetailCopy,
@@ -39,10 +44,12 @@ export async function loadCourseDetailPage({
   locals,
   params,
   request,
+  url,
 }: {
   locals: App.Locals;
   params: { jwId: string; section?: string };
   request: Request;
+  url: URL;
 }) {
   const copy = getCourseDetailCopy(locals.locale);
   const detailSection = resolveCatalogDetailRouteSection(params.section);
@@ -51,6 +58,7 @@ export async function loadCourseDetailPage({
   if (!Number.isInteger(jwId)) error(404, copy.notFound.description);
   const course = await getCoursePage(jwId, locals.locale);
   if (!course) error(404, copy.notFound.description);
+  const displayName = catalogPrimaryName(course) || course.code;
   const viewer = await currentCatalogViewer(request);
   const { commentsData, descriptionData } = await loadCatalogDetailCommentsData(
     {
@@ -66,6 +74,17 @@ export async function loadCourseDetailPage({
     descriptionData,
     commentsData,
     detailSection,
+    socialMetadata: buildSocialMetadata({
+      canonicalPath: `/courses/${course.jwId}`,
+      description: formatSocialMetadataMessage(
+        copy.metadata.social.courseDescription,
+        { code: course.code, name: displayName },
+      ),
+      imageAlt: copy.metadata.social.imageAlt,
+      locale: locals.locale,
+      origin: url.origin,
+      title: `${displayName} (${course.code}) - Life@USTC`,
+    }),
   };
 }
 
@@ -73,10 +92,12 @@ export async function loadTeacherDetailPage({
   locals,
   params,
   request,
+  url,
 }: {
   locals: App.Locals;
   params: { id: string; section?: string };
   request: Request;
+  url: URL;
 }) {
   const copy = getTeacherDetailCopy(locals.locale);
   const detailSection = resolveCatalogDetailRouteSection(params.section);
@@ -85,6 +106,7 @@ export async function loadTeacherDetailPage({
   if (!Number.isInteger(id)) error(404, copy.notFound.description);
   const teacher = await getTeacherPage(id, locals.locale);
   if (!teacher) error(404, copy.notFound.description);
+  const displayName = catalogPrimaryName(teacher);
   const viewer = await currentCatalogViewer(request);
   const { commentsData, descriptionData } = await loadCatalogDetailCommentsData(
     {
@@ -100,5 +122,18 @@ export async function loadTeacherDetailPage({
     descriptionData,
     commentsData,
     detailSection,
+    socialMetadata: buildSocialMetadata({
+      canonicalPath: `/teachers/${teacher.id}`,
+      description: formatSocialMetadataMessage(
+        copy.metadata.social.teacherDescription,
+        { name: displayName },
+      ),
+      imageAlt: copy.metadata.social.imageAlt,
+      locale: locals.locale,
+      origin: url.origin,
+      title: `${formatSocialMetadataMessage(copy.metadata.pages.teacherDetail, {
+        name: displayName,
+      })} - Life@USTC`,
+    }),
   };
 }
