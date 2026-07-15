@@ -1,5 +1,13 @@
 import { error } from "@sveltejs/kit";
+import {
+  formatMessage,
+  primaryName,
+} from "@/features/section-detail/lib/display";
 import { getSectionPage } from "@/features/section-detail/server/section-page-data";
+import {
+  buildSocialMetadata,
+  formatSocialMetadataMessage,
+} from "@/lib/social-metadata";
 import { requireCampusDateKeyForValue } from "@/lib/time/campus-date";
 import { getSectionDetailDescriptionAndComments } from "./section-detail-comments-data";
 import { getSectionHomeworkData } from "./section-detail-homework-data";
@@ -56,6 +64,8 @@ export async function loadSectionDetailPage({
   if (jwId === null) error(404, "Section not found");
   const section = await getSectionPage(jwId, locals.locale);
   if (!section) error(404, "Section not found");
+  const copy = getSectionDetailPageCopy(locals.locale);
+  const courseName = primaryName(section.course) || section.code;
   const userId = await getSectionDetailUserId(request);
   const [subscriptionState, descriptionAndComments, homeworkData] =
     await Promise.all([
@@ -71,7 +81,7 @@ export async function loadSectionDetailPage({
     section,
     locale: locals.locale,
     todayCalendarKey: requireCampusDateKeyForValue(new Date()),
-    copy: getSectionDetailPageCopy(locals.locale),
+    copy,
     descriptionData: descriptionAndComments.descriptionData,
     commentsData: descriptionAndComments.commentsData,
     detailSection,
@@ -80,6 +90,20 @@ export async function loadSectionDetailPage({
     homeworkView:
       url.searchParams.get("homeworkView") === "list" ? "list" : "cards",
     showSubscribeDialog: url.searchParams.get("subscribe") === "1",
+    socialMetadata: buildSocialMetadata({
+      canonicalPath: `/sections/${jwId}`,
+      description: formatSocialMetadataMessage(
+        copy.metadata.social.sectionDescription,
+        { code: section.code, name: courseName },
+      ),
+      imageAlt: copy.metadata.social.imageAlt,
+      locale: locals.locale,
+      origin: url.origin,
+      title: `${formatMessage(copy.metadata.pages.sectionDetail, {
+        code: section.code,
+        name: courseName,
+      })} - Life@USTC`,
+    }),
     viewer: {
       signedIn: Boolean(userId),
       isSubscribed: Boolean(

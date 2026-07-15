@@ -3,6 +3,12 @@
     "title": "Life@USTC - Course and Schedule Management",
     "titleTemplate": "%s - Life@USTC",
     "description": "USTC course and schedule management system",
+    "social": {
+      "imageAlt": "Life@USTC course and schedule workspace social card",
+      "courseDescription": "View {name} ({code}), teaching sections, descriptions, and discussions on Life@USTC.",
+      "sectionDescription": "View section {code} for {name}, including schedules, homework, exams, teachers, and discussions on Life@USTC.",
+      "teacherDescription": "View {name}'s profile, teaching sections, descriptions, and discussions on Life@USTC."
+    },
     "pages": {
       "home": "Home",
       "courses": "Courses",

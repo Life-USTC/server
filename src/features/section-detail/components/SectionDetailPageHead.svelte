@@ -12,6 +12,4 @@ $: pageTitle = formatMessage(titleTemplate, { code, name: courseName });
 
 <svelte:head>
   <title>{pageTitle} - Life@USTC</title>
-  <meta name="description" content={`${courseName} (${code})`} />
-  <meta property="og:title" content={`${courseName} - ${code}`} />
 </svelte:head>

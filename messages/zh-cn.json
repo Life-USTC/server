@@ -3,6 +3,12 @@
     "title": "Life@USTC - 课程与日程管理",
     "titleTemplate": "%s - Life@USTC",
     "description": "中国科学技术大学课程与日程管理系统",
+    "social": {
+      "imageAlt": "Life@USTC 课程与日程工作台分享卡片",
+      "courseDescription": "在 Life@USTC 查看{name}（{code}）的班级、简介与讨论。",
+      "sectionDescription": "在 Life@USTC 查看{name}（{code}）的课表、作业、考试、教师与讨论。",
+      "teacherDescription": "在 Life@USTC 查看{name}的教师资料、授课班级、简介与讨论。"
+    },
     "pages": {
       "home": "首页",
       "courses": "课程",
