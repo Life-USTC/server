@@ -1,3 +1,10 @@
+## [1.51.6](https://github.com/Life-USTC/server/compare/v1.51.5...v1.51.6) (2026-07-15)
+
+
+### Bug Fixes
+
+* **i18n:** polish localized interface copy ([#438](https://github.com/Life-USTC/server/issues/438)) ([4f2504f](https://github.com/Life-USTC/server/commit/4f2504f146dbc8737b387edda7baf7eb8b6d41ff)), closes [#401](https://github.com/Life-USTC/server/issues/401)
+
 ## [1.51.5](https://github.com/Life-USTC/server/compare/v1.51.4...v1.51.5) (2026-07-15)
 
 
