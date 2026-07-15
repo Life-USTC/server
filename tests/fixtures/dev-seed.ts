@@ -1,6 +1,12 @@
 import scenarioData from "../e2e/fixtures/scenario.json" with { type: "json" };
 
 const s = scenarioData;
+const previousSection = s.sections.find(
+  (section) => section.semester === "previous",
+);
+if (!previousSection) {
+  throw new Error("E2E scenario must include a previous-semester section");
+}
 
 export const DEV_SEED_ANCHOR = {
   date: "2026-04-29",
@@ -20,6 +26,7 @@ export const DEV_SEED = {
   semesterNameCn: s.semester.nameCn,
   previousSemesterJwId: s.previousSemester.jwId,
   previousSemesterNameCn: s.previousSemester.nameCn,
+  previousSemesterScheduleDates: s.previousSemester.scheduleDates,
   course: {
     jwId: s.courses[0].jwId,
     code: s.courses[0].code,
@@ -52,6 +59,10 @@ export const DEV_SEED = {
     jwId: section.jwId,
     code: section.code,
   })),
+  previousSection: {
+    jwId: previousSection.jwId,
+    code: previousSection.code,
+  },
   teacher: {
     code: s.teachers[0].code,
     nameCn: s.teachers[0].nameCn,
@@ -85,6 +96,7 @@ export const DEV_SEED = {
     overdueTitle: s.homeworks.overdueTitle,
     dueTodayTitle: s.homeworks.dueTodayTitle,
     completedTitle: s.homeworks.completedTitle,
+    historicalTitle: s.homeworks.historicalTitle,
   },
   todos: {
     dueTodayTitle: s.todos.dueTodayTitle,

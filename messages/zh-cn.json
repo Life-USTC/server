@@ -636,6 +636,10 @@
       "title": "当前学期暂无关注班级",
       "noAnySelection": "先关注班级，才能在这里看到当前学期的任务。",
       "noCurrentTerm": "你目前只关注了往期班级。再添加当前学期的班级即可恢复仪表盘。",
+      "historyAvailable": "往期班级、作业和课表仍然保留，你可以继续查看。",
+      "viewPastHomeworks": "查看往期作业",
+      "viewPastSchedule": "查看往期课表",
+      "viewPastSections": "查看往期班级",
       "browseSections": "浏览班级",
       "browseCourses": "浏览课程",
       "matchByCode": "按代码匹配"

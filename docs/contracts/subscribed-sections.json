@@ -38,7 +38,10 @@
           {
             "name": "list_my_subscribed_sections",
             "returns": "{ success: Boolean, sections: Section[], note: String }",
-            "rest_equivalent": "GET /api/calendar-subscriptions/current"
+            "rest_equivalent": "GET /api/calendar-subscriptions/current",
+            "notes": [
+              "Returns followed sections across all semesters, including past terms."
+            ]
           },
           {
             "name": "get_my_calendar_subscription",

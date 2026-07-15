@@ -39,11 +39,17 @@
           },
           {
             "name": "list_my_schedules",
-            "returns": "{ schedules: ScheduleEntry[] }"
+            "returns": "{ schedules: ScheduleEntry[] }",
+            "notes": [
+              "Omitting semesterId reads all followed semesters; pass a semesterId to recover one current or past term."
+            ]
           },
           {
             "name": "list_my_exams",
-            "returns": "{ exams: ExamEntry[] }"
+            "returns": "{ exams: ExamEntry[] }",
+            "notes": [
+              "Omitting semesterId reads all followed semesters; pass a semesterId to recover one current or past term."
+            ]
           }
         ]
       },

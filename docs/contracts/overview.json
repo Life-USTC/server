@@ -13,6 +13,7 @@
     "upcoming-exam-counts": "Upcoming exam counts are shared between the dashboard web navigation, REST overview, and MCP overview. They include known-date exams that have not ended or start later today, and exclude date-unknown exam records that cannot be placed in the upcoming timeline.",
     "non-current-not-disguised": "Non-current-semester subscribed sections must not be disguised as current learning tasks.",
     "aggregate-first-for-assistants": "Prefer a single aggregated snapshot tool for common assistant prompts before fanning out into multiple narrower tool calls.",
+    "historical-subscriptions-remain-discoverable": "A zero current-semester subscription count must not be presented as no course history when total subscriptions remain; web and assistant surfaces must offer a path to past-term sections, homework, schedules, and exams.",
     "focused-extracts-share-window": "Focused tools such as next-class and upcoming-deadlines should stay aligned with the same short-horizon window as the broader dashboard snapshot.",
     "dashboard-card-priority": "Dashboard cards prioritize the actionable object title, timing/status, and direct destination over raw nested identifiers. Secondary context such as course, section, campus, or priority badge remains visible for disambiguation; platform audit timestamps and repeated parent objects stay out of compact cards and MCP summary/default output."
   },
@@ -96,7 +97,7 @@
             "returns": "{ user, currentSemester, subscriptions, nextClass, upcomingDeadlines, upcomingEvents, todos, bus }",
             "notes": [
               "Preferred single-call snapshot for assistant workflows.",
-              "Overlaps get_my_overview but adds currentSemester, currentSemesterSections, nextClass, merged deadlines, and preferred-bus departures; accepts optional atTime to anchor those time windows instead of using the server clock.",
+              "Overlaps get_my_overview but adds currentSemester, currentSemesterSections, nextClass, merged deadlines, and preferred-bus departures; accepts optional atTime to anchor those time windows instead of using the server clock. When subscriptions.totalCount is greater than subscriptions.currentSemesterCount, past-term follows remain available through list_my_subscribed_sections and the semesterId filters on list_my_homeworks, list_my_schedules, and list_my_exams.",
               "Default mode should stay assistant-compact; request full mode when the caller explicitly needs full nested schedule, room, teacher, or homework payloads.",
               "Summary mode should be materially smaller than default, focusing on counts and the next few actionable items instead of mirroring the full compact snapshot."
             ]

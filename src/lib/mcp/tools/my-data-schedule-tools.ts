@@ -20,7 +20,7 @@ export function registerMyScheduleTools(server: McpServer) {
     "list_my_schedules",
     {
       description:
-        "List schedules across your subscribed sections. Use query_schedules for public schedules of any section without personal context. " +
+        "List schedules across your subscribed sections in all semesters. Use query_schedules for public schedules of any section without personal context. " +
         "Pass semesterId to limit results to a specific semester.",
       inputSchema: {
         dateFrom: flexDateInputSchema.optional(),
@@ -62,7 +62,7 @@ export function registerMyScheduleTools(server: McpServer) {
     "list_my_exams",
     {
       description:
-        "List exams across your subscribed sections. Includes unknown-date exams by default (set includeDateUnknown: false to exclude). " +
+        "List exams across your subscribed sections in all semesters. Includes unknown-date exams by default (set includeDateUnknown: false to exclude). " +
         "Pass semesterId to limit results to a specific semester.",
       inputSchema: {
         dateFrom: flexDateInputSchema.optional(),

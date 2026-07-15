@@ -636,6 +636,10 @@
       "title": "No current-term section subscriptions",
       "noAnySelection": "Follow sections to see your current-term work here.",
       "noCurrentTerm": "You are only following past-term sections right now. Add current-term sections to restore your dashboard.",
+      "historyAvailable": "Your past sections, homework, and schedules are still available.",
+      "viewPastHomeworks": "View Past Homework",
+      "viewPastSchedule": "View Past Schedule",
+      "viewPastSections": "View Past Sections",
       "browseSections": "Browse Sections",
       "browseCourses": "Browse Courses",
       "matchByCode": "Match by Code"

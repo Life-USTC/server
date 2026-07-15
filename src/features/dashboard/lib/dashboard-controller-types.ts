@@ -119,10 +119,14 @@ export type DashboardDashboardCopy = DashboardRecord & {
   termSelection: {
     browseCourses: string;
     browseSections: string;
+    historyAvailable: string;
     matchByCode: string;
     noAnySelection: string;
     noCurrentTerm: string;
     title: string;
+    viewPastHomeworks: string;
+    viewPastSchedule: string;
+    viewPastSections: string;
   };
   today: {
     empty: string;
@@ -385,6 +389,7 @@ export type DashboardCalendarData = DashboardRecord & {
   semesterHomeworks: DashboardHomeworkItem[];
   semesterTodos: DashboardCalendarTodoItem[];
   semesterWeeks: string[][];
+  calendarSemesterPicker: Array<{ id: number; name?: string | null }>;
   todayDate: string;
 };
 

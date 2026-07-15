@@ -247,6 +247,22 @@ describe("MCP tool descriptors", () => {
     );
   });
 
+  it("advertises how to recover past-term personal data", async () => {
+    const result = await listTools();
+    const description = (name: string) =>
+      result.tools.find((tool) => tool.name === name)?.description ?? "";
+
+    expect(description("get_my_dashboard")).toContain(
+      "subscriptions.totalCount exceeds currentSemesterCount",
+    );
+    expect(description("list_my_subscribed_sections")).toContain(
+      "across all semesters",
+    );
+    expect(description("list_my_homeworks")).toContain("all semesters");
+    expect(description("list_my_schedules")).toContain("all semesters");
+    expect(description("list_my_exams")).toContain("all semesters");
+  });
+
   it("advertises shared nested schemas for stable structured outputs", async () => {
     const result = await listTools();
     const todoSchema = outputSchema(result, "list_my_todos");

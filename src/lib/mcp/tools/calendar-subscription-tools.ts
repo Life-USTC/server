@@ -29,7 +29,7 @@ export function registerCalendarSubscriptionTools(server: McpServer) {
     "list_my_subscribed_sections",
     {
       description:
-        "List sections currently followed for dashboard and calendar personalization. Not official enrollment.",
+        "List sections followed across all semesters, including past terms, for dashboard and calendar personalization. Not official enrollment.",
       inputSchema: {
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,

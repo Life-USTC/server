@@ -3,6 +3,7 @@ import { signInAsDebugUser } from "../../utils/auth";
 import { DEV_SEED } from "../../utils/dev-seed";
 import {
   getCurrentSessionUser,
+  getSeedSectionSemesterFixture,
   getUserProfileById,
   getUserSubscribedSectionIds,
   replaceUserSubscribedSectionIds,
@@ -10,6 +11,7 @@ import {
 } from "../../utils/e2e-db";
 import { gotoAndWaitForReady, waitForUiSettled } from "../../utils/page-ready";
 import { captureStepScreenshot } from "../../utils/screenshot";
+import { resolveSeedSectionMatches } from "../../utils/seed-lookups";
 import { assertPageContract } from "./_shared/page-contract";
 
 test.describe.configure({ mode: "serial" });
@@ -246,6 +248,103 @@ test("/ 登录用户在空状态总览页可看到班级发现入口", async ({
     await captureStepScreenshot(page, testInfo, "dashboard-overview-empty");
   } finally {
     await updateUserProfileById(sessionUser.id, originalProfile);
+    await replaceUserSubscribedSectionIds(sessionUser.id, originalSectionIds);
+  }
+});
+
+test("/ 仅关注往期班级时可恢复历史作业和课表入口", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(300_000);
+  await signInAsDebugUser(page, "/");
+
+  const sessionUser = await getCurrentSessionUser(page);
+  const originalSectionIds = await getUserSubscribedSectionIds(sessionUser.id);
+  const previousSection = (await resolveSeedSectionMatches(page)).find(
+    (section) => section.code === DEV_SEED.previousSection.code,
+  );
+  expect(previousSection).toBeDefined();
+  if (!previousSection) return;
+  const previousSemester = await getSeedSectionSemesterFixture(
+    DEV_SEED.previousSection.jwId,
+  );
+  expect(previousSemester.semesterId).not.toBeNull();
+
+  await replaceUserSubscribedSectionIds(sessionUser.id, [previousSection.id]);
+
+  try {
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await waitForUiSettled(page);
+
+    await expect(
+      page.getByText(
+        /往期班级、作业和课表仍然保留|past sections, homework, and schedules are still available/i,
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /查看往期作业|View Past Homework/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /查看往期课表|View Past Schedule/i }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/calendar?calendarSemester=${previousSemester.semesterId}`,
+    );
+    await expect(
+      page.getByRole("link", { name: /查看往期班级|View Past Sections/i }),
+    ).toBeVisible();
+
+    const response = await page.request.get("/api/me/subscriptions/homeworks");
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as {
+      homeworks?: Array<{ title?: string }>;
+      sectionIds?: number[];
+    };
+    expect(body.sectionIds).toEqual([previousSection.id]);
+    expect(body.homeworks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ title: DEV_SEED.homeworks.historicalTitle }),
+      ]),
+    );
+
+    const schedulesResponse = await page.request.get(
+      `/api/me/subscriptions/schedules?dateFrom=${DEV_SEED.previousSemesterScheduleDates[0]}&dateTo=${DEV_SEED.previousSemesterScheduleDates[1]}`,
+    );
+    expect(schedulesResponse.status()).toBe(200);
+    const schedulesBody = (await schedulesResponse.json()) as {
+      schedules?: Array<{ section?: { id?: number } }>;
+    };
+    expect(schedulesBody.schedules).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          section: expect.objectContaining({ id: previousSection.id }),
+        }),
+      ]),
+    );
+
+    await captureStepScreenshot(page, testInfo, "dashboard-history-recovery");
+    await page
+      .getByRole("link", { name: /查看往期作业|View Past Homework/i })
+      .click();
+    await expect(page).toHaveURL(/\/dashboard\/homeworks/);
+    await expect(
+      page.getByText(DEV_SEED.homeworks.historicalTitle),
+    ).toBeVisible();
+
+    await page.goto("/");
+    await waitForUiSettled(page);
+    await page
+      .getByRole("link", { name: /查看往期课表|View Past Schedule/i })
+      .click();
+    await expect(page).toHaveURL(
+      new RegExp(
+        `/dashboard/calendar\\?calendarSemester=${previousSemester.semesterId}$`,
+      ),
+    );
+    await expect(
+      page.getByText(/线性代数进阶|Advanced Linear Algebra/i).first(),
+    ).toBeVisible();
+  } finally {
     await replaceUserSubscribedSectionIds(sessionUser.id, originalSectionIds);
   }
 });

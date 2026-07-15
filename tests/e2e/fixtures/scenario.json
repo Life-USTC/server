@@ -19,7 +19,8 @@
   "previousSemester": {
     "jwId": 9900000,
     "nameCn": "2025年秋季学期",
-    "code": "420"
+    "code": "420",
+    "scheduleDates": ["2026-03-28", "2026-03-29"]
   },
   "catalog": {
     "campus": {
@@ -197,7 +198,8 @@
     "title": "迭代二系统设计评审",
     "overdueTitle": "逾期实验数据补交",
     "dueTodayTitle": "今日课堂反馈整理",
-    "completedTitle": "迭代一需求拆解"
+    "completedTitle": "迭代一需求拆解",
+    "historicalTitle": "历史学期复盘作业"
   },
   "todos": {
     "dueTodayTitle": "期末报告提交",
