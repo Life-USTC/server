@@ -60,7 +60,11 @@ test.describe("/teachers", () => {
     await expect(page.getByTestId("catalog-filter-sidebar")).toBeHidden();
     await expect(page.getByTestId("catalog-results-summary")).toBeVisible();
     await expect(page.getByTestId("catalog-active-filters")).toBeVisible();
-    await page.getByRole("button", { name: /筛选|Filters/i }).click();
+    const filterTrigger = page.getByRole("button", {
+      name: /筛选教师|Filter teachers/i,
+    });
+    await expect(filterTrigger).toBeVisible();
+    await filterTrigger.click();
     const filterSheet = page.getByRole("dialog");
     await expect(filterSheet).toBeVisible();
     await expect(filterSheet.getByLabel(/院系|Department/i)).toBeVisible();
