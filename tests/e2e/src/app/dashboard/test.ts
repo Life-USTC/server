@@ -65,7 +65,16 @@ test.describe("仪表盘", () => {
     });
 
     await expect(page).toHaveURL(/\/(?:\?.*)?$/);
-    await expect(page.locator("#main-content")).toBeVisible();
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: /^(总览|Overview)$/,
+      }),
+    ).toHaveCount(1);
+    await expect(
+      page.getByRole("main", { name: /^(总览|Overview)$/ }),
+    ).toHaveCount(1);
+    await expect(page).toHaveTitle(/^(总览|Overview) - Life@USTC$/);
     await expect(page.locator("#app-user-menu")).toBeVisible();
 
     // Dashboard sidebar group can be expanded to show the auth-only sub-pages

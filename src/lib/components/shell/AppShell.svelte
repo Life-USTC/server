@@ -66,10 +66,16 @@ $: navGroups = buildShellNavGroups(
   $page.data,
 );
 $: detailWorkspace = isDetailWorkspacePath($page.url.pathname);
+$: mainContentLabel = resolveMainContentLabel($page.data);
 const footerLinks = buildFooterLinks(data.copy.footer);
 
 function isDetailWorkspacePath(pathname: string) {
   return /^\/(courses|sections|teachers)\/[^/]+/.test(pathname);
+}
+
+function resolveMainContentLabel(pageData: Record<string, unknown>) {
+  const label = pageData.mainContentLabel;
+  return typeof label === "string" && label.trim() ? label : undefined;
 }
 
 function buildShellNavGroups(
@@ -365,6 +371,7 @@ afterNavigate(({ from, to }) => {
     />
 
     <Sidebar.Inset
+      aria-label={mainContentLabel}
       id="main-content"
       class="relative flex w-full min-w-0 flex-1 flex-col lg:h-screen lg:min-h-0 lg:overflow-hidden"
     >

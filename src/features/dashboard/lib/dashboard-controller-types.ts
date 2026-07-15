@@ -455,6 +455,7 @@ export type DashboardPageData = DashboardRecord & {
   homeworks?: DashboardHomeworksData | null;
   links?: DashboardLinksData | null;
   locale: string;
+  mainContentLabel?: string | null;
   navStats?: DashboardNavStats | null;
   overview?: DashboardOverviewData | null;
   publicLinks?: DashboardLinkItem[] | null;
@@ -473,6 +474,7 @@ export type DashboardActionData =
   | undefined;
 
 export type SignedDashboardData = DashboardPageData & {
+  mainContentLabel: string;
   signedIn: true;
   userMissing?: false;
   navStats: NonNullable<DashboardPageData["navStats"]>;

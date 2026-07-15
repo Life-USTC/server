@@ -11,6 +11,7 @@
   "Context Tabs": "* Used for multi-context switching within detail pages.\n* Common combinations: sections — homework, calendar, comments; courses — sections, comments; teachers — sections, comments.",
   "Calendar Export Dialog": "* Used to display single-object iCal and personal subscription iCal.\n* Presented as a copyable link; users are not required to manually construct the URL.",
   "Shell Layout": "* Desktop shell uses independent scroll regions: the sidebar navigation scrolls separately from the main content column.\n* Shell density favors dashboard-style spacing: compact topbar, compact sidebar links, and tighter page padding.\n* Theme selection is explicit through a dropdown menu with system, light, and dark radio choices.",
+  "Dashboard Page Identity": "* Every signed-in dashboard branch exposes exactly one localized level-one heading.\n* The main content landmark uses the same localized branch label.\n* The document title identifies the active branch before the Life@USTC suffix.\n* Identity follows the normalized dashboard tab across root, path, and query-parameter aliases.",
   "Localized Count Copy": "* User-visible English count copy distinguishes singular from plural forms; Chinese may share one count template when its grammar does not change.",
   "Navigation Landmarks": "* The application sidebar is a real navigation landmark labelled Primary navigation / 主导航.\n* Footer links use one distinct Footer navigation / 页脚导航 landmark so assistive technology can distinguish the two regions."
 }
