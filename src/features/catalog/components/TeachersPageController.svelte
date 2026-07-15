@@ -6,11 +6,11 @@ import {
   catalogPrimaryName as primaryName,
   catalogSecondaryName as secondaryName,
 } from "@/features/catalog/lib/catalog-list-display";
-import { catalogPageDataHref } from "@/features/catalog/lib/catalog-page-data-href";
 import { goto } from "$app/navigation";
 import CatalogFilterSidebar from "./CatalogFilterSidebar.svelte";
-import CatalogInfinitePager from "./CatalogInfinitePager.svelte";
+import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
 import CatalogPageHeader from "./CatalogPageHeader.svelte";
+import CatalogPagination from "./CatalogPagination.svelte";
 import type {
   TeacherListCommonLabels,
   TeacherListFilters,
@@ -50,10 +50,7 @@ type PageData = {
 export let data: PageData;
 
 let teacherSearch = data.filters.search ?? "";
-let isLoadingMore = false;
-let loadedPage = data.pagination.page;
-let teacherPageKey = "";
-let visibleTeachers: TeacherListRow[] = data.data;
+let isTeacherFilterOpen = false;
 
 $: totalPages = data.pagination.totalPages;
 $: teacherSearch = data.filters.search ?? "";
@@ -74,18 +71,25 @@ $: departmentOptions = [
     label: primaryName(department),
   })),
 ];
-$: nextTeacherPageKey = JSON.stringify({
-  filters: data.filters,
-  page: data.pagination.page,
-});
-$: if (nextTeacherPageKey !== teacherPageKey) {
-  teacherPageKey = nextTeacherPageKey;
-  visibleTeachers = data.data;
-  loadedPage = data.pagination.page;
-  isLoadingMore = false;
-}
-$: hasMoreTeachers = loadedPage < totalPages;
-$: nextTeacherHref = hasMoreTeachers ? pageHref(loadedPage + 1) : "";
+$: teacherActiveFilters = [
+  data.filters.search
+    ? {
+        href: teacherFilterHref({ search: "" }),
+        label: `${teacherLabels.searchLabel}: ${data.filters.search}`,
+      }
+    : null,
+  data.filters.departmentId
+    ? {
+        href: teacherFilterHref({ departmentId: "" }),
+        label: `${teacherLabels.department}: ${selectedDepartment ? primaryName(selectedDepartment) : data.filters.departmentId}`,
+      }
+    : null,
+].filter(
+  (filter): filter is { href: string; label: string } => filter !== null,
+);
+$: teacherHiddenFilters = [
+  { name: "departmentId", value: data.filters.departmentId ?? "" },
+];
 
 function pageHref(targetPage: number) {
   const { search, departmentId } = data.filters;
@@ -93,32 +97,18 @@ function pageHref(targetPage: number) {
 }
 
 function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
-  const search = teacherSearch.trim();
-  const departmentId =
-    overrides.departmentId ?? data.filters.departmentId ?? "";
+  const filters = {
+    ...data.filters,
+    search: teacherSearch.trim(),
+    ...overrides,
+  };
+  const { search, departmentId } = filters;
   return catalogHref("/teachers", { search, departmentId });
 }
 
 function updateTeacherFilter(overrides: Partial<TeacherListFilters>) {
+  isTeacherFilterOpen = false;
   void goto(teacherFilterHref(overrides));
-}
-
-async function loadMoreTeachers() {
-  if (!hasMoreTeachers || isLoadingMore) return;
-
-  isLoadingMore = true;
-  try {
-    const response = await fetch(
-      catalogPageDataHref("teachers", pageHref(loadedPage + 1)),
-    );
-    if (!response.ok) return;
-
-    const nextData = (await response.json()) as PageData;
-    visibleTeachers = [...visibleTeachers, ...nextData.data];
-    loadedPage = nextData.pagination.page;
-  } finally {
-    isLoadingMore = false;
-  }
 }
 </script>
 
@@ -127,12 +117,35 @@ async function loadMoreTeachers() {
 <section class="grid gap-5">
   <CatalogPageHeader
     description={teacherLabels.subtitle}
-    metaLabel={teacherLabels.currentDepartment}
-    metaValue={selectedDepartment ? primaryName(selectedDepartment) : teacherLabels.allDepartments}
     title={teacherLabels.title}
   />
 
   <div class="-mx-4 grid min-h-[calc(100vh-8rem)] bg-background sm:-mx-5 lg:-mx-6 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start">
+    <CatalogMobileFilters
+      activeFilters={teacherActiveFilters}
+      clearHref="/teachers"
+      clearLabel={commonLabels.clear}
+      filterTitle={teacherLabels.filterTitle}
+      hiddenFilters={teacherHiddenFilters}
+      bind:open={isTeacherFilterOpen}
+      searchId="mobile-teacher-search"
+      searchLabel={teacherLabels.searchLabel}
+      searchPlaceholder={teacherLabels.searchNameOrCode}
+      bind:searchValue={teacherSearch}
+    >
+      <TeachersFilters
+        {activeFilterCount}
+        {commonLabels}
+        {departmentOptions}
+        filters={data.filters}
+        idPrefix="mobile-teacher"
+        showSearch={false}
+        {teacherLabels}
+        bind:teacherSearch
+        {updateTeacherFilter}
+      />
+    </CatalogMobileFilters>
+
     <CatalogFilterSidebar
       activeCount={activeFilterCount}
       description={teacherLabels.filterDescription}
@@ -154,24 +167,26 @@ async function loadMoreTeachers() {
       <TeachersResults
         {commonLabels}
         filters={data.filters}
-        page={loadedPage}
+        page={data.pagination.page}
         {primaryName}
         {secondaryName}
         {selectedDepartment}
         {showSecondaryNames}
         {teacherLabels}
-        teachers={visibleTeachers}
+        teachers={data.data}
         total={data.pagination.total}
         {totalPages}
       />
 
-      <CatalogInfinitePager
-        hasMore={hasMoreTeachers}
-        loading={isLoadingMore}
-        loadingLabel={commonLabels.loading}
-        loadMore={loadMoreTeachers}
-        nextHref={nextTeacherHref}
+      <CatalogPagination
+        ariaLabel={commonLabels.pagination}
         nextLabel={commonLabels.next}
+        nextPageLabel={commonLabels.nextPage}
+        page={data.pagination.page}
+        {pageHref}
+        previousLabel={commonLabels.previous}
+        previousPageLabel={commonLabels.previousPage}
+        {totalPages}
       />
     </div>
   </div>

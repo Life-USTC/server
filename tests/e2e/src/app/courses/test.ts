@@ -10,7 +10,7 @@
  * - Filter dropdowns: education level, category, class type
  * - Table with columns: Course Name, Code, Education Level, Category, Class Type
  * - Clickable rows navigating to /courses/{jwId}
- * - Endless loading when totalPages > 1
+ * - URL-driven Previous / page-number / Next pagination
  * - DataState empty state when no results
  *
  * ## Edge Cases
@@ -21,7 +21,11 @@
  */
 import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
-import { getSeedCourseFilterFixture } from "../../../utils/e2e-db";
+import {
+  createTempCoursesFixture,
+  deleteTempCoursesByPrefix,
+  getSeedCourseFilterFixture,
+} from "../../../utils/e2e-db";
 import { visibleText } from "../../../utils/locators";
 import {
   expectNoPageHorizontalOverflow,
@@ -32,6 +36,8 @@ import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/courses 课程目录", () => {
+  test.describe.configure({ mode: "serial" });
+
   test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, { routePath: "/courses", testInfo });
   });
@@ -103,6 +109,18 @@ test.describe("/courses 课程目录", () => {
       { testInfo, screenshotLabel: "courses-list" },
     );
     await expectNoPageHorizontalOverflow(page);
+    await expect(page.getByTestId("catalog-mobile-filters")).toBeVisible();
+    await expect(page.getByTestId("catalog-filter-sidebar")).toBeHidden();
+    await expect(page.getByTestId("catalog-results-summary")).toBeVisible();
+    await expect(page.getByTestId("catalog-active-filters")).toBeVisible();
+    await page.getByRole("button", { name: /筛选|Filters/i }).click();
+    const filterSheet = page.getByRole("dialog");
+    await expect(filterSheet).toBeVisible();
+    await expect(
+      filterSheet.getByLabel(/培养层次|Education Level/i),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
+
     const detailLink = page
       .locator(
         `#main-content a[href="/courses/${DEV_SEED.course.jwId}"]:visible`,
@@ -111,6 +129,7 @@ test.describe("/courses 课程目录", () => {
     await expect(detailLink).toBeVisible();
     const box = await detailLink.boundingBox();
     expect(box?.width ?? 0).toBeGreaterThan(250);
+    expect(box?.y ?? Number.POSITIVE_INFINITY).toBeLessThan(640);
     await captureStepScreenshot(page, testInfo, "courses-mobile-list");
     await detailLink.click();
     await expect(page).toHaveURL(
@@ -119,7 +138,51 @@ test.describe("/courses 课程目录", () => {
     await captureStepScreenshot(page, testInfo, "courses-navigate-detail");
   });
 
+  test("分页提供上一页、页码和下一页并写入浏览历史", async ({
+    page,
+  }, testInfo) => {
+    const prefix = `e2epagination-${Date.now()}-${testInfo.workerIndex}`;
+    await createTempCoursesFixture({ count: 25, prefix });
+
+    try {
+      const searchPath = `/courses?search=${prefix}`;
+      await gotoAndWaitForReady(page, searchPath, {
+        testInfo,
+        screenshotLabel: "courses-page-1",
+      });
+
+      let pagination = page.getByTestId("catalog-pagination");
+      await expect(pagination).toBeVisible();
+      await expect(pagination.locator('[aria-current="page"]')).toHaveText("1");
+      await expect(
+        pagination.getByRole("link", { name: /分页 2|Pagination 2/i }),
+      ).toHaveAttribute("href", `${searchPath}&page=2`);
+
+      const nextLink = pagination.getByRole("link", {
+        name: /下一页|Next page/i,
+      });
+      await expect(nextLink).toHaveAttribute("href", `${searchPath}&page=2`);
+      await nextLink.click();
+      await expect(page).toHaveURL(
+        new RegExp(`/courses\\?search=${prefix}&page=2$`),
+      );
+
+      pagination = page.getByTestId("catalog-pagination");
+      await expect(pagination.locator('[aria-current="page"]')).toHaveText("2");
+      await expect(
+        pagination.getByRole("link", { name: /上一页|Previous page/i }),
+      ).toHaveAttribute("href", searchPath);
+      await captureStepScreenshot(page, testInfo, "courses-pagination");
+
+      await page.goBack();
+      await expect(page).toHaveURL(new RegExp(`/courses\\?search=${prefix}$`));
+    } finally {
+      await deleteTempCoursesByPrefix(prefix);
+    }
+  });
+
   test("搜索和清除按钮", async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
     await gotoAndWaitForReady(page, "/courses", {
       testInfo,
       screenshotLabel: "courses",
@@ -164,6 +227,8 @@ test.describe("/courses 课程目录", () => {
       screenshotLabel: "courses-filter",
     });
 
+    await expect(page.getByTestId("catalog-filter-sidebar")).toBeVisible();
+    await expect(page.getByTestId("catalog-mobile-filters")).toBeHidden();
     await expect(visibleText(page, DEV_SEED.course.code)).toBeVisible();
     await captureStepScreenshot(page, testInfo, "courses-filter-seed");
   });

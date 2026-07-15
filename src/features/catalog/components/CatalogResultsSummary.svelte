@@ -9,7 +9,10 @@ export let semesterText = "";
 export let totalPages: number;
 </script>
 
-<div class="flex flex-wrap items-center justify-between gap-3">
+<div
+  class="flex flex-wrap items-center justify-between gap-3"
+  data-testid="catalog-results-summary"
+>
   <p class="text-muted-foreground text-sm">
     {base}
     {#if searchText}

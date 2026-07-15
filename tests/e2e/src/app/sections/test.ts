@@ -11,7 +11,7 @@
  * - Semester filter dropdown (combobox)
  * - Table: Semester, Course Name, Section Code, Teachers, Credits, Capacity, Campus
  * - Clickable rows navigating to /sections/{jwId}
- * - Endless loading when totalPages > 1
+ * - URL-driven Previous / page-number / Next pagination
  * - DataState empty state when no results
  * - Clear filter link
  *
@@ -58,6 +58,15 @@ test.describe("/sections 班级搜索页", () => {
       { testInfo, screenshotLabel: "sections-list" },
     );
     await expectNoPageHorizontalOverflow(page);
+    await expect(page.getByTestId("catalog-mobile-filters")).toBeVisible();
+    await expect(page.getByTestId("catalog-filter-sidebar")).toBeHidden();
+    await expect(page.getByTestId("catalog-results-summary")).toBeVisible();
+    await expect(page.getByTestId("catalog-active-filters")).toBeVisible();
+    await page.getByRole("button", { name: /筛选|Filters/i }).click();
+    const filterSheet = page.getByRole("dialog");
+    await expect(filterSheet).toBeVisible();
+    await expect(filterSheet.getByLabel(/学期|Semester/i)).toBeVisible();
+    await page.keyboard.press("Escape");
 
     const detailLink = page
       .locator("#main-content a[href^='/sections/']:visible")
@@ -65,6 +74,7 @@ test.describe("/sections 班级搜索页", () => {
     await expect(detailLink).toBeVisible();
     const box = await detailLink.boundingBox();
     expect(box?.width ?? 0).toBeGreaterThan(250);
+    expect(box?.y ?? Number.POSITIVE_INFINITY).toBeLessThan(640);
     await captureStepScreenshot(page, testInfo, "sections-mobile-list");
     await detailLink.click();
 
@@ -154,7 +164,7 @@ test.describe("/sections 班级搜索页", () => {
       .first()
       .click();
 
-    const searchInput = page.getByPlaceholder(/搜索或使用高级语法|search/i);
+    const searchInput = page.getByRole("searchbox");
     await searchInput.fill(DEV_SEED.section.code);
     await page.getByRole("button", { name: /^(搜索|Search)$/i }).click();
     await expect(page).toHaveURL(

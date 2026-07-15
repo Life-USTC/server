@@ -56,6 +56,19 @@ test.describe("/teachers", () => {
       { testInfo, screenshotLabel: "teachers-list" },
     );
     await expectNoPageHorizontalOverflow(page);
+    await expect(page.getByTestId("catalog-mobile-filters")).toBeVisible();
+    await expect(page.getByTestId("catalog-filter-sidebar")).toBeHidden();
+    await expect(page.getByTestId("catalog-results-summary")).toBeVisible();
+    await expect(page.getByTestId("catalog-active-filters")).toBeVisible();
+    const filterTrigger = page.getByRole("button", {
+      name: /筛选教师|Filter teachers/i,
+    });
+    await expect(filterTrigger).toBeVisible();
+    await filterTrigger.click();
+    const filterSheet = page.getByRole("dialog");
+    await expect(filterSheet).toBeVisible();
+    await expect(filterSheet.getByLabel(/院系|Department/i)).toBeVisible();
+    await page.keyboard.press("Escape");
 
     const detailLink = page
       .locator("#main-content a[href^='/teachers/']:visible")
@@ -63,6 +76,7 @@ test.describe("/teachers", () => {
     await expect(detailLink).toBeVisible();
     const box = await detailLink.boundingBox();
     expect(box?.width ?? 0).toBeGreaterThan(250);
+    expect(box?.y ?? Number.POSITIVE_INFINITY).toBeLessThan(640);
     await captureStepScreenshot(page, testInfo, "teachers-mobile-list");
     await detailLink.click();
 
