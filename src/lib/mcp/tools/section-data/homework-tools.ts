@@ -11,7 +11,6 @@ import {
   resolveMcpMode,
   resolveSectionByJwId,
 } from "@/lib/mcp/tools/_helpers";
-import { summarizeHomeworkCard } from "@/lib/mcp/tools/event-summary";
 import { registerCreateHomeworkOnSectionTool } from "./homework-create-tool";
 import { registerDeleteHomeworkOnSectionTool } from "./homework-delete-tool";
 import { registerUpdateHomeworkOnSectionTool } from "./homework-update-tool";
@@ -61,20 +60,6 @@ export function registerSectionHomeworkTools(server: McpServer) {
           ...homework
         }) => homework,
       );
-
-      if (resolvedMode === "summary") {
-        return jsonToolResult(
-          {
-            found: true,
-            section,
-            homeworks: {
-              total: homeworkItems.length,
-              items: scopedHomeworkItems.slice(0, 5).map(summarizeHomeworkCard),
-            },
-          },
-          { mode: "default" },
-        );
-      }
 
       return jsonToolResult(
         {

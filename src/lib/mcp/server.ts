@@ -10,6 +10,7 @@ import { registerProfileTools } from "@/lib/mcp/tools/profile-tools";
 import { registerSectionDataTools } from "@/lib/mcp/tools/section-data-tools";
 import { registerUploadTools } from "@/lib/mcp/tools/upload-tools";
 import {
+  assertRegisteredMcpToolMetadata,
   installMcpToolDescriptorDefaults,
   installMcpToolListCompatibility,
 } from "./tool-descriptors";
@@ -44,6 +45,7 @@ export function createMcpServer() {
   registerSectionDataTools(server);
   registerMyDataTools(server);
   registerCalendarTools(server);
+  assertRegisteredMcpToolMetadata(server);
   installMcpToolListCompatibility(server);
 
   return server;

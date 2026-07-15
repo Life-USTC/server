@@ -30,7 +30,7 @@
             "notes": [
               "Returns course, exam, homework, and todo events unified by date range, directly corresponding to the personal calendar view.",
               "Each item in events[] has type, at, and payload; payload corresponds to ScheduleEntry, HomeworkItem, ExamEntry, or TodoItem based on type.",
-              "Summary mode returns grouped counts/day slices plus a limited event sample instead of the full raw event list."
+              "The deprecated summary input returns the same compact events[] structure as default; full adds raw event fields without changing the collection type."
             ]
           },
           {

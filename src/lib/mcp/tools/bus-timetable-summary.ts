@@ -69,16 +69,12 @@ export function summarizeBusTimetable(result: BusTimetableResult) {
   };
 }
 
-export function summarizeBusTimetableBrief(result: BusTimetableResult) {
-  const compact = summarizeBusTimetable(result);
+export function buildFullBusTimetable(result: BusTimetableResult) {
+  const canonical = summarizeBusTimetable(result);
   return {
-    locale: compact.locale,
-    fetchedAt: compact.fetchedAt,
-    version: compact.version,
-    counts: compact.counts,
-    preferences: compact.preferences,
-    nextDepartures: compact.nextDepartures,
-    nextDeparturesMessage: compact.nextDeparturesMessage,
-    notice: compact.notice,
+    ...result,
+    counts: canonical.counts,
+    nextDepartures: canonical.nextDepartures,
+    nextDeparturesMessage: canonical.nextDeparturesMessage,
   };
 }

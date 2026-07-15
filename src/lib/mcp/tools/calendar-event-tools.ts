@@ -9,7 +9,6 @@ import {
   parseMcpDateRange,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
-import { summarizeCalendarEventCollection } from "@/lib/mcp/tools/event-summary";
 
 export function registerCalendarEventTools(server: McpServer) {
   server.registerTool(
@@ -47,18 +46,6 @@ export function registerCalendarEventTools(server: McpServer) {
         dateToInclusive: true,
       });
       const resolvedMode = resolveMcpMode(mode);
-
-      if (resolvedMode === "summary") {
-        return jsonToolResult(
-          {
-            events: summarizeCalendarEventCollection(events, {
-              itemLimit: 5,
-              dayLimit: 7,
-            }),
-          },
-          { mode: "default" },
-        );
-      }
 
       return jsonToolResult(
         {

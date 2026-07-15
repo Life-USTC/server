@@ -7,7 +7,6 @@ import {
   parseOptionalMcpDate,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
-import { summarizeCalendarEventCollection } from "@/lib/mcp/tools/event-summary";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
 type ToolExtra = { authInfo?: Parameters<typeof getUserId>[0] };
@@ -34,23 +33,6 @@ export async function getMySevenDaysTimelineAction(
     dateFrom: todayStart,
     dateTo: windowEnd,
   });
-
-  if (resolvedMode === "summary") {
-    return jsonToolResult(
-      {
-        range: {
-          from: toShanghaiIsoString(todayStart),
-          to: toShanghaiIsoString(windowEnd),
-        },
-        total: events.length,
-        events: summarizeCalendarEventCollection(events, {
-          itemLimit: 5,
-          dayLimit: 7,
-        }),
-      },
-      { mode: "default" },
-    );
-  }
 
   return jsonToolResult(
     {

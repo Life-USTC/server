@@ -12,6 +12,9 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
       success?: boolean;
       subscription?: {
         userId?: string;
+        sectionCount?: number;
+        currentSemesterSectionCount?: number;
+        currentSemesterSections?: unknown[];
         sections?: Array<{
           jwId?: number | null;
           code?: string | null;
@@ -27,6 +30,13 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
 
     expect(result.success).toBe(true);
     expect(result.subscription?.userId).toBe(context.devUserId);
+    expect(typeof result.subscription?.sectionCount).toBe("number");
+    expect(typeof result.subscription?.currentSemesterSectionCount).toBe(
+      "number",
+    );
+    expect(Array.isArray(result.subscription?.currentSemesterSections)).toBe(
+      true,
+    );
     expect(
       result.subscription?.sections?.some(
         (section) => section.jwId === fixtures.DEV_SEED.section.jwId,
@@ -41,7 +51,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
     expect(result.subscription?.note).toContain("not official");
   });
 
-  it("get_my_calendar_subscription summary 模式仅返回计数与路径", async () => {
+  it("get_my_calendar_subscription summary 兼容输入返回 default 结构", async () => {
     await fixtures.ensureDevUserSubscribedToSeedSection();
 
     const result = await context.client.call<{
@@ -52,7 +62,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
         currentSemesterSectionCount?: number;
         calendarPath?: string | null;
         calendarUrl?: string | null;
-        sections?: unknown;
+        currentSemesterSections?: unknown[];
       };
     }>("get_my_calendar_subscription", {
       locale: "zh-cn",
@@ -65,7 +75,9 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
       "number",
     );
     expect(result.subscription?.calendarPath).toBeTruthy();
-    expect(result.subscription?.sections).toBeUndefined();
+    expect(Array.isArray(result.subscription?.currentSemesterSections)).toBe(
+      true,
+    );
   });
 
   it("list_my_subscribed_sections 列出当前订阅班级", async () => {

@@ -3,56 +3,14 @@ import { compactMcpPayload } from "@/lib/mcp/compact-payload";
 import { serializeDatesDeep } from "@/lib/time/serialize-date-output";
 import { resolveMcpMode } from "./helper-schemas";
 
-function summarizeArray(items: unknown[], limit: number) {
-  const returned = items.length;
-  return {
-    total: returned,
-    returned,
-    remaining: Math.max(returned - limit, 0),
-    truncated: returned > limit,
-    items: items.slice(0, limit).map(compactMcpPayload),
-  };
-}
-
-function getPaginatedTotal(
-  key: string,
-  source: Record<string, unknown>,
-): number | undefined {
-  if (key !== "data") {
-    return undefined;
-  }
-
-  const pagination = source.pagination;
-  if (!isRecord(pagination) || typeof pagination.total !== "number") {
-    return undefined;
-  }
-
-  return pagination.total;
-}
-
-function summarizeMcpPayload(value: unknown): unknown {
-  if (Array.isArray(value)) return summarizeArray(value, 10);
-  if (!isRecord(value)) return value;
-
-  const out: Record<string, unknown> = {};
-  for (const [key, v] of Object.entries(value)) {
-    if (Array.isArray(v)) {
-      const sampleLimit = key === "events" ? 25 : 10;
-      const total = getPaginatedTotal(key, value);
-      out[key] = {
-        ...summarizeArray(v, sampleLimit),
-        ...(total !== undefined ? { total } : {}),
-      };
-    } else {
-      out[key] = compactMcpPayload(v);
-    }
-  }
-
-  return out;
-}
-
 function toStructuredContent(value: unknown): Record<string, unknown> {
-  return isRecord(value) ? value : { result: value };
+  if (isRecord(value)) {
+    return {
+      ...value,
+      success: typeof value.success === "boolean" ? value.success : true,
+    };
+  }
+  return { success: true, result: value };
 }
 
 export function jsonToolResult(
@@ -60,19 +18,16 @@ export function jsonToolResult(
   options?: { mode?: "summary" | "default" | "full" },
 ) {
   const mode = resolveMcpMode(options?.mode);
-  const payload =
-    mode === "full"
-      ? value
-      : mode === "summary"
-        ? summarizeMcpPayload(value)
-        : compactMcpPayload(value);
-  const serializedPayload = serializeDatesDeep(payload);
+  const payload = mode === "full" ? value : compactMcpPayload(value);
+  const serializedPayload = toStructuredContent(serializeDatesDeep(payload));
+  const text = JSON.stringify(serializedPayload, null, 2);
+  const structuredContent = JSON.parse(text) as Record<string, unknown>;
   return {
-    structuredContent: toStructuredContent(serializedPayload),
+    structuredContent,
     content: [
       {
         type: "text" as const,
-        text: JSON.stringify(serializedPayload, null, 2),
+        text,
       },
     ],
   };

@@ -4,6 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { describe, expect, it } from "vitest";
 import { createMcpServer } from "@/lib/mcp/server";
 import {
+  assertRegisteredMcpToolMetadata,
   installMcpToolDescriptorDefaults,
   installMcpToolListCompatibility,
 } from "@/lib/mcp/tool-descriptors";
@@ -61,9 +62,11 @@ async function listToolsWireResult() {
 
 type ToolListResult = Awaited<ReturnType<typeof listTools>>;
 type JsonSchemaObject = {
+  additionalProperties?: boolean;
   anyOf?: JsonSchemaObject[];
   items?: JsonSchemaObject;
   properties?: Record<string, JsonSchemaObject>;
+  required?: string[];
   type?: string;
 };
 
@@ -211,7 +214,11 @@ describe("MCP tool descriptors", () => {
 
     expect(result.tools.length).toBeGreaterThan(0);
     for (const tool of result.tools) {
-      expect(tool.outputSchema).toMatchObject({ type: "object" });
+      expect(tool.outputSchema).toMatchObject({
+        type: "object",
+        additionalProperties: false,
+        required: expect.arrayContaining(["success"]),
+      });
       expect(
         Object.keys(
           (
@@ -234,7 +241,7 @@ describe("MCP tool descriptors", () => {
       expect.arrayContaining(["user", "nextClass", "todos", "bus"]),
     );
     expect(outputSchemaKeys(result, "create_comment")).toEqual(
-      expect.arrayContaining(["id", "success", "error", "message"]),
+      expect.arrayContaining(["id", "success", "error", "message", "reason"]),
     );
     expect(outputSchemaKeys(result, "list_comments")).toEqual(
       expect.arrayContaining(["found", "data", "pagination", "meta"]),
@@ -244,6 +251,31 @@ describe("MCP tool descriptors", () => {
     );
     expect(outputSchemaKeys(result, "get_next_buses")).toEqual(
       expect.arrayContaining(["departures", "nextAvailableDeparture"]),
+    );
+    expect(outputSchemaKeys(result, "query_bus_timetable")).toEqual(
+      expect.arrayContaining(["availableVersions", "trips", "success"]),
+    );
+    expect(outputSchemaKeys(result, "get_bus_route_timetable")).toEqual(
+      expect.arrayContaining([
+        "route",
+        "weekday",
+        "weekend",
+        "alternateRoutes",
+      ]),
+    );
+    expect(outputSchemaKeys(result, "get_my_bus_preferences")).toEqual(
+      expect.arrayContaining(["preference", "success"]),
+    );
+    expect(outputSchemaKeys(result, "save_my_bus_preferences")).toEqual(
+      expect.arrayContaining(["preference", "success"]),
+    );
+    expect(outputSchemaKeys(result, "search_bus_routes")).toEqual(
+      expect.arrayContaining([
+        "originCampus",
+        "destinationCampus",
+        "total",
+        "routes",
+      ]),
     );
   });
 
@@ -277,16 +309,13 @@ describe("MCP tool descriptors", () => {
         overdue: { type: "integer" },
       },
     });
-    expect(todoSchema?.properties?.todos?.anyOf).toHaveLength(2);
-    expect(
-      todoSchema?.properties?.todos?.anyOf?.[0]?.items?.properties,
-    ).toMatchObject({
+    expect(todoSchema?.properties?.todos?.items?.properties).toMatchObject({
       id: { type: "string" },
       title: { type: "string" },
       priority: { enum: ["low", "medium", "high"] },
     });
 
-    expect(uploadSchema?.properties?.data?.anyOf?.[0]?.items).toMatchObject({
+    expect(uploadSchema?.properties?.data?.items).toMatchObject({
       type: "object",
       properties: {
         id: { type: "string" },
@@ -323,7 +352,7 @@ describe("MCP tool descriptors", () => {
       },
     });
     expect(
-      courseSearchSchema?.properties?.data?.anyOf?.[0]?.items?.properties,
+      courseSearchSchema?.properties?.data?.items?.properties,
     ).toMatchObject({
       id: { type: "integer" },
       jwId: { type: "integer" },
@@ -331,7 +360,40 @@ describe("MCP tool descriptors", () => {
     });
   });
 
-  it("validates mode-aware collection output schemas", async () => {
+  it("accepts nullable not-found catalog payloads", () => {
+    expect(
+      getMcpToolOutputSchema("get_current_semester").safeParse({
+        success: true,
+        found: false,
+        semester: null,
+      }).success,
+    ).toBe(true);
+    expect(
+      getMcpToolOutputSchema("get_teacher_by_id").safeParse({
+        success: true,
+        found: false,
+        teacher: null,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("accepts bus trips whose endpoint times are unavailable", () => {
+    expect(
+      getMcpToolOutputSchema("query_bus_timetable").safeParse({
+        success: true,
+        trips: [
+          {
+            departureTime: null,
+            arrivalTime: null,
+            departureMinutes: null,
+            arrivalMinutes: null,
+          },
+        ],
+      }).success,
+    ).toBe(true);
+  });
+
+  it("validates canonical collection output schemas across compatibility modes", async () => {
     const [clientTransport, serverTransport] =
       InMemoryTransport.createLinkedPair();
     const mcpServer = new McpServer({
@@ -450,10 +512,8 @@ describe("MCP tool descriptors", () => {
       });
       expect(summaryResult.structuredContent).toMatchObject({
         counts: todoPayload.counts,
-        todos: {
-          total: 1,
-          items: [expect.objectContaining({ id: "todo-1" })],
-        },
+        success: true,
+        todos: [expect.objectContaining({ id: "todo-1" })],
       });
       expect(examResult.structuredContent).toMatchObject({
         exams: [
@@ -506,9 +566,33 @@ describe("MCP tool descriptors", () => {
       });
 
       expect(tool?.outputSchema).toMatchObject({ type: "object" });
-      expect(result.structuredContent).toEqual({ result: [{ id: 1 }] });
+      expect(result.structuredContent).toEqual({
+        success: true,
+        result: [{ id: 1 }],
+      });
     } finally {
       await client.close();
+      await mcpServer.close();
+    }
+  });
+
+  it("fails startup validation for tools missing explicit metadata", async () => {
+    const mcpServer = new McpServer({
+      name: "unit-test-registry-completeness",
+      version: "1.0.0",
+    });
+    installMcpToolDescriptorDefaults(mcpServer);
+    mcpServer.registerTool(
+      "unregistered_test_tool",
+      { description: "Tool intentionally missing production metadata." },
+      async () => jsonToolResult({ value: true }),
+    );
+
+    try {
+      expect(() => assertRegisteredMcpToolMetadata(mcpServer)).toThrow(
+        /scope metadata: unregistered_test_tool; output schemas: unregistered_test_tool/,
+      );
+    } finally {
       await mcpServer.close();
     }
   });

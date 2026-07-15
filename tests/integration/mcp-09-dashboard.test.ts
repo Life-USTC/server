@@ -64,22 +64,47 @@ describe("get_my_dashboard — 默认模式紧凑性", () => {
     expect(typeof dashboard.todos?.incompleteCount).toBe("number");
   });
 
-  it("summary 模式比 default 模式显著更小", async () => {
-    const def = JSON.stringify(
-      await context.client.callTool("get_my_dashboard", {
-        locale: "zh-cn",
-        mode: "default",
-        atTime: fixtures.SEED_AT_TIME,
-      }),
+  it("summary 兼容输入与 default 返回相同结构", async () => {
+    const def = await context.client.callTool("get_my_dashboard", {
+      locale: "zh-cn",
+      mode: "default",
+      atTime: fixtures.SEED_AT_TIME,
+    });
+    const sum = await context.client.callTool("get_my_dashboard", {
+      locale: "zh-cn",
+      mode: "summary",
+      atTime: fixtures.SEED_AT_TIME,
+    });
+    expect(sum).toEqual(def);
+  });
+
+  it("full 模式保留 default 的容器类型与合成键", async () => {
+    const full = await context.client.call<{
+      subscriptions?: {
+        currentSemesterSections?: unknown[];
+        currentSemesterSectionsTotal?: number;
+      };
+      upcomingDeadlines?: { total?: number; items?: unknown[] };
+      upcomingEvents?: { total?: number; items?: unknown[] };
+      bus?: { hasPreference?: boolean; departures?: unknown[] };
+    }>("get_my_dashboard", {
+      locale: "zh-cn",
+      mode: "full",
+      atTime: fixtures.SEED_AT_TIME,
+    });
+
+    expect(Array.isArray(full.upcomingDeadlines?.items)).toBe(true);
+    expect(Array.isArray(full.upcomingEvents?.items)).toBe(true);
+    expect(typeof full.upcomingDeadlines?.total).toBe("number");
+    expect(typeof full.upcomingEvents?.total).toBe("number");
+    expect(Array.isArray(full.subscriptions?.currentSemesterSections)).toBe(
+      true,
     );
-    const sum = JSON.stringify(
-      await context.client.callTool("get_my_dashboard", {
-        locale: "zh-cn",
-        mode: "summary",
-        atTime: fixtures.SEED_AT_TIME,
-      }),
+    expect(typeof full.subscriptions?.currentSemesterSectionsTotal).toBe(
+      "number",
     );
-    expect(sum.length).toBeLessThan(def.length);
+    expect(typeof full.bus?.hasPreference).toBe("boolean");
+    expect(Array.isArray(full.bus?.departures)).toBe(true);
   });
 
   it("当前学期无关注班级时仍可按学期回溯往期数据", async () => {

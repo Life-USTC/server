@@ -44,8 +44,8 @@
       "focused-over-raw-for-common-questions": [
         "For prompts such as 'what is my next class?' or 'when is the next bus?', use focused extract tools instead of raw dataset mirrors."
       ],
-      "summary-privacy-default": [
-        "Summary/default outputs should stay compact and redact token-bearing URLs or repeated low-value nested objects."
+      "compact-privacy-default": [
+        "Default output should stay compact and redact token-bearing URLs or repeated low-value nested objects; the deprecated summary input is an alias for this same shape."
       ]
     },
     "decisions": [

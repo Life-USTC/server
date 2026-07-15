@@ -28,18 +28,19 @@ type OutputShape = Record<string, z.ZodType>;
 export type McpToolOutputSchema = z.ZodType;
 
 const COMMON_OUTPUT_SHAPE = {
-  success: z.boolean().optional(),
+  success: z.boolean(),
   found: z.boolean().optional(),
   error: z.unknown().optional(),
   message: z.string().nullable().optional(),
+  reason: z.string().nullable().optional(),
   hint: z.string().optional(),
   result: z.unknown().optional(),
 } satisfies OutputShape;
 
 export const STRUCTURED_CONTENT_OUTPUT_SCHEMA = z
   .object(COMMON_OUTPUT_SHAPE)
-  .catchall(z.unknown())
-  .describe("Open object returned in structuredContent.");
+  .strict()
+  .describe("Object returned in structuredContent with an explicit status.");
 
 function optionalizeShape(shape: OutputShape) {
   return Object.fromEntries(
@@ -53,8 +54,8 @@ function objectOutputSchema(shape: OutputShape) {
       ...optionalizeShape(shape),
       ...COMMON_OUTPUT_SHAPE,
     })
-    .catchall(z.unknown())
-    .describe("Object returned in structuredContent.");
+    .strict()
+    .describe("Canonical object returned in structuredContent.");
 }
 
 function objectOutputSchemaFromApi(schema: { shape: OutputShape }) {
@@ -67,20 +68,8 @@ function topLevelOutputSchema(keys: string[]) {
   );
 }
 
-function collectionSummarySchema(itemSchema: z.ZodType) {
-  return z
-    .object({
-      total: z.number().int().nonnegative(),
-      returned: z.number().int().nonnegative().optional(),
-      remaining: z.number().int().nonnegative().optional(),
-      truncated: z.boolean().optional(),
-      items: z.array(itemSchema).optional(),
-    })
-    .catchall(z.unknown());
-}
-
 function collectionOutputSchema(itemSchema: z.ZodType) {
-  return z.union([z.array(itemSchema), collectionSummarySchema(itemSchema)]);
+  return z.array(itemSchema);
 }
 
 function compactObjectSchema(shape: OutputShape) {
@@ -255,10 +244,10 @@ const compactBusTripSchema = compactObjectSchema({
   routeId: z.number().int(),
   dayType: z.string(),
   position: z.number().int(),
-  departureTime: z.string(),
-  arrivalTime: z.string(),
-  departureMinutes: z.number().int(),
-  arrivalMinutes: z.number().int(),
+  departureTime: z.string().nullable(),
+  arrivalTime: z.string().nullable(),
+  departureMinutes: z.number().int().nullable(),
+  arrivalMinutes: z.number().int().nullable(),
   minutesUntilDeparture: z.number().int().nullable(),
   status: z.string().nullable(),
   stopTimes: z.unknown(),
@@ -270,6 +259,8 @@ const compactBusTripSchema = compactObjectSchema({
 const compactCalendarSubscriptionSchema = compactObjectSchema({
   userId: z.string(),
   sectionCount: z.number().int().nonnegative(),
+  currentSemesterSectionCount: z.number().int().nonnegative(),
+  currentSemesterSections: z.array(compactSectionSchema),
   sections: z.array(compactSectionSchema),
   calendarPath: z.string().nullable(),
   calendarUrl: z.string().nullable(),
@@ -324,15 +315,13 @@ const matchSectionCodesMcpSchema = objectOutputSchema({
   success: z.boolean(),
   matchedCodes: collectionOutputSchema(z.string()),
   unmatchedCodes: collectionOutputSchema(z.string()),
-  suggestions: z.record(
-    z.string(),
-    z.union([z.array(z.string()), collectionSummarySchema(z.string())]),
-  ),
+  suggestions: z.record(z.string(), z.array(z.string())),
   sections: collectionOutputSchema(compactSectionSchema),
   note: z.string(),
 });
 
-// Keep fallback schemas top-level only until each mode has an explicit payload builder.
+// Production startup asserts that every registered application tool has an
+// explicit entry. The fallback exists only for isolated SDK/test registrations.
 const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
   get_my_profile: objectOutputSchemaFromApi(meResponseSchema),
   get_public_user_profile: objectOutputSchema({
@@ -492,6 +481,7 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
     campuses: collectionOutputSchema(compactCampusSchema),
     routes: collectionOutputSchema(compactBusRouteSchema),
     trips: collectionOutputSchema(compactBusTripSchema),
+    availableVersions: collectionOutputSchema(z.unknown()),
     preferences: z.unknown(),
     nextDepartures: collectionOutputSchema(compactBusTripSchema),
     nextDeparturesMessage: z.string().nullable(),
@@ -508,25 +498,30 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
   get_bus_route_timetable: objectOutputSchema({
     routeId: z.number().int(),
     route: compactBusRouteSchema,
-    version: z.unknown(),
-    trips: collectionOutputSchema(compactBusTripSchema),
-    stops: collectionOutputSchema(z.unknown()),
+    weekday: collectionOutputSchema(z.unknown()),
+    weekend: collectionOutputSchema(z.unknown()),
+    alternateRoutes: collectionOutputSchema(compactBusRouteSchema),
     hasData: z.boolean(),
   }),
-  get_my_bus_preferences: topLevelOutputSchema(["preferences"]),
-  save_my_bus_preferences: topLevelOutputSchema(["preferences"]),
+  get_my_bus_preferences: topLevelOutputSchema(["preference"]),
+  save_my_bus_preferences: topLevelOutputSchema(["preference"]),
   search_bus_routes: objectOutputSchema({
+    originCampus: compactCampusSchema.nullable(),
+    destinationCampus: compactCampusSchema.nullable(),
+    total: z.number().int().nonnegative(),
     routes: collectionOutputSchema(compactBusRouteSchema),
-    trips: collectionOutputSchema(compactBusTripSchema),
-    campuses: collectionOutputSchema(compactCampusSchema),
     hasData: z.boolean(),
   }),
   get_next_buses: objectOutputSchema({
+    atTime: dateTimeSchema,
+    dayType: z.enum(["weekday", "weekend"]),
+    totalRoutes: z.number().int().nonnegative(),
     departures: collectionOutputSchema(compactBusTripSchema),
     nextAvailableDeparture: compactBusTripSchema.nullable(),
     originCampus: compactCampusSchema.nullable(),
     destinationCampus: compactCampusSchema.nullable(),
     hasData: z.boolean(),
+    message: z.string().nullable(),
   }),
 
   search_courses: paginatedCourseMcpSchema,
@@ -534,14 +529,18 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
     course: compactCourseSchema.nullable(),
   }),
   list_semesters: paginatedSemesterMcpSchema,
-  get_current_semester: objectOutputSchema({ semester: compactSemesterSchema }),
+  get_current_semester: objectOutputSchema({
+    semester: compactSemesterSchema.nullable(),
+  }),
 
   get_section_by_jw_id: objectOutputSchema({ section: compactSectionSchema }),
   search_sections: paginatedSectionMcpSchema,
   match_section_codes: matchSectionCodesMcpSchema,
 
   search_teachers: paginatedTeacherMcpSchema,
-  get_teacher_by_id: objectOutputSchema({ teacher: compactTeacherSchema }),
+  get_teacher_by_id: objectOutputSchema({
+    teacher: compactTeacherSchema.nullable(),
+  }),
 
   query_schedules: paginatedScheduleMcpSchema,
   list_schedules_by_section: objectOutputSchema({
@@ -563,4 +562,12 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
 
 export function getMcpToolOutputSchema(name: string): McpToolOutputSchema {
   return TOOL_OUTPUT_SCHEMAS[name] ?? STRUCTURED_CONTENT_OUTPUT_SCHEMA;
+}
+
+export function hasMcpToolOutputSchema(name: string): boolean {
+  return Object.hasOwn(TOOL_OUTPUT_SCHEMAS, name);
+}
+
+export function getMcpToolOutputSchemaNames(): string[] {
+  return Object.keys(TOOL_OUTPUT_SCHEMAS);
 }

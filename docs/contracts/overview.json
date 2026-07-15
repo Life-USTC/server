@@ -15,7 +15,7 @@
     "aggregate-first-for-assistants": "Prefer a single aggregated snapshot tool for common assistant prompts before fanning out into multiple narrower tool calls.",
     "historical-subscriptions-remain-discoverable": "A zero current-semester subscription count must not be presented as no course history when total subscriptions remain; web and assistant surfaces must offer a path to past-term sections, homework, schedules, and exams.",
     "focused-extracts-share-window": "Focused tools such as next-class and upcoming-deadlines should stay aligned with the same short-horizon window as the broader dashboard snapshot.",
-    "dashboard-card-priority": "Dashboard cards prioritize the actionable object title, timing/status, and direct destination over raw nested identifiers. Secondary context such as course, section, campus, or priority badge remains visible for disambiguation; platform audit timestamps and repeated parent objects stay out of compact cards and MCP summary/default output."
+    "dashboard-card-priority": "Dashboard cards prioritize the actionable object title, timing/status, and direct destination over raw nested identifiers. Secondary context such as course, section, campus, or priority badge remains visible for disambiguation; platform audit timestamps and repeated parent objects stay out of compact cards and MCP default output."
   },
   "capabilities": {
     "authenticated-overview": {
@@ -59,7 +59,7 @@
               "overview contains pending todo, homework, today's schedule, and upcoming exam counts.",
               "Accepts atTime, homeworkWindowDays, limit, and locale with the same bounds and sample-window semantics as GET /api/me/overview; date-only atTime values anchor to the start of that Asia/Shanghai day.",
               "Default/full samples contain dueTodos[], dueHomeworks[], and upcomingExams[] from the same compact overview read operation.",
-              "Summary mode returns dueTodos, dueHomeworks, and upcomingExams groups with full totals and up to three smaller cards; use get_my_dashboard for a richer single-call assistant snapshot."
+              "The deprecated summary input is an alias for the same compact dueTodos[], dueHomeworks[], and upcomingExams[] structure returned by default; use get_my_dashboard for a richer single-call assistant snapshot."
             ]
           }
         ]
@@ -99,7 +99,7 @@
               "Preferred single-call snapshot for assistant workflows.",
               "Overlaps get_my_overview but adds currentSemester, currentSemesterSections, nextClass, merged deadlines, and preferred-bus departures; accepts optional atTime to anchor those time windows instead of using the server clock. When subscriptions.totalCount is greater than subscriptions.currentSemesterCount, past-term follows remain available through list_my_subscribed_sections and the semesterId filters on list_my_homeworks, list_my_schedules, and list_my_exams.",
               "Default mode should stay assistant-compact; request full mode when the caller explicitly needs full nested schedule, room, teacher, or homework payloads.",
-              "Summary mode should be materially smaller than default, focusing on counts and the next few actionable items instead of mirroring the full compact snapshot."
+              "The deprecated summary input is an alias for default and must preserve the same top-level dashboard collections rather than introducing alternate wrapper shapes."
             ]
           },
           {

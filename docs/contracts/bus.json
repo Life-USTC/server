@@ -19,7 +19,7 @@
     "current-version-only": "list_bus_routes only lists routes actually present in the current active timetable version; it does not expose historical route IDs outside the current version.",
     "dashboard-vs-map": "The dashboard prioritizes answering 'how to get the next trip'; the map page handles spatial understanding.",
     "task-oriented-tool-hierarchy": "Use query_bus_timetable for raw/full datasets, list_bus_routes for unfiltered discovery, search_bus_routes for filtered discovery, get_bus_route_timetable for one route, get_next_buses for immediate departure answers, and get_my_bus_preferences/save_my_bus_preferences for personal defaults.",
-    "summary-mode-compact": "query_bus_timetable summary mode should return compact counts, route/campus summaries, and only a few relevant departures rather than the full trip dataset."
+    "canonical-compact-mode": "query_bus_timetable default mode returns compact counts, route/campus summaries, and relevant departures rather than the full trip dataset; the deprecated summary input is an alias for this same shape."
   },
   "capabilities": {
     "bus-dashboard": {
@@ -57,8 +57,8 @@
             "returns": "{ locale, fetchedAt, version, availableVersions, campuses, routes, trips, preferences, notice }",
             "rest_equivalent": "GET /api/bus",
             "notes": [
-              "summary mode returns a compact assistant-oriented snapshot with counts, summarized campuses/routes, and only a few nextDepartures instead of the full trip dataset.",
-              "default mode also stays assistant-oriented and compact; request full mode for the raw campuses/routes/trips dataset."
+              "default mode returns a compact assistant-oriented snapshot with counts, summarized campuses/routes, and relevant nextDepartures instead of the full trip dataset; deprecated summary is an alias for default.",
+              "Request full mode for the raw campuses/routes/trips dataset."
             ]
           },
           {
@@ -177,7 +177,7 @@
               "Task-oriented convenience tool for 'when is the next bus?' prompts.",
               "Default parameters: dayType=auto, includeDeparted=false, limit=5; REST and MCP share limit bounds 1-50.",
               "When a route exists but no remaining departures are available for the requested window, return guidance describing the situation and, when possible, the next available service time.",
-              "Default/summary responses should avoid repeating the same originCampus/destinationCampus object inside every departure item when they already appear at the top level."
+              "Default and the deprecated summary alias avoid repeating the same originCampus/destinationCampus object inside every departure item when they already appear at the top level."
             ]
           }
         ]

@@ -6,8 +6,8 @@ import {
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
 import {
+  buildFullDashboardSnapshot,
   compactDashboardSnapshot,
-  summarizeDashboardSnapshot,
 } from "@/lib/mcp/tools/dashboard-summary";
 import {
   loadDashboardSnapshotForTool,
@@ -34,11 +34,8 @@ export async function getMyDashboardTool(
   if (!loaded.ok) return loaded.result;
   const { snapshot } = loaded;
   if (resolvedMode === "full") {
-    return jsonToolResult(snapshot, { mode: "full" });
-  }
-  if (resolvedMode === "summary") {
-    return jsonToolResult(summarizeDashboardSnapshot(snapshot), {
-      mode: "default",
+    return jsonToolResult(buildFullDashboardSnapshot(snapshot), {
+      mode: "full",
     });
   }
   return jsonToolResult(compactDashboardSnapshot(snapshot), {

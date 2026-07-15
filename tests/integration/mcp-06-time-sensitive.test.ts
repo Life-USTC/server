@@ -46,29 +46,21 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
     expect((result.events ?? []).some((e) => e.type === "schedule")).toBe(true);
   });
 
-  it("get_my_7days_timeline 摘要模式使用 atTime 返回分组集合", async () => {
+  it("get_my_7days_timeline summary 兼容输入保持 default 数组结构", async () => {
     const result = await context.client.call<{
       total?: number;
-      events?: {
-        total?: number;
-        byType?: { schedule?: number; homework_due?: number };
-        days?: Array<{ date?: string; total?: number }>;
-        items?: Array<{ type?: string }>;
-      };
+      events?: Array<{ type?: string; at?: string }>;
     }>("get_my_7days_timeline", {
       locale: "zh-cn",
       atTime: fixtures.SEED_AT_TIME,
       mode: "summary",
     });
 
-    expect(result.events?.total).toBe(result.total);
-    expect(typeof result.events?.byType?.schedule).toBe("number");
-    expect(result.events?.byType?.schedule).toBeGreaterThan(0);
-    expect((result.events?.days?.length ?? 0) > 0).toBe(true);
-    // Days should fall within the seed window
-    for (const day of result.events?.days ?? []) {
-      expect(day.date).toMatch(/^2026-0[45]/);
-    }
+    expect(Array.isArray(result.events)).toBe(true);
+    expect(result.events).toHaveLength(result.total ?? 0);
+    expect(result.events?.some((event) => event.type === "schedule")).toBe(
+      true,
+    );
   });
 
   it("get_upcoming_deadlines 使用 atTime 仅返回锚点之后的事件", async () => {
@@ -206,17 +198,14 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
 
     const summary = await context.client.call<{
       samples?: {
-        dueTodos?: { total?: number; items?: Array<{ id?: string }> };
+        dueTodos?: Array<{ id?: string }>;
       };
     }>("get_my_overview", {
       locale: "zh-cn",
       atTime: fixtures.SEED_AT_TIME,
       mode: "summary",
     });
-    expect(summary.samples?.dueTodos?.total ?? 0).toBeGreaterThanOrEqual(
-      summary.samples?.dueTodos?.items?.length ?? 0,
-    );
-    expect((summary.samples?.dueTodos?.items?.length ?? 0) <= 3).toBe(true);
+    expect(Array.isArray(summary.samples?.dueTodos)).toBe(true);
   });
 
   it("get_my_overview 将仅日期 atTime 视为上海天开始", async () => {
@@ -302,31 +291,19 @@ describe("atTime 覆盖 — 时间敏感工具锚定到 SEED_DATE", () => {
     }
   });
 
-  it("get_my_overview 摘要模式在所有到期样本结束后保持更小", async () => {
+  it("get_my_overview summary 兼容输入与 default 结构和值一致", async () => {
     const atTime = `${fixtures.SEED_PLUS_TWELVE_DAYS}T12:00:00+08:00`;
     const defaultPayload = await context.client.callTool("get_my_overview", {
       locale: "zh-cn",
       atTime,
     });
-    const summaryPayload = (await context.client.callTool("get_my_overview", {
+    const summaryPayload = await context.client.callTool("get_my_overview", {
       locale: "zh-cn",
       atTime,
       mode: "summary",
-    })) as {
-      samples?: {
-        dueTodos?: { total?: number; items?: unknown[] };
-        dueHomeworks?: { total?: number; items?: unknown[] };
-        upcomingExams?: { total?: number; items?: unknown[] };
-      };
-    };
+    });
 
-    expect(JSON.stringify(summaryPayload, null, 2).length).toBeLessThan(
-      JSON.stringify(defaultPayload, null, 2).length,
-    );
-    expect(typeof summaryPayload.samples?.dueTodos?.total).toBe("number");
-    expect(summaryPayload.samples?.dueTodos?.items).toBeUndefined();
-    expect(summaryPayload.samples?.dueHomeworks?.items).toBeUndefined();
-    expect(summaryPayload.samples?.upcomingExams?.items).toBeUndefined();
+    expect(summaryPayload).toEqual(defaultPayload);
   });
 
   it("get_my_overview 排除当天已结束的考试", async () => {

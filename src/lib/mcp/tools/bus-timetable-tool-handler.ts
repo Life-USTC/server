@@ -5,8 +5,8 @@ import {
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
 import {
+  buildFullBusTimetable,
   summarizeBusTimetable,
-  summarizeBusTimetableBrief,
 } from "@/lib/mcp/tools/bus-tool-summary";
 import type { BusLocale, McpModeInput, ToolExtra } from "./bus-tool-types";
 
@@ -25,20 +25,18 @@ export async function queryBusTimetableTool(
     userId: getUserId(extra.authInfo),
   });
 
-  if (result && resolvedMode === "summary") {
-    return jsonToolResult(summarizeBusTimetableBrief(result), {
-      mode: "default",
-    });
-  }
-
   if (result && resolvedMode === "default") {
     return jsonToolResult(summarizeBusTimetable(result), {
       mode: "default",
     });
   }
 
+  if (result) {
+    return jsonToolResult(buildFullBusTimetable(result), { mode: "full" });
+  }
+
   return jsonToolResult(
-    result ?? {
+    {
       locale,
       hasData: false,
       message: "No bus schedule data available",

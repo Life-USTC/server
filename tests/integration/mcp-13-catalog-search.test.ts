@@ -42,16 +42,16 @@ describe("学期查询工具", () => {
     expect(typeof semester?.endDate).toBe("string");
   });
 
-  it("list_semesters summary 模式折叠列表为统计摘要", async () => {
+  it("list_semesters summary 兼容输入保留标准分页数组", async () => {
     const result = await context.client.call<{
-      data?: {
+      data?: Array<{
+        jwId?: number;
+        nameCn?: string;
+      }>;
+      pagination?: {
         total?: number;
-        returned?: number;
-        truncated?: boolean;
-        items?: Array<{
-          jwId?: number;
-          nameCn?: string;
-        }>;
+        page?: number;
+        pageSize?: number;
       };
     }>("list_semesters", {
       page: 1,
@@ -59,12 +59,12 @@ describe("学期查询工具", () => {
       mode: "summary",
     });
 
-    expect(typeof result.data?.total).toBe("number");
-    expect(typeof result.data?.returned).toBe("number");
-    expect(typeof result.data?.truncated).toBe("boolean");
-    expect(Array.isArray(result.data?.items)).toBe(true);
+    expect(Array.isArray(result.data)).toBe(true);
+    expect(typeof result.pagination?.total).toBe("number");
+    expect(result.pagination?.page).toBe(1);
+    expect(result.pagination?.pageSize).toBe(10);
 
-    const semester = result.data?.items?.find(
+    const semester = result.data?.find(
       (item) => item.jwId === fixtures.DEV_SEED.semesterJwId,
     );
     expect(semester?.nameCn).toBe(fixtures.DEV_SEED.semesterNameCn);
