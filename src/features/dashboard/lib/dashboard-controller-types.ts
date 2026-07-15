@@ -206,6 +206,7 @@ export type DashboardSubscriptionsCopy = DashboardRecord & {
   removing: string;
   rowActions: string;
   section: string;
+  sectionIncluded: string;
   sectionsIncluded: string;
   semesterGroup: string;
 };

@@ -43,32 +43,35 @@ function setGroupOpen(index: number, isOpen: boolean): void {
 <Sidebar.Root
   collapsible="icon"
   data-testid="app-sidebar"
-  aria-label={copy.shell.primaryNavigation}
 >
-  <Sidebar.Header>
-    <Sidebar.Menu>
-      <Sidebar.MenuItem>
-        <Sidebar.MenuButton
-          tooltipContent="Life@USTC"
-        >
-          {#snippet child({ props })}
-            <a {...props} id="app-logo" href="/" aria-label="Life@USTC">
-              <img
-                class="size-6 rounded-md"
-                src="/images/icon.png"
-                alt=""
-                aria-hidden="true"
-              />
-              <span>Life@USTC</span>
-            </a>
-          {/snippet}
-        </Sidebar.MenuButton>
-      </Sidebar.MenuItem>
-    </Sidebar.Menu>
-  </Sidebar.Header>
+  <nav
+    aria-label={copy.shell.primaryNavigation}
+    class="flex min-h-0 flex-1 flex-col"
+  >
+    <Sidebar.Header>
+      <Sidebar.Menu>
+        <Sidebar.MenuItem>
+          <Sidebar.MenuButton
+            tooltipContent="Life@USTC"
+          >
+            {#snippet child({ props })}
+              <a {...props} id="app-logo" href="/" aria-label="Life@USTC">
+                <img
+                  class="size-6 rounded-md"
+                  src="/images/icon.png"
+                  alt=""
+                  aria-hidden="true"
+                />
+                <span>Life@USTC</span>
+              </a>
+            {/snippet}
+          </Sidebar.MenuButton>
+        </Sidebar.MenuItem>
+      </Sidebar.Menu>
+    </Sidebar.Header>
 
-  <Sidebar.Content>
-    {#each navGroups as group, index}
+    <Sidebar.Content>
+      {#each navGroups as group, index}
       {@const isCollapsed = sidebar.state === "collapsed"}
       {@const isOpen = isCollapsed || (groupOpen[index] ?? true)}
       <Collapsible.Root
@@ -229,8 +232,9 @@ function setGroupOpen(index: number, isOpen: boolean): void {
           </Collapsible.Content>
         </Sidebar.Group>
       </Collapsible.Root>
-    {/each}
-  </Sidebar.Content>
+      {/each}
+    </Sidebar.Content>
+  </nav>
 
   <Sidebar.Rail />
 </Sidebar.Root>

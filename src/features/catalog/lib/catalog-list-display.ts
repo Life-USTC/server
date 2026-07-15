@@ -9,6 +9,13 @@ export function catalogPrimaryName(item: CatalogNamed | null | undefined) {
   return item?.namePrimary ?? item?.nameCn ?? "";
 }
 
+export function catalogEducationLevelName(
+  item: CatalogNamed | null | undefined,
+) {
+  const name = catalogPrimaryName(item);
+  return name ? `${name.charAt(0).toLocaleUpperCase()}${name.slice(1)}` : name;
+}
+
 export function catalogSecondaryName(item: CatalogNamed | null | undefined) {
   return item?.nameSecondary ?? item?.nameEn ?? "";
 }

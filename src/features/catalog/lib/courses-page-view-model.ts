@@ -4,6 +4,7 @@ import type {
   CourseListFilters,
 } from "@/features/catalog/components/catalog-course-list-types";
 import {
+  catalogEducationLevelName,
   catalogHref,
   catalogPrimaryName,
 } from "@/features/catalog/lib/catalog-list-display";
@@ -31,7 +32,7 @@ export function buildCourseFilterOptions(input: {
       { value: "", label: input.commonLabels.allEducationLevels },
       ...input.filterOptions.educationLevels.map((item) => ({
         value: String(item.id),
-        label: catalogPrimaryName(item),
+        label: catalogEducationLevelName(item),
       })),
     ],
   };

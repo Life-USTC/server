@@ -30,6 +30,7 @@ export type ShellCopy = {
     signOut: string;
   };
   shell: {
+    footerNavigation: string;
     menu: string;
     primaryNavigation: string;
     profileMenu: string;

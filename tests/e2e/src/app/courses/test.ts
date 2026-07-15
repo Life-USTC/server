@@ -87,6 +87,12 @@ test.describe("/courses 课程目录", () => {
       screenshotLabel: "courses",
     });
     await expect(page.locator("html")).toHaveAttribute("lang", "en-us");
+    await expect(
+      page.getByRole("navigation", { name: "Primary navigation" }),
+    ).toHaveCount(1);
+    await expect(
+      page.getByRole("navigation", { name: "Footer navigation" }),
+    ).toHaveCount(1);
     await captureStepScreenshot(page, testInfo, "courses-en-us");
 
     await page
@@ -98,6 +104,12 @@ test.describe("/courses 课程目录", () => {
       .click();
 
     await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
+    await expect(page.getByRole("navigation", { name: "主导航" })).toHaveCount(
+      1,
+    );
+    await expect(
+      page.getByRole("navigation", { name: "页脚导航" }),
+    ).toHaveCount(1);
     await captureStepScreenshot(page, testInfo, "courses-zh-cn");
   });
 
