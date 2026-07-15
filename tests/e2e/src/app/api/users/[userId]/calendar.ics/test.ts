@@ -30,6 +30,8 @@ import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../../utils/auth";
 import { DEV_SEED } from "../../../../../../utils/dev-seed";
 import {
+  createTempUsersFixture,
+  deleteUsersByPrefix,
   ensureUserCalendarFeedFixture,
   getCurrentSessionUser,
 } from "../../../../../../utils/e2e-db";
@@ -177,5 +179,28 @@ test.describe("GET /api/users/[userId]/calendar.ics", () => {
       `/api/users/${userId}/calendar.ics?token=bogus-token-e2e`,
     );
     expect(response.status()).toBe(403);
+  });
+
+  test("有效 token 在没有日历项目时返回空 iCalendar", async ({ request }) => {
+    const prefix = `e2e-empty-calendar-${Date.now()}`;
+    const { userIds } = await createTempUsersFixture({ prefix, count: 1 });
+    const userId = userIds[0];
+    if (!userId) {
+      throw new Error("Expected temporary calendar user");
+    }
+
+    try {
+      const feed = await ensureUserCalendarFeedFixture(userId);
+      const response = await request.get(feed.path);
+
+      expect(response.status()).toBe(200);
+      expect(response.headers()["content-type"]).toContain("text/calendar");
+      const body = await response.text();
+      expect(body).toContain("BEGIN:VCALENDAR");
+      expect(body).toContain("END:VCALENDAR");
+      expect(body).not.toContain("BEGIN:VEVENT");
+    } finally {
+      await deleteUsersByPrefix(prefix);
+    }
   });
 });

@@ -60,7 +60,8 @@
             "returns": "text/calendar",
             "notes": [
               "Same-user session or bearer access is accepted.",
-              "Anonymous feed access is accepted with either ?token=... or the userId:token path segment form."
+              "Anonymous feed access is accepted with either ?token=... or the userId:token path segment form.",
+              "An existing user with a valid feed token receives a valid empty VCALENDAR when no items are currently available, so calendar clients can keep the subscription active."
             ]
           },
           {

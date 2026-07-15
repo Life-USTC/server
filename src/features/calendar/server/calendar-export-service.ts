@@ -33,18 +33,6 @@ function userCalendarTodoItems(
   );
 }
 
-function hasUserCalendarItems(input: {
-  homeworks: unknown[];
-  sections: unknown[];
-  todos: unknown[];
-}) {
-  return (
-    input.sections.length > 0 ||
-    input.homeworks.length > 0 ||
-    input.todos.length > 0
-  );
-}
-
 export async function buildUserCalendarExport(
   user: UserCalendarRecord,
   userId: string,
@@ -55,16 +43,6 @@ export async function buildUserCalendarExport(
     sectionIds,
   );
   const todos = userCalendarTodoItems(user.todos);
-
-  if (
-    !hasUserCalendarItems({
-      homeworks,
-      sections: user.subscribedSections,
-      todos,
-    })
-  ) {
-    return null;
-  }
 
   const calendar = await createUserCalendar({
     sections: user.subscribedSections,

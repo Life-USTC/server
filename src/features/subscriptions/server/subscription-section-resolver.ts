@@ -39,17 +39,20 @@ export async function resolveCalendarSubscriptionSections({
   const requestedSectionIds = uniqueSectionIds(sectionIds);
   const requestedCodes = uniqueCodes(codes);
   const semester =
-    requestedCodes.length > 0
+    requestedCodes.length > 0 || semesterId !== undefined
       ? await resolveSectionCodeMatchSemester(semesterId)
       : null;
 
-  if (requestedCodes.length > 0 && !semester) {
+  if ((requestedCodes.length > 0 || semesterId !== undefined) && !semester) {
     return null;
   }
 
   const where: Prisma.SectionWhereInput[] = [];
   if (requestedSectionIds.length > 0) {
-    where.push({ id: { in: requestedSectionIds } });
+    where.push({
+      id: { in: requestedSectionIds },
+      ...(semester ? { semesterId: semester.id } : {}),
+    });
   }
   if (semester && requestedCodes.length > 0) {
     where.push({

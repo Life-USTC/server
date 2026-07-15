@@ -47,6 +47,8 @@ export async function getSeedSectionSemesterFixture(jwId: number) {
     prisma.section.findUniqueOrThrow({
       where: { jwId },
       select: {
+        id: true,
+        code: true,
         semesterId: true,
         semester: { select: { nameCn: true } },
       },
@@ -54,6 +56,8 @@ export async function getSeedSectionSemesterFixture(jwId: number) {
   );
 
   return {
+    id: section.id,
+    code: section.code,
     semesterId: section.semesterId,
     semesterName: section.semester?.nameCn ?? null,
   };
