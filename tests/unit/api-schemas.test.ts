@@ -452,9 +452,18 @@ describe("其他请求 schema", () => {
       }).success,
     ).toBe(true);
     expect(
-      calendarSubscriptionBatchRequestSchema.safeParse({ action: "set" })
-        .success,
+      calendarSubscriptionBatchRequestSchema.safeParse({
+        action: "set",
+        semesterId: 12,
+      }).success,
     ).toBe(true);
+    const unscopedSet = calendarSubscriptionBatchRequestSchema.safeParse({
+      action: "set",
+    });
+    expect(unscopedSet.success).toBe(false);
+    if (!unscopedSet.success) {
+      expect(unscopedSet.error.issues[0]?.path).toEqual(["semesterId"]);
+    }
     expect(
       calendarSubscriptionBatchRequestSchema.safeParse({ action: "remove" })
         .success,

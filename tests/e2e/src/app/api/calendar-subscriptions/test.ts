@@ -241,6 +241,22 @@ test.describe("日历订阅 API", () => {
         data: { sectionIds: [currentSection.id, previousSection.id] },
       });
       expect(setupResponse.status()).toBe(200);
+
+      const unscopedSetResponse = await page.request.post(BATCH_BASE, {
+        data: { action: "set", sectionIds: [] },
+      });
+      expect(unscopedSetResponse.status()).toBe(400);
+      const preservedBody = (await (
+        await page.request.get("/api/calendar-subscriptions/current")
+      ).json()) as {
+        subscription?: { sections?: Array<{ id?: number }> } | null;
+      };
+      const preservedIds =
+        preservedBody.subscription?.sections?.map((section) => section.id) ??
+        [];
+      expect(preservedIds).toContain(currentSection.id);
+      expect(preservedIds).toContain(previousSection.id);
+
       const currentSemesterId = currentSection.semesterId;
 
       const response = await page.request.post(BATCH_BASE, {

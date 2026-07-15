@@ -63,7 +63,18 @@ export const calendarSubscriptionBatchRequestSchema =
       action: calendarSubscriptionBatchActionSchema,
     })
     .superRefine((input, context) => {
-      if (input.action === "set" || hasCalendarSubscriptionSelection(input)) {
+      if (input.action === "set") {
+        if (input.semesterId === undefined) {
+          context.addIssue({
+            code: "custom",
+            message: "semesterId is required when action is set",
+            path: ["semesterId"],
+          });
+        }
+        return;
+      }
+
+      if (hasCalendarSubscriptionSelection(input)) {
         return;
       }
 
