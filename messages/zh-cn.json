@@ -200,6 +200,7 @@
   "apiDocs": {
     "title": "API 文档",
     "description": "基于项目 OpenAPI 规范生成的交互式接口文档。",
+    "browseNavigation": "浏览 API 接口",
     "navigationLabel": "API 导航",
     "rawSpecLink": "打开 OpenAPI 原始 JSON"
   },

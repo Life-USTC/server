@@ -1,4 +1,5 @@
 <script lang="ts">
+import MenuIcon from "@lucide/svelte/icons/menu";
 import type { ApiReferenceConfiguration } from "@scalar/api-reference";
 import { onMount } from "svelte";
 import { afterNavigate } from "$app/navigation";
@@ -7,6 +8,7 @@ import "@scalar/api-reference/style.css";
 import "./api-docs-scalar.css";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Sheet from "$lib/components/ui/sheet/index.js";
 import {
   type ApiDocsSelection,
   getApiDocsSelection,
@@ -16,6 +18,7 @@ import {
 type PageData = {
   copy: {
     apiDocs: {
+      browseNavigation: string;
       description: string;
       navigationLabel: string;
       rawSpecLink: string;
@@ -40,6 +43,7 @@ let selectedDocs: ApiDocsSelection | undefined;
 let mounted = false;
 let reference: { destroy: () => void } | undefined;
 let sidebarScrollY: number | undefined;
+let mobileNavigationOpen = false;
 
 const referenceConfig = (content: OpenApiDocument) =>
   ({
@@ -107,7 +111,10 @@ async function renderReference() {
   );
 }
 
-function rememberSidebarScrollPosition(event: MouseEvent) {
+function handleNavigationClick(
+  event: MouseEvent,
+  closeMobileNavigation = false,
+) {
   if (
     event.button !== 0 ||
     event.metaKey ||
@@ -119,6 +126,7 @@ function rememberSidebarScrollPosition(event: MouseEvent) {
   }
 
   sidebarScrollY = window.scrollY;
+  if (closeMobileNavigation) mobileNavigationOpen = false;
 }
 
 function scheduleReferenceRouteRestore() {
@@ -139,6 +147,52 @@ function scheduleReferenceRouteRestore() {
 }
 </script>
 
+{#snippet apiNavigation(closeMobileNavigation = false)}
+  {#if selectedDocs}
+    {#each selectedDocs.groups as group}
+      <section class="api-docs-nav-group">
+        <h2>{group.name}</h2>
+        <ul>
+          {#each group.tags as tag}
+            <li>
+              <a
+                aria-current={selectedDocs.activeHref === tag.href ? "page" : undefined}
+                class:active={selectedDocs.activeHref === tag.href}
+                class="api-docs-nav-tag"
+                data-sveltekit-noscroll
+                href={tag.href}
+                onclick={(event) => handleNavigationClick(event, closeMobileNavigation)}
+              >
+                {tag.displayName}
+              </a>
+              <ul class="api-docs-nav-operations">
+                {#each tag.operations as operation}
+                  <li>
+                    <a
+                      aria-current={selectedDocs.activeHref === operation.href ? "page" : undefined}
+                      class:active={selectedDocs.activeHref === operation.href}
+                      class="api-docs-nav-operation"
+                      data-sveltekit-noscroll
+                      href={operation.href}
+                      onclick={(event) => handleNavigationClick(event, closeMobileNavigation)}
+                      title={`${operation.method.toUpperCase()} ${operation.path}`}
+                    >
+                      <span class="api-docs-method">{operation.method.toUpperCase()}</span>
+                      <span class="api-docs-operation-label">{operation.summary}</span>
+                    </a>
+                  </li>
+                {/each}
+              </ul>
+            </li>
+          {/each}
+        </ul>
+      </section>
+    {/each}
+  {:else}
+    <p>{data.copy.common.loading}</p>
+  {/if}
+{/snippet}
+
 <svelte:head><title>{data.copy.metadata.apiDocs} - Life@USTC</title></svelte:head>
 
 <section class="grid gap-5">
@@ -149,48 +203,46 @@ function scheduleReferenceRouteRestore() {
   </PageHeader>
 
   <div class="api-docs-shell">
-    <aside class="api-docs-sidebar" aria-label={data.copy.apiDocs.navigationLabel}>
-      {#if selectedDocs}
-        {#each selectedDocs.groups as group}
-          <section class="api-docs-nav-group">
-            <h2>{group.name}</h2>
-            <ul>
-              {#each group.tags as tag}
-                <li>
-                  <a
-                    class:active={selectedDocs.activeHref === tag.href}
-                    class="api-docs-nav-tag"
-                    data-sveltekit-noscroll
-                    href={tag.href}
-                    onclick={rememberSidebarScrollPosition}
-                  >
-                    {tag.displayName}
-                  </a>
-                  <ul class="api-docs-nav-operations">
-                    {#each tag.operations as operation}
-                      <li>
-                        <a
-                          class:active={selectedDocs.activeHref === operation.href}
-                          class="api-docs-nav-operation"
-                          data-sveltekit-noscroll
-                          href={operation.href}
-                          onclick={rememberSidebarScrollPosition}
-                          title={`${operation.method.toUpperCase()} ${operation.path}`}
-                        >
-                          <span class="api-docs-method">{operation.method.toUpperCase()}</span>
-                          <span class="api-docs-operation-label">{operation.summary}</span>
-                        </a>
-                      </li>
-                    {/each}
-                  </ul>
-                </li>
-              {/each}
-            </ul>
-          </section>
-        {/each}
-      {:else}
-        <p>{data.copy.common.loading}</p>
-      {/if}
+    <div class="api-docs-mobile-navigation">
+      <Sheet.Root bind:open={mobileNavigationOpen}>
+        <Sheet.Trigger>
+          {#snippet child({ props })}
+            <Button
+              class="w-full justify-between"
+              data-testid="api-docs-mobile-navigation-trigger"
+              type="button"
+              variant="outline"
+              {...props}
+            >
+              <span>{data.copy.apiDocs.browseNavigation}</span>
+              <MenuIcon aria-hidden="true" />
+            </Button>
+          {/snippet}
+        </Sheet.Trigger>
+        <Sheet.Content
+          class="w-[min(22rem,calc(100%-1rem))] overflow-y-auto p-0"
+          data-testid="api-docs-mobile-navigation-panel"
+          side="left"
+        >
+          <Sheet.Header class="border-b pr-12">
+            <Sheet.Title>{data.copy.apiDocs.navigationLabel}</Sheet.Title>
+            <Sheet.Description class="sr-only">
+              {data.copy.apiDocs.browseNavigation}
+            </Sheet.Description>
+          </Sheet.Header>
+          <nav class="api-docs-navigation p-4" aria-label={data.copy.apiDocs.navigationLabel}>
+            {@render apiNavigation(true)}
+          </nav>
+        </Sheet.Content>
+      </Sheet.Root>
+    </div>
+
+    <aside
+      class="api-docs-navigation api-docs-sidebar"
+      aria-label={data.copy.apiDocs.navigationLabel}
+      data-testid="api-docs-desktop-navigation"
+    >
+      {@render apiNavigation()}
     </aside>
 
     <div id="api-reference" class="api-reference min-h-[42rem] overflow-hidden rounded-lg border border-border bg-background">
