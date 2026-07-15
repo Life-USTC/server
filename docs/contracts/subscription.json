@@ -79,7 +79,7 @@
             "notes": [
               "Preferred mutation endpoint for batch subscribe, unsubscribe, and replace/update flows.",
               "Accepts action plus sectionIds and/or mixed section/course codes.",
-              "action=set replaces only the requested semester when semesterId is present, preserving subscriptions from every other semester; without semesterId it retains the compatibility behavior of replacing the full set.",
+              "action=set requires semesterId and replaces only the requested semester, preserving subscriptions from every other semester.",
               "A semester-scoped action=set may omit sectionIds/codes to clear only that semester."
             ]
           },
