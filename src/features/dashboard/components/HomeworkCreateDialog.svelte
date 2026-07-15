@@ -3,6 +3,7 @@ import type { SubmitFunction } from "@sveltejs/kit";
 import { enhance } from "$app/forms";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
+import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import { Spinner } from "$lib/components/ui/spinner/index.js";
 import type {
   DashboardHomeworkCommentsCopy,
@@ -52,25 +53,27 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
           <Dialog.Title>{homeworksCopy.createTitle}</Dialog.Title>
           <Dialog.Description>{homeworksCopy.subtitle}</Dialog.Description>
         </Dialog.Header>
-        <HomeworkCreateFormFields
-          {applyHomeworkDueAtSemesterEnd}
-          {applyHomeworkDueInMonth}
-          {applyHomeworkDueInWeek}
-          {applyHomeworkStartNow}
-          {commentsCopy}
-          bind:createHomeworkAdvancedOpen
-          {createHomeworkError}
-          bind:createHomeworkPublishedAt
-          bind:createHomeworkSectionId
-          bind:createHomeworkSubmissionDueAt
-          bind:createHomeworkSubmissionStartAt
-          {homeworkSectionLabel}
-          {homeworksCopy}
-          {isCreatingHomework}
-          {sections}
-          {selectedCreateHomeworkSection}
-          {toShanghaiDateTimeLocalValue}
-        />
+        <ScrollArea class="h-[min(64vh,36rem)]">
+          <HomeworkCreateFormFields
+            {applyHomeworkDueAtSemesterEnd}
+            {applyHomeworkDueInMonth}
+            {applyHomeworkDueInWeek}
+            {applyHomeworkStartNow}
+            {commentsCopy}
+            bind:createHomeworkAdvancedOpen
+            {createHomeworkError}
+            bind:createHomeworkPublishedAt
+            bind:createHomeworkSectionId
+            bind:createHomeworkSubmissionDueAt
+            bind:createHomeworkSubmissionStartAt
+            {homeworkSectionLabel}
+            {homeworksCopy}
+            {isCreatingHomework}
+            {sections}
+            {selectedCreateHomeworkSection}
+            {toShanghaiDateTimeLocalValue}
+          />
+        </ScrollArea>
         <Dialog.Footer>
           <Button
             disabled={isCreatingHomework}

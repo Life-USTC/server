@@ -1,6 +1,10 @@
 import type { CommentsInitialData } from "@/features/comments/lib/comment-panel-data";
 import type { DescriptionPayload } from "@/features/descriptions/lib/description-card-actions";
+import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-style-guide";
 import type { AppLocale } from "@/i18n/config";
+
+type SectionDetailHomeworkMessages = Record<string, string> &
+  HomeworkStyleGuideCopy;
 
 export type SectionDetailNamed = {
   id?: string | number;
@@ -146,7 +150,7 @@ export type SectionDetailCopy = {
     updateError: string;
     updatedLabel: string;
   };
-  homeworks: Record<string, string> & {
+  homeworks: SectionDetailHomeworkMessages & {
     auditCreated: string;
     auditDeleted: string;
     auditTitle: string;

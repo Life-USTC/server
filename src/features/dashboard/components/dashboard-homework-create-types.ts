@@ -1,4 +1,7 @@
-export type DashboardHomeworkCreateCopy = Record<string, string> & {
+import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-style-guide";
+
+export interface DashboardHomeworkCreateCopy extends HomeworkStyleGuideCopy {
+  [key: string]: string;
   advancedHide: string;
   advancedShow: string;
   calendarButtonLabel: string;
@@ -22,7 +25,8 @@ export type DashboardHomeworkCreateCopy = Record<string, string> & {
   tagMajor: string;
   tagTeam: string;
   titleLabel: string;
-};
+  titlePlaceholder: string;
+}
 
 export type DashboardHomeworkCommentsCopy = {
   markdownGuide: string;

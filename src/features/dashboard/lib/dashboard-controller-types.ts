@@ -14,6 +14,7 @@ import type {
   DashboardLinkGroup,
   DashboardLinkIcon,
 } from "@/features/dashboard-links/lib/dashboard-links";
+import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-style-guide";
 
 type DashboardRecord = Record<string, unknown>;
 
@@ -211,7 +212,8 @@ export type DashboardSubscriptionsCopy = DashboardRecord & {
   semesterGroup: string;
 };
 
-export type DashboardHomeworksCopy = Record<string, string> & {
+export interface DashboardHomeworksCopy extends HomeworkStyleGuideCopy {
+  [key: string]: string;
   advancedHide: string;
   advancedShow: string;
   calendarButtonLabel: string;
@@ -248,8 +250,9 @@ export type DashboardHomeworksCopy = Record<string, string> & {
   tagMajor: string;
   tagTeam: string;
   titleLabel: string;
+  titlePlaceholder: string;
   viewDetails: string;
-};
+}
 
 export type DashboardMyHomeworksCopy = Record<string, string> & {
   due: string;

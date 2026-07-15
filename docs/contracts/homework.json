@@ -10,7 +10,8 @@
     "attached-to-section": "Homework is attached to a section, not a personal user todo.",
     "no-subscription-required": "Creating homework does not require the user to be subscribed to the section first.",
     "entity-and-completion-separated": "Homework entity and homework completion state are strictly separated to prevent 'I completed it' from becoming 'the homework was modified'.",
-    "compact-card-list-surface": "In card and list views, the default homework surface only shows title, subtitle (course name when useful plus non-default attribute badges), submission due date, relative due label, and a small completion action. Standard/default homework is not shown as a separate badge. Course/section context, description, homework timestamps, discussion, and secondary actions belong in a centered detail popup that opens on click and closes via outside click or Escape."
+    "compact-card-list-surface": "In card and list views, the default homework surface only shows title, subtitle (course name when useful plus non-default attribute badges), submission due date, relative due label, and a small completion action. Standard/default homework is not shown as a separate badge. Course/section context, description, homework timestamps, discussion, and secondary actions belong in a centered detail popup that opens on click and closes via outside click or Escape.",
+    "homework-style-guide-advisory": "Create and edit surfaces expose a collapsible homework style guide. Titles use 第{N}次作业 or {主题}作业 without course name/code, and explicitly avoid chapter-only titles such as 第一章作业. Descriptions list 题目, 提交方式, 提交地址, and 备注 in that order; 题目 uses 未记录 when unknown and unknown optional fields are omitted. The guide is advisory only and never blocks otherwise valid writes."
   },
   "capabilities": {
     "cross-section-homework-summary": {
@@ -57,7 +58,8 @@
           "completionStatus (completed/pending)",
           "filter: incomplete/completed/all",
           "cards/list view mode persisted in browser storage",
-          "detail popup order: description, due summary, vertical metadata excluding platform createdAt, action controls, discussion; desktop places discussion to the right of the details"
+          "detail popup order: description, due summary, vertical metadata excluding platform createdAt, action controls, discussion; desktop places discussion to the right of the details",
+          "create form exposes the collapsible advisory homework title and description style guide"
         ]
       }
     },
@@ -126,7 +128,8 @@
             "rest_equivalent": "POST /api/homeworks",
             "notes": [
               "REST accepts either sectionId for compatibility or sectionJwId to match the MCP tool's public section identifier; when both are supplied, they must resolve to the same section or the request returns 400.",
-              "Returns the created homework snapshot so MCP clients can continue with follow-up actions without an extra read."
+              "Returns the created homework snapshot so MCP clients can continue with follow-up actions without an extra read.",
+              "Description advertises the advisory 第{N}次作业 / {主题}作业 title patterns and ordered 题目 / 提交方式 / 提交地址 / 备注 template; formatting is not validated or enforced."
             ]
           },
           {
@@ -136,7 +139,8 @@
             "rest_equivalent": "PATCH /api/homeworks/[id]",
             "notes": [
               "Accepts locale for the returned homework snapshot, matching create/list localization.",
-              "Returns the updated homework snapshot after metadata and/or description changes are applied."
+              "Returns the updated homework snapshot after metadata and/or description changes are applied.",
+              "Description advertises the same advisory title and ordered description convention as create_homework_on_section; nonconforming existing or updated values remain accepted."
             ]
           },
           {
@@ -163,7 +167,8 @@
           "edit action",
           "cards/list view mode persisted in browser storage",
           "detail popup order: description, due summary, vertical metadata excluding platform createdAt, edit/completion controls, inline discussion; desktop places discussion to the right of the details",
-          "section cards use a responsive multi-column layout"
+          "section cards use a responsive multi-column layout",
+          "create and edit forms expose the same collapsible advisory homework title and description style guide"
         ]
       }
     },

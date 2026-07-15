@@ -78,6 +78,8 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
             "subscribe_my_sections_by_codes",
             "get_section_by_jw_id",
             "list_homeworks_by_section",
+            "create_homework_on_section",
+            "update_homework_on_section",
             "delete_homework_on_section",
             "list_schedules_by_section",
             "list_exams_by_section",
@@ -98,6 +100,21 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         expect(tools.tools.map((tool) => tool.name)).not.toEqual(
           expect.arrayContaining(["set_comment_reaction"]),
         );
+        for (const name of [
+          "create_homework_on_section",
+          "update_homework_on_section",
+        ]) {
+          const description =
+            tools.tools.find((tool) => tool.name === name)?.description ?? "";
+          expect(description).toContain("Advisory style guide only");
+          expect(description).toContain(
+            "never reject a request for formatting",
+          );
+          expect(description).toContain("第{N}次作业");
+          expect(description).toContain("{主题}作业");
+          expect(description).toContain("第一章作业");
+          expect(description).toMatch(/题目.*提交方式.*提交地址.*备注/);
+        }
 
         const profileResult = await mcpClient.callTool({
           name: "get_my_profile",

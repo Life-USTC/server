@@ -295,6 +295,24 @@ describe("MCP tool descriptors", () => {
     expect(description("list_my_exams")).toContain("all semesters");
   });
 
+  it("advertises the advisory homework writing convention", async () => {
+    const result = await listTools();
+
+    for (const name of [
+      "create_homework_on_section",
+      "update_homework_on_section",
+    ]) {
+      const description =
+        result.tools.find((tool) => tool.name === name)?.description ?? "";
+      expect(description).toContain("Advisory style guide only");
+      expect(description).toContain("never reject a request for formatting");
+      expect(description).toContain("第{N}次作业");
+      expect(description).toContain("{主题}作业");
+      expect(description).toContain("第一章作业");
+      expect(description).toMatch(/题目.*提交方式.*提交地址.*备注/);
+    }
+  });
+
   it("advertises shared nested schemas for stable structured outputs", async () => {
     const result = await listTools();
     const todoSchema = outputSchema(result, "list_my_todos");

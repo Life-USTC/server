@@ -1,4 +1,5 @@
 <script lang="ts">
+import HomeworkStyleGuide from "@/features/homeworks/components/HomeworkStyleGuide.svelte";
 import {
   HOMEWORK_DESCRIPTION_MAX_LENGTH,
   HOMEWORK_TITLE_MAX_LENGTH,
@@ -45,6 +46,7 @@ export let submissionStartAt: string;
       required
     />
   </Field.Field>
+  <HomeworkStyleGuide copy={homeworkCopy} testIdPrefix="section-create-homework" />
   <Field.Field>
     <Field.Title id="section-homework-description-label">
       {homeworkCopy.descriptionLabel}

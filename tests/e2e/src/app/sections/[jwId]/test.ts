@@ -592,6 +592,100 @@ test.describe("/sections/[jwId] 班级详情页", () => {
 
   // ── Homework CRUD ───────────────────────────────────────────────────────────
 
+  test("移动端新建与编辑作业显示同一份中文填写规范", async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await signInAsDebugUser(page, SECTION_URL);
+    const localeResponse = await page.request.post("/api/locale", {
+      data: { locale: "zh-cn" },
+    });
+    expect(localeResponse.status()).toBe(200);
+    await gotoAndWaitForReady(page, SECTION_URL);
+    await jumpToSection(page, /作业|Homework/i, "#tab-homework");
+
+    await page
+      .getByRole("button", { name: /新建|创建作业|Create/i })
+      .first()
+      .click();
+    const createDialog = page.locator('[data-slot="dialog-content"]').first();
+    const createTrigger = createDialog.getByTestId(
+      "section-create-homework-style-guide-trigger",
+    );
+    await expect(createTrigger).toHaveAttribute("aria-expanded", "false");
+    await createTrigger.click();
+    const createGuide = createDialog.getByTestId(
+      "section-create-homework-style-guide-content",
+    );
+    await expect(createGuide).toBeVisible();
+    await expect(createGuide).toContainText("第{N}次作业");
+    await expect(createGuide).toContainText("{主题}作业");
+    await expect(createGuide).toContainText(
+      "避免使用“第一章作业”等仅按章节命名的标题",
+    );
+    await expect(createGuide).toContainText(
+      "不要在标题中包含课程名称或课程代码",
+    );
+    await expect(createGuide.locator("pre")).toContainText(
+      "- 题目：...\n- 提交方式：...\n- 提交地址：...\n- 备注：...",
+    );
+    await expect(createGuide).toContainText("不会阻止保存");
+    await expect(
+      createDialog.getByRole("button", { name: /创建作业|Create homework/i }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "section/homework-style-guide-create-mobile",
+    );
+
+    await page.keyboard.press("Escape");
+    await expect(createDialog).toHaveCount(0);
+
+    const homeworkCard = page
+      .getByRole("button", {
+        name: new RegExp(escapeForRegExp(DEV_SEED.homeworks.title)),
+      })
+      .first();
+    await homeworkCard.click();
+    const detailDialog = page.locator('[data-slot="dialog-content"]').first();
+    await detailDialog
+      .getByRole("button", { name: /编辑信息|Edit details/i })
+      .click();
+    const editTrigger = detailDialog.getByTestId(
+      "section-edit-homework-style-guide-trigger",
+    );
+    await expect(editTrigger).toHaveAttribute("aria-expanded", "false");
+    await editTrigger.click();
+    const editGuide = detailDialog.getByTestId(
+      "section-edit-homework-style-guide-content",
+    );
+    await expect(editGuide).toBeVisible();
+    await expect(editGuide).toContainText("第{N}次作业");
+    await expect(editGuide.locator("pre")).toContainText("- 题目：...");
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "section/homework-style-guide-edit-mobile",
+    );
+
+    const saveButton = detailDialog.getByRole("button", {
+      name: /保存修改|Save changes/i,
+    });
+    await saveButton.scrollIntoViewIfNeeded();
+    await expect(saveButton).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+  });
+
   test("可切换班级作业区块为列表视图并记住偏好", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, SECTION_URL);
 

@@ -1,4 +1,7 @@
-export type SectionCreateHomeworkFieldsCopy = {
+import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-style-guide";
+
+export interface SectionCreateHomeworkFieldsCopy
+  extends HomeworkStyleGuideCopy {
   calendarButtonLabel: string;
   descriptionLabel: string;
   descriptionPlaceholder: string;
@@ -16,7 +19,7 @@ export type SectionCreateHomeworkFieldsCopy = {
   tagTeam: string;
   titleLabel: string;
   titlePlaceholder: string;
-};
+}
 
 export type SectionCreateHomeworkCopy = SectionCreateHomeworkFieldsCopy & {
   createAction: string;

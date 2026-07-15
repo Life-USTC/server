@@ -5,6 +5,7 @@ import {
   homeworkDescriptionInputSchema,
   homeworkTitleSchema,
 } from "@/features/homeworks/lib/homework-schema";
+import { MCP_HOMEWORK_STYLE_GUIDE } from "@/features/homeworks/lib/homework-style-guide";
 import {
   mcpLocaleInputSchema,
   mcpModeInputSchema,
@@ -16,7 +17,8 @@ export function registerCreateHomeworkOnSectionTool(server: McpServer) {
     "create_homework_on_section",
     {
       description:
-        "Create a homework under one section by section JW ID. Requires unsuspended signed-in user; does not mutate JW/import facts.",
+        "Create a homework under one section by section JW ID. Requires unsuspended signed-in user; does not mutate JW/import facts. " +
+        MCP_HOMEWORK_STYLE_GUIDE,
       inputSchema: {
         sectionJwId: z.number().int().positive(),
         title: homeworkTitleSchema,

@@ -361,6 +361,58 @@ test.describe("仪表盘作业", () => {
     await captureStepScreenshot(page, testInfo, "homeworks/created");
   });
 
+  test("新建作业展示可折叠的英文填写规范", async ({ page }, testInfo) => {
+    await signInAsDebugUser(page, "/dashboard/homeworks");
+    await ensureSeedSectionSubscription(page);
+    const localeResponse = await page.request.post("/api/locale", {
+      data: { locale: "en-us" },
+    });
+    expect(localeResponse.status()).toBe(200);
+    await gotoAndWaitForReady(page, "/dashboard/homeworks", {
+      testInfo,
+      screenshotLabel: "homeworks",
+    });
+
+    await page.getByTestId("dashboard-homeworks-add").first().click();
+    const createDialog = page.locator('[data-slot="dialog-content"]').first();
+    const titleInput = createDialog.getByTestId("dashboard-homework-title");
+    await expect(titleInput).toHaveAttribute(
+      "placeholder",
+      "e.g., 第一次作业 / 期中论文作业",
+    );
+    await expect(
+      createDialog.getByRole("textbox", { name: "Details" }),
+    ).toHaveAttribute("placeholder", /题目：/);
+
+    const trigger = createDialog.getByTestId(
+      "dashboard-homework-style-guide-trigger",
+    );
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await trigger.click();
+    const guide = createDialog.getByTestId(
+      "dashboard-homework-style-guide-content",
+    );
+    await expect(guide).toBeVisible();
+    await expect(guide).toContainText("第{N}次作业");
+    await expect(guide).toContainText("{主题}作业");
+    await expect(guide).toContainText(
+      "Avoid chapter-only titles such as 第一章作业",
+    );
+    await expect(guide).toContainText("Do not include the course name or code");
+    await expect(guide.locator("pre")).toContainText(
+      "- 题目：...\n- 提交方式：...\n- 提交地址：...\n- 备注：...",
+    );
+    await expect(guide).toContainText("never blocks saving");
+    await expect(
+      createDialog.getByTestId("dashboard-homework-create"),
+    ).toBeVisible();
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "homeworks/style-guide-desktop",
+    );
+  });
+
   test("创建作业时可设置重要、组队、截止日期和说明", async ({
     page,
   }, testInfo) => {
