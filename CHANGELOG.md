@@ -1,3 +1,10 @@
+# [1.52.0](https://github.com/Life-USTC/server/compare/v1.51.7...v1.52.0) (2026-07-15)
+
+
+### Features
+
+* **metadata:** add social sharing cards ([#440](https://github.com/Life-USTC/server/issues/440)) ([707be37](https://github.com/Life-USTC/server/commit/707be371d3612135181a380ac2fb25d2248901ed)), closes [#403](https://github.com/Life-USTC/server/issues/403)
+
 ## [1.51.7](https://github.com/Life-USTC/server/compare/v1.51.6...v1.51.7) (2026-07-15)
 
 
