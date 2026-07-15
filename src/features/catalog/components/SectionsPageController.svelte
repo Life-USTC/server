@@ -7,11 +7,11 @@ import {
   catalogSecondaryName as secondaryName,
   catalogNames as teacherNames,
 } from "@/features/catalog/lib/catalog-list-display";
-import { catalogPageDataHref } from "@/features/catalog/lib/catalog-page-data-href";
 import { goto } from "$app/navigation";
 import CatalogFilterSidebar from "./CatalogFilterSidebar.svelte";
-import CatalogInfinitePager from "./CatalogInfinitePager.svelte";
+import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
 import CatalogPageHeader from "./CatalogPageHeader.svelte";
+import CatalogPagination from "./CatalogPagination.svelte";
 import type {
   SectionListCommonLabels,
   SectionListFilters,
@@ -19,6 +19,7 @@ import type {
   SectionListRow,
   SectionListSemester,
 } from "./catalog-section-list-types";
+import SectionSearchHelpDialog from "./SectionSearchHelpDialog.svelte";
 import SectionsFilters from "./SectionsFilters.svelte";
 import SectionsResults from "./SectionsResults.svelte";
 
@@ -51,12 +52,10 @@ type PageData = {
 export let data: PageData;
 
 let isSearchHelpOpen = false;
+let isSectionFilterOpen = false;
 let sectionSearch = data.filters.search ?? "";
-let isLoadingMore = false;
-let loadedPage = data.pagination.page;
-let sectionPageKey = "";
-let visibleSections: SectionListRow[] = data.data;
 
+$: if (isSearchHelpOpen) isSectionFilterOpen = false;
 $: totalPages = data.pagination.totalPages;
 $: sectionSearch = data.filters.search ?? "";
 $: commonLabels = data.labels.common;
@@ -75,23 +74,30 @@ $: semesterOptions = [
     label: semester.nameCn,
   })),
 ];
-$: nextSectionPageKey = JSON.stringify({
-  filters: data.filters,
-  page: data.pagination.page,
-});
-$: if (nextSectionPageKey !== sectionPageKey) {
-  sectionPageKey = nextSectionPageKey;
-  visibleSections = data.data;
-  loadedPage = data.pagination.page;
-  isLoadingMore = false;
-}
 $: sectionResultsData = {
-  ...data,
-  data: visibleSections,
+  data: data.data,
+  filters: data.filters,
   pagination: { total: data.pagination.total },
 };
-$: hasMoreSections = loadedPage < totalPages;
-$: nextSectionHref = hasMoreSections ? pageHref(loadedPage + 1) : "";
+$: sectionActiveFilters = [
+  data.filters.search
+    ? {
+        href: sectionFilterHref({ search: "" }),
+        label: `${commonLabels.search}: ${data.filters.search}`,
+      }
+    : null,
+  data.filters.semesterId
+    ? {
+        href: sectionFilterHref({ semesterId: "" }),
+        label: `${sectionLabels.semester}: ${selectedSemester?.nameCn ?? data.filters.semesterId}`,
+      }
+    : null,
+].filter(
+  (filter): filter is { href: string; label: string } => filter !== null,
+);
+$: sectionHiddenFilters = [
+  { name: "semesterId", value: data.filters.semesterId ?? "" },
+];
 
 function pageHref(targetPage: number) {
   const { search, semesterId } = data.filters;
@@ -99,31 +105,18 @@ function pageHref(targetPage: number) {
 }
 
 function sectionFilterHref(overrides: Partial<SectionListFilters>) {
-  const search = sectionSearch.trim();
-  const semesterId = overrides.semesterId ?? data.filters.semesterId ?? "";
+  const filters = {
+    ...data.filters,
+    search: sectionSearch.trim(),
+    ...overrides,
+  };
+  const { search, semesterId } = filters;
   return catalogHref("/sections", { search, semesterId });
 }
 
 function updateSectionFilter(overrides: Partial<SectionListFilters>) {
+  isSectionFilterOpen = false;
   void goto(sectionFilterHref(overrides));
-}
-
-async function loadMoreSections() {
-  if (!hasMoreSections || isLoadingMore) return;
-
-  isLoadingMore = true;
-  try {
-    const response = await fetch(
-      catalogPageDataHref("sections", pageHref(loadedPage + 1)),
-    );
-    if (!response.ok) return;
-
-    const nextData = (await response.json()) as PageData;
-    visibleSections = [...visibleSections, ...nextData.data];
-    loadedPage = nextData.pagination.page;
-  } finally {
-    isLoadingMore = false;
-  }
 }
 
 function sectionEmptyDescription() {
@@ -145,15 +138,38 @@ function sectionEmptyDescription() {
 <section class="grid gap-5">
   <CatalogPageHeader
     description={sectionLabels.subtitle}
-    metaLabel={sectionLabels.semester}
-    metaValue={selectedSemester?.nameCn ?? commonLabels.allSemesters}
     title={sectionLabels.title}
   />
 
   <div class="-mx-4 grid min-h-[calc(100vh-8rem)] bg-background sm:-mx-5 lg:-mx-6 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start">
+    <CatalogMobileFilters
+      activeFilters={sectionActiveFilters}
+      clearHref="/sections"
+      clearLabel={commonLabels.clear}
+      filterTitle={sectionLabels.summary.filters}
+      hiddenFilters={sectionHiddenFilters}
+      bind:open={isSectionFilterOpen}
+      searchId="mobile-section-search"
+      searchLabel={commonLabels.search}
+      searchPlaceholder={sectionLabels.searchPlaceholder}
+      bind:searchValue={sectionSearch}
+    >
+      <SectionsFilters
+        {activeFilterCount}
+        {commonLabels}
+        filters={data.filters}
+        idPrefix="mobile-section"
+        bind:isSearchHelpOpen
+        {sectionLabels}
+        bind:sectionSearch
+        {semesterOptions}
+        showSearch={false}
+        {updateSectionFilter}
+      />
+    </CatalogMobileFilters>
+
     <CatalogFilterSidebar
       activeCount={activeFilterCount}
-      description={sectionLabels.subtitle}
       icon={SlidersHorizontalIcon}
       title={sectionLabels.summary.filters}
     >
@@ -172,7 +188,7 @@ function sectionEmptyDescription() {
     <div class="min-w-0 px-4 py-5 sm:px-5 lg:px-6">
       <SectionsResults
         data={sectionResultsData}
-        page={loadedPage}
+        page={data.pagination.page}
         {primaryName}
         {sectionEmptyDescription}
         {sectionLabels}
@@ -182,14 +198,18 @@ function sectionEmptyDescription() {
         {totalPages}
       />
 
-      <CatalogInfinitePager
-        hasMore={hasMoreSections}
-        loading={isLoadingMore}
-        loadingLabel={commonLabels.loading}
-        loadMore={loadMoreSections}
-        nextHref={nextSectionHref}
+      <CatalogPagination
+        ariaLabel={commonLabels.pagination}
         nextLabel={commonLabels.next}
+        nextPageLabel={commonLabels.nextPage}
+        page={data.pagination.page}
+        {pageHref}
+        previousLabel={commonLabels.previous}
+        previousPageLabel={commonLabels.previousPage}
+        {totalPages}
       />
     </div>
   </div>
 </section>
+
+<SectionSearchHelpDialog bind:isSearchHelpOpen {sectionLabels} />

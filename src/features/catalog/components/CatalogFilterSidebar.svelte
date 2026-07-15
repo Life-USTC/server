@@ -9,10 +9,10 @@ export let icon: Component | undefined = undefined;
 export let title: string;
 </script>
 
-<div style="--sidebar-width: 17rem;">
+<div class="hidden lg:block" style="--sidebar-width: 17rem;">
   <Sidebar.Root
     collapsible="none"
-    class="w-full border-b border-sidebar-border lg:sticky lg:top-0 lg:h-[calc(100svh-3rem)] lg:w-(--sidebar-width) lg:border-e lg:border-b-0"
+    class="sticky top-0 h-[calc(100svh-3rem)] w-(--sidebar-width) border-e border-sidebar-border"
     data-testid="catalog-filter-sidebar"
   >
     <Sidebar.Header class="p-3">

@@ -20,29 +20,33 @@ export let courseLabels: CourseListLabels;
 export let courseSearch: string;
 export let educationLevelOptions: CourseListOption[];
 export let filters: CourseListFilters;
+export let idPrefix = "course";
+export let showSearch = true;
 export let updateCourseFilter: CourseListFilterUpdater;
 </script>
 
 <form method="GET">
   <Field.Group class="gap-3">
+    {#if showSearch}
+      <Field.Field>
+        <Field.Label for={`${idPrefix}-search`}>{commonLabels.search}</Field.Label>
+        <Input
+          id={`${idPrefix}-search`}
+          name="search"
+          placeholder={courseLabels.searchPlaceholder}
+          type="search"
+          value={courseSearch}
+          oninput={(event: Event) => {
+            courseSearch = (event.currentTarget as HTMLInputElement).value;
+          }}
+        />
+      </Field.Field>
+    {/if}
     <Field.Field>
-      <Field.Label for="course-search">{commonLabels.search}</Field.Label>
-      <Input
-        id="course-search"
-        name="search"
-        placeholder={courseLabels.searchPlaceholder}
-        type="search"
-        value={courseSearch}
-        oninput={(event: Event) => {
-          courseSearch = (event.currentTarget as HTMLInputElement).value;
-        }}
-      />
-    </Field.Field>
-    <Field.Field>
-      <Field.Label for="course-education-level">{courseLabels.educationLevel}</Field.Label>
+      <Field.Label for={`${idPrefix}-education-level`}>{courseLabels.educationLevel}</Field.Label>
       <NativeSelect.Root
         class="w-full"
-        id="course-education-level"
+        id={`${idPrefix}-education-level`}
         name="educationLevelId"
         value={filters.educationLevelId ?? ""}
         onchange={(event) =>
@@ -58,10 +62,10 @@ export let updateCourseFilter: CourseListFilterUpdater;
       </NativeSelect.Root>
     </Field.Field>
     <Field.Field>
-      <Field.Label for="course-category">{courseLabels.category}</Field.Label>
+      <Field.Label for={`${idPrefix}-category`}>{courseLabels.category}</Field.Label>
       <NativeSelect.Root
         class="w-full"
-        id="course-category"
+        id={`${idPrefix}-category`}
         name="categoryId"
         value={filters.categoryId ?? ""}
         onchange={(event) =>
@@ -77,10 +81,10 @@ export let updateCourseFilter: CourseListFilterUpdater;
       </NativeSelect.Root>
     </Field.Field>
     <Field.Field>
-      <Field.Label for="course-class-type">{courseLabels.classType}</Field.Label>
+      <Field.Label for={`${idPrefix}-class-type`}>{courseLabels.classType}</Field.Label>
       <NativeSelect.Root
         class="w-full"
-        id="course-class-type"
+        id={`${idPrefix}-class-type`}
         name="classTypeId"
         value={filters.classTypeId ?? ""}
         onchange={(event) =>
@@ -95,13 +99,17 @@ export let updateCourseFilter: CourseListFilterUpdater;
         {/each}
       </NativeSelect.Root>
     </Field.Field>
-    <ButtonGroup.Root class="w-full pt-1" orientation="vertical">
-      <Button class="w-full" size="lg" type="submit">
-        {commonLabels.search}
-      </Button>
-      {#if activeFilterCount > 0}
-        <Button class="w-full" href="/courses" size="lg" variant="outline">{commonLabels.clear}</Button>
-      {/if}
-    </ButtonGroup.Root>
+    {#if showSearch || activeFilterCount > 0}
+      <ButtonGroup.Root class="w-full pt-1" orientation="vertical">
+        {#if showSearch}
+          <Button class="w-full" size="lg" type="submit">
+            {commonLabels.search}
+          </Button>
+        {/if}
+        {#if activeFilterCount > 0}
+          <Button class="w-full" href="/courses" size="lg" variant="outline">{commonLabels.clear}</Button>
+        {/if}
+      </ButtonGroup.Root>
+    {/if}
   </Field.Group>
 </form>

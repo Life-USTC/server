@@ -4,17 +4,16 @@ import {
   catalogPrimaryName as primaryName,
   catalogSecondaryName as secondaryName,
 } from "@/features/catalog/lib/catalog-list-display";
-import { catalogPageDataHref } from "@/features/catalog/lib/catalog-page-data-href";
 import {
   activeCourseFilterCount,
-  courseFilterHref as buildCourseFilterHref,
   buildCourseFilterOptions,
   coursePageHref,
 } from "@/features/catalog/lib/courses-page-view-model";
 import { goto } from "$app/navigation";
 import CatalogFilterSidebar from "./CatalogFilterSidebar.svelte";
-import CatalogInfinitePager from "./CatalogInfinitePager.svelte";
+import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
 import CatalogPageHeader from "./CatalogPageHeader.svelte";
+import CatalogPagination from "./CatalogPagination.svelte";
 import CoursesFilters from "./CoursesFilters.svelte";
 import CoursesResults from "./CoursesResults.svelte";
 import type {
@@ -49,10 +48,7 @@ type PageData = {
 export let data: PageData;
 
 let courseSearch = data.filters.search ?? "";
-let coursePageKey = "";
-let isLoadingMore = false;
-let loadedPage = data.pagination.page;
-let visibleCourses: CourseListRow[] = data.data;
+let isCourseFilterOpen = false;
 
 $: totalPages = data.pagination.totalPages;
 $: courseSearch = data.filters.search ?? "";
@@ -64,61 +60,70 @@ $: ({ categoryOptions, classTypeOptions, educationLevelOptions } =
     commonLabels,
     filterOptions: data.filterOptions,
   }));
-$: nextCoursePageKey = JSON.stringify({
-  filters: data.filters,
-  page: data.pagination.page,
-});
-$: if (nextCoursePageKey !== coursePageKey) {
-  coursePageKey = nextCoursePageKey;
-  visibleCourses = data.data;
-  loadedPage = data.pagination.page;
-  isLoadingMore = false;
-}
 $: courseResultsData = {
-  ...data,
-  data: visibleCourses,
+  data: data.data,
   filters: { search: data.filters.search },
   pagination: { total: data.pagination.total },
 };
-$: hasMoreCourses = loadedPage < totalPages;
-$: nextCourseHref = hasMoreCourses ? pageHref(loadedPage + 1) : "";
+$: courseActiveFilters = [
+  data.filters.search
+    ? {
+        href: courseFilterHref({ search: "" }),
+        label: `${commonLabels.search}: ${data.filters.search}`,
+      }
+    : null,
+  data.filters.educationLevelId
+    ? {
+        href: courseFilterHref({ educationLevelId: "" }),
+        label: `${courseLabels.educationLevel}: ${optionLabel(educationLevelOptions, data.filters.educationLevelId)}`,
+      }
+    : null,
+  data.filters.categoryId
+    ? {
+        href: courseFilterHref({ categoryId: "" }),
+        label: `${courseLabels.category}: ${optionLabel(categoryOptions, data.filters.categoryId)}`,
+      }
+    : null,
+  data.filters.classTypeId
+    ? {
+        href: courseFilterHref({ classTypeId: "" }),
+        label: `${courseLabels.classType}: ${optionLabel(classTypeOptions, data.filters.classTypeId)}`,
+      }
+    : null,
+].filter(
+  (filter): filter is { href: string; label: string } => filter !== null,
+);
+$: courseHiddenFilters = [
+  { name: "educationLevelId", value: data.filters.educationLevelId ?? "" },
+  { name: "categoryId", value: data.filters.categoryId ?? "" },
+  { name: "classTypeId", value: data.filters.classTypeId ?? "" },
+];
 
 function pageHref(targetPage: number) {
   return coursePageHref({ filters: data.filters, targetPage });
 }
 
 function courseFilterHref(overrides: Partial<CourseListFilters>) {
-  return buildCourseFilterHref({
-    courseSearch,
-    filters: data.filters,
-    overrides: {
-      categoryId: overrides.categoryId ?? undefined,
-      classTypeId: overrides.classTypeId ?? undefined,
-      educationLevelId: overrides.educationLevelId ?? undefined,
+  return coursePageHref({
+    filters: {
+      ...data.filters,
+      search: courseSearch.trim(),
+      ...overrides,
     },
+    targetPage: 1,
   });
 }
 
 function updateCourseFilter(overrides: Partial<CourseListFilters>) {
+  isCourseFilterOpen = false;
   void goto(courseFilterHref(overrides));
 }
 
-async function loadMoreCourses() {
-  if (!hasMoreCourses || isLoadingMore) return;
-
-  isLoadingMore = true;
-  try {
-    const response = await fetch(
-      catalogPageDataHref("courses", pageHref(loadedPage + 1)),
-    );
-    if (!response.ok) return;
-
-    const nextData = (await response.json()) as PageData;
-    visibleCourses = [...visibleCourses, ...nextData.data];
-    loadedPage = nextData.pagination.page;
-  } finally {
-    isLoadingMore = false;
-  }
+function optionLabel(
+  options: Array<{ label: string; value: string }>,
+  value: string,
+) {
+  return options.find((option) => option.value === value)?.label ?? value;
 }
 
 function courseEmptyDescription() {
@@ -133,15 +138,39 @@ function courseEmptyDescription() {
 <section class="grid gap-5">
   <CatalogPageHeader
     description={courseLabels.subtitle}
-    metaLabel={commonLabels.search}
-    metaValue={data.filters.search || courseLabels.title}
     title={courseLabels.title}
   />
 
   <div class="-mx-4 grid min-h-[calc(100vh-8rem)] bg-background sm:-mx-5 lg:-mx-6 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start">
+    <CatalogMobileFilters
+      activeFilters={courseActiveFilters}
+      clearHref="/courses"
+      clearLabel={commonLabels.clear}
+      filterTitle={courseLabels.summary.filters}
+      hiddenFilters={courseHiddenFilters}
+      bind:open={isCourseFilterOpen}
+      searchId="mobile-course-search"
+      searchLabel={commonLabels.search}
+      searchPlaceholder={courseLabels.searchPlaceholder}
+      bind:searchValue={courseSearch}
+    >
+      <CoursesFilters
+        {activeFilterCount}
+        {categoryOptions}
+        {classTypeOptions}
+        {commonLabels}
+        {courseLabels}
+        bind:courseSearch
+        {educationLevelOptions}
+        filters={data.filters}
+        idPrefix="mobile-course"
+        showSearch={false}
+        {updateCourseFilter}
+      />
+    </CatalogMobileFilters>
+
     <CatalogFilterSidebar
       activeCount={activeFilterCount}
-      description={courseLabels.subtitle}
       icon={SlidersHorizontalIcon}
       title={courseLabels.summary.filters}
     >
@@ -163,19 +192,21 @@ function courseEmptyDescription() {
         {courseEmptyDescription}
         {courseLabels}
         data={courseResultsData}
-        page={loadedPage}
+        page={data.pagination.page}
         {primaryName}
         {secondaryName}
         {totalPages}
       />
 
-      <CatalogInfinitePager
-        hasMore={hasMoreCourses}
-        loading={isLoadingMore}
-        loadingLabel={commonLabels.loading}
-        loadMore={loadMoreCourses}
-        nextHref={nextCourseHref}
+      <CatalogPagination
+        ariaLabel={commonLabels.pagination}
         nextLabel={commonLabels.next}
+        nextPageLabel={commonLabels.nextPage}
+        page={data.pagination.page}
+        {pageHref}
+        previousLabel={commonLabels.previous}
+        previousPageLabel={commonLabels.previousPage}
+        {totalPages}
       />
     </div>
   </div>

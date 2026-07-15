@@ -16,6 +16,8 @@ export let activeFilterCount: number;
 export let commonLabels: TeacherListCommonLabels;
 export let departmentOptions: TeacherListOption[];
 export let filters: TeacherListFilters;
+export let idPrefix = "teacher";
+export let showSearch = true;
 export let teacherLabels: TeacherListLabels;
 export let teacherSearch: string;
 export let updateTeacherFilter: TeacherListFilterUpdater;
@@ -23,24 +25,26 @@ export let updateTeacherFilter: TeacherListFilterUpdater;
 
 <form method="GET">
   <Field.Group class="gap-3">
+    {#if showSearch}
+      <Field.Field>
+        <Field.Label for={`${idPrefix}-search`}>{teacherLabels.searchLabel}</Field.Label>
+        <Input
+          id={`${idPrefix}-search`}
+          name="search"
+          placeholder={teacherLabels.searchNameOrCode}
+          type="search"
+          value={teacherSearch}
+          oninput={(event: Event) => {
+            teacherSearch = (event.currentTarget as HTMLInputElement).value;
+          }}
+        />
+      </Field.Field>
+    {/if}
     <Field.Field>
-      <Field.Label for="teacher-search">{teacherLabels.searchLabel}</Field.Label>
-      <Input
-        id="teacher-search"
-        name="search"
-        placeholder={teacherLabels.searchNameOrCode}
-        type="search"
-        value={teacherSearch}
-        oninput={(event: Event) => {
-          teacherSearch = (event.currentTarget as HTMLInputElement).value;
-        }}
-      />
-    </Field.Field>
-    <Field.Field>
-      <Field.Label for="teacher-department">{teacherLabels.department}</Field.Label>
+      <Field.Label for={`${idPrefix}-department`}>{teacherLabels.department}</Field.Label>
       <NativeSelect.Root
         class="w-full"
-        id="teacher-department"
+        id={`${idPrefix}-department`}
         name="departmentId"
         value={filters.departmentId ?? ""}
         onchange={(event) =>
@@ -55,11 +59,15 @@ export let updateTeacherFilter: TeacherListFilterUpdater;
         {/each}
       </NativeSelect.Root>
     </Field.Field>
-    <ButtonGroup.Root class="w-full pt-1" orientation="vertical">
-      <Button class="w-full" size="lg" type="submit">{commonLabels.search}</Button>
-      {#if activeFilterCount > 0}
-        <Button class="w-full" href="/teachers" size="lg" variant="outline">{commonLabels.clear}</Button>
-      {/if}
-    </ButtonGroup.Root>
+    {#if showSearch || activeFilterCount > 0}
+      <ButtonGroup.Root class="w-full pt-1" orientation="vertical">
+        {#if showSearch}
+          <Button class="w-full" size="lg" type="submit">{commonLabels.search}</Button>
+        {/if}
+        {#if activeFilterCount > 0}
+          <Button class="w-full" href="/teachers" size="lg" variant="outline">{commonLabels.clear}</Button>
+        {/if}
+      </ButtonGroup.Root>
+    {/if}
   </Field.Group>
 </form>

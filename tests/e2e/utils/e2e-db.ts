@@ -4,6 +4,7 @@ import type {
   AuditLogCleanupTarget,
 } from "../../shared/audit-cleanup";
 import * as auditFixtures from "./e2e-db/audit";
+import * as catalogFixtures from "./e2e-db/catalog";
 import * as oauthFixtures from "./e2e-db/oauth";
 import * as seedFixtures from "./e2e-db/seed";
 import * as userFixtures from "./e2e-db/users";
@@ -13,10 +14,12 @@ export { getCurrentSessionUser, PLAYWRIGHT_BASE_URL } from "./e2e-db/core";
 const DB_FIXTURE_ATTEMPTS = 3;
 
 const operations = {
+  createTempCoursesFixture: catalogFixtures.createTempCoursesFixture,
   createOAuthClientFixture: oauthFixtures.createOAuthClientFixture,
   cleanupAuditLogsForE2e: auditFixtures.cleanupAuditLogsForE2e,
   cleanupAuditTargetsForE2e: auditFixtures.cleanupAuditTargetsForE2e,
   deleteLinkedAccountFixture: oauthFixtures.deleteLinkedAccountFixture,
+  deleteTempCoursesByPrefix: catalogFixtures.deleteTempCoursesByPrefix,
   deleteOAuthClientsByName: oauthFixtures.deleteOAuthClientsByName,
   disableOAuthClientByName: oauthFixtures.disableOAuthClientByName,
   ensureLinkedAccountFixture: oauthFixtures.ensureLinkedAccountFixture,
@@ -98,6 +101,14 @@ export const cleanupAuditLogsForE2e = (input: AuditLogCleanupInput) =>
 export const cleanupAuditTargetsForE2e = (
   targets: readonly AuditLogCleanupTarget[],
 ) => runDbFixture<void>("cleanupAuditTargetsForE2e", [targets]);
+
+export const createTempCoursesFixture = (options: {
+  count: number;
+  prefix: string;
+}) => runDbFixture<{ count: number }>("createTempCoursesFixture", [options]);
+
+export const deleteTempCoursesByPrefix = (prefix: string) =>
+  runDbFixture<void>("deleteTempCoursesByPrefix", [prefix]);
 
 export const deleteOAuthClientsByName = (name: string) =>
   runDbFixture<null>("deleteOAuthClientsByName", [name]);
