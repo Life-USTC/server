@@ -1,3 +1,10 @@
+## [1.53.2](https://github.com/Life-USTC/server/compare/v1.53.1...v1.53.2) (2026-07-15)
+
+
+### Bug Fixes
+
+* **loader:** preserve course identity across source IDs ([#443](https://github.com/Life-USTC/server/issues/443)) ([94b5826](https://github.com/Life-USTC/server/commit/94b58266def2d31fa3b2fb2d7f0f8de1e31be56c)), closes [#395](https://github.com/Life-USTC/server/issues/395)
+
 ## [1.53.1](https://github.com/Life-USTC/server/compare/v1.53.0...v1.53.1) (2026-07-15)
 
 
