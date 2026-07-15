@@ -23,6 +23,28 @@ async function replaceUserSectionIds(
   });
 }
 
+async function replaceUserSectionIdsInSemester(
+  userId: string,
+  currentIds: readonly number[],
+  nextIds: readonly number[],
+) {
+  const currentIdSet = new Set(currentIds);
+  const nextIdSet = new Set(nextIds);
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      subscribedSections: {
+        connect: uniqueSectionIds(nextIds)
+          .filter((id) => !currentIdSet.has(id))
+          .map((id) => ({ id })),
+        disconnect: uniqueSectionIds(currentIds)
+          .filter((id) => !nextIdSet.has(id))
+          .map((id) => ({ id })),
+      },
+    },
+  });
+}
+
 async function getExistingSectionIds(sectionIds: readonly number[]) {
   if (sectionIds.length === 0) {
     return [];
@@ -49,7 +71,7 @@ async function getMutableUserSubscriptions(userId: string) {
     select: {
       id: true,
       subscribedSections: {
-        select: { id: true, jwId: true },
+        select: { id: true, jwId: true, semesterId: true },
       },
     },
   });
@@ -263,10 +285,26 @@ export async function batchUpdateUserSectionSubscriptions({
     unchangedCount = targetIds.length - removedCount;
     await disconnectUserSectionIds(userId, removedIds);
   } else {
+    const currentIdsInScope =
+      semesterId === undefined
+        ? currentIds
+        : user.subscribedSections
+            .filter((section) => section.semesterId === semesterId)
+            .map((section) => section.id);
     addedCount = targetIds.filter((id) => !currentIdSet.has(id)).length;
-    removedCount = currentIds.filter((id) => !targetIdSet.has(id)).length;
+    removedCount = currentIdsInScope.filter(
+      (id) => !targetIdSet.has(id),
+    ).length;
     unchangedCount = targetIds.length - addedCount;
-    await replaceUserSectionIds(userId, targetIds);
+    if (semesterId === undefined) {
+      await replaceUserSectionIds(userId, targetIds);
+    } else {
+      await replaceUserSectionIdsInSemester(
+        userId,
+        currentIdsInScope,
+        targetIds,
+      );
+    }
   }
 
   return {

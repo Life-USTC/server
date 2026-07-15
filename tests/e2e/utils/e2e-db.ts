@@ -136,10 +136,12 @@ export const getSeedTeacherDepartmentFixture = (code: string) =>
   );
 
 export const getSeedSectionSemesterFixture = (jwId: number) =>
-  runDbFixture<{ semesterId: number | null; semesterName: string | null }>(
-    "getSeedSectionSemesterFixture",
-    [jwId],
-  );
+  runDbFixture<{
+    code: string;
+    id: number;
+    semesterId: number | null;
+    semesterName: string | null;
+  }>("getSeedSectionSemesterFixture", [jwId]);
 
 export const getUserProfileById = (userId: string) =>
   runDbFixture<UserProfileFixture>("getUserProfileById", [userId]);
@@ -168,7 +170,10 @@ export const createTempUsersFixture = (options: {
   prefix: string;
   count: number;
 }) =>
-  runDbFixture<{ usernames: string[] }>("createTempUsersFixture", [options]);
+  runDbFixture<{ userIds: string[]; usernames: string[] }>(
+    "createTempUsersFixture",
+    [options],
+  );
 
 export const deleteUsersByPrefix = (prefix: string) =>
   runDbFixture<null>("deleteUsersByPrefix", [prefix]);

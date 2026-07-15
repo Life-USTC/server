@@ -27,10 +27,12 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import { getSeedSectionSemesterFixture } from "../../../../utils/e2e-db";
 import { resolveSeedSectionMatches } from "../../../../utils/seed-lookups";
 import { assertApiContract } from "../../_shared/api-contract";
 
 const BASE = "/api/calendar-subscriptions";
+const BATCH_BASE = "/api/calendar-subscriptions/batch";
 const IMPORT_BASE = "/api/calendar-subscriptions/import-codes";
 
 test.describe("日历订阅 API", () => {
@@ -202,6 +204,84 @@ test.describe("日历订阅 API", () => {
       };
       expect(repeatBody.addedCount).toBe(0);
       expect(repeatBody.alreadySubscribedCount).toBe(1);
+    } finally {
+      await page.request.post(BASE, {
+        data: { sectionIds: originalIds },
+      });
+    }
+  });
+
+  test("set 只替换指定学期并保留往期订阅", async ({ page }) => {
+    await signInAsDebugUser(page, "/");
+    const [currentSection, previousSection] = await Promise.all([
+      getSeedSectionSemesterFixture(DEV_SEED.section.jwId),
+      getSeedSectionSemesterFixture(DEV_SEED.previousSection.jwId),
+    ]);
+    if (
+      currentSection.semesterId === null ||
+      previousSection.semesterId === null
+    ) {
+      throw new Error("Expected seed sections to belong to semesters");
+    }
+    expect(currentSection.semesterId).not.toBe(previousSection.semesterId);
+
+    const currentRes = await page.request.get(
+      "/api/calendar-subscriptions/current",
+    );
+    const currentBody = (await currentRes.json()) as {
+      subscription?: { sections?: Array<{ id?: number }> } | null;
+    };
+    const originalIds =
+      currentBody.subscription?.sections?.map(
+        (section) => section.id as number,
+      ) ?? [];
+
+    try {
+      const setupResponse = await page.request.post(BASE, {
+        data: { sectionIds: [currentSection.id, previousSection.id] },
+      });
+      expect(setupResponse.status()).toBe(200);
+      const currentSemesterId = currentSection.semesterId;
+
+      const response = await page.request.post(BATCH_BASE, {
+        data: {
+          action: "set",
+          sectionIds: [],
+          semesterId: currentSemesterId,
+        },
+      });
+      expect(response.status()).toBe(200);
+      const body = (await response.json()) as {
+        removedCount?: number;
+        subscription?: { sections?: Array<{ id?: number }> };
+      };
+      const subscribedIds =
+        body.subscription?.sections?.map((section) => section.id) ?? [];
+
+      expect(body.removedCount).toBe(1);
+      expect(subscribedIds).not.toContain(currentSection.id);
+      expect(subscribedIds).toContain(previousSection.id);
+
+      const wrongSemesterResponse = await page.request.post(BATCH_BASE, {
+        data: {
+          action: "set",
+          sectionIds: [previousSection.id],
+          semesterId: currentSemesterId,
+        },
+      });
+      expect(wrongSemesterResponse.status()).toBe(200);
+      const wrongSemesterBody = (await wrongSemesterResponse.json()) as {
+        matchedSectionIds?: number[];
+        unmatchedSectionIds?: number[];
+        subscription?: { sections?: Array<{ id?: number }> };
+      };
+      expect(wrongSemesterBody.matchedSectionIds).toEqual([]);
+      expect(wrongSemesterBody.unmatchedSectionIds).toEqual([
+        previousSection.id,
+      ]);
+      expect(
+        wrongSemesterBody.subscription?.sections?.map((section) => section.id),
+      ).toContain(previousSection.id);
     } finally {
       await page.request.post(BASE, {
         data: { sectionIds: originalIds },

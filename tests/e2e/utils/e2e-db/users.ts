@@ -107,6 +107,7 @@ export async function createTempUsersFixture(options: {
   count: number;
 }) {
   const usernames: string[] = [];
+  const userIds: string[] = [];
 
   await withE2ePrisma(async (prisma) => {
     for (let index = 0; index < options.count; index += 1) {
@@ -126,6 +127,7 @@ export async function createTempUsersFixture(options: {
           name: `E2E ${username}`,
         },
       });
+      userIds.push(user.id);
       await prisma.verifiedEmail.upsert({
         where: {
           provider_email: {
@@ -145,7 +147,7 @@ export async function createTempUsersFixture(options: {
     }
   });
 
-  return { usernames };
+  return { userIds, usernames };
 }
 
 export async function deleteUsersByPrefix(prefix: string) {
