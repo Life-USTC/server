@@ -200,6 +200,7 @@
   "apiDocs": {
     "title": "API Documentation",
     "description": "Interactive API reference generated from the project OpenAPI schema.",
+    "browseNavigation": "Browse API endpoints",
     "navigationLabel": "API navigation",
     "rawSpecLink": "Open raw OpenAPI JSON"
   },

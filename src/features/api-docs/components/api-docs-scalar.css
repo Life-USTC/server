@@ -9,10 +9,11 @@
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: 0.5rem;
+  display: none;
   padding: 0.875rem;
 }
 
-.api-docs-sidebar ul {
+.api-docs-navigation ul {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -91,9 +92,14 @@
   }
 
   .api-docs-sidebar {
+    display: block;
     min-height: calc(100vh - 5rem);
     position: sticky;
     top: 5rem;
+  }
+
+  .api-docs-mobile-navigation {
+    display: none;
   }
 }
 
