@@ -6,9 +6,15 @@ import {
 import { PUBLIC_REST_SCOPES } from "@/lib/oauth/scope-registry";
 import {
   getMcpToolOutputSchema,
+  getMcpToolOutputSchemaNames,
+  hasMcpToolOutputSchema,
   type McpToolOutputSchema,
 } from "./tool-output-schemas";
-import { getRequiredMcpScopes } from "./tool-scopes";
+import {
+  getExplicitMcpToolScopeNames,
+  getRequiredMcpScopes,
+  hasExplicitMcpToolScopes,
+} from "./tool-scopes";
 
 type ToolSecurityScheme = {
   type: "oauth2";
@@ -67,6 +73,7 @@ const DESTRUCTIVE_WRITE_PREFIXES = [
 ];
 
 const listCompatibilityInstalled = new WeakSet<McpServer>();
+const registeredToolNames = new WeakMap<McpServer, Set<string>>();
 
 function humanizeToolName(name: string) {
   return name
@@ -150,6 +157,8 @@ export function getMcpToolDescriptorDefaults(
 
 export function installMcpToolDescriptorDefaults(server: McpServer) {
   const registerTool = server.registerTool.bind(server);
+  const names = new Set<string>();
+  registeredToolNames.set(server, names);
 
   server.registerTool = ((name, config, callback) => {
     const defaults = getMcpToolDescriptorDefaults(name);
@@ -169,6 +178,52 @@ export function installMcpToolDescriptorDefaults(server: McpServer) {
       },
     } as typeof config;
 
-    return registerTool(name, mergedConfig, callback);
+    const registered = registerTool(name, mergedConfig, callback);
+    names.add(name);
+    return registered;
   }) as typeof server.registerTool;
+}
+
+export function assertRegisteredMcpToolMetadata(server: McpServer) {
+  const names = registeredToolNames.get(server);
+  if (!names) {
+    throw new Error("MCP descriptor defaults must be installed before tools");
+  }
+
+  const missingScopes = Array.from(names).filter(
+    (name) => !hasExplicitMcpToolScopes(name),
+  );
+  const missingOutputSchemas = Array.from(names).filter(
+    (name) => !hasMcpToolOutputSchema(name),
+  );
+  const unregisteredScopes = getExplicitMcpToolScopeNames().filter(
+    (name) => !names.has(name),
+  );
+  const unregisteredOutputSchemas = getMcpToolOutputSchemaNames().filter(
+    (name) => !names.has(name),
+  );
+  if (
+    missingScopes.length === 0 &&
+    missingOutputSchemas.length === 0 &&
+    unregisteredScopes.length === 0 &&
+    unregisteredOutputSchemas.length === 0
+  ) {
+    return;
+  }
+
+  const details = [
+    missingScopes.length > 0
+      ? `scope metadata: ${missingScopes.sort().join(", ")}`
+      : null,
+    missingOutputSchemas.length > 0
+      ? `output schemas: ${missingOutputSchemas.sort().join(", ")}`
+      : null,
+    unregisteredScopes.length > 0
+      ? `unregistered scope metadata: ${unregisteredScopes.sort().join(", ")}`
+      : null,
+    unregisteredOutputSchemas.length > 0
+      ? `unregistered output schemas: ${unregisteredOutputSchemas.sort().join(", ")}`
+      : null,
+  ].filter(Boolean);
+  throw new Error(`Registered MCP tools are missing ${details.join("; ")}`);
 }

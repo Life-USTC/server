@@ -77,8 +77,8 @@
             "rest_equivalent": "GET /api/calendar-subscriptions/current",
             "notes": [
               "Default mode returns feed links plus current-semester section context instead of the full subscribed section list.",
-              "Summary mode further reduces this to counts and feed-link metadata.",
-              "In summary/default MCP output, token-bearing calendarPath and calendarUrl may be redacted for privacy; request full mode only when the raw feed location is explicitly needed."
+              "The deprecated summary input is an alias for the same compact default response.",
+              "In default MCP output, token-bearing calendarPath and calendarUrl may be redacted for privacy; request full mode only when the raw feed location is explicitly needed."
             ]
           }
         ]

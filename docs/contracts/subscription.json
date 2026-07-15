@@ -29,7 +29,7 @@
             "returns": "{ success: Boolean, action: String, sectionJwId: Int, subscription }",
             "notes": [
               "Missing section jwId returns { success: false, action: \"not_found\", subscription: null }.",
-              "Default/summary responses return a compact subscription update result instead of the full subscribed section list.",
+              "Default and the deprecated summary alias return a compact subscription update result instead of the full subscribed section list.",
               "Request full mode only when the caller explicitly needs the full CalendarSubscription with sections[]."
             ]
           },
@@ -38,7 +38,7 @@
             "returns": "{ success: Boolean, action: String, sectionJwId: Int, subscription }",
             "notes": [
               "Missing section jwId returns { success: false, action: \"not_found\", subscription: null }.",
-              "Default/summary responses return a compact subscription update result instead of the full subscribed section list.",
+              "Default and the deprecated summary alias return a compact subscription update result instead of the full subscribed section list.",
               "Request full mode only when the caller explicitly needs the full CalendarSubscription with sections[]."
             ]
           }
@@ -150,7 +150,7 @@
             "notes": [
               "Convenience mutation that combines matching with subscription update.",
               "Use match_section_codes first when the caller needs a dry-run style preview.",
-              "Default/summary responses return the subscription totals plus feed link information, not the entire subscribed section list.",
+              "Default and the deprecated summary alias return the subscription totals plus feed link information, not the entire subscribed section list.",
               "Request full mode only when the caller explicitly needs the full CalendarSubscription with sections[]."
             ]
           }

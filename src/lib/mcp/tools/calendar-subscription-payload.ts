@@ -8,13 +8,13 @@ export function getCalendarSubscriptionReadPayload(
   subscription: NonNullable<
     Awaited<ReturnType<typeof getUserCalendarSubscription>>
   >,
-  mode: "summary" | "default" | "full",
+  mode: "default" | "full",
 ) {
   if (mode === "full") {
-    return subscription;
-  }
-  if (mode === "summary") {
-    return summarizeCalendarSubscriptionBrief(subscription);
+    return {
+      ...summarizeCalendarSubscription(subscription),
+      ...subscription,
+    };
   }
   return summarizeCalendarSubscription(subscription);
 }
@@ -23,10 +23,13 @@ export function getCalendarSubscriptionMutationPayload(
   subscription: NonNullable<
     Awaited<ReturnType<typeof getUserCalendarSubscription>>
   >,
-  mode: "summary" | "default" | "full",
+  mode: "default" | "full",
 ) {
   if (mode === "full") {
-    return subscription;
+    return {
+      ...summarizeCalendarSubscriptionBrief(subscription),
+      ...subscription,
+    };
   }
   return summarizeCalendarSubscriptionBrief(subscription);
 }

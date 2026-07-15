@@ -54,3 +54,31 @@ export function compactDashboardSnapshot(snapshot: DashboardSnapshot) {
     },
   };
 }
+
+export function buildFullDashboardSnapshot(snapshot: DashboardSnapshot) {
+  return {
+    user: snapshot.user,
+    currentSemester: snapshot.currentSemester,
+    subscriptions: {
+      ...snapshot.subscriptions,
+      currentSemesterSectionsTotal:
+        snapshot.subscriptions.currentSemesterSections.length,
+    },
+    nextClass: snapshot.nextClass,
+    upcomingDeadlines: {
+      total: snapshot.upcomingDeadlines.length,
+      items: snapshot.upcomingDeadlines,
+    },
+    upcomingEvents: {
+      total: snapshot.upcomingEvents.length,
+      items: snapshot.upcomingEvents,
+    },
+    todos: snapshot.todos,
+    bus: {
+      ...snapshot.bus,
+      hasPreference:
+        snapshot.bus.preference?.preferredOriginCampusId != null &&
+        snapshot.bus.preference?.preferredDestinationCampusId != null,
+    },
+  };
+}

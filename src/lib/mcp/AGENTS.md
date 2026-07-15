@@ -42,9 +42,9 @@ export async function myTool(args: unknown, authInfo?: AuthInfo) {
 
 ## Mode Guidance
 
-- **summary**: Counts, top samples
-- **default**: Standard agent calls
-- **full**: Complete nested records
+- **default**: Canonical compact structure for standard agent calls
+- **summary**: Deprecated compatibility alias for `default`; never changes array/object types
+- **full**: Adds complete nested record fields while preserving the top-level structure
 
 ## Auth
 

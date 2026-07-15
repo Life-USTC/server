@@ -1,5 +1,5 @@
 export { summarizeNextBusDepartures } from "./bus-departure-summary";
 export {
+  buildFullBusTimetable,
   summarizeBusTimetable,
-  summarizeBusTimetableBrief,
 } from "./bus-timetable-summary";

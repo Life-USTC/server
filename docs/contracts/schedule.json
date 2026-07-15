@@ -145,7 +145,7 @@
             "returns": "{ found: Boolean, section: Section?, schedules: ScheduleEntry[] }",
             "rest_equivalent": "GET /api/sections/[jwId]/schedules",
             "notes": [
-              "Default/summary responses omit the repeated per-item section payload because the top-level section already scopes the list.",
+              "Default and the deprecated summary alias omit the repeated per-item section payload because the top-level section already scopes the list.",
               "Accepts optional dateFrom/dateTo to narrow results to a specific window (e.g. the current week); both accept flexible date strings."
             ]
           },
@@ -155,7 +155,7 @@
             "returns": "{ range: { from: DateTime, to: DateTime }, total: Int, events: CalendarEvent[] }",
             "notes": [
               "Returns schedules as the schedule type within a unified event stream.",
-              "Summary mode returns grouped counts/day slices plus a limited event sample instead of another full raw event dump.",
+              "The deprecated summary input returns the same compact events[] structure as default instead of changing the collection type.",
               "Accepts optional atTime to anchor the 7-day window to a specific moment instead of the server clock; useful for asking about a future week."
             ]
           }

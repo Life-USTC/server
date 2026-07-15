@@ -1,7 +1,6 @@
 import { getSectionSchedulesByJwId } from "@/features/catalog/server/schedule-read-model";
 import type { AppLocale } from "@/i18n/config";
 import { jsonToolResult, resolveMcpMode } from "@/lib/mcp/tools/_helpers";
-import { summarizeScheduleCard } from "@/lib/mcp/tools/event-summary";
 import {
   omitScheduleSection,
   parseScheduleDateFilter,
@@ -47,20 +46,6 @@ export async function listSchedulesBySectionAction({
   }
 
   const scopedSchedules = omitScheduleSection(result.schedules);
-
-  if (resolvedMode === "summary") {
-    return jsonToolResult(
-      {
-        found: true,
-        section: result.section,
-        schedules: {
-          total: result.schedules.length,
-          items: scopedSchedules.slice(0, 5).map(summarizeScheduleCard),
-        },
-      },
-      { mode: "default" },
-    );
-  }
 
   return jsonToolResult(
     {

@@ -25,9 +25,8 @@ export type McpModeInput = z.infer<typeof mcpModeSchema>;
 export const mcpModeInputSchema = mcpModeSchema
   .default("default")
   .describe(
-    "Output verbosity. summary=counts+top samples (smallest, good for quick checks). " +
-      "default=compact structured data with low-value fields stripped (recommended for most calls). " +
-      "full=complete raw records (use only when exact nested values are explicitly required).",
+    "Output verbosity. default=compact structured data with stable field names (recommended). " +
+      "summary is a deprecated alias for default. full adds complete raw record fields without changing the top-level shape.",
   );
 
 export const mcpLocaleInputSchema = localeSchema
@@ -36,6 +35,8 @@ export const mcpLocaleInputSchema = localeSchema
     "Language for localized names: zh-cn (Chinese, default) or en-us (English).",
   );
 
-export function resolveMcpMode(mode: McpModeInput | undefined) {
-  return mode ?? "default";
+export function resolveMcpMode(
+  mode: McpModeInput | undefined,
+): "default" | "full" {
+  return mode === "full" ? "full" : "default";
 }

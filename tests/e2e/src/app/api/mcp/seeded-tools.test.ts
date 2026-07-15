@@ -5,7 +5,6 @@ import {
   createAuthenticatedMcpClient,
   getCurrentSubscriptionSectionIds,
   getSeedSectionId,
-  getTextContent,
   parseTextContent,
   replaceCalendarSubscription,
   saveBusPreference,
@@ -491,6 +490,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         const overviewSummaryResult = await mcpClient.callTool({
           name: "get_my_overview",
           arguments: {
+            limit: 2,
             locale: "zh-cn",
             mode: "summary",
           },
@@ -499,25 +499,12 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
           overviewSummaryResult,
         ) as {
           samples?: {
-            dueTodos?: { total?: number; items?: Array<{ id?: string }> };
-            dueHomeworks?: { total?: number; items?: Array<{ id?: string }> };
-            upcomingExams?: { total?: number; items?: Array<{ id?: number }> };
+            dueTodos?: Array<{ id?: string }>;
+            dueHomeworks?: Array<{ id?: string }>;
+            upcomingExams?: Array<{ id?: number }>;
           };
         };
-        expect(getTextContent(overviewSummaryResult).length).toBeLessThan(
-          getTextContent(overviewResult).length,
-        );
-        expect(typeof overviewSummaryPayload.samples?.dueTodos?.total).toBe(
-          "number",
-        );
-        expect(
-          overviewSummaryPayload.samples?.dueTodos?.total ?? 0,
-        ).toBeGreaterThanOrEqual(
-          overviewSummaryPayload.samples?.dueTodos?.items?.length ?? 0,
-        );
-        expect(
-          (overviewSummaryPayload.samples?.dueTodos?.items?.length ?? 0) <= 3,
-        ).toBe(true);
+        expect(overviewSummaryPayload.samples).toEqual(overviewPayload.samples);
 
         const dashboardResult = await mcpClient.callTool({
           name: "get_my_dashboard",
@@ -588,16 +575,15 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
           };
           todos?: { incompleteCount?: number; items?: unknown };
         };
-        expect(getTextContent(dashboardSummaryResult).length).toBeLessThan(
-          getTextContent(dashboardResult).length,
-        );
         expect(
           dashboardSummaryPayload.subscriptions?.currentSemesterSections,
-        ).toBeUndefined();
-        expect(
-          (dashboardSummaryPayload.upcomingDeadlines?.items?.length ?? 0) <= 3,
-        ).toBe(true);
-        expect(dashboardSummaryPayload.todos?.items).toBeUndefined();
+        ).toEqual(dashboardPayload.subscriptions?.currentSemesterSections);
+        expect(dashboardSummaryPayload.upcomingDeadlines?.items).toEqual(
+          dashboardPayload.upcomingDeadlines?.items,
+        );
+        expect(dashboardSummaryPayload.todos?.items).toEqual(
+          dashboardPayload.todos?.items,
+        );
 
         const nextClassResult = await mcpClient.callTool({
           name: "get_next_class",
@@ -673,25 +659,10 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
           timelineSummaryResult,
         ) as {
           total?: number;
-          events?: {
-            total?: number;
-            byType?: { schedule?: number };
-            days?: Array<{ date?: string; total?: number }>;
-            items?: Array<{ type?: string }>;
-          };
+          events?: Array<{ type?: string; at?: string | null }>;
         };
-        expect(getTextContent(timelineSummaryResult).length).toBeLessThan(
-          getTextContent(timelineResult).length,
-        );
-        expect(timelineSummaryPayload.events?.total).toBe(
-          timelineSummaryPayload.total,
-        );
-        expect(typeof timelineSummaryPayload.events?.byType?.schedule).toBe(
-          "number",
-        );
-        expect((timelineSummaryPayload.events?.days?.length ?? 0) > 0).toBe(
-          true,
-        );
+        expect(timelineSummaryPayload.events).toEqual(timelinePayload.events);
+        expect(timelineSummaryPayload.total).toBe(timelinePayload.total);
 
         const calendarEventsResult = await mcpClient.callTool({
           name: "list_my_calendar_events",
@@ -720,21 +691,11 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
         const calendarEventsSummaryPayload = parseTextContent(
           calendarEventsSummaryResult,
         ) as {
-          events?: {
-            total?: number;
-            byType?: { schedule?: number };
-            days?: Array<{ date?: string; total?: number }>;
-          };
+          events?: Array<{ type?: string; at?: string | null }>;
         };
-        expect(getTextContent(calendarEventsSummaryResult).length).toBeLessThan(
-          getTextContent(calendarEventsResult).length,
+        expect(calendarEventsSummaryPayload.events).toEqual(
+          calendarEventsPayload.events,
         );
-        expect(typeof calendarEventsSummaryPayload.events?.total).toBe(
-          "number",
-        );
-        expect(
-          typeof calendarEventsSummaryPayload.events?.byType?.schedule,
-        ).toBe("number");
 
         const matchSectionCodesResult = await mcpClient.callTool({
           name: "match_section_codes",
@@ -898,16 +859,18 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
             departureTime?: string | null;
           }>;
           nextDeparturesMessage?: string | null;
+          campuses?: unknown[];
+          routes?: unknown[];
+          trips?: unknown;
         };
         expect(typeof busSummaryPayload.counts?.routes).toBe("number");
         expect(typeof busSummaryPayload.counts?.weekdayTrips).toBe("number");
         expect(typeof busSummaryPayload.counts?.weekendTrips).toBe("number");
         expect((busSummaryPayload.nextDepartures?.length ?? 0) > 0).toBe(true);
+        expect(Array.isArray(busSummaryPayload.campuses)).toBe(true);
+        expect(Array.isArray(busSummaryPayload.routes)).toBe(true);
+        expect(busSummaryPayload.trips).toBeUndefined();
         expect(busResult).toBeDefined();
-        const fullBusTextLength = getTextContent(busResult ?? []).length;
-        expect(getTextContent(busSummaryResult).length).toBeLessThan(
-          fullBusTextLength,
-        );
         if (busSummaryPayload.nextDepartures?.length === 0) {
           expect(typeof busSummaryPayload.nextDeparturesMessage).toBe("string");
         }
@@ -1280,6 +1243,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
           subscription?: {
             sectionCount?: number;
             currentSemesterSectionCount?: number;
+            currentSemesterSections?: unknown[];
             calendarPath?: string;
           };
         };
@@ -1287,14 +1251,11 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
           calendarSubscriptionSummaryPayload.subscription?.sectionCount,
         ).toBeGreaterThan(0);
         expect(
-          (
-            calendarSubscriptionSummaryPayload.subscription as
-              | {
-                  currentSemesterSections?: unknown;
-                }
-              | undefined
-          )?.currentSemesterSections,
-        ).toBeUndefined();
+          Array.isArray(
+            calendarSubscriptionSummaryPayload.subscription
+              ?.currentSemesterSections,
+          ),
+        ).toBe(true);
         expect(
           calendarSubscriptionSummaryPayload.subscription?.calendarPath,
         ).toContain("[redacted]");

@@ -12,10 +12,10 @@ type ToolScopeRequirement = {
 /**
  * Maps every registered MCP tool name to the feature action scope(s) it needs.
  *
- * Tools that are not present in this map fall back to the generic MCP scope
- * check performed by `authenticateMcpRequest`. Legacy MCP scopes are expanded
- * before this registry is evaluated, so the map stays additive: adding a new
- * tool does not break callers until an explicit scope is assigned.
+ * Registered tools must be present in this map; server startup asserts that
+ * registration, scope, and output-schema metadata stay aligned. Unknown RPC
+ * tool names still fall back to the generic MCP request scope before the SDK
+ * returns its tool-not-found response.
  */
 const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
   // Profile
@@ -117,6 +117,14 @@ const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
   list_exams_by_section: [{ feature: "exam", action: "read" }],
   list_my_exams: [{ feature: "exam", action: "read" }],
 };
+
+export function hasExplicitMcpToolScopes(name: string): boolean {
+  return Object.hasOwn(TOOL_SCOPE_MAP, name);
+}
+
+export function getExplicitMcpToolScopeNames(): string[] {
+  return Object.keys(TOOL_SCOPE_MAP);
+}
 
 /**
  * Returns the canonical OAuth scope strings required for the given tool name(s).

@@ -114,8 +114,8 @@
             "returns": "{ found: Boolean, section: Section?, homeworks: HomeworkItem[] }",
             "rest_equivalent": "GET /api/homeworks",
             "notes": [
-              "Default/summary responses omit the repeated per-item section payload because the top-level section already scopes the list.",
-              "Editor identity fields stay in full mode; default/summary focus on homework state and due context."
+              "Default and the deprecated summary alias omit the repeated per-item section payload because the top-level section already scopes the list.",
+              "Editor identity fields stay in full mode; default focuses on homework state and due context."
             ]
           },
           {

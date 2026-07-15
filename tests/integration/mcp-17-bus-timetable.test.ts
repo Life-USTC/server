@@ -98,7 +98,7 @@ describe("query_bus_timetable", () => {
     expect(Array.isArray(result.nextDepartures)).toBe(true);
   });
 
-  it("summary 模式仅返回计数、偏好与下一班车摘要", async () => {
+  it("summary 兼容输入返回与 default 相同的紧凑路线结构", async () => {
     const result = await context.client.call<{
       locale?: string;
       counts?: {
@@ -107,8 +107,8 @@ describe("query_bus_timetable", () => {
         weekdayTrips?: number;
         weekendTrips?: number;
       };
-      campuses?: unknown;
-      routes?: unknown;
+      campuses?: unknown[];
+      routes?: unknown[];
       preferences?: {
         preferredOriginCampusId?: number | null;
         preferredDestinationCampusId?: number | null;
@@ -123,8 +123,8 @@ describe("query_bus_timetable", () => {
 
     expect(result.locale).toBe("zh-cn");
     expect(typeof result.counts?.routes).toBe("number");
-    expect(result.campuses).toBeUndefined();
-    expect(result.routes).toBeUndefined();
+    expect(Array.isArray(result.campuses)).toBe(true);
+    expect(Array.isArray(result.routes)).toBe(true);
     expect(result.preferences).toBeDefined();
     expect(Array.isArray(result.nextDepartures)).toBe(true);
     expect(typeof result.nextDeparturesMessage).toBe("string");
@@ -151,6 +151,9 @@ describe("query_bus_timetable", () => {
         stopTimes?: unknown[];
       }>;
       availableVersions?: unknown[];
+      counts?: { routes?: number; weekdayTrips?: number };
+      nextDepartures?: unknown[];
+      nextDeparturesMessage?: string | null;
     }>("query_bus_timetable", {
       locale: "zh-cn",
       mode: "full",
@@ -162,6 +165,10 @@ describe("query_bus_timetable", () => {
     expect(result.routes?.length).toBeGreaterThan(0);
     expect(result.trips?.length).toBeGreaterThan(0);
     expect(result.availableVersions?.length).toBeGreaterThan(0);
+    expect(typeof result.counts?.routes).toBe("number");
+    expect(typeof result.counts?.weekdayTrips).toBe("number");
+    expect(Array.isArray(result.nextDepartures)).toBe(true);
+    expect(result).toHaveProperty("nextDeparturesMessage");
 
     const route = result.routes?.find(
       (r) => r.id === fixtures.DEV_SEED.bus.routeId,
