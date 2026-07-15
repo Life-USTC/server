@@ -1,3 +1,10 @@
+# [1.53.0](https://github.com/Life-USTC/server/compare/v1.52.0...v1.53.0) (2026-07-15)
+
+
+### Features
+
+* **homework:** add advisory writing guide ([#441](https://github.com/Life-USTC/server/issues/441)) ([895a584](https://github.com/Life-USTC/server/commit/895a5841aa822f12d742e82020dead08933659c3)), closes [#344](https://github.com/Life-USTC/server/issues/344)
+
 # [1.52.0](https://github.com/Life-USTC/server/compare/v1.51.7...v1.52.0) (2026-07-15)
 
 
