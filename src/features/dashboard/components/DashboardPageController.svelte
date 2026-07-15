@@ -160,6 +160,10 @@ $: sectionCopy = copy.sectionDetail;
 $: subscriptionsCopy = copy.subscriptions;
 $: todosCopy = copy.todos;
 $: commentsCopy = copy.comments;
+$: pageTitle =
+  data.signedIn && data.mainContentLabel
+    ? data.mainContentLabel
+    : copy.metadata.home;
 $: todoPriorityOptions = buildTodoPriorityOptions(todoPriorityOrder, todosCopy);
 $: calendarWeekdayLabels = buildCalendarWeekdayLabels(sectionCopy);
 $: dashboardLinkGroupLabels = dashboardCopy.linkHub.groups;
@@ -520,10 +524,14 @@ onMount(() => {
 </script>
 
 <svelte:head>
-  <title>{copy.metadata.home} - Life@USTC</title>
+  <title>{pageTitle} - Life@USTC</title>
 </svelte:head>
 
 <div class="mx-auto grid w-full max-w-7xl gap-6">
+  {#if data.signedIn && data.mainContentLabel}
+    <h1 class="sr-only">{data.mainContentLabel}</h1>
+  {/if}
+
   <DashboardStatusAlerts
     {actionError}
     {calendarCopyError}

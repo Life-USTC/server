@@ -1,3 +1,4 @@
+import { isSignedDashboardTab } from "@/features/dashboard/lib/dashboard-nav";
 import { getDashboardPageCopy } from "@/features/dashboard/server/dashboard-page-copy";
 import { loadAnonymousDashboardPageData } from "@/features/dashboard/server/dashboard-page-load-public";
 import { loadSignedDashboardPageData } from "@/features/dashboard/server/dashboard-page-load-signed";
@@ -91,6 +92,7 @@ export async function loadDashboardPage({
     return data;
   }
 
+  const signedTab = isSignedDashboardTab(tab) ? tab : "overview";
   const [publicSummary, signedData] = await Promise.all([
     publicSummaryPromise,
     loadSignedDashboardPageData({
@@ -120,5 +122,6 @@ export async function loadDashboardPage({
     ...signedData,
     counts: publicSummary.counts,
     currentTermName: publicSummary.currentTermName,
+    mainContentLabel: pageCopy.dashboard.nav[signedTab].title,
   };
 }
