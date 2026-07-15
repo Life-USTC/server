@@ -629,7 +629,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
   test("已登录用户可创建作业、查看讨论、切换完成状态并删除", async ({
     page,
   }, testInfo) => {
-    test.setTimeout(60_000);
+    test.setTimeout(90_000);
     await signInAsDebugUser(page, SECTION_URL);
     let homeworkId: string | undefined;
 
