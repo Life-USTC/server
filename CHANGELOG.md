@@ -1,3 +1,10 @@
+## [1.51.1](https://github.com/Life-USTC/server/compare/v1.51.0...v1.51.1) (2026-07-15)
+
+
+### Bug Fixes
+
+* **dashboard:** keep past-term data discoverable ([#432](https://github.com/Life-USTC/server/issues/432)) ([5da15f2](https://github.com/Life-USTC/server/commit/5da15f28e9a72d10ee41345f1d8b77ef7a1854a9))
+
 # [1.51.0](https://github.com/Life-USTC/server/compare/v1.50.1...v1.51.0) (2026-07-14)
 
 
