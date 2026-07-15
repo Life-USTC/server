@@ -248,7 +248,9 @@
       "mcp": "unavailable",
       "display": {
         "fields": [
-          "User code entry form",
+          "One page-level title and description",
+          "One segmented user-code input labelled Device Code",
+          "One verify action",
           "Approval/result screens",
           "Requested scopes[] on approval screen",
           "Requested resources[] on approval screen",

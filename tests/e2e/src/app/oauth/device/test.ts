@@ -200,19 +200,53 @@ async function exchangeDeviceToken(
   };
 }
 
-test("/oauth/device 页面渲染用户代码输入表单", async ({ page }, testInfo) => {
+test("/oauth/device 移动端只呈现一个标题和一个代码输入", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   await gotoAndWaitForReady(page, "/oauth/device");
 
   await expect(
-    page.locator('input#code, input[type="text"][name="code"]').first(),
-  ).toBeVisible();
+    page.getByRole("heading", {
+      name: /设备登录|Device Login/i,
+      exact: true,
+    }),
+  ).toHaveCount(1);
   await expect(
-    page
-      .getByRole("button", { name: /Verify|确认|Confirm|Submit|提交|验证/i })
-      .first(),
-  ).toBeVisible();
+    page.getByText(/^(设备登录|Device Login)$/, { exact: true }),
+  ).toHaveCount(1);
+  await expect(
+    page.getByText(
+      /输入设备上显示的验证码。|Enter the code displayed on your device\./i,
+      { exact: true },
+    ),
+  ).toHaveCount(1);
 
-  await captureStepScreenshot(page, testInfo, "oauth/device/form");
+  const codeInputs = page.locator('input[name="code"]');
+  await expect(codeInputs).toHaveCount(1);
+  await expect(codeInputs).toBeVisible();
+  await expect(page.locator('label[for="code"]')).toHaveCount(1);
+  await expect(
+    page.getByText(/^(设备验证码|Device Code)$/, { exact: true }),
+  ).toHaveCount(1);
+  await expect(page.locator('[data-slot="input-otp-slot"]')).toHaveCount(8);
+  const verifyButton = page.getByRole("button", {
+    name: /^(验证|Verify)$/i,
+    exact: true,
+  });
+  await expect(verifyButton).toHaveCount(1);
+  await expect(verifyButton).toBeVisible();
+  await expect(verifyButton).toBeInViewport();
+
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+
+  await captureStepScreenshot(page, testInfo, "oauth/device/form-mobile");
 });
 
 test("/oauth/device 无效用户代码显示公开错误", async ({ page }, testInfo) => {

@@ -1,6 +1,5 @@
 <script lang="ts">
 import { REGEXP_ONLY_DIGITS_AND_CHARS } from "bits-ui";
-import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import * as InputOTP from "$lib/components/ui/input-otp/index.js";
@@ -20,12 +19,6 @@ function sanitizeDeviceCode(value: string) {
     .slice(0, 8);
 }
 </script>
-
-<header class="text-center">
-  <Badge class="mb-3" variant="ghost">{copy.deviceTitle}</Badge>
-  <h2 class="font-semibold text-2xl tracking-normal">{copy.deviceTitle}</h2>
-  <p class="mt-2 text-muted-foreground">{copy.deviceCodeHint}</p>
-</header>
 
 <form method="GET" action="/oauth/device">
   <input type="hidden" name="step" value="approve" />
