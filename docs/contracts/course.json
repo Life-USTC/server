@@ -8,6 +8,7 @@
   },
   "rules": {
     "stable-entity": "A course is a stable course entity and does not represent a specific semester offering.",
+    "static-course-identity": "Static ingestion keeps the current source jwId when that Course row already exists; otherwise it reuses exactly one stored Course with the same normalized code and complete persisted metadata. Multiple source IDs for one identity map to one Course, same-code metadata variants remain separate, and ambiguous stored duplicates abort the transaction for an explicit merge instead of creating or guessing another row.",
     "jwid-url-only": "jwId is used only for URLs, APIs, MCP, and backend logic; it should not be directly displayed in ordinary course UI.",
     "education-level-display-casing": "English education-level filter labels uppercase only their initial character for consistent display while preserving all remaining source casing; non-English labels remain unchanged.",
     "public-list-cache": "Anonymous course list REST responses and server-side list data may use short public runtime/CDN caching because course fact data is read-only; localized HTML pages must not use shared edge caching unless the cache key varies by locale.",

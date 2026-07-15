@@ -1,5 +1,10 @@
 import type { Prisma, PrismaClient } from "../generated/prisma-node/client";
 import {
+  type CourseIdentityRecord,
+  courseIdentitySignature,
+  planCourseIdentityImport,
+} from "./course-identity";
+import {
   type AdminClassBuild,
   type AdminClassSectionPair,
   type BuildingBuild,
@@ -433,8 +438,7 @@ function loadCourses(snapshot: Snapshot): CourseBuild[] {
     "catalog_teach_lesson_list_for_teach_education",
   );
 
-  const result: CourseBuild[] = [];
-  const seen = new Set<number>();
+  const coursesByJwId = new Map<number, CourseBuild>();
   for (const lesson of lessons) {
     const parentId = asInt(lesson.store_id);
     if (parentId == null) continue;
@@ -446,11 +450,21 @@ function loadCourses(snapshot: Snapshot): CourseBuild[] {
       classType: firstChild(classTypes, parentId),
       education: firstChild(educations, parentId),
     });
-    if (course == null || seen.has(course.jwId)) continue;
-    seen.add(course.jwId);
-    result.push(course);
+    if (course == null) continue;
+    const existing = coursesByJwId.get(course.jwId);
+    if (existing != null) {
+      const existingSignature = JSON.stringify(existing);
+      const incomingSignature = JSON.stringify(course);
+      if (existingSignature !== incomingSignature) {
+        throw new Error(
+          `Conflicting course metadata for source jwId ${course.jwId} in the same snapshot`,
+        );
+      }
+      continue;
+    }
+    coursesByJwId.set(course.jwId, course);
   }
-  return result;
+  return [...coursesByJwId.values()];
 }
 
 function loadScheduleLookups(snapshot: Snapshot) {
@@ -1081,31 +1095,73 @@ async function upsertCourses(
     "gradationId",
     "typeId",
   ];
-  const records = builds.map((build) => ({
-    key: build.jwId,
+  const incomingCourses: CourseIdentityRecord[] = builds.map((build) => ({
+    jwId: build.jwId,
+    code: build.code,
+    nameCn: build.nameCn,
+    nameEn: build.nameEn,
+    categoryId: build.categoryName
+      ? lookupMaps.courseCategory.get(build.categoryName)
+      : null,
+    classTypeId: build.classTypeName
+      ? lookupMaps.classType.get(build.classTypeName)
+      : null,
+    classifyId: build.classifyName
+      ? lookupMaps.courseClassify.get(build.classifyName)
+      : null,
+    educationLevelId: build.educationLevelName
+      ? lookupMaps.educationLevel.get(build.educationLevelName)
+      : null,
+    gradationId: build.gradationName
+      ? lookupMaps.courseGradation.get(build.gradationName)
+      : null,
+    typeId: build.typeName ? lookupMaps.courseType.get(build.typeName) : null,
+  }));
+
+  // Validate required identity fields before querying or writing any courses.
+  for (const course of incomingCourses) courseIdentitySignature(course);
+  if (incomingCourses.length === 0) return new Map();
+
+  const select = {
+    jwId: true,
+    code: true,
+    nameCn: true,
+    nameEn: true,
+    categoryId: true,
+    classTypeId: true,
+    classifyId: true,
+    educationLevelId: true,
+    gradationId: true,
+    typeId: true,
+  } as const;
+  // The catalog is small enough to compare against every persisted Course.
+  // Reading the full identity set also lets normalization catch legacy rows
+  // whose stored code contains surrounding whitespace.
+  const persistedCourses = await tx.course.findMany({ select });
+  const sourceJwIds = new Set(incomingCourses.map((course) => course.jwId));
+  const normalizedCodes = new Set(
+    incomingCourses.map((course) => course.code.trim()),
+  );
+  const existingCourses = persistedCourses.filter(
+    (course) =>
+      sourceJwIds.has(course.jwId) || normalizedCodes.has(course.code.trim()),
+  );
+  const plan = planCourseIdentityImport(incomingCourses, existingCourses);
+  const records = plan.canonicalCourses.map((course) => ({
+    key: course.jwId,
     values: [
-      build.code,
-      build.nameCn,
-      build.nameEn,
-      build.categoryName
-        ? lookupMaps.courseCategory.get(build.categoryName)
-        : null,
-      build.classTypeName
-        ? lookupMaps.classType.get(build.classTypeName)
-        : null,
-      build.classifyName
-        ? lookupMaps.courseClassify.get(build.classifyName)
-        : null,
-      build.educationLevelName
-        ? lookupMaps.educationLevel.get(build.educationLevelName)
-        : null,
-      build.gradationName
-        ? lookupMaps.courseGradation.get(build.gradationName)
-        : null,
-      build.typeName ? lookupMaps.courseType.get(build.typeName) : null,
+      course.code,
+      course.nameCn,
+      course.nameEn,
+      course.categoryId,
+      course.classTypeId,
+      course.classifyId,
+      course.educationLevelId,
+      course.gradationId,
+      course.typeId,
     ] satisfies ColumnValue[],
   }));
-  return bulkUpsert(
+  const canonicalMap = await bulkUpsert(
     tx,
     "Course",
     "jwId",
@@ -1114,6 +1170,18 @@ async function upsertCourses(
     ["text", "text", "text", "int", "int", "int", "int", "int", "int"],
     records,
   );
+
+  const map = new Map<number, number>();
+  for (const [sourceJwId, canonicalJwId] of plan.canonicalJwIdBySourceJwId) {
+    const databaseId = canonicalMap.get(canonicalJwId);
+    if (databaseId == null) {
+      throw new Error(
+        `Course identity plan did not resolve source jwId ${sourceJwId}`,
+      );
+    }
+    map.set(sourceJwId, databaseId);
+  }
+  return map;
 }
 
 async function upsertTeacherTitles(
