@@ -29,6 +29,11 @@ export async function waitForUiSettled(
   } = {},
 ) {
   await page.waitForLoadState(options.waitUntil ?? "domcontentloaded");
+  await page.waitForFunction(
+    () => document.documentElement.dataset.lifeUstcHydrated === "true",
+    null,
+    { timeout: 10_000 },
+  );
   await page.waitForFunction(() => !/^Loading\b/i.test(document.title), null, {
     timeout: 10_000,
   });
