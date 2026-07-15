@@ -728,9 +728,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
           r.request().method() === "DELETE" &&
           r.status() === 200,
       );
-      await deleteDialog
-        .getByRole("button", { name: /确认删除|Delete/i })
-        .click();
+      await deleteDialog.getByRole("button", { name: /删除|Delete/i }).click();
       await deleteResponse;
       await page.waitForLoadState("networkidle");
       await expect(hwCard).toHaveCount(0);

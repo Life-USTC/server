@@ -11,7 +11,23 @@
 import { expect, type Page, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../utils/auth";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import { absoluteTestUrl } from "../../../utils/request-url";
 import { captureStepScreenshot } from "../../../utils/screenshot";
+
+async function setLocale(
+  page: Page,
+  baseURL: string | undefined,
+  locale: "en-us" | "zh-cn",
+) {
+  await page.context().addCookies([
+    {
+      name: "NEXT_LOCALE",
+      value: locale,
+      url: absoluteTestUrl("/", baseURL),
+      sameSite: "Lax",
+    },
+  ]);
+}
 
 async function chooseStop(page: Page, label: RegExp, option: RegExp) {
   const group =
@@ -82,6 +98,36 @@ test.describe("校车面板标签页", () => {
     ).toHaveAttribute("href", "/bus-map");
 
     await captureStepScreenshot(page, testInfo, "bus-planner-public");
+  });
+
+  test("公共与登录校车版本标签随界面语言本地化", async ({
+    page,
+    baseURL,
+  }, testInfo) => {
+    await setLocale(page, baseURL, "zh-cn");
+    await gotoAndWaitForReady(page, "/?tab=bus");
+    await expect(page.getByText("当前版本", { exact: true })).toHaveCount(1);
+    await expect(
+      page.getByText("Static Structured Bus Timetable", { exact: true }),
+    ).toHaveCount(0);
+    await captureStepScreenshot(page, testInfo, "bus-version-label-zh-public");
+
+    await signInAsDebugUser(page, "/dashboard/bus");
+    await setLocale(page, baseURL, "zh-cn");
+    await gotoAndWaitForReady(page, "/dashboard/bus");
+    await expect(page.getByText("当前版本", { exact: true })).toHaveCount(1);
+    await expect(
+      page.getByText("Static Structured Bus Timetable", { exact: true }),
+    ).toHaveCount(0);
+
+    await setLocale(page, baseURL, "en-us");
+    await gotoAndWaitForReady(page, "/dashboard/bus");
+    await expect(page.getByText("Active version", { exact: true })).toHaveCount(
+      1,
+    );
+    await expect(
+      page.getByText("Static Structured Bus Timetable", { exact: true }),
+    ).toHaveCount(0);
   });
 
   test("登录校车面板 SSR 渲染服务端时刻表数据", async ({ page }) => {

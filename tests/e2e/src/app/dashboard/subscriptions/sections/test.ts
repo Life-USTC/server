@@ -31,6 +31,7 @@ import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../../../utils/page-ready";
+import { absoluteTestUrl } from "../../../../../utils/request-url";
 import { captureStepScreenshot } from "../../../../../utils/screenshot";
 import { ensureSeedSectionSubscription } from "../../../../../utils/subscriptions";
 
@@ -88,7 +89,10 @@ test.describe("仪表盘关注班级", () => {
     );
   });
 
-  test("登录后显示种子班级关注及所有必填字段", async ({ page }, testInfo) => {
+  test("登录后显示种子班级关注、必填字段和英文单复数文案", async ({
+    page,
+    baseURL,
+  }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/subscriptions");
     await expect(async () => {
       await ensureSeedSectionSubscription(page);
@@ -140,6 +144,30 @@ test.describe("仪表盘关注班级", () => {
     });
 
     await captureStepScreenshot(page, testInfo, "subscriptions/seed-fields");
+    await page.context().addCookies([
+      {
+        name: "NEXT_LOCALE",
+        value: "en-us",
+        url: absoluteTestUrl("/", baseURL),
+        sameSite: "Lax",
+      },
+    ]);
+    await gotoAndWaitForReady(page, "/dashboard/subscriptions");
+
+    await expect(
+      page.getByText("3 sections included", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("1 section included", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("1 sections included", { exact: true }),
+    ).toHaveCount(0);
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "subscriptions/single-section-en-us",
+    );
   });
 
   test("空状态提供发现操作", async ({ page }, testInfo) => {

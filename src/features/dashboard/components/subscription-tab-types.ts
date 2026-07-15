@@ -42,6 +42,7 @@ export type DashboardSubscriptionsTabCopy = DashboardSubscriptionsCopy & {
     title: string;
   };
   iCalLink: string;
+  sectionIncluded: string;
   sectionsIncluded: string;
   semesterGroup: string;
 };

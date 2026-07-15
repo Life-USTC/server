@@ -9,7 +9,7 @@ export let footerLinks: ShellLink[];
   <div
     class="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-4 text-muted-foreground text-sm sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8"
   >
-    <nav aria-label={copy.shell.primaryNavigation} class="flex flex-wrap items-center gap-x-5 gap-y-2">
+    <nav aria-label={copy.shell.footerNavigation} class="flex flex-wrap items-center gap-x-5 gap-y-2">
       {#each footerLinks as link}
         <a
           class="transition-colors hover:text-foreground"

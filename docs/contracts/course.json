@@ -9,6 +9,7 @@
   "rules": {
     "stable-entity": "A course is a stable course entity and does not represent a specific semester offering.",
     "jwid-url-only": "jwId is used only for URLs, APIs, MCP, and backend logic; it should not be directly displayed in ordinary course UI.",
+    "education-level-display-casing": "English education-level filter labels uppercase only their initial character for consistent display while preserving all remaining source casing; non-English labels remain unchanged.",
     "public-list-cache": "Anonymous course list REST responses and server-side list data may use short public runtime/CDN caching because course fact data is read-only; localized HTML pages must not use shared edge caching unless the cache key varies by locale.",
     "static-classification-unsupported": "Static course snapshots do not currently provide CourseClassify source data, so static-loaded courses keep classifyId/classify null and static-loaded metadata may expose courseClassifies as an empty array."
   },

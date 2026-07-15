@@ -98,6 +98,7 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       mobileApp: messages.homepage.actions.mobileApp,
     },
     shell: {
+      footerNavigation: messages.common.footerNavigation,
       loading: messages.common.loading,
       menu: locale === "zh-cn" ? "菜单" : "Menu",
       primaryNavigation: messages.common.primaryNavigation,

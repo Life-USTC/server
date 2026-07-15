@@ -28,7 +28,7 @@ export let showHeader = true;
             {busCopy.dashboardTitle}
           </h2>
           <p class="text-muted-foreground text-sm">
-            {bus?.version?.title ?? busCopy.activeVersion}
+            {busCopy.activeVersion}
           </p>
         </div>
         <Button href="/bus-map" size="lg" variant="outline">{busCopy.transitMap}</Button>

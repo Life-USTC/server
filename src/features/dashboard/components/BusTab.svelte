@@ -91,7 +91,7 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
     <div class="grid gap-1">
       <h2 class="font-semibold text-xl tracking-normal">{busCopy.dashboardTitle}</h2>
       <p class="text-muted-foreground text-sm">
-        {loadedBus?.version?.title ?? busCopy.activeVersion}
+        {busCopy.activeVersion}
       </p>
     </div>
     <Button href="/bus-map" size="lg" variant="outline">{busCopy.transitMap}</Button>
