@@ -451,18 +451,25 @@ function buildResponse(
   }
 
   const statusNum = Number.parseInt(status, 10);
-  return {
-    description: statusNum >= 400 ? "Error response" : "Successful response",
-    ...(status === "201"
+  const headers =
+    status === "201"
       ? {
-          headers: {
-            Location: {
-              description: "Relative URL of the created resource",
-              schema: { type: "string" },
-            },
+          Location: {
+            description: "Relative URL of the created resource",
+            schema: { type: "string" },
           },
         }
-      : {}),
+      : status === "429" || status === "503"
+        ? {
+            "Retry-After": {
+              description: "Seconds before retrying the mutation",
+              schema: { type: "integer", minimum: 0 },
+            },
+          }
+        : undefined;
+  return {
+    description: statusNum >= 400 ? "Error response" : "Successful response",
+    ...(headers ? { headers } : {}),
     content: {
       "application/json": { schema: schemaRef(target) },
     },

@@ -18,5 +18,7 @@ export const GET = svelteRequestHandler(observedApiRoute(getCommentsRoute));
  * @response 401:openApiErrorSchema
  * @response 403:openApiErrorSchema
  * @response 404:openApiErrorSchema
+ * @response 429:openApiErrorSchema
+ * @response 503:openApiErrorSchema
  */
 export const POST = svelteRequestHandler(observedApiRoute(postCommentRoute));

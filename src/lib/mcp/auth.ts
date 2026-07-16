@@ -46,6 +46,15 @@ function toolNameCount(toolName: string | string[] | undefined) {
   return toolName ? 1 : 0;
 }
 
+function hasRequiredFeatureScope(
+  grantedScopes: readonly string[],
+  requiredScope: string,
+) {
+  if (grantedScopes.includes(requiredScope)) return true;
+  const readScope = /^(.*):read$/.exec(requiredScope);
+  return readScope ? grantedScopes.includes(`${readScope[1]}:write`) : false;
+}
+
 export async function authenticateMcpRequest(
   request: Request,
   toolName?: string | string[],
@@ -134,12 +143,14 @@ export async function authenticateMcpRequest(
   }
 
   const requiredScopes = getRequiredMcpScopes(toolName);
+  const hasLegacyMcpToolsScope = authInfo.scopes.includes(
+    LEGACY_MCP_TOOLS_SCOPE,
+  );
   const hasRequiredScope =
     requiredScopes.length === 0 ||
-    requiredScopes.some(
-      (scope) =>
-        authInfo.scopes.includes(scope) ||
-        authInfo.scopes.includes(LEGACY_MCP_TOOLS_SCOPE),
+    hasLegacyMcpToolsScope ||
+    requiredScopes.every((scope) =>
+      hasRequiredFeatureScope(authInfo.scopes, scope),
     );
   if (!hasRequiredScope) {
     const diagnostics: McpAuthFailureDiagnostics = {

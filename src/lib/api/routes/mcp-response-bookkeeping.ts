@@ -12,7 +12,11 @@ export function recordAndLogMcpResponse(input: {
     request: Request;
     requestUrl: URL;
   };
-  phase: "auth-rejected" | "handled" | "origin-rejected";
+  phase:
+    | "auth-rejected"
+    | "handled"
+    | "origin-rejected"
+    | "rate-limit-rejected";
   request: Request;
   rpcSummary: McpRequestSummary | null;
   start: number;

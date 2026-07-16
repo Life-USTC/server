@@ -1,4 +1,8 @@
-import { suspensionForbidden, unauthorized } from "@/lib/api/helpers";
+import {
+  rateLimitResponse,
+  suspensionForbidden,
+  unauthorized,
+} from "@/lib/api/helpers";
 import {
   getJwksUrlForOAuthVerification,
   getOAuthRestAudienceUrls,
@@ -10,6 +14,11 @@ import {
   restWriteScope,
 } from "@/lib/oauth/constants";
 import { isFeatureScope } from "@/lib/oauth/scope-registry";
+import {
+  checkUserMutationRateLimit,
+  USER_MUTATION_RATE_LIMIT_PERIOD_SECONDS,
+  type UserMutationRateLimitTier,
+} from "@/lib/security/user-mutation-rate-limit";
 import { parseBearerAuthorizationHeader } from "./authorization-header";
 import { verifyAccessTokenJwt } from "./jwt-verification";
 import { hasRequestAuthSignal } from "./request-auth-signal";
@@ -17,6 +26,14 @@ import { hasRequestAuthSignal } from "./request-auth-signal";
 export type RestBearerScopeRequirement = {
   feature: RestFeature;
   action: "read" | "write";
+};
+
+export type RestAuthOptions = {
+  bearerScope?: RestBearerScopeRequirement;
+  rateLimit?: {
+    action?: string;
+    tier?: UserMutationRateLimitTier;
+  };
 };
 
 function hasRequiredRestScope(
@@ -50,7 +67,7 @@ async function getLocalJwks() {
  */
 export async function resolveApiUserId(
   request: Request,
-  options: { bearerScope?: RestBearerScopeRequirement } = {},
+  options: RestAuthOptions = {},
 ): Promise<string | null> {
   const bearer = parseBearerAuthorizationHeader(request.headers);
   if (bearer) {
@@ -98,10 +115,28 @@ export async function resolveSessionUserId(
 
 export async function requireAuth(
   request: Request,
-  options: { bearerScope?: RestBearerScopeRequirement } = {},
+  options: RestAuthOptions = {},
 ): Promise<{ userId: string } | Response> {
   const userId = await resolveApiUserId(request, options);
-  return userId ? { userId } : unauthorized();
+  if (!userId) return unauthorized();
+
+  const scope = options.bearerScope;
+  if (scope?.action === "write") {
+    const outcome = await checkUserMutationRateLimit({
+      action: options.rateLimit?.action ?? `${scope.feature}:write`,
+      host: new URL(request.url).host,
+      tier: options.rateLimit?.tier,
+      userId,
+    });
+    if (!outcome.allowed) {
+      return rateLimitResponse(
+        outcome.reason,
+        USER_MUTATION_RATE_LIMIT_PERIOD_SECONDS,
+      );
+    }
+  }
+
+  return { userId };
 }
 
 /**
@@ -122,5 +157,17 @@ export async function requireWriteAuth(
   const data = await getViewerAuthDataForUserId(userId);
   if (!data) return unauthorized();
   if (data.suspension) return suspensionForbidden(data.suspension.reason);
+
+  const outcome = await checkUserMutationRateLimit({
+    action: `${feature}:write`,
+    host: new URL(request.url).host,
+    userId,
+  });
+  if (!outcome.allowed) {
+    return rateLimitResponse(
+      outcome.reason,
+      USER_MUTATION_RATE_LIMIT_PERIOD_SECONDS,
+    );
+  }
   return { userId };
 }

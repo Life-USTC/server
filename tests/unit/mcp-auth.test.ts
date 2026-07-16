@@ -235,6 +235,56 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
     }
   });
 
+  it("rejects a mixed-tool batch unless every tool scope is present", async () => {
+    mockToken([restWriteScope("todo")]);
+    const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
+    const result = await authenticateMcpRequest(
+      makeAuthenticatedRequest([restWriteScope("todo")]),
+      ["create_my_todo", "delete_my_upload"],
+    );
+
+    expect("response" in result).toBe(true);
+    if ("response" in result) {
+      expect(result.response.status).toBe(403);
+      expect(result.authFailureDiagnostics).toMatchObject({
+        authFailureKind: "missing_required_tool_scope",
+        requiredScopeCount: 2,
+        toolNameCount: 2,
+      });
+      expect(result.response.headers.get("www-authenticate")).toContain(
+        restWriteScope("upload"),
+      );
+    }
+  });
+
+  it("lets a feature write scope satisfy reads of the same feature", async () => {
+    mockToken([restWriteScope("todo")]);
+    const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
+    const result = await authenticateMcpRequest(
+      makeAuthenticatedRequest([restWriteScope("todo")]),
+      ["list_my_todos", "create_my_todo"],
+    );
+
+    expect("authInfo" in result).toBe(true);
+  });
+
+  it("requires every declared scope for a cross-cutting tool", async () => {
+    mockToken([restReadScope("schedule")]);
+    const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
+    const result = await authenticateMcpRequest(
+      makeAuthenticatedRequest([restReadScope("schedule")]),
+      "get_next_class",
+    );
+
+    expect("response" in result).toBe(true);
+    if ("response" in result) {
+      expect(result.response.status).toBe(403);
+      expect(result.response.headers.get("www-authenticate")).toContain(
+        restReadScope("dashboard"),
+      );
+    }
+  });
+
   it("still requires any MCP scope before the per-tool check", async () => {
     mockToken(["openid"]);
     const { authenticateMcpRequest } = await import("@/lib/mcp/auth");

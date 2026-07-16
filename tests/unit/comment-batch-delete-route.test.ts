@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 const requireAuthMock = vi.fn();
 const deleteOwnCommentMock = vi.fn();
@@ -24,17 +24,21 @@ function unauthorizedResponse() {
 }
 
 describe("deleteCommentBatchRoute", () => {
+  let deleteCommentBatchRoute: typeof import("@/lib/api/routes/comment-batch-route").deleteCommentBatchRoute;
+
+  beforeAll(async () => {
+    ({ deleteCommentBatchRoute } = await import(
+      "@/lib/api/routes/comment-batch-route"
+    ));
+  });
+
   afterEach(() => {
     requireAuthMock.mockReset();
     deleteOwnCommentMock.mockReset();
-    vi.resetModules();
   });
 
   it("在解析 JSON 请求体之前先认证", async () => {
     requireAuthMock.mockResolvedValue(unauthorizedResponse());
-    const { deleteCommentBatchRoute } = await import(
-      "@/lib/api/routes/comment-batch-route"
-    );
 
     const response = await deleteCommentBatchRoute(
       deleteRequest({ ids: ["comment-1"] }),
@@ -50,10 +54,6 @@ describe("deleteCommentBatchRoute", () => {
     deleteOwnCommentMock
       .mockResolvedValueOnce({ ok: true })
       .mockResolvedValueOnce({ ok: true });
-
-    const { deleteCommentBatchRoute } = await import(
-      "@/lib/api/routes/comment-batch-route"
-    );
 
     const response = await deleteCommentBatchRoute(
       deleteRequest({ ids: ["comment-1", "comment-2"] }),
@@ -84,10 +84,6 @@ describe("deleteCommentBatchRoute", () => {
       .mockResolvedValueOnce({ ok: false, error: "not_found" })
       .mockResolvedValueOnce({ ok: false, error: "forbidden" })
       .mockResolvedValueOnce({ ok: false, error: "locked" });
-
-    const { deleteCommentBatchRoute } = await import(
-      "@/lib/api/routes/comment-batch-route"
-    );
 
     const response = await deleteCommentBatchRoute(
       deleteRequest({
@@ -130,10 +126,6 @@ describe("deleteCommentBatchRoute", () => {
       reason: "spam",
     });
 
-    const { deleteCommentBatchRoute } = await import(
-      "@/lib/api/routes/comment-batch-route"
-    );
-
     const response = await deleteCommentBatchRoute(
       deleteRequest({ ids: ["comment-1"] }),
     );
@@ -152,10 +144,6 @@ describe("deleteCommentBatchRoute", () => {
   it("拒绝空 ids 数组", async () => {
     requireAuthMock.mockResolvedValue({ userId: "user-1" });
 
-    const { deleteCommentBatchRoute } = await import(
-      "@/lib/api/routes/comment-batch-route"
-    );
-
     const response = await deleteCommentBatchRoute(deleteRequest({ ids: [] }));
 
     expect(response.status).toBe(400);
@@ -166,10 +154,6 @@ describe("deleteCommentBatchRoute", () => {
 
   it("拒绝包含空字符串 id 的 payload", async () => {
     requireAuthMock.mockResolvedValue({ userId: "user-1" });
-
-    const { deleteCommentBatchRoute } = await import(
-      "@/lib/api/routes/comment-batch-route"
-    );
 
     const response = await deleteCommentBatchRoute(
       deleteRequest({ ids: ["comment-1", ""] }),

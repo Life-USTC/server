@@ -1,9 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { generateOpenApiDocument } from "../../scripts/openapi/generate";
 
 describe("openapi generator", () => {
+  let doc: ReturnType<typeof generateOpenApiDocument>;
+
+  beforeAll(() => {
+    doc = generateOpenApiDocument();
+  }, 60_000);
+
   it("returns a document with the generated metadata", () => {
-    const doc = generateOpenApiDocument();
     expect(doc.openapi).toBe("3.0.0");
     expect(doc.info.title).toBe("Life@USTC API");
     expect(doc.info.version).toBe("1.0.0");
@@ -13,10 +18,9 @@ describe("openapi generator", () => {
     expect(doc.servers).toEqual([{ url: "/", description: "Current origin" }]);
     expect(doc.components?.securitySchemes).toBeDefined();
     expect(doc.components?.schemas).toBeDefined();
-  }, 15_000);
+  });
 
   it("publishes pageSize and marks limit as its deprecated alias", () => {
-    const doc = generateOpenApiDocument();
     const paths = doc.paths as Record<
       string,
       {
@@ -56,10 +60,9 @@ describe("openapi generator", () => {
       expect(limit?.deprecated, path).toBe(true);
       expect(limit?.description, path).toContain("pageSize");
     }
-  }, 15_000);
+  });
 
   it("publishes true creates as 201 responses with Location", () => {
-    const doc = generateOpenApiDocument();
     const paths = doc.paths as Record<
       string,
       {
@@ -81,5 +84,5 @@ describe("openapi generator", () => {
     }
 
     expect(paths["/api/descriptions"]?.post?.responses?.["200"]).toBeDefined();
-  }, 15_000);
+  });
 });

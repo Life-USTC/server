@@ -19,6 +19,8 @@ export const GET = svelteRequestHandler(
  * @response busPreferenceResponseSchema
  * @response 401:openApiErrorSchema
  * @response 400:openApiErrorSchema
+ * @response 429:openApiErrorSchema
+ * @response 503:openApiErrorSchema
  */
 export const POST = svelteRequestHandler(
   observedApiRoute(postBusPreferencesRoute),

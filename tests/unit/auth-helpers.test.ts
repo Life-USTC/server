@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import {
   MCP_TOOLS_SCOPE,
   OAUTH_PROFILE_SCOPE,
@@ -35,10 +36,15 @@ vi.mock("@/lib/mcp/urls", () => ({
 
 describe("认证辅助函数", () => {
   beforeEach(() => {
+    setCloudflareRuntimeEnv(undefined);
     vi.resetModules();
     getSessionFromHeadersMock.mockReset();
     verifyAccessTokenJwtMock.mockReset();
     getViewerAuthDataForUserIdMock.mockReset();
+  });
+
+  afterEach(() => {
+    setCloudflareRuntimeEnv(undefined);
   });
 
   it("使用路由请求头进行 session cookie 回退", async () => {
@@ -235,6 +241,120 @@ describe("认证辅助函数", () => {
       error: "Unauthorized",
     });
     expect(getViewerAuthDataForUserIdMock).not.toHaveBeenCalled();
+  });
+
+  it("在认证成功后拒绝超过 REST 写入预算的请求", async () => {
+    const limit = vi.fn().mockResolvedValue({ success: false });
+    setCloudflareRuntimeEnv({ USER_WRITE_RATE_LIMITER: { limit } });
+    verifyAccessTokenJwtMock.mockResolvedValue({
+      scope: expandScopeClaim(OAUTH_REST_WRITE_SCOPE),
+      sub: "user-from-token",
+    });
+    const { requireAuth } = await import("@/lib/auth/api-auth");
+    const request = new Request("https://life.example/api/todos", {
+      method: "POST",
+      headers: { authorization: "Bearer write-token" },
+    });
+
+    const result = await requireAuth(request, {
+      bearerScope: { feature: "todo", action: "write" },
+    });
+
+    expect(result).toBeInstanceOf(Response);
+    expect((result as Response).status).toBe(429);
+    expect((result as Response).headers.get("Retry-After")).toBe("60");
+    await expect((result as Response).json()).resolves.toEqual({
+      error: "Rate limit exceeded",
+    });
+    expect(limit).toHaveBeenCalledWith({
+      key: JSON.stringify([
+        "user-mutation:v1",
+        "life.example",
+        "todo:write",
+        "user-from-token",
+      ]),
+    });
+  });
+
+  it("不为 REST 读取消耗写入预算", async () => {
+    const limit = vi.fn().mockResolvedValue({ success: false });
+    setCloudflareRuntimeEnv({ USER_WRITE_RATE_LIMITER: { limit } });
+    verifyAccessTokenJwtMock.mockResolvedValue({
+      scope: expandScopeClaim(OAUTH_REST_READ_SCOPE),
+      sub: "user-from-token",
+    });
+    const { requireAuth } = await import("@/lib/auth/api-auth");
+    const request = new Request("https://life.example/api/todos", {
+      headers: { authorization: "Bearer read-token" },
+    });
+
+    await expect(
+      requireAuth(request, {
+        bearerScope: { feature: "todo", action: "read" },
+      }),
+    ).resolves.toEqual({ userId: "user-from-token" });
+    expect(limit).not.toHaveBeenCalled();
+  });
+
+  it("Cloudflare 写入限流绑定缺失时返回 503", async () => {
+    setCloudflareRuntimeEnv({ ANALYTICS: { writeDataPoint: vi.fn() } });
+    verifyAccessTokenJwtMock.mockResolvedValue({
+      scope: expandScopeClaim(OAUTH_REST_WRITE_SCOPE),
+      sub: "user-from-token",
+    });
+    const { requireAuth } = await import("@/lib/auth/api-auth");
+
+    const result = await requireAuth(
+      new Request("https://life.example/api/todos", {
+        method: "POST",
+        headers: { authorization: "Bearer write-token" },
+      }),
+      { bearerScope: { feature: "todo", action: "write" } },
+    );
+
+    expect(result).toBeInstanceOf(Response);
+    expect((result as Response).status).toBe(503);
+    expect((result as Response).headers.get("Retry-After")).toBe("60");
+  });
+
+  it("上传写入在用户与暂停检查后应用统一预算", async () => {
+    const limit = vi.fn().mockResolvedValue({ success: false });
+    setCloudflareRuntimeEnv({ USER_WRITE_RATE_LIMITER: { limit } });
+    verifyAccessTokenJwtMock.mockResolvedValue({
+      scope: expandScopeClaim(OAUTH_REST_WRITE_SCOPE),
+      sub: "user-from-token",
+    });
+    getViewerAuthDataForUserIdMock.mockResolvedValue({
+      user: {
+        id: "user-from-token",
+        name: null,
+        image: null,
+        isAdmin: false,
+      },
+      suspension: null,
+    });
+    const { requireWriteAuth } = await import("@/lib/auth/api-auth");
+
+    const result = await requireWriteAuth(
+      new Request("https://life.example/api/uploads", {
+        method: "POST",
+        headers: { authorization: "Bearer write-token" },
+      }),
+    );
+
+    expect(result).toBeInstanceOf(Response);
+    expect((result as Response).status).toBe(429);
+    expect(getViewerAuthDataForUserIdMock).toHaveBeenCalledWith(
+      "user-from-token",
+    );
+    expect(limit).toHaveBeenCalledWith({
+      key: JSON.stringify([
+        "user-mutation:v1",
+        "life.example",
+        "upload:write",
+        "user-from-token",
+      ]),
+    });
   });
 
   it("当 bearer 令牌无效时不回退到 session cookie", async () => {

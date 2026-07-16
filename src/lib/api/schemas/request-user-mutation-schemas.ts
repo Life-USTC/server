@@ -19,9 +19,12 @@ const subscriptionSectionIdSchema = z
   });
 
 const subscriptionLookupCodeSchema = z.string().trim().min(1).max(64);
+const subscriptionSectionIdsSchema = z
+  .array(subscriptionSectionIdSchema)
+  .max(500);
 
 const calendarSubscriptionSelectionRequestSchema = z.object({
-  sectionIds: z.array(subscriptionSectionIdSchema).max(500).optional(),
+  sectionIds: subscriptionSectionIdsSchema.optional(),
   codes: z.array(subscriptionLookupCodeSchema).max(500).optional(),
   semesterId: z
     .preprocess(parseOptionalIntLike, z.union([z.string(), z.number()]))
@@ -35,11 +38,11 @@ function hasCalendarSubscriptionSelection(
 }
 
 export const calendarSubscriptionCreateRequestSchema = z.object({
-  sectionIds: z.array(subscriptionSectionIdSchema).optional(),
+  sectionIds: subscriptionSectionIdsSchema.optional(),
 });
 
 export const calendarSubscriptionAppendRequestSchema = z.object({
-  sectionIds: z.array(subscriptionSectionIdSchema),
+  sectionIds: subscriptionSectionIdsSchema,
 });
 
 export const calendarSubscriptionRemoveRequestSchema =

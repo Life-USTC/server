@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  extractMcpToolCallNamesFromRequest,
   extractMcpToolNamesFromRequest,
+  getMcpWriteRateLimitAction,
+  getMcpWriteRateLimitTier,
   getRequiredMcpScopes,
+  isMcpWriteTool,
 } from "@/lib/mcp/tool-scopes";
 import { restReadScope, restWriteScope } from "@/lib/oauth/constants";
 
@@ -80,6 +84,22 @@ describe("getRequiredMcpScopes", () => {
       restReadScope("upload"),
     ]);
   });
+
+  it("maps mutation tools to shared feature-action budgets", () => {
+    expect(isMcpWriteTool("create_my_todo")).toBe(true);
+    expect(getMcpWriteRateLimitAction("create_my_todo")).toBe("todo:write");
+    expect(getMcpWriteRateLimitTier("create_my_todo")).toBe("write");
+
+    expect(isMcpWriteTool("subscribe_my_sections_by_codes")).toBe(true);
+    expect(getMcpWriteRateLimitAction("subscribe_my_sections_by_codes")).toBe(
+      "subscription:batch-write",
+    );
+    expect(getMcpWriteRateLimitTier("subscribe_my_sections_by_codes")).toBe(
+      "batch",
+    );
+
+    expect(isMcpWriteTool("list_my_todos")).toBe(false);
+  });
 });
 
 describe("extractMcpToolNamesFromRequest", () => {
@@ -128,6 +148,32 @@ describe("extractMcpToolNamesFromRequest", () => {
 
     const names = await extractMcpToolNamesFromRequest(request);
     expect(names.sort()).toEqual(["create_comment", "list_my_todos"]);
+  });
+
+  it("preserves duplicate mutation calls for per-entry batch accounting", async () => {
+    const request = new Request("https://life.example/api/mcp", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify([
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name: "create_my_todo" },
+        },
+        {
+          jsonrpc: "2.0",
+          id: 2,
+          method: "tools/call",
+          params: { name: "create_my_todo" },
+        },
+      ]),
+    });
+
+    await expect(extractMcpToolCallNamesFromRequest(request)).resolves.toEqual([
+      "create_my_todo",
+      "create_my_todo",
+    ]);
   });
 
   it("ignores non-tools/call messages", async () => {

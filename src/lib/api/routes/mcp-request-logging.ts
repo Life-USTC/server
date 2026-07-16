@@ -51,7 +51,11 @@ export function logMcpTransportResponse({
   authFailureDiagnostics?: McpAuthFailureDiagnostics | null;
   context: McpLogContext;
   durationMs: number;
-  phase: "auth-rejected" | "handled" | "origin-rejected";
+  phase:
+    | "auth-rejected"
+    | "handled"
+    | "origin-rejected"
+    | "rate-limit-rejected";
   rpcSummary: McpRequestSummary | null;
   status: number;
   toolCount?: number;

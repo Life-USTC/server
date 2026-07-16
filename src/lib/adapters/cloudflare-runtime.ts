@@ -36,12 +36,18 @@ export type CloudflareAnalyticsEngineDataset = {
   writeDataPoint(event?: CloudflareAnalyticsEngineDataPoint): void;
 };
 
+export type CloudflareRateLimiter = {
+  limit(options: { key: string }): Promise<{ success: boolean }>;
+};
+
 type CloudflareRuntimeEnv = Record<string, unknown> & {
   ANALYTICS?: CloudflareAnalyticsEngineDataset;
   HYPERDRIVE?: {
     connectionString?: unknown;
   };
   R2_UPLOADS?: CloudflareR2Bucket;
+  USER_BATCH_WRITE_RATE_LIMITER?: CloudflareRateLimiter;
+  USER_WRITE_RATE_LIMITER?: CloudflareRateLimiter;
 };
 
 type CloudflareRuntimeContext = {
@@ -126,4 +132,11 @@ export function getCloudflareR2UploadsBucket() {
 
 export function getCloudflareAnalyticsEngineDataset() {
   return getCurrentCloudflareRuntimeEnv()?.ANALYTICS;
+}
+
+export function getCloudflareUserMutationRateLimiter(tier: "batch" | "write") {
+  const env = getCurrentCloudflareRuntimeEnv();
+  return tier === "batch"
+    ? env?.USER_BATCH_WRITE_RATE_LIMITER
+    : env?.USER_WRITE_RATE_LIMITER;
 }
