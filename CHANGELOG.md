@@ -1,3 +1,10 @@
+# [1.54.0](https://github.com/Life-USTC/server/compare/v1.53.2...v1.54.0) (2026-07-16)
+
+
+### Features
+
+* **api:** add application mutation rate limits ([#444](https://github.com/Life-USTC/server/issues/444)) ([51ed1e7](https://github.com/Life-USTC/server/commit/51ed1e757f401fefd73367460b3a04e61dddbc85))
+
 ## [1.53.2](https://github.com/Life-USTC/server/compare/v1.53.1...v1.53.2) (2026-07-15)
 
 
