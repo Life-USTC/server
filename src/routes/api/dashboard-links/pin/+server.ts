@@ -9,6 +9,8 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 303
  * @response 400:dashboardLinkPinResponseSchema
  * @response 401:dashboardLinkPinResponseSchema
+ * @response 429:openApiErrorSchema
+ * @response 503:openApiErrorSchema
  * @response 500:dashboardLinkPinResponseSchema
  */
 export const POST = svelteRequestHandler(

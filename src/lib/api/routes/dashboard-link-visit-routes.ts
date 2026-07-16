@@ -7,6 +7,7 @@ import {
   dashboardLinkVisitRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
 import { resolveApiUserId } from "@/lib/auth/api-auth";
+import { checkUserMutationRateLimit } from "@/lib/security/user-mutation-rate-limit";
 
 function resolveVisitTarget(
   schema: typeof dashboardLinkVisitQuerySchema,
@@ -44,7 +45,15 @@ export async function postDashboardLinkVisitRoute(request: Request) {
   const userId = await resolveApiUserId(request);
 
   if (userId) {
-    await recordDashboardLinkClick(userId, target.slug);
+    const url = new URL(request.url);
+    const outcome = await checkUserMutationRateLimit({
+      action: "dashboard:write",
+      host: url.host,
+      userId,
+    });
+    if (outcome.allowed) {
+      await recordDashboardLinkClick(userId, target.slug);
+    }
   }
 
   return Response.redirect(target.url, 303);

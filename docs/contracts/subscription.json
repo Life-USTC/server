@@ -8,7 +8,8 @@
   },
   "rules": {
     "subscription-language": "Copy may use 'subscribe to section' or 'follow section'; must not write 'enroll in course'.",
-    "user-scoped": "Subscription relationships belong only to the current user and determine the display scope for home page, calendar, homework, and exam."
+    "user-scoped": "Subscription relationships belong only to the current user and determine the display scope for home page, calendar, homework, and exam.",
+    "bounded-batch-input": "Calendar subscription query and mutation requests accept at most 500 section IDs and at most 500 lookup codes per request, in addition to the per-user batch request budget."
   },
   "capabilities": {
     "subscribe-from-section": {

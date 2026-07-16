@@ -14,7 +14,11 @@ type McpTransportAnalyticsInput = {
   durationMs: number;
   method: string;
   path: string;
-  phase: "auth-rejected" | "handled" | "origin-rejected";
+  phase:
+    | "auth-rejected"
+    | "handled"
+    | "origin-rejected"
+    | "rate-limit-rejected";
   rpcSummary: McpRequestSummary | null;
   status: number;
   toolCount?: number;

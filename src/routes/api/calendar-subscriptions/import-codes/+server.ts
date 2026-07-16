@@ -9,6 +9,8 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 401:openApiErrorSchema
  * @response 400:openApiErrorSchema
  * @response 404:openApiErrorSchema
+ * @response 429:openApiErrorSchema
+ * @response 503:openApiErrorSchema
  */
 export const POST = svelteRequestHandler(
   observedApiRoute(postCalendarSubscriptionImportCodesRoute),

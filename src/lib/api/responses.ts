@@ -68,6 +68,24 @@ export function payloadTooLarge(message = "Payload too large") {
   return errorResponse(message, 413);
 }
 
+export function rateLimitResponse(
+  reason: "limited" | "unavailable",
+  retryAfterSeconds = 60,
+) {
+  return jsonResponse(
+    {
+      error:
+        reason === "limited"
+          ? "Rate limit exceeded"
+          : "Rate limiting unavailable",
+    },
+    {
+      status: reason === "limited" ? 429 : 503,
+      headers: { "Retry-After": String(retryAfterSeconds) },
+    },
+  );
+}
+
 export function invalidParamResponse(paramName: string) {
   return badRequest(`Invalid ${paramName}`);
 }

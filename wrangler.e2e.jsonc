@@ -39,6 +39,24 @@
       "localConnectionString": "postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_dev"
     }
   ],
+  "ratelimits": [
+    {
+      "name": "USER_WRITE_RATE_LIMITER",
+      "namespace_id": "414001",
+      "simple": {
+        "limit": 60,
+        "period": 60
+      }
+    },
+    {
+      "name": "USER_BATCH_WRITE_RATE_LIMITER",
+      "namespace_id": "414002",
+      "simple": {
+        "limit": 10,
+        "period": 60
+      }
+    }
+  ],
   "r2_buckets": [
     {
       "binding": "R2_UPLOADS",

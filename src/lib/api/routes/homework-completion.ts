@@ -58,6 +58,7 @@ export async function putHomeworkCompletionRoute(
 export async function putHomeworkCompletionsRoute(request: Request) {
   const auth = await requireAuth(request, {
     bearerScope: { feature: "homework", action: "write" },
+    rateLimit: { action: "homework:batch-write", tier: "batch" },
   });
   if (auth instanceof Response) return auth;
 

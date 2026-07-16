@@ -3,13 +3,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const {
   requireAuthMock,
   requireWriteAuthMock,
-  resolveApiUserIdMock,
   updateDashboardLinkPinStateMock,
   renameOwnedUploadMock,
 } = vi.hoisted(() => ({
   requireAuthMock: vi.fn(),
   requireWriteAuthMock: vi.fn(),
-  resolveApiUserIdMock: vi.fn(),
   updateDashboardLinkPinStateMock: vi.fn(),
   renameOwnedUploadMock: vi.fn(),
 }));
@@ -17,7 +15,6 @@ const {
 vi.mock("@/lib/auth/api-auth", () => ({
   requireAuth: requireAuthMock,
   requireWriteAuth: requireWriteAuthMock,
-  resolveApiUserId: resolveApiUserIdMock,
 }));
 
 vi.mock("@/features/comments/server/comment-mutations", () => ({
@@ -59,7 +56,6 @@ describe("受保护写入路由认证顺序", () => {
   afterEach(() => {
     requireAuthMock.mockReset();
     requireWriteAuthMock.mockReset();
-    resolveApiUserIdMock.mockReset();
     updateDashboardLinkPinStateMock.mockReset();
     renameOwnedUploadMock.mockReset();
     vi.resetModules();
@@ -125,7 +121,7 @@ describe("受保护写入路由认证顺序", () => {
   });
 
   it("在解析表单数据之前认证仪表盘链接置顶", async () => {
-    resolveApiUserIdMock.mockResolvedValue(null);
+    requireAuthMock.mockResolvedValue(unauthorizedResponse());
     const { postDashboardLinkPinRoute } = await import(
       "@/lib/api/routes/dashboard-link-pin-route"
     );
@@ -142,7 +138,10 @@ describe("受保护写入路由认证顺序", () => {
     );
 
     expect(response.status).toBe(401);
-    expect(resolveApiUserIdMock).toHaveBeenCalledOnce();
+    expect(requireAuthMock).toHaveBeenCalledWith(expect.any(Request), {
+      bearerScope: { feature: "dashboard", action: "write" },
+      rateLimit: { action: "dashboard:write" },
+    });
     expect(updateDashboardLinkPinStateMock).not.toHaveBeenCalled();
   });
 });

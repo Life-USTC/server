@@ -4,7 +4,8 @@ const MCP_CORS_HEADERS = {
   "Access-Control-Allow-Methods": "POST, DELETE, OPTIONS",
   "Access-Control-Allow-Headers":
     "Authorization, Content-Type, MCP-Protocol-Version, MCP-Session-Id, Last-Event-ID",
-  "Access-Control-Expose-Headers": "MCP-Session-Id, WWW-Authenticate",
+  "Access-Control-Expose-Headers":
+    "MCP-Session-Id, Retry-After, WWW-Authenticate",
 } as const;
 
 function appendVaryHeader(headers: Headers, value: string) {

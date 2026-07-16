@@ -8,6 +8,7 @@ import {
   parseRouteInput,
   parseRouteQuery,
   parseRouteSearchParams,
+  rateLimitResponse,
 } from "@/lib/api/helpers";
 
 describe("API 辅助函数", () => {
@@ -15,6 +16,17 @@ describe("API 辅助函数", () => {
     const response = jsonResponse({ ok: true });
 
     expect(response.headers.has("x-request-id")).toBe(false);
+  });
+
+  it.each([
+    ["limited" as const, 429, "Rate limit exceeded"],
+    ["unavailable" as const, 503, "Rate limiting unavailable"],
+  ])("为 %s 限流结果返回 Retry-After", async (reason, status, error) => {
+    const response = rateLimitResponse(reason, 45);
+
+    expect(response.status).toBe(status);
+    expect(response.headers.get("Retry-After")).toBe("45");
+    await expect(response.json()).resolves.toEqual({ error });
   });
 
   it("接受来自字符串和数字的安全整数", () => {

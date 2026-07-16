@@ -11,25 +11,29 @@ import {
   dashboardLinkPinRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
 import { dashboardLinkPinResponseSchema } from "@/lib/api/schemas/response-schemas";
-import { requireAuth, resolveApiUserId } from "@/lib/auth/api-auth";
+import { requireAuth } from "@/lib/auth/api-auth";
 import { jsonOrRedirectForPinnedLinks } from "./dashboard-link-pin-response";
 
 export async function postDashboardLinkPinRoute(request: Request) {
   const wantsJson =
     request.headers.get("accept")?.includes("application/json") ?? false;
-  const userId = await resolveApiUserId(request, {
+  const auth = await requireAuth(request, {
     bearerScope: { feature: "dashboard", action: "write" },
+    rateLimit: { action: "dashboard:write" },
   });
 
-  if (!userId) {
+  if (auth instanceof Response) {
+    if (auth.status !== 401 && wantsJson) return auth;
     return jsonOrRedirectForPinnedLinks({
       request,
       wantsJson,
       pinnedSlugs: [],
       returnTo: "/",
-      status: 401,
+      status: auth.status,
+      error: auth.status === 429 ? "Rate limit exceeded" : null,
     });
   }
+  const { userId } = auth;
 
   const formData = await request.formData();
   const parsedBody = dashboardLinkPinRequestSchema.safeParse({
@@ -90,6 +94,7 @@ export async function postDashboardLinkPinRoute(request: Request) {
 export async function postDashboardLinkPinBatchRoute(request: Request) {
   const auth = await requireAuth(request, {
     bearerScope: { feature: "dashboard", action: "write" },
+    rateLimit: { action: "dashboard:batch-write", tier: "batch" },
   });
   if (auth instanceof Response) return auth;
 

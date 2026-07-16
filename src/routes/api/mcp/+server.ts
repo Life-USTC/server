@@ -20,6 +20,8 @@ export const GET: RequestHandler = ({ request }) => mcpGetRoute(request);
  * @response 200
  * @response 401:openApiErrorSchema
  * @response 403:openApiErrorSchema
+ * @response 429:openApiErrorSchema
+ * @response 503:openApiErrorSchema
  */
 export const POST: RequestHandler = ({ request }) => mcpPostRoute(request);
 

@@ -59,6 +59,7 @@ export async function postCalendarSubscriptionsRoute(request: Request) {
   try {
     const auth = await requireAuth(request, {
       bearerScope: { feature: "subscription", action: "write" },
+      rateLimit: { action: "subscription:batch-write", tier: "batch" },
     });
     if (auth instanceof Response) return auth;
     const { userId } = auth;
@@ -134,6 +135,7 @@ export async function postCalendarSubscriptionBatchRoute(request: Request) {
   try {
     const auth = await requireAuth(request, {
       bearerScope: { feature: "subscription", action: "write" },
+      rateLimit: { action: "subscription:batch-write", tier: "batch" },
     });
     if (auth instanceof Response) return auth;
     const { userId } = auth;
@@ -181,6 +183,7 @@ export async function postCalendarSubscriptionImportCodesRoute(
   try {
     const auth = await requireAuth(request, {
       bearerScope: { feature: "subscription", action: "write" },
+      rateLimit: { action: "subscription:batch-write", tier: "batch" },
     });
     if (auth instanceof Response) return auth;
     const { userId } = auth;
@@ -228,6 +231,7 @@ export async function patchCalendarSubscriptionsRoute(request: Request) {
   try {
     const auth = await requireAuth(request, {
       bearerScope: { feature: "subscription", action: "write" },
+      rateLimit: { action: "subscription:batch-write", tier: "batch" },
     });
     if (auth instanceof Response) return auth;
     const { userId } = auth;
@@ -263,6 +267,7 @@ export async function deleteCalendarSubscriptionsRoute(request: Request) {
   try {
     const auth = await requireAuth(request, {
       bearerScope: { feature: "subscription", action: "write" },
+      rateLimit: { action: "subscription:batch-write", tier: "batch" },
     });
     if (auth instanceof Response) return auth;
     const { userId } = auth;

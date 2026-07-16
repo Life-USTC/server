@@ -1,7 +1,17 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import { rateLimitResponse } from "@/lib/api/helpers";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { logOAuthDebug, oauthDebugCorrelationId } from "@/lib/log/oauth-debug";
-import { extractMcpToolNamesFromRequest } from "@/lib/mcp/tool-scopes";
+import {
+  extractMcpToolCallNamesFromRequest,
+  getMcpWriteRateLimitAction,
+  getMcpWriteRateLimitTier,
+  isMcpWriteTool,
+} from "@/lib/mcp/tool-scopes";
+import {
+  checkUserMutationRateLimit,
+  USER_MUTATION_RATE_LIMIT_PERIOD_SECONDS,
+} from "@/lib/security/user-mutation-rate-limit";
 import { validateMcpOrigin, withMcpCors } from "./mcp-cors";
 import {
   logMcpTransportRequest,
@@ -36,7 +46,8 @@ export async function handleMcpRequest(request: Request) {
     return originError;
   }
 
-  const toolNames = await extractMcpToolNamesFromRequest(request);
+  const toolCallNames = await extractMcpToolCallNamesFromRequest(request);
+  const toolNames = Array.from(new Set(toolCallNames));
   const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
   const authResult = await authenticateMcpRequest(request, toolNames);
   if ("response" in authResult) {
@@ -56,16 +67,45 @@ export async function handleMcpRequest(request: Request) {
     return withMcpCors(request, res);
   }
 
+  const { summarizeMcpJsonRpcRequest } = await import(
+    "@/lib/mcp/observability"
+  );
+  rpcSummary = await summarizeMcpJsonRpcRequest(request);
+
+  const userId = authResult.authInfo.extra?.userId;
+  if (typeof userId === "string" && userId.length > 0) {
+    for (const toolName of toolCallNames) {
+      if (!isMcpWriteTool(toolName)) continue;
+      const outcome = await checkUserMutationRateLimit({
+        action: getMcpWriteRateLimitAction(toolName),
+        host: requestUrl.host,
+        tier: getMcpWriteRateLimitTier(toolName),
+        userId,
+      });
+      if (!outcome.allowed) {
+        const response = rateLimitResponse(
+          outcome.reason,
+          USER_MUTATION_RATE_LIMIT_PERIOD_SECONDS,
+        );
+        recordAndLogMcpResponse({
+          context: logContext,
+          request,
+          phase: "rate-limit-rejected",
+          rpcSummary,
+          status: response.status,
+          start,
+        });
+        return withMcpCors(request, response);
+      }
+    }
+  }
+
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
   });
   const { createMcpServer } = await import("@/lib/mcp/server");
-  const { summarizeMcpJsonRpcRequest } = await import(
-    "@/lib/mcp/observability"
-  );
   const server = createMcpServer();
   const toolCount = getRegisteredToolCount(server);
-  rpcSummary = await summarizeMcpJsonRpcRequest(request);
   logAppEvent("info", "mcp.transport.rpc", {
     correlationId,
     method: request.method,

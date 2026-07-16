@@ -9,6 +9,8 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
  * @response 403:openApiErrorSchema
+ * @response 429:openApiErrorSchema
+ * @response 503:openApiErrorSchema
  */
 export const DELETE = svelteRequestHandler(
   observedApiRoute(deleteCommentBatchRoute),

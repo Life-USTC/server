@@ -117,6 +117,35 @@ export const POST = () => new Response();
     });
   });
 
+  it("documents Retry-After for mutation throttle responses", () => {
+    const project = new Project({ useInMemoryFileSystem: true });
+    project.createSourceFile(
+      "src/routes/api/todos/+server.ts",
+      `
+/**
+ * Create a todo.
+ * @response 429:openApiErrorSchema
+ * @response 503:openApiErrorSchema
+ */
+export const POST = () => new Response();
+`,
+      { overwrite: true },
+    );
+
+    const paths = collectPaths(project, new SchemaCollector());
+    const responses = (paths["/api/todos"].post as Record<string, unknown>)
+      .responses as Record<string, Record<string, unknown>>;
+
+    const retryAfter = {
+      "Retry-After": {
+        description: "Seconds before retrying the mutation",
+        schema: { type: "integer", minimum: 0 },
+      },
+    };
+    expect(responses["429"].headers).toEqual(retryAfter);
+    expect(responses["503"].headers).toEqual(retryAfter);
+  });
+
   it("parses path parameters and request body", () => {
     const project = new Project({ useInMemoryFileSystem: true });
     project.createSourceFile(

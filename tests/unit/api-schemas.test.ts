@@ -419,6 +419,11 @@ describe("其他请求 schema", () => {
       sectionIds: [1, 2, 3],
     });
     expect(valid.success).toBe(true);
+    expect(
+      calendarSubscriptionCreateRequestSchema.safeParse({
+        sectionIds: Array.from({ length: 501 }, (_, index) => index + 1),
+      }).success,
+    ).toBe(false);
   });
 
   it("校验日历订阅追加 payload", () => {
@@ -429,6 +434,11 @@ describe("其他请求 schema", () => {
 
     expect(valid.success).toBe(true);
     expect(missingIds.success).toBe(false);
+    expect(
+      calendarSubscriptionAppendRequestSchema.safeParse({
+        sectionIds: Array.from({ length: 501 }, (_, index) => index + 1),
+      }).success,
+    ).toBe(false);
   });
 
   it("校验日历订阅查询 payload", () => {
@@ -478,10 +488,12 @@ describe("其他请求 schema", () => {
     ]) {
       const schema = openApiSchema(name);
       const properties = schema.properties as
-        | Record<string, { items?: Record<string, unknown> }>
+        | Record<string, { items?: Record<string, unknown>; maxItems?: number }>
         | undefined;
-      const items = properties?.sectionIds?.items;
+      const sectionIds = properties?.sectionIds;
+      const items = sectionIds?.items;
 
+      expect(sectionIds?.maxItems).toBe(500);
       expect(items).toMatchObject({ minimum: 1, type: "integer" });
       expect(items).not.toHaveProperty("exclusiveMinimum");
     }

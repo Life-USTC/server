@@ -9,6 +9,8 @@ type ToolScopeRequirement = {
   feature: RestFeature;
 };
 
+const BATCH_WRITE_TOOLS = new Set(["subscribe_my_sections_by_codes"]);
+
 /**
  * Maps every registered MCP tool name to the feature action scope(s) it needs.
  *
@@ -161,6 +163,31 @@ export function getRequiredMcpScopes(
   return Array.from(scopes);
 }
 
+export function isMcpWriteTool(name: string): boolean {
+  return (
+    TOOL_SCOPE_MAP[name]?.some(({ action }) => action === "write") ?? false
+  );
+}
+
+export function getMcpWriteRateLimitTier(name: string): "batch" | "write" {
+  return BATCH_WRITE_TOOLS.has(name) ? "batch" : "write";
+}
+
+export function getMcpWriteRateLimitAction(name: string): string {
+  const features = Array.from(
+    new Set(
+      (TOOL_SCOPE_MAP[name] ?? [])
+        .filter(({ action }) => action === "write")
+        .map(({ feature }) => feature),
+    ),
+  ).sort();
+  if (features.length === 0) {
+    throw new Error(`MCP tool ${name} has no write scope`);
+  }
+  const action = BATCH_WRITE_TOOLS.has(name) ? "batch-write" : "write";
+  return `${features.join("+")}:${action}`;
+}
+
 type McpJsonRpcMessage = {
   method?: unknown;
   params?: { name?: unknown };
@@ -179,14 +206,15 @@ function isToolCallMessage(value: unknown): value is McpJsonRpcMessage & {
 }
 
 /**
- * Parses a JSON-RPC MCP request body and returns the distinct tool names being
- * invoked. Only `tools/call` messages are considered; other methods (ping,
- * initialization, `tools/list`, etc.) do not carry a tool-name scope gate.
+ * Parses a JSON-RPC MCP request body and returns tool names in request order,
+ * preserving duplicate calls. Only `tools/call` messages are considered;
+ * other methods (ping, initialization, `tools/list`, etc.) do not carry a
+ * tool-name scope gate.
  *
  * The request is cloned before reading so the original body stream remains
  * available for downstream transport handling.
  */
-export async function extractMcpToolNamesFromRequest(
+export async function extractMcpToolCallNamesFromRequest(
   request: Request,
 ): Promise<string[]> {
   if (request.method !== "POST") {
@@ -201,12 +229,18 @@ export async function extractMcpToolNamesFromRequest(
   }
 
   const messages = Array.isArray(body) ? body : [body];
-  const names = new Set<string>();
+  const names: string[] = [];
   for (const message of messages) {
     if (isToolCallMessage(message)) {
-      names.add(message.params.name);
+      names.push(message.params.name);
     }
   }
 
-  return Array.from(names);
+  return names;
+}
+
+export async function extractMcpToolNamesFromRequest(
+  request: Request,
+): Promise<string[]> {
+  return Array.from(new Set(await extractMcpToolCallNamesFromRequest(request)));
 }

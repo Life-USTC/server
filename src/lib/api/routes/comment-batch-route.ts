@@ -25,6 +25,7 @@ function batchDeleteErrorMessage(
 export async function deleteCommentBatchRoute(request: Request) {
   const auth = await requireAuth(request, {
     bearerScope: { feature: "comment", action: "write" },
+    rateLimit: { action: "comment:batch-write", tier: "batch" },
   });
   if (auth instanceof Response) return auth;
 

@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 
 const {
   findActiveSuspensionMock,
@@ -35,7 +36,12 @@ vi.mock("@/lib/mcp/urls", () => ({
 }));
 
 describe("admin 路由认证", () => {
+  beforeEach(() => {
+    setCloudflareRuntimeEnv(undefined);
+  });
+
   afterEach(() => {
+    setCloudflareRuntimeEnv(undefined);
     findActiveSuspensionMock.mockReset();
     getSessionFromHeadersMock.mockReset();
     resolveAdminByUserIdMock.mockReset();
@@ -169,5 +175,88 @@ describe("admin 路由认证", () => {
       reason: "policy hold",
     });
     expect(findActiveSuspensionMock).toHaveBeenCalledWith("admin-1");
+  });
+
+  it("管理员读取不消耗写入预算", async () => {
+    const limit = vi.fn().mockResolvedValue({ success: false });
+    setCloudflareRuntimeEnv({ USER_WRITE_RATE_LIMITER: { limit } });
+    getSessionFromHeadersMock.mockResolvedValue({
+      user: { id: "admin-1" },
+    });
+    resolveAdminByUserIdMock.mockResolvedValue({ userId: "admin-1" });
+    const { requireAdminRequest } = await import(
+      "@/lib/api/routes/admin-route-auth"
+    );
+
+    await expect(
+      requireAdminRequest(
+        new Request("https://example.test/api/admin/comments", {
+          headers: { cookie: "better-auth.session_token=session-token" },
+        }),
+      ),
+    ).resolves.toEqual({ userId: "admin-1" });
+    expect(limit).not.toHaveBeenCalled();
+  });
+
+  it("管理员写入超过预算时在业务处理前返回 429", async () => {
+    const limit = vi.fn().mockResolvedValue({ success: false });
+    setCloudflareRuntimeEnv({ USER_WRITE_RATE_LIMITER: { limit } });
+    getSessionFromHeadersMock.mockResolvedValue({
+      user: { id: "admin-1" },
+    });
+    resolveAdminByUserIdMock.mockResolvedValue({ userId: "admin-1" });
+    findActiveSuspensionMock.mockResolvedValue(null);
+    const { requireAdminRequest } = await import(
+      "@/lib/api/routes/admin-route-auth"
+    );
+
+    const response = await requireAdminRequest(
+      new Request("https://example.test/api/admin/comments/comment-1", {
+        method: "DELETE",
+        headers: { cookie: "better-auth.session_token=session-token" },
+      }),
+      { requireActive: true },
+    );
+
+    expect(response).toBeInstanceOf(Response);
+    expect((response as Response).status).toBe(429);
+    expect((response as Response).headers.get("Retry-After")).toBe("60");
+    expect(limit).toHaveBeenCalledWith({
+      key: JSON.stringify([
+        "user-mutation:v1",
+        "example.test",
+        "admin:comments:write",
+        "admin-1",
+      ]),
+    });
+  });
+
+  it("百分号编码的管理员路径仍使用规范资源预算", async () => {
+    const limit = vi.fn().mockResolvedValue({ success: true });
+    setCloudflareRuntimeEnv({ USER_WRITE_RATE_LIMITER: { limit } });
+    getSessionFromHeadersMock.mockResolvedValue({
+      user: { id: "admin-1" },
+    });
+    resolveAdminByUserIdMock.mockResolvedValue({ userId: "admin-1" });
+    const { requireAdminRequest } = await import(
+      "@/lib/api/routes/admin-route-auth"
+    );
+
+    await expect(
+      requireAdminRequest(
+        new Request("https://example.test/api/admin/%63omments/comment-1", {
+          method: "DELETE",
+          headers: { cookie: "better-auth.session_token=session-token" },
+        }),
+      ),
+    ).resolves.toEqual({ userId: "admin-1" });
+    expect(limit).toHaveBeenCalledWith({
+      key: JSON.stringify([
+        "user-mutation:v1",
+        "example.test",
+        "admin:comments:write",
+        "admin-1",
+      ]),
+    });
   });
 });
