@@ -1,3 +1,10 @@
+# [1.55.0](https://github.com/Life-USTC/server/compare/v1.54.1...v1.55.0) (2026-07-17)
+
+
+### Features
+
+* **ui:** improve responsive public and admin workflows ([#455](https://github.com/Life-USTC/server/issues/455)) ([f4eecea](https://github.com/Life-USTC/server/commit/f4eecea2b6a67b9bfcef71341d00a2d15a620d0b))
+
 ## [1.54.1](https://github.com/Life-USTC/server/compare/v1.54.0...v1.54.1) (2026-07-17)
 
 
