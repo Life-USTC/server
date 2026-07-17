@@ -1,4 +1,4 @@
-import { getSubscribedHomeworksRoute } from "@/lib/api/routes/homeworks";
+import { getSubscribedHomeworksRoute } from "@/lib/api/routes/homework-subscribed-read-route";
 import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 

@@ -1,17 +1,17 @@
 import { handleRouteError, parseIntegerList } from "@/lib/api/helpers";
-import {
-  getSectionDetailAction,
-  getSectionScheduleGroupsAction,
-  getSectionSchedulesAction,
-  listSectionsAction,
-  matchSectionCodesAction,
-} from "@/lib/api/routes/academic-section-actions";
+import { getSectionDetailAction } from "@/lib/api/routes/academic-section-detail-action";
 import { withParsedSectionJwId } from "@/lib/api/routes/academic-section-jw-route";
+import { listSectionsAction } from "@/lib/api/routes/academic-section-list-action";
+import { matchSectionCodesAction } from "@/lib/api/routes/academic-section-match-action";
 import {
   parseSectionMatchCodesRequest,
   parseSectionSchedulesRouteQuery,
   parseSectionsRouteQuery,
 } from "@/lib/api/routes/academic-section-route-request";
+import {
+  getSectionScheduleGroupsAction,
+  getSectionSchedulesAction,
+} from "@/lib/api/routes/academic-section-schedule-actions";
 import { getRequestLocale } from "@/lib/api/routes/request-locale";
 
 export async function getSectionsRoute(request: Request) {

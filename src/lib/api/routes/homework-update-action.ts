@@ -8,7 +8,7 @@ import {
   notFound,
   suspensionForbidden,
 } from "@/lib/api/helpers";
-import { parseUpdateHomeworkInput } from "@/lib/api/routes/homework-mutation-helpers";
+import { parseUpdateHomeworkInput } from "@/lib/api/routes/homework-update-input";
 
 export async function updateHomeworkAction(
   id: string,

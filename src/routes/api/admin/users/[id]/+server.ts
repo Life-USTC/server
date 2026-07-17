@@ -1,5 +1,5 @@
 import type { RequestHandler } from "@sveltejs/kit";
-import { patchAdminUserRoute } from "@/lib/api/routes/admin";
+import { patchAdminUserRoute } from "@/lib/api/routes/admin-users";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**

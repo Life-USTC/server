@@ -1,4 +1,4 @@
-import { postUploadCompleteRoute } from "@/lib/api/routes/uploads";
+import { postUploadCompleteRoute } from "@/lib/api/routes/upload-session-routes";
 import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 

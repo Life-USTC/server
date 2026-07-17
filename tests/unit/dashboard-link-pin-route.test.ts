@@ -31,7 +31,7 @@ describe("POST /api/dashboard-links/pin", () => {
   it("当固定链接持久化失败时返回 500 JSON 错误", async () => {
     transactionMock.mockRejectedValue(new Error("db write failed"));
     const { postDashboardLinkPinRoute } = await import(
-      "@/lib/api/routes/dashboard-links"
+      "@/lib/api/routes/dashboard-link-pin-route"
     );
 
     const form = new FormData();
@@ -65,7 +65,7 @@ describe("POST /api/dashboard-links/pin", () => {
       ),
     );
     const { postDashboardLinkPinRoute } = await import(
-      "@/lib/api/routes/dashboard-links"
+      "@/lib/api/routes/dashboard-link-pin-route"
     );
 
     const response = await postDashboardLinkPinRoute(
@@ -89,7 +89,7 @@ describe("POST /api/dashboard-links/pin", () => {
       ),
     );
     const { postDashboardLinkPinRoute } = await import(
-      "@/lib/api/routes/dashboard-links"
+      "@/lib/api/routes/dashboard-link-pin-route"
     );
 
     const response = await postDashboardLinkPinRoute(
