@@ -21,7 +21,7 @@ export let userMenuOpen: boolean;
           <Button
             {...props}
             aria-label={copy.shell.profileMenu}
-            class="overflow-hidden"
+            class="size-11 overflow-hidden md:size-8"
             size="icon"
             variant="outline"
           >
