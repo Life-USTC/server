@@ -6060,6 +6060,32 @@
         }
       }
     },
+    "/.well-known/oauth-protected-resource/api/graphql": {
+      "get": {
+        "operationId": "get-.well-known-oauth-protected-resource-api-graphql",
+        "summary": "Canonical RFC 9728 protected resource metadata for GraphQL",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-.well-known-oauth-protected-resource-api-graphql",
+        "summary": "CORS preflight for GraphQL protected resource metadata",
+        "tags": [
+          "Api"
+        ],
+        "responses": {
+          "204": {
+            "description": "Response 204"
+          }
+        }
+      }
+    },
     "/.well-known/oauth-protected-resource/api/mcp": {
       "get": {
         "operationId": "get-.well-known-oauth-protected-resource-api-mcp",

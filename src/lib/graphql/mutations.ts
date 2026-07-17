@@ -25,6 +25,7 @@ import type {
   CommentVisibility,
 } from "@/generated/prisma/client";
 import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
+import type { GraphqlContext } from "./context";
 import { requireGraphqlId } from "./input-boundaries";
 import {
   badMutationInput,
@@ -43,17 +44,9 @@ import {
   normalizeTodoTitle,
   rejectExplicitNullFields,
   requireMutationId,
-  todoPriorityResolver,
 } from "./mutation-input";
-import type { GraphqlContext } from "./schema";
 
 export const graphqlMutationTypeDefs = /* GraphQL */ `
-  enum TodoPriority {
-    LOW
-    MEDIUM
-    HIGH
-  }
-
   enum CommentVisibility {
     PUBLIC
     LOGGED_IN_ONLY
@@ -288,7 +281,6 @@ async function setSectionSubscription(
 }
 
 export const graphqlMutationResolvers = {
-  TodoPriority: todoPriorityResolver,
   CommentVisibility: commentVisibilityResolver,
   CommentReactionType: commentReactionTypeResolver,
   CommentTargetType: commentTargetTypeResolver,

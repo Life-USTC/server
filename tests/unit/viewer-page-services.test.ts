@@ -175,7 +175,20 @@ describe("viewer page services", () => {
       weekday: 3,
     };
     expect(scheduleFindManyMock).toHaveBeenCalledWith(
-      expect.objectContaining({ where, skip: 4, take: 2 }),
+      expect.objectContaining({
+        where,
+        include: expect.objectContaining({
+          teachers: {
+            include: expect.objectContaining({
+              department: true,
+              teacherTitle: true,
+              _count: { select: { sections: true } },
+            }),
+          },
+        }),
+        skip: 4,
+        take: 2,
+      }),
     );
     expect(scheduleCountMock).toHaveBeenCalledWith({ where });
     expect(where).not.toHaveProperty("sectionId");

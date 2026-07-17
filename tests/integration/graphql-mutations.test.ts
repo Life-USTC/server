@@ -162,7 +162,7 @@ describe("GraphQL authenticated mutations", () => {
 
   it("supports bearer todo CRUD while preserving owner isolation and null updates", async () => {
     const [tokenA, tokenB] = await Promise.all([
-      signToken(userAId, [restWriteScope("todo")]),
+      signToken(userAId, [restReadScope("todo"), restWriteScope("todo")]),
       signToken(userBId, [restWriteScope("todo")]),
     ]);
     const created = await execute(
@@ -202,6 +202,32 @@ describe("GraphQL authenticated mutations", () => {
       dueAt: new Date("2026-08-01T01:00:00.000Z"),
       priority: "high",
       title: `${marker} todo`,
+    });
+
+    const roundTrip = await execute(
+      {
+        query: /* GraphQL */ `
+          query TodoPriorityRoundTrip {
+            viewer {
+              todos(filter: { priority: HIGH }, page: { pageSize: 100 }) {
+                items {
+                  id
+                  priority
+                }
+              }
+            }
+          }
+        `,
+      },
+      tokenA,
+    );
+    expect(roundTrip.payload.errors).toBeUndefined();
+    const viewer = roundTrip.payload.data?.viewer as {
+      todos: { items: Array<{ id: string; priority: string }> };
+    };
+    expect(viewer.todos.items).toContainEqual({
+      id: todoId,
+      priority: "HIGH",
     });
 
     const cleared = await execute(

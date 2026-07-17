@@ -4,17 +4,16 @@ import {
   type MaskError,
   maskError as maskUnexpectedGraphqlError,
 } from "graphql-yoga";
-import { DEFAULT_LOCALE } from "@/i18n/config";
 import { GraphqlAuthError } from "./auth";
 import { GRAPHQL_ENDPOINT, GRAPHQL_LIMITS } from "./constants";
-import { createGraphqlAuthContext } from "./context";
-import { createGraphqlLoaders } from "./loaders";
-import { createDeadline } from "./request-deadline";
 import {
+  createGraphqlContext,
   type GraphqlContext,
   type GraphqlServerContext,
-  graphqlSchema,
-} from "./schema";
+} from "./context";
+import { createGraphqlObservabilityPlugin } from "./observability";
+import { createDeadline } from "./request-deadline";
+import { graphqlSchema } from "./schema";
 import { createGraphqlSecurityPlugins } from "./security";
 
 class GraphqlBodyTooLargeError extends Error {}
@@ -48,25 +47,33 @@ const SAFE_GRAPHQL_ERROR_CODES = new Set([
   "UNAUTHENTICATED",
 ]);
 
-function hasGraphqlErrorName(
+function hasGraphqlErrorBrand(
   value: unknown,
 ): value is Error & { name: "GraphQLError" } {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "name" in value &&
-    value.name === "GraphQLError"
-  );
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    !("name" in value) ||
+    value.name !== "GraphQLError"
+  ) {
+    return false;
+  }
+
+  try {
+    return Object.prototype.toString.call(value) === "[object GraphQLError]";
+  } catch {
+    return false;
+  }
 }
 
 const maskGraphqlError: MaskError = (error, message, isDev) => {
   const originalError =
-    hasGraphqlErrorName(error) && "originalError" in error
+    hasGraphqlErrorBrand(error) && "originalError" in error
       ? error.originalError
       : undefined;
   if (
-    hasGraphqlErrorName(error) &&
-    (originalError == null || hasGraphqlErrorName(originalError)) &&
+    hasGraphqlErrorBrand(error) &&
+    (originalError == null || hasGraphqlErrorBrand(originalError)) &&
     "extensions" in error &&
     typeof error.extensions === "object" &&
     error.extensions !== null &&
@@ -141,17 +148,16 @@ export function createGraphqlRequestHandler(production: boolean) {
     schema: graphqlSchema,
     graphqlEndpoint: GRAPHQL_ENDPOINT,
     fetchAPI: { Response },
-    context: async ({ locals, request }) => ({
-      ...(await createGraphqlAuthContext(request)),
-      locale: locals.locale ?? DEFAULT_LOCALE,
-      loaders: createGraphqlLoaders(locals.locale ?? DEFAULT_LOCALE),
-      request,
-    }),
+    context: createGraphqlContext,
     graphiql: !production,
+    logging: false,
     maskedErrors: { maskError: maskGraphqlError },
     batching: { limit: GRAPHQL_LIMITS.requestBatch },
     multipart: false,
-    plugins: createGraphqlSecurityPlugins(production),
+    plugins: [
+      createGraphqlObservabilityPlugin(),
+      ...createGraphqlSecurityPlugins(production),
+    ],
   });
 
   return async function handleGraphqlRequest(event: RequestEvent) {

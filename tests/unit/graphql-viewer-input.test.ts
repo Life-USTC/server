@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   normalizeGraphqlShanghaiCalendarDate,
+  parseGraphqlDateTimeInstant,
   validateGraphqlDateRange,
 } from "@/lib/graphql/viewer-input";
 
@@ -23,6 +24,15 @@ describe("GraphQL viewer date input", () => {
         extensions: { code: "BAD_USER_INPUT" },
       }),
     );
+  });
+
+  it("preserves DateTime values as instants for non-date columns", () => {
+    expect(
+      parseGraphqlDateTimeInstant(
+        "2026-04-29T08:00:00+08:00",
+        "dueAtFrom",
+      ).toISOString(),
+    ).toBe("2026-04-29T00:00:00.000Z");
   });
 
   it("accepts open and equal ranges", () => {

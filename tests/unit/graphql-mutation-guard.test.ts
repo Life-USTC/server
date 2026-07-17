@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
+import type { GraphqlContext } from "@/lib/graphql/context";
 import { requireGraphqlMutation } from "@/lib/graphql/mutation-guard";
-import type { GraphqlContext } from "@/lib/graphql/schema";
 
 function context(
   principal: GraphqlContext["principal"],

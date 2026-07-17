@@ -344,12 +344,13 @@ describe("GraphQL feature scope gates", () => {
       scope: new Set([restReadScope("todo"), restReadScope("subscription")]),
       sub: "user-1",
     });
-    const { createGraphqlAuthContext } = await import("@/lib/graphql/context");
+    const { createGraphqlContext } = await import("@/lib/graphql/context");
     const { requireGraphqlScope } = await import("@/lib/graphql/auth");
 
-    const context = await createGraphqlAuthContext(
-      request({ authorization: "Bearer access-token" }),
-    );
+    const context = await createGraphqlContext({
+      request: request({ authorization: "Bearer access-token" }),
+      locals: { locale: "zh-cn" },
+    });
     requireGraphqlScope(context.principal, {
       feature: "todo",
       action: "read",

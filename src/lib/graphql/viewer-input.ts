@@ -12,15 +12,19 @@ function badDateInput(message: string): never {
  * Converts a DateTime scalar value into the UTC-midnight representation used
  * by Prisma `@db.Date` fields, based on its Asia/Shanghai calendar day.
  */
-export function normalizeGraphqlShanghaiCalendarDate(
-  value: string,
-  field: string,
-) {
+export function parseGraphqlDateTimeInstant(value: string, field: string) {
   const instant = new Date(value);
   if (Number.isNaN(instant.getTime())) {
     badDateInput(`${field} must be a valid DateTime.`);
   }
+  return instant;
+}
 
+export function normalizeGraphqlShanghaiCalendarDate(
+  value: string,
+  field: string,
+) {
+  const instant = parseGraphqlDateTimeInstant(value, field);
   const normalized = parseDateInput(formatShanghaiDate(instant));
   if (!(normalized instanceof Date)) {
     badDateInput(`${field} could not be normalized.`);

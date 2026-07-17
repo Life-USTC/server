@@ -200,5 +200,14 @@ describe("OAuth 发现元数据路由", () => {
     expect(body.scopes_supported).not.toContain("admin:read");
     expect(body.scopes_supported).not.toContain("admin:write");
     expect(body.scopes_supported).not.toContain("mcp:tools");
+
+    const optionsResponse = await route.OPTIONS({} as never);
+    expect(optionsResponse.status).toBe(204);
+    expect(optionsResponse.headers.get("access-control-allow-origin")).toBe(
+      "*",
+    );
+    expect(optionsResponse.headers.get("access-control-allow-methods")).toBe(
+      "GET, OPTIONS",
+    );
   });
 });

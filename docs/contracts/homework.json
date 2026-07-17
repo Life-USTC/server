@@ -36,6 +36,22 @@
           }
         ]
       },
+      "graphql": {
+        "fields": [
+          {
+            "parent": "Viewer",
+            "name": "homeworks",
+            "returns": "HomeworkPage!",
+            "auth": "user",
+            "required_scopes": ["homework:read"],
+            "rest_equivalent": "GET /api/me/subscriptions/homeworks",
+            "mcp_equivalent": "list_my_homeworks",
+            "notes": [
+              "Inputs expose completion, due-time, semester, and bounded PageInput filters only; section ownership is relation-derived."
+            ]
+          }
+        ]
+      },
       "mcp": {
         "tools": [
           {

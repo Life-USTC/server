@@ -2,18 +2,11 @@ import {
   TODO_CONTENT_MAX_LENGTH,
   TODO_TITLE_MAX_LENGTH,
 } from "@/features/todos/lib/todo-limits";
-import type { TodoPriorityValue } from "@/features/todos/lib/todo-priority";
 import type {
   CommentReactionType,
   CommentVisibility,
 } from "@/generated/prisma/client";
 import { badMutationInput } from "./mutation-errors";
-
-export const todoPriorityResolver = {
-  LOW: "low",
-  MEDIUM: "medium",
-  HIGH: "high",
-} as const satisfies Record<string, TodoPriorityValue>;
 
 export const commentVisibilityResolver = {
   PUBLIC: "public",

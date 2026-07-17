@@ -4,8 +4,8 @@ import {
   USER_MUTATION_RATE_LIMIT_PERIOD_SECONDS,
 } from "@/lib/security/user-mutation-rate-limit";
 import { requireGraphqlScope } from "./auth";
+import type { GraphqlContext } from "./context";
 import { GraphqlMutationError } from "./mutation-errors";
-import type { GraphqlContext } from "./schema";
 
 export async function requireGraphqlMutation(
   context: Pick<GraphqlContext, "principal" | "request">,
