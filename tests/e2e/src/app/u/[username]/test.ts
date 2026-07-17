@@ -2,7 +2,6 @@
  * E2E tests for the Public User Profile Page (`/u/[username]` and `/u/id/[uid]`)
  *
  * ## Data Represented (user.yml → public-profile.display.fields)
- * - user.id (ID profile route /u/id/[uid] only)
  * - user.image (avatar)
  * - user.name (display name)
  * - user.username (@username)
@@ -15,7 +14,8 @@
  * - totalContributions (aggregate)
  *
  * ## Rules
- * - user.id is NOT shown on /u/[username] (only accessible via /u/id/[uid])
+ * - Raw internal user IDs are not shown on public profiles
+ * - ID routes redirect to /u/[username] when a username exists
  * - Public page: no auth required
  *
  * ## Edge Cases
@@ -81,11 +81,9 @@ test.describe("/u/[username]", () => {
     // totalContributions label or heading
     await expect(page.getByText(/贡献|contribution/i).first()).toBeVisible();
 
-    // weeks[].date / weeks[].count — heatmap cells present
-    const heatmapCells = page
-      .locator("[class*=grid] > div, [class*=calendar] > div")
-      .first();
-    await expect(heatmapCells).toBeVisible();
+    const heatmapCells = page.locator("[data-profile-contribution-cell]");
+    expect(await heatmapCells.count()).toBeGreaterThan(350);
+    await expect(heatmapCells.first()).toBeVisible();
 
     await captureStepScreenshot(
       page,
@@ -126,7 +124,7 @@ test.describe("/u/id/[uid]", () => {
     await assertPageContract(page, { routePath: "/u/id/[uid]", testInfo });
   });
 
-  test("通过内部用户 ID 显示资料", async ({ page }, testInfo) => {
+  test("内部用户 ID 地址重定向到用户名资料页", async ({ page }, testInfo) => {
     await signInAsDevAdmin(page, "/");
     const sessionResponse = await page.request.get("/api/auth/get-session");
     expect(sessionResponse.status()).toBe(200);
@@ -136,6 +134,7 @@ test.describe("/u/id/[uid]", () => {
     expect(session.user?.id).toBeTruthy();
 
     await gotoAndWaitForReady(page, `/u/id/${session.user?.id}`);
+    await expect(page).toHaveURL(new RegExp(`/u/${DEV_SEED.adminUsername}$`));
     await expect(
       page.getByText(`@${DEV_SEED.adminUsername}`).first(),
     ).toBeVisible();

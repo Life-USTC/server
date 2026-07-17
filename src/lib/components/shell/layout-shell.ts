@@ -20,6 +20,25 @@ type FooterCopy = {
   terms: string;
 };
 
+const workspaceRoots = ["/admin", "/dashboard", "/settings", "/welcome"];
+
+function matchesPathRoot(pathname: string, root: string) {
+  return pathname === root || pathname.startsWith(`${root}/`);
+}
+
+export function isDetailWorkspacePath(pathname: string) {
+  return /^\/(courses|sections|teachers)\/[^/]+/.test(pathname);
+}
+
+export function shouldShowAppFooter(pathname: string, signedIn: boolean) {
+  if (isDetailWorkspacePath(pathname)) return false;
+  if (workspaceRoots.some((root) => matchesPathRoot(pathname, root))) {
+    return false;
+  }
+  if (signedIn && pathname === "/") return false;
+  return true;
+}
+
 export function resolveProfileHref(user: ShellUser) {
   if (user?.username) return `/u/${user.username}`;
   if (user?.id) return `/u/id/${user.id}`;

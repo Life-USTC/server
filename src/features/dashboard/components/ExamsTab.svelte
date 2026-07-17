@@ -7,6 +7,7 @@ import type {
   SignedDashboardData,
 } from "@/features/dashboard/lib/dashboard-controller-types";
 import { hasDashboardSubscriptions } from "@/features/dashboard/lib/dashboard-subscription-state";
+import { Button } from "$lib/components/ui/button/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import DashboardNoSubscriptionsState from "./DashboardNoSubscriptionsState.svelte";
 import type {
@@ -64,13 +65,29 @@ export let filteredExamRows: DashboardExamRow[];
       <Empty.Root class="items-start text-left">
         <Empty.Header class="items-start text-left">
           <Empty.Title>{dashboardCopy.nav.exams.empty}</Empty.Title>
+          <Empty.Description>
+            {dashboardCopy.nav.exams.emptyDescription}
+          </Empty.Description>
         </Empty.Header>
       </Empty.Root>
     {:else if filteredExamRows.length === 0}
       <Empty.Root class="items-start text-left">
         <Empty.Header class="items-start text-left">
           <Empty.Title>{dashboardCopy.nav.exams.filterEmpty}</Empty.Title>
+          <Empty.Description>
+            {dashboardCopy.nav.exams.filterEmptyDescription}
+          </Empty.Description>
         </Empty.Header>
+        <Empty.Content class="items-start">
+          <Button
+            variant="outline"
+            onclick={() => {
+              examFilter = "all";
+            }}
+          >
+            {dashboardCopy.nav.exams.clearFilter}
+          </Button>
+        </Empty.Content>
       </Empty.Root>
     {:else if examView === "list"}
       <ExamsListView

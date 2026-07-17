@@ -32,7 +32,6 @@ type Profile = {
 };
 
 export let profile: Profile;
-export let showUserId = false;
 
 $: user = profile.user;
 $: copy = profile.copy.publicProfile;
@@ -57,7 +56,6 @@ $: stats = [
     {displayName}
     {initials}
     {joinedDate}
-    {showUserId}
     {stats}
     {user}
   />

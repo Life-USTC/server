@@ -24,8 +24,10 @@ import {
 import {
   applyShellTheme,
   buildFooterLinks,
+  isDetailWorkspacePath,
   resolveAvatarFallback,
   resolveProfileHref,
+  shouldShowAppFooter,
   type ThemeMode,
 } from "$lib/components/shell/layout-shell";
 import RouteLoadingBar from "$lib/components/shell/RouteLoadingBar.svelte";
@@ -66,12 +68,9 @@ $: navGroups = buildShellNavGroups(
   $page.data,
 );
 $: detailWorkspace = isDetailWorkspacePath($page.url.pathname);
+$: showFooter = shouldShowAppFooter($page.url.pathname, Boolean(data.user));
 $: mainContentLabel = resolveMainContentLabel($page.data);
 const footerLinks = buildFooterLinks(data.copy.footer);
-
-function isDetailWorkspacePath(pathname: string) {
-  return /^\/(courses|sections|teachers)\/[^/]+/.test(pathname);
-}
 
 function resolveMainContentLabel(pageData: Record<string, unknown>) {
   const label = pageData.mainContentLabel;
@@ -414,7 +413,7 @@ afterNavigate(({ from, to }) => {
           <slot />
         </div>
 
-        {#if !detailWorkspace}
+        {#if showFooter}
           <AppFooter
             copy={data.copy}
             {footerLinks}

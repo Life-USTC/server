@@ -15,7 +15,6 @@ import {
   createDeleteAccountAction,
   createSettingsAccountAction,
 } from "@/features/settings/lib/settings-page-actions";
-import * as Item from "$lib/components/ui/item/index.js";
 import { cn } from "$lib/utils";
 import type {
   SettingsAccount,
@@ -72,6 +71,9 @@ $: _unlinkAccount =
   data.accounts.find((account) => account.id === _unlinkAccountId) ?? null;
 $: _hasPendingAccountAction = Boolean(_pendingAccountAction);
 $: copy = data.copy;
+$: activeNavItem =
+  data.settingsNav.tabs.find((item) => item.id === data.activeTab) ??
+  data.settingsNav.tabs[0];
 
 const accountAction = createSettingsAccountAction({
   setPendingAccountAction: (value) => {
@@ -102,71 +104,83 @@ onMount(() => {
 <section class="grid gap-6">
   <SettingsHeader {copy} />
 
-  <nav aria-label={data.settingsNav.title}>
-    <Item.Group class="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-      {#each data.settingsNav.tabs as item}
-        {@const Icon = tabIcon(item.icon)}
-        <Item.Root
-          variant={data.activeTab === item.id ? "muted" : "outline"}
-          size="sm"
-        >
-          {#snippet child({ props })}
+  <div class="grid gap-5 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start lg:gap-6">
+    <nav
+      aria-label={data.settingsNav.title}
+      class="-mx-4 overflow-x-auto px-4 pb-1 sm:-mx-5 sm:px-5 lg:sticky lg:top-4 lg:mx-0 lg:overflow-visible lg:px-0 lg:pb-0"
+      data-settings-navigation
+    >
+      <ul class="flex min-w-max gap-2 lg:grid lg:min-w-0">
+        {#each data.settingsNav.tabs as item}
+          {@const Icon = tabIcon(item.icon)}
+          {@const isActive = data.activeTab === item.id}
+          <li class="lg:min-w-0">
             <a
-              {...props}
-              aria-current={data.activeTab === item.id ? "page" : undefined}
+              aria-current={isActive ? "page" : undefined}
+              class={cn(
+                "flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg border px-3 py-2 font-medium text-sm transition-colors lg:w-full lg:whitespace-normal",
+                isActive && item.id === "danger"
+                  ? "border-destructive/50 bg-destructive/10 text-destructive"
+                  : isActive
+                    ? "border-primary/50 bg-primary/10 text-primary"
+                    : item.id === "danger"
+                      ? "border-transparent text-destructive hover:border-destructive/30 hover:bg-destructive/5"
+                      : "border-transparent text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground",
+              )}
               href={item.href}
             >
-              <Item.Media
-                variant="icon"
-                class={item.id === "danger" ? "text-destructive" : undefined}
-              >
-                <Icon />
-              </Item.Media>
-              <Item.Content>
-                <Item.Title>{item.title}</Item.Title>
-                <Item.Description>{item.description}</Item.Description>
-              </Item.Content>
+              <Icon aria-hidden="true" class="size-4 shrink-0" />
+              <span>{item.title}</span>
             </a>
-          {/snippet}
-        </Item.Root>
-      {/each}
-    </Item.Group>
-  </nav>
+          </li>
+        {/each}
+      </ul>
+    </nav>
 
-  <SettingsStatusAlert {copy} {statusMessage} />
+    <div class="grid min-w-0 gap-4" data-settings-active-panel>
+      {#if activeNavItem}
+        <header class="grid gap-1" data-settings-active-header>
+          <h2 class="font-semibold text-xl">{activeNavItem.title}</h2>
+          <p class="text-muted-foreground text-sm">{activeNavItem.description}</p>
+        </header>
+      {/if}
 
-  {#if data.tab === "profile"}
-    <SettingsProfileTab
-      {avatarOptions}
-      {copy}
-      currentImage={currentImage}
-      isMounted={_isMounted}
-      previewImage={previewImage}
-      bind:selectedImage
-      user={data.user}
-    />
-  {:else if data.tab === "accounts"}
-    <SettingsAccountsTab
-      accountAction={accountAction}
-      accounts={data.accounts}
-      {copy}
-      hasPendingAccountAction={_hasPendingAccountAction}
-      isMounted={_isMounted}
-      pendingAccountAction={_pendingAccountAction}
-      unlinkAccount={_unlinkAccount}
-      bind:unlinkAccountId={_unlinkAccountId}
-      user={data.user}
-    />
-  {:else if data.tab === "content"}
-    <SettingsContentTab {copy} />
-  {:else}
-    <SettingsDangerTab
-      {copy}
-      {deleteAccountAction}
-      bind:deleteConfirmValue={_deleteConfirmValue}
-      bind:isDeleteAccountOpen={_isDeleteAccountOpen}
-      isDeletingAccount={_isDeletingAccount}
-      isMounted={_isMounted}
-    />
-  {/if}
+      <SettingsStatusAlert {copy} {statusMessage} />
+
+      {#if data.tab === "profile"}
+        <SettingsProfileTab
+          {avatarOptions}
+          {copy}
+          currentImage={currentImage}
+          isMounted={_isMounted}
+          previewImage={previewImage}
+          bind:selectedImage
+          user={data.user}
+        />
+      {:else if data.tab === "accounts"}
+        <SettingsAccountsTab
+          accountAction={accountAction}
+          accounts={data.accounts}
+          {copy}
+          hasPendingAccountAction={_hasPendingAccountAction}
+          isMounted={_isMounted}
+          pendingAccountAction={_pendingAccountAction}
+          unlinkAccount={_unlinkAccount}
+          bind:unlinkAccountId={_unlinkAccountId}
+          user={data.user}
+        />
+      {:else if data.tab === "content"}
+        <SettingsContentTab {copy} />
+      {:else}
+        <SettingsDangerTab
+          {copy}
+          {deleteAccountAction}
+          bind:deleteConfirmValue={_deleteConfirmValue}
+          bind:isDeleteAccountOpen={_isDeleteAccountOpen}
+          isDeletingAccount={_isDeletingAccount}
+          isMounted={_isMounted}
+        />
+      {/if}
+    </div>
+  </div>
 </section>

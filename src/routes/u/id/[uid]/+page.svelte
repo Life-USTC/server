@@ -9,4 +9,4 @@ export let data: PageData;
   <title>{data.user.name ?? data.user.username ?? data.copy.publicProfile.idLabel} - Life@USTC</title>
 </svelte:head>
 
-<ProfileView profile={data} showUserId />
+<ProfileView profile={data} />
