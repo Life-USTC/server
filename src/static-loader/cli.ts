@@ -15,10 +15,6 @@ function getEnv(name: string, defaultValue?: string): string {
   return value;
 }
 
-function maskDatabaseUrl(url: string): string {
-  return url.replace(/:\/\/([^:@]+)(:[^@]+)?@/, "://***@");
-}
-
 async function sha256File(path: string): Promise<string> {
   const hash = createHash("sha256");
   for await (const chunk of createReadStream(path)) {
@@ -28,7 +24,6 @@ async function sha256File(path: string): Promise<string> {
 }
 
 async function main() {
-  const databaseUrl = getEnv("DATABASE_URL");
   const snapshotPath = getEnv("STATIC_SNAPSHOT_PATH");
   const minSemester = parsePositiveIntegerSetting(
     "STATIC_LOADER_MIN_SEMESTER",
@@ -45,7 +40,6 @@ async function main() {
     throw new Error(`Snapshot not found: ${snapshotPath}`);
   }
 
-  console.log(`DATABASE_URL: ${maskDatabaseUrl(databaseUrl)}`);
   console.log(`snapshotPath: ${snapshotPath}`);
   console.log(`minSemester: ${minSemester}`);
   console.log(`dryRun: ${dryRun}`);

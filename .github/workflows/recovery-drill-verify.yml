@@ -1,0 +1,95 @@
+name: Recovery Drill Verify
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate-ref:
+        description: "Exact commit to migrate and verify against the isolated restore"
+        required: true
+        type: string
+      restore-point-utc:
+        description: "Provider restore point in UTC; evidence metadata only"
+        required: true
+        type: string
+
+concurrency:
+  group: database-recovery-drill
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify isolated database restore
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: database-recovery
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.candidate-ref }}
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+
+      - name: Generate recovery verifier client
+        env:
+          DATABASE_URL: postgresql://recovery-generate.invalid/life_ustc
+        run: bun run db:generate
+
+      - name: Verify isolated restore baseline
+        env:
+          RECOVERY_DATABASE_URL: ${{ secrets.RECOVERY_DATABASE_URL }}
+          RECOVERY_DRILL_GUARD: ${{ secrets.RECOVERY_DRILL_GUARD }}
+        run: |
+          set -euo pipefail
+          bun run scripts/verify-restored-database.ts \
+            > "$RUNNER_TEMP/recovery-before.json"
+
+      - name: Deploy candidate migrations to isolated restore
+        env:
+          DATABASE_URL: ${{ secrets.RECOVERY_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          if ! bun run db:migrate:deploy \
+            > "$RUNNER_TEMP/recovery-migrate.log" 2>&1; then
+            echo "::error::Recovery database migration failed; connection details are suppressed."
+            exit 1
+          fi
+          rm -f "$RUNNER_TEMP/recovery-migrate.log"
+          echo "Recovery database migrations completed."
+
+      - name: Verify isolated restore after migration
+        env:
+          RECOVERY_DATABASE_URL: ${{ secrets.RECOVERY_DATABASE_URL }}
+          RECOVERY_DRILL_GUARD: ${{ secrets.RECOVERY_DRILL_GUARD }}
+        run: |
+          set -euo pipefail
+          bun run scripts/verify-restored-database.ts \
+            > "$RUNNER_TEMP/recovery-after.json"
+          jq -e --slurp '.[0].counts == .[1].counts' \
+            "$RUNNER_TEMP/recovery-before.json" \
+            "$RUNNER_TEMP/recovery-after.json" \
+            > /dev/null
+
+      - name: Report aggregate recovery checks
+        if: always()
+        run: |
+          {
+            echo "## Recovery Drill Aggregate Verification"
+            if [ -f "$RUNNER_TEMP/recovery-before.json" ]; then
+              echo "### Before candidate migration"
+              echo '```json'
+              cat "$RUNNER_TEMP/recovery-before.json"
+              echo '```'
+            fi
+            if [ -f "$RUNNER_TEMP/recovery-after.json" ]; then
+              echo "### After candidate migration"
+              echo '```json'
+              cat "$RUNNER_TEMP/recovery-after.json"
+              echo '```'
+            fi
+            echo
+            echo "This verifies only the isolated database aggregates. Provider backup, PITR, RPO, and RTO evidence remain operator-owned."
+          } >> "$GITHUB_STEP_SUMMARY"
