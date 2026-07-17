@@ -1,4 +1,4 @@
-import type { Prisma } from "../generated/prisma-node/client";
+import { Prisma } from "../generated/prisma-node/client";
 import { planCourseDuplicateMerges } from "./course-dedupe";
 import type { IncomingCourseIdentityRecord } from "./course-identity";
 
@@ -11,6 +11,20 @@ type CourseDescriptionClient = Pick<
   Prisma.TransactionClient,
   "description" | "descriptionEdit"
 >;
+
+const persistedCourseIdentitySelect = {
+  id: true,
+  jwId: true,
+  code: true,
+  nameCn: true,
+  nameEn: true,
+  categoryId: true,
+  classTypeId: true,
+  classifyId: true,
+  educationLevelId: true,
+  gradationId: true,
+  typeId: true,
+} as const;
 
 export async function assertCourseJwIdNamespace(
   tx: CourseJwIdClient,
@@ -78,7 +92,10 @@ export async function mergeCourseDescriptions(
   if (!target) {
     await tx.description.update({
       where: { id: source.id },
-      data: { courseId: targetCourseId },
+      data: {
+        courseId: targetCourseId,
+        updatedAt: source.updatedAt,
+      },
     });
     return;
   }
@@ -119,31 +136,90 @@ export async function mergeCourseDescriptions(
   await tx.description.delete({ where: { id: source.id } });
 }
 
+async function lockCourseMergeRows(
+  tx: Prisma.TransactionClient,
+  courseIds: number[],
+) {
+  const ids = [...new Set(courseIds)].sort((left, right) => left - right);
+  if (ids.length === 0) return;
+  await tx.$queryRaw(
+    Prisma.sql`
+      SELECT "id"
+      FROM "Course"
+      WHERE "id" IN (${Prisma.join(ids)})
+      ORDER BY "id"
+      FOR UPDATE
+    `,
+  );
+}
+
+async function lockCourseDescriptionRows(
+  tx: Prisma.TransactionClient,
+  courseIds: number[],
+) {
+  const ids = [...new Set(courseIds)].sort((left, right) => left - right);
+  if (ids.length === 0) return;
+  await tx.$queryRaw(
+    Prisma.sql`
+      SELECT "id"
+      FROM "Description"
+      WHERE "courseId" IN (${Prisma.join(ids)})
+      ORDER BY "id"
+      FOR UPDATE
+    `,
+  );
+}
+
 export async function mergeLegacyCourseDuplicates(
   tx: Prisma.TransactionClient,
   incomingCourses: IncomingCourseIdentityRecord[],
   canonicalJwIds: ReadonlySet<number>,
 ) {
-  const persistedCourses = await tx.course.findMany({
-    select: {
-      id: true,
-      jwId: true,
-      code: true,
-      nameCn: true,
-      nameEn: true,
-      categoryId: true,
-      classTypeId: true,
-      classifyId: true,
-      educationLevelId: true,
-      gradationId: true,
-      typeId: true,
-    },
+  const incomingSourceJwIds = new Set(
+    incomingCourses.map((course) => course.jwId),
+  );
+  const initialMerges = planCourseDuplicateMerges({
+    canonicalJwIds,
+    incomingSourceJwIds,
+    persistedCourses: await tx.course.findMany({
+      select: persistedCourseIdentitySelect,
+    }),
   });
+  await lockCourseMergeRows(
+    tx,
+    initialMerges.flatMap((merge) => [
+      merge.sourceCourseId,
+      merge.targetCourseId,
+    ]),
+  );
+
+  const lockedCourseIds = new Set(
+    initialMerges.flatMap((merge) => [
+      merge.sourceCourseId,
+      merge.targetCourseId,
+    ]),
+  );
   const merges = planCourseDuplicateMerges({
     canonicalJwIds,
-    incomingSourceJwIds: new Set(incomingCourses.map((course) => course.jwId)),
-    persistedCourses,
+    incomingSourceJwIds,
+    persistedCourses: await tx.course.findMany({
+      select: persistedCourseIdentitySelect,
+    }),
   });
+  const unlockedMerge = merges.find(
+    (merge) =>
+      !lockedCourseIds.has(merge.sourceCourseId) ||
+      !lockedCourseIds.has(merge.targetCourseId),
+  );
+  if (unlockedMerge) {
+    throw new Error(
+      `Course cleanup changed while acquiring locks; retry the import for legacy Course ${unlockedMerge.sourceJwId}`,
+    );
+  }
+  await lockCourseDescriptionRows(
+    tx,
+    merges.flatMap((merge) => [merge.sourceCourseId, merge.targetCourseId]),
+  );
 
   for (const merge of merges) {
     await mergeCourseDescriptions(
@@ -155,10 +231,11 @@ export async function mergeLegacyCourseDuplicates(
       where: { courseId: merge.sourceCourseId },
       data: { courseId: merge.targetCourseId },
     });
-    await tx.comment.updateMany({
-      where: { courseId: merge.sourceCourseId },
-      data: { courseId: merge.targetCourseId },
-    });
+    await tx.$executeRaw`
+      UPDATE "Comment"
+      SET "courseId" = ${merge.targetCourseId}
+      WHERE "courseId" = ${merge.sourceCourseId}
+    `;
 
     const existingAlias = await tx.courseAlias.findUnique({
       where: { jwId: merge.sourceJwId },

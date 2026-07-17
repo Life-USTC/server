@@ -103,6 +103,26 @@ describe("班级搜索工具 search_sections", () => {
     ).toBe(true);
   });
 
+  it("按课程 legacy jwId 返回 canonical 课程的班级摘要", async () => {
+    const result = await context.client.call<SearchSectionsResult>(
+      "search_sections",
+      {
+        courseJwId: fixtures.DEV_SEED.course.legacyJwId,
+        page: 1,
+        limit: 10,
+        locale: "zh-cn",
+        mode: "full",
+      },
+    );
+
+    const section = result.data?.find(
+      (item) => item.jwId === fixtures.DEV_SEED.section.jwId,
+    );
+    expect(section).toBeDefined();
+    expect(section?.course?.jwId).toBe(fixtures.DEV_SEED.course.jwId);
+    expect(result.pagination?.total).toBeGreaterThan(0);
+  });
+
   it("按教师工号过滤班级", async () => {
     const result = await context.client.call<SearchSectionsResult>(
       "search_sections",
