@@ -452,6 +452,61 @@ describe.sequential("GraphQL Viewer integration", () => {
     ).toBe(true);
   });
 
+  it("hydrates every nested Schedule Teacher field without a fallback query", async () => {
+    const { payload } = await execute(
+      {
+        query: /* GraphQL */ `
+          {
+            viewer {
+              schedules(page: { pageSize: 1 }) {
+                items {
+                  teachers {
+                    id
+                    department {
+                      id
+                    }
+                    teacherTitle {
+                      id
+                      nameCn
+                    }
+                    sectionCount
+                  }
+                }
+              }
+            }
+          }
+        `,
+      },
+      {
+        cookie: sessionCookie,
+        origin: new URL(getOAuthGraphqlResourceUrl()).origin,
+      },
+    );
+
+    expect(payload.errors).toBeUndefined();
+    const viewer = payload.data?.viewer as {
+      schedules: {
+        items: Array<{
+          teachers: Array<{
+            sectionCount: number;
+            teacherTitle: { id: number; nameCn: string } | null;
+          }>;
+        }>;
+      };
+    };
+    const teachers = viewer.schedules.items.flatMap(
+      (schedule) => schedule.teachers,
+    );
+    expect(teachers.length).toBeGreaterThan(0);
+    expect(
+      teachers.every(
+        (teacher) =>
+          teacher.sectionCount >= 1 &&
+          typeof teacher.teacherTitle?.nameCn === "string",
+      ),
+    ).toBe(true);
+  });
+
   it("accepts a GraphQL-only bearer and enforces each selected field scope", async () => {
     const authorized = await execute(
       {

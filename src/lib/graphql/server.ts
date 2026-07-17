@@ -1,5 +1,4 @@
 import type { RequestEvent } from "@sveltejs/kit";
-import { GraphQLError } from "graphql";
 import {
   createYoga,
   type MaskError,
@@ -45,10 +44,14 @@ const SAFE_GRAPHQL_ERROR_CODES = new Set([
 ]);
 
 const maskGraphqlError: MaskError = (error, message, isDev) => {
+  const graphqlError = error as Error & {
+    extensions?: Record<string, unknown>;
+  };
   if (
-    error instanceof GraphQLError &&
-    typeof error.extensions.code === "string" &&
-    SAFE_GRAPHQL_ERROR_CODES.has(error.extensions.code)
+    error instanceof Error &&
+    error.name === "GraphQLError" &&
+    typeof graphqlError.extensions?.code === "string" &&
+    SAFE_GRAPHQL_ERROR_CODES.has(graphqlError.extensions.code)
   ) {
     return error;
   }
