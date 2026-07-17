@@ -45,7 +45,8 @@
           "exam.examRooms[] (locations)",
           "section.course.namePrimary",
           "section.semester.nameCn",
-          "completion filter: incomplete/completed/all"
+          "completion filter: incomplete/completed/all",
+          "Filter-empty explanation and clear-filter action"
         ]
       }
     },

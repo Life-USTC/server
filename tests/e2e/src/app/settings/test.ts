@@ -37,7 +37,35 @@ test.describe("/settings 设置中心", () => {
     await expect(page.locator("input#username")).toHaveValue(
       DEV_SEED.debugUsername,
     );
+    await expect(page.locator("footer")).toHaveCount(0);
     await captureStepScreenshot(page, testInfo, "settings-default-profile");
+  });
+
+  test("设置导航在移动端紧凑显示并在桌面形成侧栏", async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await signInAsDebugUser(page, "/settings");
+
+    const navigation = page.locator("[data-settings-navigation]");
+    const activePanel = page.locator("[data-settings-active-panel]");
+    const profileLink = navigation.getByRole("link", {
+      name: /个人资料|Profile/i,
+    });
+
+    await expect(profileLink).toHaveAttribute("aria-current", "page");
+    const mobileNavigationBox = await navigation.boundingBox();
+    const mobilePanelBox = await activePanel.boundingBox();
+    expect(mobileNavigationBox?.height).toBeLessThan(80);
+    expect(mobilePanelBox?.y).toBeLessThan(844);
+    await captureStepScreenshot(page, testInfo, "settings-responsive-mobile");
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await gotoAndWaitForReady(page, "/settings");
+    const desktopNavigationBox = await navigation.boundingBox();
+    const desktopPanelBox = await activePanel.boundingBox();
+    expect(desktopNavigationBox?.x).toBeLessThan(desktopPanelBox?.x ?? 0);
+    await captureStepScreenshot(page, testInfo, "settings-responsive-desktop");
   });
 
   test("标签导航切换分区", async ({ page }, testInfo) => {
@@ -45,7 +73,7 @@ test.describe("/settings 设置中心", () => {
 
     // Navigate to accounts tab
     const accountsTab = page.getByRole("link", {
-      name: /账号关联|Accounts/i,
+      name: /关联账户|Linked accounts/i,
     });
     await expect(accountsTab).toBeVisible();
     await accountsTab.click();
@@ -55,7 +83,7 @@ test.describe("/settings 设置中心", () => {
 
     // Navigate to danger tab
     const dangerTab = page.getByRole("link", {
-      name: /危险区|Danger/i,
+      name: /危险操作|Danger zone/i,
     });
     await expect(dangerTab).toBeVisible();
     await dangerTab.click();
@@ -63,6 +91,9 @@ test.describe("/settings 设置中心", () => {
     await expect(
       page.getByRole("button", { name: /删除|Delete/i }).first(),
     ).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: /删除账户|Delete Account/i }),
+    ).toHaveAttribute("data-settings-danger-region", "true");
     await captureStepScreenshot(page, testInfo, "settings-danger-tab");
 
     // Navigate back to profile tab

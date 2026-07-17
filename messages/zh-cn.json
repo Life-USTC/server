@@ -546,10 +546,12 @@
         "noSubscriptionsTitle": "尚未关注班级",
         "noSubscriptionsDescription": "关注班级后即可在此查看考试。",
         "empty": "暂时没有可用的考试安排。",
+        "emptyDescription": "你关注的班级尚未发布考试安排。",
         "filterEmptyDescription": "切换筛选条件，或稍后再查看考试安排。",
         "filterIncomplete": "未结束",
         "filterCompleted": "已结束",
         "filterAll": "全部",
+        "clearFilter": "清除筛选",
         "viewMode": "考试视图",
         "cardView": "卡片",
         "listView": "列表",
@@ -786,7 +788,7 @@
     "transitMap": "线路图"
   },
   "publicProfile": {
-    "idLabel": "用户 ID",
+    "idLabel": "用户",
     "joinedAt": "加入时间：{date}",
     "stats": {
       "sections": "关注班级",
@@ -798,6 +800,7 @@
       "title": "最近一年贡献（{count}）",
       "description": "统计评论、上传、作业创建与作业完成行为。",
       "cell": "{date}：{count} 条记录",
+      "scrollLabel": "贡献记录，可横向滚动查看完整一年。",
       "less": "少",
       "more": "多",
       "empty": "最近一年暂无可展示的贡献记录。"
@@ -2052,6 +2055,7 @@
     "tableColumnRedirects": "重定向",
     "tableColumnActions": "操作",
     "noClients": "尚未创建任何 OAuth 客户端。",
+    "noClientsDescription": "创建客户端以注册可信服务、CLI 或原生应用。",
     "createdAtLabel": "创建时间",
     "deleteClient": "删除",
     "deleteClientDescription": "这会移除“{name}”，并阻止后续 token 使用。",

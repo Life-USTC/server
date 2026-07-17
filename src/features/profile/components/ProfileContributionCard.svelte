@@ -65,6 +65,7 @@ function heatmapClass(count: number) {
       {dateFormatter}
       {heatmapClass}
       {monthLabels}
+      scrollLabel={copy.contribution.scrollLabel}
       {weeks}
     />
 
