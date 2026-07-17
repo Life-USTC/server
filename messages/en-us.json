@@ -512,6 +512,9 @@
     "calendarViewWeek": "This week",
     "calendarSemesterPrev": "Previous semester",
     "calendarSemesterNext": "Next semester",
+    "calendarAgendaLabel": "Weekly agenda",
+    "calendarAgendaEmpty": "No events",
+    "calendarMoreActions": "More calendar actions",
     "calendarWeek": {
       "prev": "Previous week",
       "next": "Next week",
@@ -581,6 +584,11 @@
     "openSlot": "Open",
     "quickActions": "Quick actions",
     "focus": {
+      "title": "Now & next",
+      "now": "Happening now",
+      "urgent": "Needs attention",
+      "next": "Up next",
+      "noUpcoming": "Nothing is due or scheduled in the next 7 days.",
       "currentClass": "Current class",
       "nextClass": "Next class",
       "todayStatus": "Today's status",
