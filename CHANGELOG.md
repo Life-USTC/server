@@ -1,3 +1,10 @@
+# [1.60.0](https://github.com/Life-USTC/server/compare/v1.59.1...v1.60.0) (2026-07-17)
+
+
+### Features
+
+* **graphql:** add scoped personal mutations ([#472](https://github.com/Life-USTC/server/issues/472)) ([7588069](https://github.com/Life-USTC/server/commit/758806949891eda724c48a8391440d8adb4de906))
+
 ## [1.59.1](https://github.com/Life-USTC/server/compare/v1.59.0...v1.59.1) (2026-07-17)
 
 
