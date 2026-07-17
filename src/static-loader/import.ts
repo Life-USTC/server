@@ -398,20 +398,6 @@ export async function runImport(
         roomTypeMap,
       ),
     );
-    sectionLifecycleStats = await logStep(
-      "reconcileSectionSourceLifecycle",
-      sections.length,
-      () =>
-        reconcileSectionSourceLifecycle(tx, {
-          observedAt,
-          retirementEnabled: config.retireMissingSections,
-          expectedRetirementCandidateCount:
-            config.expectedSectionRetirementCandidates,
-          scopedSemesterIds,
-          seenSectionJwIds: [...allSectionJwIds],
-          snapshotSha256: config.snapshotSha256,
-        }),
-    );
     const scheduleGroupMap = await logStep(
       "upsertScheduleGroups",
       scheduleGroups.length,
@@ -508,6 +494,23 @@ export async function runImport(
           courseImport.canonicalJwIds,
         ),
     );
+    const databaseRecordCounts = await logStep("countDatabaseRecords", 12, () =>
+      countStats(tx),
+    );
+    sectionLifecycleStats = await logStep(
+      "reconcileSectionSourceLifecycle",
+      sections.length,
+      () =>
+        reconcileSectionSourceLifecycle(tx, {
+          observedAt,
+          retirementEnabled: config.retireMissingSections,
+          expectedRetirementCandidateCount:
+            config.expectedSectionRetirementCandidates,
+          scopedSemesterIds,
+          seenSectionJwIds: [...allSectionJwIds],
+          snapshotSha256: config.snapshotSha256,
+        }),
+    );
     await logStep("recordStaticImportState", 1, () =>
       recordStaticImportState(tx, {
         observedAt,
@@ -517,7 +520,7 @@ export async function runImport(
 
     if (config.dryRun) throw new Error("DRY_RUN: rolling back transaction");
 
-    return logStep("countDatabaseRecords", 12, () => countStats(tx));
+    return databaseRecordCounts;
   };
 
   let databaseRecordCounts: ImportRecordCounts | null = null;
