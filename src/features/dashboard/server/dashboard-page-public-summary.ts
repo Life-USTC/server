@@ -27,7 +27,7 @@ export async function loadDashboardPublicSummary(
     await Promise.all([
       prisma.semester.count(),
       prisma.course.count(),
-      prisma.section.count(),
+      prisma.section.count({ where: { retiredAt: null } }),
       prisma.semester.findMany({
         select: {
           id: true,
