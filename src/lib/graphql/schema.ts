@@ -38,6 +38,10 @@ export type GraphqlContext = {
   locale: AppLocale;
 };
 
+export type GraphqlServerContext = {
+  locals: { locale?: AppLocale };
+};
+
 type ServicePage = {
   data: readonly unknown[];
   pagination: {
@@ -267,7 +271,9 @@ export const graphqlTypeDefs = /* GraphQL */ `
   }
 `;
 
-export const graphqlSchema = createSchema<GraphqlContext>({
+export const graphqlSchema = createSchema<
+  GraphqlServerContext & GraphqlContext
+>({
   typeDefs: graphqlTypeDefs,
   resolvers: {
     Date: graphqlDateScalar,

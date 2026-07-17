@@ -1,15 +1,15 @@
 import type { RequestEvent } from "@sveltejs/kit";
 import { createYoga } from "graphql-yoga";
-import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
+import { DEFAULT_LOCALE } from "@/i18n/config";
 import { GRAPHQL_ENDPOINT, GRAPHQL_LIMITS } from "./constants";
 import { createGraphqlLoaders } from "./loaders";
 import { createDeadline } from "./request-deadline";
-import { type GraphqlContext, graphqlSchema } from "./schema";
+import {
+  type GraphqlContext,
+  type GraphqlServerContext,
+  graphqlSchema,
+} from "./schema";
 import { createGraphqlSecurityPlugins } from "./security";
-
-type GraphqlServerContext = {
-  locals: { locale?: AppLocale };
-};
 
 class GraphqlBodyTooLargeError extends Error {}
 
