@@ -98,6 +98,18 @@ export const courseInclude = {
   type: true,
 } satisfies Prisma.CourseInclude;
 
+/** Public catalog Section shape without unbounded child collections. */
+export const sectionCatalogInclude = {
+  course: {
+    include: courseInclude,
+  },
+  semester: true,
+  campus: true,
+  openDepartment: true,
+  examMode: true,
+  teachLanguage: true,
+} satisfies Prisma.SectionInclude;
+
 export const courseDetailInclude = {
   ...courseInclude,
   sections: {

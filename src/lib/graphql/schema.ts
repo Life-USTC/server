@@ -1,5 +1,3 @@
-import type { RequestEvent } from "@sveltejs/kit";
-import { GraphQLError, GraphQLScalarType, Kind } from "graphql";
 import { createSchema } from "graphql-yoga";
 import {
   getBusRouteTimetable,
@@ -10,9 +8,24 @@ import {
   listSemesters,
 } from "@/features/catalog/server/academic-metadata-read-model";
 import { listCourseSummaries } from "@/features/catalog/server/course-summary-read-model";
-import { listSectionSummaries } from "@/features/catalog/server/section-summary-read-model";
+import { listSections } from "@/features/catalog/server/section-summary-read-model";
 import { listTeacherSummaries } from "@/features/catalog/server/teacher-summary-read-model";
 import type { AppLocale } from "@/i18n/config";
+import {
+  capGraphqlAlternateRoutes,
+  capGraphqlBusCampuses,
+  capGraphqlBusRoute,
+  capGraphqlBusTripSlots,
+} from "./bus-output";
+import { graphqlDateScalar, graphqlDateTimeScalar } from "./date-scalar";
+import {
+  requireGraphqlId,
+  validateGraphqlIdList,
+  validateGraphqlSearch,
+  validateGraphqlTeacherCode,
+  validateGraphqlVersionKey,
+  validateOptionalGraphqlId,
+} from "./input-boundaries";
 import type { GraphqlLoaders } from "./loaders";
 import {
   type GraphqlPageInput,
@@ -35,42 +48,10 @@ type ServicePage = {
   };
 };
 
-type CourseParent = {
-  jwId: number;
-  sections?: unknown;
-};
-
 type TeacherParent = {
   id: number;
-  sections?: unknown;
   _count?: { sections?: number };
 };
-
-const dateScalar = new GraphQLScalarType({
-  name: "Date",
-  description: "A calendar date serialized as YYYY-MM-DD.",
-  serialize(value) {
-    const date =
-      value instanceof Date
-        ? value
-        : typeof value === "string" || typeof value === "number"
-          ? new Date(value)
-          : null;
-    if (!date || Number.isNaN(date.getTime())) {
-      throw new GraphQLError("Date cannot represent this value.");
-    }
-    return date.toISOString().slice(0, 10);
-  },
-  parseValue() {
-    throw new GraphQLError("Date is output-only.");
-  },
-  parseLiteral(node) {
-    if (node.kind !== Kind.STRING) {
-      throw new GraphQLError("Date must be a string.");
-    }
-    return node.value;
-  },
-});
 
 const pageResolvers = {
   items: (page: ServicePage) => page.data,
@@ -79,6 +60,7 @@ const pageResolvers = {
 
 export const graphqlTypeDefs = /* GraphQL */ `
   scalar Date
+  scalar DateTime
 
   input PageInput {
     page: Int = 1
@@ -160,7 +142,6 @@ export const graphqlTypeDefs = /* GraphQL */ `
     educationLevel: NamedCatalogValue
     gradation: NamedCatalogValue
     type: NamedCatalogValue
-    sections: [Section!]!
   }
 
   type Section {
@@ -180,7 +161,6 @@ export const graphqlTypeDefs = /* GraphQL */ `
     openDepartment: Department
     examMode: NamedCatalogValue
     teachLanguage: NamedCatalogValue
-    teachers: [Teacher!]!
   }
 
   type Teacher {
@@ -197,7 +177,6 @@ export const graphqlTypeDefs = /* GraphQL */ `
     department: Department
     teacherTitle: NamedCatalogValue
     sectionCount: Int!
-    sections: [Section!]!
   }
 
   type SemesterPage {
@@ -282,39 +261,28 @@ export const graphqlTypeDefs = /* GraphQL */ `
     busTimetable(
       routeId: Int!
       page: PageInput
-      now: String
+      now: DateTime
       versionKey: String
     ): BusRouteTimetable
   }
 `;
 
-export const graphqlSchema = createSchema<RequestEvent & GraphqlContext>({
+export const graphqlSchema = createSchema<GraphqlContext>({
   typeDefs: graphqlTypeDefs,
   resolvers: {
-    Date: dateScalar,
+    Date: graphqlDateScalar,
+    DateTime: graphqlDateTimeScalar,
     SemesterPage: pageResolvers,
     CoursePage: pageResolvers,
     SectionPage: pageResolvers,
     TeacherPage: pageResolvers,
     BusRoutePage: pageResolvers,
-    Course: {
-      async sections(course: CourseParent, _args, context) {
-        if (Array.isArray(course.sections)) return course.sections;
-        const detail = await context.loaders.courseByJwId.load(course.jwId);
-        return detail?.sections ?? [];
-      },
-    },
     Teacher: {
       async sectionCount(teacher: TeacherParent, _args, context) {
         const count = teacher._count?.sections;
         if (typeof count === "number") return count;
         const detail = await context.loaders.teacherById.load(teacher.id);
         return detail?._count.sections ?? 0;
-      },
-      async sections(teacher: TeacherParent, _args, context) {
-        if (Array.isArray(teacher.sections)) return teacher.sections;
-        const detail = await context.loaders.teacherById.load(teacher.id);
-        return detail?.sections ?? [];
       },
     },
     Query: {
@@ -338,14 +306,31 @@ export const graphqlSchema = createSchema<RequestEvent & GraphqlContext>({
         },
         context,
       ) {
+        const filter = args.filter;
         return listCourseSummaries({
-          filters: args.filter ?? {},
+          filters: {
+            search: validateGraphqlSearch(filter?.search),
+            educationLevelId: validateOptionalGraphqlId(
+              filter?.educationLevelId,
+              "educationLevelId",
+            ),
+            categoryId: validateOptionalGraphqlId(
+              filter?.categoryId,
+              "categoryId",
+            ),
+            classTypeId: validateOptionalGraphqlId(
+              filter?.classTypeId,
+              "classTypeId",
+            ),
+          },
           locale: context.locale,
           pagination: normalizeGraphqlPage(args.page),
         });
       },
       course(_parent, args: { jwId: number }, context) {
-        return context.loaders.courseByJwId.load(args.jwId);
+        return context.loaders.courseByJwId.load(
+          requireGraphqlId(args.jwId, "jwId"),
+        );
       },
       sections(
         _parent,
@@ -367,14 +352,44 @@ export const graphqlSchema = createSchema<RequestEvent & GraphqlContext>({
         },
         context,
       ) {
-        return listSectionSummaries({
-          filters: args.filter ?? {},
+        const filter = args.filter;
+        return listSections({
+          filters: {
+            courseId: validateOptionalGraphqlId(filter?.courseId, "courseId"),
+            courseJwId: validateOptionalGraphqlId(
+              filter?.courseJwId,
+              "courseJwId",
+            ),
+            semesterId: validateOptionalGraphqlId(
+              filter?.semesterId,
+              "semesterId",
+            ),
+            semesterJwId: validateOptionalGraphqlId(
+              filter?.semesterJwId,
+              "semesterJwId",
+            ),
+            campusId: validateOptionalGraphqlId(filter?.campusId, "campusId"),
+            departmentId: validateOptionalGraphqlId(
+              filter?.departmentId,
+              "departmentId",
+            ),
+            teacherId: validateOptionalGraphqlId(
+              filter?.teacherId,
+              "teacherId",
+            ),
+            teacherCode: validateGraphqlTeacherCode(filter?.teacherCode),
+            ids: validateGraphqlIdList(filter?.ids, "ids"),
+            jwIds: validateGraphqlIdList(filter?.jwIds, "jwIds"),
+            search: validateGraphqlSearch(filter?.search),
+          },
           locale: context.locale,
           pagination: normalizeGraphqlPage(args.page),
         });
       },
       section(_parent, args: { jwId: number }, context) {
-        return context.loaders.sectionByJwId.load(args.jwId);
+        return context.loaders.sectionByJwId.load(
+          requireGraphqlId(args.jwId, "jwId"),
+        );
       },
       teachers(
         _parent,
@@ -389,15 +404,20 @@ export const graphqlSchema = createSchema<RequestEvent & GraphqlContext>({
       ) {
         return listTeacherSummaries({
           filters: {
-            departmentId: args.filter?.departmentId ?? undefined,
-            search: args.filter?.search,
+            departmentId: validateOptionalGraphqlId(
+              args.filter?.departmentId,
+              "departmentId",
+            ),
+            search: validateGraphqlSearch(args.filter?.search),
           },
           locale: context.locale,
           pagination: normalizeGraphqlPage(args.page),
         });
       },
       teacher(_parent, args: { id: number }, context) {
-        return context.loaders.teacherById.load(args.id);
+        return context.loaders.teacherById.load(
+          requireGraphqlId(args.id, "id"),
+        );
       },
       async busRoutes(
         _parent,
@@ -406,8 +426,8 @@ export const graphqlSchema = createSchema<RequestEvent & GraphqlContext>({
       ) {
         const { routes, campuses } = await listBusRoutes(context.locale);
         return {
-          ...paginateGraphqlArray(routes, args.page),
-          campuses,
+          ...paginateGraphqlArray(routes.map(capGraphqlBusRoute), args.page),
+          campuses: capGraphqlBusCampuses(campuses),
         };
       },
       async busTimetable(
@@ -420,23 +440,24 @@ export const graphqlSchema = createSchema<RequestEvent & GraphqlContext>({
         },
         context,
       ) {
+        const routeId = requireGraphqlId(args.routeId, "routeId");
         const result = await getBusRouteTimetable({
-          routeId: args.routeId,
+          routeId,
           locale: context.locale,
           now: args.now ?? undefined,
-          versionKey: args.versionKey,
+          versionKey: validateGraphqlVersionKey(args.versionKey),
         });
         if (!result) return null;
 
         const weekdayPage = paginateGraphqlArray(result.weekday, args.page);
         const weekendPage = paginateGraphqlArray(result.weekend, args.page);
         return {
-          route: result.route,
-          weekday: weekdayPage.data,
-          weekend: weekendPage.data,
+          route: capGraphqlBusRoute(result.route),
+          weekday: capGraphqlBusTripSlots(weekdayPage.data),
+          weekend: capGraphqlBusTripSlots(weekendPage.data),
           weekdayPageInfo: weekdayPage.pagination,
           weekendPageInfo: weekendPage.pagination,
-          alternateRoutes: result.alternateRoutes.slice(0, 100),
+          alternateRoutes: capGraphqlAlternateRoutes(result.alternateRoutes),
         };
       },
     },

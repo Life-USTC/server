@@ -1,10 +1,15 @@
 import type { RequestEvent } from "@sveltejs/kit";
 import { createYoga } from "graphql-yoga";
-import { DEFAULT_LOCALE } from "@/i18n/config";
+import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { GRAPHQL_ENDPOINT, GRAPHQL_LIMITS } from "./constants";
 import { createGraphqlLoaders } from "./loaders";
+import { createDeadline } from "./request-deadline";
 import { type GraphqlContext, graphqlSchema } from "./schema";
 import { createGraphqlSecurityPlugins } from "./security";
+
+type GraphqlServerContext = {
+  locals: { locale?: AppLocale };
+};
 
 class GraphqlBodyTooLargeError extends Error {}
 
@@ -31,32 +36,6 @@ function noStore(response: Response) {
     statusText: response.statusText,
     headers,
   });
-}
-
-function createDeadline(parentSignal: AbortSignal, timeoutMs: number) {
-  const controller = new AbortController();
-  let timedOut = false;
-  const onParentAbort = () => controller.abort(parentSignal.reason);
-
-  if (parentSignal.aborted) {
-    onParentAbort();
-  } else {
-    parentSignal.addEventListener("abort", onParentAbort, { once: true });
-  }
-
-  const timeout = setTimeout(() => {
-    timedOut = true;
-    controller.abort(new DOMException("Request timed out", "TimeoutError"));
-  }, timeoutMs);
-
-  return {
-    signal: controller.signal,
-    timedOut: () => timedOut,
-    cleanup() {
-      clearTimeout(timeout);
-      parentSignal.removeEventListener("abort", onParentAbort);
-    },
-  };
 }
 
 async function readBodyWithinLimit(
@@ -107,7 +86,7 @@ async function readBodyWithinLimit(
 }
 
 export function createGraphqlRequestHandler(production: boolean) {
-  const yoga = createYoga<RequestEvent, GraphqlContext>({
+  const yoga = createYoga<GraphqlServerContext, GraphqlContext>({
     schema: graphqlSchema,
     graphqlEndpoint: GRAPHQL_ENDPOINT,
     fetchAPI: { Response },

@@ -10,10 +10,13 @@ export function normalizeGraphqlPage(input: GraphqlPageInput | null = {}) {
   const page = input?.page ?? 1;
   const pageSize = input?.pageSize ?? 20;
 
-  if (page < 1) {
-    throw new GraphQLError("page must be at least 1.", {
-      extensions: { code: "BAD_USER_INPUT" },
-    });
+  if (page < 1 || page > GRAPHQL_LIMITS.page) {
+    throw new GraphQLError(
+      `page must be between 1 and ${GRAPHQL_LIMITS.page}.`,
+      {
+        extensions: { code: "BAD_USER_INPUT" },
+      },
+    );
   }
   if (pageSize < 1 || pageSize > GRAPHQL_LIMITS.pageSize) {
     throw new GraphQLError(

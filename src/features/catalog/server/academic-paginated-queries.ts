@@ -1,5 +1,6 @@
 import {
   courseInclude,
+  sectionCatalogInclude,
   sectionCompactInclude,
   sectionInclude,
   sectionSummarySelect,
@@ -76,6 +77,31 @@ export function paginatedSectionSummaryQuery(
         skip,
         take,
         select: sectionSummarySelect,
+        orderBy,
+      }),
+    () => prisma.section.count({ where }),
+    page,
+    pageSize,
+  );
+}
+
+export function paginatedSectionCatalogQuery(
+  page: number,
+  pageSize?: number,
+  where?: Prisma.SectionWhereInput,
+  orderBy?:
+    | Prisma.SectionOrderByWithRelationInput
+    | Prisma.SectionOrderByWithRelationInput[],
+  locale = "zh-cn",
+) {
+  const prisma = getPrisma(locale);
+  return paginatedQuery(
+    (skip, take) =>
+      prisma.section.findMany({
+        where,
+        skip,
+        take,
+        include: sectionCatalogInclude,
         orderBy,
       }),
     () => prisma.section.count({ where }),

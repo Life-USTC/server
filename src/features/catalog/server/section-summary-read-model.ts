@@ -1,7 +1,10 @@
 import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
-import { paginatedSectionSummaryQuery } from "./academic-paginated-queries";
+import {
+  paginatedSectionCatalogQuery,
+  paginatedSectionSummaryQuery,
+} from "./academic-paginated-queries";
 import {
   buildSectionListQuery,
   type SectionListFilters,
@@ -25,6 +28,28 @@ export function listSectionSummaries({
 }) {
   const { where, orderBy } = buildSectionListQuery(filters);
   return paginatedSectionSummaryQuery(
+    pagination.page,
+    pagination.pageSize,
+    where,
+    orderBy ?? SECTION_SUMMARY_DEFAULT_ORDER_BY,
+    locale,
+  );
+}
+
+export function listSections({
+  filters,
+  locale = DEFAULT_LOCALE,
+  pagination,
+}: {
+  filters: SectionListFilters;
+  locale?: AppLocale;
+  pagination: {
+    page: number;
+    pageSize: number;
+  };
+}) {
+  const { where, orderBy } = buildSectionListQuery(filters);
+  return paginatedSectionCatalogQuery(
     pagination.page,
     pagination.pageSize,
     where,

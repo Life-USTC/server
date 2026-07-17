@@ -1,28 +1,28 @@
 import DataLoader from "dataloader";
 import {
-  findCourseDetailsByJwIds,
-  findSectionDetailsByJwIds,
+  findCoursesByJwIds,
+  findSectionsByJwIds,
 } from "@/features/catalog/server/course-section-read-queries";
-import { findTeacherDetailsByIds } from "@/features/catalog/server/teacher-summary-read-model";
+import { findTeachersByIds } from "@/features/catalog/server/teacher-summary-read-model";
 import type { AppLocale } from "@/i18n/config";
 import { GRAPHQL_LIMITS } from "./constants";
 
 export function createGraphqlLoaders(locale: AppLocale) {
   return {
     courseByJwId: new DataLoader(
-      (jwIds: readonly number[]) => findCourseDetailsByJwIds(jwIds, locale),
+      (jwIds: readonly number[]) => findCoursesByJwIds(jwIds, locale),
       {
         maxBatchSize: GRAPHQL_LIMITS.pageSize,
       },
     ),
     sectionByJwId: new DataLoader(
-      (jwIds: readonly number[]) => findSectionDetailsByJwIds(jwIds, locale),
+      (jwIds: readonly number[]) => findSectionsByJwIds(jwIds, locale),
       {
         maxBatchSize: GRAPHQL_LIMITS.pageSize,
       },
     ),
     teacherById: new DataLoader(
-      (ids: readonly number[]) => findTeacherDetailsByIds(ids, locale),
+      (ids: readonly number[]) => findTeachersByIds(ids, locale),
       {
         maxBatchSize: GRAPHQL_LIMITS.pageSize,
       },

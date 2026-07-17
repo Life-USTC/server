@@ -1,5 +1,7 @@
 import {
   courseDetailInclude,
+  courseInclude,
+  sectionCatalogInclude,
   sectionCompactInclude,
   sectionInclude,
 } from "@/features/catalog/server/academic-query-includes";
@@ -43,13 +45,13 @@ export async function findCourseDetailByJwId(
   });
 }
 
-export async function findCourseDetailsByJwIds(
+export async function findCoursesByJwIds(
   jwIds: readonly number[],
   locale: AppLocale = DEFAULT_LOCALE,
 ) {
   const courses = await getPrisma(locale).course.findMany({
     where: { jwId: { in: [...new Set(jwIds)] } },
-    include: courseDetailInclude,
+    include: courseInclude,
   });
   const byJwId = new Map(courses.map((course) => [course.jwId, course]));
   return jwIds.map((jwId) => byJwId.get(jwId) ?? null);
@@ -82,23 +84,15 @@ export async function findSectionDetailByJwId(
   };
 }
 
-export async function findSectionDetailsByJwIds(
+export async function findSectionsByJwIds(
   jwIds: readonly number[],
   locale: AppLocale = DEFAULT_LOCALE,
 ) {
   const sections = await getPrisma(locale).section.findMany({
     where: { jwId: { in: [...new Set(jwIds)] } },
-    include: sectionDetailInclude,
+    include: sectionCatalogInclude,
   });
-  const byJwId = new Map(
-    sections.map((section) => [
-      section.jwId,
-      {
-        ...section,
-        schedules: section.schedules.map(serializeScheduleTimeFields),
-      },
-    ]),
-  );
+  const byJwId = new Map(sections.map((section) => [section.jwId, section]));
   return jwIds.map((jwId) => byJwId.get(jwId) ?? null);
 }
 
