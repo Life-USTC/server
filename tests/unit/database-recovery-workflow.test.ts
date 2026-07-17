@@ -30,6 +30,14 @@ describe("database recovery workflow safety", () => {
     expect(workflow).not.toContain("secrets.DATABASE_URL");
     expect(workflow).not.toContain("upload-artifact");
     expect(workflow).not.toMatch(/provider.*token/i);
+    expect(workflow).toContain("^[0-9a-fA-F]{40}$");
+    expect(workflow).toContain(
+      "Allowlisted aggregate counts changed during the candidate migration.",
+    );
+    expect(
+      workflow.indexOf("Validate immutable recovery evidence"),
+    ).toBeLessThan(workflow.indexOf("Checkout candidate"));
+    expect(workflow).toContain("steps.evidence.outputs.restore-point-utc");
   });
 
   it("never logs a DATABASE_URL-derived value", async () => {

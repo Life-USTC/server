@@ -49,6 +49,8 @@ GitHub environment protection is configured outside this repository.
 
 1. Configure required reviewers for the existing `production` environment.
 2. Create a separate `database-recovery` environment with required reviewers.
+   A reviewer must confirm that the supplied full 40-character commit SHA is
+   the reviewed candidate before approving the job.
 3. Add only these environment secrets to `database-recovery`:
    - `RECOVERY_DATABASE_URL`: an ephemeral connection to the isolated restore,
      never production.
@@ -82,7 +84,9 @@ review rules before relying on either gate.
 
    Never put a URL, credential, provider resource ID, or personal data in the
    comment. Never set this marker on production.
-6. Manually run **Recovery Drill Verify** with the frozen candidate ref. The
+6. Manually run **Recovery Drill Verify** with the frozen candidate's full
+   40-character commit SHA and a valid `YYYY-MM-DDTHH:MM:SSZ` restore point.
+   Branches, tags, and abbreviated SHAs are rejected. The
    workflow:
    - refuses to continue unless the database comment matches the environment
      marker;
