@@ -1,5 +1,5 @@
 import { isRecord } from "@/lib/is-record";
-import { pick } from "@/lib/mcp/compact-payload";
+import { pick } from "@/lib/mcp/compact-helpers";
 
 export function summarizeBusDeparture(value: unknown) {
   if (!isRecord(value)) return value;

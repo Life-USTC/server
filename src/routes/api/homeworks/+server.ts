@@ -1,7 +1,5 @@
-import {
-  getHomeworksRoute,
-  postHomeworkRoute,
-} from "@/lib/api/routes/homeworks";
+import { getHomeworksRoute } from "@/lib/api/routes/homework-list-read-route";
+import { postHomeworkRoute } from "@/lib/api/routes/homework-mutation-routes";
 import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 

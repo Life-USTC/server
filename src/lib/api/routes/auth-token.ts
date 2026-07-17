@@ -5,11 +5,9 @@ import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";
 import { OAUTH_DEVICE_CODE_GRANT_TYPE } from "@/lib/oauth/constants";
 import { rewriteOAuthResourceAliases } from "@/lib/oauth/resource-aliases";
 import { handleDeviceCodeGrant } from "./auth-token-device-grant";
-import {
-  logObservedTokenRedirectRequest,
-  maybeBindMcpRefreshRequest,
-  maybeNormalizeTokenLoopbackRedirectRequest,
-} from "./auth-token-normalization";
+import { maybeNormalizeTokenLoopbackRedirectRequest } from "./auth-token-loopback-normalization";
+import { maybeBindMcpRefreshRequest } from "./auth-token-mcp-refresh-binding";
+import { logObservedTokenRedirectRequest } from "./auth-token-observed-logging";
 import {
   persistOAuthRefreshTokenResources,
   replaceOAuthRefreshAccessToken,

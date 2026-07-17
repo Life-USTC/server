@@ -5,10 +5,8 @@ import {
   mcpLocaleInputSchema,
   mcpModeInputSchema,
 } from "@/lib/mcp/tools/_helpers";
-import {
-  getMyOverviewAction,
-  getMySevenDaysTimelineAction,
-} from "@/lib/mcp/tools/my-data-overview-actions";
+import { getMyOverviewAction } from "@/lib/mcp/tools/my-data-overview-action";
+import { getMySevenDaysTimelineAction } from "@/lib/mcp/tools/my-data-timeline-action";
 
 export function registerMyOverviewTools(server: McpServer) {
   server.registerTool(

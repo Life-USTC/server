@@ -1,7 +1,7 @@
 import {
   getDashboardLinkVisitRoute,
   postDashboardLinkVisitRoute,
-} from "@/lib/api/routes/dashboard-links";
+} from "@/lib/api/routes/dashboard-link-visit-routes";
 import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 

@@ -1,4 +1,4 @@
-import { getSchedulesRoute } from "@/lib/api/routes/academic";
+import { getSchedulesRoute } from "@/lib/api/routes/academic-schedule-routes";
 import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 

@@ -1,5 +1,5 @@
 import { isRecord } from "@/lib/is-record";
-import { compactMcpPayload } from "@/lib/mcp/compact-payload";
+import { compactMcpPayload } from "@/lib/mcp/compact-dispatch";
 import { serializeDatesDeep } from "@/lib/time/serialize-date-output";
 import { resolveMcpMode } from "./helper-schemas";
 
