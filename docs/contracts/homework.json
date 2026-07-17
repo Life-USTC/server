@@ -229,6 +229,18 @@
         "models": ["Homework"]
       },
       "web": "stable",
+      "graphql": {
+        "mutations": [
+          {
+            "name": "setHomeworkCompletion",
+            "returns": "HomeworkCompletionMutationPayload!",
+            "auth": "user",
+            "required_scopes": ["homework:write"],
+            "rest_equivalent": "PUT /api/homeworks/[id]/completion",
+            "mcp_equivalent": "set_my_homework_completion"
+          }
+        ]
+      },
       "rest": {
         "routes": [
           {

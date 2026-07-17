@@ -22,19 +22,6 @@
       "web": {
         "pages": ["/dashboard/todos", "/?tab=todos"]
       },
-      "rest": {
-        "routes": [
-          {
-            "path": "/api/todos",
-            "returns": "{ counts: { incomplete: Int, completed: Int, overdue: Int }, todos: TodoItem[] }",
-            "notes": [
-              "Returns the same count summary as list_my_todos plus todos[]; each item contains id, title, content, completed, priority, dueAt, createdAt, and updatedAt.",
-              "Supports completed, priority, dueBefore, dueAfter, and limit query parameters.",
-              "REST and MCP share the same limit bounds: 1-200."
-            ]
-          }
-        ]
-      },
       "graphql": {
         "fields": [
           {
@@ -47,6 +34,45 @@
             "mcp_equivalent": "list_my_todos",
             "notes": [
               "Ownership comes from the authenticated principal; PageInput defaults to 1/20 and caps pageSize at 100."
+            ]
+          }
+        ],
+        "mutations": [
+          {
+            "name": "createTodo",
+            "returns": "TodoMutationPayload!",
+            "auth": "user",
+            "required_scopes": ["todo:write"],
+            "rest_equivalent": "POST /api/todos",
+            "mcp_equivalent": "create_my_todo"
+          },
+          {
+            "name": "updateTodo",
+            "returns": "TodoMutationPayload!",
+            "auth": "user",
+            "required_scopes": ["todo:write"],
+            "rest_equivalent": "PATCH /api/todos/[id]",
+            "mcp_equivalent": "update_my_todo"
+          },
+          {
+            "name": "deleteTodo",
+            "returns": "DeleteMutationPayload!",
+            "auth": "user",
+            "required_scopes": ["todo:write"],
+            "rest_equivalent": "DELETE /api/todos/[id]",
+            "mcp_equivalent": "delete_my_todo"
+          }
+        ]
+      },
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/todos",
+            "returns": "{ counts: { incomplete: Int, completed: Int, overdue: Int }, todos: TodoItem[] }",
+            "notes": [
+              "Returns the same count summary as list_my_todos plus todos[]; each item contains id, title, content, completed, priority, dueAt, createdAt, and updatedAt.",
+              "Supports completed, priority, dueBefore, dueAfter, and limit query parameters.",
+              "REST and MCP share the same limit bounds: 1-200."
             ]
           }
         ]

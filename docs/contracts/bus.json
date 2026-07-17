@@ -73,6 +73,16 @@
               "The optional now argument is a DateTime and must include an explicit Z or numeric timezone offset."
             ]
           }
+        ],
+        "mutations": [
+          {
+            "name": "saveBusPreferences",
+            "returns": "BusPreferenceMutationPayload!",
+            "auth": "user",
+            "required_scopes": ["bus:write"],
+            "rest_equivalent": "POST /api/bus/preferences",
+            "mcp_equivalent": "save_my_bus_preferences"
+          }
         ]
       },
       "mcp": {

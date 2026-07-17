@@ -26,6 +26,7 @@ import {
   validateGraphqlVersionKey,
   validateOptionalGraphqlId,
 } from "./input-boundaries";
+import { graphqlMutationResolvers, graphqlMutationTypeDefs } from "./mutations";
 import {
   type GraphqlPageInput,
   graphqlPageResolvers,
@@ -253,6 +254,8 @@ export const graphqlTypeDefs = /* GraphQL */ `
     ): BusRouteTimetable
     viewer: Viewer
   }
+
+  ${graphqlMutationTypeDefs}
 `;
 
 export const graphqlSchema = createSchema<
@@ -268,6 +271,7 @@ export const graphqlSchema = createSchema<
     TeacherPage: graphqlPageResolvers,
     BusRoutePage: graphqlPageResolvers,
     ...graphqlViewerResolvers,
+    ...graphqlMutationResolvers,
     Teacher: {
       async sectionCount(teacher: TeacherParent, _args, context) {
         const count = teacher._count?.sections;

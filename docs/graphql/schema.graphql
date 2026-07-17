@@ -8,6 +8,18 @@ type BusCampus {
   nameSecondary: String
 }
 
+input BusPreferenceInput {
+  preferredDestinationCampusId: Int
+  preferredOriginCampusId: Int
+  showDepartedTrips: Boolean!
+}
+
+type BusPreferenceMutationPayload {
+  preferredDestinationCampusId: Int
+  preferredOriginCampusId: Int
+  showDepartedTrips: Boolean!
+}
+
 type BusRoute {
   descriptionPrimary: String!
   id: Int!
@@ -55,6 +67,41 @@ type Campus {
   nameEn: String
 }
 
+type CommentMutationPayload {
+  id: ID!
+}
+
+type CommentReactionMutationPayload {
+  active: Boolean!
+  changed: Boolean!
+  commentId: ID!
+  type: CommentReactionType!
+}
+
+enum CommentReactionType {
+  CONFUSED
+  DOWNVOTE
+  EYES
+  HEART
+  HOORAY
+  LAUGH
+  ROCKET
+  UPVOTE
+}
+
+enum CommentTargetType {
+  COURSE
+  HOMEWORK
+  SECTION
+  SECTION_TEACHER
+  TEACHER
+}
+
+enum CommentVisibility {
+  LOGGED_IN_ONLY
+  PUBLIC
+}
+
 type Course {
   category: NamedCatalogValue
   classType: NamedCatalogValue
@@ -81,9 +128,44 @@ type CoursePage {
   pageInfo: PageInfo!
 }
 
+input CreateCommentInput {
+  attachmentIds: [ID!]
+  body: String!
+  courseJwId: Int
+  homeworkId: ID
+  isAnonymous: Boolean = false
+  parentId: ID
+  sectionId: ID
+  sectionJwId: Int
+  sectionTeacherId: Int
+  targetId: ID
+  targetType: CommentTargetType!
+  teacherId: ID
+  visibility: CommentVisibility = PUBLIC
+}
+
+input CreateTodoInput {
+  content: String
+  dueAt: DateTime
+  priority: TodoPriority = MEDIUM
+  title: String!
+}
+
+type DashboardLinkPinMutationPayload {
+  maxPinnedLinks: Int!
+  pinned: Boolean!
+  pinnedSlugs: [String!]!
+  slug: String!
+}
+
 scalar Date
 
 scalar DateTime
+
+type DeleteMutationPayload {
+  id: ID!
+  success: Boolean!
+}
 
 type Department {
   code: String!
@@ -151,6 +233,12 @@ type Homework {
   updatedAt: DateTime!
 }
 
+type HomeworkCompletionMutationPayload {
+  completed: Boolean!
+  completedAt: DateTime
+  homeworkId: ID!
+}
+
 input HomeworkFilter {
   completed: Boolean
   dueAtFrom: DateTime
@@ -161,6 +249,22 @@ input HomeworkFilter {
 type HomeworkPage {
   items: [Homework!]!
   pageInfo: PageInfo!
+}
+
+type Mutation {
+  addCommentReaction(commentId: ID!, type: CommentReactionType!): CommentReactionMutationPayload!
+  createComment(input: CreateCommentInput!): CommentMutationPayload!
+  createTodo(input: CreateTodoInput!): TodoMutationPayload!
+  deleteComment(id: ID!): DeleteMutationPayload!
+  deleteTodo(id: ID!): DeleteMutationPayload!
+  removeCommentReaction(commentId: ID!, type: CommentReactionType!): CommentReactionMutationPayload!
+  saveBusPreferences(input: BusPreferenceInput!): BusPreferenceMutationPayload!
+  setDashboardLinkPinState(pinned: Boolean!, slug: String!): DashboardLinkPinMutationPayload!
+  setHomeworkCompletion(completed: Boolean!, homeworkId: ID!): HomeworkCompletionMutationPayload!
+  subscribeSection(jwId: Int!): SectionSubscriptionMutationPayload!
+  unsubscribeSection(jwId: Int!): SectionSubscriptionMutationPayload!
+  updateComment(id: ID!, input: UpdateCommentInput!): CommentMutationPayload!
+  updateTodo(id: ID!, input: UpdateTodoInput!): TodoMutationPayload!
 }
 
 type NamedCatalogValue {
@@ -279,6 +383,11 @@ type SectionPage {
   pageInfo: PageInfo!
 }
 
+type SectionSubscriptionMutationPayload {
+  sectionJwId: Int!
+  subscribed: Boolean!
+}
+
 type Semester {
   code: String!
   endDate: Date
@@ -337,6 +446,10 @@ input TodoFilter {
   priority: TodoPriority
 }
 
+type TodoMutationPayload {
+  id: ID!
+}
+
 type TodoPage {
   items: [Todo!]!
   pageInfo: PageInfo!
@@ -346,6 +459,21 @@ enum TodoPriority {
   HIGH
   LOW
   MEDIUM
+}
+
+input UpdateCommentInput {
+  attachmentIds: [ID!]
+  body: String!
+  isAnonymous: Boolean
+  visibility: CommentVisibility
+}
+
+input UpdateTodoInput {
+  completed: Boolean
+  content: String
+  dueAt: DateTime
+  priority: TodoPriority
+  title: String
 }
 
 type UserProfile {

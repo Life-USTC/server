@@ -22,6 +22,24 @@
       "web": {
         "pages": ["/sections/[jwId]"]
       },
+      "graphql": {
+        "mutations": [
+          {
+            "name": "subscribeSection",
+            "returns": "SectionSubscriptionMutationPayload!",
+            "auth": "user",
+            "required_scopes": ["subscription:write"],
+            "mcp_equivalent": "subscribe_section_by_jw_id"
+          },
+          {
+            "name": "unsubscribeSection",
+            "returns": "SectionSubscriptionMutationPayload!",
+            "auth": "user",
+            "required_scopes": ["subscription:write"],
+            "mcp_equivalent": "unsubscribe_section_by_jw_id"
+          }
+        ]
+      },
       "rest": "unavailable",
       "mcp": {
         "tools": [

@@ -1,5 +1,7 @@
 import type { RequestEvent } from "@sveltejs/kit";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { GraphQLError } from "graphql";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import { GRAPHQL_LIMITS } from "@/lib/graphql/constants";
 
 const courseService = vi.hoisted(() => ({
@@ -9,16 +11,28 @@ const busService = vi.hoisted(() => ({
   getBusRouteTimetable: vi.fn(),
   listBusRoutes: vi.fn(),
 }));
+const authCore = vi.hoisted(() => ({
+  getSessionFromHeaders: vi.fn(),
+}));
+const todoService = vi.hoisted(() => ({
+  createTodo: vi.fn(),
+  deleteOwnedTodo: vi.fn(),
+  updateOwnedTodo: vi.fn(),
+}));
 
 vi.mock("@/features/catalog/server/course-summary-read-model", () => ({
   listCourseSummaries: courseService.listCourseSummaries,
 }));
 vi.mock("@/features/bus/server/bus-catalog", () => busService);
+vi.mock("@/features/todos/server/todo-service", () => todoService);
+vi.mock("@/lib/auth/core", () => authCore);
 
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 
 const developmentHandler = createGraphqlRequestHandler(false);
 const productionHandler = createGraphqlRequestHandler(true);
+
+afterEach(() => setCloudflareRuntimeEnv(undefined));
 
 function requestEventFromRequest(request: Request): RequestEvent {
   return {
@@ -71,6 +85,10 @@ describe("GraphQL HTTP boundary", () => {
     courseService.listCourseSummaries.mockReset();
     busService.getBusRouteTimetable.mockReset();
     busService.listBusRoutes.mockReset();
+    authCore.getSessionFromHeaders.mockReset();
+    todoService.createTodo.mockReset();
+    todoService.deleteOwnedTodo.mockReset();
+    todoService.updateOwnedTodo.mockReset();
     courseService.listCourseSummaries.mockResolvedValue({
       data: [],
       pagination: {
@@ -82,6 +100,8 @@ describe("GraphQL HTTP boundary", () => {
     });
     busService.getBusRouteTimetable.mockResolvedValue(null);
     busService.listBusRoutes.mockResolvedValue({ routes: [], campuses: [] });
+    authCore.getSessionFromHeaders.mockResolvedValue(null);
+    todoService.createTodo.mockResolvedValue({ id: "todo-created" });
   });
 
   it("serves public queries without a session and prevents response caching", async () => {
@@ -131,7 +151,9 @@ describe("GraphQL HTTP boundary", () => {
   });
 
   it("rejects mutation operations over GET and serves CORS preflight", async () => {
-    const mutation = encodeURIComponent("mutation Forbidden { __typename }");
+    const mutation = encodeURIComponent(
+      'mutation Forbidden { deleteTodo(id: "test") { success } }',
+    );
     const mutationResponse = await productionHandler(
       requestEventFromRequest(
         new Request(`https://example.test/api/graphql?query=${mutation}`),
@@ -169,6 +191,252 @@ describe("GraphQL HTTP boundary", () => {
     );
   });
 
+  it("executes a session-authenticated POST mutation and prevents response caching", async () => {
+    authCore.getSessionFromHeaders.mockResolvedValue({
+      user: { id: "session-user" },
+    });
+    const response = await developmentHandler(
+      requestEventFromRequest(
+        new Request("http://localhost:3000/api/graphql", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie: "better-auth.session_token=session-token",
+            origin: "http://localhost:3000",
+          },
+          body: JSON.stringify({
+            query:
+              'mutation { createTodo(input: { title: "  Session todo  " }) { id } }',
+          }),
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(await response.json()).toEqual({
+      data: { createTodo: { id: "todo-created" } },
+    });
+    expect(todoService.createTodo).toHaveBeenCalledWith({
+      userId: "session-user",
+      title: "Session todo",
+      content: undefined,
+      priority: "medium",
+      dueAt: undefined,
+    });
+  });
+
+  it("preserves omitted versus explicit null todo update fields", async () => {
+    authCore.getSessionFromHeaders.mockResolvedValue({
+      user: { id: "session-user" },
+    });
+    todoService.updateOwnedTodo.mockResolvedValue({
+      ok: true,
+      todo: { id: "todo-updated" },
+    });
+    const response = await developmentHandler(
+      requestEventFromRequest(
+        new Request("http://localhost:3000/api/graphql", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie: "better-auth.session_token=session-token",
+            origin: "http://localhost:3000",
+          },
+          body: JSON.stringify({
+            query:
+              'mutation { updateTodo(id: "todo-updated", input: { content: null }) { id } }',
+          }),
+        }),
+      ),
+    );
+
+    expect(await response.json()).toEqual({
+      data: { updateTodo: { id: "todo-updated" } },
+    });
+    expect(todoService.updateOwnedTodo).toHaveBeenCalledWith({
+      id: "todo-updated",
+      userId: "session-user",
+      data: {
+        completed: undefined,
+        content: null,
+        dueAt: undefined,
+        hasContent: true,
+        hasDueAt: false,
+        priority: undefined,
+        title: undefined,
+      },
+    });
+  });
+
+  it("preserves safe mutation errors in production", async () => {
+    authCore.getSessionFromHeaders.mockResolvedValue({
+      user: { id: "session-user" },
+    });
+    const response = await productionHandler(
+      requestEventFromRequest(
+        new Request("http://localhost:3000/api/graphql", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie: "better-auth.session_token=session-token",
+            origin: "http://localhost:3000",
+          },
+          body: JSON.stringify({
+            query: 'mutation { createTodo(input: { title: "   " }) { id } }',
+          }),
+        }),
+      ),
+    );
+    const payload = (await response.json()) as Record<string, unknown>;
+
+    expect(payload).toMatchObject({
+      data: null,
+      errors: [
+        {
+          message: "title must contain 1-200 characters.",
+          extensions: { code: "BAD_USER_INPUT" },
+        },
+      ],
+    });
+    expect(todoService.createTodo).not.toHaveBeenCalled();
+  });
+
+  it("preserves mutation not-found errors in production", async () => {
+    authCore.getSessionFromHeaders.mockResolvedValue({
+      user: { id: "session-user" },
+    });
+    todoService.deleteOwnedTodo.mockResolvedValue({
+      ok: false,
+      error: "not_found",
+    });
+    const response = await productionHandler(
+      requestEventFromRequest(
+        new Request("http://localhost:3000/api/graphql", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie: "better-auth.session_token=session-token",
+            origin: "http://localhost:3000",
+          },
+          body: JSON.stringify({
+            query: 'mutation { deleteTodo(id: "missing") { success } }',
+          }),
+        }),
+      ),
+    );
+
+    expect(await response.json()).toMatchObject({
+      data: null,
+      errors: [
+        {
+          message: "Todo not found.",
+          extensions: { code: "NOT_FOUND" },
+        },
+      ],
+    });
+  });
+
+  it("preserves rate-limit errors in production", async () => {
+    authCore.getSessionFromHeaders.mockResolvedValue({
+      user: { id: "session-user" },
+    });
+    setCloudflareRuntimeEnv({
+      USER_WRITE_RATE_LIMITER: {
+        limit: vi.fn().mockResolvedValue({ success: false }),
+      },
+    });
+    const response = await productionHandler(
+      requestEventFromRequest(
+        new Request("http://localhost:3000/api/graphql", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie: "better-auth.session_token=session-token",
+            origin: "http://localhost:3000",
+          },
+          body: JSON.stringify({
+            query:
+              'mutation { createTodo(input: { title: "limited" }) { id } }',
+          }),
+        }),
+      ),
+    );
+
+    expect(await response.json()).toMatchObject({
+      data: null,
+      errors: [
+        {
+          message: expect.stringContaining("Rate limit exceeded"),
+          extensions: { code: "RATE_LIMITED" },
+        },
+      ],
+    });
+    expect(todoService.createTodo).not.toHaveBeenCalled();
+  });
+
+  it("masks an arbitrary error that claims a safe mutation code", async () => {
+    authCore.getSessionFromHeaders.mockResolvedValue({
+      user: { id: "session-user" },
+    });
+    todoService.createTodo.mockRejectedValue(
+      Object.assign(new Error("resolver-detail-must-not-leak"), {
+        extensions: { code: "BAD_USER_INPUT" },
+      }),
+    );
+    const response = await productionHandler(
+      requestEventFromRequest(
+        new Request("http://localhost:3000/api/graphql", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie: "better-auth.session_token=session-token",
+            origin: "http://localhost:3000",
+          },
+          body: JSON.stringify({
+            query: 'mutation { createTodo(input: { title: "masked" }) { id } }',
+          }),
+        }),
+      ),
+    );
+    const payload = (await response.json()) as Record<string, unknown>;
+
+    expect(errorMessages(payload)).toEqual(["Unexpected error."]);
+  });
+
+  it("rejects anonymous POST mutations with a safe auth error", async () => {
+    const { response, payload } = await execute({
+      query: 'mutation { deleteTodo(id: "todo") { success } }',
+    });
+
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(payload).toMatchObject({
+      data: null,
+      errors: [
+        {
+          message: "Authentication required",
+          extensions: { code: "UNAUTHENTICATED" },
+        },
+      ],
+    });
+    expect(todoService.deleteOwnedTodo).not.toHaveBeenCalled();
+  });
+
+  it("enforces the top-level field budget for mutations", async () => {
+    const fields = Array.from(
+      { length: GRAPHQL_LIMITS.topLevelFields + 1 },
+      (_, index) => `m${index}: deleteTodo(id: "todo-${index}") { success }`,
+    ).join("\n");
+    const { payload } = await execute({
+      query: `mutation TooWide { ${fields} }`,
+    });
+
+    expect(errorMessages(payload)).toContain(
+      "Mutation has too many top-level fields.",
+    );
+    expect(todoService.deleteOwnedTodo).not.toHaveBeenCalled();
+  });
+
   it("masks unexpected resolver details", async () => {
     courseService.listCourseSummaries.mockRejectedValueOnce(
       new Error("database-password-should-never-leak"),
@@ -185,10 +453,12 @@ describe("GraphQL HTTP boundary", () => {
   });
 
   it("masks a public resolver error that forges a safe GraphQLError code", async () => {
+    const secret = "forged-safe-error-must-not-leak";
     courseService.listCourseSummaries.mockRejectedValueOnce(
-      Object.assign(new Error("forged-safe-error-must-not-leak"), {
+      Object.assign(new Error(secret), {
         name: "GraphQLError",
         extensions: { code: "BAD_USER_INPUT" },
+        [Symbol.toStringTag]: "GraphQLError",
       }),
     );
 
@@ -198,9 +468,51 @@ describe("GraphQL HTTP boundary", () => {
     );
 
     expect(errorMessages(payload)).toEqual(["Unexpected error."]);
-    expect(JSON.stringify(payload)).not.toContain(
-      "forged-safe-error-must-not-leak",
+    expect(JSON.stringify(payload)).not.toContain(secret);
+  });
+
+  it("masks a safe GraphQLError with an untrusted nested originalError", async () => {
+    const outerSecret = "nested-graphql-error-must-not-leak";
+    const innerSecret = "nested-forged-original-must-not-leak";
+    const forgedOriginal = Object.assign(new Error(innerSecret), {
+      name: "GraphQLError",
+      extensions: { code: "BAD_USER_INPUT" },
+      [Symbol.toStringTag]: "GraphQLError",
+    });
+    courseService.listCourseSummaries.mockRejectedValueOnce(
+      new GraphQLError(outerSecret, {
+        extensions: { code: "BAD_USER_INPUT" },
+        originalError: forgedOriginal,
+      }),
     );
+
+    const { payload } = await execute(
+      { query: "{ courses { items { jwId } } }" },
+      true,
+    );
+
+    expect(errorMessages(payload)).toEqual(["Unexpected error."]);
+    expect(JSON.stringify(payload)).not.toContain(outerSecret);
+    expect(JSON.stringify(payload)).not.toContain(innerSecret);
+  });
+
+  it("masks a safe GraphQLError with a cyclic originalError chain", async () => {
+    const secret = "cyclic-graphql-error-must-not-leak";
+    const cyclicError = new GraphQLError(secret, {
+      extensions: { code: "BAD_USER_INPUT" },
+    });
+    Object.defineProperty(cyclicError, "originalError", {
+      value: cyclicError,
+    });
+    courseService.listCourseSummaries.mockRejectedValueOnce(cyclicError);
+
+    const { payload } = await execute(
+      { query: "{ courses { items { jwId } } }" },
+      true,
+    );
+
+    expect(errorMessages(payload)).toEqual(["Unexpected error."]);
+    expect(JSON.stringify(payload)).not.toContain(secret);
   });
 
   it("preserves a trusted bad-input GraphQLError in production", async () => {

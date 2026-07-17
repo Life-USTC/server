@@ -2,19 +2,19 @@
   "name": "GraphQL",
   "access": {
     "anon": "Can query the public academic catalog and bus timetable through /api/graphql.",
-    "user": "Can use the public queries and the authenticated read-only Viewer fields allowed by their Session or OAuth feature scopes.",
-    "admin": "Uses the same read-only Viewer surface as a regular user; no GraphQL governance fields are exposed.",
-    "agent": "Can inspect the GraphQL SDL and versioned persisted-operation manifest through authenticated MCP resources; arbitrary GraphQL execution is not exposed as an MCP tool."
+    "user": "Can use public queries, authenticated Viewer fields, and personal mutations through a trusted same-origin Session.",
+    "admin": "Uses the same Viewer and ordinary personal mutation surfaces as a regular user; GraphQL exposes no admin governance fields or mutations.",
+    "agent": "Can call Viewer fields and personal mutations with a bearer token issued for the GraphQL resource and the matching feature:read or feature:write scope. Authenticated MCP resources expose the SDL and versioned persisted-operation manifest, but arbitrary GraphQL execution is not exposed as an MCP tool."
   },
   "rules": {
-    "read-only": "The endpoint exposes public catalog/bus queries and authenticated Viewer reads; mutations remain deferred.",
+    "scoped-mutations": "Every personal mutation requires authentication, the matching feature:write OAuth scope for bearer callers, and the shared per-user mutation rate-limit action key used by REST and MCP. Trusted session callers receive the equivalent first-party access.",
     "single-endpoint": "GraphQL HTTP requests use /api/graphql with GET, POST, and OPTIONS handlers.",
     "production-discovery": "GraphiQL and schema introspection are disabled in production.",
     "request-budgets": "Requests are limited to 64 KiB, one operation per HTTP request, five seconds, depth 8, 10 top-level fields, 15 aliases, 10 directives, 1000 tokens, and cost 5000; operation cost weights every paginated selection by its effective pageSize, including values supplied through variables.",
     "pagination": "Every GraphQL collection is bounded: Viewer todos, subscribed sections, homeworks, schedules, and exams use PageInput, while nested Schedule.teachers and Exam.examRooms return their own PageInput-backed pages; inputs default to page 1 and pageSize 20, and pageSize must be between 1 and 100.",
     "resolver-boundary": "Resolvers call feature-owned services only; they do not issue internal HTTP requests or access Prisma directly.",
     "request-cache": "The principal and entity DataLoaders are request-scoped; authentication is resolved once per request and every response is marked no-store.",
-    "safe-errors": "Expected authentication, authorization, and bad-input GraphQLErrors retain safe codes and status metadata; unexpected resolver failures use Yoga error masking and never expose internal details.",
+    "safe-errors": "Expected authentication, authorization, bad-input, not-found, rate-limit, and availability GraphQLErrors retain stable codes and status metadata; only trusted GraphQLErrors pass the allowlist, while unexpected or forged resolver failures are masked without internal details.",
     "semantic-observability": "Each attempted GraphQL operation records one sanitized semantic observation with its operation name and type, top-level field count, estimated cost, duration, GraphQL error count, auth mode, and request ID; raw documents, variables, credentials, argument values, and error details are excluded.",
     "viewer-scopes": "Query.viewer returns null for an anonymous caller. Its profile, overview, todos, subscribedSections, homeworks, schedules, and exams fields independently require me:read, dashboard:read, todo:read, subscription:read, homework:read, schedule:read, and exam:read for OAuth principals; trusted-origin Sessions use their existing user authority.",
     "viewer-ownership": "Viewer collections derive ownership from the authenticated user relation in feature services and never accept sectionIds or internal visibility/shape flags from GraphQL inputs.",
@@ -23,15 +23,17 @@
   },
   "capabilities": {
     "public-query-endpoint": {
-      "title": "Public Query Endpoint",
+      "title": "Public Queries and Scoped Personal Mutations",
       "auth": "anon",
       "graphql": "stable",
       "display": {
         "fields": [
           "/api/graphql",
           "Public semester, course, section, teacher, and bus queries",
+          "Authenticated Viewer reads with exact feature:read scopes",
+          "Authenticated todo, homework completion, section subscription, dashboard pin, bus preference, and comment mutations",
           "GET, POST, and OPTIONS",
-          "Read-only; no arbitrary GraphQL execution through MCP"
+          "GraphQL-audience bearer tokens require matching feature scopes; MCP exposes metadata resources only"
         ]
       }
     },
