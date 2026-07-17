@@ -2,10 +2,10 @@
   "priority": [
     "student learning workspace",
     "public campus info browser",
-    "controlled REST / MCP surface",
+    "controlled REST / GraphQL / MCP surface",
     "admin maintenance surface"
   ],
-  "surfaces": ["web", "rest", "mcp"],
+  "surfaces": ["web", "rest", "graphql", "mcp"],
   "roles": {
     "anon": "Unauthenticated visitor; can browse all public information.",
     "user": "Authenticated, non-suspended user; can manage personal state and perform social actions.",

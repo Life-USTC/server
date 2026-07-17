@@ -188,6 +188,18 @@ jobs:
         shell: bash
         run: bun run openapi:check
 
+      - name: Verify GraphQL schema compatibility
+        if: ${{ inputs.job-phase == 'ci:verify' }}
+        shell: bash
+        run: |
+          base_sha="${{ github.event.pull_request.base.sha }}"
+          if [ -n "$base_sha" ]; then
+            git fetch --no-tags --depth=1 origin "$base_sha"
+            GRAPHQL_SCHEMA_BASE_REF="$base_sha" bunx vitest run tests/unit/graphql-schema-snapshot.test.ts
+          else
+            bunx vitest run tests/unit/graphql-schema-snapshot.test.ts
+          fi
+
       - name: Upload artifact
         id: upload-artifact
         if: ${{ always() && inputs.upload-artifact-path != '' && (inputs.upload-artifact-always || success()) }}

@@ -40,6 +40,19 @@
           }
         ]
       },
+      "graphql": {
+        "queries": [
+          {
+            "name": "courses",
+            "returns": "CoursePage!",
+            "rest_equivalent": "GET /api/courses",
+            "mcp_equivalent": "search_courses",
+            "notes": [
+              "PageInput defaults to page=1 and pageSize=20; pageSize must remain within 1-100."
+            ]
+          }
+        ]
+      },
       "mcp": {
         "tools": [
           {
@@ -79,6 +92,16 @@
           {
             "path": "/api/courses/[jwId]",
             "returns": "CourseDetail"
+          }
+        ]
+      },
+      "graphql": {
+        "queries": [
+          {
+            "name": "course",
+            "returns": "Course",
+            "rest_equivalent": "GET /api/courses/[jwId]",
+            "mcp_equivalent": "get_course_by_jw_id"
           }
         ]
       },
