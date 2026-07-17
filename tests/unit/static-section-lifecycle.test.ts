@@ -10,6 +10,7 @@ const PREVIOUSLY_SEEN_AT = new Date("2026-07-16T03:00:00.000Z");
 
 function lifecycleClient() {
   return {
+    $queryRawUnsafe: vi.fn().mockResolvedValue([]),
     auditLog: {
       createMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
@@ -42,6 +43,20 @@ describe("static Section source lifecycle", () => {
         {
           id: 12,
           jwId: 102,
+          sourceLastSeenAt: PREVIOUSLY_SEEN_AT,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 11,
+          jwId: 101,
+          retiredAt: PREVIOUSLY_RETIRED_AT,
+          sourceLastSeenAt: PREVIOUSLY_SEEN_AT,
+        },
+        {
+          id: 12,
+          jwId: 102,
+          retiredAt: null,
           sourceLastSeenAt: PREVIOUSLY_SEEN_AT,
         },
       ]);

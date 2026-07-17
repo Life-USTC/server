@@ -1,6 +1,10 @@
 import type { Prisma } from "../generated/prisma-node/client";
+import { acquireSectionLifecycleAdvisoryLocks } from "../lib/db/section-lifecycle-lock";
 
-type SectionLifecycleTransaction = {
+type SectionLifecycleTransaction = Pick<
+  Prisma.TransactionClient,
+  "$queryRawUnsafe"
+> & {
   auditLog: Pick<Prisma.TransactionClient["auditLog"], "createMany">;
   section: Pick<
     Prisma.TransactionClient["section"],
@@ -40,6 +44,36 @@ function uniqueSorted(values: readonly number[]) {
 
 function lifecycleCounts(active: number, retired: number) {
   return { active, retired, total: active + retired };
+}
+
+function validateRetirementCandidates(
+  input: SectionLifecycleInput,
+  retirementCandidates: Array<{
+    sourceLastSeenAt: Date | null;
+  }>,
+) {
+  if (!input.retirementEnabled) return;
+  if (input.expectedRetirementCandidateCount == null) {
+    throw new Error(
+      "STATIC_LOADER_EXPECTED_SECTION_RETIREMENT_CANDIDATES is required when missing-Section retirement is enabled",
+    );
+  }
+  if (retirementCandidates.length !== input.expectedRetirementCandidateCount) {
+    throw new Error(
+      `Approved Section retirement candidate count ${input.expectedRetirementCandidateCount} does not match actual count ${retirementCandidates.length}`,
+    );
+  }
+  if (
+    retirementCandidates.some(
+      (section) =>
+        section.sourceLastSeenAt != null &&
+        section.sourceLastSeenAt > input.observedAt,
+    )
+  ) {
+    throw new Error(
+      "Refusing to retire Sections from a snapshot older than their latest source observation",
+    );
+  }
 }
 
 export function emptySectionLifecycleStats(
@@ -107,7 +141,7 @@ export async function reconcileSectionSourceLifecycle(
     where: { ...scopedWhere, retiredAt: { not: null } },
   });
 
-  const reactivatedSections =
+  let reactivatedSections =
     seenSectionJwIds.length > 0
       ? await tx.section.findMany({
           where: {
@@ -119,7 +153,7 @@ export async function reconcileSectionSourceLifecycle(
         })
       : [];
 
-  const retirementCandidates = await tx.section.findMany({
+  let retirementCandidates = await tx.section.findMany({
     where: {
       ...scopedWhere,
       jwId: { notIn: seenSectionJwIds },
@@ -128,29 +162,58 @@ export async function reconcileSectionSourceLifecycle(
     select: { id: true, jwId: true, sourceLastSeenAt: true },
   });
 
-  if (input.retirementEnabled) {
-    if (input.expectedRetirementCandidateCount == null) {
-      throw new Error(
-        "STATIC_LOADER_EXPECTED_SECTION_RETIREMENT_CANDIDATES is required when missing-Section retirement is enabled",
-      );
-    }
-    if (
-      retirementCandidates.length !== input.expectedRetirementCandidateCount
-    ) {
-      throw new Error(
-        `Approved Section retirement candidate count ${input.expectedRetirementCandidateCount} does not match actual count ${retirementCandidates.length}`,
-      );
-    }
-    if (
-      retirementCandidates.some(
-        (section) =>
-          section.sourceLastSeenAt != null &&
-          section.sourceLastSeenAt > input.observedAt,
-      )
-    ) {
-      throw new Error(
-        "Refusing to retire Sections from a snapshot older than their latest source observation",
-      );
+  validateRetirementCandidates(input, retirementCandidates);
+
+  const lifecycleStateChangeIds = uniqueSorted([
+    ...reactivatedSections.map((section) => section.id),
+    ...(input.retirementEnabled
+      ? retirementCandidates.map((section) => section.id)
+      : []),
+  ]);
+  if (lifecycleStateChangeIds.length > 0) {
+    await acquireSectionLifecycleAdvisoryLocks(
+      tx,
+      lifecycleStateChangeIds,
+      "exclusive",
+    );
+    const lockedSections = await tx.section.findMany({
+      where: { id: { in: lifecycleStateChangeIds } },
+      select: {
+        id: true,
+        jwId: true,
+        retiredAt: true,
+        sourceLastSeenAt: true,
+      },
+    });
+    const lockedSectionById = new Map(
+      lockedSections.map((section) => [section.id, section] as const),
+    );
+    reactivatedSections = reactivatedSections.flatMap((section) => {
+      const locked = lockedSectionById.get(section.id);
+      if (locked?.retiredAt == null || locked.retiredAt >= input.observedAt) {
+        return [];
+      }
+      return [
+        {
+          id: locked.id,
+          jwId: locked.jwId,
+          retiredAt: locked.retiredAt,
+        },
+      ];
+    });
+    if (input.retirementEnabled) {
+      retirementCandidates = retirementCandidates.flatMap((section) => {
+        const locked = lockedSectionById.get(section.id);
+        if (!locked || locked.retiredAt != null) return [];
+        return [
+          {
+            id: locked.id,
+            jwId: locked.jwId,
+            sourceLastSeenAt: locked.sourceLastSeenAt,
+          },
+        ];
+      });
+      validateRetirementCandidates(input, retirementCandidates);
     }
   }
 

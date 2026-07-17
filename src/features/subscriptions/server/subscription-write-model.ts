@@ -1,19 +1,21 @@
+import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { prisma } from "@/lib/db/prisma";
+import { acquireSectionLifecycleAdvisoryLocks } from "@/lib/db/section-lifecycle-lock";
 import {
   getUserCalendarSubscription,
   getUserSectionSubscriptionState,
 } from "./subscription-calendar-read-model";
-import { getSubscribedSectionIds } from "./subscription-read-model-shared";
 import { uniqueSectionIds } from "./subscription-section-id-helpers";
 import { resolveCalendarSubscriptionSections } from "./subscription-section-resolver";
 
 async function replaceUserSectionIds(
+  tx: Prisma.TransactionClient,
   userId: string,
   nextIds: readonly number[],
 ) {
-  await prisma.user.update({
+  await tx.user.update({
     where: { id: userId },
     data: {
       subscribedSections: {
@@ -24,13 +26,14 @@ async function replaceUserSectionIds(
 }
 
 async function replaceUserSectionIdsInSemester(
+  tx: Prisma.TransactionClient,
   userId: string,
   currentIds: readonly number[],
   nextIds: readonly number[],
 ) {
   const currentIdSet = new Set(currentIds);
   const nextIdSet = new Set(nextIds);
-  await prisma.user.update({
+  await tx.user.update({
     where: { id: userId },
     data: {
       subscribedSections: {
@@ -77,8 +80,11 @@ async function getSectionIdByJwId(
   return section?.id ?? null;
 }
 
-async function getMutableUserSubscriptions(userId: string) {
-  return prisma.user.findUnique({
+async function getMutableUserSubscriptions(
+  userId: string,
+  client: Prisma.TransactionClient = prisma,
+) {
+  return client.user.findUnique({
     where: { id: userId },
     select: {
       id: true,
@@ -106,6 +112,7 @@ export async function hasUserSubscribedSectionByJwId(
 }
 
 async function connectUserSectionIds(
+  tx: Prisma.TransactionClient,
   userId: string,
   sectionIds: readonly number[],
 ) {
@@ -113,7 +120,7 @@ async function connectUserSectionIds(
     return;
   }
 
-  await prisma.user.update({
+  await tx.user.update({
     where: { id: userId },
     data: {
       subscribedSections: {
@@ -121,6 +128,200 @@ async function connectUserSectionIds(
       },
     },
   });
+}
+
+type LockedSectionSubscriptionMutationInput = {
+  candidateSectionIds: readonly number[];
+  mode: "connect" | "replace";
+  preserveRetiredSectionIds?: readonly number[];
+  semesterId?: number;
+  userId: string;
+};
+
+export type LockedSectionSubscriptionMutationResult = {
+  activeCandidateSectionIds: number[];
+  addedSectionIds: number[];
+  effectiveSectionIds: number[];
+  preservedRetiredSectionIds: number[];
+  removedSectionIds: number[];
+  unchangedSectionIds: number[];
+};
+
+async function lockSubscriptionUser(
+  tx: Prisma.TransactionClient,
+  userId: string,
+) {
+  const rows = await tx.$queryRaw<Array<{ id: string }>>`
+    SELECT "id" FROM "User" WHERE "id" = ${userId} FOR UPDATE
+  `;
+  return rows.length > 0;
+}
+
+async function lockSubscriptionSections(
+  tx: Prisma.TransactionClient,
+  sectionIds: readonly number[],
+) {
+  await acquireSectionLifecycleAdvisoryLocks(tx, sectionIds, "shared");
+}
+
+export async function mutateUserSectionSubscriptionsInTransaction(
+  tx: Prisma.TransactionClient,
+  input: LockedSectionSubscriptionMutationInput,
+): Promise<LockedSectionSubscriptionMutationResult | null> {
+  if (!(await lockSubscriptionUser(tx, input.userId))) {
+    return null;
+  }
+
+  const user = await getMutableUserSubscriptions(input.userId, tx);
+  if (!user) {
+    return null;
+  }
+
+  const candidateSectionIds = uniqueSectionIds(input.candidateSectionIds);
+  const currentSectionIds = uniqueSectionIds(
+    user.subscribedSections.map((section) => section.id),
+  );
+  const preserveRetiredSectionIds = uniqueSectionIds(
+    input.preserveRetiredSectionIds ?? [],
+  );
+  const sectionIdsToLock =
+    input.mode === "replace"
+      ? uniqueSectionIds([
+          ...candidateSectionIds,
+          ...currentSectionIds,
+          ...preserveRetiredSectionIds,
+        ])
+      : candidateSectionIds;
+
+  await lockSubscriptionSections(tx, sectionIdsToLock);
+  const lockedSections =
+    sectionIdsToLock.length === 0
+      ? []
+      : await tx.section.findMany({
+          where: { id: { in: sectionIdsToLock } },
+          select: { id: true, retiredAt: true, semesterId: true },
+        });
+  const lockedSectionById = new Map(
+    lockedSections.map((section) => [section.id, section] as const),
+  );
+  const inScope = (sectionId: number) => {
+    const section = lockedSectionById.get(sectionId);
+    return (
+      section != null &&
+      (input.semesterId === undefined ||
+        section.semesterId === input.semesterId)
+    );
+  };
+  const activeCandidateSectionIds = candidateSectionIds.filter((sectionId) => {
+    const section = lockedSectionById.get(sectionId);
+    return section?.retiredAt == null && inScope(sectionId);
+  });
+  const currentSectionIdSet = new Set(currentSectionIds);
+  const preservedRetiredSectionIds =
+    input.mode === "replace"
+      ? preserveRetiredSectionIds.filter((sectionId) => {
+          const section = lockedSectionById.get(sectionId);
+          return (
+            currentSectionIdSet.has(sectionId) &&
+            section?.retiredAt != null &&
+            inScope(sectionId)
+          );
+        })
+      : [];
+  const effectiveSectionIds = uniqueSectionIds([
+    ...activeCandidateSectionIds,
+    ...preservedRetiredSectionIds,
+  ]);
+  const effectiveSectionIdSet = new Set(effectiveSectionIds);
+  const currentSectionIdsInScope =
+    input.mode === "replace"
+      ? currentSectionIds.filter(inScope)
+      : currentSectionIds;
+  const addedSectionIds = effectiveSectionIds.filter(
+    (sectionId) => !currentSectionIdSet.has(sectionId),
+  );
+  const unchangedSectionIds = effectiveSectionIds.filter((sectionId) =>
+    currentSectionIdSet.has(sectionId),
+  );
+  const removedSectionIds =
+    input.mode === "replace"
+      ? currentSectionIdsInScope.filter(
+          (sectionId) => !effectiveSectionIdSet.has(sectionId),
+        )
+      : [];
+
+  if (input.mode === "connect") {
+    await connectUserSectionIds(tx, input.userId, addedSectionIds);
+  } else if (input.semesterId === undefined) {
+    await replaceUserSectionIds(tx, input.userId, effectiveSectionIds);
+  } else {
+    await replaceUserSectionIdsInSemester(
+      tx,
+      input.userId,
+      currentSectionIdsInScope,
+      effectiveSectionIds,
+    );
+  }
+
+  return {
+    activeCandidateSectionIds,
+    addedSectionIds,
+    effectiveSectionIds,
+    preservedRetiredSectionIds,
+    removedSectionIds,
+    unchangedSectionIds,
+  };
+}
+
+async function mutateUserSectionSubscriptions(
+  input: LockedSectionSubscriptionMutationInput,
+) {
+  return prisma.$transaction((tx) =>
+    mutateUserSectionSubscriptionsInTransaction(tx, input),
+  );
+}
+
+type ResolvedCalendarSubscriptionSections = NonNullable<
+  Awaited<ReturnType<typeof resolveCalendarSubscriptionSections>>
+>;
+
+function filterResolvedCalendarSubscriptionSections(
+  resolved: ResolvedCalendarSubscriptionSections,
+  acceptedSectionIds: readonly number[],
+  requestedCodes: readonly string[] = [],
+): ResolvedCalendarSubscriptionSections {
+  const acceptedSectionIdSet = new Set(acceptedSectionIds);
+  const sections = resolved.sections.filter((section) =>
+    acceptedSectionIdSet.has(section.id),
+  );
+  const acceptedCodeSet = new Set(
+    sections.flatMap((section) =>
+      [section.code, section.course.code].map((code) =>
+        code.trim().toUpperCase(),
+      ),
+    ),
+  );
+  const seenCodes = new Set<string>();
+  const uniqueRequestedCodes: string[] = [];
+  for (const requestedCode of requestedCodes) {
+    const code = requestedCode.trim();
+    const normalized = code.toUpperCase();
+    if (!code || seenCodes.has(normalized)) continue;
+    seenCodes.add(normalized);
+    uniqueRequestedCodes.push(code);
+  }
+
+  return {
+    ...resolved,
+    matchedCodes: uniqueRequestedCodes.filter((code) =>
+      acceptedCodeSet.has(code.toUpperCase()),
+    ),
+    unmatchedCodes: uniqueRequestedCodes.filter(
+      (code) => !acceptedCodeSet.has(code.toUpperCase()),
+    ),
+    sections,
+    total: sections.length,
+  };
 }
 
 async function disconnectUserSectionIds(
@@ -149,23 +350,15 @@ export async function replaceUserSectionSubscriptions(
   sectionIds: number[],
   locale = DEFAULT_LOCALE,
 ) {
-  const user = await getMutableUserSubscriptions(userId);
-  if (!user) {
+  const mutation = await mutateUserSectionSubscriptions({
+    candidateSectionIds: sectionIds,
+    mode: "replace",
+    preserveRetiredSectionIds: sectionIds,
+    userId,
+  });
+  if (!mutation) {
     return null;
   }
-
-  const requestedIdSet = new Set(uniqueSectionIds(sectionIds));
-  const preservedRetiredIds = user.subscribedSections
-    .filter(
-      (section) => section.retiredAt != null && requestedIdSet.has(section.id),
-    )
-    .map((section) => section.id);
-  const validSectionIds = await getExistingSectionIds(sectionIds);
-
-  await replaceUserSectionIds(userId, [
-    ...validSectionIds,
-    ...preservedRetiredIds,
-  ]);
 
   return getUserCalendarSubscription(userId, locale);
 }
@@ -179,23 +372,18 @@ export async function appendUserSectionSubscriptions({
   sectionIds: readonly number[];
   userId: string;
 }) {
-  const user = await getMutableUserSubscriptions(userId);
-  if (!user) {
+  const mutation = await mutateUserSectionSubscriptions({
+    candidateSectionIds: sectionIds,
+    mode: "connect",
+    userId,
+  });
+  if (!mutation) {
     return null;
   }
 
-  const currentIdSet = new Set(
-    user.subscribedSections.map((section) => section.id),
-  );
-  const validSectionIds = await getExistingSectionIds(sectionIds);
-  const addedSectionIds = validSectionIds.filter((id) => !currentIdSet.has(id));
-
-  await connectUserSectionIds(userId, addedSectionIds);
-
   return {
-    addedCount: addedSectionIds.length,
-    alreadySubscribedCount: validSectionIds.filter((id) => currentIdSet.has(id))
-      .length,
+    addedCount: mutation.addedSectionIds.length,
+    alreadySubscribedCount: mutation.unchangedSectionIds.length,
     subscription: await getUserCalendarSubscription(userId, locale),
   };
 }
@@ -204,19 +392,14 @@ export async function addUserSectionSubscriptions(
   userId: string,
   sectionIds: readonly number[],
 ) {
-  const user = await getMutableUserSubscriptions(userId);
-  if (!user) {
+  const mutation = await mutateUserSectionSubscriptions({
+    candidateSectionIds: sectionIds,
+    mode: "connect",
+    userId,
+  });
+  if (!mutation) {
     return null;
   }
-
-  const existingIds = new Set(
-    user.subscribedSections.map((section) => section.id),
-  );
-  const validSectionIds = await getExistingSectionIds(sectionIds);
-  await connectUserSectionIds(
-    userId,
-    validSectionIds.filter((id) => !existingIds.has(id)),
-  );
 
   return getUserSectionSubscriptionState(userId);
 }
@@ -241,21 +424,30 @@ export async function importUserSectionSubscriptionsByCodes({
     return null;
   }
 
-  const existingIds = new Set(await getSubscribedSectionIds(userId));
-  const addedSections = matches.sections.filter(
-    (section) => !existingIds.has(section.id),
-  );
-  const alreadySubscribedSections = matches.sections.filter((section) =>
-    existingIds.has(section.id),
-  );
-
-  await addUserSectionSubscriptions(
+  const mutation = await mutateUserSectionSubscriptions({
+    candidateSectionIds: matches.sections.map((section) => section.id),
+    mode: "connect",
     userId,
-    matches.sections.map((section) => section.id),
+  });
+  if (!mutation) {
+    return null;
+  }
+  const acceptedMatches = filterResolvedCalendarSubscriptionSections(
+    matches,
+    mutation.activeCandidateSectionIds,
+    codes,
+  );
+  const addedSectionIdSet = new Set(mutation.addedSectionIds);
+  const unchangedSectionIdSet = new Set(mutation.unchangedSectionIds);
+  const addedSections = acceptedMatches.sections.filter((section) =>
+    addedSectionIdSet.has(section.id),
+  );
+  const alreadySubscribedSections = acceptedMatches.sections.filter((section) =>
+    unchangedSectionIdSet.has(section.id),
   );
 
   return {
-    matches,
+    matches: acceptedMatches,
     addedSections,
     alreadySubscribedSections,
     subscription: await getUserCalendarSubscription(userId, locale),
@@ -288,13 +480,6 @@ export async function batchUpdateUserSectionSubscriptions({
     return null;
   }
 
-  const user = await getMutableUserSubscriptions(userId);
-  if (!user) {
-    return null;
-  }
-
-  const currentIds = user.subscribedSections.map((section) => section.id);
-  const currentIdSet = new Set(currentIds);
   const targetIds = uniqueSectionIds(
     resolved.sections.map((section) => section.id),
   );
@@ -302,70 +487,77 @@ export async function batchUpdateUserSectionSubscriptions({
   let addedCount = 0;
   let removedCount = 0;
   let unchangedCount = 0;
+  let acceptedTargetIds = targetIds;
   let preservedRetiredIds: number[] = [];
+  let responseResolved = resolved;
   let responseSections = resolved.sections;
   let responseTotal = resolved.total;
 
   if (action === "add") {
-    const addedIds = targetIds.filter((id) => !currentIdSet.has(id));
-    addedCount = addedIds.length;
-    unchangedCount = targetIds.length - addedCount;
-    await connectUserSectionIds(userId, addedIds);
+    const mutation = await mutateUserSectionSubscriptions({
+      candidateSectionIds: targetIds,
+      mode: "connect",
+      userId,
+    });
+    if (!mutation) return null;
+    acceptedTargetIds = mutation.activeCandidateSectionIds;
+    addedCount = mutation.addedSectionIds.length;
+    unchangedCount = mutation.unchangedSectionIds.length;
+    responseResolved = filterResolvedCalendarSubscriptionSections(
+      resolved,
+      acceptedTargetIds,
+      codes ?? [],
+    );
+    responseSections = responseResolved.sections;
+    responseTotal = responseSections.length;
   } else if (action === "remove") {
+    const user = await getMutableUserSubscriptions(userId);
+    if (!user) return null;
+    const currentIdSet = new Set(
+      user.subscribedSections.map((section) => section.id),
+    );
     const removedIds = targetIds.filter((id) => currentIdSet.has(id));
     removedCount = removedIds.length;
     unchangedCount = targetIds.length - removedCount;
     await disconnectUserSectionIds(userId, removedIds);
   } else {
-    const currentIdsInScope =
-      semesterId === undefined
-        ? currentIds
-        : user.subscribedSections
-            .filter((section) => section.semesterId === semesterId)
-            .map((section) => section.id);
-    const requestedIdSet = new Set(uniqueSectionIds(sectionIds ?? []));
-    preservedRetiredIds = user.subscribedSections
-      .filter(
-        (section) =>
-          section.retiredAt != null &&
-          requestedIdSet.has(section.id) &&
-          (semesterId === undefined || section.semesterId === semesterId),
-      )
-      .map((section) => section.id);
-    const effectiveTargetIds = [...targetIds, ...preservedRetiredIds];
-    const effectiveTargetIdSet = new Set(effectiveTargetIds);
-    addedCount = targetIds.filter((id) => !currentIdSet.has(id)).length;
-    removedCount = currentIdsInScope.filter(
-      (id) => !effectiveTargetIdSet.has(id),
-    ).length;
-    unchangedCount =
-      targetIds.filter((id) => currentIdSet.has(id)).length +
-      preservedRetiredIds.length;
-    if (semesterId === undefined) {
-      await replaceUserSectionIds(userId, effectiveTargetIds);
-    } else {
-      await replaceUserSectionIdsInSemester(
-        userId,
-        currentIdsInScope,
-        effectiveTargetIds,
-      );
-    }
+    const mutation = await mutateUserSectionSubscriptions({
+      candidateSectionIds: targetIds,
+      mode: "replace",
+      preserveRetiredSectionIds: sectionIds,
+      semesterId,
+      userId,
+    });
+    if (!mutation) return null;
+    acceptedTargetIds = mutation.activeCandidateSectionIds;
+    preservedRetiredIds = mutation.preservedRetiredSectionIds;
+    addedCount = mutation.addedSectionIds.length;
+    removedCount = mutation.removedSectionIds.length;
+    unchangedCount = mutation.unchangedSectionIds.length;
+    responseResolved = filterResolvedCalendarSubscriptionSections(
+      resolved,
+      acceptedTargetIds,
+      codes ?? [],
+    );
     const effectiveResolved = await resolveCalendarSubscriptionSections({
       includeRetired: true,
       locale,
-      sectionIds: effectiveTargetIds,
+      sectionIds: mutation.effectiveSectionIds,
     });
     responseSections = effectiveResolved?.sections ?? [];
     responseTotal = responseSections.length;
   }
 
+  const acceptedTargetIdSet = new Set(acceptedTargetIds);
   const acceptedRequestedIdSet = new Set([
-    ...resolved.matchedSectionIds,
+    ...resolved.matchedSectionIds.filter((sectionId) =>
+      acceptedTargetIdSet.has(sectionId),
+    ),
     ...preservedRetiredIds,
   ]);
   const requestedSectionIds = uniqueSectionIds(sectionIds ?? []);
   return {
-    ...resolved,
+    ...responseResolved,
     matchedSectionIds: requestedSectionIds.filter((id) =>
       acceptedRequestedIdSet.has(id),
     ),
@@ -406,8 +598,12 @@ export async function subscribeUserToSectionByJwId(
     return null;
   }
 
-  const state = await addUserSectionSubscriptions(userId, [sectionId]);
-  if (!state) {
+  const mutation = await mutateUserSectionSubscriptions({
+    candidateSectionIds: [sectionId],
+    mode: "connect",
+    userId,
+  });
+  if (!mutation?.activeCandidateSectionIds.includes(sectionId)) {
     return null;
   }
 
@@ -444,17 +640,30 @@ export async function setUserSectionSubscriptionByJwId(input: {
   });
   if (sectionId === null) return null;
 
+  if (input.subscribed) {
+    const mutation = await mutateUserSectionSubscriptions({
+      candidateSectionIds: [sectionId],
+      mode: "connect",
+      userId: input.userId,
+    });
+    if (!mutation?.activeCandidateSectionIds.includes(sectionId)) {
+      return null;
+    }
+    return {
+      sectionJwId: input.sectionJwId,
+      subscribed: true,
+    };
+  }
+
   await prisma.user.update({
     where: { id: input.userId },
     data: {
-      subscribedSections: input.subscribed
-        ? { connect: { id: sectionId } }
-        : { disconnect: { id: sectionId } },
+      subscribedSections: { disconnect: { id: sectionId } },
     },
   });
 
   return {
     sectionJwId: input.sectionJwId,
-    subscribed: input.subscribed,
+    subscribed: false,
   };
 }
