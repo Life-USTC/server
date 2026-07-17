@@ -197,6 +197,33 @@ test.describe("/courses/[jwId] 课程详情", () => {
     await captureStepScreenshot(page, testInfo, "course/detail-nav");
   });
 
+  test("移动端标题层级紧凑且详情导航横向可用", async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await gotoAndWaitForReady(page, COURSE_URL);
+
+    const heading = page.getByRole("heading", { level: 1 }).first();
+    const code = visibleText(page, DEV_SEED.course.code);
+    await expect(heading).toHaveCSS("font-size", "24px");
+    await expect(code).toBeVisible();
+    expect((await code.boundingBox())?.y).toBeLessThan(
+      (await heading.boundingBox())?.y ?? 0,
+    );
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(390);
+
+    const nav = page.getByTestId("detail-section-nav");
+    await expect(nav).toBeVisible();
+    await expect(nav.locator("[data-sidebar='menu']")).toHaveCSS(
+      "flex-direction",
+      "row",
+    );
+    await expect(nav.locator('a[aria-current="page"]')).toHaveCount(1);
+    await jumpToCourseSection(page, /评论|Comments/i, "#course-comments");
+
+    await captureStepScreenshot(page, testInfo, "course/detail-mobile");
+  });
+
   test("班级行链接到班级详情", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, COURSE_URL);
     await jumpToCourseSection(page, /班级|Sections/i, "#course-sections");
