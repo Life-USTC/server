@@ -34,6 +34,19 @@
           }
         ]
       },
+      "graphql": {
+        "queries": [
+          {
+            "name": "teachers",
+            "returns": "TeacherPage!",
+            "rest_equivalent": "GET /api/teachers",
+            "mcp_equivalent": "search_teachers",
+            "notes": [
+              "PageInput defaults to page=1 and pageSize=20; pageSize must remain within 1-100."
+            ]
+          }
+        ]
+      },
       "mcp": {
         "tools": [
           {
@@ -73,6 +86,16 @@
           {
             "path": "/api/teachers/[id]",
             "returns": "TeacherDetail"
+          }
+        ]
+      },
+      "graphql": {
+        "queries": [
+          {
+            "name": "teacher",
+            "returns": "Teacher",
+            "rest_equivalent": "GET /api/teachers/[id]",
+            "mcp_equivalent": "get_teacher_by_id"
           }
         ]
       },

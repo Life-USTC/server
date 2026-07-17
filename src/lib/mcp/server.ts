@@ -1,4 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerGraphqlResources } from "@/lib/graphql/resources";
 import { registerBusTools } from "@/lib/mcp/tools/bus-tools";
 import { registerCalendarTools } from "@/lib/mcp/tools/calendar-tools";
 import { registerCommentTools } from "@/lib/mcp/tools/comment-tools";
@@ -45,6 +46,7 @@ export function createMcpServer() {
   registerSectionDataTools(server);
   registerMyDataTools(server);
   registerCalendarTools(server);
+  registerGraphqlResources(server);
   assertRegisteredMcpToolMetadata(server);
   installMcpToolListCompatibility(server);
 

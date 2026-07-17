@@ -8,6 +8,31 @@ import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma } from "@/lib/db/prisma";
 import { serializeScheduleTimeFields } from "@/shared/lib/schedule-serialization";
 
+const sectionDetailInclude = {
+  ...sectionInclude,
+  roomType: true,
+  schedules: true,
+  scheduleGroups: true,
+  teachers: {
+    include: {
+      department: true,
+      teacherTitle: true,
+    },
+  },
+  teacherAssignments: {
+    include: {
+      teacher: true,
+      teacherLessonType: true,
+    },
+  },
+  exams: {
+    include: {
+      examBatch: true,
+      examRooms: true,
+    },
+  },
+} as const;
+
 export async function findCourseDetailByJwId(
   jwId: number,
   locale: AppLocale = DEFAULT_LOCALE,
@@ -16,6 +41,18 @@ export async function findCourseDetailByJwId(
     where: { jwId },
     include: courseDetailInclude,
   });
+}
+
+export async function findCourseDetailsByJwIds(
+  jwIds: readonly number[],
+  locale: AppLocale = DEFAULT_LOCALE,
+) {
+  const courses = await getPrisma(locale).course.findMany({
+    where: { jwId: { in: [...new Set(jwIds)] } },
+    include: courseDetailInclude,
+  });
+  const byJwId = new Map(courses.map((course) => [course.jwId, course]));
+  return jwIds.map((jwId) => byJwId.get(jwId) ?? null);
 }
 
 export async function findSectionByJwId(
@@ -34,30 +71,7 @@ export async function findSectionDetailByJwId(
 ) {
   const section = await getPrisma(locale).section.findUnique({
     where: { jwId },
-    include: {
-      ...sectionInclude,
-      roomType: true,
-      schedules: true,
-      scheduleGroups: true,
-      teachers: {
-        include: {
-          department: true,
-          teacherTitle: true,
-        },
-      },
-      teacherAssignments: {
-        include: {
-          teacher: true,
-          teacherLessonType: true,
-        },
-      },
-      exams: {
-        include: {
-          examBatch: true,
-          examRooms: true,
-        },
-      },
-    },
+    include: sectionDetailInclude,
   });
 
   if (!section) return null;
@@ -66,6 +80,26 @@ export async function findSectionDetailByJwId(
     ...section,
     schedules: section.schedules.map(serializeScheduleTimeFields),
   };
+}
+
+export async function findSectionDetailsByJwIds(
+  jwIds: readonly number[],
+  locale: AppLocale = DEFAULT_LOCALE,
+) {
+  const sections = await getPrisma(locale).section.findMany({
+    where: { jwId: { in: [...new Set(jwIds)] } },
+    include: sectionDetailInclude,
+  });
+  const byJwId = new Map(
+    sections.map((section) => [
+      section.jwId,
+      {
+        ...section,
+        schedules: section.schedules.map(serializeScheduleTimeFields),
+      },
+    ]),
+  );
+  return jwIds.map((jwId) => byJwId.get(jwId) ?? null);
 }
 
 export async function findSectionCompactByJwId(

@@ -10,6 +10,8 @@
     "list_mcp_tools_stable": "MCP tool names whose contract status is stable or omitted.",
     "list_mcp_tools_unavailable": "Module and capability IDs where MCP is explicitly unavailable.",
     "list_rest_routes": "REST route paths documented by module capabilities.",
+    "list_graphql_fields": "GraphQL query and mutation fields documented by module capabilities.",
+    "graphql_equivalent_map": "GraphQL fields mapped to their REST and MCP equivalents.",
     "capabilities_by_auth": "Module, capability ID, and auth level triples.",
     "tool_rest_map": "MCP tool names mapped to their REST equivalents.",
     "rest_returns_map": "REST route method/path entries mapped to documented return shapes.",

@@ -34,3 +34,15 @@ export function findTeacherDetailById(id: number, locale = DEFAULT_LOCALE) {
     include: teacherDetailInclude,
   });
 }
+
+export async function findTeacherDetailsByIds(
+  ids: readonly number[],
+  locale = DEFAULT_LOCALE,
+) {
+  const teachers = await getPrisma(locale).teacher.findMany({
+    where: { id: { in: [...new Set(ids)] } },
+    include: teacherDetailInclude,
+  });
+  const byId = new Map(teachers.map((teacher) => [teacher.id, teacher]));
+  return ids.map((id) => byId.get(id) ?? null);
+}

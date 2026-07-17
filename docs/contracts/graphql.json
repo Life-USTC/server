@@ -1,0 +1,55 @@
+{
+  "name": "GraphQL",
+  "access": {
+    "anon": "Can query the public academic catalog and bus timetable through /api/graphql.",
+    "user": "Has the same public read-only GraphQL surface as an anonymous caller in Phase 1.",
+    "admin": "Has no additional GraphQL fields in Phase 1.",
+    "agent": "Can inspect the GraphQL SDL and the empty persisted-operation manifest through authenticated MCP resources; arbitrary GraphQL execution is not exposed as an MCP tool."
+  },
+  "rules": {
+    "phase-one-read-only": "Phase 1 exposes public queries only; mutations and GraphQL-specific OAuth resource handling are deferred.",
+    "single-endpoint": "GraphQL HTTP requests use /api/graphql with GET, POST, and OPTIONS handlers.",
+    "production-discovery": "GraphiQL and schema introspection are disabled in production.",
+    "request-budgets": "Requests are limited to 64 KiB, one operation per HTTP request, five seconds, depth 8, 10 top-level fields, 15 aliases, 10 directives, 1000 tokens, and cost 5000.",
+    "pagination": "Page inputs default to page 1 and pageSize 20; pageSize must be between 1 and 100.",
+    "resolver-boundary": "Resolvers call feature-owned services only; they do not issue internal HTTP requests or access Prisma directly.",
+    "request-cache": "Entity DataLoaders are request-scoped and responses are marked no-store.",
+    "safe-errors": "Unexpected resolver failures use Yoga error masking and must not expose internal exception details.",
+    "schema-evolution": "The canonical SDL snapshot is checked for drift and breaking changes in CI."
+  },
+  "capabilities": {
+    "public-query-endpoint": {
+      "title": "Public Query Endpoint",
+      "auth": "anon",
+      "graphql": "stable",
+      "display": {
+        "fields": [
+          "/api/graphql",
+          "Public semester, course, section, teacher, and bus queries",
+          "GET, POST, and OPTIONS",
+          "No mutations in Phase 1"
+        ]
+      }
+    },
+    "schema-resources": {
+      "title": "Schema Resources",
+      "auth": "user",
+      "mcp": {
+        "resources": [
+          {
+            "name": "graphql_schema_sdl",
+            "uri": "life-ustc://graphql/schema",
+            "mime_type": "text/plain",
+            "description": "Canonical public GraphQL SDL."
+          },
+          {
+            "name": "graphql_operations_manifest",
+            "uri": "life-ustc://graphql/operations",
+            "mime_type": "application/json",
+            "description": "Persisted-operation manifest; intentionally empty in Phase 1."
+          }
+        ]
+      }
+    }
+  }
+}
