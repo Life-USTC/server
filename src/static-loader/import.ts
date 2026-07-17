@@ -1,10 +1,13 @@
 import type { Prisma, PrismaClient } from "../generated/prisma-node/client";
-import { planCourseDuplicateMerges } from "./course-dedupe";
 import {
   courseIdentitySignature,
   type IncomingCourseIdentityRecord,
   planCourseIdentityImport,
 } from "./course-identity";
+import {
+  assertCourseJwIdNamespace,
+  mergeLegacyCourseDuplicates,
+} from "./course-merge";
 import {
   type AdminClassBuild,
   type AdminClassSectionPair,
@@ -1192,117 +1195,6 @@ async function loadLookupTables(
   };
 }
 
-async function mergeCourseDescriptions(
-  tx: Prisma.TransactionClient,
-  sourceCourseId: number,
-  targetCourseId: number,
-) {
-  const descriptions = await tx.description.findMany({
-    where: { courseId: { in: [sourceCourseId, targetCourseId] } },
-    select: { id: true, courseId: true, content: true },
-  });
-  const source = descriptions.find(
-    (description) => description.courseId === sourceCourseId,
-  );
-  if (!source) return;
-
-  const target = descriptions.find(
-    (description) => description.courseId === targetCourseId,
-  );
-  if (!target) {
-    await tx.description.update({
-      where: { id: source.id },
-      data: { courseId: targetCourseId },
-    });
-    return;
-  }
-
-  if (source.content !== target.content) {
-    throw new Error(
-      `Cannot merge Courses ${sourceCourseId} and ${targetCourseId}: descriptions differ`,
-    );
-  }
-  await tx.descriptionEdit.updateMany({
-    where: { descriptionId: source.id },
-    data: { descriptionId: target.id },
-  });
-  await tx.description.delete({ where: { id: source.id } });
-}
-
-async function mergeLegacyCourseDuplicates(
-  tx: Prisma.TransactionClient,
-  incomingCourses: IncomingCourseIdentityRecord[],
-  canonicalJwIds: ReadonlySet<number>,
-) {
-  const persistedCourses = await tx.course.findMany({
-    select: {
-      id: true,
-      jwId: true,
-      code: true,
-      nameCn: true,
-      nameEn: true,
-      categoryId: true,
-      classTypeId: true,
-      classifyId: true,
-      educationLevelId: true,
-      gradationId: true,
-      typeId: true,
-    },
-  });
-  const merges = planCourseDuplicateMerges({
-    canonicalJwIds,
-    incomingSourceJwIds: new Set(incomingCourses.map((course) => course.jwId)),
-    persistedCourses,
-  });
-
-  for (const merge of merges) {
-    await mergeCourseDescriptions(
-      tx,
-      merge.sourceCourseId,
-      merge.targetCourseId,
-    );
-    await tx.section.updateMany({
-      where: { courseId: merge.sourceCourseId },
-      data: { courseId: merge.targetCourseId },
-    });
-    await tx.comment.updateMany({
-      where: { courseId: merge.sourceCourseId },
-      data: { courseId: merge.targetCourseId },
-    });
-
-    const existingAlias = await tx.courseAlias.findUnique({
-      where: { jwId: merge.sourceJwId },
-      select: { courseId: true },
-    });
-    if (
-      existingAlias != null &&
-      existingAlias.courseId !== merge.sourceCourseId &&
-      existingAlias.courseId !== merge.targetCourseId
-    ) {
-      throw new Error(
-        `Course alias ${merge.sourceJwId} already points to another Course`,
-      );
-    }
-    await tx.courseAlias.updateMany({
-      where: { courseId: merge.sourceCourseId },
-      data: { courseId: merge.targetCourseId },
-    });
-    await tx.courseAlias.upsert({
-      where: { jwId: merge.sourceJwId },
-      create: {
-        jwId: merge.sourceJwId,
-        courseId: merge.targetCourseId,
-      },
-      update: { courseId: merge.targetCourseId },
-    });
-    await tx.course.delete({ where: { id: merge.sourceCourseId } });
-  }
-
-  if (merges.length > 0) {
-    console.log(`Merged ${merges.length} legacy Course rows`);
-  }
-}
-
 async function upsertCourses(
   tx: Prisma.TransactionClient,
   builds: CourseBuild[],
@@ -1367,6 +1259,10 @@ async function upsertCourses(
   const plan = await planCourseIdentityImport(
     incomingCourses,
     persistedCourses,
+  );
+  await assertCourseJwIdNamespace(
+    tx,
+    plan.canonicalCourses.map((course) => course.jwId),
   );
   const records = plan.canonicalCourses.map((course) => ({
     key: course.jwId,
