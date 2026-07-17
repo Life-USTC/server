@@ -1,3 +1,10 @@
+## [1.59.1](https://github.com/Life-USTC/server/compare/v1.59.0...v1.59.1) (2026-07-17)
+
+
+### Performance Improvements
+
+* **static-loader:** batch course reconciliation ([#470](https://github.com/Life-USTC/server/issues/470)) ([c8fef8b](https://github.com/Life-USTC/server/commit/c8fef8bfe9dbc0ca934371ba4009f565aeaeb72c))
+
 # [1.59.0](https://github.com/Life-USTC/server/compare/v1.58.0...v1.59.0) (2026-07-17)
 
 

@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       dry-run:
-        description: "Run in dry-run mode (rolls back the transaction)"
+        description: "Simulate data writes and roll them back; migrations still deploy and locks are acquired"
         required: false
         default: false
         type: boolean

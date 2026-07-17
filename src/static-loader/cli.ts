@@ -1,5 +1,6 @@
 import "dotenv/config";
-import { existsSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { createReadStream, existsSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { runImport } from "./import";
 import { createPrismaClient } from "./prisma";
@@ -16,6 +17,14 @@ function getEnv(name: string, defaultValue?: string): string {
 
 function maskDatabaseUrl(url: string): string {
   return url.replace(/:\/\/([^:@]+)(:[^@]+)?@/, "://***@");
+}
+
+async function sha256File(path: string): Promise<string> {
+  const hash = createHash("sha256");
+  for await (const chunk of createReadStream(path)) {
+    hash.update(chunk);
+  }
+  return hash.digest("hex");
 }
 
 async function main() {
@@ -44,21 +53,24 @@ async function main() {
   const snapshot = new Snapshot(snapshotPath);
   const metadata = snapshot.metadata();
   snapshot.close();
+  const snapshotSha256 = await sha256File(snapshotPath);
   console.log("Snapshot metadata:", metadata);
+  console.log(`Snapshot SHA-256: ${snapshotSha256}`);
 
   const prisma = createPrismaClient();
 
   try {
-    const stats = await runImport(prisma, {
+    const report = await runImport(prisma, {
       snapshotPath,
+      snapshotSha256,
       minSemester,
       dryRun,
     });
-    console.log("Import stats:", stats);
+    console.log("Import report:", report);
 
     const statsFile = process.env.STATIC_LOADER_STATS_FILE;
     if (statsFile) {
-      await writeFile(statsFile, JSON.stringify(stats, null, 2));
+      await writeFile(statsFile, JSON.stringify(report, null, 2));
     }
   } catch (error) {
     console.error("Import failed:", error);
