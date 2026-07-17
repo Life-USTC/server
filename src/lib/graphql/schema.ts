@@ -39,7 +39,7 @@ export type GraphqlContext = {
 };
 
 export type GraphqlServerContext = {
-  locals: { locale?: AppLocale };
+  locals: { locale?: AppLocale; requestId?: string };
 };
 
 type ServicePage = {
