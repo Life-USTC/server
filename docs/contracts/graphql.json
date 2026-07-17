@@ -2,20 +2,22 @@
   "name": "GraphQL",
   "access": {
     "anon": "Can query the public academic catalog and bus timetable through /api/graphql.",
-    "user": "Has the same public read-only GraphQL surface as an anonymous caller in Phase 1.",
-    "admin": "Has no additional GraphQL fields in Phase 1.",
+    "user": "Can use the public queries and the authenticated read-only Viewer fields allowed by their Session or OAuth feature scopes.",
+    "admin": "Uses the same read-only Viewer surface as a regular user; no GraphQL governance fields are exposed.",
     "agent": "Can inspect the GraphQL SDL and the empty persisted-operation manifest through authenticated MCP resources; arbitrary GraphQL execution is not exposed as an MCP tool."
   },
   "rules": {
-    "phase-one-read-only": "Phase 1 exposes public queries only; mutations and GraphQL-specific OAuth resource handling are deferred.",
+    "read-only": "The endpoint exposes public catalog/bus queries and authenticated Viewer reads; mutations remain deferred.",
     "single-endpoint": "GraphQL HTTP requests use /api/graphql with GET, POST, and OPTIONS handlers.",
     "production-discovery": "GraphiQL and schema introspection are disabled in production.",
     "request-budgets": "Requests are limited to 64 KiB, one operation per HTTP request, five seconds, depth 8, 10 top-level fields, 15 aliases, 10 directives, 1000 tokens, and cost 5000; operation cost weights every paginated selection by its effective pageSize, including values supplied through variables.",
-    "pagination": "Page inputs default to page 1 and pageSize 20; pageSize must be between 1 and 100.",
+    "pagination": "Every collection, including Viewer todos, subscribed sections, homeworks, schedules, and exams, uses PageInput; inputs default to page 1 and pageSize 20, and pageSize must be between 1 and 100.",
     "resolver-boundary": "Resolvers call feature-owned services only; they do not issue internal HTTP requests or access Prisma directly.",
-    "request-cache": "Entity DataLoaders are request-scoped and responses are marked no-store.",
-    "safe-errors": "Unexpected resolver failures use Yoga error masking and must not expose internal exception details.",
-    "zoned-datetime": "DateTime inputs accept only valid ISO 8601 datetimes with an explicit Z or numeric timezone offset, with identical coercion for variables and inline literals.",
+    "request-cache": "The principal and entity DataLoaders are request-scoped; authentication is resolved once per request and every response is marked no-store.",
+    "safe-errors": "Expected authentication, authorization, and bad-input GraphQLErrors retain safe codes and status metadata; unexpected resolver failures use Yoga error masking and never expose internal details.",
+    "viewer-scopes": "Query.viewer returns null for an anonymous caller. Its profile, overview, todos, subscribedSections, homeworks, schedules, and exams fields independently require me:read, dashboard:read, todo:read, subscription:read, homework:read, schedule:read, and exam:read for OAuth principals; trusted-origin Sessions use their existing user authority.",
+    "viewer-ownership": "Viewer collections derive ownership from the authenticated user relation in feature services and never accept sectionIds or internal visibility/shape flags from GraphQL inputs.",
+    "zoned-datetime": "DateTime inputs accept only valid ISO 8601 datetimes with an explicit Z or numeric timezone offset, with identical coercion for variables and inline literals; schedule and exam DateTime filters normalize to their Asia/Shanghai calendar day before querying @db.Date columns.",
     "schema-evolution": "The canonical SDL snapshot is checked for drift and breaking changes in CI."
   },
   "capabilities": {
@@ -28,7 +30,33 @@
           "/api/graphql",
           "Public semester, course, section, teacher, and bus queries",
           "GET, POST, and OPTIONS",
-          "No mutations in Phase 1"
+          "Read-only; no arbitrary GraphQL execution through MCP"
+        ]
+      }
+    },
+    "viewer-query": {
+      "title": "Authenticated Viewer Query",
+      "auth": "user",
+      "graphql": {
+        "queries": [
+          {
+            "name": "viewer",
+            "returns": "Viewer",
+            "notes": [
+              "Returns null for anonymous requests; each selected Viewer child field enforces its exact feature read scope."
+            ]
+          }
+        ]
+      },
+      "display": {
+        "fields": [
+          "viewer.profile",
+          "viewer.overview",
+          "viewer.todos",
+          "viewer.subscribedSections",
+          "viewer.homeworks",
+          "viewer.schedules",
+          "viewer.exams"
         ]
       }
     },
@@ -41,13 +69,13 @@
             "name": "graphql_schema_sdl",
             "uri": "life-ustc://graphql/schema",
             "mime_type": "text/plain",
-            "description": "Canonical public GraphQL SDL."
+            "description": "Canonical GraphQL SDL."
           },
           {
             "name": "graphql_operations_manifest",
             "uri": "life-ustc://graphql/operations",
             "mime_type": "application/json",
-            "description": "Persisted-operation manifest; intentionally empty in Phase 1."
+            "description": "Persisted-operation manifest; intentionally empty until controlled persisted operations are introduced."
           }
         ]
       }

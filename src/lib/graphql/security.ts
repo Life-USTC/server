@@ -80,9 +80,14 @@ const paginatedFields = new Set([
   "busRoutes",
   "busTimetable",
   "courses",
+  "exams",
+  "homeworks",
   "sections",
   "semesters",
+  "schedules",
+  "subscribedSections",
   "teachers",
+  "todos",
 ]);
 
 function variableInteger(value: ValueNode, variables: Record<string, unknown>) {

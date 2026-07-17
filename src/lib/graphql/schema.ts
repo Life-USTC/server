@@ -10,13 +10,13 @@ import {
 import { listCourseSummaries } from "@/features/catalog/server/course-summary-read-model";
 import { listSections } from "@/features/catalog/server/section-summary-read-model";
 import { listTeacherSummaries } from "@/features/catalog/server/teacher-summary-read-model";
-import type { AppLocale } from "@/i18n/config";
 import {
   capGraphqlAlternateRoutes,
   capGraphqlBusCampuses,
   capGraphqlBusRoute,
   capGraphqlBusTripSlots,
 } from "./bus-output";
+import type { GraphqlContext, GraphqlServerContext } from "./context";
 import { graphqlDateScalar, graphqlDateTimeScalar } from "./date-scalar";
 import {
   requireGraphqlId,
@@ -26,40 +26,21 @@ import {
   validateGraphqlVersionKey,
   validateOptionalGraphqlId,
 } from "./input-boundaries";
-import type { GraphqlLoaders } from "./loaders";
 import {
   type GraphqlPageInput,
+  graphqlPageResolvers,
   normalizeGraphqlPage,
   paginateGraphqlArray,
 } from "./pagination";
-
-export type GraphqlContext = {
-  loaders: GraphqlLoaders;
-  locale: AppLocale;
-};
-
-export type GraphqlServerContext = {
-  locals: { locale?: AppLocale };
-};
-
-type ServicePage = {
-  data: readonly unknown[];
-  pagination: {
-    page: number;
-    pageSize: number;
-    total: number;
-    totalPages: number;
-  };
-};
+import {
+  graphqlViewerQueryResolver,
+  graphqlViewerResolvers,
+  graphqlViewerTypeDefs,
+} from "./viewer";
 
 type TeacherParent = {
   id: number;
   _count?: { sections?: number };
-};
-
-const pageResolvers = {
-  items: (page: ServicePage) => page.data,
-  pageInfo: (page: ServicePage) => page.pagination,
 };
 
 export const graphqlTypeDefs = /* GraphQL */ `
@@ -252,6 +233,8 @@ export const graphqlTypeDefs = /* GraphQL */ `
     alternateRoutes: [BusRoute!]!
   }
 
+  ${graphqlViewerTypeDefs}
+
   type Query {
     semesters(page: PageInput): SemesterPage!
     currentSemester: Semester
@@ -268,6 +251,7 @@ export const graphqlTypeDefs = /* GraphQL */ `
       now: DateTime
       versionKey: String
     ): BusRouteTimetable
+    viewer: Viewer
   }
 `;
 
@@ -278,11 +262,12 @@ export const graphqlSchema = createSchema<
   resolvers: {
     Date: graphqlDateScalar,
     DateTime: graphqlDateTimeScalar,
-    SemesterPage: pageResolvers,
-    CoursePage: pageResolvers,
-    SectionPage: pageResolvers,
-    TeacherPage: pageResolvers,
-    BusRoutePage: pageResolvers,
+    SemesterPage: graphqlPageResolvers,
+    CoursePage: graphqlPageResolvers,
+    SectionPage: graphqlPageResolvers,
+    TeacherPage: graphqlPageResolvers,
+    BusRoutePage: graphqlPageResolvers,
+    ...graphqlViewerResolvers,
     Teacher: {
       async sectionCount(teacher: TeacherParent, _args, context) {
         const count = teacher._count?.sections;
@@ -292,6 +277,7 @@ export const graphqlSchema = createSchema<
       },
     },
     Query: {
+      viewer: graphqlViewerQueryResolver,
       semesters(_parent, args: { page?: GraphqlPageInput | null }) {
         const pagination = normalizeGraphqlPage(args.page);
         return listSemesters(pagination);

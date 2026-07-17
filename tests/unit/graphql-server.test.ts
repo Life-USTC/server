@@ -421,4 +421,96 @@ describe("GraphQL HTTP boundary", () => {
     expect(errorMessages(payload)).toContain("Query cost limit exceeded.");
     expect(courseService.listCourseSummaries).not.toHaveBeenCalled();
   });
+
+  it("weights every Viewer page field by variable pageSize", async () => {
+    const { payload } = await execute({
+      query: /* GraphQL */ `
+        query ExpensiveViewer($page: PageInput) {
+          viewer {
+            todos(page: $page) {
+              items {
+                id
+                title
+                content
+                priority
+                completed
+                dueAt
+                createdAt
+                updatedAt
+              }
+              pageInfo {
+                page
+                pageSize
+                total
+                totalPages
+              }
+            }
+            subscribedSections(page: $page) {
+              items {
+                id
+                jwId
+                code
+                credits
+                period
+                periodsPerWeek
+                timesPerWeek
+                stdCount
+                limitCount
+                remark
+              }
+            }
+            homeworks(page: $page) {
+              items {
+                id
+                title
+                isMajor
+                requiresTeam
+                publishedAt
+                submissionStartAt
+                submissionDueAt
+                createdAt
+                updatedAt
+                completed
+                completedAt
+                commentCount
+              }
+            }
+            schedules(page: $page) {
+              items {
+                id
+                periods
+                date
+                weekday
+                startTime
+                endTime
+                experiment
+                customPlace
+                lessonType
+                weekIndex
+                startUnit
+                endUnit
+              }
+            }
+            exams(page: $page) {
+              items {
+                id
+                jwId
+                examType
+                startTime
+                endTime
+                examDate
+                examTakeCount
+                examMode
+              }
+            }
+          }
+        }
+      `,
+      variables: {
+        page: { pageSize: GRAPHQL_LIMITS.pageSize },
+      },
+    });
+
+    expect(errorMessages(payload)).toContain("Query cost limit exceeded.");
+  });
 });

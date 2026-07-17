@@ -61,6 +61,14 @@ export function validateGraphqlTeacherCode(value: string | null | undefined) {
   );
 }
 
+export function validateGraphqlWeekday(value: number | null | undefined) {
+  if (value == null) return undefined;
+  if (!Number.isInteger(value) || value < 1 || value > 7) {
+    badUserInput("weekday must be between 1 and 7.");
+  }
+  return value;
+}
+
 export function validateGraphqlVersionKey(value: string | null | undefined) {
   const versionKey = validateOptionalText(
     value,

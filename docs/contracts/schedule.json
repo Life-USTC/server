@@ -35,6 +35,22 @@
           }
         ]
       },
+      "graphql": {
+        "fields": [
+          {
+            "parent": "Viewer",
+            "name": "schedules",
+            "returns": "SchedulePage!",
+            "auth": "user",
+            "required_scopes": ["schedule:read"],
+            "rest_equivalent": "GET /api/me/subscriptions/schedules",
+            "mcp_equivalent": "list_my_schedules",
+            "notes": [
+              "DateTime range inputs normalize to Asia/Shanghai calendar dates for the Schedule.date @db.Date column."
+            ]
+          }
+        ]
+      },
       "mcp": {
         "tools": [
           {

@@ -1,3 +1,4 @@
+import { sectionCatalogInclude } from "@/features/catalog/server/academic-query-includes";
 import type { Prisma } from "@/generated/prisma/client";
 
 export function buildSubscribedHomeworkInclude(
@@ -5,7 +6,7 @@ export function buildSubscribedHomeworkInclude(
   includeEditors: boolean,
 ) {
   return {
-    section: { include: { course: true, semester: true } },
+    section: { include: sectionCatalogInclude },
     description: true,
     homeworkCompletions: {
       where: { userId },

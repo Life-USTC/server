@@ -95,6 +95,19 @@
           }
         ]
       },
+      "graphql": {
+        "fields": [
+          {
+            "parent": "Viewer",
+            "name": "profile",
+            "returns": "UserProfile!",
+            "auth": "user",
+            "required_scopes": ["me:read"],
+            "rest_equivalent": "GET /api/me",
+            "mcp_equivalent": "get_my_profile"
+          }
+        ]
+      },
       "mcp": {
         "tools": [
           {

@@ -1,4 +1,4 @@
-import { sectionInclude } from "@/features/catalog/server/academic-query-includes";
+import { sectionCatalogInclude } from "@/features/catalog/server/academic-query-includes";
 import type { Prisma } from "@/generated/prisma/client";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma } from "@/lib/db/prisma";
@@ -8,15 +8,6 @@ const SUBSCRIBED_SECTION_ORDER_BY = [
   { semester: { jwId: "desc" } },
   { code: "asc" },
 ] satisfies Prisma.SectionOrderByWithRelationInput[];
-
-const subscribedSectionInclude = {
-  course: sectionInclude.course,
-  semester: sectionInclude.semester,
-  campus: sectionInclude.campus,
-  openDepartment: sectionInclude.openDepartment,
-  examMode: sectionInclude.examMode,
-  teachLanguage: sectionInclude.teachLanguage,
-} satisfies Prisma.SectionInclude;
 
 export function listSubscribedSectionPage(
   userId: string,
@@ -37,7 +28,7 @@ export function listSubscribedSectionPage(
     (skip, take) =>
       prisma.section.findMany({
         where,
-        include: subscribedSectionInclude,
+        include: sectionCatalogInclude,
         orderBy: SUBSCRIBED_SECTION_ORDER_BY,
         skip,
         take,

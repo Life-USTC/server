@@ -1,3 +1,4 @@
+import { sectionCatalogInclude } from "@/features/catalog/server/academic-query-includes";
 import type { Prisma } from "@/generated/prisma/client";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma, prisma } from "@/lib/db/prisma";
@@ -18,14 +19,14 @@ const subscribedScheduleInclude = {
     },
   },
   teachers: { include: { department: true } },
-  section: { include: { course: true, semester: true } },
+  section: { include: sectionCatalogInclude },
   scheduleGroup: true,
 } satisfies Prisma.ScheduleInclude;
 
 const subscribedExamInclude = {
   examBatch: true,
   examRooms: true,
-  section: { include: { course: true, semester: true } },
+  section: { include: sectionCatalogInclude },
 } satisfies Prisma.ExamInclude;
 
 const subscribedScheduleOrderBy = [
