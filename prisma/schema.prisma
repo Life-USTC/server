@@ -529,7 +529,6 @@ model Teacher {
   comments           Comment[]
   description        Description?
 
-  @@unique([nameCn, departmentId])
   @@index([code])
   @@index([nameCn])
   @@index([nameEn])
