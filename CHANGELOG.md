@@ -1,3 +1,10 @@
+# [1.59.0](https://github.com/Life-USTC/server/compare/v1.58.0...v1.59.0) (2026-07-17)
+
+
+### Features
+
+* **graphql:** add authenticated viewer queries ([#469](https://github.com/Life-USTC/server/issues/469)) ([dfd8fbd](https://github.com/Life-USTC/server/commit/dfd8fbd42c48b27f304f5f19d8f5aaaf3976f965))
+
 # [1.58.0](https://github.com/Life-USTC/server/compare/v1.57.0...v1.58.0) (2026-07-17)
 
 
