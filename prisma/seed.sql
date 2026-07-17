@@ -206,6 +206,8 @@ INSERT INTO public."Course" (id, "jwId", code, "nameCn", "nameEn", "categoryId",
 INSERT INTO public."Course" (id, "jwId", code, "nameCn", "nameEn", "categoryId", "classTypeId", "classifyId", "educationLevelId", "gradationId", "typeId") VALUES (2, 9901004, 'MATH2001', '线性代数进阶', 'Advanced Linear Algebra', 1, 1, 1, 1, 1, 1) ON CONFLICT DO NOTHING;
 INSERT INTO public."Course" (id, "jwId", code, "nameCn", "nameEn", "categoryId", "classTypeId", "classifyId", "educationLevelId", "gradationId", "typeId") VALUES (4, 9901001, 'IS3003', '密码工程原理与实践', 'Cryptographic Engineering: Principles and Practice', 1, 1, 1, 1, 1, 1) ON CONFLICT DO NOTHING;
 
+INSERT INTO public."CourseAlias" ("jwId", "courseId") VALUES (19901001, 4) ON CONFLICT DO NOTHING;
+
 
 --
 -- Data for Name: Department; Type: TABLE DATA; Schema: public; Owner: -

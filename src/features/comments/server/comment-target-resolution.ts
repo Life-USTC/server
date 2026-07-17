@@ -1,3 +1,4 @@
+import { resolveCourseIdByJwId } from "@/features/catalog/server/course-jw-id";
 import { prisma } from "@/lib/db/prisma";
 import { parseInteger } from "@/lib/integers";
 import {
@@ -55,11 +56,7 @@ async function findSectionIdByJwId(jwId: number) {
 }
 
 async function findCourseIdByJwId(jwId: number) {
-  const course = await prisma.course.findUnique({
-    where: { jwId },
-    select: { id: true },
-  });
-  return course?.id ?? null;
+  return resolveCourseIdByJwId(prisma, jwId);
 }
 
 function invalidTarget(

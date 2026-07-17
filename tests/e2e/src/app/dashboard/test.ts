@@ -6,9 +6,8 @@
  *   in the sidebar. Auth-only dashboard sub-pages (overview, calendar, homeworks,
  *   todos, exams, subscriptions) are not accessible. A sign-in CTA is displayed.
  *   Default public tab is "bus".
- * - **Authenticated:** Dashboard pages are nested under the "Dashboard" group in
- *   the sidebar: overview (default), calendar, homeworks, todos, exams,
- *   subscriptions. Bus and links live in the "Public tools" group.
+ * - **Authenticated:** Task destinations are direct links in the "Workspace"
+ *   group. Bus, websites, catalog, and campus destinations live in "Explore".
  *
  * ## UI/UX Elements
  * - Sidebar navigation with collapsible groups
@@ -23,8 +22,8 @@ import { signInAsDebugUser } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import {
   appSidebar,
-  expandDashboardSidebarGroup,
-  sidebarDashboardLink,
+  expandWorkspaceSidebarGroup,
+  sidebarNavigationLink,
 } from "../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
@@ -77,14 +76,14 @@ test.describe("仪表盘", () => {
     await expect(page).toHaveTitle(/^(总览|Overview) - Life@USTC$/);
     await expect(page.locator("#app-user-menu")).toBeVisible();
 
-    // Dashboard sidebar group can be expanded to show the auth-only sub-pages
-    await expandDashboardSidebarGroup(page);
+    // Task-oriented workspace destinations are directly reachable.
+    await expandWorkspaceSidebarGroup(page);
     for (const label of [
-      /^(工作台首页|Workspace start)$/i,
-      /^(工作台日程|Workspace schedule)$/i,
-      /^(工作台网站目录|Workspace web directory)$/i,
+      /^(今天|Today)$/i,
+      /^(日历|Calendar)$/i,
+      /^(作业|Homework)$/i,
     ]) {
-      await expect(sidebarDashboardLink(page, label)).toBeVisible();
+      await expect(sidebarNavigationLink(page, label)).toBeVisible();
     }
 
     // Seed homework title visible on overview. Retry the subscription+reload
@@ -108,12 +107,9 @@ test.describe("仪表盘", () => {
 
   test("可通过侧边栏导航到作业标签", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/");
-    await expandDashboardSidebarGroup(page);
+    await expandWorkspaceSidebarGroup(page);
 
-    const homeworksTab = sidebarDashboardLink(
-      page,
-      /^(工作台任务|Workspace assignments)$/i,
-    );
+    const homeworksTab = sidebarNavigationLink(page, /^(作业|Homework)$/i);
     await expect(homeworksTab).toBeVisible();
     await homeworksTab.click();
 
@@ -127,10 +123,7 @@ test.describe("仪表盘", () => {
       testInfo,
       screenshotLabel: "dashboard-links-path",
     });
-    const linksDashboardTab = sidebarDashboardLink(
-      page,
-      /^(工作台网站目录|Workspace web directory)$/i,
-    );
+    const linksDashboardTab = sidebarNavigationLink(page, /^(网站|Websites)$/i);
     await expect(linksDashboardTab).toBeVisible();
     await expect(linksDashboardTab).toHaveAttribute("aria-current", "page");
     await expect(
@@ -140,9 +133,9 @@ test.describe("仪表盘", () => {
     ).toBeVisible();
 
     await signInAsDebugUser(page, "/dashboard/homeworks");
-    const homeworksDashboardTab = sidebarDashboardLink(
+    const homeworksDashboardTab = sidebarNavigationLink(
       page,
-      /^(工作台任务|Workspace assignments)$/i,
+      /^(作业|Homework)$/i,
     );
     await expect(homeworksDashboardTab).toBeVisible();
     await expect(homeworksDashboardTab).toHaveAttribute("aria-current", "page");
@@ -150,8 +143,8 @@ test.describe("仪表盘", () => {
     await gotoAndWaitForReady(page, "/dashboard/subscriptions");
     await expect(page).toHaveURL(/\/dashboard\/subscriptions(?:\?.*)?$/);
     await expect(
-      appSidebar(page).getByRole("button", {
-        name: /^(课程规划|Section Management)\b/i,
+      appSidebar(page).getByRole("link", {
+        name: /^(关注班级|Section Management)$/i,
       }),
     ).toBeVisible();
     await expect(page.getByText(DEV_SEED.semesterNameCn).first()).toBeVisible();

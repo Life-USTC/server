@@ -1,11 +1,14 @@
 import { getLatestComments } from "@/features/comments/server/latest-comments";
 import { getPrisma } from "@/lib/db/prisma";
 import { toLoadData } from "@/lib/load-data-utils";
+import { resolveCourseIdByJwId } from "./course-jw-id";
 
 export async function getCoursePage(jwId: number, locale = "zh-cn") {
   const prisma = getPrisma(locale);
+  const courseId = await resolveCourseIdByJwId(prisma, jwId);
+  if (courseId == null) return null;
   const course = await prisma.course.findUnique({
-    where: { jwId },
+    where: { id: courseId },
     select: {
       id: true,
       jwId: true,

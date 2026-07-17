@@ -208,6 +208,39 @@ describe("GraphQL public Query integration", () => {
     });
   });
 
+  it("accepts a legacy course jwId when filtering sections", async () => {
+    const { payload } = await execute({
+      query: /* GraphQL */ `
+        query SectionsByCourse($courseJwId: Int!) {
+          sections(
+            filter: { courseJwId: $courseJwId }
+            page: { pageSize: 10 }
+          ) {
+            items {
+              jwId
+              course {
+                jwId
+              }
+            }
+          }
+        }
+      `,
+      variables: { courseJwId: DEV_SEED.course.legacyJwId },
+    });
+
+    expect(payload.errors).toBeUndefined();
+    expect(payload.data).toMatchObject({
+      sections: {
+        items: [
+          {
+            jwId: DEV_SEED.section.jwId,
+            course: { jwId: DEV_SEED.course.jwId },
+          },
+        ],
+      },
+    });
+  });
+
   it("enforces production introspection and request-size boundaries", async () => {
     const introspection = await execute(
       { query: "{ __schema { queryType { name } } }" },

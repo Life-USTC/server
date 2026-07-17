@@ -1,3 +1,31 @@
+# [1.56.0](https://github.com/Life-USTC/server/compare/v1.55.3...v1.56.0) (2026-07-17)
+
+
+### Features
+
+* **db:** add course alias storage ([#463](https://github.com/Life-USTC/server/issues/463)) ([c57b58d](https://github.com/Life-USTC/server/commit/c57b58d0fefdc088f4625bab5529740e8b8efcf6))
+
+## [1.55.3](https://github.com/Life-USTC/server/compare/v1.55.2...v1.55.3) (2026-07-17)
+
+
+### Bug Fixes
+
+* **shell:** simplify responsive navigation ([#462](https://github.com/Life-USTC/server/issues/462)) ([1aca8ea](https://github.com/Life-USTC/server/commit/1aca8ea479b4a83397eb01d4c15508fcafd7e4cf))
+
+## [1.55.2](https://github.com/Life-USTC/server/compare/v1.55.1...v1.55.2) (2026-07-17)
+
+
+### Bug Fixes
+
+* **loader:** preserve imported teacher and class identities ([#456](https://github.com/Life-USTC/server/issues/456)) ([ffb0c7b](https://github.com/Life-USTC/server/commit/ffb0c7bf3e9d63791946a1f374d7bd4889040da3))
+
+## [1.55.1](https://github.com/Life-USTC/server/compare/v1.55.0...v1.55.1) (2026-07-17)
+
+
+### Bug Fixes
+
+* **dashboard:** improve mobile planning views ([#459](https://github.com/Life-USTC/server/issues/459)) ([b799cd5](https://github.com/Life-USTC/server/commit/b799cd5f15a2c05ecd2609afcdfd7bc7b167f1ad))
+
 # [1.55.0](https://github.com/Life-USTC/server/compare/v1.54.1...v1.55.0) (2026-07-17)
 
 

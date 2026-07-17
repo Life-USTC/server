@@ -1,16 +1,11 @@
 <script lang="ts">
-import LanguagesIcon from "@lucide/svelte/icons/languages";
-import MonitorIcon from "@lucide/svelte/icons/monitor";
-import MoonIcon from "@lucide/svelte/icons/moon";
-import SunIcon from "@lucide/svelte/icons/sun";
 import type { ThemeMode } from "$lib/components/shell/layout-shell";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 import type {
   LayoutCopy,
   LayoutUserSummary,
 } from "$lib/shell/layout-server-data";
+import AppPreferencesMenu from "./AppPreferencesMenu.svelte";
 import AppUserMenu from "./AppUserMenu.svelte";
 
 export let avatarFallback: string;
@@ -28,20 +23,21 @@ export let themeMenuOpen: boolean;
 export let themeMode: ThemeMode;
 export let user: LayoutUserSummary;
 export let userMenuOpen: boolean;
-
-function setThemeValue(value: string) {
-  if (value === "system" || value === "light" || value === "dark") {
-    setThemeMode(value);
-  }
-}
 </script>
 
-<header class="sticky top-0 h-12 shrink-0 border-b bg-card/95 backdrop-blur">
+<header
+  data-shell-topbar
+  class="bg-card/95 sticky top-0 z-20 h-14 shrink-0 border-b backdrop-blur md:h-12"
+>
   <div class="flex h-full items-center gap-2 px-3 sm:px-5 lg:px-6">
-    <Sidebar.Trigger aria-label={copy.shell.menu} onclick={closeMenus} />
+    <Sidebar.Trigger
+      aria-label={copy.shell.menu}
+      class="size-11 md:size-7"
+      onclick={closeMenus}
+    />
 
     <a
-      class="inline-flex min-w-0 items-center gap-2 rounded-md font-semibold leading-none transition-opacity hover:opacity-75 lg:hidden"
+      class="inline-flex min-h-11 min-w-0 items-center gap-2 rounded-md font-semibold leading-none transition-opacity hover:opacity-75 lg:hidden"
       href="/"
     >
       <img
@@ -54,80 +50,19 @@ function setThemeValue(value: string) {
     </a>
 
     <div class="ml-auto flex items-center gap-1.5">
-      <DropdownMenu.Root open={localeMenuOpen} onOpenChange={setLocaleMenuOpen}>
-        <DropdownMenu.Trigger>
-          {#snippet child({ props })}
-            <Button
-              {...props}
-              aria-label={copy.language.selector}
-              size="icon-sm"
-              variant="outline"
-            >
-              <LanguagesIcon data-icon="inline-start" />
-            </Button>
-          {/snippet}
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Content align="end" class="w-40" preventScroll={false}>
-          <DropdownMenu.Group>
-            <DropdownMenu.RadioGroup value={locale}>
-              <DropdownMenu.RadioItem
-                onSelect={() => setLocale("en-us")}
-                value="en-us"
-              >
-                {copy.language.english}
-              </DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem
-                onSelect={() => setLocale("zh-cn")}
-                value="zh-cn"
-              >
-                {copy.language.chinese}
-              </DropdownMenu.RadioItem>
-            </DropdownMenu.RadioGroup>
-          </DropdownMenu.Group>
-        </DropdownMenu.Content>
-      </DropdownMenu.Root>
-
-      <DropdownMenu.Root open={themeMenuOpen} onOpenChange={setThemeMenuOpen}>
-        <DropdownMenu.Trigger>
-          {#snippet child({ props })}
-            <Button
-              {...props}
-              aria-label={copy.theme.selector}
-              size="icon-sm"
-              variant="outline"
-            >
-              {#if themeMode === "light"}
-                <SunIcon data-icon="inline-start" />
-              {:else if themeMode === "dark"}
-                <MoonIcon data-icon="inline-start" />
-              {:else}
-                <MonitorIcon data-icon="inline-start" />
-              {/if}
-            </Button>
-          {/snippet}
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Content align="end" class="w-44" preventScroll={false}>
-          <DropdownMenu.Group>
-            <DropdownMenu.RadioGroup
-              onValueChange={setThemeValue}
-              value={themeMode}
-            >
-              <DropdownMenu.RadioItem value="system">
-                <MonitorIcon />
-                {copy.theme.system}
-              </DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="light">
-                <SunIcon />
-                {copy.theme.light}
-              </DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="dark">
-                <MoonIcon />
-                {copy.theme.dark}
-              </DropdownMenu.RadioItem>
-            </DropdownMenu.RadioGroup>
-          </DropdownMenu.Group>
-        </DropdownMenu.Content>
-      </DropdownMenu.Root>
+      <div class="hidden md:block">
+        <AppPreferencesMenu
+          {copy}
+          {locale}
+          {localeMenuOpen}
+          {setLocale}
+          {setLocaleMenuOpen}
+          {setThemeMenuOpen}
+          {setThemeMode}
+          {themeMenuOpen}
+          {themeMode}
+        />
+      </div>
 
       <AppUserMenu
         {avatarFallback}
