@@ -1,3 +1,10 @@
+# [1.58.0](https://github.com/Life-USTC/server/compare/v1.57.0...v1.58.0) (2026-07-17)
+
+
+### Features
+
+* **graphql:** add operation observability ([#465](https://github.com/Life-USTC/server/issues/465)) ([e6fa181](https://github.com/Life-USTC/server/commit/e6fa1815f3a62d2be970682053a537c4e243bf76))
+
 # [1.57.0](https://github.com/Life-USTC/server/compare/v1.56.1...v1.57.0) (2026-07-17)
 
 
