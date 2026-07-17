@@ -97,6 +97,9 @@ export type DashboardDashboardCopy = DashboardRecord & {
   };
   calendarSemesterNext: string;
   calendarSemesterPrev: string;
+  calendarAgendaEmpty: string;
+  calendarAgendaLabel: string;
+  calendarMoreActions: string;
   calendarViewMonth: string;
   calendarViewSemester: string;
   calendarViewWeek: string;
@@ -106,6 +109,13 @@ export type DashboardDashboardCopy = DashboardRecord & {
     prev: string;
   };
   completedStatus: string;
+  focus: {
+    next: string;
+    noUpcoming: string;
+    now: string;
+    title: string;
+    urgent: string;
+  };
   homeworks: {
     empty: string;
   };
@@ -140,6 +150,7 @@ export type DashboardDashboardCopy = DashboardRecord & {
     title: string;
   };
   pendingStatus: string;
+  todayAction: string;
   week: {
     title: string;
   };

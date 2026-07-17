@@ -9,7 +9,8 @@
   "rules": {
     "attached-to-section": "Exams are attached to sections and are high-priority time events.",
     "read-only": "Exams are read-only; no ordinary user edit entry point is provided.",
-    "semester-required": "Semesters must be explicitly displayed when browsing exams across semesters."
+    "semester-required": "Semesters must be explicitly displayed when browsing exams across semesters.",
+    "mobile-toolbar-priority": "At mobile widths, completion-status filters stay directly available, card/list display mode moves into an accessible overflow menu, and toolbar controls remain a minimum 44 by 44 CSS pixel target. Desktop toolbar behavior remains unchanged."
   },
   "capabilities": {
     "cross-section-exam-list": {
@@ -45,7 +46,8 @@
           "exam.examRooms[] (locations)",
           "section.course.namePrimary",
           "section.semester.nameCn",
-          "completion filter: incomplete/completed/all"
+          "completion filter: incomplete/completed/all",
+          "mobile compact toolbar with direct completion filters and overflow display-mode control"
         ]
       }
     },

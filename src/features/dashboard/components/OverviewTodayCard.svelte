@@ -74,7 +74,7 @@ export let todaySessions: DashboardSessionItem[];
         </Item.Root>
       {/each}
       {#if todaySessions.length === 0 && dueTodayHomeworks.length === 0 && dueTodayTodos.length === 0}
-        <Empty.Root class="min-h-24 md:col-span-2">
+        <Empty.Root class="py-2 md:col-span-2">
           <Empty.Header>
             <Empty.Title>{dashboardCopy.today.empty}</Empty.Title>
           </Empty.Header>

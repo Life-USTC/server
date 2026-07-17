@@ -157,4 +157,34 @@ test.describe("仪表盘", () => {
     await expect(page.getByText(DEV_SEED.semesterNameCn).first()).toBeVisible();
     await captureStepScreenshot(page, testInfo, "dashboard-subscriptions-path");
   });
+
+  test("移动端总览优先显示此刻与下一步，常用网站保持次要", async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ height: 844, width: 390 });
+    await signInAsDebugUser(page, "/");
+    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, "/", {
+      testInfo,
+      screenshotLabel: "dashboard-mobile-priority",
+    });
+
+    const focus = page.getByTestId("dashboard-overview-focus");
+    const links = page.getByTestId("dashboard-overview-links");
+    await expect(focus).toBeVisible();
+    await expect(focus.getByText(/此刻与下一步|Now & next/i)).toBeVisible();
+    await expect(links).toBeVisible();
+
+    const focusBox = await focus.boundingBox();
+    const linksBox = await links.boundingBox();
+    expect(focusBox?.y).toBeLessThan(linksBox?.y ?? 0);
+    expect(focusBox?.y).toBeLessThan(844);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+
+    await captureStepScreenshot(page, testInfo, "dashboard/mobile-priority");
+  });
 });

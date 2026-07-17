@@ -91,6 +91,53 @@ test.describe("仪表盘作业", () => {
     await captureStepScreenshot(page, testInfo, "homeworks/seed-card-fields");
   });
 
+  test("移动端保留直接筛选并将视图切换收进紧凑菜单", async ({
+    page,
+  }, testInfo) => {
+    await page.addInitScript(() => {
+      localStorage.removeItem("life-ustc-dashboard-view-mode");
+    });
+    await page.setViewportSize({ height: 844, width: 390 });
+    await signInAsDebugUser(page, "/dashboard/homeworks");
+    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, "/dashboard/homeworks", {
+      testInfo,
+      screenshotLabel: "homeworks-mobile-toolbar",
+    });
+
+    const incomplete = page
+      .getByRole("radio", { name: /未完成|Incomplete/i })
+      .first();
+    const add = page.getByTestId("dashboard-homeworks-add");
+    const viewMenu = page.getByTestId("dashboard-homeworks-view-menu");
+    await expect(incomplete).toBeVisible();
+    await expect(add).toBeVisible();
+    await expect(viewMenu).toBeVisible();
+
+    for (const control of [incomplete, add, viewMenu]) {
+      const box = await control.boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+      expect(box?.width).toBeGreaterThanOrEqual(44);
+    }
+
+    const all = page.getByRole("radio", { name: /全部|All/i }).first();
+    await all.click();
+    await expect(all).toHaveAttribute("aria-checked", "true");
+
+    await viewMenu.click();
+    await page.getByRole("menuitemradio", { name: /列表|List/i }).click();
+    await expect(page).toHaveURL(/homeworkView=list/);
+    await expect(page.getByTestId("dashboard-homeworks-list")).toBeVisible();
+    await expect(all).toHaveAttribute("aria-checked", "true");
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+
+    await captureStepScreenshot(page, testInfo, "homeworks/mobile-toolbar");
+  });
+
   test("种子协作作业显示重要和团队徽章", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/homeworks");
     await ensureSeedSectionSubscription(page);

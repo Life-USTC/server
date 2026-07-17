@@ -82,6 +82,54 @@ test.describe("仪表盘考试", () => {
     await captureStepScreenshot(page, testInfo, "exams/filter-toolbar");
   });
 
+  test("移动端考试工具栏直接筛选并通过菜单切换视图", async ({
+    page,
+  }, testInfo) => {
+    await page.addInitScript(() => {
+      localStorage.removeItem("life-ustc-dashboard-view-mode");
+    });
+    await page.setViewportSize({ height: 844, width: 390 });
+    await signInAsDebugUser(page, "/dashboard/exams");
+    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, "/dashboard/exams", {
+      testInfo,
+      screenshotLabel: "exams-mobile-toolbar",
+    });
+
+    const upcoming = page
+      .getByRole("radio", {
+        name: /Upcoming|未结束|即将|待完成/i,
+      })
+      .first();
+    const viewMenu = page.getByTestId("dashboard-exams-view-menu");
+    await expect(upcoming).toBeVisible();
+    await expect(viewMenu).toBeVisible();
+
+    for (const control of [upcoming, viewMenu]) {
+      const box = await control.boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+      expect(box?.width).toBeGreaterThanOrEqual(44);
+    }
+
+    const all = page
+      .getByRole("group", { name: /考试|Exams/i })
+      .getByRole("radio", { name: /全部|All/i });
+    await all.click();
+    await expect(all).toHaveAttribute("aria-checked", "true");
+    await viewMenu.click();
+    await page.getByRole("menuitemradio", { name: /列表|List/i }).click();
+    await expect(page).toHaveURL(/examView=list/);
+    await expect(page.getByRole("table")).toBeVisible();
+    await expect(all).toHaveAttribute("aria-checked", "true");
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+
+    await captureStepScreenshot(page, testInfo, "exams/mobile-toolbar");
+  });
+
   test("考试卡片显示必填字段", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/exams");
     await ensureSeedSectionSubscription(page);
