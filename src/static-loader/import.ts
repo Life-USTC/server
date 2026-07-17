@@ -15,6 +15,10 @@ import {
 } from "./course-merge";
 import { acquireStaticImportLock } from "./import-lock";
 import {
+  assertStaticImportStateAllowsSnapshot,
+  recordStaticImportState,
+} from "./import-state";
+import {
   type AdminClassSectionPair,
   type BuildingBuild,
   type CampusBuild,
@@ -100,6 +104,7 @@ export type ImportConfig = {
   snapshotSha256: string;
   minSemester: number;
   dryRun: boolean;
+  bootstrapImportState: boolean;
   retireMissingSections: boolean;
   expectedSnapshotSha256: string | null;
   expectedSectionRetirementCandidates: number | null;
@@ -295,6 +300,16 @@ export async function runImport(
   const runInTransaction = async (tx: Prisma.TransactionClient) => {
     await logStep("acquireStaticImportLock", 1, () =>
       acquireStaticImportLock(tx),
+    );
+    await logStep("validateStaticImportState", 1, () =>
+      assertStaticImportStateAllowsSnapshot(tx, {
+        bootstrapEnabled: config.bootstrapImportState,
+        dryRun: config.dryRun,
+        expectedSnapshotSha256: config.expectedSnapshotSha256,
+        observedAt,
+        retirementEnabled: config.retireMissingSections,
+        snapshotSha256: config.snapshotSha256,
+      }),
     );
     const semesterMap = await logStep("upsertSemesters", semesters.length, () =>
       upsertSemesters(tx, semesters),
@@ -493,6 +508,12 @@ export async function runImport(
           courseImport.incomingCourses,
           courseImport.canonicalJwIds,
         ),
+    );
+    await logStep("recordStaticImportState", 1, () =>
+      recordStaticImportState(tx, {
+        observedAt,
+        snapshotSha256: config.snapshotSha256,
+      }),
     );
 
     if (config.dryRun) throw new Error("DRY_RUN: rolling back transaction");

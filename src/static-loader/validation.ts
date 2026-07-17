@@ -6,6 +6,7 @@ const SEMESTER_SOURCES = new Set([
   CATALOG_EXAM_SOURCE,
   JW_SCHEDULE_SOURCE,
 ]);
+const MAX_SNAPSHOT_FUTURE_SKEW_MS = 15 * 60 * 1000;
 
 type SnapshotRow = Record<string, unknown>;
 
@@ -90,13 +91,21 @@ export function parseOptionalSha256Setting(
   return normalized;
 }
 
-export function parseSnapshotGeneratedAt(value: string | undefined): Date {
+export function parseSnapshotGeneratedAt(
+  value: string | undefined,
+  now = new Date(),
+): Date {
   if (value == null || value.trim() === "") {
     throw new Error("snapshot metadata generated_at is required");
   }
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
     throw new Error("snapshot metadata generated_at must be a valid timestamp");
+  }
+  if (parsed.getTime() > now.getTime() + MAX_SNAPSHOT_FUTURE_SKEW_MS) {
+    throw new Error(
+      "snapshot metadata generated_at cannot be more than 15 minutes in the future",
+    );
   }
   return parsed;
 }

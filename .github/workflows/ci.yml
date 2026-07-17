@@ -109,6 +109,7 @@ jobs:
             -v "${report_dir}:/tmp/static-loader-report" \
             -e DATABASE_URL="postgresql://postgres:postgres@${postgres}:5432/life_ustc_static_loader" \
             -e STATIC_LOADER_DRY_RUN=true \
+            -e STATIC_LOADER_BOOTSTRAP_IMPORT_STATE=true \
             -e STATIC_LOADER_MIN_SEMESTER=401 \
             -e STATIC_LOADER_STATS_FILE=/tmp/static-loader-report/report.json \
             life-ustc-static-loader:check

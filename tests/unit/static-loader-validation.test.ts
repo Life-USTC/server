@@ -147,13 +147,17 @@ describe("static loader configuration", () => {
   });
 
   it("requires a valid snapshot generation timestamp", () => {
-    expect(parseSnapshotGeneratedAt("2026-07-18T03:00:00.000Z")).toEqual(
+    const now = new Date("2026-07-18T03:05:00.000Z");
+    expect(parseSnapshotGeneratedAt("2026-07-18T03:00:00.000Z", now)).toEqual(
       new Date("2026-07-18T03:00:00.000Z"),
     );
     expect(() => parseSnapshotGeneratedAt(undefined)).toThrow("required");
     expect(() => parseSnapshotGeneratedAt("not-a-date")).toThrow(
       "valid timestamp",
     );
+    expect(() =>
+      parseSnapshotGeneratedAt("2026-07-18T03:20:00.001Z", now),
+    ).toThrow("more than 15 minutes in the future");
   });
 });
 

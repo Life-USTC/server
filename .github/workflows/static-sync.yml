@@ -10,13 +10,18 @@ on:
         required: false
         default: false
         type: boolean
+      bootstrap_import_state:
+        description: "Initialize the global import watermark (manual only; committed runs require the exact snapshot SHA below)"
+        required: false
+        default: false
+        type: boolean
       retire_missing_sections:
         description: "Retire missing Sections (manual runs only; requires both approval fields below)"
         required: false
         default: false
         type: boolean
       expected_snapshot_sha256:
-        description: "Exact snapshot SHA-256 approved from a preceding dry run"
+        description: "Exact snapshot SHA-256 approved from a preceding bootstrap/retirement dry run"
         required: false
         type: string
       expected_section_retirement_candidates:
@@ -68,6 +73,7 @@ jobs:
           STATIC_SNAPSHOT_URL: ${{ vars.STATIC_SNAPSHOT_URL || 'https://static.life-ustc.tiankaima.dev/life-ustc-static.sqlite' }}
           STATIC_LOADER_MIN_SEMESTER: ${{ vars.STATIC_LOADER_MIN_SEMESTER || '401' }}
           STATIC_LOADER_DRY_RUN: ${{ inputs.dry-run }}
+          STATIC_LOADER_BOOTSTRAP_IMPORT_STATE: ${{ github.event_name == 'workflow_dispatch' && inputs.bootstrap_import_state || false }}
           STATIC_LOADER_RETIRE_MISSING_SECTIONS: ${{ github.event_name == 'workflow_dispatch' && inputs.retire_missing_sections || false }}
           STATIC_LOADER_EXPECTED_SNAPSHOT_SHA256: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_snapshot_sha256 || '' }}
           STATIC_LOADER_EXPECTED_SECTION_RETIREMENT_CANDIDATES: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_section_retirement_candidates || '' }}
