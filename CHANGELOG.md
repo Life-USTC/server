@@ -1,3 +1,11 @@
+# [1.61.0](https://github.com/Life-USTC/server/compare/v1.60.0...v1.61.0) (2026-07-17)
+
+
+### Features
+
+* **db:** add section lifecycle storage ([#473](https://github.com/Life-USTC/server/issues/473)) ([0187e87](https://github.com/Life-USTC/server/commit/0187e878a1f109e19d6b28ff5a968ea5386f4910))
+* **ops:** add database recovery gate ([#474](https://github.com/Life-USTC/server/issues/474)) ([b8d1030](https://github.com/Life-USTC/server/commit/b8d10309ced9445ef6409bbc1c12ab696a999caa))
+
 # [1.60.0](https://github.com/Life-USTC/server/compare/v1.59.1...v1.60.0) (2026-07-17)
 
 
