@@ -1,14 +1,14 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { lexicographicSortSchema, printSchema } from "graphql";
+import { buildSchema, lexicographicSortSchema, printSchema } from "graphql";
 import {
   GRAPHQL_OPERATIONS_RESOURCE_URI,
   GRAPHQL_SCHEMA_RESOURCE_URI,
 } from "./constants";
 import operationsManifest from "./operations.json" with { type: "json" };
-import { graphqlSchema } from "./schema";
+import { graphqlTypeDefs } from "./schema";
 
 export const graphqlSchemaSdl = `${printSchema(
-  lexicographicSortSchema(graphqlSchema),
+  lexicographicSortSchema(buildSchema(graphqlTypeDefs)),
 )}\n`;
 
 export const graphqlOperationsManifest = `${JSON.stringify(
