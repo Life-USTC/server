@@ -83,7 +83,7 @@ async function getMutableUserSubscriptions(userId: string) {
     select: {
       id: true,
       subscribedSections: {
-        select: { id: true, jwId: true, semesterId: true },
+        select: { id: true, jwId: true, semesterId: true, retiredAt: true },
       },
     },
   });
@@ -149,9 +149,23 @@ export async function replaceUserSectionSubscriptions(
   sectionIds: number[],
   locale = DEFAULT_LOCALE,
 ) {
+  const user = await getMutableUserSubscriptions(userId);
+  if (!user) {
+    return null;
+  }
+
+  const requestedIdSet = new Set(uniqueSectionIds(sectionIds));
+  const preservedRetiredIds = user.subscribedSections
+    .filter(
+      (section) => section.retiredAt != null && requestedIdSet.has(section.id),
+    )
+    .map((section) => section.id);
   const validSectionIds = await getExistingSectionIds(sectionIds);
 
-  await replaceUserSectionIds(userId, validSectionIds);
+  await replaceUserSectionIds(userId, [
+    ...validSectionIds,
+    ...preservedRetiredIds,
+  ]);
 
   return getUserCalendarSubscription(userId, locale);
 }
@@ -284,11 +298,13 @@ export async function batchUpdateUserSectionSubscriptions({
   const targetIds = uniqueSectionIds(
     resolved.sections.map((section) => section.id),
   );
-  const targetIdSet = new Set(targetIds);
 
   let addedCount = 0;
   let removedCount = 0;
   let unchangedCount = 0;
+  let preservedRetiredIds: number[] = [];
+  let responseSections = resolved.sections;
+  let responseTotal = resolved.total;
 
   if (action === "add") {
     const addedIds = targetIds.filter((id) => !currentIdSet.has(id));
@@ -307,24 +323,57 @@ export async function batchUpdateUserSectionSubscriptions({
         : user.subscribedSections
             .filter((section) => section.semesterId === semesterId)
             .map((section) => section.id);
+    const requestedIdSet = new Set(uniqueSectionIds(sectionIds ?? []));
+    preservedRetiredIds = user.subscribedSections
+      .filter(
+        (section) =>
+          section.retiredAt != null &&
+          requestedIdSet.has(section.id) &&
+          (semesterId === undefined || section.semesterId === semesterId),
+      )
+      .map((section) => section.id);
+    const effectiveTargetIds = [...targetIds, ...preservedRetiredIds];
+    const effectiveTargetIdSet = new Set(effectiveTargetIds);
     addedCount = targetIds.filter((id) => !currentIdSet.has(id)).length;
     removedCount = currentIdsInScope.filter(
-      (id) => !targetIdSet.has(id),
+      (id) => !effectiveTargetIdSet.has(id),
     ).length;
-    unchangedCount = targetIds.length - addedCount;
+    unchangedCount =
+      targetIds.filter((id) => currentIdSet.has(id)).length +
+      preservedRetiredIds.length;
     if (semesterId === undefined) {
-      await replaceUserSectionIds(userId, targetIds);
+      await replaceUserSectionIds(userId, effectiveTargetIds);
     } else {
       await replaceUserSectionIdsInSemester(
         userId,
         currentIdsInScope,
-        targetIds,
+        effectiveTargetIds,
       );
     }
+    const effectiveResolved = await resolveCalendarSubscriptionSections({
+      includeRetired: true,
+      locale,
+      sectionIds: effectiveTargetIds,
+    });
+    responseSections = effectiveResolved?.sections ?? [];
+    responseTotal = responseSections.length;
   }
 
+  const acceptedRequestedIdSet = new Set([
+    ...resolved.matchedSectionIds,
+    ...preservedRetiredIds,
+  ]);
+  const requestedSectionIds = uniqueSectionIds(sectionIds ?? []);
   return {
     ...resolved,
+    matchedSectionIds: requestedSectionIds.filter((id) =>
+      acceptedRequestedIdSet.has(id),
+    ),
+    unmatchedSectionIds: requestedSectionIds.filter(
+      (id) => !acceptedRequestedIdSet.has(id),
+    ),
+    sections: responseSections,
+    total: responseTotal,
     action,
     addedCount,
     removedCount,

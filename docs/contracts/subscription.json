@@ -98,8 +98,8 @@
             "notes": [
               "Preferred mutation endpoint for batch subscribe, unsubscribe, and replace/update flows.",
               "Accepts action plus sectionIds and/or mixed section/course codes.",
-              "action=set requires semesterId and replaces only the requested semester, preserving subscriptions from every other semester.",
-              "A semester-scoped action=set may omit sectionIds/codes to clear only that semester."
+              "action=set requires semesterId, replaces only that semester (an empty target clears it), and preserves every other semester.",
+              "action=set preserves a retired Section only when it is already subscribed and its ID is explicitly included; omitted or newly requested retired Sections remain unsubscribed."
             ]
           },
           {
@@ -114,7 +114,8 @@
             "returns": "{ subscription: CalendarSubscription }",
             "notes": [
               "Compatibility replace endpoint for ID-only callers.",
-              "subscription.sections[] is the user's new set of subscribed sections."
+              "subscription.sections[] is the user's new set of subscribed sections.",
+              "A retired Section is preserved only when it is already subscribed and its ID is explicitly included; retired Sections cannot be newly subscribed."
             ]
           },
           {

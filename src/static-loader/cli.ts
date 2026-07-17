@@ -40,6 +40,11 @@ async function main() {
     process.env.STATIC_LOADER_DRY_RUN,
     false,
   );
+  const bootstrapImportState = parseBooleanSetting(
+    "STATIC_LOADER_BOOTSTRAP_IMPORT_STATE",
+    process.env.STATIC_LOADER_BOOTSTRAP_IMPORT_STATE,
+    false,
+  );
   const retireMissingSections = parseBooleanSetting(
     "STATIC_LOADER_RETIRE_MISSING_SECTIONS",
     process.env.STATIC_LOADER_RETIRE_MISSING_SECTIONS,
@@ -62,6 +67,7 @@ async function main() {
   console.log(`snapshotPath: ${snapshotPath}`);
   console.log(`minSemester: ${minSemester}`);
   console.log(`dryRun: ${dryRun}`);
+  console.log(`bootstrapImportState: ${bootstrapImportState}`);
   console.log(`retireMissingSections: ${retireMissingSections}`);
   console.log(
     `expectedSectionRetirementCandidates: ${expectedSectionRetirementCandidates ?? "not set"}`,
@@ -82,6 +88,7 @@ async function main() {
       snapshotSha256,
       minSemester,
       dryRun,
+      bootstrapImportState,
       retireMissingSections,
       expectedSnapshotSha256,
       expectedSectionRetirementCandidates,

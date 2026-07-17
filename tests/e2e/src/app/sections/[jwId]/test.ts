@@ -37,6 +37,7 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 import { signInAsDebugUser, signInAsDevAdmin } from "../../../../utils/auth";
 import { cleanupCommentsForE2e } from "../../../../utils/comments";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import { getCurrentSessionUser } from "../../../../utils/e2e-db";
 import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
 import { cleanupHomeworksForE2e } from "../../../../utils/homeworks";
 import {
@@ -498,6 +499,115 @@ test.describe("/sections/[jwId] 班级详情页", () => {
           where: { jwId: DEV_SEED.section.jwId },
           data: { retiredAt: previous.retiredAt },
         }),
+      );
+    }
+  });
+
+  test("已关注用户仍可取消关注已退役班级", async ({ page }) => {
+    test.setTimeout(60_000);
+    await signInAsDebugUser(page, SECTION_URL);
+    const sessionUser = await getCurrentSessionUser(page);
+    const previous = await withE2ePrisma(async (prisma) => {
+      const [section, user] = await Promise.all([
+        prisma.section.findUniqueOrThrow({
+          where: { jwId: DEV_SEED.section.jwId },
+          select: { id: true, retiredAt: true },
+        }),
+        prisma.user.findUniqueOrThrow({
+          where: { id: sessionUser.id },
+          select: {
+            subscribedSections: {
+              orderBy: { id: "asc" },
+              select: { id: true },
+            },
+          },
+        }),
+      ]);
+      return {
+        section,
+        subscribedSectionIds: user.subscribedSections.map(
+          (subscribedSection) => subscribedSection.id,
+        ),
+      };
+    });
+
+    await withE2ePrisma((prisma) =>
+      prisma.$transaction([
+        prisma.section.update({
+          where: { id: previous.section.id },
+          data: { retiredAt: new Date("2026-01-01T00:00:00.000Z") },
+        }),
+        prisma.user.update({
+          where: { id: sessionUser.id },
+          data: {
+            subscribedSections: {
+              set: [
+                ...new Set([
+                  ...previous.subscribedSectionIds,
+                  previous.section.id,
+                ]),
+              ].map((id) => ({ id })),
+            },
+          },
+        }),
+      ]),
+    );
+
+    try {
+      await gotoAndWaitForReady(page, SECTION_URL);
+
+      await expect(
+        page.getByText(/历史班级|Historical section/i).first(),
+      ).toBeVisible();
+      const unsubscribe = page.getByRole("button", {
+        name: /取消关注|Unsubscribe from section/i,
+      });
+      await expect(unsubscribe.first()).toBeVisible();
+      await expect(
+        page.getByRole("button", {
+          name: /关注班级|Subscribe to section/i,
+        }),
+      ).toHaveCount(0);
+
+      await unsubscribe.first().click();
+      await expect
+        .poll(() =>
+          withE2ePrisma(async (prisma) => {
+            const user = await prisma.user.findUniqueOrThrow({
+              where: { id: sessionUser.id },
+              select: {
+                subscribedSections: {
+                  where: { id: previous.section.id },
+                  select: { id: true },
+                },
+              },
+            });
+            return user.subscribedSections.length;
+          }),
+        )
+        .toBe(0);
+      await expect(unsubscribe).toHaveCount(0);
+      await expect(
+        page.getByRole("button", {
+          name: /关注班级|Subscribe to section/i,
+        }),
+      ).toHaveCount(0);
+    } finally {
+      await withE2ePrisma((prisma) =>
+        prisma.$transaction([
+          prisma.section.update({
+            where: { id: previous.section.id },
+            data: { retiredAt: previous.section.retiredAt },
+          }),
+          prisma.user.update({
+            where: { id: sessionUser.id },
+            data: {
+              subscribedSections: {
+                set: previous.subscribedSectionIds.map((id) => ({ id })),
+              },
+            },
+          }),
+        ]),
       );
     }
   });

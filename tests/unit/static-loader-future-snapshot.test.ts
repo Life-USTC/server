@@ -44,6 +44,7 @@ describe("static loader snapshot time gate", () => {
           $transaction: transactionMock,
         } as never,
         {
+          bootstrapImportState: false,
           dryRun: false,
           expectedSectionRetirementCandidates: null,
           expectedSnapshotSha256: null,
