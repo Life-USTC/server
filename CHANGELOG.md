@@ -1,3 +1,10 @@
+# [1.62.0](https://github.com/Life-USTC/server/compare/v1.61.2...v1.62.0) (2026-07-17)
+
+
+### Features
+
+* **static-loader:** retire stale Sections safely ([#476](https://github.com/Life-USTC/server/issues/476)) ([3928bf1](https://github.com/Life-USTC/server/commit/3928bf1ba410f440a6f5b2cfc92701e3e00f09fa))
+
 ## [1.61.2](https://github.com/Life-USTC/server/compare/v1.61.1...v1.61.2) (2026-07-17)
 
 
