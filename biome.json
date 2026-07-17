@@ -12,6 +12,7 @@
       "!node_modules",
       "!dist",
       "!build",
+      "!docs/graphql/schema.graphql",
       "!public/openapi.generated.json",
       "!src/components/ui",
       "!src/lib/components/ui",

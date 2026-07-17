@@ -1,18 +1,18 @@
 # Life@USTC Server - Agent Guide
 
-SvelteKit campus workspace with REST + MCP APIs. This is the canonical coding-agent instruction file; nested `AGENTS.md` files only add scoped rules.
+SvelteKit campus workspace with REST + GraphQL + MCP APIs. This is the canonical coding-agent instruction file; nested `AGENTS.md` files only add scoped rules.
 
 ## Repo Map
 
 ```text
 src/routes/           SvelteKit pages, layouts, REST handlers, OAuth/MCP routes
 src/features/         Domain logic and feature-owned components
-src/lib/              Infrastructure: ports/adapters, helpers, and shared UI in `src/lib/components`
+src/lib/              Infrastructure: ports/adapters, GraphQL/MCP, helpers, and shared UI in `src/lib/components`
 src/lib/ports/        Abstract runtime contracts imported by domain code
 src/lib/adapters/     Concrete runtime implementations (node:*, bun:*, fs, process, etc.)
 messages/             i18n strings (`zh-cn`, `en-us`)
 prisma/               Prisma schema and migrations
-docs/contracts/        Product/API/MCP contracts checked against schema/API/MCP parity
+docs/contracts/        Product/API/GraphQL/MCP contracts checked against their public schemas
 tests/                Unit, integration MCP harness, and Playwright E2E tests
 .agents/skills/       Repo-scoped reusable agent workflows
 .github/workflows/    CI/CD workflows
@@ -60,13 +60,13 @@ Docker runtime is the static loader.
 - Keep shared `src/lib/components` free of feature-specific data fetching and mutations.
 - Do not call SvelteKit page handlers or REST route handlers from features or page actions. Extract shared work into `src/features/*/server` and let routes adapt it to HTTP.
 - Before exposing a feature through multiple surfaces, put shared gates, common operations, and update/read services in `src/features/<feature>/server`; surface code should only handle transport-specific auth, validation, redirects, serialization, or output shaping.
-- REST, MCP, contract JSON, OpenAPI annotations, and tests are coupled surfaces; check all matching surfaces when one changes.
+- REST, GraphQL, MCP, contract JSON, public schemas, and tests are coupled surfaces; check all matching surfaces when one changes.
 - Treat `prisma/schema.prisma`, migrations, route handlers, contract JSON, and tests as source of truth over stale docs or generated output.
 
 ## Complete-Loop Checks
 
 - UI/layout changes: run the narrowest browser check that exercises the changed screen, inspect a screenshot/headed run/trace for the affected area, and iterate on visible regressions before handoff.
-- REST/MCP behavior changes: decide whether both surfaces should change. If only one changes, document why; then exercise at least one representative public request or MCP tool call when feasible, inspect the serialized success/error output, and compare it with contracts/tests.
+- REST/GraphQL/MCP behavior changes: decide which surfaces should change. If only one changes, document why; then exercise at least one representative public request or MCP tool call when feasible, inspect the serialized success/error output, and compare it with contracts/tests.
 - Keep screenshots, traces, temporary payloads, and ad hoc probes out of the repo unless they are intentional fixtures.
 
 ## Shared Test Seed
@@ -168,6 +168,7 @@ buildPaginatedResponse(items, page, pageSize, total)
 
 **Documentation Alignment**:
 - Public REST API change → update route OpenAPI annotations, `docs/contracts/openapi.json` when relevant, then run `bun run build`.
+- Public GraphQL change → update the affected module contract and `docs/contracts/graphql.json`, regenerate `docs/graphql/schema.graphql`, then run the GraphQL schema compatibility gate and Worker smoke test.
 - MCP tool/parameter/output change → update the matching `docs/contracts/<module>.json` and integration coverage.
 - User-visible behavior change → update the affected contract JSON and user-facing docs if present.
 - Architecture or dependency-boundary change → update `docs/index.md`, the nearest scoped `AGENTS.md`, or an ADR/runbook if one exists.
@@ -204,6 +205,7 @@ buildPaginatedResponse(items, page, pageSize, total)
 - **Contracts**: `docs/contracts/<module>.json` - Product/API/MCP specifications
 - **Source**: `src/AGENTS.md` - Organization
 - **Routes**: `src/routes/` - SvelteKit pages and REST handlers
+- **GraphQL**: `src/lib/graphql/AGENTS.md` - schema, resolver, security, snapshot, and MCP resource rules
 - **MCP**: `src/lib/mcp/AGENTS.md` - MCP tools
 - **Features**: `src/features/AGENTS.md` - Business logic
 - **Components**: `src/lib/components/AGENTS.md` - UI
@@ -223,6 +225,6 @@ History shows agent-assisted changes in this repo most often went wrong when the
 
 - **Contracts**: Keep contract JSON hand-maintained and schema-checked. Do not add one-off generators or broad rewrites unless the user explicitly asks for that migration.
 - **OAuth/Auth**: Prefer Better Auth provider APIs and shared URL helpers over hand-built OAuth/DCR/JWKS/cookie logic. Watch for doubled `/api/auth` paths, audience/resource mismatches, and public PKCE vs trusted-client boundaries.
-- **REST/MCP parity**: When changing one surface, check the matching contract JSON, REST route, MCP tool, OpenAPI annotation, and seeded E2E/integration coverage.
+- **REST/GraphQL/MCP parity**: When changing one surface, check the matching contract JSON, REST route, GraphQL field/SDL snapshot, MCP tool, OpenAPI annotation, and seeded E2E/integration coverage.
 - **Shared seed tests**: Do not mutate canonical seed records in parallel tests. Use unique temporary records, cleanup, `DEV_SEED_ANCHOR`, and serial E2E execution for shared user state.
 - **Tooling/runtime**: Scripts that run in Docker/CI/Copilot must use the same Bun-based setup and generated Prisma client as the workflows.

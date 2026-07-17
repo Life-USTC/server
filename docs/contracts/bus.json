@@ -69,7 +69,8 @@
             "rest_equivalent": "GET /api/bus",
             "mcp_equivalent": "get_bus_route_timetable",
             "notes": [
-              "The input selects one route and bounds weekday and weekend trip slots to pageSize 1-100."
+              "The input selects one route and bounds weekday and weekend trip slots to pageSize 1-100.",
+              "The optional now argument is a DateTime and must include an explicit Z or numeric timezone offset."
             ]
           }
         ]

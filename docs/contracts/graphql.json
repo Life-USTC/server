@@ -15,6 +15,7 @@
     "resolver-boundary": "Resolvers call feature-owned services only; they do not issue internal HTTP requests or access Prisma directly.",
     "request-cache": "Entity DataLoaders are request-scoped and responses are marked no-store.",
     "safe-errors": "Unexpected resolver failures use Yoga error masking and must not expose internal exception details.",
+    "zoned-datetime": "DateTime inputs accept only valid ISO 8601 datetimes with an explicit Z or numeric timezone offset, with identical coercion for variables and inline literals.",
     "schema-evolution": "The canonical SDL snapshot is checked for drift and breaking changes in CI."
   },
   "capabilities": {
