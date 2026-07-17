@@ -9,12 +9,20 @@ import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
 
 const prisma = createTestPrisma();
 const testJwIds = [2_130_100_001, 2_130_100_002, 2_130_100_003, 2_130_100_004];
+const testSectionJwId = 2_130_200_001;
+const testCommentId = "integration-course-merge-comment";
 const testUserEmails = [
   "target-editor@course-merge.integration",
   "source-editor@course-merge.integration",
 ];
 
 async function cleanFixtures() {
+  await prisma.comment.deleteMany({
+    where: { id: testCommentId },
+  });
+  await prisma.section.deleteMany({
+    where: { jwId: testSectionJwId },
+  });
   await prisma.courseAlias.deleteMany({
     where: { jwId: { in: testJwIds } },
   });
@@ -175,22 +183,41 @@ describe("static Course merge persistence", () => {
         },
       ],
     });
+    const sourceSection = await prisma.section.create({
+      data: {
+        jwId: testSectionJwId,
+        code: "INTEGRATION-COURSE-MERGE-SECTION",
+        courseId: sourceCourse.id,
+      },
+      select: { id: true },
+    });
+    await prisma.comment.create({
+      data: {
+        id: testCommentId,
+        body: "course merge relationship content",
+        courseId: sourceCourse.id,
+      },
+    });
 
-    await prisma.$transaction((tx) =>
-      mergeLegacyCourseDuplicates(
-        tx,
-        [
-          {
-            sourceKey: "integration-course-merge",
-            jwId: testJwIds[2],
-            code: "INTEGRATION-COURSE-MERGE",
-            nameCn: "课程合并目标",
-            nameEn: "Course Merge Target",
-          },
-        ],
-        new Set([testJwIds[2]]),
-      ),
-    );
+    const merge = () =>
+      prisma.$transaction((tx) =>
+        mergeLegacyCourseDuplicates(
+          tx,
+          [
+            {
+              sourceKey: "integration-course-merge",
+              jwId: testJwIds[2],
+              code: "INTEGRATION-COURSE-MERGE",
+              nameCn: "课程合并目标",
+              nameEn: "Course Merge Target",
+            },
+          ],
+          new Set([testJwIds[2]]),
+        ),
+      );
+
+    await merge();
+    await merge();
 
     const [
       description,
@@ -198,6 +225,8 @@ describe("static Course merge persistence", () => {
       sourceCourseAfterMerge,
       alias,
       edits,
+      section,
+      comment,
     ] = await Promise.all([
       prisma.description.findUnique({
         where: { id: "integration-course-merge-target" },
@@ -225,6 +254,14 @@ describe("static Course merge persistence", () => {
         orderBy: { createdAt: "asc" },
         select: { id: true },
       }),
+      prisma.section.findUnique({
+        where: { id: sourceSection.id },
+        select: { courseId: true },
+      }),
+      prisma.comment.findUnique({
+        where: { id: testCommentId },
+        select: { body: true, courseId: true },
+      }),
     ]);
     expect(description).toMatchObject({
       createdAt: sourceCreatedAt,
@@ -239,5 +276,10 @@ describe("static Course merge persistence", () => {
       "integration-course-merge-target-edit",
       "integration-course-merge-source-edit",
     ]);
+    expect(section?.courseId).toBe(targetCourse.id);
+    expect(comment).toEqual({
+      body: "course merge relationship content",
+      courseId: targetCourse.id,
+    });
   });
 });
