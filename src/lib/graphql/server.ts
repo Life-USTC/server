@@ -3,6 +3,7 @@ import { createYoga } from "graphql-yoga";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { GRAPHQL_ENDPOINT, GRAPHQL_LIMITS } from "./constants";
 import { createGraphqlLoaders } from "./loaders";
+import { createGraphqlObservabilityPlugin } from "./observability";
 import { createDeadline } from "./request-deadline";
 import {
   type GraphqlContext,
@@ -95,10 +96,14 @@ export function createGraphqlRequestHandler(production: boolean) {
       loaders: createGraphqlLoaders(locals.locale ?? DEFAULT_LOCALE),
     }),
     graphiql: !production,
+    logging: false,
     maskedErrors: true,
     batching: { limit: GRAPHQL_LIMITS.requestBatch },
     multipart: false,
-    plugins: createGraphqlSecurityPlugins(production),
+    plugins: [
+      createGraphqlObservabilityPlugin(),
+      ...createGraphqlSecurityPlugins(production),
+    ],
   });
 
   return async function handleGraphqlRequest(event: RequestEvent) {
