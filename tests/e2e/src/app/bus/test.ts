@@ -256,8 +256,11 @@ test.describe("校车面板标签页", () => {
       screenshotLabel: "bus",
     });
 
+    await openRouteControls(page);
     await openFullTimetable(page);
-    const reverseButton = page.getByRole("button", { name: /Reverse|反向/ });
+    const reverseButton = page
+      .getByRole("button", { name: /Reverse|反向/ })
+      .last();
     const startWestButton = page
       .locator("[data-testid='bus-start-stop-group']")
       .getByRole("radio", { name: /西区/ });
