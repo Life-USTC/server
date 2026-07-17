@@ -19,7 +19,6 @@ export class GraphqlMutationError extends GraphQLError {
         http: { status },
       },
     });
-    this.name = "GraphqlMutationError";
   }
 }
 

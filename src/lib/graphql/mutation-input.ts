@@ -84,6 +84,17 @@ export function normalizeIdList(
   return values.map((value) => requireMutationId(value, label));
 }
 
+export function rejectExplicitNullFields(
+  input: Record<string, unknown>,
+  fields: readonly string[],
+) {
+  for (const field of fields) {
+    if (input[field] === null) {
+      badMutationInput(`${field} must not be null.`);
+    }
+  }
+}
+
 export function dateTimeInput(value: string | null | undefined) {
   if (value == null) return value;
   return new Date(value);

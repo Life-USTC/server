@@ -48,9 +48,25 @@ const SAFE_GRAPHQL_ERROR_CODES = new Set([
   "UNAUTHENTICATED",
 ]);
 
+function hasGraphqlErrorName(
+  value: unknown,
+): value is Error & { name: "GraphQLError" } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "name" in value &&
+    value.name === "GraphQLError"
+  );
+}
+
 const maskGraphqlError: MaskError = (error, message, isDev) => {
+  const originalError =
+    hasGraphqlErrorName(error) && "originalError" in error
+      ? error.originalError
+      : undefined;
   if (
-    error instanceof Error &&
+    hasGraphqlErrorName(error) &&
+    (originalError == null || hasGraphqlErrorName(originalError)) &&
     "extensions" in error &&
     typeof error.extensions === "object" &&
     error.extensions !== null &&

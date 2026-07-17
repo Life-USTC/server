@@ -253,6 +253,146 @@ describe("GraphQL authenticated mutations", () => {
     });
   });
 
+  it("rejects explicit null for optional fields that are non-null in REST", async () => {
+    const [todoToken, commentToken, section] = await Promise.all([
+      signToken(userAId, [restWriteScope("todo")]),
+      signToken(userAId, [restWriteScope("comment")]),
+      prisma.section.findUniqueOrThrow({
+        where: { jwId: DEV_SEED.section.jwId },
+        select: { id: true },
+      }),
+    ]);
+    const [todo, comment] = await Promise.all([
+      prisma.todo.create({
+        data: { userId: userAId, title: `${marker} null guard todo` },
+        select: { id: true },
+      }),
+      prisma.comment.create({
+        data: {
+          body: `${marker} null guard comment`,
+          isAnonymous: false,
+          sectionId: section.id,
+          status: "active",
+          userId: userAId,
+          visibility: "public",
+        },
+        select: { id: true },
+      }),
+    ]);
+    createdCommentIds.push(comment.id);
+
+    const createTodoMutation =
+      "mutation($input: CreateTodoInput!) { createTodo(input: $input) { id } }";
+    const updateTodoMutation =
+      "mutation($id: ID!, $input: UpdateTodoInput!) { updateTodo(id: $id, input: $input) { id } }";
+    const createCommentMutation =
+      "mutation($input: CreateCommentInput!) { createComment(input: $input) { id } }";
+    const updateCommentMutation =
+      "mutation($id: ID!, $input: UpdateCommentInput!) { updateComment(id: $id, input: $input) { id } }";
+    const commentCreateInput = {
+      body: `${marker} invalid comment create`,
+      sectionJwId: DEV_SEED.section.jwId,
+      targetType: "SECTION",
+    };
+    const commentUpdateInput = {
+      body: `${marker} invalid comment update`,
+    };
+    const invalidMutations = [
+      {
+        expectedField: "priority",
+        query: createTodoMutation,
+        token: todoToken,
+        variables: {
+          input: { priority: null, title: `${marker} invalid create` },
+        },
+      },
+      {
+        expectedField: "title",
+        query: updateTodoMutation,
+        token: todoToken,
+        variables: {
+          id: todo.id,
+          input: { completed: true, title: null },
+        },
+      },
+      {
+        expectedField: "priority",
+        query: updateTodoMutation,
+        token: todoToken,
+        variables: { id: todo.id, input: { priority: null } },
+      },
+      {
+        expectedField: "completed",
+        query: updateTodoMutation,
+        token: todoToken,
+        variables: { id: todo.id, input: { completed: null } },
+      },
+      ...["targetId", "visibility", "isAnonymous", "attachmentIds"].map(
+        (expectedField) => ({
+          expectedField,
+          query: createCommentMutation,
+          token: commentToken,
+          variables: {
+            input: { ...commentCreateInput, [expectedField]: null },
+          },
+        }),
+      ),
+      ...["visibility", "isAnonymous", "attachmentIds"].map(
+        (expectedField) => ({
+          expectedField,
+          query: updateCommentMutation,
+          token: commentToken,
+          variables: {
+            id: comment.id,
+            input: { ...commentUpdateInput, [expectedField]: null },
+          },
+        }),
+      ),
+    ];
+
+    for (const testCase of invalidMutations) {
+      const result = await execute(
+        { query: testCase.query, variables: testCase.variables },
+        testCase.token,
+      );
+      expectErrorCode(result.payload, "BAD_USER_INPUT");
+      expect(result.payload.errors?.[0]?.message).toBe(
+        `${testCase.expectedField} must not be null.`,
+      );
+    }
+
+    await expect(
+      prisma.todo.findUniqueOrThrow({
+        where: { id: todo.id },
+        select: { completed: true, priority: true, title: true },
+      }),
+    ).resolves.toEqual({
+      completed: false,
+      priority: "medium",
+      title: `${marker} null guard todo`,
+    });
+    await expect(
+      prisma.comment.findUniqueOrThrow({
+        where: { id: comment.id },
+        select: { body: true, isAnonymous: true, visibility: true },
+      }),
+    ).resolves.toEqual({
+      body: `${marker} null guard comment`,
+      isAnonymous: false,
+      visibility: "public",
+    });
+    await expect(
+      prisma.todo.count({
+        where: { userId: userAId, title: `${marker} invalid create` },
+      }),
+    ).resolves.toBe(0);
+    await expect(
+      prisma.comment.count({
+        where: { body: `${marker} invalid comment create`, userId: userAId },
+      }),
+    ).resolves.toBe(0);
+  });
+
   it("reuses personal write services and executes top-level mutations serially", async () => {
     const token = await signToken(userAId, [
       restWriteScope("bus"),

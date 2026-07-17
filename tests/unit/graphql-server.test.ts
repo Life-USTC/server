@@ -1,5 +1,6 @@
 import type { RequestEvent } from "@sveltejs/kit";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import { GRAPHQL_LIMITS } from "@/lib/graphql/constants";
 
 const courseService = vi.hoisted(() => ({
@@ -29,6 +30,8 @@ import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 
 const developmentHandler = createGraphqlRequestHandler(false);
 const productionHandler = createGraphqlRequestHandler(true);
+
+afterEach(() => setCloudflareRuntimeEnv(undefined));
 
 function requestEventFromRequest(request: Request): RequestEvent {
   return {
@@ -296,6 +299,108 @@ describe("GraphQL HTTP boundary", () => {
       ],
     });
     expect(todoService.createTodo).not.toHaveBeenCalled();
+  });
+
+  it("preserves mutation not-found errors in production", async () => {
+    authCore.getSessionFromHeaders.mockResolvedValue({
+      user: { id: "session-user" },
+    });
+    todoService.deleteOwnedTodo.mockResolvedValue({
+      ok: false,
+      error: "not_found",
+    });
+    const response = await productionHandler(
+      requestEventFromRequest(
+        new Request("http://localhost:3000/api/graphql", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie: "better-auth.session_token=session-token",
+            origin: "http://localhost:3000",
+          },
+          body: JSON.stringify({
+            query: 'mutation { deleteTodo(id: "missing") { success } }',
+          }),
+        }),
+      ),
+    );
+
+    expect(await response.json()).toMatchObject({
+      data: null,
+      errors: [
+        {
+          message: "Todo not found.",
+          extensions: { code: "NOT_FOUND" },
+        },
+      ],
+    });
+  });
+
+  it("preserves rate-limit errors in production", async () => {
+    authCore.getSessionFromHeaders.mockResolvedValue({
+      user: { id: "session-user" },
+    });
+    setCloudflareRuntimeEnv({
+      USER_WRITE_RATE_LIMITER: {
+        limit: vi.fn().mockResolvedValue({ success: false }),
+      },
+    });
+    const response = await productionHandler(
+      requestEventFromRequest(
+        new Request("http://localhost:3000/api/graphql", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie: "better-auth.session_token=session-token",
+            origin: "http://localhost:3000",
+          },
+          body: JSON.stringify({
+            query:
+              'mutation { createTodo(input: { title: "limited" }) { id } }',
+          }),
+        }),
+      ),
+    );
+
+    expect(await response.json()).toMatchObject({
+      data: null,
+      errors: [
+        {
+          message: expect.stringContaining("Rate limit exceeded"),
+          extensions: { code: "RATE_LIMITED" },
+        },
+      ],
+    });
+    expect(todoService.createTodo).not.toHaveBeenCalled();
+  });
+
+  it("masks an arbitrary error that claims a safe mutation code", async () => {
+    authCore.getSessionFromHeaders.mockResolvedValue({
+      user: { id: "session-user" },
+    });
+    todoService.createTodo.mockRejectedValue(
+      Object.assign(new Error("resolver-detail-must-not-leak"), {
+        extensions: { code: "BAD_USER_INPUT" },
+      }),
+    );
+    const response = await productionHandler(
+      requestEventFromRequest(
+        new Request("http://localhost:3000/api/graphql", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie: "better-auth.session_token=session-token",
+            origin: "http://localhost:3000",
+          },
+          body: JSON.stringify({
+            query: 'mutation { createTodo(input: { title: "masked" }) { id } }',
+          }),
+        }),
+      ),
+    );
+    const payload = (await response.json()) as Record<string, unknown>;
+
+    expect(errorMessages(payload)).toEqual(["Unexpected error."]);
   });
 
   it("rejects anonymous POST mutations with a safe auth error", async () => {

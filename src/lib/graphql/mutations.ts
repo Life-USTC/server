@@ -41,6 +41,7 @@ import {
   normalizeIdList,
   normalizeTodoContent,
   normalizeTodoTitle,
+  rejectExplicitNullFields,
   requireMutationId,
   todoPriorityResolver,
 } from "./mutation-input";
@@ -202,15 +203,15 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
 type CreateTodoInput = {
   content?: string | null;
   dueAt?: string | null;
-  priority?: TodoPriorityValue;
+  priority?: TodoPriorityValue | null;
   title: string;
 };
 
 type UpdateTodoInput = {
-  completed?: boolean;
+  completed?: boolean | null;
   content?: string | null;
   dueAt?: string | null;
-  priority?: TodoPriorityValue;
+  priority?: TodoPriorityValue | null;
   title?: string | null;
 };
 
@@ -222,7 +223,7 @@ type CreateCommentInput = {
   body: string;
   courseJwId?: number | null;
   homeworkId?: string | null;
-  isAnonymous?: boolean;
+  isAnonymous?: boolean | null;
   parentId?: string | null;
   sectionId?: string | null;
   sectionJwId?: number | null;
@@ -230,14 +231,14 @@ type CreateCommentInput = {
   targetId?: string | null;
   targetType: CommentTargetTypeInput;
   teacherId?: string | null;
-  visibility?: CommentVisibility;
+  visibility?: CommentVisibility | null;
 };
 
 type UpdateCommentInput = {
   attachmentIds?: string[] | null;
   body: string;
-  isAnonymous?: boolean;
-  visibility?: CommentVisibility;
+  isAnonymous?: boolean | null;
+  visibility?: CommentVisibility | null;
 };
 
 function graphqlCommentAuditMetadata(request: Request) {
@@ -298,11 +299,12 @@ export const graphqlMutationResolvers = {
       context: GraphqlContext,
     ) {
       const principal = await requireGraphqlMutation(context, "todo");
+      rejectExplicitNullFields(args.input, ["priority"]);
       const todo = await createTodo({
         userId: principal.userId,
         title: normalizeTodoTitle(args.input.title),
         content: normalizeTodoContent(args.input.content),
-        priority: args.input.priority,
+        priority: args.input.priority ?? undefined,
         dueAt: dateTimeInput(args.input.dueAt),
       });
       return { id: todo.id };
@@ -313,20 +315,21 @@ export const graphqlMutationResolvers = {
       context: GraphqlContext,
     ) {
       const principal = await requireGraphqlMutation(context, "todo");
+      rejectExplicitNullFields(args.input, ["title", "priority", "completed"]);
       const hasContent = Object.hasOwn(args.input, "content");
       const hasDueAt = Object.hasOwn(args.input, "dueAt");
       const result = await updateOwnedTodo({
         id: requireMutationId(args.id, "id"),
         userId: principal.userId,
         data: {
-          completed: args.input.completed,
+          completed: args.input.completed ?? undefined,
           content: hasContent
             ? normalizeTodoContent(args.input.content)
             : undefined,
           dueAt: hasDueAt ? dateTimeInput(args.input.dueAt) : undefined,
           hasContent,
           hasDueAt,
-          priority: args.input.priority,
+          priority: args.input.priority ?? undefined,
           title:
             args.input.title == null
               ? undefined
@@ -430,6 +433,18 @@ export const graphqlMutationResolvers = {
     ) {
       const principal = await requireGraphqlMutation(context, "comment");
       const input = args.input;
+      rejectExplicitNullFields(input, [
+        "targetId",
+        "sectionId",
+        "sectionJwId",
+        "courseJwId",
+        "teacherId",
+        "homeworkId",
+        "sectionTeacherId",
+        "visibility",
+        "isAnonymous",
+        "attachmentIds",
+      ]);
       const result = await createComment({
         attachmentIds:
           normalizeIdList(input.attachmentIds, "attachmentIds") ?? undefined,
@@ -463,10 +478,12 @@ export const graphqlMutationResolvers = {
       context: GraphqlContext,
     ) {
       const principal = await requireGraphqlMutation(context, "comment");
+      rejectExplicitNullFields(args.input, [
+        "visibility",
+        "isAnonymous",
+        "attachmentIds",
+      ]);
       const hasAttachmentUpdate = Object.hasOwn(args.input, "attachmentIds");
-      if (hasAttachmentUpdate && args.input.attachmentIds === null) {
-        badMutationInput("attachmentIds must be a list or omitted.");
-      }
       const attachmentIds =
         normalizeIdList(args.input.attachmentIds, "attachmentIds") ?? [];
       const result = await updateOwnComment({
@@ -475,9 +492,9 @@ export const graphqlMutationResolvers = {
         body: normalizeCommentBody(args.input.body),
         hasAttachmentUpdate,
         id: requireMutationId(args.id, "id"),
-        isAnonymous: args.input.isAnonymous,
+        isAnonymous: args.input.isAnonymous ?? undefined,
         userId: principal.userId,
-        visibility: args.input.visibility,
+        visibility: args.input.visibility ?? undefined,
       });
       if (!result.ok) handleCommentFailure(result);
       return { id: result.comment.id };

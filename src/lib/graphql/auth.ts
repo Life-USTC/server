@@ -50,7 +50,6 @@ export class GraphqlAuthError extends GraphQLError {
         http: { status },
       },
     });
-    this.name = "GraphqlAuthError";
   }
 }
 
