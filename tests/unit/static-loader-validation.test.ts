@@ -147,17 +147,53 @@ describe("static loader configuration", () => {
   });
 
   it("requires a valid snapshot generation timestamp", () => {
-    const now = new Date("2026-07-18T03:05:00.000Z");
+    const now = new Date("2026-07-18T03:00:00.000Z");
     expect(parseSnapshotGeneratedAt("2026-07-18T03:00:00.000Z", now)).toEqual(
       new Date("2026-07-18T03:00:00.000Z"),
     );
-    expect(() => parseSnapshotGeneratedAt(undefined)).toThrow("required");
-    expect(() => parseSnapshotGeneratedAt("not-a-date")).toThrow(
+    expect(
+      parseSnapshotGeneratedAt("2026-07-18T03:00:00.123456+00:00", now),
+    ).toEqual(new Date("2026-07-18T03:00:00.123Z"));
+    expect(() => parseSnapshotGeneratedAt(undefined, now)).toThrow("required");
+    expect(() => parseSnapshotGeneratedAt("not-a-date", now)).toThrow(
       "valid timestamp",
     );
+  });
+
+  it.each([
+    "2026-02-30T03:00:00.000Z",
+    "2026-07-18 03:00:00.000Z",
+    "2026-07-18T03:00Z",
+    "2026-07-18T03:00:00.000",
+  ])("rejects non-RFC 3339 snapshot timestamp %s", (value) => {
     expect(() =>
-      parseSnapshotGeneratedAt("2026-07-18T03:20:00.001Z", now),
-    ).toThrow("more than 15 minutes in the future");
+      parseSnapshotGeneratedAt(value, new Date("2026-07-18T03:00:00.000Z")),
+    ).toThrow("RFC 3339");
+  });
+
+  it("accepts the maximum future clock skew boundary", () => {
+    const now = new Date("2026-07-18T03:00:00.000Z");
+    expect(parseSnapshotGeneratedAt("2026-07-18T03:15:00.000Z", now)).toEqual(
+      new Date("2026-07-18T03:15:00.000Z"),
+    );
+  });
+
+  it("rejects far-future metadata", () => {
+    expect(() =>
+      parseSnapshotGeneratedAt(
+        "2099-01-01T00:00:00.000Z",
+        new Date("2026-07-18T03:00:00.000Z"),
+      ),
+    ).toThrow("must not be more than 15 minutes in the future");
+  });
+
+  it("rejects timestamps beyond the future clock skew boundary", () => {
+    expect(() =>
+      parseSnapshotGeneratedAt(
+        "2026-07-18T03:15:00.001Z",
+        new Date("2026-07-18T03:00:00.000Z"),
+      ),
+    ).toThrow("must not be more than 15 minutes in the future");
   });
 });
 
