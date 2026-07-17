@@ -5,17 +5,28 @@ import {
   assertCourseJwIdNamespace,
   mergeLegacyCourseDuplicates,
 } from "@/static-loader/course-merge";
+import { acquireStaticImportLock } from "@/static-loader/import-lock";
 import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
 
 const prisma = createTestPrisma();
 const testJwIds = [
   2_130_100_001, 2_130_100_002, 2_130_100_003, 2_130_100_004, 2_130_100_005,
-  2_130_100_006, 2_130_100_007, 2_130_100_008,
+  2_130_100_006, 2_130_100_007, 2_130_100_008, 2_130_100_009, 2_130_100_010,
+  2_130_100_011, 2_130_100_012, 2_130_100_013, 2_130_100_014, 2_130_100_015,
+  2_130_100_016,
 ];
-const testSectionJwId = 2_130_200_001;
+const testSectionJwIds = [
+  2_130_200_001, 2_130_200_002, 2_130_200_003, 2_130_200_004,
+];
+const testSectionJwId = testSectionJwIds[0];
 const testCommentId = "integration-course-merge-comment";
 const testSecondCommentId = "integration-course-merge-comment-second";
 const concurrentCommentId = "integration-course-merge-concurrent-comment";
+const batchCommentIds = [
+  "integration-course-merge-batch-comment-a",
+  "integration-course-merge-batch-comment-b",
+  "integration-course-merge-atomic-comment",
+];
 const concurrentDescriptionId =
   "integration-course-merge-concurrent-description";
 const concurrentlyEditedDescriptionId =
@@ -31,12 +42,17 @@ async function cleanFixtures() {
   await prisma.comment.deleteMany({
     where: {
       id: {
-        in: [testCommentId, testSecondCommentId, concurrentCommentId],
+        in: [
+          testCommentId,
+          testSecondCommentId,
+          concurrentCommentId,
+          ...batchCommentIds,
+        ],
       },
     },
   });
   await prisma.section.deleteMany({
-    where: { jwId: testSectionJwId },
+    where: { jwId: { in: testSectionJwIds } },
   });
   await prisma.courseAlias.deleteMany({
     where: { jwId: { in: testJwIds } },
@@ -730,6 +746,298 @@ describe("static Course merge persistence", () => {
       await Promise.all([
         disconnectTestPrisma(mergePrisma),
         disconnectTestPrisma(writerPrisma),
+      ]);
+    }
+  });
+
+  it("moves multiple Course mappings in one batch and remains idempotent", async () => {
+    const [firstTarget, firstSource, secondTarget, secondSource] =
+      await Promise.all([
+        prisma.course.create({
+          data: {
+            jwId: testJwIds[8],
+            code: "INTEGRATION-COURSE-BATCH-A",
+            nameCn: "批量课程合并甲",
+            nameEn: "Batch Course Merge A",
+          },
+          select: { id: true },
+        }),
+        prisma.course.create({
+          data: {
+            jwId: testJwIds[9],
+            code: "INTEGRATION-COURSE-BATCH-A",
+            nameCn: "批量课程合并甲",
+          },
+          select: { id: true },
+        }),
+        prisma.course.create({
+          data: {
+            jwId: testJwIds[10],
+            code: "INTEGRATION-COURSE-BATCH-B",
+            nameCn: "批量课程合并乙",
+            nameEn: "Batch Course Merge B",
+          },
+          select: { id: true },
+        }),
+        prisma.course.create({
+          data: {
+            jwId: testJwIds[11],
+            code: "INTEGRATION-COURSE-BATCH-B",
+            nameCn: "批量课程合并乙",
+          },
+          select: { id: true },
+        }),
+      ]);
+    await prisma.section.createMany({
+      data: [
+        {
+          jwId: testSectionJwIds[1],
+          code: "INTEGRATION-COURSE-BATCH-SECTION-A",
+          courseId: firstSource.id,
+        },
+        {
+          jwId: testSectionJwIds[2],
+          code: "INTEGRATION-COURSE-BATCH-SECTION-B",
+          courseId: secondSource.id,
+        },
+      ],
+    });
+    await prisma.comment.createMany({
+      data: [
+        {
+          id: batchCommentIds[0],
+          body: "batch course merge comment A",
+          courseId: firstSource.id,
+        },
+        {
+          id: batchCommentIds[1],
+          body: "batch course merge comment B",
+          courseId: secondSource.id,
+        },
+      ],
+    });
+    await prisma.courseAlias.createMany({
+      data: [
+        { jwId: testJwIds[12], courseId: firstSource.id },
+        { jwId: testJwIds[13], courseId: secondSource.id },
+      ],
+    });
+
+    const merge = () =>
+      prisma.$transaction((tx) =>
+        mergeLegacyCourseDuplicates(
+          tx,
+          [
+            {
+              sourceKey: "integration-course-batch-a",
+              jwId: testJwIds[8],
+              code: "INTEGRATION-COURSE-BATCH-A",
+              nameCn: "批量课程合并甲",
+              nameEn: "Batch Course Merge A",
+            },
+            {
+              sourceKey: "integration-course-batch-b",
+              jwId: testJwIds[10],
+              code: "INTEGRATION-COURSE-BATCH-B",
+              nameCn: "批量课程合并乙",
+              nameEn: "Batch Course Merge B",
+            },
+          ],
+          new Set([testJwIds[8], testJwIds[10]]),
+        ),
+      );
+
+    await expect(merge()).resolves.toEqual({ mergedCourses: 2 });
+    await expect(merge()).resolves.toEqual({ mergedCourses: 0 });
+
+    const [sources, sections, comments, aliases] = await Promise.all([
+      prisma.course.count({
+        where: { id: { in: [firstSource.id, secondSource.id] } },
+      }),
+      prisma.section.findMany({
+        where: { jwId: { in: [testSectionJwIds[1], testSectionJwIds[2]] } },
+        orderBy: { jwId: "asc" },
+        select: { courseId: true },
+      }),
+      prisma.comment.findMany({
+        where: { id: { in: [batchCommentIds[0], batchCommentIds[1]] } },
+        orderBy: { id: "asc" },
+        select: { courseId: true },
+      }),
+      prisma.courseAlias.findMany({
+        where: {
+          jwId: {
+            in: [testJwIds[9], testJwIds[11], testJwIds[12], testJwIds[13]],
+          },
+        },
+        orderBy: { jwId: "asc" },
+        select: { courseId: true },
+      }),
+    ]);
+    expect(sources).toBe(0);
+    expect(sections).toEqual([
+      { courseId: firstTarget.id },
+      { courseId: secondTarget.id },
+    ]);
+    expect(comments).toEqual([
+      { courseId: firstTarget.id },
+      { courseId: secondTarget.id },
+    ]);
+    expect(aliases).toEqual([
+      { courseId: firstTarget.id },
+      { courseId: secondTarget.id },
+      { courseId: firstTarget.id },
+      { courseId: secondTarget.id },
+    ]);
+  });
+
+  it("rolls back every mapping when one alias points to another Course", async () => {
+    const [firstTarget, firstSource, secondTarget, secondSource, otherCourse] =
+      await Promise.all([
+        prisma.course.create({
+          data: {
+            jwId: testJwIds[8],
+            code: "INTEGRATION-COURSE-ATOMIC-A",
+            nameCn: "课程原子合并甲",
+            nameEn: "Atomic Course Merge A",
+          },
+          select: { id: true },
+        }),
+        prisma.course.create({
+          data: {
+            jwId: testJwIds[9],
+            code: "INTEGRATION-COURSE-ATOMIC-A",
+            nameCn: "课程原子合并甲",
+          },
+          select: { id: true },
+        }),
+        prisma.course.create({
+          data: {
+            jwId: testJwIds[10],
+            code: "INTEGRATION-COURSE-ATOMIC-B",
+            nameCn: "课程原子合并乙",
+            nameEn: "Atomic Course Merge B",
+          },
+          select: { id: true },
+        }),
+        prisma.course.create({
+          data: {
+            jwId: testJwIds[11],
+            code: "INTEGRATION-COURSE-ATOMIC-B",
+            nameCn: "课程原子合并乙",
+          },
+          select: { id: true },
+        }),
+        prisma.course.create({
+          data: {
+            jwId: testJwIds[14],
+            code: "INTEGRATION-COURSE-ATOMIC-OTHER",
+            nameCn: "课程原子合并冲突目标",
+          },
+          select: { id: true },
+        }),
+      ]);
+    await prisma.section.create({
+      data: {
+        jwId: testSectionJwIds[3],
+        code: "INTEGRATION-COURSE-ATOMIC-SECTION",
+        courseId: firstSource.id,
+      },
+    });
+    await prisma.comment.create({
+      data: {
+        id: batchCommentIds[2],
+        body: "atomic course merge comment",
+        courseId: firstSource.id,
+      },
+    });
+    await prisma.courseAlias.create({
+      data: {
+        jwId: testJwIds[11],
+        courseId: otherCourse.id,
+      },
+    });
+
+    await expect(
+      prisma.$transaction((tx) =>
+        mergeLegacyCourseDuplicates(
+          tx,
+          [
+            {
+              sourceKey: "integration-course-atomic-a",
+              jwId: testJwIds[8],
+              code: "INTEGRATION-COURSE-ATOMIC-A",
+              nameCn: "课程原子合并甲",
+              nameEn: "Atomic Course Merge A",
+            },
+            {
+              sourceKey: "integration-course-atomic-b",
+              jwId: testJwIds[10],
+              code: "INTEGRATION-COURSE-ATOMIC-B",
+              nameCn: "课程原子合并乙",
+              nameEn: "Atomic Course Merge B",
+            },
+          ],
+          new Set([testJwIds[8], testJwIds[10]]),
+        ),
+      ),
+    ).rejects.toThrow(`Course alias ${testJwIds[11]}`);
+
+    const [sources, section, comment] = await Promise.all([
+      prisma.course.count({
+        where: { id: { in: [firstSource.id, secondSource.id] } },
+      }),
+      prisma.section.findUnique({
+        where: { jwId: testSectionJwIds[3] },
+        select: { courseId: true },
+      }),
+      prisma.comment.findUnique({
+        where: { id: batchCommentIds[2] },
+        select: { courseId: true },
+      }),
+    ]);
+    expect(sources).toBe(2);
+    expect(section?.courseId).toBe(firstSource.id);
+    expect(comment?.courseId).toBe(firstSource.id);
+    expect(firstTarget.id).not.toBe(firstSource.id);
+    expect(secondTarget.id).not.toBe(secondSource.id);
+  });
+
+  it("serializes static imports with a transaction-scoped advisory lock", async () => {
+    const lockHolder = createTestPrisma();
+    const contender = createTestPrisma();
+    let signalAcquired: () => void = () => {};
+    let releaseLock: () => void = () => {};
+    const acquired = new Promise<void>((resolve) => {
+      signalAcquired = resolve;
+    });
+    const release = new Promise<void>((resolve) => {
+      releaseLock = resolve;
+    });
+
+    try {
+      const holdingTransaction = lockHolder.$transaction(async (tx) => {
+        await acquireStaticImportLock(tx);
+        signalAcquired();
+        await release;
+      });
+      await acquired;
+
+      await expect(
+        contender.$transaction((tx) => acquireStaticImportLock(tx)),
+      ).rejects.toThrow("Another static import is already running");
+
+      releaseLock();
+      await holdingTransaction;
+
+      await expect(
+        contender.$transaction((tx) => acquireStaticImportLock(tx)),
+      ).resolves.toBeUndefined();
+    } finally {
+      releaseLock();
+      await Promise.all([
+        disconnectTestPrisma(lockHolder),
+        disconnectTestPrisma(contender),
       ]);
     }
   });

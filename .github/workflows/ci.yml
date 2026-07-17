@@ -76,6 +76,8 @@ jobs:
 
           network="static-loader-check-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           postgres="static-loader-postgres-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          report_dir="${RUNNER_TEMP}/static-loader-report"
+          mkdir -p "${report_dir}"
 
           cleanup() {
             docker rm -f "${postgres}" >/dev/null 2>&1 || true
@@ -104,10 +106,24 @@ jobs:
 
           docker run --rm \
             --network "${network}" \
+            -v "${report_dir}:/tmp/static-loader-report" \
             -e DATABASE_URL="postgresql://postgres:postgres@${postgres}:5432/life_ustc_static_loader" \
             -e STATIC_LOADER_DRY_RUN=true \
             -e STATIC_LOADER_MIN_SEMESTER=401 \
+            -e STATIC_LOADER_STATS_FILE=/tmp/static-loader-report/report.json \
             life-ustc-static-loader:check
+
+          REPORT_PATH="${report_dir}/report.json" bun -e '
+            const report = await Bun.file(process.env.REPORT_PATH).json();
+            if (
+              report.mode !== "dry-run" ||
+              report.outcome !== "rolled-back" ||
+              report.databaseRecordCounts !== null ||
+              !/^[a-f0-9]{64}$/.test(report.snapshot?.sha256 ?? "")
+            ) {
+              throw new Error("Static loader report has invalid dry-run semantics");
+            }
+          '
 
   test-e2e:
     name: E2E Test (${{ matrix.scope }})
