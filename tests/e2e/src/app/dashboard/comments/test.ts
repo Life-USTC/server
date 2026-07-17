@@ -53,9 +53,10 @@ test.describe("仪表盘无效标签（comments）", () => {
     await expect(
       page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
     ).toBeVisible();
-    // Bus toolbar should be visible (day type pills)
+    // Compact public bus summary and its route controls remain reachable.
+    await expect(page.getByTestId("bus-compact-summary")).toBeVisible();
     await expect(
-      page.getByText(/Weekday|Weekend|工作日|周末/).first(),
+      page.getByRole("button", { name: /Change route|调整路线/ }),
     ).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "home-comments-public");
