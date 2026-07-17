@@ -1,3 +1,10 @@
+# [1.57.0](https://github.com/Life-USTC/server/compare/v1.56.1...v1.57.0) (2026-07-17)
+
+
+### Features
+
+* **graphql:** add public query foundation ([#464](https://github.com/Life-USTC/server/issues/464)) ([185dcba](https://github.com/Life-USTC/server/commit/185dcba4cd5532a5bacfa6d34ce02404c1566636))
+
 ## [1.56.1](https://github.com/Life-USTC/server/compare/v1.56.0...v1.56.1) (2026-07-17)
 
 
