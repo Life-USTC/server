@@ -1,12 +1,14 @@
 import type { Prisma, PrismaClient } from "../generated/prisma-node/client";
-import { canonicalizeAdminClasses } from "./admin-class-identity";
+import {
+  type AdminClassOccurrence,
+  canonicalizeAdminClasses,
+} from "./admin-class-identity";
 import {
   courseIdentitySignature,
   type IncomingCourseIdentityRecord,
   planCourseIdentityImport,
 } from "./course-identity";
 import {
-  type AdminClassBuild,
   type AdminClassSectionPair,
   type BuildingBuild,
   type CampusBuild,
@@ -616,7 +618,7 @@ function loadScheduleInfrastructure(snapshot: Snapshot) {
   const buildings = new Map<number, BuildingBuild>();
   const rooms = new Map<number, RoomBuild>();
   const roomTypes = new Map<number, RoomTypeBuild>();
-  const adminClasses = new Map<number, AdminClassBuild>();
+  const adminClasses: AdminClassOccurrence[] = [];
 
   for (const row of roomRows) {
     const parentId = asInt(row.store_id);
@@ -648,8 +650,9 @@ function loadScheduleInfrastructure(snapshot: Snapshot) {
 
   for (const row of adminClassRows) {
     const ac = mapAdminClass(row);
-    if (ac == null || adminClasses.has(ac.jwId)) continue;
-    adminClasses.set(ac.jwId, ac);
+    const semesterCode = asInt(row.semester_id);
+    if (ac == null || semesterCode == null) continue;
+    adminClasses.push({ semesterCode, adminClass: ac });
   }
 
   return {
@@ -657,7 +660,7 @@ function loadScheduleInfrastructure(snapshot: Snapshot) {
     roomTypes: Array.from(roomTypes.values()),
     buildings: Array.from(buildings.values()),
     rooms: Array.from(rooms.values()),
-    adminClasses: Array.from(adminClasses.values()),
+    adminClasses,
   };
 }
 
@@ -1669,7 +1672,7 @@ async function upsertRooms(
 
 async function upsertAdminClasses(
   tx: Prisma.TransactionClient,
-  builds: AdminClassBuild[],
+  builds: AdminClassOccurrence[],
 ): Promise<Map<number, number>> {
   const { canonicalBuilds, canonicalJwIdByAlias } =
     canonicalizeAdminClasses(builds);

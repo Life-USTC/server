@@ -180,10 +180,13 @@ describe("static teacher identity planning", () => {
     const first = occurrence(100, 421, {
       personId: 10,
       teacherId: 20,
+      code: "T001",
       nameCn: "张三",
+      email: "zhangsan@example.com",
     });
     const second = occurrence(200, 421, {
       personId: 10,
+      teacherId: 20,
       code: "T001",
       nameCn: "张三",
       teacherTitleId: 30,
@@ -195,6 +198,7 @@ describe("static teacher identity planning", () => {
         teacherId: 20,
         code: "T001",
         nameCn: "张三",
+        email: "zhangsan@example.com",
         teacherTitleId: 30,
       },
     ]);
@@ -253,6 +257,32 @@ describe("static teacher identity planning", () => {
     expect(plan.teachers[0]).toMatchObject({
       teacherId: 20,
       code: "A",
+    });
+  });
+
+  it("keeps teacherId and code from one real identity tuple", () => {
+    const plan = planTeacherImport(
+      [
+        occurrence(100, 421, {
+          personId: 196651,
+          teacherId: 7637,
+          code: "T2528",
+          nameCn: "王皓",
+        }),
+        occurrence(200, 421, {
+          personId: 196651,
+          teacherId: 11298,
+          code: "11255",
+          nameCn: "王皓",
+        }),
+      ],
+      [],
+    );
+
+    expect(plan.teachers[0]).toMatchObject({
+      personId: 196651,
+      teacherId: 7637,
+      code: "T2528",
     });
   });
 

@@ -36,10 +36,13 @@ function fallbackIdentityKey(teacher: TeacherBuild): string {
   return `${teacher.nameCn}:${teacher.departmentCode ?? ""}`;
 }
 
-const teacherFields = [
+const identityFields = [
   "personId",
   "teacherId",
   "code",
+] as const satisfies readonly (keyof TeacherIdentityReference)[];
+
+const metadataFields = [
   "nameCn",
   "nameEn",
   "age",
@@ -66,7 +69,15 @@ function mergeOccurrences(occurrences: TeacherOccurrence[]): TeacherBuild {
   for (const [, semesterOccurrences] of [...bySemester].sort(
     ([left], [right]) => left - right,
   )) {
-    for (const field of teacherFields) {
+    const identity = canonicalIdentityTuple(semesterOccurrences);
+    for (const field of identityFields) {
+      const value = identity[field];
+      if (value != null && value !== "") {
+        Object.assign(merged, { [field]: value });
+      }
+    }
+
+    for (const field of metadataFields) {
       const values = semesterOccurrences
         .map(({ teacher }) => teacher[field])
         .filter(
@@ -74,16 +85,7 @@ function mergeOccurrences(occurrences: TeacherOccurrence[]): TeacherBuild {
         );
       if (values.length === 0) continue;
 
-      const counts = new Map<string | number, number>();
-      for (const value of values) {
-        counts.set(value, (counts.get(value) ?? 0) + 1);
-      }
-      const highestCount = Math.max(...counts.values());
-      const canonical = [...counts]
-        .filter(([, count]) => count === highestCount)
-        .map(([value]) => value)
-        .sort(compareCanonicalValues)[0];
-      Object.assign(merged, { [field]: canonical });
+      Object.assign(merged, { [field]: canonicalValue(values) });
     }
   }
 
@@ -91,6 +93,60 @@ function mergeOccurrences(occurrences: TeacherOccurrence[]): TeacherBuild {
     throw new Error("Teacher metadata is missing nameCn");
   }
   return merged as TeacherBuild;
+}
+
+function canonicalIdentityTuple(
+  occurrences: TeacherOccurrence[],
+): TeacherIdentityReference {
+  const counts = new Map<
+    string,
+    { count: number; identity: TeacherIdentityReference }
+  >();
+  for (const { teacher } of occurrences) {
+    const identity = identityReference(teacher);
+    const key = JSON.stringify(identityFields.map((field) => identity[field]));
+    const current = counts.get(key);
+    counts.set(key, {
+      count: (current?.count ?? 0) + 1,
+      identity,
+    });
+  }
+
+  return [...counts.values()].sort(
+    (left, right) =>
+      right.count - left.count ||
+      compareIdentityTuples(left.identity, right.identity),
+  )[0].identity;
+}
+
+function compareIdentityTuples(
+  left: TeacherIdentityReference,
+  right: TeacherIdentityReference,
+): number {
+  for (const field of identityFields) {
+    const leftValue = left[field];
+    const rightValue = right[field];
+    if (leftValue == null || leftValue === "") {
+      if (rightValue != null && rightValue !== "") return 1;
+      continue;
+    }
+    if (rightValue == null || rightValue === "") return -1;
+    const result = compareCanonicalValues(leftValue, rightValue);
+    if (result !== 0) return result;
+  }
+  return 0;
+}
+
+function canonicalValue(values: Array<string | number>): string | number {
+  const counts = new Map<string | number, number>();
+  for (const value of values) {
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+  const highestCount = Math.max(...counts.values());
+  return [...counts]
+    .filter(([, count]) => count === highestCount)
+    .map(([value]) => value)
+    .sort(compareCanonicalValues)[0];
 }
 
 function compareCanonicalValues(
