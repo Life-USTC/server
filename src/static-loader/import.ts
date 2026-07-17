@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from "../generated/prisma-node/client";
+import { canonicalizeAdminClasses } from "./admin-class-identity";
 import {
   courseIdentitySignature,
   type IncomingCourseIdentityRecord,
@@ -54,6 +55,12 @@ import {
   Snapshot,
   type SnapshotRow,
 } from "./snapshot";
+import {
+  planTeacherImport,
+  sectionTeacherNameKey,
+  type TeacherIdentityReference,
+  type TeacherOccurrence,
+} from "./teacher-identity";
 import {
   requireCourseDatabaseId,
   requireCourseSourceKey,
@@ -118,7 +125,7 @@ export async function runImport(
   const { teacherTitles, teacherLessonTypes, examBatches } =
     loadScheduleLookups(snapshot);
 
-  const { teachers } = loadTeachers(snapshot);
+  const { teachers, sectionTeacherIdentities } = loadTeachers(snapshot);
 
   const { campuses, roomTypes, buildings, rooms, adminClasses } =
     loadScheduleInfrastructure(snapshot);
@@ -128,6 +135,7 @@ export async function runImport(
       snapshot,
       config.minSemester,
       courseSourceKeyByParentId,
+      sectionTeacherIdentities,
       (sectionJwId) => allSectionJwIds.add(sectionJwId),
       sectionTeacherPairs,
     );
@@ -521,6 +529,7 @@ function loadScheduleLookups(snapshot: Snapshot) {
 
 function loadTeachers(snapshot: Snapshot): {
   teachers: TeacherBuild[];
+  sectionTeacherIdentities: Map<string, TeacherIdentityReference>;
 } {
   const scheduleLessonRows = snapshot.queryAll(
     "jw_ws_schedule_table_datum_result_lessonList",
@@ -539,56 +548,8 @@ function loadTeachers(snapshot: Snapshot): {
     "catalog_teach_lesson_list_for_teach_teacherAssignmentList",
   );
 
-  const teacherMap = new Map<string, TeacherBuild>();
-  const byNameDept = new Map<string, TeacherBuild>();
-
-  function teacherKey(build: TeacherBuild): string {
-    if (build.personId != null) return `person:${build.personId}`;
-    if (build.teacherId != null) return `teacher:${build.teacherId}`;
-    if (build.code != null && build.code !== "") return `code:${build.code}`;
-    return `name:${build.nameCn}:${build.departmentCode ?? ""}`;
-  }
-
-  function nameDeptKey(build: TeacherBuild): string {
-    return `${build.nameCn}:${build.departmentCode ?? ""}`;
-  }
-
-  function merge(existing: TeacherBuild, incoming: TeacherBuild) {
-    existing.personId ??= incoming.personId;
-    existing.teacherId ??= incoming.teacherId;
-    existing.code ??= incoming.code;
-    existing.nameEn ??= incoming.nameEn;
-    existing.age ??= incoming.age;
-    existing.email ??= incoming.email;
-    existing.telephone ??= incoming.telephone;
-    existing.mobile ??= incoming.mobile;
-    existing.address ??= incoming.address;
-    existing.postcode ??= incoming.postcode;
-    existing.qq ??= incoming.qq;
-    existing.wechat ??= incoming.wechat;
-    existing.departmentCode ??= incoming.departmentCode;
-    existing.teacherTitleId ??= incoming.teacherTitleId;
-  }
-
-  function add(build: TeacherBuild) {
-    const primaryKey = teacherKey(build);
-    const existingByPrimary = teacherMap.get(primaryKey);
-    if (existingByPrimary) {
-      merge(existingByPrimary, build);
-      return;
-    }
-
-    const secondaryKey = nameDeptKey(build);
-    const existingByNameDept = byNameDept.get(secondaryKey);
-    if (existingByNameDept) {
-      merge(existingByNameDept, build);
-      teacherMap.set(primaryKey, existingByNameDept);
-      return;
-    }
-
-    teacherMap.set(primaryKey, build);
-    byNameDept.set(secondaryKey, build);
-  }
+  const scheduleOccurrences: TeacherOccurrence[] = [];
+  const catalogOccurrences: TeacherOccurrence[] = [];
 
   for (const lesson of scheduleLessonRows) {
     const lessonId = asInt(lesson.id);
@@ -604,22 +565,36 @@ function loadTeachers(snapshot: Snapshot): {
         title,
       );
       if (build == null) continue;
-      add(build);
+      scheduleOccurrences.push({
+        sectionJwId: lessonId,
+        semesterCode:
+          asInt(assignment.semester_id) ?? asInt(lesson.semester_id) ?? 0,
+        sourceOrder: asInt(assignment.store_id) ?? 0,
+        teacher: build,
+      });
     }
   }
 
   const lessons = snapshot.queryAll("catalog_teach_lesson_list_for_teach");
   for (const lesson of lessons) {
+    const lessonId = asInt(lesson.id);
+    if (lessonId == null) continue;
     const parentId = asInt(lesson.store_id);
     if (parentId == null) continue;
     for (const assignment of catalogAssignmentRows.get(parentId) ?? []) {
       const build = mapTeacherFromCatalogAssignment(assignment);
       if (build == null) continue;
-      add(build);
+      catalogOccurrences.push({
+        sectionJwId: lessonId,
+        semesterCode:
+          asInt(assignment.semester_id) ?? asInt(lesson.semester_id) ?? 0,
+        sourceOrder: asInt(assignment.store_id) ?? 0,
+        teacher: build,
+      });
     }
   }
 
-  return { teachers: Array.from(teacherMap.values()) };
+  return planTeacherImport(scheduleOccurrences, catalogOccurrences);
 }
 
 function loadScheduleInfrastructure(snapshot: Snapshot) {
@@ -644,7 +619,6 @@ function loadScheduleInfrastructure(snapshot: Snapshot) {
   const rooms = new Map<number, RoomBuild>();
   const roomTypes = new Map<number, RoomTypeBuild>();
   const adminClasses = new Map<number, AdminClassBuild>();
-  const adminClassNames = new Set<string>();
 
   for (const row of roomRows) {
     const parentId = asInt(row.store_id);
@@ -677,8 +651,6 @@ function loadScheduleInfrastructure(snapshot: Snapshot) {
   for (const row of adminClassRows) {
     const ac = mapAdminClass(row);
     if (ac == null || adminClasses.has(ac.jwId)) continue;
-    if (adminClassNames.has(ac.nameCn)) continue;
-    adminClassNames.add(ac.nameCn);
     adminClasses.set(ac.jwId, ac);
   }
 
@@ -695,6 +667,7 @@ function loadSections(
   snapshot: Snapshot,
   minSemester: number,
   courseSourceKeyByParentId: Map<number, string>,
+  sectionTeacherIdentities: Map<string, TeacherIdentityReference>,
   onSection: (jwId: number) => void,
   sectionTeacherPairs: SectionTeacherPair[],
 ): {
@@ -802,9 +775,14 @@ function loadSections(
     }
 
     for (const assignment of catalogAssignments.get(parentId) ?? []) {
+      const nameCn = asString(assignment.cn) ?? "";
+      const identity = sectionTeacherIdentities.get(
+        sectionTeacherNameKey(section.jwId, nameCn),
+      );
       sectionTeacherPairs.push({
+        ...(identity ?? {}),
         sectionJwId: section.jwId,
-        nameCn: asString(assignment.cn) ?? "",
+        nameCn,
         departmentCode: asString(assignment.departmentCode),
       });
     }
@@ -1363,13 +1341,18 @@ async function upsertTeachers(
   const existingByPersonId = new Map<number, number>();
   const existingByTeacherId = new Map<number, number>();
   const existingByCode = new Map<string, number>();
-  const existingByNameDept = new Map<string, number>();
+  const existingFallbackByNameDept = new Map<string, number>();
   for (const t of existing) {
     if (t.personId != null) existingByPersonId.set(t.personId, t.id);
     if (t.teacherId != null) existingByTeacherId.set(t.teacherId, t.id);
     if (t.code != null && t.code !== "") existingByCode.set(t.code, t.id);
-    if (t.departmentId != null) {
-      existingByNameDept.set(`${t.nameCn}:${t.departmentId}`, t.id);
+    if (
+      t.personId == null &&
+      t.teacherId == null &&
+      (t.code == null || t.code === "") &&
+      t.departmentId != null
+    ) {
+      existingFallbackByNameDept.set(`${t.nameCn}:${t.departmentId}`, t.id);
     }
   }
 
@@ -1390,7 +1373,9 @@ async function upsertTeachers(
     } else {
       const departmentId = values[13] as number | null;
       if (departmentId != null) {
-        existingId = existingByNameDept.get(`${build.nameCn}:${departmentId}`);
+        existingId = existingFallbackByNameDept.get(
+          `${build.nameCn}:${departmentId}`,
+        );
       }
     }
 
@@ -1462,15 +1447,20 @@ async function upsertTeachers(
     departmentIdToCode.set(id, code);
   }
 
-  const allTeachersByNameDept = new Map<string, number>();
+  const allFallbackTeachersByNameDept = new Map<string, number>();
   for (const t of allTeachers) {
     if (t.personId != null) map.byPersonId.set(t.personId, t.id);
     if (t.teacherId != null) map.byTeacherId.set(t.teacherId, t.id);
     if (t.code != null && t.code !== "") map.byCode.set(t.code, t.id);
-    if (t.departmentId != null) {
+    if (
+      t.personId == null &&
+      t.teacherId == null &&
+      (t.code == null || t.code === "") &&
+      t.departmentId != null
+    ) {
       const code =
         departmentIdToCode.get(t.departmentId) ?? UNKNOWN_DEPARTMENT_CODE;
-      allTeachersByNameDept.set(`${t.nameCn}:${code}`, t.id);
+      allFallbackTeachersByNameDept.set(`${t.nameCn}:${code}`, t.id);
     }
   }
 
@@ -1484,9 +1474,16 @@ async function upsertTeachers(
     } else if (build.code != null && build.code !== "") {
       teacherId = map.byCode.get(build.code);
     } else {
-      teacherId = allTeachersByNameDept.get(`${build.nameCn}:${deptKey}`);
+      teacherId = allFallbackTeachersByNameDept.get(
+        `${build.nameCn}:${deptKey}`,
+      );
     }
-    if (teacherId != null) {
+    if (
+      teacherId != null &&
+      build.personId == null &&
+      build.teacherId == null &&
+      (build.code == null || build.code === "")
+    ) {
       map.byNameDept.set(`${build.nameCn}:${deptKey}`, teacherId);
     }
   }
@@ -1676,6 +1673,8 @@ async function upsertAdminClasses(
   tx: Prisma.TransactionClient,
   builds: AdminClassBuild[],
 ): Promise<Map<number, number>> {
+  const { canonicalBuilds, canonicalJwIdByAlias } =
+    canonicalizeAdminClasses(builds);
   const columns = [
     "jwId",
     "code",
@@ -1687,7 +1686,7 @@ async function upsertAdminClasses(
     "abbrZh",
     "abbrEn",
   ];
-  const records = builds.map((build) => ({
+  const records = canonicalBuilds.map((build) => ({
     key: build.nameCn,
     values: [
       build.jwId,
@@ -1711,9 +1710,13 @@ async function upsertAdminClasses(
     records,
   );
   const map = new Map<number, number>();
-  for (const build of builds) {
-    const id = nameToId.get(build.nameCn);
-    if (id != null) map.set(build.jwId, id);
+  const canonicalNameByJwId = new Map(
+    canonicalBuilds.map((build) => [build.jwId, build.nameCn]),
+  );
+  for (const [aliasJwId, canonicalJwId] of canonicalJwIdByAlias) {
+    const canonicalName = canonicalNameByJwId.get(canonicalJwId);
+    const id = canonicalName == null ? undefined : nameToId.get(canonicalName);
+    if (id != null) map.set(aliasJwId, id);
   }
   return map;
 }

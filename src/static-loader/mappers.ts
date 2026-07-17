@@ -1,4 +1,5 @@
 import { courseSourceIdentityKey } from "./course-identity";
+import type { AdminClassBuild, TeacherBuild } from "./identity-types";
 import {
   asBoolean,
   asDate,
@@ -7,6 +8,8 @@ import {
   asString,
   type SnapshotRow,
 } from "./snapshot";
+
+export type { AdminClassBuild, TeacherBuild } from "./identity-types";
 
 export type SemesterBuild = {
   jwId: number;
@@ -40,24 +43,6 @@ export type CourseBuild = {
   educationLevelName?: string;
   gradationName?: string;
   typeName?: string;
-};
-
-export type TeacherBuild = {
-  personId?: number;
-  teacherId?: number;
-  code?: string;
-  nameCn: string;
-  nameEn?: string;
-  age?: number;
-  email?: string;
-  telephone?: string;
-  mobile?: string;
-  address?: string;
-  postcode?: string;
-  qq?: string;
-  wechat?: string;
-  departmentCode?: string;
-  teacherTitleId?: number;
 };
 
 export type SectionBuild = {
@@ -173,19 +158,6 @@ export type RoomTypeBuild = {
   nameCn: string;
   nameEn?: string;
   code: string;
-};
-
-export type AdminClassBuild = {
-  jwId: number;
-  code?: string;
-  grade?: string;
-  nameCn: string;
-  nameEn?: string;
-  stdCount?: number;
-  planCount?: number;
-  enabled?: boolean;
-  abbrZh?: string;
-  abbrEn?: string;
 };
 
 export type TeacherTitleBuild = {
