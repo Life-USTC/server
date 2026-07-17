@@ -1,0 +1,202 @@
+type BusCampus {
+  id: Int!
+  latitude: Float!
+  longitude: Float!
+  nameCn: String!
+  nameEn: String
+  namePrimary: String!
+  nameSecondary: String
+}
+
+type BusRoute {
+  descriptionPrimary: String!
+  id: Int!
+  nameCn: String!
+  nameEn: String
+  stops: [BusRouteStop!]!
+}
+
+type BusRoutePage {
+  campuses: [BusCampus!]!
+  items: [BusRoute!]!
+  pageInfo: PageInfo!
+}
+
+type BusRouteStop {
+  campusId: Int!
+  campusName: String!
+  stopOrder: Int!
+}
+
+type BusRouteTimetable {
+  alternateRoutes: [BusRoute!]!
+  route: BusRoute!
+  weekday: [BusTripSlot!]!
+  weekdayPageInfo: PageInfo!
+  weekend: [BusTripSlot!]!
+  weekendPageInfo: PageInfo!
+}
+
+type BusStopTime {
+  stopOrder: Int!
+  time: String
+}
+
+type BusTripSlot {
+  position: Int!
+  stopTimes: [BusStopTime!]!
+}
+
+type Campus {
+  code: String
+  id: Int!
+  jwId: Int
+  nameCn: String!
+  nameEn: String
+}
+
+type Course {
+  category: NamedCatalogValue
+  classType: NamedCatalogValue
+  classify: NamedCatalogValue
+  code: String!
+  educationLevel: NamedCatalogValue
+  gradation: NamedCatalogValue
+  id: Int!
+  jwId: Int!
+  nameCn: String!
+  nameEn: String
+  type: NamedCatalogValue
+}
+
+input CourseFilter {
+  categoryId: Int
+  classTypeId: Int
+  educationLevelId: Int
+  search: String
+}
+
+type CoursePage {
+  items: [Course!]!
+  pageInfo: PageInfo!
+}
+
+scalar Date
+
+scalar DateTime
+
+type Department {
+  code: String!
+  id: Int!
+  nameCn: String!
+  nameEn: String
+}
+
+type NamedCatalogValue {
+  id: Int!
+  nameCn: String!
+  nameEn: String
+}
+
+type PageInfo {
+  page: Int!
+  pageSize: Int!
+  total: Int!
+  totalPages: Int!
+}
+
+input PageInput {
+  page: Int = 1
+  pageSize: Int = 20
+}
+
+type Query {
+  busRoutes(page: PageInput): BusRoutePage!
+  busTimetable(now: DateTime, page: PageInput, routeId: Int!, versionKey: String): BusRouteTimetable
+  course(jwId: Int!): Course
+  courses(filter: CourseFilter, page: PageInput): CoursePage!
+  currentSemester: Semester
+  section(jwId: Int!): Section
+  sections(filter: SectionFilter, page: PageInput): SectionPage!
+  semesters(page: PageInput): SemesterPage!
+  teacher(id: Int!): Teacher
+  teachers(filter: TeacherFilter, page: PageInput): TeacherPage!
+}
+
+type Section {
+  campus: Campus
+  code: String!
+  course: Course!
+  credits: Float
+  examMode: NamedCatalogValue
+  id: Int!
+  jwId: Int!
+  limitCount: Int
+  openDepartment: Department
+  period: Int
+  periodsPerWeek: Int
+  remark: String
+  semester: Semester
+  stdCount: Int
+  teachLanguage: NamedCatalogValue
+  timesPerWeek: Int
+}
+
+input SectionFilter {
+  campusId: Int
+  courseId: Int
+  courseJwId: Int
+  departmentId: Int
+  ids: [Int!]
+  jwIds: [Int!]
+  search: String
+  semesterId: Int
+  semesterJwId: Int
+  teacherCode: String
+  teacherId: Int
+}
+
+type SectionPage {
+  items: [Section!]!
+  pageInfo: PageInfo!
+}
+
+type Semester {
+  code: String!
+  endDate: Date
+  id: Int!
+  jwId: Int!
+  nameCn: String!
+  startDate: Date
+}
+
+type SemesterPage {
+  items: [Semester!]!
+  pageInfo: PageInfo!
+}
+
+type Teacher {
+  address: String
+  code: String
+  department: Department
+  email: String
+  id: Int!
+  mobile: String
+  nameCn: String!
+  nameEn: String
+  personId: Int
+  sectionCount: Int!
+  teacherId: Int
+  teacherTitle: NamedCatalogValue
+  telephone: String
+}
+
+input TeacherFilter {
+  departmentId: Int
+  search: String
+}
+
+type TeacherPage {
+  items: [Teacher!]!
+  pageInfo: PageInfo!
+}

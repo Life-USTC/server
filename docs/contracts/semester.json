@@ -30,6 +30,19 @@
           }
         ]
       },
+      "graphql": {
+        "queries": [
+          {
+            "name": "semesters",
+            "returns": "SemesterPage!",
+            "rest_equivalent": "GET /api/semesters",
+            "mcp_equivalent": "list_semesters",
+            "notes": [
+              "PageInput defaults to page=1 and pageSize=20; pageSize must remain within 1-100."
+            ]
+          }
+        ]
+      },
       "mcp": {
         "tools": [
           {
@@ -69,6 +82,16 @@
             "path": "/api/semesters/current",
             "returns": "Semester | 404",
             "notes": ["Returns the current semester or 404 when none is found."]
+          }
+        ]
+      },
+      "graphql": {
+        "queries": [
+          {
+            "name": "currentSemester",
+            "returns": "Semester",
+            "rest_equivalent": "GET /api/semesters/current",
+            "mcp_equivalent": "get_current_semester"
           }
         ]
       },

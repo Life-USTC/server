@@ -61,6 +61,9 @@ export type McpHarness = {
     name: string,
     args?: Record<string, unknown>,
   ): Promise<T>;
+  listResources(): ReturnType<Client["listResources"]>;
+  readResource(uri: string): ReturnType<Client["readResource"]>;
+  listTools(): ReturnType<Client["listTools"]>;
   /** Close the in-process MCP session. */
   close(): Promise<void>;
 };
@@ -188,5 +191,12 @@ export async function createMcpHarness(userId: string): Promise<McpHarness> {
     await client.close();
   }
 
-  return { callTool, call, close };
+  return {
+    callTool,
+    call,
+    listResources: () => client.listResources(),
+    readResource: (uri) => client.readResource({ uri }),
+    listTools: () => client.listTools(),
+    close,
+  };
 }

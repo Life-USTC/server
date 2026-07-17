@@ -1,5 +1,7 @@
 import {
   courseDetailInclude,
+  courseInclude,
+  sectionCatalogInclude,
   sectionCompactInclude,
   sectionInclude,
 } from "@/features/catalog/server/academic-query-includes";
@@ -8,6 +10,31 @@ import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma } from "@/lib/db/prisma";
 import { serializeScheduleTimeFields } from "@/shared/lib/schedule-serialization";
 import { resolveCourseIdByJwId } from "./course-jw-id";
+
+const sectionDetailInclude = {
+  ...sectionInclude,
+  roomType: true,
+  schedules: true,
+  scheduleGroups: true,
+  teachers: {
+    include: {
+      department: true,
+      teacherTitle: true,
+    },
+  },
+  teacherAssignments: {
+    include: {
+      teacher: true,
+      teacherLessonType: true,
+    },
+  },
+  exams: {
+    include: {
+      examBatch: true,
+      examRooms: true,
+    },
+  },
+} as const;
 
 export async function findCourseDetailByJwId(
   jwId: number,
@@ -20,6 +47,38 @@ export async function findCourseDetailByJwId(
     where: { id: courseId },
     include: courseDetailInclude,
   });
+}
+
+export async function findCoursesByJwIds(
+  jwIds: readonly number[],
+  locale: AppLocale = DEFAULT_LOCALE,
+) {
+  const prisma = getPrisma(locale);
+  const requestedJwIds = [...new Set(jwIds)];
+  const [courses, aliases] = await Promise.all([
+    prisma.course.findMany({
+      where: { jwId: { in: requestedJwIds } },
+      include: courseInclude,
+    }),
+    prisma.courseAlias.findMany({
+      where: { jwId: { in: requestedJwIds } },
+      include: {
+        course: {
+          include: courseInclude,
+        },
+      },
+    }),
+  ]);
+  const byJwId = new Map(courses.map((course) => [course.jwId, course]));
+  for (const alias of aliases) {
+    if (byJwId.has(alias.jwId)) {
+      throw new Error(
+        `Course jwId namespace collision: ${alias.jwId} is both a Course and CourseAlias`,
+      );
+    }
+    byJwId.set(alias.jwId, alias.course);
+  }
+  return jwIds.map((jwId) => byJwId.get(jwId) ?? null);
 }
 
 export async function findSectionByJwId(
@@ -38,30 +97,7 @@ export async function findSectionDetailByJwId(
 ) {
   const section = await getPrisma(locale).section.findUnique({
     where: { jwId },
-    include: {
-      ...sectionInclude,
-      roomType: true,
-      schedules: true,
-      scheduleGroups: true,
-      teachers: {
-        include: {
-          department: true,
-          teacherTitle: true,
-        },
-      },
-      teacherAssignments: {
-        include: {
-          teacher: true,
-          teacherLessonType: true,
-        },
-      },
-      exams: {
-        include: {
-          examBatch: true,
-          examRooms: true,
-        },
-      },
-    },
+    include: sectionDetailInclude,
   });
 
   if (!section) return null;
@@ -70,6 +106,18 @@ export async function findSectionDetailByJwId(
     ...section,
     schedules: section.schedules.map(serializeScheduleTimeFields),
   };
+}
+
+export async function findSectionsByJwIds(
+  jwIds: readonly number[],
+  locale: AppLocale = DEFAULT_LOCALE,
+) {
+  const sections = await getPrisma(locale).section.findMany({
+    where: { jwId: { in: [...new Set(jwIds)] } },
+    include: sectionCatalogInclude,
+  });
+  const byJwId = new Map(sections.map((section) => [section.jwId, section]));
+  return jwIds.map((jwId) => byJwId.get(jwId) ?? null);
 }
 
 export async function findSectionCompactByJwId(

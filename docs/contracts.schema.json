@@ -62,11 +62,11 @@
         "surfaces": {
           "type": "array",
           "minItems": 1,
-          "maxItems": 3,
+          "maxItems": 4,
           "uniqueItems": true,
           "items": {
             "type": "string",
-            "enum": ["web", "rest", "mcp"]
+            "enum": ["web", "rest", "graphql", "mcp"]
           }
         },
         "roles": {
@@ -445,6 +445,34 @@
         }
       }
     },
+    "resourceEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "uri", "mime_type"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "maxLength": 80
+        },
+        "uri": {
+          "type": "string",
+          "pattern": "^life-ustc://",
+          "maxLength": 180
+        },
+        "mime_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "description": {
+          "$ref": "#/$defs/text"
+        },
+        "auth": {
+          "$ref": "#/$defs/authLevel"
+        }
+      }
+    },
     "links": {
       "type": "object",
       "additionalProperties": false,
@@ -532,6 +560,97 @@
         }
       ]
     },
+    "graphqlFieldEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "returns"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][A-Za-z0-9]*$",
+          "maxLength": 80
+        },
+        "description": {
+          "$ref": "#/$defs/text"
+        },
+        "status": {
+          "$ref": "#/$defs/surfaceStatus"
+        },
+        "auth": {
+          "$ref": "#/$defs/authLevel"
+        },
+        "required_scopes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*:(read|write)$",
+            "maxLength": 80
+          }
+        },
+        "returns": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 220
+        },
+        "rest_equivalent": {
+          "type": "string",
+          "pattern": "^(GET|POST|PUT|PATCH|DELETE) /",
+          "maxLength": 180
+        },
+        "mcp_equivalent": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "maxLength": 80
+        },
+        "notes": {
+          "$ref": "#/$defs/notes"
+        }
+      }
+    },
+    "graphqlSurface": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/surfaceStatus"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": ["queries"]
+            },
+            {
+              "required": ["mutations"]
+            }
+          ],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["stable", "planned"]
+            },
+            "queries": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 24,
+              "items": {
+                "$ref": "#/$defs/graphqlFieldEntry"
+              }
+            },
+            "mutations": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 24,
+              "items": {
+                "$ref": "#/$defs/graphqlFieldEntry"
+              }
+            }
+          }
+        }
+      ]
+    },
     "mcpSurface": {
       "oneOf": [
         {
@@ -546,6 +665,9 @@
             },
             {
               "required": ["groups"]
+            },
+            {
+              "required": ["resources"]
             }
           ],
           "properties": {
@@ -567,6 +689,14 @@
               "maxItems": 16,
               "items": {
                 "$ref": "#/$defs/toolGroup"
+              }
+            },
+            "resources": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 16,
+              "items": {
+                "$ref": "#/$defs/resourceEntry"
               }
             }
           }
@@ -601,6 +731,9 @@
         },
         "rest": {
           "$ref": "#/$defs/restSurface"
+        },
+        "graphql": {
+          "$ref": "#/$defs/graphqlSurface"
         },
         "mcp": {
           "$ref": "#/$defs/mcpSurface"

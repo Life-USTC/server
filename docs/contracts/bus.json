@@ -52,6 +52,29 @@
           }
         ]
       },
+      "graphql": {
+        "queries": [
+          {
+            "name": "busRoutes",
+            "returns": "BusRoutePage!",
+            "rest_equivalent": "GET /api/bus",
+            "mcp_equivalent": "list_bus_routes",
+            "notes": [
+              "The GraphQL page argument bounds the route catalog to pageSize 1-100."
+            ]
+          },
+          {
+            "name": "busTimetable",
+            "returns": "BusRouteTimetable",
+            "rest_equivalent": "GET /api/bus",
+            "mcp_equivalent": "get_bus_route_timetable",
+            "notes": [
+              "The input selects one route and bounds weekday and weekend trip slots to pageSize 1-100.",
+              "The optional now argument is a DateTime and must include an explicit Z or numeric timezone offset."
+            ]
+          }
+        ]
+      },
       "mcp": {
         "tools": [
           {

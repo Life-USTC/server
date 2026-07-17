@@ -35,6 +35,19 @@
           }
         ]
       },
+      "graphql": {
+        "queries": [
+          {
+            "name": "sections",
+            "returns": "SectionPage!",
+            "rest_equivalent": "GET /api/sections",
+            "mcp_equivalent": "search_sections",
+            "notes": [
+              "PageInput defaults to page=1 and pageSize=20; pageSize must remain within 1-100."
+            ]
+          }
+        ]
+      },
       "mcp": {
         "tools": [
           {
@@ -79,6 +92,16 @@
           {
             "path": "/api/sections/[jwId]",
             "returns": "SectionDetail (schedules without room/teacher expansion)"
+          }
+        ]
+      },
+      "graphql": {
+        "queries": [
+          {
+            "name": "section",
+            "returns": "Section",
+            "rest_equivalent": "GET /api/sections/[jwId]",
+            "mcp_equivalent": "get_section_by_jw_id"
           }
         ]
       },
