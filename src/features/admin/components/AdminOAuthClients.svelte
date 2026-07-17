@@ -22,9 +22,11 @@ export let clientTypeLabel: (method: string) => string;
 export let clients: AdminOAuthClient[];
 export let copy: AdminOAuthClientCopy;
 export let copyText: (value: string, message: string) => void;
+export let createDisabled: boolean;
 export let externalClientPage: number;
 export let formatCreatedAt: (value: string | Date) => string;
 export let onDelete: (client: AdminOAuthClient) => void;
+export let onCreate: () => void;
 export let trustedClientPage: number;
 
 $: ({ trustedClients, externalClients } = oauthClientGroups(clients));
@@ -56,9 +58,11 @@ $: visibleClients = visibleOAuthClientsForTab(clients, activeClientTab);
       {clients}
       {copy}
       {copyText}
+      {createDisabled}
       bind:externalClientPage
       {externalClients}
       {formatCreatedAt}
+      {onCreate}
       {onDelete}
       bind:trustedClientPage
       {trustedClients}

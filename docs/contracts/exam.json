@@ -47,7 +47,8 @@
           "section.course.namePrimary",
           "section.semester.nameCn",
           "completion filter: incomplete/completed/all",
-          "mobile compact toolbar with direct completion filters and overflow display-mode control"
+          "mobile compact toolbar with direct completion filters and overflow display-mode control",
+          "Filter-empty explanation and clear-filter action"
         ]
       }
     },

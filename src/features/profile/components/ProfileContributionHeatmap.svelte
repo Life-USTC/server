@@ -6,15 +6,29 @@ export let cellLabel: string;
 export let dateFormatter: Intl.DateTimeFormat;
 export let heatmapClass: (count: number) => string;
 export let monthLabels: string[];
+export let scrollLabel: string;
 export let weeks: ContributionCell[][];
 
-$: heatmapGridTemplate = `repeat(${weeks.length}, minmax(0, 1fr))`;
+let selectedCellLabel = "";
+
+$: heatmapGridTemplate = `repeat(${weeks.length}, var(--heatmap-column-size))`;
+
+function contributionLabel(day: ContributionCell) {
+  return cellLabel
+    .replace("{count}", String(day.count))
+    .replace("{date}", dateFormatter.format(new Date(day.date)));
+}
 </script>
 
-<div class="min-w-0 overflow-hidden pb-2">
-  <div class="grid min-w-0 gap-y-1">
+<div
+  aria-label={scrollLabel}
+  class="profile-heatmap min-w-0 overflow-x-auto overscroll-x-contain pb-2"
+  data-profile-heatmap-scroll
+  role="region"
+>
+  <div class="grid w-max gap-y-1">
     <div
-      class="grid min-w-0 gap-px overflow-visible text-muted-foreground text-[0.65rem]"
+      class="grid gap-px overflow-visible text-muted-foreground text-[0.65rem]"
       style={`grid-template-columns: ${heatmapGridTemplate};`}
     >
       {#each monthLabels as label}
@@ -23,24 +37,62 @@ $: heatmapGridTemplate = `repeat(${weeks.length}, minmax(0, 1fr))`;
     </div>
 
     <div
-      class="grid min-w-0 gap-px"
+      class="grid gap-px"
       style={`grid-template-columns: ${heatmapGridTemplate};`}
     >
       {#each weeks as week}
-        <div class="grid min-w-0 grid-rows-7 gap-px">
+        <div class="grid grid-rows-7">
           {#each week as day}
-            <div
-              class={cn(
-                "aspect-square w-full max-w-3 rounded-[2px]",
-                heatmapClass(day.count),
-              )}
-              title={cellLabel
-                .replace("{count}", String(day.count))
-                .replace("{date}", dateFormatter.format(new Date(day.date)))}
-            ></div>
+            {@const label = contributionLabel(day)}
+            <button
+              aria-label={label}
+              aria-pressed={selectedCellLabel === label}
+              class="flex size-6 items-center justify-center rounded-sm p-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 sm:size-4"
+              data-count={day.count}
+              data-date={day.date}
+              data-profile-contribution-cell
+              onclick={() => {
+                selectedCellLabel = label;
+              }}
+              onfocus={() => {
+                selectedCellLabel = label;
+              }}
+              title={label}
+              type="button"
+            >
+              <span
+                aria-hidden="true"
+                class={cn(
+                  "size-4 rounded-[2px] sm:size-3",
+                  heatmapClass(day.count),
+                )}
+              ></span>
+            </button>
           {/each}
         </div>
       {/each}
     </div>
   </div>
 </div>
+
+{#if selectedCellLabel}
+  <p
+    aria-live="polite"
+    class="mt-2 text-muted-foreground text-sm"
+    data-profile-contribution-detail
+  >
+    {selectedCellLabel}
+  </p>
+{/if}
+
+<style>
+  .profile-heatmap {
+    --heatmap-column-size: 1.5rem;
+  }
+
+  @media (min-width: 640px) {
+    .profile-heatmap {
+      --heatmap-column-size: 1rem;
+    }
+  }
+</style>

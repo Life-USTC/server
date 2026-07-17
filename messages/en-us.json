@@ -549,10 +549,12 @@
         "noSubscriptionsTitle": "No followed sections",
         "noSubscriptionsDescription": "Select sections to see exams here.",
         "empty": "No exam schedule available yet.",
+        "emptyDescription": "The sections you follow do not have any published exams yet.",
         "filterEmptyDescription": "Try another filter, or check back later for exam updates.",
         "filterIncomplete": "Upcoming",
         "filterCompleted": "Ended",
         "filterAll": "All",
+        "clearFilter": "Clear filter",
         "viewMode": "Exam view",
         "cardView": "Card",
         "listView": "List",
@@ -828,7 +830,7 @@
     "noDataDescription": "Import or activate a bus timetable version to show the map."
   },
   "publicProfile": {
-    "idLabel": "User ID",
+    "idLabel": "User",
     "joinedAt": "Joined on {date}",
     "stats": {
       "sections": "Selected sections",
@@ -840,6 +842,7 @@
       "title": "Last year contributions ({count})",
       "description": "Counts comments, uploads, homework creation, and homework completion activity.",
       "cell": "{count} activities on {date}",
+      "scrollLabel": "Contribution history. Scroll horizontally to review the full year.",
       "less": "Less",
       "more": "More",
       "empty": "No contribution activity available in the last year."
@@ -2094,6 +2097,7 @@
     "tableColumnRedirects": "Redirects",
     "tableColumnActions": "Actions",
     "noClients": "No OAuth clients have been created yet.",
+    "noClientsDescription": "Create a client to register a trusted service, CLI, or native application.",
     "createdAtLabel": "Created",
     "deleteClient": "Delete",
     "deleteClientDescription": "This removes \"{name}\" and blocks future token use.",

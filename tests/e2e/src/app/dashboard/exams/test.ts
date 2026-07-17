@@ -79,7 +79,22 @@ test.describe("仪表盘考试", () => {
       }),
     ).toHaveAttribute("aria-checked", "true");
 
-    await captureStepScreenshot(page, testInfo, "exams/filter-toolbar");
+    const clearFilter = page.getByRole("button", {
+      name: /清除筛选|Clear filter/i,
+    });
+    await expect(clearFilter).toBeVisible();
+    await clearFilter.click();
+    await expect(
+      filterTabs.getByRole("radio", { name: /全部|All/i }),
+    ).toHaveAttribute("aria-checked", "true");
+    await expect(
+      page
+        .locator('[data-slot="card"]')
+        .filter({ has: page.locator('a[href^="/sections/"]') })
+        .first(),
+    ).toBeVisible();
+
+    await captureStepScreenshot(page, testInfo, "exams/filter-empty-recovered");
   });
 
   test("移动端考试工具栏直接筛选并通过菜单切换视图", async ({
