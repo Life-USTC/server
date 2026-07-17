@@ -8,7 +8,7 @@ export type GraphqlPageInput = {
 
 export function normalizeGraphqlPage(input: GraphqlPageInput | null = {}) {
   const page = input?.page ?? 1;
-  const pageSize = input?.pageSize ?? 20;
+  const pageSize = input?.pageSize ?? GRAPHQL_LIMITS.defaultPageSize;
 
   if (page < 1 || page > GRAPHQL_LIMITS.page) {
     throw new GraphQLError(

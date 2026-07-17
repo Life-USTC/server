@@ -12,7 +12,7 @@ Explicit public GraphQL transport and schema infrastructure.
 ## Runtime and Security
 
 - Keep one `graphql` runtime version compatible with Yoga and every Envelop plugin. A duplicate GraphQL module realm breaks schema inspection and MCP resources.
-- Every collection is explicitly capped or uses `PageInput`; keep request size, batching, depth, cost, alias, directive, token, top-level-field, and timeout limits enforced in `server.ts` and `security.ts`.
+- Every collection is explicitly capped or uses `PageInput`; keep request size, batching, depth, cost, alias, directive, token, top-level-field, and timeout limits enforced in `server.ts` and `security.ts`. Cost must weight paginated selections by the effective `pageSize`, including variable values.
 - `DateTime` inputs require an ISO 8601 timestamp with an explicit timezone, with identical coercion for variables and inline literals.
 - Keep DataLoaders request-scoped, production errors masked, production introspection disabled, and responses `Cache-Control: no-store`.
 

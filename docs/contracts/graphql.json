@@ -10,7 +10,7 @@
     "phase-one-read-only": "Phase 1 exposes public queries only; mutations and GraphQL-specific OAuth resource handling are deferred.",
     "single-endpoint": "GraphQL HTTP requests use /api/graphql with GET, POST, and OPTIONS handlers.",
     "production-discovery": "GraphiQL and schema introspection are disabled in production.",
-    "request-budgets": "Requests are limited to 64 KiB, one operation per HTTP request, five seconds, depth 8, 10 top-level fields, 15 aliases, 10 directives, 1000 tokens, and cost 5000.",
+    "request-budgets": "Requests are limited to 64 KiB, one operation per HTTP request, five seconds, depth 8, 10 top-level fields, 15 aliases, 10 directives, 1000 tokens, and cost 5000; operation cost weights every paginated selection by its effective pageSize, including values supplied through variables.",
     "pagination": "Page inputs default to page 1 and pageSize 20; pageSize must be between 1 and 100.",
     "resolver-boundary": "Resolvers call feature-owned services only; they do not issue internal HTTP requests or access Prisma directly.",
     "request-cache": "Entity DataLoaders are request-scoped and responses are marked no-store.",

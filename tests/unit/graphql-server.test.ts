@@ -20,19 +20,25 @@ import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 const developmentHandler = createGraphqlRequestHandler(false);
 const productionHandler = createGraphqlRequestHandler(true);
 
-function requestEvent(body: unknown): RequestEvent {
+function requestEventFromRequest(request: Request): RequestEvent {
   return {
-    request: new Request("https://example.test/api/graphql", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: typeof body === "string" ? body : JSON.stringify(body),
-    }),
+    request,
     locals: {
       authUser: null,
       locale: "zh-cn",
       requestId: "graphql-unit-test",
     },
   } as unknown as RequestEvent;
+}
+
+function requestEvent(body: unknown): RequestEvent {
+  return requestEventFromRequest(
+    new Request("https://example.test/api/graphql", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: typeof body === "string" ? body : JSON.stringify(body),
+    }),
+  );
 }
 
 async function execute(
@@ -90,6 +96,79 @@ describe("GraphQL HTTP boundary", () => {
     });
   });
 
+  it("keeps GraphiQL development-only and executes public GET queries", async () => {
+    const ideRequest = () =>
+      requestEventFromRequest(
+        new Request("https://example.test/api/graphql", {
+          headers: { accept: "text/html" },
+        }),
+      );
+    const developmentResponse = await developmentHandler(ideRequest());
+    const productionResponse = await productionHandler(ideRequest());
+
+    expect(developmentResponse.headers.get("content-type")).toContain(
+      "text/html",
+    );
+    expect(await developmentResponse.text()).toContain("GraphiQL");
+    expect(productionResponse.status).toBe(406);
+    expect(productionResponse.headers.get("content-type") ?? "").not.toContain(
+      "text/html",
+    );
+    expect(await productionResponse.text()).not.toContain("GraphiQL");
+
+    const query = encodeURIComponent(
+      "{ courses { items { jwId } pageInfo { total } } }",
+    );
+    const queryResponse = await productionHandler(
+      requestEventFromRequest(
+        new Request(`https://example.test/api/graphql?query=${query}`),
+      ),
+    );
+    expect(await queryResponse.json()).toEqual({
+      data: { courses: { items: [], pageInfo: { total: 0 } } },
+    });
+    expect(courseService.listCourseSummaries).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects mutation operations over GET and serves CORS preflight", async () => {
+    const mutation = encodeURIComponent("mutation Forbidden { __typename }");
+    const mutationResponse = await productionHandler(
+      requestEventFromRequest(
+        new Request(`https://example.test/api/graphql?query=${mutation}`),
+      ),
+    );
+    const mutationPayload = (await mutationResponse.json()) as Record<
+      string,
+      unknown
+    >;
+    expect(errorMessages(mutationPayload)).not.toHaveLength(0);
+    expect(courseService.listCourseSummaries).not.toHaveBeenCalled();
+
+    const preflightResponse = await productionHandler(
+      requestEventFromRequest(
+        new Request("https://example.test/api/graphql", {
+          method: "OPTIONS",
+          headers: {
+            origin: "https://client.example",
+            "access-control-request-method": "POST",
+            "access-control-request-headers": "content-type",
+          },
+        }),
+      ),
+    );
+    expect(preflightResponse.status).toBe(204);
+    expect(preflightResponse.headers.get("cache-control")).toBe("no-store");
+    expect(preflightResponse.headers.get("access-control-allow-origin")).toBe(
+      "https://client.example",
+    );
+    expect(preflightResponse.headers.get("access-control-allow-methods")).toBe(
+      "POST",
+    );
+    expect(preflightResponse.headers.get("access-control-allow-headers")).toBe(
+      "content-type",
+    );
+  });
+
   it("masks unexpected resolver details", async () => {
     courseService.listCourseSummaries.mockRejectedValueOnce(
       new Error("database-password-should-never-leak"),
@@ -136,6 +215,27 @@ describe("GraphQL HTTP boundary", () => {
     const { payload } = await execute({ query });
 
     expect(errorMessages(payload)).not.toHaveLength(0);
+  });
+
+  it("accepts the maximum pageSize and rejects values outside its boundary", async () => {
+    const accepted = await execute({
+      query: `{ courses(page: { pageSize: ${GRAPHQL_LIMITS.pageSize} }) { items { jwId } } }`,
+    });
+    expect(errorMessages(accepted.payload)).toHaveLength(0);
+    expect(courseService.listCourseSummaries).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pagination: { page: 1, pageSize: GRAPHQL_LIMITS.pageSize },
+      }),
+    );
+
+    for (const pageSize of [0, GRAPHQL_LIMITS.pageSize + 1]) {
+      courseService.listCourseSummaries.mockClear();
+      const rejected = await execute({
+        query: `{ courses(page: { pageSize: ${pageSize} }) { items { jwId } } }`,
+      });
+      expect(errorMessages(rejected.payload)).not.toHaveLength(0);
+      expect(courseService.listCourseSummaries).not.toHaveBeenCalled();
+    }
   });
 
   it("rejects oversized request bodies", async () => {
@@ -251,5 +351,74 @@ describe("GraphQL HTTP boundary", () => {
     const { payload } = await execute({ query });
 
     expect(errorMessages(payload)).not.toHaveLength(0);
+  });
+
+  it("rejects an operation that independently exceeds maxDepth", async () => {
+    const { payload } = await execute({
+      query: `{
+        __type(name: "Course") {
+          fields {
+            type {
+              ofType {
+                ofType {
+                  ofType {
+                    ofType {
+                      ofType {
+                        ofType {
+                          name
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }`,
+    });
+
+    expect(errorMessages(payload).join(" ")).toContain(
+      "Query depth limit exceeded.",
+    );
+    expect(courseService.listCourseSummaries).not.toHaveBeenCalled();
+  });
+
+  it("rejects variable pageSize-weighted cost before service execution", async () => {
+    const { payload } = await execute({
+      query: `
+        query ExpensiveCatalog($page: PageInput) {
+          first: courses(page: $page) {
+            ...FullCoursePage
+          }
+          second: courses(page: $page) {
+            ...FullCoursePage
+          }
+        }
+
+        fragment FullCoursePage on CoursePage {
+          items {
+            id
+            jwId
+            code
+            nameCn
+            nameEn
+            category { id nameCn nameEn }
+            classType { id nameCn nameEn }
+            classify { id nameCn nameEn }
+            educationLevel { id nameCn nameEn }
+            gradation { id nameCn nameEn }
+            type { id nameCn nameEn }
+          }
+          pageInfo { page pageSize total totalPages }
+        }
+      `,
+      variables: {
+        page: { pageSize: GRAPHQL_LIMITS.pageSize },
+      },
+    });
+
+    expect(errorMessages(payload)).toContain("Query cost limit exceeded.");
+    expect(courseService.listCourseSummaries).not.toHaveBeenCalled();
   });
 });

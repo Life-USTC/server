@@ -8,6 +8,7 @@ export const GRAPHQL_LIMITS = {
   busRouteStops: 16,
   busStopTimes: 16,
   cost: 5000,
+  defaultPageSize: 20,
   depth: 8,
   directives: 10,
   idList: 100,
