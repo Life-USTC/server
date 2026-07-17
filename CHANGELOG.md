@@ -1,3 +1,10 @@
+## [1.61.2](https://github.com/Life-USTC/server/compare/v1.61.1...v1.61.2) (2026-07-17)
+
+
+### Bug Fixes
+
+* **static-loader:** reconcile empty section teacher sets ([#478](https://github.com/Life-USTC/server/issues/478)) ([58fde7f](https://github.com/Life-USTC/server/commit/58fde7f29f30aa3b1de9540d2ba217333a6bd3cc))
+
 ## [1.61.1](https://github.com/Life-USTC/server/compare/v1.61.0...v1.61.1) (2026-07-17)
 
 
