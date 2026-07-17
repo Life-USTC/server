@@ -18,15 +18,22 @@ import {
 import { rewriteTokenFormRequest } from "./auth-token-request-rewrite";
 
 function getApprovedProtectedResource(resources: string[], scopes: string[]) {
-  const approvedResources = resources.reduce<string[]>((unique, resource) => {
-    const normalized = normalizeResourceIndicator(resource);
-    if (
-      !unique.some((approved) => resourceIndicatorsMatch(approved, normalized))
-    ) {
-      unique.push(normalized);
-    }
-    return unique;
-  }, []);
+  let approvedResources: string[];
+  try {
+    approvedResources = resources.reduce<string[]>((unique, resource) => {
+      const normalized = normalizeResourceIndicator(resource);
+      if (
+        !unique.some((approved) =>
+          resourceIndicatorsMatch(approved, normalized),
+        )
+      ) {
+        unique.push(normalized);
+      }
+      return unique;
+    }, []);
+  } catch {
+    return undefined;
+  }
   if (approvedResources.length !== 1) return undefined;
 
   const [resource] = approvedResources;

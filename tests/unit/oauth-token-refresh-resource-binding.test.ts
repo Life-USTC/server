@@ -173,6 +173,29 @@ describe("OAuth 刷新资源绑定", () => {
   });
 
   it.each([
+    ["空值", ""],
+    ["非法 URL", "not-a-resource-url"],
+  ])("stored resources 含%s时整体 fail-closed", async (_label, dirtyResource) => {
+    findRefreshTokenMock.mockResolvedValue({
+      resources: ["https://life.example/api/graphql", dirtyResource],
+      scopes: [restReadScope("todo")],
+    });
+    const { maybeBindOAuthRefreshResourceRequest } = await import(
+      "@/lib/api/routes/auth-token-refresh-resource-binding"
+    );
+    const params = new URLSearchParams({
+      grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+      refresh_token: "refresh-token",
+    });
+    const request = refreshRequest(params);
+
+    await expect(
+      maybeBindOAuthRefreshResourceRequest(request, params),
+    ).resolves.toBe(request);
+    expect(params.has("resource")).toBe(false);
+  });
+
+  it.each([
     [
       "REST 与 GraphQL",
       ["https://life.example/api/auth", "https://life.example/api/graphql"],
