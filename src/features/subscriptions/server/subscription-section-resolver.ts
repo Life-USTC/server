@@ -27,11 +27,13 @@ function normalizeCode(code: string) {
 
 export async function resolveCalendarSubscriptionSections({
   codes = [],
+  includeRetired = false,
   locale = DEFAULT_LOCALE,
   sectionIds = [],
   semesterId,
 }: {
   codes?: readonly string[];
+  includeRetired?: boolean;
   locale?: AppLocale;
   sectionIds?: readonly number[];
   semesterId?: number;
@@ -51,12 +53,14 @@ export async function resolveCalendarSubscriptionSections({
   if (requestedSectionIds.length > 0) {
     where.push({
       id: { in: requestedSectionIds },
+      ...(!includeRetired ? { retiredAt: null } : {}),
       ...(semester ? { semesterId: semester.id } : {}),
     });
   }
   if (semester && requestedCodes.length > 0) {
     where.push({
       semesterId: semester.id,
+      ...(!includeRetired ? { retiredAt: null } : {}),
       OR: requestedCodes.flatMap((code) => [
         { code: { equals: code, mode: "insensitive" } },
         { course: { code: { equals: code, mode: "insensitive" } } },

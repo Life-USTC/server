@@ -59,6 +59,8 @@ export type SectionDetailSectionCopy = SectionCreateHomeworkSectionCopy & {
   copied: string;
   copyToClipboard: string;
   due: string;
+  historicalSectionDescription: string;
+  historicalSectionLabel: string;
   homeworkDescription: string;
   loginRequired: string;
   subscribeLabel: string;
@@ -172,6 +174,8 @@ export type SectionDetailMainSectionCopy = SectionCalendarCopy &
     examLegend: string;
     exams: string;
     homeworkDescription: string;
+    historicalSectionDescription: string;
+    historicalSectionLabel: string;
     tabs: {
       calendar: string;
       comments: string;

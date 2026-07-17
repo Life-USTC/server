@@ -32,7 +32,10 @@ export function buildScheduleDateWhere(
     : {};
 }
 
-export function buildScheduleListWhere(filters: ScheduleListFilters) {
+export function buildScheduleListWhere(
+  filters: ScheduleListFilters,
+  options: { excludeRetiredSections?: boolean } = {},
+) {
   const {
     sectionId,
     sectionJwId,
@@ -49,8 +52,11 @@ export function buildScheduleListWhere(filters: ScheduleListFilters) {
   applyIntegerFilter(where, "sectionId", sectionId);
 
   const sectionFilter = buildRelatedFilter("jwId", sectionJwId, sectionCode);
-  if (sectionFilter) {
-    where.section = sectionFilter;
+  if (sectionFilter || options.excludeRetiredSections) {
+    where.section = {
+      ...(sectionFilter ?? {}),
+      ...(options.excludeRetiredSections ? { retiredAt: null } : {}),
+    };
   }
 
   const teacherFilter = buildRelatedFilter("id", teacherId, teacherCode);

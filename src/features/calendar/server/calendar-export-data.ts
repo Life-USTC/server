@@ -69,6 +69,7 @@ export async function getSectionsForCalendar(sectionIds: number[]) {
       id: {
         in: sectionIds,
       },
+      retiredAt: null,
     },
     include: sectionCalendarInclude,
   });
@@ -79,6 +80,7 @@ export async function getUserCalendarRecord(userId: string) {
     where: { id: userId },
     include: {
       subscribedSections: {
+        where: { retiredAt: null },
         include: sectionCalendarInclude,
       },
       todos: {

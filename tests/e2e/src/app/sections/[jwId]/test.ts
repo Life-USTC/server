@@ -37,6 +37,7 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 import { signInAsDebugUser, signInAsDevAdmin } from "../../../../utils/auth";
 import { cleanupCommentsForE2e } from "../../../../utils/comments";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
 import { cleanupHomeworksForE2e } from "../../../../utils/homeworks";
 import {
   gotoAndWaitForReady,
@@ -455,6 +456,50 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     await expect(
       page.getByTestId("section-mobile-primary-actions"),
     ).toBeHidden();
+  });
+
+  test("已退役班级保留历史详情与日历但禁止新增关注", async ({ page }) => {
+    test.setTimeout(60_000);
+    const previous = await withE2ePrisma((prisma) =>
+      prisma.section.findUniqueOrThrow({
+        where: { jwId: DEV_SEED.section.jwId },
+        select: { retiredAt: true },
+      }),
+    );
+
+    await withE2ePrisma((prisma) =>
+      prisma.section.update({
+        where: { jwId: DEV_SEED.section.jwId },
+        data: { retiredAt: new Date("2026-01-01T00:00:00.000Z") },
+      }),
+    );
+
+    try {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await gotoAndWaitForReady(page, `${SECTION_URL}?subscribe=1`);
+
+      await expect(
+        page.getByText(/历史班级|Historical section/i).first(),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", {
+          name: /关注班级|Subscribe to section/i,
+        }),
+      ).toHaveCount(0);
+      await expect(
+        page
+          .getByTestId("detail-pinned-summary")
+          .getByRole("button", { name: /添加到日历|Add to calendar/i }),
+      ).toBeVisible();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+    } finally {
+      await withE2ePrisma((prisma) =>
+        prisma.section.update({
+          where: { jwId: DEV_SEED.section.jwId },
+          data: { retiredAt: previous.retiredAt },
+        }),
+      );
+    }
   });
 
   test("详情导航后内容滚动回到顶部", async ({ page }) => {

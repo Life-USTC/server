@@ -85,6 +85,7 @@ describe("subscription semester filters", () => {
       expect.objectContaining({
         where: expect.objectContaining({
           sectionId: { in: [201, 202] },
+          section: { retiredAt: null },
         }),
       }),
     );
@@ -114,6 +115,7 @@ describe("subscription semester filters", () => {
       expect.objectContaining({
         where: expect.objectContaining({
           sectionId: { in: [301, 302] },
+          section: { retiredAt: null },
         }),
       }),
     );

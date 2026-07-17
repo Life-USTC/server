@@ -2,6 +2,17 @@ import { describe, expect, it } from "vitest";
 import { buildScheduleListWhere } from "@/features/catalog/lib/schedule-filters";
 
 describe("buildScheduleListWhere", () => {
+  it("can exclude retired Sections for current public schedule lists", () => {
+    expect(
+      buildScheduleListWhere(
+        { sectionJwId: 9902001 },
+        { excludeRetiredSections: true },
+      ),
+    ).toEqual({
+      section: { jwId: 9902001, retiredAt: null },
+    });
+  });
+
   it("无过滤条件时返回空 where 子句", () => {
     expect(buildScheduleListWhere({})).toEqual({});
   });

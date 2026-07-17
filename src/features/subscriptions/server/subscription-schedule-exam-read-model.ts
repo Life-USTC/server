@@ -84,6 +84,7 @@ function upcomingKnownExamWhere(input: {
 
   return {
     sectionId: { in: sectionIds },
+    section: { retiredAt: null },
     OR: [
       { examDate: { gte: tomorrowStart } },
       {
@@ -136,6 +137,7 @@ export async function listSubscribedSchedules(
       return localizedPrisma.schedule.findMany({
         where: {
           sectionId: { in: ids },
+          section: { retiredAt: null },
           ...(dateFilter ? { date: dateFilter } : {}),
           ...(weekday ? { weekday } : {}),
         },
@@ -174,6 +176,7 @@ export function listSubscribedSchedulePage(
   const where = {
     section: {
       subscribedUsers: { some: { id: userId } },
+      retiredAt: null,
       ...(semesterId !== undefined ? { semesterId } : {}),
     },
     ...(dateFilter ? { date: dateFilter } : {}),
@@ -240,6 +243,7 @@ export async function listSubscribedExams(
       return localizedPrisma.exam.findMany({
         where: {
           sectionId: { in: ids },
+          section: { retiredAt: null },
           ...examDateWhere({ dateFrom, dateTo, includeDateUnknown }),
         },
         include: subscribedExamInclude,
@@ -276,6 +280,7 @@ export function listSubscribedExamPage(
   const where = {
     section: {
       subscribedUsers: { some: { id: userId } },
+      retiredAt: null,
       ...(semesterId !== undefined ? { semesterId } : {}),
     },
     ...examDateWhere({ dateFrom, dateTo, includeDateUnknown }),

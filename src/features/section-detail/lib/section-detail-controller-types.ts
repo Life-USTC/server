@@ -82,6 +82,7 @@ export type SectionDetailSection = {
   periodsPerWeek?: number | null;
   practicePeriods?: number | null;
   remark?: string | null;
+  retiredAt?: string | Date | null;
   roomType?: SectionDetailNamed | null;
   schedules: SectionDetailSchedule[];
   sameSemesterOtherTeachers: SectionDetailRelatedSection[];
@@ -272,6 +273,8 @@ export type SectionDetailCopy = {
     flags: string;
     homeworkDescription: string;
     homeworkView: string;
+    historicalSectionDescription: string;
+    historicalSectionLabel: string;
     previousMonth: string;
     nextMonth: string;
     moreEvents: string;

@@ -45,7 +45,7 @@ export async function listSubscribedDashboardSections(
 
       const [sectionRows, scheduleRows, examRows] = await Promise.all([
         localizedPrisma.section.findMany({
-          where: { id: { in: ids } },
+          where: { id: { in: ids }, retiredAt: null },
           select: {
             id: true,
             jwId: true,
@@ -58,6 +58,7 @@ export async function listSubscribedDashboardSections(
           ? localizedPrisma.schedule.findMany({
               where: {
                 sectionId: { in: ids },
+                section: { retiredAt: null },
                 ...detailSemesterWhere,
                 ...(dateFilter ? { date: dateFilter } : {}),
               },
@@ -86,7 +87,11 @@ export async function listSubscribedDashboardSections(
           : Promise.resolve([]),
         shouldLoadDetails
           ? localizedPrisma.exam.findMany({
-              where: { sectionId: { in: ids }, ...detailSemesterWhere },
+              where: {
+                sectionId: { in: ids },
+                section: { retiredAt: null },
+                ...detailSemesterWhere,
+              },
               select: {
                 id: true,
                 sectionId: true,

@@ -12,6 +12,7 @@ export {
   listSubscribedHomeworks,
 } from "./subscription-homework-read-model";
 export {
+  getActiveSubscribedSectionIds,
   getSubscribedSectionIds,
   SECTION_SUBSCRIPTION_NOTE,
   type SectionOption,

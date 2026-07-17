@@ -40,12 +40,17 @@ export async function getDashboardNavStats(
 
   const pendingTodosCountPromise = countIncompleteTodos(user.id);
 
-  if (subscribedSections.length === 0) {
+  const activeSubscribedSections = subscribedSections.filter(
+    (section) => section.retiredAt === null || section.retiredAt === undefined,
+  );
+  if (activeSubscribedSections.length === 0) {
     const pendingTodosCount = await pendingTodosCountPromise;
     return emptyDashboardNavStats({ pendingTodosCount, user });
   }
 
-  const scopedSectionIds = subscribedSections.map((section) => section.id);
+  const scopedSectionIds = activeSubscribedSections.map(
+    (section) => section.id,
+  );
   const [
     pendingTodosCount,
     pendingHomeworksCount,
@@ -78,7 +83,11 @@ export async function getDashboardNavStats(
       atTime: referenceNow.toDate(),
       sectionIds: scopedSectionIds,
     }),
-    getDashboardCalendarItemsCount(user.id, subscribedSections, referenceNow),
+    getDashboardCalendarItemsCount(
+      user.id,
+      activeSubscribedSections,
+      referenceNow,
+    ),
   ]);
 
   return {

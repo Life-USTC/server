@@ -8,6 +8,7 @@
   },
   "rules": {
     "grouped-by-semester": "The list is grouped by semester rather than presented as a single flat list.",
+    "retired-history": "Existing subscription relationships to retired Sections remain visible in the owner's subscribed Sections list and can be removed. Retired Sections cannot be newly discovered or added and are omitted from current personal calendar events/feeds.",
     "section-codes-promoted": "In the 'subscribed context', users manage specific section relationships, so section codes are intentionally promoted.",
     "legacy-sections-route": "/dashboard/subscriptions/sections is a legacy redirect-only route to /dashboard/subscriptions and must not expose page actions."
   },

@@ -63,6 +63,7 @@ describe("课程与开课查询辅助函数", () => {
     });
 
     expect(result.where).toMatchObject({
+      retiredAt: null,
       courseId: 11,
       semesterId: 22,
       campusId: 33,
@@ -206,7 +207,7 @@ describe("课程与开课查询辅助函数", () => {
       search: "credits:3abc",
     });
 
-    expect(result.where).toEqual({});
+    expect(result.where).toEqual({ retiredAt: null });
   });
 
   it("接受数字 ID 数组作为开课筛选条件", () => {
@@ -215,6 +216,7 @@ describe("课程与开课查询辅助函数", () => {
         ids: [7, 8, 9],
       }).where,
     ).toEqual({
+      retiredAt: null,
       id: {
         in: [7, 8, 9],
       },
@@ -227,6 +229,7 @@ describe("课程与开课查询辅助函数", () => {
       semesterJwId: 202,
     });
     expect(result.where).toMatchObject({
+      retiredAt: null,
       semester: { jwId: 202 },
     });
     expect(result.where).not.toHaveProperty("course");

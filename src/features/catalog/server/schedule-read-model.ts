@@ -118,7 +118,9 @@ export async function listPublicSchedules(input: {
   pageSize?: number;
 }) {
   const prisma = getPrisma(input.locale ?? DEFAULT_LOCALE);
-  const where = buildScheduleListWhere(input.filters);
+  const where = buildScheduleListWhere(input.filters, {
+    excludeRetiredSections: true,
+  });
   const result = await paginatedQuery(
     (skip, take) =>
       prisma.schedule.findMany({

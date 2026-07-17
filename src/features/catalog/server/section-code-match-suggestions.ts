@@ -32,6 +32,7 @@ export async function buildSectionCodeSuggestions({
           await prisma.section.findMany({
             where: {
               semesterId,
+              retiredAt: null,
               OR: batchedPrefixes.map((prefix) => ({
                 code: ilike(prefix),
               })),
