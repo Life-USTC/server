@@ -121,10 +121,16 @@ $: activeNavItem =
 
 <section class="grid min-h-full grid-rows-[auto_minmax(0,1fr)] bg-card lg:h-full lg:min-h-0">
   <div class="bg-card px-4 sm:px-5 lg:px-6">
-    <PageHeader title={displayName} description={secondaryDisplayName}>
+    <PageHeader
+      title={displayName}
+      description={secondaryDisplayName}
+      titleClass="text-2xl leading-tight sm:text-3xl"
+    >
+      {#snippet eyebrowContent()}
+        <Badge class="font-mono" variant="outline">{data.course.code}</Badge>
+      {/snippet}
       {#snippet after()}
         <div class="flex flex-wrap gap-2">
-          <Badge class="font-mono" variant="outline">{data.course.code}</Badge>
           {#if data.course.educationLevel}
             <Badge variant="ghost">{primaryName(data.course.educationLevel)}</Badge>
           {/if}

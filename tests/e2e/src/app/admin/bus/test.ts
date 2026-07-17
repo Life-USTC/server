@@ -126,3 +126,37 @@ test("/admin/bus 激活版本受保护且导入弹窗可打开", async ({
   await captureStepScreenshot(page, testInfo, "admin-bus/import-dialog");
   await importDialog.getByRole("button", { name: /取消|Cancel/i }).click();
 });
+
+test("/admin/bus 移动端摘要紧凑且首条版本操作可达", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signInAsDevAdmin(page, "/admin/bus");
+
+  const workspace = page.getByTestId("admin-workspace");
+  const summary = page.getByTestId("admin-bus-summary");
+  const firstVersion = page
+    .getByTestId("admin-bus-mobile-list")
+    .locator("[data-slot='item']")
+    .first();
+  await expect(workspace).toBeVisible();
+  await expect(summary.locator(":scope > [data-slot='item']")).toHaveCount(4);
+  await expect(workspace.locator("table")).toBeHidden();
+  await expect(firstVersion).toBeVisible();
+  await expect(firstVersion).toBeInViewport();
+
+  await page
+    .getByRole("button", { name: /从 Static 导入|Import from Static/i })
+    .first()
+    .click();
+  await expect(
+    page.getByRole("dialog", {
+      name: /从 Static 导入|Import from Static/i,
+    }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(390);
+
+  await captureStepScreenshot(page, testInfo, "admin-bus/mobile-workspace");
+});

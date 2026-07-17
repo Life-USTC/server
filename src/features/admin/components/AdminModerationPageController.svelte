@@ -4,6 +4,7 @@ import AdminModerationFilters from "@/features/admin/components/AdminModerationF
 import AdminModerationHeader from "@/features/admin/components/AdminModerationHeader.svelte";
 import AdminModerationStatusAlerts from "@/features/admin/components/AdminModerationStatusAlerts.svelte";
 import AdminModerationTabContent from "@/features/admin/components/AdminModerationTabContent.svelte";
+import AdminWorkspace from "@/features/admin/components/AdminWorkspace.svelte";
 import type { AdminModerationComment } from "@/features/admin/components/admin-moderation-comment-types";
 import type { AdminModerationDescription } from "@/features/admin/components/admin-moderation-description-types";
 import type {
@@ -182,29 +183,32 @@ const {
 
 <svelte:head><title>{_copy.title} - Life@USTC</title></svelte:head>
 
-<section class="grid gap-5">
-  <AdminModerationHeader
-    adminCopy={_adminCopy}
-    copy={_copy}
-    currentTab={data.tab}
-    isRefreshing={_isRefreshingQueue}
-    moderationHref={(tab) => buildModerationHref(tab, data.filters)}
-    refreshQueue={_refreshQueue}
-    tabs={_tabs}
-  />
-
-  <AdminModerationStatusAlerts {form} refreshError={_refreshError} />
-
-  <AdminModerationFilters
-    copy={_copy}
-    {descriptionContentOptions}
-    {descriptionTargetOptions}
-    filters={data.filters}
-    bind:searchQuery={_searchQuery}
-    {statusFilterOptions}
-    tab={data.tab}
-  />
-
+<AdminWorkspace>
+  {#snippet header()}
+    <AdminModerationHeader
+      adminCopy={_adminCopy}
+      copy={_copy}
+      currentTab={data.tab}
+      isRefreshing={_isRefreshingQueue}
+      moderationHref={(tab) => buildModerationHref(tab, data.filters)}
+      refreshQueue={_refreshQueue}
+      tabs={_tabs}
+    />
+  {/snippet}
+  {#snippet feedback()}
+    <AdminModerationStatusAlerts {form} refreshError={_refreshError} />
+  {/snippet}
+  {#snippet controls()}
+    <AdminModerationFilters
+      copy={_copy}
+      {descriptionContentOptions}
+      {descriptionTargetOptions}
+      filters={data.filters}
+      bind:searchQuery={_searchQuery}
+      {statusFilterOptions}
+      tab={data.tab}
+    />
+  {/snippet}
   <AdminModerationTabContent
     copy={_copy}
     {data}
@@ -221,37 +225,37 @@ const {
       _openDescriptionDialog(description as ModerationDescription)}
     visibleComments={_visibleComments}
   />
+</AdminWorkspace>
 
-  <AdminModerationDialogs
-    closeCommentDialog={_closeCommentDialog}
-    closeDescriptionDialog={_closeDescriptionDialog}
-    bind:commentStatus={_commentStatus}
-    commentStatusOptions={_commentStatusOptions}
-    copy={_copy}
-    bind:customExpiresAt={_customExpiresAt}
-    bind:descriptionDraft={_descriptionDraft}
-    dialogMessage={_dialogMessage}
-    deleteHomeworkAction={enhanceAdminAction("deleteHomework", () => {
-      _pendingDeleteHomework = null;
-    })}
-    editDescriptionAction={enhanceAdminAction("description", _closeDescriptionDialog)}
-    formatDate={_formatDate}
-    {inputValue}
-    isDeletingHomework={_pendingServerAction === "deleteHomework"}
-    isSavingComment={_isSavingComment}
-    isSavingDescription={_pendingServerAction === "description"}
-    isSuspendingUser={_isSuspendingUser}
-    bind:moderationNote={_moderationNote}
-    pendingDeleteHomework={_pendingDeleteHomework}
-    saveCommentModeration={_saveCommentModeration}
-    selectedComment={_selectedComment}
-    selectedDescription={_selectedDescription}
-    setPendingDeleteHomework={(homework) => {
-      _pendingDeleteHomework = homework;
-    }}
-    bind:suspensionDuration={_suspensionDuration}
-    {suspensionDurationOptions}
-    bind:suspensionReason={_suspensionReason}
-    suspendCommentAuthor={_suspendCommentAuthor}
-  />
-</section>
+<AdminModerationDialogs
+  closeCommentDialog={_closeCommentDialog}
+  closeDescriptionDialog={_closeDescriptionDialog}
+  bind:commentStatus={_commentStatus}
+  commentStatusOptions={_commentStatusOptions}
+  copy={_copy}
+  bind:customExpiresAt={_customExpiresAt}
+  bind:descriptionDraft={_descriptionDraft}
+  dialogMessage={_dialogMessage}
+  deleteHomeworkAction={enhanceAdminAction("deleteHomework", () => {
+    _pendingDeleteHomework = null;
+  })}
+  editDescriptionAction={enhanceAdminAction("description", _closeDescriptionDialog)}
+  formatDate={_formatDate}
+  {inputValue}
+  isDeletingHomework={_pendingServerAction === "deleteHomework"}
+  isSavingComment={_isSavingComment}
+  isSavingDescription={_pendingServerAction === "description"}
+  isSuspendingUser={_isSuspendingUser}
+  bind:moderationNote={_moderationNote}
+  pendingDeleteHomework={_pendingDeleteHomework}
+  saveCommentModeration={_saveCommentModeration}
+  selectedComment={_selectedComment}
+  selectedDescription={_selectedDescription}
+  setPendingDeleteHomework={(homework) => {
+    _pendingDeleteHomework = homework;
+  }}
+  bind:suspensionDuration={_suspensionDuration}
+  {suspensionDurationOptions}
+  bind:suspensionReason={_suspensionReason}
+  suspendCommentAuthor={_suspendCommentAuthor}
+/>

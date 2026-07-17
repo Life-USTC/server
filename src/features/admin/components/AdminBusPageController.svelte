@@ -4,6 +4,7 @@ import AdminBusHeader from "@/features/admin/components/AdminBusHeader.svelte";
 import AdminBusStatusAlert from "@/features/admin/components/AdminBusStatusAlert.svelte";
 import AdminBusSummaryStats from "@/features/admin/components/AdminBusSummaryStats.svelte";
 import AdminBusVersions from "@/features/admin/components/AdminBusVersions.svelte";
+import AdminWorkspace from "@/features/admin/components/AdminWorkspace.svelte";
 import { createAdminBusControllerDefaultState } from "@/features/admin/lib/admin-bus-controller-default-state";
 import { formatBusVersionEffectiveRange } from "@/features/admin/lib/admin-bus-formatters";
 import { createPendingEnhancedAction } from "@/features/admin/lib/admin-enhanced-action";
@@ -79,18 +80,21 @@ const enhancedAction = createPendingEnhancedAction({
 
 <svelte:head><title>{copy.title} - Life@USTC</title></svelte:head>
 
-<section class="grid gap-5">
-  <AdminBusHeader
-    {adminCopy}
-    {copy}
-    disabled={Boolean(pendingAction)}
-    onImport={openImportDialog}
-  />
-
-  <AdminBusStatusAlert {form} />
-
-  <AdminBusSummaryStats {copy} summary={data.summary} />
-
+<AdminWorkspace>
+  {#snippet header()}
+    <AdminBusHeader
+      {adminCopy}
+      {copy}
+      disabled={Boolean(pendingAction)}
+      onImport={openImportDialog}
+    />
+  {/snippet}
+  {#snippet feedback()}
+    <AdminBusStatusAlert {form} />
+  {/snippet}
+  {#snippet summary()}
+    <AdminBusSummaryStats {copy} summary={data.summary} />
+  {/snippet}
   <AdminBusVersions
     {copy}
     {enhancedAction}
@@ -101,7 +105,7 @@ const enhancedAction = createPendingEnhancedAction({
     {pendingAction}
     versions={data.versions}
   />
-</section>
+</AdminWorkspace>
 
 <AdminBusDialogs
   {closeDeleteDialog}

@@ -5,6 +5,7 @@ import { cn } from "$lib/utils.js";
 
 type Props = {
   actions?: Snippet;
+  actionsClass?: string;
   after?: Snippet;
   belowTitle?: Snippet;
   class?: string;
@@ -19,6 +20,7 @@ type Props = {
 
 let {
   actions,
+  actionsClass = "",
   after,
   belowTitle,
   class: className = "",
@@ -56,7 +58,7 @@ let {
     </div>
 
     {#if meta || actions}
-      <div class="flex w-full flex-wrap items-start justify-end gap-3 sm:w-auto">
+      <div class={cn("flex w-full flex-wrap items-start justify-end gap-3 sm:w-auto", actionsClass)}>
         {#if meta}{@render meta()}{/if}
         {#if actions}{@render actions()}{/if}
       </div>
