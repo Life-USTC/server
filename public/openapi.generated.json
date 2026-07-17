@@ -6075,13 +6075,13 @@
       },
       "options": {
         "operationId": "options-.well-known-oauth-protected-resource-api-graphql",
-        "summary": "Canonical RFC 9728 protected resource metadata for GraphQL",
+        "summary": "CORS preflight for GraphQL protected resource metadata",
         "tags": [
           "Api"
         ],
         "responses": {
-          "200": {
-            "description": "Response 200"
+          "204": {
+            "description": "Response 204"
           }
         }
       }
