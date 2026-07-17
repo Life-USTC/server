@@ -128,7 +128,7 @@ export const teacherListInclude = {
   teacherTitle: true,
   _count: {
     select: {
-      sections: true,
+      sections: { where: { retiredAt: null } },
     },
   },
 } satisfies Prisma.TeacherInclude;

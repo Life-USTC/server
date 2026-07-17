@@ -8,6 +8,11 @@
   },
   "rules": {
     "semester-offering": "A section is a specific teaching class for a course in a given semester.",
+    "source-lifecycle": "Before any model write, static sync rejects generated_at values more than 15 minutes in the future and compares each import with one transactionally persisted global generated_at/SHA-256 watermark. Older snapshots and same-time/different-SHA snapshots fail. It records sourceLastSeenAt from the validated time. A missing in-scope Section may set retiredAt only after completeness and mapped-jwId validation; reappearing rows clear retiredAt only when seen after retirement.",
+    "import-state-bootstrap": "When no global import watermark exists, scheduled and ordinary manual writes fail closed. A manual bootstrap must keep Section retirement disabled; a committed bootstrap also requires the exact snapshot SHA-256 observed in a preceding dry run. The watermark update commits in the same advisory-locked transaction as all imported models.",
+    "retirement-approval": "Scheduled production sync can never enable retirement. A manual run must explicitly set STATIC_LOADER_RETIRE_MISSING_SECTIONS=true and provide the exact snapshot SHA-256 plus exact candidate count observed in a preceding dry run; any mismatch aborts before lifecycle writes. Semesters with zero source lessons are excluded from destructive scope.",
+    "retirement-preserves-data": "Retirement never deletes the Section or its comments, description, homeworks, subscription relationships, schedules, exams, or audit history. Each retirement/reactivation writes a Section-targeted audit row and the import report includes candidate, before/after, retired, and reactivated counts.",
+    "retired-read-semantics": "Public Section/search/match and public/current calendar collection queries exclude retired rows. Direct Section detail and single-Section calendar access remain available for historical references; the detail page labels the record historical and does not offer a new subscription. Course/Teacher detail histories and the owner's subscribed Sections list also retain retired rows. New subscription discovery/add operations reject retired rows, while an existing owner can still remove one.",
     "subscription-not-enrollment": "Pages involving subscription actions must clearly state this is not official academic course enrollment.",
     "jwid-url-only": "jwId is used only for routing and API endpoints; it should not be directly displayed in ordinary section UI.",
     "public-list-cache": "Anonymous section list REST responses and server-side list data may use short public runtime/CDN caching because section fact data is read-only; localized HTML pages must not use shared edge caching unless the cache key varies by locale.",
@@ -30,7 +35,8 @@
             "path": "/api/sections",
             "returns": "PaginatedResponse<SectionSummary>",
             "notes": [
-              "REST pageSize accepts 1-100; the deprecated limit alias remains accepted and pageSize wins when both are supplied. Out-of-range values are rejected instead of clamped."
+              "REST pageSize accepts 1-100; the deprecated limit alias remains accepted and pageSize wins when both are supplied. Out-of-range values are rejected instead of clamped.",
+              "Retired Sections are excluded."
             ]
           }
         ]
@@ -43,7 +49,8 @@
             "rest_equivalent": "GET /api/sections",
             "mcp_equivalent": "search_sections",
             "notes": [
-              "PageInput defaults to page=1 and pageSize=20; pageSize must remain within 1-100."
+              "PageInput defaults to page=1 and pageSize=20; pageSize must remain within 1-100.",
+              "Retired Sections are excluded."
             ]
           }
         ]
@@ -55,7 +62,8 @@
             "returns": "PaginatedResponse<SectionSummary>",
             "rest_equivalent": "GET /api/sections",
             "notes": [
-              "MCP limit accepts 1-100 and rejects out-of-range values instead of clamping."
+              "MCP limit accepts 1-100 and rejects out-of-range values instead of clamping.",
+              "Retired Sections are excluded."
             ]
           }
         ]
@@ -91,7 +99,10 @@
         "routes": [
           {
             "path": "/api/sections/[jwId]",
-            "returns": "SectionDetail (schedules without room/teacher expansion)"
+            "returns": "SectionDetail (schedules without room/teacher expansion)",
+            "notes": [
+              "Direct historical lookup remains available for retired Sections; retiredAt identifies retirement and sourceLastSeenAt records the last successful source observation."
+            ]
           }
         ]
       },

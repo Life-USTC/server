@@ -50,6 +50,7 @@ export async function listAssistantCurrentSemesterSections({
     ? localizedPrisma.section.findMany({
         where: {
           id: { in: sectionIds },
+          retiredAt: null,
           semesterId: currentSemesterId,
         },
         orderBy: [{ code: "asc" }],

@@ -8,6 +8,7 @@ export type DashboardUserSummary = {
 
 export type DashboardSubscribedSection = {
   id: number;
+  retiredAt?: Date | null;
   semesterId: number | null;
 };
 
@@ -28,7 +29,7 @@ export async function getDashboardUserContext(
       username: true,
       calendarFeedToken: true,
       subscribedSections: {
-        select: { id: true, semesterId: true },
+        select: { id: true, retiredAt: true, semesterId: true },
       },
     },
   });

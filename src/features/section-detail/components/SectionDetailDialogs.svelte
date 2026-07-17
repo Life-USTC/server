@@ -144,7 +144,7 @@ export let applyEditStartNow: SectionDetailDialogsProps["applyEditStartNow"];
   {subscriptionCalendarUrl}
 />
 
-{#if showSubscribeDialog}
+{#if showSubscribeDialog && data.section.retiredAt == null}
   <SectionSubscribeDialog
     close={closeSubscribeDialog}
     {commonCopy}

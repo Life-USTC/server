@@ -1,6 +1,6 @@
 import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
 import {
-  getSubscribedSectionIds,
+  getActiveSubscribedSectionIds,
   listSubscribedExams,
   listSubscribedHomeworks,
   listSubscribedSchedules,
@@ -26,9 +26,10 @@ export async function loadCalendarEventSources({
   windowEnd: Date;
   windowStart: Date;
 }) {
-  const scopedSectionIds = sectionIds
-    ? Array.from(sectionIds)
-    : await getSubscribedSectionIds(userId);
+  const scopedSectionIds = await getActiveSubscribedSectionIds(
+    userId,
+    sectionIds,
+  );
 
   const [schedules, homeworks, exams, todos] = await Promise.all([
     listSubscribedSchedules(userId, {

@@ -24,7 +24,7 @@ export function buildSectionListQuery(filters: SectionListFilters): {
     jwIds,
     search,
   } = filters;
-  const where: Prisma.SectionWhereInput = {};
+  const where: Prisma.SectionWhereInput = { retiredAt: null };
 
   applyIntegerFilter(where, "courseId", courseId);
 

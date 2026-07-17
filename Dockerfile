@@ -13,6 +13,7 @@ COPY package.json prisma.config.ts ./
 COPY prisma ./prisma
 RUN DATABASE_URL="postgresql://localhost:5432/life_ustc" bun run db:generate
 COPY src/static-loader ./src/static-loader
+COPY src/lib/db/section-lifecycle-lock.ts ./src/lib/db/section-lifecycle-lock.ts
 COPY scripts/load-static-sqlite.sh ./scripts/load-static-sqlite.sh
 COPY docker-entrypoint.load.sh /usr/local/bin/docker-entrypoint.load.sh
 

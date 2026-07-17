@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   missingSnapshotRowsWhere,
   parseBooleanSetting,
+  parseOptionalNonNegativeIntegerSetting,
+  parseOptionalSha256Setting,
   parsePositiveIntegerSetting,
+  parseSnapshotGeneratedAt,
+  validateMappedSectionJwIds,
+  validateSectionRetirementSnapshotApproval,
   validateSnapshotCompleteness,
 } from "@/static-loader/validation";
 
@@ -11,7 +16,10 @@ function semesterRows(...ids: number[]) {
 }
 
 function lessonRows(semesterId: number, count: number) {
-  return Array.from({ length: count }, () => ({ semester_id: semesterId }));
+  return Array.from({ length: count }, (_, index) => ({
+    id: semesterId * 10_000 + index,
+    semester_id: semesterId,
+  }));
 }
 
 function fetchRow(
@@ -61,6 +69,23 @@ describe("static loader configuration", () => {
     ).toThrow("STATIC_LOADER_DRY_RUN");
   });
 
+  it("keeps missing-Section retirement disabled unless explicitly enabled", () => {
+    expect(
+      parseBooleanSetting(
+        "STATIC_LOADER_RETIRE_MISSING_SECTIONS",
+        undefined,
+        false,
+      ),
+    ).toBe(false);
+    expect(
+      parseBooleanSetting(
+        "STATIC_LOADER_RETIRE_MISSING_SECTIONS",
+        "true",
+        false,
+      ),
+    ).toBe(true);
+  });
+
   it.each([
     [undefined, 401],
     ["401", 401],
@@ -82,6 +107,94 @@ describe("static loader configuration", () => {
       parsePositiveIntegerSetting("STATIC_LOADER_MIN_SEMESTER", value, 401),
     ).toThrow("STATIC_LOADER_MIN_SEMESTER");
   });
+
+  it("parses optional retirement approval settings", () => {
+    expect(
+      parseOptionalNonNegativeIntegerSetting(
+        "STATIC_LOADER_EXPECTED_SECTION_RETIREMENT_CANDIDATES",
+        "0",
+      ),
+    ).toBe(0);
+    expect(
+      parseOptionalNonNegativeIntegerSetting(
+        "STATIC_LOADER_EXPECTED_SECTION_RETIREMENT_CANDIDATES",
+        "",
+      ),
+    ).toBeNull();
+    expect(
+      parseOptionalSha256Setting(
+        "STATIC_LOADER_EXPECTED_SNAPSHOT_SHA256",
+        "A".repeat(64),
+      ),
+    ).toBe("a".repeat(64));
+  });
+
+  it("requires an exact snapshot approval before retirement", () => {
+    expect(() =>
+      validateSectionRetirementSnapshotApproval({
+        enabled: true,
+        expectedSnapshotSha256: null,
+        snapshotSha256: "a".repeat(64),
+      }),
+    ).toThrow("STATIC_LOADER_EXPECTED_SNAPSHOT_SHA256");
+    expect(() =>
+      validateSectionRetirementSnapshotApproval({
+        enabled: true,
+        expectedSnapshotSha256: "b".repeat(64),
+        snapshotSha256: "a".repeat(64),
+      }),
+    ).toThrow("does not match downloaded snapshot");
+  });
+
+  it("requires a valid snapshot generation timestamp", () => {
+    const now = new Date("2026-07-18T03:00:00.000Z");
+    expect(parseSnapshotGeneratedAt("2026-07-18T03:00:00.000Z", now)).toEqual(
+      new Date("2026-07-18T03:00:00.000Z"),
+    );
+    expect(
+      parseSnapshotGeneratedAt("2026-07-18T03:00:00.123456+00:00", now),
+    ).toEqual(new Date("2026-07-18T03:00:00.123Z"));
+    expect(() => parseSnapshotGeneratedAt(undefined, now)).toThrow("required");
+    expect(() => parseSnapshotGeneratedAt("not-a-date", now)).toThrow(
+      "valid timestamp",
+    );
+  });
+
+  it.each([
+    "2026-02-30T03:00:00.000Z",
+    "2026-07-18 03:00:00.000Z",
+    "2026-07-18T03:00Z",
+    "2026-07-18T03:00:00.000",
+  ])("rejects non-RFC 3339 snapshot timestamp %s", (value) => {
+    expect(() =>
+      parseSnapshotGeneratedAt(value, new Date("2026-07-18T03:00:00.000Z")),
+    ).toThrow("RFC 3339");
+  });
+
+  it("accepts the maximum future clock skew boundary", () => {
+    const now = new Date("2026-07-18T03:00:00.000Z");
+    expect(parseSnapshotGeneratedAt("2026-07-18T03:15:00.000Z", now)).toEqual(
+      new Date("2026-07-18T03:15:00.000Z"),
+    );
+  });
+
+  it("rejects far-future metadata", () => {
+    expect(() =>
+      parseSnapshotGeneratedAt(
+        "2099-01-01T00:00:00.000Z",
+        new Date("2026-07-18T03:00:00.000Z"),
+      ),
+    ).toThrow("must not be more than 15 minutes in the future");
+  });
+
+  it("rejects timestamps beyond the future clock skew boundary", () => {
+    expect(() =>
+      parseSnapshotGeneratedAt(
+        "2026-07-18T03:15:00.001Z",
+        new Date("2026-07-18T03:00:00.000Z"),
+      ),
+    ).toThrow("must not be more than 15 minutes in the future");
+  });
 });
 
 describe("snapshot completeness validation", () => {
@@ -91,17 +204,18 @@ describe("snapshot completeness validation", () => {
   };
 
   it("accepts all expected JW chunks and a zero-lesson semester", () => {
-    expect(() =>
-      validateSnapshotCompleteness(
-        {
-          metadata,
-          semesterRows: semesterRows(381, 401, 421),
-          catalogLessonRows: [...lessonRows(401, 101), ...lessonRows(421, 0)],
-          fetchRows: [...completeFetches(401, 2), ...completeFetches(421, 0)],
-        },
-        401,
-      ),
-    ).not.toThrow();
+    const result = validateSnapshotCompleteness(
+      {
+        metadata,
+        semesterRows: semesterRows(381, 401, 421),
+        catalogLessonRows: [...lessonRows(401, 101), ...lessonRows(421, 0)],
+        fetchRows: [...completeFetches(401, 2), ...completeFetches(421, 0)],
+      },
+      401,
+    );
+
+    expect(result.sectionJwIds).toHaveLength(101);
+    expect(result.sectionSemesterJwIds).toEqual([401]);
   });
 
   it("rejects a failed JW chunk", () => {
@@ -203,6 +317,29 @@ describe("snapshot completeness validation", () => {
         401,
       ),
     ).not.toThrow();
+  });
+
+  it("rejects an in-scope lesson without a usable Section jwId", () => {
+    expect(() =>
+      validateSnapshotCompleteness(
+        {
+          metadata,
+          semesterRows: semesterRows(401),
+          catalogLessonRows: [{ semester_id: 401 }],
+          fetchRows: completeFetches(401, 1),
+        },
+        401,
+      ),
+    ).toThrow("invalid Section jwId");
+  });
+
+  it("rejects incomplete or duplicate mapped Section sets", () => {
+    expect(() => validateMappedSectionJwIds([101, 102], [101])).toThrow(
+      "missing jwIds=102",
+    );
+    expect(() =>
+      validateMappedSectionJwIds([101, 102], [101, 102, 102]),
+    ).toThrow("duplicate jwIds=102");
   });
 });
 

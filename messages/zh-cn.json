@@ -1018,6 +1018,8 @@
     "courseCode": "课程代码",
     "sectionCode": "班级代码",
     "teachingSection": "授课班级",
+    "historicalSectionLabel": "历史班级",
+    "historicalSectionDescription": "该班级已不在最新教务快照中，保留此页面用于查看历史信息；不能新增关注。",
     "semester": "学期",
     "campus": "校区",
     "credits": "学分",

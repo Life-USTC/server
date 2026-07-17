@@ -1,6 +1,13 @@
+import * as z from "zod";
+
 const CATALOG_LESSON_SOURCE = "catalog_teach_lesson_list_for_teach";
 const CATALOG_EXAM_SOURCE = "catalog_teach_exam_list";
 const JW_SCHEDULE_SOURCE = "jw_ws_schedule_table_datum";
+const SNAPSHOT_MAX_FUTURE_SKEW_MS = 15 * 60 * 1000;
+const SNAPSHOT_GENERATED_AT_SCHEMA = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/)
+  .datetime({ offset: true });
 const SEMESTER_SOURCES = new Set([
   CATALOG_LESSON_SOURCE,
   CATALOG_EXAM_SOURCE,
@@ -62,6 +69,73 @@ export function parsePositiveIntegerSetting(
   return parsed;
 }
 
+export function parseOptionalNonNegativeIntegerSetting(
+  name: string,
+  value: string | undefined,
+): number | null {
+  if (value == null || value.trim() === "") return null;
+  const normalized = value.trim();
+  if (!/^\d+$/.test(normalized)) {
+    throw new Error(`${name} must be a non-negative integer`);
+  }
+  const parsed = Number(normalized);
+  if (!Number.isSafeInteger(parsed)) {
+    throw new Error(`${name} must be a safe non-negative integer`);
+  }
+  return parsed;
+}
+
+export function parseOptionalSha256Setting(
+  name: string,
+  value: string | undefined,
+): string | null {
+  if (value == null || value.trim() === "") return null;
+  const normalized = value.trim().toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(normalized)) {
+    throw new Error(`${name} must be a 64-character SHA-256 digest`);
+  }
+  return normalized;
+}
+
+export function parseSnapshotGeneratedAt(
+  value: string | undefined,
+  now = new Date(),
+): Date {
+  if (value == null || value.trim() === "") {
+    throw new Error("snapshot metadata generated_at is required");
+  }
+  if (!SNAPSHOT_GENERATED_AT_SCHEMA.safeParse(value).success) {
+    throw new Error(
+      "snapshot metadata generated_at must be a valid timestamp in RFC 3339 format",
+    );
+  }
+  const parsed = new Date(value);
+  if (parsed.getTime() > now.getTime() + SNAPSHOT_MAX_FUTURE_SKEW_MS) {
+    throw new Error(
+      "snapshot metadata generated_at must not be more than 15 minutes in the future",
+    );
+  }
+  return parsed;
+}
+
+export function validateSectionRetirementSnapshotApproval(input: {
+  enabled: boolean;
+  expectedSnapshotSha256: string | null;
+  snapshotSha256: string;
+}): void {
+  if (!input.enabled) return;
+  if (input.expectedSnapshotSha256 == null) {
+    throw new Error(
+      "STATIC_LOADER_EXPECTED_SNAPSHOT_SHA256 is required when missing-Section retirement is enabled",
+    );
+  }
+  if (input.expectedSnapshotSha256 !== input.snapshotSha256) {
+    throw new Error(
+      `Approved static snapshot SHA-256 ${input.expectedSnapshotSha256} does not match downloaded snapshot ${input.snapshotSha256}`,
+    );
+  }
+}
+
 function optionalNonNegativeIntegerMetadata(
   name: string,
   value: string | undefined,
@@ -82,6 +156,11 @@ type SnapshotCompletenessInput = {
   semesterRows: SnapshotRow[];
   catalogLessonRows: SnapshotRow[];
   fetchRows: SnapshotRow[];
+};
+
+export type SnapshotCompleteness = {
+  sectionJwIds: number[];
+  sectionSemesterJwIds: number[];
 };
 
 type SemesterFetchState = {
@@ -115,7 +194,7 @@ function contextInteger(
 export function validateSnapshotCompleteness(
   input: SnapshotCompletenessInput,
   minSemester: number,
-): void {
+): SnapshotCompleteness {
   const chunkSize = parsePositiveIntegerSetting(
     "snapshot metadata jw_schedule_chunk_size",
     input.metadata.jw_schedule_chunk_size,
@@ -136,6 +215,7 @@ export function validateSnapshotCompleteness(
       ),
   );
   const lessonCounts = new Map<number, number>();
+  const sectionJwIds = new Set<number>();
   const fetchState = new Map<number, SemesterFetchState>();
   for (const semesterId of targetSemesters) {
     lessonCounts.set(semesterId, 0);
@@ -149,6 +229,18 @@ export function validateSnapshotCompleteness(
   for (const row of input.catalogLessonRows) {
     const semesterId = rowInteger(row.semester_id);
     if (semesterId == null || !targetSemesters.has(semesterId)) continue;
+    const sectionJwId = rowInteger(row.id);
+    if (sectionJwId == null) {
+      throw new Error(
+        `Snapshot lesson for semester ${semesterId} has an invalid Section jwId`,
+      );
+    }
+    if (sectionJwIds.has(sectionJwId)) {
+      throw new Error(
+        `Snapshot contains duplicate Section jwId ${sectionJwId}`,
+      );
+    }
+    sectionJwIds.add(sectionJwId);
     lessonCounts.set(semesterId, (lessonCounts.get(semesterId) ?? 0) + 1);
   }
 
@@ -219,6 +311,47 @@ export function validateSnapshotCompleteness(
       );
     }
   }
+
+  return {
+    sectionJwIds: [...sectionJwIds].sort((left, right) => left - right),
+    sectionSemesterJwIds: [...targetSemesters]
+      .filter((semesterId) => (lessonCounts.get(semesterId) ?? 0) > 0)
+      .sort((left, right) => left - right),
+  };
+}
+
+export function validateMappedSectionJwIds(
+  expectedJwIds: readonly number[],
+  mappedJwIds: readonly number[],
+): void {
+  const expected = new Set(expectedJwIds);
+  const mapped = new Set(mappedJwIds);
+  const duplicates = mappedJwIds.filter(
+    (jwId, index) => mappedJwIds.indexOf(jwId) !== index,
+  );
+  const missing = [...expected].filter((jwId) => !mapped.has(jwId));
+  const unexpected = [...mapped].filter((jwId) => !expected.has(jwId));
+  if (
+    duplicates.length === 0 &&
+    missing.length === 0 &&
+    unexpected.length === 0
+  )
+    return;
+
+  const summarize = (values: readonly number[]) =>
+    [...new Set(values)].slice(0, 10).join(",");
+  throw new Error(
+    [
+      "Static Section mapping is incomplete",
+      missing.length > 0 ? `missing jwIds=${summarize(missing)}` : null,
+      unexpected.length > 0
+        ? `unexpected jwIds=${summarize(unexpected)}`
+        : null,
+      duplicates.length > 0 ? `duplicate jwIds=${summarize(duplicates)}` : null,
+    ]
+      .filter((part): part is string => part != null)
+      .join("; "),
+  );
 }
 
 export type MissingSnapshotRowsWhere = {

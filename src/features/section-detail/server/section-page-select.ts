@@ -9,6 +9,7 @@ import type { Prisma } from "@/generated/prisma/client";
 export const sectionPageSelect = {
   id: true,
   jwId: true,
+  retiredAt: true,
   code: true,
   credits: true,
   period: true,

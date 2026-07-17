@@ -265,6 +265,7 @@ $: activeNavItem =
       <SectionDetailPrimaryActions
         onOpenCalendar={openCalendarDialog}
         onOpenSubscribe={openSubscribeDialog}
+        retired={data.section.retiredAt != null}
         {sectionCopy}
         stretched
         {subscriptionAction}

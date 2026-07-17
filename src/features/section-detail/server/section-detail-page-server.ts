@@ -89,7 +89,8 @@ export async function loadSectionDetailPage({
     focusedHomeworkId: url.searchParams.get("homeworkId"),
     homeworkView:
       url.searchParams.get("homeworkView") === "list" ? "list" : "cards",
-    showSubscribeDialog: url.searchParams.get("subscribe") === "1",
+    showSubscribeDialog:
+      section.retiredAt === null && url.searchParams.get("subscribe") === "1",
     socialMetadata: buildSocialMetadata({
       canonicalPath: `/sections/${jwId}`,
       description: formatSocialMetadataMessage(

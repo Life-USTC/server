@@ -15,6 +15,10 @@ import {
 } from "./course-merge";
 import { acquireStaticImportLock } from "./import-lock";
 import {
+  assertStaticImportStateAllowsSnapshot,
+  recordStaticImportState,
+} from "./import-state";
+import {
   type AdminClassSectionPair,
   type BuildingBuild,
   type CampusBuild,
@@ -58,6 +62,12 @@ import {
   type TeacherTitleBuild,
 } from "./mappers";
 import {
+  assertSectionSnapshotNotOlderThanSource,
+  emptySectionLifecycleStats,
+  reconcileSectionSourceLifecycle,
+  type SectionLifecycleStats,
+} from "./section-lifecycle";
+import {
   asBoolean,
   asInt,
   asString,
@@ -82,6 +92,9 @@ import {
 } from "./upsert-policy";
 import {
   missingSnapshotRowsWhere,
+  parseSnapshotGeneratedAt,
+  validateMappedSectionJwIds,
+  validateSectionRetirementSnapshotApproval,
   validateSnapshotCompleteness,
 } from "./validation";
 
@@ -90,6 +103,10 @@ export type ImportConfig = {
   snapshotSha256: string;
   minSemester: number;
   dryRun: boolean;
+  bootstrapImportState: boolean;
+  retireMissingSections: boolean;
+  expectedSnapshotSha256: string | null;
+  expectedSectionRetirementCandidates: number | null;
 };
 
 export type ImportRecordCounts = {
@@ -118,6 +135,7 @@ export type ImportReport = {
   plannedRecordCounts: ImportRecordCounts;
   databaseRecordCounts: ImportRecordCounts | null;
   reconciliation: {
+    sectionLifecycle: SectionLifecycleStats;
     teacherFallbacks: TeacherFallbackReconciliationStats;
     legacyCourses: CourseMergeStats;
   };
@@ -139,16 +157,24 @@ export async function runImport(
   prisma: PrismaClient,
   config: ImportConfig,
 ): Promise<ImportReport> {
+  validateSectionRetirementSnapshotApproval({
+    enabled: config.retireMissingSections,
+    expectedSnapshotSha256: config.expectedSnapshotSha256,
+    snapshotSha256: config.snapshotSha256,
+  });
   const snapshot = new Snapshot(config.snapshotPath);
   const metadata = snapshot.metadata();
   const schemaVersion = metadata.schema_version;
+  let snapshotGeneratedAt: Date;
+  let completeness: ReturnType<typeof validateSnapshotCompleteness>;
   try {
     if (schemaVersion !== "5") {
       throw new Error(
         `Unsupported snapshot schema version: ${schemaVersion ?? "unknown"}`,
       );
     }
-    validateSnapshotCompleteness(
+    snapshotGeneratedAt = parseSnapshotGeneratedAt(metadata.generated_at);
+    completeness = validateSnapshotCompleteness(
       {
         metadata,
         semesterRows: snapshot.queryAll("catalog_teach_semester_list"),
@@ -209,6 +235,10 @@ export async function runImport(
       (sectionJwId) => allSectionJwIds.add(sectionJwId),
       sectionTeacherPairs,
     );
+  validateMappedSectionJwIds(
+    completeness.sectionJwIds,
+    sections.map((section) => section.jwId),
+  );
 
   const placeholderDepartments = mergePlaceholderDepartments(
     sectionPlaceholderDepartments,
@@ -247,6 +277,10 @@ export async function runImport(
     ...EMPTY_TEACHER_RECONCILIATION_STATS,
   };
   let courseMergeStats = { ...EMPTY_COURSE_MERGE_STATS };
+  let sectionLifecycleStats = emptySectionLifecycleStats(
+    config.retireMissingSections,
+  );
+  const observedAt = snapshotGeneratedAt;
 
   async function logStep<T>(
     name: string,
@@ -266,8 +300,35 @@ export async function runImport(
     await logStep("acquireStaticImportLock", 1, () =>
       acquireStaticImportLock(tx),
     );
+    await logStep("validateStaticImportState", 1, () =>
+      assertStaticImportStateAllowsSnapshot(tx, {
+        bootstrapEnabled: config.bootstrapImportState,
+        dryRun: config.dryRun,
+        expectedSnapshotSha256: config.expectedSnapshotSha256,
+        observedAt,
+        retirementEnabled: config.retireMissingSections,
+        snapshotSha256: config.snapshotSha256,
+      }),
+    );
     const semesterMap = await logStep("upsertSemesters", semesters.length, () =>
       upsertSemesters(tx, semesters),
+    );
+    const scopedSemesterIds = completeness.sectionSemesterJwIds.map(
+      (semesterJwId) => {
+        const semesterId = semesterMap.get(semesterJwId);
+        if (semesterId == null) {
+          throw new Error(
+            `Validated snapshot semester ${semesterJwId} did not resolve to a database row`,
+          );
+        }
+        return semesterId;
+      },
+    );
+    await logStep("validateSnapshotRecency", scopedSemesterIds.length, () =>
+      assertSectionSnapshotNotOlderThanSource(tx, {
+        observedAt,
+        scopedSemesterIds,
+      }),
     );
     const departmentMap = await logStep(
       "upsertDepartments",
@@ -433,10 +494,33 @@ export async function runImport(
           courseImport.canonicalJwIds,
         ),
     );
+    const databaseRecordCounts = await logStep("countDatabaseRecords", 12, () =>
+      countStats(tx),
+    );
+    sectionLifecycleStats = await logStep(
+      "reconcileSectionSourceLifecycle",
+      sections.length,
+      () =>
+        reconcileSectionSourceLifecycle(tx, {
+          observedAt,
+          retirementEnabled: config.retireMissingSections,
+          expectedRetirementCandidateCount:
+            config.expectedSectionRetirementCandidates,
+          scopedSemesterIds,
+          seenSectionJwIds: [...allSectionJwIds],
+          snapshotSha256: config.snapshotSha256,
+        }),
+    );
+    await logStep("recordStaticImportState", 1, () =>
+      recordStaticImportState(tx, {
+        observedAt,
+        snapshotSha256: config.snapshotSha256,
+      }),
+    );
 
     if (config.dryRun) throw new Error("DRY_RUN: rolling back transaction");
 
-    return logStep("countDatabaseRecords", 12, () => countStats(tx));
+    return databaseRecordCounts;
   };
 
   let databaseRecordCounts: ImportRecordCounts | null = null;
@@ -470,6 +554,7 @@ export async function runImport(
     plannedRecordCounts,
     databaseRecordCounts,
     reconciliation: {
+      sectionLifecycle: sectionLifecycleStats,
       teacherFallbacks: teacherReconciliationStats,
       legacyCourses: courseMergeStats,
     },

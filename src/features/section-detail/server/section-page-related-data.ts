@@ -46,7 +46,11 @@ export async function getSectionPageRelatedData({
     }),
     getLatestComments({ sectionId: section.id }, 5, locale),
     prisma.section.findMany({
-      where: { courseId: section.courseId, id: { not: section.id } },
+      where: {
+        courseId: section.courseId,
+        id: { not: section.id },
+        retiredAt: null,
+      },
       orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
       select: {
         id: true,
