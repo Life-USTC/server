@@ -15,7 +15,7 @@ export let suspensionLabel: AdminUserFormatter;
 export let users: AdminUserRow[];
 </script>
 
-<Item.Group class="md:hidden">
+<Item.Group class="md:hidden" data-testid="admin-users-mobile-list">
   {#each users as user}
     <Item.Root
       class={`items-start border-l-4 text-left ${user.activeSuspension ? "border-l-warning" : user.isAdmin ? "border-l-success" : "border-l-primary"}`}

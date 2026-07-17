@@ -13,9 +13,11 @@ import type { SectionDetailPageData } from "@/features/section-detail/lib/sectio
 import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+import { Separator } from "$lib/components/ui/separator/index.js";
 import SectionBasicInfoCard from "./SectionBasicInfoCard.svelte";
 import SectionCalendarTab from "./SectionCalendarTab.svelte";
 import SectionDetailHeader from "./SectionDetailHeader.svelte";
+import SectionDetailPrimaryActions from "./SectionDetailPrimaryActions.svelte";
 import SectionExamSection from "./SectionExamSection.svelte";
 import SectionHomeworkTab from "./SectionHomeworkTab.svelte";
 import SectionTeachersCard from "./SectionTeachersCard.svelte";
@@ -133,7 +135,7 @@ $: activeNavItem =
   sectionNavItems[0];
 </script>
 
-<div class="grid min-h-full grid-rows-[auto_minmax(0,1fr)] bg-card lg:h-full lg:min-h-0">
+<div class="grid min-h-full grid-rows-[auto_minmax(0,1fr)_auto] bg-card lg:h-full lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)]">
   <div class="bg-card px-4 sm:px-5 lg:px-6" data-testid="detail-pinned-summary">
     <SectionDetailHeader
       courseName={courseName}
@@ -251,6 +253,24 @@ $: activeNavItem =
         {/key}
       </section>
       {/if}
+    </div>
+  </div>
+
+  <div
+    class="sticky bottom-0 z-10 bg-background md:hidden"
+    data-testid="section-mobile-primary-actions"
+  >
+    <Separator />
+    <div class="p-3">
+      <SectionDetailPrimaryActions
+        onOpenCalendar={openCalendarDialog}
+        onOpenSubscribe={openSubscribeDialog}
+        {sectionCopy}
+        stretched
+        {subscriptionAction}
+        {subscriptionPendingAction}
+        viewer={data.viewer}
+      />
     </div>
   </div>
 </div>

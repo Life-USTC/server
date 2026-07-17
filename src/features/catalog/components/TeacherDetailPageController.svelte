@@ -113,7 +113,12 @@ $: activeNavItem =
 
 <section class="grid min-h-full grid-rows-[auto_minmax(0,1fr)] bg-card lg:h-full lg:min-h-0">
   <div class="bg-card px-4 sm:px-5 lg:px-6">
-    <PageHeader title={displayName} description={teacherDescription}>
+    <PageHeader
+      title={displayName}
+      description={teacherDescription}
+      eyebrow={copy.common.teachers}
+      titleClass="text-2xl leading-tight sm:text-3xl"
+    >
       {#snippet after()}
         <div class="flex flex-wrap gap-2">
           {#if data.teacher.department}

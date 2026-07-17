@@ -13,12 +13,19 @@ export type DashboardBusData = Pick<
 
 export type DashboardBusCopy = Record<string, unknown> & {
   activeVersion: string;
+  arriveAt: string;
+  changeRoute: string;
   dashboardTitle: string;
   dayType: {
     weekday: string;
     weekend: string;
   };
   empty: string;
+  fullTimetable: string;
+  hideFullTimetable: string;
+  hideRouteControls: string;
+  nextDeparture: string;
+  noMoreBusToday: string;
   planner: {
     empty: string;
     emptyReverseAction: string;
@@ -38,4 +45,5 @@ export type DashboardBusCopy = Record<string, unknown> & {
     showDepartedTrips: string;
   };
   transitMap: string;
+  upcomingTrips: string;
 };

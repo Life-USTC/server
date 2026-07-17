@@ -1,13 +1,9 @@
 <script lang="ts">
-import CalendarIcon from "@lucide/svelte/icons/calendar";
-import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
-import LinkIcon from "@lucide/svelte/icons/link-2";
 import type { SubmitFunction } from "@sveltejs/kit";
-import { enhance } from "$app/forms";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
+import SectionDetailPrimaryActions from "./SectionDetailPrimaryActions.svelte";
 import type {
   SectionLocalizedName,
   SectionPrimaryName,
@@ -56,44 +52,28 @@ export let viewer: SectionHeaderViewer;
 <PageHeader
   title={courseName}
   description={courseSecondaryName}
-  eyebrow={sectionCopy.teachingSection}
+  actionsClass="hidden md:flex"
+  titleClass="text-2xl leading-tight sm:text-3xl"
 >
+  {#snippet eyebrowContent()}
+    <div class="flex flex-wrap gap-2">
+      <Badge variant="secondary">{sectionCopy.teachingSection}</Badge>
+      <Badge class="font-mono" variant="outline">{section.code}</Badge>
+    </div>
+  {/snippet}
   {#snippet actions()}
-    <Button variant="outline" type="button" onclick={onOpenCalendar}>
-      <CalendarIcon data-icon="inline-start" />
-      {sectionCopy.addToCalendar}
-    </Button>
-    {#if viewer.isSubscribed}
-      <form
-        method="POST"
-        action="?/unsubscribe"
-        use:enhance={subscriptionAction("unsubscribe")}
-      >
-        <Button
-          variant="outline"
-          type="submit"
-          disabled={subscriptionPendingAction === "unsubscribe"}
-        >
-          <CheckCircleIcon data-icon="inline-start" />
-          {subscriptionPendingAction === "unsubscribe"
-            ? sectionCopy.unsubscribing
-            : sectionCopy.unsubscribeLabel}
-        </Button>
-      </form>
-    {:else}
-      <form method="GET">
-        <input name="subscribe" type="hidden" value="1" />
-        <Button type="submit" onclick={onOpenSubscribe}>
-          <LinkIcon data-icon="inline-start" />
-          {sectionCopy.subscribeLabel}
-        </Button>
-      </form>
-    {/if}
+    <SectionDetailPrimaryActions
+      {onOpenCalendar}
+      {onOpenSubscribe}
+      {sectionCopy}
+      {subscriptionAction}
+      {subscriptionPendingAction}
+      {viewer}
+    />
   {/snippet}
   {#snippet after()}
     <div class="grid gap-4">
       <div class="flex flex-wrap gap-2">
-        <Badge variant="outline">{section.code}</Badge>
         {#if section.semester}<Badge variant="ghost">{section.semester.nameCn}</Badge>{/if}
         {#if section.campus}<Badge variant="ghost">{primaryName(section.campus)}</Badge>{/if}
         {#if section.stdCount !== null || section.limitCount !== null}
