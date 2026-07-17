@@ -10,7 +10,8 @@
     "semester-offering": "A section is a specific teaching class for a course in a given semester.",
     "subscription-not-enrollment": "Pages involving subscription actions must clearly state this is not official academic course enrollment.",
     "jwid-url-only": "jwId is used only for routing and API endpoints; it should not be directly displayed in ordinary section UI.",
-    "public-list-cache": "Anonymous section list REST responses and server-side list data may use short public runtime/CDN caching because section fact data is read-only; localized HTML pages must not use shared edge caching unless the cache key varies by locale."
+    "public-list-cache": "Anonymous section list REST responses and server-side list data may use short public runtime/CDN caching because section fact data is read-only; localized HTML pages must not use shared edge caching unless the cache key varies by locale.",
+    "mobile-detail-actions": "Section detail pages present stable section metadata before a responsive course title, use touch-scrollable horizontal context navigation on mobile, and keep the primary calendar and subscription actions available in a bottom sticky action bar."
   },
   "capabilities": {
     "section-list": {

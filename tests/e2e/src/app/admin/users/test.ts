@@ -92,6 +92,36 @@ test("/admin/users 搜索表单可过滤用户", async ({ page }, testInfo) => {
   }
 });
 
+test("/admin/users 移动端工作区可搜索并管理首条记录", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signInAsDevAdmin(page, "/admin/users");
+
+  const workspace = page.getByTestId("admin-workspace");
+  await expect(workspace).toBeVisible();
+  await expect(workspace.locator("table")).toBeHidden();
+  await page.getByRole("searchbox").fill(DEV_SEED.debugUsername);
+  await page.getByRole("button", { name: /搜索|Search/i }).click();
+
+  const record = page
+    .getByTestId("admin-users-mobile-list")
+    .getByRole("button")
+    .filter({ hasText: DEV_SEED.debugUsername })
+    .first();
+  await expect(record).toBeVisible();
+  await expect(record).toBeInViewport();
+  await record.click();
+  await expect(
+    page.getByRole("dialog", { name: /管理用户|Manage User/i }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(390);
+
+  await captureStepScreenshot(page, testInfo, "admin-users-mobile-workspace");
+});
+
 test("/admin/users 分页控件可进入下一页", async ({ page }, testInfo) => {
   test.setTimeout(60000);
   const prefix = `e2e-p-${Date.now().toString(36)}`;

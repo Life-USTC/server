@@ -58,6 +58,7 @@ $: currentTool =
     <BusTab
       {busCopy}
       bus={anonymousData.bus ?? null}
+      compact
     />
   {/if}
 </div>

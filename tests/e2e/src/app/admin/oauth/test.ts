@@ -25,6 +25,7 @@ import {
   signInAsDevAdmin,
 } from "../../../../utils/auth";
 import {
+  createOAuthClientFixture,
   deleteOAuthClientsByName,
   PLAYWRIGHT_BASE_URL,
 } from "../../../../utils/e2e-db";
@@ -198,6 +199,38 @@ test("/admin/oauth 创建的客户端显示所有必需字段", async ({
     ).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "admin-oauth/client-fields");
+  } finally {
+    await deleteOAuthClientsByName(clientName);
+  }
+});
+
+test("/admin/oauth 移动端工作区客户端记录可检查", async ({
+  page,
+}, testInfo) => {
+  const clientName = `e2e-mobile-client-${Date.now()}`;
+
+  try {
+    await createOAuthClientFixture({ name: clientName });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await signInAsDevAdmin(page, "/admin/oauth");
+
+    const workspace = page.getByTestId("admin-workspace");
+    const firstClient = workspace
+      .locator("article")
+      .filter({ hasText: clientName })
+      .first();
+    await expect(workspace).toBeVisible();
+    await expect(firstClient).toBeVisible();
+    await firstClient.scrollIntoViewIfNeeded();
+    await expect(firstClient).toBeInViewport();
+    await expect(
+      firstClient.getByRole("button", { name: /复制 ID|Copy ID/i }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(390);
+
+    await captureStepScreenshot(page, testInfo, "admin-oauth/mobile-workspace");
   } finally {
     await deleteOAuthClientsByName(clientName);
   }

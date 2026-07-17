@@ -693,10 +693,10 @@
   },
   "bus": {
     "title": "校车",
-    "description": "公开查询校车时刻。选择工作日或周末，再直接点击纵向排列的出发站和到达站后，可在一张分路线大表中查看所有可用路线。",
-    "subtitle": "基于原始时刻表的客户端校车规划器，使用纵向站点列和合并时刻表。",
+    "description": "优先查看当前还能赶上的下一班校车，需要时再调整路线或展开完整时刻表。",
+    "subtitle": "下一班优先的校车规划器，完整时刻表随时可展开。",
     "dashboardTitle": "校车出行",
-    "dashboardDescription": "选择出发站和到达站后，在一张按路线分组的大表里比较所有还能赶上的路线。",
+    "dashboardDescription": "先看下一班校车，再按需调整站点或展开完整分组时刻表。",
     "publicEntry": "公开校车查询",
     "dayType": {
       "weekday": "工作日",
@@ -768,6 +768,10 @@
       "unknown": "长期有效"
     },
     "activeVersion": "当前版本",
+    "changeRoute": "调整路线",
+    "hideRouteControls": "收起路线设置",
+    "fullTimetable": "完整时刻表",
+    "hideFullTimetable": "收起完整时刻表",
     "hidePreferences": "收起偏好",
     "editPreferences": "编辑偏好",
     "empty": "当前暂无可用的校车数据。",

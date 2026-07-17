@@ -52,8 +52,29 @@ function routeSectionRows(page: Page) {
   });
 }
 
+async function openRouteControls(page: Page) {
+  const trigger = page.getByRole("button", {
+    name: /Change route|调整路线/,
+  });
+  if (await trigger.isVisible()) await trigger.click();
+  await expect(
+    page.locator("[data-testid='bus-start-stop-group']"),
+  ).toBeVisible();
+}
+
+async function openFullTimetable(page: Page) {
+  const trigger = page.getByRole("button", {
+    name: /Full timetable|完整时刻表/,
+  });
+  if (await trigger.isVisible()) await trigger.click();
+  await expect(page.locator("table").first()).toBeVisible();
+}
+
 test.describe("校车面板标签页", () => {
   test.describe.configure({ mode: "serial" });
+  test.beforeEach(async ({ page }) => {
+    await page.clock.setFixedTime(new Date("2026-07-17T03:00:00.000Z"));
+  });
 
   test("/bus 返回 404（重定向已移除）", async ({ page }) => {
     const response = await page.goto("/bus");
@@ -70,12 +91,23 @@ test.describe("校车面板标签页", () => {
     ).toHaveAttribute("href", "/bus-map");
   });
 
-  test("公共校车标签页显示规划器控件", async ({ page }, testInfo) => {
+  test("公共校车标签页优先显示下一班并按需展开规划器", async ({
+    page,
+  }, testInfo) => {
     await gotoAndWaitForReady(page, "/?tab=bus", {
       testInfo,
       screenshotLabel: "bus",
     });
 
+    const summary = page.getByTestId("bus-compact-summary");
+    await expect(summary).toBeVisible();
+    await expect(summary.getByText(/Next departure|下一班发车/)).toBeVisible();
+    await expect(
+      page.locator("[data-testid='bus-start-stop-group']"),
+    ).toBeHidden();
+    await expect(page.locator("table:visible")).toHaveCount(0);
+
+    await openRouteControls(page);
     await expect(
       page.getByRole("radio", { name: /Weekday|工作日/ }).first(),
     ).toBeVisible();
@@ -86,7 +118,7 @@ test.describe("校车面板标签页", () => {
       page.locator("[data-testid='bus-end-stop-group']"),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: /Reverse|反向/ }),
+      page.getByRole("button", { name: /Reverse|反向/ }).last(),
     ).toBeVisible();
     await expect(
       page.getByRole("switch", {
@@ -96,6 +128,7 @@ test.describe("校车面板标签页", () => {
     await expect(
       page.getByRole("link", { name: /Transit map|线路图/ }),
     ).toHaveAttribute("href", "/bus-map");
+    await openFullTimetable(page);
 
     await captureStepScreenshot(page, testInfo, "bus-planner-public");
   });
@@ -160,7 +193,7 @@ test.describe("校车面板标签页", () => {
     );
   });
 
-  test("公共校车标签页在移动端保持规划器控件可用", async ({
+  test("公共校车标签页在移动端保持下一班、路线更改和全表可用", async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -169,13 +202,29 @@ test.describe("校车面板标签页", () => {
       screenshotLabel: "bus-mobile",
     });
 
+    const summary = page.getByTestId("bus-compact-summary");
+    await expect(summary).toBeVisible();
+    await expect(summary.locator("[data-slot='card-title']")).toHaveCSS(
+      "font-size",
+      "36px",
+    );
+    await expect(page.locator("table:visible")).toHaveCount(0);
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(390);
+
+    await openRouteControls(page);
+    await chooseStop(page, /End stop|到达站/, /南区/);
+    await expect(summary).toContainText("东区 -> 南区");
+
+    await page.reload();
     await expect(
-      page.getByRole("radio", { name: /Weekday|工作日/ }).first(),
-    ).toBeVisible();
-    await expect(
-      page.locator("[data-testid='bus-start-stop-group']"),
-    ).toBeVisible();
-    await expect(page.locator("table").first()).toBeVisible();
+      page
+        .locator("[data-testid='bus-end-stop-group']")
+        .getByRole("radio", { name: /南区/ }),
+    ).toBeHidden();
+    await expect(summary).toContainText("东区 -> 南区");
+    await openFullTimetable(page);
 
     await captureStepScreenshot(page, testInfo, "bus-planner-public-mobile");
   });
@@ -188,6 +237,7 @@ test.describe("校车面板标签页", () => {
       screenshotLabel: "bus",
     });
 
+    await openFullTimetable(page);
     await expect(routeSectionRows(page)).toHaveCount(2);
     const routeTexts = await routeSectionRows(page).allTextContents();
     expect(
@@ -206,6 +256,7 @@ test.describe("校车面板标签页", () => {
       screenshotLabel: "bus",
     });
 
+    await openFullTimetable(page);
     const reverseButton = page.getByRole("button", { name: /Reverse|反向/ });
     const startWestButton = page
       .locator("[data-testid='bus-start-stop-group']")
@@ -240,6 +291,8 @@ test.describe("校车面板标签页", () => {
       screenshotLabel: "bus",
     });
 
+    await openRouteControls(page);
+    await openFullTimetable(page);
     await chooseStop(page, /End stop|到达站/, /南区/);
 
     await expect(routeSectionRows(page)).toHaveCount(1);
@@ -253,6 +306,8 @@ test.describe("校车面板标签页", () => {
       screenshotLabel: "bus",
     });
 
+    await openRouteControls(page);
+    await openFullTimetable(page);
     const initialRows = await page.locator("tbody tr").count();
     const departedToggle = page.getByRole("switch", {
       name: /Show departed trips|显示已发车班次/,
@@ -272,6 +327,8 @@ test.describe("校车面板标签页", () => {
       screenshotLabel: "bus",
     });
 
+    await openRouteControls(page);
+    await openFullTimetable(page);
     await page
       .getByRole("switch", { name: /Show departed trips|显示已发车班次/ })
       .click();

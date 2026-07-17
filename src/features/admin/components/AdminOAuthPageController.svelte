@@ -4,6 +4,7 @@ import AdminOAuthClients from "@/features/admin/components/AdminOAuthClients.sve
 import AdminOAuthDialogs from "@/features/admin/components/AdminOAuthDialogs.svelte";
 import AdminOAuthHeader from "@/features/admin/components/AdminOAuthHeader.svelte";
 import AdminOAuthStatusAlerts from "@/features/admin/components/AdminOAuthStatusAlerts.svelte";
+import AdminWorkspace from "@/features/admin/components/AdminWorkspace.svelte";
 import { createAdminOAuthControllerDefaultState } from "@/features/admin/lib/admin-oauth-controller-default-state";
 import {
   createdOAuthCredentialsJson,
@@ -170,16 +171,18 @@ onMount(() => {
 
 <svelte:head><title>{_copy.adminTitle} - Life@USTC</title></svelte:head>
 
-<section class="grid gap-5">
-  <AdminOAuthHeader
-    adminCopy={_adminCopy}
-    copy={_copy}
-    disabled={!_isMounted}
-    onCreate={_openCreateDialog}
-  />
-
-  <AdminOAuthStatusAlerts {copyMessage} {copyMessageVariant} {form} />
-
+<AdminWorkspace>
+  {#snippet header()}
+    <AdminOAuthHeader
+      adminCopy={_adminCopy}
+      copy={_copy}
+      disabled={!_isMounted}
+      onCreate={_openCreateDialog}
+    />
+  {/snippet}
+  {#snippet feedback()}
+    <AdminOAuthStatusAlerts {copyMessage} {copyMessageVariant} {form} />
+  {/snippet}
   <AdminOAuthClients
     bind:activeClientTab
     clientAuthCopy={_clientAuthCopy}
@@ -197,7 +200,7 @@ onMount(() => {
     }}
     bind:trustedClientPage
   />
-</section>
+</AdminWorkspace>
 
 <AdminOAuthDialogs
   authPatterns={availableAuthPatterns}

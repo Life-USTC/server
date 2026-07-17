@@ -20,7 +20,7 @@ export let pendingAction: string | null;
 export let versions: AdminBusVersion[];
 </script>
 
-<Item.Group class="md:hidden">
+<Item.Group class="md:hidden" data-testid="admin-bus-mobile-list">
   {#each versions as version}
     <Item.Root class="items-start" size="sm" variant="outline">
       <Item.Content class="min-w-0">

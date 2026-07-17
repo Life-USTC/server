@@ -693,10 +693,10 @@
   },
   "bus": {
     "title": "Shuttle Bus",
-    "description": "Public shuttle timetable across USTC campuses. Pick a weekday/weekend timetable plus direct vertical start/end stop rails, then compare every viable route in one grouped table.",
-    "subtitle": "Client-side shuttle planner with vertical stop rails and a combined timetable table.",
+    "description": "See the next boardable campus shuttle first, then adjust your route or open the complete timetable when needed.",
+    "subtitle": "Next-departure-first campus shuttle planner with the complete timetable one step away.",
     "dashboardTitle": "Campus shuttle",
-    "dashboardDescription": "Choose a start stop and end stop, then scan every usable route in one grouped timetable table.",
+    "dashboardDescription": "See your next shuttle first, then adjust stops or open the complete grouped timetable.",
     "publicEntry": "Public shuttle query",
     "dayType": {
       "weekday": "Weekday",
@@ -768,6 +768,10 @@
       "unknown": "Long-term"
     },
     "activeVersion": "Active version",
+    "changeRoute": "Change route",
+    "hideRouteControls": "Hide route controls",
+    "fullTimetable": "Full timetable",
+    "hideFullTimetable": "Hide full timetable",
     "hidePreferences": "Hide preferences",
     "editPreferences": "Edit preferences",
     "empty": "No shuttle data is available right now.",
