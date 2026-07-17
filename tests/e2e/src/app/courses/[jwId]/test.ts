@@ -76,6 +76,19 @@ test.describe("/courses/[jwId] 课程详情", () => {
     await captureStepScreenshot(page, testInfo, "course/404");
   });
 
+  test("旧 jwId 永久重定向到 canonical 课程 URL", async ({ page }) => {
+    await gotoAndWaitForReady(
+      page,
+      `/courses/${DEV_SEED.course.legacyJwId}/sections?from=legacy`,
+    );
+    await expect(page).toHaveURL(
+      `/courses/${DEV_SEED.course.jwId}/sections?from=legacy`,
+    );
+    await expect(page.getByRole("heading", { level: 1 }).first()).toContainText(
+      new RegExp(`${DEV_SEED.course.nameCn}|${DEV_SEED.course.nameEn}`),
+    );
+  });
+
   // ── Display fields ──────────────────────────────────────────────────────────
 
   test("显示课程名称、代码和基本信息", async ({ page }, testInfo) => {

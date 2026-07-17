@@ -1,3 +1,4 @@
+import { resolveCourseIdByJwId } from "@/features/catalog/server/course-jw-id";
 import type { DescriptionTargetType } from "@/features/descriptions/lib/description-target-types";
 
 export {
@@ -146,11 +147,7 @@ async function findSectionIdByJwId(jwId: number) {
 }
 
 async function findCourseIdByJwId(jwId: number) {
-  const course = await prisma.course.findUnique({
-    where: { jwId },
-    select: { id: true },
-  });
-  return course?.id ?? null;
+  return resolveCourseIdByJwId(prisma, jwId);
 }
 
 function invalidTarget(

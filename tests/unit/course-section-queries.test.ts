@@ -221,15 +221,15 @@ describe("课程与开课查询辅助函数", () => {
     });
   });
 
-  it("根据 JW ID 构建课程和学期筛选条件", () => {
+  it("根据 JW ID 构建学期筛选条件", () => {
     const result = buildSectionListQuery({
       courseJwId: 101,
       semesterJwId: 202,
     });
     expect(result.where).toMatchObject({
-      course: { jwId: 101 },
       semester: { jwId: 202 },
     });
+    expect(result.where).not.toHaveProperty("course");
   });
 
   it("在 teachers.some 内构建 teacherCode 筛选条件", () => {
