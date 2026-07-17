@@ -150,6 +150,7 @@
           "client.scopes[]",
           "client.tokenEndpointAuthMethod",
           "client.isTrusted",
+          "Empty inventory explanation and create-client action",
           "Action: delete"
         ]
       }

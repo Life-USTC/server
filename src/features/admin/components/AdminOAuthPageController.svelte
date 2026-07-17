@@ -193,8 +193,10 @@ onMount(() => {
     copyText={(value, message) => {
       void _copyText(value, message);
     }}
+    createDisabled={!_isMounted}
     bind:externalClientPage
     formatCreatedAt={_formatCreatedAt}
+    onCreate={_openCreateDialog}
     onDelete={(client) => {
       pendingDeleteClient = client;
     }}

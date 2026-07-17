@@ -19,9 +19,16 @@ export let isDeletingAccount: boolean;
 export let isMounted: boolean;
 </script>
 
-<Card.Root>
+<Card.Root
+  aria-labelledby="settings-danger-title"
+  class="bg-destructive/5 ring-destructive/40"
+  data-settings-danger-region
+  role="region"
+>
   <Card.Header>
-    <Card.Title>{copy.profile.deleteAccountTitle}</Card.Title>
+    <Card.Title class="text-destructive" id="settings-danger-title">
+      {copy.profile.deleteAccountTitle}
+    </Card.Title>
     <Card.Description>
       {copy.profile.deleteAccountDescription}
     </Card.Description>
