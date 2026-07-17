@@ -78,10 +78,13 @@ export type DashboardDashboardCopy = DashboardRecord & {
     bus: { description: string; title: string };
     exams: {
       cardView: string;
+      clearFilter: string;
       empty: string;
+      emptyDescription: string;
       filterAll: string;
       filterCompleted: string;
       filterEmpty: string;
+      filterEmptyDescription: string;
       filterIncomplete: string;
       listView: string;
       noSubscriptionsDescription: string;

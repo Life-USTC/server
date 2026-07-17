@@ -16,6 +16,7 @@
     "oauth-login-resume": "If an OAuth authorization request lands on /signin with raw authorization query parameters instead of callbackUrl, the sign-in flow should resume that exact authorization request after login rather than falling back to /.",
     "oauth-consent-loopback-continuation": "The OAuth consent step must continue working for loopback public clients even when the client uses 127.0.0.1 and the app itself is being browsed via localhost; consent submission should preserve the original authorization query and complete the redirect back to the registered loopback callback.",
     "public-identity-display": "Public identity defaults to displaying name or username, not internal identifiers.",
+    "public-profile-canonical-route": "When a profile has a username, /u/id/$uid permanently redirects to the canonical /u/$username page. Profiles without a username remain reachable by ID without rendering the raw ID as primary metadata.",
     "account-deletion-retention": "Settings account deletion runs through a transaction that anonymizes retained audit rows and issued suspension moderation records. Deleting an admin account is allowed only when at least one other admin remains."
   },
   "capabilities": {
@@ -115,7 +116,6 @@
       },
       "display": {
         "fields": [
-          "user.id (ID profile route only)",
           "user.image (Avatar)",
           "user.name (Display name)",
           "user.username (@username)",
@@ -126,7 +126,8 @@
           "user._count.homeworksCreated (Homeworks created)",
           "weeks[].date (YYYY-MM-DD)",
           "weeks[].count (Contribution count)",
-          "totalContributions (Aggregate)"
+          "totalContributions (Aggregate)",
+          "Keyboard- and touch-accessible horizontally scrollable contribution history"
         ]
       }
     },
@@ -158,8 +159,9 @@
           "user.username (Username)",
           "user.accounts[].provider (github, google, oidc)",
           "canDisconnect (Boolean - requires min 2 accounts)",
+          "Compact responsive section navigation with active-section description",
           "Navigation links to sections and comment guide",
-          "Account deletion confirmation interface"
+          "Visually separated danger region and account deletion confirmation interface"
         ]
       }
     }

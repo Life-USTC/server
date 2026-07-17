@@ -57,9 +57,11 @@ test("/admin/oauth 管理员可创建并删除客户端", async ({ page }, testI
       page.getByRole("heading", { name: /OAuth 客户端管理|OAuth Clients/i }),
     ).toBeVisible();
 
-    const createBtn = page
-      .getByRole("button", { name: /创建客户端|Create Client/i })
-      .first();
+    const emptyState = page.locator("[data-oauth-empty-state]");
+    await expect(emptyState).toBeVisible();
+    const createBtn = emptyState.getByRole("button", {
+      name: /创建客户端|Create Client/i,
+    });
     await expect(createBtn).toBeVisible();
     await expect(createBtn).toBeEnabled();
     const createDialog = page
@@ -124,6 +126,7 @@ test("/admin/oauth 管理员可创建并删除客户端", async ({ page }, testI
     await expect(page.getByText(clientName)).toHaveCount(0, {
       timeout: 15000,
     });
+    await expect(page.locator("[data-oauth-empty-state]")).toBeVisible();
     await captureStepScreenshot(page, testInfo, "admin-oauth-deleted");
   } finally {
     await deleteOAuthClientsByName(clientName);
