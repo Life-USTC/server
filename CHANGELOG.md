@@ -1,3 +1,10 @@
+## [1.55.2](https://github.com/Life-USTC/server/compare/v1.55.1...v1.55.2) (2026-07-17)
+
+
+### Bug Fixes
+
+* **loader:** preserve imported teacher and class identities ([#456](https://github.com/Life-USTC/server/issues/456)) ([ffb0c7b](https://github.com/Life-USTC/server/commit/ffb0c7bf3e9d63791946a1f374d7bd4889040da3))
+
 ## [1.55.1](https://github.com/Life-USTC/server/compare/v1.55.0...v1.55.1) (2026-07-17)
 
 
