@@ -1,7 +1,7 @@
 import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
 import {
   countUpcomingSubscribedExams,
-  getSubscribedSectionIds,
+  getActiveSubscribedSectionIds,
   listSubscribedHomeworks,
   listSubscribedSchedules,
   listUpcomingSubscribedExams,
@@ -56,7 +56,7 @@ export async function getCompactOverview(
       where: { id: userId },
       select: { id: true, image: true, isAdmin: true, name: true },
     }),
-    getSubscribedSectionIds(userId),
+    getActiveSubscribedSectionIds(userId),
     listTodoSummary({
       filters: { completed: false },
       now,

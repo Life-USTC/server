@@ -119,6 +119,11 @@ jobs:
               report.mode !== "dry-run" ||
               report.outcome !== "rolled-back" ||
               report.databaseRecordCounts !== null ||
+              report.reconciliation?.sectionLifecycle?.enabled !== false ||
+              !Number.isInteger(
+                report.reconciliation?.sectionLifecycle
+                  ?.retirementCandidateCount,
+              ) ||
               !/^[a-f0-9]{64}$/.test(report.snapshot?.sha256 ?? "")
             ) {
               throw new Error("Static loader report has invalid dry-run semantics");

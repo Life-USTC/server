@@ -16,7 +16,10 @@ const STATIC_ROUTES = [
 async function getEntityUrls(origin: string) {
   const [courses, sections, teachers] = await Promise.all([
     prisma.course.findMany({ select: { jwId: true } }),
-    prisma.section.findMany({ select: { jwId: true } }),
+    prisma.section.findMany({
+      where: { retiredAt: null },
+      select: { jwId: true },
+    }),
     prisma.teacher.findMany({ select: { id: true } }),
   ]);
 

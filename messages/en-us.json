@@ -1052,6 +1052,8 @@
     "courseCode": "Course Code",
     "sectionCode": "Section Code",
     "teachingSection": "Teaching section",
+    "historicalSectionLabel": "Historical section",
+    "historicalSectionDescription": "This section is absent from the latest academic snapshot. Its history remains available, but it cannot be newly followed.",
     "semester": "Semester",
     "campus": "Campus",
     "credits": "Credits",

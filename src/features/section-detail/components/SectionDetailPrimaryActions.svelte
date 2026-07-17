@@ -17,6 +17,7 @@ type SectionActionsCopy = {
 
 export let onOpenCalendar: () => void;
 export let onOpenSubscribe: () => void;
+export let retired = false;
 export let sectionCopy: SectionActionsCopy;
 export let stretched = false;
 export let subscriptionAction: (
@@ -28,7 +29,9 @@ export let viewer: { isSubscribed?: boolean };
 
 <div
   class={stretched
-    ? "grid w-full grid-cols-2 gap-2"
+    ? retired && !viewer.isSubscribed
+      ? "grid w-full grid-cols-1 gap-2"
+      : "grid w-full grid-cols-2 gap-2"
     : "flex flex-wrap gap-2"}
 >
   <Button
@@ -59,7 +62,7 @@ export let viewer: { isSubscribed?: boolean };
           : sectionCopy.unsubscribeLabel}
       </Button>
     </form>
-  {:else}
+  {:else if !retired}
     <form class={stretched ? "w-full" : undefined} method="GET">
       <input name="subscribe" type="hidden" value="1" />
       <Button

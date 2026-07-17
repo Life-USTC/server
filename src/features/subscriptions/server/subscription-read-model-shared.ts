@@ -41,6 +41,25 @@ export async function getSubscribedSectionIds(
   return user?.subscribedSections.map((s) => s.id) ?? [];
 }
 
+export async function getActiveSubscribedSectionIds(
+  userId: string,
+  sectionIds?: readonly number[],
+): Promise<number[]> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      subscribedSections: {
+        where: {
+          retiredAt: null,
+          ...(sectionIds ? { id: { in: Array.from(sectionIds) } } : {}),
+        },
+        select: { id: true },
+      },
+    },
+  });
+  return user?.subscribedSections.map((section) => section.id) ?? [];
+}
+
 export async function getSubscribedSectionIdsForSemester(
   userId: string,
   semesterId: number,

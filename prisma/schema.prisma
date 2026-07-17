@@ -50,6 +50,8 @@ enum AuditAction {
   comment_react
   description_edit
   upload_delete
+  section_retire
+  section_reactivate
   admin_user_suspend
   admin_user_unsuspend
   admin_comment_moderate

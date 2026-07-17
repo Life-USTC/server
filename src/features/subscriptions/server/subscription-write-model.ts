@@ -45,21 +45,33 @@ async function replaceUserSectionIdsInSemester(
   });
 }
 
-async function getExistingSectionIds(sectionIds: readonly number[]) {
+async function getExistingSectionIds(
+  sectionIds: readonly number[],
+  options: { includeRetired?: boolean } = {},
+) {
   if (sectionIds.length === 0) {
     return [];
   }
 
   const sections = await prisma.section.findMany({
-    where: { id: { in: uniqueSectionIds(sectionIds) } },
+    where: {
+      id: { in: uniqueSectionIds(sectionIds) },
+      ...(!options.includeRetired ? { retiredAt: null } : {}),
+    },
     select: { id: true },
   });
   return sections.map((section) => section.id);
 }
 
-async function getSectionIdByJwId(jwId: number) {
-  const section = await prisma.section.findUnique({
-    where: { jwId },
+async function getSectionIdByJwId(
+  jwId: number,
+  options: { includeRetired?: boolean } = {},
+) {
+  const section = await prisma.section.findFirst({
+    where: {
+      jwId,
+      ...(!options.includeRetired ? { retiredAt: null } : {}),
+    },
     select: { id: true },
   });
   return section?.id ?? null;
@@ -115,7 +127,9 @@ async function disconnectUserSectionIds(
   userId: string,
   sectionIds: readonly number[],
 ) {
-  const validSectionIds = await getExistingSectionIds(sectionIds);
+  const validSectionIds = await getExistingSectionIds(sectionIds, {
+    includeRetired: true,
+  });
   if (validSectionIds.length === 0) {
     return;
   }
@@ -184,9 +198,10 @@ export async function addUserSectionSubscriptions(
   const existingIds = new Set(
     user.subscribedSections.map((section) => section.id),
   );
+  const validSectionIds = await getExistingSectionIds(sectionIds);
   await connectUserSectionIds(
     userId,
-    sectionIds.filter((id) => !existingIds.has(id)),
+    validSectionIds.filter((id) => !existingIds.has(id)),
   );
 
   return getUserSectionSubscriptionState(userId);
@@ -250,6 +265,7 @@ export async function batchUpdateUserSectionSubscriptions({
 }) {
   const resolved = await resolveCalendarSubscriptionSections({
     codes,
+    includeRetired: action === "remove",
     locale,
     sectionIds,
     semesterId,
@@ -354,7 +370,9 @@ export async function unsubscribeUserFromSectionByJwId(
   sectionJwId: number,
   locale = DEFAULT_LOCALE,
 ) {
-  const sectionId = await getSectionIdByJwId(sectionJwId);
+  const sectionId = await getSectionIdByJwId(sectionJwId, {
+    includeRetired: true,
+  });
   if (sectionId === null) {
     return null;
   }
@@ -372,7 +390,9 @@ export async function setUserSectionSubscriptionByJwId(input: {
   subscribed: boolean;
   userId: string;
 }) {
-  const sectionId = await getSectionIdByJwId(input.sectionJwId);
+  const sectionId = await getSectionIdByJwId(input.sectionJwId, {
+    includeRetired: !input.subscribed,
+  });
   if (sectionId === null) return null;
 
   await prisma.user.update({

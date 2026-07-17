@@ -169,6 +169,7 @@ describe("viewer page services", () => {
     const where = {
       section: {
         subscribedUsers: { some: { id: "user-1" } },
+        retiredAt: null,
         semesterId: 8,
       },
       date: { gte: dateFrom },
@@ -182,7 +183,11 @@ describe("viewer page services", () => {
             include: expect.objectContaining({
               department: true,
               teacherTitle: true,
-              _count: { select: { sections: true } },
+              _count: {
+                select: {
+                  sections: { where: { retiredAt: null } },
+                },
+              },
             }),
           },
         }),
@@ -210,6 +215,7 @@ describe("viewer page services", () => {
     const where = {
       section: {
         subscribedUsers: { some: { id: "user-1" } },
+        retiredAt: null,
         semesterId: 9,
       },
       OR: [{ examDate: { lte: dateTo } }],

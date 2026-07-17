@@ -18,6 +18,7 @@ export async function findSectionCodeMatches(
   const sections = await getPrisma(locale).section.findMany({
     where: {
       code: { in: codes },
+      retiredAt: null,
       semesterId: semester.id,
     },
     include: sectionCompactInclude,

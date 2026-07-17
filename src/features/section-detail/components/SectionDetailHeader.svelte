@@ -11,6 +11,8 @@ import type {
 
 type SectionHeaderCopy = {
   addToCalendar: string;
+  historicalSectionDescription: string;
+  historicalSectionLabel: string;
   subscribeLabel: string;
   teachingSection: string;
   unsubscribeLabel: string;
@@ -21,6 +23,7 @@ type SectionHeaderSection = {
   campus?: SectionLocalizedName | null;
   code: string;
   limitCount?: number | null;
+  retiredAt?: string | Date | null;
   semester?: {
     nameCn?: string | null;
   } | null;
@@ -65,6 +68,7 @@ export let viewer: SectionHeaderViewer;
     <SectionDetailPrimaryActions
       {onOpenCalendar}
       {onOpenSubscribe}
+      retired={section.retiredAt != null}
       {sectionCopy}
       {subscriptionAction}
       {subscriptionPendingAction}
@@ -80,6 +84,13 @@ export let viewer: SectionHeaderViewer;
           <Badge variant="ghost">{section.stdCount ?? 0} / {section.limitCount ?? notAvailable}</Badge>
         {/if}
       </div>
+
+      {#if section.retiredAt != null}
+        <Alert.Root>
+          <Alert.Title>{sectionCopy.historicalSectionLabel}</Alert.Title>
+          <Alert.Description>{sectionCopy.historicalSectionDescription}</Alert.Description>
+        </Alert.Root>
+      {/if}
 
       {#if formError}
         <Alert.Root variant="destructive">

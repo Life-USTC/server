@@ -13,10 +13,13 @@ export async function getPublicCatalog(locale = "zh-cn") {
         code: true,
         nameCn: true,
         nameEn: true,
-        _count: { select: { sections: true } },
+        _count: {
+          select: { sections: { where: { retiredAt: null } } },
+        },
       },
     }),
     prisma.section.findMany({
+      where: { retiredAt: null },
       take: CATALOG_HOME_LIST_LIMIT,
       orderBy: [{ id: "desc" }],
       select: {
@@ -35,7 +38,9 @@ export async function getPublicCatalog(locale = "zh-cn") {
         nameCn: true,
         nameEn: true,
         department: { select: { nameCn: true, nameEn: true } },
-        _count: { select: { sections: true } },
+        _count: {
+          select: { sections: { where: { retiredAt: null } } },
+        },
       },
     }),
   ]);

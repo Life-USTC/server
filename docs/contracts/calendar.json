@@ -8,6 +8,7 @@
   },
   "rules": {
     "views": "Provides selectable semester, month, and week views.",
+    "retired-sections": "Current/public collection calendars, personal calendar views, feeds, and calendar event tools exclude retired Sections. A direct single-Section detail/calendar URL remains available as a historical reference, and retirement does not delete underlying schedules, exams, homeworks, or subscription relationships.",
     "mobile-agenda-first": "At mobile widths, the personal calendar presents the selected week as a vertically readable agenda with time, title, type, and available location context. Previous week, today, next week, and iCal actions remain directly accessible without page-level horizontal scrolling; desktop retains the selectable grid views.",
     "week-starts-sunday": "The week view starts on Sunday.",
     "event-card-types": "Calendar event cards uniformly carry course, exam, homework, and todo events."

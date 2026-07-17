@@ -29,6 +29,8 @@ export const adminClassSchema = z.object({
 export const sectionBaseSchema = z.object({
   id: z.number().int(),
   jwId: z.number().int(),
+  sourceLastSeenAt: dateTimeSchema.nullable().optional(),
+  retiredAt: dateTimeSchema.nullable().optional(),
   code: z.string(),
   bizTypeId: z.number().int().nullable(),
   credits: z.number().nullable(),
