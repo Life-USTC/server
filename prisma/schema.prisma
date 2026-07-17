@@ -54,6 +54,8 @@ enum AuditAction {
   admin_user_unsuspend
   admin_comment_moderate
   admin_description_moderate
+  section_retire
+  section_reactivate
 }
 
 enum TodoPriority {
@@ -375,6 +377,9 @@ model Section {
   id   Int @id @default(autoincrement())
   jwId Int @unique
 
+  sourceLastSeenAt DateTime?
+  retiredAt        DateTime?
+
   code                    String
   bizTypeId               Int?
   credits                 Float?
@@ -439,6 +444,7 @@ model Section {
   @@index([graduateAndPostgraduate])
   @@index([courseId])
   @@index([semesterId])
+  @@index([semesterId, retiredAt])
   @@index([examModeId])
   @@index([campusId])
   @@index([openDepartmentId])
