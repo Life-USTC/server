@@ -62,8 +62,10 @@ import {
   planTeacherImport,
   sectionTeacherNameKey,
   type TeacherIdentityReference,
+  type TeacherImportPlan,
   type TeacherOccurrence,
 } from "./teacher-identity";
+import { reconcileCatalogTeacherFallbacks } from "./teacher-reconciliation";
 import {
   requireCourseDatabaseId,
   requireCourseSourceKey,
@@ -148,7 +150,8 @@ export async function runImport(
   const { teacherTitles, teacherLessonTypes, examBatches } =
     loadScheduleLookups(snapshot);
 
-  const { teachers, sectionTeacherIdentities } = loadTeachers(snapshot);
+  const { teachers, sectionTeacherIdentities, catalogFallbackResolutions } =
+    loadTeachers(snapshot);
 
   const {
     campuses,
@@ -321,6 +324,17 @@ export async function runImport(
         teacherMap,
         sectionDbIds,
       ),
+    );
+    await logStep(
+      "reconcileCatalogTeacherFallbacks",
+      catalogFallbackResolutions.length,
+      () =>
+        reconcileCatalogTeacherFallbacks(tx, catalogFallbackResolutions, {
+          resolveDepartmentId: (departmentCode) =>
+            departmentMap.get(departmentCode ?? UNKNOWN_DEPARTMENT_CODE),
+          resolveTargetId: (identity) =>
+            requireConsistentTeacherIdentityId(identity, teacherMap),
+        }),
     );
 
     const examMap = await logStep("upsertExams", exams.length, () =>
@@ -576,10 +590,7 @@ function loadScheduleLookups(snapshot: Snapshot) {
   };
 }
 
-function loadTeachers(snapshot: Snapshot): {
-  teachers: TeacherBuild[];
-  sectionTeacherIdentities: Map<string, TeacherIdentityReference>;
-} {
+function loadTeachers(snapshot: Snapshot): TeacherImportPlan {
   const scheduleLessonRows = snapshot.queryAll(
     "jw_ws_schedule_table_datum_result_lessonList",
   );
@@ -1600,20 +1611,54 @@ function resolveTeacherId(
   build: TeacherAssignmentBuild | SectionTeacherPair,
   map: TeacherMap,
 ): number | undefined {
-  if ("personId" in build && build.personId != null) {
-    const id = map.byPersonId.get(build.personId);
-    if (id != null) return id;
-  }
-  if ("teacherId" in build && build.teacherId != null) {
-    const id = map.byTeacherId.get(build.teacherId);
-    if (id != null) return id;
-  }
-  if ("code" in build && build.code != null && build.code !== "") {
-    const id = map.byCode.get(build.code);
-    if (id != null) return id;
-  }
+  const identityId = resolveTeacherIdentityId(build, map);
+  if (identityId != null) return identityId;
   const deptKey = `${build.nameCn}:${build.departmentCode ?? UNKNOWN_DEPARTMENT_CODE}`;
   return map.byNameDept.get(deptKey);
+}
+
+function resolveTeacherIdentityId(
+  identity: TeacherIdentityReference,
+  map: TeacherMap,
+): number | undefined {
+  if (identity.personId != null) {
+    const id = map.byPersonId.get(identity.personId);
+    if (id != null) return id;
+  }
+  if (identity.teacherId != null) {
+    const id = map.byTeacherId.get(identity.teacherId);
+    if (id != null) return id;
+  }
+  if (identity.code != null && identity.code !== "") {
+    const id = map.byCode.get(identity.code);
+    if (id != null) return id;
+  }
+  return undefined;
+}
+
+function requireConsistentTeacherIdentityId(
+  identity: TeacherIdentityReference,
+  map: TeacherMap,
+): number | undefined {
+  const ids = new Set<number>();
+  if (identity.personId != null) {
+    const id = map.byPersonId.get(identity.personId);
+    if (id != null) ids.add(id);
+  }
+  if (identity.teacherId != null) {
+    const id = map.byTeacherId.get(identity.teacherId);
+    if (id != null) ids.add(id);
+  }
+  if (identity.code != null && identity.code !== "") {
+    const id = map.byCode.get(identity.code);
+    if (id != null) ids.add(id);
+  }
+  if (ids.size > 1) {
+    throw new Error(
+      "Teacher identity tuple resolved to multiple database rows",
+    );
+  }
+  return [...ids][0];
 }
 
 async function upsertCampuses(

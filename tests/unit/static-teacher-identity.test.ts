@@ -52,6 +52,16 @@ describe("static teacher identity planning", () => {
       teacherId: 20,
       code: "T001",
     });
+    expect(plan.catalogFallbackResolutions).toEqual([
+      {
+        fallback: { nameCn: "张三", departmentCode: "006" },
+        targetIdentity: {
+          personId: 10,
+          teacherId: 20,
+          code: "T001",
+        },
+      },
+    ]);
   });
 
   it("keeps single-source teachers", () => {
@@ -79,6 +89,7 @@ describe("static teacher identity planning", () => {
       nameCn: "仅 Catalog",
       departmentCode: "006",
     });
+    expect(plan.catalogFallbackResolutions).toEqual([]);
   });
 
   it("keeps an ambiguous same-Section name separate", () => {
@@ -143,6 +154,104 @@ describe("static teacher identity planning", () => {
         departmentCode: "006",
       },
     ]);
+    expect(plan.catalogFallbackResolutions).toEqual([
+      {
+        fallback: { nameCn: "王同名", departmentCode: "006" },
+        targetIdentity: null,
+      },
+    ]);
+  });
+
+  it("keeps a fallback when any Catalog occurrence remains unmatched", () => {
+    const plan = planTeacherImport(
+      [
+        occurrence(100, 401, {
+          personId: 10,
+          nameCn: "部分匹配",
+        }),
+      ],
+      [
+        occurrence(100, 401, {
+          nameCn: "部分匹配",
+          departmentCode: "006",
+        }),
+        occurrence(200, 401, {
+          nameCn: "部分匹配",
+          departmentCode: "006",
+        }),
+      ],
+    );
+
+    expect(plan.teachers).toContainEqual({
+      nameCn: "部分匹配",
+      departmentCode: "006",
+    });
+    expect(plan.catalogFallbackResolutions).toEqual([]);
+  });
+
+  it("uses the final canonical stable identity as the fallback target", () => {
+    const plan = planTeacherImport(
+      [
+        occurrence(100, 401, {
+          personId: 10,
+          teacherId: 20,
+          code: "OLD",
+          nameCn: "跨学期",
+        }),
+        occurrence(200, 421, {
+          personId: 10,
+          teacherId: 21,
+          code: "NEW",
+          nameCn: "跨学期",
+        }),
+      ],
+      [
+        occurrence(100, 401, {
+          nameCn: "跨学期",
+          departmentCode: "006",
+        }),
+        occurrence(200, 421, {
+          nameCn: "跨学期",
+          departmentCode: "006",
+        }),
+      ],
+    );
+
+    expect(plan.catalogFallbackResolutions).toEqual([
+      {
+        fallback: { nameCn: "跨学期", departmentCode: "006" },
+        targetIdentity: {
+          personId: 10,
+          teacherId: 21,
+          code: "NEW",
+        },
+      },
+    ]);
+  });
+
+  it("does not retire a fallback for a schedule teacher without a stable identity", () => {
+    const plan = planTeacherImport(
+      [
+        occurrence(100, 401, {
+          nameCn: "无稳定身份",
+          departmentCode: "006",
+        }),
+      ],
+      [
+        occurrence(100, 401, {
+          nameCn: "无稳定身份",
+          departmentCode: "006",
+        }),
+      ],
+    );
+
+    expect(plan.teachers).toEqual([
+      {
+        nameCn: "无稳定身份",
+        departmentCode: "006",
+      },
+    ]);
+    expect(plan.catalogFallbackResolutions).toEqual([]);
   });
 
   it("uses the latest semester's non-empty metadata with older fallback", () => {

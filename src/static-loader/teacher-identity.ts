@@ -11,9 +11,15 @@ export type TeacherIdentityReference = Pick<
   "personId" | "teacherId" | "code"
 >;
 
+export type CatalogFallbackResolution = {
+  fallback: Pick<TeacherBuild, "nameCn" | "departmentCode">;
+  targetIdentity: TeacherIdentityReference | null;
+};
+
 export type TeacherImportPlan = {
   teachers: TeacherBuild[];
   sectionTeacherIdentities: Map<string, TeacherIdentityReference>;
+  catalogFallbackResolutions: CatalogFallbackResolution[];
 };
 
 export function sectionTeacherNameKey(
@@ -33,7 +39,15 @@ function stableIdentityKey(teacher: TeacherBuild): string {
 }
 
 function fallbackIdentityKey(teacher: TeacherBuild): string {
-  return `${teacher.nameCn}:${teacher.departmentCode ?? ""}`;
+  return JSON.stringify([teacher.nameCn, teacher.departmentCode ?? null]);
+}
+
+function hasStableIdentity(teacher: TeacherBuild): boolean {
+  return (
+    teacher.personId != null ||
+    teacher.teacherId != null ||
+    (teacher.code != null && teacher.code !== "")
+  );
 }
 
 const identityFields = [
@@ -194,6 +208,10 @@ export function planTeacherImport(
   const scheduleBySectionName = groupBySectionName(scheduleOccurrences);
   const catalogBySectionName = groupBySectionName(catalogOccurrences);
   const matchedCatalog = new Set<TeacherOccurrence>();
+  const matchedStableKeyByCatalogOccurrence = new Map<
+    TeacherOccurrence,
+    string
+  >();
   const catalogMetadataBySectionName = new Map<string, TeacherBuild>();
   const sectionTeacherIdentities = new Map<string, TeacherIdentityReference>();
 
@@ -212,11 +230,16 @@ export function planTeacherImport(
     }
 
     const scheduleTeacher = mergeOccurrences(scheduleGroup);
+    if (!hasStableIdentity(scheduleTeacher)) continue;
     const catalogTeacher = mergeOccurrences(catalogGroup);
     catalogMetadataBySectionName.set(key, catalogTeacher);
     sectionTeacherIdentities.set(key, identityReference(scheduleTeacher));
     for (const occurrence of catalogGroup) {
       matchedCatalog.add(occurrence);
+      matchedStableKeyByCatalogOccurrence.set(
+        occurrence,
+        stableIdentityKey(scheduleTeacher),
+      );
     }
   }
 
@@ -256,5 +279,58 @@ export function planTeacherImport(
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([, occurrences]) => mergeOccurrences(occurrences));
 
-  return { teachers, sectionTeacherIdentities };
+  const canonicalTeacherByStableKey = new Map(
+    teachers
+      .filter(hasStableIdentity)
+      .map((teacher) => [stableIdentityKey(teacher), teacher] as const),
+  );
+  const plannedFallbackKeys = new Set(
+    teachers
+      .filter((teacher) => !hasStableIdentity(teacher))
+      .map(fallbackIdentityKey),
+  );
+  const catalogByFallback = new Map<string, TeacherOccurrence[]>();
+  for (const occurrence of catalogOccurrences) {
+    const key = fallbackIdentityKey(occurrence.teacher);
+    const group = catalogByFallback.get(key) ?? [];
+    group.push(occurrence);
+    catalogByFallback.set(key, group);
+  }
+
+  const catalogFallbackResolutions: CatalogFallbackResolution[] = [];
+  for (const [, occurrences] of [...catalogByFallback].sort(
+    ([left], [right]) => (left < right ? -1 : left > right ? 1 : 0),
+  )) {
+    const fallbackKey = fallbackIdentityKey(occurrences[0].teacher);
+    if (plannedFallbackKeys.has(fallbackKey)) continue;
+    const stableKeys = occurrences.map((occurrence) =>
+      matchedStableKeyByCatalogOccurrence.get(occurrence),
+    );
+    if (stableKeys.some((key) => key == null)) continue;
+
+    const uniqueStableKeys = new Set(stableKeys as string[]);
+    const fallbackTeacher = occurrences[0].teacher;
+    const targetTeacher =
+      uniqueStableKeys.size === 1
+        ? canonicalTeacherByStableKey.get([...uniqueStableKeys][0])
+        : undefined;
+    catalogFallbackResolutions.push({
+      fallback: {
+        nameCn: fallbackTeacher.nameCn,
+        ...(fallbackTeacher.departmentCode == null
+          ? {}
+          : { departmentCode: fallbackTeacher.departmentCode }),
+      },
+      targetIdentity:
+        uniqueStableKeys.size === 1 && targetTeacher != null
+          ? identityReference(targetTeacher)
+          : null,
+    });
+  }
+
+  return {
+    teachers,
+    sectionTeacherIdentities,
+    catalogFallbackResolutions,
+  };
 }
