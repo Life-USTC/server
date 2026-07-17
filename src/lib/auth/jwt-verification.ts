@@ -7,6 +7,7 @@ export interface VerifiedAccessToken {
   sub: string;
   scope: Set<string>;
   aud: string | string[];
+  clientId?: string;
 }
 
 export async function verifyAccessTokenJwt(
@@ -40,5 +41,6 @@ export async function verifyAccessTokenJwt(
     sub,
     scope: expandScopeClaim(payload.scope),
     aud: payload.aud ?? [],
+    ...(typeof payload.azp === "string" ? { clientId: payload.azp } : {}),
   };
 }

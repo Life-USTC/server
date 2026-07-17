@@ -1,5 +1,8 @@
 export {
   getCanonicalOAuthIssuer,
+  getOAuthGraphqlAudienceUrls,
+  getOAuthGraphqlResourceUrl,
+  getOAuthGraphqlResourceUrls,
   getOAuthMcpAudienceUrls,
   getOAuthMcpResourceUrl,
   getOAuthMcpResourceUrls,
@@ -8,9 +11,11 @@ export {
   getOAuthTokenVerificationIssuers,
 } from "@/lib/mcp/oauth-audience-urls";
 export {
+  getGraphqlServerUrl,
   getJwksUrlForOAuthVerification,
   getMcpServerUrl,
   getOAuthAuthorizationServerMetadataUrl,
+  getOAuthGraphqlProtectedResourceMetadataUrl,
   getOAuthIssuerUrl,
   getOAuthOpenIdConfigurationUrl,
   getOAuthProtectedResourceMetadataUrl,

@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getCanonicalOAuthIssuer,
+  getGraphqlServerUrl,
   getOAuthAuthorizationServerMetadataUrl,
+  getOAuthGraphqlAudienceUrls,
+  getOAuthGraphqlProtectedResourceMetadataUrl,
+  getOAuthGraphqlResourceUrl,
   getOAuthIssuerUrl,
   getOAuthMcpAudienceUrls,
   getOAuthOpenIdConfigurationUrl,
@@ -52,12 +56,22 @@ describe("MCP URL 辅助函数", () => {
     expect(getOAuthProviderValidAudiences()).toEqual([
       "https://life.example.com/api/auth",
       "https://life.example.com/api/mcp",
+      "https://life.example.com/api/graphql",
     ]);
     expect(getOAuthMcpAudienceUrls()).toEqual([
       "https://life.example.com/api/mcp",
       "https://life.example.com/api/auth/oauth2/userinfo",
       "https://life.example.com/api/auth",
     ]);
+    expect(getOAuthGraphqlResourceUrl()).toBe(
+      "https://life.example.com/api/graphql",
+    );
+    expect(getOAuthGraphqlAudienceUrls()).toEqual([
+      "https://life.example.com/api/graphql",
+    ]);
+    expect(getGraphqlServerUrl().toString()).toBe(
+      "https://life.example.com/api/graphql",
+    );
     expect(getOAuthIssuerUrl().toString()).toBe(
       "https://life.example.com/api/auth",
     );
@@ -70,9 +84,12 @@ describe("MCP URL 辅助函数", () => {
     expect(getOAuthProtectedResourceMetadataUrl().toString()).toBe(
       "https://life.example.com/.well-known/oauth-protected-resource/api/mcp",
     );
+    expect(getOAuthGraphqlProtectedResourceMetadataUrl().toString()).toBe(
+      "https://life.example.com/.well-known/oauth-protected-resource/api/graphql",
+    );
   });
 
-  it("自定义本地端口包含 loopback 兄弟 MCP audience", () => {
+  it("自定义本地端口包含 loopback 兄弟 protected-resource audience", () => {
     vi.stubEnv("APP_PUBLIC_ORIGIN", "http://localhost:3010");
 
     expect(getOAuthProviderValidAudiences()).toEqual([
@@ -80,12 +97,18 @@ describe("MCP URL 辅助函数", () => {
       "http://127.0.0.1:3010/api/auth",
       "http://localhost:3010/api/mcp",
       "http://127.0.0.1:3010/api/mcp",
+      "http://localhost:3010/api/graphql",
+      "http://127.0.0.1:3010/api/graphql",
     ]);
     expect(getOAuthMcpAudienceUrls()).toEqual([
       "http://localhost:3010/api/mcp",
       "http://127.0.0.1:3010/api/mcp",
       "http://localhost:3010/api/auth/oauth2/userinfo",
       "http://localhost:3010/api/auth",
+    ]);
+    expect(getOAuthGraphqlAudienceUrls()).toEqual([
+      "http://localhost:3010/api/graphql",
+      "http://127.0.0.1:3010/api/graphql",
     ]);
   });
 });

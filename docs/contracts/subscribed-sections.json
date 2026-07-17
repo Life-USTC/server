@@ -33,6 +33,22 @@
           }
         ]
       },
+      "graphql": {
+        "fields": [
+          {
+            "parent": "Viewer",
+            "name": "subscribedSections",
+            "returns": "SectionPage!",
+            "auth": "user",
+            "required_scopes": ["subscription:read"],
+            "rest_equivalent": "GET /api/calendar-subscriptions/current",
+            "mcp_equivalent": "list_my_subscribed_sections",
+            "notes": [
+              "The Section item shape is identical to public Section list/detail results, and ownership is relation-derived."
+            ]
+          }
+        ]
+      },
       "mcp": {
         "tools": [
           {

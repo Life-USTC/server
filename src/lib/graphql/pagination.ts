@@ -6,6 +6,21 @@ export type GraphqlPageInput = {
   pageSize?: number | null;
 };
 
+type ServicePage = {
+  data: readonly unknown[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
+export const graphqlPageResolvers = {
+  items: (page: ServicePage) => page.data,
+  pageInfo: (page: ServicePage) => page.pagination,
+};
+
 export function normalizeGraphqlPage(input: GraphqlPageInput | null = {}) {
   const page = input?.page ?? 1;
   const pageSize = input?.pageSize ?? GRAPHQL_LIMITS.defaultPageSize;

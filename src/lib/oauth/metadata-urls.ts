@@ -1,0 +1,41 @@
+import {
+  getCanonicalOAuthIssuer,
+  getOAuthGraphqlResourceUrl,
+  getOAuthMcpResourceUrl,
+} from "@/lib/oauth/resource-urls";
+import {
+  appendWellKnownPath,
+  insertWellKnownPath,
+} from "@/lib/oauth/url-utils";
+
+export function getJwksUrlForOAuthVerification(): string {
+  return new URL("/api/auth/jwks", `${getCanonicalOAuthIssuer()}/`).toString();
+}
+
+export function getMcpServerUrl(): URL {
+  return new URL(getOAuthMcpResourceUrl());
+}
+
+export function getGraphqlServerUrl(): URL {
+  return new URL(getOAuthGraphqlResourceUrl());
+}
+
+export function getOAuthIssuerUrl(): URL {
+  return new URL(getCanonicalOAuthIssuer());
+}
+
+export function getOAuthAuthorizationServerMetadataUrl(): URL {
+  return insertWellKnownPath(getOAuthIssuerUrl(), "oauth-authorization-server");
+}
+
+export function getOAuthProtectedResourceMetadataUrl(): URL {
+  return insertWellKnownPath(getMcpServerUrl(), "oauth-protected-resource");
+}
+
+export function getOAuthGraphqlProtectedResourceMetadataUrl(): URL {
+  return insertWellKnownPath(getGraphqlServerUrl(), "oauth-protected-resource");
+}
+
+export function getOAuthOpenIdConfigurationUrl(): URL {
+  return appendWellKnownPath(getOAuthIssuerUrl(), "openid-configuration");
+}

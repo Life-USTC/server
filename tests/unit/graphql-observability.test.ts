@@ -11,12 +11,14 @@ vi.mock("@/features/catalog/server/course-summary-read-model", () => ({
   listCourseSummaries: courseService.listCourseSummaries,
 }));
 
+import type { GraphqlPrincipal } from "@/lib/graphql/auth";
+import type {
+  GraphqlContext,
+  GraphqlServerContext,
+} from "@/lib/graphql/context";
+import { createGraphqlLoaders } from "@/lib/graphql/loaders";
 import { createGraphqlObservabilityPlugin } from "@/lib/graphql/observability";
-import {
-  type GraphqlContext,
-  type GraphqlServerContext,
-  graphqlSchema,
-} from "@/lib/graphql/schema";
+import { graphqlSchema } from "@/lib/graphql/schema";
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 
 const handler = createGraphqlRequestHandler(false);
@@ -44,6 +46,59 @@ async function execute(
   headers?: Record<string, string>,
 ): Promise<{ payload: Record<string, unknown>; response: Response }> {
   const response = await handler(requestEvent(body, headers));
+  return {
+    payload: (await response.json()) as Record<string, unknown>,
+    response,
+  };
+}
+
+function contextWithPrincipal(
+  request: Request,
+  principal: GraphqlPrincipal,
+): GraphqlContext {
+  return {
+    loaders: createGraphqlLoaders("zh-cn"),
+    locale: "zh-cn",
+    principal,
+    request,
+  };
+}
+
+async function executeWithContext(
+  body: unknown,
+  createContext: (request: Request) => GraphqlContext | Promise<GraphqlContext>,
+  {
+    headers = {},
+    requestId = "graphql-observation-test",
+  }: {
+    headers?: Record<string, string>;
+    requestId?: string;
+  } = {},
+) {
+  const yoga = createYoga<GraphqlServerContext, GraphqlContext>({
+    schema: graphqlSchema,
+    graphqlEndpoint: "/api/graphql",
+    fetchAPI: { Response },
+    context: ({ request }) => createContext(request),
+    graphiql: false,
+    logging: false,
+    maskedErrors: true,
+    plugins: [createGraphqlObservabilityPlugin()],
+  });
+  const response = await yoga.fetch(
+    "https://example.test/api/graphql",
+    {
+      method: "POST",
+      headers: { "content-type": "application/json", ...headers },
+      body: JSON.stringify(body),
+    },
+    {
+      locals: {
+        locale: "zh-cn",
+        requestId,
+      },
+    },
+  );
   return {
     payload: (await response.json()) as Record<string, unknown>,
     response,
@@ -132,6 +187,53 @@ describe("GraphQL semantic observability", () => {
     ).toHaveLength(2);
   });
 
+  it("records the successful principal kind and prefers the locals request ID", async () => {
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    const writeDataPoint = installAnalytics();
+    const principals: Array<[GraphqlPrincipal["kind"], GraphqlPrincipal]> = [
+      ["anonymous", { kind: "anonymous" }],
+      ["session", { kind: "session", userId: "session-user" }],
+      [
+        "oauth",
+        {
+          kind: "oauth",
+          userId: "oauth-user",
+          scopes: new Set(["me:read"]),
+          resource: "https://example.test/api/graphql",
+        },
+      ],
+    ];
+
+    for (const [authMode, principal] of principals) {
+      await executeWithContext(
+        { query: `query ${authMode}Mode { courses { items { jwId } } }` },
+        (request) => contextWithPrincipal(request, principal),
+        {
+          headers: { "x-request-id": "ignored-header-request-id" },
+          requestId: `${authMode}-locals-request-id`,
+        },
+      );
+    }
+
+    expect(writeDataPoint).toHaveBeenCalledTimes(3);
+    principals.forEach(([authMode], index) => {
+      expect(writeDataPoint).toHaveBeenNthCalledWith(index + 1, {
+        indexes: ["graphql:query"],
+        blobs: [
+          "graphql_operation",
+          `${authMode}Mode`,
+          "query",
+          authMode,
+          `${authMode}-locals-request-id`,
+        ],
+        doubles: [expect.any(Number), 1, 100, 0],
+      });
+    });
+    expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
+      "ignored-header-request-id",
+    );
+  });
+
   it("records parse, validation, and resolver errors returned with HTTP 200", async () => {
     vi.spyOn(console, "info").mockImplementation(() => {});
     const writeDataPoint = installAnalytics();
@@ -172,56 +274,70 @@ describe("GraphQL semantic observability", () => {
     );
   });
 
-  it("records a masked context-building error exactly once", async () => {
+  it("classifies context failures from safe auth signals without leaking request data", async () => {
     vi.spyOn(console, "info").mockImplementation(() => {});
     const writeDataPoint = installAnalytics();
-    const contextFailureYoga = createYoga<GraphqlServerContext, GraphqlContext>(
+    const privateBearerCookie = "private-bearer-session-cookie";
+    const privateSessionCookie = "private-context-session-cookie";
+    const privateBody = "private-context-body";
+    const bearerFailure = await execute(
       {
-        schema: graphqlSchema,
-        graphqlEndpoint: "/api/graphql",
-        fetchAPI: { Response },
-        context: () => {
-          throw new Error("private-context-detail");
-        },
-        graphiql: false,
-        logging: false,
-        maskedErrors: true,
-        plugins: [createGraphqlObservabilityPlugin()],
-      },
-    );
-
-    const response = await contextFailureYoga.fetch(
-      "https://example.test/api/graphql",
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          query: "query ContextFailure { courses { items { jwId } } }",
-        }),
-      },
-      {
-        locals: {
-          locale: "zh-cn",
-          requestId: "graphql-context-failure-test",
+        query: "query BearerFailure { courses { items { jwId } } }",
+        extensions: {
+          privateBody,
         },
       },
+      {
+        authorization: "Bearer",
+        cookie: `better-auth.session_token=${privateBearerCookie}`,
+      },
     );
-    const payload = (await response.json()) as Record<string, unknown>;
+    const sessionFailure = await execute(
+      { query: "query SessionFailure { courses { items { jwId } } }" },
+      {
+        cookie: `better-auth.session_token=${privateSessionCookie}`,
+      },
+    );
+    const privateContextDetail = "private-context-detail";
+    const unknownFailure = await executeWithContext(
+      { query: "query UnknownFailure { courses { items { jwId } } }" },
+      () => {
+        throw new Error(privateContextDetail);
+      },
+      { requestId: "graphql-context-unknown-test" },
+    );
 
-    expect(response.status).toBe(500);
-    expect(JSON.stringify(payload)).not.toContain("private-context-detail");
-    expect(writeDataPoint).toHaveBeenCalledTimes(1);
-    expect(writeDataPoint).toHaveBeenCalledWith({
-      indexes: ["graphql:query"],
-      blobs: [
-        "graphql_operation",
-        "ContextFailure",
-        "query",
-        "anonymous",
-        "graphql-context-failure-test",
-      ],
-      doubles: [expect.any(Number), 1, 100, 1],
+    expect(bearerFailure.response.status).toBe(401);
+    expect(sessionFailure.response.status).toBe(403);
+    expect(unknownFailure.response.status).toBe(500);
+    expect(writeDataPoint).toHaveBeenCalledTimes(3);
+    [
+      ["BearerFailure", "oauth", "graphql-observation-test"],
+      ["SessionFailure", "session", "graphql-observation-test"],
+      ["UnknownFailure", "unknown", "graphql-context-unknown-test"],
+    ].forEach(([operationName, authMode, requestId], index) => {
+      expect(writeDataPoint).toHaveBeenNthCalledWith(index + 1, {
+        indexes: ["graphql:query"],
+        blobs: [
+          "graphql_operation",
+          operationName,
+          "query",
+          authMode,
+          requestId,
+        ],
+        doubles: [expect.any(Number), 1, 100, 1],
+      });
     });
+    const recorded = JSON.stringify([
+      writeDataPoint.mock.calls,
+      bearerFailure.payload,
+      sessionFailure.payload,
+      unknownFailure.payload,
+    ]);
+    expect(recorded).not.toContain(privateBearerCookie);
+    expect(recorded).not.toContain(privateSessionCookie);
+    expect(recorded).not.toContain(privateBody);
+    expect(recorded).not.toContain(privateContextDetail);
   });
 
   it("records the same variable-weighted cost used to reject execution", async () => {
@@ -278,15 +394,26 @@ describe("GraphQL semantic observability", () => {
       new Error("private-resolver-detail"),
     );
 
-    const { payload } = await execute(
+    const privateBody = "private-body-value";
+    const { payload } = await executeWithContext(
       {
         query:
           "query Safe($search: String) { courses(filter: { search: $search }) { items { jwId } } }",
         variables: { search: "private-variable-value" },
+        extensions: { privateBody },
       },
+      (request) =>
+        contextWithPrincipal(request, {
+          kind: "oauth",
+          userId: "private-user-id",
+          scopes: new Set(),
+          resource: "https://example.test/api/graphql",
+        }),
       {
-        authorization: "Bearer private-access-token",
-        cookie: "better-auth.session_token=private-session-cookie",
+        headers: {
+          authorization: "Bearer private-access-token",
+          cookie: "better-auth.session_token=private-session-cookie",
+        },
       },
     );
 
@@ -299,10 +426,11 @@ describe("GraphQL semantic observability", () => {
     expect(recorded).not.toContain("private-access-token");
     expect(recorded).not.toContain("private-session-cookie");
     expect(recorded).not.toContain("private-resolver-detail");
+    expect(recorded).not.toContain(privateBody);
     expect(recorded).not.toContain("filter:");
     expect(writeDataPoint).toHaveBeenCalledWith(
       expect.objectContaining({
-        blobs: expect.arrayContaining(["Safe", "anonymous"]),
+        blobs: expect.arrayContaining(["Safe", "oauth"]),
       }),
     );
     expect(JSON.stringify(payload)).not.toContain("private-resolver-detail");

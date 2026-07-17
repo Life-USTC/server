@@ -35,6 +35,22 @@
           }
         ]
       },
+      "graphql": {
+        "fields": [
+          {
+            "parent": "Viewer",
+            "name": "todos",
+            "returns": "TodoPage!",
+            "auth": "user",
+            "required_scopes": ["todo:read"],
+            "rest_equivalent": "GET /api/todos",
+            "mcp_equivalent": "list_my_todos",
+            "notes": [
+              "Ownership comes from the authenticated principal; PageInput defaults to 1/20 and caps pageSize at 100."
+            ]
+          }
+        ]
+      },
       "mcp": {
         "tools": [
           {

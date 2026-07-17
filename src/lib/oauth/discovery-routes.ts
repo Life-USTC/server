@@ -1,32 +1,43 @@
 import type { RequestHandler } from "@sveltejs/kit";
 import {
-  getMcpServerUrl,
-  getOAuthAuthorizationServerMetadataUrl,
-  getOAuthIssuerUrl,
-  getOAuthOpenIdConfigurationUrl,
-  getOAuthProtectedResourceMetadataUrl,
-} from "@/lib/mcp/urls";
-import {
   createDiscoveryJsonResponse,
   createDiscoveryMetadataRoute,
   createDiscoveryRedirectRoute,
   getAuthServerMetadataResponse,
   getOpenIdMetadataResponse,
 } from "@/lib/oauth/discovery-metadata";
+import {
+  getGraphqlServerUrl,
+  getMcpServerUrl,
+  getOAuthAuthorizationServerMetadataUrl,
+  getOAuthIssuerUrl,
+  getOAuthOpenIdConfigurationUrl,
+  getOAuthProtectedResourceMetadataUrl,
+} from "@/lib/oauth/metadata-urls";
 import { PUBLIC_REST_SCOPES } from "@/lib/oauth/scope-registry";
 
-async function getProtectedResourceMetadataResponse() {
+function getProtectedResourceMetadataResponse({
+  documentationPath,
+  resource,
+}: {
+  documentationPath?: string;
+  resource: URL;
+}) {
   const issuerUrl = getOAuthIssuerUrl();
 
   return createDiscoveryJsonResponse({
-    resource: getMcpServerUrl().toString(),
+    resource: resource.toString(),
     authorization_servers: [issuerUrl.toString()],
     scopes_supported: [...PUBLIC_REST_SCOPES],
     bearer_methods_supported: ["header"],
-    resource_documentation: new URL(
-      "/api/docs/tag/sections",
-      issuerUrl,
-    ).toString(),
+    ...(documentationPath
+      ? {
+          resource_documentation: new URL(
+            documentationPath,
+            issuerUrl,
+          ).toString(),
+        }
+      : {}),
   });
 }
 
@@ -49,11 +60,22 @@ const DISCOVERY_TARGETS = {
   },
   protectedResourceMetadata: {
     type: "metadata",
-    getResponse: getProtectedResourceMetadataResponse,
+    getResponse: () =>
+      getProtectedResourceMetadataResponse({
+        documentationPath: "/api/docs/tag/sections",
+        resource: getMcpServerUrl(),
+      }),
   },
   protectedResourceAlias: {
     type: "redirect",
     resolveUrl: getOAuthProtectedResourceMetadataUrl,
+  },
+  graphqlProtectedResourceMetadata: {
+    type: "metadata",
+    getResponse: () =>
+      getProtectedResourceMetadataResponse({
+        resource: getGraphqlServerUrl(),
+      }),
   },
 } as const;
 

@@ -92,6 +92,77 @@ type Department {
   nameEn: String
 }
 
+type Exam {
+  endTime: Int
+  examBatch: ExamBatch
+  examDate: Date
+  examMode: String
+  examRooms(page: PageInput): ExamRoomPage!
+  examTakeCount: Int
+  examType: Int
+  id: Int!
+  jwId: Int!
+  section: Section!
+  startTime: Int
+}
+
+type ExamBatch {
+  id: Int!
+  nameCn: String!
+  nameEn: String
+}
+
+input ExamFilter {
+  dateFrom: DateTime
+  dateTo: DateTime
+  includeDateUnknown: Boolean = true
+  semesterId: Int
+}
+
+type ExamPage {
+  items: [Exam!]!
+  pageInfo: PageInfo!
+}
+
+type ExamRoom {
+  count: Int!
+  id: Int!
+  room: String!
+}
+
+type ExamRoomPage {
+  items: [ExamRoom!]!
+  pageInfo: PageInfo!
+}
+
+type Homework {
+  commentCount: Int!
+  completed: Boolean!
+  completedAt: DateTime
+  createdAt: DateTime!
+  id: ID!
+  isMajor: Boolean!
+  publishedAt: DateTime
+  requiresTeam: Boolean!
+  section: Section!
+  submissionDueAt: DateTime
+  submissionStartAt: DateTime
+  title: String!
+  updatedAt: DateTime!
+}
+
+input HomeworkFilter {
+  completed: Boolean
+  dueAtFrom: DateTime
+  dueAtTo: DateTime
+  semesterId: Int
+}
+
+type HomeworkPage {
+  items: [Homework!]!
+  pageInfo: PageInfo!
+}
+
 type NamedCatalogValue {
   id: Int!
   nameCn: String!
@@ -121,6 +192,53 @@ type Query {
   semesters(page: PageInput): SemesterPage!
   teacher(id: Int!): Teacher
   teachers(filter: TeacherFilter, page: PageInput): TeacherPage!
+  viewer: Viewer
+}
+
+type Schedule {
+  customPlace: String
+  date: Date
+  endTime: Int!
+  endUnit: Int!
+  experiment: String
+  id: Int!
+  lessonType: String
+  periods: Int!
+  room: ScheduleRoom
+  scheduleGroup: ScheduleGroup!
+  section: Section!
+  startTime: Int!
+  startUnit: Int!
+  teachers(page: PageInput): TeacherPage!
+  weekIndex: Int!
+  weekday: Int!
+}
+
+input ScheduleFilter {
+  dateFrom: DateTime
+  dateTo: DateTime
+  semesterId: Int
+  weekday: Int
+}
+
+type ScheduleGroup {
+  id: Int!
+  isDefault: Boolean!
+  jwId: Int!
+  no: Int!
+}
+
+type SchedulePage {
+  items: [Schedule!]!
+  pageInfo: PageInfo!
+}
+
+type ScheduleRoom {
+  code: String!
+  id: Int!
+  jwId: Int!
+  nameCn: String!
+  nameEn: String
 }
 
 type Section {
@@ -199,4 +317,67 @@ input TeacherFilter {
 type TeacherPage {
   items: [Teacher!]!
   pageInfo: PageInfo!
+}
+
+type Todo {
+  completed: Boolean!
+  content: String
+  createdAt: DateTime!
+  dueAt: DateTime
+  id: ID!
+  priority: TodoPriority!
+  title: String!
+  updatedAt: DateTime!
+}
+
+input TodoFilter {
+  completed: Boolean
+  dueAfter: DateTime
+  dueBefore: DateTime
+  priority: TodoPriority
+}
+
+type TodoPage {
+  items: [Todo!]!
+  pageInfo: PageInfo!
+}
+
+enum TodoPriority {
+  HIGH
+  LOW
+  MEDIUM
+}
+
+type UserProfile {
+  createdAt: DateTime!
+  email: String!
+  id: ID!
+  image: String
+  isAdmin: Boolean!
+  name: String!
+  updatedAt: DateTime!
+  username: String
+}
+
+type Viewer {
+  exams(filter: ExamFilter, page: PageInput): ExamPage!
+  homeworks(filter: HomeworkFilter, page: PageInput): HomeworkPage!
+  overview(atTime: DateTime): ViewerOverview!
+  profile: UserProfile!
+  schedules(filter: ScheduleFilter, page: PageInput): SchedulePage!
+  subscribedSections(page: PageInput): SectionPage!
+  todos(filter: TodoFilter, page: PageInput): TodoPage!
+}
+
+type ViewerOverview {
+  atTime: DateTime!
+  completedTodos: Int!
+  dueSoonHomeworks: Int!
+  homeworkWindowEnd: DateTime!
+  incompleteTodos: Int!
+  overdueTodos: Int!
+  pendingHomeworks: Int!
+  today: Date!
+  todaySchedules: Int!
+  upcomingExams: Int!
 }
