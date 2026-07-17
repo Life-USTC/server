@@ -61,6 +61,10 @@ import {
   requireCourseSourceKey,
   sectionConflictUpdateColumns,
 } from "./upsert-policy";
+import {
+  missingSnapshotRowsWhere,
+  validateSnapshotCompleteness,
+} from "./validation";
 
 export type ImportConfig = {
   snapshotPath: string;
@@ -90,10 +94,26 @@ export async function runImport(
   const snapshot = new Snapshot(config.snapshotPath);
   const metadata = snapshot.metadata();
   const schemaVersion = metadata.schema_version;
-  if (schemaVersion !== "5") {
-    throw new Error(
-      `Unsupported snapshot schema version: ${schemaVersion ?? "unknown"}`,
+  try {
+    if (schemaVersion !== "5") {
+      throw new Error(
+        `Unsupported snapshot schema version: ${schemaVersion ?? "unknown"}`,
+      );
+    }
+    validateSnapshotCompleteness(
+      {
+        metadata,
+        semesterRows: snapshot.queryAll("catalog_teach_semester_list"),
+        catalogLessonRows: snapshot.queryAll(
+          "catalog_teach_lesson_list_for_teach",
+        ),
+        fetchRows: snapshot.queryAll("upstream_fetches"),
+      },
+      config.minSemester,
     );
+  } catch (error) {
+    snapshot.close();
+    throw error;
   }
 
   const allSectionJwIds = new Set<number>();
@@ -299,6 +319,26 @@ export async function runImport(
     );
     await logStep("writeExamRooms", exams.length, () =>
       writeExamRooms(tx, exams, examMap),
+    );
+    await logStep(
+      "reconcileRemovedSnapshotRows",
+      scheduleGroups.length + exams.length,
+      async () => {
+        const scheduleGroupWhere = missingSnapshotRowsWhere(
+          sectionDbIds,
+          scheduleGroups.map((group) => group.jwId),
+        );
+        if (scheduleGroupWhere != null) {
+          await tx.scheduleGroup.deleteMany({ where: scheduleGroupWhere });
+        }
+        const examWhere = missingSnapshotRowsWhere(
+          sectionDbIds,
+          exams.map((exam) => exam.jwId),
+        );
+        if (examWhere != null) {
+          await tx.exam.deleteMany({ where: examWhere });
+        }
+      },
     );
 
     if (config.dryRun) {

@@ -91,6 +91,14 @@ test("/dashboard/homeworks 加载登录标签", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "dashboard-homeworks");
 });
 
+test("登录工作区隐藏公共页脚但公共内容页保留", async ({ page }) => {
+  await signInAsDebugUser(page, "/dashboard");
+  await expect(page.locator("footer")).toHaveCount(0);
+
+  await gotoAndWaitForReady(page, "/courses");
+  await expect(page.locator("footer")).toBeVisible();
+});
+
 for (const locale of ["zh-cn", "en-us"] as const) {
   test(`登录工作台各分支提供唯一页面身份（${locale}）`, async ({
     page,
@@ -99,8 +107,8 @@ for (const locale of ["zh-cn", "en-us"] as const) {
     if (locale === "zh-cn") {
       await page.setViewportSize({ width: 390, height: 844 });
     }
-    await setLocale(page, locale);
     await signInAsDebugUser(page, dashboardTabRoutes.overview);
+    await setLocale(page, locale);
 
     for (const tab of signedTabIds) {
       await gotoAndWaitForReady(page, dashboardTabRoutes[tab]);

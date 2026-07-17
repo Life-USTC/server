@@ -4,6 +4,7 @@ import { writeFile } from "node:fs/promises";
 import { runImport } from "./import";
 import { createPrismaClient } from "./prisma";
 import { Snapshot } from "./snapshot";
+import { parseBooleanSetting, parsePositiveIntegerSetting } from "./validation";
 
 function getEnv(name: string, defaultValue?: string): string {
   const value = process.env[name] ?? defaultValue;
@@ -13,23 +14,6 @@ function getEnv(name: string, defaultValue?: string): string {
   return value;
 }
 
-function parseBool(value: string | undefined, defaultValue: boolean): boolean {
-  if (value === undefined) return defaultValue;
-  const lower = value.trim().toLowerCase();
-  if (lower === "true" || lower === "1") return true;
-  if (lower === "false" || lower === "0") return false;
-  return defaultValue;
-}
-
-function parseIntDefault(
-  value: string | undefined,
-  defaultValue: number,
-): number {
-  if (value === undefined) return defaultValue;
-  const parsed = Number.parseInt(value, 10);
-  return Number.isNaN(parsed) ? defaultValue : parsed;
-}
-
 function maskDatabaseUrl(url: string): string {
   return url.replace(/:\/\/([^:@]+)(:[^@]+)?@/, "://***@");
 }
@@ -37,11 +21,16 @@ function maskDatabaseUrl(url: string): string {
 async function main() {
   const databaseUrl = getEnv("DATABASE_URL");
   const snapshotPath = getEnv("STATIC_SNAPSHOT_PATH");
-  const minSemester = parseIntDefault(
+  const minSemester = parsePositiveIntegerSetting(
+    "STATIC_LOADER_MIN_SEMESTER",
     process.env.STATIC_LOADER_MIN_SEMESTER,
     401,
   );
-  const dryRun = parseBool(process.env.STATIC_LOADER_DRY_RUN, false);
+  const dryRun = parseBooleanSetting(
+    "STATIC_LOADER_DRY_RUN",
+    process.env.STATIC_LOADER_DRY_RUN,
+    false,
+  );
 
   if (!existsSync(snapshotPath)) {
     throw new Error(`Snapshot not found: ${snapshotPath}`);

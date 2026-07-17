@@ -1,6 +1,5 @@
 <script lang="ts">
 import * as Avatar from "$lib/components/ui/avatar/index.js";
-import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import type {
@@ -12,7 +11,6 @@ export let copy: ProfileSummaryCopy;
 export let displayName: string;
 export let initials: string;
 export let joinedDate: string;
-export let showUserId = false;
 export let stats: { label: string; value: number }[];
 export let user: ProfileSummaryUser;
 </script>
@@ -31,11 +29,6 @@ export let user: ProfileSummaryUser;
       </Card.Title>
       {#if user.username}
         <Card.Description class="truncate">@{user.username}</Card.Description>
-      {/if}
-      {#if showUserId}
-        <Badge class="mt-2 h-auto max-w-full shrink justify-start whitespace-normal break-all" variant="outline">
-          {user.id}
-        </Badge>
       {/if}
     </div>
   </Card.Header>
