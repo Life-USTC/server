@@ -14,7 +14,8 @@ describe("database recovery workflow safety", () => {
 
     for (const source of [migrate, sync]) {
       expect(source).toContain("group: production-database-writes");
-      expect(source).toContain("cancel-in-progress: false");
+      expect(source).toContain("queue: max");
+      expect(source).not.toContain("cancel-in-progress");
       expect(source).toContain("environment: production");
     }
   });

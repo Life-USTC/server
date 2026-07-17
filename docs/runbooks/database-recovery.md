@@ -68,8 +68,10 @@ review rules before relying on either gate.
    snapshot hash when the change imports static data.
 2. Pause or coordinate all production database writers for the maintenance
    window. DB Migrate Deploy and Static Sync share the
-   `production-database-writes` concurrency group, but GitHub concurrency is not
-   a replacement for an operator-owned maintenance window.
+   `production-database-writes` concurrency group. Its `queue: max` setting
+   retains up to 100 pending runs in FIFO order instead of replacing an older
+   pending migration with a newer sync. GitHub concurrency is still not a
+   replacement for an operator-owned maintenance window.
 3. Ask the provider to create a restore point immediately before the change.
    Record its UTC timestamp and the current recoverable window.
 4. Restore that point into an isolated database with no application traffic.
