@@ -7,10 +7,11 @@ export type GraphqlContext = {
   loaders: GraphqlLoaders;
   locale: AppLocale;
   principal: GraphqlPrincipal;
+  request: Request;
 };
 
 export type GraphqlServerContext = {
-  locals: { locale?: AppLocale };
+  locals: { locale?: AppLocale; requestId?: string };
 };
 
 export async function createGraphqlContext({
@@ -22,5 +23,6 @@ export async function createGraphqlContext({
     loaders: createGraphqlLoaders(locale),
     locale,
     principal: await resolveGraphqlPrincipal(request),
+    request,
   };
 }

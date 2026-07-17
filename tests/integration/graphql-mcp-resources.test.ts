@@ -40,7 +40,7 @@ describe("GraphQL MCP resources", () => {
     expect(operations.contents[0]).toMatchObject({
       uri: GRAPHQL_OPERATIONS_RESOURCE_URI,
       mimeType: "application/json",
-      text: "[]\n",
+      text: '{\n  "schemaVersion": 1,\n  "operations": []\n}\n',
     });
   });
 
@@ -48,5 +48,8 @@ describe("GraphQL MCP resources", () => {
     const { tools } = await mcp.listTools();
 
     expect(tools.map((tool) => tool.name)).not.toContain("execute_graphql");
+    expect(tools.map((tool) => tool.name)).not.toContain(
+      "run_graphql_operation",
+    );
   });
 });

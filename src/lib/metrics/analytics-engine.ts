@@ -66,6 +66,17 @@ type CalendarFeedCacheAnalyticsInput = {
   ttlMs: number;
 };
 
+type GraphqlOperationAnalyticsInput = {
+  authMode: string;
+  durationMs: number;
+  errorCount: number;
+  estimatedCost: number;
+  operationName: string;
+  operationType: string;
+  requestId: string;
+  topLevelFieldCount: number;
+};
+
 function statusClass(status: number) {
   if (!Number.isFinite(status)) return "unknown";
   return `${Math.floor(status / 100)}xx`;
@@ -217,5 +228,26 @@ export function writeCalendarFeedCacheAnalytics(
     indexes: [`cache:calendar:${boundedValue(input.feed)}`],
     blobs: ["calendar_feed_cache", input.feed, input.status],
     doubles: [input.ttlMs, input.storeSize],
+  });
+}
+
+export function writeGraphqlOperationAnalytics(
+  input: GraphqlOperationAnalyticsInput,
+) {
+  writeAnalyticsDataPoint({
+    indexes: [`graphql:${boundedValue(input.operationType)}`],
+    blobs: [
+      "graphql_operation",
+      boundedValue(input.operationName),
+      boundedValue(input.operationType),
+      boundedValue(input.authMode),
+      boundedValue(input.requestId),
+    ],
+    doubles: [
+      input.durationMs,
+      input.topLevelFieldCount,
+      input.estimatedCost,
+      input.errorCount,
+    ],
   });
 }

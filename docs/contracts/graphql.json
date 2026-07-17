@@ -4,7 +4,7 @@
     "anon": "Can query the public academic catalog and bus timetable through /api/graphql.",
     "user": "Can use the public queries and the authenticated read-only Viewer fields allowed by their Session or OAuth feature scopes.",
     "admin": "Uses the same read-only Viewer surface as a regular user; no GraphQL governance fields are exposed.",
-    "agent": "Can inspect the GraphQL SDL and the empty persisted-operation manifest through authenticated MCP resources; arbitrary GraphQL execution is not exposed as an MCP tool."
+    "agent": "Can inspect the GraphQL SDL and versioned persisted-operation manifest through authenticated MCP resources; arbitrary GraphQL execution is not exposed as an MCP tool."
   },
   "rules": {
     "read-only": "The endpoint exposes public catalog/bus queries and authenticated Viewer reads; mutations remain deferred.",
@@ -15,6 +15,7 @@
     "resolver-boundary": "Resolvers call feature-owned services only; they do not issue internal HTTP requests or access Prisma directly.",
     "request-cache": "The principal and entity DataLoaders are request-scoped; authentication is resolved once per request and every response is marked no-store.",
     "safe-errors": "Expected authentication, authorization, and bad-input GraphQLErrors retain safe codes and status metadata; unexpected resolver failures use Yoga error masking and never expose internal details.",
+    "semantic-observability": "Each attempted GraphQL operation records one sanitized semantic observation with its operation name and type, top-level field count, estimated cost, duration, GraphQL error count, auth mode, and request ID; raw documents, variables, credentials, argument values, and error details are excluded.",
     "viewer-scopes": "Query.viewer returns null for an anonymous caller. Its profile, overview, todos, subscribedSections, homeworks, schedules, and exams fields independently require me:read, dashboard:read, todo:read, subscription:read, homework:read, schedule:read, and exam:read for OAuth principals; trusted-origin Sessions use their existing user authority.",
     "viewer-ownership": "Viewer collections derive ownership from the authenticated user relation in feature services and never accept sectionIds or internal visibility/shape flags from GraphQL inputs.",
     "zoned-datetime": "DateTime inputs accept only valid ISO 8601 datetimes with an explicit Z or numeric timezone offset, with identical coercion for variables and inline literals; schedule and exam DateTime filters normalize to their Asia/Shanghai calendar day before querying @db.Date columns.",
@@ -69,13 +70,13 @@
             "name": "graphql_schema_sdl",
             "uri": "life-ustc://graphql/schema",
             "mime_type": "text/plain",
-            "description": "Canonical GraphQL SDL."
+            "description": "Canonical public GraphQL SDL."
           },
           {
             "name": "graphql_operations_manifest",
             "uri": "life-ustc://graphql/operations",
             "mime_type": "application/json",
-            "description": "Persisted-operation manifest; intentionally empty until controlled persisted operations are introduced."
+            "description": "Versioned persisted GraphQL operation metadata."
           }
         ]
       }

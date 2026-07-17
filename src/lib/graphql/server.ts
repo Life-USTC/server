@@ -11,6 +11,7 @@ import {
   type GraphqlContext,
   type GraphqlServerContext,
 } from "./context";
+import { createGraphqlObservabilityPlugin } from "./observability";
 import { createDeadline } from "./request-deadline";
 import { graphqlSchema } from "./schema";
 import { createGraphqlSecurityPlugins } from "./security";
@@ -122,10 +123,14 @@ export function createGraphqlRequestHandler(production: boolean) {
     fetchAPI: { Response },
     context: createGraphqlContext,
     graphiql: !production,
+    logging: false,
     maskedErrors: { maskError: maskGraphqlError },
     batching: { limit: GRAPHQL_LIMITS.requestBatch },
     multipart: false,
-    plugins: createGraphqlSecurityPlugins(production),
+    plugins: [
+      createGraphqlObservabilityPlugin(),
+      ...createGraphqlSecurityPlugins(production),
+    ],
   });
 
   return async function handleGraphqlRequest(event: RequestEvent) {

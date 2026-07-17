@@ -4,7 +4,7 @@ import {
   GRAPHQL_OPERATIONS_RESOURCE_URI,
   GRAPHQL_SCHEMA_RESOURCE_URI,
 } from "./constants";
-import operationsManifest from "./operations.json" with { type: "json" };
+import { publicGraphqlOperationsManifest } from "./operations";
 import { graphqlTypeDefs } from "./schema";
 
 export const graphqlSchemaSdl = `${printSchema(
@@ -12,7 +12,7 @@ export const graphqlSchemaSdl = `${printSchema(
 )}\n`;
 
 export const graphqlOperationsManifest = `${JSON.stringify(
-  operationsManifest,
+  publicGraphqlOperationsManifest,
   null,
   2,
 )}\n`;
@@ -42,8 +42,7 @@ export function registerGraphqlResources(server: McpServer) {
     GRAPHQL_OPERATIONS_RESOURCE_URI,
     {
       title: "Life@USTC GraphQL operations manifest",
-      description:
-        "Persisted-operation manifest; intentionally empty in Phase 1.",
+      description: "Versioned persisted GraphQL operation metadata.",
       mimeType: "application/json",
     },
     (uri) => ({
