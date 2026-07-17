@@ -1,4 +1,5 @@
 import type { RequestEvent } from "@sveltejs/kit";
+import { GraphQLError } from "graphql";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import { GRAPHQL_LIMITS } from "@/lib/graphql/constants";
@@ -452,10 +453,12 @@ describe("GraphQL HTTP boundary", () => {
   });
 
   it("masks a public resolver error that forges a safe GraphQLError code", async () => {
+    const secret = "forged-safe-error-must-not-leak";
     courseService.listCourseSummaries.mockRejectedValueOnce(
-      Object.assign(new Error("forged-safe-error-must-not-leak"), {
+      Object.assign(new Error(secret), {
         name: "GraphQLError",
         extensions: { code: "BAD_USER_INPUT" },
+        [Symbol.toStringTag]: "GraphQLError",
       }),
     );
 
@@ -465,9 +468,51 @@ describe("GraphQL HTTP boundary", () => {
     );
 
     expect(errorMessages(payload)).toEqual(["Unexpected error."]);
-    expect(JSON.stringify(payload)).not.toContain(
-      "forged-safe-error-must-not-leak",
+    expect(JSON.stringify(payload)).not.toContain(secret);
+  });
+
+  it("masks a safe GraphQLError with an untrusted nested originalError", async () => {
+    const outerSecret = "nested-graphql-error-must-not-leak";
+    const innerSecret = "nested-forged-original-must-not-leak";
+    const forgedOriginal = Object.assign(new Error(innerSecret), {
+      name: "GraphQLError",
+      extensions: { code: "BAD_USER_INPUT" },
+      [Symbol.toStringTag]: "GraphQLError",
+    });
+    courseService.listCourseSummaries.mockRejectedValueOnce(
+      new GraphQLError(outerSecret, {
+        extensions: { code: "BAD_USER_INPUT" },
+        originalError: forgedOriginal,
+      }),
     );
+
+    const { payload } = await execute(
+      { query: "{ courses { items { jwId } } }" },
+      true,
+    );
+
+    expect(errorMessages(payload)).toEqual(["Unexpected error."]);
+    expect(JSON.stringify(payload)).not.toContain(outerSecret);
+    expect(JSON.stringify(payload)).not.toContain(innerSecret);
+  });
+
+  it("masks a safe GraphQLError with a cyclic originalError chain", async () => {
+    const secret = "cyclic-graphql-error-must-not-leak";
+    const cyclicError = new GraphQLError(secret, {
+      extensions: { code: "BAD_USER_INPUT" },
+    });
+    Object.defineProperty(cyclicError, "originalError", {
+      value: cyclicError,
+    });
+    courseService.listCourseSummaries.mockRejectedValueOnce(cyclicError);
+
+    const { payload } = await execute(
+      { query: "{ courses { items { jwId } } }" },
+      true,
+    );
+
+    expect(errorMessages(payload)).toEqual(["Unexpected error."]);
+    expect(JSON.stringify(payload)).not.toContain(secret);
   });
 
   it("preserves a trusted bad-input GraphQLError in production", async () => {

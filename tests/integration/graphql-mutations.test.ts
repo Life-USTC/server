@@ -419,6 +419,57 @@ describe("GraphQL authenticated mutations", () => {
     ).resolves.toBe(0);
   });
 
+  it("rejects non-positive numeric comment selectors even with a valid targetId", async () => {
+    const [token, section] = await Promise.all([
+      signToken(userAId, [restWriteScope("comment")]),
+      prisma.section.findUniqueOrThrow({
+        where: { jwId: DEV_SEED.section.jwId },
+        select: { id: true },
+      }),
+    ]);
+    const mutation =
+      "mutation($input: CreateCommentInput!) { createComment(input: $input) { id } }";
+    const invalidSelectors = [
+      { field: "sectionJwId", value: 0 },
+      { field: "sectionJwId", value: -1 },
+      { field: "courseJwId", value: 0 },
+      { field: "courseJwId", value: -1 },
+      { field: "sectionTeacherId", value: 0 },
+      { field: "sectionTeacherId", value: -1 },
+    ] as const;
+    const bodies: string[] = [];
+
+    for (const { field, value } of invalidSelectors) {
+      const body = `${marker} invalid ${field} ${value}`;
+      bodies.push(body);
+      const result = await execute(
+        {
+          query: mutation,
+          variables: {
+            input: {
+              body,
+              targetId: String(section.id),
+              targetType: "SECTION",
+              [field]: value,
+            },
+          },
+        },
+        token,
+      );
+
+      expectErrorCode(result.payload, "BAD_USER_INPUT");
+      expect(result.payload.errors?.[0]?.message).toBe(
+        `${field} must be a positive integer.`,
+      );
+    }
+
+    await expect(
+      prisma.comment.count({
+        where: { body: { in: bodies }, userId: userAId },
+      }),
+    ).resolves.toBe(0);
+  });
+
   it("reuses personal write services and executes top-level mutations serially", async () => {
     const token = await signToken(userAId, [
       restWriteScope("bus"),

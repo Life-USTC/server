@@ -1,4 +1,5 @@
 import type { RequestEvent } from "@sveltejs/kit";
+import { GraphQLError } from "graphql";
 import {
   createYoga,
   type MaskError,
@@ -47,37 +48,46 @@ const SAFE_GRAPHQL_ERROR_CODES = new Set([
   "UNAUTHENTICATED",
 ]);
 
-function hasGraphqlErrorBrand(
-  value: unknown,
-): value is Error & { name: "GraphQLError" } {
-  if (
-    typeof value !== "object" ||
-    value === null ||
-    !("name" in value) ||
-    value.name !== "GraphQLError"
-  ) {
-    return false;
-  }
+function hasTrustedGraphqlErrorChain(value: unknown): value is GraphQLError {
+  const seen = new Set<unknown>();
+  let current: unknown = value;
 
   try {
-    return Object.prototype.toString.call(value) === "[object GraphQLError]";
+    while (current != null) {
+      if (seen.has(current)) return false;
+      seen.add(current);
+
+      if (current instanceof GraphQLError) {
+        if (current.originalError == null) return true;
+        current = current.originalError;
+        continue;
+      }
+
+      if (!(current instanceof Error) || !("originalError" in current)) {
+        return false;
+      }
+      const originalError = current.originalError;
+      if (
+        !(originalError instanceof Error) ||
+        !("extensions" in current) ||
+        !("extensions" in originalError) ||
+        current.message !== originalError.message ||
+        current.extensions !== originalError.extensions
+      ) {
+        return false;
+      }
+      current = originalError;
+    }
   } catch {
     return false;
   }
+
+  return false;
 }
 
 const maskGraphqlError: MaskError = (error, message, isDev) => {
-  const originalError =
-    hasGraphqlErrorBrand(error) && "originalError" in error
-      ? error.originalError
-      : undefined;
   if (
-    hasGraphqlErrorBrand(error) &&
-    (originalError == null || hasGraphqlErrorBrand(originalError)) &&
-    "extensions" in error &&
-    typeof error.extensions === "object" &&
-    error.extensions !== null &&
-    "code" in error.extensions &&
+    hasTrustedGraphqlErrorChain(error) &&
     typeof error.extensions.code === "string" &&
     SAFE_GRAPHQL_ERROR_CODES.has(error.extensions.code)
   ) {

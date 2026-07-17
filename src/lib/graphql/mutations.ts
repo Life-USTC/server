@@ -442,7 +442,10 @@ export const graphqlMutationResolvers = {
           normalizeIdList(input.attachmentIds, "attachmentIds") ?? undefined,
         auditMetadata: graphqlCommentAuditMetadata(context.request),
         content: normalizeCommentBody(input.body),
-        courseJwId: input.courseJwId,
+        courseJwId:
+          input.courseJwId == null
+            ? undefined
+            : requireGraphqlId(input.courseJwId, "courseJwId"),
         homeworkId:
           input.homeworkId == null
             ? undefined
@@ -454,8 +457,14 @@ export const graphqlMutationResolvers = {
             : requireMutationId(input.parentId, "parentId"),
         rawTargetId: input.targetId,
         sectionId: input.sectionId,
-        sectionJwId: input.sectionJwId,
-        sectionTeacherId: input.sectionTeacherId,
+        sectionJwId:
+          input.sectionJwId == null
+            ? undefined
+            : requireGraphqlId(input.sectionJwId, "sectionJwId"),
+        sectionTeacherId:
+          input.sectionTeacherId == null
+            ? undefined
+            : requireGraphqlId(input.sectionTeacherId, "sectionTeacherId"),
         targetType: input.targetType,
         teacherId: input.teacherId,
         userId: principal.userId,
