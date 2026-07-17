@@ -208,10 +208,14 @@ describe("GraphQL public Query integration", () => {
     });
   });
 
-  it("accepts a legacy course jwId when filtering sections", async () => {
+  it("resolves a legacy course jwId for course detail and section lists", async () => {
     const { payload } = await execute({
       query: /* GraphQL */ `
-        query SectionsByCourse($courseJwId: Int!) {
+        query CatalogByLegacyCourse($courseJwId: Int!) {
+          course(jwId: $courseJwId) {
+            jwId
+            code
+          }
           sections(
             filter: { courseJwId: $courseJwId }
             page: { pageSize: 10 }
@@ -230,6 +234,10 @@ describe("GraphQL public Query integration", () => {
 
     expect(payload.errors).toBeUndefined();
     expect(payload.data).toMatchObject({
+      course: {
+        jwId: DEV_SEED.course.jwId,
+        code: DEV_SEED.course.code,
+      },
       sections: {
         items: [
           {
