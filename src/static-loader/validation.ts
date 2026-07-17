@@ -1,6 +1,13 @@
+import * as z from "zod";
+
 const CATALOG_LESSON_SOURCE = "catalog_teach_lesson_list_for_teach";
 const CATALOG_EXAM_SOURCE = "catalog_teach_exam_list";
 const JW_SCHEDULE_SOURCE = "jw_ws_schedule_table_datum";
+const SNAPSHOT_MAX_FUTURE_SKEW_MS = 15 * 60 * 1000;
+const SNAPSHOT_GENERATED_AT_SCHEMA = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/)
+  .datetime({ offset: true });
 const SEMESTER_SOURCES = new Set([
   CATALOG_LESSON_SOURCE,
   CATALOG_EXAM_SOURCE,
@@ -90,13 +97,23 @@ export function parseOptionalSha256Setting(
   return normalized;
 }
 
-export function parseSnapshotGeneratedAt(value: string | undefined): Date {
+export function parseSnapshotGeneratedAt(
+  value: string | undefined,
+  now = new Date(),
+): Date {
   if (value == null || value.trim() === "") {
     throw new Error("snapshot metadata generated_at is required");
   }
+  if (!SNAPSHOT_GENERATED_AT_SCHEMA.safeParse(value).success) {
+    throw new Error(
+      "snapshot metadata generated_at must be a valid timestamp in RFC 3339 format",
+    );
+  }
   const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    throw new Error("snapshot metadata generated_at must be a valid timestamp");
+  if (parsed.getTime() > now.getTime() + SNAPSHOT_MAX_FUTURE_SKEW_MS) {
+    throw new Error(
+      "snapshot metadata generated_at must not be more than 15 minutes in the future",
+    );
   }
   return parsed;
 }

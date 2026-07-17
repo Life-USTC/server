@@ -63,7 +63,6 @@ import {
   reconcileSectionSourceLifecycle,
   type SectionLifecycleStats,
 } from "./section-lifecycle";
-import { reconcileSectionTeacherRows } from "./section-teacher-reconciliation";
 import {
   asBoolean,
   asInt,
@@ -2218,7 +2217,7 @@ async function upsertScheduleGroups(
   );
 }
 
-async function writeSectionTeachers(
+export async function writeSectionTeachers(
   tx: Prisma.TransactionClient,
   sectionMap: Map<number, number>,
   teacherMap: TeacherMap,
@@ -2239,7 +2238,51 @@ async function writeSectionTeachers(
     resolved.push({ sectionId, teacherId });
   }
 
-  await reconcileSectionTeacherRows(tx, resolved, sectionDbIds);
+  await deleteByColumn(tx, "_SectionTeachers", "A", sectionDbIds);
+
+  for (const chunk of chunks(resolved, 1000)) {
+    const values = chunk
+      .map((p) => `(${p.sectionId},${p.teacherId})`)
+      .join(",");
+    await tx.$executeRawUnsafe(
+      `INSERT INTO "_SectionTeachers" ("A","B") VALUES ${values} ON CONFLICT DO NOTHING`,
+    );
+  }
+
+  const now = new Date();
+  for (const chunk of chunks(resolved, 1000)) {
+    const tuples = chunk
+      .map((p) => `(${p.sectionId},${p.teacherId})`)
+      .join(",");
+    await tx.$executeRawUnsafe(
+      `UPDATE "SectionTeacher" SET "retiredAt" = NULL, "updatedAt" = $1 WHERE ("sectionId","teacherId") IN (${tuples})`,
+      now,
+    );
+  }
+
+  if (resolved.length > 0) {
+    await tx.sectionTeacher.createMany({
+      data: resolved.map((p) => ({
+        sectionId: p.sectionId,
+        teacherId: p.teacherId,
+        retiredAt: null,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  if (sectionDbIds.length === 0) {
+    return;
+  }
+
+  for (const sectionChunk of chunks(sectionDbIds, 1000)) {
+    const sectionIds = sectionChunk.join(",");
+    await tx.$executeRawUnsafe(
+      `UPDATE "SectionTeacher" SET "retiredAt" = $1, "updatedAt" = $2 WHERE "sectionId" IN (${sectionIds}) AND "retiredAt" IS NULL AND ("sectionId","teacherId") NOT IN (SELECT "A","B" FROM "_SectionTeachers" WHERE "A" IN (${sectionIds}))`,
+      now,
+      now,
+    );
+  }
 }
 
 async function writeTeacherAssignments(

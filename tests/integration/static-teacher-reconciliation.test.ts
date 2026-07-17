@@ -1,6 +1,11 @@
-import { afterAll, describe, expect, it } from "vitest";
+/// <reference path="../../src/static-loader/bun-sqlite.d.ts" />
+
+import { afterAll, describe, expect, it, vi } from "vitest";
 import { reconcileCatalogTeacherFallbacks } from "@/static-loader/teacher-reconciliation";
 import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
+
+vi.mock("bun:sqlite", () => ({ Database: class {} }));
+const { writeSectionTeachers } = await import("@/static-loader/import");
 
 const prisma = createTestPrisma();
 
@@ -9,6 +14,86 @@ afterAll(async () => {
 });
 
 describe("static teacher fallback reconciliation", () => {
+  it("clears implicit teachers and retires explicit rows for an empty source set", async () => {
+    const rollback = new Error("ROLLBACK_EMPTY_SECTION_TEACHER_TEST");
+    const marker = `[integration-test] empty-section-teachers-${Date.now()}`;
+    const numericMarker = 1_600_000_000 + (Date.now() % 100_000_000);
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        const department = await tx.department.create({
+          data: {
+            code: marker,
+            nameCn: marker,
+          },
+        });
+        const teacher = await tx.teacher.create({
+          data: {
+            personId: numericMarker,
+            code: marker,
+            nameCn: marker,
+            departmentId: department.id,
+          },
+        });
+        const course = await tx.course.create({
+          data: {
+            jwId: numericMarker,
+            code: marker,
+            nameCn: marker,
+          },
+        });
+        const section = await tx.section.create({
+          data: {
+            jwId: numericMarker,
+            code: marker,
+            courseId: course.id,
+            teachers: { connect: { id: teacher.id } },
+          },
+        });
+        const sectionTeacher = await tx.sectionTeacher.create({
+          data: {
+            sectionId: section.id,
+            teacherId: teacher.id,
+          },
+        });
+        const emptyTeacherMap = {
+          byPersonId: new Map<number, number>(),
+          byTeacherId: new Map<number, number>(),
+          byCode: new Map<string, number>(),
+          byNameDept: new Map<string, number>(),
+        };
+
+        await writeSectionTeachers(
+          tx,
+          new Map([[section.jwId, section.id]]),
+          emptyTeacherMap,
+          [],
+          [section.id],
+        );
+
+        await expect(
+          tx.section.findUniqueOrThrow({
+            where: { id: section.id },
+            select: { teachers: { select: { id: true } } },
+          }),
+        ).resolves.toEqual({ teachers: [] });
+        await expect(
+          tx.sectionTeacher.findUniqueOrThrow({
+            where: { id: sectionTeacher.id },
+            select: { retiredAt: true },
+          }),
+        ).resolves.toEqual({ retiredAt: expect.any(Date) });
+        await expect(
+          writeSectionTeachers(tx, new Map(), emptyTeacherMap, [], []),
+        ).resolves.toBeUndefined();
+
+        throw rollback;
+      });
+    } catch (error) {
+      if (error !== rollback) throw error;
+    }
+  });
+
   it("migrates unique relationships, preserves conflicts, and is idempotent", async () => {
     const rollback = new Error("ROLLBACK_STATIC_TEACHER_RECONCILIATION_TEST");
     const marker = `[integration-test] teacher-reconciliation-${Date.now()}`;
