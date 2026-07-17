@@ -10,8 +10,10 @@ import {
 } from "./course-identity";
 import {
   assertCourseJwIdNamespace,
+  type CourseMergeStats,
   mergeLegacyCourseDuplicates,
 } from "./course-merge";
+import { acquireStaticImportLock } from "./import-lock";
 import {
   type AdminClassSectionPair,
   type BuildingBuild,
@@ -69,7 +71,10 @@ import {
   type TeacherImportPlan,
   type TeacherOccurrence,
 } from "./teacher-identity";
-import { reconcileCatalogTeacherFallbacks } from "./teacher-reconciliation";
+import {
+  reconcileCatalogTeacherFallbacks,
+  type TeacherFallbackReconciliationStats,
+} from "./teacher-reconciliation";
 import {
   requireCourseDatabaseId,
   requireCourseSourceKey,
@@ -82,11 +87,12 @@ import {
 
 export type ImportConfig = {
   snapshotPath: string;
+  snapshotSha256: string;
   minSemester: number;
   dryRun: boolean;
 };
 
-export type ImportStats = {
+export type ImportRecordCounts = {
   semesters: number;
   departments: number;
   courses: number;
@@ -101,10 +107,38 @@ export type ImportStats = {
   adminClasses: number;
 };
 
+export type ImportReport = {
+  mode: "apply" | "dry-run";
+  outcome: "committed" | "rolled-back";
+  snapshot: {
+    sha256: string;
+    schemaVersion: string;
+    generatedAt: string | null;
+  };
+  plannedRecordCounts: ImportRecordCounts;
+  databaseRecordCounts: ImportRecordCounts | null;
+  reconciliation: {
+    teacherFallbacks: TeacherFallbackReconciliationStats;
+    legacyCourses: CourseMergeStats;
+  };
+};
+
+const EMPTY_TEACHER_RECONCILIATION_STATS: TeacherFallbackReconciliationStats = {
+  matchedFallbacks: 0,
+  transferredDescriptions: 0,
+  deletedFallbacks: 0,
+  retainedFallbacks: 0,
+  skippedResolutions: 0,
+};
+
+const EMPTY_COURSE_MERGE_STATS: CourseMergeStats = {
+  mergedCourses: 0,
+};
+
 export async function runImport(
   prisma: PrismaClient,
   config: ImportConfig,
-): Promise<ImportStats> {
+): Promise<ImportReport> {
   const snapshot = new Snapshot(config.snapshotPath);
   const metadata = snapshot.metadata();
   const schemaVersion = metadata.schema_version;
@@ -195,6 +229,24 @@ export async function runImport(
   }
 
   const exams = loadExams(snapshot, allSectionJwIds);
+  const plannedRecordCounts: ImportRecordCounts = {
+    semesters: semesters.length,
+    departments: departments.length + placeholderDepartments.length,
+    courses: courses.length,
+    sections: sections.length,
+    teachers: teachers.length,
+    scheduleGroups: scheduleGroups.length,
+    schedules: schedules.length,
+    exams: exams.length,
+    rooms: rooms.length,
+    buildings: buildings.length,
+    campuses: campuses.length,
+    adminClasses: adminClasses.length,
+  };
+  let teacherReconciliationStats = {
+    ...EMPTY_TEACHER_RECONCILIATION_STATS,
+  };
+  let courseMergeStats = { ...EMPTY_COURSE_MERGE_STATS };
 
   async function logStep<T>(
     name: string,
@@ -211,6 +263,9 @@ export async function runImport(
   }
 
   const runInTransaction = async (tx: Prisma.TransactionClient) => {
+    await logStep("acquireStaticImportLock", 1, () =>
+      acquireStaticImportLock(tx),
+    );
     const semesterMap = await logStep("upsertSemesters", semesters.length, () =>
       upsertSemesters(tx, semesters),
     );
@@ -330,7 +385,7 @@ export async function runImport(
         sectionDbIds,
       ),
     );
-    await logStep(
+    teacherReconciliationStats = await logStep(
       "reconcileCatalogTeacherFallbacks",
       catalogFallbackResolutions.length,
       () =>
@@ -368,7 +423,7 @@ export async function runImport(
         }
       },
     );
-    await logStep(
+    courseMergeStats = await logStep(
       "mergeLegacyCourseDuplicates",
       courseImport.incomingCourses.length,
       () =>
@@ -379,13 +434,14 @@ export async function runImport(
         ),
     );
 
-    if (config.dryRun) {
-      throw new Error("DRY_RUN: rolling back transaction");
-    }
+    if (config.dryRun) throw new Error("DRY_RUN: rolling back transaction");
+
+    return logStep("countDatabaseRecords", 12, () => countStats(tx));
   };
 
+  let databaseRecordCounts: ImportRecordCounts | null = null;
   try {
-    await prisma.$transaction(runInTransaction, {
+    databaseRecordCounts = await prisma.$transaction(runInTransaction, {
       maxWait: 60_000,
       timeout: 7_200_000,
     });
@@ -403,24 +459,21 @@ export async function runImport(
     snapshot.close();
   }
 
-  if (config.dryRun) {
-    return {
-      semesters: semesters.length,
-      departments: departments.length + placeholderDepartments.length,
-      courses: courses.length,
-      sections: sections.length,
-      teachers: teachers.length,
-      scheduleGroups: scheduleGroups.length,
-      schedules: schedules.length,
-      exams: exams.length,
-      rooms: rooms.length,
-      buildings: buildings.length,
-      campuses: campuses.length,
-      adminClasses: adminClasses.length,
-    };
-  }
-
-  return countStats(prisma);
+  return {
+    mode: config.dryRun ? "dry-run" : "apply",
+    outcome: config.dryRun ? "rolled-back" : "committed",
+    snapshot: {
+      sha256: config.snapshotSha256,
+      schemaVersion,
+      generatedAt: metadata.generated_at ?? null,
+    },
+    plannedRecordCounts,
+    databaseRecordCounts,
+    reconciliation: {
+      teacherFallbacks: teacherReconciliationStats,
+      legacyCourses: courseMergeStats,
+    },
+  };
 }
 
 function loadSemesters(snapshot: Snapshot): SemesterBuild[] {
@@ -2636,7 +2689,9 @@ async function bulkUpdate(
   }
 }
 
-async function countStats(prisma: PrismaClient): Promise<ImportStats> {
+async function countStats(
+  prisma: Prisma.TransactionClient,
+): Promise<ImportRecordCounts> {
   const [
     semesters,
     departments,
