@@ -1,3 +1,12 @@
+## [1.54.1](https://github.com/Life-USTC/server/compare/v1.54.0...v1.54.1) (2026-07-17)
+
+
+### Bug Fixes
+
+* harden static snapshot imports ([#454](https://github.com/Life-USTC/server/issues/454)) ([22c544d](https://github.com/Life-USTC/server/commit/22c544dc3b93d3e1206d2c1122b15b9aa98eac29))
+* **static-loader:** preserve campus and room meetings ([#453](https://github.com/Life-USTC/server/issues/453)) ([748b9f3](https://github.com/Life-USTC/server/commit/748b9f3ad1d82b8d9cb76589b12ba34b33efaa0f))
+* **ui:** improve workspace and profile UX ([#457](https://github.com/Life-USTC/server/issues/457)) ([dc3c185](https://github.com/Life-USTC/server/commit/dc3c185f418fe180b8bcb116d11d499d76fd810e))
+
 # [1.54.0](https://github.com/Life-USTC/server/compare/v1.53.2...v1.54.0) (2026-07-16)
 
 
