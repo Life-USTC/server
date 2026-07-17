@@ -44,15 +44,39 @@ const SAFE_GRAPHQL_ERROR_CODES = new Set([
   "UNAUTHENTICATED",
 ]);
 
-const maskGraphqlError: MaskError = (error, message, isDev) => {
-  const graphqlError = error as Error & {
-    extensions?: Record<string, unknown>;
-  };
+function hasGraphqlErrorBrand(
+  value: unknown,
+): value is Error & { name: "GraphQLError" } {
   if (
-    error instanceof Error &&
-    error.name === "GraphQLError" &&
-    typeof graphqlError.extensions?.code === "string" &&
-    SAFE_GRAPHQL_ERROR_CODES.has(graphqlError.extensions.code)
+    typeof value !== "object" ||
+    value === null ||
+    !("name" in value) ||
+    value.name !== "GraphQLError"
+  ) {
+    return false;
+  }
+
+  try {
+    return Object.prototype.toString.call(value) === "[object GraphQLError]";
+  } catch {
+    return false;
+  }
+}
+
+const maskGraphqlError: MaskError = (error, message, isDev) => {
+  const originalError =
+    hasGraphqlErrorBrand(error) && "originalError" in error
+      ? error.originalError
+      : undefined;
+  if (
+    hasGraphqlErrorBrand(error) &&
+    (originalError == null || hasGraphqlErrorBrand(originalError)) &&
+    "extensions" in error &&
+    typeof error.extensions === "object" &&
+    error.extensions !== null &&
+    "code" in error.extensions &&
+    typeof error.extensions.code === "string" &&
+    SAFE_GRAPHQL_ERROR_CODES.has(error.extensions.code)
   ) {
     return error;
   }

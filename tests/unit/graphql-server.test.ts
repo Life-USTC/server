@@ -184,6 +184,46 @@ describe("GraphQL HTTP boundary", () => {
     expect(errorMessages(payload)).toContain("Unexpected error.");
   });
 
+  it("masks a public resolver error that forges a safe GraphQLError code", async () => {
+    courseService.listCourseSummaries.mockRejectedValueOnce(
+      Object.assign(new Error("forged-safe-error-must-not-leak"), {
+        name: "GraphQLError",
+        extensions: { code: "BAD_USER_INPUT" },
+      }),
+    );
+
+    const { payload } = await execute(
+      { query: "{ courses { items { jwId } } }" },
+      true,
+    );
+
+    expect(errorMessages(payload)).toEqual(["Unexpected error."]);
+    expect(JSON.stringify(payload)).not.toContain(
+      "forged-safe-error-must-not-leak",
+    );
+  });
+
+  it("preserves a trusted bad-input GraphQLError in production", async () => {
+    const { payload } = await execute(
+      {
+        query:
+          "{ courses(page: { page: 0 }) { items { jwId } pageInfo { total } } }",
+      },
+      true,
+    );
+
+    expect(payload).toMatchObject({
+      data: null,
+      errors: [
+        {
+          message: expect.stringContaining("page must be between"),
+          extensions: { code: "BAD_USER_INPUT" },
+        },
+      ],
+    });
+    expect(errorMessages(payload)).not.toContain("Unexpected error.");
+  });
+
   it.each([
     [
       "page",
