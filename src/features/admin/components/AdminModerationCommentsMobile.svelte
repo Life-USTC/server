@@ -15,7 +15,7 @@ export let statusLabel: AdminModerationCommentStatusFormatter;
 export let targetLabel: AdminModerationCommentFormatter;
 </script>
 
-<Item.Group class="md:hidden">
+<Item.Group class="md:hidden" data-testid="admin-moderation-mobile-list">
   {#each comments as comment}
     <Item.Root
       variant="outline"

@@ -214,6 +214,27 @@ test.describe("/teachers/[id] 教师详情页", () => {
     await captureStepScreenshot(page, testInfo, "teacher/detail-nav");
   });
 
+  test("移动端教师标题与详情导航保持紧凑", async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await navigateToSeedTeacher(page);
+
+    const heading = page.getByRole("heading", { level: 1 }).first();
+    await expect(heading).toHaveCSS("font-size", "24px");
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(390);
+
+    const nav = page.getByTestId("detail-section-nav");
+    await expect(nav.locator("[data-sidebar='menu']")).toHaveCSS(
+      "flex-direction",
+      "row",
+    );
+    await expect(nav.locator('a[aria-current="page"]')).toHaveCount(1);
+    await jumpToTeacherSection(page, /评论|Comments/i, "#teacher-comments");
+
+    await captureStepScreenshot(page, testInfo, "teacher/detail-mobile");
+  });
+
   // ── Description ─────────────────────────────────────────────────────────────
 
   test("已登录用户可编辑简介（content、lastEditedBy、lastEditedAt）", async ({

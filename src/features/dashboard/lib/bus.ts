@@ -74,6 +74,29 @@ export function nextBusTripHighlightKey(routes: BusApplicableRoute[]) {
   return bestKey;
 }
 
+export function nextBusDepartures(routes: BusApplicableRoute[], limit = 3) {
+  return routes
+    .flatMap((route) =>
+      route.upcomingTrips.map((trip) => ({
+        route,
+        trip,
+      })),
+    )
+    .sort((left, right) => {
+      const leftMinutes =
+        left.trip.startTime.displayMinutes ?? Number.MAX_SAFE_INTEGER;
+      const rightMinutes =
+        right.trip.startTime.displayMinutes ?? Number.MAX_SAFE_INTEGER;
+
+      if (leftMinutes !== rightMinutes) return leftMinutes - rightMinutes;
+      if (left.route.route.id !== right.route.route.id) {
+        return left.route.route.id - right.route.route.id;
+      }
+      return left.trip.trip.position - right.trip.trip.position;
+    })
+    .slice(0, Math.max(0, limit));
+}
+
 export function hasEstimatedBusTimes(
   data: BusDataWithTrips | null,
   routes: BusApplicableRoute[],
