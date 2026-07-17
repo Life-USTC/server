@@ -8,8 +8,8 @@ import { DEV_SEED } from "../../../utils/dev-seed";
 import { getCurrentSessionUser } from "../../../utils/e2e-db";
 import {
   appSidebar,
-  expandDashboardSidebarGroup,
-  sidebarDashboardLink,
+  expandWorkspaceSidebarGroup,
+  sidebarNavigationLink,
   visibleText,
 } from "../../../utils/locators";
 import {
@@ -118,10 +118,10 @@ export async function assertPageContract(
     await signInAsDebugUser(page, routePath === "/dashboard" ? "/" : routePath);
     await gotoContractPage(page, routePath, testInfo);
     await expectMainContent(page);
-    await expandDashboardSidebarGroup(page);
-    await expect(
-      sidebarDashboardLink(page, /^(工作台首页|Workspace start)$/i),
-    ).toBeVisible({ timeout: 10_000 });
+    await expandWorkspaceSidebarGroup(page);
+    await expect(sidebarNavigationLink(page, /^(今天|Today)$/i)).toBeVisible({
+      timeout: 10_000,
+    });
     return;
   }
 

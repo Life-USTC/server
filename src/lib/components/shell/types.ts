@@ -12,6 +12,7 @@ export type ShellLink = {
 };
 
 export type ShellNavGroup = {
+  defaultOpen?: boolean;
   label: string;
   links: ShellLink[];
 };
@@ -32,8 +33,10 @@ export type ShellCopy = {
   shell: {
     footerNavigation: string;
     menu: string;
+    mobilePrimaryNavigation: string;
     primaryNavigation: string;
     profileMenu: string;
+    secondaryNavigation: string;
   };
 };
 
