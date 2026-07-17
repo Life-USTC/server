@@ -12,13 +12,14 @@ on:
         type: boolean
 
 concurrency:
-  group: static-sync
-  cancel-in-progress: false
+  group: production-database-writes
+  queue: max
 
 jobs:
   sync:
     name: Sync static snapshot to production database
     runs-on: ubuntu-latest
+    environment: production
     timeout-minutes: 150
     permissions:
       contents: read
