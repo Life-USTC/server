@@ -112,7 +112,8 @@ function closeMobileSidebar(): void {
         )}
         {@const isOpen =
           isCollapsed ||
-          (groupOpen[groupKey] ?? Boolean(group.defaultOpen || groupActive))}
+          groupActive ||
+          (groupOpen[groupKey] ?? Boolean(group.defaultOpen))}
         <Collapsible.Root
           open={isOpen}
           onOpenChange={(value) => {

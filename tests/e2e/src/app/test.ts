@@ -38,6 +38,39 @@ test("/ 首页快速入口可见", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "home-shortcuts");
 });
 
+test("/ shell 匿名 390px 抽屉只展示公开导航", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await gotoAndWaitForReady(page, "/");
+
+  await page
+    .locator("[data-shell-topbar]")
+    .getByRole("button", { name: /^菜单$|^Menu$/i })
+    .click();
+
+  const sidebar = page.getByRole("dialog", { name: /Sidebar/i });
+  for (const name of [
+    /^(校车|Shuttle Bus)$/i,
+    /^(网站|Websites)$/i,
+    /^(课程|Courses)$/i,
+    /^(班级|Sections)$/i,
+    /^(教师|Teachers)$/i,
+  ]) {
+    await expect(sidebar.getByRole("link", { name })).toBeVisible();
+  }
+  for (const name of [
+    /^(待办|Todos)$/i,
+    /^(考试|Exams)$/i,
+    /^(关注班级|Section Management)$/i,
+  ]) {
+    await expect(sidebar.getByRole("link", { name })).toHaveCount(0);
+  }
+  await expect(
+    page.getByRole("navigation", {
+      name: /移动主导航|Mobile primary navigation/i,
+    }),
+  ).toHaveCount(0);
+});
+
 test("/ 主题切换可写入 localStorage", async ({ page }, testInfo) => {
   await gotoAndWaitForReady(page, "/", { testInfo, screenshotLabel: "home" });
 
@@ -138,6 +171,43 @@ test("/ shell 桌面导航以任务为一级入口且当前位置唯一", async 
   await expect(
     navigation.getByRole("link", { name: /^(课程|Courses)$/i }),
   ).toBeVisible();
+});
+
+test("/ shell 当前分组在导航后保持展开", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await signInAsDebugUser(page, "/dashboard/calendar");
+
+  const navigation = page.getByTestId("app-sidebar").getByRole("navigation", {
+    name: /主导航|Primary navigation/i,
+  });
+  const explore = navigation.getByRole("button", {
+    name: /^(发现|Explore)$/i,
+  });
+
+  await explore.click();
+  await expect(explore).toHaveAttribute("aria-expanded", "true");
+  await expect(
+    navigation.getByRole("link", { name: /^(课程|Courses)$/i }),
+  ).toBeVisible();
+  await explore.click();
+  await expect(explore).toHaveAttribute("aria-expanded", "false");
+
+  await page.evaluate(() => {
+    const link = document.createElement("a");
+    link.dataset.testNavigation = "courses";
+    link.href = "/courses";
+    link.textContent = "Navigate to Courses";
+    document.querySelector("#main-content")?.append(link);
+  });
+  await page.locator('[data-test-navigation="courses"]').click();
+  await page.waitForURL("**/courses");
+  await waitForUiSettled(page);
+
+  await expect(explore).toHaveAttribute("aria-expanded", "true");
+  await expect(
+    navigation.getByRole("link", { name: /^(课程|Courses)$/i }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(navigation.locator('[aria-current="page"]')).toHaveCount(1);
 });
 
 test("/ shell 390px 主导航可达且触控尺寸达标", async ({ page }, testInfo) => {

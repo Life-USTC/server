@@ -75,12 +75,14 @@ $: navGroups = buildShellNavGroups(
   $page.url.pathname,
   $page.data,
 );
-$: mobileNavGroups = buildMobileSecondaryNavGroups(
-  data.copy,
-  data.user?.isAdmin ?? false,
-  $page.url.pathname,
-  $page.data,
-);
+$: mobileNavGroups = data.user
+  ? buildMobileSecondaryNavGroups(
+      data.copy,
+      data.user.isAdmin,
+      $page.url.pathname,
+      $page.data,
+    )
+  : navGroups;
 $: mobilePrimaryLinks = buildMobilePrimaryLinks(data.copy, profileHref);
 $: mobileSecondaryHasActive =
   Boolean($page.url.pathname) &&
