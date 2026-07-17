@@ -9,6 +9,7 @@ export let addMonths: DashboardCalendarTabProps["addMonths"];
 export let calendarData: DashboardCalendarTabProps["calendarData"];
 export let calendarEventParts: DashboardCalendarTabProps["calendarEventParts"];
 export let calendarEventsForDay: DashboardCalendarTabProps["calendarEventsForDay"];
+export let calendarTimelineItemsForDay: DashboardCalendarTabProps["calendarTimelineItemsForDay"];
 export let calendarExamDetail: DashboardCalendarTabProps["calendarExamDetail"];
 export let calendarHomeworkDetail: DashboardCalendarTabProps["calendarHomeworkDetail"];
 export let calendarHomeworkHref: DashboardCalendarTabProps["calendarHomeworkHref"];
@@ -24,6 +25,7 @@ export let calendarWeekdayLabels: DashboardCalendarTabProps["calendarWeekdayLabe
 export let commonCopy: DashboardCalendarTabProps["commonCopy"];
 export let copy: DashboardRootCopy;
 export let copyCalendarLink: DashboardCalendarTabProps["copyCalendarLink"];
+export let copyCalendarUrl: DashboardCalendarTabProps["copyCalendarUrl"];
 export let dashboardCopy: DashboardCalendarTabProps["dashboardCopy"];
 export let dashboardTabHref: DashboardCalendarTabProps["dashboardTabHref"];
 export let formatMessage: FormatMessage;
@@ -49,6 +51,7 @@ export let subscriptionsCopy: DashboardCalendarTabProps["subscriptionsCopy"];
   {dashboardTabHref}
   {formatMessage}
   {copyCalendarLink}
+  {copyCalendarUrl}
   {sessionHref}
   {setCalendarView}
   {setCalendarMonth}
@@ -58,6 +61,7 @@ export let subscriptionsCopy: DashboardCalendarTabProps["subscriptionsCopy"];
   {addMonths}
   {monthWeeks}
   {calendarEventsForDay}
+  {calendarTimelineItemsForDay}
   {calendarWeekLabel}
   {calendarEventParts}
   {calendarHomeworkHref}

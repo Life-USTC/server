@@ -22,6 +22,7 @@
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
+import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
@@ -66,6 +67,7 @@ test.describe("仪表盘日历", () => {
     // Weekday labels (Sun-Sat) — calendar.yml personal-calendar-view.display.fields
     await expect(
       page
+        .getByTestId("dashboard-calendar-grid")
         .getByText(/Sun|Mon|Tue|Wed|Thu|Fri|Sat|日|一|二|三|四|五|六/)
         .first(),
     ).toBeVisible();
@@ -192,5 +194,68 @@ test.describe("仪表盘日历", () => {
       "text/calendar",
     );
     await expect(page.getByText(/已复制链接|Link Copied/i)).toBeVisible();
+  });
+
+  test("移动端使用可读周日程且导航控件满足触控尺寸", async ({
+    page,
+  }, testInfo) => {
+    await page
+      .context()
+      .grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.setViewportSize({ height: 844, width: 390 });
+    const agendaUrl = `/dashboard/calendar?calendarView=week&calendarWeek=${DEV_SEED_ANCHOR.date}`;
+    await signInAsDebugUser(page, agendaUrl);
+    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, agendaUrl, {
+      testInfo,
+      screenshotLabel: "calendar-mobile-agenda",
+    });
+
+    const agenda = page.getByTestId("dashboard-calendar-agenda");
+    await expect(agenda).toBeVisible();
+    await expect(agenda.locator("section")).toHaveCount(7);
+    await expect(agenda.locator("a").first()).toBeVisible();
+    await expect(
+      agenda.getByText(DEV_SEED.homeworks.overdueTitle).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("group", { name: /日历|Calendar/i }),
+    ).toBeHidden();
+
+    const previous = page.getByRole("button", {
+      name: /上一周|Previous week/i,
+    });
+    const today = page.getByRole("button", { name: /今天|Today/i });
+    const next = page.getByRole("button", { name: /下一周|Next week/i });
+    const more = page.getByRole("button", {
+      name: /更多日历操作|More calendar actions/i,
+    });
+    for (const control of [previous, today, next, more]) {
+      const box = await control.boundingBox();
+      expect(box?.width).toBeGreaterThanOrEqual(44);
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+    }
+
+    await more.click();
+    const iCalAction = page.getByRole("menuitem", {
+      name: /复制日历链接|iCal/i,
+    });
+    await expect(iCalAction).toBeVisible();
+    await iCalAction.click();
+    expect(
+      await page.evaluate(async () => navigator.clipboard.readText()),
+    ).toMatch(/\/api\/users\/[^/]+:[^/]+\/calendar\.ics$/);
+
+    await next.click();
+    await expect(page).toHaveURL(/calendarView=week/);
+    await expect(page).toHaveURL(/calendarWeek=\d{4}-\d{2}-\d{2}/);
+    await expect(agenda).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+
+    await captureStepScreenshot(page, testInfo, "calendar/mobile-agenda");
   });
 });

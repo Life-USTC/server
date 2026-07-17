@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { listUserCalendarEvents } from "@/features/calendar/server/calendar-events";
-import {
-  summarizeBusDeparture,
-  summarizeCalendarEventCollection,
-} from "@/lib/mcp/tools/event-summary";
+import { summarizeBusDeparture } from "@/lib/mcp/tools/event-summary-bus-cards";
+import { summarizeCalendarEventCollection } from "@/lib/mcp/tools/event-summary-collections";
 
 describe("summarizeCalendarEventCollection", () => {
   it("按天和类型分组事件并裁剪嵌套载荷", () => {

@@ -1,12 +1,12 @@
-import { compactMcpPayload } from "@/lib/mcp/compact-payload";
+import { compactMcpPayload } from "@/lib/mcp/compact-dispatch";
+import { summarizeSectionCard } from "@/lib/mcp/tools/event-summary-academic-cards";
+import { summarizeBusDeparture } from "@/lib/mcp/tools/event-summary-bus-cards";
 import {
   type SummarizableCalendarEvent,
-  summarizeBusDeparture,
   summarizeBusDepartureList,
   summarizeCalendarEvent,
-  summarizeSectionCard,
-  summarizeTodoCard,
-} from "@/lib/mcp/tools/event-summary";
+} from "@/lib/mcp/tools/event-summary-collections";
+import { summarizeTodoCard } from "@/lib/mcp/tools/event-summary-task-cards";
 import type {
   DashboardSection,
   DashboardSnapshot,

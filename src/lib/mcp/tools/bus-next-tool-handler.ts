@@ -5,7 +5,7 @@ import {
   parseOptionalMcpDate,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
-import { summarizeNextBusDepartures } from "@/lib/mcp/tools/bus-tool-summary";
+import { summarizeNextBusDepartures } from "@/lib/mcp/tools/bus-departure-summary";
 import type {
   AtTimeInput,
   BusDayType,

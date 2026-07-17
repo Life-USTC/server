@@ -72,6 +72,46 @@ test.describe("仪表盘待办", () => {
     await captureStepScreenshot(page, testInfo, "dashboard-todos-seed");
   });
 
+  test("移动端待办工具栏保留筛选和大尺寸主操作", async ({ page }, testInfo) => {
+    await page.addInitScript(() => {
+      localStorage.removeItem("life-ustc-dashboard-view-mode");
+    });
+    await page.setViewportSize({ height: 844, width: 390 });
+    await signInAsDebugUser(page, "/dashboard/todos");
+
+    const incomplete = page
+      .getByRole("radio", { name: /未完成|Incomplete/i })
+      .first();
+    const add = page.getByTestId("dashboard-todos-add");
+    const viewMenu = page.getByTestId("dashboard-todos-view-menu");
+    await expect(incomplete).toBeVisible();
+    await expect(add).toBeVisible();
+    await expect(viewMenu).toBeVisible();
+
+    for (const control of [incomplete, add, viewMenu]) {
+      const box = await control.boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+      expect(box?.width).toBeGreaterThanOrEqual(44);
+    }
+
+    const all = page.getByRole("radio", { name: /全部|All/i }).first();
+    await all.click();
+    await expect(all).toHaveAttribute("aria-checked", "true");
+
+    await viewMenu.click();
+    await page.getByRole("menuitemradio", { name: /列表|List/i }).click();
+    await expect(page).toHaveURL(/todoView=list/);
+    await expect(page.getByRole("table")).toBeVisible();
+    await expect(all).toHaveAttribute("aria-checked", "true");
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+
+    await captureStepScreenshot(page, testInfo, "todos/mobile-toolbar");
+  });
+
   test("可切换待办完成状态并更新筛选", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/todos");
 

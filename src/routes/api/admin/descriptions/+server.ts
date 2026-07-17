@@ -1,4 +1,4 @@
-import { getAdminDescriptionsRoute } from "@/lib/api/routes/admin";
+import { getAdminDescriptionsRoute } from "@/lib/api/routes/admin-descriptions";
 import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
