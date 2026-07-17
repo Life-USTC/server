@@ -1,4 +1,4 @@
-import { getSectionsRoute } from "@/lib/api/routes/academic";
+import { getSectionsRoute } from "@/lib/api/routes/academic-section-routes";
 import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 

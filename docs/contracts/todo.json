@@ -9,7 +9,8 @@
   "rules": {
     "purely-personal": "Todo is a purely personal object and is not bound to any section.",
     "due-date-calendar": "Only incomplete todos with a due date appear in the calendar.",
-    "completed-retained": "Completed todos retain history but no longer occupy urgent information areas."
+    "completed-retained": "Completed todos retain history but no longer occupy urgent information areas.",
+    "mobile-toolbar-priority": "At mobile widths, completion-status filters stay directly available, card/list display mode moves into an accessible overflow menu, and the create action remains a minimum 44 by 44 CSS pixel target. Desktop toolbar behavior remains unchanged."
   },
   "capabilities": {
     "todo-list": {
@@ -55,7 +56,8 @@
           "todo.priority",
           "todo.dueAt",
           "completed status action button",
-          "filter: incomplete/completed/all"
+          "filter: incomplete/completed/all",
+          "mobile compact toolbar with direct completion filters and overflow display-mode control"
         ]
       }
     },

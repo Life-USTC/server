@@ -4,6 +4,7 @@ import type {
 } from "@/features/dashboard/lib/bus-tab-types";
 import type { CalendarView } from "@/features/dashboard/lib/calendar";
 import type { CalendarEvents } from "@/features/dashboard/lib/calendar-display";
+import type { DashboardTimelineItem } from "@/features/dashboard/lib/dashboard-agenda";
 import type {
   DashboardCommonCopy,
   CalendarData as DashboardControllerCalendarData,
@@ -48,6 +49,10 @@ export type DashboardCalendarEventsForDay = (
   dayKey: string,
 ) => DashboardCalendarEvents;
 
+export type DashboardCalendarTimelineItemsForDay = (
+  events: DashboardCalendarEvents,
+) => DashboardTimelineItem[];
+
 export type DashboardCalendarEventParts = (
   parts: Array<string | number | null | undefined>,
 ) => string;
@@ -74,6 +79,7 @@ export type DashboardCalendarControlsProps = {
 export type DashboardCalendarTabProps = DashboardCalendarControlsProps & {
   calendarEventParts: DashboardCalendarEventParts;
   calendarEventsForDay: DashboardCalendarEventsForDay;
+  calendarTimelineItemsForDay: DashboardCalendarTimelineItemsForDay;
   calendarExamDetail: (exam: DashboardCalendarExam) => string;
   calendarHomeworkDetail: (homework: DashboardCalendarHomework) => string;
   calendarHomeworkHref: (homework: DashboardCalendarHomework) => string;
@@ -84,6 +90,7 @@ export type DashboardCalendarTabProps = DashboardCalendarControlsProps & {
   calendarWeekdayLabels: string[];
   copy: DashboardRootCopy;
   copyCalendarLink: (event: MouseEvent) => void | Promise<void>;
+  copyCalendarUrl: (url: string) => void | Promise<void>;
   dashboardTabHref: DashboardCalendarTabHref;
   monthWeeks: DashboardCalendarMonthWeeks;
   sessionHref: (session: DashboardCalendarSession) => string;

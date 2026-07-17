@@ -41,7 +41,7 @@ describe("postDashboardLinkPinBatchRoute", () => {
   it("在解析 JSON 请求体之前先认证", async () => {
     requireAuthMock.mockResolvedValue(unauthorizedResponse());
     const { postDashboardLinkPinBatchRoute } = await import(
-      "@/lib/api/routes/dashboard-links"
+      "@/lib/api/routes/dashboard-link-pin-route"
     );
 
     const response = await postDashboardLinkPinBatchRoute(
@@ -63,7 +63,7 @@ describe("postDashboardLinkPinBatchRoute", () => {
       .mockResolvedValueOnce([]);
 
     const { postDashboardLinkPinBatchRoute } = await import(
-      "@/lib/api/routes/dashboard-links"
+      "@/lib/api/routes/dashboard-link-pin-route"
     );
 
     const response = await postDashboardLinkPinBatchRoute(
@@ -98,7 +98,7 @@ describe("postDashboardLinkPinBatchRoute", () => {
     requireAuthMock.mockResolvedValue({ userId: "user-1" });
 
     const { postDashboardLinkPinBatchRoute } = await import(
-      "@/lib/api/routes/dashboard-links"
+      "@/lib/api/routes/dashboard-link-pin-route"
     );
 
     const response = await postDashboardLinkPinBatchRoute(
@@ -117,7 +117,7 @@ describe("postDashboardLinkPinBatchRoute", () => {
     requireAuthMock.mockResolvedValue({ userId: "user-1" });
 
     const { postDashboardLinkPinBatchRoute } = await import(
-      "@/lib/api/routes/dashboard-links"
+      "@/lib/api/routes/dashboard-link-pin-route"
     );
 
     const response = await postDashboardLinkPinBatchRoute(
@@ -134,7 +134,7 @@ describe("postDashboardLinkPinBatchRoute", () => {
     resolveDashboardLinkBySlugMock.mockReturnValue(null);
 
     const { postDashboardLinkPinBatchRoute } = await import(
-      "@/lib/api/routes/dashboard-links"
+      "@/lib/api/routes/dashboard-link-pin-route"
     );
 
     const response = await postDashboardLinkPinBatchRoute(
@@ -161,7 +161,7 @@ describe("postDashboardLinkPinBatchRoute", () => {
     );
 
     const { postDashboardLinkPinBatchRoute } = await import(
-      "@/lib/api/routes/dashboard-links"
+      "@/lib/api/routes/dashboard-link-pin-route"
     );
 
     const response = await postDashboardLinkPinBatchRoute(

@@ -9,12 +9,10 @@ import {
   parseRouteJsonBody,
   suspensionForbidden,
 } from "@/lib/api/helpers";
-import {
-  deleteHomeworkAction,
-  updateHomeworkAction,
-} from "@/lib/api/routes/homework-mutation-actions";
-import { parseCreateHomeworkInput } from "@/lib/api/routes/homework-mutation-helpers";
+import { parseCreateHomeworkInput } from "@/lib/api/routes/homework-create-input";
+import { deleteHomeworkAction } from "@/lib/api/routes/homework-delete-action";
 import { parseHomeworkId } from "@/lib/api/routes/homework-route-helpers";
+import { updateHomeworkAction } from "@/lib/api/routes/homework-update-action";
 import { getRequestLocale } from "@/lib/api/routes/request-locale";
 import {
   homeworkCreateRequestSchema,

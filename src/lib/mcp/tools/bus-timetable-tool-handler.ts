@@ -7,7 +7,7 @@ import {
 import {
   buildFullBusTimetable,
   summarizeBusTimetable,
-} from "@/lib/mcp/tools/bus-tool-summary";
+} from "@/lib/mcp/tools/bus-timetable-summary";
 import type { BusLocale, McpModeInput, ToolExtra } from "./bus-tool-types";
 
 export async function queryBusTimetableTool(

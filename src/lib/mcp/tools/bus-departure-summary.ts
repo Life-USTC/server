@@ -1,5 +1,5 @@
 import type { getNextBusDepartures } from "@/features/bus/server/bus-service";
-import { summarizeBusDeparture } from "@/lib/mcp/tools/event-summary";
+import { summarizeBusDeparture } from "@/lib/mcp/tools/event-summary-bus-cards";
 
 type NextBusDeparturesResult = NonNullable<
   Awaited<ReturnType<typeof getNextBusDepartures>>

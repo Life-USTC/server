@@ -1,3 +1,10 @@
+## [1.55.1](https://github.com/Life-USTC/server/compare/v1.55.0...v1.55.1) (2026-07-17)
+
+
+### Bug Fixes
+
+* **dashboard:** improve mobile planning views ([#459](https://github.com/Life-USTC/server/issues/459)) ([b799cd5](https://github.com/Life-USTC/server/commit/b799cd5f15a2c05ecd2609afcdfd7bc7b167f1ad))
+
 # [1.55.0](https://github.com/Life-USTC/server/compare/v1.54.1...v1.55.0) (2026-07-17)
 
 

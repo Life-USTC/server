@@ -1,21 +1,17 @@
+import type { DashboardTimelineItem } from "@/features/dashboard/lib/dashboard-agenda";
 import type {
   DashboardDashboardCopy,
   DashboardSectionCopy,
   DashboardTodoItem,
   SignedDashboardData,
 } from "@/features/dashboard/lib/dashboard-controller-helpers";
-import type {
-  CalendarGridDay,
-  CalendarGridEvent,
-} from "$lib/components/calendar/types";
+import type { CalendarGridDay } from "$lib/components/calendar/types";
 import type {
   DashboardCalendarData,
   DashboardCalendarEvents,
 } from "./dashboard-calendar-component-types";
 
-export type OverviewTimelineItem = CalendarGridEvent & {
-  sort: number;
-};
+export type OverviewTimelineItem = DashboardTimelineItem;
 
 export type OverviewCalendarTimelineItemsForDay = (
   events: DashboardCalendarEvents,

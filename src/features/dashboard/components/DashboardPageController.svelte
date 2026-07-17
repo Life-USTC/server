@@ -182,15 +182,16 @@ function openTodoEditor(todo: TodoItem) {
   editingTodo = todo;
 }
 
-const { copyCalendarLink } = createDashboardCalendarCopyActions({
-  getCopyLabels: () => subscriptionsCopy,
-  setCalendarCopyError: (value) => {
-    calendarCopyError = value;
-  },
-  setCalendarCopyMessage: (value) => {
-    calendarCopyMessage = value;
-  },
-});
+const { copyCalendarLink, copyCalendarUrl } =
+  createDashboardCalendarCopyActions({
+    getCopyLabels: () => subscriptionsCopy,
+    setCalendarCopyError: (value) => {
+      calendarCopyError = value;
+    },
+    setCalendarCopyMessage: (value) => {
+      calendarCopyMessage = value;
+    },
+  });
 
 const {
   applyHomeworkDueAtSemesterEnd,
@@ -671,6 +672,7 @@ onMount(() => {
         {dashboardTabHref}
         {formatMessage}
         {copyCalendarLink}
+        {copyCalendarUrl}
         {sessionHref}
         {setCalendarView}
         {setCalendarMonth}
@@ -680,6 +682,7 @@ onMount(() => {
         {addMonths}
         {monthWeeks}
         {calendarEventsForDay}
+        {calendarTimelineItemsForDay}
         {calendarWeekLabel}
         {calendarEventParts}
         {calendarHomeworkHref}

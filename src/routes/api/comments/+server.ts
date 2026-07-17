@@ -1,4 +1,5 @@
-import { getCommentsRoute, postCommentRoute } from "@/lib/api/routes/comments";
+import { postCommentRoute } from "@/lib/api/routes/comments-create-route";
+import { getCommentsRoute } from "@/lib/api/routes/comments-list-route";
 import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
