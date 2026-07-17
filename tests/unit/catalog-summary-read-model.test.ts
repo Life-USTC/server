@@ -3,13 +3,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const {
   buildCourseListWhereMock,
   buildSectionListQueryMock,
+  getPrismaMock,
   paginatedCourseQueryMock,
   paginatedSectionSummaryQueryMock,
+  resolveCourseIdByJwIdMock,
 } = vi.hoisted(() => ({
   buildCourseListWhereMock: vi.fn(),
   buildSectionListQueryMock: vi.fn(),
+  getPrismaMock: vi.fn(),
   paginatedCourseQueryMock: vi.fn(),
   paginatedSectionSummaryQueryMock: vi.fn(),
+  resolveCourseIdByJwIdMock: vi.fn(),
 }));
 
 vi.mock("@/features/catalog/server/academic-paginated-queries", () => ({
@@ -22,12 +26,22 @@ vi.mock("@/features/catalog/server/course-section-query-filters", () => ({
   buildSectionListQuery: buildSectionListQueryMock,
 }));
 
+vi.mock("@/features/catalog/server/course-jw-id", () => ({
+  resolveCourseIdByJwId: resolveCourseIdByJwIdMock,
+}));
+
+vi.mock("@/lib/db/prisma", () => ({
+  getPrisma: getPrismaMock,
+}));
+
 describe("课程目录摘要读取模型", () => {
   beforeEach(() => {
     buildCourseListWhereMock.mockReset();
     buildSectionListQueryMock.mockReset();
+    getPrismaMock.mockReset();
     paginatedCourseQueryMock.mockReset();
     paginatedSectionSummaryQueryMock.mockReset();
+    resolveCourseIdByJwIdMock.mockReset();
   });
 
   it("应用共享的课程摘要默认排序", async () => {
@@ -58,7 +72,7 @@ describe("课程目录摘要读取模型", () => {
     const { SECTION_SUMMARY_DEFAULT_ORDER_BY, listSectionSummaries } =
       await import("@/features/catalog/server/section-summary-read-model");
 
-    listSectionSummaries({
+    await listSectionSummaries({
       filters: { semesterId: 1 },
       locale: "zh-cn",
       pagination: { page: 1, pageSize: 20 },
@@ -83,7 +97,7 @@ describe("课程目录摘要读取模型", () => {
       "@/features/catalog/server/section-summary-read-model"
     );
 
-    listSectionSummaries({
+    await listSectionSummaries({
       filters: { search: "001" },
       locale: "en-us",
       pagination: { page: 3, pageSize: 5 },
@@ -95,6 +109,34 @@ describe("课程目录摘要读取模型", () => {
       { search: "001" },
       explicitOrder,
       "en-us",
+    );
+  });
+
+  it("将课程 legacy jwId 解析为唯一 canonical courseId", async () => {
+    const prisma = {};
+    getPrismaMock.mockReturnValueOnce(prisma);
+    resolveCourseIdByJwIdMock.mockResolvedValueOnce(4);
+    buildSectionListQueryMock.mockReturnValueOnce({
+      where: {},
+      orderBy: undefined,
+    });
+    const { listSectionSummaries } = await import(
+      "@/features/catalog/server/section-summary-read-model"
+    );
+
+    await listSectionSummaries({
+      filters: { courseJwId: 19_901_001 },
+      locale: "zh-cn",
+      pagination: { page: 1, pageSize: 20 },
+    });
+
+    expect(resolveCourseIdByJwIdMock).toHaveBeenCalledWith(prisma, 19_901_001);
+    expect(paginatedSectionSummaryQueryMock).toHaveBeenCalledWith(
+      1,
+      20,
+      { courseId: 4 },
+      expect.anything(),
+      "zh-cn",
     );
   });
 });

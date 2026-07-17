@@ -7,13 +7,17 @@ import type { AppLocale } from "@/i18n/config";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma } from "@/lib/db/prisma";
 import { serializeScheduleTimeFields } from "@/shared/lib/schedule-serialization";
+import { resolveCourseIdByJwId } from "./course-jw-id";
 
 export async function findCourseDetailByJwId(
   jwId: number,
   locale: AppLocale = DEFAULT_LOCALE,
 ) {
-  return getPrisma(locale).course.findUnique({
-    where: { jwId },
+  const prisma = getPrisma(locale);
+  const courseId = await resolveCourseIdByJwId(prisma, jwId);
+  if (courseId == null) return null;
+  return prisma.course.findUnique({
+    where: { id: courseId },
     include: courseDetailInclude,
   });
 }

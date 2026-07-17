@@ -9,6 +9,10 @@ import {
   planCourseIdentityImport,
 } from "./course-identity";
 import {
+  assertCourseJwIdNamespace,
+  mergeLegacyCourseDuplicates,
+} from "./course-merge";
+import {
   type AdminClassSectionPair,
   type BuildingBuild,
   type CampusBuild,
@@ -227,9 +231,10 @@ export async function runImport(
         teachLanguages,
       }),
     );
-    const courseMap = await logStep("upsertCourses", courses.length, () =>
+    const courseImport = await logStep("upsertCourses", courses.length, () =>
       upsertCourses(tx, courses, lookupMaps),
     );
+    const courseMap = courseImport.map;
     const teacherTitleMap = await logStep(
       "upsertTeacherTitles",
       teacherTitles.length,
@@ -362,6 +367,16 @@ export async function runImport(
           await tx.exam.deleteMany({ where: examWhere });
         }
       },
+    );
+    await logStep(
+      "mergeLegacyCourseDuplicates",
+      courseImport.incomingCourses.length,
+      () =>
+        mergeLegacyCourseDuplicates(
+          tx,
+          courseImport.incomingCourses,
+          courseImport.canonicalJwIds,
+        ),
     );
 
     if (config.dryRun) {
@@ -1185,7 +1200,11 @@ async function upsertCourses(
   tx: Prisma.TransactionClient,
   builds: CourseBuild[],
   lookupMaps: LookupMaps,
-): Promise<Map<string, number>> {
+): Promise<{
+  map: Map<string, number>;
+  incomingCourses: IncomingCourseIdentityRecord[];
+  canonicalJwIds: ReadonlySet<number>;
+}> {
   const columns = [
     "code",
     "nameCn",
@@ -1225,7 +1244,13 @@ async function upsertCourses(
 
   // Validate required identity fields before querying or writing any courses.
   for (const course of incomingCourses) courseIdentitySignature(course);
-  if (incomingCourses.length === 0) return new Map();
+  if (incomingCourses.length === 0) {
+    return {
+      map: new Map(),
+      incomingCourses,
+      canonicalJwIds: new Set(),
+    };
+  }
 
   const select = {
     jwId: true,
@@ -1245,6 +1270,10 @@ async function upsertCourses(
   const plan = await planCourseIdentityImport(
     incomingCourses,
     persistedCourses,
+  );
+  await assertCourseJwIdNamespace(
+    tx,
+    plan.canonicalCourses.map((course) => course.jwId),
   );
   const records = plan.canonicalCourses.map((course) => ({
     key: course.jwId,
@@ -1269,7 +1298,6 @@ async function upsertCourses(
     ["text", "text", "text", "int", "int", "int", "int", "int", "int"],
     records,
   );
-
   const map = new Map<string, number>();
   for (const [sourceKey, canonicalJwId] of plan.canonicalJwIdBySourceKey) {
     const databaseId = canonicalMap.get(canonicalJwId);
@@ -1280,7 +1308,11 @@ async function upsertCourses(
     }
     map.set(sourceKey, databaseId);
   }
-  return map;
+  return {
+    map,
+    incomingCourses,
+    canonicalJwIds: new Set(plan.canonicalCourses.map((course) => course.jwId)),
+  };
 }
 
 async function upsertTeacherTitles(

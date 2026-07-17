@@ -1,3 +1,17 @@
+## [1.56.1](https://github.com/Life-USTC/server/compare/v1.56.0...v1.56.1) (2026-07-17)
+
+
+### Bug Fixes
+
+* **static-loader:** merge legacy course duplicates ([#458](https://github.com/Life-USTC/server/issues/458)) ([f58214b](https://github.com/Life-USTC/server/commit/f58214b1706001437550123b62726b2ffc7d4f00))
+
+# [1.56.0](https://github.com/Life-USTC/server/compare/v1.55.3...v1.56.0) (2026-07-17)
+
+
+### Features
+
+* **db:** add course alias storage ([#463](https://github.com/Life-USTC/server/issues/463)) ([c57b58d](https://github.com/Life-USTC/server/commit/c57b58d0fefdc088f4625bab5529740e8b8efcf6))
+
 ## [1.55.3](https://github.com/Life-USTC/server/compare/v1.55.2...v1.55.3) (2026-07-17)
 
 
