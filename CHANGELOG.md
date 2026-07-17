@@ -1,3 +1,10 @@
+## [1.61.1](https://github.com/Life-USTC/server/compare/v1.61.0...v1.61.1) (2026-07-17)
+
+
+### Bug Fixes
+
+* **db:** align section lifecycle schema ([#475](https://github.com/Life-USTC/server/issues/475)) ([92f5ba8](https://github.com/Life-USTC/server/commit/92f5ba83c5b759b1715ad5a017646aa78941ed68))
+
 # [1.61.0](https://github.com/Life-USTC/server/compare/v1.60.0...v1.61.0) (2026-07-17)
 
 
