@@ -27,7 +27,11 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
-import { getSeedSectionSemesterFixture } from "../../../../utils/e2e-db";
+import {
+  getCurrentSessionUser,
+  getSeedSectionSemesterFixture,
+} from "../../../../utils/e2e-db";
+import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
 import { resolveSeedSectionMatches } from "../../../../utils/seed-lookups";
 import { assertApiContract } from "../../_shared/api-contract";
 
@@ -302,6 +306,164 @@ test.describe("日历订阅 API", () => {
       await page.request.post(BASE, {
         data: { sectionIds: originalIds },
       });
+    }
+  });
+
+  test("replace 和 set 保留请求中已有的退役班级但不能重新添加", async ({
+    page,
+  }) => {
+    await signInAsDebugUser(page, "/");
+    const sessionUser = await getCurrentSessionUser(page);
+    const previous = await withE2ePrisma(async (prisma) => {
+      const [section, user] = await Promise.all([
+        prisma.section.findUniqueOrThrow({
+          where: { jwId: DEV_SEED.section.jwId },
+          select: { id: true, retiredAt: true, semesterId: true },
+        }),
+        prisma.user.findUniqueOrThrow({
+          where: { id: sessionUser.id },
+          select: {
+            subscribedSections: {
+              orderBy: { id: "asc" },
+              select: { id: true },
+            },
+          },
+        }),
+      ]);
+      return {
+        section,
+        subscribedSectionIds: user.subscribedSections.map(
+          (subscribedSection) => subscribedSection.id,
+        ),
+      };
+    });
+
+    await withE2ePrisma((prisma) =>
+      prisma.$transaction([
+        prisma.section.update({
+          where: { id: previous.section.id },
+          data: { retiredAt: new Date("2026-01-01T00:00:00.000Z") },
+        }),
+        prisma.user.update({
+          where: { id: sessionUser.id },
+          data: {
+            subscribedSections: { set: [{ id: previous.section.id }] },
+          },
+        }),
+      ]),
+    );
+
+    try {
+      if (previous.section.semesterId == null) {
+        throw new Error(
+          "Expected retired test Section to belong to a semester",
+        );
+      }
+      const replaceResponse = await page.request.post(BASE, {
+        data: { sectionIds: [previous.section.id] },
+      });
+      expect(replaceResponse.status()).toBe(200);
+      const replaceBody = (await replaceResponse.json()) as {
+        subscription?: { sections?: Array<{ id?: number }> };
+      };
+      expect(
+        replaceBody.subscription?.sections?.map((section) => section.id),
+      ).toContain(previous.section.id);
+
+      const setResponse = await page.request.post(BATCH_BASE, {
+        data: {
+          action: "set",
+          sectionIds: [previous.section.id],
+          semesterId: previous.section.semesterId,
+        },
+      });
+      expect(setResponse.status()).toBe(200);
+      const setBody = (await setResponse.json()) as {
+        matchedSectionIds?: number[];
+        removedCount?: number;
+        sections?: Array<{ id?: number }>;
+        total?: number;
+        unchangedCount?: number;
+        unmatchedSectionIds?: number[];
+        subscription?: { sections?: Array<{ id?: number }> };
+      };
+      expect(setBody.matchedSectionIds).toEqual([previous.section.id]);
+      expect(setBody.unmatchedSectionIds).toEqual([]);
+      expect(setBody.removedCount).toBe(0);
+      expect(setBody.unchangedCount).toBe(1);
+      expect(setBody.sections?.map((section) => section.id)).toEqual([
+        previous.section.id,
+      ]);
+      expect(setBody.total).toBe(1);
+      expect(
+        setBody.subscription?.sections?.map((section) => section.id),
+      ).toContain(previous.section.id);
+
+      const omitResponse = await page.request.post(BATCH_BASE, {
+        data: {
+          action: "set",
+          sectionIds: [],
+          semesterId: previous.section.semesterId,
+        },
+      });
+      expect(omitResponse.status()).toBe(200);
+      const omitBody = (await omitResponse.json()) as {
+        removedCount?: number;
+        subscription?: { sections?: Array<{ id?: number }> };
+      };
+      expect(omitBody.removedCount).toBe(1);
+      expect(
+        omitBody.subscription?.sections?.map((section) => section.id),
+      ).not.toContain(previous.section.id);
+
+      const setReAddResponse = await page.request.post(BATCH_BASE, {
+        data: {
+          action: "set",
+          sectionIds: [previous.section.id],
+          semesterId: previous.section.semesterId,
+        },
+      });
+      expect(setReAddResponse.status()).toBe(200);
+      const setReAddBody = (await setReAddResponse.json()) as {
+        matchedSectionIds?: number[];
+        unchangedCount?: number;
+        unmatchedSectionIds?: number[];
+        subscription?: { sections?: Array<{ id?: number }> };
+      };
+      expect(setReAddBody.matchedSectionIds).toEqual([]);
+      expect(setReAddBody.unmatchedSectionIds).toEqual([previous.section.id]);
+      expect(setReAddBody.unchangedCount).toBe(0);
+      expect(
+        setReAddBody.subscription?.sections?.map((section) => section.id),
+      ).not.toContain(previous.section.id);
+
+      const replaceReAddResponse = await page.request.post(BASE, {
+        data: { sectionIds: [previous.section.id] },
+      });
+      expect(replaceReAddResponse.status()).toBe(200);
+      const replaceReAddBody = (await replaceReAddResponse.json()) as {
+        subscription?: { sections?: Array<{ id?: number }> };
+      };
+      expect(
+        replaceReAddBody.subscription?.sections?.map((section) => section.id),
+      ).not.toContain(previous.section.id);
+    } finally {
+      await withE2ePrisma((prisma) =>
+        prisma.$transaction([
+          prisma.section.update({
+            where: { id: previous.section.id },
+            data: { retiredAt: previous.section.retiredAt },
+          }),
+          prisma.user.update({
+            where: { id: sessionUser.id },
+            data: {
+              subscribedSections: {
+                set: previous.subscribedSectionIds.map((id) => ({ id })),
+              },
+            },
+          }),
+        ]),
+      );
     }
   });
 
