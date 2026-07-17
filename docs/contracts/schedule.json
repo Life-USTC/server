@@ -46,7 +46,8 @@
             "rest_equivalent": "GET /api/me/subscriptions/schedules",
             "mcp_equivalent": "list_my_schedules",
             "notes": [
-              "DateTime range inputs normalize to Asia/Shanghai calendar dates for the Schedule.date @db.Date column."
+              "DateTime range inputs normalize to Asia/Shanghai calendar dates for the Schedule.date @db.Date column.",
+              "Each Schedule.teachers(page: PageInput) field returns TeacherPage! with the shared default page 1/pageSize 20 and maximum pageSize 100."
             ]
           }
         ]

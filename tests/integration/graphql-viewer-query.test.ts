@@ -364,9 +364,14 @@ describe.sequential("GraphQL Viewer integration", () => {
                     id
                     jwId
                   }
-                  teachers {
-                    id
-                    sectionCount
+                  teachers(page: { pageSize: 1 }) {
+                    items {
+                      id
+                      sectionCount
+                    }
+                    pageInfo {
+                      total
+                    }
                   }
                 }
                 pageInfo {
@@ -461,15 +466,23 @@ describe.sequential("GraphQL Viewer integration", () => {
               schedules(page: { pageSize: 1 }) {
                 items {
                   teachers {
-                    id
-                    department {
+                    items {
                       id
+                      department {
+                        id
+                      }
+                      teacherTitle {
+                        id
+                        nameCn
+                      }
+                      sectionCount
                     }
-                    teacherTitle {
-                      id
-                      nameCn
+                    pageInfo {
+                      page
+                      pageSize
+                      total
+                      totalPages
                     }
-                    sectionCount
                   }
                 }
               }
@@ -487,17 +500,34 @@ describe.sequential("GraphQL Viewer integration", () => {
     const viewer = payload.data?.viewer as {
       schedules: {
         items: Array<{
-          teachers: Array<{
-            sectionCount: number;
-            teacherTitle: { id: number; nameCn: string } | null;
-          }>;
+          teachers: {
+            items: Array<{
+              sectionCount: number;
+              teacherTitle: { id: number; nameCn: string } | null;
+            }>;
+            pageInfo: {
+              page: number;
+              pageSize: number;
+              total: number;
+              totalPages: number;
+            };
+          };
         }>;
       };
     };
     const teachers = viewer.schedules.items.flatMap(
-      (schedule) => schedule.teachers,
+      (schedule) => schedule.teachers.items,
     );
+    const teacherPageInfo = viewer.schedules.items[0]?.teachers.pageInfo;
     expect(teachers.length).toBeGreaterThan(0);
+    expect(teacherPageInfo).toMatchObject({
+      page: 1,
+      pageSize: 20,
+    });
+    expect(teacherPageInfo?.total).toBeGreaterThanOrEqual(teachers.length);
+    expect(teacherPageInfo?.totalPages).toBe(
+      Math.max(1, Math.ceil((teacherPageInfo?.total ?? 0) / 20)),
+    );
     expect(
       teachers.every(
         (teacher) =>
@@ -505,6 +535,153 @@ describe.sequential("GraphQL Viewer integration", () => {
           typeof teacher.teacherTitle?.nameCn === "string",
       ),
     ).toBe(true);
+  });
+
+  it("bounds nested Schedule teachers and Exam rooms with PageInput", async () => {
+    const headers = {
+      cookie: sessionCookie,
+      origin: new URL(getOAuthGraphqlResourceUrl()).origin,
+    };
+    const accepted = await execute(
+      {
+        query: /* GraphQL */ `
+          {
+            viewer {
+              schedules(page: { pageSize: 1 }) {
+                items {
+                  defaultTeachers: teachers {
+                    items { id }
+                    pageInfo { page pageSize total totalPages }
+                  }
+                  maxTeachers: teachers(page: { pageSize: 100 }) {
+                    items { id }
+                    pageInfo { page pageSize total totalPages }
+                  }
+                }
+              }
+              exams(page: { pageSize: 1 }) {
+                items {
+                  defaultRooms: examRooms {
+                    items { id room count }
+                    pageInfo { page pageSize total totalPages }
+                  }
+                  maxRooms: examRooms(page: { pageSize: 100 }) {
+                    items { id }
+                    pageInfo { page pageSize total totalPages }
+                  }
+                }
+              }
+            }
+          }
+        `,
+      },
+      headers,
+    );
+
+    expect(accepted.payload.errors).toBeUndefined();
+    const viewer = accepted.payload.data?.viewer as {
+      schedules: {
+        items: Array<{
+          defaultTeachers: {
+            items: Array<{ id: number }>;
+            pageInfo: {
+              page: number;
+              pageSize: number;
+              total: number;
+              totalPages: number;
+            };
+          };
+          maxTeachers: {
+            items: Array<{ id: number }>;
+            pageInfo: {
+              page: number;
+              pageSize: number;
+              total: number;
+              totalPages: number;
+            };
+          };
+        }>;
+      };
+      exams: {
+        items: Array<{
+          defaultRooms: {
+            items: Array<{ id: number }>;
+            pageInfo: {
+              page: number;
+              pageSize: number;
+              total: number;
+              totalPages: number;
+            };
+          };
+          maxRooms: {
+            items: Array<{ id: number }>;
+            pageInfo: {
+              page: number;
+              pageSize: number;
+              total: number;
+              totalPages: number;
+            };
+          };
+        }>;
+      };
+    };
+    const schedule = viewer.schedules.items[0];
+    const exam = viewer.exams.items[0];
+    expect(schedule).toBeDefined();
+    expect(exam).toBeDefined();
+    const expectFirstPage = (
+      page:
+        | {
+            items: readonly unknown[];
+            pageInfo: {
+              page: number;
+              pageSize: number;
+              total: number;
+              totalPages: number;
+            };
+          }
+        | undefined,
+      pageSize: number,
+    ) => {
+      expect(page?.pageInfo).toMatchObject({ page: 1, pageSize });
+      expect(page?.items.length).toBeLessThanOrEqual(pageSize);
+      expect(page?.pageInfo.total).toBeGreaterThanOrEqual(
+        page?.items.length ?? 0,
+      );
+      expect(page?.pageInfo.totalPages).toBe(
+        Math.max(1, Math.ceil((page?.pageInfo.total ?? 0) / pageSize)),
+      );
+    };
+    expectFirstPage(schedule?.defaultTeachers, 20);
+    expectFirstPage(schedule?.maxTeachers, 100);
+    expectFirstPage(exam?.defaultRooms, 20);
+    expectFirstPage(exam?.maxRooms, 100);
+
+    for (const nestedField of [
+      "teachers(page: { pageSize: 101 })",
+      "examRooms(page: { pageSize: 101 })",
+    ]) {
+      const parentField = nestedField.startsWith("teachers")
+        ? "schedules"
+        : "exams";
+      const rejected = await execute(
+        {
+          query: `{
+            viewer {
+              ${parentField}(page: { pageSize: 1 }) {
+                items {
+                  ${nestedField} { pageInfo { total } }
+                }
+              }
+            }
+          }`,
+        },
+        headers,
+      );
+      expect(rejected.payload.errors?.[0]?.extensions).toMatchObject({
+        code: "BAD_USER_INPUT",
+      });
+    }
   });
 
   it("accepts a GraphQL-only bearer and enforces each selected field scope", async () => {

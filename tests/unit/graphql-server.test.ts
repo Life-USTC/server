@@ -553,4 +553,29 @@ describe("GraphQL HTTP boundary", () => {
 
     expect(errorMessages(payload)).toContain("Query cost limit exceeded.");
   });
+
+  it("weights nested Viewer page fields before resolver execution", async () => {
+    const { payload } = await execute({
+      query: /* GraphQL */ `
+        query ExpensiveNestedViewer($nestedPage: PageInput) {
+          viewer {
+            schedules(page: { pageSize: 10 }) {
+              items {
+                teachers(page: $nestedPage) {
+                  items {
+                    id
+                  }
+                }
+              }
+            }
+          }
+        }
+      `,
+      variables: {
+        nestedPage: { pageSize: GRAPHQL_LIMITS.pageSize },
+      },
+    });
+
+    expect(errorMessages(payload)).toContain("Query cost limit exceeded.");
+  });
 });

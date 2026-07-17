@@ -24,6 +24,7 @@ import {
   type GraphqlPageInput,
   graphqlPageResolvers,
   normalizeGraphqlPage,
+  paginateGraphqlArray,
 } from "./pagination";
 import {
   normalizeGraphqlShanghaiCalendarDate,
@@ -63,6 +64,14 @@ type ExamFilterInput = {
 
 type HomeworkParent = {
   completion?: { completedAt: Date } | null;
+};
+
+type ScheduleParent = {
+  teachers: readonly unknown[];
+};
+
+type ExamParent = {
+  examRooms: readonly unknown[];
 };
 
 type OverviewParent = Awaited<ReturnType<typeof getCompactOverview>>;
@@ -243,7 +252,7 @@ export const graphqlViewerTypeDefs = /* GraphQL */ `
     startUnit: Int!
     endUnit: Int!
     room: ScheduleRoom
-    teachers: [Teacher!]!
+    teachers(page: PageInput): TeacherPage!
     scheduleGroup: ScheduleGroup!
     section: Section!
   }
@@ -265,6 +274,11 @@ export const graphqlViewerTypeDefs = /* GraphQL */ `
     count: Int!
   }
 
+  type ExamRoomPage {
+    items: [ExamRoom!]!
+    pageInfo: PageInfo!
+  }
+
   type Exam {
     id: Int!
     jwId: Int!
@@ -275,7 +289,7 @@ export const graphqlViewerTypeDefs = /* GraphQL */ `
     examTakeCount: Int
     examMode: String
     examBatch: ExamBatch
-    examRooms: [ExamRoom!]!
+    examRooms(page: PageInput): ExamRoomPage!
     section: Section!
   }
 
@@ -315,10 +329,24 @@ export const graphqlViewerResolvers = {
   HomeworkPage: graphqlPageResolvers,
   SchedulePage: graphqlPageResolvers,
   ExamPage: graphqlPageResolvers,
+  ExamRoomPage: graphqlPageResolvers,
   Homework: {
     completed: (homework: HomeworkParent) => Boolean(homework.completion),
     completedAt: (homework: HomeworkParent) =>
       homework.completion?.completedAt ?? null,
+  },
+  Schedule: {
+    teachers(
+      schedule: ScheduleParent,
+      args: { page?: GraphqlPageInput | null },
+    ) {
+      return paginateGraphqlArray(schedule.teachers, args.page);
+    },
+  },
+  Exam: {
+    examRooms(exam: ExamParent, args: { page?: GraphqlPageInput | null }) {
+      return paginateGraphqlArray(exam.examRooms, args.page);
+    },
   },
   ViewerOverview: {
     atTime: (overview: OverviewParent) => overview.anchor.atTime,

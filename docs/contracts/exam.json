@@ -33,7 +33,8 @@
             "required_scopes": ["exam:read"],
             "mcp_equivalent": "list_my_exams",
             "notes": [
-              "DateTime range inputs normalize to Asia/Shanghai calendar dates; unknown-date exams remain included by default."
+              "DateTime range inputs normalize to Asia/Shanghai calendar dates; unknown-date exams remain included by default.",
+              "Each Exam.examRooms(page: PageInput) field returns ExamRoomPage! with the shared default page 1/pageSize 20 and maximum pageSize 100."
             ]
           }
         ]

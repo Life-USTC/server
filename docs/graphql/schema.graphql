@@ -97,7 +97,7 @@ type Exam {
   examBatch: ExamBatch
   examDate: Date
   examMode: String
-  examRooms: [ExamRoom!]!
+  examRooms(page: PageInput): ExamRoomPage!
   examTakeCount: Int
   examType: Int
   id: Int!
@@ -128,6 +128,11 @@ type ExamRoom {
   count: Int!
   id: Int!
   room: String!
+}
+
+type ExamRoomPage {
+  items: [ExamRoom!]!
+  pageInfo: PageInfo!
 }
 
 type Homework {
@@ -204,7 +209,7 @@ type Schedule {
   section: Section!
   startTime: Int!
   startUnit: Int!
-  teachers: [Teacher!]!
+  teachers(page: PageInput): TeacherPage!
   weekIndex: Int!
   weekday: Int!
 }

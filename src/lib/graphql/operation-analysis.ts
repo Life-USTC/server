@@ -34,6 +34,7 @@ const PAGINATED_FIELDS = new Set([
   "busRoutes",
   "busTimetable",
   "courses",
+  "examRooms",
   "exams",
   "homeworks",
   "sections",
