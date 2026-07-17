@@ -1,4 +1,5 @@
 import type { RequestEvent } from "@sveltejs/kit";
+import { createYoga } from "graphql-yoga";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 
@@ -10,6 +11,12 @@ vi.mock("@/features/catalog/server/course-summary-read-model", () => ({
   listCourseSummaries: courseService.listCourseSummaries,
 }));
 
+import { createGraphqlObservabilityPlugin } from "@/lib/graphql/observability";
+import {
+  type GraphqlContext,
+  type GraphqlServerContext,
+  graphqlSchema,
+} from "@/lib/graphql/schema";
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 
 const handler = createGraphqlRequestHandler(false);
@@ -165,6 +172,58 @@ describe("GraphQL semantic observability", () => {
     );
   });
 
+  it("records a masked context-building error exactly once", async () => {
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    const writeDataPoint = installAnalytics();
+    const contextFailureYoga = createYoga<GraphqlServerContext, GraphqlContext>(
+      {
+        schema: graphqlSchema,
+        graphqlEndpoint: "/api/graphql",
+        fetchAPI: { Response },
+        context: () => {
+          throw new Error("private-context-detail");
+        },
+        graphiql: false,
+        logging: false,
+        maskedErrors: true,
+        plugins: [createGraphqlObservabilityPlugin()],
+      },
+    );
+
+    const response = await contextFailureYoga.fetch(
+      "https://example.test/api/graphql",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          query: "query ContextFailure { courses { items { jwId } } }",
+        }),
+      },
+      {
+        locals: {
+          locale: "zh-cn",
+          requestId: "graphql-context-failure-test",
+        },
+      },
+    );
+    const payload = (await response.json()) as Record<string, unknown>;
+
+    expect(response.status).toBe(500);
+    expect(JSON.stringify(payload)).not.toContain("private-context-detail");
+    expect(writeDataPoint).toHaveBeenCalledTimes(1);
+    expect(writeDataPoint).toHaveBeenCalledWith({
+      indexes: ["graphql:query"],
+      blobs: [
+        "graphql_operation",
+        "ContextFailure",
+        "query",
+        "anonymous",
+        "graphql-context-failure-test",
+      ],
+      doubles: [expect.any(Number), 1, 100, 1],
+    });
+  });
+
   it("records the same variable-weighted cost used to reject execution", async () => {
     vi.spyOn(console, "info").mockImplementation(() => {});
     const writeDataPoint = installAnalytics();
@@ -265,5 +324,20 @@ describe("GraphQL semantic observability", () => {
 
     expect(response.status).toBe(200);
     expect(payload).toHaveProperty("data");
+  });
+
+  it("keeps the response available and records Analytics when logging fails", async () => {
+    vi.spyOn(console, "info").mockImplementation(() => {
+      throw new Error("log sink unavailable");
+    });
+    const writeDataPoint = installAnalytics();
+
+    const { payload, response } = await execute({
+      query: "{ courses { items { jwId } } }",
+    });
+
+    expect(response.status).toBe(200);
+    expect(payload).toHaveProperty("data");
+    expect(writeDataPoint).toHaveBeenCalledTimes(1);
   });
 });

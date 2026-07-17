@@ -63,11 +63,19 @@ function recordObservation(state: GraphqlObservationState) {
     topLevelFieldCount: state.topLevelFieldCount,
   };
 
-  logAppEvent("info", "GraphQL operation completed", {
-    event: "graphql.operation",
-    ...observation,
-  });
-  writeGraphqlOperationAnalytics(observation);
+  try {
+    logAppEvent("info", "GraphQL operation completed", {
+      event: "graphql.operation",
+      ...observation,
+    });
+  } catch {
+    // Observability sinks must never affect the GraphQL response.
+  }
+  try {
+    writeGraphqlOperationAnalytics(observation);
+  } catch {
+    // Keep sinks isolated so one failure cannot suppress the other.
+  }
 }
 
 export function createGraphqlObservabilityPlugin(): Plugin<
