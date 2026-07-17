@@ -436,6 +436,59 @@ describe("GraphQL semantic observability", () => {
     expect(JSON.stringify(payload)).not.toContain("private-resolver-detail");
   });
 
+  it("records mutation semantics without leaking mutation variables", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const writeDataPoint = vi.fn();
+    setCloudflareRuntimeEnv({
+      ANALYTICS: { writeDataPoint },
+      USER_WRITE_RATE_LIMITER: {
+        limit: vi.fn().mockResolvedValue({ success: true }),
+      },
+    });
+    const privateTitle = `private-mutation-variable-${"x".repeat(200)}`;
+
+    const { payload } = await executeWithContext(
+      {
+        query: /* GraphQL */ `
+          mutation PrivateTodoMutation($title: String!) {
+            createTodo(input: { title: $title }) {
+              id
+            }
+          }
+        `,
+        variables: { title: privateTitle },
+      },
+      (request) =>
+        contextWithPrincipal(request, {
+          kind: "session",
+          userId: "private-session-user",
+        }),
+      { requestId: "graphql-mutation-observation-test" },
+    );
+
+    expect(writeDataPoint).toHaveBeenCalledTimes(1);
+    expect(writeDataPoint).toHaveBeenCalledWith({
+      indexes: ["graphql:mutation"],
+      blobs: [
+        "graphql_operation",
+        "PrivateTodoMutation",
+        "mutation",
+        "session",
+        "graphql-mutation-observation-test",
+      ],
+      doubles: [expect.any(Number), 1, 3, 1],
+    });
+    expect(
+      JSON.stringify([
+        writeDataPoint.mock.calls,
+        info.mock.calls,
+        error.mock.calls,
+        payload,
+      ]),
+    ).not.toContain(privateTitle);
+  });
+
   it("keeps the GraphQL response available when Analytics Engine fails", async () => {
     vi.spyOn(console, "info").mockImplementation(() => {});
     setCloudflareRuntimeEnv({

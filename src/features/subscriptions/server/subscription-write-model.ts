@@ -366,3 +366,26 @@ export async function unsubscribeUserFromSectionByJwId(
 
   return getUserCalendarSubscription(userId, locale);
 }
+
+export async function setUserSectionSubscriptionByJwId(input: {
+  sectionJwId: number;
+  subscribed: boolean;
+  userId: string;
+}) {
+  const sectionId = await getSectionIdByJwId(input.sectionJwId);
+  if (sectionId === null) return null;
+
+  await prisma.user.update({
+    where: { id: input.userId },
+    data: {
+      subscribedSections: input.subscribed
+        ? { connect: { id: sectionId } }
+        : { disconnect: { id: sectionId } },
+    },
+  });
+
+  return {
+    sectionJwId: input.sectionJwId,
+    subscribed: input.subscribed,
+  };
+}

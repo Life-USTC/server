@@ -11,6 +11,7 @@ export {
   importUserSectionSubscriptionsByCodes,
   removeUserSectionSubscriptions,
   replaceUserSectionSubscriptions,
+  setUserSectionSubscriptionByJwId,
   subscribeUserToSectionByJwId,
   unsubscribeUserFromSectionByJwId,
 } from "./subscription-write-model";
