@@ -51,6 +51,18 @@
     "link-pin-and-visit": {
       "title": "Link Pin & Visit",
       "auth": "user",
+      "graphql": {
+        "mutations": [
+          {
+            "name": "setDashboardLinkPinState",
+            "returns": "DashboardLinkPinMutationPayload!",
+            "auth": "user",
+            "required_scopes": ["dashboard:write"],
+            "rest_equivalent": "POST /api/dashboard-links/pin",
+            "mcp_equivalent": "set_dashboard_link_pin_state"
+          }
+        ]
+      },
       "web": {
         "pages": ["/dashboard/links"]
       },

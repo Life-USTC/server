@@ -9,11 +9,21 @@ const busService = vi.hoisted(() => ({
   getBusRouteTimetable: vi.fn(),
   listBusRoutes: vi.fn(),
 }));
+const authCore = vi.hoisted(() => ({
+  getSessionFromHeaders: vi.fn(),
+}));
+const todoService = vi.hoisted(() => ({
+  createTodo: vi.fn(),
+  deleteOwnedTodo: vi.fn(),
+  updateOwnedTodo: vi.fn(),
+}));
 
 vi.mock("@/features/catalog/server/course-summary-read-model", () => ({
   listCourseSummaries: courseService.listCourseSummaries,
 }));
 vi.mock("@/features/bus/server/bus-catalog", () => busService);
+vi.mock("@/features/todos/server/todo-service", () => todoService);
+vi.mock("@/lib/auth/core", () => authCore);
 
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 
@@ -71,6 +81,10 @@ describe("GraphQL HTTP boundary", () => {
     courseService.listCourseSummaries.mockReset();
     busService.getBusRouteTimetable.mockReset();
     busService.listBusRoutes.mockReset();
+    authCore.getSessionFromHeaders.mockReset();
+    todoService.createTodo.mockReset();
+    todoService.deleteOwnedTodo.mockReset();
+    todoService.updateOwnedTodo.mockReset();
     courseService.listCourseSummaries.mockResolvedValue({
       data: [],
       pagination: {
@@ -82,6 +96,8 @@ describe("GraphQL HTTP boundary", () => {
     });
     busService.getBusRouteTimetable.mockResolvedValue(null);
     busService.listBusRoutes.mockResolvedValue({ routes: [], campuses: [] });
+    authCore.getSessionFromHeaders.mockResolvedValue(null);
+    todoService.createTodo.mockResolvedValue({ id: "todo-created" });
   });
 
   it("serves public queries without a session and prevents response caching", async () => {
@@ -131,7 +147,9 @@ describe("GraphQL HTTP boundary", () => {
   });
 
   it("rejects mutation operations over GET and serves CORS preflight", async () => {
-    const mutation = encodeURIComponent("mutation Forbidden { __typename }");
+    const mutation = encodeURIComponent(
+      'mutation Forbidden { deleteTodo(id: "test") { success } }',
+    );
     const mutationResponse = await productionHandler(
       requestEventFromRequest(
         new Request(`https://example.test/api/graphql?query=${mutation}`),
@@ -167,6 +185,150 @@ describe("GraphQL HTTP boundary", () => {
     expect(preflightResponse.headers.get("access-control-allow-headers")).toBe(
       "content-type",
     );
+  });
+
+  it("executes a session-authenticated POST mutation and prevents response caching", async () => {
+    authCore.getSessionFromHeaders.mockResolvedValue({
+      user: { id: "session-user" },
+    });
+    const response = await developmentHandler(
+      requestEventFromRequest(
+        new Request("http://localhost:3000/api/graphql", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie: "better-auth.session_token=session-token",
+            origin: "http://localhost:3000",
+          },
+          body: JSON.stringify({
+            query:
+              'mutation { createTodo(input: { title: "  Session todo  " }) { id } }',
+          }),
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(await response.json()).toEqual({
+      data: { createTodo: { id: "todo-created" } },
+    });
+    expect(todoService.createTodo).toHaveBeenCalledWith({
+      userId: "session-user",
+      title: "Session todo",
+      content: undefined,
+      priority: "medium",
+      dueAt: undefined,
+    });
+  });
+
+  it("preserves omitted versus explicit null todo update fields", async () => {
+    authCore.getSessionFromHeaders.mockResolvedValue({
+      user: { id: "session-user" },
+    });
+    todoService.updateOwnedTodo.mockResolvedValue({
+      ok: true,
+      todo: { id: "todo-updated" },
+    });
+    const response = await developmentHandler(
+      requestEventFromRequest(
+        new Request("http://localhost:3000/api/graphql", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie: "better-auth.session_token=session-token",
+            origin: "http://localhost:3000",
+          },
+          body: JSON.stringify({
+            query:
+              'mutation { updateTodo(id: "todo-updated", input: { content: null }) { id } }',
+          }),
+        }),
+      ),
+    );
+
+    expect(await response.json()).toEqual({
+      data: { updateTodo: { id: "todo-updated" } },
+    });
+    expect(todoService.updateOwnedTodo).toHaveBeenCalledWith({
+      id: "todo-updated",
+      userId: "session-user",
+      data: {
+        completed: undefined,
+        content: null,
+        dueAt: undefined,
+        hasContent: true,
+        hasDueAt: false,
+        priority: undefined,
+        title: undefined,
+      },
+    });
+  });
+
+  it("preserves safe mutation errors in production", async () => {
+    authCore.getSessionFromHeaders.mockResolvedValue({
+      user: { id: "session-user" },
+    });
+    const response = await productionHandler(
+      requestEventFromRequest(
+        new Request("http://localhost:3000/api/graphql", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie: "better-auth.session_token=session-token",
+            origin: "http://localhost:3000",
+          },
+          body: JSON.stringify({
+            query: 'mutation { createTodo(input: { title: "   " }) { id } }',
+          }),
+        }),
+      ),
+    );
+    const payload = (await response.json()) as Record<string, unknown>;
+
+    expect(payload).toMatchObject({
+      data: null,
+      errors: [
+        {
+          message: "title must contain 1-200 characters.",
+          extensions: { code: "BAD_USER_INPUT" },
+        },
+      ],
+    });
+    expect(todoService.createTodo).not.toHaveBeenCalled();
+  });
+
+  it("rejects anonymous POST mutations with a safe auth error", async () => {
+    const { response, payload } = await execute({
+      query: 'mutation { deleteTodo(id: "todo") { success } }',
+    });
+
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(payload).toMatchObject({
+      data: null,
+      errors: [
+        {
+          message: "Authentication required",
+          extensions: { code: "UNAUTHENTICATED" },
+        },
+      ],
+    });
+    expect(todoService.deleteOwnedTodo).not.toHaveBeenCalled();
+  });
+
+  it("enforces the top-level field budget for mutations", async () => {
+    const fields = Array.from(
+      { length: GRAPHQL_LIMITS.topLevelFields + 1 },
+      (_, index) => `m${index}: deleteTodo(id: "todo-${index}") { success }`,
+    ).join("\n");
+    const { payload } = await execute({
+      query: `mutation TooWide { ${fields} }`,
+    });
+
+    expect(errorMessages(payload)).toContain(
+      "Mutation has too many top-level fields.",
+    );
+    expect(todoService.deleteOwnedTodo).not.toHaveBeenCalled();
   });
 
   it("masks unexpected resolver details", async () => {

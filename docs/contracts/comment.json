@@ -21,6 +21,50 @@
       "title": "Object Comment Section",
       "auth": "anon",
       "web": "stable",
+      "graphql": {
+        "mutations": [
+          {
+            "name": "createComment",
+            "returns": "CommentMutationPayload!",
+            "auth": "user",
+            "required_scopes": ["comment:write"],
+            "rest_equivalent": "POST /api/comments",
+            "mcp_equivalent": "create_comment"
+          },
+          {
+            "name": "updateComment",
+            "returns": "CommentMutationPayload!",
+            "auth": "user",
+            "required_scopes": ["comment:write"],
+            "rest_equivalent": "PATCH /api/comments/[id]",
+            "mcp_equivalent": "update_own_comment"
+          },
+          {
+            "name": "deleteComment",
+            "returns": "DeleteMutationPayload!",
+            "auth": "user",
+            "required_scopes": ["comment:write"],
+            "rest_equivalent": "DELETE /api/comments/[id]",
+            "mcp_equivalent": "delete_own_comment"
+          },
+          {
+            "name": "addCommentReaction",
+            "returns": "CommentReactionMutationPayload!",
+            "auth": "user",
+            "required_scopes": ["comment:write"],
+            "rest_equivalent": "POST /api/comments/[id]/reactions",
+            "mcp_equivalent": "add_comment_reaction"
+          },
+          {
+            "name": "removeCommentReaction",
+            "returns": "CommentReactionMutationPayload!",
+            "auth": "user",
+            "required_scopes": ["comment:write"],
+            "rest_equivalent": "DELETE /api/comments/[id]/reactions",
+            "mcp_equivalent": "remove_comment_reaction"
+          }
+        ]
+      },
       "rest": {
         "routes": [
           {

@@ -54,14 +54,21 @@ function countTopLevelFields(
 
 export const maxTopLevelFieldsRule: ValidationRule = (context) => ({
   OperationDefinition(node) {
-    if (node.operation !== OperationTypeNode.QUERY) return;
+    if (
+      node.operation !== OperationTypeNode.QUERY &&
+      node.operation !== OperationTypeNode.MUTATION
+    ) {
+      return;
+    }
 
     if (
       countTopLevelFields(node.selectionSet, context) >
       GRAPHQL_LIMITS.topLevelFields
     ) {
+      const operationLabel =
+        node.operation === OperationTypeNode.MUTATION ? "Mutation" : "Query";
       context.reportError(
-        new GraphQLError("Query has too many top-level fields.", {
+        new GraphQLError(`${operationLabel} has too many top-level fields.`, {
           nodes: node,
           extensions: { code: "GRAPHQL_VALIDATION_FAILED" },
         }),

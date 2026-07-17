@@ -17,6 +17,7 @@ import {
   capGraphqlBusRoute,
   capGraphqlBusTripSlots,
 } from "./bus-output";
+import type { GraphqlAuthContext } from "./context";
 import { graphqlDateScalar, graphqlDateTimeScalar } from "./date-scalar";
 import {
   requireGraphqlId,
@@ -27,15 +28,17 @@ import {
   validateOptionalGraphqlId,
 } from "./input-boundaries";
 import type { GraphqlLoaders } from "./loaders";
+import { graphqlMutationResolvers, graphqlMutationTypeDefs } from "./mutations";
 import {
   type GraphqlPageInput,
   normalizeGraphqlPage,
   paginateGraphqlArray,
 } from "./pagination";
 
-export type GraphqlContext = {
+export type GraphqlContext = GraphqlAuthContext & {
   loaders: GraphqlLoaders;
   locale: AppLocale;
+  request: Request;
 };
 
 export type GraphqlServerContext = {
@@ -269,6 +272,8 @@ export const graphqlTypeDefs = /* GraphQL */ `
       versionKey: String
     ): BusRouteTimetable
   }
+
+  ${graphqlMutationTypeDefs}
 `;
 
 export const graphqlSchema = createSchema<
@@ -283,6 +288,7 @@ export const graphqlSchema = createSchema<
     SectionPage: pageResolvers,
     TeacherPage: pageResolvers,
     BusRoutePage: pageResolvers,
+    ...graphqlMutationResolvers,
     Teacher: {
       async sectionCount(teacher: TeacherParent, _args, context) {
         const count = teacher._count?.sections;

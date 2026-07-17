@@ -2,33 +2,34 @@
   "name": "GraphQL",
   "access": {
     "anon": "Can query the public academic catalog and bus timetable through /api/graphql.",
-    "user": "Has the same public read-only GraphQL surface as an anonymous caller in Phase 1.",
-    "admin": "Has no additional GraphQL fields in Phase 1.",
-    "agent": "Can inspect the GraphQL SDL and the empty persisted-operation manifest through authenticated MCP resources; arbitrary GraphQL execution is not exposed as an MCP tool."
+    "user": "Can use personal mutations through a trusted same-origin session in addition to the public query surface.",
+    "admin": "Uses the same ordinary personal mutation surface; GraphQL does not expose admin-only mutations.",
+    "agent": "Can call personal mutations with a bearer token issued for the GraphQL resource and the mutation's feature:write scope. Authenticated MCP resources expose the SDL and persisted-operation manifest, but arbitrary GraphQL execution is not exposed as an MCP tool."
   },
   "rules": {
-    "phase-one-read-only": "Phase 1 exposes public queries only; mutations and GraphQL-specific OAuth resource handling are deferred.",
+    "scoped-mutations": "Every personal mutation requires authentication, the matching feature:write OAuth scope for bearer callers, and the shared per-user mutation rate-limit action key used by REST and MCP. Trusted session callers receive the equivalent first-party access.",
     "single-endpoint": "GraphQL HTTP requests use /api/graphql with GET, POST, and OPTIONS handlers.",
     "production-discovery": "GraphiQL and schema introspection are disabled in production.",
     "request-budgets": "Requests are limited to 64 KiB, one operation per HTTP request, five seconds, depth 8, 10 top-level fields, 15 aliases, 10 directives, 1000 tokens, and cost 5000; operation cost weights every paginated selection by its effective pageSize, including values supplied through variables.",
     "pagination": "Page inputs default to page 1 and pageSize 20; pageSize must be between 1 and 100.",
     "resolver-boundary": "Resolvers call feature-owned services only; they do not issue internal HTTP requests or access Prisma directly.",
     "request-cache": "Entity DataLoaders are request-scoped and responses are marked no-store.",
-    "safe-errors": "Unexpected resolver failures use Yoga error masking and must not expose internal exception details.",
+    "safe-errors": "Expected authentication, authorization, validation, not-found, rate-limit, and availability errors retain stable codes; unexpected resolver failures use Yoga error masking and must not expose internal exception details.",
     "zoned-datetime": "DateTime inputs accept only valid ISO 8601 datetimes with an explicit Z or numeric timezone offset, with identical coercion for variables and inline literals.",
     "schema-evolution": "The canonical SDL snapshot is checked for drift and breaking changes in CI."
   },
   "capabilities": {
     "public-query-endpoint": {
-      "title": "Public Query Endpoint",
+      "title": "Public Queries and Scoped Personal Mutations",
       "auth": "anon",
       "graphql": "stable",
       "display": {
         "fields": [
           "/api/graphql",
           "Public semester, course, section, teacher, and bus queries",
+          "Authenticated todo, homework completion, section subscription, dashboard pin, bus preference, and comment mutations",
           "GET, POST, and OPTIONS",
-          "No mutations in Phase 1"
+          "GraphQL-audience bearer tokens require the matching feature:write scope"
         ]
       }
     },
@@ -47,7 +48,7 @@
             "name": "graphql_operations_manifest",
             "uri": "life-ustc://graphql/operations",
             "mime_type": "application/json",
-            "description": "Persisted-operation manifest; intentionally empty in Phase 1."
+            "description": "Persisted-operation manifest; currently empty."
           }
         ]
       }

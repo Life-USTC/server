@@ -6,7 +6,7 @@ Explicit public GraphQL transport and schema infrastructure.
 
 - Keep the SDL explicit; do not expose Prisma models or generate CRUD automatically.
 - Resolvers call `src/features/*/server` services directly. They do not call REST/MCP routes, make loopback HTTP requests, or query Prisma.
-- Phase 1 is anonymous, public, and read-only. Viewer fields, OAuth resource handling, and mutations belong to later phases.
+- Public catalog queries remain anonymous. Viewer and personal mutation fields require a trusted session or a GraphQL-audience OAuth token with the matching feature scope.
 - A GraphQL object must have the same observable field shape whether returned by a list or detail query.
 
 ## Runtime and Security
@@ -15,6 +15,7 @@ Explicit public GraphQL transport and schema infrastructure.
 - Every collection is explicitly capped or uses `PageInput`; keep request size, batching, depth, cost, alias, directive, token, top-level-field, and timeout limits enforced in `server.ts` and `security.ts`. Cost must weight paginated selections by the effective `pageSize`, including variable values.
 - `DateTime` inputs require an ISO 8601 timestamp with an explicit timezone, with identical coercion for variables and inline literals.
 - Keep DataLoaders request-scoped, production errors masked, production introspection disabled, and responses `Cache-Control: no-store`.
+- Personal mutations use the same feature-owned `feature:write` scope and shared per-user mutation rate-limit action key as REST and MCP.
 
 ## Contracts and Verification
 

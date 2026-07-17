@@ -22,6 +22,34 @@
       "web": {
         "pages": ["/dashboard/todos", "/?tab=todos"]
       },
+      "graphql": {
+        "mutations": [
+          {
+            "name": "createTodo",
+            "returns": "TodoMutationPayload!",
+            "auth": "user",
+            "required_scopes": ["todo:write"],
+            "rest_equivalent": "POST /api/todos",
+            "mcp_equivalent": "create_my_todo"
+          },
+          {
+            "name": "updateTodo",
+            "returns": "TodoMutationPayload!",
+            "auth": "user",
+            "required_scopes": ["todo:write"],
+            "rest_equivalent": "PATCH /api/todos/[id]",
+            "mcp_equivalent": "update_my_todo"
+          },
+          {
+            "name": "deleteTodo",
+            "returns": "DeleteMutationPayload!",
+            "auth": "user",
+            "required_scopes": ["todo:write"],
+            "rest_equivalent": "DELETE /api/todos/[id]",
+            "mcp_equivalent": "delete_my_todo"
+          }
+        ]
+      },
       "rest": {
         "routes": [
           {
