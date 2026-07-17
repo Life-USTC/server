@@ -11,13 +11,14 @@ on:
       - main
 
 concurrency:
-  group: db-migrate-deploy
-  cancel-in-progress: false
+  group: production-database-writes
+  queue: max
 
 jobs:
   migrate:
     name: Deploy Prisma migrations
     runs-on: ubuntu-latest
+    environment: production
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' &&
