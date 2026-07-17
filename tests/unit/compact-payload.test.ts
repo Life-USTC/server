@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compactMcpPayload } from "@/lib/mcp/compact-payload";
+import { compactMcpPayload } from "@/lib/mcp/compact-dispatch";
 
 describe("compactMcpPayload MCP 载荷压缩", () => {
   describe("原始类型和数组", () => {

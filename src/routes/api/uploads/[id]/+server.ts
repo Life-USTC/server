@@ -1,5 +1,8 @@
 import type { RequestHandler } from "@sveltejs/kit";
-import { deleteUploadRoute, patchUploadRoute } from "@/lib/api/routes/uploads";
+import {
+  deleteUploadRoute,
+  patchUploadRoute,
+} from "@/lib/api/routes/upload-management-routes";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**

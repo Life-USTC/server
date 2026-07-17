@@ -1,7 +1,7 @@
 import {
   getAdminSuspensionsRoute,
   postAdminSuspensionRoute,
-} from "@/lib/api/routes/admin";
+} from "@/lib/api/routes/admin-suspensions";
 import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 

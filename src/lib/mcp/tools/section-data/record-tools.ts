@@ -5,11 +5,9 @@ import {
   mcpLocaleInputSchema,
   mcpModeInputSchema,
 } from "@/lib/mcp/tools/_helpers";
-import {
-  listExamsBySectionAction,
-  listSchedulesBySectionAction,
-  querySchedulesAction,
-} from "./record-tool-actions";
+import { listExamsBySectionAction } from "./exam-record-actions";
+import { querySchedulesAction } from "./schedule-query-action";
+import { listSchedulesBySectionAction } from "./schedule-section-list-action";
 
 export function registerSectionRecordTools(server: McpServer) {
   server.registerTool(

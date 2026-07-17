@@ -2,7 +2,7 @@ import type { RequestHandler } from "@sveltejs/kit";
 import {
   deleteHomeworkRoute,
   patchHomeworkRoute,
-} from "@/lib/api/routes/homeworks";
+} from "@/lib/api/routes/homework-mutation-routes";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
