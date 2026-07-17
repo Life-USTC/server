@@ -1,7 +1,5 @@
-import {
-  getDescriptionRoute,
-  postDescriptionRoute,
-} from "@/lib/api/routes/descriptions";
+import { getDescriptionRoute } from "@/lib/api/routes/description-read-route";
+import { postDescriptionRoute } from "@/lib/api/routes/description-upsert-route";
 import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 

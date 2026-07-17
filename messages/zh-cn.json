@@ -512,6 +512,9 @@
     "calendarViewWeek": "本周",
     "calendarSemesterPrev": "上一学期",
     "calendarSemesterNext": "下一学期",
+    "calendarAgendaLabel": "每周日程",
+    "calendarAgendaEmpty": "暂无安排",
+    "calendarMoreActions": "更多日历操作",
     "calendarWeek": {
       "prev": "上一周",
       "next": "下一周",
@@ -581,6 +584,11 @@
     "openSlot": "空闲",
     "quickActions": "快捷入口",
     "focus": {
+      "title": "此刻与下一步",
+      "now": "正在进行",
+      "urgent": "需要关注",
+      "next": "下一项",
+      "noUpcoming": "未来 7 天没有待完成或已安排的事项。",
       "currentClass": "当前课程",
       "nextClass": "下一节课",
       "todayStatus": "今日状态",

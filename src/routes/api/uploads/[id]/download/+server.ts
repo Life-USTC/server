@@ -1,5 +1,5 @@
 import type { RequestHandler } from "@sveltejs/kit";
-import { getUploadDownloadRoute } from "@/lib/api/routes/uploads";
+import { getUploadDownloadRoute } from "@/lib/api/routes/upload-download-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**

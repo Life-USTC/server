@@ -8,7 +8,7 @@ import {
 import {
   buildFullDashboardSnapshot,
   compactDashboardSnapshot,
-} from "@/lib/mcp/tools/dashboard-summary";
+} from "@/lib/mcp/tools/dashboard-compact-summary";
 import {
   loadDashboardSnapshotForTool,
   parseOptionalDashboardAtTime,

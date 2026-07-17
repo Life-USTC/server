@@ -1,5 +1,13 @@
 <script lang="ts">
+import { calendarEventsForDay } from "@/features/dashboard/lib/calendar";
 import { calendarExamDetail } from "@/features/dashboard/lib/calendar-display";
+import {
+  buildDashboardAgendaDays,
+  currentDashboardTimedEventKey,
+  type DashboardAgendaDay,
+  dashboardFocusItem,
+  dashboardReferenceTime,
+} from "@/features/dashboard/lib/dashboard-agenda";
 import type {
   DashboardCommonCopy,
   DashboardDashboardCopy,
@@ -27,6 +35,7 @@ import type {
   DashboardCalendarSession,
   DashboardCalendarTabHref,
 } from "./dashboard-calendar-component-types";
+import OverviewFocusCard from "./OverviewFocusCard.svelte";
 import OverviewLinksGrid from "./OverviewLinksGrid.svelte";
 import OverviewMissingCurrentTerm from "./OverviewMissingCurrentTerm.svelte";
 import OverviewSummaryCards from "./OverviewSummaryCards.svelte";
@@ -98,6 +107,42 @@ function overviewCalendarWeekDays(
     calendarTimelineItemsForDay,
   );
 }
+
+function overviewAgendaDays(
+  overviewCalendar: DashboardCalendarData,
+): DashboardAgendaDay[] {
+  return buildDashboardAgendaDays({
+    calendar: overviewCalendar,
+    eventsForDay: calendarEventsForDay,
+    locale,
+    startKey: overviewCalendar.todayDate,
+    timelineItemsForDay: calendarTimelineItemsForDay,
+  });
+}
+
+function overviewReference(value: unknown): Date | string | null {
+  return typeof value === "string" || value instanceof Date ? value : null;
+}
+
+function overviewFocus(
+  overviewCalendar: DashboardCalendarData,
+  days: DashboardAgendaDay[],
+) {
+  const currentTime = dashboardReferenceTime(
+    overviewReference(signedData.referenceNow) ??
+      overviewReference(overviewCalendar.referenceDate),
+  );
+  const todayEvents = calendarEventsForDay(
+    overviewCalendar,
+    overviewCalendar.todayDate,
+  );
+  return dashboardFocusItem({
+    currentEventKey: currentDashboardTimedEventKey(todayEvents, currentTime),
+    currentTime,
+    days,
+    todayKey: overviewCalendar.todayDate,
+  });
+}
 </script>
 
 {#if signedData.overview && !signedData.overview.hasCurrentTermSelection && hasDashboardSubscriptions(signedData)}
@@ -134,14 +179,11 @@ function overviewCalendarWeekDays(
     {@const overviewCalendar = signedData.overview.calendar}
     {@const overviewWeekStart = dashboardOverviewWeekStart()}
     {@const upcomingOverviewExams = overviewUpcomingExams(overviewCalendar)}
+    {@const agendaDays = overviewAgendaDays(overviewCalendar)}
     <div class="grid gap-4">
-      <OverviewLinksGrid
-        {dashboardCopy}
-        {dashboardTabHref}
-        {linkIconLabel}
-        links={overviewLinkItems}
-        {submitDashboardLinkPin}
-        {updatingDashboardLinkSlug}
+      <OverviewFocusCard
+        copy={dashboardCopy.focus}
+        focus={overviewFocus(overviewCalendar, agendaDays)}
       />
 
       <OverviewTodayOverdueCards
@@ -186,6 +228,15 @@ function overviewCalendarWeekDays(
         {dashboardTabHref}
         days={overviewCalendarWeekDays(overviewCalendar, overviewWeekStart)}
         {formatMessage}
+      />
+
+      <OverviewLinksGrid
+        {dashboardCopy}
+        {dashboardTabHref}
+        {linkIconLabel}
+        links={overviewLinkItems}
+        {submitDashboardLinkPin}
+        {updatingDashboardLinkSlug}
       />
     </div>
   {/if}

@@ -1,5 +1,5 @@
 import type { RequestHandler } from "@sveltejs/kit";
-import { getSectionDetailRoute } from "@/lib/api/routes/academic";
+import { getSectionDetailRoute } from "@/lib/api/routes/academic-section-routes";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**

@@ -8,6 +8,7 @@
   },
   "rules": {
     "views": "Provides selectable semester, month, and week views.",
+    "mobile-agenda-first": "At mobile widths, the personal calendar presents the selected week as a vertically readable agenda with time, title, type, and available location context. Previous week, today, next week, and iCal actions remain directly accessible without page-level horizontal scrolling; desktop retains the selectable grid views.",
     "week-starts-sunday": "The week view starts on Sunday.",
     "event-card-types": "Calendar event cards uniformly carry course, exam, homework, and todo events."
   },
@@ -61,7 +62,8 @@
           "homework.submissionDueAt",
           "todo.dueAt",
           "Week numbers",
-          "Weekday labels (Sun-Sat)"
+          "Weekday labels (Sun-Sat)",
+          "Mobile week agenda"
         ],
         "filters": ["View tabs", "Previous/next semester controls"]
       }

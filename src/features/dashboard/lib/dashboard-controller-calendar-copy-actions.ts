@@ -9,10 +9,7 @@ export function createDashboardCalendarCopyActions(input: {
   setCalendarCopyError: (value: string) => void;
   setCalendarCopyMessage: (value: string) => void;
 }) {
-  async function copyCalendarLink(event: MouseEvent) {
-    const target = event.currentTarget as HTMLButtonElement;
-    const url = target.dataset.copyUrl;
-    if (!url) return;
+  async function copyCalendarUrl(url: string) {
     input.setCalendarCopyMessage("");
     input.setCalendarCopyError("");
     const labels = input.getCopyLabels();
@@ -29,7 +26,14 @@ export function createDashboardCalendarCopyActions(input: {
     }
   }
 
+  async function copyCalendarLink(event: MouseEvent) {
+    const target = event.currentTarget as HTMLButtonElement;
+    const url = target.dataset.copyUrl;
+    if (url) await copyCalendarUrl(url);
+  }
+
   return {
     copyCalendarLink,
+    copyCalendarUrl,
   };
 }

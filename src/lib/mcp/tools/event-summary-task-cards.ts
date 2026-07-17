@@ -1,5 +1,5 @@
 import { isRecord } from "@/lib/is-record";
-import { pick } from "@/lib/mcp/compact-payload";
+import { pick } from "@/lib/mcp/compact-helpers";
 import { summarizeSectionCard } from "./event-summary-academic-cards";
 
 export function summarizeTodoCard(value: unknown) {

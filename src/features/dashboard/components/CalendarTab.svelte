@@ -1,8 +1,14 @@
 <script lang="ts">
+import { weekStartFor } from "@/features/dashboard/lib/calendar";
 import { buildDashboardCalendarGridWeeks } from "@/features/dashboard/lib/calendar-grid";
+import {
+  buildDashboardAgendaDays,
+  type DashboardAgendaDay,
+} from "@/features/dashboard/lib/dashboard-agenda";
 import { hasDashboardSubscriptions } from "@/features/dashboard/lib/dashboard-subscription-state";
 import CalendarGrid from "$lib/components/calendar/CalendarGrid.svelte";
 import * as Empty from "$lib/components/ui/empty/index.js";
+import CalendarAgenda from "./CalendarAgenda.svelte";
 import CalendarTabToolbar from "./CalendarTabToolbar.svelte";
 import DashboardNoSubscriptionsState from "./DashboardNoSubscriptionsState.svelte";
 import type { DashboardCalendarTabProps } from "./dashboard-calendar-component-types";
@@ -19,6 +25,7 @@ export let signedData: DashboardCalendarTabProps["signedData"];
 export let dashboardTabHref: DashboardCalendarTabProps["dashboardTabHref"];
 export let formatMessage: FormatMessage;
 export let copyCalendarLink: DashboardCalendarTabProps["copyCalendarLink"];
+export let copyCalendarUrl: DashboardCalendarTabProps["copyCalendarUrl"];
 export let sessionHref: DashboardCalendarTabProps["sessionHref"];
 
 export let setCalendarView: DashboardCalendarTabProps["setCalendarView"];
@@ -29,6 +36,7 @@ export let addDays: DashboardCalendarTabProps["addDays"];
 export let addMonths: DashboardCalendarTabProps["addMonths"];
 export let monthWeeks: DashboardCalendarTabProps["monthWeeks"];
 export let calendarEventsForDay: DashboardCalendarTabProps["calendarEventsForDay"];
+export let calendarTimelineItemsForDay: DashboardCalendarTabProps["calendarTimelineItemsForDay"];
 export let calendarWeekLabel: DashboardCalendarTabProps["calendarWeekLabel"];
 export let calendarEventParts: DashboardCalendarTabProps["calendarEventParts"];
 export let calendarHomeworkHref: DashboardCalendarTabProps["calendarHomeworkHref"];
@@ -45,7 +53,22 @@ export let calendarSemesterId: DashboardCalendarTabProps["calendarSemesterId"];
 export let calendarData: DashboardCalendarTabProps["calendarData"];
 
 let calendarGridWeeks: ReturnType<typeof buildDashboardCalendarGridWeeks> = [];
+let agendaDays: DashboardAgendaDay[] = [];
+let agendaWeekStart = "";
 
+$: agendaWeekStart =
+  calendarWeekStart ||
+  (calendarData ? weekStartFor(calendarData.todayDate) : "");
+$: agendaDays =
+  calendarData && agendaWeekStart
+    ? buildDashboardAgendaDays({
+        calendar: calendarData,
+        eventsForDay: calendarEventsForDay,
+        locale: signedData.locale,
+        startKey: agendaWeekStart,
+        timelineItemsForDay: calendarTimelineItemsForDay,
+      })
+    : [];
 $: calendarGridWeeks = calendarData
   ? buildDashboardCalendarGridWeeks({
       addDays,
@@ -89,8 +112,10 @@ $: calendarGridWeeks = calendarData
       {calendarSemesterIndex}
       {calendarView}
       {calendarWeekStart}
+      {agendaWeekStart}
       {commonCopy}
       {copyCalendarLink}
+      {copyCalendarUrl}
       {dashboardCopy}
       {formatMessage}
       {sectionCopy}
@@ -104,19 +129,29 @@ $: calendarGridWeeks = calendarData
 
     {#if calendarData && calendarData.semesterWeeks.length > 0}
       {#key `${calendarView}-${calendarMonth}-${calendarWeekStart}-${calendarSemesterId ?? ""}`}
-        <CalendarGrid
-          weeks={calendarGridWeeks}
-          weekdays={calendarWeekdayLabels}
-          weekHeaderLabel={sectionCopy.weekLabel}
-          showWeekLabels={true}
-          variant={calendarView === "week" ? "week" : "month"}
-          minWidth="760px"
-          eventLimit={calendarView === "week" ? 8 : 4}
-          moreLabel={(count) =>
-            formatMessage(dashboardCopy.moreItems, {
-              count: String(count),
-            })}
-        />
+        <div class="md:hidden">
+          <CalendarAgenda
+            days={agendaDays}
+            emptyLabel={dashboardCopy.calendarAgendaEmpty}
+            label={dashboardCopy.calendarAgendaLabel}
+            todayLabel={dashboardCopy.todayAction}
+          />
+        </div>
+        <div class="hidden md:block" data-testid="dashboard-calendar-grid">
+          <CalendarGrid
+            weeks={calendarGridWeeks}
+            weekdays={calendarWeekdayLabels}
+            weekHeaderLabel={sectionCopy.weekLabel}
+            showWeekLabels={true}
+            variant={calendarView === "week" ? "week" : "month"}
+            minWidth="760px"
+            eventLimit={calendarView === "week" ? 8 : 4}
+            moreLabel={(count) =>
+              formatMessage(dashboardCopy.moreItems, {
+                count: String(count),
+              })}
+          />
+        </div>
       {/key}
     {:else}
       <Empty.Root class="items-start text-left">

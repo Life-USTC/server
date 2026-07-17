@@ -1,4 +1,4 @@
-import { redactCalendarFeedLocation } from "@/lib/mcp/compact-payload";
+import { redactCalendarFeedLocation } from "@/lib/mcp/compact-helpers";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
 type CalendarSection = {

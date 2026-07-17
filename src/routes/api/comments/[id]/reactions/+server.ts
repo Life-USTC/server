@@ -1,8 +1,6 @@
 import type { RequestHandler } from "@sveltejs/kit";
-import {
-  deleteCommentReactionRoute,
-  postCommentReactionRoute,
-} from "@/lib/api/routes/comment-reactions";
+import { postCommentReactionRoute } from "@/lib/api/routes/comment-reaction-create-route";
+import { deleteCommentReactionRoute } from "@/lib/api/routes/comment-reaction-delete-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**

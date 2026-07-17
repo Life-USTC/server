@@ -1,4 +1,4 @@
-import { postDashboardLinkPinRoute } from "@/lib/api/routes/dashboard-links";
+import { postDashboardLinkPinRoute } from "@/lib/api/routes/dashboard-link-pin-route";
 import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
