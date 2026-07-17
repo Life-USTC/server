@@ -408,6 +408,55 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     await captureStepScreenshot(page, testInfo, "section/detail-nav");
   });
 
+  test("移动端标题、横向导航与底部主操作保持可达", async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await gotoAndWaitForReady(page, SECTION_URL);
+
+    const heading = page.getByRole("heading", { level: 1 }).first();
+    await expect(heading).toHaveCSS("font-size", "24px");
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(390);
+
+    const nav = page.getByTestId("detail-section-nav");
+    await expect(nav.locator("[data-sidebar='menu']")).toHaveCSS(
+      "flex-direction",
+      "row",
+    );
+    await expect(nav.locator('a[aria-current="page"]')).toHaveCount(1);
+
+    const actions = page.getByTestId("section-mobile-primary-actions");
+    await expect(actions).toBeVisible();
+    await expect(actions).toBeInViewport();
+    await actions
+      .getByRole("button", { name: /添加到日历|Add to calendar/i })
+      .click();
+    await expect(
+      page.locator('[data-slot="dialog-content"]').first(),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    await jumpToSection(page, /评论|Comments/i, "#tab-comments");
+    await expect(actions).toBeInViewport();
+    await captureStepScreenshot(page, testInfo, "section/detail-mobile");
+  });
+
+  test("桌面端保留页首主操作并隐藏移动端操作栏", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await gotoAndWaitForReady(page, SECTION_URL);
+
+    await expect(
+      page
+        .getByTestId("detail-pinned-summary")
+        .getByRole("button", { name: /添加到日历|Add to calendar/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("section-mobile-primary-actions"),
+    ).toBeHidden();
+  });
+
   test("详情导航后内容滚动回到顶部", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await gotoAndWaitForReady(page, `${SECTION_URL}/comments`);

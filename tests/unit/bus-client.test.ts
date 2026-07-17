@@ -9,6 +9,7 @@ import type {
   BusTimetableData,
   BusTripSummary,
 } from "@/features/bus/lib/bus-types";
+import { nextBusDepartures } from "@/features/dashboard/lib/bus";
 
 function createTrip(input: {
   id: number;
@@ -166,6 +167,9 @@ describe("班车客户端时刻表计算", () => {
     expect(routes.map((route) => route.route.id)).toEqual([8, 9]);
     expect(routes[0]?.nextTrip?.minutesUntilStart).toBe(10);
     expect(routes[0]?.nextTrip?.status).toBe("upcoming");
+    expect(nextBusDepartures(routes).map(({ trip }) => trip.trip.id)).toEqual([
+      801, 901,
+    ]);
   });
 
   test("当上海本地时间超过站点时间后将行程标记为已发车", () => {

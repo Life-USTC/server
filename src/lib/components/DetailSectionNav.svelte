@@ -15,22 +15,25 @@ export let items: DetailSectionNavItem[];
 export let label = "";
 </script>
 
-<div style="--sidebar-width: 14rem;">
+<div class="min-w-0" style="--sidebar-width: 14rem;">
   <Sidebar.Root
     collapsible="none"
     class="w-full border-sidebar-border border-b lg:w-(--sidebar-width) lg:border-e lg:border-b-0"
     data-testid="detail-section-nav"
   >
-    <Sidebar.Content aria-label={ariaLabel || label}>
+    <Sidebar.Content
+      aria-label={ariaLabel || label}
+      class="overflow-x-auto overflow-y-hidden lg:overflow-x-hidden lg:overflow-y-auto"
+    >
       <Sidebar.Group>
         {#if label}
-          <Sidebar.GroupLabel>{label}</Sidebar.GroupLabel>
+          <Sidebar.GroupLabel class="hidden lg:flex">{label}</Sidebar.GroupLabel>
         {/if}
         <Sidebar.GroupContent>
-          <Sidebar.Menu>
+          <Sidebar.Menu class="w-max min-w-full flex-row lg:w-full lg:min-w-0 lg:flex-col">
             {#each items as item}
               {@const active = item.href === activeHref}
-              <Sidebar.MenuItem>
+              <Sidebar.MenuItem class="shrink-0">
                 <Sidebar.MenuButton isActive={active}>
                   {#snippet child({ props })}
                     <a

@@ -5,6 +5,7 @@ import * as Pagination from "$lib/components/ui/pagination/index.js";
 import AdminUsersHeader from "./AdminUsersHeader.svelte";
 import AdminUsersSearchCard from "./AdminUsersSearchCard.svelte";
 import AdminUsersTableCard from "./AdminUsersTableCard.svelte";
+import AdminWorkspace from "./AdminWorkspace.svelte";
 import type {
   AdminUserFormatter,
   AdminUserRow,
@@ -39,21 +40,24 @@ function handlePageChange(page: number) {
 }
 </script>
 
-<section class="grid gap-5">
-  <AdminUsersHeader
-    {adminCopy}
-    {copy}
-    search={filters.search ?? ""}
-  />
-
-  {#if message}<Alert.Root><Alert.Description>{message}</Alert.Description></Alert.Root>{/if}
-
-  <AdminUsersSearchCard
-    {commonCopy}
-    {copy}
-    search={filters.search ?? ""}
-  />
-
+<AdminWorkspace>
+  {#snippet header()}
+    <AdminUsersHeader
+      {adminCopy}
+      {copy}
+      search={filters.search ?? ""}
+    />
+  {/snippet}
+  {#snippet feedback()}
+    {#if message}<Alert.Root><Alert.Description>{message}</Alert.Description></Alert.Root>{/if}
+  {/snippet}
+  {#snippet controls()}
+    <AdminUsersSearchCard
+      {commonCopy}
+      {copy}
+      search={filters.search ?? ""}
+    />
+  {/snippet}
   <AdminUsersTableCard
     {copy}
     {displayName}
@@ -103,4 +107,4 @@ function handlePageChange(page: number) {
       {/snippet}
     </Pagination.Root>
   {/if}
-</section>
+</AdminWorkspace>
