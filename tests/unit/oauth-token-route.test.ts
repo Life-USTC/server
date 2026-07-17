@@ -40,9 +40,15 @@ vi.mock("@/lib/db/prisma", () => ({
 vi.mock("@/lib/mcp/urls", () => ({
   getCanonicalOAuthIssuer: () => "https://life.example/api/auth",
   getOAuthMcpResourceUrl: () => "https://life.example/api/mcp",
+}));
+
+vi.mock("@/lib/oauth/resource-urls", () => ({
+  getOAuthGraphqlResourceUrl: () => "https://life.example/api/graphql",
+  getOAuthMcpResourceUrl: () => "https://life.example/api/mcp",
   getOAuthProviderValidAudiences: () => [
     "https://life.example/api/auth",
     "https://life.example/api/mcp",
+    "https://life.example/api/graphql",
   ],
 }));
 

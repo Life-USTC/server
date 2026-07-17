@@ -22,6 +22,7 @@ describe("verifyAccessTokenJwt", () => {
         sub: "user-1",
         scope: "todo:read todo:write",
         aud: "https://life.example/api/auth",
+        azp: "client-1",
       },
     });
 
@@ -37,6 +38,7 @@ describe("verifyAccessTokenJwt", () => {
     expect(result.sub).toBe("user-1");
     expect(result.scope).toEqual(new Set(["todo:read", "todo:write"]));
     expect(result.aud).toBe("https://life.example/api/auth");
+    expect(result.clientId).toBe("client-1");
     expect(createRemoteJWKSetMock).toHaveBeenCalledWith(
       new URL("https://life.example/api/auth/jwks"),
     );

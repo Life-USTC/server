@@ -25,11 +25,16 @@ vi.mock("@/lib/auth/core", () => ({
   },
 }));
 
-vi.mock("@/lib/mcp/urls", () => ({
+vi.mock("@/lib/oauth/metadata-urls", () => ({
+  getGraphqlServerUrl: () => new URL("https://life.example/api/graphql"),
   getMcpServerUrl: () => new URL("https://life.example/api/mcp"),
   getOAuthAuthorizationServerMetadataUrl: () =>
     new URL(
       "https://life.example/.well-known/oauth-authorization-server/api/auth",
+    ),
+  getOAuthGraphqlProtectedResourceMetadataUrl: () =>
+    new URL(
+      "https://life.example/.well-known/oauth-protected-resource/api/graphql",
     ),
   getOAuthIssuerUrl: () => new URL("https://life.example/api/auth"),
   getOAuthOpenIdConfigurationUrl: () =>
@@ -165,6 +170,33 @@ describe("OAuth 发现元数据路由", () => {
       "https://life.example/api/auth",
     ]);
     expect(body.scopes_supported).toEqual([...PUBLIC_REST_SCOPES]);
+    expect(body.scopes_supported).not.toContain("admin:read");
+    expect(body.scopes_supported).not.toContain("admin:write");
+    expect(body.scopes_supported).not.toContain("mcp:tools");
+  });
+
+  it("GraphQL protected-resource 元数据使用独立 resource", async () => {
+    const { createOAuthDiscoveryRoute } = await import(
+      "@/lib/oauth/discovery-routes"
+    );
+    const route = createOAuthDiscoveryRoute("graphqlProtectedResourceMetadata");
+
+    const response = await route.GET({
+      request: new Request(
+        "https://life.example/.well-known/oauth-protected-resource/api/graphql",
+      ),
+    } as never);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("access-control-allow-origin")).toBe("*");
+    expect(body).toMatchObject({
+      resource: "https://life.example/api/graphql",
+      authorization_servers: ["https://life.example/api/auth"],
+      bearer_methods_supported: ["header"],
+      scopes_supported: [...PUBLIC_REST_SCOPES],
+    });
+    expect(body.resource).not.toBe("https://life.example/api/mcp");
     expect(body.scopes_supported).not.toContain("admin:read");
     expect(body.scopes_supported).not.toContain("admin:write");
     expect(body.scopes_supported).not.toContain("mcp:tools");

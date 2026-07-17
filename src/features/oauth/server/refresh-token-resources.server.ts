@@ -3,12 +3,12 @@ import {
   signResourceBoundOAuthAccessToken,
 } from "@/features/oauth/server/device-token-issuer.server";
 import { prisma as defaultPrisma } from "@/lib/db/prisma";
-import { getOAuthProviderValidAudiences } from "@/lib/mcp/urls";
 import {
   OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
   OAUTH_REFRESH_TOKEN_GRANT_TYPE,
 } from "@/lib/oauth/constants";
 import { resolveOAuthResourceAlias } from "@/lib/oauth/resource-aliases";
+import { getOAuthProviderValidAudiences } from "@/lib/oauth/resource-urls";
 import {
   hashOAuthClientSecretForDbStorage,
   normalizeResourceIndicator,

@@ -20,10 +20,11 @@ vi.mock("@/lib/log/oauth-debug", () => ({
   logOAuthDebug: vi.fn(),
 }));
 
-vi.mock("@/lib/mcp/urls", () => ({
+vi.mock("@/lib/oauth/resource-urls", () => ({
   getOAuthProviderValidAudiences: () => [
     "https://life.example/api/auth",
     "https://life.example/api/mcp",
+    "https://life.example/api/graphql",
   ],
 }));
 
@@ -94,6 +95,27 @@ describe("OAuth 刷新令牌资源持久化", () => {
     ).resolves.toBeUndefined();
   });
 
+  it("允许刷新令牌请求其已批准的 GraphQL resource", async () => {
+    findRefreshTokenMock.mockResolvedValue({
+      resources: ["https://life.example/api/graphql"],
+    });
+    const { validateOAuthRefreshTokenResources } = await import(
+      "@/lib/api/routes/auth-token-refresh-resources"
+    );
+    const params = new URLSearchParams({
+      grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+      refresh_token: "old-refresh-token",
+      resource: "https://life.example:443/api/graphql",
+    });
+
+    await expect(
+      validateOAuthRefreshTokenResources(
+        new Request("https://life.example/api/auth/oauth2/token"),
+        params,
+      ),
+    ).resolves.toBeUndefined();
+  });
+
   it("在授权码刷新令牌上存储已签发的受众资源", async () => {
     const { persistOAuthRefreshTokenResources } = await import(
       "@/lib/api/routes/auth-token-refresh-resources"
@@ -116,6 +138,31 @@ describe("OAuth 刷新令牌资源持久化", () => {
     expect(updateRefreshTokenMock).toHaveBeenCalledWith({
       where: { token: expect.any(String) },
       data: { resources: ["https://life.example/api/mcp"] },
+    });
+  });
+
+  it("在授权码刷新令牌上存储 GraphQL 受众资源", async () => {
+    const { persistOAuthRefreshTokenResources } = await import(
+      "@/lib/api/routes/auth-token-refresh-resources"
+    );
+    const params = new URLSearchParams({
+      grant_type: OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
+      resource: "https://life.example:443/api/graphql",
+    });
+    const response = Response.json({
+      access_token: unsignedJwt({ aud: "https://life.example/api/graphql" }),
+      refresh_token: "issued-refresh-token",
+    });
+
+    await persistOAuthRefreshTokenResources(
+      new Request("https://life.example/api/auth/oauth2/token"),
+      params,
+      response,
+    );
+
+    expect(updateRefreshTokenMock).toHaveBeenCalledWith({
+      where: { token: expect.any(String) },
+      data: { resources: ["https://life.example/api/graphql"] },
     });
   });
 
