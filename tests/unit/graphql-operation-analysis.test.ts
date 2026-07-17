@@ -74,6 +74,79 @@ describe("GraphQL operation analysis", () => {
     });
   });
 
+  it("weights every authenticated Viewer collection by its pageSize", () => {
+    const document = parse(/* GraphQL */ `
+      query ViewerPages($page: PageInput) {
+        viewer {
+          todos(page: $page) {
+            pageInfo { total }
+          }
+          subscribedSections(page: $page) {
+            pageInfo { total }
+          }
+          homeworks(page: $page) {
+            pageInfo { total }
+          }
+          schedules(page: $page) {
+            pageInfo { total }
+          }
+          exams(page: $page) {
+            pageInfo { total }
+          }
+        }
+      }
+    `);
+
+    expect(
+      analyzeGraphqlOperation({
+        document,
+        operationName: "ViewerPages",
+        variables: { page: { pageSize: 10 } },
+      }),
+    ).toEqual({
+      estimatedCost: 252,
+      operationName: "ViewerPages",
+      operationType: "query",
+      topLevelFieldCount: 1,
+    });
+  });
+
+  it("weights nested Schedule teachers and Exam rooms by their pageSize", () => {
+    const document = parse(/* GraphQL */ `
+      query NestedViewerPages($page: PageInput) {
+        viewer {
+          schedules {
+            items {
+              teachers(page: $page) {
+                items { id }
+              }
+            }
+          }
+          exams {
+            items {
+              examRooms(page: $page) {
+                items { id }
+              }
+            }
+          }
+        }
+      }
+    `);
+
+    expect(
+      analyzeGraphqlOperation({
+        document,
+        operationName: "NestedViewerPages",
+        variables: { page: { pageSize: 10 } },
+      }),
+    ).toEqual({
+      estimatedCost: 2162,
+      operationName: "NestedViewerPages",
+      operationType: "query",
+      topLevelFieldCount: 1,
+    });
+  });
+
   it("applies the top-level field limit to mutations as well as queries", () => {
     const schema = buildSchema(`
       type Query { ok: Boolean! }

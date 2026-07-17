@@ -1,23 +1,32 @@
 import type { RequestEvent } from "@sveltejs/kit";
-import { createYoga } from "graphql-yoga";
-import { DEFAULT_LOCALE } from "@/i18n/config";
-import { GRAPHQL_ENDPOINT, GRAPHQL_LIMITS } from "./constants";
-import { createGraphqlLoaders } from "./loaders";
-import { createGraphqlObservabilityPlugin } from "./observability";
-import { createDeadline } from "./request-deadline";
 import {
+  createYoga,
+  type MaskError,
+  maskError as maskUnexpectedGraphqlError,
+} from "graphql-yoga";
+import { GraphqlAuthError } from "./auth";
+import { GRAPHQL_ENDPOINT, GRAPHQL_LIMITS } from "./constants";
+import {
+  createGraphqlContext,
   type GraphqlContext,
   type GraphqlServerContext,
-  graphqlSchema,
-} from "./schema";
+} from "./context";
+import { createGraphqlObservabilityPlugin } from "./observability";
+import { createDeadline } from "./request-deadline";
+import { graphqlSchema } from "./schema";
 import { createGraphqlSecurityPlugins } from "./security";
 
 class GraphqlBodyTooLargeError extends Error {}
 
-function graphqlErrorResponse(status: number, code: string, message: string) {
+function graphqlErrorResponse(
+  status: number,
+  code: string,
+  message: string,
+  extensions: Record<string, unknown> = {},
+) {
   return new Response(
     JSON.stringify({
-      errors: [{ message, extensions: { code } }],
+      errors: [{ message, extensions: { code, ...extensions } }],
     }),
     {
       status,
@@ -28,6 +37,51 @@ function graphqlErrorResponse(status: number, code: string, message: string) {
     },
   );
 }
+
+const SAFE_GRAPHQL_ERROR_CODES = new Set([
+  "BAD_USER_INPUT",
+  "FORBIDDEN",
+  "UNAUTHENTICATED",
+]);
+
+function hasGraphqlErrorBrand(
+  value: unknown,
+): value is Error & { name: "GraphQLError" } {
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    !("name" in value) ||
+    value.name !== "GraphQLError"
+  ) {
+    return false;
+  }
+
+  try {
+    return Object.prototype.toString.call(value) === "[object GraphQLError]";
+  } catch {
+    return false;
+  }
+}
+
+const maskGraphqlError: MaskError = (error, message, isDev) => {
+  const originalError =
+    hasGraphqlErrorBrand(error) && "originalError" in error
+      ? error.originalError
+      : undefined;
+  if (
+    hasGraphqlErrorBrand(error) &&
+    (originalError == null || hasGraphqlErrorBrand(originalError)) &&
+    "extensions" in error &&
+    typeof error.extensions === "object" &&
+    error.extensions !== null &&
+    "code" in error.extensions &&
+    typeof error.extensions.code === "string" &&
+    SAFE_GRAPHQL_ERROR_CODES.has(error.extensions.code)
+  ) {
+    return error;
+  }
+  return maskUnexpectedGraphqlError(error, message, isDev);
+};
 
 function noStore(response: Response) {
   const headers = new Headers(response.headers);
@@ -91,13 +145,10 @@ export function createGraphqlRequestHandler(production: boolean) {
     schema: graphqlSchema,
     graphqlEndpoint: GRAPHQL_ENDPOINT,
     fetchAPI: { Response },
-    context: ({ locals }) => ({
-      locale: locals.locale ?? DEFAULT_LOCALE,
-      loaders: createGraphqlLoaders(locals.locale ?? DEFAULT_LOCALE),
-    }),
+    context: createGraphqlContext,
     graphiql: !production,
     logging: false,
-    maskedErrors: true,
+    maskedErrors: { maskError: maskGraphqlError },
     batching: { limit: GRAPHQL_LIMITS.requestBatch },
     multipart: false,
     plugins: [
@@ -122,6 +173,11 @@ export function createGraphqlRequestHandler(production: boolean) {
 
       return noStore(await yoga.fetch(request.url, init, event));
     } catch (error) {
+      if (error instanceof GraphqlAuthError) {
+        return graphqlErrorResponse(error.status, error.code, error.message, {
+          requiredScopes: error.requiredScopes,
+        });
+      }
       if (error instanceof GraphqlBodyTooLargeError) {
         return graphqlErrorResponse(
           413,

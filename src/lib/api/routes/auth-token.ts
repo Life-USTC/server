@@ -6,8 +6,8 @@ import { OAUTH_DEVICE_CODE_GRANT_TYPE } from "@/lib/oauth/constants";
 import { rewriteOAuthResourceAliases } from "@/lib/oauth/resource-aliases";
 import { handleDeviceCodeGrant } from "./auth-token-device-grant";
 import { maybeNormalizeTokenLoopbackRedirectRequest } from "./auth-token-loopback-normalization";
-import { maybeBindMcpRefreshRequest } from "./auth-token-mcp-refresh-binding";
 import { logObservedTokenRedirectRequest } from "./auth-token-observed-logging";
+import { maybeBindOAuthRefreshResourceRequest } from "./auth-token-refresh-resource-binding";
 import {
   persistOAuthRefreshTokenResources,
   replaceOAuthRefreshAccessToken,
@@ -155,7 +155,7 @@ async function postRoute(request: Request) {
     );
     if (resourceError) return resourceError;
 
-    const delegatedRequest = await maybeBindMcpRefreshRequest(
+    const delegatedRequest = await maybeBindOAuthRefreshResourceRequest(
       await maybeNormalizeTokenLoopbackRedirectRequest(
         normalizedRequest,
         params,

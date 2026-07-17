@@ -117,12 +117,14 @@ src/*/AGENTS.md         Scoped implementation guides
 ### Auth
 - **Pages**: `requireSignedInUserId()` → redirects to `/signin`
 - **API**: `resolveApiUserId()` → accepts Bearer OR cookie
+- **GraphQL**: resolve one bearer-first principal per request; `/api/graphql` tokens must use the GraphQL audience, Session cookies require a trusted Origin, and each `Viewer` child checks its exact feature scope
 - **MCP**: Bearer only, audience `/api/mcp`; read user id with `getUserId(extra.authInfo)`
 - Check permissions BEFORE mutations
 - Suspended users blocked from collaborative writes
 
 ### Dates
 - **Input**: `parseDateInput(str)` accepts YYYY-MM-DD or ISO
+- **GraphQL `@db.Date` filters**: accept strict zoned `DateTime`, then normalize to the Asia/Shanghai calendar day
 - **Output**: `jsonResponse(data)` serializes dates
 - **Display**: `getShanghaiDay()` for boundaries
 

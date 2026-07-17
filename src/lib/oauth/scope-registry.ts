@@ -7,11 +7,36 @@ import {
   OAUTH_PROFILE_SCOPE,
   PUBLIC_REST_FEATURES,
   REST_FEATURES,
+  type RestFeature,
   restReadScope,
   restWriteScope,
 } from "./constants";
 
 export { mcpScope, restReadScope, restWriteScope };
+
+export type FeatureScopeRequirement = {
+  feature: RestFeature;
+  action: "read" | "write";
+};
+
+export function getRequiredFeatureScope(
+  requirement: FeatureScopeRequirement,
+): string {
+  return requirement.action === "write"
+    ? restWriteScope(requirement.feature)
+    : restReadScope(requirement.feature);
+}
+
+export function hasRequiredFeatureScope(
+  scopes: ReadonlySet<string>,
+  requirement: FeatureScopeRequirement,
+): boolean {
+  const readScope = restReadScope(requirement.feature);
+  const writeScope = restWriteScope(requirement.feature);
+  return requirement.action === "write"
+    ? scopes.has(writeScope)
+    : scopes.has(readScope) || scopes.has(writeScope);
+}
 
 export const LEGACY_REST_READ_SCOPE = "rest:read";
 export const LEGACY_REST_WRITE_SCOPE = "rest:write";

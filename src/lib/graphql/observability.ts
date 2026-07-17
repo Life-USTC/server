@@ -1,15 +1,19 @@
 import { Kind } from "graphql";
 import type { Plugin } from "graphql-yoga";
+import { parseBearerAuthorizationHeader } from "@/lib/auth/authorization-header";
+import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { writeGraphqlOperationAnalytics } from "@/lib/metrics/analytics-engine";
+import type { GraphqlPrincipal } from "./auth";
+import type { GraphqlContext, GraphqlServerContext } from "./context";
 import {
   analyzeGraphqlOperation,
   type GraphqlOperationAnalysis,
 } from "./operation-analysis";
-import type { GraphqlContext, GraphqlServerContext } from "./schema";
 
+type GraphqlAuthMode = GraphqlPrincipal["kind"] | "unknown";
 type GraphqlObservationState = GraphqlOperationAnalysis & {
-  authMode: "anonymous";
+  authMode: GraphqlAuthMode;
   errorCount: number;
   operationAttempted: boolean;
   recorded: boolean;
@@ -32,6 +36,12 @@ function recordVariables(value: unknown): Record<string, unknown> {
 
 function safeRequestId(value: string | null | undefined) {
   return value && /^[A-Za-z0-9._:-]{1,120}$/.test(value) ? value : "unknown";
+}
+
+function initialAuthMode(request: Request): GraphqlAuthMode {
+  if (parseBearerAuthorizationHeader(request.headers)) return "oauth";
+  if (hasRequestAuthSignal(request.headers)) return "session";
+  return "unknown";
 }
 
 function errorCount(result: unknown): number {
@@ -89,7 +99,7 @@ export function createGraphqlObservabilityPlugin(): Plugin<
     onRequest({ request, serverContext }) {
       states.set(request, {
         ...EMPTY_ANALYSIS,
-        authMode: "anonymous",
+        authMode: initialAuthMode(request),
         errorCount: 0,
         operationAttempted: false,
         recorded: false,
@@ -124,6 +134,7 @@ export function createGraphqlObservabilityPlugin(): Plugin<
       const state = states.get(args.contextValue.request);
       if (!state) return;
 
+      state.authMode = args.contextValue.principal.kind;
       Object.assign(
         state,
         analyzeGraphqlOperation({

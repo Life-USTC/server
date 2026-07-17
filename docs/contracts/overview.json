@@ -50,6 +50,22 @@
           }
         ]
       },
+      "graphql": {
+        "fields": [
+          {
+            "parent": "Viewer",
+            "name": "overview",
+            "returns": "ViewerOverview!",
+            "auth": "user",
+            "required_scopes": ["dashboard:read"],
+            "rest_equivalent": "GET /api/me/overview",
+            "mcp_equivalent": "get_my_overview",
+            "notes": [
+              "The optional atTime argument is a strict zoned DateTime; the GraphQL output keeps the compact actionable counts."
+            ]
+          }
+        ]
+      },
       "mcp": {
         "tools": [
           {

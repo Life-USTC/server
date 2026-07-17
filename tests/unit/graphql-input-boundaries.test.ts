@@ -17,6 +17,7 @@ import {
   validateGraphqlSearch,
   validateGraphqlTeacherCode,
   validateGraphqlVersionKey,
+  validateGraphqlWeekday,
 } from "@/lib/graphql/input-boundaries";
 import { normalizeGraphqlPage } from "@/lib/graphql/pagination";
 import { createDeadline } from "@/lib/graphql/request-deadline";
@@ -66,6 +67,18 @@ describe("GraphQL protocol input boundaries", () => {
     );
     expect(() => validateGraphqlVersionKey("../unsafe")).toThrow(
       "versionKey has an invalid format",
+    );
+  });
+
+  it("accepts only valid schedule weekdays", () => {
+    expect(validateGraphqlWeekday(undefined)).toBeUndefined();
+    expect(validateGraphqlWeekday(1)).toBe(1);
+    expect(validateGraphqlWeekday(7)).toBe(7);
+    expect(() => validateGraphqlWeekday(0)).toThrow(
+      "weekday must be between 1 and 7",
+    );
+    expect(() => validateGraphqlWeekday(8)).toThrow(
+      "weekday must be between 1 and 7",
     );
   });
 

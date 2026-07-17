@@ -184,6 +184,46 @@ describe("GraphQL HTTP boundary", () => {
     expect(errorMessages(payload)).toContain("Unexpected error.");
   });
 
+  it("masks a public resolver error that forges a safe GraphQLError code", async () => {
+    courseService.listCourseSummaries.mockRejectedValueOnce(
+      Object.assign(new Error("forged-safe-error-must-not-leak"), {
+        name: "GraphQLError",
+        extensions: { code: "BAD_USER_INPUT" },
+      }),
+    );
+
+    const { payload } = await execute(
+      { query: "{ courses { items { jwId } } }" },
+      true,
+    );
+
+    expect(errorMessages(payload)).toEqual(["Unexpected error."]);
+    expect(JSON.stringify(payload)).not.toContain(
+      "forged-safe-error-must-not-leak",
+    );
+  });
+
+  it("preserves a trusted bad-input GraphQLError in production", async () => {
+    const { payload } = await execute(
+      {
+        query:
+          "{ courses(page: { page: 0 }) { items { jwId } pageInfo { total } } }",
+      },
+      true,
+    );
+
+    expect(payload).toMatchObject({
+      data: null,
+      errors: [
+        {
+          message: expect.stringContaining("page must be between"),
+          extensions: { code: "BAD_USER_INPUT" },
+        },
+      ],
+    });
+    expect(errorMessages(payload)).not.toContain("Unexpected error.");
+  });
+
   it.each([
     [
       "page",
@@ -420,5 +460,122 @@ describe("GraphQL HTTP boundary", () => {
 
     expect(errorMessages(payload)).toContain("Query cost limit exceeded.");
     expect(courseService.listCourseSummaries).not.toHaveBeenCalled();
+  });
+
+  it("weights every Viewer page field by variable pageSize", async () => {
+    const { payload } = await execute({
+      query: /* GraphQL */ `
+        query ExpensiveViewer($page: PageInput) {
+          viewer {
+            todos(page: $page) {
+              items {
+                id
+                title
+                content
+                priority
+                completed
+                dueAt
+                createdAt
+                updatedAt
+              }
+              pageInfo {
+                page
+                pageSize
+                total
+                totalPages
+              }
+            }
+            subscribedSections(page: $page) {
+              items {
+                id
+                jwId
+                code
+                credits
+                period
+                periodsPerWeek
+                timesPerWeek
+                stdCount
+                limitCount
+                remark
+              }
+            }
+            homeworks(page: $page) {
+              items {
+                id
+                title
+                isMajor
+                requiresTeam
+                publishedAt
+                submissionStartAt
+                submissionDueAt
+                createdAt
+                updatedAt
+                completed
+                completedAt
+                commentCount
+              }
+            }
+            schedules(page: $page) {
+              items {
+                id
+                periods
+                date
+                weekday
+                startTime
+                endTime
+                experiment
+                customPlace
+                lessonType
+                weekIndex
+                startUnit
+                endUnit
+              }
+            }
+            exams(page: $page) {
+              items {
+                id
+                jwId
+                examType
+                startTime
+                endTime
+                examDate
+                examTakeCount
+                examMode
+              }
+            }
+          }
+        }
+      `,
+      variables: {
+        page: { pageSize: GRAPHQL_LIMITS.pageSize },
+      },
+    });
+
+    expect(errorMessages(payload)).toContain("Query cost limit exceeded.");
+  });
+
+  it("weights nested Viewer page fields before resolver execution", async () => {
+    const { payload } = await execute({
+      query: /* GraphQL */ `
+        query ExpensiveNestedViewer($nestedPage: PageInput) {
+          viewer {
+            schedules(page: { pageSize: 10 }) {
+              items {
+                teachers(page: $nestedPage) {
+                  items {
+                    id
+                  }
+                }
+              }
+            }
+          }
+        }
+      `,
+      variables: {
+        nestedPage: { pageSize: GRAPHQL_LIMITS.pageSize },
+      },
+    });
+
+    expect(errorMessages(payload)).toContain("Query cost limit exceeded.");
   });
 });

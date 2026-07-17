@@ -34,9 +34,15 @@ const PAGINATED_FIELDS = new Set([
   "busRoutes",
   "busTimetable",
   "courses",
+  "examRooms",
+  "exams",
+  "homeworks",
   "sections",
   "semesters",
+  "schedules",
+  "subscribedSections",
   "teachers",
+  "todos",
 ]);
 
 function fragmentDefinitions(document: DocumentNode) {

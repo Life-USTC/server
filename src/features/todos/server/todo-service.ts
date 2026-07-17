@@ -1,5 +1,6 @@
 import type { Prisma, TodoPriority } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { paginatedQuery } from "@/lib/query-pagination";
 
 export const todoSnapshotSelect = {
   id: true,
@@ -231,6 +232,30 @@ export async function listTodoSummary(input: {
     },
     todos,
   };
+}
+
+export function listTodoPage(input: {
+  filters?: TodoListFilters;
+  pagination: {
+    page: number;
+    pageSize: number;
+  };
+  userId: string;
+}) {
+  const where = buildTodoListWhere(input.userId, input.filters);
+  return paginatedQuery(
+    (skip, take) =>
+      prisma.todo.findMany({
+        where,
+        select: todoSnapshotSelect,
+        orderBy: todoListOrderBy,
+        skip,
+        take,
+      }),
+    () => prisma.todo.count({ where }),
+    input.pagination.page,
+    input.pagination.pageSize,
+  );
 }
 
 export async function requireOwnedTodo(id: string, userId: string) {
