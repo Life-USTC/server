@@ -56,6 +56,18 @@ describe("static teacher fallback reconciliation", () => {
             departmentId: department.id,
           },
         });
+        const retiredStatusFallback = await tx.teacher.create({
+          data: {
+            nameCn: `${marker}-retired-status`,
+            departmentId: department.id,
+          },
+        });
+        const activeStatusFallback = await tx.teacher.create({
+          data: {
+            nameCn: `${marker}-active-status`,
+            departmentId: department.id,
+          },
+        });
 
         const course = await tx.course.create({
           data: {
@@ -76,6 +88,13 @@ describe("static teacher fallback reconciliation", () => {
           data: {
             jwId: numericMarker + 1,
             code: `${marker}-source-only`,
+            courseId: course.id,
+          },
+        });
+        const statusMergeSection = await tx.section.create({
+          data: {
+            jwId: numericMarker + 2,
+            code: `${marker}-status-merge`,
             courseId: course.id,
           },
         });
@@ -115,6 +134,7 @@ describe("static teacher fallback reconciliation", () => {
           data: {
             teacherId: uniqueTarget.id,
             sectionId: section.id,
+            retiredAt: new Date("2026-01-01T00:00:00.000Z"),
           },
         });
         const fallbackSectionTeacher = await tx.sectionTeacher.create({
@@ -127,6 +147,19 @@ describe("static teacher fallback reconciliation", () => {
           data: {
             teacherId: uniqueFallback.id,
             sectionId: sourceOnlySection.id,
+          },
+        });
+        const retiredStatusSectionTeacher = await tx.sectionTeacher.create({
+          data: {
+            teacherId: retiredStatusFallback.id,
+            sectionId: statusMergeSection.id,
+            retiredAt: new Date("2026-01-02T00:00:00.000Z"),
+          },
+        });
+        const activeStatusSectionTeacher = await tx.sectionTeacher.create({
+          data: {
+            teacherId: activeStatusFallback.id,
+            sectionId: statusMergeSection.id,
           },
         });
         const directComment = await tx.comment.create({
@@ -145,6 +178,12 @@ describe("static teacher fallback reconciliation", () => {
           data: {
             body: `${marker}-source-only-section-teacher-comment`,
             sectionTeacherId: sourceOnlySectionTeacher.id,
+          },
+        });
+        const retiredStatusComment = await tx.comment.create({
+          data: {
+            body: `${marker}-retired-status-comment`,
+            sectionTeacherId: retiredStatusSectionTeacher.id,
           },
         });
         const uniqueDescription = await tx.description.create({
@@ -188,6 +227,20 @@ describe("static teacher fallback reconciliation", () => {
             },
             targetIdentity: null,
           },
+          {
+            fallback: {
+              nameCn: retiredStatusFallback.nameCn,
+              departmentCode: department.code,
+            },
+            targetIdentity: { personId: uniqueTarget.personId ?? undefined },
+          },
+          {
+            fallback: {
+              nameCn: activeStatusFallback.nameCn,
+              departmentCode: department.code,
+            },
+            targetIdentity: { personId: uniqueTarget.personId ?? undefined },
+          },
         ];
         const targetIds = new Map([
           [uniqueTarget.personId, uniqueTarget.id],
@@ -206,9 +259,9 @@ describe("static teacher fallback reconciliation", () => {
           });
 
         await expect(reconcile()).resolves.toEqual({
-          matchedFallbacks: 2,
+          matchedFallbacks: 4,
           transferredDescriptions: 1,
-          deletedFallbacks: 1,
+          deletedFallbacks: 3,
           retainedFallbacks: 1,
           skippedResolutions: 1,
         });
@@ -241,6 +294,12 @@ describe("static teacher fallback reconciliation", () => {
         ).resolves.toBeNull();
         await expect(
           tx.sectionTeacher.findUnique({
+            where: { id: targetSectionTeacher.id },
+            select: { retiredAt: true },
+          }),
+        ).resolves.toEqual({ retiredAt: null });
+        await expect(
+          tx.sectionTeacher.findUnique({
             where: { id: sourceOnlySectionTeacher.id },
             select: { teacherId: true },
           }),
@@ -252,6 +311,28 @@ describe("static teacher fallback reconciliation", () => {
           }),
         ).resolves.toEqual({
           sectionTeacherId: sourceOnlySectionTeacher.id,
+        });
+        await expect(
+          tx.sectionTeacher.findUnique({
+            where: { id: retiredStatusSectionTeacher.id },
+          }),
+        ).resolves.toBeNull();
+        await expect(
+          tx.sectionTeacher.findUnique({
+            where: { id: activeStatusSectionTeacher.id },
+            select: { teacherId: true, retiredAt: true },
+          }),
+        ).resolves.toEqual({
+          teacherId: uniqueTarget.id,
+          retiredAt: null,
+        });
+        await expect(
+          tx.comment.findUnique({
+            where: { id: retiredStatusComment.id },
+            select: { sectionTeacherId: true },
+          }),
+        ).resolves.toEqual({
+          sectionTeacherId: activeStatusSectionTeacher.id,
         });
         await expect(
           tx.section.findUnique({

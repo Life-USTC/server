@@ -258,6 +258,8 @@ async function createReconciliationMap(
 async function migrateTeacherRelations(
   tx: Prisma.TransactionClient,
 ): Promise<void> {
+  await lockMappedSectionTeachers(tx);
+
   await tx.$executeRawUnsafe(`
     UPDATE "Comment" AS comment
     SET "teacherId" = mapping."targetId"
@@ -324,6 +326,23 @@ async function migrateTeacherRelations(
   `);
 
   await tx.$executeRawUnsafe(`
+    UPDATE "SectionTeacher" AS target
+    SET
+      "retiredAt" = NULL,
+      "updatedAt" = CURRENT_TIMESTAMP
+    WHERE target."retiredAt" IS NOT NULL
+      AND EXISTS (
+        SELECT 1
+        FROM "SectionTeacher" AS source
+        JOIN "_StaticTeacherFallbackMap" AS mapping
+          ON mapping."fallbackId" = source."teacherId"
+        WHERE source."sectionId" = target."sectionId"
+          AND mapping."targetId" = target."teacherId"
+          AND source."retiredAt" IS NULL
+      )
+  `);
+
+  await tx.$executeRawUnsafe(`
     UPDATE "Comment" AS comment
     SET "sectionTeacherId" = target."id"
     FROM "SectionTeacher" AS source
@@ -350,8 +369,9 @@ async function migrateTeacherRelations(
     WITH ranked AS (
       SELECT
         source."id",
-        MIN(source."id") OVER (
+        FIRST_VALUE(source."id") OVER (
           PARTITION BY source."sectionId", mapping."targetId"
+          ORDER BY (source."retiredAt" IS NOT NULL), source."id"
         ) AS "keeperId"
       FROM "SectionTeacher" AS source
       JOIN "_StaticTeacherFallbackMap" AS mapping
@@ -367,8 +387,9 @@ async function migrateTeacherRelations(
     WITH ranked AS (
       SELECT
         source."id",
-        MIN(source."id") OVER (
+        FIRST_VALUE(source."id") OVER (
           PARTITION BY source."sectionId", mapping."targetId"
+          ORDER BY (source."retiredAt" IS NOT NULL), source."id"
         ) AS "keeperId"
       FROM "SectionTeacher" AS source
       JOIN "_StaticTeacherFallbackMap" AS mapping
@@ -386,5 +407,27 @@ async function migrateTeacherRelations(
       "updatedAt" = CURRENT_TIMESTAMP
     FROM "_StaticTeacherFallbackMap" AS mapping
     WHERE source."teacherId" = mapping."fallbackId"
+  `);
+}
+
+async function lockMappedSectionTeachers(
+  tx: Prisma.TransactionClient,
+): Promise<void> {
+  await tx.$queryRawUnsafe(`
+    SELECT section_teacher."id"
+    FROM "SectionTeacher" AS section_teacher
+    WHERE EXISTS (
+      SELECT 1
+      FROM "SectionTeacher" AS source
+      JOIN "_StaticTeacherFallbackMap" AS mapping
+        ON mapping."fallbackId" = source."teacherId"
+      WHERE source."sectionId" = section_teacher."sectionId"
+        AND section_teacher."teacherId" IN (
+          mapping."fallbackId",
+          mapping."targetId"
+        )
+    )
+    ORDER BY section_teacher."id"
+    FOR UPDATE OF section_teacher
   `);
 }
