@@ -121,6 +121,23 @@ function parseRequestedRefreshResources(
   return { resources };
 }
 
+function normalizeApprovedResources(resources: string[]) {
+  const normalized: string[] = [];
+  for (const resource of resources) {
+    let value: string;
+    try {
+      value = normalizeResourceIndicator(resource);
+    } catch {
+      return null;
+    }
+
+    if (!normalized.some((approved) => indicatorsMatch(approved, value))) {
+      normalized.push(value);
+    }
+  }
+  return normalized;
+}
+
 async function getExistingRefreshResources({
   prisma,
   refreshToken,
@@ -135,7 +152,7 @@ async function getExistingRefreshResources({
     where: { token: tokenHash },
     select: { resources: true },
   });
-  return refreshRecord?.resources ?? [];
+  return normalizeApprovedResources(refreshRecord?.resources ?? []) ?? [];
 }
 
 async function resolveApprovedRefreshResources({
@@ -203,10 +220,13 @@ function getApprovedRequestedResources(
 ) {
   const requestedResources = parseRequestedRefreshResources(resourceValues);
   if ("error" in requestedResources) return [];
+  const normalizedApprovedResources =
+    normalizeApprovedResources(approvedResources);
+  if (!normalizedApprovedResources) return [];
 
   return requestedResources.resources.filter((requested) =>
-    approvedResources.some((approved) =>
-      resourceIndicatorsMatch(approved, requested),
+    normalizedApprovedResources.some((approved) =>
+      indicatorsMatch(approved, requested),
     ),
   );
 }
@@ -265,7 +285,7 @@ export async function validateRefreshTokenResources({
   const allRequestedResourcesApproved = requestedResources.resources.every(
     (requested) =>
       approvedResources.some((approved) =>
-        resourceIndicatorsMatch(approved, requested),
+        indicatorsMatch(approved, requested),
       ),
   );
   if (allRequestedResourcesApproved) return undefined;

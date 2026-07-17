@@ -1,3 +1,4 @@
+import { GraphQLError } from "graphql";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { restReadScope, restWriteScope } from "@/lib/oauth/constants";
 
@@ -274,6 +275,51 @@ describe("GraphQL feature scope gates", () => {
         status: 403,
       }),
     );
+  });
+
+  it.each([
+    [
+      "anonymous",
+      { kind: "anonymous" } as const,
+      { feature: "me", action: "read" } as const,
+      "UNAUTHENTICATED",
+      401,
+      [],
+    ],
+    [
+      "missing scope",
+      {
+        kind: "oauth",
+        userId: "user-1",
+        scopes: new Set<string>(),
+        resource: "https://life.example/api/graphql",
+      } as const,
+      { feature: "todo", action: "read" } as const,
+      "FORBIDDEN",
+      403,
+      [restReadScope("todo")],
+    ],
+  ])("%s 错误是不会被 masking 吞掉的安全 GraphQLError", async (_case, principal, requirement, code, status, requiredScopes) => {
+    const { requireGraphqlScope } = await import("@/lib/graphql/auth");
+
+    let thrown: unknown;
+    try {
+      requireGraphqlScope(principal, requirement);
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(GraphQLError);
+    expect(thrown).toMatchObject({
+      code,
+      status,
+      requiredScopes,
+      extensions: {
+        code,
+        requiredScopes,
+        http: { status },
+      },
+    });
   });
 
   it("anonymous 访问私有字段返回 UNAUTHENTICATED", async () => {

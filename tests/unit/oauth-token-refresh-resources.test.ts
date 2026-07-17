@@ -5,7 +5,13 @@ import {
 } from "@/lib/oauth/constants";
 
 const findRefreshTokenMock = vi.fn();
+const signAccessTokenMock = vi.fn();
 const updateRefreshTokenMock = vi.fn();
+
+vi.mock("@/features/oauth/server/device-token-issuer.server", () => ({
+  RESOURCE_BOUND_ACCESS_TOKEN_EXPIRES_IN: 300,
+  signResourceBoundOAuthAccessToken: signAccessTokenMock,
+}));
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
@@ -44,6 +50,7 @@ describe("OAuth 刷新令牌资源持久化", () => {
   beforeEach(() => {
     vi.resetModules();
     findRefreshTokenMock.mockReset();
+    signAccessTokenMock.mockReset();
     updateRefreshTokenMock.mockReset();
     updateRefreshTokenMock.mockResolvedValue({ count: 1 });
   });
@@ -114,6 +121,61 @@ describe("OAuth 刷新令牌资源持久化", () => {
         params,
       ),
     ).resolves.toBeUndefined();
+  });
+
+  it("显式 resource 遇到畸形 stored resource 时返回 invalid_target", async () => {
+    findRefreshTokenMock.mockResolvedValue({
+      resources: ["https://life.example/api/graphql", "not-a-resource-url"],
+    });
+    const { validateOAuthRefreshTokenResources } = await import(
+      "@/lib/api/routes/auth-token-refresh-resources"
+    );
+    const params = new URLSearchParams({
+      grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+      refresh_token: "old-refresh-token",
+      resource: "https://life.example/api/graphql",
+    });
+
+    const response = await validateOAuthRefreshTokenResources(
+      new Request("https://life.example/api/auth/oauth2/token"),
+      params,
+    );
+
+    expect(response?.status).toBe(400);
+    await expect(response?.json()).resolves.toEqual({
+      error: "invalid_target",
+      error_description:
+        "Requested resource is not approved for this refresh token",
+    });
+  });
+
+  it("畸形 stored resource 不会签发替换访问令牌", async () => {
+    findRefreshTokenMock.mockResolvedValue({
+      clientId: "client-1",
+      resources: ["https://life.example/api/graphql", "not-a-resource-url"],
+      scopes: ["todo:read"],
+      userId: "user-1",
+    });
+    const { replaceOAuthRefreshAccessToken } = await import(
+      "@/lib/api/routes/auth-token-refresh-resources"
+    );
+    const params = new URLSearchParams({
+      grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+      refresh_token: "old-refresh-token",
+      resource: "https://life.example/api/graphql",
+    });
+    const original = Response.json({ access_token: "provider-token" });
+
+    const response = await replaceOAuthRefreshAccessToken(
+      new Request("https://life.example/api/auth/oauth2/token"),
+      params,
+      original,
+    );
+
+    await expect(response.json()).resolves.toEqual({
+      access_token: "provider-token",
+    });
+    expect(signAccessTokenMock).not.toHaveBeenCalled();
   });
 
   it("在授权码刷新令牌上存储已签发的受众资源", async () => {

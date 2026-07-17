@@ -1,5 +1,7 @@
+import type { Prisma } from "@/generated/prisma/client";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma, prisma } from "@/lib/db/prisma";
+import { paginatedQuery } from "@/lib/query-pagination";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { formatShanghaiDate } from "@/lib/time/shanghai-format";
@@ -7,6 +9,35 @@ import {
   getSubscribedSectionIdsForSemester,
   withSubscribedSections,
 } from "./subscription-read-model-shared";
+
+const subscribedScheduleInclude = {
+  room: {
+    include: {
+      building: { include: { campus: true } },
+      roomType: true,
+    },
+  },
+  teachers: { include: { department: true } },
+  section: { include: { course: true, semester: true } },
+  scheduleGroup: true,
+} satisfies Prisma.ScheduleInclude;
+
+const subscribedExamInclude = {
+  examBatch: true,
+  examRooms: true,
+  section: { include: { course: true, semester: true } },
+} satisfies Prisma.ExamInclude;
+
+const subscribedScheduleOrderBy = [
+  { date: "asc" },
+  { startTime: "asc" },
+] satisfies Prisma.ScheduleOrderByWithRelationInput[];
+
+const subscribedExamOrderBy = [
+  { examDate: "asc" },
+  { startTime: "asc" },
+  { jwId: "asc" },
+] satisfies Prisma.ExamOrderByWithRelationInput[];
 
 function dateRangeFilter(dateFrom?: Date, dateTo?: Date) {
   return dateFrom || dateTo
@@ -104,22 +135,59 @@ export async function listSubscribedSchedules(
           ...(dateFilter ? { date: dateFilter } : {}),
           ...(weekday ? { weekday } : {}),
         },
-        include: {
-          room: {
-            include: {
-              building: { include: { campus: true } },
-              roomType: true,
-            },
-          },
-          teachers: { include: { department: true } },
-          section: { include: { course: true, semester: true } },
-          scheduleGroup: true,
-        },
-        orderBy: [{ date: "asc" }, { startTime: "asc" }],
+        include: subscribedScheduleInclude,
+        orderBy: subscribedScheduleOrderBy,
         ...(limit ? { take: limit } : {}),
       });
     },
     resolvedSectionIds,
+  );
+}
+
+export function listSubscribedSchedulePage(
+  userId: string,
+  {
+    locale = DEFAULT_LOCALE,
+    dateFrom,
+    dateTo,
+    weekday,
+    semesterId,
+    pagination,
+  }: {
+    locale?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+    weekday?: number;
+    semesterId?: number;
+    pagination: {
+      page: number;
+      pageSize: number;
+    };
+  },
+) {
+  const localizedPrisma = getPrisma(locale);
+  const dateFilter = dateRangeFilter(dateFrom, dateTo);
+  const where = {
+    section: {
+      subscribedUsers: { some: { id: userId } },
+      ...(semesterId !== undefined ? { semesterId } : {}),
+    },
+    ...(dateFilter ? { date: dateFilter } : {}),
+    ...(weekday ? { weekday } : {}),
+  } satisfies Prisma.ScheduleWhereInput;
+
+  return paginatedQuery(
+    (skip, take) =>
+      localizedPrisma.schedule.findMany({
+        where,
+        include: subscribedScheduleInclude,
+        orderBy: subscribedScheduleOrderBy,
+        skip,
+        take,
+      }),
+    () => localizedPrisma.schedule.count({ where }),
+    pagination.page,
+    pagination.pageSize,
   );
 }
 
@@ -170,16 +238,57 @@ export async function listSubscribedExams(
           sectionId: { in: ids },
           ...examDateWhere({ dateFrom, dateTo, includeDateUnknown }),
         },
-        include: {
-          examBatch: true,
-          examRooms: true,
-          section: { include: { course: true, semester: true } },
-        },
-        orderBy: [{ examDate: "asc" }, { startTime: "asc" }, { jwId: "asc" }],
+        include: subscribedExamInclude,
+        orderBy: subscribedExamOrderBy,
         ...(limit ? { take: limit } : {}),
       });
     },
     resolvedSectionIds,
+  );
+}
+
+export function listSubscribedExamPage(
+  userId: string,
+  {
+    locale = DEFAULT_LOCALE,
+    dateFrom,
+    dateTo,
+    includeDateUnknown = true,
+    semesterId,
+    pagination,
+  }: {
+    locale?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+    includeDateUnknown?: boolean;
+    semesterId?: number;
+    pagination: {
+      page: number;
+      pageSize: number;
+    };
+  },
+) {
+  const localizedPrisma = getPrisma(locale);
+  const where = {
+    section: {
+      subscribedUsers: { some: { id: userId } },
+      ...(semesterId !== undefined ? { semesterId } : {}),
+    },
+    ...examDateWhere({ dateFrom, dateTo, includeDateUnknown }),
+  } satisfies Prisma.ExamWhereInput;
+
+  return paginatedQuery(
+    (skip, take) =>
+      localizedPrisma.exam.findMany({
+        where,
+        include: subscribedExamInclude,
+        orderBy: subscribedExamOrderBy,
+        skip,
+        take,
+      }),
+    () => localizedPrisma.exam.count({ where }),
+    pagination.page,
+    pagination.pageSize,
   );
 }
 
@@ -203,12 +312,8 @@ export async function listUpcomingSubscribedExams(
       const localizedPrisma = getPrisma(locale);
       return localizedPrisma.exam.findMany({
         where: upcomingKnownExamWhere({ atTime, sectionIds: ids }),
-        include: {
-          examBatch: true,
-          examRooms: true,
-          section: { include: { course: true, semester: true } },
-        },
-        orderBy: [{ examDate: "asc" }, { startTime: "asc" }, { jwId: "asc" }],
+        include: subscribedExamInclude,
+        orderBy: subscribedExamOrderBy,
         ...(limit ? { take: limit } : {}),
       });
     },

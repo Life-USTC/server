@@ -1,3 +1,4 @@
+import { GraphQLError } from "graphql";
 import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
 import { parseBearerAuthorizationHeader } from "@/lib/auth/authorization-header";
 import { verifyAccessTokenJwt } from "@/lib/auth/jwt-verification";
@@ -35,14 +36,20 @@ export type GraphqlScopeRequirement = FeatureScopeRequirement;
 
 export type GraphqlAuthErrorCode = "FORBIDDEN" | "UNAUTHENTICATED";
 
-export class GraphqlAuthError extends Error {
+export class GraphqlAuthError extends GraphQLError {
   constructor(
     message: string,
     readonly code: GraphqlAuthErrorCode,
     readonly status: 401 | 403,
     readonly requiredScopes: string[] = [],
   ) {
-    super(message);
+    super(message, {
+      extensions: {
+        code,
+        requiredScopes,
+        http: { status },
+      },
+    });
     this.name = "GraphqlAuthError";
   }
 }
