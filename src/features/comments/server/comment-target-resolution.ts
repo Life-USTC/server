@@ -1,3 +1,4 @@
+import { courseJwIdWhere } from "@/features/catalog/server/course-jw-id";
 import { prisma } from "@/lib/db/prisma";
 import { parseInteger } from "@/lib/integers";
 import {
@@ -55,8 +56,8 @@ async function findSectionIdByJwId(jwId: number) {
 }
 
 async function findCourseIdByJwId(jwId: number) {
-  const course = await prisma.course.findUnique({
-    where: { jwId },
+  const course = await prisma.course.findFirst({
+    where: courseJwIdWhere(jwId),
     select: { id: true },
   });
   return course?.id ?? null;

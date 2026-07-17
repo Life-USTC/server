@@ -163,6 +163,7 @@ model Course {
   sections Section[]
   comments Comment[]
   description Description?
+  aliases CourseAlias[]
 
   @@index([jwId])
   @@index([code])
@@ -174,6 +175,17 @@ model Course {
   @@index([educationLevelId])
   @@index([gradationId])
   @@index([typeId])
+}
+
+model CourseAlias {
+  jwId Int @id
+
+  courseId Int
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([courseId])
 }
 
 model CourseCategory {

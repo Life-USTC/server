@@ -181,4 +181,19 @@ test.describe("GET /api/courses 接口", () => {
     expect(typeof seedSection?.stdCount).toBe("number");
     expect(typeof seedSection?.limitCount).toBe("number");
   });
+
+  test("旧 jwId 别名返回 canonical 课程", async ({ request }) => {
+    const response = await request.get(
+      `/api/courses/${DEV_SEED.course.legacyJwId}`,
+    );
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as {
+      jwId?: number;
+      code?: string;
+    };
+    expect(body).toMatchObject({
+      jwId: DEV_SEED.course.jwId,
+      code: DEV_SEED.course.code,
+    });
+  });
 });

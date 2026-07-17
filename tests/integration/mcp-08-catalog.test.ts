@@ -63,6 +63,23 @@ describe("课程与班级查找", () => {
     );
   });
 
+  it("get_course_by_jw_id 接受旧 jwId 并返回 canonical 课程", async () => {
+    const result = await context.client.call<{
+      found?: boolean;
+      course?: { jwId?: number; code?: string };
+    }>("get_course_by_jw_id", {
+      jwId: fixtures.DEV_SEED.course.legacyJwId,
+      locale: "zh-cn",
+      mode: "full",
+    });
+
+    expect(result.found).toBe(true);
+    expect(result.course).toMatchObject({
+      jwId: fixtures.DEV_SEED.course.jwId,
+      code: fixtures.DEV_SEED.course.code,
+    });
+  });
+
   it("get_section_by_jw_id 返回与 REST 班级详情相同的层级", async () => {
     const result = await context.client.call<{
       found?: boolean;

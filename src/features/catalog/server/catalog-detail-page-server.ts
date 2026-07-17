@@ -1,4 +1,4 @@
-import { error } from "@sveltejs/kit";
+import { error, redirect } from "@sveltejs/kit";
 import { catalogPrimaryName } from "@/features/catalog/lib/catalog-list-display";
 import { getCoursePage } from "@/features/catalog/server/course-page-data";
 import { getTeacherPage } from "@/features/catalog/server/teacher-page-data";
@@ -58,6 +58,10 @@ export async function loadCourseDetailPage({
   if (!Number.isInteger(jwId)) error(404, copy.notFound.description);
   const course = await getCoursePage(jwId, locals.locale);
   if (!course) error(404, copy.notFound.description);
+  if (course.jwId !== jwId) {
+    const sectionPath = detailSection === "overview" ? "" : `/${detailSection}`;
+    redirect(308, `/courses/${course.jwId}${sectionPath}${url.search}`);
+  }
   const displayName = catalogPrimaryName(course) || course.code;
   const viewer = await currentCatalogViewer(request);
   const { commentsData, descriptionData } = await loadCatalogDetailCommentsData(

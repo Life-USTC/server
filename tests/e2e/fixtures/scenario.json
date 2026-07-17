@@ -116,6 +116,7 @@
     {
       "index": 0,
       "jwId": 9901001,
+      "legacyJwId": 19901001,
       "code": "IS3003",
       "nameCn": "密码工程原理与实践",
       "nameEn": "Cryptographic Engineering: Principles and Practice"
