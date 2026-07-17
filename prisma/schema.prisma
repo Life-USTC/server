@@ -50,6 +50,8 @@ enum AuditAction {
   comment_react
   description_edit
   upload_delete
+  section_retire
+  section_reactivate
   admin_user_suspend
   admin_user_unsuspend
   admin_comment_moderate
@@ -375,6 +377,9 @@ model Section {
   id   Int @id @default(autoincrement())
   jwId Int @unique
 
+  sourceLastSeenAt DateTime?
+  retiredAt        DateTime?
+
   code                    String
   bizTypeId               Int?
   credits                 Float?
@@ -439,6 +444,7 @@ model Section {
   @@index([graduateAndPostgraduate])
   @@index([courseId])
   @@index([semesterId])
+  @@index([semesterId, retiredAt])
   @@index([examModeId])
   @@index([campusId])
   @@index([openDepartmentId])
