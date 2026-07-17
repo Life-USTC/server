@@ -6,7 +6,7 @@ import {
   asInt,
   asString,
   type SnapshotRow,
-} from "./snapshot";
+} from "./snapshot-values";
 
 export type SemesterBuild = {
   jwId: number;
@@ -90,6 +90,7 @@ export type SectionBuild = {
   courseSourceKey: string;
   semesterCode: number;
   campusId?: number;
+  campusName?: string;
   examModeName?: string;
   openDepartmentCode?: string;
   teachLanguageName?: string;
@@ -107,7 +108,7 @@ export type ScheduleGroupBuild = {
 };
 
 export type ScheduleBuild = {
-  periods: number;
+  periods?: number;
   date?: Date;
   dateStr?: string;
   weekday: number;
@@ -465,6 +466,7 @@ export function mapSection(
     courseSourceKey,
     semesterCode,
     campusId: scheduleLesson ? asInt(scheduleLesson.campusId) : undefined,
+    campusName: asString(catalogLookups.campus?.cn),
     examModeName: asString(catalogLookups.examMode?.cn),
     openDepartmentCode: asString(catalogLookups.openDepartment?.code),
     teachLanguageName: asString(catalogLookups.teachLanguage?.cn),
@@ -489,38 +491,88 @@ export function mapScheduleGroup(
   };
 }
 
-export function scheduleKey(row: SnapshotRow): string {
+export function scheduleKey(
+  row: SnapshotRow,
+  roomJwId = asInt(row.roomId),
+): string {
   return [
-    row.lessonId,
-    row.scheduleGroupId,
-    row.date,
-    row.weekday,
-    row.startTime,
-    row.endTime,
-    row.startUnit,
-    row.endUnit,
-    row.customPlace ?? "",
-    row.weekIndex,
+    asInt(row.lessonId) ?? "",
+    asInt(row.scheduleGroupId) ?? "",
+    asString(row.date) ?? "",
+    asInt(row.weekday) ?? "",
+    asInt(row.startTime) ?? "",
+    asInt(row.endTime) ?? "",
+    asInt(row.startUnit) ?? "",
+    asInt(row.endUnit) ?? "",
+    asString(row.customPlace) ?? "",
+    asInt(row.weekIndex) ?? "",
+    roomJwId ?? "",
   ].join("|");
+}
+
+function mergeScheduleValue<T extends string | number | boolean>(
+  field: string,
+  existing: T | undefined,
+  incoming: T | undefined,
+  key: string,
+): T | undefined {
+  if (existing == null) return incoming;
+  if (incoming == null || existing === incoming) return existing;
+  const values = [JSON.stringify(existing), JSON.stringify(incoming)].sort();
+  throw new Error(
+    `Conflicting schedule ${field} for ${key}: ${values.join(" vs ")}`,
+  );
 }
 
 export function mergeSchedule(
   existing: ScheduleBuild,
-  _row: SnapshotRow,
+  row: SnapshotRow,
   personId?: number,
+  roomJwId = asInt(row.roomId),
 ): ScheduleBuild {
-  if (personId != null && !existing.teacherPersonIds.includes(personId)) {
-    existing.teacherPersonIds.push(personId);
+  const incoming = mapSchedule(row, personId, roomJwId);
+  const key = scheduleKey(row, roomJwId);
+  if (existing.roomJwId !== incoming.roomJwId) {
+    throw new Error(`Cannot merge schedules from different rooms for ${key}`);
   }
+  existing.periods =
+    existing.periods == null
+      ? incoming.periods
+      : incoming.periods == null
+        ? existing.periods
+        : Math.max(existing.periods, incoming.periods);
+  existing.experiment = mergeScheduleValue(
+    "experiment",
+    existing.experiment,
+    incoming.experiment,
+    key,
+  );
+  existing.lessonType = mergeScheduleValue(
+    "lessonType",
+    existing.lessonType,
+    incoming.lessonType,
+    key,
+  );
+  existing.exerciseClass = mergeScheduleValue(
+    "exerciseClass",
+    existing.exerciseClass,
+    incoming.exerciseClass,
+    key,
+  );
+  existing.teacherPersonIds = Array.from(
+    new Set([...existing.teacherPersonIds, ...incoming.teacherPersonIds]),
+  ).sort((a, b) => a - b);
   return existing;
 }
 
 export function mapSchedule(
   row: SnapshotRow,
   personId?: number,
+  roomJwId = asInt(row.roomId),
 ): ScheduleBuild {
+  const periods = asFloat(row.periods);
   return {
-    periods: Math.round(asFloat(row.periods) ?? 0),
+    periods: periods == null ? undefined : Math.round(periods),
     date: asDate(row.date),
     dateStr: asString(row.date),
     weekday: asInt(row.weekday) ?? 0,
@@ -530,10 +582,10 @@ export function mapSchedule(
     customPlace: asString(row.customPlace),
     lessonType: asString(row.lessonType),
     weekIndex: asInt(row.weekIndex) ?? 0,
-    exerciseClass: asBoolean(row.exerciseClass),
+    exerciseClass: asBoolean(row.exerciseClass) ?? false,
     startUnit: asInt(row.startUnit) ?? 0,
     endUnit: asInt(row.endUnit) ?? 0,
-    roomJwId: asInt(row.roomId),
+    roomJwId,
     lessonJwId: asInt(row.lessonId) ?? 0,
     scheduleGroupJwId: asInt(row.scheduleGroupId) ?? 0,
     teacherPersonIds: personId == null ? [] : [personId],
@@ -589,6 +641,19 @@ export function mapCampus(row: SnapshotRow): CampusBuild | undefined {
     nameCn,
     nameEn: asString(row.nameEn),
     code: asString(row.code),
+  };
+}
+
+export function mapCampusFromSection(
+  scheduleLesson: SnapshotRow | undefined,
+  catalogCampus: SnapshotRow | undefined,
+): CampusBuild | undefined {
+  const nameCn = asString(catalogCampus?.cn);
+  if (!nameCn) return undefined;
+  return {
+    jwId: asInt(scheduleLesson?.campusId),
+    nameCn,
+    nameEn: asString(catalogCampus?.en),
   };
 }
 
