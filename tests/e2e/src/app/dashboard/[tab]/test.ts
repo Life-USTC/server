@@ -10,7 +10,7 @@ import {
   expectRequiresSignIn,
   signInAsDebugUser,
 } from "../../../../utils/auth";
-import { sidebarDashboardLink } from "../../../../utils/locators";
+import { sidebarNavigationLink } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
@@ -86,7 +86,7 @@ test("/dashboard/homeworks 加载登录标签", async ({ page }, testInfo) => {
 
   await expect(page).toHaveURL(/\/dashboard\/homeworks(?:[/?#].*)?$/);
   await expect(
-    sidebarDashboardLink(page, /^(工作台任务|Workspace assignments)$/i),
+    sidebarNavigationLink(page, /^(作业|Homework)$/i),
   ).toHaveAttribute("aria-current", "page");
   await captureStepScreenshot(page, testInfo, "dashboard-homeworks");
 });

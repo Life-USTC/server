@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../utils/auth";
+import { signInAsDebugUser, signInAsDevAdmin } from "../../utils/auth";
 import { DEV_SEED } from "../../utils/dev-seed";
 import {
   getCurrentSessionUser,
@@ -92,11 +92,152 @@ test("/ shell 菜单可一键切换", async ({ page }) => {
   const sidebar = page.getByRole("dialog", { name: /Sidebar/i });
   await expect(sidebar).toBeVisible();
   await expect(
-    sidebar.getByRole("link", { name: /课程|Courses/i }),
+    sidebar.getByRole("link", { name: /班级|Sections/i }),
   ).toBeVisible();
   await expect(
     page.getByRole("menuitem", { name: /设置|Settings/i }),
   ).toHaveCount(0);
+});
+
+test("/ shell 桌面导航以任务为一级入口且当前位置唯一", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await signInAsDebugUser(page, "/dashboard/calendar");
+
+  const sidebar = page.getByTestId("app-sidebar");
+  const navigation = sidebar.getByRole("navigation", {
+    name: /主导航|Primary navigation/i,
+  });
+
+  for (const name of [
+    /^(今天|Today)$/i,
+    /^(日历|Calendar)$/i,
+    /^(作业|Homework)$/i,
+    /^(待办|Todos)$/i,
+    /^(考试|Exams)$/i,
+    /^(关注班级|Section Management)$/i,
+  ]) {
+    await expect(navigation.getByRole("link", { name })).toBeVisible();
+  }
+
+  await expect(
+    navigation.getByRole("link", { name: /^(仪表盘|Dashboard)$/i }),
+  ).toHaveCount(0);
+  await expect(
+    navigation.getByRole("button", { name: /^Toggle /i }),
+  ).toHaveCount(0);
+  await expect(navigation.locator('[aria-current="page"]')).toHaveCount(1);
+  await expect(
+    navigation.getByRole("link", { name: /^(日历|Calendar)$/i }),
+  ).toHaveAttribute("aria-current", "page");
+
+  const explore = navigation.getByRole("button", {
+    name: /^(发现|Explore)$/i,
+  });
+  await expect(explore).toHaveAttribute("aria-expanded", "false");
+  await explore.click();
+  await expect(
+    navigation.getByRole("link", { name: /^(课程|Courses)$/i }),
+  ).toBeVisible();
+});
+
+test("/ shell 390px 主导航可达且触控尺寸达标", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signInAsDevAdmin(page, "/dashboard/todos");
+
+  const primaryNavigation = page.getByRole("navigation", {
+    name: /移动主导航|Mobile primary navigation/i,
+  });
+  const primaryNames = [
+    /^(今天|Today)$/i,
+    /^(日历|Calendar)$/i,
+    /^(任务|Tasks)$/i,
+    /^(发现|Explore)$/i,
+    /^(我的|Me)$/i,
+  ];
+
+  for (const name of primaryNames) {
+    const link = primaryNavigation.getByRole("link", { name });
+    await expect(link).toBeVisible();
+    const box = await link.boundingBox();
+    expect(box?.width).toBeGreaterThanOrEqual(44);
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+  }
+
+  await expect(primaryNavigation.locator('[aria-current="page"]')).toHaveCount(
+    1,
+  );
+  await expect(
+    primaryNavigation.getByRole("link", { name: /^(任务|Tasks)$/i }),
+  ).toHaveAttribute("aria-current", "page");
+  await captureStepScreenshot(page, testInfo, "shell/mobile-primary");
+
+  const topbar = page.locator("[data-shell-topbar]");
+  await expect(
+    topbar.getByRole("button", { name: /语言|Language/i }),
+  ).toHaveCount(0);
+  await expect(topbar.getByRole("button", { name: /主题|Theme/i })).toHaveCount(
+    0,
+  );
+
+  for (const button of [
+    topbar.getByRole("button", { name: /^菜单$|^Menu$/i }),
+    topbar.getByRole("button", { name: /个人菜单|Profile menu/i }),
+  ]) {
+    const box = await button.boundingBox();
+    expect(box?.width).toBeGreaterThanOrEqual(44);
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+  }
+
+  await topbar.getByRole("button", { name: /^菜单$|^Menu$/i }).click();
+
+  const sidebar = page.getByRole("dialog", { name: /Sidebar/i });
+  await expect(sidebar).toBeVisible();
+  await expect(
+    sidebar.getByRole("button", { name: /^(次级导航|Secondary)$/i }),
+  ).toBeVisible();
+  await expect(
+    sidebar.getByRole("button", { name: /^(管理工具|Admin tools)$/i }),
+  ).toBeVisible();
+  await expect(
+    sidebar.getByRole("button", { name: /语言|Language/i }),
+  ).toBeVisible();
+  await expect(
+    sidebar.getByRole("button", { name: /主题|Theme/i }),
+  ).toBeVisible();
+  await expect(sidebar.locator('[aria-current="page"]')).toHaveCount(1);
+  await expect(
+    sidebar.getByRole("link", { name: /^(待办|Todos)$/i }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(sidebar.getByRole("button", { name: /^Toggle /i })).toHaveCount(
+    0,
+  );
+  await captureStepScreenshot(page, testInfo, "shell/mobile-secondary");
+});
+
+test("/ shell 390px 设置子路由保持唯一当前位置", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signInAsDebugUser(page, "/settings/accounts");
+
+  const primaryNavigation = page.getByRole("navigation", {
+    name: /移动主导航|Mobile primary navigation/i,
+  });
+  await expect(
+    primaryNavigation.getByRole("link", { name: /^(我的|Me)$/i }),
+  ).toHaveAttribute("aria-current", "page");
+
+  await page
+    .locator("[data-shell-topbar]")
+    .getByRole("button", { name: /^菜单$|^Menu$/i })
+    .click();
+
+  const sidebar = page.getByRole("dialog", { name: /Sidebar/i });
+  await expect(
+    sidebar.getByRole("link", { name: /^(设置|Settings)$/i }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(sidebar.locator('[aria-current="page"]')).toHaveCount(1);
+  await expect(primaryNavigation.locator('[aria-current="page"]')).toHaveCount(
+    0,
+  );
 });
 
 test("/ shell 菜单支持键盘菜单语义", async ({ page }) => {

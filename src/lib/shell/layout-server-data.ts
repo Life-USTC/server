@@ -46,31 +46,22 @@ export function buildLayoutCopy(locale: LayoutLocale) {
     },
     nav: {
       courses: messages.common.courses,
-      dashboard: messages.metadata.pages.meDashboard,
+      today: locale === "zh-cn" ? "今天" : "Today",
+      tasks: locale === "zh-cn" ? "任务" : "Tasks",
+      explore: locale === "zh-cn" ? "发现" : "Explore",
+      me: messages.common.me,
+      settings: messages.metadata.pages.settings,
       sections: messages.common.sections,
       teachers: messages.common.teachers,
-      overview: messages.meDashboard.nav.overview.title,
-      workspaceOverview: locale === "zh-cn" ? "工作台首页" : "Workspace start",
       calendar: messages.meDashboard.nav.calendar.title,
-      workspaceCalendar:
-        locale === "zh-cn" ? "工作台日程" : "Workspace schedule",
       bus: messages.meDashboard.nav.bus.title,
       dashboardBus: locale === "zh-cn" ? "工作台校车" : "Dashboard transit",
       workspaceTransit: locale === "zh-cn" ? "工作台交通" : "Workspace transit",
       subscriptions: messages.meDashboard.nav.subscriptions.title,
-      workspaceSubscriptions:
-        locale === "zh-cn" ? "工作台课程规划" : "Workspace course planning",
       homeworks: messages.meDashboard.nav.homeworks.title,
-      workspaceHomeworks:
-        locale === "zh-cn" ? "工作台任务" : "Workspace assignments",
       exams: messages.meDashboard.nav.exams.title,
-      workspaceExams:
-        locale === "zh-cn" ? "工作台评估" : "Workspace assessments",
       links: messages.meDashboard.nav.links.title,
-      workspaceWebsites:
-        locale === "zh-cn" ? "工作台网站目录" : "Workspace web directory",
       todos: messages.meDashboard.nav.todos.title,
-      workspaceTodos: locale === "zh-cn" ? "工作台事项" : "Workspace tasks",
       transitMap: messages.metadata.pages.busMap,
       mobileApp: messages.metadata.pages.mobileApp,
       groups: {
@@ -79,6 +70,9 @@ export function buildLayoutCopy(locale: LayoutLocale) {
         catalog: locale === "zh-cn" ? "课程目录" : "Catalog",
         campus: locale === "zh-cn" ? "校园" : "Campus",
         adminTools: locale === "zh-cn" ? "管理工具" : "Admin tools",
+        explore: locale === "zh-cn" ? "发现" : "Explore",
+        secondary: locale === "zh-cn" ? "次级导航" : "Secondary",
+        preferences: locale === "zh-cn" ? "偏好设置" : "Preferences",
       },
       admin: {
         title: messages.admin.title,
@@ -105,8 +99,12 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       footerNavigation: messages.common.footerNavigation,
       loading: messages.common.loading,
       menu: locale === "zh-cn" ? "菜单" : "Menu",
+      mobilePrimaryNavigation:
+        locale === "zh-cn" ? "移动主导航" : "Mobile primary navigation",
       primaryNavigation: messages.common.primaryNavigation,
       profileMenu: messages.common.profileMenu,
+      secondaryNavigation:
+        locale === "zh-cn" ? "次级导航" : "Secondary navigation",
       theme: locale === "zh-cn" ? "主题" : "Theme",
     },
     errorPage: {
