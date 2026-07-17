@@ -2156,7 +2156,7 @@ async function upsertScheduleGroups(
   );
 }
 
-async function writeSectionTeachers(
+export async function writeSectionTeachers(
   tx: Prisma.TransactionClient,
   sectionMap: Map<number, number>,
   teacherMap: TeacherMap,
@@ -2210,7 +2210,7 @@ async function writeSectionTeachers(
     });
   }
 
-  if (resolved.length === 0 || sectionDbIds.length === 0) {
+  if (sectionDbIds.length === 0) {
     return;
   }
 
