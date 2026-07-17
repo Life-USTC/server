@@ -569,7 +569,6 @@ function loadTeachers(snapshot: Snapshot): {
         sectionJwId: lessonId,
         semesterCode:
           asInt(assignment.semester_id) ?? asInt(lesson.semester_id) ?? 0,
-        sourceOrder: asInt(assignment.store_id) ?? 0,
         teacher: build,
       });
     }
@@ -588,7 +587,6 @@ function loadTeachers(snapshot: Snapshot): {
         sectionJwId: lessonId,
         semesterCode:
           asInt(assignment.semester_id) ?? asInt(lesson.semester_id) ?? 0,
-        sourceOrder: asInt(assignment.store_id) ?? 0,
         teacher: build,
       });
     }

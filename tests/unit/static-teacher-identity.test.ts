@@ -8,17 +8,16 @@ import {
 function occurrence(
   sectionJwId: number,
   semesterCode: number,
-  sourceOrder: number,
   teacher: TeacherOccurrence["teacher"],
 ): TeacherOccurrence {
-  return { sectionJwId, semesterCode, sourceOrder, teacher };
+  return { sectionJwId, semesterCode, teacher };
 }
 
 describe("static teacher identity planning", () => {
   it("correlates one Catalog and JW teacher within the same Section", () => {
     const plan = planTeacherImport(
       [
-        occurrence(100, 401, 1, {
+        occurrence(100, 401, {
           personId: 10,
           teacherId: 20,
           code: "T001",
@@ -27,7 +26,7 @@ describe("static teacher identity planning", () => {
         }),
       ],
       [
-        occurrence(100, 401, 2, {
+        occurrence(100, 401, {
           nameCn: "张三",
           nameEn: "Zhang San",
           departmentCode: "006",
@@ -58,13 +57,13 @@ describe("static teacher identity planning", () => {
   it("keeps single-source teachers", () => {
     const plan = planTeacherImport(
       [
-        occurrence(100, 401, 1, {
+        occurrence(100, 401, {
           personId: 10,
           nameCn: "仅 JW",
         }),
       ],
       [
-        occurrence(200, 401, 2, {
+        occurrence(200, 401, {
           nameCn: "仅 Catalog",
           departmentCode: "006",
         }),
@@ -85,17 +84,17 @@ describe("static teacher identity planning", () => {
   it("keeps an ambiguous same-Section name separate", () => {
     const plan = planTeacherImport(
       [
-        occurrence(100, 401, 1, {
+        occurrence(100, 401, {
           personId: 10,
           nameCn: "李同名",
         }),
-        occurrence(100, 401, 2, {
+        occurrence(100, 401, {
           personId: 11,
           nameCn: "李同名",
         }),
       ],
       [
-        occurrence(100, 401, 3, {
+        occurrence(100, 401, {
           nameCn: "李同名",
           departmentCode: "006",
         }),
@@ -111,21 +110,21 @@ describe("static teacher identity planning", () => {
   it("does not merge different stable identities with the same global name and department", () => {
     const plan = planTeacherImport(
       [
-        occurrence(100, 401, 1, {
+        occurrence(100, 401, {
           personId: 10,
           nameCn: "王同名",
         }),
-        occurrence(200, 401, 2, {
+        occurrence(200, 401, {
           personId: 11,
           nameCn: "王同名",
         }),
       ],
       [
-        occurrence(100, 401, 3, {
+        occurrence(100, 401, {
           nameCn: "王同名",
           departmentCode: "006",
         }),
-        occurrence(200, 401, 4, {
+        occurrence(200, 401, {
           nameCn: "王同名",
           departmentCode: "006",
         }),
@@ -149,14 +148,14 @@ describe("static teacher identity planning", () => {
   it("uses the latest semester's non-empty metadata with older fallback", () => {
     const plan = planTeacherImport(
       [
-        occurrence(100, 401, 1, {
+        occurrence(100, 401, {
           personId: 10,
           teacherId: 20,
           code: "OLD",
           nameCn: "张三",
           teacherTitleId: 30,
         }),
-        occurrence(200, 421, 2, {
+        occurrence(200, 421, {
           personId: 10,
           teacherId: 21,
           code: "NEW",
@@ -177,46 +176,102 @@ describe("static teacher identity planning", () => {
     ]);
   });
 
-  it("uses explicit source order to resolve same-semester metadata deterministically", () => {
-    const earlier = occurrence(100, 421, 10, {
+  it("merges complementary metadata within the same semester", () => {
+    const first = occurrence(100, 421, {
       personId: 10,
       teacherId: 20,
-      code: "OLD",
       nameCn: "张三",
     });
-    const later = occurrence(200, 421, 20, {
+    const second = occurrence(200, 421, {
       personId: 10,
-      teacherId: 21,
-      code: "NEW",
+      code: "T001",
       nameCn: "张三",
+      teacherTitleId: 30,
     });
 
-    expect(planTeacherImport([later, earlier], []).teachers).toEqual(
-      planTeacherImport([earlier, later], []).teachers,
+    expect(planTeacherImport([first, second], []).teachers).toEqual([
+      {
+        personId: 10,
+        teacherId: 20,
+        code: "T001",
+        nameCn: "张三",
+        teacherTitleId: 30,
+      },
+    ]);
+  });
+
+  it("uses the most frequent same-semester value", () => {
+    const plan = planTeacherImport(
+      [
+        occurrence(100, 421, {
+          personId: 10,
+          teacherId: 21,
+          code: "NEW",
+          nameCn: "张三",
+        }),
+        occurrence(200, 421, {
+          personId: 10,
+          teacherId: 20,
+          code: "OLD",
+          nameCn: "张三",
+        }),
+        occurrence(300, 421, {
+          personId: 10,
+          teacherId: 21,
+          code: "NEW",
+          nameCn: "张三",
+        }),
+      ],
+      [],
     );
-    expect(planTeacherImport([later, earlier], []).teachers[0]).toMatchObject({
+
+    expect(plan.teachers[0]).toMatchObject({
       teacherId: 21,
       code: "NEW",
     });
   });
 
-  it("fails closed on conflicting rows with an identical semester and source order", () => {
-    expect(() =>
-      planTeacherImport(
-        [
-          occurrence(100, 421, 10, {
-            personId: 10,
-            teacherId: 20,
-            nameCn: "张三",
-          }),
-          occurrence(200, 421, 10, {
-            personId: 10,
-            teacherId: 21,
-            nameCn: "张三",
-          }),
-        ],
-        [],
-      ),
-    ).toThrow("Conflicting teacher metadata");
+  it("uses stable ascending values to break same-semester ties", () => {
+    const plan = planTeacherImport(
+      [
+        occurrence(100, 421, {
+          personId: 10,
+          teacherId: 21,
+          code: "B",
+          nameCn: "张三",
+        }),
+        occurrence(200, 421, {
+          personId: 10,
+          teacherId: 20,
+          code: "A",
+          nameCn: "张三",
+        }),
+      ],
+      [],
+    );
+
+    expect(plan.teachers[0]).toMatchObject({
+      teacherId: 20,
+      code: "A",
+    });
+  });
+
+  it("is independent of input order within the same semester", () => {
+    const first = occurrence(100, 421, {
+      personId: 10,
+      teacherId: 21,
+      code: "B",
+      nameCn: "张三",
+    });
+    const second = occurrence(200, 421, {
+      personId: 10,
+      teacherId: 20,
+      code: "A",
+      nameCn: "张三",
+    });
+
+    expect(planTeacherImport([first, second], []).teachers).toEqual(
+      planTeacherImport([second, first], []).teachers,
+    );
   });
 });

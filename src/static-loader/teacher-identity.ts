@@ -3,7 +3,6 @@ import type { TeacherBuild } from "./identity-types";
 export type TeacherOccurrence = {
   sectionJwId: number;
   semesterCode: number;
-  sourceOrder: number;
   teacher: TeacherBuild;
 };
 
@@ -37,50 +36,73 @@ function fallbackIdentityKey(teacher: TeacherBuild): string {
   return `${teacher.nameCn}:${teacher.departmentCode ?? ""}`;
 }
 
-function teacherSignature(teacher: TeacherBuild): string {
-  return JSON.stringify(
-    Object.entries(teacher)
-      .filter(([, value]) => value != null && value !== "")
-      .sort(([left], [right]) => left.localeCompare(right)),
-  );
-}
-
-function compareOccurrences(
-  left: TeacherOccurrence,
-  right: TeacherOccurrence,
-): number {
-  return (
-    left.semesterCode - right.semesterCode ||
-    left.sourceOrder - right.sourceOrder ||
-    teacherSignature(left.teacher).localeCompare(
-      teacherSignature(right.teacher),
-    )
-  );
-}
+const teacherFields = [
+  "personId",
+  "teacherId",
+  "code",
+  "nameCn",
+  "nameEn",
+  "age",
+  "email",
+  "telephone",
+  "mobile",
+  "address",
+  "postcode",
+  "qq",
+  "wechat",
+  "departmentCode",
+  "teacherTitleId",
+] as const satisfies readonly (keyof TeacherBuild)[];
 
 function mergeOccurrences(occurrences: TeacherOccurrence[]): TeacherBuild {
-  const ranks = new Map<string, string>();
+  const bySemester = new Map<number, TeacherOccurrence[]>();
   for (const occurrence of occurrences) {
-    const rank = `${occurrence.semesterCode}:${occurrence.sourceOrder}`;
-    const signature = teacherSignature(occurrence.teacher);
-    const existing = ranks.get(rank);
-    if (existing != null && existing !== signature) {
-      throw new Error(
-        `Conflicting teacher metadata for ${stableIdentityKey(occurrence.teacher)} at ${rank}`,
-      );
-    }
-    ranks.set(rank, signature);
+    const semester = bySemester.get(occurrence.semesterCode) ?? [];
+    semester.push(occurrence);
+    bySemester.set(occurrence.semesterCode, semester);
   }
 
-  const ordered = [...occurrences].sort(compareOccurrences);
-  const merged: TeacherBuild = { nameCn: ordered[0].teacher.nameCn };
-  for (const { teacher } of ordered) {
-    for (const [key, value] of Object.entries(teacher)) {
-      if (value == null || value === "") continue;
-      Object.assign(merged, { [key]: value });
+  const merged: Partial<TeacherBuild> = {};
+  for (const [, semesterOccurrences] of [...bySemester].sort(
+    ([left], [right]) => left - right,
+  )) {
+    for (const field of teacherFields) {
+      const values = semesterOccurrences
+        .map(({ teacher }) => teacher[field])
+        .filter(
+          (value): value is string | number => value != null && value !== "",
+        );
+      if (values.length === 0) continue;
+
+      const counts = new Map<string | number, number>();
+      for (const value of values) {
+        counts.set(value, (counts.get(value) ?? 0) + 1);
+      }
+      const highestCount = Math.max(...counts.values());
+      const canonical = [...counts]
+        .filter(([, count]) => count === highestCount)
+        .map(([value]) => value)
+        .sort(compareCanonicalValues)[0];
+      Object.assign(merged, { [field]: canonical });
     }
   }
-  return merged;
+
+  if (merged.nameCn == null) {
+    throw new Error("Teacher metadata is missing nameCn");
+  }
+  return merged as TeacherBuild;
+}
+
+function compareCanonicalValues(
+  left: string | number,
+  right: string | number,
+): number {
+  if (typeof left === "number" && typeof right === "number") {
+    return left - right;
+  }
+  if (typeof left === "number") return -1;
+  if (typeof right === "number") return 1;
+  return left < right ? -1 : left > right ? 1 : 0;
 }
 
 function identityReference(teacher: TeacherBuild): TeacherIdentityReference {
