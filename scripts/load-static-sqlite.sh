@@ -4,8 +4,8 @@ set -eu
 : "${DATABASE_URL:?DATABASE_URL is required}"
 : "${STATIC_SNAPSHOT_URL:=https://static.life-ustc.tiankaima.dev/life-ustc-static.sqlite}"
 
-if [ -n "${STATIC_SNAPSHOT_PATH:-}" ]; then
-  if [ ! -f "$STATIC_SNAPSHOT_PATH" ]; then
+if [ "${STATIC_SNAPSHOT_PATH+x}" = x ]; then
+  if [ -z "$STATIC_SNAPSHOT_PATH" ] || [ ! -f "$STATIC_SNAPSHOT_PATH" ]; then
     echo "Local snapshot not found: ${STATIC_SNAPSHOT_PATH}" >&2
     exit 1
   fi
