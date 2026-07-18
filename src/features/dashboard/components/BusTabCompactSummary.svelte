@@ -87,10 +87,7 @@ $: emptyMessage =
     {/if}
   </Card.Content>
 
-  <Card.Footer class="flex-wrap gap-2">
-    <p class="w-full text-muted-foreground text-xs sm:me-auto sm:w-auto">
-      {busCopy.activeVersion}
-    </p>
+  <Card.Footer class="flex-wrap justify-end gap-2">
     <Button
       disabled={!busPlannerReady}
       type="button"

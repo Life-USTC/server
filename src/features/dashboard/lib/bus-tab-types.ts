@@ -12,7 +12,6 @@ export type DashboardBusData = Pick<
 >;
 
 export type DashboardBusCopy = Record<string, unknown> & {
-  activeVersion: string;
   arriveAt: string;
   changeRoute: string;
   dashboardTitle: string;

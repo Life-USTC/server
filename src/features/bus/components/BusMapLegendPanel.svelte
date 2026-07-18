@@ -19,7 +19,7 @@ function formatMessage(template: string, values: Record<string, string>) {
 }
 </script>
 
-<Card.Root>
+<Card.Root data-testid="bus-map-legend">
   <Card.Header>
     <Card.Title>{copy.legend.title}</Card.Title>
     <Card.Action>
@@ -46,11 +46,6 @@ function formatMessage(template: string, values: Record<string, string>) {
             </Item.Media>
             <Item.Content>
               <Item.Title>{route.descriptionPrimary}</Item.Title>
-              <Item.Description class="line-clamp-none">
-                {#each route.stops as stop, index}
-                  <span>{index === 0 ? "" : "-> "}{stop.campusName}</span>
-                {/each}
-              </Item.Description>
             </Item.Content>
             <Item.Actions>
               <Badge variant="ghost">

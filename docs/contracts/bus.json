@@ -19,7 +19,7 @@
     "version-topology-self-contained": "When versionKey selects a historical timetable version, routes, stops, campuses, and trips are derived from that same imported schedule version rather than the latest global route topology.",
     "current-version-only": "list_bus_routes only lists routes actually present in the current active timetable version; it does not expose historical route IDs outside the current version.",
     "dashboard-vs-map": "The dashboard prioritizes answering 'how to get the next trip'; the map page handles spatial understanding.",
-    "localized-public-version-label": "Public bus dashboard pages display the localized active-version label instead of the raw imported version title; the raw title remains available to admin, REST, and MCP consumers.",
+    "public-version-metadata-omitted": "Public bus dashboard pages omit timetable version metadata rather than showing an unlabeled or unlocalized imported value; the raw title remains available to admin, REST, and MCP consumers.",
     "task-oriented-tool-hierarchy": "Use query_bus_timetable for raw/full datasets, list_bus_routes for unfiltered discovery, search_bus_routes for filtered discovery, get_bus_route_timetable for one route, get_next_buses for immediate departure answers, and get_my_bus_preferences/save_my_bus_preferences for personal defaults.",
     "canonical-compact-mode": "query_bus_timetable default mode returns compact counts, route/campus summaries, and relevant departures rather than the full trip dataset; the deprecated summary input is an alias for this same shape."
   },
@@ -140,8 +140,7 @@
           "day type control",
           "departure/arrival campus controls",
           "reverse direction control",
-          "show-departed toggle",
-          "localized active-version label"
+          "show-departed toggle"
         ]
       }
     },

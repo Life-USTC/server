@@ -133,13 +133,13 @@ test.describe("校车面板标签页", () => {
     await captureStepScreenshot(page, testInfo, "bus-planner-public");
   });
 
-  test("公共与登录校车版本标签随界面语言本地化", async ({
+  test("公共与登录校车界面不显示无值版本标签", async ({
     page,
     baseURL,
   }, testInfo) => {
     await setLocale(page, baseURL, "zh-cn");
     await gotoAndWaitForReady(page, "/?tab=bus");
-    await expect(page.getByText("当前版本", { exact: true })).toHaveCount(1);
+    await expect(page.getByText("当前版本", { exact: true })).toHaveCount(0);
     await expect(
       page.getByText("Static Structured Bus Timetable", { exact: true }),
     ).toHaveCount(0);
@@ -148,7 +148,7 @@ test.describe("校车面板标签页", () => {
     await signInAsDebugUser(page, "/dashboard/bus");
     await setLocale(page, baseURL, "zh-cn");
     await gotoAndWaitForReady(page, "/dashboard/bus");
-    await expect(page.getByText("当前版本", { exact: true })).toHaveCount(1);
+    await expect(page.getByText("当前版本", { exact: true })).toHaveCount(0);
     await expect(
       page.getByText("Static Structured Bus Timetable", { exact: true }),
     ).toHaveCount(0);
@@ -156,7 +156,7 @@ test.describe("校车面板标签页", () => {
     await setLocale(page, baseURL, "en-us");
     await gotoAndWaitForReady(page, "/dashboard/bus");
     await expect(page.getByText("Active version", { exact: true })).toHaveCount(
-      1,
+      0,
     );
     await expect(
       page.getByText("Static Structured Bus Timetable", { exact: true }),

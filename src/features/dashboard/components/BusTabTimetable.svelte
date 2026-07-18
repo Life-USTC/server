@@ -27,9 +27,6 @@ export let showHeader = true;
           <h2 class="font-semibold text-lg tracking-normal">
             {busCopy.dashboardTitle}
           </h2>
-          <p class="text-muted-foreground text-sm">
-            {busCopy.activeVersion}
-          </p>
         </div>
         <Button href="/bus-map" size="lg" variant="outline">{busCopy.transitMap}</Button>
       </div>

@@ -130,6 +130,11 @@ test.describe("校车线路图", () => {
   });
 
   test("图例显示线路说明与状态指示器", async ({ page }, testInfo) => {
+    const runtimeErrors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") runtimeErrors.push(message.text());
+    });
+    page.on("pageerror", (error) => runtimeErrors.push(error.message));
     await gotoAndWaitForReady(page, "/bus-map", {
       testInfo,
       screenshotLabel: "bus-map",
@@ -139,9 +144,13 @@ test.describe("校车线路图", () => {
     await expect(page.getByText(/Legend|图例/).first()).toBeVisible();
 
     // At least one route description visible in legend
+    const legend = page.getByTestId("bus-map-legend");
     await expect(
-      page.getByText(DEV_SEED.bus.recommendedRoute, { exact: false }).first(),
+      legend.getByText(DEV_SEED.bus.recommendedRoute, { exact: true }),
     ).toBeVisible();
+    await expect(
+      legend.getByText(DEV_SEED.bus.recommendedRoute, { exact: true }),
+    ).toHaveCount(1);
     await expect(
       page.getByRole("button").filter({
         hasText: DEV_SEED.bus.recommendedRoute,
@@ -151,6 +160,8 @@ test.describe("校车线路图", () => {
     // Status indicators in legend
     await expect(page.getByText(/En route|行驶中/).first()).toBeVisible();
     await expect(page.getByText(/Departing|即将发车/).first()).toBeVisible();
+    await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+    expect(runtimeErrors).toEqual([]);
   });
 
   test("返回链接导航到校车标签页", async ({ page }, testInfo) => {

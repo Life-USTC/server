@@ -56,7 +56,13 @@ test.describe("仪表盘", () => {
   });
 
   test("登录后首页显示总览、所有标签和种子数据", async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
     await signInAsDebugUser(page, "/");
+    const runtimeErrors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") runtimeErrors.push(message.text());
+    });
+    page.on("pageerror", (error) => runtimeErrors.push(error.message));
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/", {
       testInfo,
@@ -98,9 +104,20 @@ test.describe("仪表盘", () => {
         timeout: 2_000,
       });
     }).toPass({ timeout: 15_000 });
+    const overdueTitle = page
+      .getByText(DEV_SEED.homeworks.overdueTitle, { exact: true })
+      .first();
+    await expect(overdueTitle).toBeVisible();
+    const overdueTitleBox = await overdueTitle.boundingBox();
+    expect(overdueTitleBox?.width ?? 0).toBeGreaterThan(80);
+    expect(overdueTitleBox?.height ?? Number.POSITIVE_INFINITY).toBeLessThan(
+      48,
+    );
     await expect(
       page.locator('form[action="/api/dashboard-links/visit"]'),
     ).toHaveCount(DEV_SEED.dashboardLinks.overviewLimit);
+    await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+    expect(runtimeErrors).toEqual([]);
 
     await captureStepScreenshot(page, testInfo, "dashboard-home");
   });
