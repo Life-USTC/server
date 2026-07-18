@@ -63,6 +63,9 @@ $: sectionSemesterSummary = selectedSemester
               <a href={sectionHref} {...props}>
                 <Item.Content>
                   <Item.Title>{primaryName(section.course)}</Item.Title>
+                  {#if secondaryName(section.course)}
+                    <Item.Description>{secondaryName(section.course)}</Item.Description>
+                  {/if}
                   <Item.Description>
                     {section.semester?.nameCn ?? sectionLabels.noSemester}
                     · {teacherNames(section.teachers) || "-"}

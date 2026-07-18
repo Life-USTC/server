@@ -83,6 +83,32 @@ test.describe("/sections 班级搜索页", () => {
     await captureStepScreenshot(page, testInfo, "sections-navigate-detail");
   });
 
+  test("英文界面本地化班级列表名称", async ({ page }, testInfo) => {
+    const runtimeErrors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") runtimeErrors.push(message.text());
+    });
+    page.on("pageerror", (error) => runtimeErrors.push(error.message));
+    await page.setViewportSize({ width: 390, height: 844 });
+    const localeResponse = await page.request.post("/api/locale", {
+      data: { locale: "en-us" },
+    });
+    expect(localeResponse.status()).toBe(200);
+
+    await gotoAndWaitForReady(
+      page,
+      `/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
+    );
+
+    await expect(visibleText(page, DEV_SEED.course.nameEn)).toBeVisible();
+    await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
+    await expect(visibleText(page, DEV_SEED.teacher.nameEn)).toBeVisible();
+    await expect(visibleText(page, DEV_SEED.campus.nameEn)).toBeVisible();
+    await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+    expect(runtimeErrors).toEqual([]);
+    await captureStepScreenshot(page, testInfo, "sections-mobile-list-en-us");
+  });
+
   test("桌面表格在结果列内水平滚动", async ({ page }, testInfo) => {
     for (const width of [1024, 1280, 1440]) {
       await page.setViewportSize({ width, height: 900 });
