@@ -567,6 +567,13 @@ afterNavigate(({ from, to }) => {
   <Sidebar.Provider
     class="min-h-screen lg:h-screen lg:min-h-0 lg:overflow-hidden"
   >
+    <a
+      class="sr-only fixed top-3 left-3 z-50 rounded-md bg-background px-4 py-2 font-medium text-foreground shadow-lg outline-none focus:not-sr-only focus-visible:ring-2 focus-visible:ring-ring"
+      href="#main-content"
+    >
+      {data.copy.shell.skipToMainContent}
+    </a>
+
     {#if $navigating}
       <RouteLoadingBar loadingLabel={data.copy.shell.loading} />
     {/if}
@@ -589,9 +596,11 @@ afterNavigate(({ from, to }) => {
     <Sidebar.Inset
       aria-label={mainContentLabel}
       id="main-content"
+      tabindex={-1}
       class={cn(
         "relative flex w-full min-w-0 flex-1 flex-col lg:h-screen lg:min-h-0 lg:overflow-hidden",
-        data.user && "pb-14 md:pb-0",
+        data.user &&
+          "pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0",
       )}
     >
       <AppTopbar

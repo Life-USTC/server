@@ -413,8 +413,13 @@ test.describe("/sections/[jwId] 班级详情页", () => {
   test("移动端标题、横向导航与底部主操作保持可达", async ({
     page,
   }, testInfo) => {
+    const runtimeErrors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") runtimeErrors.push(message.text());
+    });
+    page.on("pageerror", (error) => runtimeErrors.push(error.message));
     await page.setViewportSize({ width: 390, height: 844 });
-    await gotoAndWaitForReady(page, SECTION_URL);
+    await signInAsDebugUser(page, SECTION_URL);
 
     const heading = page.getByRole("heading", { level: 1 }).first();
     await expect(heading).toHaveCSS("font-size", "24px");
@@ -430,8 +435,20 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     await expect(nav.locator('a[aria-current="page"]')).toHaveCount(1);
 
     const actions = page.getByTestId("section-mobile-primary-actions");
+    const mobileNavigation = page.getByRole("navigation", {
+      name: /移动主导航|Mobile primary navigation/i,
+    });
     await expect(actions).toBeVisible();
     await expect(actions).toBeInViewport();
+    const [actionsBox, navigationBox] = await Promise.all([
+      actions.boundingBox(),
+      mobileNavigation.boundingBox(),
+    ]);
+    expect(actionsBox).not.toBeNull();
+    expect(navigationBox).not.toBeNull();
+    expect(
+      (actionsBox?.y ?? 0) + (actionsBox?.height ?? 0),
+    ).toBeLessThanOrEqual((navigationBox?.y ?? 0) + 1);
     await actions
       .getByRole("button", { name: /添加到日历|Add to calendar/i })
       .click();
@@ -442,6 +459,27 @@ test.describe("/sections/[jwId] 班级详情页", () => {
 
     await jumpToSection(page, /评论|Comments/i, "#tab-comments");
     await expect(actions).toBeInViewport();
+    await expect
+      .poll(() =>
+        nav.evaluate((root) => {
+          const viewport = root.querySelector<HTMLElement>(
+            '[data-sidebar="content"]',
+          );
+          const active = root.querySelector<HTMLElement>(
+            'a[aria-current="page"]',
+          );
+          if (!viewport || !active) return null;
+          const viewportBox = viewport.getBoundingClientRect();
+          const activeBox = active.getBoundingClientRect();
+          return {
+            left: activeBox.left >= viewportBox.left,
+            right: activeBox.right <= viewportBox.right,
+          };
+        }),
+      )
+      .toEqual({ left: true, right: true });
+    await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+    expect(runtimeErrors).toEqual([]);
     await captureStepScreenshot(page, testInfo, "section/detail-mobile");
   });
 

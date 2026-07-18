@@ -108,6 +108,33 @@ test("/ 主题切换可写入 localStorage", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "theme-dark");
 });
 
+test("/ 深色主题在 hydration 前应用", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("life-ustc-theme", "dark");
+  });
+  await page.route(/\/_app\/immutable\/.*\.js(?:\?.*)?$/, (route) =>
+    route.abort(),
+  );
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
+});
+
+test("/ shell 提供键盘跳转到主要内容", async ({ page }) => {
+  await gotoAndWaitForReady(page, "/");
+
+  await page.keyboard.press("Tab");
+  const skipLink = page.getByRole("link", {
+    name: /跳转到主要内容|Skip to main content/i,
+  });
+  await expect(skipLink).toBeFocused();
+  await expect(skipLink).toBeVisible();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#main-content")).toBeFocused();
+});
+
 test("/ shell 菜单可一键切换", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 });
   await signInAsDebugUser(page, "/");

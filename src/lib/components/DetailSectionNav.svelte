@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { Component } from "svelte";
+import { type Component, tick } from "svelte";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 
 type DetailSectionNavItem = {
@@ -13,12 +13,25 @@ export let ariaLabel: string;
 export let activeHref = "";
 export let items: DetailSectionNavItem[];
 export let label = "";
+
+function revealActive(node: HTMLElement, active: boolean) {
+  function reveal(isActive: boolean) {
+    if (isActive) {
+      void tick().then(() =>
+        node.scrollIntoView({ block: "nearest", inline: "center" }),
+      );
+    }
+  }
+
+  reveal(active);
+  return { update: reveal };
+}
 </script>
 
 <div class="min-w-0" style="--sidebar-width: 14rem;">
   <Sidebar.Root
     collapsible="none"
-    class="w-full border-sidebar-border border-b lg:w-(--sidebar-width) lg:border-e lg:border-b-0"
+    class="relative w-full border-sidebar-border border-b after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:z-10 after:w-8 after:bg-gradient-to-l after:from-sidebar after:to-transparent lg:w-(--sidebar-width) lg:border-e lg:border-b-0 lg:after:hidden"
     data-testid="detail-section-nav"
   >
     <Sidebar.Content
@@ -38,6 +51,7 @@ export let label = "";
                   {#snippet child({ props })}
                     <a
                       {...props}
+                      use:revealActive={active}
                       href={item.href}
                       aria-current={active ? "page" : undefined}
                     >

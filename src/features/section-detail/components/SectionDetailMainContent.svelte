@@ -14,6 +14,7 @@ import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { Separator } from "$lib/components/ui/separator/index.js";
+import { cn } from "$lib/utils.js";
 import SectionBasicInfoCard from "./SectionBasicInfoCard.svelte";
 import SectionCalendarTab from "./SectionCalendarTab.svelte";
 import SectionDetailHeader from "./SectionDetailHeader.svelte";
@@ -257,7 +258,11 @@ $: activeNavItem =
   </div>
 
   <div
-    class="sticky bottom-0 z-10 bg-background md:hidden"
+    class={cn(
+      "sticky bottom-0 z-10 bg-background md:hidden",
+      viewer.signedIn &&
+        "bottom-[calc(3.5rem+env(safe-area-inset-bottom))]",
+    )}
     data-testid="section-mobile-primary-actions"
   >
     <Separator />
