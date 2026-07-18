@@ -2,6 +2,7 @@ import "dotenv/config";
 import { createHash } from "node:crypto";
 import { createReadStream, existsSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
+import { cleanupExpiredAuthRecords } from "./auth-record-cleanup";
 import { runImport } from "./import";
 import { createPrismaClient } from "./prisma";
 import { Snapshot } from "./snapshot";
@@ -83,6 +84,11 @@ async function main() {
   const prisma = createPrismaClient();
 
   try {
+    if (!dryRun) {
+      const authCleanupReport = await cleanupExpiredAuthRecords(prisma);
+      console.log("Expired auth cleanup report:", authCleanupReport);
+    }
+
     const report = await runImport(prisma, {
       snapshotPath,
       snapshotSha256,

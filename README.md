@@ -24,6 +24,10 @@ prepare、migrate、seed 步骤。上传存储使用 Cloudflare `R2_UPLOADS` 绑
 Wrangler 相关流程本地验证。生产应用由 Cloudflare Git integration 发布，Docker
 只保留静态数据加载环境。
 
+每 6 小时运行的 Static Sync 还会在非 dry-run 模式下按表清理最多 1000 条已过期
+的 Session、VerificationToken、OAuth access/refresh token 和 DeviceCode 记录。
+尚未过期的 revoked refresh token 会保留到过期，以维持 refresh-token 重放检测。
+
 生产 Workers Builds 配置：
 - Build command: `bun install --frozen-lockfile && bun run app:prepare && bun run build`
 - Deploy command: `npx wrangler deploy`
