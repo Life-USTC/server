@@ -85,8 +85,8 @@ async function main() {
 
   try {
     if (!dryRun) {
-      const authCleanupReport = await cleanupExpiredAuthRecords(prisma);
-      console.log("Expired auth cleanup report:", authCleanupReport);
+      await cleanupExpiredAuthRecords(prisma);
+      console.log("Expired auth cleanup completed.");
     }
 
     const report = await runImport(prisma, {
