@@ -28,6 +28,7 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
   test("返回有效的 OpenAPI 3.0.0 规范", async ({ request }) => {
     const response = await request.get("/api/openapi");
     expect(response.status()).toBe(200);
+    expect(response.headers()["cache-control"]).toBe("public, max-age=300");
     const body = (await response.json()) as {
       openapi?: string;
       info?: { title?: string; version?: string };

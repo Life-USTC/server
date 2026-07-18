@@ -214,20 +214,7 @@ function isToolCallMessage(value: unknown): value is McpJsonRpcMessage & {
  * The request is cloned before reading so the original body stream remains
  * available for downstream transport handling.
  */
-export async function extractMcpToolCallNamesFromRequest(
-  request: Request,
-): Promise<string[]> {
-  if (request.method !== "POST") {
-    return [];
-  }
-
-  let body: unknown;
-  try {
-    body = await request.clone().json();
-  } catch {
-    return [];
-  }
-
+export function extractMcpToolCallNames(body: unknown): string[] {
   const messages = Array.isArray(body) ? body : [body];
   const names: string[] = [];
   for (const message of messages) {
@@ -237,6 +224,17 @@ export async function extractMcpToolCallNamesFromRequest(
   }
 
   return names;
+}
+
+export async function extractMcpToolCallNamesFromRequest(
+  request: Request,
+): Promise<string[]> {
+  if (request.method !== "POST") return [];
+  try {
+    return extractMcpToolCallNames(await request.clone().json());
+  } catch {
+    return [];
+  }
 }
 
 export async function extractMcpToolNamesFromRequest(

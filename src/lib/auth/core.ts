@@ -9,6 +9,7 @@ function createAuthInstance() {
 type BetterAuthInstance = ReturnType<typeof createAuthInstance>;
 
 let authInstance: BetterAuthInstance | undefined;
+const sessionByHeaders = new WeakMap<Headers, Promise<AppSession | null>>();
 
 function getAuthInstance(): BetterAuthInstance {
   if (!authInstance) {
@@ -44,6 +45,17 @@ export const betterAuthInstance = new Proxy({} as BetterAuthInstance, {
 export async function getSessionFromHeaders(
   headers: Headers,
 ): Promise<AppSession | null> {
-  const session = await getAuthInstance().api.getSession({ headers });
-  return session ? mapAppSession(session) : null;
+  const cached = sessionByHeaders.get(headers);
+  if (cached) return cached;
+
+  const pending = getAuthInstance()
+    .api.getSession({ headers })
+    .then((session) => (session ? mapAppSession(session) : null));
+  sessionByHeaders.set(headers, pending);
+  try {
+    return await pending;
+  } catch (error) {
+    sessionByHeaders.delete(headers);
+    throw error;
+  }
 }
