@@ -6,6 +6,7 @@ import {
 } from "@/lib/auth/auth-origins";
 import { betterAuthApiErrorHandler } from "@/lib/auth/better-auth-api-errors";
 import { getBetterAuthOptionEnv } from "@/lib/auth/better-auth-option-env";
+import { betterAuthPasskeyRateLimitRules } from "@/lib/auth/better-auth-passkey-plugin";
 import { buildBetterAuthPlugins } from "@/lib/auth/better-auth-plugins";
 import { createBetterAuthPrismaAdapter } from "@/lib/auth/better-auth-prisma-adapter";
 import {
@@ -39,16 +40,22 @@ export function buildBetterAuthOptions() {
     // Disable Better Auth's built-in rate limiting in debug/E2E mode so that
     // rapid sequential requests (e.g. /api/auth/get-session during tests)
     // don't get throttled with 429 responses.
-    ...(debugAuthAllowed ? { rateLimit: { enabled: false } } : {}),
+    rateLimit: debugAuthAllowed
+      ? { enabled: false }
+      : { enabled: true, customRules: betterAuthPasskeyRateLimitRules },
     advanced: {
       // Reverse proxies should still forward the original scheme/host correctly
       // for request-aware Better Auth behavior, but deployment origin comes from config.
       trustedProxyHeaders: true,
+      // Better Auth otherwise skips origin checks automatically under NODE_ENV=test.
+      // Keep passkey and other cookie-backed auth routes on the production boundary.
+      disableCSRFCheck: false,
+      disableOriginCheck: false,
     },
     trustedOrigins: getAuthTrustedOrigins(),
     socialProviders: buildBetterAuthSocialProviders(authEnv),
     emailAndPassword: {
-      enabled: true,
+      enabled: debugAuthAllowed,
       disableSignUp: true,
       autoSignIn: false,
     },

@@ -1,4 +1,4 @@
-import { getPublicOrigin } from "@/lib/site-url";
+import { getCanonicalOrigin, getPublicOrigin } from "@/lib/site-url";
 
 function getLocalOriginAlternates(origin: string) {
   const url = new URL(origin);
@@ -55,6 +55,10 @@ export function getAuthAllowedHosts(): string[] {
   return uniqueOrigins(
     getAuthTrustedOrigins().map((origin) => new URL(origin).host),
   );
+}
+
+export function getPasskeyAllowedOrigins(): string[] {
+  return uniqueOrigins([getCanonicalOrigin(), getPublicOrigin()]);
 }
 
 function matchesTrustedOrigin(origin: string, trustedOrigin: string) {

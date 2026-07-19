@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getAuthAllowedHosts,
   getAuthTrustedOrigins,
+  getPasskeyAllowedOrigins,
   isTrustedAuthOrigin,
 } from "@/lib/auth/auth-origins";
 
@@ -49,6 +50,22 @@ describe("认证来源辅助函数", () => {
       "http://localhost:3000",
       "http://127.0.0.1:3000",
     ]);
+  });
+
+  it("passkey 仅接受显式 canonical/public preview 来源", () => {
+    vi.stubEnv("APP_CANONICAL_ORIGIN", "https://life.example.com");
+    vi.stubEnv("APP_PUBLIC_ORIGIN", "https://preview.life.example.com");
+
+    expect(getPasskeyAllowedOrigins()).toEqual([
+      "https://life.example.com",
+      "https://preview.life.example.com",
+    ]);
+  });
+
+  it("passkey 本地来源不混用不同 WebAuthn RP host 的回环别名", () => {
+    vi.stubEnv("APP_PUBLIC_ORIGIN", "http://127.0.0.1:3010");
+
+    expect(getPasskeyAllowedOrigins()).toEqual(["http://127.0.0.1:3010"]);
   });
 });
 
