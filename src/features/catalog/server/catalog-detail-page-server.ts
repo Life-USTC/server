@@ -61,16 +61,19 @@ export async function loadCourseDetailPage({
   if (!detailSection) error(404, copy.notFound.description);
   const jwId = Number(params.jwId);
   if (!Number.isInteger(jwId)) error(404, copy.notFound.description);
-  const course = await getCoursePage(jwId, locals.locale);
+  const [course, viewer] = await Promise.all([
+    getCoursePage(jwId, locals.locale),
+    currentCatalogViewer(request),
+  ]);
   if (!course) error(404, copy.notFound.description);
   if (course.jwId !== jwId) {
     const sectionPath = detailSection === "overview" ? "" : `/${detailSection}`;
     redirect(308, `/courses/${course.jwId}${sectionPath}${url.search}`);
   }
   const displayName = catalogPrimaryName(course) || course.code;
-  const viewer = await currentCatalogViewer(request);
   const { commentsData, descriptionData } = await loadCatalogDetailCommentsData(
     {
+      includeComments: detailSection === "comments",
       targetId: course.id,
       type: "course",
       viewer,
@@ -126,12 +129,15 @@ export async function loadTeacherDetailPage({
   if (!detailSection) error(404, copy.notFound.description);
   const id = Number(params.id);
   if (!Number.isInteger(id)) error(404, copy.notFound.description);
-  const teacher = await getTeacherPage(id, locals.locale);
+  const [teacher, viewer] = await Promise.all([
+    getTeacherPage(id, locals.locale),
+    currentCatalogViewer(request),
+  ]);
   if (!teacher) error(404, copy.notFound.description);
   const displayName = catalogPrimaryName(teacher);
-  const viewer = await currentCatalogViewer(request);
   const { commentsData, descriptionData } = await loadCatalogDetailCommentsData(
     {
+      includeComments: detailSection === "comments",
       targetId: teacher.id,
       type: "teacher",
       viewer,

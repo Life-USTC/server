@@ -66,11 +66,13 @@ export async function loadSectionDetailPage({
   if (!detailSection) error(404, "Section not found");
   const jwId = parseSectionJwId(params.jwId);
   if (jwId === null) error(404, "Section not found");
-  const section = await getSectionPage(jwId, locals.locale);
+  const [section, userId] = await Promise.all([
+    getSectionPage(jwId, locals.locale),
+    getSectionDetailUserId(request),
+  ]);
   if (!section) error(404, "Section not found");
   const copy = getSectionDetailPageCopy(locals.locale);
   const courseName = primaryName(section.course) || section.code;
-  const userId = await getSectionDetailUserId(request);
   const [subscriptionState, descriptionAndComments, homeworkData] =
     await Promise.all([
       userId
@@ -78,8 +80,21 @@ export async function loadSectionDetailPage({
             await import("@/features/subscriptions/server/subscriptions")
           ).getUserSectionSubscriptionState(userId)
         : null,
-      getSectionDetailDescriptionAndComments(section, userId),
-      getSectionHomeworkData(section.id, userId),
+      getSectionDetailDescriptionAndComments(section, userId, {
+        includeComments: detailSection === "comments",
+      }),
+      detailSection === "homework"
+        ? getSectionHomeworkData(section.id, userId)
+        : {
+            auditLogs: [],
+            homeworks: [],
+            viewer: {
+              isAdmin: false,
+              isAuthenticated: Boolean(userId),
+              isSuspended: false,
+              userId,
+            },
+          },
     ]);
   const socialMetadata = buildSocialMetadata({
     canonicalPath: `/sections/${jwId}`,

@@ -100,7 +100,7 @@ $: sectionNavItems = [
     icon: MessageSquareIcon,
     key: "comments" as const,
     label: copy.comments.title,
-    meta: commentsCount,
+    meta: data.commentsData ? commentsCount : undefined,
   },
 ];
 $: activeNavItem =
