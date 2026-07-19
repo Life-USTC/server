@@ -1,3 +1,10 @@
+# [1.73.0](https://github.com/Life-USTC/server/compare/v1.72.0...v1.73.0) (2026-07-19)
+
+
+### Features
+
+* **graphql:** complete ordinary mutation parity ([#570](https://github.com/Life-USTC/server/issues/570)) ([7036648](https://github.com/Life-USTC/server/commit/7036648527b83ab72aa2995007b4ca4426265f70))
+
 # [1.72.0](https://github.com/Life-USTC/server/compare/v1.71.1...v1.72.0) (2026-07-19)
 
 
