@@ -5,9 +5,8 @@ import {
   parseRouteQuery,
 } from "@/lib/api/helpers";
 import { parseJwIdRouteParam } from "@/lib/api/routes/academic-route-helpers";
-import { getRequestLocale } from "@/lib/api/routes/request-locale";
+import { resolvePublicCatalogLocale } from "@/lib/api/routes/request-locale";
 import { coursesQuerySchema } from "@/lib/api/schemas/request-schemas";
-import { PUBLIC_LOCALE_CATALOG_HEADERS } from "@/lib/public-cache-control";
 import {
   cachedPublicRuntimeData,
   publicRuntimeCacheKey,
@@ -16,6 +15,11 @@ import {
 const COURSES_API_CACHE_TTL_MS = 60_000;
 
 export async function getCoursesRoute(request: Request) {
+  const localeResolution = resolvePublicCatalogLocale(request);
+  if (localeResolution instanceof Response) {
+    return localeResolution;
+  }
+
   const searchParams = new URL(request.url).searchParams;
   const parsed = parseRouteQuery(
     searchParams,
@@ -28,7 +32,8 @@ export async function getCoursesRoute(request: Request) {
   }
 
   const { query: parsedQuery, pagination } = parsed;
-  const locale = getRequestLocale(request);
+  const { locale: _locale, ...filters } = parsedQuery;
+  const { cacheHeaders, locale } = localeResolution;
 
   try {
     const result = await cachedPublicRuntimeData(
@@ -39,14 +44,14 @@ export async function getCoursesRoute(request: Request) {
           "@/features/catalog/server/course-section-queries"
         );
         return listCourseSummaries({
-          filters: parsedQuery,
+          filters,
           locale,
           pagination,
         });
       },
     );
     return jsonResponse(result, {
-      headers: PUBLIC_LOCALE_CATALOG_HEADERS,
+      headers: cacheHeaders,
     });
   } catch (error) {
     return handleRouteError("Failed to fetch courses", error);
@@ -61,12 +66,17 @@ export async function getCourseDetailRoute(
     const parsedJwId = parseJwIdRouteParam(params, "course ID");
     if (parsedJwId instanceof Response) return parsedJwId;
 
+    const localeResolution = resolvePublicCatalogLocale(request);
+    if (localeResolution instanceof Response) {
+      return localeResolution;
+    }
+
     const { findCourseDetailByJwId } = await import(
       "@/features/catalog/server/course-section-queries"
     );
     const course = await findCourseDetailByJwId(
       parsedJwId,
-      getRequestLocale(request),
+      localeResolution.locale,
     );
 
     if (!course) {
@@ -74,7 +84,7 @@ export async function getCourseDetailRoute(
     }
 
     return jsonResponse(course, {
-      headers: PUBLIC_LOCALE_CATALOG_HEADERS,
+      headers: localeResolution.cacheHeaders,
     });
   } catch (error) {
     return handleRouteError("Failed to fetch course", error);

@@ -304,4 +304,85 @@ describe("academic REST 语言适配器", () => {
       sectionJwId: 123,
     });
   });
+
+  it("仅对 URL 中显式支持的语言返回公共缓存策略", async () => {
+    const [
+      { getCourseDetailRoute, getCoursesRoute },
+      { getSchedulesRoute },
+      {
+        getSectionDetailRoute,
+        getSectionScheduleGroupsRoute,
+        getSectionSchedulesRoute,
+        getSectionsRoute,
+      },
+      { getTeacherDetailRoute, getTeachersRoute },
+    ] = await Promise.all([
+      import("@/lib/api/routes/academic-course-routes"),
+      import("@/lib/api/routes/academic-schedule-routes"),
+      import("@/lib/api/routes/academic-section-routes"),
+      import("@/lib/api/routes/academic-teacher-routes"),
+    ]);
+
+    const responses = [
+      await getCoursesRoute(request("/api/courses?locale=zh-cn")),
+      await getCourseDetailRoute(request("/api/courses/123?locale=zh-cn"), {
+        jwId: "123",
+      }),
+      await getTeachersRoute(request("/api/teachers?locale=zh-cn")),
+      await getTeacherDetailRoute(request("/api/teachers/456?locale=zh-cn"), {
+        id: "456",
+      }),
+      await getSectionsRoute(request("/api/sections?locale=zh-cn")),
+      await getSectionDetailRoute(request("/api/sections/123?locale=zh-cn"), {
+        jwId: "123",
+      }),
+      await getSchedulesRoute(request("/api/schedules?locale=zh-cn")),
+      await getSectionSchedulesRoute(
+        request("/api/sections/123/schedules?locale=zh-cn"),
+        { jwId: "123" },
+      ),
+      await getSectionScheduleGroupsRoute(
+        request("/api/sections/123/schedule-groups?locale=zh-cn"),
+        { jwId: "123" },
+      ),
+    ];
+
+    for (const response of responses) {
+      expect(response.headers.get("Cache-Control")).toBe(
+        "public, max-age=0, s-maxage=60, stale-while-revalidate=300",
+      );
+      expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBeNull();
+    }
+
+    expect(findCourseDetailByJwIdMock).toHaveBeenCalledWith(123, "zh-cn");
+    expect(findTeacherDetailByIdMock).toHaveBeenCalledWith(456, "zh-cn");
+    expect(findSectionDetailByJwIdMock).toHaveBeenCalledWith(123, "zh-cn");
+    expect(listPublicSchedulesMock).toHaveBeenCalledWith(
+      expect.objectContaining({ locale: "zh-cn" }),
+    );
+    expect(getSectionSchedulesByJwIdMock).toHaveBeenCalledWith(
+      expect.objectContaining({ locale: "zh-cn" }),
+    );
+    expect(getSectionScheduleGroupsByJwIdMock).toHaveBeenCalledWith(
+      expect.objectContaining({ locale: "zh-cn" }),
+    );
+  });
+
+  it("在进入目录读取前拒绝无效的显式语言", async () => {
+    const { getCourseDetailRoute } = await import(
+      "@/lib/api/routes/academic-course-routes"
+    );
+
+    const response = await getCourseDetailRoute(
+      request("/api/courses/123?locale=fr-fr"),
+      { jwId: "123" },
+    );
+
+    expect(response.status).toBe(400);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
+      "no-store",
+    );
+    expect(findCourseDetailByJwIdMock).not.toHaveBeenCalled();
+  });
 });

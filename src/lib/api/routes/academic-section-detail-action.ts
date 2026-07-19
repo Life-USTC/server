@@ -1,10 +1,10 @@
 import type { AppLocale } from "@/i18n/config";
 import { jsonResponse, notFound } from "@/lib/api/helpers";
-import { PUBLIC_LOCALE_CATALOG_HEADERS } from "@/lib/public-cache-control";
 
 export async function getSectionDetailAction(
   parsedJwId: number,
   locale: AppLocale,
+  cacheHeaders: HeadersInit,
 ) {
   const { findSectionDetailByJwId } = await import(
     "@/features/catalog/server/course-section-queries"
@@ -16,6 +16,6 @@ export async function getSectionDetailAction(
   }
 
   return jsonResponse(section, {
-    headers: PUBLIC_LOCALE_CATALOG_HEADERS,
+    headers: cacheHeaders,
   });
 }

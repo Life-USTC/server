@@ -5,12 +5,16 @@ import {
   jsonResponse,
   parseRouteQuery,
 } from "@/lib/api/helpers";
-import { getRequestLocale } from "@/lib/api/routes/request-locale";
+import { resolvePublicCatalogLocale } from "@/lib/api/routes/request-locale";
 import { schedulesQuerySchema } from "@/lib/api/schemas/request-schemas";
-import { PUBLIC_LOCALE_CATALOG_HEADERS } from "@/lib/public-cache-control";
 
 export async function getSchedulesRoute(request: Request) {
   try {
+    const localeResolution = resolvePublicCatalogLocale(request);
+    if (localeResolution instanceof Response) {
+      return localeResolution;
+    }
+
     const searchParams = new URL(request.url).searchParams;
     const parsed = parseRouteQuery(
       searchParams,
@@ -39,11 +43,11 @@ export async function getSchedulesRoute(request: Request) {
     return jsonResponse(
       await listPublicSchedules({
         filters,
-        locale: getRequestLocale(request),
+        locale: localeResolution.locale,
         page: pagination.page,
         pageSize: pagination.pageSize,
       }),
-      { headers: PUBLIC_LOCALE_CATALOG_HEADERS },
+      { headers: localeResolution.cacheHeaders },
     );
   } catch (error) {
     return handleRouteError("Failed to fetch schedules", error);

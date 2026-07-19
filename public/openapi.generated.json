@@ -894,6 +894,17 @@
         "parameters": [
           {
             "in": "query",
+            "name": "locale",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "en-us",
+                "zh-cn"
+              ]
+            }
+          },
+          {
+            "in": "query",
             "name": "search",
             "schema": {
               "type": "string"
@@ -1710,6 +1721,17 @@
         "parameters": [
           {
             "in": "query",
+            "name": "locale",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "en-us",
+                "zh-cn"
+              ]
+            }
+          },
+          {
+            "in": "query",
             "name": "sectionId",
             "schema": {
               "type": "integer",
@@ -1856,6 +1878,17 @@
           "Sections"
         ],
         "parameters": [
+          {
+            "in": "query",
+            "name": "locale",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "en-us",
+                "zh-cn"
+              ]
+            }
+          },
           {
             "in": "query",
             "name": "courseId",
@@ -2069,6 +2102,17 @@
           "Teachers"
         ],
         "parameters": [
+          {
+            "in": "query",
+            "name": "locale",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "en-us",
+                "zh-cn"
+              ]
+            }
+          },
           {
             "in": "query",
             "name": "departmentId",
@@ -4160,6 +4204,17 @@
               "format": "int64"
             },
             "required": true
+          },
+          {
+            "in": "query",
+            "name": "locale",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "en-us",
+                "zh-cn"
+              ]
+            }
           }
         ],
         "responses": {
@@ -4815,6 +4870,17 @@
               "format": "int64"
             },
             "required": true
+          },
+          {
+            "in": "query",
+            "name": "locale",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "en-us",
+                "zh-cn"
+              ]
+            }
           }
         ],
         "responses": {
@@ -4991,6 +5057,17 @@
               "format": "int64"
             },
             "required": true
+          },
+          {
+            "in": "query",
+            "name": "locale",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "en-us",
+                "zh-cn"
+              ]
+            }
           }
         ],
         "responses": {
@@ -7677,6 +7754,17 @@
               "format": "int64"
             },
             "required": true
+          },
+          {
+            "in": "query",
+            "name": "locale",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "en-us",
+                "zh-cn"
+              ]
+            }
           }
         ],
         "responses": {
@@ -7722,6 +7810,17 @@
               "format": "int64"
             },
             "required": true
+          },
+          {
+            "in": "query",
+            "name": "locale",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "en-us",
+                "zh-cn"
+              ]
+            }
           },
           {
             "in": "query",
