@@ -4,10 +4,10 @@ import * as ButtonGroup from "$lib/components/ui/button-group/index.js";
 import * as Field from "$lib/components/ui/field/index.js";
 import { Input } from "$lib/components/ui/input/index.js";
 import * as NativeSelect from "$lib/components/ui/native-select/index.js";
+import { cn } from "$lib/utils.js";
 import type {
   CourseListCommonLabels,
   CourseListFilters,
-  CourseListFilterUpdater,
   CourseListLabels,
   CourseListOption,
 } from "./catalog-course-list-types";
@@ -21,12 +21,23 @@ export let courseSearch: string;
 export let educationLevelOptions: CourseListOption[];
 export let filters: CourseListFilters;
 export let idPrefix = "course";
+export let inline = false;
+export let showClear = true;
 export let showSearch = true;
-export let updateCourseFilter: CourseListFilterUpdater;
+
+const controlClass = "w-full [&>select]:h-11";
 </script>
 
 <form method="GET">
-  <Field.Group class="gap-3">
+  {#if !showSearch && filters.search}
+    <input name="search" type="hidden" value={filters.search} />
+  {/if}
+  <Field.Group
+    class={cn(
+      "gap-3",
+      inline && "grid min-[320px]:grid-cols-2 lg:grid-cols-3",
+    )}
+  >
     {#if showSearch}
       <Field.Field>
         <Field.Label for={`${idPrefix}-search`}>{commonLabels.search}</Field.Label>
@@ -45,14 +56,11 @@ export let updateCourseFilter: CourseListFilterUpdater;
     <Field.Field>
       <Field.Label for={`${idPrefix}-education-level`}>{courseLabels.educationLevel}</Field.Label>
       <NativeSelect.Root
-        class="w-full"
+        class={controlClass}
         id={`${idPrefix}-education-level`}
         name="educationLevelId"
         value={filters.educationLevelId ?? ""}
-        onchange={(event) =>
-          updateCourseFilter({
-            educationLevelId: (event.currentTarget as HTMLSelectElement).value,
-          })}
+        onchange={(event) => event.currentTarget.form?.requestSubmit()}
       >
         {#each educationLevelOptions as option}
           <NativeSelect.Option value={option.value}>
@@ -64,14 +72,11 @@ export let updateCourseFilter: CourseListFilterUpdater;
     <Field.Field>
       <Field.Label for={`${idPrefix}-category`}>{courseLabels.category}</Field.Label>
       <NativeSelect.Root
-        class="w-full"
+        class={controlClass}
         id={`${idPrefix}-category`}
         name="categoryId"
         value={filters.categoryId ?? ""}
-        onchange={(event) =>
-          updateCourseFilter({
-            categoryId: (event.currentTarget as HTMLSelectElement).value,
-          })}
+        onchange={(event) => event.currentTarget.form?.requestSubmit()}
       >
         {#each categoryOptions as option}
           <NativeSelect.Option value={option.value}>
@@ -80,17 +85,14 @@ export let updateCourseFilter: CourseListFilterUpdater;
         {/each}
       </NativeSelect.Root>
     </Field.Field>
-    <Field.Field>
+    <Field.Field class={cn(inline && "min-[320px]:col-span-2 lg:col-span-1")}>
       <Field.Label for={`${idPrefix}-class-type`}>{courseLabels.classType}</Field.Label>
       <NativeSelect.Root
-        class="w-full"
+        class={controlClass}
         id={`${idPrefix}-class-type`}
         name="classTypeId"
         value={filters.classTypeId ?? ""}
-        onchange={(event) =>
-          updateCourseFilter({
-            classTypeId: (event.currentTarget as HTMLSelectElement).value,
-          })}
+        onchange={(event) => event.currentTarget.form?.requestSubmit()}
       >
         {#each classTypeOptions as option}
           <NativeSelect.Option value={option.value}>
@@ -99,14 +101,14 @@ export let updateCourseFilter: CourseListFilterUpdater;
         {/each}
       </NativeSelect.Root>
     </Field.Field>
-    {#if showSearch || activeFilterCount > 0}
+    {#if showSearch || (showClear && activeFilterCount > 0)}
       <ButtonGroup.Root class="w-full pt-1" orientation="vertical">
         {#if showSearch}
           <Button class="w-full" size="lg" type="submit">
             {commonLabels.search}
           </Button>
         {/if}
-        {#if activeFilterCount > 0}
+        {#if showClear && activeFilterCount > 0}
           <Button class="w-full" href="/courses" size="lg" variant="outline">{commonLabels.clear}</Button>
         {/if}
       </ButtonGroup.Root>

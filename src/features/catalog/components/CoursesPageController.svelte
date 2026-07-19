@@ -8,7 +8,6 @@ import {
   buildCourseFilterOptions,
   coursePageHref,
 } from "@/features/catalog/lib/courses-page-view-model";
-import { goto } from "$app/navigation";
 import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
 import CatalogPageHeader from "./CatalogPageHeader.svelte";
 import CatalogPagination from "./CatalogPagination.svelte";
@@ -46,7 +45,6 @@ type PageData = {
 export let data: PageData;
 
 let courseSearch = data.filters.search ?? "";
-let isCourseFilterOpen = false;
 
 $: totalPages = data.pagination.totalPages;
 $: courseSearch = data.filters.search ?? "";
@@ -105,16 +103,10 @@ function courseFilterHref(overrides: Partial<CourseListFilters>) {
   return coursePageHref({
     filters: {
       ...data.filters,
-      search: courseSearch.trim(),
       ...overrides,
     },
     targetPage: 1,
   });
-}
-
-function updateCourseFilter(overrides: Partial<CourseListFilters>) {
-  isCourseFilterOpen = false;
-  void goto(courseFilterHref(overrides));
 }
 
 function optionLabel(
@@ -146,7 +138,7 @@ function courseEmptyDescription() {
       clearLabel={commonLabels.clear}
       filterTitle={courseLabels.summary.filters}
       hiddenFilters={courseHiddenFilters}
-      bind:open={isCourseFilterOpen}
+      inlineFilters
       searchId="mobile-course-search"
       searchLabel={commonLabels.search}
       searchPlaceholder={courseLabels.searchPlaceholder}
@@ -158,12 +150,13 @@ function courseEmptyDescription() {
         {classTypeOptions}
         {commonLabels}
         {courseLabels}
-        bind:courseSearch
+        courseSearch={data.filters.search ?? ""}
         {educationLevelOptions}
         filters={data.filters}
         idPrefix="mobile-course"
+        inline
+        showClear={false}
         showSearch={false}
-        {updateCourseFilter}
       />
     </CatalogMobileFilters>
 

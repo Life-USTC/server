@@ -19,6 +19,7 @@
  * - Search and clear buttons may be absent in minimal UI
  */
 import { expect, test } from "@playwright/test";
+import { expectCatalogInlineFilters } from "../../../utils/catalog-inline-filters";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { getSeedTeacherDepartmentFixture } from "../../../utils/e2e-db";
 import { visibleText } from "../../../utils/locators";
@@ -60,15 +61,7 @@ test.describe("/teachers", () => {
     await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
     await expect(page.getByTestId("catalog-results-summary")).toBeVisible();
     await expect(page.getByTestId("catalog-active-filters")).toBeVisible();
-    const filterTrigger = page.getByRole("button", {
-      name: /筛选教师|Filter teachers/i,
-    });
-    await expect(filterTrigger).toBeVisible();
-    await filterTrigger.click();
-    const filterSheet = page.getByRole("dialog");
-    await expect(filterSheet).toBeVisible();
-    await expect(filterSheet.getByLabel(/院系|Department/i)).toBeVisible();
-    await page.keyboard.press("Escape");
+    await expectCatalogInlineFilters(page, [/院系|Department/i]);
 
     const detailLink = page
       .locator("#main-content a[href^='/teachers/']:visible")
@@ -83,6 +76,22 @@ test.describe("/teachers", () => {
     await expect(page).toHaveURL(/\/teachers\/\d+(?:\?.*)?$/);
     await expect(page.locator("#main-content")).toBeVisible();
     await captureStepScreenshot(page, testInfo, "teachers-navigate-detail");
+  });
+
+  test("280 至 375 像素直接显示教师筛选", async ({ page }, testInfo) => {
+    for (const width of [280, 320, 375]) {
+      await page.setViewportSize({ width, height: 900 });
+      await gotoAndWaitForReady(page, "/teachers");
+      await expectCatalogInlineFilters(page, [/院系|Department/i]);
+      await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+      if (width === 280 || width === 375) {
+        await captureStepScreenshot(
+          page,
+          testInfo,
+          `teachers-inline-filters-${width}`,
+        );
+      }
+    }
   });
 
   test("搜索和清除按钮可用", async ({ page }, testInfo) => {
@@ -113,20 +122,24 @@ test.describe("/teachers", () => {
 
   test("院系筛选保留教师结果", async ({ page }, testInfo) => {
     const filter = await getSeedTeacherDepartmentFixture(DEV_SEED.teacher.code);
-    await gotoAndWaitForReady(
-      page,
-      `/teachers?departmentId=${filter.departmentId ?? ""}`,
-      { testInfo, screenshotLabel: "teachers-department" },
-    );
-
     if (!filter.departmentName) {
+      await gotoAndWaitForReady(page, "/teachers");
       await expect(page.locator("#main-content")).toBeVisible();
       return;
     }
 
+    await gotoAndWaitForReady(page, "/teachers", {
+      testInfo,
+      screenshotLabel: "teachers-department",
+    });
+    await page.getByRole("searchbox").fill("尚未提交的搜索草稿");
+    await page
+      .getByLabel(/院系|Department/i)
+      .selectOption(String(filter.departmentId));
     await expect(page).toHaveURL(
       new RegExp(`departmentId=${filter.departmentId}`),
     );
+    await expect(page).not.toHaveURL(/search=/);
     await expect(visibleText(page, DEV_SEED.teacher.nameCn)).toBeVisible();
     await captureStepScreenshot(page, testInfo, "teachers-filter-department");
   });

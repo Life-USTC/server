@@ -5,7 +5,6 @@ import {
   catalogPrimaryName as primaryName,
   catalogSecondaryName as secondaryName,
 } from "@/features/catalog/lib/catalog-list-display";
-import { goto } from "$app/navigation";
 import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
 import CatalogPageHeader from "./CatalogPageHeader.svelte";
 import CatalogPagination from "./CatalogPagination.svelte";
@@ -48,7 +47,6 @@ type PageData = {
 export let data: PageData;
 
 let teacherSearch = data.filters.search ?? "";
-let isTeacherFilterOpen = false;
 
 $: totalPages = data.pagination.totalPages;
 $: teacherSearch = data.filters.search ?? "";
@@ -97,16 +95,10 @@ function pageHref(targetPage: number) {
 function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
   const filters = {
     ...data.filters,
-    search: teacherSearch.trim(),
     ...overrides,
   };
   const { search, departmentId } = filters;
   return catalogHref("/teachers", { search, departmentId });
-}
-
-function updateTeacherFilter(overrides: Partial<TeacherListFilters>) {
-  isTeacherFilterOpen = false;
-  void goto(teacherFilterHref(overrides));
 }
 </script>
 
@@ -126,7 +118,7 @@ function updateTeacherFilter(overrides: Partial<TeacherListFilters>) {
       filterDescription={teacherLabels.filterDescription}
       filterTitle={teacherLabels.filterTitle}
       hiddenFilters={teacherHiddenFilters}
-      bind:open={isTeacherFilterOpen}
+      inlineFilters
       searchId="mobile-teacher-search"
       searchLabel={teacherLabels.searchLabel}
       searchPlaceholder={teacherLabels.searchNameOrCode}
@@ -138,10 +130,11 @@ function updateTeacherFilter(overrides: Partial<TeacherListFilters>) {
         {departmentOptions}
         filters={data.filters}
         idPrefix="mobile-teacher"
+        inline
+        showClear={false}
         showSearch={false}
         {teacherLabels}
-        bind:teacherSearch
-        {updateTeacherFilter}
+        teacherSearch={data.filters.search ?? ""}
       />
     </CatalogMobileFilters>
 

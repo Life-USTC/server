@@ -20,6 +20,7 @@
  * - Search supports nameCn, nameEn, and code fields
  */
 import { expect, test } from "@playwright/test";
+import { expectCatalogInlineFilters } from "../../../utils/catalog-inline-filters";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import {
   createTempCoursesFixture,
@@ -125,13 +126,11 @@ test.describe("/courses 课程目录", () => {
     await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
     await expect(page.getByTestId("catalog-results-summary")).toBeVisible();
     await expect(page.getByTestId("catalog-active-filters")).toBeVisible();
-    await page.getByRole("button", { name: /筛选|Filters/i }).click();
-    const filterSheet = page.getByRole("dialog");
-    await expect(filterSheet).toBeVisible();
-    await expect(
-      filterSheet.getByLabel(/培养层次|Education Level/i),
-    ).toBeVisible();
-    await page.keyboard.press("Escape");
+    await expectCatalogInlineFilters(page, [
+      /培养层次|Education Level/i,
+      /类别|Category/i,
+      /课程类型|Class Type/i,
+    ]);
 
     const detailLink = page
       .locator(
@@ -148,6 +147,26 @@ test.describe("/courses 课程目录", () => {
       new RegExp(`/courses/${DEV_SEED.course.jwId}`),
     );
     await captureStepScreenshot(page, testInfo, "courses-navigate-detail");
+  });
+
+  test("280 至 375 像素直接显示课程筛选", async ({ page }, testInfo) => {
+    for (const width of [280, 320, 375]) {
+      await page.setViewportSize({ width, height: 900 });
+      await gotoAndWaitForReady(page, "/courses");
+      await expectCatalogInlineFilters(page, [
+        /培养层次|Education Level/i,
+        /类别|Category/i,
+        /课程类型|Class Type/i,
+      ]);
+      await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+      if (width === 280 || width === 375) {
+        await captureStepScreenshot(
+          page,
+          testInfo,
+          `courses-inline-filters-${width}`,
+        );
+      }
+    }
   });
 
   test("分页提供上一页、页码和下一页并写入浏览历史", async ({
@@ -223,21 +242,30 @@ test.describe("/courses 课程目录", () => {
 
   test("按种子维度筛选保留结果", async ({ page }, testInfo) => {
     const filters = await getSeedCourseFilterFixture(DEV_SEED.course.jwId);
-    const params = new URLSearchParams();
-    if (filters.educationLevelId) {
-      params.set("educationLevelId", String(filters.educationLevelId));
-    }
-    if (filters.categoryId) {
-      params.set("categoryId", String(filters.categoryId));
-    }
-    if (filters.classTypeId) {
-      params.set("classTypeId", String(filters.classTypeId));
-    }
-
-    await gotoAndWaitForReady(page, `/courses?${params.toString()}`, {
+    expect(filters.educationLevelId).toBeTruthy();
+    expect(filters.categoryId).toBeTruthy();
+    await gotoAndWaitForReady(page, "/courses", {
       testInfo,
       screenshotLabel: "courses-filter",
     });
+
+    await page.getByRole("searchbox").fill("尚未提交的搜索草稿");
+    await page
+      .getByLabel(/培养层次|Education Level/i)
+      .selectOption(String(filters.educationLevelId));
+    await expect(page).toHaveURL(
+      new RegExp(`educationLevelId=${filters.educationLevelId}`),
+    );
+    await expect(page).not.toHaveURL(/search=/);
+
+    await page
+      .getByLabel(/类别|Category/i)
+      .selectOption(String(filters.categoryId));
+    await expect(page).toHaveURL(
+      new RegExp(
+        `educationLevelId=${filters.educationLevelId}.*categoryId=${filters.categoryId}`,
+      ),
+    );
 
     await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
     await expect(page.getByTestId("catalog-mobile-filters")).toBeVisible();
