@@ -1,7 +1,7 @@
 import {
   AUTH_RECORD_CLEANUP_BATCH_SIZE,
-  cleanupExpiredAuthRecords,
   type AuthRecordCleanupReport,
+  cleanupExpiredAuthRecords,
 } from "@/features/auth/server/auth-record-cleanup";
 import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
 
@@ -147,8 +147,7 @@ describe("expired auth record cleanup", () => {
     const total = reports.reduce<AuthRecordCleanupReport>(
       (sum, report) => ({
         sessions: sum.sessions + report.sessions,
-        verificationTokens:
-          sum.verificationTokens + report.verificationTokens,
+        verificationTokens: sum.verificationTokens + report.verificationTokens,
         oauthAccessTokens: sum.oauthAccessTokens + report.oauthAccessTokens,
         oauthRefreshTokens: sum.oauthRefreshTokens + report.oauthRefreshTokens,
         deviceCodes: sum.deviceCodes + report.deviceCodes,
