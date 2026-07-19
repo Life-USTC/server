@@ -3,7 +3,7 @@ import { rateLimitResponse } from "@/lib/api/helpers";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { logOAuthDebug, oauthDebugCorrelationId } from "@/lib/log/oauth-debug";
 import {
-  extractMcpToolCallNamesFromRequest,
+  extractMcpToolCallNames,
   getMcpWriteRateLimitAction,
   getMcpWriteRateLimitTier,
   isMcpWriteTool,
@@ -46,10 +46,10 @@ export async function handleMcpRequest(request: Request) {
     return originError;
   }
 
-  const toolCallNames = await extractMcpToolCallNamesFromRequest(request);
-  const toolNames = Array.from(new Set(toolCallNames));
-  const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
-  const authResult = await authenticateMcpRequest(request, toolNames);
+  const { authenticateMcpRequest, authorizeMcpToolScopes } = await import(
+    "@/lib/mcp/auth"
+  );
+  const authResult = await authenticateMcpRequest(request);
   if ("response" in authResult) {
     const res = authResult.response;
     const www = res.headers.get("www-authenticate");
@@ -67,12 +67,46 @@ export async function handleMcpRequest(request: Request) {
     return withMcpCors(request, res);
   }
 
-  const { summarizeMcpJsonRpcRequest } = await import(
-    "@/lib/mcp/observability"
-  );
-  rpcSummary = await summarizeMcpJsonRpcRequest(request);
+  const { readMcpJsonBodyWithinLimit } = await import("@/lib/mcp/request-body");
+  const bodyResult = await readMcpJsonBodyWithinLimit(request);
+  if ("response" in bodyResult) {
+    recordAndLogMcpResponse({
+      context: logContext,
+      request,
+      phase: "body-rejected",
+      rpcSummary,
+      status: bodyResult.response.status,
+      start,
+    });
+    return withMcpCors(request, bodyResult.response);
+  }
 
-  const userId = authResult.authInfo.extra?.userId;
+  const toolCallNames = extractMcpToolCallNames(bodyResult.body);
+  const toolNames = Array.from(new Set(toolCallNames));
+  const toolAuthResult = authorizeMcpToolScopes(authResult.authInfo, toolNames);
+  if ("response" in toolAuthResult) {
+    const res = toolAuthResult.response;
+    const www = res.headers.get("www-authenticate");
+    recordAndLogMcpResponse({
+      authFailureDiagnostics: toolAuthResult.authFailureDiagnostics,
+      context: logContext,
+      request,
+      phase: "auth-rejected",
+      rpcSummary,
+      status: res.status,
+      start,
+      wwwAuthenticatePrefix: www ? www.slice(0, 120) : null,
+    });
+    return withMcpCors(request, res);
+  }
+
+  const { summarizeMcpJsonRpcBody } = await import("@/lib/mcp/observability");
+  rpcSummary =
+    bodyResult.body === undefined
+      ? null
+      : summarizeMcpJsonRpcBody(bodyResult.body);
+
+  const userId = toolAuthResult.authInfo.extra?.userId;
   if (typeof userId === "string" && userId.length > 0) {
     for (const toolName of toolCallNames) {
       if (!isMcpWriteTool(toolName)) continue;
@@ -120,7 +154,8 @@ export async function handleMcpRequest(request: Request) {
 
   await server.connect(transport);
   const res = await transport.handleRequest(request, {
-    authInfo: authResult.authInfo,
+    authInfo: toolAuthResult.authInfo,
+    parsedBody: bodyResult.body,
   });
   recordAndLogMcpResponse({
     context: logContext,

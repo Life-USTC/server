@@ -142,6 +142,15 @@ export async function authenticateMcpRequest(
     };
   }
 
+  return authorizeMcpToolScopes(authInfo, toolName);
+}
+
+export function authorizeMcpToolScopes(
+  authInfo: AuthInfo,
+  toolName?: string | string[],
+):
+  | { authInfo: AuthInfo }
+  | { authFailureDiagnostics: McpAuthFailureDiagnostics; response: Response } {
   const requiredScopes = getRequiredMcpScopes(toolName);
   const hasLegacyMcpToolsScope = authInfo.scopes.includes(
     LEGACY_MCP_TOOLS_SCOPE,
@@ -156,7 +165,7 @@ export async function authenticateMcpRequest(
     const diagnostics: McpAuthFailureDiagnostics = {
       authFailureKind: "missing_required_tool_scope",
       authHeaderKind: "bearer",
-      authTokenFormat: tokenFormat(token),
+      authTokenFormat: tokenFormat(authInfo.token),
       requiredScopeCount: requiredScopes.length,
       scopeCount: authInfo.scopes.length,
       tokenResourceMatchesMcp: true,
