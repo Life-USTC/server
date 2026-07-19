@@ -44,7 +44,7 @@ export let toggleBusDepartedTrips: () => void;
       <Field.Field>
         <Button
           aria-label={busCopy.planner.reverse}
-          class="w-full justify-center"
+          class="min-h-11 w-full justify-center"
           disabled={!busPlannerReady}
           type="button"
           onclick={reverseBusStops}
@@ -86,12 +86,14 @@ export let toggleBusDepartedTrips: () => void;
           }}
         >
           <ToggleGroup.Item
+            class="min-h-11"
             disabled={!busPlannerReady}
             value="weekday"
           >
             {busCopy.dayType.weekday}
           </ToggleGroup.Item>
           <ToggleGroup.Item
+            class="min-h-11"
             disabled={!busPlannerReady}
             value="weekend"
           >

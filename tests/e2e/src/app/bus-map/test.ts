@@ -18,8 +18,22 @@
  */
 import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
-import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import {
+  isolateSingleActiveBusTripFixture,
+  restoreBusTripTimesFixture,
+} from "../../../utils/e2e-db";
+import {
+  expectNoPageHorizontalOverflow,
+  gotoAndWaitForReady,
+} from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
+
+function busTimeAtOffset(minutes: number) {
+  const value = new Date(Date.now() + minutes * 60_000);
+  return `${String(value.getHours()).padStart(2, "0")}:${String(
+    value.getMinutes(),
+  ).padStart(2, "0")}`;
+}
 
 test.describe("校车线路图", () => {
   test("SVG 中渲染校区节点与线路", async ({ page }, testInfo) => {
@@ -81,6 +95,20 @@ test.describe("校车线路图", () => {
         )
         .map((group) => group.querySelector(":scope > text"))
         .filter((label): label is SVGTextElement => label !== null);
+      const campusLabelGeometry = campusLabels.map((label) => {
+        const node = label.parentElement?.querySelector("circle");
+        if (!node) throw new Error("Bus map campus node missing");
+        const labelBox = label.getBoundingClientRect();
+        const nodeBox = node.getBoundingClientRect();
+        return {
+          label: label.textContent?.trim() ?? "",
+          labelLeft: labelBox.left,
+          labelRight: labelBox.right,
+          nodeLeft: nodeBox.left,
+          nodeRight: nodeBox.right,
+          paintOrder: label.getAttribute("paint-order"),
+        };
+      });
       const visibleCampusLabels = campusLabels.filter((label) => {
         const labelBox = label.getBoundingClientRect();
         return (
@@ -92,6 +120,7 @@ test.describe("校车线路图", () => {
       });
       return {
         campusLabelCount: campusLabels.length,
+        campusLabelGeometry,
         labelHeights,
         svgWidth: svgElement.getBoundingClientRect().width,
         viewBoxWidth: svgElement.viewBox.baseVal.width,
@@ -112,6 +141,23 @@ test.describe("校车线路图", () => {
     expect(geometry.visibleCampusLabelCount).toBe(geometry.campusLabelCount);
     expect(geometry.labelHeights).not.toHaveLength(0);
     expect(Math.min(...geometry.labelHeights)).toBeGreaterThanOrEqual(10);
+    expect(
+      geometry.campusLabelGeometry.every(
+        (label) => label.paintOrder === "stroke",
+      ),
+    ).toBe(true);
+    const highTechLabel = geometry.campusLabelGeometry.find(
+      (label) => label.label === "高新",
+    );
+    const researchInstituteLabel = geometry.campusLabelGeometry.find(
+      (label) => label.label === "先研院",
+    );
+    expect(highTechLabel?.labelRight).toBeLessThan(
+      highTechLabel?.nodeLeft ?? 0,
+    );
+    expect(researchInstituteLabel?.labelLeft).toBeGreaterThan(
+      researchInstituteLabel?.nodeRight ?? Number.POSITIVE_INFINITY,
+    );
 
     await captureStepScreenshot(page, testInfo, "bus-map-mobile-readable");
 
@@ -145,12 +191,11 @@ test.describe("校车线路图", () => {
 
     // At least one route description visible in legend
     const legend = page.getByTestId("bus-map-legend");
-    await expect(
-      legend.getByText(DEV_SEED.bus.recommendedRoute, { exact: true }),
-    ).toBeVisible();
-    await expect(
-      legend.getByText(DEV_SEED.bus.recommendedRoute, { exact: true }),
-    ).toHaveCount(1);
+    const recommendedRoute = legend
+      .locator("[data-slot='bus-route-description']")
+      .filter({ hasText: /东区\s*→\s*西区\s*→\s*先研院\s*→\s*高新/ });
+    await expect(recommendedRoute).toBeVisible();
+    await expect(recommendedRoute).toHaveCount(1);
     await expect(
       page.getByRole("button").filter({
         hasText: DEV_SEED.bus.recommendedRoute,
@@ -164,6 +209,80 @@ test.describe("校车线路图", () => {
     expect(runtimeErrors).toEqual([]);
   });
 
+  test("280px 图例保持整段箭头换行且主要操作可触控", async ({ page }) => {
+    await page.setViewportSize({ width: 280, height: 900 });
+    await gotoAndWaitForReady(page, "/bus-map");
+
+    const legend = page.getByTestId("bus-map-legend");
+    await legend.scrollIntoViewIfNeeded();
+    const route = legend
+      .locator("[data-slot='bus-route-description']")
+      .filter({ hasText: /东区\s*→\s*西区\s*→\s*先研院\s*→\s*高新/ });
+    await expect(route).toBeVisible();
+    const routeTokens = route.locator(":scope > span");
+    await expect(routeTokens).toHaveCount(4);
+    for (const token of await routeTokens.all()) {
+      await expect(token).toHaveCSS("white-space", "nowrap");
+    }
+
+    for (const target of [
+      page.getByRole("link", { name: /Back to timetable|返回时刻表/ }),
+      page.getByRole("button", { name: /Refresh|刷新/ }),
+    ]) {
+      const box = await target.boundingBox();
+      expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+    }
+    await expectNoPageHorizontalOverflow(page);
+  });
+
+  test("统计摘要保持紧凑且单条运行班次不占固定高度", async ({ page }) => {
+    const snapshot = await isolateSingleActiveBusTripFixture([
+      busTimeAtOffset(-5),
+      busTimeAtOffset(15),
+    ]);
+
+    try {
+      for (const width of [280, 320, 375, 1440]) {
+        await page.setViewportSize({ width, height: 900 });
+        await gotoAndWaitForReady(page, "/bus-map");
+
+        const summary = page.getByTestId("bus-map-summary");
+        await expect(summary).toBeVisible();
+        const columnCount = await summary.evaluate(
+          (node) =>
+            getComputedStyle(node).gridTemplateColumns.split(/\s+/).length,
+        );
+        expect(columnCount).toBe(width >= 1024 ? 4 : 2);
+
+        const activeTrips = page.getByTestId("bus-map-active-trips");
+        await expect(activeTrips).toBeVisible();
+        const geometry = await activeTrips.evaluate((node) => {
+          const viewport = node.querySelector(
+            "[data-slot='scroll-area-viewport']",
+          );
+          const list = node.querySelector("[role='list']");
+          if (!(viewport instanceof HTMLElement) || !list) {
+            throw new Error("运行班次滚动区域结构缺失");
+          }
+          return {
+            listHeight: list.getBoundingClientRect().height,
+            rootHeight: node.getBoundingClientRect().height,
+            viewportHeight: viewport.getBoundingClientRect().height,
+            viewportScrollHeight: viewport.scrollHeight,
+          };
+        });
+        expect(geometry.rootHeight).toBeLessThan(140);
+        expect(geometry.viewportHeight).toBeLessThanOrEqual(
+          geometry.listHeight,
+        );
+        expect(geometry.viewportScrollHeight).toBeLessThanOrEqual(140);
+        await expectNoPageHorizontalOverflow(page);
+      }
+    } finally {
+      await restoreBusTripTimesFixture(snapshot);
+    }
+  });
+
   test("返回链接导航到校车标签页", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/bus-map", {
       testInfo,
@@ -175,6 +294,9 @@ test.describe("校车线路图", () => {
       .first();
     await expect(backLink).toBeVisible();
     await expect(backLink).toHaveAttribute("href", "/dashboard/bus");
+    expect((await backLink.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(
+      44,
+    );
   });
 
   test("侧边栏显示日期类型与时间信息", async ({ page }, testInfo) => {
@@ -197,6 +319,9 @@ test.describe("校车线路图", () => {
 
     const refreshBtn = page.getByRole("button", { name: /Refresh|刷新/ });
     await expect(refreshBtn).toBeVisible();
+    expect(
+      (await refreshBtn.boundingBox())?.height ?? 0,
+    ).toBeGreaterThanOrEqual(44);
     await refreshBtn.click();
     await expect(refreshBtn).toBeVisible();
   });

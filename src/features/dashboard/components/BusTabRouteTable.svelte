@@ -1,4 +1,5 @@
 <script lang="ts">
+import BusRouteDescription from "@/features/bus/components/BusRouteDescription.svelte";
 import type { BusApplicableRoute } from "@/features/bus/lib/bus-client";
 import {
   busRouteSegmentStopColumns,
@@ -16,13 +17,15 @@ $: stopColumns = busRouteSegmentStopColumns(route);
 $: tableMinWidth = `${Math.max(16, stopColumns.length * 4.25)}rem`;
 </script>
 
-<section>
-  <Card.Root>
+<section class="min-w-0">
+  <Card.Root class="min-w-0">
     <Card.Header>
-      <Card.Title>{route.route.descriptionPrimary}</Card.Title>
+      <Card.Title>
+        <BusRouteDescription description={route.route.descriptionPrimary} />
+      </Card.Title>
     </Card.Header>
-    <Card.Content>
-      <div style="--table-min-width: {tableMinWidth}">
+    <Card.Content class="min-w-0">
+      <div class="min-w-0" style="--table-min-width: {tableMinWidth}">
         <Table.Root class="min-w-[var(--table-min-width)]">
           <Table.Header>
             <Table.Row>

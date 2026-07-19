@@ -1,5 +1,6 @@
 <script lang="ts">
 import ArrowLeftRightIcon from "@lucide/svelte/icons/arrow-left-right";
+import BusRouteDescription from "@/features/bus/components/BusRouteDescription.svelte";
 import type { BusApplicableRoute } from "@/features/bus/lib/bus-client";
 import {
   busStopTimeLabel,
@@ -48,7 +49,9 @@ $: emptyMessage =
     {#if nextDeparture}
       <div class="grid gap-4">
         <div class="grid gap-1">
-          <p class="font-medium">{nextDeparture.route.route.descriptionPrimary}</p>
+          <p class="min-w-0 font-medium">
+            <BusRouteDescription description={nextDeparture.route.route.descriptionPrimary} />
+          </p>
           <p class="text-muted-foreground text-sm">
             {nextDeparture.route.startStop.campus.namePrimary}
             →
@@ -68,8 +71,8 @@ $: emptyMessage =
                       →
                       {busStopTimeLabel(departure.trip.endTime)}
                     </Item.Title>
-                    <Item.Description>
-                      {departure.route.route.descriptionPrimary}
+                    <Item.Description class="min-w-0">
+                      <BusRouteDescription description={departure.route.route.descriptionPrimary} />
                     </Item.Description>
                   </Item.Content>
                 </Item.Root>
@@ -89,6 +92,7 @@ $: emptyMessage =
 
   <Card.Footer class="flex-wrap justify-end gap-2">
     <Button
+      class="min-h-11"
       disabled={!busPlannerReady}
       type="button"
       variant="outline"
@@ -97,6 +101,6 @@ $: emptyMessage =
       <ArrowLeftRightIcon data-icon="inline-start" />
       {busCopy.planner.reverse}
     </Button>
-    <Button href="/bus-map" variant="ghost">{busCopy.transitMap}</Button>
+    <Button class="min-h-11" href="/bus-map" variant="ghost">{busCopy.transitMap}</Button>
   </Card.Footer>
 </Card.Root>

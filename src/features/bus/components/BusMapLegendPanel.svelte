@@ -4,6 +4,7 @@ import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
+import BusRouteDescription from "./BusRouteDescription.svelte";
 import BusRouteSwatch from "./BusRouteSwatch.svelte";
 
 export let allRouteIds: number[];
@@ -44,8 +45,10 @@ function formatMessage(template: string, values: Record<string, string>) {
             <Item.Media>
               <BusRouteSwatch {allRouteIds} routeId={route.routeId} />
             </Item.Media>
-            <Item.Content>
-              <Item.Title>{route.descriptionPrimary}</Item.Title>
+            <Item.Content class="min-w-0">
+              <Item.Title class="w-full">
+                <BusRouteDescription description={route.descriptionPrimary} />
+              </Item.Title>
             </Item.Content>
             <Item.Actions>
               <Badge variant="ghost">

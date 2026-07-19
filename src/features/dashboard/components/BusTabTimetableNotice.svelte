@@ -10,11 +10,11 @@ export let busShowsEstimatedHint: boolean;
 </script>
 
 {#if bus.notice?.message || busShowsEstimatedHint}
-  <div class="grid justify-items-end gap-2 text-right text-muted-foreground text-xs">
+  <div class="grid min-w-0 justify-items-end gap-2 text-right text-muted-foreground text-xs">
     {#if bus.notice?.message}
       {#if bus.notice.url}
         <a
-          class="underline underline-offset-2"
+          class="max-w-full break-words underline underline-offset-2"
           href={bus.notice.url}
           rel="noreferrer"
           target="_blank"
@@ -26,7 +26,7 @@ export let busShowsEstimatedHint: boolean;
       {/if}
     {/if}
     {#if busShowsEstimatedHint}
-      <p>{busCopy.planner.estimatedHint}</p>
+      <p class="max-w-full break-words">{busCopy.planner.estimatedHint}</p>
     {/if}
   </div>
 {/if}
