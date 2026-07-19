@@ -1,10 +1,12 @@
-import { handleRouteError, jsonResponse } from "@/lib/api/helpers";
 import openApiSpec from "../../../../public/openapi.generated.json";
 
-export async function getOpenApiRoute() {
-  try {
-    return jsonResponse(openApiSpec);
-  } catch (error) {
-    return handleRouteError("Failed to read generated OpenAPI document", error);
-  }
+const OPENAPI_BODY = JSON.stringify(openApiSpec);
+
+export function getOpenApiRoute() {
+  return new Response(OPENAPI_BODY, {
+    headers: {
+      "cache-control": "public, max-age=300",
+      "content-type": "application/json; charset=utf-8",
+    },
+  });
 }
