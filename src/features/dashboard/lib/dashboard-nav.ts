@@ -28,6 +28,17 @@ const homeDashboardQueryKeys = new Set([
   "todoView",
 ]);
 
+function appendSearch(pathname: string, query: URLSearchParams) {
+  const search = query.toString();
+  return `${pathname}${search ? `?${search}` : ""}`;
+}
+
+function queryWithoutTab(url: URL) {
+  const query = new URLSearchParams(url.searchParams);
+  query.delete("tab");
+  return query;
+}
+
 export function isSignedDashboardTab(
   value: string | null | undefined,
 ): value is SignedTabId {
@@ -52,9 +63,6 @@ export function dashboardTabHref(
 export function dashboardRedirectHrefFromHome(url: URL) {
   const query = new URLSearchParams();
   const tab = url.searchParams.get("tab");
-  if (isSignedDashboardTab(tab)) {
-    query.set("tab", tab);
-  }
 
   for (const [key, value] of url.searchParams) {
     if (homeDashboardQueryKeys.has(key)) {
@@ -62,6 +70,25 @@ export function dashboardRedirectHrefFromHome(url: URL) {
     }
   }
 
-  const search = query.toString();
-  return `/dashboard${search ? `?${search}` : ""}`;
+  return appendSearch(
+    isSignedDashboardTab(tab) ? `/dashboard/${tab}` : "/dashboard",
+    query,
+  );
+}
+
+export function homeTabCompatibilityRedirectHref(url: URL, signedIn: boolean) {
+  const tab = url.searchParams.get("tab");
+  if (!isSignedDashboardTab(tab)) return null;
+
+  const pathname =
+    signedIn || (tab !== "bus" && tab !== "links")
+      ? `/dashboard/${tab}`
+      : `/${tab}`;
+  return appendSearch(pathname, queryWithoutTab(url));
+}
+
+export function dashboardTabCompatibilityRedirectHref(url: URL) {
+  const tab = url.searchParams.get("tab");
+  if (!isSignedDashboardTab(tab)) return null;
+  return appendSearch(`/dashboard/${tab}`, queryWithoutTab(url));
 }

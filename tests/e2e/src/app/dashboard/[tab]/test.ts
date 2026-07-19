@@ -132,10 +132,11 @@ for (const locale of ["zh-cn", "en-us"] as const) {
   });
 }
 
-test("查询参数别名使用规范化后的工作台页面身份", async ({ page }) => {
+test("查询参数别名永久跳转后使用规范化的工作台页面身份", async ({ page }) => {
   await setLocale(page, "zh-cn");
-  await signInAsDebugUser(page, "/dashboard?tab=todos");
+  await signInAsDebugUser(page, "/dashboard/todos");
   await gotoAndWaitForReady(page, "/dashboard?tab=todos");
 
+  await expect(page).toHaveURL(/\/dashboard\/todos$/);
   await expectDashboardPageIdentity(page, "zh-cn", "待办");
 });

@@ -15,7 +15,7 @@
  * - Completed vs incomplete: exam end time vs now
  *
  * ## Edge Cases
- * - Unauthenticated → public links view (no exams tab)
+ * - Unauthenticated legacy tab → protected semantic route, then sign-in
  * - Exams without a date appear after dated exams
  * - Empty state when no subscriptions or no exams
  */
@@ -27,30 +27,13 @@ import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
 
 test.describe("仪表盘考试", () => {
-  test("未登录 ?tab=exams 显示公共视图（无考试标签）", async ({
-    page,
-  }, testInfo) => {
-    await gotoAndWaitForReady(page, "/?tab=exams", {
-      testInfo,
-      screenshotLabel: "exams",
+  test("未登录旧 exams tab 重定向到语义路径", async ({ page }) => {
+    const response = await page.request.get("/?tab=exams&examView=list", {
+      maxRedirects: 0,
     });
 
-    await expect(page).toHaveURL(/\/\?tab=exams$/);
-    await expect(page.locator("#main-content")).toBeVisible();
-
-    // Public view: sign-in CTA, no auth-only tabs
-    await expect(
-      page.getByRole("link", { name: /^(网站|Websites)$/i }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
-    ).toBeVisible();
-    // Exams tab should NOT appear in public nav
-    await expect(
-      page.getByRole("link", { name: /^(考试|Exams)$/i }),
-    ).toHaveCount(0);
-
-    await captureStepScreenshot(page, testInfo, "exams/unauthenticated");
+    expect(response.status()).toBe(308);
+    expect(response.headers().location).toBe("/dashboard/exams?examView=list");
   });
 
   test("登录后显示考试筛选工具栏和卡片", async ({ page }, testInfo) => {

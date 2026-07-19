@@ -52,7 +52,7 @@ test.describe("POST /api/dashboard-links/pin 接口", () => {
 
   test("非 JSON 模式未登录时重定向", async ({ request }) => {
     const response = await request.post(BASE, {
-      form: { slug: "jw", action: "pin", returnTo: "/?tab=links" },
+      form: { slug: "jw", action: "pin", returnTo: "/links" },
       maxRedirects: 0,
     });
     expect(response.status()).toBe(303);
@@ -126,7 +126,7 @@ test.describe("POST /api/dashboard-links/pin 接口", () => {
     await signInAsDebugUser(page, "/");
 
     const response = await page.request.post(BASE, {
-      form: { slug: "jw", action: "pin", returnTo: "/?tab=links" },
+      form: { slug: "jw", action: "pin", returnTo: "/links" },
       maxRedirects: 0,
     });
     expect(response.status()).toBe(303);

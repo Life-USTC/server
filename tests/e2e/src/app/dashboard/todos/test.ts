@@ -15,34 +15,23 @@
  * - Todo cards display priority badges (high/medium/low)
  *
  * ## Edge Cases
- * - Unauthenticated users see the public dashboard view (todos tab is auth-only)
+ * - Unauthenticated legacy tab → protected semantic route, then sign-in
  * - Optimistic updates via useOptimistic for toggle/delete/add
  * - Empty state shown when filter yields no matching todos
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
-import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe("仪表盘待办", () => {
-  test("未登录 ?tab=todos 回退到公共视图", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/?tab=todos", {
-      testInfo,
-      screenshotLabel: "todos",
+  test("未登录旧 todos tab 重定向到语义路径", async ({ page }) => {
+    const response = await page.request.get("/?tab=todos&todoView=list", {
+      maxRedirects: 0,
     });
 
-    await expect(page).toHaveURL(/\/\?tab=todos$/);
-    await expect(page.locator("#main-content")).toBeVisible();
-
-    await expect(
-      page.getByRole("link", { name: /^(网站|Websites)$/i }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
-    ).toBeVisible();
-
-    await captureStepScreenshot(page, testInfo, "dashboard-todos-unauthorized");
+    expect(response.status()).toBe(308);
+    expect(response.headers().location).toBe("/dashboard/todos?todoView=list");
   });
 
   test("登录后显示种子待办", async ({ page }, testInfo) => {

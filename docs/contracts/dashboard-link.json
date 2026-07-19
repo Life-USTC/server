@@ -11,6 +11,7 @@
     "search-fuzzy": "Search supports Chinese, pinyin, and whitespace-tolerant matching.",
     "links-vs-buttons": "Links are for navigation; buttons are for actions.",
     "pin-limit": "Currently a maximum of 4 links can be pinned; exceeding this displaces the earliest pinned link.",
+    "semantic-public-route": "Anonymous /?tab=links requests permanently redirect to /links; signed-in compatibility requests redirect to /dashboard/links.",
     "pin-error-clear": "When pin/unpin writes fail, the endpoint returns a clear error; failures are not disguised as successes."
   },
   "capabilities": {
@@ -18,7 +19,7 @@
       "title": "Link Browse & Search",
       "auth": "anon",
       "web": {
-        "pages": ["/dashboard/links", "/?tab=links", "/dashboard"]
+        "pages": ["/links", "/dashboard/links"]
       },
       "rest": "unavailable",
       "mcp": {

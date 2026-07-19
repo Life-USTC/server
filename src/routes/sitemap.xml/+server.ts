@@ -9,6 +9,8 @@ const STATIC_ROUTES = [
   "/courses",
   "/sections",
   "/teachers",
+  "/bus",
+  "/links",
   "/bus-map",
   "/api/docs/tag/sections",
   "/privacy",

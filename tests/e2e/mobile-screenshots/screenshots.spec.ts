@@ -47,12 +47,12 @@ test.describe("移动端截图", () => {
 
     for (const path of [
       "/dashboard",
-      "/dashboard?tab=homeworks",
-      "/dashboard?tab=todos",
-      "/dashboard?tab=calendar",
-      "/dashboard?tab=exams",
-      "/dashboard?tab=links",
-      "/dashboard?tab=subscriptions",
+      "/dashboard/homeworks",
+      "/dashboard/todos",
+      "/dashboard/calendar",
+      "/dashboard/exams",
+      "/dashboard/links",
+      "/dashboard/subscriptions",
       "/settings?tab=profile",
       "/settings?tab=accounts",
       "/settings?tab=content",

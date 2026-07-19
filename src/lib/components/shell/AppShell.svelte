@@ -155,8 +155,8 @@ function buildShellNavGroups(
         defaultOpen: true,
         label: copy.nav.groups.publicTools,
         links: [
-          { href: "/?tab=bus", icon: BusFrontIcon, label: copy.nav.bus },
-          { href: "/?tab=links", icon: LinkIcon, label: copy.nav.links },
+          { href: "/bus", icon: BusFrontIcon, label: copy.nav.bus },
+          { href: "/links", icon: LinkIcon, label: copy.nav.links },
         ],
       },
       {
@@ -389,22 +389,8 @@ function isActiveLink(link: ShellLink) {
   const target = new URL(link.href, $page.url.origin);
   const pathname = $page.url.pathname;
 
-  if (link.href === "/?tab=bus") {
-    return pathname === "/" && $page.url.searchParams.get("tab") !== "links";
-  }
-  if (link.href === "/?tab=links") {
-    return pathname === "/" && $page.url.searchParams.get("tab") === "links";
-  }
   if (target.pathname === "/dashboard/overview") {
-    if (pathname === "/dashboard" || pathname === "/dashboard/overview") {
-      return true;
-    }
-    // Signed-in fallback to overview on the home route (e.g. /?tab=comments)
-    if (pathname === "/" && data.user) {
-      const tab = $page.url.searchParams.get("tab");
-      return tab !== "bus" && tab !== "links";
-    }
-    return false;
+    return pathname === "/dashboard" || pathname === "/dashboard/overview";
   }
   if (target.pathname.startsWith("/dashboard/")) {
     return pathname === target.pathname;

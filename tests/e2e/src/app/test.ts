@@ -20,9 +20,7 @@ test("/", async ({ page }, testInfo) => {
   await assertPageContract(page, { routePath: "/", testInfo });
 });
 
-test("/ 登录用户重定向至 dashboard 并仅保留支持的查询状态", async ({
-  page,
-}) => {
+test("/ 登录用户的旧 tab 永久重定向至语义 dashboard 路径", async ({ page }) => {
   await signInAsDebugUser(page, "/dashboard");
 
   const response = await page.request.get(
@@ -30,9 +28,9 @@ test("/ 登录用户重定向至 dashboard 并仅保留支持的查询状态", a
     { maxRedirects: 0 },
   );
 
-  expect(response.status()).toBe(303);
+  expect(response.status()).toBe(308);
   expect(response.headers().location).toBe(
-    "/dashboard?tab=calendar&calendarView=week&calendarSemester=42",
+    "/dashboard/calendar?calendarView=week&calendarSemester=42&utm_source=ignored",
   );
 });
 
@@ -41,7 +39,7 @@ test("/ 首页快速入口可见", async ({ page }, testInfo) => {
 
   await expect(page.locator("#app-logo")).toBeVisible();
   await expect(page.locator("#app-user-menu")).toHaveCount(0);
-  // Bus is the default public tab; both bus and links tabs are visible in nav
+  // Bus is the default public tab; both bus and links destinations are visible.
   await expect(
     page.getByRole("link", { name: /^(校车|Shuttle Bus)$/i }),
   ).toBeVisible();
