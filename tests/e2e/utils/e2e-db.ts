@@ -26,6 +26,7 @@ const operations = {
   deleteTempCoursesByPrefix: catalogFixtures.deleteTempCoursesByPrefix,
   deleteOAuthClientsByName: oauthFixtures.deleteOAuthClientsByName,
   disableOAuthClientByName: oauthFixtures.disableOAuthClientByName,
+  getOAuthClientByName: oauthFixtures.getOAuthClientByName,
   ensureLinkedAccountFixture: oauthFixtures.ensureLinkedAccountFixture,
   getSeedCourseFilterFixture: seedFixtures.getSeedCourseFilterFixture,
   getSeedSectionSemesterFixture: seedFixtures.getSeedSectionSemesterFixture,
@@ -128,6 +129,17 @@ export const deleteOAuthClientsByName = (name: string) =>
 
 export const disableOAuthClientByName = (name: string) =>
   runDbFixture<null>("disableOAuthClientByName", [name]);
+
+export const getOAuthClientByName = (name: string) =>
+  runDbFixture<{
+    clientId: string;
+    disabled: boolean;
+    enableEndSession: boolean;
+    requirePKCE: boolean;
+    scopes: string[];
+    skipConsent: boolean | null;
+    tokenEndpointAuthMethod: string | null;
+  } | null>("getOAuthClientByName", [name]);
 
 export const ensureLinkedAccountFixture = (
   options: LinkedAccountFixtureOptions,

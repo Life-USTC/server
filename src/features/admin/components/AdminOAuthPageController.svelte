@@ -8,7 +8,6 @@ import AdminWorkspace from "@/features/admin/components/AdminWorkspace.svelte";
 import { createAdminOAuthControllerDefaultState } from "@/features/admin/lib/admin-oauth-controller-default-state";
 import {
   createdOAuthCredentialsJson,
-  oauthClientAuthCopy,
   oauthClientTypeLabel,
   oauthCopyValue,
   oauthRedirectCountLabel,
@@ -18,7 +17,6 @@ import {
 import { createOAuthPageActions } from "@/features/admin/lib/oauth-page-actions";
 import {
   availableOAuthAuthPatterns,
-  buildOAuthClientTabs,
   oauthScopeOptions,
   parseOAuthRedirectUris,
   selectedOAuthAuthPattern,
@@ -55,11 +53,9 @@ export let data: PageData;
 export let form: ActionData;
 
 let {
-  activeClientTab,
   copyMessage,
   copyMessageVariant,
   deletingClientId,
-  externalClientPage,
   isCreateDialogOpen,
   isCreatingClient,
   isCredentialsDialogOpen,
@@ -68,7 +64,6 @@ let {
   redirectDraft,
   selectedAuthMethod,
   selectedScopes,
-  trustedClientPage,
 } = createAdminOAuthControllerDefaultState<OAuthClient>({
   authMethods: data.authMethods,
 });
@@ -79,17 +74,12 @@ $: _dateTimeFormatter = createShanghaiDateTimeFormatter(data.locale, {
   dateStyle: "medium",
   timeStyle: "short",
 });
-$: clientTabs = buildOAuthClientTabs(_copy);
 $: availableAuthPatterns = availableOAuthAuthPatterns(data.authMethods);
 $: selectedAuthPattern = selectedOAuthAuthPattern(selectedAuthMethod);
 $: parsedRedirectUris = parseOAuthRedirectUris(redirectDraft);
 
 function _clientTypeLabel(method: string) {
   return oauthClientTypeLabel(method, _copy);
-}
-
-function _clientAuthCopy(method: string) {
-  return oauthClientAuthCopy(method, _copy);
 }
 
 function _scopeLabel(scope: string) {
@@ -184,23 +174,16 @@ onMount(() => {
     <AdminOAuthStatusAlerts {copyMessage} {copyMessageVariant} {form} />
   {/snippet}
   <AdminOAuthClients
-    bind:activeClientTab
-    clientAuthCopy={_clientAuthCopy}
-    {clientTabs}
     clientTypeLabel={_clientTypeLabel}
     clients={data.clients}
     copy={_copy}
-    copyText={(value, message) => {
-      void _copyText(value, message);
-    }}
     createDisabled={!_isMounted}
-    bind:externalClientPage
     formatCreatedAt={_formatCreatedAt}
     onCreate={_openCreateDialog}
     onDelete={(client) => {
       pendingDeleteClient = client;
     }}
-    bind:trustedClientPage
+    scopeLabel={_scopeLabel}
   />
 </AdminWorkspace>
 
