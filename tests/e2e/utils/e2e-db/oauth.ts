@@ -98,6 +98,23 @@ export async function disableOAuthClientByName(name: string) {
   );
 }
 
+export async function getOAuthClientByName(name: string) {
+  return withE2ePrisma((prisma) =>
+    prisma.oAuthClient.findFirst({
+      where: { name },
+      select: {
+        clientId: true,
+        disabled: true,
+        enableEndSession: true,
+        requirePKCE: true,
+        scopes: true,
+        skipConsent: true,
+        tokenEndpointAuthMethod: true,
+      },
+    }),
+  );
+}
+
 export async function ensureLinkedAccountFixture(options: {
   userId: string;
   provider: "github" | "google" | "oidc";

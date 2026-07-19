@@ -145,14 +145,15 @@
       "mcp": "unavailable",
       "display": {
         "fields": [
-          "client.name",
-          "client.clientId",
-          "client.redirectUris[]",
-          "client.scopes[]",
-          "client.tokenEndpointAuthMethod",
-          "client.isTrusted",
+          "client.name and client.clientId",
+          "client trust and fixed authentication type",
+          "client enabled/disabled status",
+          "client.scopes[] summary",
+          "client.createdAt",
           "Empty inventory explanation and create-client action",
-          "Action: delete"
+          "Create: name, explicit redirect URIs, scopes, and one of three fixed client patterns",
+          "Client secret is shown once after creation and never in the inventory",
+          "Action: confirmed delete"
         ]
       }
     },

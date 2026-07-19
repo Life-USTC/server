@@ -7,15 +7,6 @@ export function oauthClientTypeLabel(
   return copy.clientTypeConfidentialBasic;
 }
 
-export function oauthClientAuthCopy(
-  method: string,
-  copy: Record<string, string>,
-) {
-  if (method === "none") return copy.clientTypePublicDescription;
-  if (method === "client_secret_post") return copy.clientTypePostDescription;
-  return copy.clientTypeBasicDescription;
-}
-
 export function oauthScopeLabel(scope: string, copy: Record<string, string>) {
   return copy[`scope_${scope}`] ?? scope;
 }

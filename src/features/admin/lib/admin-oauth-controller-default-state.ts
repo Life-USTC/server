@@ -2,11 +2,9 @@ export function createAdminOAuthControllerDefaultState<Client>(input: {
   authMethods: readonly string[];
 }) {
   return {
-    activeClientTab: "all" as "trusted" | "public" | "disabled" | "all",
     copyMessage: "",
     copyMessageVariant: "default" as "destructive" | "default",
     deletingClientId: null as string | null,
-    externalClientPage: 1,
     isCreateDialogOpen: false,
     isCreatingClient: false,
     isCredentialsDialogOpen: false,
@@ -23,6 +21,5 @@ export function createAdminOAuthControllerDefaultState<Client>(input: {
       "homework:read",
       "homework:write",
     ],
-    trustedClientPage: 1,
   };
 }

@@ -1,24 +1,10 @@
 /**
- * E2E tests for /admin/oauth — OAuth Client Management
+ * E2E tests for /admin/oauth — compact OAuth client administration.
  *
- * ## Data Represented (admin.yml → oauth-client-management.display.fields)
- * - client.name
- * - client.clientId
- * - client.redirectUris[]
- * - client.scopes[]
- * - client.tokenEndpointAuthMethod
- * - client.isTrusted
- * - Action: delete
- *
- * ## Features
- * - Create client with name + redirect URIs → shows clientId and secret
- * - Delete client
- *
- * ## Edge Cases
- * - Unauthenticated → /signin
- * - Non-admin → 404
+ * Covers the single inventory, the three fixed creation patterns, one-time
+ * credentials, confirmed deletion, disabled state, and mobile rendering.
  */
-import { expect, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 import {
   expectRequiresSignIn,
   signInAsDebugUser,
@@ -27,11 +13,91 @@ import {
 import {
   createOAuthClientFixture,
   deleteOAuthClientsByName,
+  disableOAuthClientByName,
+  getOAuthClientByName,
   PLAYWRIGHT_BASE_URL,
 } from "../../../../utils/e2e-db";
+import {
+  expectNoPageHorizontalOverflow,
+  gotoAndWaitForReady,
+} from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe.configure({ mode: "serial" });
+
+const CREATE_BUTTON = /创建客户端|Create Client/i;
+const CREDENTIALS_DIALOG = /客户端凭据|Client Credentials/i;
+
+const CLIENT_PATTERNS = [
+  {
+    suffix: "trusted",
+    choice: /可信第一方应用|Trusted First-Party App/i,
+    method: "client_secret_basic",
+    skipConsent: true,
+    enableEndSession: true,
+    expectSecret: true,
+    typeLabel: /机密客户端（Basic 认证）|Confidential \(Basic auth\)/i,
+    trustLabel: /可信|Trusted/i,
+  },
+  {
+    suffix: "public",
+    choice: /MCP \/ 原生应用 \/ CLI|MCP, Native, Or CLI/i,
+    method: "none",
+    skipConsent: false,
+    enableEndSession: false,
+    expectSecret: false,
+    typeLabel: /公共客户端（PKCE）|Public \(PKCE\)/i,
+    trustLabel: /需用户授权|Consent required/i,
+  },
+  {
+    suffix: "external",
+    choice: /外部机密连接器|External Confidential Connector/i,
+    method: "client_secret_post",
+    skipConsent: false,
+    enableEndSession: false,
+    expectSecret: true,
+    typeLabel:
+      /机密客户端（请求体携带密钥）|Confidential \(client secret in body\)/i,
+    trustLabel: /需用户授权|Consent required/i,
+  },
+] as const;
+
+async function openCreateDialog(page: Page) {
+  await page.getByRole("button", { name: CREATE_BUTTON }).first().click();
+  const dialog = page.getByRole("dialog", { name: CREATE_BUTTON });
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
+
+async function readClientSecret(
+  credentialsDialog: Locator,
+  expectSecret: boolean,
+) {
+  const secretField = credentialsDialog
+    .locator('[data-slot="item"]')
+    .filter({ hasText: /客户端密钥|Client Secret/i });
+  const value = (
+    await secretField.locator('[data-slot="item-description"]').textContent()
+  )?.trim();
+
+  if (expectSecret) {
+    expect(value).toBeTruthy();
+    await expect(
+      secretField.getByRole("button", { name: /复制密钥|Copy secret/i }),
+    ).toBeVisible();
+  } else {
+    await expect(
+      secretField.getByText(
+        /公共客户端不会签发客户端密钥|No client secret is issued for public clients/i,
+      ),
+    ).toBeVisible();
+    await expect(
+      secretField.getByRole("button", { name: /复制密钥|Copy secret/i }),
+    ).toHaveCount(0);
+  }
+
+  return expectSecret ? value : undefined;
+}
 
 test("/admin/oauth 未登录重定向到登录页", async ({ page }, testInfo) => {
   await expectRequiresSignIn(page, "/admin/oauth");
@@ -47,194 +113,173 @@ test("/admin/oauth 普通用户访问返回 404", async ({ page }, testInfo) => 
   await captureStepScreenshot(page, testInfo, "admin-oauth-404");
 });
 
-test("/admin/oauth 管理员可创建并删除客户端", async ({ page }, testInfo) => {
-  test.setTimeout(60000);
-  const clientName = `e2e-oauth-client-${Date.now()}`;
+test("/admin/oauth 可创建三种固定客户端且密钥只显示一次", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(90_000);
+  const prefix = `e2e-oauth-pattern-${Date.now()}`;
+  const names = CLIENT_PATTERNS.map(({ suffix }) => `${prefix}-${suffix}`);
+  const secrets: string[] = [];
 
   try {
     await signInAsDevAdmin(page, "/admin/oauth");
-
     await expect(
       page.getByRole("heading", { name: /OAuth 客户端管理|OAuth Clients/i }),
     ).toBeVisible();
 
-    const emptyState = page.locator("[data-oauth-empty-state]");
-    await expect(emptyState).toBeVisible();
-    const createBtn = emptyState.getByRole("button", {
-      name: /创建客户端|Create Client/i,
-    });
-    await expect(createBtn).toBeVisible();
-    await expect(createBtn).toBeEnabled();
-    const createDialog = page
-      .locator('[role="dialog"], [data-slot="dialog-content"]')
-      .last();
-    await expect(async () => {
-      await createBtn.click();
-      await expect(createDialog).toBeVisible({ timeout: 3_000 });
-    }).toPass({
-      timeout: 10_000,
-      intervals: [250, 500, 1_000],
-    });
-    await createDialog
-      .getByLabel(/应用名称|Application Name/i)
-      .fill(clientName);
-    await createDialog
-      .getByLabel(/重定向 URI|Redirect URIs/i)
-      .fill(`${PLAYWRIGHT_BASE_URL}/oauth-e2e/callback`);
+    for (const [index, pattern] of CLIENT_PATTERNS.entries()) {
+      const name = names[index];
+      const dialog = await openCreateDialog(page);
+      await expect(
+        dialog.getByRole("button", { name: /取消|Cancel/i }),
+      ).toBeVisible();
+      await dialog.getByRole("radio", { name: pattern.choice }).click();
+      await dialog.getByLabel(/应用名称|Application Name/i).fill(name);
+      await dialog
+        .getByLabel(/重定向 URI|Redirect URIs/i)
+        .fill(`${PLAYWRIGHT_BASE_URL}/oauth-e2e/${pattern.suffix}/callback`);
 
-    await createDialog
-      .getByRole("button", { name: /创建客户端|Create Client/i })
-      .click();
+      const emailScope = dialog.getByRole("checkbox", {
+        name: /查看您的邮箱地址|View your email address/i,
+      });
+      if ((await emailScope.getAttribute("data-state")) !== "checked") {
+        await emailScope.click();
+      }
 
-    await expect(page.getByText(clientName).first()).toBeVisible({
-      timeout: 15000,
-    });
-    await expect(
-      page.getByRole("button", { name: /复制 ID|Copy ID/i }).first(),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: /复制密钥|Copy secret/i }).first(),
-    ).toBeVisible();
-    await expect(
-      page.getByText(/Verify your identity|验证您的身份/i).first(),
-    ).toBeVisible();
-    await expect(
-      page.getByText(/Read your todos|读取你的待办事项/i).first(),
-    ).toBeVisible();
-    await expect(
-      page.getByText(/Manage your todos|管理你的待办事项/i).first(),
-    ).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "admin-oauth-created");
+      await dialog.getByRole("button", { name: CREATE_BUTTON }).click();
 
-    await page.getByRole("button", { name: /完成|Done/i }).click();
+      const credentialsDialog = page.getByRole("dialog", {
+        name: CREDENTIALS_DIALOG,
+      });
+      await expect(credentialsDialog).toBeVisible({ timeout: 15_000 });
+      const secret = await readClientSecret(
+        credentialsDialog,
+        pattern.expectSecret,
+      );
+      if (secret) secrets.push(secret);
 
-    const clientCard = page
-      .locator("article")
-      .filter({
-        has: page.getByText(clientName, { exact: true }),
-      })
-      .first();
-    await expect(clientCard).toBeVisible();
-    await clientCard.getByRole("button", { name: /删除|Delete/i }).click();
+      const persisted = await getOAuthClientByName(name);
+      expect(persisted).toMatchObject({
+        disabled: false,
+        enableEndSession: pattern.enableEndSession,
+        requirePKCE: true,
+        skipConsent: pattern.skipConsent,
+        tokenEndpointAuthMethod: pattern.method,
+      });
+      expect(persisted?.scopes).toContain("email");
+
+      await credentialsDialog
+        .getByRole("button", { name: /完成|Done/i })
+        .click();
+      await expect(credentialsDialog).toBeHidden();
+      if (secret) {
+        await expect(page.getByText(secret, { exact: true })).toHaveCount(0);
+      }
+
+      const row = page.getByRole("row").filter({ hasText: name });
+      await expect(row).toBeVisible();
+      if (index === 0) {
+        await expect(
+          page.getByRole("columnheader", { name: /客户端|Client/i }),
+        ).toBeVisible();
+        await expect(
+          page.getByRole("columnheader", {
+            name: /信任 \/ 类型|Trust \/ Type/i,
+          }),
+        ).toBeVisible();
+      }
+      await expect(row).toContainText(persisted?.clientId ?? "");
+      await expect(row.getByText(pattern.typeLabel)).toBeVisible();
+      await expect(
+        row
+          .locator('[data-slot="badge"]')
+          .filter({ hasText: pattern.trustLabel }),
+      ).toBeVisible();
+      await expect(row.getByText(/已启用|Enabled/i)).toBeVisible();
+      await expect(row.getByText("openid", { exact: true })).toBeVisible();
+    }
+
+    await gotoAndWaitForReady(page, "/admin/oauth");
+    for (const secret of secrets) {
+      await expect(page.getByText(secret, { exact: true })).toHaveCount(0);
+    }
+    await expectNoPageHorizontalOverflow(page);
+
+    await captureStepScreenshot(page, testInfo, "admin-oauth/simple-table");
+  } finally {
+    for (const name of names) {
+      await deleteOAuthClientsByName(name);
+    }
+  }
+});
+
+test("/admin/oauth 显示 disabled 客户端并确认删除", async ({
+  page,
+}, testInfo) => {
+  const name = `e2e-oauth-disabled-${Date.now()}`;
+
+  try {
+    await createOAuthClientFixture({ name });
+    await disableOAuthClientByName(name);
+    await signInAsDevAdmin(page, "/admin/oauth");
+
+    const row = page.getByRole("row").filter({ hasText: name });
+    await expect(row).toBeVisible();
+    await expect(
+      row
+        .locator('[data-slot="badge"]')
+        .filter({ hasText: /已禁用|Disabled/i }),
+    ).toBeVisible();
+    await row.getByRole("button", { name: /删除|Delete/i }).click();
+
     const deleteDialog = page.getByRole("alertdialog", {
       name: /删除客户端|Delete client|删除|Delete/i,
     });
     await expect(deleteDialog).toBeVisible();
-    await deleteDialog
-      .getByRole("button", { name: /删除客户端|Delete client|删除|Delete/i })
-      .click();
+    await deleteDialog.getByRole("button", { name: /取消|Cancel/i }).click();
+    await expect(deleteDialog).toBeHidden();
+    expect(await getOAuthClientByName(name)).not.toBeNull();
 
-    await expect(page.getByText(clientName)).toHaveCount(0, {
-      timeout: 15000,
-    });
-    await expect(page.locator("[data-oauth-empty-state]")).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "admin-oauth-deleted");
+    await row.getByRole("button", { name: /删除|Delete/i }).click();
+    await deleteDialog.getByRole("button", { name: /删除|Delete/i }).click();
+
+    await expect(page.getByText(name)).toHaveCount(0, { timeout: 15_000 });
+    expect(await getOAuthClientByName(name)).toBeNull();
+    await captureStepScreenshot(page, testInfo, "admin-oauth/disabled-delete");
   } finally {
-    await deleteOAuthClientsByName(clientName);
+    await deleteOAuthClientsByName(name);
   }
 });
 
-test("/admin/oauth 创建的客户端显示所有必需字段", async ({
+test("/admin/oauth 移动端使用紧凑列表且无页面横向溢出", async ({
   page,
 }, testInfo) => {
-  test.setTimeout(60_000);
-  const clientName = `e2e-fields-client-${Date.now()}`;
+  const name = `e2e-oauth-mobile-${Date.now()}`;
 
   try {
-    // Force fresh sign-in (ui:true) to avoid stale auth-cache from previous test
-    await signInAsDevAdmin(page, "/admin/oauth", "/admin/oauth", { ui: true });
-
-    const createBtn = page
-      .getByRole("button", { name: /创建客户端|Create Client/i })
-      .first();
-    await expect(createBtn).toBeVisible();
-    await expect(createBtn).toBeEnabled();
-    const createDialog = page
-      .locator('[role="dialog"], [data-slot="dialog-content"]')
-      .last();
-    await expect(async () => {
-      await createBtn.click();
-      await expect(createDialog).toBeVisible({ timeout: 3_000 });
-    }).toPass({
-      timeout: 10_000,
-      intervals: [250, 500, 1_000],
+    const client = await createOAuthClientFixture({
+      name,
+      tokenEndpointAuthMethod: "none",
     });
-
-    await createDialog
-      .getByLabel(/应用名称|Application Name/i)
-      .fill(clientName);
-    await createDialog
-      .getByLabel(/重定向 URI|Redirect URIs/i)
-      .fill(`${PLAYWRIGHT_BASE_URL}/oauth-e2e-fields/callback`);
-
-    await createDialog
-      .getByRole("button", { name: /创建客户端|Create Client/i })
-      .click();
-
-    const clientCard = page
-      .locator("article, [class*='rounded']")
-      .filter({
-        has: page.getByText(clientName, { exact: true }),
-      })
-      .first();
-    await expect(clientCard).toBeVisible({ timeout: 15_000 });
-
-    // client.name (admin.yml oauth-client-management.display.fields)
-    await expect(clientCard.getByText(clientName)).toBeVisible();
-    // client.clientId — "Copy ID" button implies clientId is shown/copyable
-    await expect(
-      clientCard.getByRole("button", { name: /复制 ID|Copy ID/i }).first(),
-    ).toBeVisible();
-    // client.redirectUris[] — the registered callback URL
-    await expect(
-      clientCard
-        .getByText(/oauth-e2e-fields\/callback/i)
-        .first()
-        .or(page.getByText(/oauth-e2e-fields\/callback/i).first()),
-    ).toBeVisible();
-    // client.scopes[] — default scopes shown
-    await expect(
-      page.getByText(/openid|profile|Verify your identity/i).first(),
-    ).toBeVisible();
-    // tokenEndpointAuthMethod — public/confidential indicator
-    await expect(
-      page.getByText(/Public|Confidential|公开|机密/i).first(),
-    ).toBeVisible();
-
-    await captureStepScreenshot(page, testInfo, "admin-oauth/client-fields");
-  } finally {
-    await deleteOAuthClientsByName(clientName);
-  }
-});
-
-test("/admin/oauth 移动端工作区客户端记录可检查", async ({
-  page,
-}, testInfo) => {
-  const clientName = `e2e-mobile-client-${Date.now()}`;
-
-  try {
-    await createOAuthClientFixture({ name: clientName });
     await page.setViewportSize({ width: 390, height: 844 });
     await signInAsDevAdmin(page, "/admin/oauth");
 
-    const workspace = page.getByTestId("admin-workspace");
-    const firstClient = workspace
-      .locator("article")
-      .filter({ hasText: clientName })
-      .first();
-    await expect(workspace).toBeVisible();
-    await expect(firstClient).toBeVisible();
-    await firstClient.scrollIntoViewIfNeeded();
-    await expect(firstClient).toBeInViewport();
+    const item = page.getByRole("listitem").filter({ hasText: name });
+    await expect(item).toBeVisible();
+    await expect(item).toContainText(client.clientId);
     await expect(
-      firstClient.getByRole("button", { name: /复制 ID|Copy ID/i }),
+      item.getByText(/公共客户端（PKCE）|Public \(PKCE\)/i),
     ).toBeVisible();
-    expect(
-      await page.evaluate(() => document.documentElement.scrollWidth),
-    ).toBeLessThanOrEqual(390);
+    await expect(item.getByText(/已启用|Enabled/i)).toBeVisible();
+    await expect(item.getByText("openid", { exact: true })).toBeVisible();
+    await expect(item.getByText(/创建时间|Created/i)).toBeVisible();
+    await expect(
+      item.getByRole("button", { name: /删除|Delete/i }),
+    ).toBeVisible();
+    await expectNoPageHorizontalOverflow(page);
 
-    await captureStepScreenshot(page, testInfo, "admin-oauth/mobile-workspace");
+    await captureStepScreenshot(page, testInfo, "admin-oauth/mobile-list");
   } finally {
-    await deleteOAuthClientsByName(clientName);
+    await deleteOAuthClientsByName(name);
   }
 });
