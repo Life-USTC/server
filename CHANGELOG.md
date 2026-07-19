@@ -1,3 +1,10 @@
+## [1.64.8](https://github.com/Life-USTC/server/compare/v1.64.7...v1.64.8) (2026-07-19)
+
+
+### Bug Fixes
+
+* **ui:** tolerate unavailable browser storage ([#537](https://github.com/Life-USTC/server/issues/537)) ([eadd270](https://github.com/Life-USTC/server/commit/eadd270b9007928f38beabd45bd1482e15352453))
+
 ## [1.64.7](https://github.com/Life-USTC/server/compare/v1.64.6...v1.64.7) (2026-07-19)
 
 
