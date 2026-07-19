@@ -27,6 +27,7 @@ const metadataSelectors = {
 
 type MetadataKey = keyof typeof metadataSelectors;
 type RawSocialMetadata = {
+  contentLanguage: string | undefined;
   htmlLang: string | null;
   origin: string;
   values: Record<MetadataKey, string[]>;
@@ -76,6 +77,7 @@ async function readRawSocialMetadata(
 
   return {
     ...parsed,
+    contentLanguage: response.headers()["content-language"],
     origin: new URL(response.url()).origin,
     values: parsed.values as Record<MetadataKey, string[]>,
   };
@@ -101,6 +103,7 @@ function expectCompleteSocialMetadata(
   const alternateLocale = expected.locale === "zh-cn" ? "en_US" : "zh_CN";
 
   expect(metadata.htmlLang).toBe(expected.locale);
+  expect(metadata.contentLanguage).toBe(expected.locale);
   expect(metadata.values.canonical[0]).toBe(canonicalUrl);
   expect(metadata.values.description[0]).toBe(expected.description);
   expect(metadata.values.ogTitle[0]).toBe(expected.title);
