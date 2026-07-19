@@ -861,6 +861,10 @@
         "title": "Profile",
         "description": "Name, username, and avatar"
       },
+      "preferences": {
+        "title": "Preferences",
+        "description": "Appearance and language"
+      },
       "accounts": {
         "title": "Linked accounts",
         "description": "Connect or disconnect sign-in providers"
@@ -890,6 +894,18 @@
       "comments": "Comments",
       "uploads": "Uploads",
       "subscriptions": "Subscriptions"
+    },
+    "preferences": {
+      "title": "Preferences",
+      "description": "Choose how Life@USTC looks and which language it uses.",
+      "appearance": {
+        "title": "Appearance",
+        "description": "Use your system preference or choose a fixed light or dark theme."
+      },
+      "language": {
+        "title": "Language",
+        "description": "Change interface language without adding a locale segment to the URL."
+      }
     }
   },
   "courses": {

@@ -3,11 +3,13 @@ import CircleUserRound from "@lucide/svelte/icons/circle-user-round";
 import FileText from "@lucide/svelte/icons/file-text";
 import Link2 from "@lucide/svelte/icons/link-2";
 import ShieldAlert from "@lucide/svelte/icons/shield-alert";
+import SlidersHorizontal from "@lucide/svelte/icons/sliders-horizontal";
 import { onMount, tick } from "svelte";
 import SettingsAccountsTab from "@/features/settings/components/SettingsAccountsTab.svelte";
 import SettingsContentTab from "@/features/settings/components/SettingsContentTab.svelte";
 import SettingsDangerTab from "@/features/settings/components/SettingsDangerTab.svelte";
 import SettingsHeader from "@/features/settings/components/SettingsHeader.svelte";
+import SettingsPreferencesTab from "@/features/settings/components/SettingsPreferencesTab.svelte";
 import SettingsProfileTab from "@/features/settings/components/SettingsProfileTab.svelte";
 import SettingsStatusAlert from "@/features/settings/components/SettingsStatusAlert.svelte";
 import { createSettingsControllerDefaultState } from "@/features/settings/lib/settings-controller-default-state";
@@ -23,9 +25,10 @@ import type {
 } from "./settings-component-types";
 
 type PageData = {
-  activeTab: "accounts" | "content" | "danger" | "profile";
+  activeTab: "accounts" | "content" | "danger" | "preferences" | "profile";
   accounts: SettingsAccount[];
   copy: SettingsCopy;
+  locale: "en-us" | "zh-cn";
   message?: string | null;
   settingsNav: {
     title: string;
@@ -33,11 +36,11 @@ type PageData = {
       description: string;
       href: string;
       icon: string;
-      id: "accounts" | "content" | "danger" | "profile";
+      id: "accounts" | "content" | "danger" | "preferences" | "profile";
       title: string;
     }>;
   };
-  tab: "accounts" | "content" | "danger" | "profile";
+  tab: "accounts" | "content" | "danger" | "preferences" | "profile";
   user: SettingsUser & {
     image?: string | null;
     profilePictures: string[];
@@ -92,6 +95,7 @@ const deleteAccountAction = createDeleteAccountAction({
 });
 
 function tabIcon(icon: string) {
+  if (icon === "preferences") return SlidersHorizontal;
   if (icon === "accounts") return Link2;
   if (icon === "content") return FileText;
   if (icon === "danger") return ShieldAlert;
@@ -216,6 +220,8 @@ onMount(() => {
           bind:selectedImage
           user={data.user}
         />
+      {:else if data.tab === "preferences"}
+        <SettingsPreferencesTab {copy} locale={data.locale} />
       {:else if data.tab === "accounts"}
         <SettingsAccountsTab
           accountAction={accountAction}

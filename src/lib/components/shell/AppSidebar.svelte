@@ -4,36 +4,54 @@ import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
 import type { ThemeMode } from "$lib/components/shell/layout-shell";
 import * as Collapsible from "$lib/components/ui/collapsible/index.js";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-import type { LayoutCopy } from "$lib/shell/layout-server-data";
+import type {
+  LayoutCopy,
+  LayoutUserSummary,
+} from "$lib/shell/layout-server-data";
 import AppPreferencesMenu from "./AppPreferencesMenu.svelte";
+import AppUserMenu from "./AppUserMenu.svelte";
 import type { ShellLink, ShellNavGroup } from "./types";
 
 let {
+  avatarFallback,
+  closeMenus,
   copy,
+  currentPathname,
   isActiveLink,
   locale,
   localeMenuOpen,
   mobileNavGroups,
   navGroups,
+  profileHref,
   setLocale,
   setLocaleMenuOpen,
   setThemeMenuOpen,
   setThemeMode,
+  setUserMenuOpen,
   themeMenuOpen,
   themeMode,
+  user,
+  userMenuOpen,
 }: {
+  avatarFallback: string;
+  closeMenus: () => void;
   copy: LayoutCopy;
+  currentPathname: string;
   isActiveLink: (link: ShellLink) => boolean;
   locale: "en-us" | "zh-cn";
   localeMenuOpen: boolean;
   mobileNavGroups: ShellNavGroup[];
   navGroups: ShellNavGroup[];
+  profileHref: string;
   setLocale: (locale: "en-us" | "zh-cn") => void;
   setLocaleMenuOpen: (open: boolean) => void;
   setThemeMenuOpen: (open: boolean) => void;
   setThemeMode: (mode: ThemeMode) => void;
+  setUserMenuOpen: (open: boolean) => void;
   themeMenuOpen: boolean;
   themeMode: ThemeMode;
+  user: LayoutUserSummary;
+  userMenuOpen: boolean;
 } = $props();
 
 // biome-ignore lint/correctness/useHookAtTopLevel: useSidebar is a Svelte context helper, not a React hook
@@ -264,25 +282,38 @@ function closeMobileSidebar(): void {
 <Sidebar.Root collapsible="icon" data-testid="app-sidebar">
   {#if sidebar.isMobile}
     {@render navigation(mobileNavGroups, true)}
-    <Sidebar.Footer class="border-t">
-      <div class="text-muted-foreground px-1 text-xs font-medium">
-        {copy.nav.groups.preferences}
-      </div>
-      <AppPreferencesMenu
-        {copy}
-        {locale}
-        {localeMenuOpen}
-        mobile
-        {setLocale}
-        {setLocaleMenuOpen}
-        {setThemeMenuOpen}
-        {setThemeMode}
-        {themeMenuOpen}
-        {themeMode}
-      />
-    </Sidebar.Footer>
   {:else}
     {@render navigation(navGroups, false)}
     <Sidebar.Rail />
   {/if}
+
+  <Sidebar.Footer class="border-t">
+    <AppUserMenu
+      {avatarFallback}
+      {closeMenus}
+      {copy}
+      {currentPathname}
+      {profileHref}
+      {setUserMenuOpen}
+      {user}
+      {userMenuOpen}
+    />
+    <div
+      class="text-muted-foreground px-1 text-xs font-medium group-data-[collapsible=icon]:hidden"
+    >
+      {copy.nav.groups.preferences}
+    </div>
+    <AppPreferencesMenu
+      {copy}
+      {locale}
+      {localeMenuOpen}
+      mobile={sidebar.isMobile}
+      {setLocale}
+      {setLocaleMenuOpen}
+      {setThemeMenuOpen}
+      {setThemeMode}
+      {themeMenuOpen}
+      {themeMode}
+    />
+  </Sidebar.Footer>
 </Sidebar.Root>

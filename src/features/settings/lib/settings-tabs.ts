@@ -1,5 +1,6 @@
 export const SETTINGS_TABS = [
   "profile",
+  "preferences",
   "accounts",
   "content",
   "danger",
