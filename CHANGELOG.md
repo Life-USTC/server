@@ -1,3 +1,10 @@
+## [1.64.3](https://github.com/Life-USTC/server/compare/v1.64.2...v1.64.3) (2026-07-19)
+
+
+### Bug Fixes
+
+* **api:** remove redundant request hot-path work ([bb84de4](https://github.com/Life-USTC/server/commit/bb84de40ae9cabf63746f2043e885d057ad19475))
+
 ## [1.64.2](https://github.com/Life-USTC/server/compare/v1.64.1...v1.64.2) (2026-07-19)
 
 
