@@ -132,7 +132,7 @@ jobs:
           '
 
   test-e2e:
-    name: E2E Test (${{ matrix.scope }})
+    name: E2E Test (${{ matrix.shard }})
     needs:
       - check
       - build-e2e-artifacts
@@ -141,35 +141,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - scope: api-mcp
-            paths: tests/e2e/src/app/api
-          - scope: public-web
-            paths: |
-              tests/e2e/src/app/test.ts
-              tests/e2e/src/app/bus
-              tests/e2e/src/app/bus-map
-              tests/e2e/src/app/courses
-              tests/e2e/src/app/guides
-              tests/e2e/src/app/mobile-app
-              tests/e2e/src/app/privacy
-              tests/e2e/src/app/sections
-              tests/e2e/src/app/signin
-              tests/e2e/src/app/teachers
-              tests/e2e/src/app/terms
-              tests/e2e/src/app/u
-              tests/e2e/src/app/welcome
-              tests/e2e/mobile-screenshots
-          - scope: signed-in
-            paths: |
-              tests/e2e/src/app/dashboard
-              tests/e2e/src/app/e2e
-              tests/e2e/src/app/oauth
-              tests/e2e/src/app/settings
-          - scope: admin-comments
-            paths: |
-              tests/e2e/src/app/admin
-              tests/e2e/src/app/comments
-              tests/e2e/src/app/error
+          - shard: 1/4
+            artifact: shard-1
+          - shard: 2/4
+            artifact: shard-2
+          - shard: 3/4
+            artifact: shard-3
+          - shard: 4/4
+            artifact: shard-4
     permissions:
       contents: read
     uses: ./.github/workflows/db-backed-bun-job.yml
@@ -183,8 +162,8 @@ jobs:
       download-artifact-name: e2e-svelte-kit
       download-artifact-path: .svelte-kit
       job-phase: ci:e2e:test
-      e2e-test-paths: ${{ matrix.paths }}
-      upload-artifact-name: playwright-report-${{ matrix.scope }}
+      e2e-shard: ${{ matrix.shard }}
+      upload-artifact-name: playwright-report-${{ matrix.artifact }}
       upload-artifact-path: playwright-report/
       upload-artifact-no-files-found: ignore
       upload-artifact-always: true
