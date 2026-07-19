@@ -1,3 +1,10 @@
+# [1.74.0](https://github.com/Life-USTC/server/compare/v1.73.0...v1.74.0) (2026-07-19)
+
+
+### Features
+
+* **oauth:** let users revoke app authorizations ([#572](https://github.com/Life-USTC/server/issues/572)) ([3f8b962](https://github.com/Life-USTC/server/commit/3f8b96270cc9841621167a14f86c0b7e9a99d1bb))
+
 # [1.73.0](https://github.com/Life-USTC/server/compare/v1.72.0...v1.73.0) (2026-07-19)
 
 
