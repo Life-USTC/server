@@ -58,6 +58,12 @@
       "dataset": "life_ustc_runtime"
     }
   ],
+  "kv_namespaces": [
+    {
+      "binding": "CALENDAR_EXPORTS",
+      "id": "c7411aac14fa45a6bb6f8b8f6b8e1a1d"
+    }
+  ],
   "ratelimits": [
     {
       "name": "USER_WRITE_RATE_LIMITER",

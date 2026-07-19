@@ -5,6 +5,7 @@ import {
 import {
   getSectionForCalendar,
   getSectionsForCalendar,
+  getUserCalendarRecord,
 } from "@/features/calendar/server/calendar-export-data";
 import { buildUserCalendarExport } from "@/features/calendar/server/calendar-export-service";
 import {
@@ -50,12 +51,18 @@ export async function generateSectionCalendarAction(sectionJwId: number) {
 }
 
 export async function generateUserCalendarAction(
-  user: Parameters<typeof buildUserCalendarExport>[0],
   userId: string,
   request: Request,
+  defer?: (promise: Promise<unknown>) => void,
 ) {
-  const { calendar } = await getCachedUserCalendarExport(userId, () =>
-    buildUserCalendarExport(user, userId),
+  const { calendar } = await getCachedUserCalendarExport(
+    userId,
+    async () => {
+      const user = await getUserCalendarRecord(userId);
+      if (!user) return null;
+      return buildUserCalendarExport(user, userId);
+    },
+    { defer },
   );
   if (!calendar) {
     return notFound("No calendar items found");

@@ -40,6 +40,7 @@ export async function getSectionCalendarRoute(params: { jwId: string }) {
 export async function getUserCalendarRoute(
   request: Request,
   params: { userId: string },
+  options: { defer?: (promise: Promise<unknown>) => void } = {},
 ) {
   try {
     const rawUserId = parseUserCalendarRawUserId(params);
@@ -52,9 +53,9 @@ export async function getUserCalendarRoute(
     }
 
     return await generateUserCalendarAction(
-      access.user,
       access.userId,
       request,
+      options.defer,
     );
   } catch (error) {
     return handleRouteError("Failed to generate user calendar", error);
