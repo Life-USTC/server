@@ -1,3 +1,10 @@
+# [1.68.0](https://github.com/Life-USTC/server/compare/v1.67.0...v1.68.0) (2026-07-19)
+
+
+### Features
+
+* **auth:** support passkey authentication ([#557](https://github.com/Life-USTC/server/issues/557)) ([83dd9d8](https://github.com/Life-USTC/server/commit/83dd9d8feb16b956e2f5ece75f1e80cc1531227e))
+
 # [1.67.0](https://github.com/Life-USTC/server/compare/v1.66.0...v1.67.0) (2026-07-19)
 
 
