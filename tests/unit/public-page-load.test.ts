@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getBusTabDataMock, getPublicDashboardLinksDataMock } = vi.hoisted(
-  () => ({
+const { getBusTabDataMock, getPublicDashboardLinksDataMock, logAppEventMock } =
+  vi.hoisted(() => ({
     getBusTabDataMock: vi.fn(),
     getPublicDashboardLinksDataMock: vi.fn(),
-  }),
-);
+    logAppEventMock: vi.fn(),
+  }));
 
 vi.mock("@/features/dashboard/server/dashboard-tab-data", () => ({
   getBusTabData: getBusTabDataMock,
@@ -15,6 +15,11 @@ vi.mock("@/features/dashboard-links/server/dashboard-link-data", () => ({
   getPublicDashboardLinksData: getPublicDashboardLinksDataMock,
 }));
 
+vi.mock("@/lib/log/app-logger", () => ({
+  logAppEvent: logAppEventMock,
+}));
+
+import { loadAnonymousHomePage } from "@/features/dashboard/server/anonymous-home-page-load";
 import { loadPublicBusPage } from "@/features/dashboard/server/public-bus-page-load";
 import { loadPublicLinksPage } from "@/features/dashboard/server/public-links-page-load";
 
@@ -32,6 +37,20 @@ describe("public page loaders", () => {
   beforeEach(() => {
     getBusTabDataMock.mockReset();
     getPublicDashboardLinksDataMock.mockReset();
+    logAppEventMock.mockReset();
+  });
+
+  it("keeps the anonymous home loader query-free", async () => {
+    const result = await loadAnonymousHomePage(event);
+
+    expect(result).toMatchObject({
+      locale: "en-us",
+      signedIn: false,
+    });
+    expect(result).not.toHaveProperty("bus");
+    expect(result).not.toHaveProperty("publicLinks");
+    expect(getBusTabDataMock).not.toHaveBeenCalled();
+    expect(getPublicDashboardLinksDataMock).not.toHaveBeenCalled();
   });
 
   it("loads only bus data for the public bus page", async () => {
