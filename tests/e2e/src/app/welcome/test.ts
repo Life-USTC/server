@@ -153,7 +153,7 @@ test("/welcome 完成后返回原回调页面", async ({ page }, testInfo) => {
 
     await page.getByRole("button", { name: /继续|Continue/i }).click();
 
-    await expect(page).toHaveURL(/\/settings(?:\?.*)?$/, {
+    await expect(page).toHaveURL(/\/settings\/profile(?:\?.*)?$/, {
       timeout: 15_000,
     });
     await expect(page.locator("#main-content")).toBeVisible();
@@ -197,7 +197,7 @@ test("/welcome 未完善资料的用户可完成资料并返回首页", async ({
 
     await page.getByRole("button", { name: /继续|Continue/i }).click();
 
-    await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/, {
+    await expect(page).toHaveURL(/\/dashboard\/overview(?:\?.*)?$/, {
       timeout: 15_000,
     });
     await expect(page.locator("#main-content")).toBeVisible();

@@ -6,7 +6,7 @@ function contextualBackHref(pathname: string) {
   if (/^\/courses\/[^/]+/.test(pathname)) return "/courses";
   if (/^\/sections\/[^/]+/.test(pathname)) return "/sections";
   if (/^\/teachers\/[^/]+/.test(pathname)) return "/teachers";
-  if (pathname.startsWith("/settings")) return "/settings";
+  if (pathname.startsWith("/settings")) return "/settings/profile";
   return "/";
 }
 

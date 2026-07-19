@@ -6,7 +6,10 @@ import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
-  const compatibilityHref = dashboardTabCompatibilityRedirectHref(event.url);
+  const compatibilityHref = dashboardTabCompatibilityRedirectHref(
+    event.url,
+    event.request.method,
+  );
   if (compatibilityHref) {
     throw redirect(308, compatibilityHref);
   }
@@ -21,6 +24,7 @@ export const load: PageServerLoad = async (event) => {
   return loadSignedDashboardPage({
     locals: event.locals,
     request: event.request,
+    tab: "overview",
     url: event.url,
     userId: event.locals.authUser.id,
   });

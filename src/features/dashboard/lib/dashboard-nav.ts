@@ -1,3 +1,5 @@
+import { semanticSectionCompatibilityHref } from "@/lib/navigation/semantic-section-redirect";
+
 export const signedTabIds = [
   "overview",
   "calendar",
@@ -71,7 +73,7 @@ export function dashboardRedirectHrefFromHome(url: URL) {
   }
 
   return appendSearch(
-    isSignedDashboardTab(tab) ? `/dashboard/${tab}` : "/dashboard",
+    isSignedDashboardTab(tab) ? `/dashboard/${tab}` : "/dashboard/overview",
     query,
   );
 }
@@ -87,8 +89,15 @@ export function homeTabCompatibilityRedirectHref(url: URL, signedIn: boolean) {
   return appendSearch(pathname, queryWithoutTab(url));
 }
 
-export function dashboardTabCompatibilityRedirectHref(url: URL) {
-  const tab = url.searchParams.get("tab");
-  if (!isSignedDashboardTab(tab)) return null;
-  return appendSearch(`/dashboard/${tab}`, queryWithoutTab(url));
+export function dashboardTabCompatibilityRedirectHref(
+  url: URL,
+  method = "GET",
+) {
+  return semanticSectionCompatibilityHref({
+    basePath: "/dashboard",
+    defaultSection: "overview",
+    method,
+    resolveSection: (tab) => (isSignedDashboardTab(tab) ? tab : null),
+    url,
+  });
 }

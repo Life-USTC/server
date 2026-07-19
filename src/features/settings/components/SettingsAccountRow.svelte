@@ -45,7 +45,7 @@ export let user: SettingsUser;
     {:else}
       <form
         method="POST"
-        action="?/linkAccount&tab=accounts"
+        action="?/linkAccount"
         use:enhance={accountAction(account.id, "connect")}
       >
         <input type="hidden" name="providerId" value={account.id} />

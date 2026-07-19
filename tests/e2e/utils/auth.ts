@@ -15,7 +15,10 @@ type AuthStorageState = Awaited<
 const authStorageStateCache = new Map<AuthRole, AuthStorageState>();
 
 function authenticatedLandingPath(path: string) {
-  return path === "/" ? "/dashboard" : path;
+  if (path === "/" || path === "/dashboard") {
+    return "/dashboard/overview";
+  }
+  return path === "/settings" ? "/settings/profile" : path;
 }
 
 function escapeForRegExp(value: string) {

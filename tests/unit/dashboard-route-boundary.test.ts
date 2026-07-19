@@ -19,13 +19,18 @@ vi.mock("@/features/dashboard/server/dashboard-page-actions", () => ({
   dashboardPageActions: {},
 }));
 
-function routeEvent(url: string, userId?: string) {
+function routeEvent(
+  url: string,
+  userId?: string,
+  options: { method?: string; tab?: string } = {},
+) {
   return {
     locals: {
       authUser: userId ? { id: userId } : null,
       locale: "en-us",
     },
-    request: new Request(url),
+    params: options.tab ? { tab: options.tab } : {},
+    request: new Request(url, { method: options.method }),
     url: new URL(url),
   };
 }
@@ -104,7 +109,7 @@ describe("anonymous home and signed dashboard route boundary", () => {
         ) as never,
       ),
     ).rejects.toMatchObject({
-      location: "/dashboard?overviewWeek=next",
+      location: "/dashboard/overview?overviewWeek=next",
       status: 303,
     });
   });
@@ -123,7 +128,7 @@ describe("anonymous home and signed dashboard route boundary", () => {
     expect(loadSignedDashboardPageMock).not.toHaveBeenCalled();
   });
 
-  it("requires authentication before loading signed dashboard data", async () => {
+  it("permanently redirects the dashboard root to overview", async () => {
     const dashboardRoute = await import("@/routes/dashboard/+page.server");
 
     await expect(
@@ -131,19 +136,43 @@ describe("anonymous home and signed dashboard route boundary", () => {
         routeEvent("https://example.test/dashboard") as never,
       ),
     ).rejects.toMatchObject({
-      location: "/signin?callbackUrl=%2Fdashboard",
+      location: "/dashboard/overview",
+      status: 308,
+    });
+    expect(loadSignedDashboardPageMock).not.toHaveBeenCalled();
+  });
+
+  it("requires authentication before loading a semantic dashboard section", async () => {
+    const dashboardRoute = await import(
+      "@/routes/dashboard/[tab]/+page.server"
+    );
+
+    await expect(
+      dashboardRoute.load(
+        routeEvent("https://example.test/dashboard/overview", undefined, {
+          tab: "overview",
+        }) as never,
+      ),
+    ).rejects.toMatchObject({
+      location: "/signin?callbackUrl=%2Fdashboard%2Foverview",
       status: 303,
     });
     expect(loadSignedDashboardPageMock).not.toHaveBeenCalled();
   });
 
-  it("loads the signed dashboard with an explicit user id", async () => {
+  it("loads a semantic section without translating it into a tab query", async () => {
     loadSignedDashboardPageMock.mockResolvedValue({
       marker: "signed",
       signedIn: true,
     });
-    const dashboardRoute = await import("@/routes/dashboard/+page.server");
-    const event = routeEvent("https://example.test/dashboard", "user-1");
+    const dashboardRoute = await import(
+      "@/routes/dashboard/[tab]/+page.server"
+    );
+    const event = routeEvent(
+      "https://example.test/dashboard/homeworks?tab=calendar&homeworkView=list",
+      "user-1",
+      { tab: "homeworks" },
+    );
 
     await expect(dashboardRoute.load(event as never)).resolves.toMatchObject({
       marker: "signed",
@@ -152,6 +181,37 @@ describe("anonymous home and signed dashboard route boundary", () => {
     expect(loadSignedDashboardPageMock).toHaveBeenCalledWith({
       locals: event.locals,
       request: event.request,
+      tab: "homeworks",
+      url: event.url,
+      userId: "user-1",
+    });
+    expect(event.url.href).toBe(
+      "https://example.test/dashboard/homeworks?tab=calendar&homeworkView=list",
+    );
+  });
+
+  it("keeps dashboard actions loadable for non-safe requests", async () => {
+    loadSignedDashboardPageMock.mockResolvedValue({
+      marker: "signed",
+      signedIn: true,
+    });
+    const dashboardRoute = await import("@/routes/dashboard/+page.server");
+    const event = routeEvent(
+      "https://example.test/dashboard?tab=todos",
+      "user-1",
+      {
+        method: "POST",
+      },
+    );
+
+    await expect(dashboardRoute.load(event as never)).resolves.toMatchObject({
+      marker: "signed",
+      signedIn: true,
+    });
+    expect(loadSignedDashboardPageMock).toHaveBeenCalledWith({
+      locals: event.locals,
+      request: event.request,
+      tab: "overview",
       url: event.url,
       userId: "user-1",
     });

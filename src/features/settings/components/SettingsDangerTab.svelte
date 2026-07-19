@@ -65,7 +65,7 @@ export let isMounted: boolean;
           </AlertDialog.Header>
           <form
             method="POST"
-            action="?/deleteAccount&tab=danger"
+            action="?/deleteAccount"
             class="flex flex-col gap-4 px-5 py-4"
             use:enhance={deleteAccountAction}
           >

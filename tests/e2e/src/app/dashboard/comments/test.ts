@@ -12,7 +12,8 @@
  *
  * ## Edge Cases
  * - `?tab=comments` is not a recognized tab value. It does not select another
- *   public resource, while authenticated requests redirect to `/dashboard`.
+ *   public resource, while authenticated requests redirect to
+ *   `/dashboard/overview`.
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
@@ -56,7 +57,7 @@ test.describe("仪表盘无效标签（comments）", () => {
   });
 
   test("登录后 ?tab=comments 回退到总览", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=comments", "/dashboard");
+    await signInAsDebugUser(page, "/?tab=comments", "/dashboard/overview");
 
     await expect(page.locator("#main-content")).toBeVisible();
     await expect(page.locator("#app-user-menu")).toBeVisible();

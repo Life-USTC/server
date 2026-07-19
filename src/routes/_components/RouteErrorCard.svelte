@@ -36,7 +36,7 @@ $: backLabel =
       ? ($page.data?.copy?.nav?.sections ?? errorCopy.backHome)
       : backHref === "/teachers"
         ? ($page.data?.copy?.nav?.teachers ?? errorCopy.backHome)
-        : backHref === "/settings"
+        : backHref.startsWith("/settings")
           ? ($page.data?.copy?.menu?.settings ?? errorCopy.backHome)
           : errorCopy.backHome;
 </script>

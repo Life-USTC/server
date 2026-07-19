@@ -1,3 +1,5 @@
+import { semanticSectionCompatibilityHref } from "@/lib/navigation/semantic-section-redirect";
+
 export const SETTINGS_TABS = [
   "profile",
   "preferences",
@@ -20,4 +22,21 @@ export function normalizeSettingsTab(
   value: string | null | undefined,
 ): SettingsTab {
   return isSettingsTab(value) ? value : "profile";
+}
+
+function resolveLegacySettingsTab(value: string | null) {
+  if (value === "appearance" || value === "language") {
+    return "preferences";
+  }
+  return isSettingsTab(value) ? value : null;
+}
+
+export function settingsTabCompatibilityRedirectHref(url: URL, method = "GET") {
+  return semanticSectionCompatibilityHref({
+    basePath: "/settings",
+    defaultSection: "profile",
+    method,
+    resolveSection: resolveLegacySettingsTab,
+    url,
+  });
 }

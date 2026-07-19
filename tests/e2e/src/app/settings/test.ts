@@ -2,20 +2,19 @@
  * E2E tests for the Settings Hub Page (`/settings`)
  *
  * ## Data Represented
- * - Central settings page using tab-based navigation via path aliases or `?tab=`.
- * - Tabs: profile (default), accounts, content, danger.
- * - Each tab renders a different section component server-side.
+ * - Central settings page using semantic child paths.
+ * - Sections: profile (default), preferences, accounts, content, danger.
+ * - Each child route renders a different section component server-side.
  * - Layout requires authentication (`requireSignedInUserId`).
  *
  * ## UI/UX Elements
- * - Settings nav bar with 4 tab links (profile, accounts, content, danger)
+ * - Settings nav bar with semantic section links
  * - Page title and description
  * - Default tab is "profile" which shows the profile edit form
  *
  * ## Edge Cases
  * - Unauthenticated → redirects to /signin
- * - No `?tab` param → defaults to profile tab
- * - Invalid `?tab` value → defaults to profile tab
+ * - `/settings` and invalid legacy `?tab` values redirect to profile
  */
 import { expect, test } from "@playwright/test";
 import { expectRequiresSignIn, signInAsDebugUser } from "../../../utils/auth";
@@ -32,7 +31,7 @@ test.describe("/settings 设置中心", () => {
   test("默认进入个人资料标签并显示种子用户数据", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/settings");
 
-    await expect(page).toHaveURL(/\/settings(?:\?.*)?$/);
+    await expect(page).toHaveURL(/\/settings\/profile(?:\?.*)?$/);
     await expect(page.locator("input#name")).toBeVisible();
     await expect(page.locator("input#username")).toHaveValue(
       DEV_SEED.debugUsername,
@@ -149,7 +148,7 @@ test.describe("/settings 设置中心", () => {
     });
     await expect(accountsTab).toBeVisible();
     await accountsTab.click();
-    await expect(page).toHaveURL(/\/settings\/accounts|tab=accounts/);
+    await expect(page).toHaveURL(/\/settings\/accounts(?:\?.*)?$/);
     await expect(page.getByText("GitHub").first()).toBeVisible();
     await captureStepScreenshot(page, testInfo, "settings-accounts-tab");
 
@@ -159,7 +158,7 @@ test.describe("/settings 设置中心", () => {
     });
     await expect(dangerTab).toBeVisible();
     await dangerTab.click();
-    await expect(page).toHaveURL(/\/settings\/danger|tab=danger/);
+    await expect(page).toHaveURL(/\/settings\/danger(?:\?.*)?$/);
     await expect(
       page.getByRole("button", { name: /删除|Delete/i }).first(),
     ).toBeVisible();
@@ -174,12 +173,12 @@ test.describe("/settings 设置中心", () => {
     });
     await expect(profileTab).toBeVisible();
     await profileTab.click();
-    await expect(page).toHaveURL(/\/settings\/profile|tab=profile/);
+    await expect(page).toHaveURL(/\/settings\/profile(?:\?.*)?$/);
     await expect(page.locator("input#name")).toBeVisible();
     await captureStepScreenshot(page, testInfo, "settings-profile-tab");
   });
 
-  test("设置路径别名渲染对应分区", async ({ page }, testInfo) => {
+  test("设置语义路径渲染对应分区", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/settings/accounts");
     await expect(page).toHaveURL(/\/settings\/accounts(?:\?.*)?$/);
     await expect(page.getByText("GitHub").first()).toBeVisible();

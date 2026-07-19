@@ -19,7 +19,7 @@ export let selectedImage: string | undefined;
 export let user: SettingsUser;
 </script>
 
-<form method="POST" action="?/updateProfile&tab=profile">
+<form method="POST" action="?/updateProfile">
   <Card.Root>
     <Card.Header>
       <Card.Title>{copy.profile.editProfile}</Card.Title>

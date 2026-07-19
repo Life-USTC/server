@@ -46,17 +46,17 @@ test.describe("移动端截图", () => {
     });
 
     for (const path of [
-      "/dashboard",
+      "/dashboard/overview",
       "/dashboard/homeworks",
       "/dashboard/todos",
       "/dashboard/calendar",
       "/dashboard/exams",
       "/dashboard/links",
       "/dashboard/subscriptions",
-      "/settings?tab=profile",
-      "/settings?tab=accounts",
-      "/settings?tab=content",
-      "/settings?tab=danger",
+      "/settings/profile",
+      "/settings/accounts",
+      "/settings/content",
+      "/settings/danger",
       `/u/${DEV_SEED.debugUsername}`,
     ]) {
       screenshotRoute(path, path);
