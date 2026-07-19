@@ -75,6 +75,16 @@ export async function getSectionsForCalendar(sectionIds: number[]) {
   });
 }
 
+export async function getUserCalendarAccessRecord(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      calendarFeedToken: true,
+    },
+  });
+}
+
 export async function getUserCalendarRecord(userId: string) {
   return prisma.user.findUnique({
     where: { id: userId },

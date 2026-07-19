@@ -14,7 +14,9 @@ high-cardinality resource IDs.
 
 ## Endpoints
 
-No internal operational metrics/readiness endpoints are exposed by the app.
+`GET /api/health` is a public, unauthenticated process-liveness endpoint that
+returns `ok`. No internal metrics or dependency-readiness endpoints are exposed
+by the app.
 
 ## Alerts
 
