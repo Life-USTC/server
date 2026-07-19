@@ -28,7 +28,9 @@ function setThemeValue(value: string) {
 
 <div
   data-shell-preferences
-  class={mobile ? "grid gap-2" : "flex items-center gap-1.5"}
+  class={mobile
+    ? "grid gap-2"
+    : "grid grid-cols-2 gap-1 group-data-[collapsible=icon]:hidden"}
 >
   <DropdownMenu.Root open={localeMenuOpen} onOpenChange={setLocaleMenuOpen}>
     <DropdownMenu.Trigger>

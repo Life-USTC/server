@@ -236,14 +236,6 @@ test("/ shell 菜单可一键切换", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 });
   await signInAsDebugUser(page, "/");
 
-  const profileMenuButton = page.getByRole("button", {
-    name: /个人菜单|Profile menu/i,
-  });
-  await profileMenuButton.click();
-  await expect(
-    page.getByRole("menuitem", { name: /设置|Settings/i }),
-  ).toBeVisible();
-
   const sidebarTrigger = page.getByRole("button", {
     name: /^菜单$|^Menu$/i,
   });
@@ -256,9 +248,14 @@ test("/ shell 菜单可一键切换", async ({ page }) => {
   await expect(
     sidebar.getByRole("link", { name: /班级|Sections/i }),
   ).toBeVisible();
+
+  const accountMenuButton = sidebar.getByRole("button", {
+    name: /个人菜单|Profile menu/i,
+  });
+  await accountMenuButton.click();
   await expect(
     page.getByRole("menuitem", { name: /设置|Settings/i }),
-  ).toHaveCount(0);
+  ).toBeVisible();
 });
 
 test("/ shell 桌面导航以任务为一级入口且当前位置唯一", async ({ page }) => {
@@ -351,7 +348,6 @@ test("/ shell 390px 主导航可达且触控尺寸达标", async ({ page }, test
     /^(日历|Calendar)$/i,
     /^(任务|Tasks)$/i,
     /^(发现|Explore)$/i,
-    /^(我的|Me)$/i,
   ];
 
   for (const name of primaryNames) {
@@ -380,12 +376,14 @@ test("/ shell 390px 主导航可达且触控尺寸达标", async ({ page }, test
 
   for (const button of [
     topbar.getByRole("button", { name: /^菜单$|^Menu$/i }),
-    topbar.getByRole("button", { name: /个人菜单|Profile menu/i }),
   ]) {
     const box = await button.boundingBox();
     expect(box?.width).toBeGreaterThanOrEqual(44);
     expect(box?.height).toBeGreaterThanOrEqual(44);
   }
+  await expect(
+    topbar.getByRole("button", { name: /个人菜单|Profile menu/i }),
+  ).toHaveCount(0);
 
   await topbar.getByRole("button", { name: /^菜单$|^Menu$/i }).click();
 
@@ -403,6 +401,9 @@ test("/ shell 390px 主导航可达且触控尺寸达标", async ({ page }, test
   await expect(
     sidebar.getByRole("button", { name: /主题|Theme/i }),
   ).toBeVisible();
+  await expect(
+    sidebar.getByRole("button", { name: /个人菜单|Profile menu/i }),
+  ).toBeVisible();
   await expect(sidebar.locator('[aria-current="page"]')).toHaveCount(1);
   await expect(
     sidebar.getByRole("link", { name: /^(待办|Todos)$/i }),
@@ -415,14 +416,14 @@ test("/ shell 390px 主导航可达且触控尺寸达标", async ({ page }, test
 
 test("/ shell 390px 设置子路由保持唯一当前位置", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await signInAsDebugUser(page, "/settings/accounts");
+  await signInAsDebugUser(page, "/settings/preferences");
 
   const primaryNavigation = page.getByRole("navigation", {
     name: /移动主导航|Mobile primary navigation/i,
   });
   await expect(
     primaryNavigation.getByRole("link", { name: /^(我的|Me)$/i }),
-  ).toHaveAttribute("aria-current", "page");
+  ).toHaveCount(0);
 
   await page
     .locator("[data-shell-topbar]")
@@ -430,10 +431,18 @@ test("/ shell 390px 设置子路由保持唯一当前位置", async ({ page }) =
     .click();
 
   const sidebar = page.getByRole("dialog", { name: /Sidebar/i });
+  await sidebar.getByRole("button", { name: /个人菜单|Profile menu/i }).click();
   await expect(
-    sidebar.getByRole("link", { name: /^(设置|Settings)$/i }),
+    page.getByRole("menuitem", { name: /^(设置|Settings)$/i }),
   ).toHaveAttribute("aria-current", "page");
-  await expect(sidebar.locator('[aria-current="page"]')).toHaveCount(1);
+  await expect(
+    sidebar
+      .getByRole("navigation", { name: /次级导航|Secondary navigation/i })
+      .locator('[aria-current="page"]'),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("menu").locator('[aria-current="page"]'),
+  ).toHaveCount(1);
   await expect(primaryNavigation.locator('[aria-current="page"]')).toHaveCount(
     0,
   );
@@ -442,23 +451,25 @@ test("/ shell 390px 设置子路由保持唯一当前位置", async ({ page }) =
 test("/ shell 菜单支持键盘菜单语义", async ({ page }) => {
   await signInAsDebugUser(page, "/");
 
-  const profileMenuButton = page.getByRole("button", {
-    name: /个人菜单|Profile menu/i,
-  });
+  const profileMenuButton = page
+    .getByTestId("app-sidebar")
+    .getByRole("button", {
+      name: /个人菜单|Profile menu/i,
+    });
   await profileMenuButton.focus();
   await page.keyboard.press("Enter");
 
   const menu = page.getByRole("menu");
   await expect(menu).toBeVisible();
-  const homeItem = page.getByRole("menuitem", { name: /首页|Home/i });
-  await expect(homeItem).toBeFocused();
+  const profileItem = page.getByRole("menuitem", { name: /^(我的|Me)$/i });
+  await expect(profileItem).toBeFocused();
   await page.evaluate(
     () => new Promise((resolve) => requestAnimationFrame(resolve)),
   );
 
   await page.keyboard.press("ArrowDown");
   await expect(
-    page.getByRole("menuitem", { name: /^(我的|Me)$/i }),
+    page.getByRole("menuitem", { name: /设置|Settings/i }),
   ).toBeFocused();
 
   await page.keyboard.press("Escape");
