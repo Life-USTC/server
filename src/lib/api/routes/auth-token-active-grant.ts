@@ -2,6 +2,7 @@ import {
   type ActiveOAuthRefreshGrant,
   isOAuthRefreshGrantActive,
   purgeOAuthGrantTokenRows,
+  purgeRevokedOAuthRefreshTokenLineage,
   resolveActiveOAuthRefreshGrant,
 } from "@/features/oauth/server/user-authorizations.server";
 import { jsonResponse } from "@/lib/api/helpers";
@@ -31,6 +32,7 @@ export async function validateActiveOAuthRefreshGrant(
       params.get("refresh_token"),
     );
     if (!grant) {
+      await purgeRevokedOAuthRefreshTokenLineage(params.get("refresh_token"));
       return {
         response: oauthGrantError(
           "invalid_grant",
@@ -48,6 +50,25 @@ export async function validateActiveOAuthRefreshGrant(
         503,
       ),
     };
+  }
+}
+
+export async function cleanupRejectedOAuthRefreshGrant(
+  params: URLSearchParams,
+): Promise<Response | undefined> {
+  if (params.get("grant_type") !== OAUTH_REFRESH_TOKEN_GRANT_TYPE) {
+    return undefined;
+  }
+
+  try {
+    await purgeRevokedOAuthRefreshTokenLineage(params.get("refresh_token"));
+    return undefined;
+  } catch {
+    return oauthGrantError(
+      "server_error",
+      "The authorization grant could not be verified.",
+      503,
+    );
   }
 }
 

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   OAUTH_GRANT_ID_CLAIM,
   OAUTH_PROVIDER_GRANT_TYPES,
+  OAUTH_REFRESH_TOKEN_EXPIRES_IN_SECONDS,
 } from "@/lib/oauth/constants";
 import {
   CLIENT_REGISTRATION_ALLOWED_SCOPES,
@@ -43,6 +44,7 @@ describe("buildOAuthProviderPlugin", () => {
     expect(oauthProviderMock).toHaveBeenCalledWith(
       expect.objectContaining({
         grantTypes: [...OAUTH_PROVIDER_GRANT_TYPES],
+        refreshTokenExpiresIn: OAUTH_REFRESH_TOKEN_EXPIRES_IN_SECONDS,
       }),
     );
     expect(oauthProviderMock.mock.calls[0]?.[0].grantTypes).not.toContain(

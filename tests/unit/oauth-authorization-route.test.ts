@@ -1,4 +1,7 @@
+import { makeSignature } from "better-auth/crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const AUTH_SECRET = "oauth-route-test-secret-at-least-32-bytes";
 
 const {
   authHandlerMock,
@@ -13,7 +16,10 @@ const {
 }));
 
 vi.mock("@/lib/auth/core", () => ({
-  betterAuthInstance: { handler: authHandlerMock },
+  betterAuthInstance: {
+    $context: Promise.resolve({ secret: AUTH_SECRET }),
+    handler: authHandlerMock,
+  },
   getSessionFromHeaders: getSessionFromHeadersMock,
 }));
 
@@ -36,6 +42,22 @@ vi.mock("@/lib/db/prisma", () => ({
     },
   },
 }));
+
+async function signedOAuthQuery(overrides: Record<string, string> = {}) {
+  const query = new URLSearchParams({
+    response_type: "code",
+    client_id: "client-1",
+    redirect_uri: "https://client.example/callback",
+    scope: "profile",
+    state: "state-1",
+    code_challenge: "test-code-challenge",
+    code_challenge_method: "S256",
+    exp: String(Math.floor(Date.now() / 1000) + 600),
+    ...overrides,
+  });
+  query.set("sig", await makeSignature(query.toString(), AUTH_SECRET));
+  return query.toString();
+}
 
 describe("OAuth authorization route grant binding", () => {
   beforeEach(() => {
@@ -74,6 +96,7 @@ describe("OAuth authorization route grant binding", () => {
       "client-1",
       request.url,
       "grant-1",
+      expect.any(Date),
     );
     expect(resolveActiveGrantMock).toHaveBeenCalledWith({
       clientId: "client-1",
@@ -104,6 +127,7 @@ describe("OAuth authorization route grant binding", () => {
       "client-1",
       request.url,
       "grant-1",
+      expect.any(Date),
     );
   });
 
@@ -135,7 +159,10 @@ describe("OAuth authorization route grant binding", () => {
     const request = new Request(
       "https://life.example/api/auth/oauth2/continue",
       {
-        body: JSON.stringify({ created: true }),
+        body: JSON.stringify({
+          created: true,
+          oauth_query: await signedOAuthQuery(),
+        }),
         headers: { "content-type": "application/json" },
         method: "POST",
       },
@@ -148,9 +175,10 @@ describe("OAuth authorization route grant binding", () => {
     });
     expect(bindCodeRedirectMock).toHaveBeenCalledWith(
       "https://client.example/callback?code=code-1&state=state-1",
-      undefined,
+      "client-1",
       request.url,
-      undefined,
+      "grant-1",
+      expect.any(Date),
     );
   });
 
@@ -166,7 +194,10 @@ describe("OAuth authorization route grant binding", () => {
 
     const response = await authPostRoute(
       new Request("https://life.example/api/auth/oauth2/continue", {
-        body: JSON.stringify({ created: true }),
+        body: JSON.stringify({
+          created: true,
+          oauth_query: await signedOAuthQuery(),
+        }),
         headers: { "content-type": "application/json" },
         method: "POST",
       }),
@@ -177,5 +208,31 @@ describe("OAuth authorization route grant binding", () => {
     expect(location.searchParams.has("code")).toBe(false);
     expect(location.searchParams.get("error")).toBe("server_error");
     expect(location.searchParams.get("state")).toBe("state-1");
+  });
+
+  it("binds a login response using the signed pre-handler generation", async () => {
+    bindCodeRedirectMock.mockResolvedValue(true);
+    const { authPostRoute } = await import("@/lib/api/routes/auth");
+    const request = new Request(
+      "https://life.example/api/auth/sign-in/passkey",
+      {
+        body: JSON.stringify({
+          oauth_query: await signedOAuthQuery({ prompt: "login" }),
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      },
+    );
+
+    const response = await authPostRoute(request);
+
+    expect(response.headers.get("location")).toContain("code=code-1");
+    expect(bindCodeRedirectMock).toHaveBeenCalledWith(
+      "https://client.example/callback?code=code-1&state=state-1",
+      "client-1",
+      request.url,
+      "grant-1",
+      expect.any(Date),
+    );
   });
 });

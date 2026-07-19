@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
+import { OAUTH_REFRESH_REPLAY_TOMBSTONE_SCOPE } from "@/lib/oauth/constants";
 
 export type OAuthUserGrantIdentity = {
   clientId: string;
@@ -51,11 +52,27 @@ export async function resolveActiveOAuthUserGrant({
   if (!client || client.disabled) return null;
 
   if (client.skipConsent === true) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true },
-    });
-    return user ? { kind: "trusted" } : null;
+    const [user, replayTombstone] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      }),
+      prisma.oAuthRefreshToken.findFirst({
+        where: {
+          clientId,
+          userId,
+          // Trusted clients have no persisted consent generation. A replay
+          // therefore invalidates their whole legacy null-grant lineage.
+          ...(grantId
+            ? { OR: [{ grantId }, { referenceId: grantId }] }
+            : { grantId: null, referenceId: null }),
+          revoked: { not: null },
+          scopes: { has: OAUTH_REFRESH_REPLAY_TOMBSTONE_SCOPE },
+        },
+        select: { id: true },
+      }),
+    ]);
+    return user && !replayTombstone ? { kind: "trusted" } : null;
   }
 
   if (requireGrantBinding && !grantId) return null;

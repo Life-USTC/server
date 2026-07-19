@@ -5,6 +5,7 @@ import {
   restoreRegisteredDeviceClientMetadata,
 } from "@/features/oauth/server/client-registration-policy.server";
 import { bindOAuthAuthorizationCodeRedirectToActiveGrant } from "@/features/oauth/server/oauth-authorization-code-grant.server";
+import { verifyOAuthProviderSignedQuery } from "@/features/oauth/server/signed-oauth-query.server";
 import {
   revokeUserOAuthAuthorization,
   updateUserOAuthAuthorizationScopes,
@@ -480,12 +481,14 @@ async function enforceAuthorizationCodeGrantBinding(
   response: Response,
   expectation?: {
     clientId: string | null;
+    consentUpdatedBefore: Date;
     grantId?: string;
   },
 ) {
   const pathname = new URL(request.url).pathname;
   const isAuthorize = pathname.endsWith("/oauth2/authorize");
-  if (!isAuthorize && !pathname.endsWith("/oauth2/continue")) {
+  const isContinue = pathname.endsWith("/oauth2/continue");
+  if (!isAuthorize && !isContinue && !expectation) {
     return response;
   }
 
@@ -499,6 +502,7 @@ async function enforceAuthorizationCodeGrantBinding(
           ? getSingleAuthorizationClientId(request)
           : undefined,
       expectedGrantId: expectation?.grantId,
+      consentUpdatedBefore: expectation?.consentUpdatedBefore,
       location,
       response,
     });
@@ -520,6 +524,7 @@ async function enforceAuthorizationCodeGrantBinding(
         ? getSingleAuthorizationClientId(request)
         : undefined,
     expectedGrantId: expectation?.grantId,
+    consentUpdatedBefore: expectation?.consentUpdatedBefore,
     location: body.url,
     response,
   });
@@ -545,19 +550,33 @@ function getSingleAuthorizationClientId(request: Request) {
 }
 
 async function resolveAuthorizationCodeGrantExpectation(request: Request) {
+  const consentUpdatedBefore = new Date();
   const url = new URL(request.url);
-  if (!url.pathname.endsWith("/oauth2/authorize")) return undefined;
+  const isAuthorize = url.pathname.endsWith("/oauth2/authorize");
+  let query = url.searchParams;
+  if (!isAuthorize) {
+    const oauthQuery = await getSignedOAuthQueryFromRequest(request);
+    if (!oauthQuery) {
+      return url.pathname.endsWith("/oauth2/continue")
+        ? { clientId: null, consentUpdatedBefore }
+        : undefined;
+    }
+    const verifiedQuery = await verifyOAuthProviderSignedQuery(oauthQuery);
+    if (!verifiedQuery) return { clientId: null, consentUpdatedBefore };
+    query = verifiedQuery;
+  }
 
-  const clientId = getSingleAuthorizationClientId(request);
-  if (!clientId) return { clientId: null };
+  const clientIds = query.getAll("client_id");
+  const clientId = clientIds.length === 1 && clientIds[0] ? clientIds[0] : null;
+  if (!clientId) return { clientId: null, consentUpdatedBefore };
 
   try {
     const { getSessionFromHeaders } = await import("@/lib/auth/core");
     const session = await getSessionFromHeaders(request.headers);
     const userId = session?.user.id;
-    if (!userId) return { clientId };
+    if (!userId) return { clientId, consentUpdatedBefore };
 
-    const scopeValues = url.searchParams.getAll("scope");
+    const scopeValues = query.getAll("scope");
     const scopes =
       scopeValues.length === 1
         ? [...new Set(scopeValues[0].split(/\s+/).filter(Boolean))]
@@ -569,16 +588,40 @@ async function resolveAuthorizationCodeGrantExpectation(request: Request) {
     });
     return {
       clientId,
+      consentUpdatedBefore,
       ...(grant?.kind === "consent" ? { grantId: grant.grantId } : {}),
     };
   } catch {
-    return { clientId };
+    return { clientId, consentUpdatedBefore };
   }
+}
+
+async function getSignedOAuthQueryFromRequest(request: Request) {
+  const contentType = request.headers.get("content-type") ?? "";
+  try {
+    if (contentType.includes("application/json")) {
+      const body = (await request.clone().json()) as {
+        oauth_query?: unknown;
+      };
+      return typeof body?.oauth_query === "string"
+        ? body.oauth_query
+        : undefined;
+    }
+    if (contentType.includes("application/x-www-form-urlencoded")) {
+      const body = new URLSearchParams(await request.clone().text());
+      const values = body.getAll("oauth_query");
+      return values.length === 1 && values[0] ? values[0] : undefined;
+    }
+  } catch {
+    return undefined;
+  }
+  return undefined;
 }
 
 async function enforceAuthorizationCodeRedirectBinding(input: {
   baseUrl: string;
   expectedClientId: string | null | undefined;
+  consentUpdatedBefore?: Date;
   expectedGrantId?: string;
   location: string;
   response: Response;
@@ -600,6 +643,7 @@ async function enforceAuthorizationCodeRedirectBinding(input: {
         input.expectedClientId,
         input.baseUrl,
         input.expectedGrantId,
+        input.consentUpdatedBefore,
       ));
   } catch {
     bound = false;
@@ -655,6 +699,9 @@ export const authPostRoute = async (request: Request) => {
   }
   const prepared = await prepareOAuthClientRegistrationRequest(request);
   if ("response" in prepared) return prepared.response;
+  const expectation = await resolveAuthorizationCodeGrantExpectation(
+    prepared.request,
+  );
   const response = await withBetterAuthOAuthDebug(
     "POST",
     prepared.request,
@@ -671,6 +718,7 @@ export const authPostRoute = async (request: Request) => {
   return enforceAuthorizationCodeGrantBinding(
     prepared.request,
     await finalized,
+    expectation,
   );
 };
 

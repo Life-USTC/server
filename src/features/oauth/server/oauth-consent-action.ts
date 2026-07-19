@@ -1,29 +1,36 @@
 import { error, redirect } from "@sveltejs/kit";
 import { bindOAuthAuthorizationCodeRedirectToActiveGrant } from "@/features/oauth/server/oauth-authorization-code-grant.server";
-import { rotateOAuthUserGrantAfterConsent } from "@/features/oauth/server/user-authorizations.server";
+import { verifyOAuthProviderSignedQueryState } from "@/features/oauth/server/signed-oauth-query.server";
 import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
 import { prisma } from "@/lib/db/prisma";
 import { getCanonicalOAuthIssuer } from "@/lib/mcp/urls";
-import { asOAuthProviderApi } from "@/lib/oauth/provider-api";
+import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
 import { parseOAuthConsentForm } from "./oauth-authorize-form";
 
-const OAUTH_SIGNED_QUERY_KEYS = new Set(["sig", "exp", "ba_iat", "ba_pl"]);
 const OAUTH_CODE_LENGTH = 32;
 const OAUTH_CODE_EXPIRES_IN_SECONDS = 600;
 const OAUTH_CODE_ALPHABET =
   "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const OAUTH_SINGLETON_QUERY_FIELDS = [
+  "client_id",
+  "redirect_uri",
+  "response_type",
+  "scope",
+  "state",
+  "code_challenge",
+  "code_challenge_method",
+  "nonce",
+  "prompt",
+] as const;
 
-type OAuthAuthorizeApi = {
-  oauth2Authorize(input: {
-    asResponse?: false;
-    headers: Headers;
-    request: Request;
-    query: Record<string, string>;
-  }): Promise<{
-    redirect_uri?: string;
-    redirectURI?: string;
-    url?: string;
-  }>;
+type OAuthSession = {
+  session: {
+    createdAt?: unknown;
+    id: string;
+  };
+  user: {
+    id: string;
+  };
 };
 
 type OAuthSessionApi = {
@@ -38,6 +45,40 @@ type OAuthSessionApi = {
   } | null>;
 };
 
+type OAuthConsentClientReader = {
+  oAuthClient: {
+    findUnique(input: {
+      where: { clientId: string };
+      select: {
+        disabled: true;
+        public: true;
+        requirePKCE: true;
+        redirectUris: true;
+        scopes: true;
+        skipConsent: true;
+        tokenEndpointAuthMethod: true;
+        type: true;
+      };
+    }): Promise<{
+      disabled: boolean;
+      public: boolean | null;
+      requirePKCE: boolean | null;
+      redirectUris: string[];
+      scopes: string[];
+      skipConsent: boolean | null;
+      tokenEndpointAuthMethod: string | null;
+      type: string | null;
+    } | null>;
+  };
+};
+
+type ValidatedConsentRequest = {
+  authorizeQuery: URLSearchParams;
+  clientId: string;
+  redirectUri: string;
+  requestedScopes: string[];
+};
+
 function assertTrustedCookieRequestOrigin(request: Request) {
   const headers = request.headers;
   if (!headers.has("cookie")) return;
@@ -46,25 +87,6 @@ function assertTrustedCookieRequestOrigin(request: Request) {
   if (!origin || origin === "null" || !isTrustedAuthOrigin(origin)) {
     throw error(403, "Invalid origin");
   }
-}
-
-function redirectPayloadTarget(payload: {
-  redirect_uri?: string;
-  redirectURI?: string;
-  url?: string;
-}) {
-  return payload.redirect_uri ?? payload.redirectURI ?? payload.url;
-}
-
-function asOAuthAuthorizeApi(api: unknown): OAuthAuthorizeApi | null {
-  if (!api || typeof api !== "object") return null;
-  const authorize = (api as { oauth2Authorize?: unknown }).oauth2Authorize;
-  if (typeof authorize !== "function") return null;
-  return {
-    oauth2Authorize: authorize.bind(
-      api,
-    ) as OAuthAuthorizeApi["oauth2Authorize"],
-  };
 }
 
 function asOAuthSessionApi(api: unknown): OAuthSessionApi | null {
@@ -76,45 +98,96 @@ function asOAuthSessionApi(api: unknown): OAuthSessionApi | null {
   };
 }
 
-async function rotateAcceptedOAuthGrant(input: {
-  authApi: unknown;
-  headers: Headers;
-  oauthQuery: string;
-  scope: string;
-}) {
-  const query = new URLSearchParams(input.oauthQuery);
-  const clientIds = query.getAll("client_id");
-  if (clientIds.length !== 1 || !clientIds[0]) return null;
-
-  const session = await asOAuthSessionApi(input.authApi)?.getSession({
-    headers: input.headers,
-  });
+async function getOAuthSession(authApi: unknown, headers: Headers) {
+  const session = await asOAuthSessionApi(authApi)?.getSession({ headers });
+  const sessionId = session?.session?.id;
   const userId = session?.user?.id;
-  if (typeof userId !== "string") return null;
+  if (typeof sessionId !== "string" || typeof userId !== "string") return null;
 
-  return rotateOAuthUserGrantAfterConsent({
-    clientId: clientIds[0],
-    scopes: input.scope.split(/\s+/).filter(Boolean),
-    userId,
+  return {
+    session: {
+      createdAt: session?.session?.createdAt,
+      id: sessionId,
+    },
+    user: { id: userId },
+  } satisfies OAuthSession;
+}
+
+function uniqueScopes(value: string | null) {
+  return [...new Set((value ?? "").split(/\s+/).filter(Boolean))];
+}
+
+function hasOnlySingletonQueryFields(query: URLSearchParams) {
+  return OAUTH_SINGLETON_QUERY_FIELDS.every(
+    (field) => query.getAll(field).length <= 1,
+  );
+}
+
+async function validateConsentRequest(
+  reader: OAuthConsentClientReader,
+  authorizeQuery: URLSearchParams,
+): Promise<
+  | (ValidatedConsentRequest & {
+      client: {
+        skipConsent: boolean | null;
+      };
+    })
+  | null
+> {
+  if (!hasOnlySingletonQueryFields(authorizeQuery)) return null;
+
+  const clientId = authorizeQuery.get("client_id");
+  const redirectUri = authorizeQuery.get("redirect_uri");
+  if (
+    !clientId ||
+    !redirectUri ||
+    authorizeQuery.get("response_type") !== "code"
+  ) {
+    return null;
+  }
+
+  const client = await reader.oAuthClient.findUnique({
+    where: { clientId },
+    select: {
+      disabled: true,
+      public: true,
+      requirePKCE: true,
+      redirectUris: true,
+      scopes: true,
+      skipConsent: true,
+      tokenEndpointAuthMethod: true,
+      type: true,
+    },
   });
-}
-
-function isOAuthAuthorizePageRedirect(target: string, requestUrl: string) {
-  try {
-    const url = new URL(target, requestUrl);
-    const requestOrigin = new URL(requestUrl).origin;
-    return url.origin === requestOrigin && url.pathname === "/oauth/authorize";
-  } catch {
-    return false;
+  const requestedScopes = uniqueScopes(authorizeQuery.get("scope"));
+  const codeChallenge = authorizeQuery.get("code_challenge");
+  const codeChallengeMethod = authorizeQuery.get("code_challenge_method");
+  const requiresPkce =
+    client?.tokenEndpointAuthMethod === "none" ||
+    client?.type === "native" ||
+    client?.type === "user-agent-based" ||
+    client?.public === true ||
+    requestedScopes.includes("offline_access") ||
+    (client?.requirePKCE ?? true);
+  if (
+    !client ||
+    client.disabled ||
+    !client.redirectUris.includes(redirectUri) ||
+    !requestedScopes.every((scope) => client.scopes.includes(scope)) ||
+    (requiresPkce && (!codeChallenge || codeChallengeMethod !== "S256")) ||
+    ((codeChallenge || codeChallengeMethod) &&
+      (!codeChallenge || codeChallengeMethod !== "S256"))
+  ) {
+    return null;
   }
-}
 
-function oauthAuthorizeQueryFromRedirect(target: string, requestUrl: string) {
-  const url = new URL(target, requestUrl);
-  for (const key of OAUTH_SIGNED_QUERY_KEYS) {
-    url.searchParams.delete(key);
-  }
-  return Object.fromEntries(url.searchParams.entries());
+  return {
+    authorizeQuery,
+    client: { skipConsent: client.skipConsent },
+    clientId,
+    redirectUri,
+    requestedScopes,
+  };
 }
 
 function randomOAuthCode() {
@@ -126,163 +199,153 @@ function randomOAuthCode() {
   ).join("");
 }
 
-function base64UrlEncode(bytes: Uint8Array) {
-  let binary = "";
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
+function sessionCreatedAtMillis(createdAt: unknown) {
+  if (createdAt instanceof Date) {
+    return Number.isFinite(createdAt.getTime()) ? createdAt.getTime() : null;
   }
-  return btoa(binary)
-    .replaceAll("+", "-")
-    .replaceAll("/", "_")
-    .replace(/=+$/, "");
-}
-
-async function sha256Base64Url(value: string) {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(value),
-  );
-  return base64UrlEncode(new Uint8Array(digest));
-}
-
-function authTimeFromSessionCreatedAt(createdAt: unknown) {
-  if (!(createdAt instanceof Date) && typeof createdAt !== "string") {
-    return undefined;
+  if (typeof createdAt === "number") {
+    return Number.isFinite(createdAt) ? createdAt : null;
   }
-  const authTime = new Date(createdAt).getTime();
-  return Number.isFinite(authTime) ? authTime : undefined;
+  if (typeof createdAt === "string") {
+    const trimmed = createdAt.trim();
+    if (!trimmed) return null;
+    const numeric = Number(trimmed);
+    const timestamp = Number.isFinite(numeric)
+      ? numeric
+      : new Date(trimmed).getTime();
+    return Number.isFinite(timestamp) ? timestamp : null;
+  }
+  return null;
 }
 
-async function requestOAuthAuthorizeTarget({
-  authorizeApi,
-  authorizeQuery,
-  headers,
-  requestUrl,
-}: {
-  authorizeApi: OAuthAuthorizeApi;
-  authorizeQuery: Record<string, string>;
-  headers: Headers;
-  requestUrl: string;
+function removePrompt(query: URLSearchParams, removedPrompt: string) {
+  const prompts = (query.get("prompt") ?? "")
+    .split(/\s+/)
+    .filter((prompt) => prompt && prompt !== removedPrompt);
+  if (prompts.length > 0) {
+    query.set("prompt", prompts.join(" "));
+  } else {
+    query.delete("prompt");
+  }
+}
+
+function searchParamsToQuery(query: URLSearchParams) {
+  const result: Record<string, string | string[]> = Object.create(null);
+  for (const key of new Set(query.keys())) {
+    const values = query.getAll(key);
+    result[key] = values.length === 1 ? values[0] : values;
+  }
+  return result;
+}
+
+function buildOAuthCallbackUrl(input: {
+  code?: string;
+  error?: string;
+  errorDescription?: string;
+  query: URLSearchParams;
+  redirectUri: string;
 }) {
-  const authorizeHeaders = new Headers(headers);
-  authorizeHeaders.delete("content-type");
-  const authorizeUrl = new URL("/api/auth/oauth2/authorize", requestUrl);
-  authorizeUrl.search = new URLSearchParams(authorizeQuery).toString();
-  const authorizePayload = await authorizeApi.oauth2Authorize({
-    asResponse: false,
-    headers: authorizeHeaders,
-    request: new Request(authorizeUrl, {
-      method: "GET",
-      headers: authorizeHeaders,
-    }),
-    query: authorizeQuery,
-  });
-  return redirectPayloadTarget(authorizePayload);
+  const callback = new URL(input.redirectUri);
+  if (input.code) callback.searchParams.set("code", input.code);
+  if (input.error) callback.searchParams.set("error", input.error);
+  if (input.errorDescription) {
+    callback.searchParams.set("error_description", input.errorDescription);
+  }
+  const state = input.query.get("state");
+  if (state) callback.searchParams.set("state", state);
+  callback.searchParams.set("iss", getCanonicalOAuthIssuer());
+  return callback.toString();
 }
 
-async function issueAuthorizationCodeRedirect({
-  acceptedScope,
-  expectedGrantId,
-  authApi,
-  authorizeQuery,
-  headers,
-}: {
-  acceptedScope: string;
-  expectedGrantId?: string;
-  authApi: unknown;
-  authorizeQuery: Record<string, string>;
-  headers: Headers;
+export async function createAcceptedOAuthAuthorization(input: {
+  acceptedScopes: readonly string[];
+  authorizeQuery: URLSearchParams;
+  session: OAuthSession;
 }) {
-  const redirectUri = authorizeQuery.redirect_uri;
-  if (!redirectUri) return undefined;
+  const normalizedAcceptedScopes = [...new Set(input.acceptedScopes)];
+  return prisma.$transaction(async (tx) => {
+    const request = await validateConsentRequest(tx, input.authorizeQuery);
+    if (
+      !request ||
+      !normalizedAcceptedScopes.every((scope) =>
+        request.requestedScopes.includes(scope),
+      )
+    ) {
+      return null;
+    }
 
-  const sessionApi = asOAuthSessionApi(authApi);
-  const session = await sessionApi?.getSession({ headers });
-  const sessionId = session?.session?.id;
-  const userId = session?.user?.id;
-  if (typeof sessionId !== "string" || typeof userId !== "string") {
-    return undefined;
-  }
+    const identity = {
+      clientId: request.clientId,
+      userId: input.session.user.id,
+    };
+    const grantId = crypto.randomUUID();
+    if (request.client.skipConsent === true) {
+      await tx.oAuthConsent.deleteMany({ where: identity });
+    } else {
+      await tx.oAuthAccessToken.deleteMany({ where: identity });
+      await tx.oAuthRefreshToken.deleteMany({ where: identity });
+      await tx.deviceCode.deleteMany({ where: identity });
+      await tx.oAuthConsent.upsert({
+        where: { clientId_userId: identity },
+        create: {
+          ...identity,
+          grantId,
+          scopes: normalizedAcceptedScopes,
+        },
+        update: {
+          grantId,
+          scopes: normalizedAcceptedScopes,
+        },
+      });
+    }
 
-  const code = randomOAuthCode();
-  const iat = Math.floor(Date.now() / 1000);
-  const issuedAt = new Date(iat * 1000);
-  const query: Record<string, string> = {
-    ...authorizeQuery,
-    ...(acceptedScope.trim() ? { scope: acceptedScope.trim() } : {}),
-  };
-  const authTime = authTimeFromSessionCreatedAt(session?.session?.createdAt);
-  await prisma.verificationToken.create({
-    data: {
-      identifier: await sha256Base64Url(code),
-      token: JSON.stringify({
-        type: "authorization_code",
+    const code = randomOAuthCode();
+    const iat = Math.floor(Date.now() / 1000);
+    const issuedAt = new Date(iat * 1000);
+    const query = new URLSearchParams(request.authorizeQuery);
+    query.set("scope", normalizedAcceptedScopes.join(" "));
+    removePrompt(query, "consent");
+    const queryObject = searchParamsToQuery(query);
+    const authTime = sessionCreatedAtMillis(input.session.session.createdAt);
+    await tx.verificationToken.create({
+      data: {
+        identifier: await hashOAuthClientSecretForDbStorage(code),
+        token: JSON.stringify({
+          type: "authorization_code",
+          query: queryObject,
+          userId: input.session.user.id,
+          sessionId: input.session.session.id,
+          referenceId: grantId,
+          ...(authTime !== null ? { authTime } : {}),
+        }),
+        expires: new Date((iat + OAUTH_CODE_EXPIRES_IN_SECONDS) * 1000),
+        createdAt: issuedAt,
+        updatedAt: issuedAt,
+      },
+    });
+
+    return {
+      clientId: request.clientId,
+      expectedGrantId: grantId,
+      redirectTarget: buildOAuthCallbackUrl({
+        code,
         query,
-        userId,
-        sessionId,
-        ...(expectedGrantId ? { referenceId: expectedGrantId } : {}),
-        ...(authTime !== undefined ? { authTime } : {}),
+        redirectUri: request.redirectUri,
       }),
-      expires: new Date((iat + OAUTH_CODE_EXPIRES_IN_SECONDS) * 1000),
-      createdAt: issuedAt,
-      updatedAt: issuedAt,
-    },
+    };
   });
-
-  const callbackUrl = new URL(redirectUri);
-  callbackUrl.searchParams.set("code", code);
-  if (query.state) callbackUrl.searchParams.set("state", query.state);
-  callbackUrl.searchParams.set("iss", getCanonicalOAuthIssuer());
-  return callbackUrl.toString();
 }
 
-async function resolveAuthorizeRedirectAfterConsent({
-  accept,
-  authApi,
-  acceptedScope,
-  expectedGrantId,
-  headers,
-  requestUrl,
-  redirectTarget,
-}: {
-  accept: boolean;
-  authApi: unknown;
-  acceptedScope: string;
-  expectedGrantId?: string;
-  headers: Headers;
-  requestUrl: string;
-  redirectTarget: string;
-}) {
-  if (!isOAuthAuthorizePageRedirect(redirectTarget, requestUrl)) {
-    return redirectTarget;
-  }
+async function createDeniedOAuthAuthorization(authorizeQuery: URLSearchParams) {
+  const request = await validateConsentRequest(prisma, authorizeQuery);
+  if (!request) return null;
 
-  const authorizeApi = asOAuthAuthorizeApi(authApi);
-  if (!authorizeApi) return undefined;
-
-  const authorizeQuery = oauthAuthorizeQueryFromRedirect(
-    redirectTarget,
-    requestUrl,
-  );
-  const nextTarget = await requestOAuthAuthorizeTarget({
-    authorizeApi,
-    authorizeQuery,
-    headers,
-    requestUrl,
+  return buildOAuthCallbackUrl({
+    error: "access_denied",
+    errorDescription: "User denied access",
+    query: authorizeQuery,
+    redirectUri: request.redirectUri,
   });
-  if (nextTarget && !isOAuthAuthorizePageRedirect(nextTarget, requestUrl)) {
-    return nextTarget;
-  }
-
-  return accept
-    ? issueAuthorizationCodeRedirect({
-        acceptedScope,
-        expectedGrantId,
-        authApi,
-        authorizeQuery,
-        headers,
-      })
-    : undefined;
 }
 
 export async function submitOAuthConsentAction({
@@ -294,68 +357,56 @@ export async function submitOAuthConsentAction({
 
   const form = await request.formData();
   const { accept, oauthQuery, scope } = parseOAuthConsentForm(form);
-  const headers = new Headers(request.headers);
-  headers.delete("content-length");
-  headers.set("accept", "application/json");
-  headers.set("content-type", "application/json");
 
   let redirectTarget: string | undefined;
   try {
     const authCore = await import("@/lib/auth/core");
-    const authApi = authCore.authApi;
-    const consentUrl = new URL("/api/auth/oauth2/consent", request.url);
-    const body = {
-      accept,
-      scope,
-      oauth_query: oauthQuery,
-    };
-    const payload = await asOAuthProviderApi(authApi).oauth2Consent({
-      asResponse: false,
-      headers,
-      request: new Request(consentUrl, {
-        method: "POST",
-        headers,
-      }),
-      body,
-    });
-    redirectTarget = redirectPayloadTarget(payload);
-    const acceptedGrant = accept
-      ? await rotateAcceptedOAuthGrant({
-          authApi,
-          headers,
-          oauthQuery,
-          scope,
-        })
-      : null;
-    if (accept && !acceptedGrant) {
-      throw new Error("OAuth grant generation could not be rotated");
+    const [signedState, session] = await Promise.all([
+      verifyOAuthProviderSignedQueryState(oauthQuery),
+      getOAuthSession(authCore.authApi, request.headers),
+    ]);
+    if (!signedState || !session) {
+      throw new Error("Invalid OAuth consent state");
     }
-    if (redirectTarget) {
-      redirectTarget = await resolveAuthorizeRedirectAfterConsent({
-        accept,
-        authApi,
-        acceptedScope: scope,
-        expectedGrantId:
-          acceptedGrant?.kind === "consent" ? acceptedGrant.grantId : undefined,
-        headers,
-        requestUrl: request.url,
-        redirectTarget,
+    const { issuedAt, postLoginClearedForSession } = signedState;
+    const authorizeQuery = signedState.query;
+    const prompts = new Set(
+      (authorizeQuery.get("prompt") ?? "").split(/\s+/).filter(Boolean),
+    );
+    const sessionCreatedAt = sessionCreatedAtMillis(session.session.createdAt);
+
+    if (!accept) {
+      redirectTarget =
+        (await createDeniedOAuthAuthorization(authorizeQuery)) ?? undefined;
+    } else {
+      if (
+        (postLoginClearedForSession !== null &&
+          postLoginClearedForSession !== session.session.id) ||
+        (prompts.has("login") &&
+          (!issuedAt ||
+            sessionCreatedAt === null ||
+            sessionCreatedAt < issuedAt.getTime()))
+      ) {
+        throw new Error("OAuth consent session no longer satisfies the prompt");
+      }
+      if (prompts.has("login")) removePrompt(authorizeQuery, "login");
+      const authorization = await createAcceptedOAuthAuthorization({
+        acceptedScopes: uniqueScopes(scope),
+        authorizeQuery,
+        session,
       });
-    }
-    const clientIds = new URLSearchParams(oauthQuery).getAll("client_id");
-    if (
-      accept &&
-      redirectTarget &&
-      (clientIds.length !== 1 ||
-        !clientIds[0] ||
+      if (
+        !authorization ||
         !(await bindOAuthAuthorizationCodeRedirectToActiveGrant(
-          redirectTarget,
-          clientIds[0],
+          authorization.redirectTarget,
+          authorization.clientId,
           request.url,
-          acceptedGrant?.kind === "consent" ? acceptedGrant.grantId : undefined,
-        )))
-    ) {
-      throw new Error("OAuth authorization code could not be grant-bound");
+          authorization.expectedGrantId,
+        ))
+      ) {
+        throw new Error("OAuth authorization code could not be grant-bound");
+      }
+      redirectTarget = authorization.redirectTarget;
     }
   } catch {
     redirectTarget = undefined;

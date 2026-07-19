@@ -1,12 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const clientFindUniqueMock = vi.fn();
+const refreshFindFirstMock = vi.fn();
 const userFindUniqueMock = vi.fn();
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     oAuthClient: {
       findUnique: clientFindUniqueMock,
+    },
+    oAuthRefreshToken: {
+      findFirst: refreshFindFirstMock,
     },
     user: {
       findUnique: userFindUniqueMock,
@@ -17,6 +21,8 @@ vi.mock("@/lib/db/prisma", () => ({
 describe("active OAuth user grant", () => {
   beforeEach(() => {
     clientFindUniqueMock.mockReset();
+    refreshFindFirstMock.mockReset();
+    refreshFindFirstMock.mockResolvedValue(null);
     userFindUniqueMock.mockReset();
   });
 
@@ -95,6 +101,41 @@ describe("active OAuth user grant", () => {
         userId: "deleted-user",
       }),
     ).resolves.toBe(false);
+  });
+
+  it("rejects a trusted grant after refresh-token replay", async () => {
+    clientFindUniqueMock.mockResolvedValue({
+      consents: [],
+      disabled: false,
+      skipConsent: true,
+    });
+    refreshFindFirstMock.mockResolvedValue({ id: "replay-tombstone" });
+    userFindUniqueMock.mockResolvedValue({ id: "user-1" });
+    const { hasActiveOAuthUserGrant } = await import(
+      "@/lib/oauth/active-user-grant"
+    );
+
+    await expect(
+      hasActiveOAuthUserGrant({
+        clientId: "trusted-client",
+        requireGrantBinding: true,
+        scopes: ["profile"],
+        userId: "user-1",
+      }),
+    ).resolves.toBe(false);
+    expect(refreshFindFirstMock).toHaveBeenCalledWith({
+      where: {
+        clientId: "trusted-client",
+        grantId: null,
+        referenceId: null,
+        revoked: { not: null },
+        scopes: {
+          has: "urn:life-ustc:oauth:refresh-replay-tombstone",
+        },
+        userId: "user-1",
+      },
+      select: { id: true },
+    });
   });
 
   it("requires the exact consent and granted scopes for a bound JWT", async () => {

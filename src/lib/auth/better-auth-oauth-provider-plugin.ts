@@ -7,6 +7,7 @@ import {
   OAUTH_GRANT_ID_CLAIM,
   OAUTH_PROFILE_SCOPE,
   OAUTH_PROVIDER_GRANT_TYPES,
+  OAUTH_REFRESH_TOKEN_EXPIRES_IN_SECONDS,
 } from "@/lib/oauth/constants";
 import {
   CLIENT_REGISTRATION_ALLOWED_SCOPES,
@@ -28,6 +29,7 @@ export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
       : undefined,
     scopes: [...OAUTH_PROVIDER_SCOPES],
     grantTypes: [...OAUTH_PROVIDER_GRANT_TYPES],
+    refreshTokenExpiresIn: OAUTH_REFRESH_TOKEN_EXPIRES_IN_SECONDS,
     clientRegistrationDefaultScopes: [...PUBLIC_OAUTH_SCOPES],
     clientRegistrationAllowedScopes: [...CLIENT_REGISTRATION_ALLOWED_SCOPES],
     validAudiences: getOAuthProviderValidAudiences(),

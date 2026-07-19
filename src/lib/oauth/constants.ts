@@ -3,6 +3,7 @@ export const OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD = "client_secret_basic";
 export const OAUTH_CLIENT_SECRET_POST_AUTH_METHOD = "client_secret_post";
 export const OAUTH_AUTHORIZATION_CODE_GRANT_TYPE = "authorization_code";
 export const OAUTH_REFRESH_TOKEN_GRANT_TYPE = "refresh_token";
+export const OAUTH_REFRESH_TOKEN_EXPIRES_IN_SECONDS = 30 * 24 * 60 * 60;
 export const OAUTH_DEVICE_CODE_GRANT_TYPE =
   "urn:ietf:params:oauth:grant-type:device_code";
 export const OAUTH_PROVIDER_GRANT_TYPES = [
@@ -18,6 +19,8 @@ export const OAUTH_DEVICE_AUTHORIZATION_ENDPOINT_PATH =
   "/api/auth/oauth2/device-authorization";
 export const OAUTH_TOKEN_ENDPOINT_PATH = "/api/auth/oauth2/token";
 export const OAUTH_GRANT_ID_CLAIM = "urn:life-ustc:oauth:grant-id";
+export const OAUTH_REFRESH_REPLAY_TOMBSTONE_SCOPE =
+  "urn:life-ustc:oauth:refresh-replay-tombstone";
 export const OAUTH_OPENID_SCOPE = "openid";
 export const OAUTH_PROFILE_SCOPE = "profile";
 export const OAUTH_EMAIL_SCOPE = "email";

@@ -9,6 +9,7 @@ import {
 import { findDuplicateOAuthFormParameter } from "@/lib/oauth/form-parameters";
 import { rewriteOAuthResourceAliases } from "@/lib/oauth/resource-aliases";
 import {
+  cleanupRejectedOAuthRefreshGrant,
   rejectRefreshIssuedAfterRevocation,
   validateActiveOAuthRefreshGrant,
 } from "./auth-token-active-grant";
@@ -221,6 +222,10 @@ async function postRoute(request: Request) {
       params,
       await normalizeOAuthTokenErrorResponse(delegatedResponse),
     );
+    if (!response.ok) {
+      const cleanupError = await cleanupRejectedOAuthRefreshGrant(params);
+      if (cleanupError) return cleanupError;
+    }
     await persistOAuthRefreshTokenResources(delegatedRequest, params, response);
     if (response.ok) {
       const revokedResponse = await rejectRefreshIssuedAfterRevocation(

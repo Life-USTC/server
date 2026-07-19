@@ -13,6 +13,7 @@ const {
   findRefreshTokenMock,
   isOAuthRefreshGrantActiveMock,
   purgeOAuthGrantTokenRowsMock,
+  purgeRevokedOAuthRefreshTokenLineageMock,
   resolveActiveOAuthUserGrantMock,
   resolveActiveOAuthRefreshGrantMock,
   signJwtMock,
@@ -22,6 +23,7 @@ const {
   findRefreshTokenMock: vi.fn(),
   isOAuthRefreshGrantActiveMock: vi.fn(),
   purgeOAuthGrantTokenRowsMock: vi.fn(),
+  purgeRevokedOAuthRefreshTokenLineageMock: vi.fn(),
   resolveActiveOAuthUserGrantMock: vi.fn(),
   resolveActiveOAuthRefreshGrantMock: vi.fn(),
   signJwtMock: vi.fn(),
@@ -40,6 +42,8 @@ vi.mock("@/lib/auth/core", () => ({
 vi.mock("@/features/oauth/server/user-authorizations.server", () => ({
   isOAuthRefreshGrantActive: isOAuthRefreshGrantActiveMock,
   purgeOAuthGrantTokenRows: purgeOAuthGrantTokenRowsMock,
+  purgeRevokedOAuthRefreshTokenLineage:
+    purgeRevokedOAuthRefreshTokenLineageMock,
   resolveActiveOAuthRefreshGrant: resolveActiveOAuthRefreshGrantMock,
 }));
 
@@ -91,6 +95,7 @@ describe("OAuth 令牌路由", () => {
     findRefreshTokenMock.mockReset();
     isOAuthRefreshGrantActiveMock.mockReset();
     purgeOAuthGrantTokenRowsMock.mockReset();
+    purgeRevokedOAuthRefreshTokenLineageMock.mockReset();
     resolveActiveOAuthUserGrantMock.mockReset();
     resolveActiveOAuthRefreshGrantMock.mockReset();
     signJwtMock.mockReset();
@@ -98,6 +103,7 @@ describe("OAuth 令牌路由", () => {
     updateRefreshTokenMock.mockResolvedValue({ count: 1 });
     isOAuthRefreshGrantActiveMock.mockResolvedValue(true);
     purgeOAuthGrantTokenRowsMock.mockResolvedValue(undefined);
+    purgeRevokedOAuthRefreshTokenLineageMock.mockResolvedValue(false);
     resolveActiveOAuthRefreshGrantMock.mockResolvedValue({
       clientId: "client-1",
       grantId: "grant-1",

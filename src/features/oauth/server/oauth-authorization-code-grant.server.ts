@@ -33,6 +33,7 @@ export async function bindOAuthAuthorizationCodeToActiveGrant(
   code: string,
   expectedClientId?: string,
   expectedGrantId?: string,
+  consentUpdatedBefore?: Date,
 ) {
   if (!code) return false;
 
@@ -68,18 +69,60 @@ export async function bindOAuthAuthorizationCodeToActiveGrant(
     return false;
   }
 
-  const grantId = expectedGrantId ?? existingGrantId;
   const scopes = scopeValues(value.query?.scope);
-  const grant = await resolveActiveOAuthUserGrant({
-    clientId,
-    grantId,
-    requireGrantBinding: true,
-    scopes,
-    userId,
-  });
+  let grantId = expectedGrantId ?? existingGrantId;
+  let grant = grantId
+    ? await resolveActiveOAuthUserGrant({
+        clientId,
+        grantId,
+        requireGrantBinding: true,
+        scopes,
+        userId,
+      })
+    : null;
+  if (!grantId) {
+    // Better Auth emits skipConsent codes without a reference. Probe a fresh
+    // generation so a trusted client can recover from a replayed legacy family.
+    const trustedGrantId = crypto.randomUUID();
+    grant = await resolveActiveOAuthUserGrant({
+      clientId,
+      grantId: trustedGrantId,
+      requireGrantBinding: true,
+      scopes,
+      userId,
+    });
+    if (grant) {
+      grantId = trustedGrantId;
+    } else {
+      // A login continuation has no pre-handler user. Bind its provider-issued
+      // code to the consent generation owned by the authenticated code user.
+      const consent = await resolveActiveOAuthUserGrant({
+        clientId,
+        scopes,
+        userId,
+      });
+      if (
+        consent?.kind !== "consent" ||
+        !consentUpdatedBefore ||
+        !(await prisma.oAuthConsent.findFirst({
+          where: {
+            clientId,
+            grantId: consent.grantId,
+            id: consent.consentId,
+            updatedAt: { lt: consentUpdatedBefore },
+            userId,
+          },
+          select: { id: true },
+        }))
+      ) {
+        return false;
+      }
+      grant = consent;
+      grantId = consent.grantId;
+    }
+  }
   if (!grant) return false;
-  if (grant.kind === "trusted") return true;
-  if (!grantId || grant.grantId !== grantId) return false;
+  if (grant.kind !== "trusted" && grant.grantId !== grantId) return false;
 
   const updated = existingGrantId
     ? { count: 1 }
@@ -111,6 +154,7 @@ export async function bindOAuthAuthorizationCodeRedirectToActiveGrant(
   expectedClientId: string | undefined,
   baseUrl: string,
   expectedGrantId?: string,
+  consentUpdatedBefore?: Date,
 ) {
   let url: URL;
   try {
@@ -125,5 +169,6 @@ export async function bindOAuthAuthorizationCodeRedirectToActiveGrant(
     codes[0],
     expectedClientId,
     expectedGrantId,
+    consentUpdatedBefore,
   );
 }

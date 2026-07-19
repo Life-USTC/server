@@ -255,7 +255,14 @@ async function resolveIssuedRefreshResources({
     );
   }
 
-  return resolveApprovedRefreshResources({ grantType, prisma, refreshToken });
+  const approvedResources = await resolveApprovedRefreshResources({
+    grantType,
+    prisma,
+    refreshToken,
+  });
+  return resourceValues.length > 0
+    ? getApprovedRequestedResources(resourceValues, approvedResources)
+    : approvedResources;
 }
 
 export async function validateRefreshTokenResources({
