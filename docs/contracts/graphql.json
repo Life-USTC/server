@@ -4,7 +4,7 @@
     "anon": "Can query the public academic catalog and bus timetable through /api/graphql.",
     "user": "Can use public queries, authenticated Viewer fields, and personal mutations through a trusted same-origin Session.",
     "admin": "Uses the same Viewer and ordinary personal mutation surfaces as a regular user; GraphQL exposes no admin governance fields or mutations.",
-    "agent": "Can call Viewer fields and personal mutations with a bearer token issued for the GraphQL resource and the matching feature:read or feature:write scope. Authenticated MCP resources expose the SDL and versioned persisted-operation manifest, but arbitrary GraphQL execution is not exposed as an MCP tool."
+    "agent": "Direct GraphQL HTTP callers use a bearer token issued for the GraphQL resource and matching feature scopes. MCP agents authenticate with an MCP-resource bearer, then use the versioned registered-operation manifest and run_graphql_operation with the selected operation's exact scopes; arbitrary GraphQL documents are never accepted by MCP."
   },
   "rules": {
     "scoped-mutations": "Every personal mutation requires authentication, the matching feature:write OAuth scope for bearer callers, and the shared per-user mutation rate-limit action key used by REST and MCP. Trusted session callers receive the equivalent first-party access.",
@@ -12,11 +12,13 @@
     "single-endpoint": "GraphQL HTTP requests use /api/graphql with GET, POST, and OPTIONS handlers.",
     "production-discovery": "GraphiQL and schema introspection are disabled in production.",
     "request-budgets": "Requests are limited to 64 KiB, one operation per HTTP request, five seconds, depth 8, 10 top-level fields, 15 aliases, 10 directives, 1000 tokens, and cost 5000; operation cost weights every paginated selection by its effective pageSize, including values supplied through variables.",
+    "registered-operation-runner": "MCP can execute only checked-in, named, pre-parsed operations from life-ustc://graphql/operations. Unknown operation IDs, undeclared variables, invalid GraphQL variable values, missing exact feature scopes, and unconfirmed mutations are rejected before resolver execution; query/document/source parameters do not exist.",
+    "registered-operation-coverage": "The manifest covers every current public Query root field, each Viewer field as a separate exact-scope operation, and every current ordinary business Mutation root field. Authentication and OAuth protocol operations, admin-only governance, upload raw-byte transfer, subscriptions, and arbitrary documents remain intentionally outside this runner.",
     "pagination": "Every GraphQL collection is bounded: Viewer todos, subscribed sections, homeworks, schedules, and exams use PageInput, while nested Schedule.teachers and Exam.examRooms return their own PageInput-backed pages; inputs default to page 1 and pageSize 20, and pageSize must be between 1 and 100.",
     "resolver-boundary": "Resolvers call feature-owned services only; they do not issue internal HTTP requests or access Prisma directly.",
     "request-cache": "The principal and entity DataLoaders are request-scoped; authentication is resolved once per request and every response is marked no-store.",
-    "safe-errors": "Expected authentication, authorization, bad-input, not-found, rate-limit, and availability GraphQLErrors retain stable codes and status metadata; only trusted GraphQLErrors pass the allowlist, while unexpected or forged resolver failures are masked without internal details.",
-    "semantic-observability": "Each attempted GraphQL operation records one sanitized semantic observation with its operation name and type, top-level field count, estimated cost, duration, GraphQL error count, auth mode, and request ID; raw documents, variables, credentials, argument values, and error details are excluded.",
+    "safe-errors": "Expected authentication, authorization, bad-input, not-found, rate-limit, and availability GraphQLErrors retain stable codes and status metadata across HTTP and the MCP registered runner; only trusted GraphQLErrors pass the allowlist, while unexpected or forged resolver failures are masked without internal details.",
+    "semantic-observability": "Each attempted HTTP or MCP registered GraphQL operation records one sanitized semantic observation with its operation name and type, top-level field count, estimated cost, duration, GraphQL error count, auth mode, and request ID; raw documents, variables, credentials, argument values, and error details are excluded.",
     "viewer-scopes": "Query.viewer returns null for an anonymous caller. Its profile, overview, todos, subscribedSections, homeworks, schedules, and exams fields independently require me:read, dashboard:read, todo:read, subscription:read, homework:read, schedule:read, and exam:read for OAuth principals; trusted-origin Sessions use their existing user authority.",
     "viewer-ownership": "Viewer collections derive ownership from the authenticated user relation in feature services and never accept sectionIds or internal visibility/shape flags from GraphQL inputs.",
     "zoned-datetime": "DateTime inputs accept only valid ISO 8601 datetimes with an explicit Z or numeric timezone offset, with identical coercion for variables and inline literals; schedule and exam DateTime filters normalize to their Asia/Shanghai calendar day before querying @db.Date columns.",
@@ -34,7 +36,8 @@
           "Authenticated Viewer reads with exact feature:read scopes",
           "Authenticated todo and homework CRUD, todo/homework completion batches, section subscription batches, dashboard pin, bus preference, description, and comment mutations",
           "GET, POST, and OPTIONS",
-          "GraphQL-audience bearer tokens require matching feature scopes; MCP exposes metadata resources only"
+          "GraphQL-audience bearer tokens require matching feature scopes",
+          "MCP executes only approved IDs from the registered-operation manifest"
         ]
       }
     },
@@ -79,7 +82,24 @@
             "name": "graphql_operations_manifest",
             "uri": "life-ustc://graphql/operations",
             "mime_type": "application/json",
-            "description": "Versioned persisted GraphQL operation metadata."
+            "description": "Versioned registered GraphQL operation metadata, including variables, exact scopes, and safety hints without documents."
+          }
+        ]
+      }
+    },
+    "registered-operation-runner": {
+      "title": "Registered GraphQL Operation Runner",
+      "auth": "user",
+      "mcp": {
+        "tools": [
+          {
+            "name": "run_graphql_operation",
+            "description": "Executes one approved operationId with only its declared variables. Mutation entries require confirmed=true.",
+            "notes": [
+              "The operation manifest is the capability matrix and declares rootField, variable GraphQL types, exact scopes, readOnly, destructive, openWorld, and requiresConfirmation metadata.",
+              "The single static tool descriptor is conservative because safety and scopes vary by operationId; exact authorization is enforced from the selected manifest entry.",
+              "Authorization headers and cookies are never copied into the in-process GraphQL context."
+            ]
           }
         ]
       }
