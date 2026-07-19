@@ -28,6 +28,7 @@ type McpTransportAnalyticsInput = {
   path: string;
   phase:
     | "auth-rejected"
+    | "body-rejected"
     | "handled"
     | "origin-rejected"
     | "rate-limit-rejected";

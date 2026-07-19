@@ -44,6 +44,45 @@ test.describe("/api/mcp - 传输与授权", () => {
     await expect(response.json()).resolves.toEqual({ error: "invalid_token" });
   });
 
+  test("/api/mcp 在认证后拒绝超过 64 KiB 的请求体", async ({
+    page,
+    request,
+  }) => {
+    const oversizedBody = JSON.stringify("x".repeat(65 * 1024));
+    const headers = {
+      "Content-Type": "application/json",
+      "MCP-Protocol-Version": "2025-03-26",
+    };
+
+    const unauthenticatedResponse = await request.post("/api/mcp", {
+      data: oversizedBody,
+      headers,
+    });
+    expect(unauthenticatedResponse.status()).toBe(401);
+
+    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
+    await signInAsDebugUser(page, "/");
+    const { accessToken } = await issueAccessToken(page, request, {
+      scope: MCP_CLIENT_SCOPE,
+      clientScopes: MCP_CLIENT_SCOPES,
+      resource,
+    });
+
+    const authenticatedResponse = await request.post("/api/mcp", {
+      data: oversizedBody,
+      headers: {
+        ...headers,
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    expect(authenticatedResponse.status()).toBe(413);
+    await expect(authenticatedResponse.json()).resolves.toMatchObject({
+      error: { code: -32000 },
+      id: null,
+      jsonrpc: "2.0",
+    });
+  });
+
   test("/api/mcp stateless transport does not hold a GET SSE stream", async ({
     request,
   }) => {

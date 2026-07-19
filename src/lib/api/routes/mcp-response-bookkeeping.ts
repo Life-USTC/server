@@ -14,6 +14,7 @@ export function recordAndLogMcpResponse(input: {
   };
   phase:
     | "auth-rejected"
+    | "body-rejected"
     | "handled"
     | "origin-rejected"
     | "rate-limit-rejected";

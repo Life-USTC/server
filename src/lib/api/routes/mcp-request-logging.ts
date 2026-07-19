@@ -53,6 +53,7 @@ export function logMcpTransportResponse({
   durationMs: number;
   phase:
     | "auth-rejected"
+    | "body-rejected"
     | "handled"
     | "origin-rejected"
     | "rate-limit-rejected";

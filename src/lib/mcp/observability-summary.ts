@@ -38,6 +38,10 @@ export async function summarizeMcpJsonRpcRequest(
     return emptySummary("invalid-json");
   }
 
+  return summarizeMcpJsonRpcBody(body);
+}
+
+export function summarizeMcpJsonRpcBody(body: unknown): McpRequestSummary {
   const messages = Array.isArray(body) ? body : [body];
   if (messages.length === 0) {
     return emptySummary("empty");
