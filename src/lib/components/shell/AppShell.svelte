@@ -418,7 +418,7 @@ function isActiveLink(link: ShellLink) {
     return pathname === "/settings" || pathname.startsWith("/settings/");
   }
   if (target.pathname === "/admin") {
-    return pathname === "/admin";
+    return pathname === "/admin" || pathname.startsWith("/admin/");
   }
   return pathname === target.pathname;
 }

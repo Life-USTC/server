@@ -104,6 +104,7 @@ test("/admin 二级导航响应式布局且支持键盘切换", async ({ page },
   const adminRootLink = primaryNavigation.locator('a[href^="/admin"]');
   await expect(adminRootLink).toHaveCount(1);
   await expect(adminRootLink).toHaveAttribute("href", "/admin");
+  await expect(adminRootLink).toHaveAttribute("aria-current", "page");
   await expect(adminRootLink).toBeVisible();
   expect(desktopNavigationBox?.x).toBeLessThan(desktopPanelBox?.x ?? 0);
   await captureStepScreenshot(page, testInfo, "admin/navigation-desktop");
