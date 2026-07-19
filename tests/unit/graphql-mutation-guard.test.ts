@@ -22,6 +22,7 @@ describe("GraphQL mutation guard", () => {
     "dashboard",
     "bus",
     "comment",
+    "description",
   ] as const)("shares the %s:write cross-protocol budget", async (feature) => {
     const limit = vi.fn().mockResolvedValue({ success: true });
     setCloudflareRuntimeEnv({ USER_WRITE_RATE_LIMITER: { limit } });
@@ -41,21 +42,24 @@ describe("GraphQL mutation guard", () => {
     ]);
   });
 
-  it("requires the exact OAuth write scope", async () => {
+  it.each([
+    "todo",
+    "description",
+  ] as const)("requires the exact OAuth %s write scope", async (feature) => {
     await expect(
       requireGraphqlMutation(
         context({
           kind: "oauth",
           userId: "user-1",
-          scopes: new Set(["todo:read"]),
+          scopes: new Set([`${feature}:read`]),
           resource: "https://life.example/api/graphql",
         }),
-        "todo",
+        feature,
       ),
     ).rejects.toMatchObject({
       extensions: {
         code: "FORBIDDEN",
-        requiredScopes: ["todo:write"],
+        requiredScopes: [`${feature}:write`],
       },
     });
   });

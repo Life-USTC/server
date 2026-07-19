@@ -1,3 +1,24 @@
+# [1.65.0](https://github.com/Life-USTC/server/compare/v1.64.11...v1.65.0) (2026-07-19)
+
+
+### Features
+
+* **graphql:** add description upsert mutation ([#555](https://github.com/Life-USTC/server/issues/555)) ([8fa061c](https://github.com/Life-USTC/server/commit/8fa061cf486f5548f1fbc08ccf4448bb6e16de4f))
+
+## [1.64.11](https://github.com/Life-USTC/server/compare/v1.64.10...v1.64.11) (2026-07-19)
+
+
+### Bug Fixes
+
+* **seo:** localize catalog social metadata ([#553](https://github.com/Life-USTC/server/issues/553)) ([a47237c](https://github.com/Life-USTC/server/commit/a47237cd3daa32e653c746b613154a69444b9c43))
+
+## [1.64.10](https://github.com/Life-USTC/server/compare/v1.64.9...v1.64.10) (2026-07-19)
+
+
+### Performance Improvements
+
+* **dashboard:** remove unused public summary queries ([#552](https://github.com/Life-USTC/server/issues/552)) ([0da7af1](https://github.com/Life-USTC/server/commit/0da7af18f8aa4e81749e6f4a89a59bb829d4c290))
+
 ## [1.64.9](https://github.com/Life-USTC/server/compare/v1.64.8...v1.64.9) (2026-07-19)
 
 
