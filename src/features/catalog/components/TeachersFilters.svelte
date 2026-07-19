@@ -30,7 +30,7 @@ const controlClass = "w-full [&>select]:h-11";
   {#if !showSearch && filters.search}
     <input name="search" type="hidden" value={filters.search} />
   {/if}
-  <Field.Group class={cn("gap-3", inline && "sm:max-w-md")}>
+  <Field.Group class={cn("gap-3", inline && "xl:w-56")}>
     {#if showSearch}
       <Field.Field>
         <Field.Label for={`${idPrefix}-search`}>{teacherLabels.searchLabel}</Field.Label>
@@ -47,7 +47,12 @@ const controlClass = "w-full [&>select]:h-11";
       </Field.Field>
     {/if}
     <Field.Field>
-      <Field.Label for={`${idPrefix}-department`}>{teacherLabels.department}</Field.Label>
+      <Field.Label
+        class={cn(inline && "sr-only")}
+        for={`${idPrefix}-department`}
+      >
+        {teacherLabels.department}
+      </Field.Label>
       <NativeSelect.Root
         class={controlClass}
         id={`${idPrefix}-department`}

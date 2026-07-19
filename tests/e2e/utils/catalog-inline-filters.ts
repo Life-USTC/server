@@ -8,6 +8,13 @@ export async function expectCatalogInlineFilters(page: Page, labels: RegExp[]) {
   const inlineFilters = page.getByTestId("catalog-inline-filters");
   await expect(toolbar).toBeVisible();
   await expect(inlineFilters).toBeVisible();
+  const filterLabels = inlineFilters.locator("label");
+  await expect(filterLabels).toHaveCount(labels.length);
+  for (let index = 0; index < labels.length; index += 1) {
+    await expect(filterLabels.nth(index)).toHaveClass(/sr-only/);
+    const box = await filterLabels.nth(index).boundingBox();
+    expect(box?.height ?? 0).toBeLessThanOrEqual(1);
+  }
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByRole("button", { name: /筛选|Filter/i })).toHaveCount(
     0,

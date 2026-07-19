@@ -78,11 +78,31 @@ test.describe("/teachers", () => {
     await captureStepScreenshot(page, testInfo, "teachers-navigate-detail");
   });
 
-  test("280 至 375 像素直接显示教师筛选", async ({ page }, testInfo) => {
-    for (const width of [280, 320, 375]) {
+  test("280 至 1440 像素正确分配教师筛选宽度", async ({ page }, testInfo) => {
+    for (const width of [280, 320, 375, 1024, 1280, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       await gotoAndWaitForReady(page, "/teachers");
       await expectCatalogInlineFilters(page, [/院系|Department/i]);
+      const toolbarBox = await page
+        .getByTestId("catalog-mobile-filters")
+        .boundingBox();
+      const departmentBox = await page
+        .getByLabel(/院系|Department/i)
+        .boundingBox();
+      if (width < 1280) {
+        expect(departmentBox?.width ?? 0).toBeGreaterThanOrEqual(
+          (toolbarBox?.width ?? 0) - 40,
+        );
+      } else {
+        const searchBox = await page
+          .getByTestId("catalog-mobile-filters")
+          .locator('[data-slot="input-group"]')
+          .boundingBox();
+        expect(departmentBox?.width ?? 0).toBeLessThanOrEqual(228);
+        expect(searchBox?.width ?? 0).toBeGreaterThan(
+          departmentBox?.width ?? 0,
+        );
+      }
       await expect(page.locator("vite-error-overlay")).toHaveCount(0);
       if (width === 280 || width === 375) {
         await captureStepScreenshot(

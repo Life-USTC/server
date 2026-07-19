@@ -38,8 +38,7 @@ export let searchValue: string;
 <div
   class={cn(
     "grid gap-3 rounded-xl border bg-card px-3 py-3 sm:px-4",
-    inlineFilters &&
-      "xl:grid-cols-[minmax(16rem,2fr)_minmax(28rem,3fr)] xl:items-end",
+    inlineFilters && "xl:flex xl:flex-wrap xl:items-end",
   )}
   data-testid="catalog-mobile-filters"
 >
@@ -49,6 +48,7 @@ export let searchValue: string;
       inlineFilters
         ? "grid-cols-[minmax(0,1fr)_auto]"
         : "grid-cols-2 min-[420px]:grid-cols-[minmax(0,1fr)_auto_auto]",
+      inlineFilters && "xl:min-w-0 xl:flex-1",
     )}
     method="GET"
   >
@@ -127,6 +127,7 @@ export let searchValue: string;
     <Separator class="xl:hidden" />
     <div
       aria-label={filterTitle}
+      class="xl:w-fit xl:shrink-0"
       data-testid="catalog-inline-filters"
       role="group"
     >
@@ -139,7 +140,7 @@ export let searchValue: string;
       aria-label={filterTitle}
       class={cn(
         "flex flex-wrap items-center gap-1.5",
-        inlineFilters && "xl:col-span-2",
+        inlineFilters && "xl:basis-full",
       )}
       data-testid="catalog-active-filters"
       role="group"

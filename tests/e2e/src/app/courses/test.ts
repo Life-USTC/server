@@ -149,8 +149,8 @@ test.describe("/courses 课程目录", () => {
     await captureStepScreenshot(page, testInfo, "courses-navigate-detail");
   });
 
-  test("280 至 375 像素直接显示课程筛选", async ({ page }, testInfo) => {
-    for (const width of [280, 320, 375]) {
+  test("280 至 1440 像素直接显示紧凑课程筛选", async ({ page }, testInfo) => {
+    for (const width of [280, 320, 375, 1024, 1280, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       await gotoAndWaitForReady(page, "/courses");
       await expectCatalogInlineFilters(page, [
@@ -158,6 +158,20 @@ test.describe("/courses 课程目录", () => {
         /类别|Category/i,
         /课程类型|Class Type/i,
       ]);
+      if (width >= 1280) {
+        const searchBox = await page
+          .getByTestId("catalog-mobile-filters")
+          .locator('[data-slot="input-group"]')
+          .boundingBox();
+        const selectBoxes = await page
+          .getByTestId("catalog-inline-filters")
+          .locator("select")
+          .evaluateAll((selects) =>
+            selects.map((select) => select.getBoundingClientRect().width),
+          );
+        expect(searchBox?.width ?? 0).toBeGreaterThan(selectBoxes[0] ?? 0);
+        expect(Math.max(...selectBoxes)).toBeLessThanOrEqual(180);
+      }
       await expect(page.locator("vite-error-overlay")).toHaveCount(0);
       if (width === 280 || width === 375) {
         await captureStepScreenshot(

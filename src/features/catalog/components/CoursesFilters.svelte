@@ -35,7 +35,8 @@ const controlClass = "w-full [&>select]:h-11";
   <Field.Group
     class={cn(
       "gap-3",
-      inline && "grid min-[320px]:grid-cols-2 lg:grid-cols-3",
+      inline &&
+        "grid min-[320px]:grid-cols-2 lg:grid-cols-3 xl:flex xl:w-[34rem] xl:flex-row xl:gap-2",
     )}
   >
     {#if showSearch}
@@ -53,8 +54,13 @@ const controlClass = "w-full [&>select]:h-11";
         />
       </Field.Field>
     {/if}
-    <Field.Field>
-      <Field.Label for={`${idPrefix}-education-level`}>{courseLabels.educationLevel}</Field.Label>
+    <Field.Field class={cn(inline && "xl:w-44 xl:shrink-0")}>
+      <Field.Label
+        class={cn(inline && "sr-only")}
+        for={`${idPrefix}-education-level`}
+      >
+        {courseLabels.educationLevel}
+      </Field.Label>
       <NativeSelect.Root
         class={controlClass}
         id={`${idPrefix}-education-level`}
@@ -69,8 +75,13 @@ const controlClass = "w-full [&>select]:h-11";
         {/each}
       </NativeSelect.Root>
     </Field.Field>
-    <Field.Field>
-      <Field.Label for={`${idPrefix}-category`}>{courseLabels.category}</Field.Label>
+    <Field.Field class={cn(inline && "xl:w-44 xl:shrink-0")}>
+      <Field.Label
+        class={cn(inline && "sr-only")}
+        for={`${idPrefix}-category`}
+      >
+        {courseLabels.category}
+      </Field.Label>
       <NativeSelect.Root
         class={controlClass}
         id={`${idPrefix}-category`}
@@ -85,8 +96,18 @@ const controlClass = "w-full [&>select]:h-11";
         {/each}
       </NativeSelect.Root>
     </Field.Field>
-    <Field.Field class={cn(inline && "min-[320px]:col-span-2 lg:col-span-1")}>
-      <Field.Label for={`${idPrefix}-class-type`}>{courseLabels.classType}</Field.Label>
+    <Field.Field
+      class={cn(
+        inline &&
+          "min-[320px]:col-span-2 lg:col-span-1 xl:w-44 xl:shrink-0",
+      )}
+    >
+      <Field.Label
+        class={cn(inline && "sr-only")}
+        for={`${idPrefix}-class-type`}
+      >
+        {courseLabels.classType}
+      </Field.Label>
       <NativeSelect.Root
         class={controlClass}
         id={`${idPrefix}-class-type`}
