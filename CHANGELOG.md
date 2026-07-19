@@ -1,3 +1,10 @@
+# [1.70.0](https://github.com/Life-USTC/server/compare/v1.69.0...v1.70.0) (2026-07-19)
+
+
+### Features
+
+* **web:** add semantic public tool routes ([#561](https://github.com/Life-USTC/server/issues/561)) ([53f03f6](https://github.com/Life-USTC/server/commit/53f03f6ced3395f90eed18e67a4294d06ce0d0b0))
+
 # [1.69.0](https://github.com/Life-USTC/server/compare/v1.68.0...v1.69.0) (2026-07-19)
 
 
