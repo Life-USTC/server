@@ -13,6 +13,11 @@ import type {
   DashboardBusData,
 } from "@/features/dashboard/lib/bus-tab-types";
 import { apiClient } from "@/lib/api/client";
+import {
+  getLocalStorageItem,
+  removeLocalStorageItem,
+  setLocalStorageItem,
+} from "@/lib/browser/local-storage";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Collapsible from "$lib/components/ui/collapsible/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
@@ -63,7 +68,7 @@ function restoreRecentRoute() {
 
   try {
     const stored = JSON.parse(
-      window.localStorage.getItem(RECENT_BUS_ROUTE_KEY) ?? "null",
+      getLocalStorageItem(RECENT_BUS_ROUTE_KEY) ?? "null",
     ) as {
       endCampusId?: unknown;
       startCampusId?: unknown;
@@ -89,7 +94,7 @@ function restoreRecentRoute() {
     state.actions.selectBusStart(stored.startCampusId);
     state.actions.selectBusEnd(stored.endCampusId);
   } catch {
-    window.localStorage.removeItem(RECENT_BUS_ROUTE_KEY);
+    removeLocalStorageItem(RECENT_BUS_ROUTE_KEY);
   }
 }
 
@@ -102,7 +107,7 @@ function saveRecentRoute() {
     return;
   }
 
-  window.localStorage.setItem(
+  setLocalStorageItem(
     RECENT_BUS_ROUTE_KEY,
     JSON.stringify({
       endCampusId: state.values.busEndCampusId,

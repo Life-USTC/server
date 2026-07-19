@@ -165,6 +165,36 @@ test("/ 存储的深色主题在 hydration 前应用且通过 CSP", async ({
   await context.close();
 });
 
+test("/ 浏览器存储不可用时仍完成 hydration 并允许切换主题", async ({
+  browser,
+}, testInfo) => {
+  const context = await browser.newContext({
+    baseURL: String(testInfo.project.use.baseURL),
+    colorScheme: "light",
+  });
+  await context.addInitScript(() => {
+    Storage.prototype.getItem = () => {
+      throw new DOMException("Storage disabled", "SecurityError");
+    };
+    Storage.prototype.setItem = () => {
+      throw new DOMException("Storage disabled", "SecurityError");
+    };
+  });
+  const page = await context.newPage();
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+
+  await gotoAndWaitForReady(page, "/");
+  await page
+    .getByRole("button", { name: /^(主题选择|Theme selector)$/i })
+    .click();
+  await page.getByRole("menuitemradio", { name: /^(深色|Dark)$/i }).click();
+
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  expect(pageErrors).toEqual([]);
+  await context.close();
+});
+
 test("/ 禁用 JavaScript 时系统深色主题仍有 CSS fallback", async ({
   browser,
 }, testInfo) => {
