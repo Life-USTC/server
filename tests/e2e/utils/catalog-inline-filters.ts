@@ -8,6 +8,17 @@ export async function expectCatalogInlineFilters(page: Page, labels: RegExp[]) {
   const inlineFilters = page.getByTestId("catalog-inline-filters");
   await expect(toolbar).toBeVisible();
   await expect(inlineFilters).toBeVisible();
+  await expect
+    .poll(() =>
+      toolbar.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return {
+          borderTopWidth: style.borderTopWidth,
+          paddingTop: style.paddingTop,
+        };
+      }),
+    )
+    .toEqual({ borderTopWidth: "0px", paddingTop: "0px" });
   const filterLabels = inlineFilters.locator("label");
   await expect(filterLabels).toHaveCount(labels.length);
   for (let index = 0; index < labels.length; index += 1) {

@@ -91,7 +91,7 @@ test.describe("/teachers", () => {
         .boundingBox();
       if (width < 1280) {
         expect(departmentBox?.width ?? 0).toBeGreaterThanOrEqual(
-          (toolbarBox?.width ?? 0) - 40,
+          (toolbarBox?.width ?? 0) - 4,
         );
       } else {
         const searchBox = await page

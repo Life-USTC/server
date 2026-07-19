@@ -37,7 +37,7 @@ export let searchValue: string;
 
 <div
   class={cn(
-    "grid gap-3 rounded-xl border bg-card px-3 py-3 sm:px-4",
+    "grid gap-3",
     inlineFilters && "xl:flex xl:flex-wrap xl:items-end",
   )}
   data-testid="catalog-mobile-filters"

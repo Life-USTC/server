@@ -91,24 +91,37 @@ test.describe("/sections 班级搜索页", () => {
       const activeFilters = container.querySelector(
         '[data-testid="catalog-active-filters"]',
       );
-      if (!searchbox || actionButtons.length < 2 || !activeFilters) {
+      const inputGroup = searchbox?.closest<HTMLElement>(
+        '[data-slot="input-group"]',
+      );
+      if (
+        !searchbox ||
+        !inputGroup ||
+        actionButtons.length < 2 ||
+        !activeFilters
+      ) {
         throw new Error("Mobile catalog filter geometry missing");
       }
 
       const containerBox = container.getBoundingClientRect();
-      const searchboxBox = searchbox.getBoundingClientRect();
+      const searchboxBox = inputGroup.getBoundingClientRect();
       const actionBottom = Math.max(
         ...actionButtons.map((button) => button.getBoundingClientRect().bottom),
       );
       const activeFiltersBox = activeFilters.getBoundingClientRect();
+      const style = getComputedStyle(container);
       return {
         activeFiltersGap: activeFiltersBox.top - actionBottom,
+        borderTopWidth: style.borderTopWidth,
         height: containerBox.height,
+        paddingTop: style.paddingTop,
         searchTop: searchboxBox.top - containerBox.top,
       };
     });
-    expect(mobileFilterLayout.searchTop).toBeGreaterThanOrEqual(8);
-    expect(mobileFilterLayout.searchTop).toBeLessThan(24);
+    expect(mobileFilterLayout.borderTopWidth).toBe("0px");
+    expect(mobileFilterLayout.paddingTop).toBe("0px");
+    expect(mobileFilterLayout.searchTop).toBeGreaterThanOrEqual(0);
+    expect(mobileFilterLayout.searchTop).toBeLessThanOrEqual(1);
     expect(mobileFilterLayout.activeFiltersGap).toBeGreaterThanOrEqual(8);
     expect(mobileFilterLayout.activeFiltersGap).toBeLessThan(24);
     expect(mobileFilterLayout.height).toBeLessThan(180);
