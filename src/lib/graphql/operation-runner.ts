@@ -230,6 +230,32 @@ function operationResult(
   };
 }
 
+function waitForExecutionOrAbort<T>(
+  execution: T | PromiseLike<T>,
+  signal: AbortSignal,
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => {
+      signal.removeEventListener("abort", onAbort);
+      reject(signal.reason);
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+
+    Promise.resolve(execution).then(
+      (result) => {
+        signal.removeEventListener("abort", onAbort);
+        resolve(result);
+      },
+      (error) => {
+        signal.removeEventListener("abort", onAbort);
+        reject(error);
+      },
+    );
+
+    if (signal.aborted) onAbort();
+  });
+}
+
 function errorAnalysis(
   operation: RegisteredPersistedGraphqlOperation,
 ): GraphqlOperationAnalysis {
@@ -294,14 +320,17 @@ export async function runRegisteredGraphqlOperation(input: {
       principal: input.principal,
       request,
     };
-    const result = await executeGraphql({
-      schema: graphqlSchema,
-      document: operation.document,
-      contextValue: context,
-      operationName: operation.operationName,
-      variableValues: variables,
-      signal: deadline.signal,
-    });
+    const result = await waitForExecutionOrAbort(
+      executeGraphql({
+        schema: graphqlSchema,
+        document: operation.document,
+        contextValue: context,
+        operationName: operation.operationName,
+        variableValues: variables,
+        signal: deadline.signal,
+      }),
+      deadline.signal,
+    );
     if ("initialResult" in result) {
       throw new Error("Incremental registered GraphQL operations are disabled");
     }

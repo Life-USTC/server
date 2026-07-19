@@ -3,6 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const catalogService = vi.hoisted(() => ({
   getCurrentSemester: vi.fn(),
 }));
+const todoService = vi.hoisted(() => ({
+  createTodo: vi.fn(),
+}));
+const mutationRateLimit = vi.hoisted(() => ({
+  checkUserMutationRateLimit: vi.fn(),
+}));
 
 vi.mock(
   "@/features/catalog/server/academic-metadata-read-model",
@@ -18,6 +24,29 @@ vi.mock(
   },
 );
 
+vi.mock("@/features/todos/server/todo-service", async (importOriginal) => {
+  const original =
+    await importOriginal<
+      typeof import("@/features/todos/server/todo-service")
+    >();
+  return {
+    ...original,
+    createTodo: todoService.createTodo,
+  };
+});
+
+vi.mock("@/lib/security/user-mutation-rate-limit", async (importOriginal) => {
+  const original =
+    await importOriginal<
+      typeof import("@/lib/security/user-mutation-rate-limit")
+    >();
+  return {
+    ...original,
+    checkUserMutationRateLimit: mutationRateLimit.checkUserMutationRateLimit,
+  };
+});
+
+import { GRAPHQL_LIMITS } from "@/lib/graphql/constants";
 import {
   type RegisteredGraphqlOperationError,
   runRegisteredGraphqlOperation,
@@ -36,6 +65,7 @@ function run(
   input: {
     confirmed?: boolean;
     scopes?: Set<string>;
+    signal?: AbortSignal;
     variables?: unknown;
   } = {},
 ) {
@@ -56,30 +86,46 @@ function run(
       requestId: "graphql-runner-test",
       url: "https://example.test/api/mcp",
     },
-    signal: new AbortController().signal,
+    signal: input.signal ?? new AbortController().signal,
     variables: input.variables,
   });
 }
 
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
+
+const currentSemester = {
+  id: 1,
+  jwId: 202601,
+  code: "2026SP",
+  nameCn: "2026 春",
+  startDate: new Date("2026-02-01T00:00:00.000Z"),
+  endDate: new Date("2026-06-30T00:00:00.000Z"),
+};
+
 describe("registered GraphQL operation runner", () => {
   beforeEach(() => {
     vi.spyOn(console, "info").mockImplementation(() => {});
+    mutationRateLimit.checkUserMutationRateLimit.mockResolvedValue({
+      allowed: true,
+    });
   });
 
   afterEach(() => {
     catalogService.getCurrentSemester.mockReset();
+    todoService.createTodo.mockReset();
+    mutationRateLimit.checkUserMutationRateLimit.mockReset();
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
   it("executes a fixed pre-parsed operation without accepting a document", async () => {
-    catalogService.getCurrentSemester.mockResolvedValue({
-      id: 1,
-      jwId: 202601,
-      code: "2026SP",
-      nameCn: "2026 春",
-      startDate: new Date("2026-02-01T00:00:00.000Z"),
-      endDate: new Date("2026-06-30T00:00:00.000Z"),
-    });
+    catalogService.getCurrentSemester.mockResolvedValue(currentSemester);
 
     await expect(run("catalog.current_semester.v1")).resolves.toMatchObject({
       success: true,
@@ -177,5 +223,94 @@ describe("registered GraphQL operation runner", () => {
     expect(JSON.stringify(result)).not.toContain(
       "private-current-semester-failure",
     );
+  });
+
+  it("times out a running query at the runner boundary", async () => {
+    vi.useFakeTimers();
+    const result = deferred<typeof currentSemester>();
+    const started = deferred<void>();
+    catalogService.getCurrentSemester.mockImplementation(() => {
+      started.resolve(undefined);
+      return result.promise;
+    });
+
+    const execution = run("catalog.current_semester.v1");
+    await started.promise;
+    const assertion = expect(execution).rejects.toMatchObject({
+      code: "REQUEST_TIMEOUT",
+    } satisfies Partial<RegisteredGraphqlOperationError>);
+
+    await vi.advanceTimersByTimeAsync(GRAPHQL_LIMITS.timeoutMs);
+    await assertion;
+    result.resolve(currentSemester);
+    await vi.runAllTimersAsync();
+  });
+
+  it("times out a running serial mutation at the runner boundary", async () => {
+    vi.useFakeTimers();
+    const result = deferred<{ id: string }>();
+    const started = deferred<void>();
+    todoService.createTodo.mockImplementation(() => {
+      started.resolve(undefined);
+      return result.promise;
+    });
+
+    const execution = run("todo.create.v1", {
+      confirmed: true,
+      variables: { input: { title: "Slow todo" } },
+    });
+    await started.promise;
+    const assertion = expect(execution).rejects.toMatchObject({
+      code: "REQUEST_TIMEOUT",
+    } satisfies Partial<RegisteredGraphqlOperationError>);
+
+    await vi.advanceTimersByTimeAsync(GRAPHQL_LIMITS.timeoutMs);
+    await assertion;
+    result.resolve({ id: "late-todo" });
+    await vi.runAllTimersAsync();
+  });
+
+  it("cancels a running query at the runner boundary", async () => {
+    const result = deferred<typeof currentSemester>();
+    const started = deferred<void>();
+    const controller = new AbortController();
+    catalogService.getCurrentSemester.mockImplementation(() => {
+      started.resolve(undefined);
+      return result.promise;
+    });
+
+    const execution = run("catalog.current_semester.v1", {
+      signal: controller.signal,
+    });
+    await started.promise;
+    controller.abort(new DOMException("Caller cancelled", "AbortError"));
+
+    await expect(execution).rejects.toMatchObject({
+      code: "REQUEST_CANCELLED",
+    } satisfies Partial<RegisteredGraphqlOperationError>);
+    result.resolve(currentSemester);
+  });
+
+  it("cancels a running serial mutation at the runner boundary", async () => {
+    const result = deferred<{ id: string }>();
+    const started = deferred<void>();
+    const controller = new AbortController();
+    todoService.createTodo.mockImplementation(() => {
+      started.resolve(undefined);
+      return result.promise;
+    });
+
+    const execution = run("todo.create.v1", {
+      confirmed: true,
+      signal: controller.signal,
+      variables: { input: { title: "Cancelled todo" } },
+    });
+    await started.promise;
+    controller.abort(new DOMException("Caller cancelled", "AbortError"));
+
+    await expect(execution).rejects.toMatchObject({
+      code: "REQUEST_CANCELLED",
+    } satisfies Partial<RegisteredGraphqlOperationError>);
+    result.resolve({ id: "cancelled-todo" });
   });
 });
