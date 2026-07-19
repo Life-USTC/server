@@ -1,6 +1,6 @@
 import { selectCurrentSemesterFromList } from "@/features/catalog/lib/current-semester";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
-import type { getPrisma } from "@/lib/db/prisma";
+import { getPrisma } from "@/lib/db/prisma";
 
 export async function loadDashboardPublicSummary(
   prisma: ReturnType<typeof getPrisma> | null,
@@ -49,4 +49,19 @@ export async function loadDashboardPublicSummary(
         ?.nameCn ?? null,
     links,
   };
+}
+
+export async function loadDashboardPublicSummaryWithFallback(
+  locale: AppLocale,
+  referenceNow: Date | null,
+) {
+  try {
+    return await loadDashboardPublicSummary(
+      getPrisma(locale),
+      referenceNow,
+      locale,
+    );
+  } catch {
+    return loadDashboardPublicSummary(null, referenceNow, locale);
+  }
 }

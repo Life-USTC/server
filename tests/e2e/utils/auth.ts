@@ -14,6 +14,10 @@ type AuthStorageState = Awaited<
 
 const authStorageStateCache = new Map<AuthRole, AuthStorageState>();
 
+function authenticatedLandingPath(path: string) {
+  return path === "/" ? "/dashboard" : path;
+}
+
 function escapeForRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -184,11 +188,12 @@ export async function signInAsDebugUser(
   expectedPath = callbackPath,
   options: { ui?: boolean } = {},
 ) {
-  if (!options.ui && (await applyCachedSession(page, "debug", expectedPath))) {
+  const landingPath = authenticatedLandingPath(expectedPath);
+  if (!options.ui && (await applyCachedSession(page, "debug", landingPath))) {
     return;
   }
 
-  await signInWithDevButton(page, "debug", callbackPath, expectedPath);
+  await signInWithDevButton(page, "debug", callbackPath, landingPath);
 }
 
 export async function signInAsDevAdmin(
@@ -197,9 +202,10 @@ export async function signInAsDevAdmin(
   expectedPath = callbackPath,
   options: { ui?: boolean } = {},
 ) {
-  if (!options.ui && (await applyCachedSession(page, "admin", expectedPath))) {
+  const landingPath = authenticatedLandingPath(expectedPath);
+  if (!options.ui && (await applyCachedSession(page, "admin", landingPath))) {
     return;
   }
 
-  await signInWithDevButton(page, "admin", callbackPath, expectedPath);
+  await signInWithDevButton(page, "admin", callbackPath, landingPath);
 }
