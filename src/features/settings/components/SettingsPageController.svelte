@@ -70,6 +70,14 @@ $: avatarOptions =
 $: currentImage = data.user.image ?? "";
 $: previewImage = selectedImage || "/images/icon.png";
 $: statusMessage = form?.message ?? data.message;
+$: if (
+  _unlinkAccountId &&
+  !data.accounts.some(
+    (account) => account.id === _unlinkAccountId && account.linked,
+  )
+) {
+  _unlinkAccountId = null;
+}
 $: _unlinkAccount =
   data.accounts.find((account) => account.id === _unlinkAccountId) ?? null;
 $: _hasPendingAccountAction = Boolean(_pendingAccountAction);
