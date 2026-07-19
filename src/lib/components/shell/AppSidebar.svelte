@@ -1,5 +1,6 @@
 <script lang="ts">
 import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
+import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
 import type { ThemeMode } from "$lib/components/shell/layout-shell";
 import * as Collapsible from "$lib/components/ui/collapsible/index.js";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
@@ -91,7 +92,7 @@ function closeMobileSidebar(): void {
               >
                 <img
                   class="size-6 rounded-md"
-                  src="/images/icon.png"
+                  src={appIconUrl}
                   alt=""
                   aria-hidden="true"
                 />

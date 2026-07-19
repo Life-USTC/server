@@ -40,8 +40,25 @@ export type CloudflareRateLimiter = {
   limit(options: { key: string }): Promise<{ success: boolean }>;
 };
 
+type CloudflareExecutionContext = {
+  waitUntil(promise: Promise<unknown>): void;
+};
+
+export type CloudflareKVNamespace = {
+  get<T = unknown>(
+    key: string,
+    options: { cacheTtl?: number; type: "json" },
+  ): Promise<T | null>;
+  put(
+    key: string,
+    value: string,
+    options?: { expirationTtl?: number },
+  ): Promise<void>;
+};
+
 type CloudflareRuntimeEnv = Record<string, unknown> & {
   ANALYTICS?: CloudflareAnalyticsEngineDataset;
+  CALENDAR_EXPORTS?: CloudflareKVNamespace;
   HYPERDRIVE?: {
     connectionString?: unknown;
   };
@@ -132,6 +149,25 @@ export function getCloudflareR2UploadsBucket() {
 
 export function getCloudflareAnalyticsEngineDataset() {
   return getCurrentCloudflareRuntimeEnv()?.ANALYTICS;
+}
+
+export function getCloudflareCalendarExportsNamespace() {
+  return getCurrentCloudflareRuntimeEnv()?.CALENDAR_EXPORTS;
+}
+
+export function getCloudflareTaskScheduler(platform: unknown) {
+  if (!platform || typeof platform !== "object") return undefined;
+  const value = platform as { context?: unknown; ctx?: unknown };
+  const context = value.ctx ?? value.context;
+  if (!context || typeof context !== "object" || !("waitUntil" in context)) {
+    return undefined;
+  }
+  const executionContext = context as Partial<CloudflareExecutionContext>;
+  if (typeof executionContext.waitUntil !== "function") return undefined;
+
+  return (promise: Promise<unknown>) => {
+    executionContext.waitUntil?.(promise);
+  };
 }
 
 export function getCloudflareUserMutationRateLimiter(tier: "batch" | "write") {
