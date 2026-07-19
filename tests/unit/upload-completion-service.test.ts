@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { uploadConfig } from "@/features/uploads/lib/upload-config";
 import {
+  completeOwnedUploadSession,
   completeUploadSession,
   deleteOwnedUpload,
 } from "@/features/uploads/server/upload-service";
@@ -12,11 +13,13 @@ const {
   headStorageObjectMock,
   pendingAggregateMock,
   pendingDeleteManyMock,
+  pendingFindManyMock,
   pendingFindUniqueMock,
   runSerializableTransactionMock,
   txPendingAggregateMock,
   txPendingDeleteManyMock,
   txPendingFindUniqueMock,
+  txPendingUpdateManyMock,
   txUploadAggregateMock,
   txUploadCreateMock,
   txUploadFindUniqueMock,
@@ -32,11 +35,13 @@ const {
   headStorageObjectMock: vi.fn(),
   pendingAggregateMock: vi.fn(),
   pendingDeleteManyMock: vi.fn(),
+  pendingFindManyMock: vi.fn(),
   pendingFindUniqueMock: vi.fn(),
   runSerializableTransactionMock: vi.fn(),
   txPendingAggregateMock: vi.fn(),
   txPendingDeleteManyMock: vi.fn(),
   txPendingFindUniqueMock: vi.fn(),
+  txPendingUpdateManyMock: vi.fn(),
   txUploadAggregateMock: vi.fn(),
   txUploadCreateMock: vi.fn(),
   txUploadFindUniqueMock: vi.fn(),
@@ -62,6 +67,7 @@ vi.mock("@/lib/db/prisma", () => ({
     uploadPending: {
       aggregate: pendingAggregateMock,
       deleteMany: pendingDeleteManyMock,
+      findMany: pendingFindManyMock,
       findUnique: pendingFindUniqueMock,
     },
   },
@@ -90,6 +96,8 @@ const USER_ID = "user-1";
 
 const validPending = {
   expiresAt: new Date(FIXED_NOW.getTime() + 60_000),
+  key: KEY,
+  size: 10,
   userId: USER_ID,
 };
 
@@ -112,6 +120,7 @@ const txPrisma = {
     aggregate: txPendingAggregateMock,
     deleteMany: txPendingDeleteManyMock,
     findUnique: txPendingFindUniqueMock,
+    updateMany: txPendingUpdateManyMock,
   },
 };
 
@@ -131,6 +140,7 @@ describe("completeUploadSession", () => {
     vi.setSystemTime(FIXED_NOW);
 
     pendingDeleteManyMock.mockResolvedValue({ count: 0 });
+    pendingFindManyMock.mockResolvedValue([]);
     pendingFindUniqueMock.mockResolvedValue(validPending);
     uploadFindUniqueMock.mockResolvedValue(null);
 
@@ -146,9 +156,14 @@ describe("completeUploadSession", () => {
     txPendingAggregateMock.mockResolvedValue({ _sum: { size: 0 } });
     txUploadCreateMock.mockResolvedValue(createdUpload);
     txPendingDeleteManyMock.mockResolvedValue({ count: 1 });
+    txPendingUpdateManyMock.mockResolvedValue({ count: 1 });
     runSerializableTransactionMock.mockImplementation(async (action) =>
       action(txPrisma),
     );
+    getViewerContextMock.mockResolvedValue({
+      isAuthenticated: true,
+      isSuspended: false,
+    });
   });
 
   afterEach(() => {
@@ -189,7 +204,7 @@ describe("completeUploadSession", () => {
     });
   });
 
-  it("对象校验失败时在事务外删除待处理配额", async () => {
+  it("对象校验失败时保留待处理配额且不删除 R2", async () => {
     headStorageObjectMock.mockResolvedValue({ size: 0 });
 
     await expect(
@@ -200,9 +215,25 @@ describe("completeUploadSession", () => {
     ).rejects.toMatchObject({ code: "Uploaded object missing" });
 
     expect(runSerializableTransactionMock).not.toHaveBeenCalled();
-    expect(pendingDeleteManyMock).toHaveBeenLastCalledWith({
-      where: { key: KEY, userId: USER_ID },
+    expect(pendingDeleteManyMock).not.toHaveBeenCalled();
+    expect(deleteStorageObjectMock).not.toHaveBeenCalled();
+  });
+
+  it("对象超过大小限制时保留待处理配额且不删除 R2", async () => {
+    headStorageObjectMock.mockResolvedValue({
+      size: uploadConfig.maxFileSizeBytes + 1,
     });
+
+    await expect(
+      completeUploadSession(USER_ID, {
+        filename: "test.txt",
+        key: KEY,
+      }),
+    ).rejects.toMatchObject({ code: "File too large" });
+
+    expect(runSerializableTransactionMock).not.toHaveBeenCalled();
+    expect(pendingDeleteManyMock).not.toHaveBeenCalled();
+    expect(deleteStorageObjectMock).not.toHaveBeenCalled();
   });
 
   it("返回并发完成的上传而非再次校验存储", async () => {
@@ -230,9 +261,11 @@ describe("completeUploadSession", () => {
     });
   });
 
-  it("预留会话在事务重新检查前过期时提交待清理项", async () => {
+  it("预留会话在事务重新检查前过期时保留待清理项", async () => {
     const expiringPending = {
       expiresAt: new Date(FIXED_NOW.getTime() + 1_000),
+      key: KEY,
+      size: 10,
       userId: USER_ID,
     };
     pendingFindUniqueMock.mockResolvedValue(expiringPending);
@@ -256,13 +289,11 @@ describe("completeUploadSession", () => {
     ).rejects.toMatchObject({ code: "Upload session expired" });
 
     expect(transactionActionCompleted).toBe(true);
-    expect(txPendingDeleteManyMock).toHaveBeenCalledWith({
-      where: { key: KEY, userId: USER_ID },
-    });
+    expect(txPendingDeleteManyMock).not.toHaveBeenCalled();
     expect(txUploadCreateMock).not.toHaveBeenCalled();
   });
 
-  it("事务内配额校验失败时提交待清理项", async () => {
+  it("事务内配额校验失败时保留待清理项", async () => {
     txUploadAggregateMock.mockResolvedValue({
       _sum: { size: uploadConfig.totalQuotaBytes },
     });
@@ -274,10 +305,97 @@ describe("completeUploadSession", () => {
       }),
     ).rejects.toMatchObject({ code: "Quota exceeded" });
 
-    expect(txPendingDeleteManyMock).toHaveBeenCalledWith({
-      where: { key: KEY, userId: USER_ID },
+    expect(txPendingDeleteManyMock).not.toHaveBeenCalled();
+    expect(txPendingUpdateManyMock).toHaveBeenCalledWith({
+      where: {
+        key: KEY,
+        userId: USER_ID,
+        expiresAt: { gte: FIXED_NOW },
+      },
+      data: { expiresAt: new Date(FIXED_NOW.getTime() - 1) },
     });
     expect(txUploadCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("可串行事务重试看到并发完成后不再清理 R2", async () => {
+    txUploadAggregateMock.mockResolvedValue({
+      _sum: { size: uploadConfig.totalQuotaBytes },
+    });
+    txUploadFindUniqueMock
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(createdUpload);
+    runSerializableTransactionMock.mockImplementation(async (action) => {
+      await action(txPrisma);
+      return action(txPrisma);
+    });
+
+    await expect(
+      completeOwnedUploadSession(USER_ID, {
+        filename: "test.txt",
+        key: KEY,
+      }),
+    ).resolves.toMatchObject({
+      ok: true,
+      completion: { upload: { id: "upload-1" } },
+    });
+
+    expect(txPendingUpdateManyMock).toHaveBeenCalledTimes(1);
+    expect(deleteStorageObjectMock).not.toHaveBeenCalled();
+  });
+
+  it("限制过期 DB 清理批次且不触碰 R2", async () => {
+    const staleKey = "uploads/user-1/stale.txt";
+    pendingFindManyMock.mockResolvedValue([{ key: staleKey }]);
+
+    await expect(
+      completeUploadSession(USER_ID, {
+        filename: "test.txt",
+        key: KEY,
+      }),
+    ).resolves.toMatchObject({ upload: { id: "upload-1" } });
+
+    expect(pendingFindManyMock).toHaveBeenCalledWith({
+      where: {
+        userId: USER_ID,
+        expiresAt: { lt: FIXED_NOW },
+        NOT: { key: KEY },
+      },
+      orderBy: [{ expiresAt: "asc" }, { key: "asc" }],
+      select: { key: true },
+      take: 25,
+    });
+    expect(pendingDeleteManyMock).toHaveBeenCalledWith({
+      where: {
+        key: { in: [staleKey] },
+        userId: USER_ID,
+        expiresAt: { lt: FIXED_NOW },
+      },
+    });
+    expect(deleteStorageObjectMock).not.toHaveBeenCalled();
+  });
+
+  it("配额失败时仅过期待处理行且不触碰 R2", async () => {
+    txUploadAggregateMock.mockResolvedValue({
+      _sum: { size: uploadConfig.totalQuotaBytes },
+    });
+
+    await expect(
+      completeOwnedUploadSession(USER_ID, {
+        filename: "test.txt",
+        key: KEY,
+      }),
+    ).rejects.toMatchObject({ code: "Quota exceeded" });
+    expect(txPendingDeleteManyMock).not.toHaveBeenCalled();
+    expect(txPendingUpdateManyMock).toHaveBeenCalledWith({
+      where: {
+        key: KEY,
+        userId: USER_ID,
+        expiresAt: { gte: FIXED_NOW },
+      },
+      data: { expiresAt: new Date(FIXED_NOW.getTime() - 1) },
+    });
+    expect(pendingDeleteManyMock).not.toHaveBeenCalled();
+    expect(deleteStorageObjectMock).not.toHaveBeenCalled();
   });
 });
 

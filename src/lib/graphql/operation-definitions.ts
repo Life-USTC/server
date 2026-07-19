@@ -908,6 +908,25 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: false,
   }),
   mutation({
+    id: "dashboard.set_link_pin_states_batch.v1",
+    title: "Set dashboard link pin states in batch",
+    description:
+      "Applies up to 10 viewer dashboard pin changes in order and returns the final pin state.",
+    document: /* GraphQL */ `
+      mutation DashboardSetLinkPinStatesBatch(
+        $items: [DashboardLinkPinBatchItemInput!]!
+      ) {
+        setDashboardLinkPinStates(items: $items) {
+          pinnedSlugs
+          maxPinnedLinks
+        }
+      }
+    `,
+    scopes: ["dashboard:write"],
+    destructive: true,
+    openWorld: false,
+  }),
+  mutation({
     id: "bus.save_preferences.v1",
     title: "Save bus preferences",
     description: "Saves the authenticated viewer's campus bus preferences.",
@@ -987,6 +1006,29 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: true,
   }),
   mutation({
+    id: "comment.delete_batch.v1",
+    title: "Delete comments in batch",
+    description:
+      "Deletes up to 50 viewer-owned comments with stable per-item results.",
+    document: /* GraphQL */ `
+      mutation CommentDeleteBatch($ids: [ID!]!) {
+        deleteComments(ids: $ids) {
+          results {
+            success
+            id
+            error {
+              code
+              message
+            }
+          }
+        }
+      }
+    `,
+    scopes: ["comment:write"],
+    destructive: true,
+    openWorld: true,
+  }),
+  mutation({
     id: "comment.add_reaction.v1",
     title: "Add comment reaction",
     description: "Adds the viewer's reaction to a visible comment.",
@@ -1025,6 +1067,89 @@ export const persistedGraphqlOperationDefinitions = [
       }
     `,
     scopes: ["comment:write"],
+    destructive: true,
+    openWorld: true,
+  }),
+  mutation({
+    id: "upload.create_session.v1",
+    title: "Create upload session",
+    description:
+      "Reserves quota and returns metadata for the authenticated on-site object upload workflow; bounded stale-session cleanup removes expired reservation rows only.",
+    document: /* GraphQL */ `
+      mutation UploadCreateSession($input: CreateUploadSessionInput!) {
+        createUploadSession(input: $input) {
+          key
+          url
+          maxFileSizeBytes
+          quotaBytes
+          usedBytes
+        }
+      }
+    `,
+    scopes: ["upload:write"],
+    destructive: true,
+    openWorld: true,
+  }),
+  mutation({
+    id: "upload.complete.v1",
+    title: "Complete upload",
+    description:
+      "Validates an already-uploaded R2 object and commits its owned metadata; failure leaves R2 lifecycle cleanup to the dedicated storage workflow.",
+    document: /* GraphQL */ `
+      mutation UploadComplete($input: CompleteUploadSessionInput!) {
+        completeUploadSession(input: $input) {
+          upload {
+            id
+            key
+            filename
+            size
+            createdAt
+          }
+          usedBytes
+          quotaBytes
+        }
+      }
+    `,
+    scopes: ["upload:write"],
+    destructive: true,
+    openWorld: true,
+  }),
+  mutation({
+    id: "upload.rename.v1",
+    title: "Rename upload",
+    description: "Renames one upload owned by the authenticated viewer.",
+    document: /* GraphQL */ `
+      mutation UploadRename($id: ID!, $filename: String!) {
+        renameUpload(id: $id, filename: $filename) {
+          upload {
+            id
+            key
+            filename
+            size
+            createdAt
+          }
+        }
+      }
+    `,
+    scopes: ["upload:write"],
+    destructive: true,
+    openWorld: false,
+  }),
+  mutation({
+    id: "upload.delete.v1",
+    title: "Delete upload",
+    description:
+      "Deletes one viewer-owned R2 object before transactionally deleting its metadata and recording the audit entry.",
+    document: /* GraphQL */ `
+      mutation UploadDelete($id: ID!) {
+        deleteUpload(id: $id) {
+          id
+          success
+          deletedSize
+        }
+      }
+    `,
+    scopes: ["upload:write"],
     destructive: true,
     openWorld: true,
   }),

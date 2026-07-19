@@ -16,6 +16,7 @@ import {
 import { buildUploadKey } from "@/lib/storage/upload-key";
 
 export const MAX_UPLOAD_EXPIRES_SECONDS = 300;
+const EXPIRED_PENDING_UPLOAD_CLEANUP_BATCH_SIZE = 25;
 
 export type UploadCreateInput = {
   contentType: string;
@@ -45,8 +46,27 @@ type UploadUsagePrisma = {
       };
       _sum: { size: true };
     }) => Promise<{ _sum: { size: number | null } }>;
+  };
+};
+
+type ExpiredPendingUploadCleanupPrisma = {
+  uploadPending: {
+    findMany: (input: {
+      where: {
+        userId: string;
+        expiresAt: { lt: Date };
+        NOT?: { key: string };
+      };
+      orderBy: [{ expiresAt: "asc" }, { key: "asc" }];
+      select: { key: true };
+      take: number;
+    }) => Promise<Array<{ key: string }>>;
     deleteMany: (input: {
-      where: { userId: string; expiresAt: { lt: Date } };
+      where: {
+        key: { in: string[] };
+        userId: string;
+        expiresAt: { lt: Date };
+      };
     }) => Promise<unknown>;
   };
 };
@@ -134,12 +154,26 @@ export async function createUploadSession(input: {
   };
 }
 
+export async function createOwnedUploadSession(input: {
+  origin: string;
+  upload: UploadCreateInput;
+  userId: string;
+}) {
+  const writer = await requireActiveUploadWriter(input.userId);
+  if (!writer.ok) return writer;
+
+  return {
+    ok: true as const,
+    session: await createUploadSession(input),
+  };
+}
+
 export async function completeUploadSession(
   userId: string,
   input: UploadCompleteInput,
 ) {
   const now = new Date();
-  await deleteExpiredPendingUploads(prisma, userId, now);
+  await deleteExpiredPendingUploads(prisma, userId, now, input.key);
   if (!uploadKeyBelongsToUser(input.key, userId)) {
     throw new UploadError("Upload session expired");
   }
@@ -165,15 +199,7 @@ export async function completeUploadSession(
     throw error;
   }
 
-  let uploadedObject: Awaited<ReturnType<typeof validateUploadedObject>>;
-  try {
-    uploadedObject = await validateUploadedObject(input);
-  } catch (error) {
-    if (error instanceof UploadError) {
-      await deletePendingUpload(input.key, userId);
-    }
-    throw error;
-  }
+  const uploadedObject = await validateUploadedObject(input);
 
   const reservation = await runUploadSerializableTransaction(async (tx) => {
     const completed = await tx.upload.findUnique({
@@ -213,9 +239,6 @@ export async function completeUploadSession(
 
     const transactionNow = new Date();
     if (pending.expiresAt < transactionNow) {
-      await tx.uploadPending.deleteMany({
-        where: { key: input.key, userId },
-      });
       return {
         ok: false,
         code: "Upload session expired",
@@ -229,8 +252,13 @@ export async function completeUploadSession(
       now: transactionNow,
     });
     if (usedBytes + uploadedObject.size > uploadConfig.totalQuotaBytes) {
-      await tx.uploadPending.deleteMany({
-        where: { key: input.key, userId },
+      await tx.uploadPending.updateMany({
+        where: {
+          key: input.key,
+          userId,
+          expiresAt: { gte: transactionNow },
+        },
+        data: { expiresAt: new Date(transactionNow.getTime() - 1) },
       });
       return {
         ok: false,
@@ -262,6 +290,22 @@ export async function completeUploadSession(
   }
 
   return uploadUsagePayload(reservation.upload, reservation.usedBytes);
+}
+
+export async function completeOwnedUploadSession(
+  userId: string,
+  input: UploadCompleteInput,
+) {
+  const writer = await requireActiveUploadWriter(userId);
+  if (!writer.ok) return writer;
+  if (!uploadKeyBelongsToUser(input.key, userId)) {
+    return { ok: false as const, error: "forbidden" as const };
+  }
+
+  return {
+    ok: true as const,
+    completion: await completeUploadSession(userId, input),
+  };
 }
 
 export async function listUploads(
@@ -350,7 +394,7 @@ async function findUploadRecordForDeletion(input: {
 export async function deleteOwnedUpload(input: {
   audit?: {
     ipAddress?: string;
-    source?: "mcp";
+    source?: "graphql" | "mcp";
     userAgent?: string;
   };
   id: string;
@@ -459,10 +503,6 @@ export async function validatePendingUploadObject(input: {
   };
 }
 
-export async function deleteUploadObject(key: string) {
-  await deleteStorageObject(key);
-}
-
 async function requireActiveUploadWriter(userId: string) {
   const viewer = await getViewerContext({ includeAdmin: true, userId });
   if (!viewer.isAuthenticated) {
@@ -513,7 +553,7 @@ async function writeUploadDeleteAuditLog({
 }: {
   audit?: {
     ipAddress?: string;
-    source?: "mcp";
+    source?: "graphql" | "mcp";
     userAgent?: string;
   };
   client: NonNullable<Parameters<typeof writeAuditLog>[1]>;
@@ -539,12 +579,29 @@ async function writeUploadDeleteAuditLog({
 }
 
 async function deleteExpiredPendingUploads(
-  uploadPrisma: UploadUsagePrisma,
+  uploadPrisma: ExpiredPendingUploadCleanupPrisma,
   userId: string,
   now: Date,
+  excludeKey?: string,
 ) {
+  const expiredUploads = await uploadPrisma.uploadPending.findMany({
+    where: {
+      userId,
+      expiresAt: { lt: now },
+      ...(excludeKey ? { NOT: { key: excludeKey } } : {}),
+    },
+    orderBy: [{ expiresAt: "asc" }, { key: "asc" }],
+    select: { key: true },
+    take: EXPIRED_PENDING_UPLOAD_CLEANUP_BATCH_SIZE,
+  });
+  if (expiredUploads.length === 0) return;
+
   await uploadPrisma.uploadPending.deleteMany({
-    where: { userId, expiresAt: { lt: now } },
+    where: {
+      key: { in: expiredUploads.map(({ key }) => key) },
+      userId,
+      expiresAt: { lt: now },
+    },
   });
 }
 
@@ -590,7 +647,6 @@ async function assertActivePendingUpload(input: {
   }
 
   if (pending.expiresAt < input.now) {
-    await deletePendingUpload(input.key, input.userId);
     throw new UploadError("Upload session expired");
   }
 }
@@ -633,7 +689,6 @@ async function validateUploadedObject(input: {
   }
 
   if (size > uploadConfig.maxFileSizeBytes) {
-    await deleteStorageObject(input.key);
     throw new UploadError("File too large");
   }
 

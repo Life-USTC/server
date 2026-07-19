@@ -4,12 +4,12 @@
     "anon": "Cannot upload attachments.",
     "user": "Can upload in the comment attachment flow; download permissions must be re-validated.",
     "admin": "No standalone public 'upload management console' currently exists.",
-    "agent": "Can list, rename, and delete the current user's upload metadata through MCP; binary object transfer remains REST/HTTP-only."
+    "agent": "Can initiate and complete upload metadata workflows and manage owned upload metadata through registered GraphQL operations; binary object transfer remains REST/HTTP-only."
   },
   "rules": {
     "comment-attachments-only": "Uploads serve only comment attachments; they are not an independent file space.",
     "permission-and-quota": "Permission and quota checks are required before upload.",
-    "pure-upload-reads": "GET upload-list requests never delete pending reservations. Expired reservations are excluded from quota calculations, while cleanup remains confined to upload create and completion write paths.",
+    "pure-upload-reads": "GET upload-list requests never delete pending reservations. Expired reservations are excluded from quota calculations, while upload create and completion write paths remove a bounded oldest-first batch of expired UploadPending rows only. Request-path reservation cleanup never deletes R2 objects because it cannot coordinate safely with a PUT already in flight; orphan object reconciliation belongs to a dedicated storage lifecycle workflow.",
     "paginated-upload-list": "Completed uploads use the shared { data, pagination, meta } list envelope. REST accepts page/pageSize with deprecated limit compatibility, MCP accepts page/limit, and quota plus file-size metadata lives under meta.",
     "write-auth-unsuspended": "Upload write routes require an unsuspended signed-in user; suspended users receive 403 before upload metadata or object state changes.",
     "three-step-upload": "Web comment attachment uploads follow a three-step flow — create upload session on-site → browser PUT to an on-site Cloudflare Workers upload object route backed by R2 → confirm completion on-site.",
@@ -20,7 +20,7 @@
     "one-upload-one-comment": "A completed upload can be attached to at most one comment. Reusing an upload id across comments is rejected instead of treated as implicit file sharing.",
     "download-auth-required": "Downloads must not bypass authorization by obtaining a direct link.",
     "download-delivery": "/api/uploads/[id]/download validates owner access or visible comment-attachment access before streaming the object from the R2 binding.",
-    "mcp-transfer-boundary": "MCP upload tools manage upload metadata and ownership actions only. Creating upload sessions, PUT object transfer, completion, and download delivery remain REST/HTTP surfaces because they depend on browser/client byte streams and R2 object responses rather than text-formatted JSON tool output."
+    "mcp-transfer-boundary": "MCP registered GraphQL operations may reserve quota, return the on-site authenticated PUT workflow URL, complete an already-uploaded object, and manage owned metadata. MCP never receives, proxies, or returns raw object bytes; PUT and download delivery remain R2-backed HTTP surfaces. MCP-resource bearer tokens cannot be replayed at the REST PUT URL, so byte-transfer clients need a browser session or separately authorized REST upload token."
   },
   "capabilities": {
     "upload-list": {
@@ -67,6 +67,36 @@
       "title": "Comment Attachment Upload",
       "auth": "user",
       "web": "stable",
+      "graphql": {
+        "mutations": [
+          {
+            "name": "createUploadSession",
+            "returns": "UploadSessionPayload!",
+            "auth": "user",
+            "required_scopes": ["upload:write"],
+            "rest_equivalent": "POST /api/uploads",
+            "mcp_equivalent": "run_graphql_operation",
+            "notes": [
+              "Registered operation id: upload.create_session.v1.",
+              "Reserves quota and returns only workflow metadata; no byte input exists.",
+              "The operation is marked destructive because it creates an UploadPending quota reservation; its bounded stale-session sweep removes expired reservation rows only."
+            ]
+          },
+          {
+            "name": "completeUploadSession",
+            "returns": "UploadCompletionPayload!",
+            "auth": "user",
+            "required_scopes": ["upload:write"],
+            "rest_equivalent": "POST /api/uploads/complete",
+            "mcp_equivalent": "run_graphql_operation",
+            "notes": [
+              "Registered operation id: upload.complete.v1.",
+              "Validates the existing R2 object and commits metadata without accepting bytes.",
+              "Expiry, quota, missing-object, and oversized-object failures do not delete R2 from the request path. The reservation remains owned until bounded expired-row cleanup, while orphan object reconciliation requires a dedicated storage lifecycle workflow."
+            ]
+          }
+        ]
+      },
       "rest": {
         "routes": [
           {
@@ -89,11 +119,27 @@
           {
             "path": "/api/uploads/complete",
             "method": "POST",
-            "returns": "{ upload: Upload, usedBytes: Int, quotaBytes: Int }"
+            "returns": "{ upload: Upload, usedBytes: Int, quotaBytes: Int }",
+            "notes": [
+              "Expiry, quota, missing-object, and oversized-object failures return their existing 400 response without deleting R2 from the request path.",
+              "Expired reservation rows are reclaimed in bounded DB-only batches; orphan object reconciliation requires a dedicated storage lifecycle workflow."
+            ]
           }
         ]
       },
-      "mcp": "unavailable",
+      "mcp": {
+        "tools": [
+          {
+            "name": "run_graphql_operation",
+            "returns": "Registered upload workflow metadata",
+            "notes": [
+              "upload.create_session.v1 reserves quota and returns the authenticated on-site PUT workflow URL; upload.complete.v1 completes metadata for an object already uploaded through that HTTP URL.",
+              "No MCP input accepts raw object bytes, and MCP-resource bearer tokens cannot be replayed at the REST PUT URL.",
+              "Completion failures do not attempt request-path R2 cleanup; expired reservation rows and orphan objects have separate DB and storage lifecycle responsibilities."
+            ]
+          }
+        ]
+      },
       "display": {
         "fields": [
           "File input",
@@ -127,6 +173,31 @@
       "title": "Upload Rename & Delete",
       "auth": "user",
       "web": "stable",
+      "graphql": {
+        "mutations": [
+          {
+            "name": "renameUpload",
+            "returns": "UploadMutationPayload!",
+            "auth": "user",
+            "required_scopes": ["upload:write"],
+            "rest_equivalent": "PATCH /api/uploads/[id]",
+            "mcp_equivalent": "run_graphql_operation",
+            "notes": ["Registered operation id: upload.rename.v1."]
+          },
+          {
+            "name": "deleteUpload",
+            "returns": "UploadDeleteMutationPayload!",
+            "auth": "user",
+            "required_scopes": ["upload:write"],
+            "rest_equivalent": "DELETE /api/uploads/[id]",
+            "mcp_equivalent": "run_graphql_operation",
+            "notes": [
+              "Registered operation id: upload.delete.v1.",
+              "Returns SERVICE_UNAVAILABLE when R2 deletion cannot be confirmed and preserves metadata for retry."
+            ]
+          }
+        ]
+      },
       "rest": {
         "routes": [
           {

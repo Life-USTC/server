@@ -6,6 +6,9 @@ const catalogService = vi.hoisted(() => ({
 const todoService = vi.hoisted(() => ({
   createTodo: vi.fn(),
 }));
+const uploadService = vi.hoisted(() => ({
+  completeOwnedUploadSession: vi.fn(),
+}));
 const mutationRateLimit = vi.hoisted(() => ({
   checkUserMutationRateLimit: vi.fn(),
 }));
@@ -32,6 +35,17 @@ vi.mock("@/features/todos/server/todo-service", async (importOriginal) => {
   return {
     ...original,
     createTodo: todoService.createTodo,
+  };
+});
+
+vi.mock("@/features/uploads/server/upload-service", async (importOriginal) => {
+  const original =
+    await importOriginal<
+      typeof import("@/features/uploads/server/upload-service")
+    >();
+  return {
+    ...original,
+    completeOwnedUploadSession: uploadService.completeOwnedUploadSession,
   };
 });
 
@@ -119,6 +133,7 @@ describe("registered GraphQL operation runner", () => {
   afterEach(() => {
     catalogService.getCurrentSemester.mockReset();
     todoService.createTodo.mockReset();
+    uploadService.completeOwnedUploadSession.mockReset();
     mutationRateLimit.checkUserMutationRateLimit.mockReset();
     vi.useRealTimers();
     vi.restoreAllMocks();
@@ -169,6 +184,25 @@ describe("registered GraphQL operation runner", () => {
       code: "BAD_USER_INPUT",
       message: expect.stringContaining(
         "DateTime must be an ISO 8601 datetime with a timezone.",
+      ),
+    } satisfies Partial<RegisteredGraphqlOperationError>);
+    await expect(
+      run("upload.create_session.v1", {
+        confirmed: true,
+        scopes: new Set(["upload:write"]),
+        variables: {
+          input: {
+            filename: "report.pdf",
+            contentType: "application/pdf",
+            size: 12,
+            bytes: "raw-object-data-is-never-accepted",
+          },
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: "BAD_USER_INPUT",
+      message: expect.stringContaining(
+        'Field "bytes" is not defined by type "CreateUploadSessionInput"',
       ),
     } satisfies Partial<RegisteredGraphqlOperationError>);
   });

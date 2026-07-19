@@ -33,3 +33,7 @@ export function forbiddenMutation(message = "Forbidden"): never {
 export function mutationNotFound(message: string): never {
   throw new GraphqlMutationError(message, "NOT_FOUND", 404);
 }
+
+export function serviceUnavailableMutation(message: string): never {
+  throw new GraphqlMutationError(message, "SERVICE_UNAVAILABLE", 503);
+}

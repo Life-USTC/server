@@ -9,8 +9,8 @@
       "description": "User edits their own comment. MCP-originated writes include metadata.source=mcp."
     },
     "comment_delete": {
-      "trigger": "DELETE /api/comments/[id] or MCP delete_own_comment",
-      "description": "User deletes their own comment. MCP-originated writes include metadata.source=mcp."
+      "trigger": "DELETE /api/comments/[id], DELETE /api/comments/batch, GraphQL deleteComment/deleteComments, MCP delete_own_comment, or registered GraphQL operations",
+      "description": "User deletes their own comment. Transport-originated writes include safe metadata.source where available."
     },
     "comment_react": {
       "trigger": "POST /api/comments/[id]/reactions, DELETE /api/comments/[id]/reactions, MCP add_comment_reaction, or MCP remove_comment_reaction",
@@ -21,8 +21,8 @@
       "description": "User updates an object description (content changed). The description row, edit history, and audit row are committed together."
     },
     "upload_delete": {
-      "trigger": "DELETE /api/uploads/[id] or MCP delete_my_upload",
-      "description": "User deletes an upload they own. MCP-originated writes include metadata.source=mcp. After storage deletion succeeds, metadata deletion and the audit row are committed together."
+      "trigger": "DELETE /api/uploads/[id], GraphQL deleteUpload, MCP delete_my_upload, or the registered GraphQL operation",
+      "description": "User deletes an upload they own. Transport-originated writes include metadata.source where available. After storage deletion succeeds, metadata deletion and the audit row are committed together."
     },
     "section_retire": {
       "trigger": "Reserved",
