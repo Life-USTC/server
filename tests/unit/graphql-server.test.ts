@@ -19,12 +19,26 @@ const todoService = vi.hoisted(() => ({
   deleteOwnedTodo: vi.fn(),
   updateOwnedTodo: vi.fn(),
 }));
+const descriptionService = vi.hoisted(() => ({
+  upsertDescriptionContent: vi.fn(),
+}));
+const descriptionTargets = vi.hoisted(() => ({
+  resolveDescriptionTargetReference: vi.fn(),
+}));
 
 vi.mock("@/features/catalog/server/course-summary-read-model", () => ({
   listCourseSummaries: courseService.listCourseSummaries,
 }));
 vi.mock("@/features/bus/server/bus-catalog", () => busService);
 vi.mock("@/features/todos/server/todo-service", () => todoService);
+vi.mock(
+  "@/features/descriptions/server/description-upsert",
+  () => descriptionService,
+);
+vi.mock(
+  "@/features/descriptions/server/description-targets",
+  () => descriptionTargets,
+);
 vi.mock("@/lib/auth/core", () => authCore);
 
 import { createGraphqlRequestHandler } from "@/lib/graphql/server";
@@ -43,6 +57,24 @@ function requestEventFromRequest(request: Request): RequestEvent {
       requestId: "graphql-unit-test",
     },
   } as unknown as RequestEvent;
+}
+
+function sessionRequestEvent(
+  body: unknown,
+  extraHeaders: Record<string, string> = {},
+) {
+  return requestEventFromRequest(
+    new Request("http://localhost:3000/api/graphql", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: "better-auth.session_token=session-token",
+        origin: "http://localhost:3000",
+        ...extraHeaders,
+      },
+      body: JSON.stringify(body),
+    }),
+  );
 }
 
 function requestEvent(body: unknown): RequestEvent {
@@ -89,6 +121,8 @@ describe("GraphQL HTTP boundary", () => {
     todoService.createTodo.mockReset();
     todoService.deleteOwnedTodo.mockReset();
     todoService.updateOwnedTodo.mockReset();
+    descriptionService.upsertDescriptionContent.mockReset();
+    descriptionTargets.resolveDescriptionTargetReference.mockReset();
     courseService.listCourseSummaries.mockResolvedValue({
       data: [],
       pagination: {
@@ -102,6 +136,17 @@ describe("GraphQL HTTP boundary", () => {
     busService.listBusRoutes.mockResolvedValue({ routes: [], campuses: [] });
     authCore.getSessionFromHeaders.mockResolvedValue(null);
     todoService.createTodo.mockResolvedValue({ id: "todo-created" });
+    descriptionTargets.resolveDescriptionTargetReference.mockResolvedValue({
+      ok: true,
+      target: {},
+      targetId: 101,
+      targetType: "section",
+    });
+    descriptionService.upsertDescriptionContent.mockResolvedValue({
+      id: "description-created",
+      ok: true,
+      updated: true,
+    });
   });
 
   it("serves public queries without a session and prevents response caching", async () => {
@@ -267,6 +312,148 @@ describe("GraphQL HTTP boundary", () => {
         title: undefined,
       },
     });
+  });
+
+  it("reuses the description service with session identity and GraphQL audit metadata", async () => {
+    authCore.getSessionFromHeaders.mockResolvedValue({
+      user: { id: "session-user" },
+    });
+    const response = await developmentHandler(
+      sessionRequestEvent(
+        {
+          query: /* GraphQL */ `
+            mutation UpsertDescription($input: UpsertDescriptionInput!) {
+              upsertDescription(input: $input) {
+                id
+                updated
+              }
+            }
+          `,
+          variables: {
+            input: {
+              content: "  GraphQL description  ",
+              sectionJwId: 12345,
+              targetType: "SECTION",
+            },
+          },
+        },
+        {
+          "user-agent": "graphql-unit-agent",
+          "x-forwarded-for": "192.0.2.40",
+        },
+      ),
+    );
+
+    expect(await response.json()).toEqual({
+      data: {
+        upsertDescription: {
+          id: "description-created",
+          updated: true,
+        },
+      },
+    });
+    expect(
+      descriptionTargets.resolveDescriptionTargetReference,
+    ).toHaveBeenCalledWith({
+      courseJwId: undefined,
+      homeworkId: undefined,
+      rawTargetId: undefined,
+      sectionJwId: 12345,
+      targetType: "section",
+      teacherId: undefined,
+      verifyExistence: true,
+    });
+    expect(descriptionService.upsertDescriptionContent).toHaveBeenCalledWith({
+      auditMetadata: {
+        ipAddress: "192.0.2.40",
+        source: "graphql",
+        userAgent: "graphql-unit-agent",
+      },
+      content: "GraphQL description",
+      targetId: 101,
+      targetType: "section",
+      userId: "session-user",
+    });
+  });
+
+  it("preserves description input, target, and suspension errors", async () => {
+    authCore.getSessionFromHeaders.mockResolvedValue({
+      user: { id: "session-user" },
+    });
+    const request = (
+      input: Record<string, unknown> = {
+        content: "content",
+        homeworkId: "missing-homework",
+        targetType: "HOMEWORK",
+      },
+    ) =>
+      sessionRequestEvent({
+        query: /* GraphQL */ `
+          mutation UpsertDescription($input: UpsertDescriptionInput!) {
+            upsertDescription(input: $input) {
+              id
+            }
+          }
+        `,
+        variables: { input },
+      });
+
+    descriptionTargets.resolveDescriptionTargetReference.mockResolvedValueOnce({
+      error: "target_not_found",
+      ok: false,
+      targetId: "missing-homework",
+      targetType: "homework",
+    });
+    const missingResponse = await productionHandler(request());
+    expect(await missingResponse.json()).toMatchObject({
+      data: null,
+      errors: [
+        {
+          extensions: { code: "NOT_FOUND" },
+          message: "Description target not found.",
+        },
+      ],
+    });
+    expect(descriptionService.upsertDescriptionContent).not.toHaveBeenCalled();
+
+    descriptionService.upsertDescriptionContent.mockResolvedValueOnce({
+      error: "suspended",
+      ok: false,
+      reason: "suspended for test",
+    });
+    const suspendedResponse = await productionHandler(request());
+    expect(await suspendedResponse.json()).toMatchObject({
+      data: null,
+      errors: [
+        {
+          extensions: { code: "FORBIDDEN" },
+          message: "Description writes are suspended.",
+        },
+      ],
+    });
+
+    const oversizedResponse = await productionHandler(
+      request({
+        content: ` ${"x".repeat(4000)} `,
+        homeworkId: "missing-homework",
+        targetType: "HOMEWORK",
+      }),
+    );
+    expect(await oversizedResponse.json()).toMatchObject({
+      data: null,
+      errors: [
+        {
+          extensions: { code: "BAD_USER_INPUT" },
+          message: "content must not exceed 4000 characters.",
+        },
+      ],
+    });
+    expect(descriptionService.upsertDescriptionContent).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(
+      descriptionTargets.resolveDescriptionTargetReference,
+    ).toHaveBeenCalledTimes(2);
   });
 
   it("preserves safe mutation errors in production", async () => {

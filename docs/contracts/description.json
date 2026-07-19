@@ -4,7 +4,7 @@
     "anon": "Can read public descriptions.",
     "user": "When signed in and not suspended, can maintain descriptions.",
     "admin": "Can review and maintain descriptions in the admin backend.",
-    "agent": "Can read and maintain object descriptions through MCP tools after authorization."
+    "agent": "Can read object descriptions through MCP and maintain them through GraphQL or MCP after authorization."
   },
   "rules": {
     "supplement-not-comment": "Description is a Markdown supplement on an object, not equivalent to comments expressing personal opinions.",
@@ -17,6 +17,21 @@
       "title": "Object Description Section",
       "auth": "anon",
       "web": "stable",
+      "graphql": {
+        "mutations": [
+          {
+            "name": "upsertDescription",
+            "returns": "DescriptionMutationPayload!",
+            "auth": "user",
+            "required_scopes": ["description:write"],
+            "rest_equivalent": "POST /api/descriptions",
+            "mcp_equivalent": "upsert_description",
+            "notes": [
+              "Inputs accept targetType plus targetId, or public identifiers such as sectionJwId, courseJwId, teacherId, homeworkId."
+            ]
+          }
+        ]
+      },
       "rest": {
         "routes": [
           {
