@@ -1,8 +1,15 @@
 <script lang="ts">
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import CircleUserRound from "@lucide/svelte/icons/circle-user-round";
+import Fingerprint from "@lucide/svelte/icons/fingerprint";
 import type { SubmitFunction } from "@sveltejs/kit";
+import { onMount } from "svelte";
 import { enhance } from "$app/forms";
+import {
+  isPasskeySupported,
+  passkeyAuthClient,
+  passkeyClientErrorKind,
+} from "$lib/auth/passkey-client";
 import PageHeader from "$lib/components/PageHeader.svelte";
 import * as Alert from "$lib/components/ui/alert/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -15,6 +22,12 @@ type PageData = {
   copy: {
     errorAccountNotLinked: string;
     errorGeneric: string;
+    passkeyCancelled: string;
+    passkeyChecking: string;
+    passkeyError: string;
+    passkeyPending: string;
+    passkeySignIn: string;
+    passkeyUnsupported: string;
     termsNotice: {
       afterPrivacy: string;
       beforeTerms: string;
@@ -41,6 +54,35 @@ export let data: PageData;
 export let form: ActionData;
 
 let pendingProviderId: string | null = null;
+let passkeyError: string | null = null;
+let passkeyPending = false;
+let passkeySupport: "checking" | "supported" | "unsupported" = "checking";
+
+onMount(() => {
+  passkeySupport = isPasskeySupported() ? "supported" : "unsupported";
+});
+
+async function signInWithPasskey() {
+  if (passkeySupport !== "supported" || passkeyPending) return;
+
+  passkeyError = null;
+  passkeyPending = true;
+  try {
+    const result = await passkeyAuthClient.signIn.passkey();
+    if (result.error) {
+      passkeyError =
+        passkeyClientErrorKind(result.error) === "cancelled"
+          ? data.copy.passkeyCancelled
+          : data.copy.passkeyError;
+      return;
+    }
+    await redirectWithExternalFallback(data.callbackUrl);
+  } catch {
+    passkeyError = data.copy.passkeyError;
+  } finally {
+    passkeyPending = false;
+  }
+}
 
 function signInAction(providerId: string): SubmitFunction {
   return () => {
@@ -99,7 +141,7 @@ function providerInitial(name: string) {
               <input type="hidden" name="callbackUrl" value={data.callbackUrl} />
               <Button
                 class="h-auto w-full justify-start p-3 text-left"
-                disabled={Boolean(pendingProviderId)}
+                disabled={Boolean(pendingProviderId) || passkeyPending}
                 type="submit"
                 variant="outline"
               >
@@ -117,6 +159,41 @@ function providerInitial(name: string) {
               </Button>
             </form>
           {/each}
+        </div>
+
+        <div class="grid gap-2">
+          <Button
+            class="h-auto w-full justify-start p-3 text-left"
+            disabled={passkeySupport !== "supported" || passkeyPending || Boolean(pendingProviderId)}
+            onclick={signInWithPasskey}
+            type="button"
+            variant="outline"
+          >
+            <span class="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-primary">
+              {#if passkeyPending}
+                <Spinner data-icon="inline-start" />
+              {:else}
+                <Fingerprint />
+              {/if}
+            </span>
+            <span class="min-w-0 flex-1 truncate">
+              {passkeyPending
+                ? data.copy.passkeyPending
+                : passkeySupport === "checking"
+                  ? data.copy.passkeyChecking
+                  : data.copy.passkeySignIn}
+            </span>
+          </Button>
+
+          {#if passkeySupport === "unsupported"}
+            <Alert.Root>
+              <Alert.Description>{data.copy.passkeyUnsupported}</Alert.Description>
+            </Alert.Root>
+          {:else if passkeyError}
+            <Alert.Root variant="destructive">
+              <Alert.Description>{passkeyError}</Alert.Description>
+            </Alert.Root>
+          {/if}
         </div>
 
         <p class="text-muted-foreground text-center text-xs leading-5">

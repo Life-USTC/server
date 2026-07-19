@@ -23,6 +23,7 @@ const operations = {
     busFixtures.isolateSingleActiveBusTripFixture,
   restoreBusTripTimesFixture: busFixtures.restoreBusTripTimesFixture,
   deleteLinkedAccountFixture: oauthFixtures.deleteLinkedAccountFixture,
+  deletePasskeysForUserFixture: userFixtures.deletePasskeysForUserFixture,
   deleteTempCoursesByPrefix: catalogFixtures.deleteTempCoursesByPrefix,
   deleteOAuthClientsByName: oauthFixtures.deleteOAuthClientsByName,
   disableOAuthClientByName: oauthFixtures.disableOAuthClientByName,
@@ -142,6 +143,9 @@ export const deleteLinkedAccountFixture = (options: {
   userId: string;
   provider: string;
 }) => runDbFixture<null>("deleteLinkedAccountFixture", [options]);
+
+export const deletePasskeysForUserFixture = (userId: string) =>
+  runDbFixture<void>("deletePasskeysForUserFixture", [userId]);
 
 export const getSeedCourseFilterFixture = (jwId: number) =>
   runDbFixture<{

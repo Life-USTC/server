@@ -3,6 +3,7 @@ import * as Card from "$lib/components/ui/card/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import SettingsAccountRow from "./SettingsAccountRow.svelte";
 import SettingsDisconnectAccountDialog from "./SettingsDisconnectAccountDialog.svelte";
+import SettingsPasskeysCard from "./SettingsPasskeysCard.svelte";
 import type {
   SettingsAccount,
   SettingsAccountAction,
@@ -46,6 +47,8 @@ export let user: SettingsUser;
     </Item.Group>
   </Card.Content>
 </Card.Root>
+
+<SettingsPasskeysCard {copy} />
 
 <SettingsDisconnectAccountDialog
   {accountAction}
