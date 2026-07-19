@@ -28,8 +28,11 @@ describe.sequential("GraphQL MCP registered operations", () => {
     if (createdTodoId) {
       await prisma.todo.deleteMany({ where: { id: createdTodoId } });
     }
-    await mcp.close();
-    await prisma.$disconnect();
+    try {
+      await mcp?.close();
+    } finally {
+      await prisma.$disconnect();
+    }
   });
 
   it("lists the canonical SDL and a document-free operation manifest", async () => {
