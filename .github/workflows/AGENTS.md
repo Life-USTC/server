@@ -25,6 +25,9 @@ Keep Bun versions aligned with:
 - Production deploy is owned by Cloudflare's Git integration; do not add repo-managed deploy jobs.
 - Docker is only for local infra, CI service containers, and the static loader image; do not add app-serving Docker jobs.
 - Keep workflow YAML as orchestration. Reusable check, test, and seed sequences live in `$life-ustc-dev-loop`.
+- E2E HTML report publication is non-required infrastructure: keep it
+  `continue-on-error`, and keep its global concurrency group on `queue: max` so
+  artifact-repository writes stay serial without replacing pending publishers.
 - Never commit secrets
 - `copilot-setup-steps.yml` must keep a direct job named exactly `copilot-setup-steps`; inline `runs-on`, `permissions`, `services`, `timeout-minutes`, and `steps` instead of delegating the job through a reusable workflow.
 - When changing Copilot setup, run it through `workflow_dispatch` or a PR check. If setup fails, Copilot can still start from the partially prepared environment, so setup logs are part of the verification evidence.

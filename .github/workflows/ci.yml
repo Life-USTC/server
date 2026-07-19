@@ -172,9 +172,11 @@ jobs:
     name: Publish E2E HTML report
     needs: test-e2e
     if: always()
+    continue-on-error: true
     runs-on: ubuntu-latest
     concurrency:
       group: publish-e2e-html-report
+      queue: max
       cancel-in-progress: false
     permissions:
       contents: write
