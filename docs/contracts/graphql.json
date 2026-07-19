@@ -31,7 +31,7 @@
           "/api/graphql",
           "Public semester, course, section, teacher, and bus queries",
           "Authenticated Viewer reads with exact feature:read scopes",
-          "Authenticated todo, homework completion, section subscription, dashboard pin, bus preference, and comment mutations",
+          "Authenticated todo and homework CRUD, homework completion, section subscription, dashboard pin, bus preference, description, and comment mutations",
           "GET, POST, and OPTIONS",
           "GraphQL-audience bearer tokens require matching feature scopes; MCP exposes metadata resources only"
         ]

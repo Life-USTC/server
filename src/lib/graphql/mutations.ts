@@ -12,7 +12,28 @@ import {
   resolveDashboardLinkBySlug,
   updateDashboardLinkPinState,
 } from "@/features/dashboard-links/server/dashboard-link-service";
+import { DESCRIPTION_CONTENT_MAX_LENGTH } from "@/features/descriptions/lib/description-limits";
+import {
+  type DescriptionTargetType,
+  resolveDescriptionTargetReference,
+} from "@/features/descriptions/server/description-targets";
+import { upsertDescriptionContent } from "@/features/descriptions/server/description-upsert";
+import {
+  homeworkDescriptionInputSchema,
+  homeworkTitleSchema,
+} from "@/features/homeworks/lib/homework-schema";
 import { setHomeworkCompletion } from "@/features/homeworks/server/homework-completion";
+import { createHomeworkForSection } from "@/features/homeworks/server/homework-create";
+import { homeworkDateError } from "@/features/homeworks/server/homework-dates";
+import {
+  deleteHomework,
+  updateHomework,
+} from "@/features/homeworks/server/homework-mutations";
+import { requireHomeworkItemById } from "@/features/homeworks/server/homework-read-model";
+import {
+  buildHomeworkUpdateIntent,
+  hasHomeworkUpdateIntentChanges,
+} from "@/features/homeworks/server/homework-update-intent";
 import { setUserSectionSubscriptionByJwId } from "@/features/subscriptions/server/subscriptions";
 import type { TodoPriorityValue } from "@/features/todos/lib/todo-priority";
 import {
@@ -26,7 +47,10 @@ import type {
 } from "@/generated/prisma/client";
 import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 import type { GraphqlContext } from "./context";
-import { requireGraphqlId } from "./input-boundaries";
+import {
+  requireGraphqlId,
+  validateOptionalGraphqlId,
+} from "./input-boundaries";
 import {
   badMutationInput,
   forbiddenMutation,
@@ -47,6 +71,13 @@ import {
 } from "./mutation-input";
 
 export const graphqlMutationTypeDefs = /* GraphQL */ `
+  enum DescriptionTargetType {
+    COURSE
+    SECTION
+    TEACHER
+    HOMEWORK
+  }
+
   enum CommentVisibility {
     PUBLIC
     LOGGED_IN_ONLY
@@ -86,10 +117,41 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
     completed: Boolean
   }
 
+  input CreateHomeworkInput {
+    sectionJwId: Int!
+    title: String!
+    description: String
+    isMajor: Boolean! = false
+    requiresTeam: Boolean! = false
+    publishedAt: DateTime
+    submissionStartAt: DateTime
+    submissionDueAt: DateTime
+  }
+
+  input UpdateHomeworkInput {
+    title: String
+    description: String
+    isMajor: Boolean
+    requiresTeam: Boolean
+    publishedAt: DateTime
+    submissionStartAt: DateTime
+    submissionDueAt: DateTime
+  }
+
   input BusPreferenceInput {
     preferredOriginCampusId: Int
     preferredDestinationCampusId: Int
     showDepartedTrips: Boolean!
+  }
+
+  input UpsertDescriptionInput {
+    targetType: DescriptionTargetType!
+    targetId: ID
+    sectionJwId: Int
+    courseJwId: Int
+    teacherId: Int
+    homeworkId: ID
+    content: String!
   }
 
   input CreateCommentInput {
@@ -130,6 +192,17 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
     completedAt: DateTime
   }
 
+  type HomeworkMutationPayload {
+    id: ID!
+    homework: Homework!
+  }
+
+  type HomeworkDeleteMutationPayload {
+    id: ID!
+    success: Boolean!
+    alreadyDeleted: Boolean!
+  }
+
   type SectionSubscriptionMutationPayload {
     sectionJwId: Int!
     subscribed: Boolean!
@@ -152,6 +225,11 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
     id: ID!
   }
 
+  type DescriptionMutationPayload {
+    id: ID!
+    updated: Boolean!
+  }
+
   type CommentReactionMutationPayload {
     commentId: ID!
     type: CommentReactionType!
@@ -163,6 +241,12 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
     createTodo(input: CreateTodoInput!): TodoMutationPayload!
     updateTodo(id: ID!, input: UpdateTodoInput!): TodoMutationPayload!
     deleteTodo(id: ID!): DeleteMutationPayload!
+    createHomework(input: CreateHomeworkInput!): HomeworkMutationPayload!
+    updateHomework(
+      id: ID!
+      input: UpdateHomeworkInput!
+    ): HomeworkMutationPayload!
+    deleteHomework(id: ID!): HomeworkDeleteMutationPayload!
     setHomeworkCompletion(
       homeworkId: ID!
       completed: Boolean!
@@ -176,6 +260,9 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
     saveBusPreferences(
       input: BusPreferenceInput!
     ): BusPreferenceMutationPayload!
+    upsertDescription(
+      input: UpsertDescriptionInput!
+    ): DescriptionMutationPayload!
     createComment(input: CreateCommentInput!): CommentMutationPayload!
     updateComment(
       id: ID!
@@ -208,6 +295,27 @@ type UpdateTodoInput = {
   title?: string | null;
 };
 
+type CreateHomeworkInput = {
+  description?: string | null;
+  isMajor: boolean;
+  publishedAt?: string | null;
+  requiresTeam: boolean;
+  sectionJwId: number;
+  submissionDueAt?: string | null;
+  submissionStartAt?: string | null;
+  title: string;
+};
+
+type UpdateHomeworkInput = {
+  description?: string | null;
+  isMajor?: boolean | null;
+  publishedAt?: string | null;
+  requiresTeam?: boolean | null;
+  submissionDueAt?: string | null;
+  submissionStartAt?: string | null;
+  title?: string | null;
+};
+
 type CommentTargetTypeInput =
   (typeof commentTargetTypeResolver)[keyof typeof commentTargetTypeResolver];
 
@@ -233,6 +341,23 @@ type UpdateCommentInput = {
   isAnonymous?: boolean | null;
   visibility?: CommentVisibility | null;
 };
+
+type UpsertDescriptionInput = {
+  content: string;
+  courseJwId?: number | null;
+  homeworkId?: string | null;
+  sectionJwId?: number | null;
+  targetId?: string | null;
+  targetType: DescriptionTargetType;
+  teacherId?: number | null;
+};
+
+const descriptionTargetTypeResolver = {
+  COURSE: "course",
+  SECTION: "section",
+  TEACHER: "teacher",
+  HOMEWORK: "homework",
+} as const satisfies Record<string, DescriptionTargetType>;
 
 function graphqlCommentAuditMetadata(request: Request) {
   return {
@@ -265,6 +390,57 @@ function handleCommentFailure(result: { error: string }): never {
   return badMutationInput("Invalid comment mutation.");
 }
 
+function handleDescriptionFailure(result: { error: string }): never {
+  if (result.error === "not_found") {
+    mutationNotFound("Description target not found.");
+  }
+  if (result.error === "invalid_target") {
+    badMutationInput("Invalid description target.");
+  }
+  if (result.error === "suspended") {
+    forbiddenMutation("Description writes are suspended.");
+  }
+  return forbiddenMutation();
+}
+
+function handleHomeworkFailure(
+  result: { error: string },
+  missingTarget: "Homework" | "Section",
+): never {
+  if (result.error === "not_found") {
+    mutationNotFound(`${missingTarget} not found.`);
+  }
+  if (result.error === "mismatch") {
+    badMutationInput("Invalid section.");
+  }
+  if (result.error === "no_changes") {
+    badMutationInput("No homework changes were provided.");
+  }
+  if (result.error === "deleted") {
+    forbiddenMutation("Homework is deleted.");
+  }
+  if (result.error === "suspended") {
+    forbiddenMutation("Homework writes are suspended.");
+  }
+  return forbiddenMutation();
+}
+
+function normalizeHomeworkTitle(value: string) {
+  const result = homeworkTitleSchema.safeParse(value);
+  if (!result.success) {
+    badMutationInput("title must contain 1-200 characters.");
+  }
+  return result.data;
+}
+
+function normalizeHomeworkDescription(value: string | null | undefined) {
+  const result = homeworkDescriptionInputSchema.safeParse(value);
+  if (!result.success) {
+    badMutationInput("description must not exceed 4000 characters.");
+  }
+  return result.data;
+}
+
 async function setSectionSubscription(
   context: GraphqlContext,
   jwId: number,
@@ -284,6 +460,7 @@ export const graphqlMutationResolvers = {
   CommentVisibility: commentVisibilityResolver,
   CommentReactionType: commentReactionTypeResolver,
   CommentTargetType: commentTargetTypeResolver,
+  DescriptionTargetType: descriptionTargetTypeResolver,
   Mutation: {
     async createTodo(
       _parent: unknown,
@@ -341,6 +518,127 @@ export const graphqlMutationResolvers = {
       const result = await deleteOwnedTodo(id, principal.userId);
       if (!result.ok) handleTodoFailure(result);
       return { id, success: true };
+    },
+    async createHomework(
+      _parent: unknown,
+      args: { input: CreateHomeworkInput },
+      context: GraphqlContext,
+    ) {
+      const principal = await requireGraphqlMutation(context, "homework");
+      const input = args.input;
+      const publishedAt = dateTimeInput(input.publishedAt) ?? null;
+      const submissionStartAt = dateTimeInput(input.submissionStartAt) ?? null;
+      const submissionDueAt = dateTimeInput(input.submissionDueAt) ?? null;
+      const dateError = homeworkDateError({
+        publishedAt,
+        submissionDueAt,
+        submissionStartAt,
+      });
+      if (dateError) badMutationInput(dateError);
+
+      const result = await createHomeworkForSection(principal.userId, {
+        description: normalizeHomeworkDescription(input.description),
+        isMajor: input.isMajor,
+        publishedAt,
+        requiresTeam: input.requiresTeam,
+        sectionJwId: requireGraphqlId(input.sectionJwId, "sectionJwId"),
+        submissionDueAt,
+        submissionStartAt,
+        title: normalizeHomeworkTitle(input.title),
+      });
+      if (!result.ok) handleHomeworkFailure(result, "Section");
+
+      const id = result.homework.id;
+      const homework = await requireHomeworkItemById({
+        homeworkId: id,
+        locale: context.locale,
+        userId: principal.userId,
+      });
+      return { id, homework };
+    },
+    async updateHomework(
+      _parent: unknown,
+      args: { id: string; input: UpdateHomeworkInput },
+      context: GraphqlContext,
+    ) {
+      const principal = await requireGraphqlMutation(context, "homework");
+      const id = requireMutationId(args.id, "id");
+      const input = args.input;
+      rejectExplicitNullFields(input, ["title", "isMajor", "requiresTeam"]);
+
+      const hasDescription = Object.hasOwn(input, "description");
+      const hasPublishedAt = Object.hasOwn(input, "publishedAt");
+      const hasSubmissionStartAt = Object.hasOwn(input, "submissionStartAt");
+      const hasSubmissionDueAt = Object.hasOwn(input, "submissionDueAt");
+      const publishedAt = hasPublishedAt
+        ? dateTimeInput(input.publishedAt)
+        : undefined;
+      const submissionStartAt = hasSubmissionStartAt
+        ? dateTimeInput(input.submissionStartAt)
+        : undefined;
+      const submissionDueAt = hasSubmissionDueAt
+        ? dateTimeInput(input.submissionDueAt)
+        : undefined;
+      const dateError = homeworkDateError({
+        publishedAt,
+        publishedAtProvided: hasPublishedAt,
+        submissionDueAt,
+        submissionDueAtProvided: hasSubmissionDueAt,
+        submissionStartAt,
+        submissionStartAtProvided: hasSubmissionStartAt,
+      });
+      if (dateError) badMutationInput(dateError);
+
+      const update = buildHomeworkUpdateIntent({
+        dates: {
+          hasPublishedAt,
+          hasSubmissionDueAt,
+          hasSubmissionStartAt,
+          publishedAt,
+          submissionDueAt,
+          submissionStartAt,
+        },
+        description: hasDescription
+          ? normalizeHomeworkDescription(input.description)
+          : undefined,
+        hasDescription,
+        isMajor: input.isMajor,
+        requiresTeam: input.requiresTeam,
+        title:
+          input.title == null ? undefined : normalizeHomeworkTitle(input.title),
+        userId: principal.userId,
+      });
+      if (!hasHomeworkUpdateIntentChanges(update)) {
+        badMutationInput("No homework changes were provided.");
+      }
+
+      const result = await updateHomework({
+        homeworkId: id,
+        update,
+        userId: principal.userId,
+      });
+      if (!result.ok) handleHomeworkFailure(result, "Homework");
+
+      const homework = await requireHomeworkItemById({
+        homeworkId: id,
+        locale: context.locale,
+        userId: principal.userId,
+      });
+      return { id, homework };
+    },
+    async deleteHomework(
+      _parent: unknown,
+      args: { id: string },
+      context: GraphqlContext,
+    ) {
+      const principal = await requireGraphqlMutation(context, "homework");
+      const id = requireMutationId(args.id, "id");
+      const result = await deleteHomework({
+        homeworkId: id,
+        userId: principal.userId,
+      });
+      if (!result.ok) handleHomeworkFailure(result, "Homework");
+      return { id, success: true, alreadyDeleted: result.alreadyDeleted };
     },
     async setHomeworkCompletion(
       _parent: unknown,
@@ -417,6 +715,65 @@ export const graphqlMutationResolvers = {
       });
       if (!result.ok) badMutationInput(result.error);
       return result.preference;
+    },
+    async upsertDescription(
+      _parent: unknown,
+      args: { input: UpsertDescriptionInput },
+      context: GraphqlContext,
+    ) {
+      const principal = await requireGraphqlMutation(context, "description");
+      const input = args.input;
+      rejectExplicitNullFields(input, [
+        "targetId",
+        "sectionJwId",
+        "courseJwId",
+        "teacherId",
+        "homeworkId",
+      ]);
+      if (input.content.length > DESCRIPTION_CONTENT_MAX_LENGTH) {
+        badMutationInput(
+          `content must not exceed ${DESCRIPTION_CONTENT_MAX_LENGTH} characters.`,
+        );
+      }
+      const content = input.content.trim();
+
+      const target = await resolveDescriptionTargetReference({
+        courseJwId: validateOptionalGraphqlId(input.courseJwId, "courseJwId"),
+        homeworkId:
+          input.homeworkId == null
+            ? undefined
+            : requireMutationId(input.homeworkId, "homeworkId"),
+        rawTargetId:
+          input.targetId == null
+            ? undefined
+            : requireMutationId(input.targetId, "targetId"),
+        sectionJwId: validateOptionalGraphqlId(
+          input.sectionJwId,
+          "sectionJwId",
+        ),
+        targetType: input.targetType,
+        teacherId: validateOptionalGraphqlId(input.teacherId, "teacherId"),
+        verifyExistence: true,
+      });
+      if (!target.ok) {
+        if (target.error === "target_not_found") {
+          mutationNotFound("Description target not found.");
+        }
+        badMutationInput("Invalid description target.");
+      }
+
+      const result = await upsertDescriptionContent({
+        auditMetadata: {
+          ...getAuditRequestMetadata(context.request),
+          source: "graphql",
+        },
+        content,
+        targetId: target.targetId,
+        targetType: target.targetType,
+        userId: principal.userId,
+      });
+      if (!result.ok) handleDescriptionFailure(result);
+      return { id: result.id, updated: result.updated };
     },
     async createComment(
       _parent: unknown,

@@ -16,6 +16,7 @@
     "build": "vite build",
     "app:prepare": "svelte-kit sync && prisma generate",
     "svelte:sync": "svelte-kit sync",
+    "auth:cleanup": "bun run src/features/auth/server/auth-record-cleanup-cli.ts",
     "db:generate": "prisma generate",
     "db:migrate:deploy": "prisma migrate deploy",
     "static:load": "bun run src/static-loader/cli.ts",

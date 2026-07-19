@@ -1085,6 +1085,7 @@ model Session {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+  @@index([expires])
 
   oauthAccessTokens  OAuthAccessToken[]
   oauthRefreshTokens OAuthRefreshToken[]

@@ -103,6 +103,11 @@ describe("upsertDescriptionContent", () => {
 
     await expect(
       upsertDescriptionContent({
+        auditMetadata: {
+          ipAddress: "192.0.2.40",
+          source: "graphql",
+          userAgent: "graphql-unit-agent",
+        },
         content: "new content",
         targetId: 1,
         targetType: "section",
@@ -124,10 +129,13 @@ describe("upsertDescriptionContent", () => {
         metadata: {
           targetType: "section",
           content: "new content",
+          source: "graphql",
         },
         targetId: "description-1",
         targetType: "description",
         userId: "user-1",
+        ipAddress: "192.0.2.40",
+        userAgent: "graphql-unit-agent",
       }),
     });
   });
