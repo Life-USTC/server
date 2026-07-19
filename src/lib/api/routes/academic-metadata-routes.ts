@@ -10,7 +10,7 @@ import {
   parseRouteQuery,
 } from "@/lib/api/helpers";
 import { semestersQuerySchema } from "@/lib/api/schemas/request-schemas";
-import { PUBLIC_CATALOG_CACHE_CONTROL } from "@/lib/public-cache-control";
+import { PUBLIC_CATALOG_HEADERS } from "@/lib/public-cache-control";
 import { cachedPublicRuntimeData } from "@/lib/public-runtime-cache";
 
 const METADATA_API_CACHE_TTL_MS = 60_000;
@@ -25,7 +25,7 @@ export async function getMetadataRoute() {
     );
 
     return jsonResponse(metadata, {
-      headers: { "Cache-Control": PUBLIC_CATALOG_CACHE_CONTROL },
+      headers: PUBLIC_CATALOG_HEADERS,
     });
   } catch (error) {
     return handleRouteError("Failed to fetch metadata", error);
@@ -53,7 +53,7 @@ export async function getSemestersRoute(request: Request) {
     );
 
     return jsonResponse(result, {
-      headers: { "Cache-Control": PUBLIC_CATALOG_CACHE_CONTROL },
+      headers: PUBLIC_CATALOG_HEADERS,
     });
   } catch (error) {
     return handleRouteError("Failed to fetch semesters", error);

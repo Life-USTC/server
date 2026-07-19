@@ -1,8 +1,16 @@
 export const PUBLIC_CATALOG_CACHE_CONTROL =
-  "public, max-age=0, s-maxage=60, stale-while-revalidate=300";
+  "public, max-age=0, stale-while-revalidate=300";
+
+export const PUBLIC_CATALOG_CDN_CACHE_CONTROL =
+  "public, max-age=60, stale-while-revalidate=300";
+
+export const PUBLIC_CATALOG_HEADERS = {
+  "Cache-Control": PUBLIC_CATALOG_CACHE_CONTROL,
+  "Cloudflare-CDN-Cache-Control": PUBLIC_CATALOG_CDN_CACHE_CONTROL,
+} as const;
 
 export const PUBLIC_LOCALE_CATALOG_HEADERS = {
-  "Cache-Control": PUBLIC_CATALOG_CACHE_CONTROL,
+  ...PUBLIC_CATALOG_HEADERS,
   Vary: "Accept-Language, Cookie",
 } as const;
 
