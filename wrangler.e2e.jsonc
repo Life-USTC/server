@@ -6,7 +6,7 @@
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
     "NODE_ENV": "test",
-    "APP_PUBLIC_ORIGIN": "http://127.0.0.1:3000",
+    "APP_PUBLIC_ORIGIN": "http://localhost:3000",
     "AUTH_SECRET": "e2e-dev-secret-not-for-production",
     "E2E_DEBUG_AUTH": "1",
     "DEV_DEBUG_USERNAME": "dev-user",

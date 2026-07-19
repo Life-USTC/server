@@ -17,10 +17,10 @@ describe("Playwright configuration", () => {
 
     expect(config).toMatchObject({
       forbidOnly: true,
-      use: { baseURL: "http://127.0.0.1:3000" },
+      use: { baseURL: "http://localhost:3000" },
       webServer: {
         reuseExistingServer: false,
-        url: "http://127.0.0.1:3000",
+        url: "http://localhost:3000",
       },
     });
   });
