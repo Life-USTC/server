@@ -468,7 +468,6 @@ export type DashboardPageData = DashboardRecord & {
   bus?: DashboardBusData | null;
   calendarSubscriptionUrl?: string | null;
   copy: DashboardRootCopy;
-  counts?: DashboardRecord | null;
   homeworks?: DashboardHomeworksData | null;
   links?: DashboardLinksData | null;
   locale: string;
