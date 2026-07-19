@@ -4,7 +4,7 @@
     "anon": "Can read homework information under public sections, but cannot create, update, or delete.",
     "user": "When signed in and not suspended, can create and update homework; delete permission is limited to the creator and admins; each user can only manage their own homework completion state.",
     "admin": "Can delete homework and participate in governance.",
-    "agent": "After authorization, can read, create, update, and delete permitted homework and set the current user's completion state; both REST and MCP currently provide this capability."
+    "agent": "After authorization, can read, create, update, and delete permitted homework and set the current user's completion state; REST, GraphQL, and MCP provide the supported business mutations."
   },
   "rules": {
     "attached-to-section": "Homework is attached to a section, not a personal user todo.",
@@ -125,6 +125,41 @@
             "method": "DELETE",
             "returns": "{ success: Boolean }",
             "auth": "user"
+          }
+        ]
+      },
+      "graphql": {
+        "mutations": [
+          {
+            "name": "createHomework",
+            "returns": "HomeworkMutationPayload!",
+            "required_scopes": ["homework:write"],
+            "rest_equivalent": "POST /api/homeworks",
+            "mcp_equivalent": "create_homework_on_section",
+            "notes": [
+              "Accepts the public sectionJwId, returns the localized Homework snapshot, and preserves the shared created HomeworkAuditLog transaction."
+            ]
+          },
+          {
+            "name": "updateHomework",
+            "returns": "HomeworkMutationPayload!",
+            "required_scopes": ["homework:write"],
+            "rest_equivalent": "PATCH /api/homeworks/[id]",
+            "mcp_equivalent": "update_homework_on_section",
+            "notes": [
+              "Nullable description and timestamp fields clear existing values; omitted fields remain unchanged.",
+              "Description changes preserve the shared DescriptionEdit and description_edit audit transaction."
+            ]
+          },
+          {
+            "name": "deleteHomework",
+            "returns": "HomeworkDeleteMutationPayload!",
+            "required_scopes": ["homework:write"],
+            "rest_equivalent": "DELETE /api/homeworks/[id]",
+            "mcp_equivalent": "delete_homework_on_section",
+            "notes": [
+              "Only the creator or an admin may delete; repeated deletion remains successful with alreadyDeleted=true and does not add another deletion audit row."
+            ]
           }
         ]
       },
