@@ -231,6 +231,18 @@ test.describe("/sections 班级搜索页", () => {
           throw new Error("Sections table geometry missing");
 
         const containerBox = container.getBoundingClientRect();
+        const overflowingCells = cells.flatMap((cell, index) =>
+          cell.scrollWidth > cell.clientWidth + 1
+            ? [
+                {
+                  clientWidth: cell.clientWidth,
+                  index,
+                  scrollWidth: cell.scrollWidth,
+                  text: cell.textContent?.trim().replace(/\s+/g, " ") ?? "",
+                },
+              ]
+            : [],
+        );
         return {
           clientWidth: container.clientWidth,
           cellsWithinContainer: cells.every((cell) => {
@@ -240,9 +252,7 @@ test.describe("/sections 班级搜索页", () => {
               cellBox.right <= containerBox.right + 1
             );
           }),
-          contentFitsCells: cells.every(
-            (cell) => cell.scrollWidth <= cell.clientWidth + 1,
-          ),
+          overflowingCells,
           scrollWidth: container.scrollWidth,
           tableWidth: table.getBoundingClientRect().width,
         };
@@ -253,7 +263,7 @@ test.describe("/sections 班级搜索页", () => {
       );
       expect(geometry.tableWidth).toBeLessThanOrEqual(geometry.clientWidth + 1);
       expect(geometry.cellsWithinContainer).toBe(true);
-      expect(geometry.contentFitsCells).toBe(true);
+      expect(geometry.overflowingCells).toEqual([]);
       await captureStepScreenshot(
         page,
         testInfo,

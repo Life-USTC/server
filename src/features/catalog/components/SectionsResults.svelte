@@ -91,13 +91,13 @@ $: sectionSemesterSummary = selectedSemester
       <Table.Root class="table-fixed">
         <Table.Header class="bg-muted/30">
           <Table.Row>
-            <Table.Head class="w-32">{sectionLabels.semester}</Table.Head>
+            <Table.Head class="w-36">{sectionLabels.semester}</Table.Head>
             <Table.Head>{sectionLabels.courseName}</Table.Head>
-            <Table.Head class="w-32">{sectionLabels.sectionCode}</Table.Head>
+            <Table.Head class="w-36">{sectionLabels.sectionCode}</Table.Head>
             <Table.Head class="w-36">{sectionLabels.teachers}</Table.Head>
             <Table.Head class="w-16 text-right">{sectionLabels.credits}</Table.Head>
             <Table.Head class="w-24 text-right">{sectionLabels.capacity}</Table.Head>
-            <Table.Head class="w-20 text-right">{sectionLabels.campus}</Table.Head>
+            <Table.Head class="w-28 text-right">{sectionLabels.campus}</Table.Head>
           </Table.Row>
         </Table.Header>
         <Table.Body>
