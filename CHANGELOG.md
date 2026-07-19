@@ -1,3 +1,10 @@
+# [1.72.0](https://github.com/Life-USTC/server/compare/v1.71.1...v1.72.0) (2026-07-19)
+
+
+### Features
+
+* **mcp:** run registered GraphQL operations ([#568](https://github.com/Life-USTC/server/issues/568)) ([f9ddc61](https://github.com/Life-USTC/server/commit/f9ddc616ac6f8e385b9b12f75d1ad102040c7699))
+
 ## [1.71.1](https://github.com/Life-USTC/server/compare/v1.71.0...v1.71.1) (2026-07-19)
 
 
