@@ -535,6 +535,14 @@ onMount(() => {
   themeMode = loadStoredThemeMode(themeMode);
   applyShellTheme(themeMode);
   document.documentElement.dataset.lifeUstcHydrated = "true";
+
+  const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
+  const applySystemTheme = () => {
+    if (themeMode === "system") applyShellTheme(themeMode);
+  };
+  systemTheme.addEventListener("change", applySystemTheme);
+
+  return () => systemTheme.removeEventListener("change", applySystemTheme);
 });
 
 afterNavigate(({ from, to }) => {

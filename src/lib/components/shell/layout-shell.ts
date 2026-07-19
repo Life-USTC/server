@@ -77,10 +77,14 @@ export function nextShellThemeMode(mode: ThemeMode): ThemeMode {
   return "light";
 }
 
+export function resolveShellTheme(mode: ThemeMode, prefersDark: boolean) {
+  return mode === "dark" || (mode === "system" && prefersDark)
+    ? "dark"
+    : "light";
+}
+
 export function applyShellTheme(mode: ThemeMode) {
-  if (mode === "system") {
-    document.documentElement.removeAttribute("data-theme");
-  } else {
-    document.documentElement.setAttribute("data-theme", mode);
-  }
+  const prefersDark =
+    window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
+  document.documentElement.dataset.theme = resolveShellTheme(mode, prefersDark);
 }

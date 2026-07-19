@@ -9,6 +9,7 @@ import SearchIcon from "@lucide/svelte/icons/search";
 import ShieldCheckIcon from "@lucide/svelte/icons/shield-check";
 import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
 import UsersIcon from "@lucide/svelte/icons/users";
+import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
@@ -161,7 +162,7 @@ $: stats = [
         <div class="flex min-w-0 items-center gap-3">
           <img
             class="size-12 rounded-md border border-border bg-background"
-            src="/images/icon.png"
+            src={appIconUrl}
             alt={homeCopy.appIconAlt}
           />
           <div class="min-w-0">

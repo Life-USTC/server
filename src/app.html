@@ -4,16 +4,27 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script>
-      try {
-        const theme = localStorage.getItem("life-ustc-theme");
-        if (theme === "light" || theme === "dark") {
-          document.documentElement.dataset.theme = theme;
-        } else {
-          document.documentElement.removeAttribute("data-theme");
-        }
-      } catch {
-        document.documentElement.removeAttribute("data-theme");
-      }
+      (() => {
+        let themeMode = "system";
+        try {
+          const storedTheme = localStorage.getItem("life-ustc-theme");
+          if (
+            storedTheme === "light" ||
+            storedTheme === "dark" ||
+            storedTheme === "system"
+          ) {
+            themeMode = storedTheme;
+          }
+        } catch {}
+
+        const prefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)",
+        ).matches;
+        document.documentElement.dataset.theme =
+          themeMode === "dark" || (themeMode === "system" && prefersDark)
+            ? "dark"
+            : "light";
+      })();
     </script>
     %sveltekit.head%
   </head>
