@@ -144,6 +144,17 @@ input CreateCommentInput {
   visibility: CommentVisibility = PUBLIC
 }
 
+input CreateHomeworkInput {
+  description: String
+  isMajor: Boolean! = false
+  publishedAt: DateTime
+  requiresTeam: Boolean! = false
+  sectionJwId: Int!
+  submissionDueAt: DateTime
+  submissionStartAt: DateTime
+  title: String!
+}
+
 input CreateTodoInput {
   content: String
   dueAt: DateTime
@@ -251,11 +262,22 @@ type HomeworkCompletionMutationPayload {
   homeworkId: ID!
 }
 
+type HomeworkDeleteMutationPayload {
+  alreadyDeleted: Boolean!
+  id: ID!
+  success: Boolean!
+}
+
 input HomeworkFilter {
   completed: Boolean
   dueAtFrom: DateTime
   dueAtTo: DateTime
   semesterId: Int
+}
+
+type HomeworkMutationPayload {
+  homework: Homework!
+  id: ID!
 }
 
 type HomeworkPage {
@@ -266,8 +288,10 @@ type HomeworkPage {
 type Mutation {
   addCommentReaction(commentId: ID!, type: CommentReactionType!): CommentReactionMutationPayload!
   createComment(input: CreateCommentInput!): CommentMutationPayload!
+  createHomework(input: CreateHomeworkInput!): HomeworkMutationPayload!
   createTodo(input: CreateTodoInput!): TodoMutationPayload!
   deleteComment(id: ID!): DeleteMutationPayload!
+  deleteHomework(id: ID!): HomeworkDeleteMutationPayload!
   deleteTodo(id: ID!): DeleteMutationPayload!
   removeCommentReaction(commentId: ID!, type: CommentReactionType!): CommentReactionMutationPayload!
   saveBusPreferences(input: BusPreferenceInput!): BusPreferenceMutationPayload!
@@ -276,6 +300,7 @@ type Mutation {
   subscribeSection(jwId: Int!): SectionSubscriptionMutationPayload!
   unsubscribeSection(jwId: Int!): SectionSubscriptionMutationPayload!
   updateComment(id: ID!, input: UpdateCommentInput!): CommentMutationPayload!
+  updateHomework(id: ID!, input: UpdateHomeworkInput!): HomeworkMutationPayload!
   updateTodo(id: ID!, input: UpdateTodoInput!): TodoMutationPayload!
   upsertDescription(input: UpsertDescriptionInput!): DescriptionMutationPayload!
 }
@@ -479,6 +504,16 @@ input UpdateCommentInput {
   body: String!
   isAnonymous: Boolean
   visibility: CommentVisibility
+}
+
+input UpdateHomeworkInput {
+  description: String
+  isMajor: Boolean
+  publishedAt: DateTime
+  requiresTeam: Boolean
+  submissionDueAt: DateTime
+  submissionStartAt: DateTime
+  title: String
 }
 
 input UpdateTodoInput {
