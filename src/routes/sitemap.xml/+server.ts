@@ -1,19 +1,8 @@
-import {
-  getCachedSitemap,
-  requestMatchesSitemapEtag,
-} from "@/features/catalog/server/sitemap-cache";
+import { getCachedSitemap } from "@/features/catalog/server/sitemap-cache";
 import { prisma } from "@/lib/db/prisma";
-import { CONTENT_SIGNAL } from "@/lib/seo/content-signal";
+import { createCrawlerDiscoveryResponse } from "@/lib/seo/crawler-discovery-response";
 import { getCanonicalOrigin } from "@/lib/site-url";
 import type { RequestHandler } from "./$types";
-
-const RESPONSE_HEADERS = {
-  "Cache-Control": "public, max-age=0, must-revalidate",
-  "Cloudflare-CDN-Cache-Control":
-    "public, max-age=3600, stale-while-revalidate=21600",
-  "Content-Signal": CONTENT_SIGNAL,
-  "Content-Type": "application/xml; charset=utf-8",
-};
 
 const STATIC_ROUTES = [
   "/",
@@ -51,19 +40,11 @@ async function loadSitemapUrls() {
 
 export const GET: RequestHandler = async ({ request }) => {
   const sitemap = await getCachedSitemap(loadSitemapUrls);
-  const headers = {
-    ...RESPONSE_HEADERS,
-    ETag: sitemap.etag,
-  };
 
-  if (requestMatchesSitemapEtag(request, sitemap.etag)) {
-    return new Response(null, {
-      headers,
-      status: 304,
-    });
-  }
-
-  return new Response(sitemap.body, {
-    headers,
+  return createCrawlerDiscoveryResponse({
+    body: sitemap.body,
+    contentType: "application/xml; charset=utf-8",
+    etag: sitemap.etag,
+    request,
   });
 };

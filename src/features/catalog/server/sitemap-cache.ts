@@ -57,16 +57,6 @@ export async function getCachedSitemap(
   }
 }
 
-export function requestMatchesSitemapEtag(request: Request, etag: string) {
-  const ifNoneMatch = request.headers.get("If-None-Match");
-  if (!ifNoneMatch) return false;
-
-  return ifNoneMatch.split(",").some((token) => {
-    const normalized = token.trim().replace(/^W\//, "");
-    return normalized === "*" || normalized === etag;
-  });
-}
-
 export function resetSitemapCacheForTest() {
   cachedSitemap = undefined;
   sitemapGeneration = undefined;
