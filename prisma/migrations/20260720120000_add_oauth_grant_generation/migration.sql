@@ -17,6 +17,15 @@ WHERE "id" IN (
     WHERE row_number > 1
 );
 
+-- Trusted first-party clients do not have revocable consent grants. Remove
+-- provider/device-flow artifacts without touching their existing token rows.
+DELETE FROM "OAuthConsent"
+WHERE "clientId" IN (
+    SELECT "clientId"
+    FROM "OAuthClient"
+    WHERE "skipConsent" IS TRUE
+);
+
 ALTER TABLE "OAuthConsent"
 ADD COLUMN "grantId" TEXT;
 

@@ -178,6 +178,137 @@ describe("OAuth 刷新令牌资源持久化", () => {
     expect(signAccessTokenMock).not.toHaveBeenCalled();
   });
 
+  it("显式 resource 刷新只继承本次降权后的 scope", async () => {
+    findRefreshTokenMock.mockResolvedValue({
+      clientId: "client-1",
+      grantId: "grant-1",
+      resources: ["https://life.example/api/graphql"],
+      scopes: ["openid", "profile", "todo:read", "todo:write"],
+      userId: "user-1",
+    });
+    signAccessTokenMock.mockResolvedValue("downscoped-jwt");
+    const { replaceOAuthRefreshAccessToken } = await import(
+      "@/lib/api/routes/auth-token-refresh-resources"
+    );
+    const params = new URLSearchParams({
+      grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+      refresh_token: "old-refresh-token",
+      resource: "https://life.example/api/graphql",
+      scope: "profile",
+    });
+
+    const response = await replaceOAuthRefreshAccessToken(
+      new Request("https://life.example/api/auth/oauth2/token"),
+      params,
+      Response.json({
+        access_token: "provider-token",
+        scope: "profile",
+      }),
+    );
+
+    await expect(response.json()).resolves.toMatchObject({
+      access_token: "downscoped-jwt",
+      scope: "profile",
+    });
+    expect(signAccessTokenMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resources: ["https://life.example/api/graphql"],
+        scopes: ["profile"],
+      }),
+    );
+  });
+
+  it("openid audience expansion follows the refresh response scope", async () => {
+    findRefreshTokenMock.mockResolvedValue({
+      clientId: "client-1",
+      resources: ["https://life.example/api/graphql"],
+      scopes: ["openid", "profile"],
+      userId: "user-1",
+    });
+    signAccessTokenMock.mockResolvedValue("openid-jwt");
+    const { replaceOAuthRefreshAccessToken } = await import(
+      "@/lib/api/routes/auth-token-refresh-resources"
+    );
+    const params = new URLSearchParams({
+      grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+      refresh_token: "old-refresh-token",
+      resource: "https://life.example/api/graphql",
+    });
+
+    await replaceOAuthRefreshAccessToken(
+      new Request("https://life.example/api/auth/oauth2/token"),
+      params,
+      Response.json({
+        access_token: "provider-token",
+        scope: "openid profile",
+      }),
+    );
+
+    expect(signAccessTokenMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scopes: ["openid", "profile"],
+      }),
+    );
+  });
+
+  it("does not replace when response scope is omitted", async () => {
+    findRefreshTokenMock.mockResolvedValue({
+      clientId: "client-1",
+      resources: ["https://life.example/api/graphql"],
+      scopes: ["profile", "todo:write"],
+      userId: "user-1",
+    });
+    const { replaceOAuthRefreshAccessToken } = await import(
+      "@/lib/api/routes/auth-token-refresh-resources"
+    );
+    const params = new URLSearchParams({
+      grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+      refresh_token: "old-refresh-token",
+      resource: "https://life.example/api/graphql",
+    });
+    const original = Response.json({ access_token: "provider-token" });
+
+    expect(
+      await replaceOAuthRefreshAccessToken(
+        new Request("https://life.example/api/auth/oauth2/token"),
+        params,
+        original,
+      ),
+    ).toBe(original);
+    expect(findRefreshTokenMock).not.toHaveBeenCalled();
+    expect(signAccessTokenMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects scope escalation above the source refresh row", async () => {
+    findRefreshTokenMock.mockResolvedValue({
+      clientId: "client-1",
+      resources: ["https://life.example/api/graphql"],
+      scopes: ["profile"],
+      userId: "user-1",
+    });
+    const { replaceOAuthRefreshAccessToken } = await import(
+      "@/lib/api/routes/auth-token-refresh-resources"
+    );
+    const params = new URLSearchParams({
+      grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+      refresh_token: "old-refresh-token",
+      resource: "https://life.example/api/graphql",
+    });
+    const original = Response.json({
+      access_token: "provider-token",
+      scope: "profile todo:write",
+    });
+
+    const response = await replaceOAuthRefreshAccessToken(
+      new Request("https://life.example/api/auth/oauth2/token"),
+      params,
+      original,
+    );
+
+    expect(response).toBe(original);
+    expect(signAccessTokenMock).not.toHaveBeenCalled();
+  });
+
   it("在授权码刷新令牌上存储已签发的受众资源", async () => {
     const { persistOAuthRefreshTokenResources } = await import(
       "@/lib/api/routes/auth-token-refresh-resources"

@@ -172,6 +172,27 @@ describe("OAuth 刷新资源绑定", () => {
     expect(params.has("resource")).toBe(false);
   });
 
+  it("降权到 profile 时不从旧 refresh scopes 恢复 GraphQL 绑定", async () => {
+    findRefreshTokenMock.mockResolvedValue({
+      resources: ["https://life.example/api/graphql"],
+      scopes: [OAUTH_PROFILE_SCOPE, restReadScope("todo")],
+    });
+    const { maybeBindOAuthRefreshResourceRequest } = await import(
+      "@/lib/api/routes/auth-token-refresh-resource-binding"
+    );
+    const params = new URLSearchParams({
+      grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+      refresh_token: "refresh-token",
+      scope: OAUTH_PROFILE_SCOPE,
+    });
+    const request = refreshRequest(params);
+
+    const result = await maybeBindOAuthRefreshResourceRequest(request, params);
+
+    expect(result).toBe(request);
+    expect(params.has("resource")).toBe(false);
+  });
+
   it.each([
     ["空值", ""],
     ["非法 URL", "not-a-resource-url"],

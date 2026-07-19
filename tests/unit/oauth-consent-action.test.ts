@@ -1,13 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { submitOAuthConsentAction } from "@/features/oauth/server/oauth-consent-action";
 
-const { bindCodeMock, getSessionMock, oauth2ConsentMock, rotateGrantMock } =
-  vi.hoisted(() => ({
-    bindCodeMock: vi.fn(),
-    getSessionMock: vi.fn(),
-    oauth2ConsentMock: vi.fn(),
-    rotateGrantMock: vi.fn(),
-  }));
+const {
+  bindCodeMock,
+  getSessionMock,
+  oauth2AuthorizeMock,
+  oauth2ConsentMock,
+  rotateGrantMock,
+  verificationCreateMock,
+} = vi.hoisted(() => ({
+  bindCodeMock: vi.fn(),
+  getSessionMock: vi.fn(),
+  oauth2AuthorizeMock: vi.fn(),
+  oauth2ConsentMock: vi.fn(),
+  rotateGrantMock: vi.fn(),
+  verificationCreateMock: vi.fn(),
+}));
 
 vi.mock(
   "@/features/oauth/server/oauth-authorization-code-grant.server",
@@ -21,7 +29,16 @@ vi.mock("@/lib/auth/core", () => ({
     adminCreateOAuthClient: vi.fn(),
     getOAuthClientPublic: vi.fn(),
     getSession: getSessionMock,
+    oauth2Authorize: oauth2AuthorizeMock,
     oauth2Consent: oauth2ConsentMock,
+  },
+}));
+
+vi.mock("@/lib/db/prisma", () => ({
+  prisma: {
+    verificationToken: {
+      create: verificationCreateMock,
+    },
   },
 }));
 
@@ -52,16 +69,64 @@ describe("OAuth consent 操作", () => {
   beforeEach(() => {
     bindCodeMock.mockReset();
     getSessionMock.mockReset();
+    oauth2AuthorizeMock.mockReset();
     oauth2ConsentMock.mockReset();
     rotateGrantMock.mockReset();
-    getSessionMock.mockResolvedValue({ user: { id: "user-1" } });
+    verificationCreateMock.mockReset();
+    getSessionMock.mockResolvedValue({
+      session: {
+        createdAt: new Date("2026-07-20T00:00:00.000Z"),
+        id: "session-1",
+      },
+      user: { id: "user-1" },
+    });
     bindCodeMock.mockResolvedValue(true);
     rotateGrantMock.mockResolvedValue({
       consentId: "consent-1",
       grantId: "grant-1",
+      kind: "consent",
       scopes: ["openid", "profile"],
     });
     vi.stubEnv("APP_PUBLIC_ORIGIN", "https://life.example");
+  });
+
+  it("stores the exact rotated generation on the fallback authorization code", async () => {
+    const authorizeRedirect =
+      "/oauth/authorize?client_id=client-1&redirect_uri=https%3A%2F%2Fclient.example%2Fcallback&state=state-1";
+    oauth2ConsentMock.mockResolvedValue({ redirect_uri: authorizeRedirect });
+    oauth2AuthorizeMock.mockResolvedValue({ redirect_uri: authorizeRedirect });
+    verificationCreateMock.mockResolvedValue({});
+
+    await expect(
+      submitOAuthConsentAction({
+        request: consentRequest({
+          accept: "true",
+          scope: "profile",
+          oauthQuery:
+            "client_id=client-1&redirect_uri=https%3A%2F%2Fclient.example%2Fcallback&state=state-1",
+        }),
+      }),
+    ).rejects.toMatchObject({
+      status: 303,
+      location: expect.stringMatching(
+        /^https:\/\/client\.example\/callback\?code=/,
+      ),
+    });
+
+    const stored = JSON.parse(
+      verificationCreateMock.mock.calls[0][0].data.token,
+    );
+    expect(stored).toMatchObject({
+      referenceId: "grant-1",
+      type: "authorization_code",
+      userId: "user-1",
+    });
+    expect(bindCodeMock).toHaveBeenCalledWith(
+      expect.stringMatching(/^https:\/\/client\.example\/callback\?code=/),
+      "client-1",
+      "https://life.example/oauth/authorize",
+      "grant-1",
+    );
   });
 
   afterEach(() => {
@@ -119,6 +184,34 @@ describe("OAuth consent 操作", () => {
       "https://client.example/callback?code=code-1",
       "client-1",
       "https://life.example/oauth/authorize",
+      "grant-1",
+    );
+  });
+
+  it("does not attach an ordinary consent generation to a trusted client code", async () => {
+    oauth2ConsentMock.mockResolvedValue({
+      redirect_uri: "https://client.example/callback?code=code-1",
+    });
+    rotateGrantMock.mockResolvedValue({ kind: "trusted" });
+
+    await expect(
+      submitOAuthConsentAction({
+        request: consentRequest({
+          accept: "true",
+          scope: "openid profile",
+          oauthQuery: "client_id=trusted-client",
+        }),
+      }),
+    ).rejects.toMatchObject({
+      status: 303,
+      location: "https://client.example/callback?code=code-1",
+    });
+
+    expect(bindCodeMock).toHaveBeenCalledWith(
+      "https://client.example/callback?code=code-1",
+      "trusted-client",
+      "https://life.example/oauth/authorize",
+      undefined,
     );
   });
 

@@ -4,6 +4,7 @@ import {
   listUserOAuthAuthorizations,
   resolveActiveOAuthRefreshGrant,
   revokeUserOAuthAuthorization,
+  rotateOAuthUserGrantAfterConsent,
   updateUserOAuthAuthorizationScopes,
 } from "@/features/oauth/server/user-authorizations.server";
 import { prisma } from "@/lib/db/prisma";
@@ -18,6 +19,7 @@ describe.sequential("OAuth user authorization management", () => {
   let latestGrantId = "";
   let latestConsentId = "";
   let otherUserConsentId = "";
+  let trustedConsentId = "";
   let userId = "";
   let otherUserId = "";
 
@@ -60,7 +62,7 @@ describe.sequential("OAuth user authorization management", () => {
       ],
     });
 
-    const [latestConsent, otherConsent] = await Promise.all([
+    const [latestConsent, otherConsent, trustedConsent] = await Promise.all([
       prisma.oAuthConsent.create({
         data: {
           clientId,
@@ -78,10 +80,19 @@ describe.sequential("OAuth user authorization management", () => {
         },
         select: { id: true },
       }),
+      prisma.oAuthConsent.create({
+        data: {
+          clientId: trustedClientId,
+          scopes: ["profile"],
+          userId,
+        },
+        select: { id: true },
+      }),
     ]);
     latestConsentId = latestConsent.id;
     latestGrantId = latestConsent.grantId;
     otherUserConsentId = otherConsent.id;
+    trustedConsentId = trustedConsent.id;
 
     const refresh = await prisma.oAuthRefreshToken.create({
       data: {
@@ -228,6 +239,82 @@ describe.sequential("OAuth user authorization management", () => {
         where: { clientId, userId: otherUserId },
       }),
     ).resolves.toBe(1);
+  });
+
+  it("does not list or revoke trusted-client consent artifacts", async () => {
+    await expect(
+      revokeUserOAuthAuthorization(userId, trustedConsentId),
+    ).resolves.toEqual({ ok: false, reason: "not_found" });
+    await expect(
+      prisma.oAuthConsent.count({
+        where: { clientId: trustedClientId, userId },
+      }),
+    ).resolves.toBe(1);
+  });
+
+  it("cleans trusted prompt-consent artifacts and fails old tokens closed after trust is removed", async () => {
+    await expect(
+      rotateOAuthUserGrantAfterConsent({
+        clientId: trustedClientId,
+        scopes: ["profile"],
+        userId,
+      }),
+    ).resolves.toEqual({ kind: "trusted" });
+    await expect(
+      prisma.oAuthConsent.count({
+        where: { clientId: trustedClientId, userId },
+      }),
+    ).resolves.toBe(0);
+
+    const device = await prisma.deviceCode.create({
+      data: {
+        clientId: trustedClientId,
+        deviceCode: `trusted-device-${marker}`,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        scopes: ["profile"],
+        status: "approved",
+        userCode: `trusted-user-${marker}`,
+        userId,
+      },
+      select: { id: true },
+    });
+    const issued = await issueDeviceGrantTokens(prisma, {
+      clientId: trustedClientId,
+      deviceCodeRecordId: device.id,
+      resources: [],
+      scopes: ["profile"],
+      userId,
+    });
+    if (!issued) throw new Error("Expected trusted device token");
+    const token = await prisma.oAuthAccessToken.findUniqueOrThrow({
+      where: {
+        token: await hashOAuthClientSecretForDbStorage(issued.accessToken),
+      },
+      select: { grantId: true, scopes: true },
+    });
+    await expect(
+      prisma.oAuthConsent.count({
+        where: { clientId: trustedClientId, userId },
+      }),
+    ).resolves.toBe(0);
+
+    await prisma.oAuthClient.update({
+      where: { clientId: trustedClientId },
+      data: { skipConsent: false },
+    });
+    await expect(
+      hasActiveOAuthUserGrant({
+        clientId: trustedClientId,
+        grantId: token.grantId ?? undefined,
+        requireGrantBinding: true,
+        scopes: token.scopes,
+        userId,
+      }),
+    ).resolves.toBe(false);
+    await prisma.oAuthClient.update({
+      where: { clientId: trustedClientId },
+      data: { skipConsent: true },
+    });
   });
 
   it("atomically removes this user's grant material without touching another user", async () => {

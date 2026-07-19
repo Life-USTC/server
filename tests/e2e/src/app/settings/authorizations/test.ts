@@ -40,6 +40,17 @@ test.describe("/settings/authorizations OAuth 授权", () => {
 
     try {
       await gotoAndWaitForReady(page, "/settings/authorizations");
+      await page.locator("#app-user-menu").getByRole("button").click();
+      const menuLink = page.getByRole("menuitem", {
+        name: /已授权应用|Authorized apps/i,
+      });
+      await expect(menuLink).toHaveAttribute(
+        "href",
+        "/settings/authorizations",
+      );
+      await expect(menuLink).toHaveAttribute("aria-current", "page");
+      await page.keyboard.press("Escape");
+
       const region = page.getByRole("region", {
         name: /已授权的 OAuth 应用|Authorized OAuth applications/i,
       });

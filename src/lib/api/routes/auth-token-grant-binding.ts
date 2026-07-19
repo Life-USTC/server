@@ -33,6 +33,13 @@ function tokenScopes(scope: unknown) {
     : [];
 }
 
+function scopesAreSubset(
+  scopes: readonly string[],
+  allowedScopes: readonly string[],
+) {
+  return scopes.every((scope) => allowedScopes.includes(scope));
+}
+
 function inactiveGrantResponse() {
   return jsonResponse(
     {
@@ -119,7 +126,10 @@ async function deleteReturnedTokenRows(input: {
  * immutable grant generation. The inherited reference is persisted on opaque
  * rows, but an unbound response is never attached to the latest consent.
  */
-export async function bindOAuthAccessTokenToConsent(response: Response) {
+export async function bindOAuthAccessTokenToConsent(
+  response: Response,
+  requestedRefreshScopes?: readonly string[],
+) {
   if (!response.ok) return response;
 
   const body = await getTokenBody(response);
@@ -174,12 +184,35 @@ export async function bindOAuthAccessTokenToConsent(response: Response) {
     return inactiveGrantResponse();
   }
 
+  const responseScopes =
+    typeof body.scope === "string" ? tokenScopes(body.scope) : undefined;
+  if (
+    (requestedRefreshScopes &&
+      !scopesAreSubset(evidence.scopes, requestedRefreshScopes)) ||
+    (responseScopes && !scopesAreSubset(evidence.scopes, responseScopes)) ||
+    (refreshRow &&
+      (!scopesAreSubset(evidence.scopes, refreshRow.scopes) ||
+        (requestedRefreshScopes &&
+          !scopesAreSubset(refreshRow.scopes, requestedRefreshScopes)) ||
+        (responseScopes &&
+          !scopesAreSubset(refreshRow.scopes, responseScopes))))
+  ) {
+    await deleteReturnedTokenRows({
+      accessTokenHash: evidence.opaqueTokenHash,
+      refreshTokenHash,
+    });
+    return inactiveGrantResponse();
+  }
+
   const expectedGrantId = evidence.grantId ?? refreshGrantId ?? undefined;
+  const grantedScopes = [
+    ...new Set([...evidence.scopes, ...(refreshRow?.scopes ?? [])]),
+  ];
   const grant = await resolveActiveOAuthUserGrant({
     clientId: evidence.clientId,
     grantId: expectedGrantId,
     requireGrantBinding: true,
-    scopes: evidence.scopes,
+    scopes: grantedScopes,
     userId: evidence.userId,
   });
   if (!grant) {
@@ -229,7 +262,7 @@ export async function bindOAuthAccessTokenToConsent(response: Response) {
       clientId: evidence.clientId,
       grantId,
       requireGrantBinding: true,
-      scopes: evidence.scopes,
+      scopes: grantedScopes,
       userId: evidence.userId,
     }))
   ) {

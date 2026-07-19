@@ -32,6 +32,7 @@ function scopeValues(value: unknown) {
 export async function bindOAuthAuthorizationCodeToActiveGrant(
   code: string,
   expectedClientId?: string,
+  expectedGrantId?: string,
 ) {
   if (!code) return false;
 
@@ -59,33 +60,44 @@ export async function bindOAuthAuthorizationCodeToActiveGrant(
 
   const existingGrantId =
     typeof value.referenceId === "string" ? value.referenceId : undefined;
+  if (
+    expectedGrantId !== undefined &&
+    existingGrantId !== undefined &&
+    existingGrantId !== expectedGrantId
+  ) {
+    return false;
+  }
+
+  const grantId = expectedGrantId ?? existingGrantId;
   const scopes = scopeValues(value.query?.scope);
   const grant = await resolveActiveOAuthUserGrant({
     clientId,
-    ...(existingGrantId
-      ? { grantId: existingGrantId, requireGrantBinding: true }
-      : {}),
+    grantId,
+    requireGrantBinding: true,
     scopes,
     userId,
   });
   if (!grant) return false;
-  if (grant.kind === "trusted" || existingGrantId) return true;
+  if (grant.kind === "trusted") return true;
+  if (!grantId || grant.grantId !== grantId) return false;
 
-  const updated = await prisma.verificationToken.updateMany({
-    where: { id: row.id, token: row.token },
-    data: {
-      token: JSON.stringify({
-        ...value,
-        referenceId: grant.grantId,
-      }),
-    },
-  });
+  const updated = existingGrantId
+    ? { count: 1 }
+    : await prisma.verificationToken.updateMany({
+        where: { id: row.id, token: row.token },
+        data: {
+          token: JSON.stringify({
+            ...value,
+            referenceId: grantId,
+          }),
+        },
+      });
   return (
     updated.count === 1 &&
     Boolean(
       await resolveActiveOAuthUserGrant({
         clientId,
-        grantId: grant.grantId,
+        grantId,
         requireGrantBinding: true,
         scopes,
         userId,
@@ -98,6 +110,7 @@ export async function bindOAuthAuthorizationCodeRedirectToActiveGrant(
   target: string,
   expectedClientId: string | undefined,
   baseUrl: string,
+  expectedGrantId?: string,
 ) {
   let url: URL;
   try {
@@ -108,5 +121,9 @@ export async function bindOAuthAuthorizationCodeRedirectToActiveGrant(
   const codes = url.searchParams.getAll("code");
   if (codes.length === 0) return true;
   if (codes.length !== 1) return false;
-  return bindOAuthAuthorizationCodeToActiveGrant(codes[0], expectedClientId);
+  return bindOAuthAuthorizationCodeToActiveGrant(
+    codes[0],
+    expectedClientId,
+    expectedGrantId,
+  );
 }

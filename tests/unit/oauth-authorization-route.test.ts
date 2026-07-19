@@ -1,12 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { authHandlerMock, bindCodeRedirectMock } = vi.hoisted(() => ({
+const {
+  authHandlerMock,
+  bindCodeRedirectMock,
+  getSessionFromHeadersMock,
+  resolveActiveGrantMock,
+} = vi.hoisted(() => ({
   authHandlerMock: vi.fn(),
   bindCodeRedirectMock: vi.fn(),
+  getSessionFromHeadersMock: vi.fn(),
+  resolveActiveGrantMock: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/core", () => ({
   betterAuthInstance: { handler: authHandlerMock },
+  getSessionFromHeaders: getSessionFromHeadersMock,
 }));
 
 vi.mock(
@@ -15,6 +23,11 @@ vi.mock(
     bindOAuthAuthorizationCodeRedirectToActiveGrant: bindCodeRedirectMock,
   }),
 );
+
+vi.mock("@/lib/oauth/active-user-grant", () => ({
+  hasActiveOAuthUserGrant: vi.fn(),
+  resolveActiveOAuthUserGrant: resolveActiveGrantMock,
+}));
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
@@ -28,6 +41,14 @@ describe("OAuth authorization route grant binding", () => {
   beforeEach(() => {
     authHandlerMock.mockReset();
     bindCodeRedirectMock.mockReset();
+    getSessionFromHeadersMock.mockReset();
+    resolveActiveGrantMock.mockReset();
+    getSessionFromHeadersMock.mockResolvedValue({ user: { id: "user-1" } });
+    resolveActiveGrantMock.mockResolvedValue({
+      consentId: "consent-1",
+      grantId: "grant-1",
+      kind: "consent",
+    });
     authHandlerMock.mockResolvedValue(
       new Response(null, {
         headers: {
@@ -42,7 +63,7 @@ describe("OAuth authorization route grant binding", () => {
     bindCodeRedirectMock.mockResolvedValue(true);
     const { authGetRoute } = await import("@/lib/api/routes/auth");
     const request = new Request(
-      "https://life.example/api/auth/oauth2/authorize?client_id=client-1",
+      "https://life.example/api/auth/oauth2/authorize?client_id=client-1&scope=profile",
     );
 
     const response = await authGetRoute(request);
@@ -52,6 +73,37 @@ describe("OAuth authorization route grant binding", () => {
       "https://client.example/callback?code=code-1&state=state-1",
       "client-1",
       request.url,
+      "grant-1",
+    );
+    expect(resolveActiveGrantMock).toHaveBeenCalledWith({
+      clientId: "client-1",
+      scopes: ["profile"],
+      userId: "user-1",
+    });
+  });
+
+  it("uses the pre-handler generation for a JSON authorization redirect", async () => {
+    authHandlerMock.mockResolvedValue(
+      Response.json({
+        url: "https://client.example/callback?code=code-1&state=state-1",
+      }),
+    );
+    bindCodeRedirectMock.mockResolvedValue(true);
+    const { authGetRoute } = await import("@/lib/api/routes/auth");
+    const request = new Request(
+      "https://life.example/api/auth/oauth2/authorize?client_id=client-1&scope=profile",
+    );
+
+    const response = await authGetRoute(request);
+
+    await expect(response.json()).resolves.toMatchObject({
+      url: "https://client.example/callback?code=code-1&state=state-1",
+    });
+    expect(bindCodeRedirectMock).toHaveBeenCalledWith(
+      "https://client.example/callback?code=code-1&state=state-1",
+      "client-1",
+      request.url,
+      "grant-1",
     );
   });
 
@@ -98,6 +150,7 @@ describe("OAuth authorization route grant binding", () => {
       "https://client.example/callback?code=code-1&state=state-1",
       undefined,
       request.url,
+      undefined,
     );
   });
 

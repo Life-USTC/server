@@ -6,6 +6,10 @@ import {
 } from "@/lib/oauth/active-user-grant";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
 
+const NONTRUSTED_OAUTH_CLIENT_WHERE = {
+  OR: [{ skipConsent: false }, { skipConsent: null }],
+} satisfies Prisma.OAuthClientWhereInput;
+
 export type UserOAuthAuthorization = {
   consentId: string;
   clientName: string | null;
@@ -31,7 +35,10 @@ export async function listUserOAuthAuthorizations(
   userId: string,
 ): Promise<UserOAuthAuthorization[]> {
   const rows = await prisma.oAuthConsent.findMany({
-    where: { userId },
+    where: {
+      userId,
+      client: NONTRUSTED_OAUTH_CLIENT_WHERE,
+    },
     orderBy: { updatedAt: "desc" },
     select: {
       id: true,
@@ -65,7 +72,11 @@ export async function revokeUserOAuthAuthorization(
   consentId: string,
 ): Promise<RevokeUserOAuthAuthorizationResult> {
   const consent = await prisma.oAuthConsent.findFirst({
-    where: { id: consentId, userId },
+    where: {
+      id: consentId,
+      userId,
+      client: NONTRUSTED_OAUTH_CLIENT_WHERE,
+    },
     select: { clientId: true },
   });
   if (!consent) return { ok: false, reason: "not_found" };
@@ -197,7 +208,11 @@ export async function updateUserOAuthAuthorizationScopes(
   const normalizedScopes = [...new Set(scopes)].sort();
   return prisma.$transaction(async (tx) => {
     const consent = await tx.oAuthConsent.findFirst({
-      where: { id: consentId, userId },
+      where: {
+        id: consentId,
+        userId,
+        client: NONTRUSTED_OAUTH_CLIENT_WHERE,
+      },
       select: {
         clientId: true,
         client: { select: { scopes: true } },
@@ -229,6 +244,18 @@ export async function rotateOAuthUserGrantAfterConsent(input: {
 }) {
   const scopes = [...new Set(input.scopes)].sort();
   return prisma.$transaction(async (tx) => {
+    const client = await tx.oAuthClient.findUnique({
+      where: { clientId: input.clientId },
+      select: { disabled: true, skipConsent: true },
+    });
+    if (!client || client.disabled) return null;
+    if (client.skipConsent === true) {
+      await tx.oAuthConsent.deleteMany({
+        where: { clientId: input.clientId, userId: input.userId },
+      });
+      return { kind: "trusted" as const };
+    }
+
     const consent = await tx.oAuthConsent.findUnique({
       where: {
         clientId_userId: {
@@ -245,6 +272,13 @@ export async function rotateOAuthUserGrantAfterConsent(input: {
       scopes,
       userId: input.userId,
     });
-    return grantId ? { consentId: consent.id, grantId, scopes } : null;
+    return grantId
+      ? {
+          consentId: consent.id,
+          grantId,
+          kind: "consent" as const,
+          scopes,
+        }
+      : null;
   });
 }

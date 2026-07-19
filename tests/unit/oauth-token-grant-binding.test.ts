@@ -210,6 +210,127 @@ describe("OAuth access-token grant binding", () => {
     expect(refreshUpdateManyMock).not.toHaveBeenCalled();
   });
 
+  it("rejects access scopes broader than the refresh response outcome", async () => {
+    decodeJwtMock.mockReturnValue({
+      azp: "client-1",
+      [OAUTH_GRANT_ID_CLAIM]: "grant-1",
+      scope: "profile todo:write",
+      sub: "user-1",
+    });
+    const { bindOAuthAccessTokenToConsent } = await import(
+      "@/lib/api/routes/auth-token-grant-binding"
+    );
+
+    const response = await bindOAuthAccessTokenToConsent(
+      Response.json({
+        access_token: "header.payload.signature",
+        scope: "profile",
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(resolveActiveOAuthUserGrantMock).not.toHaveBeenCalled();
+  });
+
+  it("uses the rotated refresh row as the scope outcome when scope is omitted", async () => {
+    decodeJwtMock.mockReturnValue({
+      azp: "client-1",
+      [OAUTH_GRANT_ID_CLAIM]: "grant-1",
+      scope: "profile todo:write",
+      sub: "user-1",
+    });
+    refreshFindUniqueMock.mockResolvedValue({
+      clientId: "client-1",
+      grantId: "grant-1",
+      referenceId: "grant-1",
+      scopes: ["profile"],
+      userId: "user-1",
+    });
+    const { bindOAuthAccessTokenToConsent } = await import(
+      "@/lib/api/routes/auth-token-grant-binding"
+    );
+
+    const response = await bindOAuthAccessTokenToConsent(
+      Response.json({
+        access_token: "header.payload.signature",
+        refresh_token: "rotated-refresh",
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(refreshDeleteManyMock).toHaveBeenCalled();
+    expect(resolveActiveOAuthUserGrantMock).not.toHaveBeenCalled();
+  });
+
+  it("enforces an explicit refresh downscope when the response scope is omitted", async () => {
+    decodeJwtMock.mockReturnValue({
+      azp: "client-1",
+      [OAUTH_GRANT_ID_CLAIM]: "grant-1",
+      scope: "profile todo:write",
+      sub: "user-1",
+    });
+    refreshFindUniqueMock.mockResolvedValue({
+      clientId: "client-1",
+      grantId: "grant-1",
+      referenceId: "grant-1",
+      scopes: ["profile", "todo:write"],
+      userId: "user-1",
+    });
+    const { bindOAuthAccessTokenToConsent } = await import(
+      "@/lib/api/routes/auth-token-grant-binding"
+    );
+
+    const response = await bindOAuthAccessTokenToConsent(
+      Response.json({
+        access_token: "header.payload.signature",
+        refresh_token: "rotated-refresh",
+      }),
+      ["profile"],
+    );
+
+    expect(response.status).toBe(400);
+    expect(refreshDeleteManyMock).toHaveBeenCalled();
+    expect(resolveActiveOAuthUserGrantMock).not.toHaveBeenCalled();
+  });
+
+  it("validates both access and refresh scopes against the active grant", async () => {
+    decodeJwtMock.mockReturnValue({
+      azp: "client-1",
+      [OAUTH_GRANT_ID_CLAIM]: "grant-1",
+      scope: "profile",
+      sub: "user-1",
+    });
+    refreshFindUniqueMock.mockResolvedValue({
+      clientId: "client-1",
+      grantId: "grant-1",
+      referenceId: "grant-1",
+      scopes: ["profile", "offline_access"],
+      userId: "user-1",
+    });
+    resolveActiveOAuthUserGrantMock.mockResolvedValue({
+      consentId: "consent-1",
+      grantId: "grant-1",
+      kind: "consent",
+    });
+    const { bindOAuthAccessTokenToConsent } = await import(
+      "@/lib/api/routes/auth-token-grant-binding"
+    );
+
+    const response = Response.json({
+      access_token: "header.payload.signature",
+      refresh_token: "rotated-refresh",
+      scope: "profile offline_access",
+    });
+    expect(await bindOAuthAccessTokenToConsent(response)).toBe(response);
+    expect(resolveActiveOAuthUserGrantMock).toHaveBeenCalledWith({
+      clientId: "client-1",
+      grantId: "grant-1",
+      requireGrantBinding: true,
+      scopes: ["profile", "offline_access"],
+      userId: "user-1",
+    });
+  });
+
   it("does not issue a JWT when its consent disappeared during exchange", async () => {
     decodeJwtMock.mockReturnValue({
       azp: "client-1",

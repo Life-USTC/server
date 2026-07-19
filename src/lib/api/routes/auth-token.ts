@@ -2,7 +2,10 @@ import { jsonResponse } from "@/lib/api/helpers";
 import { observedApiRoute } from "@/lib/log/api-observability";
 import { withBetterAuthOAuthDebug } from "@/lib/log/oauth-debug";
 import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";
-import { OAUTH_DEVICE_CODE_GRANT_TYPE } from "@/lib/oauth/constants";
+import {
+  OAUTH_DEVICE_CODE_GRANT_TYPE,
+  OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+} from "@/lib/oauth/constants";
 import { findDuplicateOAuthFormParameter } from "@/lib/oauth/form-parameters";
 import { rewriteOAuthResourceAliases } from "@/lib/oauth/resource-aliases";
 import {
@@ -114,6 +117,9 @@ async function runObservedTokenHandler(
   try {
     const response = await bindOAuthAccessTokenToConsent(
       await runTokenHandler(run),
+      grantType === OAUTH_REFRESH_TOKEN_GRANT_TYPE && params.has("scope")
+        ? [...new Set((params.get("scope") ?? "").split(/\s+/).filter(Boolean))]
+        : undefined,
     );
     writeOAuthEventAnalytics({
       durationMs: Date.now() - start,

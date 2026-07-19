@@ -23,7 +23,10 @@ import {
   getOAuthProviderValidAudiences,
   getOAuthTokenVerificationIssuers,
 } from "@/lib/mcp/urls";
-import { hasActiveOAuthUserGrant } from "@/lib/oauth/active-user-grant";
+import {
+  hasActiveOAuthUserGrant,
+  resolveActiveOAuthUserGrant,
+} from "@/lib/oauth/active-user-grant";
 import { findDuplicateOAuthFormParameter } from "@/lib/oauth/form-parameters";
 import { resolveEquivalentLoopbackRedirectUri } from "@/lib/oauth/loopback-redirect";
 import { rewriteOAuthResourceAliases } from "@/lib/oauth/resource-aliases";
@@ -475,6 +478,10 @@ function maybeNormalizeAuthorizeResourceRequest(request: Request): Request {
 async function enforceAuthorizationCodeGrantBinding(
   request: Request,
   response: Response,
+  expectation?: {
+    clientId: string | null;
+    grantId?: string;
+  },
 ) {
   const pathname = new URL(request.url).pathname;
   const isAuthorize = pathname.endsWith("/oauth2/authorize");
@@ -486,9 +493,12 @@ async function enforceAuthorizationCodeGrantBinding(
   if (location) {
     return enforceAuthorizationCodeRedirectBinding({
       baseUrl: request.url,
-      expectedClientId: isAuthorize
-        ? getSingleAuthorizationClientId(request)
-        : undefined,
+      expectedClientId: expectation
+        ? expectation.clientId
+        : isAuthorize
+          ? getSingleAuthorizationClientId(request)
+          : undefined,
+      expectedGrantId: expectation?.grantId,
       location,
       response,
     });
@@ -504,9 +514,12 @@ async function enforceAuthorizationCodeGrantBinding(
 
   const bound = await enforceAuthorizationCodeRedirectBinding({
     baseUrl: request.url,
-    expectedClientId: isAuthorize
-      ? getSingleAuthorizationClientId(request)
-      : undefined,
+    expectedClientId: expectation
+      ? expectation.clientId
+      : isAuthorize
+        ? getSingleAuthorizationClientId(request)
+        : undefined,
+    expectedGrantId: expectation?.grantId,
     location: body.url,
     response,
   });
@@ -531,9 +544,42 @@ function getSingleAuthorizationClientId(request: Request) {
   return clientIds.length === 1 && clientIds[0] ? clientIds[0] : null;
 }
 
+async function resolveAuthorizationCodeGrantExpectation(request: Request) {
+  const url = new URL(request.url);
+  if (!url.pathname.endsWith("/oauth2/authorize")) return undefined;
+
+  const clientId = getSingleAuthorizationClientId(request);
+  if (!clientId) return { clientId: null };
+
+  try {
+    const { getSessionFromHeaders } = await import("@/lib/auth/core");
+    const session = await getSessionFromHeaders(request.headers);
+    const userId = session?.user.id;
+    if (!userId) return { clientId };
+
+    const scopeValues = url.searchParams.getAll("scope");
+    const scopes =
+      scopeValues.length === 1
+        ? [...new Set(scopeValues[0].split(/\s+/).filter(Boolean))]
+        : [];
+    const grant = await resolveActiveOAuthUserGrant({
+      clientId,
+      scopes,
+      userId,
+    });
+    return {
+      clientId,
+      ...(grant?.kind === "consent" ? { grantId: grant.grantId } : {}),
+    };
+  } catch {
+    return { clientId };
+  }
+}
+
 async function enforceAuthorizationCodeRedirectBinding(input: {
   baseUrl: string;
   expectedClientId: string | null | undefined;
+  expectedGrantId?: string;
   location: string;
   response: Response;
 }) {
@@ -553,6 +599,7 @@ async function enforceAuthorizationCodeRedirectBinding(input: {
         input.location,
         input.expectedClientId,
         input.baseUrl,
+        input.expectedGrantId,
       ));
   } catch {
     bound = false;
@@ -581,12 +628,18 @@ export const authGetRoute = async (request: Request) => {
     await maybeNormalizeAuthorizeLoopbackRedirectRequest(
       maybeNormalizeAuthorizeResourceRequest(request),
     );
+  const expectation =
+    await resolveAuthorizationCodeGrantExpectation(normalizedRequest);
   const response = await withBetterAuthOAuthDebug(
     "GET",
     normalizedRequest,
     authHandler,
   );
-  return enforceAuthorizationCodeGrantBinding(normalizedRequest, response);
+  return enforceAuthorizationCodeGrantBinding(
+    normalizedRequest,
+    response,
+    expectation,
+  );
 };
 
 export const authPostRoute = async (request: Request) => {

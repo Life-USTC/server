@@ -84,21 +84,19 @@ async function rotateAcceptedOAuthGrant(input: {
 }) {
   const query = new URLSearchParams(input.oauthQuery);
   const clientIds = query.getAll("client_id");
-  if (clientIds.length !== 1 || !clientIds[0]) return false;
+  if (clientIds.length !== 1 || !clientIds[0]) return null;
 
   const session = await asOAuthSessionApi(input.authApi)?.getSession({
     headers: input.headers,
   });
   const userId = session?.user?.id;
-  if (typeof userId !== "string") return false;
+  if (typeof userId !== "string") return null;
 
-  return Boolean(
-    await rotateOAuthUserGrantAfterConsent({
-      clientId: clientIds[0],
-      scopes: input.scope.split(/\s+/).filter(Boolean),
-      userId,
-    }),
-  );
+  return rotateOAuthUserGrantAfterConsent({
+    clientId: clientIds[0],
+    scopes: input.scope.split(/\s+/).filter(Boolean),
+    userId,
+  });
 }
 
 function isOAuthAuthorizePageRedirect(target: string, requestUrl: string) {
@@ -184,11 +182,13 @@ async function requestOAuthAuthorizeTarget({
 
 async function issueAuthorizationCodeRedirect({
   acceptedScope,
+  expectedGrantId,
   authApi,
   authorizeQuery,
   headers,
 }: {
   acceptedScope: string;
+  expectedGrantId?: string;
   authApi: unknown;
   authorizeQuery: Record<string, string>;
   headers: Headers;
@@ -220,6 +220,7 @@ async function issueAuthorizationCodeRedirect({
         query,
         userId,
         sessionId,
+        ...(expectedGrantId ? { referenceId: expectedGrantId } : {}),
         ...(authTime !== undefined ? { authTime } : {}),
       }),
       expires: new Date((iat + OAUTH_CODE_EXPIRES_IN_SECONDS) * 1000),
@@ -239,6 +240,7 @@ async function resolveAuthorizeRedirectAfterConsent({
   accept,
   authApi,
   acceptedScope,
+  expectedGrantId,
   headers,
   requestUrl,
   redirectTarget,
@@ -246,6 +248,7 @@ async function resolveAuthorizeRedirectAfterConsent({
   accept: boolean;
   authApi: unknown;
   acceptedScope: string;
+  expectedGrantId?: string;
   headers: Headers;
   requestUrl: string;
   redirectTarget: string;
@@ -274,6 +277,7 @@ async function resolveAuthorizeRedirectAfterConsent({
   return accept
     ? issueAuthorizationCodeRedirect({
         acceptedScope,
+        expectedGrantId,
         authApi,
         authorizeQuery,
         headers,
@@ -315,15 +319,15 @@ export async function submitOAuthConsentAction({
       body,
     });
     redirectTarget = redirectPayloadTarget(payload);
-    if (
-      accept &&
-      !(await rotateAcceptedOAuthGrant({
-        authApi,
-        headers,
-        oauthQuery,
-        scope,
-      }))
-    ) {
+    const acceptedGrant = accept
+      ? await rotateAcceptedOAuthGrant({
+          authApi,
+          headers,
+          oauthQuery,
+          scope,
+        })
+      : null;
+    if (accept && !acceptedGrant) {
       throw new Error("OAuth grant generation could not be rotated");
     }
     if (redirectTarget) {
@@ -331,6 +335,8 @@ export async function submitOAuthConsentAction({
         accept,
         authApi,
         acceptedScope: scope,
+        expectedGrantId:
+          acceptedGrant?.kind === "consent" ? acceptedGrant.grantId : undefined,
         headers,
         requestUrl: request.url,
         redirectTarget,
@@ -346,6 +352,7 @@ export async function submitOAuthConsentAction({
           redirectTarget,
           clientIds[0],
           request.url,
+          acceptedGrant?.kind === "consent" ? acceptedGrant.grantId : undefined,
         )))
     ) {
       throw new Error("OAuth authorization code could not be grant-bound");

@@ -40,6 +40,10 @@ async function getTokenResponseBody(response: Response) {
       typeof body?.refresh_token === "string" && body.refresh_token.length > 0
         ? body.refresh_token
         : undefined,
+    scopes:
+      typeof body?.scope === "string"
+        ? [...new Set(body.scope.split(/\s+/).filter(Boolean))]
+        : undefined,
   };
 }
 
@@ -117,8 +121,14 @@ export async function replaceOAuthRefreshAccessToken(
 
   const body = await getTokenJsonBody(response);
   if (!body || typeof body.access_token !== "string") return response;
+  const effectiveScopes =
+    typeof body.scope === "string"
+      ? [...new Set(body.scope.split(/\s+/).filter(Boolean))]
+      : undefined;
+  if (!effectiveScopes) return response;
 
   const issued = await issueResourceBoundRefreshAccessToken({
+    effectiveScopes,
     refreshToken: params.get("refresh_token"),
     resourceValues: params.getAll("resource"),
   });

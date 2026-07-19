@@ -21,10 +21,15 @@ vi.mock("@/lib/mcp/urls", () => ({
   getCanonicalOAuthIssuer: () => "https://life.example/api/auth",
 }));
 
-function createPrismaMock() {
+function createPrismaMock(options: { skipConsent?: boolean } = {}) {
   const deviceCodeDeleteMany = vi.fn().mockResolvedValue({ count: 1 });
   const accessTokenDeleteMany = vi.fn().mockResolvedValue({ count: 1 });
   const accessTokenCreate = vi.fn().mockResolvedValue({});
+  const clientFindUnique = vi.fn().mockResolvedValue({
+    disabled: false,
+    skipConsent: options.skipConsent ?? false,
+  });
+  const consentDeleteMany = vi.fn().mockResolvedValue({ count: 1 });
   const consentUpsert = vi.fn().mockResolvedValue({});
   const refreshTokenDeleteMany = vi.fn().mockResolvedValue({ count: 1 });
   const refreshTokenCreate = vi.fn().mockResolvedValue({ id: "refresh-1" });
@@ -37,7 +42,11 @@ function createPrismaMock() {
             create: accessTokenCreate,
             deleteMany: accessTokenDeleteMany,
           },
-          oAuthConsent: { upsert: consentUpsert },
+          oAuthClient: { findUnique: clientFindUnique },
+          oAuthConsent: {
+            deleteMany: consentDeleteMany,
+            upsert: consentUpsert,
+          },
           oAuthRefreshToken: {
             create: refreshTokenCreate,
             deleteMany: refreshTokenDeleteMany,
@@ -47,6 +56,8 @@ function createPrismaMock() {
     },
     accessTokenDeleteMany,
     accessTokenCreate,
+    clientFindUnique,
+    consentDeleteMany,
     consentUpsert,
     deviceCodeDeleteMany,
     refreshTokenDeleteMany,
@@ -235,5 +246,34 @@ describe("设备令牌签发器", () => {
       }),
     });
     expect(signJwtMock).not.toHaveBeenCalled();
+  });
+
+  it("trusted client 设备流清理普通 consent 但保留 token lineage", async () => {
+    const { prisma, accessTokenCreate, consentDeleteMany, consentUpsert } =
+      createPrismaMock({ skipConsent: true });
+    const { issueDeviceGrantTokens } = await import(
+      "@/features/oauth/server/device-token-issuer.server"
+    );
+
+    const issued = await issueDeviceGrantTokens(prisma, {
+      clientId: "trusted-client",
+      deviceCodeRecordId: "device-1",
+      resources: [],
+      scopes: [OAUTH_PROFILE_SCOPE],
+      userId: "user-1",
+    });
+
+    expect(issued).toBeTruthy();
+    expect(consentDeleteMany).toHaveBeenCalledWith({
+      where: { clientId: "trusted-client", userId: "user-1" },
+    });
+    expect(consentUpsert).not.toHaveBeenCalled();
+    expect(accessTokenCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        clientId: "trusted-client",
+        grantId: expect.any(String),
+        referenceId: expect.any(String),
+      }),
+    });
   });
 });

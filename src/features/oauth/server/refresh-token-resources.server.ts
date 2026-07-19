@@ -303,10 +303,12 @@ export async function validateRefreshTokenResources({
 }
 
 export async function issueResourceBoundRefreshAccessToken({
+  effectiveScopes,
   prisma = defaultPrisma,
   refreshToken,
   resourceValues,
 }: {
+  effectiveScopes: readonly string[];
   prisma?: RefreshResourcePrisma;
   refreshToken: string | null;
   resourceValues: string[];
@@ -328,7 +330,8 @@ export async function issueResourceBoundRefreshAccessToken({
   if (
     !refreshRecord?.clientId ||
     !refreshRecord.userId ||
-    !refreshRecord.scopes
+    !refreshRecord.scopes ||
+    !effectiveScopes.every((scope) => refreshRecord.scopes?.includes(scope))
   ) {
     return undefined;
   }
@@ -347,7 +350,7 @@ export async function issueResourceBoundRefreshAccessToken({
     grantId: refreshRecord.grantId ?? refreshRecord.referenceId ?? undefined,
     issuedAt,
     resources,
-    scopes: refreshRecord.scopes,
+    scopes: [...new Set(effectiveScopes)],
     userId: refreshRecord.userId,
   });
   if (!accessToken) return undefined;

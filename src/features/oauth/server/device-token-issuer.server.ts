@@ -40,7 +40,16 @@ type DeviceGrantTokenTransaction = {
       };
     }) => Promise<unknown>;
   };
+  oAuthClient: {
+    findUnique: (input: {
+      where: { clientId: string };
+      select: { disabled: true; skipConsent: true };
+    }) => Promise<{ disabled: boolean; skipConsent: boolean | null } | null>;
+  };
   oAuthConsent: {
+    deleteMany: (input: {
+      where: { clientId: string; userId: string };
+    }) => Promise<{ count: number }>;
     upsert: (input: {
       where: {
         clientId_userId: { clientId: string; userId: string };
@@ -187,21 +196,30 @@ export async function issueDeviceGrantTokens(
       clientId: input.clientId,
       userId: input.userId,
     };
-    await tx.oAuthConsent.upsert({
-      where: {
-        clientId_userId: identity,
-      },
-      create: {
-        clientId: input.clientId,
-        grantId,
-        scopes: input.scopes,
-        userId: input.userId,
-      },
-      update: {
-        grantId,
-        scopes: input.scopes,
-      },
+    const client = await tx.oAuthClient.findUnique({
+      where: { clientId: input.clientId },
+      select: { disabled: true, skipConsent: true },
     });
+    if (!client || client.disabled) return false;
+    if (client.skipConsent === true) {
+      await tx.oAuthConsent.deleteMany({ where: identity });
+    } else {
+      await tx.oAuthConsent.upsert({
+        where: {
+          clientId_userId: identity,
+        },
+        create: {
+          clientId: input.clientId,
+          grantId,
+          scopes: input.scopes,
+          userId: input.userId,
+        },
+        update: {
+          grantId,
+          scopes: input.scopes,
+        },
+      });
+    }
     await tx.oAuthAccessToken.deleteMany({ where: identity });
     await tx.oAuthRefreshToken.deleteMany({ where: identity });
 
