@@ -1,3 +1,10 @@
+# [1.69.0](https://github.com/Life-USTC/server/compare/v1.68.0...v1.69.0) (2026-07-19)
+
+
+### Features
+
+* **graphql:** add batch business mutations ([#563](https://github.com/Life-USTC/server/issues/563)) ([276f3ec](https://github.com/Life-USTC/server/commit/276f3ec70340a14b42fee75860ae1cdd6057110b))
+
 # [1.68.0](https://github.com/Life-USTC/server/compare/v1.67.0...v1.68.0) (2026-07-19)
 
 
