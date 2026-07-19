@@ -1,4 +1,5 @@
 <script lang="ts">
+import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
 import type { ThemeMode } from "$lib/components/shell/layout-shell";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 import type {
@@ -42,7 +43,7 @@ export let userMenuOpen: boolean;
     >
       <img
         class="size-7 rounded-md"
-        src="/images/icon.png"
+        src={appIconUrl}
         alt=""
         aria-hidden="true"
       />
