@@ -418,14 +418,14 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       if (message.type() === "error") runtimeErrors.push(message.text());
     });
     page.on("pageerror", (error) => runtimeErrors.push(error.message));
-    await page.setViewportSize({ width: 390, height: 844 });
+    await page.setViewportSize({ width: 375, height: 900 });
     await signInAsDebugUser(page, SECTION_URL);
 
     const heading = page.getByRole("heading", { level: 1 }).first();
     await expect(heading).toHaveCSS("font-size", "24px");
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
-    ).toBeLessThanOrEqual(390);
+    ).toBeLessThanOrEqual(375);
 
     const nav = page.getByTestId("detail-section-nav");
     await expect(nav.locator("[data-sidebar='menu']")).toHaveCSS(
@@ -471,13 +471,24 @@ test.describe("/sections/[jwId] 班级详情页", () => {
           if (!viewport || !active) return null;
           const viewportBox = viewport.getBoundingClientRect();
           const activeBox = active.getBoundingClientRect();
+          const rootBox = root.getBoundingClientRect();
+          const fadeWidth = Number.parseFloat(
+            getComputedStyle(root, "::after").width || "0",
+          );
           return {
+            clearOfFade: activeBox.right <= rootBox.right - fadeWidth + 1,
             left: activeBox.left >= viewportBox.left,
             right: activeBox.right <= viewportBox.right,
+            windowScrollX: window.scrollX,
           };
         }),
       )
-      .toEqual({ left: true, right: true });
+      .toEqual({
+        clearOfFade: true,
+        left: true,
+        right: true,
+        windowScrollX: 0,
+      });
     await expect(page.locator("vite-error-overlay")).toHaveCount(0);
     expect(runtimeErrors).toEqual([]);
     await captureStepScreenshot(page, testInfo, "section/detail-mobile");

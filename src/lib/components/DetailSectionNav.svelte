@@ -43,7 +43,7 @@ function revealActive(node: HTMLElement, active: boolean) {
           <Sidebar.GroupLabel class="hidden lg:flex">{label}</Sidebar.GroupLabel>
         {/if}
         <Sidebar.GroupContent>
-          <Sidebar.Menu class="w-max min-w-full flex-row lg:w-full lg:min-w-0 lg:flex-col">
+          <Sidebar.Menu class="w-max min-w-full flex-row pr-8 lg:w-full lg:min-w-0 lg:flex-col lg:pr-0">
             {#each items as item}
               {@const active = item.href === activeHref}
               <Sidebar.MenuItem class="shrink-0">

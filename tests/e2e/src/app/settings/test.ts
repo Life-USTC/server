@@ -69,30 +69,58 @@ test.describe("/settings 设置中心", () => {
   });
 
   test("移动端直接打开末尾标签时当前项保持可见", async ({ page }) => {
-    await page.setViewportSize({ width: 360, height: 800 });
     const localeResponse = await page.request.post("/api/locale", {
-      data: { locale: "en-us" },
+      data: { locale: "zh-cn" },
     });
     expect(localeResponse.status()).toBe(200);
+    await page.setViewportSize({ width: 375, height: 900 });
     await signInAsDebugUser(page, "/settings/danger");
 
     const navigation = page.locator("[data-settings-navigation]");
     const activeLink = navigation.locator('a[aria-current="page"]');
-    await expect(activeLink).toBeVisible();
-    await expect
-      .poll(() =>
-        navigation.evaluate((nav) => {
-          const link = nav.querySelector<HTMLElement>('a[aria-current="page"]');
-          if (!link) return null;
-          const navBox = nav.getBoundingClientRect();
-          const linkBox = link.getBoundingClientRect();
-          return {
-            left: linkBox.left >= navBox.left,
-            right: linkBox.right <= navBox.right,
-          };
-        }),
-      )
-      .toEqual({ left: true, right: true });
+
+    for (const width of [280, 320, 375]) {
+      await page.setViewportSize({ width, height: 900 });
+      await gotoAndWaitForReady(page, "/settings/danger");
+      await expect(activeLink).toBeVisible();
+      await expect
+        .poll(() =>
+          navigation.evaluate((nav) => {
+            const link = nav.querySelector<HTMLElement>(
+              'a[aria-current="page"]',
+            );
+            const wrapper = nav.parentElement;
+            if (!link || !wrapper) return null;
+            const linkBox = link.getBoundingClientRect();
+            const navBox = nav.getBoundingClientRect();
+            const wrapperBox = wrapper.getBoundingClientRect();
+            const fadeWidth = Number.parseFloat(
+              getComputedStyle(wrapper, "::after").width || "0",
+            );
+            return {
+              activeClearOfFade:
+                linkBox.right <= wrapperBox.right - fadeWidth + 1,
+              activeWithinNavigation:
+                linkBox.left >= navBox.left - 1 &&
+                linkBox.right <= navBox.right + 1,
+              documentFitsViewport:
+                document.documentElement.scrollWidth <=
+                document.documentElement.clientWidth,
+              navigationScrollable: nav.scrollWidth > nav.clientWidth,
+              navigationScrolled: nav.scrollLeft > 0,
+              windowScrollX: window.scrollX,
+            };
+          }),
+        )
+        .toEqual({
+          activeClearOfFade: true,
+          activeWithinNavigation: true,
+          documentFitsViewport: true,
+          navigationScrollable: true,
+          navigationScrolled: true,
+          windowScrollX: 0,
+        });
+    }
   });
 
   test("标签导航切换分区", async ({ page }, testInfo) => {

@@ -119,14 +119,14 @@ onMount(() => {
 
   <div class="grid gap-5 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start lg:gap-6">
     <div
-      class="relative -mx-4 after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:z-10 after:w-8 after:bg-gradient-to-l after:from-background after:to-transparent sm:-mx-5 lg:sticky lg:top-4 lg:mx-0 lg:after:hidden"
+      class="relative -mx-4 min-w-0 after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:z-10 after:w-8 after:bg-gradient-to-l after:from-background after:to-transparent sm:-mx-5 lg:sticky lg:top-4 lg:mx-0 lg:after:hidden"
     >
       <nav
         aria-label={data.settingsNav.title}
         class="overflow-x-auto px-4 pb-1 sm:px-5 lg:overflow-visible lg:px-0 lg:pb-0"
         data-settings-navigation
       >
-        <ul class="flex min-w-max gap-2 lg:grid lg:min-w-0">
+        <ul class="flex min-w-max gap-2 pr-8 lg:grid lg:min-w-0 lg:pr-0">
           {#each data.settingsNav.tabs as item}
             {@const Icon = tabIcon(item.icon)}
             {@const isActive = data.activeTab === item.id}
