@@ -1,0 +1,84 @@
+{
+  "name": "Production Demo",
+  "access": {
+    "anon": "May enter the demo only through the explicit /demo bootstrap URL while the production kill switch is enabled; there is no demo credential, database account, or demo button on the sign-in page.",
+    "user": "Keeps the normal authenticated principal and live behavior; an existing signed-in session is never converted to demo mode.",
+    "admin": "Keeps the normal admin principal and live behavior; admin capabilities are never simulated.",
+    "agent": "Demo mode is unavailable to OAuth and MCP clients in the first release."
+  },
+  "rules": {
+    "principal-not-user": "DemoPrincipal is a server-signed, short-lived, non-database principal with an opaque session identifier, issued-at time, expiry, and contract version. It never contains or impersonates a User ID.",
+    "direct-bootstrap-not-login": "GET /demo is an explicit bootstrap route protected by a production kill switch and rate limit. It is not linked from /signin and does not accept a username, email, password, OAuth callback, or account-selection parameter.",
+    "public-reads-live": "Public catalog and timetable reads may use the normal anonymous read models. Personalized dashboard, subscription, todo, and completion data comes from deterministic fixtures or a size-bounded signed demo overlay, never business rows.",
+    "business-writes-prohibited": "A demo request must be intercepted by an allowlisted command gate before Prisma, R2, Better Auth, OAuth provider code, webhook delivery, calendar-feed issuance, or any other external side effect.",
+    "explicit-simulation": "Every accepted demo mutation returns a machine-readable simulated flag and the UI maintains a persistent demo banner; simulated success must not be indistinguishable from a live write.",
+    "initial-write-allowlist": "The first vertical slice may simulate only section subscription add/remove. Todo, homework-completion, and preference simulation require separate contract and negative-side-effect coverage before joining the allowlist.",
+    "forbidden-capabilities": "Admin, OAuth client/consent/token, account linking/deletion, passkey, upload, public comment/description/homework, calendar feed, webhook, and secret-management operations fail closed and are never simulated.",
+    "audit-only-durable-effect": "The only permitted durable effect is a privacy-safe structured audit event containing an allowlisted operation name, route, request ID, timestamp, result, and opaque demo-session hash. Bodies, fixture values, tokens, cookies, IP addresses, user agents, and other PII are excluded.",
+    "overlay-boundary": "If continuity is required, v1 uses a signed cookie overlay with strict version, expiry, entry-count, and byte limits. Overflow fails visibly instead of spilling demo state into PostgreSQL, KV, Durable Objects, or local storage.",
+    "ordinary-principals-unchanged": "Anonymous, authenticated, admin, GraphQL, REST, OAuth, and MCP behavior outside the explicit demo principal remains unchanged and continues to use normal authorization and persistence."
+  },
+  "capabilities": {
+    "demo-bootstrap": {
+      "title": "Demo Bootstrap",
+      "auth": "anon",
+      "web": {
+        "status": "planned",
+        "pages": ["/demo"]
+      },
+      "rest": "unavailable",
+      "graphql": "unavailable",
+      "mcp": "unavailable",
+      "display": {
+        "fields": [
+          "Persistent demo-mode banner",
+          "Clear exit-demo action",
+          "No demo credential or sign-in provider"
+        ]
+      }
+    },
+    "demo-personal-view": {
+      "title": "Demo Personal View",
+      "auth": "internal",
+      "web": {
+        "status": "planned",
+        "pages": ["/dashboard", "/dashboard/subscriptions"]
+      },
+      "rest": "unavailable",
+      "graphql": "unavailable",
+      "mcp": "unavailable",
+      "display": {
+        "fields": [
+          "Deterministic fixture identity",
+          "Fixture or signed-overlay subscriptions",
+          "Visible non-persistent state explanation"
+        ]
+      }
+    },
+    "simulated-subscription-command": {
+      "title": "Simulated Subscription Command",
+      "auth": "internal",
+      "web": "planned",
+      "rest": "unavailable",
+      "graphql": "unavailable",
+      "mcp": "unavailable",
+      "rules": {
+        "result": "Add/remove returns simulated: true and updates only the bounded signed overlay.",
+        "isolation": "Negative tests prove zero calls to Prisma mutation methods, OAuth, storage, calendar issuance, and external effect adapters.",
+        "audit": "The command emits one privacy-safe structured demo audit event regardless of whether the simulated selection changed."
+      }
+    },
+    "demo-exit": {
+      "title": "Exit Demo",
+      "auth": "internal",
+      "web": "planned",
+      "rest": "unavailable",
+      "graphql": "unavailable",
+      "mcp": "unavailable",
+      "rules": {
+        "clear": "Exit clears the signed demo cookie and overlay, then returns to the anonymous home page.",
+        "session": "Exit never creates, deletes, or changes a Better Auth session."
+      }
+    }
+  }
+}
