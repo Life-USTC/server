@@ -1,3 +1,10 @@
+## [1.64.11](https://github.com/Life-USTC/server/compare/v1.64.10...v1.64.11) (2026-07-19)
+
+
+### Bug Fixes
+
+* **seo:** localize catalog social metadata ([#553](https://github.com/Life-USTC/server/issues/553)) ([a47237c](https://github.com/Life-USTC/server/commit/a47237cd3daa32e653c746b613154a69444b9c43))
+
 ## [1.64.10](https://github.com/Life-USTC/server/compare/v1.64.9...v1.64.10) (2026-07-19)
 
 
