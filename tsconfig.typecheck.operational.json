@@ -6,7 +6,6 @@
   "include": [
     "playwright.config.ts",
     "prisma.config.ts",
-    "scripts/verify-restored-database.ts",
     "vitest.base.ts",
     "vitest.config.ts",
     "vitest.integration.config.ts",

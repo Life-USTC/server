@@ -39,7 +39,6 @@ is the project map: start here, then follow the closest source of truth.
 ## Major Docs
 
 - [.agents/skills](../.agents/skills/) - checked-in reusable agent workflows.
-- [Database recovery runbook](runbooks/database-recovery.md) - provider evidence, isolated restore verification, RPO/RTO, and rollback gate.
 - [docs/AGENTS.md](AGENTS.md) - documentation editing rules.
 - [docs/contracts/AGENTS.md](contracts/AGENTS.md) - contract JSON workflow and validation.
 - [docs/contracts.schema.json](contracts.schema.json) - schema for contract files.
