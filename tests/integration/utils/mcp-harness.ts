@@ -44,11 +44,14 @@ const MCP_TEST_SCOPES = PUBLIC_REST_FEATURES.flatMap((feature) => [
  * Build a minimal AuthInfo that makes tool handlers believe
  * `getUserId(extra.authInfo)` returns `userId`.
  */
-export function makeTestAuthInfo(userId: string): AuthInfo {
+export function makeTestAuthInfo(
+  userId: string,
+  featureScopes: readonly string[] = MCP_TEST_SCOPES,
+): AuthInfo {
   return {
     token: "integration-test-token",
     clientId: "integration-test-client",
-    scopes: [...DEFAULT_OAUTH_CLIENT_SCOPES, ...MCP_TEST_SCOPES],
+    scopes: [...DEFAULT_OAUTH_CLIENT_SCOPES, ...featureScopes],
     extra: { userId },
   };
 }
@@ -61,6 +64,11 @@ export type McpHarness = {
     name: string,
     args?: Record<string, unknown>,
   ): Promise<T>;
+  /** Call a tool and retain protocol metadata such as auth challenges. */
+  callToolResult(
+    name: string,
+    args?: Record<string, unknown>,
+  ): ReturnType<Client["callTool"]>;
   listResources(): ReturnType<Client["listResources"]>;
   readResource(uri: string): ReturnType<Client["readResource"]>;
   listTools(): ReturnType<Client["listTools"]>;
@@ -130,8 +138,11 @@ class AuthenticatedInMemoryTransport implements Transport {
  * The client receives a wrapper transport that adds the test AuthInfo to every
  * outbound message, so every MCP request the server receives is authenticated.
  */
-export async function createMcpHarness(userId: string): Promise<McpHarness> {
-  const authInfo = makeTestAuthInfo(userId);
+export async function createMcpHarness(
+  userId: string,
+  featureScopes: readonly string[] = MCP_TEST_SCOPES,
+): Promise<McpHarness> {
+  const authInfo = makeTestAuthInfo(userId, featureScopes);
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
   const authenticatedClientTransport = new AuthenticatedInMemoryTransport(
@@ -180,6 +191,10 @@ export async function createMcpHarness(userId: string): Promise<McpHarness> {
     return parseResult(result);
   }
 
+  function callToolResult(name: string, args: Record<string, unknown> = {}) {
+    return client.callTool({ name, arguments: args });
+  }
+
   async function call<T = Record<string, unknown>>(
     name: string,
     args: Record<string, unknown> = {},
@@ -193,6 +208,7 @@ export async function createMcpHarness(userId: string): Promise<McpHarness> {
 
   return {
     callTool,
+    callToolResult,
     call,
     listResources: () => client.listResources(),
     readResource: (uri) => client.readResource({ uri }),

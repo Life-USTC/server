@@ -35,7 +35,7 @@ export type McpAuthFailureDiagnostics = {
   toolNameCount?: number;
 };
 
-function buildBearerHeader({
+export function buildBearerChallenge({
   error,
   description,
   scopes,
@@ -65,7 +65,7 @@ export function buildAuthErrorResponse(
     status: failure.status,
     headers: {
       "Content-Type": "application/json",
-      "WWW-Authenticate": buildBearerHeader({
+      "WWW-Authenticate": buildBearerChallenge({
         error: failure.error,
         description: failure.description,
         scopes,

@@ -42,7 +42,8 @@ export function registerGraphqlResources(server: McpServer) {
     GRAPHQL_OPERATIONS_RESOURCE_URI,
     {
       title: "Life@USTC GraphQL operations manifest",
-      description: "Versioned persisted GraphQL operation metadata.",
+      description:
+        "Versioned registered GraphQL operation metadata and safety capabilities. Operation documents are never exposed.",
       mimeType: "application/json",
     },
     (uri) => ({

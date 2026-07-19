@@ -60,17 +60,29 @@ function errorCount(result: unknown): number {
   return Array.isArray(errors) ? errors.length : 0;
 }
 
-function recordObservation(state: GraphqlObservationState) {
-  const durationMs = Math.max(0, Date.now() - state.startMs);
+export function recordGraphqlOperationObservation(
+  input: GraphqlOperationAnalysis & {
+    authMode: GraphqlAuthMode;
+    durationMs: number;
+    errorCount: number;
+    requestId?: string | null;
+  },
+) {
+  const sanitizedObservation = {
+    ...input,
+    durationMs: Math.max(0, input.durationMs),
+    errorCount: Math.max(0, input.errorCount),
+    requestId: safeRequestId(input.requestId),
+  };
   const observation = {
-    authMode: state.authMode,
-    durationMs,
-    errorCount: state.errorCount,
-    estimatedCost: state.estimatedCost,
-    operationName: state.operationName,
-    operationType: state.operationType,
-    requestId: state.requestId,
-    topLevelFieldCount: state.topLevelFieldCount,
+    authMode: sanitizedObservation.authMode,
+    durationMs: sanitizedObservation.durationMs,
+    errorCount: sanitizedObservation.errorCount,
+    estimatedCost: sanitizedObservation.estimatedCost,
+    operationName: sanitizedObservation.operationName,
+    operationType: sanitizedObservation.operationType,
+    requestId: sanitizedObservation.requestId,
+    topLevelFieldCount: sanitizedObservation.topLevelFieldCount,
   };
 
   try {
@@ -86,6 +98,19 @@ function recordObservation(state: GraphqlObservationState) {
   } catch {
     // Keep sinks isolated so one failure cannot suppress the other.
   }
+}
+
+function recordObservation(state: GraphqlObservationState) {
+  recordGraphqlOperationObservation({
+    authMode: state.authMode,
+    durationMs: Date.now() - state.startMs,
+    errorCount: state.errorCount,
+    estimatedCost: state.estimatedCost,
+    operationName: state.operationName,
+    operationType: state.operationType,
+    requestId: state.requestId,
+    topLevelFieldCount: state.topLevelFieldCount,
+  });
 }
 
 export function createGraphqlObservabilityPlugin(): Plugin<

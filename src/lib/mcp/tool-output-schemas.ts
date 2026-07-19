@@ -439,6 +439,30 @@ const matchSectionCodesMcpSchema = objectOutputSchema({
 // Production startup asserts that every registered application tool has an
 // explicit entry. The fallback exists only for isolated SDK/test registrations.
 const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
+  run_graphql_operation: objectOutputSchema({
+    operationId: z.string(),
+    operationName: z.string(),
+    operationType: z.enum(["mutation", "query"]),
+    data: z.record(z.string(), z.unknown()).nullable(),
+    errors: z.array(
+      z
+        .object({
+          message: z.string(),
+          locations: z
+            .array(
+              z.object({
+                line: z.number().int().positive(),
+                column: z.number().int().positive(),
+              }),
+            )
+            .optional(),
+          path: z.array(z.union([z.string(), z.number().int()])).optional(),
+          extensions: z.record(z.string(), z.unknown()).optional(),
+        })
+        .strict(),
+    ),
+    requiredScopes: z.array(z.string()),
+  }),
   get_my_profile: objectOutputSchemaFromApi(meResponseSchema),
   get_public_user_profile: objectOutputSchema({
     user: compactUserSchema,
