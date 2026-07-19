@@ -39,7 +39,16 @@ test("/ 首页快速入口可见", async ({ page }, testInfo) => {
 
   await expect(page.locator("#app-logo")).toBeVisible();
   await expect(page.locator("#app-user-menu")).toHaveCount(0);
-  // Bus is the default public tab; both bus and links destinations are visible.
+  await expect(
+    page.getByRole("heading", {
+      level: 1,
+      name: /先从公开校园工具开始|Start with public campus tools/i,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /浏览课程|Browse courses/i }),
+  ).toBeVisible();
+  // Bus and links are independent public destinations in the shell.
   await expect(
     page.getByRole("link", { name: /^(校车|Shuttle Bus)$/i }),
   ).toBeVisible();
@@ -49,6 +58,7 @@ test("/ 首页快速入口可见", async ({ page }, testInfo) => {
   await expect(
     page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
   ).toBeVisible();
+  await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
   await captureStepScreenshot(page, testInfo, "home-shortcuts");
 });
 

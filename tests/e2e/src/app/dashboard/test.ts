@@ -2,10 +2,8 @@
  * E2E tests for the Dashboard Home Page (`/`)
  *
  * ## Data Represented
- * - **Public (unauthenticated):** PublicHomeView with "bus" and "links" entries
- *   in the sidebar. Auth-only dashboard sub-pages (overview, calendar, homeworks,
- *   todos, exams, subscriptions) are not accessible. A sign-in CTA is displayed.
- *   Default public tab is "bus".
+ * - **Public (unauthenticated):** A lightweight catalog entry at `/`, with bus
+ *   and links exposed as independent public routes.
  * - **Authenticated:** Task destinations are direct links in the "Workspace"
  *   group. Bus, websites, catalog, and campus destinations live in "Explore".
  *
@@ -14,8 +12,8 @@
  * - User menu visible when authenticated; sign-in CTA when not
  *
  * ## Edge Cases
- * - Recognized legacy `?tab=` values permanently redirect to semantic routes
- * - Invalid `?tab=` values default to "overview" (auth) or "bus" (public)
+ * - Recognized legacy `?tab=` values permanently redirect to semantic routes.
+ * - Invalid `?tab=` values do not select another public resource.
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../utils/auth";
@@ -42,6 +40,22 @@ test.describe("仪表盘", () => {
     expect(response.headers().location).toBe(
       "/dashboard/homeworks?homeworkView=list",
     );
+  });
+
+  test("无效 tab 不再选择其他公共资源", async ({ page }, testInfo) => {
+    await gotoAndWaitForReady(page, "/?tab=unknown", {
+      testInfo,
+      screenshotLabel: "home-invalid-tab",
+    });
+
+    await expect(page).toHaveURL(/\/\?tab=unknown$/);
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: /先从公开校园工具开始|Start with public campus tools/i,
+      }),
+    ).toBeVisible();
+    await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
   });
 
   test("登录后首页显示总览、所有标签和种子数据", async ({ page }, testInfo) => {

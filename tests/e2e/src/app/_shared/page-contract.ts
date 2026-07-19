@@ -516,13 +516,16 @@ export async function assertPageContract(
     case "/": {
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
-      // Public home defaults to bus tab with bus+links grouped as public queries
       await expect(
-        page.getByRole("link", { name: /^(校车|Shuttle Bus)$/i }),
+        page.getByRole("heading", {
+          level: 1,
+          name: /先从公开校园工具开始|Start with public campus tools/i,
+        }),
       ).toBeVisible();
       await expect(
-        page.getByRole("link", { name: /^(网站|Websites)$/i }),
+        page.getByRole("link", { name: /浏览课程|Browse courses/i }),
       ).toBeVisible();
+      await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
       await maybeCapture(page, testInfo, "home");
       return;
     }

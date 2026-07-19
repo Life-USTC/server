@@ -4,16 +4,15 @@
  * ## Data Represented
  * - There is no "comments" tab in the dashboard. Valid authenticated tabs are:
  *   overview, calendar, bus, links, homeworks, todos, exams, subscriptions.
- * - Valid public tabs are: bus, links.
+ * - Public bus and links are semantic routes, not home tabs.
  *
  * ## UI/UX Elements
- * - Public view: falls back to bus tab content (default public tab)
+ * - Public view: stays on the lightweight catalog entry
  * - Authenticated view: falls back to overview tab content
  *
  * ## Edge Cases
- * - `?tab=comments` is not a recognized tab value. The public home silently
- *   falls back to its default tab and retains the query, while authenticated
- *   requests redirect to the signed `/dashboard` overview.
+ * - `?tab=comments` is not a recognized tab value. It does not select another
+ *   public resource, while authenticated requests redirect to `/dashboard`.
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
@@ -35,9 +34,7 @@ test.describe("仪表盘无效标签（comments）", () => {
     await expect(page.getByText(/not found|找不到/i)).toBeVisible();
   });
 
-  test("未登录 ?tab=comments 回退到公共校车视图", async ({
-    page,
-  }, testInfo) => {
+  test("未登录 ?tab=comments 保持轻量公共首页", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/?tab=comments", {
       testInfo,
       screenshotLabel: "dashboard-invalid-tab",
@@ -47,18 +44,13 @@ test.describe("仪表盘无效标签（comments）", () => {
     await expect(page).toHaveURL(/\/\?tab=comments$/);
     await expect(page.locator("#app-logo")).toBeVisible();
 
-    // Public view renders bus content as default (bus + links grouped)
     await expect(
-      page.getByRole("link", { name: /^(校车|Shuttle Bus)$/i }),
+      page.getByRole("heading", {
+        level: 1,
+        name: /先从公开校园工具开始|Start with public campus tools/i,
+      }),
     ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
-    ).toBeVisible();
-    // Compact public bus summary and its route controls remain reachable.
-    await expect(page.getByTestId("bus-compact-summary")).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: /Change route|调整路线/ }),
-    ).toBeVisible();
+    await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
 
     await captureStepScreenshot(page, testInfo, "home-comments-public");
   });

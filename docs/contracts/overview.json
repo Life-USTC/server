@@ -1,13 +1,13 @@
 {
   "name": "Overview",
   "access": {
-    "anon": "On the home page, can only see the public bus and frequent links views; cannot enter the personal overview.",
+    "anon": "The home page is a lightweight public catalog entry; bus and frequent links are independent pages at /bus and /links.",
     "user": "Accessing the home page redirects to the personal workspace at /dashboard.",
     "admin": "Accessing the home page redirects to the personal workspace at /dashboard, with the same dashboard behavior as regular users.",
     "agent": "Can read overview results with the same semantics as the authenticated dashboard; REST and MCP should return consistent overview information."
   },
   "rules": {
-    "decision-page": "The anonymous home page is a public bus and frequent-links decision page; the authenticated /dashboard overview is the personal decision page for 'what to do next'.",
+    "decision-page": "The anonymous home page prioritizes public catalog discovery without loading bus, links, or personalized dashboard data; the authenticated /dashboard overview is the personal decision page for 'what to do next'.",
     "semantic-route-compatibility": "Known legacy /?tab= inputs permanently redirect to semantic public or dashboard paths while preserving unrelated query parameters.",
     "now-next-first": "The authenticated overview begins with the current or next actionable schedule, homework, exam, or todo in a rolling seven-day window. Today's urgent work follows it, while frequent links remain secondary and appear after planning content.",
     "current-semester-priority": "The above-the-fold area prioritizes personal learning tasks within the current semester, not historical semester content or complete directory information.",
@@ -154,14 +154,18 @@
     "anonymous-overview": {
       "title": "Anonymous Homepage",
       "auth": "anon",
-      "web": "stable",
+      "web": {
+        "pages": ["/"]
+      },
+      "rules": {
+        "static-loader": "The loader returns localized static copy only and performs no business-data queries."
+      },
       "display": {
         "fields": [
-          "Public bus tab",
-          "Public dashboard links tab",
-          "link.title",
-          "link.description",
-          "link.icon"
+          "Public catalog introduction",
+          "Course discovery",
+          "Section discovery",
+          "Teacher discovery"
         ]
       }
     }

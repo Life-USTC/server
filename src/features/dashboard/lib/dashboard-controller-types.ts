@@ -29,6 +29,13 @@ export type DashboardCommonCopy = DashboardRecord & {
 
 export type DashboardHomepageCopy = DashboardRecord & {
   publicDashboard: {
+    cards: {
+      courses: { description: string; title: string };
+      mobileApp: { description: string; title: string };
+      sections: { description: string; title: string };
+      signIn: { description: string; title: string };
+      teachers: { description: string; title: string };
+    };
     description: string;
     title: string;
   };
