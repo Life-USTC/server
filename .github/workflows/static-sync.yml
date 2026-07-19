@@ -30,14 +30,13 @@ on:
         type: string
 
 concurrency:
-  group: production-database-writes
-  queue: max
+  group: static-sync
+  cancel-in-progress: false
 
 jobs:
   sync:
     name: Sync static snapshot to production database
     runs-on: ubuntu-latest
-    environment: production
     timeout-minutes: 150
     permissions:
       contents: read
