@@ -36,7 +36,11 @@ export let searchValue: string;
 </script>
 
 <div
-  class="grid gap-3 rounded-xl border bg-card px-3 py-3 sm:px-4"
+  class={cn(
+    "grid gap-3 rounded-xl border bg-card px-3 py-3 sm:px-4",
+    inlineFilters &&
+      "xl:grid-cols-[minmax(16rem,2fr)_minmax(28rem,3fr)] xl:items-end",
+  )}
   data-testid="catalog-mobile-filters"
 >
   <form
@@ -120,7 +124,7 @@ export let searchValue: string;
   </form>
 
   {#if inlineFilters}
-    <Separator />
+    <Separator class="xl:hidden" />
     <div
       aria-label={filterTitle}
       data-testid="catalog-inline-filters"
@@ -133,7 +137,10 @@ export let searchValue: string;
   {#if activeFilters.length > 0}
     <div
       aria-label={filterTitle}
-      class="flex flex-wrap items-center gap-1.5"
+      class={cn(
+        "flex flex-wrap items-center gap-1.5",
+        inlineFilters && "xl:col-span-2",
+      )}
       data-testid="catalog-active-filters"
       role="group"
     >
