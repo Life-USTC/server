@@ -8,6 +8,8 @@ import {
   type ThemeMode,
 } from "@/lib/components/shell/layout-shell";
 
+export const SHELL_THEME_CHANGE_EVENT = "life-ustc-theme-change";
+
 export function loadStoredThemeMode(fallback: ThemeMode): ThemeMode {
   const storedTheme = getLocalStorageItem("life-ustc-theme");
   return storedTheme === "light" ||
@@ -27,5 +29,10 @@ export function cycleStoredThemeMode(themeMode: ThemeMode) {
 export function setStoredThemeMode(themeMode: ThemeMode) {
   setLocalStorageItem("life-ustc-theme", themeMode);
   applyShellTheme(themeMode);
+  window.dispatchEvent?.(
+    new CustomEvent<ThemeMode>(SHELL_THEME_CHANGE_EVENT, {
+      detail: themeMode,
+    }),
+  );
   return themeMode;
 }

@@ -10,10 +10,8 @@ import LinkIcon from "@lucide/svelte/icons/link";
 import ListTodoIcon from "@lucide/svelte/icons/list-todo";
 import MapIcon from "@lucide/svelte/icons/map";
 import RouteIcon from "@lucide/svelte/icons/route";
-import SettingsIcon from "@lucide/svelte/icons/settings";
 import ShieldIcon from "@lucide/svelte/icons/shield";
 import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
-import UserRoundIcon from "@lucide/svelte/icons/user-round";
 import UsersIcon from "@lucide/svelte/icons/users";
 import { onMount } from "svelte";
 import { afterNavigate } from "$app/navigation";
@@ -23,6 +21,7 @@ import AppSidebar from "$lib/components/shell/AppSidebar.svelte";
 import AppTopbar from "$lib/components/shell/AppTopbar.svelte";
 import {
   loadStoredThemeMode,
+  SHELL_THEME_CHANGE_EVENT,
   setStoredThemeMode,
 } from "$lib/components/shell/app-shell-actions";
 import {
@@ -80,7 +79,7 @@ $: mobileNavGroups = data.user
       $page.data,
     )
   : navGroups;
-$: mobilePrimaryLinks = buildMobilePrimaryLinks(data.copy, profileHref);
+$: mobilePrimaryLinks = buildMobilePrimaryLinks(data.copy);
 $: mobileSecondaryHasActive =
   Boolean($page.url.pathname) &&
   mobileNavGroups.some((group) =>
@@ -337,11 +336,6 @@ function buildMobileSecondaryNavGroups(
     },
     { href: "/bus-map", icon: MapIcon, label: copy.nav.transitMap },
     { href: "/mobile-app", icon: SmartphoneIcon, label: copy.nav.mobileApp },
-    {
-      href: "/settings/profile",
-      icon: SettingsIcon,
-      label: copy.nav.settings,
-    },
   ];
   const adminLinks: ShellLink[] = [
     { href: "/admin", icon: ShieldIcon, label: copy.nav.admin.title },
@@ -365,10 +359,7 @@ function buildMobileSecondaryNavGroups(
   ];
 }
 
-function buildMobilePrimaryLinks(
-  copy: LayoutCopy,
-  userProfileHref: string,
-): ShellLink[] {
+function buildMobilePrimaryLinks(copy: LayoutCopy): ShellLink[] {
   return [
     {
       href: "/dashboard/overview",
@@ -389,11 +380,6 @@ function buildMobilePrimaryLinks(
       href: "/courses",
       icon: CompassIcon,
       label: copy.nav.explore,
-    },
-    {
-      href: userProfileHref,
-      icon: UserRoundIcon,
-      label: copy.nav.me,
     },
   ];
 }
@@ -468,9 +454,6 @@ function isMobilePrimaryActive(link: ShellLink): boolean {
       )
     );
   }
-  if (link.href === profileHref) {
-    return pathname === profileHref || pathname.startsWith("/settings");
-  }
   return isActiveLink(link);
 }
 
@@ -529,13 +512,27 @@ onMount(() => {
   applyShellTheme(themeMode);
   document.documentElement.dataset.lifeUstcHydrated = "true";
 
+  const syncThemeMode = (event: Event) => {
+    const nextThemeMode = (event as CustomEvent<ThemeMode>).detail;
+    if (
+      nextThemeMode === "system" ||
+      nextThemeMode === "light" ||
+      nextThemeMode === "dark"
+    ) {
+      themeMode = nextThemeMode;
+    }
+  };
   const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
   const applySystemTheme = () => {
     if (themeMode === "system") applyShellTheme(themeMode);
   };
+  window.addEventListener(SHELL_THEME_CHANGE_EVENT, syncThemeMode);
   systemTheme.addEventListener("change", applySystemTheme);
 
-  return () => systemTheme.removeEventListener("change", applySystemTheme);
+  return () => {
+    window.removeEventListener(SHELL_THEME_CHANGE_EVENT, syncThemeMode);
+    systemTheme.removeEventListener("change", applySystemTheme);
+  };
 });
 
 afterNavigate(({ from, to }) => {
@@ -580,18 +577,25 @@ afterNavigate(({ from, to }) => {
     {/if}
 
     <AppSidebar
+      {avatarFallback}
+      {closeMenus}
       copy={data.copy}
+      currentPathname={$page.url.pathname}
       {isActiveLink}
       locale={data.locale}
       {localeMenuOpen}
       {mobileNavGroups}
       {navGroups}
+      {profileHref}
       {setLocale}
       {setLocaleMenuOpen}
       {setThemeMenuOpen}
       {setThemeMode}
+      {setUserMenuOpen}
       {themeMenuOpen}
       {themeMode}
+      user={data.user}
+      {userMenuOpen}
     />
 
     <Sidebar.Inset
@@ -605,21 +609,9 @@ afterNavigate(({ from, to }) => {
       )}
     >
       <AppTopbar
-        {avatarFallback}
         {closeMenus}
         copy={data.copy}
-        locale={data.locale}
-        {localeMenuOpen}
-        {profileHref}
-        {setLocale}
-        {setLocaleMenuOpen}
-        {setThemeMenuOpen}
-        {setThemeMode}
-        {setUserMenuOpen}
-        {themeMenuOpen}
-        {themeMode}
         user={data.user}
-        {userMenuOpen}
       />
 
       <div

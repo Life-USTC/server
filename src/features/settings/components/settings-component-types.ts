@@ -42,6 +42,11 @@ export type SettingsCopy = {
   common: {
     home: string;
   };
+  language: {
+    chinese: string;
+    english: string;
+    selector: string;
+  };
   profile: SettingsProfileCopy;
   settings: {
     content: {
@@ -59,8 +64,26 @@ export type SettingsCopy = {
       title: string;
     };
     description: string;
+    preferences: {
+      appearance: {
+        description: string;
+        title: string;
+      };
+      description: string;
+      language: {
+        description: string;
+        title: string;
+      };
+      title: string;
+    };
     title: string;
     workspaceBadge: string;
+  };
+  theme: {
+    dark: string;
+    light: string;
+    selector: string;
+    system: string;
   };
 };
 

@@ -43,4 +43,5 @@ export type ShellCopy = {
 export type ShellUser = {
   image?: string | null;
   name?: string | null;
+  username?: string | null;
 } | null;

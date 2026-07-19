@@ -827,6 +827,10 @@
         "title": "个人资料",
         "description": "姓名、用户名和头像"
       },
+      "preferences": {
+        "title": "偏好设置",
+        "description": "外观与语言"
+      },
       "accounts": {
         "title": "关联账户",
         "description": "连接或断开登录提供商"
@@ -856,6 +860,18 @@
       "comments": "评论",
       "uploads": "上传",
       "subscriptions": "关注"
+    },
+    "preferences": {
+      "title": "偏好设置",
+      "description": "选择 Life@USTC 的显示外观和界面语言。",
+      "appearance": {
+        "title": "外观",
+        "description": "跟随系统偏好，或固定使用浅色、深色主题。"
+      },
+      "language": {
+        "title": "语言",
+        "description": "切换界面语言，不在 URL 中增加语言目录。"
+      }
     }
   },
   "courses": {

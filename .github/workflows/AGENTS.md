@@ -9,6 +9,7 @@ CI/CD pipelines.
 | CI | push to main, PR to any branch | Default verification, MCP integration, Worker E2E artifact build, E2E shards |
 | DB-backed Bun job | workflow_call | Reusable Postgres-backed Bun job |
 | DB migrate deploy | successful CI completion on main, or manual | Production Prisma migrate deploy |
+| Auth Record Cleanup | every 6 hours, manual | Bounded expired authentication-record cleanup |
 | Copilot Setup Steps | manual or setup workflow changes | Copilot bootstrap validation |
 | Release | successful CI completion on main | Semantic release |
 

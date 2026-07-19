@@ -14,7 +14,9 @@ export function getSettingsPageCopy(locale: AppLocale) {
   return {
     accessibility: copy.accessibility,
     common: copy.common,
+    language: copy.language,
     profile: copy.profile,
     settings: copy.settings,
+    theme: copy.theme,
   };
 }
