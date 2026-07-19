@@ -1,8 +1,8 @@
-import { CONTENT_SIGNAL } from "@/lib/seo/content-signal";
+import { createCrawlerDiscoveryResponse } from "@/lib/seo/crawler-discovery-response";
 import { getCanonicalOrigin } from "@/lib/site-url";
 import type { RequestHandler } from "./$types";
 
-export const GET: RequestHandler = () => {
+export const GET: RequestHandler = async ({ request }) => {
   const origin = getCanonicalOrigin();
   const body = `# Life@USTC
 
@@ -25,10 +25,9 @@ export const GET: RequestHandler = () => {
 - [Sitemap](${origin}/sitemap.xml)
 `;
 
-  return new Response(body, {
-    headers: {
-      "Content-Signal": CONTENT_SIGNAL,
-      "Content-Type": "text/plain; charset=utf-8",
-    },
+  return createCrawlerDiscoveryResponse({
+    body,
+    contentType: "text/plain; charset=utf-8",
+    request,
   });
 };

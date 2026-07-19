@@ -1,12 +1,12 @@
-import { CONTENT_SIGNAL } from "@/lib/seo/content-signal";
+import { createCrawlerDiscoveryResponse } from "@/lib/seo/crawler-discovery-response";
 import { getCanonicalOrigin } from "@/lib/site-url";
 import type { RequestHandler } from "./$types";
 
-export const GET: RequestHandler = () => {
+export const GET: RequestHandler = async ({ request }) => {
   const origin = getCanonicalOrigin();
 
-  return new Response(
-    [
+  return createCrawlerDiscoveryResponse({
+    body: [
       "User-agent: *",
       "Allow: /",
       "Allow: /api/docs$",
@@ -26,11 +26,7 @@ export const GET: RequestHandler = () => {
       `Sitemap: ${origin}/sitemap.xml`,
       "",
     ].join("\n"),
-    {
-      headers: {
-        "Content-Signal": CONTENT_SIGNAL,
-        "Content-Type": "text/plain; charset=utf-8",
-      },
-    },
-  );
+    contentType: "text/plain; charset=utf-8",
+    request,
+  });
 };

@@ -21,6 +21,20 @@ vi.mock("@/lib/db/prisma", () => ({
 const ORIGIN = "https://life.example";
 const CONTENT_SIGNAL = "search=yes, ai-input=yes, ai-train=no";
 
+type DiscoveryHandler = (event: never) => Response | Promise<Response>;
+
+function getDiscoveryDocument(
+  handler: DiscoveryHandler,
+  path: string,
+  headers?: HeadersInit,
+) {
+  return Promise.resolve(
+    handler({
+      request: new Request(`${ORIGIN}/${path}`, { headers }),
+    } as never),
+  );
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
@@ -37,7 +51,7 @@ describe("crawler discovery routes", () => {
   it("generates a precise robots policy with an absolute sitemap", async () => {
     vi.stubEnv("APP_CANONICAL_ORIGIN", ORIGIN);
 
-    const response = await getRobotsTxt({} as never);
+    const response = await getDiscoveryDocument(getRobotsTxt, "robots.txt");
     const body = await response.text();
 
     expect(response.headers.get("Content-Signal")).toBe(CONTENT_SIGNAL);
@@ -53,7 +67,7 @@ describe("crawler discovery routes", () => {
   it("lists only stable public discovery and protocol links", async () => {
     vi.stubEnv("APP_CANONICAL_ORIGIN", ORIGIN);
 
-    const response = await getLlmsTxt({} as never);
+    const response = await getDiscoveryDocument(getLlmsTxt, "llms.txt");
     const body = await response.text();
 
     expect(response.headers.get("Content-Signal")).toBe(CONTENT_SIGNAL);
@@ -67,6 +81,33 @@ describe("crawler discovery routes", () => {
     expect(body).toContain(`${ORIGIN}/api/mcp`);
     expect(body).toContain(`${ORIGIN}/sitemap.xml`);
     expect(body).not.toMatch(/\/(?:admin|settings|signin|welcome)(?:[/)\s]|$)/);
+  });
+
+  it.each([
+    ["robots.txt", getRobotsTxt],
+    ["llms.txt", getLlmsTxt],
+  ])("edge-caches %s while requiring browser revalidation", async (path, get) => {
+    vi.stubEnv("APP_CANONICAL_ORIGIN", ORIGIN);
+
+    const first = await getDiscoveryDocument(get, path);
+    const etag = first.headers.get("ETag");
+
+    expect(first.headers.get("Cache-Control")).toBe(
+      "public, max-age=0, must-revalidate",
+    );
+    expect(first.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
+      "public, max-age=3600, stale-while-revalidate=21600",
+    );
+    expect(first.headers.get("Content-Type")).toBe("text/plain; charset=utf-8");
+    expect(etag).toMatch(/^"sha256-[A-Za-z0-9_-]+"$/);
+
+    const conditional = await getDiscoveryDocument(get, path, {
+      "If-None-Match": `"other", W/${etag}`,
+    });
+
+    expect(conditional.status).toBe(304);
+    expect(await conditional.text()).toBe("");
+    expect(conditional.headers.get("ETag")).toBe(etag);
   });
 
   it("adds the content-use policy to the sitemap", async () => {
