@@ -218,6 +218,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     mutableResponse.headers.set("x-request-id", requestId);
   }
   if (shouldSetCsp) {
+    mutableResponse.headers.set("Content-Language", locale);
     appendPageServerTiming(mutableResponse.headers, {
       appDurationMs,
       authDurationMs,
