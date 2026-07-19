@@ -1,3 +1,10 @@
+## [1.64.10](https://github.com/Life-USTC/server/compare/v1.64.9...v1.64.10) (2026-07-19)
+
+
+### Performance Improvements
+
+* **dashboard:** remove unused public summary queries ([#552](https://github.com/Life-USTC/server/issues/552)) ([0da7af1](https://github.com/Life-USTC/server/commit/0da7af18f8aa4e81749e6f4a89a59bb829d4c290))
+
 ## [1.64.9](https://github.com/Life-USTC/server/compare/v1.64.8...v1.64.9) (2026-07-19)
 
 
