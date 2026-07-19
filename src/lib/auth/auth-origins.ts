@@ -58,23 +58,7 @@ export function getAuthAllowedHosts(): string[] {
 }
 
 export function getPasskeyAllowedOrigins(): string[] {
-  const canonicalOrigin = getCanonicalOrigin();
-  const publicOrigin = getPublicOrigin();
-  const usesLocalOrigin = [canonicalOrigin, publicOrigin].some((origin) => {
-    const hostname = new URL(origin).hostname;
-    return hostname === "localhost" || hostname === "127.0.0.1";
-  });
-
-  return uniqueOrigins([
-    canonicalOrigin,
-    publicOrigin,
-    ...(usesLocalOrigin
-      ? getAuthTrustedOrigins().filter((origin) => {
-          const hostname = new URL(origin).hostname;
-          return hostname === "localhost" || hostname === "127.0.0.1";
-        })
-      : []),
-  ]);
+  return uniqueOrigins([getCanonicalOrigin(), getPublicOrigin()]);
 }
 
 function matchesTrustedOrigin(origin: string, trustedOrigin: string) {

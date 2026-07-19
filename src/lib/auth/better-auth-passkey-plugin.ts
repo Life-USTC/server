@@ -46,13 +46,30 @@ function validatePasskeyOrigin(origin: string) {
   return url.origin;
 }
 
+function validateOriginForRpId(origin: string, rpID: string) {
+  const normalizedOrigin = validatePasskeyOrigin(origin);
+  const hostname = new URL(normalizedOrigin).hostname;
+  const matchesRpId =
+    hostname === rpID ||
+    (!LOCAL_PASSKEY_HOSTS.has(rpID) && hostname.endsWith(`.${rpID}`));
+  if (!matchesRpId) {
+    throw new Error(
+      `Passkey origin ${normalizedOrigin} is not compatible with RP ID ${rpID}`,
+    );
+  }
+  return normalizedOrigin;
+}
+
 export function buildBetterAuthPasskeyPlugin() {
   requireConfiguredProductionOrigin();
   const canonicalOrigin = validatePasskeyOrigin(getCanonicalOrigin());
-  const allowedOrigins = getPasskeyAllowedOrigins().map(validatePasskeyOrigin);
+  const rpID = new URL(canonicalOrigin).hostname;
+  const allowedOrigins = getPasskeyAllowedOrigins().map((origin) =>
+    validateOriginForRpId(origin, rpID),
+  );
 
   return passkey({
-    rpID: new URL(canonicalOrigin).hostname,
+    rpID,
     rpName: PASSKEY_RP_NAME,
     origin: allowedOrigins,
     registration: {

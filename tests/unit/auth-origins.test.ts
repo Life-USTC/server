@@ -62,15 +62,10 @@ describe("认证来源辅助函数", () => {
     ]);
   });
 
-  it("passkey 本地来源包含固定回环别名", () => {
+  it("passkey 本地来源不混用不同 WebAuthn RP host 的回环别名", () => {
     vi.stubEnv("APP_PUBLIC_ORIGIN", "http://127.0.0.1:3010");
 
-    expect(getPasskeyAllowedOrigins()).toEqual([
-      "http://127.0.0.1:3010",
-      "http://localhost:3010",
-      "http://localhost:3000",
-      "http://127.0.0.1:3000",
-    ]);
+    expect(getPasskeyAllowedOrigins()).toEqual(["http://127.0.0.1:3010"]);
   });
 });
 
