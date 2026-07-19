@@ -1,3 +1,12 @@
+## [1.64.5](https://github.com/Life-USTC/server/compare/v1.64.4...v1.64.5) (2026-07-19)
+
+
+### Bug Fixes
+
+* **bus:** expose narrow timetable scrolling ([1338321](https://github.com/Life-USTC/server/commit/13383211a11dc929d89d9edca4f874324729a99d))
+* **bus:** harden responsive route surfaces ([7be1587](https://github.com/Life-USTC/server/commit/7be15877005116890d7d60b87a49267f2240ee05))
+* **ui:** polish dashboard and bus layouts ([7c5bd43](https://github.com/Life-USTC/server/commit/7c5bd43c501a3ac59a0b6705aa96e61d741ea75a))
+
 ## [1.64.4](https://github.com/Life-USTC/server/compare/v1.64.3...v1.64.4) (2026-07-19)
 
 
