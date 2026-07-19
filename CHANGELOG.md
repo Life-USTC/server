@@ -1,3 +1,10 @@
+## [1.64.2](https://github.com/Life-USTC/server/compare/v1.64.1...v1.64.2) (2026-07-19)
+
+
+### Performance Improvements
+
+* **dashboard:** split anonymous home from signed workspace ([#528](https://github.com/Life-USTC/server/issues/528)) ([1f95f1a](https://github.com/Life-USTC/server/commit/1f95f1ae6c3217aa354dca20519289b8f4444e9b))
+
 ## [1.64.1](https://github.com/Life-USTC/server/compare/v1.64.0...v1.64.1) (2026-07-19)
 
 
