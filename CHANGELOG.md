@@ -1,3 +1,10 @@
+# [1.66.0](https://github.com/Life-USTC/server/compare/v1.65.1...v1.66.0) (2026-07-19)
+
+
+### Features
+
+* **graphql:** add homework CRUD mutations ([#560](https://github.com/Life-USTC/server/issues/560)) ([ae11392](https://github.com/Life-USTC/server/commit/ae1139241a28f42c2f0636f64142ff85cbd96a57))
+
 ## [1.65.1](https://github.com/Life-USTC/server/compare/v1.65.0...v1.65.1) (2026-07-19)
 
 
