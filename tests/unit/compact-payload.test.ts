@@ -40,6 +40,37 @@ describe("compactMcpPayload MCP 载荷压缩", () => {
       ).not.toHaveProperty("extra");
     });
 
+    it("递归省略 Markdown 派生 HTML 字段", () => {
+      const input = {
+        description: {
+          content: "Source Markdown",
+          renderedHtml: "<p>Source Markdown</p>",
+        },
+        comments: [
+          {
+            body: "Comment Markdown",
+            renderedBody: "<p>Comment Markdown</p>",
+            replies: [
+              {
+                body: "Reply Markdown",
+                renderedBody: "<p>Reply Markdown</p>",
+              },
+            ],
+          },
+        ],
+      };
+
+      expect(compactMcpPayload(input)).toEqual({
+        description: { content: "Source Markdown" },
+        comments: [
+          {
+            body: "Comment Markdown",
+            replies: [{ body: "Reply Markdown" }],
+          },
+        ],
+      });
+    });
+
     it("压缩顶层已知记录数组", () => {
       const input = [
         {

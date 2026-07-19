@@ -1,7 +1,6 @@
 <script lang="ts">
 import { formatDescriptionCopy } from "@/features/descriptions/lib/description-card-actions";
-import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
-import MarkdownPreview from "$lib/components/MarkdownPreview.svelte";
+import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Tabs from "$lib/components/ui/tabs/index.js";
 import DescriptionHistoryList from "./DescriptionHistoryList.svelte";
@@ -42,10 +41,7 @@ function handlePanelTabChange(value: string) {
 
   <Tabs.Content value="description">
     {#if description.content}
-      <MarkdownPreview
-        content={description.content}
-        remarkPlugins={campusReferenceMarkdownPlugins}
-      />
+      <RenderedMarkdown html={description.renderedHtml} />
     {:else}
       <Empty.Root class="min-h-24">
         <Empty.Header>
