@@ -102,7 +102,13 @@ function revealActive(node: HTMLElement, active: boolean) {
   function reveal(isActive: boolean) {
     if (isActive) {
       void tick().then(() => {
-        node.scrollIntoView({ block: "nearest", inline: "center" });
+        if (!settingsNavigation) return;
+        const navigationBox = settingsNavigation.getBoundingClientRect();
+        const nodeBox = node.getBoundingClientRect();
+        settingsNavigation.scrollLeft +=
+          nodeBox.left +
+          nodeBox.width / 2 -
+          (navigationBox.left + navigationBox.width / 2);
         updateNavigationOverflow();
       });
     }

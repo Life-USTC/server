@@ -17,21 +17,45 @@ export let label = "";
 
 let canScrollLeft = false;
 let canScrollRight = false;
+let leftOpaqueWidth = 0;
 let scrollViewport: HTMLElement | null = null;
 
 function updateOverflow() {
   if (!scrollViewport) return;
+  const viewportBox = scrollViewport.getBoundingClientRect();
+  const clippedContent = Array.from(
+    scrollViewport.querySelectorAll<HTMLElement>(
+      '[data-sidebar="menu-item"] a > svg, [data-sidebar="menu-item"] a > span',
+    ),
+  )
+    .map((node) => node.getBoundingClientRect())
+    .filter(
+      (nodeBox) =>
+        nodeBox.left < viewportBox.left && nodeBox.right > viewportBox.left,
+    );
   canScrollLeft = scrollViewport.scrollLeft > 1;
   canScrollRight =
     scrollViewport.scrollLeft + scrollViewport.clientWidth <
     scrollViewport.scrollWidth - 1;
+  leftOpaqueWidth = Math.ceil(
+    Math.max(
+      0,
+      ...clippedContent.map((nodeBox) => nodeBox.right - viewportBox.left),
+    ),
+  );
 }
 
 function revealActive(node: HTMLElement, active: boolean) {
   function reveal(isActive: boolean) {
     if (isActive) {
       void tick().then(() => {
-        node.scrollIntoView({ block: "nearest", inline: "center" });
+        if (!scrollViewport) return;
+        const viewportBox = scrollViewport.getBoundingClientRect();
+        const nodeBox = node.getBoundingClientRect();
+        scrollViewport.scrollLeft +=
+          nodeBox.left +
+          nodeBox.width / 2 -
+          (viewportBox.left + viewportBox.width / 2);
         updateOverflow();
       });
     }
@@ -62,13 +86,14 @@ onMount(() => {
     class={cn(
       "relative w-full border-sidebar-border border-b lg:w-(--sidebar-width) lg:border-e lg:border-b-0",
       canScrollLeft &&
-        "before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:z-10 before:w-8 before:bg-gradient-to-r before:from-sidebar before:to-transparent lg:before:hidden",
+        "before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:z-10 before:w-(--detail-nav-left-fade) before:bg-[linear-gradient(to_right,var(--sidebar)_0,var(--sidebar)_var(--detail-nav-left-opaque),transparent_100%)] lg:before:hidden",
       canScrollRight &&
         "after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:z-10 after:w-8 after:bg-gradient-to-l after:from-sidebar after:to-transparent lg:after:hidden",
     )}
     data-overflow-left={canScrollLeft}
     data-overflow-right={canScrollRight}
     data-testid="detail-section-nav"
+    style={`--detail-nav-left-fade: ${leftOpaqueWidth + 8}px; --detail-nav-left-opaque: ${leftOpaqueWidth}px;`}
   >
     <Sidebar.Content
       aria-label={ariaLabel || label}

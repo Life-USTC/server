@@ -19,11 +19,13 @@ $: controlsDisabled = !viewer.isAuthenticated || viewer.isSuspended;
 $: controlsDisabledAttr = controlsDisabled ? "true" : undefined;
 </script>
 
-<Card.Header>
+<Card.Header class="min-[420px]:grid-cols-[1fr_auto]">
   <Card.Title>{commentCopy.postAction}</Card.Title>
   <Card.Description>{commentCopy.subtitle}</Card.Description>
-  <Card.Action>
-    <Field.Group class="flex-row flex-wrap items-center gap-3">
+  <div
+    class="mt-2 w-full min-[420px]:col-start-2 min-[420px]:row-span-2 min-[420px]:row-start-1 min-[420px]:mt-0 min-[420px]:w-60 min-[420px]:justify-self-end"
+  >
+    <Field.Group class="w-full flex-row flex-wrap items-center gap-3">
       <Field.Field
         data-disabled={controlsDisabledAttr}
         orientation="horizontal"
@@ -57,5 +59,5 @@ $: controlsDisabledAttr = controlsDisabled ? "true" : undefined;
         </NativeSelect.Root>
       </Field.Field>
     </Field.Group>
-  </Card.Action>
+  </div>
 </Card.Header>
