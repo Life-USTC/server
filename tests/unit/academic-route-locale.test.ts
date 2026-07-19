@@ -348,9 +348,7 @@ describe("academic REST 语言适配器", () => {
     ];
 
     for (const response of responses) {
-      expect(response.headers.get("Cache-Control")).toBe(
-        "public, max-age=0, must-revalidate",
-      );
+      expect(response.headers.get("Cache-Control")).toBe("public, max-age=0");
       expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
         "public, max-age=60, stale-while-revalidate=300",
       );

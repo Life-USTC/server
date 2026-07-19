@@ -63,9 +63,7 @@ test.describe("GET /api/courses 接口", () => {
       },
     });
     expect(explicit.status()).toBe(200);
-    expect(explicit.headers()["cache-control"]).toBe(
-      "public, max-age=0, must-revalidate",
-    );
+    expect(explicit.headers()["cache-control"]).toBe("public, max-age=0");
     expect(explicit.headers()["cloudflare-cdn-cache-control"]).toBe(
       "public, max-age=60, stale-while-revalidate=300",
     );

@@ -1,5 +1,4 @@
-export const PUBLIC_CATALOG_CACHE_CONTROL =
-  "public, max-age=0, must-revalidate";
+export const PUBLIC_CATALOG_CACHE_CONTROL = "public, max-age=0";
 
 export const PUBLIC_CATALOG_CDN_CACHE_CONTROL =
   "public, max-age=60, stale-while-revalidate=300";

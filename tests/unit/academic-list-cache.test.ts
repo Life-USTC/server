@@ -55,9 +55,7 @@ describe("academic 列表路由缓存", () => {
       ),
     );
 
-    expect(first.headers.get("Cache-Control")).toBe(
-      "public, max-age=0, must-revalidate",
-    );
+    expect(first.headers.get("Cache-Control")).toBe("public, max-age=0");
     expect(first.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
       "public, max-age=60, stale-while-revalidate=300",
     );
@@ -82,9 +80,7 @@ describe("academic 列表路由缓存", () => {
       ),
     );
 
-    expect(first.headers.get("Cache-Control")).toBe(
-      "public, max-age=0, must-revalidate",
-    );
+    expect(first.headers.get("Cache-Control")).toBe("public, max-age=0");
     expect(first.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
       "public, max-age=60, stale-while-revalidate=300",
     );
