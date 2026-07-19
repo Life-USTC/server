@@ -81,7 +81,7 @@ test("/admin/bus 管理首页入口可见且可跳转", async ({ page }, testInf
   await signInAsDevAdmin(page, "/admin");
 
   const busCard = page
-    .locator("#main-content")
+    .getByTestId("admin-active-panel")
     .getByRole("link", { name: /校车管理|Shuttle Bus/i });
   await expect(busCard).toBeVisible();
 
