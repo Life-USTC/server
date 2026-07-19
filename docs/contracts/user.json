@@ -8,6 +8,8 @@
   },
   "rules": {
     "sign-in-providers": "Sign-in supports USTC, GitHub, and Google OAuth; custom username/password login is not considered due to security and maintenance cost.",
+    "passkey-server-boundary": "Better Auth passkey registration requires an existing fresh session. Its RP ID comes from the configured canonical origin, verification accepts only explicitly configured canonical/public/local origins, and the legacy Authenticator table is not reused. The sign-in and credential-management UI ships separately.",
+    "debug-password-boundary": "Email/password authentication is enabled only for local development or the explicit non-production E2E debug mode; production does not expose debug password authentication.",
     "oauth-callback-integrity": "On a canonical same-origin deployment, OAuth login callbacks must complete state validation and session creation directly, without losing state due to proxy wrapping or container-internal host differences.",
     "welcome-flow-required": "New users who have not set a name or username on first login must complete the welcome flow before proceeding.",
     "welcome-completion-resume": "If the welcome flow was reached from an app-relative callbackUrl, successful completion returns to that page; otherwise completion returns home.",

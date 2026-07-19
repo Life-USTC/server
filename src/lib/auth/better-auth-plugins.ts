@@ -1,6 +1,7 @@
 import { genericOAuth, jwt, oAuthProxy } from "better-auth/plugins";
 import type { getAuthEnv } from "@/app-env";
 import { buildOAuthProviderPlugin } from "@/lib/auth/better-auth-oauth-provider-plugin";
+import { buildBetterAuthPasskeyPlugin } from "@/lib/auth/better-auth-passkey-plugin";
 import { mapOidcProfileToUser } from "@/lib/auth/oauth-profile";
 import { webhookLoginPlugin } from "@/lib/auth/webhook-login-plugin";
 import { getCanonicalOAuthIssuer } from "@/lib/mcp/urls";
@@ -33,6 +34,7 @@ export function buildBetterAuthPlugins(input: {
       ...(input.oauthProxySecret ? { secret: input.oauthProxySecret } : {}),
     }),
     webhookLoginPlugin(),
+    buildBetterAuthPasskeyPlugin(),
     buildOAuthProviderPlugin({
       authPublicOrigin: input.authPublicOrigin,
     }),

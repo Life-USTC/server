@@ -808,7 +808,8 @@ model User {
 
   accounts      Account[]
   sessions      Session[]
-  // Optional for WebAuthn support
+  passkeys      Passkey[]
+  // Legacy Auth.js WebAuthn records; Better Auth passkeys use Passkey.
   Authenticator Authenticator[]
 
   verifiedEmails VerifiedEmail[]
@@ -1102,7 +1103,26 @@ model VerificationToken {
   @@index([expires])
 }
 
-// Optional for WebAuthn support
+model Passkey {
+  id           String    @id @default(cuid())
+  name         String?
+  publicKey    String
+  userId       String
+  credentialID String
+  counter      Int
+  deviceType   String
+  backedUp     Boolean
+  transports   String?
+  createdAt    DateTime?
+  aaguid       String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([credentialID])
+}
+
+// Legacy Auth.js WebAuthn records. Do not reuse for Better Auth passkeys.
 model Authenticator {
   credentialID         String  @unique
   userId               String
