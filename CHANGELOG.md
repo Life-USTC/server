@@ -1,3 +1,10 @@
+## [1.64.7](https://github.com/Life-USTC/server/compare/v1.64.6...v1.64.7) (2026-07-19)
+
+
+### Bug Fixes
+
+* **a11y:** expose sidebar expanded state ([#535](https://github.com/Life-USTC/server/issues/535)) ([31cefe9](https://github.com/Life-USTC/server/commit/31cefe9271d4a9f05dc269a2fa7449aadb8c1e0d))
+
 ## [1.64.6](https://github.com/Life-USTC/server/compare/v1.64.5...v1.64.6) (2026-07-19)
 
 
