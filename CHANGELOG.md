@@ -1,3 +1,15 @@
+## [1.63.1](https://github.com/Life-USTC/server/compare/v1.63.0...v1.63.1) (2026-07-19)
+
+
+### Bug Fixes
+
+* **api:** isolate localized catalog caches ([fe6771c](https://github.com/Life-USTC/server/commit/fe6771c414c26236179ddc0389cc8570b7f7c4d0))
+
+
+### Performance Improvements
+
+* trim detail page SSR critical paths ([7ee8169](https://github.com/Life-USTC/server/commit/7ee8169210e05aa90c80d45da8be6056b0f2bb2b))
+
 # [1.63.0](https://github.com/Life-USTC/server/compare/v1.62.0...v1.63.0) (2026-07-19)
 
 
