@@ -45,16 +45,14 @@ $: sectionSemesterSummary = selectedSemester
   : "";
 </script>
 
-<section class="grid min-w-0 gap-3 xl:gap-0 xl:overflow-hidden xl:rounded-xl xl:border xl:bg-card">
-  <div class="xl:border-b xl:px-4 xl:py-3">
-    <CatalogResultsSummary
-      base={sectionSummaryBase}
-      {page}
-      searchText={sectionSearchSummary}
-      semesterText={sectionSemesterSummary}
-      {totalPages}
-    />
-  </div>
+<section class="grid min-w-0 gap-3">
+  <CatalogResultsSummary
+    base={sectionSummaryBase}
+    {page}
+    searchText={sectionSearchSummary}
+    semesterText={sectionSemesterSummary}
+    {totalPages}
+  />
   {#if data.data.length > 0}
     <div class="xl:hidden" data-testid="catalog-results-cards">
       <Item.Group>

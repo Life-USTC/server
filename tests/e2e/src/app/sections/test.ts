@@ -373,14 +373,16 @@ test.describe("/sections 班级搜索页", () => {
 
       const geometry = await tableContainer.evaluate((node) => {
         const container = node as HTMLElement;
+        const results = container.closest<HTMLElement>("section");
         const table = container.querySelector("table");
         const cells = Array.from(
           container.querySelectorAll<HTMLElement>("th, td"),
         );
-        if (!table || cells.length === 0)
+        if (!results || !table || cells.length === 0)
           throw new Error("Sections table geometry missing");
 
         const containerBox = container.getBoundingClientRect();
+        const resultsStyle = getComputedStyle(results);
         const overflowingCells = cells.flatMap((cell, index) =>
           cell.scrollWidth > cell.clientWidth + 1
             ? [
@@ -403,6 +405,31 @@ test.describe("/sections 班级搜索页", () => {
             );
           }),
           overflowingCells,
+          resultsBackgroundIsTransparent:
+            resultsStyle.backgroundColor.replaceAll(" ", "") ===
+              "rgba(0,0,0,0)" || resultsStyle.backgroundColor === "transparent",
+          resultsBorderRadius: Math.max(
+            ...[
+              resultsStyle.borderTopLeftRadius,
+              resultsStyle.borderTopRightRadius,
+              resultsStyle.borderBottomRightRadius,
+              resultsStyle.borderBottomLeftRadius,
+            ].map(Number.parseFloat),
+          ),
+          resultsBorderWidth: Math.max(
+            ...[
+              resultsStyle.borderTopWidth,
+              resultsStyle.borderRightWidth,
+              resultsStyle.borderBottomWidth,
+              resultsStyle.borderLeftWidth,
+            ].map(Number.parseFloat),
+          ),
+          resultsOverflowX: resultsStyle.overflowX,
+          resultsOverflowY: resultsStyle.overflowY,
+          summaryIsDirectChild:
+            results.querySelector(
+              ":scope > [data-testid='catalog-results-summary']",
+            ) !== null,
           scrollWidth: container.scrollWidth,
           tableWidth: table.getBoundingClientRect().width,
         };
@@ -413,6 +440,12 @@ test.describe("/sections 班级搜索页", () => {
       );
       expect(geometry.tableWidth).toBeLessThanOrEqual(geometry.clientWidth + 1);
       expect(geometry.cellsWithinContainer).toBe(true);
+      expect(geometry.resultsBackgroundIsTransparent).toBe(true);
+      expect(geometry.resultsBorderRadius).toBe(0);
+      expect(geometry.resultsBorderWidth).toBe(0);
+      expect(geometry.resultsOverflowX).toBe("visible");
+      expect(geometry.resultsOverflowY).toBe("visible");
+      expect(geometry.summaryIsDirectChild).toBe(true);
       expect(geometry.overflowingCells).toEqual([]);
       await captureStepScreenshot(
         page,
