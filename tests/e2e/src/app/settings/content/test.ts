@@ -1,8 +1,8 @@
 /**
- * E2E tests for the Settings Content Tab (`/settings?tab=content`)
+ * E2E tests for the Settings Content section (`/settings/content`)
  *
  * ## Data Represented
- * - `/settings?tab=content` is the canonical content settings entry.
+ * - `/settings/content` is the canonical content settings entry.
  * - Content section explains that uploads/comments are object-scoped, not
  *   standalone settings pages.
  * - It provides next-step links to section browsing and the comment guide.
@@ -23,9 +23,9 @@ import {
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-test.describe("/settings?tab=content 内容设置", () => {
+test.describe("/settings/content 内容设置", () => {
   test("需要登录", async ({ page }, testInfo) => {
-    await expectRequiresSignIn(page, "/settings?tab=content");
+    await expectRequiresSignIn(page, "/settings/content");
     await captureStepScreenshot(
       page,
       testInfo,
@@ -34,9 +34,9 @@ test.describe("/settings?tab=content 内容设置", () => {
   });
 
   test("显示标准内容引导", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/settings?tab=content");
+    await signInAsDebugUser(page, "/settings/content");
 
-    await expectPagePath(page, "/settings?tab=content");
+    await expectPagePath(page, "/settings/content");
     await expect(
       page.getByText(
         /内容会跟随课程、班级、作业等对象管理|Manage uploads and comments from the course, section, or homework where they belong/i,
@@ -52,7 +52,7 @@ test.describe("/settings?tab=content 内容设置", () => {
   });
 
   test("内容链接导航正确", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/settings?tab=content");
+    await signInAsDebugUser(page, "/settings/content");
 
     const sectionsLink = page.getByRole("link", {
       name: /浏览班级|Browse sections/i,
@@ -65,7 +65,7 @@ test.describe("/settings?tab=content 内容设置", () => {
       "settings-content-navigate-sections",
     );
 
-    await gotoAndWaitForReady(page, "/settings?tab=content", {
+    await gotoAndWaitForReady(page, "/settings/content", {
       testInfo,
       screenshotLabel: "settings-content",
     });

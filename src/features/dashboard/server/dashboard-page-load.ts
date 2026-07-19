@@ -1,9 +1,8 @@
-import { isSignedDashboardTab } from "@/features/dashboard/lib/dashboard-nav";
+import type { SignedTabId } from "@/features/dashboard/lib/dashboard-nav";
 import { getDashboardPageCopy } from "@/features/dashboard/server/dashboard-page-copy";
 import { loadSignedDashboardPageData } from "@/features/dashboard/server/dashboard-page-load-signed";
 import type { DashboardPageLoadEvent } from "@/features/dashboard/server/dashboard-page-load-types";
 import {
-  normalizeDashboardTab,
   parsePositiveCalendarSemester,
   parseSnapshotReferenceTime,
 } from "@/features/dashboard/server/dashboard-page-server";
@@ -30,22 +29,21 @@ function recordDashboardLoadFinish(input: {
 
 export async function loadSignedDashboardPage({
   locals,
+  tab,
   url,
   userId,
-}: DashboardPageLoadEvent & { userId: string }) {
+}: DashboardPageLoadEvent & { tab: SignedTabId; userId: string }) {
   const startMs = Date.now();
   const locale = locals.locale;
   const pageCopy = getDashboardPageCopy(locale);
   const calendarSemesterId =
-    url.searchParams.get("tab") === "calendar"
+    tab === "calendar"
       ? parsePositiveCalendarSemester(url.searchParams.get("calendarSemester"))
       : undefined;
-  const tab = normalizeDashboardTab(url.searchParams.get("tab"), true);
   const referenceNow = parseSnapshotReferenceTime(
     url.searchParams.get("snapshotAt"),
   );
 
-  const signedTab = isSignedDashboardTab(tab) ? tab : "overview";
   const signedData = await loadSignedDashboardPageData({
     calendarSemesterId,
     locale,
@@ -69,6 +67,6 @@ export async function loadSignedDashboardPage({
 
   return {
     ...signedData,
-    mainContentLabel: pageCopy.dashboard.nav[signedTab].title,
+    mainContentLabel: pageCopy.dashboard.nav[tab].title,
   };
 }

@@ -1,8 +1,8 @@
 /**
- * E2E tests for the Settings Accounts Tab (`/settings?tab=accounts`)
+ * E2E tests for the Settings Accounts section (`/settings/accounts`)
  *
  * ## Data Represented
- * - `/settings?tab=accounts` is the canonical linked-account settings entry.
+ * - `/settings/accounts` is the canonical linked-account settings entry.
  * - Shows linked OAuth provider accounts for the current user.
  * - Three providers: GitHub, Google, USTC (OIDC).
  * - Each provider card shows: name, "Connected" badge (if linked),
@@ -36,9 +36,9 @@ import {
 import { waitForUiSettled } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-test.describe("/settings?tab=accounts 关联账号设置", () => {
+test.describe("/settings/accounts 关联账号设置", () => {
   test("需要登录", async ({ page }, testInfo) => {
-    await expectRequiresSignIn(page, "/settings?tab=accounts");
+    await expectRequiresSignIn(page, "/settings/accounts");
     await captureStepScreenshot(
       page,
       testInfo,
@@ -47,9 +47,9 @@ test.describe("/settings?tab=accounts 关联账号设置", () => {
   });
 
   test("显示所有提供商卡片", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/settings?tab=accounts");
+    await signInAsDebugUser(page, "/settings/accounts");
 
-    await expectPagePath(page, "/settings?tab=accounts");
+    await expectPagePath(page, "/settings/accounts");
     await expect(page.getByText("GitHub").first()).toBeVisible();
     await expect(page.getByText("Google").first()).toBeVisible();
     await expect(page.getByText("USTC").first()).toBeVisible();
@@ -57,7 +57,7 @@ test.describe("/settings?tab=accounts 关联账号设置", () => {
   });
 
   test("连接按钮启动账号关联 OAuth 流程", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/settings?tab=accounts");
+    await signInAsDebugUser(page, "/settings/accounts");
 
     const providerCard = page
       .locator("#main-content .rounded-lg.border")
@@ -82,7 +82,7 @@ test.describe("/settings?tab=accounts 关联账号设置", () => {
         const url = new URL(request.url());
         return (
           request.method() === "POST" &&
-          url.pathname === "/settings" &&
+          url.pathname === "/settings/accounts" &&
           url.search.includes("/linkAccount")
         );
       },
@@ -100,7 +100,7 @@ test.describe("/settings?tab=accounts 关联账号设置", () => {
   });
 
   test("仅关联一个账号时断开连接被禁用", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/settings?tab=accounts");
+    await signInAsDebugUser(page, "/settings/accounts");
 
     const disconnectButton = page
       .getByRole("button", { name: /断开连接|Disconnect/i })
@@ -124,7 +124,7 @@ test.describe("/settings?tab=accounts 关联账号设置", () => {
   test("多账号：取消与确认解绑流程", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     const provider = "github";
-    await signInAsDebugUser(page, "/settings?tab=accounts");
+    await signInAsDebugUser(page, "/settings/accounts");
     const user = await getCurrentSessionUser(page);
 
     // Ensure a second account exists for the test
@@ -132,11 +132,11 @@ test.describe("/settings?tab=accounts 关联账号设置", () => {
     await ensureLinkedAccountFixture({ userId: user.id, provider });
 
     try {
-      await signInAsDebugUser(page, "/settings?tab=accounts", undefined, {
+      await signInAsDebugUser(page, "/settings/accounts", undefined, {
         ui: true,
       });
       await waitForUiSettled(page);
-      await expectPagePath(page, "/settings?tab=accounts");
+      await expectPagePath(page, "/settings/accounts");
 
       const providerCard = page
         .locator("#main-content .rounded-lg.border")

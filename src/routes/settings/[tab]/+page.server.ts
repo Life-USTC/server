@@ -9,13 +9,11 @@ export const load: PageServerLoad = async (event) => {
     error(404, "Settings page not found");
   }
 
-  const url = new URL(event.url);
-  url.searchParams.set("tab", event.params.tab);
-
   return loadSettingsPage({
     locals: event.locals,
     request: event.request,
-    url,
+    tab: event.params.tab,
+    url: event.url,
   });
 };
 

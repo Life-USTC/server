@@ -1,5 +1,5 @@
 import { redirect } from "@sveltejs/kit";
-import { normalizeSettingsTab } from "@/features/settings/lib/settings-tabs";
+import type { SettingsTab } from "@/features/settings/lib/settings-tabs";
 import { buildSettingsAccountProviders } from "@/features/settings/server/settings-account-providers";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
 import { prisma } from "@/lib/db/prisma";
@@ -22,7 +22,11 @@ export async function requireSettingsUser(request: Request, url: URL) {
   return session.user;
 }
 
-export async function getSettingsPageData(request: Request, url: URL) {
+export async function getSettingsPageData(
+  request: Request,
+  url: URL,
+  tab: SettingsTab,
+) {
   const sessionUser = await requireSettingsUser(request, url);
   const user = await prisma.user.findUnique({
     where: { id: sessionUser.id },
@@ -60,7 +64,7 @@ export async function getSettingsPageData(request: Request, url: URL) {
   const accounts = buildSettingsAccountProviders(user.accounts);
 
   return {
-    tab: normalizeSettingsTab(url.searchParams.get("tab")),
+    tab,
     message: ["AccountDisconnected", "Success"].includes(
       url.searchParams.get("message") ?? "",
     )

@@ -44,7 +44,7 @@ describe("signed dashboard page load", () => {
       tab: "homeworks",
     });
     const url = new URL(
-      "https://example.test/dashboard/homeworks?tab=homeworks",
+      "https://example.test/dashboard/homeworks?tab=calendar&homeworkView=list",
     );
 
     const result = await loadSignedDashboardPage({
@@ -53,6 +53,7 @@ describe("signed dashboard page load", () => {
         requestId: "request-1",
       },
       request: new Request(url),
+      tab: "homeworks",
       url,
       userId: "user-1",
     });
@@ -65,6 +66,9 @@ describe("signed dashboard page load", () => {
         tab: "homeworks",
         userId: "user-1",
       }),
+    );
+    expect(url.href).toBe(
+      "https://example.test/dashboard/homeworks?tab=calendar&homeworkView=list",
     );
     expect(result).toEqual({
       mainContentLabel: "Homework",

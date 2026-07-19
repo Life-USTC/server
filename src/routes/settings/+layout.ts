@@ -24,9 +24,7 @@ export const load: LayoutLoad = async ({ parent, url }) => {
   const parentData = await parent();
   const copy = getSettingsCopy(parentData.locale);
   return {
-    activeTab: normalizeSettingsTab(
-      url.searchParams.get("tab") ?? url.pathname.split("/")[2],
-    ),
+    activeTab: normalizeSettingsTab(url.pathname.split("/")[2]),
     settingsNav: {
       title: copy.settings.title,
       tabs: SETTINGS_TABS.map((id) => settingsNavItem(copy, id)),

@@ -42,7 +42,7 @@ export let unlinkAccountId: string | null;
         </AlertDialog.Cancel>
         <form
           method="POST"
-          action="?/unlinkAccount&tab=accounts"
+          action="?/unlinkAccount"
           use:enhance={accountAction(unlinkAccount.id, "disconnect")}
         >
           <input type="hidden" name="provider" value={unlinkAccount.id} />

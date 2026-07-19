@@ -58,7 +58,7 @@ export async function linkSettingsAccountAction({
   try {
     const result = await linkAccountFromSvelteAction({
       providerId,
-      callbackUrl: "/settings?tab=accounts",
+      callbackUrl: "/settings/accounts",
       headers: request.headers,
       cookies,
     });

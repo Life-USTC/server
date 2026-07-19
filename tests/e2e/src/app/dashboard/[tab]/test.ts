@@ -15,7 +15,7 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 const dashboardTabRoutes = {
-  overview: "/dashboard",
+  overview: "/dashboard/overview",
   calendar: "/dashboard/calendar",
   homeworks: "/dashboard/homeworks",
   todos: "/dashboard/todos",
@@ -92,7 +92,7 @@ test("/dashboard/homeworks 加载登录标签", async ({ page }, testInfo) => {
 });
 
 test("登录工作区隐藏公共页脚但公共内容页保留", async ({ page }) => {
-  await signInAsDebugUser(page, "/dashboard");
+  await signInAsDebugUser(page, "/dashboard/overview");
   await expect(page.locator("footer")).toHaveCount(0);
 
   await gotoAndWaitForReady(page, "/courses");

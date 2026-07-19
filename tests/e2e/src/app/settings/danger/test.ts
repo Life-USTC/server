@@ -1,8 +1,8 @@
 /**
- * E2E tests for the Settings Danger Tab (`/settings?tab=danger`)
+ * E2E tests for the Settings Danger section (`/settings/danger`)
  *
  * ## Data Represented
- * - `/settings?tab=danger` is the canonical destructive settings entry.
+ * - `/settings/danger` is the canonical destructive settings entry.
  * - The danger section provides irreversible account deletion.
  * - Card styled with destructive border to signal danger.
  *
@@ -31,20 +31,16 @@ import {
 } from "../../../../utils/auth";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-test.describe("/settings?tab=danger 危险区设置", () => {
+test.describe("/settings/danger 危险区设置", () => {
   test("需要登录", async ({ page }, testInfo) => {
-    await expectRequiresSignIn(page, "/settings?tab=danger");
+    await expectRequiresSignIn(page, "/settings/danger");
     await captureStepScreenshot(page, testInfo, "settings-danger-unauthorized");
   });
 
   test("删除账号确认流程", async ({ page }, testInfo) => {
-    await signInAsDebugUser(
-      page,
-      "/settings?tab=danger",
-      "/settings?tab=danger",
-    );
+    await signInAsDebugUser(page, "/settings/danger", "/settings/danger");
 
-    await expectPagePath(page, "/settings?tab=danger");
+    await expectPagePath(page, "/settings/danger");
 
     // Open the deletion dialog
     const openDialogButton = page
@@ -97,12 +93,8 @@ test.describe("/settings?tab=danger 危险区设置", () => {
   test("实际删除账号后退出登录并可重新登录", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
 
-    await signInAsDebugUser(
-      page,
-      "/settings?tab=danger",
-      "/settings?tab=danger",
-    );
-    await expectPagePath(page, "/settings?tab=danger");
+    await signInAsDebugUser(page, "/settings/danger", "/settings/danger");
+    await expectPagePath(page, "/settings/danger");
 
     // Open the deletion dialog
     const openDialogButton = page

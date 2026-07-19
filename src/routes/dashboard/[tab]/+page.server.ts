@@ -16,13 +16,11 @@ export const load: PageServerLoad = async (event) => {
     );
   }
 
-  const url = new URL(event.url);
-  url.searchParams.set("tab", event.params.tab);
-
   return loadSignedDashboardPage({
     locals: event.locals,
     request: event.request,
-    url,
+    tab: event.params.tab,
+    url: event.url,
     userId: event.locals.authUser.id,
   });
 };

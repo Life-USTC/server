@@ -479,7 +479,7 @@ export async function assertPageContract(
     }
 
     case "/settings": {
-      await signInAsDebugUser(page, "/settings");
+      await signInAsDebugUser(page, "/settings/profile");
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await expect(

@@ -58,6 +58,23 @@ test.describe("仪表盘", () => {
     await expect(page.getByTestId("bus-compact-summary")).toHaveCount(0);
   });
 
+  test("/dashboard 默认永久重定向到 overview 语义路径", async ({ page }) => {
+    for (const method of ["GET", "HEAD"]) {
+      const response = await page.request.fetch(
+        "/dashboard?overviewWeek=next",
+        {
+          maxRedirects: 0,
+          method,
+        },
+      );
+
+      expect(response.status()).toBe(308);
+      expect(response.headers().location).toBe(
+        "/dashboard/overview?overviewWeek=next",
+      );
+    }
+  });
+
   test("登录后首页显示总览、所有标签和种子数据", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await signInAsDebugUser(page, "/");
@@ -67,7 +84,7 @@ test.describe("仪表盘", () => {
       screenshotLabel: "dashboard",
     });
 
-    await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/);
+    await expect(page).toHaveURL(/\/dashboard\/overview(?:\?.*)?$/);
     await expect(
       page.getByRole("heading", {
         level: 1,

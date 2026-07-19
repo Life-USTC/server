@@ -2,4 +2,4 @@
 import RouteErrorCard from "../_components/RouteErrorCard.svelte";
 </script>
 
-<RouteErrorCard backHref="/settings" />
+<RouteErrorCard backHref="/settings/profile" />
