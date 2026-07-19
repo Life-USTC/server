@@ -18,6 +18,7 @@
     "single-open-suspension": "Each user can have at most one open suspension. Creating a new suspension closes any previous open suspension for that user while retaining history; lifting an open suspension clears the user's open suspension state.",
     "admin-mutation-not-found": "PATCH /api/admin/comments/[id], POST /api/admin/suspensions, and PATCH /api/admin/users/[id] return 404 when the target record is not found.",
     "suspension-retention": "Suspension history is retained when an admin account is deleted; creator and lifter actor references may be null after account deletion.",
+    "shared-second-level-navigation": "The global shell exposes one Admin entry. /admin and its existing resource pages share responsive second-level navigation with exactly one current item; resource URLs remain stable.",
     "responsive-workspace": "Admin management pages share a lightweight workspace order of page identity, feedback, summary or filters, then records; desktop tables retain their density while existing compact record views remain the mobile presentation.",
     "bus-summary-density": "Admin bus status metrics use one compact responsive summary instead of a stack of separate metric cards so the active version and first timetable record remain reachable near the first mobile viewport."
   },

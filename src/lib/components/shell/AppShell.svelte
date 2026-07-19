@@ -1,14 +1,11 @@
 <script lang="ts">
 import BookOpenIcon from "@lucide/svelte/icons/book-open";
-import BusIcon from "@lucide/svelte/icons/bus";
 import BusFrontIcon from "@lucide/svelte/icons/bus-front";
 import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
 import ClipboardCheckIcon from "@lucide/svelte/icons/clipboard-check";
 import CompassIcon from "@lucide/svelte/icons/compass";
-import GavelIcon from "@lucide/svelte/icons/gavel";
 import GraduationCapIcon from "@lucide/svelte/icons/graduation-cap";
 import HouseIcon from "@lucide/svelte/icons/house";
-import KeyIcon from "@lucide/svelte/icons/key";
 import LinkIcon from "@lucide/svelte/icons/link";
 import ListTodoIcon from "@lucide/svelte/icons/list-todo";
 import MapIcon from "@lucide/svelte/icons/map";
@@ -178,14 +175,6 @@ function buildShellNavGroups(
 
   const adminLinks: ShellLink[] = [
     { href: "/admin", icon: ShieldIcon, label: copy.nav.admin.title },
-    { href: "/admin/users", icon: UsersIcon, label: copy.nav.admin.users },
-    {
-      href: "/admin/moderation",
-      icon: GavelIcon,
-      label: copy.nav.admin.moderation,
-    },
-    { href: "/admin/oauth", icon: KeyIcon, label: copy.nav.admin.oauth },
-    { href: "/admin/bus", icon: BusIcon, label: copy.nav.admin.bus },
   ];
 
   return [
@@ -263,7 +252,13 @@ function buildShellNavGroups(
       ],
     },
     ...(isAdmin
-      ? [{ label: copy.nav.groups.adminTools, links: adminLinks }]
+      ? [
+          {
+            defaultOpen: pathname.startsWith("/admin"),
+            label: copy.nav.groups.adminTools,
+            links: adminLinks,
+          },
+        ]
       : []),
   ];
 }
@@ -350,14 +345,6 @@ function buildMobileSecondaryNavGroups(
   ];
   const adminLinks: ShellLink[] = [
     { href: "/admin", icon: ShieldIcon, label: copy.nav.admin.title },
-    { href: "/admin/users", icon: UsersIcon, label: copy.nav.admin.users },
-    {
-      href: "/admin/moderation",
-      icon: GavelIcon,
-      label: copy.nav.admin.moderation,
-    },
-    { href: "/admin/oauth", icon: KeyIcon, label: copy.nav.admin.oauth },
-    { href: "/admin/bus", icon: BusIcon, label: copy.nav.admin.bus },
   ];
 
   return [
@@ -367,7 +354,13 @@ function buildMobileSecondaryNavGroups(
       links: secondaryLinks,
     },
     ...(isAdmin
-      ? [{ label: copy.nav.groups.adminTools, links: adminLinks }]
+      ? [
+          {
+            defaultOpen: pathname.startsWith("/admin"),
+            label: copy.nav.groups.adminTools,
+            links: adminLinks,
+          },
+        ]
       : []),
   ];
 }
