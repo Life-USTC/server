@@ -611,11 +611,13 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     for (let index = 0; index < (await headerControls.count()); index += 1) {
       const controlBox = await headerControls.nth(index).boundingBox();
       expect(controlBox).not.toBeNull();
-      expect(controlBox?.left ?? 0).toBeGreaterThanOrEqual(
-        (composerBox?.left ?? 0) - 1,
+      expect(controlBox?.x ?? 0).toBeGreaterThanOrEqual(
+        (composerBox?.x ?? 0) - 1,
       );
-      expect(controlBox?.right ?? 0).toBeLessThanOrEqual(
-        (composerBox?.right ?? 0) + 1,
+      expect(
+        (controlBox?.x ?? 0) + (controlBox?.width ?? 0),
+      ).toBeLessThanOrEqual(
+        (composerBox?.x ?? 0) + (composerBox?.width ?? 0) + 1,
       );
     }
   });
