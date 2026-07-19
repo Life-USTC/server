@@ -329,6 +329,7 @@ onMount(() => {
     setOrigin: (origin) => {
       _origin = origin;
     },
+    shouldLoadHomeworks: data.detailSection === "homework",
   });
 });
 </script>
