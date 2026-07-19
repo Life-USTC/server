@@ -188,6 +188,20 @@ test("/ 禁用 JavaScript 时系统深色主题仍有 CSS fallback", async ({
   await context.close();
 });
 
+test("/ shell 提供键盘跳转到主要内容", async ({ page }) => {
+  await gotoAndWaitForReady(page, "/");
+
+  await page.keyboard.press("Tab");
+  const skipLink = page.getByRole("link", {
+    name: /跳转到主要内容|Skip to main content/i,
+  });
+  await expect(skipLink).toBeFocused();
+  await expect(skipLink).toBeVisible();
+  await expect(skipLink).toHaveCSS("position", "fixed");
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#main-content")).toBeFocused();
+});
+
 test("/ shell 菜单可一键切换", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 });
   await signInAsDebugUser(page, "/");

@@ -31,7 +31,7 @@ export let viewer: { isSubscribed?: boolean };
   class={stretched
     ? retired && !viewer.isSubscribed
       ? "grid w-full grid-cols-1 gap-2"
-      : "grid w-full grid-cols-2 gap-2"
+      : "grid w-full grid-cols-1 gap-2 min-[360px]:grid-cols-2"
     : "flex flex-wrap gap-2"}
 >
   <Button

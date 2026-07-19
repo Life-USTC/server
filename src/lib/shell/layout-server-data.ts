@@ -3,6 +3,7 @@ import zhCnMessages from "../../../messages/zh-cn.json";
 
 const layoutMessages = {
   "en-us": {
+    accessibility: enUsMessages.accessibility,
     admin: enUsMessages.admin,
     common: enUsMessages.common,
     homepage: enUsMessages.homepage,
@@ -14,6 +15,7 @@ const layoutMessages = {
     theme: enUsMessages.theme,
   },
   "zh-cn": {
+    accessibility: zhCnMessages.accessibility,
     admin: zhCnMessages.admin,
     common: zhCnMessages.common,
     homepage: zhCnMessages.homepage,
@@ -105,6 +107,7 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       profileMenu: messages.common.profileMenu,
       secondaryNavigation:
         locale === "zh-cn" ? "次级导航" : "Secondary navigation",
+      skipToMainContent: messages.accessibility.skipToMainContent,
       theme: locale === "zh-cn" ? "主题" : "Theme",
     },
     errorPage: {
