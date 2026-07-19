@@ -1,3 +1,14 @@
+## [1.64.4](https://github.com/Life-USTC/server/compare/v1.64.3...v1.64.4) (2026-07-19)
+
+
+### Bug Fixes
+
+* **a11y:** keep skip link overlay fixed ([aa4bc58](https://github.com/Life-USTC/server/commit/aa4bc587829670f10f216444c16c5f892ec820a5))
+* **ui:** contain mobile navigation overflow ([48e8fa1](https://github.com/Life-USTC/server/commit/48e8fa177877be75a34aec76a9f3aec324a5f077))
+* **ui:** contain narrow detail controls ([ce3d4a4](https://github.com/Life-USTC/server/commit/ce3d4a45a5807fffb87093131232acc0cba7fe72))
+* **ui:** improve mobile shell accessibility ([5242767](https://github.com/Life-USTC/server/commit/52427670fdf0d93e775c68aa4aa65ae6b4e70243))
+* **ui:** show bidirectional nav overflow cues ([f332ad6](https://github.com/Life-USTC/server/commit/f332ad6bc616832eb6817287ba2c4fc51c174c83))
+
 ## [1.64.3](https://github.com/Life-USTC/server/compare/v1.64.2...v1.64.3) (2026-07-19)
 
 
