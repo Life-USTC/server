@@ -83,6 +83,41 @@ async function expectMinimumTargetHeight(page: Page, selectors: RegExp[]) {
   }
 }
 
+async function expectDiscoverableTimetableScroll(page: Page) {
+  const regions = page.getByTestId("bus-timetable-scroll-region");
+  const overflowIndex = await regions.evaluateAll((nodes) =>
+    nodes.findIndex((node) => {
+      const scroller = node.querySelector<HTMLElement>(
+        '[data-slot="table-container"]',
+      );
+      return Boolean(
+        scroller && scroller.scrollWidth > scroller.clientWidth + 1,
+      );
+    }),
+  );
+  expect(overflowIndex).toBeGreaterThanOrEqual(0);
+
+  const region = regions.nth(overflowIndex);
+  const scroller = region.locator('[data-slot="table-container"]');
+  await expect(
+    region.getByTestId("bus-timetable-scroll-cue-right"),
+  ).toBeVisible();
+  await expect(region.getByTestId("bus-timetable-scroll-cue-left")).toHaveCount(
+    0,
+  );
+
+  await scroller.evaluate((element) => {
+    element.scrollLeft = element.scrollWidth;
+    element.dispatchEvent(new Event("scroll"));
+  });
+  await expect(
+    region.getByTestId("bus-timetable-scroll-cue-left"),
+  ).toBeVisible();
+  await expect(
+    region.getByTestId("bus-timetable-scroll-cue-right"),
+  ).toHaveCount(0);
+}
+
 test.describe("校车面板标签页", () => {
   test.describe.configure({ mode: "serial" });
   test.beforeEach(async ({ page }) => {
@@ -404,6 +439,7 @@ test.describe("校车面板标签页", () => {
         ).toBeGreaterThanOrEqual(44);
       }
       await openFullTimetable(page);
+      await expectDiscoverableTimetableScroll(page);
       await expectNoPageHorizontalOverflow(page);
     }
   });
