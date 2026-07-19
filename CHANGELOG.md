@@ -1,3 +1,10 @@
+## [1.71.1](https://github.com/Life-USTC/server/compare/v1.71.0...v1.71.1) (2026-07-19)
+
+
+### Performance Improvements
+
+* **web:** keep anonymous home lightweight ([#566](https://github.com/Life-USTC/server/issues/566)) ([d812d2d](https://github.com/Life-USTC/server/commit/d812d2dd690fc5736d0b5b05b7e513df2946460b))
+
 # [1.71.0](https://github.com/Life-USTC/server/compare/v1.70.1...v1.71.0) (2026-07-19)
 
 
