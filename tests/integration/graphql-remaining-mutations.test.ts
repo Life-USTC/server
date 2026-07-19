@@ -77,9 +77,6 @@ if (!databaseUrl) {
 }
 const runtimeEnv = {
   APP_PUBLIC_ORIGIN: "http://localhost:3000",
-  AUTH_SECRET:
-    process.env.AUTH_SECRET ??
-    "graphql-remaining-integration-secret-at-least-32-characters",
   DATABASE_URL: databaseUrl,
   HYPERDRIVE: { connectionString: databaseUrl },
   NODE_ENV: "test",

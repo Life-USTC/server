@@ -252,32 +252,6 @@ describe("remaining ordinary GraphQL mutations", () => {
     });
   });
 
-  it("surfaces completion cleanup failure as retryable service unavailability", async () => {
-    completeOwnedUploadSessionMock.mockResolvedValue({
-      ok: false,
-      error: "storage_delete_failed",
-    });
-
-    await expect(
-      graphqlMutationResolvers.Mutation.completeUploadSession(
-        null,
-        {
-          input: {
-            key: "uploads/user-1/file",
-            filename: "report.pdf",
-          },
-        },
-        context,
-      ),
-    ).rejects.toMatchObject({
-      extensions: {
-        code: "SERVICE_UNAVAILABLE",
-        http: { status: 503 },
-      },
-      message: "Upload storage deletion failed; metadata was preserved.",
-    });
-  });
-
   it("rejects duplicate comment targets and invalid upload metadata before services", async () => {
     await expect(
       graphqlMutationResolvers.Mutation.deleteComments(

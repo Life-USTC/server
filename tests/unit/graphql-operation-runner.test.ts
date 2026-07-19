@@ -242,37 +242,6 @@ describe("registered GraphQL operation runner", () => {
     });
   });
 
-  it("preserves retryable upload cleanup errors for the MCP runner", async () => {
-    uploadService.completeOwnedUploadSession.mockResolvedValue({
-      ok: false,
-      error: "storage_delete_failed",
-    });
-
-    const result = await run("upload.complete.v1", {
-      confirmed: true,
-      scopes: new Set(["upload:write"]),
-      variables: {
-        input: {
-          filename: "report.pdf",
-          key: "uploads/runner-test-user/report.pdf",
-        },
-      },
-    });
-
-    expect(result).toMatchObject({
-      success: false,
-      errors: [
-        {
-          message: "Upload storage deletion failed; metadata was preserved.",
-          extensions: {
-            code: "SERVICE_UNAVAILABLE",
-            http: { status: 503 },
-          },
-        },
-      ],
-    });
-  });
-
   it("masks unexpected resolver failures", async () => {
     catalogService.getCurrentSemester.mockRejectedValue(
       new Error("private-current-semester-failure"),

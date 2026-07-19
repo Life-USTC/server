@@ -204,7 +204,7 @@ describe("completeUploadSession", () => {
     });
   });
 
-  it("对象校验失败时在事务外删除待处理配额", async () => {
+  it("对象校验失败时保留待处理配额且不删除 R2", async () => {
     headStorageObjectMock.mockResolvedValue({ size: 0 });
 
     await expect(
@@ -215,9 +215,25 @@ describe("completeUploadSession", () => {
     ).rejects.toMatchObject({ code: "Uploaded object missing" });
 
     expect(runSerializableTransactionMock).not.toHaveBeenCalled();
-    expect(pendingDeleteManyMock).toHaveBeenLastCalledWith({
-      where: { key: KEY, userId: USER_ID },
+    expect(pendingDeleteManyMock).not.toHaveBeenCalled();
+    expect(deleteStorageObjectMock).not.toHaveBeenCalled();
+  });
+
+  it("对象超过大小限制时保留待处理配额且不删除 R2", async () => {
+    headStorageObjectMock.mockResolvedValue({
+      size: uploadConfig.maxFileSizeBytes + 1,
     });
+
+    await expect(
+      completeUploadSession(USER_ID, {
+        filename: "test.txt",
+        key: KEY,
+      }),
+    ).rejects.toMatchObject({ code: "File too large" });
+
+    expect(runSerializableTransactionMock).not.toHaveBeenCalled();
+    expect(pendingDeleteManyMock).not.toHaveBeenCalled();
+    expect(deleteStorageObjectMock).not.toHaveBeenCalled();
   });
 
   it("返回并发完成的上传而非再次校验存储", async () => {
@@ -327,12 +343,9 @@ describe("completeUploadSession", () => {
     expect(deleteStorageObjectMock).not.toHaveBeenCalled();
   });
 
-  it("限制过期清理批次并在 R2 删除失败时保留历史待处理行", async () => {
+  it("限制过期 DB 清理批次且不触碰 R2", async () => {
     const staleKey = "uploads/user-1/stale.txt";
-    pendingFindManyMock.mockResolvedValue([{ key: staleKey, size: 10 }]);
-    deleteStorageObjectMock.mockRejectedValueOnce(
-      new Error("R2 delete unavailable"),
-    );
+    pendingFindManyMock.mockResolvedValue([{ key: staleKey }]);
 
     await expect(
       completeUploadSession(USER_ID, {
@@ -348,35 +361,30 @@ describe("completeUploadSession", () => {
         NOT: { key: KEY },
       },
       orderBy: [{ expiresAt: "asc" }, { key: "asc" }],
-      select: { key: true, size: true },
+      select: { key: true },
       take: 25,
     });
-    expect(pendingDeleteManyMock).not.toHaveBeenCalledWith({
+    expect(pendingDeleteManyMock).toHaveBeenCalledWith({
       where: {
-        key: staleKey,
+        key: { in: [staleKey] },
         userId: USER_ID,
         expiresAt: { lt: FIXED_NOW },
       },
     });
+    expect(deleteStorageObjectMock).not.toHaveBeenCalled();
   });
 
-  it("配额失败后的 R2 删除失败返回稳定结果并保留待处理行", async () => {
+  it("配额失败时仅过期待处理行且不触碰 R2", async () => {
     txUploadAggregateMock.mockResolvedValue({
       _sum: { size: uploadConfig.totalQuotaBytes },
     });
-    deleteStorageObjectMock.mockRejectedValueOnce(
-      new Error("R2 delete unavailable"),
-    );
 
     await expect(
       completeOwnedUploadSession(USER_ID, {
         filename: "test.txt",
         key: KEY,
       }),
-    ).resolves.toEqual({
-      ok: false,
-      error: "storage_delete_failed",
-    });
+    ).rejects.toMatchObject({ code: "Quota exceeded" });
     expect(txPendingDeleteManyMock).not.toHaveBeenCalled();
     expect(txPendingUpdateManyMock).toHaveBeenCalledWith({
       where: {
@@ -387,9 +395,7 @@ describe("completeUploadSession", () => {
       data: { expiresAt: new Date(FIXED_NOW.getTime() - 1) },
     });
     expect(pendingDeleteManyMock).not.toHaveBeenCalled();
-    expect(txPendingUpdateManyMock.mock.invocationCallOrder[0]).toBeLessThan(
-      deleteStorageObjectMock.mock.invocationCallOrder[0],
-    );
+    expect(deleteStorageObjectMock).not.toHaveBeenCalled();
   });
 });
 

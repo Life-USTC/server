@@ -223,7 +223,7 @@
       "notes": [
         "GraphQL and MCP may reserve quota and return the authenticated on-site PUT workflow URL; raw object bytes remain exclusive to the R2-backed HTTP route.",
         "MCP-resource bearer tokens are not replayable at the REST upload URL; clients need a browser session or a separately authorized REST upload token for the byte-transfer step.",
-        "The registered operation is marked destructive because its bounded oldest-first stale-session sweep may delete expired R2 objects after confirming storage cleanup."
+        "The registered operation is marked destructive because it creates an UploadPending quota reservation; its bounded oldest-first stale-session sweep removes expired reservation rows only."
       ]
     },
     {
@@ -237,7 +237,7 @@
       "semantics": "multi_step_storage_workflow",
       "notes": [
         "Completion validates the existing R2 object and commits metadata; GraphQL and MCP never receive or proxy object bytes.",
-        "Expiry or quota cleanup deletes or confirms the pending R2 object is absent before removing UploadPending. Quota failure first expires the row in the serializable transaction to prevent concurrent completion; storage failure returns GraphQL SERVICE_UNAVAILABLE and preserves the pending row for retry."
+        "Expiry, quota, missing-object, and oversized-object failures never delete R2 from the request path. Bounded DB cleanup removes expired reservations, while orphan objects require a dedicated storage lifecycle reconciler."
       ]
     },
     {

@@ -98,7 +98,7 @@ describe("owned upload workflow service", () => {
     expect(deleteStorageObjectMock).not.toHaveBeenCalled();
   });
 
-  it("cleans an expired workflow object before preserving the stable error", async () => {
+  it("preserves an expired workflow reservation without touching R2", async () => {
     pendingFindUniqueMock.mockResolvedValue({
       expiresAt: new Date(0),
       key: "uploads/user-1/test.txt",
@@ -112,52 +112,8 @@ describe("owned upload workflow service", () => {
         key: "uploads/user-1/test.txt",
       }),
     ).rejects.toMatchObject({ code: "Upload session expired" });
-    expect(deleteStorageObjectMock).toHaveBeenCalledWith(
-      "uploads/user-1/test.txt",
-    );
-    expect(pendingDeleteManyMock).toHaveBeenCalledWith({
-      where: {
-        key: "uploads/user-1/test.txt",
-        userId: "user-1",
-      },
-    });
-    expect(deleteStorageObjectMock.mock.invocationCallOrder[0]).toBeLessThan(
-      pendingDeleteManyMock.mock.invocationCallOrder[0],
-    );
-  });
-
-  it("preserves an expired pending upload on R2 failure and retries cleanup", async () => {
-    pendingFindUniqueMock.mockResolvedValue({
-      expiresAt: new Date(0),
-      key: "uploads/user-1/test.txt",
-      size: 12,
-      userId: "user-1",
-    });
-    deleteStorageObjectMock.mockRejectedValueOnce(
-      new Error("R2 delete unavailable"),
-    );
-    headStorageObjectMock.mockRejectedValueOnce(
-      new Error("R2 head unavailable"),
-    );
-
-    await expect(
-      completeOwnedUploadSession("user-1", {
-        filename: "test.txt",
-        key: "uploads/user-1/test.txt",
-      }),
-    ).resolves.toEqual({
-      ok: false,
-      error: "storage_delete_failed",
-    });
+    expect(deleteStorageObjectMock).not.toHaveBeenCalled();
+    expect(headStorageObjectMock).not.toHaveBeenCalled();
     expect(pendingDeleteManyMock).not.toHaveBeenCalled();
-
-    await expect(
-      completeOwnedUploadSession("user-1", {
-        filename: "test.txt",
-        key: "uploads/user-1/test.txt",
-      }),
-    ).rejects.toMatchObject({ code: "Upload session expired" });
-    expect(deleteStorageObjectMock).toHaveBeenCalledTimes(2);
-    expect(pendingDeleteManyMock).toHaveBeenCalledTimes(1);
   });
 });

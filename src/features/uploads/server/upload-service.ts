@@ -58,11 +58,15 @@ type ExpiredPendingUploadCleanupPrisma = {
         NOT?: { key: string };
       };
       orderBy: [{ expiresAt: "asc" }, { key: "asc" }];
-      select: { key: true; size: true };
+      select: { key: true };
       take: number;
-    }) => Promise<Array<{ key: string; size: number }>>;
+    }) => Promise<Array<{ key: string }>>;
     deleteMany: (input: {
-      where: { key: string; userId: string; expiresAt: { lt: Date } };
+      where: {
+        key: { in: string[] };
+        userId: string;
+        expiresAt: { lt: Date };
+      };
     }) => Promise<unknown>;
   };
 };
@@ -195,15 +199,7 @@ export async function completeUploadSession(
     throw error;
   }
 
-  let uploadedObject: Awaited<ReturnType<typeof validateUploadedObject>>;
-  try {
-    uploadedObject = await validateUploadedObject(input);
-  } catch (error) {
-    if (error instanceof UploadError) {
-      await deletePendingUpload(input.key, userId);
-    }
-    throw error;
-  }
+  const uploadedObject = await validateUploadedObject(input);
 
   const reservation = await runUploadSerializableTransaction(async (tx) => {
     const completed = await tx.upload.findUnique({
@@ -306,30 +302,10 @@ export async function completeOwnedUploadSession(
     return { ok: false as const, error: "forbidden" as const };
   }
 
-  try {
-    return {
-      ok: true as const,
-      completion: await completeUploadSession(userId, input),
-    };
-  } catch (error) {
-    if (
-      error instanceof UploadError &&
-      (error.code === "Quota exceeded" ||
-        error.code === "Upload session expired")
-    ) {
-      const cleanupSucceeded = await cleanupFailedUploadCompletion(
-        input.key,
-        userId,
-      );
-      if (!cleanupSucceeded) {
-        return {
-          ok: false as const,
-          error: "storage_delete_failed" as const,
-        };
-      }
-    }
-    throw error;
-  }
+  return {
+    ok: true as const,
+    completion: await completeUploadSession(userId, input),
+  };
 }
 
 export async function listUploads(
@@ -527,10 +503,6 @@ export async function validatePendingUploadObject(input: {
   };
 }
 
-export async function deleteUploadObject(key: string) {
-  await deleteStorageObject(key);
-}
-
 async function requireActiveUploadWriter(userId: string) {
   const viewer = await getViewerContext({ includeAdmin: true, userId });
   if (!viewer.isAuthenticated) {
@@ -619,40 +591,18 @@ async function deleteExpiredPendingUploads(
       ...(excludeKey ? { NOT: { key: excludeKey } } : {}),
     },
     orderBy: [{ expiresAt: "asc" }, { key: "asc" }],
-    select: { key: true, size: true },
+    select: { key: true },
     take: EXPIRED_PENDING_UPLOAD_CLEANUP_BATCH_SIZE,
   });
+  if (expiredUploads.length === 0) return;
 
-  for (const pending of expiredUploads) {
-    const storageDeleted = await deleteUploadStorageObject(pending);
-    if (!storageDeleted) continue;
-
-    await uploadPrisma.uploadPending.deleteMany({
-      where: {
-        key: pending.key,
-        userId,
-        expiresAt: { lt: now },
-      },
-    });
-  }
-}
-
-async function cleanupFailedUploadCompletion(key: string, userId: string) {
-  const pending = await prisma.uploadPending.findUnique({
-    where: { key },
-    select: {
-      key: true,
-      size: true,
-      userId: true,
+  await uploadPrisma.uploadPending.deleteMany({
+    where: {
+      key: { in: expiredUploads.map(({ key }) => key) },
+      userId,
+      expiresAt: { lt: now },
     },
   });
-  if (!pending || pending.userId !== userId) return true;
-
-  const storageDeleted = await deleteUploadStorageObject(pending);
-  if (!storageDeleted) return false;
-
-  await deletePendingUpload(key, userId);
-  return true;
 }
 
 async function deletePendingUpload(key: string, userId: string) {
@@ -739,7 +689,6 @@ async function validateUploadedObject(input: {
   }
 
   if (size > uploadConfig.maxFileSizeBytes) {
-    await deleteStorageObject(input.key);
     throw new UploadError("File too large");
   }
 
