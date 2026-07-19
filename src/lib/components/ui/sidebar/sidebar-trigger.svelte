@@ -24,6 +24,7 @@
 	variant="ghost"
 	size="icon-sm"
 	class={cn("cn-sidebar-trigger", className)}
+	aria-expanded={sidebar.isMobile ? sidebar.openMobile : sidebar.state === "expanded"}
 	type="button"
 	onclick={(e) => {
 		onclick?.(e);

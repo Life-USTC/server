@@ -13,6 +13,11 @@ import type {
   DashboardBusData,
 } from "@/features/dashboard/lib/bus-tab-types";
 import { apiClient } from "@/lib/api/client";
+import {
+  getLocalStorageItem,
+  removeLocalStorageItem,
+  setLocalStorageItem,
+} from "@/lib/browser/local-storage";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Collapsible from "$lib/components/ui/collapsible/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
@@ -63,7 +68,7 @@ function restoreRecentRoute() {
 
   try {
     const stored = JSON.parse(
-      window.localStorage.getItem(RECENT_BUS_ROUTE_KEY) ?? "null",
+      getLocalStorageItem(RECENT_BUS_ROUTE_KEY) ?? "null",
     ) as {
       endCampusId?: unknown;
       startCampusId?: unknown;
@@ -89,7 +94,7 @@ function restoreRecentRoute() {
     state.actions.selectBusStart(stored.startCampusId);
     state.actions.selectBusEnd(stored.endCampusId);
   } catch {
-    window.localStorage.removeItem(RECENT_BUS_ROUTE_KEY);
+    removeLocalStorageItem(RECENT_BUS_ROUTE_KEY);
   }
 }
 
@@ -102,7 +107,7 @@ function saveRecentRoute() {
     return;
   }
 
-  window.localStorage.setItem(
+  setLocalStorageItem(
     RECENT_BUS_ROUTE_KEY,
     JSON.stringify({
       endCampusId: state.values.busEndCampusId,
@@ -164,22 +169,19 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
 );
 </script>
 
-<div class="grid gap-5">
+<div class="grid min-w-0 gap-5">
   {#if !compact}
     <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
       <div class="grid gap-1">
         <h2 class="font-semibold text-xl tracking-normal">{busCopy.dashboardTitle}</h2>
-        <p class="text-muted-foreground text-sm">
-          {busCopy.activeVersion}
-        </p>
       </div>
-      <Button href="/bus-map" size="lg" variant="outline">{busCopy.transitMap}</Button>
+      <Button class="min-h-11" href="/bus-map" size="lg" variant="outline">{busCopy.transitMap}</Button>
     </div>
   {/if}
 
   {#if loadedBus}
     {#if compact}
-      <div class="grid gap-3">
+      <div class="grid min-w-0 gap-3">
         <BusTabCompactSummary
           {busApplicableRoutes}
           {busCopy}
@@ -192,7 +194,7 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
             {#snippet child({ props })}
               <Button
                 {...props}
-                class="w-full justify-between"
+                class="min-h-11 w-full justify-between"
                 size="lg"
                 variant="outline"
               >
@@ -205,7 +207,7 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
             {/snippet}
           </Collapsible.Trigger>
           <Collapsible.Content>
-            <div class="pt-4">
+            <div class="min-w-0 pt-4">
               <BusTabSettings
                 bus={loadedBus}
                 {busCopy}
@@ -231,7 +233,7 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
             {#snippet child({ props })}
               <Button
                 {...props}
-                class="w-full justify-between"
+                class="min-h-11 w-full justify-between"
                 size="lg"
                 variant="outline"
               >
@@ -244,7 +246,7 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
             {/snippet}
           </Collapsible.Trigger>
           <Collapsible.Content>
-            <div class="pt-4">
+            <div class="min-w-0 pt-4">
               <BusTabTimetable
                 bus={loadedBus}
                 {busApplicableRoutes}
@@ -260,34 +262,34 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
         </Collapsible.Root>
       </div>
     {:else}
-      <div class="grid gap-4 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start">
-      <BusTabSettings
-        bus={loadedBus}
-        {busCopy}
-        {busDayType}
-        {busEndCampusId}
-        {busPlannerReady}
-        {busShowDepartedTrips}
-        {busStartCampusId}
-        {reverseBusStops}
-        {selectBusEnd}
-        {selectBusStart}
-        setBusDayType={state.actions.setBusDayType}
-        {busPreferenceSaveState}
-        {busPreferenceStatus}
-        toggleBusDepartedTrips={state.actions.toggleBusDepartedTrips}
-      />
+      <div class="grid min-w-0 gap-4 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start">
+        <BusTabSettings
+          bus={loadedBus}
+          {busCopy}
+          {busDayType}
+          {busEndCampusId}
+          {busPlannerReady}
+          {busShowDepartedTrips}
+          {busStartCampusId}
+          {reverseBusStops}
+          {selectBusEnd}
+          {selectBusStart}
+          setBusDayType={state.actions.setBusDayType}
+          {busPreferenceSaveState}
+          {busPreferenceStatus}
+          toggleBusDepartedTrips={state.actions.toggleBusDepartedTrips}
+        />
 
-      <BusTabTimetable
-        bus={loadedBus}
-        {busApplicableRoutes}
-        {busCopy}
-        {busNextTripHighlightKey}
-        {busPlannerReady}
-        {busShowsEstimatedHint}
-        {reverseBusStops}
-        showHeader={false}
-      />
+        <BusTabTimetable
+          bus={loadedBus}
+          {busApplicableRoutes}
+          {busCopy}
+          {busNextTripHighlightKey}
+          {busPlannerReady}
+          {busShowsEstimatedHint}
+          {reverseBusStops}
+          showHeader={false}
+        />
       </div>
     {/if}
   {:else}

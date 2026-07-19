@@ -9,8 +9,7 @@ CI/CD pipelines.
 | CI | push to main, PR to any branch | Default verification, MCP integration, Worker E2E artifact build, E2E shards |
 | DB-backed Bun job | workflow_call | Reusable Postgres-backed Bun job |
 | DB migrate deploy | successful CI completion on main, or manual | Production Prisma migrate deploy |
-| Static Sync | every 6 hours, manual | Static snapshot import and bounded expired-auth cleanup |
-| Recovery Drill Verify | manual | Isolated restore migration and aggregate integrity verification |
+| Auth Record Cleanup | every 6 hours, manual | Bounded expired authentication-record cleanup |
 | Copilot Setup Steps | manual or setup workflow changes | Copilot bootstrap validation |
 | Release | successful CI completion on main | Semantic release |
 
@@ -27,8 +26,6 @@ Keep Bun versions aligned with:
 - Docker is only for local infra, CI service containers, and the static loader image; do not add app-serving Docker jobs.
 - Keep workflow YAML as orchestration. Reusable check, test, and seed sequences live in `$life-ustc-dev-loop`.
 - Never commit secrets
-- Production database writers share the `production-database-writes` concurrency group with `queue: max`, retaining up to 100 pending runs in FIFO order, and bind the externally protected `production` environment.
-- Recovery drills use the separate `database-recovery` environment and only its ephemeral isolated-database secrets. They do not prove provider backup or PITR configuration; follow `docs/runbooks/database-recovery.md`.
 - `copilot-setup-steps.yml` must keep a direct job named exactly `copilot-setup-steps`; inline `runs-on`, `permissions`, `services`, `timeout-minutes`, and `steps` instead of delegating the job through a reusable workflow.
 - When changing Copilot setup, run it through `workflow_dispatch` or a PR check. If setup fails, Copilot can still start from the partially prepared environment, so setup logs are part of the verification evidence.
 

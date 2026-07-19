@@ -11,7 +11,7 @@ import * as InputGroup from "$lib/components/ui/input-group/index.js";
 import * as Kbd from "$lib/components/ui/kbd/index.js";
 import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 
-export let dashboardCopy: DashboardDashboardCopy;
+export let dashboardCopy: Pick<DashboardDashboardCopy, "linkHub">;
 export let linkSearchInput: HTMLInputElement | null;
 export let linkSearchQuery: string;
 export let linkView: LinkView;

@@ -20,11 +20,30 @@ export let positions: Map<number, BusMapPoint>;
       <circle cx={position.x} cy={position.y} r={NODE_R + 8} fill="#f6f8fa" stroke="#d0d7de" stroke-width="1.5" />
       <circle cx={position.x} cy={position.y} r={NODE_R} fill="white" stroke="#d0d7de" stroke-width="2.5" />
       <circle cx={position.x} cy={position.y} r={NODE_R - 6} fill="#f6f8fa" stroke="#57606a" stroke-width="1.5" />
-      <text x={position.x + label.dx} y={position.y + label.dy} text-anchor={label.textAnchor} class="fill-current font-semibold text-[12px]">
+      <text
+        x={position.x + label.dx}
+        y={position.y + label.dy}
+        text-anchor={label.textAnchor}
+        class="fill-current font-semibold text-[12px]"
+        data-campus-label={campus.namePrimary}
+        paint-order="stroke"
+        stroke="var(--card)"
+        stroke-linejoin="round"
+        stroke-width="5"
+      >
         {campus.namePrimary}
       </text>
       {#if campus.nameSecondary}
-        <text x={position.x + label.dx} y={position.y + label.dy + 15} text-anchor={label.textAnchor} class="fill-[#57606a] text-[10px]">
+        <text
+          x={position.x + label.dx}
+          y={position.y + label.dy + 15}
+          text-anchor={label.textAnchor}
+          class="fill-[#57606a] text-[10px]"
+          paint-order="stroke"
+          stroke="var(--card)"
+          stroke-linejoin="round"
+          stroke-width="5"
+        >
           {campus.nameSecondary}
         </text>
       {/if}

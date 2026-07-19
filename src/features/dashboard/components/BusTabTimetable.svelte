@@ -19,24 +19,21 @@ export let reverseBusStops: () => void;
 export let showHeader = true;
 </script>
 
-<div>
-  <div class="grid gap-5">
+<div class="min-w-0">
+  <div class="grid min-w-0 gap-5">
     {#if showHeader}
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 class="font-semibold text-lg tracking-normal">
             {busCopy.dashboardTitle}
           </h2>
-          <p class="text-muted-foreground text-sm">
-            {busCopy.activeVersion}
-          </p>
         </div>
-        <Button href="/bus-map" size="lg" variant="outline">{busCopy.transitMap}</Button>
+        <Button class="min-h-11" href="/bus-map" size="lg" variant="outline">{busCopy.transitMap}</Button>
       </div>
     {/if}
 
     {#if busApplicableRoutes.length > 0}
-      <div class="grid gap-4">
+      <div class="grid min-w-0 gap-4">
         {#each busApplicableRoutes as route}
           <BusTabRouteTable
             {busNextTripHighlightKey}
@@ -51,6 +48,7 @@ export let showHeader = true;
         </Empty.Header>
         <Empty.Content>
           <Button
+            class="min-h-11"
             disabled={!busPlannerReady}
             size="sm"
             type="button"

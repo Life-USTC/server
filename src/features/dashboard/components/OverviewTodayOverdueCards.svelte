@@ -52,7 +52,7 @@ export let sessionHref: (session: DashboardSessionItem) => string;
       </Card.Title>
     </Card.Header>
     <Card.Content>
-      <Item.Group class="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+      <Item.Group class="grid gap-2 md:grid-cols-2">
         {#each overdueHomeworks as homework}
           <Item.Root variant="outline" size="sm">
             {#snippet child({ props })}
@@ -63,11 +63,13 @@ export let sessionHref: (session: DashboardSessionItem) => string;
                 {...props}
               >
                 <Item.Content>
-                  <Item.Title>
-                    <Badge variant="secondary">{copy.CalendarEventCard.homework}</Badge>
+                  <Item.Title class="line-clamp-2 w-full">
                     {homework.title}
                   </Item.Title>
-                  <Item.Description>{homework.section?.course?.namePrimary ?? commonCopy.sections}</Item.Description>
+                  <Item.Description class="flex flex-wrap items-center gap-1.5">
+                    <Badge variant="secondary">{copy.CalendarEventCard.homework}</Badge>
+                    <span>{homework.section?.course?.namePrimary ?? commonCopy.sections}</span>
+                  </Item.Description>
                 </Item.Content>
                 <Item.Actions>
                   {homeworkEtaLabel(homework.submissionDueAt)}
@@ -81,11 +83,11 @@ export let sessionHref: (session: DashboardSessionItem) => string;
             {#snippet child({ props })}
               <a href={dashboardTabHref("todos")} {...props}>
                 <Item.Content>
-                  <Item.Title>
-                    <Badge variant="secondary">{copy.CalendarEventCard.todo}</Badge>
+                  <Item.Title class="line-clamp-2 w-full">
                     {todo.title}
                   </Item.Title>
                   <Item.Description class="flex flex-wrap gap-1.5">
+                    <Badge variant="secondary">{copy.CalendarEventCard.todo}</Badge>
                     <Badge
                       variant={todo.priority === "high"
                         ? "destructive"
@@ -106,7 +108,7 @@ export let sessionHref: (session: DashboardSessionItem) => string;
           </Item.Root>
         {/each}
         {#if overdueHomeworks.length === 0 && overdueTodos.length === 0}
-          <Empty.Root class="min-h-24 md:col-span-2 xl:col-span-3">
+          <Empty.Root class="min-h-24 md:col-span-2">
             <Empty.Header>
               <Empty.Title>{dashboardCopy.overdue.empty}</Empty.Title>
             </Empty.Header>

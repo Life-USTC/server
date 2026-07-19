@@ -2,7 +2,12 @@ import type {
   BusMapActiveTrip,
   BusMapRouteEdge,
 } from "@/features/bus/lib/bus-types";
-import { NODE_R, ROUTE_PALETTE, SVG_H } from "./bus-transit-map-constants";
+import {
+  NODE_R,
+  ROUTE_PALETTE,
+  SVG_H,
+  SVG_W,
+} from "./bus-transit-map-constants";
 import { canonicalPerpendicular, type Pos } from "./bus-transit-map-geometry";
 
 type LabelOffset = {
@@ -17,13 +22,15 @@ export function routeColor(routeId: number, allRouteIds: number[]): string {
 }
 
 export function labelOffset(position: Pos, label?: string): LabelOffset {
+  if (position.y > SVG_H * 0.75) {
+    return position.x < SVG_W / 2
+      ? { dx: -(NODE_R + 14), dy: 6, textAnchor: "end" }
+      : { dx: NODE_R + 14, dy: 6, textAnchor: "start" };
+  }
   if (label?.includes("东区")) {
     return { dx: NODE_R + 14, dy: 6, textAnchor: "start" };
   }
   if (label?.includes("南区")) {
-    return { dx: -(NODE_R + 14), dy: 6, textAnchor: "end" };
-  }
-  if (label?.includes("先研院") || label?.includes("高新")) {
     return { dx: -(NODE_R + 14), dy: 6, textAnchor: "end" };
   }
   return {

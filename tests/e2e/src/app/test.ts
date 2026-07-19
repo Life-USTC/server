@@ -20,6 +20,22 @@ test("/", async ({ page }, testInfo) => {
   await assertPageContract(page, { routePath: "/", testInfo });
 });
 
+test("/ 登录用户重定向至 dashboard 并仅保留支持的查询状态", async ({
+  page,
+}) => {
+  await signInAsDebugUser(page, "/dashboard");
+
+  const response = await page.request.get(
+    "/?tab=calendar&calendarView=week&calendarSemester=42&utm_source=ignored",
+    { maxRedirects: 0 },
+  );
+
+  expect(response.status()).toBe(303);
+  expect(response.headers().location).toBe(
+    "/dashboard?tab=calendar&calendarView=week&calendarSemester=42",
+  );
+});
+
 test("/ 首页快速入口可见", async ({ page }, testInfo) => {
   await gotoAndWaitForReady(page, "/", { testInfo, screenshotLabel: "home" });
 
@@ -85,7 +101,7 @@ test("/ 主题切换可写入 localStorage 并跟随系统主题", async ({
     const menuItem = page.getByRole("menuitemradio", { name });
 
     await expect(async () => {
-      if (!(await menuItem.isVisible().catch(() => false))) {
+      if ((await themeButton.getAttribute("aria-expanded")) !== "true") {
         await themeButton.click();
       }
       await expect(menuItem).toBeVisible({ timeout: 1_000 });
@@ -149,6 +165,36 @@ test("/ 存储的深色主题在 hydration 前应用且通过 CSP", async ({
   await context.close();
 });
 
+test("/ 浏览器存储不可用时仍完成 hydration 并允许切换主题", async ({
+  browser,
+}, testInfo) => {
+  const context = await browser.newContext({
+    baseURL: String(testInfo.project.use.baseURL),
+    colorScheme: "light",
+  });
+  await context.addInitScript(() => {
+    Storage.prototype.getItem = () => {
+      throw new DOMException("Storage disabled", "SecurityError");
+    };
+    Storage.prototype.setItem = () => {
+      throw new DOMException("Storage disabled", "SecurityError");
+    };
+  });
+  const page = await context.newPage();
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+
+  await gotoAndWaitForReady(page, "/");
+  await page
+    .getByRole("button", { name: /^(主题选择|Theme selector)$/i })
+    .click();
+  await page.getByRole("menuitemradio", { name: /^(深色|Dark)$/i }).click();
+
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  expect(pageErrors).toEqual([]);
+  await context.close();
+});
+
 test("/ 禁用 JavaScript 时系统深色主题仍有 CSS fallback", async ({
   browser,
 }, testInfo) => {
@@ -172,6 +218,20 @@ test("/ 禁用 JavaScript 时系统深色主题仍有 CSS fallback", async ({
   await context.close();
 });
 
+test("/ shell 提供键盘跳转到主要内容", async ({ page }) => {
+  await gotoAndWaitForReady(page, "/");
+
+  await page.keyboard.press("Tab");
+  const skipLink = page.getByRole("link", {
+    name: /跳转到主要内容|Skip to main content/i,
+  });
+  await expect(skipLink).toBeFocused();
+  await expect(skipLink).toBeVisible();
+  await expect(skipLink).toHaveCSS("position", "fixed");
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#main-content")).toBeFocused();
+});
+
 test("/ shell 菜单可一键切换", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 });
   await signInAsDebugUser(page, "/");
@@ -184,7 +244,12 @@ test("/ shell 菜单可一键切换", async ({ page }) => {
     page.getByRole("menuitem", { name: /设置|Settings/i }),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: /^菜单$|^Menu$/i }).click();
+  const sidebarTrigger = page.getByRole("button", {
+    name: /^菜单$|^Menu$/i,
+  });
+  await expect(sidebarTrigger).toHaveAttribute("aria-expanded", "false");
+  await sidebarTrigger.click();
+  await expect(sidebarTrigger).toHaveAttribute("aria-expanded", "true");
 
   const sidebar = page.getByRole("dialog", { name: /Sidebar/i });
   await expect(sidebar).toBeVisible();

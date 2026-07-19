@@ -1,4 +1,4 @@
-import { Prisma } from "../generated/prisma-node/client";
+import { Prisma } from "@/generated/prisma-node/client";
 
 export const AUTH_RECORD_CLEANUP_BATCH_SIZE = 1000;
 

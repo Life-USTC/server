@@ -54,6 +54,15 @@ test.describe("/settings 设置中心", () => {
     });
 
     await expect(profileLink).toHaveAttribute("aria-current", "page");
+    await expect
+      .poll(() => {
+        const wrapper = navigation.locator("..");
+        return Promise.all([
+          wrapper.getAttribute("data-overflow-left"),
+          wrapper.getAttribute("data-overflow-right"),
+        ]);
+      })
+      .toEqual(["false", "true"]);
     const mobileNavigationBox = await navigation.boundingBox();
     const mobilePanelBox = await activePanel.boundingBox();
     expect(mobileNavigationBox?.height).toBeLessThan(80);
@@ -66,6 +75,69 @@ test.describe("/settings 设置中心", () => {
     const desktopPanelBox = await activePanel.boundingBox();
     expect(desktopNavigationBox?.x).toBeLessThan(desktopPanelBox?.x ?? 0);
     await captureStepScreenshot(page, testInfo, "settings-responsive-desktop");
+  });
+
+  test("移动端直接打开末尾标签时当前项保持可见", async ({ page }) => {
+    const localeResponse = await page.request.post("/api/locale", {
+      data: { locale: "zh-cn" },
+    });
+    expect(localeResponse.status()).toBe(200);
+    await page.setViewportSize({ width: 375, height: 900 });
+    await signInAsDebugUser(page, "/settings/danger");
+
+    const navigation = page.locator("[data-settings-navigation]");
+    const activeLink = navigation.locator('a[aria-current="page"]');
+
+    for (const width of [280, 320, 375]) {
+      await page.setViewportSize({ width, height: 900 });
+      await gotoAndWaitForReady(page, "/settings/danger");
+      await expect(activeLink).toBeVisible();
+      await expect
+        .poll(() =>
+          navigation.evaluate((nav) => {
+            const link = nav.querySelector<HTMLElement>(
+              'a[aria-current="page"]',
+            );
+            const wrapper = nav.parentElement;
+            if (!link || !wrapper) return null;
+            const linkBox = link.getBoundingClientRect();
+            const navBox = nav.getBoundingClientRect();
+            const wrapperBox = wrapper.getBoundingClientRect();
+            const leftFade = getComputedStyle(wrapper, "::before");
+            const rightFade = getComputedStyle(wrapper, "::after");
+            const leftFadeWidth = Number.parseFloat(leftFade.width || "0");
+            return {
+              activeClearOfLeftFade:
+                linkBox.left >= wrapperBox.left + leftFadeWidth - 1,
+              activeWithinNavigation:
+                linkBox.left >= navBox.left - 1 &&
+                linkBox.right <= navBox.right + 1,
+              documentFitsViewport:
+                document.documentElement.scrollWidth <=
+                document.documentElement.clientWidth,
+              navigationScrollable: nav.scrollWidth > nav.clientWidth,
+              navigationScrolled: nav.scrollLeft > 0,
+              leftFadeVisible:
+                wrapper.dataset.overflowLeft === "true" &&
+                leftFade.backgroundImage !== "none",
+              rightFadeHidden:
+                wrapper.dataset.overflowRight === "false" &&
+                rightFade.backgroundImage === "none",
+              windowScrollX: window.scrollX,
+            };
+          }),
+        )
+        .toEqual({
+          activeClearOfLeftFade: true,
+          activeWithinNavigation: true,
+          documentFitsViewport: true,
+          navigationScrollable: true,
+          navigationScrolled: true,
+          leftFadeVisible: true,
+          rightFadeHidden: true,
+          windowScrollX: 0,
+        });
+    }
   });
 
   test("标签导航切换分区", async ({ page }, testInfo) => {

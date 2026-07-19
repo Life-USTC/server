@@ -1,3 +1,97 @@
+## [1.64.9](https://github.com/Life-USTC/server/compare/v1.64.8...v1.64.9) (2026-07-19)
+
+
+### Performance Improvements
+
+* **api:** split browser and Cloudflare cache policy ([#540](https://github.com/Life-USTC/server/issues/540)) ([10ebcbc](https://github.com/Life-USTC/server/commit/10ebcbcb0b7bfedb04663e5089a1c4e2bd81e335))
+
+## [1.64.8](https://github.com/Life-USTC/server/compare/v1.64.7...v1.64.8) (2026-07-19)
+
+
+### Bug Fixes
+
+* **ui:** tolerate unavailable browser storage ([#537](https://github.com/Life-USTC/server/issues/537)) ([eadd270](https://github.com/Life-USTC/server/commit/eadd270b9007928f38beabd45bd1482e15352453))
+
+## [1.64.7](https://github.com/Life-USTC/server/compare/v1.64.6...v1.64.7) (2026-07-19)
+
+
+### Bug Fixes
+
+* **a11y:** expose sidebar expanded state ([#535](https://github.com/Life-USTC/server/issues/535)) ([31cefe9](https://github.com/Life-USTC/server/commit/31cefe9271d4a9f05dc269a2fa7449aadb8c1e0d))
+
+## [1.64.6](https://github.com/Life-USTC/server/compare/v1.64.5...v1.64.6) (2026-07-19)
+
+
+### Performance Improvements
+
+* **ssr:** reuse hook auth in detail loaders ([#536](https://github.com/Life-USTC/server/issues/536)) ([0c262ad](https://github.com/Life-USTC/server/commit/0c262adc146afaa4b9e7dae376cc628b4d78e74f))
+
+
+### Reverts
+
+* Revert "feat(ops): add database recovery gate ([#474](https://github.com/Life-USTC/server/issues/474))" ([#534](https://github.com/Life-USTC/server/issues/534)) ([117750b](https://github.com/Life-USTC/server/commit/117750bdb54cc3b41f45d47a1907591f8bd48d77))
+
+## [1.64.5](https://github.com/Life-USTC/server/compare/v1.64.4...v1.64.5) (2026-07-19)
+
+
+### Bug Fixes
+
+* **bus:** expose narrow timetable scrolling ([1338321](https://github.com/Life-USTC/server/commit/13383211a11dc929d89d9edca4f874324729a99d))
+* **bus:** harden responsive route surfaces ([7be1587](https://github.com/Life-USTC/server/commit/7be15877005116890d7d60b87a49267f2240ee05))
+* **ui:** polish dashboard and bus layouts ([7c5bd43](https://github.com/Life-USTC/server/commit/7c5bd43c501a3ac59a0b6705aa96e61d741ea75a))
+
+## [1.64.4](https://github.com/Life-USTC/server/compare/v1.64.3...v1.64.4) (2026-07-19)
+
+
+### Bug Fixes
+
+* **a11y:** keep skip link overlay fixed ([aa4bc58](https://github.com/Life-USTC/server/commit/aa4bc587829670f10f216444c16c5f892ec820a5))
+* **ui:** contain mobile navigation overflow ([48e8fa1](https://github.com/Life-USTC/server/commit/48e8fa177877be75a34aec76a9f3aec324a5f077))
+* **ui:** contain narrow detail controls ([ce3d4a4](https://github.com/Life-USTC/server/commit/ce3d4a45a5807fffb87093131232acc0cba7fe72))
+* **ui:** improve mobile shell accessibility ([5242767](https://github.com/Life-USTC/server/commit/52427670fdf0d93e775c68aa4aa65ae6b4e70243))
+* **ui:** show bidirectional nav overflow cues ([f332ad6](https://github.com/Life-USTC/server/commit/f332ad6bc616832eb6817287ba2c4fc51c174c83))
+
+## [1.64.3](https://github.com/Life-USTC/server/compare/v1.64.2...v1.64.3) (2026-07-19)
+
+
+### Bug Fixes
+
+* **api:** remove redundant request hot-path work ([bb84de4](https://github.com/Life-USTC/server/commit/bb84de40ae9cabf63746f2043e885d057ad19475))
+
+## [1.64.2](https://github.com/Life-USTC/server/compare/v1.64.1...v1.64.2) (2026-07-19)
+
+
+### Performance Improvements
+
+* **dashboard:** split anonymous home from signed workspace ([#528](https://github.com/Life-USTC/server/issues/528)) ([1f95f1a](https://github.com/Life-USTC/server/commit/1f95f1ae6c3217aa354dca20519289b8f4444e9b))
+
+## [1.64.1](https://github.com/Life-USTC/server/compare/v1.64.0...v1.64.1) (2026-07-19)
+
+
+### Bug Fixes
+
+* **seo:** declare SSR response language ([#527](https://github.com/Life-USTC/server/issues/527)) ([e94ebd8](https://github.com/Life-USTC/server/commit/e94ebd815930a846545616be0b5146a7e7708d84))
+
+
+### Performance Improvements
+
+* **seo:** cache crawler discovery documents ([#529](https://github.com/Life-USTC/server/issues/529)) ([2ad51e8](https://github.com/Life-USTC/server/commit/2ad51e8d0b432ef0565429210cc4e07c1d3b7532))
+
+# [1.64.0](https://github.com/Life-USTC/server/compare/v1.63.2...v1.64.0) (2026-07-19)
+
+
+### Bug Fixes
+
+* **calendar:** persist personal feed exports ([#524](https://github.com/Life-USTC/server/issues/524)) ([7af7e39](https://github.com/Life-USTC/server/commit/7af7e3982bee7ada6f58587e99a2e2c23e5e5348))
+* close infrastructure reliability gaps ([44fe108](https://github.com/Life-USTC/server/commit/44fe108bac1f47dcc3792a355bd75eb52465cee0))
+* **static-loader:** avoid unchanged row rewrites ([d90e418](https://github.com/Life-USTC/server/commit/d90e4180ea55b08c4ef3a044129977ffc6642eb5))
+* **ui:** apply theme before paint and optimize shell icon ([#522](https://github.com/Life-USTC/server/issues/522)) ([ee5eca3](https://github.com/Life-USTC/server/commit/ee5eca314ef29c64b8d938d1b250439902a7e0c8))
+
+
+### Features
+
+* **observability:** measure SSR page performance ([#521](https://github.com/Life-USTC/server/issues/521)) ([a7df149](https://github.com/Life-USTC/server/commit/a7df14945cbac69d3e115edf4ec1905f2b44ffc9))
+
 ## [1.63.2](https://github.com/Life-USTC/server/compare/v1.63.1...v1.63.2) (2026-07-19)
 
 

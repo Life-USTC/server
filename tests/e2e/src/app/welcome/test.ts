@@ -197,7 +197,7 @@ test("/welcome 未完善资料的用户可完成资料并返回首页", async ({
 
     await page.getByRole("button", { name: /继续|Continue/i }).click();
 
-    await expect(page).toHaveURL(/\/(?:\?.*)?$/, {
+    await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/, {
       timeout: 15_000,
     });
     await expect(page.locator("#main-content")).toBeVisible();

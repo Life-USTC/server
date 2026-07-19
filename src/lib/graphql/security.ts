@@ -64,11 +64,6 @@ const operationCostPlugin: Plugin = {
 export function createGraphqlSecurityPlugins(production: boolean) {
   const armor = new EnvelopArmor({
     blockFieldSuggestion: { enabled: true },
-    costLimit: {
-      errorMessage: "Query cost limit exceeded.",
-      maxCost: GRAPHQL_LIMITS.cost,
-      exposeLimits: false,
-    },
     maxAliases: {
       n: GRAPHQL_LIMITS.aliases,
       exposeLimits: false,

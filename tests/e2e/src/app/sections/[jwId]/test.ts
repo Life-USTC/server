@@ -413,14 +413,19 @@ test.describe("/sections/[jwId] 班级详情页", () => {
   test("移动端标题、横向导航与底部主操作保持可达", async ({
     page,
   }, testInfo) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await gotoAndWaitForReady(page, SECTION_URL);
+    const runtimeErrors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") runtimeErrors.push(message.text());
+    });
+    page.on("pageerror", (error) => runtimeErrors.push(error.message));
+    await page.setViewportSize({ width: 375, height: 900 });
+    await signInAsDebugUser(page, SECTION_URL);
 
     const heading = page.getByRole("heading", { level: 1 }).first();
     await expect(heading).toHaveCSS("font-size", "24px");
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
-    ).toBeLessThanOrEqual(390);
+    ).toBeLessThanOrEqual(375);
 
     const nav = page.getByTestId("detail-section-nav");
     await expect(nav.locator("[data-sidebar='menu']")).toHaveCSS(
@@ -430,8 +435,20 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     await expect(nav.locator('a[aria-current="page"]')).toHaveCount(1);
 
     const actions = page.getByTestId("section-mobile-primary-actions");
+    const mobileNavigation = page.getByRole("navigation", {
+      name: /移动主导航|Mobile primary navigation/i,
+    });
     await expect(actions).toBeVisible();
     await expect(actions).toBeInViewport();
+    const [actionsBox, navigationBox] = await Promise.all([
+      actions.boundingBox(),
+      mobileNavigation.boundingBox(),
+    ]);
+    expect(actionsBox).not.toBeNull();
+    expect(navigationBox).not.toBeNull();
+    expect(
+      (actionsBox?.y ?? 0) + (actionsBox?.height ?? 0),
+    ).toBeLessThanOrEqual((navigationBox?.y ?? 0) + 1);
     await actions
       .getByRole("button", { name: /添加到日历|Add to calendar/i })
       .click();
@@ -442,12 +459,138 @@ test.describe("/sections/[jwId] 班级详情页", () => {
 
     await jumpToSection(page, /评论|Comments/i, "#tab-comments");
     await expect(actions).toBeInViewport();
+    for (const width of [280, 320, 375]) {
+      await page.setViewportSize({ width, height: 900 });
+      await gotoAndWaitForReady(page, `${SECTION_URL}/comments`);
+      await expect(actions).toBeInViewport();
+      await expect
+        .poll(() =>
+          nav.evaluate((root, viewportWidth) => {
+            const viewport = root.querySelector<HTMLElement>(
+              '[data-sidebar="content"]',
+            );
+            const active = root.querySelector<HTMLElement>(
+              'a[aria-current="page"]',
+            );
+            if (!viewport || !active) return null;
+            const viewportBox = viewport.getBoundingClientRect();
+            const activeBox = active.getBoundingClientRect();
+            const rootBox = root.getBoundingClientRect();
+            const leftFade = getComputedStyle(root, "::before");
+            const rightFade = getComputedStyle(root, "::after");
+            const leftFadeWidth = Number.parseFloat(leftFade.width || "0");
+            const leftOpaqueWidth = Number.parseFloat(
+              getComputedStyle(root).getPropertyValue(
+                "--detail-nav-left-opaque",
+              ) || "0",
+            );
+            const menuItems = Array.from(
+              root.querySelectorAll<HTMLElement>('[data-sidebar="menu-item"]'),
+            );
+            const activeItem = active.closest<HTMLElement>(
+              '[data-sidebar="menu-item"]',
+            );
+            const activeItemIndex = activeItem
+              ? menuItems.indexOf(activeItem)
+              : -1;
+            const previousContent = menuItems
+              .slice(0, activeItemIndex)
+              .flatMap((item) => Array.from(item.querySelectorAll("a > span")))
+              .map((item) => item.getBoundingClientRect());
+            const clippedPreviousContent = previousContent.filter(
+              (itemBox) =>
+                itemBox.left < rootBox.left && itemBox.right > rootBox.left,
+            );
+            const mobileActions = document.querySelector<HTMLElement>(
+              '[data-testid="section-mobile-primary-actions"]',
+            );
+            const actionButtons = Array.from(
+              mobileActions?.querySelectorAll<HTMLElement>("button") ?? [],
+            );
+            const actionBox = mobileActions?.getBoundingClientRect();
+            const commentComposer = document.querySelector<HTMLElement>(
+              '#tab-comments [data-slot="card"]',
+            );
+            return {
+              actionButtonsFit:
+                actionBox != null &&
+                actionButtons.length === 2 &&
+                actionButtons.every((button) => {
+                  const box = button.getBoundingClientRect();
+                  return (
+                    box.left >= actionBox.left - 1 &&
+                    box.right <= actionBox.right + 1
+                  );
+                }),
+              actionLayoutMatchesWidth:
+                actionButtons.length === 2 &&
+                (viewportWidth < 360
+                  ? actionButtons[1].getBoundingClientRect().top >
+                    actionButtons[0].getBoundingClientRect().top
+                  : Math.abs(
+                      actionButtons[1].getBoundingClientRect().top -
+                        actionButtons[0].getBoundingClientRect().top,
+                    ) < 1),
+              clearOfLeftFade:
+                activeBox.left >= rootBox.left + leftFadeWidth - 1,
+              clippedPreviousContentCovered:
+                clippedPreviousContent.length === 0 ||
+                clippedPreviousContent.every(
+                  (itemBox) => itemBox.right <= rootBox.left + leftOpaqueWidth,
+                ),
+              previousContentClearOfFade: previousContent.every(
+                (itemBox) =>
+                  itemBox.right <= rootBox.left + leftOpaqueWidth + 1 ||
+                  itemBox.left >= rootBox.left + leftFadeWidth - 1,
+              ),
+              commentComposerFits:
+                commentComposer != null &&
+                commentComposer.scrollWidth <= commentComposer.clientWidth,
+              documentFitsViewport:
+                document.documentElement.scrollWidth <=
+                document.documentElement.clientWidth,
+              left: activeBox.left >= viewportBox.left,
+              right: activeBox.right <= viewportBox.right,
+              leftFadeVisible:
+                root.dataset.overflowLeft === "true" &&
+                leftFade.backgroundImage !== "none",
+              rightFadeHidden:
+                root.dataset.overflowRight === "false" &&
+                rightFade.backgroundImage === "none",
+              windowScrollX: window.scrollX,
+            };
+          }, width),
+        )
+        .toEqual({
+          actionButtonsFit: true,
+          actionLayoutMatchesWidth: true,
+          clearOfLeftFade: true,
+          clippedPreviousContentCovered: true,
+          previousContentClearOfFade: true,
+          commentComposerFits: true,
+          documentFitsViewport: true,
+          left: true,
+          right: true,
+          leftFadeVisible: true,
+          rightFadeHidden: true,
+          windowScrollX: 0,
+        });
+    }
+    await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+    expect(
+      runtimeErrors.filter(
+        (error) =>
+          !error.startsWith(
+            "Executing inline event handler violates the following Content Security Policy directive",
+          ),
+      ),
+    ).toEqual([]);
     await captureStepScreenshot(page, testInfo, "section/detail-mobile");
   });
 
   test("桌面端保留页首主操作并隐藏移动端操作栏", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await gotoAndWaitForReady(page, SECTION_URL);
+    await gotoAndWaitForReady(page, `${SECTION_URL}/comments`);
 
     await expect(
       page
@@ -457,6 +600,26 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     await expect(
       page.getByTestId("section-mobile-primary-actions"),
     ).toBeHidden();
+
+    const composer = page.locator('#tab-comments [data-slot="card"]').first();
+    const composerBox = await composer.boundingBox();
+    const headerControls = composer
+      .locator('[data-slot="card-header"]')
+      .locator("button, select");
+    expect(composerBox).not.toBeNull();
+    await expect(headerControls).toHaveCount(2);
+    for (let index = 0; index < (await headerControls.count()); index += 1) {
+      const controlBox = await headerControls.nth(index).boundingBox();
+      expect(controlBox).not.toBeNull();
+      expect(controlBox?.x ?? 0).toBeGreaterThanOrEqual(
+        (composerBox?.x ?? 0) - 1,
+      );
+      expect(
+        (controlBox?.x ?? 0) + (controlBox?.width ?? 0),
+      ).toBeLessThanOrEqual(
+        (composerBox?.x ?? 0) + (composerBox?.width ?? 0) + 1,
+      );
+    }
   });
 
   test("已退役班级保留历史详情与日历但禁止新增关注", async ({ page }) => {

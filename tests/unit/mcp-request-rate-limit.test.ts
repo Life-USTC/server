@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   authenticateMcpRequestMock,
+  authorizeMcpToolScopesMock,
   checkUserMutationRateLimitMock,
   connectMock,
   handleTransportRequestMock,
@@ -10,6 +11,7 @@ const {
   transportConstructorMock,
 } = vi.hoisted(() => ({
   authenticateMcpRequestMock: vi.fn(),
+  authorizeMcpToolScopesMock: vi.fn(),
   checkUserMutationRateLimitMock: vi.fn(),
   connectMock: vi.fn(),
   handleTransportRequestMock: vi.fn(),
@@ -33,9 +35,11 @@ vi.mock(
 
 vi.mock("@/lib/mcp/auth", () => ({
   authenticateMcpRequest: authenticateMcpRequestMock,
+  authorizeMcpToolScopes: authorizeMcpToolScopesMock,
 }));
 
 vi.mock("@/lib/mcp/observability", () => ({
+  summarizeMcpJsonRpcBody: summarizeMcpJsonRpcRequestMock,
   summarizeMcpJsonRpcRequest: summarizeMcpJsonRpcRequestMock,
 }));
 
@@ -79,6 +83,9 @@ describe("MCP mutation rate limits", () => {
   beforeEach(() => {
     vi.resetModules();
     authenticateMcpRequestMock.mockReset();
+    authorizeMcpToolScopesMock
+      .mockReset()
+      .mockImplementation((authInfo) => ({ authInfo }));
     checkUserMutationRateLimitMock.mockReset();
     connectMock.mockReset().mockResolvedValue(undefined);
     handleTransportRequestMock.mockReset().mockResolvedValue(
@@ -87,7 +94,7 @@ describe("MCP mutation rate limits", () => {
       }),
     );
     recordAndLogMcpResponseMock.mockReset();
-    summarizeMcpJsonRpcRequestMock.mockReset().mockResolvedValue({
+    summarizeMcpJsonRpcRequestMock.mockReset().mockReturnValue({
       methodCounts: { "tools/call": 2 },
       toolCallCounts: { create_my_todo: 2 },
     });
@@ -147,6 +154,11 @@ describe("MCP mutation rate limits", () => {
     expect(transportConstructorMock).not.toHaveBeenCalled();
     expect(connectMock).not.toHaveBeenCalled();
     expect(handleTransportRequestMock).not.toHaveBeenCalled();
+    expect(authenticateMcpRequestMock).toHaveBeenCalledWith(request);
+    expect(authorizeMcpToolScopesMock).toHaveBeenCalledWith(
+      expect.objectContaining({ extra: { userId: "user-1" } }),
+      ["create_my_todo"],
+    );
     expect(recordAndLogMcpResponseMock).toHaveBeenCalledWith(
       expect.objectContaining({
         phase: "rate-limit-rejected",
@@ -159,7 +171,7 @@ describe("MCP mutation rate limits", () => {
   });
 
   it("does not consume mutation budgets for read-only tools", async () => {
-    summarizeMcpJsonRpcRequestMock.mockResolvedValue({
+    summarizeMcpJsonRpcRequestMock.mockReturnValue({
       methodCounts: { "tools/call": 1 },
       toolCallCounts: { list_my_todos: 1 },
     });
@@ -184,5 +196,63 @@ describe("MCP mutation rate limits", () => {
     expect(transportConstructorMock).toHaveBeenCalledOnce();
     expect(connectMock).toHaveBeenCalledOnce();
     expect(handleTransportRequestMock).toHaveBeenCalledOnce();
+    expect(handleTransportRequestMock).toHaveBeenCalledWith(
+      request,
+      expect.objectContaining({
+        parsedBody: expect.objectContaining({
+          method: "tools/call",
+          params: expect.objectContaining({ name: "list_my_todos" }),
+        }),
+      }),
+    );
+  });
+
+  it("rejects unauthenticated oversized requests before inspecting the body", async () => {
+    authenticateMcpRequestMock.mockResolvedValue({
+      authFailureDiagnostics: { authFailureKind: "missing_bearer" },
+      response: new Response(JSON.stringify({ error: "invalid_token" }), {
+        status: 401,
+      }),
+    });
+    const request = new Request("https://life.example/api/mcp", {
+      method: "POST",
+      headers: {
+        "content-length": String(65 * 1024),
+        "content-type": "application/json",
+      },
+      body: "{}",
+    });
+
+    const { handleMcpRequest } = await import(
+      "@/lib/api/routes/mcp-request-handler"
+    );
+    const response = await handleMcpRequest(request);
+
+    expect(response.status).toBe(401);
+    expect(authorizeMcpToolScopesMock).not.toHaveBeenCalled();
+    expect(transportConstructorMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects authenticated oversized requests before scope or SDK handling", async () => {
+    const request = new Request("https://life.example/api/mcp", {
+      method: "POST",
+      headers: {
+        "content-length": String(65 * 1024),
+        "content-type": "application/json",
+      },
+      body: "{}",
+    });
+
+    const { handleMcpRequest } = await import(
+      "@/lib/api/routes/mcp-request-handler"
+    );
+    const response = await handleMcpRequest(request);
+
+    expect(response.status).toBe(413);
+    expect(authorizeMcpToolScopesMock).not.toHaveBeenCalled();
+    expect(transportConstructorMock).not.toHaveBeenCalled();
+    expect(recordAndLogMcpResponseMock).toHaveBeenCalledWith(
+      expect.objectContaining({ phase: "body-rejected", status: 413 }),
+    );
   });
 });

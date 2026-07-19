@@ -1,6 +1,6 @@
 import { redirect } from "@sveltejs/kit";
 import { dashboardPageActions } from "@/features/dashboard/server/dashboard-page-actions";
-import { loadDashboardPage } from "@/features/dashboard/server/dashboard-page-load";
+import { loadSignedDashboardPage } from "@/features/dashboard/server/dashboard-page-load";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
 import type { Actions, PageServerLoad } from "./$types";
 
@@ -15,10 +15,11 @@ export const load: PageServerLoad = async (event) => {
   const url = new URL(event.url);
   url.searchParams.set("tab", "subscriptions");
 
-  return loadDashboardPage({
+  return loadSignedDashboardPage({
     locals: event.locals,
     request: event.request,
     url,
+    userId: event.locals.authUser.id,
   });
 };
 

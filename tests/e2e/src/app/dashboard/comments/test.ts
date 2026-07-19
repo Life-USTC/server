@@ -11,8 +11,9 @@
  * - Authenticated view: falls back to overview tab content
  *
  * ## Edge Cases
- * - `?tab=comments` is not a recognized tab value — the app silently falls
- *   back to the default tab without redirecting. The URL retains `?tab=comments`.
+ * - `?tab=comments` is not a recognized tab value. The public home silently
+ *   falls back to its default tab and retains the query, while authenticated
+ *   requests redirect to the signed `/dashboard` overview.
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
@@ -63,7 +64,7 @@ test.describe("仪表盘无效标签（comments）", () => {
   });
 
   test("登录后 ?tab=comments 回退到总览", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=comments");
+    await signInAsDebugUser(page, "/?tab=comments", "/dashboard");
 
     await expect(page.locator("#main-content")).toBeVisible();
     await expect(page.locator("#app-user-menu")).toBeVisible();

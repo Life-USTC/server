@@ -3,27 +3,34 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
-  currentCatalogViewerMock,
   getCommentsPayloadMock,
   getCoursePageMock,
   getDescriptionPayloadMock,
-  getSectionDetailUserIdMock,
+  getSessionFromHeadersMock,
   getSectionHomeworkDataMock,
   getSectionPageMock,
   getTeacherPageMock,
   getUserSectionSubscriptionStateMock,
   getViewerContextMock,
 } = vi.hoisted(() => ({
-  currentCatalogViewerMock: vi.fn(),
   getCommentsPayloadMock: vi.fn(),
   getCoursePageMock: vi.fn(),
   getDescriptionPayloadMock: vi.fn(),
-  getSectionDetailUserIdMock: vi.fn(),
+  getSessionFromHeadersMock: vi.fn(),
   getSectionHomeworkDataMock: vi.fn(),
   getSectionPageMock: vi.fn(),
   getTeacherPageMock: vi.fn(),
   getUserSectionSubscriptionStateMock: vi.fn(),
   getViewerContextMock: vi.fn(),
+}));
+
+vi.mock("@/app-env", () => ({
+  getOptionalTrimmedEnv: () => undefined,
+  loadEnv: vi.fn(),
+}));
+
+vi.mock("@/lib/auth/core", () => ({
+  getSessionFromHeaders: getSessionFromHeadersMock,
 }));
 
 vi.mock("@/features/catalog/server/course-page-data", () => ({
@@ -32,10 +39,6 @@ vi.mock("@/features/catalog/server/course-page-data", () => ({
 
 vi.mock("@/features/catalog/server/teacher-page-data", () => ({
   getTeacherPage: getTeacherPageMock,
-}));
-
-vi.mock("@/features/catalog/server/catalog-detail-viewer", () => ({
-  currentCatalogViewer: currentCatalogViewerMock,
 }));
 
 vi.mock("@/features/comments/server/comments-server", () => ({
@@ -48,10 +51,6 @@ vi.mock("@/features/descriptions/server/descriptions-server", () => ({
 
 vi.mock("@/features/section-detail/server/section-page-data", () => ({
   getSectionPage: getSectionPageMock,
-}));
-
-vi.mock("@/features/section-detail/server/section-detail-session", () => ({
-  getSectionDetailUserId: getSectionDetailUserIdMock,
 }));
 
 vi.mock(
@@ -119,9 +118,19 @@ const section = {
   teachers: [{ id: teacher.id, namePrimary: teacher.namePrimary }],
 };
 
-function locals(): App.Locals {
+const signedInUser = {
+  email: "user@example.test",
+  id: "user-1",
+  image: null,
+  isAdmin: false,
+  name: "User",
+  profilePictures: [],
+  username: "user",
+};
+
+function locals(authUser: App.Locals["authUser"] = null): App.Locals {
   return {
-    authUser: null,
+    authUser,
     locale: "en-us",
     requestId: "detail-loader-test",
   };
@@ -133,7 +142,6 @@ function request(path: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  currentCatalogViewerMock.mockResolvedValue(anonymousViewer);
   getCommentsPayloadMock.mockResolvedValue({
     comments: [],
     hiddenCount: 0,
@@ -141,7 +149,7 @@ beforeEach(() => {
   });
   getCoursePageMock.mockResolvedValue(course);
   getDescriptionPayloadMock.mockResolvedValue(descriptionData);
-  getSectionDetailUserIdMock.mockResolvedValue(null);
+  getSessionFromHeadersMock.mockResolvedValue(null);
   getSectionHomeworkDataMock.mockResolvedValue({
     auditLogs: [],
     homeworks: [],
@@ -176,7 +184,7 @@ describe("catalog detail loader critical path", () => {
     });
 
     await vi.waitFor(() => {
-      expect(currentCatalogViewerMock).toHaveBeenCalledOnce();
+      expect(getViewerContextMock).toHaveBeenCalledOnce();
     });
     expect(getDescriptionPayloadMock).not.toHaveBeenCalled();
 
@@ -227,8 +235,72 @@ describe("catalog detail loader critical path", () => {
   });
 });
 
+describe("detail request session resolution", () => {
+  async function resolveCourseThroughHook(headers?: HeadersInit) {
+    const request = new Request(`https://example.test/courses/${course.jwId}`, {
+      headers,
+    });
+    const event = {
+      cookies: { get: vi.fn(() => undefined) },
+      locals: locals(),
+      platform: undefined,
+      request,
+      route: { id: "/courses/[jwId]" },
+      url: new URL(request.url),
+    };
+    const { handle } = await import("@/hooks.server");
+    const { loadCourseDetailPage } = await import(
+      "@/features/catalog/server/catalog-detail-page-server"
+    );
+
+    return handle({
+      event,
+      resolve: async (resolvedEvent: { locals: App.Locals }) => {
+        await loadCourseDetailPage({
+          locals: resolvedEvent.locals,
+          params: { jwId: String(course.jwId) },
+          request,
+          url: new URL(request.url),
+        });
+        return new Response('<html lang="zh-CN"><script></script></html>', {
+          headers: { "Content-Type": "text/html; charset=utf-8" },
+        });
+      },
+    } as unknown as Parameters<typeof handle>[0]);
+  }
+
+  it.each([
+    ["cookie", { cookie: "better-auth.session_token=session-token" }],
+    ["bearer", { authorization: "Bearer access-token" }],
+  ])("parses a signed-in %s session once in the hook and reuses locals in the detail loader", async (_authKind, headers) => {
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    getSessionFromHeadersMock.mockResolvedValue({
+      session: { id: "session-1" },
+      user: signedInUser,
+    });
+
+    const response = await resolveCourseThroughHook(headers);
+
+    expect(response.status).toBe(200);
+    expect(getSessionFromHeadersMock).toHaveBeenCalledOnce();
+    expect(getViewerContextMock).toHaveBeenCalledWith({
+      userId: signedInUser.id,
+    });
+  });
+
+  it("does not initialize Better Auth for an anonymous detail request", async () => {
+    vi.spyOn(console, "info").mockImplementation(() => {});
+
+    const response = await resolveCourseThroughHook();
+
+    expect(response.status).toBe(200);
+    expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
+    expect(getViewerContextMock).toHaveBeenCalledWith({ userId: null });
+  });
+});
+
 describe("section detail loader critical path", () => {
-  it("starts section and session work together and skips comments and homework on overview", async () => {
+  it("loads the section while reusing hook auth and skips comments and homework on overview", async () => {
     let resolveSection: ((value: typeof section) => void) | undefined;
     getSectionPageMock.mockReturnValue(
       new Promise<typeof section>((resolve) => {
@@ -247,7 +319,7 @@ describe("section detail loader critical path", () => {
     });
 
     await vi.waitFor(() => {
-      expect(getSectionDetailUserIdMock).toHaveBeenCalledOnce();
+      expect(getSectionPageMock).toHaveBeenCalledOnce();
     });
     expect(getDescriptionPayloadMock).not.toHaveBeenCalled();
 
@@ -298,7 +370,6 @@ describe("section detail loader critical path", () => {
   });
 
   it("retains subscription state on signed-in sections because the fixed header consumes it", async () => {
-    getSectionDetailUserIdMock.mockResolvedValue("user-1");
     getUserSectionSubscriptionStateMock.mockResolvedValue({
       subscribedSections: [section.id],
       subscriptionIcsUrl: "/api/users/user-1/calendar.ics",
@@ -308,7 +379,7 @@ describe("section detail loader critical path", () => {
     );
 
     const result = await loadSectionDetailPage({
-      locals: locals(),
+      locals: locals(signedInUser),
       params: { jwId: String(section.jwId), section: "teachers" },
       request: request(`/sections/${section.jwId}/teachers`),
       url: new URL(`https://example.test/sections/${section.jwId}/teachers`),

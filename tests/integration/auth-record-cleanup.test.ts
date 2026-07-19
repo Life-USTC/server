@@ -1,7 +1,8 @@
 import {
   AUTH_RECORD_CLEANUP_BATCH_SIZE,
   cleanupExpiredAuthRecords,
-} from "@/static-loader/auth-record-cleanup";
+  type AuthRecordCleanupReport,
+} from "@/features/auth/server/auth-record-cleanup";
 import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
 
 const prisma = createTestPrisma();
@@ -138,14 +139,41 @@ describe("expired auth record cleanup", () => {
     await disconnectTestPrisma(prisma);
   });
 
-  test("deletes bounded expired batches while preserving boundary and replay-detection rows", async () => {
-    await expect(cleanupExpiredAuthRecords(prisma, cutoff)).resolves.toEqual({
-      sessions: AUTH_RECORD_CLEANUP_BATCH_SIZE,
+  test("runs concurrently in bounded, idempotent batches while preserving boundary and replay-detection rows", async () => {
+    const reports = await Promise.all([
+      cleanupExpiredAuthRecords(prisma, cutoff),
+      cleanupExpiredAuthRecords(prisma, cutoff),
+    ]);
+    const total = reports.reduce<AuthRecordCleanupReport>(
+      (sum, report) => ({
+        sessions: sum.sessions + report.sessions,
+        verificationTokens:
+          sum.verificationTokens + report.verificationTokens,
+        oauthAccessTokens: sum.oauthAccessTokens + report.oauthAccessTokens,
+        oauthRefreshTokens: sum.oauthRefreshTokens + report.oauthRefreshTokens,
+        deviceCodes: sum.deviceCodes + report.deviceCodes,
+      }),
+      {
+        sessions: 0,
+        verificationTokens: 0,
+        oauthAccessTokens: 0,
+        oauthRefreshTokens: 0,
+        deviceCodes: 0,
+      },
+    );
+
+    expect(total).toEqual({
+      sessions: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1,
       verificationTokens: 1,
       oauthAccessTokens: 1,
       oauthRefreshTokens: 1,
       deviceCodes: 1,
     });
+    for (const report of reports) {
+      for (const deleted of Object.values(report)) {
+        expect(deleted).toBeLessThanOrEqual(AUTH_RECORD_CLEANUP_BATCH_SIZE);
+      }
+    }
 
     expect(
       await prisma.session.count({
@@ -153,20 +181,13 @@ describe("expired auth record cleanup", () => {
           sessionToken: { startsWith: `${marker}-expired-session-` },
         },
       }),
-    ).toBe(1);
+    ).toBe(0);
     await expect(
       prisma.oAuthRefreshToken.findUnique({
         where: { token: `${marker}-revoked-future-refresh` },
       }),
     ).resolves.not.toBeNull();
 
-    await expect(cleanupExpiredAuthRecords(prisma, cutoff)).resolves.toEqual({
-      sessions: 1,
-      verificationTokens: 0,
-      oauthAccessTokens: 0,
-      oauthRefreshTokens: 0,
-      deviceCodes: 0,
-    });
     await expect(cleanupExpiredAuthRecords(prisma, cutoff)).resolves.toEqual({
       sessions: 0,
       verificationTokens: 0,

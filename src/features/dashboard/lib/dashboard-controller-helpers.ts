@@ -7,12 +7,8 @@ export {
   homeworkTimestampNow as homeworkStartsNow,
   initialHomeworkTimestampDraft as initialCreateHomeworkDraft,
 } from "@/features/homeworks/lib/homework-timestamp-defaults";
-export {
-  isAnonymousDashboardData,
-  isSignedDashboardData,
-} from "./dashboard-controller-type-guards";
+export { isSignedDashboardData } from "./dashboard-controller-type-guards";
 export type {
-  AnonymousDashboardData,
   AnonymousLinkGroup,
   CalendarData,
   DashboardActionData,

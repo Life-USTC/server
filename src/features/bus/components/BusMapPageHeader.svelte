@@ -18,13 +18,20 @@ export let updatedTime: string;
 
 <PageHeader title={copy.title} description={copy.subtitle}>
   {#snippet eyebrowContent()}
-    <Button class="w-fit p-0" href="/dashboard/bus" variant="link">{copy.backToBus}</Button>
+    <Button class="min-h-11 w-fit px-0" href="/dashboard/bus" variant="link">{copy.backToBus}</Button>
   {/snippet}
   {#snippet titleExtra()}
     <Badge class="ml-3 align-middle" variant="outline">{copy.experimental}</Badge>
   {/snippet}
   {#snippet actions()}
-    <Button variant="outline" size="sm" type="button" aria-label={copy.refresh} onclick={refreshMap}>
+    <Button
+      class="min-h-11"
+      variant="outline"
+      size="sm"
+      type="button"
+      aria-label={copy.refresh}
+      onclick={refreshMap}
+    >
       {#if refreshing}
         <Spinner data-icon="inline-start" />
       {:else}
@@ -36,7 +43,10 @@ export let updatedTime: string;
 
   {#snippet after()}
     {#if mapData}
-      <Item.Group class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <Item.Group
+        class="grid grid-cols-2 gap-3 lg:grid-cols-4"
+        data-testid="bus-map-summary"
+      >
         <Item.Root class="items-start" variant="outline">
           <Item.Content>
             <Item.Description>{copy.serviceDay}</Item.Description>

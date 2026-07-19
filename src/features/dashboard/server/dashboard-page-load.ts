@@ -1,22 +1,18 @@
 import { isSignedDashboardTab } from "@/features/dashboard/lib/dashboard-nav";
 import { getDashboardPageCopy } from "@/features/dashboard/server/dashboard-page-copy";
-import { loadAnonymousDashboardPageData } from "@/features/dashboard/server/dashboard-page-load-public";
 import { loadSignedDashboardPageData } from "@/features/dashboard/server/dashboard-page-load-signed";
 import type { DashboardPageLoadEvent } from "@/features/dashboard/server/dashboard-page-load-types";
-import { loadDashboardPublicSummary } from "@/features/dashboard/server/dashboard-page-public-summary";
+import { loadDashboardPublicSummaryWithFallback } from "@/features/dashboard/server/dashboard-page-public-summary";
 import {
-  getDashboardUserId,
   normalizeDashboardTab,
   parsePositiveCalendarSemester,
   parseSnapshotReferenceTime,
 } from "@/features/dashboard/server/dashboard-page-server";
-import { getPrisma } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 
 function recordDashboardLoadFinish(input: {
   durationMs: number;
   requestId: string | undefined;
-  signedIn: boolean;
   status: "ok" | "user-missing";
   subscribedSectionCount?: number;
   tab: string;
@@ -25,7 +21,7 @@ function recordDashboardLoadFinish(input: {
     durationMs: input.durationMs,
     event: "dashboard.load.finish",
     requestId: input.requestId,
-    signedIn: input.signedIn,
+    signedIn: true,
     source: "dashboard",
     status: input.status,
     subscribedSectionCount: input.subscribedSectionCount,
@@ -33,64 +29,27 @@ function recordDashboardLoadFinish(input: {
   });
 }
 
-export async function loadDashboardPage({
+export async function loadSignedDashboardPage({
   locals,
-  request,
   url,
-}: DashboardPageLoadEvent) {
+  userId,
+}: DashboardPageLoadEvent & { userId: string }) {
   const startMs = Date.now();
   const locale = locals.locale;
   const pageCopy = getDashboardPageCopy(locale);
-  const userId = locals.authUser?.id ?? (await getDashboardUserId(request));
   const calendarSemesterId =
     url.searchParams.get("tab") === "calendar"
       ? parsePositiveCalendarSemester(url.searchParams.get("calendarSemester"))
       : undefined;
-  const tab = normalizeDashboardTab(
-    url.searchParams.get("tab"),
-    Boolean(userId),
-  );
+  const tab = normalizeDashboardTab(url.searchParams.get("tab"), true);
   const referenceNow = parseSnapshotReferenceTime(
     url.searchParams.get("snapshotAt"),
   );
 
-  const publicSummaryPromise = (async () => {
-    let publicSummary: Awaited<ReturnType<typeof loadDashboardPublicSummary>>;
-    try {
-      publicSummary = await loadDashboardPublicSummary(
-        getPrisma(locale),
-        referenceNow ?? null,
-        locale,
-      );
-    } catch {
-      publicSummary = await loadDashboardPublicSummary(
-        null,
-        referenceNow ?? null,
-        locale,
-      );
-    }
-    return publicSummary;
-  })();
-
-  if (!userId) {
-    const publicSummary = await publicSummaryPromise;
-    const data = await loadAnonymousDashboardPageData({
-      counts: publicSummary.counts,
-      locale,
-      overviewLinks: publicSummary.links.overviewLinks,
-      pageCopy,
-      publicLinks: publicSummary.links.dashboardLinks,
-      tab,
-    });
-    recordDashboardLoadFinish({
-      durationMs: Date.now() - startMs,
-      requestId: locals.requestId,
-      signedIn: false,
-      status: "ok",
-      tab,
-    });
-    return data;
-  }
+  const publicSummaryPromise = loadDashboardPublicSummaryWithFallback(
+    locale,
+    referenceNow ?? null,
+  );
 
   const signedTab = isSignedDashboardTab(tab) ? tab : "overview";
   const [publicSummary, signedData] = await Promise.all([
@@ -109,7 +68,6 @@ export async function loadDashboardPage({
   recordDashboardLoadFinish({
     durationMs: Date.now() - startMs,
     requestId: locals.requestId,
-    signedIn: true,
     status: "userMissing" in signedData ? "user-missing" : "ok",
     subscribedSectionCount:
       "subscribedSectionCount" in signedData

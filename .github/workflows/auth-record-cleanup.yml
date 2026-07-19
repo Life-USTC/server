@@ -1,0 +1,34 @@
+name: Auth Record Cleanup
+
+on:
+  schedule:
+    - cron: "23 */6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: auth-record-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: Clean expired authentication records
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+
+      - name: Generate Prisma client
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: bun run db:generate
+
+      - name: Clean expired authentication records
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: bun run auth:cleanup

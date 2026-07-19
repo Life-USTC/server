@@ -1530,6 +1530,9 @@
               }
             }
           },
+          "413": {
+            "description": "Response 413"
+          },
           "429": {
             "description": "Error response",
             "headers": {
