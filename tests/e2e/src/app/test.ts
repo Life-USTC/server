@@ -101,7 +101,7 @@ test("/ 主题切换可写入 localStorage 并跟随系统主题", async ({
     const menuItem = page.getByRole("menuitemradio", { name });
 
     await expect(async () => {
-      if (!(await menuItem.isVisible().catch(() => false))) {
+      if ((await themeButton.getAttribute("aria-expanded")) !== "true") {
         await themeButton.click();
       }
       await expect(menuItem).toBeVisible({ timeout: 1_000 });
@@ -214,7 +214,12 @@ test("/ shell 菜单可一键切换", async ({ page }) => {
     page.getByRole("menuitem", { name: /设置|Settings/i }),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: /^菜单$|^Menu$/i }).click();
+  const sidebarTrigger = page.getByRole("button", {
+    name: /^菜单$|^Menu$/i,
+  });
+  await expect(sidebarTrigger).toHaveAttribute("aria-expanded", "false");
+  await sidebarTrigger.click();
+  await expect(sidebarTrigger).toHaveAttribute("aria-expanded", "true");
 
   const sidebar = page.getByRole("dialog", { name: /Sidebar/i });
   await expect(sidebar).toBeVisible();
