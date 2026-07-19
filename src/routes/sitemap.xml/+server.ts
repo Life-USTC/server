@@ -3,6 +3,7 @@ import {
   requestMatchesSitemapEtag,
 } from "@/features/catalog/server/sitemap-cache";
 import { prisma } from "@/lib/db/prisma";
+import { CONTENT_SIGNAL } from "@/lib/seo/content-signal";
 import { getCanonicalOrigin } from "@/lib/site-url";
 import type { RequestHandler } from "./$types";
 
@@ -10,6 +11,7 @@ const RESPONSE_HEADERS = {
   "Cache-Control": "public, max-age=0, must-revalidate",
   "Cloudflare-CDN-Cache-Control":
     "public, max-age=3600, stale-while-revalidate=21600",
+  "Content-Signal": CONTENT_SIGNAL,
   "Content-Type": "application/xml; charset=utf-8",
 };
 

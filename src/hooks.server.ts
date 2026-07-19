@@ -18,6 +18,7 @@ import {
   createScriptNonce,
   formActionSourceFromOAuthRedirectUri,
 } from "@/lib/security/csp";
+import { setContentSignal } from "@/lib/seo/content-signal";
 
 const SECURITY_HEADERS = {
   "X-Content-Type-Options": "nosniff",
@@ -227,6 +228,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     if (!mutableResponse.headers.has("Cache-Control")) {
       mutableResponse.headers.set("Cache-Control", "no-store");
     }
+    setContentSignal(mutableResponse.headers);
     mutableResponse.headers.set(
       "Content-Security-Policy",
       buildContentSecurityPolicy(nonce, {
