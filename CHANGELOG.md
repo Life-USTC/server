@@ -1,3 +1,15 @@
+## [1.63.2](https://github.com/Life-USTC/server/compare/v1.63.1...v1.63.2) (2026-07-19)
+
+
+### Bug Fixes
+
+* **mcp:** align compact markdown output schemas ([cdad8bb](https://github.com/Life-USTC/server/commit/cdad8bb7ef3def607e7f45d966837b7410f5055f))
+
+
+### Performance Improvements
+
+* **markdown:** avoid parser during read hydration ([c215ea5](https://github.com/Life-USTC/server/commit/c215ea5a0b4dbe44f14231ec7058a8f638d240ef))
+
 ## [1.63.1](https://github.com/Life-USTC/server/compare/v1.63.0...v1.63.1) (2026-07-19)
 
 
