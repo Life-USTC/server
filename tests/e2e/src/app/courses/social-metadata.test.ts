@@ -28,6 +28,7 @@ const metadataSelectors = {
 type MetadataKey = keyof typeof metadataSelectors;
 type RawSocialMetadata = {
   contentLanguage: string | undefined;
+  documentTitle: string;
   htmlLang: string | null;
   origin: string;
   values: Record<MetadataKey, string[]>;
@@ -68,6 +69,7 @@ async function readRawSocialMetadata(
       );
 
       return {
+        documentTitle: document.title,
         htmlLang: document.documentElement.getAttribute("lang"),
         values,
       };
@@ -165,6 +167,70 @@ test("首页原始 SSR HTML 输出双语且唯一的完整分享元数据", asyn
       canonicalPath: "/",
       ...current,
     });
+  }
+});
+
+test("课程、班级与教师列表页输出本地化 SSR 分享元数据", async ({ page }) => {
+  const cases = [
+    {
+      locale: "zh-cn" as const,
+      imageAlt: "Life@USTC 课程与日程工作台分享卡片",
+      pages: [
+        {
+          canonicalPath: "/courses",
+          description: "浏览和搜索所有可用课程",
+          title: "课程 - Life@USTC",
+        },
+        {
+          canonicalPath: "/sections",
+          description: "浏览和筛选所有可用的课程班级",
+          title: "班级 - Life@USTC",
+        },
+        {
+          canonicalPath: "/teachers",
+          description: "浏览和搜索所有教师",
+          title: "教师 - Life@USTC",
+        },
+      ],
+    },
+    {
+      locale: "en-us" as const,
+      imageAlt: "Life@USTC course and schedule workspace social card",
+      pages: [
+        {
+          canonicalPath: "/courses",
+          description: "Browse and search through all available courses",
+          title: "Courses - Life@USTC",
+        },
+        {
+          canonicalPath: "/sections",
+          description:
+            "Browse and filter through all available course sections",
+          title: "Sections - Life@USTC",
+        },
+        {
+          canonicalPath: "/teachers",
+          description: "Browse and search through all teachers",
+          title: "Teachers - Life@USTC",
+        },
+      ],
+    },
+  ];
+
+  for (const current of cases) {
+    await setLocale(page, current.locale);
+    for (const collection of current.pages) {
+      const metadata = await readRawSocialMetadata(
+        page,
+        `${collection.canonicalPath}?utm_source=e2e#catalog`,
+      );
+      expectCompleteSocialMetadata(metadata, {
+        ...collection,
+        imageAlt: current.imageAlt,
+        locale: current.locale,
+      });
+      expect(metadata.documentTitle).toBe(collection.title);
+    }
   }
 });
 
