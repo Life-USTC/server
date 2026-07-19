@@ -174,6 +174,18 @@ type Department {
   nameEn: String
 }
 
+type DescriptionMutationPayload {
+  id: ID!
+  updated: Boolean!
+}
+
+enum DescriptionTargetType {
+  COURSE
+  HOMEWORK
+  SECTION
+  TEACHER
+}
+
 type Exam {
   endTime: Int
   examBatch: ExamBatch
@@ -265,6 +277,7 @@ type Mutation {
   unsubscribeSection(jwId: Int!): SectionSubscriptionMutationPayload!
   updateComment(id: ID!, input: UpdateCommentInput!): CommentMutationPayload!
   updateTodo(id: ID!, input: UpdateTodoInput!): TodoMutationPayload!
+  upsertDescription(input: UpsertDescriptionInput!): DescriptionMutationPayload!
 }
 
 type NamedCatalogValue {
@@ -474,6 +487,16 @@ input UpdateTodoInput {
   dueAt: DateTime
   priority: TodoPriority
   title: String
+}
+
+input UpsertDescriptionInput {
+  content: String!
+  courseJwId: Int
+  homeworkId: ID
+  sectionJwId: Int
+  targetId: ID
+  targetType: DescriptionTargetType!
+  teacherId: Int
 }
 
 type UserProfile {
