@@ -72,7 +72,9 @@ describe("crawler discovery routes", () => {
   it("adds the content-use policy to the sitemap", async () => {
     vi.stubEnv("APP_CANONICAL_ORIGIN", ORIGIN);
 
-    const response = await getSitemapXml({} as never);
+    const response = await getSitemapXml({
+      request: new Request(`${ORIGIN}/sitemap.xml`),
+    } as never);
     const body = await response.text();
 
     expect(response.headers.get("Content-Signal")).toBe(CONTENT_SIGNAL);
