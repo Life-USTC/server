@@ -141,7 +141,7 @@ function sectionEmptyDescription() {
     title={sectionLabels.title}
   />
 
-  <div class="-mx-4 grid min-h-[calc(100vh-8rem)] bg-background sm:-mx-5 lg:-mx-6 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start">
+  <div class="-mx-4 grid bg-background sm:-mx-5 lg:-mx-6 lg:min-h-[calc(100vh-8rem)] lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start">
     <CatalogMobileFilters
       activeFilters={sectionActiveFilters}
       clearHref="/sections"

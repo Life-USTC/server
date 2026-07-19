@@ -20,7 +20,7 @@
  * - Semester filter updates URL with semesterId param
  * - Advanced search syntax parsed server-side (sort:, order:asc/desc)
  */
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { getSeedSectionSemesterFixture } from "../../../utils/e2e-db";
 import { visibleText } from "../../../utils/locators";
@@ -31,6 +31,13 @@ import {
 import { absoluteTestUrl } from "../../../utils/request-url";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
+
+async function useChineseLocale(page: Page) {
+  const response = await page.request.post("/api/locale", {
+    data: { locale: "zh-cn" },
+  });
+  expect(response.status()).toBe(200);
+}
 
 test.describe("/sections 班级搜索页", () => {
   test("页面契约", async ({ page }, testInfo) => {
@@ -51,7 +58,14 @@ test.describe("/sections 班级搜索页", () => {
   });
 
   test("移动端卡片可点击并导航到详情", async ({ page }, testInfo) => {
-    await page.setViewportSize({ width: 390, height: 844 });
+    const runtimeErrors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") runtimeErrors.push(message.text());
+    });
+    page.on("pageerror", (error) => runtimeErrors.push(error.message));
+
+    await page.setViewportSize({ width: 375, height: 844 });
+    await useChineseLocale(page);
     await gotoAndWaitForReady(
       page,
       `/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
@@ -62,6 +76,35 @@ test.describe("/sections 班级搜索页", () => {
     await expect(page.getByTestId("catalog-filter-sidebar")).toBeHidden();
     await expect(page.getByTestId("catalog-results-summary")).toBeVisible();
     await expect(page.getByTestId("catalog-active-filters")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "所有班级" })).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
+    await expect(page).toHaveTitle(/班级/);
+
+    const mobileFilters = page.getByTestId("catalog-mobile-filters");
+    const mobileFilterLayout = await mobileFilters.evaluate((node) => {
+      const container = node as HTMLElement;
+      const searchbox = container.querySelector('[type="search"]');
+      const activeFilters = container.querySelector(
+        '[data-testid="catalog-active-filters"]',
+      );
+      if (!searchbox || !activeFilters) {
+        throw new Error("Mobile catalog filter geometry missing");
+      }
+
+      const containerBox = container.getBoundingClientRect();
+      const searchboxBox = searchbox.getBoundingClientRect();
+      const activeFiltersBox = activeFilters.getBoundingClientRect();
+      return {
+        activeFiltersGap:
+          activeFiltersBox.top - (searchboxBox.top + searchboxBox.height),
+        height: containerBox.height,
+        searchTop: searchboxBox.top - containerBox.top,
+      };
+    });
+    expect(mobileFilterLayout.searchTop).toBeLessThan(24);
+    expect(mobileFilterLayout.activeFiltersGap).toBeLessThan(24);
+    expect(mobileFilterLayout.height).toBeLessThan(144);
+
     await page.getByRole("button", { name: /筛选|Filters/i }).click();
     const filterSheet = page.getByRole("dialog");
     await expect(filterSheet).toBeVisible();
@@ -80,6 +123,8 @@ test.describe("/sections 班级搜索页", () => {
 
     await expect(page).toHaveURL(/\/sections\/\d+(?:\?.*)?$/);
     await expect(page.locator("#main-content")).toBeVisible();
+    await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+    expect(runtimeErrors).toEqual([]);
     await captureStepScreenshot(page, testInfo, "sections-navigate-detail");
   });
 
@@ -110,6 +155,7 @@ test.describe("/sections 班级搜索页", () => {
   });
 
   test("桌面表格在结果列内水平滚动", async ({ page }, testInfo) => {
+    await useChineseLocale(page);
     for (const width of [1024, 1280, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       await gotoAndWaitForReady(page, "/sections");
