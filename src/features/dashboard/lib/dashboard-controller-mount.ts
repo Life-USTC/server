@@ -1,3 +1,4 @@
+import { getLocalStorageItem } from "@/lib/browser/local-storage";
 import type { DashboardViewState } from "./dashboard-controller-helpers";
 import { currentDashboardLinkReturnTo } from "./dashboard-link-ui";
 import { formatMessage } from "./overview";
@@ -61,7 +62,7 @@ export function mountDashboardController(input: {
   input.applyViewState(
     dashboardViewsFromPreference(
       url,
-      localStorage.getItem(DASHBOARD_VIEW_STORAGE_KEY),
+      getLocalStorageItem(DASHBOARD_VIEW_STORAGE_KEY),
     ),
   );
 

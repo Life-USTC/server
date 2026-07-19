@@ -17,6 +17,7 @@ import {
 } from "@/features/dashboard/lib/view-preferences";
 import { groupDashboardLinks } from "@/features/dashboard-links/lib/dashboard-link-search";
 import type { DashboardLinkSummary } from "@/features/dashboard-links/server/dashboard-link-data";
+import { getLocalStorageItem } from "@/lib/browser/local-storage";
 import { replaceState } from "$app/navigation";
 import AnonymousDashboardView from "./AnonymousDashboardView.svelte";
 
@@ -58,7 +59,7 @@ onMount(() => {
   const url = new URL(window.location.href);
   linkView = dashboardViewsFromPreference(
     url,
-    localStorage.getItem(DASHBOARD_VIEW_STORAGE_KEY),
+    getLocalStorageItem(DASHBOARD_VIEW_STORAGE_KEY),
   ).linkView;
 
   function handleShortcut(event: KeyboardEvent) {

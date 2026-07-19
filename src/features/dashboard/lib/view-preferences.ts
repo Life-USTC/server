@@ -1,3 +1,5 @@
+import { setLocalStorageItem } from "@/lib/browser/local-storage";
+
 export type DashboardCardView = "cards" | "list";
 export type DashboardLinkView = "grid" | "list";
 
@@ -49,7 +51,7 @@ export function dashboardViewsFromPreference(
 }
 
 export function persistDashboardViewMode(mode: DashboardCardView) {
-  localStorage.setItem(DASHBOARD_VIEW_STORAGE_KEY, mode);
+  setLocalStorageItem(DASHBOARD_VIEW_STORAGE_KEY, mode);
 }
 
 export function dashboardViewHref(

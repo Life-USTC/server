@@ -1,9 +1,14 @@
+import {
+  getLocalStorageItem,
+  setLocalStorageItem,
+} from "@/lib/browser/local-storage";
+
 export type SectionHomeworkView = "cards" | "list";
 
 const homeworkViewStorageKey = "life-ustc-dashboard-homework-view-mode";
 
 export function persistSectionHomeworkView(nextView: SectionHomeworkView) {
-  localStorage.setItem(homeworkViewStorageKey, nextView);
+  setLocalStorageItem(homeworkViewStorageKey, nextView);
   const url = new URL(window.location.href);
   if (nextView === "list") {
     url.searchParams.set("homeworkView", "list");
@@ -16,7 +21,7 @@ export function persistSectionHomeworkView(nextView: SectionHomeworkView) {
 export function initialSectionHomeworkViewFromBrowser(
   fallback: SectionHomeworkView,
 ): SectionHomeworkView {
-  const stored = localStorage.getItem(homeworkViewStorageKey);
+  const stored = getLocalStorageItem(homeworkViewStorageKey);
   if (stored === "cards" || stored === "list") {
     return stored;
   }
@@ -24,7 +29,7 @@ export function initialSectionHomeworkViewFromBrowser(
     "homeworkView",
   );
   if (viewParam === "list") {
-    localStorage.setItem(homeworkViewStorageKey, "list");
+    setLocalStorageItem(homeworkViewStorageKey, "list");
     return "list";
   }
   return fallback;
