@@ -1,6 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 
-export const PLAYWRIGHT_BASE_URL = "http://127.0.0.1:3000";
+export const PLAYWRIGHT_BASE_URL = "http://localhost:3000";
 
 export function generateToken(bytes = 24) {
   const array = new Uint8Array(bytes);

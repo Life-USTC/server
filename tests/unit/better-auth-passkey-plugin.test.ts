@@ -101,7 +101,6 @@ describe("Better Auth passkey plugin", () => {
   it.each([
     "https://branch.workers.dev",
     "https://evil-life.example.com",
-    "http://127.0.0.1:3000",
   ])("rejects origin %s when it cannot use the canonical RP ID", async (publicOrigin) => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("APP_CANONICAL_ORIGIN", "https://life.example.com");
@@ -127,7 +126,22 @@ describe("Better Auth passkey plugin", () => {
     );
 
     expect(() => buildBetterAuthPasskeyPlugin()).toThrow(
-      /is not compatible with RP ID localhost/,
+      "Non-local passkey origins must use https",
+    );
+    expect(passkeyMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects an IP literal as a local WebAuthn RP ID", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("APP_CANONICAL_ORIGIN", "http://127.0.0.1:3000");
+    vi.stubEnv("APP_PUBLIC_ORIGIN", "http://127.0.0.1:3000");
+
+    const { buildBetterAuthPasskeyPlugin } = await import(
+      "@/lib/auth/better-auth-passkey-plugin"
+    );
+
+    expect(() => buildBetterAuthPasskeyPlugin()).toThrow(
+      "Non-local passkey origins must use https",
     );
     expect(passkeyMock).not.toHaveBeenCalled();
   });

@@ -4,7 +4,7 @@ import { getPasskeyAllowedOrigins } from "@/lib/auth/auth-origins";
 import { getCanonicalOrigin } from "@/lib/site-url";
 
 const PASSKEY_RP_NAME = "Life@USTC";
-const LOCAL_PASSKEY_HOSTS = new Set(["localhost", "127.0.0.1"]);
+const LOCAL_PASSKEY_HOSTS = new Set(["localhost"]);
 
 export const betterAuthPasskeyRateLimitRules = {
   "/passkey/generate-authenticate-options": {
