@@ -102,6 +102,14 @@ export async function replaceUserSubscribedSectionIds(
   );
 }
 
+export async function deletePasskeysForUserFixture(userId: string) {
+  await withE2ePrisma((prisma) =>
+    prisma.passkey.deleteMany({
+      where: { userId },
+    }),
+  );
+}
+
 export async function createTempUsersFixture(options: {
   prefix: string;
   count: number;
