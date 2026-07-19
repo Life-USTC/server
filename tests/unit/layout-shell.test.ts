@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   isDetailWorkspacePath,
+  resolveShellTheme,
   shouldShowAppFooter,
 } from "@/lib/components/shell/layout-shell";
 
@@ -28,5 +29,18 @@ describe("application shell footer policy", () => {
     ["/courses/123", false, false],
   ])("pathname %s with signedIn=%s shows footer=%s", (pathname, signedIn, expected) => {
     expect(shouldShowAppFooter(pathname, signedIn)).toBe(expected);
+  });
+});
+
+describe("application shell theme", () => {
+  it.each([
+    ["light", false, "light"],
+    ["light", true, "light"],
+    ["dark", false, "dark"],
+    ["dark", true, "dark"],
+    ["system", false, "light"],
+    ["system", true, "dark"],
+  ] as const)("resolves %s with prefersDark=%s to %s", (mode, prefersDark, expected) => {
+    expect(resolveShellTheme(mode, prefersDark)).toBe(expected);
   });
 });
