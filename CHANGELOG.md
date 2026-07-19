@@ -1,3 +1,10 @@
+## [1.65.1](https://github.com/Life-USTC/server/compare/v1.65.0...v1.65.1) (2026-07-19)
+
+
+### Bug Fixes
+
+* **auth:** prune expired auth records ([#503](https://github.com/Life-USTC/server/issues/503)) ([6c70cc9](https://github.com/Life-USTC/server/commit/6c70cc9f4337e80b5880e0c23aa4f5d97106e624)), closes [#485](https://github.com/Life-USTC/server/issues/485)
+
 # [1.65.0](https://github.com/Life-USTC/server/compare/v1.64.11...v1.65.0) (2026-07-19)
 
 
