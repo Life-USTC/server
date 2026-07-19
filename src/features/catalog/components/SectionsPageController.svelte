@@ -1,5 +1,4 @@
 <script lang="ts">
-import SlidersHorizontalIcon from "@lucide/svelte/icons/sliders-horizontal";
 import {
   type CatalogNamed,
   catalogHref,
@@ -8,7 +7,6 @@ import {
   catalogNames as teacherNames,
 } from "@/features/catalog/lib/catalog-list-display";
 import { goto } from "$app/navigation";
-import CatalogFilterSidebar from "./CatalogFilterSidebar.svelte";
 import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
 import CatalogPageHeader from "./CatalogPageHeader.svelte";
 import CatalogPagination from "./CatalogPagination.svelte";
@@ -141,7 +139,7 @@ function sectionEmptyDescription() {
     title={sectionLabels.title}
   />
 
-  <div class="-mx-4 grid bg-background sm:-mx-5 lg:-mx-6 lg:min-h-[calc(100vh-8rem)] lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start">
+  <div class="grid min-w-0 gap-4">
     <CatalogMobileFilters
       activeFilters={sectionActiveFilters}
       clearHref="/sections"
@@ -168,24 +166,7 @@ function sectionEmptyDescription() {
       />
     </CatalogMobileFilters>
 
-    <CatalogFilterSidebar
-      activeCount={activeFilterCount}
-      icon={SlidersHorizontalIcon}
-      title={sectionLabels.summary.filters}
-    >
-      <SectionsFilters
-        {activeFilterCount}
-        {commonLabels}
-        filters={data.filters}
-        bind:isSearchHelpOpen
-        {sectionLabels}
-        bind:sectionSearch
-        {semesterOptions}
-        {updateSectionFilter}
-      />
-    </CatalogFilterSidebar>
-
-    <div class="min-w-0 px-4 py-5 sm:px-5 lg:px-6">
+    <div class="grid min-w-0 gap-4">
       <SectionsResults
         data={sectionResultsData}
         page={data.pagination.page}

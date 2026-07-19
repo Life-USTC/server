@@ -73,7 +73,7 @@ test.describe("/sections 班级搜索页", () => {
     );
     await expectNoPageHorizontalOverflow(page);
     await expect(page.getByTestId("catalog-mobile-filters")).toBeVisible();
-    await expect(page.getByTestId("catalog-filter-sidebar")).toBeHidden();
+    await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
     await expect(page.getByTestId("catalog-results-summary")).toBeVisible();
     await expect(page.getByTestId("catalog-active-filters")).toBeVisible();
     await expect(page.getByRole("heading", { name: "所有班级" })).toBeVisible();
@@ -101,7 +101,9 @@ test.describe("/sections 班级搜索页", () => {
         searchTop: searchboxBox.top - containerBox.top,
       };
     });
+    expect(mobileFilterLayout.searchTop).toBeGreaterThanOrEqual(8);
     expect(mobileFilterLayout.searchTop).toBeLessThan(24);
+    expect(mobileFilterLayout.activeFiltersGap).toBeGreaterThanOrEqual(8);
     expect(mobileFilterLayout.activeFiltersGap).toBeLessThan(24);
     expect(mobileFilterLayout.height).toBeLessThan(144);
 
@@ -154,68 +156,112 @@ test.describe("/sections 班级搜索页", () => {
     await captureStepScreenshot(page, testInfo, "sections-mobile-list-en-us");
   });
 
-  test("桌面表格在结果列内水平滚动", async ({ page }, testInfo) => {
+  test("中文目录在桌面宽度下不裁切或横向溢出", async ({ page }, testInfo) => {
+    const runtimeErrors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") runtimeErrors.push(message.text());
+    });
+    page.on("pageerror", (error) => runtimeErrors.push(error.message));
+
     await useChineseLocale(page);
     for (const width of [1024, 1280, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       await gotoAndWaitForReady(page, "/sections");
 
+      await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
+      await expect(page).toHaveTitle(/班级/);
+      await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+      await expect(page.getByTestId("catalog-mobile-filters")).toBeVisible();
+      await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
+
+      const documentGeometry = await page.evaluate(() => ({
+        clientWidth: document.documentElement.clientWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+      }));
+      expect(documentGeometry.scrollWidth).toBeLessThanOrEqual(
+        documentGeometry.clientWidth,
+      );
+
+      if (width === 1024) {
+        const cards = page.getByTestId("catalog-results-cards");
+        await expect(cards).toBeVisible();
+        await expect(
+          page.locator('[data-slot="table-container"]:visible'),
+        ).toHaveCount(0);
+        const cardsGeometry = await cards.evaluate((node) => {
+          const cardsBox = (node as HTMLElement).getBoundingClientRect();
+          const mainBox = document
+            .querySelector<HTMLElement>("#main-content")
+            ?.getBoundingClientRect();
+          if (!mainBox) throw new Error("Main content geometry missing");
+          return {
+            left: cardsBox.left,
+            mainLeft: mainBox.left,
+            mainRight: mainBox.right,
+            right: cardsBox.right,
+          };
+        });
+        expect(cardsGeometry.left).toBeGreaterThanOrEqual(
+          cardsGeometry.mainLeft,
+        );
+        expect(cardsGeometry.right).toBeLessThanOrEqual(
+          cardsGeometry.mainRight,
+        );
+        await captureStepScreenshot(
+          page,
+          testInfo,
+          `sections-responsive-${width}`,
+        );
+        continue;
+      }
+
       const tableContainer = page
         .locator('[data-slot="table-container"]:visible')
         .first();
       await expect(tableContainer).toBeVisible();
+      await expect(page.getByTestId("catalog-results-cards")).toBeHidden();
 
       const geometry = await tableContainer.evaluate((node) => {
         const container = node as HTMLElement;
-        const results = container.closest("section");
         const table = container.querySelector("table");
-        if (!results || !table)
+        const cells = Array.from(
+          container.querySelectorAll<HTMLElement>("th, td"),
+        );
+        if (!table || cells.length === 0)
           throw new Error("Sections table geometry missing");
 
         const containerBox = container.getBoundingClientRect();
-        const resultsBox = results.getBoundingClientRect();
         return {
           clientWidth: container.clientWidth,
-          containerRight: containerBox.right,
-          resultsRight: resultsBox.right,
+          cellsWithinContainer: cells.every((cell) => {
+            const cellBox = cell.getBoundingClientRect();
+            return (
+              cellBox.left >= containerBox.left - 1 &&
+              cellBox.right <= containerBox.right + 1
+            );
+          }),
+          contentFitsCells: cells.every(
+            (cell) => cell.scrollWidth <= cell.clientWidth + 1,
+          ),
           scrollWidth: container.scrollWidth,
+          tableWidth: table.getBoundingClientRect().width,
         };
       });
 
-      expect(geometry.containerRight).toBeLessThanOrEqual(
-        geometry.resultsRight + 1,
+      expect(geometry.scrollWidth).toBeLessThanOrEqual(
+        geometry.clientWidth + 1,
       );
-      expect(geometry.scrollWidth).toBeGreaterThan(geometry.clientWidth);
-
-      await tableContainer.evaluate((node) => {
-        const container = node as HTMLElement;
-        container.scrollLeft = container.scrollWidth;
-      });
-      await expect
-        .poll(() =>
-          tableContainer.evaluate((node) => (node as HTMLElement).scrollLeft),
-        )
-        .toBeGreaterThan(0);
-
-      const containerBox = await tableContainer.boundingBox();
-      const lastColumnBox = await tableContainer
-        .locator("thead th")
-        .last()
-        .boundingBox();
-      expect(containerBox).not.toBeNull();
-      expect(lastColumnBox).not.toBeNull();
-      expect(lastColumnBox?.x ?? 0).toBeGreaterThanOrEqual(
-        (containerBox?.x ?? 0) - 1,
-      );
-      expect(
-        (lastColumnBox?.x ?? Number.POSITIVE_INFINITY) +
-          (lastColumnBox?.width ?? 0),
-      ).toBeLessThanOrEqual(
-        (containerBox?.x ?? 0) + (containerBox?.width ?? 0) + 1,
+      expect(geometry.tableWidth).toBeLessThanOrEqual(geometry.clientWidth + 1);
+      expect(geometry.cellsWithinContainer).toBe(true);
+      expect(geometry.contentFitsCells).toBe(true);
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        `sections-responsive-${width}`,
       );
     }
 
-    await captureStepScreenshot(page, testInfo, "sections-table-contained");
+    expect(runtimeErrors).toEqual([]);
   });
 
   test("搜索帮助与清除", async ({ page }, testInfo) => {
@@ -224,14 +270,19 @@ test.describe("/sections 班级搜索页", () => {
       screenshotLabel: "sections",
     });
 
-    await page
+    await page.getByRole("button", { name: /筛选|Filters/i }).click();
+    const filterSheet = page.getByRole("dialog");
+    await expect(filterSheet).toBeVisible();
+    await filterSheet
       .getByRole("button", { name: /高级搜索语法|Advanced Search Syntax/i })
       .first()
       .click();
-    const sheet = page.getByRole("dialog");
-    await expect(sheet).toBeVisible();
+    const searchHelpDialog = page.getByRole("dialog", {
+      name: /高级搜索语法|Advanced Search Syntax/i,
+    });
+    await expect(searchHelpDialog).toBeVisible();
     await captureStepScreenshot(page, testInfo, "sections-search-help");
-    await sheet
+    await searchHelpDialog
       .getByRole("button", { name: /关闭|Close|Cancel/i })
       .first()
       .click();

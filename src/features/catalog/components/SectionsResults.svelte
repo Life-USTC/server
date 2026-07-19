@@ -45,16 +45,18 @@ $: sectionSemesterSummary = selectedSemester
   : "";
 </script>
 
-<section class="grid min-w-0 gap-3">
-  <CatalogResultsSummary
-    base={sectionSummaryBase}
-    {page}
-    searchText={sectionSearchSummary}
-    semesterText={sectionSemesterSummary}
-    {totalPages}
-  />
+<section class="grid min-w-0 gap-3 xl:gap-0 xl:overflow-hidden xl:rounded-xl xl:border xl:bg-card">
+  <div class="xl:border-b xl:px-4 xl:py-3">
+    <CatalogResultsSummary
+      base={sectionSummaryBase}
+      {page}
+      searchText={sectionSearchSummary}
+      semesterText={sectionSemesterSummary}
+      {totalPages}
+    />
+  </div>
   {#if data.data.length > 0}
-    <div class="md:hidden">
+    <div class="xl:hidden" data-testid="catalog-results-cards">
       <Item.Group>
         {#each data.data as section}
           {@const sectionHref = `/sections/${section.jwId}`}
@@ -85,17 +87,17 @@ $: sectionSemesterSummary = selectedSemester
         {/each}
       </Item.Group>
     </div>
-    <div class="hidden min-w-0 max-w-full md:block">
-      <Table.Root>
-        <Table.Header>
+    <div class="hidden min-w-0 max-w-full xl:block">
+      <Table.Root class="table-fixed">
+        <Table.Header class="bg-muted/30">
           <Table.Row>
-            <Table.Head class="w-36">{sectionLabels.semester}</Table.Head>
-            <Table.Head class="min-w-72">{sectionLabels.courseName}</Table.Head>
-            <Table.Head class="w-28">{sectionLabels.sectionCode}</Table.Head>
-            <Table.Head class="min-w-44">{sectionLabels.teachers}</Table.Head>
-            <Table.Head class="w-20 text-right">{sectionLabels.credits}</Table.Head>
-            <Table.Head class="w-28 text-right">{sectionLabels.capacity}</Table.Head>
-            <Table.Head class="w-28 text-right">{sectionLabels.campus}</Table.Head>
+            <Table.Head class="w-32">{sectionLabels.semester}</Table.Head>
+            <Table.Head>{sectionLabels.courseName}</Table.Head>
+            <Table.Head class="w-32">{sectionLabels.sectionCode}</Table.Head>
+            <Table.Head class="w-36">{sectionLabels.teachers}</Table.Head>
+            <Table.Head class="w-16 text-right">{sectionLabels.credits}</Table.Head>
+            <Table.Head class="w-24 text-right">{sectionLabels.capacity}</Table.Head>
+            <Table.Head class="w-20 text-right">{sectionLabels.campus}</Table.Head>
           </Table.Row>
         </Table.Header>
         <Table.Body>
@@ -107,7 +109,7 @@ $: sectionSemesterSummary = selectedSemester
                   {section.semester?.nameCn ?? sectionLabels.noSemester}
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="min-w-72 p-0 align-top">
+              <Table.Cell class="p-0 align-top whitespace-normal">
                 <CatalogTableLink href={sectionHref}>
                   <span class="font-medium">{primaryName(section.course)}</span>
                   {#if secondaryName(section.course)}
@@ -120,7 +122,7 @@ $: sectionSemesterSummary = selectedSemester
                   <Badge variant="outline">{section.code}</Badge>
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="min-w-44 p-0 align-top">
+              <Table.Cell class="p-0 align-top whitespace-normal">
                 <CatalogTableLink href={sectionHref}>
                   {teacherNames(section.teachers) || "-"}
                 </CatalogTableLink>

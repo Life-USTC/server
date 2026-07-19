@@ -22,6 +22,7 @@ import * as Sheet from "$lib/components/ui/sheet/index.js";
 export let activeFilters: CatalogActiveFilter[] = [];
 export let clearHref: string;
 export let clearLabel: string;
+export let filterDescription = "";
 export let filterTitle: string;
 export let hiddenFilters: CatalogHiddenFilter[] = [];
 export let open = false;
@@ -32,7 +33,7 @@ export let searchValue: string;
 </script>
 
 <div
-  class="grid gap-3 border-b bg-background px-4 py-3 sm:px-5 lg:hidden"
+  class="grid gap-3 rounded-xl border bg-card px-3 py-3 sm:px-4"
   data-testid="catalog-mobile-filters"
 >
   <div class="flex min-w-0 items-end gap-2">
@@ -84,7 +85,11 @@ export let searchValue: string;
       <Sheet.Content class="w-[min(22rem,calc(100%-1rem))] overflow-y-auto p-0" side="right">
         <Sheet.Header class="border-b pr-12">
           <Sheet.Title>{filterTitle}</Sheet.Title>
-          <Sheet.Description class="sr-only">{filterTitle}</Sheet.Description>
+          {#if filterDescription}
+            <Sheet.Description>{filterDescription}</Sheet.Description>
+          {:else}
+            <Sheet.Description class="sr-only">{filterTitle}</Sheet.Description>
+          {/if}
         </Sheet.Header>
         <div class="p-4">
           <slot />

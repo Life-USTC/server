@@ -57,7 +57,7 @@ test.describe("/teachers", () => {
     );
     await expectNoPageHorizontalOverflow(page);
     await expect(page.getByTestId("catalog-mobile-filters")).toBeVisible();
-    await expect(page.getByTestId("catalog-filter-sidebar")).toBeHidden();
+    await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
     await expect(page.getByTestId("catalog-results-summary")).toBeVisible();
     await expect(page.getByTestId("catalog-active-filters")).toBeVisible();
     const filterTrigger = page.getByRole("button", {

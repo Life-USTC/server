@@ -1,5 +1,4 @@
 <script lang="ts">
-import SlidersHorizontalIcon from "@lucide/svelte/icons/sliders-horizontal";
 import {
   type CatalogNamed,
   catalogHref,
@@ -7,7 +6,6 @@ import {
   catalogSecondaryName as secondaryName,
 } from "@/features/catalog/lib/catalog-list-display";
 import { goto } from "$app/navigation";
-import CatalogFilterSidebar from "./CatalogFilterSidebar.svelte";
 import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
 import CatalogPageHeader from "./CatalogPageHeader.svelte";
 import CatalogPagination from "./CatalogPagination.svelte";
@@ -120,11 +118,12 @@ function updateTeacherFilter(overrides: Partial<TeacherListFilters>) {
     title={teacherLabels.title}
   />
 
-  <div class="-mx-4 grid bg-background sm:-mx-5 lg:-mx-6 lg:min-h-[calc(100vh-8rem)] lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start">
+  <div class="grid min-w-0 gap-4">
     <CatalogMobileFilters
       activeFilters={teacherActiveFilters}
       clearHref="/teachers"
       clearLabel={commonLabels.clear}
+      filterDescription={teacherLabels.filterDescription}
       filterTitle={teacherLabels.filterTitle}
       hiddenFilters={teacherHiddenFilters}
       bind:open={isTeacherFilterOpen}
@@ -146,24 +145,7 @@ function updateTeacherFilter(overrides: Partial<TeacherListFilters>) {
       />
     </CatalogMobileFilters>
 
-    <CatalogFilterSidebar
-      activeCount={activeFilterCount}
-      description={teacherLabels.filterDescription}
-      icon={SlidersHorizontalIcon}
-      title={teacherLabels.filterTitle}
-    >
-      <TeachersFilters
-        {activeFilterCount}
-        {commonLabels}
-        {departmentOptions}
-        filters={data.filters}
-        {teacherLabels}
-        bind:teacherSearch
-        {updateTeacherFilter}
-      />
-    </CatalogFilterSidebar>
-
-    <div class="min-w-0 px-4 py-5 sm:px-5 lg:px-6">
+    <div class="grid min-w-0 gap-4">
       <TeachersResults
         {commonLabels}
         filters={data.filters}

@@ -1,5 +1,4 @@
 <script lang="ts">
-import SlidersHorizontalIcon from "@lucide/svelte/icons/sliders-horizontal";
 import {
   catalogPrimaryName as primaryName,
   catalogSecondaryName as secondaryName,
@@ -10,7 +9,6 @@ import {
   coursePageHref,
 } from "@/features/catalog/lib/courses-page-view-model";
 import { goto } from "$app/navigation";
-import CatalogFilterSidebar from "./CatalogFilterSidebar.svelte";
 import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
 import CatalogPageHeader from "./CatalogPageHeader.svelte";
 import CatalogPagination from "./CatalogPagination.svelte";
@@ -141,7 +139,7 @@ function courseEmptyDescription() {
     title={courseLabels.title}
   />
 
-  <div class="-mx-4 grid bg-background sm:-mx-5 lg:-mx-6 lg:min-h-[calc(100vh-8rem)] lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start">
+  <div class="grid min-w-0 gap-4">
     <CatalogMobileFilters
       activeFilters={courseActiveFilters}
       clearHref="/courses"
@@ -169,25 +167,7 @@ function courseEmptyDescription() {
       />
     </CatalogMobileFilters>
 
-    <CatalogFilterSidebar
-      activeCount={activeFilterCount}
-      icon={SlidersHorizontalIcon}
-      title={courseLabels.summary.filters}
-    >
-      <CoursesFilters
-        {activeFilterCount}
-        {categoryOptions}
-        {classTypeOptions}
-        {commonLabels}
-        {courseLabels}
-        bind:courseSearch
-        {educationLevelOptions}
-        filters={data.filters}
-        {updateCourseFilter}
-      />
-    </CatalogFilterSidebar>
-
-    <div class="min-w-0 px-4 py-5 sm:px-5 lg:px-6">
+    <div class="grid min-w-0 gap-4">
       <CoursesResults
         {courseEmptyDescription}
         {courseLabels}

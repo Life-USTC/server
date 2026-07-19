@@ -122,7 +122,7 @@ test.describe("/courses 课程目录", () => {
     );
     await expectNoPageHorizontalOverflow(page);
     await expect(page.getByTestId("catalog-mobile-filters")).toBeVisible();
-    await expect(page.getByTestId("catalog-filter-sidebar")).toBeHidden();
+    await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
     await expect(page.getByTestId("catalog-results-summary")).toBeVisible();
     await expect(page.getByTestId("catalog-active-filters")).toBeVisible();
     await page.getByRole("button", { name: /筛选|Filters/i }).click();
@@ -239,8 +239,8 @@ test.describe("/courses 课程目录", () => {
       screenshotLabel: "courses-filter",
     });
 
-    await expect(page.getByTestId("catalog-filter-sidebar")).toBeVisible();
-    await expect(page.getByTestId("catalog-mobile-filters")).toBeHidden();
+    await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
+    await expect(page.getByTestId("catalog-mobile-filters")).toBeVisible();
     await expect(visibleText(page, DEV_SEED.course.code)).toBeVisible();
     await captureStepScreenshot(page, testInfo, "courses-filter-seed");
   });
