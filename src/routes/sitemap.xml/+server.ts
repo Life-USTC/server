@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
+import { CONTENT_SIGNAL } from "@/lib/seo/content-signal";
 import { getCanonicalOrigin } from "@/lib/site-url";
 import type { RequestHandler } from "./$types";
 
@@ -40,6 +41,9 @@ export const GET: RequestHandler = async () => {
 
   const body = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((loc) => `  <url><loc>${loc}</loc></url>`).join("\n")}\n</urlset>\n`;
   return new Response(body, {
-    headers: { "Content-Type": "application/xml; charset=utf-8" },
+    headers: {
+      "Content-Signal": CONTENT_SIGNAL,
+      "Content-Type": "application/xml; charset=utf-8",
+    },
   });
 };
