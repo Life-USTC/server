@@ -64,7 +64,10 @@ test.describe("GET /api/courses 接口", () => {
     });
     expect(explicit.status()).toBe(200);
     expect(explicit.headers()["cache-control"]).toBe(
-      "public, max-age=0, s-maxage=60, stale-while-revalidate=300",
+      "public, max-age=0, must-revalidate",
+    );
+    expect(explicit.headers()["cloudflare-cdn-cache-control"]).toBe(
+      "public, max-age=60, stale-while-revalidate=300",
     );
 
     const fallback = await request.get("/api/courses?pageSize=1", {

@@ -56,7 +56,10 @@ describe("academic 列表路由缓存", () => {
     );
 
     expect(first.headers.get("Cache-Control")).toBe(
-      "public, max-age=0, s-maxage=60, stale-while-revalidate=300",
+      "public, max-age=0, must-revalidate",
+    );
+    expect(first.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
+      "public, max-age=60, stale-while-revalidate=300",
     );
     expect(first.headers.get("Vary")).toBe("Accept-Language, Cookie");
     expect(second.status).toBe(200);
@@ -80,7 +83,10 @@ describe("academic 列表路由缓存", () => {
     );
 
     expect(first.headers.get("Cache-Control")).toBe(
-      "public, max-age=0, s-maxage=60, stale-while-revalidate=300",
+      "public, max-age=0, must-revalidate",
+    );
+    expect(first.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
+      "public, max-age=60, stale-while-revalidate=300",
     );
     expect(first.headers.get("Vary")).toBe("Accept-Language, Cookie");
     expect(second.status).toBe(200);
