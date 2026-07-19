@@ -12,6 +12,21 @@ export const signedTabIds = [
 export type SignedTabId = (typeof signedTabIds)[number];
 
 const signedTabIdSet = new Set<string>(signedTabIds);
+const homeDashboardQueryKeys = new Set([
+  "calendarMonth",
+  "calendarSemester",
+  "calendarView",
+  "calendarWeek",
+  "dashboardLinkPinError",
+  "examView",
+  "homeworkView",
+  "imported",
+  "linkView",
+  "overviewWeek",
+  "removed",
+  "snapshotAt",
+  "todoView",
+]);
 
 export function isSignedDashboardTab(
   value: string | null | undefined,
@@ -32,4 +47,21 @@ export function dashboardTabHref(
   const search = query.toString();
   const path = `/dashboard/${id}`;
   return `${path}${search ? `?${search}` : ""}`;
+}
+
+export function dashboardRedirectHrefFromHome(url: URL) {
+  const query = new URLSearchParams();
+  const tab = url.searchParams.get("tab");
+  if (isSignedDashboardTab(tab)) {
+    query.set("tab", tab);
+  }
+
+  for (const [key, value] of url.searchParams) {
+    if (homeDashboardQueryKeys.has(key)) {
+      query.append(key, value);
+    }
+  }
+
+  const search = query.toString();
+  return `/dashboard${search ? `?${search}` : ""}`;
 }
