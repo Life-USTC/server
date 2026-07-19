@@ -7,6 +7,7 @@ import {
 } from "@/features/catalog/lib/catalog-structured-data";
 import { getCoursePage } from "@/features/catalog/server/course-page-data";
 import { getTeacherPage } from "@/features/catalog/server/teacher-page-data";
+import { getViewerContext } from "@/lib/auth/viewer-context";
 import {
   buildSocialMetadata,
   formatSocialMetadataMessage,
@@ -16,7 +17,6 @@ import {
   getCourseDetailCopy,
   getTeacherDetailCopy,
 } from "./catalog-detail-copy";
-import { currentCatalogViewer } from "./catalog-detail-viewer";
 
 export type CourseDetailRouteSection =
   | "overview"
@@ -48,7 +48,6 @@ function resolveCatalogDetailRouteSection(
 export async function loadCourseDetailPage({
   locals,
   params,
-  request,
   url,
 }: {
   locals: App.Locals;
@@ -63,7 +62,7 @@ export async function loadCourseDetailPage({
   if (!Number.isInteger(jwId)) error(404, copy.notFound.description);
   const [course, viewer] = await Promise.all([
     getCoursePage(jwId, locals.locale),
-    currentCatalogViewer(request),
+    getViewerContext({ userId: locals.authUser?.id ?? null }),
   ]);
   if (!course) error(404, copy.notFound.description);
   if (course.jwId !== jwId) {
@@ -116,7 +115,6 @@ export async function loadCourseDetailPage({
 export async function loadTeacherDetailPage({
   locals,
   params,
-  request,
   url,
 }: {
   locals: App.Locals;
@@ -131,7 +129,7 @@ export async function loadTeacherDetailPage({
   if (!Number.isInteger(id)) error(404, copy.notFound.description);
   const [teacher, viewer] = await Promise.all([
     getTeacherPage(id, locals.locale),
-    currentCatalogViewer(request),
+    getViewerContext({ userId: locals.authUser?.id ?? null }),
   ]);
   if (!teacher) error(404, copy.notFound.description);
   const displayName = catalogPrimaryName(teacher);

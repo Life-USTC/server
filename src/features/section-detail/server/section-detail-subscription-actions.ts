@@ -2,21 +2,19 @@ import { fail, redirect } from "@sveltejs/kit";
 import type { AppLocale } from "@/i18n/config";
 import { getSectionDetailPageCopy } from "./section-detail-page-copy";
 import { parseSectionJwId } from "./section-detail-params";
-import { getSectionDetailUserId } from "./section-detail-session";
 
 async function updateSectionSubscription({
   action,
   locals,
   params,
-  request,
 }: {
   action: "subscribe" | "unsubscribe";
-  locals: { locale: AppLocale };
+  locals: { authUser: App.Locals["authUser"]; locale: AppLocale };
   params: { jwId: string };
   request: Request;
 }) {
   const copy = getSectionDetailPageCopy(locals.locale).sectionDetail;
-  const userId = await getSectionDetailUserId(request);
+  const userId = locals.authUser?.id ?? null;
   if (!userId) return fail(401, { error: copy.loginRequired });
   const jwId = parseSectionJwId(params.jwId);
   if (jwId === null) return fail(400, { error: copy.operationFailed });
@@ -32,7 +30,7 @@ async function updateSectionSubscription({
 }
 
 export function subscribeSectionAction(input: {
-  locals: { locale: AppLocale };
+  locals: { authUser: App.Locals["authUser"]; locale: AppLocale };
   params: { jwId: string };
   request: Request;
 }) {
@@ -40,7 +38,7 @@ export function subscribeSectionAction(input: {
 }
 
 export function unsubscribeSectionAction(input: {
-  locals: { locale: AppLocale };
+  locals: { authUser: App.Locals["authUser"]; locale: AppLocale };
   params: { jwId: string };
   request: Request;
 }) {

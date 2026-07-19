@@ -17,7 +17,6 @@ import { getSectionDetailDescriptionAndComments } from "./section-detail-comment
 import { getSectionHomeworkData } from "./section-detail-homework-data";
 import { getSectionDetailPageCopy } from "./section-detail-page-copy";
 import { parseSectionJwId } from "./section-detail-params";
-import { getSectionDetailUserId } from "./section-detail-session";
 
 export {
   subscribeSectionAction,
@@ -54,7 +53,6 @@ function resolveSectionDetailRouteSection(
 export async function loadSectionDetailPage({
   locals,
   params,
-  request,
   url,
 }: {
   locals: App.Locals;
@@ -66,10 +64,8 @@ export async function loadSectionDetailPage({
   if (!detailSection) error(404, "Section not found");
   const jwId = parseSectionJwId(params.jwId);
   if (jwId === null) error(404, "Section not found");
-  const [section, userId] = await Promise.all([
-    getSectionPage(jwId, locals.locale),
-    getSectionDetailUserId(request),
-  ]);
+  const userId = locals.authUser?.id ?? null;
+  const section = await getSectionPage(jwId, locals.locale);
   if (!section) error(404, "Section not found");
   const copy = getSectionDetailPageCopy(locals.locale);
   const courseName = primaryName(section.course) || section.code;
