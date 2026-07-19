@@ -28,6 +28,7 @@ export const commentReactionSummarySchema = z.object({
 export type CommentNode = {
   id: string;
   body: string;
+  renderedBody: string;
   visibility: string;
   status: string;
   author: z.infer<typeof commentAuthorSummarySchema> | null;
@@ -52,6 +53,7 @@ export const commentNodeSchema: z.ZodType<CommentNode> = z.lazy(() =>
   z.object({
     id: z.string(),
     body: z.string(),
+    renderedBody: z.string(),
     visibility: z.string(),
     status: z.string(),
     author: commentAuthorSummarySchema.nullable(),

@@ -33,3 +33,15 @@ test.describe("/privacy 隐私政策页", () => {
     expect(await listItems.count()).toBeGreaterThan(0);
   });
 });
+
+test.describe("/privacy 无 JavaScript", () => {
+  test.use({ javaScriptEnabled: false });
+
+  test("SSR 保留完整政策正文", async ({ page }) => {
+    await page.goto("/privacy");
+
+    await expect(page.locator("h1")).toBeVisible();
+    await expect(page.locator("h2").first()).toBeVisible();
+    await expect(page.locator("li").first()).toBeVisible();
+  });
+});

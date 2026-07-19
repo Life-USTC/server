@@ -83,6 +83,7 @@ function comment(overrides: Partial<CommentNode> = {}): CommentNode {
     author: null,
     authorHidden: false,
     body: "existing body",
+    renderedBody: "<p>existing body</p>",
     canDelete: false,
     canEdit: true,
     canModerate: false,

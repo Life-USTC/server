@@ -9,7 +9,8 @@
   "rules": {
     "supplement-not-comment": "Description is a Markdown supplement on an object, not equivalent to comments expressing personal opinions.",
     "attached-object-types": "Attached objects include courses, sections, teachers, homework, and similar.",
-    "platform-maintained": "When descriptions conflict with personal experiences in comments, descriptions are treated as platform-maintained information by default."
+    "platform-maintained": "When descriptions conflict with personal experiences in comments, descriptions are treated as platform-maintained information by default.",
+    "server-rendered-markdown": "Description payloads include content as the source Markdown and renderedHtml as sanitized server-rendered HTML. Web read surfaces consume renderedHtml without rerunning the Markdown pipeline during hydration; REST and MCP full mode keep the shared description payload, while MCP compact modes omit renderedHtml to avoid repeating the source Markdown in AI context."
   },
   "capabilities": {
     "object-description-section": {
@@ -20,7 +21,7 @@
         "routes": [
           {
             "path": "/api/descriptions",
-            "returns": "{ description, history, viewer }",
+            "returns": "{ description: { content, renderedHtml, ... }, history, viewer }",
             "notes": [
               "Inputs accept targetType plus targetId, or public identifiers such as sectionJwId, courseJwId, teacherId, homeworkId.",
               "Returns 404 when the attached target entity does not exist."
@@ -61,6 +62,7 @@
       "display": {
         "fields": [
           "description.content (markdown-rendered)",
+          "description.renderedHtml (sanitized server-rendered HTML)",
           "description.lastEditedBy.name",
           "description.lastEditedAt / updatedAt",
           "Edit button (if authorized)",

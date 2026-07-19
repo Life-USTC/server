@@ -49,6 +49,7 @@ export type SectionHomeworkDisplay = {
   completion: { completedAt: string | null } | null;
   description?: {
     content?: string | null;
+    renderedHtml?: string;
   } | null;
   id: string;
   isMajor: boolean;
