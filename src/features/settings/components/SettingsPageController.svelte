@@ -75,6 +75,10 @@ $: activeNavItem =
   data.settingsNav.tabs.find((item) => item.id === data.activeTab) ??
   data.settingsNav.tabs[0];
 
+let canScrollNavLeft = false;
+let canScrollNavRight = false;
+let settingsNavigation: HTMLElement | null = null;
+
 const accountAction = createSettingsAccountAction({
   setPendingAccountAction: (value) => {
     _pendingAccountAction = value;
@@ -97,9 +101,10 @@ function tabIcon(icon: string) {
 function revealActive(node: HTMLElement, active: boolean) {
   function reveal(isActive: boolean) {
     if (isActive) {
-      void tick().then(() =>
-        node.scrollIntoView({ block: "nearest", inline: "center" }),
-      );
+      void tick().then(() => {
+        node.scrollIntoView({ block: "nearest", inline: "center" });
+        updateNavigationOverflow();
+      });
     }
   }
 
@@ -107,8 +112,29 @@ function revealActive(node: HTMLElement, active: boolean) {
   return { update: reveal };
 }
 
+function updateNavigationOverflow() {
+  if (!settingsNavigation) return;
+  canScrollNavLeft = settingsNavigation.scrollLeft > 1;
+  canScrollNavRight =
+    settingsNavigation.scrollLeft + settingsNavigation.clientWidth <
+    settingsNavigation.scrollWidth - 1;
+}
+
 onMount(() => {
   _isMounted = true;
+  if (!settingsNavigation) return;
+  const navigation = settingsNavigation;
+  const resizeObserver = new ResizeObserver(updateNavigationOverflow);
+  resizeObserver.observe(navigation);
+  navigation.addEventListener("scroll", updateNavigationOverflow, {
+    passive: true,
+  });
+  void tick().then(updateNavigationOverflow);
+
+  return () => {
+    resizeObserver.disconnect();
+    navigation.removeEventListener("scroll", updateNavigationOverflow);
+  };
 });
 </script>
 
@@ -119,10 +145,19 @@ onMount(() => {
 
   <div class="grid gap-5 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start lg:gap-6">
     <div
-      class="relative -mx-4 min-w-0 after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:z-10 after:w-8 after:bg-gradient-to-l after:from-background after:to-transparent sm:-mx-5 lg:sticky lg:top-4 lg:mx-0 lg:after:hidden"
+      class={cn(
+        "relative -mx-4 min-w-0 sm:-mx-5 lg:sticky lg:top-4 lg:mx-0",
+        canScrollNavLeft &&
+          "before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:z-10 before:w-8 before:bg-gradient-to-r before:from-background before:to-transparent lg:before:hidden",
+        canScrollNavRight &&
+          "after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:z-10 after:w-8 after:bg-gradient-to-l after:from-background after:to-transparent lg:after:hidden",
+      )}
+      data-overflow-left={canScrollNavLeft}
+      data-overflow-right={canScrollNavRight}
     >
       <nav
         aria-label={data.settingsNav.title}
+        bind:this={settingsNavigation}
         class="overflow-x-auto px-4 pb-1 sm:px-5 lg:overflow-visible lg:px-0 lg:pb-0"
         data-settings-navigation
       >

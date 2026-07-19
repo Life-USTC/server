@@ -54,6 +54,15 @@ test.describe("/settings 设置中心", () => {
     });
 
     await expect(profileLink).toHaveAttribute("aria-current", "page");
+    await expect
+      .poll(() => {
+        const wrapper = navigation.locator("..");
+        return Promise.all([
+          wrapper.getAttribute("data-overflow-left"),
+          wrapper.getAttribute("data-overflow-right"),
+        ]);
+      })
+      .toEqual(["false", "true"]);
     const mobileNavigationBox = await navigation.boundingBox();
     const mobilePanelBox = await activePanel.boundingBox();
     expect(mobileNavigationBox?.height).toBeLessThan(80);
@@ -94,12 +103,12 @@ test.describe("/settings 设置中心", () => {
             const linkBox = link.getBoundingClientRect();
             const navBox = nav.getBoundingClientRect();
             const wrapperBox = wrapper.getBoundingClientRect();
-            const fadeWidth = Number.parseFloat(
-              getComputedStyle(wrapper, "::after").width || "0",
-            );
+            const leftFade = getComputedStyle(wrapper, "::before");
+            const rightFade = getComputedStyle(wrapper, "::after");
+            const leftFadeWidth = Number.parseFloat(leftFade.width || "0");
             return {
-              activeClearOfFade:
-                linkBox.right <= wrapperBox.right - fadeWidth + 1,
+              activeClearOfLeftFade:
+                linkBox.left >= wrapperBox.left + leftFadeWidth - 1,
               activeWithinNavigation:
                 linkBox.left >= navBox.left - 1 &&
                 linkBox.right <= navBox.right + 1,
@@ -108,16 +117,24 @@ test.describe("/settings 设置中心", () => {
                 document.documentElement.clientWidth,
               navigationScrollable: nav.scrollWidth > nav.clientWidth,
               navigationScrolled: nav.scrollLeft > 0,
+              leftFadeVisible:
+                wrapper.dataset.overflowLeft === "true" &&
+                leftFade.backgroundImage !== "none",
+              rightFadeHidden:
+                wrapper.dataset.overflowRight === "false" &&
+                rightFade.backgroundImage === "none",
               windowScrollX: window.scrollX,
             };
           }),
         )
         .toEqual({
-          activeClearOfFade: true,
+          activeClearOfLeftFade: true,
           activeWithinNavigation: true,
           documentFitsViewport: true,
           navigationScrollable: true,
           navigationScrolled: true,
+          leftFadeVisible: true,
+          rightFadeHidden: true,
           windowScrollX: 0,
         });
     }

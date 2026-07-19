@@ -472,21 +472,29 @@ test.describe("/sections/[jwId] 班级详情页", () => {
           const viewportBox = viewport.getBoundingClientRect();
           const activeBox = active.getBoundingClientRect();
           const rootBox = root.getBoundingClientRect();
-          const fadeWidth = Number.parseFloat(
-            getComputedStyle(root, "::after").width || "0",
-          );
+          const leftFade = getComputedStyle(root, "::before");
+          const rightFade = getComputedStyle(root, "::after");
+          const leftFadeWidth = Number.parseFloat(leftFade.width || "0");
           return {
-            clearOfFade: activeBox.right <= rootBox.right - fadeWidth + 1,
+            clearOfLeftFade: activeBox.left >= rootBox.left + leftFadeWidth - 1,
             left: activeBox.left >= viewportBox.left,
             right: activeBox.right <= viewportBox.right,
+            leftFadeVisible:
+              root.dataset.overflowLeft === "true" &&
+              leftFade.backgroundImage !== "none",
+            rightFadeHidden:
+              root.dataset.overflowRight === "false" &&
+              rightFade.backgroundImage === "none",
             windowScrollX: window.scrollX,
           };
         }),
       )
       .toEqual({
-        clearOfFade: true,
+        clearOfLeftFade: true,
         left: true,
         right: true,
+        leftFadeVisible: true,
+        rightFadeHidden: true,
         windowScrollX: 0,
       });
     await expect(page.locator("vite-error-overlay")).toHaveCount(0);

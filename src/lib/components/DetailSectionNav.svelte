@@ -1,6 +1,7 @@
 <script lang="ts">
-import { type Component, tick } from "svelte";
+import { type Component, onMount, tick } from "svelte";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
+import { cn } from "$lib/utils.js";
 
 type DetailSectionNavItem = {
   href: string;
@@ -14,28 +15,64 @@ export let activeHref = "";
 export let items: DetailSectionNavItem[];
 export let label = "";
 
+let canScrollLeft = false;
+let canScrollRight = false;
+let scrollViewport: HTMLElement | null = null;
+
+function updateOverflow() {
+  if (!scrollViewport) return;
+  canScrollLeft = scrollViewport.scrollLeft > 1;
+  canScrollRight =
+    scrollViewport.scrollLeft + scrollViewport.clientWidth <
+    scrollViewport.scrollWidth - 1;
+}
+
 function revealActive(node: HTMLElement, active: boolean) {
   function reveal(isActive: boolean) {
     if (isActive) {
-      void tick().then(() =>
-        node.scrollIntoView({ block: "nearest", inline: "center" }),
-      );
+      void tick().then(() => {
+        node.scrollIntoView({ block: "nearest", inline: "center" });
+        updateOverflow();
+      });
     }
   }
 
   reveal(active);
   return { update: reveal };
 }
+
+onMount(() => {
+  if (!scrollViewport) return;
+  const viewport = scrollViewport;
+  const resizeObserver = new ResizeObserver(updateOverflow);
+  resizeObserver.observe(viewport);
+  viewport.addEventListener("scroll", updateOverflow, { passive: true });
+  void tick().then(updateOverflow);
+
+  return () => {
+    resizeObserver.disconnect();
+    viewport.removeEventListener("scroll", updateOverflow);
+  };
+});
 </script>
 
 <div class="min-w-0" style="--sidebar-width: 14rem;">
   <Sidebar.Root
     collapsible="none"
-    class="relative w-full border-sidebar-border border-b after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:z-10 after:w-8 after:bg-gradient-to-l after:from-sidebar after:to-transparent lg:w-(--sidebar-width) lg:border-e lg:border-b-0 lg:after:hidden"
+    class={cn(
+      "relative w-full border-sidebar-border border-b lg:w-(--sidebar-width) lg:border-e lg:border-b-0",
+      canScrollLeft &&
+        "before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:z-10 before:w-8 before:bg-gradient-to-r before:from-sidebar before:to-transparent lg:before:hidden",
+      canScrollRight &&
+        "after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:z-10 after:w-8 after:bg-gradient-to-l after:from-sidebar after:to-transparent lg:after:hidden",
+    )}
+    data-overflow-left={canScrollLeft}
+    data-overflow-right={canScrollRight}
     data-testid="detail-section-nav"
   >
     <Sidebar.Content
       aria-label={ariaLabel || label}
+      bind:ref={scrollViewport}
       class="overflow-x-auto overflow-y-hidden lg:overflow-x-hidden lg:overflow-y-auto"
     >
       <Sidebar.Group>
