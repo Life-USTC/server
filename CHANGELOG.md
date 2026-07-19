@@ -1,3 +1,10 @@
+# [1.71.0](https://github.com/Life-USTC/server/compare/v1.70.1...v1.71.0) (2026-07-19)
+
+
+### Features
+
+* **auth:** add passkey sign-in and management UI ([#564](https://github.com/Life-USTC/server/issues/564)) ([d0aef80](https://github.com/Life-USTC/server/commit/d0aef80bd7369f0e39f8aeda6f06e71f25813aad))
+
 ## [1.70.1](https://github.com/Life-USTC/server/compare/v1.70.0...v1.70.1) (2026-07-19)
 
 
