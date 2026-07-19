@@ -5,6 +5,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
 /**
  * Get course.
  * @pathParams jwIdPathParamsSchema
+ * @params catalogLocaleQuerySchema
  * @response courseDetailSchema
  * @response 400:openApiErrorSchema
  * @response 404:openApiErrorSchema

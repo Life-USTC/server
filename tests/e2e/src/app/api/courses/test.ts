@@ -5,8 +5,9 @@
  * - `GET /api/courses` — List courses with optional search and pagination.
  *
  * ## Request
- * - Query: `search` (optional, matches nameCn/nameEn/code, case-insensitive),
- *          `page` (optional, default 1), `pageSize` (optional), and deprecated `limit` alias
+ * - Query: `locale` (optional, en-us/zh-cn), `search` (optional, matches
+ *          nameCn/nameEn/code, case-insensitive), `page` (optional, default 1),
+ *          `pageSize` (optional), and deprecated `limit` alias
  *
  * ## Response
  * - 200: `{ data: Course[], pagination: { page, pageSize, total, totalPages } }`
@@ -52,6 +53,31 @@ test.describe("GET /api/courses 接口", () => {
     expect(typeof body.pagination?.total).toBe("number");
     expect(typeof body.pagination?.totalPages).toBe("number");
     expect(body.pagination?.totalPages).toBeGreaterThanOrEqual(1);
+  });
+
+  test("仅显式 locale URL 变体使用共享缓存", async ({ request }) => {
+    const explicit = await request.get("/api/courses?locale=en-us&pageSize=1", {
+      headers: {
+        "accept-language": "zh-CN",
+        cookie: "NEXT_LOCALE=zh-cn",
+      },
+    });
+    expect(explicit.status()).toBe(200);
+    expect(explicit.headers()["cache-control"]).toBe(
+      "public, max-age=0, s-maxage=60, stale-while-revalidate=300",
+    );
+
+    const fallback = await request.get("/api/courses?pageSize=1", {
+      headers: { "accept-language": "en-US" },
+    });
+    expect(fallback.status()).toBe(200);
+    expect(fallback.headers()["cache-control"]).toBe("private, no-store");
+    expect(fallback.headers()["cloudflare-cdn-cache-control"]).toBe("no-store");
+
+    const invalid = await request.get("/api/courses?locale=fr-fr");
+    expect(invalid.status()).toBe(400);
+    expect(invalid.headers()["cache-control"]).toBe("private, no-store");
+    expect(invalid.headers()["cloudflare-cdn-cache-control"]).toBe("no-store");
   });
 
   test("按课程代码搜索返回 seed 课程", async ({ request }) => {
