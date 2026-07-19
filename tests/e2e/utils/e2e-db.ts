@@ -4,6 +4,7 @@ import type {
   AuditLogCleanupTarget,
 } from "../../shared/audit-cleanup";
 import * as auditFixtures from "./e2e-db/audit";
+import * as busFixtures from "./e2e-db/bus";
 import * as catalogFixtures from "./e2e-db/catalog";
 import * as oauthFixtures from "./e2e-db/oauth";
 import * as seedFixtures from "./e2e-db/seed";
@@ -18,6 +19,9 @@ const operations = {
   createOAuthClientFixture: oauthFixtures.createOAuthClientFixture,
   cleanupAuditLogsForE2e: auditFixtures.cleanupAuditLogsForE2e,
   cleanupAuditTargetsForE2e: auditFixtures.cleanupAuditTargetsForE2e,
+  isolateSingleActiveBusTripFixture:
+    busFixtures.isolateSingleActiveBusTripFixture,
+  restoreBusTripTimesFixture: busFixtures.restoreBusTripTimesFixture,
   deleteLinkedAccountFixture: oauthFixtures.deleteLinkedAccountFixture,
   deleteTempCoursesByPrefix: catalogFixtures.deleteTempCoursesByPrefix,
   deleteOAuthClientsByName: oauthFixtures.deleteOAuthClientsByName,
@@ -101,6 +105,15 @@ export const cleanupAuditLogsForE2e = (input: AuditLogCleanupInput) =>
 export const cleanupAuditTargetsForE2e = (
   targets: readonly AuditLogCleanupTarget[],
 ) => runDbFixture<void>("cleanupAuditTargetsForE2e", [targets]);
+
+export const isolateSingleActiveBusTripFixture = () =>
+  runDbFixture<busFixtures.BusTripTimesSnapshot>(
+    "isolateSingleActiveBusTripFixture",
+  );
+
+export const restoreBusTripTimesFixture = (
+  snapshot: busFixtures.BusTripTimesSnapshot,
+) => runDbFixture<void>("restoreBusTripTimesFixture", [snapshot]);
 
 export const createTempCoursesFixture = (options: {
   count: number;

@@ -4,6 +4,7 @@ import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
+import BusRouteDescription from "./BusRouteDescription.svelte";
 import BusRouteSwatch from "./BusRouteSwatch.svelte";
 
 export let allRouteIds: number[];
@@ -19,7 +20,7 @@ function formatMessage(template: string, values: Record<string, string>) {
 }
 </script>
 
-<Card.Root>
+<Card.Root data-testid="bus-map-legend">
   <Card.Header>
     <Card.Title>{copy.legend.title}</Card.Title>
     <Card.Action>
@@ -44,13 +45,10 @@ function formatMessage(template: string, values: Record<string, string>) {
             <Item.Media>
               <BusRouteSwatch {allRouteIds} routeId={route.routeId} />
             </Item.Media>
-            <Item.Content>
-              <Item.Title>{route.descriptionPrimary}</Item.Title>
-              <Item.Description class="line-clamp-none">
-                {#each route.stops as stop, index}
-                  <span>{index === 0 ? "" : "-> "}{stop.campusName}</span>
-                {/each}
-              </Item.Description>
+            <Item.Content class="min-w-0">
+              <Item.Title class="w-full">
+                <BusRouteDescription description={route.descriptionPrimary} />
+              </Item.Title>
             </Item.Content>
             <Item.Actions>
               <Badge variant="ghost">

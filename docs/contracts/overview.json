@@ -16,7 +16,7 @@
     "aggregate-first-for-assistants": "Prefer a single aggregated snapshot tool for common assistant prompts before fanning out into multiple narrower tool calls.",
     "historical-subscriptions-remain-discoverable": "A zero current-semester subscription count must not be presented as no course history when total subscriptions remain; web and assistant surfaces must offer a path to past-term sections, homework, schedules, and exams.",
     "focused-extracts-share-window": "Focused tools such as next-class and upcoming-deadlines should stay aligned with the same short-horizon window as the broader dashboard snapshot.",
-    "dashboard-card-priority": "Dashboard cards prioritize the actionable object title, timing/status, and direct destination over raw nested identifiers. Secondary context such as course, section, campus, or priority badge remains visible for disambiguation; platform audit timestamps and repeated parent objects stay out of compact cards and MCP default output."
+    "dashboard-card-priority": "Dashboard cards prioritize the actionable object title, timing/status, and direct destination over raw nested identifiers. Titles retain usable horizontal space at common desktop widths; secondary context such as course, section, campus, or priority badge remains visible for disambiguation without crowding the title. Platform audit timestamps and repeated parent objects stay out of compact cards and MCP default output."
   },
   "capabilities": {
     "authenticated-overview": {

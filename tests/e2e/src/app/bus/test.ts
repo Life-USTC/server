@@ -10,7 +10,10 @@
  */
 import { expect, type Page, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../utils/auth";
-import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import {
+  expectNoPageHorizontalOverflow,
+  gotoAndWaitForReady,
+} from "../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../utils/request-url";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 
@@ -68,6 +71,51 @@ async function openFullTimetable(page: Page) {
   });
   if (await trigger.isVisible()) await trigger.click();
   await expect(page.locator("table").first()).toBeVisible();
+}
+
+async function expectMinimumTargetHeight(page: Page, selectors: RegExp[]) {
+  for (const selector of selectors) {
+    const target = page.getByRole("button", { name: selector }).last();
+    await expect(target).toBeVisible();
+    expect((await target.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(
+      44,
+    );
+  }
+}
+
+async function expectDiscoverableTimetableScroll(page: Page) {
+  const regions = page.getByTestId("bus-timetable-scroll-region");
+  const overflowIndex = await regions.evaluateAll((nodes) =>
+    nodes.findIndex((node) => {
+      const scroller = node.querySelector<HTMLElement>(
+        '[data-slot="table-container"]',
+      );
+      return Boolean(
+        scroller && scroller.scrollWidth > scroller.clientWidth + 1,
+      );
+    }),
+  );
+  expect(overflowIndex).toBeGreaterThanOrEqual(0);
+
+  const region = regions.nth(overflowIndex);
+  const scroller = region.locator('[data-slot="table-container"]');
+  await expect(
+    region.getByTestId("bus-timetable-scroll-cue-right"),
+  ).toBeVisible();
+  await expect(region.getByTestId("bus-timetable-scroll-cue-left")).toHaveCount(
+    0,
+  );
+
+  await scroller.evaluate((element) => {
+    element.scrollLeft = element.scrollWidth;
+    element.dispatchEvent(new Event("scroll"));
+  });
+  await expect(
+    region.getByTestId("bus-timetable-scroll-cue-left"),
+  ).toBeVisible();
+  await expect(
+    region.getByTestId("bus-timetable-scroll-cue-right"),
+  ).toHaveCount(0);
 }
 
 test.describe("校车面板标签页", () => {
@@ -133,13 +181,13 @@ test.describe("校车面板标签页", () => {
     await captureStepScreenshot(page, testInfo, "bus-planner-public");
   });
 
-  test("公共与登录校车版本标签随界面语言本地化", async ({
+  test("公共与登录校车界面不显示无值版本标签", async ({
     page,
     baseURL,
   }, testInfo) => {
     await setLocale(page, baseURL, "zh-cn");
     await gotoAndWaitForReady(page, "/?tab=bus");
-    await expect(page.getByText("当前版本", { exact: true })).toHaveCount(1);
+    await expect(page.getByText("当前版本", { exact: true })).toHaveCount(0);
     await expect(
       page.getByText("Static Structured Bus Timetable", { exact: true }),
     ).toHaveCount(0);
@@ -148,7 +196,7 @@ test.describe("校车面板标签页", () => {
     await signInAsDebugUser(page, "/dashboard/bus");
     await setLocale(page, baseURL, "zh-cn");
     await gotoAndWaitForReady(page, "/dashboard/bus");
-    await expect(page.getByText("当前版本", { exact: true })).toHaveCount(1);
+    await expect(page.getByText("当前版本", { exact: true })).toHaveCount(0);
     await expect(
       page.getByText("Static Structured Bus Timetable", { exact: true }),
     ).toHaveCount(0);
@@ -156,7 +204,7 @@ test.describe("校车面板标签页", () => {
     await setLocale(page, baseURL, "en-us");
     await gotoAndWaitForReady(page, "/dashboard/bus");
     await expect(page.getByText("Active version", { exact: true })).toHaveCount(
-      1,
+      0,
     );
     await expect(
       page.getByText("Static Structured Bus Timetable", { exact: true }),
@@ -215,7 +263,7 @@ test.describe("校车面板标签页", () => {
 
     await openRouteControls(page);
     await chooseStop(page, /End stop|到达站/, /南区/);
-    await expect(summary).toContainText("东区 -> 南区");
+    await expect(summary).toContainText(/东区\s*→\s*南区/);
 
     await page.reload();
     await expect(
@@ -223,7 +271,7 @@ test.describe("校车面板标签页", () => {
         .locator("[data-testid='bus-end-stop-group']")
         .getByRole("radio", { name: /南区/ }),
     ).toBeHidden();
-    await expect(summary).toContainText("东区 -> 南区");
+    await expect(summary).toContainText(/东区\s*→\s*南区/);
     await openFullTimetable(page);
 
     await captureStepScreenshot(page, testInfo, "bus-planner-public-mobile");
@@ -241,11 +289,11 @@ test.describe("校车面板标签页", () => {
     await expect(routeSectionRows(page)).toHaveCount(2);
     const routeTexts = await routeSectionRows(page).allTextContents();
     expect(
-      routeTexts.some((text) => text.includes("东区 -> 北区 -> 西区")),
+      routeTexts.some((text) => /东区\s*→\s*北区\s*→\s*西区/.test(text)),
     ).toBe(true);
     expect(
       routeTexts.some((text) =>
-        text.includes("东区 -> 西区 -> 先研院 -> 高新"),
+        /东区\s*→\s*西区\s*→\s*先研院\s*→\s*高新/.test(text),
       ),
     ).toBe(true);
   });
@@ -282,7 +330,7 @@ test.describe("校车面板标签页", () => {
       intervals: [250, 500, 1_000],
     });
     await expect(routeSectionRows(page).first()).toContainText(
-      "高新 -> 先研院 -> 西区 -> 东区",
+      /高新\s*→\s*先研院\s*→\s*西区\s*→\s*东区/,
     );
 
     await captureStepScreenshot(page, testInfo, "bus-planner-reverse");
@@ -299,7 +347,9 @@ test.describe("校车面板标签页", () => {
     await chooseStop(page, /End stop|到达站/, /南区/);
 
     await expect(routeSectionRows(page)).toHaveCount(1);
-    await expect(routeSectionRows(page).first()).toContainText("东区 -> 南区");
+    await expect(routeSectionRows(page).first()).toContainText(
+      /东区\s*→\s*南区/,
+    );
     await expect(page.locator("table")).toContainText("南区");
   });
 
@@ -353,6 +403,61 @@ test.describe("校车面板标签页", () => {
     expect(weekendRows).not.toBe(weekdayRows);
 
     await captureStepScreenshot(page, testInfo, "bus-planner-daytype");
+  });
+
+  test("280px 与 320px 公共规划器无页面溢出且主要操作达到触控高度", async ({
+    page,
+  }) => {
+    for (const width of [280, 320]) {
+      await page.setViewportSize({ width, height: 900 });
+      await gotoAndWaitForReady(page, "/?tab=bus");
+      const summary = page.getByTestId("bus-compact-summary");
+      await expect(summary).toBeVisible();
+
+      await expectMinimumTargetHeight(page, [
+        /Change route|调整路线/,
+        /Full timetable|完整时刻表/,
+      ]);
+      for (const target of [
+        summary.getByRole("button", { name: /Reverse|反向/ }),
+        summary.getByRole("link", { name: /Transit map|线路图/ }),
+      ]) {
+        expect(
+          (await target.boundingBox())?.height ?? 0,
+        ).toBeGreaterThanOrEqual(44);
+      }
+
+      await openRouteControls(page);
+      await expectMinimumTargetHeight(page, [/Reverse|反向/]);
+      const campusTargets = page.locator(
+        "[data-testid='bus-start-stop-group'] [role='radio']",
+      );
+      expect(await campusTargets.count()).toBeGreaterThan(0);
+      for (const target of await campusTargets.all()) {
+        expect(
+          (await target.boundingBox())?.height ?? 0,
+        ).toBeGreaterThanOrEqual(44);
+      }
+      await openFullTimetable(page);
+      await expectDiscoverableTimetableScroll(page);
+      await expectNoPageHorizontalOverflow(page);
+    }
+  });
+
+  test("280px 登录规划器与时刻表保持在页面宽度内", async ({ page }) => {
+    await page.setViewportSize({ width: 280, height: 900 });
+    await signInAsDebugUser(page, "/dashboard/bus");
+    await gotoAndWaitForReady(page, "/dashboard/bus");
+
+    const mapLink = page
+      .getByRole("main")
+      .getByRole("link", { name: /Transit map|线路图/ })
+      .last();
+    expect((await mapLink.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(
+      44,
+    );
+    await expectMinimumTargetHeight(page, [/Reverse|反向/]);
+    await expectNoPageHorizontalOverflow(page);
   });
 
   test("登录规划器自动保存到校车偏好设置", async ({ page }, testInfo) => {

@@ -9,6 +9,7 @@ import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
+import BusRouteDescription from "./BusRouteDescription.svelte";
 import BusRouteSwatch from "./BusRouteSwatch.svelte";
 
 export let allRouteIds: number[];
@@ -40,7 +41,7 @@ function activeTripBadge(trip: BusMapActiveTrip) {
 </script>
 
 {#if mapData.activeTrips.length > 0}
-  <ScrollArea class="h-72">
+  <ScrollArea class="max-h-72" data-testid="bus-map-active-trips">
     <Item.Group role="list">
       {#each mapData.activeTrips as trip}
         {@const route = routeById(trip.routeId)}
@@ -62,7 +63,13 @@ function activeTripBadge(trip: BusMapActiveTrip) {
             />
           </Item.Media>
           <Item.Content>
-            <Item.Title>{route?.descriptionPrimary ?? `${copy.legend.route} ${trip.routeId}`}</Item.Title>
+            <Item.Title class="w-full">
+              {#if route}
+                <BusRouteDescription description={route.descriptionPrimary} />
+              {:else}
+                {copy.legend.route} {trip.routeId}
+              {/if}
+            </Item.Title>
             <Item.Description>
               {trip.departureTime ?? "--:--"} -> {trip.arrivalTime ?? "--:--"}
             </Item.Description>
