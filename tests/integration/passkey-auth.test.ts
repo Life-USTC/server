@@ -17,13 +17,14 @@ function base64(bytes: Uint8Array) {
   return btoa(String.fromCharCode(...bytes));
 }
 
-async function createSessionCookie(userId: string) {
+async function createSessionCookie(userId: string, createdAt?: Date) {
   const token = crypto.randomUUID();
   await prisma.session.create({
     data: {
       expires: new Date(Date.now() + 60 * 60 * 1000),
       sessionToken: token,
       userId,
+      ...(createdAt ? { createdAt } : {}),
     },
   });
   const { getBetterAuthInstance } = await import("@/lib/auth/core");
@@ -261,6 +262,21 @@ describe.sequential("Better Auth passkey integration", () => {
       id: "localhost",
       name: "Life@USTC",
     });
+
+    const staleCookie = await createSessionCookie(
+      user.id,
+      new Date(Date.now() - 25 * 60 * 60 * 1000),
+    );
+    const staleResponse = await authRequest(
+      "/passkey/generate-register-options?name=Stale",
+      {
+        headers: {
+          cookie: staleCookie,
+          origin: authOrigin,
+        },
+      },
+    );
+    expect(staleResponse.status).toBe(403);
   });
 
   it("rejects cookie-backed verification from missing or untrusted origins", async () => {
