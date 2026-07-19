@@ -60,7 +60,7 @@ $: pageLabel = teacherLabels.pageOf
     {totalPages}
   />
   {#if teachers.length > 0}
-    <div class="md:hidden">
+    <div class="xl:hidden">
       <Item.Group>
         {#each teachers as teacher}
           {@const teacherHref = `/teachers/${teacher.id}`}
@@ -90,7 +90,7 @@ $: pageLabel = teacherLabels.pageOf
         {/each}
       </Item.Group>
     </div>
-    <div class="hidden md:block">
+    <div class="hidden xl:block">
       <Table.Root>
         <Table.Header>
           <Table.Row>

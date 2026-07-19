@@ -12,25 +12,34 @@ import {
   getSectionScheduleGroupsAction,
   getSectionSchedulesAction,
 } from "@/lib/api/routes/academic-section-schedule-actions";
-import { getRequestLocale } from "@/lib/api/routes/request-locale";
+import {
+  getRequestLocale,
+  resolvePublicCatalogLocale,
+} from "@/lib/api/routes/request-locale";
 
 export async function getSectionsRoute(request: Request) {
+  const localeResolution = resolvePublicCatalogLocale(request);
+  if (localeResolution instanceof Response) {
+    return localeResolution;
+  }
+
   const parsed = parseSectionsRouteQuery(request);
   if (parsed instanceof Response) {
     return parsed;
   }
 
   const { query: parsedQuery, pagination } = parsed;
+  const { locale: _locale, ...filters } = parsedQuery;
   try {
-    const locale = getRequestLocale(request);
     return await listSectionsAction(
       {
-        ...parsedQuery,
-        ids: parseIntegerList(parsedQuery.ids),
-        jwIds: parseIntegerList(parsedQuery.jwIds),
+        ...filters,
+        ids: parseIntegerList(filters.ids),
+        jwIds: parseIntegerList(filters.jwIds),
       },
       pagination,
-      locale,
+      localeResolution.locale,
+      localeResolution.cacheHeaders,
     );
   } catch (error) {
     return handleRouteError("Failed to fetch sections", error);
@@ -41,11 +50,20 @@ export async function getSectionDetailRoute(
   request: Request,
   params: { jwId: string },
 ) {
-  const locale = getRequestLocale(request);
+  const localeResolution = resolvePublicCatalogLocale(request);
+  if (localeResolution instanceof Response) {
+    return localeResolution;
+  }
+
   return withParsedSectionJwId(
     params,
     "Failed to fetch section",
-    (parsedJwId) => getSectionDetailAction(parsedJwId, locale),
+    (parsedJwId) =>
+      getSectionDetailAction(
+        parsedJwId,
+        localeResolution.locale,
+        localeResolution.cacheHeaders,
+      ),
   );
 }
 
@@ -53,7 +71,11 @@ export async function getSectionSchedulesRoute(
   request: Request,
   params: { jwId: string },
 ) {
-  const locale = getRequestLocale(request);
+  const localeResolution = resolvePublicCatalogLocale(request);
+  if (localeResolution instanceof Response) {
+    return localeResolution;
+  }
+
   const parsedQuery = parseSectionSchedulesRouteQuery(request);
   if (parsedQuery instanceof Response) return parsedQuery;
 
@@ -61,11 +83,16 @@ export async function getSectionSchedulesRoute(
     params,
     "Failed to fetch section schedules",
     (parsedJwId) =>
-      getSectionSchedulesAction(parsedJwId, locale, {
-        dateFrom: parsedQuery.dateFrom,
-        dateTo: parsedQuery.dateTo,
-        limit: parsedQuery.limit,
-      }),
+      getSectionSchedulesAction(
+        parsedJwId,
+        localeResolution.locale,
+        localeResolution.cacheHeaders,
+        {
+          dateFrom: parsedQuery.dateFrom,
+          dateTo: parsedQuery.dateTo,
+          limit: parsedQuery.limit,
+        },
+      ),
   );
 }
 
@@ -73,11 +100,20 @@ export async function getSectionScheduleGroupsRoute(
   request: Request,
   params: { jwId: string },
 ) {
-  const locale = getRequestLocale(request);
+  const localeResolution = resolvePublicCatalogLocale(request);
+  if (localeResolution instanceof Response) {
+    return localeResolution;
+  }
+
   return withParsedSectionJwId(
     params,
     "Failed to fetch schedule groups",
-    (parsedJwId) => getSectionScheduleGroupsAction(parsedJwId, locale),
+    (parsedJwId) =>
+      getSectionScheduleGroupsAction(
+        parsedJwId,
+        localeResolution.locale,
+        localeResolution.cacheHeaders,
+      ),
   );
 }
 

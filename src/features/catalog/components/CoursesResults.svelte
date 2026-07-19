@@ -43,7 +43,7 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
     {totalPages}
   />
   {#if data.data.length > 0}
-    <div class="md:hidden">
+    <div class="xl:hidden">
       <Item.Group>
         {#each data.data as course}
           {@const courseHref = `/courses/${course.jwId}`}
@@ -70,7 +70,7 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
         {/each}
       </Item.Group>
     </div>
-    <div class="hidden md:block">
+    <div class="hidden xl:block">
       <Table.Root>
         <Table.Header>
           <Table.Row>

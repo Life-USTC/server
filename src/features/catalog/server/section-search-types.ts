@@ -23,3 +23,12 @@ export type SectionSearchConditionKey = Exclude<
   keyof ParsedSectionSearchQuery,
   "general" | "sort" | "order"
 >;
+
+export type SectionSearchOverrides = {
+  teacher?: string | null;
+  courseCode?: string | null;
+  sectionCode?: string | null;
+  credits?: number | string | null;
+  sort?: string | null;
+  order?: string | null;
+};

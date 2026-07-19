@@ -45,10 +45,14 @@ describe("academic 列表路由缓存", () => {
     );
 
     const first = await getCoursesRoute(
-      new Request("https://example.test/api/courses?search=math&page=1"),
+      new Request(
+        "https://example.test/api/courses?locale=en-us&search=math&page=1",
+      ),
     );
     const second = await getCoursesRoute(
-      new Request("https://example.test/api/courses?page=1&search=math"),
+      new Request(
+        "https://example.test/api/courses?page=1&search=math&locale=en-us",
+      ),
     );
 
     expect(first.headers.get("Cache-Control")).toBe(
@@ -65,10 +69,14 @@ describe("academic 列表路由缓存", () => {
     );
 
     const first = await getTeachersRoute(
-      new Request("https://example.test/api/teachers?search=li&page=1"),
+      new Request(
+        "https://example.test/api/teachers?locale=zh-cn&search=li&page=1",
+      ),
     );
     const second = await getTeachersRoute(
-      new Request("https://example.test/api/teachers?page=1&search=li"),
+      new Request(
+        "https://example.test/api/teachers?page=1&search=li&locale=zh-cn",
+      ),
     );
 
     expect(first.headers.get("Cache-Control")).toBe(
@@ -77,5 +85,23 @@ describe("academic 列表路由缓存", () => {
     expect(first.headers.get("Vary")).toBe("Accept-Language, Cookie");
     expect(second.status).toBe(200);
     expect(listTeacherSummariesMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not publicly cache a locale negotiated from request headers", async () => {
+    const { getCoursesRoute } = await import(
+      "@/lib/api/routes/academic-course-routes"
+    );
+
+    const response = await getCoursesRoute(
+      new Request("https://example.test/api/courses?page=1", {
+        headers: { "accept-language": "en-US" },
+      }),
+    );
+
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
+      "no-store",
+    );
+    expect(response.headers.get("Vary")).toBe("Accept-Language, Cookie");
   });
 });

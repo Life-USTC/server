@@ -106,6 +106,29 @@ describe("jsonToolResult canonical structured output", () => {
     });
   });
 
+  it("omits derived Markdown HTML in compact mode and keeps it in full mode", () => {
+    const payload = {
+      description: {
+        content: "Source Markdown",
+        renderedHtml: "<p>Source Markdown</p>",
+      },
+      thread: [
+        {
+          body: "Comment Markdown",
+          renderedBody: "<p>Comment Markdown</p>",
+        },
+      ],
+    };
+
+    const compact = parseToolText(jsonToolResult(payload));
+    const full = parseToolText(jsonToolResult(payload, { mode: "full" }));
+
+    expect(compact.description).toEqual({ content: "Source Markdown" });
+    expect(compact.thread).toEqual([{ body: "Comment Markdown" }]);
+    expect(full.description).toEqual(payload.description);
+    expect(full.thread).toEqual(payload.thread);
+  });
+
   it("wraps non-object payloads in object-shaped structuredContent", () => {
     const rawResult = jsonToolResult([{ id: 1 }, { id: 2 }], {
       mode: "full",

@@ -9,7 +9,8 @@
   "rules": {
     "schedule-definition": "Schedule refers to a section's class times, locations, and week patterns.",
     "schedule-as-context": "The schedule within a section detail page is not treated as an isolated table but as an important entry point for understanding the section context.",
-    "personal-calendar-integrates": "The personal calendar integrates subscribed section schedules, homework due dates, exam times, and personal todo due dates."
+    "personal-calendar-integrates": "The personal calendar integrates subscribed section schedules, homework due dates, exam times, and personal todo due dates.",
+    "public-rest-locale-cache": "Localized public schedule REST responses may use short shared CDN caching only when a supported locale is explicit in the locale URL query; responses localized from Cookie/Accept-Language fallback are private/no-store."
   },
   "capabilities": {
     "my-schedule": {

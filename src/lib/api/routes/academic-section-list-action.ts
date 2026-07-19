@@ -1,6 +1,5 @@
 import type { AppLocale } from "@/i18n/config";
 import { jsonResponse } from "@/lib/api/helpers";
-import { PUBLIC_LOCALE_CATALOG_HEADERS } from "@/lib/public-cache-control";
 import { cachedPublicRuntimeData } from "@/lib/public-runtime-cache";
 
 const SECTION_LIST_API_CACHE_TTL_MS = 60_000;
@@ -24,6 +23,7 @@ export async function listSectionsAction(
     pageSize: number;
   },
   locale: AppLocale,
+  cacheHeaders: HeadersInit,
 ) {
   const result = await cachedPublicRuntimeData(
     `api:sections:${JSON.stringify({ locale, parsedQuery, pagination })}`,
@@ -31,7 +31,7 @@ export async function listSectionsAction(
     () => listUncachedSectionsAction(parsedQuery, pagination, locale),
   );
   return jsonResponse(result, {
-    headers: PUBLIC_LOCALE_CATALOG_HEADERS,
+    headers: cacheHeaders,
   });
 }
 

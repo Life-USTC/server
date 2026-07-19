@@ -10,6 +10,7 @@ export type EditorSummary = {
 export type DescriptionData = {
   id: string | null;
   content: string;
+  renderedHtml: string;
   updatedAt: string | null;
   lastEditedAt: string | null;
   lastEditedBy: EditorSummary | null;

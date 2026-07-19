@@ -5,6 +5,8 @@ import type {
   DescriptionViewer,
   EditorSummary,
 } from "@/features/descriptions/lib/description-payload-types";
+import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
+import { renderMarkdown } from "@/lib/components/markdown-preview-renderer";
 
 export type {
   DescriptionData,
@@ -38,6 +40,7 @@ export function emptyDescriptionData(): DescriptionData {
   return {
     id: null,
     content: "",
+    renderedHtml: "",
     updatedAt: null,
     lastEditedAt: null,
     lastEditedBy: null,
@@ -62,6 +65,9 @@ export function serializeDescriptionRecord(
   return {
     id: description.id,
     content: description.content ?? "",
+    renderedHtml: renderMarkdown(description.content ?? "", {
+      remarkPlugins: campusReferenceMarkdownPlugins,
+    }),
     updatedAt: description.updatedAt
       ? toShanghaiIsoString(description.updatedAt)
       : null,

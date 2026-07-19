@@ -205,6 +205,8 @@ export const EVENT_PAYLOAD_COMPACTORS: Record<string, (v: unknown) => unknown> =
     todo_due: compactTodo,
   };
 
+const COMPACT_OMITTED_KEYS = new Set(["renderedBody", "renderedHtml"]);
+
 export function compactEvents(
   value: unknown[],
   fallbackCompact: (value: unknown) => unknown,
@@ -231,6 +233,9 @@ export function compactMcpPayload(value: unknown): unknown {
 
   const out: Record<string, unknown> = {};
   for (const [key, fieldValue] of Object.entries(value)) {
+    if (COMPACT_OMITTED_KEYS.has(key)) {
+      continue;
+    }
     if (Object.hasOwn(KEY_COMPACTORS, key)) {
       out[key] = KEY_COMPACTORS[key](fieldValue);
       continue;

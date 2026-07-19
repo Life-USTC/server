@@ -1,3 +1,40 @@
+## [1.63.2](https://github.com/Life-USTC/server/compare/v1.63.1...v1.63.2) (2026-07-19)
+
+
+### Bug Fixes
+
+* **mcp:** align compact markdown output schemas ([cdad8bb](https://github.com/Life-USTC/server/commit/cdad8bb7ef3def607e7f45d966837b7410f5055f))
+
+
+### Performance Improvements
+
+* **markdown:** avoid parser during read hydration ([c215ea5](https://github.com/Life-USTC/server/commit/c215ea5a0b4dbe44f14231ec7058a8f638d240ef))
+
+## [1.63.1](https://github.com/Life-USTC/server/compare/v1.63.0...v1.63.1) (2026-07-19)
+
+
+### Bug Fixes
+
+* **api:** isolate localized catalog caches ([fe6771c](https://github.com/Life-USTC/server/commit/fe6771c414c26236179ddc0389cc8570b7f7c4d0))
+
+
+### Performance Improvements
+
+* trim detail page SSR critical paths ([7ee8169](https://github.com/Life-USTC/server/commit/7ee8169210e05aa90c80d45da8be6056b0f2bb2b))
+
+# [1.63.0](https://github.com/Life-USTC/server/compare/v1.62.0...v1.63.0) (2026-07-19)
+
+
+### Features
+
+* **seo:** add AI discovery policy ([#509](https://github.com/Life-USTC/server/issues/509)) ([c255f13](https://github.com/Life-USTC/server/commit/c255f13def50fec4986b782f69a092833eeb1f6c))
+* **seo:** add catalog structured data ([#510](https://github.com/Life-USTC/server/issues/510)) ([c9e2fb6](https://github.com/Life-USTC/server/commit/c9e2fb6aecbfa9ef9b7ea114d2cacaaff9562b33))
+
+
+### Performance Improvements
+
+* **sitemap:** cache generated document ([#508](https://github.com/Life-USTC/server/issues/508)) ([737e35a](https://github.com/Life-USTC/server/commit/737e35a7d4dd042538093c3462383c8c3c45e0c5))
+
 # [1.62.0](https://github.com/Life-USTC/server/compare/v1.61.2...v1.62.0) (2026-07-17)
 
 

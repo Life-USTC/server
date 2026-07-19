@@ -16,14 +16,18 @@ import SlidersHorizontalIcon from "@lucide/svelte/icons/sliders-horizontal";
 import XIcon from "@lucide/svelte/icons/x";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
-import { Input } from "$lib/components/ui/input/index.js";
+import * as InputGroup from "$lib/components/ui/input-group/index.js";
+import { Separator } from "$lib/components/ui/separator/index.js";
 import * as Sheet from "$lib/components/ui/sheet/index.js";
+import { cn } from "$lib/utils.js";
 
 export let activeFilters: CatalogActiveFilter[] = [];
 export let clearHref: string;
 export let clearLabel: string;
+export let filterDescription = "";
 export let filterTitle: string;
 export let hiddenFilters: CatalogHiddenFilter[] = [];
+export let inlineFilters = false;
 export let open = false;
 export let searchId: string;
 export let searchLabel: string;
@@ -32,19 +36,33 @@ export let searchValue: string;
 </script>
 
 <div
-  class="grid gap-3 border-b bg-background px-4 py-3 sm:px-5 lg:hidden"
+  class={cn(
+    "grid gap-3",
+    inlineFilters && "xl:flex xl:flex-wrap xl:items-end",
+  )}
   data-testid="catalog-mobile-filters"
 >
-  <div class="flex min-w-0 items-end gap-2">
-    <form class="flex min-w-0 flex-1 items-end gap-2" method="GET">
-      <label class="sr-only" for={searchId}>{searchLabel}</label>
-      <div class="relative min-w-0 flex-1">
-        <SearchIcon
-          aria-hidden="true"
-          class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-        />
-        <Input
-          class="h-9 pl-9"
+  <form
+    class={cn(
+      "grid min-w-0 gap-2",
+      inlineFilters
+        ? "grid-cols-[minmax(0,1fr)_auto]"
+        : "grid-cols-2 min-[420px]:grid-cols-[minmax(0,1fr)_auto_auto]",
+      inlineFilters && "xl:min-w-0 xl:flex-1",
+    )}
+    method="GET"
+  >
+    <label class="sr-only" for={searchId}>{searchLabel}</label>
+    <InputGroup.Root
+      class={cn(
+        "h-11",
+        inlineFilters ? "" : "col-span-2 min-[420px]:col-span-1",
+      )}
+    >
+      <InputGroup.Addon>
+        <SearchIcon aria-hidden="true" />
+      </InputGroup.Addon>
+      <InputGroup.Input
           id={searchId}
           name="search"
           placeholder={searchPlaceholder}
@@ -54,60 +72,101 @@ export let searchValue: string;
             searchValue = (event.currentTarget as HTMLInputElement).value;
           }}
         />
-      </div>
-      {#each hiddenFilters as filter}
-        {#if filter.value}
-          <input name={filter.name} type="hidden" value={filter.value} />
-        {/if}
-      {/each}
-      <Button class="h-9" type="submit">{searchLabel}</Button>
-    </form>
+    </InputGroup.Root>
+    {#each hiddenFilters as filter}
+      {#if filter.value}
+        <input name={filter.name} type="hidden" value={filter.value} />
+      {/if}
+    {/each}
+    <Button class="h-11 w-full min-[420px]:w-auto" type="submit">
+      {searchLabel}
+    </Button>
 
-    <Sheet.Root bind:open>
-      <Sheet.Trigger>
-        {#snippet child({ props })}
-          <Button
-            aria-label={filterTitle}
-            class="relative h-9"
-            type="button"
-            variant="outline"
-            {...props}
-          >
-            <SlidersHorizontalIcon aria-hidden="true" />
-            <span class="hidden min-[360px]:inline">{filterTitle}</span>
-            {#if activeFilters.length > 0}
-              <Badge class="ml-0.5 px-1.5" variant="secondary">{activeFilters.length}</Badge>
+    {#if !inlineFilters}
+      <Sheet.Root bind:open>
+        <Sheet.Trigger>
+          {#snippet child({ props })}
+            <Button
+              aria-label={activeFilters.length > 0
+                ? `${filterTitle} (${activeFilters.length})`
+                : filterTitle}
+              class="relative h-11 w-full min-w-0 min-[420px]:w-auto"
+              type="button"
+              variant="outline"
+              {...props}
+            >
+              <SlidersHorizontalIcon aria-hidden="true" data-icon="inline-start" />
+              <span class="min-w-0 truncate">{filterTitle}</span>
+              {#if activeFilters.length > 0}
+                <Badge class="ml-0.5 px-1.5" variant="secondary">{activeFilters.length}</Badge>
+              {/if}
+            </Button>
+          {/snippet}
+        </Sheet.Trigger>
+        <Sheet.Content
+          class="overflow-hidden p-0 data-[side=right]:w-[calc(100%-1rem)] data-[side=right]:max-w-lg"
+          side="right"
+        >
+          <Sheet.Header class="shrink-0 border-b pr-12">
+            <Sheet.Title>{filterTitle}</Sheet.Title>
+            {#if filterDescription}
+              <Sheet.Description>{filterDescription}</Sheet.Description>
+            {:else}
+              <Sheet.Description class="sr-only">{filterTitle}</Sheet.Description>
             {/if}
-          </Button>
-        {/snippet}
-      </Sheet.Trigger>
-      <Sheet.Content class="w-[min(22rem,calc(100%-1rem))] overflow-y-auto p-0" side="right">
-        <Sheet.Header class="border-b pr-12">
-          <Sheet.Title>{filterTitle}</Sheet.Title>
-          <Sheet.Description class="sr-only">{filterTitle}</Sheet.Description>
-        </Sheet.Header>
-        <div class="p-4">
-          <slot />
-        </div>
-      </Sheet.Content>
-    </Sheet.Root>
-  </div>
+          </Sheet.Header>
+          <div class="min-h-0 flex-1 overflow-y-auto p-4">
+            <slot />
+          </div>
+        </Sheet.Content>
+      </Sheet.Root>
+    {/if}
+  </form>
+
+  {#if inlineFilters}
+    <Separator class="xl:hidden" />
+    <div
+      aria-label={filterTitle}
+      class="xl:w-fit xl:shrink-0"
+      data-testid="catalog-inline-filters"
+      role="group"
+    >
+      <slot />
+    </div>
+  {/if}
 
   {#if activeFilters.length > 0}
     <div
       aria-label={filterTitle}
-      class="flex flex-wrap items-center gap-1.5"
+      class={cn(
+        "flex flex-wrap items-center gap-1.5",
+        inlineFilters && "xl:basis-full",
+      )}
       data-testid="catalog-active-filters"
+      role="group"
     >
       {#each activeFilters as filter}
-        <Button href={filter.href} size="sm" variant="secondary">
-          <span class="max-w-52 truncate">{filter.label}</span>
+        <Button
+          aria-label={`${clearLabel}: ${filter.label}`}
+          class="min-h-11 max-w-full min-w-0 sm:min-h-8"
+          href={filter.href}
+          size="sm"
+          title={filter.label}
+          variant="secondary"
+        >
+          <span class="min-w-0 truncate">{filter.label}</span>
           <XIcon aria-hidden="true" data-icon="inline-end" />
-          <span class="sr-only">{clearLabel}</span>
         </Button>
       {/each}
       {#if activeFilters.length > 1}
-        <Button href={clearHref} size="sm" variant="ghost">{clearLabel}</Button>
+        <Button
+          class="min-h-11 sm:min-h-8"
+          href={clearHref}
+          size="sm"
+          variant="ghost"
+        >
+          {clearLabel}
+        </Button>
       {/if}
     </div>
   {/if}

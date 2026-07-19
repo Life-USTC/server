@@ -5,6 +5,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
 /**
  * Get teacher.
  * @pathParams teacherIdPathParamsSchema
+ * @params catalogLocaleQuerySchema
  * @response teacherDetailSchema
  * @response 400:openApiErrorSchema
  * @response 404:openApiErrorSchema

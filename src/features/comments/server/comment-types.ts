@@ -25,6 +25,7 @@ export type CommentReaction = {
 export type CommentNode = {
   id: string;
   body: string;
+  renderedBody: string;
   visibility: string;
   status: string;
   author: CommentAuthor | null;
