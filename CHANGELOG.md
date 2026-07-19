@@ -1,3 +1,18 @@
+# [1.64.0](https://github.com/Life-USTC/server/compare/v1.63.2...v1.64.0) (2026-07-19)
+
+
+### Bug Fixes
+
+* **calendar:** persist personal feed exports ([#524](https://github.com/Life-USTC/server/issues/524)) ([7af7e39](https://github.com/Life-USTC/server/commit/7af7e3982bee7ada6f58587e99a2e2c23e5e5348))
+* close infrastructure reliability gaps ([44fe108](https://github.com/Life-USTC/server/commit/44fe108bac1f47dcc3792a355bd75eb52465cee0))
+* **static-loader:** avoid unchanged row rewrites ([d90e418](https://github.com/Life-USTC/server/commit/d90e4180ea55b08c4ef3a044129977ffc6642eb5))
+* **ui:** apply theme before paint and optimize shell icon ([#522](https://github.com/Life-USTC/server/issues/522)) ([ee5eca3](https://github.com/Life-USTC/server/commit/ee5eca314ef29c64b8d938d1b250439902a7e0c8))
+
+
+### Features
+
+* **observability:** measure SSR page performance ([#521](https://github.com/Life-USTC/server/issues/521)) ([a7df149](https://github.com/Life-USTC/server/commit/a7df14945cbac69d3e115edf4ec1905f2b44ffc9))
+
 ## [1.63.2](https://github.com/Life-USTC/server/compare/v1.63.1...v1.63.2) (2026-07-19)
 
 
