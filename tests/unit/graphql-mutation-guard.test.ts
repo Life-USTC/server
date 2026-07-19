@@ -42,6 +42,31 @@ describe("GraphQL mutation guard", () => {
     ]);
   });
 
+  it("uses the stricter shared batch budget without changing OAuth scope", async () => {
+    const limit = vi.fn().mockResolvedValue({ success: true });
+    setCloudflareRuntimeEnv({ USER_BATCH_WRITE_RATE_LIMITER: { limit } });
+
+    await expect(
+      requireGraphqlMutation(
+        context({
+          kind: "oauth",
+          userId: "user-1",
+          scopes: new Set(["todo:write"]),
+          resource: "https://life.example/api/graphql",
+        }),
+        "todo",
+        { rateLimitTier: "batch" },
+      ),
+    ).resolves.toMatchObject({ userId: "user-1" });
+
+    expect(JSON.parse(limit.mock.calls[0][0].key)).toEqual([
+      "user-mutation:v1",
+      "life.example",
+      "todo:batch-write",
+      "user-1",
+    ]);
+  });
+
   it.each([
     "todo",
     "description",

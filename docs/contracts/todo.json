@@ -61,6 +61,29 @@
             "required_scopes": ["todo:write"],
             "rest_equivalent": "DELETE /api/todos/[id]",
             "mcp_equivalent": "delete_my_todo"
+          },
+          {
+            "name": "setTodoCompletions",
+            "returns": "TodoCompletionBatchPayload!",
+            "auth": "user",
+            "required_scopes": ["todo:write"],
+            "rest_equivalent": "PATCH /api/todos/batch",
+            "mcp_equivalent": "update_my_todo",
+            "notes": [
+              "Accepts 1-100 unique todo IDs and preserves REST per-item partial-success semantics.",
+              "Missing and non-owned todos are reported on their result item without aborting valid updates."
+            ]
+          },
+          {
+            "name": "deleteTodos",
+            "returns": "TodoDeleteBatchPayload!",
+            "auth": "user",
+            "required_scopes": ["todo:write"],
+            "rest_equivalent": "DELETE /api/todos/batch",
+            "mcp_equivalent": "delete_my_todo",
+            "notes": [
+              "Accepts 1-100 unique todo IDs and preserves REST per-item partial-success semantics."
+            ]
           }
         ]
       },

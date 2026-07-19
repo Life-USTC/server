@@ -22,7 +22,10 @@ import {
   homeworkDescriptionInputSchema,
   homeworkTitleSchema,
 } from "@/features/homeworks/lib/homework-schema";
-import { setHomeworkCompletion } from "@/features/homeworks/server/homework-completion";
+import {
+  setHomeworkCompletion,
+  setHomeworkCompletions,
+} from "@/features/homeworks/server/homework-completion";
 import { createHomeworkForSection } from "@/features/homeworks/server/homework-create";
 import { homeworkDateError } from "@/features/homeworks/server/homework-dates";
 import {
@@ -34,7 +37,10 @@ import {
   buildHomeworkUpdateIntent,
   hasHomeworkUpdateIntentChanges,
 } from "@/features/homeworks/server/homework-update-intent";
-import { setUserSectionSubscriptionByJwId } from "@/features/subscriptions/server/subscriptions";
+import {
+  batchUpdateUserSectionSubscriptions,
+  setUserSectionSubscriptionByJwId,
+} from "@/features/subscriptions/server/subscriptions";
 import type { TodoPriorityValue } from "@/features/todos/lib/todo-priority";
 import {
   createTodo,
@@ -66,7 +72,9 @@ import {
   normalizeIdList,
   normalizeTodoContent,
   normalizeTodoTitle,
+  rejectDuplicateMutationTargets,
   rejectExplicitNullFields,
+  requireMutationBatchSize,
   requireMutationId,
 } from "./mutation-input";
 
@@ -102,6 +110,18 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
     HOMEWORK
   }
 
+  enum BatchMutationErrorCode {
+    NOT_FOUND
+    FORBIDDEN
+    DELETED
+  }
+
+  enum SectionSubscriptionBatchAction {
+    ADD
+    REMOVE
+    SET
+  }
+
   input CreateTodoInput {
     title: String!
     content: String
@@ -115,6 +135,22 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
     priority: TodoPriority
     dueAt: DateTime
     completed: Boolean
+  }
+
+  input TodoCompletionBatchItemInput {
+    todoId: ID!
+    completed: Boolean!
+  }
+
+  input HomeworkCompletionBatchItemInput {
+    homeworkId: ID!
+    completed: Boolean!
+  }
+
+  input UpdateSectionSubscriptionsInput {
+    action: SectionSubscriptionBatchAction!
+    codes: [String!]!
+    semesterId: Int
   }
 
   input CreateHomeworkInput {
@@ -181,6 +217,33 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
     id: ID!
   }
 
+  type BatchMutationError {
+    code: BatchMutationErrorCode!
+    message: String!
+  }
+
+  type TodoCompletionBatchResult {
+    success: Boolean!
+    todoId: ID!
+    completed: Boolean!
+    todo: Todo
+    error: BatchMutationError
+  }
+
+  type TodoCompletionBatchPayload {
+    results: [TodoCompletionBatchResult!]!
+  }
+
+  type TodoDeleteBatchResult {
+    success: Boolean!
+    id: ID!
+    error: BatchMutationError
+  }
+
+  type TodoDeleteBatchPayload {
+    results: [TodoDeleteBatchResult!]!
+  }
+
   type DeleteMutationPayload {
     id: ID!
     success: Boolean!
@@ -190,6 +253,18 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
     homeworkId: ID!
     completed: Boolean!
     completedAt: DateTime
+  }
+
+  type HomeworkCompletionBatchResult {
+    success: Boolean!
+    homeworkId: ID!
+    completed: Boolean!
+    completedAt: DateTime
+    error: BatchMutationError
+  }
+
+  type HomeworkCompletionBatchPayload {
+    results: [HomeworkCompletionBatchResult!]!
   }
 
   type HomeworkMutationPayload {
@@ -206,6 +281,17 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
   type SectionSubscriptionMutationPayload {
     sectionJwId: Int!
     subscribed: Boolean!
+  }
+
+  type SectionSubscriptionBatchPayload {
+    action: SectionSubscriptionBatchAction!
+    semesterId: Int
+    matchedCodes: [String!]!
+    unmatchedCodes: [String!]!
+    addedCount: Int!
+    removedCount: Int!
+    unchangedCount: Int!
+    total: Int!
   }
 
   type DashboardLinkPinMutationPayload {
@@ -241,6 +327,10 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
     createTodo(input: CreateTodoInput!): TodoMutationPayload!
     updateTodo(id: ID!, input: UpdateTodoInput!): TodoMutationPayload!
     deleteTodo(id: ID!): DeleteMutationPayload!
+    setTodoCompletions(
+      items: [TodoCompletionBatchItemInput!]!
+    ): TodoCompletionBatchPayload!
+    deleteTodos(ids: [ID!]!): TodoDeleteBatchPayload!
     createHomework(input: CreateHomeworkInput!): HomeworkMutationPayload!
     updateHomework(
       id: ID!
@@ -251,8 +341,14 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
       homeworkId: ID!
       completed: Boolean!
     ): HomeworkCompletionMutationPayload!
+    setHomeworkCompletions(
+      items: [HomeworkCompletionBatchItemInput!]!
+    ): HomeworkCompletionBatchPayload!
     subscribeSection(jwId: Int!): SectionSubscriptionMutationPayload!
     unsubscribeSection(jwId: Int!): SectionSubscriptionMutationPayload!
+    updateSectionSubscriptions(
+      input: UpdateSectionSubscriptionsInput!
+    ): SectionSubscriptionBatchPayload!
     setDashboardLinkPinState(
       slug: String!
       pinned: Boolean!
@@ -293,6 +389,24 @@ type UpdateTodoInput = {
   dueAt?: string | null;
   priority?: TodoPriorityValue | null;
   title?: string | null;
+};
+
+type TodoCompletionBatchItemInput = {
+  completed: boolean;
+  todoId: string;
+};
+
+type HomeworkCompletionBatchItemInput = {
+  completed: boolean;
+  homeworkId: string;
+};
+
+type SectionSubscriptionBatchAction = "add" | "remove" | "set";
+
+type UpdateSectionSubscriptionsInput = {
+  action: SectionSubscriptionBatchAction;
+  codes: string[];
+  semesterId?: number | null;
 };
 
 type CreateHomeworkInput = {
@@ -358,6 +472,18 @@ const descriptionTargetTypeResolver = {
   TEACHER: "teacher",
   HOMEWORK: "homework",
 } as const satisfies Record<string, DescriptionTargetType>;
+
+const batchMutationErrorCodeResolver = {
+  NOT_FOUND: "not_found",
+  FORBIDDEN: "forbidden",
+  DELETED: "deleted",
+} as const;
+
+const sectionSubscriptionBatchActionResolver = {
+  ADD: "add",
+  REMOVE: "remove",
+  SET: "set",
+} as const satisfies Record<string, SectionSubscriptionBatchAction>;
 
 function graphqlCommentAuditMetadata(request: Request) {
   return {
@@ -441,6 +567,35 @@ function normalizeHomeworkDescription(value: string | null | undefined) {
   return result.data;
 }
 
+function normalizeBatchIds(
+  values: readonly string[],
+  label: string,
+  max: number,
+) {
+  requireMutationBatchSize(values, label, max);
+  const ids = values.map((value) => requireMutationId(value, label));
+  rejectDuplicateMutationTargets(ids, label);
+  return ids;
+}
+
+function normalizeSubscriptionBatchCodes(values: readonly string[]) {
+  if (values.length > 500) {
+    badMutationInput("codes must contain at most 500 items.");
+  }
+  const codes = values.map((value) => {
+    const code = value.trim();
+    if (!code || code.length > 64) {
+      badMutationInput("codes must contain 1-64 character values.");
+    }
+    return code;
+  });
+  rejectDuplicateMutationTargets(
+    codes.map((code) => code.toUpperCase()),
+    "codes",
+  );
+  return codes;
+}
+
 async function setSectionSubscription(
   context: GraphqlContext,
   jwId: number,
@@ -457,10 +612,12 @@ async function setSectionSubscription(
 }
 
 export const graphqlMutationResolvers = {
+  BatchMutationErrorCode: batchMutationErrorCodeResolver,
   CommentVisibility: commentVisibilityResolver,
   CommentReactionType: commentReactionTypeResolver,
   CommentTargetType: commentTargetTypeResolver,
   DescriptionTargetType: descriptionTargetTypeResolver,
+  SectionSubscriptionBatchAction: sectionSubscriptionBatchActionResolver,
   Mutation: {
     async createTodo(
       _parent: unknown,
@@ -518,6 +675,72 @@ export const graphqlMutationResolvers = {
       const result = await deleteOwnedTodo(id, principal.userId);
       if (!result.ok) handleTodoFailure(result);
       return { id, success: true };
+    },
+    async setTodoCompletions(
+      _parent: unknown,
+      args: { items: TodoCompletionBatchItemInput[] },
+      context: GraphqlContext,
+    ) {
+      const principal = await requireGraphqlMutation(context, "todo", {
+        rateLimitTier: "batch",
+      });
+      const ids = normalizeBatchIds(
+        args.items.map((item) => item.todoId),
+        "todo IDs",
+        100,
+      );
+      const results = await Promise.all(
+        args.items.map(async (item, index) => {
+          const todoId = ids[index];
+          const result = await updateOwnedTodo({
+            id: todoId,
+            userId: principal.userId,
+            data: {
+              completed: item.completed,
+              dueAt: undefined,
+              hasDueAt: false,
+            },
+          });
+          if (!result.ok) {
+            return {
+              success: false as const,
+              todoId,
+              completed: item.completed,
+              error: { code: result.error, message: result.error },
+            };
+          }
+          return {
+            success: true as const,
+            todoId,
+            completed: item.completed,
+            todo: result.todo,
+          };
+        }),
+      );
+      return { results };
+    },
+    async deleteTodos(
+      _parent: unknown,
+      args: { ids: string[] },
+      context: GraphqlContext,
+    ) {
+      const principal = await requireGraphqlMutation(context, "todo", {
+        rateLimitTier: "batch",
+      });
+      const ids = normalizeBatchIds(args.ids, "todo IDs", 100);
+      const results = await Promise.all(
+        ids.map(async (id) => {
+          const result = await deleteOwnedTodo(id, principal.userId);
+          return result.ok
+            ? { success: true as const, id }
+            : {
+                success: false as const,
+                id,
+                error: { code: result.error, message: result.error },
+              };
+        }),
+      );
+      return { results };
     },
     async createHomework(
       _parent: unknown,
@@ -654,6 +877,27 @@ export const graphqlMutationResolvers = {
       if (!result.success) mutationNotFound("Homework not found.");
       return result;
     },
+    async setHomeworkCompletions(
+      _parent: unknown,
+      args: { items: HomeworkCompletionBatchItemInput[] },
+      context: GraphqlContext,
+    ) {
+      const principal = await requireGraphqlMutation(context, "homework", {
+        rateLimitTier: "batch",
+      });
+      const homeworkIds = normalizeBatchIds(
+        args.items.map((item) => item.homeworkId),
+        "homework IDs",
+        100,
+      );
+      return setHomeworkCompletions({
+        items: args.items.map((item, index) => ({
+          completed: item.completed,
+          homeworkId: homeworkIds[index],
+        })),
+        userId: principal.userId,
+      });
+    },
     subscribeSection(
       _parent: unknown,
       args: { jwId: number },
@@ -667,6 +911,47 @@ export const graphqlMutationResolvers = {
       context: GraphqlContext,
     ) {
       return setSectionSubscription(context, args.jwId, false);
+    },
+    async updateSectionSubscriptions(
+      _parent: unknown,
+      args: { input: UpdateSectionSubscriptionsInput },
+      context: GraphqlContext,
+    ) {
+      const principal = await requireGraphqlMutation(context, "subscription", {
+        rateLimitTier: "batch",
+      });
+      const input = args.input;
+      rejectExplicitNullFields(input, ["semesterId"]);
+      const codes = normalizeSubscriptionBatchCodes(input.codes);
+      if (input.action !== "set" && codes.length === 0) {
+        badMutationInput("codes must contain at least one item.");
+      }
+      const semesterId = validateOptionalGraphqlId(
+        input.semesterId,
+        "semesterId",
+      );
+      if (input.action === "set" && semesterId === undefined) {
+        badMutationInput("semesterId is required when action is SET.");
+      }
+
+      const result = await batchUpdateUserSectionSubscriptions({
+        action: input.action,
+        codes,
+        locale: context.locale,
+        semesterId,
+        userId: principal.userId,
+      });
+      if (!result) mutationNotFound("Semester not found.");
+      return {
+        action: result.action,
+        semesterId: result.semester?.id ?? null,
+        matchedCodes: result.matchedCodes,
+        unmatchedCodes: result.unmatchedCodes,
+        addedCount: result.addedCount,
+        removedCount: result.removedCount,
+        unchangedCount: result.unchangedCount,
+        total: result.total,
+      };
     },
     async setDashboardLinkPinState(
       _parent: unknown,

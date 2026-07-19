@@ -1,3 +1,14 @@
+type BatchMutationError {
+  code: BatchMutationErrorCode!
+  message: String!
+}
+
+enum BatchMutationErrorCode {
+  DELETED
+  FORBIDDEN
+  NOT_FOUND
+}
+
 type BusCampus {
   id: Int!
   latitude: Float!
@@ -256,6 +267,23 @@ type Homework {
   updatedAt: DateTime!
 }
 
+input HomeworkCompletionBatchItemInput {
+  completed: Boolean!
+  homeworkId: ID!
+}
+
+type HomeworkCompletionBatchPayload {
+  results: [HomeworkCompletionBatchResult!]!
+}
+
+type HomeworkCompletionBatchResult {
+  completed: Boolean!
+  completedAt: DateTime
+  error: BatchMutationError
+  homeworkId: ID!
+  success: Boolean!
+}
+
 type HomeworkCompletionMutationPayload {
   completed: Boolean!
   completedAt: DateTime
@@ -293,14 +321,18 @@ type Mutation {
   deleteComment(id: ID!): DeleteMutationPayload!
   deleteHomework(id: ID!): HomeworkDeleteMutationPayload!
   deleteTodo(id: ID!): DeleteMutationPayload!
+  deleteTodos(ids: [ID!]!): TodoDeleteBatchPayload!
   removeCommentReaction(commentId: ID!, type: CommentReactionType!): CommentReactionMutationPayload!
   saveBusPreferences(input: BusPreferenceInput!): BusPreferenceMutationPayload!
   setDashboardLinkPinState(pinned: Boolean!, slug: String!): DashboardLinkPinMutationPayload!
   setHomeworkCompletion(completed: Boolean!, homeworkId: ID!): HomeworkCompletionMutationPayload!
+  setHomeworkCompletions(items: [HomeworkCompletionBatchItemInput!]!): HomeworkCompletionBatchPayload!
+  setTodoCompletions(items: [TodoCompletionBatchItemInput!]!): TodoCompletionBatchPayload!
   subscribeSection(jwId: Int!): SectionSubscriptionMutationPayload!
   unsubscribeSection(jwId: Int!): SectionSubscriptionMutationPayload!
   updateComment(id: ID!, input: UpdateCommentInput!): CommentMutationPayload!
   updateHomework(id: ID!, input: UpdateHomeworkInput!): HomeworkMutationPayload!
+  updateSectionSubscriptions(input: UpdateSectionSubscriptionsInput!): SectionSubscriptionBatchPayload!
   updateTodo(id: ID!, input: UpdateTodoInput!): TodoMutationPayload!
   upsertDescription(input: UpsertDescriptionInput!): DescriptionMutationPayload!
 }
@@ -421,6 +453,23 @@ type SectionPage {
   pageInfo: PageInfo!
 }
 
+enum SectionSubscriptionBatchAction {
+  ADD
+  REMOVE
+  SET
+}
+
+type SectionSubscriptionBatchPayload {
+  action: SectionSubscriptionBatchAction!
+  addedCount: Int!
+  matchedCodes: [String!]!
+  removedCount: Int!
+  semesterId: Int
+  total: Int!
+  unchangedCount: Int!
+  unmatchedCodes: [String!]!
+}
+
 type SectionSubscriptionMutationPayload {
   sectionJwId: Int!
   subscribed: Boolean!
@@ -477,6 +526,33 @@ type Todo {
   updatedAt: DateTime!
 }
 
+input TodoCompletionBatchItemInput {
+  completed: Boolean!
+  todoId: ID!
+}
+
+type TodoCompletionBatchPayload {
+  results: [TodoCompletionBatchResult!]!
+}
+
+type TodoCompletionBatchResult {
+  completed: Boolean!
+  error: BatchMutationError
+  success: Boolean!
+  todo: Todo
+  todoId: ID!
+}
+
+type TodoDeleteBatchPayload {
+  results: [TodoDeleteBatchResult!]!
+}
+
+type TodoDeleteBatchResult {
+  error: BatchMutationError
+  id: ID!
+  success: Boolean!
+}
+
 input TodoFilter {
   completed: Boolean
   dueAfter: DateTime
@@ -514,6 +590,12 @@ input UpdateHomeworkInput {
   submissionDueAt: DateTime
   submissionStartAt: DateTime
   title: String
+}
+
+input UpdateSectionSubscriptionsInput {
+  action: SectionSubscriptionBatchAction!
+  codes: [String!]!
+  semesterId: Int
 }
 
 input UpdateTodoInput {

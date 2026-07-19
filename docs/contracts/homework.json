@@ -273,6 +273,18 @@
             "required_scopes": ["homework:write"],
             "rest_equivalent": "PUT /api/homeworks/[id]/completion",
             "mcp_equivalent": "set_my_homework_completion"
+          },
+          {
+            "name": "setHomeworkCompletions",
+            "returns": "HomeworkCompletionBatchPayload!",
+            "auth": "user",
+            "required_scopes": ["homework:write"],
+            "rest_equivalent": "PUT /api/homeworks/completions",
+            "mcp_equivalent": "set_my_homework_completion",
+            "notes": [
+              "Accepts 1-100 unique homework IDs and preserves REST per-item partial-success semantics.",
+              "Missing or deleted homework IDs are reported on their result item without aborting valid updates."
+            ]
           }
         ]
       },
