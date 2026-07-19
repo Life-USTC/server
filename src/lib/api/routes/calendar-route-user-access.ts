@@ -1,4 +1,4 @@
-import { getUserCalendarRecord } from "@/features/calendar/server/calendar-export-data";
+import { getUserCalendarAccessRecord } from "@/features/calendar/server/calendar-export-data";
 import { forbidden, notFound, unauthorized } from "@/lib/api/helpers";
 import { resolveApiUserId } from "@/lib/auth/api-auth";
 import { parseUserCalendarIdentifier } from "./calendar-route-utils";
@@ -15,7 +15,7 @@ export async function resolveUserCalendarAccess({
     tokenFromPath?.trim() ||
     new URL(request.url).searchParams.get("token")?.trim();
 
-  const user = await getUserCalendarRecord(userId);
+  const user = await getUserCalendarAccessRecord(userId);
 
   if (token) {
     if (!user || user.calendarFeedToken !== token) {
@@ -46,5 +46,5 @@ export async function resolveUserCalendarAccess({
     return { ok: false as const, response: notFound("User not found") };
   }
 
-  return { ok: true as const, user, userId };
+  return { ok: true as const, userId };
 }

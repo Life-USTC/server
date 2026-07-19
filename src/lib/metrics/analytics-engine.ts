@@ -73,7 +73,13 @@ type CacheEventAnalyticsInput = {
 
 type CalendarFeedCacheAnalyticsInput = {
   feed: "user";
-  status: "hit" | "miss";
+  status:
+    | "fresh"
+    | "miss"
+    | "refresh_error"
+    | "refresh_success"
+    | "stale"
+    | "store_error";
   storeSize: number;
   ttlMs: number;
 };

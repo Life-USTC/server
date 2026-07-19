@@ -82,6 +82,22 @@ describe("retired Section query contracts", () => {
     );
   });
 
+  it("uses a minimal projection for personal calendar access checks", async () => {
+    const { getUserCalendarAccessRecord } = await import(
+      "@/features/calendar/server/calendar-export-data"
+    );
+
+    await getUserCalendarAccessRecord("user-1");
+
+    expect(userFindUniqueMock).toHaveBeenCalledWith({
+      where: { id: "user-1" },
+      select: {
+        id: true,
+        calendarFeedToken: true,
+      },
+    });
+  });
+
   it("keeps retired rows in the user's owned subscription history", async () => {
     const { getUserCalendarSubscription } = await import(
       "@/features/subscriptions/server/subscription-calendar-read-model"
