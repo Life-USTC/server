@@ -49,6 +49,19 @@
             "mcp_equivalent": "delete_own_comment"
           },
           {
+            "name": "deleteComments",
+            "returns": "CommentDeleteBatchPayload!",
+            "auth": "user",
+            "required_scopes": ["comment:write"],
+            "rest_equivalent": "DELETE /api/comments/batch",
+            "mcp_equivalent": "run_graphql_operation",
+            "notes": [
+              "Registered operation id: comment.delete_batch.v1.",
+              "Accepts up to 50 unique comment ids and returns stable per-item success, not_found, forbidden, or locked results.",
+              "Each successful item uses the same permission, suspension, interaction-lock, transaction, and audit path as deleteComment."
+            ]
+          },
+          {
             "name": "addCommentReaction",
             "returns": "CommentReactionMutationPayload!",
             "auth": "user",

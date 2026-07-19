@@ -1,5 +1,6 @@
 import type { BusPreferencePayload } from "@/features/bus/lib/bus-types";
 import { saveBusPreference } from "@/features/bus/server/bus-service";
+import { deleteOwnCommentsBatch } from "@/features/comments/server/comment-batch-delete";
 import {
   createComment,
   createCommentReaction,
@@ -7,6 +8,7 @@ import {
   deleteOwnComment,
   updateOwnComment,
 } from "@/features/comments/server/comment-mutations";
+import { setDashboardLinkPinStatesBatch } from "@/features/dashboard-links/server/dashboard-link-pin-batch";
 import {
   MAX_PINNED_LINKS,
   resolveDashboardLinkBySlug,
@@ -47,11 +49,24 @@ import {
   deleteOwnedTodo,
   updateOwnedTodo,
 } from "@/features/todos/server/todo-service";
+import { uploadConfig } from "@/features/uploads/lib/upload-config";
+import {
+  normalizeContentType,
+  sanitizeFilename,
+} from "@/features/uploads/lib/upload-utils";
+import { UploadError } from "@/features/uploads/server/upload-quota";
+import {
+  completeOwnedUploadSession,
+  createOwnedUploadSession,
+  deleteOwnedUpload,
+  renameOwnedUpload,
+} from "@/features/uploads/server/upload-service";
 import type {
   CommentReactionType,
   CommentVisibility,
 } from "@/generated/prisma/client";
 import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
+import { hasAsciiControlCharacters } from "@/lib/text/ascii-control-characters";
 import type { GraphqlContext } from "./context";
 import {
   requireGraphqlId,
@@ -61,6 +76,7 @@ import {
   badMutationInput,
   forbiddenMutation,
   mutationNotFound,
+  serviceUnavailableMutation,
 } from "./mutation-errors";
 import { requireGraphqlMutation } from "./mutation-guard";
 import {
@@ -113,6 +129,7 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
   enum BatchMutationErrorCode {
     NOT_FOUND
     FORBIDDEN
+    LOCKED
     DELETED
   }
 
@@ -178,6 +195,23 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
     preferredOriginCampusId: Int
     preferredDestinationCampusId: Int
     showDepartedTrips: Boolean!
+  }
+
+  input DashboardLinkPinBatchItemInput {
+    slug: String!
+    pinned: Boolean!
+  }
+
+  input CreateUploadSessionInput {
+    filename: String!
+    contentType: String
+    size: Float!
+  }
+
+  input CompleteUploadSessionInput {
+    key: String!
+    filename: String!
+    contentType: String
   }
 
   input UpsertDescriptionInput {
@@ -301,6 +335,11 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
     maxPinnedLinks: Int!
   }
 
+  type DashboardLinkPinBatchMutationPayload {
+    pinnedSlugs: [String!]!
+    maxPinnedLinks: Int!
+  }
+
   type BusPreferenceMutationPayload {
     preferredOriginCampusId: Int
     preferredDestinationCampusId: Int
@@ -309,6 +348,48 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
 
   type CommentMutationPayload {
     id: ID!
+  }
+
+  type CommentDeleteBatchResult {
+    success: Boolean!
+    id: ID!
+    error: BatchMutationError
+  }
+
+  type CommentDeleteBatchPayload {
+    results: [CommentDeleteBatchResult!]!
+  }
+
+  type UploadMutationRecord {
+    id: ID!
+    key: String!
+    filename: String!
+    size: Float!
+    createdAt: DateTime!
+  }
+
+  type UploadSessionPayload {
+    key: String!
+    url: String!
+    maxFileSizeBytes: Float!
+    quotaBytes: Float!
+    usedBytes: Float!
+  }
+
+  type UploadCompletionPayload {
+    upload: UploadMutationRecord!
+    usedBytes: Float!
+    quotaBytes: Float!
+  }
+
+  type UploadMutationPayload {
+    upload: UploadMutationRecord!
+  }
+
+  type UploadDeleteMutationPayload {
+    id: ID!
+    success: Boolean!
+    deletedSize: Float!
   }
 
   type DescriptionMutationPayload {
@@ -353,6 +434,9 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
       slug: String!
       pinned: Boolean!
     ): DashboardLinkPinMutationPayload!
+    setDashboardLinkPinStates(
+      items: [DashboardLinkPinBatchItemInput!]!
+    ): DashboardLinkPinBatchMutationPayload!
     saveBusPreferences(
       input: BusPreferenceInput!
     ): BusPreferenceMutationPayload!
@@ -365,6 +449,7 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
       input: UpdateCommentInput!
     ): CommentMutationPayload!
     deleteComment(id: ID!): DeleteMutationPayload!
+    deleteComments(ids: [ID!]!): CommentDeleteBatchPayload!
     addCommentReaction(
       commentId: ID!
       type: CommentReactionType!
@@ -373,6 +458,14 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
       commentId: ID!
       type: CommentReactionType!
     ): CommentReactionMutationPayload!
+    createUploadSession(
+      input: CreateUploadSessionInput!
+    ): UploadSessionPayload!
+    completeUploadSession(
+      input: CompleteUploadSessionInput!
+    ): UploadCompletionPayload!
+    renameUpload(id: ID!, filename: String!): UploadMutationPayload!
+    deleteUpload(id: ID!): UploadDeleteMutationPayload!
   }
 `;
 
@@ -399,6 +492,11 @@ type TodoCompletionBatchItemInput = {
 type HomeworkCompletionBatchItemInput = {
   completed: boolean;
   homeworkId: string;
+};
+
+type DashboardLinkPinBatchItemInput = {
+  pinned: boolean;
+  slug: string;
 };
 
 type SectionSubscriptionBatchAction = "add" | "remove" | "set";
@@ -466,6 +564,18 @@ type UpsertDescriptionInput = {
   teacherId?: number | null;
 };
 
+type CreateUploadSessionInput = {
+  contentType?: string | null;
+  filename: string;
+  size: number;
+};
+
+type CompleteUploadSessionInput = {
+  contentType?: string | null;
+  filename: string;
+  key: string;
+};
+
 const descriptionTargetTypeResolver = {
   COURSE: "course",
   SECTION: "section",
@@ -476,6 +586,7 @@ const descriptionTargetTypeResolver = {
 const batchMutationErrorCodeResolver = {
   NOT_FOUND: "not_found",
   FORBIDDEN: "forbidden",
+  LOCKED: "locked",
   DELETED: "deleted",
 } as const;
 
@@ -549,6 +660,57 @@ function handleHomeworkFailure(
     forbiddenMutation("Homework writes are suspended.");
   }
   return forbiddenMutation();
+}
+
+function handleUploadFailure(result: { error: string }): never {
+  if (result.error === "not_found") {
+    mutationNotFound("Upload not found.");
+  }
+  if (result.error === "suspended") {
+    forbiddenMutation("Upload writes are suspended.");
+  }
+  if (result.error === "storage_delete_failed") {
+    serviceUnavailableMutation(
+      "Upload storage deletion failed; metadata was preserved.",
+    );
+  }
+  return forbiddenMutation();
+}
+
+function handleUploadError(error: unknown): never {
+  if (error instanceof UploadError) {
+    badMutationInput(error.code);
+  }
+  throw error;
+}
+
+function normalizeUploadFilename(value: string, maxLength?: number) {
+  const filename = value.trim();
+  if (
+    !filename ||
+    (maxLength !== undefined && filename.length > maxLength) ||
+    hasAsciiControlCharacters(filename)
+  ) {
+    badMutationInput(
+      maxLength === undefined
+        ? "filename must be non-empty and contain no control characters."
+        : `filename must contain 1-${maxLength} characters and no control characters.`,
+    );
+  }
+  return sanitizeFilename(filename);
+}
+
+function normalizeUploadSize(value: number) {
+  if (
+    !Number.isSafeInteger(value) ||
+    value <= 0 ||
+    value > uploadConfig.maxFileSizeBytes
+  ) {
+    badMutationInput(
+      `size must be an integer between 1 and ${uploadConfig.maxFileSizeBytes}.`,
+    );
+  }
+  return value;
 }
 
 function normalizeHomeworkTitle(value: string) {
@@ -974,6 +1136,35 @@ export const graphqlMutationResolvers = {
         maxPinnedLinks: MAX_PINNED_LINKS,
       };
     },
+    async setDashboardLinkPinStates(
+      _parent: unknown,
+      args: { items: DashboardLinkPinBatchItemInput[] },
+      context: GraphqlContext,
+    ) {
+      const principal = await requireGraphqlMutation(context, "dashboard", {
+        rateLimitTier: "batch",
+      });
+      requireMutationBatchSize(args.items, "items", 10);
+      const items = args.items.map((item) => ({
+        action: item.pinned ? ("pin" as const) : ("unpin" as const),
+        slug: item.slug.trim(),
+      }));
+      if (items.some((item) => !item.slug)) {
+        badMutationInput("slug must be non-empty.");
+      }
+
+      const result = await setDashboardLinkPinStatesBatch({
+        items,
+        userId: principal.userId,
+      });
+      if (!result.ok) {
+        badMutationInput(`Unknown dashboard link slug: ${result.slug}.`);
+      }
+      return {
+        pinnedSlugs: result.pinnedSlugs,
+        maxPinnedLinks: MAX_PINNED_LINKS,
+      };
+    },
     async saveBusPreferences(
       _parent: unknown,
       args: { input: BusPreferencePayload },
@@ -1157,6 +1348,21 @@ export const graphqlMutationResolvers = {
       if (!result.ok) handleCommentFailure(result);
       return { id, success: true };
     },
+    async deleteComments(
+      _parent: unknown,
+      args: { ids: string[] },
+      context: GraphqlContext,
+    ) {
+      const principal = await requireGraphqlMutation(context, "comment", {
+        rateLimitTier: "batch",
+      });
+      const ids = normalizeBatchIds(args.ids, "comment IDs", 50);
+      return deleteOwnCommentsBatch({
+        auditMetadata: graphqlCommentAuditMetadata(context.request),
+        ids,
+        userId: principal.userId,
+      });
+    },
     async addCommentReaction(
       _parent: unknown,
       args: { commentId: string; type: CommentReactionType },
@@ -1197,6 +1403,87 @@ export const graphqlMutationResolvers = {
         type: args.type,
         active: false,
         changed: result.changed,
+      };
+    },
+    async createUploadSession(
+      _parent: unknown,
+      args: { input: CreateUploadSessionInput },
+      context: GraphqlContext,
+    ) {
+      const principal = await requireGraphqlMutation(context, "upload");
+      rejectExplicitNullFields(args.input, ["contentType"]);
+      try {
+        const result = await createOwnedUploadSession({
+          origin: new URL(context.request.url).origin,
+          upload: {
+            contentType: normalizeContentType(args.input.contentType),
+            filename: normalizeUploadFilename(args.input.filename),
+            size: normalizeUploadSize(args.input.size),
+          },
+          userId: principal.userId,
+        });
+        if (!result.ok) handleUploadFailure(result);
+        return result.session;
+      } catch (error) {
+        return handleUploadError(error);
+      }
+    },
+    async completeUploadSession(
+      _parent: unknown,
+      args: { input: CompleteUploadSessionInput },
+      context: GraphqlContext,
+    ) {
+      const principal = await requireGraphqlMutation(context, "upload");
+      rejectExplicitNullFields(args.input, ["contentType"]);
+      try {
+        const result = await completeOwnedUploadSession(principal.userId, {
+          contentType:
+            args.input.contentType == null
+              ? undefined
+              : normalizeContentType(args.input.contentType),
+          filename: normalizeUploadFilename(args.input.filename),
+          key: requireMutationId(args.input.key, "key"),
+        });
+        if (!result.ok) handleUploadFailure(result);
+        return result.completion;
+      } catch (error) {
+        return handleUploadError(error);
+      }
+    },
+    async renameUpload(
+      _parent: unknown,
+      args: { filename: string; id: string },
+      context: GraphqlContext,
+    ) {
+      const principal = await requireGraphqlMutation(context, "upload");
+      const result = await renameOwnedUpload({
+        filename: normalizeUploadFilename(args.filename, 255),
+        id: requireMutationId(args.id, "id"),
+        userId: principal.userId,
+      });
+      if (!result.ok) handleUploadFailure(result);
+      return { upload: result.upload };
+    },
+    async deleteUpload(
+      _parent: unknown,
+      args: { id: string },
+      context: GraphqlContext,
+    ) {
+      const principal = await requireGraphqlMutation(context, "upload");
+      const id = requireMutationId(args.id, "id");
+      const result = await deleteOwnedUpload({
+        audit: {
+          ...getAuditRequestMetadata(context.request),
+          source: "graphql",
+        },
+        id,
+        userId: principal.userId,
+      });
+      if (!result.ok) handleUploadFailure(result);
+      return {
+        id: result.deletedId,
+        success: true,
+        deletedSize: result.deletedSize,
       };
     },
   },

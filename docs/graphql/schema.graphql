@@ -6,6 +6,7 @@ type BatchMutationError {
 enum BatchMutationErrorCode {
   DELETED
   FORBIDDEN
+  LOCKED
   NOT_FOUND
 }
 
@@ -78,6 +79,16 @@ type Campus {
   nameEn: String
 }
 
+type CommentDeleteBatchPayload {
+  results: [CommentDeleteBatchResult!]!
+}
+
+type CommentDeleteBatchResult {
+  error: BatchMutationError
+  id: ID!
+  success: Boolean!
+}
+
 type CommentMutationPayload {
   id: ID!
 }
@@ -111,6 +122,12 @@ enum CommentTargetType {
 enum CommentVisibility {
   LOGGED_IN_ONLY
   PUBLIC
+}
+
+input CompleteUploadSessionInput {
+  contentType: String
+  filename: String!
+  key: String!
 }
 
 type Course {
@@ -171,6 +188,22 @@ input CreateTodoInput {
   dueAt: DateTime
   priority: TodoPriority = MEDIUM
   title: String!
+}
+
+input CreateUploadSessionInput {
+  contentType: String
+  filename: String!
+  size: Float!
+}
+
+input DashboardLinkPinBatchItemInput {
+  pinned: Boolean!
+  slug: String!
+}
+
+type DashboardLinkPinBatchMutationPayload {
+  maxPinnedLinks: Int!
+  pinnedSlugs: [String!]!
 }
 
 type DashboardLinkPinMutationPayload {
@@ -315,16 +348,22 @@ type HomeworkPage {
 
 type Mutation {
   addCommentReaction(commentId: ID!, type: CommentReactionType!): CommentReactionMutationPayload!
+  completeUploadSession(input: CompleteUploadSessionInput!): UploadCompletionPayload!
   createComment(input: CreateCommentInput!): CommentMutationPayload!
   createHomework(input: CreateHomeworkInput!): HomeworkMutationPayload!
   createTodo(input: CreateTodoInput!): TodoMutationPayload!
+  createUploadSession(input: CreateUploadSessionInput!): UploadSessionPayload!
   deleteComment(id: ID!): DeleteMutationPayload!
+  deleteComments(ids: [ID!]!): CommentDeleteBatchPayload!
   deleteHomework(id: ID!): HomeworkDeleteMutationPayload!
   deleteTodo(id: ID!): DeleteMutationPayload!
   deleteTodos(ids: [ID!]!): TodoDeleteBatchPayload!
+  deleteUpload(id: ID!): UploadDeleteMutationPayload!
   removeCommentReaction(commentId: ID!, type: CommentReactionType!): CommentReactionMutationPayload!
+  renameUpload(filename: String!, id: ID!): UploadMutationPayload!
   saveBusPreferences(input: BusPreferenceInput!): BusPreferenceMutationPayload!
   setDashboardLinkPinState(pinned: Boolean!, slug: String!): DashboardLinkPinMutationPayload!
+  setDashboardLinkPinStates(items: [DashboardLinkPinBatchItemInput!]!): DashboardLinkPinBatchMutationPayload!
   setHomeworkCompletion(completed: Boolean!, homeworkId: ID!): HomeworkCompletionMutationPayload!
   setHomeworkCompletions(items: [HomeworkCompletionBatchItemInput!]!): HomeworkCompletionBatchPayload!
   setTodoCompletions(items: [TodoCompletionBatchItemInput!]!): TodoCompletionBatchPayload!
@@ -604,6 +643,38 @@ input UpdateTodoInput {
   dueAt: DateTime
   priority: TodoPriority
   title: String
+}
+
+type UploadCompletionPayload {
+  quotaBytes: Float!
+  upload: UploadMutationRecord!
+  usedBytes: Float!
+}
+
+type UploadDeleteMutationPayload {
+  deletedSize: Float!
+  id: ID!
+  success: Boolean!
+}
+
+type UploadMutationPayload {
+  upload: UploadMutationRecord!
+}
+
+type UploadMutationRecord {
+  createdAt: DateTime!
+  filename: String!
+  id: ID!
+  key: String!
+  size: Float!
+}
+
+type UploadSessionPayload {
+  key: String!
+  maxFileSizeBytes: Float!
+  quotaBytes: Float!
+  url: String!
+  usedBytes: Float!
 }
 
 input UpsertDescriptionInput {

@@ -1,6 +1,6 @@
 import {
-  completeUploadSession,
-  createUploadSession,
+  completeOwnedUploadSession,
+  createOwnedUploadSession,
   uploadKeyBelongsToUser,
 } from "@/features/uploads/server/upload-service";
 import {
@@ -38,12 +38,12 @@ export async function postUploadRoute(request: Request) {
   if (uploadInput instanceof Response) return uploadInput;
 
   try {
-    const result = await createUploadSession({
+    const result = await createOwnedUploadSession({
       origin: new URL(request.url).origin,
       upload: uploadInput,
       userId,
     });
-    return jsonResponse(result);
+    return result.ok ? jsonResponse(result.session) : forbidden();
   } catch (error) {
     return uploadCreateErrorResponse(error);
   }
@@ -74,13 +74,13 @@ export async function postUploadCompleteRoute(request: Request) {
   }
 
   try {
-    const result = await completeUploadSession(userId, {
+    const result = await completeOwnedUploadSession(userId, {
       contentType: parsedBody.contentType,
       filename,
       key,
     });
-    return jsonResponse(result);
+    return result.ok ? jsonResponse(result.completion) : forbidden();
   } catch (error) {
-    return uploadCompleteErrorResponse(error, key);
+    return uploadCompleteErrorResponse(error);
   }
 }

@@ -61,6 +61,19 @@
             "required_scopes": ["dashboard:write"],
             "rest_equivalent": "POST /api/dashboard-links/pin",
             "mcp_equivalent": "set_dashboard_link_pin_state"
+          },
+          {
+            "name": "setDashboardLinkPinStates",
+            "returns": "DashboardLinkPinBatchMutationPayload!",
+            "auth": "user",
+            "required_scopes": ["dashboard:write"],
+            "rest_equivalent": "POST /api/dashboard-links/pin/batch",
+            "mcp_equivalent": "run_graphql_operation",
+            "notes": [
+              "Registered operation id: dashboard.set_link_pin_states_batch.v1.",
+              "Validates every slug before writing, then applies at most 10 actions in request order.",
+              "The batch is intentionally non-atomic; an unexpected persistence failure may leave an ordered prefix applied."
+            ]
           }
         ]
       },

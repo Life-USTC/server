@@ -32,7 +32,7 @@ describe("persisted GraphQL operation registry", () => {
 
     expect(registeredQueryFields).toEqual(queryFields);
     expect(registeredMutationFields).toEqual(mutationFields);
-    expect(graphqlPersistedOperationRegistry).toHaveLength(38);
+    expect(graphqlPersistedOperationRegistry).toHaveLength(44);
     expect(
       graphqlPersistedOperationRegistry.map((operation) => operation.id),
     ).toEqual(
@@ -41,6 +41,12 @@ describe("persisted GraphQL operation registry", () => {
         "todo.delete_batch.v1",
         "homework.set_completions_batch.v1",
         "subscription.update_sections_batch.v1",
+        "dashboard.set_link_pin_states_batch.v1",
+        "comment.delete_batch.v1",
+        "upload.create_session.v1",
+        "upload.complete.v1",
+        "upload.rename.v1",
+        "upload.delete.v1",
       ]),
     );
     expect(
@@ -79,7 +85,7 @@ describe("persisted GraphQL operation registry", () => {
 
   it("publishes frozen safety metadata without operation documents", () => {
     expect(publicGraphqlOperationsManifest.schemaVersion).toBe(1);
-    expect(publicGraphqlOperationsManifest.operations).toHaveLength(38);
+    expect(publicGraphqlOperationsManifest.operations).toHaveLength(44);
     expect(Object.isFrozen(publicGraphqlOperationsManifest)).toBe(true);
     expect(Object.isFrozen(publicGraphqlOperationsManifest.operations)).toBe(
       true,
@@ -111,6 +117,75 @@ describe("persisted GraphQL operation registry", () => {
       readOnly: false,
       destructive: true,
       requiresConfirmation: true,
+    });
+
+    expect(
+      Object.fromEntries(
+        publicGraphqlOperationsManifest.operations
+          .filter((operation) =>
+            [
+              "dashboard.set_link_pin_states_batch.v1",
+              "comment.delete_batch.v1",
+              "upload.create_session.v1",
+              "upload.complete.v1",
+              "upload.rename.v1",
+              "upload.delete.v1",
+            ].includes(operation.id),
+          )
+          .map((operation) => [
+            operation.id,
+            {
+              destructive: operation.destructive,
+              openWorld: operation.openWorld,
+              requiresConfirmation: operation.requiresConfirmation,
+              scopes: operation.scopes,
+              variables: operation.variables.map((variable) => variable.name),
+            },
+          ]),
+      ),
+    ).toEqual({
+      "dashboard.set_link_pin_states_batch.v1": {
+        destructive: true,
+        openWorld: false,
+        requiresConfirmation: true,
+        scopes: ["dashboard:write"],
+        variables: ["items"],
+      },
+      "comment.delete_batch.v1": {
+        destructive: true,
+        openWorld: true,
+        requiresConfirmation: true,
+        scopes: ["comment:write"],
+        variables: ["ids"],
+      },
+      "upload.create_session.v1": {
+        destructive: false,
+        openWorld: true,
+        requiresConfirmation: true,
+        scopes: ["upload:write"],
+        variables: ["input"],
+      },
+      "upload.complete.v1": {
+        destructive: false,
+        openWorld: true,
+        requiresConfirmation: true,
+        scopes: ["upload:write"],
+        variables: ["input"],
+      },
+      "upload.rename.v1": {
+        destructive: true,
+        openWorld: false,
+        requiresConfirmation: true,
+        scopes: ["upload:write"],
+        variables: ["id", "filename"],
+      },
+      "upload.delete.v1": {
+        destructive: true,
+        openWorld: true,
+        requiresConfirmation: true,
+        scopes: ["upload:write"],
+        variables: ["id"],
+      },
     });
   });
 

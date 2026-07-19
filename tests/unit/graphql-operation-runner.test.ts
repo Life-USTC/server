@@ -171,6 +171,25 @@ describe("registered GraphQL operation runner", () => {
         "DateTime must be an ISO 8601 datetime with a timezone.",
       ),
     } satisfies Partial<RegisteredGraphqlOperationError>);
+    await expect(
+      run("upload.create_session.v1", {
+        confirmed: true,
+        scopes: new Set(["upload:write"]),
+        variables: {
+          input: {
+            filename: "report.pdf",
+            contentType: "application/pdf",
+            size: 12,
+            bytes: "raw-object-data-is-never-accepted",
+          },
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: "BAD_USER_INPUT",
+      message: expect.stringContaining(
+        'Field "bytes" is not defined by type "CreateUploadSessionInput"',
+      ),
+    } satisfies Partial<RegisteredGraphqlOperationError>);
   });
 
   it("enforces exact scopes and mutation confirmation before execution", async () => {

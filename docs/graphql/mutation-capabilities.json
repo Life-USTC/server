@@ -187,67 +187,82 @@
     {
       "id": "dashboard.set-link-pin-state-batch",
       "rest": ["POST /api/dashboard-links/pin/batch"],
-      "graphql": { "status": "intentional_gap", "field": null },
+      "graphql": { "status": "stable", "field": "setDashboardLinkPinStates" },
       "mcp": {
-        "status": "single_item_only",
-        "tools": ["set_dashboard_link_pin_state"]
+        "status": "registered_operation",
+        "tools": ["set_dashboard_link_pin_state", "run_graphql_operation"]
       },
       "semantics": "ordered_non_atomic",
       "notes": [
-        "The REST handler currently sequences single-item writes in the transport layer and returns only final state. Add a shared atomic or explicit per-item service before exposing GraphQL batch semantics."
+        "REST and GraphQL validate every slug before writing, then reuse the feature-owned batch service to apply actions in request order and return final state.",
+        "Persistence failure after execution starts can leave an ordered prefix applied; clients must inspect current state before retrying."
       ]
     },
     {
       "id": "comment.delete-batch",
       "rest": ["DELETE /api/comments/batch"],
-      "graphql": { "status": "intentional_gap", "field": null },
+      "graphql": { "status": "stable", "field": "deleteComments" },
       "mcp": {
-        "status": "single_item_only",
-        "tools": ["delete_own_comment"]
+        "status": "registered_operation",
+        "tools": ["delete_own_comment", "run_graphql_operation"]
       },
       "semantics": "per_item_partial",
       "notes": [
-        "A shared audited batch service is required before GraphQL exposure; the REST transport currently fans out the single audited mutation."
+        "REST, GraphQL, and the MCP registered operation reuse one feature-owned batch service and the audited single-delete permission path."
       ]
     },
     {
       "id": "upload.create-session",
       "rest": ["POST /api/uploads"],
-      "graphql": { "status": "intentional_gap", "field": null },
-      "mcp": { "status": "unavailable", "tools": [] },
+      "graphql": { "status": "stable", "field": "createUploadSession" },
+      "mcp": {
+        "status": "registered_operation",
+        "tools": ["run_graphql_operation"]
+      },
       "semantics": "multi_step_storage_workflow",
       "notes": [
-        "GraphQL may later initiate metadata workflow, but raw object transfer remains on the on-site R2 route."
+        "GraphQL and MCP may reserve quota and return the authenticated on-site PUT workflow URL; raw object bytes remain exclusive to the R2-backed HTTP route.",
+        "MCP-resource bearer tokens are not replayable at the REST upload URL; clients need a browser session or a separately authorized REST upload token for the byte-transfer step."
       ]
     },
     {
       "id": "upload.complete",
       "rest": ["POST /api/uploads/complete"],
-      "graphql": { "status": "intentional_gap", "field": null },
-      "mcp": { "status": "unavailable", "tools": [] },
+      "graphql": { "status": "stable", "field": "completeUploadSession" },
+      "mcp": {
+        "status": "registered_operation",
+        "tools": ["run_graphql_operation"]
+      },
       "semantics": "multi_step_storage_workflow",
       "notes": [
-        "Completion requires a dedicated GraphQL workflow contract and must not proxy object bytes."
+        "Completion validates the existing R2 object and commits metadata; GraphQL and MCP never receive or proxy object bytes."
       ]
     },
     {
       "id": "upload.rename",
       "rest": ["PATCH /api/uploads/[id]"],
-      "graphql": { "status": "intentional_gap", "field": null },
-      "mcp": { "status": "native", "tools": ["rename_my_upload"] },
-      "semantics": "single_audited",
+      "graphql": { "status": "stable", "field": "renameUpload" },
+      "mcp": {
+        "status": "native_and_registered",
+        "tools": ["rename_my_upload", "run_graphql_operation"]
+      },
+      "semantics": "single_owned_write",
       "notes": [
-        "Upload metadata mutations remain a focused follow-up after the storage workflow boundary is designed."
+        "All surfaces reuse the ownership and suspension-aware upload service."
       ]
     },
     {
       "id": "upload.delete",
       "rest": ["DELETE /api/uploads/[id]"],
-      "graphql": { "status": "intentional_gap", "field": null },
-      "mcp": { "status": "native", "tools": ["delete_my_upload"] },
+      "graphql": { "status": "stable", "field": "deleteUpload" },
+      "mcp": {
+        "status": "native_and_registered",
+        "tools": ["delete_my_upload", "run_graphql_operation"]
+      },
       "semantics": "storage_then_transactional_metadata_delete",
       "notes": [
-        "The storage-delete-before-metadata invariant needs an explicit GraphQL failure contract."
+        "All surfaces delete storage before transactionally deleting metadata and writing the audit row.",
+        "Storage failure returns GraphQL SERVICE_UNAVAILABLE and preserves metadata for retry."
       ]
     },
     {

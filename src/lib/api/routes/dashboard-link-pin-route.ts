@@ -1,3 +1,4 @@
+import { setDashboardLinkPinStatesBatch } from "@/features/dashboard-links/server/dashboard-link-pin-batch";
 import {
   logDashboardLinkPinFailure,
   MAX_PINNED_LINKS,
@@ -105,33 +106,25 @@ export async function postDashboardLinkPinBatchRoute(request: Request) {
   );
   if (body instanceof Response) return body;
 
-  for (const item of body.items) {
-    const link = resolveDashboardLinkBySlug(item.slug);
-    if (!link) {
+  try {
+    const result = await setDashboardLinkPinStatesBatch({
+      items: body.items,
+      userId: auth.userId,
+    });
+    if (!result.ok) {
       return jsonResponse(
         dashboardLinkPinResponseSchema.parse({
           pinnedSlugs: [],
           maxPinnedLinks: MAX_PINNED_LINKS,
-          error: `Invalid dashboard link slug: ${item.slug}`,
+          error: `Invalid dashboard link slug: ${result.slug}`,
         }),
         { status: 400 },
       );
     }
-  }
-
-  try {
-    let pinnedSlugs: string[] = [];
-    for (const item of body.items) {
-      pinnedSlugs = await updateDashboardLinkPinState({
-        action: item.action,
-        slug: item.slug,
-        userId: auth.userId,
-      });
-    }
 
     return jsonResponse(
       dashboardLinkPinResponseSchema.parse({
-        pinnedSlugs,
+        pinnedSlugs: result.pinnedSlugs,
         maxPinnedLinks: MAX_PINNED_LINKS,
         error: null,
       }),

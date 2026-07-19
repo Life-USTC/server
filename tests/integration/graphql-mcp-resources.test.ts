@@ -80,7 +80,7 @@ describe.sequential("GraphQL MCP registered operations", () => {
         }),
       ]),
     });
-    expect((manifest.operations as unknown[]).length).toBe(38);
+    expect((manifest.operations as unknown[]).length).toBe(44);
     expect(JSON.stringify(manifest)).not.toContain('"document"');
   });
 

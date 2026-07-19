@@ -134,6 +134,20 @@ export async function createUploadSession(input: {
   };
 }
 
+export async function createOwnedUploadSession(input: {
+  origin: string;
+  upload: UploadCreateInput;
+  userId: string;
+}) {
+  const writer = await requireActiveUploadWriter(input.userId);
+  if (!writer.ok) return writer;
+
+  return {
+    ok: true as const,
+    session: await createUploadSession(input),
+  };
+}
+
 export async function completeUploadSession(
   userId: string,
   input: UploadCompleteInput,
@@ -264,6 +278,33 @@ export async function completeUploadSession(
   return uploadUsagePayload(reservation.upload, reservation.usedBytes);
 }
 
+export async function completeOwnedUploadSession(
+  userId: string,
+  input: UploadCompleteInput,
+) {
+  const writer = await requireActiveUploadWriter(userId);
+  if (!writer.ok) return writer;
+  if (!uploadKeyBelongsToUser(input.key, userId)) {
+    return { ok: false as const, error: "forbidden" as const };
+  }
+
+  try {
+    return {
+      ok: true as const,
+      completion: await completeUploadSession(userId, input),
+    };
+  } catch (error) {
+    if (
+      error instanceof UploadError &&
+      (error.code === "Quota exceeded" ||
+        error.code === "Upload session expired")
+    ) {
+      await deleteUploadObject(input.key);
+    }
+    throw error;
+  }
+}
+
 export async function listUploads(
   userId: string,
   pagination: { pageSize: number; skip: number },
@@ -350,7 +391,7 @@ async function findUploadRecordForDeletion(input: {
 export async function deleteOwnedUpload(input: {
   audit?: {
     ipAddress?: string;
-    source?: "mcp";
+    source?: "graphql" | "mcp";
     userAgent?: string;
   };
   id: string;
@@ -513,7 +554,7 @@ async function writeUploadDeleteAuditLog({
 }: {
   audit?: {
     ipAddress?: string;
-    source?: "mcp";
+    source?: "graphql" | "mcp";
     userAgent?: string;
   };
   client: NonNullable<Parameters<typeof writeAuditLog>[1]>;
