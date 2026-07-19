@@ -63,7 +63,7 @@ test.describe("仪表盘", () => {
       screenshotLabel: "dashboard",
     });
 
-    await expect(page).toHaveURL(/\/(?:\?.*)?$/);
+    await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/);
     await expect(
       page.getByRole("heading", {
         level: 1,
