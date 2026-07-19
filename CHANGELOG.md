@@ -1,3 +1,10 @@
+## [1.64.9](https://github.com/Life-USTC/server/compare/v1.64.8...v1.64.9) (2026-07-19)
+
+
+### Performance Improvements
+
+* **api:** split browser and Cloudflare cache policy ([#540](https://github.com/Life-USTC/server/issues/540)) ([10ebcbc](https://github.com/Life-USTC/server/commit/10ebcbcb0b7bfedb04663e5089a1c4e2bd81e335))
+
 ## [1.64.8](https://github.com/Life-USTC/server/compare/v1.64.7...v1.64.8) (2026-07-19)
 
 
