@@ -9,6 +9,7 @@ is the project map: start here, then follow the closest source of truth.
 - [Repo skills](../.agents/skills/) - reusable task workflows; `$life-ustc-dev-loop` is the single source of truth for checks, tests, and verification.
 - [README](../README.md) - short project entry point and local quick start.
 - [Contracts](contracts/) - modular JSON product/API/GraphQL/MCP contracts.
+- [Interface hierarchy](interface-hierarchy.md) - shared Web, REST, GraphQL, MCP, Bot, and CLI information architecture.
 
 ## Read by Task
 
@@ -49,6 +50,7 @@ is the project map: start here, then follow the closest source of truth.
 - [docs/contracts/mcp.json](contracts/mcp.json) - MCP contract surface.
 - [docs/contracts/security.json](contracts/security.json) - security and permission expectations.
 - [docs/observability.md](observability.md) - production logs, metrics, alerts, and dashboard guidance.
+- [docs/interface-hierarchy.md](interface-hierarchy.md) - canonical cross-surface hierarchy, naming, compatibility, locale, cache, and SEO policy.
 
 ## Verification
 
