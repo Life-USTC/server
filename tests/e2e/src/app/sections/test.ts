@@ -6,9 +6,9 @@
  * - Seed section: DEV_SEED.section (jwId 9902001) for DEV_SEED.course
  *
  * ## UI/UX Elements
- * - Search input with advanced syntax (teacher:, coursecode:, campus:, credits:, etc.)
- * - Search help dialog (?) explaining syntax
- * - Semester filter dropdown (combobox)
+ * - Plain search input for course names and course/section codes
+ * - Structured filters for section, course metadata, and sorting
+ * - Collapsible advanced syntax reference inside the filter sheet
  * - Table: Semester, Course Name, Section Code, Teachers, Credits, Capacity, Campus
  * - Clickable rows navigating to /sections/{jwId}
  * - URL-driven Previous / page-number / Next pagination
@@ -17,7 +17,8 @@
  *
  * ## Edge Cases
  * - SSR output contains search query for SEO
- * - Semester filter updates URL with semesterId param
+ * - 280–375 px layouts remain usable without horizontal overflow
+ * - Structured filters update URL parameters and preserve matching results
  * - Advanced search syntax parsed server-side (sort:, order:asc/desc)
  */
 import { expect, type Page, test } from "@playwright/test";
@@ -84,19 +85,24 @@ test.describe("/sections 班级搜索页", () => {
     const mobileFilterLayout = await mobileFilters.evaluate((node) => {
       const container = node as HTMLElement;
       const searchbox = container.querySelector('[type="search"]');
+      const actionButtons = Array.from(
+        container.querySelectorAll<HTMLButtonElement>("button"),
+      );
       const activeFilters = container.querySelector(
         '[data-testid="catalog-active-filters"]',
       );
-      if (!searchbox || !activeFilters) {
+      if (!searchbox || actionButtons.length < 2 || !activeFilters) {
         throw new Error("Mobile catalog filter geometry missing");
       }
 
       const containerBox = container.getBoundingClientRect();
       const searchboxBox = searchbox.getBoundingClientRect();
+      const actionBottom = Math.max(
+        ...actionButtons.map((button) => button.getBoundingClientRect().bottom),
+      );
       const activeFiltersBox = activeFilters.getBoundingClientRect();
       return {
-        activeFiltersGap:
-          activeFiltersBox.top - (searchboxBox.top + searchboxBox.height),
+        activeFiltersGap: activeFiltersBox.top - actionBottom,
         height: containerBox.height,
         searchTop: searchboxBox.top - containerBox.top,
       };
@@ -105,7 +111,7 @@ test.describe("/sections 班级搜索页", () => {
     expect(mobileFilterLayout.searchTop).toBeLessThan(24);
     expect(mobileFilterLayout.activeFiltersGap).toBeGreaterThanOrEqual(8);
     expect(mobileFilterLayout.activeFiltersGap).toBeLessThan(24);
-    expect(mobileFilterLayout.height).toBeLessThan(144);
+    expect(mobileFilterLayout.height).toBeLessThan(180);
 
     await page.getByRole("button", { name: /筛选|Filters/i }).click();
     const filterSheet = page.getByRole("dialog");
@@ -154,6 +160,137 @@ test.describe("/sections 班级搜索页", () => {
     await expect(page.locator("vite-error-overlay")).toHaveCount(0);
     expect(runtimeErrors).toEqual([]);
     await captureStepScreenshot(page, testInfo, "sections-mobile-list-en-us");
+  });
+
+  test("280 至 375 像素窄屏筛选与帮助不溢出", async ({ page }, testInfo) => {
+    await useChineseLocale(page);
+
+    for (const width of [280, 320, 360, 375]) {
+      await page.setViewportSize({ width, height: 900 });
+      await gotoAndWaitForReady(
+        page,
+        `/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
+      );
+      await expectNoPageHorizontalOverflow(page);
+
+      const mobileFilters = page.getByTestId("catalog-mobile-filters");
+      const searchbox = page.getByRole("searchbox");
+      const searchButton = page.getByRole("button", { name: /^搜索$/ });
+      const filterButton = page.getByRole("button", { name: /筛选/ });
+      await expect(mobileFilters).toBeVisible();
+
+      const toolbarGeometry = await mobileFilters.evaluate((node) => {
+        const form = node.querySelector("form");
+        const input = node.querySelector<HTMLInputElement>('[type="search"]');
+        const buttons = Array.from(
+          node.querySelectorAll<HTMLButtonElement>("form > button"),
+        );
+        if (!form || !input || buttons.length === 0) {
+          throw new Error("Mobile toolbar geometry missing");
+        }
+        const inputGroup = input.closest<HTMLElement>(
+          '[data-slot="input-group"]',
+        );
+        const containerBox = (node as HTMLElement).getBoundingClientRect();
+        const inputBox = (inputGroup ?? input).getBoundingClientRect();
+        return {
+          containerLeft: containerBox.left,
+          containerRight: containerBox.right,
+          inputBottom: inputBox.bottom,
+          inputLeft: inputBox.left,
+          inputRight: inputBox.right,
+        };
+      });
+      const searchButtonBox = await searchButton.boundingBox();
+      const filterButtonBox = await filterButton.boundingBox();
+      expect(toolbarGeometry.containerLeft).toBeGreaterThanOrEqual(0);
+      expect(toolbarGeometry.containerRight).toBeLessThanOrEqual(width);
+      expect(toolbarGeometry.inputLeft).toBeGreaterThanOrEqual(
+        toolbarGeometry.containerLeft,
+      );
+      expect(toolbarGeometry.inputRight).toBeLessThanOrEqual(
+        toolbarGeometry.containerRight,
+      );
+      expect(searchButtonBox).not.toBeNull();
+      expect(filterButtonBox).not.toBeNull();
+
+      expect(searchButtonBox?.y ?? 0).toBeGreaterThanOrEqual(
+        toolbarGeometry.inputBottom,
+      );
+      expect(searchButtonBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+      expect(filterButtonBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+
+      await filterButton.click();
+      const filterSheet = page.getByRole("dialog");
+      await expect(filterSheet).toBeVisible();
+      for (const label of [
+        "学期",
+        "教师",
+        "课程代码",
+        "班级代码",
+        "校区",
+        "院系",
+        "学分",
+        "课程类别",
+        "教育层次",
+        "课程类型",
+        "排序字段",
+        "排序方向",
+      ]) {
+        await expect(
+          filterSheet.getByLabel(label, { exact: true }),
+        ).toHaveCount(1);
+      }
+
+      await filterSheet.getByRole("button", { name: "高级搜索语法" }).click();
+      await expect(filterSheet.getByText('semester:"2024 春"')).toBeVisible();
+      await expect(page.getByRole("dialog")).toHaveCount(1);
+
+      const sheetGeometry = await filterSheet.evaluate((node) => {
+        const root = node as HTMLElement;
+        const box = root.getBoundingClientRect();
+        const overflowing = Array.from(
+          root.querySelectorAll<HTMLElement>("*"),
+        ).flatMap((element) => {
+          const elementBox = element.getBoundingClientRect();
+          const overflowWidth = element.scrollWidth - element.clientWidth;
+          return element.clientWidth > 0 &&
+            !element.classList.contains("sr-only") &&
+            overflowWidth > 1 &&
+            elementBox.right + overflowWidth > box.right + 1
+            ? [
+                {
+                  clientWidth: element.clientWidth,
+                  scrollWidth: element.scrollWidth,
+                  text: element.textContent
+                    ?.trim()
+                    .replace(/\s+/g, " ")
+                    .slice(0, 80),
+                },
+              ]
+            : [];
+        });
+        return {
+          left: box.left,
+          overflowing,
+          right: box.right,
+        };
+      });
+      expect(sheetGeometry.left).toBeGreaterThanOrEqual(0);
+      expect(sheetGeometry.right).toBeLessThanOrEqual(width);
+      expect(sheetGeometry.overflowing).toEqual([]);
+
+      if (width === 280 || width === 375) {
+        await captureStepScreenshot(
+          page,
+          testInfo,
+          `sections-filters-${width}`,
+        );
+      }
+      await page.keyboard.press("Escape");
+      await expect(filterSheet).toBeHidden();
+      await expect(searchbox).toBeVisible();
+    }
   });
 
   test("中文目录在桌面宽度下不裁切或横向溢出", async ({ page }, testInfo) => {
@@ -274,7 +411,9 @@ test.describe("/sections 班级搜索页", () => {
     expect(runtimeErrors).toEqual([]);
   });
 
-  test("搜索帮助与清除", async ({ page }, testInfo) => {
+  test("结构化筛选、高级语法与清除", async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 320, height: 900 });
+    await useChineseLocale(page);
     await gotoAndWaitForReady(page, "/sections", {
       testInfo,
       screenshotLabel: "sections",
@@ -283,36 +422,38 @@ test.describe("/sections 班级搜索页", () => {
     await page.getByRole("button", { name: /筛选|Filters/i }).click();
     const filterSheet = page.getByRole("dialog");
     await expect(filterSheet).toBeVisible();
-    await filterSheet
-      .getByRole("button", { name: /高级搜索语法|Advanced Search Syntax/i })
-      .first()
-      .click();
-    const searchHelpDialog = page.getByRole("dialog", {
-      name: /高级搜索语法|Advanced Search Syntax/i,
-    });
-    await expect(searchHelpDialog).toBeVisible();
+    await filterSheet.getByRole("button", { name: "高级搜索语法" }).click();
+    await expect(filterSheet.getByText("teacher:张三")).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(1);
     await captureStepScreenshot(page, testInfo, "sections-search-help");
-    await searchHelpDialog
-      .getByRole("button", { name: /关闭|Close|Cancel/i })
-      .first()
-      .click();
 
-    const searchInput = page.getByRole("searchbox");
-    await searchInput.fill(DEV_SEED.section.code);
-    await page.getByRole("button", { name: /^(搜索|Search)$/i }).click();
+    await filterSheet.getByLabel("教师").fill(DEV_SEED.teacher.nameCn);
+    await filterSheet.getByLabel("课程代码").fill(DEV_SEED.course.code);
+    await filterSheet.getByLabel("班级代码").fill(DEV_SEED.section.code);
+    await filterSheet.getByLabel("学分").fill(String(DEV_SEED.section.credits));
+    await filterSheet.getByLabel("排序字段").selectOption("code");
+    await filterSheet.getByLabel("排序方向").selectOption("desc");
+    await filterSheet.getByRole("button", { name: "应用筛选" }).click();
+
+    await expect(filterSheet).toBeHidden();
     await expect(page).toHaveURL(
-      new RegExp(`search=${encodeURIComponent(DEV_SEED.section.code)}`),
+      new RegExp(`courseCode=${encodeURIComponent(DEV_SEED.course.code)}`),
     );
+    await expect(page).toHaveURL(
+      new RegExp(`sectionCode=${encodeURIComponent(DEV_SEED.section.code)}`),
+    );
+    await expect(page).toHaveURL(/sort=code/);
+    await expect(page).toHaveURL(/order=desc/);
     await expect(visibleText(page, DEV_SEED.course.nameEn)).toBeVisible();
     await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "sections-search-results");
+    await expect(page.getByTestId("catalog-active-filters")).toContainText(
+      DEV_SEED.teacher.nameCn,
+    );
+    await captureStepScreenshot(page, testInfo, "sections-structured-results");
 
-    const clearLink = page.getByRole("link", { name: /清除|Clear/i }).first();
-    if ((await clearLink.count()) > 0) {
-      await clearLink.click();
-      await expect(page).toHaveURL(/\/sections(?:\?.*)?$/);
-      await captureStepScreenshot(page, testInfo, "sections-clear");
-    }
+    await page.getByRole("link", { name: /^清除$/ }).click();
+    await expect(page).toHaveURL(/\/sections$/);
+    await captureStepScreenshot(page, testInfo, "sections-clear");
   });
 
   test("学期筛选保留种子数据结果", async ({ page }, testInfo) => {

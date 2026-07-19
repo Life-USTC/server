@@ -14,9 +14,38 @@ export type SectionListCommonLabels = {
 export type SectionListLabels = {
   campus: string;
   capacity: string;
+  category: string;
+  classType: string;
   courseName: string;
+  courseCode: string;
   credits: string;
   creditValue: string;
+  department: string;
+  educationLevel: string;
+  filterDescription: string;
+  filters: {
+    any: string;
+    apply: string;
+    courseDescription: string;
+    courseTitle: string;
+    defaultSort: string;
+    exactCredits: string;
+    order: string;
+    orderAsc: string;
+    orderDesc: string;
+    sectionDescription: string;
+    sectionTitle: string;
+    sortBy: string;
+    sortCampus: string;
+    sortCapacity: string;
+    sortCode: string;
+    sortCourse: string;
+    sortCredits: string;
+    sortSemester: string;
+    sortTeacherCount: string;
+    sortingDescription: string;
+    sortingTitle: string;
+  };
   inSemester: string;
   noSectionsFound: string;
   noSemester: string;
@@ -42,13 +71,29 @@ export type SectionListLabels = {
 };
 
 export type SectionListFilters = {
+  campusId?: string | null;
+  categoryId?: string | null;
+  classTypeId?: string | null;
+  courseCode?: string | null;
+  credits?: string | null;
+  departmentId?: string | null;
+  educationLevelId?: string | null;
+  order?: "asc" | "desc" | null;
   search?: string | null;
+  sectionCode?: string | null;
   semesterId?: string | null;
+  sort?: string | null;
+  teacher?: string | null;
 };
 
 export type SectionListOption = {
   label: string;
   value: string;
+};
+
+export type SectionListOptionSource = CatalogNamed & {
+  id: number | string;
+  nameCn: string;
 };
 
 export type SectionListPagination = {
