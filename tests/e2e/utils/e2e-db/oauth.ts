@@ -81,6 +81,48 @@ export async function createOAuthClientFixture(
   };
 }
 
+export async function createOAuthAuthorizationFixture(options: {
+  name: string;
+  scopes: string[];
+  userId: string;
+}) {
+  const clientId = generateToken(16);
+  const clientSecret = `hidden-secret-${generateToken(12)}`;
+  const redirectUri = `${PLAYWRIGHT_BASE_URL}/hidden-oauth-callback`;
+  const clientUri = "https://calendar.example";
+
+  return withE2ePrisma(async (prisma) => {
+    await prisma.oAuthClient.create({
+      data: {
+        clientId,
+        clientSecret,
+        name: options.name,
+        redirectUris: [redirectUri],
+        scopes: options.scopes,
+        uri: clientUri,
+      },
+    });
+    const consent = await prisma.oAuthConsent.create({
+      data: {
+        clientId,
+        scopes: options.scopes,
+        userId: options.userId,
+      },
+      select: { id: true },
+    });
+
+    return {
+      clientId,
+      clientSecret,
+      clientUri,
+      consentId: consent.id,
+      name: options.name,
+      redirectUri,
+      scopes: options.scopes,
+    };
+  });
+}
+
 export async function deleteOAuthClientsByName(name: string) {
   await withE2ePrisma((prisma) =>
     prisma.oAuthClient.deleteMany({

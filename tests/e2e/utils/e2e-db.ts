@@ -16,6 +16,8 @@ const DB_FIXTURE_ATTEMPTS = 3;
 
 const operations = {
   createTempCoursesFixture: catalogFixtures.createTempCoursesFixture,
+  createOAuthAuthorizationFixture:
+    oauthFixtures.createOAuthAuthorizationFixture,
   createOAuthClientFixture: oauthFixtures.createOAuthClientFixture,
   cleanupAuditLogsForE2e: auditFixtures.cleanupAuditLogsForE2e,
   cleanupAuditTargetsForE2e: auditFixtures.cleanupAuditTargetsForE2e,
@@ -100,6 +102,21 @@ export const createOAuthClientFixture = (options?: OAuthClientFixtureOptions) =>
     redirectUris: string[];
     scopes: string[];
   }>("createOAuthClientFixture", [options]);
+
+export const createOAuthAuthorizationFixture = (options: {
+  name: string;
+  scopes: string[];
+  userId: string;
+}) =>
+  runDbFixture<{
+    clientId: string;
+    clientSecret: string;
+    clientUri: string;
+    consentId: string;
+    name: string;
+    redirectUri: string;
+    scopes: string[];
+  }>("createOAuthAuthorizationFixture", [options]);
 
 export const cleanupAuditLogsForE2e = (input: AuditLogCleanupInput) =>
   runDbFixture<void>("cleanupAuditLogsForE2e", [input]);

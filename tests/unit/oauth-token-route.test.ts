@@ -10,11 +10,17 @@ import {
 const {
   betterAuthHandlerMock,
   findRefreshTokenMock,
+  isOAuthRefreshGrantActiveMock,
+  purgeOAuthGrantTokenRowsMock,
+  resolveActiveOAuthRefreshGrantMock,
   signJwtMock,
   updateRefreshTokenMock,
 } = vi.hoisted(() => ({
   betterAuthHandlerMock: vi.fn(),
   findRefreshTokenMock: vi.fn(),
+  isOAuthRefreshGrantActiveMock: vi.fn(),
+  purgeOAuthGrantTokenRowsMock: vi.fn(),
+  resolveActiveOAuthRefreshGrantMock: vi.fn(),
   signJwtMock: vi.fn(),
   updateRefreshTokenMock: vi.fn(),
 }));
@@ -26,6 +32,12 @@ vi.mock("@/lib/auth/core", () => ({
     },
     handler: betterAuthHandlerMock,
   },
+}));
+
+vi.mock("@/features/oauth/server/user-authorizations.server", () => ({
+  isOAuthRefreshGrantActive: isOAuthRefreshGrantActiveMock,
+  purgeOAuthGrantTokenRows: purgeOAuthGrantTokenRowsMock,
+  resolveActiveOAuthRefreshGrant: resolveActiveOAuthRefreshGrantMock,
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
@@ -56,9 +68,18 @@ describe("OAuth 令牌路由", () => {
   beforeEach(() => {
     betterAuthHandlerMock.mockReset();
     findRefreshTokenMock.mockReset();
+    isOAuthRefreshGrantActiveMock.mockReset();
+    purgeOAuthGrantTokenRowsMock.mockReset();
+    resolveActiveOAuthRefreshGrantMock.mockReset();
     signJwtMock.mockReset();
     updateRefreshTokenMock.mockReset();
     updateRefreshTokenMock.mockResolvedValue({ count: 1 });
+    isOAuthRefreshGrantActiveMock.mockResolvedValue(true);
+    purgeOAuthGrantTokenRowsMock.mockResolvedValue(undefined);
+    resolveActiveOAuthRefreshGrantMock.mockResolvedValue({
+      clientId: "client-1",
+      userId: "user-1",
+    });
   });
 
   it("为 GET 返回 JSON 方法指引", async () => {
@@ -227,5 +248,84 @@ describe("OAuth 令牌路由", () => {
         }),
       },
     });
+  });
+
+  it("在委托 Better Auth 前拒绝已撤销的 refresh grant", async () => {
+    resolveActiveOAuthRefreshGrantMock.mockResolvedValueOnce(null);
+
+    const response = await tokenPostRoute(
+      new Request("http://localhost/api/auth/oauth2/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: "client-1",
+          grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+          refresh_token: "revoked-refresh-token",
+        }).toString(),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "invalid_grant",
+    });
+    expect(betterAuthHandlerMock).not.toHaveBeenCalled();
+  });
+
+  it("并发撤销发生在刷新期间时丢弃响应并清除竞态 token rows", async () => {
+    findRefreshTokenMock.mockResolvedValue(null);
+    betterAuthHandlerMock.mockResolvedValueOnce(
+      Response.json({
+        access_token: "must-not-escape",
+        expires_in: 3600,
+        token_type: "Bearer",
+      }),
+    );
+    isOAuthRefreshGrantActiveMock.mockResolvedValueOnce(false);
+
+    const response = await tokenPostRoute(
+      new Request("http://localhost/api/auth/oauth2/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: "client-1",
+          grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+          refresh_token: "racing-refresh-token",
+        }).toString(),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body).toMatchObject({ error: "invalid_grant" });
+    expect(JSON.stringify(body)).not.toContain("must-not-escape");
+    expect(purgeOAuthGrantTokenRowsMock).toHaveBeenCalledWith({
+      clientId: "client-1",
+      userId: "user-1",
+    });
+  });
+
+  it("授权状态数据库不可用时 fail closed 且不委托 refresh", async () => {
+    resolveActiveOAuthRefreshGrantMock.mockRejectedValueOnce(
+      new Error("database unavailable"),
+    );
+
+    const response = await tokenPostRoute(
+      new Request("http://localhost/api/auth/oauth2/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: "client-1",
+          grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+          refresh_token: "refresh-token",
+        }).toString(),
+      }),
+    );
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "server_error",
+    });
+    expect(betterAuthHandlerMock).not.toHaveBeenCalled();
   });
 });

@@ -12,6 +12,7 @@ import { restReadScope } from "@/lib/oauth/scope-registry";
 
 const handler = createGraphqlRequestHandler(false);
 const encoder = new TextEncoder();
+const oauthClientId = `graphql-viewer-${crypto.randomUUID()}`;
 
 type GraphqlPayload = {
   data?: Record<string, unknown> | null;
@@ -66,7 +67,7 @@ async function signToken(
 ) {
   const issuedAt = Math.floor(Date.now() / 1000);
   const token = await signResourceBoundOAuthAccessToken({
-    clientId: "graphql-viewer-integration",
+    clientId: oauthClientId,
     expiresAt: issuedAt + 300,
     issuedAt,
     resources: [resource],
@@ -181,6 +182,19 @@ describe.sequential("GraphQL Viewer integration", () => {
     secondUserId = secondUser.id;
 
     await Promise.all([
+      prisma.oAuthClient.create({
+        data: {
+          clientId: oauthClientId,
+          consents: {
+            create: {
+              scopes: allViewerScopes,
+              userId: firstUserId,
+            },
+          },
+          name: "GraphQL viewer integration",
+          redirectUris: ["https://graphql.example/callback"],
+        },
+      }),
       prisma.todo.createMany({
         data: [
           {
@@ -206,6 +220,9 @@ describe.sequential("GraphQL Viewer integration", () => {
   });
 
   afterAll(async () => {
+    await prisma.oAuthClient.deleteMany({
+      where: { clientId: oauthClientId },
+    });
     if (userEmails.length > 0) {
       await prisma.user.deleteMany({
         where: { email: { in: userEmails } },

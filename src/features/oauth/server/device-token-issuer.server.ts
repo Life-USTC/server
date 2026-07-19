@@ -34,6 +34,15 @@ type DeviceGrantTokenTransaction = {
       };
     }) => Promise<unknown>;
   };
+  oAuthConsent: {
+    create: (input: {
+      data: {
+        clientId: string;
+        scopes: string[];
+        userId: string;
+      };
+    }) => Promise<unknown>;
+  };
   oAuthRefreshToken: {
     create: (input: {
       data: {
@@ -150,6 +159,14 @@ export async function issueDeviceGrantTokens(
       },
     });
     if (claimed.count !== 1) return false;
+
+    await tx.oAuthConsent.create({
+      data: {
+        clientId: input.clientId,
+        scopes: input.scopes,
+        userId: input.userId,
+      },
+    });
 
     const refreshRecord =
       refreshTokenHash &&

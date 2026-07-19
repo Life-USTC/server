@@ -4,6 +4,7 @@ import { restReadScope, restWriteScope } from "@/lib/oauth/constants";
 
 const getSessionFromHeadersMock = vi.fn();
 const verifyAccessTokenJwtMock = vi.fn();
+const hasActiveOAuthUserGrantMock = vi.fn();
 
 vi.mock("@/lib/auth/core", () => ({
   authApi: { getJwks: vi.fn().mockResolvedValue({ keys: [] }) },
@@ -12,6 +13,10 @@ vi.mock("@/lib/auth/core", () => ({
 
 vi.mock("@/lib/auth/jwt-verification", () => ({
   verifyAccessTokenJwt: verifyAccessTokenJwtMock,
+}));
+
+vi.mock("@/lib/oauth/active-user-grant", () => ({
+  hasActiveOAuthUserGrant: hasActiveOAuthUserGrantMock,
 }));
 
 function request(headers?: HeadersInit) {
@@ -24,6 +29,8 @@ describe("GraphQL principal", () => {
     vi.stubEnv("APP_PUBLIC_ORIGIN", "https://life.example");
     getSessionFromHeadersMock.mockReset();
     verifyAccessTokenJwtMock.mockReset();
+    hasActiveOAuthUserGrantMock.mockReset();
+    hasActiveOAuthUserGrantMock.mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -69,6 +76,47 @@ describe("GraphQL principal", () => {
       }),
     );
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
+  });
+
+  it("拒绝已撤销、缺少 azp 或无法查询授权状态的 GraphQL JWT", async () => {
+    const { resolveGraphqlPrincipal } = await import("@/lib/graphql/auth");
+    const incoming = request({ authorization: "Bearer access-token" });
+
+    verifyAccessTokenJwtMock.mockResolvedValue({
+      aud: "https://life.example/api/graphql",
+      clientId: "client-1",
+      scope: new Set([restReadScope("todo")]),
+      sub: "user-1",
+    });
+    hasActiveOAuthUserGrantMock.mockResolvedValueOnce(false);
+    await expect(resolveGraphqlPrincipal(incoming)).rejects.toMatchObject({
+      code: "UNAUTHENTICATED",
+      status: 401,
+    });
+
+    verifyAccessTokenJwtMock.mockResolvedValue({
+      aud: "https://life.example/api/graphql",
+      scope: new Set([restReadScope("todo")]),
+      sub: "user-1",
+    });
+    await expect(resolveGraphqlPrincipal(incoming)).rejects.toMatchObject({
+      code: "UNAUTHENTICATED",
+      status: 401,
+    });
+
+    verifyAccessTokenJwtMock.mockResolvedValue({
+      aud: "https://life.example/api/graphql",
+      clientId: "client-1",
+      scope: new Set([restReadScope("todo")]),
+      sub: "user-1",
+    });
+    hasActiveOAuthUserGrantMock.mockRejectedValueOnce(
+      new Error("database unavailable"),
+    );
+    await expect(resolveGraphqlPrincipal(incoming)).rejects.toMatchObject({
+      code: "UNAUTHENTICATED",
+      status: 401,
+    });
   });
 
   it.each([
@@ -339,8 +387,11 @@ describe("GraphQL feature scope gates", () => {
     vi.stubEnv("APP_PUBLIC_ORIGIN", "https://life.example");
     getSessionFromHeadersMock.mockReset();
     verifyAccessTokenJwtMock.mockReset();
+    hasActiveOAuthUserGrantMock.mockReset();
+    hasActiveOAuthUserGrantMock.mockResolvedValue(true);
     verifyAccessTokenJwtMock.mockResolvedValue({
       aud: "https://life.example/api/graphql",
+      clientId: "client-1",
       scope: new Set([restReadScope("todo"), restReadScope("subscription")]),
       sub: "user-1",
     });

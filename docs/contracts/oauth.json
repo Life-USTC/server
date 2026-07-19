@@ -50,6 +50,31 @@
         ]
       }
     },
+    "authorization-management": {
+      "title": "Authorized Applications",
+      "auth": "user",
+      "web": {
+        "pages": ["/settings/authorizations"]
+      },
+      "rest": "unavailable",
+      "graphql": "unavailable",
+      "mcp": "unavailable",
+      "rules": {
+        "ownership-scoped-transaction": "Revocation transactionally removes every consent, access-token row, refresh-token row, and approved or pending device-code row for the signed-in user and client.",
+        "active-user-grant-enforcement": "REST, GraphQL, and MCP JWT requests require an enabled client and current consent. Explicit admin-created clients with skipConsent=true are the only bypass and still require an existing user. Missing claims or grants and database errors fail closed. The lookup is intentionally uncached so completed revocation applies to the next request, at the cost of one database grant check per authenticated JWT request.",
+        "refresh-revocation-race": "Refresh exchange verifies the hashed token row and active grant before delegation, then verifies the grant again before returning success. If revocation wins the race, newly issued grant token rows are purged and no usable token response is returned."
+      },
+      "display": {
+        "fields": [
+          "client.name (display name with an unnamed fallback)",
+          "client.uri (public application URI)",
+          "client.disabled (disabled badge)",
+          "consent.scopes[] (approved permissions)",
+          "consent.updatedAt (last authorization time)",
+          "Revoke action with confirmation"
+        ]
+      }
+    },
     "client-registration": {
       "title": "Client Registration & Discovery",
       "auth": "admin",

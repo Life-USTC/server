@@ -4,6 +4,10 @@ import { withBetterAuthOAuthDebug } from "@/lib/log/oauth-debug";
 import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";
 import { OAUTH_DEVICE_CODE_GRANT_TYPE } from "@/lib/oauth/constants";
 import { rewriteOAuthResourceAliases } from "@/lib/oauth/resource-aliases";
+import {
+  rejectRefreshIssuedAfterRevocation,
+  validateActiveOAuthRefreshGrant,
+} from "./auth-token-active-grant";
 import { handleDeviceCodeGrant } from "./auth-token-device-grant";
 import { maybeNormalizeTokenLoopbackRedirectRequest } from "./auth-token-loopback-normalization";
 import { logObservedTokenRedirectRequest } from "./auth-token-observed-logging";
@@ -149,6 +153,9 @@ async function postRoute(request: Request) {
   logObservedTokenRedirectRequest(normalizedRequest, params);
 
   return runObservedTokenHandler(request, params, async () => {
+    const grantValidation = await validateActiveOAuthRefreshGrant(params);
+    if ("response" in grantValidation) return grantValidation.response;
+
     const resourceError = await validateOAuthRefreshTokenResources(
       normalizedRequest,
       params,
@@ -173,6 +180,12 @@ async function postRoute(request: Request) {
       await normalizeOAuthTokenErrorResponse(delegatedResponse),
     );
     await persistOAuthRefreshTokenResources(delegatedRequest, params, response);
+    if (response.ok) {
+      const revokedResponse = await rejectRefreshIssuedAfterRevocation(
+        grantValidation.grant,
+      );
+      if (revokedResponse) return revokedResponse;
+    }
     return response;
   });
 }

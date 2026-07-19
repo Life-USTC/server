@@ -10,6 +10,7 @@ import { DEV_SEED } from "../fixtures/dev-seed";
 
 const handler = createGraphqlRequestHandler(false);
 const marker = `[integration-test] graphql-mutations-${Date.now()}`;
+const oauthClientId = `graphql-mutations-${crypto.randomUUID()}`;
 const createdCommentIds: string[] = [];
 
 let userAId = "";
@@ -64,7 +65,7 @@ async function execute(
 async function signToken(userId: string, scopes: string[]) {
   const issuedAt = Math.floor(Date.now() / 1000);
   const token = await signResourceBoundOAuthAccessToken({
-    clientId: "graphql-mutations-integration",
+    clientId: oauthClientId,
     expiresAt: issuedAt + 300,
     issuedAt,
     resources: [getOAuthGraphqlResourceUrl()],
@@ -115,9 +116,24 @@ beforeAll(async () => {
   homeworkId = homework.id;
   originCampusId = campuses[0].id;
   destinationCampusId = campuses[1].id;
+
+  await prisma.oAuthClient.create({
+    data: {
+      clientId: oauthClientId,
+      consents: {
+        create: [
+          { scopes: [], userId: userAId },
+          { scopes: [], userId: userBId },
+        ],
+      },
+      name: "GraphQL mutations integration",
+      redirectUris: ["https://graphql.example/callback"],
+    },
+  });
 });
 
 afterAll(async () => {
+  await prisma.oAuthClient.deleteMany({ where: { clientId: oauthClientId } });
   await prisma.auditLog.deleteMany({
     where: { targetId: { in: createdCommentIds } },
   });

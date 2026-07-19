@@ -23,6 +23,7 @@ vi.mock("@/lib/mcp/urls", () => ({
 function createPrismaMock() {
   const deviceCodeDeleteMany = vi.fn().mockResolvedValue({ count: 1 });
   const accessTokenCreate = vi.fn().mockResolvedValue({});
+  const consentCreate = vi.fn().mockResolvedValue({});
   const refreshTokenCreate = vi.fn().mockResolvedValue({ id: "refresh-1" });
   return {
     prisma: {
@@ -30,11 +31,13 @@ function createPrismaMock() {
         callback({
           deviceCode: { deleteMany: deviceCodeDeleteMany },
           oAuthAccessToken: { create: accessTokenCreate },
+          oAuthConsent: { create: consentCreate },
           oAuthRefreshToken: { create: refreshTokenCreate },
         }),
       ),
     },
     accessTokenCreate,
+    consentCreate,
     deviceCodeDeleteMany,
     refreshTokenCreate,
   };
@@ -47,7 +50,7 @@ describe("设备令牌签发器", () => {
 
   it("使用绑定资源的 JWT 访问令牌且为 offline_access 签发刷新令牌", async () => {
     signJwtMock.mockResolvedValue({ token: "header.payload.signature" });
-    const { prisma, accessTokenCreate, refreshTokenCreate } =
+    const { prisma, accessTokenCreate, consentCreate, refreshTokenCreate } =
       createPrismaMock();
     const { issueDeviceGrantTokens } = await import(
       "@/features/oauth/server/device-token-issuer.server"
@@ -74,6 +77,18 @@ describe("设备令牌签发器", () => {
       refreshToken: expect.any(String),
     });
     expect(accessTokenCreate).not.toHaveBeenCalled();
+    expect(consentCreate).toHaveBeenCalledWith({
+      data: {
+        clientId: "client-1",
+        scopes: [
+          OAUTH_OPENID_SCOPE,
+          OAUTH_PROFILE_SCOPE,
+          MCP_TOOLS_SCOPE,
+          OAUTH_OFFLINE_ACCESS_SCOPE,
+        ],
+        userId: "user-1",
+      },
+    });
     expect(refreshTokenCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
         clientId: "client-1",

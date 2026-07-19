@@ -3,6 +3,7 @@ import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
 import { parseBearerAuthorizationHeader } from "@/lib/auth/authorization-header";
 import { verifyAccessTokenJwt } from "@/lib/auth/jwt-verification";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
+import { hasActiveOAuthUserGrant } from "@/lib/oauth/active-user-grant";
 import { getJwksUrlForOAuthVerification } from "@/lib/oauth/metadata-urls";
 import {
   getOAuthGraphqlAudienceUrls,
@@ -91,6 +92,15 @@ async function resolveBearerPrincipal(
     });
     if (!hasGraphqlAudience(verified.aud)) {
       throw unauthenticated("Invalid bearer token audience");
+    }
+    if (
+      !verified.clientId ||
+      !(await hasActiveOAuthUserGrant({
+        clientId: verified.clientId,
+        userId: verified.sub,
+      }))
+    ) {
+      throw unauthenticated("OAuth authorization grant is inactive");
     }
 
     return {

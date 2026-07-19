@@ -49,6 +49,24 @@ export type SettingsCopy = {
   };
   profile: SettingsProfileCopy;
   settings: {
+    authorizations: {
+      description: string;
+      disabled: string;
+      emptyDescription: string;
+      emptyTitle: string;
+      permissions: string;
+      revoke: string;
+      revokeDescription: string;
+      revokeError: string;
+      revokeNotFound: string;
+      revokeSuccess: string;
+      revokeSuccessDescription: string;
+      revokeTitle: string;
+      revoking: string;
+      title: string;
+      unnamedClient: string;
+      updatedAt: string;
+    };
     content: {
       browseSections: {
         description: string;
@@ -116,6 +134,15 @@ export type SettingsCopy = {
     selector: string;
     system: string;
   };
+};
+
+export type SettingsOAuthAuthorization = {
+  clientName?: string | null;
+  clientUri?: string | null;
+  consentId: string;
+  disabled: boolean;
+  scopes: string[];
+  updatedAt: string;
 };
 
 export type SettingsUser = {

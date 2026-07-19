@@ -6,16 +6,22 @@ export let copy: SettingsCopy;
 export let statusMessage: string | null | undefined;
 
 $: isSuccessStatus =
-  statusMessage === "Success" || statusMessage === "AccountDisconnected";
+  statusMessage === "Success" ||
+  statusMessage === "AccountDisconnected" ||
+  statusMessage === "AuthorizationRevoked";
 $: statusTitle = isSuccessStatus
-  ? statusMessage === "AccountDisconnected"
-    ? copy.profile.disconnectSuccess
-    : copy.profile.updateSuccess
+  ? statusMessage === "AuthorizationRevoked"
+    ? copy.settings.authorizations.revokeSuccess
+    : statusMessage === "AccountDisconnected"
+      ? copy.profile.disconnectSuccess
+      : copy.profile.updateSuccess
   : copy.profile.updateError;
 $: statusDescription = isSuccessStatus
-  ? statusMessage === "AccountDisconnected"
-    ? copy.profile.disconnectSuccessDescription
-    : copy.profile.updateSuccessDescription
+  ? statusMessage === "AuthorizationRevoked"
+    ? copy.settings.authorizations.revokeSuccessDescription
+    : statusMessage === "AccountDisconnected"
+      ? copy.profile.disconnectSuccessDescription
+      : copy.profile.updateSuccessDescription
   : statusMessage;
 </script>
 
