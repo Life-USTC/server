@@ -28,13 +28,6 @@ import {
 } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 
-function busTimeAtOffset(minutes: number) {
-  const value = new Date(Date.now() + minutes * 60_000);
-  return `${String(value.getHours()).padStart(2, "0")}:${String(
-    value.getMinutes(),
-  ).padStart(2, "0")}`;
-}
-
 test.describe("校车线路图", () => {
   test("SVG 中渲染校区节点与线路", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/bus-map", {
@@ -236,10 +229,7 @@ test.describe("校车线路图", () => {
   });
 
   test("统计摘要保持紧凑且单条运行班次不占固定高度", async ({ page }) => {
-    const snapshot = await isolateSingleActiveBusTripFixture([
-      busTimeAtOffset(-5),
-      busTimeAtOffset(15),
-    ]);
+    const snapshot = await isolateSingleActiveBusTripFixture();
 
     try {
       for (const width of [280, 320, 375, 1440]) {
@@ -256,6 +246,7 @@ test.describe("校车线路图", () => {
 
         const activeTrips = page.getByTestId("bus-map-active-trips");
         await expect(activeTrips).toBeVisible();
+        await expect(activeTrips.locator("[data-slot='item']")).toHaveCount(1);
         const geometry = await activeTrips.evaluate((node) => {
           const viewport = node.querySelector(
             "[data-slot='scroll-area-viewport']",

@@ -5,9 +5,9 @@ export type BusTripTimesSnapshot = Array<{
   stopTimes: Array<string | null>;
 }>;
 
-export async function isolateSingleActiveBusTripFixture(
-  stopTimes: [string, string],
-): Promise<BusTripTimesSnapshot> {
+const ALL_DAY_TRIP_TIMES = ["00:00", "23:59"] as const;
+
+export async function isolateSingleActiveBusTripFixture(): Promise<BusTripTimesSnapshot> {
   return await withE2ePrisma(async (prisma) => {
     const trips = await prisma.busTrip.findMany({
       orderBy: [{ dayType: "asc" }, { position: "asc" }],
@@ -25,7 +25,7 @@ export async function isolateSingleActiveBusTripFixture(
         prisma.busTrip.update({
           where: { id: trip.id },
           data: {
-            stopTimes: firstTripIds.has(trip.id) ? stopTimes : [],
+            stopTimes: firstTripIds.has(trip.id) ? ALL_DAY_TRIP_TIMES : [],
           },
         }),
       ),

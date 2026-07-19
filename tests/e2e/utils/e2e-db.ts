@@ -106,12 +106,9 @@ export const cleanupAuditTargetsForE2e = (
   targets: readonly AuditLogCleanupTarget[],
 ) => runDbFixture<void>("cleanupAuditTargetsForE2e", [targets]);
 
-export const isolateSingleActiveBusTripFixture = (
-  stopTimes: [string, string],
-) =>
+export const isolateSingleActiveBusTripFixture = () =>
   runDbFixture<busFixtures.BusTripTimesSnapshot>(
     "isolateSingleActiveBusTripFixture",
-    [stopTimes],
   );
 
 export const restoreBusTripTimesFixture = (
