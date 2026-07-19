@@ -118,6 +118,7 @@ describe("active OAuth user grant", () => {
     await expect(
       hasActiveOAuthUserGrant({
         clientId: "trusted-client",
+        grantId: "trusted-generation",
         requireGrantBinding: true,
         scopes: ["profile"],
         userId: "user-1",
@@ -126,8 +127,10 @@ describe("active OAuth user grant", () => {
     expect(refreshFindFirstMock).toHaveBeenCalledWith({
       where: {
         clientId: "trusted-client",
-        grantId: null,
-        referenceId: null,
+        OR: [
+          { grantId: "trusted-generation" },
+          { referenceId: "trusted-generation" },
+        ],
         revoked: { not: null },
         scopes: {
           has: "urn:life-ustc:oauth:refresh-replay-tombstone",

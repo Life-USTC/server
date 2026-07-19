@@ -312,6 +312,7 @@ async function resolveOpaqueIntrospectionGrant(
       select: {
         clientId: true,
         grantId: true,
+        referenceId: true,
         scopes: true,
         userId: true,
       },
@@ -320,7 +321,8 @@ async function resolveOpaqueIntrospectionGrant(
       return accessToken.userId
         ? {
             clientId: accessToken.clientId,
-            grantId: accessToken.grantId ?? undefined,
+            grantId:
+              accessToken.grantId ?? accessToken.referenceId ?? undefined,
             scopes: accessToken.scopes,
             userId: accessToken.userId,
           }
@@ -333,6 +335,7 @@ async function resolveOpaqueIntrospectionGrant(
       select: {
         clientId: true,
         grantId: true,
+        referenceId: true,
         scopes: true,
         userId: true,
       },
@@ -340,7 +343,7 @@ async function resolveOpaqueIntrospectionGrant(
     if (refreshToken) {
       return {
         clientId: refreshToken.clientId,
-        grantId: refreshToken.grantId ?? undefined,
+        grantId: refreshToken.grantId ?? refreshToken.referenceId ?? undefined,
         scopes: refreshToken.scopes,
         userId: refreshToken.userId,
       };

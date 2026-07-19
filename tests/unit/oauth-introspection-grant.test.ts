@@ -110,11 +110,11 @@ describe("OAuth JWT introspection grant state", () => {
     await expect(response.json()).resolves.toEqual({ active: true });
   });
 
-  it("applies the same grant check to opaque access and refresh tokens", async () => {
+  it("uses trusted opaque reference generations when applying replay-tombstone state", async () => {
     accessFindUniqueMock.mockResolvedValueOnce({
       clientId: "client-opaque",
-      grantId: "grant-opaque",
-      referenceId: "grant-opaque",
+      grantId: null,
+      referenceId: "trusted-access-generation",
       scopes: ["profile"],
       userId: "user-1",
     });
@@ -130,9 +130,19 @@ describe("OAuth JWT introspection grant state", () => {
       ),
     );
     await expect(opaqueResponse.json()).resolves.toEqual({ active: false });
+    expect(accessFindUniqueMock).toHaveBeenCalledWith({
+      where: { token: expect.any(String) },
+      select: {
+        clientId: true,
+        grantId: true,
+        referenceId: true,
+        scopes: true,
+        userId: true,
+      },
+    });
     expect(hasActiveOAuthUserGrantMock).toHaveBeenLastCalledWith({
       clientId: "client-opaque",
-      grantId: "grant-opaque",
+      grantId: "trusted-access-generation",
       requireGrantBinding: true,
       scopes: ["profile"],
       userId: "user-1",
@@ -140,12 +150,12 @@ describe("OAuth JWT introspection grant state", () => {
 
     refreshFindUniqueMock.mockResolvedValueOnce({
       clientId: "client-refresh",
-      grantId: "grant-refresh",
-      referenceId: "grant-refresh",
+      grantId: null,
+      referenceId: "trusted-refresh-generation",
       scopes: ["profile", "offline_access"],
       userId: "user-1",
     });
-    hasActiveOAuthUserGrantMock.mockResolvedValueOnce(true);
+    hasActiveOAuthUserGrantMock.mockResolvedValueOnce(false);
     const refreshResponse = await authPostRoute(
       introspectionRequest(
         new URLSearchParams({
@@ -154,7 +164,24 @@ describe("OAuth JWT introspection grant state", () => {
         }),
       ),
     );
-    await expect(refreshResponse.json()).resolves.toEqual({ active: true });
+    await expect(refreshResponse.json()).resolves.toEqual({ active: false });
+    expect(refreshFindUniqueMock).toHaveBeenCalledWith({
+      where: { token: expect.any(String) },
+      select: {
+        clientId: true,
+        grantId: true,
+        referenceId: true,
+        scopes: true,
+        userId: true,
+      },
+    });
+    expect(hasActiveOAuthUserGrantMock).toHaveBeenLastCalledWith({
+      clientId: "client-refresh",
+      grantId: "trusted-refresh-generation",
+      requireGrantBinding: true,
+      scopes: ["profile", "offline_access"],
+      userId: "user-1",
+    });
   });
 
   it("rejects duplicate singleton parameters before Better Auth", async () => {
