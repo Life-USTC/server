@@ -10,6 +10,7 @@ contracts live in [docs/contracts/](./docs/contracts/).
 
 ```bash
 bun install --frozen-lockfile
+bun run hooks:install
 cp .env.example .env
 docker compose -f docker-compose.dev.yml up -d
 bun run app:prepare

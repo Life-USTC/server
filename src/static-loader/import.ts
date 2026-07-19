@@ -2262,16 +2262,13 @@ export async function writeSectionTeachers(
     resolved.push({ sectionId, teacherId });
   }
 
-  await deleteByColumn(tx, "_SectionTeachers", "A", sectionDbIds);
-
-  for (const chunk of chunks(resolved, 1000)) {
-    const values = chunk
-      .map((p) => `(${p.sectionId},${p.teacherId})`)
-      .join(",");
-    await tx.$executeRawUnsafe(
-      `INSERT INTO "_SectionTeachers" ("A","B") VALUES ${values} ON CONFLICT DO NOTHING`,
-    );
-  }
+  await syncJoinPairs(
+    tx,
+    "_SectionTeachers",
+    "A",
+    sectionDbIds,
+    resolved.map((pair) => ({ a: pair.sectionId, b: pair.teacherId })),
+  );
 
   const now = new Date();
   for (const chunk of chunks(resolved, 1000)) {
@@ -2279,7 +2276,7 @@ export async function writeSectionTeachers(
       .map((p) => `(${p.sectionId},${p.teacherId})`)
       .join(",");
     await tx.$executeRawUnsafe(
-      `UPDATE "SectionTeacher" SET "retiredAt" = NULL, "updatedAt" = $1 WHERE ("sectionId","teacherId") IN (${tuples})`,
+      `UPDATE "SectionTeacher" SET "retiredAt" = NULL, "updatedAt" = $1 WHERE ("sectionId","teacherId") IN (${tuples}) AND "retiredAt" IS NOT NULL`,
       now,
     );
   }
@@ -2357,7 +2354,7 @@ async function writeTeacherAssignments(
   }
 }
 
-async function writeAdminClassSections(
+export async function writeAdminClassSections(
   tx: Prisma.TransactionClient,
   pairs: AdminClassSectionPair[],
   sectionMap: Map<number, number>,
@@ -2375,22 +2372,16 @@ async function writeAdminClassSections(
     resolved.push({ a: adminClassId, b: sectionId });
   }
 
-  await deleteByColumn(
+  await syncJoinPairs(
     tx,
     "_SectionAdminClasses",
     "B",
     Array.from(sectionMap.values()),
+    resolved,
   );
-
-  for (const chunk of chunks(resolved, 1000)) {
-    const values = chunk.map((p) => `(${p.a},${p.b})`).join(",");
-    await tx.$executeRawUnsafe(
-      `INSERT INTO "_SectionAdminClasses" ("A","B") VALUES ${values} ON CONFLICT DO NOTHING`,
-    );
-  }
 }
 
-async function writeSchedules(
+export async function writeSchedules(
   tx: Prisma.TransactionClient,
   builds: ScheduleBuild[],
   sectionMap: Map<number, number>,
@@ -2399,8 +2390,6 @@ async function writeSchedules(
   teacherMap: TeacherMap,
   sectionDbIds: number[],
 ): Promise<void> {
-  await tx.schedule.deleteMany({ where: { sectionId: { in: sectionDbIds } } });
-
   const resolved = builds
     .map((build) => {
       const sectionId = sectionMap.get(build.lessonJwId);
@@ -2449,25 +2438,75 @@ async function writeSchedules(
     })
     .filter((s): s is NonNullable<typeof s> => s != null);
 
-  for (const chunk of chunks(resolved, 1000)) {
-    const data = chunk.map((c) => ({
-      periods: c.periods,
-      date: c.date,
-      weekday: c.weekday,
-      startTime: c.startTime,
-      endTime: c.endTime,
-      experiment: c.experiment,
-      customPlace: c.customPlace,
-      lessonType: c.lessonType,
-      weekIndex: c.weekIndex,
-      exerciseClass: c.exerciseClass,
-      startUnit: c.startUnit,
-      endUnit: c.endUnit,
-      roomId: c.roomId,
-      sectionId: c.sectionId,
-      scheduleGroupId: c.scheduleGroupId,
-    }));
-    await tx.schedule.createMany({ data });
+  const existingRows = await tx.schedule.findMany({
+    where: { sectionId: { in: sectionDbIds } },
+    select: {
+      id: true,
+      periods: true,
+      date: true,
+      weekday: true,
+      startTime: true,
+      endTime: true,
+      experiment: true,
+      customPlace: true,
+      lessonType: true,
+      weekIndex: true,
+      exerciseClass: true,
+      startUnit: true,
+      endUnit: true,
+      roomId: true,
+      sectionId: true,
+      scheduleGroupId: true,
+    },
+  });
+
+  const existingByKey = new Map<string, (typeof existingRows)[number]>();
+  const staleIds: number[] = [];
+  for (const row of existingRows) {
+    const key = scheduleRowKey(row);
+    if (existingByKey.has(key)) {
+      staleIds.push(row.id);
+    } else {
+      existingByKey.set(key, row);
+    }
+  }
+
+  const desiredKeys = new Set(resolved.map((schedule) => schedule.key));
+  const inserts: typeof resolved = [];
+  const updates: Array<{ id: number; values: ColumnValue[] }> = [];
+  for (const schedule of resolved) {
+    const existing = existingByKey.get(schedule.key);
+    if (existing == null) {
+      inserts.push(schedule);
+      continue;
+    }
+    if (!scheduleRowMatches(existing, schedule)) {
+      updates.push({
+        id: existing.id,
+        values: scheduleColumnValues(schedule),
+      });
+    }
+  }
+  for (const [key, row] of existingByKey) {
+    if (!desiredKeys.has(key)) staleIds.push(row.id);
+  }
+
+  if (staleIds.length > 0) {
+    await tx.schedule.deleteMany({ where: { id: { in: staleIds } } });
+  }
+
+  await bulkUpdate(
+    tx,
+    "Schedule",
+    SCHEDULE_COLUMNS,
+    SCHEDULE_COLUMN_TYPES,
+    updates,
+  );
+
+  for (const chunk of chunks(inserts, 1000)) {
+    await tx.schedule.createMany({
+      data: chunk.map(scheduleCreateData),
+    });
   }
 
   const scheduleRows = await tx.schedule.findMany({
@@ -2490,22 +2529,7 @@ async function writeSchedules(
 
   const scheduleKeyToId = new Map<string, number>();
   for (const row of scheduleRows) {
-    const key = scheduleKey(
-      {
-        lessonId: row.sectionId,
-        scheduleGroupId: row.scheduleGroupId,
-        date: row.date == null ? undefined : formatLocalDate(row.date),
-        weekday: row.weekday,
-        startTime: row.startTime,
-        endTime: row.endTime,
-        startUnit: row.startUnit,
-        endUnit: row.endUnit,
-        customPlace: row.customPlace,
-        weekIndex: row.weekIndex,
-      },
-      row.roomId ?? undefined,
-    );
-    if (!scheduleKeyToId.has(key)) scheduleKeyToId.set(key, row.id);
+    scheduleKeyToId.set(scheduleRowKey(row), row.id);
   }
 
   const joinPairs: Array<{ scheduleId: number; teacherId: number }> = [];
@@ -2523,14 +2547,169 @@ async function writeSchedules(
     }
   }
 
-  for (const chunk of chunks(joinPairs, 1000)) {
-    const values = chunk
-      .map((p) => `(${p.scheduleId},${p.teacherId})`)
-      .join(",");
-    await tx.$executeRawUnsafe(
-      `INSERT INTO "_ScheduleTeachers" ("A","B") VALUES ${values} ON CONFLICT DO NOTHING`,
-    );
-  }
+  await syncJoinPairs(
+    tx,
+    "_ScheduleTeachers",
+    "A",
+    scheduleRows.map((row) => row.id),
+    joinPairs.map((pair) => ({ a: pair.scheduleId, b: pair.teacherId })),
+  );
+}
+
+const SCHEDULE_COLUMNS = [
+  "periods",
+  "date",
+  "weekday",
+  "startTime",
+  "endTime",
+  "experiment",
+  "customPlace",
+  "lessonType",
+  "weekIndex",
+  "exerciseClass",
+  "startUnit",
+  "endUnit",
+  "roomId",
+  "sectionId",
+  "scheduleGroupId",
+];
+
+const SCHEDULE_COLUMN_TYPES = [
+  "int",
+  "date",
+  "int",
+  "int",
+  "int",
+  "text",
+  "text",
+  "text",
+  "int",
+  "boolean",
+  "int",
+  "int",
+  "int",
+  "int",
+  "int",
+];
+
+type ResolvedSchedule = {
+  periods: number;
+  date: Date | undefined;
+  weekday: number;
+  startTime: number;
+  endTime: number;
+  experiment: string | undefined;
+  customPlace: string | undefined;
+  lessonType: string | undefined;
+  weekIndex: number;
+  exerciseClass: boolean | undefined;
+  startUnit: number;
+  endUnit: number;
+  roomId: number | undefined;
+  sectionId: number;
+  scheduleGroupId: number;
+};
+
+function scheduleColumnValues(schedule: ResolvedSchedule): ColumnValue[] {
+  return [
+    schedule.periods,
+    schedule.date,
+    schedule.weekday,
+    schedule.startTime,
+    schedule.endTime,
+    schedule.experiment,
+    schedule.customPlace,
+    schedule.lessonType,
+    schedule.weekIndex,
+    schedule.exerciseClass,
+    schedule.startUnit,
+    schedule.endUnit,
+    schedule.roomId,
+    schedule.sectionId,
+    schedule.scheduleGroupId,
+  ];
+}
+
+function scheduleCreateData(schedule: ResolvedSchedule) {
+  return {
+    periods: schedule.periods,
+    date: schedule.date,
+    weekday: schedule.weekday,
+    startTime: schedule.startTime,
+    endTime: schedule.endTime,
+    experiment: schedule.experiment,
+    customPlace: schedule.customPlace,
+    lessonType: schedule.lessonType,
+    weekIndex: schedule.weekIndex,
+    exerciseClass: schedule.exerciseClass,
+    startUnit: schedule.startUnit,
+    endUnit: schedule.endUnit,
+    roomId: schedule.roomId,
+    sectionId: schedule.sectionId,
+    scheduleGroupId: schedule.scheduleGroupId,
+  };
+}
+
+function scheduleRowKey(row: {
+  sectionId: number;
+  scheduleGroupId: number;
+  date: Date | null;
+  weekday: number;
+  startTime: number;
+  endTime: number;
+  startUnit: number;
+  endUnit: number;
+  customPlace: string | null;
+  weekIndex: number;
+  roomId: number | null;
+}): string {
+  return scheduleKey(
+    {
+      lessonId: row.sectionId,
+      scheduleGroupId: row.scheduleGroupId,
+      date: row.date == null ? undefined : formatLocalDate(row.date),
+      weekday: row.weekday,
+      startTime: row.startTime,
+      endTime: row.endTime,
+      startUnit: row.startUnit,
+      endUnit: row.endUnit,
+      customPlace: row.customPlace,
+      weekIndex: row.weekIndex,
+    },
+    row.roomId ?? undefined,
+  );
+}
+
+function scheduleRowMatches(
+  row: Parameters<typeof scheduleRowKey>[0] & {
+    periods: number;
+    experiment: string | null;
+    lessonType: string | null;
+    exerciseClass: boolean | null;
+  },
+  schedule: ResolvedSchedule,
+): boolean {
+  const rowValues = [
+    row.periods,
+    row.date?.getTime(),
+    row.weekday,
+    row.startTime,
+    row.endTime,
+    row.experiment ?? undefined,
+    row.customPlace ?? undefined,
+    row.lessonType ?? undefined,
+    row.weekIndex,
+    row.exerciseClass ?? undefined,
+    row.startUnit,
+    row.endUnit,
+    row.roomId ?? undefined,
+    row.sectionId,
+    row.scheduleGroupId,
+  ];
+  const scheduleValues = scheduleColumnValues(schedule).map((value) =>
+    value instanceof Date ? value.getTime() : value,
+  );
+  return rowValues.every((value, index) => value === scheduleValues[index]);
 }
 
 function formatLocalDate(date: Date): string {
@@ -2646,16 +2825,33 @@ function mergePlaceholderDepartments(
   return result;
 }
 
-async function deleteByColumn(
+async function syncJoinPairs(
   tx: Prisma.TransactionClient,
   table: string,
-  column: string,
-  ids: number[],
+  scopeColumn: "A" | "B",
+  scopeIds: number[],
+  pairs: Array<{ a: number; b: number }>,
 ): Promise<void> {
-  for (const chunk of chunks(ids, 1000)) {
-    const values = chunk.join(",");
+  for (const scopeChunk of chunks(scopeIds, 1000)) {
+    const scopeSet = new Set(scopeChunk);
+    const scopedPairs = pairs.filter((pair) =>
+      scopeSet.has(scopeColumn === "A" ? pair.a : pair.b),
+    );
+    const keepClause =
+      scopedPairs.length === 0
+        ? ""
+        : ` AND ("A","B") NOT IN (${scopedPairs
+            .map((pair) => `(${pair.a},${pair.b})`)
+            .join(",")})`;
     await tx.$executeRawUnsafe(
-      `DELETE FROM "${table}" WHERE "${column}" IN (${values})`,
+      `DELETE FROM "${table}" WHERE "${scopeColumn}" IN (${scopeChunk.join(",")})${keepClause}`,
+    );
+  }
+
+  for (const pairChunk of chunks(pairs, 1000)) {
+    const values = pairChunk.map((pair) => `(${pair.a},${pair.b})`).join(",");
+    await tx.$executeRawUnsafe(
+      `INSERT INTO "${table}" ("A","B") VALUES ${values} ON CONFLICT DO NOTHING`,
     );
   }
 }
@@ -2681,7 +2877,7 @@ type BulkUpsertOptions = {
   updateColumns?: string[];
 };
 
-async function bulkUpsert<K extends string | number>(
+export async function bulkUpsert<K extends string | number>(
   tx: Prisma.TransactionClient,
   table: string,
   uniqueColumn: string,
@@ -2724,6 +2920,8 @@ async function bulkUpsert<K extends string | number>(
       VALUES ${valuePlaceholders.join(",")}
       ON CONFLICT ("${uniqueColumn}") DO UPDATE SET
         ${updateColumns.map((c) => `"${c}" = EXCLUDED."${c}"`).join(",\n        ")}
+      WHERE ROW(${updateColumns.map((c) => `"${table}"."${c}"`).join(",")})
+        IS DISTINCT FROM ROW(${updateColumns.map((c) => `EXCLUDED."${c}"`).join(",")})
       RETURNING "id", "${uniqueColumn}"
     `;
 
@@ -2732,6 +2930,21 @@ async function bulkUpsert<K extends string | number>(
     >(sql, ...params);
     for (const row of rows) {
       map.set(row[uniqueColumn] as K, row.id);
+    }
+
+    const missing = batch.filter((record) => !map.has(record.key));
+    if (missing.length > 0) {
+      const missingRows = await tx.$queryRawUnsafe<
+        Array<{ id: number } & Record<string, unknown>>
+      >(
+        `SELECT "id", "${uniqueColumn}" FROM "${table}" WHERE "${uniqueColumn}" IN (${missing
+          .map((_, index) => `$${index + 1}::${uniqueColumnType}`)
+          .join(",")})`,
+        ...missing.map((record) => record.key),
+      );
+      for (const row of missingRows) {
+        map.set(row[uniqueColumn] as K, row.id);
+      }
     }
   }
 
