@@ -346,6 +346,7 @@ export type SectionDetailPageData = {
   locale: AppLocale;
   section: SectionDetailSection;
   showSubscribeDialog: boolean;
+  structuredDataJson: string;
   todayCalendarKey: string;
   viewer: {
     isSubscribed?: boolean;

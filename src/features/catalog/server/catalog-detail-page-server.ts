@@ -1,5 +1,10 @@
 import { error, redirect } from "@sveltejs/kit";
 import { catalogPrimaryName } from "@/features/catalog/lib/catalog-list-display";
+import {
+  buildCourseStructuredData,
+  buildTeacherStructuredData,
+  serializeStructuredData,
+} from "@/features/catalog/lib/catalog-structured-data";
 import { getCoursePage } from "@/features/catalog/server/course-page-data";
 import { getTeacherPage } from "@/features/catalog/server/teacher-page-data";
 import {
@@ -71,6 +76,17 @@ export async function loadCourseDetailPage({
       viewer,
     },
   );
+  const socialMetadata = buildSocialMetadata({
+    canonicalPath: `/courses/${course.jwId}`,
+    description: formatSocialMetadataMessage(
+      copy.metadata.social.courseDescription,
+      { code: course.code, name: displayName },
+    ),
+    imageAlt: copy.metadata.social.imageAlt,
+    locale: locals.locale,
+    origin: url.origin,
+    title: `${displayName} (${course.code}) - Life@USTC`,
+  });
   return {
     course,
     locale: locals.locale,
@@ -78,17 +94,19 @@ export async function loadCourseDetailPage({
     descriptionData,
     commentsData,
     detailSection,
-    socialMetadata: buildSocialMetadata({
-      canonicalPath: `/courses/${course.jwId}`,
-      description: formatSocialMetadataMessage(
-        copy.metadata.social.courseDescription,
-        { code: course.code, name: displayName },
-      ),
-      imageAlt: copy.metadata.social.imageAlt,
-      locale: locals.locale,
-      origin: url.origin,
-      title: `${displayName} (${course.code}) - Life@USTC`,
-    }),
+    socialMetadata,
+    structuredDataJson: serializeStructuredData(
+      buildCourseStructuredData({
+        canonicalUrl: socialMetadata.canonicalUrl,
+        code: course.code,
+        description: descriptionData.description.content,
+        labels: {
+          collection: copy.common.courses,
+          home: copy.common.home,
+        },
+        name: displayName,
+      }),
+    ),
   };
 }
 
@@ -119,6 +137,19 @@ export async function loadTeacherDetailPage({
       viewer,
     },
   );
+  const socialMetadata = buildSocialMetadata({
+    canonicalPath: `/teachers/${teacher.id}`,
+    description: formatSocialMetadataMessage(
+      copy.metadata.social.teacherDescription,
+      { name: displayName },
+    ),
+    imageAlt: copy.metadata.social.imageAlt,
+    locale: locals.locale,
+    origin: url.origin,
+    title: `${formatSocialMetadataMessage(copy.metadata.pages.teacherDetail, {
+      name: displayName,
+    })} - Life@USTC`,
+  });
   return {
     teacher,
     locale: locals.locale,
@@ -126,18 +157,16 @@ export async function loadTeacherDetailPage({
     descriptionData,
     commentsData,
     detailSection,
-    socialMetadata: buildSocialMetadata({
-      canonicalPath: `/teachers/${teacher.id}`,
-      description: formatSocialMetadataMessage(
-        copy.metadata.social.teacherDescription,
-        { name: displayName },
-      ),
-      imageAlt: copy.metadata.social.imageAlt,
-      locale: locals.locale,
-      origin: url.origin,
-      title: `${formatSocialMetadataMessage(copy.metadata.pages.teacherDetail, {
+    socialMetadata,
+    structuredDataJson: serializeStructuredData(
+      buildTeacherStructuredData({
+        canonicalUrl: socialMetadata.canonicalUrl,
+        labels: {
+          collection: copy.common.teachers,
+          home: copy.common.home,
+        },
         name: displayName,
-      })} - Life@USTC`,
-    }),
+      }),
+    ),
   };
 }
