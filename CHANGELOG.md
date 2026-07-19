@@ -1,3 +1,16 @@
+# [1.63.0](https://github.com/Life-USTC/server/compare/v1.62.0...v1.63.0) (2026-07-19)
+
+
+### Features
+
+* **seo:** add AI discovery policy ([#509](https://github.com/Life-USTC/server/issues/509)) ([c255f13](https://github.com/Life-USTC/server/commit/c255f13def50fec4986b782f69a092833eeb1f6c))
+* **seo:** add catalog structured data ([#510](https://github.com/Life-USTC/server/issues/510)) ([c9e2fb6](https://github.com/Life-USTC/server/commit/c9e2fb6aecbfa9ef9b7ea114d2cacaaff9562b33))
+
+
+### Performance Improvements
+
+* **sitemap:** cache generated document ([#508](https://github.com/Life-USTC/server/issues/508)) ([737e35a](https://github.com/Life-USTC/server/commit/737e35a7d4dd042538093c3462383c8c3c45e0c5))
+
 # [1.62.0](https://github.com/Life-USTC/server/compare/v1.61.2...v1.62.0) (2026-07-17)
 
 
