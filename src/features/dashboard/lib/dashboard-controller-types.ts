@@ -507,12 +507,6 @@ export type SignedDashboardData = DashboardPageData & {
   >;
 };
 
-export type AnonymousDashboardData = DashboardPageData & {
-  signedIn: false;
-  counts: NonNullable<DashboardPageData["counts"]>;
-  publicLinks: NonNullable<DashboardPageData["publicLinks"]>;
-};
-
 export type HomeworkItem = NonNullable<
   SignedDashboardData["homeworks"]
 >["homeworkSummaries"][number];

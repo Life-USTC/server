@@ -1,7 +1,9 @@
 <script lang="ts">
-import type { DashboardBusCopy } from "@/features/dashboard/lib/bus-tab-types";
 import type {
-  AnonymousDashboardData,
+  DashboardBusCopy,
+  DashboardBusData,
+} from "@/features/dashboard/lib/bus-tab-types";
+import type {
   AnonymousLinkGroup,
   DashboardDashboardCopy,
   DashboardHomepageCopy,
@@ -10,10 +12,15 @@ import type {
 import AnonymousLinksTab from "./AnonymousLinksTab.svelte";
 import BusTab from "./BusTab.svelte";
 
-export let anonymousData: AnonymousDashboardData;
+export let anonymousData: {
+  bus?: DashboardBusData | null;
+  tab: string;
+};
 export let anonymousLinkGroups: AnonymousLinkGroup[];
 export let busCopy: DashboardBusCopy;
-export let dashboardCopy: DashboardDashboardCopy;
+export let dashboardCopy: Pick<DashboardDashboardCopy, "linkHub"> & {
+  nav: Pick<DashboardDashboardCopy["nav"], "bus" | "links">;
+};
 export let homepageCopy: DashboardHomepageCopy;
 export let linkIconLabel: (icon: string) => string;
 export let linkSearchInput: HTMLInputElement | null;

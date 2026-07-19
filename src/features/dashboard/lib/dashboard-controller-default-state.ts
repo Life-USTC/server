@@ -1,7 +1,5 @@
 import type { CalendarView } from "@/features/dashboard/lib/calendar";
 import type {
-  AnonymousDashboardData,
-  AnonymousLinkGroup,
   CalendarData,
   DashboardLinkItem,
   ExamRow,
@@ -22,8 +20,6 @@ import type { ExamFilter } from "@/features/dashboard/lib/exams";
 
 export function createDashboardControllerDefaultState() {
   return {
-    anonymousData: null as AnonymousDashboardData | null,
-    anonymousLinkGroups: [] as AnonymousLinkGroup[],
     bulkImportError: "",
     bulkImportMessage: "",
     bulkImportSemesterId: "",
