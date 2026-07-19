@@ -16,6 +16,7 @@ import {
 import { buildUploadKey } from "@/lib/storage/upload-key";
 
 export const MAX_UPLOAD_EXPIRES_SECONDS = 300;
+const EXPIRED_PENDING_UPLOAD_CLEANUP_BATCH_SIZE = 25;
 
 export type UploadCreateInput = {
   contentType: string;
@@ -45,8 +46,23 @@ type UploadUsagePrisma = {
       };
       _sum: { size: true };
     }) => Promise<{ _sum: { size: number | null } }>;
+  };
+};
+
+type ExpiredPendingUploadCleanupPrisma = {
+  uploadPending: {
+    findMany: (input: {
+      where: {
+        userId: string;
+        expiresAt: { lt: Date };
+        NOT?: { key: string };
+      };
+      orderBy: [{ expiresAt: "asc" }, { key: "asc" }];
+      select: { key: true; size: true };
+      take: number;
+    }) => Promise<Array<{ key: string; size: number }>>;
     deleteMany: (input: {
-      where: { userId: string; expiresAt: { lt: Date } };
+      where: { key: string; userId: string; expiresAt: { lt: Date } };
     }) => Promise<unknown>;
   };
 };
@@ -153,7 +169,7 @@ export async function completeUploadSession(
   input: UploadCompleteInput,
 ) {
   const now = new Date();
-  await deleteExpiredPendingUploads(prisma, userId, now);
+  await deleteExpiredPendingUploads(prisma, userId, now, input.key);
   if (!uploadKeyBelongsToUser(input.key, userId)) {
     throw new UploadError("Upload session expired");
   }
@@ -227,9 +243,6 @@ export async function completeUploadSession(
 
     const transactionNow = new Date();
     if (pending.expiresAt < transactionNow) {
-      await tx.uploadPending.deleteMany({
-        where: { key: input.key, userId },
-      });
       return {
         ok: false,
         code: "Upload session expired",
@@ -243,8 +256,13 @@ export async function completeUploadSession(
       now: transactionNow,
     });
     if (usedBytes + uploadedObject.size > uploadConfig.totalQuotaBytes) {
-      await tx.uploadPending.deleteMany({
-        where: { key: input.key, userId },
+      await tx.uploadPending.updateMany({
+        where: {
+          key: input.key,
+          userId,
+          expiresAt: { gte: transactionNow },
+        },
+        data: { expiresAt: new Date(transactionNow.getTime() - 1) },
       });
       return {
         ok: false,
@@ -299,7 +317,16 @@ export async function completeOwnedUploadSession(
       (error.code === "Quota exceeded" ||
         error.code === "Upload session expired")
     ) {
-      await deleteUploadObject(input.key);
+      const cleanupSucceeded = await cleanupFailedUploadCompletion(
+        input.key,
+        userId,
+      );
+      if (!cleanupSucceeded) {
+        return {
+          ok: false as const,
+          error: "storage_delete_failed" as const,
+        };
+      }
     }
     throw error;
   }
@@ -580,13 +607,52 @@ async function writeUploadDeleteAuditLog({
 }
 
 async function deleteExpiredPendingUploads(
-  uploadPrisma: UploadUsagePrisma,
+  uploadPrisma: ExpiredPendingUploadCleanupPrisma,
   userId: string,
   now: Date,
+  excludeKey?: string,
 ) {
-  await uploadPrisma.uploadPending.deleteMany({
-    where: { userId, expiresAt: { lt: now } },
+  const expiredUploads = await uploadPrisma.uploadPending.findMany({
+    where: {
+      userId,
+      expiresAt: { lt: now },
+      ...(excludeKey ? { NOT: { key: excludeKey } } : {}),
+    },
+    orderBy: [{ expiresAt: "asc" }, { key: "asc" }],
+    select: { key: true, size: true },
+    take: EXPIRED_PENDING_UPLOAD_CLEANUP_BATCH_SIZE,
   });
+
+  for (const pending of expiredUploads) {
+    const storageDeleted = await deleteUploadStorageObject(pending);
+    if (!storageDeleted) continue;
+
+    await uploadPrisma.uploadPending.deleteMany({
+      where: {
+        key: pending.key,
+        userId,
+        expiresAt: { lt: now },
+      },
+    });
+  }
+}
+
+async function cleanupFailedUploadCompletion(key: string, userId: string) {
+  const pending = await prisma.uploadPending.findUnique({
+    where: { key },
+    select: {
+      key: true,
+      size: true,
+      userId: true,
+    },
+  });
+  if (!pending || pending.userId !== userId) return true;
+
+  const storageDeleted = await deleteUploadStorageObject(pending);
+  if (!storageDeleted) return false;
+
+  await deletePendingUpload(key, userId);
+  return true;
 }
 
 async function deletePendingUpload(key: string, userId: string) {
@@ -631,7 +697,6 @@ async function assertActivePendingUpload(input: {
   }
 
   if (pending.expiresAt < input.now) {
-    await deletePendingUpload(input.key, input.userId);
     throw new UploadError("Upload session expired");
   }
 }

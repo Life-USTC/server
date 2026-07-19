@@ -5,6 +5,7 @@ import {
 } from "@/features/uploads/server/upload-service";
 import {
   badRequest,
+  errorResponse,
   forbidden,
   jsonResponse,
   parseRouteJsonBody,
@@ -79,7 +80,11 @@ export async function postUploadCompleteRoute(request: Request) {
       filename,
       key,
     });
-    return result.ok ? jsonResponse(result.completion) : forbidden();
+    if (result.ok) return jsonResponse(result.completion);
+    if (result.error === "storage_delete_failed") {
+      return errorResponse("Failed to delete upload object", 502);
+    }
+    return forbidden();
   } catch (error) {
     return uploadCompleteErrorResponse(error);
   }

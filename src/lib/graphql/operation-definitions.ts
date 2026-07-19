@@ -1074,7 +1074,7 @@ export const persistedGraphqlOperationDefinitions = [
     id: "upload.create_session.v1",
     title: "Create upload session",
     description:
-      "Reserves quota and returns metadata for the authenticated on-site object upload workflow; object bytes are never accepted.",
+      "Reserves quota and returns metadata for the authenticated on-site object upload workflow; bounded stale-session cleanup may delete expired R2 objects.",
     document: /* GraphQL */ `
       mutation UploadCreateSession($input: CreateUploadSessionInput!) {
         createUploadSession(input: $input) {
@@ -1087,14 +1087,14 @@ export const persistedGraphqlOperationDefinitions = [
       }
     `,
     scopes: ["upload:write"],
-    destructive: false,
+    destructive: true,
     openWorld: true,
   }),
   mutation({
     id: "upload.complete.v1",
     title: "Complete upload",
     description:
-      "Validates an already-uploaded R2 object and commits its owned metadata without accepting object bytes.",
+      "Validates an already-uploaded R2 object and commits its owned metadata; expiry or quota failure cleans up the pending R2 object.",
     document: /* GraphQL */ `
       mutation UploadComplete($input: CompleteUploadSessionInput!) {
         completeUploadSession(input: $input) {
@@ -1111,7 +1111,7 @@ export const persistedGraphqlOperationDefinitions = [
       }
     `,
     scopes: ["upload:write"],
-    destructive: false,
+    destructive: true,
     openWorld: true,
   }),
   mutation({

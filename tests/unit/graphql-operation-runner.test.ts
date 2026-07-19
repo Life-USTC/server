@@ -6,6 +6,9 @@ const catalogService = vi.hoisted(() => ({
 const todoService = vi.hoisted(() => ({
   createTodo: vi.fn(),
 }));
+const uploadService = vi.hoisted(() => ({
+  completeOwnedUploadSession: vi.fn(),
+}));
 const mutationRateLimit = vi.hoisted(() => ({
   checkUserMutationRateLimit: vi.fn(),
 }));
@@ -32,6 +35,17 @@ vi.mock("@/features/todos/server/todo-service", async (importOriginal) => {
   return {
     ...original,
     createTodo: todoService.createTodo,
+  };
+});
+
+vi.mock("@/features/uploads/server/upload-service", async (importOriginal) => {
+  const original =
+    await importOriginal<
+      typeof import("@/features/uploads/server/upload-service")
+    >();
+  return {
+    ...original,
+    completeOwnedUploadSession: uploadService.completeOwnedUploadSession,
   };
 });
 
@@ -119,6 +133,7 @@ describe("registered GraphQL operation runner", () => {
   afterEach(() => {
     catalogService.getCurrentSemester.mockReset();
     todoService.createTodo.mockReset();
+    uploadService.completeOwnedUploadSession.mockReset();
     mutationRateLimit.checkUserMutationRateLimit.mockReset();
     vi.useRealTimers();
     vi.restoreAllMocks();
@@ -222,6 +237,37 @@ describe("registered GraphQL operation runner", () => {
         {
           message: "jwId must be a positive integer.",
           extensions: { code: "BAD_USER_INPUT" },
+        },
+      ],
+    });
+  });
+
+  it("preserves retryable upload cleanup errors for the MCP runner", async () => {
+    uploadService.completeOwnedUploadSession.mockResolvedValue({
+      ok: false,
+      error: "storage_delete_failed",
+    });
+
+    const result = await run("upload.complete.v1", {
+      confirmed: true,
+      scopes: new Set(["upload:write"]),
+      variables: {
+        input: {
+          filename: "report.pdf",
+          key: "uploads/runner-test-user/report.pdf",
+        },
+      },
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      errors: [
+        {
+          message: "Upload storage deletion failed; metadata was preserved.",
+          extensions: {
+            code: "SERVICE_UNAVAILABLE",
+            http: { status: 503 },
+          },
         },
       ],
     });

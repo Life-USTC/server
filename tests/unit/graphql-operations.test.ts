@@ -159,14 +159,14 @@ describe("persisted GraphQL operation registry", () => {
         variables: ["ids"],
       },
       "upload.create_session.v1": {
-        destructive: false,
+        destructive: true,
         openWorld: true,
         requiresConfirmation: true,
         scopes: ["upload:write"],
         variables: ["input"],
       },
       "upload.complete.v1": {
-        destructive: false,
+        destructive: true,
         openWorld: true,
         requiresConfirmation: true,
         scopes: ["upload:write"],
