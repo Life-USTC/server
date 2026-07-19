@@ -17,7 +17,7 @@
  * - Create homework button → modal form
  *
  * ## Edge Cases
- * - Unauthenticated → public links view (homeworks tab auth-only)
+ * - Unauthenticated legacy tab → protected semantic route, then sign-in
  * - Completion toggle calls PUT /api/homeworks/{id}/completion
  * - Empty state when filter yields no results
  */
@@ -32,28 +32,29 @@ import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
 test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "serial" });
 
-  test("未登录 ?tab=homeworks 回退到公共视图", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/?tab=homeworks", {
-      testInfo,
-      screenshotLabel: "homeworks",
+  test("未登录旧 homework tab 重定向到语义路径", async ({ page }) => {
+    const response = await page.request.get(
+      "/?tab=homeworks&homeworkView=list",
+      {
+        maxRedirects: 0,
+      },
+    );
+
+    expect(response.status()).toBe(308);
+    expect(response.headers().location).toBe(
+      "/dashboard/homeworks?homeworkView=list",
+    );
+  });
+
+  test("未登录语义路径要求登录", async ({ page }) => {
+    const response = await page.request.get("/dashboard/homeworks", {
+      maxRedirects: 0,
     });
 
-    await expect(page).toHaveURL(/\/\?tab=homeworks$/);
-    await expect(page.locator("#main-content")).toBeVisible();
-
-    // Public view: sign-in CTA visible, no auth-only tabs
-    await expect(
-      page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: /^(网站|Websites)$/i }),
-    ).toBeVisible();
-    // Homeworks tab NOT in public nav
-    await expect(
-      page.getByRole("link", { name: /^(作业|Homework)$/i }),
-    ).toHaveCount(0);
-
-    await captureStepScreenshot(page, testInfo, "homeworks/unauthenticated");
+    expect(response.status()).toBe(303);
+    expect(response.headers().location).toBe(
+      "/signin?callbackUrl=%2Fdashboard%2Fhomeworks",
+    );
   });
 
   test("登录后显示种子作业及所有必填字段", async ({ page }, testInfo) => {

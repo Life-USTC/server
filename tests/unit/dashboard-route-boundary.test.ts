@@ -42,7 +42,7 @@ describe("anonymous home and signed dashboard route boundary", () => {
       signedIn: false,
     });
     const homeRoute = await import("@/routes/+page.server");
-    const event = routeEvent("https://example.test/?tab=bus");
+    const event = routeEvent("https://example.test/");
 
     await expect(homeRoute.load(event as never)).resolves.toMatchObject({
       marker: "anonymous",
@@ -57,21 +57,69 @@ describe("anonymous home and signed dashboard route boundary", () => {
     expect("actions" in homeRoute).toBe(false);
   });
 
-  it("redirects signed visitors to the dashboard with supported state only", async () => {
+  it("permanently redirects anonymous public tab bookmarks", async () => {
     const homeRoute = await import("@/routes/+page.server");
 
     await expect(
       homeRoute.load(
         routeEvent(
-          "https://example.test/?tab=calendar&calendarView=week&calendarSemester=42&utm_source=ignored",
+          "https://example.test/?tab=bus&utm_source=bookmark",
+        ) as never,
+      ),
+    ).rejects.toMatchObject({
+      location: "/bus?utm_source=bookmark",
+      status: 308,
+    });
+    expect(loadAnonymousHomePageMock).not.toHaveBeenCalled();
+    expect(loadSignedDashboardPageMock).not.toHaveBeenCalled();
+  });
+
+  it("permanently redirects signed legacy tabs to semantic workspace paths", async () => {
+    const homeRoute = await import("@/routes/+page.server");
+
+    await expect(
+      homeRoute.load(
+        routeEvent(
+          "https://example.test/?tab=calendar&calendarView=week&calendarSemester=42&utm_source=bookmark",
           "user-1",
         ) as never,
       ),
     ).rejects.toMatchObject({
-      location: "/dashboard?tab=calendar&calendarView=week&calendarSemester=42",
-      status: 303,
+      location:
+        "/dashboard/calendar?calendarView=week&calendarSemester=42&utm_source=bookmark",
+      status: 308,
     });
     expect(loadAnonymousHomePageMock).not.toHaveBeenCalled();
+    expect(loadSignedDashboardPageMock).not.toHaveBeenCalled();
+  });
+
+  it("redirects a signed visitor without a legacy tab to the dashboard", async () => {
+    const homeRoute = await import("@/routes/+page.server");
+
+    await expect(
+      homeRoute.load(
+        routeEvent(
+          "https://example.test/?overviewWeek=next",
+          "user-1",
+        ) as never,
+      ),
+    ).rejects.toMatchObject({
+      location: "/dashboard?overviewWeek=next",
+      status: 303,
+    });
+  });
+
+  it("permanently redirects dashboard query tabs before auth handling", async () => {
+    const dashboardRoute = await import("@/routes/dashboard/+page.server");
+
+    await expect(
+      dashboardRoute.load(
+        routeEvent("https://example.test/dashboard?tab=overview") as never,
+      ),
+    ).rejects.toMatchObject({
+      location: "/dashboard/overview",
+      status: 308,
+    });
     expect(loadSignedDashboardPageMock).not.toHaveBeenCalled();
   });
 
@@ -80,10 +128,10 @@ describe("anonymous home and signed dashboard route boundary", () => {
 
     await expect(
       dashboardRoute.load(
-        routeEvent("https://example.test/dashboard?tab=overview") as never,
+        routeEvent("https://example.test/dashboard") as never,
       ),
     ).rejects.toMatchObject({
-      location: "/signin?callbackUrl=%2Fdashboard%3Ftab%3Doverview",
+      location: "/signin?callbackUrl=%2Fdashboard",
       status: 303,
     });
     expect(loadSignedDashboardPageMock).not.toHaveBeenCalled();
@@ -95,10 +143,7 @@ describe("anonymous home and signed dashboard route boundary", () => {
       signedIn: true,
     });
     const dashboardRoute = await import("@/routes/dashboard/+page.server");
-    const event = routeEvent(
-      "https://example.test/dashboard?tab=overview",
-      "user-1",
-    );
+    const event = routeEvent("https://example.test/dashboard", "user-1");
 
     await expect(dashboardRoute.load(event as never)).resolves.toMatchObject({
       marker: "signed",

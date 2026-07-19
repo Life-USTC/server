@@ -17,7 +17,7 @@
  * - Copy calendar link button (iCal)
  *
  * ## Edge Cases
- * - Unauthenticated → public links view (calendar auth-only)
+ * - Unauthenticated legacy tab → protected semantic route, then sign-in
  * - Different layout per view mode
  */
 import { expect, test } from "@playwright/test";
@@ -28,28 +28,32 @@ import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
 
 test.describe("仪表盘日历", () => {
-  test("未登录 ?tab=calendar 显示公共视图", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/?tab=calendar", {
-      testInfo,
-      screenshotLabel: "calendar",
-    });
+  test("未登录旧 calendar tab 重定向到语义路径", async ({ page }) => {
+    const response = await page.request.get(
+      "/?tab=calendar&calendarView=week",
+      {
+        maxRedirects: 0,
+      },
+    );
 
-    await expect(page).toHaveURL(/\/\?tab=calendar$/);
-    await expect(page.locator("#main-content")).toBeVisible();
+    expect(response.status()).toBe(308);
+    expect(response.headers().location).toBe(
+      "/dashboard/calendar?calendarView=week",
+    );
+  });
 
-    // Public view: links/bus tabs, sign-in CTA
-    await expect(
-      page.getByRole("link", { name: /^(网站|Websites)$/i }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
-    ).toBeVisible();
-    // Calendar tab NOT in public nav
-    await expect(
-      page.getByRole("link", { name: /^(日历|Calendar)$/i }),
-    ).toHaveCount(0);
+  test("dashboard 查询 tab 也仅作为永久兼容入口", async ({ page }) => {
+    const response = await page.request.get(
+      "/dashboard?tab=calendar&calendarView=week",
+      {
+        maxRedirects: 0,
+      },
+    );
 
-    await captureStepScreenshot(page, testInfo, "calendar/unauthenticated");
+    expect(response.status()).toBe(308);
+    expect(response.headers().location).toBe(
+      "/dashboard/calendar?calendarView=week",
+    );
   });
 
   test("登录后显示日历，包含班级事件链接和星期标签", async ({

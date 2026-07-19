@@ -14,7 +14,7 @@
  * - User menu visible when authenticated; sign-in CTA when not
  *
  * ## Edge Cases
- * - `?tab=homeworks` for unauthenticated users falls back to public bus tab
+ * - Recognized legacy `?tab=` values permanently redirect to semantic routes
  * - Invalid `?tab=` values default to "overview" (auth) or "bus" (public)
  */
 import { expect, test } from "@playwright/test";
@@ -30,29 +30,18 @@ import { captureStepScreenshot } from "../../../utils/screenshot";
 import { ensureSeedSectionSubscription } from "../../../utils/subscriptions";
 
 test.describe("仪表盘", () => {
-  test("未登录 ?tab=homeworks 显示公共校车视图", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/?tab=homeworks", {
-      testInfo,
-      screenshotLabel: "dashboard",
-    });
+  test("未登录旧 homework tab 永久重定向到受保护语义路径", async ({ page }) => {
+    const response = await page.request.get(
+      "/?tab=homeworks&homeworkView=list",
+      {
+        maxRedirects: 0,
+      },
+    );
 
-    await expect(page).toHaveURL(/\/\?tab=homeworks$/);
-    await expect(page.locator("#app-logo")).toBeVisible();
-
-    // Public view shows bus + links entries and sign-in CTA
-    await expect(
-      page.getByRole("link", { name: /^(校车|Shuttle Bus)$/i }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
-    ).toBeVisible();
-
-    // Auth-only dashboard entries should not be present
-    await expect(
-      page.getByRole("link", { name: /^(总览|Overview)$/i }),
-    ).toHaveCount(0);
-
-    await captureStepScreenshot(page, testInfo, "home-public-with-tab");
+    expect(response.status()).toBe(308);
+    expect(response.headers().location).toBe(
+      "/dashboard/homeworks?homeworkView=list",
+    );
   });
 
   test("登录后首页显示总览、所有标签和种子数据", async ({ page }, testInfo) => {

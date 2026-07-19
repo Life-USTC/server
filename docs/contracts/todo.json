@@ -20,7 +20,7 @@
         "models": ["Todo"]
       },
       "web": {
-        "pages": ["/dashboard/todos", "/?tab=todos"]
+        "pages": ["/dashboard/todos"]
       },
       "graphql": {
         "fields": [
@@ -110,7 +110,7 @@
         "models": ["Todo"]
       },
       "web": {
-        "pages": ["/dashboard/todos", "/?tab=todos"]
+        "pages": ["/dashboard/todos"]
       },
       "rest": {
         "routes": [

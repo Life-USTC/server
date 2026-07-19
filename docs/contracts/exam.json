@@ -20,7 +20,7 @@
         "models": ["Exam"]
       },
       "web": {
-        "pages": ["/dashboard/exams", "/?tab=exams"]
+        "pages": ["/dashboard/exams"]
       },
       "rest": "unavailable",
       "graphql": {

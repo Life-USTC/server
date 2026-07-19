@@ -56,6 +56,8 @@ describe("sitemap route", () => {
       "https://life.example/courses",
       "https://life.example/sections",
       "https://life.example/teachers",
+      "https://life.example/bus",
+      "https://life.example/links",
       "https://life.example/bus-map",
       "https://life.example/api/docs/tag/sections",
       "https://life.example/privacy",

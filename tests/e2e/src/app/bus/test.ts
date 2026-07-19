@@ -2,7 +2,7 @@
  * E2E tests for the bus dashboard tab (/dashboard/bus)
  *
  * ## Behavior
- * - /bus page returns 404
+ * - /bus is the canonical public planner; /dashboard/bus keeps saved preferences
  * - Public users get a client-side planner: weekday/weekend, start stop, end stop,
  *   reverse, and departed-trip toggle
  * - Applicable routes are ordered by the next bus available from the selected start stop
@@ -124,25 +124,36 @@ test.describe("校车面板标签页", () => {
     await page.clock.setFixedTime(new Date("2026-07-17T03:00:00.000Z"));
   });
 
-  test("/bus 返回 404（重定向已移除）", async ({ page }) => {
-    const response = await page.goto("/bus");
-    expect(response?.status()).toBe(404);
-  });
-
-  test("旧版查询标签页仍渲染校车规划器", async ({ page }) => {
-    await gotoAndWaitForReady(page, "/?tab=bus", {
-      screenshotLabel: "bus-legacy",
+  test("/bus 是可索引的公共语义路径", async ({ page }, testInfo) => {
+    const response = await gotoAndWaitForReady(page, "/bus", {
+      testInfo,
+      screenshotLabel: "bus-public-route",
     });
 
+    expect(response?.status()).toBe(200);
+    await expect(page).toHaveURL(/\/bus$/);
     await expect(
-      page.getByRole("link", { name: /Transit map|线路图/ }),
-    ).toHaveAttribute("href", "/bus-map");
+      page.getByRole("heading", { level: 1, name: /校车|Shuttle Bus/i }),
+    ).toBeVisible();
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      "href",
+      /\/bus$/,
+    );
   });
 
-  test("公共校车标签页优先显示下一班并按需展开规划器", async ({
+  test("旧版查询标签永久重定向并保留其他状态", async ({ page }) => {
+    const response = await page.request.get("/?tab=bus&linkView=list", {
+      maxRedirects: 0,
+    });
+
+    expect(response.status()).toBe(308);
+    expect(response.headers().location).toBe("/bus?linkView=list");
+  });
+
+  test("公共校车页面优先显示下一班并按需展开规划器", async ({
     page,
   }, testInfo) => {
-    await gotoAndWaitForReady(page, "/?tab=bus", {
+    await gotoAndWaitForReady(page, "/bus", {
       testInfo,
       screenshotLabel: "bus",
     });
@@ -186,7 +197,7 @@ test.describe("校车面板标签页", () => {
     baseURL,
   }, testInfo) => {
     await setLocale(page, baseURL, "zh-cn");
-    await gotoAndWaitForReady(page, "/?tab=bus");
+    await gotoAndWaitForReady(page, "/bus");
     await expect(page.getByText("当前版本", { exact: true })).toHaveCount(0);
     await expect(
       page.getByText("Static Structured Bus Timetable", { exact: true }),
@@ -228,7 +239,7 @@ test.describe("校车面板标签页", () => {
   });
 
   test("匿名校车面板 SSR 渲染公共时刻表数据", async ({ page }) => {
-    const response = await page.request.get("/?tab=bus");
+    const response = await page.request.get("/bus");
     expect(response.status()).toBe(200);
     const html = await response.text();
 
@@ -241,11 +252,11 @@ test.describe("校车面板标签页", () => {
     );
   });
 
-  test("公共校车标签页在移动端保持下一班、路线更改和全表可用", async ({
+  test("公共校车页面在移动端保持下一班、路线更改和全表可用", async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await gotoAndWaitForReady(page, "/?tab=bus", {
+    await gotoAndWaitForReady(page, "/bus", {
       testInfo,
       screenshotLabel: "bus-mobile",
     });
@@ -280,7 +291,7 @@ test.describe("校车面板标签页", () => {
   test("默认站点对按下一班可用校车排序显示所有适用线路", async ({
     page,
   }, testInfo) => {
-    await gotoAndWaitForReady(page, "/?tab=bus", {
+    await gotoAndWaitForReady(page, "/bus", {
       testInfo,
       screenshotLabel: "bus",
     });
@@ -299,7 +310,7 @@ test.describe("校车面板标签页", () => {
   });
 
   test("反向交换方向并重新计算适用线路", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/?tab=bus", {
+    await gotoAndWaitForReady(page, "/bus", {
       testInfo,
       screenshotLabel: "bus",
     });
@@ -337,7 +348,7 @@ test.describe("校车面板标签页", () => {
   });
 
   test("选择东区到南区缩小为直达线路", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/?tab=bus", {
+    await gotoAndWaitForReady(page, "/bus", {
       testInfo,
       screenshotLabel: "bus",
     });
@@ -354,7 +365,7 @@ test.describe("校车面板标签页", () => {
   });
 
   test("已发车切换保持时刻表可见且可切换", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/?tab=bus", {
+    await gotoAndWaitForReady(page, "/bus", {
       testInfo,
       screenshotLabel: "bus",
     });
@@ -375,7 +386,7 @@ test.describe("校车面板标签页", () => {
   });
 
   test("工作日/周末切换更新所选线路时刻表", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/?tab=bus", {
+    await gotoAndWaitForReady(page, "/bus", {
       testInfo,
       screenshotLabel: "bus",
     });
@@ -410,7 +421,7 @@ test.describe("校车面板标签页", () => {
   }) => {
     for (const width of [280, 320]) {
       await page.setViewportSize({ width, height: 900 });
-      await gotoAndWaitForReady(page, "/?tab=bus");
+      await gotoAndWaitForReady(page, "/bus");
       const summary = page.getByTestId("bus-compact-summary");
       await expect(summary).toBeVisible();
 

@@ -67,25 +67,15 @@ test.describe("仪表盘关注班级", () => {
     await expect(page).toHaveURL(/\/dashboard\/subscriptions(?:\?.*)?$/);
   });
 
-  test("未登录 ?tab=subscriptions 回退到公共视图", async ({
-    page,
-  }, testInfo) => {
-    await gotoAndWaitForReady(page, "/?tab=subscriptions");
+  test("未登录旧 subscriptions tab 重定向到语义路径", async ({ page }) => {
+    const response = await page.request.get(
+      "/?tab=subscriptions&semester=2026-spring",
+      { maxRedirects: 0 },
+    );
 
-    await expect(page).toHaveURL(/\/\?tab=subscriptions$/);
-    await expect(page.locator("#main-content")).toBeVisible();
-
-    await expect(
-      page.getByRole("link", { name: /^(网站|Websites)$/i }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: /^(登录|Sign in)$/i }).first(),
-    ).toBeVisible();
-
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "dashboard-subscriptions-unauthorized",
+    expect(response.status()).toBe(308);
+    expect(response.headers().location).toBe(
+      "/dashboard/subscriptions?semester=2026-spring",
     );
   });
 

@@ -21,7 +21,7 @@
         "ui": ["List Table"]
       },
       "web": {
-        "pages": ["/dashboard/subscriptions", "/?tab=subscriptions"]
+        "pages": ["/dashboard/subscriptions"]
       },
       "rest": {
         "routes": [

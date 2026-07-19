@@ -44,12 +44,16 @@ async function setLocale(page: Page, locale: "en-us" | "zh-cn") {
 }
 
 test.describe("仪表盘网站链接", () => {
-  test("公共 ?tab=links 显示搜索和链接，无置顶控件", async ({
-    page,
-  }, testInfo) => {
+  test("公共 /links 显示搜索和链接，无置顶控件", async ({ page }, testInfo) => {
     await setLocale(page, "zh-cn");
-    await gotoAndWaitForReady(page, "/?tab=links");
+    const response = await gotoAndWaitForReady(page, "/links");
 
+    expect(response?.status()).toBe(200);
+    await expect(page).toHaveURL(/\/links$/);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      "href",
+      /\/links$/,
+    );
     const searchInput = page.getByRole("searchbox", {
       name: /搜索网站名称或描述|Search by name or description/i,
     });
@@ -66,10 +70,22 @@ test.describe("仪表盘网站链接", () => {
     await captureStepScreenshot(page, testInfo, "public-dashboard-links-tab");
   });
 
-  test("公共英文链接标签在搜索中使用本地化标题", async ({ page }, testInfo) => {
+  test("旧版 links 查询标签永久重定向到语义路径", async ({ page }) => {
+    const response = await page.request.get(
+      "/?tab=links&linkView=list&utm_source=bookmark",
+      { maxRedirects: 0 },
+    );
+
+    expect(response.status()).toBe(308);
+    expect(response.headers().location).toBe(
+      "/links?linkView=list&utm_source=bookmark",
+    );
+  });
+
+  test("公共英文链接页面在搜索中使用本地化标题", async ({ page }, testInfo) => {
     await setLocale(page, "en-us");
 
-    await gotoAndWaitForReady(page, "/?tab=links");
+    await gotoAndWaitForReady(page, "/links");
 
     const searchInput = page.getByRole("searchbox", {
       name: /Search by name or description/i,

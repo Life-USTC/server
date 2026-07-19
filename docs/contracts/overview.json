@@ -8,6 +8,7 @@
   },
   "rules": {
     "decision-page": "The anonymous home page is a public bus and frequent-links decision page; the authenticated /dashboard overview is the personal decision page for 'what to do next'.",
+    "semantic-route-compatibility": "Known legacy /?tab= inputs permanently redirect to semantic public or dashboard paths while preserving unrelated query parameters.",
     "now-next-first": "The authenticated overview begins with the current or next actionable schedule, homework, exam, or todo in a rolling seven-day window. Today's urgent work follows it, while frequent links remain secondary and appear after planning content.",
     "current-semester-priority": "The above-the-fold area prioritizes personal learning tasks within the current semester, not historical semester content or complete directory information.",
     "homework-todo-layered": "Homework and todos are layered as 'due today / due soon / all incomplete'; homework with no due date does not participate in upcoming due date sorting.",
