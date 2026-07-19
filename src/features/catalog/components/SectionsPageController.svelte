@@ -1,14 +1,10 @@
 <script lang="ts">
-import SlidersHorizontalIcon from "@lucide/svelte/icons/sliders-horizontal";
 import {
-  type CatalogNamed,
   catalogHref,
   catalogPrimaryName as primaryName,
   catalogSecondaryName as secondaryName,
   catalogNames as teacherNames,
 } from "@/features/catalog/lib/catalog-list-display";
-import { goto } from "$app/navigation";
-import CatalogFilterSidebar from "./CatalogFilterSidebar.svelte";
 import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
 import CatalogPageHeader from "./CatalogPageHeader.svelte";
 import CatalogPagination from "./CatalogPagination.svelte";
@@ -16,20 +12,25 @@ import type {
   SectionListCommonLabels,
   SectionListFilters,
   SectionListLabels,
+  SectionListOption,
+  SectionListOptionSource,
   SectionListRow,
   SectionListSemester,
 } from "./catalog-section-list-types";
-import SectionSearchHelpDialog from "./SectionSearchHelpDialog.svelte";
 import SectionsFilters from "./SectionsFilters.svelte";
 import SectionsResults from "./SectionsResults.svelte";
 
-type SemesterOption = SectionListSemester &
-  CatalogNamed & {
-    id: number | string;
-  };
+type SemesterOption = SectionListSemester & SectionListOptionSource;
 type PageData = {
   data: SectionListRow[];
-  filterOptions: { semesters: SemesterOption[] };
+  filterOptions: {
+    campuses: SectionListOptionSource[];
+    categories: SectionListOptionSource[];
+    classTypes: SectionListOptionSource[];
+    departments: SectionListOptionSource[];
+    educationLevels: SectionListOptionSource[];
+    semesters: SemesterOption[];
+  };
   filters: SectionListFilters;
   labels: {
     common: SectionListCommonLabels & {
@@ -51,29 +52,41 @@ type PageData = {
 
 export let data: PageData;
 
-let isSearchHelpOpen = false;
 let isSectionFilterOpen = false;
 let sectionSearch = data.filters.search ?? "";
 
-$: if (isSearchHelpOpen) isSectionFilterOpen = false;
 $: totalPages = data.pagination.totalPages;
 $: sectionSearch = data.filters.search ?? "";
 $: commonLabels = data.labels.common;
 $: sectionLabels = data.labels.sections;
-$: activeFilterCount = [data.filters.search, data.filters.semesterId].filter(
-  Boolean,
-).length;
 $: selectedSemester =
   data.filterOptions.semesters.find(
     (semester) => data.filters.semesterId === String(semester.id),
   ) ?? null;
-$: semesterOptions = [
-  { value: "", label: commonLabels.allSemesters },
-  ...data.filterOptions.semesters.map((semester) => ({
-    value: String(semester.id),
-    label: semester.nameCn,
-  })),
-];
+$: semesterOptions = namedOptions(
+  data.filterOptions.semesters,
+  commonLabels.allSemesters,
+);
+$: campusOptions = namedOptions(
+  data.filterOptions.campuses,
+  `${sectionLabels.filters.any} · ${sectionLabels.campus}`,
+);
+$: departmentOptions = namedOptions(
+  data.filterOptions.departments,
+  `${sectionLabels.filters.any} · ${sectionLabels.department}`,
+);
+$: categoryOptions = namedOptions(
+  data.filterOptions.categories,
+  `${sectionLabels.filters.any} · ${sectionLabels.category}`,
+);
+$: educationLevelOptions = namedOptions(
+  data.filterOptions.educationLevels,
+  `${sectionLabels.filters.any} · ${sectionLabels.educationLevel}`,
+);
+$: classTypeOptions = namedOptions(
+  data.filterOptions.classTypes,
+  `${sectionLabels.filters.any} · ${sectionLabels.classType}`,
+);
 $: sectionResultsData = {
   data: data.data,
   filters: data.filters,
@@ -92,31 +105,129 @@ $: sectionActiveFilters = [
         label: `${sectionLabels.semester}: ${selectedSemester?.nameCn ?? data.filters.semesterId}`,
       }
     : null,
+  textFilter("teacher", sectionLabels.teachers),
+  textFilter("courseCode", sectionLabels.courseCode),
+  textFilter("sectionCode", sectionLabels.sectionCode),
+  optionFilter("campusId", sectionLabels.campus, campusOptions),
+  textFilter("credits", sectionLabels.credits),
+  optionFilter("departmentId", sectionLabels.department, departmentOptions),
+  optionFilter("categoryId", sectionLabels.category, categoryOptions),
+  optionFilter(
+    "educationLevelId",
+    sectionLabels.educationLevel,
+    educationLevelOptions,
+  ),
+  optionFilter("classTypeId", sectionLabels.classType, classTypeOptions),
+  data.filters.sort
+    ? {
+        href: sectionFilterHref({ order: null, sort: "" }),
+        label: `${sectionLabels.filters.sortBy}: ${sortLabel(data.filters.sort)} · ${
+          data.filters.order === "desc"
+            ? sectionLabels.filters.orderDesc
+            : sectionLabels.filters.orderAsc
+        }`,
+      }
+    : null,
 ].filter(
   (filter): filter is { href: string; label: string } => filter !== null,
 );
-$: sectionHiddenFilters = [
-  { name: "semesterId", value: data.filters.semesterId ?? "" },
-];
+$: sectionHiddenFilters = Object.entries(
+  sectionFilterParams({ ...data.filters, search: null }),
+).map(([name, value]) => ({ name, value: value ?? "" }));
 
 function pageHref(targetPage: number) {
-  const { search, semesterId } = data.filters;
-  return catalogHref("/sections", { search, semesterId }, targetPage);
+  return catalogHref(
+    "/sections",
+    sectionFilterParams(data.filters),
+    targetPage,
+  );
 }
 
 function sectionFilterHref(overrides: Partial<SectionListFilters>) {
-  const filters = {
-    ...data.filters,
-    search: sectionSearch.trim(),
-    ...overrides,
-  };
-  const { search, semesterId } = filters;
-  return catalogHref("/sections", { search, semesterId });
+  return catalogHref(
+    "/sections",
+    sectionFilterParams({ ...data.filters, ...overrides }),
+  );
 }
 
-function updateSectionFilter(overrides: Partial<SectionListFilters>) {
-  isSectionFilterOpen = false;
-  void goto(sectionFilterHref(overrides));
+function sectionFilterParams(filters: SectionListFilters) {
+  return {
+    campusId: filters.campusId,
+    categoryId: filters.categoryId,
+    classTypeId: filters.classTypeId,
+    courseCode: filters.courseCode,
+    credits: filters.credits,
+    departmentId: filters.departmentId,
+    educationLevelId: filters.educationLevelId,
+    order: filters.sort ? filters.order : null,
+    search: filters.search,
+    sectionCode: filters.sectionCode,
+    semesterId: filters.semesterId,
+    sort: filters.sort,
+    teacher: filters.teacher,
+  };
+}
+
+function namedOptions(
+  items: SectionListOptionSource[],
+  emptyLabel: string,
+): SectionListOption[] {
+  return [
+    { value: "", label: emptyLabel },
+    ...items.map((item) => ({
+      value: String(item.id),
+      label: primaryName(item),
+    })),
+  ];
+}
+
+function optionLabel(options: SectionListOption[], value: string) {
+  return options.find((option) => option.value === value)?.label ?? value;
+}
+
+function textFilter(
+  key: "courseCode" | "credits" | "sectionCode" | "teacher",
+  label: string,
+) {
+  const value = data.filters[key];
+  return value
+    ? {
+        href: sectionFilterHref({ [key]: "" }),
+        label: `${label}: ${value}`,
+      }
+    : null;
+}
+
+function optionFilter(
+  key:
+    | "campusId"
+    | "categoryId"
+    | "classTypeId"
+    | "departmentId"
+    | "educationLevelId",
+  label: string,
+  options: SectionListOption[],
+) {
+  const value = data.filters[key];
+  return value
+    ? {
+        href: sectionFilterHref({ [key]: "" }),
+        label: `${label}: ${optionLabel(options, value)}`,
+      }
+    : null;
+}
+
+function sortLabel(value: string) {
+  const labels: Record<string, string> = {
+    campus: sectionLabels.filters.sortCampus,
+    capacity: sectionLabels.filters.sortCapacity,
+    code: sectionLabels.filters.sortCode,
+    course: sectionLabels.filters.sortCourse,
+    credits: sectionLabels.filters.sortCredits,
+    semester: sectionLabels.filters.sortSemester,
+    teacher: sectionLabels.filters.sortTeacherCount,
+  };
+  return labels[value] ?? value;
 }
 
 function sectionEmptyDescription() {
@@ -141,11 +252,12 @@ function sectionEmptyDescription() {
     title={sectionLabels.title}
   />
 
-  <div class="-mx-4 grid min-h-[calc(100vh-8rem)] bg-background sm:-mx-5 lg:-mx-6 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start">
+  <div class="grid min-w-0 gap-4">
     <CatalogMobileFilters
       activeFilters={sectionActiveFilters}
       clearHref="/sections"
       clearLabel={commonLabels.clear}
+      filterDescription={sectionLabels.filterDescription}
       filterTitle={sectionLabels.summary.filters}
       hiddenFilters={sectionHiddenFilters}
       bind:open={isSectionFilterOpen}
@@ -155,37 +267,24 @@ function sectionEmptyDescription() {
       bind:searchValue={sectionSearch}
     >
       <SectionsFilters
-        {activeFilterCount}
+        {campusOptions}
+        {categoryOptions}
+        {classTypeOptions}
+        clearHref="/sections"
         {commonLabels}
+        {departmentOptions}
+        {educationLevelOptions}
         filters={data.filters}
         idPrefix="mobile-section"
-        bind:isSearchHelpOpen
+        onSubmit={() => {
+          isSectionFilterOpen = false;
+        }}
         {sectionLabels}
-        bind:sectionSearch
         {semesterOptions}
-        showSearch={false}
-        {updateSectionFilter}
       />
     </CatalogMobileFilters>
 
-    <CatalogFilterSidebar
-      activeCount={activeFilterCount}
-      icon={SlidersHorizontalIcon}
-      title={sectionLabels.summary.filters}
-    >
-      <SectionsFilters
-        {activeFilterCount}
-        {commonLabels}
-        filters={data.filters}
-        bind:isSearchHelpOpen
-        {sectionLabels}
-        bind:sectionSearch
-        {semesterOptions}
-        {updateSectionFilter}
-      />
-    </CatalogFilterSidebar>
-
-    <div class="min-w-0 px-4 py-5 sm:px-5 lg:px-6">
+    <div class="grid min-w-0 gap-4">
       <SectionsResults
         data={sectionResultsData}
         page={data.pagination.page}
@@ -211,5 +310,3 @@ function sectionEmptyDescription() {
     </div>
   </div>
 </section>
-
-<SectionSearchHelpDialog bind:isSearchHelpOpen {sectionLabels} />

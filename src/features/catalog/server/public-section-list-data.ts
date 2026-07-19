@@ -31,13 +31,38 @@ async function getUncachedSectionListPage(
   locale: AppLocale = DEFAULT_LOCALE,
 ) {
   const page = parsePositivePage(url.searchParams.get("page"));
-  const search = optionalValue(url.searchParams.get("search"));
-  const semesterId = optionalValue(url.searchParams.get("semesterId"));
+  const orderParam = optionalValue(url.searchParams.get("order"));
+  const order: "asc" | "desc" | undefined =
+    orderParam === "asc" || orderParam === "desc" ? orderParam : undefined;
+  const filters = {
+    campusId: optionalValue(url.searchParams.get("campusId")),
+    categoryId: optionalValue(url.searchParams.get("categoryId")),
+    classTypeId: optionalValue(url.searchParams.get("classTypeId")),
+    courseCode: optionalValue(url.searchParams.get("courseCode")),
+    credits: optionalValue(url.searchParams.get("credits")),
+    departmentId: optionalValue(url.searchParams.get("departmentId")),
+    educationLevelId: optionalValue(url.searchParams.get("educationLevelId")),
+    order,
+    search: optionalValue(url.searchParams.get("search")),
+    sectionCode: optionalValue(url.searchParams.get("sectionCode")),
+    semesterId: optionalValue(url.searchParams.get("semesterId")),
+    sort: optionalValue(url.searchParams.get("sort")),
+    teacher: optionalValue(url.searchParams.get("teacher")),
+  };
   const prisma = getPrisma(locale);
 
-  const [result, semesters, messages] = await Promise.all([
+  const [
+    result,
+    semesters,
+    campuses,
+    departments,
+    categories,
+    educationLevels,
+    classTypes,
+    messages,
+  ] = await Promise.all([
     listSectionSummaries({
-      filters: { semesterId, search },
+      filters,
       locale,
       pagination: { page, pageSize: CATALOG_PAGE_SIZE },
     }),
@@ -46,13 +71,46 @@ async function getUncachedSectionListPage(
       take: 100,
       orderBy: { jwId: "desc" },
     }),
+    prisma.campus.findMany({
+      where: { sections: { some: { retiredAt: null } } },
+      orderBy: { nameCn: "asc" },
+    }),
+    prisma.department.findMany({
+      where: { sections: { some: { retiredAt: null } } },
+      orderBy: { nameCn: "asc" },
+    }),
+    prisma.courseCategory.findMany({
+      where: {
+        courses: { some: { sections: { some: { retiredAt: null } } } },
+      },
+      orderBy: { nameCn: "asc" },
+    }),
+    prisma.educationLevel.findMany({
+      where: {
+        courses: { some: { sections: { some: { retiredAt: null } } } },
+      },
+      orderBy: { nameCn: "asc" },
+    }),
+    prisma.classType.findMany({
+      where: {
+        courses: { some: { sections: { some: { retiredAt: null } } } },
+      },
+      orderBy: { nameCn: "asc" },
+    }),
     getMessages(locale),
   ]);
 
   return toLoadData({
     ...result,
-    filters: { search, semesterId },
-    filterOptions: { semesters },
+    filters,
+    filterOptions: {
+      campuses,
+      categories,
+      classTypes,
+      departments,
+      educationLevels,
+      semesters,
+    },
     labels: {
       common: messages.common,
       sections: {

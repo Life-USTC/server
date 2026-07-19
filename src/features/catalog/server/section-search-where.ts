@@ -1,8 +1,18 @@
 import { buildSectionOrderBy } from "@/features/catalog/server/section-search-order";
 import { parseSectionSearchQuery } from "@/features/catalog/server/section-search-parser";
-import type { SectionSearchConditionKey } from "@/features/catalog/server/section-search-types";
+import type {
+  ParsedSectionSearchQuery,
+  SectionSearchConditionKey,
+  SectionSearchOverrides,
+} from "@/features/catalog/server/section-search-types";
 import type { Prisma } from "@/generated/prisma/client";
 import { ilike } from "@/lib/query-filter-helpers";
+
+function localizedNameCondition(value: string) {
+  return {
+    OR: [{ nameCn: ilike(value) }, { nameEn: ilike(value) }],
+  };
+}
 
 const SECTION_SEARCH_CONDITIONS: Array<{
   key: SectionSearchConditionKey;
@@ -10,11 +20,16 @@ const SECTION_SEARCH_CONDITIONS: Array<{
 }> = [
   {
     key: "teacher",
-    build: (value) => ({ teachers: { some: { nameCn: ilike(value) } } }),
+    build: (value) => ({
+      teachers: { some: localizedNameCondition(value) },
+    }),
   },
   { key: "courseCode", build: (value) => ({ course: { code: ilike(value) } }) },
   { key: "lectureCode", build: (value) => ({ code: ilike(value) }) },
-  { key: "campus", build: (value) => ({ campus: { nameCn: ilike(value) } }) },
+  {
+    key: "campus",
+    build: (value) => ({ campus: localizedNameCondition(value) }),
+  },
   {
     key: "credits",
     build: (value) => {
@@ -24,7 +39,9 @@ const SECTION_SEARCH_CONDITIONS: Array<{
   },
   {
     key: "department",
-    build: (value) => ({ openDepartment: { nameCn: ilike(value) } }),
+    build: (value) => ({
+      openDepartment: localizedNameCondition(value),
+    }),
   },
   {
     key: "semester",
@@ -32,29 +49,69 @@ const SECTION_SEARCH_CONDITIONS: Array<{
   },
   {
     key: "category",
-    build: (value) => ({ course: { category: { nameCn: ilike(value) } } }),
+    build: (value) => ({
+      course: { category: localizedNameCondition(value) },
+    }),
   },
   {
     key: "level",
     build: (value) => ({
-      course: { educationLevel: { nameCn: ilike(value) } },
+      course: { educationLevel: localizedNameCondition(value) },
     }),
   },
   {
     key: "classType",
-    build: (value) => ({ course: { classType: { nameCn: ilike(value) } } }),
+    build: (value) => ({
+      course: { classType: localizedNameCondition(value) },
+    }),
   },
 ];
 
-export function buildSectionSearchWhere(search?: string): {
+function trimmedString(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed || undefined;
+}
+
+function applySearchOverrides(
+  parsed: ParsedSectionSearchQuery,
+  overrides: SectionSearchOverrides,
+): ParsedSectionSearchQuery {
+  const teacher = trimmedString(overrides.teacher);
+  const courseCode = trimmedString(overrides.courseCode);
+  const lectureCode = trimmedString(overrides.sectionCode);
+  const sort = trimmedString(overrides.sort);
+  const requestedOrder = trimmedString(overrides.order)?.toLowerCase();
+  const order =
+    requestedOrder === "asc" || requestedOrder === "desc"
+      ? requestedOrder
+      : undefined;
+  const credits =
+    overrides.credits === null || overrides.credits === undefined
+      ? undefined
+      : trimmedString(String(overrides.credits));
+
+  return {
+    ...parsed,
+    ...(teacher ? { teacher } : {}),
+    ...(courseCode ? { courseCode } : {}),
+    ...(lectureCode ? { lectureCode } : {}),
+    ...(credits ? { credits } : {}),
+    ...(sort ? { sort } : {}),
+    ...(order ? { order } : {}),
+  };
+}
+
+export function buildSectionSearchWhere(
+  search?: string,
+  overrides: SectionSearchOverrides = {},
+): {
   where?: Prisma.SectionWhereInput;
   orderBy?: Prisma.SectionOrderByWithRelationInput;
 } {
-  if (!search) {
-    return {};
-  }
-
-  const parsed = parseSectionSearchQuery(search);
+  const parsed = applySearchOverrides(
+    parseSectionSearchQuery(search ?? ""),
+    overrides,
+  );
   const orderBy = buildSectionOrderBy(parsed.sort, parsed.order || "asc");
   const conditions = SECTION_SEARCH_CONDITIONS.flatMap((field) => {
     const value = parsed[field.key];
