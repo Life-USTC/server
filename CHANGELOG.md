@@ -1,3 +1,10 @@
+# [1.67.0](https://github.com/Life-USTC/server/compare/v1.66.0...v1.67.0) (2026-07-19)
+
+
+### Features
+
+* **settings:** move account controls to sidebar ([#558](https://github.com/Life-USTC/server/issues/558)) ([db8c236](https://github.com/Life-USTC/server/commit/db8c2360c3bca8960eb37f71e5527e109dd43436)), closes [#545](https://github.com/Life-USTC/server/issues/545)
+
 # [1.66.0](https://github.com/Life-USTC/server/compare/v1.65.1...v1.66.0) (2026-07-19)
 
 
