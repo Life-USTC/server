@@ -14,8 +14,8 @@ async function main() {
   });
 
   try {
-    const report = await cleanupExpiredAuthRecords(prisma);
-    console.log("Expired auth record cleanup completed.", report);
+    await cleanupExpiredAuthRecords(prisma);
+    console.log("Expired auth record cleanup completed.");
   } finally {
     await prisma.$disconnect();
   }

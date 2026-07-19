@@ -60,11 +60,14 @@ describe("expired auth record cleanup", () => {
     });
     await prisma.verificationToken.createMany({
       data: [
-        {
-          identifier: marker,
-          token: `${marker}-expired-verification`,
-          expires: expiredAt,
-        },
+        ...Array.from(
+          { length: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1 },
+          (_, index) => ({
+            identifier: marker,
+            token: `${marker}-expired-verification-${index}`,
+            expires: expiredAt,
+          }),
+        ),
         {
           identifier: marker,
           token: `${marker}-boundary-verification`,
@@ -74,13 +77,16 @@ describe("expired auth record cleanup", () => {
     });
     await prisma.deviceCode.createMany({
       data: [
-        {
-          deviceCode: `${marker}-expired-device`,
-          userCode: `${marker}-expired-user-code`,
-          clientId,
-          userId,
-          expiresAt: expiredAt,
-        },
+        ...Array.from(
+          { length: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1 },
+          (_, index) => ({
+            deviceCode: `${marker}-expired-device-${index}`,
+            userCode: `${marker}-expired-user-code-${index}`,
+            clientId,
+            userId,
+            expiresAt: expiredAt,
+          }),
+        ),
         {
           deviceCode: `${marker}-boundary-device`,
           userCode: `${marker}-boundary-user-code`,
@@ -92,12 +98,15 @@ describe("expired auth record cleanup", () => {
     });
     await prisma.oAuthRefreshToken.createMany({
       data: [
-        {
-          token: `${marker}-expired-refresh`,
-          clientId,
-          userId,
-          expiresAt: expiredAt,
-        },
+        ...Array.from(
+          { length: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1 },
+          (_, index) => ({
+            token: `${marker}-expired-refresh-${index}`,
+            clientId,
+            userId,
+            expiresAt: expiredAt,
+          }),
+        ),
         {
           token: `${marker}-boundary-refresh`,
           clientId,
@@ -115,12 +124,15 @@ describe("expired auth record cleanup", () => {
     });
     await prisma.oAuthAccessToken.createMany({
       data: [
-        {
-          token: `${marker}-expired-access`,
-          clientId,
-          userId,
-          expiresAt: expiredAt,
-        },
+        ...Array.from(
+          { length: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1 },
+          (_, index) => ({
+            token: `${marker}-expired-access-${index}`,
+            clientId,
+            userId,
+            expiresAt: expiredAt,
+          }),
+        ),
         {
           token: `${marker}-boundary-access`,
           clientId,
@@ -163,10 +175,10 @@ describe("expired auth record cleanup", () => {
 
     expect(total).toEqual({
       sessions: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1,
-      verificationTokens: 1,
-      oauthAccessTokens: 1,
-      oauthRefreshTokens: 1,
-      deviceCodes: 1,
+      verificationTokens: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1,
+      oauthAccessTokens: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1,
+      oauthRefreshTokens: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1,
+      deviceCodes: AUTH_RECORD_CLEANUP_BATCH_SIZE + 1,
     });
     for (const report of reports) {
       for (const deleted of Object.values(report)) {
