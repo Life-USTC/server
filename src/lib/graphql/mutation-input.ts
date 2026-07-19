@@ -88,6 +88,25 @@ export function rejectExplicitNullFields(
   }
 }
 
+export function requireMutationBatchSize(
+  values: readonly unknown[],
+  label: string,
+  max: number,
+) {
+  if (values.length < 1 || values.length > max) {
+    badMutationInput(`${label} must contain 1-${max} items.`);
+  }
+}
+
+export function rejectDuplicateMutationTargets(
+  values: readonly string[],
+  label: string,
+) {
+  if (new Set(values).size !== values.length) {
+    badMutationInput(`${label} must not contain duplicate targets.`);
+  }
+}
+
 export function dateTimeInput(value: string | null | undefined) {
   if (value == null) return value;
   return new Date(value);

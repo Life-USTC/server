@@ -79,6 +79,23 @@
       "web": {
         "pages": ["/dashboard/subscriptions", "/?tab=subscriptions", "/welcome"]
       },
+      "graphql": {
+        "mutations": [
+          {
+            "name": "updateSectionSubscriptions",
+            "returns": "SectionSubscriptionBatchPayload!",
+            "auth": "user",
+            "required_scopes": ["subscription:write"],
+            "rest_equivalent": "POST /api/calendar-subscriptions/batch",
+            "mcp_equivalent": "subscribe_my_sections_by_codes",
+            "notes": [
+              "Accepts at most 500 unique public section/course codes; internal section IDs are intentionally not exposed.",
+              "ADD and REMOVE require at least one code. SET requires semesterId and may use an empty code list to clear only that semester.",
+              "Unknown codes remain successful unmatchedCodes results, matching REST preview-and-apply semantics."
+            ]
+          }
+        ]
+      },
       "rest": {
         "routes": [
           {

@@ -1,0 +1,268 @@
+{
+  "schemaVersion": 1,
+  "scope": "Ordinary user and collaborative business writes. Authentication protocols, account security, admin governance, locale cookies, browser redirects, and raw R2 bytes require separate threat models or transports.",
+  "excludedFamilies": [
+    {
+      "id": "auth-and-account-security",
+      "reason": "OAuth consent, credentials, sessions, passkeys, and account lifecycle require the authorization-management threat model."
+    },
+    {
+      "id": "admin-governance",
+      "reason": "Admin mutations require an explicit governance and audit design before GraphQL exposure."
+    },
+    {
+      "id": "transport-only-writes",
+      "reason": "Locale cookies, redirects, OAuth protocol endpoints, MCP transport state, and raw R2 byte transfer are not GraphQL business commands."
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "todo.create",
+      "rest": ["POST /api/todos"],
+      "graphql": { "status": "stable", "field": "createTodo" },
+      "mcp": { "status": "native", "tools": ["create_my_todo"] },
+      "semantics": "single"
+    },
+    {
+      "id": "todo.update",
+      "rest": ["PATCH /api/todos/[id]"],
+      "graphql": { "status": "stable", "field": "updateTodo" },
+      "mcp": { "status": "native", "tools": ["update_my_todo"] },
+      "semantics": "single"
+    },
+    {
+      "id": "todo.delete",
+      "rest": ["DELETE /api/todos/[id]"],
+      "graphql": { "status": "stable", "field": "deleteTodo" },
+      "mcp": { "status": "native", "tools": ["delete_my_todo"] },
+      "semantics": "single"
+    },
+    {
+      "id": "todo.set-completions-batch",
+      "rest": ["PATCH /api/todos/batch"],
+      "graphql": { "status": "stable", "field": "setTodoCompletions" },
+      "mcp": { "status": "single_item_only", "tools": ["update_my_todo"] },
+      "semantics": "per_item_partial"
+    },
+    {
+      "id": "todo.delete-batch",
+      "rest": ["DELETE /api/todos/batch"],
+      "graphql": { "status": "stable", "field": "deleteTodos" },
+      "mcp": { "status": "single_item_only", "tools": ["delete_my_todo"] },
+      "semantics": "per_item_partial"
+    },
+    {
+      "id": "homework.create",
+      "rest": ["POST /api/homeworks"],
+      "graphql": { "status": "stable", "field": "createHomework" },
+      "mcp": { "status": "native", "tools": ["create_homework_on_section"] },
+      "semantics": "single"
+    },
+    {
+      "id": "homework.update",
+      "rest": ["PATCH /api/homeworks/[id]"],
+      "graphql": { "status": "stable", "field": "updateHomework" },
+      "mcp": { "status": "native", "tools": ["update_homework_on_section"] },
+      "semantics": "single"
+    },
+    {
+      "id": "homework.delete",
+      "rest": ["DELETE /api/homeworks/[id]"],
+      "graphql": { "status": "stable", "field": "deleteHomework" },
+      "mcp": { "status": "native", "tools": ["delete_homework_on_section"] },
+      "semantics": "single_idempotent"
+    },
+    {
+      "id": "homework.set-completion",
+      "rest": ["PUT /api/homeworks/[id]/completion"],
+      "graphql": { "status": "stable", "field": "setHomeworkCompletion" },
+      "mcp": { "status": "native", "tools": ["set_my_homework_completion"] },
+      "semantics": "single"
+    },
+    {
+      "id": "homework.set-completions-batch",
+      "rest": ["PUT /api/homeworks/completions"],
+      "graphql": { "status": "stable", "field": "setHomeworkCompletions" },
+      "mcp": {
+        "status": "single_item_only",
+        "tools": ["set_my_homework_completion"]
+      },
+      "semantics": "per_item_partial"
+    },
+    {
+      "id": "subscription.subscribe-section",
+      "rest": [],
+      "graphql": { "status": "stable", "field": "subscribeSection" },
+      "mcp": { "status": "native", "tools": ["subscribe_section_by_jw_id"] },
+      "semantics": "single"
+    },
+    {
+      "id": "subscription.unsubscribe-section",
+      "rest": [],
+      "graphql": { "status": "stable", "field": "unsubscribeSection" },
+      "mcp": {
+        "status": "native",
+        "tools": ["unsubscribe_section_by_jw_id"]
+      },
+      "semantics": "single"
+    },
+    {
+      "id": "subscription.update-by-codes-batch",
+      "rest": [
+        "POST /api/calendar-subscriptions/batch",
+        "POST /api/calendar-subscriptions/import-codes"
+      ],
+      "graphql": {
+        "status": "stable",
+        "field": "updateSectionSubscriptions"
+      },
+      "mcp": {
+        "status": "partial",
+        "tools": ["subscribe_my_sections_by_codes"]
+      },
+      "semantics": "service_transaction_or_single_atomic_write"
+    },
+    {
+      "id": "dashboard.set-link-pin-state",
+      "rest": ["POST /api/dashboard-links/pin"],
+      "graphql": {
+        "status": "stable",
+        "field": "setDashboardLinkPinState"
+      },
+      "mcp": {
+        "status": "native",
+        "tools": ["set_dashboard_link_pin_state"]
+      },
+      "semantics": "single"
+    },
+    {
+      "id": "bus.save-preferences",
+      "rest": ["POST /api/bus/preferences"],
+      "graphql": { "status": "stable", "field": "saveBusPreferences" },
+      "mcp": { "status": "native", "tools": ["save_my_bus_preferences"] },
+      "semantics": "single"
+    },
+    {
+      "id": "description.upsert",
+      "rest": ["POST /api/descriptions"],
+      "graphql": { "status": "stable", "field": "upsertDescription" },
+      "mcp": { "status": "native", "tools": ["upsert_description"] },
+      "semantics": "single_audited"
+    },
+    {
+      "id": "comment.create",
+      "rest": ["POST /api/comments"],
+      "graphql": { "status": "stable", "field": "createComment" },
+      "mcp": { "status": "native", "tools": ["create_comment"] },
+      "semantics": "single_audited"
+    },
+    {
+      "id": "comment.update",
+      "rest": ["PATCH /api/comments/[id]"],
+      "graphql": { "status": "stable", "field": "updateComment" },
+      "mcp": { "status": "native", "tools": ["update_own_comment"] },
+      "semantics": "single_audited"
+    },
+    {
+      "id": "comment.delete",
+      "rest": ["DELETE /api/comments/[id]"],
+      "graphql": { "status": "stable", "field": "deleteComment" },
+      "mcp": { "status": "native", "tools": ["delete_own_comment"] },
+      "semantics": "single_audited"
+    },
+    {
+      "id": "comment.add-reaction",
+      "rest": ["POST /api/comments/[id]/reactions"],
+      "graphql": { "status": "stable", "field": "addCommentReaction" },
+      "mcp": { "status": "native", "tools": ["add_comment_reaction"] },
+      "semantics": "single_audited_idempotent"
+    },
+    {
+      "id": "comment.remove-reaction",
+      "rest": ["DELETE /api/comments/[id]/reactions"],
+      "graphql": { "status": "stable", "field": "removeCommentReaction" },
+      "mcp": { "status": "native", "tools": ["remove_comment_reaction"] },
+      "semantics": "single_audited_idempotent"
+    },
+    {
+      "id": "dashboard.set-link-pin-state-batch",
+      "rest": ["POST /api/dashboard-links/pin/batch"],
+      "graphql": { "status": "intentional_gap", "field": null },
+      "mcp": {
+        "status": "single_item_only",
+        "tools": ["set_dashboard_link_pin_state"]
+      },
+      "semantics": "ordered_non_atomic",
+      "notes": [
+        "The REST handler currently sequences single-item writes in the transport layer and returns only final state. Add a shared atomic or explicit per-item service before exposing GraphQL batch semantics."
+      ]
+    },
+    {
+      "id": "comment.delete-batch",
+      "rest": ["DELETE /api/comments/batch"],
+      "graphql": { "status": "intentional_gap", "field": null },
+      "mcp": {
+        "status": "single_item_only",
+        "tools": ["delete_own_comment"]
+      },
+      "semantics": "per_item_partial",
+      "notes": [
+        "A shared audited batch service is required before GraphQL exposure; the REST transport currently fans out the single audited mutation."
+      ]
+    },
+    {
+      "id": "upload.create-session",
+      "rest": ["POST /api/uploads"],
+      "graphql": { "status": "intentional_gap", "field": null },
+      "mcp": { "status": "unavailable", "tools": [] },
+      "semantics": "multi_step_storage_workflow",
+      "notes": [
+        "GraphQL may later initiate metadata workflow, but raw object transfer remains on the on-site R2 route."
+      ]
+    },
+    {
+      "id": "upload.complete",
+      "rest": ["POST /api/uploads/complete"],
+      "graphql": { "status": "intentional_gap", "field": null },
+      "mcp": { "status": "unavailable", "tools": [] },
+      "semantics": "multi_step_storage_workflow",
+      "notes": [
+        "Completion requires a dedicated GraphQL workflow contract and must not proxy object bytes."
+      ]
+    },
+    {
+      "id": "upload.rename",
+      "rest": ["PATCH /api/uploads/[id]"],
+      "graphql": { "status": "intentional_gap", "field": null },
+      "mcp": { "status": "native", "tools": ["rename_my_upload"] },
+      "semantics": "single_audited",
+      "notes": [
+        "Upload metadata mutations remain a focused follow-up after the storage workflow boundary is designed."
+      ]
+    },
+    {
+      "id": "upload.delete",
+      "rest": ["DELETE /api/uploads/[id]"],
+      "graphql": { "status": "intentional_gap", "field": null },
+      "mcp": { "status": "native", "tools": ["delete_my_upload"] },
+      "semantics": "storage_then_transactional_metadata_delete",
+      "notes": [
+        "The storage-delete-before-metadata invariant needs an explicit GraphQL failure contract."
+      ]
+    },
+    {
+      "id": "subscription.update-by-internal-ids",
+      "rest": [
+        "POST /api/calendar-subscriptions",
+        "PATCH /api/calendar-subscriptions",
+        "DELETE /api/calendar-subscriptions"
+      ],
+      "graphql": { "status": "intentional_gap", "field": null },
+      "mcp": { "status": "unavailable", "tools": [] },
+      "semantics": "compatibility_only",
+      "notes": [
+        "GraphQL uses public section JW IDs for single changes and public section/course codes for batches; database section IDs remain REST compatibility input only."
+      ]
+    }
+  ]
+}

@@ -8,6 +8,7 @@
   },
   "rules": {
     "scoped-mutations": "Every personal mutation requires authentication, the matching feature:write OAuth scope for bearer callers, and the shared per-user mutation rate-limit action key used by REST and MCP. Trusted session callers receive the equivalent first-party access.",
+    "batch-mutations": "Todo and homework batches preserve REST per-item partial-success results. Section subscription batches reuse the shared transaction-aware service. Every GraphQL batch uses the stricter feature:batch-write rate-limit budget, rejects duplicate targets before writing, and relies on GraphQL input coercion to reject unknown fields and non-null ambiguity.",
     "single-endpoint": "GraphQL HTTP requests use /api/graphql with GET, POST, and OPTIONS handlers.",
     "production-discovery": "GraphiQL and schema introspection are disabled in production.",
     "request-budgets": "Requests are limited to 64 KiB, one operation per HTTP request, five seconds, depth 8, 10 top-level fields, 15 aliases, 10 directives, 1000 tokens, and cost 5000; operation cost weights every paginated selection by its effective pageSize, including values supplied through variables.",
@@ -31,7 +32,7 @@
           "/api/graphql",
           "Public semester, course, section, teacher, and bus queries",
           "Authenticated Viewer reads with exact feature:read scopes",
-          "Authenticated todo and homework CRUD, homework completion, section subscription, dashboard pin, bus preference, description, and comment mutations",
+          "Authenticated todo and homework CRUD, todo/homework completion batches, section subscription batches, dashboard pin, bus preference, description, and comment mutations",
           "GET, POST, and OPTIONS",
           "GraphQL-audience bearer tokens require matching feature scopes; MCP exposes metadata resources only"
         ]

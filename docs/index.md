@@ -45,6 +45,7 @@ is the project map: start here, then follow the closest source of truth.
 - [docs/contracts/_product.json](contracts/_product.json) - product roles, workflow, and display conventions.
 - [docs/contracts/openapi.json](contracts/openapi.json) - OpenAPI contract surface.
 - [docs/contracts/graphql.json](contracts/graphql.json) - GraphQL contract surface.
+- [docs/graphql/mutation-capabilities.json](graphql/mutation-capabilities.json) - REST/GraphQL/MCP business-write parity matrix and intentional exclusions.
 - [docs/contracts/mcp.json](contracts/mcp.json) - MCP contract surface.
 - [docs/contracts/security.json](contracts/security.json) - security and permission expectations.
 - [docs/observability.md](observability.md) - production logs, metrics, alerts, and dashboard guidance.
