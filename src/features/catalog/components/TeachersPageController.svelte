@@ -1,13 +1,10 @@
 <script lang="ts">
-import SlidersHorizontalIcon from "@lucide/svelte/icons/sliders-horizontal";
 import {
   type CatalogNamed,
   catalogHref,
   catalogPrimaryName as primaryName,
   catalogSecondaryName as secondaryName,
 } from "@/features/catalog/lib/catalog-list-display";
-import { goto } from "$app/navigation";
-import CatalogFilterSidebar from "./CatalogFilterSidebar.svelte";
 import CatalogMobileFilters from "./CatalogMobileFilters.svelte";
 import CatalogPageHeader from "./CatalogPageHeader.svelte";
 import CatalogPagination from "./CatalogPagination.svelte";
@@ -50,7 +47,6 @@ type PageData = {
 export let data: PageData;
 
 let teacherSearch = data.filters.search ?? "";
-let isTeacherFilterOpen = false;
 
 $: totalPages = data.pagination.totalPages;
 $: teacherSearch = data.filters.search ?? "";
@@ -99,16 +95,10 @@ function pageHref(targetPage: number) {
 function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
   const filters = {
     ...data.filters,
-    search: teacherSearch.trim(),
     ...overrides,
   };
   const { search, departmentId } = filters;
   return catalogHref("/teachers", { search, departmentId });
-}
-
-function updateTeacherFilter(overrides: Partial<TeacherListFilters>) {
-  isTeacherFilterOpen = false;
-  void goto(teacherFilterHref(overrides));
 }
 </script>
 
@@ -120,14 +110,15 @@ function updateTeacherFilter(overrides: Partial<TeacherListFilters>) {
     title={teacherLabels.title}
   />
 
-  <div class="-mx-4 grid min-h-[calc(100vh-8rem)] bg-background sm:-mx-5 lg:-mx-6 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start">
+  <div class="grid min-w-0 gap-4">
     <CatalogMobileFilters
       activeFilters={teacherActiveFilters}
       clearHref="/teachers"
       clearLabel={commonLabels.clear}
+      filterDescription={teacherLabels.filterDescription}
       filterTitle={teacherLabels.filterTitle}
       hiddenFilters={teacherHiddenFilters}
-      bind:open={isTeacherFilterOpen}
+      inlineFilters
       searchId="mobile-teacher-search"
       searchLabel={teacherLabels.searchLabel}
       searchPlaceholder={teacherLabels.searchNameOrCode}
@@ -139,31 +130,15 @@ function updateTeacherFilter(overrides: Partial<TeacherListFilters>) {
         {departmentOptions}
         filters={data.filters}
         idPrefix="mobile-teacher"
+        inline
+        showClear={false}
         showSearch={false}
         {teacherLabels}
-        bind:teacherSearch
-        {updateTeacherFilter}
+        teacherSearch={data.filters.search ?? ""}
       />
     </CatalogMobileFilters>
 
-    <CatalogFilterSidebar
-      activeCount={activeFilterCount}
-      description={teacherLabels.filterDescription}
-      icon={SlidersHorizontalIcon}
-      title={teacherLabels.filterTitle}
-    >
-      <TeachersFilters
-        {activeFilterCount}
-        {commonLabels}
-        {departmentOptions}
-        filters={data.filters}
-        {teacherLabels}
-        bind:teacherSearch
-        {updateTeacherFilter}
-      />
-    </CatalogFilterSidebar>
-
-    <div class="min-w-0 px-4 py-5 sm:px-5 lg:px-6">
+    <div class="grid min-w-0 gap-4">
       <TeachersResults
         {commonLabels}
         filters={data.filters}

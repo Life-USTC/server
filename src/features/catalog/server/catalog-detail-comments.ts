@@ -3,25 +3,31 @@ import { getDescriptionPayload } from "@/features/descriptions/server/descriptio
 import type { ViewerContext } from "@/lib/auth/viewer-context";
 
 export async function loadCatalogDetailCommentsData({
+  includeComments,
   targetId,
   type,
   viewer,
 }: {
+  includeComments: boolean;
   targetId: number;
   type: "course" | "teacher";
   viewer: ViewerContext;
 }) {
   const [descriptionData, comments] = await Promise.all([
     getDescriptionPayload(type, targetId, viewer),
-    getCommentsPayload({ type, targetId }, viewer),
+    includeComments
+      ? getCommentsPayload({ type, targetId }, viewer)
+      : Promise.resolve(null),
   ]);
 
   return {
-    commentsData: {
-      commentMap: { [type]: comments.comments },
-      hiddenCount: comments.hiddenCount,
-      viewer,
-    },
+    commentsData: comments
+      ? {
+          commentMap: { [type]: comments.comments },
+          hiddenCount: comments.hiddenCount,
+          viewer,
+        }
+      : null,
     descriptionData,
   };
 }

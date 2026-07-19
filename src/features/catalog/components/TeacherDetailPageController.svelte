@@ -54,6 +54,7 @@ type PageData = {
   descriptionData: CatalogDetailDescriptionData;
   detailSection: "overview" | "introduction" | "sections" | "comments";
   locale: string;
+  structuredDataJson: string;
   teacher: TeacherDetailData;
 };
 
@@ -99,7 +100,7 @@ $: sectionNavItems = [
     icon: MessageSquareIcon,
     key: "comments" as const,
     label: copy.comments.title,
-    meta: commentsCount,
+    meta: data.commentsData ? commentsCount : undefined,
   },
 ];
 $: activeNavItem =
@@ -109,6 +110,7 @@ $: activeNavItem =
 
 <svelte:head>
   <title>{formatMessage(copy.metadata.pages.teacherDetail, { name: displayName })} - Life@USTC</title>
+  {@html `<script type="application/ld+json">${data.structuredDataJson}</script>`}
 </svelte:head>
 
 <section class="grid min-h-full grid-rows-[auto_minmax(0,1fr)] bg-card lg:h-full lg:min-h-0">

@@ -56,6 +56,20 @@ function viewer(overrides: Partial<ViewerInfo> = {}): ViewerInfo {
 }
 
 describe("评论序列化权限", () => {
+  it("在服务端序列化 sanitized Markdown HTML", () => {
+    const { roots } = buildCommentNodes(
+      [
+        comment({
+          body: 'section#123 <script>alert("xss")</script>',
+        }),
+      ],
+      viewer(),
+    );
+
+    expect(roots[0]?.renderedBody).toContain('href="/sections/123"');
+    expect(roots[0]?.renderedBody).not.toContain("<script>");
+  });
+
   it("保留普通作者的回复和编辑权限", () => {
     const { roots } = buildCommentNodes([comment()], viewer());
 

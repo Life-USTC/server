@@ -1,6 +1,19 @@
+import {
+  getCachedSitemap,
+  requestMatchesSitemapEtag,
+} from "@/features/catalog/server/sitemap-cache";
 import { prisma } from "@/lib/db/prisma";
+import { CONTENT_SIGNAL } from "@/lib/seo/content-signal";
 import { getCanonicalOrigin } from "@/lib/site-url";
 import type { RequestHandler } from "./$types";
+
+const RESPONSE_HEADERS = {
+  "Cache-Control": "public, max-age=0, must-revalidate",
+  "Cloudflare-CDN-Cache-Control":
+    "public, max-age=3600, stale-while-revalidate=21600",
+  "Content-Signal": CONTENT_SIGNAL,
+  "Content-Type": "application/xml; charset=utf-8",
+};
 
 const STATIC_ROUTES = [
   "/",
@@ -30,16 +43,27 @@ async function getEntityUrls(origin: string) {
   return [...courseUrls, ...sectionUrls, ...teacherUrls];
 }
 
-export const GET: RequestHandler = async () => {
+async function loadSitemapUrls() {
   const origin = getCanonicalOrigin();
   const entityUrls = await getEntityUrls(origin);
-  const urls = [
-    ...STATIC_ROUTES.map((route) => `${origin}${route}`),
-    ...entityUrls,
-  ];
+  return [...STATIC_ROUTES.map((route) => `${origin}${route}`), ...entityUrls];
+}
 
-  const body = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((loc) => `  <url><loc>${loc}</loc></url>`).join("\n")}\n</urlset>\n`;
-  return new Response(body, {
-    headers: { "Content-Type": "application/xml; charset=utf-8" },
+export const GET: RequestHandler = async ({ request }) => {
+  const sitemap = await getCachedSitemap(loadSitemapUrls);
+  const headers = {
+    ...RESPONSE_HEADERS,
+    ETag: sitemap.etag,
+  };
+
+  if (requestMatchesSitemapEtag(request, sitemap.etag)) {
+    return new Response(null, {
+      headers,
+      status: 304,
+    });
+  }
+
+  return new Response(sitemap.body, {
+    headers,
   });
 };

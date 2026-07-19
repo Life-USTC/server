@@ -1,7 +1,6 @@
 <script lang="ts">
 import type { ComponentProps } from "svelte";
 import type { PluggableList } from "unified";
-import MarkdownPreview from "$lib/components/MarkdownPreview.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as InputGroup from "$lib/components/ui/input-group/index.js";
 import * as Tabs from "$lib/components/ui/tabs/index.js";
@@ -102,7 +101,12 @@ function setActiveTab(value: string) {
       </div>
     </Tabs.Content>
     <Tabs.Content value="preview" class="m-0 min-h-32 p-3">
-      <MarkdownPreview content={value} emptyLabel={previewEmptyLabel} {remarkPlugins} />
+      {#if activeTab === "preview"}
+        {#await import("$lib/components/MarkdownPreview.svelte") then previewModule}
+          {@const Preview = previewModule.default}
+          <Preview content={value} emptyLabel={previewEmptyLabel} {remarkPlugins} />
+        {/await}
+      {/if}
     </Tabs.Content>
   </Tabs.Root>
 

@@ -5,6 +5,7 @@ export {
   adminUsersQuerySchema,
 } from "./admin-query-schemas";
 export {
+  catalogLocaleQuerySchema,
   coursesQuerySchema,
   schedulesQuerySchema,
   sectionSchedulesQuerySchema,

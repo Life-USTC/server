@@ -3,43 +3,57 @@ import type {
   SectionSearchStringKey,
 } from "@/features/catalog/server/section-search-types";
 
-const SECTION_SEARCH_FIELDS: Array<{
-  key: SectionSearchStringKey;
-  pattern: RegExp;
-}> = [
-  { key: "teacher", pattern: /teacher:(\S+)/i },
-  { key: "courseCode", pattern: /coursecode:(\S+)/i },
-  { key: "lectureCode", pattern: /(?:lecturecode|sectioncode):(\S+)/i },
-  { key: "campus", pattern: /campus:(\S+)/i },
-  { key: "credits", pattern: /credits?:(\S+)/i },
-  { key: "department", pattern: /(?:department|dept):(\S+)/i },
-  { key: "semester", pattern: /semester:(\S+)/i },
-  { key: "category", pattern: /category:(\S+)/i },
-  { key: "level", pattern: /(?:level|edulevel):(\S+)/i },
-  { key: "classType", pattern: /(?:classtype|type):(\S+)/i },
-  { key: "sort", pattern: /(?:sort|sortby):(\S+)/i },
-];
+const SECTION_SEARCH_KEY_MAP: Record<string, SectionSearchStringKey | "order"> =
+  {
+    teacher: "teacher",
+    coursecode: "courseCode",
+    lecturecode: "lectureCode",
+    sectioncode: "lectureCode",
+    campus: "campus",
+    credit: "credits",
+    credits: "credits",
+    department: "department",
+    dept: "department",
+    semester: "semester",
+    category: "category",
+    level: "level",
+    edulevel: "level",
+    classtype: "classType",
+    type: "classType",
+    sort: "sort",
+    sortby: "sort",
+    order: "order",
+  };
 
 const SECTION_SEARCH_TAG_PATTERN =
-  /\b(?:teacher|coursecode|lecturecode|sectioncode|campus|credits?|department|dept|semester|category|level|edulevel|classtype|type|sort|sortby|order):\S+/gi;
+  /\b(teacher|coursecode|lecturecode|sectioncode|campus|credits?|department|dept|semester|category|level|edulevel|classtype|type|sort|sortby|order):(?:"([^"]+)"|'([^']+)'|(\S+))/gi;
 
 export function parseSectionSearchQuery(
   search: string,
 ): ParsedSectionSearchQuery {
   const result: ParsedSectionSearchQuery = {};
 
-  for (const field of SECTION_SEARCH_FIELDS) {
-    const match = search.match(field.pattern);
-    if (match) {
-      result[field.key] = match[1];
+  for (const match of search.matchAll(SECTION_SEARCH_TAG_PATTERN)) {
+    const key = SECTION_SEARCH_KEY_MAP[match[1].toLowerCase()];
+    const value = match[2] ?? match[3] ?? match[4];
+
+    if (key === "order") {
+      const normalizedOrder = value.toLowerCase();
+      if (
+        result.order === undefined &&
+        (normalizedOrder === "asc" || normalizedOrder === "desc")
+      ) {
+        result.order = normalizedOrder;
+      }
+    } else if (result[key] === undefined) {
+      result[key] = value;
     }
   }
 
-  const orderMatch = search.match(/order:(asc|desc)/i);
-
-  if (orderMatch) result.order = orderMatch[1].toLowerCase() as "asc" | "desc";
-
-  const generalSearch = search.replace(SECTION_SEARCH_TAG_PATTERN, "").trim();
+  const generalSearch = search
+    .replace(SECTION_SEARCH_TAG_PATTERN, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
   if (generalSearch) result.general = generalSearch;
 

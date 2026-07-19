@@ -954,10 +954,10 @@
   "sections": {
     "title": "All Sections",
     "subtitle": "Browse and filter through all available course sections",
-    "searchPlaceholder": "Search or use advanced syntax (click ? for help)",
+    "searchPlaceholder": "Search course names, course codes, or section codes",
     "searchHelp": "?",
     "searchHelpTitle": "Advanced Search Syntax",
-    "searchHelpDescription": "Use special syntax to search for specific attributes. You can combine multiple filters.",
+    "searchHelpDescription": "The form above exposes every common condition. Text syntax is useful for pasting and reusing complex queries; conditions are combined, and values containing spaces must be quoted.",
     "searchHelpExample": "Example:",
     "searchHelpExamples": [
       {
@@ -993,7 +993,7 @@
       {
         "syntax": "semester:name",
         "description": "Search by semester name",
-        "example": "semester:2024 春"
+        "example": "semester:\"2024 春\""
       },
       {
         "syntax": "category:name",
@@ -1012,7 +1012,7 @@
       },
       {
         "syntax": "sort:field",
-        "description": "Sort results by field (alias: sortby:field). Valid fields: credits, capacity, semester, course, code, teacher, campus",
+        "description": "Sort results by field (alias: sortby:field). capacity uses current enrollment; teacher uses teacher count",
         "example": "sort:credits"
       },
       {
@@ -1031,10 +1031,38 @@
     "teachers": "Teachers",
     "campus": "Campus",
     "department": "Department",
+    "category": "Course Category",
+    "educationLevel": "Education Level",
+    "classType": "Class Type",
+    "courseCode": "Course Code",
     "credits": "Credits",
     "capacity": "Capacity",
     "noSemester": "No semester",
     "creditValue": "{count} credits",
+    "filterDescription": "Combine section, course attribute, and sorting conditions. Blank fields are unrestricted.",
+    "filters": {
+      "any": "Any",
+      "apply": "Apply filters",
+      "sectionTitle": "Section conditions",
+      "sectionDescription": "Narrow results by section offering details.",
+      "courseTitle": "Course attributes",
+      "courseDescription": "Filter further using imported course metadata.",
+      "exactCredits": "Matches an exact credit value, such as 2.5.",
+      "sortingTitle": "Result sorting",
+      "sortingDescription": "Choose a field and direction. Teacher sorting uses teacher count.",
+      "sortBy": "Sort by",
+      "defaultSort": "Default order",
+      "sortCredits": "Credits",
+      "sortCapacity": "Current enrollment",
+      "sortSemester": "Semester",
+      "sortCourse": "Course name",
+      "sortCode": "Section code",
+      "sortTeacherCount": "Teacher count",
+      "sortCampus": "Campus",
+      "order": "Direction",
+      "orderAsc": "Ascending",
+      "orderDesc": "Descending"
+    },
     "summary": {
       "matches": "Matches",
       "matchesMeta": "Sections in current query",

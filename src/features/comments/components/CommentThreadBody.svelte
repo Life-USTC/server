@@ -1,7 +1,6 @@
 <script lang="ts">
 import type { CommentNode } from "@/features/comments/server/comment-types";
-import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
-import MarkdownPreview from "$lib/components/MarkdownPreview.svelte";
+import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
 import CommentAttachmentCards from "./CommentAttachmentCards.svelte";
 import CommentLinkCards from "./CommentLinkCards.svelte";
 import CommentThreadEditForm from "./CommentThreadEditForm.svelte";
@@ -50,10 +49,9 @@ export let visibilityOptions: CommentSelectOption[];
 {:else if comment.status === "deleted"}
   <p class="text-muted-foreground text-sm">{commentCopy.deletedMessage}</p>
 {:else}
-  <MarkdownPreview
+  <RenderedMarkdown
     class="break-words"
-    content={comment.body}
-    remarkPlugins={campusReferenceMarkdownPlugins}
+    html={comment.renderedBody}
   />
   <CommentLinkCards content={comment.body} copy={commentCopy} />
 {/if}

@@ -108,6 +108,7 @@ function isNonPageRequestPath(pathname: string): boolean {
     pathname.startsWith("/api/") ||
     pathname.startsWith("/.well-known/") ||
     pathname.startsWith("/_app/") ||
+    pathname === "/llms.txt" ||
     pathname === "/robots.txt" ||
     pathname === "/sitemap.xml"
   );

@@ -10,6 +10,18 @@ type ApiRequestAnalyticsInput = {
   status: number;
 };
 
+type PageRequestAnalyticsInput = {
+  appDurationMs: number;
+  authDurationMs: number;
+  authMode: "anonymous" | "authenticated";
+  durationMs: number;
+  locale: string;
+  method: string;
+  responseBytes?: number;
+  route: string;
+  status: number;
+};
+
 type McpTransportAnalyticsInput = {
   durationMs: number;
   method: string;
@@ -134,6 +146,30 @@ export function writeApiRequestAnalytics(input: ApiRequestAnalyticsInput) {
       boundedValue(input.authMode),
     ],
     doubles: [input.durationMs, input.status],
+  });
+}
+
+export function writePageRequestAnalytics(input: PageRequestAnalyticsInput) {
+  const hasResponseBytes = input.responseBytes !== undefined;
+  writeAnalyticsDataPoint({
+    indexes: [`page:${boundedValue(input.route)}`],
+    blobs: [
+      "page_request",
+      boundedValue(input.route),
+      boundedValue(input.method),
+      String(input.status),
+      statusClass(input.status),
+      boundedValue(input.locale),
+      input.authMode,
+      hasResponseBytes ? "response_bytes_known" : "response_bytes_unknown",
+    ],
+    doubles: [
+      input.durationMs,
+      input.status,
+      input.responseBytes ?? 0,
+      input.authDurationMs,
+      input.appDurationMs,
+    ],
   });
 }
 

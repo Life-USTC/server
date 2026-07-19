@@ -18,8 +18,17 @@ export function buildSectionListQuery(filters: SectionListFilters): {
     semesterJwId,
     campusId,
     departmentId,
+    categoryId,
+    educationLevelId,
+    classTypeId,
     teacherId,
     teacherCode,
+    teacher,
+    courseCode,
+    sectionCode,
+    credits,
+    sort,
+    order,
     ids,
     jwIds,
     search,
@@ -37,6 +46,15 @@ export function buildSectionListQuery(filters: SectionListFilters): {
   applyIntegerFilter(where, "campusId", campusId);
   applyIntegerFilter(where, "openDepartmentId", departmentId);
 
+  const courseMetadataFilter: Prisma.CourseWhereInput = {};
+  applyIntegerFilter(courseMetadataFilter, "categoryId", categoryId);
+  applyIntegerFilter(
+    courseMetadataFilter,
+    "educationLevelId",
+    educationLevelId,
+  );
+  applyIntegerFilter(courseMetadataFilter, "classTypeId", classTypeId);
+
   const teacherFilter = buildRelatedFilter("id", teacherId, teacherCode);
   if (teacherFilter) {
     where.teachers = {
@@ -53,17 +71,26 @@ export function buildSectionListQuery(filters: SectionListFilters): {
     where.jwId = { in: parsedJwIds };
   }
 
-  const searchFilters = buildSectionSearchWhere(search ?? undefined);
+  const searchFilters = buildSectionSearchWhere(search ?? undefined, {
+    teacher,
+    courseCode,
+    sectionCode,
+    credits,
+    sort,
+    order,
+  });
+  const extraAnd: Prisma.SectionWhereInput[] = [];
+  if (Object.keys(courseMetadataFilter).length > 0) {
+    extraAnd.push({ course: courseMetadataFilter });
+  }
   if (searchFilters.where?.AND) {
     const searchAnd = Array.isArray(searchFilters.where.AND)
       ? searchFilters.where.AND
       : [searchFilters.where.AND];
-    const existingAnd = Array.isArray(where.AND)
-      ? where.AND
-      : where.AND
-        ? [where.AND]
-        : [];
-    where.AND = [...existingAnd, ...searchAnd];
+    extraAnd.push(...searchAnd);
+  }
+  if (extraAnd.length > 0) {
+    where.AND = extraAnd;
   }
 
   return {

@@ -329,6 +329,7 @@ onMount(() => {
     setOrigin: (origin) => {
       _origin = origin;
     },
+    shouldLoadHomeworks: data.detailSection === "homework",
   });
 });
 </script>
@@ -337,6 +338,7 @@ onMount(() => {
   code={data.section.code}
   courseName={_courseName}
   formatMessage={_formatMessage}
+  structuredDataJson={data.structuredDataJson}
   titleTemplate={_copy.metadata.pages.sectionDetail}
 />
 
