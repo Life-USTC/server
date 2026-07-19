@@ -197,6 +197,7 @@ test("/ shell 提供键盘跳转到主要内容", async ({ page }) => {
   });
   await expect(skipLink).toBeFocused();
   await expect(skipLink).toBeVisible();
+  await expect(skipLink).toHaveCSS("position", "fixed");
   await page.keyboard.press("Enter");
   await expect(page.locator("#main-content")).toBeFocused();
 });

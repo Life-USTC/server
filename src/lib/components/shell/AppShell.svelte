@@ -576,7 +576,7 @@ afterNavigate(({ from, to }) => {
     class="min-h-screen lg:h-screen lg:min-h-0 lg:overflow-hidden"
   >
     <a
-      class="sr-only fixed top-3 left-3 z-50 rounded-md bg-background px-4 py-2 font-medium text-foreground shadow-lg outline-none focus:not-sr-only focus-visible:ring-2 focus-visible:ring-ring"
+      class="sr-only top-3 left-3 z-50 rounded-md bg-background px-4 py-2 font-medium text-foreground shadow-lg outline-none focus:fixed focus:not-sr-only focus-visible:ring-2 focus-visible:ring-ring"
       href="#main-content"
     >
       {data.copy.shell.skipToMainContent}
