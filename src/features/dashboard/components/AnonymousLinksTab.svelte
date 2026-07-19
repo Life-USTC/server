@@ -9,7 +9,7 @@ import * as Empty from "$lib/components/ui/empty/index.js";
 import AnonymousLinksGroup from "./AnonymousLinksGroup.svelte";
 import AnonymousLinksToolbar from "./AnonymousLinksToolbar.svelte";
 
-export let dashboardCopy: DashboardDashboardCopy;
+export let dashboardCopy: Pick<DashboardDashboardCopy, "linkHub">;
 export let linkIconLabel: (icon: string) => string;
 export let setLinkView: (view: LinkView) => void;
 

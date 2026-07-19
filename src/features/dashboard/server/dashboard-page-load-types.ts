@@ -1,19 +1,15 @@
 import type { DashboardLinkSummary } from "@/features/dashboard-links/server/dashboard-link-data";
 import type { AppLocale } from "@/i18n/config";
-import type { AppSession } from "@/lib/auth/session";
-import type { getDashboardPageCopy } from "./dashboard-page-copy";
+import type {
+  getAnonymousHomePageCopy,
+  getDashboardPageCopy,
+} from "./dashboard-page-copy";
 
 export type DashboardPageCopy = ReturnType<typeof getDashboardPageCopy>;
-
-export type DashboardPublicCounts = {
-  courses: number;
-  sections: number;
-  semesters: number;
-};
+export type AnonymousHomePageCopy = ReturnType<typeof getAnonymousHomePageCopy>;
 
 export type DashboardPageLoadEvent = {
   locals: {
-    authUser?: AppSession["user"] | null;
     locale: AppLocale;
     requestId?: string;
   };

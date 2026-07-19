@@ -2,12 +2,12 @@
   "name": "Overview",
   "access": {
     "anon": "On the home page, can only see the public bus and frequent links views; cannot enter the personal overview.",
-    "user": "The home page serves as the personal workspace.",
-    "admin": "The home page personal workspace behavior is the same as regular users.",
-    "agent": "Can read overview results with the same semantics as the home page; REST and MCP should return consistent overview information."
+    "user": "Accessing the home page redirects to the personal workspace at /dashboard.",
+    "admin": "Accessing the home page redirects to the personal workspace at /dashboard, with the same dashboard behavior as regular users.",
+    "agent": "Can read overview results with the same semantics as the authenticated dashboard; REST and MCP should return consistent overview information."
   },
   "rules": {
-    "decision-page": "The home page is not a directory page but a decision page for 'what to do next'.",
+    "decision-page": "The anonymous home page is a public bus and frequent-links decision page; the authenticated /dashboard overview is the personal decision page for 'what to do next'.",
     "now-next-first": "The authenticated overview begins with the current or next actionable schedule, homework, exam, or todo in a rolling seven-day window. Today's urgent work follows it, while frequent links remain secondary and appear after planning content.",
     "current-semester-priority": "The above-the-fold area prioritizes personal learning tasks within the current semester, not historical semester content or complete directory information.",
     "homework-todo-layered": "Homework and todos are layered as 'due today / due soon / all incomplete'; homework with no due date does not participate in upcoming due date sorting.",
@@ -20,7 +20,7 @@
   },
   "capabilities": {
     "authenticated-overview": {
-      "title": "Authenticated Homepage Overview",
+      "title": "Authenticated Dashboard Overview",
       "auth": "user",
       "links": {
         "models": ["User", "Section", "Homework", "Todo", "Exam"]

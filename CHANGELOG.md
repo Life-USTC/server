@@ -1,3 +1,15 @@
+## [1.64.1](https://github.com/Life-USTC/server/compare/v1.64.0...v1.64.1) (2026-07-19)
+
+
+### Bug Fixes
+
+* **seo:** declare SSR response language ([#527](https://github.com/Life-USTC/server/issues/527)) ([e94ebd8](https://github.com/Life-USTC/server/commit/e94ebd815930a846545616be0b5146a7e7708d84))
+
+
+### Performance Improvements
+
+* **seo:** cache crawler discovery documents ([#529](https://github.com/Life-USTC/server/issues/529)) ([2ad51e8](https://github.com/Life-USTC/server/commit/2ad51e8d0b432ef0565429210cc4e07c1d3b7532))
+
 # [1.64.0](https://github.com/Life-USTC/server/compare/v1.63.2...v1.64.0) (2026-07-19)
 
 

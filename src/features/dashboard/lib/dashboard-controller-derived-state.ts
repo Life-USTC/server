@@ -6,7 +6,6 @@ import {
   type DashboardPageData,
   type ExamRow,
   type HomeworkItem,
-  isAnonymousDashboardData,
   isSignedDashboardData,
   type SignedDashboardData,
   type TodoFilter,
@@ -66,9 +65,6 @@ export function buildDashboardControllerDerivedState(input: {
   todoFilter: TodoFilter;
 }) {
   const signedData = isSignedDashboardData(input.data) ? input.data : null;
-  const anonymousData = isAnonymousDashboardData(input.data)
-    ? input.data
-    : null;
   const homeworkItems = signedData?.homeworks
     ? signedData.homeworks.homeworkSummaries
     : [];
@@ -87,14 +83,6 @@ export function buildDashboardControllerDerivedState(input: {
     : [];
 
   return {
-    anonymousData,
-    anonymousLinkGroups: anonymousData
-      ? groupDashboardLinks(
-          anonymousData.publicLinks,
-          input.linkSearchQuery,
-          input.dashboardLinkGroupLabels,
-        )
-      : [],
     calendarData: (signedData?.overview?.calendar ??
       null) as CalendarData | null,
     dashboardLinkItems,
