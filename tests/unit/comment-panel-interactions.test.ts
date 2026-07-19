@@ -7,6 +7,7 @@ function comment(overrides: Partial<CommentNode> = {}): CommentNode {
   return {
     id: "comment-1",
     body: "body",
+    renderedBody: "<p>body</p>",
     visibility: "public",
     status: "active",
     author: null,

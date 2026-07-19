@@ -7,6 +7,12 @@ function contains(value: string) {
   return { contains: value, mode: "insensitive" as const };
 }
 
+function localized(value: string) {
+  return {
+    OR: [{ nameCn: contains(value) }, { nameEn: contains(value) }],
+  };
+}
+
 describe("课段搜索语法解析器", () => {
   it("识别所有标签并保留普通搜索词", () => {
     const result = parseSectionSearchQuery(
@@ -32,6 +38,18 @@ describe("课段搜索语法解析器", () => {
     expect(result.level).toBe("本科");
     expect(result.classType).toBe("必修");
     expect(result.sort).toBe("code");
+  });
+
+  it("支持单双引号包裹的多词标签值", () => {
+    const result = parseSectionSearchQuery(
+      `teacher:"Lin Jingqiang" semester:'2024 春' 线性代数`,
+    );
+
+    expect(result).toEqual({
+      teacher: "Lin Jingqiang",
+      semester: "2024 春",
+      general: "线性代数",
+    });
   });
 
   it("将 order 标签统一转换为小写", () => {
@@ -145,9 +163,9 @@ describe("课段搜索条件构造器", () => {
 
     expect(result.where).toEqual({
       AND: [
-        { teachers: { some: { nameCn: contains("张三") } } },
+        { teachers: { some: localized("张三") } },
         { course: { code: contains("CS101") } },
-        { campus: { nameCn: contains("东区") } },
+        { campus: localized("东区") },
       ],
     });
   });
@@ -172,6 +190,14 @@ describe("课段搜索条件构造器", () => {
     expect(result.where).toBeUndefined();
   });
 
+  it("学期名称仅查询模型中存在的中文名称字段", () => {
+    const result = buildSectionSearchWhere(`semester:"2024 春"`);
+
+    expect(result.where).toEqual({
+      AND: [{ semester: { nameCn: contains("2024 春") } }],
+    });
+  });
+
   it("普通搜索词生成课程与课段字段的 OR 条件", () => {
     const result = buildSectionSearchWhere("机器学习");
 
@@ -194,7 +220,7 @@ describe("课段搜索条件构造器", () => {
 
     expect(result.where).toEqual({
       AND: [
-        { teachers: { some: { nameCn: contains("张三") } } },
+        { teachers: { some: localized("张三") } },
         {
           OR: [
             { course: { nameCn: contains("机器学习") } },
@@ -205,6 +231,36 @@ describe("课段搜索条件构造器", () => {
         },
       ],
     });
+  });
+
+  it("结构化条件覆盖同名文本标签并补充排序", () => {
+    const result = buildSectionSearchWhere(
+      "teacher:旧教师 coursecode:OLD sectioncode:OLD.01 credits:1 sort:code order:asc 普通词",
+      {
+        teacher: "New Teacher",
+        courseCode: "NEW",
+        sectionCode: "NEW.02",
+        credits: 3.5,
+        sort: "credits",
+        order: "DESC",
+      },
+    );
+
+    expect(result.where?.AND).toEqual([
+      { teachers: { some: localized("New Teacher") } },
+      { course: { code: contains("NEW") } },
+      { code: contains("NEW.02") },
+      { credits: 3.5 },
+      {
+        OR: [
+          { course: { nameCn: contains("普通词") } },
+          { course: { nameEn: contains("普通词") } },
+          { course: { code: contains("普通词") } },
+          { code: contains("普通词") },
+        ],
+      },
+    ]);
+    expect(result.orderBy).toEqual({ credits: "desc" });
   });
 
   it("排序字段为空时 orderBy 为 undefined", () => {

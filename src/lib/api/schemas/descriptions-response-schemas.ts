@@ -46,6 +46,7 @@ export const descriptionDetailSchema = descriptionBaseSchema
   .pick({ id: true, content: true, updatedAt: true, lastEditedAt: true })
   .extend({
     id: z.string().nullable(),
+    renderedHtml: z.string(),
     lastEditedBy: z
       .object({
         id: z.string(),

@@ -32,6 +32,11 @@ type RawSocialMetadata = {
   values: Record<MetadataKey, string[]>;
 };
 
+type StructuredDataGraph = {
+  "@context": string;
+  "@graph": Array<Record<string, unknown>>;
+};
+
 async function setLocale(page: Page, locale: "en-us" | "zh-cn") {
   const response = await page.request.post("/api/locale", {
     data: { locale },
@@ -117,6 +122,23 @@ function expectCompleteSocialMetadata(
   expect(metadata.values.twitterImageAlt[0]).toBe(expected.imageAlt);
 }
 
+async function readRawStructuredData(page: Page, path: string) {
+  const response = await page.request.get(path);
+  expect(response.status()).toBe(200);
+  const html = await response.text();
+
+  return await page.evaluate((markup) => {
+    const document = new DOMParser().parseFromString(markup, "text/html");
+    const scripts = Array.from(
+      document.querySelectorAll('script[type="application/ld+json"]'),
+    );
+    return {
+      data: scripts.map((script) => JSON.parse(script.textContent ?? "")),
+      count: scripts.length,
+    } as { count: number; data: StructuredDataGraph[] };
+  }, html);
+}
+
 test("首页原始 SSR HTML 输出双语且唯一的完整分享元数据", async ({ page }) => {
   const cases = [
     {
@@ -196,6 +218,82 @@ test("教师详情原始 SSR HTML 使用实体根路径与本地化摘要", asyn
     locale: "en-us",
     title: `Teacher: ${DEV_SEED.teacher.nameEn} - Life@USTC`,
   });
+});
+
+test("公开实体的原始 SSR HTML 输出双语 JSON-LD 且不包含用户字段", async ({
+  page,
+}) => {
+  await setLocale(page, "zh-cn");
+  const courseResult = await readRawStructuredData(
+    page,
+    `/courses/${DEV_SEED.course.jwId}/introduction`,
+  );
+  expect(courseResult.count).toBe(1);
+  expect(courseResult.data[0]?.["@context"]).toBe("https://schema.org");
+  expect(courseResult.data[0]?.["@graph"]).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        "@type": "Course",
+        courseCode: DEV_SEED.course.code,
+        name: DEV_SEED.course.nameCn,
+      }),
+      expect.objectContaining({ "@type": "BreadcrumbList" }),
+    ]),
+  );
+
+  await setLocale(page, "en-us");
+  const sectionResult = await readRawStructuredData(
+    page,
+    `/sections/${DEV_SEED.section.jwId}/teachers`,
+  );
+  expect(sectionResult.count).toBe(1);
+  expect(sectionResult.data[0]?.["@graph"]).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        "@type": "CourseInstance",
+        instructor: expect.arrayContaining([
+          expect.objectContaining({
+            "@type": "Person",
+            name: DEV_SEED.teacher.nameEn,
+          }),
+        ]),
+        isPartOf: expect.objectContaining({
+          "@type": "Course",
+          name: DEV_SEED.course.nameEn,
+        }),
+      }),
+      expect.objectContaining({ "@type": "BreadcrumbList" }),
+    ]),
+  );
+
+  await gotoAndWaitForReady(
+    page,
+    `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}`,
+  );
+  const teacherHref = await page
+    .locator("#main-content a[href^='/teachers/']:visible")
+    .first()
+    .getAttribute("href");
+  expect(teacherHref).toMatch(/^\/teachers\/\d+$/);
+  const teacherResult = await readRawStructuredData(page, teacherHref ?? "");
+  expect(teacherResult.count).toBe(1);
+  expect(teacherResult.data[0]?.["@graph"]).toEqual(
+    expect.arrayContaining([
+      {
+        "@id": `${teacherResult.data[0]?.["@graph"][0]?.url}#person`,
+        "@type": "Person",
+        name: DEV_SEED.teacher.nameEn,
+        url: teacherResult.data[0]?.["@graph"][0]?.url,
+      },
+      expect.objectContaining({ "@type": "BreadcrumbList" }),
+    ]),
+  );
+
+  for (const result of [courseResult, sectionResult, teacherResult]) {
+    expect(JSON.stringify(result.data)).not.toMatch(
+      /"viewer"|"session"|"email"|"telephone"|"mobile"|"address"/i,
+    );
+  }
 });
 
 test("社交分享图片是可抓取的 1200×630 8-bit RGBA PNG", async ({ request }) => {

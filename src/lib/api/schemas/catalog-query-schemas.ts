@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { APP_LOCALES } from "@/i18n/config";
 import {
   dateQuerySchema,
   deprecatedPaginationLimitParam,
@@ -27,7 +28,11 @@ const sectionScheduleLimitSchema = integerQueryRangeSchema({
   message: "Limit must be between 1 and 200",
 });
 
-export const sectionsQuerySchema = z.object({
+export const catalogLocaleQuerySchema = z.object({
+  locale: z.enum(APP_LOCALES).optional(),
+});
+
+export const sectionsQuerySchema = catalogLocaleQuerySchema.extend({
   courseId: integerStringSchema.optional(),
   courseJwId: integerStringSchema.optional(),
   semesterId: integerStringSchema.optional(),
@@ -44,7 +49,7 @@ export const sectionsQuerySchema = z.object({
   limit: deprecatedPaginationLimitParam(catalogPaginationPageSizeSchema),
 });
 
-export const schedulesQuerySchema = z.object({
+export const schedulesQuerySchema = catalogLocaleQuerySchema.extend({
   sectionId: integerQuerySchema.optional(),
   sectionJwId: integerQuerySchema.optional(),
   sectionCode: z.string().trim().min(1).optional(),
@@ -60,13 +65,13 @@ export const schedulesQuerySchema = z.object({
   limit: deprecatedPaginationLimitParam(catalogPaginationPageSizeSchema),
 });
 
-export const sectionSchedulesQuerySchema = z.object({
+export const sectionSchedulesQuerySchema = catalogLocaleQuerySchema.extend({
   dateFrom: dateQuerySchema().optional(),
   dateTo: dateQuerySchema().optional(),
   limit: sectionScheduleLimitSchema.optional(),
 });
 
-export const teachersQuerySchema = z.object({
+export const teachersQuerySchema = catalogLocaleQuerySchema.extend({
   departmentId: integerStringSchema.optional(),
   search: z.string().trim().optional(),
   page: integerStringSchema.optional(),
@@ -74,7 +79,7 @@ export const teachersQuerySchema = z.object({
   limit: deprecatedPaginationLimitParam(catalogPaginationPageSizeSchema),
 });
 
-export const coursesQuerySchema = z.object({
+export const coursesQuerySchema = catalogLocaleQuerySchema.extend({
   search: z.string().trim().optional(),
   educationLevelId: integerStringSchema.optional(),
   categoryId: integerStringSchema.optional(),

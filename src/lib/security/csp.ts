@@ -1,6 +1,7 @@
 const ANALYTICS_SCRIPT_SOURCES = [
   "https://www.googletagmanager.com",
   "https://www.google-analytics.com",
+  "https://static.cloudflareinsights.com/beacon.min.js",
 ];
 
 const ANALYTICS_CONNECT_SOURCES = [

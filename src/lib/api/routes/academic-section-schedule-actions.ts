@@ -4,11 +4,11 @@ import {
 } from "@/features/catalog/server/schedule-read-model";
 import type { AppLocale } from "@/i18n/config";
 import { jsonResponse, notFound } from "@/lib/api/helpers";
-import { PUBLIC_LOCALE_CATALOG_HEADERS } from "@/lib/public-cache-control";
 
 export async function getSectionSchedulesAction(
   parsedJwId: number,
   locale: AppLocale,
+  cacheHeaders: HeadersInit,
   filters: { dateFrom?: Date; dateTo?: Date; limit?: number } = {},
 ) {
   const result = await getSectionSchedulesByJwId({
@@ -24,13 +24,14 @@ export async function getSectionSchedulesAction(
   }
 
   return jsonResponse(result.schedules, {
-    headers: PUBLIC_LOCALE_CATALOG_HEADERS,
+    headers: cacheHeaders,
   });
 }
 
 export async function getSectionScheduleGroupsAction(
   parsedJwId: number,
   locale: AppLocale,
+  cacheHeaders: HeadersInit,
 ) {
   const result = await getSectionScheduleGroupsByJwId({
     locale,
@@ -42,6 +43,6 @@ export async function getSectionScheduleGroupsAction(
   }
 
   return jsonResponse(result.scheduleGroups, {
-    headers: PUBLIC_LOCALE_CATALOG_HEADERS,
+    headers: cacheHeaders,
   });
 }

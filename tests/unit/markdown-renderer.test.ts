@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { serializeDescriptionRecord } from "@/features/descriptions/server/description-payload";
 import {
   type CampusReferenceKind,
   campusReferenceMarkdownPlugins,
@@ -38,5 +39,16 @@ describe("markdown 渲染器", () => {
     });
 
     expect(html).toContain('href="/catalog/teacher/456"');
+  });
+
+  it("在服务端描述 payload 中保留 sanitized HTML 和 campus 链接", () => {
+    const description = serializeDescriptionRecord({
+      id: "description-1",
+      content: 'teacher#456 <script>alert("xss")</script>',
+    });
+
+    expect(description.content).toContain("<script>");
+    expect(description.renderedHtml).toContain('href="/teachers/456"');
+    expect(description.renderedHtml).not.toContain("<script>");
   });
 });

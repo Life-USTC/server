@@ -11,17 +11,29 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
     });
     expect(section?.id).toBeTruthy();
 
-    const result = await context.client.call<{
+    type Result = {
       found?: boolean;
-      description?: { content?: string; id?: string | null };
+      description?: {
+        content?: string;
+        id?: string | null;
+        renderedHtml?: string;
+      };
       history?: Array<{ id?: string; nextContent?: string }>;
       target?: { targetId?: number; type?: string };
       viewer?: { isAuthenticated?: boolean; userId?: string | null };
-    }>("get_description", {
-      targetType: "section",
-      sectionJwId: fixtures.DEV_SEED.section.jwId,
-      mode: "full",
-    });
+    };
+    const results = await Promise.all(
+      (["default", "summary", "full"] as const).map(async (mode) => ({
+        mode,
+        result: await context.client.call<Result>("get_description", {
+          targetType: "section",
+          sectionJwId: fixtures.DEV_SEED.section.jwId,
+          mode,
+        }),
+      })),
+    );
+    const result = results.find(({ mode }) => mode === "full")?.result;
+    if (!result) throw new Error("Missing full-mode description result");
 
     expect(result.found).toBe(true);
     expect(result.target).toMatchObject({
@@ -35,6 +47,11 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
       isAuthenticated: true,
       userId: context.devUserId,
     });
+    for (const { mode, result: modeResult } of results) {
+      expect(Object.hasOwn(modeResult.description ?? {}, "renderedHtml")).toBe(
+        mode === "full",
+      );
+    }
   });
 
   it("get_description 报告缺失的公开班级目标", async () => {
@@ -66,18 +83,33 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
     let descriptionId: string | undefined;
 
     try {
-      const created = await context.client.call<{
+      type Result = {
         success?: boolean;
         id?: string;
         updated?: boolean;
-        description?: { content?: string; id?: string | null };
+        description?: {
+          content?: string;
+          id?: string | null;
+          renderedHtml?: string;
+        };
         target?: { targetId?: number; type?: string };
-      }>("upsert_description", {
-        targetType: "teacher",
-        teacherId: teacher.id,
-        content: ` ${marker} `,
-        mode: "full",
-      });
+      };
+      const results: Array<{
+        mode: "default" | "summary" | "full";
+        result: Result;
+      }> = [];
+      for (const mode of ["default", "summary", "full"] as const) {
+        results.push({
+          mode,
+          result: await context.client.call<Result>("upsert_description", {
+            targetType: "teacher",
+            teacherId: teacher.id,
+            content: ` ${marker} `,
+            mode,
+          }),
+        });
+      }
+      const created = results[0]?.result ?? {};
       descriptionId = created.id;
 
       expect(created.success).toBe(true);
@@ -88,6 +120,12 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
       });
       expect(created.description?.id).toBe(descriptionId);
       expect(created.description?.content).toBe(marker);
+      for (const { mode, result } of results) {
+        expect(result.id).toBe(descriptionId);
+        expect(Object.hasOwn(result.description ?? {}, "renderedHtml")).toBe(
+          mode === "full",
+        );
+      }
 
       const auditLog = descriptionId
         ? await fixtures.findDescriptionEditAuditLog(descriptionId)
@@ -97,17 +135,7 @@ describe("描述工具 — MCP 暴露 REST 描述载荷", () => {
         targetType: "teacher",
       });
 
-      const idempotent = await context.client.call<{
-        success?: boolean;
-        id?: string;
-        updated?: boolean;
-        description?: { content?: string };
-      }>("upsert_description", {
-        targetType: "teacher",
-        teacherId: teacher.id,
-        content: marker,
-        mode: "full",
-      });
+      const idempotent = results[2]?.result ?? {};
 
       expect(idempotent.success).toBe(true);
       expect(idempotent.id).toBe(descriptionId);

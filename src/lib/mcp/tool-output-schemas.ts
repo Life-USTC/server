@@ -5,14 +5,23 @@ import {
   paginatedSemesterResponseSchema,
   paginatedTeacherResponseSchema,
 } from "@/lib/api/schemas/academic-paginated-response-schemas";
-import { commentNodeSchema } from "@/lib/api/schemas/comment-node-response-schema";
+import {
+  commentAttachmentSummarySchema,
+  commentAuthorSummarySchema,
+  commentReactionSummarySchema,
+} from "@/lib/api/schemas/comment-node-response-schema";
 import { commentsListResponseSchema } from "@/lib/api/schemas/comments-response-schemas";
+import {
+  descriptionDetailSchema,
+  descriptionHistoryEntrySchema,
+} from "@/lib/api/schemas/descriptions-response-schemas";
 import {
   matchSectionCodesResponseSchema,
   meResponseSchema,
   successResponseSchema,
   todoCountsSchema,
   todoItemSchema,
+  viewerContextSchema,
 } from "@/lib/api/schemas/misc-response-schema-core";
 import { dateTimeSchema } from "@/lib/api/schemas/response-schema-primitives";
 import { paginatedScheduleResponseSchema } from "@/lib/api/schemas/schedule-response-schema-core";
@@ -303,12 +312,119 @@ const uploadListMcpSchema = objectOutputSchema({
   meta: uploadsListResponseSchema.shape.meta,
 });
 
-const commentListMcpSchema = objectOutputSchema({
-  found: z.boolean(),
-  data: collectionOutputSchema(commentNodeSchema),
-  pagination: commentsListResponseSchema.shape.pagination,
-  meta: commentsListResponseSchema.shape.meta,
-});
+function createMcpCommentNodeSchema(includeRenderedBody: boolean): z.ZodType {
+  let schema: z.ZodType;
+  schema = z.lazy(() =>
+    z
+      .object({
+        id: z.string(),
+        body: z.string(),
+        ...(includeRenderedBody ? { renderedBody: z.string() } : {}),
+        visibility: z.string(),
+        status: z.string(),
+        author: commentAuthorSummarySchema.nullable(),
+        authorHidden: z.boolean(),
+        isAnonymous: z.boolean(),
+        isAuthor: z.boolean(),
+        createdAt: dateTimeSchema,
+        updatedAt: dateTimeSchema,
+        parentId: z.string().nullable(),
+        rootId: z.string().nullable(),
+        replies: z.array(schema),
+        attachments: z.array(commentAttachmentSummarySchema),
+        reactions: z.array(commentReactionSummarySchema),
+        canReact: z.boolean(),
+        canReply: z.boolean(),
+        canEdit: z.boolean(),
+        canDelete: z.boolean(),
+        canModerate: z.boolean(),
+      })
+      .strict(),
+  );
+  return schema;
+}
+
+const compactCommentNodeSchema = createMcpCommentNodeSchema(false);
+const fullCommentNodeSchema = createMcpCommentNodeSchema(true);
+const commentNodeMcpSchema = z.union([
+  compactCommentNodeSchema,
+  fullCommentNodeSchema,
+]);
+
+const compactDescriptionDetailSchema = descriptionDetailSchema
+  .omit({ renderedHtml: true })
+  .strict();
+const descriptionDetailMcpSchema = z.union([
+  compactDescriptionDetailSchema,
+  descriptionDetailSchema.strict(),
+]);
+
+function commentListOutputSchema(commentSchema: z.ZodType) {
+  return objectOutputSchema({
+    found: z.boolean(),
+    data: collectionOutputSchema(commentSchema),
+    pagination: commentsListResponseSchema.shape.pagination,
+    meta: commentsListResponseSchema.shape.meta,
+  });
+}
+
+function commentThreadOutputSchema(commentSchema: z.ZodType) {
+  return objectOutputSchema({
+    thread: collectionOutputSchema(commentSchema),
+    focusId: z.string(),
+    hiddenCount: z.number().int().nonnegative(),
+    viewer: z.unknown(),
+    target: z.unknown(),
+  });
+}
+
+function descriptionOutputSchema(descriptionSchema: z.ZodType) {
+  return objectOutputSchema({
+    target: z.unknown(),
+    description: descriptionSchema,
+    history: collectionOutputSchema(descriptionHistoryEntrySchema),
+    viewer: viewerContextSchema,
+  });
+}
+
+function descriptionUpsertOutputSchema(descriptionSchema: z.ZodType) {
+  return objectOutputSchema({
+    id: z.string(),
+    updated: z.boolean(),
+    target: z.unknown(),
+    description: descriptionSchema,
+    history: collectionOutputSchema(descriptionHistoryEntrySchema),
+    viewer: viewerContextSchema,
+  });
+}
+
+const commentListMcpSchema = commentListOutputSchema(commentNodeMcpSchema);
+const commentThreadMcpSchema = commentThreadOutputSchema(commentNodeMcpSchema);
+const descriptionMcpSchema = descriptionOutputSchema(
+  descriptionDetailMcpSchema,
+);
+const descriptionUpsertMcpSchema = descriptionUpsertOutputSchema(
+  descriptionDetailMcpSchema,
+);
+
+const MARKDOWN_MODE_OUTPUT_SCHEMAS = {
+  list_comments: {
+    default: commentListOutputSchema(compactCommentNodeSchema),
+    full: commentListOutputSchema(fullCommentNodeSchema),
+  },
+  get_comment_thread: {
+    default: commentThreadOutputSchema(compactCommentNodeSchema),
+    full: commentThreadOutputSchema(fullCommentNodeSchema),
+  },
+  get_description: {
+    default: descriptionOutputSchema(compactDescriptionDetailSchema),
+    full: descriptionOutputSchema(descriptionDetailSchema.strict()),
+  },
+  upsert_description: {
+    default: descriptionUpsertOutputSchema(compactDescriptionDetailSchema),
+    full: descriptionUpsertOutputSchema(descriptionDetailSchema.strict()),
+  },
+} satisfies Record<string, Record<"default" | "full", McpToolOutputSchema>>;
 
 const matchSectionCodesMcpSchema = objectOutputSchema({
   ...matchSectionCodesResponseSchema.shape,
@@ -399,13 +515,7 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
   get_my_7days_timeline: topLevelOutputSchema(["range", "total", "events"]),
 
   list_comments: commentListMcpSchema,
-  get_comment_thread: topLevelOutputSchema([
-    "thread",
-    "focusId",
-    "hiddenCount",
-    "viewer",
-    "target",
-  ]),
+  get_comment_thread: commentThreadMcpSchema,
   create_comment: objectOutputSchema({ success: z.boolean(), id: z.string() }),
   update_own_comment: topLevelOutputSchema(["comment"]),
   delete_own_comment: objectOutputSchemaFromApi(successResponseSchema),
@@ -418,20 +528,8 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
     changed: z.boolean(),
   }),
 
-  get_description: topLevelOutputSchema([
-    "target",
-    "description",
-    "history",
-    "viewer",
-  ]),
-  upsert_description: topLevelOutputSchema([
-    "id",
-    "updated",
-    "target",
-    "description",
-    "history",
-    "viewer",
-  ]),
+  get_description: descriptionMcpSchema,
+  upsert_description: descriptionUpsertMcpSchema,
 
   list_my_uploads: uploadListMcpSchema,
   rename_my_upload: objectOutputSchema({
@@ -562,6 +660,13 @@ const TOOL_OUTPUT_SCHEMAS: Record<string, McpToolOutputSchema> = {
 
 export function getMcpToolOutputSchema(name: string): McpToolOutputSchema {
   return TOOL_OUTPUT_SCHEMAS[name] ?? STRUCTURED_CONTENT_OUTPUT_SCHEMA;
+}
+
+export function getMarkdownMcpToolOutputSchemaForMode(
+  name: keyof typeof MARKDOWN_MODE_OUTPUT_SCHEMAS,
+  mode: "default" | "full",
+): McpToolOutputSchema {
+  return MARKDOWN_MODE_OUTPUT_SCHEMAS[name][mode];
 }
 
 export function hasMcpToolOutputSchema(name: string): boolean {

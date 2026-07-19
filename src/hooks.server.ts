@@ -8,7 +8,10 @@ import {
   recordApiRequestStart,
   setApiRequestObservabilityContext,
 } from "@/lib/log/api-observability";
-import { logAppEvent } from "@/lib/log/app-logger";
+import {
+  appendPageServerTiming,
+  recordPageRequestFinish,
+} from "@/lib/metrics/page-observability";
 import {
   OAUTH_DEVICE_AUTHORIZATION_ENDPOINT_PATH,
   OAUTH_TOKEN_ENDPOINT_PATH,
@@ -18,6 +21,7 @@ import {
   createScriptNonce,
   formActionSourceFromOAuthRedirectUri,
 } from "@/lib/security/csp";
+import { setContentSignal } from "@/lib/seo/content-signal";
 
 const SECURITY_HEADERS = {
   "X-Content-Type-Options": "nosniff",
@@ -127,37 +131,12 @@ function contentLength(response: Response) {
   return Number(value);
 }
 
-function routeId(event: Parameters<Handle>[0]["event"]) {
-  return event.route.id ?? event.url.pathname;
-}
-
 function oauthAuthorizeFormActionSources(url: URL) {
   if (url.pathname !== "/oauth/authorize") return [];
   const source = formActionSourceFromOAuthRedirectUri(
     url.searchParams.get("redirect_uri"),
   );
   return source ? [source] : [];
-}
-
-function recordPageRequestFinish(input: {
-  durationMs: number;
-  event: Parameters<Handle>[0]["event"];
-  requestId: string;
-  response: Response;
-}) {
-  if (isApiRequest(input.event.url.pathname)) return;
-  if (!isHtmlResponse(input.response)) return;
-
-  logAppEvent("info", "page.request.finish", {
-    durationMs: input.durationMs,
-    event: "page.request.finish",
-    method: input.event.request.method,
-    requestId: input.requestId,
-    responseBytes: contentLength(input.response),
-    route: routeId(input.event),
-    source: "sveltekit",
-    status: input.response.status,
-  });
 }
 
 const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
@@ -184,11 +163,13 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
   );
   const nonce = createScriptNonce();
 
+  const authStartMs = Date.now();
   const session = hasAuthSignal
     ? await import("@/lib/auth/core").then(({ getSessionFromHeaders }) =>
         getSessionFromHeaders(event.request.headers),
       )
     : null;
+  const authDurationMs = Date.now() - authStartMs;
   event.locals.authUser = session?.user ?? null;
   if (
     shouldRedirectIncompleteProfileToWelcome({
@@ -202,6 +183,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     throw redirect(303, `/welcome?callbackUrl=${encodeURIComponent(returnTo)}`);
   }
 
+  const appStartMs = Date.now();
   const response = await resolve(event, {
     transformPageChunk: ({ html }) =>
       addScriptNonce(
@@ -209,13 +191,25 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
         nonce,
       ),
   });
+  const appDurationMs = Date.now() - appStartMs;
+  const totalDurationMs = Date.now() - startMs;
   const shouldSetCsp = isHtmlResponse(response);
-  recordPageRequestFinish({
-    durationMs: Date.now() - startMs,
-    event,
-    requestId,
-    response,
-  });
+  if (!isApiRequest(event.url.pathname) && shouldSetCsp) {
+    recordPageRequestFinish({
+      authMode: session?.user.id ? "authenticated" : "anonymous",
+      locale,
+      method: event.request.method,
+      requestId,
+      responseBytes: contentLength(response),
+      routeId: event.route.id,
+      status: response.status,
+      timings: {
+        appDurationMs,
+        authDurationMs,
+        totalDurationMs,
+      },
+    });
+  }
 
   const mutableResponse = responseWithSecurityHeaders(response);
   if (apiObservability) {
@@ -224,9 +218,15 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     mutableResponse.headers.set("x-request-id", requestId);
   }
   if (shouldSetCsp) {
+    appendPageServerTiming(mutableResponse.headers, {
+      appDurationMs,
+      authDurationMs,
+      totalDurationMs,
+    });
     if (!mutableResponse.headers.has("Cache-Control")) {
       mutableResponse.headers.set("Cache-Control", "no-store");
     }
+    setContentSignal(mutableResponse.headers);
     mutableResponse.headers.set(
       "Content-Security-Policy",
       buildContentSecurityPolicy(nonce, {

@@ -1,3 +1,5 @@
+import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
+import { renderMarkdown } from "@/lib/components/markdown-preview-renderer";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { canViewerAccessCommentAttachment } from "./comment-attachment-access";
 import { canViewerWriteCommentInteraction } from "./comment-interaction-policy";
@@ -46,6 +48,9 @@ export function buildVisibleCommentNode({
   return {
     id: comment.id,
     body: comment.body,
+    renderedBody: renderMarkdown(comment.body, {
+      remarkPlugins: campusReferenceMarkdownPlugins,
+    }),
     visibility: comment.visibility,
     status,
     author,

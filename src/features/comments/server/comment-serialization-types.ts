@@ -31,6 +31,7 @@ export type CommentReactionSummary = {
 export type CommentNode = {
   id: string;
   body: string;
+  renderedBody: string;
   visibility: CommentVisibility;
   status: CommentStatus;
   author: CommentAuthorSummary | null;

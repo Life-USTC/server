@@ -297,6 +297,12 @@ test.describe("/courses/[jwId] 课程详情", () => {
         intervals: [250, 500, 1_000],
       });
       await editor.fill(content);
+      await descCard.getByRole("tab", { name: /预览|Preview/i }).click();
+      await expect(
+        descCard
+          .getByRole("tabpanel", { name: /预览|Preview/i })
+          .getByText(content),
+      ).toBeVisible();
 
       const saveResponse = page.waitForResponse(
         (r) =>
@@ -410,5 +416,18 @@ test.describe("/courses/[jwId] 课程详情", () => {
     } finally {
       await cleanupCommentsForE2e([commentId]);
     }
+  });
+});
+
+test.describe("/courses/[jwId]/introduction 无 JavaScript", () => {
+  test.use({ javaScriptEnabled: false });
+
+  test("SSR 保留 sanitized Markdown 简介", async ({ page }) => {
+    await page.goto(COURSE_WITH_DESCRIPTION_URL);
+
+    await expect(page.getByText(COURSE_WITH_DESCRIPTION_TEXT)).toBeVisible();
+    await expect(
+      page.locator("#course-description .markdown-preview"),
+    ).toBeVisible();
   });
 });

@@ -1,5 +1,9 @@
 import { error } from "@sveltejs/kit";
 import {
+  buildSectionStructuredData,
+  serializeStructuredData,
+} from "@/features/catalog/lib/catalog-structured-data";
+import {
   formatMessage,
   primaryName,
 } from "@/features/section-detail/lib/display";
@@ -62,11 +66,13 @@ export async function loadSectionDetailPage({
   if (!detailSection) error(404, "Section not found");
   const jwId = parseSectionJwId(params.jwId);
   if (jwId === null) error(404, "Section not found");
-  const section = await getSectionPage(jwId, locals.locale);
+  const [section, userId] = await Promise.all([
+    getSectionPage(jwId, locals.locale),
+    getSectionDetailUserId(request),
+  ]);
   if (!section) error(404, "Section not found");
   const copy = getSectionDetailPageCopy(locals.locale);
   const courseName = primaryName(section.course) || section.code;
-  const userId = await getSectionDetailUserId(request);
   const [subscriptionState, descriptionAndComments, homeworkData] =
     await Promise.all([
       userId
@@ -74,9 +80,40 @@ export async function loadSectionDetailPage({
             await import("@/features/subscriptions/server/subscriptions")
           ).getUserSectionSubscriptionState(userId)
         : null,
-      getSectionDetailDescriptionAndComments(section, userId),
-      getSectionHomeworkData(section.id, userId),
+      getSectionDetailDescriptionAndComments(section, userId, {
+        includeComments: detailSection === "comments",
+      }),
+      detailSection === "homework"
+        ? getSectionHomeworkData(section.id, userId)
+        : {
+            auditLogs: [],
+            homeworks: [],
+            viewer: {
+              isAdmin: false,
+              isAuthenticated: Boolean(userId),
+              isSuspended: false,
+              userId,
+            },
+          },
     ]);
+  const socialMetadata = buildSocialMetadata({
+    canonicalPath: `/sections/${jwId}`,
+    description: formatSocialMetadataMessage(
+      copy.metadata.social.sectionDescription,
+      { code: section.code, name: courseName },
+    ),
+    imageAlt: copy.metadata.social.imageAlt,
+    locale: locals.locale,
+    origin: url.origin,
+    title: `${formatMessage(copy.metadata.pages.sectionDetail, {
+      code: section.code,
+      name: courseName,
+    })} - Life@USTC`,
+  });
+  const sectionName = formatMessage(copy.metadata.pages.sectionDetail, {
+    code: section.code,
+    name: courseName,
+  });
   return {
     section,
     locale: locals.locale,
@@ -91,20 +128,26 @@ export async function loadSectionDetailPage({
       url.searchParams.get("homeworkView") === "list" ? "list" : "cards",
     showSubscribeDialog:
       section.retiredAt === null && url.searchParams.get("subscribe") === "1",
-    socialMetadata: buildSocialMetadata({
-      canonicalPath: `/sections/${jwId}`,
-      description: formatSocialMetadataMessage(
-        copy.metadata.social.sectionDescription,
-        { code: section.code, name: courseName },
-      ),
-      imageAlt: copy.metadata.social.imageAlt,
-      locale: locals.locale,
-      origin: url.origin,
-      title: `${formatMessage(copy.metadata.pages.sectionDetail, {
-        code: section.code,
-        name: courseName,
-      })} - Life@USTC`,
-    }),
+    socialMetadata,
+    structuredDataJson: serializeStructuredData(
+      buildSectionStructuredData({
+        canonicalUrl: socialMetadata.canonicalUrl,
+        course: {
+          jwId: section.course.jwId,
+          name: courseName,
+        },
+        description: descriptionAndComments.descriptionData.description.content,
+        instructors: section.teachers.map((teacher) => ({
+          id: teacher.id,
+          name: primaryName(teacher),
+        })),
+        labels: {
+          collection: copy.common.sections,
+          home: copy.common.home,
+        },
+        name: sectionName,
+      }),
+    ),
     viewer: {
       signedIn: Boolean(userId),
       isSubscribed: Boolean(

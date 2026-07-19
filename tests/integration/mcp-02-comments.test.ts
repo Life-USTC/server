@@ -6,13 +6,14 @@ const context = fixtures.createMcpToolTestContext();
 
 describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
   it("list_comments 返回带查看者/操作字段的班级串帖评论", async () => {
-    const result = await context.client.call<{
+    type Result = {
       found?: boolean;
       data?: Array<{
         id?: string;
         body?: string;
+        renderedBody?: string;
         author?: { name?: string | null } | null;
-        replies?: Array<{ body?: string }>;
+        replies?: Array<{ body?: string; renderedBody?: string }>;
         reactions?: Array<{ type?: string; count?: number }>;
         canReact?: boolean;
         canReply?: boolean;
@@ -32,11 +33,20 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
         viewer?: { userId?: string | null; isAuthenticated?: boolean };
       };
       pagination?: { page?: number; pageSize?: number; total?: number };
-    }>("list_comments", {
-      targetType: "section",
-      sectionJwId: fixtures.DEV_SEED.section.jwId,
-      mode: "full",
-    });
+    };
+
+    const results = await Promise.all(
+      (["default", "summary", "full"] as const).map(async (mode) => ({
+        mode,
+        result: await context.client.call<Result>("list_comments", {
+          targetType: "section",
+          sectionJwId: fixtures.DEV_SEED.section.jwId,
+          mode,
+        }),
+      })),
+    );
+    const result = results.find(({ mode }) => mode === "full")?.result;
+    if (!result) throw new Error("Missing full-mode list_comments result");
 
     expect(result.found).toBe(true);
     expect(result.meta?.target?.type).toBe("section");
@@ -71,6 +81,19 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
         (reaction) => reaction.type === "upvote" && reaction.count === 1,
       ),
     ).toBe(true);
+
+    for (const { mode, result: modeResult } of results) {
+      const modeRoot = modeResult.data?.find((comment) =>
+        comment.body?.includes(fixtures.DEV_SEED.comments.sectionRootBody),
+      );
+      expect(modeRoot).toBeDefined();
+      expect(Object.hasOwn(modeRoot ?? {}, "renderedBody")).toBe(
+        mode === "full",
+      );
+      expect(Object.hasOwn(modeRoot?.replies?.[0] ?? {}, "renderedBody")).toBe(
+        mode === "full",
+      );
+    }
   });
 
   it("get_comment_thread 返回聚焦线程及目标元数据", async () => {
@@ -80,13 +103,14 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
     });
     expect(seedComment?.id).toBeTruthy();
 
-    const result = await context.client.call<{
+    type Result = {
       found?: boolean;
       focusId?: string;
       thread?: Array<{
         id?: string;
         body?: string;
-        replies?: Array<{ body?: string }>;
+        renderedBody?: string;
+        replies?: Array<{ body?: string; renderedBody?: string }>;
       }>;
       target?: {
         courseJwId?: number | null;
@@ -94,10 +118,18 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
         sectionJwId?: number | null;
         sectionCode?: string | null;
       };
-    }>("get_comment_thread", {
-      commentId: seedComment?.id,
-      mode: "full",
-    });
+    };
+    const results = await Promise.all(
+      (["default", "summary", "full"] as const).map(async (mode) => ({
+        mode,
+        result: await context.client.call<Result>("get_comment_thread", {
+          commentId: seedComment?.id,
+          mode,
+        }),
+      })),
+    );
+    const result = results.find(({ mode }) => mode === "full")?.result;
+    if (!result) throw new Error("Missing full-mode comment thread result");
 
     expect(result.found).toBe(true);
     expect(result.focusId).toBe(seedComment?.id);
@@ -110,6 +142,18 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
     expect(result.target?.sectionCode).toBe(fixtures.DEV_SEED.section.code);
     expect(result.target?.courseJwId).toBe(fixtures.DEV_SEED.course.jwId);
     expect(result.target?.courseName).toBe(fixtures.DEV_SEED.course.nameCn);
+
+    for (const { mode, result: modeResult } of results) {
+      expect(Object.hasOwn(modeResult.thread?.[0] ?? {}, "renderedBody")).toBe(
+        mode === "full",
+      );
+      expect(
+        Object.hasOwn(
+          modeResult.thread?.[0]?.replies?.[0] ?? {},
+          "renderedBody",
+        ),
+      ).toBe(mode === "full");
+    }
   });
 
   it("list_comments 报告缺失目标而非返回空成功", async () => {
