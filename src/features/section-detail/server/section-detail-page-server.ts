@@ -1,5 +1,9 @@
 import { error } from "@sveltejs/kit";
 import {
+  buildSectionStructuredData,
+  serializeStructuredData,
+} from "@/features/catalog/lib/catalog-structured-data";
+import {
   formatMessage,
   primaryName,
 } from "@/features/section-detail/lib/display";
@@ -77,6 +81,24 @@ export async function loadSectionDetailPage({
       getSectionDetailDescriptionAndComments(section, userId),
       getSectionHomeworkData(section.id, userId),
     ]);
+  const socialMetadata = buildSocialMetadata({
+    canonicalPath: `/sections/${jwId}`,
+    description: formatSocialMetadataMessage(
+      copy.metadata.social.sectionDescription,
+      { code: section.code, name: courseName },
+    ),
+    imageAlt: copy.metadata.social.imageAlt,
+    locale: locals.locale,
+    origin: url.origin,
+    title: `${formatMessage(copy.metadata.pages.sectionDetail, {
+      code: section.code,
+      name: courseName,
+    })} - Life@USTC`,
+  });
+  const sectionName = formatMessage(copy.metadata.pages.sectionDetail, {
+    code: section.code,
+    name: courseName,
+  });
   return {
     section,
     locale: locals.locale,
@@ -91,20 +113,26 @@ export async function loadSectionDetailPage({
       url.searchParams.get("homeworkView") === "list" ? "list" : "cards",
     showSubscribeDialog:
       section.retiredAt === null && url.searchParams.get("subscribe") === "1",
-    socialMetadata: buildSocialMetadata({
-      canonicalPath: `/sections/${jwId}`,
-      description: formatSocialMetadataMessage(
-        copy.metadata.social.sectionDescription,
-        { code: section.code, name: courseName },
-      ),
-      imageAlt: copy.metadata.social.imageAlt,
-      locale: locals.locale,
-      origin: url.origin,
-      title: `${formatMessage(copy.metadata.pages.sectionDetail, {
-        code: section.code,
-        name: courseName,
-      })} - Life@USTC`,
-    }),
+    socialMetadata,
+    structuredDataJson: serializeStructuredData(
+      buildSectionStructuredData({
+        canonicalUrl: socialMetadata.canonicalUrl,
+        course: {
+          jwId: section.course.jwId,
+          name: courseName,
+        },
+        description: descriptionAndComments.descriptionData.description.content,
+        instructors: section.teachers.map((teacher) => ({
+          id: teacher.id,
+          name: primaryName(teacher),
+        })),
+        labels: {
+          collection: copy.common.sections,
+          home: copy.common.home,
+        },
+        name: sectionName,
+      }),
+    ),
     viewer: {
       signedIn: Boolean(userId),
       isSubscribed: Boolean(
