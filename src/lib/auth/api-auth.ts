@@ -8,6 +8,7 @@ import {
   getOAuthRestAudienceUrls,
   getOAuthTokenVerificationIssuers,
 } from "@/lib/mcp/urls";
+import { hasActiveOAuthUserGrant } from "@/lib/oauth/active-user-grant";
 import type { RestFeature } from "@/lib/oauth/constants";
 import {
   type FeatureScopeRequirement,
@@ -64,6 +65,18 @@ export async function resolveApiUserId(
         issuer: getOAuthTokenVerificationIssuers(),
         audience: getOAuthRestAudienceUrls(),
       });
+      if (
+        !verified.clientId ||
+        !(await hasActiveOAuthUserGrant({
+          clientId: verified.clientId,
+          grantId: verified.grantId,
+          requireGrantBinding: true,
+          scopes: verified.tokenScopes ?? [...verified.scope],
+          userId: verified.sub,
+        }))
+      ) {
+        return null;
+      }
 
       const requirement = options.bearerScope;
       if (requirement) {

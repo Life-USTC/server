@@ -4,6 +4,7 @@ import {
   linkSettingsAccountAction,
   unlinkSettingsAccountAction,
 } from "@/features/settings/server/settings-account-actions";
+import { revokeSettingsAuthorizationAction } from "@/features/settings/server/settings-authorization-actions";
 import { updateSettingsProfileAction } from "@/features/settings/server/settings-profile-action";
 import type { AppLocale } from "@/i18n/config";
 
@@ -33,6 +34,12 @@ export const settingsPageActions = {
     unlinkSettingsAccountAction({ locale: locals.locale, request, url }),
   linkAccount: async ({ cookies, locals, request, url }: SettingsActionEvent) =>
     linkSettingsAccountAction({ cookies, locale: locals.locale, request, url }),
+  revokeAuthorization: async ({ locals, request, url }: SettingsActionEvent) =>
+    revokeSettingsAuthorizationAction({
+      locale: locals.locale,
+      request,
+      url,
+    }),
   deleteAccount: async ({
     cookies,
     locals,

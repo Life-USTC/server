@@ -1,11 +1,13 @@
 <script lang="ts">
 import CircleUserRound from "@lucide/svelte/icons/circle-user-round";
 import FileText from "@lucide/svelte/icons/file-text";
+import KeyRound from "@lucide/svelte/icons/key-round";
 import Link2 from "@lucide/svelte/icons/link-2";
 import ShieldAlert from "@lucide/svelte/icons/shield-alert";
 import SlidersHorizontal from "@lucide/svelte/icons/sliders-horizontal";
 import { onMount, tick } from "svelte";
 import SettingsAccountsTab from "@/features/settings/components/SettingsAccountsTab.svelte";
+import SettingsAuthorizationsTab from "@/features/settings/components/SettingsAuthorizationsTab.svelte";
 import SettingsContentTab from "@/features/settings/components/SettingsContentTab.svelte";
 import SettingsDangerTab from "@/features/settings/components/SettingsDangerTab.svelte";
 import SettingsHeader from "@/features/settings/components/SettingsHeader.svelte";
@@ -17,16 +19,19 @@ import {
   createDeleteAccountAction,
   createSettingsAccountAction,
 } from "@/features/settings/lib/settings-page-actions";
+import type { SettingsTab } from "@/features/settings/lib/settings-tabs";
 import { cn } from "$lib/utils";
 import type {
   SettingsAccount,
   SettingsCopy,
+  SettingsOAuthAuthorization,
   SettingsUser,
 } from "./settings-component-types";
 
 type PageData = {
-  activeTab: "accounts" | "content" | "danger" | "preferences" | "profile";
+  activeTab: SettingsTab;
   accounts: SettingsAccount[];
+  authorizations: SettingsOAuthAuthorization[];
   copy: SettingsCopy;
   locale: "en-us" | "zh-cn";
   message?: string | null;
@@ -36,11 +41,11 @@ type PageData = {
       description: string;
       href: string;
       icon: string;
-      id: "accounts" | "content" | "danger" | "preferences" | "profile";
+      id: SettingsTab;
       title: string;
     }>;
   };
-  tab: "accounts" | "content" | "danger" | "preferences" | "profile";
+  tab: SettingsTab;
   user: SettingsUser & {
     image?: string | null;
     profilePictures: string[];
@@ -105,6 +110,7 @@ const deleteAccountAction = createDeleteAccountAction({
 function tabIcon(icon: string) {
   if (icon === "preferences") return SlidersHorizontal;
   if (icon === "accounts") return Link2;
+  if (icon === "authorizations") return KeyRound;
   if (icon === "content") return FileText;
   if (icon === "danger") return ShieldAlert;
   return CircleUserRound;
@@ -241,6 +247,12 @@ onMount(() => {
           unlinkAccount={_unlinkAccount}
           bind:unlinkAccountId={_unlinkAccountId}
           user={data.user}
+        />
+      {:else if data.tab === "authorizations"}
+        <SettingsAuthorizationsTab
+          authorizations={data.authorizations}
+          {copy}
+          locale={data.locale}
         />
       {:else if data.tab === "content"}
         <SettingsContentTab {copy} />

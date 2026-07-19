@@ -21,12 +21,16 @@ type RefreshResourcePrisma = {
       where: { token: string };
       select: {
         clientId?: true;
+        grantId?: true;
+        referenceId?: true;
         resources: true;
         scopes?: true;
         userId?: true;
       };
     }) => Promise<{
       clientId?: string;
+      grantId?: string | null;
+      referenceId?: string | null;
       resources: string[];
       scopes?: string[];
       userId?: string;
@@ -251,7 +255,14 @@ async function resolveIssuedRefreshResources({
     );
   }
 
-  return resolveApprovedRefreshResources({ grantType, prisma, refreshToken });
+  const approvedResources = await resolveApprovedRefreshResources({
+    grantType,
+    prisma,
+    refreshToken,
+  });
+  return resourceValues.length > 0
+    ? getApprovedRequestedResources(resourceValues, approvedResources)
+    : approvedResources;
 }
 
 export async function validateRefreshTokenResources({
@@ -299,10 +310,12 @@ export async function validateRefreshTokenResources({
 }
 
 export async function issueResourceBoundRefreshAccessToken({
+  effectiveScopes,
   prisma = defaultPrisma,
   refreshToken,
   resourceValues,
 }: {
+  effectiveScopes: readonly string[];
   prisma?: RefreshResourcePrisma;
   refreshToken: string | null;
   resourceValues: string[];
@@ -314,6 +327,8 @@ export async function issueResourceBoundRefreshAccessToken({
     where: { token: tokenHash },
     select: {
       clientId: true,
+      grantId: true,
+      referenceId: true,
       resources: true,
       scopes: true,
       userId: true,
@@ -322,7 +337,8 @@ export async function issueResourceBoundRefreshAccessToken({
   if (
     !refreshRecord?.clientId ||
     !refreshRecord.userId ||
-    !refreshRecord.scopes
+    !refreshRecord.scopes ||
+    !effectiveScopes.every((scope) => refreshRecord.scopes?.includes(scope))
   ) {
     return undefined;
   }
@@ -338,9 +354,10 @@ export async function issueResourceBoundRefreshAccessToken({
   const accessToken = await signResourceBoundOAuthAccessToken({
     clientId: refreshRecord.clientId,
     expiresAt,
+    grantId: refreshRecord.grantId ?? refreshRecord.referenceId ?? undefined,
     issuedAt,
     resources,
-    scopes: refreshRecord.scopes,
+    scopes: [...new Set(effectiveScopes)],
     userId: refreshRecord.userId,
   });
   if (!accessToken) return undefined;

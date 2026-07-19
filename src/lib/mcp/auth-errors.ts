@@ -15,6 +15,7 @@ export type McpAuthFailureDiagnostics = {
     | "missing_bearer"
     | "malformed_authorization_header"
     | "jwt_verify_failed"
+    | "inactive_oauth_grant"
     | "opaque_token_miss"
     | "opaque_token_expired"
     | "opaque_token_missing_mcp_scope"

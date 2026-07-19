@@ -2,9 +2,19 @@ import { jsonResponse } from "@/lib/api/helpers";
 import { observedApiRoute } from "@/lib/log/api-observability";
 import { withBetterAuthOAuthDebug } from "@/lib/log/oauth-debug";
 import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";
-import { OAUTH_DEVICE_CODE_GRANT_TYPE } from "@/lib/oauth/constants";
+import {
+  OAUTH_DEVICE_CODE_GRANT_TYPE,
+  OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+} from "@/lib/oauth/constants";
+import { findDuplicateOAuthFormParameter } from "@/lib/oauth/form-parameters";
 import { rewriteOAuthResourceAliases } from "@/lib/oauth/resource-aliases";
+import {
+  cleanupRejectedOAuthRefreshGrant,
+  rejectRefreshIssuedAfterRevocation,
+  validateActiveOAuthRefreshGrant,
+} from "./auth-token-active-grant";
 import { handleDeviceCodeGrant } from "./auth-token-device-grant";
+import { bindOAuthAccessTokenToConsent } from "./auth-token-grant-binding";
 import { maybeNormalizeTokenLoopbackRedirectRequest } from "./auth-token-loopback-normalization";
 import { logObservedTokenRedirectRequest } from "./auth-token-observed-logging";
 import { maybeBindOAuthRefreshResourceRequest } from "./auth-token-refresh-resource-binding";
@@ -14,6 +24,18 @@ import {
   validateOAuthRefreshTokenResources,
 } from "./auth-token-refresh-resources";
 import { rewriteTokenFormRequest } from "./auth-token-request-rewrite";
+
+const TOKEN_SINGLETON_FORM_PARAMETERS = [
+  "grant_type",
+  "client_id",
+  "client_secret",
+  "code",
+  "code_verifier",
+  "redirect_uri",
+  "refresh_token",
+  "scope",
+  "device_code",
+] as const;
 
 async function authHandler(request: Request) {
   const { betterAuthInstance } = await import("@/lib/auth/core");
@@ -94,7 +116,12 @@ async function runObservedTokenHandler(
   const url = new URL(request.url);
   const grantType = params.get("grant_type");
   try {
-    const response = await runTokenHandler(run);
+    const response = await bindOAuthAccessTokenToConsent(
+      await runTokenHandler(run),
+      grantType === OAUTH_REFRESH_TOKEN_GRANT_TYPE && params.has("scope")
+        ? [...new Set((params.get("scope") ?? "").split(/\s+/).filter(Boolean))]
+        : undefined,
+    );
     writeOAuthEventAnalytics({
       durationMs: Date.now() - start,
       event: "token.response",
@@ -136,6 +163,26 @@ async function postRoute(request: Request) {
     );
   }
 
+  const duplicateParameter = findDuplicateOAuthFormParameter(
+    params,
+    TOKEN_SINGLETON_FORM_PARAMETERS,
+  );
+  if (duplicateParameter) {
+    return jsonResponse(
+      {
+        error: "invalid_request",
+        error_description: `OAuth parameter "${duplicateParameter}" must not be repeated`,
+      },
+      {
+        status: 400,
+        headers: {
+          "Cache-Control": "no-store",
+          Pragma: "no-cache",
+        },
+      },
+    );
+  }
+
   const normalizedRequest = rewriteOAuthResourceAliases(params)
     ? rewriteTokenFormRequest(request, params)
     : request;
@@ -149,6 +196,9 @@ async function postRoute(request: Request) {
   logObservedTokenRedirectRequest(normalizedRequest, params);
 
   return runObservedTokenHandler(request, params, async () => {
+    const grantValidation = await validateActiveOAuthRefreshGrant(params);
+    if ("response" in grantValidation) return grantValidation.response;
+
     const resourceError = await validateOAuthRefreshTokenResources(
       normalizedRequest,
       params,
@@ -172,7 +222,17 @@ async function postRoute(request: Request) {
       params,
       await normalizeOAuthTokenErrorResponse(delegatedResponse),
     );
+    if (!response.ok) {
+      const cleanupError = await cleanupRejectedOAuthRefreshGrant(params);
+      if (cleanupError) return cleanupError;
+    }
     await persistOAuthRefreshTokenResources(delegatedRequest, params, response);
+    if (response.ok) {
+      const revokedResponse = await rejectRefreshIssuedAfterRevocation(
+        grantValidation.grant,
+      );
+      if (revokedResponse) return revokedResponse;
+    }
     return response;
   });
 }

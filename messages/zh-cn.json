@@ -866,6 +866,10 @@
         "title": "关联账户",
         "description": "连接或断开登录提供商"
       },
+      "authorizations": {
+        "title": "已授权应用",
+        "description": "查看并撤销第三方访问"
+      },
       "content": {
         "title": "内容管理",
         "description": "上传资料与我的评论"
@@ -903,6 +907,24 @@
         "title": "语言",
         "description": "切换界面语言，不在 URL 中增加语言目录。"
       }
+    },
+    "authorizations": {
+      "title": "已授权的 OAuth 应用",
+      "description": "你批准的应用可在撤销前按照下列权限代表你操作。",
+      "emptyTitle": "暂无已授权应用",
+      "emptyDescription": "你批准的第三方 OAuth 应用会显示在这里。",
+      "unnamedClient": "未命名应用",
+      "disabled": "已停用",
+      "permissions": "权限范围",
+      "updatedAt": "最近授权",
+      "revoke": "撤销授权",
+      "revoking": "正在撤销…",
+      "revokeTitle": "撤销应用访问权限？",
+      "revokeDescription": "这会立即阻止“{name}”继续访问 Life@USTC 的 API、GraphQL 与 MCP，并移除其刷新权限。",
+      "revokeSuccess": "已撤销应用授权",
+      "revokeSuccessDescription": "该应用现有的访问令牌与刷新令牌已无法继续使用。",
+      "revokeNotFound": "该授权已不存在，或不属于你的账户。",
+      "revokeError": "无法撤销应用授权，请稍后重试。"
     }
   },
   "courses": {

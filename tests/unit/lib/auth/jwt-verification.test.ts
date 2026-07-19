@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { OAUTH_GRANT_ID_CLAIM } from "@/lib/oauth/constants";
 
 const jwtVerifyMock = vi.fn();
 const createRemoteJWKSetMock = vi.fn();
@@ -23,6 +24,7 @@ describe("verifyAccessTokenJwt", () => {
         scope: "todo:read todo:write",
         aud: "https://life.example/api/auth",
         azp: "client-1",
+        [OAUTH_GRANT_ID_CLAIM]: "consent-1",
       },
     });
 
@@ -39,6 +41,8 @@ describe("verifyAccessTokenJwt", () => {
     expect(result.scope).toEqual(new Set(["todo:read", "todo:write"]));
     expect(result.aud).toBe("https://life.example/api/auth");
     expect(result.clientId).toBe("client-1");
+    expect(result.grantId).toBe("consent-1");
+    expect(result.tokenScopes).toEqual(["todo:read", "todo:write"]);
     expect(createRemoteJWKSetMock).toHaveBeenCalledWith(
       new URL("https://life.example/api/auth/jwks"),
     );

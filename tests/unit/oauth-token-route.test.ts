@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { tokenGetRoute, tokenPostRoute } from "@/lib/api/routes/auth-token";
 import {
+  OAUTH_GRANT_ID_CLAIM,
   OAUTH_OFFLINE_ACCESS_SCOPE,
   OAUTH_OPENID_SCOPE,
   OAUTH_PROFILE_SCOPE,
@@ -10,11 +11,21 @@ import {
 const {
   betterAuthHandlerMock,
   findRefreshTokenMock,
+  isOAuthRefreshGrantActiveMock,
+  purgeOAuthGrantTokenRowsMock,
+  purgeRevokedOAuthRefreshTokenLineageMock,
+  resolveActiveOAuthUserGrantMock,
+  resolveActiveOAuthRefreshGrantMock,
   signJwtMock,
   updateRefreshTokenMock,
 } = vi.hoisted(() => ({
   betterAuthHandlerMock: vi.fn(),
   findRefreshTokenMock: vi.fn(),
+  isOAuthRefreshGrantActiveMock: vi.fn(),
+  purgeOAuthGrantTokenRowsMock: vi.fn(),
+  purgeRevokedOAuthRefreshTokenLineageMock: vi.fn(),
+  resolveActiveOAuthUserGrantMock: vi.fn(),
+  resolveActiveOAuthRefreshGrantMock: vi.fn(),
   signJwtMock: vi.fn(),
   updateRefreshTokenMock: vi.fn(),
 }));
@@ -28,9 +39,27 @@ vi.mock("@/lib/auth/core", () => ({
   },
 }));
 
+vi.mock("@/features/oauth/server/user-authorizations.server", () => ({
+  isOAuthRefreshGrantActive: isOAuthRefreshGrantActiveMock,
+  purgeOAuthGrantTokenRows: purgeOAuthGrantTokenRowsMock,
+  purgeRevokedOAuthRefreshTokenLineage:
+    purgeRevokedOAuthRefreshTokenLineageMock,
+  resolveActiveOAuthRefreshGrant: resolveActiveOAuthRefreshGrantMock,
+}));
+
+vi.mock("@/lib/oauth/active-user-grant", () => ({
+  resolveActiveOAuthUserGrant: resolveActiveOAuthUserGrantMock,
+}));
+
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
+    oAuthAccessToken: {
+      deleteMany: vi.fn(),
+      findUnique: vi.fn(),
+      updateMany: vi.fn(),
+    },
     oAuthRefreshToken: {
+      deleteMany: vi.fn(),
       findUnique: findRefreshTokenMock,
       updateMany: updateRefreshTokenMock,
     },
@@ -52,13 +81,40 @@ vi.mock("@/lib/oauth/resource-urls", () => ({
   ],
 }));
 
+function unsignedJwt(payload: Record<string, unknown>) {
+  const encoded = btoa(JSON.stringify(payload))
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replace(/=+$/, "");
+  return `eyJhbGciOiJub25lIn0.${encoded}.signature`;
+}
+
 describe("OAuth 令牌路由", () => {
   beforeEach(() => {
     betterAuthHandlerMock.mockReset();
     findRefreshTokenMock.mockReset();
+    isOAuthRefreshGrantActiveMock.mockReset();
+    purgeOAuthGrantTokenRowsMock.mockReset();
+    purgeRevokedOAuthRefreshTokenLineageMock.mockReset();
+    resolveActiveOAuthUserGrantMock.mockReset();
+    resolveActiveOAuthRefreshGrantMock.mockReset();
     signJwtMock.mockReset();
     updateRefreshTokenMock.mockReset();
     updateRefreshTokenMock.mockResolvedValue({ count: 1 });
+    isOAuthRefreshGrantActiveMock.mockResolvedValue(true);
+    purgeOAuthGrantTokenRowsMock.mockResolvedValue(undefined);
+    purgeRevokedOAuthRefreshTokenLineageMock.mockResolvedValue(false);
+    resolveActiveOAuthRefreshGrantMock.mockResolvedValue({
+      clientId: "client-1",
+      grantId: "grant-1",
+      scopes: [OAUTH_PROFILE_SCOPE],
+      userId: "user-1",
+    });
+    resolveActiveOAuthUserGrantMock.mockResolvedValue({
+      consentId: "consent-1",
+      grantId: "grant-1",
+      kind: "consent",
+    });
   });
 
   it("为 GET 返回 JSON 方法指引", async () => {
@@ -141,6 +197,47 @@ describe("OAuth 令牌路由", () => {
     });
   });
 
+  it.each([
+    [
+      "authorization code",
+      "grant_type=authorization_code&code=first&code=second",
+    ],
+    [
+      "refresh token",
+      "grant_type=refresh_token&refresh_token=first&refresh_token=second",
+    ],
+    [
+      "device code",
+      "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Adevice_code&device_code=first&device_code=second",
+    ],
+    [
+      "grant type",
+      "grant_type=authorization_code&grant_type=refresh_token&code=code-1",
+    ],
+    [
+      "client id",
+      "grant_type=authorization_code&code=code-1&client_id=first&client_id=second",
+    ],
+    [
+      "scope",
+      "grant_type=authorization_code&code=code-1&scope=profile&scope=openid",
+    ],
+  ])("在委托前拒绝重复的 %s 单值参数", async (_name, body) => {
+    const response = await tokenPostRoute(
+      new Request("http://localhost/api/auth/oauth2/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body,
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "invalid_request",
+    });
+    expect(betterAuthHandlerMock).not.toHaveBeenCalled();
+  });
+
   it("在委托前拒绝未批准的刷新令牌资源", async () => {
     findRefreshTokenMock.mockResolvedValueOnce({
       resources: ["https://life.example/api/auth"],
@@ -170,6 +267,8 @@ describe("OAuth 令牌路由", () => {
   it("刷新已绑定资源的令牌时返回覆盖批准资源的 JWT access token", async () => {
     findRefreshTokenMock.mockResolvedValue({
       clientId: "client-1",
+      grantId: "grant-1",
+      referenceId: "grant-1",
       resources: [
         "https://life.example/api/auth",
         "https://life.example/api/mcp",
@@ -186,10 +285,17 @@ describe("OAuth 令牌路由", () => {
         access_token: "better-auth-access-token",
         expires_in: 3600,
         refresh_token: "new-refresh-token",
+        scope: `${OAUTH_OPENID_SCOPE} ${OAUTH_PROFILE_SCOPE} ${OAUTH_OFFLINE_ACCESS_SCOPE}`,
         token_type: "Bearer",
       }),
     );
-    signJwtMock.mockResolvedValueOnce({ token: "signed-refresh-access-token" });
+    signJwtMock.mockImplementation(async ({ body }) => {
+      const payload = btoa(JSON.stringify(body.payload))
+        .replaceAll("+", "-")
+        .replaceAll("/", "_")
+        .replace(/=+$/, "");
+      return { token: `eyJhbGciOiJub25lIn0.${payload}.signature` };
+    });
     const body = new URLSearchParams({
       client_id: "client-1",
       grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
@@ -208,7 +314,7 @@ describe("OAuth 令牌路由", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
-      access_token: "signed-refresh-access-token",
+      access_token: expect.stringContaining("."),
       refresh_token: "new-refresh-token",
       token_type: "Bearer",
     });
@@ -227,5 +333,231 @@ describe("OAuth 令牌路由", () => {
         }),
       },
     });
+  });
+
+  it("显式 GraphQL resource 的降权刷新不会恢复旧 scope 或 userinfo audience", async () => {
+    const oldRefresh = {
+      clientId: "client-1",
+      grantId: "grant-1",
+      referenceId: "grant-1",
+      resources: ["https://life.example/api/graphql"],
+      scopes: [
+        OAUTH_OPENID_SCOPE,
+        OAUTH_PROFILE_SCOPE,
+        "todo:write",
+        OAUTH_OFFLINE_ACCESS_SCOPE,
+      ],
+      userId: "user-1",
+    };
+    findRefreshTokenMock
+      .mockResolvedValueOnce(oldRefresh)
+      .mockResolvedValueOnce(oldRefresh)
+      .mockResolvedValueOnce(oldRefresh)
+      .mockResolvedValue({
+        ...oldRefresh,
+        scopes: [OAUTH_PROFILE_SCOPE],
+      });
+    betterAuthHandlerMock.mockResolvedValueOnce(
+      Response.json({
+        access_token: "better-auth-access-token",
+        expires_in: 3600,
+        refresh_token: "new-refresh-token",
+        scope: OAUTH_PROFILE_SCOPE,
+        token_type: "Bearer",
+      }),
+    );
+    signJwtMock.mockImplementation(async ({ body }) => ({
+      token: unsignedJwt(body.payload),
+    }));
+
+    const response = await tokenPostRoute(
+      new Request("http://localhost/api/auth/oauth2/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: "client-1",
+          grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+          refresh_token: "old-refresh-token",
+          resource: "https://life.example/api/graphql",
+          scope: OAUTH_PROFILE_SCOPE,
+        }).toString(),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(signJwtMock).toHaveBeenCalledWith({
+      body: {
+        payload: expect.objectContaining({
+          aud: "https://life.example/api/graphql",
+          scope: OAUTH_PROFILE_SCOPE,
+        }),
+      },
+    });
+    const payload = signJwtMock.mock.calls[0][0].body.payload;
+    expect(JSON.stringify(payload)).not.toContain("userinfo");
+    expect(payload.scope).not.toContain("todo:write");
+  });
+
+  it("省略 resource 的降权刷新不会从旧 scope 自动注入 GraphQL", async () => {
+    findRefreshTokenMock.mockResolvedValue({
+      resources: ["https://life.example/api/graphql"],
+      scopes: [OAUTH_PROFILE_SCOPE, "todo:write"],
+    });
+    betterAuthHandlerMock.mockResolvedValueOnce(
+      Response.json({
+        access_token: unsignedJwt({
+          azp: "client-1",
+          [OAUTH_GRANT_ID_CLAIM]: "grant-1",
+          scope: OAUTH_PROFILE_SCOPE,
+          sub: "user-1",
+        }),
+        scope: OAUTH_PROFILE_SCOPE,
+        token_type: "Bearer",
+      }),
+    );
+
+    const response = await tokenPostRoute(
+      new Request("http://localhost/api/auth/oauth2/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: "client-1",
+          grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+          refresh_token: "old-refresh-token",
+          scope: OAUTH_PROFILE_SCOPE,
+        }).toString(),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const delegatedRequest = betterAuthHandlerMock.mock.calls[0][0] as Request;
+    expect(
+      new URLSearchParams(await delegatedRequest.text()).has("resource"),
+    ).toBe(false);
+    expect(signJwtMock).not.toHaveBeenCalled();
+  });
+
+  it("scope 响应省略时仍按刷新请求上限拒绝 provider 恢复旧权限", async () => {
+    findRefreshTokenMock.mockResolvedValue({
+      clientId: "client-1",
+      grantId: "grant-1",
+      referenceId: "grant-1",
+      resources: ["https://life.example/api/graphql"],
+      scopes: [OAUTH_PROFILE_SCOPE, "todo:write"],
+      userId: "user-1",
+    });
+    betterAuthHandlerMock.mockResolvedValueOnce(
+      Response.json({
+        access_token: unsignedJwt({
+          azp: "client-1",
+          [OAUTH_GRANT_ID_CLAIM]: "grant-1",
+          scope: `${OAUTH_PROFILE_SCOPE} todo:write`,
+          sub: "user-1",
+        }),
+        refresh_token: "new-refresh-token",
+        token_type: "Bearer",
+      }),
+    );
+
+    const response = await tokenPostRoute(
+      new Request("http://localhost/api/auth/oauth2/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: "client-1",
+          grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+          refresh_token: "old-refresh-token",
+          resource: "https://life.example/api/graphql",
+          scope: OAUTH_PROFILE_SCOPE,
+        }).toString(),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "invalid_grant",
+    });
+    expect(resolveActiveOAuthUserGrantMock).not.toHaveBeenCalled();
+  });
+
+  it("在委托 Better Auth 前拒绝已撤销的 refresh grant", async () => {
+    resolveActiveOAuthRefreshGrantMock.mockResolvedValueOnce(null);
+
+    const response = await tokenPostRoute(
+      new Request("http://localhost/api/auth/oauth2/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: "client-1",
+          grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+          refresh_token: "revoked-refresh-token",
+        }).toString(),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "invalid_grant",
+    });
+    expect(betterAuthHandlerMock).not.toHaveBeenCalled();
+  });
+
+  it("并发撤销发生在刷新期间时丢弃响应并清除竞态 token rows", async () => {
+    findRefreshTokenMock.mockResolvedValue(null);
+    betterAuthHandlerMock.mockResolvedValueOnce(
+      Response.json({
+        access_token: "must-not-escape",
+        expires_in: 3600,
+        token_type: "Bearer",
+      }),
+    );
+    isOAuthRefreshGrantActiveMock.mockResolvedValueOnce(false);
+
+    const response = await tokenPostRoute(
+      new Request("http://localhost/api/auth/oauth2/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: "client-1",
+          grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+          refresh_token: "racing-refresh-token",
+        }).toString(),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body).toMatchObject({ error: "invalid_grant" });
+    expect(JSON.stringify(body)).not.toContain("must-not-escape");
+    expect(purgeOAuthGrantTokenRowsMock).toHaveBeenCalledWith({
+      clientId: "client-1",
+      grantId: "grant-1",
+      scopes: [OAUTH_PROFILE_SCOPE],
+      userId: "user-1",
+    });
+  });
+
+  it("授权状态数据库不可用时 fail closed 且不委托 refresh", async () => {
+    resolveActiveOAuthRefreshGrantMock.mockRejectedValueOnce(
+      new Error("database unavailable"),
+    );
+
+    const response = await tokenPostRoute(
+      new Request("http://localhost/api/auth/oauth2/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: "client-1",
+          grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
+          refresh_token: "refresh-token",
+        }).toString(),
+      }),
+    );
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "server_error",
+    });
+    expect(betterAuthHandlerMock).not.toHaveBeenCalled();
   });
 });

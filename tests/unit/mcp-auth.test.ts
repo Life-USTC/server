@@ -8,6 +8,7 @@ import { LEGACY_MCP_TOOLS_SCOPE } from "@/lib/oauth/scope-registry";
 
 const verifyOAuthAccessTokenMock = vi.fn();
 const getJwksMock = vi.fn();
+const hasActiveOAuthUserGrantMock = vi.fn();
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
@@ -20,6 +21,10 @@ vi.mock("@/lib/db/prisma", () => ({
 vi.mock("@/lib/log/oauth-debug", () => ({
   isOAuthDebugLogging: () => false,
   logOAuthDebug: vi.fn(),
+}));
+
+vi.mock("@/lib/oauth/active-user-grant", () => ({
+  hasActiveOAuthUserGrant: hasActiveOAuthUserGrantMock,
 }));
 
 vi.mock("@/lib/auth/core", () => ({
@@ -52,6 +57,8 @@ describe("MCP 认证", () => {
     vi.resetModules();
     getJwksMock.mockReset();
     verifyOAuthAccessTokenMock.mockReset();
+    hasActiveOAuthUserGrantMock.mockReset();
+    hasActiveOAuthUserGrantMock.mockResolvedValue(true);
   });
 
   it("使用本地 JWKS 和规范 OAuth issuer 校验 JWT access token", async () => {
@@ -97,6 +104,50 @@ describe("MCP 认证", () => {
       restReadScope("todo"),
     );
   });
+
+  it("拒绝已撤销、缺少 azp 或无法查询授权状态的 MCP JWT", async () => {
+    const { verifyAccessToken } = await import("@/lib/mcp/auth");
+    const request = new Request("https://life.example/api/mcp");
+    const validClaims = {
+      azp: "client-id",
+      aud: "https://life.example/api/mcp",
+      exp: 1_900_000_000,
+      scope: MCP_TOOLS_SCOPE,
+      sub: "user-id",
+    };
+
+    verifyOAuthAccessTokenMock.mockResolvedValue(validClaims);
+    hasActiveOAuthUserGrantMock.mockResolvedValueOnce(false);
+    await expect(
+      verifyAccessToken(request, "header.payload.signature"),
+    ).resolves.toMatchObject({
+      diagnostics: { authFailureKind: "inactive_oauth_grant" },
+      error: "invalid_token",
+      status: 401,
+    });
+
+    verifyOAuthAccessTokenMock.mockResolvedValue({
+      ...validClaims,
+      azp: undefined,
+    });
+    await expect(
+      verifyAccessToken(request, "header.payload.signature"),
+    ).resolves.toMatchObject({
+      diagnostics: { authFailureKind: "inactive_oauth_grant" },
+      status: 401,
+    });
+
+    verifyOAuthAccessTokenMock.mockResolvedValue(validClaims);
+    hasActiveOAuthUserGrantMock.mockRejectedValueOnce(
+      new Error("database unavailable"),
+    );
+    await expect(
+      verifyAccessToken(request, "header.payload.signature"),
+    ).resolves.toMatchObject({
+      diagnostics: { authFailureKind: "inactive_oauth_grant" },
+      status: 401,
+    });
+  });
 });
 
 describe("authenticateMcpRequest per-tool scope enforcement", () => {
@@ -104,6 +155,8 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
     vi.resetModules();
     getJwksMock.mockReset();
     verifyOAuthAccessTokenMock.mockReset();
+    hasActiveOAuthUserGrantMock.mockReset();
+    hasActiveOAuthUserGrantMock.mockResolvedValue(true);
   });
 
   function makeAuthenticatedRequest(_scopes: string[]) {

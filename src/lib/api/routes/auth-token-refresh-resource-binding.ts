@@ -76,7 +76,9 @@ export async function maybeBindOAuthRefreshResourceRequest(
 
   const resource = getApprovedProtectedResource(
     refreshRecord.resources,
-    refreshRecord.scopes,
+    params.has("scope")
+      ? [...new Set((params.get("scope") ?? "").split(/\s+/).filter(Boolean))]
+      : refreshRecord.scopes,
   );
   if (!resource) return request;
 

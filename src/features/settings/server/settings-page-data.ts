@@ -1,4 +1,5 @@
 import { redirect } from "@sveltejs/kit";
+import { listUserOAuthAuthorizations } from "@/features/oauth/server/user-authorizations.server";
 import type { SettingsTab } from "@/features/settings/lib/settings-tabs";
 import { buildSettingsAccountProviders } from "@/features/settings/server/settings-account-providers";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
@@ -28,34 +29,39 @@ export async function getSettingsPageData(
   tab: SettingsTab,
 ) {
   const sessionUser = await requireSettingsUser(request, url);
-  const user = await prisma.user.findUnique({
-    where: { id: sessionUser.id },
-    select: {
-      id: true,
-      name: true,
-      username: true,
-      email: true,
-      image: true,
-      profilePictures: true,
-      accounts: {
-        orderBy: { createdAt: "asc" },
-        select: {
-          id: true,
-          provider: true,
-          providerAccountId: true,
-          createdAt: true,
+  const [user, authorizations] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: sessionUser.id },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        email: true,
+        image: true,
+        profilePictures: true,
+        accounts: {
+          orderBy: { createdAt: "asc" },
+          select: {
+            id: true,
+            provider: true,
+            providerAccountId: true,
+            createdAt: true,
+          },
+        },
+        _count: {
+          select: {
+            comments: true,
+            todos: true,
+            uploads: true,
+            subscribedSections: true,
+          },
         },
       },
-      _count: {
-        select: {
-          comments: true,
-          todos: true,
-          uploads: true,
-          subscribedSections: true,
-        },
-      },
-    },
-  });
+    }),
+    tab === "authorizations"
+      ? listUserOAuthAuthorizations(sessionUser.id)
+      : Promise.resolve([]),
+  ]);
 
   if (!user) {
     throw redirect(303, buildSignInPageUrl(`${url.pathname}${url.search}`));
@@ -65,9 +71,11 @@ export async function getSettingsPageData(
 
   return {
     tab,
-    message: ["AccountDisconnected", "Success"].includes(
-      url.searchParams.get("message") ?? "",
-    )
+    message: [
+      "AccountDisconnected",
+      "AuthorizationRevoked",
+      "Success",
+    ].includes(url.searchParams.get("message") ?? "")
       ? url.searchParams.get("message")
       : null,
     user: {
@@ -81,5 +89,6 @@ export async function getSettingsPageData(
       accountCount: user.accounts.length,
     },
     accounts,
+    authorizations,
   };
 }

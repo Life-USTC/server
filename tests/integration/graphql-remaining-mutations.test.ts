@@ -12,6 +12,12 @@ import { createMcpHarness, type McpHarness } from "./utils/mcp-harness";
 
 const handler = createGraphqlRequestHandler(false);
 const marker = `[integration-test] graphql-remaining-${Date.now()}`;
+const oauthClientId = `graphql-remaining-${crypto.randomUUID()}`;
+const oauthScopes = [
+  restWriteScope("comment"),
+  restWriteScope("dashboard"),
+  restWriteScope("upload"),
+];
 
 type GraphqlPayload = {
   data?: Record<string, unknown> | null;
@@ -87,6 +93,7 @@ const runtimeEnv = {
 let mcp: McpHarness;
 let userId = "";
 let otherUserId = "";
+let grantId = "";
 let ownedCommentId = "";
 let otherCommentId = "";
 let mcpCommentId = "";
@@ -124,8 +131,9 @@ async function signToken(scopes: string[]) {
   const issuedAt = Math.floor(Date.now() / 1000);
   const token = await runWithCloudflareRuntimeEnv(runtimeEnv, () =>
     signResourceBoundOAuthAccessToken({
-      clientId: "graphql-remaining-integration",
+      clientId: oauthClientId,
       expiresAt: issuedAt + 300,
+      grantId,
       issuedAt,
       resources: [getOAuthGraphqlResourceUrl()],
       scopes,
@@ -159,6 +167,27 @@ beforeAll(async () => {
   ]);
   userId = user.id;
   otherUserId = otherUser.id;
+
+  const oauthClient = await prisma.oAuthClient.create({
+    data: {
+      clientId: oauthClientId,
+      consents: {
+        create: {
+          scopes: oauthScopes,
+          userId,
+        },
+      },
+      name: "GraphQL remaining mutations integration",
+      redirectUris: ["https://graphql.example/callback"],
+    },
+    select: {
+      consents: {
+        select: { grantId: true },
+      },
+    },
+  });
+  grantId = oauthClient.consents[0]?.grantId ?? "";
+  if (!grantId) throw new Error("Expected an OAuth consent fixture");
 
   const [ownedComment, otherComment, mcpComment] = await Promise.all([
     prisma.comment.create({
@@ -213,6 +242,7 @@ afterAll(async () => {
     await prisma.uploadPending.deleteMany({ where: { userId } });
     await prisma.upload.deleteMany({ where: { userId } });
     await prisma.dashboardLinkPin.deleteMany({ where: { userId } });
+    await prisma.oAuthClient.deleteMany({ where: { clientId: oauthClientId } });
     await prisma.user.deleteMany({
       where: { id: { in: [userId, otherUserId] } },
     });

@@ -6,6 +6,8 @@ import {
   accessTokenLooksLikeJwt,
   verifyOpaqueAccessTokenForMcp,
 } from "@/lib/mcp/opaque-token-verification";
+import { hasActiveOAuthUserGrant } from "@/lib/oauth/active-user-grant";
+import { OAUTH_GRANT_ID_CLAIM } from "@/lib/oauth/constants";
 import { type AuthFailure, INVALID_TOKEN_ERROR } from "./auth-errors";
 import {
   getOAuthMcpAudienceUrls,
@@ -38,6 +40,14 @@ export async function verifyAccessToken(
   const audiences = getOAuthMcpAudienceUrls();
 
   if (accessTokenLooksLikeJwt(token)) {
+    let jwtClaims: {
+      aud?: unknown;
+      azp?: unknown;
+      exp?: unknown;
+      scope?: unknown;
+      sub?: unknown;
+      [OAUTH_GRANT_ID_CLAIM]?: unknown;
+    };
     try {
       const jwt = await verifyOAuthAccessToken(token, {
         jwksFetch: getLocalJwks,
@@ -46,19 +56,14 @@ export async function verifyAccessToken(
           audience: audiences,
         },
       });
-      const jwtClaims = jwt as {
+      jwtClaims = jwt as {
         aud?: unknown;
         azp?: unknown;
         exp?: unknown;
         scope?: unknown;
         sub?: unknown;
+        [OAUTH_GRANT_ID_CLAIM]?: unknown;
       };
-
-      return jwtClaimsToAuthInfo({
-        token,
-        jwtClaims,
-        mcpAudience,
-      });
     } catch (err) {
       if (isOAuthDebugLogging()) {
         logOAuthDebug("mcp.jwt-verify-failed", request, {
@@ -82,6 +87,58 @@ export async function verifyAccessToken(
         description: "Access token is invalid",
       };
     }
+
+    const userId = typeof jwtClaims.sub === "string" ? jwtClaims.sub : "";
+    const clientId = typeof jwtClaims.azp === "string" ? jwtClaims.azp : "";
+    const grantId =
+      typeof jwtClaims[OAUTH_GRANT_ID_CLAIM] === "string"
+        ? jwtClaims[OAUTH_GRANT_ID_CLAIM]
+        : undefined;
+    const scopes =
+      typeof jwtClaims.scope === "string"
+        ? jwtClaims.scope.split(/\s+/).filter(Boolean)
+        : [];
+    try {
+      if (
+        !userId ||
+        !clientId ||
+        !(await hasActiveOAuthUserGrant({
+          clientId,
+          grantId,
+          requireGrantBinding: true,
+          scopes,
+          userId,
+        }))
+      ) {
+        return {
+          diagnostics: {
+            authFailureKind: "inactive_oauth_grant",
+            authHeaderKind: "bearer",
+            authTokenFormat: "jwt",
+          },
+          error: INVALID_TOKEN_ERROR,
+          status: 401,
+          description: "OAuth authorization grant is inactive",
+        };
+      }
+    } catch {
+      return {
+        diagnostics: {
+          authFailureKind: "inactive_oauth_grant",
+          authHeaderKind: "bearer",
+          authTokenFormat: "jwt",
+        },
+        error: INVALID_TOKEN_ERROR,
+        status: 401,
+        description: "OAuth authorization grant could not be verified",
+      };
+    }
+
+    return jwtClaimsToAuthInfo({
+      token,
+      jwtClaims,
+      mcpAudience,
+    });
   }
 
   const opaque = await verifyOpaqueAccessTokenForMcp(token);

@@ -900,6 +900,10 @@
         "title": "Linked accounts",
         "description": "Connect or disconnect sign-in providers"
       },
+      "authorizations": {
+        "title": "Authorized apps",
+        "description": "Review and revoke third-party access"
+      },
       "content": {
         "title": "Content",
         "description": "Uploads and my comments"
@@ -937,6 +941,24 @@
         "title": "Language",
         "description": "Change interface language without adding a locale segment to the URL."
       }
+    },
+    "authorizations": {
+      "title": "Authorized OAuth applications",
+      "description": "Applications you approved can act with the listed permissions until you revoke access.",
+      "emptyTitle": "No authorized applications",
+      "emptyDescription": "Third-party OAuth applications you approve will appear here.",
+      "unnamedClient": "Unnamed application",
+      "disabled": "Disabled",
+      "permissions": "Permissions",
+      "updatedAt": "Last authorized",
+      "revoke": "Revoke",
+      "revoking": "Revoking…",
+      "revokeTitle": "Revoke application access?",
+      "revokeDescription": "This immediately blocks existing Life@USTC API, GraphQL, and MCP access for “{name}” and removes its refresh access.",
+      "revokeSuccess": "Application access revoked",
+      "revokeSuccessDescription": "Existing access and refresh tokens for this application can no longer be used.",
+      "revokeNotFound": "This authorization no longer exists or does not belong to your account.",
+      "revokeError": "Application access could not be revoked. Please try again."
     }
   },
   "courses": {

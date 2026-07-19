@@ -1,6 +1,7 @@
 import { randomBytesBase64Url } from "@/lib/crypto/web-crypto";
 import { getCanonicalOAuthIssuer } from "@/lib/mcp/urls";
 import {
+  OAUTH_GRANT_ID_CLAIM,
   OAUTH_OFFLINE_ACCESS_SCOPE,
   OAUTH_OPENID_SCOPE,
 } from "@/lib/oauth/constants";
@@ -23,10 +24,15 @@ type DeviceGrantTokenTransaction = {
     }) => Promise<{ count: number }>;
   };
   oAuthAccessToken: {
+    deleteMany: (input: {
+      where: { clientId: string; userId: string };
+    }) => Promise<{ count: number }>;
     create: (input: {
       data: {
         clientId: string;
         expiresAt: Date;
+        grantId: string;
+        referenceId: string;
         refreshId?: string;
         scopes: string[];
         token: string;
@@ -34,12 +40,43 @@ type DeviceGrantTokenTransaction = {
       };
     }) => Promise<unknown>;
   };
+  oAuthClient: {
+    findUnique: (input: {
+      where: { clientId: string };
+      select: { disabled: true; skipConsent: true };
+    }) => Promise<{ disabled: boolean; skipConsent: boolean | null } | null>;
+  };
+  oAuthConsent: {
+    deleteMany: (input: {
+      where: { clientId: string; userId: string };
+    }) => Promise<{ count: number }>;
+    upsert: (input: {
+      where: {
+        clientId_userId: { clientId: string; userId: string };
+      };
+      create: {
+        clientId: string;
+        grantId: string;
+        scopes: string[];
+        userId: string;
+      };
+      update: {
+        grantId: string;
+        scopes: string[];
+      };
+    }) => Promise<unknown>;
+  };
   oAuthRefreshToken: {
+    deleteMany: (input: {
+      where: { clientId: string; userId: string };
+    }) => Promise<{ count: number }>;
     create: (input: {
       data: {
         authTime: Date;
         clientId: string;
         expiresAt: Date;
+        grantId: string;
+        referenceId: string;
         resources: string[];
         scopes: string[];
         token: string;
@@ -67,6 +104,7 @@ function resolveAccessTokenAudiences(resources: string[], scopes: string[]) {
 export async function signResourceBoundOAuthAccessToken(input: {
   clientId: string;
   expiresAt: number;
+  grantId?: string;
   issuedAt: number;
   resources: string[];
   scopes: string[];
@@ -93,6 +131,7 @@ export async function signResourceBoundOAuthAccessToken(input: {
         iss: getCanonicalOAuthIssuer(),
         iat: input.issuedAt,
         exp: input.expiresAt,
+        ...(input.grantId ? { [OAUTH_GRANT_ID_CLAIM]: input.grantId } : {}),
       },
     },
   });
@@ -120,9 +159,11 @@ export async function issueDeviceGrantTokens(
   const refreshExpiresAt = new Date(
     Date.now() + DEVICE_REFRESH_TOKEN_EXPIRES_IN * 1000,
   );
+  const grantId = crypto.randomUUID();
   const jwtAccessToken = await signResourceBoundOAuthAccessToken({
     clientId: input.clientId,
     expiresAt,
+    grantId,
     issuedAt,
     resources: input.resources,
     scopes: input.scopes,
@@ -151,13 +192,46 @@ export async function issueDeviceGrantTokens(
     });
     if (claimed.count !== 1) return false;
 
+    const identity = {
+      clientId: input.clientId,
+      userId: input.userId,
+    };
+    const client = await tx.oAuthClient.findUnique({
+      where: { clientId: input.clientId },
+      select: { disabled: true, skipConsent: true },
+    });
+    if (!client || client.disabled) return false;
+    if (client.skipConsent === true) {
+      await tx.oAuthConsent.deleteMany({ where: identity });
+    } else {
+      await tx.oAuthConsent.upsert({
+        where: {
+          clientId_userId: identity,
+        },
+        create: {
+          clientId: input.clientId,
+          grantId,
+          scopes: input.scopes,
+          userId: input.userId,
+        },
+        update: {
+          grantId,
+          scopes: input.scopes,
+        },
+      });
+    }
+    await tx.oAuthAccessToken.deleteMany({ where: identity });
+    await tx.oAuthRefreshToken.deleteMany({ where: identity });
+
     const refreshRecord =
       refreshTokenHash &&
       (await tx.oAuthRefreshToken.create({
         data: {
           token: refreshTokenHash,
           clientId: input.clientId,
+          grantId,
           userId: input.userId,
+          referenceId: grantId,
           resources: input.resources,
           scopes: input.scopes,
           expiresAt: refreshExpiresAt,
@@ -170,7 +244,9 @@ export async function issueDeviceGrantTokens(
         data: {
           token: accessTokenHash,
           clientId: input.clientId,
+          grantId,
           userId: input.userId,
+          referenceId: grantId,
           scopes: input.scopes,
           expiresAt: accessExpiresAt,
           ...(refreshRecord ? { refreshId: refreshRecord.id } : {}),

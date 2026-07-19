@@ -20,7 +20,8 @@
     "oauth-consent-loopback-continuation": "The OAuth consent step must continue working for loopback public clients even when the client uses 127.0.0.1 and the app itself is being browsed via localhost; consent submission should preserve the original authorization query and complete the redirect back to the registered loopback callback.",
     "public-identity-display": "Public identity defaults to displaying name or username, not internal identifiers.",
     "public-profile-canonical-route": "When a profile has a username, /u/id/$uid permanently redirects to the canonical /u/$username page. Profiles without a username remain reachable by ID without rendering the raw ID as primary metadata.",
-    "account-deletion-retention": "Settings account deletion runs through a transaction that anonymizes retained audit rows and issued suspension moderation records. Deleting an admin account is allowed only when at least one other admin remains."
+    "account-deletion-retention": "Settings account deletion runs through a transaction that anonymizes retained audit rows and issued suspension moderation records. Deleting an admin account is allowed only when at least one other admin remains.",
+    "oauth-authorization-management": "Settings separates linked sign-in accounts from applications authorized to call Life@USTC on the user's behalf. The canonical /settings/authorizations page lists safe client metadata and lets only the owning signed-in user revoke a grant."
   },
   "capabilities": {
     "sign-in": {
@@ -156,6 +157,7 @@
           "/settings/profile",
           "/settings/preferences",
           "/settings/accounts",
+          "/settings/authorizations",
           "/settings/content",
           "/settings/danger"
         ]
@@ -175,6 +177,7 @@
           "user passkeys with add, rename, and delete controls",
           "Fresh-session and WebAuthn support states for passkey registration",
           "canDisconnect (Boolean - requires min 2 accounts)",
+          "Authorized OAuth applications: client display name, public URI, disabled state, scopes, last authorization time, and revoke action",
           "Compact responsive section navigation with active-section description",
           "Navigation links to sections and comment guide",
           "Visually separated danger region and account deletion confirmation interface"

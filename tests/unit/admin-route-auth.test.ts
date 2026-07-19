@@ -4,11 +4,13 @@ import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 const {
   findActiveSuspensionMock,
   getSessionFromHeadersMock,
+  hasActiveOAuthUserGrantMock,
   resolveAdminByUserIdMock,
   verifyAccessTokenJwtMock,
 } = vi.hoisted(() => ({
   findActiveSuspensionMock: vi.fn(),
   getSessionFromHeadersMock: vi.fn(),
+  hasActiveOAuthUserGrantMock: vi.fn(),
   resolveAdminByUserIdMock: vi.fn(),
   verifyAccessTokenJwtMock: vi.fn(),
 }));
@@ -29,6 +31,10 @@ vi.mock("@/lib/auth/jwt-verification", () => ({
   verifyAccessTokenJwt: verifyAccessTokenJwtMock,
 }));
 
+vi.mock("@/lib/oauth/active-user-grant", () => ({
+  hasActiveOAuthUserGrant: hasActiveOAuthUserGrantMock,
+}));
+
 vi.mock("@/lib/mcp/urls", () => ({
   getJwksUrlForOAuthVerification: () => "https://life.example/api/auth/jwks",
   getOAuthRestAudienceUrls: () => ["https://life.example/api/auth"],
@@ -38,12 +44,14 @@ vi.mock("@/lib/mcp/urls", () => ({
 describe("admin 路由认证", () => {
   beforeEach(() => {
     setCloudflareRuntimeEnv(undefined);
+    hasActiveOAuthUserGrantMock.mockResolvedValue(true);
   });
 
   afterEach(() => {
     setCloudflareRuntimeEnv(undefined);
     findActiveSuspensionMock.mockReset();
     getSessionFromHeadersMock.mockReset();
+    hasActiveOAuthUserGrantMock.mockReset();
     resolveAdminByUserIdMock.mockReset();
     verifyAccessTokenJwtMock.mockReset();
     vi.resetModules();
@@ -68,6 +76,7 @@ describe("admin 路由认证", () => {
 
   it("为有效的管理员 Bearer REST 请求返回管理员会话", async () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
+      clientId: "admin-client",
       sub: "admin-from-token",
       scope: new Set(["me:read"]),
       aud: "https://life.example/api/auth",
@@ -95,6 +104,13 @@ describe("admin 路由认证", () => {
       }),
     );
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
+    expect(hasActiveOAuthUserGrantMock).toHaveBeenCalledWith({
+      clientId: "admin-client",
+      grantId: undefined,
+      requireGrantBinding: true,
+      scopes: ["me:read"],
+      userId: "admin-from-token",
+    });
     expect(resolveAdminByUserIdMock).toHaveBeenCalledWith("admin-from-token");
   });
 

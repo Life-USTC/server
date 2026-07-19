@@ -9,6 +9,13 @@ import { DEV_SEED } from "../fixtures/dev-seed";
 
 const handler = createGraphqlRequestHandler(false);
 const marker = `[integration-test] graphql-batches-${Date.now()}`;
+const oauthClientId = `graphql-batches-${crypto.randomUUID()}`;
+const batchScopes = [
+  restReadScope("todo"),
+  restWriteScope("todo"),
+  restWriteScope("homework"),
+  restWriteScope("subscription"),
+];
 
 let userAId = "";
 let userBId = "";
@@ -55,9 +62,18 @@ async function execute(body: unknown, token?: string) {
 }
 
 async function signToken(userId: string, scopes: string[]) {
+  const consent = await prisma.oAuthConsent.findFirstOrThrow({
+    where: {
+      clientId: oauthClientId,
+      scopes: { hasEvery: scopes },
+      userId,
+    },
+    select: { grantId: true },
+  });
   const issuedAt = Math.floor(Date.now() / 1000);
   const token = await signResourceBoundOAuthAccessToken({
-    clientId: "graphql-batches-integration",
+    clientId: oauthClientId,
+    grantId: consent.grantId,
     expiresAt: issuedAt + 300,
     issuedAt,
     resources: [getOAuthGraphqlResourceUrl()],
@@ -134,6 +150,16 @@ beforeAll(async () => {
         },
         select: { id: true },
       }),
+      prisma.oAuthClient.create({
+        data: {
+          clientId: oauthClientId,
+          consents: {
+            create: { scopes: batchScopes, userId: userAId },
+          },
+          name: "GraphQL batches integration",
+          redirectUris: ["https://graphql.example/callback"],
+        },
+      }),
     ]);
   ownedCompletionTodoId = ownedCompletionTodo.id;
   ownedDeleteTodoId = ownedDeleteTodo.id;
@@ -143,6 +169,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  await prisma.oAuthClient.deleteMany({ where: { clientId: oauthClientId } });
   await prisma.homework.deleteMany({
     where: { id: { in: [activeHomeworkId, deletedHomeworkId] } },
   });

@@ -11,6 +11,7 @@ import { expandScopeClaim } from "@/lib/oauth/scope-registry";
 const getSessionFromHeadersMock = vi.fn();
 const verifyAccessTokenJwtMock = vi.fn();
 const getViewerAuthDataForUserIdMock = vi.fn();
+const hasActiveOAuthUserGrantMock = vi.fn();
 
 vi.mock("@/lib/auth/core", () => ({
   getSessionFromHeaders: getSessionFromHeadersMock,
@@ -22,6 +23,10 @@ vi.mock("@/lib/db/prisma", () => ({
 
 vi.mock("@/lib/auth/jwt-verification", () => ({
   verifyAccessTokenJwt: verifyAccessTokenJwtMock,
+}));
+
+vi.mock("@/lib/oauth/active-user-grant", () => ({
+  hasActiveOAuthUserGrant: hasActiveOAuthUserGrantMock,
 }));
 
 vi.mock("@/lib/auth/viewer-context", () => ({
@@ -41,6 +46,8 @@ describe("认证辅助函数", () => {
     getSessionFromHeadersMock.mockReset();
     verifyAccessTokenJwtMock.mockReset();
     getViewerAuthDataForUserIdMock.mockReset();
+    hasActiveOAuthUserGrantMock.mockReset();
+    hasActiveOAuthUserGrantMock.mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -65,6 +72,7 @@ describe("认证辅助函数", () => {
 
   it("优先使用有效的 bearer 访问令牌而非 session cookie", async () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
+      clientId: "client-id",
       scope: expandScopeClaim(OAUTH_REST_READ_SCOPE),
       sub: "user-from-token",
     });
@@ -90,6 +98,7 @@ describe("认证辅助函数", () => {
 
   it.each(["bearer", "bEaReR"])("接受 %s bearer 访问令牌", async (scheme) => {
     verifyAccessTokenJwtMock.mockResolvedValue({
+      clientId: "client-id",
       scope: new Set(["me:read"]),
       sub: "user-from-token",
     });
@@ -109,6 +118,37 @@ describe("认证辅助函数", () => {
     );
   });
 
+  it("拒绝已撤销、缺少 azp 或无法查询授权状态的 REST JWT", async () => {
+    const { resolveApiUserId } = await import("@/lib/auth/api-auth");
+    const request = new Request("https://life.example/api/me", {
+      headers: { authorization: "Bearer access-token" },
+    });
+
+    verifyAccessTokenJwtMock.mockResolvedValue({
+      clientId: "client-id",
+      scope: new Set(["me:read"]),
+      sub: "user-from-token",
+    });
+    hasActiveOAuthUserGrantMock.mockResolvedValueOnce(false);
+    await expect(resolveApiUserId(request)).resolves.toBeNull();
+
+    verifyAccessTokenJwtMock.mockResolvedValue({
+      scope: new Set(["me:read"]),
+      sub: "user-from-token",
+    });
+    await expect(resolveApiUserId(request)).resolves.toBeNull();
+
+    verifyAccessTokenJwtMock.mockResolvedValue({
+      clientId: "client-id",
+      scope: new Set(["me:read"]),
+      sub: "user-from-token",
+    });
+    hasActiveOAuthUserGrantMock.mockRejectedValueOnce(
+      new Error("database unavailable"),
+    );
+    await expect(resolveApiUserId(request)).resolves.toBeNull();
+  });
+
   it.each([
     "bearer",
     "bEaReR",
@@ -126,6 +166,7 @@ describe("认证辅助函数", () => {
 
   it("拒绝仅 profile 的 bearer 访问受保护 REST 读取", async () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
+      clientId: "client-id",
       scope: new Set([OAUTH_PROFILE_SCOPE]),
       sub: "user-from-token",
     });
@@ -150,6 +191,7 @@ describe("认证辅助函数", () => {
 
   it("拒绝仅 MCP 的 bearer 访问受保护 REST 读取", async () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
+      clientId: "client-id",
       scope: new Set([OAUTH_PROFILE_SCOPE, MCP_TOOLS_SCOPE]),
       sub: "user-from-token",
     });
@@ -174,6 +216,7 @@ describe("认证辅助函数", () => {
 
   it("拒绝 REST 只读 bearer 访问受保护 REST 写入", async () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
+      clientId: "client-id",
       scope: expandScopeClaim(OAUTH_REST_READ_SCOPE),
       sub: "user-from-token",
     });
@@ -197,6 +240,7 @@ describe("认证辅助函数", () => {
 
   it("拒绝 REST 只读 bearer 访问使用 requireAuth 的 POST 路由", async () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
+      clientId: "client-id",
       scope: expandScopeClaim(OAUTH_REST_READ_SCOPE),
       sub: "user-from-token",
     });
@@ -222,6 +266,7 @@ describe("认证辅助函数", () => {
 
   it("拒绝仅 MCP 的 bearer 访问受保护 REST 写入", async () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
+      clientId: "client-id",
       scope: new Set([OAUTH_PROFILE_SCOPE, MCP_TOOLS_SCOPE]),
       sub: "user-from-token",
     });
@@ -247,6 +292,7 @@ describe("认证辅助函数", () => {
     const limit = vi.fn().mockResolvedValue({ success: false });
     setCloudflareRuntimeEnv({ USER_WRITE_RATE_LIMITER: { limit } });
     verifyAccessTokenJwtMock.mockResolvedValue({
+      clientId: "client-id",
       scope: expandScopeClaim(OAUTH_REST_WRITE_SCOPE),
       sub: "user-from-token",
     });
@@ -280,6 +326,7 @@ describe("认证辅助函数", () => {
     const limit = vi.fn().mockResolvedValue({ success: false });
     setCloudflareRuntimeEnv({ USER_WRITE_RATE_LIMITER: { limit } });
     verifyAccessTokenJwtMock.mockResolvedValue({
+      clientId: "client-id",
       scope: expandScopeClaim(OAUTH_REST_READ_SCOPE),
       sub: "user-from-token",
     });
@@ -299,6 +346,7 @@ describe("认证辅助函数", () => {
   it("Cloudflare 写入限流绑定缺失时返回 503", async () => {
     setCloudflareRuntimeEnv({ ANALYTICS: { writeDataPoint: vi.fn() } });
     verifyAccessTokenJwtMock.mockResolvedValue({
+      clientId: "client-id",
       scope: expandScopeClaim(OAUTH_REST_WRITE_SCOPE),
       sub: "user-from-token",
     });
@@ -321,6 +369,7 @@ describe("认证辅助函数", () => {
     const limit = vi.fn().mockResolvedValue({ success: false });
     setCloudflareRuntimeEnv({ USER_WRITE_RATE_LIMITER: { limit } });
     verifyAccessTokenJwtMock.mockResolvedValue({
+      clientId: "client-id",
       scope: expandScopeClaim(OAUTH_REST_WRITE_SCOPE),
       sub: "user-from-token",
     });
@@ -453,6 +502,7 @@ describe("认证辅助函数", () => {
 
   it("当解析到的用户不存在时拒绝写入认证", async () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
+      clientId: "client-id",
       scope: expandScopeClaim(OAUTH_REST_WRITE_SCOPE),
       sub: "deleted-user",
     });
