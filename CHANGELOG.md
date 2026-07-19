@@ -1,3 +1,15 @@
+## [1.64.6](https://github.com/Life-USTC/server/compare/v1.64.5...v1.64.6) (2026-07-19)
+
+
+### Performance Improvements
+
+* **ssr:** reuse hook auth in detail loaders ([#536](https://github.com/Life-USTC/server/issues/536)) ([0c262ad](https://github.com/Life-USTC/server/commit/0c262adc146afaa4b9e7dae376cc628b4d78e74f))
+
+
+### Reverts
+
+* Revert "feat(ops): add database recovery gate ([#474](https://github.com/Life-USTC/server/issues/474))" ([#534](https://github.com/Life-USTC/server/issues/534)) ([117750b](https://github.com/Life-USTC/server/commit/117750bdb54cc3b41f45d47a1907591f8bd48d77))
+
 ## [1.64.5](https://github.com/Life-USTC/server/compare/v1.64.4...v1.64.5) (2026-07-19)
 
 
