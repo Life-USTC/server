@@ -1,3 +1,10 @@
+## [1.70.1](https://github.com/Life-USTC/server/compare/v1.70.0...v1.70.1) (2026-07-19)
+
+
+### Bug Fixes
+
+* **ci:** preserve queued E2E report publishers ([#567](https://github.com/Life-USTC/server/issues/567)) ([c53887f](https://github.com/Life-USTC/server/commit/c53887f837fd5d5b44118cb59185f2d5916057d5))
+
 # [1.70.0](https://github.com/Life-USTC/server/compare/v1.69.0...v1.70.0) (2026-07-19)
 
 
