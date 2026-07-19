@@ -12,6 +12,12 @@ import {
   resolveDashboardLinkBySlug,
   updateDashboardLinkPinState,
 } from "@/features/dashboard-links/server/dashboard-link-service";
+import { DESCRIPTION_CONTENT_MAX_LENGTH } from "@/features/descriptions/lib/description-limits";
+import {
+  type DescriptionTargetType,
+  resolveDescriptionTargetReference,
+} from "@/features/descriptions/server/description-targets";
+import { upsertDescriptionContent } from "@/features/descriptions/server/description-upsert";
 import { setHomeworkCompletion } from "@/features/homeworks/server/homework-completion";
 import { setUserSectionSubscriptionByJwId } from "@/features/subscriptions/server/subscriptions";
 import type { TodoPriorityValue } from "@/features/todos/lib/todo-priority";
@@ -26,7 +32,10 @@ import type {
 } from "@/generated/prisma/client";
 import { getAuditRequestMetadata } from "@/lib/audit/write-audit-log";
 import type { GraphqlContext } from "./context";
-import { requireGraphqlId } from "./input-boundaries";
+import {
+  requireGraphqlId,
+  validateOptionalGraphqlId,
+} from "./input-boundaries";
 import {
   badMutationInput,
   forbiddenMutation,
@@ -47,6 +56,13 @@ import {
 } from "./mutation-input";
 
 export const graphqlMutationTypeDefs = /* GraphQL */ `
+  enum DescriptionTargetType {
+    COURSE
+    SECTION
+    TEACHER
+    HOMEWORK
+  }
+
   enum CommentVisibility {
     PUBLIC
     LOGGED_IN_ONLY
@@ -90,6 +106,16 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
     preferredOriginCampusId: Int
     preferredDestinationCampusId: Int
     showDepartedTrips: Boolean!
+  }
+
+  input UpsertDescriptionInput {
+    targetType: DescriptionTargetType!
+    targetId: ID
+    sectionJwId: Int
+    courseJwId: Int
+    teacherId: Int
+    homeworkId: ID
+    content: String!
   }
 
   input CreateCommentInput {
@@ -152,6 +178,11 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
     id: ID!
   }
 
+  type DescriptionMutationPayload {
+    id: ID!
+    updated: Boolean!
+  }
+
   type CommentReactionMutationPayload {
     commentId: ID!
     type: CommentReactionType!
@@ -176,6 +207,9 @@ export const graphqlMutationTypeDefs = /* GraphQL */ `
     saveBusPreferences(
       input: BusPreferenceInput!
     ): BusPreferenceMutationPayload!
+    upsertDescription(
+      input: UpsertDescriptionInput!
+    ): DescriptionMutationPayload!
     createComment(input: CreateCommentInput!): CommentMutationPayload!
     updateComment(
       id: ID!
@@ -234,6 +268,23 @@ type UpdateCommentInput = {
   visibility?: CommentVisibility | null;
 };
 
+type UpsertDescriptionInput = {
+  content: string;
+  courseJwId?: number | null;
+  homeworkId?: string | null;
+  sectionJwId?: number | null;
+  targetId?: string | null;
+  targetType: DescriptionTargetType;
+  teacherId?: number | null;
+};
+
+const descriptionTargetTypeResolver = {
+  COURSE: "course",
+  SECTION: "section",
+  TEACHER: "teacher",
+  HOMEWORK: "homework",
+} as const satisfies Record<string, DescriptionTargetType>;
+
 function graphqlCommentAuditMetadata(request: Request) {
   return {
     ...getAuditRequestMetadata(request),
@@ -265,6 +316,19 @@ function handleCommentFailure(result: { error: string }): never {
   return badMutationInput("Invalid comment mutation.");
 }
 
+function handleDescriptionFailure(result: { error: string }): never {
+  if (result.error === "not_found") {
+    mutationNotFound("Description target not found.");
+  }
+  if (result.error === "invalid_target") {
+    badMutationInput("Invalid description target.");
+  }
+  if (result.error === "suspended") {
+    forbiddenMutation("Description writes are suspended.");
+  }
+  return forbiddenMutation();
+}
+
 async function setSectionSubscription(
   context: GraphqlContext,
   jwId: number,
@@ -284,6 +348,7 @@ export const graphqlMutationResolvers = {
   CommentVisibility: commentVisibilityResolver,
   CommentReactionType: commentReactionTypeResolver,
   CommentTargetType: commentTargetTypeResolver,
+  DescriptionTargetType: descriptionTargetTypeResolver,
   Mutation: {
     async createTodo(
       _parent: unknown,
@@ -417,6 +482,65 @@ export const graphqlMutationResolvers = {
       });
       if (!result.ok) badMutationInput(result.error);
       return result.preference;
+    },
+    async upsertDescription(
+      _parent: unknown,
+      args: { input: UpsertDescriptionInput },
+      context: GraphqlContext,
+    ) {
+      const principal = await requireGraphqlMutation(context, "description");
+      const input = args.input;
+      rejectExplicitNullFields(input, [
+        "targetId",
+        "sectionJwId",
+        "courseJwId",
+        "teacherId",
+        "homeworkId",
+      ]);
+      if (input.content.length > DESCRIPTION_CONTENT_MAX_LENGTH) {
+        badMutationInput(
+          `content must not exceed ${DESCRIPTION_CONTENT_MAX_LENGTH} characters.`,
+        );
+      }
+      const content = input.content.trim();
+
+      const target = await resolveDescriptionTargetReference({
+        courseJwId: validateOptionalGraphqlId(input.courseJwId, "courseJwId"),
+        homeworkId:
+          input.homeworkId == null
+            ? undefined
+            : requireMutationId(input.homeworkId, "homeworkId"),
+        rawTargetId:
+          input.targetId == null
+            ? undefined
+            : requireMutationId(input.targetId, "targetId"),
+        sectionJwId: validateOptionalGraphqlId(
+          input.sectionJwId,
+          "sectionJwId",
+        ),
+        targetType: input.targetType,
+        teacherId: validateOptionalGraphqlId(input.teacherId, "teacherId"),
+        verifyExistence: true,
+      });
+      if (!target.ok) {
+        if (target.error === "target_not_found") {
+          mutationNotFound("Description target not found.");
+        }
+        badMutationInput("Invalid description target.");
+      }
+
+      const result = await upsertDescriptionContent({
+        auditMetadata: {
+          ...getAuditRequestMetadata(context.request),
+          source: "graphql",
+        },
+        content,
+        targetId: target.targetId,
+        targetType: target.targetType,
+        userId: principal.userId,
+      });
+      if (!result.ok) handleDescriptionFailure(result);
+      return { id: result.id, updated: result.updated };
     },
     async createComment(
       _parent: unknown,
