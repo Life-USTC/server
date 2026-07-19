@@ -2,7 +2,6 @@ import { isSignedDashboardTab } from "@/features/dashboard/lib/dashboard-nav";
 import { getDashboardPageCopy } from "@/features/dashboard/server/dashboard-page-copy";
 import { loadSignedDashboardPageData } from "@/features/dashboard/server/dashboard-page-load-signed";
 import type { DashboardPageLoadEvent } from "@/features/dashboard/server/dashboard-page-load-types";
-import { loadDashboardPublicSummaryWithFallback } from "@/features/dashboard/server/dashboard-page-public-summary";
 import {
   normalizeDashboardTab,
   parsePositiveCalendarSemester,
@@ -46,25 +45,17 @@ export async function loadSignedDashboardPage({
     url.searchParams.get("snapshotAt"),
   );
 
-  const publicSummaryPromise = loadDashboardPublicSummaryWithFallback(
-    locale,
-    referenceNow ?? null,
-  );
-
   const signedTab = isSignedDashboardTab(tab) ? tab : "overview";
-  const [publicSummary, signedData] = await Promise.all([
-    publicSummaryPromise,
-    loadSignedDashboardPageData({
-      calendarSemesterId,
-      locale,
-      overviewWeek: url.searchParams.get("overviewWeek"),
-      pageCopy,
-      referenceNow,
-      requestId: locals.requestId,
-      tab,
-      userId,
-    }),
-  ]);
+  const signedData = await loadSignedDashboardPageData({
+    calendarSemesterId,
+    locale,
+    overviewWeek: url.searchParams.get("overviewWeek"),
+    pageCopy,
+    referenceNow,
+    requestId: locals.requestId,
+    tab,
+    userId,
+  });
   recordDashboardLoadFinish({
     durationMs: Date.now() - startMs,
     requestId: locals.requestId,
@@ -78,8 +69,6 @@ export async function loadSignedDashboardPage({
 
   return {
     ...signedData,
-    counts: publicSummary.counts,
-    currentTermName: publicSummary.currentTermName,
     mainContentLabel: pageCopy.dashboard.nav[signedTab].title,
   };
 }
