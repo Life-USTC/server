@@ -920,10 +920,10 @@
   "sections": {
     "title": "所有班级",
     "subtitle": "浏览和筛选所有可用的课程班级",
-    "searchPlaceholder": "搜索或使用高级语法（点击 ? 查看帮助）",
+    "searchPlaceholder": "搜索课程名称、课程代码或班级代码",
     "searchHelp": "?",
     "searchHelpTitle": "高级搜索语法",
-    "searchHelpDescription": "使用特殊语法搜索特定属性。您可以组合多个过滤器。",
+    "searchHelpDescription": "上方界面已覆盖全部常用条件。文本语法适合粘贴和复用复杂查询；多个条件会同时生效，值包含空格时请使用引号。",
     "searchHelpExample": "示例：",
     "searchHelpExamples": [
       {
@@ -959,7 +959,7 @@
       {
         "syntax": "semester:学期名",
         "description": "按学期名称搜索",
-        "example": "semester:2024 春"
+        "example": "semester:\"2024 春\""
       },
       {
         "syntax": "category:类别名",
@@ -978,7 +978,7 @@
       },
       {
         "syntax": "sort:字段",
-        "description": "按字段排序结果（别名：sortby:字段）。有效字段：credits（学分）、capacity（容量）、semester（学期）、course（课程）、code（代码）、teacher（教师）、campus（校区）",
+        "description": "按字段排序结果（别名：sortby:字段）。capacity 按当前人数排序，teacher 按教师数量排序",
         "example": "sort:credits"
       },
       {
@@ -997,10 +997,38 @@
     "teachers": "教师",
     "campus": "校区",
     "department": "院系",
+    "category": "课程类别",
+    "educationLevel": "教育层次",
+    "classType": "课程类型",
+    "courseCode": "课程代码",
     "credits": "学分",
     "capacity": "容量",
     "noSemester": "无学期",
     "creditValue": "{count} 学分",
+    "filterDescription": "组合班级、课程属性和排序条件；留空表示不限。",
+    "filters": {
+      "any": "不限",
+      "apply": "应用筛选",
+      "sectionTitle": "班级条件",
+      "sectionDescription": "按开课信息精确缩小结果。",
+      "courseTitle": "课程属性",
+      "courseDescription": "按课程元数据进一步筛选。",
+      "exactCredits": "精确匹配学分数，例如 2.5。",
+      "sortingTitle": "结果排序",
+      "sortingDescription": "选择排序字段和方向；教师按数量排序。",
+      "sortBy": "排序字段",
+      "defaultSort": "默认顺序",
+      "sortCredits": "学分",
+      "sortCapacity": "当前人数",
+      "sortSemester": "学期",
+      "sortCourse": "课程名称",
+      "sortCode": "班级代码",
+      "sortTeacherCount": "教师数量",
+      "sortCampus": "校区",
+      "order": "排序方向",
+      "orderAsc": "升序",
+      "orderDesc": "降序"
+    },
     "summary": {
       "matches": "匹配",
       "matchesMeta": "当前查询中的班级",

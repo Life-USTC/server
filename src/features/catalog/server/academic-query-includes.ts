@@ -18,6 +18,8 @@ export const sectionSummarySelect = {
       code: true,
       nameCn: true,
       nameEn: true,
+      namePrimary: true,
+      nameSecondary: true,
     },
   },
   semester: {
@@ -34,6 +36,8 @@ export const sectionSummarySelect = {
       jwId: true,
       nameCn: true,
       nameEn: true,
+      namePrimary: true,
+      nameSecondary: true,
       code: true,
     },
   },
@@ -45,9 +49,11 @@ export const sectionSummarySelect = {
       code: true,
       nameCn: true,
       nameEn: true,
+      namePrimary: true,
+      nameSecondary: true,
     },
   },
-} satisfies Prisma.SectionSelect;
+};
 
 /** Lightweight section include for list/match scenarios. */
 export const sectionCompactInclude = {

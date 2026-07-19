@@ -13,7 +13,7 @@ on:
       job-phase:
         required: true
         type: string
-      e2e-test-paths:
+      e2e-shard:
         required: false
         type: string
         default: ""
@@ -127,28 +127,19 @@ jobs:
       - name: Run job phase
         shell: bash
         env:
-          E2E_TEST_PATHS: ${{ inputs.e2e-test-paths }}
+          E2E_SHARD: ${{ inputs.e2e-shard }}
           JOB_PHASE: ${{ inputs.job-phase }}
         run: |
           run_e2e_test_phase() {
-            local -a paths=()
-            local path
-
-            while IFS= read -r path; do
-              if [ -n "$path" ]; then
-                paths+=("$path")
-              fi
-            done <<< "$E2E_TEST_PATHS"
-
-            if [ "${#paths[@]}" -eq 0 ]; then
-              echo "::error::ci:e2e:test requires e2e-test-paths."
+            if [[ ! "$E2E_SHARD" =~ ^[1-9][0-9]*/[1-9][0-9]*$ ]]; then
+              echo "::error::ci:e2e:test requires e2e-shard in current/total format."
               exit 1
             fi
 
             bun run app:prepare
             bun run db:migrate:deploy
             bunx prisma db seed
-            bunx playwright test "${paths[@]}"
+            bunx playwright test --shard="$E2E_SHARD"
           }
 
           case "$JOB_PHASE" in

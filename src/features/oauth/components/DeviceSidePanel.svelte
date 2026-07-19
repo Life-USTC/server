@@ -1,4 +1,5 @@
 <script lang="ts">
+import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
@@ -7,7 +8,7 @@ import * as Item from "$lib/components/ui/item/index.js";
 <Card.Header class="bg-subtle p-6">
   <Item.Root variant="muted">
     <Item.Media class="size-12" variant="image">
-      <img class="size-full object-cover" src="/images/icon.png" alt="" />
+      <img class="size-full object-cover" src={appIconUrl} alt="" />
     </Item.Media>
     <Item.Content class="gap-1">
       <Badge class="w-fit" variant="secondary">OAuth</Badge>

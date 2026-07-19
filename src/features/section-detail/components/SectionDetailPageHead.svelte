@@ -5,6 +5,7 @@ export let formatMessage: (
   template: string,
   values: Record<string, string>,
 ) => string;
+export let structuredDataJson: string;
 export let titleTemplate: string;
 
 $: pageTitle = formatMessage(titleTemplate, { code, name: courseName });
@@ -12,4 +13,5 @@ $: pageTitle = formatMessage(titleTemplate, { code, name: courseName });
 
 <svelte:head>
   <title>{pageTitle} - Life@USTC</title>
+  {@html `<script type="application/ld+json">${structuredDataJson}</script>`}
 </svelte:head>

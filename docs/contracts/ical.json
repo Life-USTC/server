@@ -10,7 +10,7 @@
     "copyable-links": "iCal links should be presented as copyable links rather than requiring users to manually construct them.",
     "no-second-model": "iCal is an export / subscription capability and should not carry a second business model.",
     "rfc5545-dtstamp-utc": "Every VEVENT in section, multi-section, and personal feeds serializes DTSTAMP as a UTC DATE-TIME with a Z suffix while retaining Asia/Shanghai TZID values for event start and end times.",
-    "personal-feed-cache": "Personal feed responses may be served from a short-lived private server-side cache, include ETag, return 304 Not Modified for matching If-None-Match, and write cache hit/miss Cloudflare Analytics Engine datapoints without user IDs or feed tokens.",
+    "personal-feed-cache": "Personal feed responses may be served from a private Workers KV-backed server-side cache with a five-minute fresh window and a bounded stale fallback during refresh failures, include ETag, return 304 Not Modified for matching If-None-Match, and write cache lifecycle Cloudflare Analytics Engine datapoints without user IDs or feed tokens. Feed-token authorization is checked against the current user record before any cached export is returned.",
     "static-json-resilient": "Calendar location and building image enhancements only read static JSON published at https://static.life-ustc.tiankaima.dev; when loading fails or data is corrupted, diagnostic information should be logged and a valid iCal should still be returned."
   },
   "capabilities": {

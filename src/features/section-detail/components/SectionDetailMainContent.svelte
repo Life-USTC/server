@@ -113,7 +113,7 @@ $: sectionNavItems = [
     icon: ClipboardListIcon,
     key: "homework" as const,
     label: sectionCopy.tabs.homeworks,
-    meta: homeworks.length,
+    meta: data.detailSection === "homework" ? homeworks.length : undefined,
   },
   {
     href: `${sectionBaseHref}/teachers`,
@@ -127,7 +127,7 @@ $: sectionNavItems = [
     icon: MessageSquareIcon,
     key: "comments" as const,
     label: sectionCopy.tabs.comments,
-    meta: commentsCount,
+    meta: data.commentsData ? commentsCount : undefined,
   },
 ];
 $: activeNavItem =

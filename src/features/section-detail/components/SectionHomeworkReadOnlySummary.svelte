@@ -1,6 +1,5 @@
 <script lang="ts">
-import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
-import MarkdownPreview from "$lib/components/MarkdownPreview.svelte";
+import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import type {
@@ -17,10 +16,20 @@ export let homeworkCopy: SectionHomeworkCopy;
 <Item.Root variant="muted" class="items-start">
   <Item.Content>
     {#if homework.description?.content}
-      <MarkdownPreview
-        content={homework.description.content}
-        remarkPlugins={campusReferenceMarkdownPlugins}
-      />
+      {#if homework.description.renderedHtml}
+        <RenderedMarkdown html={homework.description.renderedHtml} />
+      {:else}
+        {#await Promise.all([
+          import("$lib/components/MarkdownPreview.svelte"),
+          import("@/features/markdown/lib/campus-reference-markdown"),
+        ]) then [previewModule, markdownModule]}
+          {@const Preview = previewModule.default}
+          <Preview
+            content={homework.description.content}
+            remarkPlugins={markdownModule.campusReferenceMarkdownPlugins}
+          />
+        {/await}
+      {/if}
     {:else}
       <Item.Description>{homeworkCopy.descriptionEmpty}</Item.Description>
     {/if}

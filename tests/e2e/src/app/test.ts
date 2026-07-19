@@ -71,7 +71,9 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", async ({ page }) => {
   ).toHaveCount(0);
 });
 
-test("/ 主题切换可写入 localStorage", async ({ page }, testInfo) => {
+test("/ 主题切换可写入 localStorage 并跟随系统主题", async ({
+  page,
+}, testInfo) => {
   await gotoAndWaitForReady(page, "/", { testInfo, screenshotLabel: "home" });
 
   const themeButton = page.getByRole("button", {
@@ -79,7 +81,7 @@ test("/ 主题切换可写入 localStorage", async ({ page }, testInfo) => {
   });
   await expect(themeButton).toBeVisible();
 
-  async function selectTheme(name: RegExp, value: "light" | "dark") {
+  async function selectTheme(name: RegExp, value: "light" | "dark" | "system") {
     const menuItem = page.getByRole("menuitemradio", { name });
 
     await expect(async () => {
@@ -106,6 +108,68 @@ test("/ 主题切换可写入 localStorage", async ({ page }, testInfo) => {
 
   await selectTheme(/^(深色|Dark)$/i, "dark");
   await captureStepScreenshot(page, testInfo, "theme-dark");
+
+  await page.emulateMedia({ colorScheme: "dark" });
+  await selectTheme(/^(跟随系统|System)$/i, "system");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await captureStepScreenshot(page, testInfo, "theme-system-light");
+});
+
+test("/ 存储的深色主题在 hydration 前应用且通过 CSP", async ({
+  browser,
+}, testInfo) => {
+  const context = await browser.newContext({
+    baseURL: String(testInfo.project.use.baseURL),
+    colorScheme: "light",
+  });
+  await context.addInitScript(() => {
+    localStorage.setItem("life-ustc-theme", "dark");
+  });
+  const page = await context.newPage();
+  await page.route("**/_app/immutable/**/*.js", (route) => route.abort());
+
+  const response = await page.goto("/", { waitUntil: "domcontentloaded" });
+
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator("html")).not.toHaveAttribute(
+    "data-life-ustc-hydrated",
+    "true",
+  );
+  const bootstrapNonce = await page
+    .locator("head > script")
+    .first()
+    .evaluate((script: HTMLScriptElement) => script.nonce);
+  expect(bootstrapNonce).toBeTruthy();
+  expect(response?.headers()["content-security-policy"]).toContain(
+    `'nonce-${bootstrapNonce}'`,
+  );
+  await context.close();
+});
+
+test("/ 禁用 JavaScript 时系统深色主题仍有 CSS fallback", async ({
+  browser,
+}, testInfo) => {
+  const context = await browser.newContext({
+    baseURL: String(testInfo.project.use.baseURL),
+    colorScheme: "dark",
+    javaScriptEnabled: false,
+  });
+  const page = await context.newPage();
+
+  const response = await page.goto("/", { waitUntil: "domcontentloaded" });
+
+  expect(response?.status()).toBe(200);
+  await expect(page.locator("#main-content")).toBeVisible();
+  await expect(page.locator("html")).not.toHaveAttribute("data-theme", /.+/);
+  expect(
+    await page
+      .locator("html")
+      .evaluate((element) => getComputedStyle(element).colorScheme),
+  ).toBe("dark");
+  await context.close();
 });
 
 test("/ shell 菜单可一键切换", async ({ page }) => {

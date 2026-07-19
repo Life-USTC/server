@@ -5,6 +5,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
 /**
  * Get schedule groups.
  * @pathParams jwIdPathParamsSchema
+ * @params catalogLocaleQuerySchema
  * @response 200:array
  * @response 404:openApiErrorSchema
  */

@@ -10,6 +10,7 @@
     "attached-to-object": "Comments must be attached to a specific object; no decontextualized public feed entry is provided.",
     "attached-object-types": "Attached objects include courses, sections, teachers, homework, and section-teacher relationships.",
     "rich-content": "Supports Markdown, math formulas, emoji, tables, replies, and reactions.",
+    "server-rendered-markdown": "Visible comment nodes include body as the source Markdown and renderedBody as sanitized server-rendered HTML. Web read surfaces consume renderedBody without rerunning the Markdown pipeline during hydration; REST and MCP full mode keep the shared serialized comment-node shape, while MCP compact modes omit renderedBody to avoid repeating the source Markdown in AI context.",
     "markdown-font-csp": "Production builds emit Markdown and KaTeX font files as same-origin assets instead of data URIs so every required math glyph can load under the configured font-src Content Security Policy.",
     "visibility-modes": "Supports public and signed-in-only audience visibility; anonymous posting is represented by comment.isAnonymous and hides identity from regular users while remaining traceable by admins in governance scenarios.",
     "shared-read-policy": "Web, REST, and MCP comment reads share the same target resolution, thread serialization, visibility filtering, author masking, reaction, attachment, and viewer action-flag logic; read-only paths must not create durable comment targets and valid empty section-teacher targets load as empty threads.",
@@ -69,7 +70,7 @@
         "routes": [
           {
             "path": "/api/comments",
-            "returns": "{ data: Comment[], pagination, meta: { hiddenCount: Int, viewer, target } }",
+            "returns": "{ data: Comment[] (including body and renderedBody), pagination, meta: { hiddenCount: Int, viewer, target } }",
             "notes": [
               "Accepts REST-compatible internal targetId plus public identifiers such as sectionJwId, courseJwId, teacherId, homeworkId, and sectionTeacherId.",
               "Returns 404 when the attached target entity does not exist.",
@@ -199,6 +200,7 @@
           "comment.author.name",
           "comment.author.image (avatar)",
           "comment.body (markdown-rendered)",
+          "comment.renderedBody (sanitized server-rendered HTML)",
           "comment.createdAt (timestamp)",
           "comment.updatedAt / edited timestamp",
           "comment.visibility badges",

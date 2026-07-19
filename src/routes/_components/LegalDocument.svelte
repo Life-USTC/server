@@ -1,10 +1,11 @@
 <script lang="ts">
-import MarkdownPreview from "$lib/components/MarkdownPreview.svelte";
+import RenderedMarkdown from "$lib/components/RenderedMarkdown.svelte";
 import * as Card from "$lib/components/ui/card/index.js";
 
 export let content: {
   title: string;
   mdx: string;
+  renderedHtml: string;
 };
 </script>
 
@@ -12,7 +13,7 @@ export let content: {
 
 <Card.Root class="mx-auto w-full max-w-3xl">
   <Card.Content class="px-6 md:px-8">
-    <MarkdownPreview class="legal-document" content={content.mdx} />
+    <RenderedMarkdown class="legal-document" html={content.renderedHtml} />
   </Card.Content>
 </Card.Root>
 

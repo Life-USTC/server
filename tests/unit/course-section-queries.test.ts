@@ -20,6 +20,16 @@ beforeAll(async () => {
   buildSectionListQuery = queries.buildSectionListQuery;
 });
 
+function contains(value: string) {
+  return { contains: value, mode: "insensitive" as const };
+}
+
+function localized(value: string) {
+  return {
+    OR: [{ nameCn: contains(value) }, { nameEn: contains(value) }],
+  };
+}
+
 describe("课程与开课查询辅助函数", () => {
   it("根据搜索和数字 ID 构建课程筛选条件", () => {
     expect(
@@ -79,12 +89,7 @@ describe("课程与开课查询辅助函数", () => {
       expect.arrayContaining([
         {
           teachers: {
-            some: {
-              nameCn: {
-                contains: "smith",
-                mode: "insensitive",
-              },
-            },
+            some: localized("smith"),
           },
         },
         {
@@ -149,40 +154,33 @@ describe("课程与开课查询辅助函数", () => {
           },
         },
         {
-          campus: {
-            nameCn: {
-              contains: "west",
-              mode: "insensitive",
-            },
-          },
+          campus: localized("west"),
         },
         { credits: 3.5 },
         {
-          openDepartment: {
+          openDepartment: localized("CS"),
+        },
+        {
+          semester: {
             nameCn: {
-              contains: "CS",
+              contains: "fall",
               mode: "insensitive",
             },
           },
         },
         {
           course: {
-            educationLevel: {
-              nameCn: {
-                contains: "ug",
-                mode: "insensitive",
-              },
-            },
+            category: localized("core"),
           },
         },
         {
           course: {
-            classType: {
-              nameCn: {
-                contains: "lab",
-                mode: "insensitive",
-              },
-            },
+            educationLevel: localized("ug"),
+          },
+        },
+        {
+          course: {
+            classType: localized("lab"),
           },
         },
         {
@@ -200,6 +198,58 @@ describe("课程与开课查询辅助函数", () => {
       ]),
     );
     expect(result.orderBy).toEqual({ campus: { nameCn: "desc" } });
+  });
+
+  it("将结构化班级筛选与文本搜索按 AND 合并", () => {
+    const result = buildSectionListQuery({
+      search: `teacher:"旧 教师" campus:"East Campus" 普通词`,
+      teacher: "New Teacher",
+      courseCode: "MATH",
+      sectionCode: "MATH.02",
+      credits: "3.5",
+      categoryId: "7",
+      educationLevelId: 8,
+      classTypeId: "9",
+      sort: "credits",
+      order: "DESC",
+    });
+
+    expect(result.where.AND).toEqual(
+      expect.arrayContaining([
+        {
+          course: {
+            categoryId: 7,
+            educationLevelId: 8,
+            classTypeId: 9,
+          },
+        },
+        { teachers: { some: localized("New Teacher") } },
+        { course: { code: contains("MATH") } },
+        { code: contains("MATH.02") },
+        { campus: localized("East Campus") },
+        { credits: 3.5 },
+        {
+          OR: [
+            { course: { nameCn: contains("普通词") } },
+            { course: { nameEn: contains("普通词") } },
+            { course: { code: contains("普通词") } },
+            { code: contains("普通词") },
+          ],
+        },
+      ]),
+    );
+    expect(JSON.stringify(result.where)).not.toContain("旧 教师");
+    expect(result.orderBy).toEqual({ credits: "desc" });
+  });
+
+  it("忽略无效的结构化课程元数据 ID", () => {
+    const result = buildSectionListQuery({
+      categoryId: "invalid",
+      educationLevelId: "",
+      classTypeId: null,
+    });
+
+    expect(result.where).toEqual({ retiredAt: null });
   });
 
   it("忽略不精确的开课学分搜索值", () => {

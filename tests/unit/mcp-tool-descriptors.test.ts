@@ -8,7 +8,10 @@ import {
   installMcpToolDescriptorDefaults,
   installMcpToolListCompatibility,
 } from "@/lib/mcp/tool-descriptors";
-import { getMcpToolOutputSchema } from "@/lib/mcp/tool-output-schemas";
+import {
+  getMarkdownMcpToolOutputSchemaForMode,
+  getMcpToolOutputSchema,
+} from "@/lib/mcp/tool-output-schemas";
 import { jsonToolResult } from "@/lib/mcp/tools/_helpers";
 import { restReadScope, restWriteScope } from "@/lib/oauth/constants";
 
@@ -549,6 +552,95 @@ describe("MCP tool descriptors", () => {
     } finally {
       await client.close();
       await mcpServer.close();
+    }
+  });
+
+  it("keeps compact and full Markdown output schemas mutually strict", () => {
+    const fullComment = {
+      id: "comment-1",
+      body: "Source Markdown",
+      renderedBody: "<p>Source Markdown</p>",
+      visibility: "public",
+      status: "active",
+      author: null,
+      authorHidden: false,
+      isAnonymous: false,
+      isAuthor: true,
+      createdAt: "2026-07-19T00:00:00.000Z",
+      updatedAt: "2026-07-19T00:00:00.000Z",
+      parentId: null,
+      rootId: null,
+      replies: [],
+      attachments: [],
+      reactions: [],
+      canReact: true,
+      canReply: true,
+      canEdit: true,
+      canDelete: true,
+      canModerate: false,
+    };
+    const { renderedBody: _renderedBody, ...compactComment } = fullComment;
+    const fullDescription = {
+      id: "description-1",
+      content: "Source Markdown",
+      renderedHtml: "<p>Source Markdown</p>",
+      updatedAt: "2026-07-19T00:00:00.000Z",
+      lastEditedAt: "2026-07-19T00:00:00.000Z",
+      lastEditedBy: null,
+    };
+    const { renderedHtml: _renderedHtml, ...compactDescription } =
+      fullDescription;
+    const cases = [
+      {
+        name: "list_comments",
+        compact: { success: true, found: true, data: [compactComment] },
+        full: { success: true, found: true, data: [fullComment] },
+      },
+      {
+        name: "get_comment_thread",
+        compact: { success: true, found: true, thread: [compactComment] },
+        full: { success: true, found: true, thread: [fullComment] },
+      },
+      {
+        name: "get_description",
+        compact: {
+          success: true,
+          found: true,
+          description: compactDescription,
+        },
+        full: { success: true, found: true, description: fullDescription },
+      },
+      {
+        name: "upsert_description",
+        compact: {
+          success: true,
+          id: "description-1",
+          updated: true,
+          description: compactDescription,
+        },
+        full: {
+          success: true,
+          id: "description-1",
+          updated: true,
+          description: fullDescription,
+        },
+      },
+    ] as const;
+
+    for (const testCase of cases) {
+      const compactSchema = getMarkdownMcpToolOutputSchemaForMode(
+        testCase.name,
+        "default",
+      );
+      const fullSchema = getMarkdownMcpToolOutputSchemaForMode(
+        testCase.name,
+        "full",
+      );
+
+      expect(compactSchema.safeParse(testCase.compact).success).toBe(true);
+      expect(compactSchema.safeParse(testCase.full).success).toBe(false);
+      expect(fullSchema.safeParse(testCase.full).success).toBe(true);
+      expect(fullSchema.safeParse(testCase.compact).success).toBe(false);
     }
   });
 

@@ -9,12 +9,24 @@ export async function getSectionDetailDescriptionAndComments(
     teachers: { id: number }[];
   },
   userId: string | null,
+  { includeComments }: { includeComments: boolean },
 ) {
   const descriptionViewer = await getViewerContext({ userId });
+  const descriptionDataPromise = getDescriptionPayload(
+    "section",
+    section.id,
+    descriptionViewer,
+  );
+  if (!includeComments) {
+    return {
+      commentsData: null,
+      descriptionData: await descriptionDataPromise,
+    };
+  }
   const firstCommentTeacher = section.teachers[0] ?? null;
   const [descriptionData, sectionComments, courseComments, teacherComments] =
     await Promise.all([
-      getDescriptionPayload("section", section.id, descriptionViewer),
+      descriptionDataPromise,
       getCommentsPayload(
         { type: "section", targetId: section.id },
         descriptionViewer,

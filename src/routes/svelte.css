@@ -95,6 +95,46 @@ html {
   --sidebar-ring: var(--ring);
 }
 
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --background: oklch(0.065 0.008 210);
+    --foreground: oklch(0.94 0.012 210);
+    --card: oklch(0.095 0.01 210);
+    --card-foreground: oklch(0.94 0.012 210);
+    --popover: oklch(0.095 0.01 210);
+    --popover-foreground: oklch(0.94 0.012 210);
+    --primary: rgb(0 210 224);
+    --primary-foreground: oklch(0.08 0.012 185);
+    --secondary: oklch(0.24 0.025 185);
+    --secondary-foreground: oklch(0.92 0.012 185);
+    --muted: oklch(0.15 0.012 210);
+    --muted-foreground: oklch(0.74 0.012 210);
+    --subtle: oklch(0.11 0.011 210);
+    --accent: oklch(0.24 0.05 185);
+    --accent-foreground: oklch(0.92 0.012 185);
+    --destructive: oklch(0.68 0.16 28);
+    --destructive-foreground: oklch(0.98 0.01 28);
+    --border: oklch(0.27 0.014 210);
+    --input: oklch(0.3 0.014 210);
+    --ring: rgb(0 210 224);
+    --info: oklch(0.7 0.1 225);
+    --info-foreground: oklch(0.08 0.012 225);
+    --success: oklch(0.72 0.12 155);
+    --success-foreground: oklch(0.08 0.012 155);
+    --warning: oklch(0.78 0.12 75);
+    --warning-foreground: oklch(0.12 0.02 75);
+    --sidebar: var(--card);
+    --sidebar-foreground: var(--card-foreground);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-accent: var(--muted);
+    --sidebar-accent-foreground: var(--foreground);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--ring);
+  }
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

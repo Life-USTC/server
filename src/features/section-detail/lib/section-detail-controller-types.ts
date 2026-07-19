@@ -346,6 +346,7 @@ export type SectionDetailPageData = {
   locale: AppLocale;
   section: SectionDetailSection;
   showSubscribeDialog: boolean;
+  structuredDataJson: string;
   todayCalendarKey: string;
   viewer: {
     isSubscribed?: boolean;
@@ -363,7 +364,7 @@ export type SectionHomework = {
   completion: { completedAt: string | null } | null;
   commentCount?: number;
   createdById?: string | null;
-  description?: { content?: string | null } | null;
+  description?: { content?: string | null; renderedHtml?: string } | null;
   id: string;
   isMajor: boolean;
   publishedAt?: string | Date | null;
