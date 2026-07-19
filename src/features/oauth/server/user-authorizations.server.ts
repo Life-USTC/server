@@ -1,3 +1,4 @@
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import {
   hasActiveOAuthUserGrant,
@@ -47,26 +48,16 @@ export async function listUserOAuthAuthorizations(
     },
   });
 
-  const authorizations = new Map<string, UserOAuthAuthorization>();
-  for (const row of rows) {
-    const existing = authorizations.get(row.clientId);
-    if (existing) {
-      existing.scopes = [
-        ...new Set([...existing.scopes, ...row.scopes]),
-      ].sort();
-      continue;
-    }
-    authorizations.set(row.clientId, {
+  return rows.map((row) => {
+    return {
       consentId: row.id,
       clientName: row.client.name,
       clientUri: row.client.uri,
       disabled: row.client.disabled,
       scopes: [...new Set(row.scopes)].sort(),
       updatedAt: row.updatedAt.toISOString(),
-    });
-  }
-
-  return [...authorizations.values()];
+    };
+  });
 }
 
 export async function revokeUserOAuthAuthorization(
@@ -104,7 +95,10 @@ export async function revokeUserOAuthAuthorization(
   return { ok: true, deleted };
 }
 
-export type ActiveOAuthRefreshGrant = OAuthUserGrantIdentity;
+export type ActiveOAuthRefreshGrant = OAuthUserGrantIdentity & {
+  grantId?: string;
+  scopes: string[];
+};
 
 export async function resolveActiveOAuthRefreshGrant(
   refreshToken: string | null,
@@ -117,7 +111,9 @@ export async function resolveActiveOAuthRefreshGrant(
     select: {
       clientId: true,
       expiresAt: true,
+      grantId: true,
       revoked: true,
+      scopes: true,
       userId: true,
     },
   });
@@ -125,21 +121,130 @@ export async function resolveActiveOAuthRefreshGrant(
     !row ||
     row.revoked ||
     row.expiresAt.getTime() <= Date.now() ||
-    !(await hasActiveOAuthUserGrant(row))
+    !(await hasActiveOAuthUserGrant({
+      clientId: row.clientId,
+      grantId: row.grantId ?? undefined,
+      requireGrantBinding: true,
+      scopes: row.scopes,
+      userId: row.userId,
+    }))
   ) {
     return null;
   }
 
-  return { clientId: row.clientId, userId: row.userId };
+  return {
+    clientId: row.clientId,
+    ...(row.grantId ? { grantId: row.grantId } : {}),
+    scopes: row.scopes,
+    userId: row.userId,
+  };
 }
 
 export function isOAuthRefreshGrantActive(grant: ActiveOAuthRefreshGrant) {
-  return hasActiveOAuthUserGrant(grant);
+  return hasActiveOAuthUserGrant({
+    ...grant,
+    requireGrantBinding: true,
+  });
 }
 
 export async function purgeOAuthGrantTokenRows(grant: ActiveOAuthRefreshGrant) {
+  const identity = { clientId: grant.clientId, userId: grant.userId };
+  const lineage = grant.grantId
+    ? {
+        OR: [{ grantId: grant.grantId }, { referenceId: grant.grantId }],
+      }
+    : {};
   await prisma.$transaction(async (tx) => {
-    await tx.oAuthAccessToken.deleteMany({ where: grant });
-    await tx.oAuthRefreshToken.deleteMany({ where: grant });
+    await tx.oAuthAccessToken.deleteMany({
+      where: { ...identity, ...lineage },
+    });
+    await tx.oAuthRefreshToken.deleteMany({
+      where: { ...identity, ...lineage },
+    });
+  });
+}
+
+export type UpdateUserOAuthAuthorizationScopesResult =
+  | { ok: true; consentId: string; grantId: string; scopes: string[] }
+  | { ok: false; reason: "invalid_scope" | "not_found" };
+
+async function rotateGrantInTransaction(
+  tx: Prisma.TransactionClient,
+  input: {
+    clientId: string;
+    consentId: string;
+    scopes: string[];
+    userId: string;
+  },
+) {
+  const grantId = crypto.randomUUID();
+  const identity = { clientId: input.clientId, userId: input.userId };
+  await tx.oAuthAccessToken.deleteMany({ where: identity });
+  await tx.oAuthRefreshToken.deleteMany({ where: identity });
+  await tx.deviceCode.deleteMany({ where: identity });
+  const updated = await tx.oAuthConsent.updateMany({
+    where: { id: input.consentId, ...identity },
+    data: { grantId, scopes: input.scopes },
+  });
+  return updated.count === 1 ? grantId : null;
+}
+
+export async function updateUserOAuthAuthorizationScopes(
+  userId: string,
+  consentId: string,
+  scopes: readonly string[],
+): Promise<UpdateUserOAuthAuthorizationScopesResult> {
+  const normalizedScopes = [...new Set(scopes)].sort();
+  return prisma.$transaction(async (tx) => {
+    const consent = await tx.oAuthConsent.findFirst({
+      where: { id: consentId, userId },
+      select: {
+        clientId: true,
+        client: { select: { scopes: true } },
+      },
+    });
+    if (!consent) return { ok: false, reason: "not_found" };
+    if (
+      !normalizedScopes.every((scope) => consent.client.scopes.includes(scope))
+    ) {
+      return { ok: false, reason: "invalid_scope" };
+    }
+
+    const grantId = await rotateGrantInTransaction(tx, {
+      clientId: consent.clientId,
+      consentId,
+      scopes: normalizedScopes,
+      userId,
+    });
+    return grantId
+      ? { ok: true, consentId, grantId, scopes: normalizedScopes }
+      : { ok: false, reason: "not_found" };
+  });
+}
+
+export async function rotateOAuthUserGrantAfterConsent(input: {
+  clientId: string;
+  scopes: readonly string[];
+  userId: string;
+}) {
+  const scopes = [...new Set(input.scopes)].sort();
+  return prisma.$transaction(async (tx) => {
+    const consent = await tx.oAuthConsent.findUnique({
+      where: {
+        clientId_userId: {
+          clientId: input.clientId,
+          userId: input.userId,
+        },
+      },
+      select: { id: true },
+    });
+    if (!consent) return null;
+    const grantId = await rotateGrantInTransaction(tx, {
+      clientId: input.clientId,
+      consentId: consent.id,
+      scopes,
+      userId: input.userId,
+    });
+    return grantId ? { consentId: consent.id, grantId, scopes } : null;
   });
 }

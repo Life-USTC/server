@@ -97,6 +97,9 @@ async function resolveBearerPrincipal(
       !verified.clientId ||
       !(await hasActiveOAuthUserGrant({
         clientId: verified.clientId,
+        grantId: verified.grantId,
+        requireGrantBinding: true,
+        scopes: verified.tokenScopes ?? [...verified.scope],
         userId: verified.sub,
       }))
     ) {

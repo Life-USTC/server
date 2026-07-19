@@ -1,12 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
-import { OAUTH_PROVIDER_GRANT_TYPES } from "@/lib/oauth/constants";
+import {
+  OAUTH_GRANT_ID_CLAIM,
+  OAUTH_PROVIDER_GRANT_TYPES,
+} from "@/lib/oauth/constants";
 import {
   CLIENT_REGISTRATION_ALLOWED_SCOPES,
   OAUTH_PROVIDER_SCOPES,
   PUBLIC_OAUTH_SCOPES,
 } from "@/lib/oauth/scope-registry";
 
-const { oauthProviderMock } = vi.hoisted(() => ({
+const { hasActiveOAuthUserGrantMock, oauthProviderMock } = vi.hoisted(() => ({
+  hasActiveOAuthUserGrantMock: vi.fn(),
   oauthProviderMock: vi.fn((options) => ({ id: "oauth-provider", options })),
 }));
 
@@ -16,6 +20,10 @@ vi.mock("@better-auth/oauth-provider", () => ({
 
 vi.mock("@/lib/auth/auth-config", () => ({
   allowDebugAuth: () => false,
+}));
+
+vi.mock("@/lib/oauth/active-user-grant", () => ({
+  hasActiveOAuthUserGrant: hasActiveOAuthUserGrantMock,
 }));
 
 vi.mock("@/lib/mcp/urls", () => ({
@@ -104,5 +112,81 @@ describe("buildOAuthProviderPlugin", () => {
     expect(options.advertisedMetadata.scopes_supported).toEqual([
       ...PUBLIC_OAUTH_SCOPES,
     ]);
+  });
+
+  it("userinfo rejects a JWT whose exact consent is no longer active", async () => {
+    const { buildOAuthProviderPlugin } = await import(
+      "@/lib/auth/better-auth-oauth-provider-plugin"
+    );
+    buildOAuthProviderPlugin({
+      authPublicOrigin: "https://life.example",
+    });
+    const options = oauthProviderMock.mock.calls.at(-1)?.[0];
+
+    hasActiveOAuthUserGrantMock.mockResolvedValueOnce(false);
+    await expect(
+      options.customUserInfoClaims({
+        jwt: {
+          azp: "client-1",
+          [OAUTH_GRANT_ID_CLAIM]: "grant-1",
+        },
+        scopes: ["openid", "profile"],
+        user: { id: "user-1", username: "alice" },
+      }),
+    ).rejects.toThrow();
+    expect(hasActiveOAuthUserGrantMock).toHaveBeenCalledWith({
+      clientId: "client-1",
+      grantId: "grant-1",
+      requireGrantBinding: true,
+      scopes: ["openid", "profile"],
+      userId: "user-1",
+    });
+
+    hasActiveOAuthUserGrantMock.mockResolvedValueOnce(true);
+    await expect(
+      options.customUserInfoClaims({
+        jwt: {
+          azp: "client-1",
+          [OAUTH_GRANT_ID_CLAIM]: "grant-1",
+        },
+        scopes: ["profile"],
+        user: { id: "user-1", username: "alice" },
+      }),
+    ).resolves.toEqual({ preferred_username: "alice" });
+  });
+
+  it("propagates opaque-token lineage and validates its client_id", async () => {
+    const { buildOAuthProviderPlugin } = await import(
+      "@/lib/auth/better-auth-oauth-provider-plugin"
+    );
+    buildOAuthProviderPlugin({
+      authPublicOrigin: "https://life.example",
+    });
+    const options = oauthProviderMock.mock.calls.at(-1)?.[0];
+
+    expect(
+      options.customAccessTokenClaims({ referenceId: "grant-opaque" }),
+    ).toEqual({
+      [OAUTH_GRANT_ID_CLAIM]: "grant-opaque",
+    });
+
+    hasActiveOAuthUserGrantMock.mockResolvedValueOnce(true);
+    await expect(
+      options.customUserInfoClaims({
+        jwt: {
+          client_id: "opaque-client",
+          [OAUTH_GRANT_ID_CLAIM]: "grant-opaque",
+        },
+        scopes: ["profile"],
+        user: { id: "user-1", username: "alice" },
+      }),
+    ).resolves.toEqual({ preferred_username: "alice" });
+    expect(hasActiveOAuthUserGrantMock).toHaveBeenLastCalledWith({
+      clientId: "opaque-client",
+      grantId: "grant-opaque",
+      requireGrantBinding: true,
+      scopes: ["profile"],
+      userId: "user-1",
+    });
   });
 });

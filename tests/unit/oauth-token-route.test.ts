@@ -12,6 +12,7 @@ const {
   findRefreshTokenMock,
   isOAuthRefreshGrantActiveMock,
   purgeOAuthGrantTokenRowsMock,
+  resolveActiveOAuthUserGrantMock,
   resolveActiveOAuthRefreshGrantMock,
   signJwtMock,
   updateRefreshTokenMock,
@@ -20,6 +21,7 @@ const {
   findRefreshTokenMock: vi.fn(),
   isOAuthRefreshGrantActiveMock: vi.fn(),
   purgeOAuthGrantTokenRowsMock: vi.fn(),
+  resolveActiveOAuthUserGrantMock: vi.fn(),
   resolveActiveOAuthRefreshGrantMock: vi.fn(),
   signJwtMock: vi.fn(),
   updateRefreshTokenMock: vi.fn(),
@@ -40,9 +42,19 @@ vi.mock("@/features/oauth/server/user-authorizations.server", () => ({
   resolveActiveOAuthRefreshGrant: resolveActiveOAuthRefreshGrantMock,
 }));
 
+vi.mock("@/lib/oauth/active-user-grant", () => ({
+  resolveActiveOAuthUserGrant: resolveActiveOAuthUserGrantMock,
+}));
+
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
+    oAuthAccessToken: {
+      deleteMany: vi.fn(),
+      findUnique: vi.fn(),
+      updateMany: vi.fn(),
+    },
     oAuthRefreshToken: {
+      deleteMany: vi.fn(),
       findUnique: findRefreshTokenMock,
       updateMany: updateRefreshTokenMock,
     },
@@ -70,6 +82,7 @@ describe("OAuth 令牌路由", () => {
     findRefreshTokenMock.mockReset();
     isOAuthRefreshGrantActiveMock.mockReset();
     purgeOAuthGrantTokenRowsMock.mockReset();
+    resolveActiveOAuthUserGrantMock.mockReset();
     resolveActiveOAuthRefreshGrantMock.mockReset();
     signJwtMock.mockReset();
     updateRefreshTokenMock.mockReset();
@@ -78,7 +91,14 @@ describe("OAuth 令牌路由", () => {
     purgeOAuthGrantTokenRowsMock.mockResolvedValue(undefined);
     resolveActiveOAuthRefreshGrantMock.mockResolvedValue({
       clientId: "client-1",
+      grantId: "grant-1",
+      scopes: [OAUTH_PROFILE_SCOPE],
       userId: "user-1",
+    });
+    resolveActiveOAuthUserGrantMock.mockResolvedValue({
+      consentId: "consent-1",
+      grantId: "grant-1",
+      kind: "consent",
     });
   });
 
@@ -162,6 +182,47 @@ describe("OAuth 令牌路由", () => {
     });
   });
 
+  it.each([
+    [
+      "authorization code",
+      "grant_type=authorization_code&code=first&code=second",
+    ],
+    [
+      "refresh token",
+      "grant_type=refresh_token&refresh_token=first&refresh_token=second",
+    ],
+    [
+      "device code",
+      "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Adevice_code&device_code=first&device_code=second",
+    ],
+    [
+      "grant type",
+      "grant_type=authorization_code&grant_type=refresh_token&code=code-1",
+    ],
+    [
+      "client id",
+      "grant_type=authorization_code&code=code-1&client_id=first&client_id=second",
+    ],
+    [
+      "scope",
+      "grant_type=authorization_code&code=code-1&scope=profile&scope=openid",
+    ],
+  ])("在委托前拒绝重复的 %s 单值参数", async (_name, body) => {
+    const response = await tokenPostRoute(
+      new Request("http://localhost/api/auth/oauth2/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body,
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "invalid_request",
+    });
+    expect(betterAuthHandlerMock).not.toHaveBeenCalled();
+  });
+
   it("在委托前拒绝未批准的刷新令牌资源", async () => {
     findRefreshTokenMock.mockResolvedValueOnce({
       resources: ["https://life.example/api/auth"],
@@ -191,6 +252,8 @@ describe("OAuth 令牌路由", () => {
   it("刷新已绑定资源的令牌时返回覆盖批准资源的 JWT access token", async () => {
     findRefreshTokenMock.mockResolvedValue({
       clientId: "client-1",
+      grantId: "grant-1",
+      referenceId: "grant-1",
       resources: [
         "https://life.example/api/auth",
         "https://life.example/api/mcp",
@@ -210,7 +273,13 @@ describe("OAuth 令牌路由", () => {
         token_type: "Bearer",
       }),
     );
-    signJwtMock.mockResolvedValueOnce({ token: "signed-refresh-access-token" });
+    signJwtMock.mockImplementation(async ({ body }) => {
+      const payload = btoa(JSON.stringify(body.payload))
+        .replaceAll("+", "-")
+        .replaceAll("/", "_")
+        .replace(/=+$/, "");
+      return { token: `eyJhbGciOiJub25lIn0.${payload}.signature` };
+    });
     const body = new URLSearchParams({
       client_id: "client-1",
       grant_type: OAUTH_REFRESH_TOKEN_GRANT_TYPE,
@@ -229,7 +298,7 @@ describe("OAuth 令牌路由", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
-      access_token: "signed-refresh-access-token",
+      access_token: expect.stringContaining("."),
       refresh_token: "new-refresh-token",
       token_type: "Bearer",
     });
@@ -301,6 +370,8 @@ describe("OAuth 令牌路由", () => {
     expect(JSON.stringify(body)).not.toContain("must-not-escape");
     expect(purgeOAuthGrantTokenRowsMock).toHaveBeenCalledWith({
       clientId: "client-1",
+      grantId: "grant-1",
+      scopes: [OAUTH_PROFILE_SCOPE],
       userId: "user-1",
     });
   });

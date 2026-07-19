@@ -1,7 +1,10 @@
 import { oauthProvider } from "@better-auth/oauth-provider";
+import { APIError } from "better-auth/api";
 import { allowDebugAuth } from "@/lib/auth/auth-config";
 import { getOAuthProviderValidAudiences } from "@/lib/mcp/urls";
+import { hasActiveOAuthUserGrant } from "@/lib/oauth/active-user-grant";
 import {
+  OAUTH_GRANT_ID_CLAIM,
   OAUTH_PROFILE_SCOPE,
   OAUTH_PROVIDER_GRANT_TYPES,
 } from "@/lib/oauth/constants";
@@ -57,13 +60,44 @@ export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
         "email_verified",
       ],
     },
-    customUserInfoClaims({
+    customAccessTokenClaims({ referenceId }: { referenceId?: string }) {
+      return referenceId ? { [OAUTH_GRANT_ID_CLAIM]: referenceId } : {};
+    },
+    async customUserInfoClaims({
+      jwt,
       user,
       scopes,
     }: {
+      jwt: Record<string, unknown>;
       user: Record<string, unknown>;
       scopes: string[];
     }) {
+      const clientId =
+        typeof jwt.azp === "string"
+          ? jwt.azp
+          : typeof jwt.client_id === "string"
+            ? jwt.client_id
+            : null;
+      if (
+        !clientId ||
+        typeof user.id !== "string" ||
+        !(await hasActiveOAuthUserGrant({
+          clientId,
+          grantId:
+            typeof jwt[OAUTH_GRANT_ID_CLAIM] === "string"
+              ? jwt[OAUTH_GRANT_ID_CLAIM]
+              : undefined,
+          requireGrantBinding: true,
+          scopes,
+          userId: user.id,
+        }))
+      ) {
+        throw new APIError("UNAUTHORIZED", {
+          error: "invalid_token",
+          error_description: "OAuth authorization is no longer active",
+        });
+      }
+
       const claims: Record<string, unknown> = {};
       if (scopes.includes(OAUTH_PROFILE_SCOPE)) {
         const username = user.username;

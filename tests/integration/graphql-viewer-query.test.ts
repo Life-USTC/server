@@ -65,9 +65,18 @@ async function signToken(
   scopes: string[],
   resource = getOAuthGraphqlResourceUrl(),
 ) {
+  const consent = await prisma.oAuthConsent.findFirstOrThrow({
+    where: {
+      clientId: oauthClientId,
+      scopes: { hasEvery: scopes },
+      userId,
+    },
+    select: { grantId: true },
+  });
   const issuedAt = Math.floor(Date.now() / 1000);
   const token = await signResourceBoundOAuthAccessToken({
     clientId: oauthClientId,
+    grantId: consent.grantId,
     expiresAt: issuedAt + 300,
     issuedAt,
     resources: [resource],

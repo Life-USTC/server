@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   MCP_TOOLS_SCOPE,
+  OAUTH_GRANT_ID_CLAIM,
   OAUTH_OFFLINE_ACCESS_SCOPE,
   OAUTH_OPENID_SCOPE,
   OAUTH_PROFILE_SCOPE,
@@ -22,23 +23,33 @@ vi.mock("@/lib/mcp/urls", () => ({
 
 function createPrismaMock() {
   const deviceCodeDeleteMany = vi.fn().mockResolvedValue({ count: 1 });
+  const accessTokenDeleteMany = vi.fn().mockResolvedValue({ count: 1 });
   const accessTokenCreate = vi.fn().mockResolvedValue({});
-  const consentCreate = vi.fn().mockResolvedValue({});
+  const consentUpsert = vi.fn().mockResolvedValue({});
+  const refreshTokenDeleteMany = vi.fn().mockResolvedValue({ count: 1 });
   const refreshTokenCreate = vi.fn().mockResolvedValue({ id: "refresh-1" });
   return {
     prisma: {
       $transaction: vi.fn(async (callback) =>
         callback({
           deviceCode: { deleteMany: deviceCodeDeleteMany },
-          oAuthAccessToken: { create: accessTokenCreate },
-          oAuthConsent: { create: consentCreate },
-          oAuthRefreshToken: { create: refreshTokenCreate },
+          oAuthAccessToken: {
+            create: accessTokenCreate,
+            deleteMany: accessTokenDeleteMany,
+          },
+          oAuthConsent: { upsert: consentUpsert },
+          oAuthRefreshToken: {
+            create: refreshTokenCreate,
+            deleteMany: refreshTokenDeleteMany,
+          },
         }),
       ),
     },
+    accessTokenDeleteMany,
     accessTokenCreate,
-    consentCreate,
+    consentUpsert,
     deviceCodeDeleteMany,
+    refreshTokenDeleteMany,
     refreshTokenCreate,
   };
 }
@@ -50,8 +61,14 @@ describe("设备令牌签发器", () => {
 
   it("使用绑定资源的 JWT 访问令牌且为 offline_access 签发刷新令牌", async () => {
     signJwtMock.mockResolvedValue({ token: "header.payload.signature" });
-    const { prisma, accessTokenCreate, consentCreate, refreshTokenCreate } =
-      createPrismaMock();
+    const {
+      prisma,
+      accessTokenCreate,
+      accessTokenDeleteMany,
+      consentUpsert,
+      refreshTokenCreate,
+      refreshTokenDeleteMany,
+    } = createPrismaMock();
     const { issueDeviceGrantTokens } = await import(
       "@/features/oauth/server/device-token-issuer.server"
     );
@@ -77,9 +94,19 @@ describe("设备令牌签发器", () => {
       refreshToken: expect.any(String),
     });
     expect(accessTokenCreate).not.toHaveBeenCalled();
-    expect(consentCreate).toHaveBeenCalledWith({
-      data: {
+    expect(accessTokenDeleteMany).toHaveBeenCalledWith({
+      where: { clientId: "client-1", userId: "user-1" },
+    });
+    expect(refreshTokenDeleteMany).toHaveBeenCalledWith({
+      where: { clientId: "client-1", userId: "user-1" },
+    });
+    expect(consentUpsert).toHaveBeenCalledWith({
+      where: {
+        clientId_userId: { clientId: "client-1", userId: "user-1" },
+      },
+      create: {
         clientId: "client-1",
+        grantId: expect.any(String),
         scopes: [
           OAUTH_OPENID_SCOPE,
           OAUTH_PROFILE_SCOPE,
@@ -88,10 +115,22 @@ describe("设备令牌签发器", () => {
         ],
         userId: "user-1",
       },
+      update: {
+        grantId: expect.any(String),
+        scopes: [
+          OAUTH_OPENID_SCOPE,
+          OAUTH_PROFILE_SCOPE,
+          MCP_TOOLS_SCOPE,
+          OAUTH_OFFLINE_ACCESS_SCOPE,
+        ],
+      },
     });
+    const grantId = consentUpsert.mock.calls[0]?.[0].create.grantId;
     expect(refreshTokenCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
         clientId: "client-1",
+        grantId,
+        referenceId: grantId,
         resources: [
           "https://life.example/api/auth",
           "https://life.example/api/mcp",
@@ -114,6 +153,7 @@ describe("设备令牌签发器", () => {
             "https://life.example/api/auth/oauth2/userinfo",
           ],
           azp: "client-1",
+          [OAUTH_GRANT_ID_CLAIM]: grantId,
           iss: "https://life.example/api/auth",
           scope: `${OAUTH_OPENID_SCOPE} ${OAUTH_PROFILE_SCOPE} ${MCP_TOOLS_SCOPE} ${OAUTH_OFFLINE_ACCESS_SCOPE}`,
           sub: "user-1",
@@ -123,7 +163,7 @@ describe("设备令牌签发器", () => {
   });
 
   it("无资源访问令牌保持不透明且无 offline_access 时跳过刷新", async () => {
-    const { prisma, accessTokenCreate, refreshTokenCreate } =
+    const { prisma, accessTokenCreate, consentUpsert, refreshTokenCreate } =
       createPrismaMock();
     const { issueDeviceGrantTokens } = await import(
       "@/features/oauth/server/device-token-issuer.server"
@@ -145,13 +185,19 @@ describe("设备令牌签发器", () => {
       throw new Error("Expected device tokens");
     }
     expect(issued.accessToken.split(".").length).toBeLessThan(3);
-    expect(accessTokenCreate).toHaveBeenCalled();
+    const grantId = consentUpsert.mock.calls[0]?.[0].create.grantId;
+    expect(accessTokenCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        grantId,
+        referenceId: grantId,
+      }),
+    });
     expect(refreshTokenCreate).not.toHaveBeenCalled();
     expect(signJwtMock).not.toHaveBeenCalled();
   });
 
   it("为带 offline_access 的无资源设备授权签发刷新令牌", async () => {
-    const { prisma, accessTokenCreate, refreshTokenCreate } =
+    const { prisma, accessTokenCreate, consentUpsert, refreshTokenCreate } =
       createPrismaMock();
     const { issueDeviceGrantTokens } = await import(
       "@/features/oauth/server/device-token-issuer.server"
@@ -174,10 +220,20 @@ describe("设备令牌签发器", () => {
       expiresIn: expect.any(Number),
       refreshToken: expect.any(String),
     });
+    const grantId = consentUpsert.mock.calls[0]?.[0].create.grantId;
     expect(accessTokenCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({ refreshId: "refresh-1" }),
+      data: expect.objectContaining({
+        grantId,
+        referenceId: grantId,
+        refreshId: "refresh-1",
+      }),
     });
-    expect(refreshTokenCreate).toHaveBeenCalled();
+    expect(refreshTokenCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        grantId,
+        referenceId: grantId,
+      }),
+    });
     expect(signJwtMock).not.toHaveBeenCalled();
   });
 });

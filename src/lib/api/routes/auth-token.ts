@@ -3,12 +3,14 @@ import { observedApiRoute } from "@/lib/log/api-observability";
 import { withBetterAuthOAuthDebug } from "@/lib/log/oauth-debug";
 import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";
 import { OAUTH_DEVICE_CODE_GRANT_TYPE } from "@/lib/oauth/constants";
+import { findDuplicateOAuthFormParameter } from "@/lib/oauth/form-parameters";
 import { rewriteOAuthResourceAliases } from "@/lib/oauth/resource-aliases";
 import {
   rejectRefreshIssuedAfterRevocation,
   validateActiveOAuthRefreshGrant,
 } from "./auth-token-active-grant";
 import { handleDeviceCodeGrant } from "./auth-token-device-grant";
+import { bindOAuthAccessTokenToConsent } from "./auth-token-grant-binding";
 import { maybeNormalizeTokenLoopbackRedirectRequest } from "./auth-token-loopback-normalization";
 import { logObservedTokenRedirectRequest } from "./auth-token-observed-logging";
 import { maybeBindOAuthRefreshResourceRequest } from "./auth-token-refresh-resource-binding";
@@ -18,6 +20,18 @@ import {
   validateOAuthRefreshTokenResources,
 } from "./auth-token-refresh-resources";
 import { rewriteTokenFormRequest } from "./auth-token-request-rewrite";
+
+const TOKEN_SINGLETON_FORM_PARAMETERS = [
+  "grant_type",
+  "client_id",
+  "client_secret",
+  "code",
+  "code_verifier",
+  "redirect_uri",
+  "refresh_token",
+  "scope",
+  "device_code",
+] as const;
 
 async function authHandler(request: Request) {
   const { betterAuthInstance } = await import("@/lib/auth/core");
@@ -98,7 +112,9 @@ async function runObservedTokenHandler(
   const url = new URL(request.url);
   const grantType = params.get("grant_type");
   try {
-    const response = await runTokenHandler(run);
+    const response = await bindOAuthAccessTokenToConsent(
+      await runTokenHandler(run),
+    );
     writeOAuthEventAnalytics({
       durationMs: Date.now() - start,
       event: "token.response",
@@ -137,6 +153,26 @@ async function postRoute(request: Request) {
     // If body parsing fails, delegate to Better Auth
     return normalizeOAuthTokenErrorResponse(
       await withBetterAuthOAuthDebug("POST", request, authHandler),
+    );
+  }
+
+  const duplicateParameter = findDuplicateOAuthFormParameter(
+    params,
+    TOKEN_SINGLETON_FORM_PARAMETERS,
+  );
+  if (duplicateParameter) {
+    return jsonResponse(
+      {
+        error: "invalid_request",
+        error_description: `OAuth parameter "${duplicateParameter}" must not be repeated`,
+      },
+      {
+        status: 400,
+        headers: {
+          "Cache-Control": "no-store",
+          Pragma: "no-cache",
+        },
+      },
     );
   }
 

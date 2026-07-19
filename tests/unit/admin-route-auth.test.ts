@@ -106,6 +106,9 @@ describe("admin 路由认证", () => {
     expect(getSessionFromHeadersMock).not.toHaveBeenCalled();
     expect(hasActiveOAuthUserGrantMock).toHaveBeenCalledWith({
       clientId: "admin-client",
+      grantId: undefined,
+      requireGrantBinding: true,
+      scopes: ["me:read"],
       userId: "admin-from-token",
     });
     expect(resolveAdminByUserIdMock).toHaveBeenCalledWith("admin-from-token");

@@ -1,8 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { issueDeviceGrantTokens } from "@/features/oauth/server/device-token-issuer.server";
 import {
   listUserOAuthAuthorizations,
   resolveActiveOAuthRefreshGrant,
   revokeUserOAuthAuthorization,
+  updateUserOAuthAuthorizationScopes,
 } from "@/features/oauth/server/user-authorizations.server";
 import { prisma } from "@/lib/db/prisma";
 import { hasActiveOAuthUserGrant } from "@/lib/oauth/active-user-grant";
@@ -13,6 +15,7 @@ describe.sequential("OAuth user authorization management", () => {
   const clientId = `oauth-authorization-${marker}`;
   const trustedClientId = `oauth-trusted-${marker}`;
   const refreshToken = `refresh-${marker}`;
+  let latestGrantId = "";
   let latestConsentId = "";
   let otherUserConsentId = "";
   let userId = "";
@@ -57,16 +60,7 @@ describe.sequential("OAuth user authorization management", () => {
       ],
     });
 
-    const [olderConsent, latestConsent, otherConsent] = await Promise.all([
-      prisma.oAuthConsent.create({
-        data: {
-          clientId,
-          scopes: ["profile"],
-          updatedAt: new Date("2026-07-19T00:00:00.000Z"),
-          userId,
-        },
-        select: { id: true },
-      }),
+    const [latestConsent, otherConsent] = await Promise.all([
       prisma.oAuthConsent.create({
         data: {
           clientId,
@@ -74,7 +68,7 @@ describe.sequential("OAuth user authorization management", () => {
           updatedAt: new Date("2026-07-20T00:00:00.000Z"),
           userId,
         },
-        select: { id: true },
+        select: { grantId: true, id: true },
       }),
       prisma.oAuthConsent.create({
         data: {
@@ -85,14 +79,16 @@ describe.sequential("OAuth user authorization management", () => {
         select: { id: true },
       }),
     ]);
-    expect(olderConsent.id).not.toBe(latestConsent.id);
     latestConsentId = latestConsent.id;
+    latestGrantId = latestConsent.grantId;
     otherUserConsentId = otherConsent.id;
 
     const refresh = await prisma.oAuthRefreshToken.create({
       data: {
         clientId,
         expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+        grantId: latestGrantId,
+        referenceId: latestGrantId,
         scopes: ["calendar:read", "profile"],
         token: await hashOAuthClientSecretForDbStorage(refreshToken),
         userId,
@@ -104,6 +100,8 @@ describe.sequential("OAuth user authorization management", () => {
         data: {
           clientId,
           expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+          grantId: latestGrantId,
+          referenceId: latestGrantId,
           refreshId: refresh.id,
           scopes: ["calendar:read", "profile"],
           token: `access-${marker}`,
@@ -181,6 +179,15 @@ describe.sequential("OAuth user authorization management", () => {
       true,
     );
     await expect(
+      hasActiveOAuthUserGrant({
+        clientId,
+        grantId: latestGrantId,
+        requireGrantBinding: true,
+        scopes: ["calendar:read", "profile"],
+        userId,
+      }),
+    ).resolves.toBe(true);
+    await expect(
       hasActiveOAuthUserGrant({ clientId: trustedClientId, userId }),
     ).resolves.toBe(true);
     await expect(
@@ -192,6 +199,8 @@ describe.sequential("OAuth user authorization management", () => {
     await expect(resolveActiveOAuthRefreshGrant(refreshToken)).resolves.toEqual(
       {
         clientId,
+        grantId: latestGrantId,
+        scopes: ["calendar:read", "profile"],
         userId,
       },
     );
@@ -228,7 +237,7 @@ describe.sequential("OAuth user authorization management", () => {
       ok: true,
       deleted: {
         accessTokens: 1,
-        consents: 2,
+        consents: 1,
         deviceCodes: 1,
         refreshTokens: 1,
       },
@@ -285,5 +294,155 @@ describe.sequential("OAuth user authorization management", () => {
     await expect(resolveActiveOAuthRefreshGrant(refreshToken)).resolves.toBe(
       null,
     );
+
+    const replacement = await prisma.oAuthConsent.create({
+      data: {
+        clientId,
+        scopes: ["profile"],
+        userId,
+      },
+      select: { grantId: true, id: true },
+    });
+    await expect(
+      hasActiveOAuthUserGrant({
+        clientId,
+        grantId: latestGrantId,
+        requireGrantBinding: true,
+        scopes: ["profile"],
+        userId,
+      }),
+    ).resolves.toBe(false);
+    await expect(
+      hasActiveOAuthUserGrant({
+        clientId,
+        grantId: replacement.grantId,
+        requireGrantBinding: true,
+        scopes: ["profile"],
+        userId,
+      }),
+    ).resolves.toBe(true);
+
+    const replacementRefresh = await prisma.oAuthRefreshToken.create({
+      data: {
+        clientId,
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+        grantId: replacement.grantId,
+        referenceId: replacement.grantId,
+        scopes: ["profile"],
+        token: `replacement-refresh-${marker}`,
+        userId,
+      },
+      select: { id: true },
+    });
+    await Promise.all([
+      prisma.oAuthAccessToken.create({
+        data: {
+          clientId,
+          expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+          grantId: replacement.grantId,
+          referenceId: replacement.grantId,
+          refreshId: replacementRefresh.id,
+          scopes: ["profile"],
+          token: `replacement-access-${marker}`,
+          userId,
+        },
+      }),
+      prisma.deviceCode.create({
+        data: {
+          clientId,
+          deviceCode: `replacement-device-${marker}`,
+          expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+          scopes: ["profile"],
+          status: "approved",
+          userCode: `replacement-user-${marker}`,
+          userId,
+        },
+      }),
+    ]);
+    const reduced = await updateUserOAuthAuthorizationScopes(
+      userId,
+      replacement.id,
+      [],
+    );
+    expect(reduced).toMatchObject({
+      consentId: replacement.id,
+      ok: true,
+      scopes: [],
+    });
+    if (!reduced.ok) throw new Error("Expected scope reduction to succeed");
+    expect(reduced.grantId).not.toBe(replacement.grantId);
+    await expect(
+      hasActiveOAuthUserGrant({
+        clientId,
+        grantId: replacement.grantId,
+        requireGrantBinding: true,
+        userId,
+      }),
+    ).resolves.toBe(false);
+    await expect(
+      Promise.all([
+        prisma.oAuthAccessToken.count({ where: { clientId, userId } }),
+        prisma.oAuthRefreshToken.count({ where: { clientId, userId } }),
+        prisma.deviceCode.count({ where: { clientId, userId } }),
+      ]),
+    ).resolves.toEqual([0, 0, 0]);
+  });
+
+  it("serializes concurrent device grants into one current generation", async () => {
+    const devices = await Promise.all(
+      [1, 2].map((index) =>
+        prisma.deviceCode.create({
+          data: {
+            clientId,
+            deviceCode: `concurrent-device-${index}-${marker}`,
+            expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+            scopes: ["profile"],
+            status: "approved",
+            userCode: `concurrent-user-${index}-${marker}`,
+            userId,
+          },
+          select: { id: true },
+        }),
+      ),
+    );
+
+    const issued = await Promise.all(
+      devices.map((device) =>
+        issueDeviceGrantTokens(prisma, {
+          clientId,
+          deviceCodeRecordId: device.id,
+          resources: [],
+          scopes: ["profile"],
+          userId,
+        }),
+      ),
+    );
+    expect(issued.every(Boolean)).toBe(true);
+    const accessTokens = issued.flatMap((result) =>
+      result ? [result.accessToken] : [],
+    );
+    const hashes = await Promise.all(
+      accessTokens.map(hashOAuthClientSecretForDbStorage),
+    );
+    const [consent, tokenRows] = await Promise.all([
+      prisma.oAuthConsent.findUniqueOrThrow({
+        where: { clientId_userId: { clientId, userId } },
+        select: { grantId: true },
+      }),
+      prisma.oAuthAccessToken.findMany({
+        where: { clientId, token: { in: hashes }, userId },
+        select: { grantId: true, referenceId: true },
+      }),
+    ]);
+
+    expect(tokenRows).toEqual([
+      {
+        grantId: consent.grantId,
+        referenceId: consent.grantId,
+      },
+    ]);
+    await expect(
+      prisma.oAuthConsent.count({ where: { clientId, userId } }),
+    ).resolves.toBe(1);
   });
 });

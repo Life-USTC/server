@@ -15,6 +15,7 @@ import { restReadScope } from "@/lib/oauth/scope-registry";
 const marker = crypto.randomUUID();
 const clientId = `graphql-auth-${marker}`;
 let consentId = "";
+let grantId = "";
 let userId = "";
 
 async function signToken(resource: string) {
@@ -22,6 +23,7 @@ async function signToken(resource: string) {
   const token = await signResourceBoundOAuthAccessToken({
     clientId,
     expiresAt: issuedAt + 300,
+    grantId,
     issuedAt,
     resources: [resource],
     scopes: [restReadScope("me")],
@@ -55,12 +57,15 @@ describe.sequential("GraphQL OAuth resource isolation", () => {
       },
       select: {
         consents: {
-          select: { id: true },
+          select: { grantId: true, id: true },
         },
       },
     });
     consentId = client.consents[0]?.id ?? "";
-    if (!consentId) throw new Error("Expected an OAuth consent fixture");
+    grantId = client.consents[0]?.grantId ?? "";
+    if (!consentId || !grantId) {
+      throw new Error("Expected an OAuth consent fixture");
+    }
   });
 
   afterAll(async () => {
@@ -133,6 +138,16 @@ describe.sequential("GraphQL OAuth resource isolation", () => {
     await expect(
       revokeUserOAuthAuthorization(userId, consentId),
     ).resolves.toMatchObject({ ok: true });
+    const replacementConsent = await prisma.oAuthConsent.create({
+      data: {
+        clientId,
+        scopes: [restReadScope("me")],
+        userId,
+      },
+      select: { grantId: true, id: true },
+    });
+    consentId = replacementConsent.id;
+    grantId = replacementConsent.grantId;
 
     await expect(
       resolveGraphqlPrincipal(
@@ -156,5 +171,14 @@ describe.sequential("GraphQL OAuth resource isolation", () => {
       error: "invalid_token",
       status: 401,
     });
+
+    const replacementToken = await signToken(getOAuthGraphqlResourceUrl());
+    await expect(
+      resolveGraphqlPrincipal(
+        new Request(getOAuthGraphqlResourceUrl(), {
+          headers: { authorization: `Bearer ${replacementToken}` },
+        }),
+      ),
+    ).resolves.toMatchObject({ kind: "oauth", userId });
   });
 });

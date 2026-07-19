@@ -7,6 +7,7 @@ import {
   verifyOpaqueAccessTokenForMcp,
 } from "@/lib/mcp/opaque-token-verification";
 import { hasActiveOAuthUserGrant } from "@/lib/oauth/active-user-grant";
+import { OAUTH_GRANT_ID_CLAIM } from "@/lib/oauth/constants";
 import { type AuthFailure, INVALID_TOKEN_ERROR } from "./auth-errors";
 import {
   getOAuthMcpAudienceUrls,
@@ -45,6 +46,7 @@ export async function verifyAccessToken(
       exp?: unknown;
       scope?: unknown;
       sub?: unknown;
+      [OAUTH_GRANT_ID_CLAIM]?: unknown;
     };
     try {
       const jwt = await verifyOAuthAccessToken(token, {
@@ -60,6 +62,7 @@ export async function verifyAccessToken(
         exp?: unknown;
         scope?: unknown;
         sub?: unknown;
+        [OAUTH_GRANT_ID_CLAIM]?: unknown;
       };
     } catch (err) {
       if (isOAuthDebugLogging()) {
@@ -87,11 +90,25 @@ export async function verifyAccessToken(
 
     const userId = typeof jwtClaims.sub === "string" ? jwtClaims.sub : "";
     const clientId = typeof jwtClaims.azp === "string" ? jwtClaims.azp : "";
+    const grantId =
+      typeof jwtClaims[OAUTH_GRANT_ID_CLAIM] === "string"
+        ? jwtClaims[OAUTH_GRANT_ID_CLAIM]
+        : undefined;
+    const scopes =
+      typeof jwtClaims.scope === "string"
+        ? jwtClaims.scope.split(/\s+/).filter(Boolean)
+        : [];
     try {
       if (
         !userId ||
         !clientId ||
-        !(await hasActiveOAuthUserGrant({ clientId, userId }))
+        !(await hasActiveOAuthUserGrant({
+          clientId,
+          grantId,
+          requireGrantBinding: true,
+          scopes,
+          userId,
+        }))
       ) {
         return {
           diagnostics: {

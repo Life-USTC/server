@@ -5,6 +5,16 @@ export type OAuthUserGrantIdentity = {
   userId: string;
 };
 
+export type OAuthUserGrantEvidence = {
+  grantId?: string;
+  requireGrantBinding?: boolean;
+  scopes?: readonly string[];
+};
+
+export type ActiveOAuthUserGrant =
+  | { kind: "consent"; consentId: string; grantId: string }
+  | { kind: "trusted" };
+
 /**
  * Resource-bound access tokens are stateless JWTs, so signature verification
  * alone cannot observe a user revoking an OAuth application.
@@ -12,11 +22,15 @@ export type OAuthUserGrantIdentity = {
  * Keep this check uncached: revocation is expected to take effect on the next
  * protected request. Database failures intentionally reject the request.
  */
-export async function hasActiveOAuthUserGrant({
+export async function resolveActiveOAuthUserGrant({
   clientId,
+  grantId,
+  requireGrantBinding = false,
+  scopes = [],
   userId,
-}: OAuthUserGrantIdentity): Promise<boolean> {
-  if (!clientId || !userId) return false;
+}: OAuthUserGrantIdentity &
+  OAuthUserGrantEvidence): Promise<ActiveOAuthUserGrant | null> {
+  if (!clientId || !userId) return null;
 
   const client = await prisma.oAuthClient.findUnique({
     where: { clientId },
@@ -24,21 +38,40 @@ export async function hasActiveOAuthUserGrant({
       disabled: true,
       skipConsent: true,
       consents: {
-        where: { userId },
-        select: { id: true },
+        where: {
+          userId,
+          ...(grantId ? { grantId } : {}),
+          ...(scopes.length > 0 ? { scopes: { hasEvery: [...scopes] } } : {}),
+        },
+        select: { grantId: true, id: true },
         take: 1,
       },
     },
   });
-  if (!client || client.disabled) return false;
+  if (!client || client.disabled) return null;
 
   if (client.skipConsent === true) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { id: true },
     });
-    return Boolean(user);
+    return user ? { kind: "trusted" } : null;
   }
 
-  return client.consents.length > 0;
+  if (requireGrantBinding && !grantId) return null;
+
+  const consent = client.consents[0];
+  return consent
+    ? {
+        kind: "consent",
+        consentId: consent.id,
+        grantId: consent.grantId,
+      }
+    : null;
+}
+
+export async function hasActiveOAuthUserGrant(
+  input: OAuthUserGrantIdentity & OAuthUserGrantEvidence,
+): Promise<boolean> {
+  return Boolean(await resolveActiveOAuthUserGrant(input));
 }

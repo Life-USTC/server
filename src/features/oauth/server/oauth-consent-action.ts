@@ -1,4 +1,6 @@
 import { error, redirect } from "@sveltejs/kit";
+import { bindOAuthAuthorizationCodeRedirectToActiveGrant } from "@/features/oauth/server/oauth-authorization-code-grant.server";
+import { rotateOAuthUserGrantAfterConsent } from "@/features/oauth/server/user-authorizations.server";
 import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
 import { prisma } from "@/lib/db/prisma";
 import { getCanonicalOAuthIssuer } from "@/lib/mcp/urls";
@@ -72,6 +74,31 @@ function asOAuthSessionApi(api: unknown): OAuthSessionApi | null {
   return {
     getSession: getSession.bind(api) as OAuthSessionApi["getSession"],
   };
+}
+
+async function rotateAcceptedOAuthGrant(input: {
+  authApi: unknown;
+  headers: Headers;
+  oauthQuery: string;
+  scope: string;
+}) {
+  const query = new URLSearchParams(input.oauthQuery);
+  const clientIds = query.getAll("client_id");
+  if (clientIds.length !== 1 || !clientIds[0]) return false;
+
+  const session = await asOAuthSessionApi(input.authApi)?.getSession({
+    headers: input.headers,
+  });
+  const userId = session?.user?.id;
+  if (typeof userId !== "string") return false;
+
+  return Boolean(
+    await rotateOAuthUserGrantAfterConsent({
+      clientId: clientIds[0],
+      scopes: input.scope.split(/\s+/).filter(Boolean),
+      userId,
+    }),
+  );
 }
 
 function isOAuthAuthorizePageRedirect(target: string, requestUrl: string) {
@@ -288,6 +315,17 @@ export async function submitOAuthConsentAction({
       body,
     });
     redirectTarget = redirectPayloadTarget(payload);
+    if (
+      accept &&
+      !(await rotateAcceptedOAuthGrant({
+        authApi,
+        headers,
+        oauthQuery,
+        scope,
+      }))
+    ) {
+      throw new Error("OAuth grant generation could not be rotated");
+    }
     if (redirectTarget) {
       redirectTarget = await resolveAuthorizeRedirectAfterConsent({
         accept,
@@ -297,6 +335,20 @@ export async function submitOAuthConsentAction({
         requestUrl: request.url,
         redirectTarget,
       });
+    }
+    const clientIds = new URLSearchParams(oauthQuery).getAll("client_id");
+    if (
+      accept &&
+      redirectTarget &&
+      (clientIds.length !== 1 ||
+        !clientIds[0] ||
+        !(await bindOAuthAuthorizationCodeRedirectToActiveGrant(
+          redirectTarget,
+          clientIds[0],
+          request.url,
+        )))
+    ) {
+      throw new Error("OAuth authorization code could not be grant-bound");
     }
   } catch {
     redirectTarget = undefined;

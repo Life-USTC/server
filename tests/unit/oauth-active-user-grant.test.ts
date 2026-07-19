@@ -22,7 +22,7 @@ describe("active OAuth user grant", () => {
 
   it("accepts an enabled client with a current-user consent", async () => {
     clientFindUniqueMock.mockResolvedValue({
-      consents: [{ id: "consent-1" }],
+      consents: [{ grantId: "grant-1", id: "consent-1" }],
       disabled: false,
       skipConsent: false,
     });
@@ -49,7 +49,11 @@ describe("active OAuth user grant", () => {
 
   it.each([
     null,
-    { consents: [{ id: "consent-1" }], disabled: true, skipConsent: false },
+    {
+      consents: [{ grantId: "grant-1", id: "consent-1" }],
+      disabled: true,
+      skipConsent: false,
+    },
     { consents: [], disabled: false, skipConsent: false },
   ])("rejects a missing, disabled, or unconsented client", async (client) => {
     clientFindUniqueMock.mockResolvedValue(client);
@@ -89,6 +93,60 @@ describe("active OAuth user grant", () => {
       hasActiveOAuthUserGrant({
         clientId: "trusted-client",
         userId: "deleted-user",
+      }),
+    ).resolves.toBe(false);
+  });
+
+  it("requires the exact consent and granted scopes for a bound JWT", async () => {
+    clientFindUniqueMock.mockResolvedValue({
+      consents: [{ grantId: "grant-1", id: "consent-1" }],
+      disabled: false,
+      skipConsent: false,
+    });
+    const { hasActiveOAuthUserGrant } = await import(
+      "@/lib/oauth/active-user-grant"
+    );
+
+    await expect(
+      hasActiveOAuthUserGrant({
+        clientId: "client-1",
+        grantId: "grant-1",
+        requireGrantBinding: true,
+        scopes: ["todo:read"],
+        userId: "user-1",
+      }),
+    ).resolves.toBe(true);
+    expect(clientFindUniqueMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          consents: expect.objectContaining({
+            where: {
+              grantId: "grant-1",
+              scopes: { hasEvery: ["todo:read"] },
+              userId: "user-1",
+            },
+          }),
+        }),
+      }),
+    );
+  });
+
+  it("rejects an unbound JWT even if another consent exists", async () => {
+    clientFindUniqueMock.mockResolvedValue({
+      consents: [{ grantId: "grant-1", id: "consent-1" }],
+      disabled: false,
+      skipConsent: false,
+    });
+    const { hasActiveOAuthUserGrant } = await import(
+      "@/lib/oauth/active-user-grant"
+    );
+
+    await expect(
+      hasActiveOAuthUserGrant({
+        clientId: "client-1",
+        requireGrantBinding: true,
+        scopes: ["todo:read"],
+        userId: "user-1",
       }),
     ).resolves.toBe(false);
   });

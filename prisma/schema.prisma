@@ -1342,6 +1342,7 @@ model OAuthRefreshToken {
   id String @id @default(cuid())
 
   token     String @unique
+  grantId   String?
   clientId  String
   client    OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
 
@@ -1362,6 +1363,7 @@ model OAuthRefreshToken {
   accessTokens OAuthAccessToken[]
 
   @@index([clientId])
+  @@index([grantId])
   @@index([sessionId])
   @@index([userId])
   @@index([expiresAt])
@@ -1371,6 +1373,7 @@ model OAuthAccessToken {
   id String @id @default(cuid())
 
   token     String @unique
+  grantId   String?
   clientId  String
   client    OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
 
@@ -1389,6 +1392,7 @@ model OAuthAccessToken {
   scopes    String[] @default([])
 
   @@index([clientId])
+  @@index([grantId])
   @@index([sessionId])
   @@index([userId])
   @@index([refreshId])
@@ -1404,12 +1408,14 @@ model OAuthConsent {
   userId String?
   user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  grantId     String   @unique @default(uuid())
   referenceId String?
   scopes      String[] @default([])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([clientId, userId])
   @@index([clientId])
   @@index([userId])
 }

@@ -1,8 +1,16 @@
+import { decodeJwt } from "jose";
 import {
   type DeviceRegistrationMetadata,
   prepareOAuthClientRegistrationDelegation,
   restoreRegisteredDeviceClientMetadata,
 } from "@/features/oauth/server/client-registration-policy.server";
+import { bindOAuthAuthorizationCodeRedirectToActiveGrant } from "@/features/oauth/server/oauth-authorization-code-grant.server";
+import {
+  revokeUserOAuthAuthorization,
+  updateUserOAuthAuthorizationScopes,
+} from "@/features/oauth/server/user-authorizations.server";
+import { isTrustedAuthOrigin } from "@/lib/auth/auth-origins";
+import { verifyAccessTokenJwt } from "@/lib/auth/jwt-verification";
 import { prisma } from "@/lib/db/prisma";
 import {
   logOAuthDebug,
@@ -10,8 +18,16 @@ import {
   summarizeOAuthRedirectUri,
   withBetterAuthOAuthDebug,
 } from "@/lib/log/oauth-debug";
+import {
+  getJwksUrlForOAuthVerification,
+  getOAuthProviderValidAudiences,
+  getOAuthTokenVerificationIssuers,
+} from "@/lib/mcp/urls";
+import { hasActiveOAuthUserGrant } from "@/lib/oauth/active-user-grant";
+import { findDuplicateOAuthFormParameter } from "@/lib/oauth/form-parameters";
 import { resolveEquivalentLoopbackRedirectUri } from "@/lib/oauth/loopback-redirect";
 import { rewriteOAuthResourceAliases } from "@/lib/oauth/resource-aliases";
+import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
 
 function isOAuthClientRegistrationRequest(request: Request) {
   return new URL(request.url).pathname.endsWith("/oauth2/register");
@@ -122,6 +138,275 @@ async function authHandler(request: Request) {
   return betterAuthInstance.handler(request);
 }
 
+function isOAuthIntrospectionRequest(request: Request) {
+  return new URL(request.url).pathname.endsWith("/oauth2/introspect");
+}
+
+function oauthConsentMutationPath(request: Request) {
+  const pathname = new URL(request.url).pathname;
+  if (pathname === "/api/auth/oauth2/delete-consent") return "delete";
+  if (pathname === "/api/auth/oauth2/update-consent") return "update";
+  if (pathname === "/api/auth/oauth2/consent") return "provider-consent";
+  return null;
+}
+
+function consentMutationError(status: number, message: string) {
+  const code =
+    status === 401
+      ? "UNAUTHORIZED"
+      : status === 403
+        ? "FORBIDDEN"
+        : status === 404
+          ? "NOT_FOUND"
+          : "BAD_REQUEST";
+  return Response.json(
+    { code, message },
+    { status, headers: { "Cache-Control": "no-store" } },
+  );
+}
+
+async function handleOAuthConsentMutation(
+  request: Request,
+  mutation: "delete" | "provider-consent" | "update",
+) {
+  if (mutation === "provider-consent") {
+    return consentMutationError(
+      404,
+      "OAuth consent is only available through the authorization page",
+    );
+  }
+
+  const origin =
+    request.headers.get("origin") ?? request.headers.get("referer");
+  if (!origin || origin === "null" || !isTrustedAuthOrigin(origin)) {
+    return consentMutationError(403, "Invalid origin");
+  }
+
+  const { getSessionFromHeaders } = await import("@/lib/auth/core");
+  const session = await getSessionFromHeaders(request.headers);
+  if (!session?.user.id) {
+    return consentMutationError(401, "Authentication required");
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return consentMutationError(400, "Invalid JSON request body");
+  }
+  const input =
+    body && typeof body === "object" ? (body as Record<string, unknown>) : null;
+  const consentId = typeof input?.id === "string" ? input.id : "";
+  if (!consentId) return consentMutationError(400, "Missing consent id");
+
+  if (mutation === "delete") {
+    const result = await revokeUserOAuthAuthorization(
+      session.user.id,
+      consentId,
+    );
+    return result.ok
+      ? Response.json(null, { headers: { "Cache-Control": "no-store" } })
+      : consentMutationError(404, "OAuth authorization not found");
+  }
+
+  const update =
+    input?.update && typeof input.update === "object"
+      ? (input.update as Record<string, unknown>)
+      : null;
+  if (
+    !Array.isArray(update?.scopes) ||
+    !update.scopes.every((scope) => typeof scope === "string")
+  ) {
+    return consentMutationError(400, "Invalid OAuth scopes");
+  }
+  const result = await updateUserOAuthAuthorizationScopes(
+    session.user.id,
+    consentId,
+    update.scopes,
+  );
+  if (!result.ok) {
+    return consentMutationError(
+      result.reason === "not_found" ? 404 : 400,
+      result.reason === "not_found"
+        ? "OAuth authorization not found"
+        : "Invalid OAuth scopes",
+    );
+  }
+  return Response.json(
+    { id: result.consentId, scopes: result.scopes },
+    { headers: { "Cache-Control": "no-store" } },
+  );
+}
+
+const INTROSPECTION_SINGLETON_FORM_PARAMETERS = [
+  "token",
+  "token_type_hint",
+  "client_id",
+  "client_secret",
+] as const;
+
+async function prepareIntrospectionParams(
+  request: Request,
+): Promise<{ params: URLSearchParams } | { response: Response }> {
+  let params: URLSearchParams;
+  try {
+    params = new URLSearchParams(await request.clone().text());
+  } catch {
+    return {
+      response: Response.json(
+        {
+          error: "invalid_request",
+          error_description: "Invalid introspection request body",
+        },
+        { status: 400 },
+      ),
+    };
+  }
+  const duplicate = findDuplicateOAuthFormParameter(
+    params,
+    INTROSPECTION_SINGLETON_FORM_PARAMETERS,
+  );
+  if (duplicate) {
+    return {
+      response: Response.json(
+        {
+          error: "invalid_request",
+          error_description: `OAuth parameter "${duplicate}" must not be repeated`,
+        },
+        { status: 400 },
+      ),
+    };
+  }
+  return { params };
+}
+
+async function getLocalJwks() {
+  const { authApi } = await import("@/lib/auth/core");
+  return authApi.getJwks({});
+}
+
+function inactiveIntrospectionResponse(response: Response) {
+  const headers = new Headers(response.headers);
+  headers.delete("Content-Length");
+  headers.set("Content-Type", "application/json; charset=utf-8");
+  return Response.json(
+    { active: false },
+    { headers, status: response.status, statusText: response.statusText },
+  );
+}
+
+async function resolveOpaqueIntrospectionGrant(
+  token: string,
+  tokenTypeHint: string | null,
+) {
+  const tokenHash = await hashOAuthClientSecretForDbStorage(
+    token.replace(/^Bearer /, ""),
+  );
+  if (!tokenTypeHint || tokenTypeHint === "access_token") {
+    const accessToken = await prisma.oAuthAccessToken.findUnique({
+      where: { token: tokenHash },
+      select: {
+        clientId: true,
+        grantId: true,
+        scopes: true,
+        userId: true,
+      },
+    });
+    if (accessToken) {
+      return accessToken.userId
+        ? {
+            clientId: accessToken.clientId,
+            grantId: accessToken.grantId ?? undefined,
+            scopes: accessToken.scopes,
+            userId: accessToken.userId,
+          }
+        : { machine: true as const };
+    }
+  }
+  if (!tokenTypeHint || tokenTypeHint === "refresh_token") {
+    const refreshToken = await prisma.oAuthRefreshToken.findUnique({
+      where: { token: tokenHash },
+      select: {
+        clientId: true,
+        grantId: true,
+        scopes: true,
+        userId: true,
+      },
+    });
+    if (refreshToken) {
+      return {
+        clientId: refreshToken.clientId,
+        grantId: refreshToken.grantId ?? undefined,
+        scopes: refreshToken.scopes,
+        userId: refreshToken.userId,
+      };
+    }
+  }
+  return null;
+}
+
+async function enforceIntrospectionGrant(
+  params: URLSearchParams,
+  response: Response,
+) {
+  if (!response.ok) return response;
+  const responseBody = (await response
+    .clone()
+    .json()
+    .catch(() => null)) as { active?: unknown } | null;
+  if (responseBody?.active !== true) return response;
+
+  const token = params.get("token");
+  if (!token) return inactiveIntrospectionResponse(response);
+
+  try {
+    if (token.split(".").length === 3) {
+      if (typeof decodeJwt(token).sub !== "string") return response;
+      const verified = await verifyAccessTokenJwt(token, {
+        audience: getOAuthProviderValidAudiences(),
+        issuer: getOAuthTokenVerificationIssuers(),
+        jwksFetch: getLocalJwks,
+        jwksUrl: getJwksUrlForOAuthVerification(),
+      });
+      if (
+        verified.clientId &&
+        (await hasActiveOAuthUserGrant({
+          clientId: verified.clientId,
+          grantId: verified.grantId,
+          requireGrantBinding: true,
+          scopes: verified.tokenScopes,
+          userId: verified.sub,
+        }))
+      ) {
+        return response;
+      }
+      return inactiveIntrospectionResponse(response);
+    }
+
+    const grant = await resolveOpaqueIntrospectionGrant(
+      token,
+      params.get("token_type_hint"),
+    );
+    if (grant && "machine" in grant) return response;
+    if (
+      grant &&
+      (await hasActiveOAuthUserGrant({
+        clientId: grant.clientId,
+        grantId: grant.grantId,
+        requireGrantBinding: true,
+        scopes: grant.scopes,
+        userId: grant.userId,
+      }))
+    ) {
+      return response;
+    }
+  } catch {
+    // Introspection must fail closed when the grant cannot be verified.
+  }
+
+  return inactiveIntrospectionResponse(response);
+}
+
 async function maybeNormalizeAuthorizeLoopbackRedirectRequest(
   request: Request,
 ): Promise<Request> {
@@ -187,16 +472,134 @@ function maybeNormalizeAuthorizeResourceRequest(request: Request): Request {
   return new Request(url, request);
 }
 
-export const authGetRoute = async (request: Request) =>
-  withBetterAuthOAuthDebug(
-    "GET",
+async function enforceAuthorizationCodeGrantBinding(
+  request: Request,
+  response: Response,
+) {
+  const pathname = new URL(request.url).pathname;
+  const isAuthorize = pathname.endsWith("/oauth2/authorize");
+  if (!isAuthorize && !pathname.endsWith("/oauth2/continue")) {
+    return response;
+  }
+
+  const location = response.headers.get("location");
+  if (location) {
+    return enforceAuthorizationCodeRedirectBinding({
+      baseUrl: request.url,
+      expectedClientId: isAuthorize
+        ? getSingleAuthorizationClientId(request)
+        : undefined,
+      location,
+      response,
+    });
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) return response;
+  const body = (await response
+    .clone()
+    .json()
+    .catch(() => null)) as Record<string, unknown> | null;
+  if (!body || typeof body.url !== "string") return response;
+
+  const bound = await enforceAuthorizationCodeRedirectBinding({
+    baseUrl: request.url,
+    expectedClientId: isAuthorize
+      ? getSingleAuthorizationClientId(request)
+      : undefined,
+    location: body.url,
+    response,
+  });
+  const rewrittenLocation = bound.headers.get("location");
+  if (!rewrittenLocation) return response;
+
+  const headers = new Headers(bound.headers);
+  headers.delete("Content-Length");
+  headers.delete("location");
+  return Response.json(
+    { ...body, url: rewrittenLocation },
+    {
+      headers,
+      status: bound.status,
+      statusText: bound.statusText,
+    },
+  );
+}
+
+function getSingleAuthorizationClientId(request: Request) {
+  const clientIds = new URL(request.url).searchParams.getAll("client_id");
+  return clientIds.length === 1 && clientIds[0] ? clientIds[0] : null;
+}
+
+async function enforceAuthorizationCodeRedirectBinding(input: {
+  baseUrl: string;
+  expectedClientId: string | null | undefined;
+  location: string;
+  response: Response;
+}) {
+  let target: URL;
+  try {
+    target = new URL(input.location, input.baseUrl);
+  } catch {
+    return input.response;
+  }
+  if (!target.searchParams.has("code")) return input.response;
+
+  let bound = false;
+  try {
+    bound =
+      input.expectedClientId !== null &&
+      (await bindOAuthAuthorizationCodeRedirectToActiveGrant(
+        input.location,
+        input.expectedClientId,
+        input.baseUrl,
+      ));
+  } catch {
+    bound = false;
+  }
+  if (bound) return input.response;
+
+  target.searchParams.delete("code");
+  target.searchParams.set("error", "server_error");
+  target.searchParams.set(
+    "error_description",
+    "OAuth authorization could not be grant-bound",
+  );
+  const headers = new Headers(input.response.headers);
+  headers.delete("Content-Length");
+  headers.set("Cache-Control", "no-store");
+  headers.set("location", target.toString());
+  return new Response(null, {
+    headers,
+    status: input.response.status,
+    statusText: input.response.statusText,
+  });
+}
+
+export const authGetRoute = async (request: Request) => {
+  const normalizedRequest =
     await maybeNormalizeAuthorizeLoopbackRedirectRequest(
       maybeNormalizeAuthorizeResourceRequest(request),
-    ),
+    );
+  const response = await withBetterAuthOAuthDebug(
+    "GET",
+    normalizedRequest,
     authHandler,
   );
+  return enforceAuthorizationCodeGrantBinding(normalizedRequest, response);
+};
 
 export const authPostRoute = async (request: Request) => {
+  const consentMutation = oauthConsentMutationPath(request);
+  if (consentMutation) {
+    return handleOAuthConsentMutation(request, consentMutation);
+  }
+  const introspection = isOAuthIntrospectionRequest(request)
+    ? await prepareIntrospectionParams(request)
+    : null;
+  if (introspection && "response" in introspection) {
+    return introspection.response;
+  }
   const prepared = await prepareOAuthClientRegistrationRequest(request);
   if ("response" in prepared) return prepared.response;
   const response = await withBetterAuthOAuthDebug(
@@ -204,9 +607,17 @@ export const authPostRoute = async (request: Request) => {
     prepared.request,
     authHandler,
   );
-  return restoreDeviceRegistrationGrantTypes(
+  const restored = await restoreDeviceRegistrationGrantTypes(
     response,
     prepared.deviceRegistration,
+  );
+  const finalized =
+    introspection && "params" in introspection
+      ? enforceIntrospectionGrant(introspection.params, restored)
+      : restored;
+  return enforceAuthorizationCodeGrantBinding(
+    prepared.request,
+    await finalized,
   );
 };
 

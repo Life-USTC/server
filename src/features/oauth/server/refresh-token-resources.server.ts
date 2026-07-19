@@ -21,12 +21,16 @@ type RefreshResourcePrisma = {
       where: { token: string };
       select: {
         clientId?: true;
+        grantId?: true;
+        referenceId?: true;
         resources: true;
         scopes?: true;
         userId?: true;
       };
     }) => Promise<{
       clientId?: string;
+      grantId?: string | null;
+      referenceId?: string | null;
       resources: string[];
       scopes?: string[];
       userId?: string;
@@ -314,6 +318,8 @@ export async function issueResourceBoundRefreshAccessToken({
     where: { token: tokenHash },
     select: {
       clientId: true,
+      grantId: true,
+      referenceId: true,
       resources: true,
       scopes: true,
       userId: true,
@@ -338,6 +344,7 @@ export async function issueResourceBoundRefreshAccessToken({
   const accessToken = await signResourceBoundOAuthAccessToken({
     clientId: refreshRecord.clientId,
     expiresAt,
+    grantId: refreshRecord.grantId ?? refreshRecord.referenceId ?? undefined,
     issuedAt,
     resources,
     scopes: refreshRecord.scopes,

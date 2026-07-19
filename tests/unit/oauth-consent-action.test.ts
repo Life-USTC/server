@@ -1,16 +1,32 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { submitOAuthConsentAction } from "@/features/oauth/server/oauth-consent-action";
 
-const { oauth2ConsentMock } = vi.hoisted(() => ({
-  oauth2ConsentMock: vi.fn(),
-}));
+const { bindCodeMock, getSessionMock, oauth2ConsentMock, rotateGrantMock } =
+  vi.hoisted(() => ({
+    bindCodeMock: vi.fn(),
+    getSessionMock: vi.fn(),
+    oauth2ConsentMock: vi.fn(),
+    rotateGrantMock: vi.fn(),
+  }));
+
+vi.mock(
+  "@/features/oauth/server/oauth-authorization-code-grant.server",
+  () => ({
+    bindOAuthAuthorizationCodeRedirectToActiveGrant: bindCodeMock,
+  }),
+);
 
 vi.mock("@/lib/auth/core", () => ({
   authApi: {
     adminCreateOAuthClient: vi.fn(),
     getOAuthClientPublic: vi.fn(),
+    getSession: getSessionMock,
     oauth2Consent: oauth2ConsentMock,
   },
+}));
+
+vi.mock("@/features/oauth/server/user-authorizations.server", () => ({
+  rotateOAuthUserGrantAfterConsent: rotateGrantMock,
 }));
 
 function consentRequest(
@@ -34,7 +50,17 @@ function consentRequest(
 
 describe("OAuth consent 操作", () => {
   beforeEach(() => {
+    bindCodeMock.mockReset();
+    getSessionMock.mockReset();
     oauth2ConsentMock.mockReset();
+    rotateGrantMock.mockReset();
+    getSessionMock.mockResolvedValue({ user: { id: "user-1" } });
+    bindCodeMock.mockResolvedValue(true);
+    rotateGrantMock.mockResolvedValue({
+      consentId: "consent-1",
+      grantId: "grant-1",
+      scopes: ["openid", "profile"],
+    });
     vi.stubEnv("APP_PUBLIC_ORIGIN", "https://life.example");
   });
 
@@ -84,6 +110,16 @@ describe("OAuth consent 操作", () => {
     );
     expect(headers.get("content-length")).toBeNull();
     expect(headers.get("accept")).toBe("application/json");
+    expect(rotateGrantMock).toHaveBeenCalledWith({
+      clientId: "client-1",
+      scopes: ["openid", "profile"],
+      userId: "user-1",
+    });
+    expect(bindCodeMock).toHaveBeenCalledWith(
+      "https://client.example/callback?code=code-1",
+      "client-1",
+      "https://life.example/oauth/authorize",
+    );
   });
 
   it("narrows allowed scopes to checked scopes from the original authorize request", async () => {
@@ -133,6 +169,7 @@ describe("OAuth consent 操作", () => {
       status: 303,
       location: "/error?error=consent_failed",
     });
+    expect(rotateGrantMock).not.toHaveBeenCalled();
   });
 
   it("拒绝缺少 origin 或 referer 的携带 cookie 的 consent 请求", async () => {

@@ -61,8 +61,10 @@
       "mcp": "unavailable",
       "rules": {
         "ownership-scoped-transaction": "Revocation transactionally removes every consent, access-token row, refresh-token row, and approved or pending device-code row for the signed-in user and client.",
-        "active-user-grant-enforcement": "REST, GraphQL, and MCP JWT requests require an enabled client and current consent. Explicit admin-created clients with skipConsent=true are the only bypass and still require an existing user. Missing claims or grants and database errors fail closed. The lookup is intentionally uncached so completed revocation applies to the next request, at the cost of one database grant check per authenticated JWT request.",
-        "refresh-revocation-race": "Refresh exchange verifies the hashed token row and active grant before delegation, then verifies the grant again before returning success. If revocation wins the race, newly issued grant token rows are purged and no usable token response is returned."
+        "active-user-grant-enforcement": "User JWTs, opaque access tokens, and refresh tokens bind the exact consent generation and scopes that issued them. REST, GraphQL, MCP, userinfo, and introspection require that generation to remain active; reauthorization cannot revive old tokens and scope reduction cannot retain broader access. Admin-created skipConsent clients are the only bypass and still require an existing user. Missing evidence and database errors fail closed. Lookups stay uncached so revocation applies on the next request.",
+        "refresh-revocation-race": "Refresh exchange verifies the hashed token row and exact grant generation before delegation, preserves that generation on the returned JWT, opaque access token, and rotated refresh token, then verifies it again before returning success. If revocation or reauthorization wins the race, only the old lineage rows are purged and no token can continue under the newer grant.",
+        "singleton-form-parameters": "OAuth token and introspection form parameters are single-valued and repeated values fail with invalid_request before delegation; resource remains multi-valued.",
+        "consent-mutations": "The provider update-consent and delete-consent routes are intercepted and reimplemented with ownership checks, trusted-origin enforcement, token cleanup, and grant-generation rotation. Direct provider consent mutation is unavailable; the authorization page is the only consent entry point."
       },
       "display": {
         "fields": [

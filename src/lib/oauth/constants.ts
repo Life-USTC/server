@@ -17,6 +17,7 @@ export const OAUTH_CODE_RESPONSE_TYPE = "code";
 export const OAUTH_DEVICE_AUTHORIZATION_ENDPOINT_PATH =
   "/api/auth/oauth2/device-authorization";
 export const OAUTH_TOKEN_ENDPOINT_PATH = "/api/auth/oauth2/token";
+export const OAUTH_GRANT_ID_CLAIM = "urn:life-ustc:oauth:grant-id";
 export const OAUTH_OPENID_SCOPE = "openid";
 export const OAUTH_PROFILE_SCOPE = "profile";
 export const OAUTH_EMAIL_SCOPE = "email";
