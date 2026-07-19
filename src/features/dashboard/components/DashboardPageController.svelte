@@ -28,8 +28,6 @@ import {
 import { createDashboardDisplayActions } from "@/features/dashboard/lib/dashboard-controller-display-actions";
 import { createDashboardFormSubmitActions } from "@/features/dashboard/lib/dashboard-controller-form-actions";
 import {
-  type AnonymousDashboardData,
-  type AnonymousLinkGroup,
   buildCalendarWeekdayLabels,
   type DashboardActionData,
   type DashboardLinkItem,
@@ -44,7 +42,7 @@ import { createDashboardLinkStateActions } from "@/features/dashboard/lib/dashbo
 import { mountDashboardController } from "@/features/dashboard/lib/dashboard-controller-mount";
 import { createDashboardSubscriptionActions } from "@/features/dashboard/lib/dashboard-controller-subscription-actions";
 import { createDashboardTodoActions } from "@/features/dashboard/lib/dashboard-controller-todo-actions";
-import { linkIconLabel } from "@/features/dashboard/lib/dashboard-link-ui";
+import { linkIconLabel } from "@/features/dashboard/lib/dashboard-link-icon";
 import { dashboardTabHref } from "@/features/dashboard/lib/dashboard-nav";
 import {
   examReferenceNow,
@@ -61,7 +59,6 @@ import { todoPriorityOptions as buildTodoPriorityOptions } from "@/features/dash
 import { goto, invalidateAll, replaceState } from "$app/navigation";
 import { page } from "$app/stores";
 import * as Alert from "$lib/components/ui/alert/index.js";
-import AnonymousDashboardView from "./AnonymousDashboardView.svelte";
 import DashboardStatusAlerts from "./DashboardStatusAlerts.svelte";
 import type { DashboardCalendarTabProps } from "./dashboard-calendar-component-types";
 import SignedDashboardOverviewBranch from "./SignedDashboardOverviewBranch.svelte";
@@ -77,8 +74,6 @@ export let data: PageData;
 export let form: ActionData | undefined = undefined;
 
 let {
-  anonymousData,
-  anonymousLinkGroups,
   bulkImportError,
   bulkImportMessage,
   bulkImportSemesterId,
@@ -153,7 +148,6 @@ $: actionError = form?.error ?? "";
 $: commonCopy = copy.common;
 $: dashboardCopy = copy.dashboard;
 $: busCopy = copy.bus;
-$: homepageCopy = copy.homepage;
 $: homeworksCopy = copy.homeworks;
 $: homeworkCopy = copy.myHomeworks;
 $: sectionCopy = copy.sectionDetail;
@@ -474,7 +468,6 @@ $: derivedState = buildDashboardControllerDerivedState({
   currentTodoItems: todoSourceItems,
   todoFilter,
 });
-$: anonymousData = derivedState.anonymousData;
 $: homeworkItems = derivedState.homeworkItems;
 $: signedData = applyLocalTodoItemsToSignedData(
   applyLocalHomeworkItemsToSignedData(derivedState.signedData, homeworkItems),
@@ -488,7 +481,6 @@ $: filteredExamRows = derivedState.filteredExamRows;
 $: dashboardLinkItems = derivedState.dashboardLinkItems;
 $: overviewLinkItems = derivedState.overviewLinkItems;
 $: signedLinkGroups = derivedState.signedLinkGroups;
-$: anonymousLinkGroups = derivedState.anonymousLinkGroups;
 $: calendarData = derivedState.calendarData;
 $: syncCalendarStateFromUrl($page.url, calendarData);
 $: selectedImportSectionIdSet = new Set(selectedImportSectionIds);
@@ -712,18 +704,5 @@ onMount(() => {
     <Alert.Root>
       <Alert.Description>{commonCopy.userNotFound}</Alert.Description>
     </Alert.Root>
-  {:else if anonymousData}
-    <AnonymousDashboardView
-      {busCopy}
-      {dashboardCopy}
-      {homepageCopy}
-      anonymousData={anonymousData}
-      anonymousLinkGroups={anonymousLinkGroups}
-      {linkIconLabel}
-      {linkView}
-      {setLinkView}
-      bind:linkSearchInput
-      bind:linkSearchQuery
-    />
   {/if}
 </div>

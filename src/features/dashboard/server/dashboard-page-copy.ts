@@ -25,3 +25,23 @@ export function getDashboardPageCopy(locale: AppLocale) {
     todos: copy.todos,
   };
 }
+
+export function getAnonymousHomePageCopy(locale: AppLocale) {
+  const copy = getDashboardPageCopy(locale);
+  return {
+    bus: copy.bus,
+    dashboard: {
+      linkHub: copy.dashboard.linkHub,
+      nav: {
+        bus: copy.dashboard.nav.bus,
+        links: copy.dashboard.nav.links,
+      },
+    },
+    homepage: {
+      publicDashboard: copy.homepage.publicDashboard,
+    },
+    metadata: {
+      home: copy.metadata.home,
+    },
+  };
+}

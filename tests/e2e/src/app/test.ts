@@ -20,6 +20,22 @@ test("/", async ({ page }, testInfo) => {
   await assertPageContract(page, { routePath: "/", testInfo });
 });
 
+test("/ 登录用户重定向至 dashboard 并仅保留支持的查询状态", async ({
+  page,
+}) => {
+  await signInAsDebugUser(page, "/dashboard");
+
+  const response = await page.request.get(
+    "/?tab=calendar&calendarView=week&calendarSemester=42&utm_source=ignored",
+    { maxRedirects: 0 },
+  );
+
+  expect(response.status()).toBe(303);
+  expect(response.headers().location).toBe(
+    "/dashboard?tab=calendar&calendarView=week&calendarSemester=42",
+  );
+});
+
 test("/ 首页快速入口可见", async ({ page }, testInfo) => {
   await gotoAndWaitForReady(page, "/", { testInfo, screenshotLabel: "home" });
 
