@@ -13,8 +13,11 @@ test.describe("语言、主题和视口矩阵", () => {
   for (const locale of UI_MATRIX_LOCALES) {
     for (const theme of UI_MATRIX_THEMES) {
       test(`${locale} / ${theme}`, async ({ baseURL, page }, testInfo) => {
+        const prefersDark =
+          theme === "dark" ||
+          (theme === "system" && testInfo.project.name === "mobile-chrome");
         await page.emulateMedia({
-          colorScheme: theme === "light" ? "light" : "dark",
+          colorScheme: prefersDark ? "dark" : "light",
         });
         await page.context().addCookies([
           {
@@ -33,7 +36,7 @@ test.describe("语言、主题和视口矩阵", () => {
         await expect(page.locator("html")).toHaveAttribute("lang", locale);
         await expect(page.locator("html")).toHaveAttribute(
           "data-theme",
-          theme === "light" ? "light" : "dark",
+          prefersDark ? "dark" : "light",
         );
         await expect(
           page.getByRole("heading", {
