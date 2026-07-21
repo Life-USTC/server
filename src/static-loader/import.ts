@@ -1987,12 +1987,29 @@ async function upsertRooms(
   );
 }
 
-async function upsertAdminClasses(
+export async function upsertAdminClasses(
   tx: Prisma.TransactionClient,
   builds: AdminClassOccurrence[],
 ): Promise<Map<number, number>> {
   const { canonicalBuilds, canonicalJwIdByAlias } =
     canonicalizeAdminClasses(builds);
+  // nameCn is the durable identity; release jwIds still held by an old name
+  // before the unique-name upsert reassigns them.
+  for (const batch of chunks(canonicalBuilds, 500)) {
+    const params: ColumnValue[] = [];
+    const values = batch.map((build) => {
+      params.push(build.nameCn, build.jwId);
+      return `($${params.length - 1}::text, $${params.length}::int)`;
+    });
+    await tx.$executeRawUnsafe(
+      `UPDATE "AdminClass" AS existing
+       SET "jwId" = NULL
+       FROM (VALUES ${values.join(",")}) AS incoming("nameCn", "jwId")
+       WHERE existing."jwId" = incoming."jwId"
+         AND existing."nameCn" <> incoming."nameCn"`,
+      ...params,
+    );
+  }
   const columns = [
     "jwId",
     "code",
