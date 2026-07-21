@@ -27,9 +27,11 @@ describe("cross-site form protection", () => {
     vi.stubEnv("NODE_ENV", "production");
 
     const response = crossSiteFormResponse(event());
+    expect(response).not.toBeNull();
+    if (!response) throw new Error("Expected the CSRF gate to reject the request");
 
-    expect(response?.status).toBe(403);
-    await expect(response?.json()).resolves.toEqual({
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
       message: "Cross-site POST form submissions are forbidden",
     });
   });
