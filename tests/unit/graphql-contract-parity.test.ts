@@ -76,9 +76,13 @@ function contractFieldMap(
 ) {
   const map = new Map<string, GraphqlFieldShape>();
   for (const field of fields) {
-    if (field.parent !== (expectedParent === "Viewer" ? "Viewer" : undefined)) {
+    const validParent =
+      expectedParent === "Viewer"
+        ? field.parent === "Viewer"
+        : field.parent === undefined || field.parent === expectedParent;
+    if (!validParent) {
       throw new Error(
-        `GraphQL contract field ${field.name} must belong to ${expectedParent}`,
+        `GraphQL contract field ${field.name} has parent ${field.parent ?? "(omitted)"}; expected ${expectedParent}`,
       );
     }
     if (map.has(field.name)) {
