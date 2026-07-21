@@ -27,6 +27,10 @@
           {
             "parent": "Viewer",
             "name": "todos",
+            "arguments": {
+              "filter": "TodoFilter",
+              "page": "PageInput"
+            },
             "returns": "TodoPage!",
             "auth": "user",
             "required_scopes": ["todo:read"],
@@ -40,6 +44,7 @@
         "mutations": [
           {
             "name": "createTodo",
+            "arguments": { "input": "CreateTodoInput!" },
             "returns": "TodoMutationPayload!",
             "auth": "user",
             "required_scopes": ["todo:write"],
@@ -48,6 +53,10 @@
           },
           {
             "name": "updateTodo",
+            "arguments": {
+              "id": "ID!",
+              "input": "UpdateTodoInput!"
+            },
             "returns": "TodoMutationPayload!",
             "auth": "user",
             "required_scopes": ["todo:write"],
@@ -56,6 +65,7 @@
           },
           {
             "name": "deleteTodo",
+            "arguments": { "id": "ID!" },
             "returns": "DeleteMutationPayload!",
             "auth": "user",
             "required_scopes": ["todo:write"],
@@ -64,6 +74,9 @@
           },
           {
             "name": "setTodoCompletions",
+            "arguments": {
+              "items": "[TodoCompletionBatchItemInput!]!"
+            },
             "returns": "TodoCompletionBatchPayload!",
             "auth": "user",
             "required_scopes": ["todo:write"],
@@ -76,6 +89,7 @@
           },
           {
             "name": "deleteTodos",
+            "arguments": { "ids": "[ID!]!" },
             "returns": "TodoDeleteBatchPayload!",
             "auth": "user",
             "required_scopes": ["todo:write"],

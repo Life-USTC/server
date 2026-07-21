@@ -41,6 +41,10 @@
           {
             "parent": "Viewer",
             "name": "homeworks",
+            "arguments": {
+              "filter": "HomeworkFilter",
+              "page": "PageInput"
+            },
             "returns": "HomeworkPage!",
             "auth": "user",
             "required_scopes": ["homework:read"],
@@ -132,6 +136,7 @@
         "mutations": [
           {
             "name": "createHomework",
+            "arguments": { "input": "CreateHomeworkInput!" },
             "returns": "HomeworkMutationPayload!",
             "required_scopes": ["homework:write"],
             "rest_equivalent": "POST /api/homeworks",
@@ -142,6 +147,10 @@
           },
           {
             "name": "updateHomework",
+            "arguments": {
+              "id": "ID!",
+              "input": "UpdateHomeworkInput!"
+            },
             "returns": "HomeworkMutationPayload!",
             "required_scopes": ["homework:write"],
             "rest_equivalent": "PATCH /api/homeworks/[id]",
@@ -153,6 +162,7 @@
           },
           {
             "name": "deleteHomework",
+            "arguments": { "id": "ID!" },
             "returns": "HomeworkDeleteMutationPayload!",
             "required_scopes": ["homework:write"],
             "rest_equivalent": "DELETE /api/homeworks/[id]",
@@ -268,6 +278,10 @@
         "mutations": [
           {
             "name": "setHomeworkCompletion",
+            "arguments": {
+              "homeworkId": "ID!",
+              "completed": "Boolean!"
+            },
             "returns": "HomeworkCompletionMutationPayload!",
             "auth": "user",
             "required_scopes": ["homework:write"],
@@ -276,6 +290,9 @@
           },
           {
             "name": "setHomeworkCompletions",
+            "arguments": {
+              "items": "[HomeworkCompletionBatchItemInput!]!"
+            },
             "returns": "HomeworkCompletionBatchPayload!",
             "auth": "user",
             "required_scopes": ["homework:write"],

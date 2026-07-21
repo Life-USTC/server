@@ -56,6 +56,10 @@
         "mutations": [
           {
             "name": "setDashboardLinkPinState",
+            "arguments": {
+              "slug": "String!",
+              "pinned": "Boolean!"
+            },
             "returns": "DashboardLinkPinMutationPayload!",
             "auth": "user",
             "required_scopes": ["dashboard:write"],
@@ -64,6 +68,9 @@
           },
           {
             "name": "setDashboardLinkPinStates",
+            "arguments": {
+              "items": "[DashboardLinkPinBatchItemInput!]!"
+            },
             "returns": "DashboardLinkPinBatchMutationPayload!",
             "auth": "user",
             "required_scopes": ["dashboard:write"],
