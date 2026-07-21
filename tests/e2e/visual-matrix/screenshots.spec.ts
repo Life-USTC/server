@@ -1,5 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { gotoAndWaitForReady } from "../utils/page-ready";
+import {
+  expectNoPageHorizontalOverflow,
+  gotoAndWaitForReady,
+} from "../utils/page-ready";
 import { absoluteTestUrl } from "../utils/request-url";
 import { captureStepScreenshot } from "../utils/screenshot";
 
@@ -41,13 +44,7 @@ test.describe("语言、主题和视口矩阵", () => {
                 : "Start with public campus tools",
           }),
         ).toBeVisible();
-        expect(
-          await page.evaluate(
-            () =>
-              document.documentElement.scrollWidth <=
-              document.documentElement.clientWidth,
-          ),
-        ).toBe(true);
+        await expectNoPageHorizontalOverflow(page);
         await captureStepScreenshot(
           page,
           testInfo,
