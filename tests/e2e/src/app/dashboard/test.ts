@@ -213,13 +213,14 @@ test.describe("仪表盘", () => {
   });
 
   test("中文总览周视图使用本地化星期标签", async ({ page }, testInfo) => {
+    await signInAsDebugUser(page, "/dashboard/overview");
     const localeResponse = await page.request.post("/api/locale", {
       data: { locale: "zh-cn" },
     });
     expect(localeResponse.status()).toBe(200);
-    await signInAsDebugUser(page, "/dashboard/overview");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/dashboard/overview");
+    await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
 
     const weekCard = page
       .getByRole("link", { name: "本周" })
