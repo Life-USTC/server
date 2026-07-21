@@ -28,7 +28,8 @@ describe("cross-site form protection", () => {
 
     const response = crossSiteFormResponse(event());
     expect(response).not.toBeNull();
-    if (!response) throw new Error("Expected the CSRF gate to reject the request");
+    if (!response)
+      throw new Error("Expected the CSRF gate to reject the request");
 
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({
