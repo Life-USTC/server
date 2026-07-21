@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { gotoAndWaitForReady } from "../utils/page-ready";
+import { absoluteTestUrl } from "../utils/request-url";
 import { captureStepScreenshot } from "../utils/screenshot";
 
 const UI_MATRIX_LOCALES = ["zh-cn", "en-us"] as const;
@@ -8,7 +9,7 @@ const UI_MATRIX_THEMES = ["light", "dark", "system"] as const;
 test.describe("语言、主题和视口矩阵", () => {
   for (const locale of UI_MATRIX_LOCALES) {
     for (const theme of UI_MATRIX_THEMES) {
-      test(`${locale} / ${theme}`, async ({ page }, testInfo) => {
+      test(`${locale} / ${theme}`, async ({ baseURL, page }, testInfo) => {
         await page.emulateMedia({
           colorScheme: theme === "light" ? "light" : "dark",
         });
@@ -16,7 +17,8 @@ test.describe("语言、主题和视口矩阵", () => {
           {
             name: "NEXT_LOCALE",
             value: locale,
-            url: "http://localhost:3000",
+            url: absoluteTestUrl("/", baseURL),
+            sameSite: "Lax",
           },
         ]);
         await page.addInitScript((themeMode) => {
