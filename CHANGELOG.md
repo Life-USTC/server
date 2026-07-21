@@ -1,3 +1,10 @@
+## [1.74.3](https://github.com/Life-USTC/server/compare/v1.74.2...v1.74.3) (2026-07-21)
+
+
+### Bug Fixes
+
+* **ui:** cover visual matrix regressions ([5356ee6](https://github.com/Life-USTC/server/commit/5356ee64bf4f457724ec0945149c1e42bfe8f797))
+
 ## [1.74.2](https://github.com/Life-USTC/server/compare/v1.74.1...v1.74.2) (2026-07-21)
 
 
