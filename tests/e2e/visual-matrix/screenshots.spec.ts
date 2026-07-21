@@ -15,7 +15,7 @@ test.describe("语言、主题和视口矩阵", () => {
       test(`${locale} / ${theme}`, async ({ baseURL, page }, testInfo) => {
         const prefersDark =
           theme === "dark" ||
-          (theme === "system" && testInfo.project.name === "mobile-chrome");
+          (theme === "system" && testInfo.project.use.isMobile === true);
         await page.emulateMedia({
           colorScheme: prefersDark ? "dark" : "light",
         });
