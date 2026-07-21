@@ -7,6 +7,7 @@ import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
 vi.mock("bun:sqlite", () => ({ Database: class {} }));
 const {
   bulkUpsert,
+  syncJoinPairs,
   upsertAdminClasses,
   writeAdminClassSections,
   writeSchedules,
@@ -32,6 +33,56 @@ async function tupleId(
 }
 
 describe("static import write churn", () => {
+  it("syncs production-sized join sets within PostgreSQL stack limits", async () => {
+    const rollback = new Error("ROLLBACK_JOIN_SYNC_STACK_TEST");
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        await tx.$executeRawUnsafe(
+          `CREATE TEMP TABLE "StaticJoinPairProbe" (
+            "A" int NOT NULL,
+            "B" int NOT NULL,
+            PRIMARY KEY ("A", "B")
+          ) ON COMMIT DROP`,
+        );
+        await tx.$executeRawUnsafe(
+          `INSERT INTO "StaticJoinPairProbe" ("A", "B") VALUES (1, 11), (1, 999999)`,
+        );
+        await tx.$executeRawUnsafe("SET LOCAL max_stack_depth = '100kB'");
+
+        const pairs = Array.from({ length: 6_000 }, (_, index) => ({
+          a: Math.floor(index / 6) + 1,
+          b: index + 1,
+        }));
+        await syncJoinPairs(
+          tx,
+          "StaticJoinPairProbe",
+          "A",
+          Array.from({ length: 1_000 }, (_, index) => index + 1),
+          pairs,
+        );
+
+        await expect(
+          tx.$queryRawUnsafe<Array<{ count: bigint }>>(
+            `SELECT COUNT(*) AS count FROM "StaticJoinPairProbe"`,
+          ),
+        ).resolves.toEqual([{ count: 6_000n }]);
+        await expect(
+          tx.$queryRawUnsafe<Array<{ exists: boolean }>>(
+            `SELECT EXISTS (
+              SELECT 1 FROM "StaticJoinPairProbe"
+              WHERE "A" = 1 AND "B" = 999999
+            ) AS exists`,
+          ),
+        ).resolves.toEqual([{ exists: false }]);
+
+        throw rollback;
+      });
+    } catch (error) {
+      if (error !== rollback) throw error;
+    }
+  });
+
   it("reassigns AdminClass jwIds without colliding with stale owners", async () => {
     const rollback = new Error("ROLLBACK_ADMIN_CLASS_IDENTITY_TEST");
     const marker = 1_600_000_000 + (Date.now() % 100_000_000) * 2;

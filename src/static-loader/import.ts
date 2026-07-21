@@ -2842,7 +2842,7 @@ function mergePlaceholderDepartments(
   return result;
 }
 
-async function syncJoinPairs(
+export async function syncJoinPairs(
   tx: Prisma.TransactionClient,
   table: string,
   scopeColumn: "A" | "B",
@@ -2857,11 +2857,15 @@ async function syncJoinPairs(
     const keepClause =
       scopedPairs.length === 0
         ? ""
-        : ` AND ("A","B") NOT IN (${scopedPairs
-            .map((pair) => `(${pair.a},${pair.b})`)
-            .join(",")})`;
+        : ` AND NOT EXISTS (
+            SELECT 1
+            FROM (VALUES ${scopedPairs
+              .map((pair) => `(${pair.a},${pair.b})`)
+              .join(",")}) AS desired("A","B")
+            WHERE desired."A" = target."A" AND desired."B" = target."B"
+          )`;
     await tx.$executeRawUnsafe(
-      `DELETE FROM "${table}" WHERE "${scopeColumn}" IN (${scopeChunk.join(",")})${keepClause}`,
+      `DELETE FROM "${table}" AS target WHERE target."${scopeColumn}" IN (${scopeChunk.join(",")})${keepClause}`,
     );
   }
 
