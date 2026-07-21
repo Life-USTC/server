@@ -46,7 +46,14 @@ export async function expectCatalogInlineFilters(page: Page, labels: RegExp[]) {
   expect(searchButtonBox).not.toBeNull();
   expect(inputBox?.height ?? 0).toBeGreaterThanOrEqual(44);
   expect(searchButtonBox?.height ?? 0).toBeGreaterThanOrEqual(44);
-  expect(searchButtonBox?.y ?? 0).toBe(inputBox?.y ?? 0);
+  if (viewport.width < 420) {
+    expect(searchButtonBox?.y ?? 0).toBeGreaterThan(inputBox?.y ?? 0);
+    expect(
+      Math.abs((searchButtonBox?.width ?? 0) - (inputBox?.width ?? 0)),
+    ).toBeLessThan(1);
+  } else {
+    expect(searchButtonBox?.y ?? 0).toBe(inputBox?.y ?? 0);
+  }
 
   let firstControlBox = null as Awaited<
     ReturnType<typeof inlineFilters.boundingBox>

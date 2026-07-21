@@ -105,6 +105,7 @@ function overviewCalendarWeekDays(
     overviewCalendar,
     overviewWeekStart,
     calendarTimelineItemsForDay,
+    locale,
   );
 }
 

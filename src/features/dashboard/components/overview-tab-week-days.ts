@@ -15,6 +15,7 @@ export function overviewCalendarWeekDays(
   overviewCalendar: DashboardCalendarData,
   overviewWeekStart: string,
   calendarTimelineItemsForDay: OverviewCalendarTimelineItemsForDay,
+  locale: string,
 ): OverviewWeekDay[] {
   return weekDaysFor(overviewWeekStart).map((dayKey) => {
     const events = calendarEventsForDay(overviewCalendar, dayKey);
@@ -22,7 +23,7 @@ export function overviewCalendarWeekDays(
     return {
       key: dayKey,
       label: overviewDayLabel(dayKey),
-      sublabel: formatCampusDate(dayKey, dayKey, undefined, {
+      sublabel: formatCampusDate(dayKey, dayKey, locale, {
         weekday: "short",
       }),
       isToday: dayKey === overviewCalendar.todayDate,

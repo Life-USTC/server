@@ -211,4 +211,26 @@ test.describe("仪表盘", () => {
 
     await captureStepScreenshot(page, testInfo, "dashboard/mobile-priority");
   });
+
+  test("中文总览周视图使用本地化星期标签", async ({ page }, testInfo) => {
+    const localeResponse = await page.request.post("/api/locale", {
+      data: { locale: "zh-cn" },
+    });
+    expect(localeResponse.status()).toBe(200);
+    await signInAsDebugUser(page, "/dashboard/overview");
+    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, "/dashboard/overview");
+
+    const weekCard = page
+      .getByRole("link", { name: "本周" })
+      .locator('xpath=ancestor::*[@data-slot="card"][1]');
+    await expect(weekCard).toBeVisible();
+    await expect(weekCard.getByText("周日", { exact: true })).toBeVisible();
+    await expect(weekCard.getByText("Sun", { exact: true })).toHaveCount(0);
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "dashboard/overview-week-zh-cn",
+    );
+  });
 });

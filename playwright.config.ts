@@ -43,7 +43,23 @@ export default defineConfig({
     {
       name: "mobile-chrome",
       use: { ...devices["Pixel 7"] },
-      testMatch: ["mobile-screenshots/**/*.spec.ts"],
+      testMatch: [
+        "mobile-screenshots/**/*.spec.ts",
+        "visual-matrix/**/*.spec.ts",
+      ],
+    },
+    {
+      name: "visual-tablet",
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { height: 1180, width: 820 },
+      },
+      testMatch: ["visual-matrix/**/*.spec.ts"],
+    },
+    {
+      name: "visual-desktop",
+      use: { ...devices["Desktop Chrome"] },
+      testMatch: ["visual-matrix/**/*.spec.ts"],
     },
   ],
 });
