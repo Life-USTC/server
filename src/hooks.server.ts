@@ -62,7 +62,7 @@ function isFormContentType(request: Request) {
   return FORM_CONTENT_TYPES.some((type) => contentType?.includes(type));
 }
 
-function crossSiteFormResponse(event: Parameters<Handle>[0]["event"]) {
+export function crossSiteFormResponse(event: Parameters<Handle>[0]["event"]) {
   if (getOptionalTrimmedEnv("NODE_ENV") === "development") return null;
   if (!FORM_METHODS.has(event.request.method)) return null;
   if (!isFormContentType(event.request)) return null;
@@ -74,7 +74,7 @@ function crossSiteFormResponse(event: Parameters<Handle>[0]["event"]) {
   if (configuredTrustedFormOrigins().has(requestOrigin)) return null;
 
   const message = `Cross-site ${event.request.method} form submissions are forbidden`;
-  if (event.request.headers.get("accept") === "application/json") {
+  if (event.request.headers.get("accept")?.includes("application/json")) {
     return Response.json({ message }, { status: 403 });
   }
   return new Response(message, { status: 403 });
