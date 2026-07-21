@@ -58,6 +58,7 @@
         "queries": [
           {
             "name": "busRoutes",
+            "arguments": { "page": "PageInput" },
             "returns": "BusRoutePage!",
             "rest_equivalent": "GET /api/bus",
             "mcp_equivalent": "list_bus_routes",
@@ -67,6 +68,12 @@
           },
           {
             "name": "busTimetable",
+            "arguments": {
+              "routeId": "Int!",
+              "page": "PageInput",
+              "now": "DateTime",
+              "versionKey": "String"
+            },
             "returns": "BusRouteTimetable",
             "rest_equivalent": "GET /api/bus",
             "mcp_equivalent": "get_bus_route_timetable",
@@ -79,6 +86,7 @@
         "mutations": [
           {
             "name": "saveBusPreferences",
+            "arguments": { "input": "BusPreferenceInput!" },
             "returns": "BusPreferenceMutationPayload!",
             "auth": "user",
             "required_scopes": ["bus:write"],

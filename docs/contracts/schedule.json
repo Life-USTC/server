@@ -41,6 +41,10 @@
           {
             "parent": "Viewer",
             "name": "schedules",
+            "arguments": {
+              "filter": "ScheduleFilter",
+              "page": "PageInput"
+            },
             "returns": "SchedulePage!",
             "auth": "user",
             "required_scopes": ["schedule:read"],

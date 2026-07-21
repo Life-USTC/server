@@ -38,6 +38,10 @@
         "queries": [
           {
             "name": "teachers",
+            "arguments": {
+              "page": "PageInput",
+              "filter": "TeacherFilter"
+            },
             "returns": "TeacherPage!",
             "rest_equivalent": "GET /api/teachers",
             "mcp_equivalent": "search_teachers",
@@ -93,6 +97,7 @@
         "queries": [
           {
             "name": "teacher",
+            "arguments": { "id": "Int!" },
             "returns": "Teacher",
             "rest_equivalent": "GET /api/teachers/[id]",
             "mcp_equivalent": "get_teacher_by_id"

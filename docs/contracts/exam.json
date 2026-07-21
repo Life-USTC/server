@@ -28,6 +28,10 @@
           {
             "parent": "Viewer",
             "name": "exams",
+            "arguments": {
+              "filter": "ExamFilter",
+              "page": "PageInput"
+            },
             "returns": "ExamPage!",
             "auth": "user",
             "required_scopes": ["exam:read"],

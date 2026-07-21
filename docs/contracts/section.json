@@ -45,6 +45,10 @@
         "queries": [
           {
             "name": "sections",
+            "arguments": {
+              "page": "PageInput",
+              "filter": "SectionFilter"
+            },
             "returns": "SectionPage!",
             "rest_equivalent": "GET /api/sections",
             "mcp_equivalent": "search_sections",
@@ -110,6 +114,7 @@
         "queries": [
           {
             "name": "section",
+            "arguments": { "jwId": "Int!" },
             "returns": "Section",
             "rest_equivalent": "GET /api/sections/[jwId]",
             "mcp_equivalent": "get_section_by_jw_id"

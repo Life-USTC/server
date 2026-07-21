@@ -21,6 +21,7 @@
         "mutations": [
           {
             "name": "upsertDescription",
+            "arguments": { "input": "UpsertDescriptionInput!" },
             "returns": "DescriptionMutationPayload!",
             "auth": "user",
             "required_scopes": ["description:write"],

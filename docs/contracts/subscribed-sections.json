@@ -39,6 +39,7 @@
           {
             "parent": "Viewer",
             "name": "subscribedSections",
+            "arguments": { "page": "PageInput" },
             "returns": "SectionPage!",
             "auth": "user",
             "required_scopes": ["subscription:read"],
