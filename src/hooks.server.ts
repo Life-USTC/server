@@ -62,7 +62,7 @@ function isFormContentType(request: Request) {
   return FORM_CONTENT_TYPES.some((type) => contentType?.includes(type));
 }
 
-function crossSiteFormResponse(event: Parameters<Handle>[0]["event"]) {
+export function crossSiteFormResponse(event: Parameters<Handle>[0]["event"]) {
   if (getOptionalTrimmedEnv("NODE_ENV") === "development") return null;
   if (!FORM_METHODS.has(event.request.method)) return null;
   if (!isFormContentType(event.request)) return null;
