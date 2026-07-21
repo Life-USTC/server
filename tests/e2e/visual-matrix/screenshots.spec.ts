@@ -40,8 +40,8 @@ test.describe("语言、主题和视口矩阵", () => {
             level: 1,
             name:
               locale === "zh-cn"
-                ? "先从公开校园工具开始"
-                : "Start with public campus tools",
+                ? /先从公开校园工具开始/
+                : /start with public campus tools/i,
           }),
         ).toBeVisible();
         await expectNoPageHorizontalOverflow(page);
