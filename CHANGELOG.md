@@ -1,3 +1,10 @@
+## [1.74.1](https://github.com/Life-USTC/server/compare/v1.74.0...v1.74.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* **loader:** reassign stale admin class ids safely ([#587](https://github.com/Life-USTC/server/issues/587)) ([09e24b6](https://github.com/Life-USTC/server/commit/09e24b67678a3abf65b48a04482d5372f13223d1))
+
 # [1.74.0](https://github.com/Life-USTC/server/compare/v1.73.0...v1.74.0) (2026-07-19)
 
 
