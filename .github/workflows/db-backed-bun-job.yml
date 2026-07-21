@@ -164,6 +164,7 @@ jobs:
             ci:e2e:build-artifacts)
               bun run app:prepare
               bun run build
+              bash tests/ci/public-route-client-budget.test.sh
               ;;
             ci:e2e:test)
               run_e2e_test_phase
