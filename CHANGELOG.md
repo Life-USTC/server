@@ -1,3 +1,10 @@
+## [1.74.2](https://github.com/Life-USTC/server/compare/v1.74.1...v1.74.2) (2026-07-21)
+
+
+### Bug Fixes
+
+* **loader:** bound join sync query depth ([#589](https://github.com/Life-USTC/server/issues/589)) ([10f81c3](https://github.com/Life-USTC/server/commit/10f81c3cea29cbfb3c74a4924eb8a4cd11c15ca4))
+
 ## [1.74.1](https://github.com/Life-USTC/server/compare/v1.74.0...v1.74.1) (2026-07-21)
 
 
