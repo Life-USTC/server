@@ -74,7 +74,7 @@ export function crossSiteFormResponse(event: Parameters<Handle>[0]["event"]) {
   if (configuredTrustedFormOrigins().has(requestOrigin)) return null;
 
   const message = `Cross-site ${event.request.method} form submissions are forbidden`;
-  if (event.request.headers.get("accept") === "application/json") {
+  if (event.request.headers.get("accept")?.includes("application/json")) {
     return Response.json({ message }, { status: 403 });
   }
   return new Response(message, { status: 403 });
