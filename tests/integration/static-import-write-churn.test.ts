@@ -7,6 +7,7 @@ import { createTestPrisma, disconnectTestPrisma } from "../shared/prisma";
 vi.mock("bun:sqlite", () => ({ Database: class {} }));
 const {
   bulkUpsert,
+  upsertAdminClasses,
   writeAdminClassSections,
   writeSchedules,
   writeSectionTeachers,
@@ -31,6 +32,54 @@ async function tupleId(
 }
 
 describe("static import write churn", () => {
+  it("reassigns AdminClass jwIds without colliding with stale owners", async () => {
+    const rollback = new Error("ROLLBACK_ADMIN_CLASS_IDENTITY_TEST");
+    const marker = 1_600_000_000 + (Date.now() % 100_000_000) * 2;
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        const first = await tx.adminClass.create({
+          data: { jwId: marker, nameCn: `${marker}-first` },
+        });
+        const second = await tx.adminClass.create({
+          data: { jwId: marker + 1, nameCn: `${marker}-second` },
+        });
+
+        const idByJwId = await upsertAdminClasses(tx, [
+          {
+            semesterCode: 461,
+            adminClass: { jwId: marker + 1, nameCn: `${marker}-first` },
+          },
+          {
+            semesterCode: 461,
+            adminClass: { jwId: marker, nameCn: `${marker}-second` },
+          },
+        ]);
+
+        await expect(
+          tx.adminClass.findMany({
+            where: { id: { in: [first.id, second.id] } },
+            orderBy: { nameCn: "asc" },
+            select: { id: true, jwId: true, nameCn: true },
+          }),
+        ).resolves.toEqual([
+          { id: first.id, jwId: marker + 1, nameCn: `${marker}-first` },
+          { id: second.id, jwId: marker, nameCn: `${marker}-second` },
+        ]);
+        expect(idByJwId).toEqual(
+          new Map([
+            [marker, second.id],
+            [marker + 1, first.id],
+          ]),
+        );
+
+        throw rollback;
+      });
+    } catch (error) {
+      if (error !== rollback) throw error;
+    }
+  });
+
   it("skips unchanged bulk upserts while still returning their ids", async () => {
     const rollback = new Error("ROLLBACK_BULK_UPSERT_CHURN_TEST");
     const marker = 1_700_000_000 + (Date.now() % 100_000_000);
