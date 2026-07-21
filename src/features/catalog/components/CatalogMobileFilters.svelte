@@ -46,7 +46,7 @@ export let searchValue: string;
     class={cn(
       "grid min-w-0 gap-2",
       inlineFilters
-        ? "grid-cols-[minmax(0,1fr)_auto]"
+        ? "grid-cols-1 min-[420px]:grid-cols-[minmax(0,1fr)_auto]"
         : "grid-cols-2 min-[420px]:grid-cols-[minmax(0,1fr)_auto_auto]",
       inlineFilters && "xl:min-w-0 xl:flex-1",
     )}
