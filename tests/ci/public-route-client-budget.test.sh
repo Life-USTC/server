@@ -14,6 +14,9 @@ import { readFile } from "node:fs/promises";
 import { gzipSync } from "node:zlib";
 import { manifest } from "./.svelte-kit/output/server/manifest.js";
 
+// #533 names these crawlable entry/detail routes as the representative public
+// hydration graph. Limits leave about 10% above the 2026-07-22 production-build
+// baseline so normal chunking noise passes while material regressions do not.
 const budgets = {
   "/": { gzipBytes: 170_000, requests: 56 },
   "/courses/[jwId]": { gzipBytes: 330_000, requests: 93 },
