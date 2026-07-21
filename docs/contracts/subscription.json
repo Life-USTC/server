@@ -26,6 +26,7 @@
         "mutations": [
           {
             "name": "subscribeSection",
+            "arguments": { "jwId": "Int!" },
             "returns": "SectionSubscriptionMutationPayload!",
             "auth": "user",
             "required_scopes": ["subscription:write"],
@@ -33,6 +34,7 @@
           },
           {
             "name": "unsubscribeSection",
+            "arguments": { "jwId": "Int!" },
             "returns": "SectionSubscriptionMutationPayload!",
             "auth": "user",
             "required_scopes": ["subscription:write"],
@@ -83,6 +85,9 @@
         "mutations": [
           {
             "name": "updateSectionSubscriptions",
+            "arguments": {
+              "input": "UpdateSectionSubscriptionsInput!"
+            },
             "returns": "SectionSubscriptionBatchPayload!",
             "auth": "user",
             "required_scopes": ["subscription:write"],

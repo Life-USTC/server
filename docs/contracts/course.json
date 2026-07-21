@@ -45,6 +45,10 @@
         "queries": [
           {
             "name": "courses",
+            "arguments": {
+              "page": "PageInput",
+              "filter": "CourseFilter"
+            },
             "returns": "CoursePage!",
             "rest_equivalent": "GET /api/courses",
             "mcp_equivalent": "search_courses",
@@ -100,6 +104,7 @@
         "queries": [
           {
             "name": "course",
+            "arguments": { "jwId": "Int!" },
             "returns": "Course",
             "rest_equivalent": "GET /api/courses/[jwId]",
             "mcp_equivalent": "get_course_by_jw_id"
