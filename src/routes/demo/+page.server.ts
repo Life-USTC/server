@@ -32,6 +32,6 @@ export const actions: Actions = {
       sameSite: "lax",
       secure: url.protocol === "https:",
     });
-    redirect(303, "/demo");
+    throw redirect(303, "/demo");
   },
 };

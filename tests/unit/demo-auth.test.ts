@@ -10,7 +10,8 @@ import {
 } from "@/features/demo/server/demo-auth";
 import { simulateDemoTodoCreate } from "@/features/demo/server/demo-fixtures";
 
-const previousEnv = { ...process.env };
+const previousDemoModeEnabled = process.env.DEMO_MODE_ENABLED;
+const previousDemoSigningSecret = process.env.DEMO_SIGNING_SECRET;
 
 describe("demo authentication realm", () => {
   beforeEach(() => {
@@ -20,7 +21,16 @@ describe("demo authentication realm", () => {
   });
 
   afterEach(() => {
-    process.env = { ...previousEnv };
+    if (previousDemoModeEnabled === undefined) {
+      delete process.env.DEMO_MODE_ENABLED;
+    } else {
+      process.env.DEMO_MODE_ENABLED = previousDemoModeEnabled;
+    }
+    if (previousDemoSigningSecret === undefined) {
+      delete process.env.DEMO_SIGNING_SECRET;
+    } else {
+      process.env.DEMO_SIGNING_SECRET = previousDemoSigningSecret;
+    }
   });
 
   it("is disabled unless explicitly enabled", () => {

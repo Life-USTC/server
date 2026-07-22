@@ -4435,6 +4435,191 @@
         }
       }
     },
+    "/api/demo/todos": {
+      "get": {
+        "operationId": "get-api-demo-todos",
+        "summary": "List the immutable demo todo fixture",
+        "tags": [
+          "Api"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/demoTodosResponseSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "post-api-demo-todos",
+        "summary": "Simulate creating a demo todo without persistence",
+        "tags": [
+          "Api"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/demoTodoCreateRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/demoTodoCreateResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/demo/token": {
+      "post": {
+        "operationId": "post-api-demo-token",
+        "summary": "Exchange a demo web session for a short-lived demo API token",
+        "tags": [
+          "Api"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/demoTokenResponseSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/homeworks/{id}": {
       "patch": {
         "operationId": "updateHomework",
@@ -24497,6 +24682,136 @@
         },
         "required": [
           "slug"
+        ],
+        "additionalProperties": false
+      },
+      "demoTodosResponseSchema": {
+        "type": "object",
+        "properties": {
+          "fixture": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "todos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "completed": {
+                  "type": "boolean"
+                },
+                "priority": {
+                  "type": "string",
+                  "enum": [
+                    "medium",
+                    "high"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "completed",
+                "priority"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "fixture",
+          "todos"
+        ],
+        "additionalProperties": false
+      },
+      "demoTodoCreateRequestSchema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "additionalProperties": false
+      },
+      "demoTodoCreateResponseSchema": {
+        "type": "object",
+        "properties": {
+          "simulated": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "todo": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "completed": {
+                "type": "boolean"
+              },
+              "priority": {
+                "type": "string",
+                "enum": [
+                  "medium",
+                  "high"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "completed",
+              "priority"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "simulated",
+          "todo"
+        ],
+        "additionalProperties": false
+      },
+      "demoTokenResponseSchema": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "expiresIn": {
+            "type": "integer",
+            "exclusiveMinimum": true,
+            "maximum": 9007199254740991
+          },
+          "tokenType": {
+            "type": "string",
+            "enum": [
+              "Bearer"
+            ]
+          }
+        },
+        "required": [
+          "accessToken",
+          "expiresIn",
+          "tokenType"
         ],
         "additionalProperties": false
       },
