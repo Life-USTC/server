@@ -116,7 +116,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         ),
       ).rejects.toThrow();
       await withUserDbContext(firstUserId, () =>
-        prisma.busUserPreference.delete({ where: { userId: firstUserId } }),
+        prisma.busUserPreference.deleteMany({ where: { userId: firstUserId } }),
       );
       await expect(
         withUserDbContext(secondUserId, () =>
