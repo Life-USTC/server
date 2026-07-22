@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const requireAuthMock = vi.fn();
-const transactionMock = vi.fn();
+const withUserDbContextMock = vi.fn();
 
 vi.mock("@/lib/auth/api-auth", () => ({
   requireAuth: requireAuthMock,
@@ -9,19 +9,19 @@ vi.mock("@/lib/auth/api-auth", () => ({
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
-    $transaction: transactionMock,
     dashboardLinkPin: {
       deleteMany: vi.fn(),
       findMany: vi.fn(),
     },
   },
+  withUserDbContext: withUserDbContextMock,
 }));
 
 describe("POST /api/dashboard-links/pin", () => {
   beforeEach(() => {
     vi.resetModules();
     requireAuthMock.mockResolvedValue({ userId: "user-1" });
-    transactionMock.mockReset();
+    withUserDbContextMock.mockReset();
   });
 
   afterEach(() => {
@@ -29,7 +29,7 @@ describe("POST /api/dashboard-links/pin", () => {
   });
 
   it("当固定链接持久化失败时返回 500 JSON 错误", async () => {
-    transactionMock.mockRejectedValue(new Error("db write failed"));
+    withUserDbContextMock.mockRejectedValue(new Error("db write failed"));
     const { postDashboardLinkPinRoute } = await import(
       "@/lib/api/routes/dashboard-link-pin-route"
     );
@@ -78,7 +78,7 @@ describe("POST /api/dashboard-links/pin", () => {
 
     expect(response.status).toBe(429);
     expect(response.headers.get("Retry-After")).toBe("60");
-    expect(transactionMock).not.toHaveBeenCalled();
+    expect(withUserDbContextMock).not.toHaveBeenCalled();
   });
 
   it("HTML 表单被限流时重定向并标记错误", async () => {
@@ -103,6 +103,6 @@ describe("POST /api/dashboard-links/pin", () => {
     expect(response.headers.get("Location")).toBe(
       "http://localhost/?dashboardLinkPinError=1",
     );
-    expect(transactionMock).not.toHaveBeenCalled();
+    expect(withUserDbContextMock).not.toHaveBeenCalled();
   });
 });

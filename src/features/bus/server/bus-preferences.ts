@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db/prisma";
+import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import type {
   BusPreferencePayload,
   BusUserPreferenceSummary,
@@ -12,10 +12,12 @@ export async function getBusPreference(
   userId: string | null,
 ): Promise<BusUserPreferenceSummary | null> {
   if (!userId) return null;
+  userId = userId.trim();
+  if (!userId) return null;
 
-  const preference = await prisma.busUserPreference.findUnique({
-    where: { userId },
-  });
+  const preference = await withUserDbContext(userId, () =>
+    prisma.busUserPreference.findUnique({ where: { userId } }),
+  );
 
   if (!preference) {
     return {
@@ -36,6 +38,8 @@ export async function saveBusPreference(
   userId: string,
   payload: BusPreferencePayload,
 ): Promise<SaveBusPreferenceResult> {
+  userId = userId.trim();
+  if (!userId) throw new Error("Bus preference user ID is required");
   const validationError = await validatePreferredBusCampuses(payload);
   if (validationError) {
     return { ok: false, error: validationError };
@@ -49,11 +53,13 @@ export async function saveBusPreference(
     showDepartedTrips: payload.showDepartedTrips,
   };
 
-  await prisma.busUserPreference.upsert({
-    where: { userId },
-    create: { userId, ...data },
-    update: data,
-  });
+  await withUserDbContext(userId, () =>
+    prisma.busUserPreference.upsert({
+      where: { userId },
+      create: { userId, ...data },
+      update: data,
+    }),
+  );
 
   return {
     ok: true,

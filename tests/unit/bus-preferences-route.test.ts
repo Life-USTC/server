@@ -23,6 +23,10 @@ vi.mock("@/lib/auth/api-auth", () => ({
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: prismaMock,
+  withUserDbContext: vi.fn(
+    async (_userId: string, action: (tx: unknown) => Promise<unknown>) =>
+      action({}),
+  ),
 }));
 
 function preferenceRequest(body: unknown) {
