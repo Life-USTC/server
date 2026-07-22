@@ -7,7 +7,7 @@ import {
 
 function createClient() {
   const tx = {
-    $executeRaw: vi.fn().mockResolvedValue(1),
+    $queryRaw: vi.fn().mockResolvedValue([{ set_config: "" }]),
   } as unknown as Prisma.TransactionClient;
   const client = {
     $transaction: vi.fn(async (action) => action(tx)),
@@ -30,7 +30,7 @@ describe("user RLS context", () => {
 
     expect(result).toBe("ok");
     expect(client.$transaction).toHaveBeenCalledOnce();
-    expect(tx.$executeRaw).toHaveBeenCalledOnce();
+    expect(tx.$queryRaw).toHaveBeenCalledOnce();
     expect(getUserRlsTransactionClient()).toBeUndefined();
   });
 

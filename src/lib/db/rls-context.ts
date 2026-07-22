@@ -35,7 +35,7 @@ export async function runWithUserRlsContext<T>(
   }
 
   return client.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT set_config('app.user_id', ${normalizedUserId}, true)`;
+    await tx.$queryRaw`SELECT set_config('app.user_id', ${normalizedUserId}, true)`;
     return userRlsStorage.run({ tx, userId: normalizedUserId }, () =>
       action(tx),
     );
