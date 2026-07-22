@@ -81,6 +81,30 @@ describe("GraphQL dangerous-change policy", () => {
       /SearchInput\.limit/,
     ],
     [
+      "input-field default additions",
+      schema(
+        "search(input: SearchInput): String",
+        "input SearchInput { limit: Int }",
+      ),
+      schema(
+        "search(input: SearchInput): String",
+        "input SearchInput { limit: Int = 10 }",
+      ),
+      /SearchInput\.limit/,
+    ],
+    [
+      "input-field default removals",
+      schema(
+        "search(input: SearchInput): String",
+        "input SearchInput { limit: Int = 10 }",
+      ),
+      schema(
+        "search(input: SearchInput): String",
+        "input SearchInput { limit: Int }",
+      ),
+      /SearchInput\.limit/,
+    ],
+    [
       "union member additions",
       schema(
         "search: SearchResult",
