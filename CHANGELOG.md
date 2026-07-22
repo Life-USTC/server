@@ -1,3 +1,11 @@
+## [1.77.1](https://github.com/Life-USTC/server/compare/v1.77.0...v1.77.1) (2026-07-22)
+
+
+### Bug Fixes
+
+* **mcp:** guide conditional GraphQL operations ([#605](https://github.com/Life-USTC/server/issues/605)) ([d6e8426](https://github.com/Life-USTC/server/commit/d6e8426ed190c1d5cbbd5286923c9a2880e29d12))
+* **ui:** unify responsive navigation and filters ([#606](https://github.com/Life-USTC/server/issues/606)) ([0a05040](https://github.com/Life-USTC/server/commit/0a05040e485ccf8e7102b577abe556350fb7c2be))
+
 # [1.77.0](https://github.com/Life-USTC/server/compare/v1.76.0...v1.77.0) (2026-07-22)
 
 
