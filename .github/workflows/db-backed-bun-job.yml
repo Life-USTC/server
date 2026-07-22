@@ -168,11 +168,12 @@ jobs:
               # Keep the RLS database setup idempotent like ci:integration.
               bunx prisma db seed
               PGPASSWORD=postgres psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
-                --command "CREATE ROLE life_ustc_runtime LOGIN PASSWORD 'runtime-test-password' NOINHERIT NOBYPASSRLS" \
+                --command "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'life_ustc_runtime') THEN CREATE ROLE life_ustc_runtime; END IF; END \$\$" \
+                --command "ALTER ROLE life_ustc_runtime LOGIN PASSWORD 'runtime-test-password' NOINHERIT NOBYPASSRLS" \
                 --command 'GRANT CONNECT ON DATABASE "${{ inputs.database-name }}" TO life_ustc_runtime' \
                 --command 'GRANT USAGE ON SCHEMA public TO life_ustc_runtime' \
-                --command 'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO life_ustc_runtime' \
-                --command 'GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO life_ustc_runtime'
+                --command 'GRANT SELECT ON TABLE "User" TO life_ustc_runtime' \
+                --command 'GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "Todo" TO life_ustc_runtime'
               runtime_database_url="postgresql://life_ustc_runtime:runtime-test-password@127.0.0.1:5432/${{ inputs.database-name }}"
               DATABASE_URL="$runtime_database_url" RLS_TEST_ENABLED=true bunx vitest run \
                 --config vitest.integration.config.ts \
