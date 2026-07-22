@@ -1,3 +1,10 @@
+## [1.74.4](https://github.com/Life-USTC/server/compare/v1.74.3...v1.74.4) (2026-07-22)
+
+
+### Bug Fixes
+
+* **static-loader:** disambiguate conflicting campus IDs ([#594](https://github.com/Life-USTC/server/issues/594)) ([2b58c56](https://github.com/Life-USTC/server/commit/2b58c567b6f231e4531ae8dc1eebe4a28f3b389f))
+
 ## [1.74.3](https://github.com/Life-USTC/server/compare/v1.74.2...v1.74.3) (2026-07-21)
 
 
