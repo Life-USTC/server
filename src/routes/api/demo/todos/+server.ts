@@ -37,9 +37,12 @@ export const GET: RequestHandler = async ({ request }) => {
 export const POST: RequestHandler = async ({ request }) => {
   const principal = await requireDemoApiScope(request, "demo:todo:write");
   if (principal instanceof Response) return principal;
-  const body = (await request.json().catch(() => null)) as {
-    title?: unknown;
-  } | null;
+  let body: { title?: unknown } | null;
+  try {
+    body = (await request.json()) as { title?: unknown } | null;
+  } catch {
+    return badRequest("invalid_request");
+  }
   const title = typeof body?.title === "string" ? body.title.trim() : "";
   if (!title || title.length > 200) {
     return badRequest("invalid_title");

@@ -64,6 +64,31 @@ export const GET = () => new Response();
     expect(responses["401"].description).toBe("Error response");
   });
 
+  it("describes the demo realm without advertising Better Auth", () => {
+    const project = new Project({ useInMemoryFileSystem: true });
+    for (const routePath of ["token", "todos"]) {
+      project.createSourceFile(
+        `src/routes/api/demo/${routePath}/+server.ts`,
+        `
+/**
+ * Demo endpoint.
+ * @response 401:openApiErrorSchema
+ */
+export const POST = () => new Response();
+`,
+        { overwrite: true },
+      );
+    }
+
+    const paths = collectPaths(project, new SchemaCollector());
+    expect(paths["/api/demo/token"].post).toMatchObject({
+      security: [{ demoSessionCookie: [] }],
+    });
+    expect(paths["/api/demo/todos"].post).toMatchObject({
+      security: [{ demoBearerAuth: [] }],
+    });
+  });
+
   it("handles response shortcuts", () => {
     const project = new Project({ useInMemoryFileSystem: true });
     project.createSourceFile(
