@@ -3,10 +3,15 @@ import {
   type FragmentDefinitionNode,
   GraphQLError,
   type GraphQLFormattedError,
+  GraphQLIncludeDirective,
+  GraphQLSkipDirective,
+  getDirectiveValues,
   getOperationAST,
+  getVariableValues,
   Kind,
   type OperationDefinitionNode,
   parse,
+  type SelectionNode,
   type SelectionSetNode,
 } from "graphql";
 import type { AppLocale } from "@/i18n/config";
@@ -30,7 +35,10 @@ import {
   safeGraphqlRequestHeaders,
   safeGraphqlRequestUrl,
 } from "./operation-runner";
-import { graphqlPersistedOperationRegistry } from "./operations";
+import {
+  graphqlOperationValidationSchema,
+  graphqlPersistedOperationRegistry,
+} from "./operations";
 import { createDeadline } from "./request-deadline";
 import { createGraphqlYoga } from "./server";
 
@@ -114,16 +122,24 @@ function fragmentDefinitions(document: DocumentNode) {
 function rootFieldNames(
   selectionSet: SelectionSetNode,
   fragments: ReadonlyMap<string, FragmentDefinitionNode>,
+  variables: Record<string, unknown> | undefined,
   names = new Set<string>(),
   fragmentStack = new Set<string>(),
 ) {
   for (const selection of selectionSet.selections) {
+    if (!shouldIncludeSelection(selection, variables)) continue;
     if (selection.kind === Kind.FIELD) {
       names.add(selection.name.value);
       continue;
     }
     if (selection.kind === Kind.INLINE_FRAGMENT) {
-      rootFieldNames(selection.selectionSet, fragments, names, fragmentStack);
+      rootFieldNames(
+        selection.selectionSet,
+        fragments,
+        variables,
+        names,
+        fragmentStack,
+      );
       continue;
     }
     const name = selection.name.value;
@@ -131,16 +147,57 @@ function rootFieldNames(
     const fragment = fragments.get(name);
     if (!fragment) continue;
     fragmentStack.add(name);
-    rootFieldNames(fragment.selectionSet, fragments, names, fragmentStack);
+    rootFieldNames(
+      fragment.selectionSet,
+      fragments,
+      variables,
+      names,
+      fragmentStack,
+    );
     fragmentStack.delete(name);
   }
   return names;
+}
+
+function shouldIncludeSelection(
+  selection: SelectionNode,
+  variables: Record<string, unknown> | undefined,
+) {
+  if (!variables) return true;
+  try {
+    const skip = getDirectiveValues(GraphQLSkipDirective, selection, variables);
+    if (skip?.if === true) return false;
+    const include = getDirectiveValues(
+      GraphQLIncludeDirective,
+      selection,
+      variables,
+    );
+    return include?.if !== false;
+  } catch {
+    // Yoga reports invalid directives before execution. Conservatively retain
+    // the field in preflight so malformed input cannot weaken authorization.
+    return true;
+  }
+}
+
+function scopePreflightVariables(
+  operation: OperationDefinitionNode,
+  variables: Record<string, unknown>,
+) {
+  const result = getVariableValues(
+    graphqlOperationValidationSchema,
+    operation.variableDefinitions ?? [],
+    variables,
+    { maxErrors: 10 },
+  );
+  return result.errors ? undefined : result.coerced;
 }
 
 function requireMutationScopes(
   document: DocumentNode,
   operation: OperationDefinitionNode,
   principal: GraphqlPrincipal,
+  variables: Record<string, unknown>,
 ) {
   if (operation.operation !== "mutation" || principal.kind === "session")
     return;
@@ -150,6 +207,7 @@ function requireMutationScopes(
         ...rootFieldNames(
           operation.selectionSet,
           fragmentDefinitions(document),
+          scopePreflightVariables(operation, variables),
         ),
       ].flatMap((field) => mutationScopes.get(field) ?? []),
     ),
@@ -212,7 +270,7 @@ export async function runGraphqlDocument(input: {
     input.document,
     input.operationName,
   );
-  requireMutationScopes(parsed, operation, input.principal);
+  requireMutationScopes(parsed, operation, input.principal, variables);
   if (operation.operation === "mutation" && input.confirmed !== true) {
     throw new RegisteredGraphqlOperationError(
       "CONFIRMATION_REQUIRED",
