@@ -43,4 +43,28 @@ describe("static campus identity", () => {
       ),
     ).toBe(2);
   });
+
+  it("falls back to the JW ID when the catalog name is unknown", () => {
+    expect(
+      resolveSectionCampusDatabaseId(
+        { campusId: 102, campusName: "未知校区" },
+        {
+          byJwId: new Map([[102, 1]]),
+          byName: new Map(),
+        },
+      ),
+    ).toBe(1);
+  });
+
+  it("resolves sections that only provide a JW campus ID", () => {
+    expect(
+      resolveSectionCampusDatabaseId(
+        { campusId: 102, campusName: null },
+        {
+          byJwId: new Map([[102, 1]]),
+          byName: new Map(),
+        },
+      ),
+    ).toBe(1);
+  });
 });
