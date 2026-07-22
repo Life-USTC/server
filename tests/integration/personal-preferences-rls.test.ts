@@ -36,6 +36,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       await prisma.user.deleteMany({
         where: { id: { in: [firstUserId, secondUserId].filter(Boolean) } },
       });
+      await prisma.$disconnect();
     });
 
     it("defaults every protected preference table to no rows or writes", async () => {
@@ -43,9 +44,17 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       await expect(prisma.dashboardLinkPin.findMany()).resolves.toEqual([]);
       await expect(prisma.busUserPreference.findMany()).resolves.toEqual([]);
       await expect(
+        prisma.dashboardLinkClick.create({
+          data: { userId: firstUserId, slug: "missing-context" },
+        }),
+      ).rejects.toThrow();
+      await expect(
         prisma.dashboardLinkPin.create({
           data: { userId: firstUserId, slug: "missing-context" },
         }),
+      ).rejects.toThrow();
+      await expect(
+        prisma.busUserPreference.create({ data: { userId: firstUserId } }),
       ).rejects.toThrow();
     });
 
@@ -106,11 +115,13 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           }),
         ),
       ).rejects.toThrow();
+      await withUserDbContext(firstUserId, () =>
+        prisma.busUserPreference.delete({ where: { userId: firstUserId } }),
+      );
       await expect(
         withUserDbContext(secondUserId, () =>
-          prisma.busUserPreference.update({
-            where: { userId: firstUserId },
-            data: { showDepartedTrips: true },
+          prisma.busUserPreference.create({
+            data: { userId: firstUserId },
           }),
         ),
       ).rejects.toThrow();
