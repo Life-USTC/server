@@ -118,7 +118,6 @@ function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
       filterDescription={teacherLabels.filterDescription}
       filterTitle={teacherLabels.filterTitle}
       hiddenFilters={teacherHiddenFilters}
-      inlineFilters
       searchId="mobile-teacher-search"
       searchLabel={teacherLabels.searchLabel}
       searchPlaceholder={teacherLabels.searchNameOrCode}
@@ -130,7 +129,6 @@ function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
         {departmentOptions}
         filters={data.filters}
         idPrefix="mobile-teacher"
-        inline
         showClear={false}
         showSearch={false}
         {teacherLabels}

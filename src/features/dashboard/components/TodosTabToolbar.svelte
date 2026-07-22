@@ -9,7 +9,6 @@ import type {
 } from "@/features/dashboard/lib/dashboard-controller-types";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
-import DashboardTaskViewMenu from "./DashboardTaskViewMenu.svelte";
 
 export let createTodoError: string;
 export let setTodoView: (view: TodoView) => void;
@@ -68,14 +67,6 @@ export let todoView: TodoView;
     </ToggleGroup.Root>
   </div>
   <div class="flex items-center gap-2 md:justify-end">
-    <DashboardTaskViewMenu
-      cardLabel={String(todosCopy.cardView)}
-      label={String(todosCopy.viewMode)}
-      listLabel={String(todosCopy.listView)}
-      setView={setTodoView}
-      testId="dashboard-todos-view-menu"
-      view={todoView}
-    />
     <Button
       aria-label={String(todosCopy.addButton)}
       class="size-11 md:h-9 md:w-auto md:min-w-28"

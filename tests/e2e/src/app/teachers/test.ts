@@ -19,7 +19,10 @@
  * - Search and clear buttons may be absent in minimal UI
  */
 import { expect, test } from "@playwright/test";
-import { expectCatalogInlineFilters } from "../../../utils/catalog-inline-filters";
+import {
+  expectCatalogFilterSheet,
+  openCatalogFilterSheet,
+} from "../../../utils/catalog-filter-sheet";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { getSeedTeacherDepartmentFixture } from "../../../utils/e2e-db";
 import { visibleText } from "../../../utils/locators";
@@ -61,7 +64,7 @@ test.describe("/teachers", () => {
     await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
     await expect(page.getByTestId("catalog-results-summary")).toBeVisible();
     await expect(page.getByTestId("catalog-active-filters")).toBeVisible();
-    await expectCatalogInlineFilters(page, [/院系|Department/i]);
+    await expectCatalogFilterSheet(page, [/院系|Department/i]);
 
     const detailLink = page
       .locator("#main-content a[href^='/teachers/']:visible")
@@ -78,37 +81,19 @@ test.describe("/teachers", () => {
     await captureStepScreenshot(page, testInfo, "teachers-navigate-detail");
   });
 
-  test("280 至 1440 像素正确分配教师筛选宽度", async ({ page }, testInfo) => {
+  test("280 至 1440 像素通过筛选面板提供教师高级筛选", async ({
+    page,
+  }, testInfo) => {
     for (const width of [280, 320, 375, 1024, 1280, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       await gotoAndWaitForReady(page, "/teachers");
-      await expectCatalogInlineFilters(page, [/院系|Department/i]);
-      const toolbarBox = await page
-        .getByTestId("catalog-mobile-filters")
-        .boundingBox();
-      const departmentBox = await page
-        .getByLabel(/院系|Department/i)
-        .boundingBox();
-      if (width < 1280) {
-        expect(departmentBox?.width ?? 0).toBeGreaterThanOrEqual(
-          (toolbarBox?.width ?? 0) - 4,
-        );
-      } else {
-        const searchBox = await page
-          .getByTestId("catalog-mobile-filters")
-          .locator('[data-slot="input-group"]')
-          .boundingBox();
-        expect(departmentBox?.width ?? 0).toBeLessThanOrEqual(228);
-        expect(searchBox?.width ?? 0).toBeGreaterThan(
-          departmentBox?.width ?? 0,
-        );
-      }
+      await expectCatalogFilterSheet(page, [/院系|Department/i]);
       await expect(page.locator("vite-error-overlay")).toHaveCount(0);
       if (width === 280 || width === 375) {
         await captureStepScreenshot(
           page,
           testInfo,
-          `teachers-inline-filters-${width}`,
+          `teachers-filter-sheet-${width}`,
         );
       }
     }
@@ -153,7 +138,8 @@ test.describe("/teachers", () => {
       screenshotLabel: "teachers-department",
     });
     await page.getByRole("searchbox").fill("尚未提交的搜索草稿");
-    await page
+    const filterDialog = await openCatalogFilterSheet(page);
+    await filterDialog
       .getByLabel(/院系|Department/i)
       .selectOption(String(filter.departmentId));
     await expect(page).toHaveURL(

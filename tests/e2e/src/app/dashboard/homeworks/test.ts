@@ -110,12 +110,13 @@ test.describe("仪表盘作业", () => {
       .getByRole("radio", { name: /未完成|Incomplete/i })
       .first();
     const add = page.getByTestId("dashboard-homeworks-add");
-    const viewMenu = page.getByTestId("dashboard-homeworks-view-menu");
     await expect(incomplete).toBeVisible();
     await expect(add).toBeVisible();
-    await expect(viewMenu).toBeVisible();
+    await expect(page.getByTestId("dashboard-homeworks-view-menu")).toHaveCount(
+      0,
+    );
 
-    for (const control of [incomplete, add, viewMenu]) {
+    for (const control of [incomplete, add]) {
       const box = await control.boundingBox();
       expect(box?.height).toBeGreaterThanOrEqual(44);
       expect(box?.width).toBeGreaterThanOrEqual(44);
@@ -125,11 +126,9 @@ test.describe("仪表盘作业", () => {
     await all.click();
     await expect(all).toHaveAttribute("aria-checked", "true");
 
-    await viewMenu.click();
-    await page.getByRole("menuitemradio", { name: /列表|List/i }).click();
-    await expect(page).toHaveURL(/homeworkView=list/);
-    await expect(page.getByTestId("dashboard-homeworks-list")).toBeVisible();
-    await expect(all).toHaveAttribute("aria-checked", "true");
+    await gotoAndWaitForReady(page, "/dashboard/homeworks?homeworkView=list");
+    await expect(page.getByTestId("dashboard-homeworks-cards")).toBeVisible();
+    await expect(page.getByTestId("dashboard-homeworks-list")).toBeHidden();
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,

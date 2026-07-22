@@ -6,7 +6,6 @@ import type {
   ExamView,
 } from "@/features/dashboard/lib/dashboard-controller-types";
 import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
-import DashboardTaskViewMenu from "./DashboardTaskViewMenu.svelte";
 import type { DashboardExamFilter } from "./dashboard-exam-component-types";
 
 export let dashboardCopy: DashboardDashboardCopy;
@@ -63,12 +62,4 @@ export let setExamView: (view: ExamView) => void;
       </ToggleGroup.Item>
     </ToggleGroup.Root>
   </div>
-  <DashboardTaskViewMenu
-    cardLabel={dashboardCopy.nav.exams.cardView}
-    label={dashboardCopy.nav.exams.viewMode}
-    listLabel={dashboardCopy.nav.exams.listView}
-    setView={setExamView}
-    testId="dashboard-exams-view-menu"
-    view={examView}
-  />
 </div>

@@ -53,6 +53,7 @@ test.describe("/settings 设置中心", () => {
     });
 
     await expect(profileLink).toHaveAttribute("aria-current", "page");
+    await expect(profileLink).toHaveAttribute("data-slot", "button");
     await expect
       .poll(() => {
         const wrapper = navigation.locator("..");
@@ -73,6 +74,7 @@ test.describe("/settings 设置中心", () => {
     const desktopNavigationBox = await navigation.boundingBox();
     const desktopPanelBox = await activePanel.boundingBox();
     expect(desktopNavigationBox?.x).toBeLessThan(desktopPanelBox?.x ?? 0);
+    expect(desktopNavigationBox?.width).toBe(192);
     await captureStepScreenshot(page, testInfo, "settings-responsive-desktop");
   });
 

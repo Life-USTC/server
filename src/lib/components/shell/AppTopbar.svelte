@@ -24,7 +24,7 @@ export let user: LayoutUserSummary;
     />
 
     <a
-      class="inline-flex min-h-11 min-w-0 items-center gap-2 rounded-md font-semibold leading-none transition-opacity hover:opacity-75 lg:hidden"
+      class="inline-flex min-h-11 min-w-0 items-center gap-2 rounded-md font-semibold leading-none transition-opacity hover:opacity-75 md:hidden"
       href="/"
     >
       <img

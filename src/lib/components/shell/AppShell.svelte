@@ -547,10 +547,9 @@ afterNavigate(({ from, to }) => {
   }
 </style>
 
-<div style="--sidebar-width: 15rem; --sidebar-width-icon: 4rem;">
-  <Sidebar.Provider
-    class="min-h-screen lg:h-screen lg:min-h-0 lg:overflow-hidden"
-  >
+<Sidebar.Provider
+  class="min-h-screen lg:h-screen lg:min-h-0 lg:overflow-hidden"
+>
     <a
       class="sr-only top-3 left-3 z-50 rounded-md bg-background px-4 py-2 font-medium text-foreground shadow-lg outline-none focus:fixed focus:not-sr-only focus-visible:ring-2 focus-visible:ring-ring"
       href="#main-content"
@@ -638,5 +637,4 @@ afterNavigate(({ from, to }) => {
         links={mobilePrimaryLinks}
       />
     {/if}
-  </Sidebar.Provider>
-</div>
+</Sidebar.Provider>

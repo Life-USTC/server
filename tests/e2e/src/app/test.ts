@@ -307,6 +307,25 @@ test("/ shell 桌面导航以任务为一级入口且当前位置唯一", async 
   ).toBeVisible();
 });
 
+test("/ shell 中等视口只显示侧栏品牌并采用 stock 宽度", async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 800 });
+  await signInAsDebugUser(page, "/dashboard/overview");
+
+  await expect(page.locator("#app-logo")).toBeVisible();
+  await expect(page.locator('[data-shell-topbar] a[href="/"]')).toBeHidden();
+  await expect
+    .poll(() =>
+      page.locator('[data-slot="sidebar-wrapper"]').evaluate((element) => {
+        const style = getComputedStyle(element);
+        return [
+          style.getPropertyValue("--sidebar-width").trim(),
+          style.getPropertyValue("--sidebar-width-icon").trim(),
+        ];
+      }),
+    )
+    .toEqual(["16rem", "3rem"]);
+});
+
 test("/ shell 当前分组在导航后保持展开", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await signInAsDebugUser(page, "/dashboard/calendar");
