@@ -473,6 +473,24 @@
         }
       }
     },
+    "promptEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "description"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "maxLength": 80
+        },
+        "description": {
+          "$ref": "#/$defs/text"
+        },
+        "auth": {
+          "$ref": "#/$defs/authLevel"
+        }
+      }
+    },
     "links": {
       "type": "object",
       "additionalProperties": false,
@@ -696,6 +714,9 @@
             },
             {
               "required": ["resources"]
+            },
+            {
+              "required": ["prompts"]
             }
           ],
           "properties": {
@@ -725,6 +746,14 @@
               "maxItems": 16,
               "items": {
                 "$ref": "#/$defs/resourceEntry"
+              }
+            },
+            "prompts": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 16,
+              "items": {
+                "$ref": "#/$defs/promptEntry"
               }
             }
           }
