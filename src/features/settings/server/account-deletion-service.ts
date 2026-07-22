@@ -7,7 +7,10 @@ type DeleteOwnAccountResult =
 export async function deleteOwnAccount(
   userId: string,
 ): Promise<DeleteOwnAccountResult> {
+  userId = userId.trim();
+  if (!userId) throw new Error("Account deletion user ID is required");
   return runSerializableTransaction(async (tx) => {
+    await tx.$queryRaw`SELECT set_config('app.user_id', ${userId}, true)`;
     const user = await tx.user.findUnique({
       where: { id: userId },
       select: { id: true, isAdmin: true },
