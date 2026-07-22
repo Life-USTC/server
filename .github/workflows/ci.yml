@@ -26,6 +26,16 @@ jobs:
       database-name: life_ustc_integration
       job-phase: ci:integration
 
+  test-rls:
+    name: PostgreSQL RLS Isolation Test
+    needs: check
+    permissions:
+      contents: read
+    uses: ./.github/workflows/db-backed-bun-job.yml
+    with:
+      database-name: life_ustc_rls
+      job-phase: ci:rls
+
   build-e2e-artifacts:
     name: Build E2E artifacts
     needs: check
