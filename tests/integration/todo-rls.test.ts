@@ -32,12 +32,18 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
 
     it("runs as a non-owner role without BYPASSRLS", async () => {
       const [role] = await prisma.$queryRaw<
-        { currentUser: string; owner: boolean; bypassRls: boolean }[]
+        {
+          currentUser: string;
+          owner: boolean;
+          bypassRls: boolean;
+          inheritsRoles: boolean;
+        }[]
       >(Prisma.sql`
       SELECT
         current_user AS "currentUser",
         (current_user = tableowner) AS owner,
-        rolbypassrls AS "bypassRls"
+        rolbypassrls AS "bypassRls",
+        rolinherit AS "inheritsRoles"
       FROM pg_tables
       JOIN pg_roles ON rolname = current_user
       WHERE schemaname = 'public' AND tablename = 'Todo'
@@ -46,11 +52,20 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         currentUser: "life_ustc_runtime",
         owner: false,
         bypassRls: false,
+        inheritsRoles: false,
       });
     });
 
     it("defaults to no rows when user context is missing", async () => {
       await expect(prisma.todo.findMany()).resolves.toEqual([]);
+      await expect(
+        prisma.todo.create({
+          data: {
+            title: "[rls-test] missing context",
+            userId: firstUserId,
+          },
+        }),
+      ).rejects.toThrow();
     });
 
     it("isolates concurrent users and rejects forged ownership", async () => {
