@@ -1,6 +1,6 @@
 import { DASHBOARD_LINK_GROUPS } from "@/features/dashboard-links/lib/dashboard-links";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
-import { prisma } from "@/lib/db/prisma";
+import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import {
   buildDashboardLinkSummaries,
   dashboardLinksForSlugs,
@@ -43,47 +43,49 @@ export async function getSignedInDashboardLinksData(
   userId: string,
   locale: AppLocale = DEFAULT_LOCALE,
 ): Promise<DashboardLinksData> {
-  const [clickRows, pinRows] = await Promise.all([
-    prisma.dashboardLinkClick.findMany({
-      where: { userId },
+  const normalizedUserId = userId.trim();
+  if (!normalizedUserId) throw new Error("Dashboard link user ID is required");
+  return withUserDbContext(normalizedUserId, async () => {
+    const clickRows = await prisma.dashboardLinkClick.findMany({
+      where: { userId: normalizedUserId },
       select: { slug: true, count: true },
-    }),
-    prisma.dashboardLinkPin.findMany({
-      where: { userId },
+    });
+    const pinRows = await prisma.dashboardLinkPin.findMany({
+      where: { userId: normalizedUserId },
       select: { slug: true },
       orderBy: { createdAt: "asc" },
-    }),
-  ]);
-  const clickStats: Record<string, number> = Object.fromEntries(
-    clickRows.map((row) => [row.slug, row.count]),
-  );
-  const pinnedSlugSet = new Set(pinRows.map((row) => row.slug));
+    });
+    const clickStats: Record<string, number> = Object.fromEntries(
+      clickRows.map((row) => [row.slug, row.count]),
+    );
+    const pinnedSlugSet = new Set(pinRows.map((row) => row.slug));
 
-  const { dashboardLinks, dashboardLinkBySlug } = buildDashboardLinkSummaries(
-    clickStats,
-    pinnedSlugSet,
-    locale,
-  );
-  const pinnedLinks = dashboardLinksForSlugs(
-    pinRows.map((row) => row.slug),
-    dashboardLinkBySlug,
-  );
-  const recommendedLinks = recommendedDashboardLinkSummaries(
-    clickStats,
-    pinnedSlugSet,
-    locale,
-  );
-  const overviewLinks = [...pinnedLinks, ...recommendedLinks].slice(
-    0,
-    MAX_OVERVIEW_LINKS,
-  );
+    const { dashboardLinks, dashboardLinkBySlug } = buildDashboardLinkSummaries(
+      clickStats,
+      pinnedSlugSet,
+      locale,
+    );
+    const pinnedLinks = dashboardLinksForSlugs(
+      pinRows.map((row) => row.slug),
+      dashboardLinkBySlug,
+    );
+    const recommendedLinks = recommendedDashboardLinkSummaries(
+      clickStats,
+      pinnedSlugSet,
+      locale,
+    );
+    const overviewLinks = [...pinnedLinks, ...recommendedLinks].slice(
+      0,
+      MAX_OVERVIEW_LINKS,
+    );
 
-  return {
-    dashboardLinks,
-    recommendedLinks,
-    pinnedLinks,
-    overviewLinks,
-  };
+    return {
+      dashboardLinks,
+      recommendedLinks,
+      pinnedLinks,
+      overviewLinks,
+    };
+  });
 }
 
 export async function getLinksTabData(

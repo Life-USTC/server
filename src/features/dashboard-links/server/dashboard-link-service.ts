@@ -1,5 +1,5 @@
 import { USTC_DASHBOARD_LINKS } from "@/features/dashboard-links/lib/dashboard-links";
-import { prisma } from "@/lib/db/prisma";
+import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 
 export const MAX_PINNED_LINKS = 4;
@@ -26,11 +26,11 @@ type DashboardLinkPinPrisma = {
   dashboardLinkPin: DashboardLinkPinDelegate;
 };
 
-type DashboardLinkPinTransactionPrisma = DashboardLinkPinPrisma & {
-  $transaction: <Result>(
-    callback: (tx: DashboardLinkPinPrisma) => Promise<Result>,
-  ) => Promise<Result>;
-};
+function normalizeUserId(userId: string) {
+  const normalized = userId.trim();
+  if (!normalized) throw new Error("Dashboard link user ID is required");
+  return normalized;
+}
 
 export function resolveDashboardLinkBySlug(slug: string | null | undefined) {
   const normalizedSlug = slug?.trim();
@@ -48,25 +48,28 @@ export function sanitizeDashboardReturnTo(value: string | undefined): string {
 }
 
 export async function recordDashboardLinkClick(userId: string, slug: string) {
+  userId = normalizeUserId(userId);
   try {
-    await prisma.dashboardLinkClick.upsert({
-      where: {
-        userId_slug: {
+    await withUserDbContext(userId, () =>
+      prisma.dashboardLinkClick.upsert({
+        where: {
+          userId_slug: {
+            userId,
+            slug,
+          },
+        },
+        create: {
           userId,
           slug,
+          count: 1,
+          lastClickedAt: new Date(),
         },
-      },
-      create: {
-        userId,
-        slug,
-        count: 1,
-        lastClickedAt: new Date(),
-      },
-      update: {
-        count: { increment: 1 },
-        lastClickedAt: new Date(),
-      },
-    });
+        update: {
+          count: { increment: 1 },
+          lastClickedAt: new Date(),
+        },
+      }),
+    );
   } catch (error) {
     logAppEvent(
       "warn",
@@ -90,11 +93,14 @@ export async function updateDashboardLinkPinState({
   slug: string;
   userId: string;
 }) {
-  if (action === "pin") {
-    return pinDashboardLink(prisma, userId, slug);
-  }
+  userId = normalizeUserId(userId);
+  return withUserDbContext(userId, () => {
+    if (action === "pin") {
+      return pinDashboardLink(prisma, userId, slug);
+    }
 
-  return unpinDashboardLink(prisma, userId, slug);
+    return unpinDashboardLink(prisma, userId, slug);
+  });
 }
 
 export function logDashboardLinkPinFailure({
@@ -122,35 +128,33 @@ export function logDashboardLinkPinFailure({
 }
 
 async function pinDashboardLink(
-  prisma: DashboardLinkPinTransactionPrisma,
+  prisma: DashboardLinkPinPrisma,
   userId: string,
   slug: string,
 ) {
-  return prisma.$transaction(async (tx) => {
-    await tx.dashboardLinkPin.upsert({
-      where: { userId_slug: { userId, slug } },
-      create: { userId, slug },
-      update: {},
-    });
-
-    const pinnedRows = await tx.dashboardLinkPin.findMany({
-      where: { userId },
-      select: { slug: true },
-      orderBy: { createdAt: "asc" },
-    });
-    const overflowRows = pinnedRows.slice(0, -MAX_PINNED_LINKS);
-
-    if (overflowRows.length > 0) {
-      await tx.dashboardLinkPin.deleteMany({
-        where: {
-          userId,
-          slug: { in: overflowRows.map((row) => row.slug) },
-        },
-      });
-    }
-
-    return listDashboardLinkPins(tx, userId);
+  await prisma.dashboardLinkPin.upsert({
+    where: { userId_slug: { userId, slug } },
+    create: { userId, slug },
+    update: {},
   });
+
+  const pinnedRows = await prisma.dashboardLinkPin.findMany({
+    where: { userId },
+    select: { slug: true },
+    orderBy: { createdAt: "asc" },
+  });
+  const overflowRows = pinnedRows.slice(0, -MAX_PINNED_LINKS);
+
+  if (overflowRows.length > 0) {
+    await prisma.dashboardLinkPin.deleteMany({
+      where: {
+        userId,
+        slug: { in: overflowRows.map((row) => row.slug) },
+      },
+    });
+  }
+
+  return listDashboardLinkPins(prisma, userId);
 }
 
 async function unpinDashboardLink(
