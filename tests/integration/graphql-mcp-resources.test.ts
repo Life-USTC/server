@@ -1,9 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { prisma } from "@/lib/db/prisma";
+import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import {
   GRAPHQL_OPERATIONS_RESOURCE_URI,
   GRAPHQL_SCHEMA_RESOURCE_URI,
 } from "@/lib/graphql/constants";
+import { GRAPHQL_OPERATION_PROMPT_NAME } from "@/lib/graphql/prompts";
 import { restReadScope, restWriteScope } from "@/lib/oauth/constants";
 import { DEV_SEED } from "../fixtures/dev-seed";
 import { createMcpHarness, type McpHarness } from "./utils/mcp-harness";
@@ -84,12 +85,62 @@ describe.sequential("GraphQL MCP operations", () => {
     expect(JSON.stringify(manifest)).not.toContain('"document"');
   });
 
+  it("injects schema-aware GraphQL planning guidance through MCP", async () => {
+    expect(mcp.getInstructions()).toContain(GRAPHQL_OPERATION_PROMPT_NAME);
+
+    const prompts = await mcp.listPrompts();
+    expect(prompts.prompts).toContainEqual(
+      expect.objectContaining({ name: GRAPHQL_OPERATION_PROMPT_NAME }),
+    );
+
+    const prompt = await mcp.getPrompt(GRAPHQL_OPERATION_PROMPT_NAME, {
+      goal: "List my incomplete todos",
+      operationType: "query",
+    });
+    expect(prompt.description).toContain("safe, bounded");
+    const guidance = prompt.messages.find(
+      (message) => message.content.type === "text",
+    )?.content;
+    expect(guidance).toMatchObject({
+      type: "text",
+      text: expect.stringContaining("Goal: List my incomplete todos"),
+    });
+    if (guidance?.type !== "text") {
+      throw new Error("Expected GraphQL planning guidance text");
+    }
+    expect(guidance.text).toContain("confirmed=true");
+    expect(guidance.text).toContain("insufficient_scope");
+    expect(prompt.messages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          content: expect.objectContaining({
+            type: "resource",
+            resource: expect.objectContaining({
+              uri: GRAPHQL_SCHEMA_RESOURCE_URI,
+              text: expect.stringContaining("type Query"),
+            }),
+          }),
+        }),
+        expect.objectContaining({
+          content: expect.objectContaining({
+            type: "resource",
+            resource: expect.objectContaining({
+              uri: GRAPHQL_OPERATIONS_RESOURCE_URI,
+              text: expect.stringContaining('"viewer.todos.v1"'),
+            }),
+          }),
+        }),
+      ]),
+    );
+  });
+
   it("exposes arbitrary documents and compatible registered operations", async () => {
     const { tools } = await mcp.listTools();
     const runner = tools.find((tool) => tool.name === "run_graphql_operation");
 
     expect(tools.map((tool) => tool.name)).not.toContain("execute_graphql");
     expect(runner).toBeDefined();
+    expect(runner?.description).toContain(GRAPHQL_OPERATION_PROMPT_NAME);
     expect(Object.keys(runner?.inputSchema.properties ?? {}).sort()).toEqual([
       "confirmed",
       "document",
@@ -99,6 +150,18 @@ describe.sequential("GraphQL MCP operations", () => {
       "variables",
     ]);
     expect(runner?.inputSchema.properties).toHaveProperty("document");
+    expect(runner?.inputSchema.properties?.document).toMatchObject({
+      description: expect.stringContaining(GRAPHQL_SCHEMA_RESOURCE_URI),
+    });
+    expect(runner?.outputSchema).toMatchObject({
+      type: "object",
+      required: expect.arrayContaining(["success"]),
+      additionalProperties: false,
+    });
+    expect(runner?._meta).toMatchObject({
+      securitySchemes: [{ type: "oauth2", scopes: [] }],
+      "life-ustc/graphqlOperationsManifest": 1,
+    });
     expect(runner?.annotations).toMatchObject({
       readOnlyHint: false,
       destructiveHint: true,
@@ -428,6 +491,85 @@ describe.sequential("GraphQL MCP operations", () => {
         },
       });
       expect(await prisma.todo.count({ where: { title } })).toBe(0);
+    } finally {
+      await todoOnlyMcp.close();
+    }
+  });
+
+  it("preflights only mutation fields included by GraphQL directives", async () => {
+    const todoOnlyMcp = await createMcpHarness(userId, [
+      restWriteScope("todo"),
+    ]);
+    const document = /* GraphQL */ `
+      mutation ConditionalScopes(
+        $input: CreateTodoInput!
+        $skipBus: Boolean!
+        $includeBus: Boolean!
+      ) {
+        created: createTodo(input: $input) { id }
+        ...BusMutation @skip(if: $skipBus) @include(if: $includeBus)
+      }
+
+      fragment BusMutation on Mutation {
+        preferences: saveBusPreferences(
+          input: { showDepartedTrips: false }
+        ) { showDepartedTrips }
+      }
+    `;
+    try {
+      for (const [suffix, skipBus, includeBus] of [
+        ["skip", true, true],
+        ["exclude", false, false],
+      ] as const) {
+        const title = `${marker}-${suffix}-bus`;
+        const result = await todoOnlyMcp.call<{
+          success: boolean;
+          data: { created: { id: string } };
+        }>("run_graphql_operation", {
+          document,
+          operationName: "ConditionalScopes",
+          variables: {
+            input: { title },
+            skipBus,
+            includeBus,
+          },
+          confirmed: true,
+          locale: "zh-cn",
+        });
+        expect(result.success, JSON.stringify(result)).toBe(true);
+        createdTodoId = result.data.created.id;
+        await withUserDbContext(userId, () =>
+          prisma.todo.delete({ where: { id: createdTodoId } }),
+        );
+        createdTodoId = "";
+      }
+
+      const blockedTitle = `${marker}-included-bus`;
+      const blocked = await todoOnlyMcp.callToolResult(
+        "run_graphql_operation",
+        {
+          document,
+          operationName: "ConditionalScopes",
+          variables: {
+            input: { title: blockedTitle },
+            skipBus: false,
+            includeBus: true,
+          },
+          confirmed: true,
+          locale: "zh-cn",
+        },
+      );
+      expect(blocked).toMatchObject({
+        isError: true,
+        structuredContent: {
+          success: false,
+          error: "FORBIDDEN",
+          requiredScopes: [restWriteScope("bus")],
+        },
+      });
+      expect(await prisma.todo.count({ where: { title: blockedTitle } })).toBe(
+        0,
+      );
     } finally {
       await todoOnlyMcp.close();
     }

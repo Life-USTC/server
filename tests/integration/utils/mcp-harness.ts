@@ -69,6 +69,12 @@ export type McpHarness = {
     name: string,
     args?: Record<string, unknown>,
   ): ReturnType<Client["callTool"]>;
+  getInstructions(): string | undefined;
+  getPrompt(
+    name: string,
+    args?: Record<string, string>,
+  ): ReturnType<Client["getPrompt"]>;
+  listPrompts(): ReturnType<Client["listPrompts"]>;
   listResources(): ReturnType<Client["listResources"]>;
   readResource(uri: string): ReturnType<Client["readResource"]>;
   listTools(): ReturnType<Client["listTools"]>;
@@ -210,6 +216,9 @@ export async function createMcpHarness(
     callTool,
     callToolResult,
     call,
+    getInstructions: () => client.getInstructions(),
+    getPrompt: (name, args = {}) => client.getPrompt({ name, arguments: args }),
+    listPrompts: () => client.listPrompts(),
     listResources: () => client.listResources(),
     readResource: (uri) => client.readResource({ uri }),
     listTools: () => client.listTools(),

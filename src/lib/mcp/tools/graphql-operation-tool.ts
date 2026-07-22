@@ -62,7 +62,8 @@ export function registerGraphqlOperationTool(server: McpServer) {
       title: "Run GraphQL Operation",
       description:
         "Runs either an arbitrary GraphQL document or one compatible registered operation. " +
-        "Field resolvers enforce exact OAuth scopes; every mutation requires confirmation.",
+        "Use the plan_graphql_operation prompt for schema-aware composition. Field resolvers " +
+        "enforce exact OAuth scopes; every mutation requires confirmation.",
       inputSchema: {
         operationId: operationIdSchema.optional(),
         document: z
@@ -73,7 +74,7 @@ export function registerGraphqlOperationTool(server: McpServer) {
           })
           .optional()
           .describe(
-            "Arbitrary GraphQL query or mutation document. Use either document or operationId.",
+            "Arbitrary named GraphQL query or mutation built from life-ustc://graphql/schema. Use either document or operationId.",
           ),
         operationName: z
           .string()
