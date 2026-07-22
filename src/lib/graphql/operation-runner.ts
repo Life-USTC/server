@@ -183,7 +183,7 @@ function headerValue(
   return typeof value === "string" ? value.slice(0, 512) : undefined;
 }
 
-function safeRequestHeaders(
+export function safeGraphqlRequestHeaders(
   requestInfo: RegisteredGraphqlOperationRequestInfo | undefined,
 ) {
   const headers = new Headers();
@@ -202,7 +202,7 @@ function safeRequestHeaders(
   return headers;
 }
 
-function safeRequestUrl(value: URL | string | undefined) {
+export function safeGraphqlRequestUrl(value: URL | string | undefined) {
   try {
     const url = new URL(value?.toString() ?? "http://mcp.local/api/mcp");
     return url.protocol === "http:" || url.protocol === "https:"
@@ -309,9 +309,9 @@ export async function runRegisteredGraphqlOperation(input: {
       );
     }
 
-    const request = new Request(safeRequestUrl(input.requestInfo?.url), {
+    const request = new Request(safeGraphqlRequestUrl(input.requestInfo?.url), {
       method: "POST",
-      headers: safeRequestHeaders(input.requestInfo),
+      headers: safeGraphqlRequestHeaders(input.requestInfo),
       signal: deadline.signal,
     });
     const context: GraphqlContext = {

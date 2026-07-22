@@ -20,7 +20,7 @@ const BATCH_WRITE_TOOLS = new Set(["subscribe_my_sections_by_codes"]);
  * returns its tool-not-found response.
  */
 const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
-  // Exact scopes vary by registered operation and are enforced in the runner.
+  // Exact scopes vary by selected fields and are enforced by GraphQL resolvers.
   run_graphql_operation: [],
 
   // Profile

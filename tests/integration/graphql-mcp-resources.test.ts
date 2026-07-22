@@ -4,11 +4,11 @@ import {
   GRAPHQL_OPERATIONS_RESOURCE_URI,
   GRAPHQL_SCHEMA_RESOURCE_URI,
 } from "@/lib/graphql/constants";
-import { restReadScope } from "@/lib/oauth/constants";
+import { restReadScope, restWriteScope } from "@/lib/oauth/constants";
 import { DEV_SEED } from "../fixtures/dev-seed";
 import { createMcpHarness, type McpHarness } from "./utils/mcp-harness";
 
-describe.sequential("GraphQL MCP registered operations", () => {
+describe.sequential("GraphQL MCP operations", () => {
   let mcp: McpHarness;
   let createdTodoId = "";
   let userId = "";
@@ -84,7 +84,7 @@ describe.sequential("GraphQL MCP registered operations", () => {
     expect(JSON.stringify(manifest)).not.toContain('"document"');
   });
 
-  it("exposes only the registered runner input, never arbitrary GraphQL", async () => {
+  it("exposes arbitrary documents and compatible registered operations", async () => {
     const { tools } = await mcp.listTools();
     const runner = tools.find((tool) => tool.name === "run_graphql_operation");
 
@@ -92,17 +92,117 @@ describe.sequential("GraphQL MCP registered operations", () => {
     expect(runner).toBeDefined();
     expect(Object.keys(runner?.inputSchema.properties ?? {}).sort()).toEqual([
       "confirmed",
+      "document",
       "locale",
       "operationId",
+      "operationName",
       "variables",
     ]);
-    expect(runner?.inputSchema.properties).not.toHaveProperty("document");
-    expect(runner?.inputSchema.properties).not.toHaveProperty("query");
+    expect(runner?.inputSchema.properties).toHaveProperty("document");
     expect(runner?.annotations).toMatchObject({
       readOnlyHint: false,
       destructiveHint: true,
       openWorldHint: true,
     });
+  });
+
+  it("runs arbitrary documents with fragments, aliases, and variables", async () => {
+    const result = await mcp.call<{
+      success: boolean;
+      operationId: string;
+      operationName: string;
+      data: {
+        account: { todos: { pageInfo: { pageSize: number } } };
+      };
+    }>("run_graphql_operation", {
+      document: /* GraphQL */ `
+        query ArbitraryTodos($page: PageInput) {
+          account: viewer {
+            ...ViewerTodos
+          }
+        }
+
+        fragment ViewerTodos on Viewer {
+          todos(page: $page) {
+            pageInfo { pageSize }
+            items { id title }
+          }
+        }
+      `,
+      operationName: "ArbitraryTodos",
+      variables: { page: { pageSize: 2 } },
+      locale: "zh-cn",
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      operationId: "document",
+      operationName: "ArbitraryTodos",
+      data: { account: { todos: { pageInfo: { pageSize: 2 } } } },
+    });
+  });
+
+  it("requires confirmation for every arbitrary mutation", async () => {
+    const result = await mcp.call<{
+      success: boolean;
+      error: string;
+    }>("run_graphql_operation", {
+      document: /* GraphQL */ `
+        mutation CreateTodo($input: TodoCreateInput!) {
+          createTodo(input: $input) { id }
+        }
+      `,
+      operationName: "CreateTodo",
+      variables: { input: { title: marker } },
+      locale: "zh-cn",
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      error: "CONFIRMATION_REQUIRED",
+    });
+  });
+
+  it("rejects ambiguous inputs, introspection, and over-wide documents", async () => {
+    const ambiguous = await mcp.call<{ error: string; success: boolean }>(
+      "run_graphql_operation",
+      {
+        operationId: "viewer.todos.v1",
+        document: "query Viewer { viewer { profile { id } } }",
+        locale: "zh-cn",
+      },
+    );
+    expect(ambiguous).toMatchObject({
+      success: false,
+      error: "BAD_USER_INPUT",
+    });
+
+    const introspection = await mcp.call<{
+      success: boolean;
+      errors: Array<{ message: string }>;
+    }>("run_graphql_operation", {
+      document: "query Inspect { __schema { queryType { name } } }",
+      operationName: "Inspect",
+      locale: "zh-cn",
+    });
+    expect(introspection.success).toBe(false);
+    expect(introspection.errors[0]?.message).toMatch(/introspection/i);
+
+    const overWide = await mcp.call<{
+      success: boolean;
+      errors: Array<{ message: string }>;
+    }>("run_graphql_operation", {
+      document: `query TooWide { ${Array.from(
+        { length: 11 },
+        (_, index) => `field${index}: currentSemester { jwId }`,
+      ).join(" ")} }`,
+      operationName: "TooWide",
+      locale: "zh-cn",
+    });
+    expect(overWide).toMatchObject({ success: false });
+    expect(overWide.errors[0]?.message).toBe(
+      "Query has too many top-level fields.",
+    );
   });
 
   it("runs approved Viewer reads and confirmed mutations", async () => {
@@ -261,6 +361,75 @@ describe.sequential("GraphQL MCP registered operations", () => {
       ]);
     } finally {
       await limitedMcp.close();
+    }
+  });
+
+  it("enforces resolver scopes for arbitrary documents", async () => {
+    const limitedMcp = await createMcpHarness(userId, [
+      restReadScope("homework"),
+    ]);
+    try {
+      const result = await limitedMcp.callToolResult("run_graphql_operation", {
+        document: "query ScopedTodos { viewer { todos { items { id } } } }",
+        operationName: "ScopedTodos",
+        variables: {},
+        locale: "zh-cn",
+      });
+
+      expect(result).toMatchObject({
+        isError: true,
+        structuredContent: {
+          success: false,
+          errors: [
+            expect.objectContaining({
+              extensions: expect.objectContaining({
+                code: "FORBIDDEN",
+                requiredScopes: [restReadScope("todo")],
+              }),
+            }),
+          ],
+        },
+      });
+      expect(result._meta?.["mcp/www_authenticate"]).toEqual([
+        expect.stringContaining(`scope="${restReadScope("todo")}"`),
+      ]);
+    } finally {
+      await limitedMcp.close();
+    }
+  });
+
+  it("preflights every mutation scope before any selected field executes", async () => {
+    const todoOnlyMcp = await createMcpHarness(userId, [
+      restWriteScope("todo"),
+    ]);
+    const title = `${marker}-mixed-scope`;
+    try {
+      const result = await todoOnlyMcp.callToolResult("run_graphql_operation", {
+        document: /* GraphQL */ `
+            mutation MixedScopes($input: TodoCreateInput!) {
+              createTodo(input: $input) { id }
+              saveBusPreferences(input: { showDepartedTrips: false }) {
+                showDepartedTrips
+              }
+            }
+          `,
+        operationName: "MixedScopes",
+        variables: { input: { title } },
+        confirmed: true,
+        locale: "zh-cn",
+      });
+
+      expect(result).toMatchObject({
+        isError: true,
+        structuredContent: {
+          success: false,
+          error: "FORBIDDEN",
+          requiredScopes: [restWriteScope("bus")],
+        },
+      });
+      expect(await prisma.todo.count({ where: { title } })).toBe(0);
+    } finally {
+      await todoOnlyMcp.close();
     }
   });
 });

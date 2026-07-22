@@ -116,8 +116,9 @@ effect, and error class—not identical path depth.
 - GraphQL mutations should reach business-operation parity with REST. Auth
   protocol endpoints, file byte transfer, and automatic CRUD generation remain
   outside that goal.
-- MCP may expose reviewed, registered GraphQL operations when composition is
-  useful. It must not become an arbitrary GraphQL document proxy.
+- MCP may execute arbitrary GraphQL documents through the shared production
+  validation and resolver-authorization pipeline. Registered operations remain
+  as stable compatibility shortcuts.
 - Existing MCP names remain stable even where a human label changes.
 - Bot shortcut aliases remain shortcuts. Help and primary command examples
   should present the domain-first form.
