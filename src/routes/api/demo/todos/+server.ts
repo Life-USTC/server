@@ -5,6 +5,7 @@ import {
   getDemoTodos,
   simulateDemoTodoCreate,
 } from "@/features/demo/server/demo-fixtures";
+import { apiRequestContext } from "@/lib/log/api-observability-context";
 import { logAppEvent } from "@/lib/log/app-logger";
 import type { RequestHandler } from "./$types";
 
@@ -28,6 +29,7 @@ export const POST: RequestHandler = async ({ request }) => {
     event: "demo.mutation.simulated",
     fixtureVersion: principal.fixtureVersion,
     operation: "todo.create",
+    requestId: apiRequestContext(request).requestId,
     sessionHash: getDemoSessionAuditId(principal.sessionId),
   });
   return json(simulateDemoTodoCreate(principal, title), {

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { DemoPrincipal } from "./demo-auth";
 
 const TODOS = [
@@ -20,13 +21,13 @@ export function getDemoTodos(_principal: DemoPrincipal) {
 }
 
 export function simulateDemoTodoCreate(
-  principal: DemoPrincipal,
+  _principal: DemoPrincipal,
   title: string,
 ) {
   return {
     simulated: true as const,
     todo: {
-      id: `demo-simulated-${principal.sessionId.slice(0, 8)}`,
+      id: `demo-simulated-${randomUUID()}`,
       title,
       completed: false,
       priority: "medium" as const,

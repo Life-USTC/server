@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { requireDemoApiScope } from "@/features/demo/server/demo-api-auth";
 import {
   getDemoSessionAuditId,
   isDemoModeEnabled,
@@ -7,6 +8,7 @@ import {
   verifyDemoApiToken,
   verifyDemoWebSession,
 } from "@/features/demo/server/demo-auth";
+import { simulateDemoTodoCreate } from "@/features/demo/server/demo-fixtures";
 
 const previousEnv = { ...process.env };
 
@@ -53,5 +55,31 @@ describe("demo authentication realm", () => {
     expect(auditId).toHaveLength(24);
     expect(auditId).not.toContain("session-1");
     expect(getDemoSessionAuditId("session-1")).toBe(auditId);
+  });
+
+  it("hides demo API routes when the kill switch is off", async () => {
+    process.env.DEMO_MODE_ENABLED = "false";
+    const response = await requireDemoApiScope(
+      new Request("https://example.test/api/demo/todos"),
+      "demo:todo:read",
+    );
+    expect(response).toBeInstanceOf(Response);
+    expect((response as Response).status).toBe(404);
+    await expect((response as Response).json()).resolves.toEqual({
+      error: "Not found",
+    });
+  });
+
+  it("does not derive simulated resource IDs from session IDs", () => {
+    const result = simulateDemoTodoCreate(
+      {
+        kind: "demo",
+        sessionId: "sensitive-session-prefix",
+        fixtureVersion: "2026-07-22",
+        scopes: new Set(),
+      },
+      "Simulated",
+    );
+    expect(result.todo.id).not.toContain("sensitive");
   });
 });
