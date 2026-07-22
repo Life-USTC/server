@@ -1,3 +1,10 @@
+# [1.75.0](https://github.com/Life-USTC/server/compare/v1.74.5...v1.75.0) (2026-07-22)
+
+
+### Features
+
+* **mcp:** execute scoped GraphQL documents ([#591](https://github.com/Life-USTC/server/issues/591)) ([5ebf10f](https://github.com/Life-USTC/server/commit/5ebf10f104a37a529759966bad73b13703f7dd4c))
+
 ## [1.74.5](https://github.com/Life-USTC/server/compare/v1.74.4...v1.74.5) (2026-07-22)
 
 
