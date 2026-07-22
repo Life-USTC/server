@@ -148,7 +148,7 @@ describe.sequential("GraphQL MCP operations", () => {
       error: string;
     }>("run_graphql_operation", {
       document: /* GraphQL */ `
-        mutation CreateTodo($input: TodoCreateInput!) {
+        mutation CreateTodo($input: CreateTodoInput!) {
           createTodo(input: $input) { id }
         }
       `,
@@ -406,7 +406,7 @@ describe.sequential("GraphQL MCP operations", () => {
     try {
       const result = await todoOnlyMcp.callToolResult("run_graphql_operation", {
         document: /* GraphQL */ `
-            mutation MixedScopes($input: TodoCreateInput!) {
+            mutation MixedScopes($input: CreateTodoInput!) {
               createTodo(input: $input) { id }
               saveBusPreferences(input: { showDepartedTrips: false }) {
                 showDepartedTrips
