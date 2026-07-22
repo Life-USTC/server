@@ -1,7 +1,7 @@
 import {
-  deleteOwnedTodo,
-  updateOwnedTodo,
-} from "@/features/todos/server/todo-service";
+  deleteTodosBatch,
+  setTodoCompletionsBatch,
+} from "@/features/todos/server/todo-batch-service";
 import {
   handleRouteError,
   jsonResponse,
@@ -33,33 +33,7 @@ export async function patchTodoBatchRoute(request: Request) {
   if (body instanceof Response) return body;
 
   try {
-    const results = await Promise.all(
-      body.items.map(async (item) => {
-        const result = await updateOwnedTodo({
-          id: item.todoId,
-          userId: auth.userId,
-          data: {
-            completed: item.completed,
-            dueAt: undefined,
-            hasDueAt: false,
-          },
-        });
-        if (!result.ok) {
-          return {
-            success: false as const,
-            todoId: item.todoId,
-            completed: item.completed,
-            error: { code: result.error, message: result.error },
-          };
-        }
-        return {
-          success: true as const,
-          todoId: item.todoId,
-          completed: item.completed,
-          todo: result.todo,
-        };
-      }),
-    );
+    const results = await setTodoCompletionsBatch(auth.userId, body.items);
 
     return jsonResponse(
       todoCompletionBatchResponseSchema.parse(serializeDatesDeep({ results })),
@@ -84,19 +58,7 @@ export async function deleteTodoBatchRoute(request: Request) {
   if (body instanceof Response) return body;
 
   try {
-    const results = await Promise.all(
-      body.ids.map(async (id) => {
-        const result = await deleteOwnedTodo(id, auth.userId);
-        if (!result.ok) {
-          return {
-            success: false as const,
-            id,
-            error: { code: result.error, message: result.error },
-          };
-        }
-        return { success: true as const, id };
-      }),
-    );
+    const results = await deleteTodosBatch(auth.userId, body.ids);
 
     return jsonResponse(todoBatchDeleteResponseSchema.parse({ results }));
   } catch (error) {
