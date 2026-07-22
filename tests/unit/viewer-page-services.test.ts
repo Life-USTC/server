@@ -12,6 +12,7 @@ const {
   sectionFindManyMock,
   todoCountMock,
   todoFindManyMock,
+  withUserDbContextMock,
 } = vi.hoisted(() => ({
   examCountMock: vi.fn(),
   examFindManyMock: vi.fn(),
@@ -24,6 +25,10 @@ const {
   sectionFindManyMock: vi.fn(),
   todoCountMock: vi.fn(),
   todoFindManyMock: vi.fn(),
+  withUserDbContextMock: vi.fn(
+    async (_userId: string, action: (tx: unknown) => Promise<unknown>) =>
+      action({}),
+  ),
 }));
 
 const localizedPrisma = {
@@ -39,6 +44,7 @@ vi.mock("@/lib/db/prisma", () => ({
     comment: { groupBy: vi.fn() },
     todo: { count: todoCountMock, findMany: todoFindManyMock },
   },
+  withUserDbContext: withUserDbContextMock,
 }));
 
 describe("viewer page services", () => {

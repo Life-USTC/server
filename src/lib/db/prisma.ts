@@ -7,6 +7,10 @@ import {
 import { localizedNamesExtension } from "@/lib/db/prisma-localized-names";
 import { createBasePrisma, logPrismaQuery } from "@/lib/db/prisma-query-events";
 import { shouldEnablePrismaQueryLogging } from "@/lib/db/prisma-query-logging";
+import {
+  getUserRlsTransactionClient,
+  runWithUserRlsContext,
+} from "@/lib/db/rls-context";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -86,11 +90,20 @@ function getBasePrisma() {
 
 export const prisma = new Proxy({} as PrismaClient, {
   get(_target, property, receiver) {
-    const client = getBasePrisma();
+    const client = getUserRlsTransactionClient() ?? getBasePrisma();
     const value = Reflect.get(client, property, receiver);
     return typeof value === "function" ? value.bind(client) : value;
   },
 });
+
+export function withUserDbContext<T>(
+  userId: string,
+  action: (
+    tx: import("@/generated/prisma/client").Prisma.TransactionClient,
+  ) => Promise<T>,
+) {
+  return runWithUserRlsContext(getBasePrisma(), userId, action);
+}
 
 const _makeExtendedClient = (locale: string) =>
   prisma.$extends(localizedNamesExtension(locale));

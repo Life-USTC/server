@@ -1,23 +1,54 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { deleteOwnedTodo } from "@/features/todos/server/todo-service";
+import {
+  createTodo,
+  deleteOwnedTodo,
+} from "@/features/todos/server/todo-service";
 
-const { todoDeleteManyMock, todoFindUniqueMock } = vi.hoisted(() => ({
+const {
+  todoCreateMock,
+  todoDeleteManyMock,
+  todoFindUniqueMock,
+  withUserDbContextMock,
+} = vi.hoisted(() => ({
+  todoCreateMock: vi.fn(),
   todoDeleteManyMock: vi.fn(),
   todoFindUniqueMock: vi.fn(),
+  withUserDbContextMock: vi.fn(
+    async (_userId: string, action: (tx: unknown) => Promise<unknown>) =>
+      action({}),
+  ),
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     todo: {
+      create: todoCreateMock,
       deleteMany: todoDeleteManyMock,
       findUnique: todoFindUniqueMock,
     },
   },
+  withUserDbContext: withUserDbContextMock,
 }));
 
 describe("deleteOwnedTodo", () => {
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("uses one normalized owner ID for context and writes", async () => {
+    todoCreateMock.mockResolvedValue({ id: "todo-1" });
+
+    await createTodo({ title: "Todo", userId: " user-1 " });
+
+    expect(withUserDbContextMock).toHaveBeenCalledWith(
+      "user-1",
+      expect.any(Function),
+    );
+    expect(todoCreateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ userId: "user-1" }),
+      }),
+    );
   });
 
   it("deletes by id and owner in one write", async () => {
