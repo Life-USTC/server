@@ -26,7 +26,8 @@ const {
   todoCountMock: vi.fn(),
   todoFindManyMock: vi.fn(),
   withUserDbContextMock: vi.fn(
-    async (_userId: string, action: () => Promise<unknown>) => action(),
+    async (_userId: string, action: (tx: unknown) => Promise<unknown>) =>
+      action({}),
   ),
 }));
 
