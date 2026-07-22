@@ -172,7 +172,7 @@ jobs:
                 --command "ALTER ROLE life_ustc_runtime LOGIN PASSWORD 'runtime-test-password' NOINHERIT NOBYPASSRLS" \
                 --command 'GRANT CONNECT ON DATABASE "${{ inputs.database-name }}" TO life_ustc_runtime' \
                 --command 'GRANT USAGE ON SCHEMA public TO life_ustc_runtime' \
-                --command 'GRANT SELECT, INSERT, DELETE ON TABLE "User" TO life_ustc_runtime' \
+                --command 'GRANT SELECT ON TABLE "User" TO life_ustc_runtime' \
                 --command 'GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "Todo", "DashboardLinkClick", "DashboardLinkPin", "BusUserPreference" TO life_ustc_runtime'
               runtime_database_url="postgresql://life_ustc_runtime:runtime-test-password@127.0.0.1:5432/${{ inputs.database-name }}"
               export DATABASE_URL="$runtime_database_url"

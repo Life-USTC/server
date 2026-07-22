@@ -1,41 +1,40 @@
-import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
 
 describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
   "personal preference PostgreSQL row security",
   () => {
-    const suffix = randomUUID();
     let firstUserId = "";
     let secondUserId = "";
 
+    async function clearPreferences(userId: string) {
+      await withUserDbContext(userId, async () => {
+        await prisma.dashboardLinkClick.deleteMany({ where: { userId } });
+        await prisma.dashboardLinkPin.deleteMany({ where: { userId } });
+        await prisma.busUserPreference.deleteMany({ where: { userId } });
+      });
+    }
+
     beforeAll(async () => {
-      const users = await Promise.all([
-        prisma.user.create({
-          data: { email: `rls-first-${suffix}@example.test` },
-          select: { id: true },
-        }),
-        prisma.user.create({
-          data: { email: `rls-second-${suffix}@example.test` },
-          select: { id: true },
-        }),
-      ]);
+      const users = await prisma.user.findMany({
+        select: { id: true },
+        orderBy: { id: "asc" },
+        take: 2,
+      });
+      if (users.length < 2) throw new Error("Expected two seeded users");
       firstUserId = users[0].id;
       secondUserId = users[1].id;
+      await Promise.all([
+        clearPreferences(firstUserId),
+        clearPreferences(secondUserId),
+      ]);
     });
 
     afterAll(async () => {
       for (const userId of [firstUserId, secondUserId]) {
         if (!userId) continue;
-        await withUserDbContext(userId, async () => {
-          await prisma.dashboardLinkClick.deleteMany({ where: { userId } });
-          await prisma.dashboardLinkPin.deleteMany({ where: { userId } });
-          await prisma.busUserPreference.deleteMany({ where: { userId } });
-        });
+        await clearPreferences(userId);
       }
-      await prisma.user.deleteMany({
-        where: { id: { in: [firstUserId, secondUserId].filter(Boolean) } },
-      });
       await prisma.$disconnect();
     });
 
