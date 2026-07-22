@@ -138,7 +138,6 @@ function courseEmptyDescription() {
       clearLabel={commonLabels.clear}
       filterTitle={courseLabels.summary.filters}
       hiddenFilters={courseHiddenFilters}
-      inlineFilters
       searchId="mobile-course-search"
       searchLabel={commonLabels.search}
       searchPlaceholder={courseLabels.searchPlaceholder}
@@ -154,7 +153,6 @@ function courseEmptyDescription() {
         {educationLevelOptions}
         filters={data.filters}
         idPrefix="mobile-course"
-        inline
         showClear={false}
         showSearch={false}
       />

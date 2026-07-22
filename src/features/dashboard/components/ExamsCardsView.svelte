@@ -21,7 +21,7 @@ export let sectionCopy: ExamsCopyProps["sectionCopy"];
 export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
 </script>
 
-<div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+<div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3" data-testid="dashboard-exams-cards">
   {#each exams as exam}
     <Card.Root data-slot="card">
       <Card.Header>

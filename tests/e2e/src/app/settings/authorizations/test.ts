@@ -54,11 +54,20 @@ test.describe("/settings/authorizations OAuth 授权", () => {
       const region = page.getByRole("region", {
         name: /已授权的 OAuth 应用|Authorized OAuth applications/i,
       });
+      const authorizationItem = region
+        .getByRole("listitem")
+        .filter({ hasText: name });
       await expect(region).toBeVisible();
-      await expect(region.getByText(name, { exact: true })).toBeVisible();
-      await expect(region.getByText(authorization.clientUri)).toBeVisible();
+      await expect(
+        authorizationItem.getByText(name, { exact: true }),
+      ).toBeVisible();
+      await expect(
+        authorizationItem.getByText(authorization.clientUri),
+      ).toBeVisible();
       for (const scope of scopes) {
-        await expect(region.getByText(scope, { exact: true })).toBeVisible();
+        await expect(
+          authorizationItem.getByText(scope, { exact: true }),
+        ).toBeVisible();
       }
 
       const pageText = await page.locator("#main-content").innerText();
@@ -66,7 +75,7 @@ test.describe("/settings/authorizations OAuth 授权", () => {
       expect(pageText).not.toContain(authorization.clientSecret);
       expect(pageText).not.toContain(authorization.redirectUri);
 
-      const revokeButton = region
+      const revokeButton = authorizationItem
         .getByRole("button", { name: /撤销|Revoke/i })
         .first();
       await revokeButton.click();
@@ -74,7 +83,9 @@ test.describe("/settings/authorizations OAuth 授权", () => {
       await expect(dialog).toContainText(name);
       await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
       await expect(dialog).not.toBeVisible();
-      await expect(region.getByText(name, { exact: true })).toBeVisible();
+      await expect(
+        authorizationItem.getByText(name, { exact: true }),
+      ).toBeVisible();
 
       await revokeButton.click();
       await dialog.getByRole("button", { name: /撤销|Revoke/i }).click();

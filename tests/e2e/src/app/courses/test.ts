@@ -20,7 +20,10 @@
  * - Search supports nameCn, nameEn, and code fields
  */
 import { expect, test } from "@playwright/test";
-import { expectCatalogInlineFilters } from "../../../utils/catalog-inline-filters";
+import {
+  expectCatalogFilterSheet,
+  openCatalogFilterSheet,
+} from "../../../utils/catalog-filter-sheet";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import {
   createTempCoursesFixture,
@@ -126,7 +129,7 @@ test.describe("/courses 课程目录", () => {
     await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
     await expect(page.getByTestId("catalog-results-summary")).toBeVisible();
     await expect(page.getByTestId("catalog-active-filters")).toBeVisible();
-    await expectCatalogInlineFilters(page, [
+    await expectCatalogFilterSheet(page, [
       /培养层次|Education Level/i,
       /类别|Category/i,
       /课程类型|Class Type/i,
@@ -149,35 +152,23 @@ test.describe("/courses 课程目录", () => {
     await captureStepScreenshot(page, testInfo, "courses-navigate-detail");
   });
 
-  test("280 至 1440 像素直接显示紧凑课程筛选", async ({ page }, testInfo) => {
+  test("280 至 1440 像素通过筛选面板提供课程高级筛选", async ({
+    page,
+  }, testInfo) => {
     for (const width of [280, 320, 375, 1024, 1280, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       await gotoAndWaitForReady(page, "/courses");
-      await expectCatalogInlineFilters(page, [
+      await expectCatalogFilterSheet(page, [
         /培养层次|Education Level/i,
         /类别|Category/i,
         /课程类型|Class Type/i,
       ]);
-      if (width >= 1280) {
-        const searchBox = await page
-          .getByTestId("catalog-mobile-filters")
-          .locator('[data-slot="input-group"]')
-          .boundingBox();
-        const selectBoxes = await page
-          .getByTestId("catalog-inline-filters")
-          .locator("select")
-          .evaluateAll((selects) =>
-            selects.map((select) => select.getBoundingClientRect().width),
-          );
-        expect(searchBox?.width ?? 0).toBeGreaterThan(selectBoxes[0] ?? 0);
-        expect(Math.max(...selectBoxes)).toBeLessThanOrEqual(180);
-      }
       await expect(page.locator("vite-error-overlay")).toHaveCount(0);
       if (width === 280 || width === 375) {
         await captureStepScreenshot(
           page,
           testInfo,
-          `courses-inline-filters-${width}`,
+          `courses-filter-sheet-${width}`,
         );
       }
     }
@@ -264,7 +255,8 @@ test.describe("/courses 课程目录", () => {
     });
 
     await page.getByRole("searchbox").fill("尚未提交的搜索草稿");
-    await page
+    let filterDialog = await openCatalogFilterSheet(page);
+    await filterDialog
       .getByLabel(/培养层次|Education Level/i)
       .selectOption(String(filters.educationLevelId));
     await expect(page).toHaveURL(
@@ -272,7 +264,8 @@ test.describe("/courses 课程目录", () => {
     );
     await expect(page).not.toHaveURL(/search=/);
 
-    await page
+    filterDialog = await openCatalogFilterSheet(page);
+    await filterDialog
       .getByLabel(/类别|Category/i)
       .selectOption(String(filters.categoryId));
     await expect(page).toHaveURL(

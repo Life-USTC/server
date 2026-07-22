@@ -20,6 +20,7 @@ import {
   createSettingsAccountAction,
 } from "@/features/settings/lib/settings-page-actions";
 import type { SettingsTab } from "@/features/settings/lib/settings-tabs";
+import { Button } from "$lib/components/ui/button/index.js";
 import { cn } from "$lib/utils";
 import type {
   SettingsAccount,
@@ -167,7 +168,7 @@ onMount(() => {
 <section class="grid gap-6">
   <SettingsHeader {copy} />
 
-  <div class="grid gap-5 lg:grid-cols-[13rem_minmax(0,1fr)] lg:items-start lg:gap-6">
+  <div class="grid gap-5 lg:grid-cols-[12rem_minmax(0,1fr)] lg:items-start lg:gap-6">
     <div
       class={cn(
         "relative -mx-4 min-w-0 sm:-mx-5 lg:sticky lg:top-4 lg:mx-0",
@@ -189,25 +190,20 @@ onMount(() => {
           {#each data.settingsNav.tabs as item}
             {@const Icon = tabIcon(item.icon)}
             {@const isActive = data.activeTab === item.id}
-            <li class="lg:min-w-0">
-              <a
+            <li class="lg:min-w-0" use:revealActive={isActive}>
+              <Button
                 aria-current={isActive ? "page" : undefined}
-                class={cn(
-                  "flex min-h-10 items-center gap-2 whitespace-nowrap rounded-lg border px-3 py-2 font-medium text-sm transition-colors lg:w-full lg:whitespace-normal",
-                  isActive && item.id === "danger"
-                    ? "border-destructive/50 bg-destructive/10 text-destructive"
-                    : isActive
-                      ? "border-primary/50 bg-primary/10 text-primary"
-                      : item.id === "danger"
-                        ? "border-transparent text-destructive hover:border-destructive/30 hover:bg-destructive/5"
-                        : "border-transparent text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground",
-                )}
+                class="min-h-10 justify-start lg:w-full"
                 href={item.href}
-                use:revealActive={isActive}
+                variant={isActive
+                  ? "secondary"
+                  : item.id === "danger"
+                    ? "destructive"
+                    : "ghost"}
               >
-                <Icon aria-hidden="true" class="size-4 shrink-0" />
+                <Icon aria-hidden="true" data-icon="inline-start" />
                 <span>{item.title}</span>
-              </a>
+              </Button>
             </li>
           {/each}
         </ul>

@@ -80,9 +80,7 @@ test.describe("仪表盘考试", () => {
     await captureStepScreenshot(page, testInfo, "exams/filter-empty-recovered");
   });
 
-  test("移动端考试工具栏直接筛选并通过菜单切换视图", async ({
-    page,
-  }, testInfo) => {
+  test("移动端考试工具栏直接筛选并保持卡片视图", async ({ page }, testInfo) => {
     await page.addInitScript(() => {
       localStorage.removeItem("life-ustc-dashboard-view-mode");
     });
@@ -99,26 +97,23 @@ test.describe("仪表盘考试", () => {
         name: /Upcoming|未结束|即将|待完成/i,
       })
       .first();
-    const viewMenu = page.getByTestId("dashboard-exams-view-menu");
     await expect(upcoming).toBeVisible();
-    await expect(viewMenu).toBeVisible();
+    await expect(page.getByTestId("dashboard-exams-view-menu")).toHaveCount(0);
 
-    for (const control of [upcoming, viewMenu]) {
+    for (const control of [upcoming]) {
       const box = await control.boundingBox();
       expect(box?.height).toBeGreaterThanOrEqual(44);
       expect(box?.width).toBeGreaterThanOrEqual(44);
     }
 
+    await gotoAndWaitForReady(page, "/dashboard/exams?examView=list");
     const all = page
       .getByRole("group", { name: /考试|Exams/i })
       .getByRole("radio", { name: /全部|All/i });
     await all.click();
     await expect(all).toHaveAttribute("aria-checked", "true");
-    await viewMenu.click();
-    await page.getByRole("menuitemradio", { name: /列表|List/i }).click();
-    await expect(page).toHaveURL(/examView=list/);
-    await expect(page.getByRole("table")).toBeVisible();
-    await expect(all).toHaveAttribute("aria-checked", "true");
+    await expect(page.getByTestId("dashboard-exams-cards")).toBeVisible();
+    await expect(page.getByRole("table")).toBeHidden();
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,

@@ -92,16 +92,31 @@ $: ({ datetimeLocalValue, fmtDate, todoActionLabel, todoStatus } =
       {toggleTodoCompletion}
     />
   {:else}
-    <TodosListView
-      {filteredTodos}
-      {fmtDate}
-      {openTodoEditor}
-      bind:selectedTodo
-      {todoActionLabel}
-      {todoSavingById}
-      {todosCopy}
-      {toggleTodoCompletion}
-    />
+    <div class="md:hidden">
+      <TodosCardsView
+        {filteredTodos}
+        {fmtDate}
+        {openTodoEditor}
+        bind:selectedTodo
+        {todoActionLabel}
+        {todoSavingById}
+        {todosCopy}
+        {todoStatus}
+        {toggleTodoCompletion}
+      />
+    </div>
+    <div class="hidden md:block">
+      <TodosListView
+        {filteredTodos}
+        {fmtDate}
+        {openTodoEditor}
+        bind:selectedTodo
+        {todoActionLabel}
+        {todoSavingById}
+        {todosCopy}
+        {toggleTodoCompletion}
+      />
+    </div>
   {/if}
 
   <TodosTabDialogs

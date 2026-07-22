@@ -26,7 +26,7 @@ export let todoStatus: TodoAction;
 export let toggleTodoCompletion: TodoCompletionToggle;
 </script>
 
-<div class="grid gap-3 md:grid-cols-2">
+<div class="grid gap-3 md:grid-cols-2" data-testid="dashboard-todos-cards">
   {#each filteredTodos as todo}
     <Card.Root
       class="group"

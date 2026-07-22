@@ -90,14 +90,28 @@ export let filteredExamRows: DashboardExamRow[];
         </Empty.Content>
       </Empty.Root>
     {:else if examView === "list"}
-      <ExamsListView
-        {dashboardCopy}
-        {dashboardTabHref}
-        {examTimeLabel}
-        exams={filteredExamRows}
-        {sectionCopy}
-        {subscriptionsCopy}
-      />
+      <div class="md:hidden">
+        <ExamsCardsView
+          {dashboardCopy}
+          {dashboardTabHref}
+          {examMetadataLabels}
+          exams={filteredExamRows}
+          {examTimeLabel}
+          {namePrimary}
+          {sectionCopy}
+          {subscriptionsCopy}
+        />
+      </div>
+      <div class="hidden md:block">
+        <ExamsListView
+          {dashboardCopy}
+          {dashboardTabHref}
+          {examTimeLabel}
+          exams={filteredExamRows}
+          {sectionCopy}
+          {subscriptionsCopy}
+        />
+      </div>
     {:else}
       <ExamsCardsView
         {dashboardCopy}

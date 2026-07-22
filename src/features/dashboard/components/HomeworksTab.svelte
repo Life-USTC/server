@@ -131,17 +131,32 @@ $: ({
     {/if}
 
     {#if homeworkView === "list"}
-      <HomeworksListView
-        {filteredHomeworkItems}
-        {fmtDate}
-        {homeworkCompletionActionLabel}
-        {homeworkCopy}
-        {homeworkEtaLabel}
-        {homeworksCopy}
-        {homeworkSavingById}
-        bind:selectedHomework
-        {toggleHomeworkCompletion}
-      />
+      <div class="md:hidden">
+        <HomeworksCardsView
+          {filteredHomeworkItems}
+          {fmtDate}
+          {homeworkCompletionActionLabel}
+          {homeworkCopy}
+          {homeworkEtaLabel}
+          {homeworksCopy}
+          {homeworkSavingById}
+          bind:selectedHomework
+          {toggleHomeworkCompletion}
+        />
+      </div>
+      <div class="hidden md:block">
+        <HomeworksListView
+          {filteredHomeworkItems}
+          {fmtDate}
+          {homeworkCompletionActionLabel}
+          {homeworkCopy}
+          {homeworkEtaLabel}
+          {homeworksCopy}
+          {homeworkSavingById}
+          bind:selectedHomework
+          {toggleHomeworkCompletion}
+        />
+      </div>
     {:else}
       <HomeworksCardsView
         {filteredHomeworkItems}
