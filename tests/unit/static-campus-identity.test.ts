@@ -59,7 +59,7 @@ describe("static campus identity", () => {
   it("resolves sections that only provide a JW campus ID", () => {
     expect(
       resolveSectionCampusDatabaseId(
-        { campusId: 102, campusName: null },
+        { campusId: 102, campusName: undefined },
         {
           byJwId: new Map([[102, 1]]),
           byName: new Map(),
