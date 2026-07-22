@@ -1,3 +1,10 @@
+## [1.74.5](https://github.com/Life-USTC/server/compare/v1.74.4...v1.74.5) (2026-07-22)
+
+
+### Performance Improvements
+
+* **todos:** bound batch database concurrency ([#592](https://github.com/Life-USTC/server/issues/592)) ([a18d1ae](https://github.com/Life-USTC/server/commit/a18d1ae00e0d71d2eb78bf1f3b6790ed270207af))
+
 ## [1.74.4](https://github.com/Life-USTC/server/compare/v1.74.3...v1.74.4) (2026-07-22)
 
 
