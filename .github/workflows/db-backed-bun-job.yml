@@ -165,6 +165,7 @@ jobs:
               bun run app:prepare
               bun run db:migrate:deploy
               bunx prisma db seed
+              # Keep the RLS database setup idempotent like ci:integration.
               bunx prisma db seed
               PGPASSWORD=postgres psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
                 --command "CREATE ROLE life_ustc_runtime LOGIN PASSWORD 'runtime-test-password' NOINHERIT NOBYPASSRLS" \
