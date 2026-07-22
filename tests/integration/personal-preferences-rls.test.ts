@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { deleteOwnAccount } from "@/features/settings/server/account-deletion-service";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
 
 describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
@@ -124,6 +125,22 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           }),
         ),
       ).rejects.toThrow();
+    });
+
+    it("keeps self-service account deletion cascades inside owner context", async () => {
+      await withUserDbContext(secondUserId, () =>
+        prisma.todo.create({
+          data: { title: "[rls-test] account cascade", userId: secondUserId },
+        }),
+      );
+
+      await expect(deleteOwnAccount(secondUserId)).resolves.toEqual({
+        ok: true,
+      });
+      await expect(
+        prisma.user.findUnique({ where: { id: secondUserId } }),
+      ).resolves.toBeNull();
+      secondUserId = "";
     });
   },
 );
