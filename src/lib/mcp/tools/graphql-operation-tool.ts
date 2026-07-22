@@ -1,6 +1,9 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { GRAPHQL_LIMITS } from "@/lib/graphql/constants";
+import {
+  GRAPHQL_LIMITS,
+  isWithinGraphqlBodyByteLimit,
+} from "@/lib/graphql/constants";
 import { runGraphqlDocument } from "@/lib/graphql/document-runner";
 import {
   RegisteredGraphqlOperationError,
@@ -65,7 +68,9 @@ export function registerGraphqlOperationTool(server: McpServer) {
         document: z
           .string()
           .min(1)
-          .max(GRAPHQL_LIMITS.bodyBytes)
+          .refine(isWithinGraphqlBodyByteLimit, {
+            message: `Document must not exceed ${GRAPHQL_LIMITS.bodyBytes} UTF-8 bytes`,
+          })
           .optional()
           .describe(
             "Arbitrary GraphQL query or mutation document. Use either document or operationId.",

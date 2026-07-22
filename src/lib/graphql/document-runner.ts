@@ -13,7 +13,11 @@ import type { AppLocale } from "@/i18n/config";
 import type { RestFeature } from "@/lib/oauth/constants";
 import { hasRequiredFeatureScope } from "@/lib/oauth/scope-registry";
 import type { GraphqlPrincipal } from "./auth";
-import { GRAPHQL_ENDPOINT, GRAPHQL_LIMITS } from "./constants";
+import {
+  GRAPHQL_ENDPOINT,
+  GRAPHQL_LIMITS,
+  isWithinGraphqlBodyByteLimit,
+} from "./constants";
 import { formatMaskedGraphqlError } from "./error-masking";
 import {
   analyzeGraphqlOperation,
@@ -61,7 +65,7 @@ function requestBody(input: {
       "variables must be JSON-serializable.",
     );
   }
-  if (new TextEncoder().encode(body).byteLength > GRAPHQL_LIMITS.bodyBytes) {
+  if (!isWithinGraphqlBodyByteLimit(body)) {
     throw new RegisteredGraphqlOperationError(
       "BAD_USER_INPUT",
       `GraphQL request must not exceed ${GRAPHQL_LIMITS.bodyBytes} bytes.`,
