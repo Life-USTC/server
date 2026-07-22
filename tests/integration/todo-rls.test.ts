@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { Prisma } from "@/generated/prisma/client";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
 
 describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
@@ -28,32 +27,6 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         );
       }
       await prisma.$disconnect();
-    });
-
-    it("runs as a non-owner role without BYPASSRLS", async () => {
-      const [role] = await prisma.$queryRaw<
-        {
-          currentUser: string;
-          owner: boolean;
-          bypassRls: boolean;
-          inheritsRoles: boolean;
-        }[]
-      >(Prisma.sql`
-      SELECT
-        current_user AS "currentUser",
-        (current_user = tableowner) AS owner,
-        rolbypassrls AS "bypassRls",
-        rolinherit AS "inheritsRoles"
-      FROM pg_tables
-      JOIN pg_roles ON rolname = current_user
-      WHERE schemaname = 'public' AND tablename = 'Todo'
-    `);
-      expect(role).toEqual({
-        currentUser: "life_ustc_runtime",
-        owner: false,
-        bypassRls: false,
-        inheritsRoles: false,
-      });
     });
 
     it("defaults to no rows when user context is missing", async () => {
@@ -107,6 +80,50 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       await expect(
         prisma.todo.findMany({ where: { id: { in: createdIds } } }),
       ).resolves.toEqual([]);
+
+      await expect(
+        withUserDbContext(secondUserId, () =>
+          prisma.todo.update({
+            where: { id: first.id },
+            data: { title: "[rls-test] cross-owner update" },
+          }),
+        ),
+      ).rejects.toThrow();
+      await expect(
+        withUserDbContext(secondUserId, () =>
+          prisma.todo.delete({ where: { id: first.id } }),
+        ),
+      ).rejects.toThrow();
+      await expect(
+        withUserDbContext(secondUserId, () =>
+          prisma.todo.updateMany({
+            where: { id: first.id },
+            data: { completed: true },
+          }),
+        ),
+      ).resolves.toEqual({ count: 0 });
+      await expect(
+        withUserDbContext(secondUserId, () =>
+          prisma.todo.deleteMany({ where: { id: first.id } }),
+        ),
+      ).resolves.toEqual({ count: 0 });
+      await expect(
+        withUserDbContext(firstUserId, () =>
+          prisma.todo.update({
+            where: { id: first.id },
+            data: { userId: secondUserId },
+          }),
+        ),
+      ).rejects.toThrow();
+
+      await expect(
+        withUserDbContext(firstUserId, () =>
+          prisma.todo.findUnique({
+            where: { id: first.id },
+            select: { userId: true, completed: true },
+          }),
+        ),
+      ).resolves.toEqual({ userId: firstUserId, completed: false });
     });
   },
 );

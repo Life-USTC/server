@@ -1,4 +1,8 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  getBusPreference,
+  saveBusPreference,
+} from "@/features/bus/server/bus-service";
 import { deleteOwnAccount } from "@/features/settings/server/account-deletion-service";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
 
@@ -25,6 +29,9 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       if (users.length < 2) throw new Error("Expected two seeded users");
       firstUserId = users[0].id;
       secondUserId = users[1].id;
+    });
+
+    beforeEach(async () => {
       await Promise.all([
         clearPreferences(firstUserId),
         clearPreferences(secondUserId),
@@ -98,6 +105,99 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         pins: [{ userId: secondUserId }],
         preferences: [{ userId: secondUserId }],
       });
+    });
+
+    it("blocks cross-owner updates and deletes on preference records", async () => {
+      const firstRows = await withUserDbContext(firstUserId, async () => {
+        const click = await prisma.dashboardLinkClick.create({
+          data: { userId: firstUserId, slug: "rls-cross-owner-click" },
+          select: { id: true },
+        });
+        const pin = await prisma.dashboardLinkPin.create({
+          data: { userId: firstUserId, slug: "rls-cross-owner-pin" },
+          select: { id: true },
+        });
+        await prisma.busUserPreference.create({
+          data: { userId: firstUserId },
+        });
+        return { click, pin };
+      });
+
+      await expect(
+        withUserDbContext(secondUserId, () =>
+          prisma.dashboardLinkClick.update({
+            where: { id: firstRows.click.id },
+            data: { count: 99 },
+          }),
+        ),
+      ).rejects.toThrow();
+      await expect(
+        withUserDbContext(secondUserId, () =>
+          prisma.dashboardLinkPin.delete({
+            where: { id: firstRows.pin.id },
+          }),
+        ),
+      ).rejects.toThrow();
+      await expect(
+        withUserDbContext(secondUserId, () =>
+          prisma.dashboardLinkClick.updateMany({
+            where: { userId: firstUserId },
+            data: { count: 99 },
+          }),
+        ),
+      ).resolves.toEqual({ count: 0 });
+      await expect(
+        withUserDbContext(firstUserId, () =>
+          prisma.dashboardLinkClick.update({
+            where: { id: firstRows.click.id },
+            data: { userId: secondUserId },
+          }),
+        ),
+      ).rejects.toThrow();
+      await expect(
+        withUserDbContext(secondUserId, () =>
+          prisma.dashboardLinkPin.deleteMany({
+            where: { userId: firstUserId },
+          }),
+        ),
+      ).resolves.toEqual({ count: 0 });
+      await expect(
+        withUserDbContext(secondUserId, () =>
+          prisma.busUserPreference.updateMany({
+            where: { userId: firstUserId },
+            data: { showDepartedTrips: true },
+          }),
+        ),
+      ).resolves.toEqual({ count: 0 });
+      await expect(
+        withUserDbContext(secondUserId, () =>
+          prisma.busUserPreference.deleteMany({
+            where: { userId: firstUserId },
+          }),
+        ),
+      ).resolves.toEqual({ count: 0 });
+    });
+
+    it("uses the real bus preference service chain with RLS enabled", async () => {
+      const campuses = await prisma.busCampus.findMany({
+        orderBy: { id: "asc" },
+        select: { id: true },
+        take: 2,
+      });
+      if (campuses.length < 2) throw new Error("Expected two seeded campuses");
+      const expected = {
+        preferredOriginCampusId: campuses[0].id,
+        preferredDestinationCampusId: campuses[1].id,
+        showDepartedTrips: true,
+      };
+
+      await expect(
+        saveBusPreference(firstUserId, expected),
+      ).resolves.toMatchObject({ ok: true, preference: expected });
+      await expect(getBusPreference(firstUserId)).resolves.toEqual(expected);
+      await expect(getBusPreference(secondUserId)).resolves.not.toEqual(
+        expected,
+      );
     });
 
     it("rejects forged ownership on every protected preference table", async () => {

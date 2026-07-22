@@ -174,10 +174,14 @@ jobs:
                 --command 'GRANT USAGE ON SCHEMA public TO life_ustc_runtime' \
                 --command 'GRANT SELECT, DELETE ON TABLE "User" TO life_ustc_runtime' \
                 --command 'GRANT SELECT, UPDATE ON TABLE "AuditLog", "UserSuspension" TO life_ustc_runtime' \
+                --command 'GRANT SELECT ON TABLE "BusCampus" TO life_ustc_runtime' \
                 --command 'GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "Todo", "DashboardLinkClick", "DashboardLinkPin", "BusUserPreference" TO life_ustc_runtime'
               runtime_database_url="postgresql://life_ustc_runtime:runtime-test-password@127.0.0.1:5432/${{ inputs.database-name }}"
               export DATABASE_URL="$runtime_database_url"
               export RLS_TEST_ENABLED=true
+              bunx vitest run \
+                --config vitest.integration.config.ts \
+                tests/integration/rls-database-contract.test.ts
               bunx vitest run \
                 --config vitest.integration.config.ts \
                 tests/integration/todo-rls.test.ts
