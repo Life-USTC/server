@@ -1,5 +1,5 @@
 import type { Prisma, TodoPriority } from "@/generated/prisma/client";
-import { prisma } from "@/lib/db/prisma";
+import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import { paginatedQuery } from "@/lib/query-pagination";
 
 export const todoSnapshotSelect = {
@@ -77,17 +77,26 @@ export function buildTodoMutationData(input: TodoMutationDataInput) {
   return updates;
 }
 
+function requireTodoUserId(where: Prisma.TodoWhereInput) {
+  if (typeof where.userId !== "string" || !where.userId) {
+    throw new Error("Todo queries require an explicit user ID");
+  }
+  return where.userId;
+}
+
 export async function createTodo(input: TodoCreateInput) {
-  return prisma.todo.create({
-    select: { id: true },
-    data: {
-      userId: input.userId,
-      title: input.title,
-      content: input.content?.trim() || null,
-      priority: input.priority ?? "medium",
-      ...(input.dueAt !== undefined && { dueAt: input.dueAt }),
-    },
-  });
+  return withUserDbContext(input.userId, () =>
+    prisma.todo.create({
+      select: { id: true },
+      data: {
+        userId: input.userId,
+        title: input.title,
+        content: input.content?.trim() || null,
+        priority: input.priority ?? "medium",
+        ...(input.dueAt !== undefined && { dueAt: input.dueAt }),
+      },
+    }),
+  );
 }
 
 export async function listTodos(where: Prisma.TodoWhereInput) {
@@ -115,12 +124,14 @@ export async function listTodoSnapshots(input: {
   take?: number;
   where: Prisma.TodoWhereInput;
 }) {
-  return prisma.todo.findMany({
-    where: input.where,
-    select: todoSnapshotSelect,
-    orderBy: input.orderBy ?? todoListOrderBy,
-    ...(input.take !== undefined && { take: input.take }),
-  });
+  return withUserDbContext(requireTodoUserId(input.where), () =>
+    prisma.todo.findMany({
+      where: input.where,
+      select: todoSnapshotSelect,
+      orderBy: input.orderBy ?? todoListOrderBy,
+      ...(input.take !== undefined && { take: input.take }),
+    }),
+  );
 }
 
 export async function listDueTodoSnapshots(input: {
@@ -146,18 +157,22 @@ export async function listDueTodoSamples(input: {
   take?: number;
   userId: string;
 }) {
-  return prisma.todo.findMany({
-    where: buildDueTodoWhere(input),
-    select: todoDueSampleSelect,
-    orderBy: todoDueDateOrderBy,
-    ...(input.take !== undefined && { take: input.take }),
-  });
+  return withUserDbContext(input.userId, () =>
+    prisma.todo.findMany({
+      where: buildDueTodoWhere(input),
+      select: todoDueSampleSelect,
+      orderBy: todoDueDateOrderBy,
+      ...(input.take !== undefined && { take: input.take }),
+    }),
+  );
 }
 
 export async function countIncompleteTodos(userId: string) {
-  return prisma.todo.count({
-    where: { userId, completed: false },
-  });
+  return withUserDbContext(userId, () =>
+    prisma.todo.count({
+      where: { userId, completed: false },
+    }),
+  );
 }
 
 export async function countDueTodos(input: {
@@ -167,9 +182,11 @@ export async function countDueTodos(input: {
   includeDueAtTo?: boolean;
   userId: string;
 }) {
-  return prisma.todo.count({
-    where: buildDueTodoWhere(input),
-  });
+  return withUserDbContext(input.userId, () =>
+    prisma.todo.count({
+      where: buildDueTodoWhere(input),
+    }),
+  );
 }
 
 function buildDueTodoWhere(input: {
@@ -203,38 +220,34 @@ export async function listTodoSummary(input: {
   take?: number;
   userId: string;
 }) {
-  const now = input.now ?? new Date();
-  const where = buildTodoListWhere(input.userId, input.filters);
-  const [incompleteCount, completedCount, overdueCount, todos] =
-    await Promise.all([
-      countIncompleteTodos(input.userId),
-      prisma.todo.count({
-        where: { userId: input.userId, completed: true },
-      }),
-      prisma.todo.count({
-        where: {
-          userId: input.userId,
-          completed: false,
-          dueAt: { lt: now },
-        },
-      }),
-      listTodoSnapshots({
-        where,
-        take: input.take,
-      }),
-    ]);
+  return withUserDbContext(input.userId, async () => {
+    const now = input.now ?? new Date();
+    const where = buildTodoListWhere(input.userId, input.filters);
+    const incompleteCount = await countIncompleteTodos(input.userId);
+    const completedCount = await prisma.todo.count({
+      where: { userId: input.userId, completed: true },
+    });
+    const overdueCount = await prisma.todo.count({
+      where: {
+        userId: input.userId,
+        completed: false,
+        dueAt: { lt: now },
+      },
+    });
+    const todos = await listTodoSnapshots({ where, take: input.take });
 
-  return {
-    counts: {
-      incomplete: incompleteCount,
-      completed: completedCount,
-      overdue: overdueCount,
-    },
-    todos,
-  };
+    return {
+      counts: {
+        incomplete: incompleteCount,
+        completed: completedCount,
+        overdue: overdueCount,
+      },
+      todos,
+    };
+  });
 }
 
-export function listTodoPage(input: {
+export async function listTodoPage(input: {
   filters?: TodoListFilters;
   pagination: {
     page: number;
@@ -243,32 +256,36 @@ export function listTodoPage(input: {
   userId: string;
 }) {
   const where = buildTodoListWhere(input.userId, input.filters);
-  return paginatedQuery(
-    (skip, take) =>
-      prisma.todo.findMany({
-        where,
-        select: todoSnapshotSelect,
-        orderBy: todoListOrderBy,
-        skip,
-        take,
-      }),
-    () => prisma.todo.count({ where }),
-    input.pagination.page,
-    input.pagination.pageSize,
+  return withUserDbContext(input.userId, () =>
+    paginatedQuery(
+      (skip, take) =>
+        prisma.todo.findMany({
+          where,
+          select: todoSnapshotSelect,
+          orderBy: todoListOrderBy,
+          skip,
+          take,
+        }),
+      () => prisma.todo.count({ where }),
+      input.pagination.page,
+      input.pagination.pageSize,
+    ),
   );
 }
 
 export async function requireOwnedTodo(id: string, userId: string) {
-  const todo = await prisma.todo.findUnique({
-    where: { id },
-    select: { id: true, userId: true },
-  });
+  return withUserDbContext(userId, async () => {
+    const todo = await prisma.todo.findUnique({
+      where: { id },
+      select: { id: true, userId: true },
+    });
 
-  if (!todo) return { ok: false as const, error: "not_found" as const };
-  if (todo.userId !== userId) {
-    return { ok: false as const, error: "forbidden" as const };
-  }
-  return { ok: true as const, todo };
+    if (!todo) return { ok: false as const, error: "not_found" as const };
+    if (todo.userId !== userId) {
+      return { ok: false as const, error: "forbidden" as const };
+    }
+    return { ok: true as const, todo };
+  });
 }
 
 export async function updateOwnedTodo(input: {
@@ -276,33 +293,37 @@ export async function updateOwnedTodo(input: {
   id: string;
   userId: string;
 }) {
-  const ownership = await requireOwnedTodo(input.id, input.userId);
-  if (!ownership.ok) return ownership;
+  return withUserDbContext(input.userId, async () => {
+    const ownership = await requireOwnedTodo(input.id, input.userId);
+    if (!ownership.ok) return ownership;
 
-  const updates = buildTodoMutationData(input.data);
-  if (Object.keys(updates).length === 0) {
-    return { ok: false as const, error: "no_changes" as const };
-  }
+    const updates = buildTodoMutationData(input.data);
+    if (Object.keys(updates).length === 0) {
+      return { ok: false as const, error: "no_changes" as const };
+    }
 
-  const todo = await prisma.todo.update({
-    where: { id: input.id },
-    data: updates,
-    select: todoSnapshotSelect,
+    const todo = await prisma.todo.update({
+      where: { id: input.id },
+      data: updates,
+      select: todoSnapshotSelect,
+    });
+    return { ok: true as const, todo };
   });
-  return { ok: true as const, todo };
 }
 
 export async function deleteOwnedTodo(id: string, userId: string) {
-  const deleted = await prisma.todo.deleteMany({ where: { id, userId } });
-  if (deleted.count > 0) return { ok: true as const };
+  return withUserDbContext(userId, async () => {
+    const deleted = await prisma.todo.deleteMany({ where: { id, userId } });
+    if (deleted.count > 0) return { ok: true as const };
 
-  const todo = await prisma.todo.findUnique({
-    where: { id },
-    select: { id: true, userId: true },
+    const todo = await prisma.todo.findUnique({
+      where: { id },
+      select: { id: true, userId: true },
+    });
+    if (!todo) return { ok: false as const, error: "not_found" as const };
+    if (todo.userId !== userId) {
+      return { ok: false as const, error: "forbidden" as const };
+    }
+    return { ok: false as const, error: "not_found" as const };
   });
-  if (!todo) return { ok: false as const, error: "not_found" as const };
-  if (todo.userId !== userId) {
-    return { ok: false as const, error: "forbidden" as const };
-  }
-  return { ok: false as const, error: "not_found" as const };
 }

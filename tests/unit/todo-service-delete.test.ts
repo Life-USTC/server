@@ -1,10 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { deleteOwnedTodo } from "@/features/todos/server/todo-service";
 
-const { todoDeleteManyMock, todoFindUniqueMock } = vi.hoisted(() => ({
-  todoDeleteManyMock: vi.fn(),
-  todoFindUniqueMock: vi.fn(),
-}));
+const { todoDeleteManyMock, todoFindUniqueMock, withUserDbContextMock } =
+  vi.hoisted(() => ({
+    todoDeleteManyMock: vi.fn(),
+    todoFindUniqueMock: vi.fn(),
+    withUserDbContextMock: vi.fn(
+      async (_userId: string, action: () => Promise<unknown>) => action(),
+    ),
+  }));
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
@@ -13,6 +17,7 @@ vi.mock("@/lib/db/prisma", () => ({
       findUnique: todoFindUniqueMock,
     },
   },
+  withUserDbContext: withUserDbContextMock,
 }));
 
 describe("deleteOwnedTodo", () => {
