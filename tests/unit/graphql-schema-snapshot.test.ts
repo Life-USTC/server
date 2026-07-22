@@ -2,7 +2,10 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { graphqlSchemaSdl } from "@/lib/graphql/resources";
-import { findGraphqlBreakingChanges } from "@/lib/graphql/schema-diff";
+import {
+  classifyGraphqlDangerousChanges,
+  findGraphqlBreakingChanges,
+} from "@/lib/graphql/schema-diff";
 
 const snapshotRelativePath = "docs/graphql/schema.graphql";
 const snapshotPath = fileURLToPath(
@@ -43,6 +46,17 @@ describe("GraphQL schema snapshot", () => {
     expect(
       breakingChanges,
       breakingChanges
+        .map((change) => `${change.type}: ${change.description}`)
+        .join("\n"),
+    ).toEqual([]);
+
+    const dangerousChanges = classifyGraphqlDangerousChanges(
+      previousSnapshot,
+      graphqlSchemaSdl,
+    ).blocked;
+    expect(
+      dangerousChanges,
+      dangerousChanges
         .map((change) => `${change.type}: ${change.description}`)
         .join("\n"),
     ).toEqual([]);

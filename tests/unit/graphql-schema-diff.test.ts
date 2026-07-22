@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { findGraphqlBreakingChanges } from "@/lib/graphql/schema-diff";
+import {
+  classifyGraphqlDangerousChanges,
+  findGraphqlBreakingChanges,
+} from "@/lib/graphql/schema-diff";
 
 const schema = (queryFields: string, extra = "") => `
   type Query {
@@ -48,5 +51,60 @@ describe("GraphQL schema breaking gate", () => {
         schema("course: String\nsection: String"),
       ),
     ).toHaveLength(0);
+  });
+});
+
+describe("GraphQL dangerous-change policy", () => {
+  it.each([
+    [
+      "enum value additions",
+      schema("status: Status", "enum Status { ACTIVE }"),
+      schema("status: Status", "enum Status { ACTIVE RETIRED }"),
+    ],
+    [
+      "argument default changes",
+      schema("course(limit: Int = 10): String"),
+      schema("course(limit: Int = 20): String"),
+    ],
+    [
+      "input-field default changes",
+      schema(
+        "search(input: SearchInput): String",
+        "input SearchInput { limit: Int = 10 }",
+      ),
+      schema(
+        "search(input: SearchInput): String",
+        "input SearchInput { limit: Int = 20 }",
+      ),
+    ],
+  ])("blocks %s with a coordinate in the diagnostic", (_name, previousSdl, nextSdl) => {
+    const { blocked } = classifyGraphqlDangerousChanges(previousSdl, nextSdl);
+    expect(blocked).not.toHaveLength(0);
+    expect(blocked[0].description).toMatch(
+      /Status|Query\.course|SearchInput\.limit/,
+    );
+  });
+
+  it.each([
+    [
+      "optional arguments",
+      schema("course: String"),
+      schema("course(limit: Int): String"),
+    ],
+    [
+      "optional input fields",
+      schema(
+        "search(input: SearchInput): String",
+        "input SearchInput { query: String }",
+      ),
+      schema(
+        "search(input: SearchInput): String",
+        "input SearchInput { query: String, limit: Int }",
+      ),
+    ],
+  ])("allows additive %s under SDL review", (_name, previousSdl, nextSdl) => {
+    const changes = classifyGraphqlDangerousChanges(previousSdl, nextSdl);
+    expect(changes.blocked).toEqual([]);
+    expect(changes.allowed).not.toHaveLength(0);
   });
 });
