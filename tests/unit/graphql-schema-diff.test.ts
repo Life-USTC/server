@@ -60,11 +60,13 @@ describe("GraphQL dangerous-change policy", () => {
       "enum value additions",
       schema("status: Status", "enum Status { ACTIVE }"),
       schema("status: Status", "enum Status { ACTIVE RETIRED }"),
+      /Status/,
     ],
     [
       "argument default changes",
       schema("course(limit: Int = 10): String"),
       schema("course(limit: Int = 20): String"),
+      /Query\.course/,
     ],
     [
       "input-field default changes",
@@ -76,13 +78,36 @@ describe("GraphQL dangerous-change policy", () => {
         "search(input: SearchInput): String",
         "input SearchInput { limit: Int = 20 }",
       ),
+      /SearchInput\.limit/,
     ],
-  ])("blocks %s with a coordinate in the diagnostic", (_name, previousSdl, nextSdl) => {
+    [
+      "union member additions",
+      schema(
+        "search: SearchResult",
+        "type Course { id: ID! } union SearchResult = Course",
+      ),
+      schema(
+        "search: SearchResult",
+        "type Course { id: ID! } type Teacher { id: ID! } union SearchResult = Course | Teacher",
+      ),
+      /SearchResult|Teacher/,
+    ],
+    [
+      "implemented interface additions",
+      schema(
+        "result: Result",
+        "interface Node { id: ID! } type Result { id: ID! }",
+      ),
+      schema(
+        "result: Result",
+        "interface Node { id: ID! } type Result implements Node { id: ID! }",
+      ),
+      /Result|Node/,
+    ],
+  ])("blocks %s with a coordinate in the diagnostic", (_name, previousSdl, nextSdl, coordinate) => {
     const { blocked } = classifyGraphqlDangerousChanges(previousSdl, nextSdl);
     expect(blocked).not.toHaveLength(0);
-    expect(blocked[0].description).toMatch(
-      /Status|Query\.course|SearchInput\.limit/,
-    );
+    expect(blocked[0].description).toMatch(coordinate);
   });
 
   it.each([
