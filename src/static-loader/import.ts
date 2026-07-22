@@ -4,6 +4,11 @@ import {
   canonicalizeAdminClasses,
 } from "./admin-class-identity";
 import {
+  type CampusIdentityMap,
+  normalizeCampusIdentity,
+  resolveSectionCampusDatabaseId,
+} from "./campus-identity";
+import {
   courseIdentitySignature,
   type IncomingCourseIdentityRecord,
   planCourseIdentityImport,
@@ -847,15 +852,7 @@ function loadScheduleInfrastructure(snapshot: Snapshot) {
   const adminClasses: AdminClassOccurrence[] = [];
 
   function addCampus(campus: CampusBuild) {
-    if (campus.jwId != null) {
-      const existingName = campusNameByJwId.get(campus.jwId);
-      if (existingName != null && existingName !== campus.nameCn) {
-        throw new Error(
-          `Campus jwId ${campus.jwId} has conflicting names: ${existingName} vs ${campus.nameCn}`,
-        );
-      }
-      campusNameByJwId.set(campus.jwId, campus.nameCn);
-    }
+    campus = normalizeCampusIdentity(campus, campusNameByJwId);
 
     const existing = campuses.get(campus.nameCn);
     if (existing == null) {
@@ -1870,10 +1867,7 @@ async function upsertCampuses(
   return map;
 }
 
-type CampusMap = {
-  byJwId: Map<number, number>;
-  byName: Map<string, number>;
-};
+type CampusMap = CampusIdentityMap;
 
 async function upsertRoomTypes(
   tx: Prisma.TransactionClient,
@@ -2112,13 +2106,7 @@ async function upsertSections(
     const openDepartmentId = build.openDepartmentCode
       ? departmentMap.get(build.openDepartmentCode)
       : null;
-    const campusId =
-      (build.campusId != null
-        ? campusMap.byJwId.get(build.campusId)
-        : undefined) ??
-      (build.campusName != null
-        ? campusMap.byName.get(build.campusName)
-        : undefined);
+    const campusId = resolveSectionCampusDatabaseId(build, campusMap);
     if (
       campusId == null &&
       (build.campusId != null || build.campusName != null)
