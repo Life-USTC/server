@@ -1,3 +1,10 @@
+# [1.77.0](https://github.com/Life-USTC/server/compare/v1.76.0...v1.77.0) (2026-07-22)
+
+
+### Features
+
+* **db:** activate personal preference RLS ([#600](https://github.com/Life-USTC/server/issues/600)) ([961fa6d](https://github.com/Life-USTC/server/commit/961fa6dd053ba208ecff15a60a48060f3f1987f1))
+
 # [1.76.0](https://github.com/Life-USTC/server/compare/v1.75.0...v1.76.0) (2026-07-22)
 
 
