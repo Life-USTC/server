@@ -45,6 +45,10 @@ import {
 } from "@/features/subscriptions/server/subscriptions";
 import type { TodoPriorityValue } from "@/features/todos/lib/todo-priority";
 import {
+  deleteTodosBatch,
+  setTodoCompletionsBatch,
+} from "@/features/todos/server/todo-batch-service";
+import {
   createTodo,
   deleteOwnedTodo,
   updateOwnedTodo,
@@ -851,33 +855,12 @@ export const graphqlMutationResolvers = {
         "todo IDs",
         100,
       );
-      const results = await Promise.all(
-        args.items.map(async (item, index) => {
-          const todoId = ids[index];
-          const result = await updateOwnedTodo({
-            id: todoId,
-            userId: principal.userId,
-            data: {
-              completed: item.completed,
-              dueAt: undefined,
-              hasDueAt: false,
-            },
-          });
-          if (!result.ok) {
-            return {
-              success: false as const,
-              todoId,
-              completed: item.completed,
-              error: { code: result.error, message: result.error },
-            };
-          }
-          return {
-            success: true as const,
-            todoId,
-            completed: item.completed,
-            todo: result.todo,
-          };
-        }),
+      const results = await setTodoCompletionsBatch(
+        principal.userId,
+        args.items.map((item, index) => ({
+          completed: item.completed,
+          todoId: ids[index] as string,
+        })),
       );
       return { results };
     },
@@ -890,18 +873,7 @@ export const graphqlMutationResolvers = {
         rateLimitTier: "batch",
       });
       const ids = normalizeBatchIds(args.ids, "todo IDs", 100);
-      const results = await Promise.all(
-        ids.map(async (id) => {
-          const result = await deleteOwnedTodo(id, principal.userId);
-          return result.ok
-            ? { success: true as const, id }
-            : {
-                success: false as const,
-                id,
-                error: { code: result.error, message: result.error },
-              };
-        }),
-      );
+      const results = await deleteTodosBatch(principal.userId, ids);
       return { results };
     },
     async createHomework(
