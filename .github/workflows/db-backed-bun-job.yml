@@ -111,7 +111,7 @@ jobs:
           install-playwright: ${{ inputs.install-playwright && 'true' || 'false' }}
 
       - name: Install PostgreSQL client
-        if: ${{ inputs.job-phase == 'ci:integration' || inputs.job-phase == 'ci:e2e:test' }}
+        if: ${{ inputs.job-phase == 'ci:integration' || inputs.job-phase == 'ci:rls' || inputs.job-phase == 'ci:e2e:test' }}
         shell: bash
         run: |
           sudo apt-get update
@@ -160,6 +160,22 @@ jobs:
               # The canonical scenario must be safe to load repeatedly.
               bunx prisma db seed
               bunx vitest run --config vitest.integration.config.ts
+              ;;
+            ci:rls)
+              bun run app:prepare
+              bun run db:migrate:deploy
+              bunx prisma db seed
+              PGPASSWORD=postgres psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+              CREATE ROLE life_ustc_runtime LOGIN PASSWORD 'runtime-test-password' NOINHERIT NOBYPASSRLS;
+              GRANT CONNECT ON DATABASE "${{ inputs.database-name }}" TO life_ustc_runtime;
+              GRANT USAGE ON SCHEMA public TO life_ustc_runtime;
+              GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO life_ustc_runtime;
+              GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO life_ustc_runtime;
+              SQL
+              runtime_database_url="postgresql://life_ustc_runtime:runtime-test-password@127.0.0.1:5432/${{ inputs.database-name }}"
+              DATABASE_URL="$runtime_database_url" bunx vitest run \
+                --config vitest.integration.config.ts \
+                tests/integration/todo-rls.test.ts
               ;;
             ci:e2e:build-artifacts)
               bun run app:prepare
