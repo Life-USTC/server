@@ -1,3 +1,10 @@
+# [1.76.0](https://github.com/Life-USTC/server/compare/v1.75.0...v1.76.0) (2026-07-22)
+
+
+### Features
+
+* **db:** activate Todo row-level security ([#598](https://github.com/Life-USTC/server/issues/598)) ([5b16b66](https://github.com/Life-USTC/server/commit/5b16b66e8f30bd4c8518fa59feb55c58b0120fdc))
+
 # [1.75.0](https://github.com/Life-USTC/server/compare/v1.74.5...v1.75.0) (2026-07-22)
 
 
