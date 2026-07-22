@@ -1,6 +1,11 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import {
+  GRAPHQL_LIMITS,
+  isWithinGraphqlBodyByteLimit,
+} from "@/lib/graphql/constants";
+import { runGraphqlDocument } from "@/lib/graphql/document-runner";
+import {
   RegisteredGraphqlOperationError,
   runRegisteredGraphqlOperation,
 } from "@/lib/graphql/operation-runner";
@@ -28,7 +33,7 @@ if (operationIds.length === 0) {
 const operationIdSchema = z
   .enum(operationIds as [string, ...string[]])
   .describe(
-    "Approved operation ID from life-ustc://graphql/operations. Arbitrary GraphQL documents are not accepted.",
+    "Optional approved operation ID from life-ustc://graphql/operations. Use either operationId or document.",
   );
 
 const graphqlRunnerSecuritySchemes = [{ type: "oauth2", scopes: [] }] as const;
@@ -54,18 +59,33 @@ export function registerGraphqlOperationTool(server: McpServer) {
   server.registerTool(
     "run_graphql_operation",
     {
-      title: "Run Approved GraphQL Operation",
+      title: "Run GraphQL Operation",
       description:
-        "Runs one fixed, versioned GraphQL operation from life-ustc://graphql/operations. " +
-        "Read the manifest for variables, exact scopes, confirmation, and safety metadata. " +
-        "This tool never accepts arbitrary GraphQL documents.",
+        "Runs either an arbitrary GraphQL document or one compatible registered operation. " +
+        "Field resolvers enforce exact OAuth scopes; every mutation requires confirmation.",
       inputSchema: {
-        operationId: operationIdSchema,
+        operationId: operationIdSchema.optional(),
+        document: z
+          .string()
+          .min(1)
+          .refine(isWithinGraphqlBodyByteLimit, {
+            message: `Document must not exceed ${GRAPHQL_LIMITS.bodyBytes} UTF-8 bytes`,
+          })
+          .optional()
+          .describe(
+            "Arbitrary GraphQL query or mutation document. Use either document or operationId.",
+          ),
+        operationName: z
+          .string()
+          .regex(/^[_A-Za-z][_0-9A-Za-z]*$/)
+          .max(80)
+          .optional()
+          .describe("Operation to select when document defines more than one."),
         variables: z
           .record(z.string(), z.unknown())
           .default({})
           .describe(
-            "Variables declared by the selected registered operation. Extra variable names are rejected.",
+            "Variables for the selected document or registered operation.",
           ),
         confirmed: z
           .boolean()
@@ -76,7 +96,7 @@ export function registerGraphqlOperationTool(server: McpServer) {
         locale: mcpLocaleInputSchema,
       },
       annotations: {
-        title: "Run Approved GraphQL Operation",
+        title: "Run GraphQL Operation",
         readOnlyHint: false,
         destructiveHint: true,
         openWorldHint: true,
@@ -87,12 +107,16 @@ export function registerGraphqlOperationTool(server: McpServer) {
           publicGraphqlOperationsManifest.schemaVersion,
       },
     },
-    async ({ operationId, variables, confirmed, locale }, extra) => {
+    async (
+      { operationId, document, operationName, variables, confirmed, locale },
+      extra,
+    ) => {
+      const operationLabel = operationId ?? "document";
       if (!extra.authInfo) {
         return errorToolResult(
           {
             success: false,
-            operationId,
+            operationId: operationLabel,
             error: "UNAUTHENTICATED",
             message: "Authenticated MCP user context is required.",
           },
@@ -104,37 +128,80 @@ export function registerGraphqlOperationTool(server: McpServer) {
       }
 
       try {
-        const result = await runRegisteredGraphqlOperation({
-          operationId,
-          variables,
-          confirmed,
-          locale,
-          principal: {
-            kind: "oauth",
-            userId: getUserId(extra.authInfo),
-            scopes: expandScopeClaim(extra.authInfo.scopes),
-            resource: extra.authInfo.resource?.href ?? getOAuthMcpResourceUrl(),
-            ...(extra.authInfo.clientId
-              ? { clientId: extra.authInfo.clientId }
-              : {}),
-          },
-          signal: extra.signal,
-          requestInfo: {
-            headers: extra.requestInfo?.headers,
-            requestId: String(extra.requestId),
-            url: extra.requestInfo?.url,
-          },
-        });
+        if ((operationId == null) === (document == null)) {
+          throw new RegisteredGraphqlOperationError(
+            "BAD_USER_INPUT",
+            "Provide exactly one of operationId or document.",
+          );
+        }
+        const principal = {
+          kind: "oauth" as const,
+          userId: getUserId(extra.authInfo),
+          scopes: expandScopeClaim(extra.authInfo.scopes),
+          resource: extra.authInfo.resource?.href ?? getOAuthMcpResourceUrl(),
+          ...(extra.authInfo.clientId
+            ? { clientId: extra.authInfo.clientId }
+            : {}),
+        };
+        const requestInfo = {
+          headers: extra.requestInfo?.headers,
+          requestId: String(extra.requestId),
+          url: extra.requestInfo?.url,
+        };
+        const result = operationId
+          ? await runRegisteredGraphqlOperation({
+              operationId,
+              variables,
+              confirmed,
+              locale,
+              principal,
+              signal: extra.signal,
+              requestInfo,
+            })
+          : await runGraphqlDocument({
+              document: document as string,
+              operationName,
+              variables,
+              confirmed,
+              locale,
+              principal,
+              signal: extra.signal,
+              requestInfo,
+            });
         const toolResult = jsonToolResult(result, { mode: "full" });
-        return result.success
-          ? toolResult
-          : { ...toolResult, isError: true as const };
+        if (result.success) return toolResult;
+        const requiredScopes = result.errors?.flatMap((error) => {
+          const value = error.extensions?.requiredScopes;
+          return Array.isArray(value)
+            ? value.filter(
+                (scope): scope is string => typeof scope === "string",
+              )
+            : [];
+        });
+        return {
+          ...toolResult,
+          isError: true as const,
+          ...(requiredScopes?.length
+            ? {
+                _meta: {
+                  "mcp/www_authenticate": [
+                    buildBearerChallenge({
+                      error: INSUFFICIENT_SCOPE_ERROR,
+                      description:
+                        "Additional OAuth scope is required for this GraphQL operation.",
+                      scopes: [...new Set(requiredScopes)],
+                    }),
+                  ],
+                },
+              }
+            : {}),
+        };
       } catch (error) {
         if (error instanceof RegisteredGraphqlOperationError) {
           return errorToolResult(
             {
               success: false,
-              operationId,
+              operationId: operationLabel,
               error: error.code,
               message: error.message,
               ...(error.requiredScopes.length > 0
@@ -153,7 +220,7 @@ export function registerGraphqlOperationTool(server: McpServer) {
         }
         return errorToolResult({
           success: false,
-          operationId,
+          operationId: operationLabel,
           error: "INTERNAL_SERVER_ERROR",
           message: "Unexpected error.",
         });

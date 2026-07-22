@@ -21,7 +21,7 @@ const SERVER_INSTRUCTIONS = [
   "Use get_my_dashboard or get_my_overview before fanning out into narrower personal tools.",
   "A zero currentSemesterCount means no current-semester follows, not necessarily no course history; when totalCount is larger, use list_my_subscribed_sections and the semesterId filters on list_my_homeworks, list_my_schedules, or list_my_exams to recover past-term data.",
   "Use search_courses, search_sections, search_teachers, list_bus_routes, or list_dashboard_links to discover stable IDs before ID-based calls.",
-  "Use life-ustc://graphql/operations before run_graphql_operation; only listed operation IDs and variables are accepted, and each operation enforces its manifest scopes and confirmation metadata.",
+  "Use life-ustc://graphql/schema with run_graphql_operation for arbitrary documents, or life-ustc://graphql/operations for compatible registered operations. Field scopes and mutation confirmation are always enforced.",
   "Mutation tools change Life@USTC user or collaborative data; summarize the intended change and ask for user confirmation before calling them.",
 ].join(" ");
 

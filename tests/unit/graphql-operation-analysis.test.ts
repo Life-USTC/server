@@ -1,10 +1,33 @@
-import { buildSchema, parse, validate } from "graphql";
+import { buildSchema, isObjectType, parse, validate } from "graphql";
 import { describe, expect, it } from "vitest";
 import { GRAPHQL_LIMITS } from "@/lib/graphql/constants";
-import { analyzeGraphqlOperation } from "@/lib/graphql/operation-analysis";
+import {
+  analyzeGraphqlOperation,
+  PAGINATED_FIELD_COORDINATES,
+} from "@/lib/graphql/operation-analysis";
 import { maxTopLevelFieldsRule } from "@/lib/graphql/security";
+import { graphqlOperationValidationSchema } from "@/lib/graphql/validation-schema";
 
 describe("GraphQL operation analysis", () => {
+  it("classifies every PageInput field by schema coordinate", () => {
+    const actual = Object.values(
+      graphqlOperationValidationSchema.getTypeMap(),
+    ).flatMap((type) =>
+      isObjectType(type)
+        ? Object.values(type.getFields()).flatMap((field) =>
+            field.args.some(
+              (argument) =>
+                argument.name === "page" &&
+                argument.type.toString().replace(/!/g, "") === "PageInput",
+            )
+              ? [`${type.name}.${field.name}`]
+              : [],
+          )
+        : [],
+    );
+
+    expect([...PAGINATED_FIELD_COORDINATES].sort()).toEqual(actual.sort());
+  });
   it("expands fragments and weights pageSize variables with the security cost model", () => {
     const document = parse(/* GraphQL */ `
       query Catalog($page: PageInput) {

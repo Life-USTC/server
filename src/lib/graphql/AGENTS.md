@@ -26,4 +26,7 @@ Explicit public GraphQL transport and schema infrastructure.
 - Regenerate intentionally with `bunx vitest run --update tests/unit/graphql-schema-snapshot.test.ts`, then rerun that test without `--update`; never hand-edit the SDL snapshot.
 - Keep contract Query/Mutation names and return types aligned with the SDL parity test.
 - Verify protocol helpers with unit tests, public queries/security with real PostgreSQL integration tests, MCP SDL resources through the in-process MCP harness, and `/api/graphql` through the Cloudflare Worker Playwright smoke test.
-- MCP may expose the SDL and persisted-operation manifest as resources. Do not add arbitrary GraphQL execution.
+- MCP may execute arbitrary documents only through the shared production Yoga
+  validation/security pipeline. Keep resolver-level scopes authoritative,
+  require confirmation for every mutation, and retain registered operations for
+  compatibility.

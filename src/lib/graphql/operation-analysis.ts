@@ -2,13 +2,19 @@ import {
   type DocumentNode,
   type FieldNode,
   type FragmentDefinitionNode,
+  type GraphQLCompositeType,
+  getNamedType,
   getOperationAST,
+  isCompositeType,
+  isInterfaceType,
+  isObjectType,
   Kind,
   type OperationDefinitionNode,
   type SelectionSetNode,
   type ValueNode,
 } from "graphql";
 import { GRAPHQL_LIMITS } from "./constants";
+import { graphqlOperationValidationSchema } from "./validation-schema";
 
 export type GraphqlOperationType =
   | "mutation"
@@ -30,19 +36,20 @@ const UNKNOWN_ANALYSIS: GraphqlOperationAnalysis = {
   topLevelFieldCount: 0,
 };
 
-const PAGINATED_FIELDS = new Set([
-  "busRoutes",
-  "busTimetable",
-  "courses",
-  "examRooms",
-  "exams",
-  "homeworks",
-  "sections",
-  "semesters",
-  "schedules",
-  "subscribedSections",
-  "teachers",
-  "todos",
+export const PAGINATED_FIELD_COORDINATES = new Set([
+  "Exam.examRooms",
+  "Query.busRoutes",
+  "Query.busTimetable",
+  "Query.courses",
+  "Query.sections",
+  "Query.semesters",
+  "Query.teachers",
+  "Schedule.teachers",
+  "Viewer.exams",
+  "Viewer.homeworks",
+  "Viewer.schedules",
+  "Viewer.subscribedSections",
+  "Viewer.todos",
 ]);
 
 function fragmentDefinitions(document: DocumentNode) {
@@ -116,8 +123,10 @@ function variableInteger(value: ValueNode, variables: Record<string, unknown>) {
 function paginatedFieldMultiplier(
   node: FieldNode,
   variables: Record<string, unknown>,
+  parentType: GraphQLCompositeType,
 ) {
-  if (!PAGINATED_FIELDS.has(node.name.value)) return 1;
+  if (!PAGINATED_FIELD_COORDINATES.has(`${parentType.name}.${node.name.value}`))
+    return 1;
 
   const pageArgument = node.arguments?.find(
     (argument) => argument.name.value === "page",
@@ -152,18 +161,25 @@ function selectionCost({
   fragments,
   variables,
   fragmentStack,
+  parentType,
 }: {
   selectionSet: SelectionSetNode;
   fragments: ReadonlyMap<string, FragmentDefinitionNode>;
   variables: Record<string, unknown>;
   fragmentStack: Set<string>;
+  parentType: GraphQLCompositeType;
 }): number {
   let cost = 0;
 
   for (const selection of selectionSet.selections) {
     if (selection.kind === Kind.FIELD) {
       let fieldCost = 1;
-      if (selection.selectionSet) {
+      const field =
+        isObjectType(parentType) || isInterfaceType(parentType)
+          ? parentType.getFields()[selection.name.value]
+          : undefined;
+      const childType = field ? getNamedType(field.type) : undefined;
+      if (selection.selectionSet && childType && isCompositeType(childType)) {
         fieldCost =
           2 +
           selectionCost({
@@ -171,18 +187,29 @@ function selectionCost({
             fragments,
             variables,
             fragmentStack,
+            parentType: childType,
           });
       }
-      cost += fieldCost * paginatedFieldMultiplier(selection, variables);
+      cost +=
+        fieldCost * paginatedFieldMultiplier(selection, variables, parentType);
       continue;
     }
 
     if (selection.kind === Kind.INLINE_FRAGMENT) {
+      const fragmentType = selection.typeCondition
+        ? graphqlOperationValidationSchema.getType(
+            selection.typeCondition.name.value,
+          )
+        : parentType;
       cost += selectionCost({
         selectionSet: selection.selectionSet,
         fragments,
         variables,
         fragmentStack,
+        parentType:
+          fragmentType && isCompositeType(fragmentType)
+            ? fragmentType
+            : parentType,
       });
       continue;
     }
@@ -193,11 +220,18 @@ function selectionCost({
     if (fragmentStack.has(fragmentName)) return GRAPHQL_LIMITS.cost + 1;
 
     fragmentStack.add(fragmentName);
+    const fragmentType = graphqlOperationValidationSchema.getType(
+      fragment.typeCondition.name.value,
+    );
     cost += selectionCost({
       selectionSet: fragment.selectionSet,
       fragments,
       variables,
       fragmentStack,
+      parentType:
+        fragmentType && isCompositeType(fragmentType)
+          ? fragmentType
+          : parentType,
     });
     fragmentStack.delete(fragmentName);
   }
@@ -210,11 +244,19 @@ export function estimateGraphqlOperationCost(
   operation: OperationDefinitionNode,
   variables: Record<string, unknown>,
 ) {
+  const parentType =
+    operation.operation === "mutation"
+      ? graphqlOperationValidationSchema.getMutationType()
+      : operation.operation === "query"
+        ? graphqlOperationValidationSchema.getQueryType()
+        : graphqlOperationValidationSchema.getSubscriptionType();
+  if (!parentType) return GRAPHQL_LIMITS.cost + 1;
   return selectionCost({
     selectionSet: operation.selectionSet,
     fragments: fragmentDefinitions(document),
     variables,
     fragmentStack: new Set(),
+    parentType,
   });
 }
 

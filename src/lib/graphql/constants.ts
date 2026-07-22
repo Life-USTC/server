@@ -25,3 +25,7 @@ export const GRAPHQL_LIMITS = {
 
 export const GRAPHQL_SCHEMA_RESOURCE_URI = "life-ustc://graphql/schema";
 export const GRAPHQL_OPERATIONS_RESOURCE_URI = "life-ustc://graphql/operations";
+
+export function isWithinGraphqlBodyByteLimit(value: string) {
+  return new TextEncoder().encode(value).byteLength <= GRAPHQL_LIMITS.bodyBytes;
+}

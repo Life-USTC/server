@@ -92,8 +92,8 @@ async function readBodyWithinLimit(
   return body;
 }
 
-export function createGraphqlRequestHandler(production: boolean) {
-  const yoga = createYoga<GraphqlServerContext, GraphqlContext>({
+export function createGraphqlYoga(production: boolean) {
+  return createYoga<GraphqlServerContext, GraphqlContext>({
     schema: graphqlSchema,
     graphqlEndpoint: GRAPHQL_ENDPOINT,
     fetchAPI: { Response },
@@ -108,6 +108,10 @@ export function createGraphqlRequestHandler(production: boolean) {
       ...createGraphqlSecurityPlugins(production),
     ],
   });
+}
+
+export function createGraphqlRequestHandler(production: boolean) {
+  const yoga = createGraphqlYoga(production);
 
   return async function handleGraphqlRequest(event: RequestEvent) {
     const { request } = event;

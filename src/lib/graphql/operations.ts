@@ -1,6 +1,4 @@
 import {
-  assertScalarType,
-  buildSchema,
   type DocumentNode,
   type FragmentDefinitionNode,
   getOperationAST,
@@ -16,29 +14,14 @@ import {
 } from "graphql";
 import { PUBLIC_REST_SCOPES } from "@/lib/oauth/scope-registry";
 import { GRAPHQL_LIMITS } from "./constants";
-import { graphqlDateScalar, graphqlDateTimeScalar } from "./date-scalar";
 import {
   analyzeGraphqlOperation,
   countGraphqlTopLevelFields,
 } from "./operation-analysis";
 import { persistedGraphqlOperationDefinitions } from "./operation-definitions";
-import { graphqlTypeDefs } from "./schema";
+import { graphqlOperationValidationSchema } from "./validation-schema";
 
-function buildOperationValidationSchema() {
-  // Keep registry validation on this module's GraphQL.js realm. Yoga can be
-  // loaded through a separate module realm under Vitest/worktree installs.
-  const schema = buildSchema(graphqlTypeDefs);
-  for (const implementation of [graphqlDateScalar, graphqlDateTimeScalar]) {
-    const scalar = assertScalarType(schema.getType(implementation.name));
-    scalar.serialize = implementation.serialize;
-    scalar.parseValue = implementation.parseValue;
-    scalar.parseLiteral = implementation.parseLiteral;
-  }
-  return schema;
-}
-
-export const graphqlOperationValidationSchema =
-  buildOperationValidationSchema();
+export { graphqlOperationValidationSchema } from "./validation-schema";
 
 export type PersistedGraphqlOperationDefinition = Readonly<{
   description: string;
