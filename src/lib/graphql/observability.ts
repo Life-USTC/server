@@ -122,6 +122,7 @@ export function createGraphqlObservabilityPlugin(): Plugin<
 
   return {
     onRequest({ request, serverContext }) {
+      if (serverContext.operationObservation === "caller") return;
       states.set(request, {
         ...EMPTY_ANALYSIS,
         authMode: initialAuthMode(request),
