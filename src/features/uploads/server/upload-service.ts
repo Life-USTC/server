@@ -142,7 +142,7 @@ export async function createUploadSession(input: {
     return { usedBytes };
   }, "Failed to reserve upload quota");
 
-  const uploadUrl = new URL("/api/uploads/object", input.origin);
+  const uploadUrl = new URL("/api/workspace/uploads/object", input.origin);
   uploadUrl.searchParams.set("key", key);
 
   return {

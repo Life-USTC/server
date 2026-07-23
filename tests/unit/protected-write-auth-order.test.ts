@@ -68,7 +68,7 @@ describe("受保护写入路由认证顺序", () => {
     );
 
     const response = await postCommentRoute(
-      jsonRequest("https://example.test/api/comments", "POST"),
+      jsonRequest("https://example.test/api/community/comments", "POST"),
     );
 
     expect(response.status).toBe(401);
@@ -82,7 +82,10 @@ describe("受保护写入路由认证顺序", () => {
     );
 
     const response = await patchCommentRoute(
-      jsonRequest("https://example.test/api/comments/comment-1", "PATCH"),
+      jsonRequest(
+        "https://example.test/api/community/comments/comment-1",
+        "PATCH",
+      ),
       { id: "comment-1" },
     );
 
@@ -97,7 +100,7 @@ describe("受保护写入路由认证顺序", () => {
     );
 
     const response = await postDescriptionRoute(
-      jsonRequest("https://example.test/api/descriptions", "POST"),
+      jsonRequest("https://example.test/api/community/descriptions", "POST"),
     );
 
     expect(response.status).toBe(401);
@@ -111,7 +114,10 @@ describe("受保护写入路由认证顺序", () => {
     );
 
     const response = await patchUploadRoute(
-      jsonRequest("https://example.test/api/uploads/upload-1", "PATCH"),
+      jsonRequest(
+        "https://example.test/api/workspace/uploads/upload-1",
+        "PATCH",
+      ),
       { id: "upload-1" },
     );
 
@@ -127,7 +133,7 @@ describe("受保护写入路由认证顺序", () => {
     );
 
     const response = await postDashboardLinkPinRoute(
-      new Request("https://example.test/api/dashboard-links/pin", {
+      new Request("https://example.test/api/workspace/links/pin", {
         body: "not-form-data",
         headers: {
           accept: "application/json",

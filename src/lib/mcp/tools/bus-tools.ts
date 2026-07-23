@@ -25,10 +25,10 @@ const busPreferenceCampusIdSchema = z
 
 export function registerBusTools(server: McpServer) {
   server.registerTool(
-    "query_bus_timetable",
+    "catalog_bus_timetable_get",
     {
       description:
-        "Full USTC shuttle bus dataset for clients that need local filtering. Prefer get_next_buses for departures or list_bus_routes for discovery.",
+        "Full USTC shuttle bus dataset for clients that need local filtering. Prefer catalog_bus_departure_next for departures or catalog_bus_route_list for discovery.",
       inputSchema: {
         versionKey: z.string().trim().min(1).optional(),
         locale: mcpLocaleInputSchema,
@@ -39,10 +39,10 @@ export function registerBusTools(server: McpServer) {
   );
 
   server.registerTool(
-    "list_bus_routes",
+    "catalog_bus_route_list",
     {
       description:
-        "Route and campus discovery for the active shuttle timetable. Use returned route IDs with get_bus_route_timetable.",
+        "Route and campus discovery for the active shuttle timetable. Use returned route IDs with catalog_bus_route_get.",
       inputSchema: {
         locale: mcpLocaleInputSchema,
       },
@@ -51,10 +51,10 @@ export function registerBusTools(server: McpServer) {
   );
 
   server.registerTool(
-    "get_bus_route_timetable",
+    "catalog_bus_route_get",
     {
       description:
-        "Full weekday/weekend timetable for one route ID. Use list_bus_routes first to find route IDs.",
+        "Full weekday/weekend timetable for one route ID. Use catalog_bus_route_list first to find route IDs.",
       inputSchema: {
         routeId: z.number().int().positive(),
         versionKey: z.string().trim().min(1).optional(),
@@ -66,7 +66,7 @@ export function registerBusTools(server: McpServer) {
   );
 
   server.registerTool(
-    "get_my_bus_preferences",
+    "workspace_bus_preferences_get",
     {
       description:
         "Read the authenticated user's saved shuttle bus preferences.",
@@ -78,7 +78,7 @@ export function registerBusTools(server: McpServer) {
   );
 
   server.registerTool(
-    "save_my_bus_preferences",
+    "workspace_bus_preferences_set",
     {
       description:
         "Save the authenticated user's preferred shuttle bus campuses and show-departed setting.",
@@ -93,10 +93,10 @@ export function registerBusTools(server: McpServer) {
   );
 
   server.registerTool(
-    "search_bus_routes",
+    "catalog_bus_route_search",
     {
       description:
-        "Find shuttle routes by optional origin/destination campus IDs. Use get_next_buses when the user asks when to leave.",
+        "Find shuttle routes by optional origin/destination campus IDs. Use catalog_bus_departure_next when the user asks when to leave.",
       inputSchema: {
         originCampusId: z.number().int().positive().optional(),
         destinationCampusId: z.number().int().positive().optional(),
@@ -109,7 +109,7 @@ export function registerBusTools(server: McpServer) {
   );
 
   server.registerTool(
-    "get_next_buses",
+    "catalog_bus_departure_next",
     {
       description:
         "Next shuttle departures between two campuses. Best tool for 'when is the next bus?' questions.",

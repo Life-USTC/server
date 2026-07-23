@@ -26,7 +26,7 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
     <Card.Root data-slot="card">
       <Card.Header>
         <Card.Title>
-          <a class="underline-offset-4 hover:underline" href={exam.section.jwId ? `/sections/${exam.section.jwId}` : dashboardTabHref("subscriptions")}>
+          <a class="underline-offset-4 hover:underline" href={exam.section.jwId ? `/catalog/sections/${exam.section.jwId}` : dashboardTabHref("subscriptions")}>
             {exam.courseName}
           </a>
         </Card.Title>
@@ -60,7 +60,7 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
           {#if exam.examMode}<Badge variant="secondary">{exam.examMode}</Badge>{/if}
           {#each examMetadataLabels(exam) as label}<Badge variant="secondary">{label}</Badge>{/each}
         </div>
-        <Button href={exam.section.jwId ? `/sections/${exam.section.jwId}` : dashboardTabHref("subscriptions")} size="sm" variant="outline">
+        <Button href={exam.section.jwId ? `/catalog/sections/${exam.section.jwId}` : dashboardTabHref("subscriptions")} size="sm" variant="outline">
           {sectionCopy.moreDetails}
         </Button>
       </Card.Footer>

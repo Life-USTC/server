@@ -48,7 +48,7 @@ import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { deleteUploadById } from "../../../../utils/uploads";
 import { assertPageContract } from "../../_shared/page-contract";
 
-const SECTION_URL = `/sections/${DEV_SEED.section.jwId}`;
+const SECTION_URL = `/catalog/sections/${DEV_SEED.section.jwId}`;
 
 function escapeForRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -102,16 +102,16 @@ function getSectionCalendarMonthView(page: Page) {
     .first();
 }
 
-test.describe("/sections/[jwId] 班级详情页", () => {
+test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   test("页面契约", async ({ page }, testInfo) => {
     await assertPageContract(page, {
-      routePath: "/sections/[jwId]",
+      routePath: "/catalog/sections/[jwId]",
       testInfo,
     });
   });
 
   test("无效参数返回 404", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/sections/999999999", {
+    await gotoAndWaitForReady(page, "/catalog/sections/999999999", {
       expectMainContent: false,
     });
     await expect(page.getByText("404").first()).toBeVisible();
@@ -406,7 +406,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     ).toBeVisible();
 
     await jumpToSection(page, /作业|Homework/i, "#tab-homework");
-    await expect(page).toHaveURL(/\/sections\/\d+\/homework$/);
+    await expect(page).toHaveURL(/\/catalog\/sections\/\d+\/homework$/);
     await captureStepScreenshot(page, testInfo, "section/detail-nav");
   });
 
@@ -790,7 +790,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       .toBeGreaterThan(100);
 
     await getSectionNavLink(page, /日历|Calendar/i).click();
-    await page.waitForURL(/\/sections\/\d+\/calendar$/);
+    await page.waitForURL(/\/catalog\/sections\/\d+\/calendar$/);
     await waitForUiSettled(page);
 
     await expect
@@ -919,13 +919,13 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     // Single section URL
     const singleValue = await singleUrl.inputValue();
     expect(singleValue).toContain(
-      `/api/sections/${DEV_SEED.section.jwId}/calendar.ics`,
+      `/api/catalog/sections/${DEV_SEED.section.jwId}/calendar.ics`,
     );
 
     // Subscription URL includes a user-specific tokenized feed path
     const subscriptionValue = await subscriptionUrl.inputValue();
     expect(subscriptionValue).toMatch(
-      /\/api\/users\/[^/]+:[A-Za-z0-9_-]+\/calendar\.ics$/,
+      /\/api\/community\/users\/[^/]+:[A-Za-z0-9_-]+\/calendar\.ics$/,
     );
 
     // Copy single URL
@@ -952,7 +952,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       calDialog.getByRole("link", {
         name: /查看教学班订阅|View section subscriptions/i,
       }),
-    ).toHaveAttribute("href", "/dashboard/subscriptions");
+    ).toHaveAttribute("href", "/workspace/subscriptions");
 
     await captureStepScreenshot(page, testInfo, "section/calendar-dialog");
   });
@@ -964,7 +964,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
   }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await signInAsDebugUser(page, SECTION_URL);
-    const localeResponse = await page.request.post("/api/locale", {
+    const localeResponse = await page.request.post("/api/account/preferences", {
       data: { locale: "zh-cn" },
     });
     expect(localeResponse.status()).toBe(200);
@@ -1081,7 +1081,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
     await gotoAndWaitForReady(page, SECTION_URL);
     await jumpToSection(page, /作业|Homework/i, "#tab-homework");
     await expect(page).toHaveURL(
-      new RegExp(`/sections/${DEV_SEED.section.jwId}/homework$`),
+      new RegExp(`/catalog/sections/${DEV_SEED.section.jwId}/homework$`),
     );
     await expect(page.getByTestId("section-homeworks-list")).toBeVisible();
     await captureStepScreenshot(page, testInfo, "section/homework-list-view");
@@ -1116,7 +1116,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       await createDialog.getByTestId("section-homework-title").fill(title);
       const createResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/homeworks") &&
+          r.url().includes("/api/community/homeworks") &&
           r.request().method() === "POST" &&
           r.status() === 201,
       );
@@ -1160,7 +1160,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       await expect(completionButton).toBeVisible();
       const toggleResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/homeworks/") &&
+          r.url().includes("/api/workspace/homeworks/") &&
           r.url().includes("/completion") &&
           r.request().method() === "PUT" &&
           r.status() === 200,
@@ -1185,7 +1185,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       await expect(deleteDialog).toBeVisible();
       const deleteResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/homeworks/") &&
+          r.url().includes("/api/community/homeworks/") &&
           r.request().method() === "DELETE" &&
           r.status() === 200,
       );
@@ -1207,13 +1207,16 @@ test.describe("/sections/[jwId] 班级详情页", () => {
 
     try {
       const title = `e2e-section-hw-edit-${Date.now()}`;
-      const createResponse = await page.request.post("/api/homeworks", {
-        data: {
-          sectionJwId: DEV_SEED.section.jwId,
-          submissionDueAt: null,
-          title,
+      const createResponse = await page.request.post(
+        "/api/community/homeworks",
+        {
+          data: {
+            sectionJwId: DEV_SEED.section.jwId,
+            submissionDueAt: null,
+            title,
+          },
         },
-      });
+      );
       expect(createResponse.status()).toBe(201);
       const createBody = (await createResponse.json()) as {
         homework?: { id?: string };
@@ -1299,12 +1302,15 @@ test.describe("/sections/[jwId] 班级详情页", () => {
 
     try {
       const title = `e2e-homework-permalink-${Date.now()}`;
-      const homeworkResponse = await page.request.post("/api/homeworks", {
-        data: {
-          sectionJwId: DEV_SEED.section.jwId,
-          title,
+      const homeworkResponse = await page.request.post(
+        "/api/community/homeworks",
+        {
+          data: {
+            sectionJwId: DEV_SEED.section.jwId,
+            title,
+          },
         },
-      });
+      );
       expect(homeworkResponse.status()).toBe(201);
       const homeworkBody = (await homeworkResponse.json()) as {
         homework?: { id?: string };
@@ -1314,22 +1320,25 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       expect(homeworkId).toBeTruthy();
 
       const body = `e2e-homework-comment-permalink-${Date.now()}`;
-      const commentResponse = await page.request.post("/api/comments", {
-        data: {
-          body,
-          homeworkId,
-          targetType: "homework",
+      const commentResponse = await page.request.post(
+        "/api/community/comments",
+        {
+          data: {
+            body,
+            homeworkId,
+            targetType: "homework",
+          },
         },
-      });
+      );
       expect(commentResponse.status()).toBe(201);
       const commentBody = (await commentResponse.json()) as { id?: string };
       commentId = commentBody.id;
       expect(commentId).toBeTruthy();
 
-      await gotoAndWaitForReady(page, `/comments/${commentId}`);
+      await gotoAndWaitForReady(page, `/community/comments/${commentId}`);
       await expect(page).toHaveURL(
         new RegExp(
-          `/sections/${DEV_SEED.section.jwId}/homework\\?homeworkId=${escapeForRegExp(homeworkId ?? "")}#comment-${escapeForRegExp(commentId ?? "")}$`,
+          `/catalog/sections/${DEV_SEED.section.jwId}/homework\\?homeworkId=${escapeForRegExp(homeworkId ?? "")}#comment-${escapeForRegExp(commentId ?? "")}$`,
         ),
       );
 
@@ -1376,7 +1385,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       await composer.fill(body);
       const createResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/comments") &&
+          r.url().includes("/api/community/comments") &&
           r.request().method() === "POST" &&
           r.status() === 201,
       );
@@ -1411,7 +1420,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       // React with upvote (comment.reactions[])
       const reactionResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/comments/") &&
+          r.url().includes("/api/community/comments/") &&
           r.url().includes("/reactions") &&
           r.request().method() === "POST" &&
           r.status() === 200,
@@ -1443,7 +1452,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       await editTextarea.fill(editedBody);
       const editResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/comments/") &&
+          r.url().includes("/api/community/comments/") &&
           r.request().method() === "PATCH" &&
           r.status() === 200,
       );
@@ -1474,7 +1483,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       );
       const replyResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/comments") &&
+          r.url().includes("/api/community/comments") &&
           r.request().method() === "POST" &&
           r.status() === 201,
       );
@@ -1496,7 +1505,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       );
       const deleteResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/comments/") &&
+          r.url().includes("/api/community/comments/") &&
           r.request().method() === "DELETE" &&
           r.status() === 200,
       );
@@ -1542,7 +1551,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
 
       const createResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/comments") &&
+          r.url().includes("/api/community/comments") &&
           r.request().method() === "POST" &&
           r.status() === 201,
       );
@@ -1617,7 +1626,9 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       await gotoAndWaitForReady(page, SECTION_URL);
 
       await expect(async () => {
-        if (!page.url().includes(`/sections/${DEV_SEED.section.jwId}`)) {
+        if (
+          !page.url().includes(`/catalog/sections/${DEV_SEED.section.jwId}`)
+        ) {
           await gotoAndWaitForReady(page, SECTION_URL);
         }
         await jumpToSection(page, /评论|Comments/i, "#tab-comments");
@@ -1646,7 +1657,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       // Upload attachment (upload.yml three-step flow)
       const uploadCreate = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/uploads") &&
+          r.url().includes("/api/workspace/uploads") &&
           r.request().method() === "POST" &&
           r.status() === 200,
       );
@@ -1659,7 +1670,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       );
       const uploadComplete = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/uploads/complete") &&
+          r.url().includes("/api/workspace/uploads/complete") &&
           r.request().method() === "POST" &&
           r.status() === 200,
       );
@@ -1688,7 +1699,7 @@ test.describe("/sections/[jwId] 班级详情页", () => {
       await expect(postButton).toBeEnabled();
       const createComment = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/comments") &&
+          r.url().includes("/api/community/comments") &&
           r.request().method() === "POST" &&
           r.status() === 201,
       );
@@ -1722,14 +1733,14 @@ test.describe("/sections/[jwId] 班级详情页", () => {
         .click();
       const popup = await popupPromise;
       await popup.waitForLoadState("domcontentloaded");
-      await expect(popup).toHaveURL(/\/api\/uploads\/.*\/download/);
+      await expect(popup).toHaveURL(/\/api\/workspace\/uploads\/.*\/download/);
       await popup.close();
 
       // Cleanup
       const dlg = await openCommentDeleteDialog(page, commentCard);
       const deleteResponse = page.waitForResponse(
         (r) =>
-          r.url().includes("/api/comments/") &&
+          r.url().includes("/api/community/comments/") &&
           r.request().method() === "DELETE" &&
           r.status() === 200,
       );

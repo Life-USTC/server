@@ -1,14 +1,14 @@
 /**
- * E2E tests for PATCH /api/todos/[id] and DELETE /api/todos/[id].
+ * E2E tests for PATCH /api/workspace/todos/[id] and DELETE /api/workspace/todos/[id].
  *
- * ## PATCH /api/todos/[id]
+ * ## PATCH /api/workspace/todos/[id]
  * - Body: { title?, content?, priority?, completed?, dueAt? }
  * - Response: { success: true, todo: TodoItem }
  * - Auth required (401 if unauthenticated)
  * - Ownership check: returns 403 if todo belongs to another user
  * - Returns 404 for non-existent todo
  *
- * ## DELETE /api/todos/[id]
+ * ## DELETE /api/workspace/todos/[id]
  * - Response: { success: true }
  * - Auth required (401 if unauthenticated)
  * - Ownership check: returns 403 if todo belongs to another user
@@ -23,7 +23,7 @@ import { signInAsDebugUser, signInAsDevAdmin } from "../../../../../utils/auth";
 import { assertApiContract } from "../../../_shared/api-contract";
 
 async function createTodo(page: Page, title: string) {
-  const response = await page.request.post("/api/todos", {
+  const response = await page.request.post("/api/workspace/todos", {
     data: {
       title,
       priority: "medium",
@@ -35,28 +35,31 @@ async function createTodo(page: Page, title: string) {
   return id as string;
 }
 
-test("/api/todos/[id]", async ({ request }) => {
-  await assertApiContract(request, { routePath: "/api/todos/[id]" });
+test("/api/workspace/todos/[id]", async ({ request }) => {
+  await assertApiContract(request, { routePath: "/api/workspace/todos/[id]" });
 });
 
-test("/api/todos/[id] PATCH 未登录返回 401", async ({ request }) => {
-  const response = await request.patch("/api/todos/invalid-e2e", {
+test("/api/workspace/todos/[id] PATCH 未登录返回 401", async ({ request }) => {
+  const response = await request.patch("/api/workspace/todos/invalid-e2e", {
     data: { title: "should fail" },
   });
   expect(response.status()).toBe(401);
 });
 
-test("/api/todos/[id] PATCH 登录后可更新待办", async ({ page }) => {
+test("/api/workspace/todos/[id] PATCH 登录后可更新待办", async ({ page }) => {
   await signInAsDebugUser(page, "/");
   const todoId = await createTodo(page, `e2e-api-todo-update-${Date.now()}`);
 
   try {
-    const patchResponse = await page.request.patch(`/api/todos/${todoId}`, {
-      data: {
-        title: "updated todo title",
-        completed: true,
+    const patchResponse = await page.request.patch(
+      `/api/workspace/todos/${todoId}`,
+      {
+        data: {
+          title: "updated todo title",
+          completed: true,
+        },
       },
-    });
+    );
     expect(patchResponse.status()).toBe(200);
     const patchBody = (await patchResponse.json()) as {
       success?: boolean;
@@ -91,11 +94,13 @@ test("/api/todos/[id] PATCH 登录后可更新待办", async ({ page }) => {
       false,
     );
   } finally {
-    await page.request.delete(`/api/todos/${todoId}`);
+    await page.request.delete(`/api/workspace/todos/${todoId}`);
   }
 });
 
-test("/api/todos/[id] PATCH 非所有者返回 403", async ({ browser }) => {
+test("/api/workspace/todos/[id] PATCH 非所有者返回 403", async ({
+  browser,
+}) => {
   const debugContext = await browser.newContext();
   const debugPage = await debugContext.newPage();
   const adminContext = await browser.newContext();
@@ -110,34 +115,36 @@ test("/api/todos/[id] PATCH 非所有者返回 403", async ({ browser }) => {
 
     await signInAsDevAdmin(adminPage, "/");
     const patchResponse = await adminPage.request.patch(
-      `/api/todos/${todoId}`,
+      `/api/workspace/todos/${todoId}`,
       { data: { completed: true } },
     );
     expect(patchResponse.status()).toBe(403);
 
-    await debugPage.request.delete(`/api/todos/${todoId}`);
+    await debugPage.request.delete(`/api/workspace/todos/${todoId}`);
   } finally {
     await debugContext.close();
     await adminContext.close();
   }
 });
 
-test("/api/todos/[id] DELETE 未登录返回 401", async ({ request }) => {
-  const response = await request.delete("/api/todos/invalid-e2e");
+test("/api/workspace/todos/[id] DELETE 未登录返回 401", async ({ request }) => {
+  const response = await request.delete("/api/workspace/todos/invalid-e2e");
   expect(response.status()).toBe(401);
 });
 
-test("/api/todos/[id] DELETE 登录后可删除待办", async ({ page }) => {
+test("/api/workspace/todos/[id] DELETE 登录后可删除待办", async ({ page }) => {
   await signInAsDebugUser(page, "/");
   const todoId = await createTodo(page, `e2e-api-todo-delete-${Date.now()}`);
 
-  const deleteResponse = await page.request.delete(`/api/todos/${todoId}`);
+  const deleteResponse = await page.request.delete(
+    `/api/workspace/todos/${todoId}`,
+  );
   expect(deleteResponse.status()).toBe(200);
   expect((await deleteResponse.json()) as { success?: boolean }).toEqual({
     success: true,
   });
 
-  const listResponse = await page.request.get("/api/todos");
+  const listResponse = await page.request.get("/api/workspace/todos");
   expect(listResponse.status()).toBe(200);
   const listBody = (await listResponse.json()) as {
     todos?: Array<{ id?: string }>;

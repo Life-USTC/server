@@ -16,7 +16,7 @@ function todoRequest(input: { priority?: string; title?: string }) {
     body.set("priority", input.priority);
   }
 
-  return new Request("https://life.example/dashboard/todos?/createTodo", {
+  return new Request("https://life.example/workspace/todos?/createTodo", {
     body,
     method: "POST",
   });
@@ -51,7 +51,7 @@ describe("dashboard 待办表单", () => {
     body.set("dueAt", "2026-02-30T10:00");
 
     const parsed = await readTodoForm(
-      new Request("https://life.example/dashboard/todos?/createTodo", {
+      new Request("https://life.example/workspace/todos?/createTodo", {
         body,
         method: "POST",
       }),

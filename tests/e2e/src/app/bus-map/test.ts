@@ -30,7 +30,7 @@ import { captureStepScreenshot } from "../../../utils/screenshot";
 
 test.describe("校车线路图", () => {
   test("SVG 中渲染校区节点与线路", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/bus-map", {
+    await gotoAndWaitForReady(page, "/catalog/bus/map", {
       testInfo,
       screenshotLabel: "bus-map",
     });
@@ -61,7 +61,7 @@ test.describe("校车线路图", () => {
 
   test("移动端地图保持可读尺寸并可水平滚动", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await gotoAndWaitForReady(page, "/bus-map", {
+    await gotoAndWaitForReady(page, "/catalog/bus/map", {
       testInfo,
       screenshotLabel: "bus-map-mobile",
     });
@@ -174,7 +174,7 @@ test.describe("校车线路图", () => {
       if (message.type() === "error") runtimeErrors.push(message.text());
     });
     page.on("pageerror", (error) => runtimeErrors.push(error.message));
-    await gotoAndWaitForReady(page, "/bus-map", {
+    await gotoAndWaitForReady(page, "/catalog/bus/map", {
       testInfo,
       screenshotLabel: "bus-map",
     });
@@ -204,7 +204,7 @@ test.describe("校车线路图", () => {
 
   test("280px 图例保持整段箭头换行且主要操作可触控", async ({ page }) => {
     await page.setViewportSize({ width: 280, height: 900 });
-    await gotoAndWaitForReady(page, "/bus-map");
+    await gotoAndWaitForReady(page, "/catalog/bus/map");
 
     const legend = page.getByTestId("bus-map-legend");
     await legend.scrollIntoViewIfNeeded();
@@ -234,7 +234,7 @@ test.describe("校车线路图", () => {
     try {
       for (const width of [280, 320, 375, 1440]) {
         await page.setViewportSize({ width, height: 900 });
-        await gotoAndWaitForReady(page, "/bus-map");
+        await gotoAndWaitForReady(page, "/catalog/bus/map");
 
         const summary = page.getByTestId("bus-map-summary");
         await expect(summary).toBeVisible();
@@ -275,7 +275,7 @@ test.describe("校车线路图", () => {
   });
 
   test("返回链接导航到校车标签页", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/bus-map", {
+    await gotoAndWaitForReady(page, "/catalog/bus/map", {
       testInfo,
       screenshotLabel: "bus-map",
     });
@@ -284,14 +284,14 @@ test.describe("校车线路图", () => {
       .getByRole("link", { name: /Back to timetable|返回时刻表/ })
       .first();
     await expect(backLink).toBeVisible();
-    await expect(backLink).toHaveAttribute("href", "/dashboard/bus");
+    await expect(backLink).toHaveAttribute("href", "/workspace/bus");
     expect((await backLink.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(
       44,
     );
   });
 
   test("侧边栏显示日期类型与时间信息", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/bus-map", {
+    await gotoAndWaitForReady(page, "/catalog/bus/map", {
       testInfo,
       screenshotLabel: "bus-map",
     });
@@ -303,7 +303,7 @@ test.describe("校车线路图", () => {
   });
 
   test("刷新按钮存在", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/bus-map", {
+    await gotoAndWaitForReady(page, "/catalog/bus/map", {
       testInfo,
       screenshotLabel: "bus-map",
     });

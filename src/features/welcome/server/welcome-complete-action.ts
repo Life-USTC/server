@@ -26,7 +26,7 @@ export async function completeWelcomeProfile({
     throw redirect(
       303,
       buildSignInPageUrl(
-        `/welcome?callbackUrl=${encodeURIComponent(redirectTo)}`,
+        `/account/welcome?callbackUrl=${encodeURIComponent(redirectTo)}`,
       ),
     );
   }

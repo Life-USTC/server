@@ -6,7 +6,7 @@
  * - Public users get a client-side planner: weekday/weekend, start stop, end stop,
  *   reverse, and departed-trip toggle
  * - Applicable routes are ordered by the next bus available from the selected start stop
- * - Signed-in users have planner defaults auto-saved through /api/bus/preferences
+ * - Signed-in users have planner defaults auto-saved through /api/workspace/bus-preferences
  */
 import { expect, type Page, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../utils/auth";
@@ -124,8 +124,8 @@ test.describe("校车面板标签页", () => {
     await page.clock.setFixedTime(new Date("2026-07-17T03:00:00.000Z"));
   });
 
-  test("/bus 是可索引的公共语义路径", async ({ page }, testInfo) => {
-    const response = await gotoAndWaitForReady(page, "/bus", {
+  test("/catalog/bus 是可索引的公共语义路径", async ({ page }, testInfo) => {
+    const response = await gotoAndWaitForReady(page, "/catalog/bus", {
       testInfo,
       screenshotLabel: "bus-public-route",
     });
@@ -147,13 +147,13 @@ test.describe("校车面板标签页", () => {
     });
 
     expect(response.status()).toBe(308);
-    expect(response.headers().location).toBe("/bus?linkView=list");
+    expect(response.headers().location).toBe("/catalog/bus?linkView=list");
   });
 
   test("公共校车页面优先显示下一班并按需展开规划器", async ({
     page,
   }, testInfo) => {
-    await gotoAndWaitForReady(page, "/bus", {
+    await gotoAndWaitForReady(page, "/catalog/bus", {
       testInfo,
       screenshotLabel: "bus",
     });
@@ -186,7 +186,7 @@ test.describe("校车面板标签页", () => {
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: /Transit map|线路图/ }),
-    ).toHaveAttribute("href", "/bus-map");
+    ).toHaveAttribute("href", "/catalog/bus/map");
     await openFullTimetable(page);
 
     await captureStepScreenshot(page, testInfo, "bus-planner-public");
@@ -197,23 +197,23 @@ test.describe("校车面板标签页", () => {
     baseURL,
   }, testInfo) => {
     await setLocale(page, baseURL, "zh-cn");
-    await gotoAndWaitForReady(page, "/bus");
+    await gotoAndWaitForReady(page, "/catalog/bus");
     await expect(page.getByText("当前版本", { exact: true })).toHaveCount(0);
     await expect(
       page.getByText("Static Structured Bus Timetable", { exact: true }),
     ).toHaveCount(0);
     await captureStepScreenshot(page, testInfo, "bus-version-label-zh-public");
 
-    await signInAsDebugUser(page, "/dashboard/bus");
+    await signInAsDebugUser(page, "/workspace/bus");
     await setLocale(page, baseURL, "zh-cn");
-    await gotoAndWaitForReady(page, "/dashboard/bus");
+    await gotoAndWaitForReady(page, "/workspace/bus");
     await expect(page.getByText("当前版本", { exact: true })).toHaveCount(0);
     await expect(
       page.getByText("Static Structured Bus Timetable", { exact: true }),
     ).toHaveCount(0);
 
     await setLocale(page, baseURL, "en-us");
-    await gotoAndWaitForReady(page, "/dashboard/bus");
+    await gotoAndWaitForReady(page, "/workspace/bus");
     await expect(page.getByText("Active version", { exact: true })).toHaveCount(
       0,
     );
@@ -223,13 +223,13 @@ test.describe("校车面板标签页", () => {
   });
 
   test("登录校车面板 SSR 渲染服务端时刻表数据", async ({ page }) => {
-    await signInAsDebugUser(page, "/dashboard/bus");
+    await signInAsDebugUser(page, "/workspace/bus");
 
-    const response = await page.request.get("/dashboard/bus");
+    const response = await page.request.get("/workspace/bus");
     expect(response.status()).toBe(200);
     const html = await response.text();
 
-    expect(html).toContain('href="/bus-map"');
+    expect(html).toContain('href="/catalog/bus/map"');
     expect(html).not.toMatch(
       /data-slot="alert"[\s\S]{0,240}当前暂无可用的校车数据。/,
     );
@@ -239,11 +239,11 @@ test.describe("校车面板标签页", () => {
   });
 
   test("匿名校车面板 SSR 渲染公共时刻表数据", async ({ page }) => {
-    const response = await page.request.get("/bus");
+    const response = await page.request.get("/catalog/bus");
     expect(response.status()).toBe(200);
     const html = await response.text();
 
-    expect(html).toContain('href="/bus-map"');
+    expect(html).toContain('href="/catalog/bus/map"');
     expect(html).not.toMatch(
       /data-slot="alert"[\s\S]{0,240}当前暂无可用的校车数据。/,
     );
@@ -256,7 +256,7 @@ test.describe("校车面板标签页", () => {
     page,
   }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await gotoAndWaitForReady(page, "/bus", {
+    await gotoAndWaitForReady(page, "/catalog/bus", {
       testInfo,
       screenshotLabel: "bus-mobile",
     });
@@ -291,7 +291,7 @@ test.describe("校车面板标签页", () => {
   test("默认站点对按下一班可用校车排序显示所有适用线路", async ({
     page,
   }, testInfo) => {
-    await gotoAndWaitForReady(page, "/bus", {
+    await gotoAndWaitForReady(page, "/catalog/bus", {
       testInfo,
       screenshotLabel: "bus",
     });
@@ -310,7 +310,7 @@ test.describe("校车面板标签页", () => {
   });
 
   test("反向交换方向并重新计算适用线路", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/bus", {
+    await gotoAndWaitForReady(page, "/catalog/bus", {
       testInfo,
       screenshotLabel: "bus",
     });
@@ -348,7 +348,7 @@ test.describe("校车面板标签页", () => {
   });
 
   test("选择东区到南区缩小为直达线路", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/bus", {
+    await gotoAndWaitForReady(page, "/catalog/bus", {
       testInfo,
       screenshotLabel: "bus",
     });
@@ -365,7 +365,7 @@ test.describe("校车面板标签页", () => {
   });
 
   test("已发车切换保持时刻表可见且可切换", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/bus", {
+    await gotoAndWaitForReady(page, "/catalog/bus", {
       testInfo,
       screenshotLabel: "bus",
     });
@@ -386,7 +386,7 @@ test.describe("校车面板标签页", () => {
   });
 
   test("工作日/周末切换更新所选线路时刻表", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/bus", {
+    await gotoAndWaitForReady(page, "/catalog/bus", {
       testInfo,
       screenshotLabel: "bus",
     });
@@ -421,7 +421,7 @@ test.describe("校车面板标签页", () => {
   }) => {
     for (const width of [280, 320]) {
       await page.setViewportSize({ width, height: 900 });
-      await gotoAndWaitForReady(page, "/bus");
+      await gotoAndWaitForReady(page, "/catalog/bus");
       const summary = page.getByTestId("bus-compact-summary");
       await expect(summary).toBeVisible();
 
@@ -457,8 +457,8 @@ test.describe("校车面板标签页", () => {
 
   test("280px 登录规划器与时刻表保持在页面宽度内", async ({ page }) => {
     await page.setViewportSize({ width: 280, height: 900 });
-    await signInAsDebugUser(page, "/dashboard/bus");
-    await gotoAndWaitForReady(page, "/dashboard/bus");
+    await signInAsDebugUser(page, "/workspace/bus");
+    await gotoAndWaitForReady(page, "/workspace/bus");
 
     const mapLink = page
       .getByRole("main")
@@ -472,8 +472,10 @@ test.describe("校车面板标签页", () => {
   });
 
   test("登录规划器自动保存到校车偏好设置", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/bus");
-    const originalResponse = await page.request.get("/api/bus/preferences");
+    await signInAsDebugUser(page, "/workspace/bus");
+    const originalResponse = await page.request.get(
+      "/api/workspace/bus-preferences",
+    );
     expect(originalResponse.status()).toBe(200);
     const original = (await originalResponse.json()) as {
       preference?: {
@@ -484,14 +486,14 @@ test.describe("校车面板标签页", () => {
     };
 
     try {
-      await page.request.post("/api/bus/preferences", {
+      await page.request.post("/api/workspace/bus-preferences", {
         data: {
           preferredOriginCampusId: null,
           preferredDestinationCampusId: null,
           showDepartedTrips: false,
         },
       });
-      await gotoAndWaitForReady(page, "/dashboard/bus", {
+      await gotoAndWaitForReady(page, "/workspace/bus", {
         testInfo,
         screenshotLabel: "bus",
       });
@@ -502,7 +504,7 @@ test.describe("校车面板标签页", () => {
       const [toggleSaveResponse] = await Promise.all([
         page.waitForResponse(
           (response) =>
-            response.url().includes("/api/bus/preferences") &&
+            response.url().includes("/api/workspace/bus-preferences") &&
             response.request().method() === "POST",
         ),
         departedToggle.click(),
@@ -516,7 +518,7 @@ test.describe("校车面板标签页", () => {
         const [stopSaveResponse] = await Promise.all([
           page.waitForResponse(
             (response) =>
-              response.url().includes("/api/bus/preferences") &&
+              response.url().includes("/api/workspace/bus-preferences") &&
               response.request().method() === "POST",
           ),
           endSouthButton.click(),
@@ -524,7 +526,7 @@ test.describe("校车面板标签页", () => {
         expect(stopSaveResponse.ok()).toBe(true);
       }
 
-      const response = await page.request.get("/api/bus/preferences");
+      const response = await page.request.get("/api/workspace/bus-preferences");
       const body = (await response.json()) as {
         preference?: {
           preferredOriginCampusId?: number | null;
@@ -536,22 +538,25 @@ test.describe("校车面板标签页", () => {
 
       await captureStepScreenshot(page, testInfo, "bus-planner-autosave");
     } finally {
-      const restoreResponse = await page.request.post("/api/bus/preferences", {
-        data: {
-          preferredOriginCampusId:
-            original.preference?.preferredOriginCampusId ?? null,
-          preferredDestinationCampusId:
-            original.preference?.preferredDestinationCampusId ?? null,
-          showDepartedTrips: original.preference?.showDepartedTrips ?? false,
+      const restoreResponse = await page.request.post(
+        "/api/workspace/bus-preferences",
+        {
+          data: {
+            preferredOriginCampusId:
+              original.preference?.preferredOriginCampusId ?? null,
+            preferredDestinationCampusId:
+              original.preference?.preferredDestinationCampusId ?? null,
+            showDepartedTrips: original.preference?.showDepartedTrips ?? false,
+          },
         },
-      });
+      );
       expect(restoreResponse.status()).toBe(200);
     }
   });
 
   test("登录规划器显示偏好保存失败", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/dashboard/bus");
-    await page.route("**/api/bus/preferences", async (route) => {
+    await signInAsDebugUser(page, "/workspace/bus");
+    await page.route("**/api/workspace/bus-preferences", async (route) => {
       if (route.request().method() !== "POST") {
         await route.continue();
         return;
@@ -564,7 +569,7 @@ test.describe("校车面板标签页", () => {
       });
     });
 
-    await gotoAndWaitForReady(page, "/dashboard/bus", {
+    await gotoAndWaitForReady(page, "/workspace/bus", {
       testInfo,
       screenshotLabel: "bus-save-error",
     });
@@ -575,7 +580,7 @@ test.describe("校车面板标签页", () => {
     const [saveResponse] = await Promise.all([
       page.waitForResponse(
         (response) =>
-          response.url().includes("/api/bus/preferences") &&
+          response.url().includes("/api/workspace/bus-preferences") &&
           response.request().method() === "POST",
       ),
       departedToggle.click(),

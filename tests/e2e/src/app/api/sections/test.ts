@@ -2,13 +2,13 @@ import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { assertApiContract } from "../../_shared/api-contract";
 
-test("/api/sections", async ({ request }) => {
-  await assertApiContract(request, { routePath: "/api/sections" });
+test("/api/catalog/sections", async ({ request }) => {
+  await assertApiContract(request, { routePath: "/api/catalog/sections" });
 });
 
 test("班级列表项包含所有必需的 SectionSummary 字段", async ({ request }) => {
   const response = await request.get(
-    `/api/sections?search=${encodeURIComponent(DEV_SEED.section.code)}&limit=20`,
+    `/api/catalog/sections?search=${encodeURIComponent(DEV_SEED.section.code)}&limit=20`,
   );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
@@ -40,7 +40,7 @@ test("班级列表项包含所有必需的 SectionSummary 字段", async ({ requ
 
 test("班级列表项包含教师数组", async ({ request }) => {
   const response = await request.get(
-    `/api/sections?search=${encodeURIComponent(DEV_SEED.section.code)}&limit=20`,
+    `/api/catalog/sections?search=${encodeURIComponent(DEV_SEED.section.code)}&limit=20`,
   );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
@@ -54,7 +54,7 @@ test("班级列表项包含教师数组", async ({ request }) => {
 });
 
 test("pageSize 参数控制班级列表页大小", async ({ request }) => {
-  const response = await request.get("/api/sections?pageSize=1");
+  const response = await request.get("/api/catalog/sections?pageSize=1");
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
     data?: unknown[];
@@ -64,9 +64,11 @@ test("pageSize 参数控制班级列表页大小", async ({ request }) => {
   expect(body.pagination?.pageSize).toBe(1);
 });
 
-test("/api/sections 可按 teacherId 过滤到 seed 班级", async ({ request }) => {
+test("/api/catalog/sections 可按 teacherId 过滤到 seed 班级", async ({
+  request,
+}) => {
   const teacherResponse = await request.get(
-    `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}&limit=5`,
+    `/api/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}&limit=5`,
   );
   expect(teacherResponse.status()).toBe(200);
   const teacherBody = (await teacherResponse.json()) as {
@@ -76,7 +78,7 @@ test("/api/sections 可按 teacherId 过滤到 seed 班级", async ({ request })
   expect(teacherId).toBeDefined();
 
   const response = await request.get(
-    `/api/sections?teacherId=${teacherId}&limit=20`,
+    `/api/catalog/sections?teacherId=${teacherId}&limit=20`,
   );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
@@ -87,11 +89,11 @@ test("/api/sections 可按 teacherId 过滤到 seed 班级", async ({ request })
   );
 });
 
-test("/api/sections 可按课程 legacy jwId 过滤到 canonical 班级", async ({
+test("/api/catalog/sections 可按课程 legacy jwId 过滤到 canonical 班级", async ({
   request,
 }) => {
   const response = await request.get(
-    `/api/sections?courseJwId=${DEV_SEED.course.legacyJwId}&limit=20`,
+    `/api/catalog/sections?courseJwId=${DEV_SEED.course.legacyJwId}&limit=20`,
   );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
@@ -107,11 +109,11 @@ test("/api/sections 可按课程 legacy jwId 过滤到 canonical 班级", async 
   expect(section?.course?.jwId).toBe(DEV_SEED.course.jwId);
 });
 
-test("/api/sections 可按高级 search 语法检索 seed 班级", async ({
+test("/api/catalog/sections 可按高级 search 语法检索 seed 班级", async ({
   request,
 }) => {
   const response = await request.get(
-    `/api/sections?search=${encodeURIComponent(`teacher:${DEV_SEED.teacher.nameCn}`)}&limit=20`,
+    `/api/catalog/sections?search=${encodeURIComponent(`teacher:${DEV_SEED.teacher.nameCn}`)}&limit=20`,
   );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
@@ -126,11 +128,11 @@ for (const [label, search] of [
   ["课程名称", DEV_SEED.course.nameCn],
   ["教师名称", DEV_SEED.teacher.nameCn],
 ] as const) {
-  test(`/api/sections 普通搜索支持${label}并可限定学期`, async ({
+  test(`/api/catalog/sections 普通搜索支持${label}并可限定学期`, async ({
     request,
   }) => {
     const response = await request.get(
-      `/api/sections?search=${encodeURIComponent(search)}&semesterJwId=${DEV_SEED.semesterJwId}&pageSize=20`,
+      `/api/catalog/sections?search=${encodeURIComponent(search)}&semesterJwId=${DEV_SEED.semesterJwId}&pageSize=20`,
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {

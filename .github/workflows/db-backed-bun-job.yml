@@ -212,9 +212,13 @@ jobs:
       - name: Verify GraphQL schema compatibility
         if: ${{ inputs.job-phase == 'ci:verify' }}
         shell: bash
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           base_sha="${{ github.event.pull_request.base.sha }}"
-          if [ -n "$base_sha" ]; then
+          if grep -Eq '^[a-z]+(\([^)]+\))?!:' <<< "$PR_TITLE"; then
+            bunx vitest run tests/unit/graphql-schema-snapshot.test.ts
+          elif [ -n "$base_sha" ]; then
             git fetch --no-tags --depth=1 origin "$base_sha"
             GRAPHQL_SCHEMA_BASE_REF="$base_sha" bunx vitest run tests/unit/graphql-schema-snapshot.test.ts
           else

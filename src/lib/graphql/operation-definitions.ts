@@ -157,17 +157,19 @@ const todoFields = /* GraphQL */ `
 
 export const persistedGraphqlOperationDefinitions = [
   query({
-    id: "catalog.semesters.v1",
+    id: "catalog.semester.list.v1",
     title: "List semesters",
     description: "Lists the public semester catalog with bounded pagination.",
     document: /* GraphQL */ `
       query CatalogSemesters($page: PageInput) {
-        semesters(page: $page) {
-          items {
-            ${semesterFields}
-          }
-          pageInfo {
-            ${pageInfoFields}
+        catalog {
+          semesters(page: $page) {
+            items {
+              ${semesterFields}
+            }
+            pageInfo {
+              ${pageInfoFields}
+            }
           }
         }
       }
@@ -175,31 +177,35 @@ export const persistedGraphqlOperationDefinitions = [
     scopes: [],
   }),
   query({
-    id: "catalog.current_semester.v1",
+    id: "catalog.semester.current.get.v1",
     title: "Get current semester",
     description: "Returns the current public semester, when configured.",
     document: /* GraphQL */ `
       query CatalogCurrentSemester {
-        currentSemester {
-          ${semesterFields}
+        catalog {
+          currentSemester {
+            ${semesterFields}
+          }
         }
       }
     `,
     scopes: [],
   }),
   query({
-    id: "catalog.courses.v1",
+    id: "catalog.course.search.v1",
     title: "Search courses",
     description:
       "Searches the public course catalog with filters and bounded pagination.",
     document: /* GraphQL */ `
       query CatalogCourses($page: PageInput, $filter: CourseFilter) {
-        courses(page: $page, filter: $filter) {
-          items {
-            ${courseFields}
-          }
-          pageInfo {
-            ${pageInfoFields}
+        catalog {
+          courses(page: $page, filter: $filter) {
+            items {
+              ${courseFields}
+            }
+            pageInfo {
+              ${pageInfoFields}
+            }
           }
         }
       }
@@ -207,31 +213,35 @@ export const persistedGraphqlOperationDefinitions = [
     scopes: [],
   }),
   query({
-    id: "catalog.course.v1",
+    id: "catalog.course.get.v1",
     title: "Get course",
     description: "Returns one public course by its teaching-system ID.",
     document: /* GraphQL */ `
       query CatalogCourse($jwId: Int!) {
-        course(jwId: $jwId) {
-          ${courseFields}
+        catalog {
+          course(jwId: $jwId) {
+            ${courseFields}
+          }
         }
       }
     `,
     scopes: [],
   }),
   query({
-    id: "catalog.sections.v1",
+    id: "catalog.section.search.v1",
     title: "Search sections",
     description:
       "Searches public course sections with filters and bounded pagination.",
     document: /* GraphQL */ `
       query CatalogSections($page: PageInput, $filter: SectionFilter) {
-        sections(page: $page, filter: $filter) {
-          items {
-            ${sectionFields}
-          }
-          pageInfo {
-            ${pageInfoFields}
+        catalog {
+          sections(page: $page, filter: $filter) {
+            items {
+              ${sectionFields}
+            }
+            pageInfo {
+              ${pageInfoFields}
+            }
           }
         }
       }
@@ -239,31 +249,35 @@ export const persistedGraphqlOperationDefinitions = [
     scopes: [],
   }),
   query({
-    id: "catalog.section.v1",
+    id: "catalog.section.get.v1",
     title: "Get section",
     description: "Returns one public section by its teaching-system ID.",
     document: /* GraphQL */ `
       query CatalogSection($jwId: Int!) {
-        section(jwId: $jwId) {
-          ${sectionFields}
+        catalog {
+          section(jwId: $jwId) {
+            ${sectionFields}
+          }
         }
       }
     `,
     scopes: [],
   }),
   query({
-    id: "catalog.teachers.v1",
+    id: "catalog.teacher.search.v1",
     title: "Search teachers",
     description:
       "Searches the public teacher catalog with filters and bounded pagination.",
     document: /* GraphQL */ `
       query CatalogTeachers($page: PageInput, $filter: TeacherFilter) {
-        teachers(page: $page, filter: $filter) {
-          items {
-            ${teacherFields}
-          }
-          pageInfo {
-            ${pageInfoFields}
+        catalog {
+          teachers(page: $page, filter: $filter) {
+            items {
+              ${teacherFields}
+            }
+            pageInfo {
+              ${pageInfoFields}
+            }
           }
         }
       }
@@ -271,39 +285,43 @@ export const persistedGraphqlOperationDefinitions = [
     scopes: [],
   }),
   query({
-    id: "catalog.teacher.v1",
+    id: "catalog.teacher.get.v1",
     title: "Get teacher",
     description: "Returns one public teacher by internal numeric ID.",
     document: /* GraphQL */ `
       query CatalogTeacher($id: Int!) {
-        teacher(id: $id) {
-          ${teacherFields}
+        catalog {
+          teacher(id: $id) {
+            ${teacherFields}
+          }
         }
       }
     `,
     scopes: [],
   }),
   query({
-    id: "bus.routes.v1",
+    id: "catalog.bus.route.list.v1",
     title: "List bus routes",
     description: "Lists public campus bus routes with bounded pagination.",
     document: /* GraphQL */ `
       query BusRoutes($page: PageInput) {
-        busRoutes(page: $page) {
-          items {
-            ${busRouteFields}
-          }
-          campuses {
-            id
-            nameCn
-            nameEn
-            namePrimary
-            nameSecondary
-            latitude
-            longitude
-          }
-          pageInfo {
-            ${pageInfoFields}
+        catalog {
+          busRoutes(page: $page) {
+            items {
+              ${busRouteFields}
+            }
+            campuses {
+              id
+              nameCn
+              nameEn
+              namePrimary
+              nameSecondary
+              latitude
+              longitude
+            }
+            pageInfo {
+              ${pageInfoFields}
+            }
           }
         }
       }
@@ -311,7 +329,7 @@ export const persistedGraphqlOperationDefinitions = [
     scopes: [],
   }),
   query({
-    id: "bus.timetable.v1",
+    id: "catalog.bus.timetable.get.v1",
     title: "Get bus timetable",
     description:
       "Returns a public route timetable for an optional version and instant.",
@@ -322,37 +340,39 @@ export const persistedGraphqlOperationDefinitions = [
         $now: DateTime
         $versionKey: String
       ) {
-        busTimetable(
-          routeId: $routeId
-          page: $page
-          now: $now
-          versionKey: $versionKey
-        ) {
-          route {
-            ${busRouteFields}
-          }
-          weekday {
-            position
-            stopTimes {
-              stopOrder
-              time
+        catalog {
+          busTimetable(
+            routeId: $routeId
+            page: $page
+            now: $now
+            versionKey: $versionKey
+          ) {
+            route {
+              ${busRouteFields}
             }
-          }
-          weekend {
-            position
-            stopTimes {
-              stopOrder
-              time
+            weekday {
+              position
+              stopTimes {
+                stopOrder
+                time
+              }
             }
-          }
-          weekdayPageInfo {
-            ${pageInfoFields}
-          }
-          weekendPageInfo {
-            ${pageInfoFields}
-          }
-          alternateRoutes {
-            ${busRouteFields}
+            weekend {
+              position
+              stopTimes {
+                stopOrder
+                time
+              }
+            }
+            weekdayPageInfo {
+              ${pageInfoFields}
+            }
+            weekendPageInfo {
+              ${pageInfoFields}
+            }
+            alternateRoutes {
+              ${busRouteFields}
+            }
           }
         }
       }
@@ -360,12 +380,12 @@ export const persistedGraphqlOperationDefinitions = [
     scopes: [],
   }),
   query({
-    id: "viewer.profile.v1",
-    title: "Get viewer profile",
-    description: "Returns the authenticated viewer's private profile.",
+    id: "account.profile.get.v1",
+    title: "Get account profile",
+    description: "Returns the current account's private profile.",
     document: /* GraphQL */ `
-      query ViewerProfile {
-        viewer {
+      query AccountProfile {
+        account {
           profile {
             id
             email
@@ -382,13 +402,32 @@ export const persistedGraphqlOperationDefinitions = [
     scopes: ["me:read"],
   }),
   query({
-    id: "viewer.overview.v1",
-    title: "Get viewer overview",
+    id: "community.user.get.v1",
+    title: "Get community user",
+    description: "Returns one public community identity by username.",
+    document: /* GraphQL */ `
+      query CommunityUser($username: String!) {
+        community {
+          user(username: $username) {
+            id
+            username
+            name
+            image
+            createdAt
+          }
+        }
+      }
+    `,
+    scopes: [],
+  }),
+  query({
+    id: "workspace.overview.get.v1",
+    title: "Get workspace overview",
     description:
       "Returns bounded personal dashboard counts at an optional instant.",
     document: /* GraphQL */ `
-      query ViewerOverview($atTime: DateTime) {
-        viewer {
+      query WorkspaceOverview($atTime: DateTime) {
+        workspace {
           overview(atTime: $atTime) {
             atTime
             today
@@ -407,13 +446,13 @@ export const persistedGraphqlOperationDefinitions = [
     scopes: ["dashboard:read"],
   }),
   query({
-    id: "viewer.todos.v1",
-    title: "List viewer todos",
+    id: "workspace.todo.list.v1",
+    title: "List workspace todos",
     description:
-      "Lists the authenticated viewer's todos with filters and bounded pagination.",
+      "Lists the authenticated workspace's todos with filters and bounded pagination.",
     document: /* GraphQL */ `
-      query ViewerTodos($filter: TodoFilter, $page: PageInput) {
-        viewer {
+      query WorkspaceTodos($filter: TodoFilter, $page: PageInput) {
+        workspace {
           todos(filter: $filter, page: $page) {
             items {
               ${todoFields}
@@ -428,13 +467,13 @@ export const persistedGraphqlOperationDefinitions = [
     scopes: ["todo:read"],
   }),
   query({
-    id: "viewer.subscribed_sections.v1",
-    title: "List viewer subscriptions",
+    id: "workspace.subscription.list.v1",
+    title: "List workspace subscriptions",
     description:
-      "Lists the authenticated viewer's subscribed sections with bounded pagination.",
+      "Lists the authenticated workspace's subscribed sections with bounded pagination.",
     document: /* GraphQL */ `
-      query ViewerSubscribedSections($page: PageInput) {
-        viewer {
+      query WorkspaceSubscribedSections($page: PageInput) {
+        workspace {
           subscribedSections(page: $page) {
             items {
               ${sectionFields}
@@ -449,13 +488,13 @@ export const persistedGraphqlOperationDefinitions = [
     scopes: ["subscription:read"],
   }),
   query({
-    id: "viewer.homeworks.v1",
-    title: "List viewer homeworks",
+    id: "workspace.homework.list.v1",
+    title: "List workspace homeworks",
     description:
-      "Lists the authenticated viewer's homeworks with filters and bounded pagination.",
+      "Lists the authenticated workspace's homeworks with filters and bounded pagination.",
     document: /* GraphQL */ `
-      query ViewerHomeworks($filter: HomeworkFilter, $page: PageInput) {
-        viewer {
+      query WorkspaceHomeworks($filter: HomeworkFilter, $page: PageInput) {
+        workspace {
           homeworks(filter: $filter, page: $page) {
             items {
               id
@@ -493,13 +532,13 @@ export const persistedGraphqlOperationDefinitions = [
     scopes: ["homework:read"],
   }),
   query({
-    id: "viewer.schedules.v1",
-    title: "List viewer schedules",
+    id: "workspace.schedule.list.v1",
+    title: "List workspace schedules",
     description:
-      "Lists the authenticated viewer's schedules with filters and bounded pagination.",
+      "Lists the authenticated workspace's schedules with filters and bounded pagination.",
     document: /* GraphQL */ `
-      query ViewerSchedules($filter: ScheduleFilter, $page: PageInput) {
-        viewer {
+      query WorkspaceSchedules($filter: ScheduleFilter, $page: PageInput) {
+        workspace {
           schedules(filter: $filter, page: $page) {
             items {
               id
@@ -550,13 +589,13 @@ export const persistedGraphqlOperationDefinitions = [
     scopes: ["schedule:read"],
   }),
   query({
-    id: "viewer.exams.v1",
-    title: "List viewer exams",
+    id: "workspace.exam.list.v1",
+    title: "List workspace exams",
     description:
-      "Lists the authenticated viewer's exams with filters and bounded pagination.",
+      "Lists the authenticated workspace's exams with filters and bounded pagination.",
     document: /* GraphQL */ `
-      query ViewerExams($filter: ExamFilter, $page: PageInput) {
-        viewer {
+      query WorkspaceExams($filter: ExamFilter, $page: PageInput) {
+        workspace {
           exams(filter: $filter, page: $page) {
             items {
               id
@@ -605,12 +644,12 @@ export const persistedGraphqlOperationDefinitions = [
     scopes: ["exam:read"],
   }),
   mutation({
-    id: "todo.create.v1",
+    id: "workspace.todo.create.v1",
     title: "Create todo",
-    description: "Creates a todo owned by the authenticated viewer.",
+    description: "Creates a todo owned by the authenticated workspace.",
     document: /* GraphQL */ `
       mutation TodoCreate($input: CreateTodoInput!) {
-        createTodo(input: $input) {
+        todoCreate(input: $input) {
           id
         }
       }
@@ -620,12 +659,12 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: false,
   }),
   mutation({
-    id: "todo.update.v1",
+    id: "workspace.todo.update.v1",
     title: "Update todo",
-    description: "Updates a todo owned by the authenticated viewer.",
+    description: "Updates a todo owned by the authenticated workspace.",
     document: /* GraphQL */ `
       mutation TodoUpdate($id: ID!, $input: UpdateTodoInput!) {
-        updateTodo(id: $id, input: $input) {
+        todoUpdate(id: $id, input: $input) {
           id
         }
       }
@@ -635,12 +674,12 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: false,
   }),
   mutation({
-    id: "todo.delete.v1",
+    id: "workspace.todo.delete.v1",
     title: "Delete todo",
-    description: "Deletes a todo owned by the authenticated viewer.",
+    description: "Deletes a todo owned by the authenticated workspace.",
     document: /* GraphQL */ `
       mutation TodoDelete($id: ID!) {
-        deleteTodo(id: $id) {
+        todoDelete(id: $id) {
           id
           success
         }
@@ -651,15 +690,15 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: false,
   }),
   mutation({
-    id: "todo.set_completions_batch.v1",
+    id: "workspace.todo.completions.set.v1",
     title: "Set todo completions in batch",
     description:
-      "Sets completion state for up to 100 viewer-owned todos with per-item results.",
+      "Sets completion state for up to 100 workspace-owned todos with per-item results.",
     document: /* GraphQL */ `
       mutation TodoSetCompletionsBatch(
         $items: [TodoCompletionBatchItemInput!]!
       ) {
-        setTodoCompletions(items: $items) {
+        todoCompletionsSet(items: $items) {
           results {
             success
             todoId
@@ -677,12 +716,13 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: false,
   }),
   mutation({
-    id: "todo.delete_batch.v1",
+    id: "workspace.todos.delete.v1",
     title: "Delete todos in batch",
-    description: "Deletes up to 100 viewer-owned todos with per-item results.",
+    description:
+      "Deletes up to 100 workspace-owned todos with per-item results.",
     document: /* GraphQL */ `
       mutation TodoDeleteBatch($ids: [ID!]!) {
-        deleteTodos(ids: $ids) {
+        todosDelete(ids: $ids) {
           results {
             success
             id
@@ -699,12 +739,12 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: false,
   }),
   mutation({
-    id: "homework.create.v1",
+    id: "community.section_homework.create.v1",
     title: "Create homework",
     description: "Creates collaborative homework on a section.",
     document: /* GraphQL */ `
       mutation HomeworkCreate($input: CreateHomeworkInput!) {
-        createHomework(input: $input) {
+        homeworkCreate(input: $input) {
           id
           homework {
             id
@@ -731,12 +771,12 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: true,
   }),
   mutation({
-    id: "homework.update.v1",
+    id: "community.section_homework.update.v1",
     title: "Update homework",
     description: "Updates collaborative homework on a section.",
     document: /* GraphQL */ `
       mutation HomeworkUpdate($id: ID!, $input: UpdateHomeworkInput!) {
-        updateHomework(id: $id, input: $input) {
+        homeworkUpdate(id: $id, input: $input) {
           id
           homework {
             id
@@ -763,12 +803,12 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: true,
   }),
   mutation({
-    id: "homework.delete.v1",
+    id: "community.section_homework.delete.v1",
     title: "Delete homework",
     description: "Soft-deletes collaborative homework on a section.",
     document: /* GraphQL */ `
       mutation HomeworkDelete($id: ID!) {
-        deleteHomework(id: $id) {
+        homeworkDelete(id: $id) {
           id
           success
           alreadyDeleted
@@ -780,16 +820,16 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: true,
   }),
   mutation({
-    id: "homework.set_completion.v1",
+    id: "workspace.homework.completion.set.v1",
     title: "Set homework completion",
     description:
-      "Sets the authenticated viewer's personal completion state for homework.",
+      "Sets the authenticated workspace's personal completion state for homework.",
     document: /* GraphQL */ `
       mutation HomeworkSetCompletion(
         $homeworkId: ID!
         $completed: Boolean!
       ) {
-        setHomeworkCompletion(
+        homeworkCompletionSet(
           homeworkId: $homeworkId
           completed: $completed
         ) {
@@ -804,7 +844,7 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: false,
   }),
   mutation({
-    id: "homework.set_completions_batch.v1",
+    id: "workspace.homework.completions.set.v1",
     title: "Set homework completions in batch",
     description:
       "Sets personal completion state for up to 100 homework items with per-item results.",
@@ -812,7 +852,7 @@ export const persistedGraphqlOperationDefinitions = [
       mutation HomeworkSetCompletionsBatch(
         $items: [HomeworkCompletionBatchItemInput!]!
       ) {
-        setHomeworkCompletions(items: $items) {
+        homeworkCompletionsSet(items: $items) {
           results {
             success
             homeworkId
@@ -831,13 +871,13 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: false,
   }),
   mutation({
-    id: "subscription.subscribe_section.v1",
+    id: "workspace.subscription.add.v1",
     title: "Subscribe to section",
     description:
-      "Subscribes the authenticated viewer to one teaching-system section.",
+      "Subscribes the authenticated workspace to one teaching-system section.",
     document: /* GraphQL */ `
       mutation SubscriptionSubscribeSection($jwId: Int!) {
-        subscribeSection(jwId: $jwId) {
+        subscriptionAdd(jwId: $jwId) {
           sectionJwId
           subscribed
         }
@@ -848,13 +888,13 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: false,
   }),
   mutation({
-    id: "subscription.unsubscribe_section.v1",
+    id: "workspace.subscription.remove.v1",
     title: "Unsubscribe from section",
     description:
-      "Removes the authenticated viewer's subscription to one section.",
+      "Removes the authenticated workspace's subscription to one section.",
     document: /* GraphQL */ `
       mutation SubscriptionUnsubscribeSection($jwId: Int!) {
-        unsubscribeSection(jwId: $jwId) {
+        subscriptionRemove(jwId: $jwId) {
           sectionJwId
           subscribed
         }
@@ -865,7 +905,7 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: false,
   }),
   mutation({
-    id: "subscription.update_sections_batch.v1",
+    id: "workspace.subscription.import.v1",
     title: "Update section subscriptions in batch",
     description:
       "Adds, removes, or replaces section subscriptions by public codes.",
@@ -873,7 +913,7 @@ export const persistedGraphqlOperationDefinitions = [
       mutation SubscriptionUpdateSectionsBatch(
         $input: UpdateSectionSubscriptionsInput!
       ) {
-        updateSectionSubscriptions(input: $input) {
+        subscriptionsImport(input: $input) {
           action
           semesterId
           matchedCodes
@@ -890,12 +930,12 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: false,
   }),
   mutation({
-    id: "dashboard.set_link_pin_state.v1",
+    id: "workspace.link.pin.set.v1",
     title: "Set dashboard link pin state",
-    description: "Pins or unpins one dashboard link for the viewer.",
+    description: "Pins or unpins one dashboard link for the workspace.",
     document: /* GraphQL */ `
       mutation DashboardSetLinkPinState($slug: String!, $pinned: Boolean!) {
-        setDashboardLinkPinState(slug: $slug, pinned: $pinned) {
+        linkPinSet(slug: $slug, pinned: $pinned) {
           slug
           pinned
           pinnedSlugs
@@ -908,15 +948,15 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: false,
   }),
   mutation({
-    id: "dashboard.set_link_pin_states_batch.v1",
+    id: "workspace.link.pins.set.v1",
     title: "Set dashboard link pin states in batch",
     description:
-      "Applies up to 10 viewer dashboard pin changes in order and returns the final pin state.",
+      "Applies up to 10 workspace pin changes in order and returns the final pin state.",
     document: /* GraphQL */ `
       mutation DashboardSetLinkPinStatesBatch(
         $items: [DashboardLinkPinBatchItemInput!]!
       ) {
-        setDashboardLinkPinStates(items: $items) {
+        linkPinsSet(items: $items) {
           pinnedSlugs
           maxPinnedLinks
         }
@@ -927,12 +967,12 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: false,
   }),
   mutation({
-    id: "bus.save_preferences.v1",
+    id: "workspace.bus_preferences.set.v1",
     title: "Save bus preferences",
-    description: "Saves the authenticated viewer's campus bus preferences.",
+    description: "Saves the authenticated workspace's campus bus preferences.",
     document: /* GraphQL */ `
       mutation BusSavePreferences($input: BusPreferenceInput!) {
-        saveBusPreferences(input: $input) {
+        busPreferencesSet(input: $input) {
           preferredOriginCampusId
           preferredDestinationCampusId
           showDepartedTrips
@@ -944,12 +984,12 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: false,
   }),
   mutation({
-    id: "description.upsert.v1",
+    id: "community.description.set.v1",
     title: "Upsert description",
     description: "Creates or updates collaborative object description text.",
     document: /* GraphQL */ `
       mutation DescriptionUpsert($input: UpsertDescriptionInput!) {
-        upsertDescription(input: $input) {
+        descriptionSet(input: $input) {
           id
           updated
         }
@@ -960,12 +1000,12 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: true,
   }),
   mutation({
-    id: "comment.create.v1",
+    id: "community.comment.create.v1",
     title: "Create comment",
     description: "Creates a collaborative comment or reply.",
     document: /* GraphQL */ `
       mutation CommentCreate($input: CreateCommentInput!) {
-        createComment(input: $input) {
+        commentCreate(input: $input) {
           id
         }
       }
@@ -975,12 +1015,12 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: true,
   }),
   mutation({
-    id: "comment.update.v1",
+    id: "community.comment.update.v1",
     title: "Update comment",
-    description: "Updates a comment owned by the authenticated viewer.",
+    description: "Updates a comment owned by the authenticated workspace.",
     document: /* GraphQL */ `
       mutation CommentUpdate($id: ID!, $input: UpdateCommentInput!) {
-        updateComment(id: $id, input: $input) {
+        commentUpdate(id: $id, input: $input) {
           id
         }
       }
@@ -990,12 +1030,12 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: true,
   }),
   mutation({
-    id: "comment.delete.v1",
+    id: "community.comment.delete.v1",
     title: "Delete comment",
-    description: "Deletes a comment owned by the authenticated viewer.",
+    description: "Deletes a comment owned by the authenticated workspace.",
     document: /* GraphQL */ `
       mutation CommentDelete($id: ID!) {
-        deleteComment(id: $id) {
+        commentDelete(id: $id) {
           id
           success
         }
@@ -1006,13 +1046,13 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: true,
   }),
   mutation({
-    id: "comment.delete_batch.v1",
+    id: "community.comments.delete.v1",
     title: "Delete comments in batch",
     description:
-      "Deletes up to 50 viewer-owned comments with stable per-item results.",
+      "Deletes up to 50 workspace-owned comments with stable per-item results.",
     document: /* GraphQL */ `
       mutation CommentDeleteBatch($ids: [ID!]!) {
-        deleteComments(ids: $ids) {
+        commentsDelete(ids: $ids) {
           results {
             success
             id
@@ -1029,15 +1069,15 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: true,
   }),
   mutation({
-    id: "comment.add_reaction.v1",
+    id: "community.comment.reaction.add.v1",
     title: "Add comment reaction",
-    description: "Adds the viewer's reaction to a visible comment.",
+    description: "Adds the workspace's reaction to a visible comment.",
     document: /* GraphQL */ `
       mutation CommentAddReaction(
         $commentId: ID!
         $type: CommentReactionType!
       ) {
-        addCommentReaction(commentId: $commentId, type: $type) {
+        commentReactionAdd(commentId: $commentId, type: $type) {
           commentId
           type
           active
@@ -1050,15 +1090,15 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: true,
   }),
   mutation({
-    id: "comment.remove_reaction.v1",
+    id: "community.comment.reaction.remove.v1",
     title: "Remove comment reaction",
-    description: "Removes the viewer's reaction from a visible comment.",
+    description: "Removes the workspace's reaction from a visible comment.",
     document: /* GraphQL */ `
       mutation CommentRemoveReaction(
         $commentId: ID!
         $type: CommentReactionType!
       ) {
-        removeCommentReaction(commentId: $commentId, type: $type) {
+        commentReactionRemove(commentId: $commentId, type: $type) {
           commentId
           type
           active
@@ -1071,13 +1111,13 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: true,
   }),
   mutation({
-    id: "upload.create_session.v1",
+    id: "workspace.upload.session.create.v1",
     title: "Create upload session",
     description:
       "Reserves quota and returns metadata for the authenticated on-site object upload workflow; bounded stale-session cleanup removes expired reservation rows only.",
     document: /* GraphQL */ `
       mutation UploadCreateSession($input: CreateUploadSessionInput!) {
-        createUploadSession(input: $input) {
+        uploadSessionCreate(input: $input) {
           key
           url
           maxFileSizeBytes
@@ -1091,13 +1131,13 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: true,
   }),
   mutation({
-    id: "upload.complete.v1",
+    id: "workspace.upload.complete.v1",
     title: "Complete upload",
     description:
       "Validates an already-uploaded R2 object and commits its owned metadata; failure leaves R2 lifecycle cleanup to the dedicated storage workflow.",
     document: /* GraphQL */ `
       mutation UploadComplete($input: CompleteUploadSessionInput!) {
-        completeUploadSession(input: $input) {
+        uploadSessionComplete(input: $input) {
           upload {
             id
             key
@@ -1115,12 +1155,12 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: true,
   }),
   mutation({
-    id: "upload.rename.v1",
+    id: "workspace.upload.rename.v1",
     title: "Rename upload",
-    description: "Renames one upload owned by the authenticated viewer.",
+    description: "Renames one upload owned by the authenticated workspace.",
     document: /* GraphQL */ `
       mutation UploadRename($id: ID!, $filename: String!) {
-        renameUpload(id: $id, filename: $filename) {
+        uploadRename(id: $id, filename: $filename) {
           upload {
             id
             key
@@ -1136,13 +1176,13 @@ export const persistedGraphqlOperationDefinitions = [
     openWorld: false,
   }),
   mutation({
-    id: "upload.delete.v1",
+    id: "workspace.upload.delete.v1",
     title: "Delete upload",
     description:
-      "Deletes one viewer-owned R2 object before transactionally deleting its metadata and recording the audit entry.",
+      "Deletes one workspace-owned R2 object before transactionally deleting its metadata and recording the audit entry.",
     document: /* GraphQL */ `
       mutation UploadDelete($id: ID!) {
-        deleteUpload(id: $id) {
+        uploadDelete(id: $id) {
           id
           success
           deletedSize

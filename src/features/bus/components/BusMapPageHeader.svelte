@@ -18,7 +18,7 @@ export let updatedTime: string;
 
 <PageHeader title={copy.title} description={copy.subtitle}>
   {#snippet eyebrowContent()}
-    <Button class="min-h-11 w-fit px-0" href="/dashboard/bus" variant="link">{copy.backToBus}</Button>
+    <Button class="min-h-11 w-fit px-0" href="/workspace/bus" variant="link">{copy.backToBus}</Button>
   {/snippet}
   {#snippet titleExtra()}
     <Badge class="ml-3 align-middle" variant="outline">{copy.experimental}</Badge>

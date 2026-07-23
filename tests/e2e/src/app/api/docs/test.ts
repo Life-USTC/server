@@ -7,7 +7,7 @@ import { capturePageScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
 async function setLocale(page: Page, locale: "en-us" | "zh-cn") {
-  const response = await page.request.post("/api/locale", {
+  const response = await page.request.post("/api/account/preferences", {
     data: { locale },
   });
   expect(response.ok()).toBe(true);
@@ -104,7 +104,7 @@ test.describe("/api/docs 页面", () => {
       .getByRole("link", { name: "GET List sections", exact: true })
       .click();
     await expect(page).toHaveURL(
-      /\/api\/docs\/tag\/sections\/GET\/api\/sections$/,
+      /\/api\/docs\/tag\/sections\/GET\/api\/catalog\/sections$/,
     );
     await expect(panel).toBeHidden();
     await expect(reference).toContainText("List sections");
@@ -164,7 +164,7 @@ test.describe("/api/docs 页面", () => {
       .getByRole("link", { name: "GET List sections", exact: true })
       .click();
     await expect(page).toHaveURL(
-      /\/api\/docs\/tag\/sections\/GET\/api\/sections$/,
+      /\/api\/docs\/tag\/sections\/GET\/api\/catalog\/sections$/,
     );
   });
 

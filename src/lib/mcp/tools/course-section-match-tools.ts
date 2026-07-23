@@ -14,11 +14,11 @@ const SECTION_SUBSCRIPTION_NOTE =
 
 export function registerCourseSectionMatchTools(server: McpServer) {
   server.registerTool(
-    "match_section_codes",
+    "catalog_section_match_preview",
     {
       description:
         "Dry-run section-code matching for one semester. Returns matched/unmatched codes and suggestions. " +
-        "Use before subscribe_my_sections_by_codes when the user may need confirmation. Not official enrollment.",
+        "Use before workspace_subscription_import when the user may need confirmation. Not official enrollment.",
       inputSchema: {
         codes: z.array(sectionCodeSchema).min(1).max(500),
         semesterId: z.number().int().positive().optional(),

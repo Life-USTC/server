@@ -27,7 +27,7 @@ const descriptionTargetInputSchema = z.object({
   targetId: descriptionTargetIdSchema
     .optional()
     .describe(
-      "Internal target id matching REST /api/descriptions. Prefer public identifiers such as sectionJwId or courseJwId when available.",
+      "Internal target id matching REST /api/community/descriptions. Prefer public identifiers such as sectionJwId or courseJwId when available.",
     ),
   sectionJwId: z
     .number()
@@ -55,18 +55,20 @@ const descriptionUpsertInputSchema = descriptionTargetInputSchema.extend({
   content: z
     .string()
     .max(DESCRIPTION_CONTENT_MAX_LENGTH)
-    .describe("Markdown description content. Matches POST /api/descriptions."),
+    .describe(
+      "Markdown description content. Matches POST /api/community/descriptions.",
+    ),
 });
 
 type DescriptionTargetInput = z.infer<typeof descriptionTargetInputSchema>;
 
 export function registerDescriptionTools(server: McpServer) {
   server.registerTool(
-    "get_description",
+    "community_description_get",
     {
       description:
         "Read the Markdown description, edit history, and viewer state for one section, course, teacher, or homework target. " +
-        "Returns the same description/history/viewer payload as REST /api/descriptions.",
+        "Returns the same description/history/viewer payload as REST /api/community/descriptions.",
       inputSchema: descriptionTargetInputSchema.shape,
     },
     async (args, extra) => {
@@ -97,7 +99,7 @@ export function registerDescriptionTools(server: McpServer) {
   );
 
   server.registerTool(
-    "upsert_description",
+    "community_description_set",
     {
       description:
         "Create or replace the Markdown description for one section, course, teacher, or homework target. " +
@@ -196,16 +198,16 @@ function unresolvedDescriptionTargetPayload(
 
 function descriptionTargetHint(targetType: DescriptionTargetType | string) {
   if (targetType === "section") {
-    return "Provide sectionJwId, or use search_sections/get_section_by_jw_id to find a valid section.";
+    return "Provide sectionJwId, or use catalog_section_search/catalog_section_get to find a valid section.";
   }
   if (targetType === "course") {
-    return "Provide courseJwId, or use search_courses/get_course_by_jw_id to find a valid course.";
+    return "Provide courseJwId, or use catalog_course_search/catalog_course_get to find a valid course.";
   }
   if (targetType === "teacher") {
-    return "Provide teacherId, or use search_teachers/get_teacher_by_id to find a valid teacher.";
+    return "Provide teacherId, or use catalog_teacher_search/catalog_teacher_get to find a valid teacher.";
   }
   if (targetType === "homework") {
-    return "Provide homeworkId, or use list_homeworks_by_section/list_my_homeworks to find a valid homework.";
+    return "Provide homeworkId, or use community_section_homework_list/workspace_homework_list to find a valid homework.";
   }
   return "Provide targetId for the REST-compatible internal id, or a public identifier such as sectionJwId, courseJwId, teacherId, or homeworkId.";
 }

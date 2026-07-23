@@ -149,7 +149,7 @@ describe("GraphQL homework CRUD mutations", () => {
       {
         query: /* GraphQL */ `
           mutation CreateWithoutWriteScope($sectionJwId: Int!) {
-            createHomework(
+            homeworkCreate(
               input: {
                 sectionJwId: $sectionJwId
                 title: "${marker} missing scope"
@@ -185,7 +185,7 @@ describe("GraphQL homework CRUD mutations", () => {
             $start: DateTime!
             $due: DateTime!
           ) {
-            createHomework(
+            homeworkCreate(
               input: {
                 sectionJwId: $sectionJwId
                 title: "${marker} invalid window"
@@ -231,7 +231,7 @@ describe("GraphQL homework CRUD mutations", () => {
             $start: DateTime!
             $due: DateTime!
           ) {
-            createHomework(
+            homeworkCreate(
               input: {
                 sectionJwId: $sectionJwId
                 title: "  ${marker} initial  "
@@ -272,7 +272,7 @@ describe("GraphQL homework CRUD mutations", () => {
     );
     expect(created.response.headers.get("cache-control")).toBe("no-store");
     expect(created.payload.errors).toBeUndefined();
-    const createPayload = created.payload.data?.createHomework as
+    const createPayload = created.payload.data?.homeworkCreate as
       | {
           id: string;
           homework: Record<string, unknown>;
@@ -328,7 +328,7 @@ describe("GraphQL homework CRUD mutations", () => {
       {
         query: /* GraphQL */ `
           mutation UpdateHomework($id: ID!, $due: DateTime!) {
-            updateHomework(
+            homeworkUpdate(
               id: $id
               input: {
                 title: "  ${marker} updated  "
@@ -362,7 +362,7 @@ describe("GraphQL homework CRUD mutations", () => {
     );
     expect(updated.payload).toEqual({
       data: {
-        updateHomework: {
+        homeworkUpdate: {
           id: homeworkId,
           homework: {
             id: homeworkId,
@@ -403,7 +403,7 @@ describe("GraphQL homework CRUD mutations", () => {
     const forbiddenDelete = await execute(
       {
         query:
-          "mutation DeleteOtherHomework($id: ID!) { deleteHomework(id: $id) { success } }",
+          "mutation DeleteOtherHomework($id: ID!) { homeworkDelete(id: $id) { success } }",
         variables: { id: homeworkId },
       },
       collaboratorToken,
@@ -414,7 +414,7 @@ describe("GraphQL homework CRUD mutations", () => {
       {
         query: /* GraphQL */ `
           mutation DeleteHomework($id: ID!) {
-            deleteHomework(id: $id) {
+            homeworkDelete(id: $id) {
               id
               success
               alreadyDeleted
@@ -427,7 +427,7 @@ describe("GraphQL homework CRUD mutations", () => {
     );
     expect(deleted.payload).toEqual({
       data: {
-        deleteHomework: {
+        homeworkDelete: {
           id: homeworkId,
           success: true,
           alreadyDeleted: false,
@@ -439,7 +439,7 @@ describe("GraphQL homework CRUD mutations", () => {
       {
         query: /* GraphQL */ `
           mutation DeleteHomeworkAgain($id: ID!) {
-            deleteHomework(id: $id) {
+            homeworkDelete(id: $id) {
               id
               success
               alreadyDeleted
@@ -452,7 +452,7 @@ describe("GraphQL homework CRUD mutations", () => {
     );
     expect(repeatedDelete.payload).toEqual({
       data: {
-        deleteHomework: {
+        homeworkDelete: {
           id: homeworkId,
           success: true,
           alreadyDeleted: true,

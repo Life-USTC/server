@@ -5,7 +5,7 @@ import * as fixtures from "./utils/mcp-tool-test-utils";
 const context = fixtures.createMcpToolTestContext();
 
 describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
-  it("list_comments 返回带查看者/操作字段的班级串帖评论", async () => {
+  it("community_comment_list 返回带查看者/操作字段的班级串帖评论", async () => {
     type Result = {
       found?: boolean;
       data?: Array<{
@@ -38,7 +38,7 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
     const results = await Promise.all(
       (["default", "summary", "full"] as const).map(async (mode) => ({
         mode,
-        result: await context.client.call<Result>("list_comments", {
+        result: await context.client.call<Result>("community_comment_list", {
           targetType: "section",
           sectionJwId: fixtures.DEV_SEED.section.jwId,
           mode,
@@ -46,7 +46,8 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
       })),
     );
     const result = results.find(({ mode }) => mode === "full")?.result;
-    if (!result) throw new Error("Missing full-mode list_comments result");
+    if (!result)
+      throw new Error("Missing full-mode community_comment_list result");
 
     expect(result.found).toBe(true);
     expect(result.meta?.target?.type).toBe("section");
@@ -96,7 +97,7 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
     }
   });
 
-  it("get_comment_thread 返回聚焦线程及目标元数据", async () => {
+  it("community_comment_get 返回聚焦线程及目标元数据", async () => {
     const seedComment = await fixtures.prisma.comment.findFirst({
       where: { body: fixtures.DEV_SEED.comments.sectionRootBody },
       select: { id: true },
@@ -122,7 +123,7 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
     const results = await Promise.all(
       (["default", "summary", "full"] as const).map(async (mode) => ({
         mode,
-        result: await context.client.call<Result>("get_comment_thread", {
+        result: await context.client.call<Result>("community_comment_get", {
           commentId: seedComment?.id,
           mode,
         }),
@@ -156,12 +157,12 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
     }
   });
 
-  it("list_comments 报告缺失目标而非返回空成功", async () => {
+  it("community_comment_list 报告缺失目标而非返回空成功", async () => {
     const result = await context.client.call<{
       success?: boolean;
       found?: boolean;
       error?: string;
-    }>("list_comments", {
+    }>("community_comment_list", {
       targetType: "section",
       sectionJwId: 2_147_483_647,
     });
@@ -171,7 +172,7 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
     expect(result.error).toBe("target_not_found");
   });
 
-  it("list_comments 将未关联的班级-教师对报告为缺失目标", async () => {
+  it("community_comment_list 将未关联的班级-教师对报告为缺失目标", async () => {
     const marker = `[integration-test] mcp-section-teacher-missing-${Date.now()}`;
     const teacher = await fixtures.prisma.teacher.create({
       data: {
@@ -186,7 +187,7 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
         success?: boolean;
         found?: boolean;
         error?: string;
-      }>("list_comments", {
+      }>("community_comment_list", {
         targetType: "section-teacher",
         sectionJwId: fixtures.DEV_SEED.section.jwId,
         teacherId: teacher.id,
@@ -200,7 +201,7 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
     }
   });
 
-  it("list_comments 读取时不创建班级-教师目标", async () => {
+  it("community_comment_list 读取时不创建班级-教师目标", async () => {
     const section = await fixtures.prisma.section.findUnique({
       where: { jwId: fixtures.DEV_SEED.section.jwId },
       select: { id: true },
@@ -250,7 +251,7 @@ describe("评论读取工具 — MCP 暴露 REST 评论层级", () => {
             teacherId?: number | null;
           };
         };
-      }>("list_comments", {
+      }>("community_comment_list", {
         targetType: "section-teacher",
         sectionJwId: fixtures.DEV_SEED.section.jwId,
         teacherId,
@@ -296,7 +297,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
       const created = await context.client.call<{
         success?: boolean;
         id?: string;
-      }>("create_comment", {
+      }>("community_comment_create", {
         targetType: "section",
         sectionJwId: fixtures.DEV_SEED.section.jwId,
         body: `${marker} created`,
@@ -308,7 +309,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
       expect(typeof created.id).toBe("string");
       commentId = created.id;
       if (!commentId) {
-        throw new Error("create_comment returned no comment id");
+        throw new Error("community_comment_create returned no comment id");
       }
 
       const createAudit = await fixtures.findCommentAuditLog({
@@ -330,7 +331,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
           visibility?: string;
           canEdit?: boolean;
         };
-      }>("update_own_comment", {
+      }>("community_comment_update", {
         commentId,
         body: `${marker} updated`,
         visibility: "logged_in_only",
@@ -360,7 +361,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
       const addedReaction = await context.client.call<{
         success?: boolean;
         changed?: boolean;
-      }>("add_comment_reaction", {
+      }>("community_comment_reaction_add", {
         commentId,
         type: "heart",
       });
@@ -381,7 +382,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
       const removedReaction = await context.client.call<{
         success?: boolean;
         changed?: boolean;
-      }>("remove_comment_reaction", {
+      }>("community_comment_reaction_remove", {
         commentId,
         type: "heart",
       });
@@ -400,7 +401,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
       });
 
       const deleted = await context.client.call<{ success?: boolean }>(
-        "delete_own_comment",
+        "community_comment_delete",
         { commentId },
       );
 
@@ -422,7 +423,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
 
   it("评论写入工具拒绝不支持的匿名可见性", async () => {
     await expect(
-      context.client.call("create_comment", {
+      context.client.call("community_comment_create", {
         targetType: "section",
         sectionJwId: fixtures.DEV_SEED.section.jwId,
         body: `[integration-test] rejected anonymous visibility ${Date.now()}`,
@@ -431,13 +432,13 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
     ).rejects.toThrow();
   });
 
-  it("评论写入 create_comment 返回序列化的无效目标失败", async () => {
+  it("评论写入 community_comment_create 返回序列化的无效目标失败", async () => {
     const result = await context.client.call<{
       success?: boolean;
       found?: boolean;
       error?: string;
       message?: string;
-    }>("create_comment", {
+    }>("community_comment_create", {
       targetType: "section",
       sectionJwId: 2_147_483_647,
       body: "[integration-test] invalid mcp comment target",
@@ -449,7 +450,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
     expect(result.message).toContain("section");
   });
 
-  it("评论写入 create_comment 支持通过公共 MCP 接口回复", async () => {
+  it("评论写入 community_comment_create 支持通过公共 MCP 接口回复", async () => {
     const marker = `[integration-test] mcp-comment-reply-${Date.now()}`;
     const commentIds: string[] = [];
 
@@ -457,7 +458,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
       const parent = await context.client.call<{
         success?: boolean;
         id?: string;
-      }>("create_comment", {
+      }>("community_comment_create", {
         targetType: "section",
         sectionJwId: fixtures.DEV_SEED.section.jwId,
         body: `${marker} parent`,
@@ -469,7 +470,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
       const reply = await context.client.call<{
         success?: boolean;
         id?: string;
-      }>("create_comment", {
+      }>("community_comment_create", {
         targetType: "section",
         sectionJwId: fixtures.DEV_SEED.section.jwId,
         parentId: parent.id,
@@ -483,7 +484,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
         found?: boolean;
         focusId?: string;
         thread?: unknown;
-      }>("get_comment_thread", {
+      }>("community_comment_get", {
         commentId: reply.id,
         mode: "full",
       });
@@ -511,7 +512,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
       const created = await context.client.call<{
         success?: boolean;
         id?: string;
-      }>("create_comment", {
+      }>("community_comment_create", {
         targetType: "section",
         sectionJwId: fixtures.DEV_SEED.section.jwId,
         body: `${marker} owned`,
@@ -523,7 +524,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
       const update = await otherMcp.call<{
         success?: boolean;
         error?: string;
-      }>("update_own_comment", {
+      }>("community_comment_update", {
         commentId,
         body: `${marker} stolen edit`,
       });
@@ -535,7 +536,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
       const deletion = await otherMcp.call<{
         success?: boolean;
         error?: string;
-      }>("delete_own_comment", { commentId });
+      }>("community_comment_delete", { commentId });
       expect(deletion).toMatchObject({
         success: false,
         error: "forbidden",
@@ -583,7 +584,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
       const created = await context.client.call<{
         success?: boolean;
         id?: string;
-      }>("create_comment", {
+      }>("community_comment_create", {
         targetType: "section",
         sectionJwId: fixtures.DEV_SEED.section.jwId,
         body: `${marker} attached`,
@@ -596,7 +597,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
       const thread = await context.client.call<{
         found?: boolean;
         thread?: unknown;
-      }>("get_comment_thread", {
+      }>("community_comment_get", {
         commentId,
         mode: "full",
       });
@@ -606,7 +607,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
       const invalidUpdate = await context.client.call<{
         success?: boolean;
         error?: string;
-      }>("update_own_comment", {
+      }>("community_comment_update", {
         commentId,
         body: `${marker} invalid attachment`,
         attachmentIds: [otherUpload.id],
@@ -647,7 +648,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
           usedBytes?: number;
         };
         pagination?: { page?: number; pageSize?: number; total?: number };
-      }>("list_my_uploads", { mode: "full" });
+      }>("workspace_upload_list", { mode: "full" });
       expect(typeof listBefore.meta?.maxFileSizeBytes).toBe("number");
       expect(typeof listBefore.meta?.quotaBytes).toBe("number");
       expect(typeof listBefore.meta?.usedBytes).toBe("number");
@@ -664,7 +665,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
       const renamed = await context.client.call<{
         success?: boolean;
         upload?: { filename?: string; id?: string };
-      }>("rename_my_upload", {
+      }>("workspace_upload_rename", {
         id: upload.id,
         filename: renamedFilename,
       });
@@ -678,7 +679,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
         hint?: string;
         message?: string;
         success?: boolean;
-      }>("delete_my_upload", { id: upload.id });
+      }>("workspace_upload_delete", { id: upload.id });
       expect(deleted).toMatchObject({
         success: false,
         error: "storage_delete_failed",
@@ -714,7 +715,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
     try {
       for (const invalidFilename of ["bad\u0000name.txt", "\u0000"]) {
         await expect(
-          context.client.call("rename_my_upload", {
+          context.client.call("workspace_upload_rename", {
             id: upload.id,
             filename: invalidFilename,
           }),
@@ -780,7 +781,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
       const nonOwnerRename = await context.client.call<{
         error?: string;
         success?: boolean;
-      }>("rename_my_upload", {
+      }>("workspace_upload_rename", {
         id: otherUpload.id,
         filename: "stolen.txt",
       });
@@ -792,7 +793,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
       const nonOwnerDelete = await context.client.call<{
         error?: string;
         success?: boolean;
-      }>("delete_my_upload", { id: otherUpload.id });
+      }>("workspace_upload_delete", { id: otherUpload.id });
       expect(nonOwnerDelete).toMatchObject({
         success: false,
         error: "not_found",
@@ -802,7 +803,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
         error?: string;
         reason?: string | null;
         success?: boolean;
-      }>("delete_my_upload", { id: suspendedUpload.id });
+      }>("workspace_upload_delete", { id: suspendedUpload.id });
       expect(suspendedDelete).toMatchObject({
         success: false,
         error: "suspended",
@@ -822,7 +823,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
     }
   });
 
-  it("评论写入 create_comment 在目标查找前检查封禁状态", async () => {
+  it("评论写入 community_comment_create 在目标查找前检查封禁状态", async () => {
     const suspendedUser = await fixtures.prisma.user.create({
       data: {
         email: fixtures.integrationUserEmail("mcp-comment-suspended"),
@@ -845,7 +846,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
         success?: boolean;
         error?: string;
         reason?: string | null;
-      }>("create_comment", {
+      }>("community_comment_create", {
         targetType: "section",
         sectionJwId: 2_147_483_647,
         body: "[integration-test] suspended invalid target",
@@ -875,7 +876,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
       const created = await context.client.call<{
         success?: boolean;
         id?: string;
-      }>("create_comment", {
+      }>("community_comment_create", {
         targetType: "section",
         sectionJwId: fixtures.DEV_SEED.section.jwId,
         body: `${marker} deleted`,
@@ -885,7 +886,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
       expect(typeof commentId).toBe("string");
 
       await expect(
-        context.client.call<{ success?: boolean }>("delete_own_comment", {
+        context.client.call<{ success?: boolean }>("community_comment_delete", {
           commentId,
         }),
       ).resolves.toEqual({ success: true });
@@ -893,7 +894,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
       const repeatedDelete = await context.client.call<{
         success?: boolean;
         error?: string;
-      }>("delete_own_comment", { commentId });
+      }>("community_comment_delete", { commentId });
       expect(repeatedDelete).toMatchObject({
         success: false,
         error: "locked",
@@ -902,7 +903,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
       const reply = await context.client.call<{
         success?: boolean;
         error?: string;
-      }>("create_comment", {
+      }>("community_comment_create", {
         targetType: "section",
         sectionJwId: fixtures.DEV_SEED.section.jwId,
         parentId: commentId,
@@ -913,7 +914,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
       const reaction = await context.client.call<{
         success?: boolean;
         error?: string;
-      }>("add_comment_reaction", {
+      }>("community_comment_reaction_add", {
         commentId,
         type: "heart",
       });
@@ -931,7 +932,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
       const created = await context.client.call<{
         success?: boolean;
         id?: string;
-      }>("create_comment", {
+      }>("community_comment_create", {
         targetType: "section",
         sectionJwId: fixtures.DEV_SEED.section.jwId,
         body: `${marker} locked`,
@@ -949,7 +950,7 @@ describe("评论写入工具 — MCP 镜像普通用户 REST 写入", () => {
         success?: boolean;
         error?: string;
         message?: string;
-      }>("delete_own_comment", { commentId });
+      }>("community_comment_delete", { commentId });
 
       expect(deletion).toMatchObject({
         success: false,

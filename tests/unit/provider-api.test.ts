@@ -68,7 +68,7 @@ describe("provider-api 守卫", () => {
     const api = asGenericOAuthApi({
       signInWithOAuth2: async () => ({
         headers: new Headers(),
-        response: { url: "https://example.com/signin" },
+        response: { url: "https://example.com/account/sign-in" },
       }),
       oAuth2LinkAccount: async () => ({
         headers: new Headers(),

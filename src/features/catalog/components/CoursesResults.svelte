@@ -46,7 +46,7 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
     <div class="xl:hidden">
       <Item.Group>
         {#each data.data as course}
-          {@const courseHref = `/courses/${course.jwId}`}
+          {@const courseHref = `/catalog/courses/${course.jwId}`}
           <Item.Root variant="outline" size="sm">
             {#snippet child({ props })}
               <a href={courseHref} {...props}>
@@ -83,7 +83,7 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
         </Table.Header>
         <Table.Body>
           {#each data.data as course}
-            {@const courseHref = `/courses/${course.jwId}`}
+            {@const courseHref = `/catalog/courses/${course.jwId}`}
             <Table.Row>
               <Table.Cell class="min-w-72 p-0 align-top">
                 <CatalogTableLink href={courseHref}>

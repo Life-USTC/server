@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createMcpHarness, type McpHarness } from "./utils/mcp-harness";
 import * as fixtures from "./utils/mcp-tool-test-utils";
 
-describe("subscribe_section_by_jw_id — 返回 action 与精简订阅", () => {
+describe("workspace_subscription_add — 返回 action 与精简订阅", () => {
   let subscriptionMcp: McpHarness | undefined;
   let subscriptionUserId: string | undefined;
 
@@ -45,7 +45,7 @@ describe("subscribe_section_by_jw_id — 返回 action 与精简订阅", () => {
         currentSemesterSections?: unknown;
         sections?: unknown;
       } | null;
-    }>("subscribe_section_by_jw_id", {
+    }>("workspace_subscription_add", {
       jwId: fixtures.DEV_SEED.section.jwId,
       locale: "zh-cn",
     });
@@ -66,7 +66,7 @@ describe("subscribe_section_by_jw_id — 返回 action 与精简订阅", () => {
       action?: string;
       sectionJwId?: number;
       subscription?: unknown;
-    }>("subscribe_section_by_jw_id", {
+    }>("workspace_subscription_add", {
       jwId: missingJwId,
       locale: "zh-cn",
     });
@@ -75,7 +75,7 @@ describe("subscribe_section_by_jw_id — 返回 action 与精简订阅", () => {
       action?: string;
       sectionJwId?: number;
       subscription?: unknown;
-    }>("unsubscribe_section_by_jw_id", {
+    }>("workspace_subscription_remove", {
       jwId: missingJwId,
       locale: "zh-cn",
     });

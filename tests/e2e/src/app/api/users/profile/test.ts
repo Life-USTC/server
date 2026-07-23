@@ -1,5 +1,5 @@
 /**
- * E2E tests for GET /api/users/profile.
+ * E2E tests for GET /api/account/profile.
  *
  * Public profile endpoint mirroring /u/[username] and /u/id/[uid].
  */
@@ -7,9 +7,9 @@ import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../../../utils/dev-seed";
 import { assertApiContract } from "../../../_shared/api-contract";
 
-const BASE = "/api/users/profile";
+const BASE = "/api/account/profile";
 
-test.describe("GET /api/users/profile", () => {
+test.describe("GET /api/account/profile", () => {
   test("契约", async ({ request }) => {
     await assertApiContract(request, { routePath: BASE });
   });

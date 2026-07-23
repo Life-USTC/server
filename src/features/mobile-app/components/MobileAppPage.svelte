@@ -123,17 +123,17 @@ $: quickLinks = [
   },
   {
     copy: homeCopy.quickAccess.browseCourses,
-    href: "/courses",
+    href: "/catalog/courses",
     icon: BookOpenIcon,
   },
   {
     copy: homeCopy.quickAccess.viewSections,
-    href: "/sections",
+    href: "/catalog/sections",
     icon: CalendarDaysIcon,
   },
   {
     copy: homeCopy.quickAccess.browseTeachers,
-    href: "/teachers",
+    href: "/catalog/teachers",
     icon: UsersIcon,
   },
 ];

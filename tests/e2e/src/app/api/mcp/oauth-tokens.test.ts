@@ -80,7 +80,7 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
 
     expect(accessToken.split(".").length).toBeLessThan(3);
 
-    const response = await request.get("/api/todos", {
+    const response = await request.get("/api/workspace/todos", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },

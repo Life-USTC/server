@@ -11,7 +11,7 @@
     "search-fuzzy": "Search supports Chinese, pinyin, and whitespace-tolerant matching.",
     "links-vs-buttons": "Links are for navigation; buttons are for actions.",
     "pin-limit": "Currently a maximum of 4 links can be pinned; exceeding this displaces the earliest pinned link.",
-    "semantic-public-route": "Anonymous /?tab=links requests permanently redirect to /links; signed-in compatibility requests redirect to /dashboard/links.",
+    "semantic-public-route": "Anonymous /?tab=links requests permanently redirect to /catalog/links; signed-in compatibility requests redirect to /workspace/links.",
     "pin-error-clear": "When pin/unpin writes fail, the endpoint returns a clear error; failures are not disguised as successes."
   },
   "capabilities": {
@@ -19,13 +19,13 @@
       "title": "Link Browse & Search",
       "auth": "anon",
       "web": {
-        "pages": ["/links", "/dashboard/links"]
+        "pages": ["/catalog/links", "/workspace/links"]
       },
       "rest": "unavailable",
       "mcp": {
         "tools": [
           {
-            "name": "list_dashboard_links",
+            "name": "workspace_link_list",
             "auth": "user",
             "returns": "{ success, query, total, returned, dashboardLinks: [{ slug, title, url, description, icon, group, isPinned }], pinnedSlugs, maxPinnedLinks }",
             "notes": [
@@ -55,7 +55,7 @@
       "graphql": {
         "mutations": [
           {
-            "name": "setDashboardLinkPinState",
+            "name": "linkPinSet",
             "arguments": {
               "slug": "String!",
               "pinned": "Boolean!"
@@ -63,21 +63,21 @@
             "returns": "DashboardLinkPinMutationPayload!",
             "auth": "user",
             "required_scopes": ["dashboard:write"],
-            "rest_equivalent": "POST /api/dashboard-links/pin",
-            "mcp_equivalent": "set_dashboard_link_pin_state"
+            "rest_equivalent": "POST /api/workspace/links/pin",
+            "mcp_equivalent": "workspace_link_pin_set"
           },
           {
-            "name": "setDashboardLinkPinStates",
+            "name": "linkPinsSet",
             "arguments": {
               "items": "[DashboardLinkPinBatchItemInput!]!"
             },
             "returns": "DashboardLinkPinBatchMutationPayload!",
             "auth": "user",
             "required_scopes": ["dashboard:write"],
-            "rest_equivalent": "POST /api/dashboard-links/pin/batch",
-            "mcp_equivalent": "run_graphql_operation",
+            "rest_equivalent": "POST /api/workspace/links/pin/batch",
+            "mcp_equivalent": "graphql_operation_run",
             "notes": [
-              "Registered operation id: dashboard.set_link_pin_states_batch.v1.",
+              "Registered operation id: workspace.link.pins.set.v1.",
               "Validates every slug before writing, then applies at most 10 actions in request order.",
               "The batch is intentionally non-atomic; an unexpected persistence failure may leave an ordered prefix applied."
             ]
@@ -85,12 +85,12 @@
         ]
       },
       "web": {
-        "pages": ["/dashboard/links"]
+        "pages": ["/workspace/links"]
       },
       "rest": {
         "routes": [
           {
-            "path": "/api/dashboard-links/pin",
+            "path": "/api/workspace/links/pin",
             "method": "POST",
             "returns": "200 JSON pin state when Accept requests JSON; otherwise 303 redirect",
             "notes": [
@@ -99,7 +99,7 @@
             ]
           },
           {
-            "path": "/api/dashboard-links/pin/batch",
+            "path": "/api/workspace/links/pin/batch",
             "method": "POST",
             "returns": "{ pinnedSlugs: String[], maxPinnedLinks: Int, error: String? }",
             "notes": [
@@ -108,13 +108,13 @@
             ]
           },
           {
-            "path": "/api/dashboard-links/visit",
+            "path": "/api/workspace/links/visit",
             "returns": "307 redirect",
             "auth": "anon",
             "notes": ["Invalid or missing slug redirects to /."]
           },
           {
-            "path": "/api/dashboard-links/visit",
+            "path": "/api/workspace/links/visit",
             "method": "POST",
             "returns": "303 redirect",
             "auth": "anon",
@@ -127,7 +127,7 @@
       "mcp": {
         "tools": [
           {
-            "name": "set_dashboard_link_pin_state",
+            "name": "workspace_link_pin_set",
             "auth": "user",
             "returns": "{ success, action, slug, pinnedSlugs, maxPinnedLinks }",
             "notes": [

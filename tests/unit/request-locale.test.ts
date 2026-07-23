@@ -4,7 +4,7 @@ import { getRequestLocale } from "@/lib/api/routes/request-locale";
 
 describe("getRequestLocale", () => {
   it("忽略格式错误的语言 Cookie 值", () => {
-    const request = new Request("https://life.example/api/bus", {
+    const request = new Request("https://life.example/api/catalog/bus", {
       headers: {
         "accept-language": "en-US,en;q=0.9",
         cookie: `${LOCALE_COOKIE}=%`,

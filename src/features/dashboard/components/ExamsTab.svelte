@@ -49,8 +49,8 @@ export let filteredExamRows: DashboardExamRow[];
       title={dashboardCopy.nav.exams.noSubscriptionsTitle}
       description={dashboardCopy.nav.exams.noSubscriptionsDescription}
       actions={[
-        { href: "/sections", label: subscriptionsCopy.browseSections },
-        { href: "/courses", label: subscriptionsCopy.browseCourses, variant: "outline" },
+        { href: "/catalog/sections", label: subscriptionsCopy.browseSections },
+        { href: "/catalog/courses", label: subscriptionsCopy.browseCourses, variant: "outline" },
       ]}
     />
   {:else}

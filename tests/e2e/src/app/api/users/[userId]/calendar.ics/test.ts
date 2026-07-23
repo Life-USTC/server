@@ -1,13 +1,13 @@
 /**
- * E2E tests for GET /api/users/[userId]/calendar.ics
+ * E2E tests for GET /api/community/users/[userId]/calendar.ics
  *
  * ## Endpoint
- * - `GET /api/users/:userId/calendar.ics` — Generate iCalendar feed for a user's subscriptions
+ * - `GET /api/community/users/:userId/calendar.ics` — Generate iCalendar feed for a user's subscriptions
  *
  * ## Auth Modes
  * - Session auth: must be the same user (own calendar only)
- * - Token auth via path: `/api/users/:userId::token/calendar.ics`
- * - Token auth via query: `/api/users/:userId/calendar.ics?token=X`
+ * - Token auth via path: `/api/community/users/:userId::token/calendar.ics`
+ * - Token auth via query: `/api/community/users/:userId/calendar.ics?token=X`
  *
  * ## Response
  * - 200: `text/calendar; charset=utf-8` with iCalendar data
@@ -40,13 +40,13 @@ import {
   expectCalendarDtstampsAreUtc,
 } from "../../../../_shared/api-contract";
 
-const ROUTE_PATH = "/api/users/[userId]/calendar.ics";
+const ROUTE_PATH = "/api/community/users/[userId]/calendar.ics";
 
 function unfoldICalendar(text: string) {
   return text.replace(/\r?\n[ \t]/g, "");
 }
 
-test.describe("GET /api/users/[userId]/calendar.ics", () => {
+test.describe("GET /api/community/users/[userId]/calendar.ics", () => {
   test.describe.configure({ mode: "serial" });
 
   test("契约", async ({ request }) => {
@@ -54,13 +54,15 @@ test.describe("GET /api/users/[userId]/calendar.ics", () => {
   });
 
   test("未认证且无 token 时返回 401", async ({ request }) => {
-    const response = await request.get("/api/users/invalid-e2e/calendar.ics");
+    const response = await request.get(
+      "/api/community/users/invalid-e2e/calendar.ics",
+    );
     expect(response.status()).toBe(401);
   });
 
   test("无效 token 返回 403", async ({ request }) => {
     const response = await request.get(
-      "/api/users/invalid-e2e/calendar.ics?token=invalid-token",
+      "/api/community/users/invalid-e2e/calendar.ics?token=invalid-token",
     );
     expect(response.status()).toBe(403);
   });
@@ -69,7 +71,7 @@ test.describe("GET /api/users/[userId]/calendar.ics", () => {
     await signInAsDebugUser(page, "/");
 
     const response = await page.request.get(
-      "/api/users/not-the-current-user/calendar.ics",
+      "/api/community/users/not-the-current-user/calendar.ics",
     );
     expect(response.status()).toBe(403);
   });
@@ -79,7 +81,7 @@ test.describe("GET /api/users/[userId]/calendar.ics", () => {
     const { id: userId } = await getCurrentSessionUser(page);
 
     const currentRes = await page.request.get(
-      "/api/calendar-subscriptions/current",
+      "/api/workspace/subscriptions/current",
     );
     const currentBody = (await currentRes.json()) as {
       subscription?: { sections?: Array<{ id?: number }> } | null;
@@ -87,9 +89,12 @@ test.describe("GET /api/users/[userId]/calendar.ics", () => {
     const originalIds =
       currentBody.subscription?.sections?.map((s) => s.id as number) ?? [];
 
-    const matchRes = await page.request.post("/api/sections/match-codes", {
-      data: { codes: [DEV_SEED.section.code] },
-    });
+    const matchRes = await page.request.post(
+      "/api/catalog/sections/match-codes",
+      {
+        data: { codes: [DEV_SEED.section.code] },
+      },
+    );
     expect(matchRes.status()).toBe(200);
     const matchBody = (await matchRes.json()) as {
       sections?: Array<{ id?: number; code?: string | null }>;
@@ -103,12 +108,12 @@ test.describe("GET /api/users/[userId]/calendar.ics", () => {
     }
 
     try {
-      await page.request.post("/api/calendar-subscriptions", {
+      await page.request.post("/api/workspace/subscriptions", {
         data: { sectionIds: [seedSection.id] },
       });
 
       const response = await page.request.get(
-        `/api/users/${userId}/calendar.ics`,
+        `/api/community/users/${userId}/calendar.ics`,
       );
       expect(response.status()).toBe(200);
       expect(response.headers()["content-type"]).toContain("text/calendar");
@@ -128,7 +133,7 @@ test.describe("GET /api/users/[userId]/calendar.ics", () => {
       expect(unfoldedBody).not.toContain(DEV_SEED.todos.completedTitle);
       expect(unfoldedBody).not.toContain("已删除作业");
     } finally {
-      await page.request.post("/api/calendar-subscriptions", {
+      await page.request.post("/api/workspace/subscriptions", {
         data: { sectionIds: originalIds },
       });
     }
@@ -162,7 +167,7 @@ test.describe("GET /api/users/[userId]/calendar.ics", () => {
 
     // Request with query param token instead of path token
     const response = await request.get(
-      `/api/users/${userId}/calendar.ics?token=${feed.token}`,
+      `/api/community/users/${userId}/calendar.ics?token=${feed.token}`,
     );
     expect(response.status()).toBe(200);
     expect(response.headers()["content-type"]).toContain("text/calendar");
@@ -176,7 +181,7 @@ test.describe("GET /api/users/[userId]/calendar.ics", () => {
     const { id: userId } = await getCurrentSessionUser(page);
 
     const response = await request.get(
-      `/api/users/${userId}/calendar.ics?token=bogus-token-e2e`,
+      `/api/community/users/${userId}/calendar.ics?token=bogus-token-e2e`,
     );
     expect(response.status()).toBe(403);
   });

@@ -12,11 +12,11 @@ import {
 
 export function registerCalendarEventTools(server: McpServer) {
   server.registerTool(
-    "list_my_calendar_events",
+    "workspace_calendar_event_list",
     {
       description:
         "Unified personal calendar events (schedules, homework deadlines, exams, todos) filtered by date range. " +
-        "Use get_my_7days_timeline for a no-date-required 7-day window.",
+        "Use workspace_calendar_timeline_get for a no-date-required 7-day window.",
       inputSchema: {
         dateFrom: flexDateInputSchema
           .optional()

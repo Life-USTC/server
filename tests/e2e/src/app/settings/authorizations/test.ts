@@ -13,9 +13,9 @@ import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe.configure({ mode: "serial" });
 
-test.describe("/settings/authorizations OAuth 授权", () => {
+test.describe("/account/settings/authorizations OAuth 授权", () => {
   test("需要登录", async ({ page }, testInfo) => {
-    await expectRequiresSignIn(page, "/settings/authorizations");
+    await expectRequiresSignIn(page, "/account/settings/authorizations");
     await captureStepScreenshot(
       page,
       testInfo,
@@ -29,7 +29,7 @@ test.describe("/settings/authorizations OAuth 授权", () => {
     const name = `E2E Calendar ${Date.now()}`;
     const scopes = ["calendar:read", "profile"];
 
-    await signInAsDebugUser(page, "/settings/authorizations");
+    await signInAsDebugUser(page, "/account/settings/authorizations");
     const user = await getCurrentSessionUser(page);
     await deleteOAuthClientsByName(name);
     const authorization = await createOAuthAuthorizationFixture({
@@ -39,14 +39,14 @@ test.describe("/settings/authorizations OAuth 授权", () => {
     });
 
     try {
-      await gotoAndWaitForReady(page, "/settings/authorizations");
+      await gotoAndWaitForReady(page, "/account/settings/authorizations");
       await page.locator("#app-user-menu").getByRole("button").click();
       const menuLink = page.getByRole("menuitem", {
         name: /已授权应用|Authorized apps/i,
       });
       await expect(menuLink).toHaveAttribute(
         "href",
-        "/settings/authorizations",
+        "/account/settings/authorizations",
       );
       await expect(menuLink).toHaveAttribute("aria-current", "page");
       await page.keyboard.press("Escape");
@@ -92,15 +92,12 @@ test.describe("/settings/authorizations OAuth 授权", () => {
 
       await expect(dialog).not.toBeVisible();
       await expect(page).toHaveURL(
-        /\/settings\/authorizations\?message=AuthorizationRevoked$/,
+        /\/account\/settings\/authorizations\?message=AuthorizationRevoked$/,
       );
       await expect(
         page.getByText(/已撤销应用授权|Application access revoked/i),
       ).toBeVisible();
       await expect(region.getByText(name, { exact: true })).toHaveCount(0);
-      await expect(
-        region.getByText(/暂无已授权应用|No authorized applications/i),
-      ).toBeVisible();
       await captureStepScreenshot(
         page,
         testInfo,

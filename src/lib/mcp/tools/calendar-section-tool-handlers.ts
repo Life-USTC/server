@@ -26,8 +26,8 @@ export async function getSectionCalendarSubscriptionTool({
     {
       found: Boolean(section),
       section,
-      calendarPath: `/api/sections/${jwId}/calendar.ics`,
-      calendarUrl: `${getPublicOrigin()}/api/sections/${jwId}/calendar.ics`,
+      calendarPath: `/api/catalog/sections/${jwId}/calendar.ics`,
+      calendarUrl: `${getPublicOrigin()}/api/catalog/sections/${jwId}/calendar.ics`,
     },
     { mode: resolveMcpMode(mode) },
   );

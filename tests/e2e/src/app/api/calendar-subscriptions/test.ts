@@ -2,9 +2,9 @@
  * E2E tests for the calendar subscription API
  *
  * ## Endpoints
- * - `POST /api/calendar-subscriptions` — Replace the current user's subscribed sections
- * - `PATCH /api/calendar-subscriptions` — Append selected section IDs
- * - `DELETE /api/calendar-subscriptions` — Remove selected section IDs
+ * - `POST /api/workspace/subscriptions` — Replace the current user's subscribed sections
+ * - `PATCH /api/workspace/subscriptions` — Append selected section IDs
+ * - `DELETE /api/workspace/subscriptions` — Remove selected section IDs
  *
  * ## Request
  * - POST Body: `{ sectionIds?: number[] }` (optional; omitting clears subscriptions)
@@ -35,9 +35,9 @@ import { withE2ePrisma } from "../../../../utils/e2e-db/prisma";
 import { resolveSeedSectionMatches } from "../../../../utils/seed-lookups";
 import { assertApiContract } from "../../_shared/api-contract";
 
-const BASE = "/api/calendar-subscriptions";
-const BATCH_BASE = "/api/calendar-subscriptions/batch";
-const IMPORT_BASE = "/api/calendar-subscriptions/import-codes";
+const BASE = "/api/workspace/subscriptions";
+const BATCH_BASE = "/api/workspace/subscriptions/batch";
+const IMPORT_BASE = "/api/workspace/subscriptions/import-codes";
 
 test.describe("日历订阅 API", () => {
   test.describe.configure({ mode: "serial" });
@@ -102,7 +102,7 @@ test.describe("日历订阅 API", () => {
     await signInAsDebugUser(page, "/");
 
     const currentRes = await page.request.get(
-      "/api/calendar-subscriptions/current",
+      "/api/workspace/subscriptions/current",
     );
     const currentBody = (await currentRes.json()) as {
       subscription?: { sections?: Array<{ id?: number }> } | null;
@@ -167,7 +167,7 @@ test.describe("日历订阅 API", () => {
     expect(secondSection?.id).toBeDefined();
 
     const currentRes = await page.request.get(
-      "/api/calendar-subscriptions/current",
+      "/api/workspace/subscriptions/current",
     );
     const currentBody = (await currentRes.json()) as {
       subscription?: { sections?: Array<{ id?: number }> } | null;
@@ -230,7 +230,7 @@ test.describe("日历订阅 API", () => {
     expect(currentSection.semesterId).not.toBe(previousSection.semesterId);
 
     const currentRes = await page.request.get(
-      "/api/calendar-subscriptions/current",
+      "/api/workspace/subscriptions/current",
     );
     const currentBody = (await currentRes.json()) as {
       subscription?: { sections?: Array<{ id?: number }> } | null;
@@ -251,7 +251,7 @@ test.describe("日历订阅 API", () => {
       });
       expect(unscopedSetResponse.status()).toBe(400);
       const preservedBody = (await (
-        await page.request.get("/api/calendar-subscriptions/current")
+        await page.request.get("/api/workspace/subscriptions/current")
       ).json()) as {
         subscription?: { sections?: Array<{ id?: number }> } | null;
       };
@@ -474,7 +474,7 @@ test.describe("日历订阅 API", () => {
     expect(secondSection?.id).toBeDefined();
 
     const currentRes = await page.request.get(
-      "/api/calendar-subscriptions/current",
+      "/api/workspace/subscriptions/current",
     );
     const currentBody = (await currentRes.json()) as {
       subscription?: { sections?: Array<{ id?: number }> } | null;
@@ -510,9 +510,12 @@ test.describe("日历订阅 API", () => {
   test("订阅 seed 课程并返回正确结构", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
-    const matchRes = await page.request.post("/api/sections/match-codes", {
-      data: { codes: [DEV_SEED.section.code] },
-    });
+    const matchRes = await page.request.post(
+      "/api/catalog/sections/match-codes",
+      {
+        data: { codes: [DEV_SEED.section.code] },
+      },
+    );
     expect(matchRes.status()).toBe(200);
     const matchBody = (await matchRes.json()) as {
       sections?: Array<{ id?: number; code?: string | null }>;
@@ -528,7 +531,7 @@ test.describe("日历订阅 API", () => {
 
     // Save current subscriptions for restoration
     const currentRes = await page.request.get(
-      "/api/calendar-subscriptions/current",
+      "/api/workspace/subscriptions/current",
     );
     const currentBody = (await currentRes.json()) as {
       subscription?: { sections?: Array<{ id?: number }> } | null;
@@ -565,7 +568,7 @@ test.describe("日历订阅 API", () => {
 
     // Save current subscriptions for restoration
     const currentRes = await page.request.get(
-      "/api/calendar-subscriptions/current",
+      "/api/workspace/subscriptions/current",
     );
     const currentBody = (await currentRes.json()) as {
       subscription?: { sections?: Array<{ id?: number }> } | null;
@@ -591,9 +594,12 @@ test.describe("日历订阅 API", () => {
   test("不存在的 section ID 被静默忽略", async ({ page }) => {
     await signInAsDebugUser(page, "/");
 
-    const matchRes = await page.request.post("/api/sections/match-codes", {
-      data: { codes: [DEV_SEED.section.code] },
-    });
+    const matchRes = await page.request.post(
+      "/api/catalog/sections/match-codes",
+      {
+        data: { codes: [DEV_SEED.section.code] },
+      },
+    );
     const matchBody = (await matchRes.json()) as {
       sections?: Array<{ id?: number; code?: string | null }>;
     };
@@ -608,7 +614,7 @@ test.describe("日历订阅 API", () => {
     const bogusId = 999_999_999;
 
     const currentRes = await page.request.get(
-      "/api/calendar-subscriptions/current",
+      "/api/workspace/subscriptions/current",
     );
     const currentBody = (await currentRes.json()) as {
       subscription?: { sections?: Array<{ id?: number }> } | null;

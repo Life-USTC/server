@@ -5,7 +5,7 @@ export async function updateTodoCompletion(input: {
   fallbackMessage: string;
   todoId: number | string;
 }) {
-  const result = await apiClient.PATCH(`/api/todos/${input.todoId}`, {
+  const result = await apiClient.PATCH(`/api/workspace/todos/${input.todoId}`, {
     body: { completed: input.completed },
   });
   if (!result.response.ok) {
@@ -17,7 +17,7 @@ export async function deleteTodoById(input: {
   fallbackMessage: string;
   todoId: number | string;
 }) {
-  const result = await apiClient.DELETE(`/api/todos/${input.todoId}`);
+  const result = await apiClient.DELETE(`/api/workspace/todos/${input.todoId}`);
   if (!result.response.ok) {
     throw new Error(apiErrorMessage(result.error, input.fallbackMessage));
   }

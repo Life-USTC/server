@@ -3,7 +3,7 @@ export function sectionDetailCalendarUrls(input: {
   origin: string;
   subscriptionPath: string;
 }) {
-  const singlePath = `/api/sections/${input.jwId}/calendar.ics`;
+  const singlePath = `/api/catalog/sections/${input.jwId}/calendar.ics`;
   return {
     singleCalendarPath: singlePath,
     singleCalendarUrl: input.origin

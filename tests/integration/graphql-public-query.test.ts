@@ -97,53 +97,55 @@ describe("GraphQL public Query integration", () => {
           $routeId: Int!
           $versionKey: String!
         ) {
-          semesters(page: { pageSize: 10 }) {
+          catalog {
+            semesters(page: { pageSize: 10 }) {
             items {
               jwId
             }
-          }
-          courses(filter: { search: "GraphQL" }, page: { pageSize: 10 }) {
+            }
+            courses(filter: { search: "GraphQL" }, page: { pageSize: 10 }) {
             items {
               jwId
               code
               nameCn
             }
-          }
-          course(jwId: $courseJwId) {
+            }
+            course(jwId: $courseJwId) {
             jwId
             code
             nameCn
-          }
-          sections(
+            }
+            sections(
             filter: { jwIds: [$sectionJwId] }
             page: { pageSize: 10 }
-          ) {
+            ) {
             items {
               jwId
               code
             }
-          }
-          teachers(page: { pageSize: 10 }) {
+            }
+            teachers(page: { pageSize: 10 }) {
             items {
               id
               code
               nameCn
               sectionCount
             }
-          }
-          busRoutes(page: { pageSize: 10 }) {
+            }
+            busRoutes(page: { pageSize: 10 }) {
             items {
               id
               nameCn
             }
-          }
-          busTimetable(
+            }
+            busTimetable(
             routeId: $routeId
             now: $now
             versionKey: $versionKey
-          ) {
+            ) {
             route {
               id
+            }
             }
           }
         }
@@ -160,7 +162,7 @@ describe("GraphQL public Query integration", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(payload.errors).toBeUndefined();
-    expect(payload.data).toMatchObject({
+    expect(payload.data?.catalog).toMatchObject({
       course: {
         jwId: DEV_SEED.course.jwId,
         code: DEV_SEED.course.code,
@@ -182,13 +184,15 @@ describe("GraphQL public Query integration", () => {
       query: /* GraphQL */ `
         ${sectionFields}
         query SectionConsistency($jwId: Int!) {
-          sections(filter: { jwIds: [$jwId] }, page: { pageSize: 1 }) {
-            items {
+          catalog {
+            sections(filter: { jwIds: [$jwId] }, page: { pageSize: 1 }) {
+              items {
+                ...SectionFields
+              }
+            }
+            section(jwId: $jwId) {
               ...SectionFields
             }
-          }
-          section(jwId: $jwId) {
-            ...SectionFields
           }
         }
       `,
@@ -196,7 +200,7 @@ describe("GraphQL public Query integration", () => {
     });
 
     expect(payload.errors).toBeUndefined();
-    const data = payload.data as {
+    const data = payload.data?.catalog as {
       sections: { items: unknown[] };
       section: Record<string, unknown>;
     };
@@ -212,18 +216,20 @@ describe("GraphQL public Query integration", () => {
     const { payload } = await execute({
       query: /* GraphQL */ `
         query CatalogByLegacyCourse($courseJwId: Int!) {
-          course(jwId: $courseJwId) {
-            jwId
-            code
-          }
-          sections(
-            filter: { courseJwId: $courseJwId }
-            page: { pageSize: 10 }
-          ) {
-            items {
+          catalog {
+            course(jwId: $courseJwId) {
               jwId
-              course {
+              code
+            }
+            sections(
+              filter: { courseJwId: $courseJwId }
+              page: { pageSize: 10 }
+            ) {
+              items {
                 jwId
+                course {
+                  jwId
+                }
               }
             }
           }
@@ -233,7 +239,7 @@ describe("GraphQL public Query integration", () => {
     });
 
     expect(payload.errors).toBeUndefined();
-    expect(payload.data).toMatchObject({
+    expect(payload.data?.catalog).toMatchObject({
       course: {
         jwId: DEV_SEED.course.jwId,
         code: DEV_SEED.course.code,

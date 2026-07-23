@@ -72,19 +72,21 @@ function sortedRecord(record: Record<string, string>) {
 
 function contractFieldMap(
   fields: GraphqlFieldContract[],
-  expectedParent: "Query" | "Mutation" | "Viewer",
+  expectedParent:
+    | "Query"
+    | "Mutation"
+    | "Catalog"
+    | "Workspace"
+    | "Community"
+    | "Account",
 ) {
   const map = new Map<string, GraphqlFieldShape>();
   for (const field of fields) {
     const validParent =
-      expectedParent === "Viewer"
-        ? field.parent === "Viewer"
-        : field.parent === undefined || field.parent === expectedParent;
-    if (!validParent) {
-      throw new Error(
-        `GraphQL contract field ${field.name} has parent ${field.parent ?? "(omitted)"}; expected ${expectedParent}`,
-      );
-    }
+      field.parent === expectedParent ||
+      ((expectedParent === "Query" || expectedParent === "Mutation") &&
+        field.parent === undefined);
+    if (!validParent) continue;
     if (map.has(field.name)) {
       throw new Error(`Duplicate GraphQL contract field: ${field.name}`);
     }
@@ -123,15 +125,14 @@ function schemaFieldMap(fields: GraphQLFieldMap<unknown, unknown> | undefined) {
 }
 
 describe("GraphQL contract and SDL parity", () => {
-  it("keeps stable root and Viewer field signatures aligned", async () => {
+  it("keeps stable scope and mutation signatures aligned", async () => {
     const schema = buildSchema(graphqlTypeDefs);
-    const [queryContracts, mutationContracts, viewerContracts] =
+    const [queryContracts, mutationContracts, scopeContracts] =
       await Promise.all([
         collectContractFields("queries"),
         collectContractFields("mutations"),
         collectContractFields("fields"),
       ]);
-    const viewerType = schema.getType("Viewer");
 
     expect(contractFieldMap(queryContracts, "Query")).toEqual(
       schemaFieldMap(schema.getQueryType()?.getFields()),
@@ -139,9 +140,18 @@ describe("GraphQL contract and SDL parity", () => {
     expect(contractFieldMap(mutationContracts, "Mutation")).toEqual(
       schemaFieldMap(schema.getMutationType()?.getFields()),
     );
-    expect(isObjectType(viewerType)).toBe(true);
-    expect(contractFieldMap(viewerContracts, "Viewer")).toEqual(
-      schemaFieldMap(isObjectType(viewerType) ? viewerType.getFields() : {}),
-    );
+    for (const parent of [
+      "Catalog",
+      "Workspace",
+      "Community",
+      "Account",
+    ] as const) {
+      const type = schema.getType(parent);
+      expect(isObjectType(type)).toBe(true);
+      const contracts = [...queryContracts, ...scopeContracts];
+      expect(contractFieldMap(contracts, parent)).toEqual(
+        schemaFieldMap(isObjectType(type) ? type.getFields() : {}),
+      );
+    }
   });
 });

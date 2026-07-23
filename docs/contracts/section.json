@@ -27,12 +27,12 @@
         "ui": ["List Table"]
       },
       "web": {
-        "pages": ["/sections"]
+        "pages": ["/catalog/sections"]
       },
       "rest": {
         "routes": [
           {
-            "path": "/api/sections",
+            "path": "/api/catalog/sections",
             "returns": "PaginatedResponse<SectionSummary>",
             "notes": [
               "REST pageSize accepts 1-100; the deprecated limit alias remains accepted and pageSize wins when both are supplied. Out-of-range values are rejected instead of clamped.",
@@ -45,13 +45,14 @@
         "queries": [
           {
             "name": "sections",
+            "parent": "Catalog",
             "arguments": {
               "page": "PageInput",
               "filter": "SectionFilter"
             },
             "returns": "SectionPage!",
-            "rest_equivalent": "GET /api/sections",
-            "mcp_equivalent": "search_sections",
+            "rest_equivalent": "GET /api/catalog/sections",
+            "mcp_equivalent": "catalog_section_search",
             "notes": [
               "PageInput defaults to page=1 and pageSize=20; pageSize must remain within 1-100.",
               "Retired Sections are excluded."
@@ -62,9 +63,9 @@
       "mcp": {
         "tools": [
           {
-            "name": "search_sections",
+            "name": "catalog_section_search",
             "returns": "PaginatedResponse<SectionSummary>",
-            "rest_equivalent": "GET /api/sections",
+            "rest_equivalent": "GET /api/catalog/sections",
             "notes": [
               "MCP limit accepts 1-100 and rejects out-of-range values instead of clamping.",
               "Retired Sections are excluded."
@@ -97,12 +98,12 @@
         "ui": ["Detail Hero", "Context Tabs", "Basic Info Card"]
       },
       "web": {
-        "pages": ["/sections/[jwId]"]
+        "pages": ["/catalog/sections/[jwId]"]
       },
       "rest": {
         "routes": [
           {
-            "path": "/api/sections/[jwId]",
+            "path": "/api/catalog/sections/[jwId]",
             "returns": "SectionDetail (schedules without room/teacher expansion)",
             "notes": [
               "Direct historical lookup remains available for retired Sections; retiredAt identifies retirement and sourceLastSeenAt records the last successful source observation."
@@ -114,19 +115,20 @@
         "queries": [
           {
             "name": "section",
+            "parent": "Catalog",
             "arguments": { "jwId": "Int!" },
             "returns": "Section",
-            "rest_equivalent": "GET /api/sections/[jwId]",
-            "mcp_equivalent": "get_section_by_jw_id"
+            "rest_equivalent": "GET /api/catalog/sections/[jwId]",
+            "mcp_equivalent": "catalog_section_get"
           }
         ]
       },
       "mcp": {
         "tools": [
           {
-            "name": "get_section_by_jw_id",
+            "name": "catalog_section_get",
             "returns": "{ found: Boolean, section: Section? }",
-            "rest_equivalent": "GET /api/sections/[jwId]"
+            "rest_equivalent": "GET /api/catalog/sections/[jwId]"
           }
         ]
       },
@@ -195,7 +197,7 @@
       "rest": {
         "routes": [
           {
-            "path": "/api/sections/[jwId]/calendar.ics",
+            "path": "/api/catalog/sections/[jwId]/calendar.ics",
             "reference_only": true
           }
         ]
@@ -203,9 +205,9 @@
       "mcp": {
         "tools": [
           {
-            "name": "get_section_calendar_subscription",
+            "name": "catalog_section_calendar_feed_get",
             "returns": "{ found: Boolean, section: Section?, calendarPath: String, calendarUrl: String }",
-            "rest_equivalent": "GET /api/sections/[jwId]/calendar.ics",
+            "rest_equivalent": "GET /api/catalog/sections/[jwId]/calendar.ics",
             "notes": [
               "Returns a single-section iCal link and usage instructions."
             ]

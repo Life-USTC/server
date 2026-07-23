@@ -57,7 +57,7 @@ function uploadMutationErrorResult(
         success: false,
         error: "not_found",
         message: "Upload not found",
-        hint: "Use list_my_uploads to confirm the upload id before changing it.",
+        hint: "Use workspace_upload_list to confirm the upload id before changing it.",
       },
       { mode },
     );
@@ -87,7 +87,7 @@ function uploadMutationErrorResult(
 
 export function registerUploadTools(server: McpServer) {
   server.registerTool(
-    "list_my_uploads",
+    "workspace_upload_list",
     {
       description:
         "List the current user's comment attachment uploads with page/limit pagination, quota, and upload limits. Does not stream file contents.",
@@ -119,7 +119,7 @@ export function registerUploadTools(server: McpServer) {
   );
 
   server.registerTool(
-    "rename_my_upload",
+    "workspace_upload_rename",
     {
       description:
         "Rename one upload owned by the current user. Requires an unsuspended signed-in user.",
@@ -151,7 +151,7 @@ export function registerUploadTools(server: McpServer) {
   );
 
   server.registerTool(
-    "delete_my_upload",
+    "workspace_upload_delete",
     {
       description:
         "Delete one upload owned by the current user after removing its backing object. Requires an unsuspended signed-in user.",

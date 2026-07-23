@@ -63,7 +63,7 @@ $: pageLabel = teacherLabels.pageOf
     <div class="xl:hidden">
       <Item.Group>
         {#each teachers as teacher}
-          {@const teacherHref = `/teachers/${teacher.id}`}
+          {@const teacherHref = `/catalog/teachers/${teacher.id}`}
           <Item.Root variant="outline" size="sm">
             {#snippet child({ props })}
               <a href={teacherHref} {...props}>
@@ -104,7 +104,7 @@ $: pageLabel = teacherLabels.pageOf
         </Table.Header>
         <Table.Body>
           {#each teachers as teacher}
-            {@const teacherHref = `/teachers/${teacher.id}`}
+            {@const teacherHref = `/catalog/teachers/${teacher.id}`}
             <Table.Row>
               <Table.Cell class="min-w-56 p-0 align-top">
                 <CatalogTableLink href={teacherHref}>

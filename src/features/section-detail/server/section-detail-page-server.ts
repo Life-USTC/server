@@ -93,7 +93,7 @@ export async function loadSectionDetailPage({
           },
     ]);
   const socialMetadata = buildSocialMetadata({
-    canonicalPath: `/sections/${jwId}`,
+    canonicalPath: `/catalog/sections/${jwId}`,
     description: formatSocialMetadataMessage(
       copy.metadata.social.sectionDescription,
       { code: section.code, name: courseName },

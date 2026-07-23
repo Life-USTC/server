@@ -49,7 +49,7 @@ export let todaySessions: DashboardSessionItem[];
           {#snippet child({ props })}
             <a
               href={homework.section?.jwId
-                ? `/sections/${homework.section.jwId}/homework#homework-${homework.id}`
+                ? `/catalog/sections/${homework.section.jwId}/homework#homework-${homework.id}`
                 : dashboardTabHref("homeworks")}
               {...props}
             >

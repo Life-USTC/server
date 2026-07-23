@@ -20,7 +20,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
     );
   });
 
-  it("list_my_schedules 接受裸日期字符串（无时区偏移）", async () => {
+  it("workspace_schedule_list 接受裸日期字符串（无时区偏移）", async () => {
     const result = await context.client.call<{
       schedules?: Array<{
         id?: number;
@@ -28,7 +28,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
         endTime?: unknown;
         startTime?: unknown;
       }>;
-    }>("list_my_schedules", {
+    }>("workspace_schedule_list", {
       dateFrom: fixtures.SEED_DATE, // bare date — would have been rejected by old dateTimeSchema
       dateTo: fixtures.SEED_PLUS_ELEVEN_DAYS,
       limit: 20,
@@ -49,10 +49,10 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
     }
   });
 
-  it("list_my_exams 接受裸日期字符串", async () => {
+  it("workspace_exam_list 接受裸日期字符串", async () => {
     const result = await context.client.call<{
       exams?: Array<{ id?: number }>;
-    }>("list_my_exams", {
+    }>("workspace_exam_list", {
       dateFrom: fixtures.SEED_DATE,
       includeDateUnknown: false,
       limit: 20,
@@ -62,10 +62,10 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
     expect(Array.isArray(result.exams)).toBe(true);
   });
 
-  it("list_my_calendar_events 接受裸日期字符串", async () => {
+  it("workspace_calendar_event_list 接受裸日期字符串", async () => {
     const result = await context.client.call<{
       events?: Array<{ type?: string; at?: string }>;
-    }>("list_my_calendar_events", {
+    }>("workspace_calendar_event_list", {
       dateFrom: fixtures.SEED_DATE,
       dateTo: fixtures.SEED_PLUS_ELEVEN_DAYS,
       locale: "zh-cn",
@@ -80,10 +80,10 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
     ).toBe(true);
   });
 
-  it("list_my_calendar_events 将同日裸日期范围视为完整上海天时区日", async () => {
+  it("workspace_calendar_event_list 将同日裸日期范围视为完整上海天时区日", async () => {
     const result = await context.client.call<{
       events?: Array<{ type?: string; at?: string }>;
-    }>("list_my_calendar_events", {
+    }>("workspace_calendar_event_list", {
       dateFrom: fixtures.SEED_DATE,
       dateTo: fixtures.SEED_DATE,
       locale: "zh-cn",
@@ -98,11 +98,11 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
     ).toBe(true);
   });
 
-  it("list_my_calendar_events 遵守精确包含的 dateTo 边界", async () => {
+  it("workspace_calendar_event_list 遵守精确包含的 dateTo 边界", async () => {
     const dueAt = `${fixtures.SEED_PLUS_THREE_DAYS}T21:00:00+08:00`;
     const result = await context.client.call<{
       events?: Array<{ type?: string; at?: string }>;
-    }>("list_my_calendar_events", {
+    }>("workspace_calendar_event_list", {
       dateFrom: dueAt,
       dateTo: dueAt,
       locale: "zh-cn",
@@ -115,7 +115,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
     ).toBe(true);
   });
 
-  it("list_my_calendar_events 在精确包含的 dateTo 边界包含 todo", async () => {
+  it("workspace_calendar_event_list 在精确包含的 dateTo 边界包含 todo", async () => {
     const dueAt = `${fixtures.SEED_DATE}T06:45:00+08:00`;
     const todo = await fixtures.prisma.todo.create({
       data: {
@@ -133,7 +133,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
           at?: string;
           payload?: { id?: string };
         }>;
-      }>("list_my_calendar_events", {
+      }>("workspace_calendar_event_list", {
         dateFrom: dueAt,
         dateTo: dueAt,
         locale: "zh-cn",
@@ -152,7 +152,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
     }
   });
 
-  it("list_my_calendar_events 包含与精确窗口重叠的定时事件", async () => {
+  it("workspace_calendar_event_list 包含与精确窗口重叠的定时事件", async () => {
     const schedule = await fixtures.prisma.schedule.findFirst({
       where: {
         section: { jwId: fixtures.DEV_SEED.section.jwId },
@@ -172,7 +172,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
 
     const result = await context.client.call<{
       events?: Array<{ type?: string; payload?: { id?: number } }>;
-    }>("list_my_calendar_events", {
+    }>("workspace_calendar_event_list", {
       dateFrom: windowStart,
       dateTo: windowEnd,
       locale: "zh-cn",
@@ -186,7 +186,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
     ).toBe(true);
   });
 
-  it("list_my_calendar_events 为精确窗口放宽基于日期的查询", async () => {
+  it("workspace_calendar_event_list 为精确窗口放宽基于日期的查询", async () => {
     const section = await fixtures.prisma.section.findUnique({
       where: { jwId: fixtures.DEV_SEED.section.jwId },
       select: { id: true },
@@ -213,7 +213,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
 
       const result = await context.client.call<{
         events?: Array<{ type?: string; payload?: { jwId?: number | null } }>;
-      }>("list_my_calendar_events", {
+      }>("workspace_calendar_event_list", {
         dateFrom: `${fixtures.SEED_DATE}T00:10:00+08:00`,
         dateTo: `${fixtures.SEED_DATE}T00:30:00+08:00`,
         locale: "zh-cn",
@@ -229,7 +229,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
     }
   });
 
-  it("list_my_calendar_events 使无时间考试在当天保持可见", async () => {
+  it("workspace_calendar_event_list 使无时间考试在当天保持可见", async () => {
     const section = await fixtures.prisma.section.findUnique({
       where: { jwId: fixtures.DEV_SEED.section.jwId },
       select: { id: true },
@@ -256,7 +256,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
 
       const result = await context.client.call<{
         events?: Array<{ type?: string; at?: string }>;
-      }>("list_my_calendar_events", {
+      }>("workspace_calendar_event_list", {
         dateFrom: `${fixtures.SEED_DATE}T08:00:00+08:00`,
         dateTo: `${fixtures.SEED_DATE}T09:00:00+08:00`,
         locale: "zh-cn",
@@ -274,7 +274,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
     }
   });
 
-  it("list_my_calendar_events 对无 startTime 的考试尊重 endTime", async () => {
+  it("workspace_calendar_event_list 对无 startTime 的考试尊重 endTime", async () => {
     const section = await fixtures.prisma.section.findUnique({
       where: { jwId: fixtures.DEV_SEED.section.jwId },
       select: { id: true },
@@ -301,7 +301,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
 
       const result = await context.client.call<{
         events?: Array<{ type?: string; payload?: { jwId?: number | null } }>;
-      }>("list_my_calendar_events", {
+      }>("workspace_calendar_event_list", {
         dateFrom: `${fixtures.SEED_DATE}T13:00:00+08:00`,
         dateTo: `${fixtures.SEED_DATE}T14:00:00+08:00`,
         locale: "zh-cn",
@@ -321,7 +321,7 @@ describe("flexDateInputSchema — 日期筛选工具接受裸 YYYY-MM-DD", () =>
     const result = await context.client.call<{
       success?: boolean;
       message?: string;
-    }>("list_my_schedules", {
+    }>("workspace_schedule_list", {
       dateFrom: "not-a-date",
       limit: 5,
     });

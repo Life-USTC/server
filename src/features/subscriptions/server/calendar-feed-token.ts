@@ -48,5 +48,5 @@ export function buildUserCalendarFeedPath(
   userId: string,
   token: string,
 ): string {
-  return `/api/users/${userId}:${token}/calendar.ics`;
+  return `/api/community/users/${userId}:${token}/calendar.ics`;
 }

@@ -18,7 +18,7 @@ import {
 
 export function registerProfileTools(server: McpServer) {
   server.registerTool(
-    "get_my_profile",
+    "account_profile_get",
     {
       description:
         "Return the authenticated user's Life@USTC profile: id, email, username, name, image, isAdmin, and timestamps.",
@@ -28,7 +28,7 @@ export function registerProfileTools(server: McpServer) {
   );
 
   server.registerTool(
-    "get_public_user_profile",
+    "community_user_get",
     {
       description:
         "Return a public Life@USTC user profile by username or userId, including visible stats and contribution heatmap data from the web profile page.",
@@ -38,7 +38,7 @@ export function registerProfileTools(server: McpServer) {
   );
 
   server.registerTool(
-    "list_my_todos",
+    "workspace_todo_list",
     {
       description:
         "List todos. Incomplete items appear first by default. Returns counts (incomplete, completed, overdue) plus the todo list.",
@@ -48,7 +48,7 @@ export function registerProfileTools(server: McpServer) {
   );
 
   server.registerTool(
-    "create_my_todo",
+    "workspace_todo_create",
     {
       description: "Create a new personal todo.",
       inputSchema: createMyTodoInputSchema,
@@ -57,7 +57,7 @@ export function registerProfileTools(server: McpServer) {
   );
 
   server.registerTool(
-    "update_my_todo",
+    "workspace_todo_update",
     {
       description:
         "Update a todo by ID. Returns the updated todo snapshot. Only the owner can update.",
@@ -67,7 +67,7 @@ export function registerProfileTools(server: McpServer) {
   );
 
   server.registerTool(
-    "delete_my_todo",
+    "workspace_todo_delete",
     {
       description: "Delete a todo by ID. Only the owner can delete.",
       inputSchema: deleteMyTodoInputSchema,

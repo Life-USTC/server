@@ -12,8 +12,8 @@ describe("markdown 渲染器", () => {
     const html = renderMarkdown("See section#123 and teacher#456.");
 
     expect(html).toContain("section#123");
-    expect(html).not.toContain('href="/sections/123"');
-    expect(html).not.toContain('href="/teachers/456"');
+    expect(html).not.toContain('href="/catalog/sections/123"');
+    expect(html).not.toContain('href="/catalog/teachers/456"');
   });
 
   it("注入特性插件时将 campus 引用转为链接", () => {
@@ -21,8 +21,8 @@ describe("markdown 渲染器", () => {
       remarkPlugins: campusReferenceMarkdownPlugins,
     });
 
-    expect(html).toContain('href="/sections/123"');
-    expect(html).toContain('href="/teachers/456"');
+    expect(html).toContain('href="/catalog/sections/123"');
+    expect(html).toContain('href="/catalog/teachers/456"');
   });
 
   it("允许特性调用者注入自定义 campus 引用解析器", () => {
@@ -48,7 +48,7 @@ describe("markdown 渲染器", () => {
     });
 
     expect(description.content).toContain("<script>");
-    expect(description.renderedHtml).toContain('href="/teachers/456"');
+    expect(description.renderedHtml).toContain('href="/catalog/teachers/456"');
     expect(description.renderedHtml).not.toContain("<script>");
   });
 });

@@ -39,7 +39,7 @@ export async function revokeSettingsAuthorizationAction({
     logServerActionError("settings.authorization.revoke.failed", error, {
       action: "revoke-authorization",
       requestId,
-      route: "/settings/authorizations",
+      route: "/account/settings/authorizations",
     });
     return fail(500, {
       kind: "authorizations",
@@ -53,5 +53,8 @@ export async function revokeSettingsAuthorizationAction({
     });
   }
 
-  throw redirect(303, "/settings/authorizations?message=AuthorizationRevoked");
+  throw redirect(
+    303,
+    "/account/settings/authorizations?message=AuthorizationRevoked",
+  );
 }

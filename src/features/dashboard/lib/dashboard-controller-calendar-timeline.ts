@@ -19,7 +19,7 @@ export function sessionHrefForDashboardCalendar(
   tabHref: DashboardTabHref,
 ) {
   return session.sectionJwId
-    ? `/sections/${session.sectionJwId}`
+    ? `/catalog/sections/${session.sectionJwId}`
     : tabHref("subscriptions");
 }
 

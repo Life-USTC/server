@@ -21,12 +21,12 @@
         "ui": ["List Table"]
       },
       "web": {
-        "pages": ["/teachers"]
+        "pages": ["/catalog/teachers"]
       },
       "rest": {
         "routes": [
           {
-            "path": "/api/teachers",
+            "path": "/api/catalog/teachers",
             "returns": "PaginatedResponse<TeacherSummary>",
             "notes": [
               "REST pageSize accepts 1-100; the deprecated limit alias remains accepted and pageSize wins when both are supplied. Out-of-range values are rejected instead of clamped."
@@ -38,13 +38,14 @@
         "queries": [
           {
             "name": "teachers",
+            "parent": "Catalog",
             "arguments": {
               "page": "PageInput",
               "filter": "TeacherFilter"
             },
             "returns": "TeacherPage!",
-            "rest_equivalent": "GET /api/teachers",
-            "mcp_equivalent": "search_teachers",
+            "rest_equivalent": "GET /api/catalog/teachers",
+            "mcp_equivalent": "catalog_teacher_search",
             "notes": [
               "PageInput defaults to page=1 and pageSize=20; pageSize must remain within 1-100."
             ]
@@ -54,9 +55,9 @@
       "mcp": {
         "tools": [
           {
-            "name": "search_teachers",
+            "name": "catalog_teacher_search",
             "returns": "PaginatedResponse<TeacherSummary>",
-            "rest_equivalent": "GET /api/teachers",
+            "rest_equivalent": "GET /api/catalog/teachers",
             "notes": [
               "MCP limit accepts 1-100 and rejects out-of-range values instead of clamping."
             ]
@@ -83,12 +84,12 @@
         "ui": ["Detail Hero", "Context Tabs", "Basic Info Card"]
       },
       "web": {
-        "pages": ["/teachers/[id]"]
+        "pages": ["/catalog/teachers/[id]"]
       },
       "rest": {
         "routes": [
           {
-            "path": "/api/teachers/[id]",
+            "path": "/api/catalog/teachers/[id]",
             "returns": "TeacherDetail"
           }
         ]
@@ -97,19 +98,20 @@
         "queries": [
           {
             "name": "teacher",
+            "parent": "Catalog",
             "arguments": { "id": "Int!" },
             "returns": "Teacher",
-            "rest_equivalent": "GET /api/teachers/[id]",
-            "mcp_equivalent": "get_teacher_by_id"
+            "rest_equivalent": "GET /api/catalog/teachers/[id]",
+            "mcp_equivalent": "catalog_teacher_get"
           }
         ]
       },
       "mcp": {
         "tools": [
           {
-            "name": "get_teacher_by_id",
+            "name": "catalog_teacher_get",
             "returns": "{ found: Boolean, teacher: TeacherDetail? }",
-            "rest_equivalent": "GET /api/teachers/[id]"
+            "rest_equivalent": "GET /api/catalog/teachers/[id]"
           }
         ]
       },

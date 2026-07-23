@@ -151,13 +151,13 @@ describe("GraphQL HTTP boundary", () => {
 
   it("serves public queries without a session and prevents response caching", async () => {
     const { response, payload } = await execute({
-      query: "{ courses { items { jwId } pageInfo { total } } }",
+      query: "{ catalog { courses { items { jwId } pageInfo { total } } } }",
     });
 
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(payload).toEqual({
-      data: { courses: { items: [], pageInfo: { total: 0 } } },
+      data: { catalog: { courses: { items: [], pageInfo: { total: 0 } } } },
     });
   });
 
@@ -182,7 +182,7 @@ describe("GraphQL HTTP boundary", () => {
     expect(await productionResponse.text()).not.toContain("GraphiQL");
 
     const query = encodeURIComponent(
-      "{ courses { items { jwId } pageInfo { total } } }",
+      "{ catalog { courses { items { jwId } pageInfo { total } } } }",
     );
     const queryResponse = await productionHandler(
       requestEventFromRequest(
@@ -190,14 +190,14 @@ describe("GraphQL HTTP boundary", () => {
       ),
     );
     expect(await queryResponse.json()).toEqual({
-      data: { courses: { items: [], pageInfo: { total: 0 } } },
+      data: { catalog: { courses: { items: [], pageInfo: { total: 0 } } } },
     });
     expect(courseService.listCourseSummaries).toHaveBeenCalledTimes(1);
   });
 
   it("rejects mutation operations over GET and serves CORS preflight", async () => {
     const mutation = encodeURIComponent(
-      'mutation Forbidden { deleteTodo(id: "test") { success } }',
+      'mutation Forbidden { todoDelete(id: "test") { success } }',
     );
     const mutationResponse = await productionHandler(
       requestEventFromRequest(
@@ -251,7 +251,7 @@ describe("GraphQL HTTP boundary", () => {
           },
           body: JSON.stringify({
             query:
-              'mutation { createTodo(input: { title: "  Session todo  " }) { id } }',
+              'mutation { todoCreate(input: { title: "  Session todo  " }) { id } }',
           }),
         }),
       ),
@@ -260,7 +260,7 @@ describe("GraphQL HTTP boundary", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(await response.json()).toEqual({
-      data: { createTodo: { id: "todo-created" } },
+      data: { todoCreate: { id: "todo-created" } },
     });
     expect(todoService.createTodo).toHaveBeenCalledWith({
       userId: "session-user",
@@ -290,14 +290,14 @@ describe("GraphQL HTTP boundary", () => {
           },
           body: JSON.stringify({
             query:
-              'mutation { updateTodo(id: "todo-updated", input: { content: null }) { id } }',
+              'mutation { todoUpdate(id: "todo-updated", input: { content: null }) { id } }',
           }),
         }),
       ),
     );
 
     expect(await response.json()).toEqual({
-      data: { updateTodo: { id: "todo-updated" } },
+      data: { todoUpdate: { id: "todo-updated" } },
     });
     expect(todoService.updateOwnedTodo).toHaveBeenCalledWith({
       id: "todo-updated",
@@ -323,7 +323,7 @@ describe("GraphQL HTTP boundary", () => {
         {
           query: /* GraphQL */ `
             mutation UpsertDescription($input: UpsertDescriptionInput!) {
-              upsertDescription(input: $input) {
+              descriptionSet(input: $input) {
                 id
                 updated
               }
@@ -346,7 +346,7 @@ describe("GraphQL HTTP boundary", () => {
 
     expect(await response.json()).toEqual({
       data: {
-        upsertDescription: {
+        descriptionSet: {
           id: "description-created",
           updated: true,
         },
@@ -390,7 +390,7 @@ describe("GraphQL HTTP boundary", () => {
       sessionRequestEvent({
         query: /* GraphQL */ `
           mutation UpsertDescription($input: UpsertDescriptionInput!) {
-            upsertDescription(input: $input) {
+            descriptionSet(input: $input) {
               id
             }
           }
@@ -470,7 +470,7 @@ describe("GraphQL HTTP boundary", () => {
             origin: "http://localhost:3000",
           },
           body: JSON.stringify({
-            query: 'mutation { createTodo(input: { title: "   " }) { id } }',
+            query: 'mutation { todoCreate(input: { title: "   " }) { id } }',
           }),
         }),
       ),
@@ -507,7 +507,7 @@ describe("GraphQL HTTP boundary", () => {
             origin: "http://localhost:3000",
           },
           body: JSON.stringify({
-            query: 'mutation { deleteTodo(id: "missing") { success } }',
+            query: 'mutation { todoDelete(id: "missing") { success } }',
           }),
         }),
       ),
@@ -544,7 +544,7 @@ describe("GraphQL HTTP boundary", () => {
           },
           body: JSON.stringify({
             query:
-              'mutation { createTodo(input: { title: "limited" }) { id } }',
+              'mutation { todoCreate(input: { title: "limited" }) { id } }',
           }),
         }),
       ),
@@ -581,7 +581,7 @@ describe("GraphQL HTTP boundary", () => {
             origin: "http://localhost:3000",
           },
           body: JSON.stringify({
-            query: 'mutation { createTodo(input: { title: "masked" }) { id } }',
+            query: 'mutation { todoCreate(input: { title: "masked" }) { id } }',
           }),
         }),
       ),
@@ -593,7 +593,7 @@ describe("GraphQL HTTP boundary", () => {
 
   it("rejects anonymous POST mutations with a safe auth error", async () => {
     const { response, payload } = await execute({
-      query: 'mutation { deleteTodo(id: "todo") { success } }',
+      query: 'mutation { todoDelete(id: "todo") { success } }',
     });
 
     expect(response.headers.get("cache-control")).toBe("no-store");
@@ -612,7 +612,7 @@ describe("GraphQL HTTP boundary", () => {
   it("enforces the top-level field budget for mutations", async () => {
     const fields = Array.from(
       { length: GRAPHQL_LIMITS.topLevelFields + 1 },
-      (_, index) => `m${index}: deleteTodo(id: "todo-${index}") { success }`,
+      (_, index) => `m${index}: todoDelete(id: "todo-${index}") { success }`,
     ).join("\n");
     const { payload } = await execute({
       query: `mutation TooWide { ${fields} }`,
@@ -630,7 +630,7 @@ describe("GraphQL HTTP boundary", () => {
     );
 
     const { payload } = await execute({
-      query: "{ courses { items { jwId } } }",
+      query: "{ catalog { courses { items { jwId } } } }",
     });
 
     expect(errorMessages(payload).join(" ")).not.toContain(
@@ -650,7 +650,7 @@ describe("GraphQL HTTP boundary", () => {
     );
 
     const { payload } = await execute(
-      { query: "{ courses { items { jwId } } }" },
+      { query: "{ catalog { courses { items { jwId } } } }" },
       true,
     );
 
@@ -674,7 +674,7 @@ describe("GraphQL HTTP boundary", () => {
     );
 
     const { payload } = await execute(
-      { query: "{ courses { items { jwId } } }" },
+      { query: "{ catalog { courses { items { jwId } } } }" },
       true,
     );
 
@@ -694,7 +694,7 @@ describe("GraphQL HTTP boundary", () => {
     courseService.listCourseSummaries.mockRejectedValueOnce(cyclicError);
 
     const { payload } = await execute(
-      { query: "{ courses { items { jwId } } }" },
+      { query: "{ catalog { courses { items { jwId } } } }" },
       true,
     );
 
@@ -706,7 +706,7 @@ describe("GraphQL HTTP boundary", () => {
     const { payload } = await execute(
       {
         query:
-          "{ courses(page: { page: 0 }) { items { jwId } pageInfo { total } } }",
+          "{ catalog { courses(page: { page: 0 }) { items { jwId } pageInfo { total } } } }",
       },
       true,
     );
@@ -726,29 +726,29 @@ describe("GraphQL HTTP boundary", () => {
   it.each([
     [
       "page",
-      `{ courses(page: { page: ${GRAPHQL_LIMITS.page + 1} }) { pageInfo { total } } }`,
+      `{ catalog { courses(page: { page: ${GRAPHQL_LIMITS.page + 1} }) { pageInfo { total } } } }`,
     ],
-    ["root ID", "{ course(jwId: 0) { jwId } }"],
+    ["root ID", "{ catalog { course(jwId: 0) { jwId } } }"],
     [
       "identifier list",
-      `{ sections(filter: { ids: [${Array.from(
+      `{ catalog { sections(filter: { ids: [${Array.from(
         { length: GRAPHQL_LIMITS.idList + 1 },
         (_, index) => index + 1,
-      ).join(",")}] }) { pageInfo { total } } }`,
+      ).join(",")}] }) { pageInfo { total } } } }`,
     ],
     [
       "search text",
-      `{ courses(filter: { search: "${"x".repeat(
+      `{ catalog { courses(filter: { search: "${"x".repeat(
         GRAPHQL_LIMITS.searchChars + 1,
-      )}" }) { pageInfo { total } } }`,
+      )}" }) { pageInfo { total } } } }`,
     ],
     [
       "bus datetime",
-      '{ busTimetable(routeId: 1, now: "2026-04-29T08:00:00") { route { id } } }',
+      '{ catalog { busTimetable(routeId: 1, now: "2026-04-29T08:00:00") { route { id } } } }',
     ],
     [
       "bus version",
-      '{ busTimetable(routeId: 1, versionKey: "../unsafe") { route { id } } }',
+      '{ catalog { busTimetable(routeId: 1, versionKey: "../unsafe") { route { id } } } }',
     ],
   ])("rejects invalid %s before service execution", async (_name, query) => {
     const { payload } = await execute({ query });
@@ -758,7 +758,7 @@ describe("GraphQL HTTP boundary", () => {
 
   it("accepts the maximum pageSize and rejects values outside its boundary", async () => {
     const accepted = await execute({
-      query: `{ courses(page: { pageSize: ${GRAPHQL_LIMITS.pageSize} }) { items { jwId } } }`,
+      query: `{ catalog { courses(page: { pageSize: ${GRAPHQL_LIMITS.pageSize} }) { items { jwId } } } }`,
     });
     expect(errorMessages(accepted.payload)).toHaveLength(0);
     expect(courseService.listCourseSummaries).toHaveBeenCalledWith(
@@ -770,7 +770,7 @@ describe("GraphQL HTTP boundary", () => {
     for (const pageSize of [0, GRAPHQL_LIMITS.pageSize + 1]) {
       courseService.listCourseSummaries.mockClear();
       const rejected = await execute({
-        query: `{ courses(page: { pageSize: ${pageSize} }) { items { jwId } } }`,
+        query: `{ catalog { courses(page: { pageSize: ${pageSize} }) { items { jwId } } } }`,
       });
       expect(errorMessages(rejected.payload)).not.toHaveLength(0);
       expect(courseService.listCourseSummaries).not.toHaveBeenCalled();
@@ -833,21 +833,21 @@ describe("GraphQL HTTP boundary", () => {
       "inline literal",
       {
         query:
-          '{ busTimetable(routeId: 1, now: "2026-04-29T08:00:00+08:00") { route { id } } }',
+          '{ catalog { busTimetable(routeId: 1, now: "2026-04-29T08:00:00+08:00") { route { id } } } }',
       },
     ],
     [
       "variable",
       {
         query:
-          "query Timetable($now: DateTime!) { busTimetable(routeId: 1, now: $now) { route { id } } }",
+          "query Timetable($now: DateTime!) { catalog { busTimetable(routeId: 1, now: $now) { route { id } } } }",
         variables: { now: "2026-04-29T08:00:00+08:00" },
       },
     ],
   ])("coerces a strict zoned DateTime from an %s", async (_name, body) => {
     const { payload } = await execute(body);
 
-    expect(payload).toEqual({ data: { busTimetable: null } });
+    expect(payload).toEqual({ data: { catalog: { busTimetable: null } } });
     expect(busService.getBusRouteTimetable).toHaveBeenCalledWith(
       expect.objectContaining({ now: "2026-04-29T08:00:00+08:00" }),
     );
@@ -858,14 +858,14 @@ describe("GraphQL HTTP boundary", () => {
       "inline literal",
       {
         query:
-          '{ busTimetable(routeId: 1, now: "2026-04-31T08:00:00+08:00") { route { id } } }',
+          '{ catalog { busTimetable(routeId: 1, now: "2026-04-31T08:00:00+08:00") { route { id } } } }',
       },
     ],
     [
       "variable",
       {
         query:
-          "query Timetable($now: DateTime!) { busTimetable(routeId: 1, now: $now) { route { id } } }",
+          "query Timetable($now: DateTime!) { catalog { busTimetable(routeId: 1, now: $now) { route { id } } } }",
         variables: { now: "2026-04-29T08:00:00" },
       },
     ],
@@ -891,26 +891,26 @@ describe("GraphQL HTTP boundary", () => {
       "top-level fields",
       `{ ${Array.from(
         { length: GRAPHQL_LIMITS.topLevelFields + 1 },
-        (_, index) => `q${index}: currentSemester { jwId }`,
+        (_, index) => `q${index}: catalog { currentSemester { jwId } }`,
       ).join(" ")} }`,
     ],
     [
       "aliases",
-      `{ courses { ${Array.from(
+      `{ catalog { courses { ${Array.from(
         { length: GRAPHQL_LIMITS.aliases + 1 },
         (_, index) => `a${index}: items { jwId }`,
-      ).join(" ")} } }`,
-    ],
-    [
-      "directives",
-      `{ courses { items { ${Array.from(
-        { length: GRAPHQL_LIMITS.directives + 1 },
-        (_, index) => `f${index}: code @skip(if: false)`,
       ).join(" ")} } } }`,
     ],
     [
+      "directives",
+      `{ catalog { courses { items { ${Array.from(
+        { length: GRAPHQL_LIMITS.directives + 1 },
+        (_, index) => `f${index}: code @skip(if: false)`,
+      ).join(" ")} } } } }`,
+    ],
+    [
       "tokens",
-      `{ courses { items { ${"code ".repeat(GRAPHQL_LIMITS.tokens + 1)} } } }`,
+      `{ catalog { courses { items { ${"code ".repeat(GRAPHQL_LIMITS.tokens + 1)} } } } }`,
     ],
   ])("enforces the %s budget", async (_name, query) => {
     const { payload } = await execute({ query });
@@ -953,11 +953,13 @@ describe("GraphQL HTTP boundary", () => {
     const { payload } = await execute({
       query: `
         query ExpensiveCatalog($page: PageInput) {
-          first: courses(page: $page) {
-            ...FullCoursePage
-          }
-          second: courses(page: $page) {
-            ...FullCoursePage
+          catalog {
+            first: courses(page: $page) {
+              ...FullCoursePage
+            }
+            second: courses(page: $page) {
+              ...FullCoursePage
+            }
           }
         }
 
@@ -987,11 +989,11 @@ describe("GraphQL HTTP boundary", () => {
     expect(courseService.listCourseSummaries).not.toHaveBeenCalled();
   });
 
-  it("weights every Viewer page field by variable pageSize", async () => {
+  it("weights every Workspace page field by variable pageSize", async () => {
     const { payload } = await execute({
       query: /* GraphQL */ `
         query ExpensiveViewer($page: PageInput) {
-          viewer {
+          workspace {
             todos(page: $page) {
               items {
                 id
@@ -1079,11 +1081,11 @@ describe("GraphQL HTTP boundary", () => {
     expect(errorMessages(payload)).toContain("Query cost limit exceeded.");
   });
 
-  it("weights nested Viewer page fields before resolver execution", async () => {
+  it("weights nested Workspace page fields before resolver execution", async () => {
     const { payload } = await execute({
       query: /* GraphQL */ `
         query ExpensiveNestedViewer($nestedPage: PageInput) {
-          viewer {
+          workspace {
             schedules(page: { pageSize: 10 }) {
               items {
                 teachers(page: $nestedPage) {

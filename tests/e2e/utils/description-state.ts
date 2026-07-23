@@ -112,7 +112,7 @@ async function findDescriptionIdForTarget(
   target: DescriptionTargetReference,
 ) {
   const response = await request.get(
-    `/api/descriptions?${descriptionTargetSearchParams(target).toString()}`,
+    `/api/community/descriptions?${descriptionTargetSearchParams(target).toString()}`,
   );
   if (response.status() !== 200) {
     throw new Error(

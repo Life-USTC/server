@@ -1,5 +1,5 @@
 export function commentPanelSignInHref(pathname: string, search: string) {
-  return `/signin?callbackUrl=${encodeURIComponent(`${pathname}${search}`)}`;
+  return `/account/sign-in?callbackUrl=${encodeURIComponent(`${pathname}${search}`)}`;
 }
 
 export function commentPanelStatusLabel(
@@ -75,18 +75,18 @@ function pathWithSearch(
 
 export function commentTargetPermalinkBaseHref(target: CommentPermalinkTarget) {
   if (target.type === "course") {
-    return `/courses/${pathSegment(target.courseJwId)}/comments`;
+    return `/catalog/courses/${pathSegment(target.courseJwId)}/comments`;
   }
   if (target.type === "teacher") {
-    return `/teachers/${pathSegment(target.teacherId)}/comments`;
+    return `/catalog/teachers/${pathSegment(target.teacherId)}/comments`;
   }
   if (target.type === "homework") {
     return pathWithSearch(
-      `/sections/${pathSegment(target.sectionJwId)}/homework`,
+      `/catalog/sections/${pathSegment(target.sectionJwId)}/homework`,
       {
         homeworkId: target.homeworkId,
       },
     );
   }
-  return `/sections/${pathSegment(target.sectionJwId)}/comments`;
+  return `/catalog/sections/${pathSegment(target.sectionJwId)}/comments`;
 }

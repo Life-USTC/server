@@ -3,7 +3,7 @@ import * as fixtures from "./utils/mcp-tool-test-utils";
 
 const context = fixtures.createMcpToolTestContext();
 
-describe("get_my_profile", () => {
+describe("account_profile_get", () => {
   it("返回认证用户的 REST 等价资料字段", async () => {
     const profile = await context.client.call<{
       id?: string;
@@ -13,7 +13,7 @@ describe("get_my_profile", () => {
       isAdmin?: boolean;
       createdAt?: string;
       updatedAt?: string;
-    }>("get_my_profile");
+    }>("account_profile_get");
 
     expect(profile.id).toBe(context.devUserId);
     expect(typeof profile.email).toBe("string");
@@ -26,7 +26,7 @@ describe("get_my_profile", () => {
   });
 });
 
-describe("get_public_user_profile", () => {
+describe("community_user_get", () => {
   it("按用户名返回公开资料层级", async () => {
     const profile = await context.client.call<{
       found?: boolean;
@@ -44,7 +44,7 @@ describe("get_public_user_profile", () => {
       sectionCount?: number;
       totalContributions?: number;
       weeks?: Array<Array<{ date?: string; count?: number }>>;
-    }>("get_public_user_profile", {
+    }>("community_user_get", {
       username: fixtures.DEV_SEED.debugUsername,
       mode: "full",
     });
@@ -68,7 +68,7 @@ describe("get_public_user_profile", () => {
       success?: boolean;
       found?: boolean;
       error?: string;
-    }>("get_public_user_profile", {
+    }>("community_user_get", {
       username: "missing-integration-user",
     });
 

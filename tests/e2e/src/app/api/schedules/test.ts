@@ -1,8 +1,8 @@
 /**
- * E2E tests for GET /api/schedules
+ * E2E tests for GET /api/catalog/schedules
  *
  * ## Endpoints
- * - `GET /api/schedules` — List schedules with filters and pagination.
+ * - `GET /api/catalog/schedules` — List schedules with filters and pagination.
  *
  * ## Request
  * - Query: `sectionId` (optional, int), `teacherId` (optional, int),
@@ -32,7 +32,7 @@ import { assertApiContract } from "../../_shared/api-contract";
 async function resolveSeedSectionId(
   request: import("@playwright/test").APIRequestContext,
 ) {
-  const response = await request.post("/api/sections/match-codes", {
+  const response = await request.post("/api/catalog/sections/match-codes", {
     data: { codes: [DEV_SEED.section.code] },
   });
   expect(response.status()).toBe(200);
@@ -47,13 +47,13 @@ async function resolveSeedSectionId(
   return section!.id!;
 }
 
-test.describe("GET /api/schedules - 排课列表", () => {
+test.describe("GET /api/catalog/schedules - 排课列表", () => {
   test("契约", async ({ request }) => {
-    await assertApiContract(request, { routePath: "/api/schedules" });
+    await assertApiContract(request, { routePath: "/api/catalog/schedules" });
   });
 
   test("返回分页响应结构", async ({ request }) => {
-    const response = await request.get("/api/schedules");
+    const response = await request.get("/api/catalog/schedules");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       data?: unknown[];
@@ -75,7 +75,7 @@ test.describe("GET /api/schedules - 排课列表", () => {
   test("按 sectionId 过滤返回 seed 排课", async ({ request }) => {
     const sectionId = await resolveSeedSectionId(request);
     const response = await request.get(
-      `/api/schedules?sectionId=${sectionId}&limit=20`,
+      `/api/catalog/schedules?sectionId=${sectionId}&limit=20`,
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -93,7 +93,7 @@ test.describe("GET /api/schedules - 排课列表", () => {
   test("排课包含嵌套关联", async ({ request }) => {
     const sectionId = await resolveSeedSectionId(request);
     const response = await request.get(
-      `/api/schedules?sectionId=${sectionId}&limit=5`,
+      `/api/catalog/schedules?sectionId=${sectionId}&limit=5`,
     );
     expect(response.status()).toBe(200);
 
@@ -151,7 +151,9 @@ test.describe("GET /api/schedules - 排课列表", () => {
   });
 
   test("不匹配的 sectionId 返回空数据", async ({ request }) => {
-    const response = await request.get("/api/schedules?sectionId=999999999");
+    const response = await request.get(
+      "/api/catalog/schedules?sectionId=999999999",
+    );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       data?: unknown[];
@@ -162,12 +164,14 @@ test.describe("GET /api/schedules - 排课列表", () => {
   });
 
   test("无效 dateFrom 返回 400", async ({ request }) => {
-    const response = await request.get("/api/schedules?dateFrom=not-a-date");
+    const response = await request.get(
+      "/api/catalog/schedules?dateFrom=not-a-date",
+    );
     expect(response.status()).toBe(400);
   });
 
   test("pageSize 参数控制页大小", async ({ request }) => {
-    const response = await request.get("/api/schedules?pageSize=1");
+    const response = await request.get("/api/catalog/schedules?pageSize=1");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       data?: unknown[];

@@ -1,12 +1,12 @@
 /**
- * E2E tests for GET /api/todos and POST /api/todos.
+ * E2E tests for GET /api/workspace/todos and POST /api/workspace/todos.
  *
- * ## GET /api/todos
+ * ## GET /api/workspace/todos
  * - Response: { counts: { incomplete, completed, overdue }, todos: Array<{ id, title, content, priority, completed, dueAt, ... }> }
  * - Auth required (401 if unauthenticated)
  * - Returns all todos belonging to the current user
  *
- * ## POST /api/todos
+ * ## POST /api/workspace/todos
  * - Body: { title, content?, priority?, dueAt? }
  * - Response: { id: string }
  * - Auth required (401 if unauthenticated)
@@ -24,19 +24,19 @@ import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../../utils/dev-seed";
 import { assertApiContract } from "../../_shared/api-contract";
 
-test("/api/todos", async ({ request }) => {
-  await assertApiContract(request, { routePath: "/api/todos" });
+test("/api/workspace/todos", async ({ request }) => {
+  await assertApiContract(request, { routePath: "/api/workspace/todos" });
 });
 
-test("/api/todos GET 未登录返回 401", async ({ request }) => {
-  const response = await request.get("/api/todos");
+test("/api/workspace/todos GET 未登录返回 401", async ({ request }) => {
+  const response = await request.get("/api/workspace/todos");
   expect(response.status()).toBe(401);
 });
 
-test("/api/todos GET 登录后返回 seed 待办", async ({ page }) => {
+test("/api/workspace/todos GET 登录后返回 seed 待办", async ({ page }) => {
   await signInAsDebugUser(page, "/");
 
-  const response = await page.request.get("/api/todos");
+  const response = await page.request.get("/api/workspace/todos");
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
     counts?: { completed?: number; incomplete?: number; overdue?: number };
@@ -53,10 +53,14 @@ test("/api/todos GET 登录后返回 seed 待办", async ({ page }) => {
   ).toBe(true);
 });
 
-test("/api/todos GET 支持 completed 筛选与 limit", async ({ page }) => {
+test("/api/workspace/todos GET 支持 completed 筛选与 limit", async ({
+  page,
+}) => {
   await signInAsDebugUser(page, "/");
 
-  const response = await page.request.get("/api/todos?completed=false&limit=1");
+  const response = await page.request.get(
+    "/api/workspace/todos?completed=false&limit=1",
+  );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
     todos?: Array<{ completed?: boolean }>;
@@ -66,11 +70,13 @@ test("/api/todos GET 支持 completed 筛选与 limit", async ({ page }) => {
   expect(body.todos?.every((todo) => todo.completed === false)).toBe(true);
 });
 
-test("/api/todos GET 接受裸日期筛选并拒绝无效日期", async ({ page }) => {
+test("/api/workspace/todos GET 接受裸日期筛选并拒绝无效日期", async ({
+  page,
+}) => {
   await signInAsDebugUser(page, "/");
 
   const response = await page.request.get(
-    `/api/todos?completed=false&dueBefore=${DEV_SEED_ANCHOR.date}&limit=10`,
+    `/api/workspace/todos?completed=false&dueBefore=${DEV_SEED_ANCHOR.date}&limit=10`,
   );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
@@ -87,22 +93,22 @@ test("/api/todos GET 接受裸日期筛选并拒绝无效日期", async ({ page 
   ).toBe(false);
 
   const invalidResponse = await page.request.get(
-    "/api/todos?dueBefore=not-a-date",
+    "/api/workspace/todos?dueBefore=not-a-date",
   );
   expect(invalidResponse.status()).toBe(400);
 });
 
-test("/api/todos GET 拒绝无效 limit", async ({ page }) => {
+test("/api/workspace/todos GET 拒绝无效 limit", async ({ page }) => {
   await signInAsDebugUser(page, "/");
 
-  const response = await page.request.get("/api/todos?limit=0");
+  const response = await page.request.get("/api/workspace/todos?limit=0");
   expect(response.status()).toBe(400);
 });
 
 test("待办包含所有必需的 TodoItem 字段", async ({ page }) => {
   await signInAsDebugUser(page, "/");
 
-  const response = await page.request.get("/api/todos");
+  const response = await page.request.get("/api/workspace/todos");
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
     todos?: Array<Record<string, unknown>>;
@@ -125,19 +131,19 @@ test("待办包含所有必需的 TodoItem 字段", async ({ page }) => {
   expect(typeof todo.updatedAt).toBe("string");
 });
 
-test("/api/todos POST 未登录返回 401", async ({ request }) => {
-  const response = await request.post("/api/todos", {
+test("/api/workspace/todos POST 未登录返回 401", async ({ request }) => {
+  const response = await request.post("/api/workspace/todos", {
     data: { title: "should fail" },
   });
   expect(response.status()).toBe(401);
 });
 
-test("/api/todos POST 登录后可创建新待办并清理", async ({ page }) => {
+test("/api/workspace/todos POST 登录后可创建新待办并清理", async ({ page }) => {
   await signInAsDebugUser(page, "/");
 
   const title = `e2e-api-todo-${Date.now()}`;
   const content = "x".repeat(TODO_CONTENT_MAX_LENGTH);
-  const createResponse = await page.request.post("/api/todos", {
+  const createResponse = await page.request.post("/api/workspace/todos", {
     data: {
       title,
       content: ` ${content} `,
@@ -148,10 +154,12 @@ test("/api/todos POST 登录后可创建新待办并清理", async ({ page }) =>
 
   const createdId = ((await createResponse.json()) as { id?: string }).id;
   expect(createdId).toBeTruthy();
-  expect(createResponse.headers().location).toBe(`/api/todos/${createdId}`);
+  expect(createResponse.headers().location).toBe(
+    `/api/workspace/todos/${createdId}`,
+  );
 
   try {
-    const listResponse = await page.request.get("/api/todos");
+    const listResponse = await page.request.get("/api/workspace/todos");
     expect(listResponse.status()).toBe(200);
     const listBody = (await listResponse.json()) as {
       todos?: Array<{
@@ -172,7 +180,7 @@ test("/api/todos POST 登录后可创建新待办并清理", async ({ page }) =>
     ).toBe(true);
   } finally {
     if (createdId) {
-      await page.request.delete(`/api/todos/${createdId}`);
+      await page.request.delete(`/api/workspace/todos/${createdId}`);
     }
   }
 });

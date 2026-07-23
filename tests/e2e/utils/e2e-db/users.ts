@@ -3,7 +3,7 @@ import { generateToken } from "./core";
 import { withE2ePrisma } from "./prisma";
 
 function buildUserCalendarFeedPath(userId: string, token: string): string {
-  return `/api/users/${userId}:${token}/calendar.ics`;
+  return `/api/community/users/${userId}:${token}/calendar.ics`;
 }
 
 export async function getUserProfileById(userId: string) {

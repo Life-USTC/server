@@ -77,7 +77,7 @@ export async function postCommentRoute(request: Request) {
 
     return createdJsonResponse(
       { id: result.comment.id },
-      `/api/comments/${encodeURIComponent(result.comment.id)}`,
+      `/api/community/comments/${encodeURIComponent(result.comment.id)}`,
     );
   } catch (error) {
     return handleRouteError("Failed to create comment", error);

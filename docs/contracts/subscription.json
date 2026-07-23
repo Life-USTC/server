@@ -20,25 +20,25 @@
         "ui": ["Detail Hero"]
       },
       "web": {
-        "pages": ["/sections/[jwId]"]
+        "pages": ["/catalog/sections/[jwId]"]
       },
       "graphql": {
         "mutations": [
           {
-            "name": "subscribeSection",
+            "name": "subscriptionAdd",
             "arguments": { "jwId": "Int!" },
             "returns": "SectionSubscriptionMutationPayload!",
             "auth": "user",
             "required_scopes": ["subscription:write"],
-            "mcp_equivalent": "subscribe_section_by_jw_id"
+            "mcp_equivalent": "workspace_subscription_add"
           },
           {
-            "name": "unsubscribeSection",
+            "name": "subscriptionRemove",
             "arguments": { "jwId": "Int!" },
             "returns": "SectionSubscriptionMutationPayload!",
             "auth": "user",
             "required_scopes": ["subscription:write"],
-            "mcp_equivalent": "unsubscribe_section_by_jw_id"
+            "mcp_equivalent": "workspace_subscription_remove"
           }
         ]
       },
@@ -46,7 +46,7 @@
       "mcp": {
         "tools": [
           {
-            "name": "subscribe_section_by_jw_id",
+            "name": "workspace_subscription_add",
             "returns": "{ success: Boolean, action: String, sectionJwId: Int, subscription }",
             "notes": [
               "Missing section jwId returns { success: false, action: \"not_found\", subscription: null }.",
@@ -55,7 +55,7 @@
             ]
           },
           {
-            "name": "unsubscribe_section_by_jw_id",
+            "name": "workspace_subscription_remove",
             "returns": "{ success: Boolean, action: String, sectionJwId: Int, subscription }",
             "notes": [
               "Missing section jwId returns { success: false, action: \"not_found\", subscription: null }.",
@@ -79,20 +79,20 @@
         "models": ["Section", "User"]
       },
       "web": {
-        "pages": ["/dashboard/subscriptions", "/welcome"]
+        "pages": ["/workspace/subscriptions", "/account/welcome"]
       },
       "graphql": {
         "mutations": [
           {
-            "name": "updateSectionSubscriptions",
+            "name": "subscriptionsImport",
             "arguments": {
               "input": "UpdateSectionSubscriptionsInput!"
             },
             "returns": "SectionSubscriptionBatchPayload!",
             "auth": "user",
             "required_scopes": ["subscription:write"],
-            "rest_equivalent": "POST /api/calendar-subscriptions/batch",
-            "mcp_equivalent": "subscribe_my_sections_by_codes",
+            "rest_equivalent": "POST /api/workspace/subscriptions/batch",
+            "mcp_equivalent": "workspace_subscription_import",
             "notes": [
               "Accepts at most 500 unique public section/course codes; internal section IDs are intentionally not exposed.",
               "ADD and REMOVE require at least one code. SET requires semesterId and may use an empty code list to clear only that semester.",
@@ -104,7 +104,7 @@
       "rest": {
         "routes": [
           {
-            "path": "/api/calendar-subscriptions/query",
+            "path": "/api/workspace/subscriptions/query",
             "method": "POST",
             "returns": "{ semester, matchedCodes: String[], unmatchedCodes: String[], matchedSectionIds: Int[], unmatchedSectionIds: Int[], suggestions, sections: Section[], total: Int }",
             "notes": [
@@ -114,7 +114,7 @@
             ]
           },
           {
-            "path": "/api/calendar-subscriptions/batch",
+            "path": "/api/workspace/subscriptions/batch",
             "method": "POST",
             "returns": "{ action, semester, matchedCodes, unmatchedCodes, matchedSectionIds, unmatchedSectionIds, sections, addedCount, removedCount, unchangedCount, subscription }",
             "notes": [
@@ -125,13 +125,13 @@
             ]
           },
           {
-            "path": "/api/sections/match-codes",
+            "path": "/api/catalog/sections/match-codes",
             "method": "POST",
             "auth": "anon",
             "returns": "{ semester: Semester, matchedCodes: String[], unmatchedCodes: String[], suggestions: Record<String, String[]>, sections: Section[], total: Int }"
           },
           {
-            "path": "/api/calendar-subscriptions",
+            "path": "/api/workspace/subscriptions",
             "method": "POST",
             "returns": "{ subscription: CalendarSubscription }",
             "notes": [
@@ -141,7 +141,7 @@
             ]
           },
           {
-            "path": "/api/calendar-subscriptions",
+            "path": "/api/workspace/subscriptions",
             "method": "PATCH",
             "returns": "{ subscription: CalendarSubscription, addedCount: Int, alreadySubscribedCount: Int }",
             "notes": [
@@ -152,7 +152,7 @@
             ]
           },
           {
-            "path": "/api/calendar-subscriptions",
+            "path": "/api/workspace/subscriptions",
             "method": "DELETE",
             "returns": "{ subscription: CalendarSubscription }",
             "notes": [
@@ -163,7 +163,7 @@
             ]
           },
           {
-            "path": "/api/calendar-subscriptions/import-codes",
+            "path": "/api/workspace/subscriptions/import-codes",
             "method": "POST",
             "returns": "{ success: Boolean, semester, matchedCodes, unmatchedCodes, ambiguousCodes, sections, addedCount, addedSections, alreadySubscribedCount, alreadySubscribedSections, subscription }",
             "notes": [
@@ -177,22 +177,22 @@
       "mcp": {
         "tools": [
           {
-            "name": "match_section_codes",
+            "name": "catalog_section_match_preview",
             "returns": "{ semester: Semester, matchedCodes: String[], unmatchedCodes: String[], suggestions: Record<String, String[]>, sections: Section[], total: Int }",
-            "rest_equivalent": "POST /api/sections/match-codes",
+            "rest_equivalent": "POST /api/catalog/sections/match-codes",
             "notes": [
               "Returns suggestions for unmatched inputs when close section codes in the selected semester share a strong code-prefix or edit-distance match; unrelated section codes should be filtered out.",
-              "Prefer this read-only preview before subscribe_my_sections_by_codes when the caller needs confirmation or typo recovery.",
-              "MCP callers that need per-section selection can subscribe selected preview results by calling subscribe_section_by_jw_id with each section.jwId."
+              "Prefer this read-only preview before workspace_subscription_import when the caller needs confirmation or typo recovery.",
+              "MCP callers that need per-section selection can subscribe selected preview results by calling workspace_subscription_add with each section.jwId."
             ]
           },
           {
-            "name": "subscribe_my_sections_by_codes",
+            "name": "workspace_subscription_import",
             "returns": "{ success: Boolean, semester, matchedCodes, unmatchedCodes, addedCount, alreadySubscribedCount, subscription }",
-            "rest_equivalent": "POST /api/calendar-subscriptions/import-codes",
+            "rest_equivalent": "POST /api/workspace/subscriptions/import-codes",
             "notes": [
               "Convenience mutation that combines matching with subscription update.",
-              "Use match_section_codes first when the caller needs a dry-run style preview.",
+              "Use catalog_section_match_preview first when the caller needs a dry-run style preview.",
               "Default and the deprecated summary alias return the subscription totals plus feed link information, not the entire subscribed section list.",
               "Request full mode only when the caller explicitly needs the full CalendarSubscription with sections[]."
             ]

@@ -240,17 +240,17 @@ describe.sequential("GraphQL Viewer integration", () => {
     await prisma.$disconnect();
   });
 
-  it("returns viewer=null to anonymous callers and marks the response no-store", async () => {
+  it("returns account=null to anonymous callers and marks the response no-store", async () => {
     const { response, payload } = await execute({
-      query: "{ viewer { profile { id } } }",
+      query: "{ account { profile { id } } }",
     });
 
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
-    expect(payload).toEqual({ data: { viewer: null } });
+    expect(payload).toEqual({ data: { account: null } });
   });
 
-  it("serves every suspended user's relation-owned Viewer field through a trusted-Origin session", async () => {
+  it("serves account and workspace fields through a trusted-Origin session", async () => {
     const shanghaiMidnightInstant = new Date(
       firstScheduleDate.getTime() - 8 * 60 * 60 * 1000,
     ).toISOString();
@@ -309,7 +309,7 @@ describe.sequential("GraphQL Viewer integration", () => {
           }
 
           query ViewerBySession($date: DateTime!) {
-            viewer {
+            account {
               profile {
                 id
                 email
@@ -319,6 +319,8 @@ describe.sequential("GraphQL Viewer integration", () => {
                 createdAt
                 updatedAt
               }
+            }
+            viewer: workspace {
               overview(atTime: "2026-04-29T08:00:00+08:00") {
                 atTime
                 today
@@ -431,8 +433,8 @@ describe.sequential("GraphQL Viewer integration", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(payload.errors).toBeUndefined();
+    const account = payload.data?.account as { profile: { id: string } };
     const viewer = payload.data?.viewer as {
-      profile: { id: string };
       overview: { today: string };
       todos: {
         items: Array<{ title: string }>;
@@ -455,7 +457,7 @@ describe.sequential("GraphQL Viewer integration", () => {
         pageInfo: { total: number };
       };
     };
-    expect(viewer.profile.id).toBe(firstUserId);
+    expect(account.profile.id).toBe(firstUserId);
     expect(viewer.overview.today).toBe("2026-04-29");
     expect(viewer.todos.pageInfo).toMatchObject({ pageSize: 20, total: 1 });
     expect(viewer.todos.items[0]?.title).toContain("graphql-viewer-a");
@@ -488,7 +490,7 @@ describe.sequential("GraphQL Viewer integration", () => {
       {
         query: /* GraphQL */ `
           {
-            viewer {
+            viewer: workspace {
               schedules(page: { pageSize: 1 }) {
                 items {
                   teachers {
@@ -572,7 +574,7 @@ describe.sequential("GraphQL Viewer integration", () => {
       {
         query: /* GraphQL */ `
           {
-            viewer {
+            viewer: workspace {
               schedules(page: { pageSize: 1 }) {
                 items {
                   defaultTeachers: teachers {
@@ -693,7 +695,7 @@ describe.sequential("GraphQL Viewer integration", () => {
       const rejected = await execute(
         {
           query: `{
-            viewer {
+            viewer: workspace {
               ${parentField}(page: { pageSize: 1 }) {
                 items {
                   ${nestedField} { pageInfo { total } }
@@ -715,10 +717,12 @@ describe.sequential("GraphQL Viewer integration", () => {
       {
         query: /* GraphQL */ `
           {
-            viewer {
+            account {
               profile {
                 id
               }
+            }
+            viewer: workspace {
               todos {
                 pageInfo {
                   total
@@ -731,9 +735,11 @@ describe.sequential("GraphQL Viewer integration", () => {
       { authorization: `Bearer ${graphqlBearer}` },
     );
     expect(authorized.payload.errors).toBeUndefined();
-    expect(authorized.payload.data?.viewer).toMatchObject({
-      profile: { id: firstUserId },
-      todos: { pageInfo: { total: 1 } },
+    expect(authorized.payload.data).toMatchObject({
+      account: { profile: { id: firstUserId } },
+      viewer: {
+        todos: { pageInfo: { total: 1 } },
+      },
     });
 
     const todoOnly = await signToken(firstUserId, [restReadScope("todo")]);
@@ -741,7 +747,7 @@ describe.sequential("GraphQL Viewer integration", () => {
       {
         query: /* GraphQL */ `
           {
-            viewer {
+            account {
               profile {
                 id
               }
@@ -765,7 +771,7 @@ describe.sequential("GraphQL Viewer integration", () => {
       {
         query: /* GraphQL */ `
           {
-            viewer {
+            viewer: workspace {
               todos {
                 pageInfo {
                   total
@@ -804,7 +810,7 @@ describe.sequential("GraphQL Viewer integration", () => {
       resource(),
     );
     const { response, payload } = await execute(
-      { query: "{ viewer { profile { id } } }" },
+      { query: "{ account { profile { id } } }" },
       {
         authorization: `Bearer ${wrongAudience}`,
         cookie: sessionCookie,
@@ -816,7 +822,7 @@ describe.sequential("GraphQL Viewer integration", () => {
     expect(payload.errors?.[0]?.extensions).toMatchObject({
       code: "UNAUTHENTICATED",
     });
-    expect(payload.data?.viewer).not.toMatchObject({
+    expect(payload.data?.account).not.toMatchObject({
       profile: { id: firstUserId },
     });
   });
@@ -827,7 +833,7 @@ describe.sequential("GraphQL Viewer integration", () => {
       {
         query: /* GraphQL */ `
           {
-            viewer {
+            viewer: workspace {
               defaultPage: todos {
                 pageInfo {
                   page
@@ -854,7 +860,7 @@ describe.sequential("GraphQL Viewer integration", () => {
     const oversized = await execute(
       {
         query:
-          "{ viewer { todos(page: { pageSize: 101 }) { pageInfo { total } } } }",
+          "{ viewer: workspace { todos(page: { pageSize: 101 }) { pageInfo { total } } } }",
       },
       headers,
     );
@@ -866,7 +872,7 @@ describe.sequential("GraphQL Viewer integration", () => {
       {
         query: /* GraphQL */ `
           {
-            viewer {
+            viewer: workspace {
               schedules(
                 filter: {
                   dateFrom: "2026-04-30T00:00:00+08:00"
@@ -891,7 +897,7 @@ describe.sequential("GraphQL Viewer integration", () => {
       {
         query: /* GraphQL */ `
           {
-            viewer {
+            viewer: workspace {
               schedules(filter: { dateFrom: "2026-04-29T00:00:00" }) {
                 pageInfo {
                   total

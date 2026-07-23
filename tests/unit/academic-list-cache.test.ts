@@ -46,12 +46,12 @@ describe("academic 列表路由缓存", () => {
 
     const first = await getCoursesRoute(
       new Request(
-        "https://example.test/api/courses?locale=en-us&search=math&page=1",
+        "https://example.test/api/catalog/courses?locale=en-us&search=math&page=1",
       ),
     );
     const second = await getCoursesRoute(
       new Request(
-        "https://example.test/api/courses?page=1&search=math&locale=en-us",
+        "https://example.test/api/catalog/courses?page=1&search=math&locale=en-us",
       ),
     );
 
@@ -73,12 +73,12 @@ describe("academic 列表路由缓存", () => {
 
     const first = await getTeachersRoute(
       new Request(
-        "https://example.test/api/teachers?locale=zh-cn&search=li&page=1",
+        "https://example.test/api/catalog/teachers?locale=zh-cn&search=li&page=1",
       ),
     );
     const second = await getTeachersRoute(
       new Request(
-        "https://example.test/api/teachers?page=1&search=li&locale=zh-cn",
+        "https://example.test/api/catalog/teachers?page=1&search=li&locale=zh-cn",
       ),
     );
 
@@ -99,7 +99,7 @@ describe("academic 列表路由缓存", () => {
     );
 
     const response = await getCoursesRoute(
-      new Request("https://example.test/api/courses?page=1", {
+      new Request("https://example.test/api/catalog/courses?page=1", {
         headers: { "accept-language": "en-US" },
       }),
     );

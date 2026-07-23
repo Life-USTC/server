@@ -25,6 +25,10 @@ export function normalizeSettingsTab(
   return isSettingsTab(value) ? value : "profile";
 }
 
+export function settingsTabFromPathname(pathname: string): SettingsTab {
+  return normalizeSettingsTab(pathname.split("/").filter(Boolean).at(-1));
+}
+
 function resolveLegacySettingsTab(value: string | null) {
   if (value === "appearance" || value === "language") {
     return "preferences";
@@ -34,7 +38,7 @@ function resolveLegacySettingsTab(value: string | null) {
 
 export function settingsTabCompatibilityRedirectHref(url: URL, method = "GET") {
   return semanticSectionCompatibilityHref({
-    basePath: "/settings",
+    basePath: "/account/settings",
     defaultSection: "profile",
     method,
     resolveSection: resolveLegacySettingsTab,

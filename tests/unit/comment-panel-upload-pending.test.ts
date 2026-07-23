@@ -243,7 +243,7 @@ describe("评论面板上传挂起状态", () => {
 
     await actions.submitComment();
 
-    expect(apiClientMock.POST).toHaveBeenCalledWith("/api/comments", {
+    expect(apiClientMock.POST).toHaveBeenCalledWith("/api/community/comments", {
       body: {
         attachmentIds: ["new-upload"],
         body: "new body",

@@ -31,10 +31,12 @@ describe("GraphQL operation analysis", () => {
   it("expands fragments and weights pageSize variables with the security cost model", () => {
     const document = parse(/* GraphQL */ `
       query Catalog($page: PageInput) {
-        ...CatalogRoot
+        catalog {
+          ...CatalogRoot
+        }
       }
 
-      fragment CatalogRoot on Query {
+      fragment CatalogRoot on Catalog {
         courses(page: $page) {
           ...CoursePageFields
         }
@@ -61,15 +63,15 @@ describe("GraphQL operation analysis", () => {
         variables: { page: { pageSize: 37 } },
       }),
     ).toEqual({
-      estimatedCost: 336,
+      estimatedCost: 338,
       operationName: "Catalog",
       operationType: "query",
-      topLevelFieldCount: 2,
+      topLevelFieldCount: 1,
     });
   });
 
   it("reports anonymous and unselected operations without using raw input names", () => {
-    const anonymous = parse("{ currentSemester { jwId } }");
+    const anonymous = parse("{ catalog { currentSemester { jwId } } }");
     expect(
       analyzeGraphqlOperation({
         document: anonymous,
@@ -81,7 +83,7 @@ describe("GraphQL operation analysis", () => {
     });
 
     const multiple = parse(
-      "query First { currentSemester { jwId } } query Second { currentSemester { jwId } }",
+      "query First { catalog { currentSemester { jwId } } } query Second { catalog { currentSemester { jwId } } }",
     );
     expect(
       analyzeGraphqlOperation({
@@ -97,10 +99,10 @@ describe("GraphQL operation analysis", () => {
     });
   });
 
-  it("weights every authenticated Viewer collection by its pageSize", () => {
+  it("weights every authenticated Workspace collection by its pageSize", () => {
     const document = parse(/* GraphQL */ `
       query ViewerPages($page: PageInput) {
-        viewer {
+        workspace {
           todos(page: $page) {
             pageInfo { total }
           }
@@ -137,7 +139,7 @@ describe("GraphQL operation analysis", () => {
   it("weights nested Schedule teachers and Exam rooms by their pageSize", () => {
     const document = parse(/* GraphQL */ `
       query NestedViewerPages($page: PageInput) {
-        viewer {
+        workspace {
           schedules {
             items {
               teachers(page: $page) {

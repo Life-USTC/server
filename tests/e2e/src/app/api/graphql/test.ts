@@ -8,15 +8,17 @@ test("Cloudflare Worker serves the public GraphQL endpoint", async ({
     data: {
       query: /* GraphQL */ `
         query WorkerSmoke($courseJwId: Int!, $sectionJwId: Int!) {
-          course(jwId: $courseJwId) {
-            jwId
-            code
-          }
-          section(jwId: $sectionJwId) {
-            jwId
-            code
-            course {
+          catalog {
+            course(jwId: $courseJwId) {
               jwId
+              code
+            }
+            section(jwId: $sectionJwId) {
+              jwId
+              code
+              course {
+                jwId
+              }
             }
           }
         }
@@ -32,14 +34,16 @@ test("Cloudflare Worker serves the public GraphQL endpoint", async ({
   expect(response.headers()["cache-control"]).toBe("no-store");
   expect(await response.json()).toEqual({
     data: {
-      course: {
-        jwId: DEV_SEED.course.jwId,
-        code: DEV_SEED.course.code,
-      },
-      section: {
-        jwId: DEV_SEED.section.jwId,
-        code: DEV_SEED.section.code,
-        course: { jwId: DEV_SEED.course.jwId },
+      catalog: {
+        course: {
+          jwId: DEV_SEED.course.jwId,
+          code: DEV_SEED.course.code,
+        },
+        section: {
+          jwId: DEV_SEED.section.jwId,
+          code: DEV_SEED.section.code,
+          course: { jwId: DEV_SEED.course.jwId },
+        },
       },
     },
   });

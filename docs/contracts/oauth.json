@@ -54,7 +54,7 @@
       "title": "Authorized Applications",
       "auth": "user",
       "web": {
-        "pages": ["/settings/authorizations"]
+        "pages": ["/account/settings/authorizations"]
       },
       "rest": "unavailable",
       "graphql": "unavailable",

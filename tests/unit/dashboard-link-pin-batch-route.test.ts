@@ -18,7 +18,7 @@ vi.mock("@/features/dashboard-links/server/dashboard-link-service", () => ({
 }));
 
 function postRequest(body: unknown) {
-  return new Request("https://example.test/api/dashboard-links/pin/batch", {
+  return new Request("https://example.test/api/workspace/links/pin/batch", {
     body: JSON.stringify(body),
     headers: { "Content-Type": "application/json" },
     method: "POST",

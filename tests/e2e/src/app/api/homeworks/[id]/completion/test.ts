@@ -1,7 +1,7 @@
 /**
- * E2E tests for PUT /api/homeworks/[id]/completion.
+ * E2E tests for PUT /api/workspace/homeworks/[id]/completion.
  *
- * ## PUT /api/homeworks/[id]/completion
+ * ## PUT /api/workspace/homeworks/[id]/completion
  * - Body: { completed: boolean }
  * - Response: { completed: boolean, completedAt: string | null }
  * - Auth required (401 if unauthenticated)
@@ -28,7 +28,7 @@ import { assertApiContract } from "../../../../_shared/api-contract";
 async function resolveSeedSectionId(
   request: import("@playwright/test").APIRequestContext,
 ) {
-  const response = await request.post("/api/sections/match-codes", {
+  const response = await request.post("/api/catalog/sections/match-codes", {
     data: { codes: [DEV_SEED.section.code] },
   });
   expect(response.status()).toBe(200);
@@ -47,7 +47,7 @@ async function findSeedHomeworkId(
   sectionId: number,
 ) {
   const listResponse = await request.get(
-    `/api/homeworks?sectionId=${sectionId}`,
+    `/api/community/homeworks?sectionId=${sectionId}`,
   );
   expect(listResponse.status()).toBe(200);
   const listBody = (await listResponse.json()) as {
@@ -63,22 +63,27 @@ async function findSeedHomeworkId(
   return hw!.id!;
 }
 
-test("/api/homeworks/[id]/completion 接口契约", async ({ request }) => {
+test("/api/workspace/homeworks/[id]/completion 接口契约", async ({
+  request,
+}) => {
   await assertApiContract(request, {
-    routePath: "/api/homeworks/[id]/completion",
+    routePath: "/api/workspace/homeworks/[id]/completion",
   });
 });
 
-test("/api/homeworks/[id]/completion PUT 未登录返回 401", async ({
+test("/api/workspace/homeworks/[id]/completion PUT 未登录返回 401", async ({
   request,
 }) => {
-  const response = await request.put("/api/homeworks/invalid-e2e/completion", {
-    data: { completed: true },
-  });
+  const response = await request.put(
+    "/api/workspace/homeworks/invalid-e2e/completion",
+    {
+      data: { completed: true },
+    },
+  );
   expect(response.status()).toBe(401);
 });
 
-test("/api/homeworks/[id]/completion PUT 可切换完成状态并还原", async ({
+test("/api/workspace/homeworks/[id]/completion PUT 可切换完成状态并还原", async ({
   page,
 }) => {
   await signInAsDebugUser(page, "/");
@@ -89,7 +94,7 @@ test("/api/homeworks/[id]/completion PUT 可切换完成状态并还原", async 
     // Undo completion (seed homework starts as completed)
     await expect(async () => {
       const undoResponse = await page.request.put(
-        `/api/homeworks/${homeworkId}/completion`,
+        `/api/workspace/homeworks/${homeworkId}/completion`,
         { data: { completed: false } },
       );
       expect(undoResponse.status()).toBe(200);
@@ -104,7 +109,7 @@ test("/api/homeworks/[id]/completion PUT 可切换完成状态并还原", async 
     // Re-mark as completed
     await expect(async () => {
       const completeResponse = await page.request.put(
-        `/api/homeworks/${homeworkId}/completion`,
+        `/api/workspace/homeworks/${homeworkId}/completion`,
         { data: { completed: true } },
       );
       expect(completeResponse.status()).toBe(200);
@@ -117,8 +122,11 @@ test("/api/homeworks/[id]/completion PUT 可切换完成状态并还原", async 
     }).toPass({ timeout: 10_000 });
   } finally {
     // Restore to completed state (matches seed)
-    await page.request.put(`/api/homeworks/${homeworkId}/completion`, {
-      data: { completed: true },
-    });
+    await page.request.put(
+      `/api/workspace/homeworks/${homeworkId}/completion`,
+      {
+        data: { completed: true },
+      },
+    );
   }
 });

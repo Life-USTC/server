@@ -13,17 +13,17 @@ function shouldRedirect(path: string, url = `http://localhost:3000${path}`) {
 describe("欢迎页重定向策略", () => {
   it("将资料不完整的已登录用户从普通页面重定向", () => {
     expect(shouldRedirect("/")).toBe(true);
-    expect(shouldRedirect("/settings")).toBe(true);
+    expect(shouldRedirect("/account/settings")).toBe(true);
   });
 
   it("允许资料补全页和 OAuth 授权页", () => {
-    expect(shouldRedirect("/welcome")).toBe(false);
-    expect(shouldRedirect("/signin")).toBe(false);
+    expect(shouldRedirect("/account/welcome")).toBe(false);
+    expect(shouldRedirect("/account/sign-in")).toBe(false);
     expect(shouldRedirect("/oauth/authorize")).toBe(false);
   });
 
   it("不重定向 API、发现服务或静态资源请求", () => {
-    expect(shouldRedirect("/api/me")).toBe(false);
+    expect(shouldRedirect("/api/account")).toBe(false);
     expect(shouldRedirect("/.well-known/openid-configuration")).toBe(false);
     expect(shouldRedirect("/_app/immutable/start.js")).toBe(false);
     expect(shouldRedirect("/llms.txt")).toBe(false);

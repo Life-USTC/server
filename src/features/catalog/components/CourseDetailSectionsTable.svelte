@@ -29,7 +29,7 @@ export let teacherNames: (teachers: CatalogNamed[]) => string;
     </Table.Header>
     <Table.Body>
       {#each course.sections as section}
-        {@const sectionHref = `/sections/${section.jwId}`}
+        {@const sectionHref = `/catalog/sections/${section.jwId}`}
         <Table.Row>
           <Table.Cell class="p-0 align-top">
             <CatalogTableLink href={sectionHref} nowrap>

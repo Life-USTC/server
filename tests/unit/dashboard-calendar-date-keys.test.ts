@@ -35,7 +35,7 @@ describe("仪表盘日历日期键", () => {
       referenceDate: "2026-03-01T16:00:00.000Z",
     };
     const state = dashboardCalendarStateFromUrl(
-      new URL("https://life.test/dashboard?calendarView=week"),
+      new URL("https://life.test/workspace?calendarView=week"),
       calendar,
     );
 

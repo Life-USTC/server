@@ -1,8 +1,8 @@
 /**
- * E2E tests for GET /api/courses
+ * E2E tests for GET /api/catalog/courses
  *
  * ## Endpoints
- * - `GET /api/courses` — List courses with optional search and pagination.
+ * - `GET /api/catalog/courses` — List courses with optional search and pagination.
  *
  * ## Request
  * - Query: `locale` (optional, en-us/zh-cn), `search` (optional, matches
@@ -25,17 +25,19 @@ import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { assertApiContract } from "../../_shared/api-contract";
 
-test.describe("GET /api/courses 接口", () => {
+test.describe("GET /api/catalog/courses 接口", () => {
   test("接口契约", async ({ request }) => {
-    await assertApiContract(request, { routePath: "/api/courses" });
+    await assertApiContract(request, { routePath: "/api/catalog/courses" });
   });
 
   test("详情接口契约", async ({ request }) => {
-    await assertApiContract(request, { routePath: "/api/courses/[jwId]" });
+    await assertApiContract(request, {
+      routePath: "/api/catalog/courses/[jwId]",
+    });
   });
 
   test("返回分页响应结构", async ({ request }) => {
-    const response = await request.get("/api/courses");
+    const response = await request.get("/api/catalog/courses");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       data?: unknown[];
@@ -56,12 +58,15 @@ test.describe("GET /api/courses 接口", () => {
   });
 
   test("仅显式 locale URL 变体使用共享缓存", async ({ request }) => {
-    const explicit = await request.get("/api/courses?locale=en-us&pageSize=1", {
-      headers: {
-        "accept-language": "zh-CN",
-        cookie: "NEXT_LOCALE=zh-cn",
+    const explicit = await request.get(
+      "/api/catalog/courses?locale=en-us&pageSize=1",
+      {
+        headers: {
+          "accept-language": "zh-CN",
+          cookie: "NEXT_LOCALE=zh-cn",
+        },
       },
-    });
+    );
     expect(explicit.status()).toBe(200);
     expect(explicit.headers()["cache-control"]).toBe(
       "public, max-age=0, stale-while-revalidate=300",
@@ -70,14 +75,14 @@ test.describe("GET /api/courses 接口", () => {
       "public, max-age=60, stale-while-revalidate=300",
     );
 
-    const fallback = await request.get("/api/courses?pageSize=1", {
+    const fallback = await request.get("/api/catalog/courses?pageSize=1", {
       headers: { "accept-language": "en-US" },
     });
     expect(fallback.status()).toBe(200);
     expect(fallback.headers()["cache-control"]).toBe("private, no-store");
     expect(fallback.headers()["cloudflare-cdn-cache-control"]).toBe("no-store");
 
-    const invalid = await request.get("/api/courses?locale=fr-fr");
+    const invalid = await request.get("/api/catalog/courses?locale=fr-fr");
     expect(invalid.status()).toBe(400);
     expect(invalid.headers()["cache-control"]).toBe("private, no-store");
     expect(invalid.headers()["cloudflare-cdn-cache-control"]).toBe("no-store");
@@ -85,7 +90,7 @@ test.describe("GET /api/courses 接口", () => {
 
   test("按课程代码搜索返回 seed 课程", async ({ request }) => {
     const response = await request.get(
-      `/api/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
+      `/api/catalog/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -101,7 +106,7 @@ test.describe("GET /api/courses 接口", () => {
 
   test("按中文名搜索返回 seed 课程", async ({ request }) => {
     const response = await request.get(
-      `/api/courses?search=${encodeURIComponent(DEV_SEED.course.nameCn)}`,
+      `/api/catalog/courses?search=${encodeURIComponent(DEV_SEED.course.nameCn)}`,
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -114,7 +119,7 @@ test.describe("GET /api/courses 接口", () => {
 
   test("无匹配搜索返回空数据", async ({ request }) => {
     const response = await request.get(
-      "/api/courses?search=ZZZZZ_NONEXISTENT_COURSE_99999",
+      "/api/catalog/courses?search=ZZZZZ_NONEXISTENT_COURSE_99999",
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -128,7 +133,7 @@ test.describe("GET /api/courses 接口", () => {
 
   test("课程列表项包含所有必填字段", async ({ request }) => {
     const response = await request.get(
-      `/api/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
+      `/api/catalog/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
@@ -158,7 +163,7 @@ test.describe("GET /api/courses 接口", () => {
   });
 
   test("page 参数切换结果页", async ({ request }) => {
-    const response = await request.get("/api/courses?page=1");
+    const response = await request.get("/api/catalog/courses?page=1");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       pagination?: { page?: number };
@@ -167,7 +172,9 @@ test.describe("GET /api/courses 接口", () => {
   });
 
   test("pageSize 控制分页大小并优先于 limit 别名", async ({ request }) => {
-    const response = await request.get("/api/courses?pageSize=1&limit=2");
+    const response = await request.get(
+      "/api/catalog/courses?pageSize=1&limit=2",
+    );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       data?: unknown[];
@@ -178,7 +185,9 @@ test.describe("GET /api/courses 接口", () => {
   });
 
   test("详情路由返回 seed 课程及其开课班", async ({ request }) => {
-    const response = await request.get(`/api/courses/${DEV_SEED.course.jwId}`);
+    const response = await request.get(
+      `/api/catalog/courses/${DEV_SEED.course.jwId}`,
+    );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       jwId?: number;
@@ -213,7 +222,7 @@ test.describe("GET /api/courses 接口", () => {
 
   test("旧 jwId 别名返回 canonical 课程", async ({ request }) => {
     const response = await request.get(
-      `/api/courses/${DEV_SEED.course.legacyJwId}`,
+      `/api/catalog/courses/${DEV_SEED.course.legacyJwId}`,
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {

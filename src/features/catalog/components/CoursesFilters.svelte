@@ -130,7 +130,7 @@ const controlClass = "w-full [&>select]:h-11";
           </Button>
         {/if}
         {#if showClear && activeFilterCount > 0}
-          <Button class="w-full" href="/courses" size="lg" variant="outline">{commonLabels.clear}</Button>
+          <Button class="w-full" href="/catalog/courses" size="lg" variant="outline">{commonLabels.clear}</Button>
         {/if}
       </ButtonGroup.Root>
     {/if}

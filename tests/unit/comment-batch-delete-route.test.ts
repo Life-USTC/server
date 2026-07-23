@@ -12,7 +12,7 @@ vi.mock("@/features/comments/server/comment-mutations", () => ({
 }));
 
 function deleteRequest(body: unknown) {
-  return new Request("https://example.test/api/comments/batch", {
+  return new Request("https://example.test/api/community/comments/batch", {
     body: JSON.stringify(body),
     headers: { "Content-Type": "application/json" },
     method: "DELETE",

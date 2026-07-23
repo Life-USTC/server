@@ -12,7 +12,7 @@
  * - Navigation cards link to /admin/users, /admin/moderation, /admin/oauth, /admin/bus
  *
  * ## Edge Cases
- * - Unauthenticated → redirect to /signin (all 3 providers shown)
+ * - Unauthenticated → redirect to /account/sign-in (all 3 providers shown)
  * - Regular user → 404
  */
 import { expect, test } from "@playwright/test";

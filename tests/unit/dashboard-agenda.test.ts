@@ -13,7 +13,7 @@ function item(
   options: Partial<DashboardTimelineItem> = {},
 ): DashboardTimelineItem {
   return {
-    href: `/dashboard/${key}`,
+    href: `/workspace/${key}`,
     key,
     label: "Event",
     sort,

@@ -13,7 +13,7 @@ import {
 
 export function registerCalendarSubscriptionTools(server: McpServer) {
   server.registerTool(
-    "get_my_calendar_subscription",
+    "workspace_calendar_feed_get",
     {
       description:
         "Get subscribed sections and the personal iCal calendar feed URL. Subscribing is not official USTC enrollment.",
@@ -26,7 +26,7 @@ export function registerCalendarSubscriptionTools(server: McpServer) {
   );
 
   server.registerTool(
-    "list_my_subscribed_sections",
+    "workspace_subscription_list",
     {
       description:
         "List subscribed sections across all semesters, including past terms, for dashboard and calendar personalization. Not official enrollment.",
@@ -39,11 +39,11 @@ export function registerCalendarSubscriptionTools(server: McpServer) {
   );
 
   server.registerTool(
-    "subscribe_section_by_jw_id",
+    "workspace_subscription_add",
     {
       description:
         "Subscribe to one section by JW ID for dashboard/calendar. Not official USTC enrollment. " +
-        "Use match_section_codes or search_sections first to find the jwId.",
+        "Use catalog_section_match_preview or catalog_section_search first to find the jwId.",
       inputSchema: {
         jwId: z.number().int().positive(),
         locale: mcpLocaleInputSchema,
@@ -54,7 +54,7 @@ export function registerCalendarSubscriptionTools(server: McpServer) {
   );
 
   server.registerTool(
-    "unsubscribe_section_by_jw_id",
+    "workspace_subscription_remove",
     {
       description: "Unsubscribe from one section by JW ID.",
       inputSchema: {

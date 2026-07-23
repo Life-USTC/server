@@ -44,6 +44,7 @@ describe("buildOAuthProviderPlugin", () => {
     expect(oauthProviderMock).toHaveBeenCalledWith(
       expect.objectContaining({
         grantTypes: [...OAUTH_PROVIDER_GRANT_TYPES],
+        loginPage: "https://life.example/account/sign-in",
         refreshTokenExpiresIn: OAUTH_REFRESH_TOKEN_EXPIRES_IN_SECONDS,
       }),
     );

@@ -193,7 +193,7 @@ test("/admin/moderation 可更新评论状态与备注", async ({ page }, testIn
   const sectionId = await resolveSeedSectionId(page);
 
   const keyword = `e2e-moderation-${Date.now()}`;
-  const createResponse = await page.request.post("/api/comments", {
+  const createResponse = await page.request.post("/api/community/comments", {
     data: {
       targetType: "section",
       targetId: String(sectionId),
@@ -238,7 +238,7 @@ test("/admin/moderation 目标链接可跳转到原页面锚点", async ({
   page,
 }, testInfo) => {
   test.setTimeout(60000);
-  const sectionPath = `/sections/${DEV_SEED.section.jwId}`;
+  const sectionPath = `/catalog/sections/${DEV_SEED.section.jwId}`;
   await signInAsDevAdmin(page, sectionPath);
   await gotoAndWaitForReady(page, sectionPath);
 
@@ -254,7 +254,7 @@ test("/admin/moderation 目标链接可跳转到原页面锚点", async ({
   await page.locator("#tab-comments textarea").first().fill(body);
   const createResponse = page.waitForResponse(
     (response) =>
-      response.url().includes("/api/comments") &&
+      response.url().includes("/api/community/comments") &&
       response.request().method() === "POST" &&
       response.status() === 201,
   );
@@ -371,14 +371,17 @@ test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
     await signInAsDebugUser(userPage, "/");
     const sectionId = await resolveSeedSectionId(userPage);
     const body = `e2e-admin-suspend-${Date.now()}`;
-    const createCommentResponse = await userPage.request.post("/api/comments", {
-      data: {
-        body,
-        targetId: String(sectionId),
-        targetType: "section",
-        visibility: "public",
+    const createCommentResponse = await userPage.request.post(
+      "/api/community/comments",
+      {
+        data: {
+          body,
+          targetId: String(sectionId),
+          targetType: "section",
+          visibility: "public",
+        },
       },
-    });
+    );
     expect(createCommentResponse.status()).toBe(201);
     commentId = ((await createCommentResponse.json()) as { id?: string }).id;
     expect(commentId).toBeTruthy();

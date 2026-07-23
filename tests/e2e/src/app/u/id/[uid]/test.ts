@@ -1,5 +1,5 @@
 /**
- * E2E tests for the Public User Profile by ID Page (`/u/id/[uid]`)
+ * E2E tests for the Public User Profile by ID Page (`/community/users/id/[uid]`)
  *
  * ## Data Represented (user.yml → public-profile.display.fields)
  * - user.image (avatar)
@@ -31,9 +31,12 @@ import { assertPageContract } from "../../../_shared/page-contract";
 
 test.describe.configure({ mode: "serial" });
 
-test.describe("/u/id/[uid]", () => {
+test.describe("/community/users/id/[uid]", () => {
   test("页面契约", async ({ page }, testInfo) => {
-    await assertPageContract(page, { routePath: "/u/id/[uid]", testInfo });
+    await assertPageContract(page, {
+      routePath: "/community/users/id/[uid]",
+      testInfo,
+    });
   });
 
   test("有用户名的 ID 地址 308 到规范资料页且不显示内部 ID", async ({
@@ -42,16 +45,21 @@ test.describe("/u/id/[uid]", () => {
     await signInAsDebugUser(page, "/");
     const user = await getCurrentSessionUser(page);
 
-    const redirectResponse = await page.request.get(`/u/id/${user.id}`, {
-      maxRedirects: 0,
-    });
+    const redirectResponse = await page.request.get(
+      `/community/users/id/${user.id}`,
+      {
+        maxRedirects: 0,
+      },
+    );
     expect(redirectResponse.status()).toBe(308);
     expect(redirectResponse.headers().location).toMatch(
-      new RegExp(`/u/${DEV_SEED.debugUsername}$`),
+      new RegExp(`/community/users/${DEV_SEED.debugUsername}$`),
     );
 
-    await gotoAndWaitForReady(page, `/u/id/${user.id}`);
-    await expect(page).toHaveURL(new RegExp(`/u/${DEV_SEED.debugUsername}$`));
+    await gotoAndWaitForReady(page, `/community/users/id/${user.id}`);
+    await expect(page).toHaveURL(
+      new RegExp(`/community/users/${DEV_SEED.debugUsername}$`),
+    );
 
     await expect(page.getByText(DEV_SEED.debugName).first()).toBeVisible();
     await expect(
@@ -74,13 +82,18 @@ test.describe("/u/id/[uid]", () => {
     try {
       await updateUserProfileById(user.id, { username: null });
       await page.context().clearCookies();
-      const response = await page.request.get(`/u/id/${user.id}`, {
-        maxRedirects: 0,
-      });
+      const response = await page.request.get(
+        `/community/users/id/${user.id}`,
+        {
+          maxRedirects: 0,
+        },
+      );
       expect(response.status()).toBe(200);
 
-      await gotoAndWaitForReady(page, `/u/id/${user.id}`);
-      await expect(page).toHaveURL(new RegExp(`/u/id/${user.id}$`));
+      await gotoAndWaitForReady(page, `/community/users/id/${user.id}`);
+      await expect(page).toHaveURL(
+        new RegExp(`/community/users/id/${user.id}$`),
+      );
       await expect(page.getByText(DEV_SEED.debugName).first()).toBeVisible();
       await expect(page.getByText(user.id, { exact: true })).toHaveCount(0);
       await captureStepScreenshot(page, testInfo, "u-id/no-username");
@@ -97,7 +110,10 @@ test.describe("/u/id/[uid]", () => {
     page,
   }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await gotoAndWaitForReady(page, `/u/${DEV_SEED.debugUsername}`);
+    await gotoAndWaitForReady(
+      page,
+      `/community/users/${DEV_SEED.debugUsername}`,
+    );
 
     const scrollRegion = page.locator("[data-profile-heatmap-scroll]");
     const cells = page.locator("[data-profile-contribution-cell]");
@@ -127,16 +143,23 @@ test.describe("/u/id/[uid]", () => {
     await captureStepScreenshot(page, testInfo, "u-profile/heatmap-mobile");
 
     await page.setViewportSize({ width: 1280, height: 900 });
-    await gotoAndWaitForReady(page, `/u/${DEV_SEED.debugUsername}`);
+    await gotoAndWaitForReady(
+      page,
+      `/community/users/${DEV_SEED.debugUsername}`,
+    );
     const desktopCellBox = await cells.first().boundingBox();
     expect(desktopCellBox?.width).toBeGreaterThanOrEqual(15);
     await captureStepScreenshot(page, testInfo, "u-profile/heatmap-desktop");
   });
 
   test("不存在的用户 ID 返回 404", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/u/id/non-existing-user-id", {
-      expectMainContent: false,
-    });
+    await gotoAndWaitForReady(
+      page,
+      "/community/users/id/non-existing-user-id",
+      {
+        expectMainContent: false,
+      },
+    );
     await expect(page.getByText("404").first()).toBeVisible();
     await expect(
       page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),

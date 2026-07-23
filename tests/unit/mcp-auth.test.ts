@@ -179,7 +179,7 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
     const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
     const result = await authenticateMcpRequest(
       new Request("https://life.example/api/mcp"),
-      "list_my_todos",
+      "workspace_todo_list",
     );
 
     expect("response" in result).toBe(true);
@@ -198,7 +198,7 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
     const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
     const result = await authenticateMcpRequest(
       makeAuthenticatedRequest([restReadScope("todo")]),
-      "list_my_todos",
+      "workspace_todo_list",
     );
 
     expect("response" in result).toBe(true);
@@ -224,7 +224,7 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
       new Request("https://life.example/api/mcp", {
         headers: { authorization: "Bearer opaque-token" },
       }),
-      "list_my_todos",
+      "workspace_todo_list",
     );
 
     expect("response" in result).toBe(true);
@@ -243,7 +243,7 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
     const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
     const result = await authenticateMcpRequest(
       makeAuthenticatedRequest([restReadScope("todo")]),
-      "list_my_todos",
+      "workspace_todo_list",
     );
 
     expect("authInfo" in result).toBe(true);
@@ -257,7 +257,7 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
     const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
     const result = await authenticateMcpRequest(
       makeAuthenticatedRequest([LEGACY_MCP_TOOLS_SCOPE]),
-      "create_comment",
+      "community_comment_create",
     );
 
     expect("authInfo" in result).toBe(true);
@@ -268,7 +268,7 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
     const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
     const result = await authenticateMcpRequest(
       makeAuthenticatedRequest([restReadScope("todo")]),
-      "create_comment",
+      "community_comment_create",
     );
 
     expect("response" in result).toBe(true);
@@ -295,7 +295,7 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
     const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
     const result = await authenticateMcpRequest(
       makeAuthenticatedRequest([restWriteScope("todo")]),
-      ["create_my_todo", "delete_my_upload"],
+      ["workspace_todo_create", "workspace_upload_delete"],
     );
 
     expect("response" in result).toBe(true);
@@ -317,7 +317,7 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
     const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
     const result = await authenticateMcpRequest(
       makeAuthenticatedRequest([restWriteScope("todo")]),
-      ["list_my_todos", "create_my_todo"],
+      ["workspace_todo_list", "workspace_todo_create"],
     );
 
     expect("authInfo" in result).toBe(true);
@@ -328,7 +328,7 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
     const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
     const result = await authenticateMcpRequest(
       makeAuthenticatedRequest([restReadScope("schedule")]),
-      "get_next_class",
+      "workspace_schedule_next",
     );
 
     expect("response" in result).toBe(true);
@@ -345,7 +345,7 @@ describe("authenticateMcpRequest per-tool scope enforcement", () => {
     const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
     const result = await authenticateMcpRequest(
       makeAuthenticatedRequest(["openid"]),
-      "list_my_todos",
+      "workspace_todo_list",
     );
 
     expect("response" in result).toBe(true);

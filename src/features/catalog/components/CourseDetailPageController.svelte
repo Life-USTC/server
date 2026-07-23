@@ -76,7 +76,7 @@ $: detailCopy = copy satisfies CourseDetailCopy;
 $: notAvailable = copy.courseDetail.notAvailable;
 $: displayName = primaryName(data.course) || data.course.code;
 $: secondaryDisplayName = secondaryName(data.course);
-$: courseBaseHref = `/courses/${data.course.jwId}`;
+$: courseBaseHref = `/catalog/courses/${data.course.jwId}`;
 $: commentsCount = data.commentsData
   ? Object.values(data.commentsData.commentMap).reduce(
       (sum, comments) => sum + comments.length,

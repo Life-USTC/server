@@ -21,7 +21,7 @@ test("/", async ({ page }, testInfo) => {
 });
 
 test("/ 登录用户的旧 tab 永久重定向至语义 dashboard 路径", async ({ page }) => {
-  await signInAsDebugUser(page, "/dashboard");
+  await signInAsDebugUser(page, "/workspace");
 
   const response = await page.request.get(
     "/?tab=calendar&calendarView=week&calendarSemester=42&utm_source=ignored",
@@ -30,7 +30,7 @@ test("/ 登录用户的旧 tab 永久重定向至语义 dashboard 路径", async
 
   expect(response.status()).toBe(308);
   expect(response.headers().location).toBe(
-    "/dashboard/calendar?calendarView=week&calendarSemester=42&utm_source=ignored",
+    "/workspace/calendar?calendarView=week&calendarSemester=42&utm_source=ignored",
   );
 });
 
@@ -301,7 +301,7 @@ test("/ shell 菜单可一键切换", async ({ page }) => {
 
 test("/ shell 桌面导航以任务为一级入口且当前位置唯一", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await signInAsDebugUser(page, "/dashboard/calendar");
+  await signInAsDebugUser(page, "/workspace/calendar");
 
   const sidebar = page.getByTestId("app-sidebar");
   const navigation = sidebar.getByRole("navigation", {
@@ -342,7 +342,7 @@ test("/ shell 桌面导航以任务为一级入口且当前位置唯一", async 
 
 test("/ shell 中等视口只显示侧栏品牌并采用 stock 宽度", async ({ page }) => {
   await page.setViewportSize({ width: 900, height: 800 });
-  await signInAsDebugUser(page, "/dashboard/overview");
+  await signInAsDebugUser(page, "/workspace/overview");
 
   await expect(page.locator("#app-logo")).toBeVisible();
   await expect(page.locator('[data-shell-topbar] a[href="/"]')).toBeHidden();
@@ -380,7 +380,7 @@ test("/ shell 中等视口只显示侧栏品牌并采用 stock 宽度", async ({
 
 test("/ shell 当前分组在导航后保持展开", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await signInAsDebugUser(page, "/dashboard/calendar");
+  await signInAsDebugUser(page, "/workspace/calendar");
 
   const navigation = page.getByTestId("app-sidebar").getByRole("navigation", {
     name: /主导航|Primary navigation/i,
@@ -400,12 +400,12 @@ test("/ shell 当前分组在导航后保持展开", async ({ page }) => {
   await page.evaluate(() => {
     const link = document.createElement("a");
     link.dataset.testNavigation = "courses";
-    link.href = "/courses";
+    link.href = "/catalog/courses";
     link.textContent = "Navigate to Courses";
     document.querySelector("#main-content")?.append(link);
   });
   await page.locator('[data-test-navigation="courses"]').click();
-  await page.waitForURL("**/courses");
+  await page.waitForURL("**/catalog/courses");
   await waitForUiSettled(page);
 
   await expect(explore).toHaveAttribute("aria-expanded", "true");
@@ -417,7 +417,7 @@ test("/ shell 当前分组在导航后保持展开", async ({ page }) => {
 
 test("/ shell 390px 主导航可达且触控尺寸达标", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await signInAsDevAdmin(page, "/dashboard/todos");
+  await signInAsDevAdmin(page, "/workspace/todos");
 
   const primaryNavigation = page.getByRole("navigation", {
     name: /移动主导航|Mobile primary navigation/i,
@@ -497,7 +497,7 @@ test("/ shell 390px 主导航可达且触控尺寸达标", async ({ page }, test
 
 test("/ shell 390px 设置子路由保持唯一当前位置", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await signInAsDebugUser(page, "/settings/preferences");
+  await signInAsDebugUser(page, "/account/settings/preferences");
 
   const primaryNavigation = page.getByRole("navigation", {
     name: /移动主导航|Mobile primary navigation/i,
@@ -598,7 +598,7 @@ test("/ shell 桌面导航后内容滚动回到顶部", async ({ page }) => {
     .getByTestId("app-sidebar")
     .getByRole("link", { name: /^(课程|Courses)$/i })
     .click();
-  await page.waitForURL("**/courses");
+  await page.waitForURL("**/catalog/courses");
   await waitForUiSettled(page);
 
   await expect
@@ -639,9 +639,9 @@ test("/ shell 折叠桌面侧边栏后图标链接仍可跳转", async ({ page }
   await expect(coursesLink).toBeVisible();
   await coursesLink.click();
 
-  await page.waitForURL("**/courses");
+  await page.waitForURL("**/catalog/courses");
   await waitForUiSettled(page);
-  await expect(page).toHaveURL(/\/courses(?:\?.*)?$/);
+  await expect(page).toHaveURL(/\/catalog\/courses(?:\?.*)?$/);
 });
 
 test("/ 登录用户在空状态总览页可看到班级发现入口", async ({
@@ -726,13 +726,13 @@ test("/ 仅关注往期班级时可恢复历史作业和课表入口", async ({
       page.getByRole("link", { name: /查看往期课表|View Past Schedule/i }),
     ).toHaveAttribute(
       "href",
-      `/dashboard/calendar?calendarSemester=${previousSemester.semesterId}`,
+      `/workspace/calendar?calendarSemester=${previousSemester.semesterId}`,
     );
     await expect(
       page.getByRole("link", { name: /查看往期班级|View Past Sections/i }),
     ).toBeVisible();
 
-    const response = await page.request.get("/api/me/subscriptions/homeworks");
+    const response = await page.request.get("/api/workspace/homeworks");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       homeworks?: Array<{ title?: string }>;
@@ -746,7 +746,7 @@ test("/ 仅关注往期班级时可恢复历史作业和课表入口", async ({
     );
 
     const schedulesResponse = await page.request.get(
-      `/api/me/subscriptions/schedules?dateFrom=${DEV_SEED.previousSemesterScheduleDates[0]}&dateTo=${DEV_SEED.previousSemesterScheduleDates[1]}`,
+      `/api/workspace/schedules?dateFrom=${DEV_SEED.previousSemesterScheduleDates[0]}&dateTo=${DEV_SEED.previousSemesterScheduleDates[1]}`,
     );
     expect(schedulesResponse.status()).toBe(200);
     const schedulesBody = (await schedulesResponse.json()) as {
@@ -764,7 +764,7 @@ test("/ 仅关注往期班级时可恢复历史作业和课表入口", async ({
     await page
       .getByRole("link", { name: /查看往期作业|View Past Homework/i })
       .click();
-    await expect(page).toHaveURL(/\/dashboard\/homeworks/);
+    await expect(page).toHaveURL(/\/workspace\/homeworks/);
     await expect(
       page.getByText(DEV_SEED.homeworks.historicalTitle),
     ).toBeVisible();
@@ -777,7 +777,7 @@ test("/ 仅关注往期班级时可恢复历史作业和课表入口", async ({
       .click();
     await expect(page).toHaveURL(
       new RegExp(
-        `/dashboard/calendar\\?calendarSemester=${previousSemester.semesterId}$`,
+        `/workspace/calendar\\?calendarSemester=${previousSemester.semesterId}$`,
       ),
     );
     await expect(

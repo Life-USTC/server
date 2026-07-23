@@ -24,7 +24,7 @@ vi.mock("@/lib/log/app-logger", () => ({
 
 function request(origin?: string) {
   return new Request(
-    "https://life.example/settings/authorizations?/revokeAuthorization",
+    "https://life.example/account/settings/authorizations?/revokeAuthorization",
     {
       method: "POST",
       headers: {
@@ -63,7 +63,7 @@ describe("settings OAuth authorization action", () => {
       revokeSettingsAuthorizationAction({
         locale: "en-us",
         request: request(origin),
-        url: new URL("https://life.example/settings/authorizations"),
+        url: new URL("https://life.example/account/settings/authorizations"),
       }),
     ).rejects.toMatchObject({ status: 403 });
     expect(requireSettingsUserMock).not.toHaveBeenCalled();
@@ -82,7 +82,7 @@ describe("settings OAuth authorization action", () => {
     const result = await revokeSettingsAuthorizationAction({
       locale: "en-us",
       request: request("https://life.example"),
-      url: new URL("https://life.example/settings/authorizations"),
+      url: new URL("https://life.example/account/settings/authorizations"),
     });
 
     expect(requireSettingsUserMock).toHaveBeenCalledTimes(1);
@@ -116,10 +116,10 @@ describe("settings OAuth authorization action", () => {
       revokeSettingsAuthorizationAction({
         locale: "en-us",
         request: request("https://life.example"),
-        url: new URL("https://life.example/settings/authorizations"),
+        url: new URL("https://life.example/account/settings/authorizations"),
       }),
     ).rejects.toMatchObject({
-      location: "/settings/authorizations?message=AuthorizationRevoked",
+      location: "/account/settings/authorizations?message=AuthorizationRevoked",
       status: 303,
     });
   });
@@ -136,7 +136,7 @@ describe("settings OAuth authorization action", () => {
       locale: "en-us",
       request: request("https://life.example"),
       requestId: "request-revoke",
-      url: new URL("https://life.example/settings/authorizations"),
+      url: new URL("https://life.example/account/settings/authorizations"),
     });
 
     expect(result).toMatchObject({
@@ -151,7 +151,7 @@ describe("settings OAuth authorization action", () => {
       {
         action: "revoke-authorization",
         requestId: "request-revoke",
-        route: "/settings/authorizations",
+        route: "/account/settings/authorizations",
       },
     );
   });

@@ -6,12 +6,12 @@ import type { RequestHandler } from "./$types";
 
 const STATIC_ROUTES = [
   "/",
-  "/courses",
-  "/sections",
-  "/teachers",
-  "/bus",
-  "/links",
-  "/bus-map",
+  "/catalog/courses",
+  "/catalog/sections",
+  "/catalog/teachers",
+  "/catalog/bus",
+  "/catalog/links",
+  "/catalog/bus/map",
   "/api/docs/tag/sections",
   "/privacy",
   "/terms",
@@ -27,9 +27,15 @@ async function getEntityUrls(origin: string) {
     prisma.teacher.findMany({ select: { id: true } }),
   ]);
 
-  const courseUrls = courses.map(({ jwId }) => `${origin}/courses/${jwId}`);
-  const sectionUrls = sections.map(({ jwId }) => `${origin}/sections/${jwId}`);
-  const teacherUrls = teachers.map(({ id }) => `${origin}/teachers/${id}`);
+  const courseUrls = courses.map(
+    ({ jwId }) => `${origin}/catalog/courses/${jwId}`,
+  );
+  const sectionUrls = sections.map(
+    ({ jwId }) => `${origin}/catalog/sections/${jwId}`,
+  );
+  const teacherUrls = teachers.map(
+    ({ id }) => `${origin}/catalog/teachers/${id}`,
+  );
 
   return [...courseUrls, ...sectionUrls, ...teacherUrls];
 }

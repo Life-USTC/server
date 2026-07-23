@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import * as legacySubscriptionsRoute from "@/routes/dashboard/subscriptions/sections/+page.server";
+import * as legacySubscriptionsRoute from "@/routes/workspace/subscriptions/sections/+page.server";
 import overviewContract from "../../docs/contracts/overview.json";
 import subscribedSectionsContract from "../../docs/contracts/subscribed-sections.json";
 import subscriptionContract from "../../docs/contracts/subscription.json";
 
-const canonicalPath = "/dashboard/subscriptions";
-const legacyPath = "/dashboard/subscriptions/sections";
+const canonicalPath = "/workspace/subscriptions";
+const legacyPath = "/workspace/subscriptions/sections";
 
 type ContractModule = {
   rules?: Record<string, string>;
@@ -30,7 +30,7 @@ describe("旧版订阅班级路由", () => {
     await expect(
       legacySubscriptionsRoute.load({
         url: new URL(
-          "https://life.example/dashboard/subscriptions/sections?semester=2026-spring",
+          "https://life.example/workspace/subscriptions/sections?semester=2026-spring",
         ),
       } as Parameters<typeof legacySubscriptionsRoute.load>[0]),
     ).rejects.toMatchObject({

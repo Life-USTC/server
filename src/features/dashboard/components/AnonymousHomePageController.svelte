@@ -39,7 +39,7 @@ export let data: AnonymousHomePageData;
       </Card.Description>
     </Card.Header>
     <Card.Footer>
-      <Button href="/courses">
+      <Button href="/catalog/courses">
         {data.copy.homepage.publicDashboard.cards.courses.title}
         <ArrowRightIcon data-icon="inline-end" />
       </Button>
@@ -57,7 +57,7 @@ export let data: AnonymousHomePageData;
         </Card.Description>
       </Card.Header>
       <Card.Footer>
-        <Button href="/sections" variant="outline">
+        <Button href="/catalog/sections" variant="outline">
           {data.copy.homepage.publicDashboard.cards.sections.title}
           <ArrowRightIcon data-icon="inline-end" />
         </Button>
@@ -74,7 +74,7 @@ export let data: AnonymousHomePageData;
         </Card.Description>
       </Card.Header>
       <Card.Footer>
-        <Button href="/teachers" variant="outline">
+        <Button href="/catalog/teachers" variant="outline">
           {data.copy.homepage.publicDashboard.cards.teachers.title}
           <ArrowRightIcon data-icon="inline-end" />
         </Button>

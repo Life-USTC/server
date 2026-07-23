@@ -5,5 +5,5 @@ const WELCOME_CALLBACK_ORIGIN = "https://life-ustc.local";
 export function resolveWelcomeCallbackUrl(value: unknown) {
   const callbackUrl = sanitizeAuthCallbackUrl(value);
   const callbackPath = new URL(callbackUrl, WELCOME_CALLBACK_ORIGIN).pathname;
-  return callbackPath === "/welcome" ? "/" : callbackUrl;
+  return callbackPath === "/account/welcome" ? "/" : callbackUrl;
 }

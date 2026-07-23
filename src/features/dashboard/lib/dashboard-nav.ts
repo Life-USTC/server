@@ -58,7 +58,7 @@ export function dashboardTabHref(
     }
   }
   const search = query.toString();
-  const path = `/dashboard/${id}`;
+  const path = `/workspace/${id}`;
   return `${path}${search ? `?${search}` : ""}`;
 }
 
@@ -73,7 +73,7 @@ export function dashboardRedirectHrefFromHome(url: URL) {
   }
 
   return appendSearch(
-    isSignedDashboardTab(tab) ? `/dashboard/${tab}` : "/dashboard/overview",
+    isSignedDashboardTab(tab) ? `/workspace/${tab}` : "/workspace/overview",
     query,
   );
 }
@@ -84,8 +84,8 @@ export function homeTabCompatibilityRedirectHref(url: URL, signedIn: boolean) {
 
   const pathname =
     signedIn || (tab !== "bus" && tab !== "links")
-      ? `/dashboard/${tab}`
-      : `/${tab}`;
+      ? `/workspace/${tab}`
+      : `/catalog/${tab}`;
   return appendSearch(pathname, queryWithoutTab(url));
 }
 
@@ -94,7 +94,7 @@ export function dashboardTabCompatibilityRedirectHref(
   method = "GET",
 ) {
   return semanticSectionCompatibilityHref({
-    basePath: "/dashboard",
+    basePath: "/workspace",
     defaultSection: "overview",
     method,
     resolveSection: (tab) => (isSignedDashboardTab(tab) ? tab : null),

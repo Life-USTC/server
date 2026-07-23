@@ -34,7 +34,7 @@ export let viewer: DescriptionViewer;
         {copy.edit}
       </Button>
     {:else if !viewer.isAuthenticated}
-      <Button href="/signin" size="sm" variant="outline">{copy.loginToEdit}</Button>
+      <Button href="/account/sign-in" size="sm" variant="outline">{copy.loginToEdit}</Button>
     {/if}
   </Card.Action>
 </Card.Header>

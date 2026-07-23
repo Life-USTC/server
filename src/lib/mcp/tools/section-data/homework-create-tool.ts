@@ -14,7 +14,7 @@ import { createHomeworkOnSectionTool } from "./homework-create-tool-handler";
 
 export function registerCreateHomeworkOnSectionTool(server: McpServer) {
   server.registerTool(
-    "create_homework_on_section",
+    "community_section_homework_create",
     {
       description:
         "Create a homework under one section by section JW ID. Requires unsuspended signed-in user; does not mutate JW/import facts. " +

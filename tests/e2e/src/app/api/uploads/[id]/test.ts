@@ -1,20 +1,20 @@
 /**
- * E2E tests for PATCH /api/uploads/[id] and DELETE /api/uploads/[id].
+ * E2E tests for PATCH /api/workspace/uploads/[id] and DELETE /api/workspace/uploads/[id].
  *
- * ## PATCH /api/uploads/[id]
+ * ## PATCH /api/workspace/uploads/[id]
  * - Body: { filename }
  * - Response: { upload: { id, key, filename, size, createdAt } }
  * - Auth required (401) + ownership check (404 if not owner)
  * - Returns 400 for empty filename
  *
- * ## DELETE /api/uploads/[id]
+ * ## DELETE /api/workspace/uploads/[id]
  * - Response: { deletedId, deletedSize }
  * - Auth required (401) + ownership check (404 if not owner)
  * - Deletes object from R2 then removes DB record
  *
  * ## Edge cases
  * - Renamed filename reflects in subsequent download
- * - Deleted upload no longer appears in GET /api/uploads
+ * - Deleted upload no longer appears in GET /api/workspace/uploads
  * - Non-existent id on DELETE → 404
  */
 import { expect, test } from "@playwright/test";
@@ -22,18 +22,22 @@ import { signInAsDebugUser } from "../../../../../utils/auth";
 import { createUploadedFileViaApi } from "../../../../../utils/uploads";
 import { assertApiContract } from "../../../_shared/api-contract";
 
-test("/api/uploads/[id]", async ({ request }) => {
-  await assertApiContract(request, { routePath: "/api/uploads/[id]" });
+test("/api/workspace/uploads/[id]", async ({ request }) => {
+  await assertApiContract(request, {
+    routePath: "/api/workspace/uploads/[id]",
+  });
 });
 
-test("/api/uploads/[id] PATCH 未登录返回 401", async ({ request }) => {
-  const response = await request.patch("/api/uploads/invalid-e2e", {
+test("/api/workspace/uploads/[id] PATCH 未登录返回 401", async ({
+  request,
+}) => {
+  const response = await request.patch("/api/workspace/uploads/invalid-e2e", {
     data: { filename: "should-fail.txt" },
   });
   expect(response.status()).toBe(401);
 });
 
-test("/api/uploads/[id] PATCH 可重命名上传文件", async ({ page }) => {
+test("/api/workspace/uploads/[id] PATCH 可重命名上传文件", async ({ page }) => {
   test.setTimeout(60_000);
   await signInAsDebugUser(page, "/");
 
@@ -46,7 +50,7 @@ test("/api/uploads/[id] PATCH 可重命名上传文件", async ({ page }) => {
 
   try {
     const renameResponse = await page.request.patch(
-      `/api/uploads/${uploaded.uploadId}`,
+      `/api/workspace/uploads/${uploaded.uploadId}`,
       { data: { filename: renamedFilename } },
     );
     expect(renameResponse.status()).toBe(200);
@@ -58,23 +62,27 @@ test("/api/uploads/[id] PATCH 可重命名上传文件", async ({ page }) => {
 
     // Verify the download uses the new filename
     const downloadResponse = await page.request.get(
-      `/api/uploads/${uploaded.uploadId}/download`,
+      `/api/workspace/uploads/${uploaded.uploadId}/download`,
     );
     expect(downloadResponse.status()).toBe(200);
     expect(downloadResponse.headers()["content-disposition"]).toContain(
       renamedFilename,
     );
   } finally {
-    await page.request.delete(`/api/uploads/${uploaded.uploadId}`);
+    await page.request.delete(`/api/workspace/uploads/${uploaded.uploadId}`);
   }
 });
 
-test("/api/uploads/[id] DELETE 未登录返回 401", async ({ request }) => {
-  const response = await request.delete("/api/uploads/invalid-e2e");
+test("/api/workspace/uploads/[id] DELETE 未登录返回 401", async ({
+  request,
+}) => {
+  const response = await request.delete("/api/workspace/uploads/invalid-e2e");
   expect(response.status()).toBe(401);
 });
 
-test("/api/uploads/[id] DELETE 可删除上传文件并返回大小", async ({ page }) => {
+test("/api/workspace/uploads/[id] DELETE 可删除上传文件并返回大小", async ({
+  page,
+}) => {
   test.setTimeout(60_000);
   await signInAsDebugUser(page, "/");
 
@@ -85,7 +93,7 @@ test("/api/uploads/[id] DELETE 可删除上传文件并返回大小", async ({ p
   });
 
   const deleteResponse = await page.request.delete(
-    `/api/uploads/${uploaded.uploadId}`,
+    `/api/workspace/uploads/${uploaded.uploadId}`,
   );
   expect(deleteResponse.status()).toBe(200);
   const deleteBody = (await deleteResponse.json()) as {
@@ -96,7 +104,7 @@ test("/api/uploads/[id] DELETE 可删除上传文件并返回大小", async ({ p
   expect(typeof deleteBody.deletedSize).toBe("number");
 
   // Verify file no longer appears in uploads list
-  const listResponse = await page.request.get("/api/uploads");
+  const listResponse = await page.request.get("/api/workspace/uploads");
   expect(listResponse.status()).toBe(200);
   const listBody = (await listResponse.json()) as {
     data?: Array<{ id?: string }>;
@@ -104,10 +112,12 @@ test("/api/uploads/[id] DELETE 可删除上传文件并返回大小", async ({ p
   expect(listBody.data?.some((u) => u.id === uploaded.uploadId)).toBe(false);
 });
 
-test("/api/uploads/[id] DELETE 不存在的 id 返回 404", async ({ page }) => {
+test("/api/workspace/uploads/[id] DELETE 不存在的 id 返回 404", async ({
+  page,
+}) => {
   await signInAsDebugUser(page, "/");
   const response = await page.request.delete(
-    "/api/uploads/00000000-0000-0000-0000-000000000000",
+    "/api/workspace/uploads/00000000-0000-0000-0000-000000000000",
   );
   expect(response.status()).toBe(404);
 });

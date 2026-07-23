@@ -8,7 +8,7 @@
   },
   "rules": {
     "principal-not-user": "DemoPrincipal is a server-signed, short-lived, non-database principal with an opaque session identifier, issued-at time, expiry, and contract version. It never contains or impersonates a User ID.",
-    "direct-bootstrap-not-login": "GET /demo is an explicit bootstrap route protected by a production kill switch and rate limit. It is not linked from /signin and does not accept a username, email, password, OAuth callback, or account-selection parameter.",
+    "direct-bootstrap-not-login": "GET /demo is an explicit bootstrap route protected by a production kill switch and rate limit. It is not linked from /account/sign-in and does not accept a username, email, password, OAuth callback, or account-selection parameter.",
     "public-reads-live": "Public catalog and timetable reads may use the normal anonymous read models. Personalized dashboard, subscription, todo, and completion data comes from deterministic fixtures or a size-bounded signed demo overlay, never business rows.",
     "business-writes-prohibited": "A demo request must be intercepted by an allowlisted command gate before Prisma, R2, Better Auth, OAuth provider code, webhook delivery, calendar-feed issuance, or any other external side effect.",
     "explicit-simulation": "Every accepted demo mutation returns a machine-readable simulated flag and the UI maintains a persistent demo banner; simulated success must not be indistinguishable from a live write.",
@@ -42,7 +42,7 @@
       "auth": "internal",
       "web": {
         "status": "planned",
-        "pages": ["/dashboard", "/dashboard/subscriptions"]
+        "pages": ["/workspace", "/workspace/subscriptions"]
       },
       "rest": "unavailable",
       "graphql": "unavailable",

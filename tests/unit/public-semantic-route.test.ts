@@ -49,13 +49,13 @@ describe("public semantic page routes", () => {
         },
       },
     });
-    const route = await import("@/routes/bus/+page.server");
-    const event = routeEvent("/bus");
+    const route = await import("@/routes/catalog/bus/+page.server");
+    const event = routeEvent("/catalog/bus");
 
     await expect(route.load(event as never)).resolves.toMatchObject({
       bus: { routes: [] },
       socialMetadata: {
-        canonicalUrl: "https://life.example/bus",
+        canonicalUrl: "https://life.example/catalog/bus",
         description: "Find the next shuttle",
         title: "Shuttle Bus - Life@USTC",
       },
@@ -82,13 +82,13 @@ describe("public semantic page routes", () => {
       },
       publicLinks: [],
     });
-    const route = await import("@/routes/links/+page.server");
-    const event = routeEvent("/links");
+    const route = await import("@/routes/catalog/links/+page.server");
+    const event = routeEvent("/catalog/links");
 
     await expect(route.load(event as never)).resolves.toMatchObject({
       publicLinks: [],
       socialMetadata: {
-        canonicalUrl: "https://life.example/links",
+        canonicalUrl: "https://life.example/catalog/links",
         description: "Search campus links",
         title: "Websites - Life@USTC",
       },

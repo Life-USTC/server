@@ -66,7 +66,7 @@ describe("评论序列化权限", () => {
       viewer(),
     );
 
-    expect(roots[0]?.renderedBody).toContain('href="/sections/123"');
+    expect(roots[0]?.renderedBody).toContain('href="/catalog/sections/123"');
     expect(roots[0]?.renderedBody).not.toContain("<script>");
   });
 

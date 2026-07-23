@@ -54,7 +54,7 @@ describe("上传 MCP 工具", () => {
       error: "storage_delete_failed",
     });
     const tools = createToolRegistry();
-    const tool = tools.get("delete_my_upload");
+    const tool = tools.get("workspace_upload_delete");
     expect(tool).toBeDefined();
     if (!tool) return;
 

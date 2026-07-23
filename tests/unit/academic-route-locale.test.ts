@@ -145,9 +145,12 @@ describe("academic REST 语言适配器", () => {
       "@/lib/api/routes/academic-course-routes"
     );
 
-    const response = await getCourseDetailRoute(request("/api/courses/123"), {
-      jwId: "123",
-    });
+    const response = await getCourseDetailRoute(
+      request("/api/catalog/courses/123"),
+      {
+        jwId: "123",
+      },
+    );
 
     expect(findCourseDetailByJwIdMock).toHaveBeenCalledWith(123, "en-us");
     expect(response.headers.get("Vary")).toBe("Accept-Language, Cookie");
@@ -158,9 +161,12 @@ describe("academic REST 语言适配器", () => {
       "@/lib/api/routes/academic-section-routes"
     );
 
-    const response = await getSectionDetailRoute(request("/api/sections/123"), {
-      jwId: "123",
-    });
+    const response = await getSectionDetailRoute(
+      request("/api/catalog/sections/123"),
+      {
+        jwId: "123",
+      },
+    );
 
     expect(findSectionDetailByJwIdMock).toHaveBeenCalledWith(123, "en-us");
     expect(response.headers.get("Vary")).toBe("Accept-Language, Cookie");
@@ -171,9 +177,12 @@ describe("academic REST 语言适配器", () => {
       "@/lib/api/routes/academic-teacher-routes"
     );
 
-    const response = await getTeacherDetailRoute(request("/api/teachers/456"), {
-      id: "456",
-    });
+    const response = await getTeacherDetailRoute(
+      request("/api/catalog/teachers/456"),
+      {
+        id: "456",
+      },
+    );
 
     expect(findTeacherDetailByIdMock).toHaveBeenCalledWith(456, "en-us");
     expect(response.headers.get("Vary")).toBe("Accept-Language, Cookie");
@@ -185,7 +194,7 @@ describe("academic REST 语言适配器", () => {
     );
 
     await postSectionMatchCodesRoute(
-      request("/api/sections/match-codes", {
+      request("/api/catalog/sections/match-codes", {
         body: JSON.stringify({ codes: ["MATH101"] }),
         method: "POST",
       }),
@@ -204,7 +213,7 @@ describe("academic REST 语言适配器", () => {
     );
 
     const response = await getSectionsRoute(
-      request("/api/sections?search=math&page=1"),
+      request("/api/catalog/sections?search=math&page=1"),
     );
 
     expect(listSectionSummariesMock).toHaveBeenCalledWith(
@@ -219,8 +228,8 @@ describe("academic REST 语言适配器", () => {
       import("@/lib/api/routes/academic-teacher-routes"),
     ]);
 
-    await getCoursesRoute(request("/api/courses?search=math&page=1"));
-    await getTeachersRoute(request("/api/teachers?search=li&page=1"));
+    await getCoursesRoute(request("/api/catalog/courses?search=math&page=1"));
+    await getTeachersRoute(request("/api/catalog/teachers?search=li&page=1"));
 
     expect(listCourseSummariesMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -245,7 +254,7 @@ describe("academic REST 语言适配器", () => {
 
     const response = await getSchedulesRoute(
       request(
-        "/api/schedules?sectionJwId=123&weekday=2&dateFrom=2026-03-01&page=1",
+        "/api/catalog/schedules?sectionJwId=123&weekday=2&dateFrom=2026-03-01&page=1",
       ),
     );
 
@@ -274,11 +283,13 @@ describe("academic REST 语言适配器", () => {
       await import("@/lib/api/routes/academic-section-routes");
 
     const schedulesResponse = await getSectionSchedulesRoute(
-      request("/api/sections/123/schedules?dateFrom=2026-03-01&limit=25"),
+      request(
+        "/api/catalog/sections/123/schedules?dateFrom=2026-03-01&limit=25",
+      ),
       { jwId: "123" },
     );
     const scheduleGroupsResponse = await getSectionScheduleGroupsRoute(
-      request("/api/sections/123/schedule-groups"),
+      request("/api/catalog/sections/123/schedule-groups"),
       { jwId: "123" },
     );
 
@@ -324,25 +335,34 @@ describe("academic REST 语言适配器", () => {
     ]);
 
     const responses = [
-      await getCoursesRoute(request("/api/courses?locale=zh-cn")),
-      await getCourseDetailRoute(request("/api/courses/123?locale=zh-cn"), {
-        jwId: "123",
-      }),
-      await getTeachersRoute(request("/api/teachers?locale=zh-cn")),
-      await getTeacherDetailRoute(request("/api/teachers/456?locale=zh-cn"), {
-        id: "456",
-      }),
-      await getSectionsRoute(request("/api/sections?locale=zh-cn")),
-      await getSectionDetailRoute(request("/api/sections/123?locale=zh-cn"), {
-        jwId: "123",
-      }),
-      await getSchedulesRoute(request("/api/schedules?locale=zh-cn")),
+      await getCoursesRoute(request("/api/catalog/courses?locale=zh-cn")),
+      await getCourseDetailRoute(
+        request("/api/catalog/courses/123?locale=zh-cn"),
+        {
+          jwId: "123",
+        },
+      ),
+      await getTeachersRoute(request("/api/catalog/teachers?locale=zh-cn")),
+      await getTeacherDetailRoute(
+        request("/api/catalog/teachers/456?locale=zh-cn"),
+        {
+          id: "456",
+        },
+      ),
+      await getSectionsRoute(request("/api/catalog/sections?locale=zh-cn")),
+      await getSectionDetailRoute(
+        request("/api/catalog/sections/123?locale=zh-cn"),
+        {
+          jwId: "123",
+        },
+      ),
+      await getSchedulesRoute(request("/api/catalog/schedules?locale=zh-cn")),
       await getSectionSchedulesRoute(
-        request("/api/sections/123/schedules?locale=zh-cn"),
+        request("/api/catalog/sections/123/schedules?locale=zh-cn"),
         { jwId: "123" },
       ),
       await getSectionScheduleGroupsRoute(
-        request("/api/sections/123/schedule-groups?locale=zh-cn"),
+        request("/api/catalog/sections/123/schedule-groups?locale=zh-cn"),
         { jwId: "123" },
       ),
     ];
@@ -376,7 +396,7 @@ describe("academic REST 语言适配器", () => {
     );
 
     const response = await getCourseDetailRoute(
-      request("/api/courses/123?locale=fr-fr"),
+      request("/api/catalog/courses/123?locale=fr-fr"),
       { jwId: "123" },
     );
 

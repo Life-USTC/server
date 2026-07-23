@@ -1,14 +1,14 @@
 /**
- * E2E tests for GET /api/homeworks and POST /api/homeworks.
+ * E2E tests for GET /api/community/homeworks and POST /api/community/homeworks.
  *
- * ## GET /api/homeworks
+ * ## GET /api/community/homeworks
  * - Query: sectionId (required)
  * - Response: { viewer, homeworks[], auditLogs[] }
  * - Public endpoint: viewer.userId is null when unauthenticated
  * - Returns homeworks with completion status for the current user
  * - Includes audit logs for the section's homeworks
  *
- * ## POST /api/homeworks
+ * ## POST /api/community/homeworks
  * - Body: { title, sectionId, publishedAt, submissionStartAt, submissionDueAt }
  * - Response: { id, homework }
  * - Auth required (401 if unauthenticated)
@@ -29,7 +29,7 @@ import { assertApiContract } from "../../_shared/api-contract";
 async function resolveSeedSectionId(
   request: import("@playwright/test").APIRequestContext,
 ) {
-  const response = await request.post("/api/sections/match-codes", {
+  const response = await request.post("/api/catalog/sections/match-codes", {
     data: { codes: [DEV_SEED.section.code] },
   });
   expect(response.status()).toBe(200);
@@ -42,18 +42,18 @@ async function resolveSeedSectionId(
   return section!.id!;
 }
 
-test("/api/homeworks 接口契约", async ({ request }) => {
-  await assertApiContract(request, { routePath: "/api/homeworks" });
+test("/api/community/homeworks 接口契约", async ({ request }) => {
+  await assertApiContract(request, { routePath: "/api/community/homeworks" });
 });
 
-test("/api/homeworks GET 返回 seed 作业、completion 与审计日志", async ({
+test("/api/community/homeworks GET 返回 seed 作业、completion 与审计日志", async ({
   page,
 }) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
 
   const response = await page.request.get(
-    `/api/homeworks?sectionId=${sectionId}`,
+    `/api/community/homeworks?sectionId=${sectionId}`,
   );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
@@ -103,7 +103,7 @@ test("/api/homeworks GET 返回 seed 作业、completion 与审计日志", async
   expect(typeof seedHomework.sectionId).toBe("number");
 
   const jwResponse = await page.request.get(
-    `/api/homeworks?sectionJwId=${DEV_SEED.section.jwId}`,
+    `/api/community/homeworks?sectionJwId=${DEV_SEED.section.jwId}`,
   );
   expect(jwResponse.status()).toBe(200);
   const jwBody = (await jwResponse.json()) as {
@@ -123,14 +123,18 @@ test("/api/homeworks GET 返回 seed 作业、completion 与审计日志", async
   expect(Object.hasOwn(seedHomework, "updatedBy")).toBe(true);
 });
 
-test("/api/homeworks GET 未找到 sectionJwId 返回 404", async ({ request }) => {
-  const response = await request.get("/api/homeworks?sectionJwId=999999999");
+test("/api/community/homeworks GET 未找到 sectionJwId 返回 404", async ({
+  request,
+}) => {
+  const response = await request.get(
+    "/api/community/homeworks?sectionJwId=999999999",
+  );
   expect(response.status()).toBe(404);
 });
 
-test("/api/homeworks POST 未登录返回 401", async ({ request }) => {
+test("/api/community/homeworks POST 未登录返回 401", async ({ request }) => {
   const now = new Date();
-  const response = await request.post("/api/homeworks", {
+  const response = await request.post("/api/community/homeworks", {
     data: {
       title: "should fail",
       sectionId: "1",
@@ -142,13 +146,15 @@ test("/api/homeworks POST 未登录返回 401", async ({ request }) => {
   expect(response.status()).toBe(401);
 });
 
-test("/api/homeworks POST 登录后可创建作业并清理", async ({ page }) => {
+test("/api/community/homeworks POST 登录后可创建作业并清理", async ({
+  page,
+}) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
 
   const title = `e2e-homework-create-${Date.now()}`;
   const now = new Date();
-  const createResponse = await page.request.post("/api/homeworks", {
+  const createResponse = await page.request.post("/api/community/homeworks", {
     data: {
       title,
       sectionId: String(sectionId),
@@ -164,7 +170,7 @@ test("/api/homeworks POST 登录后可创建作业并清理", async ({ page }) =
   };
   expect(createBody.id).toBeTruthy();
   expect(createResponse.headers().location).toBe(
-    `/api/homeworks/${createBody.id}`,
+    `/api/community/homeworks/${createBody.id}`,
   );
   expect(createBody.homework?.id).toBe(createBody.id);
   expect(createBody.homework?.title).toBe(title);
@@ -172,7 +178,7 @@ test("/api/homeworks POST 登录后可创建作业并清理", async ({ page }) =
 
   // Verify the created homework appears in the list
   const listResponse = await page.request.get(
-    `/api/homeworks?sectionId=${sectionId}`,
+    `/api/community/homeworks?sectionId=${sectionId}`,
   );
   expect(listResponse.status()).toBe(200);
   const listBody = (await listResponse.json()) as {
@@ -183,6 +189,6 @@ test("/api/homeworks POST 登录后可创建作业并清理", async ({ page }) =
 
   // Cleanup
   if (created?.id) {
-    await page.request.delete(`/api/homeworks/${created.id}`);
+    await page.request.delete(`/api/community/homeworks/${created.id}`);
   }
 });

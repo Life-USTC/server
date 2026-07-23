@@ -22,18 +22,18 @@ test.describe("移动端截图", () => {
   test.describe("公开页面", () => {
     for (const path of [
       "/",
-      "/courses",
-      `/courses/${DEV_SEED.course.jwId}`,
-      "/sections",
-      `/sections/${DEV_SEED.section.jwId}`,
-      "/teachers",
-      "/bus-map",
-      "/comments/guide",
+      "/catalog/courses",
+      `/catalog/courses/${DEV_SEED.course.jwId}`,
+      "/catalog/sections",
+      `/catalog/sections/${DEV_SEED.section.jwId}`,
+      "/catalog/teachers",
+      "/catalog/bus/map",
+      "/community/comments/guide",
       "/guides/markdown-support",
       "/privacy",
       "/terms",
       "/mobile-app",
-      "/signin",
+      "/account/sign-in",
       "/oauth/device",
     ]) {
       screenshotRoute(path, path);
@@ -46,35 +46,35 @@ test.describe("移动端截图", () => {
     });
 
     for (const path of [
-      "/dashboard/overview",
-      "/dashboard/homeworks",
-      "/dashboard/todos",
-      "/dashboard/calendar",
-      "/dashboard/exams",
-      "/dashboard/links",
-      "/dashboard/subscriptions",
-      "/settings/profile",
-      "/settings/accounts",
-      "/settings/content",
-      "/settings/danger",
-      `/u/${DEV_SEED.debugUsername}`,
+      "/workspace/overview",
+      "/workspace/homeworks",
+      "/workspace/todos",
+      "/workspace/calendar",
+      "/workspace/exams",
+      "/workspace/links",
+      "/workspace/subscriptions",
+      "/account/settings/profile",
+      "/account/settings/accounts",
+      "/account/settings/content",
+      "/account/settings/danger",
+      `/community/users/${DEV_SEED.debugUsername}`,
     ]) {
       screenshotRoute(path, path);
     }
 
-    test(`/u/id/[uid] 页面截图`, async ({ page }) => {
+    test(`/community/users/id/[uid] 页面截图`, async ({ page }) => {
       const sessionResponse = await page.request.get("/api/auth/get-session");
       const session = (await sessionResponse.json()) as {
         user?: { id?: string };
       };
       const userId = session.user?.id ?? "";
-      await gotoAndWaitForReady(page, `/u/id/${userId}`);
+      await gotoAndWaitForReady(page, `/community/users/id/${userId}`);
     });
 
     test.describe("welcome 共享用户状态", () => {
       test.describe.configure({ mode: "serial" });
 
-      test("/welcome 页面截图", async ({ page }) => {
+      test("/account/welcome 页面截图", async ({ page }) => {
         const sessionUser = await getCurrentSessionUser(page);
         const originalUser = await getUserProfileById(sessionUser.id);
         await updateUserProfileById(sessionUser.id, {
@@ -83,8 +83,8 @@ test.describe("移动端截图", () => {
         });
 
         try {
-          await gotoAndWaitForReady(page, "/welcome");
-          await expect(page).toHaveURL(/\/welcome(?:\?.*)?$/);
+          await gotoAndWaitForReady(page, "/account/welcome");
+          await expect(page).toHaveURL(/\/account\/welcome(?:\?.*)?$/);
           await expect(
             page.getByRole("textbox", { name: /^(姓名|Name)\b/i }),
           ).toBeVisible();

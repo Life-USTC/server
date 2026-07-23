@@ -17,10 +17,10 @@ import { serializeScheduleTimeFields } from "@/shared/lib/schedule-serialization
 
 export function registerMyScheduleTools(server: McpServer) {
   server.registerTool(
-    "list_my_schedules",
+    "workspace_schedule_list",
     {
       description:
-        "List schedules across your subscribed sections in all semesters. Use query_schedules for public schedules of any section without personal context. " +
+        "List schedules across your subscribed sections in all semesters. Use catalog_schedule_list for public schedules of any section without personal context. " +
         "Pass semesterId to limit results to a specific semester.",
       inputSchema: {
         dateFrom: flexDateInputSchema.optional(),
@@ -59,7 +59,7 @@ export function registerMyScheduleTools(server: McpServer) {
   );
 
   server.registerTool(
-    "list_my_exams",
+    "workspace_exam_list",
     {
       description:
         "List exams across your subscribed sections in all semesters. Includes unknown-date exams by default (set includeDateUnknown: false to exclude). " +

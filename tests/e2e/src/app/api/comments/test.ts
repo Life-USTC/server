@@ -1,14 +1,14 @@
 /**
- * E2E tests for GET /api/comments and POST /api/comments.
+ * E2E tests for GET /api/community/comments and POST /api/community/comments.
  *
- * ## GET /api/comments
+ * ## GET /api/community/comments
  * - Query: targetType (section|course|teacher|homework|section-teacher), targetId, sectionId, sectionJwId, courseJwId, teacherId, homeworkId, sectionTeacherId, page, pageSize (deprecated alias: limit)
  * - Response: { data: CommentNode[], pagination, meta: { hiddenCount, viewer, target } }
  * - Public endpoint (no auth required)
  * - Returns 400 for missing/invalid target
  * - Returns 404 for missing target entity
  *
- * ## POST /api/comments
+ * ## POST /api/community/comments
  * - Body: { targetType, targetId, body, visibility?, isAnonymous?, parentId?, attachmentIds?, sectionId?, sectionJwId?, courseJwId?, teacherId?, homeworkId?, sectionTeacherId? }
  * - Response: { id: string }
  * - Auth required (401 if unauthenticated)
@@ -140,7 +140,7 @@ async function deleteDisposableSectionTeacherFixture(
 async function resolveSeedSectionId(
   request: import("@playwright/test").APIRequestContext,
 ) {
-  const response = await request.post("/api/sections/match-codes", {
+  const response = await request.post("/api/catalog/sections/match-codes", {
     data: { codes: [DEV_SEED.section.code] },
   });
   expect(response.status()).toBe(200);
@@ -153,15 +153,17 @@ async function resolveSeedSectionId(
   return section!.id!;
 }
 
-test("/api/comments 接口契约", async ({ request }) => {
-  await assertApiContract(request, { routePath: "/api/comments" });
+test("/api/community/comments 接口契约", async ({ request }) => {
+  await assertApiContract(request, { routePath: "/api/community/comments" });
 });
 
-test("/api/comments GET 返回 section 目标与 seed 评论", async ({ request }) => {
+test("/api/community/comments GET 返回 section 目标与 seed 评论", async ({
+  request,
+}) => {
   const sectionId = await resolveSeedSectionId(request);
 
   const response = await request.get(
-    `/api/comments?targetType=section&targetId=${sectionId}`,
+    `/api/community/comments?targetType=section&targetId=${sectionId}`,
   );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as CommentListResponse;
@@ -176,9 +178,11 @@ test("/api/comments GET 返回 section 目标与 seed 评论", async ({ request 
   ).toBe(true);
 });
 
-test("/api/comments GET 接受公开 section JW id", async ({ request }) => {
+test("/api/community/comments GET 接受公开 section JW id", async ({
+  request,
+}) => {
   const response = await request.get(
-    `/api/comments?targetType=section&sectionJwId=${DEV_SEED.section.jwId}`,
+    `/api/community/comments?targetType=section&sectionJwId=${DEV_SEED.section.jwId}`,
   );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as CommentListResponse;
@@ -194,21 +198,25 @@ test("/api/comments GET 接受公开 section JW id", async ({ request }) => {
   ).toBe(true);
 });
 
-test("/api/comments GET 无效 targetType 返回 400", async ({ request }) => {
+test("/api/community/comments GET 无效 targetType 返回 400", async ({
+  request,
+}) => {
   const response = await request.get(
-    "/api/comments?targetType=invalid&targetId=1",
+    "/api/community/comments?targetType=invalid&targetId=1",
   );
   expect(response.status()).toBe(400);
 });
 
-test("/api/comments GET 不存在的目标返回 404", async ({ request }) => {
+test("/api/community/comments GET 不存在的目标返回 404", async ({
+  request,
+}) => {
   const response = await request.get(
-    "/api/comments?targetType=section&targetId=2147483647",
+    "/api/community/comments?targetType=section&targetId=2147483647",
   );
   expect(response.status()).toBe(404);
 });
 
-test("/api/comments GET 按根评论分页并保留完整回复树", async ({
+test("/api/community/comments GET 按根评论分页并保留完整回复树", async ({
   page,
 }, testInfo) => {
   await signInAsDebugUser(page, "/");
@@ -220,7 +228,7 @@ test("/api/comments GET 按根评论分页并保留完整回复树", async ({
 
   try {
     for (let index = 1; index <= 3; index += 1) {
-      const response = await page.request.post("/api/comments", {
+      const response = await page.request.post("/api/community/comments", {
         data: {
           targetType: "section",
           targetId: String(fixture.sectionId),
@@ -233,7 +241,7 @@ test("/api/comments GET 按根评论分页并保留完整回复树", async ({
       if (id) rootIds.push(id);
     }
 
-    const replyResponse = await page.request.post("/api/comments", {
+    const replyResponse = await page.request.post("/api/community/comments", {
       data: {
         targetType: "section",
         targetId: String(fixture.sectionId),
@@ -244,7 +252,7 @@ test("/api/comments GET 按根评论分页并保留完整回复树", async ({
     expect(replyResponse.status()).toBe(201);
 
     const firstResponse = await page.request.get(
-      `/api/comments?targetType=section&targetId=${fixture.sectionId}&page=1&pageSize=1`,
+      `/api/community/comments?targetType=section&targetId=${fixture.sectionId}&page=1&pageSize=1`,
     );
     expect(firstResponse.status()).toBe(200);
     const first = (await firstResponse.json()) as CommentListResponse<{
@@ -265,7 +273,7 @@ test("/api/comments GET 按根评论分页并保留完整回复树", async ({
     });
 
     const secondResponse = await page.request.get(
-      `/api/comments?targetType=section&targetId=${fixture.sectionId}&page=2&limit=1`,
+      `/api/community/comments?targetType=section&targetId=${fixture.sectionId}&page=2&limit=1`,
     );
     expect(secondResponse.status()).toBe(200);
     const second = (await secondResponse.json()) as CommentListResponse;
@@ -279,7 +287,7 @@ test("/api/comments GET 按根评论分页并保留完整回复树", async ({
   }
 });
 
-test("/api/comments GET section-teacher 空目标不会创建关系行", async ({
+test("/api/community/comments GET section-teacher 空目标不会创建关系行", async ({
   request,
 }, testInfo) => {
   const fixture = await createDisposableSectionTeacherFixture(testInfo, {
@@ -288,7 +296,7 @@ test("/api/comments GET section-teacher 空目标不会创建关系行", async (
 
   try {
     const response = await request.get(
-      `/api/comments?targetType=section-teacher&sectionId=${fixture.sectionId}&teacherId=${fixture.teacherId}`,
+      `/api/community/comments?targetType=section-teacher&sectionId=${fixture.sectionId}&teacherId=${fixture.teacherId}`,
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as CommentListResponse<unknown>;
@@ -315,7 +323,7 @@ test("/api/comments GET section-teacher 空目标不会创建关系行", async (
   }
 });
 
-test("/api/comments GET 未关联的 section-teacher 目标返回 404", async ({
+test("/api/community/comments GET 未关联的 section-teacher 目标返回 404", async ({
   request,
 }, testInfo) => {
   const fixture = await createDisposableSectionTeacherFixture(testInfo, {
@@ -324,7 +332,7 @@ test("/api/comments GET 未关联的 section-teacher 目标返回 404", async ({
 
   try {
     const response = await request.get(
-      `/api/comments?targetType=section-teacher&sectionId=${fixture.sectionId}&teacherId=${fixture.teacherId}`,
+      `/api/community/comments?targetType=section-teacher&sectionId=${fixture.sectionId}&teacherId=${fixture.teacherId}`,
     );
     expect(response.status()).toBe(404);
   } finally {
@@ -332,8 +340,8 @@ test("/api/comments GET 未关联的 section-teacher 目标返回 404", async ({
   }
 });
 
-test("/api/comments POST 未登录返回 401", async ({ request }) => {
-  const response = await request.post("/api/comments", {
+test("/api/community/comments POST 未登录返回 401", async ({ request }) => {
+  const response = await request.post("/api/community/comments", {
     data: {
       targetType: "section",
       targetId: "1",
@@ -343,12 +351,12 @@ test("/api/comments POST 未登录返回 401", async ({ request }) => {
   expect(response.status()).toBe(401);
 });
 
-test("/api/comments POST 拒绝匿名可见性", async ({ page }) => {
+test("/api/community/comments POST 拒绝匿名可见性", async ({ page }) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
   const content = `e2e-reject-anonymous-visibility-${Date.now()}`;
 
-  const response = await page.request.post("/api/comments", {
+  const response = await page.request.post("/api/community/comments", {
     data: {
       targetType: "section",
       targetId: String(sectionId),
@@ -371,12 +379,14 @@ test("/api/comments POST 拒绝匿名可见性", async ({ page }) => {
   expect(created).toBeNull();
 });
 
-test("/api/comments POST 登录后可发布新评论并清理", async ({ page }) => {
+test("/api/community/comments POST 登录后可发布新评论并清理", async ({
+  page,
+}) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
 
   const content = `e2e-create-comment-${Date.now()}`;
-  const createResponse = await page.request.post("/api/comments", {
+  const createResponse = await page.request.post("/api/community/comments", {
     data: {
       targetType: "section",
       targetId: String(sectionId),
@@ -387,11 +397,13 @@ test("/api/comments POST 登录后可发布新评论并清理", async ({ page })
   expect(createResponse.status()).toBe(201);
   const createdId = ((await createResponse.json()) as { id?: string }).id;
   expect(createdId).toBeTruthy();
-  expect(createResponse.headers().location).toBe(`/api/comments/${createdId}`);
+  expect(createResponse.headers().location).toBe(
+    `/api/community/comments/${createdId}`,
+  );
 
   try {
     const listResponse = await page.request.get(
-      `/api/comments?targetType=section&targetId=${sectionId}`,
+      `/api/community/comments?targetType=section&targetId=${sectionId}`,
     );
     expect(listResponse.status()).toBe(200);
     const listBody = (await listResponse.json()) as CommentListResponse;
@@ -400,16 +412,18 @@ test("/api/comments POST 登录后可发布新评论并清理", async ({ page })
     ).toBe(true);
   } finally {
     if (createdId) {
-      await page.request.delete(`/api/comments/${createdId}`);
+      await page.request.delete(`/api/community/comments/${createdId}`);
     }
   }
 });
 
-test("/api/comments POST 接受公开 section JW id", async ({ page }) => {
+test("/api/community/comments POST 接受公开 section JW id", async ({
+  page,
+}) => {
   await signInAsDebugUser(page, "/");
 
   const content = `e2e-create-comment-section-jwid-${Date.now()}`;
-  const createResponse = await page.request.post("/api/comments", {
+  const createResponse = await page.request.post("/api/community/comments", {
     data: {
       targetType: "section",
       sectionJwId: DEV_SEED.section.jwId,
@@ -423,7 +437,7 @@ test("/api/comments POST 接受公开 section JW id", async ({ page }) => {
 
   try {
     const listResponse = await page.request.get(
-      `/api/comments?targetType=section&sectionJwId=${DEV_SEED.section.jwId}`,
+      `/api/community/comments?targetType=section&sectionJwId=${DEV_SEED.section.jwId}`,
     );
     expect(listResponse.status()).toBe(200);
     const listBody = (await listResponse.json()) as CommentListResponse;
@@ -432,19 +446,19 @@ test("/api/comments POST 接受公开 section JW id", async ({ page }) => {
     ).toBe(true);
   } finally {
     if (createdId) {
-      await page.request.delete(`/api/comments/${createdId}`);
+      await page.request.delete(`/api/community/comments/${createdId}`);
     }
   }
 });
 
-test("/api/comments POST 拒绝格式错误的公开 section JW id 并回退 targetId", async ({
+test("/api/community/comments POST 拒绝格式错误的公开 section JW id 并回退 targetId", async ({
   page,
 }) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
   const content = `e2e-invalid-section-jwid-${Date.now()}`;
 
-  const createResponse = await page.request.post("/api/comments", {
+  const createResponse = await page.request.post("/api/community/comments", {
     data: {
       targetType: "section",
       targetId: String(sectionId),
@@ -467,7 +481,7 @@ test("/api/comments POST 拒绝格式错误的公开 section JW id 并回退 tar
   expect(created).toBeNull();
 });
 
-test("/api/comments POST 拒绝复用已上传附件", async ({ page }) => {
+test("/api/community/comments POST 拒绝复用已上传附件", async ({ page }) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
   const marker = `e2e-upload-reuse-${Date.now()}`;
@@ -479,7 +493,7 @@ test("/api/comments POST 拒绝复用已上传附件", async ({ page }) => {
   });
 
   try {
-    const firstResponse = await page.request.post("/api/comments", {
+    const firstResponse = await page.request.post("/api/community/comments", {
       data: {
         targetType: "section",
         targetId: String(sectionId),
@@ -490,7 +504,7 @@ test("/api/comments POST 拒绝复用已上传附件", async ({ page }) => {
     });
     expect(firstResponse.status()).toBe(201);
 
-    const secondResponse = await page.request.post("/api/comments", {
+    const secondResponse = await page.request.post("/api/community/comments", {
       data: {
         targetType: "section",
         targetId: String(sectionId),
@@ -509,17 +523,17 @@ test("/api/comments POST 拒绝复用已上传附件", async ({ page }) => {
         where: { body: { in: [firstContent, secondContent] } },
       }),
     );
-    await page.request.delete(`/api/uploads/${uploaded.uploadId}`);
+    await page.request.delete(`/api/workspace/uploads/${uploaded.uploadId}`);
   }
 });
 
-test("/api/comments POST 可创建回复评论", async ({ page }) => {
+test("/api/community/comments POST 可创建回复评论", async ({ page }) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
 
   // Find the seed root comment to reply to
   const listResponse = await page.request.get(
-    `/api/comments?targetType=section&targetId=${sectionId}`,
+    `/api/community/comments?targetType=section&targetId=${sectionId}`,
   );
   expect(listResponse.status()).toBe(200);
   const listBody = (await listResponse.json()) as CommentListResponse;
@@ -531,7 +545,7 @@ test("/api/comments POST 可创建回复评论", async ({ page }) => {
   const seedCommentId = seedComment!.id;
 
   const replyContent = `e2e-reply-${Date.now()}`;
-  const replyResponse = await page.request.post("/api/comments", {
+  const replyResponse = await page.request.post("/api/community/comments", {
     data: {
       targetType: "section",
       targetId: String(sectionId),
@@ -546,7 +560,7 @@ test("/api/comments POST 可创建回复评论", async ({ page }) => {
   try {
     // Verify the reply appears in the thread
     const threadResponse = await page.request.get(
-      `/api/comments/${seedCommentId}`,
+      `/api/community/comments/${seedCommentId}`,
     );
     expect(threadResponse.status()).toBe(200);
     const threadBody = (await threadResponse.json()) as {
@@ -562,17 +576,17 @@ test("/api/comments POST 可创建回复评论", async ({ page }) => {
     ).toBe(true);
   } finally {
     if (replyId) {
-      await page.request.delete(`/api/comments/${replyId}`);
+      await page.request.delete(`/api/community/comments/${replyId}`);
     }
   }
 });
 
-test("/api/comments POST 拒绝对失效父评论回复", async ({ page }) => {
+test("/api/community/comments POST 拒绝对失效父评论回复", async ({ page }) => {
   await signInAsDebugUser(page, "/");
   const sectionId = await resolveSeedSectionId(page.request);
 
   const content = `e2e-inactive-parent-${Date.now()}`;
-  const createResponse = await page.request.post("/api/comments", {
+  const createResponse = await page.request.post("/api/community/comments", {
     data: {
       targetType: "section",
       targetId: String(sectionId),
@@ -595,14 +609,17 @@ test("/api/comments POST 拒绝对失效父评论回复", async ({ page }) => {
       }),
     );
 
-    const deletedReplyResponse = await page.request.post("/api/comments", {
-      data: {
-        targetType: "section",
-        targetId: String(sectionId),
-        body: `${content}-reply-deleted`,
-        parentId: commentId,
+    const deletedReplyResponse = await page.request.post(
+      "/api/community/comments",
+      {
+        data: {
+          targetType: "section",
+          targetId: String(sectionId),
+          body: `${content}-reply-deleted`,
+          parentId: commentId,
+        },
       },
-    });
+    );
     expect(deletedReplyResponse.status()).toBe(403);
 
     await withE2ePrisma((prisma) =>
@@ -612,14 +629,17 @@ test("/api/comments POST 拒绝对失效父评论回复", async ({ page }) => {
       }),
     );
 
-    const softbannedReplyResponse = await page.request.post("/api/comments", {
-      data: {
-        targetType: "section",
-        targetId: String(sectionId),
-        body: `${content}-reply-softbanned`,
-        parentId: commentId,
+    const softbannedReplyResponse = await page.request.post(
+      "/api/community/comments",
+      {
+        data: {
+          targetType: "section",
+          targetId: String(sectionId),
+          body: `${content}-reply-softbanned`,
+          parentId: commentId,
+        },
       },
-    });
+    );
     expect(softbannedReplyResponse.status()).toBe(403);
   } finally {
     await withE2ePrisma((prisma) =>

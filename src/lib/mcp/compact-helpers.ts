@@ -61,7 +61,7 @@ export function redactCalendarFeedLocation(value: string | null | undefined) {
   if (value == null) return null;
   if (value === "") return value;
   return value.replace(
-    /(\/api\/users\/[^/:]+:)([^/?#]+)(\/calendar\.ics)/,
+    /(\/api\/community\/users\/[^/:]+:)([^/?#]+)(\/calendar\.ics)/,
     "$1[redacted]$3",
   );
 }

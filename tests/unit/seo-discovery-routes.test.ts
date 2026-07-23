@@ -57,7 +57,13 @@ describe("crawler discovery routes", () => {
     expect(response.headers.get("Content-Signal")).toBe(CONTENT_SIGNAL);
     expect(body).toContain("Allow: /api/docs$\nAllow: /api/docs/");
     expect(body).toContain("Disallow: /api$\nDisallow: /api/");
-    for (const path of ["admin", "oauth", "settings", "signin", "welcome"]) {
+    for (const path of [
+      "admin",
+      "oauth",
+      "account/settings",
+      "account/sign-in",
+      "account/welcome",
+    ]) {
       expect(body).toContain(`Disallow: /${path}$\nDisallow: /${path}/`);
     }
     expect(body).toContain(`Sitemap: ${ORIGIN}/sitemap.xml`);
@@ -71,9 +77,9 @@ describe("crawler discovery routes", () => {
     const body = await response.text();
 
     expect(response.headers.get("Content-Signal")).toBe(CONTENT_SIGNAL);
-    expect(body).toContain(`${ORIGIN}/courses`);
-    expect(body).toContain(`${ORIGIN}/sections`);
-    expect(body).toContain(`${ORIGIN}/teachers`);
+    expect(body).toContain(`${ORIGIN}/catalog/courses`);
+    expect(body).toContain(`${ORIGIN}/catalog/sections`);
+    expect(body).toContain(`${ORIGIN}/catalog/teachers`);
     expect(body).toContain(`${ORIGIN}/api/docs/tag/sections`);
     expect(body).toContain(
       `${ORIGIN}/.well-known/oauth-protected-resource/api/mcp`,
@@ -120,8 +126,8 @@ describe("crawler discovery routes", () => {
 
     expect(response.headers.get("Content-Signal")).toBe(CONTENT_SIGNAL);
     expect(body).toContain(`<loc>${ORIGIN}/api/docs/tag/sections</loc>`);
-    expect(body).toContain(`<loc>${ORIGIN}/courses/course-1</loc>`);
-    expect(body).toContain(`<loc>${ORIGIN}/sections/section-1</loc>`);
-    expect(body).toContain(`<loc>${ORIGIN}/teachers/1</loc>`);
+    expect(body).toContain(`<loc>${ORIGIN}/catalog/courses/course-1</loc>`);
+    expect(body).toContain(`<loc>${ORIGIN}/catalog/sections/section-1</loc>`);
+    expect(body).toContain(`<loc>${ORIGIN}/catalog/teachers/1</loc>`);
   });
 });

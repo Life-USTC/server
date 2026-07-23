@@ -28,12 +28,12 @@
         "ui": ["List Table"]
       },
       "web": {
-        "pages": ["/courses"]
+        "pages": ["/catalog/courses"]
       },
       "rest": {
         "routes": [
           {
-            "path": "/api/courses",
+            "path": "/api/catalog/courses",
             "returns": "PaginatedResponse<Course>",
             "notes": [
               "REST pageSize accepts 1-100; the deprecated limit alias remains accepted and pageSize wins when both are supplied. Out-of-range values are rejected instead of clamped."
@@ -45,13 +45,14 @@
         "queries": [
           {
             "name": "courses",
+            "parent": "Catalog",
             "arguments": {
               "page": "PageInput",
               "filter": "CourseFilter"
             },
             "returns": "CoursePage!",
-            "rest_equivalent": "GET /api/courses",
-            "mcp_equivalent": "search_courses",
+            "rest_equivalent": "GET /api/catalog/courses",
+            "mcp_equivalent": "catalog_course_search",
             "notes": [
               "PageInput defaults to page=1 and pageSize=20; pageSize must remain within 1-100."
             ]
@@ -61,9 +62,9 @@
       "mcp": {
         "tools": [
           {
-            "name": "search_courses",
+            "name": "catalog_course_search",
             "returns": "PaginatedResponse<Course>",
-            "rest_equivalent": "GET /api/courses",
+            "rest_equivalent": "GET /api/catalog/courses",
             "notes": [
               "MCP limit accepts 1-100 and rejects out-of-range values instead of clamping."
             ]
@@ -90,12 +91,12 @@
         "ui": ["Detail Hero", "Context Tabs", "Basic Info Card"]
       },
       "web": {
-        "pages": ["/courses/[jwId]"]
+        "pages": ["/catalog/courses/[jwId]"]
       },
       "rest": {
         "routes": [
           {
-            "path": "/api/courses/[jwId]",
+            "path": "/api/catalog/courses/[jwId]",
             "returns": "CourseDetail"
           }
         ]
@@ -104,19 +105,20 @@
         "queries": [
           {
             "name": "course",
+            "parent": "Catalog",
             "arguments": { "jwId": "Int!" },
             "returns": "Course",
-            "rest_equivalent": "GET /api/courses/[jwId]",
-            "mcp_equivalent": "get_course_by_jw_id"
+            "rest_equivalent": "GET /api/catalog/courses/[jwId]",
+            "mcp_equivalent": "catalog_course_get"
           }
         ]
       },
       "mcp": {
         "tools": [
           {
-            "name": "get_course_by_jw_id",
+            "name": "catalog_course_get",
             "returns": "{ found: Boolean, course: CourseDetail? }",
-            "rest_equivalent": "GET /api/courses/[jwId]"
+            "rest_equivalent": "GET /api/catalog/courses/[jwId]"
           }
         ]
       },

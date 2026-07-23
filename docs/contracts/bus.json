@@ -12,34 +12,34 @@
     "shanghai-time-interpretation": "When calculating 'how long until departure', whether a trip has departed, and route ordering, the dashboard client interprets HH:mm times in the timetable uniformly as Shanghai Time, not changing with the browser's timezone.",
     "core-filters-only": "The dashboard bus page provides only core filters for departure stop, arrival stop, direction reversal, and 'show already-departed trips'; departure and arrival stops use a directly clickable vertical stop column to avoid secondary dropdowns, maintaining clear departure/arrival hierarchy.",
     "visual-priority": "The dashboard visual structure should prioritize 'quick scanning of the next trip and route differences'; selected stop, direction, next departure time, and route grouping must be more prominent than decorative cards.",
-    "public-next-departure-first": "The public /bus page leads with the next boardable departure and up to two following departures for the selected direction; it reuses a valid recent local route when no signed-in preference is available, while route controls and the complete grouped timetable remain accessible through progressive disclosure.",
-    "semantic-public-route": "Anonymous /?tab=bus requests permanently redirect to /bus; signed-in compatibility requests redirect to /dashboard/bus.",
+    "public-next-departure-first": "The public /catalog/bus page leads with the next boardable departure and up to two following departures for the selected direction; it reuses a valid recent local route when no signed-in preference is available, while route controls and the complete grouped timetable remain accessible through progressive disclosure.",
+    "semantic-public-route": "Anonymous /?tab=bus requests permanently redirect to /catalog/bus; signed-in compatibility requests redirect to /workspace/bus.",
     "sort-by-next-boardable": "Routes are currently sorted by 'the next boardable time from the selected departure stop'; if a stop has no exact time in the original timetable, the average of adjacent known stop times in the same trip is used as an estimate.",
-    "merged-table-grouped-by-route": "The signed-in dashboard and the public /bus expanded timetable use a single merged large table to display all applicable routes, grouped into table sections by route; each section shows the visible trips for that route.",
-    "raw-data-returned": "/api/bus and query_bus_timetable return raw route/stop/trip data within the selected timetable version; the preferences field is null for anonymous callers and returns the authenticated caller's saved preferences; the server does not pre-apply recommendations, filtering, or sorting.",
+    "merged-table-grouped-by-route": "The signed-in dashboard and the public /catalog/bus expanded timetable use a single merged large table to display all applicable routes, grouped into table sections by route; each section shows the visible trips for that route.",
+    "raw-data-returned": "/api/catalog/bus and catalog_bus_timetable_get return raw route/stop/trip data within the selected timetable version; the preferences field is null for anonymous callers and returns the authenticated caller's saved preferences; the server does not pre-apply recommendations, filtering, or sorting.",
     "version-topology-self-contained": "When versionKey selects a historical timetable version, routes, stops, campuses, and trips are derived from that same imported schedule version rather than the latest global route topology.",
-    "current-version-only": "list_bus_routes only lists routes actually present in the current active timetable version; it does not expose historical route IDs outside the current version.",
+    "current-version-only": "catalog_bus_route_list only lists routes actually present in the current active timetable version; it does not expose historical route IDs outside the current version.",
     "dashboard-vs-map": "The dashboard prioritizes answering 'how to get the next trip'; the map page handles spatial understanding.",
     "public-version-metadata-omitted": "Public bus dashboard pages omit timetable version metadata rather than showing an unlabeled or unlocalized imported value; the raw title remains available to admin, REST, and MCP consumers.",
     "responsive-route-surfaces": "Bus planner and transit-map pages keep document content within narrow viewports, provide at least 44 CSS pixels of height for primary route actions, wrap stop sequences only between complete arrow-and-stop tokens, and keep campus labels legible over route strokes.",
-    "task-oriented-tool-hierarchy": "Use query_bus_timetable for raw/full datasets, list_bus_routes for unfiltered discovery, search_bus_routes for filtered discovery, get_bus_route_timetable for one route, get_next_buses for immediate departure answers, and get_my_bus_preferences/save_my_bus_preferences for personal defaults.",
-    "canonical-compact-mode": "query_bus_timetable default mode returns compact counts, route/campus summaries, and relevant departures rather than the full trip dataset; the deprecated summary input is an alias for this same shape."
+    "task-oriented-tool-hierarchy": "Use catalog_bus_timetable_get for raw/full datasets, catalog_bus_route_list for unfiltered discovery, catalog_bus_route_search for filtered discovery, catalog_bus_route_get for one route, catalog_bus_departure_next for immediate departure answers, and workspace_bus_preferences_get/workspace_bus_preferences_set for personal defaults.",
+    "canonical-compact-mode": "catalog_bus_timetable_get default mode returns compact counts, route/campus summaries, and relevant departures rather than the full trip dataset; the deprecated summary input is an alias for this same shape."
   },
   "capabilities": {
     "bus-dashboard": {
       "title": "Bus Dashboard",
       "auth": "anon",
       "web": {
-        "pages": ["/bus", "/dashboard/bus"]
+        "pages": ["/catalog/bus", "/workspace/bus"]
       },
       "rest": {
         "routes": [
           {
-            "path": "/api/bus",
+            "path": "/api/catalog/bus",
             "returns": "{ locale, fetchedAt, version, availableVersions, campuses, routes, trips, preferences, notice }"
           },
           {
-            "path": "/api/bus/preferences",
+            "path": "/api/workspace/bus-preferences",
             "method": "POST",
             "returns": "{ preference: BusPreferences }",
             "auth": "user",
@@ -48,7 +48,7 @@
             ]
           },
           {
-            "path": "/api/bus/preferences",
+            "path": "/api/workspace/bus-preferences",
             "returns": "{ preference: BusPreferences }",
             "auth": "user"
           }
@@ -58,16 +58,18 @@
         "queries": [
           {
             "name": "busRoutes",
+            "parent": "Catalog",
             "arguments": { "page": "PageInput" },
             "returns": "BusRoutePage!",
-            "rest_equivalent": "GET /api/bus",
-            "mcp_equivalent": "list_bus_routes",
+            "rest_equivalent": "GET /api/catalog/bus",
+            "mcp_equivalent": "catalog_bus_route_list",
             "notes": [
               "The GraphQL page argument bounds the route catalog to pageSize 1-100."
             ]
           },
           {
             "name": "busTimetable",
+            "parent": "Catalog",
             "arguments": {
               "routeId": "Int!",
               "page": "PageInput",
@@ -75,8 +77,8 @@
               "versionKey": "String"
             },
             "returns": "BusRouteTimetable",
-            "rest_equivalent": "GET /api/bus",
-            "mcp_equivalent": "get_bus_route_timetable",
+            "rest_equivalent": "GET /api/catalog/bus",
+            "mcp_equivalent": "catalog_bus_route_get",
             "notes": [
               "The input selects one route and bounds weekday and weekend trip slots to pageSize 1-100.",
               "The optional now argument is a DateTime and must include an explicit Z or numeric timezone offset."
@@ -85,55 +87,55 @@
         ],
         "mutations": [
           {
-            "name": "saveBusPreferences",
+            "name": "busPreferencesSet",
             "arguments": { "input": "BusPreferenceInput!" },
             "returns": "BusPreferenceMutationPayload!",
             "auth": "user",
             "required_scopes": ["bus:write"],
-            "rest_equivalent": "POST /api/bus/preferences",
-            "mcp_equivalent": "save_my_bus_preferences"
+            "rest_equivalent": "POST /api/workspace/bus-preferences",
+            "mcp_equivalent": "workspace_bus_preferences_set"
           }
         ]
       },
       "mcp": {
         "tools": [
           {
-            "name": "query_bus_timetable",
+            "name": "catalog_bus_timetable_get",
             "returns": "{ locale, fetchedAt, version, availableVersions, campuses, routes, trips, preferences, notice }",
-            "rest_equivalent": "GET /api/bus",
+            "rest_equivalent": "GET /api/catalog/bus",
             "notes": [
               "default mode returns a compact assistant-oriented snapshot with counts, summarized campuses/routes, and relevant nextDepartures instead of the full trip dataset; deprecated summary is an alias for default.",
               "Request full mode for the raw campuses/routes/trips dataset."
             ]
           },
           {
-            "name": "list_bus_routes",
+            "name": "catalog_bus_route_list",
             "returns": "{ routes: BusRoute[], campuses: BusCampus[] }",
-            "rest_equivalent": "GET /api/bus",
+            "rest_equivalent": "GET /api/catalog/bus",
             "notes": [
               "Use this for full current-version route discovery before fetching one route timetable."
             ]
           },
           {
-            "name": "get_bus_route_timetable",
+            "name": "catalog_bus_route_get",
             "returns": "{ route: BusRoute, weekday, weekend, alternateRoutes }",
-            "rest_equivalent": "GET /api/bus",
+            "rest_equivalent": "GET /api/catalog/bus",
             "notes": [
-              "Single-route raw timetable tool; use get_next_buses when the caller only needs the next few departures."
+              "Single-route raw timetable tool; use catalog_bus_departure_next when the caller only needs the next few departures."
             ]
           },
           {
-            "name": "get_my_bus_preferences",
+            "name": "workspace_bus_preferences_get",
             "returns": "{ preference: BusPreferences }",
-            "rest_equivalent": "GET /api/bus/preferences",
+            "rest_equivalent": "GET /api/workspace/bus-preferences",
             "notes": [
               "Returns the authenticated caller's saved bus preferences or the default null-campus preference."
             ]
           },
           {
-            "name": "save_my_bus_preferences",
+            "name": "workspace_bus_preferences_set",
             "returns": "{ preference: BusPreferences }",
-            "rest_equivalent": "POST /api/bus/preferences",
+            "rest_equivalent": "POST /api/workspace/bus-preferences",
             "notes": [
               "preferredOriginCampusId and preferredDestinationCampusId may be null to reset saved campuses.",
               "Unknown non-null preferred origin or destination campus IDs return a serialized validation result with success=false and do not write preferences."
@@ -161,7 +163,7 @@
       "rest": {
         "routes": [
           {
-            "path": "/api/bus/routes",
+            "path": "/api/catalog/bus/routes",
             "returns": "{ originCampus?, destinationCampus?, total: Int, routes: BusRouteSearchResult[] }",
             "notes": [
               "Filtered route discovery helper for origin/destination clients.",
@@ -173,12 +175,12 @@
       "mcp": {
         "tools": [
           {
-            "name": "search_bus_routes",
+            "name": "catalog_bus_route_search",
             "returns": "{ originCampus?, destinationCampus?, total: Int, routes: BusRouteSearchResult[] }",
-            "rest_equivalent": "GET /api/bus/routes",
+            "rest_equivalent": "GET /api/catalog/bus/routes",
             "notes": [
               "Filtered discovery helper for origin/destination prompts.",
-              "Use list_bus_routes when the caller needs the entire current route catalog."
+              "Use catalog_bus_route_list when the caller needs the entire current route catalog."
             ]
           }
         ]
@@ -200,7 +202,7 @@
       "rest": {
         "routes": [
           {
-            "path": "/api/bus/next",
+            "path": "/api/catalog/bus/next",
             "returns": "{ originCampus, destinationCampus, atTime, dayType, totalRoutes: Int, departures: BusDeparture[], nextAvailableDeparture?, message? }",
             "auth": "anon",
             "notes": [
@@ -215,9 +217,9 @@
       "mcp": {
         "tools": [
           {
-            "name": "get_next_buses",
+            "name": "catalog_bus_departure_next",
             "returns": "{ originCampus, destinationCampus, atTime, dayType, totalRoutes: Int, departures: BusDeparture[] }",
-            "rest_equivalent": "GET /api/bus/next",
+            "rest_equivalent": "GET /api/catalog/bus/next",
             "notes": [
               "Task-oriented convenience tool for 'when is the next bus?' prompts.",
               "Default parameters: dayType=auto, includeDeparted=false, limit=5; REST and MCP share limit bounds 1-50.",
@@ -243,7 +245,7 @@
       "title": "Bus Route Map",
       "auth": "anon",
       "web": {
-        "pages": ["/bus-map"]
+        "pages": ["/catalog/bus/map"]
       },
       "rest": "unavailable",
       "mcp": "unavailable",

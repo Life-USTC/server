@@ -32,7 +32,7 @@ function handleHomeworkViewChange(value: string) {
       </Button>
     {:else if !isAuthenticated}
       <Button
-        href={`/signin?callbackUrl=${encodeURIComponent(`/sections/${sectionJwId}`)}`}
+        href={`/account/sign-in?callbackUrl=${encodeURIComponent(`/catalog/sections/${sectionJwId}`)}`}
         size="sm"
         variant="outline"
       >

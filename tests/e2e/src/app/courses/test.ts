@@ -39,17 +39,17 @@ import { absoluteTestUrl } from "../../../utils/request-url";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
 
-test.describe("/courses 课程目录", () => {
+test.describe("/catalog/courses 课程目录", () => {
   test.describe.configure({ mode: "serial" });
 
   test("页面契约", async ({ page }, testInfo) => {
-    await assertPageContract(page, { routePath: "/courses", testInfo });
+    await assertPageContract(page, { routePath: "/catalog/courses", testInfo });
   });
 
   test("SSR 输出包含搜索查询", async ({ baseURL }) => {
     const response = await fetch(
       absoluteTestUrl(
-        `/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
+        `/catalog/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
         baseURL,
       ),
     );
@@ -60,13 +60,13 @@ test.describe("/courses 课程目录", () => {
   });
 
   test("语言切换正常工作", async ({ page, baseURL }, testInfo) => {
-    await gotoAndWaitForReady(page, "/courses", {
+    await gotoAndWaitForReady(page, "/catalog/courses", {
       testInfo,
       screenshotLabel: "courses",
     });
 
     const localeResponse = await fetch(
-      absoluteTestUrl("/api/locale", baseURL),
+      absoluteTestUrl("/api/account/preferences", baseURL),
       {
         method: "POST",
         headers: {
@@ -86,7 +86,7 @@ test.describe("/courses 课程目录", () => {
       },
     ]);
 
-    await gotoAndWaitForReady(page, "/courses", {
+    await gotoAndWaitForReady(page, "/catalog/courses", {
       testInfo,
       screenshotLabel: "courses",
     });
@@ -121,7 +121,7 @@ test.describe("/courses 课程目录", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoAndWaitForReady(
       page,
-      `/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
+      `/catalog/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
       { testInfo, screenshotLabel: "courses-list" },
     );
     await expectNoPageHorizontalOverflow(page);
@@ -137,7 +137,7 @@ test.describe("/courses 课程目录", () => {
 
     const detailLink = page
       .locator(
-        `#main-content a[href="/courses/${DEV_SEED.course.jwId}"]:visible`,
+        `#main-content a[href="/catalog/courses/${DEV_SEED.course.jwId}"]:visible`,
       )
       .first();
     await expect(detailLink).toBeVisible();
@@ -147,7 +147,7 @@ test.describe("/courses 课程目录", () => {
     await captureStepScreenshot(page, testInfo, "courses-mobile-list");
     await detailLink.click();
     await expect(page).toHaveURL(
-      new RegExp(`/courses/${DEV_SEED.course.jwId}`),
+      new RegExp(`/catalog/courses/${DEV_SEED.course.jwId}`),
     );
     await captureStepScreenshot(page, testInfo, "courses-navigate-detail");
   });
@@ -157,7 +157,7 @@ test.describe("/courses 课程目录", () => {
   }, testInfo) => {
     for (const width of [280, 320, 375, 1024, 1280, 1440]) {
       await page.setViewportSize({ width, height: 900 });
-      await gotoAndWaitForReady(page, "/courses");
+      await gotoAndWaitForReady(page, "/catalog/courses");
       await expectCatalogFilterSheet(page, [
         /培养层次|Education Level/i,
         /类别|Category/i,
@@ -181,7 +181,7 @@ test.describe("/courses 课程目录", () => {
     await createTempCoursesFixture({ count: 25, prefix });
 
     try {
-      const searchPath = `/courses?search=${prefix}`;
+      const searchPath = `/catalog/courses?search=${prefix}`;
       await gotoAndWaitForReady(page, searchPath, {
         testInfo,
         screenshotLabel: "courses-page-1",
@@ -200,7 +200,7 @@ test.describe("/courses 课程目录", () => {
       await expect(nextLink).toHaveAttribute("href", `${searchPath}&page=2`);
       await nextLink.click();
       await expect(page).toHaveURL(
-        new RegExp(`/courses\\?search=${prefix}&page=2$`),
+        new RegExp(`/catalog/courses\\?search=${prefix}&page=2$`),
       );
 
       pagination = page.getByTestId("catalog-pagination");
@@ -211,7 +211,9 @@ test.describe("/courses 课程目录", () => {
       await captureStepScreenshot(page, testInfo, "courses-pagination");
 
       await page.goBack();
-      await expect(page).toHaveURL(new RegExp(`/courses\\?search=${prefix}$`));
+      await expect(page).toHaveURL(
+        new RegExp(`/catalog/courses\\?search=${prefix}$`),
+      );
     } finally {
       await deleteTempCoursesByPrefix(prefix);
     }
@@ -219,7 +221,7 @@ test.describe("/courses 课程目录", () => {
 
   test("搜索和清除按钮", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await gotoAndWaitForReady(page, "/courses", {
+    await gotoAndWaitForReady(page, "/catalog/courses", {
       testInfo,
       screenshotLabel: "courses",
     });
@@ -249,7 +251,7 @@ test.describe("/courses 课程目录", () => {
     const filters = await getSeedCourseFilterFixture(DEV_SEED.course.jwId);
     expect(filters.educationLevelId).toBeTruthy();
     expect(filters.categoryId).toBeTruthy();
-    await gotoAndWaitForReady(page, "/courses", {
+    await gotoAndWaitForReady(page, "/catalog/courses", {
       testInfo,
       screenshotLabel: "courses-filter",
     });

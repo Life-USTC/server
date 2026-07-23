@@ -2,8 +2,8 @@
   "name": "GraphQL",
   "access": {
     "anon": "Can query the public academic catalog and bus timetable through /api/graphql.",
-    "user": "Can use public queries, authenticated Viewer fields, and personal mutations through a trusted same-origin Session.",
-    "admin": "Uses the same Viewer and ordinary personal mutation surfaces as a regular user; GraphQL exposes no admin governance fields or mutations.",
+    "user": "Can use public queries, authenticated Workspace and Account fields, and personal mutations through a trusted same-origin Session.",
+    "admin": "Uses the same Account, Workspace, Catalog, Community, and ordinary mutation surfaces as a regular user; GraphQL exposes no admin governance fields or mutations.",
     "agent": "Direct GraphQL HTTP callers use a bearer token issued for the GraphQL resource and matching feature scopes. MCP agents authenticate with an MCP-resource bearer, then run arbitrary documents or compatible registered operations through the shared schema and resolver-level feature scopes."
   },
   "rules": {
@@ -13,17 +13,17 @@
     "production-discovery": "GraphiQL and schema introspection are disabled in production.",
     "request-budgets": "Requests are limited to 64 KiB, one operation per HTTP request, five seconds, depth 8, 10 top-level fields, 15 aliases, 10 directives, 1000 tokens, and cost 5000; operation cost weights every paginated selection by its effective pageSize, including values supplied through variables.",
     "graphql-operation-runner": "MCP accepts exactly one arbitrary document or compatible registered operation ID. Arbitrary documents pass through the production Yoga validation, introspection, depth, alias, directive, token, top-level-field, cost, timeout, error-masking, and resolver scope pipeline. Every selected mutation requires confirmed=true.",
-    "graphql-operation-prompt": "MCP exposes plan_graphql_operation, which embeds the canonical SDL and document-free registered-operation manifest and guides one bounded run_graphql_operation call, including minimum scopes, explicit mutation confirmation, and timeout-safe retry behavior.",
+    "graphql-operation-prompt": "MCP exposes plan_graphql_operation, which embeds the canonical SDL and document-free registered-operation manifest and guides one bounded graphql_operation_run call, including minimum scopes, explicit mutation confirmation, and timeout-safe retry behavior.",
     "mutation-timeout-ambiguity": "A GraphQL timeout or caller cancellation stops waiting for the result but cannot guarantee rollback after a mutation resolver has started. The final state is indeterminate; clients must inspect current state and must not blindly retry a mutation.",
-    "registered-operation-coverage": "The compatibility manifest covers every current public Query root field, each Viewer field, and every ordinary business Mutation root field. Authentication and OAuth protocol operations, admin governance, upload raw-byte transfer, GraphQL subscriptions, and introspection remain outside the MCP runner.",
+    "registered-operation-coverage": "The compatibility manifest covers every current public Query root field, each Workspace or Account field, and every ordinary business Mutation root field. Authentication and OAuth protocol operations, admin governance, upload raw-byte transfer, GraphQL subscriptions, and introspection remain outside the MCP runner.",
     "upload-workflow-boundary": "Upload GraphQL mutations reuse feature-owned ownership, suspension, quota, completion, audit, and storage-delete invariants. They can return an authenticated on-site PUT workflow URL but never accept or proxy raw bytes. Upload storage deletion failure returns SERVICE_UNAVAILABLE and preserves metadata.",
-    "pagination": "Every GraphQL collection is bounded: Viewer todos, subscribed sections, homeworks, schedules, and exams use PageInput, while nested Schedule.teachers and Exam.examRooms return their own PageInput-backed pages; inputs default to page 1 and pageSize 20, and pageSize must be between 1 and 100.",
+    "pagination": "Every GraphQL collection is bounded: Workspace todos, subscriptions, homeworks, schedules, and exams use PageInput, while nested Schedule.teachers and Exam.examRooms return their own PageInput-backed pages; inputs default to page 1 and pageSize 20, and pageSize must be between 1 and 100.",
     "resolver-boundary": "Resolvers call feature-owned services only; they do not issue internal HTTP requests or access Prisma directly.",
     "request-cache": "The principal and entity DataLoaders are request-scoped; authentication is resolved once per request and every response is marked no-store.",
     "safe-errors": "Expected authentication, authorization, bad-input, not-found, rate-limit, and availability GraphQLErrors retain stable codes and status metadata across HTTP and the MCP registered runner; only trusted GraphQLErrors pass the allowlist, while unexpected or forged resolver failures are masked without internal details.",
     "semantic-observability": "Each attempted HTTP or MCP GraphQL operation records one sanitized semantic observation with its operation name and type, top-level field count, estimated cost, duration, GraphQL error count, internal error count, auth mode, and server request ID. Expected parse, validation, authorization, and domain errors remain informational while INTERNAL_SERVER_ERROR outcomes use error severity; raw documents, variables, credentials, argument values, and error details are excluded.",
-    "viewer-scopes": "Query.viewer returns null for an anonymous caller. Its profile, overview, todos, subscribedSections, homeworks, schedules, and exams fields independently require me:read, dashboard:read, todo:read, subscription:read, homework:read, schedule:read, and exam:read for OAuth principals; trusted-origin Sessions use their existing user authority.",
-    "viewer-ownership": "Viewer collections derive ownership from the authenticated user relation in feature services and never accept sectionIds or internal visibility/shape flags from GraphQL inputs.",
+    "scoped-query-auth": "Query.account and Query.workspace return null for an anonymous caller. Their child fields independently enforce account or feature read scopes for OAuth principals; trusted-origin Sessions use their existing user authority.",
+    "workspace-ownership": "Workspace collections derive ownership from the authenticated user relation in feature services and never accept sectionIds or internal visibility or shape flags from GraphQL inputs.",
     "zoned-datetime": "DateTime inputs accept only valid ISO 8601 datetimes with an explicit Z or numeric timezone offset, with identical coercion for variables and inline literals; schedule and exam DateTime filters normalize to their Asia/Shanghai calendar day before querying @db.Date columns.",
     "schema-evolution": "The canonical SDL snapshot is checked for drift and breaking changes in CI."
   },
@@ -36,7 +36,7 @@
         "fields": [
           "/api/graphql",
           "Public semester, course, section, teacher, and bus queries",
-          "Authenticated Viewer reads with exact feature:read scopes",
+          "Authenticated Workspace and Account reads with exact feature:read scopes",
           "Authenticated todo and homework CRUD, todo/homework/comment batches, section subscription batches, dashboard pin batches, upload workflow metadata and ownership actions, bus preference, description, and comment mutations",
           "GET, POST, and OPTIONS",
           "GraphQL-audience bearer tokens require matching feature scopes",
@@ -44,29 +44,38 @@
         ]
       }
     },
-    "viewer-query": {
-      "title": "Authenticated Viewer Query",
+    "scoped-queries": {
+      "title": "Authenticated Workspace and Account Queries",
       "auth": "user",
       "graphql": {
         "queries": [
+          { "name": "catalog", "returns": "Catalog!" },
           {
-            "name": "viewer",
-            "returns": "Viewer",
+            "name": "workspace",
+            "returns": "Workspace",
             "notes": [
-              "Returns null for anonymous requests; each selected Viewer child field enforces its exact feature read scope."
+              "Returns null for anonymous requests; each selected child field enforces its exact feature read scope."
+            ]
+          },
+          { "name": "community", "returns": "Community!" },
+          {
+            "name": "account",
+            "returns": "Account",
+            "notes": [
+              "Returns null for anonymous requests; each selected child field enforces its exact account read scope."
             ]
           }
         ]
       },
       "display": {
         "fields": [
-          "viewer.profile",
-          "viewer.overview",
-          "viewer.todos",
-          "viewer.subscribedSections",
-          "viewer.homeworks",
-          "viewer.schedules",
-          "viewer.exams"
+          "account.profile",
+          "catalog.courses / catalog.sections / catalog.teachers",
+          "catalog.semesters / catalog.currentSemester / catalog.bus",
+          "community.user / community.comments / community.description",
+          "workspace.overview / workspace.todos",
+          "workspace.subscriptions / workspace.homeworks",
+          "workspace.schedules / workspace.exams"
         ]
       }
     },
@@ -108,7 +117,7 @@
       "mcp": {
         "tools": [
           {
-            "name": "run_graphql_operation",
+            "name": "graphql_operation_run",
             "description": "Executes exactly one arbitrary document or compatible operationId. Every mutation requires confirmed=true.",
             "notes": [
               "The schema resource is canonical for arbitrary documents; the operation manifest remains a stable compatibility and discovery surface.",

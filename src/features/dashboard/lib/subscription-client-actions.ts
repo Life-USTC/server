@@ -57,7 +57,7 @@ export async function searchSubscriptionSections(input: {
   semesterId: string;
   text: string;
 }) {
-  const result = await apiClient.GET<unknown>("/api/sections", {
+  const result = await apiClient.GET<unknown>("/api/catalog/sections", {
     params: {
       query: {
         locale: document.documentElement.lang || undefined,

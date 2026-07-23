@@ -18,7 +18,7 @@ import {
 export function buildOAuthProviderPlugin(input: { authPublicOrigin: string }) {
   return oauthProvider({
     // Absolute URLs so redirects stay correct behind Docker/Caddy.
-    loginPage: `${input.authPublicOrigin}/signin`,
+    loginPage: `${input.authPublicOrigin}/account/sign-in`,
     consentPage: `${input.authPublicOrigin}/oauth/authorize`,
     allowDynamicClientRegistration: true,
     allowUnauthenticatedClientRegistration: true,

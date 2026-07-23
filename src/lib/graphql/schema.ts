@@ -10,6 +10,7 @@ import {
 import { listCourseSummaries } from "@/features/catalog/server/course-summary-read-model";
 import { listSections } from "@/features/catalog/server/section-summary-read-model";
 import { listTeacherSummaries } from "@/features/catalog/server/teacher-summary-read-model";
+import { getUserProfileByUsername } from "@/features/profile/server/user-profile-page-data";
 import {
   capGraphqlAlternateRoutes,
   capGraphqlBusCampuses,
@@ -34,9 +35,9 @@ import {
   paginateGraphqlArray,
 } from "./pagination";
 import {
-  graphqlViewerQueryResolver,
-  graphqlViewerResolvers,
-  graphqlViewerTypeDefs,
+  graphqlAuthenticatedScopeResolver,
+  graphqlScopeResolvers,
+  graphqlScopeTypeDefs,
 } from "./viewer";
 
 type TeacherParent = {
@@ -234,9 +235,9 @@ export const graphqlTypeDefs = /* GraphQL */ `
     alternateRoutes: [BusRoute!]!
   }
 
-  ${graphqlViewerTypeDefs}
+  ${graphqlScopeTypeDefs}
 
-  type Query {
+  type Catalog {
     semesters(page: PageInput): SemesterPage!
     currentSemester: Semester
     courses(page: PageInput, filter: CourseFilter): CoursePage!
@@ -252,7 +253,25 @@ export const graphqlTypeDefs = /* GraphQL */ `
       now: DateTime
       versionKey: String
     ): BusRouteTimetable
-    viewer: Viewer
+  }
+
+  type CommunityUser {
+    id: ID!
+    username: String
+    name: String!
+    image: String
+    createdAt: DateTime!
+  }
+
+  type Community {
+    user(username: String!): CommunityUser
+  }
+
+  type Query {
+    catalog: Catalog!
+    workspace: Workspace
+    community: Community!
+    account: Account
   }
 
   ${graphqlMutationTypeDefs}
@@ -270,7 +289,7 @@ export const graphqlSchema = createSchema<
     SectionPage: graphqlPageResolvers,
     TeacherPage: graphqlPageResolvers,
     BusRoutePage: graphqlPageResolvers,
-    ...graphqlViewerResolvers,
+    ...graphqlScopeResolvers,
     ...graphqlMutationResolvers,
     Teacher: {
       async sectionCount(teacher: TeacherParent, _args, context) {
@@ -281,7 +300,20 @@ export const graphqlSchema = createSchema<
       },
     },
     Query: {
-      viewer: graphqlViewerQueryResolver,
+      catalog: () => ({}),
+      workspace: graphqlAuthenticatedScopeResolver,
+      community: () => ({}),
+      account: graphqlAuthenticatedScopeResolver,
+    },
+    Community: {
+      async user(_parent, args: { username: string }) {
+        const username = args.username.trim();
+        if (!username) return null;
+        const profile = await getUserProfileByUsername(username);
+        return profile?.user ?? null;
+      },
+    },
+    Catalog: {
       semesters(_parent, args: { page?: GraphqlPageInput | null }) {
         const pagination = normalizeGraphqlPage(args.page);
         return listSemesters(pagination);

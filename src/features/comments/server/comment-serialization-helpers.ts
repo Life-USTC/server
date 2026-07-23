@@ -55,7 +55,7 @@ export function buildAttachments(comment: RawComment) {
       id: attachment.id,
       uploadId: attachment.uploadId,
       filename: upload.filename ?? "",
-      url: `/api/uploads/${attachment.uploadId}/download`,
+      url: `/api/workspace/uploads/${attachment.uploadId}/download`,
       contentType: upload.contentType ?? null,
       size: upload.size ?? 0,
     } satisfies CommentAttachmentSummary;

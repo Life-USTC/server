@@ -57,7 +57,7 @@ $: sectionSemesterSummary = selectedSemester
     <div class="xl:hidden" data-testid="catalog-results-cards">
       <Item.Group>
         {#each data.data as section}
-          {@const sectionHref = `/sections/${section.jwId}`}
+          {@const sectionHref = `/catalog/sections/${section.jwId}`}
           <Item.Root variant="outline" size="sm">
             {#snippet child({ props })}
               <a href={sectionHref} {...props}>
@@ -100,7 +100,7 @@ $: sectionSemesterSummary = selectedSemester
         </Table.Header>
         <Table.Body>
           {#each data.data as section}
-            {@const sectionHref = `/sections/${section.jwId}`}
+            {@const sectionHref = `/catalog/sections/${section.jwId}`}
             <Table.Row>
               <Table.Cell class="p-0 align-top">
                 <CatalogTableLink href={sectionHref} nowrap>

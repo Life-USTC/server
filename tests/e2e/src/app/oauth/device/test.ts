@@ -255,7 +255,7 @@ test("/oauth/device 无效用户代码显示公开错误", async ({ page }, test
   await expect(
     page.getByText(/未找到|not found|No device login request/i).first(),
   ).toBeVisible();
-  await expect(page).not.toHaveURL(/\/signin(?:\?.*)?$/);
+  await expect(page).not.toHaveURL(/\/account\/sign-in(?:\?.*)?$/);
   await captureStepScreenshot(page, testInfo, "oauth/device/invalid-code");
 });
 
@@ -350,7 +350,9 @@ test("/oauth/device 未登录的待批准请求重定向到登录页", async ({
       expectMainContent: false,
     });
 
-    await expect(page).toHaveURL(/\/signin(?:\?.*)?$/, { timeout: 10_000 });
+    await expect(page).toHaveURL(/\/account\/sign-in(?:\?.*)?$/, {
+      timeout: 10_000,
+    });
     expect(new URL(page.url()).searchParams.get("callbackUrl")).toBe(
       verificationPath,
     );
@@ -417,7 +419,7 @@ test("/oauth/device 资源绑定令牌可访问 REST 与 MCP", async ({
     expect(accessToken.split(".")).toHaveLength(3);
     expect(refreshToken).toEqual(expect.any(String));
 
-    const todosResponse = await request.get("/api/todos", {
+    const todosResponse = await request.get("/api/workspace/todos", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -472,7 +474,7 @@ test("/oauth/device 仅 profile 的 REST 令牌被受保护 REST 拒绝", async 
     ]);
     expect(accessToken.split(".")).toHaveLength(3);
 
-    const todosResponse = await request.get("/api/todos", {
+    const todosResponse = await request.get("/api/workspace/todos", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -511,7 +513,7 @@ test("/oauth/device 含其他 feature scope 但无 todo scope 的令牌被 todo 
     );
     expect(accessToken.split(".")).toHaveLength(3);
 
-    const todosResponse = await request.get("/api/todos", {
+    const todosResponse = await request.get("/api/workspace/todos", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -541,7 +543,7 @@ test("/oauth/device 已禁用客户端代码显示错误而非批准界面", asy
       expectMainContent: false,
     });
 
-    await expect(page).not.toHaveURL(/\/signin(?:\?.*)?$/);
+    await expect(page).not.toHaveURL(/\/account\/sign-in(?:\?.*)?$/);
     await expect(
       page.getByText(/invalid or has expired|无效|已过期/i).first(),
     ).toBeVisible();

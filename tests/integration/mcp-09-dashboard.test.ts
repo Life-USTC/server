@@ -3,7 +3,7 @@ import * as fixtures from "./utils/mcp-tool-test-utils";
 
 const context = fixtures.createMcpToolTestContext();
 
-describe("get_my_dashboard — 默认模式紧凑性", () => {
+describe("workspace_snapshot_get — 默认模式紧凑性", () => {
   let originalSubscriptionSectionIds: number[] = [];
 
   beforeAll(async () => {
@@ -28,7 +28,7 @@ describe("get_my_dashboard — 默认模式紧凑性", () => {
         items?: Array<{ type?: string; at?: string | null }>;
       };
       upcomingEvents?: { total?: number };
-    }>("get_my_dashboard", {
+    }>("workspace_snapshot_get", {
       locale: "zh-cn",
       mode: "summary",
       atTime: fixtures.SEED_AT_TIME,
@@ -52,7 +52,10 @@ describe("get_my_dashboard — 默认模式紧凑性", () => {
       };
       subscriptions?: { currentSemesterSectionsTotal?: number };
       todos?: { incompleteCount?: number };
-    }>("get_my_dashboard", { locale: "zh-cn", atTime: fixtures.SEED_AT_TIME });
+    }>("workspace_snapshot_get", {
+      locale: "zh-cn",
+      atTime: fixtures.SEED_AT_TIME,
+    });
 
     if (dashboard.nextClass?.payload) {
       expect(dashboard.nextClass.payload).not.toHaveProperty("scheduleGroup");
@@ -65,12 +68,12 @@ describe("get_my_dashboard — 默认模式紧凑性", () => {
   });
 
   it("summary 兼容输入与 default 返回相同结构", async () => {
-    const def = await context.client.callTool("get_my_dashboard", {
+    const def = await context.client.callTool("workspace_snapshot_get", {
       locale: "zh-cn",
       mode: "default",
       atTime: fixtures.SEED_AT_TIME,
     });
-    const sum = await context.client.callTool("get_my_dashboard", {
+    const sum = await context.client.callTool("workspace_snapshot_get", {
       locale: "zh-cn",
       mode: "summary",
       atTime: fixtures.SEED_AT_TIME,
@@ -87,7 +90,7 @@ describe("get_my_dashboard — 默认模式紧凑性", () => {
       upcomingDeadlines?: { total?: number; items?: unknown[] };
       upcomingEvents?: { total?: number; items?: unknown[] };
       bus?: { hasPreference?: boolean; departures?: unknown[] };
-    }>("get_my_dashboard", {
+    }>("workspace_snapshot_get", {
       locale: "zh-cn",
       mode: "full",
       atTime: fixtures.SEED_AT_TIME,
@@ -125,7 +128,7 @@ describe("get_my_dashboard — 默认模式紧凑性", () => {
           totalCount?: number;
           currentSemesterCount?: number;
         };
-      }>("get_my_dashboard", {
+      }>("workspace_snapshot_get", {
         locale: "zh-cn",
         atTime: fixtures.SEED_AT_TIME,
       });
@@ -136,7 +139,7 @@ describe("get_my_dashboard — 默认模式紧凑性", () => {
 
       const sections = await context.client.call<{
         sections?: Array<{ id?: number }>;
-      }>("list_my_subscribed_sections", { locale: "zh-cn" });
+      }>("workspace_subscription_list", { locale: "zh-cn" });
       expect(sections.sections).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ id: previousSection.id }),
@@ -145,7 +148,7 @@ describe("get_my_dashboard — 默认模式紧凑性", () => {
 
       const homeworks = await context.client.call<{
         homeworks?: Array<{ title?: string }>;
-      }>("list_my_homeworks", {
+      }>("workspace_homework_list", {
         locale: "zh-cn",
       });
       expect(homeworks.homeworks).toEqual(
@@ -158,7 +161,7 @@ describe("get_my_dashboard — 默认模式紧凑性", () => {
 
       const schedules = await context.client.call<{
         schedules?: Array<{ section?: { id?: number } }>;
-      }>("list_my_schedules", {
+      }>("workspace_schedule_list", {
         locale: "zh-cn",
       });
       expect(schedules.schedules).toEqual(
@@ -171,7 +174,7 @@ describe("get_my_dashboard — 默认模式紧凑性", () => {
 
       const exams = await context.client.call<{
         exams?: Array<{ section?: { id?: number } }>;
-      }>("list_my_exams", { locale: "zh-cn" });
+      }>("workspace_exam_list", { locale: "zh-cn" });
       expect(exams.exams).toEqual(
         expect.arrayContaining([
           expect.objectContaining({

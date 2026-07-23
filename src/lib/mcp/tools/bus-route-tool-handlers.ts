@@ -32,7 +32,7 @@ export async function getBusRouteTimetableTool({
     return jsonToolResult({
       routeId,
       hasData: false,
-      message: `No timetable found for route ${routeId}. Use list_bus_routes to see available route IDs.`,
+      message: `No timetable found for route ${routeId}. Use catalog_bus_route_list to see available route IDs.`,
     });
   }
 

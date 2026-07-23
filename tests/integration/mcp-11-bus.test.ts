@@ -12,10 +12,10 @@ type BusPreferenceToolResponse = {
   };
 };
 
-describe("get_next_buses — 默认模式去除重复的校区对象", () => {
+describe("catalog_bus_departure_next — 默认模式去除重复的校区对象", () => {
   it("接受仅日期的 atTime 以确定发车查询", async () => {
     const result = await context.client.call<{ totalRoutes?: number }>(
-      "get_next_buses",
+      "catalog_bus_departure_next",
       {
         locale: "zh-cn",
         originCampusId: fixtures.DEV_SEED.bus.originCampusId,
@@ -30,7 +30,7 @@ describe("get_next_buses — 默认模式去除重复的校区对象", () => {
 
   it("拒绝超过共享 REST/MCP 上限的 limit", async () => {
     await expect(
-      context.client.call("get_next_buses", {
+      context.client.call("catalog_bus_departure_next", {
         locale: "zh-cn",
         originCampusId: fixtures.DEV_SEED.bus.originCampusId,
         destinationCampusId: fixtures.DEV_SEED.bus.destinationCampusId,
@@ -43,7 +43,7 @@ describe("get_next_buses — 默认模式去除重复的校区对象", () => {
     const result = await context.client.call<{
       success?: boolean;
       message?: string;
-    }>("get_next_buses", {
+    }>("catalog_bus_departure_next", {
       locale: "zh-cn",
       originCampusId: fixtures.DEV_SEED.bus.originCampusId,
       destinationCampusId: fixtures.DEV_SEED.bus.destinationCampusId,
@@ -68,7 +68,7 @@ describe("get_next_buses — 默认模式去除重复的校区对象", () => {
         destinationCampus?: unknown;
       }>;
       message?: string | null;
-    }>("get_next_buses", {
+    }>("catalog_bus_departure_next", {
       locale: "zh-cn",
       originCampusId: fixtures.DEV_SEED.bus.originCampusId,
       destinationCampusId: fixtures.DEV_SEED.bus.destinationCampusId,
@@ -123,7 +123,7 @@ describe("bus preference 工具", () => {
 
   function readPreference() {
     return preferenceHarness().call<BusPreferenceToolResponse>(
-      "get_my_bus_preferences",
+      "workspace_bus_preferences_get",
     );
   }
 
@@ -137,7 +137,7 @@ describe("bus preference 工具", () => {
     });
 
     const saved = await preferenceHarness().call<BusPreferenceToolResponse>(
-      "save_my_bus_preferences",
+      "workspace_bus_preferences_set",
       {
         preferredOriginCampusId: fixtures.DEV_SEED.bus.originCampusId,
         preferredDestinationCampusId: fixtures.DEV_SEED.bus.destinationCampusId,
@@ -156,7 +156,7 @@ describe("bus preference 工具", () => {
     expect(readBack.preference).toEqual(saved.preference);
 
     const reset = await preferenceHarness().call<BusPreferenceToolResponse>(
-      "save_my_bus_preferences",
+      "workspace_bus_preferences_set",
       {
         preferredOriginCampusId: null,
         preferredDestinationCampusId: null,
@@ -179,7 +179,7 @@ describe("bus preference 工具", () => {
       error?: string;
       message?: string;
       hint?: string;
-    }>("save_my_bus_preferences", {
+    }>("workspace_bus_preferences_set", {
       preferredOriginCampusId: 999_999_999,
       preferredDestinationCampusId: null,
       showDepartedTrips: false,
@@ -190,7 +190,7 @@ describe("bus preference 工具", () => {
       error: "invalid_bus_preference",
       message: "Unknown preferred origin campus",
     });
-    expect(result.hint).toContain("list_bus_routes");
+    expect(result.hint).toContain("catalog_bus_route_list");
 
     const readBack = await readPreference();
 

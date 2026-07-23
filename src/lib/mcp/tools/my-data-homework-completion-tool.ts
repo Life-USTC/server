@@ -33,7 +33,7 @@ export async function setMyHomeworkCompletionTool(
         result.error.code === "deleted"
           ? "Homework not found"
           : result.error.message,
-      hint: "Use list_my_homeworks or list_homeworks_by_section to confirm the homeworkId before updating completion.",
+      hint: "Use workspace_homework_list or community_section_homework_list to confirm the homeworkId before updating completion.",
     });
   }
 

@@ -9,7 +9,7 @@ import {
 describe("catalog structured data", () => {
   test("builds a Chinese Course and breadcrumbs from public page fields", () => {
     const data = buildCourseStructuredData({
-      canonicalUrl: "https://life.example.edu/courses/9901001",
+      canonicalUrl: "https://life.example.edu/catalog/courses/9901001",
       code: "MATH1001",
       description: "  数值方法课程简介。  ",
       labels: { collection: "课程", home: "首页" },
@@ -20,7 +20,7 @@ describe("catalog structured data", () => {
       "@context": "https://schema.org",
       "@graph": [
         {
-          "@id": "https://life.example.edu/courses/9901001#course",
+          "@id": "https://life.example.edu/catalog/courses/9901001#course",
           "@type": "Course",
           courseCode: "MATH1001",
           description: "数值方法课程简介。",
@@ -29,7 +29,7 @@ describe("catalog structured data", () => {
             "@type": "CollegeOrUniversity",
             name: "University of Science and Technology of China",
           },
-          url: "https://life.example.edu/courses/9901001",
+          url: "https://life.example.edu/catalog/courses/9901001",
         },
         {
           "@type": "BreadcrumbList",
@@ -42,13 +42,13 @@ describe("catalog structured data", () => {
             },
             {
               "@type": "ListItem",
-              item: "https://life.example.edu/courses",
+              item: "https://life.example.edu/catalog/courses",
               name: "课程",
               position: 2,
             },
             {
               "@type": "ListItem",
-              item: "https://life.example.edu/courses/9901001",
+              item: "https://life.example.edu/catalog/courses/9901001",
               name: "数值分析",
               position: 3,
             },
@@ -60,7 +60,7 @@ describe("catalog structured data", () => {
 
   test("builds an English CourseInstance with only public instructors", () => {
     const data = buildSectionStructuredData({
-      canonicalUrl: "https://life.example.edu/sections/8802002",
+      canonicalUrl: "https://life.example.edu/catalog/sections/8802002",
       course: { jwId: 9901001, name: "Numerical Analysis" },
       instructors: [
         { id: 42, name: "Ada Lovelace" },
@@ -71,24 +71,25 @@ describe("catalog structured data", () => {
     });
 
     expect(data["@graph"][0]).toEqual({
-      "@id": "https://life.example.edu/sections/8802002#course-instance",
+      "@id":
+        "https://life.example.edu/catalog/sections/8802002#course-instance",
       "@type": "CourseInstance",
       instructor: [
         {
-          "@id": "https://life.example.edu/teachers/42#person",
+          "@id": "https://life.example.edu/catalog/teachers/42#person",
           "@type": "Person",
           name: "Ada Lovelace",
-          url: "https://life.example.edu/teachers/42",
+          url: "https://life.example.edu/catalog/teachers/42",
         },
       ],
       isPartOf: {
-        "@id": "https://life.example.edu/courses/9901001#course",
+        "@id": "https://life.example.edu/catalog/courses/9901001#course",
         "@type": "Course",
         name: "Numerical Analysis",
-        url: "https://life.example.edu/courses/9901001",
+        url: "https://life.example.edu/catalog/courses/9901001",
       },
       name: "Numerical Analysis · Section 01",
-      url: "https://life.example.edu/sections/8802002",
+      url: "https://life.example.edu/catalog/sections/8802002",
     });
     expect(data["@graph"][1]).toMatchObject({
       "@type": "BreadcrumbList",
@@ -102,7 +103,7 @@ describe("catalog structured data", () => {
 
   test("keeps Person data minimal and safely serializes script-sensitive text", () => {
     const data = buildTeacherStructuredData({
-      canonicalUrl: "https://life.example.edu/teachers/42",
+      canonicalUrl: "https://life.example.edu/catalog/teachers/42",
       labels: { collection: "教师", home: "首页" },
       name: "</script><script>alert('xss')</script>&\u2028",
     });

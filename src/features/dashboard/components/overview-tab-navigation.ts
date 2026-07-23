@@ -32,6 +32,6 @@ export function overviewSessionHref(
   dashboardTabHref: DashboardCalendarTabHref,
 ) {
   return session.sectionJwId
-    ? `/sections/${session.sectionJwId}`
+    ? `/catalog/sections/${session.sectionJwId}`
     : dashboardTabHref("calendar");
 }

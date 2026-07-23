@@ -5,7 +5,7 @@ import * as fixtures from "./utils/mcp-tool-test-utils";
 const context = fixtures.createMcpToolTestContext();
 
 describe("个人日历订阅 — 读取与批量订阅", () => {
-  it("get_my_calendar_subscription 返回订阅班级与个人 iCal 地址", async () => {
+  it("workspace_calendar_feed_get 返回订阅班级与个人 iCal 地址", async () => {
     await fixtures.ensureDevUserSubscribedToSeedSection();
 
     const result = await context.client.call<{
@@ -23,7 +23,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
         calendarUrl?: string | null;
         note?: string;
       };
-    }>("get_my_calendar_subscription", {
+    }>("workspace_calendar_feed_get", {
       locale: "zh-cn",
       mode: "full",
     });
@@ -43,7 +43,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
       ),
     ).toBe(true);
     expect(result.subscription?.calendarPath).toMatch(
-      /\/api\/users\/[^/]+\/calendar\.ics$/,
+      /\/api\/community\/users\/[^/]+\/calendar\.ics$/,
     );
     expect(result.subscription?.calendarUrl).toContain(
       result.subscription?.calendarPath ?? "",
@@ -51,7 +51,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
     expect(result.subscription?.note).toContain("not official");
   });
 
-  it("get_my_calendar_subscription summary 兼容输入返回 default 结构", async () => {
+  it("workspace_calendar_feed_get summary 兼容输入返回 default 结构", async () => {
     await fixtures.ensureDevUserSubscribedToSeedSection();
 
     const result = await context.client.call<{
@@ -64,7 +64,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
         calendarUrl?: string | null;
         currentSemesterSections?: unknown[];
       };
-    }>("get_my_calendar_subscription", {
+    }>("workspace_calendar_feed_get", {
       locale: "zh-cn",
       mode: "summary",
     });
@@ -80,7 +80,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
     );
   });
 
-  it("list_my_subscribed_sections 列出当前订阅班级", async () => {
+  it("workspace_subscription_list 列出当前订阅班级", async () => {
     await fixtures.ensureDevUserSubscribedToSeedSection();
 
     const result = await context.client.call<{
@@ -91,7 +91,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
         course?: { namePrimary?: string | null } | null;
       }>;
       note?: string;
-    }>("list_my_subscribed_sections", {
+    }>("workspace_subscription_list", {
       locale: "zh-cn",
       mode: "full",
     });
@@ -105,7 +105,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
     expect(result.note).toContain("not official");
   });
 
-  it("get_section_calendar_subscription 按 jwId 返回单班 iCal 信息", async () => {
+  it("catalog_section_calendar_feed_get 按 jwId 返回单班 iCal 信息", async () => {
     const result = await context.client.call<{
       found?: boolean;
       section?: {
@@ -114,7 +114,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
       } | null;
       calendarPath?: string;
       calendarUrl?: string;
-    }>("get_section_calendar_subscription", {
+    }>("catalog_section_calendar_feed_get", {
       jwId: fixtures.DEV_SEED.section.jwId,
       locale: "zh-cn",
     });
@@ -123,19 +123,19 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
     expect(result.section?.jwId).toBe(fixtures.DEV_SEED.section.jwId);
     expect(result.section?.code).toBe(fixtures.DEV_SEED.section.code);
     expect(result.calendarPath).toBe(
-      `/api/sections/${fixtures.DEV_SEED.section.jwId}/calendar.ics`,
+      `/api/catalog/sections/${fixtures.DEV_SEED.section.jwId}/calendar.ics`,
     );
     expect(result.calendarUrl).toContain(result.calendarPath ?? "");
   });
 
-  it("get_section_calendar_subscription 对缺失 jwId 返回 found=false", async () => {
+  it("catalog_section_calendar_feed_get 对缺失 jwId 返回 found=false", async () => {
     const missingJwId = 2_147_483_647;
     const result = await context.client.call<{
       found?: boolean;
       section?: unknown;
       calendarPath?: string;
       calendarUrl?: string;
-    }>("get_section_calendar_subscription", {
+    }>("catalog_section_calendar_feed_get", {
       jwId: missingJwId,
       locale: "zh-cn",
     });
@@ -143,11 +143,11 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
     expect(result.found).toBe(false);
     expect(result.section).toBeNull();
     expect(result.calendarPath).toBe(
-      `/api/sections/${missingJwId}/calendar.ics`,
+      `/api/catalog/sections/${missingJwId}/calendar.ics`,
     );
   });
 
-  it("subscribe_my_sections_by_codes 批量匹配并订阅班级", async () => {
+  it("workspace_subscription_import 批量匹配并订阅班级", async () => {
     await fixtures.replaceUserSubscribedSections(context.devUserId, []);
 
     const result = await context.client.call<{
@@ -165,7 +165,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
         sections?: unknown[];
         sectionCount?: number;
       } | null;
-    }>("subscribe_my_sections_by_codes", {
+    }>("workspace_subscription_import", {
       codes: [fixtures.DEV_SEED.section.code],
       locale: "zh-cn",
       mode: "full",
@@ -183,7 +183,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
     ).toBe(true);
   });
 
-  it("subscribe_my_sections_by_codes 跳过已订阅班级", async () => {
+  it("workspace_subscription_import 跳过已订阅班级", async () => {
     await fixtures.ensureDevUserSubscribedToSeedSection();
 
     const result = await context.client.call<{
@@ -192,7 +192,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
       unmatchedCodes?: string[];
       addedCount?: number;
       alreadySubscribedCount?: number;
-    }>("subscribe_my_sections_by_codes", {
+    }>("workspace_subscription_import", {
       codes: [fixtures.DEV_SEED.section.code],
       locale: "zh-cn",
     });
@@ -203,7 +203,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
     expect(result.alreadySubscribedCount).toBeGreaterThanOrEqual(1);
   });
 
-  it("subscribe_my_sections_by_codes 报告未匹配代码", async () => {
+  it("workspace_subscription_import 报告未匹配代码", async () => {
     const marker = `MISSING${Date.now()}.01`;
 
     const result = await context.client.call<{
@@ -212,7 +212,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
       unmatchedCodes?: string[];
       addedCount?: number;
       alreadySubscribedCount?: number;
-    }>("subscribe_my_sections_by_codes", {
+    }>("workspace_subscription_import", {
       codes: [marker],
       locale: "zh-cn",
     });
@@ -224,11 +224,11 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
     expect(result.alreadySubscribedCount).toBe(0);
   });
 
-  it("subscribe_my_sections_by_codes 对不存在的学期返回失败", async () => {
+  it("workspace_subscription_import 对不存在的学期返回失败", async () => {
     const result = await context.client.call<{
       success?: boolean;
       message?: string;
-    }>("subscribe_my_sections_by_codes", {
+    }>("workspace_subscription_import", {
       codes: [fixtures.DEV_SEED.section.code],
       semesterId: 2_147_483_647,
       locale: "zh-cn",
@@ -238,22 +238,22 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
     expect(result.message).toContain("No semester found");
   });
 
-  it("subscribe_my_sections_by_codes 拒绝空代码列表", async () => {
+  it("workspace_subscription_import 拒绝空代码列表", async () => {
     await expect(
-      context.client.call("subscribe_my_sections_by_codes", {
+      context.client.call("workspace_subscription_import", {
         codes: [],
         locale: "zh-cn",
       }),
     ).rejects.toThrow();
   });
 
-  it("get_my_calendar_subscription 对不存在用户返回失败", async () => {
+  it("workspace_calendar_feed_get 对不存在用户返回失败", async () => {
     const missingUserMcp = await createMcpHarness("missing-user-id");
     try {
       const result = await missingUserMcp.call<{
         success?: boolean;
         message?: string;
-      }>("get_my_calendar_subscription", {
+      }>("workspace_calendar_feed_get", {
         locale: "zh-cn",
       });
 

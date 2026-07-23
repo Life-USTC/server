@@ -22,8 +22,8 @@ export let welcomeCopy: WelcomeCopy;
         <Alert.Description>{importMessage}</Alert.Description>
       </Alert.Root>
     {/if}
-    <Button class="justify-start" href="/sections" variant="outline">{welcomeCopy.browseSections}</Button>
-    <Button class="justify-start" href="/courses" variant="outline">{welcomeCopy.browseCourses}</Button>
+    <Button class="justify-start" href="/catalog/sections" variant="outline">{welcomeCopy.browseSections}</Button>
+    <Button class="justify-start" href="/catalog/courses" variant="outline">{welcomeCopy.browseCourses}</Button>
     <Button class="justify-start" type="button" variant="outline" onclick={onOpenBulkImport}>{welcomeCopy.bulkImportCta}</Button>
   </Card.Content>
 </Card.Root>

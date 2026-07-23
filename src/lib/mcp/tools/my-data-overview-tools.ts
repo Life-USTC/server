@@ -10,11 +10,11 @@ import { getMySevenDaysTimelineAction } from "@/lib/mcp/tools/my-data-timeline-a
 
 export function registerMyOverviewTools(server: McpServer) {
   server.registerTool(
-    "get_my_overview",
+    "workspace_overview_get",
     {
       description:
         "Counts and top samples of pending todos, homeworks, today's schedules, and upcoming exams. " +
-        "Lighter than get_my_dashboard. Pass atTime to anchor to a specific day.",
+        "Lighter than workspace_snapshot_get. Pass atTime to anchor to a specific day.",
       inputSchema: {
         locale: mcpLocaleInputSchema,
         atTime: flexDateInputSchema
@@ -43,7 +43,7 @@ export function registerMyOverviewTools(server: McpServer) {
   );
 
   server.registerTool(
-    "get_my_7days_timeline",
+    "workspace_calendar_timeline_get",
     {
       description:
         "Next 7 days of unified calendar events (schedules, homework deadlines, exams, todos). " +

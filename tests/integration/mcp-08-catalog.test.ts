@@ -4,7 +4,7 @@ import * as fixtures from "./utils/mcp-tool-test-utils";
 const context = fixtures.createMcpToolTestContext();
 
 describe("课程与班级查找", () => {
-  it("search_courses 返回 REST 等价分页课程层级", async () => {
+  it("catalog_course_search 返回 REST 等价分页课程层级", async () => {
     const seedCourseFilters = await fixtures.prisma.course.findUnique({
       where: { jwId: fixtures.DEV_SEED.course.jwId },
       select: {
@@ -40,7 +40,7 @@ describe("课程与班级查找", () => {
         total?: number;
         totalPages?: number;
       };
-    }>("search_courses", args);
+    }>("catalog_course_search", args);
 
     expect(result.pagination?.page).toBe(1);
     expect(result.pagination?.pageSize).toBe(10);
@@ -63,11 +63,11 @@ describe("课程与班级查找", () => {
     );
   });
 
-  it("get_course_by_jw_id 接受旧 jwId 并返回 canonical 课程", async () => {
+  it("catalog_course_get 接受旧 jwId 并返回 canonical 课程", async () => {
     const result = await context.client.call<{
       found?: boolean;
       course?: { jwId?: number; code?: string };
-    }>("get_course_by_jw_id", {
+    }>("catalog_course_get", {
       jwId: fixtures.DEV_SEED.course.legacyJwId,
       locale: "zh-cn",
       mode: "full",
@@ -80,7 +80,7 @@ describe("课程与班级查找", () => {
     });
   });
 
-  it("get_section_by_jw_id 返回与 REST 班级详情相同的层级", async () => {
+  it("catalog_section_get 返回与 REST 班级详情相同的层级", async () => {
     const result = await context.client.call<{
       found?: boolean;
       section?: {
@@ -94,7 +94,7 @@ describe("课程与班级查找", () => {
         exams?: unknown[];
         roomType?: unknown;
       };
-    }>("get_section_by_jw_id", {
+    }>("catalog_section_get", {
       jwId: fixtures.DEV_SEED.section.jwId,
       locale: "zh-cn",
       mode: "full",
@@ -110,19 +110,19 @@ describe("课程与班级查找", () => {
     expect(Object.hasOwn(result.section ?? {}, "roomType")).toBe(true);
   });
 
-  it("get_section_by_jw_id 在 jwId 缺失时返回恢复提示", async () => {
+  it("catalog_section_get 在 jwId 缺失时返回恢复提示", async () => {
     const result = await context.client.call<{
       found?: boolean;
       message?: string;
       hint?: string;
-    }>("get_section_by_jw_id", {
+    }>("catalog_section_get", {
       jwId: 999999999,
       locale: "zh-cn",
     });
 
     expect(result.found).toBe(false);
     expect(result.message).toContain("999999999");
-    expect(result.hint).toContain("search_sections");
+    expect(result.hint).toContain("catalog_section_search");
   });
 });
 

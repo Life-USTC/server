@@ -101,6 +101,6 @@ $: emptyMessage =
       <ArrowLeftRightIcon data-icon="inline-start" />
       {busCopy.planner.reverse}
     </Button>
-    <Button class="min-h-11" href="/bus-map" variant="ghost">{busCopy.transitMap}</Button>
+    <Button class="min-h-11" href="/catalog/bus/map" variant="ghost">{busCopy.transitMap}</Button>
   </Card.Footer>
 </Card.Root>

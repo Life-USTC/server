@@ -135,9 +135,11 @@ describe("GraphQL semantic observability", () => {
     const writeDataPoint = installAnalytics();
     const namedQuery = /* GraphQL */ `
       query Catalog($page: PageInput) {
-        ...CatalogRoot
+        catalog {
+          ...CatalogRoot
+        }
       }
-      fragment CatalogRoot on Query {
+      fragment CatalogRoot on Catalog {
         courses(page: $page) {
           items {
             jwId
@@ -150,7 +152,7 @@ describe("GraphQL semantic observability", () => {
       query: namedQuery,
       variables: { page: { pageSize: 7 } },
     });
-    await execute({ query: "{ courses { items { jwId } } }" });
+    await execute({ query: "{ catalog { courses { items { jwId } } } }" });
 
     expect(writeDataPoint).toHaveBeenCalledTimes(2);
     expect(writeDataPoint).toHaveBeenNthCalledWith(1, {
@@ -162,7 +164,7 @@ describe("GraphQL semantic observability", () => {
         "anonymous",
         "graphql-observation-test",
       ],
-      doubles: [expect.any(Number), 1, 35, 0, 0],
+      doubles: [expect.any(Number), 1, 37, 0, 0],
     });
     expect(writeDataPoint).toHaveBeenNthCalledWith(2, {
       indexes: ["graphql:query"],
@@ -173,7 +175,7 @@ describe("GraphQL semantic observability", () => {
         "anonymous",
         "graphql-observation-test",
       ],
-      doubles: [expect.any(Number), 1, 100, 0, 0],
+      doubles: [expect.any(Number), 1, 102, 0, 0],
     });
     expect(
       info.mock.calls.filter(
@@ -206,7 +208,9 @@ describe("GraphQL semantic observability", () => {
 
     for (const [authMode, principal] of principals) {
       await executeWithContext(
-        { query: `query ${authMode}Mode { courses { items { jwId } } }` },
+        {
+          query: `query ${authMode}Mode { catalog { courses { items { jwId } } } }`,
+        },
         (request) => contextWithPrincipal(request, principal),
         {
           headers: { "x-request-id": "ignored-header-request-id" },
@@ -226,7 +230,7 @@ describe("GraphQL semantic observability", () => {
           authMode,
           `${authMode}-locals-request-id`,
         ],
-        doubles: [expect.any(Number), 1, 100, 0, 0],
+        doubles: [expect.any(Number), 1, 102, 0, 0],
       });
     });
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
@@ -239,7 +243,9 @@ describe("GraphQL semantic observability", () => {
     const writeDataPoint = installAnalytics();
 
     await executeWithContext(
-      { query: "query HeaderOnly { courses { items { jwId } } }" },
+      {
+        query: "query HeaderOnly { catalog { courses { items { jwId } } } }",
+      },
       (request) => contextWithPrincipal(request, { kind: "anonymous" }),
       {
         headers: { "x-request-id": "client-controlled-request-id" },
@@ -256,7 +262,7 @@ describe("GraphQL semantic observability", () => {
         "anonymous",
         "unknown",
       ],
-      doubles: [expect.any(Number), 1, 100, 0, 0],
+      doubles: [expect.any(Number), 1, 102, 0, 0],
     });
     expect(JSON.stringify(writeDataPoint.mock.calls)).not.toContain(
       "client-controlled-request-id",
@@ -274,7 +280,7 @@ describe("GraphQL semantic observability", () => {
       new Error("private-resolver-detail"),
     );
     const resolverFailure = await execute({
-      query: "{ courses { items { jwId } } }",
+      query: "{ catalog { courses { items { jwId } } } }",
     });
 
     expect(parseFailure.response.status).toBe(200);
@@ -299,7 +305,7 @@ describe("GraphQL semantic observability", () => {
       3,
       expect.objectContaining({
         indexes: ["graphql:query"],
-        doubles: [expect.any(Number), 1, 100, 1, 1],
+        doubles: [expect.any(Number), 1, 102, 1, 1],
       }),
     );
     expect(
@@ -334,7 +340,7 @@ describe("GraphQL semantic observability", () => {
     const privateBody = "private-context-body";
     const bearerFailure = await execute(
       {
-        query: "query BearerFailure { courses { items { jwId } } }",
+        query: "query BearerFailure { catalog { courses { items { jwId } } } }",
         extensions: {
           privateBody,
         },
@@ -345,14 +351,20 @@ describe("GraphQL semantic observability", () => {
       },
     );
     const sessionFailure = await execute(
-      { query: "query SessionFailure { courses { items { jwId } } }" },
+      {
+        query:
+          "query SessionFailure { catalog { courses { items { jwId } } } }",
+      },
       {
         cookie: `better-auth.session_token=${privateSessionCookie}`,
       },
     );
     const privateContextDetail = "private-context-detail";
     const unknownFailure = await executeWithContext(
-      { query: "query UnknownFailure { courses { items { jwId } } }" },
+      {
+        query:
+          "query UnknownFailure { catalog { courses { items { jwId } } } }",
+      },
       () => {
         throw new Error(privateContextDetail);
       },
@@ -380,7 +392,7 @@ describe("GraphQL semantic observability", () => {
         doubles: [
           expect.any(Number),
           1,
-          100,
+          102,
           1,
           operationName === "UnknownFailure" ? 1 : 0,
         ],
@@ -405,11 +417,13 @@ describe("GraphQL semantic observability", () => {
     const { payload } = await execute({
       query: /* GraphQL */ `
         query ExpensiveCatalog($page: PageInput) {
-          first: courses(page: $page) {
-            ...FullCoursePage
-          }
-          second: courses(page: $page) {
-            ...FullCoursePage
+          catalog {
+            first: courses(page: $page) {
+              ...FullCoursePage
+            }
+            second: courses(page: $page) {
+              ...FullCoursePage
+            }
           }
         }
 
@@ -439,7 +453,7 @@ describe("GraphQL semantic observability", () => {
     expect(writeDataPoint).toHaveBeenCalledWith(
       expect.objectContaining({
         indexes: ["graphql:query"],
-        doubles: [expect.any(Number), 2, 9000, 1, 0],
+        doubles: [expect.any(Number), 1, 9002, 1, 0],
       }),
     );
   });
@@ -456,7 +470,7 @@ describe("GraphQL semantic observability", () => {
     const { payload } = await executeWithContext(
       {
         query:
-          "query Safe($search: String) { courses(filter: { search: $search }) { items { jwId } } }",
+          "query Safe($search: String) { catalog { courses(filter: { search: $search }) { items { jwId } } } }",
         variables: { search: "private-variable-value" },
         extensions: { privateBody },
       },
@@ -510,7 +524,7 @@ describe("GraphQL semantic observability", () => {
       {
         query: /* GraphQL */ `
           mutation PrivateTodoMutation($title: String!) {
-            createTodo(input: { title: $title }) {
+            todoCreate(input: { title: $title }) {
               id
             }
           }
@@ -558,7 +572,7 @@ describe("GraphQL semantic observability", () => {
     });
 
     const { payload, response } = await execute({
-      query: "{ courses { items { jwId } } }",
+      query: "{ catalog { courses { items { jwId } } } }",
     });
 
     expect(response.status).toBe(200);
@@ -572,7 +586,7 @@ describe("GraphQL semantic observability", () => {
     const writeDataPoint = installAnalytics();
 
     const { payload, response } = await execute({
-      query: "{ courses { items { jwId } } }",
+      query: "{ catalog { courses { items { jwId } } } }",
     });
 
     expect(response.status).toBe(200);

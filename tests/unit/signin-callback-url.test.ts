@@ -14,10 +14,10 @@ describe("resolveSignInCallbackUrl", () => {
   it("优先使用显式 callbackUrl", () => {
     expect(
       resolveSignInCallbackUrl({
-        callbackUrl: "/settings?tab=accounts",
+        callbackUrl: "/account/settings?tab=accounts",
         client_id: "ignored",
       }),
-    ).toBe("/settings?tab=accounts");
+    ).toBe("/account/settings?tab=accounts");
   });
 
   it("拒绝外部 callbackUrl 值", () => {
@@ -33,9 +33,9 @@ describe("resolveSignInCallbackUrl", () => {
   });
 
   it("清理应用内相对回调 URL", () => {
-    expect(sanitizeAuthCallbackUrl("/settings?tab=profile#accounts")).toBe(
-      "/settings?tab=profile#accounts",
-    );
+    expect(
+      sanitizeAuthCallbackUrl("/account/settings?tab=profile#accounts"),
+    ).toBe("/account/settings?tab=profile#accounts");
     expect(sanitizeAuthCallbackUrl("/\\attacker.example")).toBe("/");
     expect(sanitizeAuthCallbackUrl("/%2f%2fattacker.example")).toBe("/");
     expect(sanitizeAuthCallbackUrl("/%5cattacker.example")).toBe("/");

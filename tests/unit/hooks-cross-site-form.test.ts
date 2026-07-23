@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { crossSiteFormResponse } from "@/hooks.server";
 
 function event(
-  pathname = "/settings/profile",
+  pathname = "/account/settings/profile",
   origin = "https://evil.example",
 ) {
   const url = new URL(`https://life.example${pathname}`);
@@ -42,11 +42,13 @@ describe("cross-site form protection", () => {
     vi.stubEnv("APP_PUBLIC_ORIGIN", "https://preview.example");
 
     expect(
-      crossSiteFormResponse(event("/settings/profile", "https://life.example")),
+      crossSiteFormResponse(
+        event("/account/settings/profile", "https://life.example"),
+      ),
     ).toBeNull();
     expect(
       crossSiteFormResponse(
-        event("/settings/profile", "https://preview.example"),
+        event("/account/settings/profile", "https://preview.example"),
       ),
     ).toBeNull();
   });

@@ -22,7 +22,7 @@ describe("页面性能可观测性", () => {
       method: "GET",
       requestId: "request-id-only-in-logs",
       responseBytes: 12345,
-      routeId: "/courses/[jwId]",
+      routeId: "/catalog/courses/[jwId]",
       status: 200,
       timings: {
         appIoObservedDurationMs: 80,
@@ -32,11 +32,11 @@ describe("页面性能可观测性", () => {
     });
 
     expect(writeDataPoint).toHaveBeenCalledWith({
-      indexes: ["page:/courses/[jwId]"],
+      indexes: ["page:/catalog/courses/[jwId]"],
       blobs: [
         "page_request_v2",
         "finish",
-        "/courses/[jwId]",
+        "/catalog/courses/[jwId]",
         "GET",
         "200",
         "2xx",
@@ -122,7 +122,7 @@ describe("页面性能可观测性", () => {
       locale: "zh-cn",
       method: "POST",
       requestId: "request-500",
-      routeId: "/settings/authorizations",
+      routeId: "/account/settings/authorizations",
       status: 500,
       timings: {
         appIoObservedDurationMs: 4,
@@ -152,7 +152,7 @@ describe("页面性能可观测性", () => {
       locale: "en-us",
       method: "POST",
       requestId: "request-error",
-      routeId: "/settings/authorizations",
+      routeId: "/account/settings/authorizations",
       timings: {
         appIoObservedDurationMs: 8,
         authIoObservedDurationMs: 2,
@@ -167,7 +167,7 @@ describe("页面性能可观测性", () => {
         event: "page.request.error",
         ioObservedDurationMs: 11,
         requestId: "request-error",
-        route: "/settings/authorizations",
+        route: "/account/settings/authorizations",
         status: 500,
       }),
     );

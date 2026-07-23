@@ -98,16 +98,18 @@ describe("MCP tool descriptors", () => {
 
   it("exposes OpenAI-compatible auth metadata and read annotations", async () => {
     const result = await listTools();
-    const tool = result.tools.find((item) => item.name === "list_my_todos");
+    const tool = result.tools.find(
+      (item) => item.name === "workspace_todo_list",
+    );
     const wireResult = await listToolsWireResult();
     const wireTool = wireResult.tools.find(
-      (item) => item.name === "list_my_todos",
+      (item) => item.name === "workspace_todo_list",
     );
 
     expect(tool).toMatchObject({
-      title: "List My Todos",
+      title: "Workspace Todo List",
       annotations: {
-        title: "List My Todos",
+        title: "Workspace Todo List",
         readOnlyHint: true,
         destructiveHint: false,
         openWorldHint: false,
@@ -189,10 +191,12 @@ describe("MCP tool descriptors", () => {
 
   it("marks personal overwrite tools as closed-world writes", async () => {
     const result = await listTools();
-    const tool = result.tools.find((item) => item.name === "update_my_todo");
+    const tool = result.tools.find(
+      (item) => item.name === "workspace_todo_update",
+    );
 
     expect(tool).toMatchObject({
-      title: "Update My Todo",
+      title: "Workspace Todo Update",
       annotations: {
         readOnlyHint: false,
         destructiveHint: true,
@@ -206,10 +210,12 @@ describe("MCP tool descriptors", () => {
 
   it("marks collaborative publish tools as open-world writes", async () => {
     const result = await listTools();
-    const tool = result.tools.find((item) => item.name === "create_comment");
+    const tool = result.tools.find(
+      (item) => item.name === "community_comment_create",
+    );
 
     expect(tool).toMatchObject({
-      title: "Create Comment",
+      title: "Community Comment Create",
       annotations: {
         readOnlyHint: false,
         destructiveHint: false,
@@ -248,28 +254,28 @@ describe("MCP tool descriptors", () => {
   it("advertises useful top-level structured content keys", async () => {
     const result = await listTools();
 
-    expect(outputSchemaKeys(result, "list_my_todos")).toEqual(
+    expect(outputSchemaKeys(result, "workspace_todo_list")).toEqual(
       expect.arrayContaining(["counts", "todos", "success", "message"]),
     );
-    expect(outputSchemaKeys(result, "get_my_dashboard")).toEqual(
+    expect(outputSchemaKeys(result, "workspace_snapshot_get")).toEqual(
       expect.arrayContaining(["user", "nextClass", "todos", "bus"]),
     );
-    expect(outputSchemaKeys(result, "create_comment")).toEqual(
+    expect(outputSchemaKeys(result, "community_comment_create")).toEqual(
       expect.arrayContaining(["id", "success", "error", "message", "reason"]),
     );
-    expect(outputSchemaKeys(result, "list_comments")).toEqual(
+    expect(outputSchemaKeys(result, "community_comment_list")).toEqual(
       expect.arrayContaining(["found", "data", "pagination", "meta"]),
     );
-    expect(outputSchemaKeys(result, "list_my_uploads")).toEqual(
+    expect(outputSchemaKeys(result, "workspace_upload_list")).toEqual(
       expect.arrayContaining(["data", "pagination", "meta"]),
     );
-    expect(outputSchemaKeys(result, "get_next_buses")).toEqual(
+    expect(outputSchemaKeys(result, "catalog_bus_departure_next")).toEqual(
       expect.arrayContaining(["departures", "nextAvailableDeparture"]),
     );
-    expect(outputSchemaKeys(result, "query_bus_timetable")).toEqual(
+    expect(outputSchemaKeys(result, "catalog_bus_timetable_get")).toEqual(
       expect.arrayContaining(["availableVersions", "trips", "success"]),
     );
-    expect(outputSchemaKeys(result, "get_bus_route_timetable")).toEqual(
+    expect(outputSchemaKeys(result, "catalog_bus_route_get")).toEqual(
       expect.arrayContaining([
         "route",
         "weekday",
@@ -277,13 +283,13 @@ describe("MCP tool descriptors", () => {
         "alternateRoutes",
       ]),
     );
-    expect(outputSchemaKeys(result, "get_my_bus_preferences")).toEqual(
+    expect(outputSchemaKeys(result, "workspace_bus_preferences_get")).toEqual(
       expect.arrayContaining(["preference", "success"]),
     );
-    expect(outputSchemaKeys(result, "save_my_bus_preferences")).toEqual(
+    expect(outputSchemaKeys(result, "workspace_bus_preferences_set")).toEqual(
       expect.arrayContaining(["preference", "success"]),
     );
-    expect(outputSchemaKeys(result, "search_bus_routes")).toEqual(
+    expect(outputSchemaKeys(result, "catalog_bus_route_search")).toEqual(
       expect.arrayContaining([
         "originCampus",
         "destinationCampus",
@@ -298,23 +304,23 @@ describe("MCP tool descriptors", () => {
     const description = (name: string) =>
       result.tools.find((tool) => tool.name === name)?.description ?? "";
 
-    expect(description("get_my_dashboard")).toContain(
+    expect(description("workspace_snapshot_get")).toContain(
       "subscriptions.totalCount exceeds currentSemesterCount",
     );
-    expect(description("list_my_subscribed_sections")).toContain(
+    expect(description("workspace_subscription_list")).toContain(
       "across all semesters",
     );
-    expect(description("list_my_homeworks")).toContain("all semesters");
-    expect(description("list_my_schedules")).toContain("all semesters");
-    expect(description("list_my_exams")).toContain("all semesters");
+    expect(description("workspace_homework_list")).toContain("all semesters");
+    expect(description("workspace_schedule_list")).toContain("all semesters");
+    expect(description("workspace_exam_list")).toContain("all semesters");
   });
 
   it("advertises the advisory homework writing convention", async () => {
     const result = await listTools();
 
     for (const name of [
-      "create_homework_on_section",
-      "update_homework_on_section",
+      "community_section_homework_create",
+      "community_section_homework_update",
     ]) {
       const description =
         result.tools.find((tool) => tool.name === name)?.description ?? "";
@@ -329,9 +335,9 @@ describe("MCP tool descriptors", () => {
 
   it("advertises shared nested schemas for stable structured outputs", async () => {
     const result = await listTools();
-    const todoSchema = outputSchema(result, "list_my_todos");
-    const uploadSchema = outputSchema(result, "list_my_uploads");
-    const courseSearchSchema = outputSchema(result, "search_courses");
+    const todoSchema = outputSchema(result, "workspace_todo_list");
+    const uploadSchema = outputSchema(result, "workspace_upload_list");
+    const courseSearchSchema = outputSchema(result, "catalog_course_search");
 
     expect(todoSchema?.properties?.counts).toMatchObject({
       type: "object",
@@ -394,14 +400,14 @@ describe("MCP tool descriptors", () => {
 
   it("accepts nullable not-found catalog payloads", () => {
     expect(
-      getMcpToolOutputSchema("get_current_semester").safeParse({
+      getMcpToolOutputSchema("catalog_semester_current").safeParse({
         success: true,
         found: false,
         semester: null,
       }).success,
     ).toBe(true);
     expect(
-      getMcpToolOutputSchema("get_teacher_by_id").safeParse({
+      getMcpToolOutputSchema("catalog_teacher_get").safeParse({
         success: true,
         found: false,
         teacher: null,
@@ -411,7 +417,7 @@ describe("MCP tool descriptors", () => {
 
   it("accepts bus trips whose endpoint times are unavailable", () => {
     expect(
-      getMcpToolOutputSchema("query_bus_timetable").safeParse({
+      getMcpToolOutputSchema("catalog_bus_timetable_get").safeParse({
         success: true,
         trips: [
           {
@@ -483,7 +489,7 @@ describe("MCP tool descriptors", () => {
       "return_todos_default",
       {
         description: "Return default todo payload through the shared helper.",
-        outputSchema: getMcpToolOutputSchema("list_my_todos"),
+        outputSchema: getMcpToolOutputSchema("workspace_todo_list"),
       },
       async () => jsonToolResult(todoPayload, { mode: "default" }),
     );
@@ -491,7 +497,7 @@ describe("MCP tool descriptors", () => {
       "return_todos_summary",
       {
         description: "Return summary todo payload through the shared helper.",
-        outputSchema: getMcpToolOutputSchema("list_my_todos"),
+        outputSchema: getMcpToolOutputSchema("workspace_todo_list"),
       },
       async () => jsonToolResult(todoPayload, { mode: "summary" }),
     );
@@ -500,7 +506,7 @@ describe("MCP tool descriptors", () => {
       {
         description:
           "Return default exam payload through the shared numeric schema.",
-        outputSchema: getMcpToolOutputSchema("list_exams_by_section"),
+        outputSchema: getMcpToolOutputSchema("catalog_section_exam_list"),
       },
       async () => jsonToolResult(examPayload, { mode: "default" }),
     );
@@ -508,7 +514,7 @@ describe("MCP tool descriptors", () => {
       "return_next_buses_default",
       {
         description: "Return default next-bus payload with a nullable message.",
-        outputSchema: getMcpToolOutputSchema("get_next_buses"),
+        outputSchema: getMcpToolOutputSchema("catalog_bus_departure_next"),
       },
       async () => jsonToolResult(busPayload, { mode: "default" }),
     );
@@ -603,17 +609,17 @@ describe("MCP tool descriptors", () => {
       fullDescription;
     const cases = [
       {
-        name: "list_comments",
+        name: "community_comment_list",
         compact: { success: true, found: true, data: [compactComment] },
         full: { success: true, found: true, data: [fullComment] },
       },
       {
-        name: "get_comment_thread",
+        name: "community_comment_get",
         compact: { success: true, found: true, thread: [compactComment] },
         full: { success: true, found: true, thread: [fullComment] },
       },
       {
-        name: "get_description",
+        name: "community_description_get",
         compact: {
           success: true,
           found: true,
@@ -622,7 +628,7 @@ describe("MCP tool descriptors", () => {
         full: { success: true, found: true, description: fullDescription },
       },
       {
-        name: "upsert_description",
+        name: "community_description_set",
         compact: {
           success: true,
           id: "description-1",

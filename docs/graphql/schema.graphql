@@ -1,3 +1,7 @@
+type Account {
+  profile: UserProfile!
+}
+
 type BatchMutationError {
   code: BatchMutationErrorCode!
   message: String!
@@ -79,6 +83,19 @@ type Campus {
   nameEn: String
 }
 
+type Catalog {
+  busRoutes(page: PageInput): BusRoutePage!
+  busTimetable(now: DateTime, page: PageInput, routeId: Int!, versionKey: String): BusRouteTimetable
+  course(jwId: Int!): Course
+  courses(filter: CourseFilter, page: PageInput): CoursePage!
+  currentSemester: Semester
+  section(jwId: Int!): Section
+  sections(filter: SectionFilter, page: PageInput): SectionPage!
+  semesters(page: PageInput): SemesterPage!
+  teacher(id: Int!): Teacher
+  teachers(filter: TeacherFilter, page: PageInput): TeacherPage!
+}
+
 type CommentDeleteBatchPayload {
   results: [CommentDeleteBatchResult!]!
 }
@@ -122,6 +139,18 @@ enum CommentTargetType {
 enum CommentVisibility {
   LOGGED_IN_ONLY
   PUBLIC
+}
+
+type Community {
+  user(username: String!): CommunityUser
+}
+
+type CommunityUser {
+  createdAt: DateTime!
+  id: ID!
+  image: String
+  name: String!
+  username: String
 }
 
 input CompleteUploadSessionInput {
@@ -347,33 +376,33 @@ type HomeworkPage {
 }
 
 type Mutation {
-  addCommentReaction(commentId: ID!, type: CommentReactionType!): CommentReactionMutationPayload!
-  completeUploadSession(input: CompleteUploadSessionInput!): UploadCompletionPayload!
-  createComment(input: CreateCommentInput!): CommentMutationPayload!
-  createHomework(input: CreateHomeworkInput!): HomeworkMutationPayload!
-  createTodo(input: CreateTodoInput!): TodoMutationPayload!
-  createUploadSession(input: CreateUploadSessionInput!): UploadSessionPayload!
-  deleteComment(id: ID!): DeleteMutationPayload!
-  deleteComments(ids: [ID!]!): CommentDeleteBatchPayload!
-  deleteHomework(id: ID!): HomeworkDeleteMutationPayload!
-  deleteTodo(id: ID!): DeleteMutationPayload!
-  deleteTodos(ids: [ID!]!): TodoDeleteBatchPayload!
-  deleteUpload(id: ID!): UploadDeleteMutationPayload!
-  removeCommentReaction(commentId: ID!, type: CommentReactionType!): CommentReactionMutationPayload!
-  renameUpload(filename: String!, id: ID!): UploadMutationPayload!
-  saveBusPreferences(input: BusPreferenceInput!): BusPreferenceMutationPayload!
-  setDashboardLinkPinState(pinned: Boolean!, slug: String!): DashboardLinkPinMutationPayload!
-  setDashboardLinkPinStates(items: [DashboardLinkPinBatchItemInput!]!): DashboardLinkPinBatchMutationPayload!
-  setHomeworkCompletion(completed: Boolean!, homeworkId: ID!): HomeworkCompletionMutationPayload!
-  setHomeworkCompletions(items: [HomeworkCompletionBatchItemInput!]!): HomeworkCompletionBatchPayload!
-  setTodoCompletions(items: [TodoCompletionBatchItemInput!]!): TodoCompletionBatchPayload!
-  subscribeSection(jwId: Int!): SectionSubscriptionMutationPayload!
-  unsubscribeSection(jwId: Int!): SectionSubscriptionMutationPayload!
-  updateComment(id: ID!, input: UpdateCommentInput!): CommentMutationPayload!
-  updateHomework(id: ID!, input: UpdateHomeworkInput!): HomeworkMutationPayload!
-  updateSectionSubscriptions(input: UpdateSectionSubscriptionsInput!): SectionSubscriptionBatchPayload!
-  updateTodo(id: ID!, input: UpdateTodoInput!): TodoMutationPayload!
-  upsertDescription(input: UpsertDescriptionInput!): DescriptionMutationPayload!
+  busPreferencesSet(input: BusPreferenceInput!): BusPreferenceMutationPayload!
+  commentCreate(input: CreateCommentInput!): CommentMutationPayload!
+  commentDelete(id: ID!): DeleteMutationPayload!
+  commentReactionAdd(commentId: ID!, type: CommentReactionType!): CommentReactionMutationPayload!
+  commentReactionRemove(commentId: ID!, type: CommentReactionType!): CommentReactionMutationPayload!
+  commentUpdate(id: ID!, input: UpdateCommentInput!): CommentMutationPayload!
+  commentsDelete(ids: [ID!]!): CommentDeleteBatchPayload!
+  descriptionSet(input: UpsertDescriptionInput!): DescriptionMutationPayload!
+  homeworkCompletionSet(completed: Boolean!, homeworkId: ID!): HomeworkCompletionMutationPayload!
+  homeworkCompletionsSet(items: [HomeworkCompletionBatchItemInput!]!): HomeworkCompletionBatchPayload!
+  homeworkCreate(input: CreateHomeworkInput!): HomeworkMutationPayload!
+  homeworkDelete(id: ID!): HomeworkDeleteMutationPayload!
+  homeworkUpdate(id: ID!, input: UpdateHomeworkInput!): HomeworkMutationPayload!
+  linkPinSet(pinned: Boolean!, slug: String!): DashboardLinkPinMutationPayload!
+  linkPinsSet(items: [DashboardLinkPinBatchItemInput!]!): DashboardLinkPinBatchMutationPayload!
+  subscriptionAdd(jwId: Int!): SectionSubscriptionMutationPayload!
+  subscriptionRemove(jwId: Int!): SectionSubscriptionMutationPayload!
+  subscriptionsImport(input: UpdateSectionSubscriptionsInput!): SectionSubscriptionBatchPayload!
+  todoCompletionsSet(items: [TodoCompletionBatchItemInput!]!): TodoCompletionBatchPayload!
+  todoCreate(input: CreateTodoInput!): TodoMutationPayload!
+  todoDelete(id: ID!): DeleteMutationPayload!
+  todoUpdate(id: ID!, input: UpdateTodoInput!): TodoMutationPayload!
+  todosDelete(ids: [ID!]!): TodoDeleteBatchPayload!
+  uploadDelete(id: ID!): UploadDeleteMutationPayload!
+  uploadRename(filename: String!, id: ID!): UploadMutationPayload!
+  uploadSessionComplete(input: CompleteUploadSessionInput!): UploadCompletionPayload!
+  uploadSessionCreate(input: CreateUploadSessionInput!): UploadSessionPayload!
 }
 
 type NamedCatalogValue {
@@ -395,17 +424,10 @@ input PageInput {
 }
 
 type Query {
-  busRoutes(page: PageInput): BusRoutePage!
-  busTimetable(now: DateTime, page: PageInput, routeId: Int!, versionKey: String): BusRouteTimetable
-  course(jwId: Int!): Course
-  courses(filter: CourseFilter, page: PageInput): CoursePage!
-  currentSemester: Semester
-  section(jwId: Int!): Section
-  sections(filter: SectionFilter, page: PageInput): SectionPage!
-  semesters(page: PageInput): SemesterPage!
-  teacher(id: Int!): Teacher
-  teachers(filter: TeacherFilter, page: PageInput): TeacherPage!
-  viewer: Viewer
+  account: Account
+  catalog: Catalog!
+  community: Community!
+  workspace: Workspace
 }
 
 type Schedule {
@@ -698,17 +720,16 @@ type UserProfile {
   username: String
 }
 
-type Viewer {
+type Workspace {
   exams(filter: ExamFilter, page: PageInput): ExamPage!
   homeworks(filter: HomeworkFilter, page: PageInput): HomeworkPage!
-  overview(atTime: DateTime): ViewerOverview!
-  profile: UserProfile!
+  overview(atTime: DateTime): WorkspaceOverview!
   schedules(filter: ScheduleFilter, page: PageInput): SchedulePage!
   subscribedSections(page: PageInput): SectionPage!
   todos(filter: TodoFilter, page: PageInput): TodoPage!
 }
 
-type ViewerOverview {
+type WorkspaceOverview {
   atTime: DateTime!
   completedTodos: Int!
   dueSoonHomeworks: Int!

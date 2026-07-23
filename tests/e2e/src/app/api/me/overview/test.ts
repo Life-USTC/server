@@ -1,5 +1,5 @@
 /**
- * E2E tests for GET /api/me/overview
+ * E2E tests for GET /api/workspace/overview
  *
  * Authenticated compact overview for lightweight clients. The response combines
  * schedule, todo, homework, and exam samples without client-side fan-out.
@@ -10,11 +10,11 @@ import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../../../utils/dev-seed";
 import { withE2ePrisma } from "../../../../../utils/e2e-db/prisma";
 import { assertApiContract } from "../../../_shared/api-contract";
 
-const BASE = "/api/me/overview";
+const BASE = "/api/workspace/overview";
 const PAST_SAME_DAY_EXAM_JW_ID = 88_051_001;
 const UNKNOWN_DATE_EXAM_JW_ID = 88_051_002;
 
-test.describe("GET /api/me/overview - 个人概览", () => {
+test.describe("GET /api/workspace/overview - 个人概览", () => {
   test("契约", async ({ request }) => {
     await assertApiContract(request, { routePath: BASE });
   });

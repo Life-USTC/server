@@ -23,7 +23,7 @@ function actionInput(jwId = "99999999") {
       locale: "en-us" as const,
     },
     params: { jwId },
-    request: new Request("http://localhost/sections/99999999"),
+    request: new Request("http://localhost/catalog/sections/99999999"),
   };
 }
 

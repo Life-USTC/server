@@ -87,7 +87,7 @@ describe("Prisma 查询日志环境", () => {
       setCloudflareRequestContext({
         method: "GET",
         requestId: "slow-query-request",
-        route: "/api/todos",
+        route: "/api/workspace/todos",
       });
       logPrismaQuery({
         duration: 20,
@@ -102,7 +102,7 @@ describe("Prisma 查询日志环境", () => {
       event: "prisma.slow-query",
       method: "GET",
       requestId: "slow-query-request",
-      route: "/api/todos",
+      route: "/api/workspace/todos",
     });
   });
 });

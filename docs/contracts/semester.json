@@ -22,7 +22,7 @@
       "rest": {
         "routes": [
           {
-            "path": "/api/semesters",
+            "path": "/api/catalog/semesters",
             "returns": "PaginatedResponse<SemesterSummary>",
             "notes": [
               "REST pageSize accepts 1-100; the deprecated limit alias remains accepted and pageSize wins when both are supplied. Out-of-range values are rejected instead of clamped."
@@ -34,10 +34,11 @@
         "queries": [
           {
             "name": "semesters",
+            "parent": "Catalog",
             "arguments": { "page": "PageInput" },
             "returns": "SemesterPage!",
-            "rest_equivalent": "GET /api/semesters",
-            "mcp_equivalent": "list_semesters",
+            "rest_equivalent": "GET /api/catalog/semesters",
+            "mcp_equivalent": "catalog_semester_list",
             "notes": [
               "PageInput defaults to page=1 and pageSize=20; pageSize must remain within 1-100."
             ]
@@ -47,9 +48,9 @@
       "mcp": {
         "tools": [
           {
-            "name": "list_semesters",
+            "name": "catalog_semester_list",
             "returns": "PaginatedResponse<SemesterSummary>",
-            "rest_equivalent": "GET /api/semesters",
+            "rest_equivalent": "GET /api/catalog/semesters",
             "notes": [
               "MCP limit accepts 1-100 and rejects out-of-range values instead of clamping."
             ]
@@ -80,7 +81,7 @@
       "rest": {
         "routes": [
           {
-            "path": "/api/semesters/current",
+            "path": "/api/catalog/semesters/current",
             "returns": "Semester | 404",
             "notes": ["Returns the current semester or 404 when none is found."]
           }
@@ -90,18 +91,19 @@
         "queries": [
           {
             "name": "currentSemester",
+            "parent": "Catalog",
             "returns": "Semester",
-            "rest_equivalent": "GET /api/semesters/current",
-            "mcp_equivalent": "get_current_semester"
+            "rest_equivalent": "GET /api/catalog/semesters/current",
+            "mcp_equivalent": "catalog_semester_current"
           }
         ]
       },
       "mcp": {
         "tools": [
           {
-            "name": "get_current_semester",
+            "name": "catalog_semester_current",
             "returns": "{ found: Boolean, semester: SemesterSummary? }",
-            "rest_equivalent": "GET /api/semesters/current"
+            "rest_equivalent": "GET /api/catalog/semesters/current"
           }
         ]
       },

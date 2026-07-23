@@ -67,7 +67,7 @@ describe("remaining ordinary GraphQL mutations", () => {
     });
 
     await expect(
-      graphqlMutationResolvers.Mutation.setDashboardLinkPinStates(
+      graphqlMutationResolvers.Mutation.linkPinsSet(
         null,
         {
           items: [
@@ -109,7 +109,7 @@ describe("remaining ordinary GraphQL mutations", () => {
     deleteOwnCommentsBatchMock.mockResolvedValue(payload);
 
     await expect(
-      graphqlMutationResolvers.Mutation.deleteComments(
+      graphqlMutationResolvers.Mutation.commentsDelete(
         null,
         { ids: [" comment-1 ", "comment-2"] },
         context,
@@ -136,7 +136,7 @@ describe("remaining ordinary GraphQL mutations", () => {
       ok: true,
       session: {
         key: "uploads/user-1/file",
-        url: "https://life.example/api/uploads/object?key=file",
+        url: "https://life.example/api/workspace/uploads/object?key=file",
         maxFileSizeBytes: 52_428_800,
         quotaBytes: 1_073_741_824,
         usedBytes: 42,
@@ -144,7 +144,7 @@ describe("remaining ordinary GraphQL mutations", () => {
     });
 
     await expect(
-      graphqlMutationResolvers.Mutation.createUploadSession(
+      graphqlMutationResolvers.Mutation.uploadSessionCreate(
         null,
         {
           input: {
@@ -194,7 +194,7 @@ describe("remaining ordinary GraphQL mutations", () => {
     });
 
     await expect(
-      graphqlMutationResolvers.Mutation.completeUploadSession(
+      graphqlMutationResolvers.Mutation.uploadSessionComplete(
         null,
         {
           input: {
@@ -206,14 +206,14 @@ describe("remaining ordinary GraphQL mutations", () => {
       ),
     ).resolves.toMatchObject({ upload: { id: "upload-1" }, usedBytes: 42 });
     await expect(
-      graphqlMutationResolvers.Mutation.renameUpload(
+      graphqlMutationResolvers.Mutation.uploadRename(
         null,
         { id: " upload-1 ", filename: " renamed.pdf " },
         context,
       ),
     ).resolves.toEqual({ upload });
     await expect(
-      graphqlMutationResolvers.Mutation.deleteUpload(
+      graphqlMutationResolvers.Mutation.uploadDelete(
         null,
         { id: " upload-1 " },
         context,
@@ -241,7 +241,7 @@ describe("remaining ordinary GraphQL mutations", () => {
     });
 
     await expect(
-      graphqlMutationResolvers.Mutation.deleteUpload(
+      graphqlMutationResolvers.Mutation.uploadDelete(
         null,
         { id: "upload-1" },
         context,
@@ -254,7 +254,7 @@ describe("remaining ordinary GraphQL mutations", () => {
 
   it("rejects duplicate comment targets and invalid upload metadata before services", async () => {
     await expect(
-      graphqlMutationResolvers.Mutation.deleteComments(
+      graphqlMutationResolvers.Mutation.commentsDelete(
         null,
         { ids: ["comment-1", " comment-1 "] },
         context,
@@ -264,7 +264,7 @@ describe("remaining ordinary GraphQL mutations", () => {
       message: "comment IDs must not contain duplicate targets.",
     });
     await expect(
-      graphqlMutationResolvers.Mutation.createUploadSession(
+      graphqlMutationResolvers.Mutation.uploadSessionCreate(
         null,
         {
           input: {

@@ -45,11 +45,14 @@ function uploadRequest(input: {
     headers.set("Content-Length", input.contentLength);
   }
 
-  return new Request(`https://example.test/api/uploads/object?key=${key}`, {
-    body: input.body ?? "ok",
-    headers,
-    method: "PUT",
-  });
+  return new Request(
+    `https://example.test/api/workspace/uploads/object?key=${key}`,
+    {
+      body: input.body ?? "ok",
+      headers,
+      method: "PUT",
+    },
+  );
 }
 
 describe("putUploadObjectRoute", () => {

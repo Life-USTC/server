@@ -7,10 +7,10 @@ import {
 
 describe("application shell footer policy", () => {
   it.each([
-    ["/courses/123", true],
-    ["/sections/123/homework", true],
-    ["/teachers/123", true],
-    ["/courses", false],
+    ["/catalog/courses/123", true],
+    ["/catalog/sections/123/homework", true],
+    ["/catalog/teachers/123", true],
+    ["/catalog/courses", false],
   ])("identifies detail workspace path %s", (pathname, expected) => {
     expect(isDetailWorkspacePath(pathname)).toBe(expected);
   });
@@ -18,15 +18,15 @@ describe("application shell footer policy", () => {
   it.each([
     ["/", false, true],
     ["/", true, false],
-    ["/dashboard", true, false],
-    ["/dashboard/exams", true, false],
-    ["/settings/profile", true, false],
+    ["/workspace", true, false],
+    ["/workspace/exams", true, false],
+    ["/account/settings/profile", true, false],
     ["/admin/oauth", true, false],
-    ["/welcome", true, false],
-    ["/courses", false, true],
-    ["/courses", true, true],
+    ["/account/welcome", true, false],
+    ["/catalog/courses", false, true],
+    ["/catalog/courses", true, true],
     ["/guides/markdown-support", true, true],
-    ["/courses/123", false, false],
+    ["/catalog/courses/123", false, false],
   ])("pathname %s with signedIn=%s shows footer=%s", (pathname, signedIn, expected) => {
     expect(shouldShowAppFooter(pathname, signedIn)).toBe(expected);
   });

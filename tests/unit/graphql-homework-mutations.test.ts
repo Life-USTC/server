@@ -57,7 +57,7 @@ describe("GraphQL homework mutation resolvers", () => {
     const homework = { id: "homework-1", title: "第 1 次作业" };
     requireHomeworkItemByIdMock.mockResolvedValue(homework);
 
-    const result = await graphqlMutationResolvers.Mutation.createHomework(
+    const result = await graphqlMutationResolvers.Mutation.homeworkCreate(
       null,
       {
         input: {
@@ -101,7 +101,7 @@ describe("GraphQL homework mutation resolvers", () => {
     const homework = { id: "homework-1", title: "Updated" };
     requireHomeworkItemByIdMock.mockResolvedValue(homework);
 
-    const result = await graphqlMutationResolvers.Mutation.updateHomework(
+    const result = await graphqlMutationResolvers.Mutation.homeworkUpdate(
       null,
       {
         id: " homework-1 ",
@@ -145,7 +145,7 @@ describe("GraphQL homework mutation resolvers", () => {
     });
 
     await expect(
-      graphqlMutationResolvers.Mutation.deleteHomework(
+      graphqlMutationResolvers.Mutation.homeworkDelete(
         null,
         { id: " homework-1 " },
         context,
@@ -189,7 +189,7 @@ describe("GraphQL homework mutation resolvers", () => {
     let promise: Promise<unknown>;
     if (mutation === "create") {
       createHomeworkForSectionMock.mockResolvedValue({ ok: false, error });
-      promise = graphqlMutationResolvers.Mutation.createHomework(
+      promise = graphqlMutationResolvers.Mutation.homeworkCreate(
         null,
         {
           input: {
@@ -203,14 +203,14 @@ describe("GraphQL homework mutation resolvers", () => {
       );
     } else if (mutation === "update") {
       updateHomeworkMock.mockResolvedValue({ ok: false, error });
-      promise = graphqlMutationResolvers.Mutation.updateHomework(
+      promise = graphqlMutationResolvers.Mutation.homeworkUpdate(
         null,
         { id: "homework-1", input: { title: "Updated" } },
         context,
       );
     } else {
       deleteHomeworkMock.mockResolvedValue({ ok: false, error });
-      promise = graphqlMutationResolvers.Mutation.deleteHomework(
+      promise = graphqlMutationResolvers.Mutation.homeworkDelete(
         null,
         { id: "homework-1" },
         context,

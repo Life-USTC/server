@@ -111,8 +111,8 @@ $: ({
       title={homeworkCopy.noSubscriptions}
       description={homeworkCopy.noSubscriptionsDescription}
       actions={[
-        { href: "/sections", label: commonCopy.sections },
-        { href: "/courses", label: commonCopy.courses, variant: "outline" },
+        { href: "/catalog/sections", label: commonCopy.sections },
+        { href: "/catalog/courses", label: commonCopy.courses, variant: "outline" },
       ]}
     />
   {:else}

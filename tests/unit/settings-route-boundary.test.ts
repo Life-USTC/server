@@ -30,16 +30,18 @@ describe("settings route boundary", () => {
   });
 
   it("permanently redirects a legacy query tab and preserves filters", async () => {
-    const settingsRoute = await import("@/routes/settings/+page.server");
+    const settingsRoute = await import(
+      "@/routes/account/settings/+page.server"
+    );
 
     await expect(
       settingsRoute.load(
         routeEvent(
-          "https://example.test/settings?tab=accounts&message=Success",
+          "https://example.test/account/settings?tab=accounts&message=Success",
         ) as never,
       ),
     ).rejects.toMatchObject({
-      location: "/settings/accounts?message=Success",
+      location: "/account/settings/accounts?message=Success",
       status: 308,
     });
     expect(loadSettingsPageMock).not.toHaveBeenCalled();
@@ -47,9 +49,11 @@ describe("settings route boundary", () => {
 
   it("loads a semantic section directly from its route parameter", async () => {
     loadSettingsPageMock.mockResolvedValue({ marker: "accounts" });
-    const settingsRoute = await import("@/routes/settings/[tab]/+page.server");
+    const settingsRoute = await import(
+      "@/routes/account/settings/[tab]/+page.server"
+    );
     const event = routeEvent(
-      "https://example.test/settings/accounts?tab=danger&message=Success",
+      "https://example.test/account/settings/accounts?tab=danger&message=Success",
       { tab: "accounts" },
     );
 
@@ -63,16 +67,21 @@ describe("settings route boundary", () => {
       url: event.url,
     });
     expect(event.url.href).toBe(
-      "https://example.test/settings/accounts?tab=danger&message=Success",
+      "https://example.test/account/settings/accounts?tab=danger&message=Success",
     );
   });
 
   it("keeps root actions loadable for non-safe requests", async () => {
     loadSettingsPageMock.mockResolvedValue({ marker: "profile" });
-    const settingsRoute = await import("@/routes/settings/+page.server");
-    const event = routeEvent("https://example.test/settings?tab=accounts", {
-      method: "POST",
-    });
+    const settingsRoute = await import(
+      "@/routes/account/settings/+page.server"
+    );
+    const event = routeEvent(
+      "https://example.test/account/settings?tab=accounts",
+      {
+        method: "POST",
+      },
+    );
 
     await expect(settingsRoute.load(event as never)).resolves.toEqual({
       marker: "profile",

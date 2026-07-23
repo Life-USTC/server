@@ -29,7 +29,7 @@ export async function saveBusPlannerPreference(input: {
   saveFailedMessage: string;
   showDepartedTrips: boolean;
 }) {
-  const result = await apiClient.POST("/api/bus/preferences", {
+  const result = await apiClient.POST("/api/workspace/bus-preferences", {
     body: {
       preferredDestinationCampusId: input.preferredDestinationCampusId,
       preferredOriginCampusId: input.preferredOriginCampusId,

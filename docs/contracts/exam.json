@@ -20,13 +20,13 @@
         "models": ["Exam"]
       },
       "web": {
-        "pages": ["/dashboard/exams"]
+        "pages": ["/workspace/exams"]
       },
       "rest": "unavailable",
       "graphql": {
         "fields": [
           {
-            "parent": "Viewer",
+            "parent": "Workspace",
             "name": "exams",
             "arguments": {
               "filter": "ExamFilter",
@@ -35,7 +35,7 @@
             "returns": "ExamPage!",
             "auth": "user",
             "required_scopes": ["exam:read"],
-            "mcp_equivalent": "list_my_exams",
+            "mcp_equivalent": "workspace_exam_list",
             "notes": [
               "DateTime range inputs normalize to Asia/Shanghai calendar dates; unknown-date exams remain included by default.",
               "Each Exam.examRooms(page: PageInput) field returns ExamRoomPage! with the shared default page 1/pageSize 20 and maximum pageSize 100."
@@ -46,7 +46,7 @@
       "mcp": {
         "tools": [
           {
-            "name": "list_my_exams",
+            "name": "workspace_exam_list",
             "returns": "{ exams: ExamEntry[] }",
             "notes": [
               "Returns exams[]; each item contains section.course.namePrimary, section.code, section.semester?.nameCn, examDate, startTime, endTime, examBatch, and examRooms[].",
@@ -79,13 +79,13 @@
         "models": ["Exam"]
       },
       "web": {
-        "pages": ["/sections/[jwId]"]
+        "pages": ["/catalog/sections/[jwId]"]
       },
       "rest": "unavailable",
       "mcp": {
         "tools": [
           {
-            "name": "list_exams_by_section",
+            "name": "catalog_section_exam_list",
             "returns": "{ found: Boolean, section: Section?, exams: ExamEntry[] }",
             "notes": ["Returns a single section's exams[]."]
           }
