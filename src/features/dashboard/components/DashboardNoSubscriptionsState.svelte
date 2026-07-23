@@ -4,8 +4,9 @@ import * as Empty from "$lib/components/ui/empty/index.js";
 import { cn } from "$lib/utils.js";
 
 type DashboardNoSubscriptionsAction = {
-  href: string;
+  href?: string;
   label: string;
+  onclick?: () => void;
   variant?: ButtonVariant;
 };
 
@@ -27,10 +28,17 @@ export { className as class };
     <Empty.Title>{title}</Empty.Title>
     <Empty.Description>{description}</Empty.Description>
   </Empty.Header>
-  <Empty.Content class="items-start">
-    <div class="flex flex-wrap gap-2">
+  <Empty.Content class="w-full items-start">
+    <div class="grid w-full gap-2 sm:flex sm:flex-wrap">
       {#each actions as action}
-        <Button class="min-w-28" href={action.href} size="lg" variant={action.variant}>
+        <Button
+          class="w-full sm:w-auto"
+          href={action.href}
+          size="lg"
+          type={action.href ? undefined : "button"}
+          variant={action.variant}
+          onclick={action.onclick}
+        >
           {action.label}
         </Button>
       {/each}

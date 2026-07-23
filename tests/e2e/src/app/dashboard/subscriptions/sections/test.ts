@@ -11,12 +11,11 @@
  * - Calendar subscription URL for iCal feed
  *
  * ## UI/UX Elements
- * - Table with columns: section code, course name, teachers, credits, opt-out
- * - All table cells (except opt-out) are links to `/sections/{jwId}`
- * - Semester header with sections grouped by term
+ * - One responsive table per semester with shared column headers
+ * - Clicking a row opens details with course navigation and unsubscribe actions
  * - Bulk import dialog (textarea → query section/course codes → confirm dialog)
  * - iCal calendar link copy button
- * - Opt-out button: initial → confirm → success states
+ * - Unsubscribe action: details dialog → destructive confirmation
  * - Empty state with bulk import + browse courses buttons
  *
  * ## Edge Cases
@@ -33,6 +32,7 @@ import {
 } from "../../../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../../../utils/request-url";
 import { captureStepScreenshot } from "../../../../../utils/screenshot";
+import { resolveSeedSectionMatches } from "../../../../../utils/seed-lookups";
 import { ensureSeedSectionSubscription } from "../../../../../utils/subscriptions";
 
 function escapeForRegExp(value: string) {
@@ -57,6 +57,16 @@ async function openBulkImportDialog(page: import("@playwright/test").Page) {
 
 test.describe("仪表盘关注班级", () => {
   test.describe.configure({ mode: "serial" });
+  test.beforeEach(async ({ context, baseURL }) => {
+    await context.addCookies([
+      {
+        name: "NEXT_LOCALE",
+        value: "zh-cn",
+        url: absoluteTestUrl("/", baseURL),
+        sameSite: "Lax",
+      },
+    ]);
+  });
 
   test("旧版 /dashboard/subscriptions/sections 重定向到关注班级页面", async ({
     page,
@@ -93,14 +103,20 @@ test.describe("仪表盘关注班级", () => {
 
       const subscriptionsContent = page.locator("#main-content").first();
       await expect(
-        subscriptionsContent.locator("a[href^='/sections/']").first(),
+        subscriptionsContent.getByRole("button", {
+          name: new RegExp(escapeForRegExp(DEV_SEED.section.code)),
+        }),
       ).toBeVisible({ timeout: 3_000 });
 
       // subscription.sections[].course.namePrimary
       await expect(
         subscriptionsContent
-          .getByText(DEV_SEED.course.nameCn)
-          .or(subscriptionsContent.getByText(DEV_SEED.course.nameEn))
+          .locator("td:visible")
+          .filter({
+            hasText: new RegExp(
+              `${escapeForRegExp(DEV_SEED.course.nameCn)}|${escapeForRegExp(DEV_SEED.course.nameEn)}`,
+            ),
+          })
           .first(),
       ).toBeVisible({ timeout: 3_000 });
       // subscription.sections[].code
@@ -112,8 +128,12 @@ test.describe("仪表盘关注班级", () => {
       // section.teachers[] (locale-dependent)
       await expect(
         subscriptionsContent
-          .getByText(DEV_SEED.teacher.nameCn)
-          .or(subscriptionsContent.getByText(DEV_SEED.teacher.nameEn))
+          .locator("td:visible")
+          .filter({
+            hasText: new RegExp(
+              `${escapeForRegExp(DEV_SEED.teacher.nameCn)}|${escapeForRegExp(DEV_SEED.teacher.nameEn)}`,
+            ),
+          })
           .first(),
       ).toBeVisible({ timeout: 3_000 });
       // section.credits
@@ -160,47 +180,63 @@ test.describe("仪表盘关注班级", () => {
     );
   });
 
+  test("超宽屏按学期分表并使用双栏瀑布流", async ({ page }, testInfo) => {
+    await page.setViewportSize({ height: 1000, width: 1700 });
+    await signInAsDebugUser(page, "/dashboard/subscriptions");
+    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, "/dashboard/subscriptions");
+
+    const tables = page.locator("#main-content table");
+    await expect(tables).toHaveCount(2);
+    const firstTable = await tables.nth(0).boundingBox();
+    const secondTable = await tables.nth(1).boundingBox();
+    expect(firstTable).not.toBeNull();
+    expect(secondTable).not.toBeNull();
+    expect(secondTable?.x).toBeGreaterThan((firstTable?.x ?? 0) + 100);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "dashboard-subscriptions-wide-masonry",
+    );
+  });
+
   test("空状态提供发现操作", async ({ page }, testInfo) => {
     test.setTimeout(60000);
     await signInAsDebugUser(page, "/dashboard/subscriptions");
+    const clearResponse = await page.request.post(
+      "/api/calendar-subscriptions",
+      { data: { sectionIds: [] } },
+    );
+    expect(clearResponse.status()).toBe(200);
     await gotoAndWaitForReady(page, "/dashboard/subscriptions");
-    await expect(async () => {
-      const bulkImportButton = page.getByRole("button", {
-        name: /批量导入班级|Bulk Import Sections/i,
-      });
-      const browseSectionsLink = page.getByRole("link", {
-        name: /浏览班级|Browse Sections/i,
-      });
-      const browseCoursesLink = page.getByRole("link", {
-        name: /浏览课程|Browse Courses/i,
-      });
-      if ((await browseSectionsLink.count()) === 0) {
-        const rowActionButton = page
-          .getByRole("button", { name: /移除|Opt out|确认|Confirm/i })
-          .first();
-        const rowActionLabel = (await rowActionButton.textContent()) ?? "";
-        if (/确认|Confirm/i.test(rowActionLabel)) {
-          await rowActionButton.click({ force: true });
-        } else {
-          await rowActionButton.click({ force: true });
-          await expect(
-            page.getByRole("button", { name: /确认|Confirm/i }).first(),
-          ).toBeVisible({ timeout: 3_000 });
-          await page
-            .getByRole("button", { name: /确认|Confirm/i })
-            .first()
-            .click({ force: true });
-        }
-      }
-
-      await waitForUiSettled(page);
-      await expect(bulkImportButton).toBeVisible({ timeout: 3_000 });
-      await expect(browseSectionsLink).toBeVisible({ timeout: 3_000 });
-      await expect(browseCoursesLink).toBeVisible({ timeout: 3_000 });
-    }).toPass({
-      timeout: 30_000,
-      intervals: [500, 1_000, 2_000],
-    });
+    await waitForUiSettled(page);
+    await expect(
+      page
+        .getByRole("button", {
+          name: /批量导入班级|Bulk Import Sections/i,
+        })
+        .first(),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByRole("link", {
+          name: /浏览班级|Browse Sections/i,
+        })
+        .first(),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByRole("link", {
+          name: /浏览课程|Browse Courses/i,
+        })
+        .first(),
+    ).toBeVisible();
 
     await captureStepScreenshot(
       page,
@@ -209,38 +245,77 @@ test.describe("仪表盘关注班级", () => {
     );
   });
 
-  test("可从关注行导航到班级详情", async ({ page }, testInfo) => {
+  test("移动端订阅列表与操作区不产生页面级横向滚动", async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ height: 844, width: 390 });
     await signInAsDebugUser(page, "/dashboard/subscriptions");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/dashboard/subscriptions");
 
-    const rowLink = page.locator("#main-content a[href^='/sections/']").first();
-    await expect(rowLink).toBeVisible();
-    await rowLink.click();
+    await expect(
+      page.getByRole("button", { name: /添加班级|Add Section/i }).first(),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByRole("button", {
+          name: /批量导入班级|Bulk Import Sections/i,
+        })
+        .first(),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
 
-    await expect(page).toHaveURL(/\/sections\/\d+/);
     await captureStepScreenshot(
       page,
       testInfo,
-      "dashboard-subscriptions-navigate-section",
+      "dashboard-subscriptions-mobile-responsive",
     );
   });
 
-  test("退选按钮进入确认状态", async ({ page }, testInfo) => {
+  test("点击关注行打开详情并提供课程主页操作", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/subscriptions");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/dashboard/subscriptions");
 
-    const optOutButton = page
+    await page
       .getByRole("button", {
-        name: /移除|Opt out/i,
+        name: new RegExp(escapeForRegExp(DEV_SEED.section.code)),
       })
-      .first();
-    await expect(optOutButton).toBeVisible();
-    await optOutButton.click();
+      .click();
+    const dialog = page.getByRole("dialog").first();
+    await expect(dialog).toContainText(DEV_SEED.section.code);
+    await expect(
+      dialog.getByRole("link", { name: /前往课程主页|Go to Course/i }),
+    ).toHaveAttribute("href", /^\/courses\/\d+$/);
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "dashboard-subscriptions-section-details",
+    );
+  });
+
+  test("详情中的取消关注操作进入明确确认弹窗", async ({ page }, testInfo) => {
+    await signInAsDebugUser(page, "/dashboard/subscriptions");
+    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, "/dashboard/subscriptions");
+
+    await page
+      .getByRole("button", {
+        name: new RegExp(escapeForRegExp(DEV_SEED.section.code)),
+      })
+      .click();
+    await page
+      .getByRole("button", { name: /^(取消关注|Unsubscribe)$/i })
+      .click();
 
     await expect(
-      page.getByRole("button", { name: /确认|Confirm/i }).first(),
+      page.getByRole("alertdialog", {
+        name: /确认取消关注|Unsubscribe from this section/i,
+      }),
     ).toBeVisible();
 
     await captureStepScreenshot(
@@ -329,6 +404,151 @@ test.describe("仪表盘关注班级", () => {
 
     await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
     await expect(dialog).not.toBeVisible();
+  });
+
+  test("单个添加弹窗可按课程名和教师名搜索并直接关注", async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(60_000);
+    await page.setViewportSize({ height: 844, width: 390 });
+    await signInAsDebugUser(page, "/dashboard/subscriptions");
+    const seedSectionIds = (await resolveSeedSectionMatches(page)).map(
+      (section) => section.id,
+    );
+    await page.request.post("/api/calendar-subscriptions/batch", {
+      data: { action: "remove", sectionIds: seedSectionIds },
+    });
+    await gotoAndWaitForReady(page, "/dashboard/subscriptions");
+
+    await page
+      .getByRole("button", { name: /添加班级|Add Section/i })
+      .first()
+      .click();
+    const quickAddDialog = page
+      .getByRole("dialog", { name: /添加班级|Add Section/i })
+      .first();
+    await expect(quickAddDialog).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    await quickAddDialog
+      .getByRole("textbox", {
+        name: /搜索课程或教师|Search courses or teachers/i,
+      })
+      .fill(DEV_SEED.course.nameCn);
+
+    const matchResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/sections?") &&
+        response.request().method() === "GET" &&
+        response.status() === 200,
+    );
+    await quickAddDialog.getByRole("button", { name: /搜索|Search/i }).click();
+    await matchResponse;
+
+    await expect(
+      quickAddDialog.getByText(DEV_SEED.section.code).first(),
+    ).toBeVisible();
+    await quickAddDialog
+      .getByRole("textbox", {
+        name: /搜索课程或教师|Search courses or teachers/i,
+      })
+      .fill(DEV_SEED.teacher.nameCn);
+    const teacherResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/sections?") &&
+        response.url().includes(encodeURIComponent(DEV_SEED.teacher.nameCn)) &&
+        response.status() === 200,
+    );
+    await quickAddDialog.getByRole("button", { name: /搜索|Search/i }).click();
+    await teacherResponse;
+    await expect(
+      quickAddDialog.getByText(DEV_SEED.section.code).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("dialog", { name: /确认关注|Confirm following/i }),
+    ).toHaveCount(0);
+
+    const sectionCheckbox = quickAddDialog.getByRole("checkbox", {
+      name: new RegExp(escapeForRegExp(DEV_SEED.section.code), "i"),
+    });
+    await expect(sectionCheckbox).toBeChecked();
+    await sectionCheckbox.click();
+    await expect(sectionCheckbox).not.toBeChecked();
+    await sectionCheckbox.click();
+    await expect(sectionCheckbox).toBeChecked();
+
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "dashboard-subscriptions-quick-add-results",
+    );
+
+    const subscribeResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/calendar-subscriptions/batch") &&
+        response.request().method() === "POST" &&
+        response.status() === 200,
+    );
+    await quickAddDialog
+      .getByRole("button", {
+        name: /关注所选|Follow selected/i,
+      })
+      .click();
+    await subscribeResponse;
+    await expect(quickAddDialog).not.toBeVisible();
+  });
+
+  test("单个添加弹窗在无匹配结果时保留搜索上下文", async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ height: 844, width: 390 });
+    await signInAsDebugUser(page, "/dashboard/subscriptions");
+    await gotoAndWaitForReady(page, "/dashboard/subscriptions");
+
+    await page
+      .getByRole("button", { name: /添加班级|Add Section/i })
+      .first()
+      .click();
+    const quickAddDialog = page
+      .getByRole("dialog", { name: /添加班级|Add Section/i })
+      .first();
+    await quickAddDialog
+      .getByRole("textbox", {
+        name: /搜索课程或教师|Search courses or teachers/i,
+      })
+      .fill("DEVXX000.99");
+
+    const matchResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/sections?") &&
+        response.request().method() === "GET" &&
+        response.status() === 200,
+    );
+    await quickAddDialog.getByRole("button", { name: /搜索|Search/i }).click();
+    await matchResponse;
+
+    await expect(
+      quickAddDialog.getByText(/没有找到教学班|No sections found/i),
+    ).toBeVisible();
+    await expect(
+      quickAddDialog.getByRole("button", {
+        name: /关注所选|Follow selected/i,
+      }),
+    ).toBeDisabled();
+    await expect(
+      quickAddDialog.getByRole("textbox", {
+        name: /搜索课程或教师|Search courses or teachers/i,
+      }),
+    ).toHaveValue("DEVXX000.99");
+
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "dashboard-subscriptions-quick-add-empty",
+    );
   });
 
   test("批量导入可确认并显示成功", async ({ page }, testInfo) => {

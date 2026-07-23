@@ -121,3 +121,23 @@ test("/api/sections 可按高级 search 语法检索 seed 班级", async ({
     true,
   );
 });
+
+for (const [label, search] of [
+  ["课程名称", DEV_SEED.course.nameCn],
+  ["教师名称", DEV_SEED.teacher.nameCn],
+] as const) {
+  test(`/api/sections 普通搜索支持${label}并可限定学期`, async ({
+    request,
+  }) => {
+    const response = await request.get(
+      `/api/sections?search=${encodeURIComponent(search)}&semesterJwId=${DEV_SEED.semesterJwId}&pageSize=20`,
+    );
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as {
+      data?: Array<{ jwId?: number }>;
+    };
+    expect(body.data?.some((item) => item.jwId === DEV_SEED.section.jwId)).toBe(
+      true,
+    );
+  });
+}

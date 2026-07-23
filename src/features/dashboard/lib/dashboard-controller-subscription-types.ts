@@ -11,7 +11,6 @@ export type SubscriptionActionSetters = {
   setImportingSections: (value: boolean) => void;
   setMatchedSections: (value: MatchedSection[]) => void;
   setMatchingSections: (value: boolean) => void;
-  setPendingRemoveSectionId: (value: number | null) => void;
   setRemovingSectionId: (value: number | null) => void;
   setSelectedImportSectionIds: (value: number[]) => void;
   setSubscriptionActionError: (value: string) => void;
@@ -23,7 +22,6 @@ export type SubscriptionActionGetters = {
   getBulkImportSemesterId: () => string;
   getBulkImportText: () => string;
   getCurrentSemesterId: () => number | null | undefined;
-  getPendingRemoveSectionId: () => number | null;
   getSelectedImportSectionIds: () => number[];
   getSubscriptionsCopy: () => SubscriptionsCopy;
 };

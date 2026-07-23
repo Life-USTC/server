@@ -25,16 +25,17 @@ export let matchImportSections: DashboardSubscriptionsTabProps["matchImportSecti
 export let namePrimary: NameFormatter;
 export let nameSecondary: NameFormatter;
 export let openBulkImportDialog: DashboardSubscriptionsTabProps["openBulkImportDialog"];
-export let pendingRemoveSectionId: DashboardSubscriptionsTabProps["pendingRemoveSectionId"];
 export let removeSubscribedSection: DashboardSubscriptionsTabProps["removeSubscribedSection"];
 export let removingSectionId: DashboardSubscriptionsTabProps["removingSectionId"];
 export let resetBulkImport: DashboardSubscriptionsTabProps["resetBulkImport"];
+export let searchQuickAddSections: DashboardSubscriptionsTabProps["searchQuickAddSections"];
 export let sectionCopy: DashboardSubscriptionsTabProps["sectionCopy"];
 export let selectedImportCount: number;
 export let selectedImportSectionIdSet: Set<number>;
 export let signedData: DashboardSubscriptionsTabProps["signedData"];
 export let subscriptionActionError: string;
 export let subscriptionActionMessage: string;
+export let subscribeQuickAddSections: DashboardSubscriptionsTabProps["subscribeQuickAddSections"];
 export let subscriptionsCopy: DashboardSubscriptionsTabProps["subscriptionsCopy"];
 export let toggleImportSectionSelection: DashboardSubscriptionsTabProps["toggleImportSectionSelection"];
 export let unmatchedSectionCodes: string[];
@@ -53,6 +54,7 @@ export let unmatchedSectionCodes: string[];
   {namePrimary}
   {nameSecondary}
   {resetBulkImport}
+  {searchQuickAddSections}
   {openBulkImportDialog}
   {toggleImportSectionSelection}
   {matchImportSections}
@@ -62,9 +64,9 @@ export let unmatchedSectionCodes: string[];
   {bulkImportError}
   {isMatchingSections}
   {isImportingSections}
-  {pendingRemoveSectionId}
   {removingSectionId}
   {subscriptionActionMessage}
+  {subscribeQuickAddSections}
   {subscriptionActionError}
   {matchedSections}
   {unmatchedSectionCodes}

@@ -66,7 +66,6 @@ export function createDashboardControllerDefaultState() {
     linkView: "grid" as LinkView,
     matchedSections: [] as MatchedSection[],
     overviewLinkItems: [] as DashboardLinkItem[],
-    pendingRemoveSectionId: null as number | null,
     removingSectionId: null as number | null,
     selectedHomework: null as HomeworkItem | null,
     selectedImportSectionIds: [] as number[],

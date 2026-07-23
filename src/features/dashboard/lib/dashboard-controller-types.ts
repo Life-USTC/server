@@ -212,9 +212,31 @@ export type DashboardSubscriptionsCopy = DashboardRecord & {
     title: string;
     unmatchedCodes: string;
   };
+  quickAdd: {
+    alreadySubscribed: string;
+    cancel: string;
+    codeLabel: string;
+    description: string;
+    emptyDescription: string;
+    emptyTitle: string;
+    hint: string;
+    placeholder: string;
+    resultsDescription: string;
+    resultsLabel: string;
+    searchButton: string;
+    searching: string;
+    selectSection: string;
+    subscribeSelected: string;
+    subscribing: string;
+    title: string;
+  };
   calendarEmpty: string;
+  cancelUnsubscribe: string;
+  closeDetails: string;
+  confirmUnsubscribe: string;
   courseName: string;
   credits: string;
+  detailsDescription: string;
   iCalLink: string;
   linkCopied: string;
   linkCopiedDescription: string;
@@ -225,12 +247,18 @@ export type DashboardSubscriptionsCopy = DashboardRecord & {
   optOutError: string;
   optOutRetry: string;
   optOutSuccessDescription: string;
+  openCourse: string;
+  openDetails: string;
   removing: string;
   rowActions: string;
   section: string;
   sectionIncluded: string;
   sectionsIncluded: string;
+  semester: string;
   semesterGroup: string;
+  unsubscribe: string;
+  unsubscribeDescription: string;
+  unsubscribeTitle: string;
 };
 
 export interface DashboardHomeworksCopy extends HomeworkStyleGuideCopy {
@@ -443,6 +471,10 @@ export type DashboardSubscribedSection = DashboardRecord &
     credits?: number | string | null;
     id: number;
     jwId: number;
+    course: DashboardExamSection["course"] & {
+      code?: string | null;
+      jwId?: number | null;
+    };
     semester?: {
       id?: number | string | null;
       nameCn?: string | null;

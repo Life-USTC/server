@@ -688,6 +688,7 @@ test("/ 仅关注往期班级时可恢复历史作业和课表入口", async ({
   page,
 }, testInfo) => {
   test.setTimeout(300_000);
+  await page.setViewportSize({ height: 844, width: 390 });
   await signInAsDebugUser(page, "/");
 
   const sessionUser = await getCurrentSessionUser(page);
@@ -707,6 +708,11 @@ test("/ 仅关注往期班级时可恢复历史作业和课表入口", async ({
   try {
     await page.reload({ waitUntil: "domcontentloaded" });
     await waitForUiSettled(page);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
 
     await expect(
       page.getByText(
@@ -763,6 +769,7 @@ test("/ 仅关注往期班级时可恢复历史作业和课表入口", async ({
       page.getByText(DEV_SEED.homeworks.historicalTitle),
     ).toBeVisible();
 
+    await page.setViewportSize({ height: 900, width: 1280 });
     await page.goto("/");
     await waitForUiSettled(page);
     await page
