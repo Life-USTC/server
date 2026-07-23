@@ -154,7 +154,7 @@ test.describe("校车面板标签页", () => {
     expect(response.headers().location).toBe("/catalog/bus?linkView=list");
   });
 
-  test("公共校车页面优先显示下一班并按需展开规划器", async ({
+  test("公共校车页面同时显示下一班与完整时刻表并按需展开规划器", async ({
     page,
   }, testInfo) => {
     await gotoAndWaitForReady(page, "/catalog/bus", {
@@ -168,7 +168,12 @@ test.describe("校车面板标签页", () => {
     await expect(
       page.locator("[data-testid='bus-start-stop-group']"),
     ).toBeHidden();
-    await expect(page.locator("table:visible")).toHaveCount(0);
+    await expect(page.locator("table:visible").first()).toBeVisible();
+    await expect(
+      page.getByRole("button", {
+        name: /Hide full timetable|收起完整时刻表/,
+      }),
+    ).toBeVisible();
 
     await openRouteControls(page);
     await expect(
@@ -271,7 +276,7 @@ test.describe("校车面板标签页", () => {
       "font-size",
       "36px",
     );
-    await expect(page.locator("table:visible")).toHaveCount(0);
+    await expect(page.locator("table:visible").first()).toBeVisible();
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(390);
@@ -431,7 +436,7 @@ test.describe("校车面板标签页", () => {
 
       await expectMinimumTargetHeight(page, [
         /Change route|调整路线/,
-        /Full timetable|完整时刻表/,
+        /Hide full timetable|收起完整时刻表/,
       ]);
       for (const target of [
         summary.getByRole("button", { name: /Reverse|反向/ }),

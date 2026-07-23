@@ -731,10 +731,10 @@
   },
   "bus": {
     "title": "校车",
-    "description": "优先查看当前还能赶上的下一班校车，需要时再调整路线或展开完整时刻表。",
-    "subtitle": "下一班优先的校车规划器，完整时刻表随时可展开。",
+    "description": "优先查看当前还能赶上的下一班校车，同时直接浏览完整时刻表或按需调整路线。",
+    "subtitle": "兼顾下一班速览与完整时刻表的校车规划器。",
     "dashboardTitle": "校车出行",
-    "dashboardDescription": "先看下一班校车，再按需调整站点或展开完整分组时刻表。",
+    "dashboardDescription": "先看下一班校车，同时浏览完整分组时刻表或按需调整站点。",
     "publicEntry": "公开校车查询",
     "dayType": {
       "weekday": "工作日",
