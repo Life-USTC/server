@@ -41,6 +41,27 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       ).rejects.toThrow();
     });
 
+    it("rolls back a failed action and returns the pooled client to fail-closed state", async () => {
+      const title = "[rls-test] rolled back action";
+      await expect(
+        withUserDbContext(firstUserId, async (tx) => {
+          await tx.todo.create({
+            data: { title, userId: firstUserId },
+          });
+          throw new Error("force transaction rollback");
+        }),
+      ).rejects.toThrow("force transaction rollback");
+
+      await expect(prisma.todo.findMany({ where: { title } })).resolves.toEqual(
+        [],
+      );
+      await expect(
+        prisma.todo.create({
+          data: { title: "[rls-test] context leaked", userId: firstUserId },
+        }),
+      ).rejects.toThrow();
+    });
+
     it("isolates concurrent users and rejects forged ownership", async () => {
       const first = await withUserDbContext(firstUserId, () =>
         prisma.todo.create({

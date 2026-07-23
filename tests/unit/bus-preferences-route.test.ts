@@ -1,20 +1,36 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { prismaMock, requireAuthMock, resolveApiUserIdMock } = vi.hoisted(
-  () => ({
+const {
+  baseBusPreferenceAccessMock,
+  busUserPreferenceMock,
+  prismaMock,
+  requireAuthMock,
+  resolveApiUserIdMock,
+} = vi.hoisted(() => {
+  const baseBusPreferenceAccessMock = vi.fn(() => {
+    throw new Error(
+      "base bus preference delegate must not be used inside RLS context",
+    );
+  });
+  return {
+    baseBusPreferenceAccessMock,
+    busUserPreferenceMock: {
+      findUnique: vi.fn(),
+      upsert: vi.fn(),
+    },
     prismaMock: {
       busCampus: {
         findMany: vi.fn(),
       },
       busUserPreference: {
-        findUnique: vi.fn(),
-        upsert: vi.fn(),
+        findUnique: baseBusPreferenceAccessMock,
+        upsert: baseBusPreferenceAccessMock,
       },
     },
     requireAuthMock: vi.fn(),
     resolveApiUserIdMock: vi.fn(),
-  }),
-);
+  };
+});
 
 vi.mock("@/lib/auth/api-auth", () => ({
   requireAuth: requireAuthMock,
@@ -25,7 +41,7 @@ vi.mock("@/lib/db/prisma", () => ({
   prisma: prismaMock,
   withUserDbContext: vi.fn(
     async (_userId: string, action: (tx: unknown) => Promise<unknown>) =>
-      action({}),
+      action({ busUserPreference: busUserPreferenceMock }),
   ),
 }));
 
@@ -43,8 +59,9 @@ describe("POST /api/bus/preferences 班车偏好接口", () => {
     requireAuthMock.mockReset();
     resolveApiUserIdMock.mockReset();
     prismaMock.busCampus.findMany.mockReset();
-    prismaMock.busUserPreference.findUnique.mockReset();
-    prismaMock.busUserPreference.upsert.mockReset();
+    busUserPreferenceMock.findUnique.mockReset();
+    busUserPreferenceMock.upsert.mockReset();
+    baseBusPreferenceAccessMock.mockClear();
     requireAuthMock.mockResolvedValue({ userId: "user-1" });
   });
 
@@ -64,7 +81,7 @@ describe("POST /api/bus/preferences 班车偏好接口", () => {
     await expect(response.json()).resolves.toEqual({
       error: "Unknown preferred origin campus",
     });
-    expect(prismaMock.busUserPreference.upsert).not.toHaveBeenCalled();
+    expect(busUserPreferenceMock.upsert).not.toHaveBeenCalled();
   });
 
   it("未知的首选目的校区返回 400", async () => {
@@ -83,11 +100,11 @@ describe("POST /api/bus/preferences 班车偏好接口", () => {
     await expect(response.json()).resolves.toEqual({
       error: "Unknown preferred destination campus",
     });
-    expect(prismaMock.busUserPreference.upsert).not.toHaveBeenCalled();
+    expect(busUserPreferenceMock.upsert).not.toHaveBeenCalled();
   });
 
   it("保留 null 校区重置行为", async () => {
-    prismaMock.busUserPreference.upsert.mockResolvedValue({});
+    busUserPreferenceMock.upsert.mockResolvedValue({});
     const { postBusPreferencesRoute } = await import("@/lib/api/routes/bus");
 
     const response = await postBusPreferencesRoute(
@@ -107,6 +124,7 @@ describe("POST /api/bus/preferences 班车偏好接口", () => {
       },
     });
     expect(prismaMock.busCampus.findMany).not.toHaveBeenCalled();
-    expect(prismaMock.busUserPreference.upsert).toHaveBeenCalledOnce();
+    expect(busUserPreferenceMock.upsert).toHaveBeenCalledOnce();
+    expect(baseBusPreferenceAccessMock).not.toHaveBeenCalled();
   });
 });

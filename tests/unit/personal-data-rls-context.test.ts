@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
+  baseProtectedDelegateMock,
   busFindUniqueMock,
   clickFindManyMock,
   clickUpsertMock,
@@ -9,6 +10,9 @@ const {
   pinUpsertMock,
   withUserDbContextMock,
 } = vi.hoisted(() => ({
+  baseProtectedDelegateMock: vi.fn(() => {
+    throw new Error("base delegate must not be used inside RLS context");
+  }),
   busFindUniqueMock: vi.fn(),
   clickFindManyMock: vi.fn(),
   clickUpsertMock: vi.fn(),
@@ -20,15 +24,15 @@ const {
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
-    busUserPreference: { findUnique: busFindUniqueMock },
+    busUserPreference: { findUnique: baseProtectedDelegateMock },
     dashboardLinkClick: {
-      findMany: clickFindManyMock,
-      upsert: clickUpsertMock,
+      findMany: baseProtectedDelegateMock,
+      upsert: baseProtectedDelegateMock,
     },
     dashboardLinkPin: {
-      deleteMany: pinDeleteManyMock,
-      findMany: pinFindManyMock,
-      upsert: pinUpsertMock,
+      deleteMany: baseProtectedDelegateMock,
+      findMany: baseProtectedDelegateMock,
+      upsert: baseProtectedDelegateMock,
     },
   },
   withUserDbContext: withUserDbContextMock,
@@ -46,7 +50,18 @@ describe("personal data RLS contexts", () => {
     vi.clearAllMocks();
     withUserDbContextMock.mockImplementation(
       async (_userId: string, action: (tx: unknown) => Promise<unknown>) =>
-        action({}),
+        action({
+          busUserPreference: { findUnique: busFindUniqueMock },
+          dashboardLinkClick: {
+            findMany: clickFindManyMock,
+            upsert: clickUpsertMock,
+          },
+          dashboardLinkPin: {
+            deleteMany: pinDeleteManyMock,
+            findMany: pinFindManyMock,
+            upsert: pinUpsertMock,
+          },
+        }),
     );
   });
 
@@ -73,6 +88,7 @@ describe("personal data RLS contexts", () => {
         create: { slug: "mail", userId: "user-1" },
       }),
     );
+    expect(baseProtectedDelegateMock).not.toHaveBeenCalled();
   });
 
   it("serializes dashboard reads inside one user transaction", async () => {
@@ -85,6 +101,7 @@ describe("personal data RLS contexts", () => {
     expect(clickFindManyMock.mock.invocationCallOrder[0]).toBeLessThan(
       pinFindManyMock.mock.invocationCallOrder[0],
     );
+    expect(baseProtectedDelegateMock).not.toHaveBeenCalled();
   });
 
   it("routes click and bus preference reads through their owner context", async () => {
@@ -104,5 +121,6 @@ describe("personal data RLS contexts", () => {
       "user-1",
       expect.any(Function),
     );
+    expect(baseProtectedDelegateMock).not.toHaveBeenCalled();
   });
 });

@@ -15,8 +15,8 @@ export async function getBusPreference(
   userId = userId.trim();
   if (!userId) return null;
 
-  const preference = await withUserDbContext(userId, () =>
-    prisma.busUserPreference.findUnique({ where: { userId } }),
+  const preference = await withUserDbContext(userId, (tx) =>
+    tx.busUserPreference.findUnique({ where: { userId } }),
   );
 
   if (!preference) {
@@ -53,8 +53,8 @@ export async function saveBusPreference(
     showDepartedTrips: payload.showDepartedTrips,
   };
 
-  await withUserDbContext(userId, () =>
-    prisma.busUserPreference.upsert({
+  await withUserDbContext(userId, (tx) =>
+    tx.busUserPreference.upsert({
       where: { userId },
       create: { userId, ...data },
       update: data,
