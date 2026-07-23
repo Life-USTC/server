@@ -175,7 +175,7 @@ test.describe("仪表盘", () => {
     await expect(page).toHaveURL(/\/dashboard\/subscriptions(?:\?.*)?$/);
     await expect(
       appSidebar(page).getByRole("link", {
-        name: /^(关注班级|Section Management)$/i,
+        name: /^(教学班订阅|Section Subscriptions)$/i,
       }),
     ).toBeVisible();
     await expect(page.getByText(DEV_SEED.semesterNameCn).first()).toBeVisible();

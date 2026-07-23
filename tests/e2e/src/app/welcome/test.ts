@@ -70,7 +70,7 @@ test("/welcome 显示必填字段", async ({ page }, testInfo) => {
     // semesters[] dropdown options (defaultSemesterId preselected)
     // The semester selector is inside the Bulk Import dialog
     const bulkImportBtn = page.getByRole("button", {
-      name: /批量导入班级|Bulk Import Sections/i,
+      name: /批量添加订阅|Bulk Add Subscriptions/i,
     });
     await expect(bulkImportBtn).toBeVisible();
     await bulkImportBtn.click();
@@ -241,7 +241,7 @@ test("/welcome 提供浏览班级与批量匹配入口", async ({ page }, testIn
     ).toBeVisible();
     await expect(
       page.getByRole("button", {
-        name: /批量导入班级|Bulk Import Sections/i,
+        name: /批量添加订阅|Bulk Add Subscriptions/i,
       }),
     ).toBeVisible();
 

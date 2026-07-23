@@ -66,7 +66,7 @@
             "notes": [
               "Returns schedules[]; each item contains date, weekday, startTime, endTime, section.course.namePrimary, section.code, room, teachers[], and scheduleGroup.",
               "weekday accepts 1-7 and limit accepts 1-300 on both REST and MCP.",
-              "Omitting semesterId reads all followed semesters; pass a semesterId to recover one current or past term."
+              "Omitting semesterId reads all subscribed semesters; pass a semesterId to recover one current or past term."
             ]
           }
         ]

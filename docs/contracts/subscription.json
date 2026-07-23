@@ -7,7 +7,7 @@
     "agent": "After OAuth authorization, can manage the current user's own subscription relationships; REST and MCP both support the same semantic operations."
   },
   "rules": {
-    "subscription-language": "Copy may use 'subscribe to section' or 'follow section'; must not write 'enroll in course'.",
+    "subscription-language": "User-facing copy uses 'section subscription', 'subscribe', and 'unsubscribe' consistently; it must not use 'follow' or describe the action as course enrollment.",
     "user-scoped": "Subscription relationships belong only to the current user and determine the display scope for home page, calendar, homework, and exam.",
     "bounded-batch-input": "Calendar subscription query and mutation requests accept at most 500 section IDs and at most 500 lookup codes per request, in addition to the per-user batch request budget."
   },

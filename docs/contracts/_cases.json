@@ -76,7 +76,7 @@
       "only-non-current-semester-subscriptions": [
         "The home page must not pretend to have current learning tasks.",
         "Must clearly indicate that no sections are subscribed for the current semester.",
-        "Must keep past-term homework, schedules, and followed sections reachable from the empty state."
+        "Must keep past-term homework, schedules, and subscribed sections reachable from the empty state."
       ],
       "cross-semester-browsing": [
         "Courses must display semester.",

@@ -42,10 +42,7 @@ import type {
   LayoutUserSummary,
 } from "$lib/shell/layout-server-data";
 import { cn } from "$lib/utils.js";
-import {
-  buildDetailSecondaryLinks,
-  buildSubscriptionSecondaryLinks,
-} from "./shell-nav-helpers";
+import { buildDetailSecondaryLinks } from "./shell-nav-helpers";
 import type { ShellLink, ShellNavGroup } from "./types";
 
 type AppShellData = {
@@ -134,7 +131,6 @@ function buildShellNavGroups(
     { href: "/mobile-app", icon: SmartphoneIcon, label: copy.nav.mobileApp },
   ];
   const disambiguateDashboardBus = pathname.startsWith("/admin");
-  const subscriptionSecondaryLinks = buildSubscriptionSecondaryLinks(pageData);
   const dashboardNavStats = pageData.navStats as
     | {
         calendarItemsCount?: number;
@@ -220,11 +216,6 @@ function buildShellNavGroups(
           badge: dashboardSubscribedSectionCount,
           href: "/dashboard/subscriptions",
           icon: RouteIcon,
-          items:
-            pathname === "/dashboard/subscriptions" ||
-            pathname === "/dashboard/exams"
-              ? subscriptionSecondaryLinks
-              : undefined,
           label: copy.nav.subscriptions,
         },
       ],
@@ -269,7 +260,6 @@ function buildMobileSecondaryNavGroups(
   pageData: Record<string, unknown>,
 ): ShellNavGroup[] {
   const detailSecondaryLinks = buildDetailSecondaryLinks(pathname, pageData);
-  const subscriptionSecondaryLinks = buildSubscriptionSecondaryLinks(pageData);
   const dashboardNavStats = pageData.navStats as
     | {
         examsCount?: number;
@@ -301,11 +291,6 @@ function buildMobileSecondaryNavGroups(
       badge: dashboardSubscribedSectionCount,
       href: "/dashboard/subscriptions",
       icon: RouteIcon,
-      items:
-        pathname === "/dashboard/subscriptions" ||
-        pathname === "/dashboard/exams"
-          ? subscriptionSecondaryLinks
-          : undefined,
       label: copy.nav.subscriptions,
     },
     {

@@ -2,7 +2,7 @@
   "name": "User",
   "access": {
     "anon": "Can browse all public information; further actions are not available before entering the sign-in flow.",
-    "user": "Can follow sections, manage todos, mark homework completion, export iCal, pin frequent links, save bus preferences, post comments/replies/reactions and upload attachments, and manage personal profile and OAuth connections.",
+    "user": "Can subscribe to sections, manage todos, mark homework completion, export iCal, pin frequent links, save bus preferences, post comments/replies/reactions and upload attachments, and manage personal profile and OAuth connections.",
     "admin": "Can review comments, maintain descriptions, manage users, suspend accounts, manage OAuth clients, maintain bus data, and handle user content and platform security issues.",
     "agent": "Can only access restricted capabilities after OAuth authorization; does not inherit admin permissions by default; REST and MCP for the same abstract endpoint maintain consistent fields and permissions."
   },

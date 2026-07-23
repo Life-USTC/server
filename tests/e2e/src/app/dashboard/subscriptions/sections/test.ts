@@ -7,7 +7,7 @@
  * - subscription.sections[].course.namePrimary
  * - section.teachers[]
  * - section.credits
- * - Unsubscribe button per section
+ * - Row details with an Unsubscribe action
  * - Calendar subscription URL for iCal feed
  *
  * ## UI/UX Elements
@@ -46,7 +46,7 @@ async function openBulkImportDialog(page: import("@playwright/test").Page) {
   if ((await textarea.count()) === 0) {
     await page
       .getByRole("button", {
-        name: /批量导入班级|Bulk Import Sections/i,
+        name: /批量添加订阅|Bulk Add Subscriptions/i,
       })
       .first()
       .click();
@@ -55,7 +55,7 @@ async function openBulkImportDialog(page: import("@playwright/test").Page) {
   return textarea.first();
 }
 
-test.describe("仪表盘关注班级", () => {
+test.describe("仪表盘教学班订阅", () => {
   test.describe.configure({ mode: "serial" });
   test.beforeEach(async ({ context, baseURL }) => {
     await context.addCookies([
@@ -68,7 +68,7 @@ test.describe("仪表盘关注班级", () => {
     ]);
   });
 
-  test("旧版 /dashboard/subscriptions/sections 重定向到关注班级页面", async ({
+  test("旧版 /dashboard/subscriptions/sections 重定向到教学班订阅页面", async ({
     page,
   }) => {
     await signInAsDebugUser(page, "/dashboard/subscriptions");
@@ -89,7 +89,7 @@ test.describe("仪表盘关注班级", () => {
     );
   });
 
-  test("登录后显示种子班级关注、必填字段和英文单复数文案", async ({
+  test("登录后显示种子教学班订阅、必填字段和英文单复数文案", async ({
     page,
     baseURL,
   }, testInfo) => {
@@ -100,6 +100,15 @@ test.describe("仪表盘关注班级", () => {
 
       await expect(page).toHaveURL(/\/dashboard\/subscriptions(?:\?.*)?$/);
       await expect(page.locator("#main-content")).toBeVisible();
+      const sidebar = page.getByTestId("app-sidebar");
+      await expect(
+        sidebar.getByRole("link", {
+          name: /教学班订阅|Section Subscriptions/i,
+        }),
+      ).toHaveAttribute("aria-current", "page");
+      await expect(
+        sidebar.locator(`a[href="/sections/${DEV_SEED.section.jwId}"]`),
+      ).toHaveCount(0);
 
       const subscriptionsContent = page.locator("#main-content").first();
       await expect(
@@ -240,7 +249,7 @@ test.describe("仪表盘关注班级", () => {
     await expect(
       page
         .getByRole("button", {
-          name: /批量导入班级|Bulk Import Sections/i,
+          name: /批量添加订阅|Bulk Add Subscriptions/i,
         })
         .first(),
     ).toBeVisible();
@@ -275,12 +284,12 @@ test.describe("仪表盘关注班级", () => {
     await gotoAndWaitForReady(page, "/dashboard/subscriptions");
 
     await expect(
-      page.getByRole("button", { name: /添加班级|Add Section/i }).first(),
+      page.getByRole("button", { name: /添加订阅|Add Subscription/i }).first(),
     ).toBeVisible();
     await expect(
       page
         .getByRole("button", {
-          name: /批量导入班级|Bulk Import Sections/i,
+          name: /批量添加订阅|Bulk Add Subscriptions/i,
         })
         .first(),
     ).toBeVisible();
@@ -289,6 +298,13 @@ test.describe("仪表盘关注班级", () => {
         () => document.documentElement.scrollWidth <= window.innerWidth,
       ),
     ).toBe(true);
+    const topbar = page.locator("[data-shell-topbar]");
+    await topbar.getByRole("button", { name: /^菜单$|^Menu$/i }).click();
+    const mobileSidebar = page.getByRole("dialog", { name: /Sidebar/i });
+    await expect(mobileSidebar).toBeVisible();
+    await expect(
+      mobileSidebar.locator(`a[href="/sections/${DEV_SEED.section.jwId}"]`),
+    ).toHaveCount(0);
 
     await captureStepScreenshot(
       page,
@@ -319,7 +335,7 @@ test.describe("仪表盘关注班级", () => {
     );
   });
 
-  test("详情中的取消关注操作进入明确确认弹窗", async ({ page }, testInfo) => {
+  test("详情中的取消订阅操作进入明确确认弹窗", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/dashboard/subscriptions");
     await ensureSeedSectionSubscription(page);
     await gotoAndWaitForReady(page, "/dashboard/subscriptions");
@@ -330,12 +346,12 @@ test.describe("仪表盘关注班级", () => {
       })
       .click();
     await page
-      .getByRole("button", { name: /^(取消关注|Unsubscribe)$/i })
+      .getByRole("button", { name: /^(取消订阅|Unsubscribe)$/i })
       .click();
 
     await expect(
       page.getByRole("alertdialog", {
-        name: /确认取消关注|Unsubscribe from this section/i,
+        name: /确认取消订阅|Unsubscribe from this section/i,
       }),
     ).toBeVisible();
 
@@ -399,7 +415,9 @@ test.describe("仪表盘关注班级", () => {
     await matchResponse;
 
     const dialog = page
-      .getByRole("dialog", { name: /确认关注|Confirm following/i })
+      .getByRole("dialog", {
+        name: /确认订阅|Confirm .*section subscriptions/i,
+      })
       .first();
     await expect(dialog).toBeVisible({ timeout: 15_000 });
 
@@ -442,11 +460,11 @@ test.describe("仪表盘关注班级", () => {
     await gotoAndWaitForReady(page, "/dashboard/subscriptions");
 
     await page
-      .getByRole("button", { name: /添加班级|Add Section/i })
+      .getByRole("button", { name: /添加订阅|Add Subscription/i })
       .first()
       .click();
     const quickAddDialog = page
-      .getByRole("dialog", { name: /添加班级|Add Section/i })
+      .getByRole("dialog", { name: /添加订阅|Add Subscription/i })
       .first();
     await expect(quickAddDialog).toBeVisible();
     expect(
@@ -513,7 +531,9 @@ test.describe("仪表盘关注班级", () => {
       quickAddDialog.getByText(DEV_SEED.section.code).first(),
     ).toBeVisible();
     await expect(
-      page.getByRole("dialog", { name: /确认关注|Confirm following/i }),
+      page.getByRole("dialog", {
+        name: /确认订阅|Confirm .*section subscriptions/i,
+      }),
     ).toHaveCount(0);
 
     const sectionCheckbox = quickAddDialog.getByRole("checkbox", {
@@ -539,7 +559,7 @@ test.describe("仪表盘关注班级", () => {
     );
     await quickAddDialog
       .getByRole("button", {
-        name: /关注所选|Follow selected/i,
+        name: /订阅所选|Subscribe selected/i,
       })
       .click();
     await subscribeResponse;
@@ -554,11 +574,11 @@ test.describe("仪表盘关注班级", () => {
     await gotoAndWaitForReady(page, "/dashboard/subscriptions");
 
     await page
-      .getByRole("button", { name: /添加班级|Add Section/i })
+      .getByRole("button", { name: /添加订阅|Add Subscription/i })
       .first()
       .click();
     const quickAddDialog = page
-      .getByRole("dialog", { name: /添加班级|Add Section/i })
+      .getByRole("dialog", { name: /添加订阅|Add Subscription/i })
       .first();
     await quickAddDialog
       .getByRole("textbox", {
@@ -580,7 +600,7 @@ test.describe("仪表盘关注班级", () => {
     ).toBeVisible();
     await expect(
       quickAddDialog.getByRole("button", {
-        name: /关注所选|Follow selected/i,
+        name: /订阅所选|Subscribe selected/i,
       }),
     ).toBeDisabled();
     await expect(
@@ -614,7 +634,9 @@ test.describe("仪表盘关注班级", () => {
     await matchResponse;
 
     const dialog = page
-      .getByRole("dialog", { name: /确认关注|Confirm following/i })
+      .getByRole("dialog", {
+        name: /确认订阅|Confirm .*section subscriptions/i,
+      })
       .first();
     await expect(dialog).toBeVisible({ timeout: 15_000 });
     await expect(dialog.getByText(DEV_SEED.section.code).first()).toBeVisible();
@@ -627,14 +649,14 @@ test.describe("仪表盘关注班级", () => {
 
     await dialog
       .getByRole("button", {
-        name: /关注已选的 \d+ 个班级|关注已选|Follow \d+ sections|Follow/i,
+        name: /订阅已选的 \d+ 个教学班|订阅已选|Subscribe to \d+ sections|Subscribe/i,
       })
       .click();
 
     await expect(
       page
         .getByText(
-          /已新增关注 \d+ 个班级|Added \d+ new sections? to Life@USTC/i,
+          /已新增 \d+ 个教学班订阅|Added \d+ new sections? to Life@USTC/i,
         )
         .first(),
     ).toBeVisible({ timeout: 15_000 });

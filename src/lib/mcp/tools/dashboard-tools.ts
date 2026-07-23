@@ -22,7 +22,7 @@ export function registerDashboardTools(server: McpServer) {
       description:
         "Single-call snapshot: current courses, next class, upcoming deadlines, todo count, and preferred shuttle. " +
         "Start here for most assistant workflows before fanning out to specific tools. " +
-        "If subscriptions.totalCount exceeds currentSemesterCount, past-term follows still exist; use list_my_subscribed_sections and semester-scoped personal list tools for history.",
+        "If subscriptions.totalCount exceeds currentSemesterCount, past-term subscriptions still exist; use list_my_subscribed_sections and semester-scoped personal list tools for history.",
       inputSchema: {
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
@@ -40,7 +40,7 @@ export function registerDashboardTools(server: McpServer) {
     "get_next_class",
     {
       description:
-        "Next upcoming class from followed sections. Lightweight alternative when only the next class is needed.",
+        "Next upcoming class from subscribed sections. Lightweight alternative when only the next class is needed.",
       inputSchema: {
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,

@@ -63,7 +63,7 @@
             "returns": "{ homeworks: HomeworkItem[] }",
             "notes": [
               "Returns homeworks[]; each item contains title, submissionDueAt, section.course.namePrimary, section.code, description, and completion.",
-              "Omitting semesterId reads all followed semesters; pass a semesterId to recover one current or past term."
+              "Omitting semesterId reads all subscribed semesters; pass a semesterId to recover one current or past term."
             ]
           }
         ]

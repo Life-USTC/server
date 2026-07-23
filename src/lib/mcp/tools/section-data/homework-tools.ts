@@ -22,7 +22,7 @@ export function registerSectionHomeworkTools(server: McpServer) {
     {
       description:
         "Homeworks for one section by JW ID. Includes viewer completion state when authenticated. " +
-        "Use list_my_homeworks for all followed sections.",
+        "Use list_my_homeworks for all subscribed sections.",
       inputSchema: {
         sectionJwId: z.number().int().positive(),
         includeDeleted: z.boolean().default(false),
