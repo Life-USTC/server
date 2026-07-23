@@ -1,3 +1,12 @@
+## [1.77.2](https://github.com/Life-USTC/server/compare/v1.77.1...v1.77.2) (2026-07-23)
+
+
+### Bug Fixes
+
+* **db:** require exact RLS transaction clients ([#613](https://github.com/Life-USTC/server/issues/613)) ([ab20189](https://github.com/Life-USTC/server/commit/ab2018923767887b8e466695609b4b4463a4aafc)), closes [#610](https://github.com/Life-USTC/server/issues/610)
+* **graphql:** account for document preflight lifecycle ([#612](https://github.com/Life-USTC/server/issues/612)) ([58d0963](https://github.com/Life-USTC/server/commit/58d09637af2955cb04f482c9eb9e1926b2fc8353)), closes [#611](https://github.com/Life-USTC/server/issues/611)
+* **ui:** restore preferences to topbar ([#609](https://github.com/Life-USTC/server/issues/609)) ([bd76692](https://github.com/Life-USTC/server/commit/bd766929984311f8984872ed02e938fea33c51d1))
+
 ## [1.77.1](https://github.com/Life-USTC/server/compare/v1.77.0...v1.77.1) (2026-07-22)
 
 
