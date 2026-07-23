@@ -129,6 +129,14 @@ test.describe("/catalog/courses 课程目录", () => {
     await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
     await expect(page.getByTestId("catalog-results-summary")).toBeVisible();
     await expect(page.getByTestId("catalog-active-filters")).toBeVisible();
+    const courseCode = page
+      .locator('[data-slot="catalog-code"]')
+      .filter({ hasText: DEV_SEED.course.code })
+      .first();
+    await expect(courseCode).toBeVisible();
+    await expect(
+      courseCode.locator("xpath=ancestor::*[@data-slot='badge']"),
+    ).toHaveCount(0);
     await expectCatalogFilterSheet(page, [
       /培养层次|Education Level/i,
       /类别|Category/i,
@@ -230,6 +238,10 @@ test.describe("/catalog/courses 课程目录", () => {
         .locator("td")
         .nth(1)
         .locator('[data-slot="truncated-text"]');
+      await expect(
+        blankRow.locator('[data-slot="catalog-code"]'),
+      ).toBeVisible();
+      await expect(blankRow.locator('[data-slot="badge"]')).toHaveCount(0);
       const codeGeometry = await codeText.evaluate((node) => ({
         clientWidth: node.clientWidth,
         scrollWidth: node.scrollWidth,

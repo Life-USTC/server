@@ -4,12 +4,12 @@
  * ## Data Represented (course.yml → course-detail.display.fields)
  * - course.namePrimary (h1 title)
  * - course.nameSecondary (locale-dependent subtitle)
- * - course.code (monospace badge)
+ * - course.code (plain monospace text)
  * - course.educationLevel.namePrimary
  * - course.category.namePrimary
  * - course.classType.namePrimary
  * - section.semester.nameCn (semester column)
- * - section.code (section code badge)
+ * - section.code (plain monospace text)
  * - section.teachers[].namePrimary + nameSecondary
  * - section.campus.namePrimary
  * - section.stdCount / section.limitCount (capacity)
@@ -110,8 +110,15 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     await expect(
       heading.locator("xpath=following-sibling::*[1]"),
     ).toContainText(expectedSubtitle);
-    // course.code (monospace badge)
-    await expect(visibleText(page, DEV_SEED.course.code)).toBeVisible();
+    // course.code (plain monospace text)
+    const courseCode = page
+      .locator('[data-slot="catalog-code"]')
+      .filter({ hasText: DEV_SEED.course.code })
+      .first();
+    await expect(courseCode).toBeVisible();
+    await expect(
+      courseCode.locator("xpath=ancestor::*[@data-slot='badge']"),
+    ).toHaveCount(0);
 
     await captureStepScreenshot(page, testInfo, "course/heading-and-code");
   });
@@ -155,8 +162,13 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
 
     // section.semester.nameCn
     await expect(visibleText(page, DEV_SEED.semesterNameCn)).toBeVisible();
-    // section.code badge
-    await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
+    // section.code (plain monospace text)
+    await expect(
+      page
+        .locator('table:visible [data-slot="catalog-code"]')
+        .filter({ hasText: DEV_SEED.section.code })
+        .first(),
+    ).toBeVisible();
     // section.teachers[].namePrimary (locale-dependent)
     await expect(
       page

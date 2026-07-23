@@ -4,9 +4,8 @@ import {
   catalogShowingSummary,
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
-import TruncatedBadge from "$lib/components/TruncatedBadge.svelte";
+import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import CatalogResultsEmpty from "./CatalogResultsEmpty.svelte";
@@ -74,7 +73,7 @@ $: sectionSemesterSummary = selectedSemester
                   </Item.Description>
                 </Item.Content>
                 <Item.Actions>
-                  <Badge variant="outline">{section.code}</Badge>
+                  <TruncatedCode text={section.code} />
                 </Item.Actions>
                 <Item.Footer class="flex-wrap justify-start">
                   <span>{sectionLabels.credits}: {section.credits ?? "-"}</span>
@@ -97,7 +96,7 @@ $: sectionSemesterSummary = selectedSemester
             <Table.Head class="w-36">{sectionLabels.teachers}</Table.Head>
             <Table.Head class="w-16 text-right">{sectionLabels.credits}</Table.Head>
             <Table.Head class="w-24 text-right">{sectionLabels.capacity}</Table.Head>
-            <Table.Head class="w-28 text-right">{sectionLabels.campus}</Table.Head>
+            <Table.Head class="w-28">{sectionLabels.campus}</Table.Head>
           </Table.Row>
         </Table.Header>
         <Table.Body>
@@ -125,7 +124,7 @@ $: sectionSemesterSummary = selectedSemester
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
                 <CatalogTableLink href={sectionHref}>
-                  <TruncatedBadge text={section.code} />
+                  <TruncatedCode text={section.code} />
                 </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 align-top whitespace-normal">
@@ -145,7 +144,7 @@ $: sectionSemesterSummary = selectedSemester
                   {section.stdCount ?? 0} / {section.limitCount ?? "-"}
                 </CatalogTableLink>
               </Table.Cell>
-              <Table.Cell class="p-0 text-right align-top">
+              <Table.Cell class="p-0 align-top">
                 <CatalogTableLink href={sectionHref}>
                   <TruncatedText
                     text={section.campus ? primaryName(section.campus) : "-"}

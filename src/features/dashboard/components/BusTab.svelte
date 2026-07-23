@@ -21,6 +21,7 @@ import {
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Collapsible from "$lib/components/ui/collapsible/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
+import { cn } from "$lib/utils.js";
 import BusTabCompactSummary from "./BusTabCompactSummary.svelte";
 import BusTabSettings from "./BusTabSettings.svelte";
 import BusTabTimetable from "./BusTabTimetable.svelte";
@@ -170,31 +171,39 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
 </script>
 
 <div class="grid min-w-0 gap-5">
-  {#if !compact}
-    <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-      <div class="grid gap-1">
-        <h2 class="font-semibold text-xl tracking-normal">{busCopy.dashboardTitle}</h2>
-      </div>
-      <Button class="min-h-11" href="/catalog/bus/map" size="lg" variant="outline">{busCopy.transitMap}</Button>
+  <div
+    class={cn(
+      "flex-col gap-3 md:flex-row md:items-start md:justify-between",
+      compact ? "hidden lg:flex" : "flex",
+    )}
+  >
+    <div class="grid gap-1">
+      <h2 class="font-semibold text-xl tracking-normal">{busCopy.dashboardTitle}</h2>
     </div>
-  {/if}
+    <Button class="min-h-11" href="/catalog/bus/map" size="lg" variant="outline">{busCopy.transitMap}</Button>
+  </div>
 
   {#if loadedBus}
     {#if compact}
-      <div class="grid min-w-0 gap-3">
-        <BusTabCompactSummary
-          {busApplicableRoutes}
-          {busCopy}
-          {busPlannerReady}
-          {reverseBusStops}
-        />
+      <div
+        data-testid="bus-responsive-planner"
+        class="grid min-w-0 gap-3 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start lg:gap-4"
+      >
+        <div class="lg:col-span-2 lg:hidden">
+          <BusTabCompactSummary
+            {busApplicableRoutes}
+            {busCopy}
+            {busPlannerReady}
+            {reverseBusStops}
+          />
+        </div>
 
         <Collapsible.Root bind:open={routeControlsOpen} class="group/route-controls">
           <Collapsible.Trigger>
             {#snippet child({ props })}
               <Button
                 {...props}
-                class="min-h-11 w-full justify-between"
+                class="min-h-11 w-full justify-between lg:hidden"
                 size="lg"
                 variant="outline"
               >
@@ -206,8 +215,11 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
               </Button>
             {/snippet}
           </Collapsible.Trigger>
-          <Collapsible.Content>
-            <div class="min-w-0 pt-4">
+          <Collapsible.Content
+            class="data-[state=closed]:hidden lg:!block"
+            forceMount
+          >
+            <div class="min-w-0 pt-4 lg:pt-0">
               <BusTabSettings
                 bus={loadedBus}
                 {busCopy}
@@ -233,7 +245,7 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
             {#snippet child({ props })}
               <Button
                 {...props}
-                class="min-h-11 w-full justify-between"
+                class="min-h-11 w-full justify-between lg:hidden"
                 size="lg"
                 variant="outline"
               >
@@ -245,8 +257,11 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
               </Button>
             {/snippet}
           </Collapsible.Trigger>
-          <Collapsible.Content>
-            <div class="min-w-0 pt-4">
+          <Collapsible.Content
+            class="data-[state=closed]:hidden lg:!block"
+            forceMount
+          >
+            <div class="min-w-0 pt-4 lg:pt-0">
               <BusTabTimetable
                 bus={loadedBus}
                 {busApplicableRoutes}

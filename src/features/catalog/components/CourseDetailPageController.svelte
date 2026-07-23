@@ -8,6 +8,7 @@ import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-
 import DescriptionCard from "@/features/descriptions/components/DescriptionCard.svelte";
 import DetailSectionNav from "$lib/components/DetailSectionNav.svelte";
 import PageHeader from "$lib/components/PageHeader.svelte";
+import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import type { CatalogNamed } from "../lib/catalog-list-display";
 import {
@@ -129,7 +130,7 @@ $: activeNavItem =
       titleClass="text-2xl leading-tight sm:text-3xl"
     >
       {#snippet eyebrowContent()}
-        <Badge class="font-mono" variant="outline">{data.course.code}</Badge>
+        <TruncatedCode class="text-muted-foreground" text={data.course.code} />
       {/snippet}
       {#snippet after()}
         <div class="flex flex-wrap gap-2">

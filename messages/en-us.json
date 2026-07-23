@@ -731,10 +731,10 @@
   },
   "bus": {
     "title": "Shuttle Bus",
-    "description": "See the next boardable campus shuttle first while keeping the complete timetable in view and route controls close at hand.",
-    "subtitle": "A campus shuttle planner that combines a next-departure summary with the complete timetable.",
+    "description": "Plan routes beside the complete timetable on desktop, with a next-departure summary and full schedule on mobile.",
+    "subtitle": "A complete desktop planner with a quick mobile shuttle view.",
     "dashboardTitle": "Campus shuttle",
-    "dashboardDescription": "See your next shuttle first while browsing the complete grouped timetable or adjusting stops when needed.",
+    "dashboardDescription": "Adjust routes beside the complete timetable on desktop, with the next shuttle prioritized on mobile.",
     "publicEntry": "Public shuttle query",
     "dayType": {
       "weekday": "Weekday",

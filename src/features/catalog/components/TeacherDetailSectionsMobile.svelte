@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
-import { Badge } from "$lib/components/ui/badge/index.js";
+import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import type {
@@ -27,7 +27,7 @@ export let teacher: TeacherDetailTeacher;
             {/if}
           </Item.Content>
           <Item.Actions>
-            <Badge variant="outline">{section.code}</Badge>
+            <TruncatedCode text={section.code} />
           </Item.Actions>
           <Item.Footer class="flex-wrap justify-start">
             <span>{section.semester?.nameCn ?? notAvailable}</span>

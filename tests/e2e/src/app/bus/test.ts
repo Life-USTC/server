@@ -154,36 +154,29 @@ test.describe("校车面板标签页", () => {
     expect(response.headers().location).toBe("/catalog/bus?linkView=list");
   });
 
-  test("公共校车页面同时显示下一班与完整时刻表并按需展开规划器", async ({
-    page,
-  }, testInfo) => {
+  test("公共校车页面桌面端恢复完整双栏规划器", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, "/catalog/bus", {
       testInfo,
       screenshotLabel: "bus",
     });
 
     const summary = page.getByTestId("bus-compact-summary");
-    await expect(summary).toBeVisible();
-    await expect(summary.getByText(/Next departure|下一班发车/)).toBeVisible();
-    await expect(
-      page.locator("[data-testid='bus-start-stop-group']"),
-    ).toBeHidden();
-    await expect(page.locator("table:visible").first()).toBeVisible();
-    await expect(
-      page.getByRole("button", {
-        name: /Hide full timetable|收起完整时刻表/,
-      }),
-    ).toBeVisible();
-
-    await openRouteControls(page);
-    await expect(
-      page.getByRole("radio", { name: /Weekday|工作日/ }).first(),
-    ).toBeVisible();
+    await expect(summary).toBeHidden();
+    await expect(page.getByTestId("bus-responsive-planner")).toBeVisible();
     await expect(
       page.locator("[data-testid='bus-start-stop-group']"),
     ).toBeVisible();
     await expect(
       page.locator("[data-testid='bus-end-stop-group']"),
+    ).toBeVisible();
+    await expect(page.locator("table:visible").first()).toBeVisible();
+    await expect(
+      page.getByRole("button", {
+        name: /Hide full timetable|收起完整时刻表/,
+      }),
+    ).toBeHidden();
+    await expect(
+      page.getByRole("radio", { name: /Weekday|工作日/ }).first(),
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: /Reverse|反向/ }).last(),
@@ -196,8 +189,6 @@ test.describe("校车面板标签页", () => {
     await expect(
       page.getByRole("link", { name: /Transit map|线路图/ }),
     ).toHaveAttribute("href", "/catalog/bus/map");
-    await openFullTimetable(page);
-
     await captureStepScreenshot(page, testInfo, "bus-planner-public");
   });
 

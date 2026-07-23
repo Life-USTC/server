@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
-import TruncatedBadge from "$lib/components/TruncatedBadge.svelte";
+import TruncatedCode from "$lib/components/TruncatedCode.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
@@ -24,7 +24,7 @@ export let teacherNames: (teachers: CatalogNamed[]) => string;
         <Table.Head class="w-32">{copy.courseDetail.semester}</Table.Head>
         <Table.Head class="w-28">{copy.courseDetail.sectionCode}</Table.Head>
         <Table.Head>{copy.courseDetail.teachers}</Table.Head>
-        <Table.Head class="w-20 text-right">{copy.courseDetail.campus}</Table.Head>
+        <Table.Head class="w-20">{copy.courseDetail.campus}</Table.Head>
         <Table.Head class="w-24 text-right">{copy.courseDetail.capacity}</Table.Head>
       </Table.Row>
     </Table.Header>
@@ -39,7 +39,7 @@ export let teacherNames: (teachers: CatalogNamed[]) => string;
           </Table.Cell>
           <Table.Cell class="p-0 align-top">
             <CatalogTableLink href={sectionHref}>
-              <TruncatedBadge text={section.code} />
+              <TruncatedCode text={section.code} />
             </CatalogTableLink>
           </Table.Cell>
           <Table.Cell class="p-0 align-top">
@@ -49,7 +49,7 @@ export let teacherNames: (teachers: CatalogNamed[]) => string;
               />
             </CatalogTableLink>
           </Table.Cell>
-          <Table.Cell class="p-0 text-right align-top">
+          <Table.Cell class="p-0 align-top">
             <CatalogTableLink href={sectionHref} nowrap>
               <TruncatedText
                 text={primaryName(section.campus) || notAvailable}

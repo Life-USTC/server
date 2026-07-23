@@ -12,7 +12,7 @@ export { className as class };
 
 <a
   class={cn(
-    "block h-full min-w-0 w-full overflow-hidden px-3 py-2 text-foreground no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset",
+    "block h-full min-w-0 w-full overflow-hidden p-2 text-foreground no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset",
     nowrap && "whitespace-nowrap",
     numeric && "tabular-nums",
     className,

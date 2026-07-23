@@ -127,7 +127,7 @@
           "teacher.address (if not null)",
           "section.semester.nameCn (Badge)",
           "section.course.namePrimary + nameSecondary",
-          "section.code (Badge, monospace)",
+          "section.code (Plain monospace text)",
           "section.credits (or empty)",
           "comment.id",
           "comment.author.name",
