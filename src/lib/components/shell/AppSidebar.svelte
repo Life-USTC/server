@@ -1,14 +1,12 @@
 <script lang="ts">
 import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
 import appIconUrl from "$lib/assets/life-ustc-icon-192.png";
-import type { ThemeMode } from "$lib/components/shell/layout-shell";
 import * as Collapsible from "$lib/components/ui/collapsible/index.js";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 import type {
   LayoutCopy,
   LayoutUserSummary,
 } from "$lib/shell/layout-server-data";
-import AppPreferencesMenu from "./AppPreferencesMenu.svelte";
 import AppUserMenu from "./AppUserMenu.svelte";
 import type { ShellLink, ShellNavGroup } from "./types";
 
@@ -18,18 +16,10 @@ let {
   copy,
   currentPathname,
   isActiveLink,
-  locale,
-  localeMenuOpen,
   mobileNavGroups,
   navGroups,
   profileHref,
-  setLocale,
-  setLocaleMenuOpen,
-  setThemeMenuOpen,
-  setThemeMode,
   setUserMenuOpen,
-  themeMenuOpen,
-  themeMode,
   user,
   userMenuOpen,
 }: {
@@ -38,18 +28,10 @@ let {
   copy: LayoutCopy;
   currentPathname: string;
   isActiveLink: (link: ShellLink) => boolean;
-  locale: "en-us" | "zh-cn";
-  localeMenuOpen: boolean;
   mobileNavGroups: ShellNavGroup[];
   navGroups: ShellNavGroup[];
   profileHref: string;
-  setLocale: (locale: "en-us" | "zh-cn") => void;
-  setLocaleMenuOpen: (open: boolean) => void;
-  setThemeMenuOpen: (open: boolean) => void;
-  setThemeMode: (mode: ThemeMode) => void;
   setUserMenuOpen: (open: boolean) => void;
-  themeMenuOpen: boolean;
-  themeMode: ThemeMode;
   user: LayoutUserSummary;
   userMenuOpen: boolean;
 } = $props();
@@ -297,23 +279,6 @@ function closeMobileSidebar(): void {
       {setUserMenuOpen}
       {user}
       {userMenuOpen}
-    />
-    <div
-      class="text-muted-foreground px-1 text-xs font-medium group-data-[collapsible=icon]:hidden"
-    >
-      {copy.nav.groups.preferences}
-    </div>
-    <AppPreferencesMenu
-      {copy}
-      {locale}
-      {localeMenuOpen}
-      mobile={sidebar.isMobile}
-      {setLocale}
-      {setLocaleMenuOpen}
-      {setThemeMenuOpen}
-      {setThemeMode}
-      {themeMenuOpen}
-      {themeMode}
     />
   </Sidebar.Footer>
 </Sidebar.Root>
