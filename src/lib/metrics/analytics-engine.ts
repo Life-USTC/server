@@ -1,5 +1,8 @@
 import { getCloudflareAnalyticsEngineDataset } from "@/lib/adapters/cloudflare-runtime";
-import type { McpRequestSummary } from "@/lib/mcp/observability-types";
+import type {
+  McpRequestSummary,
+  McpResponsePhase,
+} from "@/lib/mcp/observability-types";
 
 type ApiRequestAnalyticsInput = {
   authMode: string;
@@ -24,14 +27,10 @@ type PageRequestAnalyticsInput = {
 
 type McpTransportAnalyticsInput = {
   durationMs: number;
+  errorName?: string;
   method: string;
   path: string;
-  phase:
-    | "auth-rejected"
-    | "body-rejected"
-    | "handled"
-    | "origin-rejected"
-    | "rate-limit-rejected";
+  phase: McpResponsePhase;
   rpcSummary: McpRequestSummary | null;
   status: number;
   toolCount?: number;
@@ -39,11 +38,13 @@ type McpTransportAnalyticsInput = {
 
 type OAuthEventAnalyticsInput = {
   durationMs: number;
+  errorName?: string;
   event: string;
   grantType?: string | null;
   hasResource?: boolean;
   method?: string;
   path?: string;
+  phase?: string;
   resourceCount?: number;
   scopeCount?: number;
   status?: number;
@@ -195,6 +196,7 @@ export function writeMcpTransportAnalytics(input: McpTransportAnalyticsInput) {
       boundedList(rpcSummary?.methods),
       boundedList(rpcSummary?.toolNames),
       boundedList(rpcSummary?.argumentKeys),
+      input.errorName ?? "none",
     ],
     doubles: [
       input.durationMs,
@@ -223,6 +225,8 @@ export function writeOAuthEventAnalytics(input: OAuthEventAnalyticsInput) {
           ? "has_resource"
           : "no_resource",
       input.statusReason ?? "none",
+      input.phase ?? "none",
+      input.errorName ?? "none",
     ],
     doubles: [
       input.durationMs,

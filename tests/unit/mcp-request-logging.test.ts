@@ -66,4 +66,39 @@ describe("MCP request logging", () => {
       }),
     );
   });
+
+  it("logs transport failures at error level without exception messages", async () => {
+    const { logMcpTransportResponse } = await import(
+      "@/lib/api/routes/mcp-request-logging"
+    );
+    const request = new Request("https://life.example/api/mcp", {
+      method: "POST",
+    });
+
+    logMcpTransportResponse({
+      context: {
+        correlationId: "req-2",
+        request,
+        requestUrl: new URL(request.url),
+      },
+      durationMs: 7,
+      errorName: "TypeError",
+      phase: "error",
+      rpcSummary: null,
+      status: 500,
+    });
+
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "error",
+      "mcp.transport.response",
+      expect.objectContaining({
+        errorName: "TypeError",
+        phase: "error",
+        status: 500,
+      }),
+    );
+    expect(JSON.stringify(logAppEventMock.mock.calls)).not.toContain(
+      "database unavailable",
+    );
+  });
 });

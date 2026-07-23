@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  MCP_JSON_RPC_BATCH_LIMIT,
   MCP_REQUEST_BODY_LIMIT_BYTES,
   readMcpJsonBodyWithinLimit,
 } from "@/lib/mcp/request-body";
@@ -55,5 +56,40 @@ describe("bounded MCP request bodies", () => {
         jsonrpc: "2.0",
       });
     }
+  });
+
+  it("rejects a JSON-RPC batch above the message limit", async () => {
+    const result = await readMcpJsonBodyWithinLimit(
+      post(
+        JSON.stringify(
+          Array.from({ length: MCP_JSON_RPC_BATCH_LIMIT + 1 }, (_, id) => ({
+            id,
+            jsonrpc: "2.0",
+            method: "tools/list",
+          })),
+        ),
+      ),
+    );
+
+    expect("response" in result && result.response.status).toBe(413);
+    if ("response" in result) {
+      await expect(result.response.json()).resolves.toMatchObject({
+        error: {
+          code: -32000,
+          message: `JSON-RPC batch must not exceed ${MCP_JSON_RPC_BATCH_LIMIT} messages`,
+        },
+      });
+    }
+  });
+
+  it("accepts a JSON-RPC batch at the message limit", async () => {
+    const body = Array.from({ length: MCP_JSON_RPC_BATCH_LIMIT }, (_, id) => ({
+      id,
+      jsonrpc: "2.0",
+      method: "tools/list",
+    }));
+    const result = await readMcpJsonBodyWithinLimit(post(JSON.stringify(body)));
+
+    expect(result).toEqual({ body });
   });
 });

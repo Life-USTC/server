@@ -7,7 +7,7 @@ export function formatIssues(issues: z.ZodIssue[]) {
 
 export function parseEnv<T extends z.ZodTypeAny>(
   schema: T,
-  input: NodeJS.ProcessEnv,
+  input: Partial<NodeJS.ProcessEnv>,
   prefix = "Invalid environment variables",
 ): z.output<T> {
   const result = schema.safeParse(normalizeEnvInput(input));

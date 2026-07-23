@@ -8,6 +8,11 @@ high-cardinality resource IDs.
 ## Runtime Sources
 
 - Logs use `logAppEvent` and Cloudflare Workers observability.
+- Worker invocation logs use 25% head sampling and traces use 5% head
+  sampling. Built-in Worker request/error metrics remain the source for
+  complete traffic and 5xx counts. Unsampled Analytics Engine events preserve
+  safe MCP and OAuth failure phases/error classes; sampled logs and traces
+  provide request-level diagnosis.
 - Production API request metrics are written to Cloudflare Analytics Engine.
 - API request metrics live in `src/lib/log/api-observability-recording.ts`.
 - Request ids propagate through page and REST responses.
@@ -36,3 +41,12 @@ Warning:
 
 Dashboards should cover REST status and latency from Analytics Engine, with
 structured logs used for MCP, OAuth, audit, and storage investigations.
+
+## Worker configuration drift
+
+`worker-configuration.d.ts` is generated from `wrangler.jsonc` with
+`bunx wrangler types --include-runtime=false`. CI runs the matching `--check`
+command so binding or variable changes cannot drift from the generated
+environment contract. Run generation after `bun run app:prepare` and before a
+production build so Wrangler does not couple the binding contract to a local
+generated Worker entrypoint.

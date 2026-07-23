@@ -1,6 +1,7 @@
 import { logAppEvent } from "@/lib/log/app-logger";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
 import type { McpAuthFailureDiagnostics } from "@/lib/mcp/auth-errors";
+import type { McpResponsePhase } from "@/lib/mcp/observability-types";
 
 export type McpRequestSummary = Awaited<
   ReturnType<
@@ -41,6 +42,7 @@ export function logMcpTransportRequest({
 export function logMcpTransportResponse({
   context,
   durationMs,
+  errorName,
   phase,
   rpcSummary,
   status,
@@ -51,19 +53,15 @@ export function logMcpTransportResponse({
   authFailureDiagnostics?: McpAuthFailureDiagnostics | null;
   context: McpLogContext;
   durationMs: number;
-  phase:
-    | "auth-rejected"
-    | "body-rejected"
-    | "handled"
-    | "origin-rejected"
-    | "rate-limit-rejected";
+  errorName?: string;
+  phase: McpResponsePhase;
   rpcSummary: McpRequestSummary | null;
   status: number;
   toolCount?: number;
   wwwAuthenticatePrefix?: string | null;
 }) {
   const { correlationId, request, requestUrl } = context;
-  logAppEvent("info", "mcp.transport.response", {
+  logAppEvent(phase === "error" ? "error" : "info", "mcp.transport.response", {
     correlationId,
     method: request.method,
     path: requestUrl.pathname,
@@ -71,6 +69,7 @@ export function logMcpTransportResponse({
     durationMs,
     phase,
     rpcSummary,
+    ...(errorName === undefined ? {} : { errorName }),
     ...(authFailureDiagnostics ?? {}),
     ...(toolCount === undefined ? {} : { toolCount }),
     ...(wwwAuthenticatePrefix === undefined ? {} : { wwwAuthenticatePrefix }),

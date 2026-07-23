@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { createMcpServer } from "@/lib/mcp/server";
 import {
   assertRegisteredMcpToolMetadata,
+  getRegisteredMcpToolCount,
   installMcpToolDescriptorDefaults,
   installMcpToolListCompatibility,
 } from "@/lib/mcp/tool-descriptors";
@@ -85,6 +86,16 @@ function outputSchemaKeys(result: ToolListResult, name: string) {
 }
 
 describe("MCP tool descriptors", () => {
+  it("tracks the registered tool count without reading SDK private fields", async () => {
+    const server = createMcpServer();
+
+    try {
+      expect(getRegisteredMcpToolCount(server)).toBeGreaterThan(0);
+    } finally {
+      await server.close();
+    }
+  });
+
   it("exposes OpenAI-compatible auth metadata and read annotations", async () => {
     const result = await listTools();
     const tool = result.tools.find((item) => item.name === "list_my_todos");

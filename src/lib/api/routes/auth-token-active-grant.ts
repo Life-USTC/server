@@ -6,6 +6,9 @@ import {
   resolveActiveOAuthRefreshGrant,
 } from "@/features/oauth/server/user-authorizations.server";
 import { jsonResponse } from "@/lib/api/helpers";
+import { logAppEvent } from "@/lib/log/app-logger";
+import { getSafeErrorName } from "@/lib/log/safe-error-name";
+import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";
 import { OAUTH_REFRESH_TOKEN_GRANT_TYPE } from "@/lib/oauth/constants";
 
 type RefreshGrantValidation =
@@ -18,6 +21,22 @@ function oauthGrantError(
   status: number,
 ) {
   return jsonResponse({ error, error_description }, { status });
+}
+
+function logOAuthGrantValidationError(phase: string, error: unknown) {
+  const errorName = getSafeErrorName(error);
+  logAppEvent("error", "oauth.token.grant-validation-failed", {
+    errorName,
+    phase,
+  });
+  writeOAuthEventAnalytics({
+    durationMs: 0,
+    errorName,
+    event: "grant-validation-failed",
+    path: "/api/auth/oauth2/token",
+    phase,
+    status: 503,
+  });
 }
 
 export async function validateActiveOAuthRefreshGrant(
@@ -42,7 +61,8 @@ export async function validateActiveOAuthRefreshGrant(
       };
     }
     return { grant };
-  } catch {
+  } catch (error) {
+    logOAuthGrantValidationError("resolve-active-refresh-grant", error);
     return {
       response: oauthGrantError(
         "server_error",
@@ -63,7 +83,8 @@ export async function cleanupRejectedOAuthRefreshGrant(
   try {
     await purgeRevokedOAuthRefreshTokenLineage(params.get("refresh_token"));
     return undefined;
-  } catch {
+  } catch (error) {
+    logOAuthGrantValidationError("cleanup-rejected-refresh-grant", error);
     return oauthGrantError(
       "server_error",
       "The authorization grant could not be verified.",
@@ -85,7 +106,8 @@ export async function rejectRefreshIssuedAfterRevocation(
       "The authorization grant was revoked during refresh.",
       400,
     );
-  } catch {
+  } catch (error) {
+    logOAuthGrantValidationError("recheck-active-refresh-grant", error);
     return oauthGrantError(
       "server_error",
       "The authorization grant could not be verified.",

@@ -21,3 +21,11 @@ export type McpRequestSummary = {
   };
   protocolVersion?: string;
 };
+
+export type McpResponsePhase =
+  | "auth-rejected"
+  | "body-rejected"
+  | "error"
+  | "handled"
+  | "origin-rejected"
+  | "rate-limit-rejected";

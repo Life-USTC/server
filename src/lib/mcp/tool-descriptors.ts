@@ -184,6 +184,10 @@ export function installMcpToolDescriptorDefaults(server: McpServer) {
   }) as typeof server.registerTool;
 }
 
+export function getRegisteredMcpToolCount(server: McpServer) {
+  return registeredToolNames.get(server)?.size;
+}
+
 export function assertRegisteredMcpToolMetadata(server: McpServer) {
   const names = registeredToolNames.get(server);
   if (!names) {

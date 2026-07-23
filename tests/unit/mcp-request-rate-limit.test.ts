@@ -255,4 +255,35 @@ describe("MCP mutation rate limits", () => {
       expect.objectContaining({ phase: "body-rejected", status: 413 }),
     );
   });
+
+  it("records transport exceptions before rethrowing them", async () => {
+    const transportError = new TypeError("sensitive detail");
+    transportError.name = "ApiKeyABC123";
+    connectMock.mockRejectedValueOnce(transportError);
+    const request = new Request("https://life.example/api/mcp", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        id: 1,
+        jsonrpc: "2.0",
+        method: "tools/list",
+      }),
+    });
+
+    const { handleMcpRequest } = await import(
+      "@/lib/api/routes/mcp-request-handler"
+    );
+    await expect(handleMcpRequest(request)).rejects.toThrow("sensitive detail");
+
+    expect(recordAndLogMcpResponseMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorName: "UnknownError",
+        phase: "error",
+        status: 500,
+      }),
+    );
+    expect(
+      JSON.stringify(recordAndLogMcpResponseMock.mock.calls),
+    ).not.toContain("sensitive detail");
+  });
 });

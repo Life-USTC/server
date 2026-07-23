@@ -146,6 +146,7 @@ jobs:
             ci:verify)
               bash tests/ci/retry.test.sh
               bun run app:prepare
+              bunx wrangler types --include-runtime=false --check
               bunx biome check
               bunx svelte-check --tsconfig ./tsconfig.json
               bunx tsc --noEmit -p tsconfig.typecheck.json

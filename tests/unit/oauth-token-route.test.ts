@@ -12,6 +12,7 @@ const {
   betterAuthHandlerMock,
   findRefreshTokenMock,
   isOAuthRefreshGrantActiveMock,
+  logAppEventMock,
   purgeOAuthGrantTokenRowsMock,
   purgeRevokedOAuthRefreshTokenLineageMock,
   resolveActiveOAuthUserGrantMock,
@@ -22,12 +23,18 @@ const {
   betterAuthHandlerMock: vi.fn(),
   findRefreshTokenMock: vi.fn(),
   isOAuthRefreshGrantActiveMock: vi.fn(),
+  logAppEventMock: vi.fn(),
   purgeOAuthGrantTokenRowsMock: vi.fn(),
   purgeRevokedOAuthRefreshTokenLineageMock: vi.fn(),
   resolveActiveOAuthUserGrantMock: vi.fn(),
   resolveActiveOAuthRefreshGrantMock: vi.fn(),
   signJwtMock: vi.fn(),
   updateRefreshTokenMock: vi.fn(),
+}));
+
+vi.mock("@/lib/log/app-logger", async (importOriginal) => ({
+  ...(await importOriginal()),
+  logAppEvent: logAppEventMock,
 }));
 
 vi.mock("@/lib/auth/core", () => ({
@@ -94,6 +101,7 @@ describe("OAuth 令牌路由", () => {
     betterAuthHandlerMock.mockReset();
     findRefreshTokenMock.mockReset();
     isOAuthRefreshGrantActiveMock.mockReset();
+    logAppEventMock.mockReset();
     purgeOAuthGrantTokenRowsMock.mockReset();
     purgeRevokedOAuthRefreshTokenLineageMock.mockReset();
     resolveActiveOAuthUserGrantMock.mockReset();
@@ -538,9 +546,9 @@ describe("OAuth 令牌路由", () => {
   });
 
   it("授权状态数据库不可用时 fail closed 且不委托 refresh", async () => {
-    resolveActiveOAuthRefreshGrantMock.mockRejectedValueOnce(
-      new Error("database unavailable"),
-    );
+    const databaseError = new Error("database unavailable");
+    databaseError.name = "ApiKeyABC123";
+    resolveActiveOAuthRefreshGrantMock.mockRejectedValueOnce(databaseError);
 
     const response = await tokenPostRoute(
       new Request("http://localhost/api/auth/oauth2/token", {
@@ -559,5 +567,16 @@ describe("OAuth 令牌路由", () => {
       error: "server_error",
     });
     expect(betterAuthHandlerMock).not.toHaveBeenCalled();
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "error",
+      "oauth.token.grant-validation-failed",
+      {
+        errorName: "UnknownError",
+        phase: "resolve-active-refresh-grant",
+      },
+    );
+    expect(JSON.stringify(logAppEventMock.mock.calls)).not.toContain(
+      "database unavailable",
+    );
   });
 });
