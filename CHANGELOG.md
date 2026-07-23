@@ -1,3 +1,10 @@
+## [1.77.4](https://github.com/Life-USTC/server/compare/v1.77.3...v1.77.4) (2026-07-23)
+
+
+### Bug Fixes
+
+* **observability:** close worker telemetry gaps ([#617](https://github.com/Life-USTC/server/issues/617)) ([11b843e](https://github.com/Life-USTC/server/commit/11b843e837502960f4fdf31834b6e098958fb0be))
+
 ## [1.77.3](https://github.com/Life-USTC/server/compare/v1.77.2...v1.77.3) (2026-07-23)
 
 
