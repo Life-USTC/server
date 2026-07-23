@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
+import TruncatedBadge from "$lib/components/TruncatedBadge.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
-import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Empty from "$lib/components/ui/empty/index.js";
 import * as Table from "$lib/components/ui/table/index.js";
 import CatalogTableLink from "./CatalogTableLink.svelte";
@@ -39,7 +39,7 @@ export let teacherNames: (teachers: CatalogNamed[]) => string;
           </Table.Cell>
           <Table.Cell class="p-0 align-top">
             <CatalogTableLink href={sectionHref}>
-              <Badge variant="outline">{section.code}</Badge>
+              <TruncatedBadge text={section.code} />
             </CatalogTableLink>
           </Table.Cell>
           <Table.Cell class="p-0 align-top">

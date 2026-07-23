@@ -4,6 +4,7 @@ import {
   catalogShowingSummary,
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
+import TruncatedBadge from "$lib/components/TruncatedBadge.svelte";
 import TruncatedText from "$lib/components/TruncatedText.svelte";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
@@ -100,7 +101,7 @@ $: courseSearchSummary = optionalCatalogFilterSummary(
               </Table.Cell>
               <Table.Cell class="p-0 align-top">
                 <CatalogTableLink href={courseHref}>
-                  <Badge variant="outline">{course.code}</Badge>
+                  <TruncatedBadge text={course.code} />
                 </CatalogTableLink>
               </Table.Cell>
               <Table.Cell class="p-0 align-top">

@@ -196,7 +196,9 @@ test("/admin/oauth 可创建三种固定客户端且密钥只显示一次", asyn
           .filter({ hasText: pattern.trustLabel }),
       ).toBeVisible();
       await expect(row.getByText(/已启用|Enabled/i)).toBeVisible();
-      await expect(row.getByText("openid", { exact: true })).toBeVisible();
+      await expect(
+        row.locator("td").nth(2).locator('[data-slot="truncated-text"]'),
+      ).toContainText("openid");
     }
 
     await gotoAndWaitForReady(page, "/admin/oauth");
@@ -248,6 +250,74 @@ test("/admin/oauth 显示 disabled 客户端并确认删除", async ({
     await captureStepScreenshot(page, testInfo, "admin-oauth/disabled-delete");
   } finally {
     await deleteOAuthClientsByName(name);
+  }
+});
+
+test("/admin/oauth 桌面表格保持徽标单行并为 scopes 溢出提供完整提示", async ({
+  page,
+}, testInfo) => {
+  const prefix = `e2e-oauth-table-${Date.now()}`;
+  const longName = `${prefix}-long`;
+  const shortName = `${prefix}-short`;
+  const longScopes = [
+    "openid",
+    "profile",
+    "email",
+    "offline_access",
+    "calendar:read",
+    "calendar:write",
+    "subscriptions:read",
+    "subscriptions:write",
+  ];
+
+  try {
+    await createOAuthClientFixture({ name: longName, scopes: longScopes });
+    await createOAuthClientFixture({ name: shortName, scopes: ["openid"] });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await signInAsDevAdmin(page, "/admin/oauth");
+
+    const longRow = page.getByRole("row").filter({ hasText: longName });
+    const shortRow = page.getByRole("row").filter({ hasText: shortName });
+    await expect(longRow).toBeVisible();
+    await expect(shortRow).toBeVisible();
+
+    const typeBadges = longRow
+      .locator("td")
+      .nth(1)
+      .locator('[data-slot="badge"]');
+    await expect(typeBadges).toHaveCount(3);
+    const badgeTops = await typeBadges.evaluateAll((badges) =>
+      badges.map((badge) => badge.getBoundingClientRect().top),
+    );
+    expect(Math.max(...badgeTops) - Math.min(...badgeTops)).toBeLessThan(1);
+
+    const scopesText = longRow
+      .locator("td")
+      .nth(2)
+      .locator('[data-slot="truncated-text"]');
+    const scopesGeometry = await scopesText.evaluate((node) => ({
+      clientWidth: node.clientWidth,
+      scrollWidth: node.scrollWidth,
+    }));
+    expect(scopesGeometry.scrollWidth).toBeGreaterThan(
+      scopesGeometry.clientWidth + 1,
+    );
+    await scopesText.hover();
+    await expect(
+      page.locator('[data-slot="tooltip-content"]:visible'),
+    ).toHaveText(longScopes.join(", "));
+
+    const [longBox, shortBox] = await Promise.all([
+      longRow.boundingBox(),
+      shortRow.boundingBox(),
+    ]);
+    expect(
+      Math.abs((longBox?.height ?? 0) - (shortBox?.height ?? 0)),
+    ).toBeLessThan(1);
+    await captureStepScreenshot(page, testInfo, "admin-oauth/table-overflow");
+  } finally {
+    await deleteOAuthClientsByName(longName);
+    await deleteOAuthClientsByName(shortName);
   }
 });
 
