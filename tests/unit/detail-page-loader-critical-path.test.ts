@@ -31,6 +31,7 @@ vi.mock("@/app-env", () => ({
 
 vi.mock("@/lib/auth/core", () => ({
   getSessionFromHeaders: getSessionFromHeadersMock,
+  getSessionFromHeadersWithResponseHeaders: getSessionFromHeadersMock,
 }));
 
 vi.mock("@/features/catalog/server/course-page-data", () => ({
@@ -282,14 +283,21 @@ describe("detail request session resolution", () => {
   ])("parses a signed-in %s session once in the hook and reuses locals in the detail loader", async (_authKind, headers) => {
     vi.spyOn(console, "info").mockImplementation(() => {});
     getSessionFromHeadersMock.mockResolvedValue({
-      session: { id: "session-1" },
-      user: signedInUser,
+      headers: new Headers({
+        "set-cookie":
+          "better-auth.session_token=refreshed-token; Path=/; HttpOnly",
+      }),
+      session: {
+        session: { id: "session-1" },
+        user: signedInUser,
+      },
     });
 
     const response = await resolveCourseThroughHook(headers);
 
     expect(response.status).toBe(200);
     expect(getSessionFromHeadersMock).toHaveBeenCalledOnce();
+    expect(response.headers.get("set-cookie")).toContain("refreshed-token");
     expect(getViewerContextMock).toHaveBeenCalledWith({
       userId: signedInUser.id,
     });

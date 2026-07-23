@@ -38,6 +38,8 @@ export const betterAuthAccountOptions = {
 
 export const betterAuthSessionOptions = {
   storeSessionInDatabase: true,
+  expiresIn: 60 * 60 * 24 * 30,
+  updateAge: 60 * 60 * 24,
   fields: {
     token: "sessionToken",
     expiresAt: "expires",
