@@ -4,6 +4,8 @@ import {
   normalizeApiRoutePath,
   observedApiRoute,
   recordApiRequestStart,
+  recordObservedApiResponse,
+  setApiRequestObservabilityContext,
 } from "@/lib/log/api-observability";
 
 describe("API 可观测性", () => {
@@ -156,7 +158,7 @@ describe("API 可观测性", () => {
   it("在重新抛出前记录抛出的路由错误", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:01.000Z"));
-    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const route = observedApiRoute(() => {
       throw new Error("boom");
     });
@@ -173,7 +175,7 @@ describe("API 可观测性", () => {
       ),
     ).rejects.toThrow("boom");
 
-    expect(info).toHaveBeenCalledWith(
+    expect(error).toHaveBeenCalledWith(
       "[api]",
       expect.objectContaining({
         authMode: "cookie",
@@ -186,5 +188,44 @@ describe("API 可观测性", () => {
         status: 500,
       }),
     );
+  });
+
+  it("logs returned 5xx responses at error severity", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const route = observedApiRoute(() => new Response(null, { status: 503 }));
+
+    await route(new Request("https://example.test/api/health"));
+
+    expect(error).toHaveBeenCalledWith(
+      "[api]",
+      expect.objectContaining({
+        event: "request.finish",
+        status: 503,
+      }),
+    );
+  });
+
+  it("records completion exactly once across route and hook boundaries", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const request = new Request("https://example.test/api/todos/123");
+    setApiRequestObservabilityContext(request, {
+      requestId: "internal-request-id",
+      startMs: Date.now(),
+    });
+    const route = observedApiRoute(() => new Response(null, { status: 204 }));
+
+    await route(request);
+    expect(recordObservedApiResponse(request, 204)).toBe(false);
+
+    expect(
+      info.mock.calls.filter(
+        ([prefix, value]) =>
+          prefix === "[api]" &&
+          typeof value === "object" &&
+          value !== null &&
+          "event" in value &&
+          value.event === "request.finish",
+      ),
+    ).toHaveLength(1);
   });
 });

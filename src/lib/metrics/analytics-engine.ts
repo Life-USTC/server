@@ -91,10 +91,16 @@ type GraphqlOperationAnalyticsInput = {
   durationMs: number;
   errorCount: number;
   estimatedCost: number;
+  internalErrorCount: number;
   operationName: string;
   operationType: string;
   requestId: string;
   topLevelFieldCount: number;
+};
+
+type DatabaseEventAnalyticsInput = {
+  errorName: string;
+  event: "connection_error" | "pool_error";
 };
 
 function statusClass(status: number) {
@@ -295,6 +301,17 @@ export function writeGraphqlOperationAnalytics(
       input.topLevelFieldCount,
       input.estimatedCost,
       input.errorCount,
+      input.internalErrorCount,
     ],
+  });
+}
+
+export function writeDatabaseEventAnalytics(
+  input: DatabaseEventAnalyticsInput,
+) {
+  writeAnalyticsDataPoint({
+    indexes: [`database:${input.event}`],
+    blobs: ["database_event", input.event, boundedValue(input.errorName)],
+    doubles: [1],
   });
 }

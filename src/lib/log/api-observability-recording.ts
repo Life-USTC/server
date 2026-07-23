@@ -1,5 +1,6 @@
 import { normalizeApiRoutePath } from "@/lib/log/api-observability-path";
 import { logApiRequest } from "@/lib/log/app-logger";
+import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { writeApiRequestAnalytics } from "@/lib/metrics/analytics-engine";
 
 export function recordApiRequestStart(input: {
@@ -23,11 +24,18 @@ export function recordApiRequestFinish(input: {
   route: string;
   status: number;
 }) {
-  logApiRequest(input.method, input.route, input.status, input.durationMs, {
-    authMode: input.authMode,
-    event: "request.finish",
-    requestId: input.requestId,
-  });
+  logApiRequest(
+    input.method,
+    input.route,
+    input.status,
+    input.durationMs,
+    {
+      authMode: input.authMode,
+      event: "request.finish",
+      requestId: input.requestId,
+    },
+    input.status >= 500 ? "error" : "info",
+  );
   writeApiRequestAnalytics({
     authMode: input.authMode,
     durationMs: input.durationMs,
@@ -47,12 +55,19 @@ export function recordApiRequestError(input: {
   route: string;
 }) {
   const status = 500;
-  logApiRequest(input.method, input.route, status, input.durationMs, {
-    authMode: input.authMode,
-    errorName: input.error instanceof Error ? input.error.name : "unknown",
-    event: "request.error",
-    requestId: input.requestId,
-  });
+  logApiRequest(
+    input.method,
+    input.route,
+    status,
+    input.durationMs,
+    {
+      authMode: input.authMode,
+      errorName: getSafeErrorName(input.error),
+      event: "request.error",
+      requestId: input.requestId,
+    },
+    "error",
+  );
   writeApiRequestAnalytics({
     authMode: input.authMode,
     durationMs: input.durationMs,

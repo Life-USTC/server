@@ -1,13 +1,25 @@
-import { type Handle, type HandleServerError, redirect } from "@sveltejs/kit";
+import {
+  type Handle,
+  type HandleServerError,
+  isRedirect,
+  redirect,
+} from "@sveltejs/kit";
 import { getOptionalTrimmedEnv, loadEnv } from "@/app-env";
 import { LOCALE_COOKIE, negotiateLocale } from "@/i18n/config";
-import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
+import {
+  runCloudflareTraceSpan,
+  runWithCloudflareRuntimeEnv,
+} from "@/lib/adapters/cloudflare-runtime";
 import { shouldRedirectIncompleteProfileToWelcome } from "@/lib/auth/auth-routing";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
 import {
   recordApiRequestStart,
+  recordObservedApiError,
+  recordObservedApiResponse,
   setApiRequestObservabilityContext,
 } from "@/lib/log/api-observability";
+import { normalizeApiRoutePath } from "@/lib/log/api-observability-path";
+import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import {
   appendPageServerTiming,
   recordPageRequestFinish,
@@ -140,18 +152,12 @@ function oauthAuthorizeFormActionSources(url: URL) {
 }
 
 const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
-  loadEnv();
-
-  const csrfResponse = crossSiteFormResponse(event);
-  if (csrfResponse) return responseWithSecurityHeaders(csrfResponse);
-
   const locale = negotiateLocale(
     event.cookies.get(LOCALE_COOKIE),
     event.request.headers.get("accept-language"),
   );
   event.locals.locale = locale;
-  const requestId =
-    event.request.headers.get("x-request-id") ?? crypto.randomUUID();
+  const requestId = crypto.randomUUID();
   event.locals.requestId = requestId;
   const startMs = Date.now();
   const hasAuthSignal = hasRequestAuthSignal(event.request.headers);
@@ -161,63 +167,97 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     requestId,
     startMs,
   );
-  const nonce = createScriptNonce();
 
-  const authStartMs = Date.now();
-  const session = hasAuthSignal
-    ? await import("@/lib/auth/core").then(({ getSessionFromHeaders }) =>
-        getSessionFromHeaders(event.request.headers),
-      )
-    : null;
-  const authDurationMs = Date.now() - authStartMs;
-  event.locals.authUser = session?.user ?? null;
-  if (
-    shouldRedirectIncompleteProfileToWelcome({
-      pathname: event.url.pathname,
-      url: event.url,
-      hasUser: Boolean(session?.user.id),
-      hasCompleteProfile: Boolean(session?.user.name && session.user.username),
-    })
-  ) {
-    const returnTo = `${event.url.pathname}${event.url.search}`;
-    throw redirect(303, `/welcome?callbackUrl=${encodeURIComponent(returnTo)}`);
-  }
+  try {
+    loadEnv();
+    const nonce = createScriptNonce();
+    const csrfResponse = crossSiteFormResponse(event);
+    if (csrfResponse) {
+      const response = responseWithSecurityHeaders(csrfResponse);
+      if (apiObservability) {
+        recordObservedApiResponse(event.request, response.status);
+        response.headers.set("x-request-id", requestId);
+      }
+      return response;
+    }
 
-  const appStartMs = Date.now();
-  const response = await resolve(event, {
-    transformPageChunk: ({ html }) =>
-      addScriptNonce(
-        html.replace('<html lang="zh-CN">', `<html lang="${locale}">`),
-        nonce,
-      ),
-  });
-  const appDurationMs = Date.now() - appStartMs;
-  const totalDurationMs = Date.now() - startMs;
-  const shouldSetCsp = isHtmlResponse(response);
-  if (!isApiRequest(event.url.pathname) && shouldSetCsp) {
-    recordPageRequestFinish({
-      authMode: session?.user.id ? "authenticated" : "anonymous",
-      locale,
-      method: event.request.method,
-      requestId,
-      responseBytes: contentLength(response),
-      routeId: event.route.id,
-      status: response.status,
-      timings: {
-        appDurationMs,
-        authDurationMs,
-        totalDurationMs,
+    const authStartMs = Date.now();
+    const session = hasAuthSignal
+      ? await runCloudflareTraceSpan(
+          "app.auth.session",
+          { "app.auth.signal_present": true },
+          () =>
+            import("@/lib/auth/core").then(({ getSessionFromHeaders }) =>
+              getSessionFromHeaders(event.request.headers),
+            ),
+        )
+      : null;
+    const authDurationMs = Date.now() - authStartMs;
+    event.locals.authUser = session?.user ?? null;
+    if (
+      shouldRedirectIncompleteProfileToWelcome({
+        pathname: event.url.pathname,
+        url: event.url,
+        hasUser: Boolean(session?.user.id),
+        hasCompleteProfile: Boolean(
+          session?.user.name && session.user.username,
+        ),
+      })
+    ) {
+      const returnTo = `${event.url.pathname}${event.url.search}`;
+      throw redirect(
+        303,
+        `/welcome?callbackUrl=${encodeURIComponent(returnTo)}`,
+      );
+    }
+
+    const appStartMs = Date.now();
+    const response = await runCloudflareTraceSpan(
+      "app.sveltekit.resolve",
+      {
+        "http.request.method": event.request.method,
+        "http.route": isApiRequest(event.url.pathname)
+          ? normalizeApiRoutePath(event.url.pathname)
+          : (event.route.id ?? "unmatched"),
       },
-    });
-  }
+      () =>
+        resolve(event, {
+          transformPageChunk: ({ html }) =>
+            addScriptNonce(
+              html.replace('<html lang="zh-CN">', `<html lang="${locale}">`),
+              nonce,
+            ),
+        }),
+    );
+    const appDurationMs = Date.now() - appStartMs;
+    const totalDurationMs = Date.now() - startMs;
+    const shouldSetCsp = isHtmlResponse(response);
+    if (!isApiRequest(event.url.pathname) && shouldSetCsp) {
+      recordPageRequestFinish({
+        authMode: session?.user.id ? "authenticated" : "anonymous",
+        locale,
+        method: event.request.method,
+        requestId,
+        responseBytes: contentLength(response),
+        routeId: event.route.id,
+        status: response.status,
+        timings: {
+          appDurationMs,
+          authDurationMs,
+          totalDurationMs,
+        },
+      });
+    }
 
-  const mutableResponse = responseWithSecurityHeaders(response);
-  if (apiObservability) {
-    mutableResponse.headers.set("x-request-id", apiObservability.requestId);
-  } else if (shouldSetCsp) {
-    mutableResponse.headers.set("x-request-id", requestId);
-  }
-  if (shouldSetCsp) {
+    const mutableResponse = responseWithSecurityHeaders(response);
+    if (apiObservability) {
+      recordObservedApiResponse(event.request, mutableResponse.status);
+      mutableResponse.headers.set("x-request-id", apiObservability.requestId);
+    } else if (shouldSetCsp) {
+      mutableResponse.headers.set("x-request-id", requestId);
+    }
+    if (!shouldSetCsp) return mutableResponse;
+
     mutableResponse.headers.set("Content-Language", locale);
     appendPageServerTiming(mutableResponse.headers, {
       appDurationMs,
@@ -235,39 +275,31 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
         isDevelopment: getOptionalTrimmedEnv("NODE_ENV") === "development",
       }),
     );
+    return mutableResponse;
+  } catch (error) {
+    if (apiObservability) {
+      if (isRedirect(error)) {
+        recordObservedApiResponse(event.request, error.status);
+      } else {
+        recordObservedApiError(event.request, error);
+      }
+    }
+    throw error;
   }
-
-  return mutableResponse;
 };
 
 export const handle: Handle = async (input) =>
   await runWithCloudflareRuntimeEnv(
     (input.event.platform as { env?: unknown } | undefined)?.env,
     () => handleWithRuntimeEnv(input),
+    (input.event.platform as { context?: unknown; ctx?: unknown } | undefined)
+      ?.ctx ??
+      (input.event.platform as { context?: unknown; ctx?: unknown } | undefined)
+        ?.context,
   );
 
-function sanitizeErrorText(value: string) {
-  return value
-    .replace(
-      /\b(postgres(?:ql)?:\/\/)([^:\s/@]+):([^@\s/]+)@/gi,
-      "$1$2:<redacted>@",
-    )
-    .replace(
-      /\b([A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|KEY)[A-Z0-9_]*=)[^\s&]+/gi,
-      "$1<redacted>",
-    );
-}
-
 function serializeServerError(error: unknown) {
-  if (!(error instanceof Error)) {
-    return { value: sanitizeErrorText(String(error)) };
-  }
-
-  return {
-    name: error.name,
-    message: sanitizeErrorText(error.message),
-    stack: error.stack ? sanitizeErrorText(error.stack) : undefined,
-  };
+  return { name: getSafeErrorName(error) };
 }
 
 export const handleError: HandleServerError = ({ error, event, status }) => {

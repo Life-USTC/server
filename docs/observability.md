@@ -7,15 +7,27 @@ high-cardinality resource IDs.
 
 ## Runtime Sources
 
-- Logs use `logAppEvent` and Cloudflare Workers observability.
+- Logs use `logAppEvent` and Cloudflare Workers observability. Production
+  exception fields retain only an allowlisted error class, never the exception
+  message or stack.
 - Worker invocation logs use 25% head sampling and traces use 5% head
-  sampling. Built-in Worker request/error metrics remain the source for
-  complete traffic and 5xx counts. Unsampled Analytics Engine events preserve
-  safe MCP and OAuth failure phases/error classes; sampled logs and traces
-  provide request-level diagnosis.
+  sampling. Source maps are uploaded with each production Worker deployment.
+  Custom spans identify session lookup, SvelteKit dispatch, MCP authentication,
+  MCP body parsing/SDK dispatch, and GraphQL dispatch without attaching
+  credentials, request bodies, or resource identifiers.
+- Built-in Worker request/error metrics remain the source for complete traffic
+  and 5xx counts. Unsampled Analytics Engine events preserve safe API, MCP,
+  OAuth, GraphQL, database connection/pool, audit, storage, and cache outcomes;
+  sampled logs and traces provide request-level diagnosis.
 - Production API request metrics are written to Cloudflare Analytics Engine.
 - API request metrics live in `src/lib/log/api-observability-recording.ts`.
-- Request ids propagate through page and REST responses.
+- Every `/api/*` request receives one server-generated request ID and records
+  exactly one finish or error outcome, including early CSRF responses,
+  unmatched routes, auth catch-all routes, and handler exceptions. Client
+  `x-request-id` values are not trusted as the server correlation ID.
+- GraphQL observations distinguish expected GraphQL errors from
+  `INTERNAL_SERVER_ERROR`; only the latter are logged at error severity.
+- Request IDs propagate through page and REST responses.
 
 ## Endpoints
 

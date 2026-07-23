@@ -13,7 +13,10 @@ import { GRAPHQL_LIMITS } from "./constants";
 import type { GraphqlContext } from "./context";
 import { formatMaskedGraphqlError } from "./error-masking";
 import { createGraphqlLoaders } from "./loaders";
-import { recordGraphqlOperationObservation } from "./observability";
+import {
+  countInternalGraphqlErrors,
+  recordGraphqlOperationObservation,
+} from "./observability";
 import {
   analyzeGraphqlOperation,
   type GraphqlOperationAnalysis,
@@ -286,6 +289,7 @@ export async function runRegisteredGraphqlOperation(input: {
   const startedAt = Date.now();
   let analysis = errorAnalysis(operation);
   let errorCount = 0;
+  let internalErrorCount = 0;
   const deadline = createDeadline(input.signal, GRAPHQL_LIMITS.timeoutMs);
 
   try {
@@ -337,6 +341,7 @@ export async function runRegisteredGraphqlOperation(input: {
 
     const errors = result.errors?.map(formatMaskedGraphqlError);
     errorCount = errors?.length ?? 0;
+    internalErrorCount = countInternalGraphqlErrors(errors);
     return operationResult(operation, {
       data: result.data as Record<string, unknown> | null | undefined,
       errors,
@@ -362,6 +367,7 @@ export async function runRegisteredGraphqlOperation(input: {
     const formatted = formatMaskedGraphqlError(
       new GraphQLError(originalError.message, { originalError }),
     );
+    internalErrorCount = countInternalGraphqlErrors([formatted]);
     return operationResult(operation, { errors: [formatted] });
   } finally {
     deadline.cleanup();
@@ -370,6 +376,7 @@ export async function runRegisteredGraphqlOperation(input: {
       authMode: input.principal.kind,
       durationMs: Date.now() - startedAt,
       errorCount,
+      internalErrorCount,
       requestId: input.requestInfo?.requestId,
     });
   }

@@ -1,6 +1,7 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { verifyJwsAccessToken as verifyOAuthAccessToken } from "better-auth/oauth2";
 import { isOAuthDebugLogging, logOAuthDebug } from "@/lib/log/oauth-debug";
+import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { jwtClaimsToAuthInfo } from "@/lib/mcp/jwt-auth-info";
 import {
   accessTokenLooksLikeJwt,
@@ -14,11 +15,6 @@ import {
   getOAuthMcpResourceUrl,
   getOAuthTokenVerificationIssuers,
 } from "./urls";
-
-function boundedErrorMessage(err: unknown) {
-  const message = err instanceof Error ? err.message : String(err);
-  return message.slice(0, 180);
-}
 
 function errorCode(err: unknown) {
   if (!err || typeof err !== "object" || !("code" in err)) return undefined;
@@ -67,8 +63,7 @@ export async function verifyAccessToken(
     } catch (err) {
       if (isOAuthDebugLogging()) {
         logOAuthDebug("mcp.jwt-verify-failed", request, {
-          name: err instanceof Error ? err.name : "unknown",
-          message: err instanceof Error ? err.message : String(err),
+          errorName: getSafeErrorName(err),
         });
       }
       return {
@@ -79,8 +74,7 @@ export async function verifyAccessToken(
           authHeaderKind: "bearer",
           authTokenFormat: "jwt",
           jwtErrorCode: errorCode(err),
-          jwtErrorMessage: boundedErrorMessage(err),
-          jwtErrorName: err instanceof Error ? err.name : "unknown",
+          jwtErrorName: getSafeErrorName(err),
         },
         error: INVALID_TOKEN_ERROR,
         status: 401,

@@ -57,9 +57,9 @@ describe("应用日志记录器", () => {
       route: "/api/test",
       error: {
         name: "Error",
-        message: "boom",
       },
     });
+    expect(String(payload)).not.toContain("boom");
     expect(String(payload)).not.toContain("stack");
   });
 

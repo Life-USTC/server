@@ -1,3 +1,4 @@
+import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { writeOAuthEventAnalytics } from "@/lib/metrics/analytics-engine";
 import { OAUTH_TOKEN_ENDPOINT_PATH } from "@/lib/oauth/constants";
 import {
@@ -150,7 +151,7 @@ export async function withBetterAuthOAuthDebug(
       method,
       path,
       ms: Date.now() - start,
-      error: err instanceof Error ? err.message : String(err),
+      errorName: getSafeErrorName(err),
     });
     recordBetterAuthErrorAnalytics({ error: err, method, path, start });
     throw err;

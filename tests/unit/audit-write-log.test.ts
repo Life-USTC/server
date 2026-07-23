@@ -105,8 +105,7 @@ describe("fireAuditLog", () => {
       {
         action: "comment_create",
         source: "audit",
-        targetId: "comment-1",
-        userId: "user-1",
+        targetType: "comment",
       },
       writeError,
     );

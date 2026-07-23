@@ -27,7 +27,6 @@ export type McpAuthFailureDiagnostics = {
   acceptedAudienceCount?: number;
   acceptedIssuerCount?: number;
   jwtErrorCode?: string;
-  jwtErrorMessage?: string;
   jwtErrorName?: string;
   requiredScopeCount?: number;
   scopeCount?: number;

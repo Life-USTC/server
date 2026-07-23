@@ -1,4 +1,5 @@
 import { getOptionalTrimmedEnv } from "@/app-env";
+import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { formatShanghaiTimestamp } from "@/lib/time/shanghai-format";
 
 export const LOG_LEVEL_ORDER = ["debug", "info", "warn", "error"] as const;
@@ -32,13 +33,15 @@ export function shouldLog(level: AppLogLevel): boolean {
 export function serializeError(error: unknown) {
   if (!error) return undefined;
 
+  if (isProductionEnvironment()) {
+    return { name: getSafeErrorName(error) };
+  }
+
   if (error instanceof Error) {
     return {
       name: error.name,
       message: error.message,
-      ...(!isProductionEnvironment() && error.stack
-        ? { stack: error.stack }
-        : {}),
+      ...(error.stack ? { stack: error.stack } : {}),
     };
   }
 

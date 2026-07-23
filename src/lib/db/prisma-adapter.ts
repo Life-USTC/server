@@ -5,6 +5,8 @@ import {
   hasCloudflareRuntimeEnv,
 } from "@/lib/adapters/cloudflare-runtime";
 import { logAppEvent } from "@/lib/log/app-logger";
+import { getSafeErrorName } from "@/lib/log/safe-error-name";
+import { writeDatabaseEventAnalytics } from "@/lib/metrics/analytics-engine";
 
 function getRuntimeDatabaseUrl() {
   const hyperdriveConnectionString = getCloudflareHyperdriveConnectionString();
@@ -31,6 +33,10 @@ export function createPrismaAdapter(
     { connectionString },
     {
       onConnectionError: (error) => {
+        writeDatabaseEventAnalytics({
+          errorName: getSafeErrorName(error),
+          event: "connection_error",
+        });
         logAppEvent(
           "error",
           "Postgres connection error",
@@ -39,6 +45,10 @@ export function createPrismaAdapter(
         );
       },
       onPoolError: (error) => {
+        writeDatabaseEventAnalytics({
+          errorName: getSafeErrorName(error),
+          event: "pool_error",
+        });
         logAppEvent(
           "error",
           "Postgres pool error",

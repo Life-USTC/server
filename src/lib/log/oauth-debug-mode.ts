@@ -1,4 +1,5 @@
 import { getOptionalTrimmedEnv } from "@/app-env";
+import { getApiRequestObservabilityRequestId } from "@/lib/log/api-observability-context";
 import { formatShanghaiTimestamp } from "@/lib/time/shanghai-format";
 
 export type OAuthDebugMode = "off" | "standard" | "verbose";
@@ -19,12 +20,19 @@ export function isOAuthDebugLogging(): boolean {
 }
 
 export function oauthDebugCorrelationId(request: Request): string {
+  const requestId = getApiRequestObservabilityRequestId(request);
+  if (requestId) return requestId;
+
   return (
-    request.headers.get("x-request-id") ??
+    safeCorrelationId(request.headers.get("x-request-id")) ??
     request.headers.get("cf-ray") ??
     request.headers.get("traceparent")?.slice(0, 55) ??
     "no-correlation-id"
   );
+}
+
+function safeCorrelationId(value: string | null) {
+  return value && /^[A-Za-z0-9._:-]{1,120}$/.test(value) ? value : undefined;
 }
 
 export function logOAuthDebug(
