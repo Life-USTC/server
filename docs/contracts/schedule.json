@@ -47,7 +47,7 @@
             },
             "returns": "SchedulePage!",
             "auth": "user",
-            "required_scopes": ["schedule:read"],
+            "required_scopes": ["workspace.schedule:read"],
             "rest_equivalent": "GET /api/workspace/schedules",
             "mcp_equivalent": "workspace_schedule_list",
             "notes": [

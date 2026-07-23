@@ -1,4 +1,4 @@
-import type { SignedTabId } from "@/features/dashboard/lib/dashboard-nav";
+import type { WorkspaceTabId } from "@/features/dashboard/lib/dashboard-nav";
 import { getDashboardPageCopy } from "@/features/dashboard/server/dashboard-page-copy";
 import { loadSignedDashboardPageData } from "@/features/dashboard/server/dashboard-page-load-signed";
 import type { DashboardPageLoadEvent } from "@/features/dashboard/server/dashboard-page-load-types";
@@ -32,7 +32,7 @@ export async function loadSignedDashboardPage({
   tab,
   url,
   userId,
-}: DashboardPageLoadEvent & { tab: SignedTabId; userId: string }) {
+}: DashboardPageLoadEvent & { tab: WorkspaceTabId; userId: string }) {
   const startMs = Date.now();
   const locale = locals.locale;
   const pageCopy = getDashboardPageCopy(locale);

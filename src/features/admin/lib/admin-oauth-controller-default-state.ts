@@ -16,10 +16,10 @@ export function createAdminOAuthControllerDefaultState<Client>(input: {
       "openid",
       "profile",
       "account.profile:read",
-      "todo:read",
-      "todo:write",
-      "homework:read",
-      "homework:write",
+      "workspace.todo:read",
+      "workspace.todo:write",
+      "workspace.homework:read",
+      "workspace.homework:write",
     ],
   };
 }

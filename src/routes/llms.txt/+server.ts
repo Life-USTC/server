@@ -16,7 +16,7 @@ export const GET: RequestHandler = async ({ request }) => {
 
 ## Developer interfaces
 
-- [REST API documentation](${origin}/api/docs/tag/sections)
+- [REST API documentation](${origin}/api/docs/tag/catalog-section)
 - [MCP protected resource metadata](${origin}/.well-known/oauth-protected-resource/api/mcp)
 - [MCP endpoint](${origin}/api/mcp)
 

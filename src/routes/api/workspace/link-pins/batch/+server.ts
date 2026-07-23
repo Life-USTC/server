@@ -4,8 +4,8 @@ import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
  * Set multiple campus link pins.
- * @body dashboardLinkPinBatchRequestSchema
- * @response dashboardLinkPinResponseSchema
+ * @body workspaceLinkPinBatchRequestSchema
+ * @response workspaceLinkPinResponseSchema
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
  * @response 429:openApiErrorSchema

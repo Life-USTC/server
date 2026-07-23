@@ -4,7 +4,7 @@
     "anon": "Can browse API documentation and public REST capabilities.",
     "user": "When signed in, can call their own restricted REST capabilities.",
     "admin": "Calls governance capabilities through the corresponding admin endpoints.",
-    "agent": "Can call public REST capabilities and, after OAuth authorization, can call restricted REST/MCP capabilities only with explicit feature:action scopes such as todo:read and todo:write."
+    "agent": "Can call public REST capabilities and, after OAuth authorization, can call restricted REST/MCP capabilities only with explicit feature:action scopes such as workspace.todo:read and workspace.todo:write."
   },
   "rules": {
     "aligned-with-web": "The goal of REST / OpenAPI is to expose capabilities aligned with the web, not to create an additional product layer.",
@@ -31,7 +31,7 @@
       "title": "API Docs Page",
       "auth": "anon",
       "web": {
-        "pages": ["/api/docs/tag/sections"]
+        "pages": ["/api/docs/tag/catalog-section"]
       },
       "display": {
         "fields": [

@@ -9,10 +9,10 @@ import {
 } from "@/features/dashboard-links/server/dashboard-link-service";
 import { jsonResponse, parseRouteJsonBody } from "@/lib/api/helpers";
 import {
-  dashboardLinkPinBatchRequestSchema,
-  dashboardLinkPinRequestSchema,
+  workspaceLinkPinBatchRequestSchema,
+  workspaceLinkPinRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
-import { dashboardLinkPinResponseSchema } from "@/lib/api/schemas/response-schemas";
+import { workspaceLinkPinResponseSchema } from "@/lib/api/schemas/response-schemas";
 import { requireAuth } from "@/lib/auth/api-auth";
 import { jsonOrRedirectForPinnedLinks } from "./dashboard-link-pin-response";
 
@@ -23,7 +23,7 @@ export async function getDashboardLinkPinsRoute(request: Request) {
   if (auth instanceof Response) return auth;
 
   return jsonResponse(
-    dashboardLinkPinResponseSchema.parse({
+    workspaceLinkPinResponseSchema.parse({
       pinnedSlugs: await getDashboardLinkPinnedSlugs(auth.userId),
       maxPinnedLinks: MAX_PINNED_LINKS,
       error: null,
@@ -53,7 +53,7 @@ export async function postDashboardLinkPinRoute(request: Request) {
   const { userId } = auth;
 
   const formData = await request.formData();
-  const parsedBody = dashboardLinkPinRequestSchema.safeParse({
+  const parsedBody = workspaceLinkPinRequestSchema.safeParse({
     slug: formData.get("slug"),
     returnTo: formData.get("returnTo"),
     action: formData.get("action"),
@@ -117,7 +117,7 @@ export async function postDashboardLinkPinBatchRoute(request: Request) {
 
   const body = await parseRouteJsonBody(
     request,
-    dashboardLinkPinBatchRequestSchema,
+    workspaceLinkPinBatchRequestSchema,
     "Invalid batch payload",
   );
   if (body instanceof Response) return body;
@@ -129,7 +129,7 @@ export async function postDashboardLinkPinBatchRoute(request: Request) {
     });
     if (!result.ok) {
       return jsonResponse(
-        dashboardLinkPinResponseSchema.parse({
+        workspaceLinkPinResponseSchema.parse({
           pinnedSlugs: [],
           maxPinnedLinks: MAX_PINNED_LINKS,
           error: `Invalid dashboard link slug: ${result.slug}`,
@@ -139,7 +139,7 @@ export async function postDashboardLinkPinBatchRoute(request: Request) {
     }
 
     return jsonResponse(
-      dashboardLinkPinResponseSchema.parse({
+      workspaceLinkPinResponseSchema.parse({
         pinnedSlugs: result.pinnedSlugs,
         maxPinnedLinks: MAX_PINNED_LINKS,
         error: null,
@@ -153,7 +153,7 @@ export async function postDashboardLinkPinBatchRoute(request: Request) {
       slug: body.items.map((item) => item.slug).join(","),
     });
     return jsonResponse(
-      dashboardLinkPinResponseSchema.parse({
+      workspaceLinkPinResponseSchema.parse({
         pinnedSlugs: [],
         maxPinnedLinks: MAX_PINNED_LINKS,
         error: "Failed to update dashboard link pin state",

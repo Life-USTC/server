@@ -924,9 +924,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
 
     // Subscription URL includes a user-specific tokenized feed path
     const subscriptionValue = await subscriptionUrl.inputValue();
-    expect(subscriptionValue).toMatch(
-      /\/api\/community\/users\/[^/]+:[A-Za-z0-9_-]+\/calendar\.ics$/,
-    );
+    expect(subscriptionValue).toMatch(/\/api\/calendar-feeds\/[^/]+\.ics$/);
 
     // Copy single URL
     await calDialog

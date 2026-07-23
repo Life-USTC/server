@@ -634,6 +634,7 @@
             "sessionCookie": []
           }
         ],
+        "x-auth-role": "admin",
         "parameters": [
           {
             "in": "query",
@@ -727,6 +728,7 @@
             "sessionCookie": []
           }
         ],
+        "x-auth-role": "admin",
         "parameters": [
           {
             "in": "query",
@@ -839,6 +841,7 @@
             "sessionCookie": []
           }
         ],
+        "x-auth-role": "admin",
         "parameters": [
           {
             "in": "query",
@@ -937,6 +940,7 @@
             "sessionCookie": []
           }
         ],
+        "x-auth-role": "admin",
         "responses": {
           "200": {
             "description": "Successful response",
@@ -971,6 +975,7 @@
             "sessionCookie": []
           }
         ],
+        "x-auth-role": "admin",
         "requestBody": {
           "required": true,
           "content": {
@@ -1093,6 +1098,7 @@
             "sessionCookie": []
           }
         ],
+        "x-auth-role": "admin",
         "parameters": [
           {
             "in": "query",
@@ -2788,7 +2794,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/dashboardLinkPinResponseSchema"
+                  "$ref": "#/components/schemas/workspaceLinkPinResponseSchema"
                 }
               }
             }
@@ -2824,7 +2830,7 @@
           "content": {
             "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/dashboardLinkPinRequestSchema"
+                "$ref": "#/components/schemas/workspaceLinkPinRequestSchema"
               }
             }
           }
@@ -2835,7 +2841,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/dashboardLinkPinResponseSchema"
+                  "$ref": "#/components/schemas/workspaceLinkPinResponseSchema"
                 }
               }
             }
@@ -4022,6 +4028,7 @@
             "sessionCookie": []
           }
         ],
+        "x-auth-role": "admin",
         "parameters": [
           {
             "in": "path",
@@ -4147,6 +4154,7 @@
             "sessionCookie": []
           }
         ],
+        "x-auth-role": "admin",
         "parameters": [
           {
             "in": "path",
@@ -4272,6 +4280,7 @@
             "sessionCookie": []
           }
         ],
+        "x-auth-role": "admin",
         "parameters": [
           {
             "in": "path",
@@ -4377,6 +4386,7 @@
             "sessionCookie": []
           }
         ],
+        "x-auth-role": "admin",
         "parameters": [
           {
             "in": "path",
@@ -4482,6 +4492,7 @@
             "sessionCookie": []
           }
         ],
+        "x-auth-role": "admin",
         "parameters": [
           {
             "in": "path",
@@ -5054,7 +5065,7 @@
           "content": {
             "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/dashboardLinkVisitRequestSchema"
+                "$ref": "#/components/schemas/catalogLinkVisitRequestSchema"
               }
             }
           }
@@ -6192,7 +6203,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/dashboardLinkPinBatchRequestSchema"
+                "$ref": "#/components/schemas/workspaceLinkPinBatchRequestSchema"
               }
             }
           }
@@ -6203,7 +6214,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/dashboardLinkPinResponseSchema"
+                  "$ref": "#/components/schemas/workspaceLinkPinResponseSchema"
                 }
               }
             }
@@ -15398,7 +15409,7 @@
         ],
         "additionalProperties": false
       },
-      "dashboardLinkPinResponseSchema": {
+      "workspaceLinkPinResponseSchema": {
         "type": "object",
         "properties": {
           "pinnedSlugs": {
@@ -15424,7 +15435,7 @@
         ],
         "additionalProperties": false
       },
-      "dashboardLinkPinRequestSchema": {
+      "workspaceLinkPinRequestSchema": {
         "type": "object",
         "properties": {
           "slug": {
@@ -23035,7 +23046,7 @@
         ],
         "additionalProperties": false
       },
-      "dashboardLinkVisitRequestSchema": {
+      "catalogLinkVisitRequestSchema": {
         "type": "object",
         "properties": {
           "slug": {
@@ -27041,7 +27052,7 @@
         ],
         "additionalProperties": false
       },
-      "dashboardLinkPinBatchRequestSchema": {
+      "workspaceLinkPinBatchRequestSchema": {
         "type": "object",
         "properties": {
           "items": {

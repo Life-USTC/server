@@ -77,14 +77,13 @@ test.describe("GET /api/workspace/subscriptions/current 接口", () => {
     const sub = body.subscription as Record<string, unknown>;
     expect(Object.hasOwn(sub, "note")).toBe(true);
     expect(typeof sub.calendarPath).toBe("string");
-    expect(
-      (sub.calendarPath as string).startsWith("/api/community/users/"),
-    ).toBe(true);
+    expect(sub.calendarPath as string).toMatch(
+      /^\/api\/calendar-feeds\/[^/]+\.ics$/,
+    );
     expect(typeof sub.calendarUrl).toBe("string");
     expect((sub.calendarUrl as string).startsWith("http")).toBe(true);
-    expect(sub.calendarUrl as string).toContain("/api/community/users/");
-    expect(sub.calendarUrl as string).not.toContain(
-      "/api/auth/api/community/users/",
+    expect(sub.calendarUrl as string).toMatch(
+      /\/api\/calendar-feeds\/[^/]+\.ics$/,
     );
   });
 

@@ -381,7 +381,7 @@ function buildOperation(
     operation.security = security;
   }
 
-  if (tag === "Admin") {
+  if (routePath.startsWith("/api/admin/")) {
     operation["x-auth-role"] = "admin";
   }
 

@@ -28,7 +28,7 @@ type PageContractCase = {
 
 function getContractWaitUntil(routePath: string) {
   if (
-    routePath === "/api/docs/tag/sections" ||
+    routePath === "/api/docs/tag/catalog-section" ||
     routePath === "/guides/markdown-support"
   ) {
     return "load" as const;
@@ -528,7 +528,7 @@ export async function assertPageContract(
       return;
     }
 
-    case "/api/docs/tag/sections": {
+    case "/api/docs/tag/catalog-section": {
       await gotoContractPage(page, routePath, testInfo);
       await expectMainContent(page);
       await waitForUiSettled(page);

@@ -2,5 +2,5 @@ import { redirect } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = () => {
-  throw redirect(308, "/api/docs/tag/sections");
+  throw redirect(308, "/api/docs/tag/catalog-section");
 };

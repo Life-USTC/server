@@ -1,5 +1,5 @@
 /**
- * E2E tests for GET /api/calendar-feeds/[userId].ics
+ * E2E tests for GET /api/calendar-feeds/[credential].ics
  *
  * ## Endpoint
  * - `GET /api/calendar-feeds/:userId.ics` — Generate iCalendar feed for a user's subscriptions
@@ -40,13 +40,13 @@ import {
   expectCalendarDtstampsAreUtc,
 } from "../../../../_shared/api-contract";
 
-const ROUTE_PATH = "/api/calendar-feeds/[userId].ics";
+const ROUTE_PATH = "/api/calendar-feeds/[credential].ics";
 
 function unfoldICalendar(text: string) {
   return text.replace(/\r?\n[ \t]/g, "");
 }
 
-test.describe("GET /api/calendar-feeds/[userId].ics", () => {
+test.describe("GET /api/calendar-feeds/[credential].ics", () => {
   test.describe.configure({ mode: "serial" });
 
   test("契约", async ({ request }) => {

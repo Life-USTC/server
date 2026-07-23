@@ -154,7 +154,7 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
       body.paths?.["/api/workspace/link-pins"]?.post?.requestBody?.content?.[
         "application/x-www-form-urlencoded"
       ]?.schema?.$ref,
-    ).toBe("#/components/schemas/dashboardLinkPinRequestSchema");
+    ).toBe("#/components/schemas/workspaceLinkPinRequestSchema");
     expect(
       body.paths?.["/api/workspace/link-pins"]?.post?.responses?.["200"],
     ).toBeTruthy();
@@ -177,7 +177,9 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
   });
 
   test("规范暴露认证安全元数据", async ({ request }) => {
-    const response = await request.get("/api/openapi");
+    const response = await request.get("/api/openapi", {
+      headers: { "cache-control": "no-cache" },
+    });
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
       components?: { securitySchemes?: Record<string, unknown> };
@@ -236,22 +238,28 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
     expect(body.paths?.["/api/accounttrics"]).toBeUndefined();
     expect(body.paths?.["/api/health"]?.get?.security).toBeUndefined();
     expect(
-      body.paths?.["/api/calendar-feeds/{userId}.ics"]?.get?.security,
+      body.paths?.["/api/calendar-feeds/{credential}.ics"]?.get?.security,
     ).toEqual([
       { bearerAuth: [] },
       { sessionCookie: [] },
       { calendarFeedToken: [] },
     ]);
     expect(body.paths?.["/api/mcp"]?.options?.security).toBeUndefined();
-    expect(body.paths?.["/api/account/profile"]?.get?.security).toBeUndefined();
+    expect(body.paths?.["/api/account/profile"]?.get?.security).toEqual([
+      { bearerAuth: [] },
+      { sessionCookie: [] },
+    ]);
+    expect(
+      body.paths?.["/api/community/users/{identifier}"]?.get?.security,
+    ).toBeUndefined();
     expect(
       body.paths?.["/api/auth/oauth2/token"]?.post?.security,
     ).toBeUndefined();
     expect(
-      body.paths?.["/api/calendar-feeds/{userId}.ics"]?.get?.parameters,
+      body.paths?.["/api/calendar-feeds/{credential}.ics"]?.get?.parameters,
     ).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ in: "query", name: "token" }),
+        expect.objectContaining({ in: "path", name: "credential" }),
       ]),
     );
   });

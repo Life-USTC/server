@@ -573,6 +573,7 @@ test.describe("校车面板标签页", () => {
       testInfo,
       screenshotLabel: "bus-save-error",
     });
+    await openRouteControls(page);
 
     const departedToggle = page.getByRole("switch", {
       name: /Show departed trips|显示已发车班次/,

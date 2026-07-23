@@ -102,7 +102,7 @@ export const matchSectionCodesResponseSchema = z.object({
   total: z.number().int().nonnegative(),
 });
 
-export const dashboardLinkPinResponseSchema = z.object({
+export const workspaceLinkPinResponseSchema = z.object({
   pinnedSlugs: z.array(z.string()),
   maxPinnedLinks: z.number().int().positive(),
   error: z.string().nullable(),

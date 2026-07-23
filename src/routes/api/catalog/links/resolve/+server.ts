@@ -16,7 +16,7 @@ export const GET = svelteRequestHandler(
 
 /**
  * Resolve a public campus link and record an authenticated visit.
- * @body dashboardLinkVisitRequestSchema
+ * @body catalogLinkVisitRequestSchema
  * @response 303
  */
 export const POST = svelteRequestHandler(

@@ -7,7 +7,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
  * List the current user's pinned campus links.
- * @response dashboardLinkPinResponseSchema
+ * @response workspaceLinkPinResponseSchema
  * @response 401:openApiErrorSchema
  */
 export const GET = svelteRequestHandler(
@@ -16,8 +16,8 @@ export const GET = svelteRequestHandler(
 
 /**
  * Set one campus link pin.
- * @body dashboardLinkPinRequestSchema
- * @response dashboardLinkPinResponseSchema
+ * @body workspaceLinkPinRequestSchema
+ * @response workspaceLinkPinResponseSchema
  * @response 303
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema

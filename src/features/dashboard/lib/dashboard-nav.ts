@@ -1,26 +1,21 @@
 import { semanticSectionCompatibilityHref } from "@/lib/navigation/semantic-section-redirect";
 
-export const signedTabIds = [
+export const workspaceTabIds = [
   "overview",
   "calendar",
   "homeworks",
   "todos",
   "exams",
   "subscriptions",
-  "bus",
-  "links",
 ] as const;
 
-export type SignedTabId = (typeof signedTabIds)[number];
+export type WorkspaceTabId = (typeof workspaceTabIds)[number];
 
-const signedTabIdSet = new Set<string>(signedTabIds);
-const workspaceTabIdSet = new Set<string>([
-  "overview",
-  "calendar",
-  "homeworks",
-  "todos",
-  "exams",
-  "subscriptions",
+const workspaceTabIdSet = new Set<string>(workspaceTabIds);
+const legacyHomeTabIdSet = new Set<string>([
+  ...workspaceTabIds,
+  "bus",
+  "links",
 ]);
 const homeDashboardQueryKeys = new Set([
   "calendarMonth",
@@ -49,20 +44,14 @@ function queryWithoutTab(url: URL) {
   return query;
 }
 
-export function isSignedDashboardTab(
-  value: string | null | undefined,
-): value is SignedTabId {
-  return Boolean(value && signedTabIdSet.has(value));
-}
-
 export function isWorkspaceDashboardTab(
   value: string | null | undefined,
-): value is SignedTabId {
+): value is WorkspaceTabId {
   return Boolean(value && workspaceTabIdSet.has(value));
 }
 
 export function dashboardTabHref(
-  id: SignedTabId,
+  id: WorkspaceTabId,
   params: Record<string, string | number | null | undefined> = {},
 ) {
   const query = new URLSearchParams();
@@ -72,9 +61,7 @@ export function dashboardTabHref(
     }
   }
   const search = query.toString();
-  const path =
-    id === "bus" || id === "links" ? `/catalog/${id}` : `/workspace/${id}`;
-  return `${path}${search ? `?${search}` : ""}`;
+  return `/workspace/${id}${search ? `?${search}` : ""}`;
 }
 
 export function dashboardRedirectHrefFromHome(url: URL) {
@@ -95,7 +82,7 @@ export function dashboardRedirectHrefFromHome(url: URL) {
 
 export function homeTabCompatibilityRedirectHref(url: URL, _signedIn: boolean) {
   const tab = url.searchParams.get("tab");
-  if (!isSignedDashboardTab(tab)) return null;
+  if (!tab || !legacyHomeTabIdSet.has(tab)) return null;
 
   const pathname =
     tab === "bus" || tab === "links" ? `/catalog/${tab}` : `/workspace/${tab}`;

@@ -47,7 +47,7 @@
             },
             "returns": "HomeworkPage!",
             "auth": "user",
-            "required_scopes": ["homework:read"],
+            "required_scopes": ["workspace.homework:read"],
             "rest_equivalent": "GET /api/workspace/homeworks",
             "mcp_equivalent": "workspace_homework_list",
             "notes": [
@@ -138,7 +138,7 @@
             "name": "homeworkCreate",
             "arguments": { "input": "CreateHomeworkInput!" },
             "returns": "HomeworkMutationPayload!",
-            "required_scopes": ["homework:write"],
+            "required_scopes": ["workspace.homework:write"],
             "rest_equivalent": "POST /api/community/section-homeworks",
             "mcp_equivalent": "community_section_homework_create",
             "notes": [
@@ -152,7 +152,7 @@
               "input": "UpdateHomeworkInput!"
             },
             "returns": "HomeworkMutationPayload!",
-            "required_scopes": ["homework:write"],
+            "required_scopes": ["workspace.homework:write"],
             "rest_equivalent": "PATCH /api/community/section-homeworks/[id]",
             "mcp_equivalent": "community_section_homework_update",
             "notes": [
@@ -164,7 +164,7 @@
             "name": "homeworkDelete",
             "arguments": { "id": "ID!" },
             "returns": "HomeworkDeleteMutationPayload!",
-            "required_scopes": ["homework:write"],
+            "required_scopes": ["workspace.homework:write"],
             "rest_equivalent": "DELETE /api/community/section-homeworks/[id]",
             "mcp_equivalent": "community_section_homework_delete",
             "notes": [
@@ -284,7 +284,7 @@
             },
             "returns": "HomeworkCompletionMutationPayload!",
             "auth": "user",
-            "required_scopes": ["homework:write"],
+            "required_scopes": ["workspace.homework:write"],
             "rest_equivalent": "PUT /api/workspace/homeworks/[id]/completion",
             "mcp_equivalent": "workspace_homework_completion_set"
           },
@@ -295,7 +295,7 @@
             },
             "returns": "HomeworkCompletionBatchPayload!",
             "auth": "user",
-            "required_scopes": ["homework:write"],
+            "required_scopes": ["workspace.homework:write"],
             "rest_equivalent": "PUT /api/workspace/homeworks/completions",
             "mcp_equivalent": "workspace_homework_completion_set",
             "notes": [

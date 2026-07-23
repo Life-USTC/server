@@ -3,8 +3,8 @@
  */
 import { expect, type Page, test } from "@playwright/test";
 import {
-  type SignedTabId,
-  signedTabIds,
+  type WorkspaceTabId,
+  workspaceTabIds,
 } from "@/features/dashboard/lib/dashboard-nav";
 import {
   expectRequiresSignIn,
@@ -21,9 +21,7 @@ const dashboardTabRoutes = {
   todos: "/workspace/todos",
   exams: "/workspace/exams",
   subscriptions: "/workspace/subscriptions",
-  bus: "/catalog/bus",
-  links: "/catalog/links",
-} satisfies Record<SignedTabId, string>;
+} satisfies Record<WorkspaceTabId, string>;
 
 const dashboardTabTitles = {
   "en-us": {
@@ -33,8 +31,6 @@ const dashboardTabTitles = {
     todos: "Todos",
     exams: "Exams",
     subscriptions: "Section Subscriptions",
-    bus: "Shuttle Bus",
-    links: "Websites",
   },
   "zh-cn": {
     overview: "总览",
@@ -43,10 +39,8 @@ const dashboardTabTitles = {
     todos: "待办",
     exams: "考试",
     subscriptions: "教学班订阅",
-    bus: "校车",
-    links: "网站",
   },
-} satisfies Record<"en-us" | "zh-cn", Record<SignedTabId, string>>;
+} satisfies Record<"en-us" | "zh-cn", Record<WorkspaceTabId, string>>;
 
 async function setLocale(page: Page, locale: "en-us" | "zh-cn") {
   const response = await page.request.post("/api/account/preferences", {
@@ -110,7 +104,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
     await signInAsDebugUser(page, dashboardTabRoutes.overview);
     await setLocale(page, locale);
 
-    for (const tab of signedTabIds) {
+    for (const tab of workspaceTabIds) {
       await gotoAndWaitForReady(page, dashboardTabRoutes[tab]);
       await expectDashboardPageIdentity(
         page,

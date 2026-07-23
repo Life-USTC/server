@@ -91,7 +91,7 @@
             "arguments": { "input": "BusPreferenceInput!" },
             "returns": "BusPreferenceMutationPayload!",
             "auth": "user",
-            "required_scopes": ["bus:write"],
+            "required_scopes": ["workspace.bus-preferences:write"],
             "rest_equivalent": "POST /api/workspace/bus-preferences",
             "mcp_equivalent": "workspace_bus_preferences_set"
           }
