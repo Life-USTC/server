@@ -4,12 +4,11 @@ import {
   OAUTH_OFFLINE_ACCESS_SCOPE,
   OAUTH_REFRESH_TOKEN_GRANT_TYPE,
 } from "@/lib/oauth/constants";
-import { expandLegacyScope, OAUTH_SCOPES } from "@/lib/oauth/scope-registry";
+import { OAUTH_SCOPES } from "@/lib/oauth/scope-registry";
 
 type ValidationErrorResult = { error: string };
 type ScopesResult = ValidationErrorResult | { scopes: string[] };
 
-// Allowed scopes after expanding legacy coarse scopes into feature scopes.
 const ALLOWED_DYNAMIC_CLIENT_SCOPES: ReadonlySet<string> = new Set(
   OAUTH_SCOPES,
 );
@@ -31,8 +30,7 @@ export function resolveOAuthClientScopes(
     return { scopes: [...DEFAULT_OAUTH_CLIENT_SCOPES] };
   }
 
-  const expandedScopes = requestedScopes.flatMap(expandLegacyScope);
-  const invalidScopes = expandedScopes.filter(
+  const invalidScopes = requestedScopes.filter(
     (scope) => !ALLOWED_DYNAMIC_CLIENT_SCOPES.has(scope),
   );
 

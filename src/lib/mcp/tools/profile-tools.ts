@@ -31,7 +31,7 @@ export function registerProfileTools(server: McpServer) {
     "community_user_get",
     {
       description:
-        "Return a public Life@USTC user profile by username or userId, including visible stats and contribution heatmap data from the web profile page.",
+        "Return a public Life@USTC user profile by username or user ID, including visible stats and contribution heatmap data.",
       inputSchema: getPublicUserProfileInputSchema,
     },
     getPublicUserProfileAction,

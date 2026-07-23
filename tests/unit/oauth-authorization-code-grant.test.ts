@@ -40,7 +40,7 @@ describe("OAuth authorization-code grant binding", () => {
       token: JSON.stringify({
         query: {
           client_id: "client-1",
-          scope: "profile todo:read",
+          scope: "profile workspace.todo:read",
         },
         sessionId: "session-1",
         type: "authorization_code",
@@ -68,7 +68,7 @@ describe("OAuth authorization-code grant binding", () => {
       clientId: "client-1",
       grantId: "grant-1",
       requireGrantBinding: true,
-      scopes: ["profile", "todo:read"],
+      scopes: ["profile", "workspace.todo:read"],
       userId: "user-1",
     });
     const stored = JSON.parse(
@@ -79,7 +79,7 @@ describe("OAuth authorization-code grant binding", () => {
       clientId: "client-1",
       grantId: "grant-1",
       requireGrantBinding: true,
-      scopes: ["profile", "todo:read"],
+      scopes: ["profile", "workspace.todo:read"],
       userId: "user-1",
     });
   });
@@ -114,12 +114,12 @@ describe("OAuth authorization-code grant binding", () => {
       clientId: "client-1",
       grantId: expect.any(String),
       requireGrantBinding: true,
-      scopes: ["profile", "todo:read"],
+      scopes: ["profile", "workspace.todo:read"],
       userId: "user-1",
     });
     expect(resolveActiveGrantMock).toHaveBeenNthCalledWith(2, {
       clientId: "client-1",
-      scopes: ["profile", "todo:read"],
+      scopes: ["profile", "workspace.todo:read"],
       userId: "user-1",
     });
     const stored = JSON.parse(
@@ -177,14 +177,14 @@ describe("OAuth authorization-code grant binding", () => {
       clientId: "client-1",
       grantId: stored.referenceId,
       requireGrantBinding: true,
-      scopes: ["profile", "todo:read"],
+      scopes: ["profile", "workspace.todo:read"],
       userId: "user-1",
     });
     expect(resolveActiveGrantMock).toHaveBeenNthCalledWith(2, {
       clientId: "client-1",
       grantId: stored.referenceId,
       requireGrantBinding: true,
-      scopes: ["profile", "todo:read"],
+      scopes: ["profile", "workspace.todo:read"],
       userId: "user-1",
     });
   });

@@ -29,7 +29,7 @@ function visitButtonClass(props: Record<string, unknown>) {
 </script>
 
 <form
-  action="/api/workspace/links/visit"
+  action="/api/catalog/links/resolve"
   class="h-full min-w-0"
   method="POST"
   rel="noopener"

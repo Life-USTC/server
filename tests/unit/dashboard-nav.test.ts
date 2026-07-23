@@ -41,7 +41,7 @@ describe("homeTabCompatibilityRedirectHref", () => {
   it("maps signed-in public tabs to their workspace routes", () => {
     const url = new URL("https://example.test/?tab=bus");
 
-    expect(homeTabCompatibilityRedirectHref(url, true)).toBe("/workspace/bus");
+    expect(homeTabCompatibilityRedirectHref(url, true)).toBe("/catalog/bus");
   });
 
   it("maps authenticated-only tabs to their protected semantic routes", () => {

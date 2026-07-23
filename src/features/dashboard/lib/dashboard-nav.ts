@@ -14,6 +14,14 @@ export const signedTabIds = [
 export type SignedTabId = (typeof signedTabIds)[number];
 
 const signedTabIdSet = new Set<string>(signedTabIds);
+const workspaceTabIdSet = new Set<string>([
+  "overview",
+  "calendar",
+  "homeworks",
+  "todos",
+  "exams",
+  "subscriptions",
+]);
 const homeDashboardQueryKeys = new Set([
   "calendarMonth",
   "calendarSemester",
@@ -47,6 +55,12 @@ export function isSignedDashboardTab(
   return Boolean(value && signedTabIdSet.has(value));
 }
 
+export function isWorkspaceDashboardTab(
+  value: string | null | undefined,
+): value is SignedTabId {
+  return Boolean(value && workspaceTabIdSet.has(value));
+}
+
 export function dashboardTabHref(
   id: SignedTabId,
   params: Record<string, string | number | null | undefined> = {},
@@ -58,7 +72,8 @@ export function dashboardTabHref(
     }
   }
   const search = query.toString();
-  const path = `/workspace/${id}`;
+  const path =
+    id === "bus" || id === "links" ? `/catalog/${id}` : `/workspace/${id}`;
   return `${path}${search ? `?${search}` : ""}`;
 }
 
@@ -73,19 +88,17 @@ export function dashboardRedirectHrefFromHome(url: URL) {
   }
 
   return appendSearch(
-    isSignedDashboardTab(tab) ? `/workspace/${tab}` : "/workspace/overview",
+    isWorkspaceDashboardTab(tab) ? `/workspace/${tab}` : "/workspace/overview",
     query,
   );
 }
 
-export function homeTabCompatibilityRedirectHref(url: URL, signedIn: boolean) {
+export function homeTabCompatibilityRedirectHref(url: URL, _signedIn: boolean) {
   const tab = url.searchParams.get("tab");
   if (!isSignedDashboardTab(tab)) return null;
 
   const pathname =
-    signedIn || (tab !== "bus" && tab !== "links")
-      ? `/workspace/${tab}`
-      : `/catalog/${tab}`;
+    tab === "bus" || tab === "links" ? `/catalog/${tab}` : `/workspace/${tab}`;
   return appendSearch(pathname, queryWithoutTab(url));
 }
 
@@ -97,7 +110,7 @@ export function dashboardTabCompatibilityRedirectHref(
     basePath: "/workspace",
     defaultSection: "overview",
     method,
-    resolveSection: (tab) => (isSignedDashboardTab(tab) ? tab : null),
+    resolveSection: (tab) => (isWorkspaceDashboardTab(tab) ? tab : null),
     url,
   });
 }

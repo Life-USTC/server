@@ -46,7 +46,7 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
     };
     expect(body.paths).toBeDefined();
     expect(body.paths?.["/api/catalog/sections/match-codes"]).toBeTruthy();
-    expect(body.paths?.["/api/community/homeworks"]).toBeTruthy();
+    expect(body.paths?.["/api/community/section-homeworks"]).toBeTruthy();
     expect(body.paths?.["/api/community/descriptions"]).toBeTruthy();
     expect(
       body.paths?.["/.well-known/openid-configuration/api/auth"]?.get,
@@ -145,30 +145,30 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
       ],
     ).toBeUndefined();
     expect(
-      body.paths?.["/api/workspace/links/visit"]?.get?.responses?.["307"],
+      body.paths?.["/api/catalog/links/resolve"]?.get?.responses?.["307"],
     ).toBeTruthy();
     expect(
-      body.paths?.["/api/workspace/links/visit"]?.post?.responses?.["303"],
+      body.paths?.["/api/catalog/links/resolve"]?.post?.responses?.["303"],
     ).toBeTruthy();
     expect(
-      body.paths?.["/api/workspace/links/pin"]?.post?.requestBody?.content?.[
+      body.paths?.["/api/workspace/link-pins"]?.post?.requestBody?.content?.[
         "application/x-www-form-urlencoded"
       ]?.schema?.$ref,
     ).toBe("#/components/schemas/dashboardLinkPinRequestSchema");
     expect(
-      body.paths?.["/api/workspace/links/pin"]?.post?.responses?.["200"],
+      body.paths?.["/api/workspace/link-pins"]?.post?.responses?.["200"],
     ).toBeTruthy();
     expect(
-      body.paths?.["/api/workspace/links/pin"]?.post?.responses?.["303"],
+      body.paths?.["/api/workspace/link-pins"]?.post?.responses?.["303"],
     ).toBeTruthy();
     expect(
-      body.paths?.["/api/workspace/links/pin"]?.post?.responses?.["400"],
+      body.paths?.["/api/workspace/link-pins"]?.post?.responses?.["400"],
     ).toBeTruthy();
     expect(
-      body.paths?.["/api/workspace/links/pin"]?.post?.responses?.["401"],
+      body.paths?.["/api/workspace/link-pins"]?.post?.responses?.["401"],
     ).toBeTruthy();
     expect(
-      body.paths?.["/api/workspace/links/pin"]?.post?.responses?.["500"],
+      body.paths?.["/api/workspace/link-pins"]?.post?.responses?.["500"],
     ).toBeTruthy();
     expect(
       body.paths?.["/api/auth/oauth2/device-authorization"]?.options
@@ -222,10 +222,10 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
       body.paths?.["/api/admin/comments/{id}"]?.patch?.["x-auth-role"],
     ).toBe("admin");
     expect(
-      body.paths?.["/api/workspace/links/visit"]?.get?.security,
+      body.paths?.["/api/catalog/links/resolve"]?.get?.security,
     ).toBeUndefined();
     expect(
-      body.paths?.["/api/workspace/links/visit"]?.post?.security,
+      body.paths?.["/api/catalog/links/resolve"]?.post?.security,
     ).toBeUndefined();
     const mcpGetOperation = body.paths?.["/api/mcp"]?.get as
       | { responses?: Record<string, unknown>; security?: unknown[] }
@@ -236,7 +236,7 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
     expect(body.paths?.["/api/accounttrics"]).toBeUndefined();
     expect(body.paths?.["/api/health"]?.get?.security).toBeUndefined();
     expect(
-      body.paths?.["/api/community/users/{userId}/calendar.ics"]?.get?.security,
+      body.paths?.["/api/calendar-feeds/{userId}.ics"]?.get?.security,
     ).toEqual([
       { bearerAuth: [] },
       { sessionCookie: [] },
@@ -248,8 +248,7 @@ test.describe("GET /api/openapi - OpenAPI 规范", () => {
       body.paths?.["/api/auth/oauth2/token"]?.post?.security,
     ).toBeUndefined();
     expect(
-      body.paths?.["/api/community/users/{userId}/calendar.ics"]?.get
-        ?.parameters,
+      body.paths?.["/api/calendar-feeds/{userId}.ics"]?.get?.parameters,
     ).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ in: "query", name: "token" }),

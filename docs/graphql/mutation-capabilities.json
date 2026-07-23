@@ -59,7 +59,7 @@
     },
     {
       "id": "community_section_homework_create",
-      "rest": ["POST /api/community/homeworks"],
+      "rest": ["POST /api/community/section-homeworks"],
       "graphql": { "status": "stable", "field": "homeworkCreate" },
       "mcp": {
         "status": "native",
@@ -69,7 +69,7 @@
     },
     {
       "id": "community_section_homework_update",
-      "rest": ["PATCH /api/community/homeworks/[id]"],
+      "rest": ["PATCH /api/community/section-homeworks/[id]"],
       "graphql": { "status": "stable", "field": "homeworkUpdate" },
       "mcp": {
         "status": "native",
@@ -79,7 +79,7 @@
     },
     {
       "id": "community_section_homework_delete",
-      "rest": ["DELETE /api/community/homeworks/[id]"],
+      "rest": ["DELETE /api/community/section-homeworks/[id]"],
       "graphql": { "status": "stable", "field": "homeworkDelete" },
       "mcp": {
         "status": "native",
@@ -139,7 +139,7 @@
     },
     {
       "id": "workspace_link_pin_set",
-      "rest": ["POST /api/workspace/links/pin"],
+      "rest": ["POST /api/workspace/link-pins"],
       "graphql": { "status": "stable", "field": "linkPinSet" },
       "mcp": { "status": "native", "tools": ["workspace_link_pin_set"] },
       "semantics": "single"
@@ -204,7 +204,7 @@
     },
     {
       "id": "workspace_link_pins_set",
-      "rest": ["POST /api/workspace/links/pin/batch"],
+      "rest": ["POST /api/workspace/link-pins/batch"],
       "graphql": { "status": "stable", "field": "linkPinsSet" },
       "mcp": {
         "status": "registered_operation",

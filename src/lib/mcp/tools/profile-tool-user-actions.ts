@@ -33,42 +33,16 @@ export async function getMyProfileAction(
 }
 
 export async function getPublicUserProfileAction({
-  username,
-  userId,
+  identifier,
   mode,
 }: {
-  username?: string;
-  userId?: string;
+  identifier: string;
   mode?: McpModeInput;
 }) {
   const resolvedMode = resolveMcpMode(mode);
-  if (username && userId) {
-    return jsonToolResult(
-      {
-        success: false,
-        error: "invalid_request",
-        message: "Provide either username or userId, not both",
-      },
-      { mode: resolvedMode },
-    );
-  }
-
-  if (!username && !userId) {
-    return jsonToolResult(
-      {
-        success: false,
-        error: "invalid_request",
-        message: "Provide username or userId",
-      },
-      { mode: resolvedMode },
-    );
-  }
-
-  const profile = username
-    ? await getUserProfileByUsername(username)
-    : userId
-      ? await getUserProfileById(userId)
-      : null;
+  const profile =
+    (await getUserProfileByUsername(identifier.toLowerCase())) ??
+    (await getUserProfileById(identifier));
 
   if (!profile) {
     return jsonToolResult(

@@ -48,9 +48,9 @@ describe("summarizeCalendarSubscription 日历订阅摘要", () => {
           },
         },
       ],
-      calendarPath: "/api/community/users/user-1/calendar.ics?token=secret",
+      calendarPath: "/api/calendar-feeds/user-1.ics?token=secret",
       calendarUrl:
-        "https://life.example/api/community/users/user-1/calendar.ics?token=secret",
+        "https://life.example/api/calendar-feeds/user-1.ics?token=secret",
       note: "note",
     };
     const summary = summarizeCalendarSubscription(input);
@@ -59,16 +59,10 @@ describe("summarizeCalendarSubscription 日历订阅摘要", () => {
     expect(summary.sectionCount).toBe(2);
     expect(summary.currentSemesterSectionCount).toBe(2);
     expect(summary.currentSemesterSections).toHaveLength(2);
-    expect(summary.calendarPath).toContain(
-      "/api/community/users/user-1/calendar.ics",
-    );
-    expect(summary.calendarUrl).toContain(
-      "/api/community/users/user-1/calendar.ics",
-    );
+    expect(summary.calendarPath).toContain("/api/calendar-feeds/user-1.ics");
+    expect(summary.calendarUrl).toContain("/api/calendar-feeds/user-1.ics");
     expect(brief).not.toHaveProperty("currentSemesterSections");
     expect(brief.sectionCount).toBe(2);
-    expect(brief.calendarPath).toContain(
-      "/api/community/users/user-1/calendar.ics",
-    );
+    expect(brief.calendarPath).toContain("/api/calendar-feeds/user-1.ics");
   });
 });

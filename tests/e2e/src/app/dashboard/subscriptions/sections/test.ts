@@ -21,7 +21,7 @@
  * ## Edge Cases
  * - Unauthenticated users see the public dashboard view (subscriptions is auth-only)
  * - Bulk import with invalid codes shows only matched sections in dialog
- * - Calendar link format: /api/community/users/{userId}:{token}/calendar.ics
+ * - Calendar link format: /api/calendar-feeds/{userId}:{token}.ics
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../utils/auth";

@@ -1,9 +1,5 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
-import {
-  hasMcpScope,
-  LEGACY_MCP_TOOLS_SCOPE,
-  PUBLIC_REST_SCOPES,
-} from "@/lib/oauth/scope-registry";
+import { hasMcpScope, PUBLIC_REST_SCOPES } from "@/lib/oauth/scope-registry";
 import { resourceIndicatorsMatch } from "@/lib/oauth/utils";
 import {
   buildAuthErrorResponse,
@@ -152,12 +148,8 @@ export function authorizeMcpToolScopes(
   | { authInfo: AuthInfo }
   | { authFailureDiagnostics: McpAuthFailureDiagnostics; response: Response } {
   const requiredScopes = getRequiredMcpScopes(toolName);
-  const hasLegacyMcpToolsScope = authInfo.scopes.includes(
-    LEGACY_MCP_TOOLS_SCOPE,
-  );
   const hasRequiredScope =
     requiredScopes.length === 0 ||
-    hasLegacyMcpToolsScope ||
     requiredScopes.every((scope) =>
       hasRequiredFeatureScope(authInfo.scopes, scope),
     );

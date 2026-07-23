@@ -56,11 +56,11 @@
       "rest": {
         "routes": [
           {
-            "path": "/api/community/users/[userId]/calendar.ics",
+            "path": "/api/calendar-feeds/[credential].ics",
             "returns": "text/calendar",
             "notes": [
-              "Same-user session or bearer access is accepted.",
-              "Anonymous feed access is accepted with either ?token=... or the userId:token path segment form.",
+              "The opaque credential authorizes feed retrieval.",
+              "The credential is carried only in the canonical path segment.",
               "An existing user with a valid feed token receives a valid empty VCALENDAR when no items are currently available, so calendar clients can keep the subscription active."
             ]
           },

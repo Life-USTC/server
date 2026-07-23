@@ -77,13 +77,13 @@ type ExamParent = {
 type OverviewParent = Awaited<ReturnType<typeof getCompactOverview>>;
 
 const READ_SCOPES = {
-  profile: { feature: "me", action: "read" },
-  overview: { feature: "dashboard", action: "read" },
-  todos: { feature: "todo", action: "read" },
-  subscribedSections: { feature: "subscription", action: "read" },
-  homeworks: { feature: "homework", action: "read" },
-  schedules: { feature: "schedule", action: "read" },
-  exams: { feature: "exam", action: "read" },
+  profile: { feature: "account.profile", action: "read" },
+  overview: { feature: "workspace.overview", action: "read" },
+  todos: { feature: "workspace.todo", action: "read" },
+  subscribedSections: { feature: "workspace.subscription", action: "read" },
+  homeworks: { feature: "workspace.homework", action: "read" },
+  schedules: { feature: "workspace.schedule", action: "read" },
+  exams: { feature: "workspace.exam", action: "read" },
 } as const satisfies Record<string, GraphqlScopeRequirement>;
 
 function requireViewerUserId(

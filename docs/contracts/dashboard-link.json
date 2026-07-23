@@ -1,17 +1,17 @@
 {
-  "name": "Dashboard Link",
+  "name": "Catalog Link and Workspace Link Pin",
   "access": {
     "anon": "Can browse frequent links and follow public visit redirects but cannot pin them.",
     "user": "Can pin and unpin links; authenticated POST visits record click counts before redirecting.",
     "admin": "Has no dedicated link management interface separate from regular users.",
-    "agent": "Can list/search dashboard links and manage the authenticated user's pin state through MCP; visit redirects remain browser/REST navigation."
+    "agent": "Can list/search catalog links and manage the authenticated user's link-pin state through MCP; visit redirects remain browser/REST navigation."
   },
   "rules": {
     "navigation-not-feed": "Frequent links are a navigation capability, not a content feed.",
     "search-fuzzy": "Search supports Chinese, pinyin, and whitespace-tolerant matching.",
     "links-vs-buttons": "Links are for navigation; buttons are for actions.",
     "pin-limit": "Currently a maximum of 4 links can be pinned; exceeding this displaces the earliest pinned link.",
-    "semantic-public-route": "Anonymous /?tab=links requests permanently redirect to /catalog/links; signed-in compatibility requests redirect to /workspace/links.",
+    "semantic-public-route": "Legacy query navigation resolves to the canonical /catalog/links page for both anonymous and signed-in users.",
     "pin-error-clear": "When pin/unpin writes fail, the endpoint returns a clear error; failures are not disguised as successes."
   },
   "capabilities": {
@@ -19,19 +19,38 @@
       "title": "Link Browse & Search",
       "auth": "anon",
       "web": {
-        "pages": ["/catalog/links", "/workspace/links"]
+        "pages": ["/catalog/links"]
       },
-      "rest": "unavailable",
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/catalog/links",
+            "returns": "{ links: CatalogLink[] }",
+            "auth": "anon"
+          }
+        ]
+      },
+      "graphql": {
+        "fields": [
+          {
+            "name": "links",
+            "parent": "Catalog",
+            "arguments": { "query": "String" },
+            "returns": "[CatalogLink!]!",
+            "rest_equivalent": "GET /api/catalog/links",
+            "mcp_equivalent": "catalog_link_list"
+          }
+        ]
+      },
       "mcp": {
         "tools": [
           {
-            "name": "workspace_link_list",
-            "auth": "user",
-            "returns": "{ success, query, total, returned, dashboardLinks: [{ slug, title, url, description, icon, group, isPinned }], pinnedSlugs, maxPinnedLinks }",
+            "name": "catalog_link_list",
+            "auth": "anon",
+            "returns": "{ success, query, total, returned, links: [{ slug, title, url, description, icon, group }] }",
             "notes": [
-              "Requires MCP user auth because each link summary includes the caller's current isPinned state.",
               "Optional query reuses the web dashboard link search behavior across title, description, titlePinyin, and descriptionPinyin.",
-              "The MCP output exposes target URLs for client-side navigation but omits per-user click telemetry and internal pinyin search fields."
+              "The public output exposes target URLs but omits personal pin and click state."
             ]
           }
         ]
@@ -60,24 +79,24 @@
               "slug": "String!",
               "pinned": "Boolean!"
             },
-            "returns": "DashboardLinkPinMutationPayload!",
+            "returns": "WorkspaceLinkPinMutationPayload!",
             "auth": "user",
-            "required_scopes": ["dashboard:write"],
-            "rest_equivalent": "POST /api/workspace/links/pin",
+            "required_scopes": ["workspace.link-pin:write"],
+            "rest_equivalent": "POST /api/workspace/link-pins",
             "mcp_equivalent": "workspace_link_pin_set"
           },
           {
             "name": "linkPinsSet",
             "arguments": {
-              "items": "[DashboardLinkPinBatchItemInput!]!"
+              "items": "[WorkspaceLinkPinBatchItemInput!]!"
             },
-            "returns": "DashboardLinkPinBatchMutationPayload!",
+            "returns": "WorkspaceLinkPinBatchMutationPayload!",
             "auth": "user",
-            "required_scopes": ["dashboard:write"],
-            "rest_equivalent": "POST /api/workspace/links/pin/batch",
+            "required_scopes": ["workspace.link-pin:write"],
+            "rest_equivalent": "POST /api/workspace/link-pins/batch",
             "mcp_equivalent": "graphql_operation_run",
             "notes": [
-              "Registered operation id: workspace.link.pins.set.v1.",
+              "Registered operation id: workspace.link_pin.batch_set.v1.",
               "Validates every slug before writing, then applies at most 10 actions in request order.",
               "The batch is intentionally non-atomic; an unexpected persistence failure may leave an ordered prefix applied."
             ]
@@ -85,12 +104,12 @@
         ]
       },
       "web": {
-        "pages": ["/workspace/links"]
+        "pages": ["/catalog/links"]
       },
       "rest": {
         "routes": [
           {
-            "path": "/api/workspace/links/pin",
+            "path": "/api/workspace/link-pins",
             "method": "POST",
             "returns": "200 JSON pin state when Accept requests JSON; otherwise 303 redirect",
             "notes": [
@@ -99,7 +118,7 @@
             ]
           },
           {
-            "path": "/api/workspace/links/pin/batch",
+            "path": "/api/workspace/link-pins/batch",
             "method": "POST",
             "returns": "{ pinnedSlugs: String[], maxPinnedLinks: Int, error: String? }",
             "notes": [
@@ -108,13 +127,13 @@
             ]
           },
           {
-            "path": "/api/workspace/links/visit",
+            "path": "/api/catalog/links/resolve",
             "returns": "307 redirect",
             "auth": "anon",
             "notes": ["Invalid or missing slug redirects to /."]
           },
           {
-            "path": "/api/workspace/links/visit",
+            "path": "/api/catalog/links/resolve",
             "method": "POST",
             "returns": "303 redirect",
             "auth": "anon",
@@ -126,6 +145,11 @@
       },
       "mcp": {
         "tools": [
+          {
+            "name": "workspace_link_pin_list",
+            "auth": "user",
+            "returns": "{ success, pinnedSlugs, maxPinnedLinks }"
+          },
           {
             "name": "workspace_link_pin_set",
             "auth": "user",

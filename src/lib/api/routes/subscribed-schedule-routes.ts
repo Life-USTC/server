@@ -10,7 +10,7 @@ import { serializeScheduleTimeFields } from "@/shared/lib/schedule-serialization
 
 export async function getMySubscribedSchedulesRoute(request: Request) {
   const auth = await requireAuth(request, {
-    bearerScope: { feature: "schedule", action: "read" },
+    bearerScope: { feature: "workspace.schedule", action: "read" },
   });
   if (auth instanceof Response) return auth;
   const { userId } = auth;

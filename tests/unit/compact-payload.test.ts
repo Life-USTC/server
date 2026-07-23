@@ -5,10 +5,10 @@ describe("compactMcpPayload MCP 载荷压缩", () => {
   it("隐藏社区日历订阅路径中的访问令牌", () => {
     expect(
       compactMcpPayload({
-        calendarPath: "/api/community/users/user-1:private-token/calendar.ics",
+        calendarPath: "/api/calendar-feeds/user-1:private-token.ics",
       }),
     ).toEqual({
-      calendarPath: "/api/community/users/user-1:[redacted]/calendar.ics",
+      calendarPath: "/api/calendar-feeds/user-1:[redacted].ics",
     });
   });
 
@@ -746,9 +746,9 @@ describe("compactMcpPayload MCP 载荷压缩", () => {
           sectionCount: 2,
           currentSemesterSectionCount: 1,
           currentSemesterSections: [{ id: 1, code: "CS101.01" }],
-          calendarPath: "/api/community/users/user-1/calendar.ics?token=secret",
+          calendarPath: "/api/calendar-feeds/user-1.ics?token=secret",
           calendarUrl:
-            "https://life.example/api/community/users/user-1/calendar.ics?token=secret",
+            "https://life.example/api/calendar-feeds/user-1.ics?token=secret",
           note: "summary",
         },
       };

@@ -399,16 +399,16 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["me:read"],
+    scopes: ["account.profile:read"],
   }),
   query({
     id: "community.user.get.v1",
     title: "Get community user",
-    description: "Returns one public community identity by username.",
+    description: "Returns one public community identity by username or id.",
     document: /* GraphQL */ `
-      query CommunityUser($username: String!) {
+      query CommunityUser($identifier: String!) {
         community {
-          user(username: $username) {
+          user(identifier: $identifier) {
             id
             username
             name
@@ -443,7 +443,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["dashboard:read"],
+    scopes: ["workspace.overview:read"],
   }),
   query({
     id: "workspace.todo.list.v1",
@@ -464,7 +464,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["todo:read"],
+    scopes: ["workspace.todo:read"],
   }),
   query({
     id: "workspace.subscription.list.v1",
@@ -485,7 +485,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["subscription:read"],
+    scopes: ["workspace.subscription:read"],
   }),
   query({
     id: "workspace.homework.list.v1",
@@ -529,7 +529,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["homework:read"],
+    scopes: ["workspace.homework:read"],
   }),
   query({
     id: "workspace.schedule.list.v1",
@@ -586,7 +586,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["schedule:read"],
+    scopes: ["workspace.schedule:read"],
   }),
   query({
     id: "workspace.exam.list.v1",
@@ -641,7 +641,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["exam:read"],
+    scopes: ["workspace.exam:read"],
   }),
   mutation({
     id: "workspace.todo.create.v1",
@@ -654,7 +654,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["todo:write"],
+    scopes: ["workspace.todo:write"],
     destructive: false,
     openWorld: false,
   }),
@@ -669,7 +669,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["todo:write"],
+    scopes: ["workspace.todo:write"],
     destructive: true,
     openWorld: false,
   }),
@@ -685,7 +685,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["todo:write"],
+    scopes: ["workspace.todo:write"],
     destructive: true,
     openWorld: false,
   }),
@@ -711,7 +711,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["todo:write"],
+    scopes: ["workspace.todo:write"],
     destructive: true,
     openWorld: false,
   }),
@@ -734,7 +734,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["todo:write"],
+    scopes: ["workspace.todo:write"],
     destructive: true,
     openWorld: false,
   }),
@@ -766,7 +766,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["homework:write"],
+    scopes: ["workspace.homework:write"],
     destructive: false,
     openWorld: true,
   }),
@@ -798,7 +798,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["homework:write"],
+    scopes: ["workspace.homework:write"],
     destructive: true,
     openWorld: true,
   }),
@@ -815,7 +815,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["homework:write"],
+    scopes: ["workspace.homework:write"],
     destructive: true,
     openWorld: true,
   }),
@@ -839,7 +839,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["homework:write"],
+    scopes: ["workspace.homework:write"],
     destructive: true,
     openWorld: false,
   }),
@@ -866,7 +866,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["homework:write"],
+    scopes: ["workspace.homework:write"],
     destructive: true,
     openWorld: false,
   }),
@@ -883,7 +883,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["subscription:write"],
+    scopes: ["workspace.subscription:write"],
     destructive: false,
     openWorld: false,
   }),
@@ -900,7 +900,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["subscription:write"],
+    scopes: ["workspace.subscription:write"],
     destructive: true,
     openWorld: false,
   }),
@@ -925,7 +925,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["subscription:write"],
+    scopes: ["workspace.subscription:write"],
     destructive: true,
     openWorld: false,
   }),
@@ -943,18 +943,18 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["dashboard:write"],
+    scopes: ["workspace.link-pin:write"],
     destructive: true,
     openWorld: false,
   }),
   mutation({
-    id: "workspace.link.pins.set.v1",
+    id: "workspace.link_pin.batch_set.v1",
     title: "Set dashboard link pin states in batch",
     description:
       "Applies up to 10 workspace pin changes in order and returns the final pin state.",
     document: /* GraphQL */ `
       mutation DashboardSetLinkPinStatesBatch(
-        $items: [DashboardLinkPinBatchItemInput!]!
+        $items: [WorkspaceLinkPinBatchItemInput!]!
       ) {
         linkPinsSet(items: $items) {
           pinnedSlugs
@@ -962,7 +962,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["dashboard:write"],
+    scopes: ["workspace.link-pin:write"],
     destructive: true,
     openWorld: false,
   }),
@@ -979,7 +979,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["bus:write"],
+    scopes: ["workspace.bus-preferences:write"],
     destructive: true,
     openWorld: false,
   }),
@@ -995,7 +995,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["description:write"],
+    scopes: ["community.description:write"],
     destructive: true,
     openWorld: true,
   }),
@@ -1010,7 +1010,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["comment:write"],
+    scopes: ["community.comment:write"],
     destructive: false,
     openWorld: true,
   }),
@@ -1025,7 +1025,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["comment:write"],
+    scopes: ["community.comment:write"],
     destructive: true,
     openWorld: true,
   }),
@@ -1041,7 +1041,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["comment:write"],
+    scopes: ["community.comment:write"],
     destructive: true,
     openWorld: true,
   }),
@@ -1064,7 +1064,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["comment:write"],
+    scopes: ["community.comment:write"],
     destructive: true,
     openWorld: true,
   }),
@@ -1085,7 +1085,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["comment:write"],
+    scopes: ["community.comment:write"],
     destructive: false,
     openWorld: true,
   }),
@@ -1106,7 +1106,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["comment:write"],
+    scopes: ["community.comment:write"],
     destructive: true,
     openWorld: true,
   }),
@@ -1126,7 +1126,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["upload:write"],
+    scopes: ["workspace.upload:write"],
     destructive: true,
     openWorld: true,
   }),
@@ -1150,7 +1150,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["upload:write"],
+    scopes: ["workspace.upload:write"],
     destructive: true,
     openWorld: true,
   }),
@@ -1171,7 +1171,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["upload:write"],
+    scopes: ["workspace.upload:write"],
     destructive: true,
     openWorld: false,
   }),
@@ -1189,7 +1189,7 @@ export const persistedGraphqlOperationDefinitions = [
         }
       }
     `,
-    scopes: ["upload:write"],
+    scopes: ["workspace.upload:write"],
     destructive: true,
     openWorld: true,
   }),

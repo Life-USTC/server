@@ -34,19 +34,22 @@ async function createTempHomework(
   title: string,
 ) {
   const now = new Date();
-  const createResponse = await request.post("/api/community/homeworks", {
-    data: {
-      title,
-      sectionId: String(sectionId),
-      publishedAt: now.toISOString(),
-      submissionStartAt: now.toISOString(),
-      submissionDueAt: new Date(now.getTime() + 86_400_000).toISOString(),
+  const createResponse = await request.post(
+    "/api/community/section-homeworks",
+    {
+      data: {
+        title,
+        sectionId: String(sectionId),
+        publishedAt: now.toISOString(),
+        submissionStartAt: now.toISOString(),
+        submissionDueAt: new Date(now.getTime() + 86_400_000).toISOString(),
+      },
     },
-  });
+  );
   expect(createResponse.status()).toBe(201);
 
   const listResponse = await request.get(
-    `/api/community/homeworks?sectionId=${sectionId}`,
+    `/api/community/section-homeworks?sectionId=${sectionId}`,
   );
   expect(listResponse.status()).toBe(200);
   const listBody = (await listResponse.json()) as {
@@ -92,7 +95,7 @@ test("/api/workspace/homeworks/completions PUT 返回每项结果", async ({
 
   try {
     const deleteResponse = await page.request.delete(
-      `/api/community/homeworks/${deletedHomeworkId}`,
+      `/api/community/section-homeworks/${deletedHomeworkId}`,
     );
     expect(deleteResponse.status()).toBe(200);
 
@@ -139,6 +142,8 @@ test("/api/workspace/homeworks/completions PUT 返回每项结果", async ({
       error: { code: "not_found" },
     });
   } finally {
-    await page.request.delete(`/api/community/homeworks/${activeHomeworkId}`);
+    await page.request.delete(
+      `/api/community/section-homeworks/${activeHomeworkId}`,
+    );
   }
 });

@@ -13,132 +13,185 @@
   ],
   "tags": [
     {
-      "name": "Admin",
-      "description": "Admin and moderation endpoints"
-    },
-    {
-      "name": "Comments",
-      "description": "Comment threads, reactions, and moderation"
-    },
-    {
-      "name": "Homeworks",
-      "description": "Homework management and completion status"
-    },
-    {
-      "name": "Uploads",
-      "description": "Upload session, R2 object write, finalize, and file management"
-    },
-    {
-      "name": "Descriptions",
-      "description": "User-generated description content and history"
-    },
-    {
-      "name": "Sections",
-      "description": "Course sections, calendars, and schedules"
-    },
-    {
-      "name": "Courses",
-      "description": "Course catalog and search"
-    },
-    {
-      "name": "Teachers",
-      "description": "Teacher directory and search"
-    },
-    {
-      "name": "Schedules",
-      "description": "Schedules search and filtering"
-    },
-    {
-      "name": "Semesters",
-      "description": "Semester listing and current semester"
-    },
-    {
-      "name": "Calendar",
-      "description": "Calendar selections and exports"
-    },
-    {
-      "name": "Bus",
-      "description": "Shuttle bus schedules and preferences"
-    },
-    {
-      "name": "Todos",
-      "description": "Personal todo management"
-    },
-    {
-      "name": "Me",
-      "description": "Current user profile, subscriptions, and personal data"
-    },
-    {
-      "name": "DashboardLinks",
-      "description": "Dashboard link pinning and click tracking",
-      "x-displayName": "Dashboard Links"
-    },
-    {
-      "name": "Locale",
-      "description": "Locale switching and locale cookies"
-    },
-    {
-      "name": "Metadata",
-      "description": "Metadata dictionaries for filters"
+      "name": "Api",
+      "description": "Api operations"
     },
     {
       "name": "OpenAPI",
-      "description": "OpenAPI document endpoint",
-      "x-displayName": "OpenAPI"
+      "description": "OpenAPI operations"
     },
     {
-      "name": "Api",
-      "description": "General API endpoints"
+      "name": "account.preferences",
+      "description": "account.preferences operations"
+    },
+    {
+      "name": "account.profile",
+      "description": "account.profile operations"
+    },
+    {
+      "name": "admin.comments",
+      "description": "admin.comments operations"
+    },
+    {
+      "name": "admin.descriptions",
+      "description": "admin.descriptions operations"
+    },
+    {
+      "name": "admin.homework",
+      "description": "admin.homework operations"
+    },
+    {
+      "name": "admin.suspensions",
+      "description": "admin.suspensions operations"
+    },
+    {
+      "name": "admin.user",
+      "description": "admin.user operations"
+    },
+    {
+      "name": "catalog.bus",
+      "description": "catalog.bus operations"
+    },
+    {
+      "name": "catalog.courses",
+      "description": "catalog.courses operations"
+    },
+    {
+      "name": "catalog.link",
+      "description": "catalog.link operations"
+    },
+    {
+      "name": "catalog.metadata",
+      "description": "catalog.metadata operations"
+    },
+    {
+      "name": "catalog.schedule",
+      "description": "catalog.schedule operations"
+    },
+    {
+      "name": "catalog.section",
+      "description": "catalog.section operations"
+    },
+    {
+      "name": "catalog.semesters",
+      "description": "catalog.semesters operations"
+    },
+    {
+      "name": "catalog.teachers",
+      "description": "catalog.teachers operations"
+    },
+    {
+      "name": "community.comments",
+      "description": "community.comments operations"
+    },
+    {
+      "name": "community.descriptions",
+      "description": "community.descriptions operations"
+    },
+    {
+      "name": "community.section-homework",
+      "description": "community.section-homework operations"
+    },
+    {
+      "name": "community.user",
+      "description": "community.user operations"
+    },
+    {
+      "name": "workspace.bus-preferences",
+      "description": "workspace.bus-preferences operations"
+    },
+    {
+      "name": "workspace.calendar",
+      "description": "workspace.calendar operations"
+    },
+    {
+      "name": "workspace.homework",
+      "description": "workspace.homework operations"
+    },
+    {
+      "name": "workspace.link-pin",
+      "description": "workspace.link-pin operations"
+    },
+    {
+      "name": "workspace.overview",
+      "description": "workspace.overview operations"
+    },
+    {
+      "name": "workspace.schedule",
+      "description": "workspace.schedule operations"
+    },
+    {
+      "name": "workspace.subscription",
+      "description": "workspace.subscription operations"
+    },
+    {
+      "name": "workspace.todo",
+      "description": "workspace.todo operations"
+    },
+    {
+      "name": "workspace.upload",
+      "description": "workspace.upload operations"
     }
   ],
   "x-tagGroups": [
     {
       "name": "Catalog",
       "tags": [
-        "Sections",
-        "Courses",
-        "Teachers",
-        "Schedules",
-        "Semesters"
+        "catalog.bus",
+        "catalog.courses",
+        "catalog.link",
+        "catalog.metadata",
+        "catalog.schedule",
+        "catalog.section",
+        "catalog.semesters",
+        "catalog.teachers"
       ]
     },
     {
       "name": "Workspace",
       "tags": [
-        "Homeworks",
-        "Todos",
-        "Calendar",
-        "Me",
-        "DashboardLinks"
+        "workspace.bus-preferences",
+        "workspace.calendar",
+        "workspace.homework",
+        "workspace.link-pin",
+        "workspace.overview",
+        "workspace.schedule",
+        "workspace.subscription",
+        "workspace.todo",
+        "workspace.upload"
       ]
     },
     {
       "name": "Community",
       "tags": [
-        "Comments",
-        "Descriptions",
-        "Uploads"
+        "community.comments",
+        "community.descriptions",
+        "community.section-homework",
+        "community.user"
       ]
     },
     {
-      "name": "Campus Services",
+      "name": "Account",
       "tags": [
-        "Bus"
-      ]
-    },
-    {
-      "name": "Platform",
-      "tags": [
-        "Metadata",
-        "Locale",
-        "OpenAPI",
-        "Api"
+        "account.preferences",
+        "account.profile"
       ]
     },
     {
       "name": "Admin",
       "tags": [
-        "Admin"
+        "admin.comments",
+        "admin.descriptions",
+        "admin.homework",
+        "admin.suspensions",
+        "admin.user"
+      ]
+    },
+    {
+      "name": "Platform",
+      "tags": [
+        "Api",
+        "OpenAPI"
       ]
     }
   ],
@@ -262,45 +315,6 @@
                 "schema": {
                   "type": "string",
                   "format": "uri"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/account": {
-      "get": {
-        "operationId": "getMe",
-        "summary": "Get current user",
-        "tags": [
-          "Me"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "sessionCookie": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/meResponseSchema"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/openApiErrorSchema"
                 }
               }
             }
@@ -523,7 +537,7 @@
         "operationId": "setLocale",
         "summary": "Update user locale cookie",
         "tags": [
-          "Locale"
+          "account.preferences"
         ],
         "requestBody": {
           "required": true,
@@ -561,27 +575,17 @@
     },
     "/api/account/profile": {
       "get": {
-        "operationId": "get-api-account-profile",
-        "summary": "Get public user profile",
+        "operationId": "account_profile_get",
+        "summary": "Get the current account profile",
         "tags": [
-          "Me"
+          "account.profile"
         ],
-        "parameters": [
+        "security": [
           {
-            "in": "query",
-            "name": "username",
-            "schema": {
-              "type": "string",
-              "minLength": 1
-            }
+            "bearerAuth": []
           },
           {
-            "in": "query",
-            "name": "userId",
-            "schema": {
-              "type": "string",
-              "minLength": 1
-            }
+            "sessionCookie": []
           }
         ],
         "responses": {
@@ -590,12 +594,12 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/publicUserProfileResponseSchema"
+                  "$ref": "#/components/schemas/meResponseSchema"
                 }
               }
             }
           },
-          "400": {
+          "401": {
             "description": "Error response",
             "content": {
               "application/json": {
@@ -623,14 +627,13 @@
         "operationId": "listAdminComments",
         "summary": "List moderation comments",
         "tags": [
-          "Admin"
+          "admin.comments"
         ],
         "security": [
           {
             "sessionCookie": []
           }
         ],
-        "x-auth-role": "admin",
         "parameters": [
           {
             "in": "query",
@@ -717,14 +720,13 @@
         "operationId": "listAdminDescriptions",
         "summary": "List descriptions",
         "tags": [
-          "Admin"
+          "admin.descriptions"
         ],
         "security": [
           {
             "sessionCookie": []
           }
         ],
-        "x-auth-role": "admin",
         "parameters": [
           {
             "in": "query",
@@ -830,14 +832,13 @@
         "operationId": "listAdminHomeworks",
         "summary": "List moderation homeworks",
         "tags": [
-          "Admin"
+          "admin.homework"
         ],
         "security": [
           {
             "sessionCookie": []
           }
         ],
-        "x-auth-role": "admin",
         "parameters": [
           {
             "in": "query",
@@ -929,14 +930,13 @@
         "operationId": "listAdminSuspensions",
         "summary": "List suspensions",
         "tags": [
-          "Admin"
+          "admin.suspensions"
         ],
         "security": [
           {
             "sessionCookie": []
           }
         ],
-        "x-auth-role": "admin",
         "responses": {
           "200": {
             "description": "Successful response",
@@ -964,14 +964,13 @@
         "operationId": "createAdminSuspension",
         "summary": "Create suspension for one user",
         "tags": [
-          "Admin"
+          "admin.suspensions"
         ],
         "security": [
           {
             "sessionCookie": []
           }
         ],
-        "x-auth-role": "admin",
         "requestBody": {
           "required": true,
           "content": {
@@ -1087,14 +1086,13 @@
         "operationId": "listAdminUsers",
         "summary": "List users",
         "tags": [
-          "Admin"
+          "admin.user"
         ],
         "security": [
           {
             "sessionCookie": []
           }
         ],
-        "x-auth-role": "admin",
         "parameters": [
           {
             "in": "query",
@@ -1169,12 +1167,87 @@
         }
       }
     },
+    "/api/calendar-feeds/{credential}.ics": {
+      "get": {
+        "operationId": "workspace_calendar_feed_export",
+        "summary": "Deliver a token-bearing personal calendar feed",
+        "tags": [
+          "workspace.calendar"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          },
+          {
+            "calendarFeedToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "credential",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Opaque user-and-token calendar feed credential."
+            },
+            "required": true,
+            "description": "Opaque user-and-token calendar feed credential."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Calendar response",
+            "content": {
+              "text/calendar": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/catalog/bus": {
       "get": {
-        "operationId": "queryBus",
+        "operationId": "catalog_bus_timetable_get",
         "summary": "Query shuttle buses",
         "tags": [
-          "Bus"
+          "catalog.bus"
         ],
         "parameters": [
           {
@@ -1215,7 +1288,7 @@
         "operationId": "listCourses",
         "summary": "List courses",
         "tags": [
-          "Courses"
+          "catalog.courses"
         ],
         "parameters": [
           {
@@ -1316,12 +1389,43 @@
         }
       }
     },
+    "/api/catalog/links": {
+      "get": {
+        "operationId": "catalog_link_list",
+        "summary": "List public campus links",
+        "tags": [
+          "catalog.link"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/catalogLinkListResponseSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/catalog/metadata": {
       "get": {
         "operationId": "getMetadata",
         "summary": "Get metadata",
         "tags": [
-          "Metadata"
+          "catalog.metadata"
         ],
         "responses": {
           "200": {
@@ -1342,7 +1446,7 @@
         "operationId": "listSchedules",
         "summary": "List schedules",
         "tags": [
-          "Schedules"
+          "catalog.schedule"
         ],
         "parameters": [
           {
@@ -1501,7 +1605,7 @@
         "operationId": "listSections",
         "summary": "List sections",
         "tags": [
-          "Sections"
+          "catalog.section"
         ],
         "parameters": [
           {
@@ -1661,7 +1765,7 @@
         "operationId": "listSemesters",
         "summary": "List semesters",
         "tags": [
-          "Semesters"
+          "catalog.semesters"
         ],
         "parameters": [
           {
@@ -1725,7 +1829,7 @@
         "operationId": "listTeachers",
         "summary": "List teachers",
         "tags": [
-          "Teachers"
+          "catalog.teachers"
         ],
         "parameters": [
           {
@@ -1815,7 +1919,7 @@
         "operationId": "listComments",
         "summary": "List comments",
         "tags": [
-          "Comments"
+          "community.comments"
         ],
         "parameters": [
           {
@@ -1957,7 +2061,7 @@
         "operationId": "createComment",
         "summary": "Create one comment",
         "tags": [
-          "Comments"
+          "community.comments"
         ],
         "security": [
           {
@@ -2082,7 +2186,7 @@
         "operationId": "getDescription",
         "summary": "Get description history",
         "tags": [
-          "Descriptions"
+          "community.descriptions"
         ],
         "parameters": [
           {
@@ -2177,7 +2281,7 @@
         "operationId": "upsertDescription",
         "summary": "Upsert description",
         "tags": [
-          "Descriptions"
+          "community.descriptions"
         ],
         "security": [
           {
@@ -2289,12 +2393,12 @@
         }
       }
     },
-    "/api/community/homeworks": {
+    "/api/community/section-homeworks": {
       "get": {
-        "operationId": "listHomeworks",
-        "summary": "List homeworks",
+        "operationId": "community_section_homework_list",
+        "summary": "List shared section homeworks",
         "tags": [
-          "Homeworks"
+          "community.section-homework"
         ],
         "parameters": [
           {
@@ -2367,10 +2471,10 @@
         }
       },
       "post": {
-        "operationId": "createHomework",
-        "summary": "Create one homework",
+        "operationId": "community_section_homework_create",
+        "summary": "Create one shared section homework",
         "tags": [
-          "Homeworks"
+          "community.section-homework"
         ],
         "security": [
           {
@@ -2492,10 +2596,10 @@
     },
     "/api/workspace/bus-preferences": {
       "get": {
-        "operationId": "getBusPreferences",
+        "operationId": "workspace_bus_preferences_get",
         "summary": "Get bus preferences",
         "tags": [
-          "Bus"
+          "workspace.bus-preferences"
         ],
         "security": [
           {
@@ -2529,10 +2633,10 @@
         }
       },
       "post": {
-        "operationId": "setBusPreferences",
+        "operationId": "workspace_bus_preferences_set",
         "summary": "Update bus preferences",
         "tags": [
-          "Bus"
+          "workspace.bus-preferences"
         ],
         "security": [
           {
@@ -2629,7 +2733,7 @@
         "operationId": "getSubscribedHomeworks",
         "summary": "List subscribed homeworks",
         "tags": [
-          "Homeworks"
+          "workspace.homework"
         ],
         "security": [
           {
@@ -2663,12 +2767,167 @@
         }
       }
     },
+    "/api/workspace/link-pins": {
+      "get": {
+        "operationId": "workspace_link_pin_list",
+        "summary": "List the current user's pinned campus links",
+        "tags": [
+          "workspace.link-pin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dashboardLinkPinResponseSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "workspace_link_pin_set",
+        "summary": "Set one campus link pin",
+        "tags": [
+          "workspace.link-pin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/dashboardLinkPinRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/dashboardLinkPinResponseSchema"
+                }
+              }
+            }
+          },
+          "303": {
+            "description": "Redirect after pin/unpin",
+            "headers": {
+              "Location": {
+                "description": "Redirect target URL",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error response",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds before retrying the mutation",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/workspace/overview": {
       "get": {
-        "operationId": "get-api-me-overview",
+        "operationId": "workspace_overview_get",
         "summary": "Get a compact current-user overview for lightweight clients",
         "tags": [
-          "Dashboard"
+          "workspace.overview"
         ],
         "security": [
           {
@@ -2756,10 +3015,10 @@
     },
     "/api/workspace/schedules": {
       "get": {
-        "operationId": "get-api-me-subscriptions-schedules",
+        "operationId": "workspace_schedule_list",
         "summary": "List schedules across the current user's subscribed sections",
         "tags": [
-          "Schedules"
+          "workspace.schedule"
         ],
         "security": [
           {
@@ -2859,7 +3118,7 @@
         "operationId": "setCalendarSubscription",
         "summary": "Replace section subscriptions",
         "tags": [
-          "Calendar"
+          "workspace.subscription"
         ],
         "security": [
           {
@@ -2954,7 +3213,7 @@
         "operationId": "appendCalendarSubscriptionSections",
         "summary": "Append section subscriptions",
         "tags": [
-          "Calendar"
+          "workspace.subscription"
         ],
         "security": [
           {
@@ -3059,7 +3318,7 @@
         "operationId": "delete-api-workspace-subscriptions",
         "summary": "Remove section subscriptions",
         "tags": [
-          "Calendar"
+          "workspace.subscription"
         ],
         "security": [
           {
@@ -3166,7 +3425,7 @@
         "operationId": "listTodos",
         "summary": "List todos",
         "tags": [
-          "Todos"
+          "workspace.todo"
         ],
         "security": [
           {
@@ -3266,7 +3525,7 @@
         "operationId": "createTodo",
         "summary": "Create a todo",
         "tags": [
-          "Todos"
+          "workspace.todo"
         ],
         "security": [
           {
@@ -3371,7 +3630,7 @@
         "operationId": "listUploads",
         "summary": "List uploads",
         "tags": [
-          "Uploads"
+          "workspace.upload"
         ],
         "security": [
           {
@@ -3451,7 +3710,7 @@
         "operationId": "createUpload",
         "summary": "Create a signed upload URL",
         "tags": [
-          "Uploads"
+          "workspace.upload"
         ],
         "security": [
           {
@@ -3756,14 +4015,13 @@
         "operationId": "moderateAdminComment",
         "summary": "Moderate one comment",
         "tags": [
-          "Admin"
+          "admin.comments"
         ],
         "security": [
           {
             "sessionCookie": []
           }
         ],
-        "x-auth-role": "admin",
         "parameters": [
           {
             "in": "path",
@@ -3882,14 +4140,13 @@
         "operationId": "updateAdminDescription",
         "summary": "Update one description from moderation",
         "tags": [
-          "Admin"
+          "admin.descriptions"
         ],
         "security": [
           {
             "sessionCookie": []
           }
         ],
-        "x-auth-role": "admin",
         "parameters": [
           {
             "in": "path",
@@ -4008,14 +4265,13 @@
         "operationId": "deleteAdminHomework",
         "summary": "Delete one homework",
         "tags": [
-          "Admin"
+          "admin.homework"
         ],
         "security": [
           {
             "sessionCookie": []
           }
         ],
-        "x-auth-role": "admin",
         "parameters": [
           {
             "in": "path",
@@ -4114,14 +4370,13 @@
         "operationId": "updateAdminSuspension",
         "summary": "Lift one suspension",
         "tags": [
-          "Admin"
+          "admin.suspensions"
         ],
         "security": [
           {
             "sessionCookie": []
           }
         ],
-        "x-auth-role": "admin",
         "parameters": [
           {
             "in": "path",
@@ -4220,14 +4475,13 @@
         "operationId": "updateAdminUser",
         "summary": "Update one user",
         "tags": [
-          "Admin"
+          "admin.user"
         ],
         "security": [
           {
             "sessionCookie": []
           }
         ],
-        "x-auth-role": "admin",
         "parameters": [
           {
             "in": "path",
@@ -4492,10 +4746,10 @@
     },
     "/api/catalog/bus/next": {
       "get": {
-        "operationId": "get-api-catalog-bus-next",
+        "operationId": "catalog_bus_departure_next",
         "summary": "Get next shuttle bus departures for an origin and destination campus",
         "tags": [
-          "Bus"
+          "catalog.bus"
         ],
         "parameters": [
           {
@@ -4616,10 +4870,10 @@
     },
     "/api/catalog/bus/routes": {
       "get": {
-        "operationId": "get-api-bus-routes",
+        "operationId": "catalog_bus_route_search",
         "summary": "Search shuttle bus route variants",
         "tags": [
-          "Bus"
+          "catalog.bus"
         ],
         "parameters": [
           {
@@ -4699,7 +4953,7 @@
         "operationId": "getCourse",
         "summary": "Get course",
         "tags": [
-          "Courses"
+          "catalog.courses"
         ],
         "parameters": [
           {
@@ -4757,12 +5011,75 @@
         }
       }
     },
+    "/api/catalog/links/resolve": {
+      "get": {
+        "operationId": "catalog_link_resolve",
+        "summary": "Resolve a public campus link",
+        "tags": [
+          "catalog.link"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "slug",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "307": {
+            "description": "Temporary redirect to target link",
+            "headers": {
+              "Location": {
+                "description": "Redirect target URL",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "catalog_link_visit_record",
+        "summary": "Resolve a public campus link and record an authenticated visit",
+        "tags": [
+          "catalog.link"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/dashboardLinkVisitRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "303": {
+            "description": "Redirect after recording link click",
+            "headers": {
+              "Location": {
+                "description": "Redirect target URL",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/catalog/sections/{jwId}": {
       "get": {
         "operationId": "getSection",
         "summary": "Get section",
         "tags": [
-          "Sections"
+          "catalog.section"
         ],
         "parameters": [
           {
@@ -4825,7 +5142,7 @@
         "operationId": "getSectionsCalendar",
         "summary": "Generate sections calendar",
         "tags": [
-          "Sections"
+          "catalog.section"
         ],
         "parameters": [
           {
@@ -4867,7 +5184,7 @@
         "operationId": "matchSectionCodes",
         "summary": "Match section codes",
         "tags": [
-          "Sections"
+          "catalog.section"
         ],
         "requestBody": {
           "required": true,
@@ -4918,7 +5235,7 @@
         "operationId": "getCurrentSemester",
         "summary": "Get current semester",
         "tags": [
-          "Semesters"
+          "catalog.semesters"
         ],
         "responses": {
           "200": {
@@ -4949,7 +5266,7 @@
         "operationId": "getTeacher",
         "summary": "Get teacher",
         "tags": [
-          "Teachers"
+          "catalog.teachers"
         ],
         "parameters": [
           {
@@ -5012,7 +5329,7 @@
         "operationId": "getComment",
         "summary": "Get comment thread",
         "tags": [
-          "Comments"
+          "community.comments"
         ],
         "parameters": [
           {
@@ -5062,7 +5379,7 @@
         "operationId": "updateComment",
         "summary": "Update one comment",
         "tags": [
-          "Comments"
+          "community.comments"
         ],
         "security": [
           {
@@ -5188,7 +5505,7 @@
         "operationId": "deleteComment",
         "summary": "Delete one comment",
         "tags": [
-          "Comments"
+          "community.comments"
         ],
         "security": [
           {
@@ -5296,7 +5613,7 @@
         "operationId": "delete-api-comments-batch",
         "summary": "Delete multiple comments owned by the current user",
         "tags": [
-          "Comments"
+          "community.comments"
         ],
         "security": [
           {
@@ -5398,12 +5715,12 @@
         }
       }
     },
-    "/api/community/homeworks/{id}": {
+    "/api/community/section-homeworks/{id}": {
       "patch": {
-        "operationId": "updateHomework",
-        "summary": "Update one homework",
+        "operationId": "community_section_homework_update",
+        "summary": "Update one shared section homework",
         "tags": [
-          "Homeworks"
+          "community.section-homework"
         ],
         "security": [
           {
@@ -5526,10 +5843,10 @@
         }
       },
       "delete": {
-        "operationId": "deleteHomework",
-        "summary": "Soft delete one homework",
+        "operationId": "community_section_homework_delete",
+        "summary": "Soft delete one shared section homework",
         "tags": [
-          "Homeworks"
+          "community.section-homework"
         ],
         "security": [
           {
@@ -5632,6 +5949,48 @@
         }
       }
     },
+    "/api/community/users/{identifier}": {
+      "get": {
+        "operationId": "community_user_get",
+        "summary": "Get one public community user",
+        "tags": [
+          "community.user"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identifier",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/publicUserProfileResponseSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/mcp/.well-known/oauth-authorization-server": {
       "get": {
         "operationId": "get-api-mcp-.well-known-oauth-authorization-server",
@@ -5721,7 +6080,7 @@
         "operationId": "put-api-homeworks-completions",
         "summary": "Update homework completions in a batch",
         "tags": [
-          "Homeworks"
+          "workspace.homework"
         ],
         "security": [
           {
@@ -5813,12 +6172,12 @@
         }
       }
     },
-    "/api/workspace/links/pin": {
+    "/api/workspace/link-pins/batch": {
       "post": {
-        "operationId": "pinDashboardLink",
-        "summary": "Pin dashboard link",
+        "operationId": "workspace_link_pin_batch_set",
+        "summary": "Set multiple campus link pins",
         "tags": [
-          "DashboardLinks"
+          "workspace.link-pin"
         ],
         "security": [
           {
@@ -5831,9 +6190,9 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/x-www-form-urlencoded": {
+            "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/dashboardLinkPinRequestSchema"
+                "$ref": "#/components/schemas/dashboardLinkPinBatchRequestSchema"
               }
             }
           }
@@ -5849,23 +6208,12 @@
               }
             }
           },
-          "303": {
-            "description": "Redirect after pin/unpin",
-            "headers": {
-              "Location": {
-                "description": "Redirect target URL",
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
           "400": {
             "description": "Error response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/dashboardLinkPinResponseSchema"
+                  "$ref": "#/components/schemas/openApiErrorSchema"
                 }
               }
             }
@@ -5875,7 +6223,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/dashboardLinkPinResponseSchema"
+                  "$ref": "#/components/schemas/openApiErrorSchema"
                 }
               }
             }
@@ -5904,7 +6252,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/dashboardLinkPinResponseSchema"
+                  "$ref": "#/components/schemas/openApiErrorSchema"
                 }
               }
             }
@@ -5931,75 +6279,12 @@
         }
       }
     },
-    "/api/workspace/links/visit": {
-      "get": {
-        "operationId": "visitDashboardLink",
-        "summary": "Preview dashboard link",
-        "tags": [
-          "DashboardLinks"
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "slug",
-            "schema": {
-              "type": "string",
-              "minLength": 1
-            },
-            "required": true
-          }
-        ],
-        "responses": {
-          "307": {
-            "description": "Temporary redirect to target link",
-            "headers": {
-              "Location": {
-                "description": "Redirect target URL",
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "operationId": "recordDashboardLinkVisit",
-        "summary": "Record one dashboard link visit and redirect",
-        "tags": [
-          "DashboardLinks"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/dashboardLinkVisitRequestSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "303": {
-            "description": "Redirect after recording link click",
-            "headers": {
-              "Location": {
-                "description": "Redirect target URL",
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/workspace/subscriptions/batch": {
       "post": {
         "operationId": "batchUpdateCalendarSubscription",
         "summary": "Batch update calendar section subscriptions",
         "tags": [
-          "Calendar"
+          "workspace.subscription"
         ],
         "security": [
           {
@@ -6106,7 +6391,7 @@
         "operationId": "getCurrentCalendarSubscription",
         "summary": "Get section subscriptions",
         "tags": [
-          "Calendar"
+          "workspace.subscription"
         ],
         "security": [
           {
@@ -6145,7 +6430,7 @@
         "operationId": "post-api-workspace-subscriptions-import-codes",
         "summary": "Import section subscriptions by section codes",
         "tags": [
-          "Calendar"
+          "workspace.subscription"
         ],
         "security": [
           {
@@ -6252,7 +6537,7 @@
         "operationId": "queryCalendarSubscriptionSections",
         "summary": "Query sections for calendar subscription changes",
         "tags": [
-          "Calendar"
+          "workspace.subscription"
         ],
         "security": [
           {
@@ -6321,7 +6606,7 @@
         "operationId": "updateTodo",
         "summary": "Update one todo",
         "tags": [
-          "Todos"
+          "workspace.todo"
         ],
         "security": [
           {
@@ -6447,7 +6732,7 @@
         "operationId": "deleteTodo",
         "summary": "Delete one todo",
         "tags": [
-          "Todos"
+          "workspace.todo"
         ],
         "security": [
           {
@@ -6555,7 +6840,7 @@
         "operationId": "patch-api-todos-batch",
         "summary": "Update completion state for multiple todos",
         "tags": [
-          "Todos"
+          "workspace.todo"
         ],
         "security": [
           {
@@ -6650,7 +6935,7 @@
         "operationId": "delete-api-todos-batch",
         "summary": "Delete multiple todos by id",
         "tags": [
-          "Todos"
+          "workspace.todo"
         ],
         "security": [
           {
@@ -6747,7 +7032,7 @@
         "operationId": "updateUpload",
         "summary": "Rename one upload",
         "tags": [
-          "Uploads"
+          "workspace.upload"
         ],
         "security": [
           {
@@ -6873,7 +7158,7 @@
         "operationId": "deleteUpload",
         "summary": "Delete one upload",
         "tags": [
-          "Uploads"
+          "workspace.upload"
         ],
         "security": [
           {
@@ -6991,7 +7276,7 @@
         "operationId": "completeUpload",
         "summary": "Complete upload",
         "tags": [
-          "Uploads"
+          "workspace.upload"
         ],
         "security": [
           {
@@ -7098,7 +7383,7 @@
         "operationId": "put-api-uploads-object",
         "summary": "Write upload object",
         "tags": [
-          "Uploads"
+          "workspace.upload"
         ],
         "security": [
           {
@@ -7227,7 +7512,7 @@
         "operationId": "getSectionCalendar",
         "summary": "Generate section calendar",
         "tags": [
-          "Sections"
+          "catalog.section"
         ],
         "parameters": [
           {
@@ -7269,7 +7554,7 @@
         "operationId": "getSectionScheduleGroups",
         "summary": "Get schedule groups",
         "tags": [
-          "Sections"
+          "catalog.section"
         ],
         "parameters": [
           {
@@ -7325,7 +7610,7 @@
         "operationId": "getSectionSchedules",
         "summary": "Get section schedules",
         "tags": [
-          "Sections"
+          "catalog.section"
         ],
         "parameters": [
           {
@@ -7419,7 +7704,7 @@
         "operationId": "addCommentReaction",
         "summary": "Add one reaction to a comment",
         "tags": [
-          "Comments"
+          "community.comments"
         ],
         "security": [
           {
@@ -7545,7 +7830,7 @@
         "operationId": "removeCommentReaction",
         "summary": "Remove one reaction from a comment",
         "tags": [
-          "Comments"
+          "community.comments"
         ],
         "security": [
           {
@@ -7666,97 +7951,12 @@
         }
       }
     },
-    "/api/community/users/{userId}/calendar.ics": {
-      "get": {
-        "operationId": "getUserCalendar",
-        "summary": "Generate user calendar",
-        "tags": [
-          "Calendar"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "sessionCookie": []
-          },
-          {
-            "calendarFeedToken": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "userId",
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "description": "User ID. Token-bearing feed URLs may also use the userId:token path segment form."
-            },
-            "required": true,
-            "description": "User ID. Token-bearing feed URLs may also use the userId:token path segment form."
-          },
-          {
-            "in": "query",
-            "name": "token",
-            "schema": {
-              "description": "Calendar feed token for anonymous personal iCal access.",
-              "type": "string",
-              "minLength": 1
-            },
-            "description": "Calendar feed token for anonymous personal iCal access."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Calendar response",
-            "content": {
-              "text/calendar": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/openApiErrorSchema"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Error response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/openApiErrorSchema"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/openApiErrorSchema"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/workspace/homeworks/{id}/completion": {
       "put": {
         "operationId": "setHomeworkCompletion",
         "summary": "Update homework completion",
         "tags": [
-          "Homeworks"
+          "workspace.homework"
         ],
         "security": [
           {
@@ -7869,119 +8069,12 @@
         }
       }
     },
-    "/api/workspace/links/pin/batch": {
-      "post": {
-        "operationId": "post-api-workspace-links-pin-batch",
-        "summary": "Pin or unpin multiple dashboard links in one request",
-        "tags": [
-          "DashboardLinks"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "sessionCookie": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/dashboardLinkPinBatchRequestSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/dashboardLinkPinResponseSchema"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Error response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/dashboardLinkPinResponseSchema"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Error response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/openApiErrorSchema"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Error response",
-            "headers": {
-              "Retry-After": {
-                "description": "Seconds before retrying the mutation",
-                "schema": {
-                  "type": "integer",
-                  "minimum": 0
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/openApiErrorSchema"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Error response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/dashboardLinkPinResponseSchema"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Error response",
-            "headers": {
-              "Retry-After": {
-                "description": "Seconds before retrying the mutation",
-                "schema": {
-                  "type": "integer",
-                  "minimum": 0
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/openApiErrorSchema"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/workspace/uploads/{id}/download": {
       "get": {
         "operationId": "downloadUpload",
         "summary": "Download upload",
         "tags": [
-          "Uploads"
+          "workspace.upload"
         ],
         "security": [
           {
@@ -8453,54 +8546,6 @@
         ],
         "additionalProperties": false
       },
-      "meResponseSchema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "email": {
-            "nullable": true,
-            "type": "string"
-          },
-          "name": {
-            "nullable": true,
-            "type": "string"
-          },
-          "image": {
-            "nullable": true,
-            "type": "string"
-          },
-          "username": {
-            "nullable": true,
-            "type": "string"
-          },
-          "isAdmin": {
-            "type": "boolean"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-          }
-        },
-        "required": [
-          "id",
-          "email",
-          "name",
-          "image",
-          "username",
-          "isAdmin",
-          "createdAt",
-          "updatedAt"
-        ],
-        "additionalProperties": false
-      },
       "openApiErrorSchema": {
         "type": "object",
         "properties": {
@@ -8596,116 +8641,51 @@
         ],
         "additionalProperties": false
       },
-      "publicUserProfileResponseSchema": {
+      "meResponseSchema": {
         "type": "object",
         "properties": {
-          "user": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "username": {
-                "nullable": true,
-                "type": "string"
-              },
-              "name": {
-                "nullable": true,
-                "type": "string"
-              },
-              "image": {
-                "nullable": true,
-                "type": "string"
-              },
-              "createdAt": {
-                "type": "string",
-                "format": "date-time",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-              },
-              "_count": {
-                "type": "object",
-                "properties": {
-                  "comments": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "uploads": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "homeworksCreated": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "subscribedSections": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  }
-                },
-                "required": [
-                  "comments",
-                  "uploads",
-                  "homeworksCreated",
-                  "subscribedSections"
-                ],
-                "additionalProperties": false
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "name",
-              "image",
-              "createdAt",
-              "_count"
-            ],
-            "additionalProperties": false
+          "id": {
+            "type": "string"
           },
-          "sectionCount": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
+          "email": {
+            "nullable": true,
+            "type": "string"
           },
-          "weeks": {
-            "type": "array",
-            "items": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "date": {
-                    "type": "string",
-                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
-                  },
-                  "count": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  }
-                },
-                "required": [
-                  "date",
-                  "count"
-                ],
-                "additionalProperties": false
-              }
-            }
+          "name": {
+            "nullable": true,
+            "type": "string"
           },
-          "totalContributions": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
+          "image": {
+            "nullable": true,
+            "type": "string"
+          },
+          "username": {
+            "nullable": true,
+            "type": "string"
+          },
+          "isAdmin": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
           }
         },
         "required": [
-          "user",
-          "sectionCount",
-          "weeks",
-          "totalContributions"
+          "id",
+          "email",
+          "name",
+          "image",
+          "username",
+          "isAdmin",
+          "createdAt",
+          "updatedAt"
         ],
         "additionalProperties": false
       },
@@ -10593,6 +10573,98 @@
         "required": [
           "data",
           "pagination"
+        ],
+        "additionalProperties": false
+      },
+      "catalogLinkListResponseSchema": {
+        "type": "object",
+        "properties": {
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "slug": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "titlePinyin": {
+                  "type": "string"
+                },
+                "descriptionPinyin": {
+                  "type": "string"
+                },
+                "category": {
+                  "type": "string",
+                  "enum": [
+                    "academic",
+                    "community",
+                    "services",
+                    "campus"
+                  ]
+                },
+                "icon": {
+                  "type": "string",
+                  "enum": [
+                    "book-open",
+                    "clipboard-list",
+                    "building",
+                    "graduation-cap",
+                    "mail",
+                    "monitor-play",
+                    "network",
+                    "school",
+                    "users"
+                  ]
+                },
+                "group": {
+                  "type": "string",
+                  "enum": [
+                    "mostClicked",
+                    "study",
+                    "life",
+                    "tech",
+                    "classroom",
+                    "external",
+                    "graduate",
+                    "leastClicked"
+                  ]
+                },
+                "locale": {
+                  "type": "string",
+                  "enum": [
+                    "zh-cn",
+                    "en-us"
+                  ]
+                }
+              },
+              "required": [
+                "slug",
+                "title",
+                "url",
+                "description",
+                "titlePinyin",
+                "descriptionPinyin",
+                "category",
+                "icon",
+                "group",
+                "locale"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "links"
         ],
         "additionalProperties": false
       },
@@ -15323,6 +15395,55 @@
           "homeworks",
           "auditLogs",
           "sectionIds"
+        ],
+        "additionalProperties": false
+      },
+      "dashboardLinkPinResponseSchema": {
+        "type": "object",
+        "properties": {
+          "pinnedSlugs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "maxPinnedLinks": {
+            "type": "integer",
+            "exclusiveMinimum": true,
+            "maximum": 9007199254740991
+          },
+          "error": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "pinnedSlugs",
+          "maxPinnedLinks",
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "dashboardLinkPinRequestSchema": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1
+          },
+          "returnTo": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "pin",
+              "unpin"
+            ]
+          }
+        },
+        "required": [
+          "slug"
         ],
         "additionalProperties": false
       },
@@ -22914,6 +23035,19 @@
         ],
         "additionalProperties": false
       },
+      "dashboardLinkVisitRequestSchema": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "slug"
+        ],
+        "additionalProperties": false
+      },
       "sectionDetailSchema": {
         "type": "object",
         "properties": {
@@ -26672,6 +26806,119 @@
         ],
         "additionalProperties": false
       },
+      "publicUserProfileResponseSchema": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "username": {
+                "nullable": true,
+                "type": "string"
+              },
+              "name": {
+                "nullable": true,
+                "type": "string"
+              },
+              "image": {
+                "nullable": true,
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "_count": {
+                "type": "object",
+                "properties": {
+                  "comments": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "uploads": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "homeworksCreated": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "subscribedSections": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "comments",
+                  "uploads",
+                  "homeworksCreated",
+                  "subscribedSections"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "id",
+              "username",
+              "name",
+              "image",
+              "createdAt",
+              "_count"
+            ],
+            "additionalProperties": false
+          },
+          "sectionCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "weeks": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "date",
+                  "count"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "totalContributions": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "user",
+          "sectionCount",
+          "weeks",
+          "totalContributions"
+        ],
+        "additionalProperties": false
+      },
       "homeworkCompletionBatchRequestSchema": {
         "type": "object",
         "properties": {
@@ -26794,65 +27041,38 @@
         ],
         "additionalProperties": false
       },
-      "dashboardLinkPinRequestSchema": {
+      "dashboardLinkPinBatchRequestSchema": {
         "type": "object",
         "properties": {
-          "slug": {
-            "type": "string",
-            "minLength": 1
-          },
-          "returnTo": {
-            "type": "string"
-          },
-          "action": {
-            "type": "string",
-            "enum": [
-              "pin",
-              "unpin"
-            ]
-          }
-        },
-        "required": [
-          "slug"
-        ],
-        "additionalProperties": false
-      },
-      "dashboardLinkPinResponseSchema": {
-        "type": "object",
-        "properties": {
-          "pinnedSlugs": {
+          "items": {
+            "minItems": 1,
+            "maxItems": 10,
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "object",
+              "properties": {
+                "slug": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "pin",
+                    "unpin"
+                  ]
+                }
+              },
+              "required": [
+                "slug",
+                "action"
+              ],
+              "additionalProperties": false
             }
-          },
-          "maxPinnedLinks": {
-            "type": "integer",
-            "exclusiveMinimum": true,
-            "maximum": 9007199254740991
-          },
-          "error": {
-            "nullable": true,
-            "type": "string"
           }
         },
         "required": [
-          "pinnedSlugs",
-          "maxPinnedLinks",
-          "error"
-        ],
-        "additionalProperties": false
-      },
-      "dashboardLinkVisitRequestSchema": {
-        "type": "object",
-        "properties": {
-          "slug": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "required": [
-          "slug"
+          "items"
         ],
         "additionalProperties": false
       },
@@ -33169,41 +33389,6 @@
         "required": [
           "completed",
           "completedAt"
-        ],
-        "additionalProperties": false
-      },
-      "dashboardLinkPinBatchRequestSchema": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "minItems": 1,
-            "maxItems": 10,
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "slug": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "action": {
-                  "type": "string",
-                  "enum": [
-                    "pin",
-                    "unpin"
-                  ]
-                }
-              },
-              "required": [
-                "slug",
-                "action"
-              ],
-              "additionalProperties": false
-            }
-          }
-        },
-        "required": [
-          "items"
         ],
         "additionalProperties": false
       }

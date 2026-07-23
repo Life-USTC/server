@@ -50,7 +50,7 @@ export const GET = () => new Response();
     >;
     expect(operation.operationId).toBe("listTodos");
     expect(operation.summary).toBe("List todos");
-    expect(operation.tags).toEqual(["Todos"]);
+    expect(operation.tags).toEqual(["workspace.todo"]);
     expect(operation.security).toEqual([
       { bearerAuth: [] },
       { sessionCookie: [] },

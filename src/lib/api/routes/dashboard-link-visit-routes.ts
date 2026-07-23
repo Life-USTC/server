@@ -47,7 +47,7 @@ export async function postDashboardLinkVisitRoute(request: Request) {
   if (userId) {
     const url = new URL(request.url);
     const outcome = await checkUserMutationRateLimit({
-      action: "dashboard:write",
+      action: "catalog.link:visit",
       host: url.host,
       userId,
     });

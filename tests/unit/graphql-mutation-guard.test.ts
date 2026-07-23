@@ -16,13 +16,13 @@ afterEach(() => setCloudflareRuntimeEnv(undefined));
 
 describe("GraphQL mutation guard", () => {
   it.each([
-    "todo",
-    "homework",
-    "subscription",
-    "dashboard",
-    "bus",
-    "comment",
-    "description",
+    "workspace.todo",
+    "workspace.homework",
+    "workspace.subscription",
+    "workspace.link-pin",
+    "workspace.bus-preferences",
+    "community.comment",
+    "community.description",
   ] as const)("shares the %s:write cross-protocol budget", async (feature) => {
     const limit = vi.fn().mockResolvedValue({ success: true });
     setCloudflareRuntimeEnv({ USER_WRITE_RATE_LIMITER: { limit } });
@@ -51,10 +51,10 @@ describe("GraphQL mutation guard", () => {
         context({
           kind: "oauth",
           userId: "user-1",
-          scopes: new Set(["todo:write"]),
+          scopes: new Set(["workspace.todo:write"]),
           resource: "https://life.example/api/graphql",
         }),
-        "todo",
+        "workspace.todo",
         { rateLimitTier: "batch" },
       ),
     ).resolves.toMatchObject({ userId: "user-1" });
@@ -62,14 +62,14 @@ describe("GraphQL mutation guard", () => {
     expect(JSON.parse(limit.mock.calls[0][0].key)).toEqual([
       "user-mutation:v1",
       "life.example",
-      "todo:batch-write",
+      "workspace.todo:batch-write",
       "user-1",
     ]);
   });
 
   it.each([
-    "todo",
-    "description",
+    "workspace.todo",
+    "community.description",
   ] as const)("requires the exact OAuth %s write scope", async (feature) => {
     await expect(
       requireGraphqlMutation(
@@ -99,7 +99,7 @@ describe("GraphQL mutation guard", () => {
     await expect(
       requireGraphqlMutation(
         context({ kind: "session", userId: "user-1" }),
-        "comment",
+        "community.comment",
       ),
     ).rejects.toMatchObject({
       extensions: {

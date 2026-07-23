@@ -1,13 +1,24 @@
-import { getPublicLinksPageCopy } from "@/features/dashboard/server/dashboard-page-copy";
+import { getDashboardPageCopy } from "@/features/dashboard/server/dashboard-page-copy";
 import type { DashboardPageLoadEvent } from "@/features/dashboard/server/dashboard-page-load-types";
-import { getPublicDashboardLinksData } from "@/features/dashboard-links/server/dashboard-link-data";
+import { getDashboardUserId } from "@/features/dashboard/server/dashboard-page-server";
+import {
+  getPublicDashboardLinksData,
+  getSignedInDashboardLinksData,
+} from "@/features/dashboard-links/server/dashboard-link-data";
 
-export async function loadPublicLinksPage({ locals }: DashboardPageLoadEvent) {
-  const publicLinks = await getPublicDashboardLinksData(locals.locale);
+export async function loadPublicLinksPage({
+  locals,
+  request,
+}: DashboardPageLoadEvent) {
+  const userId = await getDashboardUserId(request);
+  const links = await (userId
+    ? getSignedInDashboardLinksData(userId, locals.locale)
+    : getPublicDashboardLinksData(locals.locale));
 
   return {
-    copy: getPublicLinksPageCopy(locals.locale),
+    copy: getDashboardPageCopy(locals.locale),
     locale: locals.locale,
-    publicLinks: publicLinks.dashboardLinks,
+    links: links.dashboardLinks,
+    signedIn: Boolean(userId),
   };
 }

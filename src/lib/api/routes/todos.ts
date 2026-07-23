@@ -19,7 +19,7 @@ import { requireAuth } from "@/lib/auth/api-auth";
 
 export async function getTodosRoute(request: Request) {
   const auth = await requireAuth(request, {
-    bearerScope: { feature: "todo", action: "read" },
+    bearerScope: { feature: "workspace.todo", action: "read" },
   });
   if (auth instanceof Response) return auth;
   const { userId } = auth;
@@ -39,7 +39,7 @@ export async function getTodosRoute(request: Request) {
 
 export async function postTodoRoute(request: Request) {
   const auth = await requireAuth(request, {
-    bearerScope: { feature: "todo", action: "write" },
+    bearerScope: { feature: "workspace.todo", action: "write" },
   });
   if (auth instanceof Response) return auth;
   const { userId } = auth;
@@ -64,7 +64,7 @@ export async function patchTodoRoute(request: Request, params: IdParams) {
   if (id instanceof Response) return id;
 
   const auth = await requireAuth(request, {
-    bearerScope: { feature: "todo", action: "write" },
+    bearerScope: { feature: "workspace.todo", action: "write" },
   });
   if (auth instanceof Response) return auth;
   const { userId } = auth;
@@ -96,7 +96,7 @@ export async function deleteTodoRoute(request: Request, params: IdParams) {
   if (id instanceof Response) return id;
 
   const auth = await requireAuth(request, {
-    bearerScope: { feature: "todo", action: "write" },
+    bearerScope: { feature: "workspace.todo", action: "write" },
   });
   if (auth instanceof Response) return auth;
   const { userId } = auth;

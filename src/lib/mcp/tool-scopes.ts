@@ -24,101 +24,140 @@ const TOOL_SCOPE_MAP: Record<string, ToolScopeRequirement[]> = {
   graphql_operation_run: [],
 
   // Profile
-  account_profile_get: [{ feature: "me", action: "read" }],
-  community_user_get: [{ feature: "me", action: "read" }],
+  account_profile_get: [{ feature: "account.profile", action: "read" }],
+  community_user_get: [{ feature: "community.user", action: "read" }],
 
   // Todos
-  workspace_todo_list: [{ feature: "todo", action: "read" }],
-  workspace_todo_create: [{ feature: "todo", action: "write" }],
-  workspace_todo_update: [{ feature: "todo", action: "write" }],
-  workspace_todo_delete: [{ feature: "todo", action: "write" }],
+  workspace_todo_list: [{ feature: "workspace.todo", action: "read" }],
+  workspace_todo_create: [{ feature: "workspace.todo", action: "write" }],
+  workspace_todo_update: [{ feature: "workspace.todo", action: "write" }],
+  workspace_todo_delete: [{ feature: "workspace.todo", action: "write" }],
 
   // Homeworks
-  workspace_homework_list: [{ feature: "homework", action: "read" }],
-  workspace_homework_completion_set: [{ feature: "homework", action: "write" }],
-  community_section_homework_list: [{ feature: "homework", action: "read" }],
-  community_section_homework_create: [{ feature: "homework", action: "write" }],
-  community_section_homework_update: [{ feature: "homework", action: "write" }],
-  community_section_homework_delete: [{ feature: "homework", action: "write" }],
+  workspace_homework_list: [{ feature: "workspace.homework", action: "read" }],
+  workspace_homework_completion_set: [
+    { feature: "workspace.homework", action: "write" },
+  ],
+  community_section_homework_list: [
+    { feature: "community.section-homework", action: "read" },
+  ],
+  community_section_homework_create: [
+    { feature: "community.section-homework", action: "write" },
+  ],
+  community_section_homework_update: [
+    { feature: "community.section-homework", action: "write" },
+  ],
+  community_section_homework_delete: [
+    { feature: "community.section-homework", action: "write" },
+  ],
 
   // Section subscriptions
-  workspace_calendar_feed_get: [{ feature: "subscription", action: "read" }],
-  workspace_subscription_list: [{ feature: "subscription", action: "read" }],
-  workspace_subscription_add: [{ feature: "subscription", action: "write" }],
-  workspace_subscription_remove: [{ feature: "subscription", action: "write" }],
-  workspace_subscription_import: [{ feature: "subscription", action: "write" }],
+  workspace_calendar_feed_get: [
+    { feature: "workspace.calendar", action: "read" },
+  ],
+  workspace_subscription_list: [
+    { feature: "workspace.subscription", action: "read" },
+  ],
+  workspace_subscription_add: [
+    { feature: "workspace.subscription", action: "write" },
+  ],
+  workspace_subscription_remove: [
+    { feature: "workspace.subscription", action: "write" },
+  ],
+  workspace_subscription_import: [
+    { feature: "workspace.subscription", action: "write" },
+  ],
   catalog_section_calendar_feed_get: [
-    { feature: "subscription", action: "read" },
+    { feature: "catalog.section", action: "read" },
   ],
 
   // Calendar
-  workspace_calendar_event_list: [{ feature: "schedule", action: "read" }],
+  workspace_calendar_event_list: [
+    { feature: "workspace.calendar", action: "read" },
+  ],
   workspace_calendar_timeline_get: [
-    { feature: "schedule", action: "read" },
-    { feature: "dashboard", action: "read" },
+    { feature: "workspace.calendar", action: "read" },
+    { feature: "workspace.overview", action: "read" },
   ],
 
   // Comments
-  community_comment_list: [{ feature: "comment", action: "read" }],
-  community_comment_get: [{ feature: "comment", action: "read" }],
-  community_comment_create: [{ feature: "comment", action: "write" }],
-  community_comment_update: [{ feature: "comment", action: "write" }],
-  community_comment_delete: [{ feature: "comment", action: "write" }],
-  community_comment_reaction_add: [{ feature: "comment", action: "write" }],
-  community_comment_reaction_remove: [{ feature: "comment", action: "write" }],
+  community_comment_list: [{ feature: "community.comment", action: "read" }],
+  community_comment_get: [{ feature: "community.comment", action: "read" }],
+  community_comment_create: [{ feature: "community.comment", action: "write" }],
+  community_comment_update: [{ feature: "community.comment", action: "write" }],
+  community_comment_delete: [{ feature: "community.comment", action: "write" }],
+  community_comment_reaction_add: [
+    { feature: "community.comment", action: "write" },
+  ],
+  community_comment_reaction_remove: [
+    { feature: "community.comment", action: "write" },
+  ],
 
   // Descriptions
-  community_description_get: [{ feature: "description", action: "read" }],
-  community_description_set: [{ feature: "description", action: "write" }],
+  community_description_get: [
+    { feature: "community.description", action: "read" },
+  ],
+  community_description_set: [
+    { feature: "community.description", action: "write" },
+  ],
 
   // Uploads
-  workspace_upload_list: [{ feature: "upload", action: "read" }],
-  workspace_upload_rename: [{ feature: "upload", action: "write" }],
-  workspace_upload_delete: [{ feature: "upload", action: "write" }],
+  workspace_upload_list: [{ feature: "workspace.upload", action: "read" }],
+  workspace_upload_rename: [{ feature: "workspace.upload", action: "write" }],
+  workspace_upload_delete: [{ feature: "workspace.upload", action: "write" }],
 
   // Dashboard / overview
-  workspace_snapshot_get: [{ feature: "dashboard", action: "read" }],
-  workspace_link_list: [{ feature: "dashboard", action: "read" }],
-  workspace_link_pin_set: [{ feature: "dashboard", action: "write" }],
-  workspace_deadline_list: [{ feature: "dashboard", action: "read" }],
-  workspace_overview_get: [{ feature: "dashboard", action: "read" }],
+  workspace_snapshot_get: [{ feature: "workspace.overview", action: "read" }],
+  catalog_link_list: [{ feature: "catalog.link", action: "read" }],
+  workspace_link_pin_list: [{ feature: "workspace.link-pin", action: "read" }],
+  workspace_link_pin_set: [{ feature: "workspace.link-pin", action: "write" }],
+  workspace_deadline_list: [{ feature: "workspace.overview", action: "read" }],
+  workspace_overview_get: [{ feature: "workspace.overview", action: "read" }],
   workspace_schedule_next: [
-    { feature: "dashboard", action: "read" },
-    { feature: "schedule", action: "read" },
+    { feature: "workspace.overview", action: "read" },
+    { feature: "workspace.schedule", action: "read" },
   ],
 
   // Bus
-  catalog_bus_timetable_get: [{ feature: "bus", action: "read" }],
-  catalog_bus_route_list: [{ feature: "bus", action: "read" }],
-  catalog_bus_route_get: [{ feature: "bus", action: "read" }],
-  workspace_bus_preferences_get: [{ feature: "bus", action: "read" }],
-  workspace_bus_preferences_set: [{ feature: "bus", action: "write" }],
-  catalog_bus_route_search: [{ feature: "bus", action: "read" }],
-  catalog_bus_departure_next: [{ feature: "bus", action: "read" }],
+  catalog_bus_timetable_get: [{ feature: "catalog.bus", action: "read" }],
+  catalog_bus_route_list: [{ feature: "catalog.bus", action: "read" }],
+  catalog_bus_route_get: [{ feature: "catalog.bus", action: "read" }],
+  workspace_bus_preferences_get: [
+    { feature: "workspace.bus-preferences", action: "read" },
+  ],
+  workspace_bus_preferences_set: [
+    { feature: "workspace.bus-preferences", action: "write" },
+  ],
+  catalog_bus_route_search: [{ feature: "catalog.bus", action: "read" }],
+  catalog_bus_departure_next: [{ feature: "catalog.bus", action: "read" }],
 
   // Course catalog
-  catalog_course_search: [{ feature: "course", action: "read" }],
-  catalog_course_get: [{ feature: "course", action: "read" }],
-  catalog_semester_list: [{ feature: "course", action: "read" }],
-  catalog_semester_current: [{ feature: "course", action: "read" }],
+  catalog_course_search: [{ feature: "catalog.course", action: "read" }],
+  catalog_course_get: [{ feature: "catalog.course", action: "read" }],
+  catalog_semester_list: [{ feature: "catalog.course", action: "read" }],
+  catalog_semester_current: [{ feature: "catalog.course", action: "read" }],
 
   // Sections
-  catalog_section_get: [{ feature: "section", action: "read" }],
-  catalog_section_search: [{ feature: "section", action: "read" }],
-  catalog_section_match_preview: [{ feature: "section", action: "read" }],
+  catalog_section_get: [{ feature: "catalog.section", action: "read" }],
+  catalog_section_search: [{ feature: "catalog.section", action: "read" }],
+  catalog_section_match_preview: [
+    { feature: "catalog.section", action: "read" },
+  ],
 
   // Teachers
-  catalog_teacher_search: [{ feature: "teacher", action: "read" }],
-  catalog_teacher_get: [{ feature: "teacher", action: "read" }],
+  catalog_teacher_search: [{ feature: "catalog.teacher", action: "read" }],
+  catalog_teacher_get: [{ feature: "catalog.teacher", action: "read" }],
 
   // Schedules
-  catalog_schedule_list: [{ feature: "schedule", action: "read" }],
-  catalog_section_schedule_list: [{ feature: "schedule", action: "read" }],
-  workspace_schedule_list: [{ feature: "schedule", action: "read" }],
+  catalog_schedule_list: [{ feature: "catalog.schedule", action: "read" }],
+  catalog_section_schedule_list: [
+    { feature: "catalog.schedule", action: "read" },
+  ],
+  workspace_schedule_list: [{ feature: "workspace.schedule", action: "read" }],
 
   // Exams
-  catalog_section_exam_list: [{ feature: "exam", action: "read" }],
-  workspace_exam_list: [{ feature: "exam", action: "read" }],
+  catalog_section_exam_list: [{ feature: "catalog.exam", action: "read" }],
+  workspace_exam_list: [{ feature: "workspace.exam", action: "read" }],
 };
 
 export function hasExplicitMcpToolScopes(name: string): boolean {

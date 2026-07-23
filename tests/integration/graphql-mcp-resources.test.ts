@@ -74,12 +74,12 @@ describe.sequential("GraphQL MCP operations", () => {
       operations: expect.arrayContaining([
         expect.objectContaining({
           id: "workspace.todo.list.v1",
-          scopes: ["todo:read"],
+          scopes: ["workspace.todo:read"],
           readOnly: true,
         }),
         expect.objectContaining({
           id: "workspace.todo.delete.v1",
-          scopes: ["todo:write"],
+          scopes: ["workspace.todo:write"],
           destructive: true,
           requiresConfirmation: true,
         }),
@@ -437,7 +437,7 @@ describe.sequential("GraphQL MCP operations", () => {
 
   it("returns an exact insufficient-scope challenge for reauthorization", async () => {
     const limitedMcp = await createMcpHarness(userId, [
-      restReadScope("homework"),
+      restReadScope("workspace.homework"),
     ]);
     try {
       const result = await limitedMcp.callToolResult("graphql_operation_run", {
@@ -451,14 +451,14 @@ describe.sequential("GraphQL MCP operations", () => {
         structuredContent: {
           success: false,
           error: "FORBIDDEN",
-          requiredScopes: [restReadScope("todo")],
+          requiredScopes: [restReadScope("workspace.todo")],
         },
       });
       expect(result._meta?.["mcp/www_authenticate"]).toEqual([
         expect.stringContaining('error="insufficient_scope"'),
       ]);
       expect(result._meta?.["mcp/www_authenticate"]).toEqual([
-        expect.stringContaining(`scope="${restReadScope("todo")}"`),
+        expect.stringContaining(`scope="${restReadScope("workspace.todo")}"`),
       ]);
     } finally {
       await limitedMcp.close();
@@ -467,7 +467,7 @@ describe.sequential("GraphQL MCP operations", () => {
 
   it("enforces resolver scopes for arbitrary documents", async () => {
     const limitedMcp = await createMcpHarness(userId, [
-      restReadScope("homework"),
+      restReadScope("workspace.homework"),
     ]);
     try {
       const result = await limitedMcp.callToolResult("graphql_operation_run", {
@@ -485,14 +485,14 @@ describe.sequential("GraphQL MCP operations", () => {
             expect.objectContaining({
               extensions: expect.objectContaining({
                 code: "FORBIDDEN",
-                requiredScopes: [restReadScope("todo")],
+                requiredScopes: [restReadScope("workspace.todo")],
               }),
             }),
           ],
         },
       });
       expect(result._meta?.["mcp/www_authenticate"]).toEqual([
-        expect.stringContaining(`scope="${restReadScope("todo")}"`),
+        expect.stringContaining(`scope="${restReadScope("workspace.todo")}"`),
       ]);
     } finally {
       await limitedMcp.close();
@@ -501,7 +501,7 @@ describe.sequential("GraphQL MCP operations", () => {
 
   it("preflights every mutation scope before any selected field executes", async () => {
     const todoOnlyMcp = await createMcpHarness(userId, [
-      restWriteScope("todo"),
+      restWriteScope("workspace.todo"),
     ]);
     const title = `${marker}-mixed-scope`;
     try {
@@ -525,7 +525,7 @@ describe.sequential("GraphQL MCP operations", () => {
         structuredContent: {
           success: false,
           error: "FORBIDDEN",
-          requiredScopes: [restWriteScope("bus")],
+          requiredScopes: [restWriteScope("workspace.bus-preferences")],
         },
       });
       expect(await prisma.todo.count({ where: { title } })).toBe(0);
@@ -536,7 +536,7 @@ describe.sequential("GraphQL MCP operations", () => {
 
   it("preflights only mutation fields included by GraphQL directives", async () => {
     const todoOnlyMcp = await createMcpHarness(userId, [
-      restWriteScope("todo"),
+      restWriteScope("workspace.todo"),
     ]);
     const document = /* GraphQL */ `
       mutation ConditionalScopes(
@@ -602,7 +602,7 @@ describe.sequential("GraphQL MCP operations", () => {
         structuredContent: {
           success: false,
           error: "FORBIDDEN",
-          requiredScopes: [restWriteScope("bus")],
+          requiredScopes: [restWriteScope("workspace.bus-preferences")],
         },
       });
       expect(await prisma.todo.count({ where: { title: blockedTitle } })).toBe(

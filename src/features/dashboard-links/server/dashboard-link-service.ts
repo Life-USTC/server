@@ -102,6 +102,11 @@ export async function updateDashboardLinkPinState({
   });
 }
 
+export async function getDashboardLinkPinnedSlugs(userId: string) {
+  userId = normalizeUserId(userId);
+  return withUserDbContext(userId, (tx) => listDashboardLinkPins(tx, userId));
+}
+
 export function logDashboardLinkPinFailure({
   action,
   error,

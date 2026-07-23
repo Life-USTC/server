@@ -1,5 +1,6 @@
 import { setDashboardLinkPinStatesBatch } from "@/features/dashboard-links/server/dashboard-link-pin-batch";
 import {
+  getDashboardLinkPinnedSlugs,
   logDashboardLinkPinFailure,
   MAX_PINNED_LINKS,
   resolveDashboardLinkBySlug,
@@ -15,12 +16,27 @@ import { dashboardLinkPinResponseSchema } from "@/lib/api/schemas/response-schem
 import { requireAuth } from "@/lib/auth/api-auth";
 import { jsonOrRedirectForPinnedLinks } from "./dashboard-link-pin-response";
 
+export async function getDashboardLinkPinsRoute(request: Request) {
+  const auth = await requireAuth(request, {
+    bearerScope: { feature: "workspace.link-pin", action: "read" },
+  });
+  if (auth instanceof Response) return auth;
+
+  return jsonResponse(
+    dashboardLinkPinResponseSchema.parse({
+      pinnedSlugs: await getDashboardLinkPinnedSlugs(auth.userId),
+      maxPinnedLinks: MAX_PINNED_LINKS,
+      error: null,
+    }),
+  );
+}
+
 export async function postDashboardLinkPinRoute(request: Request) {
   const wantsJson =
     request.headers.get("accept")?.includes("application/json") ?? false;
   const auth = await requireAuth(request, {
-    bearerScope: { feature: "dashboard", action: "write" },
-    rateLimit: { action: "dashboard:write" },
+    bearerScope: { feature: "workspace.link-pin", action: "write" },
+    rateLimit: { action: "workspace.link-pin:write" },
   });
 
   if (auth instanceof Response) {
@@ -94,7 +110,7 @@ export async function postDashboardLinkPinRoute(request: Request) {
 
 export async function postDashboardLinkPinBatchRoute(request: Request) {
   const auth = await requireAuth(request, {
-    bearerScope: { feature: "dashboard", action: "write" },
+    bearerScope: { feature: "workspace.link-pin", action: "write" },
     rateLimit: { action: "dashboard:batch-write", tier: "batch" },
   });
   if (auth instanceof Response) return auth;

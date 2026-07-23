@@ -45,7 +45,7 @@ describe("community_user_get", () => {
       totalContributions?: number;
       weeks?: Array<Array<{ date?: string; count?: number }>>;
     }>("community_user_get", {
-      username: fixtures.DEV_SEED.debugUsername,
+      identifier: fixtures.DEV_SEED.debugUsername,
       mode: "full",
     });
 
@@ -69,7 +69,7 @@ describe("community_user_get", () => {
       found?: boolean;
       error?: string;
     }>("community_user_get", {
-      username: "missing-integration-user",
+      identifier: "missing-integration-user",
     });
 
     expect(result.success).toBe(false);

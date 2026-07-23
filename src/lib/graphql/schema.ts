@@ -10,7 +10,15 @@ import {
 import { listCourseSummaries } from "@/features/catalog/server/course-summary-read-model";
 import { listSections } from "@/features/catalog/server/section-summary-read-model";
 import { listTeacherSummaries } from "@/features/catalog/server/teacher-summary-read-model";
-import { getUserProfileByUsername } from "@/features/profile/server/user-profile-page-data";
+import {
+  linkMatchesTokens,
+  searchQueryToTokens,
+} from "@/features/dashboard-links/lib/dashboard-link-search";
+import { getPublicDashboardLinksData } from "@/features/dashboard-links/server/dashboard-link-data";
+import {
+  getUserProfileById,
+  getUserProfileByUsername,
+} from "@/features/profile/server/user-profile-page-data";
 import {
   capGraphqlAlternateRoutes,
   capGraphqlBusCampuses,
@@ -253,6 +261,16 @@ export const graphqlTypeDefs = /* GraphQL */ `
       now: DateTime
       versionKey: String
     ): BusRouteTimetable
+    links(query: String): [CatalogLink!]!
+  }
+
+  type CatalogLink {
+    slug: String!
+    title: String!
+    description: String!
+    url: String!
+    icon: String!
+    group: String!
   }
 
   type CommunityUser {
@@ -264,7 +282,7 @@ export const graphqlTypeDefs = /* GraphQL */ `
   }
 
   type Community {
-    user(username: String!): CommunityUser
+    user(identifier: String!): CommunityUser
   }
 
   type Query {
@@ -306,10 +324,12 @@ export const graphqlSchema = createSchema<
       account: graphqlAuthenticatedScopeResolver,
     },
     Community: {
-      async user(_parent, args: { username: string }) {
-        const username = args.username.trim();
-        if (!username) return null;
-        const profile = await getUserProfileByUsername(username);
+      async user(_parent, args: { identifier: string }) {
+        const identifier = args.identifier.trim();
+        if (!identifier) return null;
+        const profile =
+          (await getUserProfileByUsername(identifier.toLowerCase())) ??
+          (await getUserProfileById(identifier));
         return profile?.user ?? null;
       },
     },
@@ -487,6 +507,15 @@ export const graphqlSchema = createSchema<
           weekendPageInfo: weekendPage.pagination,
           alternateRoutes: capGraphqlAlternateRoutes(result.alternateRoutes),
         };
+      },
+      links(_parent, args: { query?: string | null }, context) {
+        const links = getPublicDashboardLinksData(
+          context.locale,
+        ).dashboardLinks;
+        const query = args.query?.trim();
+        if (!query) return links;
+        const tokens = searchQueryToTokens(query);
+        return links.filter((link) => linkMatchesTokens(link, tokens));
       },
     },
   },

@@ -20,7 +20,7 @@ function handleInput(
   } = {},
 ) {
   const url = new URL(
-    `https://life.example${input.pathname ?? "/catalog-page-data/courses"}`,
+    `https://life.example${input.pathname ?? "/catalog/_data/courses"}`,
   );
   const span = {
     addEvent: () => span,
@@ -77,7 +77,7 @@ function handleInput(
       headers: input.headers,
       method: input.method ?? "GET",
     }),
-    route: { id: input.routeId ?? "/catalog-page-data/[kind]" },
+    route: { id: input.routeId ?? "/catalog/_data/[kind]" },
     setHeaders: vi.fn(),
     tracing: {
       current: span,
@@ -130,7 +130,7 @@ describe("SvelteKit page request lifecycle", () => {
     expect(pageEvents(info.mock.calls, "page.request.finish")[0]?.[1]).toEqual(
       expect.objectContaining({
         ioObservedDurationMs: expect.any(Number),
-        route: "/catalog-page-data/[kind]",
+        route: "/catalog/_data/[kind]",
         status: 200,
       }),
     );

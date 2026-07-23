@@ -78,9 +78,13 @@ describe("GraphQL batch mutation resolvers", () => {
       context,
     );
 
-    expect(requireGraphqlMutationMock).toHaveBeenCalledWith(context, "todo", {
-      rateLimitTier: "batch",
-    });
+    expect(requireGraphqlMutationMock).toHaveBeenCalledWith(
+      context,
+      "workspace.todo",
+      {
+        rateLimitTier: "batch",
+      },
+    );
     expect(updateOwnedTodoMock).toHaveBeenNthCalledWith(1, {
       id: "todo-1",
       userId: "user-1",
@@ -216,7 +220,7 @@ describe("GraphQL batch mutation resolvers", () => {
     ).resolves.toEqual(payload);
     expect(requireGraphqlMutationMock).toHaveBeenCalledWith(
       context,
-      "homework",
+      "workspace.homework",
       { rateLimitTier: "batch" },
     );
     expect(setHomeworkCompletionsMock).toHaveBeenCalledWith({
@@ -251,7 +255,7 @@ describe("GraphQL batch mutation resolvers", () => {
 
     expect(requireGraphqlMutationMock).toHaveBeenCalledWith(
       context,
-      "subscription",
+      "workspace.subscription",
       { rateLimitTier: "batch" },
     );
     expect(batchUpdateUserSectionSubscriptionsMock).toHaveBeenCalledWith({

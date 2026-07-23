@@ -15,7 +15,7 @@ export function createAdminOAuthControllerDefaultState<Client>(input: {
     selectedScopes: [
       "openid",
       "profile",
-      "me:read",
+      "account.profile:read",
       "todo:read",
       "todo:write",
       "homework:read",

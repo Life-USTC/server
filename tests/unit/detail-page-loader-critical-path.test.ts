@@ -383,7 +383,7 @@ describe("section detail loader critical path", () => {
   it("retains subscription state on signed-in sections because the fixed header consumes it", async () => {
     getUserSectionSubscriptionStateMock.mockResolvedValue({
       subscribedSections: [section.id],
-      subscriptionIcsUrl: "/api/community/users/user-1/calendar.ics",
+      subscriptionIcsUrl: "/api/calendar-feeds/user-1.ics",
     });
     const { loadSectionDetailPage } = await import(
       "@/features/section-detail/server/section-detail-page-server"
@@ -402,7 +402,7 @@ describe("section detail loader critical path", () => {
     expect(result.viewer).toMatchObject({
       isSubscribed: true,
       signedIn: true,
-      subscriptionIcsUrl: "/api/community/users/user-1/calendar.ics",
+      subscriptionIcsUrl: "/api/calendar-feeds/user-1.ics",
     });
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
     expect(getSectionHomeworkDataMock).not.toHaveBeenCalled();

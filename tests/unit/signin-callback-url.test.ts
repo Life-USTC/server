@@ -4,11 +4,12 @@ import {
   sanitizeAuthCallbackUrl,
 } from "@/lib/auth/auth-routing";
 import {
-  MCP_TOOLS_SCOPE,
   OAUTH_CODE_RESPONSE_TYPE,
   OAUTH_OPENID_SCOPE,
   OAUTH_PROFILE_SCOPE,
 } from "@/lib/oauth/constants";
+
+const TODO_READ_SCOPE = "workspace.todo:read";
 
 describe("resolveSignInCallbackUrl", () => {
   it("优先使用显式 callbackUrl", () => {
@@ -47,7 +48,7 @@ describe("resolveSignInCallbackUrl", () => {
         response_type: OAUTH_CODE_RESPONSE_TYPE,
         client_id: "client-1",
         redirect_uri: "http://127.0.0.1:3000/callback",
-        scope: `${OAUTH_OPENID_SCOPE} ${OAUTH_PROFILE_SCOPE} ${MCP_TOOLS_SCOPE}`,
+        scope: `${OAUTH_OPENID_SCOPE} ${OAUTH_PROFILE_SCOPE} ${TODO_READ_SCOPE}`,
         state: "state-1",
         code_challenge: "challenge",
         code_challenge_method: "S256",
@@ -56,7 +57,7 @@ describe("resolveSignInCallbackUrl", () => {
         sig: "signature-value",
       }),
     ).toBe(
-      "/oauth/authorize?response_type=code&client_id=client-1&redirect_uri=http%3A%2F%2F127.0.0.1%3A3000%2Fcallback&scope=openid+profile+mcp%3Atools&state=state-1&code_challenge=challenge&code_challenge_method=S256&resource=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fmcp&exp=1777429523&sig=signature-value",
+      "/oauth/authorize?response_type=code&client_id=client-1&redirect_uri=http%3A%2F%2F127.0.0.1%3A3000%2Fcallback&scope=openid+profile+workspace.todo%3Aread&state=state-1&code_challenge=challenge&code_challenge_method=S256&resource=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fmcp&exp=1777429523&sig=signature-value",
     );
   });
 

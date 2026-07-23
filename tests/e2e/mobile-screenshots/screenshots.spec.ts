@@ -51,7 +51,7 @@ test.describe("移动端截图", () => {
       "/workspace/todos",
       "/workspace/calendar",
       "/workspace/exams",
-      "/workspace/links",
+      "/catalog/links",
       "/workspace/subscriptions",
       "/account/settings/profile",
       "/account/settings/accounts",
@@ -62,13 +62,13 @@ test.describe("移动端截图", () => {
       screenshotRoute(path, path);
     }
 
-    test(`/community/users/id/[uid] 页面截图`, async ({ page }) => {
+    test(`/community/users/[identifier] ID 页面截图`, async ({ page }) => {
       const sessionResponse = await page.request.get("/api/auth/get-session");
       const session = (await sessionResponse.json()) as {
         user?: { id?: string };
       };
       const userId = session.user?.id ?? "";
-      await gotoAndWaitForReady(page, `/community/users/id/${userId}`);
+      await gotoAndWaitForReady(page, `/community/users/${userId}`);
     });
 
     test.describe("welcome 共享用户状态", () => {

@@ -39,74 +39,54 @@ const SECURITY_SCHEMES = {
   },
 };
 
-const ROOT_TAGS = [
-  { name: "Admin", description: "Admin and moderation endpoints" },
-  {
-    name: "Comments",
-    description: "Comment threads, reactions, and moderation",
-  },
-  {
-    name: "Homeworks",
-    description: "Homework management and completion status",
-  },
-  {
-    name: "Uploads",
-    description:
-      "Upload session, R2 object write, finalize, and file management",
-  },
-  {
-    name: "Descriptions",
-    description: "User-generated description content and history",
-  },
-  {
-    name: "Sections",
-    description: "Course sections, calendars, and schedules",
-  },
-  { name: "Courses", description: "Course catalog and search" },
-  { name: "Teachers", description: "Teacher directory and search" },
-  { name: "Schedules", description: "Schedules search and filtering" },
-  { name: "Semesters", description: "Semester listing and current semester" },
-  { name: "Calendar", description: "Calendar selections and exports" },
-  { name: "Bus", description: "Shuttle bus schedules and preferences" },
-  { name: "Todos", description: "Personal todo management" },
-  {
-    name: "Me",
-    description: "Current user profile, subscriptions, and personal data",
-  },
-  {
-    name: "DashboardLinks",
-    description: "Dashboard link pinning and click tracking",
-    "x-displayName": "Dashboard Links",
-  },
-  { name: "Locale", description: "Locale switching and locale cookies" },
-  { name: "Metadata", description: "Metadata dictionaries for filters" },
-  {
-    name: "OpenAPI",
-    description: "OpenAPI document endpoint",
-    "x-displayName": "OpenAPI",
-  },
-  { name: "Api", description: "General API endpoints" },
-];
+function collectTags(paths: Record<string, unknown>) {
+  const names = new Set<string>();
+  for (const pathItem of Object.values(paths)) {
+    if (!pathItem || typeof pathItem !== "object") continue;
+    for (const operation of Object.values(pathItem)) {
+      if (
+        !operation ||
+        typeof operation !== "object" ||
+        !("tags" in operation)
+      ) {
+        continue;
+      }
+      const tags = (operation as { tags?: unknown }).tags;
+      if (Array.isArray(tags)) {
+        for (const tag of tags) if (typeof tag === "string") names.add(tag);
+      }
+    }
+  }
+  return [...names].sort();
+}
 
-const TAG_GROUPS = [
-  {
-    name: "Catalog",
-    tags: ["Sections", "Courses", "Teachers", "Schedules", "Semesters"],
-  },
-  {
-    name: "Workspace",
-    tags: ["Homeworks", "Todos", "Calendar", "Me", "DashboardLinks"],
-  },
-  { name: "Community", tags: ["Comments", "Descriptions", "Uploads"] },
-  { name: "Campus Services", tags: ["Bus"] },
-  { name: "Platform", tags: ["Metadata", "Locale", "OpenAPI", "Api"] },
-  { name: "Admin", tags: ["Admin"] },
-];
+function buildTagGroups(tagNames: string[]) {
+  const groups = [
+    ["Catalog", "catalog."],
+    ["Workspace", "workspace."],
+    ["Community", "community."],
+    ["Account", "account."],
+    ["Admin", "admin."],
+  ] as const;
+  const grouped = new Set<string>();
+  const result: { name: string; tags: string[] }[] = groups.flatMap(
+    ([name, prefix]) => {
+      const tags = tagNames.filter((tag) => tag.startsWith(prefix));
+      for (const tag of tags) grouped.add(tag);
+      return tags.length ? [{ name, tags }] : [];
+    },
+  );
+  const platformTags = tagNames.filter((tag) => !grouped.has(tag));
+  if (platformTags.length)
+    result.push({ name: "Platform", tags: platformTags });
+  return result;
+}
 
 export function generateOpenApiDocument(): ReturnType<typeof createDocument> {
   const project = new Project({ tsConfigFilePath: "tsconfig.json" });
   const schemas = new SchemaCollector();
   const paths = collectPaths(project, schemas);
+  const tagNames = collectTags(paths);
 
   const document = {
     ...baseOpenApiDoc,
@@ -116,8 +96,11 @@ export function generateOpenApiDocument(): ReturnType<typeof createDocument> {
       description: "OpenAPI document generated from SvelteKit route handlers",
     },
     servers: [{ url: "/", description: "Current origin" }],
-    tags: ROOT_TAGS,
-    "x-tagGroups": TAG_GROUPS,
+    tags: tagNames.map((name) => ({
+      name,
+      description: `${name} operations`,
+    })),
+    "x-tagGroups": buildTagGroups(tagNames),
     paths,
     components: {
       schemas: schemas.getRegisteredSchemas(),

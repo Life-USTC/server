@@ -24,6 +24,7 @@ const operations = {
   isolateSingleActiveBusTripFixture:
     busFixtures.isolateSingleActiveBusTripFixture,
   restoreBusTripTimesFixture: busFixtures.restoreBusTripTimesFixture,
+  setBusPreferenceFixture: busFixtures.setBusPreferenceFixture,
   deleteLinkedAccountFixture: oauthFixtures.deleteLinkedAccountFixture,
   deletePasskeysForUserFixture: userFixtures.deletePasskeysForUserFixture,
   deleteTempCoursesByPrefix: catalogFixtures.deleteTempCoursesByPrefix,
@@ -133,6 +134,11 @@ export const isolateSingleActiveBusTripFixture = () =>
 export const restoreBusTripTimesFixture = (
   snapshot: busFixtures.BusTripTimesSnapshot,
 ) => runDbFixture<void>("restoreBusTripTimesFixture", [snapshot]);
+
+export const setBusPreferenceFixture = (
+  userId: string,
+  preference: busFixtures.BusPreferenceFixture,
+) => runDbFixture<void>("setBusPreferenceFixture", [userId, preference]);
 
 export const createTempCoursesFixture = (options: {
   count: number;

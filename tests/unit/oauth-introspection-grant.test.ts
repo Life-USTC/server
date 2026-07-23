@@ -74,9 +74,9 @@ describe("OAuth JWT introspection grant state", () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
       clientId: "client-1",
       grantId: "consent-1",
-      scope: new Set(["todo:read"]),
+      scope: new Set(["workspace.todo:read"]),
       sub: "user-1",
-      tokenScopes: ["todo:read"],
+      tokenScopes: ["workspace.todo:read"],
     });
   });
 
@@ -103,7 +103,7 @@ describe("OAuth JWT introspection grant state", () => {
       clientId: "client-1",
       grantId: "consent-1",
       requireGrantBinding: true,
-      scopes: ["todo:read"],
+      scopes: ["workspace.todo:read"],
       userId: "user-1",
     });
   });

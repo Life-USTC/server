@@ -26,7 +26,7 @@ function createRequest(tokenEndpointAuthMethod: string) {
   );
   form.set("tokenEndpointAuthMethod", tokenEndpointAuthMethod);
   form.append("scopes", "openid");
-  form.append("scopes", "todo:read");
+  form.append("scopes", "workspace.todo:read");
   return new Request("https://life.example/admin/oauth?/createClient", {
     method: "POST",
     body: form,
@@ -73,7 +73,7 @@ describe("admin OAuth client creation", () => {
           "https://example.test/callback",
           "https://example.test/alternate",
         ],
-        scopes: ["openid", "todo:read"],
+        scopes: ["openid", "workspace.todo:read"],
         tokenEndpointAuthMethod: method,
       },
     });

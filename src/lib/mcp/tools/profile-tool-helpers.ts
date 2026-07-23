@@ -12,8 +12,7 @@ export const getMyProfileInputSchema = {
 };
 
 export const getPublicUserProfileInputSchema = {
-  username: z.string().trim().min(1).optional(),
-  userId: z.string().trim().min(1).optional(),
+  identifier: z.string().trim().min(1),
   mode: mcpModeInputSchema,
 };
 

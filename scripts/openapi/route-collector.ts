@@ -48,15 +48,15 @@ const BINARY_REQUEST_BODY = {
 const FORM_URLENCODED_PATHS = new Set([
   "POST /api/auth/oauth2/token",
   "POST /api/auth/oauth2/device-authorization",
-  "POST /api/workspace/links/pin",
-  "POST /api/workspace/links/visit",
+  "POST /api/workspace/link-pins",
+  "POST /api/catalog/links/resolve",
 ]);
 
 const REDIRECT_DESCRIPTIONS: Record<
   string,
   Record<string, { description: string; headers?: Record<string, unknown> }>
 > = {
-  "POST /api/workspace/links/pin": {
+  "POST /api/workspace/link-pins": {
     "303": {
       description: "Redirect after pin/unpin",
       headers: {
@@ -67,7 +67,7 @@ const REDIRECT_DESCRIPTIONS: Record<
       },
     },
   },
-  "GET /api/workspace/links/visit": {
+  "GET /api/catalog/links/resolve": {
     "307": {
       description: "Temporary redirect to target link",
       headers: {
@@ -78,7 +78,7 @@ const REDIRECT_DESCRIPTIONS: Record<
       },
     },
   },
-  "POST /api/workspace/links/visit": {
+  "POST /api/catalog/links/resolve": {
     "303": {
       description: "Redirect after recording link click",
       headers: {
@@ -138,10 +138,11 @@ const OPERATION_ID_OVERRIDES: Record<string, string> = {
     "get-api-auth-.well-known-openid-configuration",
   "OPTIONS /api/auth/.well-known/openid-configuration":
     "options-api-auth-.well-known-openid-configuration",
-  "GET /api/catalog/bus": "queryBus",
-  "GET /api/catalog/bus/routes": "get-api-bus-routes",
-  "GET /api/workspace/bus-preferences": "getBusPreferences",
-  "POST /api/workspace/bus-preferences": "setBusPreferences",
+  "GET /api/catalog/bus": "catalog_bus_timetable_get",
+  "GET /api/catalog/bus/routes": "catalog_bus_route_search",
+  "GET /api/catalog/bus/next": "catalog_bus_departure_next",
+  "GET /api/workspace/bus-preferences": "workspace_bus_preferences_get",
+  "POST /api/workspace/bus-preferences": "workspace_bus_preferences_set",
   "POST /api/workspace/subscriptions": "setCalendarSubscription",
   "POST /api/workspace/subscriptions/batch": "batchUpdateCalendarSubscription",
   "PATCH /api/workspace/subscriptions": "appendCalendarSubscriptionSections",
@@ -158,16 +159,21 @@ const OPERATION_ID_OVERRIDES: Record<string, string> = {
   "DELETE /api/community/comments/{id}/reactions": "removeCommentReaction",
   "GET /api/catalog/courses": "listCourses",
   "GET /api/catalog/courses/{jwId}": "getCourse",
-  "POST /api/workspace/links/pin": "pinDashboardLink",
-  "GET /api/workspace/links/visit": "visitDashboardLink",
-  "POST /api/workspace/links/visit": "recordDashboardLinkVisit",
+  "GET /api/catalog/links": "catalog_link_list",
+  "GET /api/catalog/links/resolve": "catalog_link_resolve",
+  "POST /api/catalog/links/resolve": "catalog_link_visit_record",
+  "GET /api/workspace/link-pins": "workspace_link_pin_list",
+  "POST /api/workspace/link-pins": "workspace_link_pin_set",
+  "POST /api/workspace/link-pins/batch": "workspace_link_pin_batch_set",
   "GET /api/community/descriptions": "getDescription",
   "POST /api/community/descriptions": "upsertDescription",
   "GET /api/health": "listHealth",
-  "GET /api/community/homeworks": "listHomeworks",
-  "POST /api/community/homeworks": "createHomework",
-  "PATCH /api/community/homeworks/{id}": "updateHomework",
-  "DELETE /api/community/homeworks/{id}": "deleteHomework",
+  "GET /api/community/section-homeworks": "community_section_homework_list",
+  "POST /api/community/section-homeworks": "community_section_homework_create",
+  "PATCH /api/community/section-homeworks/{id}":
+    "community_section_homework_update",
+  "DELETE /api/community/section-homeworks/{id}":
+    "community_section_homework_delete",
   "PUT /api/workspace/homeworks/{id}/completion": "setHomeworkCompletion",
   "POST /api/account/preferences": "setLocale",
   "GET /api/mcp": "listMcp",
@@ -180,11 +186,12 @@ const OPERATION_ID_OVERRIDES: Record<string, string> = {
     "get-api-mcp-.well-known-openid-configuration",
   "OPTIONS /api/mcp/.well-known/openid-configuration":
     "options-api-mcp-.well-known-openid-configuration",
-  "GET /api/account": "getMe",
+  "GET /api/account/profile": "account_profile_get",
+  "GET /api/community/users/{identifier}": "community_user_get",
   "GET /api/workspace/homeworks": "getSubscribedHomeworks",
   "PUT /api/workspace/homeworks/completions": "put-api-homeworks-completions",
-  "GET /api/workspace/overview": "get-api-me-overview",
-  "GET /api/workspace/schedules": "get-api-me-subscriptions-schedules",
+  "GET /api/workspace/overview": "workspace_overview_get",
+  "GET /api/workspace/schedules": "workspace_schedule_list",
   "GET /api/catalog/metadata": "getMetadata",
   "GET /api/openapi": "getOpenApiSpec",
   "GET /api/catalog/schedules": "listSchedules",
@@ -213,7 +220,7 @@ const OPERATION_ID_OVERRIDES: Record<string, string> = {
   "GET /api/workspace/uploads/{id}/download": "downloadUpload",
   "POST /api/workspace/uploads/complete": "completeUpload",
   "PUT /api/workspace/uploads/object": "put-api-uploads-object",
-  "GET /api/community/users/{userId}/calendar.ics": "getUserCalendar",
+  "GET /api/calendar-feeds/{credential}.ics": "workspace_calendar_feed_export",
 };
 
 export interface RouteCollectorOptions {
@@ -369,7 +376,7 @@ function buildOperation(
     operation.responses = responses;
   }
 
-  const security = buildSecurity(routePath, method, tag, has401);
+  const security = buildSecurity(routePath, method, has401);
   if (security) {
     operation.security = security;
   }
@@ -529,31 +536,30 @@ function slugPath(path: string): string {
 }
 
 function buildTag(routePath: string): string {
-  if (routePath.startsWith("/api/admin/")) return "Admin";
-  if (routePath.startsWith("/api/catalog/bus")) return "Bus";
-  if (routePath.startsWith("/api/workspace/bus-preferences")) return "Bus";
-  if (routePath.startsWith("/api/workspace/subscriptions")) return "Calendar";
-  if (routePath.startsWith("/api/community/comments")) return "Comments";
-  if (routePath.startsWith("/api/catalog/courses")) return "Courses";
-  if (routePath.startsWith("/api/workspace/links")) return "DashboardLinks";
-  if (routePath === "/api/workspace/overview") return "Dashboard";
-  if (routePath.startsWith("/api/community/descriptions"))
-    return "Descriptions";
-  if (routePath.startsWith("/api/community/homeworks")) return "Homeworks";
-  if (routePath.startsWith("/api/workspace/homeworks")) return "Homeworks";
-  if (routePath === "/api/account/preferences") return "Locale";
-  if (routePath === "/api/catalog/metadata") return "Metadata";
+  const [, api, scope, domain] = routePath.split("/");
+  if (
+    api === "api" &&
+    scope &&
+    domain &&
+    ["account", "admin", "catalog", "community", "workspace"].includes(scope)
+  ) {
+    const canonicalDomain =
+      {
+        homeworks: "homework",
+        links: "link",
+        "link-pins": "link-pin",
+        schedules: "schedule",
+        sections: "section",
+        "section-homeworks": "section-homework",
+        subscriptions: "subscription",
+        todos: "todo",
+        uploads: "upload",
+        users: "user",
+      }[domain] ?? domain;
+    return `${scope}.${canonicalDomain}`;
+  }
+  if (routePath.startsWith("/api/calendar-feeds/")) return "workspace.calendar";
   if (routePath === "/api/openapi") return "OpenAPI";
-  if (routePath.startsWith("/api/account")) return "Me";
-  if (routePath === "/api/catalog/schedules") return "Schedules";
-  if (routePath === "/api/workspace/schedules") return "Schedules";
-  if (routePath.startsWith("/api/catalog/sections")) return "Sections";
-  if (routePath.startsWith("/api/catalog/semesters")) return "Semesters";
-  if (routePath.startsWith("/api/catalog/teachers")) return "Teachers";
-  if (routePath.startsWith("/api/workspace/todos")) return "Todos";
-  if (routePath.startsWith("/api/workspace/uploads")) return "Uploads";
-  if (routePath === "/api/community/users/{userId}/calendar.ics")
-    return "Calendar";
   if (
     routePath.startsWith("/api/auth") ||
     routePath.startsWith("/api/mcp") ||
@@ -567,7 +573,6 @@ function buildTag(routePath: string): string {
 function buildSecurity(
   routePath: string,
   method: string,
-  tag: string,
   has401: boolean,
 ): Array<Record<string, string[]>> | undefined {
   if (!has401) return undefined;
@@ -576,7 +581,7 @@ function buildSecurity(
     return undefined;
   }
 
-  if (tag === "Admin") {
+  if (routePath.startsWith("/api/admin/")) {
     return [{ sessionCookie: [] }];
   }
 
@@ -584,7 +589,7 @@ function buildSecurity(
     return [{ mcpBearerAuth: [] }];
   }
 
-  if (routePath === "/api/community/users/{userId}/calendar.ics") {
+  if (routePath.startsWith("/api/calendar-feeds/")) {
     return [
       { bearerAuth: [] },
       { sessionCookie: [] },

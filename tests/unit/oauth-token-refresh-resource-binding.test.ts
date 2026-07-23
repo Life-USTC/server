@@ -1,7 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  MCP_TOOLS_SCOPE,
-  mcpScope,
   OAUTH_PROFILE_SCOPE,
   OAUTH_REFRESH_TOKEN_GRANT_TYPE,
   restReadScope,
@@ -42,10 +40,10 @@ describe("OAuth 刷新资源绑定", () => {
     findRefreshTokenMock.mockReset();
   });
 
-  it("不将无资源的 mcp:tools 刷新授权绑定到 MCP 资源", async () => {
+  it("不将无资源的 feature scope 刷新授权绑定到 MCP 资源", async () => {
     findRefreshTokenMock.mockResolvedValue({
       resources: [],
-      scopes: [MCP_TOOLS_SCOPE],
+      scopes: [restReadScope("account.profile")],
     });
     const { maybeBindOAuthRefreshResourceRequest } = await import(
       "@/lib/api/routes/auth-token-refresh-resource-binding"
@@ -65,7 +63,7 @@ describe("OAuth 刷新资源绑定", () => {
   it("不将非 MCP 批准的刷新授权绑定到 MCP 资源", async () => {
     findRefreshTokenMock.mockResolvedValue({
       resources: ["https://life.example/api/auth"],
-      scopes: [MCP_TOOLS_SCOPE],
+      scopes: [restReadScope("account.profile")],
     });
     const { maybeBindOAuthRefreshResourceRequest } = await import(
       "@/lib/api/routes/auth-token-refresh-resource-binding"
@@ -85,7 +83,7 @@ describe("OAuth 刷新资源绑定", () => {
   it("仅在存储授权包含 MCP 资源时绑定省略资源的刷新", async () => {
     findRefreshTokenMock.mockResolvedValue({
       resources: ["https://life.example/api/mcp"],
-      scopes: [MCP_TOOLS_SCOPE],
+      scopes: [restReadScope("account.profile")],
     });
     const { maybeBindOAuthRefreshResourceRequest } = await import(
       "@/lib/api/routes/auth-token-refresh-resource-binding"
@@ -103,10 +101,10 @@ describe("OAuth 刷新资源绑定", () => {
     expect(rewrittenBody.get("resource")).toBe("https://life.example/api/mcp");
   });
 
-  it("保留仅使用 legacy MCP feature scope 的刷新绑定", async () => {
+  it("保留使用 canonical feature scope 的 MCP 刷新绑定", async () => {
     findRefreshTokenMock.mockResolvedValue({
       resources: ["https://life.example/api/mcp"],
-      scopes: [mcpScope("profile")],
+      scopes: [restReadScope("account.profile")],
     });
     const { maybeBindOAuthRefreshResourceRequest } = await import(
       "@/lib/api/routes/auth-token-refresh-resource-binding"
@@ -132,7 +130,7 @@ describe("OAuth 刷新资源绑定", () => {
         "https://life.example:443/api/graphql",
         "https://life.example/api/graphql",
       ],
-      scopes: [restReadScope("todo")],
+      scopes: [restReadScope("workspace.todo")],
     });
     const { maybeBindOAuthRefreshResourceRequest } = await import(
       "@/lib/api/routes/auth-token-refresh-resource-binding"
@@ -175,7 +173,7 @@ describe("OAuth 刷新资源绑定", () => {
   it("降权到 profile 时不从旧 refresh scopes 恢复 GraphQL 绑定", async () => {
     findRefreshTokenMock.mockResolvedValue({
       resources: ["https://life.example/api/graphql"],
-      scopes: [OAUTH_PROFILE_SCOPE, restReadScope("todo")],
+      scopes: [OAUTH_PROFILE_SCOPE, restReadScope("workspace.todo")],
     });
     const { maybeBindOAuthRefreshResourceRequest } = await import(
       "@/lib/api/routes/auth-token-refresh-resource-binding"
@@ -199,7 +197,7 @@ describe("OAuth 刷新资源绑定", () => {
   ])("stored resources 含%s时整体 fail-closed", async (_label, dirtyResource) => {
     findRefreshTokenMock.mockResolvedValue({
       resources: ["https://life.example/api/graphql", dirtyResource],
-      scopes: [restReadScope("todo")],
+      scopes: [restReadScope("workspace.todo")],
     });
     const { maybeBindOAuthRefreshResourceRequest } = await import(
       "@/lib/api/routes/auth-token-refresh-resource-binding"
@@ -232,7 +230,7 @@ describe("OAuth 刷新资源绑定", () => {
   ])("同时批准 %s resources 时不猜测刷新目标", async (_label, resources) => {
     findRefreshTokenMock.mockResolvedValue({
       resources,
-      scopes: [restReadScope("todo")],
+      scopes: [restReadScope("workspace.todo")],
     });
     const { maybeBindOAuthRefreshResourceRequest } = await import(
       "@/lib/api/routes/auth-token-refresh-resource-binding"

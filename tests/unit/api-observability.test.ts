@@ -34,14 +34,14 @@ describe("API 可观测性", () => {
 
   it("隐去日历订阅路径令牌", () => {
     const normalized = normalizeApiRoutePath(
-      "/api/community/users/user-1:feed-token-0123456789/calendar.ics",
+      "/api/calendar-feeds/user-1:feed-token-0123456789.ics",
     );
     const encodedSeparator = normalizeApiRoutePath(
-      "/api/community/users/user-1%3Afeed-token-0123456789/calendar.ics",
+      "/api/calendar-feeds/user-1%3Afeed-token-0123456789.ics",
     );
 
-    expect(normalized).toBe("/api/community/users/:id/calendar.ics");
-    expect(encodedSeparator).toBe("/api/community/users/:id/calendar.ics");
+    expect(normalized).toBe("/api/calendar-feeds/:credential.ics");
+    expect(encodedSeparator).toBe("/api/calendar-feeds/:credential.ics");
     expect(normalized).not.toContain("feed-token-0123456789");
     expect(encodedSeparator).not.toContain("feed-token-0123456789");
   });
@@ -111,7 +111,7 @@ describe("API 可观测性", () => {
 
     await route(
       new Request(
-        "https://example.test/api/community/users/user-1:feed-token-0123456789/calendar.ics",
+        "https://example.test/api/calendar-feeds/user-1:feed-token-0123456789.ics",
         {
           headers: {
             authorization: "Bearer token-value",
@@ -123,12 +123,12 @@ describe("API 可观测性", () => {
     );
 
     expect(writeDataPoint).toHaveBeenCalledWith({
-      indexes: ["/api/community/users/:id/calendar.ics"],
+      indexes: ["/api/calendar-feeds/:credential.ics"],
       blobs: [
         "api_request_v2",
         "finish",
         "GET",
-        "/api/community/users/:id/calendar.ics",
+        "/api/calendar-feeds/:credential.ics",
         "204",
         "2xx",
         "bearer",

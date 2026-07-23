@@ -14,7 +14,7 @@ import { requireAuth } from "@/lib/auth/api-auth";
 
 export async function postCommentRoute(request: Request) {
   const auth = await requireAuth(request, {
-    bearerScope: { feature: "comment", action: "write" },
+    bearerScope: { feature: "community.comment", action: "write" },
   });
   if (auth instanceof Response) {
     return auth;

@@ -89,11 +89,21 @@ type Catalog {
   course(jwId: Int!): Course
   courses(filter: CourseFilter, page: PageInput): CoursePage!
   currentSemester: Semester
+  links(query: String): [CatalogLink!]!
   section(jwId: Int!): Section
   sections(filter: SectionFilter, page: PageInput): SectionPage!
   semesters(page: PageInput): SemesterPage!
   teacher(id: Int!): Teacher
   teachers(filter: TeacherFilter, page: PageInput): TeacherPage!
+}
+
+type CatalogLink {
+  description: String!
+  group: String!
+  icon: String!
+  slug: String!
+  title: String!
+  url: String!
 }
 
 type CommentDeleteBatchPayload {
@@ -142,7 +152,7 @@ enum CommentVisibility {
 }
 
 type Community {
-  user(username: String!): CommunityUser
+  user(identifier: String!): CommunityUser
 }
 
 type CommunityUser {
@@ -223,23 +233,6 @@ input CreateUploadSessionInput {
   contentType: String
   filename: String!
   size: Float!
-}
-
-input DashboardLinkPinBatchItemInput {
-  pinned: Boolean!
-  slug: String!
-}
-
-type DashboardLinkPinBatchMutationPayload {
-  maxPinnedLinks: Int!
-  pinnedSlugs: [String!]!
-}
-
-type DashboardLinkPinMutationPayload {
-  maxPinnedLinks: Int!
-  pinned: Boolean!
-  pinnedSlugs: [String!]!
-  slug: String!
 }
 
 scalar Date
@@ -389,8 +382,8 @@ type Mutation {
   homeworkCreate(input: CreateHomeworkInput!): HomeworkMutationPayload!
   homeworkDelete(id: ID!): HomeworkDeleteMutationPayload!
   homeworkUpdate(id: ID!, input: UpdateHomeworkInput!): HomeworkMutationPayload!
-  linkPinSet(pinned: Boolean!, slug: String!): DashboardLinkPinMutationPayload!
-  linkPinsSet(items: [DashboardLinkPinBatchItemInput!]!): DashboardLinkPinBatchMutationPayload!
+  linkPinSet(pinned: Boolean!, slug: String!): WorkspaceLinkPinMutationPayload!
+  linkPinsSet(items: [WorkspaceLinkPinBatchItemInput!]!): WorkspaceLinkPinBatchMutationPayload!
   subscriptionAdd(jwId: Int!): SectionSubscriptionMutationPayload!
   subscriptionRemove(jwId: Int!): SectionSubscriptionMutationPayload!
   subscriptionsImport(input: UpdateSectionSubscriptionsInput!): SectionSubscriptionBatchPayload!
@@ -727,6 +720,23 @@ type Workspace {
   schedules(filter: ScheduleFilter, page: PageInput): SchedulePage!
   subscribedSections(page: PageInput): SectionPage!
   todos(filter: TodoFilter, page: PageInput): TodoPage!
+}
+
+input WorkspaceLinkPinBatchItemInput {
+  pinned: Boolean!
+  slug: String!
+}
+
+type WorkspaceLinkPinBatchMutationPayload {
+  maxPinnedLinks: Int!
+  pinnedSlugs: [String!]!
+}
+
+type WorkspaceLinkPinMutationPayload {
+  maxPinnedLinks: Int!
+  pinned: Boolean!
+  pinnedSlugs: [String!]!
+  slug: String!
 }
 
 type WorkspaceOverview {

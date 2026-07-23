@@ -5,7 +5,6 @@ import {
   signInAsDevAdmin,
 } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
-import { getCurrentSessionUser } from "../../../utils/e2e-db";
 import {
   appSidebar,
   expandWorkspaceSidebarGroup,
@@ -285,7 +284,7 @@ export async function assertPageContract(
       return;
     }
 
-    case "/community/users/[username]": {
+    case "/community/users/[identifier]": {
       await gotoContractPage(
         page,
         `/community/users/${DEV_SEED.adminUsername}`,
@@ -297,22 +296,6 @@ export async function assertPageContract(
         visibleText(page, `@${DEV_SEED.adminUsername}`),
       ).toBeVisible();
       await maybeCapture(page, testInfo, "u-username");
-      return;
-    }
-
-    case "/community/users/id/[uid]": {
-      await signInAsDevAdmin(page, "/");
-      const sessionUser = await getCurrentSessionUser(page);
-      await gotoContractPage(
-        page,
-        `/community/users/id/${sessionUser.id}`,
-        testInfo,
-      );
-      await expectMainContent(page);
-      await expect(
-        visibleText(page, `@${DEV_SEED.adminUsername}`),
-      ).toBeVisible();
-      await maybeCapture(page, testInfo, "u-id-uid");
       return;
     }
 

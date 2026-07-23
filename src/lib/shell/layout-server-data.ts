@@ -59,8 +59,6 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       teachers: messages.common.teachers,
       calendar: messages.meDashboard.nav.calendar.title,
       bus: messages.meDashboard.nav.bus.title,
-      dashboardBus: locale === "zh-cn" ? "工作台校车" : "Dashboard transit",
-      workspaceTransit: locale === "zh-cn" ? "工作台交通" : "Workspace transit",
       subscriptions: messages.meDashboard.nav.subscriptions.title,
       homeworks: messages.meDashboard.nav.homeworks.title,
       exams: messages.meDashboard.nav.exams.title,

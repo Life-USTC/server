@@ -127,7 +127,7 @@ async function withUploadAuth(
   const auth = options.write
     ? await requireWriteAuth(request)
     : await requireAuth(request, {
-        bearerScope: { feature: "upload", action: "read" },
+        bearerScope: { feature: "workspace.upload", action: "read" },
       });
   if (auth instanceof Response) return auth;
 

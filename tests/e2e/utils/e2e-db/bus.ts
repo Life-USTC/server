@@ -5,6 +5,12 @@ export type BusTripTimesSnapshot = Array<{
   stopTimes: Array<string | null>;
 }>;
 
+export type BusPreferenceFixture = {
+  preferredDestinationCampusId: number | null;
+  preferredOriginCampusId: number | null;
+  showDepartedTrips: boolean;
+};
+
 const ALL_DAY_TRIP_TIMES = ["00:00", "23:59"] as const;
 
 export async function isolateSingleActiveBusTripFixture(): Promise<BusTripTimesSnapshot> {
@@ -51,4 +57,22 @@ export async function restoreBusTripTimesFixture(
       ),
     );
   });
+}
+
+export async function setBusPreferenceFixture(
+  userId: string,
+  preference: BusPreferenceFixture,
+) {
+  await withE2ePrisma((prisma) =>
+    prisma.busUserPreference.upsert({
+      where: { userId },
+      create: {
+        userId,
+        favoriteCampusIds: [],
+        favoriteRouteIds: [],
+        ...preference,
+      },
+      update: preference,
+    }),
+  );
 }

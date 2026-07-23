@@ -187,7 +187,7 @@ test.describe("/api/mcp - OAuth token 资源绑定", () => {
     const restClientScopes = [
       ...DEFAULT_OAUTH_CLIENT_SCOPES,
       OAUTH_OFFLINE_ACCESS_SCOPE,
-      restReadScope("todo"),
+      restReadScope("workspace.todo"),
     ];
     await signInAsDebugUser(page, "/");
 

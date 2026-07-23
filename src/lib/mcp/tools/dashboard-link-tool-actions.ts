@@ -4,10 +4,11 @@ import {
   searchQueryToTokens,
 } from "@/features/dashboard-links/lib/dashboard-link-search";
 import {
-  type DashboardLinksData,
-  getSignedInDashboardLinksData,
+  type DashboardLinkSummary,
+  getPublicDashboardLinksData,
 } from "@/features/dashboard-links/server/dashboard-link-data";
 import {
+  getDashboardLinkPinnedSlugs,
   MAX_PINNED_LINKS,
   resolveDashboardLinkBySlug,
   updateDashboardLinkPinState,
@@ -20,12 +21,6 @@ import {
 
 type ToolExtra = { authInfo?: AuthInfo };
 type McpModeInput = Parameters<typeof resolveMcpMode>[0];
-type DashboardLinkSummary = DashboardLinksData["dashboardLinks"][number];
-
-function pinnedSlugsFromData(data: DashboardLinksData) {
-  return data.pinnedLinks.map((link) => link.slug);
-}
-
 function normalizeDashboardLinkQuery(query: string | undefined) {
   const normalized = query?.trim().replace(/\s+/g, " ");
   return normalized ? normalized : null;
@@ -39,20 +34,21 @@ function dashboardLinkToolSummary(link: DashboardLinkSummary) {
     description: link.description,
     icon: link.icon,
     group: link.group,
-    isPinned: link.isPinned,
   };
 }
 
-export async function listDashboardLinksTool(
-  { query, mode }: { query?: string; mode?: McpModeInput },
-  extra: ToolExtra,
-) {
+export async function listDashboardLinksTool({
+  query,
+  mode,
+}: {
+  query?: string;
+  mode?: McpModeInput;
+}) {
   const resolvedMode = resolveMcpMode(mode);
-  const userId = getUserId(extra.authInfo);
-  const data = await getSignedInDashboardLinksData(userId);
+  const data = getPublicDashboardLinksData();
   const normalizedQuery = normalizeDashboardLinkQuery(query);
   const tokens = normalizedQuery ? searchQueryToTokens(normalizedQuery) : [];
-  const dashboardLinks =
+  const links =
     tokens.length === 0
       ? data.dashboardLinks
       : data.dashboardLinks.filter((link) => linkMatchesTokens(link, tokens));
@@ -62,12 +58,23 @@ export async function listDashboardLinksTool(
       success: true,
       query: normalizedQuery,
       total: data.dashboardLinks.length,
-      returned: dashboardLinks.length,
-      dashboardLinks: dashboardLinks.map(dashboardLinkToolSummary),
-      pinnedSlugs: pinnedSlugsFromData(data),
-      maxPinnedLinks: MAX_PINNED_LINKS,
+      returned: links.length,
+      links: links.map(dashboardLinkToolSummary),
     },
     { mode: resolvedMode },
+  );
+}
+
+export async function listDashboardLinkPinsTool(
+  { mode }: { mode?: McpModeInput },
+  extra: ToolExtra,
+) {
+  const pinnedSlugs = await getDashboardLinkPinnedSlugs(
+    getUserId(extra.authInfo),
+  );
+  return jsonToolResult(
+    { success: true, pinnedSlugs, maxPinnedLinks: MAX_PINNED_LINKS },
+    { mode: resolveMcpMode(mode) },
   );
 }
 
@@ -88,14 +95,14 @@ export async function setDashboardLinkPinStateTool(
   const link = resolveDashboardLinkBySlug(slug);
 
   if (!link) {
-    const data = await getSignedInDashboardLinksData(userId);
+    const pinnedSlugs = await getDashboardLinkPinnedSlugs(userId);
     return jsonToolResult(
       {
         success: false,
         error: "invalid_slug",
         message: `Unknown dashboard link slug: ${slug}`,
         slug,
-        pinnedSlugs: pinnedSlugsFromData(data),
+        pinnedSlugs,
         maxPinnedLinks: MAX_PINNED_LINKS,
       },
       { mode: resolvedMode },

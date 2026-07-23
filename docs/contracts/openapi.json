@@ -22,7 +22,7 @@
     "unknown-api-json-errors": "Unknown paths under /api return the standard JSON { error } envelope with status 404 instead of falling through to the HTML application error page.",
     "pagination-query-parameter": "Paginated REST endpoints use pageSize as the canonical request parameter. The deprecated limit alias remains accepted during migration, and pageSize takes precedence when both are supplied.",
     "paginated-list-envelope": "Paginated REST list endpoints return { data, pagination } with page, pageSize, total, and totalPages. Resource-specific list metadata is nested under meta instead of introducing alternate collection keys; REST and equivalent MCP list tools share this core envelope.",
-    "created-resource-status": "POST /api/workspace/todos, /api/community/comments, /api/community/homeworks, and /api/admin/suspensions return 201 Created with a relative Location header for the new resource. Idempotent upserts and state-setting operations continue to return 200.",
+    "created-resource-status": "POST /api/workspace/todos, /api/community/comments, /api/community/section-homeworks, and /api/admin/suspensions return 201 Created with a relative Location header for the new resource. Idempotent upserts and state-setting operations continue to return 200.",
     "schema-query-parsing": "Bus, schedule, overview, todo, and homework date, bounded-integer, and boolean query values are validated and converted once by their declared Zod schemas. Route handlers consume those typed results and return validation responses without re-wrapping them; pagination and comma-separated ID lists keep their dedicated normalizers.",
     "api-docs-responsive-navigation": "At 390x844, the selected API reference begins within the first viewport while the complete route-based navigation remains available in a labeled, closable mobile sheet. At desktop widths, the complete sticky sidebar remains visible beside the reference."
   },
@@ -79,7 +79,7 @@
           "REST routes for business logic",
           "Each with path, method, request/response types where annotated",
           "Calendar subscription query and mutation routes: /api/workspace/subscriptions/query and /api/workspace/subscriptions/batch",
-          "Batch mutation routes: /api/workspace/todos/batch and /api/workspace/links/pin/batch"
+          "Batch mutation routes: /api/workspace/todos/batch and /api/workspace/link-pins/batch"
         ]
       }
     },

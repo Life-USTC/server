@@ -47,7 +47,7 @@ async function findSeedHomeworkId(
   sectionId: number,
 ) {
   const listResponse = await request.get(
-    `/api/community/homeworks?sectionId=${sectionId}`,
+    `/api/community/section-homeworks?sectionId=${sectionId}`,
   );
   expect(listResponse.status()).toBe(200);
   const listBody = (await listResponse.json()) as {

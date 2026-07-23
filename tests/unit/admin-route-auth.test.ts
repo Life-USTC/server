@@ -78,7 +78,7 @@ describe("admin 路由认证", () => {
     verifyAccessTokenJwtMock.mockResolvedValue({
       clientId: "admin-client",
       sub: "admin-from-token",
-      scope: new Set(["me:read"]),
+      scope: new Set(["account.profile:read"]),
       aud: "https://life.example/api/auth",
     });
     resolveAdminByUserIdMock.mockResolvedValue({ userId: "admin-from-token" });
@@ -108,7 +108,7 @@ describe("admin 路由认证", () => {
       clientId: "admin-client",
       grantId: undefined,
       requireGrantBinding: true,
-      scopes: ["me:read"],
+      scopes: ["account.profile:read"],
       userId: "admin-from-token",
     });
     expect(resolveAdminByUserIdMock).toHaveBeenCalledWith("admin-from-token");

@@ -10,12 +10,10 @@ export function normalizeApiRoutePath(pathname: string) {
     .map((segment, index, segments) => {
       if (
         CALENDAR_FEED_TOKEN_SEPARATOR.test(segment) &&
-        segments[index - 3] === "api" &&
-        segments[index - 2] === "community" &&
-        segments[index - 1] === "users" &&
-        segments[index + 1] === "calendar.ics"
+        segments[index - 2] === "api" &&
+        segments[index - 1] === "calendar-feeds"
       ) {
-        return ":id";
+        return ":credential.ics";
       }
       if (NUMERIC_SEGMENT.test(segment)) return ":id";
       if (UUID_SEGMENT.test(segment)) return ":id";

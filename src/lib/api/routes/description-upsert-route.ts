@@ -15,7 +15,7 @@ import { requireAuth } from "@/lib/auth/api-auth";
 
 export async function postDescriptionRoute(request: Request) {
   const auth = await requireAuth(request, {
-    bearerScope: { feature: "description", action: "write" },
+    bearerScope: { feature: "community.description", action: "write" },
   });
   if (auth instanceof Response) {
     return auth;

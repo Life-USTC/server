@@ -3,14 +3,14 @@ import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
 /**
- * Pin or unpin multiple dashboard links in one request.
+ * Set multiple campus link pins.
  * @body dashboardLinkPinBatchRequestSchema
  * @response dashboardLinkPinResponseSchema
- * @response 400:dashboardLinkPinResponseSchema
+ * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
  * @response 429:openApiErrorSchema
+ * @response 500:openApiErrorSchema
  * @response 503:openApiErrorSchema
- * @response 500:dashboardLinkPinResponseSchema
  */
 export const POST = svelteRequestHandler(
   observedApiRoute(postDashboardLinkPinBatchRoute),

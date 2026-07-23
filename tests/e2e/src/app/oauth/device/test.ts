@@ -57,9 +57,9 @@ type DeviceAuthorizationResult = {
 const DEVICE_MCP_CLIENT_SCOPES = [
   "openid",
   "profile",
-  restReadScope("me"),
-  restReadScope("todo"),
-  restWriteScope("todo"),
+  restReadScope("account.profile"),
+  restReadScope("workspace.todo"),
+  restWriteScope("workspace.todo"),
   OAUTH_OFFLINE_ACCESS_SCOPE,
 ];
 
@@ -494,7 +494,7 @@ test("/oauth/device 含其他 feature scope 但无 todo scope 的令牌被 todo 
 }) => {
   const clientName = `device-e2e-feature-rest-token-${Date.now()}`;
   const restResource = `${PLAYWRIGHT_BASE_URL}/api/auth`;
-  const scopes = ["openid", "profile", restReadScope("schedule")];
+  const scopes = ["openid", "profile", restReadScope("workspace.schedule")];
   const resources = [restResource];
   try {
     const result = await requestDeviceCode(request, clientName, {

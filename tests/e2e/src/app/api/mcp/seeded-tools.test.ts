@@ -1321,7 +1321,7 @@ test.describe("/api/mcp - 种子工具覆盖", () => {
       } finally {
         if (createdHomeworkId) {
           await page.request.delete(
-            `/api/community/homeworks/${createdHomeworkId}`,
+            `/api/community/section-homeworks/${createdHomeworkId}`,
           );
         }
         await replaceCalendarSubscription(page.request, originalSectionIds);

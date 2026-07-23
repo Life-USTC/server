@@ -17,7 +17,7 @@ vi.mock("@/lib/db/prisma", () => ({
   withUserDbContext: withUserDbContextMock,
 }));
 
-describe("POST /api/workspace/links/pin", () => {
+describe("POST /api/workspace/link-pins", () => {
   beforeEach(() => {
     vi.resetModules();
     requireAuthMock.mockResolvedValue({ userId: "user-1" });
@@ -40,7 +40,7 @@ describe("POST /api/workspace/links/pin", () => {
     form.set("returnTo", "/");
 
     const response = await postDashboardLinkPinRoute(
-      new Request("http://localhost/api/workspace/links/pin", {
+      new Request("http://localhost/api/workspace/link-pins", {
         method: "POST",
         body: form,
         headers: {
@@ -69,7 +69,7 @@ describe("POST /api/workspace/links/pin", () => {
     );
 
     const response = await postDashboardLinkPinRoute(
-      new Request("http://localhost/api/workspace/links/pin", {
+      new Request("http://localhost/api/workspace/link-pins", {
         method: "POST",
         body: new FormData(),
         headers: { accept: "application/json" },
@@ -93,7 +93,7 @@ describe("POST /api/workspace/links/pin", () => {
     );
 
     const response = await postDashboardLinkPinRoute(
-      new Request("http://localhost/api/workspace/links/pin", {
+      new Request("http://localhost/api/workspace/link-pins", {
         method: "POST",
         body: new FormData(),
       }),

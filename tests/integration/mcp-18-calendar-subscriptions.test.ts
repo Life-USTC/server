@@ -43,7 +43,7 @@ describe("个人日历订阅 — 读取与批量订阅", () => {
       ),
     ).toBe(true);
     expect(result.subscription?.calendarPath).toMatch(
-      /\/api\/community\/users\/[^/]+\/calendar\.ics$/,
+      /\/api\/calendar-feeds\/[^/]+\.ics$/,
     );
     expect(result.subscription?.calendarUrl).toContain(
       result.subscription?.calendarPath ?? "",

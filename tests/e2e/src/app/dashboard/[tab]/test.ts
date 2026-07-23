@@ -21,8 +21,8 @@ const dashboardTabRoutes = {
   todos: "/workspace/todos",
   exams: "/workspace/exams",
   subscriptions: "/workspace/subscriptions",
-  bus: "/workspace/bus",
-  links: "/workspace/links",
+  bus: "/catalog/bus",
+  links: "/catalog/links",
 } satisfies Record<SignedTabId, string>;
 
 const dashboardTabTitles = {
